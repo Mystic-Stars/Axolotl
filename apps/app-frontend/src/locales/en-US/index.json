@@ -611,6 +611,57 @@
   "app.instance.played": {
     "message": "Played {time}"
   },
+  "app.instance.screenshots.action-failed": {
+    "message": "Screenshot action failed"
+  },
+  "app.instance.screenshots.copied": {
+    "message": "Screenshot copied"
+  },
+  "app.instance.screenshots.copy": {
+    "message": "Copy image"
+  },
+  "app.instance.screenshots.copy-failed": {
+    "message": "Could not copy screenshot"
+  },
+  "app.instance.screenshots.delete": {
+    "message": "Delete screenshot"
+  },
+  "app.instance.screenshots.delete-description": {
+    "message": "Are you sure you want to permanently delete {name}?"
+  },
+  "app.instance.screenshots.delete-failed": {
+    "message": "Could not delete screenshot"
+  },
+  "app.instance.screenshots.empty-description": {
+    "message": "Screenshots taken in Minecraft will appear here automatically."
+  },
+  "app.instance.screenshots.empty-title": {
+    "message": "No screenshots yet"
+  },
+  "app.instance.screenshots.loading-failed": {
+    "message": "Could not load screenshots"
+  },
+  "app.instance.screenshots.no-search-results": {
+    "message": "No screenshots match your search."
+  },
+  "app.instance.screenshots.open-folder": {
+    "message": "Open screenshots folder"
+  },
+  "app.instance.screenshots.save-as": {
+    "message": "Save as..."
+  },
+  "app.instance.screenshots.search-placeholder": {
+    "message": "Search {count} screenshots..."
+  },
+  "app.instance.screenshots.view": {
+    "message": "View screenshot"
+  },
+  "app.instance.screenshots.zoom-in": {
+    "message": "View at full size"
+  },
+  "app.instance.screenshots.zoom-out": {
+    "message": "Fit to window"
+  },
   "app.instance.select-updatable": {
     "message": "Select updatable"
   },
@@ -634,6 +685,9 @@
   },
   "app.instance.tabs.logs": {
     "message": "Logs"
+  },
+  "app.instance.tabs.screenshots": {
+    "message": "Screenshots"
   },
   "app.instance.tabs.worlds": {
     "message": "Worlds"

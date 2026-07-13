@@ -435,7 +435,7 @@ defineExpose({ show, showLoading, hide, getState, restore, updateItem, setItems 
 							class="rounded-full border border-solid px-3 py-1.5 text-base font-semibold leading-5 transition-colors"
 							:class="
 								selectedFilters.length === 0
-									? 'border-green bg-brand-highlight text-brand'
+									? 'border-brand bg-brand-highlight text-brand'
 									: 'border-surface-5 bg-surface-4 text-primary hover:bg-surface-5'
 							"
 							@click="selectedFilters = []"
@@ -449,7 +449,7 @@ defineExpose({ show, showLoading, hide, getState, restore, updateItem, setItems 
 							class="rounded-full border border-solid px-3 py-1.5 text-base font-semibold leading-5 transition-colors"
 							:class="
 								selectedFilters.includes(option.id)
-									? 'border-green bg-brand-highlight text-brand'
+									? 'border-brand bg-brand-highlight text-brand'
 									: 'border-surface-5 bg-surface-4 text-primary hover:bg-surface-5'
 							"
 							@click="toggleFilter(option.id)"

@@ -611,6 +611,57 @@
 	"app.instance.played": {
 		"message": "游玩于 {time}"
 	},
+	"app.instance.screenshots.action-failed": {
+		"message": "截图操作失败"
+	},
+	"app.instance.screenshots.copied": {
+		"message": "截图已复制"
+	},
+	"app.instance.screenshots.copy": {
+		"message": "复制图片"
+	},
+	"app.instance.screenshots.copy-failed": {
+		"message": "无法复制截图"
+	},
+	"app.instance.screenshots.delete": {
+		"message": "删除截图"
+	},
+	"app.instance.screenshots.delete-description": {
+		"message": "确定要永久删除 {name} 吗？"
+	},
+	"app.instance.screenshots.delete-failed": {
+		"message": "无法删除截图"
+	},
+	"app.instance.screenshots.empty-description": {
+		"message": "在 Minecraft 中拍摄的截图会自动显示在这里。"
+	},
+	"app.instance.screenshots.empty-title": {
+		"message": "还没有截图"
+	},
+	"app.instance.screenshots.loading-failed": {
+		"message": "无法加载截图"
+	},
+	"app.instance.screenshots.no-search-results": {
+		"message": "没有符合搜索条件的截图。"
+	},
+	"app.instance.screenshots.open-folder": {
+		"message": "打开截图文件夹"
+	},
+	"app.instance.screenshots.save-as": {
+		"message": "另存为……"
+	},
+	"app.instance.screenshots.search-placeholder": {
+		"message": "搜索 {count} 张截图……"
+	},
+	"app.instance.screenshots.view": {
+		"message": "查看截图"
+	},
+	"app.instance.screenshots.zoom-in": {
+		"message": "查看原始大小"
+	},
+	"app.instance.screenshots.zoom-out": {
+		"message": "适应窗口"
+	},
 	"app.instance.select-updatable": {
 		"message": "选择可更新项"
 	},
@@ -634,6 +685,9 @@
 	},
 	"app.instance.tabs.logs": {
 		"message": "日志"
+	},
+	"app.instance.tabs.screenshots": {
+		"message": "截图"
 	},
 	"app.instance.tabs.worlds": {
 		"message": "世界"

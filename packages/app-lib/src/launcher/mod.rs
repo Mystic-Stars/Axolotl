@@ -1147,6 +1147,8 @@ fn update_offline_skin_resource_pack_option(
         *options_string = resource_packs
             .replace_all(options_string, format!("resourcePacks:{value}"))
             .to_string();
+    } else if options_string.is_empty() {
+        write!(options_string, "resourcePacks:{value}").unwrap();
     } else {
         write!(options_string, "\nresourcePacks:{value}").unwrap();
     }
@@ -1157,6 +1159,26 @@ fn update_offline_skin_resource_pack_option(
 #[cfg(test)]
 mod offline_skin_resource_pack_tests {
     use super::*;
+
+    #[test]
+    fn enables_offline_skin_pack_when_options_file_is_new() {
+        let mut options = String::new();
+
+        update_offline_skin_resource_pack_option(
+            &mut options,
+            crate::minecraft_skins::OfflineSkinPackOptions {
+                enabled_pack_id: Some(
+                    crate::minecraft_skins::OFFLINE_SKIN_PACK_MODERN_ID,
+                ),
+            },
+        )
+        .unwrap();
+
+        assert_eq!(
+            options,
+            "resourcePacks:[\"vanilla\",\"file/Axolotl Offline Skin.zip\"]"
+        );
+    }
 
     #[test]
     fn adds_modern_offline_skin_pack_without_removing_existing_packs() {

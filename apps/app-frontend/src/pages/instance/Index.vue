@@ -309,6 +309,7 @@ import {
 	FolderOpenIcon,
 	GlobeIcon,
 	HashIcon,
+	ImageIcon,
 	MoreVerticalIcon,
 	PackageIcon,
 	PlayIcon,
@@ -407,6 +408,7 @@ const messages = defineMessages({
 	contentTab: { id: 'app.instance.tabs.content', defaultMessage: 'Content' },
 	filesTab: { id: 'app.instance.tabs.files', defaultMessage: 'Files' },
 	worldsTab: { id: 'app.instance.tabs.worlds', defaultMessage: 'Worlds' },
+	screenshotsTab: { id: 'app.instance.tabs.screenshots', defaultMessage: 'Screenshots' },
 	logsTab: { id: 'app.instance.tabs.logs', defaultMessage: 'Logs' },
 })
 
@@ -608,6 +610,11 @@ const tabs = computed(() => [
 		label: formatMessage(messages.filesTab),
 		href: `${basePath.value}/files`,
 		icon: FolderOpenIcon,
+	},
+	{
+		label: formatMessage(messages.screenshotsTab),
+		href: `${basePath.value}/screenshots`,
+		icon: ImageIcon,
 	},
 	{
 		label: formatMessage(messages.worldsTab),
