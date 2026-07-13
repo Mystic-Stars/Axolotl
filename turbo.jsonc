@@ -17,7 +17,7 @@
 		"build": {
 			"dependsOn": ["^build"],
 			"inputs": ["$TURBO_DEFAULT$", ".env*"],
-			"outputs": [".nuxt/**", "dist/**", ".output/**", "$TURBO_ROOT$/target/**"],
+			"outputs": [".nuxt/**", "dist/**", ".output/**"],
 			"env": [
 				"NODE_ENV",
 				"SITE_URL",
@@ -47,12 +47,10 @@
 				"BUILD_ENV",
 				"PREVIEW"
 			],
-			"passThroughEnv": [
-				"SCCACHE_*",
-				"RUSTC_WRAPPER",
-				"AWS_ACCESS_KEY_ID",
-				"AWS_SECRET_ACCESS_KEY"
-			]
+			"passThroughEnv": ["SCCACHE_*", "RUSTC_WRAPPER", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY"]
+		},
+		"@modrinth/app#build": {
+			"cache": false
 		},
 		"lint": {
 			"env": [
@@ -64,12 +62,7 @@
 				"FORCE_COLOR",
 				"NEXTEST_*"
 			],
-			"passThroughEnv": [
-				"SCCACHE_*",
-				"RUSTC_WRAPPER",
-				"AWS_ACCESS_KEY_ID",
-				"AWS_SECRET_ACCESS_KEY"
-			]
+			"passThroughEnv": ["SCCACHE_*", "RUSTC_WRAPPER", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY"]
 		},
 		"lint:ancillary": {},
 		"dev": {
@@ -89,12 +82,7 @@
 				"FORCE_COLOR",
 				"NEXTEST_*"
 			],
-			"passThroughEnv": [
-				"SCCACHE_*",
-				"RUSTC_WRAPPER",
-				"AWS_ACCESS_KEY_ID",
-				"AWS_SECRET_ACCESS_KEY"
-			]
+			"passThroughEnv": ["SCCACHE_*", "RUSTC_WRAPPER", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY"]
 		},
 		"fix": {},
 		"fix:ancillary": {

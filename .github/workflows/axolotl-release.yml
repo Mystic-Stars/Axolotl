@@ -1,0 +1,110 @@
+name: Axolotl release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: axolotl-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build (${{ matrix.name }})
+    strategy:
+      fail-fast: true
+      max-parallel: 1
+      matrix:
+        include:
+          - name: Linux x64
+            runner: ubuntu-24.04
+            args: --config tauri-release.conf.json
+          - name: Windows x64
+            runner: windows-2025
+            args: --config tauri-release.conf.json
+          - name: macOS universal
+            runner: macos-15
+            args: --target universal-apple-darwin --config tauri-release.conf.json
+    runs-on: ${{ matrix.runner }}
+    env:
+      SQLX_OFFLINE: true
+    steps:
+      - name: Check out source
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@4be7066ada62dd38de10e7b70166bc74ed198c30 # stable
+
+      - name: Add macOS universal targets
+        if: runner.os == 'macOS'
+        run: rustup target add aarch64-apple-darwin x86_64-apple-darwin
+
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Set release version
+        run: node scripts/axolotl/set-version.mjs "${{ github.ref_name }}"
+
+      - name: Build and upload release assets
+        uses: tauri-apps/tauri-action@1ddc7b49b13c3038297360482fcb3e058764d7c9 # v0.6.2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          TAURI_BUNDLER_DMG_IGNORE_CI: ${{ runner.os == 'macOS' && 'true' || '' }}
+        with:
+          projectPath: apps/app
+          tauriScript: pnpm tauri
+          args: ${{ matrix.args }}
+          tagName: ${{ github.ref_name }}
+          releaseName: Axolotl Launcher ${{ github.ref_name }}
+          releaseDraft: true
+          prerelease: ${{ contains(github.ref_name, '-') }}
+          generateReleaseNotes: true
+          updaterJsonPreferNsis: true
+          retryAttempts: 2
+
+  verify-and-publish:
+    name: Verify and publish
+    needs: build
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out source
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Download update manifest
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release download "${GITHUB_REF_NAME}" --pattern latest.json --dir release-check
+
+      - name: Verify update manifest
+        run: node scripts/axolotl/verify-update-manifest.mjs release-check/latest.json "${GITHUB_REF_NAME}"
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [[ "${GITHUB_REF_NAME}" == *-* ]]; then
+            gh release edit "${GITHUB_REF_NAME}" --draft=false --prerelease
+          else
+            gh release edit "${GITHUB_REF_NAME}" --draft=false --latest
+          fi
