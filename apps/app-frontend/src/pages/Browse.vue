@@ -37,6 +37,7 @@ import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
 
 import ContextMenu from '@/components/ui/ContextMenu.vue'
 import { useAppServerBrowse } from '@/composables/browse/use-app-server-browse'
+import { useNetworkStatus } from '@/composables/useNetworkStatus'
 import {
 	get_project,
 	get_project_v3,
@@ -365,15 +366,7 @@ const {
 	router,
 })
 
-const offline = ref(!navigator.onLine)
-window.addEventListener('offline', () => {
-	debugLog('went offline')
-	offline.value = true
-})
-window.addEventListener('online', () => {
-	debugLog('went online')
-	offline.value = false
-})
+const { offline } = useNetworkStatus()
 
 const messages = defineMessages({
 	addServersToInstance: {

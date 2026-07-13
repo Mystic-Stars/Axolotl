@@ -779,6 +779,8 @@ pub enum CacheBehaviour {
     /// and expired data is served
     #[default]
     StaleWhileRevalidateSkipOffline,
+    /// Only serve locally cached data and never make a network request.
+    CacheOnly,
     // Serve expired data, revalidate in background
     StaleWhileRevalidate,
     // Must revalidate if data is expired
@@ -1015,7 +1017,9 @@ impl CachedEntry {
             }
         }
 
-        if !remaining_keys.is_empty() {
+        if !remaining_keys.is_empty()
+            && cache_behaviour != CacheBehaviour::CacheOnly
+        {
             let res = Self::fetch_many(
                 type_,
                 remaining_keys.clone(),

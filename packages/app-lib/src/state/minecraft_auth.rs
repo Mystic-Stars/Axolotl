@@ -584,6 +584,19 @@ impl Credentials {
     pub async fn get_active(
         exec: impl sqlx::Executor<'_, Database = sqlx::Sqlite> + Copy,
     ) -> crate::Result<Option<Self>> {
+        Self::get_active_with_refresh(exec, true).await
+    }
+
+    pub async fn get_active_without_refresh(
+        exec: impl sqlx::Executor<'_, Database = sqlx::Sqlite> + Copy,
+    ) -> crate::Result<Option<Self>> {
+        Self::get_active_with_refresh(exec, false).await
+    }
+
+    async fn get_active_with_refresh(
+        exec: impl sqlx::Executor<'_, Database = sqlx::Sqlite> + Copy,
+        refresh: bool,
+    ) -> crate::Result<Option<Self>> {
         let res = sqlx::query_as::<_, StoredCredentials>(
             "
             SELECT
@@ -599,7 +612,9 @@ impl Credentials {
         Ok(match res {
             Some(x) => {
                 let mut credentials = Self::from_stored(x);
-                credentials.refresh(exec).await.ok();
+                if refresh {
+                    credentials.refresh(exec).await.ok();
+                }
                 Some(credentials)
             }
             None => None,
@@ -608,6 +623,19 @@ impl Credentials {
 
     pub async fn get_all(
         exec: impl sqlx::Executor<'_, Database = sqlx::Sqlite> + Copy,
+    ) -> crate::Result<DashMap<Uuid, Self>> {
+        Self::get_all_with_refresh(exec, true).await
+    }
+
+    pub async fn get_all_without_refresh(
+        exec: impl sqlx::Executor<'_, Database = sqlx::Sqlite> + Copy,
+    ) -> crate::Result<DashMap<Uuid, Self>> {
+        Self::get_all_with_refresh(exec, false).await
+    }
+
+    async fn get_all_with_refresh(
+        exec: impl sqlx::Executor<'_, Database = sqlx::Sqlite> + Copy,
+        refresh: bool,
     ) -> crate::Result<DashMap<Uuid, Self>> {
         let res = sqlx::query_as::<_, StoredCredentials>(
             "
@@ -623,7 +651,9 @@ impl Credentials {
             let uuid = credentials.offline_profile.id;
 
             async move {
-                credentials.refresh(exec).await.ok();
+                if refresh {
+                    credentials.refresh(exec).await.ok();
+                }
                 acc.insert(uuid, credentials);
 
                 Ok(acc)
@@ -632,6 +662,24 @@ impl Credentials {
         .await?;
 
         Ok(res)
+    }
+
+    pub async fn get_offline_credential(
+        exec: impl sqlx::Executor<'_, Database = sqlx::Sqlite> + Copy,
+    ) -> crate::Result<Option<Self>> {
+        let active = Self::get_active_without_refresh(exec).await?;
+        if active.as_ref().is_some_and(Self::is_offline) {
+            return Ok(active);
+        }
+
+        let users = Self::get_all_without_refresh(exec).await?;
+        Ok(users
+            .into_iter()
+            .map(|(_, credentials)| credentials)
+            .filter(Self::is_offline)
+            .min_by(|left, right| {
+                left.offline_profile.name.cmp(&right.offline_profile.name)
+            }))
     }
 
     pub async fn upsert(
@@ -790,6 +838,46 @@ mod offline_account_tests {
         assert_eq!(stored.offline_profile.id, credentials.offline_profile.id);
         assert!(stored.is_offline());
         assert!(stored.active);
+    }
+
+    #[tokio::test]
+    async fn selects_offline_account_when_online_account_is_active() {
+        let pool = sqlx::sqlite::SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect("sqlite::memory:")
+            .await
+            .unwrap();
+        sqlx::migrate!().run(&pool).await.unwrap();
+
+        let mut offline = Credentials::offline("OfflineUser").unwrap();
+        offline.active = false;
+        offline.upsert(&pool).await.unwrap();
+
+        sqlx::query(
+            "
+            INSERT INTO minecraft_users (
+                uuid, active, username, account_type, access_token,
+                refresh_token, expires
+            )
+            VALUES ($1, TRUE, $2, 'microsoft', $3, $4, $5)
+            ",
+        )
+        .bind(Uuid::new_v4().as_hyphenated().to_string())
+        .bind("OnlineUser")
+        .bind("expired-access-token")
+        .bind("expired-refresh-token")
+        .bind(0_i64)
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        let selected = Credentials::get_offline_credential(&pool)
+            .await
+            .unwrap()
+            .unwrap();
+
+        assert!(selected.is_offline());
+        assert_eq!(selected.offline_profile.id, offline.offline_profile.id);
     }
 }
 

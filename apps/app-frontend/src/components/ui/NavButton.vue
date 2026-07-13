@@ -3,6 +3,8 @@
 		v-if="typeof to === 'string'"
 		:to="to"
 		v-bind="$attrs"
+		:aria-disabled="disabled"
+		:tabindex="disabled ? -1 : undefined"
 		:active-class="isSubpage ? '' : undefined"
 		:class="{
 			'router-link-active': isPrimary && isPrimary(route),
@@ -10,6 +12,7 @@
 			disabled: disabled,
 		}"
 		class="w-12 h-12 text-primary rounded-full flex items-center justify-center text-2xl transition-all bg-transparent hover:bg-button-bg hover:text-contrast"
+		@click="disabled && $event.preventDefault()"
 	>
 		<slot />
 	</RouterLink>

@@ -21,6 +21,7 @@ import dayjs from 'dayjs'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
+import { useNetworkStatus } from '@/composables/useNetworkStatus'
 import { trackEvent } from '@/helpers/analytics'
 import { process_listener } from '@/helpers/events'
 import { install_existing_instance, install_pack_to_existing_instance } from '@/helpers/install'
@@ -36,7 +37,13 @@ const messages = defineMessages({
 	loading: { id: 'app.instance.loading', defaultMessage: 'Instance is loading...' },
 	played: { id: 'app.instance.played', defaultMessage: 'Played {time}' },
 	neverPlayed: { id: 'app.instance.never-played', defaultMessage: 'Never played' },
+	offlineInstalledOnly: {
+		id: 'app.instance.offline-installed-only',
+		defaultMessage: 'Offline mode can only launch fully downloaded instances.',
+	},
 })
+
+const { offline } = useNetworkStatus()
 
 const props = defineProps({
 	instance: {
@@ -192,7 +199,12 @@ onUnmounted(() => unlisten())
 				</ButtonStyled>
 				<ButtonStyled v-else :color="first ? 'brand' : 'standard'" circular>
 					<button
-						v-tooltip="formatMessage(commonMessages.playButton)"
+						v-tooltip="
+							offline && !installed
+								? formatMessage(messages.offlineInstalledOnly)
+								: formatMessage(commonMessages.playButton)
+						"
+						:disabled="offline && !installed"
 						@click="(e) => play(e, 'InstanceCard')"
 						@mousehover="checkProcess"
 					>
@@ -254,7 +266,12 @@ onUnmounted(() => unlisten())
 					/>
 					<ButtonStyled v-else-if="!installed" size="large" color="brand" circular>
 						<button
-							v-tooltip="formatMessage(commonMessages.repairButton)"
+							v-tooltip="
+								offline
+									? formatMessage(messages.offlineInstalledOnly)
+									: formatMessage(commonMessages.repairButton)
+							"
+							:disabled="offline"
 							class="transition-all scale-75 group-hover:scale-100 group-focus-within:scale-100 origin-bottom opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 card-shadow"
 							@click="(e) => repair(e)"
 						>

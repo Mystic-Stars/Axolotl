@@ -68,6 +68,7 @@ import QuickInstanceSwitcher from '@/components/ui/QuickInstanceSwitcher.vue'
 import SplashScreen from '@/components/ui/SplashScreen.vue'
 import WindowControls from '@/components/ui/WindowControls.vue'
 import { useCheckDisableMouseover } from '@/composables/macCssFix.js'
+import { useNetworkStatus } from '@/composables/useNetworkStatus'
 import { AxolotlBrandConfig, config } from '@/config'
 import { debugAnalytics, initAnalytics, trackEvent } from '@/helpers/analytics'
 import { check_reachable } from '@/helpers/auth.js'
@@ -188,13 +189,7 @@ const {
 	handleModpackDuplicateGoToInstance,
 } = setupProviders(notificationManager, popupNotificationManager)
 
-const offline = ref(!navigator.onLine)
-window.addEventListener('offline', () => {
-	offline.value = true
-})
-window.addEventListener('online', () => {
-	offline.value = false
-})
+const { browserOffline, offline, setNetworkReachable } = useNetworkStatus()
 
 const showOnboarding = ref(false)
 const nativeDecorations = ref(false)
@@ -210,17 +205,24 @@ const authUnreachableDebug = useDebugLogger('AuthReachableChecker')
 const authServerQuery = useQuery({
 	queryKey: ['authServerReachability'],
 	queryFn: async () => {
-		await check_reachable()
-		authUnreachableDebug('Auth servers are reachable')
-		return true
+		try {
+			await check_reachable()
+			setNetworkReachable(true)
+			authUnreachableDebug('Auth servers are reachable')
+			return true
+		} catch (error) {
+			setNetworkReachable(false)
+			throw error
+		}
 	},
 	refetchInterval: 5 * 60 * 1000, // 5 minutes
 	retry: false,
 	refetchOnWindowFocus: false,
 })
+	enabled: computed(() => !browserOffline.value),
 
 const authUnreachable = computed(() => {
-	if (authServerQuery.isError.value && !authServerQuery.isLoading.value) {
+	if (!offline.value && authServerQuery.isError.value && !authServerQuery.isLoading.value) {
 		console.warn('Failed to reach auth servers', authServerQuery.error.value)
 		return true
 	}
@@ -342,7 +344,7 @@ async function setupApp() {
 		DiscoverContent: '/browse/modpack',
 		Library: '/library',
 	}
-	const defaultPageRoute = defaultPageRoutes[default_page]
+	const defaultPageRoute = offline.value ? '/library' : defaultPageRoutes[default_page]
 	if (defaultPageRoute && defaultPageRoute !== '/') await router.push(defaultPageRoute)
 
 	os.value = await getOS()
@@ -516,6 +518,12 @@ const {
 	preferredLoader: contentInstallPreferredLoader,
 	preferredGameVersion: contentInstallPreferredGameVersion,
 	releaseGameVersions: contentInstallReleaseGameVersions,
+watch(offline, (isOffline) => {
+	if (isOffline && (route.path.startsWith('/browse') || route.path.startsWith('/project'))) {
+		void router.push('/library')
+	}
+})
+
 	projectInfo: contentInstallProjectInfo,
 	handleInstallToInstance,
 	handleCreateAndInstall,
@@ -660,6 +668,10 @@ async function handleCommand(e) {
 				)
 			} else {
 				await install_create_modpack_instance(location).catch(handleError)
+	if (offline.value && e.event !== 'LaunchInstance') {
+		await router.push('/library')
+		return
+	}
 			}
 			trackEvent('InstanceCreate', {
 				source: 'CreationModalFileDrop',
@@ -889,7 +901,11 @@ async function checkUpdates() {
 		getUpdateSize(update.rid).then((size) => (updateSize.value = size))
 	}
 
-	await performCheck()
+	if (!offline.value) {
+		await performCheck().catch((error) => {
+			console.warn('Failed to check for launcher updates', error)
+		})
+	}
 	setTimeout(
 		() => {
 			checkUpdates()
@@ -1110,6 +1126,7 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 			</NavButton>
 			<div class="h-px w-6 mx-auto my-2 bg-surface-5"></div>
 			<suspense>
+				:disabled="offline"
 				<QuickInstanceSwitcher />
 			</suspense>
 			<NavButton

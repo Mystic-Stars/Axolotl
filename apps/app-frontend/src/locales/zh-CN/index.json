@@ -638,6 +638,9 @@
 	"app.instance.screenshots.empty-title": {
 		"message": "还没有截图"
 	},
+	"app.instance.offline-installed-only": {
+		"message": "离线模式只能启动已完整下载的实例。"
+	},
 	"app.instance.screenshots.loading-failed": {
 		"message": "无法加载截图"
 	},
@@ -1816,6 +1819,12 @@
 	},
 	"minecraft-account.select-account": {
 		"message": "选择账户"
+	},
+	"minecraft-account.offline-mode": {
+		"message": "离线模式"
+	},
+	"minecraft-account.offline-mode.description": {
+		"message": "仅可使用离线账号，并且只能启动已完整下载的实例。"
 	},
 	"minecraft-account.sign-in": {
 		"message": "登录 Minecraft"

@@ -26,6 +26,7 @@ import ContextMenu from '@/components/ui/ContextMenu.vue'
 import Instance from '@/components/ui/Instance.vue'
 import LegacyProjectCard from '@/components/ui/LegacyProjectCard.vue'
 import ConfirmDeleteInstanceModal from '@/components/ui/modal/ConfirmDeleteInstanceModal.vue'
+import { useNetworkStatus } from '@/composables/useNetworkStatus'
 import { trackEvent } from '@/helpers/analytics'
 import { install_duplicate_instance } from '@/helpers/install'
 import { kill, remove, run } from '@/helpers/instance'
@@ -37,6 +38,7 @@ import { handleSevereError } from '@/store/error.js'
 const { handleError } = injectNotificationManager()
 const { install: installVersion } = injectContentInstall()
 const { formatMessage } = useVIntl()
+const { offline } = useNetworkStatus()
 
 const messages = defineMessages({
 	addContent: { id: 'app.instances.add-content', defaultMessage: 'Add content' },
@@ -90,8 +92,7 @@ async function duplicateInstance(p) {
 
 const handleInstanceRightClick = async (event, passedInstance) => {
 	const baseOptions = [
-		{ name: 'add_content' },
-		{ type: 'divider' },
+		...(!offline.value ? [{ name: 'add_content' }, { type: 'divider' }] : []),
 		{ name: 'edit' },
 		{ name: 'duplicate' },
 		{ name: 'open_folder' },
@@ -115,10 +116,14 @@ const handleInstanceRightClick = async (event, passedInstance) => {
 					...baseOptions,
 				]
 			: [
-					{
-						name: 'play',
-						color: 'primary',
-					},
+					...(offline.value && passedInstance.install_stage !== 'installed'
+						? []
+						: [
+								{
+									name: 'play',
+									color: 'primary',
+								},
+							]),
 					...baseOptions,
 				]
 

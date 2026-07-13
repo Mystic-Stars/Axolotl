@@ -109,6 +109,7 @@ type ContentFileProjectType = 'mod' | 'datapack' | 'resourcepack' | 'shaderpack'
 type CacheBehaviour =
 	// Serve expired data. If fetch fails / launcher is offline, errors are ignored
 	| 'stale_while_revalidate_skip_offline'
+	| 'cache_only'
 	// Serve expired data, revalidate in background
 	| 'stale_while_revalidate'
 	// Must revalidate if data is expired

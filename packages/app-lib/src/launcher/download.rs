@@ -545,6 +545,55 @@ pub async fn download_version_info(
     Ok(res)
 }
 
+pub async fn load_local_version_info(
+    st: &State,
+    version: &GameVersion,
+    loader: Option<&LoaderVersion>,
+) -> crate::Result<GameVersionInfo> {
+    let version_id = loader
+        .map_or(version.id.clone(), |it| format!("{}-{}", version.id, it.id));
+    let path = st
+        .directories
+        .version_dir(&version_id)
+        .join(format!("{version_id}.json"));
+
+    if !path.is_file() {
+        return Err(crate::ErrorKind::LauncherError(format!(
+            "Offline mode can only launch fully downloaded instances; missing {}",
+            path.display()
+        ))
+        .as_error());
+    }
+
+    let bytes = io::read(&path).err_into::<crate::Error>().await?;
+    Ok(serde_json::from_slice(&bytes)?)
+}
+
+pub fn ensure_local_log_config(
+    st: &State,
+    version_info: &GameVersionInfo,
+) -> crate::Result<()> {
+    let log_download = version_info
+        .logging
+        .as_ref()
+        .and_then(|logging| logging.get(&LoggingSide::Client));
+    let Some(LoggingConfiguration::Log4j2Xml { file, .. }) = log_download
+    else {
+        return Ok(());
+    };
+
+    let path = st.directories.log_configs_dir().join(&file.id);
+    if !path.is_file() {
+        return Err(crate::ErrorKind::LauncherError(format!(
+            "Offline mode can only launch fully downloaded instances; missing {}",
+            path.display()
+        ))
+        .as_error());
+    }
+
+    Ok(())
+}
+
 #[tracing::instrument(skip_all)]
 
 pub async fn download_client(

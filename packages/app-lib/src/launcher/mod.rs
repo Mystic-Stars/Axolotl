@@ -15,8 +15,8 @@ use crate::launcher::quick_play_version::{
 use crate::server_address::{ServerAddress, parse_server_address};
 use crate::state::server_join_log::JoinLogEntry;
 use crate::state::{
-    Credentials, InstanceInstallStage, InstanceLaunchContext, InstanceLink,
-    JavaVersion, MemorySettings, ProcessMetadata, WindowSize,
+    CacheBehaviour, Credentials, InstanceInstallStage, InstanceLaunchContext,
+    InstanceLink, JavaVersion, MemorySettings, ProcessMetadata, WindowSize,
 };
 use crate::util::io;
 use crate::util::rpc::RpcServerBuilder;
@@ -160,6 +160,21 @@ pub async fn get_loader_version_from_profile(
     loader: ModLoader,
     loader_version: Option<&str>,
 ) -> crate::Result<Option<LoaderVersion>> {
+    get_loader_version_from_profile_with_cache(
+        game_version,
+        loader,
+        loader_version,
+        None,
+    )
+    .await
+}
+
+pub async fn get_loader_version_from_profile_with_cache(
+    game_version: &str,
+    loader: ModLoader,
+    loader_version: Option<&str>,
+    cache_behaviour: Option<CacheBehaviour>,
+) -> crate::Result<Option<LoaderVersion>> {
     if loader == ModLoader::Vanilla {
         return Ok(None);
     }
@@ -172,8 +187,11 @@ pub async fn get_loader_version_from_profile(
         id => it.id == *id,
     };
 
-    let versions =
-        crate::api::metadata::get_loader_versions(loader.as_meta_str()).await?;
+    let versions = crate::api::metadata::get_loader_versions_with_cache(
+        loader.as_meta_str(),
+        cache_behaviour,
+    )
+    .await?;
 
     if let Some(loaders) =
         loader_versions_for_game_version(&versions, game_version)
@@ -221,7 +239,18 @@ pub async fn resolve_minecraft_manifest(
     game_version: &str,
     state: &State,
 ) -> crate::Result<(d::minecraft::VersionManifest, usize)> {
-    let minecraft = crate::api::metadata::get_minecraft_versions().await?;
+    resolve_minecraft_manifest_with_cache(game_version, state, None).await
+}
+
+pub async fn resolve_minecraft_manifest_with_cache(
+    game_version: &str,
+    state: &State,
+    cache_behaviour: Option<CacheBehaviour>,
+) -> crate::Result<(d::minecraft::VersionManifest, usize)> {
+    let minecraft = crate::api::metadata::get_minecraft_versions_with_cache(
+        cache_behaviour,
+    )
+    .await?;
 
     if let Some(idx) = minecraft
         .versions
@@ -231,10 +260,15 @@ pub async fn resolve_minecraft_manifest(
         return Ok((minecraft, idx));
     }
 
-    // Version not found in cache — force a manifest refresh in case it was
-    // released after the cache was populated.
+    // Version not found in the first manifest lookup. Online launches force a
+    // refresh for newly released versions; offline launches repeat a cache-only
+    // lookup so they never reach the network.
     let refreshed = crate::state::CachedEntry::get_minecraft_manifest(
-        Some(crate::state::CacheBehaviour::MustRevalidate),
+        if cache_behaviour == Some(CacheBehaviour::CacheOnly) {
+            Some(CacheBehaviour::CacheOnly)
+        } else {
+            Some(CacheBehaviour::MustRevalidate)
+        },
         &state.pool,
         &state.api_semaphore,
     )
@@ -708,6 +742,7 @@ pub async fn launch_minecraft(
     post_exit_hook: Option<String>,
     context: &InstanceLaunchContext,
     mut quick_play_type: QuickPlayType,
+    offline_mode: bool,
 ) -> crate::Result<ProcessMetadata> {
     let instance = &context.instance;
     let content_set = &context.applied_content_set;
@@ -739,8 +774,13 @@ pub async fn launch_minecraft(
         )
         .await?;
 
-    let (minecraft, version_index) =
-        resolve_minecraft_manifest(&content_set.game_version, &state).await?;
+    let cache_behaviour = offline_mode.then_some(CacheBehaviour::CacheOnly);
+    let (minecraft, version_index) = resolve_minecraft_manifest_with_cache(
+        &content_set.game_version,
+        &state,
+        cache_behaviour,
+    )
+    .await?;
     let version = &minecraft.versions[version_index];
     let minecraft_updated = version_index
         <= minecraft
@@ -749,10 +789,11 @@ pub async fn launch_minecraft(
             .position(|x| x.id == "22w16a")
             .unwrap_or(0);
 
-    let loader_version = get_loader_version_from_profile(
+    let loader_version = get_loader_version_from_profile_with_cache(
         &content_set.game_version,
         content_set.loader,
         content_set.loader_version.as_deref(),
+        cache_behaviour,
     )
     .await?;
 
@@ -769,15 +810,24 @@ pub async fn launch_minecraft(
             format!("{}-{}", version.id.clone(), it.id.clone())
         });
 
-    let mut version_info = download::download_version_info(
-        &state,
-        version,
-        loader_version.as_ref(),
-        None,
-        None,
-        None,
-    )
-    .await?;
+    let mut version_info = if offline_mode {
+        download::load_local_version_info(
+            &state,
+            version,
+            loader_version.as_ref(),
+        )
+        .await?
+    } else {
+        download::download_version_info(
+            &state,
+            version,
+            loader_version.as_ref(),
+            None,
+            None,
+            None,
+        )
+        .await?
+    };
     if version_info.logging.is_none() {
         let requires_logging_info = version_index
             <= minecraft
@@ -785,7 +835,7 @@ pub async fn launch_minecraft(
                 .iter()
                 .position(|x| x.id == "13w39a")
                 .unwrap_or(0);
-        if requires_logging_info {
+        if requires_logging_info && !offline_mode {
             version_info = download::download_version_info(
                 &state,
                 version,
@@ -798,8 +848,12 @@ pub async fn launch_minecraft(
         }
     }
 
-    let _ =
-        download_log_config(&state, &version_info, None, false, None).await?;
+    if offline_mode {
+        download::ensure_local_log_config(&state, &version_info)?;
+    } else {
+        let _ = download_log_config(&state, &version_info, None, false, None)
+            .await?;
+    }
 
     let java_version =
         get_java_version_from_launch_context(context, &version_info)

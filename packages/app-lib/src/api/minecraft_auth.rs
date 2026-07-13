@@ -1,6 +1,7 @@
 //! Authentication flow interface
 
 use reqwest::StatusCode;
+use std::time::Duration;
 
 use crate::State;
 use crate::state::{Credentials, MinecraftLoginFlow};
@@ -10,6 +11,7 @@ use crate::util::fetch::INSECURE_REQWEST_CLIENT;
 pub async fn check_reachable() -> crate::Result<()> {
     let resp = INSECURE_REQWEST_CLIENT
         .get("https://sessionserver.mojang.com/session/minecraft/hasJoined")
+        .timeout(Duration::from_secs(5))
         .send()
         .await?;
     if resp.status() == StatusCode::NO_CONTENT {
@@ -45,16 +47,22 @@ pub async fn add_offline_user(username: &str) -> crate::Result<Credentials> {
 }
 
 #[tracing::instrument]
-pub async fn get_default_user() -> crate::Result<Option<uuid::Uuid>> {
+pub async fn get_default_user(
+    offline_mode: bool,
+) -> crate::Result<Option<uuid::Uuid>> {
     let state = State::get().await?;
-    let user = Credentials::get_active(&state.pool).await?;
+    let user = if offline_mode {
+        Credentials::get_offline_credential(&state.pool).await?
+    } else {
+        Credentials::get_active(&state.pool).await?
+    };
     Ok(user.map(|user| user.offline_profile.id))
 }
 
 #[tracing::instrument]
 pub async fn set_default_user(user: uuid::Uuid) -> crate::Result<()> {
     let state = State::get().await?;
-    let users = Credentials::get_all(&state.pool).await?;
+    let users = Credentials::get_all_without_refresh(&state.pool).await?;
     let (_, mut user) = users.remove(&user).ok_or_else(|| {
         crate::ErrorKind::OtherError(format!(
             "Tried to get nonexistent user with ID {user}"
@@ -73,7 +81,7 @@ pub async fn set_default_user(user: uuid::Uuid) -> crate::Result<()> {
 pub async fn remove_user(uuid: uuid::Uuid) -> crate::Result<()> {
     let state = State::get().await?;
 
-    let users = Credentials::get_all(&state.pool).await?;
+    let users = Credentials::get_all_without_refresh(&state.pool).await?;
 
     if let Some((uuid, user)) = users.remove(&uuid) {
         Credentials::remove(uuid, &state.pool).await?;
@@ -91,8 +99,16 @@ pub async fn remove_user(uuid: uuid::Uuid) -> crate::Result<()> {
 
 /// Get a copy of the list of all user credentials
 #[tracing::instrument]
-pub async fn users() -> crate::Result<Vec<Credentials>> {
+pub async fn users(offline_mode: bool) -> crate::Result<Vec<Credentials>> {
     let state = State::get().await?;
-    let users = Credentials::get_all(&state.pool).await?;
-    Ok(users.into_iter().map(|x| x.1).collect())
+    let users = if offline_mode {
+        Credentials::get_all_without_refresh(&state.pool).await?
+    } else {
+        Credentials::get_all(&state.pool).await?
+    };
+    Ok(users
+        .into_iter()
+        .map(|x| x.1)
+        .filter(|credentials| !offline_mode || credentials.is_offline())
+        .collect())
 }

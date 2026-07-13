@@ -7,6 +7,8 @@ import type { Labrinth } from '@modrinth/api-client'
 import type { ContentItem, ContentOwner } from '@modrinth/ui'
 import { invoke } from '@tauri-apps/api/core'
 
+import { isOfflineMode } from '@/composables/useNetworkStatus'
+
 import type { InstallJobSnapshot } from './install'
 import type {
 	CacheBehaviour,
@@ -315,7 +317,11 @@ export async function run(
 	instanceId: string,
 	serverAddress: string | null = null,
 ): Promise<unknown> {
-	return await invoke('plugin:instance|instance_run', { instanceId, serverAddress })
+	return await invoke('plugin:instance|instance_run', {
+		instanceId,
+		serverAddress,
+		offlineMode: isOfflineMode(),
+	})
 }
 
 export async function kill(instanceId: string): Promise<void> {

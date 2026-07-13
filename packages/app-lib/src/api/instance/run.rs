@@ -1,7 +1,8 @@
 use super::content::get_projects;
 use crate::server_address::ServerAddress;
 use crate::state::{
-    Credentials, InstanceLink, ProcessMetadata, Settings, State,
+    Credentials, InstanceInstallStage, InstanceLink, ProcessMetadata, Settings,
+    State,
 };
 use crate::util::fetch;
 use crate::util::io::IOError;
@@ -22,13 +23,32 @@ pub enum QuickPlayType {
 pub async fn run(
     instance_id: &str,
     quick_play_type: QuickPlayType,
+    offline_mode: bool,
 ) -> crate::Result<ProcessMetadata> {
     let state = State::get().await?;
-    let default_account = Credentials::get_default_credential(&state.pool)
-        .await?
-        .ok_or_else(|| crate::ErrorKind::NoCredentialsError.as_error())?;
+    let default_account = if offline_mode {
+        Credentials::get_offline_credential(&state.pool)
+            .await?
+            .ok_or_else(|| {
+                crate::ErrorKind::LauncherError(
+                    "Offline mode requires an offline Minecraft account"
+                        .to_string(),
+                )
+                .as_error()
+            })?
+    } else {
+        Credentials::get_default_credential(&state.pool)
+            .await?
+            .ok_or_else(|| crate::ErrorKind::NoCredentialsError.as_error())?
+    };
 
-    run_credentials(instance_id, &default_account, quick_play_type).await
+    run_credentials(
+        instance_id,
+        &default_account,
+        quick_play_type,
+        offline_mode,
+    )
+    .await
 }
 
 #[tracing::instrument(skip(credentials))]
@@ -36,6 +56,7 @@ async fn run_credentials(
     instance_id: &str,
     credentials: &Credentials,
     quick_play_type: QuickPlayType,
+    offline_mode: bool,
 ) -> crate::Result<ProcessMetadata> {
     let state = State::get().await?;
     let settings = Settings::get(&state.pool).await?;
@@ -50,6 +71,16 @@ async fn run_credentials(
                 "Tried to run a nonexistent instance {instance_id}!"
             ))
         })?;
+
+    if offline_mode
+        && context.instance.install_stage != InstanceInstallStage::Installed
+    {
+        return Err(crate::ErrorKind::LauncherError(
+            "Offline mode can only launch fully downloaded instances"
+                .to_string(),
+        )
+        .as_error());
+    }
 
     let pre_launch_hooks = context
         .launch_overrides
@@ -180,7 +211,14 @@ async fn run_credentials(
         }
     }
 
-    crate::minecraft_skins::flush_pending_skin_change().await?;
+    if offline_mode {
+        crate::minecraft_skins::flush_pending_skin_change_for_profile(
+            credentials.offline_profile.id,
+        )
+        .await?;
+    } else {
+        crate::minecraft_skins::flush_pending_skin_change().await?;
+    }
     crate::launcher::launch_minecraft(
         &java_args,
         &env_args,
@@ -192,6 +230,7 @@ async fn run_credentials(
         post_exit_hook,
         &context,
         quick_play_type,
+        offline_mode,
     )
     .await
 }

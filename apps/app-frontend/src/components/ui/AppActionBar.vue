@@ -136,11 +136,12 @@ import {
 } from '@modrinth/ui'
 import { convertFileSrc } from '@tauri-apps/api/core'
 import { Dropdown } from 'floating-vue'
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 import AppUpdateButton from '@/components/ui/app-update-button/index.vue'
 import { useInstallJobNotifications } from '@/composables/browse/install-job-notifications'
+import { useNetworkStatus } from '@/composables/useNetworkStatus'
 import { trackEvent } from '@/helpers/analytics'
 import { loading_listener, process_listener } from '@/helpers/events'
 import { get_many as getInstances } from '@/helpers/instance'
@@ -247,18 +248,7 @@ const refresh = async () => {
 
 await refresh()
 
-const offline = ref(!navigator.onLine)
-function handleOffline() {
-	offline.value = true
-}
-function handleOnline() {
-	offline.value = false
-}
-
-onMounted(() => {
-	window.addEventListener('offline', handleOffline)
-	window.addEventListener('online', handleOnline)
-})
+const { offline } = useNetworkStatus()
 
 const unlistenProcess = await process_listener(async () => {
 	await refresh()
@@ -497,8 +487,6 @@ function selectProcess(process: RunningProcess) {
 onBeforeUnmount(() => {
 	removeNotification()
 	dismissed.value = false
-	window.removeEventListener('offline', handleOffline)
-	window.removeEventListener('online', handleOnline)
 	unlistenProcess()
 	unlistenLoading()
 	installJobNotifications.dispose()

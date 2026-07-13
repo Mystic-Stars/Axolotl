@@ -113,7 +113,11 @@
 							color="brand"
 							size="large"
 						>
-							<button @click="repairInstance()">
+							<button
+								v-tooltip="offline ? formatMessage(messages.offlineInstalledOnly) : undefined"
+								:disabled="offline"
+								@click="repairInstance()"
+							>
 								<DownloadIcon />
 								{{ formatMessage(commonMessages.repairButton) }}
 							</button>
@@ -355,6 +359,7 @@ import {
 	getFreshCachedServerStatus,
 } from '@/composables/instances/use-server-status-query'
 import { useInstanceConsole } from '@/composables/useInstanceConsole'
+import { useNetworkStatus } from '@/composables/useNetworkStatus'
 import { trackEvent } from '@/helpers/analytics'
 import { get_project_v3 } from '@/helpers/cache.js'
 import { instance_listener, process_listener } from '@/helpers/events'
@@ -410,6 +415,10 @@ const messages = defineMessages({
 	worldsTab: { id: 'app.instance.tabs.worlds', defaultMessage: 'Worlds' },
 	screenshotsTab: { id: 'app.instance.tabs.screenshots', defaultMessage: 'Screenshots' },
 	logsTab: { id: 'app.instance.tabs.logs', defaultMessage: 'Logs' },
+	offlineInstalledOnly: {
+		id: 'app.instance.offline-installed-only',
+		defaultMessage: 'Offline mode can only launch fully downloaded instances.',
+	},
 })
 
 const router = useRouter()
@@ -419,13 +428,7 @@ const themeStore = useTheming()
 const showInstancePlayTime = computed(() => themeStore.getFeatureFlag('show_instance_play_time'))
 const contentSubpageRouteNames = new Set(['Mods', 'ModsFilter'])
 
-const offline = ref(!navigator.onLine)
-window.addEventListener('offline', () => {
-	offline.value = true
-})
-window.addEventListener('online', () => {
-	offline.value = false
-})
+const { offline } = useNetworkStatus()
 
 const instance = ref<GameInstance>()
 const preloadedContent = ref<InstanceContentData | null>(null)
@@ -646,7 +649,7 @@ const options = ref<InstanceType<typeof ContextMenu> | null>(null)
 
 const startInstance = async (context: string) => {
 	if (!instance.value) return
-	if (updateToPlayModal.value?.hasUpdate) {
+	if (!offline.value && updateToPlayModal.value?.hasUpdate) {
 		updateToPlayModal.value.show(instance.value)
 		return
 	}

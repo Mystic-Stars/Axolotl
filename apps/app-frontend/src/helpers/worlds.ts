@@ -3,6 +3,7 @@ import { autoToHTML } from '@sfirew/minecraft-motd-parser'
 import { invoke } from '@tauri-apps/api/core'
 import dayjs from 'dayjs'
 
+import { isOfflineMode } from '@/composables/useNetworkStatus'
 import { get_full_path } from '@/helpers/instance'
 import { openPath } from '@/helpers/utils'
 
@@ -195,11 +196,19 @@ export async function start_join_singleplayer_world(
 	instanceId: string,
 	world: string,
 ): Promise<unknown> {
-	return await invoke('plugin:worlds|start_join_singleplayer_world', { instanceId, world })
+	return await invoke('plugin:worlds|start_join_singleplayer_world', {
+		instanceId,
+		world,
+		offlineMode: isOfflineMode(),
+	})
 }
 
 export async function start_join_server(instanceId: string, address: string): Promise<unknown> {
-	return await invoke('plugin:worlds|start_join_server', { instanceId, address })
+	return await invoke('plugin:worlds|start_join_server', {
+		instanceId,
+		address,
+		offlineMode: isOfflineMode(),
+	})
 }
 
 export async function showWorldInFolder(instanceId: string, worldPath: string) {

@@ -212,9 +212,14 @@ pub async fn get_server_status(
 pub async fn start_join_singleplayer_world(
     instance_id: &str,
     world: String,
+    offline_mode: bool,
 ) -> Result<ProcessMetadata> {
-    let process =
-        instance::run(instance_id, QuickPlayType::Singleplayer(world)).await?;
+    let process = instance::run(
+        instance_id,
+        QuickPlayType::Singleplayer(world),
+        offline_mode,
+    )
+    .await?;
 
     Ok(process)
 }
@@ -223,10 +228,12 @@ pub async fn start_join_singleplayer_world(
 pub async fn start_join_server(
     instance_id: &str,
     address: &str,
+    offline_mode: bool,
 ) -> Result<ProcessMetadata> {
     let process = instance::run(
         instance_id,
         QuickPlayType::Server(ServerAddress::Unresolved(address.to_owned())),
+        offline_mode,
     )
     .await?;
 

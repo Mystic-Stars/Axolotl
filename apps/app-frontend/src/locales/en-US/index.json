@@ -638,6 +638,9 @@
   "app.instance.screenshots.empty-title": {
     "message": "No screenshots yet"
   },
+  "app.instance.offline-installed-only": {
+    "message": "Offline mode can only launch fully downloaded instances."
+  },
   "app.instance.screenshots.loading-failed": {
     "message": "Could not load screenshots"
   },
@@ -1816,6 +1819,12 @@
   },
   "minecraft-account.select-account": {
     "message": "Select account"
+  },
+  "minecraft-account.offline-mode": {
+    "message": "Offline mode"
+  },
+  "minecraft-account.offline-mode.description": {
+    "message": "Only offline accounts are available. You can launch fully downloaded instances."
   },
   "minecraft-account.sign-in": {
     "message": "Sign in to Minecraft"

@@ -46,8 +46,8 @@ export async function add_offline_user(username) {
  * Retrieves the default user
  * @return {Promise<UUID | undefined>}
  */
-export async function get_default_user() {
-	return await invoke('plugin:auth|get_default_user')
+export async function get_default_user(offlineMode = false) {
+	return await invoke('plugin:auth|get_default_user', { offlineMode })
 }
 
 /**
@@ -70,6 +70,6 @@ export async function remove_user(user) {
  * Returns a list of users
  * @returns {Promise<Credential[]>}
  */
-export async function users() {
-	return await invoke('plugin:auth|get_users')
+export async function users(offlineMode = false) {
+	return await invoke('plugin:auth|get_users', { offlineMode })
 }

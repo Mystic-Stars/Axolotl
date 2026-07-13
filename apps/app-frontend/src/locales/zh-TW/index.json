@@ -323,6 +323,9 @@
   "app.instance.mods.share-text": {
     "message": "快來看看我在模組包中使用的專案！"
   },
+  "app.instance.offline-installed-only": {
+    "message": "離線模式只能啟動已完整下載的實例。"
+  },
   "app.instance.mods.share-title": {
     "message": "分享模組包內容"
   },
@@ -1036,6 +1039,12 @@
   },
   "search.filter.locked.server-game-version.title": {
     "message": "遊戲版本由伺服器提供"
+  },
+  "minecraft-account.offline-mode": {
+    "message": "離線模式"
+  },
+  "minecraft-account.offline-mode.description": {
+    "message": "僅可使用離線帳號，並且只能啟動已完整下載的實例。"
   },
   "search.filter.locked.server-loader.title": {
     "message": "載入器由伺服器提供"

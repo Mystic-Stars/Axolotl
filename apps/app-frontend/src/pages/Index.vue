@@ -2,11 +2,12 @@
 import { defineMessages, injectNotificationManager, useVIntl } from '@modrinth/ui'
 import type { SearchResult } from '@modrinth/utils'
 import dayjs from 'dayjs'
-import { computed, onUnmounted, ref } from 'vue'
+import { computed, onUnmounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 
 import RowDisplay from '@/components/RowDisplay.vue'
 import RecentWorldsList from '@/components/ui/world/RecentWorldsList.vue'
+import { useNetworkStatus } from '@/composables/useNetworkStatus'
 import { get_search_results } from '@/helpers/cache.js'
 import { instance_listener } from '@/helpers/events'
 import { list } from '@/helpers/instance'
@@ -51,13 +52,7 @@ const hasFeaturedProjects = computed(
 	() => (featuredModpacks.value?.length ?? 0) + (featuredMods.value?.length ?? 0) > 0,
 )
 
-const offline = ref<boolean>(!navigator.onLine)
-window.addEventListener('offline', () => {
-	offline.value = true
-})
-window.addEventListener('online', () => {
-	offline.value = false
-})
+const { offline } = useNetworkStatus()
 
 async function fetchInstances() {
 	instances.value = await list().catch(handleError)
@@ -98,13 +93,22 @@ async function refreshFeaturedProjects() {
 }
 
 await fetchInstances()
-await refreshFeaturedProjects()
+if (!offline.value) await refreshFeaturedProjects()
+
+watch(offline, (isOffline) => {
+	if (isOffline) {
+		featuredModpacks.value = []
+		featuredMods.value = []
+	} else {
+		void refreshFeaturedProjects()
+	}
+})
 
 const unlistenInstance = await instance_listener(
 	async (e: { event: string; instance_id: string }) => {
 		await fetchInstances()
 
-		if (e.event === 'added' || e.event === 'created' || e.event === 'removed') {
+		if (!offline.value && (e.event === 'added' || e.event === 'created' || e.event === 'removed')) {
 			await refreshFeaturedProjects()
 		}
 	},

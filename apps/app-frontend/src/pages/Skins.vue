@@ -28,6 +28,7 @@ import { computed, inject, onMounted, onUnmounted, ref, useTemplateRef, watch } 
 import type AccountsCard from '@/components/ui/AccountsCard.vue'
 import EditSkinModal from '@/components/ui/skin/EditSkinModal.vue'
 import VirtualSkinSectionList from '@/components/ui/skin/VirtualSkinSectionList.vue'
+import { useNetworkStatus } from '@/composables/useNetworkStatus'
 import { trackEvent } from '@/helpers/analytics'
 import { check_reachable, get_default_user, login as login_flow, users } from '@/helpers/auth'
 import type { RenderResult } from '@/helpers/rendering/batch-skin-renderer.ts'
@@ -203,7 +204,7 @@ const client = injectModrinthClient()
 const themeStore = useTheming()
 const skins = ref<Skin[]>([])
 const capes = ref<Cape[]>([])
-const offline = ref(!navigator.onLine)
+const { browserOffline, offline, setNetworkReachable } = useNetworkStatus()
 
 const accountsCard = inject('accountsCard') as Ref<typeof AccountsCard>
 const currentUser = ref(undefined)
@@ -226,9 +227,16 @@ const savedSkins = computed(() => {
 })
 const authServerQuery = useQuery({
 	queryKey: ['authServerReachability'],
+	enabled: computed(() => !browserOffline.value),
 	queryFn: async () => {
-		await check_reachable()
-		return true
+		try {
+			await check_reachable()
+			setNetworkReachable(true)
+			return true
+		} catch (error) {
+			setNetworkReachable(false)
+			throw error
+		}
 	},
 	refetchInterval: 5 * 60 * 1000,
 	retry: false,
@@ -753,10 +761,10 @@ async function onSkinSaved(options: { applied: boolean; skin?: Skin; previousSki
 
 async function loadCurrentUser() {
 	try {
-		const defaultId = await get_default_user()
+		const defaultId = await get_default_user(offline.value)
 		currentUserId.value = defaultId
 
-		const allAccounts = await users()
+		const allAccounts = await users(offline.value)
 		const selectedAccount = allAccounts.find((acc) => acc.profile.id === defaultId)
 		currentAccountType.value = selectedAccount?.account_type
 		currentUser.value = selectedAccount
@@ -774,6 +782,8 @@ function getBakedSkinTextures(skin: Skin): RenderResult | undefined {
 }
 
 async function login() {
+	if (offline.value) return
+
 	accountsCard.value.setLoginDisabled(true)
 	const loggedIn = await login_flow().catch(handleSevereError)
 
@@ -962,17 +972,12 @@ watch(isSkinManagementReadOnly, (readOnly) => {
 })
 
 onMounted(() => {
-	window.addEventListener('offline', onOffline)
-	window.addEventListener('online', onOnline)
 	userCheckInterval = window.setInterval(checkUserChanges, 250)
 	void setupAddSkinDragDropListener()
 })
 
 onUnmounted(() => {
 	isUnmounted = true
-	window.removeEventListener('offline', onOffline)
-	window.removeEventListener('online', onOnline)
-
 	if (userCheckInterval !== null) {
 		window.clearInterval(userCheckInterval)
 	}
@@ -988,18 +993,9 @@ onUnmounted(() => {
 	}
 })
 
-function onOffline() {
-	offline.value = true
-}
-
-function onOnline() {
-	offline.value = false
-	void authServerQuery.refetch()
-}
-
 async function checkUserChanges() {
 	try {
-		const defaultId = await get_default_user()
+		const defaultId = await get_default_user(offline.value)
 		if (defaultId !== currentUserId.value) {
 			await loadCurrentUser()
 			await loadCapes()
@@ -1163,7 +1159,12 @@ await loadSkins()
 				<p class="text-lg m-0">
 					{{ formatMessage(messages.signInDescription) }}
 				</p>
-				<ButtonStyled v-show="accountsCard" color="brand" :disabled="accountsCard.loginDisabled">
+				<ButtonStyled
+					v-if="!offline"
+					v-show="accountsCard"
+					color="brand"
+					:disabled="accountsCard.loginDisabled"
+				>
 					<button :disabled="accountsCard.loginDisabled" @click="login">
 						<LogInIcon v-if="!accountsCard.loginDisabled" />
 						<SpinnerIcon v-else class="animate-spin" />

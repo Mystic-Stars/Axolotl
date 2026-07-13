@@ -1,10 +1,17 @@
 <template>
 	<div
+		v-if="offline"
+		class="flex flex-col gap-1 bg-highlight-orange border border-solid border-orange rounded-xl p-3 mt-2"
+	>
+		<span class="font-semibold text-contrast">{{ formatMessage(messages.offlineMode) }}</span>
+		<span class="text-sm text-secondary">{{ formatMessage(messages.offlineModeDescription) }}</span>
+	</div>
+	<div
 		v-if="accounts.length === 0"
 		class="flex flex-col gap-3 bg-button-bg border border-solid border-surface-5 rounded-xl p-3 mt-2"
 	>
 		<span>{{ formatMessage(messages.notSignedIn) }}</span>
-		<ButtonStyled color="brand">
+		<ButtonStyled v-if="!offline" color="brand">
 			<button color="primary" :disabled="loginDisabled" @click="login()">
 				<LogInIcon v-if="!loginDisabled" />
 				<SpinnerIcon v-else class="animate-spin" />
@@ -80,7 +87,7 @@
 				</div>
 			</template>
 			<div class="flex flex-col gap-2 px-2 pt-2">
-				<ButtonStyled v-if="accounts.length > 0" class="w-full">
+				<ButtonStyled v-if="accounts.length > 0 && !offline" class="w-full">
 					<button :disabled="loginDisabled" @click="login()">
 						<PlusIcon />
 						{{ formatMessage(messages.addMicrosoftAccount) }}
@@ -150,11 +157,12 @@ import {
 	useVIntl,
 } from '@modrinth/ui'
 import type { Ref } from 'vue'
-import { computed, onUnmounted, ref } from 'vue'
+import { computed, onUnmounted, ref, watch } from 'vue'
 
 import axolotlLogo from '@/assets/axolotl.png'
 import steveSkinTexture from '@/assets/skins/steve.png'
 import ModalWrapper from '@/components/ui/modal/ModalWrapper.vue'
+import { useNetworkStatus } from '@/composables/useNetworkStatus'
 import { trackEvent } from '@/helpers/analytics'
 import {
 	add_offline_user,
@@ -172,6 +180,7 @@ import { handleSevereError } from '@/store/error.js'
 
 const { formatMessage } = useVIntl()
 const { handleError } = injectNotificationManager()
+const { offline } = useNetworkStatus()
 
 const emit = defineEmits<{
 	change: []
@@ -211,8 +220,11 @@ function createSkinHeadDataUrl(textureUrl: string) {
 const defaultSteveHeadUrl = createSkinHeadDataUrl(steveSkinTexture)
 
 async function refreshValues() {
-	defaultUser.value = await get_default_user().catch(handleError)
-	const userList = await users().catch(handleError)
+	defaultUser.value = await get_default_user(offline.value).catch(handleError)
+	if (offline.value && defaultUser.value) {
+		await set_default_user(defaultUser.value).catch(handleError)
+	}
+	const userList = await users(offline.value).catch(handleError)
 	accounts.value = Array.isArray(userList) ? [...userList] : []
 	accounts.value.sort((a, b) => (a.profile?.name ?? '').localeCompare(b.profile?.name ?? ''))
 	try {
@@ -248,10 +260,7 @@ async function setEquippedSkin(skin: Skin) {
 		const headUrl = await getPlayerHeadUrl(skin)
 		headUrlCache.value = new Map(headUrlCache.value).set(skin.texture_key, headUrl)
 		if (defaultUser.value) {
-			accountHeadUrlCache.value = new Map(accountHeadUrlCache.value).set(
-				defaultUser.value,
-				headUrl,
-			)
+			accountHeadUrlCache.value = new Map(accountHeadUrlCache.value).set(defaultUser.value, headUrl)
 		}
 	} catch (error) {
 		console.warn('Failed to get head render for equipped skin:', error)
@@ -270,6 +279,11 @@ defineExpose({
 })
 
 await refreshValues()
+
+watch(offline, async () => {
+	await refreshValues()
+	emit('change')
+})
 
 const selectedAccount = computed(() =>
 	accounts.value.find((account) => account.profile.id === defaultUser.value),
@@ -319,6 +333,8 @@ async function setAccount(account: MinecraftCredential) {
 }
 
 async function login() {
+	if (offline.value) return
+
 	loginDisabled.value = true
 	const loggedIn = await login_flow().catch(handleSevereError)
 
@@ -373,6 +389,15 @@ onUnmounted(() => {
 })
 
 const messages = defineMessages({
+	offlineMode: {
+		id: 'minecraft-account.offline-mode',
+		defaultMessage: 'Offline mode',
+	},
+	offlineModeDescription: {
+		id: 'minecraft-account.offline-mode.description',
+		defaultMessage:
+			'Only offline accounts are available. You can launch fully downloaded instances.',
+	},
 	notSignedIn: {
 		id: 'minecraft-account.not-signed-in',
 		defaultMessage: 'Not signed in',
