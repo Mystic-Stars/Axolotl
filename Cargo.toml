@@ -105,7 +105,6 @@ image = { version = "0.25.8", default-features = false, features = ["rayon"] }
 indexmap = "2.11.4"
 indicatif = "0.18.0"
 itertools = "0.14.0"
-md5 = "0.8.0"
 jemalloc_pprof = "0.8.1"
 json-patch = { version = "4.1.0", default-features = false }
 lettre = { version = "0.11.19", default-features = false, features = [
@@ -120,6 +119,7 @@ lettre = { version = "0.11.19", default-features = false, features = [
   "tokio1-rustls",
 ] }
 maxminddb = "0.26.0"
+md5 = "0.8.0"
 meilisearch-sdk = { version = "0.30.0", default-features = false }
 modrinth-content-management = { path = "packages/modrinth-content-management" }
 modrinth-log = { path = "packages/modrinth-log" }
