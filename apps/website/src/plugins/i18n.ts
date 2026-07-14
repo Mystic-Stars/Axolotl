@@ -20,6 +20,26 @@ const supportedLocales = LOCALES.filter((locale) =>
 	SUPPORTED_SITE_LOCALES.includes(locale.code as (typeof SUPPORTED_SITE_LOCALES)[number]),
 )
 
+function isSupportedLocale(locale: string): boolean {
+	return supportedLocales.some((item) => item.code === locale)
+}
+
+function getBrowserLocale(): string {
+	if (!import.meta.client) return DEFAULT_LOCALE
+
+	const browserLocales = navigator.languages?.length ? navigator.languages : [navigator.language]
+
+	for (const browserLocale of browserLocales) {
+		if (isSupportedLocale(browserLocale)) return browserLocale
+
+		const language = browserLocale.toLowerCase()
+		if (language.startsWith('zh')) return 'zh-CN'
+		if (language.startsWith('en')) return DEFAULT_LOCALE
+	}
+
+	return DEFAULT_LOCALE
+}
+
 const messageCache = new LRUCache<string, Record<string, string>>({ max: 10 })
 const formatterCache = new LRUCache<string, IntlMessageFormat>({ max: 1000 })
 const loadingPromises = new Map<string, Promise<void>>() // Dedupe concurrent loads
@@ -112,6 +132,9 @@ export default defineNuxtPlugin({
 	enforce: 'pre',
 	async setup(nuxtApp) {
 		const locale = ref(DEFAULT_LOCALE)
+		const savedLocale = useCookie<string | null>('locale').value
+		const initialLocale =
+			savedLocale && isSupportedLocale(savedLocale) ? savedLocale : getBrowserLocale()
 
 		function t(key: string, values?: Record<string, unknown>): string {
 			const currentLocale = locale.value
@@ -145,7 +168,7 @@ export default defineNuxtPlugin({
 		async function setLocale(newLocale: string): Promise<void> {
 			debug('setLocale: called', { newLocale, currentLocale: locale.value })
 
-			if (!supportedLocales.some((l) => l.code === newLocale)) {
+			if (!isSupportedLocale(newLocale)) {
 				debug('setLocale: invalid locale', newLocale)
 				return
 			}
@@ -166,26 +189,14 @@ export default defineNuxtPlugin({
 		}
 
 		await loadLocale(DEFAULT_LOCALE)
-		locale.value = DEFAULT_LOCALE
+		if (initialLocale !== DEFAULT_LOCALE) await loadLocale(initialLocale)
+		locale.value = initialLocale
+		if (import.meta.client) document.documentElement.lang = initialLocale
 
 		debug('init: complete', { locale: locale.value })
 
 		const context: I18nContext = { locale, t, setLocale }
 		nuxtApp.vueApp.provide(I18N_INJECTION_KEY, context)
 
-		if (import.meta.client) {
-			nuxtApp.hook('app:mounted', async () => {
-				const storedLocale = useCookie('locale').value
-				if (
-					storedLocale &&
-					storedLocale !== DEFAULT_LOCALE &&
-					supportedLocales.some((item) => item.code === storedLocale)
-				) {
-					await setLocale(storedLocale)
-				} else {
-					document.documentElement.lang = DEFAULT_LOCALE
-				}
-			})
-		}
 	},
 })
