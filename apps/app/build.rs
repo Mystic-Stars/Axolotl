@@ -245,6 +245,21 @@ fn main() {
                     ),
             )
             .plugin(
+                "translation",
+                InlinedPlugin::new()
+                    .commands(&[
+                        "translation_get_settings",
+                        "translation_update_settings",
+                        "translation_set_secret",
+                        "translation_test_provider",
+                        "translation_translate",
+                        "translation_clear_cache",
+                    ])
+                    .default_permission(
+                        DefaultPermissionRule::AllowAllCommands,
+                    ),
+            )
+            .plugin(
                 "shortcuts",
                 InlinedPlugin::new()
                     .commands(&["create_instance_shortcut"])

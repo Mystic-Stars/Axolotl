@@ -64,9 +64,28 @@
 					:project="data"
 					:project-v3="projectV3"
 					:ping="serverPing"
+					:translated-title="translationActive ? translations.title : undefined"
+					:translated-description="translationActive ? translations.description : undefined"
+					:translation-mode="translationMode"
+					:translation-style="translationStyle"
 					@contextmenu.prevent.stop="handleRightClick"
 				>
 					<template v-if="isServerProject" #actions>
+						<ButtonStyled size="large" type="transparent">
+							<button :disabled="translationLoading" @click="toggleTranslation">
+								<SpinnerIcon v-if="translationLoading" class="animate-spin" />
+								<LanguagesIcon v-else />
+								{{
+									formatMessage(
+										translationLoading
+											? messages.translating
+											: translationActive
+												? messages.showOriginal
+												: messages.translateProject,
+									)
+								}}
+							</button>
+						</ButtonStyled>
 						<ButtonStyled v-if="serverPlaying" size="large" color="red">
 							<button @click="handleStopServer">
 								<StopCircleIcon />
@@ -126,6 +145,21 @@
 						</ButtonStyled>
 					</template>
 					<template v-else #actions>
+						<ButtonStyled size="large" type="transparent">
+							<button :disabled="translationLoading" @click="toggleTranslation">
+								<SpinnerIcon v-if="translationLoading" class="animate-spin" />
+								<LanguagesIcon v-else />
+								{{
+									formatMessage(
+										translationLoading
+											? messages.translating
+											: translationActive
+												? messages.showOriginal
+												: messages.translateProject,
+									)
+								}}
+							</button>
+						</ButtonStyled>
 						<ButtonStyled v-if="showSwitchVersion && onVersionsPage" size="large">
 							<button v-tooltip="installButtonTooltip" disabled>
 								<CheckIcon />
@@ -228,6 +262,10 @@
 					:installed="installed"
 					:installing="installing"
 					:installed-version="installedVersion"
+					:translation-active="translationActive"
+					:translations="translations"
+					:translation-mode="translationMode"
+					:translation-style="translationStyle"
 				/>
 			</template>
 			<template v-else> Project data couldn't not be loaded. </template>
@@ -277,6 +315,7 @@ import {
 	ExternalIcon,
 	GlobeIcon,
 	HeartIcon,
+	LanguagesIcon,
 	MoreVerticalIcon,
 	PlayIcon,
 	PlusIcon,
@@ -339,7 +378,14 @@ import {
 import { get_loader_versions as getLoaderManifest } from '@/helpers/metadata'
 import { get_by_instance_id } from '@/helpers/process'
 import { get_categories, get_game_versions, get_loaders } from '@/helpers/tags'
+import {
+	getTranslationSettings,
+	prepareDescription,
+	translate as translateContent,
+	validateTranslatedDescription,
+} from '@/helpers/translation'
 import { getServerAddress } from '@/helpers/worlds'
+import i18n from '@/i18n.config'
 import { injectContentInstall } from '@/providers/content-install'
 import { injectServerInstall } from '@/providers/server-install'
 import { createServerInstallContent } from '@/providers/setup/server-install-content'
@@ -348,7 +394,7 @@ import { useTheming } from '@/store/state.js'
 
 dayjs.extend(relativeTime)
 
-const { handleError } = injectNotificationManager()
+const { addNotification, handleError } = injectNotificationManager()
 const { install: installVersion } = injectContentInstall()
 const route = useRoute()
 const router = useRouter()
@@ -373,6 +419,26 @@ const messages = defineMessages({
 	switchVersion: {
 		id: 'app.project.install-button.switch-version',
 		defaultMessage: 'Switch version',
+	},
+	translateProject: {
+		id: 'app.project.translation.translate',
+		defaultMessage: 'Translate',
+	},
+	showOriginal: {
+		id: 'app.project.translation.show-original',
+		defaultMessage: 'Show original',
+	},
+	translating: {
+		id: 'app.project.translation.translating',
+		defaultMessage: 'Translating…',
+	},
+	translationFailed: {
+		id: 'app.project.translation.failed',
+		defaultMessage: 'Translation failed. The original content was kept. Try again.',
+	},
+	translationFailedTitle: {
+		id: 'app.project.translation.failed-title',
+		defaultMessage: 'Translation failed',
 	},
 })
 
@@ -401,6 +467,12 @@ const serverInstancePath = ref(null)
 const serverPlaying = ref(false)
 const serverSetupModalRef = ref(null)
 const serverInstallContent = createServerInstallContent({ serverSetupModalRef })
+const translationActive = ref(false)
+const translationLoading = ref(false)
+const translations = ref({})
+const translationMode = ref('bilingual')
+const translationStyle = ref('weakened')
+let translationRequestVersion = 0
 
 serverInstallContent.watchServerContextChanges()
 await serverInstallContent.initServerContext()
@@ -590,10 +662,16 @@ function handleAddServerToInstance() {
 }
 
 async function fetchProjectData() {
+	const requestedProjectId = String(route.params.id)
+	translationRequestVersion++
+	translationActive.value = false
+	translationLoading.value = false
+	translations.value = {}
 	const [project, projectV3Result] = await Promise.all([
-		get_project(route.params.id, 'must_revalidate').catch(handleError),
-		get_project_v3(route.params.id, 'must_revalidate').catch(handleError),
+		get_project(requestedProjectId, 'must_revalidate').catch(handleError),
+		get_project_v3(requestedProjectId, 'must_revalidate').catch(handleError),
 	])
+	if (String(route.params.id) !== requestedProjectId) return
 	projectV3.value = projectV3Result
 
 	if (!project) {
@@ -602,14 +680,16 @@ async function fetchProjectData() {
 	}
 
 	data.value = project
+	const relatedData = await Promise.all([
+		get_version_many(project.versions, 'must_revalidate').catch(handleError),
+		get_team(project.team).catch(handleError),
+		get_categories().catch(handleError),
+		route.query.i ? getInstance(route.query.i).catch(handleError) : Promise.resolve(),
+		route.query.i ? getInstanceProjects(route.query.i).catch(handleError) : Promise.resolve(),
+	])
+	if (String(route.params.id) !== requestedProjectId) return
 	;[versions.value, members.value, categories.value, instance.value, instanceProjects.value] =
-		await Promise.all([
-			get_version_many(project.versions, 'must_revalidate').catch(handleError),
-			get_team(project.team).catch(handleError),
-			get_categories().catch(handleError),
-			route.query.i ? getInstance(route.query.i).catch(handleError) : Promise.resolve(),
-			route.query.i ? getInstanceProjects(route.query.i).catch(handleError) : Promise.resolve(),
-		])
+		relatedData
 
 	versions.value = versions.value.sort((a, b) => dayjs(b.date_published) - dayjs(a.date_published))
 
@@ -624,7 +704,9 @@ async function fetchProjectData() {
 	}
 
 	if (project.organization) {
-		organization.value = await get_organization(project.organization).catch(handleError)
+		const projectOrganization = await get_organization(project.organization).catch(handleError)
+		if (String(route.params.id) !== requestedProjectId) return
+		organization.value = projectOrganization
 	}
 
 	isServerProject.value = projectV3.value?.minecraft_server != null
@@ -633,6 +715,71 @@ async function fetchProjectData() {
 	breadcrumbs.setName('Project', data.value.title)
 
 	fetchDeferredServerData(project)
+	void maybeAutoTranslate()
+}
+
+async function translateProject() {
+	if (!data.value || translationLoading.value) return
+	const requestVersion = ++translationRequestVersion
+	translationLoading.value = true
+
+	try {
+		const settings = await getTranslationSettings()
+		translationMode.value = settings.mode
+		translationStyle.value = settings.style
+		const prepared = prepareDescription(data.value.body ?? '')
+		const targetLanguage = settings.target_language || i18n.global.locale.value || 'en-US'
+		const response = await translateContent({
+			source_language: 'auto',
+			target_language: targetLanguage,
+			context: {
+				title: data.value.title ?? '',
+				description: data.value.description ?? '',
+			},
+			segments: [
+				{ id: 'title', text: data.value.title ?? '', format: 'plain' },
+				{ id: 'description', text: data.value.description ?? '', format: 'plain' },
+				...prepared.segments,
+			],
+		})
+
+		if (requestVersion !== translationRequestVersion) return
+		const translatedSegments = Object.fromEntries(
+			response.segments.map((segment) => [segment.id, segment.text]),
+		)
+		validateTranslatedDescription(prepared, translatedSegments)
+		translations.value = translatedSegments
+		translationActive.value = true
+	} catch {
+		if (requestVersion === translationRequestVersion) {
+			addNotification({
+				title: formatMessage(messages.translationFailedTitle),
+				text: formatMessage(messages.translationFailed),
+				type: 'error',
+			})
+		}
+	} finally {
+		if (requestVersion === translationRequestVersion) translationLoading.value = false
+	}
+}
+
+async function maybeAutoTranslate() {
+	try {
+		const settings = await getTranslationSettings()
+		if (settings.auto_translate) await translateProject()
+	} catch (error) {
+		handleError(error)
+	}
+}
+
+function toggleTranslation() {
+	if (translationActive.value) {
+		translationRequestVersion++
+		translationActive.value = false
+		translationLoading.value = false
+		return
+	}
+	void translateProject()
 }
 
 function fetchDeferredServerData(project) {

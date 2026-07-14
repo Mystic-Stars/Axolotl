@@ -15,6 +15,7 @@ pub mod process;
 pub mod settings;
 pub mod shortcuts;
 pub mod tags;
+pub mod translation;
 pub mod utils;
 
 pub mod cache;

@@ -3,6 +3,7 @@ import {
 	CoffeeIcon,
 	GameIcon,
 	GaugeIcon,
+	GlobeIcon,
 	InfoIcon,
 	LanguagesIcon,
 	PaintbrushIcon,
@@ -29,6 +30,7 @@ import FeatureFlagSettings from '@/components/ui/settings/FeatureFlagSettings.vu
 import JavaSettings from '@/components/ui/settings/JavaSettings.vue'
 import LanguageSettings from '@/components/ui/settings/LanguageSettings.vue'
 import ResourceManagementSettings from '@/components/ui/settings/ResourceManagementSettings.vue'
+import TranslationSettings from '@/components/ui/settings/TranslationSettings.vue'
 import { AxolotlBrandConfig } from '@/config'
 import { get, set } from '@/helpers/settings.ts'
 import { injectAppUpdateDownloadProgress } from '@/providers/download-progress.ts'
@@ -61,6 +63,15 @@ const tabs = [
 		}),
 		icon: LanguagesIcon,
 		content: LanguageSettings,
+		badge: commonMessages.beta,
+	},
+	{
+		name: defineMessage({
+			id: 'app.settings.tabs.translation',
+			defaultMessage: 'Translation',
+		}),
+		icon: GlobeIcon,
+		content: TranslationSettings,
 		badge: commonMessages.beta,
 	},
 	{

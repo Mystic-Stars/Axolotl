@@ -14,6 +14,7 @@ pub mod process;
 pub mod server_address;
 pub mod settings;
 pub mod tags;
+pub mod translation;
 pub mod worlds;
 
 pub mod data {
@@ -43,6 +44,7 @@ pub mod prelude {
         install, instance, jre, metadata, minecraft_auth, mr_auth, pack,
         process, settings,
         state::{ReleaseChannel, db_backup::app_db_backup_dir},
+        translation,
         util::{
             io::{IOError, canonicalize},
             network::{is_network_metered, tcp_listen_any_loopback},

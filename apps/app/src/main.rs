@@ -245,6 +245,7 @@ fn main() {
         .plugin(api::settings::init())
         .plugin(api::shortcuts::init())
         .plugin(api::tags::init())
+        .plugin(api::translation::init())
         .plugin(api::utils::init())
         .plugin(api::cache::init())
         .plugin(api::files::init())

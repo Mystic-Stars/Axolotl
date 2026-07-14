@@ -110,6 +110,7 @@
 		"settings:default",
 		"shortcuts:default",
 		"tags:default",
+		"translation:default",
 		"utils:default",
 		"worlds:default"
 	]

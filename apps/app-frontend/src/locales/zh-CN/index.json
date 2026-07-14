@@ -1903,5 +1903,137 @@
 	},
 	"unknown-pack-warning-modal.warning.title": {
 		"message": "未知文件警告"
+	},
+	"app.project.translation.show-original": {
+		"message": "显示原文"
+	},
+	"app.project.translation.translate": {
+		"message": "翻译"
+	},
+	"app.settings.tabs.translation": {
+		"message": "翻译"
+	},
+	"app.translation-settings.api-key": {
+		"message": "API 密钥"
+	},
+	"app.translation-settings.api-key-configured": {
+		"message": "已配置 API 密钥。输入新值可替换现有密钥。"
+	},
+	"app.translation-settings.api-key-optional": {
+		"message": "本地或无需认证的端点可不填写。"
+	},
+	"app.translation-settings.auto-translate": {
+		"message": "自动翻译项目页面"
+	},
+	"app.translation-settings.auto-translate-description": {
+		"message": "打开 Modrinth 项目页面后立即开始翻译。"
+	},
+	"app.translation-settings.base-url": {
+		"message": "基础 URL"
+	},
+	"app.translation-settings.cache": {
+		"message": "翻译缓存"
+	},
+	"app.translation-settings.cache-cleared": {
+		"message": "翻译缓存已清除。"
+	},
+	"app.translation-settings.cache-description": {
+		"message": "成功的翻译会缓存七天，以减少请求次数。"
+	},
+	"app.translation-settings.clear-cache": {
+		"message": "清除翻译缓存"
+	},
+	"app.translation-settings.clear-key": {
+		"message": "清除 API 密钥"
+	},
+	"app.translation-settings.description": {
+		"message": "浏览内容时翻译 Modrinth 项目的标题、简介和详细描述。"
+	},
+	"app.translation-settings.display-mode": {
+		"message": "显示模式"
+	},
+	"app.translation-settings.display-mode.bilingual": {
+		"message": "原文与译文"
+	},
+	"app.translation-settings.display-mode.translation-only": {
+		"message": "仅译文"
+	},
+	"app.translation-settings.model": {
+		"message": "模型"
+	},
+	"app.translation-settings.openai.configuration": {
+		"message": "OpenAI 兼容接口配置"
+	},
+	"app.translation-settings.provider": {
+		"message": "翻译服务"
+	},
+	"app.translation-settings.provider.google": {
+		"message": "Google 翻译（免费）"
+	},
+	"app.translation-settings.provider.microsoft": {
+		"message": "Microsoft 翻译（免费）"
+	},
+	"app.translation-settings.provider.openai-compatible": {
+		"message": "OpenAI 兼容接口"
+	},
+	"app.translation-settings.save-key": {
+		"message": "保存 API 密钥"
+	},
+	"app.translation-settings.style": {
+		"message": "译文样式"
+	},
+	"app.translation-settings.style.background": {
+		"message": "背景色"
+	},
+	"app.translation-settings.style.border": {
+		"message": "左边框"
+	},
+	"app.translation-settings.style.brand": {
+		"message": "强调色"
+	},
+	"app.translation-settings.style.default": {
+		"message": "默认"
+	},
+	"app.translation-settings.style.preview": {
+		"message": "效果预览"
+	},
+	"app.translation-settings.style.preview-original-text": {
+		"message": "Explore high-quality Minecraft content on Modrinth."
+	},
+	"app.translation-settings.style.preview-text": {
+		"message": "在 Modrinth 上探索高质量的 Minecraft 内容。"
+	},
+	"app.translation-settings.style.weakened": {
+		"message": "弱化"
+	},
+	"app.translation-settings.target-language": {
+		"message": "目标语言"
+	},
+	"app.translation-settings.target-language.follow-app": {
+		"message": "跟随启动器语言"
+	},
+	"app.translation-settings.test": {
+		"message": "测试服务"
+	},
+	"app.translation-settings.test-success": {
+		"message": "连接成功：{translation}"
+	},
+	"app.translation-settings.testing": {
+		"message": "正在测试…"
+	},
+	"app.translation-settings.title": {
+		"message": "翻译"
+	},
+	"app.project.translation.failed": {
+		"message": "翻译失败，已保留原文。请重试。"
+	},
+	"app.project.translation.failed-title": {
+		"message": "翻译失败"
+	},
+	"app.project.translation.translating": {
+		"message": "正在翻译…"
+	},
+	"app.translation-settings.operation-failed": {
+		"message": "翻译操作失败，请检查配置后重试。"
 	}
 }

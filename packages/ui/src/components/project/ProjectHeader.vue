@@ -4,13 +4,37 @@
 			<Avatar :src="project.icon_url" :alt="project.title" size="96px" />
 		</template>
 		<template #title>
-			{{ project.title }}
+			<div>
+				<span v-if="translationMode === 'translation-only' && translatedTitle">
+					{{ translatedTitle }}
+				</span>
+				<span v-else>{{ project.title }}</span>
+				<span
+					v-if="translationMode === 'bilingual' && translatedTitle"
+					class="mt-1 block text-base font-semibold"
+					:class="translationClass"
+				>
+					{{ translatedTitle }}
+				</span>
+			</div>
 		</template>
 		<template #title-suffix>
 			<ProjectStatusBadge v-if="member || project.status !== 'approved'" :status="project.status" />
 		</template>
 		<template #summary>
-			{{ project.description }}
+			<div>
+				<span v-if="translationMode === 'translation-only' && translatedDescription">
+					{{ translatedDescription }}
+				</span>
+				<span v-else>{{ project.description }}</span>
+				<span
+					v-if="translationMode === 'bilingual' && translatedDescription"
+					class="mt-1 block"
+					:class="translationClass"
+				>
+					{{ translatedDescription }}
+				</span>
+			</div>
 		</template>
 		<template #stats>
 			<div class="flex items-center gap-3 flex-wrap gap-y-0">
@@ -97,9 +121,17 @@ const props = withDefaults(
 		member?: boolean
 		projectV3?: Labrinth.Projects.v3.Project | null
 		ping?: number
+		translatedTitle?: string
+		translatedDescription?: string
+		translationMode?: 'bilingual' | 'translation-only'
+		translationStyle?: 'default' | 'weakened' | 'brand' | 'border' | 'background'
 	}>(),
 	{
 		member: false,
+		translatedTitle: undefined,
+		translatedDescription: undefined,
+		translationMode: 'bilingual',
+		translationStyle: 'default',
 	},
 )
 
@@ -112,4 +144,14 @@ const javaServer = computed(() => props.projectV3?.minecraft_java_server)
 const javaServerPingData = computed(() => props.projectV3?.minecraft_java_server?.ping?.data)
 const playersOnline = computed(() => javaServerPingData.value?.players_online ?? 0)
 const statusOnline = computed(() => !!javaServerPingData.value)
+const translationClass = computed(
+	() =>
+		({
+			default: 'text-primary',
+			weakened: 'text-secondary',
+			brand: 'text-brand',
+			border: 'border-0 border-l-[3px] border-solid border-brand pl-2',
+			background: 'rounded-lg bg-button-bg px-2 py-1',
+		})[props.translationStyle ?? 'default'],
+)
 </script>

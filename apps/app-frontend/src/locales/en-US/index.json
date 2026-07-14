@@ -1903,5 +1903,137 @@
   },
   "unknown-pack-warning-modal.warning.title": {
     "message": "Unknown file warning"
+  },
+  "app.project.translation.show-original": {
+    "message": "Show original"
+  },
+  "app.project.translation.translate": {
+    "message": "Translate"
+  },
+  "app.settings.tabs.translation": {
+    "message": "Translation"
+  },
+  "app.translation-settings.api-key": {
+    "message": "API key"
+  },
+  "app.translation-settings.api-key-configured": {
+    "message": "An API key is already configured. Enter a new value to replace it."
+  },
+  "app.translation-settings.api-key-optional": {
+    "message": "Optional for local or unauthenticated endpoints."
+  },
+  "app.translation-settings.auto-translate": {
+    "message": "Translate project pages automatically"
+  },
+  "app.translation-settings.auto-translate-description": {
+    "message": "Start translating as soon as a Modrinth project page is opened."
+  },
+  "app.translation-settings.base-url": {
+    "message": "Base URL"
+  },
+  "app.translation-settings.cache": {
+    "message": "Translation cache"
+  },
+  "app.translation-settings.cache-cleared": {
+    "message": "Translation cache cleared."
+  },
+  "app.translation-settings.cache-description": {
+    "message": "Successful translations are cached for seven days to reduce requests."
+  },
+  "app.translation-settings.clear-cache": {
+    "message": "Clear translation cache"
+  },
+  "app.translation-settings.clear-key": {
+    "message": "Clear API key"
+  },
+  "app.translation-settings.description": {
+    "message": "Translate Modrinth project titles, summaries, and descriptions while browsing content."
+  },
+  "app.translation-settings.display-mode": {
+    "message": "Display mode"
+  },
+  "app.translation-settings.display-mode.bilingual": {
+    "message": "Original and translation"
+  },
+  "app.translation-settings.display-mode.translation-only": {
+    "message": "Translation only"
+  },
+  "app.translation-settings.model": {
+    "message": "Model"
+  },
+  "app.translation-settings.openai.configuration": {
+    "message": "OpenAI-compatible configuration"
+  },
+  "app.translation-settings.provider": {
+    "message": "Translation service"
+  },
+  "app.translation-settings.provider.google": {
+    "message": "Google Translate (free)"
+  },
+  "app.translation-settings.provider.microsoft": {
+    "message": "Microsoft Translate (free)"
+  },
+  "app.translation-settings.provider.openai-compatible": {
+    "message": "OpenAI compatible"
+  },
+  "app.translation-settings.save-key": {
+    "message": "Save API key"
+  },
+  "app.translation-settings.style": {
+    "message": "Translation style"
+  },
+  "app.translation-settings.style.background": {
+    "message": "Background"
+  },
+  "app.translation-settings.style.border": {
+    "message": "Left border"
+  },
+  "app.translation-settings.style.brand": {
+    "message": "Accent color"
+  },
+  "app.translation-settings.style.default": {
+    "message": "Default"
+  },
+  "app.translation-settings.style.preview": {
+    "message": "Preview"
+  },
+  "app.translation-settings.style.preview-original-text": {
+    "message": "Explore high-quality Minecraft content on Modrinth."
+  },
+  "app.translation-settings.style.preview-text": {
+    "message": "Discover high-quality Minecraft content on Modrinth."
+  },
+  "app.translation-settings.style.weakened": {
+    "message": "Muted"
+  },
+  "app.translation-settings.target-language": {
+    "message": "Target language"
+  },
+  "app.translation-settings.target-language.follow-app": {
+    "message": "Follow launcher language"
+  },
+  "app.translation-settings.test": {
+    "message": "Test service"
+  },
+  "app.translation-settings.test-success": {
+    "message": "Connection succeeded: {translation}"
+  },
+  "app.translation-settings.testing": {
+    "message": "Testing…"
+  },
+  "app.translation-settings.title": {
+    "message": "Translation"
+  },
+  "app.project.translation.failed": {
+    "message": "Translation failed. The original content was kept. Try again."
+  },
+  "app.project.translation.failed-title": {
+    "message": "Translation failed"
+  },
+  "app.project.translation.translating": {
+    "message": "Translating…"
+  },
+  "app.translation-settings.operation-failed": {
+    "message": "The translation operation failed. Check the configuration and try again."
   }
 }
