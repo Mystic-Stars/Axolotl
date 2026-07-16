@@ -106,6 +106,7 @@ export interface Tags {
 	categories: Array<
 		Labrinth.Tags.v2.Category & {
 			display_name?: string
+			header_display_name?: string
 			icon_url?: string
 			display_index?: number
 		}
@@ -204,7 +205,8 @@ export function useSearch(
 			if (!categoryFilters[filterTypeId]) {
 				categoryFilters[filterTypeId] = {
 					id: filterTypeId,
-					formatted_name: formatCategoryHeader(formatMessage, category.header),
+					formatted_name:
+						category.header_display_name ?? formatCategoryHeader(formatMessage, category.header),
 					supported_project_types:
 						category.project_type === 'mod'
 							? ['mod', 'plugin', 'datapack']

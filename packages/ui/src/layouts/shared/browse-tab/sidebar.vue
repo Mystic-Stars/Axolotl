@@ -72,6 +72,7 @@ function getFilterOpenByDefault(filterId: string): boolean {
 		].includes(filterId)
 	}
 	if (isApp.value) {
+		if (filterId.includes('cf-extra')) return false
 		return filterId.startsWith('category') || filterId === 'environment' || filterId === 'license'
 	}
 	if (

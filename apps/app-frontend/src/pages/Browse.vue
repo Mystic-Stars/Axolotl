@@ -45,6 +45,7 @@ import {
 	get_search_results_v3,
 	get_version_many,
 } from '@/helpers/cache.js'
+import { mergeProviderResults } from '@/helpers/browse-merge'
 import {
 	type CurseForgeCategory,
 	getCurseForgeCapability,
@@ -53,6 +54,16 @@ import {
 	searchCurseForgeProjects,
 	type UnifiedSearchHit,
 } from '@/helpers/curseforge'
+import {
+	CF_EXTRA_CATEGORY_HEADER,
+	curseForgeCategoryValue,
+	isCurseForgeOnlyCategoryName,
+	findUnmappedCurseForgeCategories,
+	localizeCurseForgeCategoryLabels,
+	localizeCurseForgeCategoryName,
+	localizeCurseForgeLabel,
+	resolveCurseForgeCategoryIdsFromFilterValues,
+} from '@/helpers/curseforge-category-map'
 import { instance_listener } from '@/helpers/events.js'
 import {
 	get as getInstance,
@@ -119,7 +130,10 @@ async function ensureCurseForgeCategories(projectTypeValue: ProjectType) {
 	}
 }
 
-if (contentSource.value === 'curseforge') {
+if (
+	curseForgeCapability.value.configured &&
+	(contentSource.value === 'curseforge' || contentSource.value === 'all')
+) {
 	await ensureCurseForgeCategories(projectType.value).catch(handleError)
 }
 
@@ -189,26 +203,65 @@ const curseForgeCategoryTags = computed(() => {
 				: undefined
 			const isResolution =
 				classId === 12 && category.displayIndex != null && category.displayIndex < 0
+			const displayName = localizeCurseForgeCategoryName(category)
+			const header =
+				isResolution
+					? 'resolutions'
+					: parent && parent.id !== classId
+						? parent.slug
+						: 'categories'
+			const headerDisplayName =
+				header === 'resolutions' || header === 'categories'
+					? undefined
+					: localizeCurseForgeLabel(parent?.slug, parent?.name, header)
 			return {
 				icon: getCurseForgeImageUrl(category.iconUrl, 32) ?? '',
 				icon_url: getCurseForgeImageUrl(category.iconUrl, 32),
 				name: category.slug,
+				display_name: displayName,
+				header_display_name: headerDisplayName,
 				display_index: category.displayIndex,
 				project_type: projectType.value,
-				header: isResolution
-					? 'resolutions'
-					: parent && parent.id !== classId
-						? parent.slug
-						: 'categories',
+				header,
 			}
 		})
+})
+
+const allSourceCategoryTags = computed(() => {
+	const classId = curseForgeClassIds[projectType.value]
+	const modrinthCategories = categories.value ?? []
+	if (!classId) return modrinthCategories
+
+	const classCategories = curseForgeCategoriesByClass.value[classId] ?? []
+	if (classCategories.length === 0) return modrinthCategories
+
+	const unmapped = findUnmappedCurseForgeCategories(
+		modrinthCategories.map((category) => category.name),
+		classCategories,
+	)
+
+	const extraTags = unmapped.map((category) => ({
+		icon: getCurseForgeImageUrl(category.iconUrl, 32) ?? '',
+		icon_url: getCurseForgeImageUrl(category.iconUrl, 32),
+		name: curseForgeCategoryValue(category.id),
+		display_name: localizeCurseForgeCategoryName(category),
+		display_index: category.displayIndex,
+		project_type: projectType.value,
+		header: CF_EXTRA_CATEGORY_HEADER,
+	}))
+
+	return [...modrinthCategories, ...extraTags]
 })
 
 const tags: Ref<Tags> = computed(() => ({
 	gameVersions: availableGameVersions.value ?? [],
 	loaders: loaders.value ?? [],
 	categories:
-		contentSource.value === 'curseforge' ? curseForgeCategoryTags.value : (categories.value ?? []),
+		contentSource.value === 'curseforge'
+			? curseForgeCategoryTags.value
+			: contentSource.value === 'all'
+				? allSourceCategoryTags.value
+				: (categories.value ?? []),
 }))
 
 type Instance = {
@@ -975,36 +1028,92 @@ const curseForgeLoaderTypes: Record<string, number> = {
 	neoforge: 6,
 }
 
+function extractQuotedFilterValues(source: string): string[] {
+	return [...source.matchAll(/[`"]([^`"]+)[`"]/g)].map((match) => match[1])
+}
+
 function getFirstSearchFilter(filters: string, field: string) {
-	return new RegExp(`${field}\\s*(?:=|IN\\s*\\[)\\s*"([^"]+)`).exec(filters)?.[1]
+	// Modrinth search filter values are backtick-quoted (`value`); keep double-quote
+	// support for any legacy/manual strings.
+	return new RegExp(
+		`${field}\\s*(?:=|IN\\s*\\[)\\s*[\`"]([^\`"]+)`,
+	).exec(filters)?.[1]
 }
 
 function getSearchFilterValues(filters: string, field: string) {
 	const values: string[] = []
-	const pattern = new RegExp(`${field}\\s*(?:=\\s*"([^"]+)"|IN\\s*\\[([^\\]]+)\\])`, 'g')
+	const pattern = new RegExp(
+		`${field}\\s*(?:=\\s*[\`"]([^\`"]+)[\`"]|IN\\s*\\[([^\\]]+)\\])`,
+		'g',
+	)
 	for (const match of filters.matchAll(pattern)) {
 		if (match[1]) {
 			values.push(match[1])
 		} else if (match[2]) {
-			values.push(...[...match[2].matchAll(/"([^"]+)"/g)].map((value) => value[1]))
+			values.push(...extractQuotedFilterValues(match[2]))
 		}
 	}
 	return values
 }
 
+function stripCurseForgeOnlyCategoryFilters(requestParams: string) {
+	const params = new URLSearchParams(
+		requestParams.startsWith('?') ? requestParams.slice(1) : requestParams,
+	)
+	const filters = params.get('new_filters')
+	if (!filters) return requestParams
+
+	const parts = filters
+		.split(' AND ')
+		.map((part) => part.trim())
+		.filter(Boolean)
+		.flatMap((part) => {
+			if (!part.includes('categories') || !part.includes('cf:')) return [part]
+
+			const equalMatch = /^categories\s*=\s*[\`"]([^\`"]+)[\`"]$/.exec(part)
+			if (equalMatch) {
+				return equalMatch[1].startsWith('cf:') ? [] : [part]
+			}
+
+			const inMatch = /^categories\s+IN\s+\[([^\]]+)\]$/.exec(part)
+			if (inMatch) {
+				const kept = extractQuotedFilterValues(inMatch[1]).filter(
+					(value) => !value.startsWith('cf:'),
+				)
+				if (kept.length === 0) return []
+				if (kept.length === 1) return [`categories = \`${kept[0]}\``]
+				return [
+					`categories IN [${kept.map((value) => `\`${value}\``).join(', ')}]`,
+				]
+			}
+
+			// Unknown shape containing cf: — drop rather than send invalid MR facets.
+			return []
+		})
+
+	if (parts.length === 0) {
+		params.delete('new_filters')
+	} else {
+		params.set('new_filters', parts.join(' AND '))
+	}
+
+	const query = params.toString()
+	return query ? `?${query}` : ''
+}
+
 function getCurseForgeCategoryIds(filters: string) {
 	const classId = curseForgeClassIds[projectType.value]
-	if (!classId || contentSource.value !== 'curseforge') return []
+	if (!classId || contentSource.value === 'modrinth') return []
 
-	const idsBySlug = new Map(
-		(curseForgeCategoriesByClass.value[classId] ?? []).map((category) => [
-			category.slug,
-			category.id,
-		]),
+	const classCategories = curseForgeCategoriesByClass.value[classId] ?? []
+	if (classCategories.length === 0) return []
+
+	const loaderSlugs = new Set(Object.keys(curseForgeLoaderTypes))
+	return resolveCurseForgeCategoryIdsFromFilterValues(
+		getSearchFilterValues(filters, 'categories'),
+		classCategories,
+		loaderSlugs,
 	)
-	return getSearchFilterValues(filters, 'categories')
-		.map((slug) => idsBySlug.get(slug))
-		.filter((id): id is number => id !== undefined)
 }
 
 function getCurseForgeSortField(sort: string | null) {
@@ -1033,10 +1142,11 @@ function mapCurseForgeHit(hit: UnifiedSearchHit) {
 		author_url: hit.author_url,
 		title: hit.title,
 		description: hit.description,
-		categories: hit.categories,
-		display_categories: hit.categories,
+		categories: localizeCurseForgeCategoryLabels(hit.categories),
+		display_categories: localizeCurseForgeCategoryLabels(hit.categories),
 		versions: hit.versions,
 		downloads: hit.downloads,
+		follows: 0,
 		icon_url: getCurseForgeImageUrl(hit.icon_url),
 		date_created: hit.date_created,
 		date_modified: hit.date_modified,
@@ -1053,40 +1163,64 @@ function mapCurseForgeHit(hit: UnifiedSearchHit) {
 	}
 }
 
-function fuseProviderResults<
-	TModrinth extends { provider?: string; project_id: string },
-	TCurseForge extends { provider?: string; project_id: string },
->(modrinthHits: TModrinth[], curseForgeHits: TCurseForge[], limit: number) {
-	const ranked = new Map<string, { hit: TModrinth | TCurseForge; score: number }>()
-	for (const hits of [modrinthHits, curseForgeHits]) {
-		hits.forEach((hit, index) => {
-			const key = `${hit.provider ?? 'modrinth'}:${hit.project_id}`
-			ranked.set(key, { hit, score: 1 / (60 + index + 1) })
-		})
-	}
-	return [...ranked.values()]
-		.sort((left, right) => right.score - left.score)
-		.slice(0, limit)
-		.map(({ hit }) => hit)
-}
-
 async function search(requestParams: string) {
 	debugLog('searching v3', requestParams)
 	const isServer = projectType.value === 'server'
 	const params = new URLSearchParams(requestParams)
 	const limit = Math.min(Number(params.get('limit') ?? 20), 50)
-	const includeModrinth = contentSource.value !== 'curseforge' || isServer
-	const includeCurseForge =
+	const filters = params.get('new_filters') ?? ''
+	const categoryValues = getSearchFilterValues(filters, 'categories')
+	const hasOnlyCurseForgeExclusiveCategories =
+		categoryValues.length > 0 &&
+		categoryValues.every(
+			(value) => isCurseForgeOnlyCategoryName(value) || curseForgeLoaderTypes[value] !== undefined,
+		) &&
+		categoryValues.some((value) => isCurseForgeOnlyCategoryName(value))
+
+	let includeModrinth =
+		(contentSource.value !== 'curseforge' || isServer) &&
+		!(contentSource.value === 'all' && hasOnlyCurseForgeExclusiveCategories)
+	let includeCurseForge =
 		!isServer &&
 		contentSource.value !== 'modrinth' &&
 		curseForgeCapability.value.configured &&
 		curseForgeClassIds[projectType.value] !== undefined
 
+	if (includeCurseForge) {
+		await ensureCurseForgeCategories(projectType.value).catch(handleError)
+	}
+
+	const gameVersion = getFirstSearchFilter(filters, 'game_versions')
+	const loader = categoryValues.find((value) => curseForgeLoaderTypes[value] !== undefined)
+	const nonLoaderCategoryValues = categoryValues.filter(
+		(value) => curseForgeLoaderTypes[value] === undefined,
+	)
+	const curseForgeCategoryIds = includeCurseForge ? getCurseForgeCategoryIds(filters) : []
+
+	// In unified browse, never mix unfiltered CurseForge hits with filtered Modrinth hits.
+	// If the user picked categories that cannot be mapped to CF, only query Modrinth.
+	if (
+		contentSource.value === 'all' &&
+		includeCurseForge &&
+		nonLoaderCategoryValues.length > 0 &&
+		curseForgeCategoryIds.length === 0 &&
+		!hasOnlyCurseForgeExclusiveCategories
+	) {
+		includeCurseForge = false
+		debugLog('skipping unfiltered curseforge results for unmapped categories', {
+			categoryValues: nonLoaderCategoryValues,
+		})
+	}
+
+	const modrinthRequestParams =
+		includeModrinth && (includeCurseForge || hasOnlyCurseForgeExclusiveCategories)
+			? stripCurseForgeOnlyCategoryFilters(requestParams)
+			: requestParams
 	const modrinthRequest = includeModrinth
 		? queryClient.fetchQuery({
-				queryKey: ['search', 'v3', requestParams],
+				queryKey: ['search', 'v3', modrinthRequestParams],
 				queryFn: () =>
-					get_search_results_v3(requestParams, 'must_revalidate') as Promise<{
+					get_search_results_v3(modrinthRequestParams, 'must_revalidate') as Promise<{
 						result: Labrinth.Search.v3.SearchResults & {
 							hits: (Labrinth.Search.v3.ResultSearchProject & { installed?: boolean })[]
 						}
@@ -1094,18 +1228,22 @@ async function search(requestParams: string) {
 				staleTime: 30_000,
 			})
 		: Promise.resolve(null)
-	const filters = params.get('new_filters') ?? ''
-	const gameVersion = getFirstSearchFilter(filters, 'game_versions')
-	const loader = getSearchFilterValues(filters, 'categories').find(
-		(value) => curseForgeLoaderTypes[value] !== undefined,
-	)
+	if (includeCurseForge) {
+		debugLog('curseforge filters', {
+			filters,
+			categoryValues,
+			categoryIds: curseForgeCategoryIds,
+			gameVersion,
+			loader,
+		})
+	}
 	const curseForgeRequest = includeCurseForge
 		? searchCurseForgeProjects({
 				classId: curseForgeClassIds[projectType.value]!,
-				categoryIds: getCurseForgeCategoryIds(filters),
+				categoryIds: curseForgeCategoryIds,
 				searchFilter: params.get('query') ?? undefined,
-				gameVersion,
-				modLoaderType: loader && gameVersion ? curseForgeLoaderTypes[loader] : undefined,
+				gameVersion: gameVersion || undefined,
+				modLoaderType: loader ? curseForgeLoaderTypes[loader] : undefined,
 				sortField: getCurseForgeSortField(params.get('index')),
 				sortOrder: 'desc',
 				index: Number(params.get('offset') ?? 0),
@@ -1118,6 +1256,13 @@ async function search(requestParams: string) {
 	])
 	const rawResults = modrinthResult.status === 'fulfilled' ? modrinthResult.value : null
 	const rawCurseForge = curseForgeResult.status === 'fulfilled' ? curseForgeResult.value : null
+
+	if (modrinthResult.status === 'rejected') {
+		debugLog('modrinth search failed', modrinthResult.reason)
+	}
+	if (curseForgeResult.status === 'rejected') {
+		debugLog('curseforge search failed', curseForgeResult.reason)
+	}
 
 	if (!rawResults && !rawCurseForge) {
 		const error =
@@ -1147,7 +1292,10 @@ async function search(requestParams: string) {
 			title: hit.name,
 			description: hit.summary,
 			provider: 'modrinth' as const,
-		} as unknown as Labrinth.Search.v2.ResultSearchProject & { installed?: boolean }
+		} as unknown as Labrinth.Search.v2.ResultSearchProject & {
+			installed?: boolean
+			provider?: 'modrinth' | 'curseforge'
+		}
 
 		if (instance.value || isServerContext.value) {
 			const installedIds = instance.value
@@ -1163,7 +1311,13 @@ async function search(requestParams: string) {
 	return {
 		projectHits:
 			contentSource.value === 'all'
-				? fuseProviderResults(hits, curseForgeHits, limit)
+				? mergeProviderResults({
+						modrinthHits: hits,
+						curseForgeHits,
+						sort: params.get('index'),
+						query: params.get('query'),
+						limit,
+					})
 				: contentSource.value === 'curseforge'
 					? curseForgeHits
 					: hits,
@@ -1220,14 +1374,14 @@ watch(contentSource, async (source) => {
 	searchState.currentFilters.value = searchState.currentFilters.value.filter(
 		(filter) => !filter.type.startsWith('category_'),
 	)
-	if (source === 'curseforge') {
+	if (source === 'curseforge' || source === 'all') {
 		await ensureCurseForgeCategories(projectType.value).catch(handleError)
 	}
 	await searchState.refreshSearch()
 })
 
 watch(projectType, async (type) => {
-	if (contentSource.value === 'curseforge') {
+	if (contentSource.value === 'curseforge' || contentSource.value === 'all') {
 		await ensureCurseForgeCategories(type).catch(handleError)
 	}
 })

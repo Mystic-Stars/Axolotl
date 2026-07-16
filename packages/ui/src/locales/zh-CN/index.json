@@ -1679,6 +1679,9 @@
   "header.category.category": {
     "defaultMessage": "类别"
   },
+  "header.category.cf-extra": {
+    "defaultMessage": "更多 CurseForge 分类"
+  },
   "header.category.feature": {
     "defaultMessage": "功能特点"
   },

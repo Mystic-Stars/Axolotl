@@ -1679,6 +1679,9 @@
   "header.category.category": {
     "defaultMessage": "Category"
   },
+  "header.category.cf-extra": {
+    "defaultMessage": "More CurseForge categories"
+  },
   "header.category.feature": {
     "defaultMessage": "Feature"
   },

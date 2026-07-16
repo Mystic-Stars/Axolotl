@@ -629,6 +629,10 @@ export const categoryHeaderMessages = defineMessages({
 		id: 'header.category.minecraft-server-meta',
 		defaultMessage: 'Meta',
 	},
+	'cf-extra': {
+		id: 'header.category.cf-extra',
+		defaultMessage: 'More CurseForge categories',
+	},
 })
 
 export function getTagMessage(
