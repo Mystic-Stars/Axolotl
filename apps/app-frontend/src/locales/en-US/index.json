@@ -1121,17 +1121,26 @@
   "app.settings.about.attribution": {
     "message": "This application is a modified version of the open-source Modrinth project."
   },
+  "app.settings.about.content-search-attribution": {
+    "message": "Chinese content search uses project-name data from Plain Craft Launcher and MC Encyclopedia."
+  },
   "app.settings.about.developer": {
     "message": "Developed by {developerName} at {organizationName}."
   },
   "app.settings.about.original-source": {
     "message": "View the original Modrinth source code"
   },
+  "app.settings.about.pcl-source": {
+    "message": "View the Plain Craft Launcher source and license"
+  },
   "app.settings.about.product-title": {
     "message": "About {productName}"
   },
   "app.settings.about.project-website": {
     "message": "Visit the project website"
+  },
+  "app.settings.about.mcmod-website": {
+    "message": "Visit MC Encyclopedia"
   },
   "app.settings.about.version": {
     "message": "Version {version}"

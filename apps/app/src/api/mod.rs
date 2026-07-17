@@ -19,6 +19,7 @@ pub mod translation;
 pub mod utils;
 
 pub mod cache;
+pub mod content_search;
 pub mod curseforge;
 pub mod files;
 pub mod worlds;

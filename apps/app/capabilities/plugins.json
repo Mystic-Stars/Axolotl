@@ -106,6 +106,7 @@
 		"install:default",
 		"process:default",
 		"cache:default",
+		"content-search:default",
 		"curseforge:default",
 		"files:default",
 		"settings:default",

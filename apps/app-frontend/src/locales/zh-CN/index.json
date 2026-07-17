@@ -1121,17 +1121,26 @@
 	"app.settings.about.attribution": {
 		"message": "本程序由 Modrinth 开源项目修改而来。"
 	},
+	"app.settings.about.content-search-attribution": {
+		"message": "中文内容搜索使用了 Plain Craft Launcher 与 MC 百科提供的项目名称数据。"
+	},
 	"app.settings.about.developer": {
 		"message": "由 {organizationName} 的 {developerName} 开发。"
 	},
 	"app.settings.about.original-source": {
 		"message": "查看 Modrinth 原始源代码"
 	},
+	"app.settings.about.pcl-source": {
+		"message": "查看 Plain Craft Launcher 源代码与许可"
+	},
 	"app.settings.about.product-title": {
 		"message": "关于 {productName}"
 	},
 	"app.settings.about.project-website": {
 		"message": "访问项目网站"
+	},
+	"app.settings.about.mcmod-website": {
+		"message": "访问 MC 百科"
 	},
 	"app.settings.about.version": {
 		"message": "版本 {version}"

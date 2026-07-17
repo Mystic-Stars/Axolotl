@@ -42,10 +42,17 @@ import { useNetworkStatus } from '@/composables/useNetworkStatus'
 import {
 	get_project,
 	get_project_v3,
+	get_project_v3_many,
 	get_search_results_v3,
 	get_version_many,
 } from '@/helpers/cache.js'
 import { mergeProviderResults } from '@/helpers/browse-merge'
+import {
+	containsChineseSearchText,
+	resolveChineseContentSearch,
+	type ChineseSearchResolution,
+	type ChineseSearchTranslation,
+} from '@/helpers/content-search'
 import {
 	type CurseForgeCategory,
 	getCurseForgeCapability,
@@ -1163,11 +1170,185 @@ function mapCurseForgeHit(hit: UnifiedSearchHit) {
 	}
 }
 
+type ChineseSearchHit = Labrinth.Search.v2.ResultSearchProject & {
+	provider?: 'modrinth' | 'curseforge'
+	provider_project_id?: string
+	installed?: boolean
+	chinese_search_score?: number
+}
+
+interface DirectModrinthProject {
+	id: string
+	slug?: string
+	project_types?: string[]
+	name: string
+	summary: string
+	published?: string
+	updated?: string
+	downloads?: number
+	followers?: number
+	categories?: string[]
+	additional_categories?: string[]
+	loaders?: string[]
+	game_versions?: string[]
+	icon_url?: string
+	color?: number
+	gallery?: Array<{ url?: string; raw_url?: string; featured?: boolean }>
+}
+
+function replaceSearchQuery(requestParams: string, query: string) {
+	const params = new URLSearchParams(
+		requestParams.startsWith('?') ? requestParams.slice(1) : requestParams,
+	)
+	params.set('query', query)
+	const result = params.toString()
+	return result ? `?${result}` : ''
+}
+
+function findChineseTranslation(
+	resolution: ChineseSearchResolution | null,
+	provider: 'modrinth' | 'curseforge',
+	slug?: string | null,
+): ChineseSearchTranslation | undefined {
+	if (!resolution || !slug) return undefined
+	const normalizedSlug = slug.toLocaleLowerCase()
+	return resolution.translations.find((translation) => {
+		const candidate =
+			provider === 'modrinth' ? translation.modrinthSlug : translation.curseforgeSlug
+		return candidate?.toLocaleLowerCase() === normalizedSlug
+	})
+}
+
+function bilingualTitle(chineseName: string, originalTitle: string) {
+	const chineseTitle = chineseName.replace(/\s+\([^()]*[A-Za-z][^()]*\)$/u, '').trim()
+	if (!chineseTitle || chineseTitle.toLocaleLowerCase() === originalTitle.toLocaleLowerCase()) {
+		return originalTitle
+	}
+	return `${chineseTitle} (${originalTitle})`
+}
+
+function applyChineseTranslation(
+	hit: ChineseSearchHit,
+	resolution: ChineseSearchResolution | null,
+): ChineseSearchHit {
+	const provider = hit.provider === 'curseforge' ? 'curseforge' : 'modrinth'
+	const translation = findChineseTranslation(resolution, provider, hit.slug)
+	if (!translation) return hit
+	return {
+		...hit,
+		title: bilingualTitle(translation.chineseName, hit.title),
+		chinese_search_score: (translation.exact ? 10 : 0) + translation.matchScore,
+	}
+}
+
+function matchesDirectModrinthFilters(
+	project: DirectModrinthProject,
+	gameVersion: string | undefined,
+	loader: string | undefined,
+	categoryValues: string[],
+) {
+	if (!project.project_types?.includes(projectType.value)) return false
+	if (gameVersion && !project.game_versions?.includes(gameVersion)) return false
+	if (loader && !project.loaders?.includes(loader)) return false
+	const modrinthCategories = categoryValues.filter(
+		(value) => !value.startsWith('cf:') && curseForgeLoaderTypes[value] === undefined,
+	)
+	if (
+		modrinthCategories.length > 0 &&
+		!modrinthCategories.some(
+			(category) =>
+				project.categories?.includes(category) || project.additional_categories?.includes(category),
+		)
+	) {
+		return false
+	}
+	return true
+}
+
+function mapDirectModrinthProject(project: DirectModrinthProject): ChineseSearchHit {
+	const gallery = project.gallery?.flatMap((item) => (item.url ? [item.url] : [])) ?? []
+	return {
+		project_id: project.id,
+		project_type: project.project_types?.[0] ?? projectType.value,
+		slug: project.slug,
+		author: '',
+		title: project.name,
+		description: project.summary,
+		categories: [...(project.categories ?? []), ...(project.additional_categories ?? [])],
+		display_categories: project.categories ?? [],
+		versions: project.game_versions ?? [],
+		downloads: project.downloads ?? 0,
+		follows: project.followers ?? 0,
+		icon_url: project.icon_url,
+		date_created: project.published ?? '',
+		date_modified: project.updated ?? '',
+		latest_version: '',
+		license: '',
+		client_side: 'unknown',
+		server_side: 'unknown',
+		gallery,
+		featured_gallery: project.gallery?.find((item) => item.featured)?.url ?? gallery[0] ?? null,
+		color: project.color ?? null,
+		provider: 'modrinth',
+	} as ChineseSearchHit
+}
+
+function dedupeProviderHits(hits: ChineseSearchHit[]) {
+	const seen = new Set<string>()
+	return hits.filter((hit) => {
+		const key = `${hit.provider ?? 'modrinth'}:${hit.project_id}`
+		if (seen.has(key)) return false
+		seen.add(key)
+		return true
+	})
+}
+
+function rankChineseProviderHits(hits: ChineseSearchHit[], sort: string | null) {
+	const metric = (hit: ChineseSearchHit) => {
+		switch (sort) {
+			case 'downloads':
+				return hit.downloads ?? 0
+			case 'follows':
+				return hit.follows ?? 0
+			case 'newest':
+				return Date.parse(hit.date_created ?? '') || 0
+			case 'updated':
+				return Date.parse(hit.date_modified ?? '') || 0
+			default:
+				return null
+		}
+	}
+	if (sort && sort !== 'relevance') {
+		return [...hits].sort((left, right) => (metric(right) ?? 0) - (metric(left) ?? 0))
+	}
+	if (!hits.some((hit) => hit.chinese_search_score)) return hits
+	return hits
+		.map((hit, index) => ({ hit, index }))
+		.sort((left, right) => {
+			const score =
+				(right.hit.chinese_search_score ?? 0) - (left.hit.chinese_search_score ?? 0)
+			if (score !== 0) return score
+			const downloads = (right.hit.downloads ?? 0) - (left.hit.downloads ?? 0)
+			if (downloads !== 0) return downloads
+			return left.index - right.index
+		})
+		.map(({ hit }) => hit)
+}
+
 async function search(requestParams: string) {
 	debugLog('searching v3', requestParams)
 	const isServer = projectType.value === 'server'
 	const params = new URLSearchParams(requestParams)
 	const limit = Math.min(Number(params.get('limit') ?? 20), 50)
+	const offset = Number(params.get('offset') ?? 0)
+	const rawQuery = params.get('query') ?? ''
+	let chineseResolution: ChineseSearchResolution | null = null
+	if (containsChineseSearchText(rawQuery)) {
+		chineseResolution = await resolveChineseContentSearch(rawQuery).catch((error) => {
+			debugLog('chinese search resolution failed, using original query', error)
+			return null
+		})
+	}
 	const filters = params.get('new_filters') ?? ''
 	const categoryValues = getSearchFilterValues(filters, 'categories')
 	const hasOnlyCurseForgeExclusiveCategories =
@@ -1212,10 +1393,16 @@ async function search(requestParams: string) {
 		})
 	}
 
-	const modrinthRequestParams =
+	let modrinthRequestParams =
 		includeModrinth && (includeCurseForge || hasOnlyCurseForgeExclusiveCategories)
 			? stripCurseForgeOnlyCategoryFilters(requestParams)
 			: requestParams
+	if (chineseResolution?.modrinthQuery) {
+		modrinthRequestParams = replaceSearchQuery(
+			modrinthRequestParams,
+			chineseResolution.modrinthQuery,
+		)
+	}
 	const modrinthRequest = includeModrinth
 		? queryClient.fetchQuery({
 				queryKey: ['search', 'v3', modrinthRequestParams],
@@ -1241,21 +1428,33 @@ async function search(requestParams: string) {
 		? searchCurseForgeProjects({
 				classId: curseForgeClassIds[projectType.value]!,
 				categoryIds: curseForgeCategoryIds,
-				searchFilter: params.get('query') ?? undefined,
+				searchFilter: (chineseResolution?.curseforgeQuery ?? rawQuery) || undefined,
 				gameVersion: gameVersion || undefined,
 				modLoaderType: loader ? curseForgeLoaderTypes[loader] : undefined,
 				sortField: getCurseForgeSortField(params.get('index')),
 				sortOrder: 'desc',
-				index: Number(params.get('offset') ?? 0),
+				index: offset,
 				pageSize: limit,
 			})
 		: Promise.resolve(null)
-	const [modrinthResult, curseForgeResult] = await Promise.allSettled([
+	const directModrinthRequest =
+		includeModrinth &&
+		!isServer &&
+		offset === 0 &&
+		(chineseResolution?.modrinthSlugs.length ?? 0) > 0
+			? get_project_v3_many(chineseResolution!.modrinthSlugs, 'must_revalidate')
+			: Promise.resolve([])
+	const [modrinthResult, curseForgeResult, directModrinthResult] = await Promise.allSettled([
 		modrinthRequest,
 		curseForgeRequest,
+		directModrinthRequest,
 	])
 	const rawResults = modrinthResult.status === 'fulfilled' ? modrinthResult.value : null
 	const rawCurseForge = curseForgeResult.status === 'fulfilled' ? curseForgeResult.value : null
+	const rawDirectModrinth =
+		directModrinthResult.status === 'fulfilled'
+			? (directModrinthResult.value as DirectModrinthProject[])
+			: []
 
 	if (modrinthResult.status === 'rejected') {
 		debugLog('modrinth search failed', modrinthResult.reason)
@@ -1263,8 +1462,11 @@ async function search(requestParams: string) {
 	if (curseForgeResult.status === 'rejected') {
 		debugLog('curseforge search failed', curseForgeResult.reason)
 	}
+	if (directModrinthResult.status === 'rejected') {
+		debugLog('direct modrinth chinese candidates failed', directModrinthResult.reason)
+	}
 
-	if (!rawResults && !rawCurseForge) {
+	if (!rawResults && !rawCurseForge && rawDirectModrinth.length === 0) {
 		const error =
 			modrinthResult.status === 'rejected'
 				? modrinthResult.reason
@@ -1304,15 +1506,42 @@ async function search(requestParams: string) {
 			mapped.installed = installedIds.has(hit.project_id)
 		}
 
-		return mapped
+		return applyChineseTranslation(mapped, chineseResolution)
 	})
 
-	const curseForgeHits = (rawCurseForge?.hits ?? []).map(mapCurseForgeHit)
+	const directModrinthHits = rawDirectModrinth
+		.filter((project) =>
+			matchesDirectModrinthFilters(project, gameVersion, loader, categoryValues),
+		)
+		.slice(0, limit)
+		.map(mapDirectModrinthProject)
+		.map((hit) => applyChineseTranslation(hit, chineseResolution))
+		.map((hit) => {
+			if (instance.value || isServerContext.value) {
+				const installedIds = instance.value
+					? new Set([...newlyInstalled.value, ...(installedProjectIds.value ?? [])])
+					: serverContentProjectIds.value
+				hit.installed = installedIds.has(hit.project_id)
+			}
+			return hit
+		})
+	const modrinthHits = rankChineseProviderHits(
+		dedupeProviderHits([...directModrinthHits, ...hits]),
+		params.get('index'),
+	)
+	const directModrinthHitIds = new Set(directModrinthHits.map((hit) => hit.project_id))
+	const searchedModrinthHitIds = new Set(hits.map((hit) => hit.project_id))
+	const injectedModrinthCount = [...directModrinthHitIds].filter(
+		(id) => !searchedModrinthHitIds.has(id),
+	).length
+	const curseForgeHits = (rawCurseForge?.hits ?? [])
+		.map(mapCurseForgeHit)
+		.map((hit) => applyChineseTranslation(hit as ChineseSearchHit, chineseResolution))
 	return {
 		projectHits:
 			contentSource.value === 'all'
 				? mergeProviderResults({
-						modrinthHits: hits,
+						modrinthHits,
 						curseForgeHits,
 						sort: params.get('index'),
 						query: params.get('query'),
@@ -1320,14 +1549,16 @@ async function search(requestParams: string) {
 					})
 				: contentSource.value === 'curseforge'
 					? curseForgeHits
-					: hits,
+					: modrinthHits.slice(0, limit),
 		serverHits: [],
 		total_hits:
 			contentSource.value === 'all'
-				? (rawResults?.result.total_hits ?? 0) + (rawCurseForge?.total_hits ?? 0)
+				? (rawResults?.result.total_hits ?? 0) +
+					(rawCurseForge?.total_hits ?? 0) +
+					injectedModrinthCount
 				: contentSource.value === 'curseforge'
 					? (rawCurseForge?.total_hits ?? 0)
-					: (rawResults?.result.total_hits ?? 0),
+					: (rawResults?.result.total_hits ?? 0) + injectedModrinthCount,
 		per_page: limit,
 	}
 }

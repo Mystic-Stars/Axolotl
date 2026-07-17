@@ -110,6 +110,7 @@ url = { workspace = true, features = ["serde"] }
 urlencoding = { workspace = true }
 uuid = { workspace = true, features = ["serde", "v4"] }
 whoami = { workspace = true }
+zhconv = { workspace = true }
 zbus = { workspace = true }
 zip = { workspace = true }
 

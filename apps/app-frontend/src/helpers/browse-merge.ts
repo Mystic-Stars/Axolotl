@@ -13,6 +13,7 @@ export interface BrowseMergeHit {
 	follows?: number | null
 	date_created?: string | null
 	date_modified?: string | null
+	chinese_search_score?: number | null
 }
 
 export interface MergeProviderResultsOptions<T extends BrowseMergeHit> {
@@ -117,15 +118,19 @@ export function mergeProviderResults<T extends BrowseMergeHit>(
 	// relevance (default) and unknown sorts: rank fusion + download prior
 	const ranked = new Map<string, { hit: T; score: number }>()
 	const maxDownloads = maxMetric(combined, (hit) => hit.downloads ?? 0)
-	const rankWeight = hasQuery ? 0.82 : 0.55
-	const downloadWeight = 1 - rankWeight
+	const maxChineseScore = maxMetric(combined, (hit) => hit.chinese_search_score ?? 0)
+	const chineseWeight = hasQuery && maxChineseScore > 0 ? 0.65 : 0
+	const rankWeight = chineseWeight > 0 ? 0.27 : hasQuery ? 0.82 : 0.55
+	const downloadWeight = 1 - chineseWeight - rankWeight
 	const rankBias = hasQuery ? 12 : 20
 
 	for (const hits of [modrinthHits, curseForgeHits]) {
 		hits.forEach((hit, index) => {
 			const rankScore = 1 / (rankBias + index + 1)
 			const downloadScore = normalize(Math.log1p(hit.downloads ?? 0), Math.log1p(maxDownloads))
-			const score = rankWeight * rankScore + downloadWeight * downloadScore
+			const chineseScore = normalize(hit.chinese_search_score ?? 0, maxChineseScore)
+			const score =
+				chineseWeight * chineseScore + rankWeight * rankScore + downloadWeight * downloadScore
 			ranked.set(providerKey(hit), { hit, score })
 		})
 	}

@@ -33,6 +33,19 @@ const messages = defineMessages({
 		id: 'app.settings.about.project-website',
 		defaultMessage: 'Visit the project website',
 	},
+	contentSearchAttribution: {
+		id: 'app.settings.about.content-search-attribution',
+		defaultMessage:
+			'Chinese content search uses project-name data from Plain Craft Launcher and MC Encyclopedia.',
+	},
+	pclSource: {
+		id: 'app.settings.about.pcl-source',
+		defaultMessage: 'View the Plain Craft Launcher source and license',
+	},
+	mcModWebsite: {
+		id: 'app.settings.about.mcmod-website',
+		defaultMessage: 'Visit MC Encyclopedia',
+	},
 })
 </script>
 
@@ -66,6 +79,9 @@ const messages = defineMessages({
 			<p class="m-0 mt-3 text-primary">
 				{{ formatMessage(messages.attribution) }}
 			</p>
+			<p class="m-0 mt-3 text-primary">
+				{{ formatMessage(messages.contentSearchAttribution) }}
+			</p>
 		</div>
 
 		<div class="flex flex-col items-start gap-3">
@@ -85,6 +101,24 @@ const messages = defineMessages({
 				class="inline-flex items-center gap-2 font-semibold text-brand hover:underline"
 			>
 				{{ formatMessage(messages.projectWebsite) }}
+				<ExternalIcon class="size-4" />
+			</a>
+			<a
+				href="https://github.com/Meloong-Git/PCL/tree/fd7b722346523d9574678a8a4a02928d31cd1e0c"
+				target="_blank"
+				rel="noopener noreferrer"
+				class="inline-flex items-center gap-2 font-semibold text-brand hover:underline"
+			>
+				{{ formatMessage(messages.pclSource) }}
+				<ExternalIcon class="size-4" />
+			</a>
+			<a
+				href="https://www.mcmod.cn/"
+				target="_blank"
+				rel="noopener noreferrer"
+				class="inline-flex items-center gap-2 font-semibold text-brand hover:underline"
+			>
+				{{ formatMessage(messages.mcModWebsite) }}
 				<ExternalIcon class="size-4" />
 			</a>
 		</div>

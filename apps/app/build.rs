@@ -52,6 +52,14 @@ fn main() {
                     ),
             )
             .plugin(
+                "content-search",
+                InlinedPlugin::new()
+                    .commands(&["resolve_chinese_content_search"])
+                    .default_permission(
+                        DefaultPermissionRule::AllowAllCommands,
+                    ),
+            )
+            .plugin(
                 "curseforge",
                 InlinedPlugin::new()
                     .commands(&[
