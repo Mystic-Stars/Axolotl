@@ -28,24 +28,11 @@ pub struct UpdateMetadata {
 pub struct PendingUpdateData(pub Mutex<Option<(Arc<Update>, Vec<u8>)>>);
 
 fn update_endpoints(source: &str) -> Result<Vec<Url>> {
-    let endpoints = match source {
-        "official" => vec![
-            "https://github.com/Mystic-Stars/Axolotl/releases/latest/download/latest.json",
-        ],
-        "cnb" => vec![
-            "https://cnb.cool/axlmc/Axolotl/-/raw/main/latest.json",
-            "https://gitee.com/mystic-stars/axolotl/raw/main/latest.json",
-            "https://github.com/Mystic-Stars/Axolotl/releases/latest/download/latest.json",
-        ],
-        "gitee" => vec![
-            "https://gitee.com/mystic-stars/axolotl/raw/main/latest.json",
-            "https://github.com/Mystic-Stars/Axolotl/releases/latest/download/latest.json",
-        ],
-        "auto" | "" => vec![
-            "https://cnb.cool/axlmc/Axolotl/-/raw/main/latest.json",
-            "https://gitee.com/mystic-stars/axolotl/raw/main/latest.json",
-            "https://github.com/Mystic-Stars/Axolotl/releases/latest/download/latest.json",
-        ],
+    let endpoint = match source {
+        "github" | "official" => {
+            "https://github.com/Mystic-Stars/Axolotl/releases/latest/download/latest.json"
+        }
+        "cnb" => "https://cnb.cool/axlmc/Axolotl/-/raw/update/latest.json",
         _ => {
             return Err(theseus::Error::from(theseus::ErrorKind::OtherError(
                 format!("Unknown update source: {source}"),
@@ -54,17 +41,9 @@ fn update_endpoints(source: &str) -> Result<Vec<Url>> {
         }
     };
 
-    endpoints
-        .into_iter()
-        .map(|endpoint| {
-            Url::parse(endpoint).map_err(|error| {
-                theseus::Error::from(theseus::ErrorKind::OtherError(
-                    error.to_string(),
-                ))
-                .into()
-            })
-        })
-        .collect()
+    Ok(vec![Url::parse(endpoint).map_err(|error| {
+        theseus::Error::from(theseus::ErrorKind::OtherError(error.to_string()))
+    })?])
 }
 
 #[tauri::command]
@@ -86,7 +65,7 @@ pub async fn check_app_update<R: Runtime>(
         version: update.version.clone(),
         date: None,
         body: update.body.clone(),
-        raw_json: update.raw_json.clone(),
+        raw_json: update.raw_json,
     };
 
     Ok(Some(metadata))

@@ -61,6 +61,7 @@ import UnknownPackWarningModal from '@/components/ui/install_flow/UnknownPackWar
 import MinecraftAuthErrorModal from '@/components/ui/minecraft-auth-error-modal/MinecraftAuthErrorModal.vue'
 import AppSettingsModal from '@/components/ui/modal/AppSettingsModal.vue'
 import AuthGrantFlowWaitModal from '@/components/ui/modal/AuthGrantFlowWaitModal.vue'
+import CommunityAnnouncementModal from '@/components/ui/modal/CommunityAnnouncementModal.vue'
 import CurseForgeManualDownloadsModal from '@/components/ui/modal/CurseForgeManualDownloadsModal.vue'
 import InstallToPlayModal from '@/components/ui/modal/InstallToPlayModal.vue'
 import ModpackAlreadyInstalledModal from '@/components/ui/modal/ModpackAlreadyInstalledModal.vue'
@@ -213,6 +214,7 @@ const os = ref('')
 const isDevEnvironment = ref(false)
 
 const stateInitialized = ref(false)
+const communityAnnouncementModal = ref()
 
 const isMaximized = ref(false)
 
@@ -517,18 +519,23 @@ function onSuspenseResolve() {
 	}
 }
 
-watch(stateInitialized, (ready) => {
-	if (ready) {
-		if (initialLoadToken) {
-			loading.end(initialLoadToken)
-			initialLoadToken = null
+watch(
+	stateInitialized,
+	(ready) => {
+		if (ready) {
+			if (initialLoadToken) {
+				loading.end(initialLoadToken)
+				initialLoadToken = null
+			}
+			if (routerToken) {
+				loading.end(routerToken)
+				routerToken = null
+			}
+			communityAnnouncementModal.value?.showIfNeeded()
 		}
-		if (routerToken) {
-			loading.end(routerToken)
-			routerToken = null
-		}
-	}
-})
+	},
+	{ flush: 'post' },
+)
 
 watch(offline, (isOffline) => {
 	if (isOffline && (route.path.startsWith('/browse') || route.path.startsWith('/project'))) {
@@ -889,7 +896,68 @@ function showDelayedUpdatePopup() {
 	markAppUpdatePopupShown(update.version, stage)
 }
 
-let lastUpdateSource = 'auto'
+let lastUpdateSource = 'cnb'
+
+async function performUpdateCheck() {
+	const source = getUpdateSource()
+	if (source !== lastUpdateSource) {
+		availableUpdate.value = null
+		updateSize.value = null
+		appUpdateDownload.progress.value = 0
+		finishedDownloading.value = false
+		downloading.value = false
+		lastUpdateSource = source
+	}
+
+	const update = await checkAppUpdate(source)
+	if (!update) {
+		console.log('No update available')
+		return 'up-to-date'
+	}
+
+	const isExistingUpdate = update.version === availableUpdate.value?.version
+
+	if (isExistingUpdate) {
+		console.log('Update is already known')
+		scheduleDelayedUpdatePopup()
+		return 'available'
+	}
+
+	appUpdateDownload.progress.value = 0
+	finishedDownloading.value = false
+	downloading.value = false
+	updateSize.value = null
+	availableUpdate.value = update
+
+	console.log(`Update ${update.version} is available.`)
+
+	metered.value = await isNetworkMetered()
+	if (!metered.value) {
+		console.log('Starting download of update')
+		downloadUpdate(update)
+	} else {
+		console.log(`Metered connection detected, not auto-downloading update.`)
+		markAppUpdateActionable(update.version)
+		scheduleDelayedUpdatePopup()
+	}
+
+	getUpdateSize(update.rid).then((size) => (updateSize.value = size))
+	return 'available'
+}
+
+async function manualUpdateCheck() {
+	if (!(await areUpdatesEnabled())) {
+		updatesEnabled.value = false
+		return 'disabled'
+	}
+
+	updatesEnabled.value = true
+	if (offline.value) {
+		return 'offline'
+	}
+
+	return await performUpdateCheck()
+}
 
 async function checkUpdates() {
 	if (!(await areUpdatesEnabled())) {
@@ -899,54 +967,9 @@ async function checkUpdates() {
 		return
 	}
 
-	async function performCheck() {
-		const source = getUpdateSource()
-		if (source !== lastUpdateSource) {
-			availableUpdate.value = null
-			updateSize.value = null
-			appUpdateDownload.progress.value = 0
-			finishedDownloading.value = false
-			downloading.value = false
-			lastUpdateSource = source
-		}
-
-		const update = await checkAppUpdate(source)
-		if (!update) {
-			console.log('No update available')
-			return
-		}
-
-		const isExistingUpdate = update.version === availableUpdate.value?.version
-
-		if (isExistingUpdate) {
-			console.log('Update is already known')
-			scheduleDelayedUpdatePopup()
-			return
-		}
-
-		appUpdateDownload.progress.value = 0
-		finishedDownloading.value = false
-		downloading.value = false
-		updateSize.value = null
-		availableUpdate.value = update
-
-		console.log(`Update ${update.version} is available.`)
-
-		metered.value = await isNetworkMetered()
-		if (!metered.value) {
-			console.log('Starting download of update')
-			downloadUpdate(update)
-		} else {
-			console.log(`Metered connection detected, not auto-downloading update.`)
-			markAppUpdateActionable(update.version)
-			scheduleDelayedUpdatePopup()
-		}
-
-		getUpdateSize(update.rid).then((size) => (updateSize.value = size))
-	}
-
+	updatesEnabled.value = true
 	if (!offline.value) {
-		await performCheck().catch((error) => {
+		await performUpdateCheck().catch((error) => {
 			console.warn('Failed to check for launcher updates', error)
 		})
 	}
@@ -1020,6 +1043,7 @@ async function installUpdate() {
 }
 
 setAppUpdateActions({
+	check: manualUpdateCheck,
 	download: downloadAvailableUpdate,
 	install: installUpdate,
 	changelog: () => openUrl(AxolotlBrandConfig.website),
@@ -1364,6 +1388,7 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 	<I18nDebugPanel />
 	<NotificationPanel :has-sidebar="sidebarVisible" />
 	<PopupNotificationPanel :has-sidebar="sidebarVisible" />
+	<CommunityAnnouncementModal ref="communityAnnouncementModal" />
 	<ErrorModal ref="errorModal" />
 	<MinecraftAuthErrorModal ref="minecraftAuthErrorModal" />
 	<ContentInstallModal

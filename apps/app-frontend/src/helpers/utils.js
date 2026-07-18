@@ -11,7 +11,7 @@ export async function areUpdatesEnabled() {
 	return await invoke('are_updates_enabled')
 }
 
-export async function checkAppUpdate(source = 'auto') {
+export async function checkAppUpdate(source = 'cnb') {
 	return await invoke('check_app_update', { source })
 }
 

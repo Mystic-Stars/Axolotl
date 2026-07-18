@@ -314,6 +314,24 @@
   "app.browse.source.modrinth": {
     "message": "Modrinth"
   },
+  "app.community-announcement.feedback-middle": {
+    "message": ", or share them with us through "
+  },
+  "app.community-announcement.feedback-prefix": {
+    "message": "If you have more ideas or suggestions, please join the player QQ group: "
+  },
+  "app.community-announcement.feedback-suffix": {
+    "message": ". We look forward to improving Axolotl Launcher together!"
+  },
+  "app.community-announcement.response": {
+    "message": "Since Axolotl Launcher was promoted on video platforms, we have received far more love and attention than we expected, along with many thoughtful suggestions and high-quality reports."
+  },
+  "app.community-announcement.thanks": {
+    "message": "I have done my best to personally reply to every comment on the videos. Thank you sincerely for all your support!"
+  },
+  "app.community-announcement.title": {
+    "message": "To all our users"
+  },
   "app.content-install.no-compatible-versions": {
     "message": "No available versions match {compatibilityLabel}. Select a version to install anyway. Dependencies will not be installed automatically."
   },
@@ -1445,43 +1463,9 @@
   "app.settings.resources.select-directory": {
     "message": "Select a new app directory"
   },
-  "app.settings.tabs.updates": {
-    "message": "Updates"
+  "app.settings.tabs.about": {
+    "message": "About"
   },
-  "app.settings.updates.auto": {
-    "message": "Automatic (recommended)"
-  },
-  "app.settings.updates.auto-description": {
-    "message": "Use the CNB mirror first, then Gitee, then the official GitHub source."
-  },
-  "app.settings.updates.cnb": {
-    "message": "CNB mirror"
-  },
-  "app.settings.updates.cnb-description": {
-    "message": "Use the China mainland mirror hosted on CNB, with GitHub fallback."
-  },
-  "app.settings.updates.description": {
-    "message": "Choose where Axolotl checks for launcher updates. Automatic selection tries the fastest available source and falls back when necessary."
-  },
-  "app.settings.updates.gitee": {
-    "message": "Gitee mirror"
-  },
-  "app.settings.updates.gitee-description": {
-    "message": "Use the Gitee mirror, with the official source as fallback."
-  },
-  "app.settings.updates.official": {
-    "message": "Official GitHub source"
-  },
-  "app.settings.updates.official-description": {
-    "message": "Download directly from Axolotl GitHub Releases."
-  },
-  "app.settings.updates.security": {
-    "message": "Every source uses the same signed update manifest. A mirror cannot install an update unless its signature is valid."
-  },
-  "app.settings.updates.title": {
-    "message": "Update source"
-  },
-
   "app.settings.tabs.appearance": {
     "message": "Appearance"
   },
@@ -1499,6 +1483,45 @@
   },
   "app.settings.tabs.translation": {
     "message": "Translation"
+  },
+  "app.settings.tabs.updates": {
+    "message": "Updates"
+  },
+  "app.settings.updates.available": {
+    "message": "An update is available."
+  },
+  "app.settings.updates.check": {
+    "message": "Check for updates"
+  },
+  "app.settings.updates.checking": {
+    "message": "Checking for updates…"
+  },
+  "app.settings.updates.cnb": {
+    "message": "CNB"
+  },
+  "app.settings.updates.description": {
+    "message": "Choose where Axolotl checks for launcher updates."
+  },
+  "app.settings.updates.disabled": {
+    "message": "Updates are disabled in this build."
+  },
+  "app.settings.updates.failed": {
+    "message": "Could not check for updates."
+  },
+  "app.settings.updates.github": {
+    "message": "GitHub"
+  },
+  "app.settings.updates.offline": {
+    "message": "Connect to the internet to check for updates."
+  },
+  "app.settings.updates.security": {
+    "message": "Updates are installed only when their cryptographic signature is valid."
+  },
+  "app.settings.updates.title": {
+    "message": "Update source"
+  },
+  "app.settings.updates.up-to-date": {
+    "message": "Axolotl is up to date."
   },
   "app.skins.add-button": {
     "message": "Add skin"

@@ -1,0 +1,113 @@
+name: 🐛 错误报告
+description: 报告 Axolotl Launcher 中可以复现的问题
+title: '[错误] '
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢你帮助改进 Axolotl Launcher。请尽量完整地填写以下信息，以便我们定位问题。
+        上传日志或截图前，请移除账号、访问令牌、设备路径等隐私信息。
+
+  - type: checkboxes
+    id: confirmations
+    attributes:
+      label: 提交前确认
+      options:
+        - label: 我已搜索[现有 Issues](https://github.com/Mystic-Stars/Axolotl/issues)，没有发现相同问题
+          required: true
+        - label: 我正在使用最新版本的 Axolotl Launcher，或已确认该问题在最新版本中仍然存在
+          required: true
+        - label: 我已从日志、截图和描述中移除账号、访问令牌等敏感信息
+          required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Axolotl Launcher 版本
+      description: 可在启动器设置或“关于”页面中查看，例如 1.2.3。
+      placeholder: 例如 1.2.3
+    validations:
+      required: true
+
+  - type: dropdown
+    id: operating_system
+    attributes:
+      label: 操作系统
+      options:
+        - Windows 10/11（x64）
+        - macOS（Apple Silicon）
+        - macOS（Intel）
+        - Linux（x64）
+        - 其他
+    validations:
+      required: true
+
+  - type: input
+    id: system_details
+    attributes:
+      label: 系统详细信息
+      description: 如果选择 Linux 或“其他”，请填写发行版、桌面环境或架构等信息。
+      placeholder: 例如 Ubuntu 24.04，GNOME，x64
+    validations:
+      required: false
+
+  - type: dropdown
+    id: installation_source
+    attributes:
+      label: 安装来源
+      options:
+        - GitHub Releases 安装包
+        - 启动器内自动更新
+        - 软件包管理器或第三方分发渠道
+        - 本地开发或源码构建
+        - 其他
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: 问题描述
+      description: 请清楚说明发生了什么，以及问题出现的频率。
+      placeholder: 描述实际发生的现象……
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: 复现步骤
+      description: 请从启动 Axolotl 开始，按顺序列出能够触发问题的操作。
+      placeholder: |
+        1. 打开……
+        2. 点击……
+        3. 选择……
+        4. 出现……
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected_behavior
+    attributes:
+      label: 预期行为
+      description: 说明你原本期望看到的结果。
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: 相关日志
+      description: 请粘贴与问题相关的日志片段，并确保其中不含敏感信息。没有日志时可以留空。
+      render: shell
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional_context
+    attributes:
+      label: 截图与补充信息
+      description: 可直接拖入截图，并补充可能有助于定位问题的信息。
+    validations:
+      required: false

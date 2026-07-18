@@ -102,19 +102,19 @@ const tabs = [
 	},
 	{
 		name: defineMessage({
-			id: 'app.settings.tabs.about',
-			defaultMessage: 'About',
-		}),
-		icon: InfoIcon,
-		content: AboutSettings,
-	},
-	{
-		name: defineMessage({
 			id: 'app.settings.tabs.updates',
 			defaultMessage: 'Updates',
 		}),
 		icon: RefreshCwIcon,
 		content: UpdateSettings,
+	},
+	{
+		name: defineMessage({
+			id: 'app.settings.tabs.about',
+			defaultMessage: 'About',
+		}),
+		icon: InfoIcon,
+		content: AboutSettings,
 	},
 	{
 		name: commonSettingsMessages.featureFlags,

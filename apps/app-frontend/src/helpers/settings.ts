@@ -31,13 +31,17 @@ Memorysettings {
 
 */
 
-export type UpdateSource = 'auto' | 'official' | 'cnb' | 'gitee'
+export type UpdateSource = 'cnb' | 'github'
 
 const UPDATE_SOURCE_STORAGE_KEY = 'axolotl-update-source'
 
 export function getUpdateSource(): UpdateSource {
 	const value = localStorage.getItem(UPDATE_SOURCE_STORAGE_KEY)
-	return value === 'official' || value === 'cnb' || value === 'gitee' ? value : 'auto'
+	const source = value === 'github' || value === 'official' ? 'github' : 'cnb'
+	if (value !== source) {
+		localStorage.setItem(UPDATE_SOURCE_STORAGE_KEY, source)
+	}
+	return source
 }
 
 export function setUpdateSource(source: UpdateSource) {

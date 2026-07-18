@@ -6,7 +6,7 @@ export const AxolotlBrandConfig = Object.freeze({
 	organizationName: 'Garbage Human Studio',
 	shortOrganizationName: 'GHS',
 	developerName: 'Mystic Stars',
-	website: 'https://www.ghs.red',
+	website: 'https://www.axlmc.org/',
 	sourceUrl: 'https://www.ghs.red',
 	supportUrl: 'https://github.com/Mystic-Stars/Axolotl/issues',
 	bundleIdentifier: 'red.ghs.axolotl',

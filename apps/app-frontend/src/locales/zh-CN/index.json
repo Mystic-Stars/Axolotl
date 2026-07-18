@@ -314,6 +314,24 @@
   "app.browse.source.modrinth": {
     "message": "Modrinth"
   },
+  "app.community-announcement.feedback-middle": {
+    "message": "，或在 "
+  },
+  "app.community-announcement.feedback-prefix": {
+    "message": "如果您还有更多、更好的想法与建议，欢迎加入玩家交流 QQ 群："
+  },
+  "app.community-announcement.feedback-suffix": {
+    "message": " 中向我们提出。期待与大家共同完善 Axolotl Launcher！"
+  },
+  "app.community-announcement.response": {
+    "message": "自 Axolotl Launcher 在视频平台宣传以来，我们收获了远超预期的喜爱与关注，同时也收到了许多高质量的反馈与建议。"
+  },
+  "app.community-announcement.thanks": {
+    "message": "对于视频评论区里的留言，我都已尽可能地逐一回复。承蒙各位厚爱，在此表达最诚挚的感谢！"
+  },
+  "app.community-announcement.title": {
+    "message": "致各位用户"
+  },
   "app.content-install.no-compatible-versions": {
     "message": "没有与 {compatibilityLabel} 匹配的可用版本。如果仍要安装，请选择一个版本。依赖项将不会自动安装。"
   },
@@ -1448,40 +1466,46 @@
   "app.settings.tabs.updates": {
     "message": "更新"
   },
-  "app.settings.updates.auto": {
-    "message": "自动选择（推荐）"
+  "app.settings.updates.available": {
+    "message": "发现可用更新。"
   },
-  "app.settings.updates.auto-description": {
-    "message": "依次尝试 CNB 镜像、Gitee 镜像和官方 GitHub 源。"
+  "app.settings.updates.check": {
+    "message": "检查更新"
+  },
+  "app.settings.updates.checking": {
+    "message": "正在检查更新……"
   },
   "app.settings.updates.cnb": {
-    "message": "CNB 镜像"
-  },
-  "app.settings.updates.cnb-description": {
-    "message": "使用由 CNB 提供的中国大陆镜像，失败时回退到 GitHub。"
+    "message": "CNB 渠道"
   },
   "app.settings.updates.description": {
-    "message": "选择 Axolotl 检查启动器更新的位置。自动选择会尝试可用源，并在失败时自动回退。"
+    "message": "选择 Axolotl 检查启动器更新的渠道。"
   },
-  "app.settings.updates.gitee": {
-    "message": "Gitee 镜像"
+  "app.settings.updates.disabled": {
+    "message": "此构建已禁用更新功能。"
   },
-  "app.settings.updates.gitee-description": {
-    "message": "使用 Gitee 镜像，失败时回退到官方源。"
+  "app.settings.updates.failed": {
+    "message": "无法检查更新。"
   },
-  "app.settings.updates.official": {
-    "message": "官方 GitHub 源"
+  "app.settings.updates.github": {
+    "message": "GitHub 渠道"
   },
-  "app.settings.updates.official-description": {
-    "message": "直接从 Axolotl GitHub Releases 下载。"
+  "app.settings.updates.offline": {
+    "message": "请连接到互联网后检查更新。"
   },
   "app.settings.updates.security": {
-    "message": "所有源都使用相同的签名更新清单。镜像只有在签名有效时才能安装更新。"
+    "message": "只有通过加密签名验证的更新才会被安装。"
   },
   "app.settings.updates.title": {
-    "message": "更新源"
+    "message": "更新渠道"
+  },
+  "app.settings.updates.up-to-date": {
+    "message": "Axolotl 已是最新版本。"
   },
 
+  "app.settings.tabs.about": {
+    "message": "关于"
+  },
   "app.settings.tabs.appearance": {
     "message": "外观"
   },

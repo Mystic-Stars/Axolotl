@@ -1,0 +1,122 @@
+main:
+  'crontab: */15 * * * *':
+    - name: Sync source from GitHub
+      stages:
+        - name: Pull GitHub repository
+          image: tencentcom/git-sync
+          settings:
+            target_url: https://github.com/Mystic-Stars/Axolotl.git
+            auth_type: https
+            username: ${GIT_USERNAME}
+            password: ${GIT_ACCESS_TOKEN}
+            sync_mode: pull
+            force: true
+            push_tags: true
+            fetch_options: --prune
+
+'v*':
+  tag_push:
+    - name: Linux x64
+      runner:
+        tags: cnb:arch:amd64
+        cpus: 8
+      docker:
+        image: node:24-bookworm
+        volumes:
+          - axolotl-pnpm:/root/.local/share/pnpm/store:copy-on-write
+          - axolotl-cargo-registry:/root/.cargo/registry:copy-on-write
+          - axolotl-cargo-git:/root/.cargo/git:copy-on-write
+      env:
+        SQLX_OFFLINE: 'true'
+      stages:
+        - name: Build and publish Linux x64
+          script: |
+            set -euo pipefail
+            apt-get update
+            apt-get install -y --no-install-recommends build-essential curl file git libssl-dev libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf pkg-config xdg-utils
+            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal
+            export PATH="$HOME/.cargo/bin:$PATH"
+            corepack enable
+            pnpm install --frozen-lockfile
+            node scripts/axolotl/set-version.mjs "$CNB_BRANCH"
+            pnpm --dir apps/app tauri build --config tauri-release.conf.json
+            node scripts/axolotl/prepare-cnb-release.mjs "$CNB_BRANCH" linux-x64 linux-x86_64 target/release/bundle cnb-release/linux-x64
+            node scripts/axolotl/cnb-release.mjs upload "$CNB_BRANCH" cnb-release/linux-x64
+
+    - name: Linux arm64
+      runner:
+        tags: cnb:arch:arm64:v8
+        cpus: 8
+      docker:
+        image: node:24-bookworm
+        volumes:
+          - axolotl-pnpm-arm64:/root/.local/share/pnpm/store:copy-on-write
+          - axolotl-cargo-registry-arm64:/root/.cargo/registry:copy-on-write
+          - axolotl-cargo-git-arm64:/root/.cargo/git:copy-on-write
+      env:
+        SQLX_OFFLINE: 'true'
+      stages:
+        - name: Build and publish Linux arm64
+          script: |
+            set -euo pipefail
+            apt-get update
+            apt-get install -y --no-install-recommends build-essential curl file git libssl-dev libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf pkg-config xdg-utils
+            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal
+            export PATH="$HOME/.cargo/bin:$PATH"
+            corepack enable
+            pnpm install --frozen-lockfile
+            node scripts/axolotl/set-version.mjs "$CNB_BRANCH"
+            pnpm --dir apps/app tauri build --config tauri-release.conf.json
+            node scripts/axolotl/prepare-cnb-release.mjs "$CNB_BRANCH" linux-arm64 linux-aarch64 target/release/bundle cnb-release/linux-arm64
+            node scripts/axolotl/cnb-release.mjs upload "$CNB_BRANCH" cnb-release/linux-arm64
+
+    - name: Windows x64
+      runner:
+        namespace: axlmc
+        tags: windows
+      env:
+        SQLX_OFFLINE: 'true'
+      stages:
+        - name: Build and publish Windows x64
+          script: |
+            $ErrorActionPreference = 'Stop'
+            corepack enable
+            pnpm install --frozen-lockfile
+            node scripts/axolotl/set-version.mjs "$env:CNB_BRANCH"
+            pnpm --dir apps/app tauri build --config tauri-release.conf.json
+            node scripts/axolotl/prepare-cnb-release.mjs "$env:CNB_BRANCH" windows-x64 windows-x86_64 target/release/bundle cnb-release/windows-x64
+            node scripts/axolotl/cnb-release.mjs upload "$env:CNB_BRANCH" cnb-release/windows-x64
+
+    - name: macOS universal
+      runner:
+        namespace: axlmc
+        tags: macos
+      env:
+        SQLX_OFFLINE: 'true'
+        TAURI_BUNDLER_DMG_IGNORE_CI: 'true'
+      stages:
+        - name: Build and publish macOS universal
+          script: |
+            set -euo pipefail
+            corepack enable
+            rustup target add aarch64-apple-darwin x86_64-apple-darwin
+            pnpm install --frozen-lockfile
+            node scripts/axolotl/set-version.mjs "$CNB_BRANCH"
+            pnpm --dir apps/app tauri build --target universal-apple-darwin --config tauri-release.conf.json
+            node scripts/axolotl/prepare-cnb-release.mjs "$CNB_BRANCH" macos-universal darwin-aarch64,darwin-x86_64 target/universal-apple-darwin/release/bundle cnb-release/macos-universal
+            node scripts/axolotl/cnb-release.mjs upload "$CNB_BRANCH" cnb-release/macos-universal
+
+    - name: Publish release manifest
+      runner:
+        tags: cnb:arch:amd64
+        cpus: 2
+      docker:
+        image: node:24-bookworm
+      stages:
+        - name: Wait for builds and publish release
+          script: |
+            set -euo pipefail
+            apt-get update
+            apt-get install -y --no-install-recommends git
+            node scripts/axolotl/cnb-release.mjs finalize "$CNB_BRANCH" cnb-release/final
+            node scripts/axolotl/verify-update-manifest.mjs cnb-release/final/latest.json "$CNB_BRANCH" cnb
