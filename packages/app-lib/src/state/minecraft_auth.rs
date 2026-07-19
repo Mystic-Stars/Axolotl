@@ -32,6 +32,9 @@ use tokio::task;
 use url::Url;
 use uuid::Uuid;
 
+mod yggdrasil;
+pub use yggdrasil::*;
+
 #[derive(Debug, Clone, Copy)]
 pub enum MinecraftAuthStep {
     GetDeviceToken,
@@ -156,6 +159,7 @@ pub async fn login_finish(
         expires: oauth_token.date
             + Duration::seconds(oauth_token.value.expires_in as i64),
         active: true,
+        yggdrasil: None,
     };
 
     // During login, we need to fetch the online profile at least once to get the
@@ -186,12 +190,14 @@ pub enum MinecraftAccountType {
     #[default]
     Microsoft,
     Offline,
+    Yggdrasil,
 }
 
 impl MinecraftAccountType {
     fn from_database(value: &str) -> Self {
         match value {
             "offline" => Self::Offline,
+            "yggdrasil" => Self::Yggdrasil,
             _ => Self::Microsoft,
         }
     }
@@ -200,6 +206,7 @@ impl MinecraftAccountType {
         match self {
             Self::Microsoft => "microsoft",
             Self::Offline => "offline",
+            Self::Yggdrasil => "yggdrasil",
         }
     }
 }
@@ -213,6 +220,10 @@ struct StoredCredentials {
     access_token: String,
     refresh_token: String,
     expires: i64,
+    yggdrasil_api_root: String,
+    yggdrasil_server_name: String,
+    yggdrasil_login: String,
+    yggdrasil_client_token: String,
 }
 
 #[derive(Deserialize, Debug)]
@@ -230,6 +241,8 @@ pub struct Credentials {
     pub refresh_token: String,
     pub expires: DateTime<Utc>,
     pub active: bool,
+    #[serde(default)]
+    pub yggdrasil: Option<YggdrasilAccount>,
 }
 
 /// An entry in the player profile cache, keyed by player UUID.
@@ -315,6 +328,7 @@ impl Credentials {
             refresh_token: String::new(),
             expires: Utc::now(),
             active: true,
+            yggdrasil: None,
         })
     }
 
@@ -322,16 +336,34 @@ impl Credentials {
         self.account_type == MinecraftAccountType::Offline
     }
 
+    pub fn is_microsoft(&self) -> bool {
+        self.account_type == MinecraftAccountType::Microsoft
+    }
+
+    pub fn is_yggdrasil(&self) -> bool {
+        self.account_type == MinecraftAccountType::Yggdrasil
+    }
+
     fn from_stored(stored: StoredCredentials) -> Self {
+        let account_type =
+            MinecraftAccountType::from_database(&stored.account_type);
+        let yggdrasil =
+            (account_type == MinecraftAccountType::Yggdrasil).then(|| {
+                YggdrasilAccount {
+                    api_root: stored.yggdrasil_api_root,
+                    server_name: stored.yggdrasil_server_name,
+                    login: stored.yggdrasil_login,
+                    client_token: stored.yggdrasil_client_token,
+                }
+            });
+
         Self {
             offline_profile: MinecraftProfile {
                 id: Uuid::parse_str(&stored.uuid).unwrap_or_default(),
                 name: stored.username,
                 ..MinecraftProfile::default()
             },
-            account_type: MinecraftAccountType::from_database(
-                &stored.account_type,
-            ),
+            account_type,
             access_token: stored.access_token,
             refresh_token: stored.refresh_token,
             expires: Utc
@@ -339,6 +371,7 @@ impl Credentials {
                 .single()
                 .unwrap_or_else(Utc::now),
             active: stored.active == 1,
+            yggdrasil,
         }
     }
 
@@ -350,6 +383,9 @@ impl Credentials {
     ) -> crate::Result<()> {
         if self.is_offline() {
             return Ok(());
+        }
+        if self.is_yggdrasil() {
+            return refresh_yggdrasil_credentials(self, exec).await;
         }
 
         // Use a margin of 5 minutes to give e.g. Minecraft and potentially
@@ -434,6 +470,9 @@ impl Credentials {
     ) -> Option<Arc<MinecraftProfile>> {
         if self.is_offline() {
             return None;
+        }
+        if self.is_yggdrasil() {
+            return self.yggdrasil_online_profile(cache_intent).await;
         }
 
         let max_age = cache_intent.max_age();
@@ -532,6 +571,57 @@ impl Credentials {
         }
     }
 
+    async fn yggdrasil_online_profile(
+        &self,
+        cache_intent: OnlineProfileCacheIntent,
+    ) -> Option<Arc<MinecraftProfile>> {
+        let account = self.yggdrasil.as_ref()?;
+        let stale_profile = {
+            let profile_cache = PROFILE_CACHE.lock().await;
+            match profile_cache.get(&self.offline_profile.id) {
+                Some(ProfileCacheEntry::Hit(profile))
+                    if profile.is_fresh(cache_intent.max_age()) =>
+                {
+                    return Some(Arc::clone(profile));
+                }
+                Some(ProfileCacheEntry::Hit(profile)) => {
+                    Some(Arc::clone(profile))
+                }
+                Some(ProfileCacheEntry::AuthErrorBackoff { .. }) | None => None,
+            }
+        };
+
+        match fetch_yggdrasil_profile(account, self.offline_profile.id).await {
+            Ok(Some(profile)) => {
+                let profile = Arc::new(profile);
+                PROFILE_CACHE.lock().await.insert(
+                    self.offline_profile.id,
+                    ProfileCacheEntry::Hit(Arc::clone(&profile)),
+                );
+                Some(profile)
+            }
+            Ok(None) => {
+                if cache_intent.can_use_stale_on_fetch_error() {
+                    stale_profile
+                } else {
+                    None
+                }
+            }
+            Err(error) => {
+                tracing::warn!(
+                    "Failed to fetch Yggdrasil profile for UUID {} from {}: {error}",
+                    self.offline_profile.id,
+                    account.server_name
+                );
+                if cache_intent.can_use_stale_on_fetch_error() {
+                    stale_profile
+                } else {
+                    None
+                }
+            }
+        }
+    }
+
     /// Attempts to fetch the online profile for this user if possible, and if that fails
     /// falls back to the known offline profile data.
     ///
@@ -552,7 +642,7 @@ impl Credentials {
     pub async fn get_default_credential(
         exec: impl sqlx::Executor<'_, Database = sqlx::Sqlite> + Copy,
     ) -> crate::Result<Option<Credentials>> {
-        let credentials = Self::get_active(exec).await?;
+        let credentials = Self::get_active_without_refresh(exec).await?;
 
         if let Some(mut creds) = credentials {
             let res = creds.refresh(exec).await;
@@ -560,14 +650,19 @@ impl Credentials {
             match res {
                 Ok(_) => Ok(Some(creds)),
                 Err(err) => {
-                    if let ErrorKind::MinecraftAuthenticationError(
-                        MinecraftAuthenticationError::Request {
-                            ref source,
-                            ..
-                        },
-                    ) = *err.raw
-                        && (source.is_connect() || source.is_timeout())
-                    {
+                    let network_unavailable = match &*err.raw {
+                        ErrorKind::MinecraftAuthenticationError(
+                            MinecraftAuthenticationError::Request {
+                                source,
+                                ..
+                            },
+                        )
+                        | ErrorKind::FetchError(source) => {
+                            source.is_connect() || source.is_timeout()
+                        }
+                        _ => false,
+                    };
+                    if network_unavailable {
                         return Ok(Some(creds));
                     }
 
@@ -601,7 +696,9 @@ impl Credentials {
             "
             SELECT
                 uuid, active, username, account_type, access_token,
-                refresh_token, expires
+                refresh_token, expires, yggdrasil_api_root,
+                yggdrasil_server_name, yggdrasil_login,
+                yggdrasil_client_token
             FROM minecraft_users
             WHERE active = TRUE
             ",
@@ -641,7 +738,9 @@ impl Credentials {
             "
             SELECT
                 uuid, active, username, account_type, access_token,
-                refresh_token, expires
+                refresh_token, expires, yggdrasil_api_root,
+                yggdrasil_server_name, yggdrasil_login,
+                yggdrasil_client_token
             FROM minecraft_users
             ",
         )
@@ -690,6 +789,22 @@ impl Credentials {
         let expires = self.expires.timestamp();
         let uuid = profile.id.as_hyphenated().to_string();
         let account_type = self.account_type.as_database();
+        let yggdrasil_api_root = self
+            .yggdrasil
+            .as_ref()
+            .map_or("", |account| account.api_root.as_str());
+        let yggdrasil_server_name = self
+            .yggdrasil
+            .as_ref()
+            .map_or("", |account| account.server_name.as_str());
+        let yggdrasil_login = self
+            .yggdrasil
+            .as_ref()
+            .map_or("", |account| account.login.as_str());
+        let yggdrasil_client_token = self
+            .yggdrasil
+            .as_ref()
+            .map_or("", |account| account.client_token.as_str());
 
         if self.active {
             sqlx::query!(
@@ -706,16 +821,22 @@ impl Credentials {
             "
             INSERT INTO minecraft_users (
                 uuid, active, username, account_type, access_token,
-                refresh_token, expires
+                refresh_token, expires, yggdrasil_api_root,
+                yggdrasil_server_name, yggdrasil_login,
+                yggdrasil_client_token
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
             ON CONFLICT (uuid) DO UPDATE SET
                 active = $2,
                 username = $3,
                 account_type = $4,
                 access_token = $5,
                 refresh_token = $6,
-                expires = $7
+                expires = $7,
+                yggdrasil_api_root = $8,
+                yggdrasil_server_name = $9,
+                yggdrasil_login = $10,
+                yggdrasil_client_token = $11
             ",
         )
         .bind(uuid)
@@ -725,6 +846,10 @@ impl Credentials {
         .bind(&self.access_token)
         .bind(&self.refresh_token)
         .bind(expires)
+        .bind(yggdrasil_api_root)
+        .bind(yggdrasil_server_name)
+        .bind(yggdrasil_login)
+        .bind(yggdrasil_client_token)
         .execute(exec)
         .await?;
 
@@ -785,13 +910,14 @@ impl Serialize for Credentials {
             }
         };
 
-        let mut ser = serializer.serialize_struct("Credentials", 6)?;
+        let mut ser = serializer.serialize_struct("Credentials", 7)?;
         ser.serialize_field("profile", &*profile)?;
         ser.serialize_field("account_type", &self.account_type)?;
         ser.serialize_field("access_token", &self.access_token)?;
         ser.serialize_field("refresh_token", &self.refresh_token)?;
         ser.serialize_field("expires", &self.expires)?;
         ser.serialize_field("active", &self.active)?;
+        ser.serialize_field("yggdrasil", &self.yggdrasil)?;
         ser.end()
     }
 }

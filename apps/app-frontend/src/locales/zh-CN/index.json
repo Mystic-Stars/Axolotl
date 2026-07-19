@@ -1310,14 +1310,32 @@
   "app.server.search-instance": {
     "message": "搜索实例"
   },
+  "app.settings.about.afdian": {
+    "message": "在爱发电赞助"
+  },
+  "app.settings.about.afdian-description": {
+    "message": "支持项目持续开发"
+  },
   "app.settings.about.attribution": {
     "message": "本程序由 Modrinth 开源项目修改而来。"
+  },
+  "app.settings.about.community-support": {
+    "message": "社区与支持"
   },
   "app.settings.about.content-search-attribution": {
     "message": "中文内容搜索使用了 Plain Craft Launcher 与 MC 百科提供的项目名称数据。"
   },
+  "app.settings.about.copied-qq-group": {
+    "message": "已复制群号"
+  },
+  "app.settings.about.copy-qq-group": {
+    "message": "复制群号"
+  },
   "app.settings.about.developer": {
     "message": "由 {organizationName} 的 {developerName} 开发。"
+  },
+  "app.settings.about.mcmod-website": {
+    "message": "访问 MC 百科"
   },
   "app.settings.about.original-source": {
     "message": "查看 Modrinth 原始源代码"
@@ -1331,8 +1349,8 @@
   "app.settings.about.project-website": {
     "message": "访问项目网站"
   },
-  "app.settings.about.mcmod-website": {
-    "message": "访问 MC 百科"
+  "app.settings.about.qq-group": {
+    "message": "玩家 QQ 群"
   },
   "app.settings.about.version": {
     "message": "版本 {version}"
@@ -1604,6 +1622,12 @@
   },
   "app.skins.offline-account.compatibility-title": {
     "message": "离线皮肤兼容性"
+  },
+  "app.skins.third-party-account.description": {
+    "message": "此账号的皮肤由其 Yggdrasil 认证服务管理。请前往对应服务的网站更换皮肤或披风。"
+  },
+  "app.skins.third-party-account.title": {
+    "message": "第三方皮肤管理"
   },
   "app.skins.preview.edit-button": {
     "message": "编辑皮肤"
@@ -2244,6 +2268,9 @@
   "minecraft-account.add-offline-account": {
     "message": "添加离线账户"
   },
+  "minecraft-account.add-third-party-account": {
+    "message": "添加第三方账号"
+  },
   "minecraft-account.label": {
     "message": "Minecraft 账户"
   },
@@ -2288,6 +2315,54 @@
   },
   "minecraft-account.sign-in": {
     "message": "登录 Minecraft"
+  },
+  "minecraft-account.third-party-account": {
+    "message": "Minecraft 第三方账号"
+  },
+  "minecraft-account.third-party-badge": {
+    "message": "第三方"
+  },
+  "minecraft-account.third-party-modal.account": {
+    "message": "账号或邮箱"
+  },
+  "minecraft-account.third-party-modal.account-placeholder": {
+    "message": "请输入账号或邮箱"
+  },
+  "minecraft-account.third-party-modal.api-root": {
+    "message": "Yggdrasil API 地址"
+  },
+  "minecraft-account.third-party-modal.api-root-placeholder": {
+    "message": "https://example.com/api/yggdrasil"
+  },
+  "minecraft-account.third-party-modal.description": {
+    "message": "使用 LittleSkin 或其他兼容的 Yggdrasil 外置登录服务。"
+  },
+  "minecraft-account.third-party-modal.littleskin": {
+    "message": "使用 LittleSkin"
+  },
+  "minecraft-account.third-party-modal.password": {
+    "message": "密码"
+  },
+  "minecraft-account.third-party-modal.remember-password": {
+    "message": "在此设备上保存登录"
+  },
+  "minecraft-account.third-party-modal.saved-logins": {
+    "message": "已保存的登录"
+  },
+  "minecraft-account.third-party-modal.remove-saved-login": {
+    "message": "删除已保存的登录"
+  },
+  "minecraft-account.third-party-modal.sign-in": {
+    "message": "登录"
+  },
+  "minecraft-account.third-party-modal.title": {
+    "message": "登录第三方账号"
+  },
+  "minecraft-account.third-party-profile.description": {
+    "message": "请选择此账号要使用的 Minecraft 角色。"
+  },
+  "minecraft-account.third-party-profile.title": {
+    "message": "选择角色"
   },
   "project.description.title": {
     "message": "简介"

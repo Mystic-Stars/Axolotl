@@ -1,12 +1,24 @@
 <script setup lang="ts">
-import { ExternalIcon } from '@modrinth/assets'
+import { CheckIcon, CopyIcon, ExternalIcon } from '@modrinth/assets'
 import { defineMessages, useVIntl } from '@modrinth/ui'
 import { getVersion } from '@tauri-apps/api/app'
+import { ref } from 'vue'
 
+import AfdianIcon from '@/assets/external/afdian.png'
+import QqIcon from '@/assets/external/qq.svg?component'
 import { AxolotlBrandConfig } from '@/config'
 
 const { formatMessage } = useVIntl()
 const version = await getVersion()
+const copied = ref(false)
+
+async function copyQqGroupNumber() {
+	await navigator.clipboard.writeText(AxolotlBrandConfig.qqGroupNumber)
+	copied.value = true
+	setTimeout(() => {
+		copied.value = false
+	}, 3000)
+}
 
 const messages = defineMessages({
 	productTitle: {
@@ -24,6 +36,30 @@ const messages = defineMessages({
 	attribution: {
 		id: 'app.settings.about.attribution',
 		defaultMessage: 'This application is a modified version of the open-source Modrinth project.',
+	},
+	communitySupport: {
+		id: 'app.settings.about.community-support',
+		defaultMessage: 'Community & support',
+	},
+	qqGroup: {
+		id: 'app.settings.about.qq-group',
+		defaultMessage: 'Player QQ group',
+	},
+	copyQqGroup: {
+		id: 'app.settings.about.copy-qq-group',
+		defaultMessage: 'Copy group number',
+	},
+	copiedQqGroup: {
+		id: 'app.settings.about.copied-qq-group',
+		defaultMessage: 'Group number copied',
+	},
+	afdian: {
+		id: 'app.settings.about.afdian',
+		defaultMessage: 'Support on Afdian',
+	},
+	afdianDescription: {
+		id: 'app.settings.about.afdian-description',
+		defaultMessage: 'Help support continued development',
 	},
 	originalSource: {
 		id: 'app.settings.about.original-source',
@@ -82,6 +118,72 @@ const messages = defineMessages({
 			<p class="m-0 mt-3 text-primary">
 				{{ formatMessage(messages.contentSearchAttribution) }}
 			</p>
+		</div>
+
+		<div>
+			<h3 class="m-0 mb-3 text-base font-semibold text-contrast">
+				{{ formatMessage(messages.communitySupport) }}
+			</h3>
+			<div class="grid gap-3 sm:grid-cols-2">
+				<button
+					type="button"
+					:disabled="copied"
+					:aria-label="
+						copied
+							? formatMessage(messages.copiedQqGroup)
+							: formatMessage(messages.copyQqGroup)
+					"
+					class="flex min-w-0 items-center gap-3 rounded-xl bg-surface-4 p-4 text-left transition-colors hover:bg-surface-5 disabled:cursor-default"
+					@click="copyQqGroupNumber"
+				>
+					<span
+						class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-surface-2 text-contrast"
+					>
+						<QqIcon class="size-6" />
+					</span>
+					<span class="min-w-0 flex-1">
+						<span class="block font-semibold text-contrast">
+							{{ formatMessage(messages.qqGroup) }}
+						</span>
+						<span class="block text-sm text-secondary">
+							{{ AxolotlBrandConfig.qqGroupNumber }}
+						</span>
+					</span>
+					<span class="shrink-0" aria-live="polite">
+						<CheckIcon v-if="copied" class="size-5 text-green" />
+						<CopyIcon v-else class="size-5 text-secondary" />
+						<span class="sr-only">
+							{{
+								copied
+									? formatMessage(messages.copiedQqGroup)
+									: formatMessage(messages.copyQqGroup)
+							}}
+						</span>
+					</span>
+				</button>
+
+				<a
+					:href="AxolotlBrandConfig.sponsorUrl"
+					target="_blank"
+					rel="noopener noreferrer"
+					class="flex min-w-0 items-center gap-3 rounded-xl bg-surface-4 p-4 text-left transition-colors hover:bg-surface-5"
+				>
+					<span
+						class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-surface-2"
+					>
+						<img :src="AfdianIcon" alt="" class="size-7 object-contain" />
+					</span>
+					<span class="min-w-0 flex-1">
+						<span class="block font-semibold text-contrast">
+							{{ formatMessage(messages.afdian) }}
+						</span>
+						<span class="block text-sm text-secondary">
+							{{ formatMessage(messages.afdianDescription) }}
+						</span>
+					</span>
+					<ExternalIcon class="size-5 shrink-0 text-secondary" />
+				</a>
+			</div>
 		</div>
 
 		<div class="flex flex-col items-start gap-3">

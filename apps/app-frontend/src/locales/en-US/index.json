@@ -1310,11 +1310,26 @@
   "app.server.search-instance": {
     "message": "Search for an instance"
   },
+  "app.settings.about.afdian": {
+    "message": "Support on Afdian"
+  },
+  "app.settings.about.afdian-description": {
+    "message": "Help support continued development"
+  },
   "app.settings.about.attribution": {
     "message": "This application is a modified version of the open-source Modrinth project."
   },
+  "app.settings.about.community-support": {
+    "message": "Community & support"
+  },
   "app.settings.about.content-search-attribution": {
     "message": "Chinese content search uses project-name data from Plain Craft Launcher and MC Encyclopedia."
+  },
+  "app.settings.about.copied-qq-group": {
+    "message": "Group number copied"
+  },
+  "app.settings.about.copy-qq-group": {
+    "message": "Copy group number"
   },
   "app.settings.about.developer": {
     "message": "Developed by {developerName} at {organizationName}."
@@ -1333,6 +1348,9 @@
   },
   "app.settings.about.project-website": {
     "message": "Visit the project website"
+  },
+  "app.settings.about.qq-group": {
+    "message": "Player QQ group"
   },
   "app.settings.about.version": {
     "message": "Version {version}"
@@ -1603,6 +1621,12 @@
   },
   "app.skins.offline-account.compatibility-title": {
     "message": "Offline skin compatibility"
+  },
+  "app.skins.third-party-account.description": {
+    "message": "Skins for this account are managed by its Yggdrasil provider. Open the provider website to change skins or capes."
+  },
+  "app.skins.third-party-account.title": {
+    "message": "Third-party skin management"
   },
   "app.skins.preview.edit-button": {
     "message": "Edit skin"
@@ -2243,6 +2267,9 @@
   "minecraft-account.add-offline-account": {
     "message": "Add offline account"
   },
+  "minecraft-account.add-third-party-account": {
+    "message": "Add third-party account"
+  },
   "minecraft-account.label": {
     "message": "Minecraft account"
   },
@@ -2287,6 +2314,54 @@
   },
   "minecraft-account.sign-in": {
     "message": "Sign in to Minecraft"
+  },
+  "minecraft-account.third-party-account": {
+    "message": "Third-party Minecraft account"
+  },
+  "minecraft-account.third-party-badge": {
+    "message": "Third-party"
+  },
+  "minecraft-account.third-party-modal.account": {
+    "message": "Account or email"
+  },
+  "minecraft-account.third-party-modal.account-placeholder": {
+    "message": "Enter your account or email"
+  },
+  "minecraft-account.third-party-modal.api-root": {
+    "message": "Yggdrasil API address"
+  },
+  "minecraft-account.third-party-modal.api-root-placeholder": {
+    "message": "https://example.com/api/yggdrasil"
+  },
+  "minecraft-account.third-party-modal.description": {
+    "message": "Use LittleSkin or another compatible Yggdrasil authentication service."
+  },
+  "minecraft-account.third-party-modal.littleskin": {
+    "message": "Use LittleSkin"
+  },
+  "minecraft-account.third-party-modal.password": {
+    "message": "Password"
+  },
+  "minecraft-account.third-party-modal.remember-password": {
+    "message": "Save this login on this device"
+  },
+  "minecraft-account.third-party-modal.saved-logins": {
+    "message": "Saved logins"
+  },
+  "minecraft-account.third-party-modal.remove-saved-login": {
+    "message": "Remove saved login"
+  },
+  "minecraft-account.third-party-modal.sign-in": {
+    "message": "Sign in"
+  },
+  "minecraft-account.third-party-modal.title": {
+    "message": "Sign in with a third-party service"
+  },
+  "minecraft-account.third-party-profile.description": {
+    "message": "Choose the Minecraft profile to use with this account."
+  },
+  "minecraft-account.third-party-profile.title": {
+    "message": "Select a profile"
   },
   "project.description.title": {
     "message": "Description"

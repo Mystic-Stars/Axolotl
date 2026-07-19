@@ -269,6 +269,19 @@ pub enum UrlOrBlob {
     Blob(Bytes),
 }
 
+fn ensure_skin_management_supported(
+    credentials: &Credentials,
+) -> crate::Result<()> {
+    if credentials.is_yggdrasil() {
+        return Err(ErrorKind::InputError(
+            "Skins for third-party Yggdrasil accounts must be managed through the account provider"
+                .to_string(),
+        )
+        .as_error());
+    }
+    Ok(())
+}
+
 /// Gets the capes for the selected Minecraft profile.
 /// Only one cape can be equipped.
 #[tracing::instrument]
@@ -555,6 +568,7 @@ pub async fn add_and_equip_custom_skin(
     let selected_credentials = Credentials::get_default_credential(&state.pool)
         .await?
         .ok_or(ErrorKind::NoCredentialsError)?;
+    ensure_skin_management_supported(&selected_credentials)?;
     let cape_id = if selected_credentials.is_offline() {
         None
     } else {
@@ -726,6 +740,7 @@ pub async fn equip_skin(skin: Skin) -> crate::Result<()> {
     let selected_credentials = Credentials::get_default_credential(&state.pool)
         .await?
         .ok_or(ErrorKind::NoCredentialsError)?;
+    ensure_skin_management_supported(&selected_credentials)?;
 
     if selected_credentials.is_offline() {
         equip_offline_skin_now(&state, &selected_credentials, &skin).await?;
@@ -913,6 +928,7 @@ pub async fn remove_custom_skin(skin: Skin) -> crate::Result<()> {
     let selected_credentials = Credentials::get_default_credential(&state.pool)
         .await?
         .ok_or(ErrorKind::NoCredentialsError)?;
+    ensure_skin_management_supported(&selected_credentials)?;
 
     if selected_credentials.is_offline() {
         OfflineMinecraftSkin::clear_if_texture(
@@ -951,6 +967,7 @@ pub async fn set_custom_skin_order(
     let selected_credentials = Credentials::get_default_credential(&state.pool)
         .await?
         .ok_or(ErrorKind::NoCredentialsError)?;
+    ensure_skin_management_supported(&selected_credentials)?;
 
     CustomMinecraftSkin::set_order(
         selected_credentials.offline_profile.id,
@@ -982,6 +999,7 @@ pub async fn save_custom_skin(
     let selected_credentials = Credentials::get_default_credential(&state.pool)
         .await?
         .ok_or(ErrorKind::NoCredentialsError)?;
+    ensure_skin_management_supported(&selected_credentials)?;
 
     let old_texture_key = Arc::clone(&skin.texture_key);
     let texture_key = if replace_texture {
@@ -1063,6 +1081,7 @@ pub async fn unequip_skin() -> crate::Result<()> {
     let selected_credentials = Credentials::get_default_credential(&state.pool)
         .await?
         .ok_or(ErrorKind::NoCredentialsError)?;
+    ensure_skin_management_supported(&selected_credentials)?;
 
     if selected_credentials.is_offline() {
         OfflineMinecraftSkin::clear(

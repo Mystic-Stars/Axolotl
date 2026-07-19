@@ -268,10 +268,10 @@ pub async fn get_minecraft_arguments(
     quick_play_version: QuickPlayVersion,
 ) -> crate::Result<Vec<String>> {
     let access_token = credentials.access_token.clone();
-    let user_type = if credentials.is_offline() {
-        "legacy"
-    } else {
+    let user_type = if credentials.is_microsoft() {
         "msa"
+    } else {
+        "legacy"
     };
     let profile = credentials.maybe_online_profile().await;
     let mut parsed_arguments = Vec::new();

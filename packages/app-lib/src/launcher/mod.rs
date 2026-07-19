@@ -21,6 +21,8 @@ use crate::state::{
 use crate::util::io;
 use crate::util::rpc::RpcServerBuilder;
 use crate::{State, get_resource_file, process};
+use base64::Engine;
+use base64::prelude::BASE64_STANDARD;
 use chrono::Utc;
 use daedalus as d;
 use daedalus::minecraft::{LoggingSide, RuleAction, VersionInfo};
@@ -956,6 +958,33 @@ pub async fn launch_minecraft(
 
     let (main_class_keep_alive, main_class_path) =
         get_resource_file!(env "JAVA_JARS_DIR" / "theseus.jar")?;
+    let yggdrasil_agent = if credentials.is_yggdrasil() {
+        let account = credentials.yggdrasil.as_ref().ok_or_else(|| {
+            crate::ErrorKind::LauncherError(
+                "Yggdrasil account metadata is missing".to_string(),
+            )
+            .as_error()
+        })?;
+        let metadata =
+            crate::state::fetch_yggdrasil_metadata(&account.api_root).await?;
+        let agent_path =
+            main_class_keep_alive.path().join("authlib-injector.jar");
+        io::write(
+            &agent_path,
+            include_bytes!(concat!(
+                env!("JAVA_JARS_DIR"),
+                "/authlib-injector.jar"
+            )),
+        )
+        .await?;
+        Some((
+            io::canonicalize(agent_path)?,
+            metadata.api_root,
+            BASE64_STANDARD.encode(metadata.raw),
+        ))
+    } else {
+        None
+    };
 
     let rpc_server = RpcServerBuilder::new().launch().await?;
 
@@ -998,6 +1027,18 @@ pub async fn launch_minecraft(
     // The java launcher code requires internal JDK code in Java 25+ in order to support JEP 512
     if java_version.parsed_version >= 25 {
         command.arg("--add-opens=jdk.internal/jdk.internal.misc=ALL-UNNAMED");
+    }
+
+    if let Some((agent_path, api_root, prefetched_metadata)) = yggdrasil_agent {
+        command
+            .arg(format!(
+                "-javaagent:{}={api_root}",
+                agent_path.to_string_lossy()
+            ))
+            .arg("-Dauthlibinjector.side=client")
+            .arg(format!(
+                "-Dauthlibinjector.yggdrasil.prefetched={prefetched_metadata}"
+            ));
     }
 
     command

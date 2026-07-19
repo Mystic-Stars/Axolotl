@@ -71,7 +71,7 @@ defineExpose({ showIfNeeded })
 			</p>
 			<p class="m-0 leading-relaxed">
 				{{ formatMessage(messages.feedbackPrefix)
-				}}<span class="font-semibold text-contrast">955605306</span
+				}}<span class="font-semibold text-contrast">{{ AxolotlBrandConfig.qqGroupNumber }}</span
 				>{{ formatMessage(messages.feedbackMiddle)
 				}}<a
 					:href="AxolotlBrandConfig.supportUrl"

@@ -15,6 +15,10 @@ const messages = defineMessages({
 		id: 'axolotl-site.footer.description',
 		defaultMessage: 'A free and open-source Minecraft launcher for Windows, macOS, and Linux.',
 	},
+	qqGroup: {
+		id: 'axolotl-site.footer.qq-group',
+		defaultMessage: 'Official QQ group',
+	},
 	openSourcePrefix: {
 		id: 'axolotl-site.footer.open-source-prefix',
 		defaultMessage: 'Axolotl is',
@@ -40,6 +44,10 @@ const messages = defineMessages({
 						<AxolotlWordmark />
 					</NuxtLink>
 					<p>{{ formatMessage(messages.description) }}</p>
+					<div class="qq-group">
+						<span>{{ formatMessage(messages.qqGroup) }}</span>
+						<strong>955605306</strong>
+					</div>
 				</div>
 
 				<nav class="footer-links" aria-label="Footer">
@@ -111,6 +119,27 @@ const messages = defineMessages({
 		color: var(--color-secondary);
 		font-size: 0.875rem;
 		line-height: 1.6;
+	}
+}
+
+.qq-group {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	padding: 0.45rem 0.7rem;
+	border: 1px solid color-mix(in srgb, var(--color-brand) 35%, var(--color-divider));
+	border-radius: 0.7rem;
+	background: color-mix(in srgb, var(--color-brand) 8%, var(--surface-3));
+	font-size: 0.8125rem;
+
+	span {
+		color: var(--color-secondary);
+	}
+
+	strong {
+		color: var(--color-contrast);
+		font-variant-numeric: tabular-nums;
+		user-select: all;
 	}
 }
 

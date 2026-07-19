@@ -161,7 +161,7 @@ async fn run_credentials(
         mc_set_options.push(("fullscreen".to_string(), "true".to_string()));
     }
 
-    if !credentials.is_offline()
+    if credentials.is_microsoft()
         && let Some(project_id) = server_play_project_id(&context.link)
         && !project_id.trim().is_empty()
     {

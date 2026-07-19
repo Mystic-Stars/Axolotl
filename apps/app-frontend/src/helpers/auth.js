@@ -33,6 +33,30 @@ export async function login() {
 	return await invoke('plugin:auth|login')
 }
 
+export async function begin_yggdrasil_login(apiRoot, login, password) {
+	return await invoke('plugin:auth|begin_yggdrasil_login', { apiRoot, login, password })
+}
+
+export async function finish_yggdrasil_login(flowId, profileId) {
+	return await invoke('plugin:auth|finish_yggdrasil_login', { flowId, profileId })
+}
+
+export async function list_yggdrasil_saved_logins() {
+	return await invoke('plugin:auth|list_yggdrasil_saved_logins')
+}
+
+export async function get_yggdrasil_password(apiRoot, login) {
+	return await invoke('plugin:auth|get_yggdrasil_password', { apiRoot, login })
+}
+
+export async function set_yggdrasil_password(apiRoot, login, password) {
+	return await invoke('plugin:auth|set_yggdrasil_password', { apiRoot, login, password })
+}
+
+export async function delete_yggdrasil_password(apiRoot, login) {
+	return await invoke('plugin:auth|delete_yggdrasil_password', { apiRoot, login })
+}
+
 /**
  * Creates and selects a local Minecraft account.
  * @param {string} username

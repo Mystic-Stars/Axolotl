@@ -14,6 +14,12 @@ fn main() {
                     .commands(&[
                         "check_reachable",
                         "login",
+                        "begin_yggdrasil_login",
+                        "finish_yggdrasil_login",
+                        "list_yggdrasil_saved_logins",
+                        "get_yggdrasil_password",
+                        "set_yggdrasil_password",
+                        "delete_yggdrasil_password",
                         "add_offline_user",
                         "remove_user",
                         "get_default_user",

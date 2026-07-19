@@ -189,6 +189,15 @@ const messages = defineMessages({
 		id: 'app.skins.offline-account.compatibility-title',
 		defaultMessage: 'Offline skin compatibility',
 	},
+	thirdPartyManagementTitle: {
+		id: 'app.skins.third-party-account.title',
+		defaultMessage: 'Third-party skin management',
+	},
+	thirdPartyManagementDescription: {
+		id: 'app.skins.third-party-account.description',
+		defaultMessage:
+			'Skins for this account are managed by its Yggdrasil provider. Open the provider website to change skins or capes.',
+	},
 })
 
 const editSkinModal = useTemplateRef('editSkinModal')
@@ -209,7 +218,7 @@ const { browserOffline, offline, setNetworkReachable } = useNetworkStatus()
 const accountsCard = inject('accountsCard') as Ref<typeof AccountsCard>
 const currentUser = ref(undefined)
 const currentUserId = ref<string | undefined>(undefined)
-const currentAccountType = ref<'microsoft' | 'offline' | undefined>(undefined)
+const currentAccountType = ref<'microsoft' | 'offline' | 'yggdrasil' | undefined>(undefined)
 
 const username = computed(() => currentUser.value?.profile?.name ?? undefined)
 const selectedSkin = ref<Skin | null>(null)
@@ -312,8 +321,9 @@ const skinVariant = computed(() => selectedSkin.value?.variant)
 const skinNametag = computed(() => (themeStore.hideNametagSkinsPage ? undefined : username.value))
 const isSkinManagementReadOnly = computed(
 	() =>
-		currentAccountType.value !== 'offline' &&
-		(offline.value || (authServerQuery.isError.value && !authServerQuery.isLoading.value)),
+		currentAccountType.value === 'yggdrasil' ||
+		(currentAccountType.value !== 'offline' &&
+			(offline.value || (authServerQuery.isError.value && !authServerQuery.isLoading.value))),
 )
 const hasPendingSkinChange = computed(
 	() => !skinsMatch(selectedSkin.value, originalSelectedSkin.value),
@@ -1043,6 +1053,19 @@ await loadSkins()
 			</h3>
 			<p class="mb-0 mt-2 text-sm leading-6 text-secondary">
 				{{ formatMessage(messages.offlineCompatibility) }}
+			</p>
+		</section>
+	</Teleport>
+	<Teleport
+		v-if="currentUser && currentAccountType === 'yggdrasil'"
+		to="#sidebar-default-teleport-target"
+	>
+		<section class="p-4">
+			<h3 class="m-0 text-base font-semibold text-primary">
+				{{ formatMessage(messages.thirdPartyManagementTitle) }}
+			</h3>
+			<p class="mb-0 mt-2 text-sm leading-6 text-secondary">
+				{{ formatMessage(messages.thirdPartyManagementDescription) }}
 			</p>
 		</section>
 	</Teleport>

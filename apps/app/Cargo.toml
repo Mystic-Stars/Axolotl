@@ -16,6 +16,7 @@ either = { workspace = true }
 enumset = { workspace = true, features = ["serde"] }
 hyper = { workspace = true, features = ["server"] }
 hyper-util = { workspace = true }
+keyring = { workspace = true }
 native-dialog = { workspace = true }
 paste = { workspace = true }
 path-util = { workspace = true }

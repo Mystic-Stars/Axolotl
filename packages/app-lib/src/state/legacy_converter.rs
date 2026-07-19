@@ -135,6 +135,7 @@ where
                     expires: legacy_credentials.expires,
                     active: minecraft_auth.default_user == Some(uuid)
                         || minecraft_users_len == 1,
+                    yggdrasil: None,
                 }
                 .upsert(exec)
                 .await?;
