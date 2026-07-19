@@ -387,6 +387,7 @@ function createSkinHeadDataUrl(textureUrl: string) {
 const defaultSteveHeadUrl = createSkinHeadDataUrl(steveSkinTexture)
 
 async function refreshValues() {
+	const targetUser = defaultUser.value
 	defaultUser.value = await get_default_user(offline.value).catch(handleError)
 	if (offline.value && defaultUser.value) {
 		await set_default_user(defaultUser.value).catch(handleError)
@@ -405,6 +406,7 @@ async function refreshValues() {
 	await renderYggdrasilAccountHeads(accounts.value)
 	try {
 		const skins = await get_available_skins()
+		if (defaultUser.value !== targetUser) return
 		equippedSkin.value = skins.find((skin) => skin.is_equipped) ?? null
 
 		if (equippedSkin.value) {
