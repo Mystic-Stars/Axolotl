@@ -2529,6 +2529,6 @@
 		"message": "Unknown file warning"
 	},
 	"omorphia.component.loading-indicator.label": {
-		"defaultMessage": "Loading"
+		"message": "Loading"
 	}
 }
