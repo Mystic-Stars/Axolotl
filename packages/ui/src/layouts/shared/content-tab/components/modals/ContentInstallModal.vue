@@ -110,8 +110,7 @@
 							size="2rem"
 							rounded="md"
 							:class="{
-								'!border-0 !rounded-none !bg-transparent !shadow-none':
-									inst.iconFrameless,
+								'!border-0 !rounded-none !bg-transparent !shadow-none': inst.iconFrameless,
 							}"
 						/>
 						<span class="truncate font-semibold text-contrast hover:underline">{{

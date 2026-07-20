@@ -73,7 +73,7 @@ import SplashScreen from '@/components/ui/SplashScreen.vue'
 import WindowControls from '@/components/ui/WindowControls.vue'
 import { useCheckDisableMouseover } from '@/composables/macCssFix.js'
 import { useNetworkStatus } from '@/composables/useNetworkStatus'
-import { AxolotlBrandConfig, config } from '@/config'
+import { AxolotlBrandConfig, config, getOfficialLabrinthBaseUrl } from '@/config'
 import { debugAnalytics, initAnalytics, trackEvent } from '@/helpers/analytics'
 import { check_reachable } from '@/helpers/auth.js'
 import { get_user, get_version } from '@/helpers/cache.js'
@@ -123,6 +123,7 @@ import { generateSkinPreviews } from './helpers/rendering/batch-skin-renderer'
 import { get_available_capes, get_available_skins } from './helpers/skins'
 import { AppNotificationManager } from './providers/app-notifications'
 import { AppPopupNotificationManager } from './providers/app-popup-notifications'
+import { ModrinthMirrorFallbackFeature } from './providers/modrinth-mirror-fallback'
 
 const themeStore = useTheming()
 const router = useRouter()
@@ -170,6 +171,7 @@ const tauriApiClient = new TauriModrinthClient({
 					}),
 				]
 			: []),
+		new ModrinthMirrorFallbackFeature(),
 		new VerboseLoggingFeature(),
 	],
 })
@@ -615,7 +617,7 @@ setupAuthProvider(credentials, async (_redirectPath) => {
 
 async function validateSession(sessionToken) {
 	try {
-		const response = await tauriFetch(`${config.labrinthBaseUrl}/v2/user`, {
+		const response = await tauriFetch(`${getOfficialLabrinthBaseUrl()}/v2/user`, {
 			method: 'GET',
 			headers: { Authorization: sessionToken },
 		})

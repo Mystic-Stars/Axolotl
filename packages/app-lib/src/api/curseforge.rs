@@ -10,6 +10,7 @@ use crate::state::ContentProvider;
 use crate::state::{
     ContentSourceKind, EditInstance, InstanceLink, ModLoader, ProjectType,
 };
+use crate::util::fetch::{DownloadMirrorSettings, resolve_download_url};
 use crate::{ErrorKind, State};
 use bytes::{Bytes, BytesMut};
 use futures::{StreamExt, stream};
@@ -2136,83 +2137,127 @@ async fn download_cdn_file_with_progress(
     max_attempts: usize,
     loading_bar: Option<&crate::event::LoadingBarId>,
 ) -> crate::Result<Bytes> {
-    let key = api_key().ok_or_else(|| {
-        ErrorKind::InputError(
-            "CurseForge integration is waiting for an API key".to_string(),
-        )
-    })?;
-    let url = reqwest::Url::parse(url).map_err(|_| {
+    let state = State::get().await?;
+    let original_url = reqwest::Url::parse(url).map_err(|_| {
         ErrorKind::InputError(
             "CurseForge returned an invalid download URL".to_string(),
         )
     })?;
-    validate_cdn_url(&url)?;
+    validate_cdn_url(&original_url)?;
+
+    let resolved_url = resolve_download_url(
+        url,
+        DownloadMirrorSettings {
+            curseforge: state.use_curseforge_mirror(),
+            ..DownloadMirrorSettings::default()
+        },
+    );
+    let key = api_key();
+    let mut routes = Vec::new();
+    if resolved_url.is_mirror {
+        let mirror_url =
+            reqwest::Url::parse(&resolved_url.url).map_err(|_| {
+                ErrorKind::InputError(
+                    "CurseForge mirror produced an invalid download URL"
+                        .to_string(),
+                )
+            })?;
+        validate_cdn_url(&mirror_url)?;
+        routes.push((mirror_url, None, RequestRouteSource::Mirror));
+        if let Some(key) = key {
+            routes.push((
+                original_url,
+                Some(key),
+                RequestRouteSource::Official,
+            ));
+        }
+    } else {
+        let key = key.ok_or_else(|| {
+            ErrorKind::InputError(
+                "CurseForge integration is waiting for an API key".to_string(),
+            )
+        })?;
+        routes.push((original_url, Some(key), RequestRouteSource::Official));
+    }
     let mut last_error = String::new();
 
-    for attempt in 1..=max_attempts {
-        let use_system_proxy = attempt % 2 == 0;
-        tracing::info!(
-            attempt,
-            max_attempts,
-            url = %url,
-            use_system_proxy,
-            "Attempting CurseForge CDN download"
-        );
-        let started = Instant::now();
-        let attempt_progress = AtomicU64::new(0);
-        let result = download_cdn_file_attempt(
-            url.clone(),
-            key.clone(),
-            use_system_proxy,
-            attempt,
-            loading_bar,
-            &attempt_progress,
-        )
-        .await;
-        match result {
-            Ok(bytes) => {
-                tracing::info!(
-                    attempt,
-                    bytes = bytes.len(),
-                    elapsed_ms = started.elapsed().as_millis(),
-                    "Completed CurseForge CDN download"
-                );
-                return Ok(bytes);
-            }
-            Err(err) => last_error = err.to_string(),
-        }
-        let downloaded = attempt_progress.load(Ordering::Relaxed);
-        if downloaded > 0
-            && let Some(loading_bar) = loading_bar
-        {
-            emit_loading(
+    for (route_index, (url, key, source)) in routes.iter().enumerate() {
+        for attempt in 1..=max_attempts {
+            let use_system_proxy = attempt % 2 == 0;
+            tracing::info!(
+                source = ?source,
+                route = route_index + 1,
+                attempt,
+                max_attempts,
+                url = %url,
+                use_system_proxy,
+                "Attempting CurseForge CDN download"
+            );
+            let started = Instant::now();
+            let attempt_progress = AtomicU64::new(0);
+            let result = download_cdn_file_attempt(
+                url.clone(),
+                key.clone(),
+                use_system_proxy,
+                attempt,
                 loading_bar,
-                -(downloaded as f64),
-                Some("Retrying CurseForge download"),
-            )?;
+                &attempt_progress,
+            )
+            .await;
+            match result {
+                Ok(bytes) => {
+                    tracing::info!(
+                        attempt,
+                        bytes = bytes.len(),
+                        elapsed_ms = started.elapsed().as_millis(),
+                        "Completed CurseForge CDN download"
+                    );
+                    return Ok(bytes);
+                }
+                Err(err) => last_error = err.to_string(),
+            }
+            let downloaded = attempt_progress.load(Ordering::Relaxed);
+            if downloaded > 0
+                && let Some(loading_bar) = loading_bar
+            {
+                emit_loading(
+                    loading_bar,
+                    -(downloaded as f64),
+                    Some("Retrying CurseForge download"),
+                )?;
+            }
+            tracing::warn!(
+                attempt,
+                max_attempts,
+                elapsed_ms = started.elapsed().as_millis(),
+                error = %last_error,
+                "CurseForge CDN download attempt failed"
+            );
+            if attempt < max_attempts {
+                tokio::time::sleep(Duration::from_millis(250 * attempt as u64))
+                    .await;
+            }
         }
-        tracing::warn!(
-            attempt,
-            max_attempts,
-            elapsed_ms = started.elapsed().as_millis(),
-            error = %last_error,
-            "CurseForge CDN download attempt failed"
-        );
-        if attempt < max_attempts {
-            tokio::time::sleep(Duration::from_millis(250 * attempt as u64))
-                .await;
+
+        if route_index + 1 < routes.len() {
+            tracing::warn!(
+                source = ?source,
+                url = %url,
+                error = %last_error,
+                "CurseForge mirror failed; falling back to official CDN"
+            );
         }
     }
 
     Err(ErrorKind::OtherError(format!(
-        "CurseForge download failed after {max_attempts} attempts: {last_error}"
+        "CurseForge download failed after all routes: {last_error}"
     ))
     .into())
 }
 
 async fn download_cdn_file_attempt(
     original_url: reqwest::Url,
-    key: String,
+    key: Option<String>,
     use_system_proxy: bool,
     attempt: usize,
     loading_bar: Option<&crate::event::LoadingBarId>,
@@ -2220,15 +2265,19 @@ async fn download_cdn_file_attempt(
 ) -> crate::Result<Bytes> {
     let state = State::get().await?;
     let mut url = original_url;
+    let mut key = key;
     for redirect_count in 0..=CDN_MAX_REDIRECTS {
         validate_cdn_url(&url)?;
         let permit = state.api_semaphore.0.acquire().await?;
-        let response = request_client(url.as_str(), use_system_proxy)
+        let mut request = request_client(url.as_str(), use_system_proxy)
             .get(url.clone())
-            .header("x-api-key", &key)
-            .header("accept", "application/octet-stream")
-            .send()
-            .await?;
+            .header("accept", "application/octet-stream");
+        if is_forge_cdn_url(&url)
+            && let Some(key) = &key
+        {
+            request = request.header("x-api-key", key);
+        }
+        let response = request.send().await?;
 
         if !response.status().is_success() {
             if response.status().is_redirection() {
@@ -2242,6 +2291,13 @@ async fn download_cdn_file_attempt(
                                 .to_string(),
                         )
                     })?;
+                if let Some(response_key) = response
+                    .headers()
+                    .get("x-api-key")
+                    .and_then(|value| value.to_str().ok())
+                {
+                    key = Some(response_key.to_string());
+                }
                 if redirect_count == CDN_MAX_REDIRECTS {
                     return Err(ErrorKind::OtherError(
                         "CurseForge CDN returned too many redirects"
@@ -2307,6 +2363,11 @@ async fn download_cdn_file_attempt(
     unreachable!("redirect loop always returns or continues")
 }
 
+fn is_forge_cdn_url(url: &reqwest::Url) -> bool {
+    let host = url.host_str().unwrap_or_default().to_ascii_lowercase();
+    host == "forgecdn.net" || host.ends_with(".forgecdn.net")
+}
+
 fn validate_cdn_url(url: &reqwest::Url) -> crate::Result<()> {
     let host = url.host_str().unwrap_or_default().to_ascii_lowercase();
     #[cfg(debug_assertions)]
@@ -2316,7 +2377,7 @@ fn validate_cdn_url(url: &reqwest::Url) -> crate::Result<()> {
         return Ok(());
     }
     if url.scheme() != "https"
-        || !(host == "forgecdn.net" || host.ends_with(".forgecdn.net"))
+        || (host != "mod.mcimirror.top" && !is_forge_cdn_url(url))
     {
         return Err(ErrorKind::InputError(
             "CurseForge returned a download URL outside its CDN".to_string(),
@@ -2579,11 +2640,11 @@ fn api_base_url() -> String {
 }
 
 fn request_client(
-    url: &str,
+    _url: &str,
     use_system_proxy: bool,
 ) -> &'static reqwest::Client {
     #[cfg(debug_assertions)]
-    if url.starts_with("http://127.0.0.1:") {
+    if _url.starts_with("http://127.0.0.1:") {
         return &LOCAL_CLIENT;
     }
 
@@ -2660,6 +2721,11 @@ async fn request_json<T: DeserializeOwned>(
 ) -> crate::Result<T> {
     let key = api_key();
     let state = State::get().await?;
+    let mirror_policy = if state.use_curseforge_mirror() {
+        mirror_policy
+    } else {
+        MirrorPolicy::OfficialOnly
+    };
     let routes = request_routes(path, mirror_policy);
     let mut last_error = None;
 
@@ -2728,8 +2794,26 @@ async fn request_json<T: DeserializeOwned>(
         );
 
         if status.is_success() {
-            UNAUTHORIZED.store(false, Ordering::Relaxed);
-            return serde_json::from_slice(&bytes).map_err(Into::into);
+            match serde_json::from_slice(&bytes) {
+                Ok(value) => {
+                    UNAUTHORIZED.store(false, Ordering::Relaxed);
+                    return Ok(value);
+                }
+                Err(error)
+                    if route.source == RequestRouteSource::Mirror
+                        && route_index + 1 < routes.len() =>
+                {
+                    tracing::warn!(
+                        url = %route.url,
+                        route = route_index + 1,
+                        %error,
+                        "CurseForge mirror returned incompatible response data; falling back to official source"
+                    );
+                    last_error = Some(error.into());
+                    continue;
+                }
+                Err(error) => return Err(error.into()),
+            }
         }
 
         if status == StatusCode::UNAUTHORIZED {

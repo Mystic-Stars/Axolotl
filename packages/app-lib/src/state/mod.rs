@@ -2,7 +2,7 @@
 use crate::util::fetch::{FetchSemaphore, IoSemaphore};
 use dashmap::DashMap;
 use std::sync::Arc;
-use std::sync::atomic::AtomicBool;
+use std::sync::atomic::{AtomicBool, Ordering};
 use tokio::sync::{OnceCell, Semaphore};
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
@@ -72,6 +72,9 @@ pub struct State {
     /// Semaphore to limit concurrent API requests. This is separate from the fetch semaphore
     /// to keep API functionality while the app is performing intensive tasks.
     pub api_semaphore: FetchSemaphore,
+    pub use_minecraft_mirror: AtomicBool,
+    pub use_modrinth_mirror: AtomicBool,
+    pub use_curseforge_mirror: AtomicBool,
     pub(crate) install_job_semaphore: Semaphore,
     pub(crate) install_db_semaphore: Semaphore,
     pub(crate) install_job_cancellations: DashMap<Uuid, CancellationToken>,
@@ -155,6 +158,27 @@ impl State {
         LAUNCHER_STATE.initialized()
     }
 
+    pub(crate) fn use_minecraft_mirror(&self) -> bool {
+        self.use_minecraft_mirror.load(Ordering::Relaxed)
+    }
+
+    pub(crate) fn use_modrinth_mirror(&self) -> bool {
+        self.use_modrinth_mirror.load(Ordering::Relaxed)
+    }
+
+    pub(crate) fn use_curseforge_mirror(&self) -> bool {
+        self.use_curseforge_mirror.load(Ordering::Relaxed)
+    }
+
+    pub(crate) fn update_mirror_settings(&self, settings: &Settings) {
+        self.use_minecraft_mirror
+            .store(settings.use_minecraft_mirror, Ordering::Relaxed);
+        self.use_modrinth_mirror
+            .store(settings.use_modrinth_mirror, Ordering::Relaxed);
+        self.use_curseforge_mirror
+            .store(settings.use_curseforge_mirror, Ordering::Relaxed);
+    }
+
     pub fn get_if_initialized() -> Option<Arc<Self>> {
         LAUNCHER_STATE.get().map(Arc::clone)
     }
@@ -204,6 +228,13 @@ impl State {
             fetch_semaphore,
             io_semaphore,
             api_semaphore,
+            use_minecraft_mirror: AtomicBool::new(
+                settings.use_minecraft_mirror,
+            ),
+            use_modrinth_mirror: AtomicBool::new(settings.use_modrinth_mirror),
+            use_curseforge_mirror: AtomicBool::new(
+                settings.use_curseforge_mirror,
+            ),
             install_job_semaphore: Semaphore::new(MAX_CONCURRENT_INSTALL_JOBS),
             install_db_semaphore: Semaphore::new(1),
             install_job_cancellations: DashMap::new(),

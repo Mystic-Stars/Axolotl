@@ -2,6 +2,7 @@
 import { BoxIcon, FolderOpenIcon, FolderSearchIcon, TrashIcon } from '@modrinth/assets'
 import {
 	ButtonStyled,
+	Combobox,
 	defineMessages,
 	injectNotificationManager,
 	Slider,
@@ -9,7 +10,7 @@ import {
 	useVIntl,
 } from '@modrinth/ui'
 import { open } from '@tauri-apps/plugin-dialog'
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 
 import ConfirmModalWrapper from '@/components/ui/modal/ConfirmModalWrapper.vue'
 import { purge_cache_types } from '@/helpers/cache.js'
@@ -50,6 +51,51 @@ const messages = defineMessages({
 		defaultMessage:
 			'Axolotl Launcher caches data to speed up loading. Purging it forces the app to reload data and may temporarily slow the app down.',
 	},
+	downloadMirrors: {
+		id: 'app.settings.resources.download-mirrors',
+		defaultMessage: 'Download sources',
+	},
+	downloadMirrorsDescription: {
+		id: 'app.settings.resources.download-mirrors-description',
+		defaultMessage:
+			'Choose a source for each provider. Mirror sources automatically fall back to the official source when a request fails.',
+	},
+	officialSource: {
+		id: 'app.settings.resources.source.official',
+		defaultMessage: 'Official source',
+	},
+	openBmclApiSource: {
+		id: 'app.settings.resources.source.open-bmcl-api',
+		defaultMessage: 'OpenBMCLAPI mirror',
+	},
+	mcimSource: {
+		id: 'app.settings.resources.source.mcim',
+		defaultMessage: 'MCIM mirror',
+	},
+	minecraftMirror: {
+		id: 'app.settings.resources.minecraft-mirror',
+		defaultMessage: 'Minecraft and mod loaders',
+	},
+	minecraftMirrorDescription: {
+		id: 'app.settings.resources.minecraft-mirror-description',
+		defaultMessage: 'Use OpenBMCLAPI for Minecraft, Forge, Fabric, and NeoForge downloads.',
+	},
+	modrinthMirror: {
+		id: 'app.settings.resources.modrinth-mirror',
+		defaultMessage: 'Modrinth',
+	},
+	modrinthMirrorDescription: {
+		id: 'app.settings.resources.modrinth-mirror-description',
+		defaultMessage: 'Use MCIM for Modrinth API requests and file downloads.',
+	},
+	curseforgeMirror: {
+		id: 'app.settings.resources.curseforge-mirror',
+		defaultMessage: 'CurseForge',
+	},
+	curseforgeMirrorDescription: {
+		id: 'app.settings.resources.curseforge-mirror-description',
+		defaultMessage: 'Use MCIM for CurseForge API requests and file downloads.',
+	},
 	maximumDownloads: {
 		id: 'app.settings.resources.maximum-downloads',
 		defaultMessage: 'Maximum concurrent downloads',
@@ -82,6 +128,31 @@ const messages = defineMessages({
 			'Backups of important app data are stored here in case you need to recover them later.',
 	},
 })
+
+function downloadSourceModel(setting) {
+	return computed({
+		get: () => (settings.value[setting] ? 'mirror' : 'official'),
+		set: (source) => {
+			settings.value[setting] = source === 'mirror'
+		},
+	})
+}
+
+const minecraftDownloadSource = downloadSourceModel('use_minecraft_mirror')
+const modrinthDownloadSource = downloadSourceModel('use_modrinth_mirror')
+const curseforgeDownloadSource = downloadSourceModel('use_curseforge_mirror')
+const officialSourceOption = computed(() => ({
+	value: 'official',
+	label: formatMessage(messages.officialSource),
+}))
+const minecraftSourceOptions = computed(() => [
+	officialSourceOption.value,
+	{ value: 'mirror', label: formatMessage(messages.openBmclApiSource) },
+])
+const mcimSourceOptions = computed(() => [
+	officialSourceOption.value,
+	{ value: 'mirror', label: formatMessage(messages.mcimSource) },
+])
 
 watch(
 	settings,
@@ -192,6 +263,59 @@ async function findLauncherDir() {
 			<p class="m-0 leading-tight text-secondary">
 				{{ formatMessage(messages.appCacheDescription) }}
 			</p>
+		</div>
+
+		<div class="flex flex-col gap-3">
+			<div>
+				<h2 class="m-0 text-lg font-semibold text-contrast mt-4">
+					{{ formatMessage(messages.downloadMirrors) }}
+				</h2>
+				<p class="m-0 leading-tight text-secondary">
+					{{ formatMessage(messages.downloadMirrorsDescription) }}
+				</p>
+			</div>
+
+			<div class="flex items-center justify-between gap-4">
+				<div class="flex flex-col gap-1">
+					<h3 class="m-0 text-base font-semibold text-contrast">
+						{{ formatMessage(messages.minecraftMirror) }}
+					</h3>
+					<p class="m-0 leading-tight text-secondary">
+						{{ formatMessage(messages.minecraftMirrorDescription) }}
+					</p>
+				</div>
+				<div class="w-48 shrink-0">
+					<Combobox v-model="minecraftDownloadSource" :options="minecraftSourceOptions" />
+				</div>
+			</div>
+
+			<div class="flex items-center justify-between gap-4">
+				<div class="flex flex-col gap-1">
+					<h3 class="m-0 text-base font-semibold text-contrast">
+						{{ formatMessage(messages.modrinthMirror) }}
+					</h3>
+					<p class="m-0 leading-tight text-secondary">
+						{{ formatMessage(messages.modrinthMirrorDescription) }}
+					</p>
+				</div>
+				<div class="w-48 shrink-0">
+					<Combobox v-model="modrinthDownloadSource" :options="mcimSourceOptions" />
+				</div>
+			</div>
+
+			<div class="flex items-center justify-between gap-4">
+				<div class="flex flex-col gap-1">
+					<h3 class="m-0 text-base font-semibold text-contrast">
+						{{ formatMessage(messages.curseforgeMirror) }}
+					</h3>
+					<p class="m-0 leading-tight text-secondary">
+						{{ formatMessage(messages.curseforgeMirrorDescription) }}
+					</p>
+				</div>
+				<div class="w-48 shrink-0">
+					<Combobox v-model="curseforgeDownloadSource" :options="mcimSourceOptions" />
+				</div>
+			</div>
 		</div>
 
 		<div class="flex flex-col gap-2.5">

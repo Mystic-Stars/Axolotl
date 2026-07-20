@@ -462,12 +462,33 @@ pub struct License {
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct GalleryItem {
     pub url: String,
+    #[serde(default)]
     pub raw_url: String,
     pub featured: bool,
     pub title: Option<String>,
     pub description: Option<String>,
     pub created: DateTime<Utc>,
     pub ordering: i64,
+}
+
+#[cfg(test)]
+mod gallery_item_tests {
+    use super::GalleryItem;
+
+    #[test]
+    fn accepts_legacy_response_without_raw_url() {
+        let item = serde_json::from_value::<GalleryItem>(serde_json::json!({
+            "url": "https://cdn.modrinth.com/data/project/image.png",
+            "featured": false,
+            "title": null,
+            "description": null,
+            "created": "2026-07-20T00:00:00Z",
+            "ordering": 0
+        }))
+        .expect("legacy gallery item should deserialize");
+
+        assert!(item.raw_url.is_empty());
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]

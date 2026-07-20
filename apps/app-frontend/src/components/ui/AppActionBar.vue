@@ -460,7 +460,8 @@ function applyLoadingEvent(payload: LoadingEventPayload): boolean {
 	if (payload.fraction === null) {
 		if (index >= 0) {
 			currentLoadingBars.value.splice(index, 1)
-			delete currentLoadingBarIconUrls.value[key]
+			const { [key]: _removedIcon, ...remainingIcons } = currentLoadingBarIconUrls.value
+			currentLoadingBarIconUrls.value = remainingIcons
 		}
 		return false
 	}

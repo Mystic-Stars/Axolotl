@@ -114,8 +114,7 @@ async function handleSelectedProjectsLeaveResult(
 						size="48px"
 						class="shrink-0"
 						:class="{
-							'!border-0 !rounded-none !bg-transparent !shadow-none':
-								installContext.iconFrameless,
+							'!border-0 !rounded-none !bg-transparent !shadow-none': installContext.iconFrameless,
 						}"
 					/>
 

@@ -18,6 +18,7 @@ pub async fn get() -> crate::Result<Settings> {
 pub async fn set(settings: Settings) -> crate::Result<()> {
     let state = State::get().await?;
     settings.update(&state.pool).await?;
+    state.update_mirror_settings(&settings);
 
     Ok(())
 }

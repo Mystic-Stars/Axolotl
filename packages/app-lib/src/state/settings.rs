@@ -10,6 +10,9 @@ use std::collections::HashMap;
 pub struct Settings {
     pub max_concurrent_downloads: usize,
     pub max_concurrent_writes: usize,
+    pub use_minecraft_mirror: bool,
+    pub use_modrinth_mirror: bool,
+    pub use_curseforge_mirror: bool,
 
     pub theme: Theme,
     pub accent_color: AccentColor,
@@ -91,7 +94,8 @@ impl Settings {
                 custom_dir, prev_custom_dir, migrated, json(feature_flags) feature_flags, toggle_sidebar,
                 skipped_update, pending_update_toast_for_version, auto_download_updates, accent_color,
                 custom_background_path, custom_background_blur, custom_background_opacity,
-                version
+                version, use_minecraft_mirror, use_modrinth_mirror,
+                use_curseforge_mirror
             FROM settings
             "
         )
@@ -101,6 +105,9 @@ impl Settings {
         Ok(Self {
             max_concurrent_downloads: res.max_concurrent_downloads as usize,
             max_concurrent_writes: res.max_concurrent_writes as usize,
+            use_minecraft_mirror: res.use_minecraft_mirror == 1,
+            use_modrinth_mirror: res.use_modrinth_mirror == 1,
+            use_curseforge_mirror: res.use_curseforge_mirror == 1,
             theme: Theme::from_string(&res.theme),
             accent_color: AccentColor::from_string(&res.accent_color),
             locale: res.locale,
@@ -224,7 +231,10 @@ impl Settings {
                 custom_background_blur = $35,
                 custom_background_opacity = $36,
 
-                version = $37
+                version = $37,
+                use_minecraft_mirror = $38,
+                use_modrinth_mirror = $39,
+                use_curseforge_mirror = $40
             ",
             max_concurrent_writes,
             max_concurrent_downloads,
@@ -263,6 +273,9 @@ impl Settings {
             custom_background_blur,
             custom_background_opacity,
             version,
+            self.use_minecraft_mirror,
+            self.use_modrinth_mirror,
+            self.use_curseforge_mirror,
         )
         .execute(exec)
         .await?;

@@ -5,6 +5,7 @@
  */
 import { invoke } from '@tauri-apps/api/core'
 
+import { setModrinthMirrorEnabled } from '@/config'
 import type { Hooks, MemorySettings, WindowSize } from '@/helpers/types'
 import type { AccentColor, ColorTheme, FeatureFlag } from '@/store/theme.ts'
 
@@ -51,6 +52,9 @@ export function setUpdateSource(source: UpdateSource) {
 export type AppSettings = {
 	max_concurrent_downloads: number
 	max_concurrent_writes: number
+	use_minecraft_mirror: boolean
+	use_modrinth_mirror: boolean
+	use_curseforge_mirror: boolean
 
 	theme: ColorTheme
 	accent_color: AccentColor
@@ -93,12 +97,16 @@ export type AppSettings = {
 
 // Get full settings object
 export async function get() {
-	return (await invoke('plugin:settings|settings_get')) as AppSettings
+	const settings = (await invoke('plugin:settings|settings_get')) as AppSettings
+	setModrinthMirrorEnabled(settings.use_modrinth_mirror)
+	return settings
 }
 
 // Set full settings object
 export async function set(settings: AppSettings) {
-	return await invoke('plugin:settings|settings_set', { settings })
+	const result = await invoke('plugin:settings|settings_set', { settings })
+	setModrinthMirrorEnabled(settings.use_modrinth_mirror)
+	return result
 }
 
 export async function cancel_directory_change(): Promise<void> {

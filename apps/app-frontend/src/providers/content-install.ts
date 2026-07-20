@@ -30,7 +30,6 @@ import {
 	setCurseForgeManualDownloads,
 } from '@/helpers/curseforge-manual'
 import { instance_listener } from '@/helpers/events.js'
-import { isBuiltInInstanceIcon } from '@/helpers/instance-icon-frame'
 import {
 	install_create_instance,
 	install_create_modpack_instance,
@@ -49,6 +48,7 @@ import {
 	remove_project,
 	type ResolveContentPlan,
 } from '@/helpers/instance'
+import { isBuiltInInstanceIcon } from '@/helpers/instance-icon-frame'
 import { get_game_versions } from '@/helpers/tags'
 import type { GameInstance, InstanceLoader } from '@/helpers/types'
 import { useTheming } from '@/store/state'

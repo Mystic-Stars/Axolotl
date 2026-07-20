@@ -134,11 +134,7 @@ onUnmounted(() => {
 		<div
 			class="grid grid-cols-[auto_minmax(0,3fr)_minmax(0,4fr)_auto] items-center gap-2 p-3 bg-bg-raised card-shadow rounded-xl smart-clickable:highlight-on-hover"
 		>
-			<InstanceIcon
-				:icon-path="instance.icon_path"
-				:instance-id="instance.id"
-				size="48px"
-			/>
+			<InstanceIcon :icon-path="instance.icon_path" :instance-id="instance.id" size="48px" />
 			<div class="flex flex-col col-span-2 justify-between h-full">
 				<div class="flex items-center gap-2">
 					<div class="text-lg text-contrast font-bold truncate smart-clickable:underline-on-hover">

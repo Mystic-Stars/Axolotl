@@ -24,8 +24,7 @@ const iconUrl = computed(() => (props.iconPath ? convertFileSrc(props.iconPath) 
 		:src="iconUrl"
 		:tint-by="instanceId"
 		:class="{
-			'!border-0 !rounded-none !bg-transparent !shadow-none':
-				isBuiltInInstanceIcon(iconPath),
+			'!border-0 !rounded-none !bg-transparent !shadow-none': isBuiltInInstanceIcon(iconPath),
 		}"
 	/>
 </template>

@@ -23,6 +23,160 @@ use tokio::{fs::File, io::AsyncReadExt, io::AsyncWriteExt};
 
 pub const DOWNLOAD_META_HEADER: &str = "modrinth-download-meta";
 
+const BMCLAPI_BASE_URL: &str = "https://bmclapi2.bangbang93.com";
+const MCIM_BASE_URL: &str = "https://mod.mcimirror.top";
+
+#[derive(Clone, Copy, Debug, Default)]
+pub(crate) struct DownloadMirrorSettings {
+    pub minecraft: bool,
+    pub modrinth: bool,
+    pub curseforge: bool,
+}
+
+impl DownloadMirrorSettings {
+    pub fn current() -> Self {
+        crate::State::get_if_initialized()
+            .map(|state| Self {
+                minecraft: state.use_minecraft_mirror(),
+                modrinth: state.use_modrinth_mirror(),
+                curseforge: state.use_curseforge_mirror(),
+            })
+            .unwrap_or_default()
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct ResolvedDownloadUrl {
+    pub url: String,
+    pub is_mirror: bool,
+}
+
+fn replace_url_base(url: &str, source: &str, target: &str) -> Option<String> {
+    if url == source {
+        return Some(target.to_string());
+    }
+
+    url.strip_prefix(source)
+        .filter(|suffix| suffix.starts_with('/'))
+        .map(|suffix| format!("{target}{suffix}"))
+}
+
+pub(crate) fn resolve_download_url(
+    url: &str,
+    mirrors: DownloadMirrorSettings,
+) -> ResolvedDownloadUrl {
+    let mappings = [
+        (
+            mirrors.minecraft,
+            "https://resources.download.minecraft.net",
+            concat!("https://bmclapi2.bangbang93.com", "/assets"),
+        ),
+        (
+            mirrors.minecraft,
+            "https://libraries.minecraft.net",
+            concat!("https://bmclapi2.bangbang93.com", "/maven"),
+        ),
+        (
+            mirrors.minecraft,
+            "https://maven.minecraftforge.net",
+            concat!("https://bmclapi2.bangbang93.com", "/maven"),
+        ),
+        (
+            mirrors.minecraft,
+            "https://files.minecraftforge.net/maven",
+            concat!("https://bmclapi2.bangbang93.com", "/maven"),
+        ),
+        (
+            mirrors.minecraft,
+            "https://maven.fabricmc.net",
+            concat!("https://bmclapi2.bangbang93.com", "/maven"),
+        ),
+        (
+            mirrors.minecraft,
+            "https://maven.neoforged.net/releases",
+            concat!("https://bmclapi2.bangbang93.com", "/maven"),
+        ),
+        (
+            mirrors.minecraft,
+            "https://launcher-meta.modrinth.com/maven",
+            concat!("https://bmclapi2.bangbang93.com", "/maven"),
+        ),
+        (
+            mirrors.minecraft,
+            "https://meta.fabricmc.net",
+            concat!("https://bmclapi2.bangbang93.com", "/fabric-meta"),
+        ),
+        (
+            mirrors.minecraft,
+            "https://piston-meta.mojang.com",
+            BMCLAPI_BASE_URL,
+        ),
+        (
+            mirrors.minecraft,
+            "https://launchermeta.mojang.com",
+            BMCLAPI_BASE_URL,
+        ),
+        (
+            mirrors.minecraft,
+            "https://launcher.mojang.com",
+            BMCLAPI_BASE_URL,
+        ),
+        (
+            mirrors.minecraft,
+            "https://piston-data.mojang.com",
+            BMCLAPI_BASE_URL,
+        ),
+        (
+            mirrors.modrinth,
+            "https://api.modrinth.com",
+            concat!("https://mod.mcimirror.top", "/modrinth"),
+        ),
+        (mirrors.modrinth, "https://cdn.modrinth.com", MCIM_BASE_URL),
+        (
+            mirrors.curseforge,
+            "https://api.curseforge.com",
+            concat!("https://mod.mcimirror.top", "/curseforge"),
+        ),
+        (
+            mirrors.curseforge,
+            "https://edge.forgecdn.net",
+            MCIM_BASE_URL,
+        ),
+    ];
+
+    for (enabled, source, target) in mappings {
+        if enabled && let Some(url) = replace_url_base(url, source, target) {
+            return ResolvedDownloadUrl {
+                url,
+                is_mirror: true,
+            };
+        }
+    }
+
+    ResolvedDownloadUrl {
+        url: url.to_string(),
+        is_mirror: false,
+    }
+}
+
+fn resolve_download_routes(
+    url: &str,
+    mirrors: DownloadMirrorSettings,
+) -> Vec<ResolvedDownloadUrl> {
+    let resolved = resolve_download_url(url, mirrors);
+    if resolved.is_mirror {
+        vec![
+            resolved,
+            ResolvedDownloadUrl {
+                url: url.to_string(),
+                is_mirror: false,
+            },
+        ]
+    } else {
+        vec![resolved]
+    }
+}
+
 #[derive(Debug, derive_more::Display, Clone, Copy, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 #[display(rename_all = "snake_case")]
@@ -299,6 +453,7 @@ pub async fn fetch_with_client_progress(
         exec,
         client,
         progress,
+        None,
     )
     .await
 }
@@ -316,13 +471,28 @@ pub async fn fetch_json<T>(
 where
     T: DeserializeOwned,
 {
-    let result = fetch_advanced(
-        method, url, sha1, json_body, None, None, None, uri_path, semaphore,
+    let validate_json = |bytes: &Bytes| -> crate::Result<()> {
+        serde_json::from_slice::<T>(bytes)
+            .map(|_| ())
+            .map_err(Into::into)
+    };
+    let result = fetch_advanced_with_client_and_progress(
+        method,
+        url,
+        sha1,
+        json_body,
+        None,
+        None,
+        None,
+        uri_path,
+        semaphore,
         exec,
+        &INSECURE_REQWEST_CLIENT,
+        None,
+        Some(&validate_json),
     )
     .await?;
-    let value = serde_json::from_slice(&result)?;
-    Ok(value)
+    Ok(serde_json::from_slice(&result)?)
 }
 
 /// Downloads a file with retry and checksum functionality, and a specific
@@ -385,6 +555,7 @@ pub async fn fetch_advanced_with_progress(
         exec,
         &INSECURE_REQWEST_CLIENT,
         progress,
+        None,
     )
     .await
 }
@@ -418,11 +589,18 @@ pub async fn fetch_advanced_with_client(
         exec,
         client,
         None,
+        None,
     )
     .await
 }
 
-#[tracing::instrument(skip(json_body, semaphore, client, progress))]
+#[tracing::instrument(skip(
+    json_body,
+    semaphore,
+    client,
+    progress,
+    response_validator
+))]
 #[allow(clippy::too_many_arguments)]
 async fn fetch_advanced_with_client_and_progress(
     method: Method,
@@ -437,16 +615,19 @@ async fn fetch_advanced_with_client_and_progress(
     exec: impl sqlx::Executor<'_, Database = sqlx::Sqlite>,
     client: &reqwest::Client,
     mut progress: Option<&mut FetchProgressFn<'_>>,
+    response_validator: Option<
+        &(dyn Fn(&Bytes) -> crate::Result<()> + Send + Sync),
+    >,
 ) -> crate::Result<Bytes> {
     let _permit = semaphore.0.acquire().await?;
 
+    let request_routes =
+        resolve_download_routes(url, DownloadMirrorSettings::current());
     let is_api_url = url.starts_with(env!("MODRINTH_API_URL"))
         || url.starts_with(env!("MODRINTH_API_URL_V3"));
-    let fence_key = if is_api_url { uri_path } else { None };
-
     let creds = if header
         .as_ref()
-        .is_none_or(|x| &*x.0.to_lowercase() != "authorization")
+        .is_none_or(|x| !x.0.eq_ignore_ascii_case("authorization"))
         && (url.starts_with("https://cdn.modrinth.com") || is_api_url)
     {
         crate::state::ModrinthCredentials::get_active(exec).await?
@@ -454,162 +635,241 @@ async fn fetch_advanced_with_client_and_progress(
         None
     };
 
-    let download_meta_header = download_meta
-        .map(|m| (DOWNLOAD_META_HEADER.to_string(), m.to_header_value()));
+    for (route_index, route) in request_routes.iter().enumerate() {
+        let request_url = &route.url;
+        let is_mirror = route.is_mirror;
+        let has_next_route = route_index + 1 < request_routes.len();
+        let fence_key = if is_api_url && !is_mirror {
+            uri_path
+        } else {
+            None
+        };
+        let download_meta_header = (!is_mirror)
+            .then(|| {
+                download_meta.map(|m| {
+                    (DOWNLOAD_META_HEADER.to_string(), m.to_header_value())
+                })
+            })
+            .flatten();
 
-    for attempt in 1..=(FETCH_ATTEMPTS + 1) {
-        if let Some(fence_key) = fence_key
-            && GLOBAL_FETCH_FENCE.is_blocked(fence_key)
-        {
-            return Err(ErrorKind::ApiIsDownError(
-                GLOBAL_FETCH_FENCE.latest_block_minutes(),
-            )
-            .into());
-        }
+        for attempt in 1..=(FETCH_ATTEMPTS + 1) {
+            if let Some(fence_key) = fence_key
+                && GLOBAL_FETCH_FENCE.is_blocked(fence_key)
+            {
+                return Err(ErrorKind::ApiIsDownError(
+                    GLOBAL_FETCH_FENCE.latest_block_minutes(),
+                )
+                .into());
+            }
 
-        let mut req = client.request(method.clone(), url);
+            let mut req = client.request(method.clone(), request_url);
 
-        if let Some(body) = json_body.clone() {
-            req = req.json(&body);
-        }
+            if let Some(body) = json_body.clone() {
+                req = req.json(&body);
+            }
 
-        if let Some(header) = header {
-            req = req.header(header.0, header.1);
-        }
+            if let Some(header) = header
+                && (!is_mirror
+                    || !header.0.eq_ignore_ascii_case("authorization"))
+            {
+                req = req.header(header.0, header.1);
+            }
 
-        if let Some(ref creds) = creds {
-            req = req.header("Authorization", &creds.session);
-        }
+            if !is_mirror && let Some(ref creds) = creds {
+                req = req.header("Authorization", &creds.session);
+            }
 
-        if let Some((name, value)) = &download_meta_header {
-            tracing::debug!("Sending download analytics: {value}");
-            req = req.header(name.as_str(), value.as_str());
-        }
+            if let Some((name, value)) = &download_meta_header {
+                tracing::debug!("Sending download analytics: {value}");
+                req = req.header(name.as_str(), value.as_str());
+            }
 
-        let result = req.send().await;
-        match result {
-            Ok(resp) => {
-                if resp.status().is_server_error() {
-                    if let Some(fence_key) = fence_key {
-                        GLOBAL_FETCH_FENCE.record_fail(fence_key);
-                    }
-
-                    if attempt <= FETCH_ATTEMPTS {
-                        tokio::time::sleep(fetch_retry_delay(attempt)).await;
-                        continue;
-                    }
-                }
-
-                if resp.status().is_client_error()
-                    || resp.status().is_server_error()
-                {
-                    let status = resp.status();
-                    let backup_error = resp.error_for_status_ref().unwrap_err();
-                    if let Ok(mut error) = resp.json::<LabrinthError>().await {
-                        error.status = Some(status.as_u16());
-                        error.method = Some(method.as_str().to_string());
-                        error.url = Some(url.to_string());
-                        error.route = uri_path.map(str::to_string);
-                        return Err(ErrorKind::LabrinthError(error).into());
-                    }
-                    return Err(backup_error.into());
-                }
-
-                let bytes: eyre::Result<Bytes> = if loading_bar.is_some()
-                    || progress.is_some()
-                {
-                    let length = resp.content_length();
-                    if let Some(total_size) = length {
-                        use futures::StreamExt;
-                        let mut stream = resp.bytes_stream();
-
-                        async {
-                            let mut bytes = Vec::new();
-                            let mut downloaded = 0_u64;
-
-                            while let Some(item) = stream.next().await {
-                                let chunk = item.wrap_err_with(|| {
-                                    eyre!(
-                                        "failed to read response body from {url}"
-                                    )
-                                })?;
-
-                                downloaded += chunk.len() as u64;
-                                bytes.extend_from_slice(&chunk);
-
-                                if let Some((bar, total)) = &loading_bar {
-                                    emit_loading(
-                                        bar,
-                                        (chunk.len() as f64
-                                            / total_size as f64)
-                                            * total,
-                                        None,
-                                    )?;
-                                }
-
-                                if let Some(progress) = progress.as_mut() {
-                                    progress(downloaded, total_size).await?;
-                                }
-                            }
-
-                            Ok(Bytes::from(bytes))
+            let result = req.send().await;
+            match result {
+                Ok(resp) => {
+                    if resp.status().is_server_error() {
+                        if let Some(fence_key) = fence_key {
+                            GLOBAL_FETCH_FENCE.record_fail(fence_key);
                         }
-                        .await
+
+                        if attempt <= FETCH_ATTEMPTS {
+                            tokio::time::sleep(fetch_retry_delay(attempt))
+                                .await;
+                            continue;
+                        }
+                    }
+
+                    if resp.status().is_client_error()
+                        || resp.status().is_server_error()
+                    {
+                        let status = resp.status();
+                        let backup_error =
+                            resp.error_for_status_ref().unwrap_err();
+                        let route_error: crate::Error = if let Ok(mut error) =
+                            resp.json::<LabrinthError>().await
+                        {
+                            error.status = Some(status.as_u16());
+                            error.method = Some(method.as_str().to_string());
+                            error.url = Some(request_url.to_string());
+                            error.route = uri_path.map(str::to_string);
+                            ErrorKind::LabrinthError(error).into()
+                        } else {
+                            backup_error.into()
+                        };
+                        if has_next_route {
+                            tracing::warn!(
+                                url = request_url,
+                                status = status.as_u16(),
+                                error = %route_error,
+                                "Mirror request failed; falling back to official source"
+                            );
+                            break;
+                        }
+                        return Err(route_error);
+                    }
+
+                    let bytes: eyre::Result<Bytes> = if loading_bar.is_some()
+                        || progress.is_some()
+                    {
+                        let length = resp.content_length();
+                        if let Some(total_size) = length {
+                            use futures::StreamExt;
+                            let mut stream = resp.bytes_stream();
+
+                            async {
+                                let mut bytes = Vec::new();
+                                let mut downloaded = 0_u64;
+
+                                while let Some(item) = stream.next().await {
+                                    let chunk = item.wrap_err_with(|| {
+                                        eyre!(
+                                            "failed to read response body from {request_url}"
+                                        )
+                                    })?;
+
+                                    downloaded += chunk.len() as u64;
+                                    bytes.extend_from_slice(&chunk);
+
+                                    if let Some((bar, total)) = &loading_bar {
+                                        emit_loading(
+                                            bar,
+                                            (chunk.len() as f64
+                                                / total_size as f64)
+                                                * total,
+                                            None,
+                                        )?;
+                                    }
+
+                                    if let Some(progress) = progress.as_mut() {
+                                        progress(downloaded, total_size).await?;
+                                    }
+                                }
+
+                                Ok(Bytes::from(bytes))
+                            }
+                            .await
+                        } else {
+                            resp.bytes().await.wrap_err_with(|| {
+                                eyre!(
+                                    "failed to read response body from {request_url}"
+                                )
+                            })
+                        }
                     } else {
                         resp.bytes().await.wrap_err_with(|| {
-                            eyre!("failed to read response body from {url}")
+                            eyre!(
+                                "failed to read response body from {request_url}"
+                            )
                         })
-                    }
-                } else {
-                    resp.bytes().await.wrap_err_with(|| {
-                        eyre!("failed to read response body from {url}")
-                    })
-                };
+                    };
 
-                if let Ok(bytes) = bytes {
-                    if let Some(sha1) = sha1 {
-                        let hash = sha1_async(bytes.clone()).await?;
-                        if &*hash != sha1 {
-                            if attempt <= FETCH_ATTEMPTS {
-                                tokio::time::sleep(fetch_retry_delay(attempt))
+                    if let Ok(bytes) = bytes {
+                        if let Some(sha1) = sha1 {
+                            let hash = sha1_async(bytes.clone()).await?;
+                            if &*hash != sha1 {
+                                if attempt <= FETCH_ATTEMPTS {
+                                    tokio::time::sleep(fetch_retry_delay(
+                                        attempt,
+                                    ))
                                     .await;
-                                continue;
-                            } else {
-                                return Err(ErrorKind::HashError(
-                                    sha1.to_string(),
-                                    hash,
-                                )
-                                .into());
+                                    continue;
+                                } else {
+                                    let route_error: crate::Error =
+                                        ErrorKind::HashError(
+                                            sha1.to_string(),
+                                            hash,
+                                        )
+                                        .into();
+                                    if has_next_route {
+                                        tracing::warn!(
+                                            url = request_url,
+                                            error = %route_error,
+                                            "Mirror checksum validation failed; falling back to official source"
+                                        );
+                                        break;
+                                    }
+                                    return Err(route_error);
+                                }
                             }
                         }
+
+                        if let Some(validate_response) = response_validator
+                            && let Err(error) = validate_response(&bytes)
+                        {
+                            if is_mirror && has_next_route {
+                                tracing::warn!(
+                                    url = request_url,
+                                    error = %error,
+                                    "Mirror returned incompatible response data; falling back to official source"
+                                );
+                                break;
+                            }
+                            return Err(error);
+                        }
+
+                        tracing::trace!("Done downloading URL {request_url}");
+
+                        if let Some(fence_key) = fence_key {
+                            GLOBAL_FETCH_FENCE.record_ok(fence_key);
+                        }
+
+                        return Ok(bytes);
+                    } else if attempt <= FETCH_ATTEMPTS {
+                        tokio::time::sleep(fetch_retry_delay(attempt)).await;
+                        continue;
+                    } else if let Err(err) = bytes {
+                        if has_next_route {
+                            tracing::warn!(
+                                url = request_url,
+                                error = %err,
+                                "Mirror response failed; falling back to official source"
+                            );
+                            break;
+                        }
+                        return Err(err.into());
                     }
-
-                    tracing::trace!("Done downloading URL {url}");
-
-                    if let Some(fence_key) = fence_key {
-                        GLOBAL_FETCH_FENCE.record_ok(fence_key);
-                    }
-
-                    return Ok(bytes);
-                } else if attempt <= FETCH_ATTEMPTS {
+                }
+                Err(error) if attempt <= FETCH_ATTEMPTS => {
+                    tracing::debug!(
+                        attempt,
+                        url = request_url,
+                        error = %error,
+                        "Fetch failed; retrying"
+                    );
                     tokio::time::sleep(fetch_retry_delay(attempt)).await;
                     continue;
-                } else if let Err(err) = bytes {
+                }
+                Err(err) => {
+                    if has_next_route {
+                        tracing::warn!(
+                            url = request_url,
+                            error = %err,
+                            "Mirror connection failed; falling back to official source"
+                        );
+                        break;
+                    }
                     return Err(err.into());
                 }
-            }
-            Err(error) if attempt <= FETCH_ATTEMPTS => {
-                tracing::debug!(
-                    attempt,
-                    url,
-                    error = %error,
-                    "Fetch failed; retrying"
-                );
-                tokio::time::sleep(fetch_retry_delay(attempt)).await;
-                continue;
-            }
-            Err(err) => {
-                return Err(err.into());
             }
         }
     }
@@ -836,6 +1096,173 @@ mod tests {
     use super::*;
     use chrono::{TimeDelta, Utc};
     use std::time::Duration;
+
+    fn mirrors(
+        minecraft: bool,
+        modrinth: bool,
+        curseforge: bool,
+    ) -> DownloadMirrorSettings {
+        DownloadMirrorSettings {
+            minecraft,
+            modrinth,
+            curseforge,
+        }
+    }
+
+    #[test]
+    fn minecraft_mirror_rewrites_supported_urls() {
+        let mirrors = mirrors(true, false, false);
+        let cases = [
+            (
+                "https://piston-meta.mojang.com/v1/packages/version.json",
+                "https://bmclapi2.bangbang93.com/v1/packages/version.json",
+            ),
+            (
+                "https://resources.download.minecraft.net/ab/abcdef",
+                "https://bmclapi2.bangbang93.com/assets/ab/abcdef",
+            ),
+            (
+                "https://libraries.minecraft.net/com/example/library.jar",
+                "https://bmclapi2.bangbang93.com/maven/com/example/library.jar",
+            ),
+            (
+                "https://maven.minecraftforge.net/net/minecraftforge/forge.jar",
+                "https://bmclapi2.bangbang93.com/maven/net/minecraftforge/forge.jar",
+            ),
+            (
+                "https://maven.fabricmc.net/net/fabricmc/loader.jar",
+                "https://bmclapi2.bangbang93.com/maven/net/fabricmc/loader.jar",
+            ),
+            (
+                "https://maven.neoforged.net/releases/net/neoforged/neoforge.jar",
+                "https://bmclapi2.bangbang93.com/maven/net/neoforged/neoforge.jar",
+            ),
+            (
+                "https://launcher-meta.modrinth.com/maven/net/fabricmc/loader.jar",
+                "https://bmclapi2.bangbang93.com/maven/net/fabricmc/loader.jar",
+            ),
+            (
+                "https://meta.fabricmc.net/v2/versions/loader?limit=1",
+                "https://bmclapi2.bangbang93.com/fabric-meta/v2/versions/loader?limit=1",
+            ),
+        ];
+
+        for (source, expected) in cases {
+            assert_eq!(resolve_download_url(source, mirrors).url, expected);
+        }
+    }
+
+    #[test]
+    fn provider_mirrors_are_independent() {
+        let modrinth = mirrors(false, true, false);
+        assert_eq!(
+            resolve_download_url(
+                "https://api.modrinth.com/v2/project",
+                modrinth
+            ),
+            ResolvedDownloadUrl {
+                url: "https://mod.mcimirror.top/modrinth/v2/project"
+                    .to_string(),
+                is_mirror: true,
+            }
+        );
+        assert_eq!(
+            resolve_download_url(
+                "https://cdn.modrinth.com/data/project/file.jar",
+                modrinth,
+            )
+            .url,
+            "https://mod.mcimirror.top/data/project/file.jar"
+        );
+        assert_eq!(
+            resolve_download_url(
+                "https://api.curseforge.com/v1/mods/search",
+                modrinth,
+            )
+            .url,
+            "https://api.curseforge.com/v1/mods/search"
+        );
+
+        let curseforge = mirrors(false, false, true);
+        assert_eq!(
+            resolve_download_url(
+                "https://api.curseforge.com/v1/mods/search",
+                curseforge,
+            )
+            .url,
+            "https://mod.mcimirror.top/curseforge/v1/mods/search"
+        );
+        assert_eq!(
+            resolve_download_url(
+                "https://edge.forgecdn.net/files/1/2/file.jar",
+                curseforge,
+            )
+            .url,
+            "https://mod.mcimirror.top/files/1/2/file.jar"
+        );
+        assert_eq!(
+            resolve_download_url(
+                "https://api.modrinth.com/v2/project",
+                curseforge
+            )
+            .url,
+            "https://api.modrinth.com/v2/project"
+        );
+    }
+
+    #[test]
+    fn mirror_resolution_preserves_unmatched_urls() {
+        let all = mirrors(true, true, true);
+        for url in [
+            "https://example.com/file.jar?source=official",
+            "https://mediafilez.forgecdn.net/files/1/2/file.jar",
+            "https://api.modrinth.com.evil.example/v2/project",
+        ] {
+            assert_eq!(
+                resolve_download_url(url, all),
+                ResolvedDownloadUrl {
+                    url: url.to_string(),
+                    is_mirror: false,
+                }
+            );
+        }
+
+        let disabled = mirrors(false, false, false);
+        assert_eq!(
+            resolve_download_url(
+                "https://resources.download.minecraft.net/ab/abcdef",
+                disabled,
+            )
+            .url,
+            "https://resources.download.minecraft.net/ab/abcdef"
+        );
+    }
+
+    #[test]
+    fn mirror_routes_fall_back_to_official_source() {
+        let source = "https://api.modrinth.com/v2/project";
+        assert_eq!(
+            resolve_download_routes(source, mirrors(false, true, false)),
+            vec![
+                ResolvedDownloadUrl {
+                    url: "https://mod.mcimirror.top/modrinth/v2/project"
+                        .to_string(),
+                    is_mirror: true,
+                },
+                ResolvedDownloadUrl {
+                    url: source.to_string(),
+                    is_mirror: false,
+                },
+            ]
+        );
+        assert_eq!(
+            resolve_download_routes(source, mirrors(false, false, false)),
+            vec![ResolvedDownloadUrl {
+                url: source.to_string(),
+                is_mirror: false,
+            }]
+        );
+    }
 
     #[test]
     fn fetch_retries_use_exponential_backoff() {

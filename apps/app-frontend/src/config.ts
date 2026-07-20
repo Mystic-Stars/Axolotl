@@ -22,13 +22,28 @@ export const AxolotlBrandConfig = Object.freeze({
 })
 
 const siteUrl = trimTrailingSlash(import.meta.env.MODRINTH_URL || 'https://modrinth.com')
-const labrinthBaseUrl = trimTrailingSlash(
+const officialLabrinthBaseUrl = trimTrailingSlash(
 	import.meta.env.MODRINTH_API_BASE_URL || 'https://api.modrinth.com',
 )
+export const MODRINTH_MIRROR_BASE_URL = 'https://mod.mcimirror.top/modrinth'
+let useModrinthMirror = false
+
+export function setModrinthMirrorEnabled(enabled: boolean) {
+	useModrinthMirror = enabled
+}
+
+export function getOfficialLabrinthBaseUrl() {
+	return officialLabrinthBaseUrl
+}
+
+export function getLabrinthBaseUrl() {
+	return useModrinthMirror ? MODRINTH_MIRROR_BASE_URL : officialLabrinthBaseUrl
+}
+
 export const config = {
 	siteUrl,
 	stripePublishableKey:
 		import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY ||
 		'pk_test_51JbFxJJygY5LJFfKV50mnXzz3YLvBVe2Gd1jn7ljWAkaBlRz3VQdxN9mXcPSrFbSqxwAb0svte9yhnsmm7qHfcWn00R611Ce7b',
-	labrinthBaseUrl,
+	labrinthBaseUrl: getLabrinthBaseUrl,
 }
