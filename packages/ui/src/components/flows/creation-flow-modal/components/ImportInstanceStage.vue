@@ -374,7 +374,8 @@ async function pickInstanceFolder() {
 			ctx.importLaunchers.value = [...ctx.importLaunchers.value, launcher]
 			expandedLaunchers.value.add(launcher.name)
 			expandedLaunchers.value = new Set(expandedLaunchers.value)
-		} catch {
+		} catch (e) {
+			console.error('Failed to read instance folder:', path, e)
 			addNotification({
 				type: 'error',
 				title: formatMessage(messages.noInstancesFoundTitle),

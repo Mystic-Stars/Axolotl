@@ -56,9 +56,16 @@ pub fn get_instance_path(
 	base_path: &PathBuf,
 	instance_key: &str,
 ) -> Option<String> {
-	for (key, path) in get_instances(base_path) {
+	let config_path = find_config(base_path)?;
+	let content = std::fs::read_to_string(&config_path).ok()?;
+	let config: HmclConfig = serde_json::from_str(&content).ok()?;
+
+	for (key, entry) in &config.configurations {
 		if key == instance_key {
-			return Some(path);
+			let game_dir = PathBuf::from(&entry.game_dir);
+			if game_dir.is_dir() {
+				return Some(entry.game_dir.clone());
+			}
 		}
 	}
 	None

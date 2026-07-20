@@ -103,7 +103,7 @@ pub async fn get_importable_instances(
         }
         ImportLauncherType::PCL2CE => {
             if !pe_info::folder_has_product(&base_path, "Plain Craft Launcher")
-                || !pcl::config_exists()
+                || !pcl::pclce_config_exists()
             {
                 return Ok(Vec::new());
             }
@@ -470,7 +470,7 @@ pub fn get_default_launcher_path(
             }
         }
         ImportLauncherType::PCL2CE => {
-            if pcl::config_exists() {
+            if pcl::pclce_config_exists() {
                 dirs::data_dir()
             } else {
                 None
