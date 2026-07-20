@@ -4,6 +4,7 @@ export interface ImportableLauncher {
 	name: string
 	path: string
 	instances: string[]
+	launcherType?: string
 }
 
 export interface InstanceImportProvider {
@@ -17,6 +18,8 @@ export interface InstanceImportProvider {
 	) => Promise<void>
 	/** Open a directory picker (platform-specific) */
 	selectDirectory: () => Promise<string | null>
+	/** Open a multi-directory picker */
+	selectDirectories: () => Promise<string[] | null>
 }
 
 export const [injectInstanceImport, provideInstanceImport] =

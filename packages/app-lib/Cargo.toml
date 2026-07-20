@@ -122,7 +122,7 @@ dunce = { workspace = true }
 cidre = { workspace = true, features = ["blocks", "nw"] }
 
 [target."cfg(windows)".dependencies]
-windows = { workspace = true, features = ["Networking_Connectivity"] }
+windows = { workspace = true, features = ["Win32_Storage_FileSystem", "Networking_Connectivity"] }
 windows-core = { workspace = true }
 winreg = { workspace = true }
 

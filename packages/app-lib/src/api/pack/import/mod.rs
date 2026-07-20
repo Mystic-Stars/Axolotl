@@ -20,8 +20,13 @@ use crate::{
 pub mod atlauncher;
 pub mod curseforge;
 pub mod gdlauncher;
+pub mod hmcl;
+mod instance_json;
 pub mod mmc;
 mod modrinth_app;
+mod generic;
+mod pcl;
+mod pe_info;
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 pub enum ImportLauncherType {
@@ -31,6 +36,10 @@ pub enum ImportLauncherType {
     GDLauncher,
     Curseforge,
     ModrinthApp,
+    PCL2,
+    PCL2CE,
+    HMCL,
+    Generic,
     #[serde(other)]
     Unknown,
 }
@@ -46,6 +55,10 @@ impl fmt::Display for ImportLauncherType {
             ImportLauncherType::ModrinthApp => {
                 write!(f, "Modrinth source installation")
             }
+            ImportLauncherType::PCL2 => write!(f, "PCL2"),
+            ImportLauncherType::PCL2CE => write!(f, "PCL2CE"),
+            ImportLauncherType::HMCL => write!(f, "HMCL"),
+            ImportLauncherType::Generic => write!(f, "Generic"),
             ImportLauncherType::Unknown => write!(f, "Unknown"),
         }
     }
@@ -76,8 +89,48 @@ pub async fn get_importable_instances(
         .await
         .unwrap_or_else(|| "instances".to_string()),
         ImportLauncherType::ModrinthApp => unreachable!("handled above"),
+        ImportLauncherType::PCL2 => {
+            if !pe_info::folder_has_product(&base_path, "Plain Craft Launcher")
+                || pcl::read_pcl_registry().is_none()
+            {
+                return Ok(Vec::new());
+            }
+            let mut names = Vec::new();
+            for (name, path) in pcl::get_pcl_instances() {
+                names.extend(scan_instances_at(&PathBuf::from(path), Some(&name)).await);
+            }
+            return Ok(names);
+        }
+        ImportLauncherType::PCL2CE => {
+            if !pe_info::folder_has_product(&base_path, "Plain Craft Launcher")
+                || !pcl::config_exists()
+            {
+                return Ok(Vec::new());
+            }
+            let mut names = Vec::new();
+            for (name, path) in pcl::get_pclce_instances() {
+                names.extend(scan_instances_at(&PathBuf::from(path), Some(&name)).await);
+            }
+            return Ok(names);
+        }
+        ImportLauncherType::HMCL => {
+            if !hmcl::config_exists(&base_path) {
+                return Ok(Vec::new());
+            }
+            let mut names = Vec::new();
+            for (name, path) in hmcl::get_instances(&base_path) {
+                names.extend(scan_instances_at(&PathBuf::from(path), Some(&name)).await);
+            }
+            return Ok(names);
+        }
+        ImportLauncherType::Generic => {
+            return Ok(scan_instances_at(&base_path, None).await);
+        }
         ImportLauncherType::Unknown => {
             let types = [
+                ImportLauncherType::PCL2,
+                ImportLauncherType::PCL2CE,
+                ImportLauncherType::HMCL,
                 ImportLauncherType::MultiMC,
                 ImportLauncherType::PrismLauncher,
                 ImportLauncherType::ATLauncher,
@@ -85,43 +138,110 @@ pub async fn get_importable_instances(
                 ImportLauncherType::Curseforge,
                 ImportLauncherType::ModrinthApp,
             ];
+            let mut names: Vec<String> = Vec::new();
             for lt in types {
                 if let Ok(instances) =
                     Box::pin(get_importable_instances(lt, base_path.clone()))
                         .await
-                    && !instances.is_empty()
-                {
-                    return Ok(instances);
-                }
-            }
-            return Ok(Vec::new());
-        }
-    };
+				{
+					for instance in instances {
+						let key = instance.split_once(':').map(|(_, r)| r).unwrap_or(instance.as_str());
+						let mut found = false;
+						for n in &names {
+							let nk = n.split_once(':').map(|(_, r)| r).unwrap_or(n);
+							if nk == key {
+								found = true;
+								break;
+							}
+						}
+						if !found {
+							names.push(instance);
+						}
+					}
+				}
+			}
+			names.sort();
+			return Ok(names);
+		}
+	};
 
-    let instances_folder = base_path.join(&instances_subfolder);
-    let mut instances = Vec::new();
-    let mut dir = io::read_dir(&instances_folder).await.map_err(| _ | {
-        crate::ErrorKind::InputError(format!(
-            "Invalid {launcher_type} launcher path, could not find '{instances_subfolder}' subfolder."
-        ))
-    })?;
-    while let Some(entry) = dir
-        .next_entry()
-        .await
-        .map_err(|e| IOError::with_path(e, &instances_folder))?
-    {
-        let path = entry.path();
-        if path.is_dir() {
-            // Check instance is valid of this launcher type
-            if is_valid_importable_instance(path.clone(), launcher_type).await {
-                let name = path.file_name();
-                if let Some(name) = name {
-                    instances.push(name.to_string_lossy().to_string());
-                }
-            }
-        }
-    }
-    Ok(instances)
+	let instances_folder = base_path.join(&instances_subfolder);
+	let mut instances = Vec::new();
+	let mut dir = io::read_dir(&instances_folder).await.map_err(| _ | {
+		crate::ErrorKind::InputError(format!(
+			"Invalid {launcher_type} launcher path, could not find '{instances_subfolder}' subfolder."
+		))
+	})?;
+	while let Some(entry) = dir
+		.next_entry()
+		.await
+		.map_err(|e| IOError::with_path(e, &instances_folder))?
+	{
+		let path = entry.path();
+		if path.is_dir() {
+			if is_valid_importable_instance(path.clone(), launcher_type).await {
+				let name = path.file_name();
+				if let Some(name) = name {
+					instances.push(name.to_string_lossy().to_string());
+				}
+			}
+		}
+	}
+	Ok(instances)
+}
+
+async fn scan_instances_at(path: &Path, prefix: Option<&str>) -> Vec<String> {
+	if !path.is_dir() {
+		return Vec::new();
+	}
+	let mut instances = Vec::new();
+	if instance_json::detect(path).is_some() {
+		let name = path
+			.file_name()
+			.map(|n| n.to_string_lossy().to_string())
+			.unwrap_or_else(|| "imported".to_string());
+		instances.push(if let Some(pre) = prefix { format!("{pre}:{name}") } else { name });
+	}
+	let versions_dir = path.join("versions");
+	if versions_dir.is_dir() {
+		if let Ok(mut dir) = io::read_dir(&versions_dir).await {
+			while let Ok(Some(entry)) = dir.next_entry().await {
+				if entry.path().is_dir() && instance_json::detect(&entry.path()).is_some() {
+					if let Some(name) = entry.path().file_name() {
+						let name = name.to_string_lossy().to_string();
+						instances.push(if let Some(pre) = prefix {
+							format!("{pre}:versions/{name}")
+						} else {
+							format!("versions/{name}")
+						});
+					}
+				}
+			}
+		}
+	}
+	tracing::debug!("scan_instances_at: path={} prefix={:?} found={}", path.display(), prefix, instances.len());
+	instances.sort();
+	instances
+}
+
+fn resolve_instance_path(base_path: &Path, instance_folder: &str) -> PathBuf {
+	if let Some(rest) = instance_folder.strip_prefix("versions/") {
+		return base_path.join("versions").join(rest);
+	}
+	if base_path
+		.file_name()
+		.map(|n| n.to_string_lossy().to_string())
+		.as_deref()
+		== Some(instance_folder)
+	{
+		base_path.to_path_buf()
+	} else {
+		base_path.join(instance_folder)
+	}
+}
+
+fn split_config_name(name: &str) -> (&str, &str) {
+	name.split_once(':').unwrap_or((name, ""))
 }
 
 pub(crate) async fn import_instance_with_reporter(
@@ -202,8 +322,66 @@ async fn import_instance_inner(
             )
             .await
         }
+        ImportLauncherType::PCL2 => {
+            let (config_name, rest) = split_config_name(&instance_folder);
+            let game_dir = pcl::get_pcl_instance_path(config_name)
+                .map(PathBuf::from)
+                .unwrap_or_else(|| base_path.clone());
+            let target = if rest.is_empty() { config_name } else { rest };
+            let path = resolve_instance_path(&game_dir, target);
+            generic::import_generic(
+                path,
+                instance_id,
+                reporter.clone(),
+                details.clone(),
+            )
+            .await
+        }
+        ImportLauncherType::PCL2CE => {
+            let (config_name, rest) = split_config_name(&instance_folder);
+            let game_dir = pcl::get_pclce_instance_path(config_name)
+                .map(PathBuf::from)
+                .unwrap_or_else(|| base_path.clone());
+            let target = if rest.is_empty() { config_name } else { rest };
+            let path = resolve_instance_path(&game_dir, target);
+            generic::import_generic(
+                path,
+                instance_id,
+                reporter.clone(),
+                details.clone(),
+            )
+            .await
+        }
+        ImportLauncherType::HMCL => {
+            let (config_name, rest) = split_config_name(&instance_folder);
+            let game_dir = hmcl::get_instance_path(&base_path, config_name)
+                .map(PathBuf::from)
+                .unwrap_or_else(|| base_path.clone());
+            let target = if rest.is_empty() { config_name } else { rest };
+            let path = resolve_instance_path(&game_dir, target);
+            generic::import_generic(
+                path,
+                instance_id,
+                reporter.clone(),
+                details.clone(),
+            )
+            .await
+        }
+        ImportLauncherType::Generic => {
+            let path = resolve_instance_path(&base_path, &instance_folder);
+            generic::import_generic(
+                path,
+                instance_id,
+                reporter.clone(),
+                details.clone(),
+            )
+            .await
+        }
         ImportLauncherType::Unknown => {
             let types = [
+                ImportLauncherType::PCL2,
+                ImportLauncherType::PCL2CE,
+                ImportLauncherType::HMCL,
                 ImportLauncherType::MultiMC,
                 ImportLauncherType::PrismLauncher,
                 ImportLauncherType::ATLauncher,
@@ -284,6 +462,22 @@ pub fn get_default_launcher_path(
         ImportLauncherType::ModrinthApp => {
             Some(dirs::data_dir()?.join("ModrinthApp"))
         }
+        ImportLauncherType::PCL2 => {
+            if pcl::read_pcl_registry().is_some() {
+                dirs::data_dir()
+            } else {
+                None
+            }
+        }
+        ImportLauncherType::PCL2CE => {
+            if pcl::config_exists() {
+                dirs::data_dir()
+            } else {
+                None
+            }
+        }
+        ImportLauncherType::HMCL => None,
+        ImportLauncherType::Generic => None,
         ImportLauncherType::Unknown => None,
     };
     let path = path?;
@@ -359,6 +553,12 @@ pub async fn is_valid_importable_instance(
             curseforge::is_valid_curseforge(instance_path).await
         }
         ImportLauncherType::ModrinthApp => instance_path.is_dir(),
+        ImportLauncherType::PCL2
+        | ImportLauncherType::PCL2CE
+        | ImportLauncherType::HMCL
+        | ImportLauncherType::Generic => {
+            instance_path.is_dir()
+        }
         ImportLauncherType::Unknown => false,
     }
 }

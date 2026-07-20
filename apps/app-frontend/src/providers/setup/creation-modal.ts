@@ -90,7 +90,11 @@ export function setupCreationModal(notificationManager: AbstractWebNotificationM
 					const launcher = config.importLaunchers.value.find((l) => l.name === launcherName)
 					if (!launcher || instanceSet.size === 0) continue
 					for (const name of instanceSet) {
-						await import_instance(launcher.name, launcher.path, name).catch(handleError)
+						await import_instance(
+							launcher.launcherType ?? launcher.name,
+							launcher.path,
+							name,
+						).catch(handleError)
 					}
 				}
 				trackEvent('InstanceCreate', { source: 'CreationModalImport' })

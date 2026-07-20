@@ -833,6 +833,9 @@
   "creation-flow.modal.import-instance.custom-launcher.name": {
     "defaultMessage": "自定义（{pathName}）"
   },
+  "creation-flow.modal.import-instance.pick-instance-folder": {
+    "defaultMessage": "选择实例文件夹"
+  },
   "creation-flow.modal.import-instance.detecting-launcher-instances": {
     "defaultMessage": "正在检测启动器实例……"
   },

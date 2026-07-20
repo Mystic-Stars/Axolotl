@@ -851,6 +851,9 @@
   "creation-flow.modal.import-instance.notification.no-instances-found.title": {
     "defaultMessage": "No instances found"
   },
+  "creation-flow.modal.import-instance.pick-instance-folder": {
+    "defaultMessage": "Select instance folder"
+  },
   "creation-flow.modal.import-instance.search.placeholder": {
     "defaultMessage": "Search instance name"
   },

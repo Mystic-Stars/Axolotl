@@ -128,6 +128,19 @@ fn main() {
 
     */
 
+    // Configure the tokio runtime with a larger thread stack size to prevent
+    // stack overflows on Windows during deep async call chains (e.g. pack
+    // import). The /STACK linker flag in .cargo/config.toml only affects the
+    // main thread, not tokio worker threads.
+    let rt = tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .thread_stack_size(16 * 1024 * 1024)
+        .build()
+        .expect("failed to build tokio runtime");
+    let handle = rt.handle().clone();
+    std::mem::forget(rt);
+    tauri::async_runtime::set(handle);
+
     let tauri_context = tauri::generate_context!();
 
     let _log_guard = theseus::start_logger(&tauri_context.config().identifier);

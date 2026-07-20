@@ -74,6 +74,15 @@
 				</div>
 			</div>
 
+			<!-- Pick an instance folder directly -->
+			<div class="mt-2">
+				<ButtonStyled>
+					<button class="w-full !shadow-none" @click="pickInstanceFolder">
+						{{ formatMessage(messages.pickInstanceFolder) }}
+					</button>
+				</ButtonStyled>
+			</div>
+
 			<!-- Add launcher path -->
 			<div v-if="!showAddPath">
 				<ButtonStyled>
@@ -167,6 +176,10 @@ const messages = defineMessages({
 	customLauncherName: {
 		id: 'creation-flow.modal.import-instance.custom-launcher.name',
 		defaultMessage: 'Custom ({pathName})',
+	},
+	pickInstanceFolder: {
+		id: 'creation-flow.modal.import-instance.pick-instance-folder',
+		defaultMessage: 'Select instance folder',
 	},
 })
 
@@ -341,5 +354,33 @@ async function addLauncherPath() {
 
 	newLauncherPath.value = ''
 	showAddPath.value = false
+}
+
+async function pickInstanceFolder() {
+	const paths = await importProvider.selectDirectories()
+	if (!paths || paths.length === 0) return
+
+	for (const path of paths) {
+		try {
+			const instances = await importProvider.getImportableInstances('Generic', path)
+			if (instances.length === 0) continue
+			const folderName = path.split(/[\\/]/).pop() || path
+			const launcher: ImportableLauncher = {
+				name: folderName,
+				path,
+				instances,
+				launcherType: 'Generic',
+			}
+			ctx.importLaunchers.value = [...ctx.importLaunchers.value, launcher]
+			expandedLaunchers.value.add(launcher.name)
+			expandedLaunchers.value = new Set(expandedLaunchers.value)
+		} catch {
+			addNotification({
+				type: 'error',
+				title: formatMessage(messages.noInstancesFoundTitle),
+				text: formatMessage(messages.noInstancesFoundText),
+			})
+		}
+	}
 }
 </script>

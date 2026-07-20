@@ -345,9 +345,9 @@ async fn prepare_initial_instance(
         } => {
             let metadata = crate::api::instance::create(
                 instance_folder,
-                "1.19.4".to_string(),
+                "unknown".to_string(),
                 ModLoader::Vanilla,
-                Some("latest".to_string()),
+                None,
                 None,
                 InstanceLink::Unmanaged,
             )
