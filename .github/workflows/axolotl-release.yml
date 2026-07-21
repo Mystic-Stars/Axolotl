@@ -159,6 +159,7 @@ jobs:
             git \
             github-cli \
             gnupg \
+            jdk17-openjdk \
             nodejs \
             pnpm \
             pacman-contrib \

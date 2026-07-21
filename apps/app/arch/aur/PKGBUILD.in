@@ -11,7 +11,7 @@ depends=(
 	'webkit2gtk-4.1'
 	'xdg-utils'
 )
-makedepends=('git' 'nodejs' 'pnpm' 'rust' 'librsvg' 'patchelf')
+makedepends=('git' 'jdk17-openjdk' 'nodejs' 'pnpm' 'rust' 'librsvg' 'patchelf')
 source=(
 	"$pkgname-$pkgver.tar.gz::https://codeload.github.com/Mystic-Stars/Axolotl/tar.gz/v$pkgver"
 	'axolotl-launcher.desktop'
