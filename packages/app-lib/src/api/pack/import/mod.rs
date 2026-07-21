@@ -98,7 +98,10 @@ pub async fn get_importable_instances(
             let mut names = Vec::new();
             for (name, path) in pcl::get_pcl_instances() {
                 names.extend(
-                    scan_instances_at(&PathBuf::from(path), Some(&name)).await,
+                    scan_instances_at(&PathBuf::from(path), Some(&name))
+                        .await
+                        .into_iter()
+                        .map(|(n, _)| n),
                 );
             }
             return Ok(names);
@@ -112,7 +115,10 @@ pub async fn get_importable_instances(
             let mut names = Vec::new();
             for (name, path) in pcl::get_pclce_instances() {
                 names.extend(
-                    scan_instances_at(&PathBuf::from(path), Some(&name)).await,
+                    scan_instances_at(&PathBuf::from(path), Some(&name))
+                        .await
+                        .into_iter()
+                        .map(|(n, _)| n),
                 );
             }
             return Ok(names);
@@ -124,41 +130,149 @@ pub async fn get_importable_instances(
             let mut names = Vec::new();
             for (name, path) in hmcl::get_instances(&base_path) {
                 names.extend(
-                    scan_instances_at(&PathBuf::from(path), Some(&name)).await,
+                    scan_instances_at(&PathBuf::from(path), Some(&name))
+                        .await
+                        .into_iter()
+                        .map(|(n, _)| n),
                 );
             }
             return Ok(names);
         }
         ImportLauncherType::Generic => {
-            return Ok(scan_instances_at(&base_path, None).await);
+            return Ok(scan_instances_at(&base_path, None)
+                .await
+                .into_iter()
+                .map(|(n, _)| n)
+                .collect());
         }
         ImportLauncherType::Unknown => {
-            let types = [
-                ImportLauncherType::PCL2,
-                ImportLauncherType::PCL2CE,
-                ImportLauncherType::HMCL,
+            let mut names: Vec<String> = Vec::new();
+            let mut seen: std::collections::HashSet<PathBuf> =
+                std::collections::HashSet::new();
+
+            // PCL2
+            if pe_info::folder_has_product(&base_path, "Plain Craft Launcher")
+                && pcl::read_pcl_registry().is_some()
+            {
+                for (name, dir) in pcl::get_pcl_instances() {
+                    for (iname, ipath) in
+                        scan_instances_at(&PathBuf::from(dir), Some(&name))
+                            .await
+                    {
+                        if seen.insert(ipath) {
+                            names.push(iname);
+                        }
+                    }
+                }
+            }
+
+            // PCL2CE
+            if pe_info::folder_has_product(&base_path, "Plain Craft Launcher")
+                && pcl::config_exists()
+            {
+                for (name, dir) in pcl::get_pclce_instances() {
+                    for (iname, ipath) in
+                        scan_instances_at(&PathBuf::from(dir), Some(&name))
+                            .await
+                    {
+                        if seen.insert(ipath) {
+                            names.push(iname);
+                        }
+                    }
+                }
+            }
+
+            // HMCL
+            if hmcl::config_exists(&base_path) {
+                for (name, dir) in hmcl::get_instances(&base_path) {
+                    for (iname, ipath) in
+                        scan_instances_at(&PathBuf::from(dir), Some(&name))
+                            .await
+                    {
+                        if seen.insert(ipath) {
+                            names.push(iname);
+                        }
+                    }
+                }
+            }
+
+            // ModrinthApp: uses its internal SQLite database; query real
+            // physical profile paths for accurate dedup.
+            {
+                let pairs =
+                    modrinth_app::get_importable_instances_with_paths(
+                        base_path.clone(),
+                    )
+                    .await
+                    .unwrap_or_default();
+                for (iname, ipath) in pairs {
+                    if seen.insert(ipath) {
+                        names.push(iname);
+                    }
+                }
+            }
+
+            // Remaining launcher types: call get_importable_instances and
+            // reconstruct physical paths for dedup.
+            let other_types = [
                 ImportLauncherType::MultiMC,
                 ImportLauncherType::PrismLauncher,
                 ImportLauncherType::ATLauncher,
                 ImportLauncherType::GDLauncher,
                 ImportLauncherType::Curseforge,
-                ImportLauncherType::ModrinthApp,
             ];
-            let mut names: Vec<String> = Vec::new();
-            let mut seen: std::collections::HashSet<String> =
-                std::collections::HashSet::new();
-            for lt in types {
+            for lt in other_types {
                 if let Ok(instances) =
-                    Box::pin(get_importable_instances(lt, base_path.clone()))
-                        .await
+                    Box::pin(get_importable_instances(
+                        lt,
+                        base_path.clone(),
+                    ))
+                    .await
                 {
+                    let instances_folder = match lt {
+                        ImportLauncherType::MultiMC => {
+                            let subpath =
+                                mmc::get_instances_subpath(
+                                    base_path.clone().join("multimc.cfg"),
+                                )
+                                .await
+                                .unwrap_or_else(|| {
+                                    "instances".to_string()
+                                });
+                            base_path.join(&subpath)
+                        }
+                        ImportLauncherType::PrismLauncher => {
+                            let subpath =
+                                mmc::get_instances_subpath(
+                                    base_path
+                                        .clone()
+                                        .join("prismlauncher.cfg"),
+                                )
+                                .await
+                                .unwrap_or_else(|| {
+                                    "instances".to_string()
+                                });
+                            base_path.join(&subpath)
+                        }
+                        ImportLauncherType::ATLauncher
+                        | ImportLauncherType::GDLauncher => {
+                            base_path.join("instances")
+                        }
+                        ImportLauncherType::Curseforge => {
+                            base_path.join("Instances")
+                        }
+                        _ => unreachable!(),
+                    };
                     for instance in instances {
-                        if seen.insert(instance.clone()) {
+                        let ipath =
+                            instances_folder.join(&instance);
+                        if seen.insert(ipath) {
                             names.push(instance);
                         }
                     }
                 }
             }
+
             names.sort();
             return Ok(names);
         }
@@ -189,7 +303,10 @@ pub async fn get_importable_instances(
     Ok(instances)
 }
 
-async fn scan_instances_at(path: &Path, prefix: Option<&str>) -> Vec<String> {
+async fn scan_instances_at(
+    path: &Path,
+    prefix: Option<&str>,
+) -> Vec<(String, PathBuf)> {
     if !path.is_dir() {
         return Vec::new();
     }
@@ -199,11 +316,14 @@ async fn scan_instances_at(path: &Path, prefix: Option<&str>) -> Vec<String> {
             .file_name()
             .map(|n| n.to_string_lossy().to_string())
             .unwrap_or_else(|| "imported".to_string());
-        instances.push(if let Some(pre) = prefix {
-            format!("{pre}:{name}")
-        } else {
-            name
-        });
+        instances.push((
+            if let Some(pre) = prefix {
+                format!("{pre}:{name}")
+            } else {
+                name
+            },
+            path.to_path_buf(),
+        ));
     }
     let versions_dir = path.join("versions");
     if versions_dir.is_dir() {
@@ -214,11 +334,15 @@ async fn scan_instances_at(path: &Path, prefix: Option<&str>) -> Vec<String> {
                 {
                     if let Some(name) = entry.path().file_name() {
                         let name = name.to_string_lossy().to_string();
-                        instances.push(if let Some(pre) = prefix {
-                            format!("{pre}:versions/{name}")
-                        } else {
-                            format!("versions/{name}")
-                        });
+                        let ipath = entry.path();
+                        instances.push((
+                            if let Some(pre) = prefix {
+                                format!("{pre}:versions/{name}")
+                            } else {
+                                format!("versions/{name}")
+                            },
+                            ipath,
+                        ));
                     }
                 }
             }
@@ -230,7 +354,6 @@ async fn scan_instances_at(path: &Path, prefix: Option<&str>) -> Vec<String> {
         prefix,
         instances.len()
     );
-    instances.sort();
     instances
 }
 
