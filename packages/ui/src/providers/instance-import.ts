@@ -14,7 +14,7 @@ export interface InstanceImportProvider {
 	getImportableInstances: (launcherName: string, path: string) => Promise<string[]>
 	/** Perform the actual import */
 	importInstances: (
-		selections: { launcher: string; path: string; instanceNames: string[] }[],
+		selections: { launcher: string; path: string; instanceNames: string[]; launcherType?: string }[],
 	) => Promise<void>
 	/** Open a directory picker (platform-specific) */
 	selectDirectory: () => Promise<string | null>

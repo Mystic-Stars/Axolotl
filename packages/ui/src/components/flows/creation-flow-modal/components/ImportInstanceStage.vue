@@ -364,7 +364,15 @@ async function pickInstanceFolder() {
 		try {
 			const instances = await importProvider.getImportableInstances('Generic', path)
 			if (instances.length === 0) continue
-			const folderName = path.split(/[\\/]/).pop() || path
+			let folderName = path.split(/[\\/]/).pop() || path
+			const existingNames = new Set(ctx.importLaunchers.value.map((l) => l.name))
+			if (existingNames.has(folderName)) {
+				let suffix = 2
+				while (existingNames.has(`${folderName} (${suffix})`)) {
+					suffix++
+				}
+				folderName = `${folderName} (${suffix})`
+			}
 			const launcher: ImportableLauncher = {
 				name: folderName,
 				path,

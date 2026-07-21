@@ -49,7 +49,7 @@ fn parse_pcl_folders(raw: &str) -> Vec<(String, String)> {
     result
 }
 
-pub fn pclce_config_exists() -> bool {
+pub fn config_exists() -> bool {
     read_pclce_config().is_some()
 }
 

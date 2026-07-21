@@ -93,6 +93,4 @@ packages/tooling-config/script-utils/import-sort.js
 
 target/*
 
-packages/*
-
 plugins-workspace/*

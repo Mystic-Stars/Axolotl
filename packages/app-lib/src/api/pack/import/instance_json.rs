@@ -269,7 +269,7 @@ fn extract_loader_version(
     // Second: extract from library entries
     let (needle, split_at) = match loader_type {
         "forge" => ("minecraftforge:forge:", Some('-')),
-        "neoforge" => ("net.neoforge:neoforge:", None),
+        "neoforge" => ("net.neoforged:neoforge:", None),
         "fabric" => ("net.fabricmc:fabric-loader:", None),
         "quilt" => ("org.quiltmc:quilt-loader:", None),
         _ => return None,
