@@ -92,6 +92,33 @@ impl MinecraftDownloadProgress {
         self.emit_if_needed(current, total, false).await
     }
 
+    /// Rolls back bytes that were counted for an abandoned download attempt,
+    /// so retried files do not inflate the progress bar to 100% early.
+    async fn sub_bytes(&self, bytes: u64) -> crate::Result<()> {
+        if bytes == 0 {
+            return Ok(());
+        }
+
+        let mut current = self.current.load(Ordering::Relaxed);
+        loop {
+            let next = current.saturating_sub(bytes);
+            match self.current.compare_exchange_weak(
+                current,
+                next,
+                Ordering::Relaxed,
+                Ordering::Relaxed,
+            ) {
+                Ok(_) => {
+                    current = next;
+                    break;
+                }
+                Err(actual) => current = actual,
+            }
+        }
+        let total = self.total.load(Ordering::Relaxed);
+        self.emit_if_needed(current, total, true).await
+    }
+
     async fn emit_if_needed(
         &self,
         current: u64,
@@ -220,9 +247,16 @@ async fn download_minecraft_file(
               -> Pin<Box<dyn Future<Output = crate::Result<()>> + Send>> {
             let previous =
                 last_downloaded.swap(downloaded, Ordering::Relaxed);
-            let delta = downloaded.saturating_sub(previous);
             let progress = progress.clone();
-            Box::pin(async move { progress.add_bytes(delta).await })
+            Box::pin(async move {
+                if downloaded >= previous {
+                    progress.add_bytes(downloaded - previous).await
+                } else {
+                    // The downloaded count went backwards, meaning a failed
+                    // attempt restarted; un-count the abandoned bytes.
+                    progress.sub_bytes(previous - downloaded).await
+                }
+            })
         }
     };
 
