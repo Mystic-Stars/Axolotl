@@ -652,7 +652,10 @@ mod tests {
         );
         assert!(!lookup.modrinth.contains_key("totally-unknown-project"));
         assert_eq!(
-            lookup.curseforge.get("the-twilight-forest").map(String::as_str),
+            lookup
+                .curseforge
+                .get("the-twilight-forest")
+                .map(String::as_str),
             Some("暮色森林 (The Twilight Forest)")
         );
     }
@@ -670,10 +673,7 @@ mod tests {
     fn prefers_more_popular_entries_for_duplicate_slugs() {
         let entries = parse_wiki_entries("dup@|旧名\ndup@|新名\n001002");
         let index = build_chinese_name_index(&entries);
-        assert_eq!(
-            index.modrinth.get("dup").map(String::as_str),
-            Some("新名")
-        );
+        assert_eq!(index.modrinth.get("dup").map(String::as_str), Some("新名"));
         assert_eq!(
             index.curseforge.get("dup").map(String::as_str),
             Some("新名")
