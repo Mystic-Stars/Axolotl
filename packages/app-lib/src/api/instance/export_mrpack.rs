@@ -198,6 +198,12 @@ pub async fn create_mrpack_json(
             dependencies.insert(PackDependency::QuiltLoader, v)
         }
         (ModLoader::Vanilla, _) => None,
+        (ModLoader::OptiFine, _) => {
+            return Err(crate::ErrorKind::OtherError(
+                "OptiFine instances cannot be exported to mrpack, as the format has no OptiFine dependency type".to_string(),
+            )
+            .into());
+        }
         _ => {
             return Err(crate::ErrorKind::OtherError(
                 "Loader version mismatch".to_string(),

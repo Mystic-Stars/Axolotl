@@ -68,7 +68,7 @@ export function setupFilePickerProvider() {
 		async pickModpackFile(options) {
 			const result = await open({
 				multiple: false,
-				filters: [{ name: 'Modpack', extensions: ['mrpack'] }],
+				filters: [{ name: 'Modpack', extensions: ['mrpack', 'zip'] }],
 			})
 			if (!result) return null
 			const path = getDialogPath(result)

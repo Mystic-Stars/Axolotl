@@ -100,11 +100,12 @@ pub async fn parse_command(
     if let Some(sublink) = command_string.strip_prefix("axolotl://") {
         Ok(handle_url(sublink).await?)
     } else {
-        // We assume anything else is a filepath to an .mrpack file
+        // We assume anything else is a filepath to a modpack file; zip
+        // archives are format-sniffed by the pack installer.
         let path = PathBuf::from(command_string);
         let path = io::canonicalize(path)?;
         if let Some(ext) = path.extension()
-            && ext == "mrpack"
+            && (ext == "mrpack" || ext == "zip")
         {
             return Ok(CommandPayload::RunMRPack { path });
         }

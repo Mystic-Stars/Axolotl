@@ -820,8 +820,9 @@ async function handleCommand(e) {
 	}
 
 	if (e.event === 'RunMRPack') {
-		// RunMRPack should directly install a local mrpack given a path
-		if (e.path.endsWith('.mrpack')) {
+		// RunMRPack should directly install a local modpack file given a path;
+		// non-mrpack archives (CurseForge/MCBBS/HMCL/MultiMC zips) are format-sniffed by the backend
+		if (e.path.endsWith('.mrpack') || e.path.endsWith('.zip')) {
 			const location = { type: 'fromFile', path: e.path }
 			const preview = await install_get_modpack_preview(location).catch(handleError)
 			if (preview?.unknownFile) {

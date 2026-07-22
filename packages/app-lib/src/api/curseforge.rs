@@ -464,8 +464,18 @@ pub struct CurseForgeModpackTarget {
 #[serde(rename_all = "camelCase")]
 struct CurseForgeModpackManifest {
     minecraft: CurseForgeManifestMinecraft,
+    #[serde(default)]
     files: Vec<CurseForgeManifestFile>,
+    #[serde(default = "default_overrides")]
     overrides: String,
+    #[serde(default)]
+    name: Option<String>,
+    #[serde(default)]
+    version: Option<String>,
+}
+
+fn default_overrides() -> String {
+    "overrides".to_string()
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -483,14 +493,14 @@ struct CurseForgeManifestLoader {
 }
 
 #[derive(Clone, Debug, Deserialize)]
-struct CurseForgeManifestFile {
+pub(crate) struct CurseForgeManifestFile {
     // CurseForge modpack manifests use projectID/fileID (capital ID), not projectId.
     #[serde(alias = "projectID", alias = "projectId")]
-    project_id: u32,
+    pub(crate) project_id: u32,
     #[serde(alias = "fileID", alias = "fileId")]
-    file_id: u32,
+    pub(crate) file_id: u32,
     #[serde(default = "default_true")]
-    required: bool,
+    pub(crate) required: bool,
 }
 
 fn default_true() -> bool {
@@ -997,7 +1007,7 @@ pub async fn get_modpack_target(
         let file = std::fs::File::open(&pack_path)?;
         let mut archive =
             zip::ZipArchive::new(file).map_err(modpack_zip_error)?;
-        let manifest = read_modpack_manifest(&mut archive)?;
+        let manifest = read_modpack_manifest(&mut archive, "")?;
         modpack_target(&manifest)
     })
     .await??;
@@ -1195,7 +1205,7 @@ pub async fn install_modpack_with_reporter(
         let file = std::fs::File::open(&pack_path_for_manifest)?;
         let mut archive =
             zip::ZipArchive::new(file).map_err(modpack_zip_error)?;
-        read_modpack_manifest(&mut archive)
+        read_modpack_manifest(&mut archive, "")
     })
     .await??;
 
@@ -1597,7 +1607,7 @@ pub async fn install_modpack_with_reporter(
             .await?;
     }
     let overrides_written = tokio::task::spawn_blocking(move || {
-        extract_modpack_overrides(&pack_path, &instance_path)
+        extract_modpack_overrides(&pack_path, &instance_path, "")
     })
     .await??;
     Ok(CurseForgeModpackInstallResult {
@@ -1606,6 +1616,438 @@ pub async fn install_modpack_with_reporter(
         minecraft_version: manifest.minecraft.version,
         loader,
     })
+}
+
+/// Installs a CurseForge modpack from a local archive on disk (a zip with a
+/// `manifest.json`), downloading the listed files through the CurseForge API
+/// and extracting the overrides folder. Unlike [`install_modpack_with_reporter`]
+/// this needs no project/file id — undownloadable files land on the manual
+/// download list exactly like API-driven installs.
+pub async fn install_modpack_from_local_archive_with_reporter(
+    instance_id: String,
+    archive_path: std::path::PathBuf,
+    base_folder: String,
+    source_filename: Option<String>,
+    install_optional: bool,
+    reporter: InstallProgressReporter,
+) -> crate::Result<CurseForgeModpackInstallResult> {
+    let manifest_archive_path = archive_path.clone();
+    let manifest_base = base_folder.clone();
+    let manifest = tokio::task::spawn_blocking(move || {
+        let file = std::fs::File::open(&manifest_archive_path)?;
+        let mut archive =
+            zip::ZipArchive::new(file).map_err(modpack_zip_error)?;
+        read_modpack_manifest(&mut archive, &manifest_base)
+    })
+    .await??;
+
+    let target = modpack_target(&manifest)?;
+    let loader = (target.loader != ModLoader::Vanilla)
+        .then(|| target.loader.as_str().to_string());
+    let pack_name = manifest
+        .name
+        .clone()
+        .filter(|name| !name.trim().is_empty())
+        .or_else(|| {
+            source_filename.as_ref().map(|name| {
+                std::path::Path::new(name)
+                    .file_stem()
+                    .unwrap_or_default()
+                    .to_string_lossy()
+                    .to_string()
+            })
+        })
+        .unwrap_or_else(|| "CurseForge Modpack".to_string());
+    let pack_details = InstallPhaseDetails::Modpack {
+        project_id: None,
+        version_id: None,
+        title: Some(pack_name.clone()),
+    };
+    reporter
+        .update(InstallPhaseId::ResolvingPack, None, pack_details.clone())
+        .await?;
+
+    let loader_version = if target.loader != ModLoader::Vanilla {
+        crate::launcher::get_loader_version_from_profile(
+            &manifest.minecraft.version,
+            target.loader,
+            target.loader_version.as_deref(),
+        )
+        .await?
+    } else {
+        None
+    };
+
+    crate::api::instance::edit(
+        &instance_id,
+        EditInstance {
+            install_stage: Some(crate::state::InstanceInstallStage::PackInstalling),
+            name: Some(pack_name.clone()),
+            link: Some(InstanceLink::ImportedModpack {
+                project_id: None,
+                version_id: None,
+                name: Some(pack_name.clone()),
+                version_number: manifest.version.clone(),
+                filename: source_filename,
+            }),
+            content_set_patch: Some(crate::state::AppliedContentSetPatch {
+                source_kind: Some(ContentSourceKind::CurseForge),
+                game_version: Some(manifest.minecraft.version.clone()),
+                protocol_version: Some(None),
+                loader: Some(target.loader),
+                loader_version: Some(loader_version.map(|version| version.id)),
+            }),
+            ..EditInstance::default()
+        },
+    )
+    .await?;
+
+    let content = install_local_manifest_files(
+        &instance_id,
+        manifest.files.clone(),
+        install_optional,
+        &manifest.minecraft.version,
+        loader.as_deref(),
+        pack_details.clone(),
+        &reporter,
+    )
+    .await?;
+
+    reporter
+        .update(
+            InstallPhaseId::ExtractingOverrides,
+            None,
+            pack_details.clone(),
+        )
+        .await?;
+    let instance_path =
+        crate::api::instance::get_full_path(&instance_id).await?;
+    let overrides_archive_path = archive_path.clone();
+    let overrides_base = base_folder.clone();
+    let overrides_written = tokio::task::spawn_blocking(move || {
+        extract_modpack_overrides(
+            &overrides_archive_path,
+            &instance_path,
+            &overrides_base,
+        )
+    })
+    .await??;
+
+    crate::launcher::install_minecraft_for_instance_id_with_reporter(
+        &instance_id,
+        false,
+        Some(reporter.clone()),
+    )
+    .await?;
+    reporter.clear_context().await?;
+
+    Ok(CurseForgeModpackInstallResult {
+        content,
+        overrides_written,
+        minecraft_version: manifest.minecraft.version,
+        loader,
+    })
+}
+
+/// Downloads and installs the files listed in a local CurseForge manifest.
+/// Mirrors the file loop of [`install_modpack_with_reporter`], simplified to
+/// the job-reporter path used by local imports. Also used by the MCBBS
+/// installer for its CurseForge-style `files` array.
+pub(crate) async fn install_local_manifest_files(
+    instance_id: &str,
+    manifest_files: Vec<CurseForgeManifestFile>,
+    install_optional: bool,
+    minecraft_version: &str,
+    loader: Option<&str>,
+    pack_details: InstallPhaseDetails,
+    reporter: &InstallProgressReporter,
+) -> crate::Result<CurseForgeInstallResult> {
+    let state = State::get().await?;
+    let selected_files = manifest_files
+        .into_iter()
+        .filter(|file| file.required || install_optional)
+        .collect::<Vec<_>>();
+    let loader_type_value = loader.and_then(loader_type);
+    let project_ids = selected_files
+        .iter()
+        .map(|file| file.project_id)
+        .collect::<Vec<_>>();
+    let mut projects = HashMap::new();
+    for project_ids in project_ids.chunks(50) {
+        for project in get_projects(project_ids.to_vec()).await? {
+            projects.insert(project.id, project);
+        }
+    }
+    for project_id in &project_ids {
+        if !projects.contains_key(project_id) {
+            let project = get_project(*project_id).await?;
+            projects.insert(project.id, project);
+        }
+    }
+
+    let total_files = selected_files.len().max(1);
+    let mut file_ids = selected_files
+        .iter()
+        .map(|file| file.file_id)
+        .collect::<Vec<_>>();
+    file_ids.sort_unstable();
+    file_ids.dedup();
+    let mut file_meta = HashMap::<u32, CurseForgeFile>::new();
+    for chunk in file_ids.chunks(50) {
+        for file in get_files_many(chunk.to_vec()).await? {
+            file_meta.insert(file.id, file);
+        }
+    }
+    let content_total_bytes = selected_files
+        .iter()
+        .map(|file| {
+            file_meta
+                .get(&file.file_id)
+                .map(|meta| meta.file_length)
+                .unwrap_or(0)
+        })
+        .sum::<u64>();
+    reporter
+        .update_with_events(
+            InstallPhaseId::DownloadingContent,
+            Some(InstallProgress {
+                current: 0,
+                total: total_files as u64,
+                secondary: Some(InstallProgressSecondary {
+                    current: 0,
+                    total: content_total_bytes,
+                }),
+            }),
+            pack_details.clone(),
+            vec![InstallJobEventKind::ContentDownloadStarted {
+                files: total_files as u64,
+                bytes: Some(content_total_bytes),
+            }],
+        )
+        .await?;
+
+    tracing::info!(
+        selected_manifest_files = selected_files.len(),
+        "Resolved local CurseForge modpack manifest files"
+    );
+    let content = Arc::new(Mutex::new(CurseForgeInstallResult::default()));
+    let download_metrics = Arc::new(CurseForgeDownloadMetrics::default());
+    let projects = Arc::new(projects);
+    let file_meta = Arc::new(file_meta);
+    let files_done = Arc::new(AtomicU64::new(0));
+    let bytes_done = Arc::new(AtomicU64::new(0));
+    let active_downloads = Arc::new(AtomicU64::new(0));
+
+    loading_try_for_each_concurrent(
+        stream::iter(selected_files.into_iter().map(Ok::<_, crate::Error>)),
+        Some(state.download_concurrency()),
+        None,
+        1.0,
+        total_files,
+        None,
+        |manifest_file| {
+            let content = content.clone();
+            let projects = projects.clone();
+            let file_meta = file_meta.clone();
+            let files_done = files_done.clone();
+            let bytes_done = bytes_done.clone();
+            let active_downloads = active_downloads.clone();
+            let reporter = reporter.clone();
+            let download_metrics = download_metrics.clone();
+            let pack_details = pack_details.clone();
+            let instance_id = instance_id.to_string();
+            let minecraft_version = minecraft_version.to_string();
+            async move {
+                let expected_bytes = file_meta
+                    .get(&manifest_file.file_id)
+                    .map(|file| file.file_length)
+                    .unwrap_or(0);
+                let project = projects
+                    .get(&manifest_file.project_id)
+                    .ok_or_else(|| {
+                        ErrorKind::OtherError(format!(
+                            "CurseForge project metadata is missing for {}",
+                            manifest_file.project_id
+                        ))
+                    })?;
+                let project_type = project_type_for_class(project.class_id);
+                managed_project_type(project_type)?;
+
+                active_downloads.fetch_add(1, Ordering::Relaxed);
+                let mut installed_result = None;
+                let mut failed_result = None;
+                let mut failure_reason = "no file was installed".to_string();
+                for attempt in 1..=MODPACK_FILE_INSTALL_ATTEMPTS {
+                    match install_file_with_metrics(
+                        CurseForgeInstallRequest {
+                            instance_id: instance_id.clone(),
+                            project_id: manifest_file.project_id,
+                            file_id: manifest_file.file_id,
+                            project_type: project_type.to_string(),
+                            game_version: Some(minecraft_version.clone()),
+                            mod_loader_type: loader_type_value,
+                            world_name: None,
+                            install_dependencies: false,
+                        },
+                        Some(&download_metrics),
+                    )
+                    .await
+                    {
+                        Ok(item_result)
+                            if !item_result.installed.is_empty() =>
+                        {
+                            installed_result = Some(item_result);
+                            break;
+                        }
+                        Ok(item_result) => {
+                            failure_reason = item_result
+                                .manual_downloads
+                                .first()
+                                .map(|file| {
+                                    format!(
+                                        "{} requires manual download",
+                                        file.file_name
+                                    )
+                                })
+                                .unwrap_or_else(|| {
+                                    "no file was installed".to_string()
+                                });
+                            failed_result = Some(item_result);
+                        }
+                        Err(err) => {
+                            failure_reason = err.to_string();
+                        }
+                    }
+                    tracing::warn!(
+                        project_id = manifest_file.project_id,
+                        file_id = manifest_file.file_id,
+                        attempt,
+                        max_attempts = MODPACK_FILE_INSTALL_ATTEMPTS,
+                        reason = %failure_reason,
+                        "Failed to install required CurseForge file"
+                    );
+                    if attempt < MODPACK_FILE_INSTALL_ATTEMPTS {
+                        tokio::time::sleep(Duration::from_millis(
+                            250 * attempt as u64,
+                        ))
+                        .await;
+                    }
+                }
+
+                let Some(item_result) = installed_result else {
+                    active_downloads.fetch_sub(1, Ordering::Relaxed);
+                    let mut failed_result = failed_result.unwrap_or_default();
+                    if failed_result.manual_downloads.is_empty() {
+                        let file_name = file_meta
+                            .get(&manifest_file.file_id)
+                            .map(|file| file.file_name.clone())
+                            .unwrap_or_else(|| {
+                                format!(
+                                    "project-{}-file-{}",
+                                    manifest_file.project_id,
+                                    manifest_file.file_id
+                                )
+                            });
+                        failed_result.manual_downloads.push(
+                            CurseForgeManualDownload {
+                                project_id: manifest_file.project_id,
+                                file_id: manifest_file.file_id,
+                                file_name: file_name.clone(),
+                                website_url: curseforge_file_page_url(
+                                    project.links.website_url.as_deref(),
+                                    manifest_file.file_id,
+                                ),
+                            },
+                        );
+                    }
+                    let manual_download =
+                        failed_result.manual_downloads.first().cloned();
+                    let skipped_path = manual_download
+                        .as_ref()
+                        .map(|file| file.file_name.clone())
+                        .unwrap_or_else(|| {
+                            format!(
+                                "project-{}-file-{}",
+                                manifest_file.project_id, manifest_file.file_id
+                            )
+                        });
+                    {
+                        let mut content =
+                            content.lock().expect("content mutex");
+                        merge_install_result(&mut content, failed_result);
+                    }
+                    report_modpack_progress(
+                        None,
+                        Some(&reporter),
+                        pack_details,
+                        &files_done,
+                        &bytes_done,
+                        &active_downloads,
+                        total_files as u64,
+                        content_total_bytes,
+                        0,
+                        InstallJobEventKind::ContentFileSkipped {
+                            path: skipped_path,
+                            reason: format!(
+                                "Failed after {} attempts: {}",
+                                MODPACK_FILE_INSTALL_ATTEMPTS, failure_reason
+                            ),
+                            project_id: Some(
+                                manifest_file.project_id.to_string(),
+                            ),
+                            version_id: Some(manifest_file.file_id.to_string()),
+                            manual_url: manual_download
+                                .and_then(|file| file.website_url),
+                        },
+                    )
+                    .await?;
+                    return Ok(());
+                };
+                let completed_path =
+                    item_result.installed[0].relative_path.clone();
+                {
+                    let mut content = content.lock().expect("content mutex");
+                    merge_install_result(&mut content, item_result);
+                }
+                active_downloads.fetch_sub(1, Ordering::Relaxed);
+                report_modpack_progress(
+                    None,
+                    Some(&reporter),
+                    pack_details,
+                    &files_done,
+                    &bytes_done,
+                    &active_downloads,
+                    total_files as u64,
+                    content_total_bytes,
+                    expected_bytes,
+                    InstallJobEventKind::ContentFileCompleted {
+                        path: completed_path,
+                        bytes: expected_bytes,
+                    },
+                )
+                .await?;
+                Ok(())
+            }
+        },
+    )
+    .await?;
+
+    download_metrics.finish(reporter).await?;
+
+    Arc::try_unwrap(content)
+        .map_err(|_| {
+            ErrorKind::OtherError(
+                "CurseForge install state was still shared after completion"
+                    .to_string(),
+            )
+        })?
+        .into_inner()
+        .map_err(|_| {
+            ErrorKind::OtherError(
+                "CurseForge install state mutex was poisoned".to_string(),
+            )
+        })
+        .map_err(Into::into)
 }
 
 pub async fn update_managed_modpack(
@@ -1767,19 +2209,23 @@ async fn remove_existing_curseforge_pack_content(
 fn extract_modpack_overrides(
     archive_path: &Path,
     instance_path: &Path,
+    base_folder: &str,
 ) -> crate::Result<u32> {
     let file = std::fs::File::open(archive_path)?;
     let mut archive = zip::ZipArchive::new(file).map_err(modpack_zip_error)?;
-    let manifest = read_modpack_manifest(&mut archive)?;
-    let prefix = format!("{}/", manifest.overrides.trim_matches('/'));
+    let manifest = read_modpack_manifest(&mut archive, base_folder)?;
+    let prefix =
+        format!("{base_folder}{}/", manifest.overrides.trim_matches('/'));
     let mut files_written = 0_u32;
     let mut total_size = 0_u64;
     for index in 0..archive.len() {
         let mut entry = archive.by_index(index).map_err(modpack_zip_error)?;
-        if entry.is_dir() || !entry.name().starts_with(&prefix) {
+        let entry_name =
+            crate::pack::detect::decode_zip_entry_name(entry.name_raw());
+        if entry.is_dir() || !entry_name.starts_with(&prefix) {
             continue;
         }
-        let relative = &entry.name()[prefix.len()..];
+        let relative = &entry_name[prefix.len()..];
         let safe_path = safe_archive_relative_path(relative)?;
         total_size = total_size.saturating_add(entry.size());
         if total_size > 2 * 1024 * 1024 * 1024 {
@@ -1814,12 +2260,16 @@ fn extract_modpack_overrides(
 
 fn read_modpack_manifest<R: Read + Seek>(
     archive: &mut zip::ZipArchive<R>,
+    base_folder: &str,
 ) -> crate::Result<CurseForgeModpackManifest> {
-    let mut entry = archive.by_name("manifest.json").map_err(|_| {
-        ErrorKind::InputError(
-            "CurseForge modpack is missing manifest.json".to_string(),
-        )
-    })?;
+    let entry_name = format!("{base_folder}manifest.json");
+    let index = crate::pack::detect::find_entry_index(archive, &entry_name)?
+        .ok_or_else(|| {
+            ErrorKind::InputError(
+                "CurseForge modpack is missing manifest.json".to_string(),
+            )
+        })?;
+    let mut entry = archive.by_index(index).map_err(modpack_zip_error)?;
     let mut json = String::new();
     entry.read_to_string(&mut json)?;
     Ok(serde_json::from_str::<CurseForgeModpackManifest>(&json)?)

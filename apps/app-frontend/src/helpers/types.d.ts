@@ -99,7 +99,7 @@ export type Instance = GameInstance
 
 type ReleaseChannel = 'release' | 'beta' | 'alpha'
 
-export type InstanceLoader = 'vanilla' | 'forge' | 'fabric' | 'quilt' | 'neoforge'
+export type InstanceLoader = 'vanilla' | 'forge' | 'fabric' | 'quilt' | 'neoforge' | 'optifine'
 
 type ContentFile = {
 	enabled: boolean

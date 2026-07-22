@@ -724,16 +724,25 @@ pub async fn download_version_info(
                     )
                     .await?;
             }
-            let partial: d::modded::PartialVersionInfo = fetch_json(
-                Method::GET,
-                &loader.url,
-                None,
-                None,
-                None,
-                &st.api_semaphore,
-                &st.pool,
-            )
-            .await?;
+            let partial: d::modded::PartialVersionInfo = if mod_loader
+                == ModLoader::OptiFine
+            {
+                crate::launcher::optifine::build_partial_version_info(
+                    st, &info, &version.id, &loader.id,
+                )
+                .await?
+            } else {
+                fetch_json(
+                    Method::GET,
+                    &loader.url,
+                    None,
+                    None,
+                    None,
+                    &st.api_semaphore,
+                    &st.pool,
+                )
+                .await?
+            };
             info = d::modded::merge_partial_version(partial, info);
         }
 
