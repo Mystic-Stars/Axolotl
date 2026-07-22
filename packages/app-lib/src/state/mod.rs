@@ -29,6 +29,9 @@ pub use self::process::*;
 mod java_globals;
 pub use self::java_globals::*;
 
+mod discovered_javas;
+pub use self::discovered_javas::*;
+
 mod discord;
 pub use self::discord::*;
 

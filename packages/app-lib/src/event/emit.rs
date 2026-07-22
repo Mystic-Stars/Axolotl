@@ -5,7 +5,8 @@ use crate::event::{
 };
 #[cfg(feature = "tauri")]
 use crate::event::{
-    InstancePayload, LoadingPayload, ProcessPayload, WarningPayload,
+    InstancePayload, JavaDiscoveryPayload, LoadingPayload, ProcessPayload,
+    WarningPayload,
 };
 use futures::prelude::*;
 use serde_json::Value;
@@ -176,6 +177,22 @@ pub async fn emit_warning(message: &str) -> crate::Result<()> {
             .map_err(EventError::from)?;
     }
     tracing::warn!("{}", message);
+    Ok(())
+}
+
+// emit_java_discovery_update(count)
+// Fired when a Java rescan changed the set of discovered installations
+#[allow(unused_variables)]
+pub async fn emit_java_discovery_update(count: usize) -> crate::Result<()> {
+    #[cfg(feature = "tauri")]
+    {
+        let event_state = crate::EventState::get()?;
+        event_state
+            .app
+            .emit("java_discovery_update", JavaDiscoveryPayload { count })
+            .map_err(EventError::from)?;
+    }
+    tracing::debug!("Java discovery updated: {count} installations");
     Ok(())
 }
 
