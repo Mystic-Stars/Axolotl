@@ -393,15 +393,22 @@ async function refreshValues() {
 		await set_default_user(defaultUser.value).catch(handleError)
 	}
 	const userList = await users(offline.value).catch(handleError)
-	accounts.value = Array.isArray(userList) ? (userList as unknown as MinecraftCredential[]) : []
-	const typeOrder = { microsoft: 0, yggdrasil: 1, offline: 2 }
+	accounts.value = Array.isArray(userList)
+		? [...(userList as unknown as MinecraftCredential[])]
+		: []
+	const typeOrder = {
+		microsoft: 0,
+		yggdrasil: 1,
+		offline: 2,
+	} as const
 	accounts.value.sort((a, b) => {
 		const nameCmp = (a.profile?.name ?? '').localeCompare(b.profile?.name ?? '')
 		if (nameCmp !== 0) return nameCmp
-		const typeCmp =
+
+		return (
 			(typeOrder[a.account_type as keyof typeof typeOrder] ?? 3) -
 			(typeOrder[b.account_type as keyof typeof typeOrder] ?? 3)
-		return typeCmp
+		)
 	})
 	await renderYggdrasilAccountHeads(accounts.value)
 	try {
