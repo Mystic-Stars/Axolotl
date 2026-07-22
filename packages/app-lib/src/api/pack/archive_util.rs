@@ -8,10 +8,8 @@ use crate::util::io;
 const EXTRACTION_SIZE_LIMIT: u64 = 8 * 1024 * 1024 * 1024;
 
 fn archive_error(error: zip::result::ZipError) -> crate::Error {
-    crate::ErrorKind::InputError(format!(
-        "Modpack archive is invalid: {error}"
-    ))
-    .into()
+    crate::ErrorKind::InputError(format!("Modpack archive is invalid: {error}"))
+        .into()
 }
 
 pub(crate) fn safe_relative_path(value: &str) -> crate::Result<String> {
@@ -134,13 +132,12 @@ pub(crate) async fn read_archive_entry_to_string(
         let file = std::fs::File::open(&archive_path)
             .map_err(|error| io::IOError::with_path(error, &archive_path))?;
         let mut archive = zip::ZipArchive::new(file).map_err(archive_error)?;
-        let index =
-            super::detect::find_entry_index(&mut archive, &entry_name)?
-                .ok_or_else(|| {
-                    crate::ErrorKind::InputError(format!(
-                        "Modpack archive is missing {entry_name}"
-                    ))
-                })?;
+        let index = super::detect::find_entry_index(&mut archive, &entry_name)?
+            .ok_or_else(|| {
+                crate::ErrorKind::InputError(format!(
+                    "Modpack archive is missing {entry_name}"
+                ))
+            })?;
         let mut entry = archive.by_index(index).map_err(archive_error)?;
         let mut contents = Vec::new();
         std::io::Read::read_to_end(&mut entry, &mut contents)?;

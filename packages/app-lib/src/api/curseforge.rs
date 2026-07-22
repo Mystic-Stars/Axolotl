@@ -1681,7 +1681,9 @@ pub async fn install_modpack_from_local_archive_with_reporter(
     crate::api::instance::edit(
         &instance_id,
         EditInstance {
-            install_stage: Some(crate::state::InstanceInstallStage::PackInstalling),
+            install_stage: Some(
+                crate::state::InstanceInstallStage::PackInstalling,
+            ),
             name: Some(pack_name.clone()),
             link: Some(InstanceLink::ImportedModpack {
                 project_id: None,

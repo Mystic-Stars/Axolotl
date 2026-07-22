@@ -192,10 +192,7 @@ fn inspect_installer(path: &Path) -> crate::Result<InstallerInfo> {
     let (launchwrapper_library, launchwrapper_entry) =
         match launchwrapper_version {
             Some(version) => (
-                library(
-                    format!("optifine:launchwrapper-of:{version}"),
-                    false,
-                ),
+                library(format!("optifine:launchwrapper-of:{version}"), false),
                 Some(format!("launchwrapper-of-{version}.jar")),
             ),
             // Very old OptiFine builds ship without their own LaunchWrapper;
@@ -428,8 +425,9 @@ pub async fn install_optifine_as_mod(
     })
     .await??;
 
-    let target =
-        mods_dir.join(format!("{OPTIFINE_LOADER_PREFIX}{game_version}_{of_id}.jar"));
+    let target = mods_dir.join(format!(
+        "{OPTIFINE_LOADER_PREFIX}{game_version}_{of_id}.jar"
+    ));
     io::create_dir_all(mods_dir).await?;
 
     if info.needs_patching {

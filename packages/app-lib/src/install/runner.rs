@@ -1198,22 +1198,21 @@ async fn install_local_pack_file(
             let inner_detected =
                 crate::api::pack::detect::detect_local_pack(&inner_path)
                     .await?;
-            let result = if inner_detected.format
-                == LocalPackFormat::LauncherBundled
-            {
-                Err(ErrorKind::InputError(
-                    "Nested launcher bundles are not supported".to_string(),
-                )
-                .into())
-            } else {
-                Box::pin(install_local_pack_file(
-                    inner_detected,
-                    inner_path,
-                    instance_id,
-                    reporter,
-                ))
-                .await
-            };
+            let result =
+                if inner_detected.format == LocalPackFormat::LauncherBundled {
+                    Err(ErrorKind::InputError(
+                        "Nested launcher bundles are not supported".to_string(),
+                    )
+                    .into())
+                } else {
+                    Box::pin(install_local_pack_file(
+                        inner_detected,
+                        inner_path,
+                        instance_id,
+                        reporter,
+                    ))
+                    .await
+                };
             if let Err(error) = tokio::fs::remove_dir_all(&scratch).await {
                 tracing::warn!(
                     "Failed to clean up modpack import scratch directory {}: {error}",

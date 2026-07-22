@@ -335,13 +335,14 @@ pub(crate) async fn install_optifine_mod(
     optifine_version: &str,
     instance_path: &std::path::Path,
 ) -> crate::Result<()> {
-    let metadata = crate::api::instance::get(instance_id)
-        .await?
-        .ok_or_else(|| {
-            crate::ErrorKind::InputError(format!(
-                "Unknown instance {instance_id}"
-            ))
-        })?;
+    let metadata =
+        crate::api::instance::get(instance_id)
+            .await?
+            .ok_or_else(|| {
+                crate::ErrorKind::InputError(format!(
+                    "Unknown instance {instance_id}"
+                ))
+            })?;
     let version_jar = match &metadata.applied_content_set.loader_version {
         Some(loader_version) => format!("{game_version}-{loader_version}"),
         None => game_version.to_string(),

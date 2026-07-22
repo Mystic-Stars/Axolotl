@@ -457,8 +457,7 @@ pub(crate) async fn install_zipped_mrpack_files_with_reporter(
                     };
                     (name == format!("{archive_base}icon.png")
                         || name == format!("{overrides_prefix}icon.png")
-                        || name
-                            == format!("{client_overrides_prefix}icon.png"))
+                        || name == format!("{client_overrides_prefix}icon.png"))
                     .then_some(index)
                 },
             );

@@ -89,8 +89,7 @@ fn detect_target(version_json: &PlainVersionJson) -> Option<DetectedTarget> {
                 let forge_version = version
                     .split_once('-')
                     .map(|(mc, forge)| {
-                        if game_version.is_none()
-                            && looks_like_game_version(mc)
+                        if game_version.is_none() && looks_like_game_version(mc)
                         {
                             game_version = Some(mc.to_string());
                         }
@@ -149,12 +148,11 @@ async fn read_version_candidates(
         let mut candidates = Vec::new();
         for index in 0..archive.len() {
             let name = {
-                let entry =
-                    archive.by_index_raw(index).map_err(|error| {
-                        crate::ErrorKind::InputError(format!(
-                            "Failed to read modpack archive entry: {error}"
-                        ))
-                    })?;
+                let entry = archive.by_index_raw(index).map_err(|error| {
+                    crate::ErrorKind::InputError(format!(
+                        "Failed to read modpack archive entry: {error}"
+                    ))
+                })?;
                 crate::pack::detect::decode_zip_entry_name(entry.name_raw())
             };
             let Some(rest) = name.strip_prefix(&versions_prefix) else {
