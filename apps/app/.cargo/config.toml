@@ -1,2 +1,2 @@
-#[env]
-#SQLX_OFFLINE = "true"
+[env]
+SQLX_OFFLINE = "true"
