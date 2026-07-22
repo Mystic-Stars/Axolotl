@@ -104,19 +104,22 @@ async fn collect_candidate_paths() -> Result<HashSet<PathBuf>, JREError> {
     jre_paths.extend(get_all_autoinstalled_jre_path().await?);
     jre_paths.extend(get_java_home_paths());
 
-    type CollectJob = Box<dyn FnOnce() -> HashSet<PathBuf> + Send + 'static>;
-    let mut jobs: Vec<CollectJob> = vec![
-        Box::new(get_common_install_paths),
-        Box::new(get_official_launcher_runtime_paths),
+    let mut handles: Vec<tokio::task::JoinHandle<HashSet<PathBuf>>> = vec![
+        tokio::task::spawn_blocking(get_common_install_paths),
+        tokio::task::spawn_blocking(get_official_launcher_runtime_paths),
     ];
     #[cfg(target_os = "windows")]
-    jobs.push(Box::new(get_registry_paths));
-    for root in bfs_search_roots() {
-        jobs.push(Box::new(move || bfs_keyword_scan(&root)));
+    handles.push(tokio::task::spawn_blocking(get_registry_paths));
+    for handle in handles {
+        if let Ok(set) = handle.await {
+            jre_paths.extend(set);
+        }
     }
 
-    let found: Vec<HashSet<PathBuf>> = stream::iter(jobs)
-        .map(tokio::task::spawn_blocking)
+    let found: Vec<HashSet<PathBuf>> = stream::iter(bfs_search_roots())
+        .map(|root| {
+            tokio::task::spawn_blocking(move || bfs_keyword_scan(&root))
+        })
         .buffer_unordered(COLLECT_CONCURRENCY)
         .filter_map(|res| async move { res.ok() })
         .collect()
