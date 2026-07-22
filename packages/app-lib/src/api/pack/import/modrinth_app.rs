@@ -116,6 +116,7 @@ pub async fn import_instance(
     instance_id: &str,
     reporter: InstallProgressReporter,
     details: InstallPhaseDetails,
+    symlink: bool,
 ) -> crate::Result<()> {
     let pool = open_source_db(&base_path).await?;
     let config_dir = source_config_dir(&base_path, &pool).await?;
@@ -183,6 +184,13 @@ pub async fn import_instance(
     .await?;
 
     let state = State::get().await?;
-    finish_import(instance_id, source, &state.io_semaphore, reporter, details)
-        .await
+    finish_import(
+        instance_id,
+        source,
+        &state.io_semaphore,
+        reporter,
+        details,
+        symlink,
+    )
+    .await
 }

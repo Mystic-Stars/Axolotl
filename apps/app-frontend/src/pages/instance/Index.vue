@@ -237,6 +237,7 @@
 			</ContentPageHeader>
 		</div>
 		<div :class="['px-6', { 'shrink-0': isFixedRender }]">
+			<SymlinkInstanceWarning v-if="instance?.symlink_target" :symlink-target="instance.symlink_target" />
 			<NavTabs :links="tabs" />
 		</div>
 		<div :class="['p-6 pt-4', { 'min-h-0 flex-1 overflow-y-auto': isFixedRender }]">

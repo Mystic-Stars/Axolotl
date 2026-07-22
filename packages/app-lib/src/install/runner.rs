@@ -57,11 +57,13 @@ pub async fn import_instance(
     launcher_type: crate::api::pack::import::ImportLauncherType,
     base_path: PathBuf,
     instance_folder: String,
+    symlink: bool,
 ) -> crate::Result<InstallJobSnapshot> {
     start(InstallRequest::ImportInstance {
         launcher_type,
         base_path,
         instance_folder,
+        symlink,
     })
     .await
 }
@@ -290,6 +292,7 @@ async fn prepare_initial_instance(
                 loader_version,
                 icon_path,
                 link,
+                None,
             )
             .await?;
             set_display(
@@ -331,6 +334,7 @@ async fn prepare_initial_instance(
                 preview.loader_version,
                 icon_path,
                 link,
+                None,
             )
             .await?;
             set_display(
@@ -341,7 +345,10 @@ async fn prepare_initial_instance(
             set_instance_id(job_state, metadata.instance.id);
         }
         InstallRequest::ImportInstance {
-            instance_folder, ..
+            instance_folder,
+            symlink: _,
+            base_path: _,
+            ..
         } => {
             let metadata = crate::api::instance::create(
                 instance_folder,
@@ -350,6 +357,7 @@ async fn prepare_initial_instance(
                 None,
                 None,
                 InstanceLink::Unmanaged,
+                None,
             )
             .await?;
             set_display(
@@ -375,6 +383,7 @@ async fn prepare_initial_instance(
                 metadata.applied_content_set.loader_version,
                 metadata.instance.icon_path,
                 metadata.link,
+                None,
             )
             .await?;
             set_display(
@@ -682,6 +691,7 @@ async fn run_request(
             launcher_type,
             base_path,
             instance_folder,
+            symlink,
         } => {
             let Some(instance_id) = current_instance_id(job_state) else {
                 return Err(crate::ErrorKind::InputError(
@@ -706,6 +716,7 @@ async fn run_request(
                 base_path,
                 instance_folder,
                 InstallProgressReporter::new(job_id, job_state.clone()),
+                symlink,
             )
             .await?;
             Ok(Some(instance_id))

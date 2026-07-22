@@ -45,6 +45,7 @@ pub async fn import_gdlauncher(
     instance_id: &str,
     reporter: InstallProgressReporter,
     details: InstallPhaseDetails,
+    symlink: bool,
 ) -> crate::Result<()> {
     // Load config.json
     let config = serde_json::from_str::<GDLauncherConfig>(
@@ -121,6 +122,7 @@ pub async fn import_gdlauncher(
         &state.io_semaphore,
         reporter,
         details,
+        symlink,
     )
     .await?;
 

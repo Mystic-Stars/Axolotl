@@ -94,3 +94,6 @@ packages/tooling-config/script-utils/import-sort.js
 target/*
 
 plugins-workspace/*
+
+# Oh My OpenCode
+.omo/

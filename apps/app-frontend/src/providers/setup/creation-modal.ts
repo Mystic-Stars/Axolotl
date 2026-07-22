@@ -3,6 +3,8 @@ import type {
 	CreationFlowContextValue,
 	CreationFlowModal,
 } from '@modrinth/ui'
+import { defineMessages, useVIntl } from '@modrinth/ui'
+import { confirm } from '@tauri-apps/plugin-dialog'
 import { provide, ref, useTemplateRef } from 'vue'
 import type { ComponentExposed } from 'vue-component-type-helpers'
 import { useRouter } from 'vue-router'
@@ -12,6 +14,7 @@ import type ModpackAlreadyInstalledModal from '@/components/ui/modal/ModpackAlre
 import { trackEvent } from '@/helpers/analytics'
 import { get_project_versions, get_search_results } from '@/helpers/cache.js'
 import { import_instance } from '@/helpers/import.js'
+import { check_symlink_capability, restart_as_admin } from '@/helpers/instance'
 import {
 	type CreatePackLocation,
 	install_create_instance,
@@ -23,7 +26,29 @@ import { get_loader_versions as getLoaderManifest } from '@/helpers/metadata.js'
 import type { InstanceLoader } from '@/helpers/types'
 import { useTheming } from '@/store/state'
 
+const symlinkMessages = defineMessages({
+	unsupportedTitle: {
+		id: 'app.symlink-capability.unsupported.title',
+	},
+	unsupportedBody: {
+		id: 'app.symlink-capability.unsupported',
+	},
+	requiresAdminTitle: {
+		id: 'app.symlink-capability.requires-admin.title',
+	},
+	requiresAdminDescription: {
+		id: 'app.symlink-capability.requires-admin.description',
+	},
+	requiresAdminRestartButton: {
+		id: 'app.symlink-capability.requires-admin.restart-button',
+	},
+	cancel: {
+		id: 'app.symlink-capability.cancel',
+	},
+})
+
 export function setupCreationModal(notificationManager: AbstractWebNotificationManager) {
+	const { formatMessage } = useVIntl()
 	const { handleError } = notificationManager
 	const router = useRouter()
 	const themeStore = useTheming()
@@ -84,6 +109,32 @@ export function setupCreationModal(notificationManager: AbstractWebNotificationM
 			installationModal.value?.hide()
 
 			if (config.isImportMode.value) {
+				if (config.importAsSymlink.value) {
+					const capability = await check_symlink_capability()
+					if (capability === 'unsupported') {
+						notificationManager.addNotification({
+							type: 'error',
+							title: formatMessage(symlinkMessages.unsupportedTitle),
+							text: formatMessage(symlinkMessages.unsupportedBody),
+						})
+						return
+					}
+					if (capability === 'requires_admin') {
+						const confirmed = await confirm(
+							formatMessage(symlinkMessages.requiresAdminDescription),
+							{
+								title: formatMessage(symlinkMessages.requiresAdminTitle),
+								okLabel: formatMessage(symlinkMessages.requiresAdminRestartButton),
+								cancelLabel: formatMessage(symlinkMessages.cancel),
+							},
+						)
+						if (confirmed) {
+							restart_as_admin()
+						}
+						return
+					}
+				}
+
 				for (const [launcherName, instanceSet] of Object.entries(
 					config.importSelectedInstances.value,
 				)) {
@@ -94,6 +145,7 @@ export function setupCreationModal(notificationManager: AbstractWebNotificationM
 							launcher.launcherType ?? launcher.name,
 							launcher.path,
 							name,
+							config.importAsSymlink.value,
 						).catch(handleError)
 					}
 				}

@@ -8,6 +8,7 @@ export type GameInstance = {
 
 	name: string
 	icon_path?: string
+	symlink_target?: string | null
 
 	game_version: string
 	protocol_version?: number

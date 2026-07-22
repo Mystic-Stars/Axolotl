@@ -378,3 +378,61 @@ macro_rules! get_resource_file {
         get_resource_file!(directory: env!($dir_env_name), file: $file_name)
     };
 }
+
+pub async fn create_symlink(
+    target: impl AsRef<std::path::Path>,
+    link: impl AsRef<std::path::Path>,
+) -> Result<(), IOError> {
+    let target = target.as_ref().to_path_buf();
+    let link = link.as_ref().to_path_buf();
+
+    if let Some(parent) = link.parent() {
+        tokio::fs::create_dir_all(parent)
+            .await
+            .map_err(|e| IOError::with_path(e, parent))?;
+    }
+
+    if !target.exists() {
+        return Err(IOError::with_path(
+            std::io::Error::new(
+                std::io::ErrorKind::NotFound,
+                format!("Target path does not exist: {}", target.display()),
+            ),
+            &target,
+        ));
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        let is_dir = target.is_dir();
+        tokio::task::spawn_blocking(move || {
+            if is_dir {
+                match junction::create(&target, &link) {
+                    Ok(()) => Ok(()),
+                    Err(junction_err) => {
+                        match symlink_rs::symlink_dir(&target, &link) {
+                            Ok(()) => Ok(()),
+                            Err(_) => {
+                                Err(IOError::with_path(junction_err, &link))
+                            }
+                        }
+                    }
+                }
+            } else {
+                symlink_rs::symlink_file(&target, &link)
+                    .map_err(|e| IOError::with_path(e, &link))
+            }
+        })
+        .await
+        .unwrap()
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
+        tokio::task::spawn_blocking(move || {
+            symlink_rs::symlink_auto(&target, &link)
+                .map_err(|e| IOError::with_path(e, &link))
+        })
+        .await
+        .unwrap()
+    }
+}

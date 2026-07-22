@@ -100,6 +100,35 @@ fn restart_app(app: tauri::AppHandle) {
 }
 
 #[tauri::command]
+async fn check_symlink_capability() -> api::Result<String> {
+    let capability = theseus::symlink::check_symlink_capability().await?;
+    Ok(match capability {
+        theseus::SymlinkCapability::Supported => "supported",
+        theseus::SymlinkCapability::RequiresAdmin => "requires_admin",
+        theseus::SymlinkCapability::Unsupported => "unsupported",
+    }
+    .to_string())
+}
+
+#[tauri::command]
+fn restart_as_admin() {
+    #[cfg(target_os = "windows")]
+    {
+        use std::process::Command;
+        let exe = std::env::current_exe().unwrap();
+        let _ = Command::new("powershell")
+            .args([
+                "-Command",
+                &format!(
+                    "Start-Process -FilePath '{}' -Verb RunAs",
+                    exe.to_string_lossy()
+                ),
+            ])
+            .spawn();
+    }
+}
+
+#[tauri::command]
 async fn set_restart_after_pending_update(
     should_restart: bool,
 ) -> api::Result<()> {
@@ -278,6 +307,8 @@ fn main() {
             toggle_decorations,
             show_window,
             restart_app,
+            check_symlink_capability,
+            restart_as_admin,
         ]);
 
     tracing::info!("Initializing app...");

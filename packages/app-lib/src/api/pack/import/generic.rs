@@ -15,6 +15,7 @@ pub async fn import_generic(
     instance_id: &str,
     reporter: InstallProgressReporter,
     details: InstallPhaseDetails,
+    symlink: bool,
 ) -> crate::Result<()> {
     let name = instance_folder
         .file_name()
@@ -83,6 +84,7 @@ pub async fn import_generic(
         &state.io_semaphore,
         reporter,
         details,
+        symlink,
     )
     .await
 }

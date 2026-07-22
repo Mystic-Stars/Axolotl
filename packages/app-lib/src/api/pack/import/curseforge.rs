@@ -53,6 +53,7 @@ pub async fn import_curseforge(
     instance_id: &str,
     reporter: InstallProgressReporter,
     details: InstallPhaseDetails,
+    symlink: bool,
 ) -> crate::Result<()> {
     // Load minecraftinstance.json
     let minecraft_instance = serde_json::from_str::<MinecraftInstance>(
@@ -193,6 +194,7 @@ pub async fn import_curseforge(
         &state.io_semaphore,
         reporter,
         details,
+        symlink,
     )
     .await?;
 

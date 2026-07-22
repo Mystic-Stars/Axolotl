@@ -216,11 +216,13 @@ export async function install_import_instance(
 	launcherType: string,
 	basePath: string,
 	instanceFolder: string,
+	symlink?: boolean,
 ) {
 	return await invoke<InstallJobSnapshot>('plugin:install|install_import_instance', {
 		launcherType,
 		basePath,
 		instanceFolder,
+		symlink,
 	})
 }
 

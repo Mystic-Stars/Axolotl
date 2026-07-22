@@ -417,6 +417,7 @@ fn edit_to_core(edit_instance: EditInstance) -> Result<CoreEditInstance> {
         last_played: None,
         submitted_time_played: None,
         recent_time_played: None,
+        symlink_target: None,
     })
 }
 

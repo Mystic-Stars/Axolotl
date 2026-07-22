@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "\n\t\tSELECT *\n\t\tFROM instances\n\t\tWHERE id = ?\n\t\t",
+  "query": "\n\t\tSELECT *\n\t\tFROM instances\n\t\tWHERE path = ?\n\t\t",
   "describe": {
     "columns": [
       {
@@ -67,6 +67,11 @@
         "name": "recent_time_played",
         "ordinal": 12,
         "type_info": "Integer"
+      },
+      {
+        "name": "symlink_target",
+        "ordinal": 13,
+        "type_info": "Text"
       }
     ],
     "parameters": {
@@ -85,8 +90,9 @@
       false,
       true,
       false,
-      false
+      false,
+      true
     ]
   },
-  "hash": "399142056f8a1325d885c37ca8f2e593c961d09a3933066aaed01e27ef5bd283"
+  "hash": "24f680696234c38dc297af9bff2c0b4c77337cfe53e39de37cc0201e2d973533"
 }

@@ -181,6 +181,7 @@ export interface CreationFlowContextValue {
 	importLaunchers: Ref<ImportableLauncher[]>
 	importSelectedInstances: Ref<Record<string, Set<string>>>
 	importSearchQuery: Ref<string>
+	importAsSymlink: Ref<boolean>
 
 	// Confirm stage
 	hardReset: Ref<boolean>
@@ -333,6 +334,7 @@ export function createCreationFlowContext(
 	const importLaunchers = ref<ImportableLauncher[]>([])
 	const importSelectedInstances = ref<Record<string, Set<string>>>({})
 	const importSearchQuery = ref('')
+	const importAsSymlink = ref(false)
 
 	const hardReset = ref(isInitialSetup)
 	const loading = ref(false)
@@ -464,6 +466,7 @@ export function createCreationFlowContext(
 		importLaunchers.value = []
 		importSelectedInstances.value = {}
 		importSearchQuery.value = ''
+		importAsSymlink.value = false
 
 		hardReset.value = isInitialSetup
 		loading.value = false
@@ -590,6 +593,7 @@ export function createCreationFlowContext(
 		importLaunchers,
 		importSelectedInstances,
 		importSearchQuery,
+		importAsSymlink,
 		hardReset,
 		loading,
 		finishDisabled,

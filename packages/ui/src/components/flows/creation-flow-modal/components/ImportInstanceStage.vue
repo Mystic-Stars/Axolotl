@@ -74,6 +74,18 @@
 				</div>
 			</div>
 
+			<!-- Import as symlink option -->
+			<div class="mt-2 flex items-center gap-3">
+				<Checkbox
+					:model-value="ctx.importAsSymlink.value"
+					@update:model-value="ctx.importAsSymlink.value = $event"
+				/>
+				<div class="flex items-center gap-2">
+					<LinkIcon class="size-4 text-secondary" />
+					<span class="text-sm">{{ formatMessage(messages.importAsSymlink) }}</span>
+				</div>
+			</div>
+
 			<!-- Pick an instance folder directly -->
 			<div class="mt-2">
 				<ButtonStyled>
@@ -113,7 +125,7 @@
 </template>
 
 <script setup lang="ts">
-import { ChevronRightIcon, FolderSearchIcon, SearchIcon } from '@modrinth/assets'
+import { ChevronRightIcon, FolderSearchIcon, LinkIcon, SearchIcon } from '@modrinth/assets'
 import { defineMessages, useVIntl } from '@modrinth/ui'
 import { computed, onMounted, ref, watch } from 'vue'
 
@@ -180,6 +192,10 @@ const messages = defineMessages({
 	pickInstanceFolder: {
 		id: 'creation-flow.modal.import-instance.pick-instance-folder',
 		defaultMessage: 'Select instance folder',
+	},
+	importAsSymlink: {
+		id: 'creation-flow.modal.import-instance.import-as-symlink',
+		defaultMessage: 'Import as symlink',
 	},
 })
 

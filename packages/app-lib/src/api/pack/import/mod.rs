@@ -384,6 +384,7 @@ pub(crate) async fn import_instance_with_reporter(
     base_path: PathBuf,
     instance_folder: String,
     reporter: InstallProgressReporter,
+    symlink: bool,
 ) -> crate::Result<()> {
     import_instance_inner(
         instance_id,
@@ -391,6 +392,7 @@ pub(crate) async fn import_instance_with_reporter(
         base_path,
         instance_folder,
         reporter,
+        symlink,
     )
     .await
 }
@@ -401,8 +403,9 @@ async fn import_instance_inner(
     base_path: PathBuf,
     instance_folder: String,
     reporter: InstallProgressReporter,
+    symlink: bool,
 ) -> crate::Result<()> {
-    tracing::debug!("Importing instance from {instance_folder}");
+    tracing::debug!("Importing instance from {instance_folder} (symlink={symlink})");
     let details = InstallPhaseDetails::Import {
         launcher_type,
         instance_folder: instance_folder.clone(),
@@ -415,6 +418,7 @@ async fn import_instance_inner(
                 instance_id,
                 reporter.clone(),
                 details.clone(),
+                symlink,
             )
             .await
         }
@@ -425,6 +429,7 @@ async fn import_instance_inner(
                 instance_id,
                 reporter.clone(),
                 details.clone(),
+                symlink,
             )
             .await
         }
@@ -434,6 +439,7 @@ async fn import_instance_inner(
                 instance_id,
                 reporter.clone(),
                 details.clone(),
+                symlink,
             )
             .await
         }
@@ -443,6 +449,7 @@ async fn import_instance_inner(
                 instance_id,
                 reporter.clone(),
                 details.clone(),
+                symlink,
             )
             .await
         }
@@ -453,6 +460,7 @@ async fn import_instance_inner(
                 instance_id,
                 reporter.clone(),
                 details.clone(),
+                symlink,
             )
             .await
         }
@@ -468,6 +476,7 @@ async fn import_instance_inner(
                 instance_id,
                 reporter.clone(),
                 details.clone(),
+                symlink,
             )
             .await
         }
@@ -483,6 +492,7 @@ async fn import_instance_inner(
                 instance_id,
                 reporter.clone(),
                 details.clone(),
+                symlink,
             )
             .await
         }
@@ -498,6 +508,7 @@ async fn import_instance_inner(
                 instance_id,
                 reporter.clone(),
                 details.clone(),
+                symlink,
             )
             .await
         }
@@ -508,6 +519,7 @@ async fn import_instance_inner(
                 instance_id,
                 reporter.clone(),
                 details.clone(),
+                symlink,
             )
             .await
         }
@@ -537,6 +549,7 @@ async fn import_instance_inner(
                         base_path,
                         instance_folder,
                         reporter.clone(),
+                        symlink,
                     ))
                     .await?;
                     break;
@@ -835,15 +848,36 @@ pub(crate) async fn finish_import(
     io_semaphore: &IoSemaphore,
     reporter: InstallProgressReporter,
     details: InstallPhaseDetails,
+    symlink: bool,
 ) -> crate::Result<()> {
-    copy_dotminecraft_with_reporter(
-        instance_id,
-        dotminecraft,
-        io_semaphore,
-        reporter.clone(),
-        details,
-    )
-    .await?;
+    if symlink {
+        let instance_path = crate::api::instance::get_full_path(instance_id).await?;
+
+        if instance_path.exists() {
+            io::remove_dir_all(&instance_path).await?;
+        }
+
+        io::create_symlink(&dotminecraft, &instance_path).await?;
+
+        crate::state::edit_instance(
+            instance_id,
+            crate::state::EditInstance {
+                symlink_target: Some(Some(dotminecraft.to_string_lossy().to_string())),
+                ..Default::default()
+            },
+            &crate::state::State::get().await?.pool,
+        )
+        .await?;
+    } else {
+        copy_dotminecraft_with_reporter(
+            instance_id,
+            dotminecraft,
+            io_semaphore,
+            reporter.clone(),
+            details,
+        )
+        .await?;
+    }
 
     crate::launcher::install_minecraft_for_instance_id_with_reporter(
         instance_id,

@@ -34,6 +34,12 @@ pub struct EditInstance {
     pub last_played: Option<Option<DateTime<Utc>>>,
     pub submitted_time_played: Option<u64>,
     pub recent_time_played: Option<u64>,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        with = "serde_with::rust::double_option"
+    )]
+    pub symlink_target: Option<Option<String>>,
 }
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
@@ -200,6 +206,9 @@ fn apply_instance_patch(
     }
     if let Some(recent_time_played) = patch.recent_time_played {
         instance.recent_time_played = recent_time_played;
+    }
+    if let Some(symlink_target) = &patch.symlink_target {
+        instance.symlink_target = symlink_target.clone();
     }
 
     instance.modified = now;

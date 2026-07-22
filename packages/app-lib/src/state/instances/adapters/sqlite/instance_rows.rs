@@ -23,6 +23,7 @@ pub(crate) struct InstanceRow {
     pub update_channel: String,
     pub name: String,
     pub icon_path: Option<String>,
+    pub symlink_target: Option<String>,
     pub created: i64,
     pub modified: i64,
     pub last_played: Option<i64>,
@@ -45,6 +46,7 @@ impl TryFrom<InstanceRow> for Instance {
             update_channel: ReleaseChannel::from_key(&row.update_channel),
             name: row.name,
             icon_path: row.icon_path,
+            symlink_target: row.symlink_target,
             created: timestamp(row.created),
             modified: timestamp(row.modified),
             last_played: row.last_played.and_then(optional_timestamp),
@@ -191,6 +193,7 @@ struct InstanceMetadataRow {
     update_channel: String,
     name: String,
     icon_path: Option<String>,
+    symlink_target: Option<String>,
     created: i64,
     modified: i64,
     last_played: Option<i64>,
@@ -253,6 +256,7 @@ impl InstanceMetadataRow {
             update_channel: self.update_channel,
             name: self.name,
             icon_path: self.icon_path,
+            symlink_target: self.symlink_target,
             created: self.created,
             modified: self.modified,
             last_played: self.last_played,
@@ -444,6 +448,7 @@ pub(crate) async fn get_instance_metadata_by_id(
             i.update_channel AS "update_channel!: String",
             i.name AS "name!: String",
             i.icon_path AS "icon_path?: String",
+            i.symlink_target AS "symlink_target?: String",
             i.created AS "created!: i64",
             i.modified AS "modified!: i64",
             i.last_played AS "last_played?: i64",
@@ -526,6 +531,7 @@ pub(crate) async fn get_instance_metadata_many(
             i.update_channel AS "update_channel!: String",
             i.name AS "name!: String",
             i.icon_path AS "icon_path?: String",
+            i.symlink_target AS "symlink_target?: String",
             i.created AS "created!: i64",
             i.modified AS "modified!: i64",
             i.last_played AS "last_played?: i64",
@@ -602,6 +608,7 @@ pub(crate) async fn list_instance_metadata(
             i.update_channel AS "update_channel!: String",
             i.name AS "name!: String",
             i.icon_path AS "icon_path?: String",
+            i.symlink_target AS "symlink_target?: String",
             i.created AS "created!: i64",
             i.modified AS "modified!: i64",
             i.last_played AS "last_played?: i64",
@@ -675,6 +682,7 @@ pub(crate) async fn get_instance_launch_context(
             i.update_channel AS "update_channel!: String",
             i.name AS "name!: String",
             i.icon_path AS "icon_path?: String",
+            i.symlink_target AS "symlink_target?: String",
             i.created AS "created!: i64",
             i.modified AS "modified!: i64",
             i.last_played AS "last_played?: i64",
@@ -838,6 +846,7 @@ pub(crate) async fn insert_instance(
     let update_channel = instance.update_channel.key();
     let name = instance.name.as_str();
     let icon_path = instance.icon_path.as_deref();
+    let symlink_target = instance.symlink_target.as_deref();
     let created = instance.created.timestamp();
     let modified = instance.modified.timestamp();
     let last_played = instance.last_played.map(|value| value.timestamp());
@@ -859,13 +868,14 @@ pub(crate) async fn insert_instance(
 			update_channel,
 			name,
 			icon_path,
+			symlink_target,
 			created,
 			modified,
 			last_played,
 			submitted_time_played,
 			recent_time_played
 		)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		",
         id,
         path,
@@ -875,6 +885,7 @@ pub(crate) async fn insert_instance(
         update_channel,
         name,
         icon_path,
+        symlink_target,
         created,
         modified,
         last_played,
@@ -899,6 +910,7 @@ pub(crate) async fn update_instance(
     let update_channel = instance.update_channel.key();
     let name = instance.name.as_str();
     let icon_path = instance.icon_path.as_deref();
+    let symlink_target = instance.symlink_target.as_deref();
     let modified = instance.modified.timestamp();
     let last_played = instance.last_played.map(|value| value.timestamp());
     let submitted_time_played = playtime_to_storage(
@@ -919,6 +931,7 @@ pub(crate) async fn update_instance(
 			update_channel = ?,
 			name = ?,
 			icon_path = ?,
+			symlink_target = ?,
 			modified = ?,
 			last_played = ?,
 			submitted_time_played = ?,
@@ -932,6 +945,7 @@ pub(crate) async fn update_instance(
         update_channel,
         name,
         icon_path,
+        symlink_target,
         modified,
         last_played,
         submitted_time_played,
