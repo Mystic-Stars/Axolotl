@@ -104,16 +104,21 @@ async fn collect_candidate_paths() -> Result<HashSet<PathBuf>, JREError> {
     jre_paths.extend(get_all_autoinstalled_jre_path().await?);
     jre_paths.extend(get_java_home_paths());
 
-    let mut handles: Vec<tokio::task::JoinHandle<HashSet<PathBuf>>> = vec![
-        tokio::task::spawn_blocking(get_common_install_paths),
-        tokio::task::spawn_blocking(get_official_launcher_runtime_paths),
-    ];
+    let common_paths = tokio::task::spawn_blocking(get_common_install_paths);
+    let runtime_paths =
+        tokio::task::spawn_blocking(get_official_launcher_runtime_paths);
     #[cfg(target_os = "windows")]
-    handles.push(tokio::task::spawn_blocking(get_registry_paths));
-    for handle in handles {
-        if let Ok(set) = handle.await {
-            jre_paths.extend(set);
-        }
+    let registry_paths = tokio::task::spawn_blocking(get_registry_paths);
+
+    if let Ok(set) = common_paths.await {
+        jre_paths.extend(set);
+    }
+    if let Ok(set) = runtime_paths.await {
+        jre_paths.extend(set);
+    }
+    #[cfg(target_os = "windows")]
+    if let Ok(set) = registry_paths.await {
+        jre_paths.extend(set);
     }
 
     let found: Vec<HashSet<PathBuf>> = stream::iter(bfs_search_roots())
