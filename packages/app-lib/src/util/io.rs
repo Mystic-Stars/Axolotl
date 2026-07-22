@@ -169,12 +169,13 @@ fn sync_write(
     data: impl AsRef<[u8]>,
     path: impl AsRef<Path>,
 ) -> Result<(), std::io::Error> {
-    let mut tempfile =
-        NamedTempFile::new_in(path.as_ref().parent().ok_or_else(|| {
-            std::io::Error::other(
-                "could not get parent directory for temporary file",
-            )
-        })?)?;
+    let parent = path.as_ref().parent().ok_or_else(|| {
+        std::io::Error::other(
+            "could not get parent directory for temporary file",
+        )
+    })?;
+    std::fs::create_dir_all(parent)?;
+    let mut tempfile = NamedTempFile::new_in(parent)?;
     tempfile.write_all(data.as_ref())?;
     let tmp_path = tempfile.into_temp_path();
     let path = path.as_ref();
@@ -377,4 +378,34 @@ macro_rules! get_resource_file {
     (env $dir_env_name:literal / $file_name:literal) => {
         get_resource_file!(directory: env!($dir_env_name), file: $file_name)
     };
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn write_creates_missing_parent_directories() {
+        let directory = tempfile::tempdir().unwrap();
+        let path = directory
+            .path()
+            .join("missing")
+            .join("nested")
+            .join("file.json");
+
+        write(&path, b"{}").await.unwrap();
+
+        assert_eq!(std::fs::read(&path).unwrap(), b"{}");
+    }
+
+    #[tokio::test]
+    async fn write_replaces_existing_file() {
+        let directory = tempfile::tempdir().unwrap();
+        let path = directory.path().join("file.json");
+
+        write(&path, b"old").await.unwrap();
+        write(&path, b"new").await.unwrap();
+
+        assert_eq!(std::fs::read(&path).unwrap(), b"new");
+    }
 }
