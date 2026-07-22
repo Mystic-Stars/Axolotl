@@ -1243,9 +1243,11 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 				</span>
 			</NavButton>
 			<div class="h-px w-6 mx-auto my-2 bg-surface-5"></div>
-			<suspense>
-				<QuickInstanceSwitcher />
-			</suspense>
+			<div class="flex-grow min-h-0 overflow-y-auto">
+				<suspense>
+					<QuickInstanceSwitcher />
+				</suspense>
+			</div>
 			<NavButton
 				v-tooltip.right="formatMessage(messages.createInstance)"
 				:to="() => installationModal?.show()"
@@ -1524,7 +1526,6 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 	grid-area: nav;
 	position: relative;
 	z-index: 2;
-	overflow-y: auto;
 }
 
 .app-grid-statusbar {
