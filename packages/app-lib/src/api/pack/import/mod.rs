@@ -3,6 +3,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use futures::stream::{FuturesUnordered, StreamExt};
 use io::IOError;
 use serde::{Deserialize, Serialize};
 
@@ -731,34 +732,99 @@ pub(crate) async fn copy_dotminecraft_with_reporter(
 ) -> crate::Result<()> {
     let instance_path =
         crate::api::instance::get_full_path(instance_id).await?;
-    let subfiles = get_all_subfiles(&dotminecraft, false).await?;
-    let total_subfiles = subfiles.len() as u64;
 
-    for (index, src_child) in subfiles.into_iter().enumerate() {
-        let dst_child =
-            src_child.strip_prefix(&dotminecraft).map_err(|_| {
-                crate::ErrorKind::InputError(format!(
-                    "Invalid file: {}",
-                    &src_child.display()
-                ))
-            })?;
-        let dst_child = instance_path.join(dst_child);
+    // Collect all files recursively
+    let files = get_all_subfiles(&dotminecraft, false).await?;
 
-        tokio::time::sleep(std::time::Duration::from_millis(1)).await;
+    // Filter out launcher metadata files at the source root:
+    // <dirname>.json (instance config), <dirname>.jar (custom jar override)
+    let dirname = dotminecraft
+        .file_name()
+        .map(|n| n.to_string_lossy().to_string())
+        .unwrap_or_default();
+    let skip_json = format!("{dirname}.json");
+    let skip_jar = format!("{dirname}.jar");
 
-        fetch::copy(&src_child, &dst_child, io_semaphore).await?;
+    let files: Vec<PathBuf> = files
+        .into_iter()
+        .filter(|abs_path| {
+            let rel = match abs_path.strip_prefix(&dotminecraft) {
+                Ok(r) => r,
+                Err(_) => return true,
+            };
+            // Only filter at root level
+            if rel.parent().is_some_and(|p| !p.as_os_str().is_empty()) {
+                return true;
+            }
+            let name = rel.file_name().and_then(|n| n.to_str()).unwrap_or("");
+            name != skip_json && name != skip_jar
+        })
+        .collect();
+
+    let total = files.len() as u64;
+    if total == 0 {
         reporter
             .update(
                 InstallPhaseId::PreparingInstance,
                 Some(InstallProgress {
-                    current: (index + 1) as u64,
-                    total: total_subfiles,
+                    current: 0,
+                    total: 0,
+                    secondary: None,
+                }),
+                details,
+            )
+            .await?;
+        return Ok(());
+    }
+
+    // Build (src, dst) pairs, then copy concurrently bounded by IoSemaphore
+    let pairs: Vec<(PathBuf, PathBuf)> = files
+        .iter()
+        .map(|src| {
+            let dst = instance_path.join(
+                src.strip_prefix(&dotminecraft)
+                    .expect("prefix invariant from filter above"),
+            );
+            (src.clone(), dst)
+        })
+        .collect();
+
+    let mut copy_tasks: FuturesUnordered<_> = pairs.into_iter().map(|(src, dst)| {
+        async move {
+            fetch::copy(&src, &dst, io_semaphore).await?;
+            Ok::<_, crate::Error>(())
+        }
+    }).collect();
+
+    let mut completed: u64 = 0;
+    while let Some(result) = copy_tasks.next().await {
+        result?;
+        completed += 1;
+        reporter
+            .update(
+                InstallPhaseId::PreparingInstance,
+                Some(InstallProgress {
+                    current: completed,
+                    total,
                     secondary: None,
                 }),
                 details.clone(),
             )
             .await?;
     }
+
+    // Final 100% report (ensures the bar fills even if reporter throttles the last update)
+    reporter
+        .update(
+            InstallPhaseId::PreparingInstance,
+            Some(InstallProgress {
+                current: total,
+                total,
+                secondary: None,
+            }),
+            details,
+        )
+        .await?;
 
     Ok(())
 }
@@ -824,3 +890,5 @@ pub async fn get_all_subfiles(
 
     Ok(files)
 }
+
+
