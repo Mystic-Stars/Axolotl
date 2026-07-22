@@ -60,7 +60,10 @@ fn main() {
             .plugin(
                 "content-search",
                 InlinedPlugin::new()
-                    .commands(&["resolve_chinese_content_search"])
+                    .commands(&[
+                        "resolve_chinese_content_search",
+                        "lookup_chinese_content_names",
+                    ])
                     .default_permission(
                         DefaultPermissionRule::AllowAllCommands,
                     ),

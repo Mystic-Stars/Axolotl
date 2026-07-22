@@ -12,6 +12,9 @@ const MIN_SIMILARITY: f64 = 0.25;
 static WIKI_ENTRIES: LazyLock<Vec<WikiEntry>> =
     LazyLock::new(|| parse_wiki_entries(WIKI_ENTRIES_DATA));
 
+static CHINESE_NAME_INDEX: LazyLock<ChineseNameIndex> =
+    LazyLock::new(|| build_chinese_name_index(&WIKI_ENTRIES));
+
 #[derive(Clone, Debug)]
 struct WikiEntry {
     chinese_name: Option<String>,
@@ -52,6 +55,89 @@ pub struct ChineseSearchResolution {
     pub modrinth_query: Option<String>,
     pub modrinth_slugs: Vec<String>,
     pub translations: Vec<ChineseSearchTranslation>,
+}
+
+#[derive(Debug, Default)]
+struct ChineseNameIndex {
+    modrinth: HashMap<String, String>,
+    curseforge: HashMap<String, String>,
+}
+
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ChineseNameLookup {
+    pub modrinth: HashMap<String, String>,
+    pub curseforge: HashMap<String, String>,
+}
+
+/// Batch-resolves Chinese display names for known platform slugs, keyed by
+/// each input slug exactly as it was passed in.
+pub fn lookup_chinese_content_names(
+    modrinth_slugs: &[String],
+    curseforge_slugs: &[String],
+) -> ChineseNameLookup {
+    ChineseNameLookup {
+        modrinth: collect_chinese_names(
+            modrinth_slugs,
+            &CHINESE_NAME_INDEX.modrinth,
+        ),
+        curseforge: collect_chinese_names(
+            curseforge_slugs,
+            &CHINESE_NAME_INDEX.curseforge,
+        ),
+    }
+}
+
+fn collect_chinese_names(
+    slugs: &[String],
+    index: &HashMap<String, String>,
+) -> HashMap<String, String> {
+    slugs
+        .iter()
+        .filter_map(|slug| {
+            index
+                .get(&slug.to_lowercase())
+                .map(|name| (slug.clone(), name.clone()))
+        })
+        .collect()
+}
+
+fn build_chinese_name_index(entries: &[WikiEntry]) -> ChineseNameIndex {
+    let mut modrinth = HashMap::<String, (String, u32)>::new();
+    let mut curseforge = HashMap::<String, (String, u32)>::new();
+    for entry in entries {
+        let Some(chinese_name) = &entry.chinese_name else {
+            continue;
+        };
+        if chinese_name.is_empty() {
+            continue;
+        }
+        for (slug, index) in [
+            (entry.modrinth_slug.as_deref(), &mut modrinth),
+            (entry.curseforge_slug.as_deref(), &mut curseforge),
+        ] {
+            let Some(slug) = slug else {
+                continue;
+            };
+            let key = slug.to_lowercase();
+            let is_better = index
+                .get(&key)
+                .is_none_or(|(_, popularity)| *popularity < entry.popularity);
+            if is_better {
+                index.insert(key, (chinese_name.clone(), entry.popularity));
+            }
+        }
+    }
+    ChineseNameIndex {
+        modrinth: modrinth
+            .into_iter()
+            .map(|(key, (name, _))| (key, name))
+            .collect(),
+        curseforge: curseforge
+            .into_iter()
+            .map(|(key, (name, _))| (key, name))
+            .collect(),
+    }
 }
 
 pub fn resolve_chinese_content_search(query: &str) -> ChineseSearchResolution {
@@ -552,6 +638,54 @@ mod tests {
         assert!(unknown.is_chinese);
         assert!(unknown.curseforge_query.is_none());
         assert!(unknown.modrinth_query.is_none());
+    }
+
+    #[test]
+    fn looks_up_chinese_names_for_known_slugs() {
+        let lookup = lookup_chinese_content_names(
+            &["ae2".to_string(), "totally-unknown-project".to_string()],
+            &["the-twilight-forest".to_string()],
+        );
+        assert_eq!(
+            lookup.modrinth.get("ae2").map(String::as_str),
+            Some("应用能源2 (Applied Energistics 2)")
+        );
+        assert!(!lookup.modrinth.contains_key("totally-unknown-project"));
+        assert_eq!(
+            lookup.curseforge.get("the-twilight-forest").map(String::as_str),
+            Some("暮色森林 (The Twilight Forest)")
+        );
+    }
+
+    #[test]
+    fn looks_up_chinese_names_case_insensitively_keyed_by_input() {
+        let lookup = lookup_chinese_content_names(&["AE2".to_string()], &[]);
+        assert_eq!(
+            lookup.modrinth.get("AE2").map(String::as_str),
+            Some("应用能源2 (Applied Energistics 2)")
+        );
+    }
+
+    #[test]
+    fn prefers_more_popular_entries_for_duplicate_slugs() {
+        let entries = parse_wiki_entries("dup@|旧名\ndup@|新名\n001002");
+        let index = build_chinese_name_index(&entries);
+        assert_eq!(
+            index.modrinth.get("dup").map(String::as_str),
+            Some("新名")
+        );
+        assert_eq!(
+            index.curseforge.get("dup").map(String::as_str),
+            Some("新名")
+        );
+    }
+
+    #[test]
+    fn skips_entries_without_chinese_names_in_index() {
+        let entries = parse_wiki_entries("no-name@\n001");
+        let index = build_chinese_name_index(&entries);
+        assert!(index.modrinth.is_empty());
+        assert!(index.curseforge.is_empty());
     }
 
     #[test]

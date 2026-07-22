@@ -157,6 +157,7 @@ import ExportModal from '@/components/ui/ExportModal.vue'
 import ShareModalWrapper from '@/components/ui/modal/ShareModalWrapper.vue'
 import { trackEvent } from '@/helpers/analytics'
 import { get_project_versions, get_version, get_version_many } from '@/helpers/cache.js'
+import { translateContentItemTitles } from '@/helpers/content-search'
 import { updateCurseForgeFile, updateManagedCurseForgeModpack } from '@/helpers/curseforge'
 import {
 	type CurseForgeManualDownloadItem,
@@ -184,6 +185,7 @@ import {
 import { type InstanceContentData, loadInstanceContentData } from '@/helpers/instance-content'
 import type { CacheBehaviour, GameInstance } from '@/helpers/types'
 import { highlightModInInstance } from '@/helpers/utils.js'
+import i18n from '@/i18n.config'
 import { injectContentInstall } from '@/providers/content-install'
 import { injectDownloadManager } from '@/providers/download-manager'
 import { useTheming } from '@/store/state'
@@ -505,7 +507,10 @@ const modpackUpdateConfirmModal = ref<InstanceType<typeof ConfirmModpackUpdateMo
 const modpackContentQueryKey = computed(() => ['linkedModpackContent', props.instance.id])
 const modpackContentQuery = useQuery({
 	queryKey: modpackContentQueryKey,
-	queryFn: () => get_linked_modpack_content(props.instance.id),
+	queryFn: () =>
+		get_linked_modpack_content(props.instance.id).then((items) =>
+			translateContentItemTitles(items, i18n.global.locale.value),
+		),
 	enabled: computed(
 		() =>
 			!!props.instance?.id &&
@@ -1241,7 +1246,10 @@ async function refreshModpackContentItems(cacheBehaviour?: CacheBehaviour) {
 	const contentItems = await queryClient
 		.fetchQuery({
 			queryKey: modpackContentQueryKey.value,
-			queryFn: () => get_linked_modpack_content(props.instance.id, cacheBehaviour),
+			queryFn: () =>
+				get_linked_modpack_content(props.instance.id, cacheBehaviour).then((items) =>
+					translateContentItemTitles(items, i18n.global.locale.value),
+				),
 		})
 		.catch(handleError)
 
@@ -1532,6 +1540,12 @@ async function initProjects(cacheBehaviour?: CacheBehaviour) {
 	if (!props.instance) return
 
 	const contentData = await loadInstanceContentData(props.instance.id, cacheBehaviour, handleError)
+	if (contentData.contentItems) {
+		contentData.contentItems = await translateContentItemTitles(
+			contentData.contentItems,
+			i18n.global.locale.value,
+		)
+	}
 	applyContentData(contentData)
 }
 

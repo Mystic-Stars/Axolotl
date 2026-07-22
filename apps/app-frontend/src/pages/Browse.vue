@@ -48,6 +48,7 @@ import {
 	get_version_many,
 } from '@/helpers/cache.js'
 import {
+	bilingualTitle,
 	type ChineseSearchResolution,
 	type ChineseSearchTranslation,
 	containsChineseSearchText,
@@ -1246,14 +1247,6 @@ function findChineseTranslation(
 			provider === 'modrinth' ? translation.modrinthSlug : translation.curseforgeSlug
 		return candidate?.toLocaleLowerCase() === normalizedSlug
 	})
-}
-
-function bilingualTitle(chineseName: string, originalTitle: string) {
-	const chineseTitle = chineseName.replace(/\s+\([^()]*[A-Za-z][^()]*\)$/u, '').trim()
-	if (!chineseTitle || chineseTitle.toLocaleLowerCase() === originalTitle.toLocaleLowerCase()) {
-		return originalTitle
-	}
-	return `${chineseTitle} (${originalTitle})`
 }
 
 function applyChineseTranslation(
