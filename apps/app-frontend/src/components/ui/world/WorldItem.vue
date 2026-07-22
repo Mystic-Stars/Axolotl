@@ -34,13 +34,13 @@ import {
 	useVIntl,
 } from '@modrinth/ui'
 import { getPingLevel } from '@modrinth/utils'
-import { convertFileSrc } from '@tauri-apps/api/core'
 import dayjs from 'dayjs'
 import { Tooltip } from 'floating-vue'
 import type { Component } from 'vue'
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 
+import InstanceIcon from '@/components/ui/InstanceIcon.vue'
 import { copyToClipboard, createInstanceShortcut } from '@/helpers/utils'
 import type {
 	ProtocolVersion,
@@ -366,10 +366,10 @@ const messages = defineMessages({
 							class="flex items-center gap-1 truncate hover:underline text-secondary smart-clickable:allow-pointer-events"
 							:to="`/instance/${instanceId}`"
 						>
-							<Avatar
-								:src="instanceIcon ? convertFileSrc(instanceIcon) : undefined"
+							<InstanceIcon
+								:icon-path="instanceIcon"
+								:instance-id="instanceId"
 								size="16px"
-								:tint-by="instanceId"
 								class="shrink-0"
 							/>
 							<span class="truncate">{{ instanceName }}</span>

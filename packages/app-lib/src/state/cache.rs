@@ -462,12 +462,33 @@ pub struct License {
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct GalleryItem {
     pub url: String,
+    #[serde(default)]
     pub raw_url: String,
     pub featured: bool,
     pub title: Option<String>,
     pub description: Option<String>,
     pub created: DateTime<Utc>,
     pub ordering: i64,
+}
+
+#[cfg(test)]
+mod gallery_item_tests {
+    use super::GalleryItem;
+
+    #[test]
+    fn accepts_legacy_response_without_raw_url() {
+        let item = serde_json::from_value::<GalleryItem>(serde_json::json!({
+            "url": "https://cdn.modrinth.com/data/project/image.png",
+            "featured": false,
+            "title": null,
+            "description": null,
+            "created": "2026-07-20T00:00:00Z",
+            "ordering": 0
+        }))
+        .expect("legacy gallery item should deserialize");
+
+        assert!(item.raw_url.is_empty());
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -1450,16 +1471,64 @@ impl CachedEntry {
                 .collect()
             }
             CacheValueType::MinecraftManifest => {
-                fetch_original_value!(
-                    MinecraftManifest,
+                let launcher_meta_url = format!(
+                    "{}minecraft/v{}/manifest.json",
                     env!("MODRINTH_LAUNCHER_META_URL"),
-                    format!(
-                        "minecraft/v{}/manifest.json",
-                        daedalus::minecraft::CURRENT_FORMAT_VERSION
+                    daedalus::minecraft::CURRENT_FORMAT_VERSION
+                );
+                let launcher_meta = tokio::time::timeout(
+                    std::time::Duration::from_secs(2),
+                    fetch_json(
+                        Method::GET,
+                        &launcher_meta_url,
+                        None,
+                        None,
+                        None,
+                        &fetch_semaphore,
+                        pool,
                     ),
-                    None,
-                    CacheValue::MinecraftManifest
                 )
+                .await;
+                let manifest = match launcher_meta {
+                    Ok(Ok(manifest)) => manifest,
+                    Ok(Err(error)) => {
+                        tracing::warn!(
+                            url = launcher_meta_url,
+                            error = %error,
+                            "Launcher metadata failed; falling back to Mojang manifest"
+                        );
+                        fetch_json(
+                            Method::GET,
+                            daedalus::minecraft::VERSION_MANIFEST_URL,
+                            None,
+                            None,
+                            None,
+                            &fetch_semaphore,
+                            pool,
+                        )
+                        .await?
+                    }
+                    Err(_) => {
+                        tracing::warn!(
+                            url = launcher_meta_url,
+                            "Launcher metadata was slow; falling back to Mojang manifest"
+                        );
+                        fetch_json(
+                            Method::GET,
+                            daedalus::minecraft::VERSION_MANIFEST_URL,
+                            None,
+                            None,
+                            None,
+                            &fetch_semaphore,
+                            pool,
+                        )
+                        .await?
+                    }
+                };
+                vec![(
+                    CacheValue::MinecraftManifest(manifest).get_entry(),
+                    true,
+                )]
             }
             CacheValueType::Categories => {
                 fetch_original_value!(

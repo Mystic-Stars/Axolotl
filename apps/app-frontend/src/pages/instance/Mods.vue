@@ -1,5 +1,56 @@
 <template>
 	<ReadyTransition :pending="loading">
+		<template #pending>
+			<LoadingIndicator class="pt-4" />
+		</template>
+		<CollapsibleAdmonition
+			v-if="skippedManualDownloads.length > 0"
+			v-model="manualWarningExpanded"
+			type="warning"
+			class="mb-4"
+		>
+			<template #header>
+				<span class="inline-flex items-center gap-2">
+					{{ formatMessage(messages.skippedFilesWarningTitle) }}
+					<span class="rounded-full bg-brand-orange/20 px-2 py-0.5 text-sm tabular-nums">
+						{{ skippedManualDownloads.length }}
+					</span>
+				</span>
+			</template>
+			<div class="border-0 border-t border-solid border-brand-orange/60 bg-bg-orange p-4">
+				<p class="m-0">
+					{{
+						formatMessage(messages.skippedFilesWarningBody, {
+							count: skippedManualDownloads.length,
+						})
+					}}
+				</p>
+				<ul class="mb-0 mt-2 flex list-none flex-col gap-1 p-0">
+					<li
+						v-for="item in visibleSkippedManualDownloads"
+						:key="`${item.projectId}:${item.fileId}`"
+						class="min-w-0"
+					>
+						<button
+							v-if="item.websiteUrl"
+							class="inline-flex max-w-full cursor-pointer items-center gap-1 text-left font-semibold text-brand hover:underline"
+							@click="openUrl(item.websiteUrl)"
+						>
+							<span class="truncate">{{ item.fileName }}</span>
+							<ExternalIcon class="size-4 shrink-0" />
+						</button>
+						<span v-else>{{ item.fileName }}</span>
+					</li>
+				</ul>
+				<p v-if="hiddenSkippedManualDownloadCount > 0" class="mb-0 mt-2 text-secondary">
+					{{
+						formatMessage(messages.skippedFilesWarningMore, {
+							count: hiddenSkippedManualDownloadCount,
+						})
+					}}
+				</p>
+			</div>
+		</CollapsibleAdmonition>
 		<ContentPageLayout>
 			<template #modals>
 				<ShareModalWrapper
@@ -68,9 +119,10 @@
 
 <script setup lang="ts">
 import type { Labrinth } from '@modrinth/api-client'
-import { ClipboardCopyIcon, FolderOpenIcon } from '@modrinth/assets'
+import { ClipboardCopyIcon, ExternalIcon, FolderOpenIcon } from '@modrinth/assets'
 import {
 	type BulkOperationStatus,
+	CollapsibleAdmonition,
 	commonMessages,
 	ConfirmModpackUpdateModal,
 	ContentCardLayout as ContentPageLayout,
@@ -82,6 +134,7 @@ import {
 	ContentUpdaterModal,
 	defineMessages,
 	injectNotificationManager,
+	LoadingIndicator,
 	ModpackContentModal,
 	type ModpackContentModalState,
 	type OverflowMenuOption,
@@ -107,6 +160,7 @@ import { get_project_versions, get_version, get_version_many } from '@/helpers/c
 import { updateCurseForgeFile, updateManagedCurseForgeModpack } from '@/helpers/curseforge'
 import {
 	type CurseForgeManualDownloadItem,
+	filterInstalledCurseForgeManualDownloads,
 	getCurseForgeManualDownloads,
 	removeInstalledCurseForgeManualDownloads,
 } from '@/helpers/curseforge-manual'
@@ -131,6 +185,7 @@ import { type InstanceContentData, loadInstanceContentData } from '@/helpers/ins
 import type { CacheBehaviour, GameInstance } from '@/helpers/types'
 import { highlightModInInstance } from '@/helpers/utils.js'
 import { injectContentInstall } from '@/providers/content-install'
+import { injectDownloadManager } from '@/providers/download-manager'
 import { useTheming } from '@/store/state'
 
 const messages = defineMessages({
@@ -170,6 +225,19 @@ const messages = defineMessages({
 		id: 'app.instance.mods.bulk-update.finishing',
 		defaultMessage: 'Finishing update...',
 	},
+	skippedFilesWarningTitle: {
+		id: 'app.instance.mods.skipped-files-warning.title',
+		defaultMessage: 'Some modpack files require manual installation',
+	},
+	skippedFilesWarningBody: {
+		id: 'app.instance.mods.skipped-files-warning.body',
+		defaultMessage:
+			'{count, plural, one {# file was} other {# files were}} skipped during installation. Download and install them manually.',
+	},
+	skippedFilesWarningMore: {
+		id: 'app.instance.mods.skipped-files-warning.more',
+		defaultMessage: 'And {count, number} more.',
+	},
 })
 
 let savedModalState: ModpackContentModalState | null = null
@@ -184,6 +252,7 @@ const {
 } = injectContentInstall()
 const router = useRouter()
 const queryClient = useQueryClient()
+const downloadManager = injectDownloadManager()
 const debug = useDebugLogger('Mods:ContentUpdate')
 const themeStore = useTheming()
 const skipNonEssentialWarnings = computed(() =>
@@ -203,6 +272,7 @@ function hasPreloadedContent(contentData: InstanceContentData | null | undefined
 
 const loading = ref(!hasPreloadedContent(props.preloadedContent))
 const projects = ref<ContentItem[]>([])
+const linkedModpackContentItems = ref<ContentItem[]>([])
 
 const installingBuffer = ref<ContentItem[]>([])
 const handledInstallRevision = ref(0)
@@ -225,11 +295,66 @@ watch(projects, (newProjects) => {
 	}
 })
 
+const manualDownloadCandidates = computed<CurseForgeManualDownloadItem[]>(() => {
+	const latestJob = downloadManager.jobs.value.find(
+		(job) =>
+			job.status === 'succeeded' &&
+			job.provider === 'curse_forge' &&
+			installJobInstanceId(job) === props.instance.id,
+	)
+	const source = latestJob
+		? latestJob.items
+				.filter(
+					(item) => item.status === 'skipped' && item.project_id && item.version_id,
+				)
+				.map((item) => ({
+					projectId: Number(item.project_id),
+					fileId: Number(item.version_id),
+					fileName: item.name,
+					websiteUrl: item.manual_url ?? undefined,
+				}))
+		: (pendingManualDownloadsByInstance.value.get(props.instance.id) ??
+			getCurseForgeManualDownloads(props.instance.id))
+	const unique = new Map<string, CurseForgeManualDownloadItem>()
+	for (const item of source) {
+		unique.set(`${item.projectId}:${item.fileId}`, item)
+	}
+	return [...unique.values()]
+})
+
+const installedManualDownloadItems = computed(() => [
+	...projects.value,
+	...linkedModpackContentItems.value,
+])
+
+function manualDownloadsEqual(
+	left: CurseForgeManualDownloadItem[] | undefined,
+	right: CurseForgeManualDownloadItem[],
+) {
+	return (
+		left?.length === right.length &&
+		left.every((item, index) => {
+			const other = right[index]
+			return (
+				other !== undefined &&
+				item.projectId === other.projectId &&
+				item.fileId === other.fileId &&
+				item.fileName === other.fileName &&
+				item.websiteUrl === other.websiteUrl
+			)
+		})
+	)
+}
+
+const skippedManualDownloads = computed(() =>
+	filterInstalledCurseForgeManualDownloads(
+		manualDownloadCandidates.value,
+		installedManualDownloadItems.value,
+	),
+)
+
 const manualPendingItems = computed<ContentItem[]>(() => {
-	const pending =
-		pendingManualDownloadsByInstance.value.get(props.instance.id) ??
-		getCurseForgeManualDownloads(props.instance.id)
-	return pending.map((item: CurseForgeManualDownloadItem) => ({
+	return skippedManualDownloads.value.map((item) => ({
 		id: `__manual_${item.projectId}_${item.fileId}`,
 		file_name: item.fileName,
 		file_path: undefined,
@@ -261,6 +386,12 @@ const manualPendingItems = computed<ContentItem[]>(() => {
 	}))
 })
 
+const manualWarningExpanded = ref(true)
+const visibleSkippedManualDownloads = computed(() => skippedManualDownloads.value.slice(0, 5))
+const hiddenSkippedManualDownloadCount = computed(() =>
+	Math.max(0, skippedManualDownloads.value.length - visibleSkippedManualDownloads.value.length),
+)
+
 const mergedProjects = computed<ContentItem[]>(() => {
 	const active = installingItems.value.get(props.instance.id)
 	const pending = active ?? installingBuffer.value
@@ -278,18 +409,37 @@ const mergedProjects = computed<ContentItem[]>(() => {
 })
 
 watch(
-	projects,
-	(items) => {
+	[manualDownloadCandidates, installedManualDownloadItems],
+	([candidates, items]) => {
 		const remaining = removeInstalledCurseForgeManualDownloads(
 			props.instance.id,
-			items.map((item) => item.file_name).filter(Boolean),
+			candidates,
+			items,
 		)
+		const current = pendingManualDownloadsByInstance.value.get(props.instance.id)
+		if (manualDownloadsEqual(current, remaining) || (!current && remaining.length === 0)) return
+
 		const next = new Map(pendingManualDownloadsByInstance.value)
 		if (remaining.length > 0) next.set(props.instance.id, remaining)
 		else next.delete(props.instance.id)
 		pendingManualDownloadsByInstance.value = next
 	},
 	{ deep: true },
+)
+
+let previousManualDownloadKeys = new Set<string>()
+watch(
+	skippedManualDownloads,
+	(items) => {
+		const nextKeys = new Set(
+			items.map((item) => `${props.instance.id}:${item.projectId}:${item.fileId}`),
+		)
+		if ([...nextKeys].some((key) => !previousManualDownloadKeys.has(key))) {
+			manualWarningExpanded.value = true
+		}
+		previousManualDownloadKeys = nextKeys
+	},
+	{ immediate: true },
 )
 
 watch(
@@ -363,6 +513,14 @@ const modpackContentQuery = useQuery({
 			props.instance.install_stage === 'installed',
 	),
 })
+
+watch(
+	() => modpackContentQuery.data.value,
+	(items) => {
+		linkedModpackContentItems.value = items ?? []
+	},
+	{ immediate: true },
+)
 
 // TODO: Extract content operation and updater modal state into composables; this page currently owns file mutations, dependency installs, busy flags, and version selection flow.
 const updatingProject = ref<ContentItem | null>(null)
@@ -1088,6 +1246,7 @@ async function refreshModpackContentItems(cacheBehaviour?: CacheBehaviour) {
 		.catch(handleError)
 
 	if (contentItems) {
+		linkedModpackContentItems.value = contentItems
 		modpackContentModal.value?.setItems(contentItems)
 	}
 }
@@ -1639,6 +1798,9 @@ onMounted(() => {
 			!isBulkOperating.value
 		) {
 			await initProjects()
+			if (skippedManualDownloads.value.length > 0) {
+				await refreshModpackContentItems()
+			}
 		}
 	})
 		.then((unlisten) => {

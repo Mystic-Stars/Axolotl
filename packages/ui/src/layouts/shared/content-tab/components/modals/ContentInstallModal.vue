@@ -113,7 +113,14 @@
 						class="flex min-w-0 cursor-pointer items-center gap-2.5 overflow-hidden border-0 bg-transparent p-0 text-left"
 						@click="emit('navigate', inst)"
 					>
-						<Avatar :src="inst.iconUrl ?? undefined" size="2rem" rounded="md" />
+						<Avatar
+							:src="inst.iconUrl ?? undefined"
+							size="2rem"
+							rounded="md"
+							:class="{
+								'!border-0 !rounded-none !bg-transparent !shadow-none': inst.iconFrameless,
+							}"
+						/>
 						<span class="truncate font-semibold text-contrast hover:underline">{{
 							inst.name
 						}}</span>
@@ -149,7 +156,14 @@
 		<!-- New instance tab -->
 		<div v-else class="flex flex-col gap-6 p-6">
 			<div class="flex items-center gap-4">
-				<Avatar :src="iconPreviewUrl ?? undefined" size="5rem" rounded="2xl" />
+				<Avatar
+					:src="iconPreviewUrl ?? undefined"
+					size="5rem"
+					rounded="2xl"
+					:class="{
+						'!border-0 !rounded-none !bg-transparent !shadow-none': iconFrameless,
+					}"
+				/>
 				<div class="flex flex-col gap-2">
 					<ButtonStyled type="outlined">
 						<button @click="selectIcon">
@@ -356,6 +370,7 @@ export interface ContentInstallInstance {
 	id: string
 	name: string
 	iconUrl?: string | null
+	iconFrameless?: boolean
 	installed: boolean
 	compatible: boolean
 	installing?: boolean
@@ -442,6 +457,7 @@ const selectedLoader = ref<string | null>(null)
 const selectedGameVersion = ref<string | null>(null)
 const iconPath = ref<string | null>(null)
 const iconPreviewUrl = ref<string | null>(null)
+const iconFrameless = ref(false)
 const showSnapshots = ref(false)
 
 const hasReleaseData = computed(
@@ -460,16 +476,18 @@ const filePicker = injectFilePicker(null)
 
 async function selectIcon() {
 	if (!filePicker) return
-	const picked = await filePicker.pickImage()
+	const picked = await (filePicker.pickInstanceIcon?.() ?? filePicker.pickImage())
 	if (picked) {
 		iconPath.value = picked.path ?? null
 		iconPreviewUrl.value = picked.previewUrl
+		iconFrameless.value = picked.frameless ?? false
 	}
 }
 
 function removeIcon() {
 	iconPath.value = null
 	iconPreviewUrl.value = null
+	iconFrameless.value = false
 }
 
 function resetState() {
@@ -479,6 +497,7 @@ function resetState() {
 	instanceName.value = `New instance (${props.instances.length + 1})`
 	iconPath.value = null
 	iconPreviewUrl.value = null
+	iconFrameless.value = false
 	selectedLoader.value = props.preferredLoader ?? props.compatibleLoaders[0] ?? null
 
 	const preferred = props.preferredGameVersion

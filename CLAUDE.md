@@ -63,10 +63,12 @@ The website and app `prepr` commands
 ## Codex Development Workflow
 
 ### Local App Verification
+
 - After completing a development task, start the local development app with `pnpm app:dev` and leave functional verification to the user.
 - Do not take screenshots or perform automated, visual, or manual self-testing of the local app.
 
 ### Remote Commits
+
 - Before pushing a remote commit, inspect its changed paths. If it does not change the desktop app (`apps/app/`, `apps/app-frontend/`) or its app-specific dependencies, prevent unnecessary GitHub Actions usage by including `[skip ci]` in the commit message.
 - Never use `[skip ci]` for commits that affect the desktop app or its build, packaging, or runtime dependencies.
 
@@ -77,15 +79,23 @@ Each project may have its own file with detailed instructions:
 - [`apps/labrinth/AGENTS.md`](apps/labrinth/AGENTS.md) — Backend API
 - [`apps/frontend/CLAUDE.md`](apps/frontend/CLAUDE.md) - Frontend Website
 
+## Update Logging Instructions
+
+After making any changes, write the changes as an update log(release note style, in Chinese simplified, using unordered list to append) in UPDATE_LOG.md in the project root directory.
+For example: - 修复了xxx问题。
+Append the changes to the log, not replacing.
+
 ## Code Guidelines
 
 ### Comments
+
 - DO NOT use "heading" comments like: `=== Helper methods ===`.
 - Use doc comments, but avoid inline comments unless ABSOLUTELY necessary for clarity. Code should aim to be self documenting!
 
 ## Bash Guidelines
 
 ### Output handling
+
 - DO NOT pipe output through `head`, `tail`, `less`, or `more`
 - NEVER use `| head -n X` or `| tail -n X` to truncate output
 - IMPORTANT: Run commands directly without pipes when possible
@@ -93,6 +103,7 @@ Each project may have its own file with detailed instructions:
 - ALWAYS read the full output — never pipe through filters
 
 ### General
+
 - Do not create new non-source code files (e.g. Bash scripts, SQL scripts) unless explicitly prompted to
 - For Frontend, when doing lint checks, only use the `prepr` commands, do not use `typecheck` or `tsc` etc.
 - Types in `@modrinth/utils` are considered highly outdated, if a component needs them, check if you can switch said component to use types from `packages/api-client`
@@ -103,12 +114,13 @@ Each project may have its own file with detailed instructions:
 The Read tool uses `→` to mark where line numbers end and file content begins.
 
 **Rule:** Copy the EXACT whitespace that appears after the `→` marker.
+
 - Whatever appears between `→` and the code text is what's actually in the file
 - That whitespace must be used EXACTLY in Edit tool's old_string
 - Don't count arrows, don't interpret - just copy what's after the `→`
 
 **Example:**
-14→		private byte tag;
+14→ private byte tag;
 For Edit, use: `		private byte tag;` (copy everything after →, including the two tabs)
 
 **If Edit fails:** Stop and explain the problem. Do not attempt sed/awk/bash workarounds.

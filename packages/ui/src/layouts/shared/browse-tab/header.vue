@@ -108,7 +108,15 @@ async function handleSelectedProjectsLeaveResult(
 						</button>
 					</ButtonStyled>
 
-					<Avatar v-if="iconSrc" :src="iconSrc" size="48px" class="shrink-0" />
+					<Avatar
+						v-if="iconSrc"
+						:src="iconSrc"
+						size="48px"
+						class="shrink-0"
+						:class="{
+							'!border-0 !rounded-none !bg-transparent !shadow-none': installContext.iconFrameless,
+						}"
+					/>
 
 					<div class="flex min-w-0 flex-col justify-center gap-1">
 						<h1 class="m-0 truncate text-2xl font-semibold leading-8 text-contrast">

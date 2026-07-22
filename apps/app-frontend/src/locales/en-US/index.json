@@ -86,6 +86,9 @@
 	"app.action-bar.install.summary.pack-download-failed": {
 		"message": "Couldn't download pack"
 	},
+	"app.action-bar.install.summary.file-download-failed": {
+		"message": "Couldn't download {file}"
+	},
 	"app.action-bar.install.summary.unexpected-error": {
 		"message": "Something went wrong"
 	},
@@ -425,6 +428,27 @@
 	"app.downloads.details": {
 		"message": "Details"
 	},
+	"app.downloads.download-eta-hours": {
+		"message": "{hours}h {minutes}m remaining"
+	},
+	"app.downloads.download-eta-minutes": {
+		"message": "{minutes}m remaining"
+	},
+	"app.downloads.download-eta-seconds": {
+		"message": "{seconds}s remaining"
+	},
+	"app.downloads.download-fallbacks": {
+		"message": "{count} fallbacks"
+	},
+	"app.downloads.download-resumed": {
+		"message": "{bytes} resumed"
+	},
+	"app.downloads.download-source": {
+		"message": "Source: {source}"
+	},
+	"app.downloads.download-speed": {
+		"message": "Speed: {speed}/s"
+	},
 	"app.downloads.empty-description": {
 		"message": "New downloads and installation progress will appear here."
 	},
@@ -448,6 +472,12 @@
 	},
 	"app.downloads.instance-target": {
 		"message": "Instance: {instance}"
+	},
+	"app.downloads.item-attempt-progress": {
+		"message": "{attempt}/{maxAttempts}"
+	},
+	"app.downloads.item-attempts": {
+		"message": "Attempts"
 	},
 	"app.downloads.item-name": {
 		"message": "File"
@@ -475,6 +505,9 @@
 	},
 	"app.downloads.local": {
 		"message": "Local"
+	},
+	"app.downloads.manual-download-required": {
+		"message": "CurseForge requires this file to be downloaded manually."
 	},
 	"app.downloads.no-file-details": {
 		"message": "No file details were recorded for this download."
@@ -542,6 +575,21 @@
 	"app.downloads.search": {
 		"message": "Search downloads"
 	},
+	"app.downloads.source.alternate": {
+		"message": "Alternate source"
+	},
+	"app.downloads.source.bmclapi": {
+		"message": "OpenBMCLAPI"
+	},
+	"app.downloads.source.mcim": {
+		"message": "MCIM"
+	},
+	"app.downloads.source.official": {
+		"message": "Official"
+	},
+	"app.downloads.source.tencent-maven": {
+		"message": "Tencent Maven"
+	},
 	"app.downloads.status.canceled": {
 		"message": "Canceled"
 	},
@@ -583,6 +631,9 @@
 	},
 	"app.error.directory-title": {
 		"message": "Could not change app directory"
+	},
+	"app.error.export-logs": {
+		"message": "Export error logs"
 	},
 	"app.error.generic-title": {
 		"message": "An error occurred"
@@ -747,7 +798,7 @@
 		"message": "Downloading Minecraft"
 	},
 	"app.install.phase.downloading_pack_file": {
-		"message": "Downloading pack file"
+		"message": "Downloading .mrpack"
 	},
 	"app.install.phase.extracting_overrides": {
 		"message": "Extracting overrides"
@@ -802,9 +853,6 @@
 	},
 	"app.instance.confirm-delete.admonition-header": {
 		"message": "This action cannot be undone"
-	},
-	"app.instance.confirm-delete.symlink-warning": {
-		"message": "This is a shared instance linked to \"{path}\". Only the link will be removed; the original files will not be deleted."
 	},
 	"app.instance.confirm-delete.delete-button": {
 		"message": "Delete instance"
@@ -958,6 +1006,15 @@
 	},
 	"app.instance.mods.share-title": {
 		"message": "Sharing modpack content"
+	},
+	"app.instance.mods.skipped-files-warning.body": {
+		"message": "{count, plural, one {# file was} other {# files were}} skipped during installation. Download and install them manually."
+	},
+	"app.instance.mods.skipped-files-warning.more": {
+		"message": "And {count, number} more."
+	},
+	"app.instance.mods.skipped-files-warning.title": {
+		"message": "Some modpack files require manual installation"
 	},
 	"app.instance.mods.successfully-uploaded": {
 		"message": "Successfully uploaded"
@@ -1325,6 +1382,9 @@
 	"app.navigation.worlds": {
 		"message": "Worlds"
 	},
+	"app.notification.export-error-logs": {
+		"message": "Export error logs"
+	},
 	"app.notification.warning": {
 		"message": "Warning"
 	},
@@ -1439,6 +1499,18 @@
 	"app.settings.about.project-website": {
 		"message": "Visit the project website"
 	},
+	"app.settings.about.test-error": {
+		"message": "Trigger test error"
+	},
+	"app.settings.about.test-error-message": {
+		"message": "Test error triggered from the development settings."
+	},
+	"app.settings.about.test-notification-error": {
+		"message": "Trigger notification test error"
+	},
+	"app.settings.about.test-notification-error-title": {
+		"message": "Test notification error"
+	},
 	"app.settings.about.qq-group": {
 		"message": "Player QQ group"
 	},
@@ -1538,23 +1610,56 @@
 	"app.settings.resources.app-directory-description": {
 		"message": "The directory where the launcher stores all of its files. Changes apply after restarting the launcher."
 	},
+	"app.settings.resources.concurrency.manual": {
+		"message": "Manual"
+	},
+	"app.settings.resources.curseforge-mirror": {
+		"message": "CurseForge"
+	},
+	"app.settings.resources.curseforge-mirror-description": {
+		"message": "CurseForge public API requests and file downloads."
+	},
 	"app.settings.resources.database-backups": {
 		"message": "App database backups"
 	},
 	"app.settings.resources.database-backups-description": {
 		"message": "Backups of important app data are stored here in case you need to recover them later."
 	},
+	"app.settings.resources.download-mirrors": {
+		"message": "Download sources"
+	},
+	"app.settings.resources.download-mirrors-description": {
+		"message": "Automatic mode chooses between official and mirror sources based on your local environment and recent connection quality."
+	},
 	"app.settings.resources.maximum-downloads": {
 		"message": "Maximum concurrent downloads"
 	},
 	"app.settings.resources.maximum-downloads-description": {
-		"message": "The maximum number of files the launcher can download at the same time. Use a lower value on a poor internet connection. An app restart is required."
+		"message": "Automatic mode selects between 16 and 64 concurrent downloads based on your device. Manual changes apply immediately."
 	},
 	"app.settings.resources.maximum-writes": {
 		"message": "Maximum concurrent writes"
 	},
 	"app.settings.resources.maximum-writes-description": {
 		"message": "The maximum number of files the launcher can write to disk at once. Use a lower value if you frequently get I/O errors. An app restart is required."
+	},
+	"app.settings.resources.minecraft-file-source": {
+		"message": "Minecraft files, loaders, and Java"
+	},
+	"app.settings.resources.minecraft-file-source-description": {
+		"message": "Game files, assets, libraries, mod loaders, and Java runtimes."
+	},
+	"app.settings.resources.minecraft-metadata-source": {
+		"message": "Minecraft metadata"
+	},
+	"app.settings.resources.minecraft-metadata-source-description": {
+		"message": "Version manifests and metadata for Minecraft and supported mod loaders."
+	},
+	"app.settings.resources.modrinth-mirror": {
+		"message": "Modrinth"
+	},
+	"app.settings.resources.modrinth-mirror-description": {
+		"message": "Modrinth public API requests and file downloads."
 	},
 	"app.settings.resources.open-backups-folder": {
 		"message": "Open backups folder"
@@ -1570,6 +1675,42 @@
 	},
 	"app.settings.resources.select-directory": {
 		"message": "Select a new app directory"
+	},
+	"app.settings.resources.source-health": {
+		"message": "Source health"
+	},
+	"app.settings.resources.source-health-cooling-down": {
+		"message": "Cooling down"
+	},
+	"app.settings.resources.source-health-description": {
+		"message": "Connection quality is learned locally from completed downloads and is never uploaded."
+	},
+	"app.settings.resources.source-health-empty": {
+		"message": "No download measurements have been collected yet."
+	},
+	"app.settings.resources.source-health-range-splitting-disabled": {
+		"message": "Range splitting disabled"
+	},
+	"app.settings.resources.source-health-refresh": {
+		"message": "Refresh"
+	},
+	"app.settings.resources.source-health-reset": {
+		"message": "Reset learned data"
+	},
+	"app.settings.resources.source-health-stats": {
+		"message": "{ttfb} TTFB · {speed} · {successes} successful / {failures} failed"
+	},
+	"app.settings.resources.source.automatic": {
+		"message": "Automatic (recommended)"
+	},
+	"app.settings.resources.source.mcim": {
+		"message": "Prefer MCIM"
+	},
+	"app.settings.resources.source.official": {
+		"message": "Official only"
+	},
+	"app.settings.resources.source.open-bmcl-api": {
+		"message": "Prefer OpenBMCLAPI"
 	},
 	"app.settings.tabs.about": {
 		"message": "About"
@@ -2400,7 +2541,7 @@
 		"message": "Enter a username"
 	},
 	"minecraft-account.offline-modal.username-validation": {
-		"message": "Use 3–16 letters, numbers, or underscores."
+		"message": "Use 1–16 letters, numbers, or underscores, including Chinese characters."
 	},
 	"minecraft-account.offline-mode": {
 		"message": "Offline mode"
@@ -2518,6 +2659,9 @@
 	},
 	"unknown-pack-warning-modal.warning.title": {
 		"message": "Unknown file warning"
+	},
+	"app.instance.confirm-delete.symlink-warning": {
+		"message": "This is a shared instance linked to \"{path}\". Only the link will be removed; the original files will not be deleted."
 	},
 	"app.symlink-warning.write.header": {
 		"message": "Shared instance"

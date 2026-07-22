@@ -5,6 +5,7 @@
  */
 import { invoke } from '@tauri-apps/api/core'
 
+import { setModrinthSourceMode } from '@/config'
 import type { Hooks, MemorySettings, WindowSize } from '@/helpers/types'
 import type { AccentColor, ColorTheme, FeatureFlag } from '@/store/theme.ts'
 
@@ -32,6 +33,7 @@ Memorysettings {
 */
 
 export type UpdateSource = 'cnb' | 'github'
+export type DownloadSourceMode = 'auto' | 'official_only' | 'mirror_preferred'
 
 const UPDATE_SOURCE_STORAGE_KEY = 'axolotl-update-source'
 
@@ -51,6 +53,11 @@ export function setUpdateSource(source: UpdateSource) {
 export type AppSettings = {
 	max_concurrent_downloads: number
 	max_concurrent_writes: number
+	auto_concurrent_downloads: boolean
+	minecraft_metadata_source: DownloadSourceMode
+	minecraft_file_source: DownloadSourceMode
+	modrinth_source: DownloadSourceMode
+	curseforge_source: DownloadSourceMode
 
 	theme: ColorTheme
 	accent_color: AccentColor
@@ -91,14 +98,80 @@ export type AppSettings = {
 	version: number
 }
 
+type LegacyMirrorSettings = {
+	use_minecraft_mirror?: boolean
+	use_modrinth_mirror?: boolean
+	use_curseforge_mirror?: boolean
+}
+
+function normalizeDownloadSettings(settings: AppSettings & LegacyMirrorSettings): AppSettings {
+	const hasLegacySettings =
+		typeof settings.use_minecraft_mirror === 'boolean' &&
+		typeof settings.use_modrinth_mirror === 'boolean' &&
+		typeof settings.use_curseforge_mirror === 'boolean'
+	const usesLegacyDefaults =
+		hasLegacySettings &&
+		!settings.use_minecraft_mirror &&
+		!settings.use_modrinth_mirror &&
+		settings.use_curseforge_mirror
+	const legacySource = (enabled: boolean | undefined): DownloadSourceMode =>
+		enabled ? 'mirror_preferred' : 'official_only'
+
+	settings.auto_concurrent_downloads ??= true
+	settings.minecraft_metadata_source ??=
+		usesLegacyDefaults || !hasLegacySettings ? 'auto' : legacySource(settings.use_minecraft_mirror)
+	settings.minecraft_file_source ??=
+		usesLegacyDefaults || !hasLegacySettings ? 'auto' : legacySource(settings.use_minecraft_mirror)
+	settings.modrinth_source ??=
+		usesLegacyDefaults || !hasLegacySettings ? 'auto' : legacySource(settings.use_modrinth_mirror)
+	settings.curseforge_source ??=
+		usesLegacyDefaults || !hasLegacySettings ? 'auto' : legacySource(settings.use_curseforge_mirror)
+
+	return settings
+}
+
+function syncLegacyMirrorSettings(settings: AppSettings & LegacyMirrorSettings) {
+	const legacyValue = (source: DownloadSourceMode, current: boolean | undefined) => {
+		if (source === 'mirror_preferred') return true
+		if (source === 'official_only') return false
+		return current ?? false
+	}
+
+	if (typeof settings.use_minecraft_mirror === 'boolean') {
+		settings.use_minecraft_mirror = legacyValue(
+			settings.minecraft_file_source,
+			settings.use_minecraft_mirror,
+		)
+	}
+	if (typeof settings.use_modrinth_mirror === 'boolean') {
+		settings.use_modrinth_mirror = legacyValue(
+			settings.modrinth_source,
+			settings.use_modrinth_mirror,
+		)
+	}
+	if (typeof settings.use_curseforge_mirror === 'boolean') {
+		settings.use_curseforge_mirror = legacyValue(
+			settings.curseforge_source,
+			settings.use_curseforge_mirror,
+		)
+	}
+}
+
 // Get full settings object
 export async function get() {
-	return (await invoke('plugin:settings|settings_get')) as AppSettings
+	const settings = normalizeDownloadSettings(
+		(await invoke('plugin:settings|settings_get')) as AppSettings & LegacyMirrorSettings,
+	)
+	setModrinthSourceMode(settings.modrinth_source)
+	return settings
 }
 
 // Set full settings object
 export async function set(settings: AppSettings) {
-	return await invoke('plugin:settings|settings_set', { settings })
+	syncLegacyMirrorSettings(settings)
+	const result = await invoke('plugin:settings|settings_set', { settings })
+	setModrinthSourceMode(settings.modrinth_source)
+	return result
 }
 
 export async function cancel_directory_change(): Promise<void> {

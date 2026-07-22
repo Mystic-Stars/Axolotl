@@ -7,9 +7,12 @@ use theseus::{
 };
 
 use crate::api::{Result, TheseusSerializableError};
+use async_zip::tokio::write::ZipFileWriter;
+use async_zip::{Compression, ZipEntryBuilder};
 use dashmap::DashMap;
 use std::path::{Path, PathBuf};
 use theseus::prelude::canonicalize;
+use tokio_util::compat::FuturesAsyncWriteCompatExt;
 use url::Url;
 
 pub fn init<R: Runtime>() -> tauri::plugin::TauriPlugin<R> {
@@ -21,6 +24,7 @@ pub fn init<R: Runtime>() -> tauri::plugin::TauriPlugin<R> {
             highlight_in_folder,
             open_path,
             show_launcher_logs_folder,
+            export_error_logs,
             show_app_db_backups_folder,
             progress_bars_list,
             get_opening_command
@@ -118,6 +122,92 @@ pub async fn show_launcher_logs_folder<R: Runtime>(app: tauri::AppHandle<R>) {
         // (ie: if in debug mode only and launcher_logs never created)
         open_path(app, path).await;
     }
+}
+
+#[tauri::command]
+pub async fn export_error_logs(
+    output_path: PathBuf,
+    error_message: String,
+) -> Result<()> {
+    let archive = tokio::fs::File::create(&output_path).await?;
+    let mut writer = ZipFileWriter::with_tokio(archive);
+    let report = format!(
+        "Axolotl Launcher error report\nExported at: {}\n\nError:\n{}\n",
+        chrono::Local::now().to_rfc3339(),
+        error_message
+    );
+
+    write_zip_entry(&mut writer, "error.txt", report.as_bytes()).await?;
+
+    if let Some(directories) = DirectoryInfo::global_handle_if_ready()
+        && let Some(logs_dir) = directories.launcher_logs_dir()
+        && tokio::fs::try_exists(&logs_dir).await?
+    {
+        let mut entries = tokio::fs::read_dir(&logs_dir).await?;
+        while let Some(entry) = entries.next_entry().await? {
+            if !entry.file_type().await?.is_file() {
+                continue;
+            }
+
+            let file_name = entry.file_name().to_string_lossy().to_string();
+            write_zip_file(
+                &mut writer,
+                &format!("launcher_logs/{file_name}"),
+                &entry.path(),
+            )
+            .await?;
+        }
+    }
+
+    writer.close().await.map_err(zip_error)?;
+    Ok(())
+}
+
+async fn write_zip_file(
+    writer: &mut ZipFileWriter<tokio::fs::File>,
+    filename: &str,
+    path: &Path,
+) -> Result<()> {
+    let mut stream = writer
+        .write_entry_stream(
+            ZipEntryBuilder::new(
+                filename.to_string().into(),
+                Compression::Deflate,
+            )
+            .build(),
+        )
+        .await
+        .map_err(zip_error)?
+        .compat_write();
+    let mut source = tokio::fs::File::open(path).await?;
+    tokio::io::copy(&mut source, &mut stream).await?;
+    stream.into_inner().close().await.map_err(zip_error)?;
+    Ok(())
+}
+
+async fn write_zip_entry(
+    writer: &mut ZipFileWriter<tokio::fs::File>,
+    filename: &str,
+    contents: &[u8],
+) -> Result<()> {
+    writer
+        .write_entry_whole(
+            ZipEntryBuilder::new(
+                filename.to_string().into(),
+                Compression::Deflate,
+            ),
+            contents,
+        )
+        .await
+        .map_err(zip_error)?;
+    Ok(())
+}
+
+fn zip_error(error: async_zip::error::ZipError) -> TheseusSerializableError {
+    theseus::Error::from(theseus::ErrorKind::OtherError(format!(
+        "Failed to create error log archive: {error}"
+    )))
+    .into()
 }
 
 #[tauri::command]

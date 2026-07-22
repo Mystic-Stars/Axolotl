@@ -1,16 +1,20 @@
 <script setup lang="ts">
-import { CheckIcon, CopyIcon, ExternalIcon } from '@modrinth/assets'
-import { defineMessages, useVIntl } from '@modrinth/ui'
+import { CheckIcon, CopyIcon, ExternalIcon, WrenchIcon } from '@modrinth/assets'
+import { ButtonStyled, defineMessages, injectNotificationManager, useVIntl } from '@modrinth/ui'
 import { getVersion } from '@tauri-apps/api/app'
 import { ref } from 'vue'
 
 import AfdianIcon from '@/assets/external/afdian.png'
 import QqIcon from '@/assets/external/qq.svg?component'
 import { AxolotlBrandConfig } from '@/config'
+import { isDev } from '@/helpers/utils'
+import { handleSevereError } from '@/store/error.js'
 
 const { formatMessage } = useVIntl()
 const version = await getVersion()
+const isDevEnvironment = await isDev()
 const copied = ref(false)
+const { addNotification } = injectNotificationManager()
 
 async function copyQqGroupNumber() {
 	await navigator.clipboard.writeText(AxolotlBrandConfig.qqGroupNumber)
@@ -69,6 +73,22 @@ const messages = defineMessages({
 		id: 'app.settings.about.project-website',
 		defaultMessage: 'Visit the project website',
 	},
+	testError: {
+		id: 'app.settings.about.test-error',
+		defaultMessage: 'Trigger test error',
+	},
+	testErrorMessage: {
+		id: 'app.settings.about.test-error-message',
+		defaultMessage: 'Test error triggered from the development settings.',
+	},
+	testNotificationError: {
+		id: 'app.settings.about.test-notification-error',
+		defaultMessage: 'Trigger notification test error',
+	},
+	testNotificationErrorTitle: {
+		id: 'app.settings.about.test-notification-error-title',
+		defaultMessage: 'Test notification error',
+	},
 	contentSearchAttribution: {
 		id: 'app.settings.about.content-search-attribution',
 		defaultMessage:
@@ -83,6 +103,18 @@ const messages = defineMessages({
 		defaultMessage: 'Visit MC Encyclopedia',
 	},
 })
+
+function triggerTestError() {
+	handleSevereError(new Error(formatMessage(messages.testErrorMessage)))
+}
+
+function triggerTestNotificationError() {
+	addNotification({
+		title: formatMessage(messages.testNotificationErrorTitle),
+		text: formatMessage(messages.testErrorMessage),
+		type: 'error',
+	})
+}
 </script>
 
 <template>
@@ -118,6 +150,18 @@ const messages = defineMessages({
 			<p class="m-0 mt-3 text-primary">
 				{{ formatMessage(messages.contentSearchAttribution) }}
 			</p>
+			<div v-if="isDevEnvironment" class="mt-4 flex flex-wrap gap-2">
+				<ButtonStyled>
+					<button @click="triggerTestError">
+						<WrenchIcon /> {{ formatMessage(messages.testError) }}
+					</button>
+				</ButtonStyled>
+				<ButtonStyled>
+					<button @click="triggerTestNotificationError">
+						<WrenchIcon /> {{ formatMessage(messages.testNotificationError) }}
+					</button>
+				</ButtonStyled>
+			</div>
 		</div>
 
 		<div>

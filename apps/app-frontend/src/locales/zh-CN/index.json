@@ -86,6 +86,9 @@
 	"app.action-bar.install.summary.pack-download-failed": {
 		"message": "无法下载整合包"
 	},
+	"app.action-bar.install.summary.file-download-failed": {
+		"message": "无法下载 {file}"
+	},
 	"app.action-bar.install.summary.unexpected-error": {
 		"message": "出现意外错误"
 	},
@@ -324,7 +327,7 @@
 		"message": "所有来源"
 	},
 	"app.browse.source.curseforge": {
-		"message": "CurseForge 平台"
+		"message": "CurseForge 来源"
 	},
 	"app.browse.source.modrinth": {
 		"message": "Modrinth"
@@ -425,6 +428,27 @@
 	"app.downloads.details": {
 		"message": "详细信息"
 	},
+	"app.downloads.download-eta-hours": {
+		"message": "预计剩余 {hours} 小时 {minutes} 分钟"
+	},
+	"app.downloads.download-eta-minutes": {
+		"message": "预计剩余 {minutes} 分钟"
+	},
+	"app.downloads.download-eta-seconds": {
+		"message": "预计剩余 {seconds} 秒"
+	},
+	"app.downloads.download-fallbacks": {
+		"message": "已回退 {count} 次"
+	},
+	"app.downloads.download-resumed": {
+		"message": "已续传 {bytes}"
+	},
+	"app.downloads.download-source": {
+		"message": "来源：{source}"
+	},
+	"app.downloads.download-speed": {
+		"message": "速度：{speed}/秒"
+	},
 	"app.downloads.empty-description": {
 		"message": "新的下载与安装进度会显示在这里。"
 	},
@@ -446,6 +470,12 @@
 	"app.downloads.instance-target": {
 		"message": "目标实例：{instance}"
 	},
+	"app.downloads.item-attempt-progress": {
+		"message": "{attempt}/{maxAttempts} 次"
+	},
+	"app.downloads.item-attempts": {
+		"message": "尝试次数"
+	},
 	"app.downloads.item-name": {
 		"message": "文件"
 	},
@@ -454,6 +484,9 @@
 	},
 	"app.downloads.item-status": {
 		"message": "状态"
+	},
+	"app.downloads.manual-download-required": {
+		"message": "CurseForge 要求手动下载此文件。"
 	},
 	"app.downloads.item-status.completed": {
 		"message": "已完成"
@@ -542,6 +575,21 @@
 	"app.downloads.search": {
 		"message": "搜索下载任务"
 	},
+	"app.downloads.source.alternate": {
+		"message": "备用来源"
+	},
+	"app.downloads.source.bmclapi": {
+		"message": "OpenBMCLAPI 镜像"
+	},
+	"app.downloads.source.mcim": {
+		"message": "MCIM 镜像"
+	},
+	"app.downloads.source.official": {
+		"message": "官方"
+	},
+	"app.downloads.source.tencent-maven": {
+		"message": "腾讯 Maven"
+	},
 	"app.downloads.status.canceled": {
 		"message": "已取消"
 	},
@@ -583,6 +631,9 @@
 	},
 	"app.error.directory-title": {
 		"message": "无法更改应用目录"
+	},
+	"app.error.export-logs": {
+		"message": "导出错误日志"
 	},
 	"app.error.generic-title": {
 		"message": "发生错误"
@@ -747,7 +798,7 @@
 		"message": "正在下载 Minecraft"
 	},
 	"app.install.phase.downloading_pack_file": {
-		"message": "正在下载包文件"
+		"message": "正在下载 .mrpack"
 	},
 	"app.install.phase.extracting_overrides": {
 		"message": "提取覆盖项"
@@ -802,9 +853,6 @@
 	},
 	"app.instance.confirm-delete.admonition-header": {
 		"message": "此操作无法撤销"
-	},
-	"app.instance.confirm-delete.symlink-warning": {
-		"message": "这是一个链接到“{path}”的共享实例。仅会删除链接，原始文件不会被删除。"
 	},
 	"app.instance.confirm-delete.delete-button": {
 		"message": "删除实例"
@@ -958,6 +1006,15 @@
 	},
 	"app.instance.mods.share-title": {
 		"message": "分享整合包内容"
+	},
+	"app.instance.mods.skipped-files-warning.body": {
+		"message": "因为网络原因或根据模组开发者要求，安装过程中跳过了 {count, number} 个文件。请手动下载并安装这些文件。详细信息请前往 下载-历史记录 查看。"
+	},
+	"app.instance.mods.skipped-files-warning.more": {
+		"message": "另有 {count, number} 个文件。"
+	},
+	"app.instance.mods.skipped-files-warning.title": {
+		"message": "部分整合包文件需要手动安装"
 	},
 	"app.instance.mods.successfully-uploaded": {
 		"message": "上传成功"
@@ -1325,6 +1382,9 @@
 	"app.navigation.worlds": {
 		"message": "世界"
 	},
+	"app.notification.export-error-logs": {
+		"message": "导出错误日志"
+	},
 	"app.notification.warning": {
 		"message": "警告"
 	},
@@ -1439,6 +1499,18 @@
 	"app.settings.about.project-website": {
 		"message": "访问项目网站"
 	},
+	"app.settings.about.test-error": {
+		"message": "触发测试错误"
+	},
+	"app.settings.about.test-error-message": {
+		"message": "已从开发设置触发测试错误。"
+	},
+	"app.settings.about.test-notification-error": {
+		"message": "触发通知测试错误"
+	},
+	"app.settings.about.test-notification-error-title": {
+		"message": "测试通知错误"
+	},
 	"app.settings.about.qq-group": {
 		"message": "玩家 QQ 群"
 	},
@@ -1544,11 +1616,80 @@
 	"app.settings.resources.database-backups-description": {
 		"message": "重要应用数据的备份存储在此处，以便日后需要时恢复。"
 	},
+	"app.settings.resources.download-mirrors": {
+		"message": "下载源"
+	},
+	"app.settings.resources.download-mirrors-description": {
+		"message": "自动模式会根据本地环境和近期连接质量，在官方源与镜像源之间选择。"
+	},
+	"app.settings.resources.minecraft-metadata-source": {
+		"message": "Minecraft 元数据"
+	},
+	"app.settings.resources.minecraft-metadata-source-description": {
+		"message": "Minecraft 与受支持模组加载器的版本清单和元数据。"
+	},
+	"app.settings.resources.minecraft-file-source": {
+		"message": "Minecraft 文件、加载器与 Java"
+	},
+	"app.settings.resources.minecraft-file-source-description": {
+		"message": "游戏文件、资源、依赖库、模组加载器和 Java 运行时。"
+	},
+	"app.settings.resources.modrinth-mirror": {
+		"message": "Modrinth"
+	},
+	"app.settings.resources.modrinth-mirror-description": {
+		"message": "Modrinth 公共 API 请求和文件下载。"
+	},
+	"app.settings.resources.curseforge-mirror": {
+		"message": "CurseForge 服务"
+	},
+	"app.settings.resources.curseforge-mirror-description": {
+		"message": "CurseForge 公共 API 请求和文件下载。"
+	},
+	"app.settings.resources.concurrency.manual": {
+		"message": "手动"
+	},
+	"app.settings.resources.source.automatic": {
+		"message": "自动（推荐）"
+	},
+	"app.settings.resources.source.official": {
+		"message": "仅官方源"
+	},
+	"app.settings.resources.source.open-bmcl-api": {
+		"message": "优先 OpenBMCLAPI"
+	},
+	"app.settings.resources.source.mcim": {
+		"message": "优先 MCIM"
+	},
+	"app.settings.resources.source-health": {
+		"message": "下载源健康状态"
+	},
+	"app.settings.resources.source-health-cooling-down": {
+		"message": "冷却中"
+	},
+	"app.settings.resources.source-health-description": {
+		"message": "连接质量仅根据本机已完成的下载进行学习，数据不会上传。"
+	},
+	"app.settings.resources.source-health-empty": {
+		"message": "尚未收集到下载测量数据。"
+	},
+	"app.settings.resources.source-health-refresh": {
+		"message": "刷新"
+	},
+	"app.settings.resources.source-health-range-splitting-disabled": {
+		"message": "Range 分片已停用"
+	},
+	"app.settings.resources.source-health-reset": {
+		"message": "重置学习数据"
+	},
+	"app.settings.resources.source-health-stats": {
+		"message": "TTFB {ttfb} · {speed} · 成功 {successes} 次 / 失败 {failures} 次"
+	},
 	"app.settings.resources.maximum-downloads": {
 		"message": "最大并发下载数"
 	},
 	"app.settings.resources.maximum-downloads-description": {
-		"message": "启动器同时下载文件的最大数量。网络连接较差时请降低此值；更改需要重启应用后生效。"
+		"message": "自动模式会根据设备在 16 到 64 之间选择并发下载数；手动更改会立即生效。"
 	},
 	"app.settings.resources.maximum-writes": {
 		"message": "最大并发写入数"
@@ -1740,7 +1881,7 @@
 		"message": "建造者与生物群系"
 	},
 	"app.skins.section.chaos-cubed": {
-		"message": "Chaos Cubed"
+		"message": "混沌立方"
 	},
 	"app.skins.section.chase-the-skies": {
 		"message": "追逐天空"
@@ -2400,7 +2541,7 @@
 		"message": "输入用户名"
 	},
 	"minecraft-account.offline-modal.username-validation": {
-		"message": "请输入 3–16 个字母、数字或下划线。"
+		"message": "请输入 1–16 个字母、数字或下划线，支持中文。"
 	},
 	"minecraft-account.offline-mode": {
 		"message": "离线模式"
@@ -2518,6 +2659,9 @@
 	},
 	"unknown-pack-warning-modal.warning.title": {
 		"message": "未知文件警告"
+	},
+	"app.instance.confirm-delete.symlink-warning": {
+		"message": "这是一个链接到“{path}”的共享实例。仅会删除链接，原始文件不会被删除。"
 	},
 	"app.symlink-warning.write.header": {
 		"message": "共享实例"

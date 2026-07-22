@@ -201,9 +201,16 @@ fn timeline_event_description(event: &InstallJobEvent) -> Option<String> {
             Some(format!("Rollback failed: {message}"))
         }
         InstallJobEventKind::ContentDownloadStarted { .. }
+        | InstallJobEventKind::ContentFileDownloadAttempt { .. }
         | InstallJobEventKind::ContentFileSkipped { .. }
         | InstallJobEventKind::ContentFileCompleted { .. }
         | InstallJobEventKind::TargetInstanceDeleted { .. } => None,
+        InstallJobEventKind::DownloadMetrics {
+            source,
+            fallback_count,
+        } => Some(format!(
+            "Downloaded from {source} ({fallback_count} fallbacks)"
+        )),
     }
 }
 
@@ -226,9 +233,9 @@ fn write_content_summary(details: &mut String, events: &[InstallJobEvent]) {
     let skipped = events
         .iter()
         .filter_map(|event| match &event.kind {
-            InstallJobEventKind::ContentFileSkipped { path, reason } => {
-                Some((path.as_str(), reason.as_str()))
-            }
+            InstallJobEventKind::ContentFileSkipped {
+                path, reason, ..
+            } => Some((path.as_str(), reason.as_str())),
             _ => None,
         })
         .collect::<Vec<_>>();

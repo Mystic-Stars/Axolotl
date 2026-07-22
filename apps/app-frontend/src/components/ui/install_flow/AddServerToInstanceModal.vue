@@ -2,7 +2,6 @@
 import { CheckIcon, PlusIcon, SearchIcon } from '@modrinth/assets'
 import {
 	Admonition,
-	Avatar,
 	ButtonStyled,
 	commonMessages,
 	defineMessages,
@@ -11,9 +10,9 @@ import {
 	useVIntl,
 } from '@modrinth/ui'
 import { useQueryClient } from '@tanstack/vue-query'
-import { convertFileSrc } from '@tauri-apps/api/core'
 import { computed, ref } from 'vue'
 
+import InstanceIcon from '@/components/ui/InstanceIcon.vue'
 import ModalWrapper from '@/components/ui/modal/ModalWrapper.vue'
 import { trackEvent } from '@/helpers/analytics'
 import { list } from '@/helpers/instance'
@@ -137,8 +136,9 @@ async function addServer(instance) {
 						:to="`/instance/${encodeURIComponent(instance.id)}`"
 						@click="modal.hide()"
 					>
-						<Avatar
-							:src="instance.icon_path ? convertFileSrc(instance.icon_path) : null"
+						<InstanceIcon
+							:icon-path="instance.icon_path"
+							:instance-id="instance.id"
 							class="mr-2 [--size:2rem]"
 						/>
 						{{ instance.name }}

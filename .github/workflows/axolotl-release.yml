@@ -162,8 +162,9 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           release_id="$(
-            gh release list --limit 100 --json databaseId,tagName \
-              --jq ".[] | select(.tagName == \"${GITHUB_REF_NAME}\") | .databaseId"
+            gh api "repos/${GITHUB_REPOSITORY}/releases" \
+              --paginate \
+              --jq ".[] | select(.tag_name == \"${GITHUB_REF_NAME}\") | .id"
           )"
           if [[ -z "$release_id" ]]; then
             echo "Release ${GITHUB_REF_NAME} was not found"

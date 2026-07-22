@@ -5,8 +5,12 @@ use crate::state::instances::{
 use crate::state::{
     CacheBehaviour, CachedEntry, Dependency, DependencyType, KnownModrinthFile,
     ModLoader, ProjectType, State, Version, cache_file_hash,
+    cache_file_hash_metadata,
 };
-use crate::util::fetch::{self, DownloadMeta, DownloadReason};
+use crate::util::fetch::{
+    self, ContentValidation, DownloadMeta, DownloadReason, DownloadRequest,
+    Integrity, ResourceClass, download_to_path,
+};
 use crate::util::io;
 use async_trait::async_trait;
 use bytes::Bytes;
@@ -30,8 +34,9 @@ pub(crate) struct InstalledContentFile {
 
 pub(crate) struct DownloadedProjectVersion {
     pub file_name: String,
-    pub bytes: Bytes,
-    pub sha1: Option<String>,
+    pub path: PathBuf,
+    pub sha1: String,
+    pub size: u64,
     pub project_type: ProjectType,
     pub project_id: String,
     pub version_id: String,
@@ -400,15 +405,57 @@ pub(crate) async fn download_project_version(
         loader: content_set.loader.as_str().to_string(),
         dependent_on: dependent_on_version_id,
     };
-    let bytes = fetch::fetch(
-        &file.url,
-        file.hashes.get("sha1").map(|hash| hash.as_str()),
-        Some(&download_meta),
-        None,
-        &state.fetch_semaphore,
+    let file_name_path = Path::new(&file.filename);
+    if file_name_path.as_os_str().is_empty()
+        || file_name_path.is_absolute()
+        || file_name_path.components().count() != 1
+        || !matches!(
+            file_name_path.components().next(),
+            Some(std::path::Component::Normal(_))
+        )
+    {
+        return Err(crate::ErrorKind::InputError(
+            "Modrinth returned an invalid project file name".to_string(),
+        )
+        .into());
+    }
+    let path = state
+        .directories
+        .caches_dir()
+        .join("content")
+        .join("modrinth")
+        .join(&version.id)
+        .join(file_name_path);
+    let content = if matches!(
+        file_name_path.extension().and_then(|value| value.to_str()),
+        Some("jar" | "zip" | "mrpack")
+    ) {
+        ContentValidation::Jar
+    } else {
+        ContentValidation::None
+    };
+    let integrity = Integrity {
+        size: Some(file.size as u64),
+        sha1: file.hashes.get("sha1").cloned(),
+        sha512: file.hashes.get("sha512").cloned(),
+        content,
+        ..Integrity::default()
+    };
+    let download = download_to_path(
+        DownloadRequest::new(&file.url, ResourceClass::Modrinth)
+            .with_integrity(integrity)
+            .with_download_meta(download_meta),
+        &path,
+        &state.download_semaphore,
         &state.pool,
+        None,
     )
     .await?;
+    let sha1 = if let Some(hash) = file.hashes.get("sha1") {
+        hash.clone()
+    } else {
+        fetch::sha1_file_async(&path).await?.1
+    };
     let project_type = ProjectType::get_from_loaders(version.loaders.clone())
         .ok_or_else(|| {
         crate::ErrorKind::InputError(format!(
@@ -420,8 +467,9 @@ pub(crate) async fn download_project_version(
 
     Ok(DownloadedProjectVersion {
         file_name: file.filename.clone(),
-        bytes,
-        sha1: file.hashes.get("sha1").cloned(),
+        path,
+        sha1,
+        size: download.size,
         project_type,
         project_id,
         version_id,
@@ -436,25 +484,67 @@ pub(crate) async fn add_downloaded_project_version(
 ) -> crate::Result<String> {
     let DownloadedProjectVersion {
         file_name,
-        bytes,
+        path,
         sha1,
+        size,
         project_type,
         project_id,
         version_id,
     } = downloaded;
-
-    add_project_bytes(
-        instance_id,
-        &file_name,
-        bytes,
-        sha1.as_deref(),
+    let scope = resolve_content_scope(instance_id, None, state).await?;
+    let relative_path = format!("{}/{}", project_type.get_folder(), file_name);
+    let full_path =
+        instance_full_path(state, &scope.instance).join(&relative_path);
+    materialize_project_download(&path, &full_path).await?;
+    cache_file_hash_metadata(
+        &scope.instance.id,
+        &relative_path,
+        size,
+        sha1.clone(),
         Some(project_type),
+        Some(KnownModrinthFile {
+            project_id: &project_id,
+            version_id: &version_id,
+        }),
+        &state.pool,
+    )
+    .await?;
+    record_project_file(
+        instance_id,
+        &relative_path,
+        &sha1,
+        size,
+        project_type,
         source_kind,
-        Some(project_id.as_str()),
-        Some(version_id.as_str()),
+        Some(&project_id),
+        Some(&version_id),
         state,
     )
-    .await
+    .await?;
+    Ok(relative_path)
+}
+
+async fn materialize_project_download(
+    source: &Path,
+    destination: &Path,
+) -> crate::Result<()> {
+    if let Some(parent) = destination.parent() {
+        io::create_dir_all(parent).await?;
+    }
+    let mut temporary = destination.as_os_str().to_os_string();
+    temporary.push(".installing");
+    let temporary = PathBuf::from(temporary);
+    if temporary.exists() {
+        io::remove_file(&temporary).await?;
+    }
+    if tokio::fs::hard_link(source, &temporary).await.is_err() {
+        io::copy(source, &temporary).await?;
+    }
+    if destination.exists() {
+        io::remove_file(destination).await?;
+    }
+    tokio::fs::rename(&temporary, destination).await?;
+    Ok(())
 }
 
 pub(crate) async fn add_project_from_path(

@@ -1,20 +1,24 @@
 <script setup lang="ts">
-import { LanguagesIcon, PaintbrushIcon } from '@modrinth/assets'
+import { DownloadIcon, LanguagesIcon, PaintbrushIcon } from '@modrinth/assets'
 import SettingsIcon from '@modrinth/assets/icons/settings.svg?component'
 import XIcon from '@modrinth/assets/icons/x.svg?component'
 import ButtonStyled from '@modrinth/ui/src/components/base/ButtonStyled.vue'
+import Combobox from '@modrinth/ui/src/components/base/Combobox.vue'
 import Toggle from '@modrinth/ui/src/components/base/Toggle.vue'
 import LanguageSelector from '@modrinth/ui/src/components/settings/LanguageSelector.vue'
 import ThemeSelector from '@modrinth/ui/src/components/settings/ThemeSelector.vue'
 import { defineMessages, LOCALES, useVIntl } from '@modrinth/ui/src/composables/i18n.ts'
 import { injectI18n } from '@modrinth/ui/src/providers/i18n.ts'
 
+import { type DownloadSource, useDownloadSource } from '~/composables/use-download-source'
+
 type Theme = 'system' | 'light' | 'dark' | 'oled'
-type SettingsTab = 'appearance' | 'language'
+type SettingsTab = 'appearance' | 'downloads' | 'language'
 
 const open = defineModel<boolean>({ required: true })
 const { formatMessage } = useVIntl()
 const { locale, setLocale } = injectI18n()
+const { selectedSource, resolvedSource, setDownloadSource } = useDownloadSource()
 
 const preferredTheme = ref<Theme>('system')
 const systemTheme = ref<'light' | 'dark'>('dark')
@@ -38,6 +42,47 @@ const messages = defineMessages({
 	languageDescription: {
 		id: 'axolotl-settings.language.description',
 		defaultMessage: 'Choose the language used by this website.',
+	},
+	downloadsTitle: { id: 'axolotl-settings.downloads.title', defaultMessage: 'Downloads' },
+	downloadsDescription: {
+		id: 'axolotl-settings.downloads.description',
+		defaultMessage: 'Choose where Axolotl Launcher installers are downloaded from.',
+	},
+	downloadSourceTitle: {
+		id: 'axolotl-settings.download-source.title',
+		defaultMessage: 'Download source',
+	},
+	downloadSourceDescription: {
+		id: 'axolotl-settings.download-source.description',
+		defaultMessage: 'Automatic selection uses CNB in mainland China and GitHub elsewhere.',
+	},
+	downloadSourceAuto: {
+		id: 'axolotl-settings.download-source.auto',
+		defaultMessage: 'Automatic',
+	},
+	downloadSourceAutoDescription: {
+		id: 'axolotl-settings.download-source.auto.description',
+		defaultMessage: 'Choose a source from your browser language and timezone.',
+	},
+	downloadSourceCnb: {
+		id: 'axolotl-settings.download-source.cnb',
+		defaultMessage: 'CNB',
+	},
+	downloadSourceCnbDescription: {
+		id: 'axolotl-settings.download-source.cnb.description',
+		defaultMessage: 'Recommended for visitors in mainland China.',
+	},
+	downloadSourceGithub: {
+		id: 'axolotl-settings.download-source.github',
+		defaultMessage: 'GitHub',
+	},
+	downloadSourceGithubDescription: {
+		id: 'axolotl-settings.download-source.github.description',
+		defaultMessage: 'Download from the official GitHub release.',
+	},
+	currentDownloadSource: {
+		id: 'axolotl-settings.download-source.current',
+		defaultMessage: 'Current source: {source}',
 	},
 	themeTitle: { id: 'axolotl-settings.theme.title', defaultMessage: 'Color theme' },
 	themeDescription: {
@@ -75,6 +120,32 @@ const messages = defineMessages({
 	},
 	done: { id: 'axolotl-settings.done', defaultMessage: 'Done' },
 })
+
+const downloadSourceOptions = computed<
+	Array<{ value: DownloadSource; label: string; subLabel: string }>
+>(() => [
+	{
+		value: 'auto',
+		label: formatMessage(messages.downloadSourceAuto),
+		subLabel: formatMessage(messages.downloadSourceAutoDescription),
+	},
+	{
+		value: 'cnb',
+		label: formatMessage(messages.downloadSourceCnb),
+		subLabel: formatMessage(messages.downloadSourceCnbDescription),
+	},
+	{
+		value: 'github',
+		label: formatMessage(messages.downloadSourceGithub),
+		subLabel: formatMessage(messages.downloadSourceGithubDescription),
+	},
+])
+
+const resolvedDownloadSourceLabel = computed(() =>
+	formatMessage(
+		resolvedSource.value === 'cnb' ? messages.downloadSourceCnb : messages.downloadSourceGithub,
+	),
+)
 
 let systemThemeQuery: MediaQueryList | undefined
 
@@ -138,6 +209,7 @@ watch(open, (isOpen) => {
 	document.body.style.overflow = isOpen ? 'hidden' : ''
 })
 
+watch(selectedSource, setDownloadSource)
 watch([advancedRendering, reduceMotion, externalLinksNewTab], applyRenderingPreferences)
 
 onMounted(() => {
@@ -193,6 +265,13 @@ onBeforeUnmount(() => {
 								>
 									<PaintbrushIcon aria-hidden="true" />
 									{{ formatMessage(messages.appearanceTitle) }}
+								</button>
+								<button
+									:class="{ selected: activeTab === 'downloads' }"
+									@click="activeTab = 'downloads'"
+								>
+									<DownloadIcon aria-hidden="true" />
+									{{ formatMessage(messages.downloadsTitle) }}
 								</button>
 								<button
 									:class="{ selected: activeTab === 'language' }"
@@ -254,7 +333,37 @@ onBeforeUnmount(() => {
 								</div>
 							</section>
 
-							<section v-else class="settings-pane language-pane">
+							<section v-else-if="activeTab === 'downloads'" class="settings-pane">
+								<div class="settings-section">
+									<h3>{{ formatMessage(messages.downloadsTitle) }}</h3>
+									<p>{{ formatMessage(messages.downloadsDescription) }}</p>
+									<div class="mt-6 max-w-[28rem]">
+										<h4 class="m-0 text-base font-semibold text-contrast">
+											{{ formatMessage(messages.downloadSourceTitle) }}
+										</h4>
+										<p class="m-0 mt-1 text-sm text-secondary">
+											{{ formatMessage(messages.downloadSourceDescription) }}
+										</p>
+										<div class="mt-3">
+											<Combobox
+												id="download-source"
+												v-model="selectedSource"
+												:name="formatMessage(messages.downloadSourceTitle)"
+												:options="downloadSourceOptions"
+											/>
+										</div>
+										<p class="m-0 mt-3 text-sm text-secondary" role="status">
+											{{
+												formatMessage(messages.currentDownloadSource, {
+													source: resolvedDownloadSourceLabel,
+												})
+											}}
+										</p>
+									</div>
+								</div>
+							</section>
+
+							<section v-else-if="activeTab === 'language'" class="settings-pane language-pane">
 								<div class="settings-section">
 									<h3>{{ formatMessage(messages.languageTitle) }}</h3>
 									<p>{{ formatMessage(messages.languageDescription) }}</p>

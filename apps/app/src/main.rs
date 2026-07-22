@@ -155,6 +155,15 @@ async fn set_restart_after_pending_update(
 // if Tauri app is called with arguments, then those arguments will be treated as commands
 // ie: deep links or filepaths for .mrpacks
 fn main() {
+    // Workaround: NVIDIA's proprietary EGL driver crashes WebKitGTK's DMA-BUF renderer
+    #[cfg(target_os = "linux")]
+    if env::var_os("WEBKIT_DISABLE_DMABUF_RENDERER").is_none()
+        && std::path::Path::new("/proc/driver/nvidia/version").exists()
+    {
+        // SAFETY: This is called before any threads are spawned in main()
+        unsafe { env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1") }
+    }
+
     /*
         tracing is set basd on the environment variable RUST_LOG=xxx, depending on the amount of logs to show
             ERROR > WARN > INFO > DEBUG > TRACE
@@ -180,6 +189,13 @@ fn main() {
         .build()
         .expect("failed to build tokio runtime");
     let handle = rt.handle().clone();
+    // SAFETY: tauri::async_runtime::set() takes a Handle by value but does not
+    // take ownership of the Runtime itself — Tauri expects the runtime to
+    // outlive main(). Since the Handle borrows the Runtime internally, we must
+    // leak the Runtime here so its worker threads and timer heap live for the
+    // process lifetime. The OS will reclaim the leaked pages on exit. The
+    // alternative (wrapping in an Arc and passing it to a permanent scope) is
+    // not supported by the tauri::async_runtime API.
     std::mem::forget(rt);
     tauri::async_runtime::set(handle);
 

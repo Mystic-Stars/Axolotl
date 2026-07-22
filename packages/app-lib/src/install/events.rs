@@ -107,6 +107,25 @@ impl InstallProgressReporter {
         }
     }
 
+    pub async fn record_download_metrics(
+        &self,
+        source: impl Into<String>,
+        fallback_count: u64,
+    ) -> crate::Result<()> {
+        let app_state = crate::State::get().await?;
+        let mut state = self.state.lock().await;
+        state
+            .job
+            .record_event(InstallJobEventKind::DownloadMetrics {
+                source: source.into(),
+                fallback_count,
+            });
+        let record =
+            store::update_state(self.job_id, &state.job, &app_state).await?;
+        state.mark_persisted();
+        emit_install_job(&record.snapshot()).await
+    }
+
     pub async fn preserve_failure_context<T>(
         &self,
         context: InstallErrorContext,
@@ -135,13 +154,19 @@ impl InstallProgressReporter {
                 &state.job.progress.details,
                 InstallPhaseDetails::Empty
             ) && !matches!(&details, InstallPhaseDetails::Empty);
+        let force_persist = events.iter().any(|event| {
+            matches!(
+                event,
+                InstallJobEventKind::ContentFileDownloadAttempt { .. }
+            )
+        });
 
         state.job.set_progress(phase, progress, details);
         for event in events {
             state.job.record_event(event);
         }
 
-        if !state.should_persist(phase_started) {
+        if !state.should_persist(phase_started || force_persist) {
             return Ok(());
         }
 

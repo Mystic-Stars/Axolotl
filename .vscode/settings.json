@@ -42,7 +42,7 @@
 	],
 	"i18n-ally.pathMatcher": "{locale}/index.{ext}",
 	"i18n-ally.keystyle": "flat",
-	"i18n-ally.sourceLanguage": "en-US",
+	"i18n-ally.sourceLanguage": "zh-CN",
 	"i18n-ally.namespace": false,
 	"i18n-ally.includeSubfolders": true
 }

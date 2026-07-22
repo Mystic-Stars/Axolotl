@@ -96,6 +96,7 @@ impl InstallJobState {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use chrono::TimeDelta;
 
     fn job_state() -> InstallJobState {
         InstallJobState::new(InstallRequest::CreateInstance {
@@ -115,9 +116,31 @@ mod tests {
             files: 3,
             bytes: Some(300),
         });
+        job.record_event(InstallJobEventKind::ContentFileDownloadAttempt {
+            path: "mods/a.jar".to_string(),
+            bytes_total: Some(100),
+            attempt: 2,
+            max_attempts: 3,
+        });
         job.record_event(InstallJobEventKind::ContentFileCompleted {
             path: "mods/a.jar".to_string(),
             bytes: 100,
+        });
+        job.record_event(InstallJobEventKind::ContentFileDownloadAttempt {
+            path: "mods/manual.jar".to_string(),
+            bytes_total: Some(120),
+            attempt: 3,
+            max_attempts: 3,
+        });
+        job.record_event(InstallJobEventKind::ContentFileSkipped {
+            path: "mods/manual.jar".to_string(),
+            reason: "manual download required".to_string(),
+            project_id: Some("123".to_string()),
+            version_id: Some("456".to_string()),
+            manual_url: Some(
+                "https://www.curseforge.com/minecraft/mc-mods/example"
+                    .to_string(),
+            ),
         });
         job.set_progress(
             InstallPhaseId::DownloadingContent,
@@ -137,7 +160,17 @@ mod tests {
         assert_eq!(summary.files_total, Some(3));
         assert_eq!(summary.bytes_downloaded, 220);
         assert_eq!(summary.bytes_total, Some(300));
-        assert_eq!(job.download_items().len(), 1);
+        let items = job.download_items();
+        assert_eq!(items.len(), 2);
+        assert_eq!(items[0].status, DownloadItemStatus::Completed);
+        assert_eq!(items[0].attempt, Some(2));
+        assert_eq!(items[0].max_attempts, Some(3));
+        assert_eq!(items[1].status, DownloadItemStatus::Skipped);
+        assert_eq!(items[1].attempt, Some(3));
+        assert_eq!(items[1].max_attempts, Some(3));
+        assert_eq!(items[1].project_id.as_deref(), Some("123"));
+        assert_eq!(items[1].version_id.as_deref(), Some("456"));
+        assert!(items[1].manual_url.is_some());
     }
 
     #[test]
@@ -156,6 +189,40 @@ mod tests {
         let summary = job.download_summary();
         assert_eq!(summary.bytes_downloaded, 125);
         assert_eq!(summary.bytes_total, Some(500));
+    }
+
+    #[test]
+    fn download_summary_tracks_metrics_and_java_progress() {
+        let mut job = job_state();
+        job.set_progress(
+            InstallPhaseId::PreparingJava,
+            Some(InstallProgress {
+                current: 1_024,
+                total: 2_048,
+                secondary: None,
+            }),
+            InstallPhaseDetails::Java {
+                major_version: 21,
+                step: InstallJavaStep::Downloading,
+            },
+        );
+        job.events.last_mut().unwrap().at = Utc::now() - TimeDelta::seconds(2);
+        job.record_event(InstallJobEventKind::DownloadMetrics {
+            source: "bmclapi".to_string(),
+            fallback_count: u64::MAX,
+        });
+        job.record_event(InstallJobEventKind::DownloadMetrics {
+            source: "official".to_string(),
+            fallback_count: 1,
+        });
+
+        let summary = job.download_summary();
+        assert_eq!(summary.bytes_downloaded, 1_024);
+        assert_eq!(summary.bytes_total, Some(2_048));
+        assert_eq!(summary.source.as_deref(), Some("official"));
+        assert_eq!(summary.fallback_count, u64::MAX);
+        assert!(summary.speed_bytes_per_second.is_some());
+        assert!(summary.eta_seconds.is_some());
     }
 
     #[test]
@@ -234,13 +301,29 @@ pub enum InstallJobEventKind {
         files: u64,
         bytes: Option<u64>,
     },
+    ContentFileDownloadAttempt {
+        path: String,
+        bytes_total: Option<u64>,
+        attempt: u32,
+        max_attempts: u32,
+    },
     ContentFileSkipped {
         path: String,
         reason: String,
+        #[serde(default)]
+        project_id: Option<String>,
+        #[serde(default)]
+        version_id: Option<String>,
+        #[serde(default)]
+        manual_url: Option<String>,
     },
     ContentFileCompleted {
         path: String,
         bytes: u64,
+    },
+    DownloadMetrics {
+        source: String,
+        fallback_count: u64,
     },
     TargetInstanceDeleted {
         instance_id: String,
@@ -409,9 +492,17 @@ pub enum DownloadItemStatus {
 pub struct DownloadItemSnapshot {
     pub id: String,
     pub name: String,
+    #[serde(default)]
+    pub project_id: Option<String>,
+    #[serde(default)]
+    pub version_id: Option<String>,
     pub status: DownloadItemStatus,
     pub bytes_downloaded: u64,
     pub bytes_total: Option<u64>,
+    #[serde(default)]
+    pub attempt: Option<u32>,
+    #[serde(default)]
+    pub max_attempts: Option<u32>,
     pub error: Option<String>,
     pub manual_url: Option<String>,
 }
@@ -422,6 +513,10 @@ pub struct DownloadJobSummary {
     pub files_total: Option<u64>,
     pub bytes_downloaded: u64,
     pub bytes_total: Option<u64>,
+    pub speed_bytes_per_second: Option<u64>,
+    pub eta_seconds: Option<u64>,
+    pub source: Option<String>,
+    pub fallback_count: u64,
 }
 
 impl InstallJobKind {
@@ -781,34 +876,100 @@ impl InstallJobState {
     }
 
     pub fn download_items(&self) -> Vec<DownloadItemSnapshot> {
-        self.events
-            .iter()
-            .filter_map(|event| match &event.kind {
+        let mut items = Vec::<DownloadItemSnapshot>::new();
+        for event in &self.events {
+            match &event.kind {
+                InstallJobEventKind::ContentFileDownloadAttempt {
+                    path,
+                    bytes_total,
+                    attempt,
+                    max_attempts,
+                } => {
+                    if let Some(item) =
+                        items.iter_mut().find(|item| item.id == *path)
+                    {
+                        item.status = DownloadItemStatus::Downloading;
+                        item.bytes_downloaded = 0;
+                        item.bytes_total = *bytes_total;
+                        item.attempt = Some(*attempt);
+                        item.max_attempts = Some(*max_attempts);
+                        item.error = None;
+                    } else {
+                        items.push(DownloadItemSnapshot {
+                            id: path.clone(),
+                            name: path.clone(),
+                            project_id: None,
+                            version_id: None,
+                            status: DownloadItemStatus::Downloading,
+                            bytes_downloaded: 0,
+                            bytes_total: *bytes_total,
+                            attempt: Some(*attempt),
+                            max_attempts: Some(*max_attempts),
+                            error: None,
+                            manual_url: None,
+                        });
+                    }
+                }
                 InstallJobEventKind::ContentFileCompleted { path, bytes } => {
-                    Some(DownloadItemSnapshot {
-                        id: path.clone(),
-                        name: path.clone(),
-                        status: DownloadItemStatus::Completed,
-                        bytes_downloaded: *bytes,
-                        bytes_total: Some(*bytes),
-                        error: None,
-                        manual_url: None,
-                    })
+                    if let Some(item) =
+                        items.iter_mut().find(|item| item.id == *path)
+                    {
+                        item.status = DownloadItemStatus::Completed;
+                        item.bytes_downloaded = *bytes;
+                        item.bytes_total = Some(*bytes);
+                        item.error = None;
+                    } else {
+                        items.push(DownloadItemSnapshot {
+                            id: path.clone(),
+                            name: path.clone(),
+                            project_id: None,
+                            version_id: None,
+                            status: DownloadItemStatus::Completed,
+                            bytes_downloaded: *bytes,
+                            bytes_total: Some(*bytes),
+                            attempt: None,
+                            max_attempts: None,
+                            error: None,
+                            manual_url: None,
+                        });
+                    }
                 }
-                InstallJobEventKind::ContentFileSkipped { path, reason } => {
-                    Some(DownloadItemSnapshot {
-                        id: path.clone(),
-                        name: path.clone(),
-                        status: DownloadItemStatus::Skipped,
-                        bytes_downloaded: 0,
-                        bytes_total: None,
-                        error: Some(reason.clone()),
-                        manual_url: None,
-                    })
+                InstallJobEventKind::ContentFileSkipped {
+                    path,
+                    reason,
+                    project_id,
+                    version_id,
+                    manual_url,
+                } => {
+                    if let Some(item) =
+                        items.iter_mut().find(|item| item.id == *path)
+                    {
+                        item.status = DownloadItemStatus::Skipped;
+                        item.bytes_downloaded = 0;
+                        item.project_id = project_id.clone();
+                        item.version_id = version_id.clone();
+                        item.error = Some(reason.clone());
+                        item.manual_url = manual_url.clone();
+                    } else {
+                        items.push(DownloadItemSnapshot {
+                            id: path.clone(),
+                            name: path.clone(),
+                            project_id: project_id.clone(),
+                            version_id: version_id.clone(),
+                            status: DownloadItemStatus::Skipped,
+                            bytes_downloaded: 0,
+                            bytes_total: None,
+                            attempt: None,
+                            max_attempts: None,
+                            error: Some(reason.clone()),
+                            manual_url: manual_url.clone(),
+                        });
+                    }
                 }
-                _ => None,
-            })
-            .collect()
+                _ => {}
+            }
+        }
+        items
     }
 
     pub fn download_summary(&self) -> DownloadJobSummary {
@@ -830,6 +991,14 @@ impl InstallJobState {
                 InstallJobEventKind::ContentFileSkipped { .. } => {
                     summary.files_completed += 1;
                 }
+                InstallJobEventKind::DownloadMetrics {
+                    source,
+                    fallback_count,
+                } => {
+                    summary.source = Some(source.clone());
+                    summary.fallback_count =
+                        summary.fallback_count.saturating_add(*fallback_count);
+                }
                 _ => {}
             }
         }
@@ -843,9 +1012,62 @@ impl InstallJobState {
                 }
             } else if self.progress.phase
                 == InstallPhaseId::DownloadingMinecraft
+                || self.progress.phase == InstallPhaseId::DownloadingPackFile
+                || matches!(
+                    &self.progress.details,
+                    InstallPhaseDetails::Java {
+                        step: InstallJavaStep::Downloading,
+                        ..
+                    }
+                )
             {
                 summary.bytes_downloaded = progress.current;
                 summary.bytes_total = Some(progress.total);
+            }
+        }
+        let actively_downloading = matches!(
+            self.progress.phase,
+            InstallPhaseId::DownloadingPackFile
+                | InstallPhaseId::DownloadingContent
+                | InstallPhaseId::DownloadingMinecraft
+        ) || matches!(
+            &self.progress.details,
+            InstallPhaseDetails::Java {
+                step: InstallJavaStep::Downloading,
+                ..
+            }
+        );
+        if actively_downloading && summary.bytes_downloaded > 0 {
+            let phase_started = self.events.iter().rev().find_map(|event| {
+                matches!(
+                    &event.kind,
+                    InstallJobEventKind::PhaseStarted { phase, .. }
+                        if *phase == self.progress.phase
+                )
+                .then_some(event.at)
+            });
+            if let Some(started) = phase_started {
+                let elapsed_ms = Utc::now()
+                    .signed_duration_since(started)
+                    .num_milliseconds()
+                    .max(1) as u64;
+                let speed = summary
+                    .bytes_downloaded
+                    .saturating_mul(1_000)
+                    .checked_div(elapsed_ms)
+                    .unwrap_or(0);
+                if speed > 0 {
+                    summary.speed_bytes_per_second = Some(speed);
+                    summary.eta_seconds =
+                        summary.bytes_total.and_then(|total| {
+                            total
+                                .saturating_sub(summary.bytes_downloaded)
+                                .checked_add(speed - 1)
+                                .and_then(|remaining| {
+                                    remaining.checked_div(speed)
+                                })
+                        });
+                }
             }
         }
         summary

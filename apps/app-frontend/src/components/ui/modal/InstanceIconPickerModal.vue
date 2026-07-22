@@ -110,7 +110,7 @@ async function selectBuiltInIcon(icon: BuiltInInstanceIcon) {
 			icon.id + '.png',
 			Array.from(new Uint8Array(await blob.arrayBuffer())),
 		)
-		finish({ file, path, previewUrl: icon.url })
+		finish({ file, path, previewUrl: icon.url, frameless: true })
 	} catch (error) {
 		handleError(error)
 	} finally {

@@ -5,6 +5,17 @@ export type { LauncherMeta } from './types'
 
 const LAUNCHER_META_BASE_URL = 'https://launcher-meta.modrinth.com'
 
+export const LAUNCHER_META_FORMAT_VERSIONS = {
+	fabric: 0,
+	forge: 0,
+	quilt: 1,
+	neo: 0,
+} as const
+
+export function getLauncherMetaFormatVersion(loader: string): number {
+	return LAUNCHER_META_FORMAT_VERSIONS[loader as keyof typeof LAUNCHER_META_FORMAT_VERSIONS] ?? 0
+}
+
 export class LauncherMetaManifestV0Module extends AbstractModule {
 	public getModuleID(): string {
 		return 'launchermeta_manifest_v0'
@@ -22,7 +33,7 @@ export class LauncherMetaManifestV0Module extends AbstractModule {
 	 */
 	public async getManifest(
 		loader: string,
-		formatVersion = 0,
+		formatVersion = getLauncherMetaFormatVersion(loader),
 	): Promise<LauncherMeta.Manifest.v0.Manifest> {
 		return this.client.request<LauncherMeta.Manifest.v0.Manifest>('/manifest.json', {
 			api: LAUNCHER_META_BASE_URL,

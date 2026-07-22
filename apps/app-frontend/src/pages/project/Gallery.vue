@@ -19,11 +19,7 @@
 			<img
 				class="image"
 				:class="{ 'zoomed-in': zoomedIn }"
-				:src="
-					expandedGalleryItem.raw_url
-						? expandedGalleryItem.raw_url
-						: 'https://cdn.modrinth.com/placeholder-banner.svg'
-				"
+				:src="expandedGalleryItem.raw_url ? expandedGalleryItem.raw_url : expandedGalleryItem.url"
 				:alt="expandedGalleryItem.title ? expandedGalleryItem.title : 'gallery-image'"
 				@click.stop="() => {}"
 			/>
@@ -51,7 +47,7 @@
 								:href="
 									expandedGalleryItem.raw_url
 										? expandedGalleryItem.raw_url
-										: 'https://cdn.modrinth.com/placeholder-banner.svg'
+										: expandedGalleryItem.url
 								"
 							>
 								<ExternalIcon aria-hidden="true" />

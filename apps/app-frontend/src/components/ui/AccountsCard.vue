@@ -352,10 +352,12 @@ const defaultUser = ref<string | undefined>()
 const equippedSkin = ref<Skin | null>(null)
 const headUrlCache = ref(new Map<string, string>())
 const accountHeadUrlCache = ref(new Map<string, string>())
+let refreshGeneration = 0
+let defaultUserUpdateQueue = Promise.resolve()
 const offlineAccountModal = ref<InstanceType<typeof ModalWrapper> | null>(null)
 const offlineUsername = ref('')
 const offlineUsernameValid = computed(() =>
-	/^[A-Za-z0-9_]{3,16}$/.test(offlineUsername.value.trim()),
+	/^[\p{L}\p{N}_]{1,16}$/u.test(offlineUsername.value.trim()),
 )
 const yggdrasilAccountModal = ref<InstanceType<typeof ModalWrapper> | null>(null)
 const yggdrasilProfileModal = ref<InstanceType<typeof ModalWrapper> | null>(null)
@@ -386,46 +388,58 @@ function createSkinHeadDataUrl(textureUrl: string) {
 
 const defaultSteveHeadUrl = createSkinHeadDataUrl(steveSkinTexture)
 
+const ACCOUNT_TYPE_ORDER = {
+	microsoft: 0,
+	yggdrasil: 1,
+	offline: 2,
+} as const
+
 async function refreshValues() {
-	const targetUser = defaultUser.value
-	defaultUser.value = await get_default_user(offline.value).catch(handleError)
-	if (offline.value && defaultUser.value) {
-		await set_default_user(defaultUser.value).catch(handleError)
+	const generation = ++refreshGeneration
+	const selectedUser = await get_default_user(offline.value).catch(handleError)
+	if (generation !== refreshGeneration) return
+
+	defaultUser.value = selectedUser
+	if (offline.value && selectedUser) {
+		await persistDefaultUser(selectedUser)
+		if (generation !== refreshGeneration) return
 	}
 	const userList = await users(offline.value).catch(handleError)
+	if (generation !== refreshGeneration) return
+	// The Rust backend returns a plain array that structurally matches
+	// MinecraftCredential but the TS types from the Tauri IPC bridge do not
+	// carry this refinement. The double cast is deliberate — the shape is
+	// correct and verified at runtime by the backend.
 	accounts.value = Array.isArray(userList)
 		? [...(userList as unknown as MinecraftCredential[])]
 		: []
-	const typeOrder = {
-		microsoft: 0,
-		yggdrasil: 1,
-		offline: 2,
-	} as const
 	accounts.value.sort((a, b) => {
 		const nameCmp = (a.profile?.name ?? '').localeCompare(b.profile?.name ?? '')
 		if (nameCmp !== 0) return nameCmp
 
 		return (
-			(typeOrder[a.account_type as keyof typeof typeOrder] ?? 3) -
-			(typeOrder[b.account_type as keyof typeof typeOrder] ?? 3)
+			(ACCOUNT_TYPE_ORDER[a.account_type as keyof typeof ACCOUNT_TYPE_ORDER] ?? 3) -
+			(ACCOUNT_TYPE_ORDER[b.account_type as keyof typeof ACCOUNT_TYPE_ORDER] ?? 3)
 		)
 	})
-	await renderYggdrasilAccountHeads(accounts.value)
+	await renderAccountHeads(accounts.value)
+	if (generation !== refreshGeneration) return
 	try {
 		const skins = await get_available_skins()
-		if (defaultUser.value !== targetUser) return
+		if (generation !== refreshGeneration) return
 		equippedSkin.value = skins.find((skin) => skin.is_equipped) ?? null
 
 		if (equippedSkin.value) {
 			try {
 				const headUrl = await getPlayerHeadUrl(equippedSkin.value)
+				if (generation !== refreshGeneration) return
 				headUrlCache.value = new Map(headUrlCache.value).set(
 					equippedSkin.value.texture_key,
 					headUrl,
 				)
-				if (defaultUser.value) {
+				if (selectedUser) {
 					accountHeadUrlCache.value = new Map(accountHeadUrlCache.value).set(
-						defaultUser.value,
+						selectedUser,
 						headUrl,
 					)
 				}
@@ -439,13 +453,14 @@ async function refreshValues() {
 }
 
 async function setEquippedSkin(skin: Skin) {
+	const selectedUser = defaultUser.value
 	equippedSkin.value = skin
 
 	try {
 		const headUrl = await getPlayerHeadUrl(skin)
 		headUrlCache.value = new Map(headUrlCache.value).set(skin.texture_key, headUrl)
-		if (defaultUser.value) {
-			accountHeadUrlCache.value = new Map(accountHeadUrlCache.value).set(defaultUser.value, headUrl)
+		if (selectedUser) {
+			accountHeadUrlCache.value = new Map(accountHeadUrlCache.value).set(selectedUser, headUrl)
 		}
 	} catch (error) {
 		console.warn('Failed to get head render for equipped skin:', error)
@@ -474,8 +489,8 @@ const selectedAccount = computed(() =>
 	accounts.value.find((account) => account.profile.id === defaultUser.value),
 )
 
-function getYggdrasilSkin(account: MinecraftCredential | undefined): Skin | undefined {
-	if (account?.account_type !== 'yggdrasil') return undefined
+function getAccountSkin(account: MinecraftCredential | undefined): Skin | undefined {
+	if (!account || account.account_type === 'offline') return undefined
 	const skin =
 		account.profile.skins?.find((skin) => skin.state === 'ACTIVE') ?? account.profile.skins?.[0]
 	if (!skin?.url) return undefined
@@ -489,10 +504,10 @@ function getYggdrasilSkin(account: MinecraftCredential | undefined): Skin | unde
 	}
 }
 
-async function renderYggdrasilAccountHeads(accountList: MinecraftCredential[]) {
+async function renderAccountHeads(accountList: MinecraftCredential[]) {
 	await Promise.all(
 		accountList.map(async (account) => {
-			const skin = getYggdrasilSkin(account)
+			const skin = getAccountSkin(account)
 			if (!skin) return
 
 			try {
@@ -509,31 +524,23 @@ async function renderYggdrasilAccountHeads(accountList: MinecraftCredential[]) {
 }
 
 const avatarUrl = computed(() => {
-	if (selectedAccount.value?.account_type === 'offline') {
-		return defaultSteveHeadUrl
+	if (selectedAccount.value) {
+		const cachedHeadUrl = accountHeadUrlCache.value.get(selectedAccount.value.profile.id)
+		if (cachedHeadUrl) return cachedHeadUrl
 	}
 	if (equippedSkin.value?.texture_key) {
 		const cachedUrl = headUrlCache.value.get(equippedSkin.value.texture_key)
 		if (cachedUrl) {
 			return cachedUrl
 		}
-		if (selectedAccount.value?.account_type === 'yggdrasil') {
-			return accountHeadUrlCache.value.get(selectedAccount.value.profile.id) ?? defaultSteveHeadUrl
-		}
-		return `https://mc-heads.net/avatar/${equippedSkin.value.texture_key}/128`
 	}
-	if (selectedAccount.value?.account_type === 'yggdrasil') {
-		return accountHeadUrlCache.value.get(selectedAccount.value.profile.id) ?? defaultSteveHeadUrl
-	}
-	if (selectedAccount.value?.profile?.id) {
-		return `https://mc-heads.net/avatar/${selectedAccount.value.profile.id}/128`
-	}
-	return axolotlLogo
+	return selectedAccount.value ? defaultSteveHeadUrl : axolotlLogo
 })
 
 function getAccountAvatarUrl(account: MinecraftCredential) {
-	if (account.account_type === 'offline') {
-		return accountHeadUrlCache.value.get(account.profile.id) ?? defaultSteveHeadUrl
+	const cachedHeadUrl = accountHeadUrlCache.value.get(account.profile.id)
+	if (cachedHeadUrl) {
+		return cachedHeadUrl
 	}
 	if (
 		account.profile.id === selectedAccount.value?.profile?.id &&
@@ -544,18 +551,27 @@ function getAccountAvatarUrl(account: MinecraftCredential) {
 			return cachedUrl
 		}
 	}
-	if (account.account_type === 'yggdrasil') {
-		return accountHeadUrlCache.value.get(account.profile.id) ?? defaultSteveHeadUrl
-	}
-	return `https://mc-heads.net/avatar/${account.profile.id}/128`
+	return defaultSteveHeadUrl
+}
+
+function persistDefaultUser(userId: string) {
+	const update = defaultUserUpdateQueue.then(async () => {
+		await set_default_user(userId).catch(handleError)
+	})
+	defaultUserUpdateQueue = update.catch(() => {})
+	return update
 }
 
 async function setAccount(account: MinecraftCredential) {
-	defaultUser.value = account.profile.id
+	const userId = account.profile.id
+	refreshGeneration += 1
+	defaultUser.value = userId
 	equippedSkin.value = null
-	await set_default_user(account.profile.id).catch(handleError)
+
+	await persistDefaultUser(userId)
+	if (defaultUser.value !== userId) return
 	await refreshValues()
-	emit('change')
+	if (defaultUser.value === userId) emit('change')
 }
 
 async function login() {
@@ -907,7 +923,7 @@ const messages = defineMessages({
 	},
 	usernameValidation: {
 		id: 'minecraft-account.offline-modal.username-validation',
-		defaultMessage: 'Use 3–16 letters, numbers, or underscores.',
+		defaultMessage: 'Use 1–16 letters, numbers, or underscores, including Chinese characters.',
 	},
 	createOfflineAccount: {
 		id: 'minecraft-account.offline-modal.create',

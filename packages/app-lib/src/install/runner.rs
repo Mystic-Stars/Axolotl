@@ -279,12 +279,43 @@ async fn prepare_initial_instance(
     match job_state.request.clone() {
         InstallRequest::CreateInstance {
             name,
-            game_version,
-            loader,
-            loader_version,
+            mut game_version,
+            mut loader,
+            mut loader_version,
             icon_path,
             link,
         } => {
+            if let InstanceLink::CurseForgeModpack {
+                project_id,
+                version_id,
+            } = &link
+            {
+                let project_id = project_id.parse::<u32>().map_err(|_| {
+                    ErrorKind::InputError(
+                        "CurseForge project ID is invalid".to_string(),
+                    )
+                })?;
+                let file_id = version_id.parse::<u32>().map_err(|_| {
+                    ErrorKind::InputError(
+                        "CurseForge file ID is invalid".to_string(),
+                    )
+                })?;
+                let target = crate::api::curseforge::get_modpack_target(
+                    project_id, file_id,
+                )
+                .await?;
+                game_version = target.game_version;
+                loader = target.loader;
+                loader_version = target.loader_version;
+                job_state.request = InstallRequest::CreateInstance {
+                    name: name.clone(),
+                    game_version: game_version.clone(),
+                    loader,
+                    loader_version: loader_version.clone(),
+                    icon_path: icon_path.clone(),
+                    link: link.clone(),
+                };
+            }
             let metadata = crate::api::instance::create(
                 name,
                 game_version,
@@ -407,9 +438,7 @@ async fn prepare_initial_instance(
 fn spawn_job(job_id: Uuid) {
     tokio::spawn(async move {
         if let Err(error) = run_job(job_id).await {
-            tracing::error!(
-                "Install job {job_id} failed to update state: {error}"
-            );
+            tracing::error!("Install job {job_id} failed: {error}");
         }
     });
 }

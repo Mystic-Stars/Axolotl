@@ -400,6 +400,7 @@ pub async fn install_minecraft_with_reporter(
     let mut version_info = download::download_version_info(
         &state,
         version,
+        content_set.loader,
         loader_version.as_ref(),
         Some(repairing),
         loading_bar.as_ref(),
@@ -820,6 +821,7 @@ pub async fn launch_minecraft(
         download::load_local_version_info(
             &state,
             version,
+            content_set.loader,
             loader_version.as_ref(),
         )
         .await?
@@ -827,6 +829,7 @@ pub async fn launch_minecraft(
         download::download_version_info(
             &state,
             version,
+            content_set.loader,
             loader_version.as_ref(),
             None,
             None,
@@ -845,6 +848,7 @@ pub async fn launch_minecraft(
             version_info = download::download_version_info(
                 &state,
                 version,
+                content_set.loader,
                 loader_version.as_ref(),
                 Some(true),
                 None,

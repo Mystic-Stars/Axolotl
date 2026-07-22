@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { CopyIcon, EditIcon, PlusIcon, SpinnerIcon, TrashIcon, UploadIcon } from '@modrinth/assets'
 import {
-	Avatar,
 	ButtonStyled,
 	Checkbox,
 	Chips,
@@ -13,10 +12,10 @@ import {
 	useVIntl,
 } from '@modrinth/ui'
 import { useQueryClient } from '@tanstack/vue-query'
-import { convertFileSrc } from '@tauri-apps/api/core'
 import { computed, type Ref, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
+import InstanceIcon from '@/components/ui/InstanceIcon.vue'
 import ConfirmDeleteInstanceModal from '@/components/ui/modal/ConfirmDeleteInstanceModal.vue'
 import { trackEvent } from '@/helpers/analytics'
 import { install_duplicate_instance } from '@/helpers/install'
@@ -318,11 +317,11 @@ const messages = defineMessages({
 							},
 						]"
 					>
-						<Avatar
-							:src="icon ? convertFileSrc(icon) : icon"
+						<InstanceIcon
+							:icon-path="icon"
+							:instance-id="instance.id"
 							size="108px"
 							class="transition-[filter] group-hover:brightness-75"
-							:tint-by="instance.id"
 							no-shadow
 						/>
 						<div

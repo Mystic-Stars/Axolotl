@@ -73,7 +73,7 @@ import SplashScreen from '@/components/ui/SplashScreen.vue'
 import WindowControls from '@/components/ui/WindowControls.vue'
 import { useCheckDisableMouseover } from '@/composables/macCssFix.js'
 import { useNetworkStatus } from '@/composables/useNetworkStatus'
-import { AxolotlBrandConfig, config } from '@/config'
+import { AxolotlBrandConfig, config, getOfficialLabrinthBaseUrl } from '@/config'
 import { debugAnalytics, initAnalytics, trackEvent } from '@/helpers/analytics'
 import { check_reachable } from '@/helpers/auth.js'
 import { get_user, get_version } from '@/helpers/cache.js'
@@ -88,6 +88,7 @@ import {
 	areUpdatesEnabled,
 	checkAppUpdate,
 	enqueueUpdateForInstallation,
+	exportErrorLogs,
 	getOS,
 	getUpdateSize,
 	isDev,
@@ -123,6 +124,7 @@ import { generateSkinPreviews } from './helpers/rendering/batch-skin-renderer'
 import { get_available_capes, get_available_skins } from './helpers/skins'
 import { AppNotificationManager } from './providers/app-notifications'
 import { AppPopupNotificationManager } from './providers/app-popup-notifications'
+import { ModrinthMirrorFallbackFeature } from './providers/modrinth-mirror-fallback'
 
 const themeStore = useTheming()
 const router = useRouter()
@@ -170,6 +172,7 @@ const tauriApiClient = new TauriModrinthClient({
 					}),
 				]
 			: []),
+		new ModrinthMirrorFallbackFeature(),
 		new VerboseLoggingFeature(),
 	],
 })
@@ -332,7 +335,27 @@ const messages = defineMessages({
 		id: 'app.notification.warning',
 		defaultMessage: 'Warning',
 	},
+	exportErrorLogs: {
+		id: 'app.notification.export-error-logs',
+		defaultMessage: 'Export error logs',
+	},
 })
+
+function getErrorNotificationDetails(notification) {
+	const details = [notification.title, notification.text, notification.errorCode].filter(Boolean)
+	if (notification.supportData) {
+		details.push(JSON.stringify(notification.supportData, null, 2))
+	}
+	return details.join('\n\n')
+}
+
+async function exportNotificationErrorLogs(notification) {
+	try {
+		await exportErrorLogs(getErrorNotificationDetails(notification))
+	} catch (error) {
+		handleError(error)
+	}
+}
 
 async function setupApp() {
 	const initialSettings = await getSettings()
@@ -617,7 +640,7 @@ setupAuthProvider(credentials, async (_redirectPath) => {
 
 async function validateSession(sessionToken) {
 	try {
-		const response = await tauriFetch(`${config.labrinthBaseUrl}/v2/user`, {
+		const response = await tauriFetch(`${getOfficialLabrinthBaseUrl()}/v2/user`, {
 			method: 'GET',
 			headers: { Authorization: sessionToken },
 		})
@@ -1391,8 +1414,16 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 		</div>
 	</div>
 	<I18nDebugPanel />
-	<NotificationPanel :has-sidebar="sidebarVisible" />
-	<PopupNotificationPanel :has-sidebar="sidebarVisible" />
+	<NotificationPanel
+		:has-sidebar="sidebarVisible"
+		:on-error-action="exportNotificationErrorLogs"
+		:error-action-label="formatMessage(messages.exportErrorLogs)"
+	/>
+	<PopupNotificationPanel
+		:has-sidebar="sidebarVisible"
+		:on-error-action="exportNotificationErrorLogs"
+		:error-action-label="formatMessage(messages.exportErrorLogs)"
+	/>
 	<CommunityAnnouncementModal ref="communityAnnouncementModal" />
 	<ErrorModal ref="errorModal" />
 	<MinecraftAuthErrorModal ref="minecraftAuthErrorModal" />

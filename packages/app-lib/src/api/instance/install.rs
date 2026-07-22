@@ -31,6 +31,7 @@ pub async fn get_optimal_jre_key(
     let version_info = crate::launcher::download::download_version_info(
         &state,
         version,
+        context.applied_content_set.loader,
         loader_version.as_ref(),
         None,
         None,

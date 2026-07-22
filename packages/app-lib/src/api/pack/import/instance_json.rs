@@ -62,7 +62,7 @@ pub fn detect(path: &Path) -> Option<InstanceInfo> {
             return None;
         }
     };
-    let mut vanilla_name = extract_version(&json);
+    let mut vanilla_name = extract_version(&json, &content);
     if vanilla_name.is_empty() {
         debug!(
             "instance_json: path={} version empty or Unknown",
@@ -95,7 +95,7 @@ fn normalize_version(raw: &str) -> String {
     v.trim().to_string()
 }
 
-fn extract_version(json: &Value) -> String {
+fn extract_version(json: &Value, json_str: &str) -> String {
     // ① PCL download record clientVersion
     if let Some(v) = json.get("clientVersion").and_then(|v| v.as_str()) {
         if !v.is_empty() {
@@ -151,8 +151,9 @@ fn extract_version(json: &Value) -> String {
     }
 
     // ⑥ libraries string regex fallback (Forge/OptiFine/FabricLike lib versions)
-    let content_str = json.to_string();
-    if let Some(v) = extract_version_from_libraries(&content_str) {
+    // Use the original JSON string (from find_json) instead of re-serializing
+    // the parsed Value, which would allocate a fresh string unnecessarily.
+    if let Some(v) = extract_version_from_libraries(json_str) {
         return v;
     }
 

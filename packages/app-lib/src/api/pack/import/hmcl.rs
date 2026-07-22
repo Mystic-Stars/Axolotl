@@ -33,12 +33,18 @@ pub fn get_instances(base_path: &PathBuf) -> Vec<(String, String)> {
 
     let content = match std::fs::read_to_string(&config_path) {
         Ok(c) => c,
-        Err(_) => return Vec::new(),
+        Err(e) => {
+            tracing::warn!("hmcl: failed to read config at {}: {e}", config_path.display());
+            return Vec::new();
+        }
     };
 
     let config: HmclConfig = match serde_json::from_str(&content) {
         Ok(c) => c,
-        Err(_) => return Vec::new(),
+        Err(e) => {
+            tracing::warn!("hmcl: failed to parse config at {}: {e}", config_path.display());
+            return Vec::new();
+        }
     };
 
     let mut instances = Vec::new();
@@ -61,22 +67,9 @@ pub fn get_instance_path(
     base_path: &PathBuf,
     instance_key: &str,
 ) -> Option<String> {
-    let config_path = find_config(base_path)?;
-    let content = std::fs::read_to_string(&config_path).ok()?;
-    let config: HmclConfig = serde_json::from_str(&content).ok()?;
-
-    for (key, entry) in &config.configurations {
-        if key == instance_key {
-            let game_dir = PathBuf::from(&entry.game_dir);
-            let resolved = if game_dir.is_absolute() {
-                game_dir
-            } else {
-                base_path.join(&game_dir)
-            };
-            if resolved.is_dir() {
-                return Some(entry.game_dir.clone());
-            }
-        }
-    }
-    None
+    // Reuse get_instances() to avoid parsing the config file twice.
+    get_instances(base_path)
+        .into_iter()
+        .find(|(key, _)| key == instance_key)
+        .map(|(_, path)| path)
 }

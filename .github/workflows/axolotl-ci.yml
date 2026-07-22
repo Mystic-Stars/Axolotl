@@ -45,4 +45,6 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @modrinth/app-frontend build
+      - name: Test version metadata writes
+        run: cargo test --package theseus writing_version_info_creates_missing_parent_directory
       - run: cargo check --package theseus_gui --features updater

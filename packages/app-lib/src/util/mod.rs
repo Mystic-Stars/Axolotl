@@ -1,4 +1,6 @@
 //! Theseus utility functions
+pub mod download_dns;
+pub mod download_manager;
 pub mod fetch;
 pub mod io;
 pub mod jre;

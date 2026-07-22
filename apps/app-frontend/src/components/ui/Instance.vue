@@ -8,7 +8,6 @@ import {
 	TimerIcon,
 } from '@modrinth/assets'
 import {
-	Avatar,
 	ButtonStyled,
 	commonMessages,
 	defineMessages,
@@ -16,11 +15,11 @@ import {
 	useRelativeTime,
 	useVIntl,
 } from '@modrinth/ui'
-import { convertFileSrc } from '@tauri-apps/api/core'
 import dayjs from 'dayjs'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
+import InstanceIcon from '@/components/ui/InstanceIcon.vue'
 import { useNetworkStatus } from '@/composables/useNetworkStatus'
 import { trackEvent } from '@/helpers/analytics'
 import { process_listener } from '@/helpers/events'
@@ -174,10 +173,10 @@ onUnmounted(() => unlisten())
 			@click="seeInstance"
 			@mouseenter="checkProcess"
 		>
-			<Avatar
+			<InstanceIcon
 				size="48px"
-				:src="instance.icon_path ? convertFileSrc(instance.icon_path) : null"
-				:tint-by="instance.id"
+				:icon-path="instance.icon_path"
+				:instance-id="instance.id"
 				:alt="instance.name"
 			/>
 			<div class="h-full flex items-center font-bold text-contrast leading-normal">
@@ -235,10 +234,10 @@ onUnmounted(() => unlisten())
 			@mouseenter="checkProcess"
 		>
 			<div class="relative flex items-center justify-center">
-				<Avatar
+				<InstanceIcon
 					size="48px"
-					:src="instance.icon_path ? convertFileSrc(instance.icon_path) : null"
-					:tint-by="instance.id"
+					:icon-path="instance.icon_path"
+					:instance-id="instance.id"
 					:alt="instance.name"
 					:class="`transition-all ${modLoading || installing ? `brightness-[0.25] scale-[0.85]` : `group-hover:brightness-75`}`"
 				/>

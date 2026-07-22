@@ -59,6 +59,19 @@
 									<CopyIcon v-else />
 								</button>
 							</ButtonStyled>
+							<ButtonStyled
+								v-if="item.type === 'error' && onErrorAction"
+								circular
+								size="small"
+							>
+								<button
+									v-tooltip="errorActionLabel"
+									:disabled="exporting[item.id]"
+									@click="handleErrorAction(item)"
+								>
+									<DownloadIcon />
+								</button>
+							</ButtonStyled>
 							<ButtonStyled circular size="small">
 								<button v-tooltip="`Dismiss`" @click="dismissNotification(index)">
 									<XIcon />
@@ -85,6 +98,7 @@ import {
 	CheckCircleIcon,
 	CheckIcon,
 	CopyIcon,
+	DownloadIcon,
 	InfoIcon,
 	IssuesIcon,
 	XCircleIcon,
@@ -103,6 +117,7 @@ const notificationLocation = computed(() => notificationManager.getNotificationL
 
 const isIntercomPresent = ref<boolean>(false)
 const copied = ref<Record<string, boolean>>({})
+const exporting = ref<Record<string | number, boolean>>({})
 
 const stopTimer = (n: WebNotification) => notificationManager.stopNotificationTimer(n)
 const setNotificationTimer = (n: WebNotification) => notificationManager.setNotificationTimer(n)
@@ -136,6 +151,17 @@ function copyToClipboard(notif: WebNotification): void {
 	}, 2000)
 }
 
+async function handleErrorAction(notification: WebNotification): Promise<void> {
+	if (!onErrorAction || exporting.value[notification.id]) return
+
+	exporting.value[notification.id] = true
+	try {
+		await onErrorAction(notification)
+	} finally {
+		delete exporting.value[notification.id]
+	}
+}
+
 onMounted(() => {
 	checkIntercomPresence()
 
@@ -155,12 +181,15 @@ onMounted(() => {
 
 const { hasModal: hasModalActive } = useModalStack()
 
-withDefaults(
+const { hasSidebar, onErrorAction, errorActionLabel } = withDefaults(
 	defineProps<{
 		hasSidebar?: boolean
+		onErrorAction?: (notification: WebNotification) => void | Promise<void>
+		errorActionLabel?: string
 	}>(),
 	{
 		hasSidebar: false,
+		errorActionLabel: 'Export error logs',
 	},
 )
 </script>

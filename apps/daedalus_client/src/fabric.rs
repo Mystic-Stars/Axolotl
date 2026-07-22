@@ -4,11 +4,9 @@
 //! version, but Daedalus publishes templated profiles using
 //! `${modrinth.gameVersion}`. A group is a set of Minecraft versions whose
 //! upstream loader profiles have the same structure after the concrete
-//! Minecraft version is replaced with `${modrinth.gameVersion}`. Fabric uses
-//! one universal group, so its public profile paths stay as
-//! `versions/{loader}.json`. Quilt has more than one group: versions before
-//! 26.x include hashed/intermediary libraries, while 26.x versions do not. For
-//! Quilt, Daedalus writes one templated profile per group at
+//! Minecraft version is replaced with `${modrinth.gameVersion}`. Versions
+//! before 26.x include hashed/intermediary libraries, while 26.x versions do
+//! not. Daedalus writes one templated profile per group at
 //! `version-group/{group}/loader-version/{loader}`.
 
 use crate::metadata_groups::{

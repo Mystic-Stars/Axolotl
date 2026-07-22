@@ -5,11 +5,73 @@ use sqlx::{Pool, Sqlite};
 use std::collections::HashMap;
 
 // Types
+#[derive(
+    Serialize, Deserialize, Debug, Clone, Copy, Default, Eq, PartialEq,
+)]
+#[repr(u8)]
+#[serde(rename_all = "snake_case")]
+pub enum DownloadSourceMode {
+    #[default]
+    Auto = 0,
+    OfficialOnly = 1,
+    MirrorPreferred = 2,
+}
+
+impl DownloadSourceMode {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Auto => "auto",
+            Self::OfficialOnly => "official_only",
+            Self::MirrorPreferred => "mirror_preferred",
+        }
+    }
+
+    pub fn from_string(value: &str) -> Self {
+        match value {
+            "official_only" => Self::OfficialOnly,
+            "mirror_preferred" => Self::MirrorPreferred,
+            _ => Self::Auto,
+        }
+    }
+
+    pub(crate) fn from_u8(value: u8) -> Self {
+        match value {
+            1 => Self::OfficialOnly,
+            2 => Self::MirrorPreferred,
+            _ => Self::Auto,
+        }
+    }
+
+    pub(crate) fn prefers_mirror(self, auto_prefers_mirror: bool) -> bool {
+        match self {
+            Self::Auto => auto_prefers_mirror,
+            Self::OfficialOnly => false,
+            Self::MirrorPreferred => true,
+        }
+    }
+}
+
 /// Global Theseus settings
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Settings {
     pub max_concurrent_downloads: usize,
     pub max_concurrent_writes: usize,
+    #[serde(default)]
+    pub auto_concurrent_downloads: bool,
+    #[serde(default)]
+    pub minecraft_metadata_source: DownloadSourceMode,
+    #[serde(default)]
+    pub minecraft_file_source: DownloadSourceMode,
+    #[serde(default)]
+    pub modrinth_source: DownloadSourceMode,
+    #[serde(default)]
+    pub curseforge_source: DownloadSourceMode,
+    #[serde(default, rename = "use_minecraft_mirror", skip_serializing)]
+    legacy_use_minecraft_mirror: Option<bool>,
+    #[serde(default, rename = "use_modrinth_mirror", skip_serializing)]
+    legacy_use_modrinth_mirror: Option<bool>,
+    #[serde(default, rename = "use_curseforge_mirror", skip_serializing)]
+    legacy_use_curseforge_mirror: Option<bool>,
 
     pub theme: Theme,
     pub accent_color: AccentColor,
@@ -82,6 +144,8 @@ impl Settings {
             "
             SELECT
                 max_concurrent_writes, max_concurrent_downloads,
+                auto_concurrent_downloads, minecraft_metadata_source,
+                minecraft_file_source, modrinth_source, curseforge_source,
                 theme, locale, default_page, collapsed_navigation, hide_nametag_skins_page, advanced_rendering, native_decorations,
                 discord_rpc, developer_mode, telemetry, personalized_ads,
                 onboarded,
@@ -101,6 +165,22 @@ impl Settings {
         Ok(Self {
             max_concurrent_downloads: res.max_concurrent_downloads as usize,
             max_concurrent_writes: res.max_concurrent_writes as usize,
+            auto_concurrent_downloads: res.auto_concurrent_downloads == 1,
+            minecraft_metadata_source: DownloadSourceMode::from_string(
+                &res.minecraft_metadata_source,
+            ),
+            minecraft_file_source: DownloadSourceMode::from_string(
+                &res.minecraft_file_source,
+            ),
+            modrinth_source: DownloadSourceMode::from_string(
+                &res.modrinth_source,
+            ),
+            curseforge_source: DownloadSourceMode::from_string(
+                &res.curseforge_source,
+            ),
+            legacy_use_minecraft_mirror: None,
+            legacy_use_modrinth_mirror: None,
+            legacy_use_curseforge_mirror: None,
             theme: Theme::from_string(&res.theme),
             accent_color: AccentColor::from_string(&res.accent_color),
             locale: res.locale,
@@ -163,7 +243,8 @@ impl Settings {
         exec: impl sqlx::Executor<'_, Database = sqlx::Sqlite>,
     ) -> crate::Result<()> {
         let max_concurrent_writes = self.max_concurrent_writes as i32;
-        let max_concurrent_downloads = self.max_concurrent_downloads as i32;
+        let max_concurrent_downloads =
+            self.max_concurrent_downloads.clamp(1, 256) as i32;
         let theme = self.theme.as_str();
         let accent_color = self.accent_color.as_str();
         let default_page = self.default_page.as_str();
@@ -174,6 +255,18 @@ impl Settings {
         let custom_background_opacity =
             self.custom_background_opacity.clamp(10, 100) as i32;
         let version = self.version as i64;
+        let minecraft_metadata_source = self.minecraft_metadata_source.as_str();
+        let minecraft_file_source = self.minecraft_file_source.as_str();
+        let modrinth_source = self.modrinth_source.as_str();
+        let curseforge_source = self.curseforge_source.as_str();
+        let auto_prefers_mirror = self.auto_prefers_mirror();
+        let use_minecraft_mirror = self
+            .minecraft_file_source
+            .prefers_mirror(auto_prefers_mirror);
+        let use_modrinth_mirror =
+            self.modrinth_source.prefers_mirror(auto_prefers_mirror);
+        let use_curseforge_mirror =
+            self.curseforge_source.prefers_mirror(auto_prefers_mirror);
 
         sqlx::query!(
             "
@@ -224,7 +317,15 @@ impl Settings {
                 custom_background_blur = $35,
                 custom_background_opacity = $36,
 
-                version = $37
+                version = $37,
+                auto_concurrent_downloads = $38,
+                minecraft_metadata_source = $39,
+                minecraft_file_source = $40,
+                modrinth_source = $41,
+                curseforge_source = $42,
+                use_minecraft_mirror = $43,
+                use_modrinth_mirror = $44,
+                use_curseforge_mirror = $45
             ",
             max_concurrent_writes,
             max_concurrent_downloads,
@@ -263,11 +364,82 @@ impl Settings {
             custom_background_blur,
             custom_background_opacity,
             version,
+            self.auto_concurrent_downloads,
+            minecraft_metadata_source,
+            minecraft_file_source,
+            modrinth_source,
+            curseforge_source,
+            use_minecraft_mirror,
+            use_modrinth_mirror,
+            use_curseforge_mirror,
         )
         .execute(exec)
         .await?;
 
         Ok(())
+    }
+
+    pub fn effective_max_concurrent_downloads(&self) -> usize {
+        if self.auto_concurrent_downloads {
+            64
+        } else {
+            self.max_concurrent_downloads.clamp(1, 256)
+        }
+    }
+
+    pub(crate) fn apply_legacy_download_source_settings(&mut self) {
+        let has_legacy_settings = self.legacy_use_minecraft_mirror.is_some()
+            || self.legacy_use_modrinth_mirror.is_some()
+            || self.legacy_use_curseforge_mirror.is_some();
+        let has_explicit_source_settings = self.minecraft_metadata_source
+            != DownloadSourceMode::Auto
+            || self.minecraft_file_source != DownloadSourceMode::Auto
+            || self.modrinth_source != DownloadSourceMode::Auto
+            || self.curseforge_source != DownloadSourceMode::Auto;
+        if !has_legacy_settings || has_explicit_source_settings {
+            return;
+        }
+
+        if self.legacy_use_minecraft_mirror == Some(false)
+            && self.legacy_use_modrinth_mirror == Some(false)
+            && self.legacy_use_curseforge_mirror == Some(true)
+        {
+            self.minecraft_metadata_source = DownloadSourceMode::Auto;
+            self.minecraft_file_source = DownloadSourceMode::Auto;
+            self.modrinth_source = DownloadSourceMode::Auto;
+            self.curseforge_source = DownloadSourceMode::Auto;
+            return;
+        }
+
+        if let Some(enabled) = self.legacy_use_minecraft_mirror {
+            let source = legacy_download_source(enabled);
+            self.minecraft_metadata_source = source;
+            self.minecraft_file_source = source;
+        }
+        if let Some(enabled) = self.legacy_use_modrinth_mirror {
+            self.modrinth_source = legacy_download_source(enabled);
+        }
+        if let Some(enabled) = self.legacy_use_curseforge_mirror {
+            self.curseforge_source = legacy_download_source(enabled);
+        }
+    }
+
+    pub(crate) fn auto_prefers_mirror(&self) -> bool {
+        let timezone = std::env::var("TZ").ok().or_else(|| {
+            std::fs::read_link("/etc/localtime")
+                .ok()
+                .map(|path| path.to_string_lossy().into_owned())
+        });
+
+        if let Some(timezone) = timezone {
+            return locale_prefers_mirror(&timezone);
+        }
+
+        locale_prefers_mirror(&self.locale)
+            || ["LC_ALL", "LC_MESSAGES", "LANG"]
+                .into_iter()
+                .filter_map(|key| std::env::var(key).ok())
+                .any(|value| locale_prefers_mirror(&value))
     }
 
     pub async fn migrate(exec: &Pool<Sqlite>) -> crate::Result<()> {
@@ -340,6 +512,25 @@ impl Settings {
         }
 
         Ok(())
+    }
+}
+
+fn locale_prefers_mirror(value: &str) -> bool {
+    let normalized = value.to_ascii_lowercase().replace('_', "-");
+
+    normalized.starts_with("zh-cn")
+        || normalized.starts_with("zh-hans")
+        || normalized.contains("asia/shanghai")
+        || normalized.contains("asia/chongqing")
+        || normalized.contains("asia/harbin")
+        || normalized.contains("asia/urumqi")
+}
+
+fn legacy_download_source(enabled: bool) -> DownloadSourceMode {
+    if enabled {
+        DownloadSourceMode::MirrorPreferred
+    } else {
+        DownloadSourceMode::OfficialOnly
     }
 }
 
@@ -453,5 +644,120 @@ impl DefaultPage {
             "library" => Self::Library,
             _ => Self::Home,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn download_source_mode_uses_stable_wire_values() {
+        assert_eq!(
+            serde_json::to_string(&DownloadSourceMode::Auto).unwrap(),
+            "\"auto\""
+        );
+        assert_eq!(
+            serde_json::to_string(&DownloadSourceMode::OfficialOnly).unwrap(),
+            "\"official_only\""
+        );
+        assert_eq!(
+            serde_json::to_string(&DownloadSourceMode::MirrorPreferred)
+                .unwrap(),
+            "\"mirror_preferred\""
+        );
+    }
+
+    #[test]
+    fn auto_source_detection_distinguishes_mainland_locales() {
+        assert!(locale_prefers_mirror("zh-CN"));
+        assert!(locale_prefers_mirror("zh_Hans"));
+        assert!(locale_prefers_mirror("Asia/Shanghai"));
+        assert!(!locale_prefers_mirror("zh-TW"));
+        assert!(!locale_prefers_mirror("en-US"));
+    }
+
+    #[tokio::test]
+    async fn legacy_mirror_settings_keep_their_previous_intent() {
+        let pool = sqlx::sqlite::SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect("sqlite::memory:")
+            .await
+            .unwrap();
+        sqlx::migrate!().run(&pool).await.unwrap();
+        let settings = Settings::get(&pool).await.unwrap();
+        assert!(settings.auto_concurrent_downloads);
+        assert_eq!(
+            settings.minecraft_metadata_source,
+            DownloadSourceMode::Auto
+        );
+        assert_eq!(settings.minecraft_file_source, DownloadSourceMode::Auto);
+        assert_eq!(settings.modrinth_source, DownloadSourceMode::Auto);
+        assert_eq!(settings.curseforge_source, DownloadSourceMode::Auto);
+        let mut legacy = serde_json::to_value(settings).unwrap();
+        let object = legacy.as_object_mut().unwrap();
+        object.remove("minecraft_metadata_source");
+        object.remove("minecraft_file_source");
+        object.remove("modrinth_source");
+        object.remove("curseforge_source");
+        object.insert("use_minecraft_mirror".to_string(), true.into());
+        object.insert("use_modrinth_mirror".to_string(), false.into());
+        object.insert("use_curseforge_mirror".to_string(), false.into());
+
+        let mut migrated: Settings = serde_json::from_value(legacy).unwrap();
+        migrated.apply_legacy_download_source_settings();
+
+        assert_eq!(
+            migrated.minecraft_metadata_source,
+            DownloadSourceMode::MirrorPreferred
+        );
+        assert_eq!(
+            migrated.minecraft_file_source,
+            DownloadSourceMode::MirrorPreferred
+        );
+        assert_eq!(migrated.modrinth_source, DownloadSourceMode::OfficialOnly);
+        assert_eq!(
+            migrated.curseforge_source,
+            DownloadSourceMode::OfficialOnly
+        );
+    }
+
+    #[tokio::test]
+    async fn download_source_reset_migration_sets_all_sources_to_auto() {
+        let pool = sqlx::sqlite::SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect("sqlite::memory:")
+            .await
+            .unwrap();
+        sqlx::migrate!().run(&pool).await.unwrap();
+        sqlx::query(
+            "
+            UPDATE settings
+            SET
+                minecraft_metadata_source = 'official_only',
+                minecraft_file_source = 'mirror_preferred',
+                modrinth_source = 'official_only',
+                curseforge_source = 'mirror_preferred'
+            ",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+        sqlx::query(include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/migrations/20260721120000_reset-download-sources-to-auto.sql"
+        )))
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        let settings = Settings::get(&pool).await.unwrap();
+        assert_eq!(
+            settings.minecraft_metadata_source,
+            DownloadSourceMode::Auto
+        );
+        assert_eq!(settings.minecraft_file_source, DownloadSourceMode::Auto);
+        assert_eq!(settings.modrinth_source, DownloadSourceMode::Auto);
+        assert_eq!(settings.curseforge_source, DownloadSourceMode::Auto);
     }
 }

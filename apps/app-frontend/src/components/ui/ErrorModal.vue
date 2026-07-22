@@ -2,6 +2,7 @@
 import {
 	CheckIcon,
 	CopyIcon,
+	DownloadIcon,
 	DropdownIcon,
 	HammerIcon,
 	LogInIcon,
@@ -26,6 +27,7 @@ import { trackEvent } from '@/helpers/analytics'
 import { login as login_flow, set_default_user } from '@/helpers/auth.js'
 import { install_existing_instance } from '@/helpers/install'
 import { cancel_directory_change } from '@/helpers/settings.ts'
+import { exportErrorLogs } from '@/helpers/utils'
 import { handleSevereError } from '@/store/error.js'
 
 const { handleError } = injectNotificationManager()
@@ -159,6 +161,7 @@ const messages = defineMessages({
 	getSupport: { id: 'app.error.get-support', defaultMessage: 'Get support' },
 	debugInformation: { id: 'app.error.debug-information', defaultMessage: 'Debug information' },
 	copyDebugInfo: { id: 'app.error.copy-debug-info', defaultMessage: 'Copy debug information' },
+	exportLogs: { id: 'app.error.export-logs', defaultMessage: 'Export error logs' },
 	noErrorMessage: { id: 'app.error.no-error-message', defaultMessage: 'No error message.' },
 })
 
@@ -293,6 +296,19 @@ async function copyToClipboard(text) {
 		copied.value = false
 	}, 3000)
 }
+
+const exportingLogs = ref(false)
+
+async function exportLogs() {
+	exportingLogs.value = true
+	try {
+		await exportErrorLogs(debugInfo.value)
+	} catch (err) {
+		handleError(err)
+	} finally {
+		exportingLogs.value = false
+	}
+}
 </script>
 
 <template>
@@ -415,6 +431,11 @@ async function copyToClipboard(text) {
 					<a :href="supportLink" @click="errorModal.hide()">
 						<ChatIcon /> {{ formatMessage(messages.getSupport) }}
 					</a>
+				</ButtonStyled>
+				<ButtonStyled>
+					<button :disabled="exportingLogs" @click="exportLogs">
+						<DownloadIcon /> {{ formatMessage(messages.exportLogs) }}
+					</button>
 				</ButtonStyled>
 				<ButtonStyled v-if="closable">
 					<button @click="errorModal.hide()">

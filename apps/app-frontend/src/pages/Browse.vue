@@ -76,6 +76,7 @@ import {
 	get as getInstance,
 	get_installed_project_ids as getInstalledProjectIds,
 } from '@/helpers/instance'
+import { isBuiltInInstanceIcon } from '@/helpers/instance-icon-frame'
 import { get_loader_versions as getLoaderManifest } from '@/helpers/metadata'
 import { get as getSettings, set as setSettings } from '@/helpers/settings.ts'
 import { get_categories, get_game_versions, get_loaders } from '@/helpers/tags'
@@ -775,6 +776,7 @@ const installContext = computed(() => {
 			loader: instance.value.loader,
 			gameVersion: instance.value.game_version,
 			iconSrc: instance.value.icon_path ? convertFileSrc(instance.value.icon_path) : null,
+			iconFrameless: isBuiltInInstanceIcon(instance.value.icon_path),
 			backUrl: `/instance/${encodeURIComponent(instance.value.id)}${isFromWorlds.value ? '/worlds' : ''}`,
 			backLabel: formatMessage(messages.backToInstance),
 			heading: formatMessage(

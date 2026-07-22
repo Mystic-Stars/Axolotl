@@ -158,10 +158,16 @@ export interface InstallJobSnapshot {
 		files_total?: number | null
 		bytes_downloaded: number
 		bytes_total?: number | null
+		speed_bytes_per_second?: number | null
+		eta_seconds?: number | null
+		source?: string | null
+		fallback_count: number
 	}
 	items: Array<{
 		id: string
 		name: string
+		project_id?: string | null
+		version_id?: string | null
 		status:
 			| 'queued'
 			| 'downloading'
@@ -174,6 +180,8 @@ export interface InstallJobSnapshot {
 			| 'canceled'
 		bytes_downloaded: number
 		bytes_total?: number | null
+		attempt?: number | null
+		max_attempts?: number | null
 		error?: string | null
 		manual_url?: string | null
 	}>

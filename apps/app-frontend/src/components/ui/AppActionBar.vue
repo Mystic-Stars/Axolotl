@@ -170,6 +170,13 @@ interface RunningProcess {
 	instance: GameInstance
 }
 
+interface LoadingEventPayload {
+	event: LoadingBar['bar_type']
+	loader_uuid: string
+	fraction: number | null
+	message: string
+}
+
 const messages = defineMessages({
 	offline: {
 		id: 'app.action-bar.offline',
@@ -210,6 +217,10 @@ const messages = defineMessages({
 	downloadingJava: {
 		id: 'app.action-bar.downloading-java',
 		defaultMessage: 'Downloading Java {version}',
+	},
+	downloadingModpack: {
+		id: 'app.downloads.phase.downloading-pack-file',
+		defaultMessage: 'Downloading modpack',
 	},
 	downloads: {
 		id: 'app.action-bar.downloads',
@@ -417,6 +428,9 @@ function formatLoadingBars(loadingBar: LoadingBar): LoadingBar {
 			version: formatted.bar_type.version,
 		})
 	}
+	if (formatted.bar_type?.type === 'pack_file_download') {
+		formatted.message = formatMessage(messages.downloadingModpack)
+	}
 	if (formatted.bar_type?.instance_id) {
 		formatted.title = formatted.bar_type.instance_name ?? formatted.bar_type.instance_id
 	}
@@ -426,25 +440,57 @@ function formatLoadingBars(loadingBar: LoadingBar): LoadingBar {
 	return formatted
 }
 
+function isVisibleLoadingBar(loadingBar: LoadingBar): boolean {
+	return (
+		loadingBar.bar_type?.type !== 'launcher_update' &&
+		[
+			'java_download',
+			'pack_file_download',
+			'pack_download',
+			'minecraft_download',
+			'copy_instance',
+		].includes(loadingBar.bar_type?.type ?? '')
+	)
+}
+
+function applyLoadingEvent(payload: LoadingEventPayload): boolean {
+	const key = payload.loader_uuid
+	const index = currentLoadingBars.value.findIndex((bar) => getLoadingBarKey(bar) === key)
+
+	if (payload.fraction === null) {
+		if (index >= 0) {
+			currentLoadingBars.value.splice(index, 1)
+			const { [key]: _removedIcon, ...remainingIcons } = currentLoadingBarIconUrls.value
+			currentLoadingBarIconUrls.value = remainingIcons
+		}
+		return false
+	}
+
+	const loadingBar = formatLoadingBars({
+		loading_bar_uuid: payload.loader_uuid,
+		message: payload.message,
+		current: payload.fraction,
+		total: 1,
+		bar_type: payload.event,
+	})
+	if (!isVisibleLoadingBar(loadingBar)) return false
+
+	if (index >= 0) {
+		currentLoadingBars.value.splice(index, 1, loadingBar)
+	} else {
+		currentLoadingBars.value.push(loadingBar)
+	}
+	currentLoadingBarIconUrls.value[key] = getDisplayIconUrl(payload.event?.icon)
+	return index < 0
+}
+
 async function refreshLoadingBars() {
 	const bars: Record<string, LoadingBar> = await progress_bars_list().catch((error) => {
 		handleError(error)
 		return {}
 	})
 
-	currentLoadingBars.value = Object.values(bars)
-		.map(formatLoadingBars)
-		.filter(
-			(bar) =>
-				bar?.bar_type?.type !== 'launcher_update' &&
-				![
-					'java_download',
-					'pack_file_download',
-					'pack_download',
-					'minecraft_download',
-					'copy_instance',
-				].includes(bar?.bar_type?.type ?? ''),
-		)
+	currentLoadingBars.value = Object.values(bars).map(formatLoadingBars).filter(isVisibleLoadingBar)
 
 	const instanceIds = Array.from(
 		new Set(
@@ -490,8 +536,14 @@ const installJobNotifications = await useInstallJobNotifications({
 
 await refreshLoadingBars()
 
-const unlistenLoading = await loading_listener(async () => {
-	await refreshLoadingBars()
+const unlistenLoading = await loading_listener((payload: LoadingEventPayload) => {
+	const isNewBar = applyLoadingEvent(payload)
+	if (isNewBar) {
+		removeNotification()
+		updateNotification(true)
+	} else {
+		updateNotification()
+	}
 })
 
 function goToDownloads() {

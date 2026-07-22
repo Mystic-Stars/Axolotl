@@ -7,6 +7,8 @@ export interface PickedFile {
 	path?: string
 	/** URL suitable for display (blob URL on web, convertFileSrc URL on Tauri) */
 	previewUrl: string
+	/** Whether the image should be displayed without the standard avatar frame */
+	frameless?: boolean
 }
 
 export interface PickedModpackFile extends Omit<PickedFile, 'file'> {

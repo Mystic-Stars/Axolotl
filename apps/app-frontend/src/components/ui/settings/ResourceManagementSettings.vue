@@ -1,7 +1,12 @@
 <script setup>
-import { BoxIcon, FolderOpenIcon, FolderSearchIcon, TrashIcon } from '@modrinth/assets'
+import {
+	BoxIcon,
+	FolderOpenIcon,
+	FolderSearchIcon,
+} from '@modrinth/assets'
 import {
 	ButtonStyled,
+	Combobox,
 	defineMessages,
 	injectNotificationManager,
 	Slider,
@@ -9,7 +14,7 @@ import {
 	useVIntl,
 } from '@modrinth/ui'
 import { open } from '@tauri-apps/plugin-dialog'
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 
 import ConfirmModalWrapper from '@/components/ui/modal/ConfirmModalWrapper.vue'
 import { purge_cache_types } from '@/helpers/cache.js'
@@ -50,6 +55,63 @@ const messages = defineMessages({
 		defaultMessage:
 			'Axolotl Launcher caches data to speed up loading. Purging it forces the app to reload data and may temporarily slow the app down.',
 	},
+	downloadMirrors: {
+		id: 'app.settings.resources.download-mirrors',
+		defaultMessage: 'Download sources',
+	},
+	downloadMirrorsDescription: {
+		id: 'app.settings.resources.download-mirrors-description',
+		defaultMessage:
+			'Automatic mode chooses between official and mirror sources based on your local environment and recent connection quality.',
+	},
+	automaticSource: {
+		id: 'app.settings.resources.source.automatic',
+		defaultMessage: 'Automatic (recommended)',
+	},
+	officialSource: {
+		id: 'app.settings.resources.source.official',
+		defaultMessage: 'Prefer official sources',
+	},
+	openBmclApiSource: {
+		id: 'app.settings.resources.source.open-bmcl-api',
+		defaultMessage: 'Prefer OpenBMCLAPI',
+	},
+	mcimSource: {
+		id: 'app.settings.resources.source.mcim',
+		defaultMessage: 'Prefer MCIM',
+	},
+	minecraftMetadataSource: {
+		id: 'app.settings.resources.minecraft-metadata-source',
+		defaultMessage: 'Minecraft metadata',
+	},
+	minecraftMetadataSourceDescription: {
+		id: 'app.settings.resources.minecraft-metadata-source-description',
+		defaultMessage: 'Version manifests and metadata for Minecraft and supported mod loaders.',
+	},
+	minecraftFileSource: {
+		id: 'app.settings.resources.minecraft-file-source',
+		defaultMessage: 'Minecraft files, loaders, and Java',
+	},
+	minecraftFileSourceDescription: {
+		id: 'app.settings.resources.minecraft-file-source-description',
+		defaultMessage: 'Game files, assets, libraries, mod loaders, and Java runtimes.',
+	},
+	modrinthMirror: {
+		id: 'app.settings.resources.modrinth-mirror',
+		defaultMessage: 'Modrinth',
+	},
+	modrinthMirrorDescription: {
+		id: 'app.settings.resources.modrinth-mirror-description',
+		defaultMessage: 'Modrinth public API requests and file downloads.',
+	},
+	curseforgeMirror: {
+		id: 'app.settings.resources.curseforge-mirror',
+		defaultMessage: 'CurseForge',
+	},
+	curseforgeMirrorDescription: {
+		id: 'app.settings.resources.curseforge-mirror-description',
+		defaultMessage: 'CurseForge public API requests and file downloads.',
+	},
 	maximumDownloads: {
 		id: 'app.settings.resources.maximum-downloads',
 		defaultMessage: 'Maximum concurrent downloads',
@@ -57,7 +119,11 @@ const messages = defineMessages({
 	maximumDownloadsDescription: {
 		id: 'app.settings.resources.maximum-downloads-description',
 		defaultMessage:
-			'The maximum number of files the launcher can download at the same time. Use a lower value on a poor internet connection. An app restart is required.',
+			'Automatic mode uses 64 concurrent downloads. Manual changes apply immediately.',
+	},
+	manualConcurrency: {
+		id: 'app.settings.resources.concurrency.manual',
+		defaultMessage: 'Manual',
 	},
 	maximumWrites: {
 		id: 'app.settings.resources.maximum-writes',
@@ -82,6 +148,54 @@ const messages = defineMessages({
 			'Backups of important app data are stored here in case you need to recover them later.',
 	},
 })
+
+function downloadSourceModel(setting) {
+	return computed({
+		get: () => settings.value[setting],
+		set: (source) => {
+			settings.value[setting] = source
+		},
+	})
+}
+
+const minecraftMetadataSource = downloadSourceModel('minecraft_metadata_source')
+const minecraftFileSource = downloadSourceModel('minecraft_file_source')
+const modrinthDownloadSource = downloadSourceModel('modrinth_source')
+const curseforgeDownloadSource = downloadSourceModel('curseforge_source')
+const automaticSourceOption = computed(() => ({
+	value: 'auto',
+	label: formatMessage(messages.automaticSource),
+}))
+const officialSourceOption = computed(() => ({
+	value: 'official_only',
+	label: formatMessage(messages.officialSource),
+}))
+const minecraftSourceOptions = computed(() => [
+	automaticSourceOption.value,
+	officialSourceOption.value,
+	{ value: 'mirror_preferred', label: formatMessage(messages.openBmclApiSource) },
+])
+const mcimSourceOptions = computed(() => [
+	automaticSourceOption.value,
+	officialSourceOption.value,
+	{ value: 'mirror_preferred', label: formatMessage(messages.mcimSource) },
+])
+const downloadConcurrencyMode = computed({
+	get: () => (settings.value.auto_concurrent_downloads ? 'auto' : 'manual'),
+	set: (mode) => {
+		settings.value.auto_concurrent_downloads = mode === 'auto'
+	},
+})
+const downloadConcurrencyOptions = computed(() => [
+	{
+		value: 'auto',
+		label: formatMessage(messages.automaticSource),
+	},
+	{
+		value: 'manual',
+		label: formatMessage(messages.manualConcurrency),
+	},
+])
 
 watch(
 	settings,
@@ -194,15 +308,88 @@ async function findLauncherDir() {
 			</p>
 		</div>
 
+		<div class="flex flex-col gap-3">
+			<div>
+				<h2 class="m-0 text-lg font-semibold text-contrast mt-4">
+					{{ formatMessage(messages.downloadMirrors) }}
+				</h2>
+				<p class="m-0 leading-tight text-secondary">
+					{{ formatMessage(messages.downloadMirrorsDescription) }}
+				</p>
+			</div>
+
+			<div class="flex items-center justify-between gap-4">
+				<div class="flex flex-col gap-1">
+					<h3 class="m-0 text-base font-semibold text-contrast">
+						{{ formatMessage(messages.minecraftMetadataSource) }}
+					</h3>
+					<p class="m-0 leading-tight text-secondary">
+						{{ formatMessage(messages.minecraftMetadataSourceDescription) }}
+					</p>
+				</div>
+				<div class="w-48 shrink-0">
+					<Combobox v-model="minecraftMetadataSource" :options="minecraftSourceOptions" />
+				</div>
+			</div>
+
+			<div class="flex items-center justify-between gap-4">
+				<div class="flex flex-col gap-1">
+					<h3 class="m-0 text-base font-semibold text-contrast">
+						{{ formatMessage(messages.minecraftFileSource) }}
+					</h3>
+					<p class="m-0 leading-tight text-secondary">
+						{{ formatMessage(messages.minecraftFileSourceDescription) }}
+					</p>
+				</div>
+				<div class="w-48 shrink-0">
+					<Combobox v-model="minecraftFileSource" :options="minecraftSourceOptions" />
+				</div>
+			</div>
+
+			<div class="flex items-center justify-between gap-4">
+				<div class="flex flex-col gap-1">
+					<h3 class="m-0 text-base font-semibold text-contrast">
+						{{ formatMessage(messages.modrinthMirror) }}
+					</h3>
+					<p class="m-0 leading-tight text-secondary">
+						{{ formatMessage(messages.modrinthMirrorDescription) }}
+					</p>
+				</div>
+				<div class="w-48 shrink-0">
+					<Combobox v-model="modrinthDownloadSource" :options="mcimSourceOptions" />
+				</div>
+			</div>
+
+			<div class="flex items-center justify-between gap-4">
+				<div class="flex flex-col gap-1">
+					<h3 class="m-0 text-base font-semibold text-contrast">
+						{{ formatMessage(messages.curseforgeMirror) }}
+					</h3>
+					<p class="m-0 leading-tight text-secondary">
+						{{ formatMessage(messages.curseforgeMirrorDescription) }}
+					</p>
+				</div>
+				<div class="w-48 shrink-0">
+					<Combobox v-model="curseforgeDownloadSource" :options="mcimSourceOptions" />
+				</div>
+			</div>
+		</div>
+
 		<div class="flex flex-col gap-2.5">
-			<h2 class="m-0 text-lg font-semibold text-contrast mt-4">
-				{{ formatMessage(messages.maximumDownloads) }}
-			</h2>
+			<div class="flex items-center justify-between gap-4 mt-4">
+				<h2 class="m-0 text-lg font-semibold text-contrast">
+					{{ formatMessage(messages.maximumDownloads) }}
+				</h2>
+				<div class="w-48 shrink-0">
+					<Combobox v-model="downloadConcurrencyMode" :options="downloadConcurrencyOptions" />
+				</div>
+			</div>
 			<Slider
+				v-if="!settings.auto_concurrent_downloads"
 				id="max-downloads"
 				v-model="settings.max_concurrent_downloads"
 				:min="1"
-				:max="10"
+				:max="256"
 				:step="1"
 			/>
 			<p class="m-0 leading-tight text-secondary">

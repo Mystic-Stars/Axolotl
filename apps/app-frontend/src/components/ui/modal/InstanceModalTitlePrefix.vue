@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import { ChevronRightIcon } from '@modrinth/assets'
-import { Avatar } from '@modrinth/ui'
-import { convertFileSrc } from '@tauri-apps/api/core'
 
+import InstanceIcon from '@/components/ui/InstanceIcon.vue'
 import type { GameInstance } from '@/helpers/types'
 
 defineProps<{
@@ -11,11 +10,7 @@ defineProps<{
 </script>
 <template>
 	<span class="flex items-center gap-2 text-lg font-semibold text-primary">
-		<Avatar
-			:src="instance.icon_path ? convertFileSrc(instance.icon_path) : undefined"
-			size="24px"
-			:tint-by="instance.id"
-		/>
+		<InstanceIcon :icon-path="instance.icon_path" :instance-id="instance.id" size="24px" />
 		{{ instance.name }} <ChevronRightIcon />
 	</span>
 </template>

@@ -300,13 +300,13 @@ impl OnlineProfileCacheIntent {
 impl Credentials {
     pub fn offline(username: &str) -> crate::Result<Self> {
         let username = username.trim();
-        if !(3..=16).contains(&username.len())
-            || !username
-                .bytes()
-                .all(|byte| byte.is_ascii_alphanumeric() || byte == b'_')
+        if !(1..=16).contains(&username.chars().count())
+            || !username.chars().all(|character| {
+                character.is_alphanumeric() || character == '_'
+            })
         {
             return Err(ErrorKind::InputError(
-                "Minecraft usernames must be 3-16 characters and contain only letters, numbers, and underscores"
+                "Minecraft usernames must be 1-16 characters and contain only letters, numbers, and underscores"
                     .to_string(),
             )
             .as_error());
@@ -942,9 +942,17 @@ mod offline_account_tests {
     fn validates_offline_username() {
         assert!(Credentials::offline("abc").is_ok());
         assert!(Credentials::offline("Player_123").is_ok());
-        assert!(Credentials::offline("ab").is_err());
+        assert!(Credentials::offline("玩家").is_ok());
+        assert!(Credentials::offline("玩家_123").is_ok());
+        assert!(Credentials::offline("").is_err());
         assert!(Credentials::offline("player name").is_err());
-        assert!(Credentials::offline("玩家").is_err());
+        assert!(Credentials::offline("玩家!").is_err());
+        assert!(
+            Credentials::offline(
+                "这是一个超过十六个字符长度的中文离线玩家名称"
+            )
+            .is_err()
+        );
     }
 
     #[tokio::test]

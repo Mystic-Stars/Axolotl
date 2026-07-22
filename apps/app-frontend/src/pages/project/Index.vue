@@ -376,6 +376,7 @@ import {
 	kill,
 	list as listInstances,
 } from '@/helpers/instance'
+import { isBuiltInInstanceIcon } from '@/helpers/instance-icon-frame'
 import { get_loader_versions as getLoaderManifest } from '@/helpers/metadata'
 import { get_by_instance_id } from '@/helpers/process'
 import { get_categories, get_game_versions, get_loaders } from '@/helpers/tags'
@@ -584,6 +585,7 @@ const projectInstallContext = computed(() => {
 			loader: instance.value.loader,
 			gameVersion: instance.value.game_version,
 			iconSrc: instance.value.icon_path ? convertFileSrc(instance.value.icon_path) : null,
+			iconFrameless: isBuiltInInstanceIcon(instance.value.icon_path),
 			backUrl: projectBrowseBackUrl.value,
 			backLabel: formatMessage(messages.backToBrowse),
 			heading: formatMessage(messages.installContentToInstance),

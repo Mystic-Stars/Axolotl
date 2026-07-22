@@ -114,6 +114,18 @@
 								}}</span>
 							</template>
 						</div>
+						<div
+							v-if="downloadTelemetry(job).length"
+							class="mt-1 flex flex-wrap items-center gap-2 text-sm text-secondary"
+						>
+							<template
+								v-for="(metric, index) in downloadTelemetry(job)"
+								:key="`${index}-${metric}`"
+							>
+								<BulletDivider v-if="index > 0" />
+								<span>{{ metric }}</span>
+							</template>
+						</div>
 					</div>
 					<div class="flex flex-wrap items-center gap-2">
 						<ButtonStyled v-if="canCancel(job)" color="red" type="outlined" size="small">
@@ -198,11 +210,32 @@
 						<template #cell-name="{ row }">
 							<div class="min-w-0 py-2">
 								<div class="truncate font-medium text-contrast">{{ row.name }}</div>
-								<div v-if="row.error" class="truncate text-xs text-red">{{ row.error }}</div>
+								<div
+									v-if="row.project_id && row.version_id"
+									class="truncate text-xs text-secondary"
+								>
+									{{
+										formatMessage(messages.projectFile, {
+											projectId: row.project_id,
+											fileId: row.version_id,
+										})
+									}}
+								</div>
+								<div v-if="row.error" class="truncate text-xs text-red">
+									{{ itemError(row) }}
+								</div>
+								<ButtonStyled v-if="row.manual_url" type="transparent" size="small">
+									<button class="!px-0" @click.stop="openManualDownload(row)">
+										<ExternalIcon />{{ formatMessage(messages.manualDownload) }}
+									</button>
+								</ButtonStyled>
 							</div>
 						</template>
 						<template #cell-status="{ row }">
 							<Badge :color="itemStatusColor(row.status)" :type="statusLabel(row.status)" />
+						</template>
+						<template #cell-attempts="{ row }">
+							<span>{{ itemAttempts(row) }}</span>
 						</template>
 						<template #cell-progress="{ row }">
 							<span>{{ itemProgress(row) }}</span>
@@ -275,6 +308,7 @@ import {
 	useVIntl,
 } from '@modrinth/ui'
 import { convertFileSrc } from '@tauri-apps/api/core'
+import { openUrl } from '@tauri-apps/plugin-opener'
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
@@ -352,7 +386,49 @@ const messages = defineMessages({
 	notAvailable: { id: 'app.downloads.not-available', defaultMessage: '—' },
 	itemName: { id: 'app.downloads.item-name', defaultMessage: 'File' },
 	itemStatus: { id: 'app.downloads.item-status', defaultMessage: 'Status' },
+	itemAttempts: { id: 'app.downloads.item-attempts', defaultMessage: 'Attempts' },
+	attemptProgress: {
+		id: 'app.downloads.item-attempt-progress',
+		defaultMessage: '{attempt}/{maxAttempts}',
+	},
 	itemProgress: { id: 'app.downloads.item-progress', defaultMessage: 'Downloaded' },
+	manualDownload: {
+		id: 'app.curseforge.manual-downloads.open',
+		defaultMessage: 'Open',
+	},
+	manualDownloadRequired: {
+		id: 'app.downloads.manual-download-required',
+		defaultMessage: 'CurseForge requires this file to be downloaded manually.',
+	},
+	projectFile: {
+		id: 'app.curseforge.manual-downloads.project-file',
+		defaultMessage: 'Project {projectId} · File {fileId}',
+	},
+	downloadSource: { id: 'app.downloads.download-source', defaultMessage: 'Source: {source}' },
+	downloadSourceOfficial: { id: 'app.downloads.source.official', defaultMessage: 'Official' },
+	downloadSourceBmclapi: { id: 'app.downloads.source.bmclapi', defaultMessage: 'OpenBMCLAPI' },
+	downloadSourceMcim: { id: 'app.downloads.source.mcim', defaultMessage: 'MCIM' },
+	downloadSourceAlternate: {
+		id: 'app.downloads.source.alternate',
+		defaultMessage: 'Alternate source',
+	},
+	downloadSpeed: { id: 'app.downloads.download-speed', defaultMessage: 'Speed: {speed}/s' },
+	downloadEtaSeconds: {
+		id: 'app.downloads.download-eta-seconds',
+		defaultMessage: '{seconds}s remaining',
+	},
+	downloadEtaMinutes: {
+		id: 'app.downloads.download-eta-minutes',
+		defaultMessage: '{minutes}m remaining',
+	},
+	downloadEtaHours: {
+		id: 'app.downloads.download-eta-hours',
+		defaultMessage: '{hours}h {minutes}m remaining',
+	},
+	downloadFallbacks: {
+		id: 'app.downloads.download-fallbacks',
+		defaultMessage: '{count} fallbacks',
+	},
 })
 
 const statusMessages = defineMessages({
@@ -438,9 +514,10 @@ const downloadTabs = computed(() => [
 	{ href: 'history', label: formatMessage(messages.history), icon: ClockIcon },
 ])
 const itemColumns = computed<TableColumn[]>(() => [
-	{ key: 'name', label: formatMessage(messages.itemName), width: '58%' },
-	{ key: 'status', label: formatMessage(messages.itemStatus), width: '22%' },
-	{ key: 'progress', label: formatMessage(messages.itemProgress), width: '20%', align: 'right' },
+	{ key: 'name', label: formatMessage(messages.itemName), width: '48%' },
+	{ key: 'status', label: formatMessage(messages.itemStatus), width: '18%' },
+	{ key: 'attempts', label: formatMessage(messages.itemAttempts), width: '16%' },
+	{ key: 'progress', label: formatMessage(messages.itemProgress), width: '18%', align: 'right' },
 ])
 const sourceJobs = computed(() =>
 	tab.value === 'active' ? manager.activeJobs.value : manager.historyJobs.value,
@@ -565,9 +642,82 @@ function progressText(job: InstallJobSnapshot) {
 	return phaseLabel(job.phase)
 }
 
+function downloadTelemetry(job: InstallJobSnapshot) {
+	const summary = job.summary
+	const metrics: string[] = []
+	if (summary.source) {
+		metrics.push(
+			formatMessage(messages.downloadSource, {
+				source: downloadSourceLabel(summary.source),
+			}),
+		)
+	}
+	if (summary.speed_bytes_per_second && summary.speed_bytes_per_second > 0) {
+		metrics.push(
+			formatMessage(messages.downloadSpeed, {
+				speed: formatBytes(summary.speed_bytes_per_second),
+			}),
+		)
+	}
+	if (summary.eta_seconds != null) {
+		metrics.push(formatDownloadEta(summary.eta_seconds))
+	}
+	if (summary.fallback_count > 0) {
+		metrics.push(formatMessage(messages.downloadFallbacks, { count: summary.fallback_count }))
+	}
+	return metrics
+}
+
+function downloadSourceLabel(source: string) {
+	switch (source) {
+		case 'official':
+			return formatMessage(messages.downloadSourceOfficial)
+		case 'bmclapi':
+			return formatMessage(messages.downloadSourceBmclapi)
+		case 'mcim':
+			return formatMessage(messages.downloadSourceMcim)
+		default:
+			return formatMessage(messages.downloadSourceAlternate)
+	}
+}
+
+function formatDownloadEta(seconds: number) {
+	const clamped = Math.max(0, Math.round(seconds))
+	if (clamped < 60) {
+		return formatMessage(messages.downloadEtaSeconds, { seconds: clamped })
+	}
+	const minutes = Math.floor(clamped / 60)
+	if (minutes < 60) {
+		return formatMessage(messages.downloadEtaMinutes, { minutes })
+	}
+	return formatMessage(messages.downloadEtaHours, {
+		hours: Math.floor(minutes / 60),
+		minutes: minutes % 60,
+	})
+}
+
 function itemProgress(item: DownloadItem) {
 	if (!item.bytes_total) return formatMessage(messages.notAvailable)
 	return `${formatBytes(item.bytes_downloaded)} / ${formatBytes(item.bytes_total)}`
+}
+
+function itemAttempts(item: DownloadItem) {
+	if (!item.attempt || !item.max_attempts) return formatMessage(messages.notAvailable)
+	return formatMessage(messages.attemptProgress, {
+		attempt: item.attempt,
+		maxAttempts: item.max_attempts,
+	})
+}
+
+function itemError(item: DownloadItem) {
+	if (item.error?.includes('requires manual download')) {
+		return formatMessage(messages.manualDownloadRequired)
+	}
+	return item.error ?? ''
+}
+
+async function openManualDownload(item: DownloadItem) {
+	if (item.manual_url) await openUrl(item.manual_url)
 }
 
 function legacyPercent(bar: LoadingBar) {

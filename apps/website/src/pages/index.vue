@@ -34,6 +34,9 @@ const downloadMac = ref<HTMLAnchorElement | null>(null)
 const downloadSection = ref<HTMLElement | null>(null)
 const windowsLink = ref<string | null>(null)
 
+const { resolvedSource } = useDownloadSource()
+const CNB_RELEASE_BASE_URL = 'https://cnb.cool/axlmc/Axolotl/-/releases/download'
+
 const linuxLinks = reactive({
 	appImage: null as string | null,
 	deb: null as string | null,
@@ -203,11 +206,20 @@ const handleDownload = () => {
 }
 
 watch(
-	launcherRelease,
-	(release) => {
-		const findAsset = (patterns: RegExp[]) =>
-			release?.assets.find((asset) => patterns.some((pattern) => pattern.test(asset.name)))
-				?.browser_download_url ?? null
+	[launcherRelease, resolvedSource],
+	([release]) => {
+		const findAsset = (patterns: RegExp[]) => {
+			const asset = release?.assets.find((item) =>
+				patterns.some((pattern) => pattern.test(item.name)),
+			)
+			if (!asset) return null
+
+			if (resolvedSource.value === 'cnb') {
+				return `${CNB_RELEASE_BASE_URL}/${encodeURIComponent(release.tag_name)}/${encodeURIComponent(asset.name)}`
+			}
+
+			return asset.browser_download_url
+		}
 
 		windowsLink.value = findAsset([/x64-setup\.exe$/i, /\.exe$/i])
 		macLinks.universal = findAsset([/universal\.dmg$/i, /\.dmg$/i])
@@ -663,7 +675,7 @@ const messages = defineMessages({
 	faqDownloadAnswer: {
 		id: 'axolotl-site.faq.download.answer',
 		defaultMessage:
-			'Use the download section on this official website. Installers are delivered from the official Mystic-Stars/Axolotl GitHub Releases page.',
+			'Use the download section on this official website. Automatic mode selects CNB for mainland China and GitHub elsewhere; you can change the source in website settings.',
 	},
 	appScreenshotAlt: {
 		id: 'app-marketing.hero.app-screenshot-alt',
@@ -684,7 +696,6 @@ const siteUrl = config.public.siteUrl
 const canonicalUrl = `${siteUrl}/`
 const socialImageUrl = `${siteUrl}/showcase/app-home-dark.webp`
 const githubUrl = 'https://github.com/Mystic-Stars/Axolotl'
-const releasesUrl = `${githubUrl}/releases/latest`
 const licenseUrl = `${githubUrl}/blob/main/LICENSE`
 
 const title = computed(() => formatMessage(messages.seoTitle))
@@ -744,7 +755,7 @@ const structuredData = computed(() => ({
 			name: 'Axolotl Launcher',
 			description: description.value,
 			url: canonicalUrl,
-			downloadUrl: releasesUrl,
+			downloadUrl: `${canonicalUrl}#download`,
 			image: socialImageUrl,
 			applicationCategory: 'GameApplication',
 			applicationSubCategory: 'Minecraft Launcher',

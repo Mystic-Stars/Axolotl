@@ -7,13 +7,11 @@
 //! configuration, like a specific set of libraries that must be downloaded and
 //! run along with the game. However, some versions of the game or loader may
 //! change configuration requirements without the other version being affected.
-//! For example, pre-26.x game versions with Quilt require the Quilt `hashed`
-//! libraries to also be downloaded. However, 26.x and later don't require the
-//! `hashed` libraries, and don't even have a download for them. The problem is
-//! that Quilt loader 0.30.0 can be used for both pre-26.x and 26.x - but our v0
-//! manifest files can't differentiate the two. The result is that you either
-//! break compatibility for 0.30.0 game versions pre-26.x, or break 0.30.0
-//! on 26.x and later.
+//! For example, pre-26.x game versions with Fabric and Quilt require an
+//! intermediary or hashed mappings library. However, 26.x and later don't
+//! require these libraries, and don't have valid downloads for them. The same
+//! loader version can be used on both sides of this boundary, but our v0
+//! manifest files can't differentiate between their profiles.
 //!
 //! To fix this, v1 introduces the concept of *version groups*: game versions
 //! before 26.x are version group v1, and 26.x and later are v2. Then, we
@@ -32,8 +30,8 @@
 //! version 1.21 is used as the template file for 1.20, 1.19, etc.
 
 pub const UNIVERSAL_METADATA_GROUP: &str = "universal";
-pub const QUILT_LEGACY_METADATA_GROUP: &str = "v1";
-pub const QUILT_MODERN_METADATA_GROUP: &str = "v2";
+pub const LEGACY_METADATA_GROUP: &str = "v1";
+pub const MODERN_METADATA_GROUP: &str = "v2";
 
 pub struct MetadataGroup {
     pub id: &'static str,
@@ -46,9 +44,7 @@ pub fn metadata_groups<'a>(
     mod_loader: &str,
     game_versions: impl IntoIterator<Item = &'a str>,
 ) -> Vec<MetadataGroup> {
-    // Non-Quilt loaders don't need the concept of version groups, so we just
-    // make one "universal" group, and template it on 1.21.
-    if mod_loader != "quilt" {
+    if !uses_version_groups(mod_loader) {
         return vec![MetadataGroup {
             id: UNIVERSAL_METADATA_GROUP,
             loader_profile_template_game_version: "1.21".to_string(),
@@ -65,7 +61,7 @@ pub fn metadata_groups<'a>(
         .copied()
         .filter(|game_version| {
             metadata_group_id_for_game_version(mod_loader, game_version)
-                == QUILT_LEGACY_METADATA_GROUP
+                == LEGACY_METADATA_GROUP
         })
         .collect::<Vec<_>>();
     let modern_game_versions = game_versions
@@ -73,7 +69,7 @@ pub fn metadata_groups<'a>(
         .copied()
         .filter(|game_version| {
             metadata_group_id_for_game_version(mod_loader, game_version)
-                == QUILT_MODERN_METADATA_GROUP
+                == MODERN_METADATA_GROUP
         })
         .collect::<Vec<_>>();
 
@@ -81,7 +77,7 @@ pub fn metadata_groups<'a>(
 
     if !legacy_game_versions.is_empty() {
         groups.push(MetadataGroup {
-            id: QUILT_LEGACY_METADATA_GROUP,
+            id: LEGACY_METADATA_GROUP,
             loader_profile_template_game_version: legacy_game_versions
                 .iter()
                 .find(|x| **x == "1.21")
@@ -97,7 +93,7 @@ pub fn metadata_groups<'a>(
 
     if !modern_game_versions.is_empty() {
         groups.push(MetadataGroup {
-            id: QUILT_MODERN_METADATA_GROUP,
+            id: MODERN_METADATA_GROUP,
             loader_profile_template_game_version: modern_game_versions[0]
                 .to_string(),
             game_versions: modern_game_versions
@@ -124,22 +120,59 @@ fn metadata_group_id_for_game_version(
     mod_loader: &str,
     game_version: &str,
 ) -> &'static str {
-    if mod_loader == "quilt" && is_modern_quilt_game_version(game_version) {
-        QUILT_MODERN_METADATA_GROUP
-    } else if mod_loader == "quilt" {
-        QUILT_LEGACY_METADATA_GROUP
+    if uses_version_groups(mod_loader) && is_modern_game_version(game_version) {
+        MODERN_METADATA_GROUP
+    } else if uses_version_groups(mod_loader) {
+        LEGACY_METADATA_GROUP
     } else {
         UNIVERSAL_METADATA_GROUP
     }
 }
 
-// Update these Quilt group boundaries if upstream loader profiles gain another
+fn uses_version_groups(mod_loader: &str) -> bool {
+    matches!(mod_loader, "fabric" | "quilt")
+}
+
+// Update these group boundaries if upstream loader profiles gain another
 // structural incompatibility between Minecraft versions.
-fn is_modern_quilt_game_version(game_version: &str) -> bool {
+fn is_modern_game_version(game_version: &str) -> bool {
     let major = game_version
         .split(['.', 'w'])
         .next()
         .and_then(|x| x.parse::<usize>().ok());
 
     major.is_some_and(|x| x >= 26)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn fabric_and_quilt_split_profiles_at_26() {
+        for mod_loader in ["fabric", "quilt"] {
+            let groups = metadata_groups(
+                mod_loader,
+                ["26.2", "26w14a", "1.21.11", "1.21", "25w46a"],
+            );
+
+            assert_eq!(groups.len(), 2);
+            assert_eq!(groups[0].id, LEGACY_METADATA_GROUP);
+            assert_eq!(groups[0].loader_profile_template_game_version, "1.21");
+            assert_eq!(groups[0].game_versions, ["1.21.11", "1.21", "25w46a"]);
+            assert_eq!(groups[1].id, MODERN_METADATA_GROUP);
+            assert_eq!(groups[1].loader_profile_template_game_version, "26.2");
+            assert_eq!(groups[1].game_versions, ["26.2", "26w14a"]);
+        }
+    }
+
+    #[test]
+    fn other_loaders_keep_a_universal_profile() {
+        let groups = metadata_groups("forge", ["26.2", "1.21"]);
+
+        assert_eq!(groups.len(), 1);
+        assert_eq!(groups[0].id, UNIVERSAL_METADATA_GROUP);
+        assert_eq!(groups[0].loader_profile_template_game_version, "1.21");
+        assert_eq!(groups[0].game_versions, ["26.2", "1.21"]);
+    }
 }

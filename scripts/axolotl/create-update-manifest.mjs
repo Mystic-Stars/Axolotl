@@ -52,7 +52,7 @@ for (const target of targets) {
 	}
 
 	const signature = fs.readFileSync(signaturePath, 'utf8')
-	const url = asset.url ?? asset.browser_download_url
+	const url = asset.browser_download_url ?? asset.url
 	if (!url) {
 		throw new Error(`Release asset ${asset.name} does not contain a download URL`)
 	}

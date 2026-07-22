@@ -1,7 +1,7 @@
 [package]
 name = "theseus_gui"
 # The actual version is set by the theseus-build workflow on tagging
-version = "1.0.0-local"
+version = "1.3.4"
 edition.workspace = true
 description = "Axolotl Launcher is a cross-platform Minecraft launcher"
 homepage = "https://www.ghs.red"
@@ -35,6 +35,7 @@ tauri-plugin-window-state = { workspace = true }
 theseus = { workspace = true, features = ["tauri"] }
 thiserror = { workspace = true }
 tokio = { workspace = true, features = ["rt-multi-thread", "time"] }
+tokio-util = { workspace = true, features = ["compat"] }
 tracing = { workspace = true }
 tracing-error = { workspace = true }
 url = { workspace = true }

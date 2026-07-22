@@ -14,15 +14,18 @@ fs.writeFileSync(packagePath, `${JSON.stringify(packageJson, null, '\t')}\n`)
 
 for (const cargoPath of ['apps/app/Cargo.toml', 'packages/app-lib/Cargo.toml']) {
 	const cargoToml = fs.readFileSync(cargoPath, 'utf8')
-	const updated = cargoToml.replace(
-		/^(\[package\][\s\S]*?^version\s*=\s*)"[^"]+"/m,
-		`$1"${version}"`,
-	)
+	const packageVersionPattern = /^(\[package\][\s\S]*?^version\s*=\s*)"([^"]+)"/m
+	const match = cargoToml.match(packageVersionPattern)
 
-	if (updated === cargoToml) {
-		throw new Error(`Could not update package version in ${cargoPath}`)
+	if (!match) {
+		throw new Error(`Could not find package version in ${cargoPath}`)
 	}
 
+	if (match[2] === version) {
+		continue
+	}
+
+	const updated = cargoToml.replace(packageVersionPattern, `$1"${version}"`)
 	fs.writeFileSync(cargoPath, updated)
 }
 

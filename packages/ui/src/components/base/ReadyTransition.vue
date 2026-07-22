@@ -11,7 +11,7 @@ import { injectLoadingState } from '#ui/providers/loading-state'
 
 const props = withDefaults(
 	defineProps<{
-		/** True while the wrapped content is still loading. Slot stays blank, loading bar runs. */
+		/** True while wrapped content loads. The optional pending slot renders and loading bar runs. */
 		pending: boolean | Ref<boolean>
 		/** Fade duration applied to the slot when content reveals. */
 		duration?: number
@@ -70,7 +70,9 @@ onBeforeUnmount(release)
 			<div v-if="!resolvedPending" key="content" class="ready-transition-content">
 				<slot />
 			</div>
-			<div v-else key="pending" aria-hidden="true" class="ready-transition-pending" />
+			<div v-else key="pending" class="ready-transition-pending">
+				<slot name="pending" />
+			</div>
 		</Transition>
 	</template>
 	<slot v-else />

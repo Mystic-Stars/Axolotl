@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "\n            SELECT\n                max_concurrent_writes, max_concurrent_downloads,\n                theme, locale, default_page, collapsed_navigation, hide_nametag_skins_page, advanced_rendering, native_decorations,\n                discord_rpc, developer_mode, telemetry, personalized_ads,\n                onboarded,\n                json(extra_launch_args) extra_launch_args, json(custom_env_vars) custom_env_vars,\n                mc_memory_max, mc_force_fullscreen, mc_game_resolution_x, mc_game_resolution_y, hide_on_process_start,\n                hook_pre_launch, hook_wrapper, hook_post_exit,\n                custom_dir, prev_custom_dir, migrated, json(feature_flags) feature_flags, toggle_sidebar,\n                skipped_update, pending_update_toast_for_version, auto_download_updates, accent_color,\n                custom_background_path, custom_background_blur, custom_background_opacity,\n                version\n            FROM settings\n            ",
+  "query": "\n            SELECT\n                max_concurrent_writes, max_concurrent_downloads,\n                auto_concurrent_downloads, minecraft_metadata_source,\n                minecraft_file_source, modrinth_source, curseforge_source,\n                theme, locale, default_page, collapsed_navigation, hide_nametag_skins_page, advanced_rendering, native_decorations,\n                discord_rpc, developer_mode, telemetry, personalized_ads,\n                onboarded,\n                json(extra_launch_args) extra_launch_args, json(custom_env_vars) custom_env_vars,\n                mc_memory_max, mc_force_fullscreen, mc_game_resolution_x, mc_game_resolution_y, hide_on_process_start,\n                hook_pre_launch, hook_wrapper, hook_post_exit,\n                custom_dir, prev_custom_dir, migrated, json(feature_flags) feature_flags, toggle_sidebar,\n                skipped_update, pending_update_toast_for_version, auto_download_updates, accent_color,\n                custom_background_path, custom_background_blur, custom_background_opacity,\n                version\n            FROM settings\n            ",
   "describe": {
     "columns": [
       {
@@ -14,178 +14,203 @@
         "type_info": "Integer"
       },
       {
-        "name": "theme",
+        "name": "auto_concurrent_downloads",
         "ordinal": 2,
-        "type_info": "Text"
+        "type_info": "Integer"
       },
       {
-        "name": "locale",
+        "name": "minecraft_metadata_source",
         "ordinal": 3,
         "type_info": "Text"
       },
       {
-        "name": "default_page",
+        "name": "minecraft_file_source",
         "ordinal": 4,
         "type_info": "Text"
       },
       {
-        "name": "collapsed_navigation",
+        "name": "modrinth_source",
         "ordinal": 5,
-        "type_info": "Integer"
+        "type_info": "Text"
       },
       {
-        "name": "hide_nametag_skins_page",
+        "name": "curseforge_source",
         "ordinal": 6,
-        "type_info": "Integer"
+        "type_info": "Text"
       },
       {
-        "name": "advanced_rendering",
+        "name": "theme",
         "ordinal": 7,
-        "type_info": "Integer"
+        "type_info": "Text"
       },
       {
-        "name": "native_decorations",
+        "name": "locale",
         "ordinal": 8,
-        "type_info": "Integer"
+        "type_info": "Text"
       },
       {
-        "name": "discord_rpc",
+        "name": "default_page",
         "ordinal": 9,
-        "type_info": "Integer"
+        "type_info": "Text"
       },
       {
-        "name": "developer_mode",
+        "name": "collapsed_navigation",
         "ordinal": 10,
         "type_info": "Integer"
       },
       {
-        "name": "telemetry",
+        "name": "hide_nametag_skins_page",
         "ordinal": 11,
         "type_info": "Integer"
       },
       {
-        "name": "personalized_ads",
+        "name": "advanced_rendering",
         "ordinal": 12,
         "type_info": "Integer"
       },
       {
-        "name": "onboarded",
+        "name": "native_decorations",
         "ordinal": 13,
         "type_info": "Integer"
       },
       {
-        "name": "extra_launch_args",
+        "name": "discord_rpc",
         "ordinal": 14,
-        "type_info": "Text"
+        "type_info": "Integer"
       },
       {
-        "name": "custom_env_vars",
+        "name": "developer_mode",
         "ordinal": 15,
-        "type_info": "Text"
+        "type_info": "Integer"
       },
       {
-        "name": "mc_memory_max",
+        "name": "telemetry",
         "ordinal": 16,
         "type_info": "Integer"
       },
       {
-        "name": "mc_force_fullscreen",
+        "name": "personalized_ads",
         "ordinal": 17,
         "type_info": "Integer"
       },
       {
-        "name": "mc_game_resolution_x",
+        "name": "onboarded",
         "ordinal": 18,
         "type_info": "Integer"
       },
       {
-        "name": "mc_game_resolution_y",
+        "name": "extra_launch_args",
         "ordinal": 19,
+        "type_info": "Text"
+      },
+      {
+        "name": "custom_env_vars",
+        "ordinal": 20,
+        "type_info": "Text"
+      },
+      {
+        "name": "mc_memory_max",
+        "ordinal": 21,
+        "type_info": "Integer"
+      },
+      {
+        "name": "mc_force_fullscreen",
+        "ordinal": 22,
+        "type_info": "Integer"
+      },
+      {
+        "name": "mc_game_resolution_x",
+        "ordinal": 23,
+        "type_info": "Integer"
+      },
+      {
+        "name": "mc_game_resolution_y",
+        "ordinal": 24,
         "type_info": "Integer"
       },
       {
         "name": "hide_on_process_start",
-        "ordinal": 20,
+        "ordinal": 25,
         "type_info": "Integer"
       },
       {
         "name": "hook_pre_launch",
-        "ordinal": 21,
+        "ordinal": 26,
         "type_info": "Text"
       },
       {
         "name": "hook_wrapper",
-        "ordinal": 22,
-        "type_info": "Text"
-      },
-      {
-        "name": "hook_post_exit",
-        "ordinal": 23,
-        "type_info": "Text"
-      },
-      {
-        "name": "custom_dir",
-        "ordinal": 24,
-        "type_info": "Text"
-      },
-      {
-        "name": "prev_custom_dir",
-        "ordinal": 25,
-        "type_info": "Text"
-      },
-      {
-        "name": "migrated",
-        "ordinal": 26,
-        "type_info": "Integer"
-      },
-      {
-        "name": "feature_flags",
         "ordinal": 27,
         "type_info": "Text"
       },
       {
-        "name": "toggle_sidebar",
+        "name": "hook_post_exit",
         "ordinal": 28,
-        "type_info": "Integer"
+        "type_info": "Text"
       },
       {
-        "name": "skipped_update",
+        "name": "custom_dir",
         "ordinal": 29,
         "type_info": "Text"
       },
       {
-        "name": "pending_update_toast_for_version",
+        "name": "prev_custom_dir",
         "ordinal": 30,
         "type_info": "Text"
       },
       {
-        "name": "auto_download_updates",
+        "name": "migrated",
         "ordinal": 31,
         "type_info": "Integer"
       },
       {
-        "name": "accent_color",
+        "name": "feature_flags",
         "ordinal": 32,
         "type_info": "Text"
       },
       {
-        "name": "custom_background_path",
+        "name": "toggle_sidebar",
         "ordinal": 33,
+        "type_info": "Integer"
+      },
+      {
+        "name": "skipped_update",
+        "ordinal": 34,
+        "type_info": "Text"
+      },
+      {
+        "name": "pending_update_toast_for_version",
+        "ordinal": 35,
+        "type_info": "Text"
+      },
+      {
+        "name": "auto_download_updates",
+        "ordinal": 36,
+        "type_info": "Integer"
+      },
+      {
+        "name": "accent_color",
+        "ordinal": 37,
+        "type_info": "Text"
+      },
+      {
+        "name": "custom_background_path",
+        "ordinal": 38,
         "type_info": "Text"
       },
       {
         "name": "custom_background_blur",
-        "ordinal": 34,
+        "ordinal": 39,
         "type_info": "Integer"
       },
       {
         "name": "custom_background_opacity",
-        "ordinal": 35,
+        "ordinal": 40,
         "type_info": "Integer"
       },
       {
         "name": "version",
-        "ordinal": 36,
+        "ordinal": 41,
         "type_info": "Integer"
       }
     ],
@@ -193,6 +218,11 @@
       "Right": 0
     },
     "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
       false,
       false,
       false,
@@ -232,5 +262,5 @@
       false
     ]
   },
-  "hash": "2222b0c8ca3fafb78069c0f92c1ba3aebd08fb1d23be0d3fb81c5d42d3b3c705"
+  "hash": "3dd0438b3626fbf541d4e28b5d690454b9b62a007f4316ae94e8d55dced0a81f"
 }

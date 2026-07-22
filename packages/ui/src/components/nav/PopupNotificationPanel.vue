@@ -140,7 +140,15 @@
 						:gradient-border="false"
 						full-width
 					/>
-					<div v-if="item.buttons?.length" class="flex gap-1.5">
+					<div
+						v-if="(item.type === 'error' && onErrorAction) || item.buttons?.length"
+						class="flex gap-1.5"
+					>
+						<ButtonStyled v-if="item.type === 'error' && onErrorAction">
+							<button :disabled="exporting[item.id]" @click="handleErrorAction(item)">
+								<DownloadIcon /> {{ errorActionLabel }}
+							</button>
+						</ButtonStyled>
 						<ButtonStyled
 							v-for="(btn, idx) in item.buttons"
 							:key="idx"
@@ -168,7 +176,7 @@ import {
 	XCircleIcon,
 	XIcon,
 } from '@modrinth/assets'
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 
 import { useModalStack } from '../../composables/modal-stack'
 import {
@@ -190,6 +198,7 @@ const hasModalActive = computed(() => stackCount.value > 0)
 const notificationGroupStyle = computed(() => ({
 	zIndex: hasModalActive.value ? 100 + stackCount.value * 10 + 8 : 200,
 }))
+const exporting = ref<Record<string | number, boolean>>({})
 
 const stopTimer = (n: PopupNotification) => popupNotificationManager.stopNotificationTimer(n)
 const setNotificationTimer = (n: PopupNotification) =>
@@ -271,6 +280,17 @@ async function handleToastAction(item: PopupNotification, action?: () => void | 
 	await action?.()
 }
 
+async function handleErrorAction(notification: PopupNotification): Promise<void> {
+	if (!onErrorAction || exporting.value[notification.id]) return
+
+	exporting.value[notification.id] = true
+	try {
+		await onErrorAction(notification)
+	} finally {
+		delete exporting.value[notification.id]
+	}
+}
+
 function progressColorForType(type: PopupNotification['type']) {
 	if (type === 'error') {
 		return 'red'
@@ -286,12 +306,15 @@ function progressColorForType(type: PopupNotification['type']) {
 	return 'green'
 }
 
-withDefaults(
+const { hasSidebar, onErrorAction, errorActionLabel } = withDefaults(
 	defineProps<{
 		hasSidebar?: boolean
+		onErrorAction?: (notification: PopupNotification) => void | Promise<void>
+		errorActionLabel?: string
 	}>(),
 	{
 		hasSidebar: false,
+		errorActionLabel: 'Export error logs',
 	},
 )
 </script>

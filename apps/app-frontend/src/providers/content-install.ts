@@ -48,6 +48,7 @@ import {
 	remove_project,
 	type ResolveContentPlan,
 } from '@/helpers/instance'
+import { isBuiltInInstanceIcon } from '@/helpers/instance-icon-frame'
 import { get_game_versions } from '@/helpers/tags'
 import type { GameInstance, InstanceLoader } from '@/helpers/types'
 import { useTheming } from '@/store/state'
@@ -800,6 +801,7 @@ export function createContentInstall(opts: {
 					id: instance.id,
 					name: instance.name,
 					iconUrl: instance.icon_path ? convertFileSrc(instance.icon_path) : null,
+					iconFrameless: isBuiltInInstanceIcon(instance.icon_path),
 					installed: instance.installed,
 					compatible: instance.compatible,
 					installing: false,
