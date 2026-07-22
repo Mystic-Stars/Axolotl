@@ -16,7 +16,12 @@
 		:current-path="ctx.currentPath.value"
 		@move="handleMoveItem"
 	/>
-	<FileDeleteItemModal ref="deleteItemModal" :item="selectedItem" @delete="handleDeleteItem" />
+	<FileDeleteItemModal
+		ref="deleteItemModal"
+		:item="selectedItem"
+		:symlink-target="ctx.symlinkTarget?.value"
+		@delete="handleDeleteItem"
+	/>
 	<FileContextMenu ref="contextMenuRef">
 		<template #extract
 			><PackageOpenIcon class="size-5" />
@@ -374,6 +379,7 @@ const contextMenuRef = ref<InstanceType<typeof FileContextMenu>>()
 
 const newItemType = ref<'file' | 'directory'>('file')
 const selectedItem = ref<FileItem | null>(null)
+const pendingBulkDeletePaths = ref<string[]>([])
 
 const unsavedChangesModal = ref<InstanceType<typeof FileUnsavedChangesModal>>()
 
@@ -468,6 +474,19 @@ async function handleMoveItem(destination: string) {
 
 function handleDeleteItem() {
 	if (isBusy.value) return
+
+	if (pendingBulkDeletePaths.value.length > 0) {
+		for (const path of pendingBulkDeletePaths.value) {
+			const item = items.value.find((i) => i.path === path)
+			if (item) {
+				ctx.deleteItem(path, item.type === 'directory')
+			}
+		}
+		pendingBulkDeletePaths.value = []
+		deselectAll()
+		return
+	}
+
 	const item = selectedItem.value
 	if (!item) return
 
@@ -579,14 +598,8 @@ function showBulkDeleteModal() {
 	if (isBusy.value) return
 	if (selectedItems.value.size === 0) return
 
-	const itemsToDelete = Array.from(selectedItems.value)
-	for (const path of itemsToDelete) {
-		const item = items.value.find((i) => i.path === path)
-		if (item) {
-			ctx.deleteItem(path, item.type === 'directory')
-		}
-	}
-	deselectAll()
+	pendingBulkDeletePaths.value = Array.from(selectedItems.value)
+	deleteItemModal.value?.showBulk(pendingBulkDeletePaths.value.length)
 }
 
 // Upload

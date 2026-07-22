@@ -8,6 +8,13 @@
 	>
 		<div class="flex flex-col gap-6">
 			<Admonition
+				v-if="symlinkTarget"
+				type="warning"
+				:header="formatMessage(messages.symlinkWarningHeader)"
+			>
+				{{ formatMessage(messages.symlinkWarningBody, { path: symlinkTarget }) }}
+			</Admonition>
+			<Admonition
 				type="warning"
 				:header="
 					formatMessage(messages.admonitionHeader, { action: downgrade ? 'downgrade' : 'update' })
@@ -68,6 +75,7 @@ const props = defineProps<{
 	backupTip?: string
 	actionDisabled?: boolean
 	actionDisabledTooltip?: string
+	symlinkTarget?: string
 }>()
 
 const { formatMessage } = useVIntl()
@@ -97,6 +105,8 @@ const messages = defineMessages({
 		id: 'content.confirm-modpack-update.confirm-button',
 		defaultMessage: '{action, select, downgrade {Downgrade} other {Update}} modpack',
 	},
+	symlinkWarningHeader: { id: 'app.symlink-warning.write.header' },
+	symlinkWarningBody: { id: 'app.symlink-warning.write.body' },
 })
 
 const emit = defineEmits<{

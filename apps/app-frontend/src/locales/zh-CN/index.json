@@ -803,6 +803,9 @@
 	"app.instance.confirm-delete.admonition-header": {
 		"message": "此操作无法撤销"
 	},
+	"app.instance.confirm-delete.symlink-warning": {
+		"message": "这是一个链接到“{path}”的共享实例。仅会删除链接，原始文件不会被删除。"
+	},
 	"app.instance.confirm-delete.delete-button": {
 		"message": "删除实例"
 	},
@@ -2522,8 +2525,29 @@
 	"app.symlink-warning.body": {
 		"message": "此实例是指向 {path} 的软链接。对此实例的更改将影响原始位置。"
 	},
+	"app.symlink-warning.write.header": {
+		"message": "共享实例"
+	},
+	"app.symlink-warning.write.body": {
+		"message": "此实例为共享实例。当前更改操作将一并影响 {path}。"
+	},
+	"app.symlink-warning.delete.header": {
+		"message": "共享实例"
+	},
+	"app.symlink-warning.delete.body": {
+		"message": "此实例为共享实例。当前操作将删除共享的 {path}。"
+	},
+	"app.symlink-warning.dismiss-permanently": {
+		"message": "此实例不再提示"
+	},
+	"app.symlink-warning.shared-badge": {
+		"message": "共享"
+	},
 	"creation-flow.modal.import-instance.import-as-symlink": {
-		"message": "以软链接导入"
+		"message": "以共享实例导入"
+	},
+	"creation-flow.modal.import-instance.import-as-symlink.tooltip": {
+		"message": "通过软链接，直接使用原始实例文件夹，共享一份文件。所有的更改都将同步到原始实例。"
 	},
 	"app.symlink-capability.unsupported": {
 		"message": "系统不支持软链接。"
@@ -2545,5 +2569,8 @@
 	},
 	"app.symlink-capability.cancel": {
 		"message": "取消"
+	},
+	"app.symlink-capability.ok": {
+		"message": "确认"
 	}
 }

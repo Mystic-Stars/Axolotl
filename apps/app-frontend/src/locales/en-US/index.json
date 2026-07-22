@@ -803,6 +803,9 @@
 	"app.instance.confirm-delete.admonition-header": {
 		"message": "This action cannot be undone"
 	},
+	"app.instance.confirm-delete.symlink-warning": {
+		"message": "This is a shared instance linked to \"{path}\". Only the link will be removed; the original files will not be deleted."
+	},
 	"app.instance.confirm-delete.delete-button": {
 		"message": "Delete instance"
 	},
@@ -2517,13 +2520,34 @@
 		"message": "Unknown file warning"
 	},
 	"app.symlink-warning.header": {
-		"message": "Symbolic link warning"
+		"message": "Shared instance warning"
 	},
 	"app.symlink-warning.body": {
-		"message": "This instance is a symbolic link pointing to {path}. Changes made to this instance will affect the original location."
+		"message": "This instance is a symlink to {path}. Changes to this instance will affect the original location."
+	},
+	"app.symlink-warning.write.header": {
+		"message": "Shared instance"
+	},
+	"app.symlink-warning.write.body": {
+		"message": "This is a shared instance. Any changes will also affect {path}."
+	},
+	"app.symlink-warning.delete.header": {
+		"message": "Shared instance"
+	},
+	"app.symlink-warning.delete.body": {
+		"message": "This is a shared instance. This action will delete the shared files at {path}."
+	},
+	"app.symlink-warning.dismiss-permanently": {
+		"message": "Don't show again for this instance"
+	},
+	"app.symlink-warning.shared-badge": {
+		"message": "Shared"
 	},
 	"creation-flow.modal.import-instance.import-as-symlink": {
-		"message": "Import as symbolic link"
+		"message": "Import as shared instance"
+	},
+	"creation-flow.modal.import-instance.import-as-symlink.tooltip": {
+		"message": "Uses a symlink to directly reference the original instance folder, sharing one copy of files. All changes will sync to the original instance."
 	},
 	"app.symlink-capability.unsupported": {
 		"message": "Symbolic links are not supported on this system."
@@ -2541,9 +2565,12 @@
 		"message": "Restart as admin"
 	},
 	"app.symlink-capability.requires-admin.description": {
-		"message": "Creating links requires administrator privileges. Would you like to restart the launcher as an administrator?"
+		"message": "Creating shared instances requires administrator privileges. Would you like to restart the launcher as an administrator?"
 	},
 	"app.symlink-capability.cancel": {
 		"message": "Cancel"
+	},
+	"app.symlink-capability.ok": {
+		"message": "OK"
 	}
 }

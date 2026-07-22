@@ -83,6 +83,7 @@ pub struct Instance {
     pub force_fullscreen: Option<bool>,
     pub game_resolution: Option<WindowSize>,
     pub hooks: Hooks,
+    pub symlink_target: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -221,6 +222,7 @@ impl From<InstanceMetadata> for Instance {
             force_fullscreen: metadata.launch_overrides.force_fullscreen,
             game_resolution: metadata.launch_overrides.game_resolution,
             hooks: metadata.launch_overrides.hooks,
+            symlink_target: metadata.instance.symlink_target,
         }
     }
 }

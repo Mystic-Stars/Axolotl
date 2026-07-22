@@ -28,6 +28,7 @@
 							.filter(Boolean)
 							.join(' ')
 					"
+					:symlink-target="props.instance.symlink_target"
 					@confirm="handleModpackUpdateConfirm"
 					@cancel="handleModpackUpdateCancel"
 				/>
@@ -1519,6 +1520,7 @@ provideContentManager({
 	getOverflowOptions,
 	showContentHint,
 	dismissContentHint,
+	symlinkTarget: computed(() => props.instance.symlink_target),
 	shareItems: handleShareItems,
 	getItemId: getContentItemId,
 	mapToTableItem: (item: ContentItem) => ({

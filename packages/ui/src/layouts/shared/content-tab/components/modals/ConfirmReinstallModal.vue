@@ -7,6 +7,13 @@
 		:on-hide="() => backupCreator?.cancelBackup()"
 	>
 		<div class="flex flex-col gap-6">
+			<Admonition
+				v-if="symlinkTarget"
+				type="warning"
+				:header="formatMessage(messages.symlinkWarningHeader)"
+			>
+				{{ formatMessage(messages.symlinkWarningBody, { path: symlinkTarget }) }}
+			</Admonition>
 			<Admonition type="critical" :header="formatMessage(messages.admonitionHeader)">
 				{{ formatMessage(messages.admonitionBody) }}
 			</Admonition>
@@ -70,11 +77,14 @@ const messages = defineMessages({
 		id: 'instance.confirm-reinstall.reinstall-button',
 		defaultMessage: 'Reinstall modpack',
 	},
+	symlinkWarningHeader: { id: 'app.symlink-warning.write.header' },
+	symlinkWarningBody: { id: 'app.symlink-warning.write.body' },
 })
 
 defineProps<{
 	server?: boolean
 	backupTip?: string
+	symlinkTarget?: string
 }>()
 
 const emit = defineEmits<{

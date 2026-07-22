@@ -37,6 +37,7 @@ import { get_loader_versions } from '@/helpers/metadata'
 import { get_game_versions, get_loaders } from '@/helpers/tags'
 import { injectInstanceSettings } from '@/providers/instance-settings'
 import { useTheming } from '@/store/state'
+import SymlinkInstanceWarning from '@/components/ui/SymlinkInstanceWarning.vue'
 
 import type { Manifest } from '../../../helpers/types'
 
@@ -568,6 +569,7 @@ provideInstallationSettings({
 
 	isServer: false,
 	isApp: true,
+	symlinkTarget: computed(() => instance.value.symlink_target),
 	showModpackVersionActions: computed(
 		() => isLinkedManagedModpack.value && !isMinecraftServer.value,
 	),
@@ -578,5 +580,6 @@ provideInstallationSettings({
 </script>
 
 <template>
+	<SymlinkInstanceWarning v-if="instance?.symlink_target" :symlink-target="instance.symlink_target" />
 	<InstallationSettingsLayout />
 </template>

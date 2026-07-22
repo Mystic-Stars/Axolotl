@@ -56,6 +56,7 @@ export interface InstallationSettingsContext {
 
 	isServer: boolean
 	isApp: boolean
+	symlinkTarget?: ComputedRef<string | null | undefined>
 
 	/** When false, hides change-version and reinstall buttons in linked state (default: true) */
 	showModpackVersionActions?: boolean | ComputedRef<boolean>

@@ -64,6 +64,8 @@ export interface FileManagerContext {
 	restartServer?: () => Promise<void>
 	canShareToMclogs?: boolean
 	shareToMclogs?: (content: string) => Promise<void>
+
+	symlinkTarget?: Ref<string | null | undefined> | ComputedRef<string | null | undefined>
 }
 
 export const [injectFileManager, provideFileManager] = createContext<FileManagerContext>(

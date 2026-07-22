@@ -303,6 +303,7 @@ export interface ContentInstallContext {
 	preferredGameVersion: Ref<string | null>
 	releaseGameVersions: Ref<Set<string>>
 	projectInfo: Ref<ContentInstallProjectInfo | null>
+	symlinkTarget: Ref<string | null | undefined>
 	handleInstallToInstance: (instance: ContentInstallInstance) => Promise<void>
 	handleCreateAndInstall: (data: {
 		name: string
@@ -379,6 +380,7 @@ export function createContentInstall(opts: {
 	const releaseGameVersions = ref<Set<string>>(new Set())
 
 	const projectInfo = ref<ContentInstallProjectInfo | null>(null)
+	const symlinkTarget = ref<string | null | undefined>(undefined)
 	const installingItems = ref<Map<string, ContentItem[]>>(new Map())
 	const pendingManualDownloadsByInstance = ref<Map<string, CurseForgeManualDownloadItem[]>>(
 		new Map(),
@@ -1494,6 +1496,7 @@ export function createContentInstall(opts: {
 		preferredGameVersion,
 		releaseGameVersions,
 		projectInfo,
+		symlinkTarget,
 		handleInstallToInstance,
 		handleCreateAndInstall,
 		handleNavigate,

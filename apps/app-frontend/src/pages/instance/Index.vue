@@ -89,6 +89,16 @@
 								</router-link>
 							</div>
 						</template>
+
+						<div
+							v-if="instance?.symlink_target && symlinkWarning.isHidden.value"
+							class="w-1.5 h-1.5 rounded-full bg-surface-5"
+						></div>
+						<SymlinkInstanceWarning
+							v-if="instance?.symlink_target && symlinkWarning.isHidden.value"
+							:symlink-target="instance.symlink_target"
+							badge-only
+						/>
 					</div>
 				</template>
 				<template #actions>
@@ -237,7 +247,11 @@
 			</ContentPageHeader>
 		</div>
 		<div :class="['px-6', { 'shrink-0': isFixedRender }]">
-			<SymlinkInstanceWarning v-if="instance?.symlink_target" :symlink-target="instance.symlink_target" />
+			<SymlinkInstanceWarning
+				v-if="instance?.symlink_target && !symlinkWarning.isHidden.value"
+				:symlink-target="instance.symlink_target"
+				dismissible
+			/>
 			<NavTabs :links="tabs" />
 		</div>
 		<div :class="['p-6 pt-4', { 'min-h-0 flex-1 overflow-y-auto': isFixedRender }]">
@@ -353,6 +367,7 @@ import { useRoute, useRouter } from 'vue-router'
 
 import ContextMenu from '@/components/ui/ContextMenu.vue'
 import ExportModal from '@/components/ui/ExportModal.vue'
+import SymlinkInstanceWarning from '@/components/ui/SymlinkInstanceWarning.vue'
 import InstanceSettingsModal from '@/components/ui/modal/InstanceSettingsModal.vue'
 import UpdateToPlayModal from '@/components/ui/modal/UpdateToPlayModal.vue'
 import {
@@ -361,11 +376,12 @@ import {
 } from '@/composables/instances/use-server-status-query'
 import { useInstanceConsole } from '@/composables/useInstanceConsole'
 import { useNetworkStatus } from '@/composables/useNetworkStatus'
+import { useSymlinkWarningDismiss } from '@/composables/useSymlinkWarningDismiss'
 import { trackEvent } from '@/helpers/analytics'
 import { get_project_v3 } from '@/helpers/cache.js'
 import { instance_listener, process_listener } from '@/helpers/events'
 import { install_existing_instance, install_pack_to_existing_instance } from '@/helpers/install'
-import { get, get_full_path, kill, run } from '@/helpers/instance'
+import { get, get_full_path, kill, run, allow_symlink_target } from '@/helpers/instance'
 import { type InstanceContentData, loadInstanceContentData } from '@/helpers/instance-content'
 import { get_by_instance_id } from '@/helpers/process'
 import type { GameInstance } from '@/helpers/types'
@@ -432,6 +448,8 @@ const contentSubpageRouteNames = new Set(['Mods', 'ModsFilter'])
 const { offline } = useNetworkStatus()
 
 const instance = ref<GameInstance>()
+const instanceId = computed(() => instance.value?.id)
+const symlinkWarning = useSymlinkWarningDismiss(instanceId)
 const preloadedContent = ref<InstanceContentData | null>(null)
 const playing = ref(false)
 const loading = ref(false)
@@ -495,6 +513,10 @@ async function fetchInstance() {
 	const nextInstance = await get(route.params.id as string).catch(handleError)
 	let nextLinkedProjectV3: Labrinth.Projects.v3.Project | undefined
 	let nextIsServerInstance = false
+
+	if (nextInstance?.symlink_target) {
+		await allow_symlink_target(nextInstance.symlink_target).catch(() => {})
+	}
 
 	const contentPreloadPromise =
 		nextInstance && isContentSubpageRoute()

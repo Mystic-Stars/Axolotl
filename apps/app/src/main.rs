@@ -129,6 +129,12 @@ fn restart_as_admin() {
 }
 
 #[tauri::command]
+fn allow_symlink_target(app: tauri::AppHandle, path: String) {
+    use tauri_plugin_fs::FsExt;
+    let _ = app.fs_scope().allow_directory(&path, true);
+}
+
+#[tauri::command]
 async fn set_restart_after_pending_update(
     should_restart: bool,
 ) -> api::Result<()> {
@@ -309,6 +315,7 @@ fn main() {
             restart_app,
             check_symlink_capability,
             restart_as_admin,
+            allow_symlink_target,
         ]);
 
     tracing::info!("Initializing app...");

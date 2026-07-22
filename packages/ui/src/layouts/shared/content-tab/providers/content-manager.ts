@@ -104,6 +104,9 @@ export interface ContentManagerContext {
 	showContentHint?: Ref<boolean>
 	dismissContentHint?: () => void
 
+	// Symlink target (optional — when set, modals show symlink warnings)
+	symlinkTarget?: Ref<string | null | undefined> | ComputedRef<string | null | undefined>
+
 	// Table item mapping (link generation differs per platform)
 	mapToTableItem: (item: ContentItem) => ContentCardTableItem
 

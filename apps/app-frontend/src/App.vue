@@ -561,6 +561,7 @@ const {
 	preferredGameVersion: contentInstallPreferredGameVersion,
 	releaseGameVersions: contentInstallReleaseGameVersions,
 	projectInfo: contentInstallProjectInfo,
+	symlinkTarget: contentInstallSymlinkTarget,
 	handleInstallToInstance,
 	handleCreateAndInstall,
 	handleNavigate: handleContentInstallNavigate,
@@ -590,6 +591,7 @@ const {
 	setUpdateToPlayModal: setServerUpdateToPlayModal,
 	setAddServerToInstanceModal: setServerAddServerToInstanceModal,
 	playServerProject,
+	symlinkTarget: addServerSymlinkTarget,
 } = serverInstall
 
 const modInstallModal = ref()
@@ -1405,6 +1407,7 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 		:preferred-game-version="contentInstallPreferredGameVersion"
 		:release-game-versions="contentInstallReleaseGameVersions"
 		:project-info="contentInstallProjectInfo"
+		:symlink-target="contentInstallSymlinkTarget"
 		@install="handleInstallToInstance"
 		@create-and-install="handleCreateAndInstall"
 		@navigate="handleContentInstallNavigate"
@@ -1415,7 +1418,7 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 		@create-anyway="handleModpackDuplicateCreateAnyway"
 		@go-to-instance="handleModpackDuplicateGoToInstance"
 	/>
-	<AddServerToInstanceModal ref="addServerToInstanceModal" />
+	<AddServerToInstanceModal ref="addServerToInstanceModal" :symlink-target="addServerSymlinkTarget" />
 	<ContentUpdaterModal
 		ref="incompatibilityWarningModal"
 		mode="incompatibility-warning"

@@ -1,7 +1,14 @@
 <template>
 	<NewModal ref="modal" :header="formatMessage(messages.header)" fade="danger" max-width="500px">
-		<Admonition type="critical" :header="formatMessage(messages.admonitionHeader)">
+		<Admonition
+			v-if="!symlinkTarget"
+			type="critical"
+			:header="formatMessage(messages.admonitionHeader)"
+		>
 			{{ formatMessage(messages.admonitionBody) }}
+		</Admonition>
+		<Admonition v-else type="critical">
+			{{ formatMessage(messages.symlinkDeleteWarning, { path: symlinkTarget }) }}
 		</Admonition>
 
 		<template #actions>
@@ -37,6 +44,10 @@ import { ref } from 'vue'
 
 const { formatMessage } = useVIntl()
 
+const props = defineProps<{
+	symlinkTarget?: string | null
+}>()
+
 const messages = defineMessages({
 	header: {
 		id: 'app.instance.confirm-delete.header',
@@ -50,6 +61,11 @@ const messages = defineMessages({
 		id: 'app.instance.confirm-delete.admonition-body',
 		defaultMessage:
 			'All data for your instance will be permanently deleted, including your worlds, configs, and all installed content.',
+	},
+	symlinkDeleteWarning: {
+		id: 'app.instance.confirm-delete.symlink-warning',
+		defaultMessage:
+			'This is a shared instance linked to "{path}". Only the link will be removed; the original files will not be deleted.',
 	},
 	deleteButton: {
 		id: 'app.instance.confirm-delete.delete-button',

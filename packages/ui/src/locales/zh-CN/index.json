@@ -1241,6 +1241,21 @@
   "files.delete-modal.deleting-name": {
     "defaultMessage": "正在删除“{name}”"
   },
+  "files.delete-modal.deleting-multiple": {
+    "defaultMessage": "正在删除 {count} 个项目"
+  },
+  "files.delete-modal.bulk-header": {
+    "defaultMessage": "删除多个项目"
+  },
+  "files.delete-modal.bulk-warning": {
+    "defaultMessage": "选中的项目将被永久删除。此操作无法被撤销。"
+  },
+  "files.delete-modal.symlink-warning-header": {
+    "defaultMessage": "共享实例"
+  },
+  "files.delete-modal.symlink-warning-body": {
+    "defaultMessage": "你正在修改链接到“{path}”的共享实例中的文件。更改将影响原始实例。"
+  },
   "files.delete-modal.header": {
     "defaultMessage": "删除文件"
   },

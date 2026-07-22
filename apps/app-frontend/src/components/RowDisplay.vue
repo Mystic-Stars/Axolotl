@@ -82,7 +82,7 @@ const currentDeleteInstance = ref(null)
 
 async function deleteInstance() {
 	if (currentDeleteInstance.value) {
-		await remove(currentDeleteInstance.value).catch(handleError)
+		await remove(currentDeleteInstance.value.id).catch(handleError)
 	}
 }
 
@@ -177,8 +177,8 @@ const handleOptionsClick = async (args) => {
 			if (args.item.install_stage == 'installed') await duplicateInstance(args.item.id)
 			break
 		case 'delete':
-			currentDeleteInstance.value = args.item.id
-			deleteConfirmModal.value.show()
+		currentDeleteInstance.value = args.item
+		deleteConfirmModal.value.show()
 			break
 		case 'open_folder':
 			await showInstanceInFolder(args.item.id)
@@ -260,7 +260,11 @@ onUnmounted(() => {
 </script>
 
 <template>
-	<ConfirmDeleteInstanceModal ref="deleteConfirmModal" @delete="deleteInstance" />
+	<ConfirmDeleteInstanceModal
+		ref="deleteConfirmModal"
+		:symlink-target="currentDeleteInstance?.symlink_target"
+		@delete="deleteInstance"
+	/>
 	<div ref="rowContainer" class="flex flex-col gap-4">
 		<div v-for="row in actualInstances" ref="rows" :key="row.label" class="row">
 			<HeadingLink class="mt-1" :to="row.route">

@@ -74,18 +74,6 @@
 				</div>
 			</div>
 
-			<!-- Import as symlink option -->
-			<div class="mt-2 flex items-center gap-3">
-				<Checkbox
-					:model-value="ctx.importAsSymlink.value"
-					@update:model-value="ctx.importAsSymlink.value = $event"
-				/>
-				<div class="flex items-center gap-2">
-					<LinkIcon class="size-4 text-secondary" />
-					<span class="text-sm">{{ formatMessage(messages.importAsSymlink) }}</span>
-				</div>
-			</div>
-
 			<!-- Pick an instance folder directly -->
 			<div class="mt-2">
 				<ButtonStyled>
@@ -119,6 +107,18 @@
 						{{ formatMessage(messages.add) }}
 					</button>
 				</ButtonStyled>
+			</div>
+
+			<!-- Import as symlink option -->
+			<div class="mt-2 flex items-center gap-3">
+				<Checkbox
+					:model-value="ctx.importAsSymlink.value"
+					@update:model-value="ctx.importAsSymlink.value = $event"
+				/>
+				<span
+					v-tooltip="formatMessage(messages.importAsSymlinkTooltip)"
+					class="cursor-help text-sm"
+				>{{ formatMessage(messages.importAsSymlink) }}</span>
 			</div>
 		</template>
 	</div>
@@ -196,6 +196,11 @@ const messages = defineMessages({
 	importAsSymlink: {
 		id: 'creation-flow.modal.import-instance.import-as-symlink',
 		defaultMessage: 'Import as symlink',
+	},
+	importAsSymlinkTooltip: {
+		id: 'creation-flow.modal.import-instance.import-as-symlink.tooltip',
+		defaultMessage:
+			'Creates a link to the original instance folder instead of copying files. Saves disk space, but changes to the instance will affect the original files.',
 	},
 })
 

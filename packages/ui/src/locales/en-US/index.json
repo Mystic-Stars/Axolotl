@@ -1241,6 +1241,21 @@
   "files.delete-modal.deleting-name": {
     "defaultMessage": "Deleting \"{name}\""
   },
+  "files.delete-modal.deleting-multiple": {
+    "defaultMessage": "Deleting {count} items"
+  },
+  "files.delete-modal.bulk-header": {
+    "defaultMessage": "Delete multiple items"
+  },
+  "files.delete-modal.bulk-warning": {
+    "defaultMessage": "The selected items will be permanently deleted. This action cannot be undone."
+  },
+  "files.delete-modal.symlink-warning-header": {
+    "defaultMessage": "Shared instance"
+  },
+  "files.delete-modal.symlink-warning-body": {
+    "defaultMessage": "You are modifying files in a shared instance linked to \"{path}\". Any changes will also affect the original instance."
+  },
   "files.delete-modal.header": {
     "defaultMessage": "Delete file"
   },
