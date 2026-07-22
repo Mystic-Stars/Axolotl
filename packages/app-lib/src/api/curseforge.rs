@@ -3587,6 +3587,8 @@ mod tests {
             },
             files: Vec::new(),
             overrides: "overrides".to_string(),
+            name: None,
+            version: None,
         };
 
         assert_eq!(
@@ -3608,6 +3610,8 @@ mod tests {
             },
             files: Vec::new(),
             overrides: "overrides".to_string(),
+            name: None,
+            version: None,
         };
 
         assert_eq!(
