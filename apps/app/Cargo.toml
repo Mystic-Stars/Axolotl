@@ -35,6 +35,7 @@ tauri-plugin-window-state = { workspace = true }
 theseus = { workspace = true, features = ["tauri"] }
 thiserror = { workspace = true }
 tokio = { workspace = true, features = ["time"] }
+tokio-util = { workspace = true, features = ["compat"] }
 tracing = { workspace = true }
 tracing-error = { workspace = true }
 url = { workspace = true }

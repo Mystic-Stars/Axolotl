@@ -232,6 +232,16 @@ fn modrinth_request_kind(url: &str) -> Option<&'static str> {
     }
 }
 
+fn sanitize_url_for_log(url: &str) -> String {
+    if let Ok(mut url) = Url::parse(url) {
+        url.set_query(None);
+        url.set_fragment(None);
+        return url.into();
+    }
+
+    url.split(['?', '#']).next().unwrap_or(url).to_string()
+}
+
 fn is_safe_redirect_location(location: &str) -> bool {
     location.len() <= MAX_REDIRECT_LOCATION_BYTES && location.is_ascii()
 }
@@ -922,7 +932,7 @@ pub type FetchProgressFn<'a> = dyn FnMut(
     + Send
     + 'a;
 
-#[tracing::instrument(skip(semaphore))]
+#[tracing::instrument(skip_all)]
 pub async fn fetch(
     url: &str,
     sha1: Option<&str>,
@@ -946,7 +956,7 @@ pub async fn fetch(
     .await
 }
 
-#[tracing::instrument(skip(json_body, semaphore))]
+#[tracing::instrument(skip_all)]
 pub async fn fetch_json<T>(
     method: Method,
     url: &str,
@@ -986,7 +996,7 @@ where
 
 /// Downloads a file with retry and checksum functionality, and a specific
 /// [`reqwest::Client`].
-#[tracing::instrument(skip(json_body, semaphore))]
+#[tracing::instrument(skip_all)]
 #[allow(clippy::too_many_arguments)]
 pub async fn fetch_advanced(
     method: Method,
@@ -1017,7 +1027,7 @@ pub async fn fetch_advanced(
 }
 
 /// Downloads a file with retry and checksum functionality
-#[tracing::instrument(skip(json_body, semaphore))]
+#[tracing::instrument(skip_all)]
 #[allow(clippy::too_many_arguments)]
 pub async fn fetch_advanced_with_client(
     method: Method,
@@ -1051,13 +1061,7 @@ pub async fn fetch_advanced_with_client(
     .await
 }
 
-#[tracing::instrument(skip(
-    json_body,
-    semaphore,
-    client,
-    progress,
-    response_validator
-))]
+#[tracing::instrument(skip_all)]
 #[allow(clippy::too_many_arguments)]
 async fn fetch_advanced_with_client_and_progress(
     method: Method,
@@ -1111,8 +1115,10 @@ async fn fetch_advanced_with_client_and_progress(
 
     for (route_index, route) in request_routes.iter().enumerate() {
         let request_url = &route.url;
+        let log_request_url = sanitize_url_for_log(request_url);
         let is_mirror = route.is_mirror;
         let route_source = route.source;
+        let request_target = if is_mirror { "mirror" } else { "official" };
         let has_next_route = route_index + 1 < request_routes.len();
         let fence_key = if is_api_url && !is_mirror {
             uri_path
@@ -1154,10 +1160,11 @@ async fn fetch_advanced_with_client_and_progress(
             let started = time::Instant::now();
             if let Some(request_kind) = modrinth_request_kind {
                 tracing::info!(
-                    source = ?route_source,
+                    request_target,
+                    source = route_source.as_str(),
                     request_kind,
                     method = %method,
-                    url = request_url,
+                    url = %log_request_url,
                     route = route_index + 1,
                     attempt,
                     max_attempts,
@@ -1234,13 +1241,20 @@ async fn fetch_advanced_with_client_and_progress(
                                 is_official_modrinth_cdn_redirect(
                                     redirect_url.as_deref(),
                                 );
+                            let log_redirect_url = redirect_url
+                                .as_deref()
+                                .map(sanitize_url_for_log)
+                                .unwrap_or_else(|| "<missing>".to_string());
                             if redirects_to_official {
                                 tracing::warn!(
                                     mirror_status = "cache_miss",
-                                    source = ?route_source,
-                                    mirror_url = request_url,
-                                    redirect_url = redirect_url.as_deref().unwrap_or("<missing>"),
+                                    request_target,
+                                    source = route_source.as_str(),
+                                    mirror_url = %log_request_url,
+                                    redirect_url = %log_redirect_url,
                                     cache_status,
+                                    attempt,
+                                    max_attempts,
                                     status = status.as_u16(),
                                     elapsed_ms = started.elapsed().as_millis(),
                                     "Modrinth mirror redirected to official CDN; falling back to official source"
@@ -1248,10 +1262,13 @@ async fn fetch_advanced_with_client_and_progress(
                             } else {
                                 tracing::warn!(
                                     mirror_status = "redirect_unresolved",
-                                    source = ?route_source,
-                                    mirror_url = request_url,
-                                    redirect_url = redirect_url.as_deref().unwrap_or("<missing>"),
+                                    request_target,
+                                    source = route_source.as_str(),
+                                    mirror_url = %log_request_url,
+                                    redirect_url = %log_redirect_url,
                                     cache_status,
+                                    attempt,
+                                    max_attempts,
                                     status = status.as_u16(),
                                     elapsed_ms = started.elapsed().as_millis(),
                                     "Modrinth mirror returned an unresolved redirect; falling back to official source"
@@ -1262,7 +1279,7 @@ async fn fetch_advanced_with_client_and_progress(
                         record_route_failure(route);
                         last_error = Some(
 							ErrorKind::OtherError(format!(
-								"Refusing to automatically forward protected headers while redirecting {request_url}"
+								"Refusing to automatically forward protected headers while redirecting {log_request_url}"
 							))
 							.into(),
 						);
@@ -1282,7 +1299,7 @@ async fn fetch_advanced_with_client_and_progress(
                         {
                             error.status = Some(status.as_u16());
                             error.method = Some(method.as_str().to_string());
-                            error.url = Some(request_url.to_string());
+                            error.url = Some(log_request_url.clone());
                             error.route = uri_path.map(str::to_string);
                             ErrorKind::LabrinthError(error).into()
                         } else {
@@ -1320,8 +1337,11 @@ async fn fetch_advanced_with_client_and_progress(
                         if has_next_route {
                             if modrinth_request_kind.is_some() {
                                 tracing::warn!(
-                                    source = ?route_source,
-                                    url = request_url,
+                                    request_target,
+                                    source = route_source.as_str(),
+                                    url = %log_request_url,
+                                    attempt,
+                                    max_attempts,
                                     status = status.as_u16(),
                                     elapsed_ms = started.elapsed().as_millis(),
                                     error = %route_error_message,
@@ -1329,7 +1349,7 @@ async fn fetch_advanced_with_client_and_progress(
                                 );
                             } else {
                                 tracing::warn!(
-                                    url = request_url,
+                                    url = %log_request_url,
                                     status = status.as_u16(),
                                     error = %route_error_message,
                                     "Mirror request failed; falling back to official source"
@@ -1339,8 +1359,11 @@ async fn fetch_advanced_with_client_and_progress(
                         }
                         if modrinth_request_kind.is_some() {
                             tracing::warn!(
-                                source = ?route_source,
-                                url = request_url,
+                                request_target,
+                                source = route_source.as_str(),
+                                url = %log_request_url,
+                                attempt,
+                                max_attempts,
                                 status = status.as_u16(),
                                 elapsed_ms = started.elapsed().as_millis(),
                                 error = %route_error_message,
@@ -1351,6 +1374,7 @@ async fn fetch_advanced_with_client_and_progress(
                     }
 
                     let response_url = resp.url().to_string();
+                    let log_response_url = sanitize_url_for_log(&response_url);
                     if is_mirror && modrinth_request_kind == Some("CDN") {
                         let cache_status = resp
                             .headers()
@@ -1359,10 +1383,13 @@ async fn fetch_advanced_with_client_and_progress(
                             .unwrap_or("unknown");
                         tracing::info!(
                             mirror_status = "cache_hit",
-                            source = ?route_source,
-                            mirror_url = request_url,
-                            final_url = %response_url,
+                            request_target,
+                            source = route_source.as_str(),
+                            mirror_url = %log_request_url,
+                            final_url = %log_response_url,
                             cache_status,
+                            attempt,
+                            max_attempts,
                             status = resp.status().as_u16(),
                             elapsed_ms = started.elapsed().as_millis(),
                             "Modrinth mirror resolved cached file"
@@ -1384,7 +1411,7 @@ async fn fetch_advanced_with_client_and_progress(
                             while let Some(item) = stream.next().await {
                                 let chunk = item.wrap_err_with(|| {
 									eyre!(
-										"failed to read response body from {request_url}"
+										"failed to read response body from {log_request_url}"
 									)
 								})?;
 
@@ -1395,10 +1422,12 @@ async fn fetch_advanced_with_client_and_progress(
                                     && downloaded >= next_progress_log
                                 {
                                     tracing::info!(
-                                        source = ?route_source,
+                                        request_target,
+                                        source = route_source.as_str(),
                                         attempt,
-                                        url = request_url,
-                                        final_url = %response_url,
+                                        max_attempts,
+                                        url = %log_request_url,
+                                        final_url = %log_response_url,
                                         downloaded_bytes = downloaded,
                                         expected_bytes = total_size,
                                         "Modrinth CDN download progress"
@@ -1434,7 +1463,7 @@ async fn fetch_advanced_with_client_and_progress(
                     } else {
                         resp.bytes().await.wrap_err_with(|| {
                             eyre!(
-                                "failed to read response body from {request_url}"
+                                "failed to read response body from {log_request_url}"
                             )
 						})
                     };
@@ -1455,8 +1484,9 @@ async fn fetch_advanced_with_client_and_progress(
                                 if !has_next_route && has_more_attempts {
                                     if modrinth_request_kind.is_some() {
                                         tracing::warn!(
-                                            source = ?route_source,
-                                            url = request_url,
+                                            request_target,
+                                            source = route_source.as_str(),
+                                            url = %log_request_url,
                                             attempt,
                                             max_attempts,
                                             elapsed_ms = started.elapsed().as_millis(),
@@ -1479,7 +1509,7 @@ async fn fetch_advanced_with_client_and_progress(
                             record_route_failure(route);
                             if has_next_route {
                                 tracing::warn!(
-                                    url = request_url,
+                                    url = %log_request_url,
                                     error = %error,
                                     "Download route returned incompatible data; trying the next source"
                                 );
@@ -1489,14 +1519,18 @@ async fn fetch_advanced_with_client_and_progress(
                             return Err(error);
                         }
 
-                        tracing::trace!("Done downloading URL {request_url}");
+                        tracing::trace!(
+                            "Done downloading URL {log_request_url}"
+                        );
                         if let Some(request_kind) = modrinth_request_kind {
                             tracing::info!(
-                                source = ?route_source,
+                                request_target,
+                                source = route_source.as_str(),
                                 request_kind,
-                                url = request_url,
-                                final_url = %response_url,
+                                url = %log_request_url,
+                                final_url = %log_response_url,
                                 attempt,
+                                max_attempts,
                                 bytes = bytes.len(),
                                 elapsed_ms = started.elapsed().as_millis(),
                                 "Completed Modrinth request"
@@ -1521,15 +1555,18 @@ async fn fetch_advanced_with_client_and_progress(
                         if has_next_route {
                             if modrinth_request_kind.is_some() {
                                 tracing::warn!(
-                                    source = ?route_source,
-                                    url = request_url,
+                                    request_target,
+                                    source = route_source.as_str(),
+                                    url = %log_request_url,
+                                    attempt,
+                                    max_attempts,
                                     elapsed_ms = started.elapsed().as_millis(),
                                     error = %error_message,
                                     "Modrinth mirror response failed; falling back to official source"
                                 );
                             } else {
                                 tracing::warn!(
-                                    url = request_url,
+                                    url = %log_request_url,
                                     error = %error_message,
                                     "Mirror response failed; falling back to official source"
                                 );
@@ -1539,8 +1576,9 @@ async fn fetch_advanced_with_client_and_progress(
                         if has_more_attempts {
                             if modrinth_request_kind.is_some() {
                                 tracing::warn!(
-                                    source = ?route_source,
-                                    url = request_url,
+                                    request_target,
+                                    source = route_source.as_str(),
+                                    url = %log_request_url,
                                     attempt,
                                     max_attempts,
                                     elapsed_ms = started.elapsed().as_millis(),
@@ -1565,15 +1603,18 @@ async fn fetch_advanced_with_client_and_progress(
                     if has_next_route {
                         if modrinth_request_kind.is_some() {
                             tracing::warn!(
-                                source = ?route_source,
-                                url = request_url,
+                                request_target,
+                                source = route_source.as_str(),
+                                url = %log_request_url,
+                                attempt,
+                                max_attempts,
                                 elapsed_ms = started.elapsed().as_millis(),
                                 error = %error_message,
                                 "Modrinth mirror connection failed; falling back to official source"
                             );
                         } else {
                             tracing::warn!(
-                                url = request_url,
+                                url = %log_request_url,
                                 error = %error_message,
                                 "Mirror connection failed; falling back to official source"
                             );
@@ -1583,8 +1624,9 @@ async fn fetch_advanced_with_client_and_progress(
                     if has_more_attempts {
                         if modrinth_request_kind.is_some() {
                             tracing::warn!(
-                                source = ?route_source,
-                                url = request_url,
+                                request_target,
+                                source = route_source.as_str(),
+                                url = %log_request_url,
                                 attempt,
                                 max_attempts,
                                 elapsed_ms = started.elapsed().as_millis(),
@@ -1594,7 +1636,7 @@ async fn fetch_advanced_with_client_and_progress(
                         } else {
                             tracing::debug!(
                                 attempt,
-                                url = request_url,
+                                url = %log_request_url,
                                 error = %error_message,
                                 "Fetch failed; retrying"
                             );
@@ -1867,7 +1909,7 @@ async fn response_status_error(
     if let Ok(mut error) = response.json::<LabrinthError>().await {
         error.status = Some(status.as_u16());
         error.method = Some(method.as_str().to_string());
-        error.url = Some(request_url.to_string());
+        error.url = Some(sanitize_url_for_log(request_url));
         ErrorKind::LabrinthError(error).into()
     } else {
         backup_error.into()
@@ -2585,15 +2627,16 @@ pub async fn download_to_path(
     let file_attempt_budget = routes.len().saturating_mul(2).max(1);
     for retry_with_single_thread in [false, true] {
         for (route_index, route) in routes.iter().enumerate() {
+            let log_url = sanitize_url_for_log(&route.url);
             if route_index > 0 {
                 fallback_count += 1;
                 remove_if_exists(&part_path).await?;
             }
             while attempts < file_attempt_budget {
                 attempts += 1;
-                tracing::info!(
+                tracing::debug!(
                     path = %destination.display(),
-                    url = %route.url,
+                    url = %log_url,
                     source = route.source.as_str(),
                     attempt = attempts,
                     max_attempts = file_attempt_budget,
@@ -2650,7 +2693,7 @@ pub async fn download_to_path(
                             last_error = Some(
                                 ErrorKind::OtherError(format!(
                                     "File transfer failed from {}",
-                                    route.url
+                                    log_url
                                 ))
                                 .into(),
                             );
@@ -2685,9 +2728,9 @@ pub async fn download_to_path(
                 };
                 let ttfb = request_started.elapsed();
                 let status = response.status();
-                tracing::info!(
+                tracing::debug!(
                     path = %destination.display(),
-                    url = %route.url,
+                    url = %log_url,
                     status = status.as_u16(),
                     ttfb_ms = ttfb.as_millis(),
                     "Received file download response"
@@ -2742,7 +2785,7 @@ pub async fn download_to_path(
                     {
                         tracing::warn!(
                             path = %destination.display(),
-                            url = %route.url,
+                            url = %log_url,
                             bytes = chunk.len(),
                             elapsed_ms = elapsed.as_millis(),
                             "Ending a stalled file download"
@@ -2798,9 +2841,10 @@ pub async fn download_to_path(
                     downloaded.saturating_sub(starting_size),
                     transfer_started.elapsed(),
                 );
-                tracing::info!(
+                let log_final_url = sanitize_url_for_log(&final_url);
+                tracing::debug!(
                     path = %destination.display(),
-                    url = %final_url,
+                    url = %log_final_url,
                     source = route.source.as_str(),
                     bytes = downloaded.saturating_sub(starting_size),
                     elapsed_ms = transfer_started.elapsed().as_millis(),
@@ -2821,14 +2865,14 @@ pub async fn download_to_path(
     Err(last_error.unwrap_or_else(|| {
         ErrorKind::OtherError(format!(
             "Unable to download {} from any source",
-            request.url
+            sanitize_url_for_log(&request.url)
         ))
         .into()
     }))
 }
 
 /// Downloads a file from specified mirrors
-#[tracing::instrument(skip(semaphore))]
+#[tracing::instrument(skip_all)]
 pub async fn fetch_mirrors(
     mirrors: &[&str],
     sha1: Option<&str>,
@@ -2881,7 +2925,7 @@ pub async fn fetch_mirrors(
 }
 
 /// Posts a JSON to a URL
-#[tracing::instrument(skip(json_body, semaphore))]
+#[tracing::instrument(skip_all)]
 pub async fn post_json(
     url: &str,
     json_body: serde_json::Value,
@@ -3161,6 +3205,20 @@ mod tests {
             Some("CDN")
         );
         assert_eq!(modrinth_request_kind("https://example.com/file.jar"), None);
+    }
+
+    #[test]
+    fn log_urls_keep_route_but_remove_credentials_and_fragments() {
+        assert_eq!(
+            sanitize_url_for_log(
+                "https://mod.mcimirror.top/data/file.jar?X-Amz-Credential=secret&X-Amz-Signature=signature#fragment"
+            ),
+            "https://mod.mcimirror.top/data/file.jar"
+        );
+        assert_eq!(
+            sanitize_url_for_log("not-a-url?token=secret#fragment"),
+            "not-a-url"
+        );
     }
 
     #[tokio::test]

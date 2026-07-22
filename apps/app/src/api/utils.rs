@@ -12,6 +12,7 @@ use async_zip::{Compression, ZipEntryBuilder};
 use dashmap::DashMap;
 use std::path::{Path, PathBuf};
 use theseus::prelude::canonicalize;
+use tokio_util::compat::FuturesAsyncWriteCompatExt;
 use url::Url;
 
 pub fn init<R: Runtime>() -> tauri::plugin::TauriPlugin<R> {
@@ -149,17 +150,38 @@ pub async fn export_error_logs(
             }
 
             let file_name = entry.file_name().to_string_lossy().to_string();
-            let log_contents = tokio::fs::read(entry.path()).await?;
-            write_zip_entry(
+            write_zip_file(
                 &mut writer,
                 &format!("launcher_logs/{file_name}"),
-                &log_contents,
+                &entry.path(),
             )
             .await?;
         }
     }
 
     writer.close().await.map_err(zip_error)?;
+    Ok(())
+}
+
+async fn write_zip_file(
+    writer: &mut ZipFileWriter<tokio::fs::File>,
+    filename: &str,
+    path: &Path,
+) -> Result<()> {
+    let mut stream = writer
+        .write_entry_stream(
+            ZipEntryBuilder::new(
+                filename.to_string().into(),
+                Compression::Deflate,
+            )
+            .build(),
+        )
+        .await
+        .map_err(zip_error)?
+        .compat_write();
+    let mut source = tokio::fs::File::open(path).await?;
+    tokio::io::copy(&mut source, &mut stream).await?;
+    stream.into_inner().close().await.map_err(zip_error)?;
     Ok(())
 }
 

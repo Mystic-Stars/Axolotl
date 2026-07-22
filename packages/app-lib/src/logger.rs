@@ -22,6 +22,310 @@ const DEFAULT_CONSOLE_COLUMNS: usize = 80;
 #[cfg(debug_assertions)]
 const CONSOLE_TRUNCATION_MARKER: &str = "... [console output truncated]";
 
+#[cfg(not(debug_assertions))]
+const LAUNCHER_LOG_MAX_BYTES: u64 = 10 * 1024 * 1024;
+#[cfg(not(debug_assertions))]
+const LAUNCHER_WARN_ERROR_MAX_BYTES: u64 = 30 * 1024 * 1024;
+#[cfg(not(debug_assertions))]
+const LAUNCHER_LOG_MAX_FILES: usize = 5;
+#[cfg(not(debug_assertions))]
+const LAUNCHER_LOG_MAX_AGE: std::time::Duration =
+    std::time::Duration::from_secs(3 * 24 * 60 * 60);
+
+#[cfg(any(test, not(debug_assertions)))]
+#[derive(Clone)]
+struct RotatingLogWriter {
+    state: std::sync::Arc<std::sync::Mutex<RotatingLogState>>,
+    normal_max_bytes: u64,
+    warn_error_max_bytes: u64,
+}
+
+#[cfg(any(test, not(debug_assertions)))]
+struct RotatingLogState {
+    logs_dir: std::path::PathBuf,
+    session_name: String,
+    segment: usize,
+    file: std::fs::File,
+    bytes_written: u64,
+    max_files: usize,
+    max_age: std::time::Duration,
+}
+
+#[cfg(any(test, not(debug_assertions)))]
+impl RotatingLogWriter {
+    fn new(
+        logs_dir: std::path::PathBuf,
+        session_name: String,
+        normal_max_bytes: u64,
+        warn_error_max_bytes: u64,
+        max_files: usize,
+        max_age: std::time::Duration,
+    ) -> std::io::Result<Self> {
+        std::fs::create_dir_all(&logs_dir)?;
+        let path = rotating_log_path(&logs_dir, &session_name, 0);
+        let file = open_log_file(&path)?;
+        let bytes_written = file.metadata()?.len();
+        let state = RotatingLogState {
+            logs_dir,
+            session_name,
+            segment: 0,
+            file,
+            bytes_written,
+            max_files: max_files.max(1),
+            max_age,
+        };
+        let writer = Self {
+            state: std::sync::Arc::new(std::sync::Mutex::new(state)),
+            normal_max_bytes: normal_max_bytes.max(1),
+            warn_error_max_bytes: warn_error_max_bytes
+                .max(normal_max_bytes)
+                .max(1),
+        };
+        writer.cleanup_old_logs();
+        Ok(writer)
+    }
+
+    fn write_event(
+        &self,
+        buffer: &[u8],
+        max_file_bytes: u64,
+    ) -> std::io::Result<()> {
+        let mut state = self.state.lock().map_err(|_| {
+            std::io::Error::other("launcher log writer lock poisoned")
+        })?;
+        state.write_event(buffer, max_file_bytes)
+    }
+
+    fn flush(&self) -> std::io::Result<()> {
+        let mut state = self.state.lock().map_err(|_| {
+            std::io::Error::other("launcher log writer lock poisoned")
+        })?;
+        std::io::Write::flush(&mut state.file)
+    }
+
+    fn cleanup_old_logs(&self) {
+        if let Ok(state) = self.state.lock() {
+            let active_path = rotating_log_path(
+                &state.logs_dir,
+                &state.session_name,
+                state.segment,
+            );
+            cleanup_launcher_logs(
+                &state.logs_dir,
+                state.max_files,
+                state.max_age,
+                &active_path,
+            );
+        }
+    }
+}
+
+#[cfg(any(test, not(debug_assertions)))]
+impl RotatingLogState {
+    fn write_event(
+        &mut self,
+        buffer: &[u8],
+        max_file_bytes: u64,
+    ) -> std::io::Result<()> {
+        if self.bytes_written > 0
+            && self.bytes_written.saturating_add(buffer.len() as u64)
+                > max_file_bytes.max(1)
+        {
+            self.rotate()?;
+        }
+
+        std::io::Write::write_all(&mut self.file, buffer)?;
+        self.bytes_written =
+            self.bytes_written.saturating_add(buffer.len() as u64);
+        Ok(())
+    }
+
+    fn rotate(&mut self) -> std::io::Result<()> {
+        std::io::Write::flush(&mut self.file)?;
+        self.segment += 1;
+        let path =
+            rotating_log_path(&self.logs_dir, &self.session_name, self.segment);
+        self.file = open_log_file(&path)?;
+        self.bytes_written = self.file.metadata()?.len();
+        cleanup_launcher_logs(
+            &self.logs_dir,
+            self.max_files,
+            self.max_age,
+            &path,
+        );
+        Ok(())
+    }
+}
+
+#[cfg(any(test, not(debug_assertions)))]
+fn rotating_log_path(
+    logs_dir: &std::path::Path,
+    session_name: &str,
+    segment: usize,
+) -> std::path::PathBuf {
+    if segment == 0 {
+        logs_dir.join(format!("{session_name}.log"))
+    } else {
+        logs_dir.join(format!("{session_name}_{segment:03}.log"))
+    }
+}
+
+#[cfg(any(test, not(debug_assertions)))]
+fn open_log_file(path: &std::path::Path) -> std::io::Result<std::fs::File> {
+    std::fs::OpenOptions::new()
+        .create(true)
+        .write(true)
+        .append(true)
+        .open(path)
+}
+
+#[cfg(any(test, not(debug_assertions)))]
+fn cleanup_launcher_logs(
+    logs_dir: &std::path::Path,
+    max_files: usize,
+    max_age: std::time::Duration,
+    active_path: &std::path::Path,
+) {
+    cleanup_launcher_logs_at(
+        logs_dir,
+        max_files,
+        max_age,
+        active_path,
+        std::time::SystemTime::now(),
+    );
+}
+
+#[cfg(any(test, not(debug_assertions)))]
+fn cleanup_launcher_logs_at(
+    logs_dir: &std::path::Path,
+    max_files: usize,
+    max_age: std::time::Duration,
+    active_path: &std::path::Path,
+    now: std::time::SystemTime,
+) {
+    let Ok(entries) = std::fs::read_dir(logs_dir) else {
+        return;
+    };
+    let mut logs = entries
+        .filter_map(Result::ok)
+        .filter_map(|entry| {
+            let path = entry.path();
+            let name = path.file_name()?.to_str()?;
+            if !entry.file_type().ok()?.is_file()
+                || !name.starts_with("session_")
+                || path.extension()?.to_str()? != "log"
+            {
+                return None;
+            }
+            let metadata = entry.metadata().ok()?;
+            let created =
+                metadata.created().or_else(|_| metadata.modified()).ok();
+            Some((created, path))
+        })
+        .collect::<Vec<_>>();
+    logs.retain(|(created, path)| {
+        if path != active_path
+            && created.is_some_and(|created| {
+                launcher_log_is_expired(created, now, max_age)
+            })
+        {
+            return std::fs::remove_file(path).is_err();
+        }
+        true
+    });
+    logs.sort_by(|a, b| a.0.cmp(&b.0).then(a.1.cmp(&b.1)));
+
+    while logs.len() > max_files.max(1) {
+        let Some(index) = logs.iter().position(|(_, path)| path != active_path)
+        else {
+            break;
+        };
+        let (_, path) = logs.remove(index);
+        let _ = std::fs::remove_file(path);
+    }
+}
+
+#[cfg(any(test, not(debug_assertions)))]
+fn launcher_log_is_expired(
+    created: std::time::SystemTime,
+    now: std::time::SystemTime,
+    max_age: std::time::Duration,
+) -> bool {
+    now.duration_since(created).is_ok_and(|age| age > max_age)
+}
+
+#[cfg(any(test, not(debug_assertions)))]
+struct LogEventWriter {
+    writer: RotatingLogWriter,
+    buffer: Vec<u8>,
+    max_file_bytes: u64,
+}
+
+#[cfg(any(test, not(debug_assertions)))]
+impl LogEventWriter {
+    fn commit(&mut self) -> std::io::Result<()> {
+        if self.buffer.is_empty() {
+            return Ok(());
+        }
+        self.writer.write_event(&self.buffer, self.max_file_bytes)?;
+        self.buffer.clear();
+        Ok(())
+    }
+}
+
+#[cfg(any(test, not(debug_assertions)))]
+impl std::io::Write for LogEventWriter {
+    fn write(&mut self, buffer: &[u8]) -> std::io::Result<usize> {
+        self.buffer.extend_from_slice(buffer);
+        Ok(buffer.len())
+    }
+
+    fn flush(&mut self) -> std::io::Result<()> {
+        self.commit()?;
+        self.writer.flush()
+    }
+}
+
+#[cfg(any(test, not(debug_assertions)))]
+impl Drop for LogEventWriter {
+    fn drop(&mut self) {
+        let _ = self.commit();
+    }
+}
+
+#[cfg(any(test, not(debug_assertions)))]
+impl<'a> tracing_subscriber::fmt::MakeWriter<'a> for RotatingLogWriter {
+    type Writer = LogEventWriter;
+
+    fn make_writer(&'a self) -> Self::Writer {
+        self.event_writer(self.normal_max_bytes)
+    }
+
+    fn make_writer_for(
+        &'a self,
+        metadata: &tracing::Metadata<'_>,
+    ) -> Self::Writer {
+        let max_file_bytes = match *metadata.level() {
+            tracing::Level::WARN | tracing::Level::ERROR => {
+                self.warn_error_max_bytes
+            }
+            _ => self.normal_max_bytes,
+        };
+        self.event_writer(max_file_bytes)
+    }
+}
+
+#[cfg(any(test, not(debug_assertions)))]
+impl RotatingLogWriter {
+    fn event_writer(&self, max_file_bytes: u64) -> LogEventWriter {
+        LogEventWriter {
+            writer: self.clone(),
+            buffer: Vec::new(),
+            max_file_bytes,
+        }
+    }
+}
+
 #[cfg(debug_assertions)]
 fn console_columns() -> usize {
     std::env::var("COLUMNS")
@@ -446,6 +750,110 @@ mod tests {
             None
         );
     }
+
+    #[test]
+    fn launcher_logs_rotate_by_size_and_keep_only_recent_files() {
+        let directory = tempfile::tempdir().unwrap();
+        let writer = RotatingLogWriter::new(
+            directory.path().to_path_buf(),
+            "session_20260722_120000".to_string(),
+            10,
+            30,
+            3,
+            std::time::Duration::from_secs(3 * 24 * 60 * 60),
+        )
+        .unwrap();
+
+        for index in 0..6 {
+            writer
+                .write_event(
+                    format!("event{index}\n").as_bytes(),
+                    writer.normal_max_bytes,
+                )
+                .unwrap();
+        }
+        writer.flush().unwrap();
+
+        let mut logs = std::fs::read_dir(directory.path())
+            .unwrap()
+            .map(|entry| entry.unwrap().path())
+            .collect::<Vec<_>>();
+        logs.sort();
+        assert_eq!(logs.len(), 3);
+        assert!(logs.iter().all(|path| path.metadata().unwrap().len() <= 10));
+        assert!(
+            logs.iter().any(
+                |path| std::fs::read_to_string(path).unwrap() == "event5\n"
+            )
+        );
+    }
+
+    #[test]
+    fn warn_and_error_events_use_the_complete_event_limit() {
+        let directory = tempfile::tempdir().unwrap();
+        let writer = RotatingLogWriter::new(
+            directory.path().to_path_buf(),
+            "session_20260722_120000".to_string(),
+            10,
+            30,
+            10,
+            std::time::Duration::from_secs(3 * 24 * 60 * 60),
+        )
+        .unwrap();
+
+        writer.write_event(b"12345678", 10).unwrap();
+        writer.write_event(b"abcdefgh", 30).unwrap();
+        writer.write_event(b"ok", 10).unwrap();
+        writer.write_event(&[b'w'; 29], 30).unwrap();
+        writer.write_event(&[b'e'; 31], 30).unwrap();
+        writer.flush().unwrap();
+
+        let mut logs = std::fs::read_dir(directory.path())
+            .unwrap()
+            .map(|entry| entry.unwrap().path())
+            .collect::<Vec<_>>();
+        logs.sort();
+        let contents = logs
+            .iter()
+            .map(std::fs::read)
+            .collect::<Result<Vec<_>, _>>()
+            .unwrap();
+        assert_eq!(
+            contents,
+            vec![
+                b"12345678abcdefgh".to_vec(),
+                b"ok".to_vec(),
+                vec![b'w'; 29],
+                vec![b'e'; 31],
+            ]
+        );
+    }
+
+    #[test]
+    fn launcher_logs_older_than_three_days_are_deleted() {
+        let directory = tempfile::tempdir().unwrap();
+        let old_path = directory.path().join("session_20260718_120000.log");
+        let active_path = directory.path().join("session_20260722_120000.log");
+        std::fs::write(&old_path, b"old").unwrap();
+        std::fs::write(&active_path, b"active").unwrap();
+        let created = old_path
+            .metadata()
+            .unwrap()
+            .created()
+            .or_else(|_| old_path.metadata().unwrap().modified())
+            .unwrap();
+
+        cleanup_launcher_logs_at(
+            directory.path(),
+            5,
+            std::time::Duration::from_secs(3 * 24 * 60 * 60),
+            &active_path,
+            created + std::time::Duration::from_secs(4 * 24 * 60 * 60),
+        );
+
+        assert!(!old_path.exists());
+        assert!(active_path.exists());
+    }
 }
 
 // Handling for the live production logging
@@ -454,7 +862,6 @@ mod tests {
 pub fn start_logger(app_identifier: &str) -> Option<()> {
     use crate::prelude::DirectoryInfo;
     use chrono::Local;
-    use std::fs::OpenOptions;
     use tracing_subscriber::fmt::time::ChronoLocal;
     use tracing_subscriber::prelude::*;
 
@@ -468,23 +875,19 @@ pub fn start_logger(app_identifier: &str) -> Option<()> {
         return None;
     };
 
-    let log_file_name =
-        format!("session_{}.log", Local::now().format("%Y%m%d_%H%M%S"));
-    let log_file_path = logs_dir.join(log_file_name);
-
-    if let Err(err) = std::fs::create_dir_all(&logs_dir) {
-        eprintln!("Could not create logs directory: {err}");
-    }
-
-    let file = match OpenOptions::new()
-        .create(true)
-        .write(true)
-        .append(true)
-        .open(&log_file_path)
-    {
-        Ok(file) => file,
+    let session_name =
+        format!("session_{}", Local::now().format("%Y%m%d_%H%M%S"));
+    let writer = match RotatingLogWriter::new(
+        logs_dir,
+        session_name,
+        LAUNCHER_LOG_MAX_BYTES,
+        LAUNCHER_WARN_ERROR_MAX_BYTES,
+        LAUNCHER_LOG_MAX_FILES,
+        LAUNCHER_LOG_MAX_AGE,
+    ) {
+        Ok(writer) => writer,
         Err(e) => {
-            eprintln!("Could not start open log file: {e}");
+            eprintln!("Could not start launcher log writer: {e}");
             return None;
         }
     };
@@ -495,7 +898,7 @@ pub fn start_logger(app_identifier: &str) -> Option<()> {
     tracing_subscriber::registry()
         .with(
             tracing_subscriber::fmt::layer()
-                .with_writer(file)
+                .with_writer(writer)
                 .with_ansi(false) // disable ANSI escape codes
                 .with_timer(ChronoLocal::rfc_3339()),
         )

@@ -507,7 +507,7 @@ fn missing_initial_minecraft_bytes(
         )?)
 }
 
-#[tracing::instrument(skip(st, version))]
+#[tracing::instrument(skip_all, fields(version = version.id.as_str()))]
 pub async fn download_minecraft(
     st: &State,
     version: &GameVersionInfo,
@@ -953,7 +953,7 @@ pub async fn download_assets_index(
     Ok(res)
 }
 
-#[tracing::instrument(skip(st, index))]
+#[tracing::instrument(skip_all)]
 
 pub async fn download_assets(
     st: &State,
@@ -1057,7 +1057,7 @@ pub async fn download_assets(
     Ok(())
 }
 
-#[tracing::instrument(skip(st, libraries))]
+#[tracing::instrument(skip_all, fields(version))]
 #[allow(clippy::too_many_arguments)]
 pub async fn download_libraries(
     st: &State,
