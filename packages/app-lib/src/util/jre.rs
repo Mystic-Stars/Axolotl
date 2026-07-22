@@ -27,18 +27,56 @@ const COLLECT_CONCURRENCY: usize = 4;
 /// Directory names (lowercase, substring match) that make the BFS descend
 /// into a top-level directory of a search root.
 const DIR_NAME_KEYWORDS: &[&str] = &[
-    "java", "jdk", "jre", "dragonwell", "azul", "zulu", "oracle", "open",
-    "amazon", "corretto", "eclipse", "temurin", "hotspot", "semeru", "kona",
-    "bellsoft", "liberica", "graal", "sdkman", "environment", "env",
-    "runtime", "x86_64", "amd64", "arm64", "minecraft", "launcher", "hmcl",
+    "java",
+    "jdk",
+    "jre",
+    "dragonwell",
+    "azul",
+    "zulu",
+    "oracle",
+    "open",
+    "amazon",
+    "corretto",
+    "eclipse",
+    "temurin",
+    "hotspot",
+    "semeru",
+    "kona",
+    "bellsoft",
+    "liberica",
+    "graal",
+    "sdkman",
+    "environment",
+    "env",
+    "runtime",
+    "x86_64",
+    "amd64",
+    "arm64",
+    "minecraft",
+    "launcher",
+    "hmcl",
 ];
 
 /// Directory names (lowercase, substring match) that the BFS never descends
 /// into, at any depth.
 const EXCLUDED_DIR_NAMES: &[&str] = &[
-    "javapath", "java8path", "common files", "netease", "node_modules",
-    "assets", "libraries", "resourcepacks", "shaderpacks", "screenshots",
-    "saves", "logs", "crash-reports", "cache", "mods", "versions", ".git",
+    "javapath",
+    "java8path",
+    "common files",
+    "netease",
+    "node_modules",
+    "assets",
+    "libraries",
+    "resourcepacks",
+    "shaderpacks",
+    "screenshots",
+    "saves",
+    "logs",
+    "crash-reports",
+    "cache",
+    "mods",
+    "versions",
+    ".git",
 ];
 
 // Entrypoint function
