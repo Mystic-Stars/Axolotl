@@ -9,16 +9,6 @@ pub enum SymlinkCapability {
     Unsupported,
 }
 
-impl SymlinkCapability {
-    pub fn requires_admin(&self) -> bool {
-        matches!(self, Self::RequiresAdmin)
-    }
-
-    pub fn is_supported(&self) -> bool {
-        matches!(self, Self::Supported | Self::RequiresAdmin)
-    }
-}
-
 static SYMLINK_CAPABILITY: OnceLock<SymlinkCapability> = OnceLock::new();
 
 pub async fn check_symlink_capability() -> SymlinkCapability {
@@ -27,7 +17,7 @@ pub async fn check_symlink_capability() -> SymlinkCapability {
     }
 
     let capability = check_symlink_capability_internal().await;
-    SYMLINK_CAPABILITY.set(capability).unwrap();
+    let _ = SYMLINK_CAPABILITY.set(capability);
     capability
 }
 

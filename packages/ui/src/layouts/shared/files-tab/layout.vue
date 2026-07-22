@@ -590,6 +590,7 @@ function showMoveModal(item: FileItem) {
 
 function showDeleteModal(item: FileItem) {
 	if (isBusy.value) return
+	pendingBulkDeletePaths.value = []
 	selectedItem.value = item
 	deleteItemModal.value?.show()
 }

@@ -45,9 +45,6 @@ const symlinkMessages = defineMessages({
 	cancel: {
 		id: 'app.symlink-capability.cancel',
 	},
-	ok: {
-		id: 'app.symlink-capability.ok',
-	},
 })
 
 export function setupCreationModal(notificationManager: AbstractWebNotificationManager) {
@@ -127,7 +124,7 @@ export function setupCreationModal(notificationManager: AbstractWebNotificationM
 							formatMessage(symlinkMessages.requiresAdminDescription),
 							{
 								title: formatMessage(symlinkMessages.requiresAdminTitle),
-								okLabel: formatMessage(symlinkMessages.ok),
+								okLabel: formatMessage(symlinkMessages.requiresAdminRestartButton),
 								cancelLabel: formatMessage(symlinkMessages.cancel),
 							},
 						)

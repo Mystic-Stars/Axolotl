@@ -2519,12 +2519,6 @@
 	"unknown-pack-warning-modal.warning.title": {
 		"message": "Unknown file warning"
 	},
-	"app.symlink-warning.header": {
-		"message": "Shared instance warning"
-	},
-	"app.symlink-warning.body": {
-		"message": "This instance is a symlink to {path}. Changes to this instance will affect the original location."
-	},
 	"app.symlink-warning.write.header": {
 		"message": "Shared instance"
 	},
@@ -2569,8 +2563,5 @@
 	},
 	"app.symlink-capability.cancel": {
 		"message": "Cancel"
-	},
-	"app.symlink-capability.ok": {
-		"message": "OK"
 	}
 }

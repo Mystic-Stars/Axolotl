@@ -111,12 +111,12 @@ async fn check_symlink_capability() -> api::Result<String> {
 }
 
 #[tauri::command]
-fn restart_as_admin() {
+fn restart_as_admin(app: tauri::AppHandle) {
     #[cfg(target_os = "windows")]
     {
         use std::process::Command;
         let exe = std::env::current_exe().unwrap();
-        let _ = Command::new("powershell")
+        let spawned = Command::new("powershell")
             .args([
                 "-Command",
                 &format!(
@@ -125,6 +125,13 @@ fn restart_as_admin() {
                 ),
             ])
             .spawn();
+        if spawned.is_ok() {
+            app.exit(0);
+        }
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
+        let _ = app;
     }
 }
 

@@ -2519,12 +2519,6 @@
 	"unknown-pack-warning-modal.warning.title": {
 		"message": "未知文件警告"
 	},
-	"app.symlink-warning.header": {
-		"message": "软链接警告"
-	},
-	"app.symlink-warning.body": {
-		"message": "此实例是指向 {path} 的软链接。对此实例的更改将影响原始位置。"
-	},
 	"app.symlink-warning.write.header": {
 		"message": "共享实例"
 	},
@@ -2569,8 +2563,5 @@
 	},
 	"app.symlink-capability.cancel": {
 		"message": "取消"
-	},
-	"app.symlink-capability.ok": {
-		"message": "确认"
 	}
 }

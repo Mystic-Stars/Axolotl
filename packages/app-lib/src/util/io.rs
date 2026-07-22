@@ -412,9 +412,15 @@ pub async fn create_symlink(
                     Err(junction_err) => {
                         match symlink_rs::symlink_dir(&target, &link) {
                             Ok(()) => Ok(()),
-                            Err(_) => {
-                                Err(IOError::with_path(junction_err, &link))
-                            }
+                            Err(symlink_err) => Err(IOError::with_path(
+                                std::io::Error::new(
+                                    std::io::ErrorKind::Other,
+                                    format!(
+                                        "junction failed: {junction_err}; symlink failed: {symlink_err}"
+                                    ),
+                                ),
+                                &link,
+                            )),
                         }
                     }
                 }
