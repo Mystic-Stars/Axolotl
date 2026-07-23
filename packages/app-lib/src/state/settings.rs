@@ -75,6 +75,7 @@ pub struct Settings {
 
     pub theme: Theme,
     pub accent_color: AccentColor,
+    pub custom_accent_color: String,
     pub locale: String,
     pub default_page: DefaultPage,
     pub collapsed_navigation: bool,
@@ -182,6 +183,7 @@ impl Settings {
             legacy_use_modrinth_mirror: None,
             legacy_use_curseforge_mirror: None,
             theme: Theme::from_string(&res.theme),
+            custom_accent_color: String::from("#ffffff"),
             accent_color: AccentColor::from_string(&res.accent_color),
             locale: res.locale,
             default_page: DefaultPage::from_string(&res.default_page),
@@ -543,6 +545,7 @@ pub enum AccentColor {
     Green,
     Blue,
     Purple,
+    Custom,
 }
 
 impl AccentColor {
@@ -553,6 +556,7 @@ impl AccentColor {
             AccentColor::Green => "green",
             AccentColor::Blue => "blue",
             AccentColor::Purple => "purple",
+            AccentColor::Custom => "custom",
         }
     }
 
@@ -562,6 +566,7 @@ impl AccentColor {
             "green" => AccentColor::Green,
             "blue" => AccentColor::Blue,
             "purple" => AccentColor::Purple,
+            "custom" => AccentColor::Custom,
             _ => AccentColor::Pink,
         }
     }

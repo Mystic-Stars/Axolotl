@@ -20,7 +20,7 @@ export const DEFAULT_FEATURE_FLAGS = {
 }
 
 export const THEME_OPTIONS = ['dark', 'light', 'oled', 'system'] as const
-export const ACCENT_COLOR_OPTIONS = ['pink', 'orange', 'green', 'blue', 'purple'] as const
+export const ACCENT_COLOR_OPTIONS = ['pink', 'orange', 'green', 'blue', 'purple', 'custom'] as const
 
 export type FeatureFlag = keyof typeof DEFAULT_FEATURE_FLAGS
 export type FeatureFlags = Record<FeatureFlag, boolean>

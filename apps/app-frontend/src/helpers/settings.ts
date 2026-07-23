@@ -61,6 +61,7 @@ export type AppSettings = {
 
 	theme: ColorTheme
 	accent_color: AccentColor
+	custom_accent_color: string
 	locale: string
 	default_page: 'Home' | 'DiscoverContent' | 'Library'
 	collapsed_navigation: boolean

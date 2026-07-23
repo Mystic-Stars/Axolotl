@@ -44,6 +44,16 @@ export const LOCALES: LocaleDefinition[] = [
 	// 	dir: 'rtl',
 	// },
 	{
+		code: 'zh-CN',
+		name: '简体中文',
+		translatedName: defineMessage({ id: 'locale.zh-CN', defaultMessage: 'Chinese (Simplified)' }),
+	},
+	{
+		code: 'zh-TW',
+		name: '繁體中文',
+		translatedName: defineMessage({ id: 'locale.zh-TW', defaultMessage: 'Chinese (Traditional)' }),
+	},
+	{
 		code: 'cs-CZ',
 		name: 'Čeština',
 		translatedName: defineMessage({ id: 'locale.cs-CZ', defaultMessage: 'Czech' }),
@@ -203,16 +213,6 @@ export const LOCALES: LocaleDefinition[] = [
 		code: 'vi-VN',
 		name: 'Tiếng Việt',
 		translatedName: defineMessage({ id: 'locale.vi-VN', defaultMessage: 'Vietnamese' }),
-	},
-	{
-		code: 'zh-CN',
-		name: '简体中文',
-		translatedName: defineMessage({ id: 'locale.zh-CN', defaultMessage: 'Chinese (Simplified)' }),
-	},
-	{
-		code: 'zh-TW',
-		name: '繁體中文',
-		translatedName: defineMessage({ id: 'locale.zh-TW', defaultMessage: 'Chinese (Traditional)' }),
 	},
 ]
 

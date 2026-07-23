@@ -134,6 +134,15 @@
   "app.appearance-settings.accent-color.blue": {
     "message": "Blue"
   },
+  "app.appearance-settings.accent-color.custom": {
+    "message": "Custom"
+  },
+  "app.appearance-settings.accent-color.custom.title": {
+    "message": "Custom Accent Color"
+  },
+  "app.appearance-settings.accent-color.custom.description": {
+    "message": "Select an accent color"
+  },
   "app.appearance-settings.accent-color.description": {
     "message": "Choose the color used for buttons, selections, and highlights."
   },

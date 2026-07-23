@@ -134,6 +134,15 @@
   "app.appearance-settings.accent-color.blue": {
     "message": "蓝色"
   },
+  "app.appearance-settings.accent-color.custom": {
+    "message": "自定义"
+  },
+  "app.appearance-settings.accent-color.custom.title": {
+    "message": "自定义主题色"
+  },
+  "app.appearance-settings.accent-color.custom.description": {
+    "message": "选择一个主题颜色"
+  },
   "app.appearance-settings.accent-color.description": {
     "message": "选择用于按钮、选中状态和高亮元素的颜色。"
   },

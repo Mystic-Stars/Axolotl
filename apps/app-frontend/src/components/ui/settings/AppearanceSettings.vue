@@ -10,6 +10,7 @@ import {
 	ThemeSelector,
 	Toggle,
 	useVIntl,
+	StyledInput,
 } from '@modrinth/ui'
 import { convertFileSrc } from '@tauri-apps/api/core'
 import { appDataDir, join } from '@tauri-apps/api/path'
@@ -68,6 +69,19 @@ const messages = defineMessages({
 		id: 'app.appearance-settings.accent-color.purple',
 		defaultMessage: 'Purple',
 	},
+	accentColorCustom: {
+		id: 'app.appearance-settings.accent-color.custom',
+		defaultMessage: 'Custom',
+	},
+	accentColorCustomTitle: {
+		id: 'app.appearance-settings.accent-color.custom.title',
+		defaultMessage: 'Custom Accent Color',
+	},
+	accentColorCustomDescription: {
+		id: 'app.appearance-settings.accent-color.custom.description',
+		defaultMessage: 'Select an accent color',
+	},
+
 	customBackgroundTitle: {
 		id: 'app.appearance-settings.custom-background.title',
 		defaultMessage: 'Launcher background',
@@ -228,6 +242,7 @@ const accentColorOptions: Array<{
 	{ value: 'green', color: 'var(--color-green)', label: messages.accentColorGreen },
 	{ value: 'blue', color: 'var(--color-blue)', label: messages.accentColorBlue },
 	{ value: 'purple', color: 'var(--color-purple)', label: messages.accentColorPurple },
+	{ value: 'custom', color: 'var(--color-custom)', label: messages.accentColorCustom },
 ]
 
 async function chooseCustomBackground() {
@@ -356,6 +371,35 @@ watch(
 					class="ml-auto size-4 shrink-0"
 				/>
 			</button>
+		</div>
+		<div v-if="settings.accent_color === 'custom'" class="mt-6 flex items-center justify-between">
+			<!-- TODO: -->
+			<div>
+				<h2 class="m-0 text-lg font-semibold text-contrast">
+					{{ formatMessage(messages.accentColorCustomTitle) }}
+				</h2>
+				<p class="m-0 mt-1">
+					{{ formatMessage(messages.accentColorCustomDescription) }}
+				</p>
+			</div>
+
+			<StyledInput
+				id="customAccentColor"
+				v-model="settings.custom_accent_color"
+				autocomplete="off"
+				type="color"
+				:placeholder="'#ffffff'"
+			/>
+			<!-- <Toggle
+				id="advanced-rendering"
+				:model-value="themeStore.advancedRendering"
+				@update:model-value="
+					(e) => {
+						themeStore.advancedRendering = !!e
+						settings.advanced_rendering = themeStore.advancedRendering
+					}
+				"
+			/> -->
 		</div>
 	</div>
 
