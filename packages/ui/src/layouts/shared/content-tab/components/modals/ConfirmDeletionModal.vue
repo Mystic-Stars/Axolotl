@@ -11,6 +11,13 @@
 		:on-hide="() => backupCreator?.cancelBackup()"
 	>
 		<div class="flex flex-col gap-6">
+			<Admonition
+				v-if="symlinkTarget"
+				type="warning"
+				:header="formatMessage(messages.symlinkWarningHeader)"
+			>
+				{{ formatMessage(messages.symlinkWarningBody, { path: symlinkTarget }) }}
+			</Admonition>
 			<Admonition type="warning" :header="formatMessage(messages.admonitionHeader)">
 				{{ formatMessage(messages.admonitionBody) }}
 			</Admonition>
@@ -81,6 +88,8 @@ const messages = defineMessages({
 		id: 'content.confirm-deletion.delete-button',
 		defaultMessage: 'Delete {count, number} {itemType}',
 	},
+	symlinkWarningHeader: { id: 'app.symlink-warning.write.header' },
+	symlinkWarningBody: { id: 'app.symlink-warning.write.body' },
 })
 
 const props = withDefaults(
@@ -91,12 +100,14 @@ const props = withDefaults(
 		backupTip?: string
 		actionDisabled?: boolean
 		actionDisabledTooltip?: string
+		symlinkTarget?: string
 	}>(),
 	{
 		variant: 'instance',
 		backupTip: undefined,
 		actionDisabled: false,
 		actionDisabledTooltip: undefined,
+		symlinkTarget: undefined,
 	},
 )
 

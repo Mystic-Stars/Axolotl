@@ -22,6 +22,7 @@ pub enum LocalPackFormat {
     MmcExport,
     LauncherBundled,
     PlainArchive,
+    InstanceFolder,
 }
 
 impl LocalPackFormat {
@@ -34,6 +35,7 @@ impl LocalPackFormat {
             Self::MmcExport => "MultiMC",
             Self::LauncherBundled => "launcher bundle",
             Self::PlainArchive => "game folder archive",
+            Self::InstanceFolder => "instance folder",
         }
     }
 }
@@ -118,6 +120,10 @@ fn detect_local_pack_sync(path: &Path) -> crate::Result<DetectedLocalPack> {
     }
 
     if let Some(detected) = detect_plain_archive(&names) {
+        return Ok(detected);
+    }
+
+    if let Some(detected) = detect_instance_folder(&names) {
         return Ok(detected);
     }
 
@@ -283,5 +289,48 @@ fn detect_plain_archive(names: &[String]) -> Option<DetectedLocalPack> {
             });
         }
     }
+    None
+}
+
+/// Looks for a `mods` folder containing `.jar` files, marking a simple instance folder.
+fn detect_instance_folder(names: &[String]) -> Option<DetectedLocalPack> {
+    // First, collect all paths that contain a "mods" segment
+    let mut mods_folders = std::collections::HashSet::new();
+
+    for name in names {
+        let segments: Vec<&str> = name.split('/').collect();
+        for i in 0..segments.len() {
+            if segments[i] == "mods" {
+                let base = segments[..i].join("/");
+                let base = if base.is_empty() {
+                    base
+                } else {
+                    format!("{base}/")
+                };
+                mods_folders.insert(base);
+            }
+        }
+    }
+
+    // Now check each mods folder to see if there's at least one .jar file in it
+    for base in mods_folders {
+        let has_jar = names.iter().any(|name| {
+            let name_without_base = name.strip_prefix(&base).unwrap_or(name);
+            let segments: Vec<&str> = name_without_base.split('/').collect();
+            segments.len() == 2
+                && segments[0] == "mods"
+                && segments[1].to_lowercase().ends_with(".jar")
+        });
+
+        if has_jar {
+            return Some(DetectedLocalPack {
+                format: LocalPackFormat::InstanceFolder,
+                base_folder: base,
+                inner_pack_entry: None,
+                plain_version_id: None,
+            });
+        }
+    }
+
     None
 }

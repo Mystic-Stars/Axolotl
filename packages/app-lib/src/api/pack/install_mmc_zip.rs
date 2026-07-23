@@ -48,6 +48,7 @@ pub(crate) async fn install_mmc_zip_with_reporter(
             &instance_id,
             reporter.clone(),
             details,
+            false, // zip imports don't support symlinks
         )
         .await
     }

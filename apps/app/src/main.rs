@@ -100,6 +100,48 @@ fn restart_app(app: tauri::AppHandle) {
 }
 
 #[tauri::command]
+async fn check_symlink_capability() -> api::Result<String> {
+    let capability = theseus::symlink::check_symlink_capability().await?;
+    Ok(match capability {
+        theseus::SymlinkCapability::Supported => "supported",
+        theseus::SymlinkCapability::RequiresAdmin => "requires_admin",
+        theseus::SymlinkCapability::Unsupported => "unsupported",
+    }
+    .to_string())
+}
+
+#[tauri::command]
+fn restart_as_admin(app: tauri::AppHandle) {
+    #[cfg(target_os = "windows")]
+    {
+        use std::process::Command;
+        let exe = std::env::current_exe().unwrap();
+        let spawned = Command::new("powershell")
+            .args([
+                "-Command",
+                &format!(
+                    "Start-Process -FilePath '{}' -Verb RunAs",
+                    exe.to_string_lossy()
+                ),
+            ])
+            .spawn();
+        if spawned.is_ok() {
+            app.exit(0);
+        }
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
+        let _ = app;
+    }
+}
+
+#[tauri::command]
+fn allow_symlink_target(app: tauri::AppHandle, path: String) {
+    use tauri_plugin_fs::FsExt;
+    let _ = app.fs_scope().allow_directory(&path, true);
+}
+
+#[tauri::command]
 async fn set_restart_after_pending_update(
     should_restart: bool,
 ) -> api::Result<()> {
@@ -136,6 +178,26 @@ fn main() {
             RUST_LOG="theseus=trace" {run command}
 
     */
+
+    // Configure the tokio runtime with a larger thread stack size to prevent
+    // stack overflows on Windows during deep async call chains (e.g. pack
+    // import). The /STACK linker flag in .cargo/config.toml only affects the
+    // main thread, not tokio worker threads.
+    let rt = tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .thread_stack_size(16 * 1024 * 1024)
+        .build()
+        .expect("failed to build tokio runtime");
+    let handle = rt.handle().clone();
+    // SAFETY: tauri::async_runtime::set() takes a Handle by value but does not
+    // take ownership of the Runtime itself — Tauri expects the runtime to
+    // outlive main(). Since the Handle borrows the Runtime internally, we must
+    // leak the Runtime here so its worker threads and timer heap live for the
+    // process lifetime. The OS will reclaim the leaked pages on exit. The
+    // alternative (wrapping in an Arc and passing it to a permanent scope) is
+    // not supported by the tauri::async_runtime API.
+    std::mem::forget(rt);
+    tauri::async_runtime::set(handle);
 
     let tauri_context = tauri::generate_context!();
 
@@ -274,6 +336,9 @@ fn main() {
             toggle_decorations,
             show_window,
             restart_app,
+            check_symlink_capability,
+            restart_as_admin,
+            allow_symlink_target,
         ]);
 
     tracing::info!("Initializing app...");

@@ -130,6 +130,7 @@ pub async fn import_atlauncher(
     instance_id: &str,
     reporter: InstallProgressReporter,
     details: InstallPhaseDetails,
+    symlink: bool,
 ) -> crate::Result<()> {
     let atlauncher_instance_path = atlauncher_base_path
         .join("instances")
@@ -185,6 +186,7 @@ pub async fn import_atlauncher(
         atinstance,
         reporter,
         details,
+        symlink,
     )
     .await?;
     Ok(())
@@ -198,6 +200,7 @@ async fn import_atlauncher_unmanaged(
     atinstance: ATInstance,
     reporter: InstallProgressReporter,
     details: InstallPhaseDetails,
+    symlink: bool,
 ) -> crate::Result<()> {
     let mod_loader = format!(
         "\"{}\"",
@@ -269,6 +272,7 @@ async fn import_atlauncher_unmanaged(
         &state.io_semaphore,
         reporter,
         details,
+        symlink,
     )
     .await?;
     Ok(())

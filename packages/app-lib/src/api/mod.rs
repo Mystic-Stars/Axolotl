@@ -15,6 +15,7 @@ pub mod pack;
 pub mod process;
 pub mod server_address;
 pub mod settings;
+pub mod symlink;
 pub mod tags;
 pub mod translation;
 pub mod worlds;

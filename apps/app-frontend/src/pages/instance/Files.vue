@@ -22,7 +22,7 @@ import {
 	writeFile as writeFileBytes,
 	writeTextFile,
 } from '@tauri-apps/plugin-fs'
-import { onUnmounted, ref, watch } from 'vue'
+import { computed, onUnmounted, ref, watch } from 'vue'
 
 import { instance_listener } from '@/helpers/events'
 import { get_full_path } from '@/helpers/instance'
@@ -342,6 +342,7 @@ provideFileManager({
 	downloadButtonLabel: formatMessage(messages.saveAs),
 	uploadingLabel: (completed: number, total: number) =>
 		formatMessage(messages.addingFiles, { completed, total }),
+	symlinkTarget: computed(() => props.instance.symlink_target),
 })
 </script>
 

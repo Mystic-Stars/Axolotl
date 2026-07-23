@@ -158,14 +158,18 @@ const failureSummaryMessages = defineMessages({
 		id: 'app.action-bar.install.summary.pack-download-failed',
 		defaultMessage: "Couldn't download pack",
 	},
-	badModpackFile: {
-		id: 'app.action-bar.install.summary.bad-modpack-file',
-		defaultMessage: "Couldn't read modpack",
-	},
-	invalidModpack: {
-		id: 'app.action-bar.install.summary.invalid-modpack',
-		defaultMessage: 'Modpack data invalid',
-	},
+badModpackFile: {
+			id: 'app.action-bar.install.summary.bad-modpack-file',
+			defaultMessage: "Couldn't read modpack",
+		},
+		unrecognizedFormat: {
+			id: 'app.action-bar.install.summary.unrecognized-format',
+			defaultMessage: 'This does not appear to be a modpack archive',
+		},
+		invalidModpack: {
+			id: 'app.action-bar.install.summary.invalid-modpack',
+			defaultMessage: 'Modpack data invalid',
+		},
 	contentDownloadFailed: {
 		id: 'app.action-bar.install.summary.content-download-failed',
 		defaultMessage: "Couldn't download files",
@@ -300,26 +304,28 @@ export async function useInstallJobNotifications(opts: {
 			return formatMessage(failureSummaryMessages.noWritePermission)
 		}
 
-		switch (code) {
-			case 'network_error':
-				if (job.error?.context?.file_path) {
-					return formatMessage(failureSummaryMessages.fileDownloadFailed, {
-						file: job.error.context.file_path,
-					})
-				}
-				return formatMessage(
-					phase === 'downloading_pack_file'
-						? failureSummaryMessages.packDownloadFailed
-						: failureSummaryMessages.downloadFailed,
-				)
-			case 'api_error':
-				return formatMessage(failureSummaryMessages.modrinthUnreachable)
-			case 'pack_error':
-				return formatMessage(
-					phase === 'downloading_pack_file'
-						? failureSummaryMessages.packDownloadFailed
-						: failureSummaryMessages.invalidModpack,
-				)
+switch (code) {
+				case 'network_error':
+					if (job.error?.context?.file_path) {
+						return formatMessage(failureSummaryMessages.fileDownloadFailed, {
+							file: job.error.context.file_path,
+						})
+					}
+					return formatMessage(
+						phase === 'downloading_pack_file'
+							? failureSummaryMessages.packDownloadFailed
+							: failureSummaryMessages.downloadFailed,
+					)
+				case 'api_error':
+					return formatMessage(failureSummaryMessages.modrinthUnreachable)
+				case 'unrecognized_format':
+					return formatMessage(failureSummaryMessages.unrecognizedFormat)
+				case 'pack_error':
+					return formatMessage(
+						phase === 'downloading_pack_file'
+							? failureSummaryMessages.packDownloadFailed
+							: failureSummaryMessages.invalidModpack,
+					)
 			case 'archive_error':
 				return formatMessage(failureSummaryMessages.badModpackFile)
 			case 'parse_error':

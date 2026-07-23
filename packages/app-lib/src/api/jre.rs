@@ -407,6 +407,9 @@ async fn set_runtime_executable(path: &Path) -> crate::Result<()> {
         tokio::fs::set_permissions(path, permissions).await?;
     }
 
+    #[cfg(not(unix))]
+    let _ = path;
+
     Ok(())
 }
 

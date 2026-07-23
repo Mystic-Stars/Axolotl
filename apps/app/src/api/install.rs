@@ -113,11 +113,13 @@ pub async fn install_import_instance(
     launcher_type: ImportLauncherType,
     base_path: PathBuf,
     instance_folder: String,
+    symlink: bool,
 ) -> Result<InstallJobSnapshot> {
     Ok(theseus::install::import_instance(
         launcher_type,
         base_path,
         instance_folder,
+        symlink,
     )
     .await?)
 }

@@ -24,6 +24,8 @@ pub struct CreateInstance {
     pub loader_version: Option<String>,
     pub icon_path: Option<String>,
     pub link: InstanceLink,
+    #[serde(default)]
+    pub symlink_target: Option<String>,
 }
 
 pub(crate) async fn create_instance(
@@ -35,7 +37,12 @@ pub(crate) async fn create_instance(
     let (path, full_path) =
         resolve_instance_path(&input.name, input.path.as_deref(), state)
             .await?;
-    io::create_dir_all(&full_path).await?;
+
+    if let Some(symlink_target) = &input.symlink_target {
+        io::create_symlink(symlink_target, &full_path).await?;
+    } else {
+        io::create_dir_all(&full_path).await?;
+    }
 
     let result = async {
         info!(
@@ -69,6 +76,7 @@ pub(crate) async fn create_instance(
             update_channel: ReleaseChannel::Release,
             name: input.name,
             icon_path,
+            symlink_target: input.symlink_target,
             created: now,
             modified: now,
             last_played: None,

@@ -7,6 +7,13 @@
 		:on-hide="() => backupCreator?.cancelBackup()"
 	>
 		<div class="flex flex-col gap-6">
+			<Admonition
+				v-if="symlinkTarget"
+				type="warning"
+				:header="formatMessage(messages.symlinkWarningHeader)"
+			>
+				{{ formatMessage(messages.symlinkWarningBody, { path: symlinkTarget }) }}
+			</Admonition>
 			<Admonition type="warning" :header="formatMessage(messages.admonitionHeader)">
 				{{ formatMessage(messages.admonitionBody, { count: visibleCount }) }}
 			</Admonition>
@@ -80,6 +87,8 @@ const messages = defineMessages({
 		defaultMessage:
 			'Hold Shift while clicking "Update all" to skip this confirmation in the future.',
 	},
+	symlinkWarningHeader: { id: 'app.symlink-warning.write.header' },
+	symlinkWarningBody: { id: 'app.symlink-warning.write.body' },
 })
 
 const props = defineProps<{
@@ -88,6 +97,7 @@ const props = defineProps<{
 	backupTip?: string
 	actionDisabled?: boolean
 	actionDisabledTooltip?: string
+	symlinkTarget?: string
 }>()
 
 const emit = defineEmits<{

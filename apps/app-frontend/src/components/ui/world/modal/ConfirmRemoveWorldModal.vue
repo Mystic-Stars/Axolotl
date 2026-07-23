@@ -16,6 +16,7 @@ const { formatMessage } = useVIntl()
 
 const props = defineProps<{
 	world: World | null
+	symlinkTarget?: string
 }>()
 
 const emit = defineEmits<{
@@ -57,6 +58,8 @@ const messages = defineMessages({
 		id: 'app.instance.worlds.delete-world-modal.delete-button',
 		defaultMessage: 'Delete world',
 	},
+	symlinkWarningHeader: { id: 'app.symlink-warning.write.header' },
+	symlinkWarningBody: { id: 'app.symlink-warning.write.body' },
 })
 
 const modal = ref<InstanceType<typeof NewModal>>()
@@ -96,6 +99,13 @@ defineExpose({ show, hide })
 <template>
 	<NewModal ref="modal" :header="formatMessage(titleMessage)" fade="danger" max-width="500px">
 		<div class="flex flex-col gap-4">
+			<Admonition
+				v-if="symlinkTarget"
+				type="warning"
+				:header="formatMessage(messages.symlinkWarningHeader)"
+			>
+				{{ formatMessage(messages.symlinkWarningBody, { path: symlinkTarget }) }}
+			</Admonition>
 			<Admonition
 				type="critical"
 				:header="formatMessage(warningHeaderMessage, { name: world?.name })"

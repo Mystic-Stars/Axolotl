@@ -17,6 +17,7 @@ pub(crate) async fn create(
     loader_version: Option<String>,
     icon_path: Option<String>,
     link: InstanceLink,
+    symlink_target: Option<String>,
 ) -> crate::Result<InstanceMetadata> {
     let state = State::get().await?;
     let instance = crate::state::create_instance(
@@ -28,6 +29,7 @@ pub(crate) async fn create(
             loader_version,
             icon_path,
             link,
+            symlink_target,
         },
         &state,
     )

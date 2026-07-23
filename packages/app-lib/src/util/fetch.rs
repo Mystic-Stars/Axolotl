@@ -40,7 +40,9 @@ const MAX_REDIRECT_LOCATION_BYTES: usize = 8 * 1024;
 const FILE_TRANSFER_CONNECT_TIMEOUT: time::Duration =
     time::Duration::from_secs(15);
 const FILE_TRANSFER_READ_TIMEOUT: time::Duration =
-    time::Duration::from_secs(65);
+    time::Duration::from_secs(15);
+const FILE_TRANSFER_SLOW_INTERVAL: time::Duration =
+    time::Duration::from_secs(5);
 #[cfg(not(test))]
 const FILE_TRANSFER_FIRST_BYTE_TIMEOUT: time::Duration =
     time::Duration::from_secs(30);
@@ -2066,21 +2068,6 @@ async fn send_path_request(
     range_start: Option<u64>,
     range_end: Option<u64>,
 ) -> crate::Result<(reqwest::Response, String)> {
-    #[cfg(test)]
-    {
-        return send_path_request_with_clients(
-            route,
-            custom_header,
-            credentials,
-            download_meta,
-            range_start,
-            range_end,
-            &INSECURE_REQWEST_CLIENT,
-            &INSECURE_REQWEST_CLIENT,
-        )
-        .await;
-    }
-    #[cfg(not(test))]
     send_path_request_with_clients(
         route,
         custom_header,
@@ -2321,58 +2308,29 @@ async fn download_segment(
     let mut stream = response.bytes_stream();
     let mut pending_progress = 0_u64;
     let mut last_chunk_at = Instant::now();
-    let mut downloaded = 0_u64;
-    let mut progress_log =
-        tokio::time::interval(FILE_TRANSFER_PROGRESS_LOG_INTERVAL);
-    progress_log
-        .set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
-    progress_log.tick().await;
-    loop {
-        let idle_timeout = if downloaded == 0 {
-            FILE_TRANSFER_FIRST_BYTE_TIMEOUT
-        } else {
-            FILE_TRANSFER_IDLE_TIMEOUT
-        };
-        let deadline =
-            tokio::time::Instant::from_std(last_chunk_at + idle_timeout);
-        let chunk = tokio::select! {
-            item = stream.next() => {
-                let Some(chunk) = item else {
-                    break;
-                };
-                chunk
-            }
-            _ = tokio::time::sleep_until(deadline) => {
-                tracing::warn!(
-                    path = %part_path.display(),
-                    url = %sanitize_url_for_log(&route.url),
-                    source = route.source.as_str(),
-                    no_data_seconds = idle_timeout.as_secs_f64(),
-                    downloaded_bytes = downloaded,
-                    "No data received before download range timeout"
-                );
-                return Err(SegmentDownloadError::Transport);
-            }
-            _ = progress_log.tick() => {
-                tracing::debug!(
-                    path = %part_path.display(),
-                    url = %sanitize_url_for_log(&route.url),
-                    source = route.source.as_str(),
-                    downloaded_bytes = downloaded,
-                    seconds_since_last_data = last_chunk_at.elapsed().as_secs_f64(),
-                    "Download range is still in progress"
-                );
-                continue;
-            }
-        };
+    while let Some(chunk) = stream.next().await {
         let chunk = chunk.map_err(|_| SegmentDownloadError::Transport)?;
         let (accepted, completed) = range.accept_chunk(chunk.len());
         file.write_all(&chunk[..accepted]).await.map_err(|error| {
             SegmentDownloadError::Fatal(IOError::with_path(error, &path).into())
         })?;
+        let elapsed = last_chunk_at.elapsed();
         pending_progress += accepted as u64;
-        downloaded += accepted as u64;
         DOWNLOAD_MANAGER.record_bytes(accepted as u64);
+        if range.remaining() > 0
+            && elapsed > FILE_TRANSFER_SLOW_INTERVAL
+            && (accepted as u128) < elapsed.as_millis()
+        {
+            tracing::warn!(
+                url = %route.url,
+                range_start = range.start,
+                range_end = range.end(),
+                bytes = accepted,
+                elapsed_ms = elapsed.as_millis(),
+                "Ending a stalled download range"
+            );
+            return Err(SegmentDownloadError::Transport);
+        }
         last_chunk_at = Instant::now();
         if pending_progress >= 256 * 1024 {
             let _ = progress.send(pending_progress);
@@ -2783,7 +2741,7 @@ pub async fn download_to_path(
                         SegmentedDownloadOutcome::SourceFailed => {
                             record_route_failure(route);
                             last_error = Some(
-                                ErrorKind::NetworkError(format!(
+                                ErrorKind::OtherError(format!(
                                     "File transfer failed from {}",
                                     log_url
                                 ))
@@ -2899,64 +2857,7 @@ pub async fn download_to_path(
                 let mut stream = response.bytes_stream();
                 let mut transfer_error: Option<crate::Error> = None;
                 let mut last_chunk_at = Instant::now();
-                let mut progress_log =
-                    tokio::time::interval(FILE_TRANSFER_PROGRESS_LOG_INTERVAL);
-                progress_log.set_missed_tick_behavior(
-                    tokio::time::MissedTickBehavior::Delay,
-                );
-                progress_log.tick().await;
-                loop {
-                    let idle_timeout = if downloaded == starting_size {
-                        FILE_TRANSFER_FIRST_BYTE_TIMEOUT
-                    } else {
-                        FILE_TRANSFER_IDLE_TIMEOUT
-                    };
-                    let deadline = tokio::time::Instant::from_std(
-                        last_chunk_at + idle_timeout,
-                    );
-                    let item = tokio::select! {
-                        item = stream.next() => {
-                            let Some(item) = item else {
-                                break;
-                            };
-                            item
-                        }
-                        _ = tokio::time::sleep_until(deadline) => {
-                            tracing::warn!(
-                                path = %destination.display(),
-                                temporary_path = %part_path.display(),
-                                url = %log_url,
-                                source = route.source.as_str(),
-                                no_data_seconds = idle_timeout.as_secs_f64(),
-                                downloaded_bytes = downloaded.saturating_sub(starting_size),
-                                attempt = attempts,
-                                max_attempts = file_attempt_budget,
-                                "File download stalled: no data received"
-                            );
-                            transfer_error = Some(
-                                ErrorKind::NetworkError(format!(
-                                    "no data received for {:.0} seconds while downloading {log_url} to {} ({} bytes received)",
-                                    idle_timeout.as_secs_f64(),
-                                    destination.display(),
-                                    downloaded.saturating_sub(starting_size),
-                                ))
-                                .into(),
-                            );
-                            break;
-                        }
-                        _ = progress_log.tick() => {
-                            tracing::debug!(
-                                path = %destination.display(),
-                                url = %log_url,
-                                source = route.source.as_str(),
-                                downloaded_bytes = downloaded.saturating_sub(starting_size),
-                                expected_bytes = total_size,
-                                seconds_since_last_data = last_chunk_at.elapsed().as_secs_f64(),
-                                "File download is still in progress"
-                            );
-                            continue;
-                        }
-                    };
+                while let Some(item) = stream.next().await {
                     let chunk = match item {
                         Ok(chunk) => chunk,
                         Err(error) => {
@@ -2968,8 +2869,29 @@ pub async fn download_to_path(
                         IOError::with_path(error, &part_path)
                     })?;
                     hashers.update(&chunk);
+                    let elapsed = last_chunk_at.elapsed();
                     downloaded += chunk.len() as u64;
                     DOWNLOAD_MANAGER.record_bytes(chunk.len() as u64);
+                    if !retry_with_single_thread
+                        && downloaded > starting_size + chunk.len() as u64
+                        && elapsed > FILE_TRANSFER_SLOW_INTERVAL
+                        && (chunk.len() as u128) < elapsed.as_millis()
+                    {
+                        tracing::warn!(
+                            path = %destination.display(),
+                            url = %log_url,
+                            bytes = chunk.len(),
+                            elapsed_ms = elapsed.as_millis(),
+                            "Ending a stalled file download"
+                        );
+                        transfer_error = Some(
+                            ErrorKind::OtherError(
+                                "file transfer stalled".to_string(),
+                            )
+                            .into(),
+                        );
+                        break;
+                    }
                     last_chunk_at = Instant::now();
                     if let Some(progress) = progress.as_mut() {
                         progress(downloaded, total_size).await?;
@@ -3447,7 +3369,6 @@ mod tests {
         )
         .await
     }
-
     #[test]
     fn modrinth_requests_are_classified_for_logging() {
         assert_eq!(

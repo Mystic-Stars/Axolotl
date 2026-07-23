@@ -12,6 +12,7 @@ import {
 import { computed, ref } from 'vue'
 
 import ModalWrapper from '@/components/ui/modal/ModalWrapper.vue'
+import SymlinkInstanceWarning from '@/components/ui/SymlinkInstanceWarning.vue'
 import HideFromHomeOption from '@/components/ui/world/modal/HideFromHomeOption.vue'
 import type { GameInstance } from '@/helpers/types'
 import type { DisplayStatus, SingleplayerWorld } from '@/helpers/worlds.ts'
@@ -100,6 +101,7 @@ const messages = defineMessages({
 			{{ instance.name }} <ChevronRightIcon />
 			<span class="font-extrabold text-lg text-contrast">{{ formatMessage(messages.title) }}</span>
 		</template>
+		<SymlinkInstanceWarning v-if="instance?.symlink_target" :symlink-target="instance.symlink_target" />
 		<div class="w-[450px]">
 			<h2 class="text-lg font-extrabold text-contrast mt-0 mb-1">
 				{{ formatMessage(messages.name) }}

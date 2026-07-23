@@ -160,7 +160,7 @@ impl InstallProgressReporter {
     ) -> crate::Result<()> {
         let app_state = crate::State::get().await?;
         let mut state = self.state.lock().await;
-        self.sync_latest(&mut state, &app_state).await?;
+
         state
             .job
             .record_event(InstallJobEventKind::DownloadMetrics {

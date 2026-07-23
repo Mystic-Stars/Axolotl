@@ -67,6 +67,11 @@
         "name": "recent_time_played",
         "ordinal": 12,
         "type_info": "Integer"
+      },
+      {
+        "name": "symlink_target",
+        "ordinal": 13,
+        "type_info": "Text"
       }
     ],
     "parameters": {
@@ -85,7 +90,8 @@
       false,
       true,
       false,
-      false
+      false,
+      true
     ]
   },
   "hash": "3a37cede69531f9efc2bbfc4adc92700c486467dd187f16bf22b34289fccff98"

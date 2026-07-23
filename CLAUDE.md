@@ -114,6 +114,12 @@ Each project may have its own file with detailed instructions:
 - [`apps/labrinth/AGENTS.md`](apps/labrinth/AGENTS.md) — Backend API
 - [`apps/frontend/CLAUDE.md`](apps/frontend/CLAUDE.md) - Frontend Website
 
+## Update Logging Instructions
+
+After making any changes, write the changes as an update log(release note style, in Chinese simplified, using unordered list to append) in UPDATE_LOG.md in the project root directory.
+For example: - 修复了xxx问题。
+Append the changes to the log, not replacing.
+
 ## Code Guidelines
 
 ### Comments

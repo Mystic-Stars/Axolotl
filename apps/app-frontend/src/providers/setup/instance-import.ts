@@ -16,10 +16,14 @@ export function setupInstanceImportProvider(notificationManager: AbstractWebNoti
 			const launcherNames = [
 				'ModrinthApp',
 				'MultiMC',
+				'PCL2',
+				'PCL2CE',
+				'HMCL',
 				'GDLauncher',
 				'ATLauncher',
 				'Curseforge',
 				'PrismLauncher',
+				'Generic',
 			]
 			const launchers = []
 			for (const name of launcherNames) {
@@ -42,13 +46,19 @@ export function setupInstanceImportProvider(notificationManager: AbstractWebNoti
 		async importInstances(selections) {
 			for (const sel of selections) {
 				for (const instanceName of sel.instanceNames) {
-					await import_instance(sel.launcher, sel.path, instanceName).catch(handleError)
+					await import_instance(sel.launcherType ?? sel.launcher, sel.path, instanceName).catch(handleError)
 				}
 			}
 		},
 		async selectDirectory() {
 			const result = await open({ multiple: false, directory: true })
 			return result?.toString() ?? null
+		},
+		async selectDirectories() {
+			const result = await open({ multiple: true, directory: true })
+			if (!result) return null
+			if (Array.isArray(result)) return result.map((p) => p.toString())
+			return [result.toString()]
 		},
 	})
 }

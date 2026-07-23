@@ -1,5 +1,9 @@
 <script setup>
-import { BoxIcon, FolderOpenIcon, FolderSearchIcon, TrashIcon } from '@modrinth/assets'
+import {
+	BoxIcon,
+	FolderOpenIcon,
+	FolderSearchIcon,
+} from '@modrinth/assets'
 import {
 	ButtonStyled,
 	Combobox,

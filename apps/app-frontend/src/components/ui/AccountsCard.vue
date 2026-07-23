@@ -388,6 +388,12 @@ function createSkinHeadDataUrl(textureUrl: string) {
 
 const defaultSteveHeadUrl = createSkinHeadDataUrl(steveSkinTexture)
 
+const ACCOUNT_TYPE_ORDER = {
+	microsoft: 0,
+	yggdrasil: 1,
+	offline: 2,
+} as const
+
 async function refreshValues() {
 	const generation = ++refreshGeneration
 	const selectedUser = await get_default_user(offline.value).catch(handleError)
@@ -400,21 +406,20 @@ async function refreshValues() {
 	}
 	const userList = await users(offline.value).catch(handleError)
 	if (generation !== refreshGeneration) return
+	// The Rust backend returns a plain array that structurally matches
+	// MinecraftCredential but the TS types from the Tauri IPC bridge do not
+	// carry this refinement. The double cast is deliberate — the shape is
+	// correct and verified at runtime by the backend.
 	accounts.value = Array.isArray(userList)
 		? [...(userList as unknown as MinecraftCredential[])]
 		: []
-	const typeOrder = {
-		microsoft: 0,
-		yggdrasil: 1,
-		offline: 2,
-	} as const
 	accounts.value.sort((a, b) => {
 		const nameCmp = (a.profile?.name ?? '').localeCompare(b.profile?.name ?? '')
 		if (nameCmp !== 0) return nameCmp
 
 		return (
-			(typeOrder[a.account_type as keyof typeof typeOrder] ?? 3) -
-			(typeOrder[b.account_type as keyof typeof typeOrder] ?? 3)
+			(ACCOUNT_TYPE_ORDER[a.account_type as keyof typeof ACCOUNT_TYPE_ORDER] ?? 3) -
+			(ACCOUNT_TYPE_ORDER[b.account_type as keyof typeof ACCOUNT_TYPE_ORDER] ?? 3)
 		)
 	})
 	await renderAccountHeads(accounts.value)
@@ -433,7 +438,10 @@ async function refreshValues() {
 					headUrl,
 				)
 				if (selectedUser) {
-					accountHeadUrlCache.value = new Map(accountHeadUrlCache.value).set(selectedUser, headUrl)
+				accountHeadUrlCache.value = new Map(accountHeadUrlCache.value).set(
+					selectedUser,
+					headUrl,
+				)
 				}
 			} catch (error) {
 				console.warn('Failed to get head render for equipped skin:', error)

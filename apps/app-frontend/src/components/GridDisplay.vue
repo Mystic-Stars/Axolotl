@@ -89,9 +89,9 @@ const confirmModal = ref(null)
 async function deleteInstance() {
 	if (currentDeleteInstance.value) {
 		instanceComponents.value = instanceComponents.value.filter(
-			(x) => x.instance.id !== currentDeleteInstance.value,
+			(x) => x.instance.id !== currentDeleteInstance.value.id,
 		)
-		await remove(currentDeleteInstance.value).catch(handleError)
+		await remove(currentDeleteInstance.value.id).catch(handleError)
 	}
 }
 
@@ -161,8 +161,8 @@ const handleOptionsClick = async (args) => {
 			await navigator.clipboard.writeText(args.item.instance.id)
 			break
 		case 'delete':
-			currentDeleteInstance.value = args.item.instance.id
-			confirmModal.value.show()
+		currentDeleteInstance.value = args.item.instance
+		confirmModal.value.show()
 			break
 	}
 }
@@ -369,7 +369,11 @@ const filteredResults = computed(() => {
 			/>
 		</section>
 	</Accordion>
-	<ConfirmDeleteInstanceModal ref="confirmModal" @delete="deleteInstance" />
+	<ConfirmDeleteInstanceModal
+		ref="confirmModal"
+		:symlink-target="currentDeleteInstance?.symlink_target"
+		@delete="deleteInstance"
+	/>
 	<ContextMenu ref="instanceOptions" @option-clicked="handleOptionsClick">
 		<template #play> <PlayIcon /> {{ formatMessage(commonMessages.playButton) }} </template>
 		<template #stop> <StopCircleIcon /> {{ formatMessage(commonMessages.stopButton) }} </template>

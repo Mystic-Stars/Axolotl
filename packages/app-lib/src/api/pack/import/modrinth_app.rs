@@ -54,9 +54,9 @@ async fn has_table(
     Ok(count > 0)
 }
 
-pub async fn get_importable_instances(
+pub async fn get_importable_instances_with_paths(
     base_path: PathBuf,
-) -> crate::Result<Vec<String>> {
+) -> crate::Result<Vec<(String, PathBuf)>> {
     let pool = open_source_db(&base_path).await?;
     let config_dir = source_config_dir(&base_path, &pool).await?;
     let profiles_dir = config_dir.join("profiles");
@@ -72,9 +72,20 @@ pub async fn get_importable_instances(
 
     Ok(rows
         .into_iter()
-        .filter_map(|row| row.try_get::<String, _>("path").ok())
-        .filter(|path| profiles_dir.join(path).is_dir())
+        .filter_map(|row| {
+            let path = row.try_get::<String, _>("path").ok()?;
+            let full = profiles_dir.join(&path);
+            full.is_dir().then_some((path, full))
+        })
         .collect())
+}
+
+pub async fn get_importable_instances(
+    base_path: PathBuf,
+) -> crate::Result<Vec<String>> {
+    get_importable_instances_with_paths(base_path)
+        .await
+        .map(|v| v.into_iter().map(|(n, _)| n).collect())
 }
 
 fn dependencies(
@@ -105,6 +116,7 @@ pub async fn import_instance(
     instance_id: &str,
     reporter: InstallProgressReporter,
     details: InstallPhaseDetails,
+    symlink: bool,
 ) -> crate::Result<()> {
     let pool = open_source_db(&base_path).await?;
     let config_dir = source_config_dir(&base_path, &pool).await?;
@@ -172,6 +184,13 @@ pub async fn import_instance(
     .await?;
 
     let state = State::get().await?;
-    finish_import(instance_id, source, &state.io_semaphore, reporter, details)
-        .await
+    finish_import(
+        instance_id,
+        source,
+        &state.io_semaphore,
+        reporter,
+        details,
+        symlink,
+    )
+    .await
 }

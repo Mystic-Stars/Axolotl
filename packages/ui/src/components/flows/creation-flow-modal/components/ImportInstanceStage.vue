@@ -74,6 +74,15 @@
 				</div>
 			</div>
 
+			<!-- Pick an instance folder directly -->
+			<div class="mt-2">
+				<ButtonStyled>
+					<button class="w-full !shadow-none" @click="pickInstanceFolder">
+						{{ formatMessage(messages.pickInstanceFolder) }}
+					</button>
+				</ButtonStyled>
+			</div>
+
 			<!-- Add launcher path -->
 			<div v-if="!showAddPath">
 				<ButtonStyled>
@@ -99,12 +108,24 @@
 					</button>
 				</ButtonStyled>
 			</div>
+
+			<!-- Import as symlink option -->
+			<div class="mt-2 flex items-center gap-3">
+				<Checkbox
+					:model-value="ctx.importAsSymlink.value"
+					@update:model-value="ctx.importAsSymlink.value = $event"
+				/>
+				<span
+					v-tooltip="formatMessage(messages.importAsSymlinkTooltip)"
+					class="cursor-help text-sm"
+				>{{ formatMessage(messages.importAsSymlink) }}</span>
+			</div>
 		</template>
 	</div>
 </template>
 
 <script setup lang="ts">
-import { ChevronRightIcon, FolderSearchIcon, SearchIcon } from '@modrinth/assets'
+import { ChevronRightIcon, FolderSearchIcon, LinkIcon, SearchIcon } from '@modrinth/assets'
 import { defineMessages, useVIntl } from '@modrinth/ui'
 import { computed, onMounted, ref, watch } from 'vue'
 
@@ -167,6 +188,19 @@ const messages = defineMessages({
 	customLauncherName: {
 		id: 'creation-flow.modal.import-instance.custom-launcher.name',
 		defaultMessage: 'Custom ({pathName})',
+	},
+	pickInstanceFolder: {
+		id: 'creation-flow.modal.import-instance.pick-instance-folder',
+		defaultMessage: 'Select instance folder',
+	},
+	importAsSymlink: {
+		id: 'creation-flow.modal.import-instance.import-as-symlink',
+		defaultMessage: 'Import as symlink',
+	},
+	importAsSymlinkTooltip: {
+		id: 'creation-flow.modal.import-instance.import-as-symlink.tooltip',
+		defaultMessage:
+			'Creates a link to the original instance folder instead of copying files. Saves disk space, but changes to the instance will affect the original files.',
 	},
 })
 
@@ -341,5 +375,42 @@ async function addLauncherPath() {
 
 	newLauncherPath.value = ''
 	showAddPath.value = false
+}
+
+async function pickInstanceFolder() {
+	const paths = await importProvider.selectDirectories()
+	if (!paths || paths.length === 0) return
+
+	for (const path of paths) {
+		try {
+			const instances = await importProvider.getImportableInstances('Generic', path)
+			if (instances.length === 0) continue
+			let folderName = path.split(/[\\/]/).pop() || path
+			const existingNames = new Set(ctx.importLaunchers.value.map((l) => l.name))
+			if (existingNames.has(folderName)) {
+				let suffix = 2
+				while (existingNames.has(`${folderName} (${suffix})`)) {
+					suffix++
+				}
+				folderName = `${folderName} (${suffix})`
+			}
+			const launcher: ImportableLauncher = {
+				name: folderName,
+				path,
+				instances,
+				launcherType: 'Generic',
+			}
+			ctx.importLaunchers.value = [...ctx.importLaunchers.value, launcher]
+			expandedLaunchers.value.add(launcher.name)
+			expandedLaunchers.value = new Set(expandedLaunchers.value)
+		} catch (e) {
+			console.error('Failed to read instance folder:', path, e)
+			addNotification({
+				type: 'error',
+				title: formatMessage(messages.noInstancesFoundTitle),
+				text: formatMessage(messages.noInstancesFoundText),
+			})
+		}
+	}
 }
 </script>

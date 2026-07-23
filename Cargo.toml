@@ -103,6 +103,7 @@ image = { version = "0.25.8", default-features = false, features = ["rayon"] }
 indexmap = "2.11.4"
 indicatif = "0.18.0"
 itertools = "0.14.0"
+junction = "1"
 jemalloc_pprof = "0.8.1"
 json-patch = { version = "4.1.0", default-features = false }
 keyring = "4.1.5"
@@ -185,6 +186,7 @@ sqlx-tracing = { path = "packages/sqlx-tracing" }
 strum = "0.27.2"
 syn = { version = "2.0" }
 sysinfo = { version = "0.37.2", default-features = false }
+symlink-rs = "1"
 tar = "0.4.44"
 tauri = "2.8.5"
 tauri-build = "2.4.1"

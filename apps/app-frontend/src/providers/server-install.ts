@@ -50,6 +50,7 @@ export interface ServerInstallContext {
 		ref: ModalRef<(serverName: string, serverAddress: string) => void>,
 	) => void
 	showAddServerToInstanceModal: (serverName: string, serverAddress: string) => void
+	symlinkTarget: Ref<string | null | undefined>
 }
 
 let _serverInstallSingleton: ServerInstallContext | null = null
@@ -76,6 +77,7 @@ export function createServerInstall(opts: {
 	popupNotificationManager: AbstractPopupNotificationManager
 }): ServerInstallContext {
 	const installingServerProjects = ref<string[]>([])
+	const symlinkTarget = ref<string | null | undefined>(undefined)
 
 	let installToPlayModalRef: ModalRef<
 		(
@@ -358,6 +360,7 @@ export function createServerInstall(opts: {
 
 	const context: ServerInstallContext = {
 		installingServerProjects,
+		symlinkTarget,
 		startInstallingServer,
 		stopInstallingServer,
 		isServerInstalling,

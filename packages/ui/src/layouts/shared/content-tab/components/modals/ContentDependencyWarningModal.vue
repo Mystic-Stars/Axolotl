@@ -7,6 +7,13 @@
 		:on-hide="() => backupCreator?.cancelBackup()"
 	>
 		<div class="flex flex-col gap-6">
+			<Admonition
+				v-if="symlinkTarget"
+				type="warning"
+				:header="formatMessage(messages.symlinkWarningHeader)"
+			>
+				{{ formatMessage(messages.symlinkWarningBody, { path: symlinkTarget }) }}
+			</Admonition>
 			<Admonition type="critical" :header="formatMessage(messages.admonitionHeader)">
 				{{
 					visibleItems.length === 1
@@ -219,6 +226,7 @@ const props = withDefaults(
 		backupTip?: string
 		actionDisabled?: boolean
 		actionDisabledTooltip?: string
+		symlinkTarget?: string
 	}>(),
 	{
 		items: () => [],
@@ -227,6 +235,7 @@ const props = withDefaults(
 		backupTip: undefined,
 		actionDisabled: false,
 		actionDisabledTooltip: undefined,
+		symlinkTarget: undefined,
 	},
 )
 
@@ -295,6 +304,8 @@ const messages = defineMessages({
 		id: 'content.dependency-warning.context.server',
 		defaultMessage: 'server',
 	},
+	symlinkWarningHeader: { id: 'app.symlink-warning.write.header' },
+	symlinkWarningBody: { id: 'app.symlink-warning.write.body' },
 })
 
 const modal = ref<InstanceType<typeof NewModal>>()

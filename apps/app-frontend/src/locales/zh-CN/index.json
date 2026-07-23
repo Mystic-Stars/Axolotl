@@ -35,6 +35,9 @@
 	"app.action-bar.install.summary.bad-modpack-file": {
 		"message": "无法读取整合包"
 	},
+	"app.action-bar.install.summary.unrecognized-format": {
+		"message": "这似乎不是一个整合包文件，无法识别其格式"
+	},
 	"app.action-bar.install.summary.canceled": {
 		"message": "已取消"
 	},
@@ -2923,5 +2926,83 @@
 	},
 	"unknown-pack-warning-modal.warning.title": {
 		"message": "未知文件警告"
+	},
+	"app.downloads.download-resumed": {
+		"message": "已续传 {bytes}"
+	},
+	"app.downloads.source.tencent-maven": {
+		"message": "腾讯 Maven"
+	},
+	"app.settings.resources.source-health": {
+		"message": "下载源健康状态"
+	},
+	"app.settings.resources.source-health-cooling-down": {
+		"message": "冷却中"
+	},
+	"app.settings.resources.source-health-description": {
+		"message": "连接质量仅根据本机已完成的下载进行学习，数据不会上传。"
+	},
+	"app.settings.resources.source-health-empty": {
+		"message": "尚未收集到下载测量数据。"
+	},
+	"app.settings.resources.source-health-refresh": {
+		"message": "刷新"
+	},
+	"app.settings.resources.source-health-range-splitting-disabled": {
+		"message": "Range 分片已停用"
+	},
+	"app.settings.resources.source-health-reset": {
+		"message": "重置学习数据"
+	},
+	"app.settings.resources.source-health-stats": {
+		"message": "TTFB {ttfb} · {speed} · 成功 {successes} 次 / 失败 {failures} 次"
+	},
+	"app.instance.confirm-delete.symlink-warning": {
+		"message": "这是一个链接到“{path}”的共享实例。仅会删除链接，原始文件不会被删除。"
+	},
+	"app.symlink-warning.write.header": {
+		"message": "共享实例"
+	},
+	"app.symlink-warning.write.body": {
+		"message": "此实例为共享实例。当前更改操作将一并影响 {path}。"
+	},
+	"app.symlink-warning.delete.header": {
+		"message": "共享实例"
+	},
+	"app.symlink-warning.delete.body": {
+		"message": "此实例为共享实例。当前操作将删除共享的 {path}。"
+	},
+	"app.symlink-warning.dismiss-permanently": {
+		"message": "此实例不再提示"
+	},
+	"app.symlink-warning.shared-badge": {
+		"message": "共享"
+	},
+	"creation-flow.modal.import-instance.import-as-symlink": {
+		"message": "以共享实例导入"
+	},
+	"creation-flow.modal.import-instance.import-as-symlink.tooltip": {
+		"message": "通过软链接，直接使用原始实例文件夹，共享一份文件。所有的更改都将同步到原始实例。"
+	},
+	"app.symlink-capability.unsupported": {
+		"message": "系统不支持软链接。"
+	},
+	"app.symlink-capability.requires-admin": {
+		"message": "创建软链接需要管理员权限。请以管理员身份重新启动启动器。"
+	},
+	"app.symlink-capability.unsupported.title": {
+		"message": "软链接不支持"
+	},
+	"app.symlink-capability.requires-admin.title": {
+		"message": "需要管理员权限"
+	},
+	"app.symlink-capability.requires-admin.restart-button": {
+		"message": "以管理员身份重启"
+	},
+	"app.symlink-capability.requires-admin.description": {
+		"message": "创建软链接需要管理员权限。以管理员身份重新启动启动器？"
+	},
+	"app.symlink-capability.cancel": {
+		"message": "取消"
 	}
 }

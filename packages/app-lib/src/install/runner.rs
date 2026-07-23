@@ -57,11 +57,13 @@ pub async fn import_instance(
     launcher_type: crate::api::pack::import::ImportLauncherType,
     base_path: PathBuf,
     instance_folder: String,
+    symlink: bool,
 ) -> crate::Result<InstallJobSnapshot> {
     start(InstallRequest::ImportInstance {
         launcher_type,
         base_path,
         instance_folder,
+        symlink,
     })
     .await
 }
@@ -321,6 +323,7 @@ async fn prepare_initial_instance(
                 loader_version,
                 icon_path,
                 link,
+                None,
             )
             .await?;
             set_display(
@@ -362,6 +365,7 @@ async fn prepare_initial_instance(
                 preview.loader_version,
                 icon_path,
                 link,
+                None,
             )
             .await?;
             set_display(
@@ -372,15 +376,19 @@ async fn prepare_initial_instance(
             set_instance_id(job_state, metadata.instance.id);
         }
         InstallRequest::ImportInstance {
-            instance_folder, ..
+            instance_folder,
+            symlink: _,
+            base_path: _,
+            ..
         } => {
             let metadata = crate::api::instance::create(
                 instance_folder,
-                "1.19.4".to_string(),
+                "unknown".to_string(),
                 ModLoader::Vanilla,
-                Some("latest".to_string()),
+                None,
                 None,
                 InstanceLink::Unmanaged,
+                None,
             )
             .await?;
             set_display(
@@ -406,6 +414,7 @@ async fn prepare_initial_instance(
                 metadata.applied_content_set.loader_version,
                 metadata.instance.icon_path,
                 metadata.link,
+                None,
             )
             .await?;
             set_display(
@@ -711,6 +720,7 @@ async fn run_request(
             launcher_type,
             base_path,
             instance_folder,
+            symlink,
         } => {
             let Some(instance_id) = current_instance_id(job_state) else {
                 return Err(crate::ErrorKind::InputError(
@@ -735,6 +745,7 @@ async fn run_request(
                 base_path,
                 instance_folder,
                 InstallProgressReporter::new(job_id, job_state.clone()),
+                symlink,
             )
             .await?;
             Ok(Some(instance_id))
@@ -1076,20 +1087,41 @@ async fn install_pack(
                         .build(),
                 )
                 .await?;
-            let detected =
-                crate::api::pack::detect::detect_local_pack(&path).await?;
-            if detected.format
-                != crate::api::pack::detect::LocalPackFormat::Mrpack
-            {
-                return install_local_pack_file(
-                    detected,
-                    path,
-                    instance_id,
-                    reporter,
-                )
-                .await;
+            match crate::api::pack::detect::detect_local_pack(&path).await {
+                Ok(detected) => {
+                    if detected.format
+                        != crate::api::pack::detect::LocalPackFormat::Mrpack
+                    {
+                        // Non-mrpack format — dispatch to format-specific
+                        // installer via install_local_pack_file.
+                        return install_local_pack_file(
+                            detected,
+                            path,
+                            instance_id,
+                            reporter,
+                        )
+                        .await;
+                    }
+                    // Mrpack — fall through to standard mrpack install.
+                    generate_pack_from_file(path, instance_id.clone()).await?
+                }
+                Err(detect_error) => {
+                    // No format recognised — try recursive extraction
+                    // (3-level deep search for sub-archives, bundled
+                    // packs, etc.) before giving up.
+                    tracing::debug!(
+                        "Local pack format detection failed, trying recursive extraction: {detect_error}"
+                    );
+                    return install_local_pack_file_recursive(
+                        path,
+                        instance_id,
+                        reporter,
+                        0,
+                        3,
+                    )
+                    .await;
+                }
             }
-            generate_pack_from_file(path, instance_id.clone()).await?
         }
     };
 
@@ -1104,8 +1136,111 @@ async fn install_pack(
     Ok(())
 }
 
+/// Recursively tries to detect and install a modpack, up to max_depth levels.
+#[async_recursion::async_recursion]
+async fn install_local_pack_file_recursive(
+    path: PathBuf,
+    instance_id: String,
+    reporter: InstallProgressReporter,
+    current_depth: usize,
+    max_depth: usize,
+) -> crate::Result<()> {
+    // First try standard detection - this will already include our InstanceFolder fallback
+    if let Ok(detected) =
+        crate::api::pack::detect::detect_local_pack(&path).await
+    {
+        // If it's a standard format (including InstanceFolder), just install it
+        return install_local_pack_file(detected, path, instance_id, reporter)
+            .await;
+    }
+
+    // If standard detection failed and we're not at max depth, try to look for
+    // sub-compressed files to extract and check
+    if current_depth < max_depth {
+        let state = State::get().await?;
+        let scratch =
+            crate::api::pack::archive_util::create_import_scratch_dir(&state)
+                .await?;
+
+        // Extract the entire archive to check for sub-packs
+        // First, let's list all entries to find potential sub-compressed files
+        let file = std::fs::File::open(&path)?;
+        let mut archive = match zip::ZipArchive::new(file) {
+            Ok(a) => a,
+            Err(_) => {
+                // Not a valid zip, can't proceed further
+                let _ = tokio::fs::remove_dir_all(&scratch).await;
+                return Err(crate::ErrorKind::InputError(
+                    "Unrecognized modpack format: no known pack manifest was found in the archive".to_string()
+                ).into());
+            }
+        };
+
+        let mut sub_archive_paths = Vec::new();
+
+        // Collect all potential sub-archive files
+        for i in 0..archive.len() {
+            let lower_name = {
+                let entry = archive
+                    .by_index_raw(i)
+                    .map_err(|e| ErrorKind::OtherError(e.to_string()))?;
+                let name = crate::api::pack::detect::decode_zip_entry_name(
+                    entry.name_raw(),
+                );
+                name.to_lowercase()
+            }; // entry dropped here, releasing the mutable borrow on archive
+
+            // Check if it looks like a compressed file
+            if lower_name.ends_with(".zip") || lower_name.ends_with(".mrpack") {
+                // Extract this sub-archive
+                let mut entry = archive
+                    .by_index(i)
+                    .map_err(|e| ErrorKind::OtherError(e.to_string()))?;
+                let sub_path = scratch.join(entry.mangled_name());
+
+                if let Some(parent) = sub_path.parent() {
+                    std::fs::create_dir_all(parent)?;
+                }
+
+                let mut out = std::fs::File::create(&sub_path)?;
+                std::io::copy(&mut entry, &mut out)?;
+
+                sub_archive_paths.push(sub_path);
+            }
+        }
+
+        // Try to install each sub-archive recursively
+        for sub_path in sub_archive_paths {
+            let result = install_local_pack_file_recursive(
+                sub_path,
+                instance_id.clone(),
+                reporter.clone(),
+                current_depth + 1,
+                max_depth,
+            )
+            .await;
+
+            if result.is_ok() {
+                // Success! Clean up and return
+                let _ = tokio::fs::remove_dir_all(&scratch).await;
+                return result;
+            }
+        }
+
+        // Clean up scratch directory
+        let _ = tokio::fs::remove_dir_all(&scratch).await;
+    }
+
+    // If all else fails, return error
+    Err(ErrorKind::InputError(
+        "Unrecognized modpack format: no known pack manifest was found in the archive"
+            .to_string(),
+    ).into())
+}
+
 /// Dispatches a local non-mrpack modpack file to its format-specific
 /// installer, based on the detected pack format.
+#[async_recursion::async_recursion]
 async fn install_local_pack_file(
     detected: crate::api::pack::detect::DetectedLocalPack,
     path: PathBuf,
@@ -1195,30 +1330,25 @@ async fn install_local_pack_file(
                 inner_path.clone(),
             )
             .await?;
-            let inner_detected =
-                crate::api::pack::detect::detect_local_pack(&inner_path)
-                    .await?;
-            let result =
-                if inner_detected.format == LocalPackFormat::LauncherBundled {
-                    Err(ErrorKind::InputError(
-                        "Nested launcher bundles are not supported".to_string(),
-                    )
-                    .into())
-                } else {
-                    Box::pin(install_local_pack_file(
-                        inner_detected,
-                        inner_path,
-                        instance_id,
-                        reporter,
-                    ))
-                    .await
-                };
+
+            // Use our recursive function to install the inner pack
+            let result = install_local_pack_file_recursive(
+                inner_path,
+                instance_id,
+                reporter,
+                1, // already one level deep
+                3,
+            )
+            .await;
+
+            // Clean up temporary directory
             if let Err(error) = tokio::fs::remove_dir_all(&scratch).await {
                 tracing::warn!(
                     "Failed to clean up modpack import scratch directory {}: {error}",
                     scratch.display()
                 );
             }
+
             return result;
         }
         LocalPackFormat::PlainArchive => {
@@ -1235,6 +1365,39 @@ async fn install_local_pack_file(
                 version_id,
                 source_filename,
                 reporter,
+            )
+            .await?;
+        }
+        LocalPackFormat::InstanceFolder => {
+            // Extract the base folder contents to a temporary directory
+            let state = State::get().await?;
+            let scratch =
+                crate::api::pack::archive_util::create_import_scratch_dir(
+                    &state,
+                )
+                .await?;
+
+            // Extract the instance folder contents
+            crate::api::pack::archive_util::extract_archive_subdir(
+                path,
+                detected.base_folder,
+                scratch.clone(),
+            )
+            .await?;
+
+            // Now import it as a generic instance
+            let details = InstallPhaseDetails::Modpack {
+                project_id: None,
+                version_id: None,
+                title: source_filename.clone(),
+            };
+
+            crate::api::pack::import::generic::import_generic(
+                scratch,
+                &instance_id,
+                reporter,
+                details,
+                false,
             )
             .await?;
         }
@@ -1355,6 +1518,12 @@ fn install_error_code(
     use InstallPhaseId::*;
 
     match error.raw.as_ref() {
+        ErrorKind::InputError(msg)
+            if msg.starts_with("Unrecognized modpack format")
+                && matches!(phase, ResolvingPack) =>
+        {
+            "unrecognized_format"
+        }
         ErrorKind::InputError(_) => match phase {
             PreparingInstance | Finalizing => "instance_error",
             ResolvingPack | DownloadingPackFile | ReadingPackManifest => {

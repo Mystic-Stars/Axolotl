@@ -1,4 +1,5 @@
 <template>
+	<SymlinkInstanceWarning v-if="instance?.symlink_target" :symlink-target="instance.symlink_target" />
 	<ContentDiffModal
 		ref="diffModal"
 		:header="formatMessage(messages.updateToPlay)"
@@ -35,6 +36,7 @@ import { wait_for_install_job } from '@/helpers/install'
 import { update_managed_modrinth_version } from '@/helpers/instance'
 import type { GameInstance } from '@/helpers/types'
 import { injectServerInstall } from '@/providers/server-install'
+import SymlinkInstanceWarning from '@/components/ui/SymlinkInstanceWarning.vue'
 
 type Dependency = Labrinth.Versions.v3.Dependency
 type Version = Labrinth.Versions.v2.Version

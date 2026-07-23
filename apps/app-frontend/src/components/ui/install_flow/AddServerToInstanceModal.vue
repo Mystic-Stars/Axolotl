@@ -34,6 +34,15 @@ const messages = defineMessages({
 	adding: { id: 'app.server.adding', defaultMessage: 'Adding...' },
 	added: { id: 'app.server.added', defaultMessage: 'Added' },
 	add: { id: 'app.server.add', defaultMessage: 'Add' },
+	symlinkWarningHeader: { id: 'app.symlink-warning.write.header' },
+	symlinkWarningBody: { id: 'app.symlink-warning.write.body' },
+})
+
+defineProps({
+	symlinkTarget: {
+		type: String,
+		default: null,
+	},
 })
 
 const modal = ref()
@@ -101,6 +110,13 @@ async function addServer(instance) {
 <template>
 	<ModalWrapper ref="modal" :header="formatMessage(messages.addServer)">
 		<div class="flex flex-col gap-4 min-w-[350px]">
+			<Admonition
+				v-if="symlinkTarget"
+				type="warning"
+				:header="formatMessage(messages.symlinkWarningHeader)"
+			>
+				{{ formatMessage(messages.symlinkWarningBody, { path: symlinkTarget }) }}
+			</Admonition>
 			<Admonition type="warning" :body="formatMessage(messages.compatibilityWarning)" />
 			<StyledInput
 				v-model="searchFilter"

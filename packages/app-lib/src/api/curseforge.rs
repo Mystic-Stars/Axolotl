@@ -1007,7 +1007,7 @@ pub async fn get_modpack_target(
         let file = std::fs::File::open(&pack_path)?;
         let mut archive =
             zip::ZipArchive::new(file).map_err(modpack_zip_error)?;
-        let manifest = read_modpack_manifest(&mut archive, "")?;
+        let manifest = read_modpack_manifest(&mut archive)?;
         modpack_target(&manifest)
     })
     .await??;
@@ -1205,7 +1205,7 @@ pub async fn install_modpack_with_reporter(
         let file = std::fs::File::open(&pack_path_for_manifest)?;
         let mut archive =
             zip::ZipArchive::new(file).map_err(modpack_zip_error)?;
-        read_modpack_manifest(&mut archive, "")
+        read_modpack_manifest(&mut archive)
     })
     .await??;
 
@@ -1607,7 +1607,7 @@ pub async fn install_modpack_with_reporter(
             .await?;
     }
     let overrides_written = tokio::task::spawn_blocking(move || {
-        extract_modpack_overrides(&pack_path, &instance_path, "")
+        extract_modpack_overrides(&pack_path, &instance_path)
     })
     .await??;
     Ok(CurseForgeModpackInstallResult {
@@ -1626,18 +1626,17 @@ pub async fn install_modpack_with_reporter(
 pub async fn install_modpack_from_local_archive_with_reporter(
     instance_id: String,
     archive_path: std::path::PathBuf,
-    base_folder: String,
+    _base_folder: String,
     source_filename: Option<String>,
     install_optional: bool,
     reporter: InstallProgressReporter,
 ) -> crate::Result<CurseForgeModpackInstallResult> {
     let manifest_archive_path = archive_path.clone();
-    let manifest_base = base_folder.clone();
     let manifest = tokio::task::spawn_blocking(move || {
         let file = std::fs::File::open(&manifest_archive_path)?;
         let mut archive =
             zip::ZipArchive::new(file).map_err(modpack_zip_error)?;
-        read_modpack_manifest(&mut archive, &manifest_base)
+        read_modpack_manifest(&mut archive)
     })
     .await??;
 
@@ -1725,13 +1724,8 @@ pub async fn install_modpack_from_local_archive_with_reporter(
     let instance_path =
         crate::api::instance::get_full_path(&instance_id).await?;
     let overrides_archive_path = archive_path.clone();
-    let overrides_base = base_folder.clone();
     let overrides_written = tokio::task::spawn_blocking(move || {
-        extract_modpack_overrides(
-            &overrides_archive_path,
-            &instance_path,
-            &overrides_base,
-        )
+        extract_modpack_overrides(&overrides_archive_path, &instance_path)
     })
     .await??;
 
@@ -2211,13 +2205,11 @@ async fn remove_existing_curseforge_pack_content(
 fn extract_modpack_overrides(
     archive_path: &Path,
     instance_path: &Path,
-    base_folder: &str,
 ) -> crate::Result<u32> {
     let file = std::fs::File::open(archive_path)?;
     let mut archive = zip::ZipArchive::new(file).map_err(modpack_zip_error)?;
-    let manifest = read_modpack_manifest(&mut archive, base_folder)?;
-    let prefix =
-        format!("{base_folder}{}/", manifest.overrides.trim_matches('/'));
+    let manifest = read_modpack_manifest(&mut archive)?;
+    let prefix = format!("{}/", manifest.overrides.trim_matches('/'));
     let mut files_written = 0_u32;
     let mut total_size = 0_u64;
     for index in 0..archive.len() {
@@ -2262,16 +2254,12 @@ fn extract_modpack_overrides(
 
 fn read_modpack_manifest<R: Read + Seek>(
     archive: &mut zip::ZipArchive<R>,
-    base_folder: &str,
 ) -> crate::Result<CurseForgeModpackManifest> {
-    let entry_name = format!("{base_folder}manifest.json");
-    let index = crate::pack::detect::find_entry_index(archive, &entry_name)?
-        .ok_or_else(|| {
-            ErrorKind::InputError(
-                "CurseForge modpack is missing manifest.json".to_string(),
-            )
-        })?;
-    let mut entry = archive.by_index(index).map_err(modpack_zip_error)?;
+    let mut entry = archive.by_name("manifest.json").map_err(|_| {
+        ErrorKind::InputError(
+            "CurseForge modpack is missing manifest.json".to_string(),
+        )
+    })?;
     let mut json = String::new();
     entry.read_to_string(&mut json)?;
     Ok(serde_json::from_str::<CurseForgeModpackManifest>(&json)?)

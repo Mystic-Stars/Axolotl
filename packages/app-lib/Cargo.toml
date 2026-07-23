@@ -1,7 +1,7 @@
 [package]
 name = "theseus"
 # The actual version is set by the theseus-build workflow on tagging
-version = "1.4.1"
+version = "1.5.0"
 edition.workspace = true
 
 [dependencies]
@@ -9,18 +9,15 @@ ariadne = { workspace = true }
 async-minecraft-ping = { workspace = true, features = ["srv"] }
 async-recursion = { workspace = true }
 async-trait = { workspace = true }
-async-tungstenite = { workspace = true, features = [
-  "tokio-runtime",
-  "tokio-rustls-webpki-roots"
-] }
+async-tungstenite = { workspace = true, features = ["tokio-runtime", "tokio-rustls-webpki-roots"] }
 async-walkdir = { workspace = true }
 async_zip = { workspace = true, features = [
-  "bzip2",
-  "chrono",
-  "deflate",
-  "deflate64",
-  "tokio-fs",
-  "zstd",
+	"bzip2",
+	"chrono",
+	"deflate",
+	"deflate64",
+	"tokio-fs",
+	"zstd",
 ] }
 base64 = { workspace = true }
 bon = { workspace = true }
@@ -62,16 +59,16 @@ quick-xml = { workspace = true, features = ["async-tokio"] }
 rand = { workspace = true }
 regex = { workspace = true }
 reqwest = { workspace = true, features = [
-  "brotli",
-  "charset",
-  "deflate",
-  "gzip",
-  "http2",
-  "json",
-  "macos-system-configuration",
-  "multipart",
-  "rustls-tls-webpki-roots",
-  "stream",
+	"brotli",
+	"charset",
+	"deflate",
+	"gzip",
+	"http2",
+	"json",
+	"macos-system-configuration",
+	"multipart",
+	"rustls-tls-webpki-roots",
+	"stream",
 ] }
 rgb = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
@@ -82,25 +79,26 @@ sha1_smol = { workspace = true }
 sha2 = { workspace = true }
 shlex = { workspace = true }
 sqlx = { workspace = true, features = [
-  "json",
-  "macros",
-  "migrate",
-  "runtime-tokio",
-  "sqlite",
-  "uuid",
+	"json",
+	"macros",
+	"migrate",
+	"runtime-tokio",
+	"sqlite",
+	"uuid",
 ] }
 sysinfo = { workspace = true, features = ["disk", "system"] }
+symlink-rs = { workspace = true }
 tauri = { workspace = true, features = ["unstable"], optional = true }
 tempfile = { workspace = true }
 thiserror = { workspace = true }
 tokio = { workspace = true, features = [
-  "fs",
-  "io-util",
-  "macros",
-  "net",
-  "process",
-  "sync",
-  "time",
+	"fs",
+	"io-util",
+	"macros",
+	"net",
+	"process",
+	"sync",
+	"time",
 ] }
 tokio-util = { workspace = true, features = [
   "compat",
@@ -128,7 +126,8 @@ dunce = { workspace = true }
 cidre = { workspace = true, features = ["blocks", "nw"] }
 
 [target."cfg(windows)".dependencies]
-windows = { workspace = true, features = ["Networking_Connectivity"] }
+junction = { workspace = true }
+windows = { workspace = true, features = ["Win32_Storage_FileSystem", "Networking_Connectivity"] }
 windows-core = { workspace = true }
 winreg = { workspace = true }
 

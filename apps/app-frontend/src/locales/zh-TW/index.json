@@ -1586,6 +1586,12 @@
   "app.settings.resources.download-mirrors-description": {
     "message": "為每項服務選擇下載來源。當鏡像來源請求失敗時，將自動退回至官方來源。"
   },
+  "app.settings.resources.minecraft-mirror": {
+    "message": "Minecraft 與模組載入器"
+  },
+  "app.settings.resources.minecraft-mirror-description": {
+    "message": "使用 OpenBMCLAPI 加速 Minecraft、Forge、Fabric 和 NeoForge 檔案下載。"
+  },
   "app.settings.resources.modrinth-mirror": {
     "message": "Modrinth"
   },

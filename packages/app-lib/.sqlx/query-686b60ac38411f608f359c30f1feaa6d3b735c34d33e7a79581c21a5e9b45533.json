@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n\t\tUPDATE instances\n\t\tSET\n\t\t\tpath = ?,\n\t\t\tapplied_content_set_id = ?,\n\t\t\tinstall_stage = ?,\n\t\t\tlauncher_feature_version = ?,\n\t\t\tupdate_channel = ?,\n\t\t\tname = ?,\n\t\t\ticon_path = ?,\n\t\t\tsymlink_target = ?,\n\t\t\tmodified = ?,\n\t\t\tlast_played = ?,\n\t\t\tsubmitted_time_played = ?,\n\t\t\trecent_time_played = ?\n\t\tWHERE id = ?\n\t\t",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 13
+    },
+    "nullable": []
+  },
+  "hash": "686b60ac38411f608f359c30f1feaa6d3b735c34d33e7a79581c21a5e9b45533"
+}

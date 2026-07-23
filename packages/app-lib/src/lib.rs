@@ -28,6 +28,7 @@ pub use event::{
 pub use logger::start_logger;
 pub use state::State;
 pub use util::fetch::DownloadReason;
+pub use util::symlink::SymlinkCapability;
 
 pub fn launcher_user_agent() -> String {
     brand::user_agent(env!("CARGO_PKG_VERSION"), std::env::consts::OS)

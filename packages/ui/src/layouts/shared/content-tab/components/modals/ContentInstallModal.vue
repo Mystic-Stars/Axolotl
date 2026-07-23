@@ -6,6 +6,14 @@
 			</span>
 		</template>
 
+		<Admonition
+			v-if="symlinkTarget"
+			type="warning"
+			class="mx-6 mt-6"
+			:header="formatMessage(messages.symlinkWarningHeader)"
+		>
+			{{ formatMessage(messages.symlinkWarningBody, { path: symlinkTarget }) }}
+		</Admonition>
 		<div
 			v-if="projectInfo"
 			class="flex items-center gap-2.5 rounded-[20px] bg-surface-2 mx-6 mt-6 p-3"
@@ -272,6 +280,7 @@ import {
 } from '@modrinth/assets'
 import { computed, ref, watch } from 'vue'
 
+import Admonition from '#ui/components/base/Admonition.vue'
 import AutoLink from '#ui/components/base/AutoLink.vue'
 import Avatar from '#ui/components/base/Avatar.vue'
 import ButtonStyled from '#ui/components/base/ButtonStyled.vue'
@@ -353,6 +362,8 @@ const messages = defineMessages({
 		id: 'instances.content-install.no-instances',
 		defaultMessage: 'No compatible instances found',
 	},
+	symlinkWarningHeader: { id: 'app.symlink-warning.write.header' },
+	symlinkWarningBody: { id: 'app.symlink-warning.write.body' },
 })
 
 export interface ContentInstallInstance {
@@ -389,6 +400,7 @@ const props = defineProps<{
 	preferredLoader?: string | null
 	preferredGameVersion?: string | null
 	projectInfo?: ContentInstallProjectInfo | null
+	symlinkTarget?: string
 }>()
 
 const emit = defineEmits<{
