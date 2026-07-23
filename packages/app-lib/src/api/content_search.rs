@@ -232,8 +232,7 @@ fn chinese_file_title(chinese_name: &str) -> Option<String> {
     let sanitized = stripped
         .chars()
         .filter(|character| {
-            !character.is_control()
-                && !ILLEGAL_CHARACTERS.contains(*character)
+            !character.is_control() && !ILLEGAL_CHARACTERS.contains(*character)
         })
         .collect::<String>();
     let trimmed = sanitized.trim();
@@ -253,7 +252,9 @@ fn strip_english_alias(name: &str) -> &str {
     };
     let inner = &without_paren[open_index + 1..];
     if inner.contains(['(', ')'])
-        || !inner.chars().any(|character| character.is_ascii_alphabetic())
+        || !inner
+            .chars()
+            .any(|character| character.is_ascii_alphabetic())
     {
         return trimmed;
     }

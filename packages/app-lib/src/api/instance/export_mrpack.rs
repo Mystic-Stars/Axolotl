@@ -92,7 +92,10 @@ pub async fn export_mrpack(
         let exported_path =
             original_content_relative_path(relative_path.as_str());
 
-        if packfile.files.iter().any(|f| f.path.as_str() == exported_path)
+        if packfile
+            .files
+            .iter()
+            .any(|f| f.path.as_str() == exported_path)
             || !is_export_candidate_included(
                 relative_path.as_str(),
                 &included_export_candidates,
