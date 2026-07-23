@@ -44,6 +44,18 @@ export const launcherAnnouncements: readonly LauncherAnnouncement[] = [
 			added: [
 				{
 					'en-US':
+						'Modpack imports now detect the archive format by content: CurseForge, MCBBS, HMCL, and MultiMC/Prism export packs, launcher-bundled archives, and zipped game folders can be imported alongside .mrpack files.',
+					'zh-CN':
+						'整合包导入现在按压缩包内容识别格式：除 .mrpack 外，还支持 CurseForge、MCBBS、HMCL、MultiMC/Prism 导出包、附带启动器的整合包以及打包的游戏目录。',
+				},
+				{
+					'en-US':
+						'Added OptiFine support: modpacks declaring OptiFine install it automatically, standalone as the loader or as a mod alongside Forge/NeoForge.',
+					'zh-CN':
+						'新增 OptiFine 支持：声明了 OptiFine 的整合包会自动安装——单独存在时作为加载器，与 Forge/NeoForge 共存时作为模组安装。',
+				},
+				{
+					'en-US':
 						'Added an appearance setting to limit the number of recent instances shown in the sidebar, with 0 showing all instances.',
 					'zh-CN': '新增外观设置，可限制侧边栏显示的最近实例数量，设为 0 时显示全部实例。',
 				},
@@ -72,6 +84,16 @@ export const launcherAnnouncements: readonly LauncherAnnouncement[] = [
 						'Fixed local modpack installs appearing stuck at 100% and hanging when a Minecraft file download stops receiving data.',
 					'zh-CN':
 						'修复本地整合包安装在 100% 后看似卡住，以及 Minecraft 文件下载停止接收数据时任务无法结束的问题。',
+				},
+				{
+					'en-US':
+						'Fixed the Minecraft download progress overshooting and pegging at 100% early after a download attempt was retried.',
+					'zh-CN': '修复下载重试后 Minecraft 资源下载进度虚高、提前钳制在 100% 的问题。',
+				},
+				{
+					'en-US':
+						'Modpack archives with GB18030 (GBK) encoded Chinese file names now extract correctly.',
+					'zh-CN': '使用 GB18030（GBK）编码中文文件名的整合包压缩包现在可以正确解压。',
 				},
 			],
 		},
