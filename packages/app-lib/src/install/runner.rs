@@ -961,6 +961,7 @@ async fn remove_existing_imported_pack_content(
             entry.source_kind,
             ContentSourceKind::ImportedModpack
                 | ContentSourceKind::ModrinthModpack
+                | ContentSourceKind::CurseForge
         ) {
             continue;
         }
@@ -1075,6 +1076,19 @@ async fn install_pack(
                         .build(),
                 )
                 .await?;
+            let detected =
+                crate::api::pack::detect::detect_local_pack(&path).await?;
+            if detected.format
+                != crate::api::pack::detect::LocalPackFormat::Mrpack
+            {
+                return install_local_pack_file(
+                    detected,
+                    path,
+                    instance_id,
+                    reporter,
+                )
+                .await;
+            }
             generate_pack_from_file(path, instance_id.clone()).await?
         }
     };
@@ -1087,6 +1101,144 @@ async fn install_pack(
     )
     .await?;
 
+    Ok(())
+}
+
+/// Dispatches a local non-mrpack modpack file to its format-specific
+/// installer, based on the detected pack format.
+async fn install_local_pack_file(
+    detected: crate::api::pack::detect::DetectedLocalPack,
+    path: PathBuf,
+    instance_id: String,
+    reporter: InstallProgressReporter,
+) -> crate::Result<()> {
+    use crate::api::pack::detect::LocalPackFormat;
+
+    let source_filename = path
+        .file_name()
+        .map(|name| name.to_string_lossy().to_string());
+    match detected.format {
+        LocalPackFormat::Mrpack => {
+            let create_pack =
+                generate_pack_from_file(path, instance_id.clone()).await?;
+            install_zipped_mrpack_files_with_reporter(
+                create_pack,
+                false,
+                DownloadReason::Modpack,
+                reporter,
+            )
+            .await?;
+        }
+        LocalPackFormat::CurseForge => {
+            crate::api::curseforge::install_modpack_from_local_archive_with_reporter(
+                instance_id,
+                path,
+                detected.base_folder,
+                source_filename,
+                false,
+                reporter,
+            )
+            .await?;
+        }
+        LocalPackFormat::Mcbbs => {
+            crate::api::pack::install_mcbbs::install_mcbbs_pack_with_reporter(
+                instance_id,
+                path,
+                detected.base_folder,
+                source_filename,
+                reporter,
+            )
+            .await?;
+        }
+        LocalPackFormat::Hmcl => {
+            crate::api::pack::install_hmcl::install_hmcl_pack_with_reporter(
+                instance_id,
+                path,
+                detected.base_folder,
+                source_filename,
+                reporter,
+            )
+            .await?;
+        }
+        LocalPackFormat::MmcExport => {
+            crate::api::pack::install_mmc_zip::install_mmc_zip_with_reporter(
+                instance_id,
+                path,
+                detected.base_folder,
+                source_filename,
+                reporter,
+            )
+            .await?;
+        }
+        LocalPackFormat::LauncherBundled => {
+            let inner_entry = detected.inner_pack_entry.ok_or_else(|| {
+                ErrorKind::InputError(
+                    "Launcher bundle is missing its inner modpack file"
+                        .to_string(),
+                )
+            })?;
+            let state = State::get().await?;
+            let scratch =
+                crate::api::pack::archive_util::create_import_scratch_dir(
+                    &state,
+                )
+                .await?;
+            let inner_name = inner_entry
+                .rsplit('/')
+                .next()
+                .unwrap_or("modpack.zip")
+                .to_string();
+            let inner_path = scratch.join(&inner_name);
+            crate::api::pack::archive_util::extract_archive_entry_to_file(
+                path,
+                inner_entry,
+                inner_path.clone(),
+            )
+            .await?;
+            let inner_detected =
+                crate::api::pack::detect::detect_local_pack(&inner_path)
+                    .await?;
+            let result =
+                if inner_detected.format == LocalPackFormat::LauncherBundled {
+                    Err(ErrorKind::InputError(
+                        "Nested launcher bundles are not supported".to_string(),
+                    )
+                    .into())
+                } else {
+                    Box::pin(install_local_pack_file(
+                        inner_detected,
+                        inner_path,
+                        instance_id,
+                        reporter,
+                    ))
+                    .await
+                };
+            if let Err(error) = tokio::fs::remove_dir_all(&scratch).await {
+                tracing::warn!(
+                    "Failed to clean up modpack import scratch directory {}: {error}",
+                    scratch.display()
+                );
+            }
+            return result;
+        }
+        LocalPackFormat::PlainArchive => {
+            let version_id = detected.plain_version_id.ok_or_else(|| {
+                ErrorKind::InputError(
+                    "Could not locate the instance version in the archive"
+                        .to_string(),
+                )
+            })?;
+            crate::api::pack::install_plain_archive::install_plain_archive_with_reporter(
+                instance_id,
+                path,
+                detected.base_folder,
+                version_id,
+                source_filename,
+                reporter,
+            )
+            .await?;
+        }
+    }
     Ok(())
 }
 

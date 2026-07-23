@@ -36,6 +36,7 @@ use tokio::process::Command;
 mod args;
 
 pub mod download;
+pub mod optifine;
 pub mod quick_play_version;
 
 // All nones -> disallowed
@@ -179,6 +180,11 @@ pub async fn get_loader_version_from_profile_with_cache(
 ) -> crate::Result<Option<LoaderVersion>> {
     if loader == ModLoader::Vanilla {
         return Ok(None);
+    }
+
+    if loader == ModLoader::OptiFine {
+        return optifine::resolve_loader_version(game_version, loader_version)
+            .await;
     }
 
     let version = loader_version.unwrap_or("latest");
@@ -495,6 +501,29 @@ pub async fn install_minecraft_with_reporter(
         .directories
         .version_dir(&version_jar)
         .join(format!("{version_jar}.jar"));
+
+    if content_set.loader == ModLoader::OptiFine
+        && let Some(loader_version) = &loader_version
+    {
+        if let Some(reporter) = &reporter {
+            reporter
+                .update(
+                    InstallPhaseId::RunningLoaderProcessors,
+                    None,
+                    phase_details.clone(),
+                )
+                .await?;
+        }
+        optifine::install_optifine_libraries(
+            &state,
+            std::path::Path::new(&java_version.path),
+            &content_set.game_version,
+            &loader_version.id,
+            &client_path,
+        )
+        .await?;
+    }
+
     if let Some(processors) = &version_info.processors {
         let libraries_dir = state.directories.libraries_dir();
 

@@ -419,14 +419,19 @@ pub(crate) async fn install_zipped_mrpack_files_with_reporter(
         )
         .await?;
 
-    // Extract index of modrinth.index.json
-    let Some(manifest_idx) = zip_reader.file().entries().iter().position(|f| {
-        matches!(f.filename().as_str(), Ok("modrinth.index.json"))
-    }) else {
+    // Extract index of modrinth.index.json, tolerating packs zipped inside a
+    // single wrapping folder. A root-level manifest always wins so override
+    // files that happen to share the name cannot hijack the base folder.
+    let Some((manifest_idx, archive_base)) =
+        locate_mrpack_manifest(zip_reader.file())
+    else {
         return Err(crate::Error::from(crate::ErrorKind::InputError(
             "No pack manifest found in mrpack".to_string(),
         )));
     };
+    let overrides_prefix = format!("{archive_base}overrides/");
+    let client_overrides_prefix = format!("{archive_base}client-overrides/");
+    let server_overrides_prefix = format!("{archive_base}server-overrides/");
 
     let mut manifest = String::new();
     manifest.push_str(&zip_reader.read_entry_to_string(manifest_idx).await?);
@@ -447,12 +452,12 @@ pub(crate) async fn install_zipped_mrpack_files_with_reporter(
         let icon_entry =
             zip_reader.file().entries().iter().enumerate().find_map(
                 |(index, entry)| {
-                    matches!(
-                        entry.filename().as_str(),
-                        Ok("icon.png"
-                            | "overrides/icon.png"
-                            | "client-overrides/icon.png")
-                    )
+                    let Ok(name) = entry.filename().as_str() else {
+                        return None;
+                    };
+                    (name == format!("{archive_base}icon.png")
+                        || name == format!("{overrides_prefix}icon.png")
+                        || name == format!("{client_overrides_prefix}icon.png"))
                     .then_some(index)
                 },
             );
@@ -490,9 +495,9 @@ pub(crate) async fn install_zipped_mrpack_files_with_reporter(
             .enumerate()
             .filter_map(|(index, entry)| {
                 let filename = entry.filename().as_str().ok()?;
-                let is_override = (filename.starts_with("overrides/")
-                    || filename.starts_with("client-overrides/")
-                    || filename.starts_with("server-overrides/"))
+                let is_override = (filename.starts_with(&overrides_prefix)
+                    || filename.starts_with(&client_overrides_prefix)
+                    || filename.starts_with(&server_overrides_prefix))
                     && !filename.ends_with('/');
                 is_override.then_some(index)
             })
@@ -879,8 +884,8 @@ pub(crate) async fn install_zipped_mrpack_files_with_reporter(
         .enumerate()
         .filter_map(|(index, file)| {
             let filename = file.filename().as_str().unwrap_or_default();
-            ((filename.starts_with("overrides/")
-                || filename.starts_with("client-overrides/"))
+            ((filename.starts_with(&overrides_prefix)
+                || filename.starts_with(&client_overrides_prefix))
                 && !filename.ends_with('/'))
             .then(|| (index, file.clone()))
         })
@@ -939,10 +944,11 @@ pub(crate) async fn install_zipped_mrpack_files_with_reporter(
     };
 
     for (index, file) in override_file_entries {
+        let entry_name = file.filename().as_str().unwrap();
+        let entry_name =
+            entry_name.strip_prefix(&archive_base).unwrap_or(entry_name);
         let relative_override_file_path =
-            SafeRelativeUtf8UnixPathBuf::try_from(
-                file.filename().as_str().unwrap().to_string(),
-            )?;
+            SafeRelativeUtf8UnixPathBuf::try_from(entry_name.to_string())?;
         let relative_override_file_path = relative_override_file_path
             .strip_prefix("overrides")
             .or_else(|_| relative_override_file_path.strip_prefix("client-overrides"))
@@ -1063,6 +1069,29 @@ fn pack_source_path(file: &CreatePackFile) -> String {
     }
 }
 
+/// Finds the `modrinth.index.json` entry and the archive base folder it lives
+/// in. The exact root entry is preferred; a manifest one wrapping folder deep
+/// is accepted as a fallback.
+fn locate_mrpack_manifest(
+    zip_file: &async_zip::ZipFile,
+) -> Option<(usize, String)> {
+    let entries = zip_file.entries();
+    entries
+        .iter()
+        .position(|f| {
+            matches!(f.filename().as_str(), Ok("modrinth.index.json"))
+        })
+        .map(|index| (index, String::new()))
+        .or_else(|| {
+            entries.iter().enumerate().find_map(|(index, f)| {
+                let name = f.filename().as_str().ok()?;
+                let (base, rest) = name.split_once('/')?;
+                (rest == "modrinth.index.json")
+                    .then(|| (index, format!("{base}/")))
+            })
+        })
+}
+
 fn modpack_source_kind(version_id: Option<&str>) -> ContentSourceKind {
     if version_id.is_some() {
         ContentSourceKind::ModrinthModpack
@@ -1081,13 +1110,15 @@ pub async fn remove_all_related_files(
     let mut zip_reader = MrpackZipReader::new(&mrpack_file).await?;
 
     // Extract index of modrinth.index.json
-    let Some(manifest_idx) = zip_reader.file().entries().iter().position(|f| {
-        matches!(f.filename().as_str(), Ok("modrinth.index.json"))
-    }) else {
+    let Some((manifest_idx, archive_base)) =
+        locate_mrpack_manifest(zip_reader.file())
+    else {
         return Err(crate::Error::from(crate::ErrorKind::InputError(
             "No pack manifest found in mrpack".to_string(),
         )));
     };
+    let overrides_prefix = format!("{archive_base}overrides/");
+    let client_overrides_prefix = format!("{archive_base}client-overrides/");
 
     let manifest = zip_reader.read_entry_to_string(manifest_idx).await?;
 
@@ -1176,16 +1207,17 @@ pub async fn remove_all_related_files(
     let override_file_entries =
         zip_reader.file().entries().iter().filter(|file| {
             let filename = file.filename().as_str().unwrap_or_default();
-            (filename.starts_with("overrides/")
-                || filename.starts_with("client-overrides/"))
+            (filename.starts_with(&overrides_prefix)
+                || filename.starts_with(&client_overrides_prefix))
                 && !filename.ends_with('/')
         });
 
     for file in override_file_entries {
+        let entry_name = file.filename().as_str().unwrap();
+        let entry_name =
+            entry_name.strip_prefix(&archive_base).unwrap_or(entry_name);
         let relative_override_file_path =
-            SafeRelativeUtf8UnixPathBuf::try_from(
-                file.filename().as_str().unwrap().to_string(),
-            )?;
+            SafeRelativeUtf8UnixPathBuf::try_from(entry_name.to_string())?;
         let relative_override_file_path = relative_override_file_path
             .strip_prefix("overrides")
             .or_else(|_| relative_override_file_path.strip_prefix("client-overrides"))
