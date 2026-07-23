@@ -25,25 +25,27 @@ const recentInstances = computed(() => {
 })
 
 const getInstances = async () => {
-	const instances = await list().catch(handleError)
+	const instances = await list().catch((error) => {
+		handleError(error)
+		return []
+	})
 
-	fullInstanceList.value = instances
-		.sort((a, b) => {
-			const dateACreated = dayjs(a.created)
-			const dateAPlayed = a.last_played ? dayjs(a.last_played) : dayjs(0)
+	fullInstanceList.value = instances.sort((a, b) => {
+		const dateACreated = dayjs(a.created)
+		const dateAPlayed = a.last_played ? dayjs(a.last_played) : dayjs(0)
 
-			const dateBCreated = dayjs(b.created)
-			const dateBPlayed = b.last_played ? dayjs(b.last_played) : dayjs(0)
+		const dateBCreated = dayjs(b.created)
+		const dateBPlayed = b.last_played ? dayjs(b.last_played) : dayjs(0)
 
-			const dateA = dateACreated.isAfter(dateAPlayed) ? dateACreated : dateAPlayed
-			const dateB = dateBCreated.isAfter(dateBPlayed) ? dateBCreated : dateBPlayed
+		const dateA = dateACreated.isAfter(dateAPlayed) ? dateACreated : dateAPlayed
+		const dateB = dateBCreated.isAfter(dateBPlayed) ? dateBCreated : dateBPlayed
 
-			if (dateA.isSame(dateB)) {
-				return a.name.localeCompare(b.name)
-			}
+		if (dateA.isSame(dateB)) {
+			return a.name.localeCompare(b.name)
+		}
 
-			return dateB - dateA
-		})
+		return dateB - dateA
+	})
 }
 
 await getInstances()
