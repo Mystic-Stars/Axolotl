@@ -101,11 +101,11 @@ tokio = { workspace = true, features = [
 	"time",
 ] }
 tokio-util = { workspace = true, features = [
-  "compat",
-  "io",
-  "io-util",
-  "rt",
-  "time"
+	"compat",
+	"io",
+	"io-util",
+	"rt",
+	"time",
 ] }
 tracing = { workspace = true }
 tracing-error = { workspace = true }
