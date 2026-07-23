@@ -1,3 +1,6 @@
+use crate::api::content_search::{
+    chinese_file_title_for_curseforge_slug, localized_content_file_name,
+};
 use crate::event::LoadingBarType;
 use crate::event::emit::{
     emit_loading, init_loading, loading_try_for_each_concurrent,
@@ -914,6 +917,7 @@ async fn install_file_with_metrics(
             request.world_name.as_deref(),
             project_id,
             file_id,
+            &project.slug,
             download_metrics,
         )
         .await?;
@@ -2816,18 +2820,32 @@ async fn download_installed_file(
     world_name: Option<&str>,
     project_id: u32,
     file_id: u32,
+    project_slug: &str,
     download_metrics: Option<&CurseForgeDownloadMetrics>,
 ) -> crate::Result<String> {
     let state = State::get().await?;
     validate_file_name(&file.file_name)?;
-    let relative_path = if project_type == ProjectType::DataPack
+    let folder = if project_type == ProjectType::DataPack
         && let Some(world_name) = world_name
     {
         validate_file_name(world_name)?;
-        format!("saves/{world_name}/datapacks/{}", file.file_name)
+        format!("saves/{world_name}/datapacks")
     } else {
-        format!("{}/{}", project_type.get_folder(), file.file_name)
+        project_type.get_folder().to_string()
     };
+    let localized_candidate =
+        chinese_file_title_for_curseforge_slug(project_slug)
+            .and_then(|title| {
+                localized_content_file_name(&file.file_name, &title)
+            })
+            .map(|file_name| format!("{folder}/{file_name}"));
+    let relative_path = crate::state::resolve_content_install_relative_path(
+        instance_id,
+        format!("{folder}/{}", file.file_name),
+        localized_candidate,
+        &state.pool,
+    )
+    .await?;
     let full_path = crate::api::instance::get_full_path(instance_id)
         .await?
         .join(&relative_path);

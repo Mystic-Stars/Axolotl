@@ -1,3 +1,6 @@
+use crate::api::content_search::{
+    chinese_file_title_for_modrinth_slug, localized_content_file_name,
+};
 use crate::state::instances::{
     ContentRequirement, ContentSourceKind, Instance, InstanceFile,
     adapters::sqlite::{content_rows, instance_rows},
@@ -476,6 +479,64 @@ pub(crate) async fn download_project_version(
     })
 }
 
+/// Chooses the instance-relative path for a content file that is about to be
+/// installed. Paths already recorded for this instance always win, so repeat
+/// installs never duplicate a project across locale switches; otherwise the
+/// `[中文名]` candidate is used when the app language is Simplified Chinese.
+pub(crate) async fn resolve_content_install_relative_path(
+    instance_id: &str,
+    original_relative_path: String,
+    localized_candidate: Option<String>,
+    pool: &sqlx::SqlitePool,
+) -> crate::Result<String> {
+    if content_rows::get_instance_file_by_relative_path(
+        instance_id,
+        &original_relative_path,
+        pool,
+    )
+    .await?
+    .is_some()
+    {
+        return Ok(original_relative_path);
+    }
+    let Some(localized_candidate) = localized_candidate else {
+        return Ok(original_relative_path);
+    };
+    if content_rows::get_instance_file_by_relative_path(
+        instance_id,
+        &localized_candidate,
+        pool,
+    )
+    .await?
+    .is_some()
+    {
+        return Ok(localized_candidate);
+    }
+    if crate::state::Settings::get(pool).await?.locale == "zh-CN" {
+        return Ok(localized_candidate);
+    }
+    Ok(original_relative_path)
+}
+
+/// Builds the `[中文名]` file-name candidate for a Modrinth project file by
+/// resolving the project's slug from cache. Any failure disables the naming.
+async fn modrinth_chinese_file_name_candidate(
+    project_id: &str,
+    file_name: &str,
+    state: &State,
+) -> Option<String> {
+    let project = CachedEntry::get_project(
+        project_id,
+        None,
+        &state.pool,
+        &state.api_semaphore,
+    )
+    .await
+    .ok()??;
+    let title = chinese_file_title_for_modrinth_slug(&project.slug?)?;
+    localized_content_file_name(file_name, &title)
+}
+
 pub(crate) async fn add_downloaded_project_version(
     instance_id: &str,
     downloaded: DownloadedProjectVersion,
@@ -492,7 +553,19 @@ pub(crate) async fn add_downloaded_project_version(
         version_id,
     } = downloaded;
     let scope = resolve_content_scope(instance_id, None, state).await?;
-    let relative_path = format!("{}/{}", project_type.get_folder(), file_name);
+    let localized_candidate =
+        modrinth_chinese_file_name_candidate(&project_id, &file_name, state)
+            .await
+            .map(|file_name| {
+                format!("{}/{}", project_type.get_folder(), file_name)
+            });
+    let relative_path = resolve_content_install_relative_path(
+        instance_id,
+        format!("{}/{}", project_type.get_folder(), file_name),
+        localized_candidate,
+        &state.pool,
+    )
+    .await?;
     let full_path =
         instance_full_path(state, &scope.instance).join(&relative_path);
     materialize_project_download(&path, &full_path).await?;

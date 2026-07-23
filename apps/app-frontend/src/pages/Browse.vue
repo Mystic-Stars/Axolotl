@@ -48,10 +48,12 @@ import {
 	get_version_many,
 } from '@/helpers/cache.js'
 import {
+	bilingualTitle,
 	type ChineseSearchResolution,
 	type ChineseSearchTranslation,
 	containsChineseSearchText,
 	resolveChineseContentSearch,
+	translateSearchHitTitles,
 } from '@/helpers/content-search'
 import {
 	type CurseForgeCategory,
@@ -81,6 +83,7 @@ import { get_loader_versions as getLoaderManifest } from '@/helpers/metadata'
 import { get as getSettings, set as setSettings } from '@/helpers/settings.ts'
 import { get_categories, get_game_versions, get_loaders } from '@/helpers/tags'
 import { get_instance_worlds } from '@/helpers/worlds'
+import i18n from '@/i18n.config'
 import { injectContentInstall } from '@/providers/content-install'
 import { injectServerInstall } from '@/providers/server-install'
 import {
@@ -1248,14 +1251,6 @@ function findChineseTranslation(
 	})
 }
 
-function bilingualTitle(chineseName: string, originalTitle: string) {
-	const chineseTitle = chineseName.replace(/\s+\([^()]*[A-Za-z][^()]*\)$/u, '').trim()
-	if (!chineseTitle || chineseTitle.toLocaleLowerCase() === originalTitle.toLocaleLowerCase()) {
-		return originalTitle
-	}
-	return `${chineseTitle} (${originalTitle})`
-}
-
 function applyChineseTranslation(
 	hit: ChineseSearchHit,
 	resolution: ChineseSearchResolution | null,
@@ -1563,19 +1558,24 @@ async function search(requestParams: string) {
 	const curseForgeHits = (rawCurseForge?.hits ?? [])
 		.map(mapCurseForgeHit)
 		.map((hit) => applyChineseTranslation(hit as ChineseSearchHit, chineseResolution))
+	const locale = i18n.global.locale.value
+	const [localizedModrinthHits, localizedCurseForgeHits] = await Promise.all([
+		translateSearchHitTitles(modrinthHits, locale),
+		translateSearchHitTitles(curseForgeHits, locale),
+	])
 	return {
 		projectHits:
 			contentSource.value === 'all'
 				? mergeProviderResults({
-						modrinthHits,
-						curseForgeHits,
+						modrinthHits: localizedModrinthHits,
+						curseForgeHits: localizedCurseForgeHits,
 						sort: params.get('index'),
 						query: params.get('query'),
 						limit,
 					})
 				: contentSource.value === 'curseforge'
-					? curseForgeHits
-					: modrinthHits.slice(0, limit),
+					? localizedCurseForgeHits
+					: localizedModrinthHits.slice(0, limit),
 		serverHits: [],
 		total_hits:
 			contentSource.value === 'all'

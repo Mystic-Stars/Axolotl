@@ -1,6 +1,7 @@
 use super::content::get_projects;
 use super::get::get;
 use super::paths::get_full_path;
+use crate::api::content_search::original_content_relative_path;
 use crate::event::LoadingBarType;
 use crate::event::emit::{emit_loading, init_loading};
 use crate::pack::install_from::{
@@ -13,7 +14,7 @@ use crate::util::io::{self, IOError};
 use async_zip::tokio::write::ZipFileWriter;
 use async_zip::{Compression, ZipEntryBuilder};
 use path_util::SafeRelativeUtf8UnixPathBuf;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 use tokio::fs::File;
 use tokio::io::AsyncReadExt;
@@ -61,6 +62,7 @@ pub async fn export_mrpack(
             &included_export_candidates,
         )
     });
+    strip_localized_pack_file_paths(&mut packfile.files);
 
     let mut path_list = Vec::new();
     add_all_recursive_folder_paths(&instance_base_path, &mut path_list).await?;
@@ -74,11 +76,26 @@ pub async fn export_mrpack(
     )
     .await?;
 
+    let disk_paths = path_list
+        .iter()
+        .filter(|path| path.is_file())
+        .filter_map(|path| {
+            pack_get_relative_path(&instance_base_path, path)
+                .ok()
+                .map(|relative_path| relative_path.as_str().to_string())
+        })
+        .collect::<HashSet<_>>();
+    let mut written_override_paths = HashSet::new();
     for path in path_list {
         emit_loading(&loading_bar, 1.0, None)?;
         let relative_path = pack_get_relative_path(&instance_base_path, &path)?;
+        let exported_path =
+            original_content_relative_path(relative_path.as_str());
 
-        if packfile.files.iter().any(|f| f.path == relative_path)
+        if packfile
+            .files
+            .iter()
+            .any(|f| f.path.as_str() == exported_path)
             || !is_export_candidate_included(
                 relative_path.as_str(),
                 &included_export_candidates,
@@ -93,8 +110,16 @@ pub async fn export_mrpack(
                 .map_err(|e| IOError::with_path(e, &path))?;
             let mut data = Vec::new();
             file.read_to_end(&mut data).await.map_err(IOError::from)?;
+            let entry_path = if exported_path != relative_path.as_str()
+                && !disk_paths.contains(&exported_path)
+                && written_override_paths.insert(exported_path.clone())
+            {
+                exported_path
+            } else {
+                relative_path.as_str().to_string()
+            };
             let builder = ZipEntryBuilder::new(
-                format!("overrides/{relative_path}").into(),
+                format!("overrides/{entry_path}").into(),
                 Compression::Deflate,
             );
             writer.write_entry_whole(builder, &data).await?;
@@ -122,6 +147,28 @@ fn is_export_candidate_included(
                 .strip_prefix(candidate)
                 .is_some_and(|suffix| suffix.starts_with('/'))
     })
+}
+
+/// Rewrites `[中文名]`-prefixed install paths back to their original names so
+/// exported packs stay free of localized file names. Entries whose stripped
+/// path would collide with another entry keep their on-disk name.
+fn strip_localized_pack_file_paths(files: &mut [PackFile]) {
+    let mut used = files
+        .iter()
+        .map(|file| file.path.as_str().to_string())
+        .collect::<HashSet<_>>();
+    for file in files {
+        let stripped = original_content_relative_path(file.path.as_str());
+        if stripped == file.path.as_str() || used.contains(&stripped) {
+            continue;
+        }
+        let Ok(path) = SafeRelativeUtf8UnixPathBuf::try_from(stripped.clone())
+        else {
+            continue;
+        };
+        used.insert(stripped);
+        file.path = path;
+    }
 }
 
 #[tracing::instrument]
