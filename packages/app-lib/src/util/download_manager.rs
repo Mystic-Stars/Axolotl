@@ -7,6 +7,14 @@ const INITIAL_SPEED_FLOOR: u64 = 256 * 1024;
 const SAMPLE_INTERVAL_MS: u128 = 100;
 const SAMPLE_HISTORY: usize = 30;
 
+#[derive(Clone, Copy, Debug, Default)]
+pub struct SpeedSnapshot {
+    pub aggregate_speed: u64,
+    pub recent_average: u64,
+    pub speed_floor: u64,
+    pub sample_count: usize,
+}
+
 struct SpeedState {
     last_sample_at: Instant,
     last_sample_bytes: u64,
@@ -27,12 +35,12 @@ impl Default for SpeedState {
     }
 }
 
-pub struct DownloadManager {
+pub struct DownloadSpeedTracker {
     completed_bytes: AtomicU64,
     speed: Mutex<SpeedState>,
 }
 
-impl Default for DownloadManager {
+impl Default for DownloadSpeedTracker {
     fn default() -> Self {
         Self {
             completed_bytes: AtomicU64::new(0),
@@ -41,12 +49,12 @@ impl Default for DownloadManager {
     }
 }
 
-impl DownloadManager {
+impl DownloadSpeedTracker {
     pub fn record_bytes(&self, bytes: u64) {
         self.completed_bytes.fetch_add(bytes, Ordering::Relaxed);
     }
 
-    pub fn speed_snapshot(&self) -> (u64, u64) {
+    pub fn speed_snapshot(&self) -> SpeedSnapshot {
         let now = Instant::now();
         let total = self.completed_bytes.load(Ordering::Relaxed);
         let mut state = self.speed.lock();
@@ -74,13 +82,27 @@ impl DownloadManager {
             }
             state.current_speed = weighted_total / weight_total.max(1);
 
-            if state.history.len() >= 10 {
+            if state.history.len() >= 5 {
+                let recent_count = state.history.len().min(10);
                 let recent_average =
-                    state.history.iter().take(10).sum::<u64>() / 10;
+                    state.history.iter().take(recent_count).sum::<u64>()
+                        / recent_count as u64;
                 let next_floor = recent_average.saturating_mul(85) / 100;
                 state.speed_floor = state.speed_floor.max(next_floor);
             }
         }
-        (state.current_speed, state.speed_floor)
+        let recent_count = state.history.len().min(10);
+        let recent_average = if recent_count == 0 {
+            0
+        } else {
+            state.history.iter().take(recent_count).sum::<u64>()
+                / recent_count as u64
+        };
+        SpeedSnapshot {
+            aggregate_speed: state.current_speed,
+            recent_average,
+            speed_floor: state.speed_floor,
+            sample_count: state.history.len(),
+        }
     }
 }

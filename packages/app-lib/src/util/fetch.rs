@@ -1,6 +1,6 @@
 //! Functions for fetching information from the Internet
 use super::download_dns::DownloadDnsResolver;
-use super::download_manager::DownloadManager;
+use super::download_manager::{DownloadSpeedTracker, SpeedSnapshot};
 use super::io::{self, IOError};
 use crate::event::LoadingBarId;
 use crate::event::emit::emit_loading;
@@ -23,7 +23,7 @@ use std::pin::Pin;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, LazyLock, Weak};
 use std::time::{self, Instant};
-use tokio::sync::{Mutex as AsyncMutex, Semaphore};
+use tokio::sync::{Mutex as AsyncMutex, Semaphore, SemaphorePermit};
 use tokio::{
     fs::File,
     io::{AsyncReadExt, AsyncWriteExt},
@@ -36,6 +36,12 @@ const BMCLAPI_BASE_URL: &str = "https://bmclapi2.bangbang93.com";
 const MCIM_BASE_URL: &str = "https://mod.mcimirror.top";
 const METADATA_ATTEMPT_BUDGET: usize = 4;
 const SEGMENTED_DOWNLOAD_THRESHOLD: u64 = 1024 * 1024;
+const INITIAL_SEGMENT_CONCURRENCY: usize = 4;
+const MAX_SEGMENT_CONCURRENCY: usize = 8;
+const MIN_SEGMENT_SIZE: u64 = 256 * 1024;
+const SEGMENT_RETRY_ATTEMPTS: usize = 3;
+const SEGMENT_EXPANSION_SAMPLE_COUNT: usize = 5;
+const SEGMENT_EXPANSION_INTERVAL: time::Duration = time::Duration::from_secs(2);
 const MAX_REDIRECT_LOCATION_BYTES: usize = 8 * 1024;
 const FILE_TRANSFER_CONNECT_TIMEOUT: time::Duration =
     time::Duration::from_secs(15);
@@ -761,8 +767,6 @@ static GLOBAL_FETCH_FENCE: LazyLock<FetchFence> =
 
 static DOWNLOAD_DNS_RESOLVER: LazyLock<Arc<DownloadDnsResolver>> =
     LazyLock::new(|| Arc::new(DownloadDnsResolver::default()));
-static DOWNLOAD_MANAGER: LazyLock<DownloadManager> =
-    LazyLock::new(DownloadManager::default);
 static MIRROR_REQUEST_SLOTS: LazyLock<AsyncMutex<[Instant; 2]>> =
     LazyLock::new(|| AsyncMutex::new([Instant::now(); 2]));
 
@@ -799,18 +803,22 @@ const MODRINTH_CDN_ATTEMPT_TIMEOUT: time::Duration =
 
 static NO_REDIRECT_REQWEST_CLIENT: LazyLock<reqwest::Client> =
     LazyLock::new(|| {
-        reqwest_client_builder()
-            .https_only(true)
-            .redirect(reqwest::redirect::Policy::none())
+        let builder = reqwest_client_builder()
+            .redirect(reqwest::redirect::Policy::none());
+        #[cfg(not(test))]
+        let builder = builder.https_only(true);
+        builder
             .build()
             .expect("client configuration should be valid")
     });
 
 static DIRECT_REQWEST_CLIENT: LazyLock<reqwest::Client> = LazyLock::new(|| {
-    reqwest_client_builder()
-        .https_only(true)
+    let builder = reqwest_client_builder()
         .no_proxy()
-        .redirect(reqwest::redirect::Policy::none())
+        .redirect(reqwest::redirect::Policy::none());
+    #[cfg(not(test))]
+    let builder = builder.https_only(true);
+    builder
         .build()
         .expect("client configuration should be valid")
 });
@@ -1946,6 +1954,33 @@ fn same_origin(left: &Url, right: &Url) -> bool {
         && left.port_or_known_default() == right.port_or_known_default()
 }
 
+fn is_allowed_download_redirect(url: &Url) -> bool {
+    if url.scheme() == "https" {
+        return true;
+    }
+    #[cfg(test)]
+    if url.scheme() == "http"
+        && url
+            .host_str()
+            .is_some_and(|host| host == "localhost" || host == "127.0.0.1")
+    {
+        return true;
+    }
+    false
+}
+
+fn byte_range_header_value(
+    range_start: Option<u64>,
+    range_end: Option<u64>,
+) -> Option<String> {
+    range_start.map(|start| {
+        range_end.map_or_else(
+            || format!("bytes={start}-"),
+            |end| format!("bytes={start}-{end}"),
+        )
+    })
+}
+
 async fn wait_for_mirror_request_slot(route: &DownloadRoute) {
     if route.source != DownloadRouteSource::Bmclapi {
         return;
@@ -1974,6 +2009,7 @@ async fn send_path_request_with_clients(
     range_end: Option<u64>,
     system_client: &reqwest::Client,
     direct_client: &reqwest::Client,
+    redirect_target: Option<&AsyncMutex<Option<Url>>>,
 ) -> crate::Result<(reqwest::Response, String)> {
     wait_for_mirror_request_slot(route).await;
     let client = match route.proxy {
@@ -1981,7 +2017,16 @@ async fn send_path_request_with_clients(
         ProxyPolicy::Direct => direct_client,
     };
     let original = Url::parse(&route.url)?;
-    let mut current = original.clone();
+    let mut current = match redirect_target {
+        Some(target) => target
+            .lock()
+            .await
+            .as_ref()
+            .cloned()
+            .unwrap_or_else(|| original.clone()),
+        None => original.clone(),
+    };
+    let mut reused_redirect_target = current != original;
     for redirect_count in 0..=5 {
         let same_as_original = same_origin(&original, &current);
         let allow_sensitive = route.allow_sensitive_headers && same_as_original;
@@ -2004,16 +2049,43 @@ async fn send_path_request_with_clients(
             request = request
                 .header(DOWNLOAD_META_HEADER, download_meta.to_header_value());
         }
-        if let Some(range_start) = range_start {
-            let range = range_end.map_or_else(
-                || format!("bytes={range_start}-"),
-                |end| format!("bytes={range_start}-{end}"),
-            );
-            request = request.header(header::RANGE, range);
+        if let Some(range) = byte_range_header_value(range_start, range_end) {
+            request = request
+                .header(header::RANGE, range)
+                .header(header::ACCEPT_ENCODING, "identity");
         }
 
         let response = request.send().await?;
         if !response.status().is_redirection() {
+            if reused_redirect_target
+                && (response.status().is_client_error()
+                    || response.status().is_server_error())
+            {
+                if let Some(target) = redirect_target {
+                    let mut cached = target.lock().await;
+                    if cached.as_ref() == Some(&current) {
+                        *cached = None;
+                    }
+                }
+                current = original.clone();
+                reused_redirect_target = false;
+                continue;
+            }
+            if response.status().is_success()
+                && current != original
+                && let Some(target) = redirect_target
+            {
+                let mut cached = target.lock().await;
+                if cached.is_none() {
+                    *cached = Some(current.clone());
+                }
+            }
+            tracing::debug!(
+                original_url = %sanitize_url_for_log(&route.url),
+                final_host = current.host_str().unwrap_or_default(),
+                reused_redirect_target,
+                "Resolved file download route"
+            );
             return Ok((response, current.into()));
         }
         if redirect_count == 5 {
@@ -2040,7 +2112,7 @@ async fn send_path_request_with_clients(
             .into());
         }
         let next = current.join(location)?;
-        if next.scheme() != "https" {
+        if !is_allowed_download_redirect(&next) {
             return Err(ErrorKind::OtherError(format!(
                 "Refusing insecure redirect from {current} to {next}"
             ))
@@ -2069,6 +2141,7 @@ async fn send_path_request(
         range_end,
         &NO_REDIRECT_REQWEST_CLIENT,
         &DIRECT_REQWEST_CLIENT,
+        None,
     )
     .await
 }
@@ -2173,27 +2246,160 @@ struct SegmentedDownloadSuccess {
 
 enum SegmentedDownloadOutcome {
     Success(SegmentedDownloadSuccess),
-    FallbackSingle { disable_range: bool },
+    FallbackSingle {
+        disable_range: bool,
+        reason: &'static str,
+    },
     SourceFailed,
     Fatal(crate::Error),
 }
 
 enum SegmentDownloadError {
-    Protocol,
+    Protocol(&'static str),
     Transport,
     Fatal(crate::Error),
 }
 
-#[derive(Clone, Copy)]
-enum SegmentRequestKind {
-    Initial,
-    Range,
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct ResourceValidator {
+    etag: Option<String>,
+    last_modified: Option<String>,
 }
 
 struct SegmentDownloadCompletion {
     final_url: String,
-    is_initial: bool,
+    is_first_range: bool,
     ttfb: time::Duration,
+}
+
+struct SegmentCleanupGuard {
+    part_path: PathBuf,
+    armed: bool,
+}
+
+impl SegmentCleanupGuard {
+    fn new(part_path: &Path) -> Self {
+        Self {
+            part_path: part_path.to_path_buf(),
+            armed: true,
+        }
+    }
+
+    fn disarm(&mut self) {
+        self.armed = false;
+    }
+}
+
+impl Drop for SegmentCleanupGuard {
+    fn drop(&mut self) {
+        if !self.armed {
+            return;
+        }
+        let _ = std::fs::remove_file(&self.part_path);
+        for index in 0..MAX_SEGMENT_CONCURRENCY {
+            let _ = std::fs::remove_file(segment_path(&self.part_path, index));
+        }
+    }
+}
+
+fn response_validator(response: &reqwest::Response) -> ResourceValidator {
+    ResourceValidator {
+        etag: response
+            .headers()
+            .get(header::ETAG)
+            .and_then(|value| value.to_str().ok())
+            .map(str::to_owned),
+        last_modified: response
+            .headers()
+            .get(header::LAST_MODIFIED)
+            .and_then(|value| value.to_str().ok())
+            .map(str::to_owned),
+    }
+}
+
+fn validate_resource_version(
+    expected: &Mutex<Option<ResourceValidator>>,
+    response: &reqwest::Response,
+) -> bool {
+    let candidate = response_validator(response);
+    let mut expected = expected.lock();
+    match expected.as_ref() {
+        Some(expected) => {
+            (expected.etag.is_none() || expected.etag == candidate.etag)
+                && (expected.last_modified.is_none()
+                    || expected.last_modified == candidate.last_modified)
+        }
+        None => {
+            *expected = Some(candidate);
+            true
+        }
+    }
+}
+
+fn segmented_concurrency_cap(available_permits: usize) -> usize {
+    let fair_share = if available_permits > 1 {
+        available_permits - 1
+    } else {
+        available_permits
+    };
+    fair_share.min(MAX_SEGMENT_CONCURRENCY)
+}
+
+fn initial_segment_count(size: u64, available_permits: usize) -> usize {
+    let size_limit = usize::try_from(size / MIN_SEGMENT_SIZE)
+        .unwrap_or(usize::MAX)
+        .max(1);
+    INITIAL_SEGMENT_CONCURRENCY
+        .min(segmented_concurrency_cap(available_permits))
+        .min(size_limit)
+}
+
+fn create_initial_ranges(size: u64, count: usize) -> Vec<DownloadRange> {
+    let base_size = size / count as u64;
+    let remainder = size % count as u64;
+    let mut start = 0_u64;
+    (0..count)
+        .map(|index| {
+            let range_size = base_size + u64::from(index < remainder as usize);
+            let end = start + range_size - 1;
+            let range = DownloadRange::new(index, start, end);
+            start = end + 1;
+            range
+        })
+        .collect()
+}
+
+fn expansion_block_reason(
+    snapshot: SpeedSnapshot,
+    active_ranges: usize,
+    concurrency_cap: usize,
+    available_permits: usize,
+    remaining_bytes: u64,
+    elapsed_since_expansion: time::Duration,
+) -> Option<&'static str> {
+    if active_ranges >= concurrency_cap {
+        return Some("effective concurrency cap reached");
+    }
+    if available_permits == 0 {
+        return Some("no global permit available");
+    }
+    if elapsed_since_expansion < SEGMENT_EXPANSION_INTERVAL {
+        return Some("expansion cooldown active");
+    }
+    if snapshot.sample_count < SEGMENT_EXPANSION_SAMPLE_COUNT {
+        return Some("insufficient aggregate speed samples");
+    }
+    if snapshot.aggregate_speed < snapshot.speed_floor
+        || snapshot.recent_average < snapshot.speed_floor
+    {
+        return Some("aggregate throughput below speed floor");
+    }
+    if remaining_bytes
+        < MIN_SEGMENT_SIZE.saturating_mul(active_ranges as u64 + 1)
+    {
+        return Some("too little data remains");
+    }
+    None
 }
 
 fn segment_path(part_path: &Path, index: usize) -> PathBuf {
@@ -2214,123 +2420,182 @@ async fn cleanup_segment_files(
 async fn download_segment(
     route: &DownloadRoute,
     range: DownloadRange,
-    request_kind: SegmentRequestKind,
     total_size: u64,
     custom_header: Option<&(String, String)>,
     credentials: Option<&crate::state::ModrinthCredentials>,
     download_meta: Option<&DownloadMeta>,
     part_path: &Path,
-    semaphore: &FetchSemaphore,
+    _permit: SemaphorePermit<'_>,
     system_client: &reqwest::Client,
     direct_client: &reqwest::Client,
     progress: tokio::sync::mpsc::UnboundedSender<u64>,
+    speed: &DownloadSpeedTracker,
+    validator: &Mutex<Option<ResourceValidator>>,
+    redirect_target: Option<&AsyncMutex<Option<Url>>>,
 ) -> Result<SegmentDownloadCompletion, SegmentDownloadError> {
     let _range_guard = DownloadRangeGuard(Arc::clone(&range.state));
-    let permit = semaphore
-        .0
-        .acquire()
-        .await
-        .map_err(|error| SegmentDownloadError::Fatal(error.into()))?;
-    let (range_start, range_end) = match request_kind {
-        SegmentRequestKind::Initial => (None, None),
-        SegmentRequestKind::Range => (Some(range.start), None),
-    };
     let request_started = Instant::now();
-    let (response, final_url) = tokio::time::timeout(
-        FILE_TRANSFER_FIRST_BYTE_TIMEOUT,
-        send_path_request_with_clients(
-            route,
-            custom_header,
-            credentials,
-            download_meta,
-            range_start,
-            range_end,
-            system_client,
-            direct_client,
-        ),
-    )
-    .await
-    .map_err(|_| {
-        tracing::warn!(
-            path = %part_path.display(),
-            url = %sanitize_url_for_log(&route.url),
-            source = route.source.as_str(),
-            no_data_seconds = FILE_TRANSFER_FIRST_BYTE_TIMEOUT.as_secs_f64(),
-            downloaded_bytes = 0,
-            "No response received before download timeout"
-        );
-        SegmentDownloadError::Transport
-    })?
-    .map_err(|_| SegmentDownloadError::Transport)?;
-    tracing::debug!(
-        path = %part_path.display(),
-        url = %sanitize_url_for_log(&route.url),
-        source = route.source.as_str(),
-        status = response.status().as_u16(),
-        content_length = response.content_length(),
-        "Received download range response"
-    );
-    let response_is_valid = match request_kind {
-        SegmentRequestKind::Initial => {
-            response.status().is_success()
-                && response.content_length() == Some(total_size)
-        }
-        SegmentRequestKind::Range => {
-            response.status() == StatusCode::PARTIAL_CONTENT
-                && parse_content_range(&response)
-                    == Some(ParsedContentRange {
-                        start: range.start,
-                        end: total_size - 1,
-                        total: total_size,
-                    })
-        }
-    };
-    if !response_is_valid {
-        drop(permit);
-        return Err(if response.status().is_success() {
-            SegmentDownloadError::Protocol
-        } else {
-            SegmentDownloadError::Transport
-        });
-    }
     let path = segment_path(part_path, range.index);
     let mut file = File::create(&path).await.map_err(|error| {
         SegmentDownloadError::Fatal(IOError::with_path(error, &path).into())
     })?;
-    let mut stream = response.bytes_stream();
     let mut pending_progress = 0_u64;
-    let mut last_chunk_at = Instant::now();
-    while let Some(chunk) = stream.next().await {
-        let chunk = chunk.map_err(|_| SegmentDownloadError::Transport)?;
-        let (accepted, completed) = range.accept_chunk(chunk.len());
-        file.write_all(&chunk[..accepted]).await.map_err(|error| {
-            SegmentDownloadError::Fatal(IOError::with_path(error, &path).into())
-        })?;
-        let elapsed = last_chunk_at.elapsed();
-        pending_progress += accepted as u64;
-        DOWNLOAD_MANAGER.record_bytes(accepted as u64);
-        if range.remaining() > 0
-            && elapsed > FILE_TRANSFER_SLOW_INTERVAL
-            && (accepted as u128) < elapsed.as_millis()
-        {
-            tracing::warn!(
-                url = %route.url,
-                range_start = range.start,
-                range_end = range.end(),
-                bytes = accepted,
-                elapsed_ms = elapsed.as_millis(),
-                "Ending a stalled download range"
-            );
+    let mut final_url = route.url.clone();
+    for attempt in 1..=SEGMENT_RETRY_ATTEMPTS {
+        let requested_start = range.start + {
+            let state = range.state.lock();
+            state.downloaded
+        };
+        let downloaded_before_attempt = requested_start - range.start;
+        let requested_end = range.end();
+        let response = tokio::time::timeout(
+            FILE_TRANSFER_FIRST_BYTE_TIMEOUT,
+            send_path_request_with_clients(
+                route,
+                custom_header,
+                credentials,
+                download_meta,
+                Some(requested_start),
+                Some(requested_end),
+                system_client,
+                direct_client,
+                redirect_target,
+            ),
+        )
+        .await;
+        let (response, response_url) = match response {
+            Ok(Ok(response)) => response,
+            Ok(Err(_)) | Err(_) if attempt < SEGMENT_RETRY_ATTEMPTS => {
+                tracing::debug!(
+                    url = %sanitize_url_for_log(&route.url),
+                    range_start = requested_start,
+                    range_end = requested_end,
+                    attempt,
+                    "Range request failed temporarily; retrying"
+                );
+                tokio::time::sleep(fetch_retry_delay(attempt)).await;
+                continue;
+            }
+            Ok(Err(_)) | Err(_) => return Err(SegmentDownloadError::Transport),
+        };
+        final_url = response_url;
+        let parsed_content_range = parse_content_range(&response);
+        tracing::debug!(
+            path = %part_path.display(),
+            original_url = %sanitize_url_for_log(&route.url),
+            final_host = Url::parse(&final_url)
+                .ok()
+                .and_then(|url| url.host_str().map(str::to_owned))
+                .unwrap_or_default(),
+            source = route.source.as_str(),
+            status = response.status().as_u16(),
+            content_range = ?parsed_content_range,
+            range_start = requested_start,
+            range_end = requested_end,
+            "Received download range response"
+        );
+        if response.status() == StatusCode::OK {
+            return Err(SegmentDownloadError::Protocol(
+                "server ignored Range and returned 200",
+            ));
+        }
+        if response.status() != StatusCode::PARTIAL_CONTENT {
+            if attempt < SEGMENT_RETRY_ATTEMPTS {
+                tokio::time::sleep(fetch_retry_delay(attempt)).await;
+                continue;
+            }
             return Err(SegmentDownloadError::Transport);
         }
-        last_chunk_at = Instant::now();
-        if pending_progress >= 256 * 1024 {
-            let _ = progress.send(pending_progress);
-            pending_progress = 0;
+        if parsed_content_range
+            != Some(ParsedContentRange {
+                start: requested_start,
+                end: requested_end,
+                total: total_size,
+            })
+        {
+            return Err(SegmentDownloadError::Protocol(
+                "invalid Content-Range",
+            ));
         }
-        if completed {
+        if !validate_resource_version(validator, &response) {
+            return Err(SegmentDownloadError::Protocol(
+                "resource validator changed between ranges",
+            ));
+        }
+        if range.index == 0 && requested_start == range.start {
+            tracing::debug!(
+                original_url = %sanitize_url_for_log(&route.url),
+                final_host = Url::parse(&final_url)
+                    .ok()
+                    .and_then(|url| url.host_str().map(str::to_owned))
+                    .unwrap_or_default(),
+                file_size = total_size,
+                supports_range = true,
+                "Confirmed byte-range download support"
+            );
+        }
+        let mut stream = response.bytes_stream();
+        let mut last_chunk_at = Instant::now();
+        let mut stream_end_reason = None;
+        while let Some(chunk) = stream.next().await {
+            let chunk = match chunk {
+                Ok(chunk) => chunk,
+                Err(error) => {
+                    stream_end_reason = Some(error.to_string());
+                    break;
+                }
+            };
+            let (accepted, completed) = range.accept_chunk(chunk.len());
+            file.write_all(&chunk[..accepted]).await.map_err(|error| {
+                SegmentDownloadError::Fatal(
+                    IOError::with_path(error, &path).into(),
+                )
+            })?;
+            let elapsed = last_chunk_at.elapsed();
+            pending_progress += accepted as u64;
+            speed.record_bytes(accepted as u64);
+            if range.remaining() > 0
+                && elapsed > FILE_TRANSFER_SLOW_INTERVAL
+                && (accepted as u128) < elapsed.as_millis()
+            {
+                stream_end_reason =
+                    Some("range stopped making progress".to_string());
+                break;
+            }
+            last_chunk_at = Instant::now();
+            if pending_progress >= MIN_SEGMENT_SIZE {
+                let _ = progress.send(pending_progress);
+                pending_progress = 0;
+            }
+            if completed {
+                break;
+            }
+        }
+        if range.remaining() == 0 {
             break;
         }
+        if attempt < SEGMENT_RETRY_ATTEMPTS {
+            let downloaded_after_attempt = {
+                let state = range.state.lock();
+                state.downloaded
+            };
+            tracing::warn!(
+                url = %sanitize_url_for_log(&route.url),
+                range_start = requested_start,
+                range_end = range.end(),
+                attempt,
+                received_bytes = downloaded_after_attempt
+                    .saturating_sub(downloaded_before_attempt),
+                remaining_bytes = range.remaining(),
+                reason = stream_end_reason
+                    .as_deref()
+                    .unwrap_or("response ended before Content-Range boundary"),
+                "Range stream ended early; resuming remaining bytes"
+            );
+            tokio::time::sleep(fetch_retry_delay(attempt)).await;
+            continue;
+        }
+        return Err(SegmentDownloadError::Transport);
     }
     if pending_progress > 0 {
         let _ = progress.send(pending_progress);
@@ -2339,13 +2604,14 @@ async fn download_segment(
         SegmentDownloadError::Fatal(IOError::with_path(error, &path).into())
     })?;
     drop(file);
-    drop(permit);
     if !range.finish() {
-        return Err(SegmentDownloadError::Protocol);
+        return Err(SegmentDownloadError::Protocol(
+            "range response ended before expected boundary",
+        ));
     }
     Ok(SegmentDownloadCompletion {
         final_url,
-        is_initial: matches!(request_kind, SegmentRequestKind::Initial),
+        is_first_range: range.index == 0,
         ttfb: request_started.elapsed(),
     })
 }
@@ -2365,27 +2631,72 @@ async fn try_segmented_download(
     if let Err(error) = cleanup_segment_files(part_path, 256).await {
         return SegmentedDownloadOutcome::Fatal(error);
     }
+    let mut cleanup_guard = SegmentCleanupGuard::new(part_path);
+    let available_at_start = semaphore.0.available_permits();
+    let concurrency_cap = segmented_concurrency_cap(available_at_start);
+    let requested_initial_count =
+        initial_segment_count(size, available_at_start);
+    let mut permits = Vec::with_capacity(requested_initial_count);
+    for _ in 0..requested_initial_count {
+        match semaphore.0.try_acquire() {
+            Ok(permit) => permits.push(permit),
+            Err(_) => break,
+        }
+    }
+    if permits.len() < 2 {
+        tracing::debug!(
+            original_url = %sanitize_url_for_log(&route.url),
+            file_size = size,
+            supports_range = true,
+            available_permits = semaphore.0.available_permits(),
+            "Falling back to a single connection because initial segmented permits are unavailable"
+        );
+        return SegmentedDownloadOutcome::FallbackSingle {
+            disable_range: false,
+            reason: "fewer than two fair global permits available",
+        };
+    }
     let transfer_started = Instant::now();
     let (progress_tx, mut progress_rx) = tokio::sync::mpsc::unbounded_channel();
+    let speed = DownloadSpeedTracker::default();
+    let validator = Mutex::new(None);
+    let redirect_target = AsyncMutex::new(None);
     let mut downloads = futures::stream::FuturesUnordered::new();
-    let mut ranges = vec![DownloadRange::new(0, 0, size - 1)];
-    downloads.push(download_segment(
-        route,
-        ranges[0].clone(),
-        SegmentRequestKind::Initial,
-        size,
-        request.header.as_ref(),
-        credentials,
-        request.download_meta.as_ref(),
-        part_path,
-        semaphore,
-        system_client,
-        direct_client,
-        progress_tx.clone(),
-    ));
-    let mut next_range_index = 1_usize;
-    let mut scheduler = tokio::time::interval(time::Duration::from_millis(20));
+    let mut ranges = create_initial_ranges(size, permits.len());
+    for (range, permit) in ranges.iter().cloned().zip(permits) {
+        downloads.push(download_segment(
+            route,
+            range,
+            size,
+            request.header.as_ref(),
+            credentials,
+            request.download_meta.as_ref(),
+            part_path,
+            permit,
+            system_client,
+            direct_client,
+            progress_tx.clone(),
+            &speed,
+            &validator,
+            (route.source == DownloadRouteSource::Mcim)
+                .then_some(&redirect_target),
+        ));
+    }
+    tracing::debug!(
+        original_url = %sanitize_url_for_log(&route.url),
+        file_size = size,
+        supports_range = true,
+        active_ranges = downloads.len(),
+        concurrency_cap,
+        available_permits = semaphore.0.available_permits(),
+        reason = "initial parallel ranges",
+        "Started segmented download"
+    );
+    let mut next_range_index = ranges.len();
+    let mut scheduler = tokio::time::interval(time::Duration::from_millis(250));
     scheduler.tick().await;
+    let mut last_expansion = Instant::now();
+    let mut last_block_reason = None;
     let mut downloaded = 0_u64;
     let mut segment_error = None;
     let mut final_url = None;
@@ -2404,7 +2715,7 @@ async fn try_segmented_download(
             result = downloads.next() => {
                 if let Some(result) = result {
                     match result {
-                        Ok(completion) if completion.is_initial => {
+                        Ok(completion) if completion.is_first_range => {
                             final_url = Some(completion.final_url);
                             initial_ttfb = Some(completion.ttfb);
                         }
@@ -2417,11 +2728,35 @@ async fn try_segmented_download(
                 }
             }
             _ = scheduler.tick() => {
-                let (speed, floor) = DOWNLOAD_MANAGER.speed_snapshot();
-                if speed >= floor
-                    || semaphore.0.available_permits() == 0
-                    || ranges[0].remaining() == size
-                {
+                let snapshot = speed.speed_snapshot();
+                let active_ranges = downloads.len();
+                let remaining_bytes = ranges
+                    .iter()
+                    .filter(|range| range.is_active())
+                    .map(DownloadRange::remaining)
+                    .sum();
+                if let Some(reason) = expansion_block_reason(
+                    snapshot,
+                    active_ranges,
+                    concurrency_cap,
+                    semaphore.0.available_permits(),
+                    remaining_bytes,
+                    last_expansion.elapsed(),
+                ) {
+                    if last_block_reason != Some(reason) {
+                        tracing::debug!(
+                            original_url = %sanitize_url_for_log(&route.url),
+                            active_ranges,
+                            aggregate_speed = snapshot.aggregate_speed,
+                            recent_average = snapshot.recent_average,
+                            floor = snapshot.speed_floor,
+                            remaining_bytes,
+                            available_permits = semaphore.0.available_permits(),
+                            reason,
+                            "Segmented download did not increase concurrency"
+                        );
+                        last_block_reason = Some(reason);
+                    }
                     continue;
                 }
                 let range = ranges
@@ -2430,33 +2765,45 @@ async fn try_segmented_download(
                     .max_by_key(|range| range.remaining())
                     .cloned();
                 if let Some(range) = range
-                    && let Some(new_range) = range.split_tail(next_range_index)
+                    && let Ok(permit) = semaphore.0.try_acquire()
                 {
-                    tracing::debug!(
-                        url = %route.url,
-                        source = route.source.as_str(),
-                        speed,
-                        floor,
-                        range_start = new_range.start,
-                        range_end = new_range.end(),
-                        "Starting an additional download range"
-                    );
-                    next_range_index += 1;
-                    downloads.push(download_segment(
-                        route,
-                        new_range.clone(),
-                        SegmentRequestKind::Range,
-                        size,
-                        request.header.as_ref(),
-                        credentials,
-                        None,
-                        part_path,
-                        semaphore,
-                        system_client,
-                        direct_client,
-                        progress_tx.clone(),
-                    ));
-                    ranges.push(new_range);
+                    if let Some(new_range) =
+                        range.split_tail(next_range_index)
+                    {
+                        tracing::debug!(
+                            original_url = %sanitize_url_for_log(&route.url),
+                            source = route.source.as_str(),
+                            active_ranges = active_ranges + 1,
+                            aggregate_speed = snapshot.aggregate_speed,
+                            recent_average = snapshot.recent_average,
+                            floor = snapshot.speed_floor,
+                            range_start = new_range.start,
+                            range_end = new_range.end(),
+                            reason = "stable aggregate throughput above floor",
+                            "Starting an additional download range"
+                        );
+                        next_range_index += 1;
+                        downloads.push(download_segment(
+                            route,
+                            new_range.clone(),
+                            size,
+                            request.header.as_ref(),
+                            credentials,
+                            None,
+                            part_path,
+                            permit,
+                            system_client,
+                            direct_client,
+                            progress_tx.clone(),
+                            &speed,
+                            &validator,
+                            (route.source == DownloadRouteSource::Mcim)
+                                .then_some(&redirect_target),
+                        ));
+                        ranges.push(new_range);
+                        last_expansion = Instant::now();
+                        last_block_reason = None;
+                    }
                 }
             }
         }
@@ -2469,9 +2816,10 @@ async fn try_segmented_download(
     if let Some(error) = segment_error {
         let _ = cleanup_segment_files(part_path, 256).await;
         return match error {
-            SegmentDownloadError::Protocol => {
+            SegmentDownloadError::Protocol(reason) => {
                 SegmentedDownloadOutcome::FallbackSingle {
                     disable_range: true,
+                    reason,
                 }
             }
             SegmentDownloadError::Transport => {
@@ -2539,6 +2887,7 @@ async fn try_segmented_download(
         let _ = remove_if_exists(part_path).await;
         return SegmentedDownloadOutcome::FallbackSingle {
             disable_range: true,
+            reason: "merged segment size mismatch",
         };
     }
     let computed = hashers.finish(merged_size);
@@ -2546,6 +2895,7 @@ async fn try_segmented_download(
         let _ = remove_if_exists(part_path).await;
         return SegmentedDownloadOutcome::FallbackSingle {
             disable_range: true,
+            reason: "segmented integrity validation failed",
         };
     }
     if validate_file_content(part_path, request.integrity.content)
@@ -2555,6 +2905,7 @@ async fn try_segmented_download(
         let _ = remove_if_exists(part_path).await;
         return SegmentedDownloadOutcome::FallbackSingle {
             disable_range: true,
+            reason: "segmented content validation failed",
         };
     }
     if downloaded < size
@@ -2563,6 +2914,7 @@ async fn try_segmented_download(
     {
         return SegmentedDownloadOutcome::Fatal(error);
     }
+    cleanup_guard.disarm();
     SegmentedDownloadOutcome::Success(SegmentedDownloadSuccess {
         size: merged_size,
         final_url: final_url.unwrap_or_else(|| route.url.clone()),
@@ -2724,7 +3076,15 @@ pub async fn download_to_path(
                         }
                         SegmentedDownloadOutcome::FallbackSingle {
                             disable_range,
+                            reason,
                         } => {
+                            tracing::debug!(
+                                original_url = %log_url,
+                                file_size = size,
+                                supports_range = route.supports_range,
+                                reason,
+                                "Falling back to a single connection"
+                            );
                             if disable_range {
                                 disable_range_splitting(route);
                             }
@@ -2863,7 +3223,6 @@ pub async fn download_to_path(
                     hashers.update(&chunk);
                     let elapsed = last_chunk_at.elapsed();
                     downloaded += chunk.len() as u64;
-                    DOWNLOAD_MANAGER.record_bytes(chunk.len() as u64);
                     if !retry_with_single_thread
                         && downloaded > starting_size + chunk.len() as u64
                         && elapsed > FILE_TRANSFER_SLOW_INTERVAL
@@ -3179,7 +3538,9 @@ mod tests {
     async fn spawn_range_server(
         data: Arc<Vec<u8>>,
         wrong_content_range: bool,
+        ignore_range: bool,
         slow_body: bool,
+        fail_first_range: bool,
     ) -> (
         String,
         Arc<AtomicUsize>,
@@ -3193,6 +3554,7 @@ mod tests {
         let request_count = requests.clone();
         let normal_requests = Arc::new(AtomicUsize::new(0));
         let normal_request_count = normal_requests.clone();
+        let failed_range = Arc::new(AtomicBool::new(false));
         let handle = tokio::spawn(async move {
             loop {
                 let Ok((mut stream, _)) = listener.accept().await else {
@@ -3201,6 +3563,7 @@ mod tests {
                 let data = data.clone();
                 let requests = request_count.clone();
                 let normal_requests = normal_request_count.clone();
+                let failed_range = Arc::clone(&failed_range);
                 tokio::spawn(async move {
                     requests.fetch_add(1, Ordering::Relaxed);
                     let mut request = Vec::new();
@@ -3222,10 +3585,12 @@ mod tests {
                     }
                     let request =
                         String::from_utf8_lossy(&request).to_ascii_lowercase();
-                    let range = request
+                    let requested_range = request
                         .lines()
                         .find_map(|line| line.strip_prefix("range: bytes="));
-                    let (headers, body) = if let Some(range) = range {
+                    let (headers, body) = if let Some(range) =
+                        requested_range.filter(|_| !ignore_range)
+                    {
                         let Some((start, end)) = range.split_once('-') else {
                             return;
                         };
@@ -3255,7 +3620,9 @@ mod tests {
                             body,
                         )
                     } else {
-                        normal_requests.fetch_add(1, Ordering::Relaxed);
+                        if requested_range.is_none() {
+                            normal_requests.fetch_add(1, Ordering::Relaxed);
+                        }
                         (
                             format!(
                                 "HTTP/1.1 200 OK\r\nContent-Length: {}\r\nETag: \"fixture\"\r\nConnection: close\r\n\r\n",
@@ -3265,6 +3632,14 @@ mod tests {
                         )
                     };
                     if stream.write_all(headers.as_bytes()).await.is_err() {
+                        return;
+                    }
+                    if requested_range.is_some()
+                        && fail_first_range
+                        && !failed_range.swap(true, Ordering::Relaxed)
+                    {
+                        let midpoint = body.len() / 2;
+                        let _ = stream.write_all(&body[..midpoint]).await;
                         return;
                     }
                     for chunk in body.chunks(64 * 1024) {
@@ -3343,6 +3718,52 @@ mod tests {
         (format!("http://{address}/file"), handle)
     }
 
+    async fn spawn_redirect_server(
+        location: String,
+        response_delay: Duration,
+    ) -> (String, Arc<AtomicUsize>, tokio::task::JoinHandle<()>) {
+        let listener =
+            tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let address = listener.local_addr().unwrap();
+        let requests = Arc::new(AtomicUsize::new(0));
+        let request_count = Arc::clone(&requests);
+        let handle = tokio::spawn(async move {
+            loop {
+                let Ok((mut stream, _)) = listener.accept().await else {
+                    break;
+                };
+                let location = location.clone();
+                let requests = Arc::clone(&request_count);
+                tokio::spawn(async move {
+                    requests.fetch_add(1, Ordering::Relaxed);
+                    let mut request = Vec::new();
+                    let mut buffer = [0_u8; 1024];
+                    loop {
+                        let Ok(read) = stream.read(&mut buffer).await else {
+                            return;
+                        };
+                        if read == 0 {
+                            return;
+                        }
+                        request.extend_from_slice(&buffer[..read]);
+                        if request
+                            .windows(4)
+                            .any(|window| window == b"\r\n\r\n")
+                        {
+                            break;
+                        }
+                    }
+                    tokio::time::sleep(response_delay).await;
+                    let response = format!(
+                        "HTTP/1.1 302 Found\r\nLocation: {location}\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+                    );
+                    let _ = stream.write_all(response.as_bytes()).await;
+                });
+            }
+        });
+        (format!("http://{address}/redirect"), requests, handle)
+    }
+
     async fn test_download(
         url: &str,
         destination: &Path,
@@ -3385,7 +3806,10 @@ mod tests {
 
         let error = test_download(&url, &destination, 4).await.unwrap_err();
 
-        assert!(matches!(error.raw.as_ref(), ErrorKind::NetworkError(_)));
+        assert!(matches!(
+            error.raw.as_ref(),
+            ErrorKind::NetworkError(_) | ErrorKind::FetchError(_)
+        ));
         assert!(!destination.exists());
         assert!(!suffixed_path(&destination, ".part").exists());
         server.abort();
@@ -3711,6 +4135,68 @@ mod tests {
         assert!(small.split_tail(3).is_none());
     }
 
+    #[test]
+    fn large_files_start_parallel_ranges_without_consulting_speed_floor() {
+        let size = 16 * 1024 * 1024;
+        assert_eq!(initial_segment_count(size, 64), 4);
+        let ranges = create_initial_ranges(size, 4);
+        assert_eq!(ranges.len(), 4);
+        assert_eq!(ranges.first().unwrap().start, 0);
+        assert_eq!(ranges.last().unwrap().end(), size - 1);
+        for pair in ranges.windows(2) {
+            assert_eq!(pair[0].end() + 1, pair[1].start);
+        }
+    }
+
+    #[test]
+    fn segmented_concurrency_respects_effective_and_global_limits() {
+        assert_eq!(segmented_concurrency_cap(64), 8);
+        assert_eq!(segmented_concurrency_cap(8), 7);
+        assert_eq!(segmented_concurrency_cap(4), 3);
+        assert_eq!(segmented_concurrency_cap(1), 1);
+        assert_eq!(initial_segment_count(16 * 1024 * 1024, 3), 2);
+    }
+
+    #[test]
+    fn stable_aggregate_throughput_allows_gradual_expansion() {
+        let snapshot = SpeedSnapshot {
+            aggregate_speed: 2 * 1024 * 1024,
+            recent_average: 1900 * 1024,
+            speed_floor: 1024 * 1024,
+            sample_count: SEGMENT_EXPANSION_SAMPLE_COUNT,
+        };
+        assert_eq!(
+            expansion_block_reason(
+                snapshot,
+                4,
+                8,
+                4,
+                16 * 1024 * 1024,
+                SEGMENT_EXPANSION_INTERVAL,
+            ),
+            None
+        );
+        assert_eq!(
+            expansion_block_reason(
+                snapshot,
+                4,
+                8,
+                0,
+                16 * 1024 * 1024,
+                SEGMENT_EXPANSION_INTERVAL,
+            ),
+            Some("no global permit available")
+        );
+    }
+
+    #[test]
+    fn redirect_hops_rebuild_the_same_range_header() {
+        let original = byte_range_header_value(Some(1024), Some(2047));
+        let redirected = byte_range_header_value(Some(1024), Some(2047));
+        assert_eq!(original.as_deref(), Some("bytes=1024-2047"));
+        assert_eq!(redirected, original);
+    }
+
     #[tokio::test]
     async fn verifies_streaming_integrity_algorithms() {
         let file = tempfile::NamedTempFile::new().unwrap();
@@ -3737,7 +4223,7 @@ mod tests {
         );
         let hash = sha1_smol::Sha1::from(&data[..]).hexdigest();
         let (url, requests, normal_requests, server) =
-            spawn_range_server(data.clone(), false, true).await;
+            spawn_range_server(data.clone(), false, false, true, false).await;
         let route = DownloadRoute {
             url: url.clone(),
             source: DownloadRouteSource::Alternate,
@@ -3773,8 +4259,110 @@ mod tests {
             }
             _ => panic!("segmented fixture download did not succeed"),
         }
-        assert!(requests.load(Ordering::Relaxed) >= 2);
-        assert!(normal_requests.load(Ordering::Relaxed) >= 1);
+        assert!(requests.load(Ordering::Relaxed) >= 4);
+        assert_eq!(normal_requests.load(Ordering::Relaxed), 0);
+        assert_eq!(
+            verify_file(&part_path, &request.integrity).await.unwrap(),
+            size as u64
+        );
+        server.abort();
+    }
+
+    #[tokio::test]
+    async fn mirror_ranges_start_concurrently_and_retries_reuse_redirect() {
+        let _guard = RANGE_SPLITTING_TEST_LOCK.lock().await;
+        let size = (SEGMENTED_DOWNLOAD_THRESHOLD * 2) as usize;
+        let data = Arc::new(
+            (0..size)
+                .map(|index| (index % 251) as u8)
+                .collect::<Vec<_>>(),
+        );
+        let hash = sha1_smol::Sha1::from(&data[..]).hexdigest();
+        let (target_url, range_requests, normal_requests, range_server) =
+            spawn_range_server(data, false, false, false, true).await;
+        let (redirect_url, redirect_requests, redirect_server) =
+            spawn_redirect_server(target_url, Duration::from_millis(50)).await;
+        let route = DownloadRoute {
+            url: redirect_url.clone(),
+            source: DownloadRouteSource::Mcim,
+            is_mirror: true,
+            allow_sensitive_headers: false,
+            supports_range: true,
+            proxy: ProxyPolicy::System,
+        };
+        let request =
+            DownloadRequest::new(&redirect_url, ResourceClass::Modrinth)
+                .with_integrity(Integrity::sha1(hash).with_size(size as u64));
+        let directory = tempfile::tempdir().unwrap();
+        let part_path = directory.path().join("redirect.part");
+        let client = reqwest::Client::builder()
+            .redirect(reqwest::redirect::Policy::none())
+            .build()
+            .unwrap();
+        let outcome = try_segmented_download(
+            &request,
+            &route,
+            size as u64,
+            &part_path,
+            &FetchSemaphore(Semaphore::new(8)),
+            None,
+            None,
+            &client,
+            &client,
+        )
+        .await;
+
+        assert!(matches!(outcome, SegmentedDownloadOutcome::Success(_)));
+        assert_eq!(redirect_requests.load(Ordering::Relaxed), 4);
+        assert!(range_requests.load(Ordering::Relaxed) >= 5);
+        assert_eq!(normal_requests.load(Ordering::Relaxed), 0);
+        redirect_server.abort();
+        range_server.abort();
+    }
+
+    #[tokio::test]
+    async fn temporary_range_failure_resumes_without_disabling_segments() {
+        let _guard = RANGE_SPLITTING_TEST_LOCK.lock().await;
+        let size = (SEGMENTED_DOWNLOAD_THRESHOLD * 2) as usize;
+        let data = Arc::new(
+            (0..size)
+                .map(|index| (index % 251) as u8)
+                .collect::<Vec<_>>(),
+        );
+        let hash = sha1_smol::Sha1::from(&data[..]).hexdigest();
+        let (url, requests, _, server) =
+            spawn_range_server(data, false, false, false, true).await;
+        let route = DownloadRoute {
+            url: url.clone(),
+            source: DownloadRouteSource::Alternate,
+            is_mirror: false,
+            allow_sensitive_headers: false,
+            supports_range: true,
+            proxy: ProxyPolicy::System,
+        };
+        let request = DownloadRequest::new(&url, ResourceClass::Other)
+            .with_integrity(Integrity::sha1(hash).with_size(size as u64));
+        let directory = tempfile::tempdir().unwrap();
+        let part_path = directory.path().join("retry.part");
+        let client = reqwest::Client::builder()
+            .redirect(reqwest::redirect::Policy::none())
+            .build()
+            .unwrap();
+        let outcome = try_segmented_download(
+            &request,
+            &route,
+            size as u64,
+            &part_path,
+            &FetchSemaphore(Semaphore::new(8)),
+            None,
+            None,
+            &client,
+            &client,
+        )
+        .await;
+
+        assert!(matches!(outcome, SegmentedDownloadOutcome::Success(_)));
+        assert!(requests.load(Ordering::Relaxed) >= 5);
         assert_eq!(
             verify_file(&part_path, &request.integrity).await.unwrap(),
             size as u64
@@ -3787,7 +4375,7 @@ mod tests {
         let _guard = RANGE_SPLITTING_TEST_LOCK.lock().await;
         let data = Arc::new(vec![7_u8; 1024 * 1024]);
         let (url, _, _, server) =
-            spawn_range_server(data.clone(), true, false).await;
+            spawn_range_server(data.clone(), true, false, false, false).await;
         let route = DownloadRoute {
             url: url.clone(),
             source: DownloadRouteSource::Alternate,
@@ -3804,25 +4392,148 @@ mod tests {
             .unwrap();
         let semaphore = FetchSemaphore(Semaphore::new(4));
         let (progress, _receiver) = tokio::sync::mpsc::unbounded_channel();
+        let permit = semaphore.0.acquire().await.unwrap();
+        let speed = DownloadSpeedTracker::default();
+        let validator = Mutex::new(None);
         let result = download_segment(
             &route,
             DownloadRange::new(0, 0, data.len() as u64 - 1),
-            SegmentRequestKind::Range,
             data.len() as u64,
             None,
             None,
             None,
             &part_path,
-            &semaphore,
+            permit,
             &client,
             &client,
             progress,
+            &speed,
+            &validator,
+            None,
         )
         .await;
-        assert!(matches!(result, Err(SegmentDownloadError::Protocol)));
+        assert!(matches!(
+            result,
+            Err(SegmentDownloadError::Protocol("invalid Content-Range"))
+        ));
         disable_range_splitting(&route);
         assert!(range_splitting_allowed(&route));
         server.abort();
+    }
+
+    #[tokio::test]
+    async fn ignored_ranges_fall_back_to_one_full_file_write() {
+        let _guard = RANGE_SPLITTING_TEST_LOCK.lock().await;
+        let size = (SEGMENTED_DOWNLOAD_THRESHOLD * 2) as usize;
+        let data = Arc::new(
+            (0..size)
+                .map(|index| (index % 251) as u8)
+                .collect::<Vec<_>>(),
+        );
+        let (url, requests, normal_requests, server) =
+            spawn_range_server(data.clone(), false, true, false, false).await;
+        let directory = tempfile::tempdir().unwrap();
+        let destination = directory.path().join("ignored-range.bin");
+        let pool = sqlx::sqlite::SqlitePoolOptions::new()
+            .connect_lazy("sqlite::memory:")
+            .unwrap();
+        let result = download_to_path(
+            DownloadRequest::new(&url, ResourceClass::Other)
+                .with_integrity(Integrity::default().with_size(size as u64)),
+            &destination,
+            &FetchSemaphore(Semaphore::new(8)),
+            &pool,
+            None,
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(result.size, size as u64);
+        assert_eq!(tokio::fs::read(&destination).await.unwrap(), *data);
+        assert!(requests.load(Ordering::Relaxed) >= 2);
+        assert_eq!(normal_requests.load(Ordering::Relaxed), 1);
+        for index in 0..MAX_SEGMENT_CONCURRENCY {
+            assert!(
+                !segment_path(&suffixed_path(&destination, ".part"), index)
+                    .exists()
+            );
+        }
+        server.abort();
+    }
+
+    #[tokio::test]
+    async fn canceling_segmented_download_releases_permits_and_temp_files() {
+        let _guard = RANGE_SPLITTING_TEST_LOCK.lock().await;
+        let size = (SEGMENTED_DOWNLOAD_THRESHOLD * 4) as usize;
+        let data = Arc::new(vec![13_u8; size]);
+        let (url, _, _, server) =
+            spawn_range_server(data, false, false, true, false).await;
+        let directory = tempfile::tempdir().unwrap();
+        let destination = directory.path().join("canceled-segments.bin");
+        let destination_for_task = destination.clone();
+        let semaphore = Arc::new(FetchSemaphore(Semaphore::new(8)));
+        let semaphore_for_task = Arc::clone(&semaphore);
+        let task = tokio::spawn(async move {
+            let pool = sqlx::sqlite::SqlitePoolOptions::new()
+                .connect_lazy("sqlite::memory:")
+                .unwrap();
+            download_to_path(
+                DownloadRequest::new(url, ResourceClass::Other).with_integrity(
+                    Integrity::default().with_size(size as u64),
+                ),
+                destination_for_task,
+                &semaphore_for_task,
+                &pool,
+                None,
+            )
+            .await
+        });
+
+        tokio::time::sleep(Duration::from_millis(150)).await;
+        task.abort();
+        let _ = task.await;
+        tokio::time::sleep(Duration::from_millis(25)).await;
+
+        assert_eq!(semaphore.0.available_permits(), 8);
+        let part_path = suffixed_path(&destination, ".part");
+        assert!(!part_path.exists());
+        for index in 0..MAX_SEGMENT_CONCURRENCY {
+            assert!(!segment_path(&part_path, index).exists());
+        }
+        server.abort();
+    }
+
+    #[tokio::test]
+    async fn unknown_size_and_small_files_use_one_connection() {
+        let _guard = RANGE_SPLITTING_TEST_LOCK.lock().await;
+        for (expected_size, integrity) in [
+            (None, Integrity::default()),
+            (Some(1024_u64), Integrity::default().with_size(1024)),
+        ] {
+            let data = Arc::new(vec![11_u8; 1024]);
+            let (url, requests, normal_requests, server) =
+                spawn_range_server(data.clone(), false, false, false, false)
+                    .await;
+            let directory = tempfile::tempdir().unwrap();
+            let destination = directory.path().join("single.bin");
+            let pool = sqlx::sqlite::SqlitePoolOptions::new()
+                .connect_lazy("sqlite::memory:")
+                .unwrap();
+            let result = download_to_path(
+                DownloadRequest::new(&url, ResourceClass::Other)
+                    .with_integrity(integrity),
+                &destination,
+                &FetchSemaphore(Semaphore::new(8)),
+                &pool,
+                None,
+            )
+            .await
+            .unwrap();
+            assert_eq!(result.size, expected_size.unwrap_or(1024));
+            assert_eq!(requests.load(Ordering::Relaxed), 1);
+            assert_eq!(normal_requests.load(Ordering::Relaxed), 1);
+            server.abort();
+        }
     }
 
     #[test]

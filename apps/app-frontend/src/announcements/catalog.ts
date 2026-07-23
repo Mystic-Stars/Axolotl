@@ -33,6 +33,30 @@ export const ANNOUNCEMENT_CHANGE_TYPES: readonly AnnouncementChangeType[] = [
 
 export const launcherAnnouncements: readonly LauncherAnnouncement[] = [
 	{
+		id: 'launcher-1.5.2',
+		version: '1.5.2',
+		publishedAt: '2026-07-23',
+		title: {
+			'en-US': 'Axolotl Launcher 1.5.2',
+			'zh-CN': 'Axolotl Launcher 1.5.2',
+		},
+		changes: {
+			fixed: [
+				{
+					'en-US':
+						'Improved large-file download throughput with parallel Range requests, safer retries, and redirect reuse.',
+					'zh-CN': '通过并行 Range 请求、安全重试和重定向复用提升大文件下载速度。',
+				},
+				{
+					'en-US':
+						'Fixed startup failures caused by conflicting Java discovery and onboarding database migrations.',
+					'zh-CN': '修复 Java 检测与新手引导数据库迁移冲突导致的启动失败。',
+				},
+			],
+		},
+	},
+
+	{
 		id: 'launcher-1.5.1',
 		version: '1.5.1',
 		publishedAt: '2026-07-23',
