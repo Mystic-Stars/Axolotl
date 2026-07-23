@@ -36,6 +36,7 @@ use tokio::process::Command;
 mod args;
 
 pub mod download;
+pub mod language;
 pub mod optifine;
 pub mod quick_play_version;
 
@@ -1120,13 +1121,16 @@ pub async fn launch_minecraft(
 
     // Overwrites the minecraft options.txt file with the settings from the profile
     // Uses 'a:b' syntax which is not quite yaml
+    let settings = crate::state::Settings::get(&state.pool).await?;
+    let options_path = instance_path.join("options.txt");
+    let options_existed = options_path.exists();
+
     if !mc_set_options.is_empty()
         || offline_skin_pack.enabled_pack_id.is_some()
-        || instance_path.join("options.txt").exists()
+        || options_existed
+        || !settings.locale.is_empty()
     {
-        let options_path = instance_path.join("options.txt");
-
-        let (mut options_string, input_encoding) = if options_path.exists() {
+        let (mut options_string, input_encoding) = if options_existed {
             io::read_any_encoding_to_string(&options_path).await?
         } else {
             (String::new(), encoding_rs::UTF_8)
@@ -1146,27 +1150,43 @@ pub async fn launch_minecraft(
             .into());
         }
 
-        for (key, value) in mc_set_options {
-            let re = Regex::new(&format!(r"(?m)^{}:.*$", regex::escape(key)))?;
-            // check if the regex exists in the file
-            if !re.is_match(&options_string) {
-                // The key was not found in the file, so append it
-                write!(&mut options_string, "\n{key}:{value}").unwrap();
-            } else {
-                let replaced_string = re
-                    .replace_all(&options_string, &format!("{key}:{value}"))
-                    .to_string();
-                options_string = replaced_string;
+        let language_options = language::game_language_options(
+            &settings.locale,
+            version.release_time,
+            &options_string,
+            instance_path.join("saves").exists(),
+        );
+
+        if !mc_set_options.is_empty()
+            || !language_options.is_empty()
+            || offline_skin_pack.enabled_pack_id.is_some()
+            || options_existed
+        {
+            for (key, value) in
+                mc_set_options.iter().chain(language_options.iter())
+            {
+                let re =
+                    Regex::new(&format!(r"(?m)^{}:.*$", regex::escape(key)))?;
+                // check if the regex exists in the file
+                if !re.is_match(&options_string) {
+                    // The key was not found in the file, so append it
+                    write!(&mut options_string, "\n{key}:{value}").unwrap();
+                } else {
+                    let replaced_string = re
+                        .replace_all(&options_string, &format!("{key}:{value}"))
+                        .to_string();
+                    options_string = replaced_string;
+                }
             }
+
+            update_offline_skin_resource_pack_option(
+                &mut options_string,
+                offline_skin_pack,
+            )?;
+
+            io::write(&options_path, input_encoding.encode(&options_string).0)
+                .await?;
         }
-
-        update_offline_skin_resource_pack_option(
-            &mut options_string,
-            offline_skin_pack,
-        )?;
-
-        io::write(&options_path, input_encoding.encode(&options_string).0)
-            .await?;
     }
 
     crate::state::instances::commands::set_instance_last_played(
@@ -1182,11 +1202,10 @@ pub async fn launch_minecraft(
         use crate::EventState;
 
         let window = EventState::get_main_window().await?;
-        if let Some(window) = window {
-            let settings = crate::state::Settings::get(&state.pool).await?;
-            if settings.hide_on_process_start {
-                window.minimize()?;
-            }
+        if let Some(window) = window
+            && settings.hide_on_process_start
+        {
+            window.minimize()?;
         }
     }
 

@@ -60,6 +60,12 @@ export const launcherAnnouncements: readonly LauncherAnnouncement[] = [
 					'zh-CN':
 						'中文界面下，「发现内容」页直接浏览（不搜索）时也会显示「中文名 (英文名)」双语标题，Modrinth 与 CurseForge 结果均生效。',
 				},
+				{
+					'en-US':
+						'The game language now follows the launcher language on the first launch of an instance, including imported modpacks, using the correct language code for each game version; instances you already play keep your in-game choice.',
+					'zh-CN':
+						'游戏语言现在会在实例首次启动时自动跟随启动器语言（包括导入的整合包），并按游戏版本写入正确的语言代码；已游玩过的实例仍保留游戏内的语言设置。',
+				},
 			],
 			fixed: [
 				{
