@@ -54,6 +54,12 @@ export const launcherAnnouncements: readonly LauncherAnnouncement[] = [
 					'zh-CN':
 						'中文界面下，新下载的模组、资源包、光影包和数据包会以「[中文名]原文件名」保存；查不到中文名时保持原样，导出整合包时自动还原为原文件名。',
 				},
+				{
+					'en-US':
+						'Browsing the Discover Content page without searching now also shows bilingual "中文名 (English)" titles under the Simplified Chinese locale, for both Modrinth and CurseForge results.',
+					'zh-CN':
+						'中文界面下，「发现内容」页直接浏览（不搜索）时也会显示「中文名 (英文名)」双语标题，Modrinth 与 CurseForge 结果均生效。',
+				},
 			],
 			fixed: [
 				{
