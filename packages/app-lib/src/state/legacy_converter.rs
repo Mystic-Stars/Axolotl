@@ -353,9 +353,10 @@ where
                         custom_env_vars: profile
                             .java
                             .and_then(|x| x.custom_env_args),
-                        memory: profile
-                            .memory
-                            .map(|x| MemorySettings { maximum: x.maximum }),
+                        memory: profile.memory.map(|x| MemorySettings {
+                            maximum: x.maximum,
+                            automatic: false,
+                        }),
                         force_fullscreen: profile.fullscreen,
                         game_resolution: profile
                             .resolution

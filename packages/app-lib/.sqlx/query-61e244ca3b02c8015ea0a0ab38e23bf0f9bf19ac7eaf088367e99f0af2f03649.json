@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "\n            SELECT\n                max_concurrent_writes, max_concurrent_downloads,\n                auto_concurrent_downloads, minecraft_metadata_source,\n                minecraft_file_source, modrinth_source, curseforge_source,\n                theme, locale, default_page, collapsed_navigation, hide_nametag_skins_page, advanced_rendering, native_decorations,\n                discord_rpc, developer_mode, telemetry, personalized_ads,\n                onboarded, onboarding_version, onboarding_instance_tour_completed,\n                json(extra_launch_args) extra_launch_args, json(custom_env_vars) custom_env_vars,\n                mc_memory_max, mc_force_fullscreen, mc_game_resolution_x, mc_game_resolution_y, hide_on_process_start,\n                hook_pre_launch, hook_wrapper, hook_post_exit,\n                custom_dir, prev_custom_dir, migrated, json(feature_flags) feature_flags, toggle_sidebar,\n                skipped_update, pending_update_toast_for_version, auto_download_updates, accent_color,\n                custom_background_path, custom_background_blur, custom_background_opacity,\n                sidebar_instance_count,\n                version\n            FROM settings\n            ",
+  "query": "\n            SELECT\n                max_concurrent_writes, max_concurrent_downloads,\n                auto_concurrent_downloads, minecraft_metadata_source,\n                minecraft_file_source, modrinth_source, curseforge_source,\n                theme, locale, default_page, collapsed_navigation, hide_nametag_skins_page, advanced_rendering, native_decorations,\n                discord_rpc, developer_mode, telemetry, personalized_ads,\n                onboarded, onboarding_version, onboarding_instance_tour_completed,\n                json(extra_launch_args) extra_launch_args, json(custom_env_vars) custom_env_vars,\n                mc_memory_max, mc_memory_auto, mc_force_fullscreen, mc_game_resolution_x, mc_game_resolution_y, hide_on_process_start,\n                hook_pre_launch, hook_wrapper, hook_post_exit,\n                custom_dir, prev_custom_dir, migrated, json(feature_flags) feature_flags, toggle_sidebar,\n                skipped_update, pending_update_toast_for_version, auto_download_updates, accent_color,\n                custom_background_path, custom_background_blur, custom_background_opacity,\n                sidebar_instance_count,\n                version\n            FROM settings\n            ",
   "describe": {
     "columns": [
       {
@@ -124,108 +124,113 @@
         "type_info": "Integer"
       },
       {
-        "name": "mc_force_fullscreen",
+        "name": "mc_memory_auto",
         "ordinal": 24,
         "type_info": "Integer"
       },
       {
-        "name": "mc_game_resolution_x",
+        "name": "mc_force_fullscreen",
         "ordinal": 25,
         "type_info": "Integer"
       },
       {
-        "name": "mc_game_resolution_y",
+        "name": "mc_game_resolution_x",
         "ordinal": 26,
         "type_info": "Integer"
       },
       {
-        "name": "hide_on_process_start",
+        "name": "mc_game_resolution_y",
         "ordinal": 27,
         "type_info": "Integer"
       },
       {
-        "name": "hook_pre_launch",
+        "name": "hide_on_process_start",
         "ordinal": 28,
-        "type_info": "Text"
+        "type_info": "Integer"
       },
       {
-        "name": "hook_wrapper",
+        "name": "hook_pre_launch",
         "ordinal": 29,
         "type_info": "Text"
       },
       {
-        "name": "hook_post_exit",
+        "name": "hook_wrapper",
         "ordinal": 30,
         "type_info": "Text"
       },
       {
-        "name": "custom_dir",
+        "name": "hook_post_exit",
         "ordinal": 31,
         "type_info": "Text"
       },
       {
-        "name": "prev_custom_dir",
+        "name": "custom_dir",
         "ordinal": 32,
         "type_info": "Text"
       },
       {
-        "name": "migrated",
+        "name": "prev_custom_dir",
         "ordinal": 33,
+        "type_info": "Text"
+      },
+      {
+        "name": "migrated",
+        "ordinal": 34,
         "type_info": "Integer"
       },
       {
         "name": "feature_flags",
-        "ordinal": 34,
+        "ordinal": 35,
         "type_info": "Text"
       },
       {
         "name": "toggle_sidebar",
-        "ordinal": 35,
+        "ordinal": 36,
         "type_info": "Integer"
       },
       {
         "name": "skipped_update",
-        "ordinal": 36,
-        "type_info": "Text"
-      },
-      {
-        "name": "pending_update_toast_for_version",
         "ordinal": 37,
         "type_info": "Text"
       },
       {
-        "name": "auto_download_updates",
+        "name": "pending_update_toast_for_version",
         "ordinal": 38,
+        "type_info": "Text"
+      },
+      {
+        "name": "auto_download_updates",
+        "ordinal": 39,
         "type_info": "Integer"
       },
       {
         "name": "accent_color",
-        "ordinal": 39,
-        "type_info": "Text"
-      },
-      {
-        "name": "custom_background_path",
         "ordinal": 40,
         "type_info": "Text"
       },
       {
-        "name": "custom_background_blur",
+        "name": "custom_background_path",
         "ordinal": 41,
-        "type_info": "Integer"
+        "type_info": "Text"
       },
       {
-        "name": "custom_background_opacity",
+        "name": "custom_background_blur",
         "ordinal": 42,
         "type_info": "Integer"
       },
       {
-        "name": "sidebar_instance_count",
+        "name": "custom_background_opacity",
         "ordinal": 43,
         "type_info": "Integer"
       },
       {
-        "name": "version",
+        "name": "sidebar_instance_count",
         "ordinal": 44,
+        "type_info": "Integer"
+      },
+      {
+        "name": "version",
+        "ordinal": 45,
         "type_info": "Integer"
       }
     ],
@@ -261,6 +266,7 @@
       false,
       false,
       false,
+      false,
       true,
       true,
       true,
@@ -280,5 +286,5 @@
       false
     ]
   },
-  "hash": "c659c1f359b07150a2c0f546f2742a942eb3c13d454f4f8e43ef3a8ad74b0158"
+  "hash": "61e244ca3b02c8015ea0a0ab38e23bf0f9bf19ac7eaf088367e99f0af2f03649"
 }

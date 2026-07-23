@@ -11000,6 +11000,7 @@ dependencies = [
  "indicatif",
  "itertools",
  "junction",
+ "libc",
  "md5",
  "modrinth-content-management",
  "notify",

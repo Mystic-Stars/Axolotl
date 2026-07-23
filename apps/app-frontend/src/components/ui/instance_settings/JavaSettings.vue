@@ -21,6 +21,7 @@ import { open } from '@tauri-apps/plugin-dialog'
 import { computed, readonly, ref, watch } from 'vue'
 
 import JavaDetectionModal from '@/components/ui/JavaDetectionModal.vue'
+import MemoryAllocationDisplay from '@/components/ui/MemoryAllocationDisplay.vue'
 import useJavaTest from '@/composables/useJavaTest'
 import useMemorySlider from '@/composables/useMemorySlider'
 import { edit, get_optimal_jre_key } from '@/helpers/instance'
@@ -99,6 +100,9 @@ const envVars = ref(
 
 const overrideMemorySettings = ref(!!instance.value.memory)
 const memory = ref(instance.value.memory ?? globalSettings.memory)
+const effectiveMemory = computed(() =>
+	overrideMemorySettings.value ? memory.value : globalSettings.memory,
+)
 const { maxMemory, snapPoints } = (await useMemorySlider().catch(handleError)) as unknown as {
 	maxMemory: number
 	snapPoints: number[]
@@ -161,6 +165,10 @@ const messages = defineMessages({
 	customMemoryAllocation: {
 		id: 'instance.settings.tabs.java.custom-memory-allocation',
 		defaultMessage: 'Custom memory allocation',
+	},
+	automaticMemory: {
+		id: 'instance.settings.tabs.java.automatic-memory',
+		defaultMessage: 'Automatically allocate memory at launch',
 	},
 	javaArguments: {
 		id: 'instance.settings.tabs.java.java-arguments',
@@ -281,10 +289,16 @@ const messages = defineMessages({
 			:label="formatMessage(messages.customMemoryAllocation)"
 			class="mb-2"
 		/>
+		<Checkbox
+			v-if="overrideMemorySettings"
+			v-model="memory.automatic"
+			:label="formatMessage(messages.automaticMemory)"
+			class="mb-2"
+		/>
 		<Slider
 			id="max-memory"
 			v-model="memory.maximum"
-			:disabled="!overrideMemorySettings"
+			:disabled="!overrideMemorySettings || memory.automatic"
 			:min="512"
 			:max="maxMemory"
 			:step="64"
@@ -292,6 +306,7 @@ const messages = defineMessages({
 			:snap-range="512"
 			unit="MB"
 		/>
+		<MemoryAllocationDisplay :instance-id="instance.id" :memory="effectiveMemory" />
 		<h2 class="mt-4 mb-1 text-lg font-extrabold text-contrast block">
 			{{ formatMessage(messages.javaArguments) }}
 		</h2>

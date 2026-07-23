@@ -49,3 +49,15 @@ export async function auto_install_java(javaVersion) {
 export async function get_max_memory() {
 	return await invoke('plugin:jre|jre_get_max_memory')
 }
+
+export async function get_memory_status(instanceId, requestedMemoryMb, automatic) {
+	return await invoke('plugin:jre|jre_get_memory_status', {
+		instanceId,
+		requestedMemoryMb,
+		automatic,
+	})
+}
+
+export async function optimize_memory() {
+	return await invoke('plugin:jre|jre_optimize_memory')
+}

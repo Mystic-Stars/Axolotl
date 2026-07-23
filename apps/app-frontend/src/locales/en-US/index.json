@@ -1787,8 +1787,44 @@
 	"app.settings.defaults.memory": {
 		"message": "Memory allocated"
 	},
+	"app.settings.defaults.automatic-memory": {
+		"message": "Automatically allocate memory at launch"
+	},
+	"app.settings.defaults.automatic-memory-description": {
+		"message": "Adjusts memory for each launch based on available RAM and installed mods."
+	},
 	"app.settings.defaults.memory-description": {
 		"message": "The memory allocated to each instance when it is run."
+	},
+	"app.memory-display.available": {
+		"message": "{memory} available"
+	},
+	"app.memory-display.game": {
+		"message": "Game allocation"
+	},
+	"app.memory-display.optimize": {
+		"message": "Optimize memory"
+	},
+	"app.memory-display.optimized": {
+		"message": "Memory optimization complete"
+	},
+	"app.memory-display.optimizing": {
+		"message": "Optimizing..."
+	},
+	"app.memory-display.optimization-description": {
+		"message": "Free unused Windows working sets and standby memory."
+	},
+	"app.memory-display.remaining": {
+		"message": "Remaining after allocation"
+	},
+	"app.memory-display.reclaimed": {
+		"message": "Freed {memory} of memory."
+	},
+	"app.memory-display.unsupported": {
+		"message": "Memory optimization is only available on Windows."
+	},
+	"app.memory-display.used": {
+		"message": "Memory in use"
 	},
 	"app.settings.defaults.post-exit-description": {
 		"message": "Run after the game closes."
@@ -2668,6 +2704,9 @@
 	},
 	"instance.settings.tabs.java.custom-memory-allocation": {
 		"message": "Custom memory allocation"
+	},
+	"instance.settings.tabs.java.automatic-memory": {
+		"message": "Automatically allocate memory at launch"
 	},
 	"instance.settings.tabs.java.enter-environment-variables": {
 		"message": "Enter environmental variables..."

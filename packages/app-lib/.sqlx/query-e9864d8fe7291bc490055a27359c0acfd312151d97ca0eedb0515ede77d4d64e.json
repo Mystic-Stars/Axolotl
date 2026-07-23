@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            UPDATE settings\n            SET\n                max_concurrent_writes = $1,\n                max_concurrent_downloads = $2,\n\n                theme = $3,\n                locale = $4,\n                default_page = $5,\n                collapsed_navigation = $6,\n                advanced_rendering = $7,\n                native_decorations = $8,\n\n                discord_rpc = $9,\n                developer_mode = $10,\n                telemetry = $11,\n                personalized_ads = $12,\n\n                onboarded = $13,\n\n                extra_launch_args = jsonb($14),\n                custom_env_vars = jsonb($15),\n                mc_memory_max = $16,\n                mc_memory_auto = $17,\n                mc_force_fullscreen = $18,\n                mc_game_resolution_x = $19,\n                mc_game_resolution_y = $20,\n                hide_on_process_start = $21,\n\n                hook_pre_launch = $22,\n                hook_wrapper = $23,\n                hook_post_exit = $24,\n\n                custom_dir = $25,\n                prev_custom_dir = $26,\n                migrated = $27,\n\n                toggle_sidebar = $28,\n                feature_flags = $29,\n                hide_nametag_skins_page = $30,\n\n                skipped_update = $31,\n                pending_update_toast_for_version = $32,\n                auto_download_updates = $33,\n                accent_color = $34,\n                custom_background_path = $35,\n                custom_background_blur = $36,\n                custom_background_opacity = $37,\n\n                version = $38,\n                auto_concurrent_downloads = $39,\n                minecraft_metadata_source = $40,\n                minecraft_file_source = $41,\n                modrinth_source = $42,\n                curseforge_source = $43,\n                use_minecraft_mirror = $44,\n                use_modrinth_mirror = $45,\n                use_curseforge_mirror = $46,\n                onboarding_version = $47,\n                onboarding_instance_tour_completed = $48,\n                sidebar_instance_count = $49\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 49
+    },
+    "nullable": []
+  },
+  "hash": "e9864d8fe7291bc490055a27359c0acfd312151d97ca0eedb0515ede77d4d64e"
+}

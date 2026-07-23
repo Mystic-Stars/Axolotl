@@ -1787,8 +1787,44 @@
 	"app.settings.defaults.memory": {
 		"message": "分配内存"
 	},
+	"app.settings.defaults.automatic-memory": {
+		"message": "启动时自动分配内存"
+	},
+	"app.settings.defaults.automatic-memory-description": {
+		"message": "根据可用内存和已安装的模组，在每次启动时动态调整内存。"
+	},
 	"app.settings.defaults.memory-description": {
 		"message": "分配给每个实例的内存。"
+	},
+	"app.memory-display.available": {
+		"message": "可用 {memory}"
+	},
+	"app.memory-display.game": {
+		"message": "游戏分配"
+	},
+	"app.memory-display.optimize": {
+		"message": "内存优化"
+	},
+	"app.memory-display.optimized": {
+		"message": "内存优化完成"
+	},
+	"app.memory-display.optimizing": {
+		"message": "正在优化……"
+	},
+	"app.memory-display.optimization-description": {
+		"message": "释放 Windows 中未使用的工作集和待机内存。"
+	},
+	"app.memory-display.remaining": {
+		"message": "分配后剩余"
+	},
+	"app.memory-display.reclaimed": {
+		"message": "已释放 {memory} 内存。"
+	},
+	"app.memory-display.unsupported": {
+		"message": "内存优化仅支持 Windows。"
+	},
+	"app.memory-display.used": {
+		"message": "已使用内存"
 	},
 	"app.settings.defaults.post-exit-description": {
 		"message": "在游戏关闭后运行。"
@@ -2668,6 +2704,9 @@
 	},
 	"instance.settings.tabs.java.custom-memory-allocation": {
 		"message": "自定义内存分配"
+	},
+	"instance.settings.tabs.java.automatic-memory": {
+		"message": "启动时自动分配内存"
 	},
 	"instance.settings.tabs.java.enter-environment-variables": {
 		"message": "输入环境变量……"

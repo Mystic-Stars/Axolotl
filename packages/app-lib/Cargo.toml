@@ -127,6 +127,7 @@ dunce = { workspace = true }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 cidre = { workspace = true, features = ["blocks", "nw"] }
+libc = { workspace = true }
 
 [target."cfg(windows)".dependencies]
 junction = { workspace = true }

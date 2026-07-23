@@ -15,6 +15,8 @@ pub fn init<R: tauri::Runtime>() -> TauriPlugin<R> {
             jre_test_jre,
             jre_auto_install_java,
             jre_get_max_memory,
+            jre_get_memory_status,
+            jre_optimize_memory,
         ])
         .build()
 }
@@ -61,4 +63,24 @@ pub async fn jre_auto_install_java(java_version: u32) -> Result<PathBuf> {
 #[tauri::command]
 pub async fn jre_get_max_memory() -> Result<u64> {
     Ok(jre::get_max_memory().await?)
+}
+
+#[tauri::command]
+pub async fn jre_get_memory_status(
+    instance_id: Option<String>,
+    requested_memory_mb: u32,
+    automatic: bool,
+) -> Result<jre::MemoryStatus> {
+    Ok(jre::get_memory_status(
+        instance_id.as_deref(),
+        requested_memory_mb,
+        automatic,
+    )
+    .await?)
+}
+
+#[tauri::command]
+pub async fn jre_optimize_memory()
+-> Result<theseus::memory::MemoryOptimizationResult> {
+    Ok(theseus::memory::optimize().await?)
 }

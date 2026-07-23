@@ -48,6 +48,16 @@ export const launcherAnnouncements: readonly LauncherAnnouncement[] = [
 					'zh-CN':
 						'扩展 Java 自动检测范围，现可搜索 JAVA_HOME 同级安装、常见发行版目录、Minecraft 官方启动器运行时及可能的安装目录。',
 				},
+				{
+					'en-US':
+						'Added automatic memory allocation that adapts to available RAM and installed mods each time an instance launches.',
+					'zh-CN': '新增自动分配内存，可在每次启动实例时根据可用内存和已安装模组动态调整。',
+				},
+				{
+					'en-US':
+						'Added a live memory allocation display and one-click memory optimization on Windows.',
+					'zh-CN': '新增实时内存分配展示，并在 Windows 上提供一键内存优化。',
+				},
 			],
 			changed: [
 				{
@@ -64,6 +74,11 @@ export const launcherAnnouncements: readonly LauncherAnnouncement[] = [
 				},
 			],
 			fixed: [
+				{
+					'en-US':
+						'Improved memory usage reporting and automatic allocation accuracy on macOS.',
+					'zh-CN': '改进 macOS 上的内存占用显示和自动分配准确性。',
+				},
 				{
 					'en-US':
 						'Fixed Java detection for several Windows registry paths and nested Eclipse Adoptium installation entries.',

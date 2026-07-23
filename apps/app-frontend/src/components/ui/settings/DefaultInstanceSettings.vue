@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import {
 	defineMessages,
+	Checkbox,
 	injectNotificationManager,
 	Slider,
 	StyledInput,
@@ -9,6 +10,7 @@ import {
 } from '@modrinth/ui'
 import { ref, watch } from 'vue'
 
+import MemoryAllocationDisplay from '@/components/ui/MemoryAllocationDisplay.vue'
 import useMemorySlider from '@/composables/useMemorySlider'
 import { get, set } from '@/helpers/settings.ts'
 
@@ -43,6 +45,14 @@ const messages = defineMessages({
 	memoryDescription: {
 		id: 'app.settings.defaults.memory-description',
 		defaultMessage: 'The memory allocated to each instance when it is run.',
+	},
+	automaticMemory: {
+		id: 'app.settings.defaults.automatic-memory',
+		defaultMessage: 'Automatically allocate memory at launch',
+	},
+	automaticMemoryDescription: {
+		id: 'app.settings.defaults.automatic-memory-description',
+		defaultMessage: 'Adjusts memory for each launch based on available RAM and installed mods.',
 	},
 	javaArguments: {
 		id: 'app.settings.defaults.java-arguments',
@@ -195,9 +205,14 @@ watch(
 				<h2 class="m-0 text-lg font-semibold text-contrast">
 					{{ formatMessage(messages.memory) }}
 				</h2>
+				<Checkbox
+					v-model="settings.memory.automatic"
+					:label="formatMessage(messages.automaticMemory)"
+				/>
 				<Slider
 					id="max-memory"
 					v-model="settings.memory.maximum"
+					:disabled="settings.memory.automatic"
 					:min="512"
 					:max="maxMemory"
 					:step="64"
@@ -205,7 +220,16 @@ watch(
 					:snap-range="512"
 					unit="MB"
 				/>
-				<p class="m-0 mt-1 leading-tight">{{ formatMessage(messages.memoryDescription) }}</p>
+				<p class="m-0 mt-1 leading-tight">
+					{{
+						formatMessage(
+							settings.memory.automatic
+								? messages.automaticMemoryDescription
+								: messages.memoryDescription,
+						)
+					}}
+				</p>
+				<MemoryAllocationDisplay :memory="settings.memory" show-optimize-button />
 			</div>
 
 			<div class="flex flex-col gap-2.5">

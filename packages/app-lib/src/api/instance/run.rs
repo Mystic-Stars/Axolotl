@@ -136,7 +136,7 @@ async fn run_credentials(
         .clone()
         .or(settings.hooks.wrapper)
         .filter(|hook_command| !hook_command.is_empty());
-    let memory = context.launch_overrides.memory.unwrap_or(settings.memory);
+    let mut memory = context.launch_overrides.memory.unwrap_or(settings.memory);
     let resolution = context
         .launch_overrides
         .game_resolution
@@ -219,6 +219,27 @@ async fn run_credentials(
     } else {
         crate::minecraft_skins::flush_pending_skin_change().await?;
     }
+    if memory.automatic {
+        let instance_path = state
+            .directories
+            .instances_dir()
+            .join(&context.instance.path);
+        memory.maximum = crate::api::jre::automatic_memory_max_mb_for_instance(
+            &instance_path,
+            matches!(
+                context.applied_content_set.loader,
+                crate::state::ModLoader::Forge
+                    | crate::state::ModLoader::Fabric
+                    | crate::state::ModLoader::Quilt
+                    | crate::state::ModLoader::NeoForge
+            ),
+        );
+        tracing::info!(
+            "Automatically allocated {} MiB of memory",
+            memory.maximum
+        );
+    }
+
     crate::launcher::launch_minecraft(
         &java_args,
         &env_args,

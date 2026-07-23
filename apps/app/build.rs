@@ -116,6 +116,8 @@ fn main() {
                         "jre_test_jre",
                         "jre_auto_install_java",
                         "jre_get_max_memory",
+                        "jre_get_memory_status",
+                        "jre_optimize_memory",
                     ])
                     .default_permission(
                         DefaultPermissionRule::AllowAllCommands,

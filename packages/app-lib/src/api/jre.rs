@@ -14,7 +14,7 @@ use crate::util::fetch::{
 use dashmap::DashMap;
 use futures::{TryStreamExt, stream};
 use reqwest::Method;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::future::Future;
 use std::path::{Component, Path, PathBuf};
@@ -1106,12 +1106,65 @@ pub async fn test_jre(
     Ok(version == major_version)
 }
 
-fn system_memory_bytes() -> u64 {
+fn system_memory() -> sysinfo::System {
     sysinfo::System::new_with_specifics(
         RefreshKind::nothing()
             .with_memory(MemoryRefreshKind::nothing().with_ram()),
     )
-    .total_memory()
+}
+
+fn system_memory_bytes() -> u64 {
+    system_memory().total_memory()
+}
+
+#[cfg(target_os = "windows")]
+pub(crate) fn system_available_memory_bytes() -> u64 {
+    available_memory_bytes(&system_memory())
+}
+
+fn available_memory_bytes(system: &sysinfo::System) -> u64 {
+    #[cfg(target_os = "macos")]
+    {
+        macos_available_memory_bytes()
+            .unwrap_or_else(|| system.available_memory())
+            .min(system.total_memory())
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    {
+        system.available_memory()
+    }
+}
+
+#[cfg(target_os = "macos")]
+fn macos_available_memory_bytes() -> Option<u64> {
+    let page_size = unsafe { libc::sysconf(libc::_SC_PAGESIZE) };
+    if page_size <= 0 {
+        return None;
+    }
+
+    let mut statistics = unsafe { std::mem::zeroed::<libc::vm_statistics64>() };
+    let mut count = libc::HOST_VM_INFO64_COUNT;
+    #[allow(deprecated)]
+    let host = unsafe { libc::mach_host_self() };
+    let result = unsafe {
+        libc::host_statistics64(
+            host,
+            libc::HOST_VM_INFO64,
+            &mut statistics as *mut libc::vm_statistics64 as *mut _,
+            &mut count,
+        )
+    };
+    if result != libc::KERN_SUCCESS {
+        return None;
+    }
+
+    Some(
+        u64::from(statistics.free_count)
+            .saturating_add(u64::from(statistics.inactive_count))
+            .saturating_add(u64::from(statistics.purgeable_count))
+            .saturating_mul(page_size as u64),
+    )
 }
 
 /// Recommended default max heap (MiB) for new instances based on system RAM.
@@ -1131,4 +1184,168 @@ pub fn default_memory_max_mb() -> u32 {
 // Gets maximum memory in KiB.
 pub async fn get_max_memory() -> crate::Result<u64> {
     Ok(system_memory_bytes() / 1024)
+}
+
+#[derive(Clone, Copy, Debug, Serialize)]
+pub struct MemoryStatus {
+    pub total_bytes: u64,
+    pub available_bytes: u64,
+    pub allocated_mb: u32,
+    pub optimization_supported: bool,
+}
+
+pub async fn get_memory_status(
+    instance_id: Option<&str>,
+    requested_memory_mb: u32,
+    automatic: bool,
+) -> crate::Result<MemoryStatus> {
+    let state = State::get().await?;
+    let system = system_memory();
+    let total_bytes = system.total_memory();
+    let available_bytes = available_memory_bytes(&system);
+    let (modded, mod_count) = if let Some(instance_id) = instance_id {
+        let context =
+            crate::state::instances::commands::get_instance_launch_context(
+                instance_id,
+                &state.pool,
+            )
+            .await?
+            .ok_or_else(|| {
+                crate::ErrorKind::OtherError(format!(
+                    "Tried to inspect a nonexistent instance {instance_id}"
+                ))
+                .as_error()
+            })?;
+        let modded = matches!(
+            context.applied_content_set.loader,
+            crate::state::ModLoader::Forge
+                | crate::state::ModLoader::Fabric
+                | crate::state::ModLoader::Quilt
+                | crate::state::ModLoader::NeoForge
+        );
+        let path = state
+            .directories
+            .instances_dir()
+            .join(context.instance.path);
+        (modded, count_mods(&path))
+    } else {
+        (false, 0)
+    };
+    let allocated_mb = if automatic {
+        automatic_memory_max_mb(available_bytes, mod_count, modded)
+    } else {
+        requested_memory_mb
+    };
+
+    Ok(MemoryStatus {
+        total_bytes,
+        available_bytes,
+        allocated_mb,
+        optimization_supported: crate::api::memory::optimization_supported(),
+    })
+}
+
+/// Calculates a launch heap using four progressively conservative stages.
+pub fn automatic_memory_max_mb(
+    available_memory_bytes: u64,
+    mod_count: usize,
+    modded: bool,
+) -> u32 {
+    const BYTES_PER_GIB: f64 = 1024.0 * 1024.0 * 1024.0;
+
+    let mut available_gib = ((available_memory_bytes as f64 / BYTES_PER_GIB)
+        * 10.0)
+        .round_ties_even()
+        / 10.0;
+    let (minimum, target1, target2, target3) = if modded {
+        (
+            0.5 + mod_count as f64 / 150.0,
+            1.5 + mod_count as f64 / 90.0,
+            2.7 + mod_count as f64 / 50.0,
+            4.5 + mod_count as f64 / 25.0,
+        )
+    } else {
+        (0.5, 1.5, 2.5, 4.0)
+    };
+
+    let mut allocated = 0.0;
+    let stages = [
+        (target1, 1.0),
+        (target2 - target1, 0.7),
+        (target3 - target2, 0.4),
+        (target3, 0.15),
+    ];
+    for (delta, ratio) in stages {
+        allocated += (available_gib * ratio).min(delta);
+        available_gib -= delta / ratio;
+        if available_gib < 0.1 {
+            break;
+        }
+    }
+
+    let allocated_gib =
+        (allocated.max(minimum) * 10.0).round_ties_even() / 10.0;
+    (allocated_gib * 1024.0).floor().max(512.0) as u32
+}
+
+/// Calculates automatic memory from the current available RAM and installed mods.
+pub fn automatic_memory_max_mb_for_instance(
+    instance_path: &std::path::Path,
+    modded: bool,
+) -> u32 {
+    let mod_count = if modded { count_mods(instance_path) } else { 0 };
+
+    automatic_memory_max_mb(
+        available_memory_bytes(&system_memory()),
+        mod_count,
+        modded,
+    )
+}
+
+fn count_mods(instance_path: &std::path::Path) -> usize {
+    std::fs::read_dir(instance_path.join("mods"))
+        .ok()
+        .into_iter()
+        .flatten()
+        .filter_map(Result::ok)
+        .filter(|entry| {
+            entry
+                .file_type()
+                .map(|kind| kind.is_file())
+                .unwrap_or(false)
+        })
+        .filter(|entry| {
+            entry
+                .path()
+                .extension()
+                .and_then(|extension| extension.to_str())
+                .map(|extension| {
+                    matches!(
+                        extension.to_ascii_lowercase().as_str(),
+                        "jar" | "zip" | "litemod"
+                    )
+                })
+                .unwrap_or(false)
+        })
+        .count()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::automatic_memory_max_mb;
+
+    const GIB: u64 = 1024 * 1024 * 1024;
+
+    #[test]
+    fn automatic_memory_matches_vanilla_stages() {
+        assert_eq!(automatic_memory_max_mb(GIB, 0, false), 1024);
+        assert_eq!(automatic_memory_max_mb(4 * GIB, 0, false), 2969);
+        assert_eq!(automatic_memory_max_mb(16 * GIB, 0, false), 5529);
+    }
+
+    #[test]
+    fn automatic_memory_matches_mod_targets() {
+        assert_eq!(automatic_memory_max_mb(8 * GIB, 100, true), 5836);
+        assert_eq!(automatic_memory_max_mb(0, 300, true), 2560);
+    }
 }

@@ -118,6 +118,7 @@ lettre = { version = "0.11.19", default-features = false, features = [
   "tokio1",
   "tokio1-rustls",
 ] }
+libc = "0.2.189"
 maxminddb = "0.26.0"
 md5 = "0.8.0"
 meilisearch-sdk = { version = "0.30.0", default-features = false }

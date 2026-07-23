@@ -7,6 +7,7 @@ pub mod handler;
 pub mod instance;
 pub mod jre;
 pub mod logs;
+pub mod memory;
 pub mod metadata;
 pub mod minecraft_auth;
 pub mod minecraft_skins;
