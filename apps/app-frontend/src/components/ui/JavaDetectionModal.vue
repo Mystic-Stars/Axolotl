@@ -54,10 +54,11 @@ import {
 	Table,
 	useVIntl,
 } from '@modrinth/ui'
-import { ref } from 'vue'
+import { onUnmounted, ref } from 'vue'
 
 import ModalWrapper from '@/components/ui/modal/ModalWrapper.vue'
 import { trackEvent } from '@/helpers/analytics'
+import { java_discovery_listener } from '@/helpers/events'
 import { find_filtered_jres } from '@/helpers/jre.js'
 
 const { handleError } = injectNotificationManager()
@@ -86,8 +87,12 @@ const javaInstallColumns = [
 	{ key: 'actions', label: formatMessage(messages.actions), align: 'right', width: '10rem' },
 ]
 
+const lastRequestedVersion = ref(null)
+let unlistenJavaDiscovery = null
+
 defineExpose({
 	show: async (version, currentSelectedJava) => {
+		lastRequestedVersion.value = version ?? null
 		chosenInstallOptions.value = await find_filtered_jres(version).catch(handleError)
 
 		currentSelected.value = currentSelectedJava
@@ -95,8 +100,26 @@ defineExpose({
 			currentSelected.value = { path: '', version: '' }
 		}
 
+		if (!unlistenJavaDiscovery) {
+			unlistenJavaDiscovery = await java_discovery_listener(refreshInstallOptions)
+		}
+
 		detectJavaModal.value.show()
 	},
+})
+
+async function refreshInstallOptions() {
+	const updated = await find_filtered_jres(lastRequestedVersion.value).catch(() => null)
+	if (updated) {
+		chosenInstallOptions.value = updated
+	}
+}
+
+onUnmounted(() => {
+	if (unlistenJavaDiscovery) {
+		unlistenJavaDiscovery()
+		unlistenJavaDiscovery = null
+	}
 })
 
 const emit = defineEmits(['submit'])

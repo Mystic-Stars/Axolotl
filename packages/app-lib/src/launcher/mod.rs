@@ -438,6 +438,16 @@ pub async fn install_minecraft_with_reporter(
         get_java_version_from_launch_context(context, &version_info).await?
     {
         (std::path::PathBuf::from(java_version.path), false)
+    } else if let Some(discovered) = crate::api::jre::find_cached_java(key)
+        .await
+        .unwrap_or_default()
+    {
+        tracing::info!(
+            "Reusing discovered Java {} at {}",
+            discovered.version,
+            discovered.path
+        );
+        (std::path::PathBuf::from(discovered.path), true)
     } else {
         let path = if let Some(reporter) = &reporter {
             crate::api::jre::auto_install_java_with_reporter(

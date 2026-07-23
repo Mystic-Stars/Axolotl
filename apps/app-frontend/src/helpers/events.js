@@ -112,6 +112,16 @@ export async function friend_listener(callback) {
 	return await listen('friend', (event) => callback(event.payload))
 }
 
+/// Payload for the 'java_discovery_update' event
+/*
+    JavaDiscoveryPayload {
+        count: number of Java installations found by the background rescan
+    }
+*/
+export async function java_discovery_listener(callback) {
+	return await listen('java_discovery_update', (event) => callback(event.payload))
+}
+
 export async function notification_listener(callback) {
 	return await listen('notification', (event) => callback(event.payload))
 }

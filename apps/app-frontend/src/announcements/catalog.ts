@@ -33,6 +33,48 @@ export const ANNOUNCEMENT_CHANGE_TYPES: readonly AnnouncementChangeType[] = [
 
 export const launcherAnnouncements: readonly LauncherAnnouncement[] = [
 	{
+		id: 'launcher-1.5.1',
+		version: '1.5.1',
+		publishedAt: '2026-07-23',
+		title: {
+			'en-US': 'Axolotl Launcher 1.5.1',
+			'zh-CN': 'Axolotl Launcher 1.5.1',
+		},
+		changes: {
+			added: [
+				{
+					'en-US':
+						'Expanded Java detection to search JAVA_HOME sibling installations, common vendor locations, official Minecraft Launcher runtimes, and likely installation folders.',
+					'zh-CN':
+						'扩展 Java 自动检测范围，现可搜索 JAVA_HOME 同级安装、常见发行版目录、Minecraft 官方启动器运行时及可能的安装目录。',
+				},
+			],
+			changed: [
+				{
+					'en-US':
+						'Java detection now caches results, scans sources concurrently, and refreshes the installation list in the background.',
+					'zh-CN':
+						'Java 检测现在会缓存结果、并行扫描不同来源，并在后台刷新安装列表。',
+				},
+				{
+					'en-US':
+						'The launcher now reuses an already detected Java runtime with the required version before downloading a new one.',
+					'zh-CN':
+						'启动实例缺少所需 Java 版本时，现在会优先复用已检测到的同版本运行时，再考虑下载新的运行时。',
+				},
+			],
+			fixed: [
+				{
+					'en-US':
+						'Fixed Java detection for several Windows registry paths and nested Eclipse Adoptium installation entries.',
+					'zh-CN':
+						'修复部分 Windows 注册表路径及 Eclipse Adoptium 嵌套安装项无法检测 Java 的问题。',
+				},
+			],
+		},
+	},
+
+	{
 		id: 'launcher-1.5.0',
 		version: '1.5.0',
 		publishedAt: '2026-07-23',

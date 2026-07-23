@@ -1,10 +1,12 @@
 //! Authentication flow interface
-use crate::event::emit::{emit_loading, init_loading};
+use crate::event::emit::{
+    emit_java_discovery_update, emit_loading, init_loading,
+};
 use crate::install::{
     InstallErrorContext, InstallJavaStep, InstallPhaseDetails, InstallPhaseId,
     InstallProgress, InstallProgressReporter,
 };
-use crate::state::JavaVersion;
+use crate::state::{DiscoveredJava, JavaVersion, java_file_signature};
 use crate::util::fetch::{
     ContentValidation, DownloadRequest, FetchProgressFn, Integrity,
     ResourceClass, download_to_path, fetch_json,
@@ -13,12 +15,13 @@ use dashmap::DashMap;
 use futures::{TryStreamExt, stream};
 use reqwest::Method;
 use serde::Deserialize;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::future::Future;
 use std::path::{Component, Path, PathBuf};
 use std::pin::Pin;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, LazyLock, Mutex};
+use std::time::{Duration, Instant};
 use sysinfo::{MemoryRefreshKind, RefreshKind};
 
 use crate::util::io;
@@ -40,28 +43,162 @@ pub async fn set_java_version(java_version: JavaVersion) -> crate::Result<()> {
     Ok(())
 }
 
-// Searches for jres on the system given a java version (ex: 1.8, 1.17, 1.18)
-// Allow higher allows for versions higher than the given version to be returned ('at least')
+const JAVA_RESCAN_DEBOUNCE: Duration = Duration::from_secs(60);
+
+static JAVA_SCAN_STATE: LazyLock<tokio::sync::Mutex<Option<Instant>>> =
+    LazyLock::new(|| tokio::sync::Mutex::new(None));
+
+// Searches for jres on the system given a java version (ex: 8, 17, 21)
 pub async fn find_filtered_jres(
     java_version: Option<u32>,
 ) -> crate::Result<Vec<JavaVersion>> {
-    let jres = jre::get_all_jre().await?;
+    let jres = get_available_jres().await?;
 
-    // Filter out JREs that are not 1.17 or higher
     Ok(if let Some(java_version) = java_version {
         jres.into_iter()
-            .filter(|jre| {
-                let jre_version = extract_java_version(&jre.version);
-                if let Ok(jre_version) = jre_version {
-                    jre_version == java_version
-                } else {
-                    false
-                }
-            })
+            .filter(|jre| jre.parsed_version == java_version)
             .collect()
     } else {
         jres
     })
+}
+
+/// Returns all known Java installations, served from the discovery cache
+/// when possible. When the cache is hit, a debounced rescan runs in the
+/// background and a `java_discovery_update` event fires if it changes
+/// anything; the cache being empty forces a full scan instead.
+pub async fn get_available_jres() -> crate::Result<Vec<JavaVersion>> {
+    let state = State::get().await?;
+
+    let cached = validate_cached_javas(&state).await?;
+    if !cached.is_empty() {
+        schedule_background_java_rescan();
+        return Ok(cached);
+    }
+
+    let mut last_scan = JAVA_SCAN_STATE.lock().await;
+    // Re-check after taking the lock: a concurrent caller may have just
+    // finished the initial scan while this one was waiting
+    let cached = validate_cached_javas(&state).await?;
+    if !cached.is_empty() {
+        return Ok(cached);
+    }
+    let jres = refresh_discovered_javas(&state).await?;
+    *last_scan = Some(Instant::now());
+    Ok(jres)
+}
+
+// Serves cache entries whose executable still matches the stored file
+// signature; entries that changed on disk are re-verified individually and
+// entries that disappeared are dropped
+async fn validate_cached_javas(
+    state: &State,
+) -> crate::Result<Vec<JavaVersion>> {
+    let entries = DiscoveredJava::get_all(&state.pool).await?;
+    let mut valid = Vec::new();
+
+    for entry in entries {
+        let path = PathBuf::from(&entry.java.path);
+        match java_file_signature(&path) {
+            Some((size, mtime))
+                if size == entry.file_size && mtime == entry.file_mtime_ms =>
+            {
+                valid.push(entry.java);
+            }
+            Some(_) => {
+                if let Ok(java) = jre::check_java_at_filepath(&path).await
+                    && let Some(refreshed) =
+                        DiscoveredJava::from_java(java.clone())
+                {
+                    refreshed.upsert(&state.pool).await?;
+                    valid.push(java);
+                } else {
+                    DiscoveredJava::remove(&entry.java.path, &state.pool)
+                        .await?;
+                }
+            }
+            None => {
+                DiscoveredJava::remove(&entry.java.path, &state.pool).await?;
+            }
+        }
+    }
+
+    Ok(valid)
+}
+
+// Runs a full system scan and replaces the discovery cache with its results
+async fn refresh_discovered_javas(
+    state: &State,
+) -> crate::Result<Vec<JavaVersion>> {
+    let jres = jre::get_all_jre().await?;
+
+    let previous: HashSet<(String, String)> =
+        DiscoveredJava::get_all(&state.pool)
+            .await?
+            .into_iter()
+            .map(|entry| (entry.java.path, entry.java.version))
+            .collect();
+
+    let entries: Vec<DiscoveredJava> = jres
+        .iter()
+        .filter_map(|java| DiscoveredJava::from_java(java.clone()))
+        .collect();
+    DiscoveredJava::replace_all(&state.pool, &entries).await?;
+
+    let current: HashSet<(String, String)> = entries
+        .iter()
+        .map(|entry| (entry.java.path.clone(), entry.java.version.clone()))
+        .collect();
+    if current != previous {
+        let _ = emit_java_discovery_update(current.len()).await;
+    }
+
+    Ok(jres)
+}
+
+// Schedules a debounced background rescan of system Javas
+fn schedule_background_java_rescan() {
+    tokio::spawn(async {
+        let mut last_scan = JAVA_SCAN_STATE.lock().await;
+        if let Some(at) = *last_scan
+            && at.elapsed() < JAVA_RESCAN_DEBOUNCE
+        {
+            return;
+        }
+
+        let Ok(state) = State::get().await else {
+            return;
+        };
+        match refresh_discovered_javas(&state).await {
+            Ok(_) => *last_scan = Some(Instant::now()),
+            Err(e) => {
+                tracing::warn!("Background Java rescan failed: {e}");
+            }
+        }
+    });
+}
+
+/// Looks up a previously discovered Java matching `major_version` and
+/// re-verifies it before returning, so instance launches can reuse an
+/// existing installation instead of downloading a new runtime.
+pub async fn find_cached_java(
+    major_version: u32,
+) -> crate::Result<Option<JavaVersion>> {
+    let state = State::get().await?;
+
+    for entry in DiscoveredJava::get_all(&state.pool).await? {
+        if entry.java.parsed_version != major_version {
+            continue;
+        }
+        let path = PathBuf::from(&entry.java.path);
+        if let Ok(java) = jre::check_java_at_filepath(&path).await
+            && java.parsed_version == major_version
+        {
+            return Ok(Some(java));
+        }
+    }
+
+    Ok(None)
 }
 
 pub async fn auto_install_java(java_version: u32) -> crate::Result<PathBuf> {

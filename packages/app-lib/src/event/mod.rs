@@ -198,6 +198,12 @@ pub struct WarningPayload {
 }
 
 #[derive(Serialize, Clone)]
+#[cfg(feature = "tauri")]
+pub struct JavaDiscoveryPayload {
+    pub count: usize,
+}
+
+#[derive(Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct InstanceBulkUpdateProgressPayload {
     pub instance_id: String,
