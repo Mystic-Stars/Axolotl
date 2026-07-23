@@ -1,4 +1,8 @@
 use crate::State;
+use crate::api::content_search::{
+    chinese_file_title_for_modrinth_slug, localized_content_relative_path,
+    original_content_relative_path,
+};
 use crate::event::emit::loading_try_for_each_concurrent;
 use crate::install::{
     InstallErrorContext, InstallJobEventKind, InstallPhaseDetails,
@@ -9,9 +13,10 @@ use crate::pack::install_from::{
     EnvType, PackFile, PackFileHash, set_instance_information,
 };
 use crate::state::instances::ContentSourceKind;
+use crate::state::instances::adapters::sqlite::content_rows;
 use crate::state::{
-    CachedEntry, CachedFile, EditInstance, InstanceInstallStage, SideType,
-    cache_file_hash_metadata,
+    CachedEntry, CachedFile, EditInstance, InstanceInstallStage, Settings,
+    SideType, cache_file_hash_metadata,
 };
 use crate::util::fetch::{
     DownloadMeta, DownloadReason, DownloadRequest, FetchProgressFn, Integrity,
@@ -23,7 +28,7 @@ use async_zip::base::read::{WithEntry, ZipEntryReader};
 use async_zip::tokio::read::fs::ZipFileReader as FsZipFileReader;
 use futures::StreamExt;
 use path_util::SafeRelativeUtf8UnixPathBuf;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::future::Future;
 use std::pin::Pin;
 use std::sync::{
@@ -57,11 +62,87 @@ struct ModpackContentInstallContext {
     download_source: Arc<Mutex<Option<String>>>,
     fallback_count: Arc<AtomicU64>,
     file_infos_by_hash: Arc<HashMap<String, CachedFile>>,
+    chinese_titles_by_sha1: Arc<HashMap<String, String>>,
+    existing_paths_by_original: Arc<HashMap<String, String>>,
     num_files: usize,
     content_total_bytes: u64,
 }
 
+/// Maps manifest file hashes to sanitized Chinese titles by resolving the
+/// files' Modrinth projects from cache. Failures only disable the naming.
+async fn resolve_chinese_titles_by_sha1(
+    file_infos_by_hash: &HashMap<String, CachedFile>,
+    state: &State,
+) -> HashMap<String, String> {
+    let project_ids = file_infos_by_hash
+        .values()
+        .map(|file| file.project_id.as_str())
+        .collect::<HashSet<_>>()
+        .into_iter()
+        .collect::<Vec<_>>();
+    if project_ids.is_empty() {
+        return HashMap::new();
+    }
+    let projects = match CachedEntry::get_project_many(
+        &project_ids,
+        None,
+        &state.pool,
+        &state.api_semaphore,
+    )
+    .await
+    {
+        Ok(projects) => projects,
+        Err(error) => {
+            tracing::warn!(
+                "Failed to resolve project metadata for Chinese content file names: {error}"
+            );
+            return HashMap::new();
+        }
+    };
+    let titles_by_project_id = projects
+        .into_iter()
+        .filter_map(|project| {
+            let slug = project.slug?;
+            let title = chinese_file_title_for_modrinth_slug(&slug)?;
+            Some((project.id, title))
+        })
+        .collect::<HashMap<_, _>>();
+    file_infos_by_hash
+        .iter()
+        .filter_map(|(sha1, file)| {
+            titles_by_project_id
+                .get(&file.project_id)
+                .map(|title| (sha1.clone(), title.clone()))
+        })
+        .collect()
+}
+
 impl ModpackContentInstallContext {
+    /// Picks the instance-relative install path for a pack file. Paths already
+    /// recorded for this instance win so repairs and locale switches never
+    /// produce duplicate files; new content files get a `[中文名]` prefix when
+    /// Chinese file naming is active.
+    fn resolve_install_path(&self, file: &PackFile) -> String {
+        let manifest_path = file.path.as_str();
+        if let Some(existing) =
+            self.existing_paths_by_original.get(manifest_path)
+        {
+            return existing.clone();
+        }
+        if ProjectType::get_from_parent_folder(manifest_path).is_none() {
+            return manifest_path.to_string();
+        }
+        let Some(title) = file
+            .hashes
+            .get(&PackFileHash::Sha1)
+            .and_then(|sha1| self.chinese_titles_by_sha1.get(sha1))
+        else {
+            return manifest_path.to_string();
+        };
+        localized_content_relative_path(manifest_path, title)
+            .unwrap_or_else(|| manifest_path.to_string())
+    }
+
     async fn report_download_attempt(
         &self,
         path: String,
@@ -616,6 +697,25 @@ pub(crate) async fn install_zipped_mrpack_files_with_reporter(
         .map(|file| (file.hash.clone(), file))
         .collect::<HashMap<_, _>>(),
     );
+    let chinese_naming_enabled =
+        Settings::get(&state.pool).await?.locale == "zh-CN";
+    let chinese_titles_by_sha1 = Arc::new(if chinese_naming_enabled {
+        resolve_chinese_titles_by_sha1(&file_infos_by_hash, &state).await
+    } else {
+        HashMap::new()
+    });
+    let existing_paths_by_original = Arc::new(
+        content_rows::get_instance_files(&instance_id, &state.pool)
+            .await?
+            .into_iter()
+            .map(|file| {
+                (
+                    original_content_relative_path(&file.relative_path),
+                    file.relative_path,
+                )
+            })
+            .collect::<HashMap<_, _>>(),
+    );
     let content_context = ModpackContentInstallContext {
         instance_id: instance_id.clone(),
         instance_path: instance_path.clone(),
@@ -631,6 +731,8 @@ pub(crate) async fn install_zipped_mrpack_files_with_reporter(
         download_source: Arc::new(Mutex::new(None)),
         fallback_count: Arc::new(AtomicU64::new(0)),
         file_infos_by_hash,
+        chinese_titles_by_sha1,
+        existing_paths_by_original,
         num_files,
         content_total_bytes,
     };
@@ -645,10 +747,10 @@ pub(crate) async fn install_zipped_mrpack_files_with_reporter(
             let content_context = content_context.clone();
             async move {
                 let project_size = project.file_size as u64;
-                let project_path = project.path.as_str().to_string();
-                let target_path = content_context
-                    .instance_full_path
-                    .join(project.path.as_str());
+                let project_path =
+                    content_context.resolve_install_path(&project);
+                let target_path =
+                    content_context.instance_full_path.join(&project_path);
 
                 //TODO: Future update: prompt user for optional files in a modpack
                 if let Some(env) = project.env.as_ref()
@@ -821,7 +923,7 @@ pub(crate) async fn install_zipped_mrpack_files_with_reporter(
                             context.clone(),
                             cache_file_hash_metadata(
                                 &content_context.instance_path,
-                                project.path.as_str(),
+                                &project_path,
                                 downloaded_bytes,
                                 sha1.clone(),
                                 ProjectType::get_from_parent_folder(&path),
@@ -845,7 +947,7 @@ pub(crate) async fn install_zipped_mrpack_files_with_reporter(
                             context.clone(),
                             crate::state::instances::commands::record_project_file(
                                 &content_context.instance_id,
-                                project.path.as_str(),
+                                &project_path,
                                 &sha1,
                                 downloaded_bytes,
                                 project_type,

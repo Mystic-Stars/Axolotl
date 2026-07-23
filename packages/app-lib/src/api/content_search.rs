@@ -140,12 +140,141 @@ fn build_chinese_name_index(entries: &[WikiEntry]) -> ChineseNameIndex {
     }
 }
 
+const MAX_LOCALIZED_FILE_NAME_BYTES: usize = 200;
+
+/// Resolves the Chinese title used for `[中文名]` file-name prefixes from a
+/// Modrinth project slug.
+pub fn chinese_file_title_for_modrinth_slug(slug: &str) -> Option<String> {
+    CHINESE_NAME_INDEX
+        .modrinth
+        .get(&slug.to_lowercase())
+        .and_then(|name| chinese_file_title(name))
+}
+
+/// Resolves the Chinese title used for `[中文名]` file-name prefixes from a
+/// CurseForge project slug.
+pub fn chinese_file_title_for_curseforge_slug(slug: &str) -> Option<String> {
+    CHINESE_NAME_INDEX
+        .curseforge
+        .get(&slug.to_lowercase())
+        .and_then(|name| chinese_file_title(name))
+}
+
+/// Prefixes a downloaded content file name with `[chinese_title]`.
+///
+/// Returns `None` whenever renaming would be ambiguous or unsafe (the name
+/// already carries a `[` prefix, the title has no Chinese characters, or the
+/// result would exceed file-system name limits); callers must then keep the
+/// original name.
+pub fn localized_content_file_name(
+    file_name: &str,
+    chinese_title: &str,
+) -> Option<String> {
+    if file_name.is_empty() || file_name.starts_with('[') {
+        return None;
+    }
+    if chinese_title.is_empty()
+        || !contains_chinese(chinese_title)
+        || chinese_title.contains(['[', ']', '/', '\\'])
+    {
+        return None;
+    }
+    let localized = format!("[{chinese_title}]{file_name}");
+    (localized.len() <= MAX_LOCALIZED_FILE_NAME_BYTES).then_some(localized)
+}
+
+/// Strips the `[中文名]` marker this app prepends to downloaded content
+/// files. Names without such a marker are returned unchanged.
+pub fn original_content_file_name(file_name: &str) -> &str {
+    let Some(rest) = file_name.strip_prefix('[') else {
+        return file_name;
+    };
+    let Some((title, original)) = rest.split_once(']') else {
+        return file_name;
+    };
+    if original.is_empty() || !contains_chinese(title) {
+        return file_name;
+    }
+    original
+}
+
+/// Applies `[chinese_title]` to the file-name segment of an instance-relative
+/// path, keeping the directory prefix untouched.
+pub fn localized_content_relative_path(
+    relative_path: &str,
+    chinese_title: &str,
+) -> Option<String> {
+    let (directory, file_name) = match relative_path.rsplit_once('/') {
+        Some((directory, file_name)) => (Some(directory), file_name),
+        None => (None, relative_path),
+    };
+    let localized = localized_content_file_name(file_name, chinese_title)?;
+    Some(match directory {
+        Some(directory) => format!("{directory}/{localized}"),
+        None => localized,
+    })
+}
+
+/// Strips the `[中文名]` marker from the file-name segment of an
+/// instance-relative path, e.g. when exporting a modpack.
+pub fn original_content_relative_path(relative_path: &str) -> String {
+    match relative_path.rsplit_once('/') {
+        Some((directory, file_name)) => {
+            format!("{directory}/{}", original_content_file_name(file_name))
+        }
+        None => original_content_file_name(relative_path).to_string(),
+    }
+}
+
+fn chinese_file_title(chinese_name: &str) -> Option<String> {
+    const ILLEGAL_CHARACTERS: &str = r#"/\:*?"<>|[]"#;
+    let stripped = strip_english_alias(chinese_name);
+    let sanitized = stripped
+        .chars()
+        .filter(|character| {
+            !character.is_control()
+                && !ILLEGAL_CHARACTERS.contains(*character)
+        })
+        .collect::<String>();
+    let trimmed = sanitized.trim();
+    (!trimmed.is_empty() && contains_chinese(trimmed))
+        .then(|| trimmed.to_string())
+}
+
+/// Removes the trailing ` (English Name)` alias that wiki entries append to
+/// their Chinese names, mirroring the frontend `bilingualTitle` helper.
+fn strip_english_alias(name: &str) -> &str {
+    let trimmed = name.trim_end();
+    let Some(without_paren) = trimmed.strip_suffix(')') else {
+        return trimmed;
+    };
+    let Some(open_index) = without_paren.rfind('(') else {
+        return trimmed;
+    };
+    let inner = &without_paren[open_index + 1..];
+    if inner.contains(['(', ')'])
+        || !inner.chars().any(|character| character.is_ascii_alphabetic())
+    {
+        return trimmed;
+    }
+    let prefix = &without_paren[..open_index];
+    let stripped = prefix.trim_end();
+    if stripped.is_empty() || stripped.len() == prefix.len() {
+        return trimmed;
+    }
+    stripped
+}
+
+fn contains_chinese(value: &str) -> bool {
+    value
+        .chars()
+        .any(|character| ('\u{4e00}'..='\u{9fbb}').contains(&character))
+}
+
 pub fn resolve_chinese_content_search(query: &str) -> ChineseSearchResolution {
     let lowercase_query = query.trim().to_lowercase();
     let normalized_query = zhconv(&lowercase_query, Variant::ZhCN);
-    let is_chinese = normalized_query
-        .chars()
-        .any(|character| ('\u{4e00}'..='\u{9fbb}').contains(&character));
+    let is_chinese = contains_chinese(&normalized_query);
 
     if normalized_query.is_empty() || !is_chinese {
         return ChineseSearchResolution {
@@ -686,6 +815,74 @@ mod tests {
         let index = build_chinese_name_index(&entries);
         assert!(index.modrinth.is_empty());
         assert!(index.curseforge.is_empty());
+    }
+
+    #[test]
+    fn file_titles_strip_english_aliases() {
+        assert_eq!(
+            chinese_file_title_for_modrinth_slug("ae2").as_deref(),
+            Some("应用能源2")
+        );
+        assert_eq!(
+            chinese_file_title_for_curseforge_slug("the-twilight-forest")
+                .as_deref(),
+            Some("暮色森林")
+        );
+        assert_eq!(chinese_file_title_for_modrinth_slug("unknown-slug"), None);
+    }
+
+    #[test]
+    fn localizes_content_file_names() {
+        assert_eq!(
+            localized_content_file_name("sodium-0.5.8.jar", "钠").as_deref(),
+            Some("[钠]sodium-0.5.8.jar")
+        );
+        assert_eq!(localized_content_file_name("[1.19]mod.jar", "钠"), None);
+        assert_eq!(localized_content_file_name("mod.jar", "Sodium"), None);
+        assert_eq!(localized_content_file_name("mod.jar", "钠]x"), None);
+        assert_eq!(localized_content_file_name("", "钠"), None);
+        let oversized_title = "钠".repeat(80);
+        assert_eq!(
+            localized_content_file_name("mod.jar", &oversized_title),
+            None
+        );
+    }
+
+    #[test]
+    fn recovers_original_content_file_names() {
+        assert_eq!(
+            original_content_file_name("[钠]sodium-0.5.8.jar"),
+            "sodium-0.5.8.jar"
+        );
+        assert_eq!(
+            original_content_file_name("[1.19]mod.jar"),
+            "[1.19]mod.jar"
+        );
+        assert_eq!(original_content_file_name("[钠]"), "[钠]");
+        assert_eq!(original_content_file_name("plain.jar"), "plain.jar");
+    }
+
+    #[test]
+    fn localizes_and_recovers_relative_paths() {
+        assert_eq!(
+            localized_content_relative_path("mods/sodium-0.5.8.jar", "钠")
+                .as_deref(),
+            Some("mods/[钠]sodium-0.5.8.jar")
+        );
+        assert_eq!(
+            original_content_relative_path("mods/[钠]sodium-0.5.8.jar"),
+            "mods/sodium-0.5.8.jar"
+        );
+        assert_eq!(
+            original_content_relative_path(
+                "saves/world/datapacks/[钠]pack.zip"
+            ),
+            "saves/world/datapacks/pack.zip"
+        );
+        assert_eq!(
+            original_content_relative_path("mods/plain.jar"),
+            "mods/plain.jar"
+        );
     }
 
     #[test]
