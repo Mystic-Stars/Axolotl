@@ -49,14 +49,6 @@ const FILE_TRANSFER_FIRST_BYTE_TIMEOUT: time::Duration =
 #[cfg(test)]
 const FILE_TRANSFER_FIRST_BYTE_TIMEOUT: time::Duration =
     time::Duration::from_millis(250);
-#[cfg(not(test))]
-const FILE_TRANSFER_IDLE_TIMEOUT: time::Duration =
-    time::Duration::from_secs(60);
-#[cfg(test)]
-const FILE_TRANSFER_IDLE_TIMEOUT: time::Duration =
-    time::Duration::from_millis(250);
-const FILE_TRANSFER_PROGRESS_LOG_INTERVAL: time::Duration =
-    time::Duration::from_secs(15);
 const MIRROR_REQUEST_START_INTERVAL: time::Duration =
     time::Duration::from_millis(100);
 
