@@ -1,292 +1,298 @@
 <script setup lang="ts">
-import { CheckIcon, KeyIcon, PlugIcon, TrashIcon } from '@modrinth/assets'
-import {
-	ButtonStyled,
-	Combobox,
-	defineMessages,
-	injectNotificationManager,
-	LOCALES,
-	StyledInput,
-	Toggle,
-	useVIntl,
-} from '@modrinth/ui'
-import { computed, onUnmounted, ref, watch } from 'vue'
+	import { CheckIcon, KeyIcon, PlugIcon, TrashIcon } from '@modrinth/assets'
+	import {
+		ButtonStyled,
+		Combobox,
+		defineMessages,
+		injectNotificationManager,
+		LOCALES,
+		StyledInput,
+		Toggle,
+		useVIntl,
+	} from '@modrinth/ui'
+	import { computed, onUnmounted, ref, watch } from 'vue'
 
-import {
-	clearTranslationCache,
-	getTranslationErrorKind,
-	getTranslationSettings,
-	setTranslationSecret,
-	testTranslationProvider,
-	type TranslationProvider,
-	type TranslationStyle,
-	updateTranslationSettings,
-} from '@/helpers/translation'
+	import {
+		clearTranslationCache,
+		getTranslationErrorKind,
+		getTranslationSettings,
+		setTranslationSecret,
+		testTranslationProvider,
+		type TranslationProvider,
+		type TranslationStyle,
+		updateTranslationSettings,
+	} from '@/helpers/translation'
 
-const { formatMessage } = useVIntl()
-const { handleError } = injectNotificationManager()
-const settings = ref(await getTranslationSettings())
-const openaiSecret = ref('')
-const status = ref('')
-const testing = ref(false)
-let saveTimer: ReturnType<typeof setTimeout> | undefined
+	const { formatMessage } = useVIntl()
+	const { handleError } = injectNotificationManager()
+	const settings = ref(await getTranslationSettings())
+	const openaiSecret = ref('')
+	const status = ref('')
+	const testing = ref(false)
+	let saveTimer: ReturnType<typeof setTimeout> | undefined
 
-const messages = defineMessages({
-	title: { id: 'app.translation-settings.title', defaultMessage: 'Translation' },
-	description: {
-		id: 'app.translation-settings.description',
-		defaultMessage:
-			'Translate Modrinth project titles, summaries, and descriptions while browsing content.',
-	},
-	provider: { id: 'app.translation-settings.provider', defaultMessage: 'Translation service' },
-	microsoft: {
-		id: 'app.translation-settings.provider.microsoft',
-		defaultMessage: 'Microsoft Translate (free)',
-	},
-	google: {
-		id: 'app.translation-settings.provider.google',
-		defaultMessage: 'Google Translate (free)',
-	},
-	openai: {
-		id: 'app.translation-settings.provider.openai-compatible',
-		defaultMessage: 'OpenAI compatible',
-	},
-	targetLanguage: {
-		id: 'app.translation-settings.target-language',
-		defaultMessage: 'Target language',
-	},
-	followApp: {
-		id: 'app.translation-settings.target-language.follow-app',
-		defaultMessage: 'Follow launcher language',
-	},
-	displayMode: {
-		id: 'app.translation-settings.display-mode',
-		defaultMessage: 'Display mode',
-	},
-	bilingual: {
-		id: 'app.translation-settings.display-mode.bilingual',
-		defaultMessage: 'Original and translation',
-	},
-	translationOnly: {
-		id: 'app.translation-settings.display-mode.translation-only',
-		defaultMessage: 'Translation only',
-	},
-	autoTranslate: {
-		id: 'app.translation-settings.auto-translate',
-		defaultMessage: 'Translate project pages automatically',
-	},
-	autoTranslateDescription: {
-		id: 'app.translation-settings.auto-translate-description',
-		defaultMessage: 'Start translating as soon as a Modrinth project page is opened.',
-	},
-	style: { id: 'app.translation-settings.style', defaultMessage: 'Translation style' },
-	styleDefault: { id: 'app.translation-settings.style.default', defaultMessage: 'Default' },
-	styleWeakened: { id: 'app.translation-settings.style.weakened', defaultMessage: 'Muted' },
-	styleBrand: { id: 'app.translation-settings.style.brand', defaultMessage: 'Accent color' },
-	styleBorder: { id: 'app.translation-settings.style.border', defaultMessage: 'Left border' },
-	styleBackground: {
-		id: 'app.translation-settings.style.background',
-		defaultMessage: 'Background',
-	},
-	stylePreview: {
-		id: 'app.translation-settings.style.preview',
-		defaultMessage: 'Preview',
-	},
-	stylePreviewOriginalText: {
-		id: 'app.translation-settings.style.preview-original-text',
-		defaultMessage: 'Explore high-quality Minecraft content on Modrinth.',
-	},
-	stylePreviewText: {
-		id: 'app.translation-settings.style.preview-text',
-		defaultMessage: 'Discover high-quality Minecraft content on Modrinth.',
-	},
-	openaiConfiguration: {
-		id: 'app.translation-settings.openai.configuration',
-		defaultMessage: 'OpenAI-compatible configuration',
-	},
-	baseUrl: { id: 'app.translation-settings.base-url', defaultMessage: 'Base URL' },
-	model: { id: 'app.translation-settings.model', defaultMessage: 'Model' },
-	apiKey: { id: 'app.translation-settings.api-key', defaultMessage: 'API key' },
-	apiKeyConfigured: {
-		id: 'app.translation-settings.api-key-configured',
-		defaultMessage: 'An API key is already configured. Enter a new value to replace it.',
-	},
-	apiKeyOptional: {
-		id: 'app.translation-settings.api-key-optional',
-		defaultMessage: 'Optional for local or unauthenticated endpoints.',
-	},
-	saveKey: { id: 'app.translation-settings.save-key', defaultMessage: 'Save API key' },
-	clearKey: { id: 'app.translation-settings.clear-key', defaultMessage: 'Clear API key' },
-	test: { id: 'app.translation-settings.test', defaultMessage: 'Test service' },
-	testing: { id: 'app.translation-settings.testing', defaultMessage: 'Testing…' },
-	testSuccess: {
-		id: 'app.translation-settings.test-success',
-		defaultMessage: 'Connection succeeded: {translation}',
-	},
-	cache: { id: 'app.translation-settings.cache', defaultMessage: 'Translation cache' },
-	cacheDescription: {
-		id: 'app.translation-settings.cache-description',
-		defaultMessage: 'Successful translations are cached for seven days to reduce requests.',
-	},
-	clearCache: {
-		id: 'app.translation-settings.clear-cache',
-		defaultMessage: 'Clear translation cache',
-	},
-	cacheCleared: {
-		id: 'app.translation-settings.cache-cleared',
-		defaultMessage: 'Translation cache cleared.',
-	},
-	operationFailed: {
-		id: 'app.translation-settings.operation-failed',
-		defaultMessage: 'The translation operation failed. Check the configuration and try again.',
-	},
-	rateLimited: {
-		id: 'app.translation.error.rate-limited',
-		defaultMessage: 'The translation service is temporarily rate limited. Please try again later.',
-	},
-	authenticationFailed: {
-		id: 'app.translation.error.authentication',
-		defaultMessage: 'The translation service could not authenticate. Please try again later.',
-	},
-	contentTooLong: {
-		id: 'app.translation.error.content-too-long',
-		defaultMessage: 'This content is too long for the selected translation service.',
-	},
-	networkFailed: {
-		id: 'app.translation.error.network',
-		defaultMessage: 'The translation service could not be reached. Check your network or proxy.',
-	},
-})
+	const messages = defineMessages({
+		title: { id: 'app.translation-settings.title', defaultMessage: 'Translation' },
+		description: {
+			id: 'app.translation-settings.description',
+			defaultMessage:
+				'Translate Modrinth project titles, summaries, and descriptions while browsing content.',
+		},
+		provider: { id: 'app.translation-settings.provider', defaultMessage: 'Translation service' },
+		microsoft: {
+			id: 'app.translation-settings.provider.microsoft',
+			defaultMessage: 'Microsoft Translate (free)',
+		},
+		google: {
+			id: 'app.translation-settings.provider.google',
+			defaultMessage: 'Google Translate (free)',
+		},
+		openai: {
+			id: 'app.translation-settings.provider.openai-compatible',
+			defaultMessage: 'OpenAI compatible',
+		},
+		targetLanguage: {
+			id: 'app.translation-settings.target-language',
+			defaultMessage: 'Target language',
+		},
+		followApp: {
+			id: 'app.translation-settings.target-language.follow-app',
+			defaultMessage: 'Follow launcher language',
+		},
+		displayMode: {
+			id: 'app.translation-settings.display-mode',
+			defaultMessage: 'Display mode',
+		},
+		bilingual: {
+			id: 'app.translation-settings.display-mode.bilingual',
+			defaultMessage: 'Original and translation',
+		},
+		translationOnly: {
+			id: 'app.translation-settings.display-mode.translation-only',
+			defaultMessage: 'Translation only',
+		},
+		autoTranslate: {
+			id: 'app.translation-settings.auto-translate',
+			defaultMessage: 'Translate project pages automatically',
+		},
+		autoTranslateDescription: {
+			id: 'app.translation-settings.auto-translate-description',
+			defaultMessage: 'Start translating as soon as a Modrinth project page is opened.',
+		},
+		style: { id: 'app.translation-settings.style', defaultMessage: 'Translation style' },
+		styleDefault: { id: 'app.translation-settings.style.default', defaultMessage: 'Default' },
+		styleWeakened: { id: 'app.translation-settings.style.weakened', defaultMessage: 'Muted' },
+		styleBrand: { id: 'app.translation-settings.style.brand', defaultMessage: 'Accent color' },
+		styleBorder: { id: 'app.translation-settings.style.border', defaultMessage: 'Left border' },
+		styleBackground: {
+			id: 'app.translation-settings.style.background',
+			defaultMessage: 'Background',
+		},
+		stylePreview: {
+			id: 'app.translation-settings.style.preview',
+			defaultMessage: 'Preview',
+		},
+		stylePreviewOriginalText: {
+			id: 'app.translation-settings.style.preview-original-text',
+			defaultMessage: 'Explore high-quality Minecraft content on Modrinth.',
+		},
+		stylePreviewText: {
+			id: 'app.translation-settings.style.preview-text',
+			defaultMessage: 'Discover high-quality Minecraft content on Modrinth.',
+		},
+		openaiConfiguration: {
+			id: 'app.translation-settings.openai.configuration',
+			defaultMessage: 'OpenAI-compatible configuration',
+		},
+		baseUrl: { id: 'app.translation-settings.base-url', defaultMessage: 'Base URL' },
+		model: { id: 'app.translation-settings.model', defaultMessage: 'Model' },
+		apiKey: { id: 'app.translation-settings.api-key', defaultMessage: 'API key' },
+		apiKeyConfigured: {
+			id: 'app.translation-settings.api-key-configured',
+			defaultMessage: 'An API key is already configured. Enter a new value to replace it.',
+		},
+		systemPrompt: { id: 'app.translation-settings.system-prompt', defaultMessage: '系统提示词' },
+		systemPromptDescription: {
+			id: 'app.translation-settings.system-prompt-description',
+			defaultMessage:
+				'输入你的自定义系统提示词，留空则使用默认提示词',
+		},
+		apiKeyOptional: {
+			id: 'app.translation-settings.api-key-optional',
+			defaultMessage: 'Optional for local or unauthenticated endpoints.',
+		},
+		saveKey: { id: 'app.translation-settings.save-key', defaultMessage: 'Save API key' },
+		clearKey: { id: 'app.translation-settings.clear-key', defaultMessage: 'Clear API key' },
+		test: { id: 'app.translation-settings.test', defaultMessage: 'Test service' },
+		testing: { id: 'app.translation-settings.testing', defaultMessage: 'Testing…' },
+		testSuccess: {
+			id: 'app.translation-settings.test-success',
+			defaultMessage: 'Connection succeeded: {translation}',
+		},
+		cache: { id: 'app.translation-settings.cache', defaultMessage: 'Translation cache' },
+		cacheDescription: {
+			id: 'app.translation-settings.cache-description',
+			defaultMessage: 'Successful translations are cached for seven days to reduce requests.',
+		},
+		clearCache: {
+			id: 'app.translation-settings.clear-cache',
+			defaultMessage: 'Clear translation cache',
+		},
+		cacheCleared: {
+			id: 'app.translation-settings.cache-cleared',
+			defaultMessage: 'Translation cache cleared.',
+		},
+		operationFailed: {
+			id: 'app.translation-settings.operation-failed',
+			defaultMessage: 'The translation operation failed. Check the configuration and try again.',
+		},
+		rateLimited: {
+			id: 'app.translation.error.rate-limited',
+			defaultMessage: 'The translation service is temporarily rate limited. Please try again later.',
+		},
+		authenticationFailed: {
+			id: 'app.translation.error.authentication',
+			defaultMessage: 'The translation service could not authenticate. Please try again later.',
+		},
+		contentTooLong: {
+			id: 'app.translation.error.content-too-long',
+			defaultMessage: 'This content is too long for the selected translation service.',
+		},
+		networkFailed: {
+			id: 'app.translation.error.network',
+			defaultMessage: 'The translation service could not be reached. Check your network or proxy.',
+		},
+	})
 
-const providers: TranslationProvider[] = ['microsoft', 'google', 'openai-compatible']
-const modes = ['bilingual', 'translation-only'] as const
-const styles: TranslationStyle[] = ['default', 'weakened', 'brand', 'border', 'background']
-const languages = ['follow-app', ...LOCALES.map((locale) => locale.code)]
+	const providers: TranslationProvider[] = ['microsoft', 'google', 'openai-compatible']
+	const modes = ['bilingual', 'translation-only'] as const
+	const styles: TranslationStyle[] = ['default', 'weakened', 'brand', 'border', 'background']
+	const languages = ['follow-app', ...LOCALES.map((locale) => locale.code)]
 
-const targetLanguage = computed({
-	get: () => settings.value.target_language || 'follow-app',
-	set: (value: string) => {
-		settings.value.target_language = value === 'follow-app' ? '' : value
-	},
-})
+	const targetLanguage = computed({
+		get: () => settings.value.target_language || 'follow-app',
+		set: (value: string) => {
+			settings.value.target_language = value === 'follow-app' ? '' : value
+		},
+	})
 
-function providerName(provider: TranslationProvider) {
-	return formatMessage(
-		{
-			microsoft: messages.microsoft,
-			google: messages.google,
-			'openai-compatible': messages.openai,
-		}[provider],
+	function providerName(provider: TranslationProvider) {
+		return formatMessage(
+			{
+				microsoft: messages.microsoft,
+				google: messages.google,
+				'openai-compatible': messages.openai,
+			}[provider],
+		)
+	}
+
+	function languageName(code: string) {
+		if (code === 'follow-app') return formatMessage(messages.followApp)
+		const locale = LOCALES.find((locale) => locale.code === code)
+		return locale ? `${locale.name} — ${formatMessage(locale.translatedName)}` : code
+	}
+
+	function modeName(mode: string) {
+		return formatMessage(mode === 'bilingual' ? messages.bilingual : messages.translationOnly)
+	}
+
+	function styleName(style: TranslationStyle) {
+		return formatMessage(
+			{
+				default: messages.styleDefault,
+				weakened: messages.styleWeakened,
+				brand: messages.styleBrand,
+				border: messages.styleBorder,
+				background: messages.styleBackground,
+			}[style],
+		)
+	}
+
+	const providerOptions = computed(() =>
+		providers.map((provider) => ({ value: provider, label: providerName(provider) })),
 	)
-}
-
-function languageName(code: string) {
-	if (code === 'follow-app') return formatMessage(messages.followApp)
-	const locale = LOCALES.find((locale) => locale.code === code)
-	return locale ? `${locale.name} — ${formatMessage(locale.translatedName)}` : code
-}
-
-function modeName(mode: string) {
-	return formatMessage(mode === 'bilingual' ? messages.bilingual : messages.translationOnly)
-}
-
-function styleName(style: TranslationStyle) {
-	return formatMessage(
-		{
-			default: messages.styleDefault,
-			weakened: messages.styleWeakened,
-			brand: messages.styleBrand,
-			border: messages.styleBorder,
-			background: messages.styleBackground,
-		}[style],
+	const languageOptions = computed(() =>
+		languages.map((language) => ({ value: language, label: languageName(language) })),
 	)
-}
+	const modeOptions = computed(() => modes.map((mode) => ({ value: mode, label: modeName(mode) })))
+	const styleOptions = computed(() =>
+		styles.map((style) => ({ value: style, label: styleName(style) })),
+	)
+	const stylePreviewClass = computed(() => `translation-style-preview-${settings.value.style}`)
 
-const providerOptions = computed(() =>
-	providers.map((provider) => ({ value: provider, label: providerName(provider) })),
-)
-const languageOptions = computed(() =>
-	languages.map((language) => ({ value: language, label: languageName(language) })),
-)
-const modeOptions = computed(() => modes.map((mode) => ({ value: mode, label: modeName(mode) })))
-const styleOptions = computed(() =>
-	styles.map((style) => ({ value: style, label: styleName(style) })),
-)
-const stylePreviewClass = computed(() => `translation-style-preview-${settings.value.style}`)
-
-function reportOperationError(error?: unknown) {
-	const message = error
-		? {
+	function reportOperationError(error?: unknown) {
+		const message = error
+			? {
 				'rate-limited': messages.rateLimited,
 				authentication: messages.authenticationFailed,
 				'content-too-long': messages.contentTooLong,
 				network: messages.networkFailed,
 				provider: messages.operationFailed,
 			}[getTranslationErrorKind(error)]
-		: messages.operationFailed
-	handleError(formatMessage(message))
-}
-
-watch(
-	settings,
-	() => {
-		clearTimeout(saveTimer)
-		saveTimer = setTimeout(
-			() => void updateTranslationSettings(settings.value).catch(reportOperationError),
-			250,
-		)
-	},
-	{ deep: true },
-)
-
-onUnmounted(() => clearTimeout(saveTimer))
-
-async function saveSecret() {
-	try {
-		await setTranslationSecret('openai-compatible', openaiSecret.value)
-		settings.value.openai_has_api_key = !!openaiSecret.value.trim()
-		openaiSecret.value = ''
-		return true
-	} catch (error) {
-		reportOperationError(error)
-		return false
+			: messages.operationFailed
+		handleError(new Error(formatMessage(message)))
 	}
-}
 
-async function clearSecret() {
-	try {
-		await setTranslationSecret('openai-compatible', null)
-		settings.value.openai_has_api_key = false
-	} catch (error) {
-		reportOperationError(error)
-	}
-}
+	watch(
+		settings,
+		() => {
+			clearTimeout(saveTimer)
+			saveTimer = setTimeout(
+				() => void updateTranslationSettings(settings.value).catch(reportOperationError),
+				250,
+			)
+		},
+		{ deep: true },
+	)
 
-async function testProvider() {
-	testing.value = true
-	status.value = ''
-	try {
-		await updateTranslationSettings(settings.value)
-		if (settings.value.provider === 'openai-compatible' && openaiSecret.value) {
-			if (!(await saveSecret())) return
+	onUnmounted(() => clearTimeout(saveTimer))
+
+	async function saveSecret() {
+		try {
+			await setTranslationSecret('openai-compatible', openaiSecret.value)
+			settings.value.openai_has_api_key = !!openaiSecret.value.trim()
+			openaiSecret.value = ''
+			return true
+		} catch (error) {
+			reportOperationError(error)
+			return false
 		}
-		const result = await testTranslationProvider(settings.value.provider)
-		status.value = formatMessage(messages.testSuccess, { translation: result })
-	} catch (error) {
-		reportOperationError(error)
-	} finally {
-		testing.value = false
 	}
-}
 
-async function clearCache() {
-	try {
-		await clearTranslationCache()
-		status.value = formatMessage(messages.cacheCleared)
-	} catch (error) {
-		reportOperationError(error)
+	async function clearSecret() {
+		try {
+			await setTranslationSecret('openai-compatible', null)
+			settings.value.openai_has_api_key = false
+		} catch (error) {
+			reportOperationError(error)
+		}
 	}
-}
+
+	async function testProvider() {
+		testing.value = true
+		status.value = ''
+		try {
+			await updateTranslationSettings(settings.value)
+			if (settings.value.provider === 'openai-compatible' && openaiSecret.value) {
+				if (!(await saveSecret())) return
+			}
+			const result = await testTranslationProvider(settings.value.provider)
+			status.value = formatMessage(messages.testSuccess, { translation: result })
+		} catch (error) {
+			reportOperationError(error)
+		} finally {
+			testing.value = false
+		}
+	}
+
+	async function clearCache() {
+		try {
+			await clearTranslationCache()
+			status.value = formatMessage(messages.cacheCleared)
+		} catch (error) {
+			reportOperationError(error)
+		}
+	}
 </script>
 
 <template>
@@ -353,13 +359,11 @@ async function clearCache() {
 			</label>
 			<label class="flex flex-col gap-1.5 text-sm font-semibold">
 				{{ formatMessage(messages.apiKey) }}
-				<StyledInput
-					v-model="openaiSecret"
-					:icon="KeyIcon"
-					type="password"
-					autocomplete="off"
-					wrapper-class="w-full"
-				/>
+				<StyledInput v-model="openaiSecret"
+							 :icon="KeyIcon"
+							 type="password"
+							 autocomplete="off"
+							 wrapper-class="w-full" />
 			</label>
 			<p class="m-0 text-sm text-secondary">
 				{{
@@ -376,6 +380,17 @@ async function clearCache() {
 					<button @click="clearSecret"><TrashIcon />{{ formatMessage(messages.clearKey) }}</button>
 				</ButtonStyled>
 			</div>
+
+			<!-- 系统提示词：独立成行、固定高度、自动适配主题 -->
+			<label class="flex flex-col gap-1.5 text-sm font-semibold">
+				{{ formatMessage(messages.systemPrompt) }}
+				<textarea v-model="settings.openai_system_prompt"
+						  class="w-full h-24 resize-none rounded-[--radius-md] border border-[--color-surface-5] bg-[--color-bg] p-2 text-sm text-[--color-contrast] placeholder:text-[--color-secondary] focus:border-[--color-brand] focus:outline-none"
+						  rows="3" />
+			</label>
+			<p class="m-0 text-sm text-secondary">
+				{{ formatMessage(messages.systemPromptDescription) }}
+			</p>
 		</div>
 
 		<div class="flex flex-wrap items-center gap-2">
@@ -398,47 +413,47 @@ async function clearCache() {
 </template>
 
 <style scoped>
-.translation-style-preview-container {
-	display: flex;
-	flex-direction: column;
-	gap: 0.75rem;
-	width: 100%;
-	min-height: 6.5rem;
-	box-sizing: border-box;
-	padding: 1rem;
-	border: 1px solid var(--color-surface-5);
-	border-radius: var(--radius-lg);
-}
+	.translation-style-preview-container {
+		display: flex;
+		flex-direction: column;
+		gap: 0.75rem;
+		width: 100%;
+		min-height: 6.5rem;
+		box-sizing: border-box;
+		padding: 1rem;
+		border: 1px solid var(--color-surface-5);
+		border-radius: var(--radius-lg);
+	}
 
-.translation-style-preview-original,
-.translation-style-preview {
-	font-weight: 400;
-}
+	.translation-style-preview-original,
+	.translation-style-preview {
+		font-weight: 400;
+	}
 
-.translation-style-preview-original {
-	color: var(--color-text-primary);
-}
+	.translation-style-preview-original {
+		color: var(--color-text-primary);
+	}
 
-.translation-style-preview-default {
-	color: var(--color-text-primary);
-}
+	.translation-style-preview-default {
+		color: var(--color-text-primary);
+	}
 
-.translation-style-preview-weakened {
-	color: var(--color-secondary);
-}
+	.translation-style-preview-weakened {
+		color: var(--color-secondary);
+	}
 
-.translation-style-preview-brand {
-	color: var(--color-brand);
-}
+	.translation-style-preview-brand {
+		color: var(--color-brand);
+	}
 
-.translation-style-preview-border {
-	padding-left: 0.875rem;
-	border-left: 3px solid var(--color-brand);
-}
+	.translation-style-preview-border {
+		padding-left: 0.875rem;
+		border-left: 3px solid var(--color-brand);
+	}
 
-.translation-style-preview-background {
-	padding: 0.75rem 1rem;
-	border-radius: var(--radius-lg);
-	background: var(--color-button-bg);
-}
+	.translation-style-preview-background {
+		padding: 0.75rem 1rem;
+		border-radius: var(--radius-lg);
+		background: var(--color-button-bg);
+	}
 </style>

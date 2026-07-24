@@ -47,6 +47,7 @@ const translationOnlyClass = computed(() =>
 <style scoped>
 :deep(.ax-translation-block) {
 	margin-block: 0.5rem 1rem;
+	animation: translation-float-in 0.5s ease-out both;
 }
 
 :deep(.ax-translation-block > :first-child) {
@@ -94,4 +95,16 @@ const translationOnlyClass = computed(() =>
 	border-radius: var(--radius-lg);
 	background: var(--color-button-bg);
 }
+
+@keyframes translation-float-in {
+	from {
+		opacity: 0;
+		transform: translateY(12px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
 </style>

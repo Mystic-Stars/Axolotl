@@ -761,27 +761,55 @@ async function translateProject() {
 		translationStyle.value = settings.style
 		const prepared = prepareDescription(data.value.body ?? '')
 		const targetLanguage = settings.target_language || i18n.global.locale.value || 'en-US'
-		const response = await translateContent({
+		const baseRequest = {
 			source_language: 'auto',
 			target_language: targetLanguage,
 			context: {
 				title: data.value.title ?? '',
 				description: data.value.description ?? '',
 			},
-			segments: [
-				{ id: 'title', text: data.value.title ?? '', format: 'plain' },
-				{ id: 'description', text: data.value.description ?? '', format: 'plain' },
-				...prepared.segments,
-			],
-		})
+		}
+		const allSegments = [
+			{ id: 'title', text: data.value.title ?? '', format: 'plain' },
+			{ id: 'description', text: data.value.description ?? '', format: 'plain' },
+			...prepared.segments,
+		]
 
-		if (requestVersion !== translationRequestVersion) return
-		const translatedSegments = Object.fromEntries(
-			response.segments.map((segment) => [segment.id, segment.text]),
-		)
-		validateTranslatedDescription(prepared, translatedSegments)
-		translations.value = translatedSegments
 		translationActive.value = true
+		const accumulated = { ...translations.value }
+		const concurrency = 5 // 每批同时翻译5段
+		let hasError = false
+
+		for (let i = 0; i < allSegments.length; i += concurrency) {
+			if (requestVersion !== translationRequestVersion) return
+			const batch = allSegments.slice(i, i + concurrency)
+			const results = await Promise.allSettled(
+				batch.map((segment) =>
+					translateContent({ ...baseRequest, segments: [segment] }),
+				),
+			)
+			for (const result of results) {
+				if (result.status === 'fulfilled') {
+					for (const seg of result.value.segments) {
+						accumulated[seg.id] = seg.text
+					}
+				} else {
+					hasError = true
+				}
+			}
+			if (requestVersion !== translationRequestVersion) return
+			translations.value = { ...accumulated }
+			await new Promise((resolve) => setTimeout(resolve, 300))
+		}
+
+		if (hasError) {
+			console.warn('Some translation segments failed, showing partial results')
+		}
+
+		try {
+			validateTranslatedDescription(prepared, accumulated)
+		} catch {
+		}
 	} catch (error) {
 		if (requestVersion === translationRequestVersion) {
 			addNotification({
