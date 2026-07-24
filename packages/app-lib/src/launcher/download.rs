@@ -337,7 +337,13 @@ fn legacy_library_repository(artifact_path: &str) -> Option<&'static str> {
         Some(SPONGE_MAVEN)
     } else if artifact_path.starts_with("net/minecraft/launchwrapper/") {
         Some(LIBRARIES_MAVEN)
-    } else if artifact_path.starts_with("org/ow2/") {
+    } else if artifact_path.starts_with("org/ow2/")
+        || artifact_path.starts_with("org/scala-lang/")
+        || artifact_path.starts_with("org/jline/")
+        || artifact_path.starts_with("jline/")
+        || artifact_path.starts_with("net/java/dev/jna/")
+        || artifact_path.starts_with("com/typesafe/")
+    {
         Some(MAVEN_CENTRAL)
     } else if artifact_path.starts_with("com/modrinth/daedalus/") {
         Some(LAUNCHER_META_MAVEN)
@@ -1410,6 +1416,48 @@ mod tests {
     }
 
     #[test]
+    fn legacy_scala_libraries_use_maven_central() {
+        let artifact_path = "org/scala-lang/plugins/scala-continuations-library_2.11/1.0.2/scala-continuations-library_2.11-1.0.2.jar";
+        let expected = Some(
+            "https://repo.maven.apache.org/maven2/org/scala-lang/plugins/scala-continuations-library_2.11/1.0.2/scala-continuations-library_2.11-1.0.2.jar".to_string(),
+        );
+
+        assert_eq!(
+            legacy_library_download_url(
+                Some("https://launcher-meta.modrinth.com/maven"),
+                artifact_path,
+            ),
+            expected,
+        );
+        assert_eq!(
+            legacy_library_download_url(
+                Some("https://launcher-meta.modrinth.com/maven/"),
+                artifact_path,
+            ),
+            expected,
+        );
+    }
+
+    #[test]
+    fn legacy_forge_maven_central_groups_use_maven_central() {
+        for artifact_path in [
+            "org/jline/jline/3.5.1/jline-3.5.1.jar",
+            "jline/jline/2.13/jline-2.13.jar",
+            "net/java/dev/jna/jna/4.4.0/jna-4.4.0.jar",
+            "com/typesafe/akka/akka-actor_2.11/2.3.3/akka-actor_2.11-2.3.3.jar",
+            "com/typesafe/config/1.2.1/config-1.2.1.jar",
+        ] {
+            assert_eq!(
+                legacy_library_download_url(
+                    Some("https://launcher-meta.modrinth.com/maven"),
+                    artifact_path,
+                ),
+                Some(format!("{MAVEN_CENTRAL}/{artifact_path}")),
+            );
+        }
+    }
+
+    #[test]
     fn legacy_maven_download_rejects_unknown_repositories_and_paths() {
         assert_eq!(
             legacy_library_download_url(
@@ -1420,7 +1468,7 @@ mod tests {
         );
         assert_eq!(
             legacy_library_download_url(
-                Some("https://example.com/maven/"),
+                Some("https://example.invalid/maven"),
                 "net/fabricmc/intermediary/1.21.1/intermediary-1.21.1.jar",
             ),
             None,
