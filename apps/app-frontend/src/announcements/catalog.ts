@@ -66,6 +66,12 @@ export const launcherAnnouncements: readonly LauncherAnnouncement[] = [
 					'zh-CN':
 						'游戏语言现在会在实例首次启动时自动跟随启动器语言（包括导入的整合包），并按游戏版本写入正确的语言代码；已游玩过的实例仍保留游戏内的语言设置。',
 				},
+				{
+					'en-US':
+						'The left sidebar now animates the active highlight sliding between pages when switching sections, matching the content type tabs.',
+					'zh-CN':
+						'左侧导航栏切换页面时，选中高亮改为滑动过渡动画，与顶部内容类型标签栏保持一致。',
+				},
 			],
 			fixed: [
 				{
