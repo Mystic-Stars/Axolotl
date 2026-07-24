@@ -586,27 +586,52 @@ async function translateProject() {
 		translationStyle.value = settings.style
 		const prepared = prepareDescription(data.value.body ?? '', 'html')
 		const targetLanguage = settings.target_language || i18n.global.locale.value || 'en-US'
-		const response = await translateContent({
+		const baseRequest = {
 			source_language: 'auto',
 			target_language: targetLanguage,
 			context: {
 				title: data.value.title,
 				description: data.value.description,
 			},
-			segments: [
-				{ id: 'title', text: data.value.title, format: 'plain' },
-				{ id: 'description', text: data.value.description, format: 'plain' },
-				...prepared.segments,
-			],
-		})
+		}
+		const allSegments = [
+			{ id: 'title', text: data.value.title, format: 'plain' },
+			{ id: 'description', text: data.value.description, format: 'plain' },
+			...prepared.segments,
+		]
 
-		if (requestVersion !== translationRequestVersion) return
-		const translatedSegments = Object.fromEntries(
-			response.segments.map((segment) => [segment.id, segment.text]),
-		)
-		validateTranslatedDescription(prepared, translatedSegments)
-		translations.value = translatedSegments
 		translationActive.value = true
+		const accumulated = { ...translations.value }
+		const batchSize = 5
+		let hasError = false
+
+		for (let i = 0; i < allSegments.length; i += batchSize) {
+			if (requestVersion !== translationRequestVersion) return
+			const batch = allSegments.slice(i, i + batchSize)
+
+			try {
+				const res = await translateContent({ ...baseRequest, segments: batch })
+				for (const seg of res.segments) {
+					accumulated[seg.id] = seg.text
+				}
+			} catch {
+				hasError = true
+			}
+
+			if (requestVersion !== translationRequestVersion) return
+			translations.value = { ...accumulated }
+			await new Promise((resolve) => setTimeout(resolve, 300))
+		}
+
+		if (hasError) {
+			console.warn('Some translation batches failed, showing partial results')
+		}
+
+		try {
+			validateTranslatedDescription(prepared, accumulated)
+		} catch (validationError) {
+			console.warn('Translation validation failed, using partial results', validationError)
+		}
 	} catch (error) {
 		if (requestVersion === translationRequestVersion) {
 			addNotification({

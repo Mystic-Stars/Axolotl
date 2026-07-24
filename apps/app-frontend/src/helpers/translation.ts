@@ -17,6 +17,7 @@ export interface TranslationSettings {
 	openai_base_url: string
 	openai_model: string
 	openai_has_api_key: boolean
+	openai_system_prompt: string
 }
 
 export interface TranslationSegment {

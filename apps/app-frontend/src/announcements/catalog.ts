@@ -33,6 +33,40 @@ export const ANNOUNCEMENT_CHANGE_TYPES: readonly AnnouncementChangeType[] = [
 
 export const launcherAnnouncements: readonly LauncherAnnouncement[] = [
 	{
+		id: 'launcher-1.5.3',
+		version: '1.5.3',
+		publishedAt: '2026-07-24',
+		title: {
+			'en-US': 'Translation: custom system prompt & staggered animation',
+			'zh-CN': '翻译：自定义系统提示词与逐批动画',
+		},
+		changes: {
+			added: [
+				{
+					'en-US':
+						'You can now write a custom system prompt for OpenAI-compatible translation services (Settings > Translation).',
+					'zh-CN':
+						'现在可以在翻译设置中为 OpenAI 兼容服务编写自定义系统提示词。',
+				},
+				{
+					'en-US':
+						'Translation results now appear in staggered batches with a smooth floating animation.',
+					'zh-CN':
+						'翻译结果现在以逐批浮动动画显示，视觉体验更流畅。',
+				},
+			],
+			changed: [
+				{
+					'en-US':
+						'Translation requests are now sent in batches (5 segments per batch) to reduce API overhead.',
+					'zh-CN':
+						'翻译请求现在分批发送（每批5个段落），降低 API 调用频率。',
+				},
+			],
+		},
+	},
+
+	{
 		id: 'launcher-1.5.2',
 		version: '1.5.2',
 		publishedAt: '2026-07-23',

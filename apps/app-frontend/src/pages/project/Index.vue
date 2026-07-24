@@ -761,27 +761,55 @@ async function translateProject() {
 		translationStyle.value = settings.style
 		const prepared = prepareDescription(data.value.body ?? '')
 		const targetLanguage = settings.target_language || i18n.global.locale.value || 'en-US'
-		const response = await translateContent({
+		const baseRequest = {
 			source_language: 'auto',
 			target_language: targetLanguage,
 			context: {
 				title: data.value.title ?? '',
 				description: data.value.description ?? '',
 			},
-			segments: [
-				{ id: 'title', text: data.value.title ?? '', format: 'plain' },
-				{ id: 'description', text: data.value.description ?? '', format: 'plain' },
-				...prepared.segments,
-			],
-		})
+		}
+		const allSegments = [
+			{ id: 'title', text: data.value.title ?? '', format: 'plain' },
+			{ id: 'description', text: data.value.description ?? '', format: 'plain' },
+			...prepared.segments,
+		]
 
-		if (requestVersion !== translationRequestVersion) return
-		const translatedSegments = Object.fromEntries(
-			response.segments.map((segment) => [segment.id, segment.text]),
-		)
-		validateTranslatedDescription(prepared, translatedSegments)
-		translations.value = translatedSegments
 		translationActive.value = true
+		const accumulated = { ...translations.value }
+		const batchSize = 5 // 每批翻译5个 segment
+		let hasError = false
+
+		for (let i = 0; i < allSegments.length; i += batchSize) {
+			if (requestVersion !== translationRequestVersion) return
+			const batch = allSegments.slice(i, i + batchSize)
+
+			try {
+				const res = await translateContent({ ...baseRequest, segments: batch })
+				for (const seg of res.segments) {
+					accumulated[seg.id] = seg.text
+				}
+			} catch {
+				hasError = true
+				// 某批失败，继续尝试下一批（或可选择停止）
+			}
+
+			if (requestVersion !== translationRequestVersion) return
+			translations.value = { ...accumulated }
+
+			// 批次间延迟，让动画有播放时间
+			await new Promise((resolve) => setTimeout(resolve, 300))
+		}
+
+		if (hasError) {
+			console.warn('Some translation batches failed, showing partial results')
+		}
+
+		try {
+			validateTranslatedDescription(prepared, accumulated)
+		} catch (validationError) {
+			console.warn('Translation validation failed, using partial results', validationError)
+		}
 	} catch (error) {
 		if (requestVersion === translationRequestVersion) {
 			addNotification({
