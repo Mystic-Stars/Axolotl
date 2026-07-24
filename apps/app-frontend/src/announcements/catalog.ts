@@ -80,6 +80,12 @@ export const launcherAnnouncements: readonly LauncherAnnouncement[] = [
 					'zh-CN':
 						'加快 Java 检测：现在优先读取每个安装目录的元数据文件判断版本，避免为每个候选启动 JVM，减少首次扫描的耗时。',
 				},
+				{
+					'en-US':
+						'Downloading or launching an instance now scans the system for an already-installed Java of the required version before downloading a new runtime, reusing an existing installation instead of downloading a duplicate.',
+					'zh-CN':
+						'下载或启动实例时，现在会先扫描本机是否已安装所需版本的 Java，找到则复用，仅在确实没有时才下载新的运行时，避免重复下载。',
+				},
 			],
 			fixed: [
 				{
