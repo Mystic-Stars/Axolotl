@@ -70,6 +70,7 @@ import InstanceIconPickerModal from '@/components/ui/modal/InstanceIconPickerMod
 import ModpackAlreadyInstalledModal from '@/components/ui/modal/ModpackAlreadyInstalledModal.vue'
 import UpdateToPlayModal from '@/components/ui/modal/UpdateToPlayModal.vue'
 import NavButton from '@/components/ui/NavButton.vue'
+import NavRail from '@/components/ui/NavRail.vue'
 import OnboardingOverlay from '@/components/ui/onboarding/OnboardingOverlay.vue'
 import QuickInstanceSwitcher from '@/components/ui/QuickInstanceSwitcher.vue'
 import SplashScreen from '@/components/ui/SplashScreen.vue'
@@ -1298,61 +1299,63 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 		<div
 			class="app-grid-navbar bg-bg-raised flex flex-col p-[0.5rem] pt-0 gap-[0.5rem] w-[--left-bar-width] overflow-hidden"
 		>
-			<NavButton v-tooltip.right="formatMessage(messages.home)" to="/">
-				<HomeIcon />
-			</NavButton>
-			<NavButton
-				v-if="themeStore.featureFlags.worlds_tab"
-				v-tooltip.right="formatMessage(messages.worlds)"
-				to="/worlds"
-			>
-				<WorldIcon />
-			</NavButton>
-			<NavButton
-				v-tooltip.right="formatMessage(messages.discoverContent)"
-				data-onboarding-id="nav-discover"
-				to="/browse/modpack"
-				:disabled="offline"
-				:is-primary="() => route.path.startsWith('/browse') && !route.query.i"
-				:is-subpage="(route) => route.path.startsWith('/project') && !route.query.i"
-			>
-				<CompassIcon />
-			</NavButton>
-			<NavButton
-				v-tooltip.right="formatMessage(messages.skinSelector)"
-				data-onboarding-id="nav-skins"
-				to="/skins"
-			>
-				<ChangeSkinIcon />
-			</NavButton>
-			<NavButton
-				v-tooltip.right="formatMessage(messages.library)"
-				data-onboarding-id="nav-library"
-				to="/library"
-				:is-primary="(r) => r.path === '/library' || r.path === '/library'"
-				:is-subpage="
-					() =>
-						route.path.startsWith('/instance') ||
-						((route.path.startsWith('/browse') || route.path.startsWith('/project')) &&
-							route.query.i)
-				"
-			>
-				<LibraryIcon />
-			</NavButton>
-			<NavButton
-				v-tooltip.right="formatMessage(messages.downloads)"
-				data-onboarding-id="nav-downloads"
-				to="/downloads"
-				class="relative"
-			>
-				<DownloadIcon />
-				<span
-					v-if="downloadManager.activeCount.value > 0"
-					class="absolute right-0 top-0 min-w-4 rounded-full bg-brand px-1 text-center text-[10px] font-bold leading-4 text-white"
+			<NavRail>
+				<NavButton v-tooltip.right="formatMessage(messages.home)" to="/">
+					<HomeIcon />
+				</NavButton>
+				<NavButton
+					v-if="themeStore.featureFlags.worlds_tab"
+					v-tooltip.right="formatMessage(messages.worlds)"
+					to="/worlds"
 				>
-					{{ Math.min(downloadManager.activeCount.value, 99) }}
-				</span>
-			</NavButton>
+					<WorldIcon />
+				</NavButton>
+				<NavButton
+					v-tooltip.right="formatMessage(messages.discoverContent)"
+					data-onboarding-id="nav-discover"
+					to="/browse/modpack"
+					:disabled="offline"
+					:is-primary="() => route.path.startsWith('/browse') && !route.query.i"
+					:is-subpage="(route) => route.path.startsWith('/project') && !route.query.i"
+				>
+					<CompassIcon />
+				</NavButton>
+				<NavButton
+					v-tooltip.right="formatMessage(messages.skinSelector)"
+					data-onboarding-id="nav-skins"
+					to="/skins"
+				>
+					<ChangeSkinIcon />
+				</NavButton>
+				<NavButton
+					v-tooltip.right="formatMessage(messages.library)"
+					data-onboarding-id="nav-library"
+					to="/library"
+					:is-primary="(r) => r.path === '/library' || r.path === '/library'"
+					:is-subpage="
+						() =>
+							route.path.startsWith('/instance') ||
+							((route.path.startsWith('/browse') || route.path.startsWith('/project')) &&
+								route.query.i)
+					"
+				>
+					<LibraryIcon />
+				</NavButton>
+				<NavButton
+					v-tooltip.right="formatMessage(messages.downloads)"
+					data-onboarding-id="nav-downloads"
+					to="/downloads"
+					class="relative"
+				>
+					<DownloadIcon />
+					<span
+						v-if="downloadManager.activeCount.value > 0"
+						class="absolute right-0 top-0 min-w-4 rounded-full bg-brand px-1 text-center text-[10px] font-bold leading-4 text-white"
+					>
+						{{ Math.min(downloadManager.activeCount.value, 99) }}
+					</span>
+				</NavButton>
+			</NavRail>
 			<div class="h-px w-6 mx-auto my-2 bg-surface-5"></div>
 			<div class="flex-1 min-h-0 overflow-y-auto">
 				<suspense>
