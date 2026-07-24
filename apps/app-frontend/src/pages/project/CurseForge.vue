@@ -602,38 +602,35 @@ async function translateProject() {
 
 		translationActive.value = true
 		const accumulated = { ...translations.value }
-		const concurrency = 3
+		const batchSize = 5
 		let hasError = false
 
-		for (let i = 0; i < allSegments.length; i += concurrency) {
+		for (let i = 0; i < allSegments.length; i += batchSize) {
 			if (requestVersion !== translationRequestVersion) return
-			const batch = allSegments.slice(i, i + concurrency)
-			const results = await Promise.allSettled(
-				batch.map((segment) =>
-					translateContent({ ...baseRequest, segments: [segment] }),
-				),
-			)
-			for (const result of results) {
-				if (result.status === 'fulfilled') {
-					for (const seg of result.value.segments) {
-						accumulated[seg.id] = seg.text
-					}
-				} else {
-					hasError = true
+			const batch = allSegments.slice(i, i + batchSize)
+
+			try {
+				const res = await translateContent({ ...baseRequest, segments: batch })
+				for (const seg of res.segments) {
+					accumulated[seg.id] = seg.text
 				}
+			} catch {
+				hasError = true
 			}
+
 			if (requestVersion !== translationRequestVersion) return
 			translations.value = { ...accumulated }
+			await new Promise((resolve) => setTimeout(resolve, 300))
 		}
 
 		if (hasError) {
-			console.warn('Some translation segments failed, showing partial results')
+			console.warn('Some translation batches failed, showing partial results')
 		}
 
 		try {
 			validateTranslatedDescription(prepared, accumulated)
-		} catch {
-			// Some segments may have failed, accept partial results
+		} catch (validationError) {
+			console.warn('Translation validation failed, using partial results', validationError)
 		}
 	} catch (error) {
 		if (requestVersion === translationRequestVersion) {
