@@ -201,6 +201,23 @@ pub async fn find_cached_java(
     Ok(None)
 }
 
+/// Resolves an installed Java for `major_version` without downloading: serves
+/// it from the discovery cache when present, otherwise runs a system scan and
+/// checks again. Returns `None` only when no matching Java is installed, so
+/// launch/install callers fall back to downloading a runtime as a last resort.
+pub async fn find_java_for_version(
+    major_version: u32,
+) -> crate::Result<Option<JavaVersion>> {
+    if let Some(java) = find_cached_java(major_version).await? {
+        return Ok(Some(java));
+    }
+
+    let scanned = get_available_jres().await?;
+    Ok(scanned
+        .into_iter()
+        .find(|java| java.parsed_version == major_version))
+}
+
 pub async fn auto_install_java(java_version: u32) -> crate::Result<PathBuf> {
     auto_install_java_with_loading(java_version, true).await
 }
