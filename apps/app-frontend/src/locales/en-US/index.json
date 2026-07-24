@@ -1886,6 +1886,9 @@
 	"app.settings.resources.app-directory-description": {
 		"message": "The directory where the launcher stores all of its files. Changes apply after restarting the launcher."
 	},
+	"app.settings.resources.app-directory-description-portable": {
+		"message": "Running in portable mode. All data is fixed under the program directory and cannot be modified."
+	},
 	"app.settings.resources.concurrency.manual": {
 		"message": "Manual"
 	},

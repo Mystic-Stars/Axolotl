@@ -1,9 +1,5 @@
 <script setup>
-import {
-	BoxIcon,
-	FolderOpenIcon,
-	FolderSearchIcon,
-} from '@modrinth/assets'
+import { BoxIcon, FolderOpenIcon, FolderSearchIcon } from '@modrinth/assets'
 import {
 	ButtonStyled,
 	Combobox,
@@ -14,6 +10,7 @@ import {
 	useVIntl,
 } from '@modrinth/ui'
 import { open } from '@tauri-apps/plugin-dialog'
+import { invoke } from '@tauri-apps/api/core'
 import { computed, ref, watch } from 'vue'
 
 import ConfirmModalWrapper from '@/components/ui/modal/ConfirmModalWrapper.vue'
@@ -28,6 +25,8 @@ const settings = ref(await get())
 const purgeCacheConfirmModal = ref(null)
 const { formatMessage } = useVIntl()
 
+const isPortable = ref(await invoke('is_portable_mode'))
+
 const messages = defineMessages({
 	selectDirectory: {
 		id: 'app.settings.resources.select-directory',
@@ -38,6 +37,11 @@ const messages = defineMessages({
 		id: 'app.settings.resources.app-directory-description',
 		defaultMessage:
 			'The directory where the launcher stores all of its files. Changes apply after restarting the launcher.',
+	},
+	appDirectoryDescriptionPortable: {
+		id: 'app.settings.resources.app-directory-description-portable',
+		defaultMessage:
+			'You are currently running in portable mode. The app directory is fixed and cannot be changed.',
 	},
 	purgeConfirmTitle: {
 		id: 'app.settings.resources.purge-confirm-title',
@@ -197,6 +201,12 @@ const downloadConcurrencyOptions = computed(() => [
 	},
 ])
 
+const appDirectoryDescriptionText = computed(() =>
+	isPortable.value
+		? formatMessage(messages.appDirectoryDescriptionPortable)
+		: formatMessage(messages.appDirectoryDescription),
+)
+
 watch(
 	settings,
 	async () => {
@@ -271,18 +281,19 @@ async function findLauncherDir() {
 				v-model="settings.custom_dir"
 				:icon="BoxIcon"
 				type="text"
+				:disabled="isPortable"
 				wrapper-class="w-full"
 			>
 				<template #right>
 					<ButtonStyled circular>
-						<button class="ml-1.5" @click="findLauncherDir">
+						<button class="ml-1.5" :disabled="isPortable" @click="findLauncherDir">
 							<FolderSearchIcon />
 						</button>
 					</ButtonStyled>
 				</template>
 			</StyledInput>
 			<p class="m-0 leading-tight text-secondary">
-				{{ formatMessage(messages.appDirectoryDescription) }}
+				{{ appDirectoryDescriptionText }}
 			</p>
 		</div>
 

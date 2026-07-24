@@ -300,3 +300,6 @@ opt-level = 2
 strip = false  # Keep debug symbols for Sentry
 lto = "thin"  # Enable LTO but keep compile times reasonable
 panic = "unwind"  # Don't exit the whole app on panic in production
+
+[patch.crates-io]
+tauri-plugin-window-state = { git = "https://github.com/Lintern/plugins-workspace", branch = "v2" }
