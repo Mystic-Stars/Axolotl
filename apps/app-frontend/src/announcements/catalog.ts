@@ -78,6 +78,12 @@ export const launcherAnnouncements: readonly LauncherAnnouncement[] = [
 						'Fixed startup failures caused by conflicting Java discovery and onboarding database migrations.',
 					'zh-CN': '修复 Java 检测与新手引导数据库迁移冲突导致的启动失败。',
 				},
+				{
+					'en-US':
+						'Fixed the accent highlight outline on the Add skin button in the skin selector being clipped on some edges when the button was focused.',
+					'zh-CN':
+						'修复皮肤选择器「添加皮肤」按钮在聚焦时强调色高亮描边部分边缘被裁剪、显示不完整的问题。',
+				},
 			],
 		},
 	},
