@@ -1886,6 +1886,9 @@
 	"app.settings.resources.app-directory-description": {
 		"message": "启动器用于存储全部文件的目录。更改将在重启启动器后生效。"
 	},
+	"app.settings.resources.app-directory-description-portable": {
+		"message": "正在以便携模式运行，所有数据已固定在程序目录下，无法修改。"
+	},
 	"app.settings.resources.database-backups": {
 		"message": "应用数据库备份"
 	},

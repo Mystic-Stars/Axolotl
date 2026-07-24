@@ -13,6 +13,7 @@ use theseus::prelude::*;
 
 mod api;
 mod error;
+mod portable;
 
 #[cfg(target_os = "macos")]
 mod macos;
@@ -155,6 +156,9 @@ async fn set_restart_after_pending_update(
 // if Tauri app is called with arguments, then those arguments will be treated as commands
 // ie: deep links or filepaths for .mrpacks
 fn main() {
+    // Initialize portable mode first (checks .Axolotl folder and sets THESEUS_CONFIG_DIR)
+    portable::init_portable_mode();
+
     #[cfg(target_os = "windows")]
     if std::env::args_os().any(|argument| argument == "--memory-optimize") {
         std::process::exit(theseus::memory::optimize_current_process_context());
@@ -247,17 +251,25 @@ fn main() {
         .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_opener::init())
-        .plugin(
-            tauri_plugin_window_state::Builder::default()
-                .with_filename("app-window-state.json")
-                // Use *only* POSITION and SIZE state flags, because saving VISIBLE causes the `visible: false` to not take effect
-                .with_state_flags(
-                    tauri_plugin_window_state::StateFlags::POSITION
-                        | tauri_plugin_window_state::StateFlags::SIZE
-                        | tauri_plugin_window_state::StateFlags::MAXIMIZED,
-                )
-                .build(),
-        )
+        .plugin({
+            let mut window_state_builder =
+                tauri_plugin_window_state::Builder::default()
+                    .with_filename("app-window-state.json")
+                    // Use *only* POSITION and SIZE state flags, because saving VISIBLE causes the `visible: false` to not take effect
+                    .with_state_flags(
+                        tauri_plugin_window_state::StateFlags::POSITION
+                            | tauri_plugin_window_state::StateFlags::SIZE
+                            | tauri_plugin_window_state::StateFlags::MAXIMIZED,
+                    );
+
+            // Use THESEUS_CONFIG_DIR for window state if set (portable mode)
+            if let Some(config_dir) = std::env::var_os("THESEUS_CONFIG_DIR") {
+                window_state_builder =
+                    window_state_builder.with_state_dir(config_dir);
+            }
+
+            window_state_builder.build()
+        })
         .setup(|app| {
             #[cfg(target_os = "macos")]
             {
@@ -332,6 +344,7 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             initialize_state,
             is_dev,
+            portable::is_portable_mode,
             are_updates_enabled,
             get_update_size,
             check_app_update,
