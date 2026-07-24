@@ -569,6 +569,10 @@ pub async fn check_java_at_filepath(path: &Path) -> crate::Result<JavaVersion> {
         return Err(JREError::NoExecutable(java).into());
     };
 
+    if let Some(java_version) = java_version_from_release_file(&java) {
+        return Ok(java_version);
+    }
+
     let (_temp, file_path) =
         get_resource_file!(env "JAVA_JARS_DIR" / "theseus.jar")?;
 
@@ -614,6 +618,53 @@ pub async fn check_java_at_filepath(path: &Path) -> crate::Result<JavaVersion> {
     }
 
     Err(JREError::FailedJavaCheck(java).into())
+}
+
+/// Reads a Java installation's `release` file (present in Java 8+ distributions
+/// on Windows, macOS and Linux) to resolve its version and architecture without
+/// starting a JVM. Returns `None` when the file is missing or lacks a field we
+/// can trust, so the caller falls back to executing the runtime.
+fn java_version_from_release_file(java: &Path) -> Option<JavaVersion> {
+    let root = java.parent()?.parent()?;
+    let contents = std::fs::read_to_string(root.join("release")).ok()?;
+
+    let mut version = None;
+    let mut os_arch = None;
+    for line in contents.lines() {
+        let Some((key, value)) = line.split_once('=') else {
+            continue;
+        };
+        let value = value.trim().trim_matches('"');
+        match key.trim() {
+            "JAVA_VERSION" => version = Some(value.to_string()),
+            "OS_ARCH" => os_arch = Some(value.to_string()),
+            _ => {}
+        }
+    }
+
+    let parsed_version = extract_java_version(&version?).ok()?;
+    let architecture = normalize_release_arch(&os_arch?)?;
+
+    Some(JavaVersion {
+        parsed_version,
+        path: java.to_string_lossy().to_string(),
+        version: parsed_version.to_string(),
+        architecture,
+    })
+}
+
+/// Maps a `release` file `OS_ARCH` value to the `os.arch` form the JVM reports,
+/// which the launcher's natives and rule matching expect. Returns `None` for
+/// unrecognised values so the caller re-checks by running the JVM instead.
+fn normalize_release_arch(os_arch: &str) -> Option<String> {
+    let normalized = match os_arch.trim().to_ascii_lowercase().as_str() {
+        "x86_64" | "amd64" => "amd64",
+        "aarch64" | "arm64" => "aarch64",
+        "x86" | "i386" | "i486" | "i586" | "i686" => "x86",
+        "arm" => "arm",
+        _ => return None,
+    };
+    Some(normalized.to_string())
 }
 
 pub fn extract_java_version(version: &str) -> Result<u32, JREError> {
