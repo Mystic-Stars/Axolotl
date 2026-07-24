@@ -128,14 +128,22 @@ pub fn app_db_backup_dir() -> crate::Result<PathBuf> {
         return Ok(PathBuf::from(path));
     }
 
-    let base = dirs::data_local_dir().or_else(dirs::data_dir).ok_or(
-        crate::ErrorKind::FSError(
-            "Could not find valid data dir for app database backups"
-                .to_string(),
-        ),
-    )?;
+    let app_identifier = if let Some(dir_info) =
+        crate::state::DirectoryInfo::global_handle_if_ready()
+    {
+        dir_info.app_identifier.clone()
+    } else {
+        "red.ghs.axolotl".to_string()
+    };
 
-    Ok(base.join("Modrinth").join("Backups").join("app-db"))
+    let base =
+        crate::state::DirectoryInfo::initial_settings_dir_path(&app_identifier)
+            .ok_or(crate::ErrorKind::FSError(
+                "Could not find valid config dir for app database backups"
+                    .to_string(),
+            ))?;
+
+    Ok(base.join("Backups").join("app-db"))
 }
 
 async fn has_user_tables(conn: &mut SqliteConnection) -> crate::Result<bool> {
