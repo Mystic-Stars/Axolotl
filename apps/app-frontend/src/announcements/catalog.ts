@@ -73,6 +73,14 @@ export const launcherAnnouncements: readonly LauncherAnnouncement[] = [
 						'左侧导航栏切换页面时，选中高亮改为滑动过渡动画，与顶部内容类型标签栏保持一致。',
 				},
 			],
+			changed: [
+				{
+					'en-US':
+						'Java detection is now faster: it reads a metadata file in each installation to determine the version instead of launching a JVM for every candidate, reducing the delay of the first system scan.',
+					'zh-CN':
+						'加快 Java 检测：现在优先读取每个安装目录的元数据文件判断版本，避免为每个候选启动 JVM，减少首次扫描的耗时。',
+				},
+			],
 			fixed: [
 				{
 					'en-US':
