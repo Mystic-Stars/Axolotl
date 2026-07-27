@@ -47,15 +47,22 @@
 				}
 			}
 		},
-		"shortDescription": "",
+		"shortDescription": "Minecraft Java Edition Launcher",
 		"linux": {
 			"deb": {
-				"depends": []
+				"depends": [
+					"libwebkit2gtk-4.1-0",
+					"libgtk-3-0",
+					"libayatana-appindicator3-1"
+				],
+				"desktopTemplate": "desktop-template.desktop"
 			}
 		},
 		"fileAssociations": [
 			{
-				"ext": ["mrpack"],
+				"ext": [
+					"mrpack"
+				],
 				"mimeType": "application/x-modrinth-modpack+zip"
 			}
 		]
@@ -67,7 +74,9 @@
 	"plugins": {
 		"deep-link": {
 			"desktop": {
-				"schemes": ["axolotl"]
+				"schemes": [
+					"axolotl"
+				]
 			},
 			"mobile": []
 		}
@@ -106,11 +115,16 @@
 				],
 				"enable": true
 			},
-			"capabilities": ["core", "plugins"],
+			"capabilities": [
+				"core",
+				"plugins"
+			],
 			"csp": {
 				"default-src": "'self' customprotocol: asset:",
 				"connect-src": "ipc: http://ipc.localhost https://modrinth.com https://*.modrinth.com https://api.mclo.gs http://textures.minecraft.net https://textures.minecraft.net https://fill.papermc.io https://api.purpurmc.org 'self' data: blob:",
-				"font-src": ["https://cdn-raw.modrinth.com/fonts/"],
+				"font-src": [
+					"https://cdn-raw.modrinth.com/fonts/"
+				],
 				"img-src": "https: 'unsafe-inline' 'self' asset: http://asset.localhost http://textures.minecraft.net blob: data:",
 				"style-src": "'unsafe-inline' 'self'",
 				"script-src": "'self'",

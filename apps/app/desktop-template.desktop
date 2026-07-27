@@ -1,0 +1,14 @@
+[Desktop Entry]
+Type=Application
+Name=Axolotl Launcher
+Comment=Minecraft Java Edition Launcher
+Comment[zh_CN]=Minecraft Java版启动器
+Exec=env WEBKIT_DISABLE_DMABUF_RENDERER=1 "Axolotl Launcher"
+StartupWMClass=Axolotl Launcher
+Icon=Axolotl Launcher
+Terminal=false
+StartupNotify=true
+Categories=Game;ArcadeGame;AdventureGame;
+MimeType=application/x-modrinth-modpack+zip;x-scheme-handler/axolotl;
+Keywords=minecraft;game;launcher;mod;modpack;
+Keywords[zh_CN]=我的世界;游戏;启动器;模组;整合包;
