@@ -189,7 +189,7 @@ fn get_commands_and_notes(
 	match pm.as_deref() {
 		Some("apt") => (
 			Some("APT (Advanced Package Tool)".to_string()),
-			Some("pkexec sh -c \"apt update && apt install -y axolotl-launcher\"".to_string()),
+			Some("pkexec sh -c \"curl -fsSL https://ppa.axlmc.org/setup.sh | bash && apt update && apt install -y axolotl-launcher\" && { notify-send 'Axolotl Launcher' '更新完成，请重启应用' || notify-send 'Axolotl Launcher' 'Update complete. Please restart the app.' || echo 'Update complete. Please restart.'; }".to_string()),
 			None,
 			vec![
 				"Debian / Ubuntu: pkexec provides a graphical password dialog for privilege escalation.".to_string(),
@@ -200,8 +200,8 @@ fn get_commands_and_notes(
 			let helper = pm.as_deref().unwrap_or("yay");
 			(
 				Some("AUR (Arch User Repository)".to_string()),
-				Some(format!("{} -S axolotl-launcher-bin", helper)),
-				Some(format!("{} -S axolotl-launcher", helper)),
+				Some(format!("{} -S axolotl-launcher-bin && {{ notify-send 'Axolotl Launcher' '更新完成，请重启应用' || notify-send 'Axolotl Launcher' 'Update complete. Please restart the app.' || echo 'Update complete. Please restart.'; }}", helper)),
+				Some(format!("{} -S axolotl-launcher && {{ notify-send 'Axolotl Launcher' '更新完成，请重启应用' || notify-send 'Axolotl Launcher' 'Update complete. Please restart the app.' || echo 'Update complete. Please restart.'; }}", helper)),
 				vec![
 					"axolotl-launcher-bin: pre-built binary, faster install (recommended).".to_string(),
 					"axolotl-launcher: build from source, slower but allows customization.".to_string(),
@@ -234,8 +234,8 @@ fn get_commands_and_notes(
 			if is_arch {
 				(
 					Some("AUR (Arch User Repository)".to_string()),
-					Some("yay -S axolotl-launcher-bin".to_string()),
-					Some("yay -S axolotl-launcher".to_string()),
+					Some("yay -S axolotl-launcher-bin && { notify-send 'Axolotl Launcher' '更新完成，请重启应用' || notify-send 'Axolotl Launcher' 'Update complete. Please restart the app.' || echo 'Update complete. Please restart.'; }".to_string()),
+					Some("yay -S axolotl-launcher && { notify-send 'Axolotl Launcher' '更新完成，请重启应用' || notify-send 'Axolotl Launcher' 'Update complete. Please restart the app.' || echo 'Update complete. Please restart.'; }".to_string()),
 					vec![
 						"axolotl-launcher-bin: pre-built binary, faster install (recommended).".to_string(),
 						"axolotl-launcher: build from source, slower but allows customization.".to_string(),
