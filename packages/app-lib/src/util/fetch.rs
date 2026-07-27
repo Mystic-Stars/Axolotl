@@ -788,7 +788,7 @@ static MIRROR_REQUEST_SLOTS: LazyLock<AsyncMutex<[Instant; 2]>> =
     LazyLock::new(|| AsyncMutex::new([Instant::now(); 2]));
 
 fn reqwest_client_builder() -> reqwest::ClientBuilder {
-    reqwest::Client::builder()
+    let mut builder = reqwest::Client::builder()
         .connect_timeout(FILE_TRANSFER_CONNECT_TIMEOUT)
         .read_timeout(FILE_TRANSFER_READ_TIMEOUT)
         .tcp_keepalive(Some(time::Duration::from_secs(10)))
@@ -796,7 +796,23 @@ fn reqwest_client_builder() -> reqwest::ClientBuilder {
         .pool_max_idle_per_host(64)
         .http1_only()
         .dns_resolver(Arc::clone(&DOWNLOAD_DNS_RESOLVER))
-        .user_agent(crate::launcher_user_agent())
+        .user_agent(crate::launcher_user_agent());
+
+    // 尝试使用系统代理，如果代理配置无效则回退到无代理
+    let system_proxy = reqwest::Proxy::system();
+    if let Ok(test_url) = reqwest::Url::parse("https://api.modrinth.com") {
+        if system_proxy.intercept(&test_url).is_some() {
+            builder = builder.proxy(system_proxy);
+        } else {
+            // 系统代理未配置或无效，使用无代理
+            builder = builder.no_proxy();
+        }
+    } else {
+        // URL 解析失败，回退到无代理
+        builder = builder.no_proxy();
+    }
+
+    builder
 }
 
 pub static INSECURE_REQWEST_CLIENT: LazyLock<reqwest::Client> =
