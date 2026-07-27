@@ -56,6 +56,10 @@ export const launcherAnnouncements: readonly LauncherAnnouncement[] = [
 						'To avoid confusion caused by loaders that have not yet been parsed during batch imports, instances are now imported one by one with progress displayed.',
 					'zh-CN': '为避免批量导入过程中还未来得及解析的加载器造成误解，现在逐个导入实例并显示进度',
 				},
+				{
+					'en-US': 'System proxy is now enabled by default for all network requests.',
+					'zh-CN': '默认启用系统代理支持，所有网络请求现在会使用系统代理设置。',
+				},
 			],
 			fixed: [
 				{
@@ -65,6 +69,10 @@ export const launcherAnnouncements: readonly LauncherAnnouncement[] = [
 				{
 					'en-US': 'Fixed the import page failing to import instances.',
 					'zh-CN': '修复了导入界面无法正常导入的bug。',
+				},
+				{
+					'en-US': 'Fixed Linux deb package dependencies and desktop file configuration.',
+					'zh-CN': '修复 Linux deb 打包依赖项和桌面文件配置。',
 				},
 			],
 		},

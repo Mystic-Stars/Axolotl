@@ -88,7 +88,6 @@ static CLIENT: LazyLock<reqwest::Client> = LazyLock::new(|| {
         .read_timeout(Duration::from_secs(30))
         .redirect(reqwest::redirect::Policy::none())
         .user_agent(crate::launcher_user_agent())
-        .no_proxy()
         .build()
         .expect("CurseForge client configuration should be valid")
 });
@@ -110,7 +109,6 @@ static LOCAL_CLIENT: LazyLock<reqwest::Client> = LazyLock::new(|| {
         .read_timeout(Duration::from_secs(30))
         .redirect(reqwest::redirect::Policy::none())
         .user_agent(crate::launcher_user_agent())
-        .no_proxy()
         .build()
         .expect("Local CurseForge client configuration should be valid")
 });

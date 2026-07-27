@@ -23,3 +23,5 @@
 - 新增 MC 百科（mcmod.cn）跳转：模组/内容详情页的「相关链接」侧栏新增「MC Mod」项，右上角三点菜单新增「在 MC 百科中打开」，仅当项目 Slug 能在内置百科词表中查到 WikiId 时显示，点击跳转 https://www.mcmod.cn/class/{WikiId}.html；Modrinth 与 CurseForge 详情页均支持。
 - 优化 Linux 桌面文件（.desktop）：补充 Comment、Keywords、StartupWMClass、StartupNotify 等字段，添加 x-scheme-handler/axolotl 协议关联与中文本地化，并为 Exec 添加 WEBKIT_DISABLE_DMABUF_RENDERER=1 环境变量。
 - 将 Linux 桌面文件模板从 Tauri 模板变量格式改为固定值格式，确保编译后的 .desktop 文件直接使用 "Axolotl Launcher" 作为名称、图标和可执行文件。
+- 启用系统代理支持：默认请求逻辑现在会使用系统代理设置，不再强制禁用代理。
+- 修复 Linux deb 打包：添加 deb 依赖项（libwebkit2gtk、libgtk-3、libayatana-appindicator），修复 vite 配置使用 rolldownOptions 替代 rollupOptions。

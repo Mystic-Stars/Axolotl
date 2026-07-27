@@ -788,15 +788,16 @@ static MIRROR_REQUEST_SLOTS: LazyLock<AsyncMutex<[Instant; 2]>> =
     LazyLock::new(|| AsyncMutex::new([Instant::now(); 2]));
 
 fn reqwest_client_builder() -> reqwest::ClientBuilder {
-    reqwest::Client::builder()
-        .connect_timeout(FILE_TRANSFER_CONNECT_TIMEOUT)
-        .read_timeout(FILE_TRANSFER_READ_TIMEOUT)
-        .tcp_keepalive(Some(time::Duration::from_secs(10)))
-        .tcp_nodelay(true)
-        .pool_max_idle_per_host(64)
-        .http1_only()
-        .dns_resolver(Arc::clone(&DOWNLOAD_DNS_RESOLVER))
-        .user_agent(crate::launcher_user_agent())
+	reqwest::Client::builder()
+		.connect_timeout(FILE_TRANSFER_CONNECT_TIMEOUT)
+		.read_timeout(FILE_TRANSFER_READ_TIMEOUT)
+		.tcp_keepalive(Some(time::Duration::from_secs(10)))
+		.tcp_nodelay(true)
+		.pool_max_idle_per_host(64)
+		.http1_only()
+		.dns_resolver(Arc::clone(&DOWNLOAD_DNS_RESOLVER))
+		.user_agent(crate::launcher_user_agent())
+		.proxy(reqwest::Proxy::system())
 }
 
 pub static INSECURE_REQWEST_CLIENT: LazyLock<reqwest::Client> =
