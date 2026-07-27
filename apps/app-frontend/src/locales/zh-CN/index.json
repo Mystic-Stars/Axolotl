@@ -2477,6 +2477,36 @@
 	"app.skins.title": {
 		"message": "皮肤选择器"
 	},
+	"app.smart-update.alternate-command-label": {
+		"message": "备选命令："
+	},
+	"app.smart-update.builtin-description": {
+		"message": "自动下载最新的 AppImage，重启应用时安装。经加密签名验证，无需额外工具。"
+	},
+	"app.smart-update.builtin-title": {
+		"message": "内置更新器（AppImage）"
+	},
+	"app.smart-update.confirm": {
+		"message": "更新"
+	},
+	"app.smart-update.copied": {
+		"message": "命令已复制到剪贴板"
+	},
+	"app.smart-update.copy-command": {
+		"message": "复制"
+	},
+	"app.smart-update.description": {
+		"message": "Axolotl Launcher v{version} 现已发布。在 Linux 上，您可以通过内置更新器或系统包管理器进行更新。"
+	},
+	"app.smart-update.header": {
+		"message": "选择更新方式"
+	},
+	"app.smart-update.package-manager-description": {
+		"message": "打开终端，通过系统包管理器进行更新。更好地与系统集成，管理依赖关系，支持系统级更新。"
+	},
+	"app.smart-update.package-manager-title": {
+		"message": "通过 {manager} 更新"
+	},
 	"app.splash.checking-for-updates": {
 		"message": "正在检查更新……"
 	},
@@ -2649,7 +2679,7 @@
 		"message": "Axolotl Launcher v{version} 更新已下载完成！立即重启更新，或退出时自动安装。"
 	},
 	"app.update-popup.body.linux": {
-		"message": "Axolotl Launcher v{version} 现已发布。请使用你的软件包管理器进行更新，获取最新功能与修复！"
+		"message": "Axolotl Launcher v{version} 已发布。我们未自动下载——点击更新按钮在内置更新器或软件包管理器之间选择更新方式。"
 	},
 	"app.update-popup.body.metered": {
 		"message": "Axolotl Launcher v{version} 现已发布！由于你正在使用按流量计费的网络，该更新未自动下载。"

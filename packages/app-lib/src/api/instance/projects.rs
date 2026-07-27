@@ -204,13 +204,19 @@ pub async fn add_project_from_path(
     project_type: Option<ProjectType>,
 ) -> crate::Result<String> {
     let state = State::get().await?;
-    crate::state::instances::commands::add_project_from_path(
+    let result = crate::state::instances::commands::add_project_from_path(
         instance_id,
         path,
         project_type,
         &state,
     )
-    .await
+    .await;
+
+    if result.is_ok() {
+        emit_instance(instance_id, InstancePayloadType::Synced).await?;
+    }
+
+    result
 }
 
 #[tracing::instrument]

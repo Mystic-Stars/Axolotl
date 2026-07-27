@@ -449,72 +449,7 @@ let currentFlowCtx: CreationFlowContextValue | null = null
 		}
 	}
 
-		async function onImportFileReceived({
-			file: _file,
-			filePath,
-			source: _source,
-		}: {
-			file: File | null
-			filePath: string | null
-			source: 'file-picker' | 'drag-drop'
-		}) {
-			if (!filePath) return
-	
-			const fileName = filePath.split(/[/\\]/).pop() || 'file'
-
-		// ── Show "Processing..." immediately (pure frontend) ──
-		let currentNotify = notificationManager.addNotification({
-			title: `Processing ${fileName}...`,
-			type: 'info',
-			autoCloseMs: null,
-		})
-
-		// Hide creation modal — this import is handled directly
-		installationModal.value?.hide()
-
-		try {
-			// ── Classify the file (same entry point as drag-drop) ──
-			const classification = await classifyDroppedItem(filePath)
-			notificationManager.removeNotification(currentNotify.id)
-
-			// ── Unknown + extraction reason → show force-analysis popup ──
-			if (
-				classification.item_type === 'unknown' &&
-				classification.reason?.toLowerCase().includes('extraction')
-			) {
-				showForceAnalysisPopup(classification)
-				return
-			}
-
-			// ── Unknown (no extraction) → error ──
-			if (classification.item_type === 'unknown') {
-				notificationManager.addNotification({
-					title: `Unrecognized file: ${fileName}`,
-					text: classification.reason ?? 'Could not determine file type.',
-					type: 'error',
-				})
-				return
-			}
-
-			// ── Modpack → install directly ──
-			if (classification.item_type === 'modpack') {
-				await installModpackFromPath(filePath, fileName)
-				return
-			}
-
-			// ── Anything else is unexpected for the modpack import page ──
-			notificationManager.addNotification({
-				title: `Unexpected file type: ${classification.item_type}`,
-				text: `Expected a modpack file, but got "${classification.item_type}".`,
-				type: 'error',
-			})
-		} catch (e) {
-			notificationManager.removeNotification(currentNotify?.id)
-			handleError(e as Error)
-		}
-	}
-
-	provide('setCreationFlowCtx', (ctx: CreationFlowContextValue) => {
+		provide('setCreationFlowCtx', (ctx: CreationFlowContextValue) => {
 		currentFlowCtx = ctx
 	})
 
@@ -530,6 +465,5 @@ let currentFlowCtx: CreationFlowContextValue | null = null
 		setModpackAlreadyInstalledModal,
 		handleModpackDuplicateCreateAnyway,
 		handleModpackDuplicateGoToInstance,
-		onImportFileReceived,
 	}
 }

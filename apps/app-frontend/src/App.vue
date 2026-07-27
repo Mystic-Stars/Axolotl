@@ -250,7 +250,6 @@ const {
 	setModpackAlreadyInstalledModal,
 	handleModpackDuplicateCreateAnyway,
 	handleModpackDuplicateGoToInstance,
-	onImportFileReceived,
 	fileDrop,
 } = setupProviders(notificationManager, popupNotificationManager)
 
@@ -372,6 +371,73 @@ onUnmounted(async () => {
 
 const { formatMessage } = useVIntl()
 const formatBytes = useFormatBytes()
+
+async function onImportFileReceived({
+	file: _file,
+	filePath,
+	source: _source,
+}: {
+	file: File | null
+	filePath: string | null
+	source: 'file-picker' | 'drag-drop'
+}) {
+	if (!filePath) return
+
+	const fileName = filePath.split(/[/\\]/).pop() || 'file'
+
+	// ── Hide creation modal first ──
+	installationModal.value?.hide()
+
+	// ── Show "Processing..." (matches drag-drop behavior) ──
+	const processingNotify = addNotification({
+		title: formatMessage(messages.dropProcessing, { name: fileName }),
+		type: 'info',
+		autoCloseMs: null,
+	})
+
+	try {
+		// ── Classify the file (same entry point as drag-drop) ──
+		const classification = await classifyDroppedItem(filePath)
+		clearDropProcessingNotification()
+		notificationManager.removeNotification(processingNotify.id)
+
+		// ── Set drop state so handleDropConfirm can read it ──
+		dropClassification.value = classification
+		dropFilePath.value = classification.file_path ?? classification.base_path ?? ''
+		dropFileName.value = fileName
+
+		// ── Unknown + extraction → force analysis prompt ──
+		if (
+			classification.item_type === 'unknown' &&
+			classification.reason?.toLowerCase().includes('extraction')
+		) {
+			showForceAnalysisPrompt(classification)
+			return
+		}
+
+		// ── Unknown (no extraction) → error ──
+		if (classification.item_type === 'unknown') {
+			addNotification({
+				title: formatMessage(messages.dropUnknownTitle),
+				text: classification.reason
+					? classification.reason
+					: formatMessage(messages.dropUnknownText),
+				type: 'error',
+			})
+			return
+		}
+
+		// ── Known types → show the same confirm modal as drag-drop ──
+		confirmDropModal.value?.show()
+	} catch (e) {
+		notificationManager.removeNotification(processingNotify?.id)
+		addNotification({
+			title: 'Failed to process file',
+			text: e instanceof Error ? e.message : String(e),
+			type: 'error',
+		})
+	}
+}
 
 const messages = defineMessages({
 	updateInstalledToastTitle: {
@@ -2054,7 +2120,7 @@ const updatePopupMessages = defineMessages({
 	linuxBody: {
 		id: 'app.update-popup.body.linux',
 		defaultMessage:
-			'Axolotl Launcher v{version} is available. Use your package manager to update for the latest features and fixes!',
+			"Axolotl Launcher v{version} is available. We didn't automatically download it \u2014 use the Update button to choose between the built-in updater or your package manager.",
 	},
 	reload: {
 		id: 'app.update-popup.reload',
@@ -2120,7 +2186,22 @@ function showDelayedUpdatePopup() {
 		return
 	}
 
-	if (metered.value && !finishedDownloading.value) {
+	if (os.value === 'Linux' && !finishedDownloading.value) {
+		addPopupNotification({
+			title: formatMessage(updatePopupMessages.updateAvailable),
+			text: formatMessage(updatePopupMessages.linuxBody, { version: update.version }),
+			type: 'info',
+			autoCloseMs: null,
+			buttons: [
+				{
+					label: formatMessage(updatePopupMessages.changelog),
+					action: () => openAppUpdateChangelog(),
+					color: 'brand',
+					keepOpen: true,
+				},
+			],
+		})
+	} else if (metered.value && !finishedDownloading.value) {
 		addPopupNotification({
 			title: formatMessage(updatePopupMessages.updateAvailable),
 			text: formatMessage(updatePopupMessages.meteredBody, { version: update.version }),
@@ -2206,11 +2287,17 @@ async function performUpdateCheck() {
 	console.log(`Update ${update.version} is available.`)
 
 	metered.value = await isNetworkMetered()
-	if (!metered.value) {
+	if (!metered.value && os.value !== 'Linux') {
 		console.log('Starting download of update')
 		downloadUpdate(update)
 	} else {
-		console.log(`Metered connection detected, not auto-downloading update.`)
+		if (os.value === 'Linux') {
+			console.log('Linux detected, deferring update to smart update flow.')
+		} else {
+			console.log(
+				`Metered connection detected, not auto-downloading update.`,
+			)
+		}
 		markAppUpdateActionable(update.version)
 		scheduleDelayedUpdatePopup()
 	}

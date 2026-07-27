@@ -21,6 +21,10 @@
 			<span v-else>{{ updateLabel }}</span>
 		</button>
 	</ButtonStyled>
+	<SmartLinuxUpdateModal
+		ref="smartUpdateModal"
+		@confirm="(method, command) => handleSmartUpdateConfirm(method, command)"
+	/>
 </template>
 
 <script setup lang="ts">
@@ -33,6 +37,9 @@ import {
 	downloadAvailableAppUpdate,
 	installAvailableAppUpdate,
 } from '@/providers/app-update'
+
+import SmartLinuxUpdateModal from '@/components/ui/modal/SmartLinuxUpdateModal.vue'
+import { getOS, executePackageManagerUpdate } from '@/helpers/utils.js'
 
 const { formatMessage } = useVIntl()
 
@@ -51,6 +58,12 @@ const messages = defineMessages({
 	},
 })
 
+const smartUpdateModal = ref<InstanceType<typeof SmartLinuxUpdateModal>>()
+const isLinux = ref(false)
+getOS().then((os) => {
+	isLinux.value = os === 'Linux'
+})
+
 const {
 	downloading,
 	downloadPercent,
@@ -67,7 +80,7 @@ const isUpdateDownloading = computed(
 		(downloadProgress.value > 0 && downloadProgress.value < 1 && !finishedDownloading.value),
 )
 const showUpdatePill = computed(
-	() => isUpdateVisible.value && (finishedDownloading.value || metered.value),
+	() => isUpdateVisible.value && (finishedDownloading.value || metered.value || isLinux.value),
 )
 const animateReadyPill = ref(false)
 const updateLabel = computed(() => {
@@ -109,10 +122,41 @@ async function handleUpdateClick() {
 		return
 	}
 
-	if (finishedDownloading.value) {
-		await installAvailableAppUpdate()
-	} else {
-		await downloadAvailableAppUpdate()
+	try {
+		if (finishedDownloading.value) {
+			await installAvailableAppUpdate()
+			return
+		}
+
+		if (isLinux.value) {
+			const version = appUpdateState.availableUpdate.value?.version
+			if (version) {
+				smartUpdateModal.value?.show(version)
+			}
+		} else {
+			await downloadAvailableAppUpdate()
+		}
+	} catch (e) {
+		console.error('Update action failed:', e)
+	}
+}
+
+async function handleSmartUpdateConfirm(
+	method: 'builtin' | 'packageManager',
+	command?: string | null,
+) {
+	try {
+		if (method === 'builtin') {
+			await downloadAvailableAppUpdate()
+		} else if (command) {
+			await executePackageManagerUpdate(command)
+		} else {
+			console.warn(
+				'Package manager update selected but no command available',
+			)
+		}
+	} catch (e) {
+		console.error('Update action failed:', e)
 	}
 }
 
