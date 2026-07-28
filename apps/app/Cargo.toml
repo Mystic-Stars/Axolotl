@@ -1,7 +1,7 @@
 [package]
 name = "theseus_gui"
 # The actual version is set by the theseus-build workflow on tagging
-version = "1.5.0"
+version = "1.6.0"
 edition.workspace = true
 description = "Axolotl Launcher is a cross-platform Minecraft launcher"
 homepage = "https://www.ghs.red"
@@ -21,6 +21,7 @@ keyring = { workspace = true }
 native-dialog = { workspace = true }
 paste = { workspace = true }
 path-util = { workspace = true }
+quartz_nbt = { workspace = true, features = ["serde"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 serde_with = { workspace = true }
@@ -48,7 +49,11 @@ workspace = true
 features = ["devtools", "macos-private-api", "protocol-asset"]
 
 [build-dependencies]
+cc = { workspace = true }
 tauri-build = { workspace = true, features = ["codegen"] }
+
+[dev-dependencies]
+tempfile = { workspace = true }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 tauri-plugin-updater = { workspace = true, optional = true }

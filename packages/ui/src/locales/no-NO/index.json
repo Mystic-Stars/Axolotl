@@ -269,18 +269,6 @@
   "content.inline-backup.shift-click-hint": {
     "defaultMessage": "Hold inne Skift mens du klikker for å hoppe over bekreftelse."
   },
-  "content.modpack-card.content-hint-description": {
-    "defaultMessage": "Modpakkeinnholdet ditt kan nå bli funnet her!"
-  },
-  "content.modpack-card.content-hint-title": {
-    "defaultMessage": "Modpakkeinnhold flytta"
-  },
-  "content.modpack-card.dismiss-hint": {
-    "defaultMessage": "Ikke vis igjen"
-  },
-  "content.page-layout.additional-content": {
-    "defaultMessage": "Yttligere innhold"
-  },
   "content.page-layout.browse-content": {
     "defaultMessage": "Gå gjennom innhold"
   },
@@ -289,9 +277,6 @@
   },
   "content.page-layout.empty.hint": {
     "defaultMessage": "Gå gjennom eller last opp {contentType} for å komme i gang"
-  },
-  "content.page-layout.empty.modpack-hint": {
-    "defaultMessage": "Legg til yttligere innhold på toppen av denne modpakka"
   },
   "form.label.address-line": {
     "defaultMessage": "Adresse"
@@ -2133,4 +2118,3 @@
     "defaultMessage": "Du har ulagrede endringer."
   }
 }
-

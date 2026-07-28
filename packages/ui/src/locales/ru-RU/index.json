@@ -455,18 +455,6 @@
   "content.inline-backup.world-label": {
     "defaultMessage": "мир"
   },
-  "content.modpack-card.content-hint-description": {
-    "defaultMessage": "Теперь он находится здесь!"
-  },
-  "content.modpack-card.content-hint-title": {
-    "defaultMessage": "Контент сборки перемещён"
-  },
-  "content.modpack-card.dismiss-hint": {
-    "defaultMessage": "Больше не показывать"
-  },
-  "content.page-layout.additional-content": {
-    "defaultMessage": "Дополнительный контент"
-  },
   "content.page-layout.browse-content": {
     "defaultMessage": "Найти проекты"
   },
@@ -476,14 +464,8 @@
   "content.page-layout.empty.hint": {
     "defaultMessage": "Найдите проекты или добавьте файлы"
   },
-  "content.page-layout.empty.modpack-hint": {
-    "defaultMessage": "Добавьте дополнительный контент поверх этой сборки"
-  },
   "content.page-layout.empty.no-content-installed": {
     "defaultMessage": "Нет контента"
-  },
-  "content.page-layout.empty.no-extra-content-installed": {
-    "defaultMessage": "Нет дополнительного контента"
   },
   "content.page-layout.failed-to-load": {
     "defaultMessage": "Не удалось загрузить контент"
@@ -721,51 +703,6 @@
   },
   "creation-flow.modal.final-config.world-type.superflat": {
     "defaultMessage": "Суперплоскость"
-  },
-  "creation-flow.modal.import-instance.action.add": {
-    "defaultMessage": "Добавить"
-  },
-  "creation-flow.modal.import-instance.custom-launcher.name": {
-    "defaultMessage": "Пользовательский ({pathName})"
-  },
-  "creation-flow.modal.import-instance.detecting-launcher-instances": {
-    "defaultMessage": "Поиск сборок лаунчера..."
-  },
-  "creation-flow.modal.import-instance.launcher-instances.title": {
-    "defaultMessage": "Сборки лаунчера"
-  },
-  "creation-flow.modal.import-instance.launcher-path.add": {
-    "defaultMessage": "Добавить путь к лаунчеру"
-  },
-  "creation-flow.modal.import-instance.launcher-path.placeholder": {
-    "defaultMessage": "Путь к лаунчеру..."
-  },
-  "creation-flow.modal.import-instance.notification.no-instances-found.text": {
-    "defaultMessage": "Не удалось найти импортируемые сборки по указанному пути."
-  },
-  "creation-flow.modal.import-instance.notification.no-instances-found.title": {
-    "defaultMessage": "Сборки не найдены"
-  },
-  "creation-flow.modal.import-instance.search.placeholder": {
-    "defaultMessage": "Поиск сборки по названию"
-  },
-  "creation-flow.modal.import-instance.selection.clear-all": {
-    "defaultMessage": "Очистить всë"
-  },
-  "creation-flow.modal.modpack.action.browse": {
-    "defaultMessage": "Найти сборки"
-  },
-  "creation-flow.modal.modpack.action.import": {
-    "defaultMessage": "Импортировать сборку"
-  },
-  "creation-flow.modal.modpack.known-modpack.prompt": {
-    "defaultMessage": "Уже знаете, какую сборку хотите скачать?"
-  },
-  "creation-flow.modal.modpack.search.no-results": {
-    "defaultMessage": "Ничего не найдено"
-  },
-  "creation-flow.modal.modpack.search.placeholder": {
-    "defaultMessage": "Поиск сборки"
   },
   "creation-flow.modal.setup-type.instance.description": {
     "defaultMessage": "Сборка — это установка Minecraft с определённым загрузчиком модов, версией и модами."

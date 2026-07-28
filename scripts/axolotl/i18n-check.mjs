@@ -25,11 +25,24 @@ const allowedUntranslatedMessages = new Set([
 	'Fabric',
 	'NeoForge',
 	'Quilt',
+	'CurseForge',
+	'BBCode',
+	'CMI',
+	'CSV',
+	'HTML',
+	'MineDown',
+	'MiniMessage',
+	'TabooLib',
+	'TrChat',
 	'Java {version}',
 ])
 
 function messageText(value) {
-	return typeof value === 'string' ? value : (value?.message ?? '')
+	return typeof value === 'string' ? value : (value?.message ?? value?.defaultMessage ?? '')
+}
+
+function hasExplicitTranslation(value) {
+	return typeof value === 'string' || typeof value?.message === 'string'
 }
 
 function argumentNames(message) {
@@ -80,6 +93,7 @@ for (const [sourcePath, translationPath] of localePairs) {
 
 			if (
 				sourceMessage === translationMessage &&
+				hasExplicitTranslation(translation[key]) &&
 				/[A-Za-z]{2}/.test(sourceMessage) &&
 				!allowedUntranslatedMessages.has(sourceMessage)
 			) {

@@ -23,9 +23,6 @@
   "app.appearance-settings.advanced-rendering.description": {
     "message": "מאפשר עיבוד מתקדם כגון אפקטים טשטוש העלולים לגרום לבעיות ביצועים ללא עיבוד מואץ לחומרה."
   },
-  "app.appearance-settings.jump-back-into-worlds.title": {
-    "message": "חזרה לעולמות"
-  },
   "app.auth-servers.unreachable.body": {
     "message": "ייתכן ששרתי האימות של Minecraft מושבתים כרגע. יש לבדוק את חיבור האינטרנט שלך ולנסות שוב מאוחר יותר."
   },
@@ -326,9 +323,6 @@
   "instance.edit-server.title": {
     "message": "ערוך שרת"
   },
-  "instance.edit-world.hide-from-home": {
-    "message": "הסתר מדף הבית"
-  },
   "instance.edit-world.name": {
     "message": "שם"
   },
@@ -464,9 +458,6 @@
   "instance.settings.tabs.java.environment-variables": {
     "message": "משתני סביבה"
   },
-  "instance.settings.tabs.java.hooks": {
-    "message": "התחברויות"
-  },
   "instance.settings.tabs.java.java-arguments": {
     "message": "ארגומנטים של ג'אווה"
   },
@@ -514,9 +505,6 @@
   },
   "instance.worlds.copy_address": {
     "message": "העתק כתובת"
-  },
-  "instance.worlds.dont_show_on_home": {
-    "message": "אל תציג בדף הבית"
   },
   "instance.worlds.game_already_open": {
     "message": "התקנה כבר פתוחה"

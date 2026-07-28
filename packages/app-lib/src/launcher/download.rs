@@ -206,9 +206,42 @@ async fn download_minecraft_file(
     progress: Option<MinecraftDownloadProgress>,
     context: InstallErrorContext,
 ) -> crate::Result<DownloadResult> {
-    let mirrors = minecraft_library_mirrors(url);
+    let urls = minecraft_library_mirrors(url);
+    download_minecraft_file_with_candidates(
+        st,
+        &urls,
+        sha1,
+        expected_size,
+        destination,
+        resource,
+        content_validation,
+        force,
+        progress,
+        context,
+    )
+    .await
+}
+
+async fn download_minecraft_file_with_candidates(
+    st: &State,
+    urls: &[String],
+    sha1: Option<&str>,
+    expected_size: Option<u64>,
+    destination: &std::path::Path,
+    resource: ResourceClass,
+    content_validation: ContentValidation,
+    force: bool,
+    progress: Option<MinecraftDownloadProgress>,
+    context: InstallErrorContext,
+) -> crate::Result<DownloadResult> {
+    let Some(url) = urls.first() else {
+        return Err(crate::ErrorKind::LauncherError(
+            "No trusted download URL is available".to_string(),
+        )
+        .into());
+    };
     let mut context = context;
-    context.urls.extend(mirrors.iter().cloned());
+    context.urls.extend(urls.iter().cloned());
     context.expected_hash = sha1.map(str::to_string);
     context.expected_size = expected_size;
     if let Some(progress) = &progress {
@@ -224,9 +257,19 @@ async fn download_minecraft_file(
         content: content_validation,
         ..Integrity::default()
     };
-    let request = DownloadRequest::new(url, resource)
-        .with_candidate_urls(mirrors.into_iter().skip(1))
+    let mut request = DownloadRequest::new(url, resource)
+        .with_candidate_urls(urls.iter().skip(1).cloned())
         .with_integrity(integrity);
+    if let Some(progress) = &progress {
+        request = request.with_install_tracking(
+            progress.reporter.clone(),
+            destination.display().to_string(),
+            destination
+                .file_name()
+                .map(|name| name.to_string_lossy().into_owned())
+                .unwrap_or_else(|| url.to_string()),
+        );
+    }
     let Some(progress) = progress else {
         return download_to_path(
             request,
@@ -307,36 +350,63 @@ const QUILT_MAVEN: &str = "https://maven.quiltmc.org/repository/release";
 const SPONGE_MAVEN: &str = "https://repo.spongepowered.org/maven";
 const MAVEN_CENTRAL: &str = "https://repo.maven.apache.org/maven2";
 
-fn legacy_library_download_url(
+fn legacy_library_download_urls(
     repository: Option<&str>,
     artifact_path: &str,
-) -> Option<String> {
+) -> Option<Vec<String>> {
     let repository =
         repository.unwrap_or(LIBRARIES_MAVEN).trim_end_matches('/');
-    let repository = match repository {
-        LAUNCHER_META_MAVEN => legacy_library_repository(artifact_path)?,
-        LIBRARIES_MAVEN | FABRIC_MAVEN | FORGE_MAVEN | NEOFORGE_MAVEN
-        | QUILT_MAVEN | SPONGE_MAVEN | MAVEN_CENTRAL => repository,
+    match repository {
+        LAUNCHER_META_MAVEN | LIBRARIES_MAVEN | FABRIC_MAVEN | FORGE_MAVEN
+        | NEOFORGE_MAVEN | QUILT_MAVEN | SPONGE_MAVEN | MAVEN_CENTRAL => {}
         _ => return None,
-    };
-    Some(format!("{repository}/{artifact_path}"))
+    }
+
+    let declared_url = format!("{repository}/{artifact_path}");
+    let canonical_urls = legacy_library_canonical_urls(artifact_path);
+    let mut candidates = Vec::new();
+
+    if repository == LAUNCHER_META_MAVEN {
+        candidates.extend(canonical_urls);
+        candidates.push(declared_url);
+    } else {
+        candidates.push(declared_url);
+        candidates.extend(canonical_urls);
+    }
+
+    let mut urls = Vec::new();
+    for candidate in candidates {
+        if !urls.contains(&candidate) {
+            urls.push(candidate);
+        }
+    }
+
+    Some(urls)
 }
 
-fn legacy_library_repository(artifact_path: &str) -> Option<&'static str> {
-    if artifact_path.starts_with("net/fabricmc/") {
-        Some(FABRIC_MAVEN)
+fn legacy_library_canonical_urls(artifact_path: &str) -> Vec<String> {
+    let in_repository =
+        |repository: &str| format!("{repository}/{artifact_path}");
+
+    if artifact_path.starts_with("org/scala-lang/scala-parser-combinators_")
+        || artifact_path.starts_with("org/scala-lang/scala-swing_")
+        || artifact_path.starts_with("org/scala-lang/scala-xml_")
+    {
+        vec![in_repository(FORGE_MAVEN)]
+    } else if artifact_path.starts_with("net/fabricmc/") {
+        vec![in_repository(FABRIC_MAVEN)]
     } else if artifact_path.starts_with("org/quiltmc/") {
-        Some(QUILT_MAVEN)
+        vec![in_repository(QUILT_MAVEN)]
     } else if artifact_path.starts_with("net/minecraftforge/")
         || artifact_path.starts_with("cpw/mods/")
     {
-        Some(FORGE_MAVEN)
+        vec![in_repository(FORGE_MAVEN)]
     } else if artifact_path.starts_with("net/neoforged/") {
-        Some(NEOFORGE_MAVEN)
+        vec![in_repository(NEOFORGE_MAVEN)]
     } else if artifact_path.starts_with("org/spongepowered/") {
-        Some(SPONGE_MAVEN)
+        vec![in_repository(SPONGE_MAVEN)]
     } else if artifact_path.starts_with("net/minecraft/launchwrapper/") {
-        Some(LIBRARIES_MAVEN)
+        vec![in_repository(LIBRARIES_MAVEN)]
     } else if artifact_path.starts_with("org/ow2/")
         || artifact_path.starts_with("org/scala-lang/")
         || artifact_path.starts_with("org/jline/")
@@ -344,11 +414,11 @@ fn legacy_library_repository(artifact_path: &str) -> Option<&'static str> {
         || artifact_path.starts_with("net/java/dev/jna/")
         || artifact_path.starts_with("com/typesafe/")
     {
-        Some(MAVEN_CENTRAL)
+        vec![in_repository(MAVEN_CENTRAL)]
     } else if artifact_path.starts_with("com/modrinth/daedalus/") {
-        Some(LAUNCHER_META_MAVEN)
+        vec![in_repository(LAUNCHER_META_MAVEN)]
     } else {
-        None
+        Vec::new()
     }
 }
 
@@ -1255,7 +1325,7 @@ pub async fn download_libraries(
                         &path
                     );
                 } else {
-                    let Some(url) = legacy_library_download_url(
+                    let Some(urls) = legacy_library_download_urls(
                         library.url.as_deref(),
                         &artifact_path,
                     ) else {
@@ -1266,9 +1336,9 @@ pub async fn download_libraries(
                         .into());
                     };
 
-                    download_minecraft_file(
+                    download_minecraft_file_with_candidates(
                         st,
-                        &url,
+                        &urls,
                         legacy_library_sha1(library),
                         None,
                         &path,
@@ -1359,6 +1429,10 @@ pub async fn download_log_config(
 mod tests {
     use super::*;
 
+    fn urls(values: &[&str]) -> Option<Vec<String>> {
+        Some(values.iter().map(|value| (*value).to_string()).collect())
+    }
+
     #[tokio::test]
     async fn writing_version_info_creates_missing_parent_directory() {
         let directory = tempfile::tempdir().unwrap();
@@ -1380,31 +1454,33 @@ mod tests {
     #[test]
     fn legacy_launcher_meta_maven_uses_canonical_repositories() {
         assert_eq!(
-            legacy_library_download_url(
+            legacy_library_download_urls(
                 Some("https://launcher-meta.modrinth.com/maven/"),
                 "net/fabricmc/intermediary/1.21.1/intermediary-1.21.1.jar",
             ),
-            Some(
-                "https://maven.fabricmc.net/net/fabricmc/intermediary/1.21.1/intermediary-1.21.1.jar".to_string(),
-            ),
+            urls(&[
+                "https://maven.fabricmc.net/net/fabricmc/intermediary/1.21.1/intermediary-1.21.1.jar",
+                "https://launcher-meta.modrinth.com/maven/net/fabricmc/intermediary/1.21.1/intermediary-1.21.1.jar",
+            ]),
         );
         assert_eq!(
-            legacy_library_download_url(
+            legacy_library_download_urls(
                 Some("https://launcher-meta.modrinth.com/maven/"),
                 "org/ow2/asm/asm/9.10.1/asm-9.10.1.jar",
             ),
-            Some(
-                "https://repo.maven.apache.org/maven2/org/ow2/asm/asm/9.10.1/asm-9.10.1.jar".to_string(),
-            ),
+            urls(&[
+                "https://repo.maven.apache.org/maven2/org/ow2/asm/asm/9.10.1/asm-9.10.1.jar",
+                "https://launcher-meta.modrinth.com/maven/org/ow2/asm/asm/9.10.1/asm-9.10.1.jar",
+            ]),
         );
         assert_eq!(
-            legacy_library_download_url(
+            legacy_library_download_urls(
                 Some("https://launcher-meta.modrinth.com/maven/"),
                 "com/modrinth/daedalus/forge-installer-extracts/1.20.1-47.4.20/forge-installer-extracts-1.20.1-47.4.20-client.lzma",
             ),
-            Some(
-                "https://launcher-meta.modrinth.com/maven/com/modrinth/daedalus/forge-installer-extracts/1.20.1-47.4.20/forge-installer-extracts-1.20.1-47.4.20-client.lzma".to_string(),
-            ),
+            urls(&[
+                "https://launcher-meta.modrinth.com/maven/com/modrinth/daedalus/forge-installer-extracts/1.20.1-47.4.20/forge-installer-extracts-1.20.1-47.4.20-client.lzma",
+            ]),
         );
         assert_eq!(
             legacy_library_content_validation("library.jar"),
@@ -1419,24 +1495,65 @@ mod tests {
     #[test]
     fn legacy_scala_libraries_use_maven_central() {
         let artifact_path = "org/scala-lang/plugins/scala-continuations-library_2.11/1.0.2/scala-continuations-library_2.11-1.0.2.jar";
-        let expected = Some(
-            "https://repo.maven.apache.org/maven2/org/scala-lang/plugins/scala-continuations-library_2.11/1.0.2/scala-continuations-library_2.11-1.0.2.jar".to_string(),
-        );
+        let expected = urls(&[
+            "https://repo.maven.apache.org/maven2/org/scala-lang/plugins/scala-continuations-library_2.11/1.0.2/scala-continuations-library_2.11-1.0.2.jar",
+            "https://launcher-meta.modrinth.com/maven/org/scala-lang/plugins/scala-continuations-library_2.11/1.0.2/scala-continuations-library_2.11-1.0.2.jar",
+        ]);
 
         assert_eq!(
-            legacy_library_download_url(
+            legacy_library_download_urls(
                 Some("https://launcher-meta.modrinth.com/maven"),
                 artifact_path,
             ),
             expected,
         );
         assert_eq!(
-            legacy_library_download_url(
+            legacy_library_download_urls(
                 Some("https://launcher-meta.modrinth.com/maven/"),
                 artifact_path,
             ),
             expected,
         );
+    }
+
+    #[test]
+    fn historical_forge_scala_modules_keep_archived_coordinates() {
+        let library: Library = serde_json::from_value(serde_json::json!({
+            "name": "org.scala-lang:scala-xml_2.11:1.0.2",
+            "url": "https://launcher-meta.modrinth.com/maven/",
+            "checksums": [
+                "7a80ec00aec122fba7cd4e0d4cdd87ff7e4cb6d0",
+                "62736b01689d56b6d09a0164b7ef9da2b0b9633d"
+            ]
+        }))
+        .unwrap();
+        let artifact_path = d::get_path_from_artifact(&library.name).unwrap();
+
+        assert_eq!(
+            artifact_path,
+            "org/scala-lang/scala-xml_2.11/1.0.2/scala-xml_2.11-1.0.2.jar",
+        );
+        assert_eq!(
+            legacy_library_sha1(&library),
+            Some("7a80ec00aec122fba7cd4e0d4cdd87ff7e4cb6d0"),
+        );
+
+        for artifact_path in [
+            "org/scala-lang/scala-parser-combinators_2.11/1.0.1/scala-parser-combinators_2.11-1.0.1.jar",
+            "org/scala-lang/scala-swing_2.11/1.0.1/scala-swing_2.11-1.0.1.jar",
+            "org/scala-lang/scala-xml_2.11/1.0.2/scala-xml_2.11-1.0.2.jar",
+        ] {
+            assert_eq!(
+                legacy_library_download_urls(
+                    Some("https://launcher-meta.modrinth.com/maven/"),
+                    artifact_path,
+                ),
+                Some(vec![
+                    format!("{FORGE_MAVEN}/{artifact_path}"),
+                    format!("{LAUNCHER_META_MAVEN}/{artifact_path}"),
+                ]),
+            );
+        }
     }
 
     #[test]
@@ -1449,26 +1566,40 @@ mod tests {
             "com/typesafe/config/1.2.1/config-1.2.1.jar",
         ] {
             assert_eq!(
-                legacy_library_download_url(
+                legacy_library_download_urls(
                     Some("https://launcher-meta.modrinth.com/maven"),
                     artifact_path,
                 ),
-                Some(format!("{MAVEN_CENTRAL}/{artifact_path}")),
+                Some(vec![
+                    format!("{MAVEN_CENTRAL}/{artifact_path}"),
+                    format!("{LAUNCHER_META_MAVEN}/{artifact_path}"),
+                ]),
             );
         }
     }
 
     #[test]
-    fn legacy_maven_download_rejects_unknown_repositories_and_paths() {
+    fn legacy_maven_download_uses_trusted_declared_paths() {
         assert_eq!(
-            legacy_library_download_url(
+            legacy_library_download_urls(
                 Some("https://launcher-meta.modrinth.com/maven/"),
                 "example/unknown/1/unknown-1.jar",
             ),
-            None,
+            urls(&[
+                "https://launcher-meta.modrinth.com/maven/example/unknown/1/unknown-1.jar",
+            ]),
         );
         assert_eq!(
-            legacy_library_download_url(
+            legacy_library_download_urls(
+                Some("https://maven.minecraftforge.net"),
+                "example/unknown/1/unknown-1.jar",
+            ),
+            urls(&[
+                "https://maven.minecraftforge.net/example/unknown/1/unknown-1.jar",
+            ]),
+        );
+        assert_eq!(
+            legacy_library_download_urls(
                 Some("https://example.invalid/maven"),
                 "net/fabricmc/intermediary/1.21.1/intermediary-1.21.1.jar",
             ),

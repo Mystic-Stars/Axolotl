@@ -89,12 +89,6 @@
   "app.appearance-settings.hide-nametag.title": {
     "message": "Dölj namnskylt"
   },
-  "app.appearance-settings.jump-back-into-worlds.description": {
-    "message": "Inkluderar de senaste världarna i \"Hoppa tillbaka i världar\" på hemsidan."
-  },
-  "app.appearance-settings.jump-back-into-worlds.title": {
-    "message": "Hoppa tillbaka i världar"
-  },
   "app.appearance-settings.minimize-launcher.description": {
     "message": "Minimerar launchern när Minecraft startas."
   },
@@ -689,9 +683,6 @@
   "instance.edit-server.title": {
     "message": "Redigera server"
   },
-  "instance.edit-world.hide-from-home": {
-    "message": "Göm från Hem sidan"
-  },
   "instance.edit-world.name": {
     "message": "Namn"
   },
@@ -854,9 +845,6 @@
   "instance.settings.tabs.java.custom-java-arguments": {
     "message": "Anpassade Java-argument"
   },
-  "instance.settings.tabs.java.custom-java-installation": {
-    "message": "Anpassad Java-installation"
-  },
   "instance.settings.tabs.java.custom-memory-allocation": {
     "message": "Anpassad minnestilldelning"
   },
@@ -868,9 +856,6 @@
   },
   "instance.settings.tabs.java.environment-variables": {
     "message": "Miljövariabler"
-  },
-  "instance.settings.tabs.java.hooks": {
-    "message": "Hooks"
   },
   "instance.settings.tabs.java.java-arguments": {
     "message": "Java-argument"
@@ -925,9 +910,6 @@
   },
   "instance.worlds.create_shortcut": {
     "message": "Skapa genväg"
-  },
-  "instance.worlds.dont_show_on_home": {
-    "message": "Visa inte på Startsidan"
   },
   "instance.worlds.game_already_open": {
     "message": "Instans är redan öppen"

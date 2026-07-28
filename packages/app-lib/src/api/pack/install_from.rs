@@ -7,7 +7,8 @@ use crate::install::{
 };
 use crate::state::{
     AppliedContentSetPatch, CacheBehaviour, CachedEntry, ContentSourceKind,
-    EditInstance, InstanceInstallStage, InstanceLink, SideType,
+    EditInstance, InstanceInstallStage, InstanceLink, ModrinthProjectId,
+    ModrinthVersionId, SideType,
 };
 use crate::util::fetch::{
     ContentValidation, DownloadMeta, DownloadReason, DownloadRequest,
@@ -257,7 +258,7 @@ pub(crate) async fn generate_pack_from_version_id_with_reporter(
     let has_icon_url = icon_url.is_some();
 
     let version = CachedEntry::get_version(
-        &version_id,
+        &ModrinthVersionId::new(version_id.clone())?,
         Some(CacheBehaviour::Bypass),
         &state.pool,
         &state.api_semaphore,
@@ -405,7 +406,12 @@ pub(crate) async fn generate_pack_from_version_id_with_reporter(
                 content: ContentValidation::Jar,
                 ..Integrity::default()
             })
-            .with_download_meta(download_meta),
+            .with_download_meta(download_meta)
+            .with_install_tracking(
+                reporter.clone(),
+                pack_path.display().to_string(),
+                pack_file.filename.clone(),
+            ),
         &pack_path,
         &state.download_semaphore,
         &state.pool,
@@ -426,7 +432,7 @@ pub(crate) async fn generate_pack_from_version_id_with_reporter(
         .await?;
 
     let project = CachedEntry::get_project(
-        &version.project_id,
+        &ModrinthProjectId::new(version.project_id.clone())?,
         None,
         &state.pool,
         &state.api_semaphore,

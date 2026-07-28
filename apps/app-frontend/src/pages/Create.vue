@@ -77,8 +77,9 @@ function handleImportExisting() {
 				</p>
 			</div>
 
-			<div class="flex flex-col gap-4 sm:flex-row">
+			<div data-onboarding-id="creation-methods" class="flex flex-col gap-4 sm:flex-row">
 				<BigOptionButton
+					data-onboarding-id="creation-method-custom"
 					:icon="SparklesIcon"
 					:title="formatMessage(messages.newTitle)"
 					:description="formatMessage(messages.newDescription)"
@@ -87,6 +88,7 @@ function handleImportExisting() {
 				/>
 
 				<BigOptionButton
+					data-onboarding-id="creation-method-import"
 					:icon="FolderOpenIcon"
 					:title="formatMessage(messages.importTitle)"
 					:description="formatMessage(messages.importDescription)"

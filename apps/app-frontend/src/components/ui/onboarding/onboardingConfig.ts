@@ -2,7 +2,7 @@ import { defineMessages, type MessageDescriptor } from '@modrinth/ui'
 
 export type OnboardingInteraction = 'manual' | 'navigate' | 'activate' | 'inspect'
 export type OnboardingMode = 'main' | 'instance'
-export type CreationPath = 'custom' | 'modpack'
+export type CreationPath = 'custom'
 export type StepDestination = string | 'complete'
 
 export type OnboardingStep = {
@@ -14,6 +14,7 @@ export type OnboardingStep = {
 	action: MessageDescriptor
 	spotlight?: 'control'
 	expectedPath?: string
+	next?: StepDestination
 	closeSettingsAfter?: boolean
 	nextByCreationPath?: Partial<Record<CreationPath, StepDestination>>
 	branchByTarget?: Record<
@@ -40,20 +41,11 @@ export const onboardingMessages = defineMessages({
 		defaultMessage: 'Your last next launcher.',
 	},
 	start: { id: 'app.onboarding.action.start', defaultMessage: 'Take the tour' },
-	recentTitle: { id: 'app.onboarding.recent.title', defaultMessage: 'No more losing your place' },
-	recentDescription: {
-		id: 'app.onboarding.recent.description',
-		defaultMessage: 'Recently played instances and worlds stay here, ready for a quick return.',
-	},
-	continueArea: {
-		id: 'app.onboarding.action.continue-area',
-		defaultMessage: 'Click anywhere for the next bit',
-	},
-	featuredTitle: { id: 'app.onboarding.featured.title', defaultMessage: 'A little inspiration' },
-	featuredDescription: {
-		id: 'app.onboarding.featured.description',
+	playtimeTitle: { id: 'app.onboarding.playtime.title', defaultMessage: 'Your time, at a glance' },
+	playtimeDescription: {
+		id: 'app.onboarding.playtime.description',
 		defaultMessage:
-			'Recommended modpacks and mods live here for when your next project needs ideas.',
+			'The calendar highlights every day you played — pick a day to jump back in, with pinned servers below. Weekly insights, a daily challenge, and Minecraft news live in the account sidebar.',
 	},
 	discoverTitle: { id: 'app.onboarding.discover.title', defaultMessage: 'Find something new' },
 	discoverDescription: {
@@ -70,6 +62,28 @@ export const onboardingMessages = defineMessages({
 		id: 'app.onboarding.browse.description',
 		defaultMessage:
 			'Use types, search, and filters to narrow things down. Project pages keep versions, changelogs, galleries, and install options in one place.',
+	},
+	homeInstancesTitle: {
+		id: 'app.onboarding.home-instances.title',
+		defaultMessage: 'Start where you want',
+	},
+	homeInstancesDescription: {
+		id: 'app.onboarding.home-instances.description',
+		defaultMessage:
+			'This is your launch area. Information Home keeps recent and pinned projects close; Minimal Home focuses on the instance you choose.',
+	},
+	homeLayoutTitle: {
+		id: 'app.onboarding.home-layout.title',
+		defaultMessage: 'Change the amount of detail',
+	},
+	homeLayoutDescription: {
+		id: 'app.onboarding.home-layout.description',
+		defaultMessage:
+			'Use this floating button whenever you want to switch between Information Home and Minimal Home.',
+	},
+	continueArea: {
+		id: 'app.onboarding.action.continue-area',
+		defaultMessage: 'Click anywhere for the next bit',
 	},
 	skinsTitle: { id: 'app.onboarding.skins.title', defaultMessage: 'A new look, maybe' },
 	skinsDescription: {
@@ -128,7 +142,7 @@ export const onboardingMessages = defineMessages({
 	appearanceDescription: {
 		id: 'app.onboarding.appearance.description',
 		defaultMessage:
-			'Theme, accent, background, and window behavior. Make this launcher look familiar.',
+			'Theme, accent, background, Home layout, and window behavior. Make this launcher look familiar.',
 	},
 	languageTitle: { id: 'app.onboarding.language.title', defaultMessage: 'Speak your language' },
 	languageDescription: {
@@ -192,8 +206,7 @@ export const onboardingMessages = defineMessages({
 	createTitle: { id: 'app.onboarding.create.title', defaultMessage: 'Make a fresh start' },
 	createDescription: {
 		id: 'app.onboarding.create.description',
-		defaultMessage:
-			'Start from scratch, grab a modpack, or bring in an existing instance. Your call.',
+		defaultMessage: 'Start from scratch or bring in an existing instance or modpack. Your call.',
 	},
 	clickCreate: {
 		id: 'app.onboarding.action.click-create',
@@ -203,7 +216,7 @@ export const onboardingMessages = defineMessages({
 	creationDescription: {
 		id: 'app.onboarding.creation.description',
 		defaultMessage:
-			'Custom setup, modpack, or import. The choices are yours; I am just here for the subtitles.',
+			'Start fresh with a custom setup, or import an existing instance or modpack. Your call.',
 	},
 	clickCreationMethod: {
 		id: 'app.onboarding.action.click-creation-method',
@@ -234,15 +247,6 @@ export const onboardingMessages = defineMessages({
 		defaultMessage:
 			'Choose the Minecraft version for this instance. Compatibility likes specifics.',
 	},
-	creationModpackTitle: {
-		id: 'app.onboarding.creation-modpack.title',
-		defaultMessage: 'Find your next modpack',
-	},
-	creationModpackDescription: {
-		id: 'app.onboarding.creation-modpack.description',
-		defaultMessage:
-			'Search Modrinth, browse modpacks, or import a pack file. Plenty of adventures ahead.',
-	},
 	creationConfirmTitle: {
 		id: 'app.onboarding.creation-confirm.title',
 		defaultMessage: 'One last look',
@@ -272,6 +276,58 @@ export const onboardingMessages = defineMessages({
 	instanceTabsDescription: {
 		id: 'app.onboarding.instance-tabs.description',
 		defaultMessage: 'Use these tabs for content, files, screenshots, worlds, and logs. Tidy chaos.',
+	},
+	labTitle: {
+		id: 'app.onboarding.lab.title',
+		defaultMessage: 'Useful tools, built in',
+	},
+	labDescription: {
+		id: 'app.onboarding.lab.description',
+		defaultMessage:
+			'The Lab keeps local Minecraft tools inside the launcher, without another website or account.',
+	},
+	clickLab: {
+		id: 'app.onboarding.action.click-lab',
+		defaultMessage: 'Click Lab to continue',
+	},
+	labToolsTitle: {
+		id: 'app.onboarding.lab-tools.title',
+		defaultMessage: 'Two projects to start with',
+	},
+	labToolsDescription: {
+		id: 'app.onboarding.lab-tools.description',
+		defaultMessage:
+			'Create formatted gradient text, or explore Java worlds with the local Seed map.',
+	},
+	openGradientText: {
+		id: 'app.onboarding.action.open-gradient-text',
+		defaultMessage: 'Open Gradient text generator to continue',
+	},
+	labEditorTitle: {
+		id: 'app.onboarding.lab-editor.title',
+		defaultMessage: 'Build and copy in one place',
+	},
+	labEditorDescription: {
+		id: 'app.onboarding.lab-editor.description',
+		defaultMessage:
+			'Edit text, choose colors, preview the result, and copy the format your Minecraft setup expects.',
+	},
+	labSeedMapTitle: {
+		id: 'app.onboarding.lab-seed-map.title',
+		defaultMessage: 'Find a world before you load it',
+	},
+	labSeedMapDescription: {
+		id: 'app.onboarding.lab-seed-map.description',
+		defaultMessage:
+			'Enter a seed or load one from an instance, then inspect biomes, structures, and ore layers on the local map.',
+	},
+	returnToLab: {
+		id: 'app.onboarding.action.return-lab',
+		defaultMessage: 'Click Lab to see the other project',
+	},
+	openSeedMap: {
+		id: 'app.onboarding.action.open-seed-map',
+		defaultMessage: 'Open Seed map to continue',
 	},
 	skip: { id: 'app.onboarding.action.skip', defaultMessage: 'Leave the tour' },
 	mascotAlt: { id: 'app.onboarding.mascot-alt', defaultMessage: 'Axolotl guide' },
@@ -364,16 +420,22 @@ export const onboardingTours: Record<OnboardingMode, OnboardingStep[]> = {
 			),
 		),
 		inspect(
-			'home-recent',
-			'home-recent',
-			onboardingMessages.recentTitle,
-			onboardingMessages.recentDescription,
+			'home-playtime',
+			'home-playtime',
+			onboardingMessages.playtimeTitle,
+			onboardingMessages.playtimeDescription,
 		),
 		inspect(
-			'home-featured',
-			'home-featured',
-			onboardingMessages.featuredTitle,
-			onboardingMessages.featuredDescription,
+			'home-instances',
+			'home-instances',
+			onboardingMessages.homeInstancesTitle,
+			onboardingMessages.homeInstancesDescription,
+		),
+		inspect(
+			'home-layout-switch',
+			'home-layout-switch',
+			onboardingMessages.homeLayoutTitle,
+			onboardingMessages.homeLayoutDescription,
 		),
 		step(
 			'discover-navigation',
@@ -383,7 +445,7 @@ export const onboardingTours: Record<OnboardingMode, OnboardingStep[]> = {
 				onboardingMessages.discoverDescription,
 				onboardingMessages.clickDiscover,
 			),
-			control('nav-discover', '/browse'),
+			control('nav-discover', '/browse/modpack'),
 		),
 		inspect(
 			'discover-content',
@@ -416,6 +478,64 @@ export const onboardingTours: Record<OnboardingMode, OnboardingStep[]> = {
 				onboardingMessages.continueArea,
 			),
 			control('account-entry'),
+		),
+		step(
+			'lab-navigation',
+			'navigate',
+			copy(
+				onboardingMessages.labTitle,
+				onboardingMessages.labDescription,
+				onboardingMessages.clickLab,
+			),
+			control('nav-lab', '/lab'),
+		),
+		inspect(
+			'lab-tools',
+			'lab-tools',
+			onboardingMessages.labToolsTitle,
+			onboardingMessages.labToolsDescription,
+		),
+		step(
+			'lab-gradient-text-navigation',
+			'navigate',
+			copy(
+				onboardingMessages.labEditorTitle,
+				onboardingMessages.labEditorDescription,
+				onboardingMessages.openGradientText,
+			),
+			control('lab-gradient-text-card', '/lab/gradient-text'),
+		),
+		inspect(
+			'lab-gradient-text-editor',
+			'lab-gradient-text-editor',
+			onboardingMessages.labEditorTitle,
+			onboardingMessages.labEditorDescription,
+		),
+		step(
+			'lab-return-navigation',
+			'navigate',
+			copy(
+				onboardingMessages.labSeedMapTitle,
+				onboardingMessages.labSeedMapDescription,
+				onboardingMessages.returnToLab,
+			),
+			control('nav-lab', '/lab'),
+		),
+		step(
+			'lab-seed-map-navigation',
+			'navigate',
+			copy(
+				onboardingMessages.labSeedMapTitle,
+				onboardingMessages.labSeedMapDescription,
+				onboardingMessages.openSeedMap,
+			),
+			control('lab-seed-map-card', '/lab/seed-map'),
+		),
+		inspect(
+			'lab-seed-map-workspace',
+			'seed-map-workspace',
+			onboardingMessages.labSeedMapTitle,
+			onboardingMessages.labSeedMapDescription,
 		),
 		step(
 			'downloads-navigation',
@@ -467,13 +587,13 @@ export const onboardingTours: Record<OnboardingMode, OnboardingStep[]> = {
 		),
 		step(
 			'create-instance',
-			'activate',
+			'navigate',
 			copy(
 				onboardingMessages.createTitle,
 				onboardingMessages.createDescription,
 				onboardingMessages.clickCreate,
 			),
-			control('create-instance'),
+			control('create-instance', '/create'),
 		),
 		step(
 			'creation-flow',
@@ -487,7 +607,6 @@ export const onboardingTours: Record<OnboardingMode, OnboardingStep[]> = {
 				targetId: 'creation-methods',
 				branchByTarget: {
 					'creation-method-custom': { creationPath: 'custom', next: 'creation-name' },
-					'creation-method-modpack': { creationPath: 'modpack', next: 'creation-modpack' },
 					'creation-method-import': { next: 'complete' },
 				},
 			},
@@ -515,19 +634,6 @@ export const onboardingTours: Record<OnboardingMode, OnboardingStep[]> = {
 			{
 				targetId: 'creation-game-version',
 				nextByCreationPath: { custom: 'creation-confirm' },
-			},
-		),
-		step(
-			'creation-modpack',
-			'inspect',
-			copy(
-				onboardingMessages.creationModpackTitle,
-				onboardingMessages.creationModpackDescription,
-				onboardingMessages.continueArea,
-			),
-			{
-				targetId: 'creation-modpack-source',
-				nextByCreationPath: { modpack: 'complete' },
 			},
 		),
 		step(

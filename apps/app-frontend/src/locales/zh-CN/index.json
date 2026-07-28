@@ -236,12 +236,6 @@
 	"app.appearance-settings.hide-nametag.title": {
 		"message": "隐藏名牌"
 	},
-	"app.appearance-settings.jump-back-into-worlds.description": {
-		"message": "在主页的“快速回到”部分包含最近的世界。"
-	},
-	"app.appearance-settings.jump-back-into-worlds.title": {
-		"message": "快速回到世界"
-	},
 	"app.appearance-settings.minimize-launcher.description": {
 		"message": "当 Minecraft 进程启动时，将启动器最小化。"
 	},
@@ -817,21 +811,6 @@
 	},
 	"app.home.breadcrumb": {
 		"message": "主页"
-	},
-	"app.home.discover-modpack": {
-		"message": "发现整合包"
-	},
-	"app.home.discover-mods": {
-		"message": "发现模组"
-	},
-	"app.home.jump-back-in": {
-		"message": "继续游玩"
-	},
-	"app.home.welcome": {
-		"message": "欢迎使用 Axolotl Launcher！"
-	},
-	"app.home.welcome-back": {
-		"message": "欢迎回来！"
 	},
 	"app.install.phase.downloading_content": {
 		"message": "正在下载内容"
@@ -1596,7 +1575,7 @@
 		"message": "带我逛逛"
 	},
 	"app.onboarding.appearance.description": {
-		"message": "主题、强调色、背景和窗口行为都在这。让它更像你的启动器。"
+		"message": "主题、强调色、背景、主页布局和窗口行为都在这。让它更像你的启动器。"
 	},
 	"app.onboarding.appearance.title": {
 		"message": "调成你的顺眼样子"
@@ -1608,13 +1587,13 @@
 		"message": "搜索，不靠玄学"
 	},
 	"app.onboarding.create.description": {
-		"message": "从零配置、装整合包，或导入已有实例。你说了算。"
+		"message": "从零开始，或导入已有实例或整合包。你说了算。"
 	},
 	"app.onboarding.create.title": {
 		"message": "开个新档"
 	},
 	"app.onboarding.creation.description": {
-		"message": "自定义、整合包或导入。选择在你手里，我只负责字幕。"
+		"message": "从零开始进行自定义配置，或导入已有实例或整合包。你说了算。"
 	},
 	"app.onboarding.creation.title": {
 		"message": "选条路"
@@ -1630,12 +1609,6 @@
 	},
 	"app.onboarding.creation-loader.title": {
 		"message": "选个引擎"
-	},
-	"app.onboarding.creation-modpack.description": {
-		"message": "搜索 Modrinth、逛逛整合包，或导入包文件。冒险的入口不少。"
-	},
-	"app.onboarding.creation-modpack.title": {
-		"message": "挑个整合包"
 	},
 	"app.onboarding.creation-name.description": {
 		"message": "给它取个让未来的你一眼认出的名字。"
@@ -1672,12 +1645,6 @@
 	},
 	"app.onboarding.downloads.title": {
 		"message": "下载指挥室"
-	},
-	"app.onboarding.featured.description": {
-		"message": "推荐整合包和模组都在这里，等你下个项目来找灵感。"
-	},
-	"app.onboarding.featured.title": {
-		"message": "来点灵感"
 	},
 	"app.onboarding.instance-actions.description": {
 		"message": "从实例页头部启动、停止、修复、配置、导出或打开这个实例。"
@@ -1717,12 +1684,6 @@
 	},
 	"app.onboarding.mascot-alt": {
 		"message": "引导吉祥物"
-	},
-	"app.onboarding.recent.description": {
-		"message": "最近玩过的实例和世界会留在这里，随时快速回去。"
-	},
-	"app.onboarding.recent.title": {
-		"message": "别再找上次玩哪了"
 	},
 	"app.onboarding.resources.description": {
 		"message": "调节下载、储存和启动器资源。给风扇一点尊严。"
@@ -2021,9 +1982,6 @@
 	"app.settings.feature-flags.reset-to-default": {
 		"message": "恢复默认值"
 	},
-	"app.settings.java.location": {
-		"message": "Java {version} 位置"
-	},
 	"app.settings.java.quick-add": {
 		"message": "快速添加"
 	},
@@ -2087,9 +2045,6 @@
 	"app.settings.java.download.select-distribution": {
 		"message": "选择发行版："
 	},
-	"app.settings.java.download.select-version": {
-		"message": "选择 Java 版本："
-	},
 	"app.settings.java.download.select-vendor": {
 		"message": "选择发行版："
 	},
@@ -2099,35 +2054,8 @@
 	"app.settings.java.download.select-version-feed": {
 		"message": "选择 {vendor} 的版本："
 	},
-	"app.settings.java.download.progress-title": {
-		"message": "正在下载 Java"
-	},
-	"app.settings.java.download.progress-info": {
-		"message": "正在从 {distribution} 下载 Java {version}"
-	},
-	"app.settings.java.download.preparing": {
-		"message": "准备下载……"
-	},
-	"app.settings.java.download.extracting": {
-		"message": "正在解压文件……"
-	},
-	"app.settings.java.download.extracting.status": {
-		"message": "正在解压文件……"
-	},
-	"app.settings.java.download.background": {
-		"message": "放在后台"
-	},
-	"app.settings.java.download.background-hint": {
-		"message": "下载在后台继续——可在下载页面查看进度。"
-	},
 	"app.settings.java.download.version-label": {
 		"message": "Java {version}"
-	},
-	"app.settings.java.download.cancelling": {
-		"message": "取消中……"
-	},
-	"app.settings.java.download.downloading-label": {
-		"message": "下载中……"
 	},
 	"app.settings.java.download.back": {
 		"message": "返回发行版列表"
@@ -2855,9 +2783,6 @@
 	"instance.edit-server.title": {
 		"message": "编辑服务器"
 	},
-	"instance.edit-world.hide-from-home": {
-		"message": "从主界面隐藏"
-	},
 	"instance.edit-world.name": {
 		"message": "名称"
 	},
@@ -3023,9 +2948,6 @@
 	"instance.settings.tabs.java.custom-java-arguments": {
 		"message": "自定义Java参数"
 	},
-	"instance.settings.tabs.java.custom-java-installation": {
-		"message": "自定义Java安装"
-	},
 	"instance.settings.tabs.java.custom-memory-allocation": {
 		"message": "自定义内存分配"
 	},
@@ -3041,9 +2963,6 @@
 	"instance.settings.tabs.java.environment-variables": {
 		"message": "环境变量"
 	},
-	"instance.settings.tabs.java.hooks": {
-		"message": "钩子"
-	},
 	"instance.settings.tabs.java.java-arguments": {
 		"message": "Java 参数"
 	},
@@ -3055,9 +2974,6 @@
 	},
 	"instance.settings.tabs.java.java-path-placeholder": {
 		"message": "/path/to/java"
-	},
-	"instance.settings.tabs.java.version": {
-		"message": "Java {version} 版"
 	},
 	"instance.settings.tabs.java.current-path": {
 		"message": "当前路径"
@@ -3127,9 +3043,6 @@
 	},
 	"instance.worlds.create_shortcut": {
 		"message": "创建快照"
-	},
-	"instance.worlds.dont_show_on_home": {
-		"message": "在主界面隐藏"
 	},
 	"instance.worlds.game_already_open": {
 		"message": "实例已启动"
@@ -3524,32 +3437,8 @@
 	"app.drop.mod-compatibility-title": {
 		"message": "版本不匹配"
 	},
-	"app.drop.mod-compatibility-confirm": {
-		"message": "仍要安装？"
-	},
 	"app.drop.mod-compatibility-warning": {
 		"message": "此模组目标版本为 {modVersion}（{modLoader}），但实例的版本是 {instVersion}（{instLoader}）。"
-	},
-	"app.drop.mod-version": {
-		"message": "模组版本"
-	},
-	"app.drop.inst-version": {
-		"message": "实例版本"
-	},
-	"app.drop.mod-loader": {
-		"message": "模组加载器"
-	},
-	"app.drop.inst-loader": {
-		"message": "实例加载器"
-	},
-	"app.drop.mod-compatibility-search": {
-		"message": "查找兼容版本"
-	},
-	"app.drop.modpack-not-supported-title": {
-		"message": "整合包导入"
-	},
-	"app.drop.modpack-not-supported-text": {
-		"message": "暂不支持通过拖放导入整合包。请使用「导入」按钮来安装整合包。"
 	},
 	"app.drop.unknown-force-analysis-title": {
 		"message": "无法识别文件类型"
@@ -3601,5 +3490,1007 @@
 	},
 	"app.instance.mods.dismiss": {
 		"message": "知道了"
+	},
+	"app.lab.gradient-text.colors.add": {
+		"message": "添加颜色"
+	},
+	"app.lab.gradient-text.colors.import": {
+		"message": "导入颜色"
+	},
+	"app.lab.gradient-text.colors.import-placeholder": {
+		"message": "粘贴 HEX、RGB 或 CSS 渐变"
+	},
+	"app.lab.gradient-text.colors.invalid": {
+		"message": "请至少输入一个有效颜色。"
+	},
+	"app.lab.gradient-text.colors.move-down": {
+		"message": "下移颜色"
+	},
+	"app.lab.gradient-text.colors.move-up": {
+		"message": "上移颜色"
+	},
+	"app.lab.gradient-text.colors.remove": {
+		"message": "删除颜色"
+	},
+	"app.lab.gradient-text.colors.randomize": {
+		"message": "随机生成颜色"
+	},
+	"app.lab.gradient-text.colors.title": {
+		"message": "颜色"
+	},
+	"app.lab.gradient-text.colors.stops": {
+		"message": "{count} 个颜色停靠点"
+	},
+	"app.lab.gradient-text.adapter.vanilla": {
+		"message": "原版"
+	},
+	"app.lab.gradient-text.adapter.vanilla-compatible": {
+		"message": "原版兼容"
+	},
+	"app.lab.gradient-text.adapter.standard": {
+		"message": "标准 HEX"
+	},
+	"app.lab.gradient-text.adapter.cmi": {
+		"message": "CMI"
+	},
+	"app.lab.gradient-text.adapter.minimessage": {
+		"message": "MiniMessage"
+	},
+	"app.lab.gradient-text.adapter.minimessage-gradient": {
+		"message": "MiniMessage 渐变"
+	},
+	"app.lab.gradient-text.adapter.minedown": {
+		"message": "MineDown"
+	},
+	"app.lab.gradient-text.adapter.snbt": {
+		"message": "字符串化 NBT"
+	},
+	"app.lab.gradient-text.adapter.trchat": {
+		"message": "TrChat"
+	},
+	"app.lab.gradient-text.adapter.taboolib": {
+		"message": "TabooLib"
+	},
+	"app.lab.gradient-text.adapter.taboolib-gradient": {
+		"message": "TabooLib 渐变"
+	},
+	"app.lab.gradient-text.adapter.rosegarden-gradient": {
+		"message": "RoseGarden 渐变"
+	},
+	"app.lab.gradient-text.adapter.chat-colors": {
+		"message": "聊天颜色"
+	},
+	"app.lab.gradient-text.adapter.motd": {
+		"message": "服务器 MOTD"
+	},
+	"app.lab.gradient-text.adapter.bbcode": {
+		"message": "BBCode"
+	},
+	"app.lab.gradient-text.adapter.json": {
+		"message": "JSON 文本组件"
+	},
+	"app.lab.gradient-text.adapter.html": {
+		"message": "HTML"
+	},
+	"app.lab.gradient-text.adapter.csv": {
+		"message": "CSV"
+	},
+	"app.lab.gradient-text.adapter.terraria": {
+		"message": "泰拉瑞亚"
+	},
+	"app.lab.gradient-text.format.bold": {
+		"message": "粗体"
+	},
+	"app.lab.gradient-text.format.italic": {
+		"message": "斜体"
+	},
+	"app.lab.gradient-text.format.obfuscated": {
+		"message": "混淆"
+	},
+	"app.lab.gradient-text.format.simplify": {
+		"message": "简化渐变标签"
+	},
+	"app.lab.gradient-text.format.strikethrough": {
+		"message": "删除线"
+	},
+	"app.lab.gradient-text.format.title": {
+		"message": "输出格式"
+	},
+	"app.lab.gradient-text.format.underlined": {
+		"message": "下划线"
+	},
+	"app.lab.gradient-text.format.vanilla-character": {
+		"message": "颜色控制符"
+	},
+	"app.lab.gradient-text.input.placeholder": {
+		"message": "在此输入 Minecraft 文本"
+	},
+	"app.lab.gradient-text.input.title": {
+		"message": "文本"
+	},
+	"app.lab.gradient-text.output.copy": {
+		"message": "复制输出"
+	},
+	"app.lab.gradient-text.output.copied": {
+		"message": "已复制输出"
+	},
+	"app.lab.gradient-text.output.export": {
+		"message": "导出输出"
+	},
+	"app.lab.gradient-text.output.title": {
+		"message": "输出"
+	},
+	"app.lab.gradient-text.preview.title": {
+		"message": "预览"
+	},
+	"app.lab.gradient-text.presets.delete": {
+		"message": "删除预设"
+	},
+	"app.lab.gradient-text.presets.export": {
+		"message": "导出预设"
+	},
+	"app.lab.gradient-text.presets.import": {
+		"message": "导入预设"
+	},
+	"app.lab.gradient-text.presets.imported": {
+		"message": "已导入 {count} 个预设"
+	},
+	"app.lab.gradient-text.presets.invalid-file": {
+		"message": "该文件不包含有效预设。"
+	},
+	"app.lab.gradient-text.presets.name": {
+		"message": "预设名称"
+	},
+	"app.lab.gradient-text.presets.count": {
+		"message": "已保存 {count} 个"
+	},
+	"app.lab.gradient-text.presets.save": {
+		"message": "保存预设"
+	},
+	"app.lab.gradient-text.presets.template": {
+		"message": "下载模板"
+	},
+	"app.lab.gradient-text.presets.title": {
+		"message": "预设"
+	},
+	"app.lab.gradient-text.presets.apply": {
+		"message": "应用预设"
+	},
+	"app.lab.gradient-text.title": {
+		"message": "渐变文字生成器"
+	},
+	"app.lab.gradient-text.description": {
+		"message": "无需浏览器即可创建适用于 Minecraft 的渐变文字。"
+	},
+	"app.lab.seed-map.import-from-instance": {
+		"message": "从实例导入"
+	},
+	"app.lab.seed-map.world-seed-loaded": {
+		"message": "已载入世界 {world} 的种子"
+	},
+	"app.lab.seed-map.history": {
+		"message": "种子历史记录"
+	},
+	"app.lab.seed-map.history-empty": {
+		"message": "查看过的种子会出现在这里"
+	},
+	"app.lab.seed-map.clear-history": {
+		"message": "清空历史"
+	},
+	"app.lab.seed-map.remove-history-entry": {
+		"message": "从历史中移除"
+	},
+	"app.lab.seed-map.history-source.manual": {
+		"message": "手动输入"
+	},
+	"app.lab.seed-map.history-source.random": {
+		"message": "随机种子"
+	},
+	"app.lab.seed-map.history-source.share": {
+		"message": "分享链接"
+	},
+	"app.lab.seed-map.elevation-locked": {
+		"message": "开启地形估算时自动采用估算的地表高度"
+	},
+	"app.lab.seed-map.import-world.title": {
+		"message": "从实例世界载入种子"
+	},
+	"app.lab.seed-map.import-world.choose-instance": {
+		"message": "选择包含该世界的实例"
+	},
+	"app.lab.seed-map.import-world.choose-world": {
+		"message": "选择一个单人世界"
+	},
+	"app.lab.seed-map.import-world.back": {
+		"message": "返回实例列表"
+	},
+	"app.lab.seed-map.import-world.no-instances": {
+		"message": "未找到实例，请先安装一个实例。"
+	},
+	"app.lab.seed-map.import-world.no-worlds": {
+		"message": "该实例还没有单人世界。"
+	},
+	"app.lab.seed-map.import-world.last-played": {
+		"message": "{ago}游玩过"
+	},
+	"app.lab.seed-map.import-world.never-played": {
+		"message": "尚未游玩"
+	},
+	"app.lab.seed-map.add-marker": {
+		"message": "添加标记"
+	},
+	"app.lab.seed-map.approximate": {
+		"message": "估算"
+	},
+	"app.lab.seed-map.center-spawn": {
+		"message": "居中显示出生点"
+	},
+	"app.lab.seed-map.chunk-coordinates": {
+		"message": "区块坐标"
+	},
+	"app.lab.seed-map.close-panel": {
+		"message": "关闭面板"
+	},
+	"app.lab.seed-map.clear-ruler": {
+		"message": "清除测距"
+	},
+	"app.lab.seed-map.completed": {
+		"message": "已完成"
+	},
+	"app.lab.seed-map.contours": {
+		"message": "等高线"
+	},
+	"app.lab.seed-map.copyright.disclaimer-body": {
+		"message": "Minecraft 是 Mojang Synergies AB 的商标。Axolotl Launcher 与 Mojang 或 MinecraftSearch 均无隶属关系，也未获得其认可。"
+	},
+	"app.lab.seed-map.copyright.disclaimer-heading": {
+		"message": "非官方工具"
+	},
+	"app.lab.seed-map.copyright.engine-body": {
+		"message": "群系、地形、出生点与结构数据由 cubiomes 和 Axolotl 原生集成在本地生成。cubiomes 版权所有 (c) 2020 Cubitect，并依据 MIT 许可证提供。"
+	},
+	"app.lab.seed-map.copyright.engine-heading": {
+		"message": "本地地图引擎"
+	},
+	"app.lab.seed-map.copyright.icons-body": {
+		"message": "本工具使用的部分结构与群系图标取自 MinecraftSearch。相关图稿的权利仍归 MinecraftSearch 及相应创作者所有。"
+	},
+	"app.lab.seed-map.copyright.icons-heading": {
+		"message": "地图图稿"
+	},
+	"app.lab.seed-map.copyright.open": {
+		"message": "版权与来源说明"
+	},
+	"app.lab.seed-map.copyright.title": {
+		"message": "版权与来源说明"
+	},
+	"app.lab.seed-map.copyright.view-cubiomes": {
+		"message": "查看 cubiomes"
+	},
+	"app.lab.seed-map.copyright.visit-minecraft-search": {
+		"message": "访问 MinecraftSearch"
+	},
+	"app.lab.seed-map.copy-teleport": {
+		"message": "复制 /tp"
+	},
+	"app.lab.seed-map.description": {
+		"message": "在本地查看 Minecraft 种子的群系、结构和保存的标记。"
+	},
+	"app.lab.seed-map.dimension": {
+		"message": "维度"
+	},
+	"app.lab.seed-map.dimension.end": {
+		"message": "末地"
+	},
+	"app.lab.seed-map.dimension.nether": {
+		"message": "下界"
+	},
+	"app.lab.seed-map.dimension.overworld": {
+		"message": "主世界"
+	},
+	"app.lab.seed-map.distance": {
+		"message": "{distance} 格"
+	},
+	"app.lab.seed-map.edition": {
+		"message": "版本类型"
+	},
+	"app.lab.seed-map.edition.java": {
+		"message": "Java 版"
+	},
+	"app.lab.seed-map.elevation": {
+		"message": "群系高度"
+	},
+	"app.lab.seed-map.feature.ancient-city": {
+		"message": "远古城市"
+	},
+	"app.lab.seed-map.feature.mansion": {
+		"message": "林地府邸"
+	},
+	"app.lab.seed-map.feature.monument": {
+		"message": "海底神殿"
+	},
+	"app.lab.seed-map.feature.outpost": {
+		"message": "掠夺者前哨站"
+	},
+	"app.lab.seed-map.feature.ruined-portal": {
+		"message": "废弃传送门"
+	},
+	"app.lab.seed-map.feature.shipwreck": {
+		"message": "沉船"
+	},
+	"app.lab.seed-map.feature.slime-chunk": {
+		"message": "史莱姆区块"
+	},
+	"app.lab.seed-map.feature.stronghold": {
+		"message": "要塞"
+	},
+	"app.lab.seed-map.feature.trail-ruins": {
+		"message": "古迹废墟"
+	},
+	"app.lab.seed-map.feature.trial-chambers": {
+		"message": "试炼密室"
+	},
+	"app.lab.seed-map.feature.village": {
+		"message": "村庄"
+	},
+	"app.lab.seed-map.layers": {
+		"message": "地图图层"
+	},
+	"app.lab.seed-map.loading": {
+		"message": "加载中"
+	},
+	"app.lab.seed-map.map-failed": {
+		"message": "地图生成失败"
+	},
+	"app.lab.seed-map.location": {
+		"message": "位置"
+	},
+	"app.lab.seed-map.map-scale": {
+		"message": "1 像素 = {scale} 格"
+	},
+	"app.lab.seed-map.marker-name": {
+		"message": "标记名称"
+	},
+	"app.lab.seed-map.marker-color": {
+		"message": "标记颜色"
+	},
+	"app.lab.seed-map.markers": {
+		"message": "标记"
+	},
+	"app.lab.seed-map.random-seed": {
+		"message": "随机种子"
+	},
+	"app.lab.seed-map.remove-marker": {
+		"message": "删除标记"
+	},
+	"app.lab.seed-map.ruler": {
+		"message": "测量距离"
+	},
+	"app.lab.seed-map.search-nearby": {
+		"message": "搜索附近"
+	},
+	"app.lab.seed-map.seed": {
+		"message": "种子"
+	},
+	"app.lab.seed-map.seed-placeholder": {
+		"message": "输入数字或文本种子"
+	},
+	"app.lab.seed-map.settings": {
+		"message": "地图设置"
+	},
+	"app.lab.seed-map.share": {
+		"message": "复制地图链接"
+	},
+	"app.lab.seed-map.share-copied": {
+		"message": "已复制地图链接"
+	},
+	"app.lab.seed-map.show-grid": {
+		"message": "显示网格"
+	},
+	"app.lab.seed-map.teleport-copied": {
+		"message": "已复制传送命令"
+	},
+	"app.lab.seed-map.terrain": {
+		"message": "地形估算"
+	},
+	"app.lab.seed-map.title": {
+		"message": "种子地图"
+	},
+	"app.lab.seed-map.version": {
+		"message": "游戏版本"
+	},
+	"app.lab.seed-map.zoom-in": {
+		"message": "放大"
+	},
+	"app.lab.seed-map.zoom-out": {
+		"message": "缩小"
+	},
+	"app.lab.seed-map.biome-highlight": {
+		"message": "群系高亮"
+	},
+	"app.lab.seed-map.biome-tag": {
+		"message": "生物群系"
+	},
+	"app.lab.seed-map.biome-selection-count": {
+		"message": "已选 {selected} / {total}"
+	},
+	"app.lab.seed-map.biome-group.beach": {
+		"message": "沙滩"
+	},
+	"app.lab.seed-map.biome-group.cave": {
+		"message": "洞穴"
+	},
+	"app.lab.seed-map.biome-group.desert": {
+		"message": "沙漠"
+	},
+	"app.lab.seed-map.biome-group.end": {
+		"message": "末地"
+	},
+	"app.lab.seed-map.biome-group.forest": {
+		"message": "森林"
+	},
+	"app.lab.seed-map.biome-group.jungle": {
+		"message": "丛林"
+	},
+	"app.lab.seed-map.biome-group.ice": {
+		"message": "冰雪群系"
+	},
+	"app.lab.seed-map.biome-group.mesa": {
+		"message": "恶地"
+	},
+	"app.lab.seed-map.biome-group.mountains": {
+		"message": "山地"
+	},
+	"app.lab.seed-map.biome-group.mushroom": {
+		"message": "蘑菇岛"
+	},
+	"app.lab.seed-map.biome-group.nether": {
+		"message": "下界"
+	},
+	"app.lab.seed-map.biome-group.ocean": {
+		"message": "海洋"
+	},
+	"app.lab.seed-map.biome-group.plains": {
+		"message": "平原"
+	},
+	"app.lab.seed-map.biome-group.river": {
+		"message": "河流"
+	},
+	"app.lab.seed-map.biome-group.savanna": {
+		"message": "热带草原"
+	},
+	"app.lab.seed-map.biome-group.swamp": {
+		"message": "沼泽"
+	},
+	"app.lab.seed-map.biome-group.taiga": {
+		"message": "针叶林"
+	},
+	"app.lab.seed-map.search-biomes": {
+		"message": "搜索群系"
+	},
+	"app.lab.seed-map.invert-selection": {
+		"message": "反选"
+	},
+	"app.lab.seed-map.no-matching-biomes": {
+		"message": "没有匹配的群系"
+	},
+	"app.lab.seed-map.mode.structures": {
+		"message": "结构"
+	},
+	"app.lab.seed-map.mode.ores": {
+		"message": "矿物"
+	},
+	"app.lab.seed-map.ore-layers": {
+		"message": "矿物图层"
+	},
+	"app.lab.seed-map.zoom-to-scan-ores": {
+		"message": "放大地图以扫描矿物"
+	},
+	"app.lab.seed-map.no-ores-in-end": {
+		"message": "末地不支持矿物扫描"
+	},
+	"app.lab.seed-map.ores-require-modern": {
+		"message": "矿物预测需要 Java 版 1.18 或更新版本"
+	},
+	"app.lab.seed-map.ore-y-range": {
+		"message": "Y 范围"
+	},
+	"app.lab.seed-map.ore-min-y": {
+		"message": "最低 Y"
+	},
+	"app.lab.seed-map.ore-max-y": {
+		"message": "最高 Y"
+	},
+	"app.lab.seed-map.reset-y-range": {
+		"message": "重置 Y 范围"
+	},
+	"app.lab.seed-map.scanning-ores": {
+		"message": "正在扫描矿物 {processed}/{total}"
+	},
+	"app.lab.seed-map.ore-scan-failed": {
+		"message": "矿物扫描失败，请刷新地图后重试。"
+	},
+	"app.lab.seed-map.ore-verified": {
+		"message": "已验证"
+	},
+	"app.lab.seed-map.ore-likely": {
+		"message": "可能存在"
+	},
+	"app.lab.seed-map.ore-precision": {
+		"message": "精度 {precision}%"
+	},
+	"app.lab.seed-map.ore-coverage": {
+		"message": "Y {min} 到 {max}"
+	},
+	"app.lab.seed-map.mined": {
+		"message": "已挖掘"
+	},
+	"app.lab.seed-map.ore.diamond": {
+		"message": "钻石矿石"
+	},
+	"app.lab.seed-map.ore.netherite": {
+		"message": "远古残骸"
+	},
+	"app.lab.seed-map.ore.iron": {
+		"message": "铁矿石"
+	},
+	"app.lab.seed-map.ore.iron-vein": {
+		"message": "铁矿脉"
+	},
+	"app.lab.seed-map.ore.copper": {
+		"message": "铜矿石"
+	},
+	"app.lab.seed-map.ore.copper-vein": {
+		"message": "铜矿脉"
+	},
+	"app.lab.seed-map.ore.gold": {
+		"message": "金矿石"
+	},
+	"app.lab.seed-map.ore.redstone": {
+		"message": "红石矿石"
+	},
+	"app.lab.seed-map.ore.lapis": {
+		"message": "青金石矿石"
+	},
+	"app.lab.seed-map.ore.coal": {
+		"message": "煤矿石"
+	},
+	"app.lab.seed-map.choose-biome": {
+		"message": "选择群系"
+	},
+	"app.lab.seed-map.clear": {
+		"message": "清除"
+	},
+	"app.lab.seed-map.collapse-layers": {
+		"message": "收起图层"
+	},
+	"app.lab.seed-map.coordinates": {
+		"message": "坐标"
+	},
+	"app.lab.seed-map.edition.java-large-biomes": {
+		"message": "Java 版：大型生物群系"
+	},
+	"app.lab.seed-map.exit-fullscreen": {
+		"message": "退出全屏"
+	},
+	"app.lab.seed-map.expand-layers": {
+		"message": "展开图层"
+	},
+	"app.lab.seed-map.feature.bastion": {
+		"message": "堡垒遗迹"
+	},
+	"app.lab.seed-map.feature.buried-treasure": {
+		"message": "埋藏的宝藏"
+	},
+	"app.lab.seed-map.feature.desert-pyramid": {
+		"message": "沙漠神殿"
+	},
+	"app.lab.seed-map.feature.desert-well": {
+		"message": "沙漠水井"
+	},
+	"app.lab.seed-map.feature.end-city": {
+		"message": "末地城"
+	},
+	"app.lab.seed-map.feature.end-city-with-ship": {
+		"message": "末地城（有末地船）"
+	},
+	"app.lab.seed-map.feature.end-city-without-ship": {
+		"message": "末地城（无末地船）"
+	},
+	"app.lab.seed-map.feature.end-gateway": {
+		"message": "末地折跃门"
+	},
+	"app.lab.seed-map.feature.fortress": {
+		"message": "下界要塞"
+	},
+	"app.lab.seed-map.feature.geode": {
+		"message": "紫晶洞"
+	},
+	"app.lab.seed-map.feature.igloo": {
+		"message": "雪屋"
+	},
+	"app.lab.seed-map.feature.jungle-temple": {
+		"message": "丛林神庙"
+	},
+	"app.lab.seed-map.feature.mineshaft": {
+		"message": "废弃矿井"
+	},
+	"app.lab.seed-map.feature.ocean-ruin": {
+		"message": "海底废墟"
+	},
+	"app.lab.seed-map.feature.swamp-hut": {
+		"message": "沼泽小屋"
+	},
+	"app.lab.seed-map.fullscreen": {
+		"message": "全屏"
+	},
+	"app.lab.seed-map.go": {
+		"message": "前往"
+	},
+	"app.lab.seed-map.hide-layer-names": {
+		"message": "隐藏图层名称"
+	},
+	"app.lab.seed-map.marker-saved": {
+		"message": "标记已保存"
+	},
+	"app.lab.seed-map.no-markers": {
+		"message": "暂无保存的标记"
+	},
+	"app.lab.seed-map.reset": {
+		"message": "重置"
+	},
+	"app.lab.seed-map.select-all": {
+		"message": "全选"
+	},
+	"app.lab.seed-map.selected-biomes": {
+		"message": "已选择 {count} 个群系"
+	},
+	"app.lab.seed-map.show-layer-names": {
+		"message": "显示图层名称"
+	},
+	"app.lab.seed-map.spawn-point": {
+		"message": "出生点"
+	},
+	"app.lab.seed-map.zoom-to-show": {
+		"message": "放大以显示{layer}"
+	},
+	"app.lab.category.all": {
+		"message": "全部工具"
+	},
+	"app.lab.category.creation": {
+		"message": "创作"
+	},
+	"app.lab.category.maintenance": {
+		"message": "维护"
+	},
+	"app.lab.category.world": {
+		"message": "世界"
+	},
+	"app.lab.no-results": {
+		"message": "没有匹配的工具。"
+	},
+	"app.lab.search": {
+		"message": "搜索工具"
+	},
+	"app.lab.title": {
+		"message": "实验室"
+	},
+	"app.lab.tool-count": {
+		"message": "{count} 个工具"
+	},
+	"app.lab.tool-count-plural": {
+		"message": "{count} 个工具"
+	},
+	"app.navigation.lab": {
+		"message": "实验室"
+	},
+	"app.onboarding.action.click-lab": {
+		"message": "点击实验室，继续"
+	},
+	"app.onboarding.action.open-gradient-text": {
+		"message": "打开渐变文字生成器，继续"
+	},
+	"app.onboarding.action.open-seed-map": {
+		"message": "打开种子地图，继续"
+	},
+	"app.onboarding.action.return-lab": {
+		"message": "点击实验室，查看另一个项目"
+	},
+	"app.onboarding.lab-editor.description": {
+		"message": "编辑文本、选择颜色、实时预览，并复制适用于 Minecraft 配置的格式。"
+	},
+	"app.onboarding.lab-editor.title": {
+		"message": "在同一处编辑和复制"
+	},
+	"app.onboarding.lab-seed-map.description": {
+		"message": "输入种子或从实例载入，然后在本地地图中查看群系、结构与矿物图层。"
+	},
+	"app.onboarding.lab-seed-map.title": {
+		"message": "加载世界前先找到它"
+	},
+	"app.onboarding.lab-tools.description": {
+		"message": "生成带格式的渐变文字，或用本地种子地图探索 Java 世界。"
+	},
+	"app.onboarding.lab-tools.title": {
+		"message": "首批两个项目"
+	},
+	"app.onboarding.lab.description": {
+		"message": "实验室将本地 Minecraft 工具放进启动器，无需打开其他网站或注册额外账号。"
+	},
+	"app.onboarding.lab.title": {
+		"message": "内置的实用工具"
+	},
+	"app.appearance-settings.auto-hide-downloads-button.description": {
+		"message": "没有进行中的下载任务时隐藏侧边栏中的下载按钮，有任务时自动显示。"
+	},
+	"app.appearance-settings.auto-hide-downloads-button.title": {
+		"message": "自动隐藏下载按钮"
+	},
+	"app.appearance-settings.home-layout.description": {
+		"message": "在信息主页和专注的实例启动页之间选择。"
+	},
+	"app.appearance-settings.home-layout.minimal": {
+		"message": "极简"
+	},
+	"app.appearance-settings.home-layout.standard": {
+		"message": "信息"
+	},
+	"app.appearance-settings.home-layout.title": {
+		"message": "主页布局"
+	},
+	"app.appearance-settings.home-recent.description": {
+		"message": "在信息主页显示最多四条最近打开的实例和世界。"
+	},
+	"app.appearance-settings.home-recent.title": {
+		"message": "最近项目"
+	},
+	"app.curseforge.automatic-downloads-failed.notification-body": {
+		"message": "重试后仍有 {failed, number} 个文件下载失败（{list}）。可在“下载”中查看已记录的错误。"
+	},
+	"app.curseforge.automatic-downloads-failed.notification-title": {
+		"message": "部分 CurseForge 文件下载失败"
+	},
+	"app.home.greeting.with-player": {
+		"message": "{name}，{greeting}"
+	},
+	"app.home.greeting.minimal.afternoon": {
+		"message": "下午好"
+	},
+	"app.home.greeting.minimal.dawn": {
+		"message": "清晨好"
+	},
+	"app.home.greeting.minimal.evening": {
+		"message": "傍晚好"
+	},
+	"app.home.greeting.minimal.late-night": {
+		"message": "夜深了"
+	},
+	"app.home.greeting.minimal.morning": {
+		"message": "早上好"
+	},
+	"app.home.greeting.minimal.night": {
+		"message": "晚上好"
+	},
+	"app.home.greeting.minimal.with-player": {
+		"message": "{greeting}，{name}"
+	},
+	"app.home.greeting.late-night": {
+		"message": "月亮还在加班。\n安静的世界正等着你。\n夜班总能写出好故事。\n黎明前再放一块方块？\n星光会照看好你的服务器。\n深夜时段，也能留下传奇存档。\n现在的火把光格外好看。\n下一场冒险还没睡。\n午夜后的矿洞更安静。\n和平的出生点在等你。\n耐心的建造者属于夜晚。\n把音乐调低，把灵感调高。\n每一座好基地都从一块方块开始。\n末地可以等等，除非它等不了。\n短短一局也算数。\n这个世界已经为你保存好了。"
+	},
+	"app.home.greeting.dawn": {
+		"message": "天刚亮，区块正新。\n新的一天正在加载。\n日出增益已生效。\n清晨的世界总像全新的。\n先喝咖啡，再挖钻石。\n你的基地想你一整晚了。\n从容开局，也能成就好冒险。\n主世界正在苏醒。\n新鲜空气，新鲜资源包。\n今天很适合去探索。\n村庄已经开门交易了。\n安静的早晨适合大工程。\n新的一天，新的坐标。\n苦力怕也不太像早起的人。\n先从小事开始，看看会去向何处。\n下一局已经准备好，等你出发。"
+	},
+	"app.home.greeting.morning": {
+		"message": "早上好，冒险家。\n今天还有许多未探索的区块。\n正适合重新开始。\n你的工具已为今天就绪。\n主世界有不少好计划。\n造点未来的你会喜欢的东西。\n新的一局像一张干净画布。\n太阳升起了，村民也是。\n让今天多一点方块感。\n矿井安静得有点可疑。\n下一个项目只差一次启动。\n好早晨，配好世界。\n总能再装下一个新点子。\n工作台正在待命。\n地图在等新的标记。\n坐稳，做点进度。"
+	},
+	"app.home.greeting.afternoon": {
+		"message": "午后休息，时机正好。\n短短一局也可能很精彩。\n世界已准备好接住你的下一步。\n该去看看那座半成品建筑了。\n一点探索就能走很远。\n下一个生物群系正在呼唤。\n你的背包耐心等候很久了。\n村庄市场还没关门。\n这一小时适合专心做个项目。\n红石今天大概会听话。\n你的镐子准备开工。\n出生点外还有新路线。\n午后天生适合支线任务。\n要不要快速回世界看看？\n下一章从这里开始。\n花一点时间，做点东西。"
+	},
+	"app.home.greeting.evening": {
+		"message": "傍晚正是建造的黄金时间。\n白天将尽，世界刚刚展开。\n熟悉的世界是个好去处。\n该回到你最爱的项目了。\n从新塔上看日落更美。\n基地的灯正等着你。\n轻松玩一局正合适。\n村民很快要收摊了。\n你的下一座建筑值得一层暮色。\n适合没有计划地四处走走。\n营火已经点好了。\n基地要不要再加一间房？\n地平线看起来格外诱人。\n安静的夜晚从好世界开始。\n下一块方块该你放下。\n让今晚的进度算数。"
+	},
+	"app.home.greeting.night": {
+		"message": "夜班准备好了。\n熟悉的世界适合这个夜晚。\n你最爱的实例就在附近。\n星星出来了，计划也定好了。\n平静的一局能好好结束今天。\n天黑后世界更安静。\n该再放几块方块了。\n远处的基地正在发光。\n下一场冒险从日落开始。\n一个好存档配得上一个好夜晚。\n不知何处，营火正噼啪作响。\n月光让每座建筑都更有戏剧感。\n明天之前来一点 Minecraft。\n你的世界随时欢迎你回去。\n按区块算，夜还很长。\n开始一段值得的游戏时光吧。"
+	},
+	"app.home.instances.empty": {
+		"message": "还没有实例"
+	},
+	"app.home.instances.create": {
+		"message": "创建实例"
+	},
+	"app.home.instances.pin": {
+		"message": "固定到主页"
+	},
+	"app.home.instances.pinned": {
+		"message": "固定的实例"
+	},
+	"app.home.instances.pinned-empty": {
+		"message": "在实例卡片菜单或实例库中选择「固定到主页」，实例就会显示在这里。"
+	},
+	"app.home.instances.unpin": {
+		"message": "取消固定"
+	},
+	"app.home.instances.view-all": {
+		"message": "查看全部实例"
+	},
+	"app.home.layout.switch-to-information": {
+		"message": "切换到信息主页"
+	},
+	"app.home.layout.switch-to-minimal": {
+		"message": "切换到极简主页"
+	},
+	"app.home.layout.toggle": {
+		"message": "极简主页"
+	},
+	"app.home.minimal.change-instance": {
+		"message": "更换主页实例"
+	},
+	"app.home.minimal.choose-instance": {
+		"message": "选择实例"
+	},
+	"app.home.minimal.picker.no-results": {
+		"message": "没有匹配的实例"
+	},
+	"app.home.minimal.picker.search": {
+		"message": "搜索实例"
+	},
+	"app.home.minimal.picker.select": {
+		"message": "选择 {name}"
+	},
+	"app.home.minimal.picker.title": {
+		"message": "选择主页实例"
+	},
+	"app.home.recent.title": {
+		"message": "从最近的项目开始"
+	},
+	"app.home.worlds.pinned": {
+		"message": "固定的世界"
+	},
+	"app.home.worlds.empty": {
+		"message": "将世界标记为收藏后，就会固定在这里。"
+	},
+	"app.home.servers.pinned": {
+		"message": "固定的服务器"
+	},
+	"app.home.servers.empty": {
+		"message": "将服务器标记为收藏后，就会固定在这里。"
+	},
+	"app.home.servers.players-online": {
+		"message": "{online}/{max} 人在线"
+	},
+	"app.home.servers.offline": {
+		"message": "离线"
+	},
+	"app.home.servers.join": {
+		"message": "加入服务器"
+	},
+	"app.home.servers.stop": {
+		"message": "停止"
+	},
+	"app.home.servers.unpin": {
+		"message": "取消固定"
+	},
+	"app.home.servers.more-options": {
+		"message": "更多选项"
+	},
+	"app.home.calendar.title": {
+		"message": "日历"
+	},
+	"app.home.calendar.this-month": {
+		"message": "回到本月"
+	},
+	"app.home.calendar.previous": {
+		"message": "上个月"
+	},
+	"app.home.calendar.next": {
+		"message": "下个月"
+	},
+	"app.home.calendar.played-on": {
+		"message": "{date}你游玩了："
+	},
+	"app.home.calendar.no-activity": {
+		"message": "这一天没有游玩记录。"
+	},
+	"app.home.calendar.play": {
+		"message": "启动"
+	},
+	"app.home.calendar.stop": {
+		"message": "停止"
+	},
+	"app.home.insights.title": {
+		"message": "游玩洞察"
+	},
+	"app.home.insights.this-week": {
+		"message": "本周游玩 {duration}"
+	},
+	"app.home.insights.this-week-more": {
+		"message": "本周游玩 {duration}（比上周多 {percent}%）"
+	},
+	"app.home.insights.this-week-less": {
+		"message": "本周游玩 {duration}（比上周少 {percent}%）"
+	},
+	"app.home.insights.this-week-same": {
+		"message": "本周游玩 {duration}（与上周持平）"
+	},
+	"app.home.insights.streak": {
+		"message": "已连续游玩 {days} 天"
+	},
+	"app.home.insights.week-top": {
+		"message": "本周常玩：{name}"
+	},
+	"app.home.insights.empty": {
+		"message": "开始游玩后，这里会显示你的统计。"
+	},
+	"app.home.challenge.title": {
+		"message": "每日小挑战"
+	},
+	"app.home.challenge.shuffle": {
+		"message": "换一个"
+	},
+	"app.home.challenge.easy": {
+		"message": "简单"
+	},
+	"app.home.challenge.medium": {
+		"message": "中等"
+	},
+	"app.home.challenge.hard": {
+		"message": "困难"
+	},
+	"app.home.news.title": {
+		"message": "Minecraft 新闻"
+	},
+	"app.home.news.open-article": {
+		"message": "在 minecraft.net 上阅读"
+	},
+	"app.home.playtime.minutes": {
+		"message": "{minutes} 分钟"
+	},
+	"app.home.playtime.hours-minutes": {
+		"message": "{hours} 小时 {minutes} 分钟"
+	},
+	"app.home.playtime.seconds": {
+		"message": "{seconds} 秒"
+	},
+	"app.home.playtime.sessions": {
+		"message": "成功启动 {count} 次"
+	},
+	"app.home.playtime.most-played": {
+		"message": "当天常玩：{name}"
+	},
+	"app.instances.pin-to-home": {
+		"message": "固定到主页"
+	},
+	"app.instances.unpin-from-home": {
+		"message": "取消固定"
+	},
+	"app.onboarding.playtime.title": {
+		"message": "一眼看清游玩时间"
+	},
+	"app.onboarding.playtime.description": {
+		"message": "日历会高亮你游玩过的每一天，点选即可继续游玩，固定的服务器就在下方。右侧账号侧边栏里还有游玩洞察、每日小挑战和 Minecraft 官方新闻。"
+	},
+	"app.onboarding.home-instances.title": {
+		"message": "从你想去的地方开始"
+	},
+	"app.onboarding.home-instances.description": {
+		"message": "这是你的启动区域。信息主页集中展示最近和固定的项目；极简主页则专注于你选择的实例。"
+	},
+	"app.onboarding.home-layout.description": {
+		"message": "随时使用这个悬浮按钮，在信息主页和极简主页之间切换。"
+	},
+	"app.onboarding.home-layout.title": {
+		"message": "切换信息密度"
+	},
+	"app.instance-item.already-open": {
+		"message": "实例已经在运行"
+	},
+	"app.instance-item.loading-modpack": {
+		"message": "正在加载整合包……"
+	},
+	"app.instance-item.not-played-yet": {
+		"message": "还没有游玩过"
+	},
+	"app.instance-item.view-instance": {
+		"message": "查看实例"
 	}
 }

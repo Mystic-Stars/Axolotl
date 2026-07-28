@@ -100,6 +100,7 @@
 					"
 					:game-mode="world.type === 'singleplayer' ? GAME_MODES[world.game_mode] : undefined"
 					:shortcut-instance-id="instance.id"
+					@update="refreshAllWorlds"
 					@play="() => joinWorld(world)"
 					@stop="() => emit('stop')"
 					@refresh="() => refreshServer((world as ServerWorld).address)"

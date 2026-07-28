@@ -88,7 +88,7 @@ export function bilingualTitle(chineseName: string, originalTitle: string) {
  * bilingual title (e.g. from the Chinese search flow) are left untouched.
  */
 export async function translateSearchHitTitles<
-	T extends { slug?: string | null; title: string; provider?: 'modrinth' | 'curseforge' },
+	T extends { slug?: string | null; title: string; provider: 'modrinth' | 'curseforge' },
 >(hits: T[], locale: string): Promise<T[]> {
 	if (locale !== 'zh-CN' || hits.length === 0) return hits
 
@@ -97,7 +97,7 @@ export async function translateSearchHitTitles<
 	for (const hit of hits) {
 		if (!hit.slug) continue
 		if (hit.provider === 'curseforge') curseforgeSlugs.push(hit.slug)
-		else modrinthSlugs.push(hit.slug)
+		else if (hit.provider === 'modrinth') modrinthSlugs.push(hit.slug)
 	}
 	if (modrinthSlugs.length === 0 && curseforgeSlugs.length === 0) return hits
 
@@ -107,7 +107,11 @@ export async function translateSearchHitTitles<
 	return hits.map((hit) => {
 		if (!hit.slug) return hit
 		const chineseName =
-			hit.provider === 'curseforge' ? lookup.curseforge[hit.slug] : lookup.modrinth[hit.slug]
+			hit.provider === 'curseforge'
+				? lookup.curseforge[hit.slug]
+				: hit.provider === 'modrinth'
+					? lookup.modrinth[hit.slug]
+					: undefined
 		if (!chineseName) return hit
 		return { ...hit, title: bilingualTitle(chineseName, hit.title) }
 	})
@@ -129,8 +133,8 @@ export async function translateContentItemTitles<T extends ContentItem>(
 	for (const item of items) {
 		const slug = item.project?.slug
 		if (!slug) continue
-		if (item.primary_provider === 'curseforge') curseforgeSlugs.push(slug)
-		else modrinthSlugs.push(slug)
+		if (item.origin_provider === 'curseforge') curseforgeSlugs.push(slug)
+		else if (item.origin_provider === 'modrinth') modrinthSlugs.push(slug)
 	}
 	if (modrinthSlugs.length === 0 && curseforgeSlugs.length === 0) return items
 
@@ -141,9 +145,11 @@ export async function translateContentItemTitles<T extends ContentItem>(
 		const project = item.project
 		if (!project?.slug) return item
 		const chineseName =
-			item.primary_provider === 'curseforge'
+			item.origin_provider === 'curseforge'
 				? lookup.curseforge[project.slug]
-				: lookup.modrinth[project.slug]
+				: item.origin_provider === 'modrinth'
+					? lookup.modrinth[project.slug]
+					: undefined
 		if (!chineseName) return item
 		return { ...item, project: { ...project, title: bilingualTitle(chineseName, project.title) } }
 	})

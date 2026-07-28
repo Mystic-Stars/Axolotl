@@ -1,5 +1,6 @@
 use crate::state::{
-    ContentProvider, ContentProviderRef, Project, ProjectType, Version,
+    ContentItemUpdate, ContentProvider, ContentProviderRef, Project,
+    ProjectType, Version,
 };
 use serde::{Deserialize, Serialize};
 
@@ -14,13 +15,10 @@ pub struct ContentItem {
     pub project: Option<ContentItemProject>,
     pub version: Option<ContentItemVersion>,
     pub owner: Option<ContentItemOwner>,
-    pub has_update: bool,
-    pub update_version_id: Option<String>,
+    pub update: Option<ContentItemUpdate>,
     pub date_added: Option<String>,
-    #[serde(default)]
     pub provider_refs: Vec<ContentProviderRef>,
-    #[serde(default)]
-    pub primary_provider: Option<ContentProvider>,
+    pub origin_provider: Option<ContentProvider>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -60,7 +58,6 @@ pub struct LinkedModpackInfo {
     pub project: Project,
     pub version: Version,
     pub owner: Option<ContentItemOwner>,
-    pub has_update: bool,
-    pub update_version_id: Option<String>,
+    pub update: Option<ContentItemUpdate>,
     pub update_version: Option<Version>,
 }

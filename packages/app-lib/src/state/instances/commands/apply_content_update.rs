@@ -3,7 +3,8 @@ use crate::state::instances::{
     adapters::sqlite::{content_rows, instance_rows},
 };
 use crate::state::{
-    CacheBehaviour, CachedEntry, Dependency, DependencyType, State, Version,
+    CacheBehaviour, CachedEntry, ContentProviderRef, Dependency,
+    DependencyType, ModrinthVersionId, State, Version,
 };
 use crate::util::fetch::DownloadReason;
 use futures::stream::{FuturesUnordered, StreamExt};
@@ -21,6 +22,7 @@ use super::check_content_updates::{ContentUpdate, check_content_updates};
 struct BulkUpdatePlan {
     project_updates: Vec<PlannedProjectUpdate>,
     dependency_additions: Vec<PlannedDependencyInstall>,
+    curseforge_updates: Vec<ContentUpdate>,
 }
 
 #[derive(Clone, Debug)]
@@ -75,7 +77,7 @@ pub(crate) async fn update_project(
     .await?;
     let update = updates
         .into_iter()
-        .find(|update| update.relative_path == project_path)
+        .find(|update| update.relative_path() == project_path)
         .ok_or_else(|| {
             crate::ErrorKind::InputError(
                 "This project cannot be updated!".to_string(),
@@ -91,15 +93,41 @@ async fn apply_content_update(
     update: &ContentUpdate,
     state: &State,
 ) -> crate::Result<String> {
-    let mut new_path = add_project_from_version(
-        instance_id,
-        &update.update_version_id,
-        DownloadReason::Update,
-        Some(update.current_version_id.clone()),
-        ContentSourceKind::Local,
-        state,
-    )
-    .await?;
+    let mut new_path = match update {
+        ContentUpdate::Modrinth {
+            current_version_id,
+            update_version_id,
+            ..
+        } => {
+            add_project_from_version(
+                instance_id,
+                update_version_id.as_str(),
+                DownloadReason::Update,
+                Some(current_version_id.to_string()),
+                ContentSourceKind::Local,
+                state,
+            )
+            .await?
+        }
+        ContentUpdate::CurseForge { .. } => {
+            let result = crate::api::curseforge::update_installed_file(
+                instance_id,
+                project_path,
+            )
+            .await?;
+            result
+                .installed
+                .into_iter()
+                .find(|file| !file.dependency)
+                .map(|file| file.relative_path)
+                .ok_or_else(|| {
+                    crate::ErrorKind::InputError(
+                        "CurseForge update did not produce an installed file"
+                            .to_string(),
+                    )
+                })?
+        }
+    };
 
     if project_path.ends_with(".disabled") {
         new_path =
@@ -178,6 +206,14 @@ pub(crate) async fn update_all_projects(
                 .await?;
             }
         }
+    }
+
+    for update in &plan.curseforge_updates {
+        let relative_path = update.relative_path().to_string();
+        let new_path =
+            apply_content_update(instance_id, &relative_path, update, state)
+                .await?;
+        changed.insert(relative_path, new_path);
     }
 
     Ok(changed)
@@ -287,6 +323,7 @@ async fn plan_bulk_update(
         return Ok(BulkUpdatePlan {
             project_updates: Vec::new(),
             dependency_additions: Vec::new(),
+            curseforge_updates: Vec::new(),
         });
     }
 
@@ -297,12 +334,13 @@ async fn plan_bulk_update(
     )
     .await?
     .into_iter()
-    .filter(|update| updateable_paths.contains(&update.relative_path))
+    .filter(|update| updateable_paths.contains(update.relative_path()))
     .collect::<Vec<_>>();
     if updates.is_empty() {
         return Ok(BulkUpdatePlan {
             project_updates: Vec::new(),
             dependency_additions: Vec::new(),
+            curseforge_updates: Vec::new(),
         });
     }
 
@@ -327,28 +365,28 @@ async fn plan_bulk_update(
         .collect::<HashMap<_, _>>();
     let updates_by_path = updates
         .iter()
-        .map(|update| {
-            (
-                update.relative_path.clone(),
-                (
-                    update.current_version_id.clone(),
-                    update.update_version_id.clone(),
-                ),
-            )
+        .filter_map(|update| {
+            let (_, current, target) = update.modrinth_ids()?;
+            Some((
+                update.relative_path().to_string(),
+                (current.to_string(), target.to_string()),
+            ))
         })
         .collect::<HashMap<_, _>>();
     let version_ids = installed
         .iter()
         .filter(|project| updateable_paths.contains(&project.relative_path))
         .filter_map(|project| project.version_id.clone())
-        .chain(
-            updates
-                .iter()
-                .map(|update| update.update_version_id.clone()),
-        )
+        .chain(updates.iter().filter_map(|update| {
+            update
+                .modrinth_ids()
+                .map(|(_, _, target)| target.to_string())
+        }))
         .collect::<HashSet<_>>();
-    let version_id_refs =
-        version_ids.iter().map(|id| id.as_str()).collect::<Vec<_>>();
+    let version_id_refs = version_ids
+        .iter()
+        .map(|id| ModrinthVersionId::new(id.clone()))
+        .collect::<crate::Result<Vec<_>>>()?;
     let versions = CachedEntry::get_version_many(
         &version_id_refs,
         Some(CacheBehaviour::MustRevalidate),
@@ -368,7 +406,8 @@ async fn plan_bulk_update(
             let target_version_id = updates_by_path
                 .get(&project.relative_path)
                 .map(|(_, update_version_id)| update_version_id)
-                .or(project.version_id.as_ref())?;
+                .map(|version_id| version_id.as_str())
+                .or(project.version_id.as_deref())?;
 
             versions_by_id.get(target_version_id).cloned()
         })
@@ -385,18 +424,27 @@ async fn plan_bulk_update(
             parent_version_id: dependency.parent_version_id.clone(),
         })
         .collect::<Vec<_>>();
+    let curseforge_updates = updates
+        .iter()
+        .filter(|update| matches!(update, ContentUpdate::CurseForge { .. }))
+        .cloned()
+        .collect::<Vec<_>>();
     let project_updates = updates
         .into_iter()
-        .map(|update| PlannedProjectUpdate {
-            relative_path: update.relative_path,
-            current_version_id: update.current_version_id,
-            update_version_id: update.update_version_id,
+        .filter_map(|update| {
+            let (_, current, target) = update.modrinth_ids()?;
+            Some(PlannedProjectUpdate {
+                relative_path: update.relative_path().to_string(),
+                current_version_id: current.to_string(),
+                update_version_id: target.to_string(),
+            })
         })
         .collect::<Vec<_>>();
 
     Ok(BulkUpdatePlan {
         project_updates,
         dependency_additions,
+        curseforge_updates,
     })
 }
 
@@ -436,27 +484,43 @@ async fn installed_projects(
     let files =
         content_rows::get_instance_files(&instance.id, &state.pool).await?;
 
-    Ok(files
-        .into_iter()
-        .filter_map(|file| {
-            let entry = entries_by_file_id.get(file.id.as_str())?;
-            installed_project_from_row(&file, entry)
-        })
-        .collect())
+    let mut installed = Vec::new();
+    for file in files {
+        let Some(entry) = entries_by_file_id.get(file.id.as_str()) else {
+            continue;
+        };
+        let refs =
+            content_rows::get_content_provider_refs(&entry.id, &state.pool)
+                .await?;
+        if let Some(project) = installed_project_from_row(&file, entry, &refs) {
+            installed.push(project);
+        }
+    }
+
+    Ok(installed)
 }
 
 fn installed_project_from_row(
     file: &InstanceFile,
     entry: &ContentEntry,
+    provider_refs: &[ContentProviderRef],
 ) -> Option<InstalledProject> {
-    if entry.project_id.is_none() && entry.version_id.is_none() {
-        return None;
-    }
+    let (project_id, version_id) =
+        provider_refs.iter().find_map(|reference| match reference {
+            ContentProviderRef::Modrinth {
+                project_id,
+                version_id: Some(version_id),
+            } => Some((
+                Some(project_id.to_string()),
+                Some(version_id.to_string()),
+            )),
+            _ => None,
+        })?;
 
     Some(InstalledProject {
         relative_path: file.relative_path.clone(),
-        project_id: entry.project_id.clone(),
-        version_id: entry.version_id.clone(),
+        project_id,
+        version_id,
         enabled: entry.enabled && file.enabled,
     })
 }
@@ -554,7 +618,7 @@ async fn cached_version(
 ) -> crate::Result<Option<Version>> {
     if !version_cache.contains_key(version_id) {
         let version = CachedEntry::get_version(
-            version_id,
+            &ModrinthVersionId::new(version_id.to_string())?,
             Some(CacheBehaviour::MustRevalidate),
             &state.pool,
             &state.api_semaphore,
@@ -573,7 +637,7 @@ async fn cached_project_versions(
 ) -> crate::Result<Option<Vec<Version>>> {
     if !project_versions_cache.contains_key(project_id) {
         let versions = CachedEntry::get_project_versions(
-            project_id,
+            &crate::state::ModrinthProjectId::new(project_id.to_string())?,
             Some(CacheBehaviour::MustRevalidate),
             &state.pool,
             &state.api_semaphore,

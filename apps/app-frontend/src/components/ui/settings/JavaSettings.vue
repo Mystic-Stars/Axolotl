@@ -9,10 +9,10 @@ import {
 } from '@modrinth/assets'
 import {
 	ButtonStyled,
-	Table,
-	Toggle,
 	defineMessages,
 	injectNotificationManager,
+	Table,
+	Toggle,
 	useVIntl,
 } from '@modrinth/ui'
 import { open } from '@tauri-apps/plugin-dialog'
@@ -21,7 +21,6 @@ import { ref, watch } from 'vue'
 
 import DownloadJavaModal from '@/components/ui/settings/DownloadJavaModal.vue'
 import { trackEvent } from '@/helpers/analytics'
-import { get, set } from '@/helpers/settings.ts'
 import {
 	find_filtered_jres,
 	get_java_versions,
@@ -29,6 +28,7 @@ import {
 	remove_java_version,
 	set_java_version,
 } from '@/helpers/jre'
+import { get, set } from '@/helpers/settings.ts'
 
 const { handleError } = injectNotificationManager()
 const { formatMessage } = useVIntl()

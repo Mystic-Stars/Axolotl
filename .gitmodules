@@ -1,0 +1,3 @@
+[submodule "apps/app/vendor/cubiomes"]
+	path = apps/app/vendor/cubiomes
+	url = https://github.com/Cubitect/cubiomes.git

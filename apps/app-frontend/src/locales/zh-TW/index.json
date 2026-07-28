@@ -233,12 +233,6 @@
 	"app.appearance-settings.hide-nametag.title": {
 		"message": "隱藏名牌"
 	},
-	"app.appearance-settings.jump-back-into-worlds.description": {
-		"message": "在首頁的「繼續遊玩」區塊中顯示最近進入的世界。"
-	},
-	"app.appearance-settings.jump-back-into-worlds.title": {
-		"message": "繼續遊玩世界"
-	},
 	"app.appearance-settings.minimize-launcher.description": {
 		"message": "當 Minecraft 處理程序啟動時最小化啟動器。"
 	},
@@ -754,21 +748,6 @@
 	},
 	"app.home.breadcrumb": {
 		"message": "首頁"
-	},
-	"app.home.discover-modpack": {
-		"message": "探索模組包"
-	},
-	"app.home.discover-mods": {
-		"message": "探索模組"
-	},
-	"app.home.jump-back-in": {
-		"message": "繼續遊玩"
-	},
-	"app.home.welcome": {
-		"message": "歡迎使用 Axolotl Launcher！"
-	},
-	"app.home.welcome-back": {
-		"message": "歡迎回來！"
 	},
 	"app.install.phase.downloading_content": {
 		"message": "正在下載內容"
@@ -1559,9 +1538,6 @@
 	"app.settings.feature-flags.reset-to-default": {
 		"message": "恢復預設值"
 	},
-	"app.settings.java.location": {
-		"message": "Java {version} 位置"
-	},
 	"app.settings.resources.app-cache": {
 		"message": "應用程式快取"
 	},
@@ -1585,12 +1561,6 @@
 	},
 	"app.settings.resources.download-mirrors-description": {
 		"message": "為每項服務選擇下載來源。當鏡像來源請求失敗時，將自動退回至官方來源。"
-	},
-	"app.settings.resources.minecraft-mirror": {
-		"message": "Minecraft 與模組載入器"
-	},
-	"app.settings.resources.minecraft-mirror-description": {
-		"message": "使用 OpenBMCLAPI 加速 Minecraft、Forge、Fabric 和 NeoForge 檔案下載。"
 	},
 	"app.settings.resources.modrinth-mirror": {
 		"message": "Modrinth"
@@ -2168,9 +2138,6 @@
 	"instance.edit-server.title": {
 		"message": "編輯伺服器"
 	},
-	"instance.edit-world.hide-from-home": {
-		"message": "從首頁隱藏"
-	},
 	"instance.edit-world.name": {
 		"message": "名稱"
 	},
@@ -2336,9 +2303,6 @@
 	"instance.settings.tabs.java.custom-java-arguments": {
 		"message": "自訂 Java 參數"
 	},
-	"instance.settings.tabs.java.custom-java-installation": {
-		"message": "自訂 Java 安裝"
-	},
 	"instance.settings.tabs.java.custom-memory-allocation": {
 		"message": "自訂記憶體分配"
 	},
@@ -2351,9 +2315,6 @@
 	"instance.settings.tabs.java.environment-variables": {
 		"message": "環境變數"
 	},
-	"instance.settings.tabs.java.hooks": {
-		"message": "掛鉤"
-	},
 	"instance.settings.tabs.java.java-arguments": {
 		"message": "Java 參數"
 	},
@@ -2365,9 +2326,6 @@
 	},
 	"instance.settings.tabs.java.java-path-placeholder": {
 		"message": "/path/to/java"
-	},
-	"instance.settings.tabs.java.version": {
-		"message": "Java {version} 版"
 	},
 	"instance.settings.tabs.window": {
 		"message": "視窗"
@@ -2410,9 +2368,6 @@
 	},
 	"instance.worlds.create_shortcut": {
 		"message": "建立捷徑"
-	},
-	"instance.worlds.dont_show_on_home": {
-		"message": "不要在首頁顯示"
 	},
 	"instance.worlds.game_already_open": {
 		"message": "實例已經開啟"
@@ -2663,12 +2618,6 @@
 	"app.drop.no-instances": {
 		"message": "No instances found"
 	},
-	"app.drop.modpack-not-supported-title": {
-		"message": "整合包匯入"
-	},
-	"app.drop.modpack-not-supported-text": {
-		"message": "暫不支援透過拖放匯入整合包。請使用「匯入」按鈕來安裝整合包。"
-	},
 	"app.drop.unknown-force-analysis-title": {
 		"message": "無法識別檔案類型"
 	},
@@ -2915,20 +2864,8 @@
 	"app.onboarding.action.start": {
 		"message": "Take the tour"
 	},
-	"app.onboarding.recent.title": {
-		"message": "No more losing your place"
-	},
-	"app.onboarding.recent.description": {
-		"message": "Recently played instances and worlds stay here, ready for a quick return."
-	},
 	"app.onboarding.action.continue-area": {
 		"message": "Click anywhere for the next bit"
-	},
-	"app.onboarding.featured.title": {
-		"message": "A little inspiration"
-	},
-	"app.onboarding.featured.description": {
-		"message": "Recommended modpacks and mods live here for when your next project needs ideas."
 	},
 	"app.onboarding.discover.title": {
 		"message": "Find something new"
@@ -3085,12 +3022,6 @@
 	},
 	"app.onboarding.creation-version.description": {
 		"message": "Choose the Minecraft version for this instance. Compatibility likes specifics."
-	},
-	"app.onboarding.creation-modpack.title": {
-		"message": "Find your next modpack"
-	},
-	"app.onboarding.creation-modpack.description": {
-		"message": "Search Modrinth, browse modpacks, or import a pack file. Plenty of adventures ahead."
 	},
 	"app.onboarding.creation-confirm.title": {
 		"message": "One last look"

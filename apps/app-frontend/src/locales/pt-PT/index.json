@@ -386,9 +386,6 @@
   "instance.edit-server.title": {
     "message": "Editar servidor"
   },
-  "instance.edit-world.hide-from-home": {
-    "message": "Esconder da página Inicial"
-  },
   "instance.edit-world.name": {
     "message": "Nome"
   },
@@ -524,9 +521,6 @@
   "instance.settings.tabs.java.environment-variables": {
     "message": "Variáveis de ambiente"
   },
-  "instance.settings.tabs.java.hooks": {
-    "message": "Ganchos"
-  },
   "instance.settings.tabs.java.java-arguments": {
     "message": "Argumentos Java"
   },
@@ -574,9 +568,6 @@
   },
   "instance.worlds.copy_address": {
     "message": "Copiar endereço"
-  },
-  "instance.worlds.dont_show_on_home": {
-    "message": "Não mostrar na página Inicial"
   },
   "instance.worlds.game_already_open": {
     "message": "Instância já está aberta"

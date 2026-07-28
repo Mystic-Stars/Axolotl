@@ -3,6 +3,7 @@
 mod content;
 mod export_mrpack;
 mod get;
+mod home;
 mod install;
 mod lifecycle;
 mod paths;
@@ -19,6 +20,9 @@ pub use self::export_mrpack::{
     create_mrpack_json, export_mrpack, get_pack_export_candidates,
 };
 pub use self::get::{get, get_many, list};
+pub use self::home::{
+    get_daily_playtime, get_daily_playtime_details, set_pinned,
+};
 pub use self::install::get_optimal_jre_key;
 pub(crate) use self::lifecycle::create;
 pub use self::lifecycle::{cache_icon, edit, edit_icon, remove};
@@ -33,3 +37,4 @@ pub use self::projects::{
 pub use self::run::{
     QuickPlayType, kill, run, try_update_playtime_by_instance_id,
 };
+pub use crate::state::{DailyPlaytime, DailyPlaytimeEntry};

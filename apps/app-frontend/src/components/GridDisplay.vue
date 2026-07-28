@@ -3,6 +3,8 @@ import {
 	ClipboardCopyIcon,
 	EyeIcon,
 	FolderOpenIcon,
+	MoreVerticalIcon,
+	PinIcon,
 	PlayIcon,
 	PlusIcon,
 	SearchIcon,
@@ -11,11 +13,13 @@ import {
 } from '@modrinth/assets'
 import {
 	Accordion,
+	ButtonStyled,
 	commonMessages,
 	defineMessages,
 	DropdownSelect,
 	formatLoader,
 	injectNotificationManager,
+	OverflowMenu,
 	StyledInput,
 	useVIntl,
 } from '@modrinth/ui'
@@ -27,7 +31,7 @@ import ContextMenu from '@/components/ui/ContextMenu.vue'
 import Instance from '@/components/ui/Instance.vue'
 import ConfirmDeleteInstanceModal from '@/components/ui/modal/ConfirmDeleteInstanceModal.vue'
 import { install_duplicate_instance } from '@/helpers/install'
-import { remove } from '@/helpers/instance'
+import { remove, set_pinned } from '@/helpers/instance'
 
 const { handleError } = injectNotificationManager()
 
@@ -44,6 +48,8 @@ const messages = defineMessages({
 		defaultMessage: 'Duplicate instance',
 	},
 	copyPath: { id: 'app.instances.copy-path', defaultMessage: 'Copy path' },
+	pinToHome: { id: 'app.instances.pin-to-home', defaultMessage: 'Pin to Home' },
+	unpinFromHome: { id: 'app.instances.unpin-from-home', defaultMessage: 'Unpin from Home' },
 	name: { id: 'app.instances.sort.name', defaultMessage: 'Name' },
 	lastPlayed: { id: 'app.instances.sort.last-played', defaultMessage: 'Last played' },
 	dateCreated: { id: 'app.instances.sort.date-created', defaultMessage: 'Date created' },
@@ -106,6 +112,7 @@ const handleRightClick = (event, instanceId) => {
 		{ type: 'divider' },
 		{ name: 'edit' },
 		{ name: 'duplicate' },
+		{ name: item.instance.pinned_at ? 'unpin' : 'pin' },
 		{ name: 'open' },
 		{ name: 'copy' },
 		{ type: 'divider' },
@@ -154,6 +161,12 @@ const handleOptionsClick = async (args) => {
 			if (args.item.instance.install_stage == 'installed')
 				await duplicateInstance(args.item.instance.id)
 			break
+		case 'pin':
+			await set_pinned(args.item.instance.id, true).catch(handleError)
+			break
+		case 'unpin':
+			await set_pinned(args.item.instance.id, false).catch(handleError)
+			break
 		case 'open':
 			await args.item.openFolder()
 			break
@@ -166,6 +179,13 @@ const handleOptionsClick = async (args) => {
 			break
 	}
 }
+
+const overflowOptions = (instance) => [
+	{
+		id: instance.pinned_at ? 'unpin' : 'pin',
+		action: () => set_pinned(instance.id, !instance.pinned_at).catch(handleError),
+	},
+]
 
 const state = useStorage(
 	`${props.label}-grid-display-state`,
@@ -360,13 +380,33 @@ const filteredResults = computed(() => {
 			<span class="text-base">{{ instanceSection.key }}</span>
 		</template>
 		<section class="instances">
-			<Instance
+			<div
 				v-for="instance in instanceSection.value"
-				ref="instanceComponents"
 				:key="instance.id + instance.install_stage"
-				:instance="instance"
-				@contextmenu.prevent.stop="(event) => handleRightClick(event, instance.id)"
-			/>
+				class="relative"
+			>
+				<Instance
+					ref="instanceComponents"
+					:instance="instance"
+					@contextmenu.prevent.stop="(event) => handleRightClick(event, instance.id)"
+				/>
+				<div class="absolute right-2 top-2" @click.stop>
+					<ButtonStyled circular size="small" type="transparent">
+						<OverflowMenu
+							:options="overflowOptions(instance)"
+							:tooltip="
+								formatMessage(instance.pinned_at ? messages.unpinFromHome : messages.pinToHome)
+							"
+						>
+							<MoreVerticalIcon />
+							<template #pin> <PinIcon /> {{ formatMessage(messages.pinToHome) }} </template>
+							<template #unpin>
+								<PinIcon class="rotate-45" /> {{ formatMessage(messages.unpinFromHome) }}
+							</template>
+						</OverflowMenu>
+					</ButtonStyled>
+				</div>
+			</div>
 		</section>
 	</Accordion>
 	<ConfirmDeleteInstanceModal
@@ -381,6 +421,10 @@ const filteredResults = computed(() => {
 		<template #edit> <EyeIcon /> {{ formatMessage(messages.viewInstance) }} </template>
 		<template #duplicate>
 			<ClipboardCopyIcon /> {{ formatMessage(messages.duplicateInstance) }}
+		</template>
+		<template #pin> <PinIcon /> {{ formatMessage(messages.pinToHome) }} </template>
+		<template #unpin>
+			<PinIcon class="rotate-45" /> {{ formatMessage(messages.unpinFromHome) }}
 		</template>
 		<template #delete> <TrashIcon /> {{ formatMessage(commonMessages.deleteLabel) }} </template>
 		<template #open>

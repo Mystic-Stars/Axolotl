@@ -101,6 +101,7 @@ import _ContractIcon from './icons/contract.svg?component'
 import _CopyIcon from './icons/copy.svg?component'
 import _CopyrightIcon from './icons/copyright.svg?component'
 import _CpuIcon from './icons/cpu.svg?component'
+import _CreateIcon from './icons/create.svg?component'
 import _CrownIcon from './icons/crown.svg?component'
 import _CubeIcon from './icons/cube.svg?component'
 import _CurrencyIcon from './icons/currency.svg?component'
@@ -124,6 +125,7 @@ import _FilePlusIcon from './icons/file-plus.svg?component'
 import _FileTextIcon from './icons/file-text.svg?component'
 import _FilterIcon from './icons/filter.svg?component'
 import _FilterXIcon from './icons/filter-x.svg?component'
+import _FlaskConicalIcon from './icons/flask-conical.svg?component'
 import _FoldVerticalIcon from './icons/fold-vertical.svg?component'
 import _FolderIcon from './icons/folder.svg?component'
 import _FolderArchiveIcon from './icons/folder-archive.svg?component'
@@ -204,6 +206,7 @@ import _NotepadTextIcon from './icons/notepad-text.svg?component'
 import _OmorphiaIcon from './icons/omorphia.svg?component'
 import _OnlineIndicatorIcon from './icons/online-indicator.svg?component'
 import _OrganizationIcon from './icons/organization.svg?component'
+import _PackIcon from './icons/pack.svg?component'
 import _PackageIcon from './icons/package.svg?component'
 import _PackageClosedIcon from './icons/package-closed.svg?component'
 import _PackageOpenIcon from './icons/package-open.svg?component'
@@ -537,6 +540,7 @@ export const ContractIcon = _ContractIcon
 export const CopyIcon = _CopyIcon
 export const CopyrightIcon = _CopyrightIcon
 export const CpuIcon = _CpuIcon
+export const CreateIcon = _CreateIcon
 export const CrownIcon = _CrownIcon
 export const CubeIcon = _CubeIcon
 export const CurrencyIcon = _CurrencyIcon
@@ -560,6 +564,7 @@ export const FilePlusIcon = _FilePlusIcon
 export const FileTextIcon = _FileTextIcon
 export const FilterIcon = _FilterIcon
 export const FilterXIcon = _FilterXIcon
+export const FlaskConicalIcon = _FlaskConicalIcon
 export const FoldVerticalIcon = _FoldVerticalIcon
 export const FolderIcon = _FolderIcon
 export const FolderArchiveIcon = _FolderArchiveIcon
@@ -640,6 +645,7 @@ export const NotepadTextIcon = _NotepadTextIcon
 export const OmorphiaIcon = _OmorphiaIcon
 export const OnlineIndicatorIcon = _OnlineIndicatorIcon
 export const OrganizationIcon = _OrganizationIcon
+export const PackIcon = _PackIcon
 export const PackageIcon = _PackageIcon
 export const PackageClosedIcon = _PackageClosedIcon
 export const PackageOpenIcon = _PackageOpenIcon

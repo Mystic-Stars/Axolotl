@@ -7,11 +7,10 @@ export interface CurseForgeManualDownloadItem {
 
 export interface InstalledCurseForgeContentItem {
 	file_name: string
-	provider_refs?: Array<{
-		provider: string
-		project_id: string
-		version_id?: string | null
-	}>
+	provider_refs?: Array<
+		| { provider: 'modrinth'; project_id: string; version_id?: string | null }
+		| { provider: 'curseforge'; project_id: number; file_id?: number | null }
+	>
 }
 
 const STORAGE_KEY = 'axolotl.curseforge.manual-downloads.v1'
@@ -95,14 +94,14 @@ export function filterInstalledCurseForgeManualDownloads(
 	const installedCurseForgeFiles = new Set(
 		installedItems.flatMap((item) =>
 			(item.provider_refs ?? [])
-				.filter((reference) => reference.provider === 'curseforge' && reference.version_id)
-				.map((reference) => `${reference.project_id}:${reference.version_id}`),
+				.filter((reference) => reference.provider === 'curseforge' && reference.file_id != null)
+				.map((reference) => `${reference.project_id}:${reference.file_id}`),
 		),
 	)
 	return manualDownloads.filter((item) => {
 		const fileFamily = modFileFamily(item.fileName)
 		return (
-			!installedCurseForgeProjects.has(String(item.projectId)) &&
+			!installedCurseForgeProjects.has(item.projectId) &&
 			!installedCurseForgeFiles.has(`${item.projectId}:${item.fileId}`) &&
 			!installedFileNames.has(item.fileName.toLowerCase()) &&
 			(!fileFamily || !installedFileFamilies.has(fileFamily))

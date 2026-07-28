@@ -208,11 +208,11 @@ export function useOnboardingTour(
 		if (transitionLocked) return
 		transitionLocked = true
 
-		const pathDestination = creationPath.value
+		const destination = creationPath.value
 			? step.value.nextByCreationPath?.[creationPath.value]
-			: undefined
-		if (pathDestination) {
-			goTo(pathDestination)
+			: step.value.next
+		if (destination) {
+			goTo(destination)
 			scheduleUnlock()
 			return
 		}
@@ -284,7 +284,7 @@ export function useOnboardingTour(
 		if (clickedElement && handleBranchClick(clickedElement)) return
 		if (!targetElement.value?.contains(event.target as Node)) return
 
-		if (step.value.expectedPath && !route.path.startsWith(step.value.expectedPath)) {
+		if (step.value.expectedPath && route.path !== step.value.expectedPath) {
 			waitingForRoute.value = true
 			return
 		}
@@ -301,7 +301,7 @@ export function useOnboardingTour(
 		() => route.path,
 		(path) => {
 			if (!waitingForRoute.value || !step.value.expectedPath) return
-			if (!path.startsWith(step.value.expectedPath)) return
+			if (path !== step.value.expectedPath) return
 			waitingForRoute.value = false
 			void advance()
 		},

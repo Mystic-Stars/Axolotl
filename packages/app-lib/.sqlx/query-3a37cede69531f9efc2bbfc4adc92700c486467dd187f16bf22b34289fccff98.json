@@ -72,6 +72,11 @@
         "name": "symlink_target",
         "ordinal": 13,
         "type_info": "Text"
+      },
+      {
+        "name": "pinned_at",
+        "ordinal": 14,
+        "type_info": "Integer"
       }
     ],
     "parameters": {
@@ -91,6 +96,7 @@
       true,
       false,
       false,
+      true,
       true
     ]
   },

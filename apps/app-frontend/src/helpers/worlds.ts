@@ -93,6 +93,10 @@ export async function get_recent_worlds(
 	return await invoke('plugin:worlds|get_recent_worlds', { limit, displayStatuses })
 }
 
+export async function get_favorite_worlds(): Promise<WorldWithInstance[]> {
+	return await invoke('plugin:worlds|get_favorite_worlds')
+}
+
 export async function get_instance_worlds(instanceId: string): Promise<World[]> {
 	return await invoke('plugin:worlds|get_instance_worlds', { instanceId })
 }

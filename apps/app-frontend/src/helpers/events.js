@@ -86,6 +86,10 @@ export async function install_job_listener(callback) {
 	return await listen('install_job', (event) => callback(event.payload))
 }
 
+export async function download_request_listener(callback) {
+	return await listen('download_request', (event) => callback(event.payload))
+}
+
 /// Payload for the 'command' event
 /*
   CommandPayload {

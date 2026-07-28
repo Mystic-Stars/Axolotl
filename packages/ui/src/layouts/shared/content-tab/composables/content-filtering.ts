@@ -135,7 +135,7 @@ export function useContentFilters(items: Ref<ContentItem[]>, config?: ContentFil
 		if (selectedStatusFilters.value.length > 0) {
 			result = result.filter((item) => {
 				for (const filter of selectedStatusFilters.value) {
-					if (filter === 'updates' && !item.has_update) return false
+					if (filter === 'updates' && item.update == null) return false
 					if (filter === 'enabled' && !item.enabled) return false
 					if (filter === 'disabled' && item.enabled) return false
 					if (filter === 'warnings' && getClientWarningType(item) === null) return false
@@ -179,7 +179,7 @@ export function useContentFilters(items: Ref<ContentItem[]>, config?: ContentFil
 		const source = typeFilteredItems.value
 		const options: ContentFilterOption[] = []
 
-		if (showUpdateFilter.value && source.some((m) => m.has_update)) {
+		if (showUpdateFilter.value && source.some((m) => m.update != null)) {
 			options.push({ id: 'updates', label: formatMessage(messages.updates) })
 		}
 
@@ -214,7 +214,7 @@ export function useContentFilters(items: Ref<ContentItem[]>, config?: ContentFil
 
 		const source = typeFilteredItems.value
 
-		counts['updates'] = source.filter((m) => m.has_update).length
+		counts['updates'] = source.filter((m) => m.update != null).length
 		counts['enabled'] = source.filter((m) => m.enabled).length
 		counts['disabled'] = source.filter((m) => !m.enabled).length
 		counts['warnings'] = source.filter((m) => getClientWarningType(m) !== null).length
@@ -275,7 +275,7 @@ export function useContentFilters(items: Ref<ContentItem[]>, config?: ContentFil
 		if (selectedStatusFilters.value.length > 0) {
 			result = result.filter((item) => {
 				for (const filter of selectedStatusFilters.value) {
-					if (filter === 'updates' && !item.has_update) return false
+					if (filter === 'updates' && item.update == null) return false
 					if (filter === 'enabled' && !item.enabled) return false
 					if (filter === 'disabled' && item.enabled) return false
 					if (filter === 'warnings' && getClientWarningType(item) === null) return false

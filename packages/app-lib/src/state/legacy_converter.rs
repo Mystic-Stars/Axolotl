@@ -6,11 +6,11 @@ use crate::state::instances::{
     InstanceLaunchOverrides, InstanceLaunchOverridesData, playtime_to_storage,
 };
 use crate::state::{
-    CacheValue, CachedEntry, CachedFile, CachedFileHash, CachedFileUpdate,
-    Credentials, DefaultPage, DependencyType, DeviceToken, DeviceTokenKey,
-    DeviceTokenPair, FileType, Hooks, InstanceInstallStage,
-    LauncherFeatureVersion, MemorySettings, MinecraftAccountType,
-    ModrinthCredentials, ReleaseChannel, TeamMember, Theme, VersionFile,
+    CacheValue, CachedEntry, CachedFileHash, CachedFileUpdate, Credentials,
+    DefaultPage, DependencyType, DeviceToken, DeviceTokenKey, DeviceTokenPair,
+    FileType, Hooks, InstanceInstallStage, LauncherFeatureVersion,
+    MemorySettings, MinecraftAccountType, ModrinthCredentials,
+    ModrinthHashMatch, ReleaseChannel, TeamMember, Theme, VersionFile,
     WindowSize,
 };
 use crate::util::fetch::{IoSemaphore, read_json};
@@ -250,11 +250,13 @@ where
                             ));
                         }
 
-                        cached_entries.push(CacheValue::File(CachedFile {
-                            hash: sha1.clone(),
-                            project_id: version.project_id.clone(),
-                            version_id: version.id.clone(),
-                        }));
+                        cached_entries.push(CacheValue::File(
+                            ModrinthHashMatch {
+                                hash: sha1.clone(),
+                                project_id: version.project_id.clone(),
+                                version_id: version.id.clone(),
+                            },
+                        ));
 
                         if let Some(update_version) = update_version {
                             let mod_loader: ModLoader =

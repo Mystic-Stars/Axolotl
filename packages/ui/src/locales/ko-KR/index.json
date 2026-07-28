@@ -437,18 +437,6 @@
   "content.inline-backup.world-label": {
     "defaultMessage": "세계"
   },
-  "content.modpack-card.content-hint-description": {
-    "defaultMessage": "여기서 모드팩의 콘텐츠를 확인할 수 있습니다!"
-  },
-  "content.modpack-card.content-hint-title": {
-    "defaultMessage": "모드팩 콘텐츠 이동됨"
-  },
-  "content.modpack-card.dismiss-hint": {
-    "defaultMessage": "다시 보지 않기"
-  },
-  "content.page-layout.additional-content": {
-    "defaultMessage": "추가 콘텐츠"
-  },
   "content.page-layout.browse-content": {
     "defaultMessage": "콘텐츠 탐색"
   },
@@ -458,14 +446,8 @@
   "content.page-layout.empty.hint": {
     "defaultMessage": "{contentType}를 업로드하거나 탐색하여 시작"
   },
-  "content.page-layout.empty.modpack-hint": {
-    "defaultMessage": "이 모드팩에 추가 콘텐츠 추가"
-  },
   "content.page-layout.empty.no-content-installed": {
     "defaultMessage": "설치된 콘텐츠 없음"
-  },
-  "content.page-layout.empty.no-extra-content-installed": {
-    "defaultMessage": "설치된 추가 콘텐츠 없음"
   },
   "content.page-layout.failed-to-load": {
     "defaultMessage": "콘텐츠 불러오기 실패"
@@ -721,51 +703,6 @@
   },
   "creation-flow.modal.final-config.world-type.superflat": {
     "defaultMessage": "완전한 평지"
-  },
-  "creation-flow.modal.import-instance.action.add": {
-    "defaultMessage": "추가"
-  },
-  "creation-flow.modal.import-instance.custom-launcher.name": {
-    "defaultMessage": "사용자 지정 ({pathName})"
-  },
-  "creation-flow.modal.import-instance.detecting-launcher-instances": {
-    "defaultMessage": "런처 인스턴스 감지 중..."
-  },
-  "creation-flow.modal.import-instance.launcher-instances.title": {
-    "defaultMessage": "런처 인스턴스"
-  },
-  "creation-flow.modal.import-instance.launcher-path.add": {
-    "defaultMessage": "런처 경로 추가"
-  },
-  "creation-flow.modal.import-instance.launcher-path.placeholder": {
-    "defaultMessage": "런처 경로..."
-  },
-  "creation-flow.modal.import-instance.notification.no-instances-found.text": {
-    "defaultMessage": "지정된 경로에서 가져올 수 있는 인스턴스가 발견되지 않았습니다."
-  },
-  "creation-flow.modal.import-instance.notification.no-instances-found.title": {
-    "defaultMessage": "발견된 인스턴스 없음"
-  },
-  "creation-flow.modal.import-instance.search.placeholder": {
-    "defaultMessage": "인스턴스 이름 검색"
-  },
-  "creation-flow.modal.import-instance.selection.clear-all": {
-    "defaultMessage": "모두 해제"
-  },
-  "creation-flow.modal.modpack.action.browse": {
-    "defaultMessage": "모드팩 둘러보기"
-  },
-  "creation-flow.modal.modpack.action.import": {
-    "defaultMessage": "모드팩 가져오기"
-  },
-  "creation-flow.modal.modpack.known-modpack.prompt": {
-    "defaultMessage": "설치하고 싶은 모드팩을 이미 알고 계신가요?"
-  },
-  "creation-flow.modal.modpack.search.no-results": {
-    "defaultMessage": "결과 없음"
-  },
-  "creation-flow.modal.modpack.search.placeholder": {
-    "defaultMessage": "모드팩 검색"
   },
   "creation-flow.modal.setup-type.instance.description": {
     "defaultMessage": "인스턴스란 특정 로더, 버전 및 모드가 적용된 Minecraft 환경을 의미합니다."

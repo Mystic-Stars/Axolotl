@@ -78,8 +78,13 @@ function normalizeLinkedModpackInfo(
 				}
 			: null,
 		categories: resolveLinkedModpackCategories(modpackInfo, allCategories),
-		hasUpdate: modpackInfo.has_update,
-		updateVersionId: modpackInfo.update_version_id,
+		hasUpdate: modpackInfo.update != null,
+		updateVersionId:
+			modpackInfo.update?.provider === 'modrinth'
+				? modpackInfo.update.target_version_id
+				: modpackInfo.update?.provider === 'curseforge'
+					? String(modpackInfo.update.target_file_id)
+					: null,
 	}
 }
 

@@ -437,32 +437,14 @@
   "content.inline-backup.world-label": {
     "defaultMessage": "світ"
   },
-  "content.modpack-card.content-hint-description": {
-    "defaultMessage": "Уміст вашої збірки тепер можна знайти тут!"
-  },
-  "content.modpack-card.content-hint-title": {
-    "defaultMessage": "Уміст збірки перемістився"
-  },
-  "content.modpack-card.dismiss-hint": {
-    "defaultMessage": "Не показувати знову"
-  },
-  "content.page-layout.additional-content": {
-    "defaultMessage": "Додатковий уміст"
-  },
   "content.page-layout.browse-content": {
     "defaultMessage": "Шукати вміст"
   },
   "content.page-layout.busy-description": {
     "defaultMessage": "Будь ласка, дочекайтеся завершення операції, перш ніж редагувати вміст."
   },
-  "content.page-layout.empty.modpack-hint": {
-    "defaultMessage": "Додайте додатковий уміст до цієї збірки"
-  },
   "content.page-layout.empty.no-content-installed": {
     "defaultMessage": "Немає встановленого вмісту"
-  },
-  "content.page-layout.empty.no-extra-content-installed": {
-    "defaultMessage": "Немає додаткового вмісту"
   },
   "content.page-layout.failed-to-load": {
     "defaultMessage": "Не вдалося завантажити вміст"
@@ -691,51 +673,6 @@
   },
   "creation-flow.modal.final-config.world-type.superflat": {
     "defaultMessage": "Надплаский"
-  },
-  "creation-flow.modal.import-instance.action.add": {
-    "defaultMessage": "Додати"
-  },
-  "creation-flow.modal.import-instance.custom-launcher.name": {
-    "defaultMessage": "Власний ({pathName})"
-  },
-  "creation-flow.modal.import-instance.detecting-launcher-instances": {
-    "defaultMessage": "Виявлення профілів запускача…"
-  },
-  "creation-flow.modal.import-instance.launcher-instances.title": {
-    "defaultMessage": "Профілі запускача"
-  },
-  "creation-flow.modal.import-instance.launcher-path.add": {
-    "defaultMessage": "Додати шлях запускача"
-  },
-  "creation-flow.modal.import-instance.launcher-path.placeholder": {
-    "defaultMessage": "Шлях до запускача…"
-  },
-  "creation-flow.modal.import-instance.notification.no-instances-found.text": {
-    "defaultMessage": "За вказаним шляхом не знайдено профілів для імпорту."
-  },
-  "creation-flow.modal.import-instance.notification.no-instances-found.title": {
-    "defaultMessage": "Профілів не знайдено"
-  },
-  "creation-flow.modal.import-instance.search.placeholder": {
-    "defaultMessage": "Знайти назву профілю"
-  },
-  "creation-flow.modal.import-instance.selection.clear-all": {
-    "defaultMessage": "Очистити всі"
-  },
-  "creation-flow.modal.modpack.action.browse": {
-    "defaultMessage": "Переглянути збірки"
-  },
-  "creation-flow.modal.modpack.action.import": {
-    "defaultMessage": "Імпортувати збірку"
-  },
-  "creation-flow.modal.modpack.known-modpack.prompt": {
-    "defaultMessage": "Уже знаєте яку збірку хочете встановити?"
-  },
-  "creation-flow.modal.modpack.search.no-results": {
-    "defaultMessage": "Результатів не знайдено"
-  },
-  "creation-flow.modal.modpack.search.placeholder": {
-    "defaultMessage": "Пошук збірок"
   },
   "creation-flow.modal.setup-type.instance.description": {
     "defaultMessage": "Профіль — це налаштування Minecraft із певним завантажувачем, версією та модами."

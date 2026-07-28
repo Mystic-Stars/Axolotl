@@ -128,6 +128,28 @@
 								<span>{{ metric }}</span>
 							</template>
 						</div>
+						<div v-if="activeRequestItems(job).length" class="mt-2 flex flex-col gap-1">
+							<div
+								v-for="item in activeRequestItems(job).slice(0, 3)"
+								:key="`${item.id}-${item.request_url}`"
+								class="flex min-w-0 items-center gap-2 text-xs text-secondary"
+							>
+								<GlobeIcon class="size-3.5 shrink-0" />
+								<span v-if="item.source" class="shrink-0">
+									{{ downloadSourceLabel(item.source) }}
+								</span>
+								<code v-tooltip="item.request_url" class="min-w-0 flex-1 truncate">{{
+									item.request_url
+								}}</code>
+							</div>
+							<div v-if="activeRequestItems(job).length > 3" class="text-xs text-secondary">
+								{{
+									formatMessage(messages.moreActiveRequests, {
+										count: activeRequestItems(job).length - 3,
+									})
+								}}
+							</div>
+						</div>
 					</div>
 					<div class="flex flex-wrap items-center gap-2">
 						<ButtonStyled v-if="canCancel(job)" color="red" type="outlined" size="small">
@@ -226,6 +248,18 @@
 								<div v-if="row.error" class="truncate text-xs text-red">
 									{{ itemError(row) }}
 								</div>
+								<div
+									v-if="row.request_url"
+									class="flex min-w-0 items-center gap-1.5 text-xs text-secondary"
+								>
+									<GlobeIcon class="size-3 shrink-0" />
+									<span v-if="row.source" class="shrink-0">
+										{{ downloadSourceLabel(row.source) }}
+									</span>
+									<code v-tooltip="row.request_url" class="min-w-0 flex-1 truncate">{{
+										row.request_url
+									}}</code>
+								</div>
 								<ButtonStyled v-if="row.manual_url" type="transparent" size="small">
 									<button class="!px-0" @click.stop="openManualDownload(row)">
 										<ExternalIcon />{{ formatMessage(messages.manualDownload) }}
@@ -283,6 +317,7 @@ import {
 	CurseForgeIcon,
 	DownloadIcon,
 	ExternalIcon,
+	GlobeIcon,
 	ModrinthIcon,
 	RefreshCwIcon,
 	SearchIcon,
@@ -431,6 +466,10 @@ const messages = defineMessages({
 	downloadFallbacks: {
 		id: 'app.downloads.download-fallbacks',
 		defaultMessage: '{count} fallbacks',
+	},
+	moreActiveRequests: {
+		id: 'app.downloads.more-active-requests',
+		defaultMessage: '+{count} active requests',
 	},
 })
 
@@ -686,6 +725,10 @@ function downloadSourceLabel(source: string) {
 		default:
 			return formatMessage(messages.downloadSourceAlternate)
 	}
+}
+
+function activeRequestItems(job: InstallJobSnapshot) {
+	return job.items.filter((item) => item.status === 'downloading' && item.request_url)
 }
 
 function formatDownloadEta(seconds: number) {

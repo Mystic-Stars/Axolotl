@@ -27,6 +27,7 @@ pub(crate) struct InstanceRow {
     pub created: i64,
     pub modified: i64,
     pub last_played: Option<i64>,
+    pub pinned_at: Option<i64>,
     pub submitted_time_played: i64,
     pub recent_time_played: i64,
 }
@@ -50,6 +51,7 @@ impl TryFrom<InstanceRow> for Instance {
             created: timestamp(row.created),
             modified: timestamp(row.modified),
             last_played: row.last_played.and_then(optional_timestamp),
+            pinned_at: row.pinned_at.and_then(optional_timestamp),
             submitted_time_played: unsigned(
                 row.submitted_time_played,
                 "submitted_time_played",
@@ -197,6 +199,7 @@ struct InstanceMetadataRow {
     created: i64,
     modified: i64,
     last_played: Option<i64>,
+    pinned_at: Option<i64>,
     submitted_time_played: i64,
     recent_time_played: i64,
     content_set_id: Option<String>,
@@ -260,6 +263,7 @@ impl InstanceMetadataRow {
             created: self.created,
             modified: self.modified,
             last_played: self.last_played,
+            pinned_at: self.pinned_at,
             submitted_time_played: self.submitted_time_played,
             recent_time_played: self.recent_time_played,
         }
@@ -452,6 +456,7 @@ pub(crate) async fn get_instance_metadata_by_id(
             i.created AS "created!: i64",
             i.modified AS "modified!: i64",
             i.last_played AS "last_played?: i64",
+			i.pinned_at AS "pinned_at?: i64",
             i.submitted_time_played AS "submitted_time_played!: i64",
             i.recent_time_played AS "recent_time_played!: i64",
             cs.id AS "content_set_id?: String",
@@ -535,6 +540,7 @@ pub(crate) async fn get_instance_metadata_many(
             i.created AS "created!: i64",
             i.modified AS "modified!: i64",
             i.last_played AS "last_played?: i64",
+			i.pinned_at AS "pinned_at?: i64",
             i.submitted_time_played AS "submitted_time_played!: i64",
             i.recent_time_played AS "recent_time_played!: i64",
             cs.id AS "content_set_id?: String",
@@ -612,6 +618,7 @@ pub(crate) async fn list_instance_metadata(
             i.created AS "created!: i64",
             i.modified AS "modified!: i64",
             i.last_played AS "last_played?: i64",
+			i.pinned_at AS "pinned_at?: i64",
             i.submitted_time_played AS "submitted_time_played!: i64",
             i.recent_time_played AS "recent_time_played!: i64",
             cs.id AS "content_set_id?: String",
@@ -686,6 +693,7 @@ pub(crate) async fn get_instance_launch_context(
             i.created AS "created!: i64",
             i.modified AS "modified!: i64",
             i.last_played AS "last_played?: i64",
+			i.pinned_at AS "pinned_at?: i64",
             i.submitted_time_played AS "submitted_time_played!: i64",
             i.recent_time_played AS "recent_time_played!: i64",
             cs.id AS "content_set_id?: String",
@@ -850,6 +858,7 @@ pub(crate) async fn insert_instance(
     let created = instance.created.timestamp();
     let modified = instance.modified.timestamp();
     let last_played = instance.last_played.map(|value| value.timestamp());
+    let pinned_at = instance.pinned_at.map(|value| value.timestamp());
     let submitted_time_played = playtime_to_storage(
         instance.submitted_time_played,
         "submitted_time_played",
@@ -872,10 +881,11 @@ pub(crate) async fn insert_instance(
 			created,
 			modified,
 			last_played,
+			pinned_at,
 			submitted_time_played,
 			recent_time_played
 		)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		",
         id,
         path,
@@ -889,6 +899,7 @@ pub(crate) async fn insert_instance(
         created,
         modified,
         last_played,
+        pinned_at,
         submitted_time_played,
         recent_time_played,
     )
@@ -913,6 +924,7 @@ pub(crate) async fn update_instance(
     let symlink_target = instance.symlink_target.as_deref();
     let modified = instance.modified.timestamp();
     let last_played = instance.last_played.map(|value| value.timestamp());
+    let pinned_at = instance.pinned_at.map(|value| value.timestamp());
     let submitted_time_played = playtime_to_storage(
         instance.submitted_time_played,
         "submitted_time_played",
@@ -934,6 +946,7 @@ pub(crate) async fn update_instance(
 			symlink_target = ?,
 			modified = ?,
 			last_played = ?,
+			pinned_at = ?,
 			submitted_time_played = ?,
 			recent_time_played = ?
 		WHERE id = ?
@@ -948,6 +961,7 @@ pub(crate) async fn update_instance(
         symlink_target,
         modified,
         last_played,
+        pinned_at,
         submitted_time_played,
         recent_time_played,
         id,

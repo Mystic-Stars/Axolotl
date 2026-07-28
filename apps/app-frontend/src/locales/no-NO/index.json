@@ -140,9 +140,6 @@
   "instance.edit-server.title": {
     "message": "Rediger server"
   },
-  "instance.edit-world.hide-from-home": {
-    "message": "Sjul fra hjemside"
-  },
   "instance.edit-world.name": {
     "message": "Navn"
   },
@@ -272,9 +269,6 @@
   "instance.settings.tabs.java.environment-variables": {
     "message": "Miljøvariabler"
   },
-  "instance.settings.tabs.java.hooks": {
-    "message": "Hooker"
-  },
   "instance.settings.tabs.java.java-arguments": {
     "message": "Java argumenter"
   },
@@ -322,9 +316,6 @@
   },
   "instance.worlds.copy_address": {
     "message": "Kopier addresse"
-  },
-  "instance.worlds.dont_show_on_home": {
-    "message": "Ikke vis på Hjem"
   },
   "instance.worlds.game_already_open": {
     "message": "Instansen er allerede open"

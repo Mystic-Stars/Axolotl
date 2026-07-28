@@ -8,6 +8,7 @@ import {
 	IssuesIcon,
 	MoreVerticalIcon,
 	NoSignalIcon,
+	PinIcon,
 	PlayIcon,
 	SignalIcon,
 	SkullIcon,
@@ -16,7 +17,6 @@ import {
 	TrashIcon,
 	UpdatedIcon,
 	UserIcon,
-	XIcon,
 } from '@modrinth/assets'
 import type { MessageDescriptor } from '@modrinth/ui'
 import {
@@ -62,7 +62,7 @@ const formatDateTime = useFormatDateTime({
 })
 
 const router = useRouter()
-const { addNotification } = injectNotificationManager()
+const { addNotification, handleError } = injectNotificationManager()
 
 const emit = defineEmits<{
 	(e: 'play' | 'play-instance' | 'update' | 'stop' | 'refresh' | 'edit' | 'delete'): void
@@ -137,6 +137,24 @@ const serverIncompatible = computed(
 const locked = computed(() => props.world.type === 'singleplayer' && props.world.locked)
 const managed = computed(() => props.managed)
 const shortcutInstanceId = computed(() => props.shortcutInstanceId ?? props.instanceId)
+const homePinTarget = computed(() => props.shortcutInstanceId ?? props.instanceId)
+const pinnedToHome = computed(() => props.world.display_status === 'favorite')
+
+async function updateHomePin() {
+	if (!homePinTarget.value) return
+
+	try {
+		await set_world_display_status(
+			homePinTarget.value,
+			props.world.type,
+			getWorldIdentifier(props.world),
+			pinnedToHome.value ? 'normal' : 'favorite',
+		)
+		emit('update')
+	} catch (error) {
+		handleError(error)
+	}
+}
 
 async function createShortcut() {
 	if (!shortcutInstanceId.value) return
@@ -209,13 +227,11 @@ const messages = defineMessages({
 		id: 'instance.worlds.play_instance',
 		defaultMessage: 'Play instance',
 	},
+	pinToHome: { id: 'app.instances.pin-to-home', defaultMessage: 'Pin to Home' },
+	unpinFromHome: { id: 'app.instances.unpin-from-home', defaultMessage: 'Unpin from Home' },
 	worldInUse: {
 		id: 'instance.worlds.world_in_use',
 		defaultMessage: 'World is in use',
-	},
-	dontShowOnHome: {
-		id: 'instance.worlds.dont_show_on_home',
-		defaultMessage: `Don't show on Home`,
 	},
 	createShortcut: {
 		id: 'instance.worlds.create_shortcut',
@@ -496,18 +512,9 @@ const messages = defineMessages({
 								shown: !!instanceId,
 							},
 							{
-								id: 'dont-show-on-home',
-								shown: !!instanceId,
-								action: () => {
-									set_world_display_status(
-										instanceId,
-										world.type,
-										getWorldIdentifier(world),
-										'hidden',
-									).then(() => {
-										emit('update')
-									})
-								},
+								id: pinnedToHome ? 'unpin-home' : 'pin-home',
+								shown: !!homePinTarget,
+								action: updateHomePin,
 							},
 							{
 								id: 'create-shortcut',
@@ -562,9 +569,13 @@ const messages = defineMessages({
 							<ExternalIcon aria-hidden="true" />
 							{{ formatMessage(messages.createShortcut) }}
 						</template>
-						<template #dont-show-on-home>
-							<XIcon aria-hidden="true" />
-							{{ formatMessage(messages.dontShowOnHome) }}
+						<template #pin-home>
+							<PinIcon aria-hidden="true" />
+							{{ formatMessage(messages.pinToHome) }}
+						</template>
+						<template #unpin-home>
+							<PinIcon class="rotate-45" aria-hidden="true" />
+							{{ formatMessage(messages.unpinFromHome) }}
 						</template>
 						<template #delete>
 							<TrashIcon aria-hidden="true" />

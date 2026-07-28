@@ -75,7 +75,11 @@ export async function get_content_items(
 	instanceId: string,
 	cacheBehaviour?: CacheBehaviour,
 ): Promise<ContentItem[]> {
-	return await invoke('plugin:instance|instance_get_content_items', { instanceId, cacheBehaviour })
+	const items = await invoke<ContentItem[]>('plugin:instance|instance_get_content_items', {
+		instanceId,
+		cacheBehaviour,
+	})
+	return items
 }
 
 // Linked modpack info returned from backend
@@ -83,8 +87,20 @@ export interface LinkedModpackInfo {
 	project: Labrinth.Projects.v2.Project
 	version: Labrinth.Versions.v2.Version
 	owner: ContentOwner | null
-	has_update: boolean
-	update_version_id: string | null
+	update:
+		| {
+				provider: 'modrinth'
+				project_id: string
+				current_version_id: string
+				target_version_id: string
+		  }
+		| {
+				provider: 'curseforge'
+				project_id: number
+				current_file_id: number
+				target_file_id: number
+		  }
+		| null
 	update_version: Labrinth.Versions.v2.Version | null
 }
 
@@ -108,10 +124,11 @@ export async function get_linked_modpack_content(
 	instanceId: string,
 	cacheBehaviour?: CacheBehaviour,
 ): Promise<ContentItem[]> {
-	return await invoke('plugin:instance|instance_get_linked_modpack_content', {
+	const items = await invoke<ContentItem[]>('plugin:instance|instance_get_linked_modpack_content', {
 		instanceId,
 		cacheBehaviour,
 	})
+	return items
 }
 
 // Convert a list of dependencies into ContentItems with rich metadata
@@ -119,10 +136,11 @@ export async function get_dependencies_as_content_items(
 	dependencies: Labrinth.Versions.v3.Dependency[],
 	cacheBehaviour?: CacheBehaviour,
 ): Promise<ContentItem[]> {
-	return await invoke('plugin:instance|instance_get_dependencies_as_content_items', {
+	const items = await invoke<ContentItem[]>('plugin:instance|instance_get_dependencies_as_content_items', {
 		dependencies,
 		cacheBehaviour,
 	})
+	return items
 }
 
 export async function get_full_path(instanceId: string): Promise<string> {
@@ -146,6 +164,35 @@ export async function get_optimal_jre_key(instanceId: string): Promise<JavaVersi
 
 export async function list(): Promise<GameInstance[]> {
 	return await invoke('plugin:instance|instance_list')
+}
+
+export type DailyPlaytime = {
+	date: string
+	played_seconds: number
+	session_count: number
+	top_instance_name?: string | null
+}
+
+export async function set_pinned(instanceId: string, pinned: boolean): Promise<GameInstance> {
+	return await invoke('plugin:instance|instance_set_pinned', { instanceId, pinned })
+}
+
+export async function get_daily_playtime(
+	startDate: string,
+	endDate: string,
+): Promise<DailyPlaytime[]> {
+	return await invoke('plugin:instance|instance_get_daily_playtime', { startDate, endDate })
+}
+
+export type DailyPlaytimeEntry = {
+	instance_id: string
+	instance_name: string
+	played_seconds: number
+	session_count: number
+}
+
+export async function get_daily_playtime_details(date: string): Promise<DailyPlaytimeEntry[]> {
+	return await invoke('plugin:instance|instance_get_daily_playtime_details', { date })
 }
 
 export async function check_installed(instanceId: string, projectId: string): Promise<boolean> {

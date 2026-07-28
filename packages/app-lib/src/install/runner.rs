@@ -17,7 +17,8 @@ use crate::event::InstancePayloadType;
 use crate::event::emit::emit_instance;
 use crate::state::instances::adapters::sqlite::content_rows;
 use crate::state::{
-    ContentSourceKind, InstanceInstallStage, InstanceLink, ModLoader, State,
+    ContentProviderRef, ContentSourceKind, InstanceInstallStage, InstanceLink,
+    ModLoader, State,
 };
 use crate::util::fetch::DownloadReason;
 use std::collections::HashSet;
@@ -504,6 +505,7 @@ async fn run_job(job_id: Uuid) -> crate::Result<()> {
     )
     .await?;
     emit_install_job(&record.snapshot()).await?;
+    let live_reporter = InstallProgressReporter::new(job_id, job_state.clone());
 
     enum RunResult {
         Completed(crate::Result<Option<String>>),
@@ -516,9 +518,7 @@ async fn run_job(job_id: Uuid) -> crate::Result<()> {
         result = run_request(job_id, &mut job_state, &state) => RunResult::Completed(result),
     };
     state.install_job_cancellations.remove(&job_id);
-    if let Ok(record) = store::get_required(job_id, &state).await {
-        job_state = record.state;
-    }
+    job_state = live_reporter.current_state().await?;
 
     match result {
         RunResult::Completed(Ok(instance_id)) => {
@@ -982,7 +982,18 @@ async fn remove_existing_pack_content(
         )
         .await?
         .into_iter()
-        .filter_map(|file| (!file.enabled).then_some(file.project_id?))
+        .filter_map(|file| {
+            (!file.enabled).then(|| {
+                file.provider_refs
+                    .iter()
+                    .find_map(|provider| match provider {
+                        ContentProviderRef::Modrinth { project_id, .. } => {
+                            Some(project_id.to_string())
+                        }
+                        ContentProviderRef::CurseForge { .. } => None,
+                    })
+            })?
+        })
         .collect::<HashSet<_>>();
     let reporter = InstallProgressReporter::new(job_id, job_state.clone());
     let old_pack = generate_pack_from_version_id_with_reporter(
@@ -1079,10 +1090,16 @@ async fn restore_disabled_projects(
     )
     .await?
     {
-        if file.enabled
-            && let Some(project_id) = &file.project_id
-            && disabled_project_ids.contains(project_id)
-        {
+        let is_disabled_modrinth_project = file.provider_refs.iter().any(
+            |provider| {
+                matches!(
+                    provider,
+                    ContentProviderRef::Modrinth { project_id, .. }
+                        if disabled_project_ids.contains(&project_id.to_string())
+                )
+            },
+        );
+        if file.enabled && is_disabled_modrinth_project {
             crate::state::instances::commands::toggle_disable_project(
                 instance_id,
                 &file.relative_path,

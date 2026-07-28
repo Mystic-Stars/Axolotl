@@ -4,8 +4,8 @@
  * These wrap the Tauri `invoke()` calls so the frontend can classify
  * dropped files, scan launcher instances, and detect file locks.
  */
-import { invoke } from '@tauri-apps/api/core'
 import type { ClassificationResult } from '@modrinth/ui'
+import { invoke } from '@tauri-apps/api/core'
 
 /**
  * Information about a process that has a file handle open.

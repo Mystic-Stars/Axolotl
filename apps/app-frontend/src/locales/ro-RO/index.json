@@ -176,9 +176,6 @@
   "instance.edit-server.title": {
     "message": "Editează server"
   },
-  "instance.edit-world.hide-from-home": {
-    "message": "Ascunde din pagina principală"
-  },
   "instance.edit-world.name": {
     "message": "Nume"
   },
@@ -308,9 +305,6 @@
   "instance.settings.tabs.java.environment-variables": {
     "message": "Variabile de mediu"
   },
-  "instance.settings.tabs.java.hooks": {
-    "message": "Legături"
-  },
   "instance.settings.tabs.java.java-arguments": {
     "message": "Argumente Java"
   },
@@ -358,9 +352,6 @@
   },
   "instance.worlds.copy_address": {
     "message": "Copiază adresa"
-  },
-  "instance.worlds.dont_show_on_home": {
-    "message": "Nu afișa în pagina principală"
   },
   "instance.worlds.game_already_open": {
     "message": "Instanța este deja deschisă"

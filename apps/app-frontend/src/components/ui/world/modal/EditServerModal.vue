@@ -8,10 +8,9 @@ import {
 	NewModal,
 	useVIntl,
 } from '@modrinth/ui'
-import { computed, ref } from 'vue'
+import { ref } from 'vue'
 
 import SymlinkInstanceWarning from '@/components/ui/SymlinkInstanceWarning.vue'
-import HideFromHomeOption from '@/components/ui/world/modal/HideFromHomeOption.vue'
 import ServerModalBody from '@/components/ui/world/modal/ServerModalBody.vue'
 import type { GameInstance } from '@/helpers/types'
 import {
@@ -19,7 +18,6 @@ import {
 	edit_server_in_instance,
 	type ServerPackStatus,
 	type ServerWorld,
-	set_world_display_status,
 } from '@/helpers/worlds.ts'
 
 const { handleError } = injectNotificationManager()
@@ -40,10 +38,6 @@ const address = ref<string>('')
 const resourcePack = ref<ServerPackStatus>('enabled')
 const index = ref<number>(0)
 const displayStatus = ref<DisplayStatus>('normal')
-const hideFromHome = ref(false)
-
-const newDisplayStatus = computed(() => (hideFromHome.value ? 'hidden' : 'normal'))
-
 async function saveServer() {
 	const serverName = name.value ? name.value : address.value
 	const resourcePackStatus = resourcePack.value
@@ -55,22 +49,13 @@ async function saveServer() {
 		resourcePackStatus,
 	).catch(handleError)
 
-	if (newDisplayStatus.value !== displayStatus.value) {
-		await set_world_display_status(
-			props.instance.id,
-			'server',
-			address.value,
-			newDisplayStatus.value,
-		).catch(handleError)
-	}
-
 	emit('submit', {
 		name: serverName,
 		type: 'server',
 		index: index.value,
 		address: address.value,
 		pack_status: resourcePackStatus,
-		display_status: newDisplayStatus.value,
+		display_status: displayStatus.value,
 	})
 	hide()
 }
@@ -81,7 +66,6 @@ function show(server: ServerWorld) {
 	resourcePack.value = server.pack_status
 	index.value = server.index
 	displayStatus.value = server.display_status
-	hideFromHome.value = server.display_status === 'hidden'
 	modal.value?.show()
 }
 
@@ -107,7 +91,6 @@ const titleMessage = defineMessage({
 			v-model:address="address"
 			v-model:resource-pack="resourcePack"
 		/>
-		<HideFromHomeOption v-model="hideFromHome" class="mt-3" />
 		<template #actions>
 			<div class="flex gap-2 justify-end">
 				<ButtonStyled type="outlined">

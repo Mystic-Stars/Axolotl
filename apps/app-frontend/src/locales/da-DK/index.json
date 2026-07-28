@@ -74,12 +74,6 @@
   "app.appearance-settings.hide-nametag.title": {
     "message": "Gem nametag"
   },
-  "app.appearance-settings.jump-back-into-worlds.description": {
-    "message": "Inkluderer de sidste verdener i afsnittet \"Hop tilbage\" på startsiden."
-  },
-  "app.appearance-settings.jump-back-into-worlds.title": {
-    "message": "Hop tilbage ind i verdener"
-  },
   "app.appearance-settings.minimize-launcher.description": {
     "message": "Minimer launcheren når Minecraft starter."
   },
@@ -572,9 +566,6 @@
   "instance.edit-server.title": {
     "message": "Rediger server"
   },
-  "instance.edit-world.hide-from-home": {
-    "message": "Skjul fra forside"
-  },
   "instance.edit-world.name": {
     "message": "Navn"
   },
@@ -713,9 +704,6 @@
   "instance.settings.tabs.java.environment-variables": {
     "message": "Omgivelses variabler"
   },
-  "instance.settings.tabs.java.hooks": {
-    "message": "Hooks"
-  },
   "instance.settings.tabs.java.java-arguments": {
     "message": "Java argumenter"
   },
@@ -766,9 +754,6 @@
   },
   "instance.worlds.copy_address": {
     "message": "Kopier adresse"
-  },
-  "instance.worlds.dont_show_on_home": {
-    "message": "Vis ikke på forsiden"
   },
   "instance.worlds.game_already_open": {
     "message": "Instance allerede åben"

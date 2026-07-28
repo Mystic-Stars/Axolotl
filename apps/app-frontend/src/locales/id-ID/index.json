@@ -74,12 +74,6 @@
   "app.appearance-settings.hide-nametag.title": {
     "message": "Sembunyikan label nama"
   },
-  "app.appearance-settings.jump-back-into-worlds.description": {
-    "message": "Menyertakan dunia terkini dalam bagian \"Masuk kembali\" pada Beranda."
-  },
-  "app.appearance-settings.jump-back-into-worlds.title": {
-    "message": "Masuk kembali ke dunia"
-  },
   "app.appearance-settings.minimize-launcher.description": {
     "message": "Kecilkan pluncur ketika proses Minecraft berjalan."
   },
@@ -596,9 +590,6 @@
   "instance.edit-server.title": {
     "message": "Sunting server"
   },
-  "instance.edit-world.hide-from-home": {
-    "message": "Sembunyikan dari Beranda"
-  },
   "instance.edit-world.name": {
     "message": "Nama"
   },
@@ -761,9 +752,6 @@
   "instance.settings.tabs.java.custom-java-arguments": {
     "message": "Argumen Java tersuai"
   },
-  "instance.settings.tabs.java.custom-java-installation": {
-    "message": "Pemasangan Java tersuai"
-  },
   "instance.settings.tabs.java.custom-memory-allocation": {
     "message": "Alokasi memori tersuai"
   },
@@ -775,9 +763,6 @@
   },
   "instance.settings.tabs.java.environment-variables": {
     "message": "Variabel lingkungan"
-  },
-  "instance.settings.tabs.java.hooks": {
-    "message": "Kait"
   },
   "instance.settings.tabs.java.java-arguments": {
     "message": "Argumen Java"
@@ -829,9 +814,6 @@
   },
   "instance.worlds.copy_address": {
     "message": "Salin alamat"
-  },
-  "instance.worlds.dont_show_on_home": {
-    "message": "Jangan tampilkan di Beranda"
   },
   "instance.worlds.game_already_open": {
     "message": "Instans telah dibuka"

@@ -119,6 +119,15 @@ const manualDownloadsFilesCountMessage = defineMessage({
 	id: 'app.curseforge.manual-downloads.files-count',
 	defaultMessage: '{count, number} files',
 })
+const automaticDownloadsFailedTitleMessage = defineMessage({
+	id: 'app.curseforge.automatic-downloads-failed.notification-title',
+	defaultMessage: 'Some CurseForge downloads failed',
+})
+const automaticDownloadsFailedMessage = defineMessage({
+	id: 'app.curseforge.automatic-downloads-failed.notification-body',
+	defaultMessage:
+		'{failed, number} files failed after retrying ({list}). See Downloads for the recorded errors.',
+})
 const modpackInstalledTitleMessage = defineMessage({
 	id: 'app.curseforge.modpack-installed.title',
 	defaultMessage: 'CurseForge modpack installed',
@@ -428,8 +437,9 @@ export function createContentInstall(opts: {
 					}
 				: undefined,
 			project_type: project.project_type ?? 'mod',
-			has_update: false,
-			update_version_id: null,
+			provider_refs: [],
+			origin_provider: null,
+			update: null,
 			enabled: true,
 			installing: true,
 		}
@@ -843,9 +853,8 @@ export function createContentInstall(opts: {
 		const content = await get_content_items(instanceId).catch(() => [])
 		for (const item of content) {
 			if (
-				item.provider_refs?.some(
-					(reference) =>
-						reference.provider === 'curseforge' && reference.project_id === projectId.toString(),
+				item.provider_refs.some(
+					(reference) => reference.provider === 'curseforge' && reference.project_id === projectId,
 				)
 			) {
 				await remove_project(instanceId, item.file_path ?? item.file_name)
@@ -921,6 +930,32 @@ export function createContentInstall(opts: {
 		})
 	}
 
+	function showFailedCurseForgeDownloads(result: CurseForgeInstallResult) {
+		const failedDownloads = result.failedDownloads ?? []
+		if (failedDownloads.length === 0) return
+
+		const names = failedDownloads
+			.slice(0, 5)
+			.map((item) => item.fileName)
+			.filter(Boolean)
+		const extra = failedDownloads.length - names.length
+		const listText =
+			extra > 0
+				? formatMessage(manualDownloadsListAndMoreMessage, {
+						list: names.join(', '),
+						count: extra,
+					})
+				: names.join(', ')
+		opts.addNotification({
+			title: formatMessage(automaticDownloadsFailedTitleMessage),
+			text: formatMessage(automaticDownloadsFailedMessage, {
+				failed: failedDownloads.length,
+				list: listText,
+			}),
+			type: 'error',
+		})
+	}
+
 	async function installCurrentCurseForgeVersion(
 		instance: InstallTargetInstance,
 		project: Labrinth.Projects.v2.Project,
@@ -956,6 +991,7 @@ export function createContentInstall(opts: {
 		}
 
 		showManualCurseForgeDownloads(instance.id, result)
+		showFailedCurseForgeDownloads(result)
 		const installedProjectIds = [
 			...new Set(result.installed.map((installed) => `curseforge:${installed.projectId}`)),
 		]
@@ -970,7 +1006,7 @@ export function createContentInstall(opts: {
 		markInstanceContentChanged(instance.id)
 		if (project.project_type === 'modpack') {
 			const summary = summarizeCurseForgeInstall(result)
-			if (summary.manual === 0 && summary.installed > 0) {
+			if (summary.manual === 0 && summary.failed === 0 && summary.installed > 0) {
 				setCurseForgeManualDownloads(instance.id, [])
 				const next = new Map(pendingManualDownloadsByInstance.value)
 				next.delete(instance.id)
@@ -1115,12 +1151,7 @@ export function createContentInstall(opts: {
 		addInstallingItem(instance.id, project, version)
 		try {
 			if (currentProvider === 'curseforge') {
-				const result = await installCurrentCurseForgeVersion(
-					instance,
-					project,
-					version,
-					false,
-				)
+				const result = await installCurrentCurseForgeVersion(instance, project, version, false)
 				if (!result.primaryInstalled) {
 					incompatibilityWarningInstalling.value = false
 					removeInstallingItems(instance.id, [project.id])
@@ -1329,7 +1360,12 @@ export function createContentInstall(opts: {
 
 			if (isVersionCompatible(version, project, instance)) {
 				for (const [path, file] of Object.entries(instanceProjects)) {
-					if (file.metadata?.project_id === project.id) {
+					if (
+						file.provider_refs.some(
+							(reference) =>
+								reference.provider === 'modrinth' && String(reference.project_id) === project.id,
+						)
+					) {
 						await remove_project(instance.id, path)
 					}
 				}

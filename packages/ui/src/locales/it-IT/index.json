@@ -464,18 +464,6 @@
   "content.inline-backup.world-label": {
     "defaultMessage": "mondo"
   },
-  "content.modpack-card.content-hint-description": {
-    "defaultMessage": "I contenuti del tuo pacchetto ora si trovano qui!"
-  },
-  "content.modpack-card.content-hint-title": {
-    "defaultMessage": "Contenuti del pacchetto spostati"
-  },
-  "content.modpack-card.dismiss-hint": {
-    "defaultMessage": "Non mostrare più"
-  },
-  "content.page-layout.additional-content": {
-    "defaultMessage": "Contenuto aggiuntivo"
-  },
   "content.page-layout.browse-content": {
     "defaultMessage": "Esplora contenuti"
   },
@@ -485,14 +473,8 @@
   "content.page-layout.empty.hint": {
     "defaultMessage": "Inizia esplorando o caricando {contentType}"
   },
-  "content.page-layout.empty.modpack-hint": {
-    "defaultMessage": "Aggiungi del contenuto aggiuntivo a questo pacchetto"
-  },
   "content.page-layout.empty.no-content-installed": {
     "defaultMessage": "Nessun contenuto installato"
-  },
-  "content.page-layout.empty.no-extra-content-installed": {
-    "defaultMessage": "Nessun contenuto aggiuntivo installato"
   },
   "content.page-layout.failed-to-load": {
     "defaultMessage": "Errore nel caricamento dei contenuti"
@@ -757,51 +739,6 @@
   },
   "creation-flow.modal.final-config.world-type.superflat": {
     "defaultMessage": "Piatto"
-  },
-  "creation-flow.modal.import-instance.action.add": {
-    "defaultMessage": "Aggiungi"
-  },
-  "creation-flow.modal.import-instance.custom-launcher.name": {
-    "defaultMessage": "Personalizzato ({pathName})"
-  },
-  "creation-flow.modal.import-instance.detecting-launcher-instances": {
-    "defaultMessage": "Rilevando le istanze dei launcher..."
-  },
-  "creation-flow.modal.import-instance.launcher-instances.title": {
-    "defaultMessage": "Istanze dei launcher"
-  },
-  "creation-flow.modal.import-instance.launcher-path.add": {
-    "defaultMessage": "Aggiungi percorso del launcher"
-  },
-  "creation-flow.modal.import-instance.launcher-path.placeholder": {
-    "defaultMessage": "Percorso del launcher..."
-  },
-  "creation-flow.modal.import-instance.notification.no-instances-found.text": {
-    "defaultMessage": "Nessuna istanza importabile trovata nel percorso specificato."
-  },
-  "creation-flow.modal.import-instance.notification.no-instances-found.title": {
-    "defaultMessage": "Nessuna istanza trovata"
-  },
-  "creation-flow.modal.import-instance.search.placeholder": {
-    "defaultMessage": "Cerca istanze"
-  },
-  "creation-flow.modal.import-instance.selection.clear-all": {
-    "defaultMessage": "Deseleziona tutto"
-  },
-  "creation-flow.modal.modpack.action.browse": {
-    "defaultMessage": "Esplora pacchetti"
-  },
-  "creation-flow.modal.modpack.action.import": {
-    "defaultMessage": "Importa pacchetto"
-  },
-  "creation-flow.modal.modpack.known-modpack.prompt": {
-    "defaultMessage": "Sai già quale pacchetto di mod installare?"
-  },
-  "creation-flow.modal.modpack.search.no-results": {
-    "defaultMessage": "Nessun risultato trovato"
-  },
-  "creation-flow.modal.modpack.search.placeholder": {
-    "defaultMessage": "Cerca tra i pacchetti"
   },
   "creation-flow.modal.setup-type.instance.description": {
     "defaultMessage": "Un'istanza è una combinazione di loader, versione e mod per Minecraft."

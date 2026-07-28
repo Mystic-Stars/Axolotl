@@ -14,6 +14,12 @@ const INITIAL_MIGRATION_VERSION: i64 = 20240711194701;
 const COLLIDING_JAVA_DISCOVERY_MIGRATION_VERSION: i64 = 20260722120000;
 const JAVA_DISCOVERY_MIGRATION_VERSION: i64 = 20260722120001;
 const TEMPORARY_JAVA_DISCOVERY_MIGRATION_VERSION: i64 = 20260723121000;
+const COLLIDING_HOME_DASHBOARD_MIGRATION_VERSION: i64 = 20260725170000;
+const HOME_DASHBOARD_MIGRATION_VERSION: i64 = 20260727110000;
+const PROVIDER_QUALIFIED_CONTENT_MIGRATION_VERSION: i64 = 20260728100000;
+#[cfg(test)]
+const RECONCILE_PROVIDER_QUALIFIED_CONTENT_MIGRATION_VERSION: i64 =
+    20260728110000;
 
 // This migration was changed by the launcher rebrand after it had already
 // shipped. Keep the checksums of the original LF and CRLF variants so existing
@@ -30,6 +36,13 @@ const COLLIDING_JAVA_DISCOVERY_MIGRATION_CHECKSUMS: &[&str] = &[
 const TEMPORARY_JAVA_DISCOVERY_MIGRATION_CHECKSUMS: &[&str] = &[
     "35cbd4e0a4528bee302f06000e0971aad2f575488ebb5c04ec6849e15efc6f3f996395c11f9cc431c62ba4d9e3a41cc3",
     "7b99e048d7eb88cbfdd913cc3d799c6acabd58142204cde336da593fa3ca6d4f44336fd5d42a5822ab1e0b485352eb9b",
+];
+const COLLIDING_HOME_DASHBOARD_MIGRATION_CHECKSUMS: &[&str] = &[
+    "d75220a25e54880d29ba179c0e7ca04e975b8ac9cc35c1e3569300b15570a0cd7239b353a2fe5733105b76a56215fda2",
+    "f2806d4e16a055545dc8b90ced7896c85c1c26a5c8ec00fd44fe86fee6e4fe8c2413dfa20b16d1a8e227a0b55fa1e766",
+];
+const LEGACY_PROVIDER_QUALIFIED_CONTENT_MIGRATION_CHECKSUMS: &[&str] = &[
+    "58ca9f7fe905f3d51ce68e03422f0f60035f4d4278738d2432869528d8a5951b4c053090a7e605e32797206b5e744010",
 ];
 
 pub(crate) async fn connect(
@@ -61,6 +74,8 @@ async fn open_migrated_app_db(db_path: &Path) -> crate::Result<Pool<Sqlite>> {
         );
     }
 
+    reconcile_existing_home_dashboard_migration(&pool).await?;
+    reconcile_legacy_provider_qualified_content_migration(&pool).await?;
     reconcile_compatible_migration_checksums(&pool).await?;
     reconcile_existing_java_discovery_migration(&pool).await?;
     MIGRATOR.run(&pool).await?;
@@ -154,6 +169,177 @@ async fn update_migration_checksum(
         .bind(version)
         .execute(pool)
         .await?;
+    Ok(())
+}
+
+async fn reconcile_legacy_provider_qualified_content_migration(
+    pool: &Pool<Sqlite>,
+) -> crate::Result<()> {
+    let has_migrations_table: bool = sqlx::query_scalar(
+        "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = '_sqlx_migrations')",
+    )
+    .fetch_one(pool)
+    .await?;
+    if !has_migrations_table {
+        return Ok(());
+    }
+
+    let applied_checksum: Option<Vec<u8>> = sqlx::query_scalar(
+        "SELECT checksum FROM _sqlx_migrations WHERE version = ? AND success = TRUE",
+    )
+    .bind(PROVIDER_QUALIFIED_CONTENT_MIGRATION_VERSION)
+    .fetch_optional(pool)
+    .await?;
+    let Some(applied_checksum) = applied_checksum else {
+        return Ok(());
+    };
+    if !LEGACY_PROVIDER_QUALIFIED_CONTENT_MIGRATION_CHECKSUMS
+        .contains(&checksum_as_hex(&applied_checksum).as_str())
+    {
+        return Ok(());
+    }
+
+    let schema_is_legacy_provider_qualified: bool = sqlx::query_scalar(
+        "SELECT
+            EXISTS(SELECT 1 FROM pragma_table_info('instance_content_provider_refs') WHERE name = 'content_entry_id' AND pk = 1)
+            AND EXISTS(SELECT 1 FROM pragma_table_info('instance_content_provider_refs') WHERE name = 'provider' AND pk = 2)
+            AND EXISTS(SELECT 1 FROM pragma_table_info('instance_content_provider_refs') WHERE name = 'provider_project_id')
+            AND EXISTS(SELECT 1 FROM pragma_table_info('instance_content_provider_refs') WHERE name = 'provider_release_id')
+            AND EXISTS(SELECT 1 FROM pragma_table_info('instance_content_provider_refs') WHERE name = 'is_origin')
+            AND NOT EXISTS(SELECT 1 FROM pragma_table_info('instance_content_provider_refs') WHERE name = 'id')
+            AND NOT EXISTS(SELECT 1 FROM pragma_table_info('instance_content_entries') WHERE name IN ('project_id', 'version_id'))
+            AND EXISTS(SELECT 1 FROM pragma_table_info('instance_content_update_checks') WHERE name = 'provider')
+            AND EXISTS(SELECT 1 FROM pragma_table_info('instance_content_update_checks') WHERE name = 'provider_project_id')
+            AND EXISTS(SELECT 1 FROM pragma_table_info('instance_content_update_checks') WHERE name = 'provider_release_id')",
+    )
+    .fetch_one(pool)
+    .await?;
+    if !schema_is_legacy_provider_qualified {
+        return Ok(());
+    }
+
+    let migration = MIGRATOR
+        .iter()
+        .find(|migration| {
+            migration.version == PROVIDER_QUALIFIED_CONTENT_MIGRATION_VERSION
+        })
+        .expect("provider-qualified content migration should be embedded");
+    update_migration_checksum(
+        pool,
+        PROVIDER_QUALIFIED_CONTENT_MIGRATION_VERSION,
+        migration.checksum.as_ref(),
+    )
+    .await?;
+
+    tracing::warn!(
+        version = PROVIDER_QUALIFIED_CONTENT_MIGRATION_VERSION,
+        "Reconciled the validated legacy provider-qualified content schema"
+    );
+    Ok(())
+}
+
+async fn reconcile_existing_home_dashboard_migration(
+    pool: &Pool<Sqlite>,
+) -> crate::Result<()> {
+    let has_migrations_table: bool = sqlx::query_scalar(
+        "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = '_sqlx_migrations')",
+    )
+    .fetch_one(pool)
+    .await?;
+    if !has_migrations_table {
+        return Ok(());
+    }
+
+    let applied_checksum: Option<Vec<u8>> = sqlx::query_scalar(
+        "SELECT checksum FROM _sqlx_migrations WHERE version = ? AND success = TRUE",
+    )
+    .bind(COLLIDING_HOME_DASHBOARD_MIGRATION_VERSION)
+    .fetch_optional(pool)
+    .await?;
+    let checksum_is_known = applied_checksum.as_ref().is_some_and(|checksum| {
+        COLLIDING_HOME_DASHBOARD_MIGRATION_CHECKSUMS
+            .contains(&checksum_as_hex(checksum).as_str())
+    });
+    if !checksum_is_known {
+        return Ok(());
+    }
+
+    let pinned_at_exists: bool = sqlx::query_scalar(
+        "SELECT EXISTS(SELECT 1 FROM pragma_table_info('instances') WHERE name = 'pinned_at')",
+    )
+    .fetch_one(pool)
+    .await?;
+    let playtime_table_exists: bool = sqlx::query_scalar(
+        "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'instance_daily_playtime')",
+    )
+    .fetch_one(pool)
+    .await?;
+    let playtime_index_exists: bool = sqlx::query_scalar(
+        "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type = 'index' AND name = 'instance_daily_playtime_played_on')",
+    )
+    .fetch_one(pool)
+    .await?;
+    if !pinned_at_exists || !playtime_table_exists || !playtime_index_exists {
+        return Ok(());
+    }
+
+    let colliding_migration = MIGRATOR
+        .iter()
+        .find(|migration| {
+            migration.version == COLLIDING_HOME_DASHBOARD_MIGRATION_VERSION
+        })
+        .expect("transparent background blur migration should be embedded");
+    let home_dashboard_migration = MIGRATOR
+        .iter()
+        .find(|migration| migration.version == HOME_DASHBOARD_MIGRATION_VERSION)
+        .expect("home dashboard migration should be embedded");
+
+    let mut transaction = pool.begin().await?;
+    let blur_column_exists: bool = sqlx::query_scalar(
+        "SELECT EXISTS(SELECT 1 FROM pragma_table_info('settings') WHERE name = 'transparent_background_blur')",
+    )
+    .fetch_one(&mut *transaction)
+    .await?;
+    if !blur_column_exists {
+        sqlx::query(
+            "ALTER TABLE settings ADD COLUMN transparent_background_blur INTEGER NOT NULL DEFAULT FALSE",
+        )
+        .execute(&mut *transaction)
+        .await?;
+    }
+
+    sqlx::query(
+        "UPDATE _sqlx_migrations SET description = ?, checksum = ? WHERE version = ?",
+    )
+    .bind(colliding_migration.description.as_ref())
+    .bind(colliding_migration.checksum.as_ref())
+    .bind(COLLIDING_HOME_DASHBOARD_MIGRATION_VERSION)
+    .execute(&mut *transaction)
+    .await?;
+
+    let canonical_applied: bool = sqlx::query_scalar(
+        "SELECT EXISTS(SELECT 1 FROM _sqlx_migrations WHERE version = ?)",
+    )
+    .bind(HOME_DASHBOARD_MIGRATION_VERSION)
+    .fetch_one(&mut *transaction)
+    .await?;
+    if !canonical_applied {
+        sqlx::query(
+            "INSERT INTO _sqlx_migrations (version, description, success, checksum, execution_time) VALUES (?, ?, TRUE, ?, 0)",
+        )
+        .bind(home_dashboard_migration.version)
+        .bind(home_dashboard_migration.description.as_ref())
+        .bind(home_dashboard_migration.checksum.as_ref())
+        .execute(&mut *transaction)
+        .await?;
+    }
+    transaction.commit().await?;
+
+    tracing::warn!(
+        old_version = COLLIDING_HOME_DASHBOARD_MIGRATION_VERSION,
+        canonical_version = HOME_DASHBOARD_MIGRATION_VERSION,
+        "Reconciled colliding Home dashboard migration version"
+    );
     Ok(())
 }
 
@@ -391,6 +577,28 @@ mod tests {
             .expect("initial migration should be embedded")
     }
 
+    fn provider_qualified_content_migration() -> &'static Migration {
+        MIGRATOR
+            .iter()
+            .find(|migration| {
+                migration.version
+                    == PROVIDER_QUALIFIED_CONTENT_MIGRATION_VERSION
+            })
+            .expect("provider-qualified content migration should be embedded")
+    }
+
+    fn reconcile_provider_qualified_content_migration() -> &'static Migration {
+        MIGRATOR
+            .iter()
+            .find(|migration| {
+                migration.version
+                    == RECONCILE_PROVIDER_QUALIFIED_CONTENT_MIGRATION_VERSION
+            })
+            .expect(
+                "provider content reconciliation migration should be embedded",
+            )
+    }
+
     fn checksum(contents: &[u8]) -> Vec<u8> {
         Sha384::digest(contents).to_vec()
     }
@@ -465,6 +673,507 @@ mod tests {
                 migration.version
             );
         }
+    }
+
+    #[tokio::test]
+    async fn upgrades_legacy_content_schema_without_provider_leakage() {
+        let pool = SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect("sqlite::memory:")
+            .await
+            .unwrap();
+        sqlx::query("PRAGMA foreign_keys = ON")
+            .execute(&pool)
+            .await
+            .unwrap();
+        sqlx::raw_sql(
+            r#"
+            CREATE TABLE instances (id TEXT PRIMARY KEY);
+            CREATE TABLE instance_content_sets (id TEXT PRIMARY KEY);
+            CREATE TABLE instance_files (
+                id TEXT PRIMARY KEY,
+                relative_path TEXT NOT NULL
+            );
+            CREATE TABLE cache (
+                data_type TEXT NOT NULL,
+                data TEXT NOT NULL
+            );
+            CREATE TABLE instance_content_entries (
+                id TEXT PRIMARY KEY,
+                instance_id TEXT NOT NULL,
+                content_set_id TEXT NOT NULL,
+                file_id TEXT NULL,
+                project_type TEXT NOT NULL,
+                project_id TEXT NULL,
+                version_id TEXT NULL,
+                source_kind TEXT NOT NULL,
+                server_requirement TEXT NOT NULL,
+                client_requirement TEXT NOT NULL,
+                enabled INTEGER NOT NULL DEFAULT 1,
+                added_at INTEGER NOT NULL,
+                modified_at INTEGER NOT NULL,
+                FOREIGN KEY (instance_id) REFERENCES instances(id),
+                FOREIGN KEY (content_set_id)
+                    REFERENCES instance_content_sets(id),
+                FOREIGN KEY (file_id) REFERENCES instance_files(id)
+            );
+            CREATE INDEX instance_content_entries_instance_id
+                ON instance_content_entries(instance_id);
+            CREATE INDEX instance_content_entries_content_set_id
+                ON instance_content_entries(content_set_id);
+            CREATE INDEX instance_content_entries_file_id
+                ON instance_content_entries(file_id);
+            CREATE INDEX instance_content_entries_project_id
+                ON instance_content_entries(project_id);
+            CREATE INDEX instance_content_entries_version_id
+                ON instance_content_entries(version_id);
+            CREATE INDEX instance_content_entries_source_kind
+                ON instance_content_entries(source_kind);
+            CREATE TABLE instance_content_update_checks (
+                content_entry_id TEXT PRIMARY KEY,
+                update_channel TEXT NOT NULL,
+                update_version_id TEXT NULL,
+                checked_at INTEGER NOT NULL,
+                FOREIGN KEY (content_entry_id)
+                    REFERENCES instance_content_entries(id)
+            );
+            CREATE INDEX instance_content_update_checks_update_version_id
+                ON instance_content_update_checks(update_version_id);
+            CREATE TABLE instance_content_provider_refs (
+                content_entry_id TEXT NOT NULL,
+                provider TEXT NOT NULL,
+                project_id TEXT NOT NULL,
+                version_id TEXT NULL,
+                primary_ref INTEGER NOT NULL DEFAULT 0,
+                PRIMARY KEY (content_entry_id, provider),
+                FOREIGN KEY (content_entry_id)
+                    REFERENCES instance_content_entries(id)
+            );
+            CREATE INDEX instance_content_provider_refs_project
+                ON instance_content_provider_refs(provider, project_id);
+            CREATE INDEX instance_content_provider_refs_version
+                ON instance_content_provider_refs(provider, version_id);
+            CREATE UNIQUE INDEX instance_content_provider_refs_primary
+                ON instance_content_provider_refs(content_entry_id)
+                WHERE primary_ref = 1;
+
+            INSERT INTO instances (id) VALUES ('instance');
+            INSERT INTO instance_content_sets (id) VALUES ('set');
+            INSERT INTO instance_files (id, relative_path) VALUES
+                ('cf-file', 'mods/cf.jar'),
+                ('cf-proven-file', 'mods/cf-proven.jar'),
+                ('mr-file', 'mods/mr.jar'),
+                ('broken-file', 'mods/broken.jar');
+            INSERT INTO instance_content_entries (
+                id, instance_id, content_set_id, file_id, project_type,
+                project_id, version_id, source_kind, server_requirement,
+                client_requirement, enabled, added_at, modified_at
+            ) VALUES
+                ('cf', 'instance', 'set', 'cf-file', 'mod', '42', '7',
+                    'curseforge', 'required', 'required', 1, 1, 1),
+                ('cf-proven', 'instance', 'set', 'cf-proven-file', 'mod',
+                    '99', '11', 'curseforge', 'required', 'required', 1, 1, 1),
+                ('mr', 'instance', 'set', 'mr-file', 'mod', 'mr-project',
+                    'mr-version', 'local', 'required', 'required', 1, 1, 1),
+                ('broken', 'instance', 'set', 'broken-file', 'mod',
+                    'not-a-number', 'also-invalid', 'curseforge', 'required',
+                    'required', 1, 1, 1);
+            INSERT INTO instance_content_provider_refs (
+                content_entry_id, provider, project_id, version_id, primary_ref
+            ) VALUES
+                ('cf', 'modrinth', '42', '7', 1),
+                ('cf-proven', 'modrinth', '99', '11', 1),
+                ('mr', 'modrinth', 'mr-project', 'mr-version', 1),
+                ('broken', 'modrinth', 'not-a-number', 'also-invalid', 1);
+            INSERT INTO instance_content_update_checks (
+                content_entry_id, update_channel, update_version_id, checked_at
+            ) VALUES
+                ('cf', 'release', '8', 1),
+                ('mr', 'release', 'mr-update', 1);
+            INSERT INTO cache (data_type, data) VALUES (
+                'file_hash',
+                '{"path":"instance/mods/cf-proven.jar","project_id":"verified-mr-project","version_id":"verified-mr-version"}'
+            );
+            "#,
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        sqlx::raw_sql(provider_qualified_content_migration().sql.as_ref())
+            .execute(&pool)
+            .await
+            .unwrap();
+        sqlx::raw_sql(
+            reconcile_provider_qualified_content_migration()
+                .sql
+                .as_ref(),
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        let refs: Vec<(String, String, String, Option<String>, i64)> =
+            sqlx::query_as(
+                "SELECT content_entry_id, provider, provider_project_id,
+                        provider_release_id, is_origin
+                 FROM instance_content_provider_refs
+                 ORDER BY content_entry_id, provider, provider_project_id",
+            )
+            .fetch_all(&pool)
+            .await
+            .unwrap();
+        assert_eq!(
+            refs,
+            vec![
+                (
+                    "cf".to_string(),
+                    "curseforge".to_string(),
+                    "42".to_string(),
+                    Some("7".to_string()),
+                    1,
+                ),
+                (
+                    "cf-proven".to_string(),
+                    "curseforge".to_string(),
+                    "99".to_string(),
+                    Some("11".to_string()),
+                    1,
+                ),
+                (
+                    "cf-proven".to_string(),
+                    "modrinth".to_string(),
+                    "verified-mr-project".to_string(),
+                    Some("verified-mr-version".to_string()),
+                    0,
+                ),
+                (
+                    "mr".to_string(),
+                    "modrinth".to_string(),
+                    "mr-project".to_string(),
+                    Some("mr-version".to_string()),
+                    1,
+                ),
+            ]
+        );
+
+        let update_checks: Vec<(String, String, String, String)> =
+            sqlx::query_as(
+                "SELECT content_entry_id, provider, provider_project_id,
+                        provider_release_id
+                 FROM instance_content_update_checks",
+            )
+            .fetch_all(&pool)
+            .await
+            .unwrap();
+        assert_eq!(
+            update_checks,
+            vec![(
+                "mr".to_string(),
+                "modrinth".to_string(),
+                "mr-project".to_string(),
+                "mr-update".to_string(),
+            )]
+        );
+
+        let legacy_tables: i64 = sqlx::query_scalar(
+            "SELECT COUNT(*) FROM sqlite_master
+             WHERE type = 'table' AND name LIKE '%_legacy'",
+        )
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+        assert_eq!(legacy_tables, 0);
+
+        let foreign_key_errors: Vec<(String, i64, String, i64)> =
+            sqlx::query_as("PRAGMA foreign_key_check")
+                .fetch_all(&pool)
+                .await
+                .unwrap();
+        assert!(foreign_key_errors.is_empty());
+    }
+
+    #[tokio::test]
+    async fn reconciles_applied_single_provider_schema_before_forward_migration()
+     {
+        let pool = SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect("sqlite::memory:")
+            .await
+            .unwrap();
+        sqlx::raw_sql(
+            "
+            CREATE TABLE _sqlx_migrations (
+                version BIGINT PRIMARY KEY,
+                description TEXT NOT NULL,
+                installed_on TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                success BOOLEAN NOT NULL,
+                checksum BLOB NOT NULL,
+                execution_time BIGINT NOT NULL
+            );
+            CREATE TABLE instance_content_entries (
+                id TEXT PRIMARY KEY,
+                instance_id TEXT NOT NULL,
+                file_id TEXT NULL,
+                source_kind TEXT NOT NULL
+            );
+            CREATE TABLE instance_files (
+                id TEXT PRIMARY KEY,
+                relative_path TEXT NOT NULL
+            );
+            CREATE TABLE cache (
+                data_type TEXT NOT NULL,
+                data TEXT NOT NULL
+            );
+            CREATE TABLE instance_content_provider_refs (
+                content_entry_id TEXT NOT NULL,
+                provider TEXT NOT NULL,
+                provider_project_id TEXT NOT NULL,
+                provider_release_id TEXT NULL,
+                is_origin INTEGER NOT NULL DEFAULT 0,
+                PRIMARY KEY (content_entry_id, provider)
+            );
+            CREATE INDEX instance_content_provider_refs_project
+                ON instance_content_provider_refs(
+                    provider,
+                    provider_project_id
+                );
+            CREATE INDEX instance_content_provider_refs_release
+                ON instance_content_provider_refs(
+                    provider,
+                    provider_release_id
+                );
+            CREATE UNIQUE INDEX instance_content_provider_refs_origin
+                ON instance_content_provider_refs(content_entry_id)
+                WHERE is_origin = 1;
+            CREATE TABLE instance_content_update_checks (
+                content_entry_id TEXT PRIMARY KEY,
+                provider TEXT NULL,
+                provider_project_id TEXT NULL,
+                provider_release_id TEXT NULL
+            );
+            INSERT INTO instance_content_entries (
+                id, instance_id, file_id, source_kind
+            ) VALUES ('cf', 'instance', 'file', 'curseforge');
+            INSERT INTO instance_files (id, relative_path)
+            VALUES ('file', 'mods/cf.jar');
+            INSERT INTO instance_content_provider_refs (
+                content_entry_id,
+                provider,
+                provider_project_id,
+                provider_release_id,
+                is_origin
+            ) VALUES ('cf', 'modrinth', '42', '7', 1);
+            ",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+        sqlx::query(
+            "INSERT INTO _sqlx_migrations (
+                version, description, success, checksum, execution_time
+             ) VALUES (?, 'provider qualified content', TRUE, ?, 0)",
+        )
+        .bind(PROVIDER_QUALIFIED_CONTENT_MIGRATION_VERSION)
+        .bind(decode_hex(
+            LEGACY_PROVIDER_QUALIFIED_CONTENT_MIGRATION_CHECKSUMS[0],
+        ))
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        reconcile_legacy_provider_qualified_content_migration(&pool)
+            .await
+            .unwrap();
+
+        let applied_checksum: Vec<u8> = sqlx::query_scalar(
+            "SELECT checksum FROM _sqlx_migrations WHERE version = ?",
+        )
+        .bind(PROVIDER_QUALIFIED_CONTENT_MIGRATION_VERSION)
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+        assert_eq!(
+            applied_checksum,
+            provider_qualified_content_migration().checksum.as_ref()
+        );
+
+        sqlx::raw_sql(
+            reconcile_provider_qualified_content_migration()
+                .sql
+                .as_ref(),
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        let refs: Vec<(String, String, String, Option<String>, i64)> =
+            sqlx::query_as(
+                "SELECT content_entry_id, provider, provider_project_id,
+                        provider_release_id, is_origin
+                 FROM instance_content_provider_refs",
+            )
+            .fetch_all(&pool)
+            .await
+            .unwrap();
+        assert_eq!(
+            refs,
+            vec![(
+                "cf".to_string(),
+                "curseforge".to_string(),
+                "42".to_string(),
+                Some("7".to_string()),
+                1,
+            )]
+        );
+        let has_id: bool = sqlx::query_scalar(
+            "SELECT EXISTS(
+                SELECT 1
+                FROM pragma_table_info('instance_content_provider_refs')
+                WHERE name = 'id' AND pk = 1
+            )",
+        )
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+        assert!(has_id);
+    }
+
+    #[tokio::test]
+    async fn reconciles_colliding_home_dashboard_migration() {
+        let pool = SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect("sqlite::memory:")
+            .await
+            .unwrap();
+        sqlx::query(
+            "
+            CREATE TABLE _sqlx_migrations (
+                version BIGINT PRIMARY KEY,
+                description TEXT NOT NULL,
+                installed_on TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                success BOOLEAN NOT NULL,
+                checksum BLOB NOT NULL,
+                execution_time BIGINT NOT NULL
+            );
+            CREATE TABLE settings (id INTEGER PRIMARY KEY);
+            CREATE TABLE instances (id TEXT PRIMARY KEY, pinned_at INTEGER NULL);
+            CREATE TABLE instance_daily_playtime (
+                played_on TEXT NOT NULL,
+                instance_id TEXT NOT NULL,
+                instance_name TEXT NOT NULL,
+                played_seconds INTEGER NOT NULL DEFAULT 0,
+                session_count INTEGER NOT NULL DEFAULT 0,
+                PRIMARY KEY (played_on, instance_id)
+            );
+            CREATE INDEX instance_daily_playtime_played_on
+                ON instance_daily_playtime(played_on);
+            ",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+        sqlx::query(
+            "INSERT INTO _sqlx_migrations (version, description, success, checksum, execution_time) VALUES (?, 'home-dashboard', TRUE, ?, 0)",
+        )
+        .bind(COLLIDING_HOME_DASHBOARD_MIGRATION_VERSION)
+        .bind(decode_hex(
+            COLLIDING_HOME_DASHBOARD_MIGRATION_CHECKSUMS[0],
+        ))
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        reconcile_existing_home_dashboard_migration(&pool)
+            .await
+            .unwrap();
+        reconcile_existing_home_dashboard_migration(&pool)
+            .await
+            .unwrap();
+
+        let blur_column_exists: bool = sqlx::query_scalar(
+            "SELECT EXISTS(SELECT 1 FROM pragma_table_info('settings') WHERE name = 'transparent_background_blur')",
+        )
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+        assert!(blur_column_exists);
+
+        for version in [
+            COLLIDING_HOME_DASHBOARD_MIGRATION_VERSION,
+            HOME_DASHBOARD_MIGRATION_VERSION,
+        ] {
+            let migration = MIGRATOR
+                .iter()
+                .find(|migration| migration.version == version)
+                .unwrap();
+            let (description, checksum): (String, Vec<u8>) = sqlx::query_as(
+                "SELECT description, checksum FROM _sqlx_migrations WHERE version = ?",
+            )
+            .bind(version)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+            assert_eq!(description, migration.description.as_ref());
+            assert_eq!(checksum, migration.checksum.as_ref());
+        }
+    }
+
+    #[tokio::test]
+    async fn does_not_claim_incomplete_home_dashboard_schema() {
+        let pool = SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect("sqlite::memory:")
+            .await
+            .unwrap();
+        sqlx::query(
+            "
+            CREATE TABLE _sqlx_migrations (
+                version BIGINT PRIMARY KEY,
+                description TEXT NOT NULL,
+                installed_on TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                success BOOLEAN NOT NULL,
+                checksum BLOB NOT NULL,
+                execution_time BIGINT NOT NULL
+            );
+            CREATE TABLE settings (id INTEGER PRIMARY KEY);
+            CREATE TABLE instances (id TEXT PRIMARY KEY, pinned_at INTEGER NULL);
+            ",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+        let legacy_checksum =
+            decode_hex(COLLIDING_HOME_DASHBOARD_MIGRATION_CHECKSUMS[0]);
+        sqlx::query(
+            "INSERT INTO _sqlx_migrations (version, description, success, checksum, execution_time) VALUES (?, 'home-dashboard', TRUE, ?, 0)",
+        )
+        .bind(COLLIDING_HOME_DASHBOARD_MIGRATION_VERSION)
+        .bind(&legacy_checksum)
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        reconcile_existing_home_dashboard_migration(&pool)
+            .await
+            .unwrap();
+
+        let canonical_applied: bool = sqlx::query_scalar(
+            "SELECT EXISTS(SELECT 1 FROM _sqlx_migrations WHERE version = ?)",
+        )
+        .bind(HOME_DASHBOARD_MIGRATION_VERSION)
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+        assert!(!canonical_applied);
+        let applied_checksum: Vec<u8> = sqlx::query_scalar(
+            "SELECT checksum FROM _sqlx_migrations WHERE version = ?",
+        )
+        .bind(COLLIDING_HOME_DASHBOARD_MIGRATION_VERSION)
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+        assert_eq!(applied_checksum, legacy_checksum);
     }
 
     #[tokio::test]

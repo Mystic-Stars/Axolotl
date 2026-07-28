@@ -89,12 +89,6 @@
   "app.appearance-settings.hide-nametag.title": {
     "message": "Ocultar nametag"
   },
-  "app.appearance-settings.jump-back-into-worlds.description": {
-    "message": "Inclui mundos recentes na seção \"Retomar\" na página inicial."
-  },
-  "app.appearance-settings.jump-back-into-worlds.title": {
-    "message": "Retomar aos mundos"
-  },
   "app.appearance-settings.minimize-launcher.description": {
     "message": "Minimize o launcher assim que algum processo do Minecraft iniciar."
   },
@@ -704,9 +698,6 @@
   "instance.edit-server.title": {
     "message": "Editar servidor"
   },
-  "instance.edit-world.hide-from-home": {
-    "message": "Ocultar da página inicial"
-  },
   "instance.edit-world.name": {
     "message": "Nome"
   },
@@ -869,9 +860,6 @@
   "instance.settings.tabs.java.custom-java-arguments": {
     "message": "Argumentos Java personalizados"
   },
-  "instance.settings.tabs.java.custom-java-installation": {
-    "message": "Instalação personalizada do Java"
-  },
   "instance.settings.tabs.java.custom-memory-allocation": {
     "message": "Alocação de memória personalizada"
   },
@@ -883,9 +871,6 @@
   },
   "instance.settings.tabs.java.environment-variables": {
     "message": "Variáveis de ambiente"
-  },
-  "instance.settings.tabs.java.hooks": {
-    "message": "Ações"
   },
   "instance.settings.tabs.java.java-arguments": {
     "message": "Argumentos do Java"
@@ -940,9 +925,6 @@
   },
   "instance.worlds.create_shortcut": {
     "message": "Criar atalho"
-  },
-  "instance.worlds.dont_show_on_home": {
-    "message": "Não exibir na página inicial"
   },
   "instance.worlds.game_already_open": {
     "message": "A instância já está aberta"

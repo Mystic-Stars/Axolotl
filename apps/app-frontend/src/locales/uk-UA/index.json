@@ -74,12 +74,6 @@
   "app.appearance-settings.hide-nametag.title": {
     "message": "Приховати ім'я"
   },
-  "app.appearance-settings.jump-back-into-worlds.description": {
-    "message": "Уключає нещодавні світи в розділі «Повернутися» на головній сторінці."
-  },
-  "app.appearance-settings.jump-back-into-worlds.title": {
-    "message": "Повернутися у світи"
-  },
   "app.appearance-settings.minimize-launcher.description": {
     "message": "Згортає запускач під час запуску процесу Minecraft."
   },
@@ -596,9 +590,6 @@
   "instance.edit-server.title": {
     "message": "Редагувати сервер"
   },
-  "instance.edit-world.hide-from-home": {
-    "message": "Не показувати на головній сторінці"
-  },
   "instance.edit-world.name": {
     "message": "Назва"
   },
@@ -761,9 +752,6 @@
   "instance.settings.tabs.java.custom-java-arguments": {
     "message": "Власні аргументи Java"
   },
-  "instance.settings.tabs.java.custom-java-installation": {
-    "message": "Власна інсталяція Java"
-  },
   "instance.settings.tabs.java.custom-memory-allocation": {
     "message": "Власний розподіл пам'яті"
   },
@@ -775,9 +763,6 @@
   },
   "instance.settings.tabs.java.environment-variables": {
     "message": "Змінні середовища"
-  },
-  "instance.settings.tabs.java.hooks": {
-    "message": "Гуки"
   },
   "instance.settings.tabs.java.java-arguments": {
     "message": "Аргументи Java"
@@ -829,9 +814,6 @@
   },
   "instance.worlds.copy_address": {
     "message": "Скопіювати адресу"
-  },
-  "instance.worlds.dont_show_on_home": {
-    "message": "Не показувати на головній"
   },
   "instance.worlds.game_already_open": {
     "message": "Профіль вже запущений"

@@ -43,6 +43,7 @@ import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
 import ContextMenu from '@/components/ui/ContextMenu.vue'
 import { useAppServerBrowse } from '@/composables/browse/use-app-server-browse'
 import { useNetworkStatus } from '@/composables/useNetworkStatus'
+import { useTranslationToggle } from '@/composables/useTranslationToggle'
 import { mergeProviderResults } from '@/helpers/browse-merge'
 import {
 	get_project,
@@ -59,8 +60,6 @@ import {
 	resolveChineseContentSearch,
 	translateSearchHitTitles,
 } from '@/helpers/content-search'
-import { translateSearchHits } from '@/helpers/translation'
-import { useTranslationToggle } from '@/composables/useTranslationToggle'
 import {
 	type CurseForgeCategory,
 	getCurseForgeCapability,
@@ -88,6 +87,7 @@ import { isBuiltInInstanceIcon } from '@/helpers/instance-icon-frame'
 import { get_loader_versions as getLoaderManifest } from '@/helpers/metadata'
 import { get as getSettings, set as setSettings } from '@/helpers/settings.ts'
 import { get_categories, get_game_versions, get_loaders } from '@/helpers/tags'
+import { translateSearchHits } from '@/helpers/translation'
 import { get_instance_worlds } from '@/helpers/worlds'
 import i18n from '@/i18n.config'
 import { injectContentInstall } from '@/providers/content-install'
@@ -910,6 +910,12 @@ async function chooseInstanceInstallVersion(
 	return { versionId: selectedVersion.id }
 }
 
+type BrowseContentProvider = 'modrinth' | 'curseforge'
+
+function isBrowseContentProvider(provider: unknown): provider is BrowseContentProvider {
+	return provider === 'modrinth' || provider === 'curseforge'
+}
+
 function getCardActions(
 	result: Labrinth.Search.v2.ResultSearchProject | Labrinth.Search.v3.ResultSearchProject,
 	currentProjectType: string,
@@ -923,9 +929,10 @@ function getCardActions(
 		Labrinth.Search.v3.ResultSearchProject) & {
 		installed?: boolean
 		installing?: boolean
-		provider?: 'modrinth' | 'curseforge'
+		provider?: unknown
 		provider_project_id?: string
 	}
+	if (!isBrowseContentProvider(projectResult.provider)) return []
 	const isInstalled =
 		projectResult.installed ||
 		allInstalledIds.value.has(projectResult.project_id || '') ||
@@ -935,7 +942,7 @@ function getCardActions(
 
 	if (
 		isServerContext.value &&
-		projectResult.provider !== 'curseforge' &&
+		projectResult.provider === 'modrinth' &&
 		['modpack', 'mod', 'plugin', 'datapack'].includes(currentProjectType)
 	) {
 		const isQueued = queuedServerInstallProjectIds.value.has(projectResult.project_id)
@@ -1043,7 +1050,7 @@ function getCardActions(
 				setProjectInstalling(projectResult.project_id, true)
 				try {
 					const selectedInstall =
-						instance.value && projectResult.provider !== 'curseforge'
+						instance.value && projectResult.provider === 'modrinth'
 							? await chooseInstanceInstallVersion(projectResult, currentProjectType)
 							: { versionId: null as string | null }
 					if (selectedInstall === null) {
@@ -1052,7 +1059,12 @@ function getCardActions(
 					}
 					const selectedPreferences = getCurrentSelectedInstallPreferences(currentProjectType)
 					const installContent =
-						projectResult.provider === 'curseforge' ? installCurseForge : installVersion
+						projectResult.provider === 'curseforge'
+							? installCurseForge
+							: projectResult.provider === 'modrinth'
+								? installVersion
+								: null
+					if (!installContent) return
 					await installContent(
 						projectResult.provider_project_id ?? projectResult.project_id,
 						selectedInstall.versionId,
@@ -1238,7 +1250,7 @@ function mapCurseForgeHit(hit: UnifiedSearchHit) {
 }
 
 type ChineseSearchHit = Labrinth.Search.v2.ResultSearchProject & {
-	provider?: 'modrinth' | 'curseforge'
+	provider: 'modrinth' | 'curseforge'
 	provider_project_id?: string
 	installed?: boolean
 	chinese_search_score?: number
@@ -1290,7 +1302,8 @@ function applyChineseTranslation(
 	hit: ChineseSearchHit,
 	resolution: ChineseSearchResolution | null,
 ): ChineseSearchHit {
-	const provider = hit.provider === 'curseforge' ? 'curseforge' : 'modrinth'
+	if (hit.provider !== 'modrinth' && hit.provider !== 'curseforge') return hit
+	const provider = hit.provider
 	const translation = findChineseTranslation(resolution, provider, hit.slug)
 	if (!translation) return hit
 	return {
@@ -1355,7 +1368,7 @@ function mapDirectModrinthProject(project: DirectModrinthProject): ChineseSearch
 function dedupeProviderHits(hits: ChineseSearchHit[]) {
 	const seen = new Set<string>()
 	return hits.filter((hit) => {
-		const key = `${hit.provider ?? 'modrinth'}:${hit.project_id}`
+		const key = `${hit.provider}:${hit.project_id}`
 		if (seen.has(key)) return false
 		seen.add(key)
 		return true
@@ -1554,7 +1567,7 @@ async function search(requestParams: string) {
 			provider: 'modrinth' as const,
 		} as unknown as Labrinth.Search.v2.ResultSearchProject & {
 			installed?: boolean
-			provider?: 'modrinth' | 'curseforge'
+			provider: 'modrinth' | 'curseforge'
 		}
 
 		if (instance.value || isServerContext.value) {
@@ -1873,14 +1886,16 @@ provideBrowseManager({
 	advancedFiltersCollapsed,
 	getProjectLink: (
 		result: Labrinth.Search.v2.ResultSearchProject & {
-			provider?: 'modrinth' | 'curseforge'
+			provider: 'modrinth' | 'curseforge'
 			provider_project_id?: string
 		},
 	) => ({
 		path:
 			result.provider === 'curseforge'
 				? `/project/curseforge/${result.provider_project_id}`
-				: `/project/${result.project_id ?? result.slug}`,
+				: result.provider === 'modrinth'
+					? `/project/${result.project_id ?? result.slug}`
+					: route.path,
 		query: getProjectBrowseQuery(),
 	}),
 	getServerProjectLink: (result: Labrinth.Search.v3.ResultSearchProject) => ({
@@ -1925,7 +1940,8 @@ provideBrowseManager({
 	serverPings,
 	getServerModpackContent,
 	onContextMenu: (event, result) => {
-		if ('provider' in result && result.provider === 'curseforge') return
+		if ('provider' in result && result.provider !== 'modrinth') return
+		if (!('provider' in result) && projectType.value !== 'server') return
 		handleRightClick(event, result)
 	},
 	offline,

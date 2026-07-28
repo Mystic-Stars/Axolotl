@@ -89,12 +89,6 @@
   "app.appearance-settings.hide-nametag.title": {
     "message": "Piilota nimikyltti"
   },
-  "app.appearance-settings.jump-back-into-worlds.description": {
-    "message": "Sisällyttää viimeaikaiset maailmat \"Hyppää takaisin sisään\" osiossa Koti sivulla."
-  },
-  "app.appearance-settings.jump-back-into-worlds.title": {
-    "message": "Hyppää takaisin sisään maailmoihin"
-  },
   "app.appearance-settings.minimize-launcher.description": {
     "message": "Pienennä laukaisin kun Minecraft prosessi käynnistyy."
   },
@@ -704,9 +698,6 @@
   "instance.edit-server.title": {
     "message": "Muokkaa palvelinta"
   },
-  "instance.edit-world.hide-from-home": {
-    "message": "Piilota kotisivulta"
-  },
   "instance.edit-world.name": {
     "message": "Nimi"
   },
@@ -869,9 +860,6 @@
   "instance.settings.tabs.java.custom-java-arguments": {
     "message": "Mukautetut Java argumentit"
   },
-  "instance.settings.tabs.java.custom-java-installation": {
-    "message": "Mukautettu Java asennus"
-  },
   "instance.settings.tabs.java.custom-memory-allocation": {
     "message": "Mukautettu muistin allokointi"
   },
@@ -883,9 +871,6 @@
   },
   "instance.settings.tabs.java.environment-variables": {
     "message": "Ympäristö muuttujat"
-  },
-  "instance.settings.tabs.java.hooks": {
-    "message": "Koukut"
   },
   "instance.settings.tabs.java.java-arguments": {
     "message": "Java argumentit"
@@ -940,9 +925,6 @@
   },
   "instance.worlds.create_shortcut": {
     "message": "Luo pikakuvake"
-  },
-  "instance.worlds.dont_show_on_home": {
-    "message": "Älä näytä koti näkymässä"
   },
   "instance.worlds.game_already_open": {
     "message": "Instanssi on jo avattu"

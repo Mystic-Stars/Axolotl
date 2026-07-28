@@ -452,18 +452,6 @@
   "content.inline-backup.world-label": {
     "defaultMessage": "dunia"
   },
-  "content.modpack-card.content-hint-description": {
-    "defaultMessage": "Konten paket mod Anda kini dapat ditemukan di sini!"
-  },
-  "content.modpack-card.content-hint-title": {
-    "defaultMessage": "Konten paket mod telah berpindah"
-  },
-  "content.modpack-card.dismiss-hint": {
-    "defaultMessage": "Jangan tampilkan lagi"
-  },
-  "content.page-layout.additional-content": {
-    "defaultMessage": "Konten tambahan"
-  },
   "content.page-layout.browse-content": {
     "defaultMessage": "Jelajahi konten"
   },
@@ -473,14 +461,8 @@
   "content.page-layout.empty.hint": {
     "defaultMessage": "Telusuri atau unggah {contentType} untuk memulai"
   },
-  "content.page-layout.empty.modpack-hint": {
-    "defaultMessage": "Tambahkan konten tambahan di atas paket mod ini"
-  },
   "content.page-layout.empty.no-content-installed": {
     "defaultMessage": "Belum ada konten yang terpasang"
-  },
-  "content.page-layout.empty.no-extra-content-installed": {
-    "defaultMessage": "Belum ada konten tambahan yang terpasang"
   },
   "content.page-layout.failed-to-load": {
     "defaultMessage": "Gagal memuat konten"
@@ -721,36 +703,6 @@
   },
   "creation-flow.modal.final-config.world-type.superflat": {
     "defaultMessage": "Superrata"
-  },
-  "creation-flow.modal.import-instance.action.add": {
-    "defaultMessage": "Tambah"
-  },
-  "creation-flow.modal.import-instance.custom-launcher.name": {
-    "defaultMessage": "Tersuai ({pathName})"
-  },
-  "creation-flow.modal.import-instance.detecting-launcher-instances": {
-    "defaultMessage": "Mendeteksi instans peluncur..."
-  },
-  "creation-flow.modal.import-instance.launcher-instances.title": {
-    "defaultMessage": "Instans peluncur"
-  },
-  "creation-flow.modal.import-instance.launcher-path.add": {
-    "defaultMessage": "Tambah jalur peluncur"
-  },
-  "creation-flow.modal.import-instance.launcher-path.placeholder": {
-    "defaultMessage": "Jalur ke peluncur..."
-  },
-  "creation-flow.modal.import-instance.notification.no-instances-found.title": {
-    "defaultMessage": "Instans tidak ditemukan"
-  },
-  "creation-flow.modal.import-instance.search.placeholder": {
-    "defaultMessage": "Cari nama instans"
-  },
-  "creation-flow.modal.import-instance.selection.clear-all": {
-    "defaultMessage": "Kosongkan semua"
-  },
-  "creation-flow.modal.modpack.search.no-results": {
-    "defaultMessage": "Hasil pencarian tidak ditemukan"
   },
   "creation-flow.modal.setup-type.option.vanilla-minecraft.description": {
     "defaultMessage": "Minecraft klasik tanpa mod atau pasang-masuk."
@@ -2997,4 +2949,3 @@
     "defaultMessage": "Anda memiliki perubahan yang belum tersimpan."
   }
 }
-

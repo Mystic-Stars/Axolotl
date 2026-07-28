@@ -68,6 +68,30 @@ export default new createRouter({
 			},
 		},
 		{
+			path: '/lab',
+			name: 'Lab',
+			component: Pages.Lab,
+			meta: {
+				breadcrumb: [{ name: 'Lab' }],
+			},
+		},
+		{
+			path: '/lab/gradient-text',
+			name: 'Gradient text generator',
+			component: Pages.LabGradientText,
+			meta: {
+				breadcrumb: [{ name: 'Lab', link: '/lab' }, { name: 'Gradient text generator' }],
+			},
+		},
+		{
+			path: '/lab/seed-map',
+			name: 'Seed map',
+			component: Pages.LabSeedMap,
+			meta: {
+				breadcrumb: [{ name: 'Lab', link: '/lab' }, { name: 'Seed map' }],
+			},
+		},
+		{
 			path: '/library',
 			name: 'Library',
 			component: Library.Index,

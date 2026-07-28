@@ -89,12 +89,6 @@
   "app.appearance-settings.hide-nametag.title": {
     "message": "İsim etiketini gizle"
   },
-  "app.appearance-settings.jump-back-into-worlds.description": {
-    "message": "Ana sayfadaki 'Hızlıca Geri Dön' bölümünde son oynanan dünyaları gösterir."
-  },
-  "app.appearance-settings.jump-back-into-worlds.title": {
-    "message": "Dünyalara hızlıca geri dön"
-  },
   "app.appearance-settings.minimize-launcher.description": {
     "message": "Minecraft başlatıldığında launcher'i simge durumuna at."
   },
@@ -704,9 +698,6 @@
   "instance.edit-server.title": {
     "message": "Sunucuyu düzenle"
   },
-  "instance.edit-world.hide-from-home": {
-    "message": "Ana Sayfadan gizle"
-  },
   "instance.edit-world.name": {
     "message": "Dünya Adı"
   },
@@ -869,9 +860,6 @@
   "instance.settings.tabs.java.custom-java-arguments": {
     "message": "Özel Java argümanları"
   },
-  "instance.settings.tabs.java.custom-java-installation": {
-    "message": "Özel Java kurulumu"
-  },
   "instance.settings.tabs.java.custom-memory-allocation": {
     "message": "Özel bellek tahsisi"
   },
@@ -883,9 +871,6 @@
   },
   "instance.settings.tabs.java.environment-variables": {
     "message": "Ortam değişkenleri"
-  },
-  "instance.settings.tabs.java.hooks": {
-    "message": "Bağlar"
   },
   "instance.settings.tabs.java.java-arguments": {
     "message": "Java argümanları"
@@ -940,9 +925,6 @@
   },
   "instance.worlds.create_shortcut": {
     "message": "Kısayol yap"
-  },
-  "instance.worlds.dont_show_on_home": {
-    "message": "Ana sayfada gösterme"
   },
   "instance.worlds.game_already_open": {
     "message": "Bu kurulum zaten açık"

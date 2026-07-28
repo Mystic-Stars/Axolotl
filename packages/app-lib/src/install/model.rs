@@ -122,6 +122,15 @@ mod tests {
             attempt: 2,
             max_attempts: 3,
         });
+        job.record_event(InstallJobEventKind::DownloadRequestStarted {
+            path: "mods/a.jar".to_string(),
+            name: "a.jar".to_string(),
+            url: "https://mod.mcimirror.top/data/a.jar".to_string(),
+            source: "mcim".to_string(),
+            bytes_total: Some(100),
+            attempt: 1,
+            max_attempts: 4,
+        });
         job.record_event(InstallJobEventKind::ContentFileCompleted {
             path: "mods/a.jar".to_string(),
             bytes: 100,
@@ -142,10 +151,16 @@ mod tests {
                     .to_string(),
             ),
         });
+        job.record_event(InstallJobEventKind::ContentFileFailed {
+            path: "mods/failed.jar".to_string(),
+            reason: "network request failed".to_string(),
+            project_id: Some("789".to_string()),
+            version_id: Some("987".to_string()),
+        });
         job.set_progress(
             InstallPhaseId::DownloadingContent,
             Some(InstallProgress {
-                current: 2,
+                current: 3,
                 total: 3,
                 secondary: Some(InstallProgressSecondary {
                     current: 220,
@@ -156,21 +171,77 @@ mod tests {
         );
 
         let summary = job.download_summary();
-        assert_eq!(summary.files_completed, 2);
+        assert_eq!(summary.files_completed, 3);
         assert_eq!(summary.files_total, Some(3));
         assert_eq!(summary.bytes_downloaded, 220);
         assert_eq!(summary.bytes_total, Some(300));
         let items = job.download_items();
-        assert_eq!(items.len(), 2);
+        assert_eq!(items.len(), 3);
         assert_eq!(items[0].status, DownloadItemStatus::Completed);
-        assert_eq!(items[0].attempt, Some(2));
-        assert_eq!(items[0].max_attempts, Some(3));
+        assert_eq!(items[0].attempt, Some(1));
+        assert_eq!(items[0].max_attempts, Some(4));
+        assert_eq!(
+            items[0].request_url.as_deref(),
+            Some("https://mod.mcimirror.top/data/a.jar")
+        );
+        assert_eq!(items[0].source.as_deref(), Some("mcim"));
         assert_eq!(items[1].status, DownloadItemStatus::Skipped);
         assert_eq!(items[1].attempt, Some(3));
         assert_eq!(items[1].max_attempts, Some(3));
         assert_eq!(items[1].project_id.as_deref(), Some("123"));
         assert_eq!(items[1].version_id.as_deref(), Some("456"));
         assert!(items[1].manual_url.is_some());
+        assert_eq!(items[2].status, DownloadItemStatus::Failed);
+        assert_eq!(items[2].project_id.as_deref(), Some("789"));
+        assert_eq!(items[2].version_id.as_deref(), Some("987"));
+        assert!(items[2].manual_url.is_none());
+    }
+
+    #[test]
+    fn request_events_create_items_for_java_and_minecraft_downloads() {
+        let mut job = job_state();
+        job.record_event(InstallJobEventKind::DownloadRequestStarted {
+            path: "java/runtime-manifest.json".to_string(),
+            name: "runtime-manifest.json".to_string(),
+            url: "https://piston-meta.mojang.com/v1/runtime.json".to_string(),
+            source: "official".to_string(),
+            bytes_total: Some(1024),
+            attempt: 1,
+            max_attempts: 2,
+        });
+        job.record_event(InstallJobEventKind::DownloadRequestFinished {
+            path: "java/runtime-manifest.json".to_string(),
+            bytes: 1024,
+        });
+
+        let items = job.download_items();
+        assert_eq!(items.len(), 1);
+        assert_eq!(items[0].name, "runtime-manifest.json");
+        assert_eq!(items[0].status, DownloadItemStatus::Completed);
+        assert_eq!(items[0].bytes_downloaded, 1024);
+        assert_eq!(items[0].bytes_total, Some(1024));
+        assert_eq!(items[0].source.as_deref(), Some("official"));
+    }
+
+    #[test]
+    fn canceling_a_job_clears_active_download_requests() {
+        let mut job = job_state();
+        job.record_event(InstallJobEventKind::DownloadRequestStarted {
+            path: "mods/a.jar".to_string(),
+            name: "a.jar".to_string(),
+            url: "https://cdn.modrinth.com/data/a.jar".to_string(),
+            source: "official".to_string(),
+            bytes_total: Some(1024),
+            attempt: 1,
+            max_attempts: 2,
+        });
+        job.record_event(InstallJobEventKind::JobCanceled {
+            phase: InstallPhaseId::DownloadingContent,
+        });
+
+        let items = job.download_items();
+        assert_eq!(items.len(), 1);
+        assert_eq!(items[0].status, DownloadItemStatus::Canceled);
     }
 
     #[test]
@@ -307,6 +378,22 @@ pub enum InstallJobEventKind {
         attempt: u32,
         max_attempts: u32,
     },
+    DownloadRequestStarted {
+        path: String,
+        name: String,
+        url: String,
+        source: String,
+        bytes_total: Option<u64>,
+        attempt: u32,
+        max_attempts: u32,
+    },
+    DownloadRequestFinished {
+        path: String,
+        bytes: u64,
+    },
+    DownloadRequestFailed {
+        path: String,
+    },
     ContentFileSkipped {
         path: String,
         reason: String,
@@ -316,6 +403,14 @@ pub enum InstallJobEventKind {
         version_id: Option<String>,
         #[serde(default)]
         manual_url: Option<String>,
+    },
+    ContentFileFailed {
+        path: String,
+        reason: String,
+        #[serde(default)]
+        project_id: Option<String>,
+        #[serde(default)]
+        version_id: Option<String>,
     },
     ContentFileCompleted {
         path: String,
@@ -513,6 +608,8 @@ pub struct DownloadItemSnapshot {
     pub max_attempts: Option<u32>,
     pub error: Option<String>,
     pub manual_url: Option<String>,
+    pub request_url: Option<String>,
+    pub source: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
@@ -905,6 +1002,8 @@ impl InstallJobState {
                         item.attempt = Some(*attempt);
                         item.max_attempts = Some(*max_attempts);
                         item.error = None;
+                        item.request_url = None;
+                        item.source = None;
                     } else {
                         items.push(DownloadItemSnapshot {
                             id: path.clone(),
@@ -918,7 +1017,65 @@ impl InstallJobState {
                             max_attempts: Some(*max_attempts),
                             error: None,
                             manual_url: None,
+                            request_url: None,
+                            source: None,
                         });
+                    }
+                }
+                InstallJobEventKind::DownloadRequestStarted {
+                    path,
+                    name,
+                    url,
+                    source,
+                    bytes_total,
+                    attempt,
+                    max_attempts,
+                } => {
+                    if let Some(item) =
+                        items.iter_mut().find(|item| item.id == *path)
+                    {
+                        item.status = DownloadItemStatus::Downloading;
+                        item.bytes_total = item.bytes_total.or(*bytes_total);
+                        item.attempt = Some(*attempt);
+                        item.max_attempts = Some(*max_attempts);
+                        item.error = None;
+                        item.request_url = Some(url.clone());
+                        item.source = Some(source.clone());
+                    } else {
+                        items.push(DownloadItemSnapshot {
+                            id: path.clone(),
+                            name: name.clone(),
+                            project_id: None,
+                            version_id: None,
+                            status: DownloadItemStatus::Downloading,
+                            bytes_downloaded: 0,
+                            bytes_total: *bytes_total,
+                            attempt: Some(*attempt),
+                            max_attempts: Some(*max_attempts),
+                            error: None,
+                            manual_url: None,
+                            request_url: Some(url.clone()),
+                            source: Some(source.clone()),
+                        });
+                    }
+                }
+                InstallJobEventKind::DownloadRequestFinished {
+                    path,
+                    bytes,
+                } => {
+                    if let Some(item) =
+                        items.iter_mut().find(|item| item.id == *path)
+                    {
+                        item.status = DownloadItemStatus::Completed;
+                        item.bytes_downloaded = *bytes;
+                        item.bytes_total = item.bytes_total.or(Some(*bytes));
+                    }
+                }
+                InstallJobEventKind::DownloadRequestFailed { path } => {
+                    if let Some(item) =
+                        items.iter_mut().find(|item| item.id == *path)
+                    {
+                        item.status = DownloadItemStatus::Failed;
                     }
                 }
                 InstallJobEventKind::ContentFileCompleted { path, bytes } => {
@@ -942,6 +1099,8 @@ impl InstallJobState {
                             max_attempts: None,
                             error: None,
                             manual_url: None,
+                            request_url: None,
+                            source: None,
                         });
                     }
                 }
@@ -974,7 +1133,55 @@ impl InstallJobState {
                             max_attempts: None,
                             error: Some(reason.clone()),
                             manual_url: manual_url.clone(),
+                            request_url: None,
+                            source: None,
                         });
+                    }
+                }
+                InstallJobEventKind::ContentFileFailed {
+                    path,
+                    reason,
+                    project_id,
+                    version_id,
+                } => {
+                    if let Some(item) =
+                        items.iter_mut().find(|item| item.id == *path)
+                    {
+                        item.status = DownloadItemStatus::Failed;
+                        item.bytes_downloaded = 0;
+                        item.project_id = project_id.clone();
+                        item.version_id = version_id.clone();
+                        item.error = Some(reason.clone());
+                        item.manual_url = None;
+                    } else {
+                        items.push(DownloadItemSnapshot {
+                            id: path.clone(),
+                            name: path.clone(),
+                            project_id: project_id.clone(),
+                            version_id: version_id.clone(),
+                            status: DownloadItemStatus::Failed,
+                            bytes_downloaded: 0,
+                            bytes_total: None,
+                            attempt: None,
+                            max_attempts: None,
+                            error: Some(reason.clone()),
+                            manual_url: None,
+                            request_url: None,
+                            source: None,
+                        });
+                    }
+                }
+                InstallJobEventKind::JobCanceled { .. } => {
+                    for item in &mut items {
+                        if matches!(
+                            item.status,
+                            DownloadItemStatus::Queued
+                                | DownloadItemStatus::Downloading
+                                | DownloadItemStatus::Verifying
+                                | DownloadItemStatus::Writing
+                        ) {
+                            item.status = DownloadItemStatus::Canceled;
+                        }
                     }
                 }
                 _ => {}
@@ -999,7 +1206,8 @@ impl InstallJobState {
                     summary.bytes_downloaded =
                         summary.bytes_downloaded.saturating_add(*bytes);
                 }
-                InstallJobEventKind::ContentFileSkipped { .. } => {
+                InstallJobEventKind::ContentFileSkipped { .. }
+                | InstallJobEventKind::ContentFileFailed { .. } => {
                     summary.files_completed += 1;
                 }
                 InstallJobEventKind::DownloadMetrics {

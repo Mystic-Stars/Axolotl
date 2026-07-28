@@ -74,12 +74,6 @@
   "app.appearance-settings.hide-nametag.title": {
     "message": "ซ่อนป้ายชื่อ"
   },
-  "app.appearance-settings.jump-back-into-worlds.description": {
-    "message": "แสดงโลกที่เล่นล่าสุดในส่วน \"เล่นต่อ\" บนหน้าหลัก"
-  },
-  "app.appearance-settings.jump-back-into-worlds.title": {
-    "message": "เล่นต่อ"
-  },
   "app.appearance-settings.minimize-launcher.description": {
     "message": "ย่อลันเชอร์เมื่อกระบวนการการรัน Minecraft เริ่มต้นแล้ว"
   },
@@ -590,9 +584,6 @@
   "instance.edit-server.title": {
     "message": "แก้ไขเซิร์ฟเวอร์"
   },
-  "instance.edit-world.hide-from-home": {
-    "message": "ซ่อนจากหน้าแรก"
-  },
   "instance.edit-world.name": {
     "message": "ชื่อ"
   },
@@ -728,9 +719,6 @@
   "instance.settings.tabs.java.environment-variables": {
     "message": "Environment Variables"
   },
-  "instance.settings.tabs.java.hooks": {
-    "message": "Hook"
-  },
   "instance.settings.tabs.java.java-arguments": {
     "message": "อาร์กิวเมนต์ Java"
   },
@@ -778,9 +766,6 @@
   },
   "instance.worlds.copy_address": {
     "message": "คัดลอกที่อยู่"
-  },
-  "instance.worlds.dont_show_on_home": {
-    "message": "ไม่ต้องแสดงในหน้าแรก"
   },
   "instance.worlds.game_already_open": {
     "message": "โปรแกรมถูกเปิดอยู่แล้ว"

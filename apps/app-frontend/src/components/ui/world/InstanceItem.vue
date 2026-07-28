@@ -11,6 +11,7 @@ import {
 	Avatar,
 	ButtonStyled,
 	commonMessages,
+	defineMessages,
 	injectNotificationManager,
 	OverflowMenu,
 	SmartClickable,
@@ -38,6 +39,19 @@ const { handleError } = injectNotificationManager()
 const { formatMessage } = useVIntl()
 const handleMinecraftLaunchError = useMinecraftLaunchError()
 const formatRelativeTime = useRelativeTime()
+
+const messages = defineMessages({
+	notPlayedYet: { id: 'app.instance-item.not-played-yet', defaultMessage: 'Not played yet' },
+	loadingModpack: {
+		id: 'app.instance-item.loading-modpack',
+		defaultMessage: 'Loading modpack...',
+	},
+	viewInstance: { id: 'app.instance-item.view-instance', defaultMessage: 'View instance' },
+	alreadyOpen: {
+		id: 'app.instance-item.already-open',
+		defaultMessage: 'Instance is already open',
+	},
+})
 const formatDateTime = useFormatDateTime({
 	timeStyle: 'short',
 	dateStyle: 'long',
@@ -162,7 +176,7 @@ onUnmounted(() => {
 								})
 							}}
 						</template>
-						<template v-else> Not played yet </template>
+						<template v-else> {{ formatMessage(messages.notPlayedYet) }} </template>
 					</div>
 					•
 					<span v-if="modpack" class="flex items-center gap-1 truncate text-secondary">
@@ -177,7 +191,7 @@ onUnmounted(() => {
 					</span>
 					<span v-else-if="loadingModpack" class="flex items-center gap-1 truncate text-secondary">
 						<SpinnerIcon class="animate-spin shrink-0" />
-						<span class="truncate">Loading modpack...</span>
+						<span class="truncate">{{ formatMessage(messages.loadingModpack) }}</span>
 					</span>
 					<span v-else class="flex items-center gap-1 truncate text-secondary">
 						{{ loader }}
@@ -194,7 +208,7 @@ onUnmounted(() => {
 				</ButtonStyled>
 				<ButtonStyled v-else>
 					<button
-						v-tooltip="playing ? 'Instance is already open' : null"
+						v-tooltip="playing ? formatMessage(messages.alreadyOpen) : null"
 						:disabled="playing || loading"
 						@click="play"
 					>
@@ -220,7 +234,7 @@ onUnmounted(() => {
 						<MoreVerticalIcon aria-hidden="true" />
 						<template #open-instance>
 							<EyeIcon aria-hidden="true" />
-							View instance
+							{{ formatMessage(messages.viewInstance) }}
 						</template>
 						<template #open-folder>
 							<FolderOpenIcon aria-hidden="true" />

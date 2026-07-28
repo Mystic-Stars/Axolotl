@@ -7,7 +7,7 @@ import { invoke } from '@tauri-apps/api/core'
 
 import { setModrinthSourceMode } from '@/config'
 import type { Hooks, MemorySettings, WindowSize } from '@/helpers/types'
-import type { AccentColorSetting, ColorTheme, FeatureFlag } from '@/store/theme.ts'
+import type { AccentColorSetting, ColorTheme, FeatureFlag, HomeLayout } from '@/store/theme.ts'
 
 // Settings object
 /*
@@ -75,6 +75,9 @@ export type AppSettings = {
 	transparent_background_opacity: number
 	transparent_background_blur: boolean
 	sidebar_instance_count: number
+	auto_hide_downloads_button: boolean
+	home_layout: HomeLayout
+	minimal_home_instance_id: string | null
 
 	telemetry: boolean
 	discord_rpc: boolean

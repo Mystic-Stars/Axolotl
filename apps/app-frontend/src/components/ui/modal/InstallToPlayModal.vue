@@ -176,10 +176,13 @@ async function openViewContents() {
 					: null
 
 				return {
+					id: dep.file_name ?? dep.project_id ?? 'unknown',
 					file_name: dep.file_name ?? depProject?.title ?? 'Unknown',
 					project_type: depProject?.project_type ?? 'mod',
-					has_update: false,
-					update_version_id: null,
+					update: null,
+					origin_provider: null,
+					provider_refs: [],
+					enabled: true,
 					project: {
 						id: depProject?.id ?? dep.project_id ?? dep.file_name ?? 'unknown',
 						slug: depProject?.slug ?? dep.project_id ?? 'unknown',

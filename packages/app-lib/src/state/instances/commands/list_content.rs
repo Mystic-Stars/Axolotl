@@ -5,13 +5,14 @@ use crate::State;
 use crate::pack::install_from::{PackFileHash, PackFormat};
 use crate::state::instances::adapters::sqlite;
 use crate::state::instances::{
-    ContentEntry, ContentSet, ContentSourceKind, Instance,
-    InstanceInstallCandidate, InstanceInstallTarget, InstanceLink,
+    ContentSet, ContentSourceKind, Instance, InstanceInstallCandidate,
+    InstanceInstallTarget, InstanceLink,
 };
 use crate::state::{
-    CacheBehaviour, CachedEntry, CachedFile, ContentFile, ContentItem,
-    ContentItemOwner, ContentItemProject, ContentItemVersion, ContentProvider,
-    ContentProviderRef, Dependency, LinkedModpackInfo, ModLoader, Organization,
+    CacheBehaviour, CachedEntry, ContentFile, ContentItem, ContentItemOwner,
+    ContentItemProject, ContentItemUpdate, ContentItemVersion, ContentProvider,
+    ContentProviderRef, Dependency, LinkedModpackInfo, ModLoader,
+    ModrinthFileMatch, ModrinthProjectId, ModrinthVersionId, Organization,
     OwnerType, Project, ProjectType, ReleaseChannel, TeamMember, Version,
 };
 use crate::util::fetch::{
@@ -98,11 +99,12 @@ pub(crate) async fn get_installed_project_ids_for_instance(
     let mut project_ids = projects
         .into_iter()
         .filter_map(|(_, file)| {
-            file.metadata.map(|metadata| metadata.project_id)
+            file.modrinth
+                .map(|metadata| metadata.project_id.to_string())
         })
         .collect::<HashSet<_>>();
     let provider_rows = sqlx::query(
-        "SELECT DISTINCT ref.provider, ref.project_id
+        "SELECT DISTINCT ref.provider, ref.provider_project_id
          FROM instance_content_entries entry
          INNER JOIN instance_files file ON file.id = entry.file_id
          INNER JOIN instance_content_provider_refs ref
@@ -114,7 +116,7 @@ pub(crate) async fn get_installed_project_ids_for_instance(
     .await?;
     for row in provider_rows {
         let provider = row.try_get::<String, _>("provider")?;
-        let project_id = row.try_get::<String, _>("project_id")?;
+        let project_id = row.try_get::<String, _>("provider_project_id")?;
         if provider == "curseforge" {
             project_ids.insert(format!("curseforge:{project_id}"));
         } else {
@@ -156,18 +158,18 @@ pub(crate) async fn get_instance_install_candidates(
 					INNER JOIN instance_files file
 						ON file.id = entry.file_id
 					WHERE entry.content_set_id = cs.id
-						AND (
-							entry.project_id = ?
-							OR (
-								? LIKE 'curseforge:%'
-								AND EXISTS (
-									SELECT 1
-									FROM instance_content_provider_refs ref
-									WHERE ref.content_entry_id = entry.id
-										AND ref.provider = 'curseforge'
-										AND ref.project_id = substr(?, 12)
-								)
-							)
+						AND EXISTS (
+							SELECT 1
+							FROM instance_content_provider_refs ref
+							WHERE ref.content_entry_id = entry.id
+								AND ref.provider = CASE
+									WHEN ? LIKE 'curseforge:%' THEN 'curseforge'
+									ELSE 'modrinth'
+								END
+								AND ref.provider_project_id = CASE
+									WHEN ? LIKE 'curseforge:%' THEN substr(?, 12)
+									ELSE ?
+									END
 						)
 						AND file.missing = 0
 				)
@@ -186,6 +188,7 @@ pub(crate) async fn get_instance_install_candidates(
 		ORDER BY i.name ASC
 		"#,
     )
+    .bind(project_id)
     .bind(project_id)
     .bind(project_id)
     .bind(project_id)
@@ -253,10 +256,10 @@ pub(crate) async fn list_content(
     let modpack_ids = if imported_modpack_scope || curseforge_modpack_scope {
         None
     } else {
-        match linked_modpack_ids(&link) {
+        match linked_modrinth_modpack_ids(&link) {
             Some((_, version_id)) => {
                 get_cached_modpack_identifiers(
-                    &version_id,
+                    version_id,
                     &state.pool,
                     &state.api_semaphore,
                 )
@@ -356,11 +359,11 @@ pub(crate) async fn list_linked_modpack_content(
         .await;
     }
 
-    let Some((_, version_id)) = linked_modpack_ids(&link) else {
+    let Some((_, version_id)) = linked_modrinth_modpack_ids(&link) else {
         return Ok(Vec::new());
     };
     let ids = match get_modpack_identifiers(
-        &version_id,
+        version_id,
         &resolved.content_set,
         &state.pool,
         &state.api_semaphore,
@@ -408,34 +411,38 @@ pub(crate) async fn get_linked_modpack_info(
         &state.pool,
     )
     .await?;
-    let Some((project_id, version_id)) = linked_modpack_ids(&link) else {
-        return Ok(None);
-    };
-
-    if is_curseforge_modpack_scope(&link) {
+    if let Some((project_id, version_id)) = linked_curseforge_modpack_ids(&link)
+    {
         return get_curseforge_linked_modpack_info(
-            &project_id,
-            &version_id,
+            project_id,
+            version_id,
             resolved.instance.update_channel,
         )
         .await;
     }
 
+    let Some((project_id, version_id)) = linked_modrinth_modpack_ids(&link)
+    else {
+        return Ok(None);
+    };
+
+    let project_id_ref = ModrinthProjectId::new(project_id.to_string())?;
+    let version_id_ref = ModrinthVersionId::new(version_id.to_string())?;
     let (project, version, all_versions) = tokio::try_join!(
         CachedEntry::get_project(
-            &project_id,
+            &project_id_ref,
             cache_behaviour,
             &state.pool,
             &state.api_semaphore,
         ),
         CachedEntry::get_version(
-            &version_id,
+            &version_id_ref,
             cache_behaviour,
             &state.pool,
             &state.api_semaphore,
         ),
         CachedEntry::get_project_versions(
-            &project_id,
+            &project_id_ref,
             cache_behaviour,
             &state.pool,
             &state.api_semaphore,
@@ -447,15 +454,17 @@ pub(crate) async fn get_linked_modpack_info(
         ))
     })?;
     let (project, all_versions) = if version.project_id != project_id {
+        let modpack_project_id_ref =
+            ModrinthProjectId::new(version.project_id.clone())?;
         let (modpack_project, modpack_versions) = tokio::try_join!(
             CachedEntry::get_project(
-                &version.project_id,
+                &modpack_project_id_ref,
                 cache_behaviour,
                 &state.pool,
                 &state.api_semaphore,
             ),
             CachedEntry::get_project_versions(
-                &version.project_id,
+                &modpack_project_id_ref,
                 cache_behaviour,
                 &state.pool,
                 &state.api_semaphore,
@@ -503,19 +512,28 @@ pub(crate) async fn get_linked_modpack_info(
                 })
         })
     };
-    let (has_update, update_version_id, update_version) = check_modpack_update(
+    let (_, update_version_id, update_version) = check_modpack_update(
         &version_id,
         &version,
         all_versions,
         resolved.instance.update_channel,
     );
+    let modpack_project_id = ModrinthProjectId::new(project.id.clone())?;
+    let current_version_id = ModrinthVersionId::new(version.id.clone())?;
+    let update = update_version_id
+        .map(ModrinthVersionId::new)
+        .transpose()?
+        .map(|target_version_id| ContentItemUpdate::Modrinth {
+            project_id: modpack_project_id.clone(),
+            current_version_id: current_version_id.clone(),
+            target_version_id,
+        });
 
     Ok(Some(LinkedModpackInfo {
         project,
         version,
         owner,
-        has_update,
-        update_version_id,
+        update,
         update_version,
     }))
 }
@@ -567,7 +585,7 @@ async fn get_curseforge_linked_modpack_info(
         avatar_url: None,
         owner_type: OwnerType::User,
     });
-    let (has_update, update_version_id, update_version) = check_modpack_update(
+    let (_, update_version_id, update_version) = check_modpack_update(
         &version.id,
         &version,
         Some(all_versions),
@@ -578,8 +596,22 @@ async fn get_curseforge_linked_modpack_info(
         project: project_model,
         version,
         owner,
-        has_update,
-        update_version_id,
+        update: update_version_id.and_then(|target| {
+            Some(ContentItemUpdate::CurseForge {
+                project_id: crate::state::CurseForgeProjectId::new(
+                    numeric_project_id,
+                )
+                .ok()?,
+                current_file_id: crate::state::CurseForgeFileId::new(
+                    numeric_file_id,
+                )
+                .ok()?,
+                target_file_id: crate::state::CurseForgeFileId::new(
+                    target.parse().ok()?,
+                )
+                .ok()?,
+            })
+        }),
         update_version,
     }))
 }
@@ -833,16 +865,23 @@ pub(crate) async fn dependencies_to_content_items(
                     date_published: Some(version.date_published.to_rfc3339()),
                 }),
                 owner,
-                has_update: false,
-                update_version_id: None,
+                update: None,
                 date_added: None,
-                provider_refs: vec![ContentProviderRef {
-                    provider: ContentProvider::Modrinth,
-                    project_id: project.id.clone(),
-                    version_id: version.map(|version| version.id.clone()),
-                    primary: true,
+                provider_refs: vec![ContentProviderRef::Modrinth {
+                    project_id: crate::state::ModrinthProjectId::new(
+                        project.id.clone(),
+                    )
+                    .ok()?,
+                    version_id: version
+                        .map(|version| {
+                            crate::state::ModrinthVersionId::new(
+                                version.id.clone(),
+                            )
+                        })
+                        .transpose()
+                        .ok()?,
                 }],
-                primary_provider: Some(ContentProvider::Modrinth),
+                origin_provider: Some(ContentProvider::Modrinth),
             })
         })
         .collect::<Vec<_>>();
@@ -918,8 +957,42 @@ async fn content_projects_for_scope(
             entry.file_id.as_deref().map(|file_id| (file_id, entry))
         })
         .collect::<HashMap<_, _>>();
+    let mut provider_refs_by_file_id = HashMap::new();
+    let mut origin_provider_by_file_id = HashMap::new();
+    for entry in &entries {
+        let Some(file_id) = entry.file_id.as_deref() else {
+            continue;
+        };
+        provider_refs_by_file_id.insert(
+            file_id.to_string(),
+            sqlite::content_rows::get_content_provider_refs(
+                &entry.id,
+                &state.pool,
+            )
+            .await?,
+        );
+        if let Some(origin) = sqlite::content_rows::get_content_origin_provider(
+            &entry.id,
+            &state.pool,
+        )
+        .await?
+        {
+            origin_provider_by_file_id.insert(file_id.to_string(), origin);
+        }
+    }
     let hashes = files
         .iter()
+        .filter(|file| {
+            let refs = entries_by_file_id
+                .get(file.id.as_str())
+                .and_then(|_| provider_refs_by_file_id.get(&file.id));
+            refs.is_none_or(|refs| {
+                refs.is_empty()
+                    || refs.iter().any(|reference| {
+                        reference.provider() == ContentProvider::Modrinth
+                    })
+            })
+        })
         .map(|file| file.sha1.as_str())
         .collect::<Vec<_>>();
     let file_info = CachedEntry::get_file_many(
@@ -987,6 +1060,20 @@ async fn content_projects_for_scope(
         };
         let metadata = file_info_by_hash.get(&file.sha1).cloned();
         let entry = entries_by_file_id.get(file.id.as_str()).copied();
+        let provider_refs = provider_refs_by_file_id
+            .get(&file.id)
+            .cloned()
+            .unwrap_or_default();
+        let origin_provider = entry
+            .and_then(|_| origin_provider_by_file_id.get(&file.id))
+            .copied();
+        let modrinth_metadata = if provider_refs.is_empty()
+            || origin_provider == Some(ContentProvider::Modrinth)
+        {
+            metadata.as_ref().and_then(modrinth_file_match)
+        } else {
+            None
+        };
 
         match filter {
             ContentFilter::All => {}
@@ -994,7 +1081,14 @@ async fn content_projects_for_scope(
                 if ids.is_modpack_file(
                     &file.sha1,
                     metadata.as_ref(),
-                    entry.and_then(|entry| entry.project_id.as_deref()),
+                    provider_refs.iter().find_map(
+                        |reference| match reference {
+                            ContentProviderRef::Modrinth {
+                                project_id, ..
+                            } => Some(project_id.as_str()),
+                            ContentProviderRef::CurseForge { .. } => None,
+                        },
+                    ),
                 ) {
                     continue;
                 }
@@ -1013,7 +1107,14 @@ async fn content_projects_for_scope(
                 if !ids.is_modpack_file(
                     &file.sha1,
                     metadata.as_ref(),
-                    entry.and_then(|entry| entry.project_id.as_deref()),
+                    provider_refs.iter().find_map(
+                        |reference| match reference {
+                            ContentProviderRef::Modrinth {
+                                project_id, ..
+                            } => Some(project_id.as_str()),
+                            ContentProviderRef::CurseForge { .. } => None,
+                        },
+                    ),
                 ) {
                     continue;
                 }
@@ -1031,27 +1132,42 @@ async fn content_projects_for_scope(
             }
         }
 
-        let update_version_id = metadata.as_ref().and_then(|metadata| {
-            let update_ids =
-                updates_by_hash.remove(&file.sha1).unwrap_or_default();
-            if !update_ids.contains(&metadata.version_id) {
-                update_ids.into_iter().next()
-            } else {
-                None
-            }
-        });
+        let update = (origin_provider == Some(ContentProvider::Modrinth))
+            .then(|| {
+                modrinth_metadata.as_ref().and_then(|metadata| {
+                    let update_ids =
+                        updates_by_hash.remove(&file.sha1).unwrap_or_default();
+                    update_ids
+                        .into_iter()
+                        .find(|update_id| {
+                            update_id != metadata.version_id.as_str()
+                        })
+                        .and_then(|target| {
+                            Some(ContentItemUpdate::Modrinth {
+                                project_id: metadata.project_id.clone(),
+                                current_version_id: metadata.version_id.clone(),
+                                target_version_id:
+                                    crate::state::ModrinthVersionId::new(target)
+                                        .ok()?,
+                            })
+                        })
+                })
+            })
+            .flatten();
 
         output.insert(
             file.relative_path.clone(),
             ContentFile {
-                update_version_id,
+                update,
                 hash: file.sha1,
                 file_name: file.file_name,
                 enabled: entry.map_or(file.enabled, |entry| {
                     entry.enabled && file.enabled
                 }),
                 size: file.size,
-                metadata: file_metadata_from_entry_or_cache(entry, metadata),
+                modrinth: modrinth_metadata,
+                provider_refs,
+                origin_provider,
                 project_type,
                 local_mod_data: file.local_mod_data,
             },
@@ -1062,7 +1178,7 @@ async fn content_projects_for_scope(
 }
 
 async fn get_installed_update_channels(
-    file_info_by_hash: &HashMap<String, CachedFile>,
+    file_info_by_hash: &HashMap<String, crate::state::ModrinthHashMatch>,
     cache_behaviour: Option<CacheBehaviour>,
     pool: &SqlitePool,
     fetch_semaphore: &FetchSemaphore,
@@ -1074,7 +1190,10 @@ async fn get_installed_update_channels(
     if version_ids.is_empty() {
         return Ok(HashMap::new());
     }
-    let version_id_refs = version_ids.iter().copied().collect::<Vec<_>>();
+    let version_id_refs = version_ids
+        .iter()
+        .filter_map(|id| ModrinthVersionId::new((*id).to_string()).ok())
+        .collect::<Vec<_>>();
     let versions = CachedEntry::get_version_many(
         &version_id_refs,
         cache_behaviour,
@@ -1132,9 +1251,10 @@ async fn content_files_to_content_items(
 ) -> crate::Result<Vec<ContentItem>> {
     let mut provider_refs_by_path =
         HashMap::<String, Vec<ContentProviderRef>>::new();
+    let mut origin_provider_by_path = HashMap::<String, ContentProvider>::new();
     let provider_rows = sqlx::query(
-        "SELECT file.relative_path, ref.provider, ref.project_id,
-                ref.version_id, ref.primary_ref
+        "SELECT file.relative_path, ref.provider, ref.provider_project_id,
+                ref.provider_release_id, ref.is_origin
          FROM instance_files file
          INNER JOIN instance_content_entries entry ON entry.file_id = file.id
          INNER JOIN instance_content_provider_refs ref
@@ -1149,18 +1269,26 @@ async fn content_files_to_content_items(
         provider_refs_by_path
             .entry(row.try_get("relative_path")?)
             .or_default()
-            .push(ContentProviderRef {
-                provider,
-                project_id: row.try_get("project_id")?,
-                version_id: row.try_get("version_id")?,
-                primary: row.try_get::<i64, _>("primary_ref")? != 0,
-            });
+            .push(ContentProviderRef::from_database(
+                provider.as_str(),
+                row.try_get("provider_project_id")?,
+                row.try_get::<Option<String>, _>("provider_release_id")?
+                    .as_deref(),
+            )?);
+        if row.try_get::<i64, _>("is_origin")? != 0 {
+            origin_provider_by_path
+                .insert(row.try_get("relative_path")?, provider);
+        }
     }
     let curseforge_project_ids = provider_refs_by_path
         .values()
         .flatten()
-        .filter(|reference| reference.provider == ContentProvider::CurseForge)
-        .filter_map(|reference| reference.project_id.parse::<u32>().ok())
+        .filter_map(|reference| match reference {
+            ContentProviderRef::CurseForge { project_id, .. } => {
+                Some(project_id.get())
+            }
+            ContentProviderRef::Modrinth { .. } => None,
+        })
         .collect::<HashSet<_>>();
     let curseforge_projects = if curseforge_project_ids.is_empty()
         || crate::api::curseforge::capability().status
@@ -1185,17 +1313,17 @@ async fn content_files_to_content_items(
     let project_ids = files
         .iter()
         .filter_map(|(_, file)| {
-            file.metadata
+            file.modrinth
                 .as_ref()
-                .map(|metadata| metadata.project_id.clone())
+                .map(|metadata| metadata.project_id.to_string())
         })
         .collect::<HashSet<_>>();
     let version_ids = files
         .iter()
         .filter_map(|(_, file)| {
-            file.metadata
+            file.modrinth
                 .as_ref()
-                .map(|metadata| metadata.version_id.clone())
+                .map(|metadata| metadata.version_id.to_string())
         })
         .collect::<HashSet<_>>();
     let meta = resolve_metadata(
@@ -1235,38 +1363,46 @@ async fn content_files_to_content_items(
                 .get(path)
                 .cloned()
                 .or_else(|| {
-                    file.metadata.as_ref().map(|metadata| {
-                        vec![ContentProviderRef {
-                            provider: ContentProvider::Modrinth,
+                    file.modrinth.as_ref().map(|metadata| {
+                        vec![ContentProviderRef::Modrinth {
                             project_id: metadata.project_id.clone(),
                             version_id: Some(metadata.version_id.clone()),
-                            primary: true,
                         }]
                     })
                 })
                 .unwrap_or_default();
-            let primary_provider = provider_refs
-                .iter()
-                .find(|reference| reference.primary)
-                .or_else(|| provider_refs.first())
-                .map(|reference| reference.provider);
+            let origin_provider = origin_provider_by_path.get(path).copied();
             let curseforge_ref = provider_refs.iter().find(|reference| {
-                reference.provider == ContentProvider::CurseForge
+                reference.provider() == ContentProvider::CurseForge
             });
             let curseforge_project = curseforge_ref.and_then(|reference| {
-                curseforge_projects.get(&reference.project_id)
+                let ContentProviderRef::CurseForge { project_id, .. } =
+                    reference
+                else {
+                    return None;
+                };
+                curseforge_projects.get(&project_id.get().to_string())
             });
             let curseforge_file = curseforge_ref.and_then(|reference| {
-                let file_id =
-                    reference.version_id.as_deref()?.parse::<u32>().ok()?;
+                let ContentProviderRef::CurseForge { file_id, .. } = reference
+                else {
+                    return None;
+                };
+                let file_id = file_id.as_ref()?.get();
                 curseforge_project?
                     .latest_files
                     .iter()
                     .find(|file| file.id == file_id)
             });
             let curseforge_update_id = curseforge_ref.and_then(|reference| {
-                let current_file_id =
-                    reference.version_id.as_deref()?.parse::<u32>().ok()?;
+                if origin_provider != Some(ContentProvider::CurseForge) {
+                    return None;
+                }
+                let ContentProviderRef::CurseForge { file_id, .. } = reference
+                else {
+                    return None;
+                };
+                let current_file_id = file_id.as_ref()?.get();
                 let content_set = content_set.as_ref()?;
                 let loader_type = match content_set.loader.as_str() {
                     "forge" => Some(1),
@@ -1286,15 +1422,15 @@ async fn content_files_to_content_items(
                 (index.file_id != current_file_id)
                     .then(|| index.file_id.to_string())
             });
-            let project = file.metadata.as_ref().and_then(|metadata| {
+            let project = file.modrinth.as_ref().and_then(|metadata| {
                 meta.projects
                     .iter()
-                    .find(|project| project.id == metadata.project_id)
+                    .find(|project| project.id == metadata.project_id.as_str())
             });
-            let version = file.metadata.as_ref().and_then(|metadata| {
+            let version = file.modrinth.as_ref().and_then(|metadata| {
                 meta.versions
                     .iter()
-                    .find(|version| version.id == metadata.version_id)
+                    .find(|version| version.id == metadata.version_id.as_str())
             });
             let owner = project.and_then(|project| {
                 resolve_owner(project, &meta.teams, &meta.organizations)
@@ -1395,15 +1531,38 @@ async fn content_files_to_content_items(
                             })
                         })
                     }),
-                has_update: file.update_version_id.is_some()
-                    || curseforge_update_id.is_some(),
-                update_version_id: file
-                    .update_version_id
-                    .clone()
-                    .or(curseforge_update_id),
+                update: (origin_provider == Some(ContentProvider::Modrinth))
+                    .then(|| file.update.clone())
+                    .flatten()
+                    .or_else(|| {
+                        curseforge_update_id.and_then(|target| {
+                            let reference =
+                                provider_refs.iter().find_map(|reference| {
+                                    match reference {
+                                        ContentProviderRef::CurseForge {
+                                            project_id,
+                                            file_id: Some(current_file_id),
+                                        } => Some((
+                                            *project_id,
+                                            *current_file_id,
+                                        )),
+                                        _ => None,
+                                    }
+                                })?;
+                            Some(ContentItemUpdate::CurseForge {
+                                project_id: reference.0,
+                                current_file_id: reference.1,
+                                target_file_id:
+                                    crate::state::CurseForgeFileId::new(
+                                        target.parse().ok()?,
+                                    )
+                                    .ok()?,
+                            })
+                        })
+                    }),
                 date_added: modification_times[index].clone(),
                 provider_refs,
-                primary_provider,
+                origin_provider,
             }
         })
         .collect::<Vec<_>>();
@@ -1426,10 +1585,14 @@ async fn resolve_metadata(
     pool: &SqlitePool,
     fetch_semaphore: &FetchSemaphore,
 ) -> crate::Result<ResolvedMetadata> {
-    let project_id_refs =
-        project_ids.iter().map(String::as_str).collect::<Vec<_>>();
-    let version_id_refs =
-        version_ids.iter().map(String::as_str).collect::<Vec<_>>();
+    let project_id_refs = project_ids
+        .iter()
+        .map(|id| ModrinthProjectId::new(id.clone()))
+        .collect::<crate::Result<Vec<_>>>()?;
+    let version_id_refs = version_ids
+        .iter()
+        .map(|id| ModrinthVersionId::new(id.clone()))
+        .collect::<crate::Result<Vec<_>>>()?;
     let (projects, versions) =
         if !project_ids.is_empty() || !version_ids.is_empty() {
             tokio::try_join!(
@@ -1547,20 +1710,18 @@ fn resolve_owner(
     }
 }
 
-fn file_metadata_from_entry_or_cache(
-    entry: Option<&ContentEntry>,
-    cached: Option<CachedFile>,
-) -> Option<crate::state::FileMetadata> {
-    let project_id = entry
-        .and_then(|entry| entry.project_id.clone())
-        .or_else(|| cached.as_ref().map(|file| file.project_id.clone()))?;
-    let version_id = entry
-        .and_then(|entry| entry.version_id.clone())
-        .or_else(|| cached.as_ref().map(|file| file.version_id.clone()))?;
-
-    Some(crate::state::FileMetadata {
-        project_id,
-        version_id,
+fn modrinth_file_match(
+    cached: &crate::state::ModrinthHashMatch,
+) -> Option<ModrinthFileMatch> {
+    Some(ModrinthFileMatch {
+        project_id: crate::state::ModrinthProjectId::new(
+            cached.project_id.clone(),
+        )
+        .ok()?,
+        version_id: crate::state::ModrinthVersionId::new(
+            cached.version_id.clone(),
+        )
+        .ok()?,
     })
 }
 
@@ -1572,26 +1733,27 @@ fn is_curseforge_modpack_scope(link: &InstanceLink) -> bool {
     matches!(link, InstanceLink::CurseForgeModpack { .. })
 }
 
-fn linked_modpack_ids(link: &InstanceLink) -> Option<(String, String)> {
+fn linked_modrinth_modpack_ids(link: &InstanceLink) -> Option<(&str, &str)> {
     match link {
         InstanceLink::ModrinthModpack {
             project_id,
             version_id,
-        }
-        | InstanceLink::CurseForgeModpack {
-            project_id,
-            version_id,
-        } => Some((project_id.clone(), version_id.clone())),
+        } => Some((project_id, version_id)),
         InstanceLink::ServerProjectModpack {
             content_project_id,
             content_version_id,
             ..
-        } => Some((content_project_id.clone(), content_version_id.clone())),
-        InstanceLink::ImportedModpack {
-            project_id: Some(project_id),
-            version_id: Some(version_id),
-            ..
-        } => Some((project_id.clone(), version_id.clone())),
+        } => Some((content_project_id, content_version_id)),
+        _ => None,
+    }
+}
+
+fn linked_curseforge_modpack_ids(link: &InstanceLink) -> Option<(&str, &str)> {
+    match link {
+        InstanceLink::CurseForgeModpack {
+            project_id,
+            version_id,
+        } => Some((project_id, version_id)),
         _ => None,
     }
 }
@@ -1665,7 +1827,7 @@ impl ModpackIdentifiers {
     fn is_modpack_file(
         &self,
         hash: &str,
-        file: Option<&CachedFile>,
+        file: Option<&crate::state::ModrinthHashMatch>,
         entry_project_id: Option<&str>,
     ) -> bool {
         self.hashes.contains(hash)
@@ -1743,14 +1905,18 @@ async fn get_modpack_identifiers(
         });
     }
 
-    let version =
-        CachedEntry::get_version(version_id, None, pool, fetch_semaphore)
-            .await?
-            .ok_or_else(|| {
-                crate::ErrorKind::InputError(format!(
-                    "Modpack version {version_id} not found"
-                ))
-            })?;
+    let version = CachedEntry::get_version(
+        &ModrinthVersionId::new(version_id.to_string())?,
+        None,
+        pool,
+        fetch_semaphore,
+    )
+    .await?
+    .ok_or_else(|| {
+        crate::ErrorKind::InputError(format!(
+            "Modpack version {version_id} not found"
+        ))
+    })?;
     let primary_file = version
         .files
         .iter()
@@ -1903,4 +2069,42 @@ fn sort_content_items(items: &mut [ContentItem]) {
             .cmp(&right_name.to_lowercase())
             .then_with(|| left.file_name.cmp(&right.file_name))
     });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{linked_curseforge_modpack_ids, linked_modrinth_modpack_ids};
+    use crate::state::instances::InstanceLink;
+
+    #[test]
+    fn linked_modpack_ids_stay_provider_qualified() {
+        let modrinth = InstanceLink::ModrinthModpack {
+            project_id: "mr-project".to_string(),
+            version_id: "mr-version".to_string(),
+        };
+        let curseforge = InstanceLink::CurseForgeModpack {
+            project_id: "123".to_string(),
+            version_id: "456".to_string(),
+        };
+        let imported = InstanceLink::ImportedModpack {
+            project_id: Some("legacy-project".to_string()),
+            version_id: Some("legacy-version".to_string()),
+            name: None,
+            version_number: None,
+            filename: None,
+        };
+
+        assert_eq!(
+            linked_modrinth_modpack_ids(&modrinth),
+            Some(("mr-project", "mr-version")),
+        );
+        assert_eq!(linked_curseforge_modpack_ids(&modrinth), None);
+        assert_eq!(linked_modrinth_modpack_ids(&curseforge), None);
+        assert_eq!(
+            linked_curseforge_modpack_ids(&curseforge),
+            Some(("123", "456")),
+        );
+        assert_eq!(linked_modrinth_modpack_ids(&imported), None);
+        assert_eq!(linked_curseforge_modpack_ids(&imported), None);
+    }
 }

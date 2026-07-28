@@ -185,6 +185,8 @@ export interface InstallJobSnapshot {
 		max_attempts?: number | null
 		error?: string | null
 		manual_url?: string | null
+		request_url?: string | null
+		source?: string | null
 	}>
 }
 
@@ -200,6 +202,21 @@ export interface DownloadJobPage {
 	jobs: InstallJobSnapshot[]
 	nextCursor?: string | null
 }
+
+export type DownloadRequestUpdate =
+	| {
+			type: 'started'
+			job_id: string
+			id: string
+			name: string
+			url: string
+			source: string
+			bytes_total?: number | null
+			attempt: number
+			max_attempts: number
+	  }
+	| { type: 'finished'; job_id: string; id: string; bytes: number }
+	| { type: 'failed'; job_id: string; id: string }
 
 export async function install_get_modpack_preview(location: CreatePackLocation) {
 	return await invoke<InstallModpackPreview>('plugin:install|install_get_modpack_preview', {

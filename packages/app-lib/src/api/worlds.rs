@@ -1,4 +1,6 @@
 use crate::data::ModLoader;
+use crate::event::InstancePayloadType;
+use crate::event::emit::emit_instance;
 use crate::instance::get_full_path;
 use crate::launcher::get_loader_version_from_profile;
 use crate::server_address::{parse_server_address, resolve_server_address};
@@ -198,7 +200,7 @@ pub async fn get_recent_worlds(
     let mut instances = crate::state::list_instances(&state.pool).await?;
     instances.sort_by_key(|x| Reverse(x.instance.last_played));
 
-    let mut result = Vec::with_capacity(limit);
+    let mut result = Vec::with_capacity(limit.min(256));
 
     let mut least_recent_time = None;
     for instance in instances {
@@ -247,6 +249,11 @@ pub async fn get_recent_worlds(
         result.sort_by_key(|x| Reverse(x.world.last_played));
     }
     Ok(result)
+}
+
+pub async fn get_favorite_worlds() -> Result<Vec<WorldWithInstance>> {
+    get_recent_worlds(usize::MAX, enumset::enum_set!(DisplayStatus::Favorite))
+        .await
 }
 
 pub async fn get_instance_worlds(instance_id: &str) -> Result<Vec<World>> {
@@ -516,6 +523,7 @@ pub async fn set_world_display_status(
         &state.pool,
     )
     .await?;
+    emit_instance(&instance_id, InstancePayloadType::Edited).await?;
     Ok(())
 }
 

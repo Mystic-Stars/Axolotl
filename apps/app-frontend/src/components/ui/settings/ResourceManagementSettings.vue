@@ -231,6 +231,7 @@ async function purgeCache() {
 	await purge_cache_types([
 		'project',
 		'project_v3',
+		'curseforge_project',
 		'version',
 		'user',
 		'team',

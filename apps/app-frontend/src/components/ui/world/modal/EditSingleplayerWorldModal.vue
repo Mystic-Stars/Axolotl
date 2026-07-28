@@ -9,20 +9,19 @@ import {
 	StyledInput,
 	useVIntl,
 } from '@modrinth/ui'
-import { computed, ref } from 'vue'
+import { ref } from 'vue'
 
 import ModalWrapper from '@/components/ui/modal/ModalWrapper.vue'
 import SymlinkInstanceWarning from '@/components/ui/SymlinkInstanceWarning.vue'
-import HideFromHomeOption from '@/components/ui/world/modal/HideFromHomeOption.vue'
 import type { GameInstance } from '@/helpers/types'
-import type { DisplayStatus, SingleplayerWorld } from '@/helpers/worlds.ts'
-import { rename_world, reset_world_icon, set_world_display_status } from '@/helpers/worlds.ts'
+import type { SingleplayerWorld } from '@/helpers/worlds.ts'
+import { rename_world, reset_world_icon } from '@/helpers/worlds.ts'
 
 const { handleError } = injectNotificationManager()
 const { formatMessage } = useVIntl()
 
 const emit = defineEmits<{
-	submit: [path: string, name: string, removeIcon: boolean, displayStatus: DisplayStatus]
+	submit: [path: string, name: string, removeIcon: boolean]
 }>()
 
 const props = defineProps<{
@@ -35,27 +34,13 @@ const icon = ref()
 const name = ref()
 const path = ref()
 const removeIcon = ref(false)
-const displayStatus = ref<DisplayStatus>('normal')
-const hideFromHome = ref(false)
-
-const newDisplayStatus = computed(() => (hideFromHome.value ? 'hidden' : 'normal'))
-
 async function saveWorld() {
 	await rename_world(props.instance.id, path.value, name.value).catch(handleError)
 
 	if (removeIcon.value) {
 		await reset_world_icon(props.instance.id, path.value).catch(handleError)
 	}
-	if (newDisplayStatus.value !== displayStatus.value) {
-		await set_world_display_status(
-			props.instance.id,
-			'singleplayer',
-			path.value,
-			newDisplayStatus.value,
-		)
-	}
-
-	emit('submit', path.value, name.value, removeIcon.value, newDisplayStatus.value)
+	emit('submit', path.value, name.value, removeIcon.value)
 	hide()
 }
 
@@ -63,8 +48,6 @@ function show(world: SingleplayerWorld) {
 	name.value = world.name
 	path.value = world.path
 	icon.value = world.icon
-	displayStatus.value = world.display_status
-	hideFromHome.value = world.display_status === 'hidden'
 	removeIcon.value = false
 	modal.value.show()
 }
@@ -115,7 +98,6 @@ const messages = defineMessages({
 				autocomplete="off"
 				wrapper-class="w-full"
 			/>
-			<HideFromHomeOption v-model="hideFromHome" class="mt-3" />
 		</div>
 		<div class="flex gap-2 mt-4">
 			<ButtonStyled color="brand">

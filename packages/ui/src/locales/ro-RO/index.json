@@ -521,9 +521,6 @@
   "creation-flow.modal.final-config.difficulty.easy": {
     "defaultMessage": "Ușor"
   },
-  "creation-flow.modal.import-instance.custom-launcher.name": {
-    "defaultMessage": "Ușor"
-  },
   "files.create-modal.create-button": {
     "defaultMessage": "Creează {type}"
   },

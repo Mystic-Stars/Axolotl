@@ -89,12 +89,6 @@
   "app.appearance-settings.hide-nametag.title": {
     "message": "Skrýt jmenovku"
   },
-  "app.appearance-settings.jump-back-into-worlds.description": {
-    "message": "Zahrne nedávné světy do sekce „Vrátit se do hry“ na domovské stránce."
-  },
-  "app.appearance-settings.jump-back-into-worlds.title": {
-    "message": "Rychlý návrat do světů"
-  },
   "app.appearance-settings.minimize-launcher.description": {
     "message": "Minimalizovat launcher při spuštění Minecraftu."
   },
@@ -704,9 +698,6 @@
   "instance.edit-server.title": {
     "message": "Upravit server"
   },
-  "instance.edit-world.hide-from-home": {
-    "message": "Skrýt z domovské stránky"
-  },
   "instance.edit-world.name": {
     "message": "Název"
   },
@@ -869,9 +860,6 @@
   "instance.settings.tabs.java.custom-java-arguments": {
     "message": "Vlastní argumenty Javy"
   },
-  "instance.settings.tabs.java.custom-java-installation": {
-    "message": "Vlastní instalace Javy"
-  },
   "instance.settings.tabs.java.custom-memory-allocation": {
     "message": "Vlastní nastavení paměti"
   },
@@ -883,9 +871,6 @@
   },
   "instance.settings.tabs.java.environment-variables": {
     "message": "Proměnné prostředí"
-  },
-  "instance.settings.tabs.java.hooks": {
-    "message": "Hooky"
   },
   "instance.settings.tabs.java.java-arguments": {
     "message": "Argumenty Javy"
@@ -940,9 +925,6 @@
   },
   "instance.worlds.create_shortcut": {
     "message": "Vytvořit záložku"
-  },
-  "instance.worlds.dont_show_on_home": {
-    "message": "Nezobrazovat na domovské stránce"
   },
   "instance.worlds.game_already_open": {
     "message": "Instance je již otevřená"

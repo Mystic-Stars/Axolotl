@@ -15,6 +15,7 @@ pub fn init<R: Runtime>() -> tauri::plugin::TauriPlugin<R> {
     tauri::plugin::Builder::new("worlds")
         .invoke_handler(tauri::generate_handler![
             get_recent_worlds,
+            get_favorite_worlds,
             get_instance_worlds,
             get_singleplayer_world,
             set_world_display_status,
@@ -44,6 +45,17 @@ pub async fn get_recent_worlds<R: Runtime>(
         display_statuses.unwrap_or(EnumSet::all()),
     )
     .await?;
+    for world in &mut result {
+        adapt_world_icon(&app_handle, &mut world.world);
+    }
+    Ok(result)
+}
+
+#[tauri::command]
+pub async fn get_favorite_worlds<R: Runtime>(
+    app_handle: AppHandle<R>,
+) -> Result<Vec<WorldWithInstance>> {
+    let mut result = worlds::get_favorite_worlds().await?;
     for world in &mut result {
         adapt_world_icon(&app_handle, &mut world.world);
     }

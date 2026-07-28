@@ -15,8 +15,9 @@ use crate::pack::install_from::{
 use crate::state::instances::ContentSourceKind;
 use crate::state::instances::adapters::sqlite::content_rows;
 use crate::state::{
-    CachedEntry, CachedFile, EditInstance, InstanceInstallStage, Settings,
-    SideType, cache_file_hash_metadata,
+    CachedEntry, ContentProviderRef, EditInstance, InstanceInstallStage,
+    KnownModrinthFile, ModrinthHashMatch, ModrinthProjectId, ModrinthVersionId,
+    Settings, SideType,
 };
 use crate::util::fetch::{
     DownloadMeta, DownloadReason, DownloadRequest, FetchProgressFn, Integrity,
@@ -61,7 +62,7 @@ struct ModpackContentInstallContext {
     active_download_bytes: Arc<Mutex<HashMap<String, u64>>>,
     download_source: Arc<Mutex<Option<String>>>,
     fallback_count: Arc<AtomicU64>,
-    file_infos_by_hash: Arc<HashMap<String, CachedFile>>,
+    file_infos_by_hash: Arc<HashMap<String, ModrinthHashMatch>>,
     chinese_titles_by_sha1: Arc<HashMap<String, String>>,
     existing_paths_by_original: Arc<HashMap<String, String>>,
     num_files: usize,
@@ -71,12 +72,12 @@ struct ModpackContentInstallContext {
 /// Maps manifest file hashes to sanitized Chinese titles by resolving the
 /// files' Modrinth projects from cache. Failures only disable the naming.
 async fn resolve_chinese_titles_by_sha1(
-    file_infos_by_hash: &HashMap<String, CachedFile>,
+    file_infos_by_hash: &HashMap<String, ModrinthHashMatch>,
     state: &State,
 ) -> HashMap<String, String> {
     let project_ids = file_infos_by_hash
         .values()
-        .map(|file| file.project_id.as_str())
+        .filter_map(|file| ModrinthProjectId::new(file.project_id.clone()).ok())
         .collect::<HashSet<_>>()
         .into_iter()
         .collect::<Vec<_>>();
@@ -879,6 +880,11 @@ pub(crate) async fn install_zipped_mrpack_files_with_reporter(
                         .with_integrity(integrity)
                         .with_download_meta(
                             content_context.download_meta.clone(),
+                        )
+                        .with_install_tracking(
+                            content_context.reporter.clone(),
+                            project_path.clone(),
+                            project_path.clone(),
                         ),
                     &target_path,
                     &state.download_semaphore,
@@ -917,35 +923,27 @@ pub(crate) async fn install_zipped_mrpack_files_with_reporter(
 
                 {
                     let _permit = state.install_db_semaphore.acquire().await?;
-                    content_context
-                        .reporter
-                        .preserve_failure_context(
-                            context.clone(),
-                            cache_file_hash_metadata(
-                                &content_context.instance_path,
-                                &project_path,
-                                downloaded_bytes,
-                                sha1.clone(),
-                                ProjectType::get_from_parent_folder(&path),
-                                None,
-                                &state.pool,
-                            )
-                            .await,
-                        )
-                        .await?;
-                }
-
-                if let Some(project_type) =
+                    if let Some(project_type) =
                     ProjectType::get_from_parent_folder(project.path.as_str())
-                {
+                    {
                     let file_info =
                         content_context.file_infos_by_hash.get(&sha1);
-                    let _permit = state.install_db_semaphore.acquire().await?;
+                    let provider_ref = match file_info {
+                        Some(file) => Some(ContentProviderRef::Modrinth {
+                            project_id: ModrinthProjectId::new(
+                                file.project_id.clone(),
+                            )?,
+                            version_id: Some(ModrinthVersionId::new(
+                                file.version_id.clone(),
+                            )?),
+                        }),
+                        None => None,
+                    };
                     content_context
                         .reporter
                         .preserve_failure_context(
                             context.clone(),
-                            crate::state::instances::commands::record_project_file(
+                            crate::state::instances::commands::record_project_file_atomic(
                                 &content_context.instance_id,
                                 &project_path,
                                 &sha1,
@@ -954,13 +952,18 @@ pub(crate) async fn install_zipped_mrpack_files_with_reporter(
                                 modpack_source_kind(
                                     content_context.pack_version_id.as_deref(),
                                 ),
-                                file_info.map(|file| file.project_id.as_str()),
-                                file_info.map(|file| file.version_id.as_str()),
+                                provider_ref.as_ref(),
+                                false,
+                                file_info.map(|file| KnownModrinthFile {
+                                    project_id: &file.project_id,
+                                    version_id: &file.version_id,
+                                }),
                                 state,
                             )
                             .await,
                         )
                         .await?;
+                    }
                 }
 
                 content_context
@@ -1103,31 +1106,13 @@ pub(crate) async fn install_zipped_mrpack_files_with_reporter(
                     .entry_path(file.filename().as_str().unwrap_or_default())
                     .target_path(path.display().to_string())
                     .build();
-            reporter
-                .preserve_failure_context(
-                    record_context.clone(),
-                    crate::state::cache_file_hash_metadata(
-                        &instance_path,
-                        relative_override_file_path.as_str(),
-                        size,
-                        hash.clone(),
-                        ProjectType::get_from_parent_folder(
-                            relative_override_file_path.as_str(),
-                        ),
-                        None,
-                        &state.pool,
-                    )
-                    .await,
-                )
-                .await?;
-
             if let Some(project_type) = ProjectType::get_from_parent_folder(
                 relative_override_file_path.as_str(),
             ) {
                 reporter
                     .preserve_failure_context(
                         record_context,
-                        crate::state::instances::commands::record_project_file(
+                        crate::state::instances::commands::record_project_file_atomic(
                             &instance_id,
                             relative_override_file_path.as_str(),
                             &hash,
@@ -1135,6 +1120,7 @@ pub(crate) async fn install_zipped_mrpack_files_with_reporter(
                             project_type,
                             modpack_source_kind(version_id.as_deref()),
                             None,
+                            false,
                             None,
                             state,
                         )
@@ -1282,9 +1268,14 @@ pub async fn remove_all_related_files(
     )
     .await?
     {
-        if let Some(project_id) = &file.project_id
-            && to_remove.contains(project_id)
-        {
+        let is_modrinth_project = file.provider_refs.iter().any(|provider| {
+            matches!(
+                provider,
+                ContentProviderRef::Modrinth { project_id, .. }
+                    if to_remove.contains(&project_id.to_string())
+            )
+        });
+        if is_modrinth_project {
             crate::state::instances::commands::remove_project(
                 &metadata.instance.id,
                 &file.relative_path,

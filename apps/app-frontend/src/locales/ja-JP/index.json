@@ -68,12 +68,6 @@
   "app.appearance-settings.hide-nametag.title": {
     "message": "ネームタグを非表示にする"
   },
-  "app.appearance-settings.jump-back-into-worlds.description": {
-    "message": "ホームページの「ジャンプバック」セクションには、最近追加されたワールドが含まれています。"
-  },
-  "app.appearance-settings.jump-back-into-worlds.title": {
-    "message": "最近のワールドを表示"
-  },
   "app.appearance-settings.minimize-launcher.description": {
     "message": "Minecraftが起動した時、ランチャーを最小化します。"
   },
@@ -476,9 +470,6 @@
   "instance.edit-server.title": {
     "message": "サーバーを編集する"
   },
-  "instance.edit-world.hide-from-home": {
-    "message": "ホームページから非表示にする"
-  },
   "instance.edit-world.name": {
     "message": "名前"
   },
@@ -614,9 +605,6 @@
   "instance.settings.tabs.java.environment-variables": {
     "message": "環境変数"
   },
-  "instance.settings.tabs.java.hooks": {
-    "message": "フック"
-  },
   "instance.settings.tabs.java.java-arguments": {
     "message": "Javaコマンドライン引数"
   },
@@ -667,9 +655,6 @@
   },
   "instance.worlds.copy_address": {
     "message": "アドレスをコピー"
-  },
-  "instance.worlds.dont_show_on_home": {
-    "message": "ホームに表示しない"
   },
   "instance.worlds.game_already_open": {
     "message": "インスタンスは既に開いています"

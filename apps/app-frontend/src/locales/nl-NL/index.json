@@ -74,12 +74,6 @@
   "app.appearance-settings.hide-nametag.title": {
     "message": "Verberg nametag"
   },
-  "app.appearance-settings.jump-back-into-worlds.description": {
-    "message": "Inclusief recente werelden in het gedeelte \"Ga terug\" op de startpagina."
-  },
-  "app.appearance-settings.jump-back-into-worlds.title": {
-    "message": "Ga terug in werelden"
-  },
   "app.appearance-settings.minimize-launcher.description": {
     "message": "Minimaliseer de launcher als een Minecraft proces wordt gestart."
   },
@@ -596,9 +590,6 @@
   "instance.edit-server.title": {
     "message": "Server bewerken"
   },
-  "instance.edit-world.hide-from-home": {
-    "message": "Verbergen van de startpagina"
-  },
   "instance.edit-world.name": {
     "message": "Naam"
   },
@@ -761,9 +752,6 @@
   "instance.settings.tabs.java.custom-java-arguments": {
     "message": "Aangepaste Java-argumenten"
   },
-  "instance.settings.tabs.java.custom-java-installation": {
-    "message": "Aangepaste Java-installatie"
-  },
   "instance.settings.tabs.java.custom-memory-allocation": {
     "message": "Aangepaste geheugentoewijzing"
   },
@@ -775,9 +763,6 @@
   },
   "instance.settings.tabs.java.environment-variables": {
     "message": "Environment variabelen"
-  },
-  "instance.settings.tabs.java.hooks": {
-    "message": "Haakjes"
   },
   "instance.settings.tabs.java.java-arguments": {
     "message": "Java argumenten"
@@ -829,9 +814,6 @@
   },
   "instance.worlds.copy_address": {
     "message": "Kopieer adres"
-  },
-  "instance.worlds.dont_show_on_home": {
-    "message": "Niet tonen op de startpagina"
   },
   "instance.worlds.game_already_open": {
     "message": "Instantie is al open"

@@ -425,18 +425,6 @@
   "content.inline-backup.world-label": {
     "defaultMessage": "dunia"
   },
-  "content.modpack-card.content-hint-description": {
-    "defaultMessage": "Kandungan pek mod anda kini boleh didapati di sini!"
-  },
-  "content.modpack-card.content-hint-title": {
-    "defaultMessage": "Kandungan pek mod telah berpindah"
-  },
-  "content.modpack-card.dismiss-hint": {
-    "defaultMessage": "Jangan tunjukkan lagi"
-  },
-  "content.page-layout.additional-content": {
-    "defaultMessage": "Kandungan tambahan"
-  },
   "content.page-layout.browse-content": {
     "defaultMessage": "Layari kandungan"
   },
@@ -446,14 +434,8 @@
   "content.page-layout.empty.hint": {
     "defaultMessage": "Layari atau muat naik {contentType} untuk bermula"
   },
-  "content.page-layout.empty.modpack-hint": {
-    "defaultMessage": "Tambahkan kandungan tambahan di atas pek mod ini"
-  },
   "content.page-layout.empty.no-content-installed": {
     "defaultMessage": "Tiada kandungan dipasang"
-  },
-  "content.page-layout.empty.no-extra-content-installed": {
-    "defaultMessage": "Tiada kandungan tambahan dipasang"
   },
   "content.page-layout.failed-to-load": {
     "defaultMessage": "Gagal memuat kandungan"
@@ -697,51 +679,6 @@
   },
   "creation-flow.modal.final-config.world-type.superflat": {
     "defaultMessage": "Lampau Rata"
-  },
-  "creation-flow.modal.import-instance.action.add": {
-    "defaultMessage": "Tambah"
-  },
-  "creation-flow.modal.import-instance.custom-launcher.name": {
-    "defaultMessage": "Tersuai ({pathName})"
-  },
-  "creation-flow.modal.import-instance.detecting-launcher-instances": {
-    "defaultMessage": "Sedang mengesan pemasangan dalam pelancar..."
-  },
-  "creation-flow.modal.import-instance.launcher-instances.title": {
-    "defaultMessage": "Pemasangan dalam pelancar"
-  },
-  "creation-flow.modal.import-instance.launcher-path.add": {
-    "defaultMessage": "Tambah laluan pelancar"
-  },
-  "creation-flow.modal.import-instance.launcher-path.placeholder": {
-    "defaultMessage": "Laluan ke pelancar..."
-  },
-  "creation-flow.modal.import-instance.notification.no-instances-found.text": {
-    "defaultMessage": "Tiada pemasangan yang boleh diimport ditemui pada laluan yang ditentukan."
-  },
-  "creation-flow.modal.import-instance.notification.no-instances-found.title": {
-    "defaultMessage": "Tiada pemasangan ditemui"
-  },
-  "creation-flow.modal.import-instance.search.placeholder": {
-    "defaultMessage": "Cari nama pemasangan"
-  },
-  "creation-flow.modal.import-instance.selection.clear-all": {
-    "defaultMessage": "Kosongkan semua"
-  },
-  "creation-flow.modal.modpack.action.browse": {
-    "defaultMessage": "Layari pek mod"
-  },
-  "creation-flow.modal.modpack.action.import": {
-    "defaultMessage": "Import pek mod"
-  },
-  "creation-flow.modal.modpack.known-modpack.prompt": {
-    "defaultMessage": "Sudah tahu pek mod yang ingin anda pasang?"
-  },
-  "creation-flow.modal.modpack.search.no-results": {
-    "defaultMessage": "Tiada hasil dijumpai"
-  },
-  "creation-flow.modal.modpack.search.placeholder": {
-    "defaultMessage": "Cari pek mod"
   },
   "creation-flow.modal.setup-type.option.custom-setup.title": {
     "defaultMessage": "Persediaan tersuai"
@@ -4764,4 +4701,3 @@
     "defaultMessage": "Pasukan Modrinth"
   }
 }
-

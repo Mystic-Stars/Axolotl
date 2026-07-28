@@ -257,17 +257,8 @@
   "content.inline-backup.create-backup": {
     "defaultMessage": "צור גיבוי"
   },
-  "content.modpack-card.dismiss-hint": {
-    "defaultMessage": "אל תציג שוב"
-  },
-  "content.page-layout.additional-content": {
-    "defaultMessage": "תוכן נוסף"
-  },
   "content.page-layout.empty.no-content-installed": {
     "defaultMessage": "אין תוכן מותקן"
-  },
-  "content.page-layout.empty.no-extra-content-installed": {
-    "defaultMessage": "איו תוכן נוסף מותקן"
   },
   "content.page-layout.failed-to-load": {
     "defaultMessage": "טעינת התוכן נכשלה"

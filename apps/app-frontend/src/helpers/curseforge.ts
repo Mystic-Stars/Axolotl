@@ -172,6 +172,12 @@ export interface CurseForgeInstallResult {
 		fileName: string
 		websiteUrl?: string
 	}>
+	failedDownloads: Array<{
+		projectId: number
+		fileId: number
+		fileName: string
+		reason: string
+	}>
 	optionalDependencies: number[]
 	incompatibleDependencies: number[]
 }
@@ -186,9 +192,10 @@ export interface CurseForgeModpackInstallResult {
 export function summarizeCurseForgeInstall(result: CurseForgeInstallResult) {
 	const installed = result.installed?.length ?? 0
 	const manual = result.manualDownloads?.length ?? 0
+	const failed = result.failedDownloads?.length ?? 0
 	const optional = result.optionalDependencies?.length ?? 0
 	const incompatible = result.incompatibleDependencies?.length ?? 0
-	return { installed, manual, optional, incompatible }
+	return { installed, manual, failed, optional, incompatible }
 }
 
 export function getCurseForgeCapability() {

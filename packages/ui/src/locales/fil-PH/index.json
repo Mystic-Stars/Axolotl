@@ -245,12 +245,6 @@
   "content.inline-backup.world-label": {
     "defaultMessage": "mundo"
   },
-  "content.page-layout.additional-content": {
-    "defaultMessage": "Karagdagang kontento"
-  },
-  "content.page-layout.empty.modpack-hint": {
-    "defaultMessage": "Dargdagan ng karagdagang kontento sa itaas ng modpack na ito"
-  },
   "content.page-layout.please-wait": {
     "defaultMessage": "Mangyaring maghintay"
   },
@@ -310,12 +304,6 @@
   },
   "creation-flow.modal.final-config.generator-settings.flat": {
     "defaultMessage": "Patag"
-  },
-  "creation-flow.modal.import-instance.action.add": {
-    "defaultMessage": "Magdagdag"
-  },
-  "creation-flow.modal.import-instance.launcher-path.add": {
-    "defaultMessage": "Magdagdag ng launcher path"
   },
   "external-project-license-status.no": {
     "defaultMessage": "Hindi"
@@ -2739,4 +2727,3 @@
     "defaultMessage": "Koponan ng Modrinth"
   }
 }
-

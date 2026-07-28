@@ -9,10 +9,10 @@ use crate::install::{
     InstallJobEventKind, InstallPhaseDetails, InstallPhaseId, InstallProgress,
     InstallProgressReporter, InstallProgressSecondary,
 };
-use crate::state::ContentProvider;
 use crate::state::{
-    ContentSourceKind, DownloadSourceMode, EditInstance, InstanceLink,
-    ModLoader, ProjectType,
+    CachedEntry, ContentProvider, ContentProviderRef, ContentSourceKind,
+    CurseForgeFileId, CurseForgeProjectId, DownloadSourceMode, EditInstance,
+    InstanceLink, ModLoader, ProjectType,
 };
 use crate::util::fetch::{
     ContentValidation, DownloadRequest, DownloadResult, DownloadRouteSource,
@@ -35,27 +35,27 @@ use std::time::{Duration, Instant};
 const API_BASE_URL: &str = "https://api.curseforge.com";
 const MINECRAFT_GAME_ID: u32 = 432;
 const MAX_PAGE_SIZE: u32 = 50;
-const MODPACK_FILE_INSTALL_ATTEMPTS: usize = 1;
-const PROJECT_CACHE_TTL: Duration = Duration::from_secs(5 * 60);
+const MODPACK_FILE_INSTALL_ATTEMPTS: usize = 3;
 
 static UNAUTHORIZED: AtomicBool = AtomicBool::new(false);
 static CATEGORY_CACHE: LazyLock<RwLock<Option<Vec<CurseForgeCategory>>>> =
     LazyLock::new(|| RwLock::new(None));
-static PROJECT_CACHE: LazyLock<RwLock<HashMap<u32, CachedCurseForgeProject>>> =
-    LazyLock::new(|| RwLock::new(HashMap::new()));
-#[derive(Clone)]
-struct CachedCurseForgeProject {
-    project: CurseForgeProject,
-    cached_at: Instant,
-}
 
 #[derive(Default)]
 struct CurseForgeDownloadMetrics {
     source: Mutex<Option<String>>,
     fallback_count: AtomicU64,
+    reporter: Option<InstallProgressReporter>,
 }
 
 impl CurseForgeDownloadMetrics {
+    fn with_reporter(reporter: InstallProgressReporter) -> Self {
+        Self {
+            reporter: Some(reporter),
+            ..Self::default()
+        }
+    }
+
     fn record(&self, result: &DownloadResult) {
         if result.attempts > 0
             && let Ok(mut source) = self.source.lock()
@@ -419,11 +419,22 @@ pub struct CurseForgeManualDownload {
     pub website_url: Option<String>,
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CurseForgeFailedDownload {
+    pub project_id: u32,
+    pub file_id: u32,
+    pub file_name: String,
+    pub reason: String,
+}
+
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CurseForgeInstallResult {
     pub installed: Vec<CurseForgeInstalledFile>,
     pub manual_downloads: Vec<CurseForgeManualDownload>,
+    #[serde(default)]
+    pub failed_downloads: Vec<CurseForgeFailedDownload>,
     pub optional_dependencies: Vec<u32>,
     pub incompatible_dependencies: Vec<u32>,
 }
@@ -632,46 +643,61 @@ pub async fn search_projects(
 }
 
 pub async fn get_project(project_id: u32) -> crate::Result<CurseForgeProject> {
-    if let Some(project) = cached_project(project_id) {
-        return Ok(project);
-    }
-    let response: CurseForgeResponse<CurseForgeProject> = request_json(
-        Method::GET,
-        &format!("/v1/mods/{project_id}"),
-        Vec::new(),
+    let state = State::get().await?;
+    CachedEntry::get_curseforge_project(
+        &CurseForgeProjectId::new(project_id)?,
         None,
-        MirrorPolicy::MirrorFirst,
+        &state.pool,
+        &state.api_semaphore,
     )
-    .await?;
-    cache_projects(std::slice::from_ref(&response.data));
-    Ok(response.data)
+    .await?
+    .ok_or_else(|| {
+        ErrorKind::OtherError(format!(
+            "CurseForge project {project_id} was not found"
+        ))
+        .as_error()
+    })
 }
 
 pub async fn get_projects(
     project_ids: Vec<u32>,
 ) -> crate::Result<Vec<CurseForgeProject>> {
-    let mut projects = Vec::new();
-    let mut missing_ids = Vec::new();
-    for project_id in project_ids.into_iter() {
-        if let Some(project) = cached_project(project_id) {
-            projects.push(project);
-        } else {
-            missing_ids.push(project_id);
-        }
-    }
-    if missing_ids.is_empty() {
-        return Ok(projects);
-    }
-    let response: CurseForgeResponse<Vec<CurseForgeProject>> = request_json(
-        Method::POST,
-        "/v1/mods",
-        Vec::new(),
-        Some(json!({ "modIds": missing_ids, "filterPcOnly": true })),
-        MirrorPolicy::MirrorFirst,
+    let project_ids = project_ids
+        .into_iter()
+        .map(CurseForgeProjectId::new)
+        .collect::<crate::Result<Vec<_>>>()?;
+    let state = State::get().await?;
+    CachedEntry::get_curseforge_project_many(
+        &project_ids,
+        None,
+        &state.pool,
+        &state.api_semaphore,
     )
-    .await?;
-    cache_projects(&response.data);
-    projects.extend(response.data);
+    .await
+}
+
+pub(crate) async fn get_projects_uncached(
+    project_ids: Vec<u32>,
+) -> crate::Result<Vec<CurseForgeProject>> {
+    if project_ids.is_empty() {
+        return Ok(Vec::new());
+    }
+    let mut projects = Vec::new();
+    for project_ids in project_ids.chunks(MAX_PAGE_SIZE as usize) {
+        let response: CurseForgeResponse<Vec<CurseForgeProject>> =
+            request_json(
+                Method::POST,
+                "/v1/mods",
+                Vec::new(),
+                Some(json!({
+                    "modIds": project_ids,
+                    "filterPcOnly": true
+                })),
+                MirrorPolicy::MirrorFirst,
+            )
+            .await?;
+        projects.extend(response.data);
+    }
     Ok(projects)
 }
 
@@ -1004,6 +1030,7 @@ pub async fn get_modpack_target(
         &pack_file,
         &download_url,
         Some(&mut progress as &mut FetchProgressFn<'_>),
+        None,
     )
     .await?;
     let pack_path = pack_download.path;
@@ -1171,6 +1198,7 @@ pub async fn install_modpack_with_reporter(
         &pack_file,
         &download_url,
         progress,
+        reporter.as_ref(),
     )
     .await?;
     if let Some(reporter) = reporter.as_ref()
@@ -1376,9 +1404,9 @@ pub async fn install_modpack_with_reporter(
         "Resolved CurseForge modpack manifest files"
     );
     let content = Arc::new(Mutex::new(CurseForgeInstallResult::default()));
-    let download_metrics = reporter
-        .as_ref()
-        .map(|_| Arc::new(CurseForgeDownloadMetrics::default()));
+    let download_metrics = reporter.as_ref().map(|reporter| {
+        Arc::new(CurseForgeDownloadMetrics::with_reporter(reporter.clone()))
+    });
     let projects = Arc::new(projects);
     let file_meta = Arc::new(file_meta);
     let files_done = Arc::new(AtomicU64::new(0));
@@ -1463,7 +1491,12 @@ pub async fn install_modpack_with_reporter(
                                 .unwrap_or_else(|| {
                                     "no file was installed".to_string()
                                 });
+                            let manual_download_required =
+                                !item_result.manual_downloads.is_empty();
                             failed_result = Some(item_result);
+                            if manual_download_required {
+                                break;
+                            }
                         }
                         Err(err) => {
                             failure_reason = err.to_string();
@@ -1488,40 +1521,52 @@ pub async fn install_modpack_with_reporter(
                 let Some(item_result) = installed_result else {
                     active_downloads.fetch_sub(1, Ordering::Relaxed);
                     let mut failed_result = failed_result.unwrap_or_default();
-                    if failed_result.manual_downloads.is_empty() {
-                        let file_name = file_meta
-                            .get(&manifest_file.file_id)
-                            .map(|file| file.file_name.clone())
-                            .unwrap_or_else(|| {
-                                format!(
-                                    "project-{}-file-{}",
-                                    manifest_file.project_id,
-                                    manifest_file.file_id
-                                )
-                            });
-                        failed_result.manual_downloads.push(
-                            CurseForgeManualDownload {
-                                project_id: manifest_file.project_id,
-                                file_id: manifest_file.file_id,
-                                file_name,
-                                website_url: curseforge_file_page_url(
-                                    project.links.website_url.as_deref(),
-                                    manifest_file.file_id,
-                                ),
-                            },
-                        );
-                    }
-                    let manual_download =
-                        failed_result.manual_downloads.first().cloned();
-                    let skipped_path = manual_download
-                        .as_ref()
+                    let file_name = file_meta
+                        .get(&manifest_file.file_id)
                         .map(|file| file.file_name.clone())
                         .unwrap_or_else(|| {
                             format!(
                                 "project-{}-file-{}",
-                                manifest_file.project_id, manifest_file.file_id
+                                manifest_file.project_id,
+                                manifest_file.file_id
                             )
                         });
+                    let manual_download =
+                        failed_result.manual_downloads.first().cloned();
+                    let event = if let Some(manual_download) =
+                        manual_download.as_ref()
+                    {
+                        InstallJobEventKind::ContentFileSkipped {
+                            path: manual_download.file_name.clone(),
+                            reason: "CurseForge requires manual download"
+                                .to_string(),
+                            project_id: Some(
+                                manifest_file.project_id.to_string(),
+                            ),
+                            version_id: Some(manifest_file.file_id.to_string()),
+                            manual_url: manual_download.website_url.clone(),
+                        }
+                    } else {
+                        let reason = format!(
+                            "Failed after {MODPACK_FILE_INSTALL_ATTEMPTS} attempts: {failure_reason}"
+                        );
+                        failed_result.failed_downloads.push(
+                            CurseForgeFailedDownload {
+                                project_id: manifest_file.project_id,
+                                file_id: manifest_file.file_id,
+                                file_name: file_name.clone(),
+                                reason: reason.clone(),
+                            },
+                        );
+                        InstallJobEventKind::ContentFileFailed {
+                            path: file_name,
+                            reason,
+                            project_id: Some(
+                                manifest_file.project_id.to_string(),
+                            ),
+                            version_id: Some(manifest_file.file_id.to_string()),
+                        }
+                    };
                     {
                         let mut content =
                             content.lock().expect("content mutex");
@@ -1537,18 +1582,7 @@ pub async fn install_modpack_with_reporter(
                         total_files as u64,
                         content_total_bytes,
                         0,
-                        InstallJobEventKind::ContentFileSkipped {
-                            path: skipped_path,
-                            reason: format!(
-                                "Failed after {MODPACK_FILE_INSTALL_ATTEMPTS} attempts: {failure_reason}"
-                            ),
-                            project_id: Some(
-                                manifest_file.project_id.to_string(),
-                            ),
-                            version_id: Some(manifest_file.file_id.to_string()),
-                            manual_url: manual_download
-                                .and_then(|file| file.website_url),
-                        },
+                        event,
                     )
                     .await?;
                     return Ok(());
@@ -1830,7 +1864,8 @@ pub(crate) async fn install_local_manifest_files(
         "Resolved local CurseForge modpack manifest files"
     );
     let content = Arc::new(Mutex::new(CurseForgeInstallResult::default()));
-    let download_metrics = Arc::new(CurseForgeDownloadMetrics::default());
+    let download_metrics =
+        Arc::new(CurseForgeDownloadMetrics::with_reporter(reporter.clone()));
     let projects = Arc::new(projects);
     let file_meta = Arc::new(file_meta);
     let files_done = Arc::new(AtomicU64::new(0));
@@ -1911,7 +1946,12 @@ pub(crate) async fn install_local_manifest_files(
                                 .unwrap_or_else(|| {
                                     "no file was installed".to_string()
                                 });
+                            let manual_download_required =
+                                !item_result.manual_downloads.is_empty();
                             failed_result = Some(item_result);
+                            if manual_download_required {
+                                break;
+                            }
                         }
                         Err(err) => {
                             failure_reason = err.to_string();
@@ -1936,40 +1976,52 @@ pub(crate) async fn install_local_manifest_files(
                 let Some(item_result) = installed_result else {
                     active_downloads.fetch_sub(1, Ordering::Relaxed);
                     let mut failed_result = failed_result.unwrap_or_default();
-                    if failed_result.manual_downloads.is_empty() {
-                        let file_name = file_meta
-                            .get(&manifest_file.file_id)
-                            .map(|file| file.file_name.clone())
-                            .unwrap_or_else(|| {
-                                format!(
-                                    "project-{}-file-{}",
-                                    manifest_file.project_id,
-                                    manifest_file.file_id
-                                )
-                            });
-                        failed_result.manual_downloads.push(
-                            CurseForgeManualDownload {
-                                project_id: manifest_file.project_id,
-                                file_id: manifest_file.file_id,
-                                file_name,
-                                website_url: curseforge_file_page_url(
-                                    project.links.website_url.as_deref(),
-                                    manifest_file.file_id,
-                                ),
-                            },
-                        );
-                    }
-                    let manual_download =
-                        failed_result.manual_downloads.first().cloned();
-                    let skipped_path = manual_download
-                        .as_ref()
+                    let file_name = file_meta
+                        .get(&manifest_file.file_id)
                         .map(|file| file.file_name.clone())
                         .unwrap_or_else(|| {
                             format!(
                                 "project-{}-file-{}",
-                                manifest_file.project_id, manifest_file.file_id
+                                manifest_file.project_id,
+                                manifest_file.file_id
                             )
                         });
+                    let manual_download =
+                        failed_result.manual_downloads.first().cloned();
+                    let event = if let Some(manual_download) =
+                        manual_download.as_ref()
+                    {
+                        InstallJobEventKind::ContentFileSkipped {
+                            path: manual_download.file_name.clone(),
+                            reason: "CurseForge requires manual download"
+                                .to_string(),
+                            project_id: Some(
+                                manifest_file.project_id.to_string(),
+                            ),
+                            version_id: Some(manifest_file.file_id.to_string()),
+                            manual_url: manual_download.website_url.clone(),
+                        }
+                    } else {
+                        let reason = format!(
+                            "Failed after {MODPACK_FILE_INSTALL_ATTEMPTS} attempts: {failure_reason}"
+                        );
+                        failed_result.failed_downloads.push(
+                            CurseForgeFailedDownload {
+                                project_id: manifest_file.project_id,
+                                file_id: manifest_file.file_id,
+                                file_name: file_name.clone(),
+                                reason: reason.clone(),
+                            },
+                        );
+                        InstallJobEventKind::ContentFileFailed {
+                            path: file_name,
+                            reason,
+                            project_id: Some(
+                                manifest_file.project_id.to_string(),
+                            ),
+                            version_id: Some(manifest_file.file_id.to_string()),
+                        }
+                    };
                     {
                         let mut content =
                             content.lock().expect("content mutex");
@@ -1985,18 +2037,7 @@ pub(crate) async fn install_local_manifest_files(
                         total_files as u64,
                         content_total_bytes,
                         0,
-                        InstallJobEventKind::ContentFileSkipped {
-                            path: skipped_path,
-                            reason: format!(
-                                "Failed after {MODPACK_FILE_INSTALL_ATTEMPTS} attempts: {failure_reason}"
-                            ),
-                            project_id: Some(
-                                manifest_file.project_id.to_string(),
-                            ),
-                            version_id: Some(manifest_file.file_id.to_string()),
-                            manual_url: manual_download
-                                .and_then(|file| file.website_url),
-                        },
+                        event,
                     )
                     .await?;
                     return Ok(());
@@ -2355,6 +2396,7 @@ fn merge_install_result(
 ) {
     target.installed.append(&mut source.installed);
     target.manual_downloads.append(&mut source.manual_downloads);
+    target.failed_downloads.append(&mut source.failed_downloads);
     target
         .optional_dependencies
         .append(&mut source.optional_dependencies);
@@ -2371,7 +2413,7 @@ pub async fn update_installed_file(
 
     let state = State::get().await?;
     let row = sqlx::query(
-        "SELECT ref.project_id, ref.version_id, entry.project_type,
+        "SELECT ref.provider_project_id, ref.provider_release_id, entry.project_type,
                 content_set.game_version, content_set.loader
          FROM instance_files file
          INNER JOIN instance_content_entries entry ON entry.file_id = file.id
@@ -2393,7 +2435,7 @@ pub async fn update_installed_file(
         )
     })?;
     let project_id = row
-        .try_get::<String, _>("project_id")?
+        .try_get::<String, _>("provider_project_id")?
         .parse::<u32>()
         .map_err(|_| {
             ErrorKind::InputError(
@@ -2401,7 +2443,7 @@ pub async fn update_installed_file(
             )
         })?;
     let current_file_id = row
-        .try_get::<Option<String>, _>("version_id")?
+        .try_get::<Option<String>, _>("provider_release_id")?
         .and_then(|value| value.parse::<u32>().ok());
     let project_type = row.try_get::<String, _>("project_type")?;
     let game_version = row.try_get::<String, _>("game_version")?;
@@ -2494,8 +2536,26 @@ pub async fn recognize_instance_files(
     for (fingerprint, paths) in paths_by_fingerprint {
         if let Some(file) = matches.get(&fingerprint) {
             for path in paths {
-                register_provider_ref(instance_id, &path, file.mod_id, file.id)
-                    .await?;
+                let full_path = instance_path.join(&path);
+                let (size, sha1) = sha1_file_async(&full_path).await?;
+                let state = State::get().await?;
+                let provider_ref = ContentProviderRef::CurseForge {
+                    project_id: CurseForgeProjectId::new(file.mod_id)?,
+                    file_id: Some(CurseForgeFileId::new(file.id)?),
+                };
+                crate::state::record_project_file_atomic(
+                    instance_id,
+                    &path,
+                    &sha1,
+                    size,
+                    ProjectType::Mod,
+                    ContentSourceKind::CurseForge,
+                    Some(&provider_ref),
+                    false,
+                    None,
+                    &state,
+                )
+                .await?;
                 result.linked.push(CurseForgeInstalledFile {
                     project_id: file.mod_id,
                     file_id: file.id,
@@ -2624,30 +2684,6 @@ async fn report_modpack_progress(
     Ok(())
 }
 
-fn cached_project(project_id: u32) -> Option<CurseForgeProject> {
-    PROJECT_CACHE
-        .read()
-        .ok()
-        .and_then(|cache| cache.get(&project_id).cloned())
-        .filter(|cached| cached.cached_at.elapsed() < PROJECT_CACHE_TTL)
-        .map(|cached| cached.project)
-}
-
-fn cache_projects(projects: &[CurseForgeProject]) {
-    if let Ok(mut cache) = PROJECT_CACHE.write() {
-        let cached_at = Instant::now();
-        for project in projects {
-            cache.insert(
-                project.id,
-                CachedCurseForgeProject {
-                    project: project.clone(),
-                    cached_at,
-                },
-            );
-        }
-    }
-}
-
 fn is_forge_cdn_url(url: &reqwest::Url) -> bool {
     let host = url.host_str().unwrap_or_default().to_ascii_lowercase();
     host == "forgecdn.net" || host.ends_with(".forgecdn.net")
@@ -2768,6 +2804,7 @@ async fn download_curseforge_path(
     destination: &Path,
     validation: ContentValidation,
     progress: Option<&mut FetchProgressFn<'_>>,
+    tracking: Option<(&InstallProgressReporter, &str)>,
 ) -> crate::Result<crate::util::fetch::DownloadResult> {
     let state = State::get().await?;
     let mut request = DownloadRequest::new(url, ResourceClass::CurseForge)
@@ -2778,6 +2815,13 @@ async fn download_curseforge_path(
         && let Some(key) = api_key()
     {
         request = request.with_header("x-api-key", key);
+    }
+    if let Some((reporter, item_id)) = tracking {
+        request = request.with_install_tracking(
+            reporter.clone(),
+            item_id,
+            file.file_name.clone(),
+        );
     }
     download_to_path(
         request,
@@ -2795,6 +2839,7 @@ async fn download_curseforge_archive(
     file: &CurseForgeFile,
     url: &str,
     progress: Option<&mut FetchProgressFn<'_>>,
+    reporter: Option<&InstallProgressReporter>,
 ) -> crate::Result<crate::util::fetch::DownloadResult> {
     validate_file_name(&file.file_name)?;
     let state = State::get().await?;
@@ -2806,8 +2851,16 @@ async fn download_curseforge_archive(
         .join(project_id.to_string())
         .join(file_id.to_string())
         .join(&file.file_name);
-    download_curseforge_path(url, file, &path, ContentValidation::Jar, progress)
-        .await
+    let tracking_item_id = path.display().to_string();
+    download_curseforge_path(
+        url,
+        file,
+        &path,
+        ContentValidation::Jar,
+        progress,
+        reporter.map(|reporter| (reporter, tracking_item_id.as_str())),
+    )
+    .await
 }
 
 async fn download_installed_file(
@@ -2847,99 +2900,67 @@ async fn download_installed_file(
     let full_path = crate::api::instance::get_full_path(instance_id)
         .await?
         .join(&relative_path);
+    let mut download_path = full_path.as_os_str().to_os_string();
+    download_path.push(".installing.download");
+    let download_path = Path::new(&download_path);
     let result = download_curseforge_path(
         url,
         file,
-        &full_path,
+        download_path,
         curseforge_content_validation(&file.file_name),
         None,
+        download_metrics
+            .and_then(|metrics| metrics.reporter.as_ref())
+            .map(|reporter| (reporter, relative_path.as_str())),
     )
     .await?;
     if let Some(download_metrics) = download_metrics {
         download_metrics.record(&result);
     }
+    let previous_path =
+        crate::state::materialize_project_download(download_path, &full_path)
+            .await?;
+    crate::util::io::remove_file(download_path).await?;
     let sha1 =
         if let Some(hash) = file.hashes.iter().find(|hash| hash.algo == 1) {
             hash.value.clone()
         } else {
             sha1_file_async(&full_path).await?.1
         };
-    crate::state::cache_file_hash_metadata(
-        instance_id,
-        &relative_path,
-        result.size,
-        sha1.clone(),
-        Some(project_type),
-        None,
-        &state.pool,
-    )
-    .await?;
-    let project_id_string = project_id.to_string();
-    let file_id_string = file_id.to_string();
-    crate::state::record_project_file(
+    let provider_ref = ContentProviderRef::CurseForge {
+        project_id: CurseForgeProjectId::new(project_id)?,
+        file_id: Some(CurseForgeFileId::new(file_id)?),
+    };
+    let record_result = crate::state::record_project_file_atomic(
         instance_id,
         &relative_path,
         &sha1,
         result.size,
         project_type,
         ContentSourceKind::CurseForge,
-        Some(&project_id_string),
-        Some(&file_id_string),
+        Some(&provider_ref),
+        true,
+        None,
         &state,
     )
-    .await?;
-    register_provider_ref(instance_id, &relative_path, project_id, file_id)
-        .await?;
+    .await;
+    match record_result {
+        Ok(()) => {
+            crate::state::finalize_project_materialization(
+                previous_path.as_deref(),
+            )
+            .await?;
+        }
+        Err(error) => {
+            crate::state::restore_project_materialization(
+                &full_path,
+                previous_path.as_deref(),
+            )
+            .await?;
+            return Err(error);
+        }
+    }
     Ok(relative_path)
-}
-
-async fn register_provider_ref(
-    instance_id: &str,
-    relative_path: &str,
-    project_id: u32,
-    file_id: u32,
-) -> crate::Result<()> {
-    let state = State::get().await?;
-    let entry_id = sqlx::query_scalar::<_, String>(
-        "SELECT entry.id
-         FROM instance_content_entries entry
-         INNER JOIN instance_files file ON file.id = entry.file_id
-         WHERE entry.instance_id = ? AND file.relative_path = ?
-         ORDER BY entry.modified_at DESC
-         LIMIT 1",
-    )
-    .bind(instance_id)
-    .bind(relative_path)
-    .fetch_optional(&state.pool)
-    .await?
-    .ok_or_else(|| {
-        ErrorKind::OtherError(
-            "Installed CurseForge file was not registered".to_string(),
-        )
-    })?;
-
-    sqlx::query(
-        "INSERT INTO instance_content_provider_refs (
-            content_entry_id, provider, project_id, version_id, primary_ref
-         ) VALUES (
-            ?, 'curseforge', ?, ?,
-            CASE WHEN EXISTS (
-                SELECT 1 FROM instance_content_provider_refs
-                WHERE content_entry_id = ? AND primary_ref = 1
-            ) THEN 0 ELSE 1 END
-         )
-         ON CONFLICT(content_entry_id, provider) DO UPDATE SET
-            project_id = excluded.project_id,
-            version_id = excluded.version_id",
-    )
-    .bind(&entry_id)
-    .bind(project_id.to_string())
-    .bind(file_id.to_string())
-    .bind(&entry_id)
-    .execute(&state.pool)
-    .await?;
-
-    Ok(())
 }
 
 pub fn compute_fingerprint(data: &[u8]) -> u32 {

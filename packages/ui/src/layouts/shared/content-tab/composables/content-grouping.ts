@@ -28,7 +28,7 @@ export function useContentGrouping(options: UseContentGroupingOptions) {
 		return sortItems(
 			raw.map((item) => ({
 				...item,
-				has_update: false,
+				update: null,
 			})),
 		)
 	})

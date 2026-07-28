@@ -11,6 +11,7 @@ use serde::{Deserialize, Serialize};
 use crate::api::pack::detect::{LocalPackFormat, detect_local_pack_sync};
 use crate::api::pack::import::ImportLauncherType;
 use crate::mod_metadata::manifest::read_jar_manifest;
+use crate::state::{ModrinthProjectId, ModrinthVersionId};
 
 /// Maximum number of items allowed in a ZIP before we classify it as "ZIP
 /// with many items" rather than "single file/folder wrapped in ZIP".
@@ -864,7 +865,7 @@ pub async fn lookup_mod_hash(
 
     let file = &files[0];
     let version = crate::state::CachedEntry::get_version(
-        &file.version_id,
+        &ModrinthVersionId::new(file.version_id.clone())?,
         Some(crate::state::CacheBehaviour::StaleWhileRevalidateSkipOffline),
         &state.pool,
         &state.api_semaphore,
@@ -873,7 +874,7 @@ pub async fn lookup_mod_hash(
 
     let project = if let Some(v) = &version {
         crate::state::CachedEntry::get_project(
-            &v.project_id,
+            &ModrinthProjectId::new(v.project_id.clone())?,
             Some(crate::state::CacheBehaviour::StaleWhileRevalidateSkipOffline),
             &state.pool,
             &state.api_semaphore,

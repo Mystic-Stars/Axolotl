@@ -6,8 +6,9 @@ use crate::state::instances::{
     adapters::sqlite::{content_rows, instance_rows},
 };
 use crate::state::{
-    CacheBehaviour, CachedEntry, Dependency, DependencyType, KnownModrinthFile,
-    ModLoader, ProjectType, State, Version, cache_file_hash,
+    CacheBehaviour, CachedEntry, ContentProviderRef, Dependency,
+    DependencyType, KnownModrinthFile, ModLoader, ModrinthProjectId,
+    ModrinthVersionId, ProjectType, State, Version, cache_file_hash,
     cache_file_hash_metadata,
 };
 use crate::util::fetch::{
@@ -33,7 +34,7 @@ pub(crate) struct ContentScope {
 
 pub(crate) struct InstalledContentFile {
     pub relative_path: String,
-    pub project_id: Option<String>,
+    pub provider_refs: Vec<ContentProviderRef>,
     pub enabled: bool,
 }
 
@@ -67,7 +68,8 @@ impl ContentMetadataProvider for CachedEntryContentProvider<'_> {
     ) -> Result<Option<modrinth_content_management::Version>, ResolveError>
     {
         let version = CachedEntry::get_version(
-            version_id,
+            &ModrinthVersionId::new(version_id.to_string())
+                .map_err(resolve_provider_error)?,
             self.cache_behaviour,
             &self.state.pool,
             &self.state.api_semaphore,
@@ -83,7 +85,8 @@ impl ContentMetadataProvider for CachedEntryContentProvider<'_> {
         project_id: &str,
     ) -> Result<Vec<modrinth_content_management::Version>, ResolveError> {
         let versions = CachedEntry::get_project_versions(
-            project_id,
+            &ModrinthProjectId::new(project_id.to_string())
+                .map_err(resolve_provider_error)?,
             self.cache_behaviour,
             &self.state.pool,
             &self.state.api_semaphore,
@@ -241,7 +244,7 @@ pub(crate) async fn switch_project_version_with_dependencies(
     state: &State,
 ) -> crate::Result<String> {
     let version = CachedEntry::get_version(
-        version_id,
+        &ModrinthVersionId::new(version_id.to_string())?,
         Some(CacheBehaviour::MustRevalidate),
         &state.pool,
         &state.api_semaphore,
@@ -383,7 +386,7 @@ pub(crate) async fn download_project_version(
                 ))
             })?;
     let version = CachedEntry::get_version(
-        version_id,
+        &ModrinthVersionId::new(version_id.to_string())?,
         None,
         &state.pool,
         &state.api_semaphore,
@@ -528,7 +531,7 @@ async fn modrinth_chinese_file_name_candidate(
     state: &State,
 ) -> Option<String> {
     let project = CachedEntry::get_project(
-        project_id,
+        &ModrinthProjectId::new(project_id.to_string()).ok()?,
         None,
         &state.pool,
         &state.api_semaphore,
@@ -570,39 +573,47 @@ pub(crate) async fn add_downloaded_project_version(
     .await?;
     let full_path =
         instance_full_path(state, &scope.instance).join(&relative_path);
-    materialize_project_download(&path, &full_path).await?;
-    cache_file_hash_metadata(
-        &scope.instance.id,
-        &relative_path,
-        size,
-        sha1.clone(),
-        Some(project_type),
-        Some(KnownModrinthFile {
-            project_id: &project_id,
-            version_id: &version_id,
-        }),
-        &state.pool,
-    )
-    .await?;
-    record_project_file(
+    let previous_path = materialize_project_download(&path, &full_path).await?;
+    let provider_ref = ContentProviderRef::Modrinth {
+        project_id: ModrinthProjectId::new(project_id.clone())?,
+        version_id: Some(ModrinthVersionId::new(version_id.clone())?),
+    };
+    let record_result = record_project_file_atomic(
         instance_id,
         &relative_path,
         &sha1,
         size,
         project_type,
         source_kind,
-        Some(&project_id),
-        Some(&version_id),
+        Some(&provider_ref),
+        true,
+        Some(KnownModrinthFile {
+            project_id: &project_id,
+            version_id: &version_id,
+        }),
         state,
     )
-    .await?;
+    .await;
+    match record_result {
+        Ok(()) => {
+            finalize_project_materialization(previous_path.as_deref()).await?
+        }
+        Err(error) => {
+            restore_project_materialization(
+                &full_path,
+                previous_path.as_deref(),
+            )
+            .await?;
+            return Err(error);
+        }
+    }
     Ok(relative_path)
 }
 
-async fn materialize_project_download(
+pub(crate) async fn materialize_project_download(
     source: &Path,
     destination: &Path,
-) -> crate::Result<()> {
+) -> crate::Result<Option<PathBuf>> {
     if let Some(parent) = destination.parent() {
         io::create_dir_all(parent).await?;
     }
@@ -615,15 +626,56 @@ async fn materialize_project_download(
     if tokio::fs::hard_link(source, &temporary).await.is_err() {
         io::copy(source, &temporary).await?;
     }
+    let mut backup = destination.as_os_str().to_os_string();
+    backup.push(".installing.previous");
+    let backup = PathBuf::from(backup);
+    if backup.exists() {
+        io::remove_file(&backup).await?;
+    }
+    if destination.exists() {
+        tokio::fs::rename(destination, &backup).await?;
+    }
+    if let Err(error) = tokio::fs::rename(&temporary, destination).await {
+        if backup.exists() {
+            let _ = tokio::fs::rename(&backup, destination).await;
+        }
+        warn!(
+            "Failed to rename temporary file to destination — checking file lock"
+        );
+        return Err(crate::Error::from(io_error_with_lock_info(
+            error,
+            destination,
+        )));
+    }
+    Ok(destination
+        .exists()
+        .then_some(backup)
+        .filter(|path| path.exists()))
+}
+
+pub(crate) async fn finalize_project_materialization(
+    previous_path: Option<&Path>,
+) -> crate::Result<()> {
+    if let Some(previous_path) = previous_path
+        && previous_path.exists()
+    {
+        io::remove_file(previous_path).await?;
+    }
+    Ok(())
+}
+
+pub(crate) async fn restore_project_materialization(
+    destination: &Path,
+    previous_path: Option<&Path>,
+) -> crate::Result<()> {
     if destination.exists() {
         io::remove_file(destination).await?;
     }
-    tokio::fs::rename(&temporary, destination)
-        .await
-        .map_err(|e| {
-            warn!("Failed to rename temporary file to destination — checking file lock");
-            crate::Error::from(io_error_with_lock_info(e, destination))
-        })?;
+    if let Some(previous_path) = previous_path
+        && previous_path.exists()
+    {
+        tokio::fs::rename(previous_path, destination).await?;
+    }
     Ok(())
 }
 
@@ -647,8 +699,6 @@ pub(crate) async fn add_project_from_path(
         None,
         project_type,
         ContentSourceKind::Local,
-        None,
-        None,
         state,
     )
     .await
@@ -661,8 +711,6 @@ pub(crate) async fn add_project_bytes(
     hash: Option<&str>,
     project_type: Option<ProjectType>,
     source_kind: ContentSourceKind,
-    project_id: Option<&str>,
-    version_id: Option<&str>,
     state: &State,
 ) -> crate::Result<String> {
     let scope = resolve_content_scope(instance_id, None, state).await?;
@@ -684,12 +732,7 @@ pub(crate) async fn add_project_bytes(
         &relative_path,
         Some(&sha1),
         Some(project_type),
-        project_id.zip(version_id).map(|(project_id, version_id)| {
-            KnownModrinthFile {
-                project_id,
-                version_id,
-            }
-        }),
+        None,
         &state.pool,
     )
     .await?;
@@ -720,9 +763,9 @@ pub(crate) async fn add_project_bytes(
         &scope,
         &file,
         project_type,
-        project_id,
-        version_id,
         source_kind,
+        None,
+        false,
         &state.pool,
     )
     .await?;
@@ -730,15 +773,16 @@ pub(crate) async fn add_project_bytes(
     Ok(relative_path)
 }
 
-pub(crate) async fn record_project_file(
+pub(crate) async fn record_project_file_atomic(
     instance_id: &str,
     relative_path: &str,
     sha1: &str,
     size: u64,
     project_type: ProjectType,
     source_kind: ContentSourceKind,
-    project_id: Option<&str>,
-    version_id: Option<&str>,
+    provider_ref: Option<&ContentProviderRef>,
+    origin: bool,
+    known_modrinth_file: Option<KnownModrinthFile<'_>>,
     state: &State,
 ) -> crate::Result<()> {
     let scope = resolve_content_scope(instance_id, None, state).await?;
@@ -747,7 +791,8 @@ pub(crate) async fn record_project_file(
         .unwrap_or_default()
         .to_string_lossy()
         .to_string();
-    let file = content_rows::upsert_instance_file_from_parts(
+    let mut tx = begin_content_write(&state.pool).await?;
+    let file = content_rows::upsert_instance_file_from_parts_in_transaction(
         content_rows::UpsertInstanceFile {
             instance_id: &scope.instance.id,
             relative_path,
@@ -758,19 +803,50 @@ pub(crate) async fn record_project_file(
             missing: false,
             local_mod_data: None,
         },
-        &state.pool,
+        &mut tx,
     )
     .await?;
-    upsert_entry_for_file(
-        &scope,
-        &file,
-        project_type,
-        project_id,
-        version_id,
-        source_kind,
-        &state.pool,
+    let entry = content_rows::upsert_content_entry_from_parts_in_transaction(
+        content_rows::UpsertContentEntry {
+            instance_id: &scope.instance.id,
+            content_set_id: &scope.content_set_id,
+            file_id: Some(&file.id),
+            project_type,
+            source_kind,
+            server_requirement: ContentRequirement::Required,
+            client_requirement: ContentRequirement::Required,
+            enabled: file.enabled,
+        },
+        &mut tx,
     )
-    .await
+    .await?;
+    if let Some(provider_ref) = provider_ref {
+        content_rows::upsert_content_provider_ref_in_transaction(
+            &entry.id,
+            provider_ref,
+            origin,
+            &mut tx,
+        )
+        .await?;
+    }
+    cache_file_hash_metadata(
+        &scope.instance.id,
+        relative_path,
+        size,
+        sha1.to_string(),
+        Some(project_type),
+        known_modrinth_file,
+        &mut *tx,
+    )
+    .await?;
+    tx.commit().await?;
+    Ok(())
+}
+
+async fn begin_content_write(
+    pool: &sqlx::SqlitePool,
+) -> crate::Result<sqlx::Transaction<'static, sqlx::Sqlite>> {
+    Ok(pool.begin_with("BEGIN IMMEDIATE").await?)
 }
 
 pub(crate) async fn toggle_disable_project(
@@ -858,9 +934,9 @@ pub(crate) async fn toggle_disable_project(
             &scope,
             &file,
             project_type,
-            None,
-            None,
             ContentSourceKind::Local,
+            None,
+            false,
             &state.pool,
         )
         .await?;
@@ -918,17 +994,26 @@ pub(crate) async fn list_project_files(
             .map(|file| (file.id.clone(), file))
             .collect::<std::collections::HashMap<_, _>>();
 
-    Ok(entries
-        .into_iter()
-        .filter_map(|entry| {
-            let file = files.get(entry.file_id.as_ref()?)?;
-            Some(InstalledContentFile {
-                relative_path: file.relative_path.clone(),
-                project_id: entry.project_id,
-                enabled: entry.enabled && file.enabled,
-            })
-        })
-        .collect())
+    let mut output = Vec::new();
+    for entry in entries {
+        let Some(file_id) = entry.file_id.as_deref() else {
+            continue;
+        };
+        let Some(file) = files.get(file_id) else {
+            continue;
+        };
+        output.push(InstalledContentFile {
+            relative_path: file.relative_path.clone(),
+            provider_refs: content_rows::get_content_provider_refs(
+                &entry.id,
+                &state.pool,
+            )
+            .await?,
+            enabled: entry.enabled && file.enabled,
+        });
+    }
+
+    Ok(output)
 }
 
 pub(crate) fn instance_full_path(
@@ -990,9 +1075,9 @@ async fn index_existing_file(
         scope,
         &file,
         project_type,
-        None,
-        None,
         ContentSourceKind::Local,
+        None,
+        false,
         &state.pool,
     )
     .await?;
@@ -1004,19 +1089,17 @@ async fn upsert_entry_for_file(
     scope: &ContentScope,
     file: &InstanceFile,
     project_type: ProjectType,
-    project_id: Option<&str>,
-    version_id: Option<&str>,
     source_kind: ContentSourceKind,
+    provider_ref: Option<&ContentProviderRef>,
+    origin: bool,
     pool: &sqlx::SqlitePool,
 ) -> crate::Result<()> {
-    content_rows::upsert_content_entry_from_parts(
+    let entry = content_rows::upsert_content_entry_from_parts(
         content_rows::UpsertContentEntry {
             instance_id: &scope.instance.id,
             content_set_id: &scope.content_set_id,
             file_id: Some(&file.id),
             project_type,
-            project_id,
-            version_id,
             source_kind,
             server_requirement: ContentRequirement::Required,
             client_requirement: ContentRequirement::Required,
@@ -1025,6 +1108,16 @@ async fn upsert_entry_for_file(
         pool,
     )
     .await?;
+
+    if let Some(provider_ref) = provider_ref {
+        content_rows::upsert_content_provider_ref(
+            &entry.id,
+            provider_ref,
+            origin,
+            pool,
+        )
+        .await?;
+    }
 
     Ok(())
 }
@@ -1064,5 +1157,44 @@ fn infer_project_type(bytes: &Bytes) -> crate::Result<ProjectType> {
             "Unable to infer project type for input file".to_string(),
         )
         .into())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::begin_content_write;
+    use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
+    use std::time::Duration;
+
+    #[tokio::test]
+    async fn content_writes_wait_for_the_existing_sqlite_writer() {
+        let directory = tempfile::tempdir().unwrap();
+        let options = SqliteConnectOptions::new()
+            .filename(directory.path().join("content-write.db"))
+            .create_if_missing(true)
+            .busy_timeout(Duration::from_secs(2));
+        let pool = SqlitePoolOptions::new()
+            .max_connections(2)
+            .connect_with(options)
+            .await
+            .unwrap();
+
+        let first = begin_content_write(&pool).await.unwrap();
+        let second_pool = pool.clone();
+        let second =
+            tokio::spawn(
+                async move { begin_content_write(&second_pool).await },
+            );
+        tokio::time::sleep(Duration::from_millis(50)).await;
+
+        assert!(!second.is_finished());
+        first.commit().await.unwrap();
+
+        let second = tokio::time::timeout(Duration::from_secs(2), second)
+            .await
+            .unwrap()
+            .unwrap()
+            .unwrap();
+        second.rollback().await.unwrap();
     }
 }

@@ -776,9 +776,21 @@ async fn install_mojang_runtime(
             )
             .await?;
     }
-    let download_result = download_to_path(
+    let mut request =
         DownloadRequest::new(&release.manifest.url, ResourceClass::Java)
-            .with_integrity(manifest_integrity),
+            .with_integrity(manifest_integrity);
+    if let Some(reporter) = reporter {
+        request = request.with_install_tracking(
+            reporter.clone(),
+            manifest_path.display().to_string(),
+            manifest_path
+                .file_name()
+                .map(|name| name.to_string_lossy().into_owned())
+                .unwrap_or_else(|| "runtime-manifest.json".to_string()),
+        );
+    }
+    let download_result = download_to_path(
+        request,
         &manifest_path,
         &state.download_semaphore,
         &state.pool,
@@ -930,15 +942,23 @@ async fn install_mojang_runtime(
                             .await
                         })
                     };
+                    let mut request = DownloadRequest::new(
+                        &download.url,
+                        ResourceClass::Java,
+                    )
+                    .with_integrity(
+                        Integrity::sha1(&download.sha1)
+                            .with_size(download.size),
+                    );
+                    if let Some(reporter) = &reporter {
+                        request = request.with_install_tracking(
+                            reporter.clone(),
+                            path.display().to_string(),
+                            relative_path.clone(),
+                        );
+                    }
                     let result = download_to_path(
-                        DownloadRequest::new(
-                            &download.url,
-                            ResourceClass::Java,
-                        )
-                        .with_integrity(
-                            Integrity::sha1(&download.sha1)
-                                .with_size(download.size),
-                        ),
+                        request,
                         &path,
                         &state.download_semaphore,
                         &state.pool,
@@ -1154,14 +1174,26 @@ async fn install_azul_runtime(
                 .await
             })
         };
-    let download_result = download_to_path(
+    let mut request =
         DownloadRequest::new(&download.download_url, ResourceClass::Java)
             .with_integrity(Integrity {
                 size: None,
                 sha256: Some(download.sha256_hash.clone()),
                 content: ContentValidation::Jar,
                 ..Integrity::default()
-            }),
+            });
+    if let Some(reporter) = reporter {
+        request = request.with_install_tracking(
+            reporter.clone(),
+            archive_path.display().to_string(),
+            archive_path
+                .file_name()
+                .map(|name| name.to_string_lossy().into_owned())
+                .unwrap_or_else(|| "java-runtime".to_string()),
+        );
+    }
+    let download_result = download_to_path(
+        request,
         &archive_path,
         &state.download_semaphore,
         &state.pool,
@@ -1542,9 +1574,17 @@ async fn download_java_from_feed_inner(
             }
         };
 
+    let mut request = DownloadRequest::new(&pkg.url, ResourceClass::Java)
+        .with_integrity(integrity);
+    if let Some(reporter) = &reporter {
+        request = request.with_install_tracking(
+            reporter.clone(),
+            archive_path.display().to_string(),
+            pkg.install_folder_name.clone(),
+        );
+    }
     download_to_path(
-        DownloadRequest::new(&pkg.url, ResourceClass::Java)
-            .with_integrity(integrity),
+        request,
         &archive_path,
         &state.download_semaphore,
         &state.pool,

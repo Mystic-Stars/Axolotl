@@ -74,12 +74,6 @@
   "app.appearance-settings.hide-nametag.title": {
     "message": "Ẩn thẻ tên"
   },
-  "app.appearance-settings.jump-back-into-worlds.description": {
-    "message": "Hiển thị các thế giới gần đây trong mục \"Tiếp tục chơi\" ở Trang chủ."
-  },
-  "app.appearance-settings.jump-back-into-worlds.title": {
-    "message": "Tiếp tục chơi"
-  },
   "app.appearance-settings.minimize-launcher.description": {
     "message": "Thu nhỏ launcher khi game Minecraft bắt đầu chạy."
   },
@@ -596,9 +590,6 @@
   "instance.edit-server.title": {
     "message": "Sửa máy chủ"
   },
-  "instance.edit-world.hide-from-home": {
-    "message": "Ẩn khỏi trang chủ"
-  },
   "instance.edit-world.name": {
     "message": "Tên"
   },
@@ -761,9 +752,6 @@
   "instance.settings.tabs.java.custom-java-arguments": {
     "message": "Tùy chỉnh tham số Java"
   },
-  "instance.settings.tabs.java.custom-java-installation": {
-    "message": "Tùy chỉnh phiên bản cài đặt Java"
-  },
   "instance.settings.tabs.java.custom-memory-allocation": {
     "message": "Tùy chỉnh phân bổ bộ nhớ"
   },
@@ -775,9 +763,6 @@
   },
   "instance.settings.tabs.java.environment-variables": {
     "message": "Biến môi trường"
-  },
-  "instance.settings.tabs.java.hooks": {
-    "message": "Hooks"
   },
   "instance.settings.tabs.java.java-arguments": {
     "message": "Tham số Java"
@@ -829,9 +814,6 @@
   },
   "instance.worlds.copy_address": {
     "message": "Sao chép địa chỉ"
-  },
-  "instance.worlds.dont_show_on_home": {
-    "message": "Không hiện ở Trang chủ"
   },
   "instance.worlds.game_already_open": {
     "message": "Bản này đã mở sẵn"

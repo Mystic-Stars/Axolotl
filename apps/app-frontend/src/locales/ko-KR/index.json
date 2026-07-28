@@ -68,12 +68,6 @@
   "app.appearance-settings.hide-nametag.title": {
     "message": "이름표 숨기기"
   },
-  "app.appearance-settings.jump-back-into-worlds.description": {
-    "message": "홈 화면의 \"바로 입장\" 부분에 최근 플레이한 월드를 표시합니다."
-  },
-  "app.appearance-settings.jump-back-into-worlds.title": {
-    "message": "세계로 바로 입장"
-  },
   "app.appearance-settings.minimize-launcher.description": {
     "message": "마인크래프트 실행 시 런처를 최소화합니다."
   },
@@ -581,9 +575,6 @@
   "instance.edit-server.title": {
     "message": "서버 편집"
   },
-  "instance.edit-world.hide-from-home": {
-    "message": "홈 화면에서 숨기기"
-  },
   "instance.edit-world.name": {
     "message": "이름"
   },
@@ -722,9 +713,6 @@
   "instance.settings.tabs.java.custom-java-arguments": {
     "message": "사용자 지정 Java 매개변수"
   },
-  "instance.settings.tabs.java.custom-java-installation": {
-    "message": "사용자 지정 Java 설치"
-  },
   "instance.settings.tabs.java.custom-memory-allocation": {
     "message": "사용자 지정 메모리 할당"
   },
@@ -736,9 +724,6 @@
   },
   "instance.settings.tabs.java.environment-variables": {
     "message": "환경 변수"
-  },
-  "instance.settings.tabs.java.hooks": {
-    "message": "후크"
   },
   "instance.settings.tabs.java.java-arguments": {
     "message": "Java 매개변수"
@@ -790,9 +775,6 @@
   },
   "instance.worlds.copy_address": {
     "message": "주소 복사"
-  },
-  "instance.worlds.dont_show_on_home": {
-    "message": "홈에서 숨기기"
   },
   "instance.worlds.game_already_open": {
     "message": "이미 실행된 인스턴스"

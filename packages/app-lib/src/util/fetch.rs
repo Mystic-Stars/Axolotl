@@ -4,6 +4,7 @@ use super::download_manager::{DownloadSpeedTracker, SpeedSnapshot};
 use super::io::{self, IOError};
 use crate::event::LoadingBarId;
 use crate::event::emit::emit_loading;
+use crate::install::InstallProgressReporter;
 use crate::{ErrorKind, LabrinthError};
 use bytes::Bytes;
 use chrono::{DateTime, TimeDelta, Utc};
@@ -185,6 +186,14 @@ pub struct DownloadRequest {
     pub download_meta: Option<DownloadMeta>,
     pub header: Option<(String, String)>,
     pub candidate_urls: Vec<String>,
+    install_tracking: Option<DownloadInstallTracking>,
+}
+
+#[derive(Clone, Debug)]
+struct DownloadInstallTracking {
+    reporter: InstallProgressReporter,
+    item_id: String,
+    item_name: String,
 }
 
 impl DownloadRequest {
@@ -196,6 +205,7 @@ impl DownloadRequest {
             download_meta: None,
             header: None,
             candidate_urls: Vec::new(),
+            install_tracking: None,
         }
     }
 
@@ -224,6 +234,20 @@ impl DownloadRequest {
         S: Into<String>,
     {
         self.candidate_urls.extend(urls.into_iter().map(Into::into));
+        self
+    }
+
+    pub fn with_install_tracking(
+        mut self,
+        reporter: InstallProgressReporter,
+        item_id: impl Into<String>,
+        item_name: impl Into<String>,
+    ) -> Self {
+        self.install_tracking = Some(DownloadInstallTracking {
+            reporter,
+            item_id: item_id.into(),
+            item_name: item_name.into(),
+        });
         self
     }
 }
@@ -258,6 +282,8 @@ fn modrinth_request_kind(url: &str) -> Option<&'static str> {
 
 fn sanitize_url_for_log(url: &str) -> String {
     if let Ok(mut url) = Url::parse(url) {
+        let _ = url.set_username("");
+        let _ = url.set_password(None);
         url.set_query(None);
         url.set_fragment(None);
         return url.into();
@@ -3134,9 +3160,37 @@ pub async fn download_to_path(
     destination: impl AsRef<Path>,
     semaphore: &FetchSemaphore,
     _exec: impl sqlx::Executor<'_, Database = sqlx::Sqlite>,
+    progress: Option<&mut FetchProgressFn<'_>>,
+) -> crate::Result<DownloadResult> {
+    let tracking = request.install_tracking.clone();
+    let result = download_to_path_inner(
+        request,
+        destination.as_ref(),
+        semaphore,
+        progress,
+    )
+    .await;
+    if result.is_err()
+        && let Some(tracking) = tracking
+        && let Err(error) = tracking
+            .reporter
+            .record_download_request_failed(&tracking.item_id)
+            .await
+    {
+        tracing::warn!(
+            error = %error,
+            "Failed to record failed download request"
+        );
+    }
+    result
+}
+
+async fn download_to_path_inner(
+    request: DownloadRequest,
+    destination: &Path,
+    semaphore: &FetchSemaphore,
     mut progress: Option<&mut FetchProgressFn<'_>>,
 ) -> crate::Result<DownloadResult> {
-    let destination = destination.as_ref();
     if let Some(parent) = destination.parent() {
         io::create_dir_all(parent).await?;
     }
@@ -3214,6 +3268,7 @@ pub async fn download_to_path(
     let mut attempts = 0;
     let mut last_error = None;
     let mut fallback_count = 0;
+    let mut partial_route_index = None;
     let file_attempt_budget = routes.len().saturating_mul(2).max(1);
     for retry_with_single_thread in [false, true] {
         for (route_index, route) in routes.iter().enumerate() {
@@ -3221,8 +3276,32 @@ pub async fn download_to_path(
             if route_index > 0 {
                 fallback_count += 1;
             }
+            if partial_route_index.is_some_and(|index| index != route_index) {
+                remove_if_exists(&part_path).await?;
+            }
+            partial_route_index = Some(route_index);
             while attempts < file_attempt_budget {
                 attempts += 1;
+                if let Some(tracking) = &request.install_tracking {
+                    if let Err(error) = tracking
+                        .reporter
+                        .record_download_request(
+                            &tracking.item_id,
+                            &tracking.item_name,
+                            &log_url,
+                            route.source.as_str(),
+                            request.integrity.size,
+                            attempts as u32,
+                            file_attempt_budget as u32,
+                        )
+                        .await
+                    {
+                        tracing::warn!(
+                            error = %error,
+                            "Failed to record active download request"
+                        );
+                    }
+                }
                 tracing::debug!(
                     path = %destination.display(),
                     temporary_path = %part_path.display(),
@@ -3288,6 +3367,20 @@ pub async fn download_to_path(
                                 max_attempts = file_attempt_budget,
                                 "Completed file download"
                             );
+                            if let Some(tracking) = &request.install_tracking
+                                && let Err(error) = tracking
+                                    .reporter
+                                    .record_download_request_finished(
+                                        &tracking.item_id,
+                                        result.size,
+                                    )
+                                    .await
+                            {
+                                tracing::warn!(
+                                    error = %error,
+                                    "Failed to record completed download request"
+                                );
+                            }
                             return Ok(DownloadResult {
                                 path: destination.to_path_buf(),
                                 url: result.final_url,
@@ -3660,6 +3753,20 @@ pub async fn download_to_path(
                     elapsed_ms = transfer_started.elapsed().as_millis(),
                     "Completed file download"
                 );
+                if let Some(tracking) = &request.install_tracking
+                    && let Err(error) = tracking
+                        .reporter
+                        .record_download_request_finished(
+                            &tracking.item_id,
+                            downloaded,
+                        )
+                        .await
+                {
+                    tracing::warn!(
+                        error = %error,
+                        "Failed to record completed download request"
+                    );
+                }
                 return Ok(DownloadResult {
                     path: destination.to_path_buf(),
                     url: final_url,
@@ -4193,6 +4300,12 @@ mod tests {
         assert_eq!(
             sanitize_url_for_log("not-a-url?token=secret#fragment"),
             "not-a-url"
+        );
+        assert_eq!(
+            sanitize_url_for_log(
+                "https://username:password@example.com/file.jar?token=secret"
+            ),
+            "https://example.com/file.jar"
         );
     }
 
@@ -4954,6 +5067,59 @@ mod tests {
         assert_eq!(result.size, size as u64);
         assert_eq!(tokio::fs::read(&destination).await.unwrap(), *data);
         server.abort();
+    }
+
+    #[tokio::test]
+    async fn switching_sources_does_not_resume_another_sources_partial_file() {
+        let _guard = RANGE_SPLITTING_TEST_LOCK.lock().await;
+        RANGE_SPLITTING_PROTOCOL_FAILURES.lock().clear();
+        let size = 512 * 1024_usize;
+        let expected = Arc::new(
+            (0..size)
+                .map(|index| (index % 251) as u8)
+                .collect::<Vec<_>>(),
+        );
+        let stale = Arc::new(vec![0xAB_u8; size - 4096]);
+        let hash = sha1_smol::Sha1::from(&expected[..]).hexdigest();
+        let (stale_url, stale_requests, stale_normal_requests, stale_server) =
+            spawn_range_server(stale, false, false, false, false).await;
+        let (
+            official_url,
+            official_requests,
+            official_normal_requests,
+            official_server,
+        ) = spawn_range_server(expected.clone(), false, false, false, false)
+            .await;
+        let directory = tempfile::tempdir().unwrap();
+        let destination = directory.path().join("source-isolated.bin");
+        let pool = sqlx::sqlite::SqlitePoolOptions::new()
+            .connect_lazy("sqlite::memory:")
+            .unwrap();
+
+        let result = download_to_path(
+            DownloadRequest::new(&stale_url, ResourceClass::Other)
+                .with_candidate_urls([official_url])
+                .with_integrity(Integrity::sha1(hash).with_size(size as u64)),
+            &destination,
+            &FetchSemaphore(Semaphore::new(2)),
+            &pool,
+            None,
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(result.source, DownloadRouteSource::Alternate);
+        assert_eq!(tokio::fs::read(&destination).await.unwrap(), *expected);
+        assert_eq!(stale_requests.load(Ordering::Relaxed), 1);
+        assert_eq!(stale_normal_requests.load(Ordering::Relaxed), 1);
+        assert_eq!(official_requests.load(Ordering::Relaxed), 1);
+        assert_eq!(
+            official_normal_requests.load(Ordering::Relaxed),
+            1,
+            "the fallback source must restart instead of resuming mirror bytes",
+        );
+        stale_server.abort();
+        official_server.abort();
     }
 
     #[tokio::test]

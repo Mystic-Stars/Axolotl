@@ -11,6 +11,7 @@ pub mod logs;
 pub mod memory;
 pub mod metadata;
 pub mod minecraft_auth;
+pub mod minecraft_news;
 pub mod minecraft_skins;
 pub mod mr_auth;
 pub mod pack;

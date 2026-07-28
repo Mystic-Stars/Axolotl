@@ -89,12 +89,6 @@
   "app.appearance-settings.hide-nametag.title": {
     "message": "Namensschild ausblenden"
   },
-  "app.appearance-settings.jump-back-into-worlds.description": {
-    "message": "Enthält zuletzt gespielte Welten im Abschnitt „Direkt weiterspielen“ auf der Startseite."
-  },
-  "app.appearance-settings.jump-back-into-worlds.title": {
-    "message": "Direkt in Welten weiterspielen"
-  },
   "app.appearance-settings.minimize-launcher.description": {
     "message": "Den Launcher minimieren, wenn ein Minecraft-Prozess gestartet wird."
   },
@@ -704,9 +698,6 @@
   "instance.edit-server.title": {
     "message": "Server bearbeiten"
   },
-  "instance.edit-world.hide-from-home": {
-    "message": "Von der Startseite verbergen"
-  },
   "instance.edit-world.name": {
     "message": "Name"
   },
@@ -869,9 +860,6 @@
   "instance.settings.tabs.java.custom-java-arguments": {
     "message": "Benutzerdefinierte Java-Argumente"
   },
-  "instance.settings.tabs.java.custom-java-installation": {
-    "message": "Benutzerdefinierte Java-Installation"
-  },
   "instance.settings.tabs.java.custom-memory-allocation": {
     "message": "Benutzerdefinierte Speicherzuweisung"
   },
@@ -883,9 +871,6 @@
   },
   "instance.settings.tabs.java.environment-variables": {
     "message": "Umgebungsvariablen"
-  },
-  "instance.settings.tabs.java.hooks": {
-    "message": "Hooks"
   },
   "instance.settings.tabs.java.java-arguments": {
     "message": "Java-Argumente"
@@ -940,9 +925,6 @@
   },
   "instance.worlds.create_shortcut": {
     "message": "Verknüpfung erstellen"
-  },
-  "instance.worlds.dont_show_on_home": {
-    "message": "Nicht auf der Startseite anzeigen"
   },
   "instance.worlds.game_already_open": {
     "message": "Instanz ist bereits geöffnet"

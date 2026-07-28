@@ -92,10 +92,9 @@ When adding or materially changing a desktop app page, route, navigation entry, 
 Launcher release announcements are bundled with `apps/app-frontend` and shown after a completed app update and in Settings > Updates.
 
 - Add ordinary release announcements only to `apps/app-frontend/src/announcements/catalog.ts`; adding an entry must not require changes to `App.vue`, the updater, or the announcement components.
-- Before editing the catalog, check the latest launcher version published on the remote through its GitHub release or tag. Do not infer the latest published version from the local package version or the newest catalog entry.
-- Use the next patch version after that remote release as the current unreleased announcement. For example, if the latest remote release is `1.4.0`, add changes to `launcher-1.4.1`; if that entry already exists locally, keep updating it until `1.4.1` is published remotely. Only begin `launcher-1.4.2` after the remote publishes `1.4.1`.
+- Do not edit the announcement catalog unless the user explicitly asks for an update log. After completing each round of changes, ask whether the user wants an update log for that round.
+- Ask the user for the exact launcher version before writing the announcement unless they already provided it. Use that version exactly; do not query the remote or infer a version from local metadata to choose one automatically.
 - Never append new changes to an announcement that has already been published remotely.
-- After every code change or pull request merge, review the current unreleased announcement and add a concise user-facing entry for the change before considering the work complete. This applies to feature work, behavior changes, and bug fixes; do not treat release-note maintenance as optional or defer it to a later release.
 - Give every release a new immutable ID in the form `launcher-<version>`, use the exact launcher version and ISO `YYYY-MM-DD` publication date, and place the newest release first. Never reuse an ID, edit a published entry, or change its meaning.
 - Use only the Keep a Changelog categories `added`, `changed`, `deprecated`, `removed`, `fixed`, and `security`. Omit empty categories.
 - Provide both `en-US` and `zh-CN` text for the title and every change. Other locales intentionally fall back to English; do not copy announcement bodies into every locale JSON file.
@@ -116,9 +115,22 @@ Each project may have its own file with detailed instructions:
 
 ## Update Logging Instructions
 
-After making any changes, write the changes as an update log(release note style, in Chinese simplified, using unordered list to append) in UPDATE_LOG.md in the project root directory.
-For example: - 修复了xxx问题。
-Append the changes to the log, not replacing.
+- Do not write or append an update log unless the user explicitly requests one.
+- After completing each round of changes, ask whether the user wants an update log for that round. If they do and have not already specified the version, ask for the exact version before writing.
+- Do not query a remote release, infer a version from repository metadata, or choose a version automatically. Use the version supplied by the user.
+- Follow the project's canonical update-log location and format. Launcher release notes belong in `apps/app-frontend/src/announcements/catalog.ts`; do not create or maintain a separate `UPDATE_LOG.md` file for them.
+
+## Database Migration Safety
+
+- Treat every migration as immutable as soon as it has been applied to any database, including a local development database. Never edit, rename, reorder, or delete an applied migration.
+- Before changing an existing migration, query the active development database's `_sqlx_migrations` table for its version. If a successful row exists, stop and create a new migration with a higher version instead.
+- Fix migration mistakes only with a new forward migration. Do not make an old migration appear compatible by directly changing `_sqlx_migrations` checksums.
+- A historical checksum may be reconciled in application code only when the checksum is explicitly allowlisted, the existing schema is validated structurally, and a tested forward migration brings that schema to the canonical state. Unknown checksums must still fail.
+- SQLite table renames do not free global index names. Rebuild migrations must drop or rename legacy indexes before creating replacement indexes.
+- Migration tests must cover both a fresh database and an upgrade database containing the exact previous tables, indexes, foreign keys, representative data, malformed provider data, and missing optional data.
+- After a migration test, run `PRAGMA foreign_key_check`, verify that legacy tables and indexes are gone, and verify that provider-qualified data did not change provider identity.
+- Migrations must not access the network. Cache data used during migration is untrusted and must be validated or ignored without blocking the upgrade.
+- Do not start a migration-watching development process while migration files are still being edited. Finish the migration and its upgrade tests first, then start the app once to apply it.
 
 ## Code Guidelines
 

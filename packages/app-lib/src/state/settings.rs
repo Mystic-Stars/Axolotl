@@ -51,6 +51,47 @@ impl DownloadSourceMode {
     }
 }
 
+#[derive(Debug, Clone, Copy, Default, Eq, PartialEq)]
+pub enum HomeLayout {
+    #[default]
+    Standard,
+    Minimal,
+}
+
+impl HomeLayout {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Standard => "standard",
+            Self::Minimal => "minimal",
+        }
+    }
+
+    pub fn from_string(value: &str) -> Self {
+        match value {
+            "minimal" => Self::Minimal,
+            _ => Self::Standard,
+        }
+    }
+}
+
+impl Serialize for HomeLayout {
+    fn serialize<S: serde::Serializer>(
+        &self,
+        serializer: S,
+    ) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for HomeLayout {
+    fn deserialize<D: serde::Deserializer<'de>>(
+        deserializer: D,
+    ) -> Result<Self, D::Error> {
+        let value = String::deserialize(deserializer)?;
+        Ok(Self::from_string(&value))
+    }
+}
+
 /// Global Theseus settings
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Settings {
@@ -89,6 +130,12 @@ pub struct Settings {
     pub transparent_background_opacity: u32,
     pub transparent_background_blur: bool,
     pub sidebar_instance_count: u32,
+    #[serde(default)]
+    pub auto_hide_downloads_button: bool,
+    #[serde(default)]
+    pub home_layout: HomeLayout,
+    #[serde(default)]
+    pub minimal_home_instance_id: Option<String>,
 
     pub telemetry: bool,
     pub discord_rpc: bool,
@@ -164,7 +211,8 @@ impl Settings {
                 skipped_update, pending_update_toast_for_version, auto_download_updates, accent_color,
                 custom_background_path, custom_background_blur, custom_background_opacity,
                 transparent_background, transparent_background_opacity, transparent_background_blur,
-                sidebar_instance_count,
+                sidebar_instance_count, home_layout, minimal_home_instance_id,
+                auto_hide_downloads_button,
                 version
             FROM settings
             "
@@ -208,6 +256,9 @@ impl Settings {
                 as u32,
             transparent_background_blur: res.transparent_background_blur == 1,
             sidebar_instance_count: res.sidebar_instance_count as u32,
+            auto_hide_downloads_button: res.auto_hide_downloads_button == 1,
+            home_layout: HomeLayout::from_string(&res.home_layout),
+            minimal_home_instance_id: res.minimal_home_instance_id,
             telemetry: res.telemetry == 1,
             discord_rpc: res.discord_rpc == 1,
             developer_mode: res.developer_mode == 1,
@@ -280,6 +331,7 @@ impl Settings {
         let transparent_background_opacity =
             self.transparent_background_opacity.min(100) as i32;
         let sidebar_instance_count = self.sidebar_instance_count.min(50) as i32;
+        let home_layout = self.home_layout.as_str();
         let version = self.version as i64;
         let onboarding_version = self.onboarding_version as i64;
         let minecraft_metadata_source = self.minecraft_metadata_source.as_str();
@@ -360,7 +412,10 @@ impl Settings {
                 sidebar_instance_count = $50,
                 transparent_background = $51,
                 transparent_background_opacity = $52,
-                transparent_background_blur = $53
+                transparent_background_blur = $53,
+                home_layout = $54,
+                minimal_home_instance_id = $55,
+                auto_hide_downloads_button = $56
             ",
             max_concurrent_writes,
             max_concurrent_downloads,
@@ -415,6 +470,9 @@ impl Settings {
             self.transparent_background,
             transparent_background_opacity,
             self.transparent_background_blur,
+            home_layout,
+            self.minimal_home_instance_id,
+            self.auto_hide_downloads_button,
         )
         .execute(exec)
         .await?;
@@ -743,6 +801,25 @@ mod tests {
     use super::*;
 
     #[test]
+    fn home_layout_uses_stable_wire_values() {
+        assert_eq!(HomeLayout::from_string("standard"), HomeLayout::Standard);
+        assert_eq!(HomeLayout::from_string("minimal"), HomeLayout::Minimal);
+        assert_eq!(HomeLayout::from_string("unknown"), HomeLayout::Standard);
+        assert_eq!(
+            serde_json::to_string(&HomeLayout::Standard).unwrap(),
+            "\"standard\""
+        );
+        assert_eq!(
+            serde_json::to_string(&HomeLayout::Minimal).unwrap(),
+            "\"minimal\""
+        );
+        assert_eq!(
+            serde_json::from_str::<HomeLayout>("\"future-layout\"").unwrap(),
+            HomeLayout::Standard
+        );
+    }
+
+    #[test]
     fn accent_color_parses_preset_values() {
         assert_eq!(AccentColor::from_string("pink"), AccentColor::Pink);
         assert_eq!(AccentColor::from_string("orange"), AccentColor::Orange);
@@ -839,6 +916,9 @@ mod tests {
         let settings = Settings::get(&pool).await.unwrap();
         assert!(settings.auto_concurrent_downloads);
         assert!(settings.auto_set_java_high_performance_mode);
+        assert!(!settings.auto_hide_downloads_button);
+        assert_eq!(settings.home_layout, HomeLayout::Standard);
+        assert_eq!(settings.minimal_home_instance_id, None);
         assert_eq!(
             settings.minecraft_metadata_source,
             DownloadSourceMode::Auto

@@ -143,9 +143,6 @@
   "instance.edit-server.title": {
     "message": "Izmeni server"
   },
-  "instance.edit-world.hide-from-home": {
-    "message": "Sakrij sa početne stranice"
-  },
   "instance.edit-world.name": {
     "message": "Ime"
   },

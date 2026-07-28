@@ -74,12 +74,6 @@
   "app.appearance-settings.hide-nametag.title": {
     "message": "Itago ang nametag"
   },
-  "app.appearance-settings.jump-back-into-worlds.description": {
-    "message": "Pagsasali ng mga kamakailang mundo sa seksiyong \"Jump back in\" sa pahina ng Tahanan."
-  },
-  "app.appearance-settings.jump-back-into-worlds.title": {
-    "message": "Bumalik sa mga mundo"
-  },
   "app.appearance-settings.minimize-launcher.description": {
     "message": "Liitan ang launcher kung nag-start ang isang proseso ng Minecraft."
   },
@@ -467,9 +461,6 @@
   "instance.edit-server.title": {
     "message": "Baguhin ang server"
   },
-  "instance.edit-world.hide-from-home": {
-    "message": "Itago sa pahina ng Tahanan"
-  },
   "instance.edit-world.name": {
     "message": "Pangalan"
   },
@@ -611,9 +602,6 @@
   "instance.settings.tabs.java.environment-variables": {
     "message": "Environment variables"
   },
-  "instance.settings.tabs.java.hooks": {
-    "message": "Mga hook"
-  },
   "instance.settings.tabs.java.java-arguments": {
     "message": "Mga java argument"
   },
@@ -661,9 +649,6 @@
   },
   "instance.worlds.copy_address": {
     "message": "Kopyahin ang adres"
-  },
-  "instance.worlds.dont_show_on_home": {
-    "message": "Huwag ipakita sa Tahanan"
   },
   "instance.worlds.game_already_open": {
     "message": "Bukas naman ang instansiya"

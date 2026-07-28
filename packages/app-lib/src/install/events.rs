@@ -29,6 +29,30 @@ struct InstallProgressReporterState {
     initialized_from_store: bool,
 }
 
+#[derive(serde::Serialize)]
+#[serde(tag = "type", rename_all = "snake_case")]
+enum DownloadRequestUpdate {
+    Started {
+        job_id: Uuid,
+        id: String,
+        name: String,
+        url: String,
+        source: String,
+        bytes_total: Option<u64>,
+        attempt: u32,
+        max_attempts: u32,
+    },
+    Finished {
+        job_id: Uuid,
+        id: String,
+        bytes: u64,
+    },
+    Failed {
+        job_id: Uuid,
+        id: String,
+    },
+}
+
 impl InstallProgressReporter {
     pub fn new(job_id: Uuid, state: InstallJobState) -> Self {
         let shared_state = match REPORTER_STATES.entry(job_id) {
@@ -145,6 +169,13 @@ impl InstallProgressReporter {
         Ok(snapshot)
     }
 
+    pub async fn current_state(&self) -> crate::Result<InstallJobState> {
+        let app_state = crate::State::get().await?;
+        let mut state = self.state.lock().await;
+        self.sync_latest(&mut state, &app_state).await?;
+        Ok(state.job.clone())
+    }
+
     pub async fn persist_failure_context(&self, context: InstallErrorContext) {
         if let Err(error) = self.update_context(Some(context), true).await {
             tracing::warn!(
@@ -171,6 +202,91 @@ impl InstallProgressReporter {
             store::update_state(self.job_id, &state.job, &app_state).await?;
         state.mark_persisted();
         emit_install_job(&record.snapshot()).await
+    }
+
+    pub async fn record_download_request(
+        &self,
+        path: impl Into<String>,
+        name: impl Into<String>,
+        url: impl Into<String>,
+        source: impl Into<String>,
+        bytes_total: Option<u64>,
+        attempt: u32,
+        max_attempts: u32,
+    ) -> crate::Result<()> {
+        let path = path.into();
+        let name = name.into();
+        let url = url.into();
+        let source = source.into();
+        self.record_live_event(
+            InstallJobEventKind::DownloadRequestStarted {
+                path: path.clone(),
+                name: name.clone(),
+                url: url.clone(),
+                source: source.clone(),
+                bytes_total,
+                attempt,
+                max_attempts,
+            },
+            DownloadRequestUpdate::Started {
+                job_id: self.job_id,
+                id: path,
+                name,
+                url,
+                source,
+                bytes_total,
+                attempt,
+                max_attempts,
+            },
+        )
+        .await
+    }
+
+    pub async fn record_download_request_finished(
+        &self,
+        path: impl Into<String>,
+        bytes: u64,
+    ) -> crate::Result<()> {
+        let path = path.into();
+        self.record_live_event(
+            InstallJobEventKind::DownloadRequestFinished {
+                path: path.clone(),
+                bytes,
+            },
+            DownloadRequestUpdate::Finished {
+                job_id: self.job_id,
+                id: path,
+                bytes,
+            },
+        )
+        .await
+    }
+
+    pub async fn record_download_request_failed(
+        &self,
+        path: impl Into<String>,
+    ) -> crate::Result<()> {
+        let path = path.into();
+        self.record_live_event(
+            InstallJobEventKind::DownloadRequestFailed { path: path.clone() },
+            DownloadRequestUpdate::Failed {
+                job_id: self.job_id,
+                id: path,
+            },
+        )
+        .await
+    }
+
+    async fn record_live_event(
+        &self,
+        event: InstallJobEventKind,
+        update: DownloadRequestUpdate,
+    ) -> crate::Result<()> {
+        let app_state = crate::State::get().await?;
+        let mut state = self.state.lock().await;
+        self.sync_latest(&mut state, &app_state).await?;
+        state.job.record_event(event);
+        emit_download_request_update(&update).await
     }
 
     pub async fn preserve_failure_context<T>(
@@ -202,19 +318,12 @@ impl InstallProgressReporter {
                 &state.job.progress.details,
                 InstallPhaseDetails::Empty
             ) && !matches!(&details, InstallPhaseDetails::Empty);
-        let force_persist = events.iter().any(|event| {
-            matches!(
-                event,
-                InstallJobEventKind::ContentFileDownloadAttempt { .. }
-            )
-        });
-
         state.job.set_progress(phase, progress, details);
         for event in events {
             state.job.record_event(event);
         }
 
-        if !state.should_persist(phase_started || force_persist) {
+        if !state.should_persist(phase_started) {
             return Ok(());
         }
 
@@ -285,6 +394,24 @@ pub async fn emit_install_job(
     Ok(())
 }
 
+#[allow(unused_variables)]
+async fn emit_download_request_update(
+    update: &DownloadRequestUpdate,
+) -> crate::Result<()> {
+    #[cfg(feature = "tauri")]
+    {
+        use tauri::Emitter;
+
+        let event_state = crate::EventState::get()?;
+        event_state
+            .app
+            .emit("download_request", update)
+            .map_err(crate::event::EventError::from)?;
+    }
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -307,5 +434,36 @@ mod tests {
         let second = InstallProgressReporter::new(job_id, state);
 
         assert!(Arc::ptr_eq(&first.state, &second.state));
+    }
+
+    #[test]
+    fn download_request_update_matches_frontend_event_contract() {
+        let job_id =
+            Uuid::parse_str("e7df84c8-b960-4ddb-a75b-bc9012405f1e").unwrap();
+        let update = DownloadRequestUpdate::Started {
+            job_id,
+            id: "mods/example.jar".to_string(),
+            name: "example.jar".to_string(),
+            url: "https://cdn.modrinth.com/data/example.jar".to_string(),
+            source: "official".to_string(),
+            bytes_total: Some(4096),
+            attempt: 2,
+            max_attempts: 4,
+        };
+
+        assert_eq!(
+            serde_json::to_value(update).unwrap(),
+            serde_json::json!({
+                "type": "started",
+                "job_id": "e7df84c8-b960-4ddb-a75b-bc9012405f1e",
+                "id": "mods/example.jar",
+                "name": "example.jar",
+                "url": "https://cdn.modrinth.com/data/example.jar",
+                "source": "official",
+                "bytes_total": 4096,
+                "attempt": 2,
+                "max_attempts": 4,
+            })
+        );
     }
 }

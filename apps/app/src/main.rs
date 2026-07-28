@@ -15,6 +15,7 @@ mod api;
 mod error;
 mod portable;
 mod linux_update;
+mod seed_map;
 
 #[cfg(target_os = "macos")]
 mod macos;
@@ -324,6 +325,16 @@ fn main() {
             window_state_builder.build()
         })
         .setup(|app| {
+            let app_handle = app.handle().clone();
+            tauri::async_runtime::spawn(async move {
+                tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+                if let Some(window) = app_handle.get_window("main")
+                    && !window.is_visible().unwrap_or(true)
+                {
+                    let _ = window.show();
+                }
+            });
+
             #[cfg(target_os = "macos")]
             {
                 let payload = macos::deep_link::get_or_init_payload(app);
@@ -384,6 +395,7 @@ fn main() {
         .plugin(api::minecraft_skins::init())
         .plugin(api::process::init())
         .plugin(api::settings::init())
+        .plugin(api::seed_map::init())
         .plugin(api::shortcuts::init())
         .plugin(api::tags::init())
         .plugin(api::translation::init())

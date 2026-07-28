@@ -330,7 +330,7 @@ function mapToTableItem(item: ContentItem, group?: string): ContentCardTableItem
 		toggleDisabledTooltip: ctx.isBusy.value ? (ctx.busyMessage?.value ?? null) : null,
 		installing: item.installing === true,
 		pendingManualDownload: item.pendingManualDownload === true,
-		hasUpdate: group ? false : item.has_update,
+		hasUpdate: group ? false : item.update != null,
 		isClientOnly:
 			isClientOnlyEnvironment(item.environment) ||
 			!!item.pack_client_retained ||
@@ -404,7 +404,7 @@ const tableItems = computed<ContentCardTableItem[]>(() => {
 })
 
 const hasOutdatedProjects = computed(() => {
-	const outdated = ctx.items.value.filter((p) => p.has_update)
+	const outdated = ctx.items.value.filter((p) => p.update != null)
 	const modpackHasUpdate = ctx.modpack.value?.hasUpdate ?? false
 	return outdated.length > 0 || modpackHasUpdate
 })
@@ -653,7 +653,7 @@ const hasBulkUpdateSupport = computed(
 
 function promptUpdateAll(event?: MouseEvent) {
 	if (!hasBulkUpdateSupport.value) return
-	const items = ctx.items.value.filter((item) => item.has_update)
+	const items = ctx.items.value.filter((item) => item.update != null)
 	const modpackHasUpdate = ctx.modpack.value?.hasUpdate ?? false
 	if (items.length === 0 && !modpackHasUpdate) return
 	pendingBulkUpdateItems.value = items
@@ -667,7 +667,7 @@ function promptUpdateAll(event?: MouseEvent) {
 
 function promptUpdateSelected(event?: MouseEvent) {
 	if (!hasBulkUpdateSupport.value) return
-	const items = selectedItems.value.filter((item) => item.has_update)
+	const items = selectedItems.value.filter((item) => item.update != null)
 	if (items.length === 0) return
 	pendingBulkUpdateItems.value = items
 	pendingBulkUpdateAll.value = false
@@ -1013,7 +1013,7 @@ const confirmUnlinkModal = ref<InstanceType<typeof ConfirmUnlinkModal>>()
 		>
 			<template #actions>
 				<ButtonStyled
-					v-if="hasBulkUpdateSupport && selectedItems.some((m) => m.has_update)"
+					v-if="hasBulkUpdateSupport && selectedItems.some((m) => m.update != null)"
 					type="transparent"
 					color="green"
 					color-fill="text"

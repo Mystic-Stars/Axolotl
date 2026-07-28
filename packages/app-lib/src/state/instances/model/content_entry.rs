@@ -41,8 +41,6 @@ pub struct ContentEntry {
     pub content_set_id: String,
     pub file_id: Option<String>,
     pub project_type: ProjectType,
-    pub project_id: Option<String>,
-    pub version_id: Option<String>,
     pub source_kind: ContentSourceKind,
     pub server_requirement: ContentRequirement,
     pub client_requirement: ContentRequirement,

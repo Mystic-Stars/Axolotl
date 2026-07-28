@@ -333,15 +333,106 @@ impl Library {
         &self,
         java_arch: &str,
     ) -> Option<(&str, &HashMap<String, LibraryDownload>)> {
+        self.natives_os_key_and_classifiers_for_os(Os::native_arch(java_arch))
+    }
+
+    fn natives_os_key_and_classifiers_for_os(
+        &self,
+        os: Os,
+    ) -> Option<(&str, &HashMap<String, LibraryDownload>)> {
+        let base_os = os.get_os();
         self.natives
             .as_ref()
-            .and_then(|natives| natives.get(&Os::native_arch(java_arch)))
+            .and_then(|natives| {
+                natives.get(&os).or_else(|| natives.get(&base_os))
+            })
             .and_then(|natives| {
                 self.downloads
                     .as_ref()
                     .and_then(|downloads| downloads.classifiers.as_ref())
                     .map(|classifiers| (natives.as_str(), classifiers))
             })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    fn native_library(natives: serde_json::Value) -> Library {
+        serde_json::from_value(json!({
+            "downloads": {
+                "classifiers": {
+                    "natives-linux": {
+                        "sha1": "linux-sha1",
+                        "size": 1,
+                        "url": "https://example.com/natives-linux.jar"
+                    },
+                    "natives-linux-arm64": {
+                        "sha1": "linux-arm64-sha1",
+                        "size": 1,
+                        "url": "https://example.com/natives-linux-arm64.jar"
+                    },
+                    "natives-osx": {
+                        "sha1": "osx-sha1",
+                        "size": 1,
+                        "url": "https://example.com/natives-osx.jar"
+                    },
+                    "natives-osx-arm64": {
+                        "sha1": "osx-arm64-sha1",
+                        "size": 1,
+                        "url": "https://example.com/natives-osx-arm64.jar"
+                    },
+                    "natives-windows": {
+                        "sha1": "windows-sha1",
+                        "size": 1,
+                        "url": "https://example.com/natives-windows.jar"
+                    }
+                }
+            },
+            "name": "example:native-library:1.0.0",
+            "natives": natives
+        }))
+        .unwrap()
+    }
+
+    #[test]
+    fn native_lookup_prefers_architecture_specific_classifier() {
+        let library = native_library(json!({
+            "osx": "natives-osx",
+            "osx-arm64": "natives-osx-arm64"
+        }));
+
+        assert_eq!(
+            library
+                .natives_os_key_and_classifiers_for_os(Os::OsxArm64)
+                .map(|(key, _)| key),
+            Some("natives-osx-arm64"),
+        );
+    }
+
+    #[test]
+    fn native_lookup_falls_back_to_base_operating_system() {
+        let library = native_library(json!({
+            "linux": "natives-linux",
+            "osx": "natives-osx",
+            "windows": "natives-windows"
+        }));
+
+        for (os, expected) in [
+            (Os::LinuxArm32, "natives-linux"),
+            (Os::LinuxArm64, "natives-linux"),
+            (Os::OsxArm64, "natives-osx"),
+            (Os::WindowsArm64, "natives-windows"),
+        ] {
+            assert_eq!(
+                library
+                    .natives_os_key_and_classifiers_for_os(os)
+                    .map(|(key, _)| key),
+                Some(expected),
+            );
+        }
     }
 }
 

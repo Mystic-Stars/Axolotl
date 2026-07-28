@@ -458,9 +458,6 @@
   "instance.edit-server.title": {
     "message": "تعديل خادم"
   },
-  "instance.edit-world.hide-from-home": {
-    "message": "إخفاء من الصفحة الرئيسية"
-  },
   "instance.edit-world.name": {
     "message": "الاسم"
   },
@@ -596,9 +593,6 @@
   "instance.settings.tabs.java.environment-variables": {
     "message": "المتغيرات البيئية"
   },
-  "instance.settings.tabs.java.hooks": {
-    "message": "الخطافات"
-  },
   "instance.settings.tabs.java.java-arguments": {
     "message": "وسائط جافا"
   },
@@ -649,9 +643,6 @@
   },
   "instance.worlds.copy_address": {
     "message": "نسخ العنوان"
-  },
-  "instance.worlds.dont_show_on_home": {
-    "message": "عدم العرض في الصفحة الرئيسية"
   },
   "instance.worlds.game_already_open": {
     "message": "النسخة مفتوحة بالفعل"

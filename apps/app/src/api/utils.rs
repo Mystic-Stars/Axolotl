@@ -27,7 +27,8 @@ pub fn init<R: Runtime>() -> tauri::plugin::TauriPlugin<R> {
             export_error_logs,
             show_app_db_backups_folder,
             progress_bars_list,
-            get_opening_command
+            get_opening_command,
+            get_minecraft_news
         ])
         .build()
 }
@@ -263,6 +264,16 @@ pub async fn get_opening_command() -> Result<Option<CommandPayload>> {
         return Ok(Some(handler::parse_command(&cmd).await?));
     }
     Ok(None)
+}
+
+#[tauri::command]
+pub async fn get_minecraft_news(
+    limit: Option<usize>,
+) -> Result<Vec<theseus::minecraft_news::MinecraftNewsItem>> {
+    Ok(
+        theseus::minecraft_news::get_minecraft_news(limit.unwrap_or(12))
+            .await?,
+    )
 }
 
 // helper function called when redirected by a weblink (ie: modrith://do-something) or when redirected by a .mrpack file (in which case its a filepath)

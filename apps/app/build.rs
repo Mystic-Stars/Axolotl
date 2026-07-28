@@ -1,6 +1,32 @@
 use tauri_build::{DefaultPermissionRule, InlinedPlugin};
 
 fn main() {
+    let cubiomes_dir = std::path::Path::new("vendor/cubiomes");
+    cc::Build::new()
+        .include(cubiomes_dir)
+        .include(cubiomes_dir.join("tables"))
+        .file("src/seed_map/cubiomes_bridge.c")
+        .files([
+            "vendor/cubiomes/biomenoise.c",
+            "vendor/cubiomes/biomes.c",
+            "vendor/cubiomes/finders.c",
+            "vendor/cubiomes/generator.c",
+            "vendor/cubiomes/layers.c",
+            "vendor/cubiomes/noise.c",
+            "vendor/cubiomes/quadbase.c",
+            "vendor/cubiomes/util.c",
+        ])
+        .opt_level(3)
+        .flag_if_supported("-fwrapv")
+        .warnings(false)
+        .compile("axolotl-cubiomes");
+
+    println!("cargo:rerun-if-changed=src/seed_map/cubiomes_bridge.c");
+    println!("cargo:rerun-if-changed=src/seed_map/cubiomes_bridge.h");
+    println!("cargo:rerun-if-changed=vendor/cubiomes");
+    #[cfg(not(target_os = "windows"))]
+    println!("cargo:rustc-link-lib=m");
+
     // Sadly, there is no better way to do it right now
     // You could try parsing source code here and detecting #[tauri::command]
     // But I think it's not worth it
@@ -258,6 +284,9 @@ fn main() {
                         "instance_get_full_path",
                         "instance_get_mod_full_path",
                         "instance_list",
+                        "instance_set_pinned",
+                        "instance_get_daily_playtime",
+                        "instance_get_daily_playtime_details",
                         "instance_check_installed",
                         "instance_update_all",
                         "instance_update_project",
@@ -289,6 +318,22 @@ fn main() {
                         "settings_get",
                         "settings_set",
                         "cancel_directory_change",
+                    ])
+                    .default_permission(
+                        DefaultPermissionRule::AllowAllCommands,
+                    ),
+            )
+            .plugin(
+                "seed-map",
+                InlinedPlugin::new()
+                    .commands(&[
+                        "seed_map_profiles",
+                        "seed_map_render_tile",
+                        "seed_map_find_features",
+                        "seed_map_spawn",
+                        "seed_map_biome_at",
+                        "seed_map_scan_ores",
+                        "seed_map_read_level_dat",
                     ])
                     .default_permission(
                         DefaultPermissionRule::AllowAllCommands,
@@ -345,6 +390,7 @@ fn main() {
                         "show_app_db_backups_folder",
                         "progress_bars_list",
                         "get_opening_command",
+                        "get_minecraft_news",
                     ])
                     .default_permission(
                         DefaultPermissionRule::AllowAllCommands,
@@ -380,6 +426,7 @@ fn main() {
                 InlinedPlugin::new()
                     .commands(&[
                         "get_recent_worlds",
+                        "get_favorite_worlds",
                         "get_instance_worlds",
                         "get_singleplayer_world",
                         "set_world_display_status",

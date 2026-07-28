@@ -1,4 +1,5 @@
 use crate::api::Result;
+use chrono::NaiveDate;
 use dashmap::DashMap;
 use path_util::SafeRelativeUtf8UnixPathBuf;
 use serde::{Deserialize, Serialize};
@@ -23,6 +24,9 @@ pub fn init<R: tauri::Runtime>() -> tauri::plugin::TauriPlugin<R> {
             instance_get,
             instance_get_many,
             instance_list,
+            instance_set_pinned,
+            instance_get_daily_playtime,
+            instance_get_daily_playtime_details,
             instance_get_projects,
             instance_get_installed_project_ids,
             instance_get_install_candidates,
@@ -75,6 +79,7 @@ pub struct Instance {
     pub created: chrono::DateTime<chrono::Utc>,
     pub modified: chrono::DateTime<chrono::Utc>,
     pub last_played: Option<chrono::DateTime<chrono::Utc>>,
+    pub pinned_at: Option<chrono::DateTime<chrono::Utc>>,
     pub submitted_time_played: u64,
     pub recent_time_played: u64,
     pub java_path: Option<String>,
@@ -214,6 +219,7 @@ impl From<InstanceMetadata> for Instance {
             created: metadata.instance.created,
             modified: metadata.instance.modified,
             last_played: metadata.instance.last_played,
+            pinned_at: metadata.instance.pinned_at,
             submitted_time_played: metadata.instance.submitted_time_played,
             recent_time_played: metadata.instance.recent_time_played,
             java_path: metadata.launch_overrides.java_path,
@@ -459,6 +465,50 @@ pub async fn instance_list() -> Result<Vec<Instance>> {
 }
 
 #[tauri::command]
+pub async fn instance_set_pinned(
+    instance_id: String,
+    pinned: bool,
+) -> Result<Instance> {
+    Ok(Instance::from(
+        theseus::instance::set_pinned(&instance_id, pinned).await?,
+    ))
+}
+
+#[tauri::command]
+pub async fn instance_get_daily_playtime(
+    start_date: String,
+    end_date: String,
+) -> Result<Vec<theseus::instance::DailyPlaytime>> {
+    let start_date = NaiveDate::parse_from_str(&start_date, "%Y-%m-%d")
+        .map_err(|error| {
+            theseus::ErrorKind::InputError(format!(
+                "Invalid start date: {error}"
+            ))
+            .as_error()
+        })?;
+    let end_date =
+        NaiveDate::parse_from_str(&end_date, "%Y-%m-%d").map_err(|error| {
+            theseus::ErrorKind::InputError(format!("Invalid end date: {error}"))
+                .as_error()
+        })?;
+
+    Ok(theseus::instance::get_daily_playtime(start_date, end_date).await?)
+}
+
+#[tauri::command]
+pub async fn instance_get_daily_playtime_details(
+    date: String,
+) -> Result<Vec<theseus::instance::DailyPlaytimeEntry>> {
+    let date =
+        NaiveDate::parse_from_str(&date, "%Y-%m-%d").map_err(|error| {
+            theseus::ErrorKind::InputError(format!("Invalid date: {error}"))
+                .as_error()
+        })?;
+
+    Ok(theseus::instance::get_daily_playtime_details(date).await?)
+}
+
+#[tauri::command]
 pub async fn instance_get_projects(
     instance_id: &str,
     cache_behaviour: Option<CacheBehaviour>,
@@ -569,16 +619,23 @@ pub async fn instance_check_installed(
     instance_id: &str,
     project_id: &str,
 ) -> Result<bool> {
-    let check_project_id = project_id;
-
     if let Ok(projects) =
         theseus::instance::get_projects(instance_id, None).await
     {
         Ok(projects.into_iter().any(|(_, project)| {
             project
-                .metadata
-                .as_ref()
-                .is_some_and(|metadata| check_project_id == metadata.project_id)
+                .provider_refs
+                .iter()
+                .any(|reference| match reference {
+                    theseus::data::ContentProviderRef::Modrinth {
+                        project_id: id,
+                        ..
+                    } => project_id == id.as_str(),
+                    theseus::data::ContentProviderRef::CurseForge {
+                        project_id: id,
+                        ..
+                    } => project_id == format!("curseforge:{}", id.get()),
+                })
         }))
     } else {
         Ok(false)

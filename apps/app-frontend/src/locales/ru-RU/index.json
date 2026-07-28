@@ -89,12 +89,6 @@
   "app.appearance-settings.hide-nametag.title": {
     "message": "Без имени над скином"
   },
-  "app.appearance-settings.jump-back-into-worlds.description": {
-    "message": "Показывать недавние миры в разделе «Jump back in» на главной."
-  },
-  "app.appearance-settings.jump-back-into-worlds.title": {
-    "message": "Миры на главной"
-  },
   "app.appearance-settings.minimize-launcher.description": {
     "message": "Сворачивать окно лаунчера при запуске Minecraft."
   },
@@ -695,9 +689,6 @@
   "instance.edit-server.title": {
     "message": "Настройка сервера"
   },
-  "instance.edit-world.hide-from-home": {
-    "message": "Не показывать на главной"
-  },
   "instance.edit-world.name": {
     "message": "Название"
   },
@@ -857,9 +848,6 @@
   "instance.settings.tabs.java.custom-java-arguments": {
     "message": "Переопределение аргументов Java"
   },
-  "instance.settings.tabs.java.custom-java-installation": {
-    "message": "Переопределение расположения Java"
-  },
   "instance.settings.tabs.java.custom-memory-allocation": {
     "message": "Переопределение выделенной памяти"
   },
@@ -871,9 +859,6 @@
   },
   "instance.settings.tabs.java.environment-variables": {
     "message": "Переменные среды"
-  },
-  "instance.settings.tabs.java.hooks": {
-    "message": "Команды запуска"
   },
   "instance.settings.tabs.java.java-arguments": {
     "message": "Аргументы Java"
@@ -928,9 +913,6 @@
   },
   "instance.worlds.create_shortcut": {
     "message": "Создать ярлык"
-  },
-  "instance.worlds.dont_show_on_home": {
-    "message": "Не показывать на главной"
   },
   "instance.worlds.game_already_open": {
     "message": "Сборка уже запущена"

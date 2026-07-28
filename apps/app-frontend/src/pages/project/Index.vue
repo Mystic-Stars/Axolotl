@@ -751,11 +751,16 @@ async function fetchProjectData() {
 
 	if (instanceProjects.value) {
 		const installedFile = Object.values(instanceProjects.value).find(
-			(x) => x.metadata && x.metadata.project_id === data.value.id,
+			(x) =>
+				x.provider_refs.some(
+					(reference) =>
+						reference.provider === 'modrinth' &&
+						String(reference.project_id) === data.value.id,
+				),
 		)
-		if (installedFile) {
+		if (installedFile?.origin_provider === 'modrinth') {
 			installed.value = true
-			installedVersion.value = installedFile.metadata.version_id
+			installedVersion.value = installedFile.modrinth?.version_id ?? null
 		}
 	}
 

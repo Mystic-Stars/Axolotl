@@ -479,18 +479,6 @@
   "content.inline-backup.world-label": {
     "defaultMessage": "thế giới"
   },
-  "content.modpack-card.content-hint-description": {
-    "defaultMessage": "Nội dung modpack của bạn hiện đã có ở đây!"
-  },
-  "content.modpack-card.content-hint-title": {
-    "defaultMessage": "Nội dung modpack đã được di chuyển"
-  },
-  "content.modpack-card.dismiss-hint": {
-    "defaultMessage": "Không hiển thị lại"
-  },
-  "content.page-layout.additional-content": {
-    "defaultMessage": "Mod bổ sung"
-  },
   "content.page-layout.browse-content": {
     "defaultMessage": "Thêm mod"
   },
@@ -500,14 +488,8 @@
   "content.page-layout.empty.hint": {
     "defaultMessage": "Thêm hoặc tải lên {contentType} để bắt đầu"
   },
-  "content.page-layout.empty.modpack-hint": {
-    "defaultMessage": "Thêm mod vào modpack này"
-  },
   "content.page-layout.empty.no-content-installed": {
     "defaultMessage": "Chưa cài đặt nội dung nào"
-  },
-  "content.page-layout.empty.no-extra-content-installed": {
-    "defaultMessage": "Chưa cài đặt nội dung bổ sung nào"
   },
   "content.page-layout.failed-to-load": {
     "defaultMessage": "Không thể tải nội dung"
@@ -763,51 +745,6 @@
   },
   "creation-flow.modal.final-config.world-type.superflat": {
     "defaultMessage": "Siêu phẳng"
-  },
-  "creation-flow.modal.import-instance.action.add": {
-    "defaultMessage": "Tạo"
-  },
-  "creation-flow.modal.import-instance.custom-launcher.name": {
-    "defaultMessage": "Tự chọn ({pathName})"
-  },
-  "creation-flow.modal.import-instance.detecting-launcher-instances": {
-    "defaultMessage": "Đang nhận dạng cấu hình..."
-  },
-  "creation-flow.modal.import-instance.launcher-instances.title": {
-    "defaultMessage": "Cấu hình trình khởi chạy khác"
-  },
-  "creation-flow.modal.import-instance.launcher-path.add": {
-    "defaultMessage": "Thêm vị trí trình khởi chạy"
-  },
-  "creation-flow.modal.import-instance.launcher-path.placeholder": {
-    "defaultMessage": "Vị trí đến trình khởi chạy..."
-  },
-  "creation-flow.modal.import-instance.notification.no-instances-found.text": {
-    "defaultMessage": "Không tìm thấy cấu hình trong vị trí trên."
-  },
-  "creation-flow.modal.import-instance.notification.no-instances-found.title": {
-    "defaultMessage": "Không cấu hình được thấy"
-  },
-  "creation-flow.modal.import-instance.search.placeholder": {
-    "defaultMessage": "Tìm tên cấu hình"
-  },
-  "creation-flow.modal.import-instance.selection.clear-all": {
-    "defaultMessage": "Xóa hết"
-  },
-  "creation-flow.modal.modpack.action.browse": {
-    "defaultMessage": "Duyệt modpack"
-  },
-  "creation-flow.modal.modpack.action.import": {
-    "defaultMessage": "Thêm modpack"
-  },
-  "creation-flow.modal.modpack.known-modpack.prompt": {
-    "defaultMessage": "Biết modpack bạn định cài là gì rồi?"
-  },
-  "creation-flow.modal.modpack.search.no-results": {
-    "defaultMessage": "Không tìm thấy"
-  },
-  "creation-flow.modal.modpack.search.placeholder": {
-    "defaultMessage": "Tìm modpack"
   },
   "creation-flow.modal.setup-type.instance.description": {
     "defaultMessage": "Cấu hình là một bản cài Minecraft với mod, phiên bản và loader của riêng nó."
@@ -5097,4 +5034,3 @@
     "defaultMessage": "Đội ngũ Modrinth"
   }
 }
-

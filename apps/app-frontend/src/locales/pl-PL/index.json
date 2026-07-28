@@ -89,12 +89,6 @@
   "app.appearance-settings.hide-nametag.title": {
     "message": "Schowaj nazwę"
   },
-  "app.appearance-settings.jump-back-into-worlds.description": {
-    "message": "Pokazuje ostatnie światy w sekcji \"Wskocz z powrotem do światów\" na stronie głównej."
-  },
-  "app.appearance-settings.jump-back-into-worlds.title": {
-    "message": "Wskocz z powrotem do światów"
-  },
   "app.appearance-settings.minimize-launcher.description": {
     "message": "Minimalizuj launcher po włączeniu procesu Minecraft."
   },
@@ -701,9 +695,6 @@
   "instance.edit-server.title": {
     "message": "Edytuj serwer"
   },
-  "instance.edit-world.hide-from-home": {
-    "message": "Ukryj ze strony głównej"
-  },
   "instance.edit-world.name": {
     "message": "Nazwa"
   },
@@ -866,9 +857,6 @@
   "instance.settings.tabs.java.custom-java-arguments": {
     "message": "Niestandardowe argumenty Java"
   },
-  "instance.settings.tabs.java.custom-java-installation": {
-    "message": "Niestandardowa instalacja Javy"
-  },
   "instance.settings.tabs.java.custom-memory-allocation": {
     "message": "Niestandardowa alokacja pamięci"
   },
@@ -880,9 +868,6 @@
   },
   "instance.settings.tabs.java.environment-variables": {
     "message": "Zmienne środowiskowe"
-  },
-  "instance.settings.tabs.java.hooks": {
-    "message": "Hooki"
   },
   "instance.settings.tabs.java.java-arguments": {
     "message": "Argumenty Javy"
@@ -937,9 +922,6 @@
   },
   "instance.worlds.create_shortcut": {
     "message": "Utwórz skrót"
-  },
-  "instance.worlds.dont_show_on_home": {
-    "message": "Nie pokazuj na stronie głównej"
   },
   "instance.worlds.game_already_open": {
     "message": "Instancja jest już otwarta"

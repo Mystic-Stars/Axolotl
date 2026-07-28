@@ -434,18 +434,6 @@
   "content.inline-backup.world-label": {
     "defaultMessage": "ワールド"
   },
-  "content.modpack-card.content-hint-description": {
-    "defaultMessage": "あなたのModパックのコンテンツは、こちらで確認できます！"
-  },
-  "content.modpack-card.content-hint-title": {
-    "defaultMessage": "Modパックのコンテンツは移動しました"
-  },
-  "content.modpack-card.dismiss-hint": {
-    "defaultMessage": "再度表示しない"
-  },
-  "content.page-layout.additional-content": {
-    "defaultMessage": "追加のコンテンツ"
-  },
   "content.page-layout.browse-content": {
     "defaultMessage": "コンテンツを探す"
   },
@@ -455,14 +443,8 @@
   "content.page-layout.empty.hint": {
     "defaultMessage": "{contentType}を検索またはアップロードしてみましょう"
   },
-  "content.page-layout.empty.modpack-hint": {
-    "defaultMessage": "このModパックに追加コンテンツを導入できます"
-  },
   "content.page-layout.empty.no-content-installed": {
     "defaultMessage": "コンテンツがインストールされていません"
-  },
-  "content.page-layout.empty.no-extra-content-installed": {
-    "defaultMessage": "追加のコンテンツがインストールされていません"
   },
   "content.page-layout.failed-to-load": {
     "defaultMessage": "コンテンツの読み込みに失敗しました"
@@ -718,51 +700,6 @@
   },
   "creation-flow.modal.final-config.world-type.superflat": {
     "defaultMessage": "スーパーフラット"
-  },
-  "creation-flow.modal.import-instance.action.add": {
-    "defaultMessage": "追加"
-  },
-  "creation-flow.modal.import-instance.custom-launcher.name": {
-    "defaultMessage": "カスタム ({pathName})"
-  },
-  "creation-flow.modal.import-instance.detecting-launcher-instances": {
-    "defaultMessage": "ランチャーのインスタンスを検出しています..."
-  },
-  "creation-flow.modal.import-instance.launcher-instances.title": {
-    "defaultMessage": "ランチャーのインスタンス"
-  },
-  "creation-flow.modal.import-instance.launcher-path.add": {
-    "defaultMessage": "ランチャーのパスを追加"
-  },
-  "creation-flow.modal.import-instance.launcher-path.placeholder": {
-    "defaultMessage": "ランチャーのパス"
-  },
-  "creation-flow.modal.import-instance.notification.no-instances-found.text": {
-    "defaultMessage": "指定されたパスではインポート可能なインスタンスは見つかりませんでした"
-  },
-  "creation-flow.modal.import-instance.notification.no-instances-found.title": {
-    "defaultMessage": "インスタンスは見つかりませんでした"
-  },
-  "creation-flow.modal.import-instance.search.placeholder": {
-    "defaultMessage": "インスタンス名を検索"
-  },
-  "creation-flow.modal.import-instance.selection.clear-all": {
-    "defaultMessage": "全ての選択を解除"
-  },
-  "creation-flow.modal.modpack.action.browse": {
-    "defaultMessage": "Modパックを探す"
-  },
-  "creation-flow.modal.modpack.action.import": {
-    "defaultMessage": "Modパックをインポート"
-  },
-  "creation-flow.modal.modpack.known-modpack.prompt": {
-    "defaultMessage": "インストールしたいMODパックは既に決まっていますか？"
-  },
-  "creation-flow.modal.modpack.search.no-results": {
-    "defaultMessage": "見つかりません"
-  },
-  "creation-flow.modal.modpack.search.placeholder": {
-    "defaultMessage": "Modパックを検索"
   },
   "creation-flow.modal.setup-type.instance.description": {
     "defaultMessage": "インスタンスとは、特定のローダー、バージョン、およびModを備えたMinecraftの起動構成のことです"

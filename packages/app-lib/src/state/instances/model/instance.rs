@@ -18,8 +18,25 @@ pub struct Instance {
     pub created: DateTime<Utc>,
     pub modified: DateTime<Utc>,
     pub last_played: Option<DateTime<Utc>>,
+    pub pinned_at: Option<DateTime<Utc>>,
     pub submitted_time_played: u64,
     pub recent_time_played: u64,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct DailyPlaytime {
+    pub date: String,
+    pub played_seconds: u64,
+    pub session_count: u64,
+    pub top_instance_name: Option<String>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct DailyPlaytimeEntry {
+    pub instance_id: String,
+    pub instance_name: String,
+    pub played_seconds: u64,
+    pub session_count: u64,
 }
 
 pub(crate) fn playtime_to_storage(

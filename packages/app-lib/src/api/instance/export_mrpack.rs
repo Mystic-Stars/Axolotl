@@ -8,7 +8,8 @@ use crate::pack::install_from::{
     EnvType, PackDependency, PackFile, PackFileHash, PackFormat,
 };
 use crate::state::{
-    CacheBehaviour, CachedEntry, InstanceMetadata, ModLoader, SideType, State,
+    CacheBehaviour, CachedEntry, ContentProviderRef, InstanceMetadata,
+    ModLoader, ModrinthVersionId, SideType, State,
 };
 use crate::util::io::{self, IOError};
 use async_zip::tokio::write::ZipFileWriter;
@@ -270,61 +271,156 @@ pub async fn create_mrpack_json(
     )
     .await?
     .into_iter()
-    .filter_map(|(path, file)| match file.metadata {
-        Some(metadata) => Some((path, metadata.version_id)),
-        _ => None,
-    })
     .collect::<Vec<_>>();
+    let instance_path = get_full_path(&metadata.instance.id).await?;
+    let mut modrinth_version_ids = projects
+        .iter()
+        .flat_map(|(_, file)| file.provider_refs.iter())
+        .filter_map(|reference| match reference {
+            ContentProviderRef::Modrinth {
+                version_id: Some(version_id),
+                ..
+            } => Some(version_id.to_string()),
+            _ => None,
+        })
+        .collect::<HashSet<_>>();
+    for file in projects.iter().map(|(_, file)| file) {
+        if let Some(metadata) = &file.modrinth {
+            modrinth_version_ids.insert(metadata.version_id.to_string());
+        }
+    }
+    let modrinth_version_id_refs = modrinth_version_ids
+        .iter()
+        .map(|id| ModrinthVersionId::new(id.clone()))
+        .collect::<crate::Result<Vec<_>>>()?;
     let versions = CachedEntry::get_version_many(
-        &projects.iter().map(|x| &*x.1).collect::<Vec<_>>(),
+        &modrinth_version_id_refs,
         None,
         &state.pool,
         &state.api_semaphore,
     )
     .await?;
-    let files = projects
+    let versions_by_id = versions
         .into_iter()
-        .filter_map(|(path, version_id)| {
-            if let Some(version) = versions.iter().find(|x| x.id == version_id)
-            {
-                let mut env = HashMap::new();
-                env.insert(EnvType::Client, SideType::Required);
-                env.insert(EnvType::Server, SideType::Required);
-                let Some(primary_file) = version.files.first() else {
-                    return Some(Err(crate::ErrorKind::OtherError(format!(
-                        "No primary file found for mod at: {path}"
-                    ))
-                    .as_error()));
-                };
-                let file_size = primary_file.size;
-                let downloads = vec![primary_file.url.clone()];
-                let hashes = primary_file
-                    .hashes
-                    .clone()
-                    .into_iter()
-                    .map(|(h1, h2)| (PackFileHash::from(h1), h2))
-                    .collect();
-
-                Some(Ok(PackFile {
-                    path: match path.try_into() {
-                        Ok(path) => path,
-                        Err(_) => {
-                            return Some(Err(crate::ErrorKind::OtherError(
-                                "Invalid file path in project".into(),
-                            )
-                            .as_error()));
+        .map(|version| (version.id.clone(), version))
+        .collect::<HashMap<_, _>>();
+    let mut files = Vec::new();
+    let mut remote_paths = HashSet::new();
+    for (path, content_file) in projects {
+        let disk_path = instance_path.join(path.as_str());
+        let Ok((disk_size, local_sha1)) =
+            crate::util::fetch::sha1_file_async(&disk_path).await
+        else {
+            continue;
+        };
+        let Some(file_size) = u32::try_from(disk_size).ok() else {
+            continue;
+        };
+        let mut remote: Option<(HashMap<PackFileHash, String>, String)> = None;
+        for reference in &content_file.provider_refs {
+            match reference {
+                ContentProviderRef::Modrinth {
+                    version_id: Some(version_id),
+                    ..
+                } => {
+                    let Some(version) = versions_by_id.get(version_id.as_str())
+                    else {
+                        continue;
+                    };
+                    if let Some(version_file) =
+                        version.files.iter().find(|file| {
+                            file.size == file_size
+                                && file.hashes.get("sha1").is_some_and(|hash| {
+                                    hash.eq_ignore_ascii_case(&local_sha1)
+                                })
+                                && !file.url.trim().is_empty()
+                        })
+                    {
+                        remote = Some((
+                            version_file
+                                .hashes
+                                .clone()
+                                .into_iter()
+                                .map(|(kind, hash)| {
+                                    (PackFileHash::from(kind), hash)
+                                })
+                                .collect(),
+                            version_file.url.clone(),
+                        ));
+                        break;
+                    }
+                }
+                ContentProviderRef::CurseForge {
+                    project_id,
+                    file_id: Some(file_id),
+                } => {
+                    let Ok(file) = crate::api::curseforge::get_file(
+                        project_id.get(),
+                        file_id.get(),
+                    )
+                    .await
+                    else {
+                        continue;
+                    };
+                    let allowed =
+                        crate::api::curseforge::get_project(project_id.get())
+                            .await
+                            .ok()
+                            .and_then(|project| project.allow_mod_distribution)
+                            .unwrap_or(true);
+                    if !allowed {
+                        continue;
+                    }
+                    let hash = file
+                        .hashes
+                        .iter()
+                        .find(|hash| hash.algo == 1)
+                        .map(|hash| hash.value.as_str());
+                    if file.file_length == u64::from(file_size)
+                        && hash.is_some_and(|hash| {
+                            hash.eq_ignore_ascii_case(&local_sha1)
+                        })
+                        && file
+                            .download_url
+                            .as_deref()
+                            .is_some_and(|url| !url.trim().is_empty())
+                    {
+                        let mut hashes = HashMap::new();
+                        if let Some(hash) = hash {
+                            hashes.insert(PackFileHash::Sha1, hash.to_string());
                         }
-                    },
-                    hashes,
-                    env: Some(env),
-                    downloads,
-                    file_size,
-                }))
-            } else {
-                None
+                        remote = Some((
+                            hashes,
+                            file.download_url.unwrap_or_default(),
+                        ));
+                        break;
+                    }
+                }
+                _ => {}
             }
-        })
-        .collect::<crate::Result<Vec<PackFile>>>()?;
+        }
+        let Some((hashes, download)) = remote else {
+            continue;
+        };
+        let Ok(path) = SafeRelativeUtf8UnixPathBuf::try_from(
+            original_content_relative_path(path.as_str()),
+        ) else {
+            continue;
+        };
+        if !remote_paths.insert(path.as_str().to_string()) {
+            continue;
+        }
+        let mut env = HashMap::new();
+        env.insert(EnvType::Client, SideType::Required);
+        env.insert(EnvType::Server, SideType::Required);
+        files.push(PackFile {
+            path,
+            hashes,
+            env: Some(env),
+            downloads: vec![download],
+            file_size,
+        });
+    }
 
     Ok(PackFormat {
         game: "minecraft".to_string(),

@@ -5,6 +5,7 @@ import {
 	CompassIcon,
 	DownloadIcon,
 	ExternalIcon,
+	FlaskConicalIcon,
 	HomeIcon,
 	LeftArrowIcon,
 	LibraryIcon,
@@ -102,13 +103,12 @@ import {
 	scanLauncherInstances,
 	type ScanResult,
 } from '@/helpers/drop'
-import { isVersionInRange, areLoadersCompatible } from '@/helpers/version-compatibility'
 import { command_listener, install_job_listener, warning_listener } from '@/helpers/events.js'
 import { import_instance } from '@/helpers/import.js'
 import {
-	type InstallJobSnapshot,
 	install_create_modpack_instance,
 	install_get_modpack_preview,
+	type InstallJobSnapshot,
 	wait_for_install_job,
 } from '@/helpers/install'
 import {
@@ -134,6 +134,7 @@ import {
 	isNetworkMetered,
 	setRestartAfterPendingUpdate,
 } from '@/helpers/utils.js'
+import { areLoadersCompatible,isVersionInRange } from '@/helpers/version-compatibility'
 import { start_join_server, start_join_singleplayer_world } from '@/helpers/worlds.ts'
 import i18n, { resolveInitialLocale } from '@/i18n.config'
 import {
@@ -485,6 +486,10 @@ const messages = defineMessages({
 		id: 'app.navigation.downloads',
 		defaultMessage: 'Downloads',
 	},
+	lab: {
+		id: 'app.navigation.lab',
+		defaultMessage: 'Lab',
+	},
 	createInstance: {
 		id: 'app.navigation.create-instance',
 		defaultMessage: 'Create new instance',
@@ -696,6 +701,9 @@ async function setupApp() {
 		transparent_background_opacity,
 		transparent_background_blur,
 		sidebar_instance_count,
+		auto_hide_downloads_button,
+		home_layout,
+		minimal_home_instance_id,
 		developer_mode,
 		feature_flags,
 		pending_update_toast_for_version,
@@ -747,6 +755,9 @@ async function setupApp() {
 	await applyWindowFrame()
 	await applyWindowEffects()
 	themeStore.sidebarInstanceCount = sidebar_instance_count
+	themeStore.autoHideDownloadsButton = auto_hide_downloads_button
+	themeStore.homeLayout = home_layout
+	themeStore.minimalHomeInstanceId = minimal_home_instance_id
 	themeStore.devMode = developer_mode
 	themeStore.featureFlags = feature_flags
 	stateInitialized.value = true
@@ -817,7 +828,7 @@ async function finishOnboarding() {
 	if (!onboardingReplay.value) {
 		if (onboardingMode.value === 'instance') {
 			settings.onboarding_instance_tour_completed = true
-		} else {
+		} else if (onboardingMode.value === 'main') {
 			settings.onboarded = true
 			settings.onboarding_version = 1
 		}
@@ -2020,6 +2031,11 @@ command_listener(handleCommand)
 
 async function handleCommand(e) {
 	if (!e) return
+	if (e.event === 'OpenSeedMap') {
+		const query = Object.fromEntries(new URLSearchParams(e.query ?? ''))
+		await router.push({ path: '/lab/seed-map', query })
+		return
+	}
 	if (offline.value && e.event !== 'LaunchInstance') {
 		await router.push('/library')
 		return
@@ -2580,6 +2596,15 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 					<LibraryIcon />
 				</NavButton>
 				<NavButton
+					v-tooltip.right="formatMessage(messages.lab)"
+					data-onboarding-id="nav-lab"
+					to="/lab"
+					:is-primary="(r) => r.path.startsWith('/lab')"
+				>
+					<FlaskConicalIcon />
+				</NavButton>
+				<NavButton
+					v-if="!themeStore.autoHideDownloadsButton || downloadManager.activeCount.value > 0"
 					v-tooltip.right="formatMessage(messages.downloads)"
 					data-onboarding-id="nav-downloads"
 					to="/downloads"
@@ -2753,7 +2778,7 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 		>
 			<div
 				v-overlay-scrollbars="sidebarOverlayScrollbarsOptions"
-				class="app-sidebar-scrollable flex-grow shrink relative"
+				class="app-sidebar-scrollable relative min-h-0 flex-1"
 				data-overlayscrollbars-initialize
 			>
 				<div id="sidebar-teleport-target" class="sidebar-teleport-content"></div>
@@ -2828,7 +2853,7 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 		:action-loading="contentInstallIncompatibilityWarningInstalling"
 		@update="handleIncompatibilityWarningUpdate"
 		@cancel="handleIncompatibilityWarningCancel"
-		@searchCompat="handleDropInstallSearchCompat"
+		@search-compat="handleDropInstallSearchCompat"
 	/>
 	<ModpackAlreadyInstalledModal
 		ref="contentInstallModpackAlreadyInstalledModal"

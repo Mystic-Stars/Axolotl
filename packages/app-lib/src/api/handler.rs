@@ -15,6 +15,15 @@ use urlencoding::decode;
 /// subdomain1/subdomain2
 /// (Does not include axolotl://)
 pub async fn handle_url(sublink: &str) -> crate::Result<CommandPayload> {
+    // /seed-map?{query}   -    Opens the Lab seed map with a shared state
+    if let Some(rest) = sublink.strip_prefix("seed-map")
+        && (rest.is_empty() || rest.starts_with('?') || rest.starts_with('/'))
+    {
+        let query = rest.trim_start_matches('/').trim_start_matches('?');
+        return Ok(CommandPayload::OpenSeedMap {
+            query: query.to_string(),
+        });
+    }
     Ok(match sublink.split_once('/') {
         // /mod/{id}   -    Installs a mod of mod id
         Some(("mod", id)) => CommandPayload::InstallMod { id: id.to_string() },

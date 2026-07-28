@@ -378,8 +378,8 @@ const manualPendingItems = computed<ContentItem[]>(() => {
 		file_name: item.fileName,
 		file_path: undefined,
 		project_type: 'mod',
-		has_update: false,
-		update_version_id: null,
+		update: null,
+		origin_provider: null,
 		enabled: false,
 		pendingManualDownload: true,
 		project: {
@@ -396,12 +396,10 @@ const manualPendingItems = computed<ContentItem[]>(() => {
 		provider_refs: [
 			{
 				provider: 'curseforge',
-				project_id: String(item.projectId),
-				version_id: String(item.fileId),
-				primary: true,
+				project_id: item.projectId,
+				file_id: item.fileId,
 			},
 		],
-		primary_provider: 'curseforge',
 	}))
 })
 
@@ -613,7 +611,14 @@ function hasContentOperation(item: ContentItem) {
 }
 
 function canUpdateProject(item: ContentItem) {
-	return !!item.file_path && !!item.has_update && !!item.update_version_id
+	return !!item.file_path && item.update != null
+}
+
+function contentUpdateId(item: ContentItem): string | null {
+	if (!item.update) return null
+	return item.update.provider === 'modrinth'
+		? item.update.target_version_id
+		: String(item.update.target_file_id)
 }
 
 function setContentItemBusy(item: ContentItem, busy: boolean, originalFileName = item.file_name) {
@@ -1017,12 +1022,6 @@ async function bulkUpdateAllProjects(onProgress?: (status: BulkOperationStatus) 
 		}
 
 		await update_all(props.instance.id)
-		const curseForgeUpdates = projects.value.filter(
-			(item) => item.primary_provider === 'curseforge' && item.has_update && item.file_path,
-		)
-		for (const item of curseForgeUpdates) {
-			await updateCurseForgeFile(props.instance.id, item.file_path!)
-		}
 
 		if (linkedModpackHasUpdate.value && linkedModpackUpdateVersionId.value && props.instance.link) {
 			isModpackUpdating.value = true
@@ -1058,10 +1057,10 @@ async function updateProject(mod: ContentItem) {
 	if (!operation) return
 
 	try {
-		if (mod.primary_provider === 'curseforge') {
+		if (mod.update?.provider === 'curseforge') {
 			await updateCurseForgeFile(props.instance.id, mod.file_path ?? '')
 		} else {
-			const updateVersionId = mod.update_version_id!
+			const updateVersionId = contentUpdateId(mod)!
 			await switch_project_version_with_dependencies(
 				props.instance.id,
 				mod.file_path,
@@ -1115,7 +1114,7 @@ async function handleUpdate(id: string) {
 		projects.value.find((p) => getContentItemId(p) === id) ??
 		linkedModpackContentItems.value.find((p) => getContentItemId(p) === id)
 	if (!item || !canUpdateProject(item) || !item.project?.id || !item.version?.id) return
-	if (item.primary_provider === 'curseforge') {
+	if (item.update?.provider === 'curseforge') {
 		await updateProject(item)
 		return
 	}
@@ -1130,7 +1129,7 @@ async function handleUpdate(id: string) {
 		projectTitle: item.project.title,
 		currentVersionId: item.version.id,
 		currentVersionNumber: item.version.version_number,
-		updateVersionId: item.update_version_id,
+		updateVersionId: contentUpdateId(item),
 		instanceGameVersion: props.instance.game_version,
 		instanceLoader: props.instance.loader,
 	})
@@ -1143,7 +1142,7 @@ async function handleUpdate(id: string) {
 
 	await nextTick()
 
-	const initialVersionId = item.update_version_id ?? undefined
+	const initialVersionId = contentUpdateId(item) ?? undefined
 	debug('handleUpdate: opening content updater modal', {
 		type: 'content',
 		initialVersionId,
@@ -1155,7 +1154,7 @@ async function handleUpdate(id: string) {
 			projectTitle: item.project.title,
 			currentVersionId: item.version.id,
 			currentVersionNumber: item.version.version_number,
-			updateVersionId: item.update_version_id,
+			updateVersionId: contentUpdateId(item),
 		},
 		instance: {
 			path: props.instance.id,
@@ -1201,7 +1200,7 @@ async function handleUpdate(id: string) {
 			gameVersions: v.game_versions,
 		})),
 		currentVersionInList: versions.some((v) => v.id === item.version?.id),
-		updateVersionInList: versions.some((v) => v.id === item.update_version_id),
+		updateVersionInList: versions.some((v) => v.id === contentUpdateId(item)),
 	})
 
 	const preselectedVersion =
@@ -1221,7 +1220,7 @@ async function handleUpdate(id: string) {
 			: null,
 		versionCount: versions.length,
 		currentVersionId: item.version.id,
-		updateVersionId: item.update_version_id,
+		updateVersionId: contentUpdateId(item),
 	})
 
 	updatingProjectVersions.value = versions
@@ -1496,7 +1495,7 @@ async function handleModalUpdate(
 		const mod = updatingProject.value
 
 		try {
-			if (mod.has_update && mod.update_version_id === selectedVersion.id) {
+			if (contentUpdateId(mod) === selectedVersion.id) {
 				await updateProject(mod)
 			} else {
 				await switchProjectVersion(mod, selectedVersion)
@@ -1602,10 +1601,7 @@ function applyContentData(contentData: InstanceContentData) {
 		return true
 	}
 
-	projects.value = contentData.contentItems.map((item) => ({
-		...item,
-		has_update: canUpdateProject(item),
-	}))
+	projects.value = contentData.contentItems
 
 	if (contentData.modpack) {
 		linkedModpackProject.value = contentData.modpack.project
@@ -1754,10 +1750,10 @@ provideContentManager({
 			icon_url: null,
 		},
 		projectLink:
-			item.project?.id && !item.project.id.startsWith('local:')
+			item.origin_provider && item.project?.id && !item.project.id.startsWith('local:')
 				? {
 						path:
-							item.primary_provider === 'curseforge'
+							item.origin_provider === 'curseforge'
 								? `/project/curseforge/${item.project.id}`
 								: `/project/${item.project.id}`,
 						query: { i: props.instance.id },
@@ -1769,7 +1765,7 @@ provideContentManager({
 			file_name: item.file_name,
 		},
 		versionLink:
-			item.primary_provider !== 'curseforge' &&
+			item.origin_provider === 'modrinth' &&
 			item.project?.id &&
 			!item.project.id.startsWith('local:') &&
 			item.version?.id
@@ -1782,7 +1778,7 @@ provideContentManager({
 			? {
 					...item.owner,
 					link:
-						item.primary_provider === 'curseforge' || item.owner.id.startsWith('local:')
+							item.origin_provider !== 'modrinth' || item.owner.id.startsWith('local:')
 							? undefined
 							: () => openUrl(`https://modrinth.com/${item.owner!.type}/${item.owner!.id}`),
 				}

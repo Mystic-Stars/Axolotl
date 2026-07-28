@@ -80,6 +80,7 @@ pub(crate) async fn create_instance(
             created: now,
             modified: now,
             last_played: None,
+            pinned_at: None,
             submitted_time_played: 0,
             recent_time_played: 0,
         };

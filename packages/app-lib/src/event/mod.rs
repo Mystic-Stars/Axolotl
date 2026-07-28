@@ -250,6 +250,10 @@ pub enum CommandPayload {
         // run or install .mrpack
         path: PathBuf,
     },
+    OpenSeedMap {
+        // URL query string describing the shared seed-map state
+        query: String,
+    },
 }
 
 #[derive(Serialize, Clone)]

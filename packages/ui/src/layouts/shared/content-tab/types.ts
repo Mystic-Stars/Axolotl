@@ -73,21 +73,40 @@ export interface ContentItem extends Omit<
 	file_path?: string
 	size?: number
 	project_type: string
-	has_update: boolean
-	update_version_id: string | null
+	/** Provider-qualified update returned by the launcher backend. */
+	update:
+		| {
+				provider: 'modrinth'
+				project_id: string
+				current_version_id: string
+				target_version_id: string
+		  }
+		| {
+				provider: 'curseforge'
+				project_id: number
+				current_file_id: number
+				target_file_id: number
+		  }
+		| null
+	origin_provider: 'modrinth' | 'curseforge' | null
 	date_added?: string
 	environment?: string
 	pack_client_retained?: boolean
 	pack_client_depends?: boolean
 	installing?: boolean
 	pendingManualDownload?: boolean
-	provider_refs?: Array<{
-		provider: 'modrinth' | 'curseforge'
-		project_id: string
-		version_id?: string | null
-		primary: boolean
-	}>
-	primary_provider?: 'modrinth' | 'curseforge' | null
+	provider_refs: Array<
+		| {
+				provider: 'modrinth'
+				project_id: string
+				version_id: string | null
+			}
+		| {
+				provider: 'curseforge'
+				project_id: number
+				file_id: number | null
+			}
+	>
 }
 
 export type ContentModpackCardProject = Pick<

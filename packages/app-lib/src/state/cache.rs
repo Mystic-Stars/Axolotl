@@ -1,4 +1,7 @@
-use crate::state::ProjectType;
+use crate::api::curseforge::CurseForgeProject;
+use crate::state::{
+    CurseForgeProjectId, ModrinthProjectId, ModrinthVersionId, ProjectType,
+};
 use crate::util::fetch::{FetchSemaphore, fetch_json, sha1_async};
 use chrono::{DateTime, Utc};
 use dashmap::DashSet;
@@ -20,6 +23,7 @@ const DEFAULT_ID: &str = "0";
 pub enum CacheValueType {
     Project,
     ProjectV3,
+    CurseForgeProject,
     Version,
     User,
     Team,
@@ -46,6 +50,7 @@ impl CacheValueType {
         match self {
             CacheValueType::Project => "project",
             CacheValueType::ProjectV3 => "project_v3",
+            CacheValueType::CurseForgeProject => "curseforge_project",
             CacheValueType::Version => "version",
             CacheValueType::User => "user",
             CacheValueType::Team => "team",
@@ -71,6 +76,7 @@ impl CacheValueType {
         match val {
             "project" => CacheValueType::Project,
             "project_v3" => CacheValueType::ProjectV3,
+            "curseforge_project" => CacheValueType::CurseForgeProject,
             "version" => CacheValueType::Version,
             "user" => CacheValueType::User,
             "team" => CacheValueType::Team,
@@ -97,6 +103,7 @@ impl CacheValueType {
     pub fn expiry(&self) -> i64 {
         match self {
             CacheValueType::File => 30 * 24 * 60 * 60, // 30 days
+            CacheValueType::CurseForgeProject => 24 * 60 * 60, // 1 day
             CacheValueType::FileHash => 30 * 24 * 60 * 60, // 30 days
             // ModpackFiles never expire - version_id is immutable so hashes never change
             // TODO: There has to be a way to exclude this from the "Purge cache" stuff?
@@ -122,6 +129,7 @@ impl CacheValueType {
         match self {
             CacheValueType::Project
             | CacheValueType::ProjectV3
+            | CacheValueType::CurseForgeProject
             | CacheValueType::User
             | CacheValueType::Organization => Some(false),
 
@@ -180,11 +188,12 @@ pub struct CachedProjectVersions {
 #[allow(clippy::large_enum_variant)]
 pub enum CacheValue {
     Project(Project),
+    CurseForgeProject(CurseForgeProject),
     Version(Version),
     User(User),
     Team(Vec<TeamMember>),
     Organization(Organization),
-    File(CachedFile),
+    File(ModrinthHashMatch),
     LoaderManifest(CachedLoaderManifest),
     MinecraftManifest(daedalus::minecraft::VersionManifest),
     Categories(Vec<Category>),
@@ -394,7 +403,7 @@ pub struct CachedLoaderManifest {
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct CachedFile {
+pub struct ModrinthHashMatch {
     pub hash: String,
     pub project_id: String,
     pub version_id: String,
@@ -648,6 +657,9 @@ impl CacheValue {
         match self {
             CacheValue::Project(_) => CacheValueType::Project,
             CacheValue::ProjectV3(_) => CacheValueType::ProjectV3,
+            CacheValue::CurseForgeProject(_) => {
+                CacheValueType::CurseForgeProject
+            }
             CacheValue::Version(_) => CacheValueType::Version,
             CacheValue::User(_) => CacheValueType::User,
             CacheValue::Team { .. } => CacheValueType::Team,
@@ -677,6 +689,7 @@ impl CacheValue {
         match self {
             CacheValue::Project(project) => project.id.clone(),
             CacheValue::ProjectV3(project) => project.id.clone(),
+            CacheValue::CurseForgeProject(project) => project.id.to_string(),
             CacheValue::Version(version) => version.id.clone(),
             CacheValue::User(user) => user.id.clone(),
             CacheValue::Team(members) => members
@@ -722,6 +735,9 @@ impl CacheValue {
         match self {
             CacheValue::Project(project) => project.slug.clone(),
             CacheValue::ProjectV3(project) => project.slug.clone(),
+            CacheValue::CurseForgeProject(project) => {
+                Some(project.slug.clone())
+            }
             CacheValue::User(user) => Some(user.username.clone()),
             CacheValue::Organization(org) => Some(org.slug.clone()),
 
@@ -751,6 +767,9 @@ impl CacheValue {
         let value = match self {
             CacheValue::Project(project) => serde_json::to_value(project),
             CacheValue::ProjectV3(project) => serde_json::to_value(project),
+            CacheValue::CurseForgeProject(project) => {
+                serde_json::to_value(project)
+            }
             CacheValue::Version(version) => serde_json::to_value(version),
             CacheValue::User(user) => serde_json::to_value(user),
             CacheValue::Team(members) => serde_json::to_value(members),
@@ -887,19 +906,228 @@ macro_rules! impl_cache_method_singular {
 }
 
 impl_cache_methods!(
-    (Project, Project),
     (ProjectV3, ProjectV3),
-    (Version, Version),
     (User, User),
     (Team, Vec<TeamMember>),
     (Organization, Organization),
-    (File, CachedFile),
+    (File, ModrinthHashMatch),
     (LoaderManifest, CachedLoaderManifest),
     (FileHash, CachedFileHash),
     (FileUpdate, CachedFileUpdate),
     (SearchResults, SearchResults),
     (SearchResultsV3, SearchResultsV3)
 );
+
+impl CachedEntry {
+    pub async fn get_project(
+        id: &ModrinthProjectId,
+        cache_behaviour: Option<CacheBehaviour>,
+        pool: &SqlitePool,
+        fetch_semaphore: &FetchSemaphore,
+    ) -> crate::Result<Option<Project>> {
+        Ok(Self::get_project_many(
+            std::slice::from_ref(id),
+            cache_behaviour,
+            pool,
+            fetch_semaphore,
+        )
+        .await?
+        .into_iter()
+        .next())
+    }
+
+    pub async fn get_project_many(
+        ids: &[ModrinthProjectId],
+        cache_behaviour: Option<CacheBehaviour>,
+        pool: &SqlitePool,
+        fetch_semaphore: &FetchSemaphore,
+    ) -> crate::Result<Vec<Project>> {
+        let id_refs = ids
+            .iter()
+            .map(ModrinthProjectId::as_str)
+            .collect::<Vec<_>>();
+        let entries = Self::get_many(
+            CacheValueType::Project,
+            &id_refs,
+            cache_behaviour,
+            pool,
+            fetch_semaphore,
+        )
+        .await?;
+        Ok(entries
+            .into_iter()
+            .filter_map(|entry| match entry.data {
+                Some(CacheValue::Project(project)) => Some(project),
+                _ => None,
+            })
+            .collect())
+    }
+
+    pub async fn get_curseforge_project(
+        id: &CurseForgeProjectId,
+        cache_behaviour: Option<CacheBehaviour>,
+        pool: &SqlitePool,
+        fetch_semaphore: &FetchSemaphore,
+    ) -> crate::Result<Option<CurseForgeProject>> {
+        Ok(Self::get_curseforge_project_many(
+            std::slice::from_ref(id),
+            cache_behaviour,
+            pool,
+            fetch_semaphore,
+        )
+        .await?
+        .into_iter()
+        .next())
+    }
+
+    pub async fn get_curseforge_project_many(
+        ids: &[CurseForgeProjectId],
+        cache_behaviour: Option<CacheBehaviour>,
+        pool: &SqlitePool,
+        fetch_semaphore: &FetchSemaphore,
+    ) -> crate::Result<Vec<CurseForgeProject>> {
+        let ids = ids
+            .iter()
+            .map(|id| id.get().to_string())
+            .collect::<Vec<_>>();
+        let id_refs = ids.iter().map(String::as_str).collect::<Vec<_>>();
+        let entries = Self::get_many(
+            CacheValueType::CurseForgeProject,
+            &id_refs,
+            cache_behaviour,
+            pool,
+            fetch_semaphore,
+        )
+        .await?;
+        Ok(entries
+            .into_iter()
+            .filter_map(|entry| match entry.data {
+                Some(CacheValue::CurseForgeProject(project)) => Some(project),
+                _ => None,
+            })
+            .collect())
+    }
+
+    pub async fn get_version(
+        id: &ModrinthVersionId,
+        cache_behaviour: Option<CacheBehaviour>,
+        pool: &SqlitePool,
+        fetch_semaphore: &FetchSemaphore,
+    ) -> crate::Result<Option<Version>> {
+        Ok(Self::get_version_many(
+            std::slice::from_ref(id),
+            cache_behaviour,
+            pool,
+            fetch_semaphore,
+        )
+        .await?
+        .into_iter()
+        .next())
+    }
+
+    pub async fn get_version_many(
+        ids: &[ModrinthVersionId],
+        cache_behaviour: Option<CacheBehaviour>,
+        pool: &SqlitePool,
+        fetch_semaphore: &FetchSemaphore,
+    ) -> crate::Result<Vec<Version>> {
+        let id_refs = ids
+            .iter()
+            .map(ModrinthVersionId::as_str)
+            .collect::<Vec<_>>();
+        let entries = Self::get_many(
+            CacheValueType::Version,
+            &id_refs,
+            cache_behaviour,
+            pool,
+            fetch_semaphore,
+        )
+        .await?;
+        Ok(entries
+            .into_iter()
+            .filter_map(|entry| match entry.data {
+                Some(CacheValue::Version(version)) => Some(version),
+                _ => None,
+            })
+            .collect())
+    }
+}
+
+#[cfg(test)]
+mod curseforge_project_cache_tests {
+    use super::{CacheBehaviour, CacheValue, CachedEntry};
+    use crate::api::curseforge::CurseForgeProject;
+    use crate::state::CurseForgeProjectId;
+    use crate::util::fetch::FetchSemaphore;
+    use sqlx::sqlite::SqlitePoolOptions;
+    use tokio::sync::Semaphore;
+
+    #[tokio::test]
+    async fn expired_curseforge_metadata_remains_available_offline() {
+        let pool = SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect("sqlite::memory:")
+            .await
+            .unwrap();
+        sqlx::query(
+            "CREATE TABLE cache (
+                id TEXT NOT NULL,
+                data_type TEXT NOT NULL,
+                alias TEXT NULL,
+                data JSONB NULL,
+                expires INTEGER NOT NULL,
+                UNIQUE (data_type, alias),
+                PRIMARY KEY (id, data_type)
+            )",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+        let project =
+            serde_json::from_value::<CurseForgeProject>(serde_json::json!({
+                "id": 42,
+                "gameId": 432,
+                "name": "Cached project",
+                "slug": "cached-project",
+                "links": {},
+                "summary": "Cached metadata",
+                "status": 4,
+                "downloadCount": 0,
+                "isFeatured": false,
+                "primaryCategoryId": 6,
+                "categories": [],
+                "classId": 6,
+                "authors": [],
+                "logo": null,
+                "screenshots": [],
+                "mainFileId": 0,
+                "latestFiles": [],
+                "latestFilesIndexes": [],
+                "dateCreated": "2026-01-01T00:00:00Z",
+                "dateModified": "2026-01-01T00:00:00Z",
+                "dateReleased": "2026-01-01T00:00:00Z",
+                "allowModDistribution": true,
+                "gamePopularityRank": 1,
+                "isAvailable": true
+            }))
+            .unwrap();
+        let mut entry = CacheValue::CurseForgeProject(project).get_entry();
+        entry.expires = 0;
+        CachedEntry::upsert_many(&[entry], &pool).await.unwrap();
+
+        let cached = CachedEntry::get_curseforge_project(
+            &CurseForgeProjectId::new(42).unwrap(),
+            Some(CacheBehaviour::CacheOnly),
+            &pool,
+            &FetchSemaphore(Semaphore::new(1)),
+        )
+        .await
+        .unwrap()
+        .unwrap();
+
+        assert_eq!(cached.name, "Cached project");
+    }
+}
 
 impl_cache_method_singular!(
     (MinecraftManifest, daedalus::minecraft::VersionManifest),
@@ -1252,6 +1480,40 @@ impl CachedEntry {
                     CacheValue::ProjectV3
                 )
             }
+            CacheValueType::CurseForgeProject => {
+                let project_ids = keys
+                    .iter()
+                    .filter_map(|key| key.to_string().parse::<u32>().ok())
+                    .collect::<Vec<_>>();
+                let mut projects =
+                    crate::api::curseforge::get_projects_uncached(project_ids)
+                        .await?
+                        .into_iter()
+                        .map(|project| (project.id, project))
+                        .collect::<HashMap<_, _>>();
+
+                keys.into_iter()
+                    .map(|key| {
+                        let key = key.to_string();
+                        match key
+                            .parse::<u32>()
+                            .ok()
+                            .and_then(|id| projects.remove(&id))
+                        {
+                            Some(project) => (
+                                CacheValue::CurseForgeProject(project)
+                                    .get_entry(),
+                                true,
+                            ),
+                            None => (
+                                CacheValueType::CurseForgeProject
+                                    .get_empty_entry(key),
+                                true,
+                            ),
+                        }
+                    })
+                    .collect()
+            }
             CacheValueType::Version => {
                 fetch_original_values!(
                     Version,
@@ -1395,7 +1657,7 @@ impl CachedEntry {
                         ));
 
                         vals.push((
-                            CacheValue::File(CachedFile {
+                            CacheValue::File(ModrinthHashMatch {
                                 hash,
                                 version_id,
                                 project_id,
@@ -2000,6 +2262,9 @@ impl CachedEntry {
             CacheValueType::ProjectV3 => {
                 CacheValue::ProjectV3(parse(data, id, "project_v3")?)
             }
+            CacheValueType::CurseForgeProject => CacheValue::CurseForgeProject(
+                parse(data, id, "curseforge_project")?,
+            ),
             CacheValueType::Version => {
                 CacheValue::Version(parse(data, id, "version")?)
             }
@@ -2175,14 +2440,14 @@ impl CachedEntry {
     /// Get versions for a project (without changelogs for fast loading)
     #[tracing::instrument(skip(pool, fetch_semaphore))]
     pub async fn get_project_versions(
-        project_id: &str,
+        project_id: &ModrinthProjectId,
         cache_behaviour: Option<CacheBehaviour>,
         pool: &SqlitePool,
         fetch_semaphore: &FetchSemaphore,
     ) -> crate::Result<Option<Vec<Version>>> {
         let entry = Self::get(
             CacheValueType::ProjectVersions,
-            project_id,
+            project_id.as_str(),
             cache_behaviour,
             pool,
             fetch_semaphore,

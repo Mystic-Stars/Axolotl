@@ -284,6 +284,22 @@ fn server_play_project_id(link: &InstanceLink) -> Option<&String> {
     }
 }
 
+fn modrinth_pack_version_id(link: &InstanceLink) -> Option<&str> {
+    match link {
+        InstanceLink::ModrinthModpack { version_id, .. }
+        | InstanceLink::ServerProjectModpack {
+            content_version_id: version_id,
+            ..
+        } => Some(version_id),
+        InstanceLink::Unmanaged
+        | InstanceLink::ServerProject { .. }
+        | InstanceLink::CurseForgeModpack { .. }
+        | InstanceLink::ModrinthHosting { .. }
+        | InstanceLink::ImportedModpack { .. }
+        | InstanceLink::SharedInstance { .. } => None,
+    }
+}
+
 pub async fn kill(instance_id: &str) -> crate::Result<()> {
     let state = State::get().await?;
     let processes =
@@ -314,23 +330,7 @@ pub async fn try_update_playtime_by_instance_id(
         })?;
     let updated_recent_playtime = context.instance.recent_time_played;
     let res = if updated_recent_playtime > 0 {
-        let modrinth_pack_version_id = match &context.link {
-            InstanceLink::ModrinthModpack { version_id, .. }
-            | InstanceLink::ServerProjectModpack {
-                content_version_id: version_id,
-                ..
-            }
-            | InstanceLink::ImportedModpack {
-                version_id: Some(version_id),
-                ..
-            } => Some(version_id.clone()),
-            InstanceLink::Unmanaged
-            | InstanceLink::ServerProject { .. }
-            | InstanceLink::CurseForgeModpack { .. }
-            | InstanceLink::ModrinthHosting { .. }
-            | InstanceLink::ImportedModpack { .. }
-            | InstanceLink::SharedInstance { .. } => None,
-        };
+        let modrinth_pack_version_id = modrinth_pack_version_id(&context.link);
         let playtime_update_json = json!({
             "seconds": updated_recent_playtime,
             "loader": context.applied_content_set.loader.as_str(),
@@ -340,9 +340,11 @@ pub async fn try_update_playtime_by_instance_id(
         let mut hashmap: HashMap<String, serde_json::Value> = HashMap::new();
 
         for (_, project) in get_projects(instance_id, None).await? {
-            if let Some(metadata) = project.metadata {
-                hashmap
-                    .insert(metadata.version_id, playtime_update_json.clone());
+            if let Some(metadata) = project.modrinth {
+                hashmap.insert(
+                    metadata.version_id.to_string(),
+                    playtime_update_json.clone(),
+                );
             }
         }
 
@@ -367,4 +369,33 @@ pub async fn try_update_playtime_by_instance_id(
     }
 
     res
+}
+
+#[cfg(test)]
+mod tests {
+    use super::modrinth_pack_version_id;
+    use crate::state::InstanceLink;
+
+    #[test]
+    fn playtime_parent_requires_an_explicit_modrinth_link() {
+        let modrinth = InstanceLink::ModrinthModpack {
+            project_id: "project".to_string(),
+            version_id: "version".to_string(),
+        };
+        let curseforge = InstanceLink::CurseForgeModpack {
+            project_id: "123".to_string(),
+            version_id: "456".to_string(),
+        };
+        let imported = InstanceLink::ImportedModpack {
+            project_id: Some("legacy-project".to_string()),
+            version_id: Some("legacy-version".to_string()),
+            name: None,
+            version_number: None,
+            filename: None,
+        };
+
+        assert_eq!(modrinth_pack_version_id(&modrinth), Some("version"));
+        assert_eq!(modrinth_pack_version_id(&curseforge), None);
+        assert_eq!(modrinth_pack_version_id(&imported), None);
+    }
 }

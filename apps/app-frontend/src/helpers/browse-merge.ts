@@ -1,7 +1,7 @@
 export type BrowseMergeSort = 'relevance' | 'downloads' | 'follows' | 'newest' | 'updated' | string
 
 export interface BrowseMergeHit {
-	provider?: 'modrinth' | 'curseforge' | string
+	provider: 'modrinth' | 'curseforge'
 	project_id: string
 	downloads?: number | null
 	follows?: number | null
@@ -19,7 +19,12 @@ export interface MergeProviderResultsOptions<T extends BrowseMergeHit> {
 }
 
 function providerKey(hit: BrowseMergeHit): string {
-	return `${hit.provider ?? 'modrinth'}:${hit.project_id}`
+	return `${hit.provider}:${hit.project_id}`
+}
+
+function compareStableHit(left: BrowseMergeHit, right: BrowseMergeHit): number {
+	const projectDelta = left.project_id.localeCompare(right.project_id)
+	return projectDelta || left.provider.localeCompare(right.provider)
 }
 
 function toTimestamp(value?: string | null): number {
@@ -42,10 +47,6 @@ function normalize(value: number, max: number): number {
 	return value / max
 }
 
-function providerTieBreak(hit: BrowseMergeHit): number {
-	return hit.provider === 'curseforge' ? 1 : 0
-}
-
 function sortByMetric<T extends BrowseMergeHit>(
 	hits: T[],
 	read: (hit: BrowseMergeHit) => number,
@@ -55,7 +56,7 @@ function sortByMetric<T extends BrowseMergeHit>(
 		.sort((left, right) => {
 			const delta = read(right) - read(left)
 			if (delta !== 0) return delta
-			return providerTieBreak(left) - providerTieBreak(right)
+			return providerKey(left).localeCompare(providerKey(right))
 		})
 		.slice(0, limit)
 }
@@ -103,7 +104,7 @@ export function mergeProviderResults<T extends BrowseMergeHit>(
 			.sort((left, right) => {
 				const delta = right.score - left.score
 				if (delta !== 0) return delta
-				return providerTieBreak(left.hit) - providerTieBreak(right.hit)
+				return compareStableHit(left.hit, right.hit)
 			})
 			.slice(0, limit)
 			.map(({ hit }) => hit)
@@ -133,7 +134,7 @@ export function mergeProviderResults<T extends BrowseMergeHit>(
 		.sort((left, right) => {
 			const delta = right.score - left.score
 			if (delta !== 0) return delta
-			return providerTieBreak(left.hit) - providerTieBreak(right.hit)
+			return compareStableHit(left.hit, right.hit)
 		})
 		.slice(0, limit)
 		.map(({ hit }) => hit)

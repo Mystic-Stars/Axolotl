@@ -272,7 +272,7 @@ const sortOptions = computed<ComboboxOption<SortType>[]>(() =>
 			<template v-else>
 				<ProjectCard
 					v-for="result in ctx.projectHits.value"
-					:key="`${result.provider ?? 'modrinth'}:${result.project_id}`"
+					:key="`${result.provider}:${result.project_id}`"
 					:link="ctx.getProjectLink(result)"
 					:title="result.title"
 					:icon-url="result.icon_url"
@@ -281,13 +281,15 @@ const sortOptions = computed<ComboboxOption<SortType>[]>(() =>
 						link:
 							result.provider === 'curseforge'
 								? result.author_url
-								: result.organization_id == null
-									? ctx.variant === 'web'
-										? `/user/${result.author_id ?? result.author}`
-										: `https://modrinth.com/user/${result.author_id ?? result.author}`
-									: ctx.variant === 'web'
-										? `/organization/${result.organization_id}`
-										: `https://modrinth.com/organization/${result.organization_id}`,
+								: result.provider === 'modrinth'
+									? result.organization_id == null
+										? ctx.variant === 'web'
+											? `/user/${result.author_id ?? result.author}`
+											: `https://modrinth.com/user/${result.author_id ?? result.author}`
+										: ctx.variant === 'web'
+											? `/organization/${result.organization_id}`
+											: `https://modrinth.com/organization/${result.organization_id}`
+									: undefined,
 					}"
 					:date-updated="result.date_modified"
 					:date-published="result.date_created"

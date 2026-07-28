@@ -380,18 +380,6 @@
   "content.inline-backup.shift-click-hint": {
     "defaultMessage": "Houd Shift ingedrukt tijdens het klikken om de bevestiging over te slaan."
   },
-  "content.modpack-card.content-hint-description": {
-    "defaultMessage": "De inhoud van je modpack kan vanaf nu hier gevonden worden!"
-  },
-  "content.modpack-card.content-hint-title": {
-    "defaultMessage": "Modpack inhoud verplaatst"
-  },
-  "content.modpack-card.dismiss-hint": {
-    "defaultMessage": "Niet opnieuw tonen"
-  },
-  "content.page-layout.additional-content": {
-    "defaultMessage": "Extra inhoud"
-  },
   "content.page-layout.browse-content": {
     "defaultMessage": "Blader door content"
   },
@@ -401,14 +389,8 @@
   "content.page-layout.empty.hint": {
     "defaultMessage": "Blader of upload {contentType} om te beginnen"
   },
-  "content.page-layout.empty.modpack-hint": {
-    "defaultMessage": "Voeg extra content toe bovenop deze modpack"
-  },
   "content.page-layout.empty.no-content-installed": {
     "defaultMessage": "Geen content geïnstalleerd"
-  },
-  "content.page-layout.empty.no-extra-content-installed": {
-    "defaultMessage": "Geen extra content geïnstalleerd"
   },
   "content.page-layout.failed-to-load": {
     "defaultMessage": "Fout bij het laden van content"

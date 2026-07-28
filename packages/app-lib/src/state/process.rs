@@ -4,7 +4,7 @@ use crate::event::{InstancePayloadType, ProcessPayloadType};
 use crate::event::{LogEvent, LogPayload};
 use crate::util::io::IOError;
 use crate::util::rpc::RpcServer;
-use chrono::{DateTime, NaiveDateTime, TimeZone, Utc};
+use chrono::{DateTime, Duration, NaiveDateTime, TimeZone, Utc};
 use dashmap::DashMap;
 use quick_xml::Reader;
 use quick_xml::events::Event;
@@ -818,6 +818,10 @@ impl Process {
                     return;
                 }
             };
+            let ended_at = Utc::now();
+            let elapsed_duration =
+                Duration::seconds(elapsed.min(i64::MAX as u64) as i64);
+            let started_at = ended_at - elapsed_duration;
             if let Err(e) =
                 crate::state::instances::commands::add_instance_recent_playtime(
                     instance_id,
@@ -832,6 +836,21 @@ impl Process {
                     e
                 );
             }
+            if let Err(e) =
+				crate::state::instances::commands::record_instance_daily_playtime(
+					instance_id,
+					started_at,
+					ended_at,
+					&state.pool,
+				)
+				.await
+			{
+				tracing::warn!(
+					"Failed to record daily playtime for instance {}: {}",
+					instance_id,
+					e
+				);
+			}
             *last_updated_playtime = Instant::now();
         }
 
@@ -840,6 +859,19 @@ impl Process {
         let mut last_updated_playtime = Instant::now();
 
         let state = crate::State::get().await?;
+        if let Err(e) =
+            crate::state::instances::commands::record_instance_play_session(
+                &instance_id,
+                &state.pool,
+            )
+            .await
+        {
+            tracing::warn!(
+                "Failed to record play session for instance {}: {}",
+                instance_id,
+                e
+            );
+        }
         loop {
             if let Some(process) = state.process_manager.try_wait(uuid)? {
                 if let Some(t) = process {

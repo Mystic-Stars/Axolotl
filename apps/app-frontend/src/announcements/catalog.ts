@@ -33,15 +33,26 @@ export const ANNOUNCEMENT_CHANGE_TYPES: readonly AnnouncementChangeType[] = [
 
 export const launcherAnnouncements: readonly LauncherAnnouncement[] = [
 	{
-		id: 'launcher-1.5.6',
-		version: '1.5.6',
-		publishedAt: '2026-07-27',
+		id: 'launcher-1.6.0',
+		version: '1.6.0',
+		publishedAt: '2026-07-28',
 		title: {
-			'en-US': 'Axolotl Launcher 1.5.6',
-			'zh-CN': 'Axolotl Launcher 1.5.6',
+			'en-US': 'Axolotl Launcher 1.6.0',
+			'zh-CN': 'Axolotl Launcher 1.6.0',
 		},
 		changes: {
+			added: [
+				{
+					'en-US': 'Added Lab with a gradient color generator and a Java Edition Seed Map.',
+					'zh-CN': '新增实验室，首批提供渐变颜色生成器和 Java 版种子地图。',
+				},
+			],
 			changed: [
+				{
+					'en-US':
+						'Improved download routing, retries, and progress reporting for more reliable installs.',
+					'zh-CN': '优化下载源切换、重试与进度展示，提升安装下载的稳定性。',
+				},
 				{
 					'en-US': 'Changed the way the launcher handles modpack parsing.',
 					'zh-CN': '重写了加载器版本和类型的解析方式。',
@@ -55,6 +66,18 @@ export const launcherAnnouncements: readonly LauncherAnnouncement[] = [
 					'en-US':
 						'To avoid confusion caused by loaders that have not yet been parsed during batch imports, instances are now imported one by one with progress displayed.',
 					'zh-CN': '为避免批量导入过程中还未来得及解析的加载器造成误解，现在逐个导入实例并显示进度',
+				},
+				{
+					'en-US':
+						'Improved the Linux desktop file (.desktop) with Comment, Keywords, StartupWMClass, and StartupNotify fields; added x-scheme-handler/axolotl protocol association and Chinese localization; and set WEBKIT_DISABLE_DMABUF_RENDERER=1 for Exec.',
+					'zh-CN':
+						'优化 Linux 桌面文件（.desktop）：补充 Comment、Keywords、StartupWMClass、StartupNotify 等字段，添加 x-scheme-handler/axolotl 协议关联与中文本地化，并为 Exec 添加 WEBKIT_DISABLE_DMABUF_RENDERER=1 环境变量。',
+				},
+				{
+					'en-US':
+						'Replaced Tauri template variables in the Linux desktop file template with fixed values, ensuring the built .desktop file uses "Axolotl Launcher" directly for its name, icon, and executable.',
+					'zh-CN':
+						'将 Linux 桌面文件模板从 Tauri 模板变量格式改为固定值格式，确保编译后的 .desktop 文件直接使用 "Axolotl Launcher" 作为名称、图标和可执行文件。',
 				},
 			],
 			fixed: [

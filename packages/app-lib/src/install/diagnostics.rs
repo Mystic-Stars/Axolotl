@@ -203,8 +203,20 @@ fn timeline_event_description(event: &InstallJobEvent) -> Option<String> {
         InstallJobEventKind::ContentDownloadStarted { .. }
         | InstallJobEventKind::ContentFileDownloadAttempt { .. }
         | InstallJobEventKind::ContentFileSkipped { .. }
+        | InstallJobEventKind::ContentFileFailed { .. }
         | InstallJobEventKind::ContentFileCompleted { .. }
         | InstallJobEventKind::TargetInstanceDeleted { .. } => None,
+        InstallJobEventKind::DownloadRequestStarted {
+            url,
+            source,
+            attempt,
+            max_attempts,
+            ..
+        } => Some(format!(
+            "Requesting {url} from {source} (attempt {attempt}/{max_attempts})"
+        )),
+        InstallJobEventKind::DownloadRequestFinished { .. }
+        | InstallJobEventKind::DownloadRequestFailed { .. } => None,
         InstallJobEventKind::DownloadMetrics {
             source,
             fallback_count,
@@ -239,8 +251,21 @@ fn write_content_summary(details: &mut String, events: &[InstallJobEvent]) {
             _ => None,
         })
         .collect::<Vec<_>>();
+    let failed = events
+        .iter()
+        .filter_map(|event| match &event.kind {
+            InstallJobEventKind::ContentFileFailed { path, reason, .. } => {
+                Some((path.as_str(), reason.as_str()))
+            }
+            _ => None,
+        })
+        .collect::<Vec<_>>();
 
-    if started.is_none() && completed.is_empty() && skipped.is_empty() {
+    if started.is_none()
+        && completed.is_empty()
+        && skipped.is_empty()
+        && failed.is_empty()
+    {
         return;
     }
 
@@ -249,9 +274,10 @@ fn write_content_summary(details: &mut String, events: &[InstallJobEvent]) {
     if let Some((files, bytes)) = started {
         let _ = writeln!(
             details,
-            "Completed files: {} / {files}, skipped files: {}",
+            "Completed files: {} / {files}, skipped files: {}, failed files: {}",
             completed.len(),
-            skipped.len()
+            skipped.len(),
+            failed.len()
         );
         if let Some(bytes) = bytes {
             let _ = writeln!(
@@ -263,9 +289,10 @@ fn write_content_summary(details: &mut String, events: &[InstallJobEvent]) {
     } else {
         let _ = writeln!(
             details,
-            "Completed files: {}, skipped files: {}",
+            "Completed files: {}, skipped files: {}, failed files: {}",
             completed.len(),
-            skipped.len()
+            skipped.len(),
+            failed.len()
         );
     }
 
@@ -288,6 +315,17 @@ fn write_content_summary(details: &mut String, events: &[InstallJobEvent]) {
         }
         if skipped.len() > 20 {
             let _ = writeln!(details, "- ... {} more", skipped.len() - 20);
+        }
+    }
+
+    if !failed.is_empty() {
+        let _ = writeln!(details);
+        let _ = writeln!(details, "Failed files");
+        for (path, reason) in failed.iter().rev().take(20) {
+            let _ = writeln!(details, "- {path} ({reason})");
+        }
+        if failed.len() > 20 {
+            let _ = writeln!(details, "- ... {} more", failed.len() - 20);
         }
     }
 }

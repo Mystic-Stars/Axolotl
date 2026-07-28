@@ -1,5 +1,12 @@
 <script setup lang="ts">
-import { CheckIcon, ImageIcon, TrashIcon, UploadIcon } from '@modrinth/assets'
+import {
+	CheckIcon,
+	ImageIcon,
+	LayoutTemplateIcon,
+	MinimizeIcon,
+	TrashIcon,
+	UploadIcon,
+} from '@modrinth/assets'
 import {
 	ButtonStyled,
 	Combobox,
@@ -26,6 +33,7 @@ import {
 	deriveAccentVariants,
 	type FeatureFlag,
 	hexToHsl,
+	type HomeLayout,
 	hslToHex,
 	parseCustomAccentColor,
 } from '@/store/theme.ts'
@@ -34,7 +42,7 @@ const themeStore = useTheming()
 const { formatMessage } = useVIntl()
 const { handleError } = injectNotificationManager()
 
-const worldsInHomeFlag: FeatureFlag = 'worlds_in_home'
+const recentProjectsInHomeFlag: FeatureFlag = 'worlds_in_home'
 const skipNonEssentialWarningsFlag: FeatureFlag = 'skip_non_essential_warnings'
 const skipUnknownPackWarningFlag: FeatureFlag = 'skip_unknown_pack_warning'
 const showPlayTimeFlag: FeatureFlag = 'show_instance_play_time'
@@ -224,17 +232,33 @@ const messages = defineMessages({
 		id: 'app.appearance-settings.default-landing-page.discover-content',
 		defaultMessage: 'Discover content',
 	},
+	homeLayoutTitle: {
+		id: 'app.appearance-settings.home-layout.title',
+		defaultMessage: 'Home layout',
+	},
+	homeLayoutDescription: {
+		id: 'app.appearance-settings.home-layout.description',
+		defaultMessage: 'Choose between Information Home and a focused instance launcher.',
+	},
+	homeLayoutStandard: {
+		id: 'app.appearance-settings.home-layout.standard',
+		defaultMessage: 'Information',
+	},
+	homeLayoutMinimal: {
+		id: 'app.appearance-settings.home-layout.minimal',
+		defaultMessage: 'Minimal',
+	},
+	homeRecentTitle: {
+		id: 'app.appearance-settings.home-recent.title',
+		defaultMessage: 'Recent projects',
+	},
+	homeRecentDescription: {
+		id: 'app.appearance-settings.home-recent.description',
+		defaultMessage: 'Show up to four recently opened instances and worlds on Information Home.',
+	},
 	selectOption: {
 		id: 'app.appearance-settings.select-option',
 		defaultMessage: 'Select an option',
-	},
-	jumpBackIntoWorldsTitle: {
-		id: 'app.appearance-settings.jump-back-into-worlds.title',
-		defaultMessage: 'Jump back into worlds',
-	},
-	jumpBackIntoWorldsDescription: {
-		id: 'app.appearance-settings.jump-back-into-worlds.description',
-		defaultMessage: 'Includes recent worlds in the "Jump back in" section on the Home page.',
 	},
 	toggleSidebarTitle: {
 		id: 'app.appearance-settings.toggle-sidebar.title',
@@ -277,6 +301,15 @@ const messages = defineMessages({
 	sidebarInstanceCountDescription: {
 		id: 'app.appearance-settings.sidebar-instance-count.description',
 		defaultMessage: 'Maximum number of instances to show in the sidebar. Set to 0 to show all.',
+	},
+	autoHideDownloadsButtonTitle: {
+		id: 'app.appearance-settings.auto-hide-downloads-button.title',
+		defaultMessage: 'Auto-hide downloads button',
+	},
+	autoHideDownloadsButtonDescription: {
+		id: 'app.appearance-settings.auto-hide-downloads-button.description',
+		defaultMessage:
+			'Hide the downloads button in the sidebar when there are no active download tasks.',
 	},
 })
 
@@ -339,6 +372,12 @@ function onCustomHexInput(value: string) {
 	customAccentHexInput.value = value
 	const normalized = value.startsWith('#') ? value : `#${value}`
 	if (/^#[0-9a-fA-F]{6}$/.test(normalized)) applyCustomAccent(normalized)
+}
+
+function setHomeLayout(value: string | number) {
+	if (value !== 'standard' && value !== 'minimal') return
+	settings.value.home_layout = value as HomeLayout
+	themeStore.homeLayout = value as HomeLayout
 }
 
 async function chooseCustomBackground() {
@@ -788,6 +827,68 @@ watch(
 		/>
 	</div>
 
+	<div class="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+		<div>
+			<h2 class="m-0 text-lg font-semibold text-contrast">
+				{{ formatMessage(messages.homeLayoutTitle) }}
+			</h2>
+			<p class="m-0 mt-1">{{ formatMessage(messages.homeLayoutDescription) }}</p>
+		</div>
+		<div
+			class="inline-flex shrink-0 items-center gap-1 rounded-xl border border-solid border-divider bg-bg-raised p-1"
+			role="radiogroup"
+			:aria-label="formatMessage(messages.homeLayoutTitle)"
+		>
+			<ButtonStyled
+				:color="settings.home_layout === 'standard' ? 'brand' : 'standard'"
+				:type="settings.home_layout === 'standard' ? 'highlight-colored-text' : 'transparent'"
+			>
+				<button
+					type="button"
+					role="radio"
+					:aria-checked="settings.home_layout === 'standard'"
+					@click="setHomeLayout('standard')"
+				>
+					<LayoutTemplateIcon aria-hidden="true" />
+					{{ formatMessage(messages.homeLayoutStandard) }}
+				</button>
+			</ButtonStyled>
+			<ButtonStyled
+				:color="settings.home_layout === 'minimal' ? 'brand' : 'standard'"
+				:type="settings.home_layout === 'minimal' ? 'highlight-colored-text' : 'transparent'"
+			>
+				<button
+					type="button"
+					role="radio"
+					:aria-checked="settings.home_layout === 'minimal'"
+					@click="setHomeLayout('minimal')"
+				>
+					<MinimizeIcon aria-hidden="true" />
+					{{ formatMessage(messages.homeLayoutMinimal) }}
+				</button>
+			</ButtonStyled>
+		</div>
+	</div>
+
+	<div class="mt-6 flex items-center justify-between gap-4">
+		<div>
+			<h2 class="m-0 text-lg font-semibold text-contrast">
+				{{ formatMessage(messages.homeRecentTitle) }}
+			</h2>
+			<p class="m-0 mt-1">{{ formatMessage(messages.homeRecentDescription) }}</p>
+		</div>
+		<Toggle
+			:model-value="themeStore.getFeatureFlag(recentProjectsInHomeFlag)"
+			@update:model-value="
+				(value) => {
+					const enabled = !!value
+					themeStore.featureFlags[recentProjectsInHomeFlag] = enabled
+					settings.feature_flags[recentProjectsInHomeFlag] = enabled
+				}
+			"
+		/>
+	</div>
+
 	<div class="mt-6 flex flex-col gap-2">
 		<div>
 			<h2 class="m-0 text-lg font-semibold text-contrast">
@@ -801,6 +902,27 @@ watch(
 			:min="0"
 			:max="50"
 			:step="1"
+		/>
+	</div>
+
+	<div class="mt-6 flex items-center justify-between gap-4">
+		<div>
+			<h2 class="m-0 text-lg font-semibold text-contrast">
+				{{ formatMessage(messages.autoHideDownloadsButtonTitle) }}
+			</h2>
+			<p class="m-0 mt-1">
+				{{ formatMessage(messages.autoHideDownloadsButtonDescription) }}
+			</p>
+		</div>
+		<Toggle
+			id="auto-hide-downloads-button"
+			:model-value="themeStore.autoHideDownloadsButton"
+			@update:model-value="
+				(value) => {
+					themeStore.autoHideDownloadsButton = !!value
+					settings.auto_hide_downloads_button = themeStore.autoHideDownloadsButton
+				}
+			"
 		/>
 	</div>
 
@@ -850,25 +972,6 @@ watch(
 					label: formatMessage(messages.defaultLandingPageLibrary),
 				},
 			]"
-		/>
-	</div>
-
-	<div class="mt-6 flex items-center justify-between">
-		<div>
-			<h2 class="m-0 text-lg font-semibold text-contrast">
-				{{ formatMessage(messages.jumpBackIntoWorldsTitle) }}
-			</h2>
-			<p class="m-0 mt-1">{{ formatMessage(messages.jumpBackIntoWorldsDescription) }}</p>
-		</div>
-		<Toggle
-			:model-value="themeStore.getFeatureFlag(worldsInHomeFlag)"
-			@update:model-value="
-				() => {
-					const newValue = !themeStore.getFeatureFlag(worldsInHomeFlag)
-					themeStore.featureFlags[worldsInHomeFlag] = newValue
-					settings.feature_flags[worldsInHomeFlag] = newValue
-				}
-			"
 		/>
 	</div>
 

@@ -125,8 +125,10 @@ pub struct ContentFile {
     pub file_name: String,
     pub enabled: bool,
     pub size: u64,
-    pub metadata: Option<FileMetadata>,
-    pub update_version_id: Option<String>,
+    pub modrinth: Option<ModrinthFileMatch>,
+    pub provider_refs: Vec<crate::state::ContentProviderRef>,
+    pub origin_provider: Option<crate::state::ContentProvider>,
+    pub update: Option<crate::state::ContentItemUpdate>,
     pub project_type: ProjectType,
     /// JSON-encoded `LocalModMetadata` extracted from the JAR's embedded
     /// mod metadata file. Populated when Modrinth hash lookup provides
@@ -135,9 +137,9 @@ pub struct ContentFile {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct FileMetadata {
-    pub project_id: String,
-    pub version_id: String,
+pub struct ModrinthFileMatch {
+    pub project_id: crate::state::ModrinthProjectId,
+    pub version_id: crate::state::ModrinthVersionId,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, Copy, PartialEq, Eq)]

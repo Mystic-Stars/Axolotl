@@ -24,6 +24,7 @@ pub(crate) async fn sync_instance_content_files(
     instance: &Instance,
     state: &State,
 ) -> crate::Result<Vec<InstanceFile>> {
+    cleanup_install_temporary_files(instance, state)?;
     let scanned = filesystem::scan_content_files(
         &state.directories.instances_dir(),
         &instance.path,
@@ -129,6 +130,38 @@ pub(crate) async fn sync_instance_content_files(
     tx.commit().await?;
 
     Ok(files)
+}
+
+fn cleanup_install_temporary_files(
+    instance: &Instance,
+    state: &State,
+) -> crate::Result<()> {
+    let instance_dir = state.directories.instances_dir().join(&instance.path);
+    for project_type in ProjectType::iterator() {
+        let folder = instance_dir.join(project_type.get_folder());
+        if !folder.is_dir() {
+            continue;
+        }
+        for entry in std::fs::read_dir(&folder)
+            .map_err(crate::util::io::IOError::from)?
+        {
+            let path = entry.map_err(crate::util::io::IOError::from)?.path();
+            let name = path
+                .file_name()
+                .and_then(|name| name.to_str())
+                .unwrap_or_default();
+            if name.ends_with(".installing")
+                || name.ends_with(".installing.previous")
+                || name.ends_with(".installing.download")
+            {
+                if path.is_file() {
+                    std::fs::remove_file(path)
+                        .map_err(crate::util::io::IOError::from)?;
+                }
+            }
+        }
+    }
+    Ok(())
 }
 
 pub(crate) fn project_type_for_file(

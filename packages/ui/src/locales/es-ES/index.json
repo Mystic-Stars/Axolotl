@@ -482,18 +482,6 @@
   "content.inline-backup.world-label": {
     "defaultMessage": " mundo"
   },
-  "content.modpack-card.content-hint-description": {
-    "defaultMessage": "¡Ya puedes encontrar el contenido de tu modpack aquí!"
-  },
-  "content.modpack-card.content-hint-title": {
-    "defaultMessage": "Se ha trasladado el contenido del modpack"
-  },
-  "content.modpack-card.dismiss-hint": {
-    "defaultMessage": "No mostrar de nuevo"
-  },
-  "content.page-layout.additional-content": {
-    "defaultMessage": "Contenido adicional"
-  },
   "content.page-layout.browse-content": {
     "defaultMessage": "Explorar el contenido"
   },
@@ -503,14 +491,8 @@
   "content.page-layout.empty.hint": {
     "defaultMessage": "Explora o sube {contentType} para empezar"
   },
-  "content.page-layout.empty.modpack-hint": {
-    "defaultMessage": "Añade contenido adicional a este modpack"
-  },
   "content.page-layout.empty.no-content-installed": {
     "defaultMessage": "No hay contenido instalado"
-  },
-  "content.page-layout.empty.no-extra-content-installed": {
-    "defaultMessage": "No hay contenido adicional instalado"
   },
   "content.page-layout.failed-to-load": {
     "defaultMessage": "No se ha podido cargar el contenido"
@@ -766,51 +748,6 @@
   },
   "creation-flow.modal.final-config.world-type.superflat": {
     "defaultMessage": "Superplano"
-  },
-  "creation-flow.modal.import-instance.action.add": {
-    "defaultMessage": "Añadir"
-  },
-  "creation-flow.modal.import-instance.custom-launcher.name": {
-    "defaultMessage": "Personalizado ({pathName})"
-  },
-  "creation-flow.modal.import-instance.detecting-launcher-instances": {
-    "defaultMessage": "Detectando instancias de launcher..."
-  },
-  "creation-flow.modal.import-instance.launcher-instances.title": {
-    "defaultMessage": "Instancias de launcher"
-  },
-  "creation-flow.modal.import-instance.launcher-path.add": {
-    "defaultMessage": "Añade el directorio del launcher"
-  },
-  "creation-flow.modal.import-instance.launcher-path.placeholder": {
-    "defaultMessage": "Directorio al launcher..."
-  },
-  "creation-flow.modal.import-instance.notification.no-instances-found.text": {
-    "defaultMessage": "Ninguna instancia importable fue encontrada en el directorio especificado."
-  },
-  "creation-flow.modal.import-instance.notification.no-instances-found.title": {
-    "defaultMessage": "Ninguna instancia encontrada"
-  },
-  "creation-flow.modal.import-instance.search.placeholder": {
-    "defaultMessage": "Buscar instancia por nombre"
-  },
-  "creation-flow.modal.import-instance.selection.clear-all": {
-    "defaultMessage": "Borrar todo"
-  },
-  "creation-flow.modal.modpack.action.browse": {
-    "defaultMessage": "Descubrir modpacks"
-  },
-  "creation-flow.modal.modpack.action.import": {
-    "defaultMessage": "Importar modpack"
-  },
-  "creation-flow.modal.modpack.known-modpack.prompt": {
-    "defaultMessage": "¿Ya sabes cuál es el modpack que quieres instalar?"
-  },
-  "creation-flow.modal.modpack.search.no-results": {
-    "defaultMessage": "Ningún resultado encontrado"
-  },
-  "creation-flow.modal.modpack.search.placeholder": {
-    "defaultMessage": "Buscar por modpack"
   },
   "creation-flow.modal.setup-type.instance.description": {
     "defaultMessage": "Una instancia es una configuración de Minecraft con un específico loader, versión, y mods."
