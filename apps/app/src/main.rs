@@ -14,6 +14,7 @@ use theseus::prelude::*;
 mod api;
 mod error;
 mod portable;
+mod linux_update;
 mod seed_map;
 
 #[cfg(target_os = "macos")]
@@ -411,6 +412,8 @@ fn main() {
             is_dev,
             portable::is_portable_mode,
             are_updates_enabled,
+            linux_update::get_linux_update_info,
+            linux_update::execute_package_manager_update,
             get_update_size,
             check_app_update,
             enqueue_update_for_installation,

@@ -2390,6 +2390,42 @@
 	"app.skins.title": {
 		"message": "Skin selector"
 	},
+	"app.smart-update.alternate-command-label": {
+		"message": "Alternative:"
+	},
+	"app.smart-update.builtin-description": {
+		"message": "Downloads the latest AppImage automatically and installs it when you restart the app. Cryptographic signature verified. No external tools required."
+	},
+	"app.smart-update.builtin-title": {
+		"message": "Built-in Updater (AppImage)"
+	},
+	"app.smart-update.bin-package": {
+		"message": "axolotl-launcher-bin"
+	},
+	"app.smart-update.source-package": {
+		"message": "axolotl-launcher"
+	},
+	"app.smart-update.confirm": {
+		"message": "Update"
+	},
+	"app.smart-update.copied": {
+		"message": "Command copied to clipboard"
+	},
+	"app.smart-update.copy-command": {
+		"message": "Copy"
+	},
+	"app.smart-update.description": {
+		"message": "Axolotl Launcher v{version} is available. On Linux, you can update through the built-in updater or your system package manager."
+	},
+	"app.smart-update.header": {
+		"message": "Choose Update Method"
+	},
+	"app.smart-update.package-manager-description": {
+		"message": "Opens a terminal to update via your system package manager. Better integration with your system, managed dependencies, and system-wide updates."
+	},
+	"app.smart-update.package-manager-title": {
+		"message": "Update via {manager}"
+	},
 	"app.splash.checking-for-updates": {
 		"message": "Checking for updates..."
 	},
@@ -2598,7 +2634,7 @@
 		"message": "Axolotl Launcher v{version} has finished downloading. Reload to update now, or automatically when you close Axolotl Launcher."
 	},
 	"app.update-popup.body.linux": {
-		"message": "Axolotl Launcher v{version} is available. Use your package manager to update for the latest features and fixes!"
+		"message": "Axolotl Launcher v{version} is available. We didn't automatically download it \u2014 use the Update button to choose between the built-in updater or your package manager."
 	},
 	"app.update-popup.body.metered": {
 		"message": "Axolotl Launcher v{version} is available now! Since you're on a metered network, we didn't automatically download it."

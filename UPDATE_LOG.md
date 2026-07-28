@@ -21,5 +21,7 @@
 - 新增启动时自动清理：超过 7 天未使用的下载临时文件（.part 及分段残留）会被自动删除，避免被放弃的下载永久占用磁盘。
 - 修复更改应用目录或迁移旧启动器数据时，数据库中遗留的未完成 Java 安装（.installing 暂存路径）会触发 "Cannot save an incomplete Java installation" 错误、导致启动器初始化失败无法启动的问题；现在会自动跳过并清理这类脏记录。
 - 新增 MC 百科（mcmod.cn）跳转：模组/内容详情页的「相关链接」侧栏新增「MC Mod」项，右上角三点菜单新增「在 MC 百科中打开」，仅当项目 Slug 能在内置百科词表中查到 WikiId 时显示，点击跳转 https://www.mcmod.cn/class/{WikiId}.html；Modrinth 与 CurseForge 详情页均支持。
+- 增强 Linux 更新流程：APT 更新命令新增 PPA 源自动配置，APT/Arch (yay/paru/pacman) 更新完成后通过 notify-send 发送中英双语桌面通知提醒用户重启应用。
+- 修复 SmartLinuxUpdateModal 中包裹包管理器（bin/source）选项的容器 div 意外缺失的问题。修复后，包管理器选项的显示与隐藏由容器 div 的 `v-if="selectedMethod === 'packageManager'"` 控制，`alternateCommand` 仅控制内部 bin/source 选项的可见性。
 - 优化 Linux 桌面文件（.desktop）：补充 Comment、Keywords、StartupWMClass、StartupNotify 等字段，添加 x-scheme-handler/axolotl 协议关联与中文本地化，并为 Exec 添加 WEBKIT_DISABLE_DMABUF_RENDERER=1 环境变量。
 - 将 Linux 桌面文件模板从 Tauri 模板变量格式改为固定值格式，确保编译后的 .desktop 文件直接使用 "Axolotl Launcher" 作为名称、图标和可执行文件。

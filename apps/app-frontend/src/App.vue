@@ -2136,7 +2136,7 @@ const updatePopupMessages = defineMessages({
 	linuxBody: {
 		id: 'app.update-popup.body.linux',
 		defaultMessage:
-			'Axolotl Launcher v{version} is available. Use your package manager to update for the latest features and fixes!',
+			"Axolotl Launcher v{version} is available. We didn't automatically download it \u2014 use the Update button to choose between the built-in updater or your package manager.",
 	},
 	reload: {
 		id: 'app.update-popup.reload',
@@ -2202,7 +2202,22 @@ function showDelayedUpdatePopup() {
 		return
 	}
 
-	if (metered.value && !finishedDownloading.value) {
+	if (os.value === 'Linux' && !finishedDownloading.value) {
+		addPopupNotification({
+			title: formatMessage(updatePopupMessages.updateAvailable),
+			text: formatMessage(updatePopupMessages.linuxBody, { version: update.version }),
+			type: 'info',
+			autoCloseMs: null,
+			buttons: [
+				{
+					label: formatMessage(updatePopupMessages.changelog),
+					action: () => openAppUpdateChangelog(),
+					color: 'brand',
+					keepOpen: true,
+				},
+			],
+		})
+	} else if (metered.value && !finishedDownloading.value) {
 		addPopupNotification({
 			title: formatMessage(updatePopupMessages.updateAvailable),
 			text: formatMessage(updatePopupMessages.meteredBody, { version: update.version }),
@@ -2288,11 +2303,17 @@ async function performUpdateCheck() {
 	console.log(`Update ${update.version} is available.`)
 
 	metered.value = await isNetworkMetered()
-	if (!metered.value) {
+	if (!metered.value && os.value !== 'Linux') {
 		console.log('Starting download of update')
 		downloadUpdate(update)
 	} else {
-		console.log(`Metered connection detected, not auto-downloading update.`)
+		if (os.value === 'Linux') {
+			console.log('Linux detected, deferring update to smart update flow.')
+		} else {
+			console.log(
+				`Metered connection detected, not auto-downloading update.`,
+			)
+		}
 		markAppUpdateActionable(update.version)
 		scheduleDelayedUpdatePopup()
 	}

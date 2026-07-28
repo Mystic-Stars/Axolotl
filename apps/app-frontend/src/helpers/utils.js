@@ -27,6 +27,10 @@ export async function removeEnqueuedUpdate() {
 	return await invoke('remove_enqueued_update')
 }
 
+export async function executePackageManagerUpdate(command) {
+	return await invoke('execute_package_manager_update', { command })
+}
+
 export async function setRestartAfterPendingUpdate(should_restart) {
 	return await invoke('set_restart_after_pending_update', { shouldRestart: should_restart })
 }
