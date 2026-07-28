@@ -110,17 +110,9 @@
 										class="h-1.5 w-1.5 rounded-full bg-brand"
 									/>
 								</div>
-								<code class="text-xs text-contrast break-words leading-relaxed flex-1">
-									{{ updateInfo.updateCommand }}
-								</code>
-								<button
-									type="button"
-									class="text-xs text-brand hover:underline shrink-0"
-									:aria-label="formatMessage(messages.copyCommand)"
-									@click.stop="copyCommand(updateInfo.updateCommand)"
-								>
-									{{ formatMessage(messages.copyCommand) }}
-								</button>
+								<span class="text-xs font-medium text-contrast">
+									{{ formatMessage(messages.binPackage) }}
+								</span>
 							</div>
 							<p
 								v-if="updateInfo.notes?.[0]"
@@ -152,17 +144,9 @@
 										class="h-1.5 w-1.5 rounded-full bg-brand"
 									/>
 								</div>
-								<code class="text-xs text-contrast break-words leading-relaxed flex-1">
-									{{ updateInfo.alternateCommand }}
-								</code>
-								<button
-									type="button"
-									class="text-xs text-brand hover:underline shrink-0"
-									:aria-label="formatMessage(messages.copyCommand)"
-									@click.stop="copyCommand(updateInfo.alternateCommand)"
-								>
-									{{ formatMessage(messages.copyCommand) }}
-								</button>
+								<span class="text-xs font-medium text-contrast">
+									{{ formatMessage(messages.sourcePackage) }}
+								</span>
 							</div>
 							<p
 								v-if="updateInfo.notes?.[1]"
@@ -173,17 +157,6 @@
 						</div>
 					</template>
 					<template v-else>
-						<code class="block text-xs text-contrast break-words leading-relaxed">
-							{{ updateInfo.updateCommand }}
-						</code>
-						<button
-							type="button"
-							class="mt-2 text-xs text-brand hover:underline"
-							:aria-label="formatMessage(messages.copyCommand)"
-							@click.stop="copyCommand(updateInfo.updateCommand)"
-						>
-							{{ formatMessage(messages.copyCommand) }}
-						</button>
 						<ul
 							v-if="updateInfo.notes?.length"
 							class="mt-3 mb-0 text-xs text-secondary list-disc pl-4"
@@ -267,6 +240,14 @@ const messages = defineMessages({
 	alternateCommandLabel: {
 		id: 'app.smart-update.alternate-command-label',
 		defaultMessage: 'Alternative:',
+	},
+	binPackage: {
+		id: 'app.smart-update.bin-package',
+		defaultMessage: 'axolotl-launcher-bin',
+	},
+	sourcePackage: {
+		id: 'app.smart-update.source-package',
+		defaultMessage: 'axolotl-launcher',
 	},
 	confirm: {
 		id: 'app.smart-update.confirm',

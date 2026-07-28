@@ -180,7 +180,7 @@ fn get_commands_and_notes(
 	match pm.as_deref() {
 		Some("apt") => (
 			Some("APT".to_string()),
-			Some("pkexec sh -c \"curl -fsSL https://ppa.axlmc.org/setup.sh | bash && apt update && apt install -y axolotl-launcher\" && { notify-send 'Axolotl Launcher' '更新完成，请重启应用' || notify-send 'Axolotl Launcher' 'Update complete. Please restart the app.' || echo 'Update complete. Please restart.'; }".to_string()),
+			Some("pkexec sh -c \"curl -fsSL https://ppa.axlmc.org/setup.sh | bash && apt install -y axolotl-launcher\" && { notify-send 'Axolotl Launcher' '更新完成，请重启应用' || notify-send 'Axolotl Launcher' 'Update complete. Please restart the app.' || echo 'Update complete. Please restart.'; }".to_string()),
 			None,
 			vec![],
 			true,
