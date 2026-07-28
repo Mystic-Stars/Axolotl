@@ -493,8 +493,11 @@ const displayedModpackProject = computed(
 
 watch(
 	() => props.instance.link,
-	() => {
+	(newLink) => {
 		localImportedModpackUnlinked.value = false
+		if (!newLink) {
+			linkedModpackContentItems.value = []
+		}
 	},
 )
 
@@ -535,7 +538,11 @@ const modpackContentQuery = useQuery({
 watch(
 	() => modpackContentQuery.data.value,
 	(items) => {
-		linkedModpackContentItems.value = items ?? []
+		if (props.instance?.link) {
+			linkedModpackContentItems.value = items ?? []
+		} else {
+			linkedModpackContentItems.value = []
+		}
 	},
 	{ immediate: true },
 )
@@ -1510,6 +1517,7 @@ async function unpairInstance() {
 	linkedModpackHasUpdate.value = false
 	linkedModpackUpdateVersionId.value = null
 	localImportedModpackUnlinked.value = true
+	linkedModpackContentItems.value = []
 	await initProjects()
 }
 
