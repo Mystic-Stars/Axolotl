@@ -2486,6 +2486,12 @@
 	"app.smart-update.builtin-title": {
 		"message": "内置更新器（AppImage）"
 	},
+	"app.smart-update.bin-package": {
+		"message": "axolotl-launcher-bin（预编译）"
+	},
+	"app.smart-update.source-package": {
+		"message": "axolotl-launcher（源码）"
+	},
 	"app.smart-update.confirm": {
 		"message": "更新"
 	},

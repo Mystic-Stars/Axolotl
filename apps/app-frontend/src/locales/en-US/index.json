@@ -2489,6 +2489,12 @@
 	"app.smart-update.builtin-title": {
 		"message": "Built-in Updater (AppImage)"
 	},
+	"app.smart-update.bin-package": {
+		"message": "axolotl-launcher-bin"
+	},
+	"app.smart-update.source-package": {
+		"message": "axolotl-launcher"
+	},
 	"app.smart-update.confirm": {
 		"message": "Update"
 	},

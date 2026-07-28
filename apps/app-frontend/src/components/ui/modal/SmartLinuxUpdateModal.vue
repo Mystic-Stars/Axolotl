@@ -82,9 +82,9 @@
 				<p class="mt-1 ml-6 text-xs text-secondary">
 					{{ formatMessage(messages.packageManagerDescription) }}
 				</p>
-				<div
+<div
 					v-if="selectedMethod === 'packageManager'"
-					class="mt-3 ml-6 rounded-lg bg-surface-4 p-3"
+					class="mt-3 ml-6"
 				>
 					<template v-if="updateInfo.alternateCommand">
 						<div
@@ -155,14 +155,6 @@
 								{{ updateInfo.notes[1] }}
 							</p>
 						</div>
-					</template>
-					<template v-else>
-						<ul
-							v-if="updateInfo.notes?.length"
-							class="mt-3 mb-0 text-xs text-secondary list-disc pl-4"
-						>
-							<li v-for="note in updateInfo.notes" :key="note">{{ note }}</li>
-						</ul>
 					</template>
 				</div>
 			</div>
