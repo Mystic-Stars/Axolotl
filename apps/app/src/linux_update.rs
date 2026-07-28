@@ -77,10 +77,10 @@ fn open_in_terminal(command: &str) -> Result<()> {
 
 	for (term, prefix_args) in terminals {
 		if command_exists(term) {
-			let full_command = format!(
-				"{}; echo; echo 'Press Enter to close...'; read",
-				command
-			);
+let full_command = format!(
+			"exec bash -c '{}; echo; echo \"Done! Press Enter to close...\"; read'",
+			command.replace('\'', "'\\''")
+		);
 			let mut cmd = std::process::Command::new(term);
 			for arg in *prefix_args {
 				cmd.arg(arg);
