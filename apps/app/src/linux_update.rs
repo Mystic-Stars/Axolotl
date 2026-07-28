@@ -154,15 +154,6 @@ fn detect_package_manager() -> Option<String> {
 	if command_exists("pacman") {
 		return Some("pacman".to_string());
 	}
-	if command_exists("dnf") {
-		return Some("dnf".to_string());
-	}
-	if command_exists("zypper") {
-		return Some("zypper".to_string());
-	}
-	if command_exists("apk") {
-		return Some("apk".to_string());
-	}
 
 	None
 }
@@ -207,27 +198,6 @@ fn get_commands_and_notes(
 				true,
 			)
 		}
-		Some("dnf") => (
-			Some("DNF".to_string()),
-			Some("sudo dnf update axolotl-launcher".to_string()),
-			None,
-			vec![],
-			true,
-		),
-		Some("zypper") => (
-			Some("Zypper".to_string()),
-			Some("sudo zypper update axolotl-launcher".to_string()),
-			None,
-			vec![],
-			true,
-		),
-		Some("apk") => (
-			Some("APK".to_string()),
-			Some("sudo apk update && sudo apk upgrade axolotl-launcher".to_string()),
-			None,
-			vec![],
-			true,
-		),
 		_ => {
 			if is_arch {
 				(
