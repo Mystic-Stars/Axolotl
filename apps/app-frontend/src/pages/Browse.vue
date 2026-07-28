@@ -3,9 +3,11 @@ import type { Labrinth } from '@modrinth/api-client'
 import {
 	CheckIcon,
 	ClipboardCopyIcon,
+	CurseForgeIcon,
 	ExternalIcon,
 	GlobeIcon,
 	LanguagesIcon,
+	ModrinthIcon,
 	PlusIcon,
 	SpinnerIcon,
 } from '@modrinth/assets'
@@ -21,6 +23,7 @@ import {
 	getSelectedInstallPreferences,
 	getTargetInstallPreferences,
 	injectNotificationManager,
+	PopoutMenu,
 	preferencesDiffer,
 	provideBrowseManager,
 	requestInstall,
@@ -630,6 +633,23 @@ const messages = defineMessages({
 		defaultMessage: 'Translating…',
 	},
 })
+
+const sourceIcon = computed(() => {
+	switch (contentSource.value) {
+		case 'modrinth':
+			return ModrinthIcon
+		case 'curseforge':
+			return CurseForgeIcon
+		default:
+			return GlobeIcon
+	}
+})
+
+const sourceOptions = computed(() => [
+	{ id: 'all' as const, label: messages.allSources, icon: GlobeIcon },
+	{ id: 'modrinth' as const, label: messages.modrinthSource, icon: ModrinthIcon },
+	{ id: 'curseforge' as const, label: messages.curseForgeSource, icon: CurseForgeIcon },
+])
 
 const breadcrumbs = useBreadcrumbs()
 const browseTitle = computed(() =>
@@ -1915,38 +1935,52 @@ provideBrowseManager({
 
 <template>
 	<div data-onboarding-id="browse-content" class="flex flex-col gap-3 p-6">
-		<div v-if="curseForgeCapability.configured && projectType !== 'server'" class="flex gap-2">
-			<ButtonStyled
-				v-for="source in [
-					{ id: 'all', label: messages.allSources },
-					{ id: 'modrinth', label: messages.modrinthSource },
-					{ id: 'curseforge', label: messages.curseForgeSource },
-				]"
-				:key="source.id"
-				:type="contentSource === source.id ? 'outlined' : 'transparent'"
-			>
-				<button @click="selectContentSource(source.id)">
-					{{ formatMessage(source.label) }}
-				</button>
-			</ButtonStyled>
-		</div>
 		<BrowsePageLayout>
 			<template #nav-tabs-actions>
-				<ButtonStyled size="large" type="transparent">
-					<button :disabled="translationLoading" @click="toggleTranslation">
-						<SpinnerIcon v-if="translationLoading" class="animate-spin" />
-						<LanguagesIcon v-else />
-						{{
-							formatMessage(
-								translationLoading
-									? messages.translating
-									: translationActive
-										? messages.showOriginal
-										: messages.translateProject,
-							)
-						}}
-					</button>
-				</ButtonStyled>
+				<div class="flex items-center gap-2">
+					<PopoutMenu
+						v-if="curseForgeCapability.configured && projectType !== 'server'"
+						placement="bottom-end"
+					>
+						<ButtonStyled size="large" type="transparent">
+							<button>
+								<component :is="sourceIcon" class="h-5 w-5" />
+							</button>
+						</ButtonStyled>
+						<template #menu>
+							<div class="flex w-min flex-col gap-1 p-1">
+								<ButtonStyled
+									v-for="option in sourceOptions"
+									:key="option.id"
+									:type="contentSource === option.id ? 'filled' : 'transparent'"
+								>
+									<button
+										class="flex w-full items-center gap-2 !justify-start text-left"
+										@click="selectContentSource(option.id)"
+									>
+										<component :is="option.icon" class="h-4 w-4" />
+										{{ formatMessage(option.label) }}
+									</button>
+								</ButtonStyled>
+							</div>
+						</template>
+					</PopoutMenu>
+					<ButtonStyled size="large" type="transparent">
+						<button :disabled="translationLoading" @click="toggleTranslation">
+							<SpinnerIcon v-if="translationLoading" class="animate-spin" />
+							<LanguagesIcon v-else />
+							{{
+								formatMessage(
+									translationLoading
+										? messages.translating
+										: translationActive
+											? messages.showOriginal
+											: messages.translateProject,
+								)
+							}}
+						</button>
+					</ButtonStyled>
+				</div>
 			</template>
 			<template #after>
 				<ContextMenu ref="contextMenuRef" @option-clicked="handleOptionsClick">
