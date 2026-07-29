@@ -1723,7 +1723,7 @@ provideContentManager({
 		}
 	},
 	getDeleteDependencyWarning,
-	refresh: () => initProjects('must_revalidate'),
+	refresh: () => refreshContentState('must_revalidate'),
 	browse: handleBrowseContent,
 	uploadFiles: handleUploadFiles,
 	hasUpdateSupport: true,
