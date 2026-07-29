@@ -1741,31 +1741,22 @@ provideContentManager({
 	symlinkTarget: computed(() => props.instance.symlink_target),
 	shareItems: handleShareItems,
 	getItemId: getContentItemId,
-	mapToTableItem: (item: ContentItem) => ({
-		id: getContentItemId(item),
-		project: item.project ?? {
-			id: item.file_name,
-			slug: null,
-			title: item.file_name.replace('.disabled', ''),
-			icon_url: null,
-		},
-		projectLink:
-			item.origin_provider && item.project?.id && !item.project.id.startsWith('local:')
+	mapToTableItem: (item: ContentItem) => {
+		const effectiveProvider = item.origin_provider ?? item.provider_refs?.[0]?.provider ?? null
+
+		const projectLink =
+			effectiveProvider && item.project?.id && !item.project.id.startsWith('local:')
 				? {
 						path:
-							item.origin_provider === 'curseforge'
+							effectiveProvider === 'curseforge'
 								? `/project/curseforge/${item.project.id}`
 								: `/project/${item.project.id}`,
 						query: { i: props.instance.id },
 					}
-				: undefined,
-		version: item.version ?? {
-			id: item.file_name,
-			version_number: formatMessage(commonMessages.unknownLabel),
-			file_name: item.file_name,
-		},
-		versionLink:
-			item.origin_provider === 'modrinth' &&
+				: undefined
+
+		const versionLink =
+			effectiveProvider === 'modrinth' &&
 			item.project?.id &&
 			!item.project.id.startsWith('local:') &&
 			item.version?.id
@@ -1773,19 +1764,38 @@ provideContentManager({
 						path: `/project/${item.project.id}/version/${item.version.id}`,
 						query: { i: props.instance.id },
 					}
-				: undefined,
-		owner: item.owner
+				: undefined
+
+		const ownerLink = item.owner
 			? {
 					...item.owner,
 					link:
-						item.origin_provider !== 'modrinth' || item.owner.id.startsWith('local:')
+						effectiveProvider !== 'modrinth' || item.owner.id.startsWith('local:')
 							? undefined
 							: () => openUrl(`https://modrinth.com/${item.owner!.type}/${item.owner!.id}`),
 				}
-			: undefined,
-		enabled: item.enabled,
-		installing: item.installing,
-	}),
+			: undefined
+
+		return {
+			id: getContentItemId(item),
+			project: item.project ?? {
+				id: item.file_name,
+				slug: null,
+				title: item.file_name.replace('.disabled', ''),
+				icon_url: null,
+			},
+			projectLink,
+			version: item.version ?? {
+				id: item.file_name,
+				version_number: formatMessage(commonMessages.unknownLabel),
+				file_name: item.file_name,
+			},
+			versionLink,
+			owner: ownerLink,
+			enabled: item.enabled,
+			installing: item.installing,
+		}
+	},
 	filterPersistKey: props.instance.id,
 })
 

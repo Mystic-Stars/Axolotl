@@ -9,9 +9,21 @@ export function useContentSelection(
 ) {
 	const selectedIds = ref<string[]>([])
 
-	const selectedItems = computed(() =>
-		items.value.filter((item) => selectedIds.value.includes(getItemId(item))),
-	)
+	const selectedItems = computed(() => {
+		const selectedIdSet = new Set(selectedIds.value)
+		const seenIds = new Set<string>()
+		const result: ContentItem[] = []
+
+		for (const item of items.value) {
+			const id = getItemId(item)
+			if (selectedIdSet.has(id) && !seenIds.has(id)) {
+				seenIds.add(id)
+				result.push(item)
+			}
+		}
+
+		return result
+	})
 
 	watch(
 		() => items.value.map(getItemId),

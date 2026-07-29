@@ -38,7 +38,26 @@ export function useContentGrouping(options: UseContentGroupingOptions) {
 	})
 
 	const allItemsForSearch = computed(() => {
-		return [...sortedItems.value, ...modpackItemsNoUpdate.value]
+		const seenIds = new Set<string>()
+		const deduplicated: ContentItem[] = []
+
+		for (const item of sortedItems.value) {
+			const id = getItemId(item)
+			if (!seenIds.has(id)) {
+				seenIds.add(id)
+				deduplicated.push(item)
+			}
+		}
+
+		for (const item of modpackItemsNoUpdate.value) {
+			const id = getItemId(item)
+			if (!seenIds.has(id)) {
+				seenIds.add(id)
+				deduplicated.push(item)
+			}
+		}
+
+		return deduplicated
 	})
 
 	const { searchQuery, search } = useContentSearch(allItemsForSearch, searchKeys)
