@@ -1836,6 +1836,7 @@ provideContentManager({
 	symlinkTarget: computed(() => props.instance.symlink_target),
 	shareItems: handleShareItems,
 	getItemId: getContentItemId,
+	instanceId: props.instance.id,
 	mapToTableItem: (item: ContentItem) => {
 		const effectiveProvider = item.origin_provider ?? item.provider_refs?.[0]?.provider ?? null
 

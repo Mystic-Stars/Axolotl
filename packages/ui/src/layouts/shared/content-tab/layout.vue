@@ -271,7 +271,40 @@ const bulkStatusMessage = ref<string | null>(null)
 const bulkItemCount = ref(0)
 
 const refreshing = ref(false)
-const expandedGroups = ref(new Set<string>())
+
+const CONTENT_UI_STATE_KEY = 'content-ui-state'
+
+function readExpandedGroups(): Set<string> {
+	try {
+		const instanceId = ctx.instanceId
+		if (!instanceId) return new Set<string>()
+		const raw = localStorage.getItem(CONTENT_UI_STATE_KEY)
+		if (!raw) return new Set<string>()
+		const entries = JSON.parse(raw) as Array<{ instanceId: string; expandedGroups: string[] }>
+		const entry = entries.find((e) => e.instanceId === instanceId)
+		return entry ? new Set(entry.expandedGroups) : new Set<string>()
+	} catch {
+		return new Set<string>()
+	}
+}
+
+function writeExpandedGroups(expandedGroups: Set<string>): void {
+	try {
+		const instanceId = ctx.instanceId
+		if (!instanceId) return
+		const raw = localStorage.getItem(CONTENT_UI_STATE_KEY)
+		const entries: Array<{ instanceId: string; expandedGroups: string[] }> = raw
+			? JSON.parse(raw)
+			: []
+		const filtered = entries.filter((e) => e.instanceId !== instanceId)
+		filtered.push({ instanceId, expandedGroups: [...expandedGroups] })
+		localStorage.setItem(CONTENT_UI_STATE_KEY, JSON.stringify(filtered))
+	} catch {
+		// Ignore errors
+	}
+}
+
+const expandedGroups = ref(readExpandedGroups())
 
 function toggleGroupExpand(groupId: string) {
 	const newSet = new Set(expandedGroups.value)
@@ -281,11 +314,13 @@ function toggleGroupExpand(groupId: string) {
 		newSet.add(groupId)
 	}
 	expandedGroups.value = newSet
+	writeExpandedGroups(newSet)
 }
 
 watch(searchQuery, (query) => {
 	if (query.trim()) {
 		expandedGroups.value = new Set([...expandedGroups.value, 'modpack'])
+		writeExpandedGroups(expandedGroups.value)
 	}
 })
 

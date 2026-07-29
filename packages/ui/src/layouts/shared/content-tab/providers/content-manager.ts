@@ -113,6 +113,9 @@ export interface ContentManagerContext {
 
 	// Filter persistence key — when set, selected filters are saved/restored via sessionStorage
 	filterPersistKey?: string
+
+	// Instance identifier — used for localStorage persistence of UI state
+	instanceId?: string
 }
 
 export const [injectContentManager, provideContentManager] = createContext<ContentManagerContext>(
