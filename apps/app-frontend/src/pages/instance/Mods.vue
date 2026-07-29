@@ -145,12 +145,11 @@ import {
 	useVIntl,
 	versionChangesGameVersion,
 } from '@modrinth/ui'
-import { useQuery, useQueryClient } from '@tanstack/vue-query'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { convertFileSrc } from '@tauri-apps/api/core'
 import { open } from '@tauri-apps/plugin-dialog'
 import { openUrl } from '@tauri-apps/plugin-opener'
-import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
 
 import ExportModal from '@/components/ui/ExportModal.vue'
 import ShareModalWrapper from '@/components/ui/modal/ShareModalWrapper.vue'
@@ -272,7 +271,6 @@ const {
 	installFailureRevisionByInstance,
 } = injectContentInstall()
 const router = useRouter()
-const queryClient = useQueryClient()
 const downloadManager = injectDownloadManager()
 const debug = useDebugLogger('Mods:ContentUpdate')
 const themeStore = useTheming()
@@ -291,9 +289,103 @@ function hasPreloadedContent(contentData: InstanceContentData | null | undefined
 	return contentData?.path === props.instance.id
 }
 
-const loading = ref(!hasPreloadedContent(props.preloadedContent))
-const projects = ref<ContentItem[]>([])
-const linkedModpackContentItems = ref<ContentItem[]>([])
+const CONTENT_CACHE_KEY = 'instance-content-cache'
+
+interface ContentCacheEntry {
+	instanceId: string
+	data: InstanceContentData
+	timestamp: number
+}
+
+function readContentCache(instanceId: string): InstanceContentData | null {
+	try {
+		const raw = localStorage.getItem(CONTENT_CACHE_KEY)
+		if (!raw) return null
+		const entries = JSON.parse(raw) as ContentCacheEntry[]
+		const entry = entries.find((e) => e.instanceId === instanceId)
+		if (!entry) return null
+		return entry.data
+	} catch {
+		return null
+	}
+}
+
+function writeContentCache(instanceId: string, data: InstanceContentData): void {
+	try {
+		const raw = localStorage.getItem(CONTENT_CACHE_KEY)
+		const entries: ContentCacheEntry[] = raw ? JSON.parse(raw) : []
+		const filtered = entries.filter((e) => e.instanceId !== instanceId)
+		filtered.push({ instanceId, data, timestamp: Date.now() })
+		localStorage.setItem(CONTENT_CACHE_KEY, JSON.stringify(filtered))
+	} catch {
+		// 忽略写入错误
+	}
+}
+
+const LINKED_CONTENT_CACHE_KEY = 'instance-linked-content-cache'
+
+interface LinkedContentCacheEntry {
+	instanceId: string
+	items: ContentItem[]
+	timestamp: number
+}
+
+function readLinkedContentCache(instanceId: string): ContentItem[] | null {
+	try {
+		const raw = localStorage.getItem(LINKED_CONTENT_CACHE_KEY)
+		if (!raw) return null
+		const entries = JSON.parse(raw) as LinkedContentCacheEntry[]
+		const entry = entries.find((e) => e.instanceId === instanceId)
+		if (!entry) return null
+		return entry.items
+	} catch {
+		return null
+	}
+}
+
+function writeLinkedContentCache(instanceId: string, items: ContentItem[]): void {
+	try {
+		const raw = localStorage.getItem(LINKED_CONTENT_CACHE_KEY)
+		const entries: LinkedContentCacheEntry[] = raw ? JSON.parse(raw) : []
+		const filtered = entries.filter((e) => e.instanceId !== instanceId)
+		filtered.push({ instanceId, items, timestamp: Date.now() })
+		localStorage.setItem(LINKED_CONTENT_CACHE_KEY, JSON.stringify(filtered))
+	} catch {
+		// 忽略写入错误
+	}
+}
+
+// 检查 localStorage 持久化缓存
+const persistedCache = readContentCache(props.instance.id)
+const hasPersistedCache =
+	!!persistedCache?.contentItems && persistedCache.path === props.instance.id
+
+const linkedPersistedCache = readLinkedContentCache(props.instance.id)
+const hasLinkedPersistedCache = !!linkedPersistedCache
+
+const loading = ref(
+	!hasPreloadedContent(props.preloadedContent) &&
+		(!hasPersistedCache || (!!props.instance?.link && !hasLinkedPersistedCache)),
+)
+const projects = ref<ContentItem[]>(hasPersistedCache ? persistedCache!.contentItems! : [])
+const linkedModpackContentItems = ref<ContentItem[]>(linkedPersistedCache ?? [])
+
+// 从持久化缓存恢复整合包元数据
+const linkedModpackProject = ref<ContentModpackCardProject | null>(
+	persistedCache?.modpack?.project ?? null,
+)
+const linkedModpackVersion = ref<ContentModpackCardVersion | null>(
+	persistedCache?.modpack?.version ?? null,
+)
+const linkedModpackOwner = ref<ContentOwner | null>(persistedCache?.modpack?.owner ?? null)
+const linkedModpackCategories = ref<ContentModpackCardCategory[]>(
+	persistedCache?.modpack?.categories ?? [],
+)
+const linkedModpackHasUpdate = ref(persistedCache?.modpack?.hasUpdate ?? false)
+const linkedModpackUpdateVersionId = ref<string | null>(
+	persistedCache?.modpack?.updateVersionId ?? null,
+)
+const localImportedModpackUnlinked = ref(false)
 
 const installingBuffer = ref<ContentItem[]>([])
 const handledInstallRevision = ref(0)
@@ -463,14 +555,6 @@ watch(
 	},
 )
 
-const linkedModpackProject = ref<ContentModpackCardProject | null>(null)
-const linkedModpackVersion = ref<ContentModpackCardVersion | null>(null)
-const linkedModpackOwner = ref<ContentOwner | null>(null)
-const linkedModpackCategories = ref<ContentModpackCardCategory[]>([])
-const linkedModpackHasUpdate = ref(false)
-const linkedModpackUpdateVersionId = ref<string | null>(null)
-const localImportedModpackUnlinked = ref(false)
-
 const localImportedModpackProject = computed<ContentModpackCardProject | null>(() => {
 	const link = props.instance.link
 	if (localImportedModpackUnlinked.value || link?.type !== 'imported_modpack') return null
@@ -495,6 +579,7 @@ watch(
 		localImportedModpackUnlinked.value = false
 		if (!newLink) {
 			linkedModpackContentItems.value = []
+			writeLinkedContentCache(props.instance.id, [])
 		}
 	},
 )
@@ -518,32 +603,32 @@ const contentUpdaterModal = ref<InstanceType<typeof ContentUpdaterModal> | null>
 const modpackContentModal = ref<InstanceType<typeof ModpackContentModal> | null>()
 const modpackUpdateConfirmModal = ref<InstanceType<typeof ConfirmModpackUpdateModal> | null>()
 
-const modpackContentQueryKey = computed(() => ['linkedModpackContent', props.instance.id])
-const modpackContentQuery = useQuery({
-	queryKey: modpackContentQueryKey,
-	queryFn: () =>
-		get_linked_modpack_content(props.instance.id).then((items) =>
-			translateContentItemTitles(items, i18n.global.locale.value),
-		),
-	enabled: computed(
-		() =>
-			!!props.instance?.id &&
-			!!props.instance?.link &&
-			props.instance.install_stage === 'installed',
-	),
-})
+async function loadLinkedModpackContentItems(
+	cacheBehaviour?: CacheBehaviour,
+): Promise<ContentItem[]> {
+	if (!props.instance?.id) return []
 
-watch(
-	() => modpackContentQuery.data.value,
-	(items) => {
-		if (props.instance?.link) {
-			linkedModpackContentItems.value = items ?? []
-		} else {
-			linkedModpackContentItems.value = []
-		}
-	},
-	{ immediate: true },
-)
+	if (!props.instance?.link || props.instance.install_stage !== 'installed') {
+		linkedModpackContentItems.value = []
+		return []
+	}
+
+	const items = await get_linked_modpack_content(props.instance.id, cacheBehaviour)
+		.then((items) => translateContentItemTitles(items, i18n.global.locale.value))
+		.catch((err) => {
+			handleError(err as Error)
+			return null
+		})
+
+	if (items) {
+		linkedModpackContentItems.value = items
+		writeLinkedContentCache(props.instance.id, items)
+		modpackContentModal.value?.setItems(items)
+		return items
+	}
+
+	return linkedModpackContentItems.value
+}
 
 // TODO: Extract content operation and updater modal state into composables; this page currently owns file mutations, dependency installs, busy flags, and version selection flow.
 const updatingProject = ref<ContentItem | null>(null)
@@ -584,15 +669,15 @@ function updateLinkedModpackContentCache(
 	originalFilePath: string | undefined,
 	updates: Partial<ContentItem>,
 ) {
-	queryClient.setQueryData<ContentItem[]>(modpackContentQueryKey.value, (items) => {
-		if (!items) return items
+	const items = linkedModpackContentItems.value
+	if (items.length === 0) return
 
-		return items.map((item) =>
-			matchesContentItem(item, target, originalFileName, originalFilePath)
-				? { ...item, ...updates }
-				: item,
-		)
-	})
+	const updated = items.map((item) =>
+		matchesContentItem(item, target, originalFileName, originalFilePath)
+			? { ...item, ...updates }
+			: item,
+	)
+	writeLinkedContentCache(props.instance.id, updated)
 }
 
 function getContentItemId(item: ContentItem | null | undefined) {
@@ -883,6 +968,19 @@ async function toggleDisableMod(mod: ContentItem, desiredEnabled?: boolean) {
 			enabled,
 		})
 
+		// 同步更新 localStorage 中的 projects 缓存
+		const cached = readContentCache(props.instance.id)
+		if (cached?.contentItems) {
+			writeContentCache(props.instance.id, {
+				...cached,
+				contentItems: cached.contentItems.map((item) =>
+					item.file_path === originalFilePath
+						? { ...item, file_path: newPath, file_name: newFileName, enabled }
+						: item,
+				),
+			})
+		}
+
 		trackEvent('InstanceProjectDisable', {
 			loader: props.instance.loader,
 			game_version: props.instance.game_version,
@@ -909,6 +1007,14 @@ async function removeMod(mod: ContentItem) {
 		const removedPath = mod.file_path
 		await remove_project(props.instance.id, removedPath)
 		projects.value = projects.value.filter((x) => removedPath !== x.file_path)
+		// 更新持久化缓存
+		const cached = readContentCache(props.instance.id)
+		if (cached?.contentItems) {
+			writeContentCache(props.instance.id, {
+				...cached,
+				contentItems: cached.contentItems.filter((x) => removedPath !== x.file_path),
+			})
+		}
 
 		trackEvent('InstanceProjectRemove', {
 			loader: props.instance.loader,
@@ -1264,19 +1370,18 @@ async function handleModpackContentBulkToggle(items: ContentItem[], enabled: boo
 async function handleModpackContent() {
 	if (!props.instance?.id) return
 
-	if (modpackContentQuery.data.value?.length) {
-		modpackContentModal.value?.show(modpackContentQuery.data.value)
+	if (linkedModpackContentItems.value.length) {
+		modpackContentModal.value?.show(linkedModpackContentItems.value)
 		return
 	}
 
 	modpackContentModal.value?.showLoading()
 
-	const { data, error } = await modpackContentQuery.refetch()
+	const items = await loadLinkedModpackContentItems()
 
-	if (data !== undefined) {
-		modpackContentModal.value?.show(data)
+	if (items.length > 0) {
+		modpackContentModal.value?.show(items)
 	} else {
-		if (error) handleError(error)
 		modpackContentModal.value?.hide()
 	}
 }
@@ -1284,20 +1389,7 @@ async function handleModpackContent() {
 async function refreshModpackContentItems(cacheBehaviour?: CacheBehaviour) {
 	if (!props.instance?.id) return
 
-	const contentItems = await queryClient
-		.fetchQuery({
-			queryKey: modpackContentQueryKey.value,
-			queryFn: () =>
-				get_linked_modpack_content(props.instance.id, cacheBehaviour).then((items) =>
-					translateContentItemTitles(items, i18n.global.locale.value),
-				),
-		})
-		.catch(handleError)
-
-	if (contentItems) {
-		linkedModpackContentItems.value = contentItems
-		modpackContentModal.value?.setItems(contentItems)
-	}
+	await loadLinkedModpackContentItems(cacheBehaviour)
 }
 
 async function refreshContentState(cacheBehaviour?: CacheBehaviour) {
@@ -1517,6 +1609,7 @@ async function unpairInstance() {
 	linkedModpackUpdateVersionId.value = null
 	localImportedModpackUnlinked.value = true
 	linkedModpackContentItems.value = []
+	writeLinkedContentCache(props.instance.id, [])
 	await initProjects()
 }
 
@@ -1602,6 +1695,7 @@ function applyContentData(contentData: InstanceContentData) {
 	}
 
 	projects.value = contentData.contentItems
+	writeContentCache(props.instance.id, contentData)
 
 	if (contentData.modpack) {
 		linkedModpackProject.value = contentData.modpack.project
@@ -1808,18 +1902,24 @@ function getInstallRevision() {
 	return installRevisionByInstance.value.get(props.instance.id) ?? 0
 }
 
-function loadInitialContent() {
+async function loadInitialContent(): Promise<void> {
 	const installRevision = getInstallRevision()
 	if (installRevision > handledInstallRevision.value) {
 		handledInstallRevision.value = installRevision
-		return initProjects('must_revalidate')
+		await initProjects('must_revalidate')
+		await loadLinkedModpackContentItems('must_revalidate')
+		return
 	}
 
 	if (props.preloadedContent && applyContentData(props.preloadedContent)) {
-		return Promise.resolve()
+		if (props.instance?.link && !hasLinkedPersistedCache) {
+			await loadLinkedModpackContentItems()
+		}
+		return
 	}
 
-	return initProjects()
+	await initProjects()
+	await loadLinkedModpackContentItems()
 }
 
 async function restoreModpackContentModalState() {
