@@ -674,9 +674,10 @@ function updateLinkedModpackContentCache(
 
 	const updated = items.map((item) =>
 		matchesContentItem(item, target, originalFileName, originalFilePath)
-			? { ...item, ...updates }
+			? { ...item, ...updates, installing: false }
 			: item,
 	)
+	linkedModpackContentItems.value = updated
 	writeLinkedContentCache(props.instance.id, updated)
 }
 
@@ -975,7 +976,7 @@ async function toggleDisableMod(mod: ContentItem, desiredEnabled?: boolean) {
 				...cached,
 				contentItems: cached.contentItems.map((item) =>
 					item.file_path === originalFilePath
-						? { ...item, file_path: newPath, file_name: newFileName, enabled }
+						? { ...item, file_path: newPath, file_name: newFileName, enabled, installing: false }
 						: item,
 				),
 			})
