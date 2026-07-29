@@ -33,10 +33,11 @@ function writeStore(store: ManualDownloadMap) {
 }
 
 function modFileFamily(fileName: string) {
-	const extension = fileName.match(/\.([^.]+)$/)?.[1]?.toLowerCase()
+	const baseName = fileName.replace(/\.disabled$/i, '')
+	const extension = baseName.match(/\.([^.]+)$/)?.[1]?.toLowerCase()
 	if (!extension) return undefined
 
-	const stem = fileName
+	const stem = baseName
 		.toLowerCase()
 		.replace(/\.(?:jar|zip|litemod|mrpack)$/i, '')
 		.replace(/\s*\(\d+\)$/, '')
@@ -78,7 +79,13 @@ export function filterInstalledCurseForgeManualDownloads(
 	manualDownloads: CurseForgeManualDownloadItem[],
 	installedItems: InstalledCurseForgeContentItem[],
 ) {
-	const installedFileNames = new Set(installedItems.map((item) => item.file_name.toLowerCase()))
+	const installedFileNames = new Set(
+		installedItems.flatMap((item) => {
+			const lower = item.file_name.toLowerCase()
+			const base = lower.replace(/\.disabled$/i, '')
+			return [lower, base].filter(Boolean)
+		}),
+	)
 	const installedFileFamilies = new Set(
 		installedItems
 			.map((item) => modFileFamily(item.file_name))
