@@ -2,6 +2,7 @@
 import {
 	ArrowDownAZIcon,
 	ArrowUpZAIcon,
+	ChevronUpIcon,
 	ClockArrowDownIcon,
 	ClockArrowUpIcon,
 	CodeIcon,
@@ -17,7 +18,7 @@ import {
 	TextCursorInputIcon,
 	TrashIcon,
 } from '@modrinth/assets'
-import { computed, nextTick, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
 import ButtonStyled from '#ui/components/base/ButtonStyled.vue'
 import EmptyState from '#ui/components/base/EmptyState.vue'
@@ -321,6 +322,59 @@ watch(searchQuery, (query) => {
 	if (query.trim()) {
 		expandedGroups.value = new Set([...expandedGroups.value, 'modpack'])
 		writeExpandedGroups(expandedGroups.value)
+	}
+})
+
+const showScrollToTop = ref(false)
+const sidebarVisible = ref(false)
+const SCROLL_THRESHOLD = 300
+const APP_SIDEBAR_WIDTH = 300
+
+function getScrollContainer(): Element | null {
+	return document.querySelector('.app-viewport')
+}
+
+function checkSidebarVisibility() {
+	const appContents = document.querySelector('.app-contents')
+	sidebarVisible.value = appContents?.classList.contains('sidebar-enabled') ?? false
+}
+
+function handleScroll() {
+	const container = getScrollContainer()
+	if (container) {
+		showScrollToTop.value = container.scrollTop > SCROLL_THRESHOLD
+	}
+}
+
+function scrollToTop() {
+	const container = getScrollContainer()
+	if (container) {
+		container.scrollTo({ top: 0, behavior: 'smooth' })
+	}
+}
+
+onMounted(() => {
+	const container = getScrollContainer()
+	if (container) {
+		container.addEventListener('scroll', handleScroll, { passive: true })
+		// 初始化检查
+		handleScroll()
+		checkSidebarVisibility()
+	}
+	// 监听侧边栏状态变化
+	const observer = new MutationObserver(() => {
+		checkSidebarVisibility()
+	})
+	const appContents = document.querySelector('.app-contents')
+	if (appContents) {
+		observer.observe(appContents, { attributes: true, attributeFilter: ['class'] })
+	}
+})
+
+onBeforeUnmount(() => {
+	const container = getScrollContainer()
+	if (container) {
+		container.removeEventListener('scroll', handleScroll)
 	}
 })
 
@@ -1172,5 +1226,41 @@ const confirmUnlinkModal = ref<InstanceType<typeof ConfirmUnlinkModal>>()
 		/>
 
 		<slot name="modals" />
+
+		<Transition name="scroll-to-top">
+			<button
+				v-if="showScrollToTop"
+				class="scroll-to-top-btn"
+				:class="{ 'sidebar-visible': sidebarVisible }"
+				@click="scrollToTop"
+				aria-label="Scroll to top"
+			>
+				<ChevronUpIcon class="size-5" />
+			</button>
+		</Transition>
 	</div>
 </template>
+
+<style scoped>
+.scroll-to-top-btn {
+	@apply fixed bottom-6 z-50 flex items-center justify-center rounded-full bg-brand p-3 text-brand-inverted shadow-lg transition-all duration-200 hover:brightness-110 hover:shadow-xl active:scale-95;
+	right: 24px;
+}
+
+.scroll-to-top-btn.sidebar-visible {
+	right: calc(300px + 24px);
+}
+
+.scroll-to-top-enter-active,
+.scroll-to-top-leave-active {
+	transition:
+		opacity 0.2s ease,
+		transform 0.2s ease;
+}
+
+.scroll-to-top-enter-from,
+.scroll-to-top-leave-to {
+	opacity: 0;
+	transform: translateY(10px);
+}
+</style>
