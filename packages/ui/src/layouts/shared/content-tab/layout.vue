@@ -483,7 +483,7 @@ const tableItems = computed<ContentCardTableItem[]>(() => {
 	}
 
 	for (const item of filteredItems.value) {
-		if (modpackChildIdSet.value.has(getItemId(item))) continue
+		if (modpackChildIdSet.value.has(getItemId(item).replace(/\.disabled$/, ''))) continue
 		items.push(mapToTableItem(item))
 	}
 

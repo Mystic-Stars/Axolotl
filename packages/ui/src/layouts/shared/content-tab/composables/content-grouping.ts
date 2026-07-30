@@ -34,7 +34,9 @@ export function useContentGrouping(options: UseContentGroupingOptions) {
 	})
 
 	const modpackChildIdSet = computed(() => {
-		return new Set((modpackItems?.value ?? []).map((item) => getItemId(item)))
+		return new Set(
+			(modpackItems?.value ?? []).map((item) => getItemId(item).replace(/\.disabled$/, '')),
+		)
 	})
 
 	const allItemsForSearch = computed(() => {
