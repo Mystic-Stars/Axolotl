@@ -10,6 +10,8 @@ export interface UseContentGroupingOptions {
 	sortItems: (items: ContentItem[]) => ContentItem[]
 	getItemId: (item: ContentItem) => string
 	searchKeys?: string[]
+	/** 内存持久化的 scope key。同一 key 的搜索关键字在导航切换时保留。 */
+	memoryKey?: string
 }
 
 export function useContentGrouping(options: UseContentGroupingOptions) {
@@ -62,7 +64,9 @@ export function useContentGrouping(options: UseContentGroupingOptions) {
 		return deduplicated
 	})
 
-	const { searchQuery, search } = useContentSearch(allItemsForSearch, searchKeys)
+	const { searchQuery, search } = useContentSearch(allItemsForSearch, searchKeys, {
+		memoryKey: options.memoryKey ? `${options.memoryKey}:search` : undefined,
+	})
 
 	const searchedAllItems = computed(() => {
 		const modpackSearched = search(modpackItemsNoUpdate.value).filter((item) =>

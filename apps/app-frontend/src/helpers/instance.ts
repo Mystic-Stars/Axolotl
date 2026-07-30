@@ -9,6 +9,7 @@ import { invoke } from '@tauri-apps/api/core'
 
 import { isOfflineMode } from '@/composables/useNetworkStatus'
 
+import { removeInstanceCache } from './instance-cache'
 import type { InstallJobSnapshot } from './install'
 import type {
 	CacheBehaviour,
@@ -19,6 +20,7 @@ import type {
 } from './types'
 
 export async function remove(instanceId: string): Promise<void> {
+	removeInstanceCache(instanceId)
 	return await invoke('plugin:instance|instance_remove', { instanceId })
 }
 

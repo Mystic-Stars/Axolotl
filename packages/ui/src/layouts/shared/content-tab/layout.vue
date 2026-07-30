@@ -138,6 +138,13 @@ const messages = defineMessages({
 const ctx = injectContentManager()
 const skipNonEssentialWarnings = computed(() => ctx.skipNonEssentialWarnings?.value ?? false)
 
+// window 级内存（导航切换保留，关软件丢弃）
+const memory: Record<string, Map<string, any>> = ((window as any).__ctMemory ??= {})
+function getMap<K, V>(namespace: string): Map<K, V> {
+	if (!memory[namespace]) memory[namespace] = new Map()
+	return memory[namespace]
+}
+
 function getItemId(item: ContentItem) {
 	return ctx.getItemId?.(item) ?? item.file_path ?? item.file_name ?? item.id
 }
@@ -148,8 +155,17 @@ function findContentItem(id: string): ContentItem | undefined {
 	return ctx.modpackItems?.value?.find((i) => getItemId(i) === id)
 }
 
+// 排序方式（导航切换保留，关软件丢弃）
 type SortMode = 'alphabetical-asc' | 'alphabetical-desc' | 'date-added-newest' | 'date-added-oldest'
-const sortMode = ref<SortMode>('alphabetical-asc')
+
+const sortMemory = getMap<string, SortMode>('sort')
+const sortMode = ref<SortMode>(
+	ctx.instanceId ? sortMemory.get(ctx.instanceId) ?? 'alphabetical-asc' : 'alphabetical-asc',
+)
+
+watch(sortMode, (val) => {
+	if (ctx.instanceId) sortMemory.set(ctx.instanceId, val)
+})
 
 const sortLabels: Record<SortMode, () => string> = {
 	'alphabetical-asc': () => formatMessage(messages.sortAlphabetical),
@@ -223,6 +239,7 @@ const {
 	modpackItems: ctx.modpackItems,
 	sortItems,
 	getItemId,
+	memoryKey: ctx.instanceId,
 })
 
 const {
@@ -239,7 +256,7 @@ const {
 	showUpdateFilter: ctx.hasUpdateSupport,
 	showWarningsFilter: true,
 	isPackLocked: ctx.isPackLocked,
-	persistKey: ctx.filterPersistKey,
+	memoryKey: ctx.instanceId,
 })
 
 const { selectedIds, selectedItems, clearSelection, removeFromSelection } = useContentSelection(
@@ -271,41 +288,14 @@ const { isChanging, markChanging, unmarkChanging } = useChangingItems()
 const bulkStatusMessage = ref<string | null>(null)
 const bulkItemCount = ref(0)
 
+// 整合包分组展开状态（导航切换保留，关软件丢弃）
+const expandedGroupsMemory = getMap<string, Set<string>>('expandedGroups')
+
 const refreshing = ref(false)
 
-const CONTENT_UI_STATE_KEY = 'content-ui-state'
-
-function readExpandedGroups(): Set<string> {
-	try {
-		const instanceId = ctx.instanceId
-		if (!instanceId) return new Set<string>()
-		const raw = localStorage.getItem(CONTENT_UI_STATE_KEY)
-		if (!raw) return new Set<string>()
-		const entries = JSON.parse(raw) as Array<{ instanceId: string; expandedGroups: string[] }>
-		const entry = entries.find((e) => e.instanceId === instanceId)
-		return entry ? new Set(entry.expandedGroups) : new Set<string>()
-	} catch {
-		return new Set<string>()
-	}
-}
-
-function writeExpandedGroups(expandedGroups: Set<string>): void {
-	try {
-		const instanceId = ctx.instanceId
-		if (!instanceId) return
-		const raw = localStorage.getItem(CONTENT_UI_STATE_KEY)
-		const entries: Array<{ instanceId: string; expandedGroups: string[] }> = raw
-			? JSON.parse(raw)
-			: []
-		const filtered = entries.filter((e) => e.instanceId !== instanceId)
-		filtered.push({ instanceId, expandedGroups: [...expandedGroups] })
-		localStorage.setItem(CONTENT_UI_STATE_KEY, JSON.stringify(filtered))
-	} catch {
-		// Ignore errors
-	}
-}
-
-const expandedGroups = ref(readExpandedGroups())
+const expandedGroups = ref<Set<string>>(
+	ctx.instanceId ? expandedGroupsMemory.get(ctx.instanceId) ?? new Set() : new Set(),
+)
 
 function toggleGroupExpand(groupId: string) {
 	const newSet = new Set(expandedGroups.value)
@@ -315,13 +305,13 @@ function toggleGroupExpand(groupId: string) {
 		newSet.add(groupId)
 	}
 	expandedGroups.value = newSet
-	writeExpandedGroups(newSet)
+	if (ctx.instanceId) expandedGroupsMemory.set(ctx.instanceId, newSet)
 }
 
 watch(searchQuery, (query) => {
 	if (query.trim()) {
 		expandedGroups.value = new Set([...expandedGroups.value, 'modpack'])
-		writeExpandedGroups(expandedGroups.value)
+		if (ctx.instanceId) expandedGroupsMemory.set(ctx.instanceId, expandedGroups.value)
 	}
 })
 
@@ -357,11 +347,9 @@ onMounted(() => {
 	const container = getScrollContainer()
 	if (container) {
 		container.addEventListener('scroll', handleScroll, { passive: true })
-		// 初始化检查
 		handleScroll()
 		checkSidebarVisibility()
 	}
-	// 监听侧边栏状态变化
 	const observer = new MutationObserver(() => {
 		checkSidebarVisibility()
 	})

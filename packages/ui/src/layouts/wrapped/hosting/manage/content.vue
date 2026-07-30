@@ -1361,6 +1361,7 @@ provideContentManager({
 	switchVersion: handleSwitchVersion,
 	getOverflowOptions,
 	getItemId: getContentItemId,
+	instanceId: `server:${serverId}:${worldId.value}`,
 	mapToTableItem: (item) => {
 		const projectType = item.project_type ?? type.value
 		const addon = addonLookup.value.get(item.file_name)
@@ -1381,7 +1382,6 @@ provideContentManager({
 			enabled: item.enabled,
 		}
 	},
-	filterPersistKey: `server:${serverId}:${worldId.value}`,
 })
 </script>
 

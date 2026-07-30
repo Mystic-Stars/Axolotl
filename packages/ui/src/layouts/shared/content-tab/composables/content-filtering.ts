@@ -6,6 +6,21 @@ import { commonProjectTypeCategoryMessages, normalizeProjectType } from '#ui/uti
 
 import type { ClientWarningType, ContentItem } from '../types'
 
+// ---- window 级内存持久化（导航切换保留，关软件丢弃） ----
+
+const memory: Record<string, Map<string, any>> = ((window as any).__ctMemory ??= {})
+function getMap<K, V>(namespace: string): Map<K, V> {
+	if (!memory[namespace]) memory[namespace] = new Map()
+	return memory[namespace]
+}
+
+interface FilterMemoryEntry {
+	type: string | null
+	status: string[]
+}
+
+const filterMemory = getMap<string, FilterMemoryEntry>('filter')
+
 const CLIENT_ONLY_ENVIRONMENTS = new Set(['client_only', 'singleplayer_only'])
 
 export function isClientOnlyEnvironment(env?: string | null): boolean {
@@ -29,7 +44,8 @@ export interface ContentFilterConfig {
 	showUpdateFilter?: MaybeRefOrGetter<boolean>
 	showWarningsFilter?: MaybeRefOrGetter<boolean>
 	isPackLocked?: Ref<boolean>
-	persistKey?: MaybeRefOrGetter<string>
+	/** 内存持久化的 scope key。同一 key 的筛选偏好会在导航切换时保留。 */
+	memoryKey?: MaybeRefOrGetter<string>
 }
 
 const messages = defineMessages({
@@ -51,77 +67,39 @@ const messages = defineMessages({
 	},
 })
 
-function readSessionJSON<T>(key: string, fallback: T): T {
-	try {
-		const raw = sessionStorage.getItem(key)
-		return raw !== null ? JSON.parse(raw) : fallback
-	} catch {
-		return fallback
-	}
-}
-
-function writeSessionJSON(key: string, value: unknown) {
-	try {
-		sessionStorage.setItem(key, JSON.stringify(value))
-	} catch {
-		// 存储空间不足时静默失败
-	}
-}
-
 export function useContentFilters(items: Ref<ContentItem[]>, config?: ContentFilterConfig) {
 	const { formatMessage } = useVIntl()
 
-	const persistKey = computed(() => toValue(config?.persistKey) ?? '')
 	const showTypeFilters = computed(() => toValue(config?.showTypeFilters) ?? false)
 	const showUpdateFilter = computed(() => toValue(config?.showUpdateFilter) ?? false)
 	const showWarningsFilter = computed(() => toValue(config?.showWarningsFilter) ?? false)
+	const memoryKey = computed(() => toValue(config?.memoryKey) ?? '')
 
 	const selectedTypeFilter = ref<string | null>(null)
 	const selectedStatusFilters = ref<string[]>([])
 
+	// 从内存恢复筛选偏好（同一 key 的导航切换不丢失）
 	watch(
-		persistKey,
-		(newKey, oldKey) => {
-			if (newKey && newKey !== oldKey) {
-				// 从 sessionStorage 读取新 key 的持久化值
-				selectedTypeFilter.value = readSessionJSON<string | null>(
-					`content-filters-type:${newKey}`,
-					null,
-				)
-				selectedStatusFilters.value = readSessionJSON<string[]>(
-					`content-filters-status:${newKey}`,
-					[],
-				)
-			} else if (newKey && oldKey === newKey) {
-				// 首次初始化
-				selectedTypeFilter.value = readSessionJSON<string | null>(
-					`content-filters-type:${newKey}`,
-					null,
-				)
-				selectedStatusFilters.value = readSessionJSON<string[]>(
-					`content-filters-status:${newKey}`,
-					[],
-				)
+		memoryKey,
+		(key) => {
+			if (key) {
+				const entry = filterMemory.get(key)
+				selectedTypeFilter.value = entry?.type ?? null
+				selectedStatusFilters.value = entry?.status ?? []
 			}
 		},
 		{ immediate: true },
 	)
 
-	watch(selectedTypeFilter, (val) => {
-		if (persistKey.value) {
-			writeSessionJSON(`content-filters-type:${persistKey.value}`, val)
+	// 筛选变化写入内存
+	watch([selectedTypeFilter, selectedStatusFilters], () => {
+		if (memoryKey.value) {
+			filterMemory.set(memoryKey.value, {
+				type: selectedTypeFilter.value,
+				status: [...selectedStatusFilters.value],
+			})
 		}
 	})
-
-	watch(
-		selectedStatusFilters,
-		(val) => {
-			if (persistKey.value) {
-				writeSessionJSON(`content-filters-status:${persistKey.value}`, val)
-			}
-		},
-		{ deep: true },
-	)
 
 	const typeFilteredItems = computed(() => {
 		if (!selectedTypeFilter.value) return items.value

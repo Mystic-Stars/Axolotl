@@ -157,6 +157,7 @@ import { trackEvent } from '@/helpers/analytics'
 import { get_project_versions, get_version, get_version_many } from '@/helpers/cache.js'
 import { translateContentItemTitles } from '@/helpers/content-search'
 import { updateCurseForgeFile, updateManagedCurseForgeModpack } from '@/helpers/curseforge'
+import { readInstanceCache, writeInstanceCache } from '@/helpers/instance-cache'
 import {
 	type CurseForgeManualDownloadItem,
 	filterInstalledCurseForgeManualDownloads,
@@ -291,68 +292,31 @@ function hasPreloadedContent(contentData: InstanceContentData | null | undefined
 
 const CONTENT_CACHE_KEY = 'instance-content-cache'
 
-interface ContentCacheEntry {
-	instanceId: string
-	data: InstanceContentData
-	timestamp: number
-}
-
 function readContentCache(instanceId: string): InstanceContentData | null {
-	try {
-		const raw = localStorage.getItem(CONTENT_CACHE_KEY)
-		if (!raw) return null
-		const entries = JSON.parse(raw) as ContentCacheEntry[]
-		const entry = entries.find((e) => e.instanceId === instanceId)
-		if (!entry) return null
-		return entry.data
-	} catch {
-		return null
+	const cache = readInstanceCache(instanceId)
+	if (!cache?.contentItems) return null
+	return {
+		path: instanceId,
+		contentItems: cache.contentItems,
+		modpack: cache.modpack,
 	}
 }
 
 function writeContentCache(instanceId: string, data: InstanceContentData): void {
-	try {
-		const raw = localStorage.getItem(CONTENT_CACHE_KEY)
-		const entries: ContentCacheEntry[] = raw ? JSON.parse(raw) : []
-		const filtered = entries.filter((e) => e.instanceId !== instanceId)
-		filtered.push({ instanceId, data, timestamp: Date.now() })
-		localStorage.setItem(CONTENT_CACHE_KEY, JSON.stringify(filtered))
-	} catch {
-		// 忽略写入错误
-	}
-}
-
-const LINKED_CONTENT_CACHE_KEY = 'instance-linked-content-cache'
-
-interface LinkedContentCacheEntry {
-	instanceId: string
-	items: ContentItem[]
-	timestamp: number
+	writeInstanceCache(instanceId, {
+		contentItems: data.contentItems,
+		modpack: data.modpack,
+	})
 }
 
 function readLinkedContentCache(instanceId: string): ContentItem[] | null {
-	try {
-		const raw = localStorage.getItem(LINKED_CONTENT_CACHE_KEY)
-		if (!raw) return null
-		const entries = JSON.parse(raw) as LinkedContentCacheEntry[]
-		const entry = entries.find((e) => e.instanceId === instanceId)
-		if (!entry) return null
-		return entry.items
-	} catch {
-		return null
-	}
+	const cache = readInstanceCache(instanceId)
+	if (!cache) return null
+	return cache.linkedContentItems.length > 0 ? cache.linkedContentItems : null
 }
 
 function writeLinkedContentCache(instanceId: string, items: ContentItem[]): void {
-	try {
-		const raw = localStorage.getItem(LINKED_CONTENT_CACHE_KEY)
-		const entries: LinkedContentCacheEntry[] = raw ? JSON.parse(raw) : []
-		const filtered = entries.filter((e) => e.instanceId !== instanceId)
-		filtered.push({ instanceId, items, timestamp: Date.now() })
-		localStorage.setItem(LINKED_CONTENT_CACHE_KEY, JSON.stringify(filtered))
-	} catch {
-		// 忽略写入错误
-	}
+	writeInstanceCache(instanceId, { linkedContentItems: items })
 }
 
 // 检查 localStorage 持久化缓存
@@ -1736,10 +1700,11 @@ provideAppBackup({
 })
 
 const CONTENT_HINT_KEY = 'content-tab-modpack-hint-dismissed'
-const showContentHint = ref(localStorage.getItem(CONTENT_HINT_KEY) === null)
+const cachedHint = readInstanceCache(props.instance.id)
+const showContentHint = ref(cachedHint?.modpackHintDismissed !== true)
 function dismissContentHint() {
 	showContentHint.value = false
-	localStorage.setItem(CONTENT_HINT_KEY, 'true')
+	writeInstanceCache(props.instance.id, { modpackHintDismissed: true })
 }
 
 provideContentManager({
@@ -1892,7 +1857,6 @@ provideContentManager({
 			installing: item.installing,
 		}
 	},
-	filterPersistKey: props.instance.id,
 })
 
 type UnlistenFn = () => void
@@ -1914,6 +1878,15 @@ async function loadInitialContent(): Promise<void> {
 	}
 
 	if (props.preloadedContent && applyContentData(props.preloadedContent)) {
+		if (props.instance?.link && !hasLinkedPersistedCache) {
+			await loadLinkedModpackContentItems()
+		}
+		return
+	}
+
+	// 如果有持久化缓存，直接使用缓存数据，不重新请求
+	if (hasPersistedCache) {
+		loading.value = false
 		if (props.instance?.link && !hasLinkedPersistedCache) {
 			await loadLinkedModpackContentItems()
 		}
