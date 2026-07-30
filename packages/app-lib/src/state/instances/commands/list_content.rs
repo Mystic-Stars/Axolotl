@@ -326,7 +326,10 @@ pub(crate) async fn list_linked_modpack_content(
             &resolved,
             cache_behaviour,
             state,
-            ContentFilter::All,
+            ContentFilter::OnlySourceKind {
+                source_kind: ContentSourceKind::ImportedModpack,
+                include_untracked: false,
+            },
         )
         .await?;
         let files = files.into_iter().collect::<Vec<_>>();
@@ -345,7 +348,10 @@ pub(crate) async fn list_linked_modpack_content(
             &resolved,
             cache_behaviour,
             state,
-            ContentFilter::All,
+            ContentFilter::OnlySourceKind {
+                source_kind: ContentSourceKind::CurseForge,
+                include_untracked: false,
+            },
         )
         .await?;
         let files = files.into_iter().collect::<Vec<_>>();

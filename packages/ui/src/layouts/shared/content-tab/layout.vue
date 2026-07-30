@@ -38,8 +38,7 @@ import {
 	isClientOnlyEnvironment,
 	useBulkOperation,
 	useChangingItems,
-	useContentFilters,
-	useContentGrouping,
+	useContentPipeline,
 	useContentSelection,
 } from './composables'
 import { injectContentManager } from './providers/content-manager'
@@ -160,7 +159,7 @@ type SortMode = 'alphabetical-asc' | 'alphabetical-desc' | 'date-added-newest' |
 
 const sortMemory = getMap<string, SortMode>('sort')
 const sortMode = ref<SortMode>(
-	ctx.instanceId ? sortMemory.get(ctx.instanceId) ?? 'alphabetical-asc' : 'alphabetical-asc',
+	ctx.instanceId ? (sortMemory.get(ctx.instanceId) ?? 'alphabetical-asc') : 'alphabetical-asc',
 )
 
 watch(sortMode, (val) => {
@@ -228,30 +227,24 @@ function sortItems(items: ContentItem[]): ContentItem[] {
 
 const {
 	searchQuery,
+	searchableItemCount,
 	sortedItems,
 	modpackItemsNoUpdate,
 	modpackChildIdSet,
-	searchedAllItems,
-	searchableItemCount,
-	search,
-} = useContentGrouping({
-	items: ctx.items,
-	modpackItems: ctx.modpackItems,
-	sortItems,
-	getItemId,
-	memoryKey: ctx.instanceId,
-})
-
-const {
 	selectedTypeFilter,
 	selectedStatusFilters,
 	row1FilterOptions,
 	row2FilterOptions,
 	totalCount,
 	filterCounts,
+	filteredItems,
+	filteredModpackItems,
 	toggleTypeFilter,
-	applyFilters,
-} = useContentFilters(searchedAllItems, {
+} = useContentPipeline({
+	items: ctx.items,
+	modpackItems: ctx.modpackItems,
+	sortItems,
+	getItemId,
 	showTypeFilters: true,
 	showUpdateFilter: ctx.hasUpdateSupport,
 	showWarningsFilter: true,
@@ -294,7 +287,7 @@ const expandedGroupsMemory = getMap<string, Set<string>>('expandedGroups')
 const refreshing = ref(false)
 
 const expandedGroups = ref<Set<string>>(
-	ctx.instanceId ? expandedGroupsMemory.get(ctx.instanceId) ?? new Set() : new Set(),
+	ctx.instanceId ? (expandedGroupsMemory.get(ctx.instanceId) ?? new Set()) : new Set(),
 )
 
 function toggleGroupExpand(groupId: string) {
@@ -375,21 +368,6 @@ async function handleRefresh() {
 		refreshing.value = false
 	}
 }
-
-const filteredModpackItems = computed(() => {
-	if (modpackItemsNoUpdate.value.length === 0) return []
-	const modpackIds = new Set(modpackItemsNoUpdate.value.map((item) => getItemId(item)))
-	const searched = search(modpackItemsNoUpdate.value).filter((item) =>
-		modpackIds.has(getItemId(item)),
-	)
-	return applyFilters(searched)
-})
-
-const filteredItems = computed(() => {
-	const sorted = sortedItems.value
-	const searched = search(sorted)
-	return applyFilters(searched)
-})
 
 function mapToTableItem(item: ContentItem, group?: string): ContentCardTableItem {
 	const base = ctx.mapToTableItem(item)
