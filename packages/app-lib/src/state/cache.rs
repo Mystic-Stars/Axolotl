@@ -18,6 +18,13 @@ use std::path::{Path, PathBuf};
 // 1 day
 const DEFAULT_ID: &str = "0";
 
+/// All cache expiries are set to 100 years (effectively permanent).
+/// Background refresh is controlled by BACKGROUND_REFRESH_THRESHOLD.
+const PERMANENT_CACHE_SECONDS: i64 = 100 * 365 * 24 * 60 * 60;
+
+/// How long before an entry should be asynchronously refreshed in the background, in seconds.
+const BACKGROUND_REFRESH_THRESHOLD: i64 = 30 * 60; // 30 minutes
+
 #[derive(Serialize, Deserialize, Copy, Clone, Debug, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum CacheValueType {
@@ -99,20 +106,10 @@ impl CacheValueType {
         }
     }
 
-    /// Returns the expiry time for entries of this type of cache item, in seconds.
+    /// All cache entries are effectively permanent — data is served from cache
+    /// immediately and refreshed asynchronously in the background.
     pub fn expiry(&self) -> i64 {
-        match self {
-            CacheValueType::File => 30 * 24 * 60 * 60, // 30 days
-            CacheValueType::CurseForgeProject => 24 * 60 * 60, // 1 day
-            CacheValueType::FileHash => 30 * 24 * 60 * 60, // 30 days
-            // ModpackFiles never expire - version_id is immutable so hashes never change
-            // TODO: There has to be a way to exclude this from the "Purge cache" stuff?
-            CacheValueType::ModpackFiles => 100 * 365 * 24 * 60 * 60, // 100 years (effectively never)
-            CacheValueType::SearchResults | CacheValueType::SearchResultsV3 => {
-                10 * 60 // 10 minutes
-            }
-            _ => 30 * 60, // 30 minutes
-        }
+        PERMANENT_CACHE_SECONDS
     }
 
     pub fn get_empty_entry(self, key: String) -> CachedEntry {
@@ -1180,6 +1177,7 @@ impl CachedEntry {
 
         let mut return_vals = Vec::new();
         let expired_keys = DashSet::new();
+        let background_refresh_keys = DashSet::new();
 
         if cache_behaviour != CacheBehaviour::Bypass {
             let type_str = type_.as_str();
@@ -1225,6 +1223,10 @@ impl CachedEntry {
                     } else {
                         expired_keys.insert(row.id.clone());
                     }
+                } else if parsed_data.is_some()
+                    && row.expires - PERMANENT_CACHE_SECONDS + BACKGROUND_REFRESH_THRESHOLD <= now
+                {
+                    background_refresh_keys.insert(row.id.clone());
                 }
 
                 let row_id = row.id.clone();
@@ -1305,11 +1307,18 @@ impl CachedEntry {
             }
         }
 
-        if !expired_keys.is_empty()
-            && (cache_behaviour == CacheBehaviour::StaleWhileRevalidate
+        let should_background_refresh =
+            cache_behaviour == CacheBehaviour::StaleWhileRevalidate
                 || cache_behaviour
-                    == CacheBehaviour::StaleWhileRevalidateSkipOffline)
-        {
+                    == CacheBehaviour::StaleWhileRevalidateSkipOffline;
+
+        if should_background_refresh {
+            for key in background_refresh_keys {
+                expired_keys.insert(key);
+            }
+        }
+
+        if !expired_keys.is_empty() && should_background_refresh {
             tokio::task::spawn(async move {
                 // TODO: if possible- find a way to do this without invoking state get
                 let state = crate::state::State::get().await?;

@@ -1113,7 +1113,7 @@ async function bulkUpdateAllProjects(onProgress?: (status: BulkOperationStatus) 
 			}
 		}
 
-		await refreshContentState('must_revalidate')
+		await refreshContentState('bypass')
 	} catch (err) {
 		handleError(err as Error)
 		throw err
@@ -1150,7 +1150,7 @@ async function updateProject(mod: ContentItem) {
 		handleError(err as Error)
 		throw err
 	} finally {
-		await refreshContentState('must_revalidate')
+		await refreshContentState('bypass')
 		finishContentOperation(mod, operation)
 	}
 }
@@ -1175,7 +1175,7 @@ async function switchProjectVersion(mod: ContentItem, version: Labrinth.Versions
 	} catch (err) {
 		handleError(err as Error)
 	} finally {
-		await refreshContentState('must_revalidate')
+		await refreshContentState('bypass')
 		finishContentOperation(mod, operation)
 	}
 }
@@ -1367,7 +1367,7 @@ watch(
 	async (revision) => {
 		if (revision <= handledInstallRevision.value) return
 		handledInstallRevision.value = revision
-		await refreshContentState('must_revalidate')
+		await refreshContentState('bypass')
 	},
 )
 
@@ -1465,7 +1465,7 @@ async function handleVersionSelect(version: Labrinth.Versions.v2.Version) {
 	loadingChangelog.value = true
 	await fetchAndSpliceVersion(
 		version.id,
-		'must_revalidate',
+		'bypass',
 		handleError as (err: unknown) => void,
 		requestId,
 	)
@@ -1783,7 +1783,7 @@ provideContentManager({
 		}
 	},
 	getDeleteDependencyWarning,
-	refresh: () => refreshContentState('must_revalidate'),
+	refresh: () => refreshContentState('bypass'),
 	browse: handleBrowseContent,
 	uploadFiles: handleUploadFiles,
 	hasUpdateSupport: true,
@@ -1872,8 +1872,8 @@ async function loadInitialContent(): Promise<void> {
 	const installRevision = getInstallRevision()
 	if (installRevision > handledInstallRevision.value) {
 		handledInstallRevision.value = installRevision
-		await initProjects('must_revalidate')
-		await loadLinkedModpackContentItems('must_revalidate')
+		await initProjects('bypass')
+		await loadLinkedModpackContentItems('bypass')
 		return
 	}
 
@@ -1945,7 +1945,7 @@ watch(
 	() => props.instance?.install_stage,
 	async (newStage, oldStage) => {
 		if (oldStage !== 'installed' && newStage === 'installed') {
-			await refreshContentState('must_revalidate')
+			await refreshContentState('bypass')
 		} else if (oldStage === 'not_installed' && newStage === 'pack_installing') {
 			await initProjects()
 		}
@@ -1956,7 +1956,7 @@ watch(
 	() => props.instance?.link,
 	async (newInstanceLink, oldInstanceLink) => {
 		if (oldInstanceLink && !newInstanceLink) {
-			await initProjects('must_revalidate')
+			await initProjects('bypass')
 		}
 	},
 )
@@ -1965,7 +1965,7 @@ watch(
 	() => props.instance?.update_channel,
 	async (newValue, oldValue) => {
 		if (newValue !== oldValue) {
-			await initProjects('must_revalidate')
+			await initProjects('bypass')
 		}
 	},
 )
