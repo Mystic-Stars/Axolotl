@@ -1556,16 +1556,49 @@ async fn content_files_to_content_items(
                     "neoforge" => Some(6),
                     _ => None,
                 };
-                let index = curseforge_project?
+
+                if let Some(index) = curseforge_project?
                     .latest_files_indexes
                     .iter()
                     .find(|index| {
                         index.game_version == content_set.game_version
                             && (file.project_type != ProjectType::Mod
                                 || index.mod_loader == loader_type)
+                    })
+                {
+                    return (index.file_id != current_file_id)
+                        .then(|| index.file_id.to_string());
+                }
+
+                let fallback = curseforge_project?
+                    .latest_files
+                    .iter()
+                    .find(|candidate| {
+                        if !candidate.is_available {
+                            return false;
+                        }
+                        let has_game_version = candidate
+                            .game_versions
+                            .iter()
+                            .any(|value| value == &content_set.game_version);
+                        if !has_game_version {
+                            return false;
+                        }
+                        if file.project_type != ProjectType::Mod {
+                            return true;
+                        }
+                        candidate.game_versions.iter().any(|value| {
+                            match curseforge_loader_from_name(value) {
+                                Some("forge") => loader_type == Some(1),
+                                Some("fabric") => loader_type == Some(4),
+                                Some("quilt") => loader_type == Some(5),
+                                Some("neoforge") => loader_type == Some(6),
+                                _ => false,
+                            }
+                        })
                     })?;
-                (index.file_id != current_file_id)
-                    .then(|| index.file_id.to_string())
+                (fallback.id != current_file_id)
+                    .then(|| fallback.id.to_string())
             });
             let project = file.modrinth.as_ref().and_then(|metadata| {
                 meta.projects

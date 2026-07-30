@@ -156,7 +156,11 @@ import ShareModalWrapper from '@/components/ui/modal/ShareModalWrapper.vue'
 import { trackEvent } from '@/helpers/analytics'
 import { get_project_versions, get_version, get_version_many } from '@/helpers/cache.js'
 import { translateContentItemTitles } from '@/helpers/content-search'
-import { updateCurseForgeFile, updateManagedCurseForgeModpack } from '@/helpers/curseforge'
+import {
+	updateCurseForgeFile,
+	updateManagedCurseForgeModpack,
+	switchCurseForgeFileVersion,
+} from '@/helpers/curseforge'
 import { readInstanceCache, writeInstanceCache } from '@/helpers/instance-cache'
 import {
 	type CurseForgeManualDownloadItem,
@@ -1163,7 +1167,15 @@ async function switchProjectVersion(mod: ContentItem, version: Labrinth.Versions
 	const oldPath = mod.file_path
 
 	try {
-		await switch_project_version_with_dependencies(props.instance.id, oldPath, version.id)
+		if (mod.origin_provider === 'curseforge' || mod.project?.id?.startsWith('curseforge:')) {
+			const fileId = Number(version.id)
+			if (!Number.isFinite(fileId)) {
+				throw new Error('Invalid CurseForge file ID')
+			}
+			await switchCurseForgeFileVersion(props.instance.id, oldPath, fileId)
+		} else {
+			await switch_project_version_with_dependencies(props.instance.id, oldPath, version.id)
+		}
 
 		trackEvent('InstanceProjectUpdate', {
 			loader: props.instance.loader,

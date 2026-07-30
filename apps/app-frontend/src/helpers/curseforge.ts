@@ -256,6 +256,21 @@ export function updateCurseForgeFile(instanceId: string, relativePath: string) {
 	})
 }
 
+export function switchCurseForgeFileVersion(
+	instanceId: string,
+	relativePath: string,
+	fileId: number,
+) {
+	return invoke<CurseForgeInstallResult>(
+		'plugin:curseforge|curseforge_switch_installed_file_version',
+		{
+			instanceId,
+			relativePath,
+			fileId,
+		},
+	)
+}
+
 export function recognizeCurseForgeFiles(instanceId: string) {
 	return invoke<{
 		scanned: number

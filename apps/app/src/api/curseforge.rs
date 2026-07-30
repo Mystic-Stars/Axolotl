@@ -27,6 +27,7 @@ pub fn init<R: tauri::Runtime>() -> tauri::plugin::TauriPlugin<R> {
             curseforge_match_fingerprints,
             curseforge_install_file,
             curseforge_update_installed_file,
+            curseforge_switch_installed_file_version,
             curseforge_recognize_instance_files,
             curseforge_install_modpack,
             curseforge_update_managed_modpack,
@@ -139,6 +140,22 @@ pub async fn curseforge_update_installed_file(
         theseus::curseforge::update_installed_file(
             &instance_id,
             &relative_path,
+        )
+        .await?,
+    )
+}
+
+#[tauri::command]
+pub async fn curseforge_switch_installed_file_version(
+    instance_id: String,
+    relative_path: String,
+    file_id: u32,
+) -> Result<CurseForgeInstallResult> {
+    Ok(
+        theseus::curseforge::switch_installed_file_version(
+            &instance_id,
+            &relative_path,
+            file_id,
         )
         .await?,
     )
