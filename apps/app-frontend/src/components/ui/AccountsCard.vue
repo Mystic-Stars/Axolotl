@@ -163,6 +163,21 @@
 			>
 				{{ formatMessage(messages.chineseUsernameWarning) }}
 			</p>
+
+			<label class="flex flex-col gap-2 font-semibold">
+				{{ formatMessage(messages.uuidLabel) }}
+				<StyledInput
+					v-model="offlineUUID"
+					:disabled="loginDisabled"
+					placeholder="a1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8"
+					autocomplete="off"
+					maxlength="36"
+				/>
+			</label>
+			<p v-if="offlineUUID.length > 0 && !offlineUUIDValid" class="m-0 text-sm text-red">
+				{{ formatMessage(messages.uuidValidation) }}
+			</p>
+
 			<div class="input-group push-right">
 				<ButtonStyled>
 					<button :disabled="loginDisabled" @click="offlineAccountModal?.hide()">
@@ -170,7 +185,14 @@
 					</button>
 				</ButtonStyled>
 				<ButtonStyled color="brand">
-					<button :disabled="loginDisabled || !offlineUsernameValid" @click="addOfflineAccount()">
+					<button
+						:disabled="
+							loginDisabled ||
+							!offlineUsernameValid ||
+							(offlineUUID.length > 0 && !offlineUUIDValid)
+						"
+						@click="addOfflineAccount()"
+					>
 						<SpinnerIcon v-if="loginDisabled" class="animate-spin" />
 						<PlusIcon v-else />
 						{{ formatMessage(messages.createOfflineAccount) }}
@@ -411,6 +433,10 @@ const offlineUsernameValid = computed(() =>
 const offlineUsernameContainsChinese = computed(() =>
 	/\p{Script=Han}/u.test(offlineUsername.value.trim()),
 )
+const offlineUUID = ref('')
+const offlineUUIDValid = computed(() =>
+	/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(offlineUUID.value.trim()),
+)
 const yggdrasilAccountModal = ref<InstanceType<typeof ModalWrapper> | null>(null)
 const yggdrasilProfileModal = ref<InstanceType<typeof ModalWrapper> | null>(null)
 const yggdrasilApiRoot = ref(LITTLE_SKIN_API_ROOT)
@@ -453,8 +479,8 @@ function hasResolvedAccountHead(account: MinecraftCredential) {
 	const skin = getAccountSkin(account)
 	return Boolean(
 		skin &&
-			accountHeadUrlCache.value.has(account.profile.id) &&
-			accountHeadTextureKeyCache.value.get(account.profile.id) === skin.texture_key,
+		accountHeadUrlCache.value.has(account.profile.id) &&
+		accountHeadTextureKeyCache.value.get(account.profile.id) === skin.texture_key,
 	)
 }
 
@@ -702,6 +728,7 @@ async function login() {
 
 function showOfflineAccountModal() {
 	offlineUsername.value = ''
+	offlineUUID.value = ''
 	offlineAccountModal.value?.show()
 }
 
@@ -886,7 +913,7 @@ async function addOfflineAccount() {
 
 	loginDisabled.value = true
 	try {
-		const account = await add_offline_user(offlineUsername.value.trim())
+		const account = await add_offline_user(offlineUsername.value.trim(), offlineUUID.value.trim())
 		offlineAccountModal.value?.hide()
 		await setAccount(account)
 		trackEvent('OfflineAccountAdd')
@@ -1029,6 +1056,14 @@ const messages = defineMessages({
 		id: 'minecraft-account.offline-modal.description',
 		defaultMessage:
 			'Choose the username used in offline games. This account can only join servers that allow offline players.',
+	},
+	uuidLabel: {
+		id: 'minecraft-account.offline-modal.uuid-label.message',
+		defaultMessage: 'UUID (Optional)',
+	},
+	uuidValidation: {
+		id: 'minecraft-account.offline-modal.uuid-validation.message',
+		defaultMessage: 'Invalid UUID',
 	},
 	usernameLabel: {
 		id: 'minecraft-account.offline-modal.username-label',

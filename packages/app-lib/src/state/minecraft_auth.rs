@@ -298,7 +298,7 @@ impl OnlineProfileCacheIntent {
 }
 
 impl Credentials {
-    pub fn offline(username: &str) -> crate::Result<Self> {
+    pub fn offline(username: &str, uuid: Option<Uuid>) -> crate::Result<Self> {
         let username = username.trim();
         if !(1..=16).contains(&username.chars().count())
             || !username.chars().all(|character| {
@@ -312,14 +312,20 @@ impl Credentials {
             .as_error());
         }
 
-        let mut uuid_bytes =
-            md5::compute(format!("OfflinePlayer:{username}")).0;
-        uuid_bytes[6] = (uuid_bytes[6] & 0x0f) | 0x30;
-        uuid_bytes[8] = (uuid_bytes[8] & 0x3f) | 0x80;
+        let id = match uuid {
+            Some(id) => id,
+            None => {
+                let mut uuid_bytes =
+                    md5::compute(format!("OfflinePlayer:{username}")).0;
+                uuid_bytes[6] = (uuid_bytes[6] & 0x0f) | 0x30;
+                uuid_bytes[8] = (uuid_bytes[8] & 0x3f) | 0x80;
+                Uuid::from_bytes(uuid_bytes)
+            }
+        };
 
         Ok(Self {
             offline_profile: MinecraftProfile {
-                id: Uuid::from_bytes(uuid_bytes),
+                id,
                 name: username.to_string(),
                 ..MinecraftProfile::default()
             },

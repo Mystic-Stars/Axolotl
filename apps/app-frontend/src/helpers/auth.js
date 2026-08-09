@@ -62,8 +62,8 @@ export async function delete_yggdrasil_password(apiRoot, login) {
  * @param {string} username
  * @returns {Promise<Credential>}
  */
-export async function add_offline_user(username) {
-	return await invoke('plugin:auth|add_offline_user', { username })
+export async function add_offline_user(username, uuid = '') {
+	return await invoke('plugin:auth|add_offline_user', { username, uuid })
 }
 
 /**

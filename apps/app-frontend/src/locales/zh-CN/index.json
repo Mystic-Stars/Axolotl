@@ -3446,6 +3446,12 @@
 	"minecraft-account.offline-modal.description": {
 		"message": "选择离线游戏中使用的用户名。此账户只能加入允许离线玩家的服务器。"
 	},
+	"minecraft-account.offline-modal.uuid-label": {
+		"message": "UUID (选填)"
+	},
+	"minecraft-account.offline-modal.uuid-validation": {
+		"message": "不符合格式的UUID"
+	},
 	"minecraft-account.offline-modal.title": {
 		"message": "添加离线账户"
 	},

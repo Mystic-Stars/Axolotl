@@ -6215,6 +6215,12 @@
 	"minecraft-account.offline-modal.title": {
 		"message": "Add offline account"
 	},
+	"minecraft-account.offline-modal.uuid-label": {
+		"message": "UUID (Optional)"
+	},
+	"minecraft-account.offline-modal.uuid-validation": {
+		"message": "Invalid UUID"
+	},
 	"minecraft-account.offline-modal.username-label": {
 		"message": "Minecraft username"
 	},

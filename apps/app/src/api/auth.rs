@@ -288,8 +288,11 @@ fn keyring_error(
 }
 
 #[tauri::command]
-pub async fn add_offline_user(username: String) -> Result<Credentials> {
-    Ok(minecraft_auth::add_offline_user(&username).await?)
+pub async fn add_offline_user(
+    username: String,
+    uuid: String,
+) -> Result<Credentials> {
+    Ok(minecraft_auth::add_offline_user(&username, &uuid).await?)
 }
 
 #[tauri::command]

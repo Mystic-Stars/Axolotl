@@ -4,6 +4,7 @@ use chrono::{DateTime, Utc};
 use reqwest::StatusCode;
 use serde::Serialize;
 use std::time::Duration;
+use uuid::Uuid;
 
 use crate::State;
 pub use crate::state::YggdrasilLoginResult;
@@ -45,9 +46,21 @@ pub async fn finish_login(
 }
 
 #[tracing::instrument]
-pub async fn add_offline_user(username: &str) -> crate::Result<Credentials> {
+pub async fn add_offline_user(
+    username: &str,
+    uuid: &str,
+) -> crate::Result<Credentials> {
     let state = State::get().await?;
-    let credentials = Credentials::offline(username)?;
+    let credentials = Credentials::offline(
+        username,
+        if uuid.len() == 0 {
+            None
+        } else if let Ok(uuid) = Uuid::parse_str(uuid) {
+            Some(uuid)
+        } else {
+            None
+        },
+    )?;
     credentials.upsert(&state.pool).await?;
     Ok(credentials)
 }
