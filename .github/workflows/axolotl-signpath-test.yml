@@ -1,0 +1,220 @@
+name: Axolotl SignPath test signing
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - signpath-test
+    paths:
+      - .github/workflows/axolotl-signpath-test.yml
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: axolotl-signpath-test-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-sign-and-package:
+    name: Build and test-sign Windows artifacts
+    runs-on: windows-2025
+    timeout-minutes: 120
+    env:
+      SQLX_OFFLINE: true
+      SIGNPATH_ORGANIZATION_ID: f509fe7b-83b4-4995-bd24-b3ad984e8912
+      SIGNPATH_PROJECT_SLUG: Axolotl
+      SIGNPATH_SIGNING_POLICY_SLUG: test-signing
+    steps:
+      - name: Check out source
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@008330803749db0355799c700092d9a85fd074e9 # v6.0.9
+
+      - name: Set up Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@4be7066ada62dd38de10e7b70166bc74ed198c30 # stable
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - uses: ./.github/actions/replace-gradle-mirror
+
+      - name: Build unsigned Windows application
+        run: pnpm --filter @modrinth/app tauri build --no-bundle --no-sign --config tauri-release.conf.json --config tauri-modern.conf.json
+
+      - name: Prepare application signing input
+        shell: pwsh
+        run: |
+          $source = "target/release/Axolotl Launcher.exe"
+          $inputDirectory = "signpath-input/application"
+
+          if (-not (Test-Path -LiteralPath $source -PathType Leaf)) {
+            throw "Application executable was not found at $source"
+          }
+
+          New-Item -ItemType Directory -Force -Path $inputDirectory | Out-Null
+          Copy-Item -LiteralPath $source -Destination "$inputDirectory/Axolotl Launcher.exe" -Force
+
+      - name: Upload unsigned application
+        id: upload-unsigned-application
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: axolotl-windows-application-unsigned
+          path: signpath-input/application/Axolotl Launcher.exe
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: Test-sign application with SignPath
+        uses: signpath/github-action-submit-signing-request@b9d91eadd323de506c0c81cf0c7fe7438f3360fd # v2
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ env.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ env.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: ${{ env.SIGNPATH_SIGNING_POLICY_SLUG }}
+          github-artifact-id: ${{ steps.upload-unsigned-application.outputs.artifact-id }}
+          wait-for-completion: true
+          wait-for-completion-timeout-in-seconds: 1800
+          output-artifact-directory: signpath-output/application
+
+      - name: Install signed application binary
+        shell: pwsh
+        run: |
+          $signed = "signpath-output/application/Axolotl Launcher.exe"
+          $target = "target/release/Axolotl Launcher.exe"
+
+          if (-not (Test-Path -LiteralPath $signed -PathType Leaf)) {
+            throw "Signed application executable was not returned at $signed"
+          }
+
+          $signature = Get-AuthenticodeSignature -LiteralPath $signed
+          if ($null -eq $signature.SignerCertificate) {
+            throw "SignPath did not add an Authenticode signature to the application executable"
+          }
+
+          Write-Output "Application signer: $($signature.SignerCertificate.Subject)"
+          Copy-Item -LiteralPath $signed -Destination $target -Force
+
+      - name: Bundle modern Windows installer
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: pnpm --filter @modrinth/app tauri bundle --bundles nsis --no-sign --config tauri-release.conf.json --config tauri-modern.conf.json
+
+      - name: Stage modern Windows installer
+        shell: pwsh
+        run: |
+          $installers = @(Get-ChildItem -LiteralPath "target/release/bundle/nsis" -Filter "*-setup.exe" -File)
+          if ($installers.Count -ne 1) {
+            throw "Expected one modern NSIS installer, found $($installers.Count)"
+          }
+
+          $version = (Get-Content -LiteralPath "apps/app-frontend/package.json" -Raw | ConvertFrom-Json).version
+          $inputDirectory = "signpath-input/installers"
+          New-Item -ItemType Directory -Force -Path $inputDirectory | Out-Null
+          Copy-Item -LiteralPath $installers[0].FullName -Destination "$inputDirectory/Axolotl_Launcher_${version}_x64_modern-setup.exe" -Force
+
+      - name: Bundle native Windows installer
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: pnpm --filter @modrinth/app tauri bundle --bundles nsis --no-sign --config tauri-release.conf.json
+
+      - name: Stage native Windows installer
+        shell: pwsh
+        run: |
+          $installers = @(Get-ChildItem -LiteralPath "target/release/bundle/nsis" -Filter "*-setup.exe" -File)
+          if ($installers.Count -ne 1) {
+            throw "Expected one native NSIS installer, found $($installers.Count)"
+          }
+
+          $version = (Get-Content -LiteralPath "apps/app-frontend/package.json" -Raw | ConvertFrom-Json).version
+          Copy-Item -LiteralPath $installers[0].FullName -Destination "signpath-input/installers/Axolotl_Launcher_${version}_x64_nsis-setup.exe" -Force
+
+      - name: Upload unsigned installers
+        id: upload-unsigned-installers
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: axolotl-windows-installers-unsigned
+          path: signpath-input/installers/*.exe
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: Test-sign installers with SignPath
+        uses: signpath/github-action-submit-signing-request@b9d91eadd323de506c0c81cf0c7fe7438f3360fd # v2
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ env.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ env.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: ${{ env.SIGNPATH_SIGNING_POLICY_SLUG }}
+          github-artifact-id: ${{ steps.upload-unsigned-installers.outputs.artifact-id }}
+          wait-for-completion: true
+          wait-for-completion-timeout-in-seconds: 1800
+          output-artifact-directory: signpath-output/installers
+
+      - name: Verify signed Windows artifacts
+        shell: pwsh
+        run: |
+          $signedApplication = "signpath-output/application/Axolotl Launcher.exe"
+          $signedInstallers = @(Get-ChildItem -LiteralPath "signpath-output/installers" -Filter "*.exe" -File)
+
+          if ($signedInstallers.Count -ne 2) {
+            throw "Expected two signed installers, found $($signedInstallers.Count)"
+          }
+
+          foreach ($file in @($signedApplication) + $signedInstallers.FullName) {
+            $signature = Get-AuthenticodeSignature -LiteralPath $file
+            if ($null -eq $signature.SignerCertificate) {
+              throw "Missing Authenticode signature: $file"
+            }
+            Write-Output "$file -> $($signature.SignerCertificate.Subject) [$($signature.Status)]"
+          }
+
+      - name: Generate updater signatures and portable archive
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        shell: pwsh
+        run: |
+          $version = (Get-Content -LiteralPath "apps/app-frontend/package.json" -Raw | ConvertFrom-Json).version
+          $outputDirectory = "signpath-output/final"
+          $portableDirectory = "$outputDirectory/portable/Axolotl"
+          New-Item -ItemType Directory -Force -Path $outputDirectory | Out-Null
+
+          $installers = @(Get-ChildItem -LiteralPath "signpath-output/installers" -Filter "*.exe" -File)
+          foreach ($installer in $installers) {
+            $finalInstaller = Join-Path $outputDirectory $installer.Name
+            Copy-Item -LiteralPath $installer.FullName -Destination $finalInstaller -Force
+            pnpm --filter @modrinth/app tauri signer sign $finalInstaller
+            if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath "$finalInstaller.sig" -PathType Leaf)) {
+              throw "Failed to generate updater signature for $finalInstaller"
+            }
+          }
+
+          New-Item -ItemType Directory -Force -Path $portableDirectory | Out-Null
+          Copy-Item -LiteralPath "signpath-output/application/Axolotl Launcher.exe" -Destination "$portableDirectory/Axolotl Launcher.exe" -Force
+          New-Item -ItemType Directory -Force -Path "$portableDirectory/.Axolotl" | Out-Null
+          Compress-Archive -Path "$outputDirectory/portable/Axolotl" -DestinationPath "$outputDirectory/Axolotl_Launcher_${version}_x64_portable.zip" -Force
+          Remove-Item -LiteralPath "$outputDirectory/portable" -Recurse -Force
+
+      - name: Upload test-signed Windows artifacts
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: axolotl-windows-test-signed
+          path: |
+            signpath-output/application/Axolotl Launcher.exe
+            signpath-output/final/*.exe
+            signpath-output/final/*.exe.sig
+            signpath-output/final/*.zip
+          if-no-files-found: error
+          retention-days: 7
