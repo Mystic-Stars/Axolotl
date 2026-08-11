@@ -197,6 +197,7 @@ jobs:
           foreach ($installer in $installers) {
             $finalInstaller = Join-Path $outputDirectory $installer.Name
             Copy-Item -LiteralPath $installer.FullName -Destination $finalInstaller -Force
+            $finalInstaller = (Resolve-Path -LiteralPath $finalInstaller).Path
             pnpm --filter @modrinth/app tauri signer sign $finalInstaller
             if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath "$finalInstaller.sig" -PathType Leaf)) {
               throw "Failed to generate updater signature for $finalInstaller"
