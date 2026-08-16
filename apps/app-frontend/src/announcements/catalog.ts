@@ -59,6 +59,11 @@ export const launcherAnnouncements: readonly LauncherAnnouncement[] = [
 					'zh-CN':
 						'CurseForge 安装预览现在会标记可能与目标实例版本不匹配的依赖版本，在安装前即可看到不兼容的兜底选择。',
 				},
+				{
+					'en-US':
+						'Added a gallery layout to the Discover page for browsing content with visual thumbnails.',
+					'zh-CN': '发现内容页新增画廊布局，支持以缩略图形式浏览内容。',
+				},
 			],
 			changed: [
 				{
@@ -101,6 +106,21 @@ export const launcherAnnouncements: readonly LauncherAnnouncement[] = [
 				{
 					'en-US': 'Fixed modal close buttons shifting out of place in merged-header dialogs.',
 					'zh-CN': '修复合并式标题栏弹窗中关闭按钮位置偏移的问题。',
+				},
+				{
+					'en-US':
+						'Fixed day buttons in the home page calendar widget being partially obscured by overlapping elements.',
+					'zh-CN': '修复主页日历组件内天数按钮会被遮挡的问题。',
+				},
+				{
+					'en-US':
+						'Fixed truncated titles faintly visible in the Discover page, improving text clipping and layout boundaries.',
+					'zh-CN': '修复发现内容页隐约能看到截断的标题的问题，优化了文本裁剪和布局边界。',
+				},
+				{
+					'en-US':
+						'Fixed loader tags not displaying on the Discover page, so mod loader labels now appear correctly.',
+					'zh-CN': '修复发现内容页不显示加载器标签的问题，现在模组加载器标签可以正常显示。',
 				},
 			],
 		},
