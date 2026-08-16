@@ -7,8 +7,12 @@ import {
 	injectFilePicker,
 	injectNotificationManager,
 	InstallationSettingsLayout,
+	type LoaderMetadataStatus,
+	loaderSupportState,
+	loaderVersionsForGameVersion,
 	provideAppBackup,
 	provideInstallationSettings,
+	scopedLoaderMetadataQueryKey,
 	useDebugLogger,
 	useVIntl,
 } from '@modrinth/ui'
@@ -68,40 +72,48 @@ function getSupportedModpackLoaders() {
 	)
 }
 
-const fabricVersionsQuery = useQuery({
-	queryKey: ['instance-settings', 'loader-versions', 'fabric'],
-	queryFn: () => get_loader_versions('fabric') as Promise<Manifest>,
-})
-const forgeVersionsQuery = useQuery({
-	queryKey: ['instance-settings', 'loader-versions', 'forge'],
-	queryFn: () => get_loader_versions('forge') as Promise<Manifest>,
-})
-const quiltVersionsQuery = useQuery({
-	queryKey: ['instance-settings', 'loader-versions', 'quilt'],
-	queryFn: () => get_loader_versions('quilt') as Promise<Manifest>,
-})
-const neoforgeVersionsQuery = useQuery({
-	queryKey: ['instance-settings', 'loader-versions', 'neo'],
-	queryFn: () => get_loader_versions('neo') as Promise<Manifest>,
-})
 const gameVersionsQuery = useQuery({
 	queryKey: ['instance-settings', 'game-versions'],
 	queryFn: () => get_game_versions() as Promise<GameVersionTag[]>,
 })
+
+const editingPlatform = ref(instance.value.loader)
+const editingGameVersion = ref(instance.value.game_version)
+const scopedLoader = computed(() =>
+	editingPlatform.value === 'neoforge' ? 'neo' : editingPlatform.value,
+)
+const scopedLoaderQueryEnabled = computed(
+	() => editingPlatform.value !== 'vanilla' && !!editingGameVersion.value,
+)
+const scopedLoaderVersionsQuery = useQuery({
+	queryKey: computed(() =>
+		scopedLoaderMetadataQueryKey('instance-settings', scopedLoader.value, editingGameVersion.value),
+	),
+	queryFn: ({ queryKey }) => get_loader_versions(queryKey[2], queryKey[3]) as Promise<Manifest>,
+	enabled: scopedLoaderQueryEnabled,
+})
+const scopedLoaderMetadataStatus = computed<LoaderMetadataStatus>(() => {
+	if (!scopedLoaderQueryEnabled.value) return 'unknown'
+	if (scopedLoaderVersionsQuery.isPending.value || scopedLoaderVersionsQuery.isFetching.value) {
+		return 'loading'
+	}
+	if (scopedLoaderVersionsQuery.isError.value) return 'error'
+	return 'success'
+})
+const scopedLoaderVersionState = computed(() =>
+	loaderSupportState(
+		scopedLoaderMetadataStatus.value,
+		scopedLoaderVersionsQuery.data.value,
+		editingGameVersion.value,
+	),
+)
 const loadersQuery = useQuery({
 	queryKey: ['instance-settings', 'loaders', 'modpack'],
 	queryFn: getSupportedModpackLoaders,
 })
 
 const metadataLoading = computed(() =>
-	[
-		fabricVersionsQuery,
-		forgeVersionsQuery,
-		quiltVersionsQuery,
-		neoforgeVersionsQuery,
-		gameVersionsQuery,
-		loadersQuery,
-	].some((query) => query.isLoading.value),
+	[gameVersionsQuery, loadersQuery].some((query) => query.isLoading.value),
 )
 
 debug('metadata queries configured', {
@@ -139,22 +151,6 @@ const messages = defineMessages({
 		defaultMessage: '{loader} version',
 	},
 })
-
-function getManifest(loader: string) {
-	const map: Record<string, Manifest | undefined> = {
-		fabric: fabricVersionsQuery.data.value,
-		forge: forgeVersionsQuery.data.value,
-		quilt: quiltVersionsQuery.data.value,
-		neoforge: neoforgeVersionsQuery.data.value,
-	}
-	const manifest = map[loader]
-	debug('getManifest:', {
-		loader,
-		hasManifest: !!manifest,
-		gameVersions: manifest?.gameVersions?.length ?? 0,
-	})
-	return manifest
-}
 
 async function installLocalModpackFromPicker() {
 	const picked = await filePicker.pickModpackFile({ readFile: false })
@@ -277,22 +273,19 @@ provideInstallationSettings({
 	currentGameVersion: computed(() => instance.value.game_version),
 	currentLoaderVersion: computed(() => instance.value.loader_version ?? ''),
 	availablePlatforms: computed(() => loadersQuery.data.value?.map((x) => x.name) ?? []),
+	editingPlatformRef: editingPlatform,
+	editingGameVersionRef: editingGameVersion,
+	loaderVersionState: scopedLoaderVersionState,
 
 	resolveGameVersions(loader, showSnapshots) {
 		const versions = gameVersionsQuery.data.value ?? []
-		const filtered = versions.filter((item) => {
-			if (loader === 'vanilla') return true
-			const manifest = getManifest(loader)
-			return !!manifest?.gameVersions?.some((x) => item.version === x.id)
-		})
 		const result = (
-			showSnapshots ? filtered : filtered.filter((x) => x.version_type === 'release')
+			showSnapshots ? versions : versions.filter((x) => x.version_type === 'release')
 		).map((x) => ({ value: x.version, label: x.version }))
 		debug('resolveGameVersions:', {
 			loader,
 			showSnapshots,
 			totalVersions: versions.length,
-			filteredVersions: filtered.length,
 			resultVersions: result.length,
 		})
 		return result
@@ -303,56 +296,22 @@ provideInstallationSettings({
 			debug('resolveLoaderVersions: skipped', { loader, gameVersion })
 			return []
 		}
-		const manifest = getManifest(loader)
-		if (!manifest) {
-			debug('resolveLoaderVersions: no manifest', { loader, gameVersion })
+		if (loader !== editingPlatform.value || gameVersion !== editingGameVersion.value) {
+			debug('resolveLoaderVersions: stale selection', { loader, gameVersion })
 			return []
 		}
-		const entry = manifest.gameVersions?.find((item) => item.id === gameVersion)
-		if (entry?.versionGroup) {
-			const result =
-				manifest.versionGroups?.find((group) => group.id === entry.versionGroup)?.loaders ?? []
-			debug('resolveLoaderVersions: version group result', {
-				loader,
-				gameVersion,
-				versionGroup: entry.versionGroup,
-				count: result.length,
-			})
-			return result
-		}
-		const placeholder = manifest.gameVersions?.find((item) => item.id === '${modrinth.gameVersion}')
-		if (placeholder) {
-			const result = manifest.gameVersions?.some((item) => item.id === gameVersion)
-				? placeholder.loaders
-				: []
-			debug('resolveLoaderVersions: placeholder result', {
-				loader,
-				gameVersion,
-				count: result.length,
-			})
-			return result
-		}
-		const result = entry?.loaders ?? []
+		if (scopedLoaderVersionState.value !== 'supported') return []
+		const result = loaderVersionsForGameVersion(scopedLoaderVersionsQuery.data.value, gameVersion)
 		debug('resolveLoaderVersions: result', { loader, gameVersion, count: result.length })
 		return result
 	},
 
 	resolveHasSnapshots(loader) {
 		const versions = gameVersionsQuery.data.value ?? []
-		if (loader === 'vanilla') {
-			const result = versions.some((x) => x.version_type !== 'release')
-			debug('resolveHasSnapshots: vanilla', { loader, result })
-			return result
-		}
-		const manifest = getManifest(loader)
-		const supported = versions.filter(
-			(item) => !!manifest?.gameVersions?.some((x) => item.version === x.id),
-		)
-		const result = supported.some((x) => x.version_type !== 'release')
+		const result = versions.some((x) => x.version_type !== 'release')
 		debug('resolveHasSnapshots:', {
 			loader,
 			totalVersions: versions.length,
-			supportedVersions: supported.length,
 			result,
 		})
 		return result

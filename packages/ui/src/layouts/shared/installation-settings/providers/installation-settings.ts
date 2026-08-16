@@ -11,6 +11,13 @@ import type {
 	LoaderVersionEntry,
 } from '../types'
 
+export type LoaderVersionResolutionState =
+	| 'unknown'
+	| 'loading'
+	| 'supported'
+	| 'unsupported'
+	| 'error'
+
 export interface InstallationSettingsContext {
 	loading: Ref<boolean> | ComputedRef<boolean>
 	installationInfo: ComputedRef<InstallationInfoRow[]>
@@ -30,6 +37,7 @@ export interface InstallationSettingsContext {
 	resolveGameVersions: (loader: string, showSnapshots: boolean) => GameVersionOption[]
 	resolveLoaderVersions: (loader: string, gameVersion: string) => LoaderVersionEntry[]
 	resolveHasSnapshots: (loader: string) => boolean
+	loaderVersionState?: Ref<LoaderVersionResolutionState> | ComputedRef<LoaderVersionResolutionState>
 
 	/** Prefetch loader build lists when the user hovers a game version (e.g. Paper/Purpur). */
 	onGameVersionHover?: (option: GameVersionOption) => void

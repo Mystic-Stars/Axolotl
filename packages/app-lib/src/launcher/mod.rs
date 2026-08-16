@@ -410,14 +410,6 @@ pub async fn get_loader_version_from_profile_with_cache(
             .await;
     }
 
-    let version = loader_version.unwrap_or("latest");
-
-    let filter = |it: &LoaderVersion| match version {
-        "latest" => true,
-        "stable" => it.stable,
-        id => it.id == *id,
-    };
-
     let versions =
         crate::api::metadata::get_loader_versions_for_game_with_cache(
             loader.as_meta_str(),
@@ -429,20 +421,69 @@ pub async fn get_loader_version_from_profile_with_cache(
     if let Some(loaders) =
         loader_versions_for_game_version(&versions, game_version)
     {
-        let loader_version =
-            loaders
-                .iter()
-                .find(|x| filter(x))
-                .or(if version == "stable" {
-                    loaders.first()
-                } else {
-                    None
-                });
-
-        Ok(loader_version.cloned())
+        Ok(select_loader_version(loaders, loader_version).cloned())
     } else {
         Ok(None)
     }
+}
+
+fn select_loader_version<'a>(
+    loaders: &'a [LoaderVersion],
+    requested: Option<&str>,
+) -> Option<&'a LoaderVersion> {
+    let requested = requested.unwrap_or("latest");
+    loaders
+        .iter()
+        .find(|version| match requested {
+            "latest" => true,
+            "stable" => version.stable,
+            id => version.id == id,
+        })
+        .or_else(|| (requested == "stable").then(|| loaders.first()).flatten())
+}
+
+fn explicit_loader_version(requested: Option<&str>) -> Option<&str> {
+    requested.filter(|version| {
+        !version.is_empty() && !matches!(*version, "latest" | "stable")
+    })
+}
+
+fn missing_loader_version_fallback(
+    loader: ModLoader,
+    game_version: &str,
+    requested: Option<&str>,
+) -> Result<&'static str, String> {
+    if let Some(requested) = explicit_loader_version(requested) {
+        Err(format!(
+            "Loader version {requested} is not available for {} {game_version}",
+            loader.as_str()
+        ))
+    } else {
+        Ok("stable")
+    }
+}
+
+fn installed_offline_loader_version(
+    loader: ModLoader,
+    requested: Option<&str>,
+) -> Option<LoaderVersion> {
+    if !matches!(
+        loader,
+        ModLoader::Fabric
+            | ModLoader::Forge
+            | ModLoader::NeoForge
+            | ModLoader::Quilt
+    ) {
+        return None;
+    }
+    let id = explicit_loader_version(requested)?;
+    Some(LoaderVersion {
+        id: id.to_string(),
+        url: String::new(),
+        stable: false,
+        profile_source: Default::default(),
+        fallback_url: None,
+    })
 }
 
 fn loader_versions_for_game_version<'a>(
@@ -695,10 +736,16 @@ async fn install_minecraft_with_local_source(
 
     // If no loader version is selected, try to select the stable version!
     if content_set.loader != ModLoader::Vanilla && loader_version.is_none() {
+        let fallback = missing_loader_version_fallback(
+            content_set.loader,
+            &content_set.game_version,
+            content_set.loader_version.as_deref(),
+        )
+        .map_err(crate::ErrorKind::LauncherError)?;
         loader_version = get_loader_version_from_profile(
             &content_set.game_version,
             content_set.loader,
-            Some("stable"),
+            Some(fallback),
         )
         .await?;
 
@@ -1281,13 +1328,30 @@ pub async fn launch_minecraft(
             .position(|x| x.id == "22w16a")
             .unwrap_or(0);
 
-    let loader_version = get_loader_version_from_profile_with_cache(
-        &content_set.game_version,
-        content_set.loader,
-        content_set.loader_version.as_deref(),
-        cache_behaviour,
-    )
-    .await?;
+    let loader_version = if offline_mode {
+        if let Some(loader_version) = installed_offline_loader_version(
+            content_set.loader,
+            content_set.loader_version.as_deref(),
+        ) {
+            Some(loader_version)
+        } else {
+            get_loader_version_from_profile_with_cache(
+                &content_set.game_version,
+                content_set.loader,
+                content_set.loader_version.as_deref(),
+                cache_behaviour,
+            )
+            .await?
+        }
+    } else {
+        get_loader_version_from_profile_with_cache(
+            &content_set.game_version,
+            content_set.loader,
+            content_set.loader_version.as_deref(),
+            cache_behaviour,
+        )
+        .await?
+    };
 
     if content_set.loader != ModLoader::Vanilla && loader_version.is_none() {
         return Err(crate::ErrorKind::LauncherError(format!(
@@ -1815,6 +1879,84 @@ fn update_offline_skin_resource_pack_option(
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod loader_resolution_tests {
+    use super::*;
+
+    fn loader_version(id: &str, stable: bool) -> LoaderVersion {
+        LoaderVersion {
+            id: id.to_string(),
+            url: format!("https://example.invalid/{id}"),
+            stable,
+            profile_source: Default::default(),
+            fallback_url: None,
+        }
+    }
+
+    #[test]
+    fn repair_exact_loader_selection_never_substitutes_or_persists_fallback() {
+        let versions = vec![
+            loader_version("47.4.22", true),
+            loader_version("47.2.0", false),
+        ];
+
+        assert_eq!(
+            select_loader_version(&versions, Some("47.2.0"))
+                .map(|version| version.id.as_str()),
+            Some("47.2.0")
+        );
+        assert!(select_loader_version(&versions, Some("47.1.0")).is_none());
+        assert_eq!(
+            select_loader_version(&versions, None)
+                .map(|version| version.id.as_str()),
+            Some("47.4.22")
+        );
+        assert_eq!(explicit_loader_version(Some("47.1.0")), Some("47.1.0"));
+        assert_eq!(explicit_loader_version(None), None);
+        assert_eq!(explicit_loader_version(Some("latest")), None);
+        assert_eq!(explicit_loader_version(Some("stable")), None);
+        assert_eq!(
+            missing_loader_version_fallback(
+                ModLoader::Forge,
+                "1.20.1",
+                Some("47.1.0")
+            ),
+            Err("Loader version 47.1.0 is not available for forge 1.20.1"
+                .to_string())
+        );
+        assert_eq!(
+            missing_loader_version_fallback(ModLoader::Forge, "1.20.1", None),
+            Ok("stable")
+        );
+    }
+
+    #[test]
+    fn installed_instances_use_persisted_exact_loader_offline() {
+        for loader in [
+            ModLoader::Fabric,
+            ModLoader::Forge,
+            ModLoader::NeoForge,
+            ModLoader::Quilt,
+        ] {
+            let version = installed_offline_loader_version(
+                loader,
+                Some("persisted-exact-version"),
+            )
+            .expect("installed exact loader should not require metadata");
+            assert_eq!(version.id, "persisted-exact-version", "{loader:?}");
+            assert!(version.url.is_empty(), "{loader:?}");
+        }
+
+        assert!(
+            installed_offline_loader_version(ModLoader::Forge, Some("latest"))
+                .is_none()
+        );
+        assert!(
+            installed_offline_loader_version(ModLoader::Forge, None).is_none()
+        );
+    }
 }
 
 #[cfg(test)]

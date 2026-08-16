@@ -27,7 +27,6 @@ import WindowSettings from '@/components/ui/instance_settings/WindowSettings.vue
 import InstanceIcon from '@/components/ui/InstanceIcon.vue'
 import { get_project_v3 } from '@/helpers/cache'
 import { get_linked_modpack_info } from '@/helpers/instance'
-import { get_loader_versions } from '@/helpers/metadata'
 import { get_game_versions, get_loaders } from '@/helpers/tags'
 import { provideInstanceSettings } from '@/providers/instance-settings'
 
@@ -138,23 +137,7 @@ function getSupportedModpackLoaders() {
 	)
 }
 
-// Preload
-useQuery({
-	queryKey: ['instance-settings', 'loader-versions', 'fabric'],
-	queryFn: () => get_loader_versions('fabric'),
-})
-useQuery({
-	queryKey: ['instance-settings', 'loader-versions', 'forge'],
-	queryFn: () => get_loader_versions('forge'),
-})
-useQuery({
-	queryKey: ['instance-settings', 'loader-versions', 'quilt'],
-	queryFn: () => get_loader_versions('quilt'),
-})
-useQuery({
-	queryKey: ['instance-settings', 'loader-versions', 'neo'],
-	queryFn: () => get_loader_versions('neo'),
-})
+// Preload metadata that is not scoped to an editable Minecraft version.
 useQuery({
 	queryKey: ['instance-settings', 'game-versions'],
 	queryFn: get_game_versions,

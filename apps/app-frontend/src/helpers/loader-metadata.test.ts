@@ -11,6 +11,7 @@ import {
 	loaderVersionSelectorText,
 	loaderVersionsForGameVersion,
 	loaderVersionSummaryState,
+	scopedLoaderMetadataQueryKey,
 } from '../../../../packages/ui/src/components/flows/creation-flow-modal/loader-metadata.ts'
 
 const manifest = (gameVersion: string, versions: string[]) => ({
@@ -22,11 +23,42 @@ const manifest = (gameVersion: string, versions: string[]) => ({
 	],
 })
 
+test('instance settings scopes Forge and Fabric queries by Minecraft version', () => {
+	const forgeA = scopedLoaderMetadataQueryKey('instance-settings', 'forge', '1.20.1')
+	const forgeB = scopedLoaderMetadataQueryKey('instance-settings', 'forge', '26.2')
+	const forgeAReturn = scopedLoaderMetadataQueryKey('instance-settings', 'forge', '1.20.1')
+	const fabricA = scopedLoaderMetadataQueryKey('instance-settings', 'fabric', '1.20.1')
+	const fabricB = scopedLoaderMetadataQueryKey('instance-settings', 'fabric', '1.21.1')
+
+	assert.deepEqual(forgeA, ['instance-settings', 'loader-versions', 'forge', '1.20.1'])
+	assert.deepEqual(forgeB, ['instance-settings', 'loader-versions', 'forge', '26.2'])
+	assert.deepEqual(forgeAReturn, forgeA)
+	assert.notDeepEqual(forgeA, forgeB)
+	assert.notDeepEqual(fabricA, fabricB)
+
+	const cache = new Map([
+		[JSON.stringify(forgeA), manifest('1.20.1', ['47.4.22'])],
+		[JSON.stringify(forgeB), manifest('26.2', ['65.1.1', '65.1.0'])],
+		[JSON.stringify(fabricA), manifest('1.20.1', ['0.18.4'])],
+		[JSON.stringify(fabricB), manifest('1.21.1', ['0.18.4', '0.17.3'])],
+	])
+	const ids = (key: readonly string[], gameVersion: string) =>
+		loaderVersionsForGameVersion(cache.get(JSON.stringify(key)), gameVersion).map(
+			(version) => version.id,
+		)
+
+	assert.deepEqual(ids(forgeA, '1.20.1'), ['47.4.22'])
+	assert.deepEqual(ids(forgeB, '26.2'), ['65.1.1', '65.1.0'])
+	assert.deepEqual(ids(forgeAReturn, '1.20.1'), ['47.4.22'])
+	assert.deepEqual(ids(fabricA, '1.20.1'), ['0.18.4'])
+	assert.deepEqual(ids(fabricB, '1.21.1'), ['0.18.4', '0.17.3'])
+})
+
 test('isolates loader metadata by loader and Minecraft version', () => {
 	const forge262Key = loaderMetadataCacheKey('forge', '26.2')
 	const forge1201Key = loaderMetadataCacheKey('forge', '1.20.1')
 	const cache = {
-		[forge262Key]: manifest('26.2', []),
+		[forge262Key]: manifest('26.2', ['65.1.1', '65.1.0']),
 		[forge1201Key]: manifest('1.20.1', ['47.4.22', '47.4.21']),
 	}
 
@@ -44,12 +76,18 @@ test('isolates loader metadata by loader and Minecraft version', () => {
 		'1.20.1',
 	])
 
-	assert.deepEqual(loaderVersionsForGameVersion(cache[forge262Key], '26.2'), [])
+	assert.deepEqual(
+		loaderVersionsForGameVersion(cache[forge262Key], '26.2').map((version) => version.id),
+		['65.1.1', '65.1.0'],
+	)
 	assert.deepEqual(
 		loaderVersionsForGameVersion(cache[forge1201Key], '1.20.1').map((version) => version.id),
 		['47.4.22', '47.4.21'],
 	)
-	assert.deepEqual(loaderVersionsForGameVersion(cache[forge262Key], '26.2'), [])
+	assert.deepEqual(
+		loaderVersionsForGameVersion(cache[forge262Key], '26.2').map((version) => version.id),
+		['65.1.1', '65.1.0'],
+	)
 })
 
 test('rejects stale loader metadata requests after rapid selection changes', () => {
@@ -81,13 +119,16 @@ test('marks only a successfully resolved empty loader set as unsupported', () =>
 		loaderSupportState('success', manifest('1.20.1', ['47.4.22']), '1.20.1'),
 		'supported',
 	)
-	assert.equal(loaderSupportState('success', manifest('26.2', []), '26.2'), 'unsupported')
+	assert.equal(
+		loaderSupportState('success', manifest('unsupported', []), 'unsupported'),
+		'unsupported',
+	)
 })
 
 test('restores loader support state across Minecraft version changes', () => {
 	const cache = {
 		[loaderMetadataCacheKey('forge', '1.20.1')]: manifest('1.20.1', ['47.4.22']),
-		[loaderMetadataCacheKey('forge', '26.2')]: manifest('26.2', []),
+		[loaderMetadataCacheKey('forge', 'unsupported')]: manifest('unsupported', []),
 	}
 
 	const support = (gameVersion: string) =>
@@ -98,7 +139,7 @@ test('restores loader support state across Minecraft version changes', () => {
 		)
 
 	assert.equal(support('1.20.1'), 'supported')
-	assert.equal(support('26.2'), 'unsupported')
+	assert.equal(support('unsupported'), 'unsupported')
 	assert.equal(support('1.20.1'), 'supported')
 })
 
@@ -114,7 +155,7 @@ test('tracks loader chips through pending, supported, and unsupported responses'
 	const pendingB = loaderSupportState('loading', undefined, '26.2')
 	assert.equal(isLoaderSupportStateDisabled(pendingB), true)
 
-	const unsupportedB = loaderSupportState('success', manifest('26.2', []), '26.2')
+	const unsupportedB = loaderSupportState('success', manifest('unsupported', []), 'unsupported')
 	assert.equal(unsupportedB, 'unsupported')
 	assert.equal(isLoaderSupportStateDisabled(unsupportedB), true)
 

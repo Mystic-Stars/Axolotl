@@ -28,9 +28,13 @@ export function loaderMetadataCacheKey(loader: string, gameVersion?: string): st
 	return gameVersion ? `${loader}:${gameVersion}` : loader
 }
 
+export function scopedLoaderMetadataQueryKey(scope: string, loader: string, gameVersion: string) {
+	return [scope, 'loader-versions', loader, gameVersion] as const
+}
+
 export function loaderMetadataQueryKey(loader: string, gameVersion?: string) {
 	return gameVersion
-		? (['creation-flow', 'loader-versions', loader, gameVersion] as const)
+		? scopedLoaderMetadataQueryKey('creation-flow', loader, gameVersion)
 		: (['creation-flow', 'loader-manifest', loader] as const)
 }
 
