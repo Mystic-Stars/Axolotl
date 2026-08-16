@@ -84,6 +84,18 @@ export const launcherAnnouncements: readonly LauncherAnnouncement[] = [
 					'zh-CN':
 						'CurseForge 整合包切换版本现在会像 Modrinth 更新一样作为可跟踪的下载任务运行，显示真实进度与成功/失败通知，并可在手动下载的文件补齐后自动继续。',
 				},
+				{
+					'en-US':
+						'Switched Fabric, Forge, NeoForge, and Quilt version metadata to official sources with Modrinth fallback, providing more complete and up-to-date loader version lists.',
+					'zh-CN':
+						'Fabric、Forge、NeoForge 和 Quilt 的版本元数据现优先从官方源获取，并在必要时回退至 Modrinth，提供更完整、更及时的加载器版本列表。',
+				},
+				{
+					'en-US':
+						'Improved loader version compatibility across instance creation, settings, repair, offline launch, and imported instances, preserving exact loader versions and preventing unintended fallback to newer releases.',
+					'zh-CN':
+						'改进了实例创建、设置、修复、离线启动和实例导入中的加载器版本兼容性，保留精确的加载器版本，并避免意外回退到更新版本。',
+				},
 			],
 			fixed: [
 				{
