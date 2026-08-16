@@ -1,23 +1,10 @@
-import {
-	CanvasTexture,
-	ShaderLib,
-	ShaderMaterial,
-	UniformsUtils,
-	Vector2,
-	Vector3,
-	type IUniform,
-} from 'three'
+import { CanvasTexture, ShaderLib, ShaderMaterial, UniformsUtils, type IUniform } from 'three'
 
 export class ClipLambertMaterial extends ShaderMaterial {
 	constructor(
 		translucent: boolean,
 		uniforms: {
-			block_position: IUniform<Vector3>
-			clip_y: IUniform<Vector2>
 			[uniform: string]: IUniform<any>
-		} = {
-			block_position: { value: new Vector3(0, 0, 0) },
-			clip_y: { value: new Vector2(0, 10) },
 		},
 		map?: CanvasTexture,
 	) {
@@ -34,11 +21,10 @@ export class ClipLambertMaterial extends ShaderMaterial {
 			depthWrite: !translucent,
 
 			vertexShader: `#define LAMBERT
-uniform vec3 block_position;
-uniform vec2 clip_y;
 varying vec3 vViewPosition;
 varying vec2 vUv;
 varying vec2 vMapUv;
+varying float vVy;
 #include <common>
 #include <batching_pars_vertex>
 #include <uv_pars_vertex>
@@ -53,11 +39,6 @@ varying vec2 vMapUv;
 #include <logdepthbuf_pars_vertex>
 #include <clipping_planes_pars_vertex>
 void main() {
-    if(clip_y.x > block_position.y || clip_y.y < block_position.y) {
-        // Discard fragment using clipping NaN value
-        gl_Position = vec4(0.0 / 0.0);
-        return;
-    }
 	#include <uv_vertex>
 	#include <color_vertex>
 	#include <morphinstance_vertex>
@@ -82,6 +63,7 @@ void main() {
 	#include <shadowmap_vertex>
 	#include <fog_vertex>
 	vMapUv = uv;
+	vVy = position.y;
 }
 `,
 
@@ -90,8 +72,8 @@ void main() {
 uniform vec3 diffuse;
 uniform vec3 emissive;
 uniform float opacity;
-// uniform sampler2D map;
 varying vec2 vUv;
+varying float vVy;
 #include <common>
 #include <dithering_pars_fragment>
 #include <color_pars_fragment>
@@ -121,9 +103,9 @@ varying vec2 vUv;
 void main() {
 	vec4 diffuseColor = vec4( diffuse, opacity );
 
-	// vec4 texelColor = texture2D( map, vUv );
-	// diffuseColor *= texelColor;
-	// diffuseColor *= vec4(1.0, 0.0, 0.0, 1.0);
+	if(vVy <= -90.0) {
+		discard;
+	}
 
 	#include <clipping_planes_fragment>
 	ReflectedLight reflectedLight = ReflectedLight( vec3( 0.0 ), vec3( 0.0 ), vec3( 0.0 ), vec3( 0.0 ) );
@@ -154,13 +136,5 @@ void main() {
 }
 `,
 		})
-	}
-
-	setBlockPosition(position: Vector3) {
-		this.uniforms.block_position.value = position
-	}
-
-	setClipY(clip: Vector2) {
-		this.uniforms.clip_y.value = clip
 	}
 }

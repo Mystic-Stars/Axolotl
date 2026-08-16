@@ -728,18 +728,35 @@ export class SchematicPreviewScene {
 	}
 
 	private applyClippingPlanes() {
-		const clippingPlanes = this.layerRange
-			? [
-					new THREE.Plane(new THREE.Vector3(0, 1, 0), -this.layerRange[0]),
-					new THREE.Plane(new THREE.Vector3(0, -1, 0), this.layerRange[1] + 1),
-				]
-			: []
-		this.opaqueMaterial.clippingPlanes = clippingPlanes
-		this.translucentMaterial.clippingPlanes = clippingPlanes
-		// TODO: Uniform
-		// this.opaqueMaterial.uniforms
-		this.opaqueMaterial.needsUpdate = true
-		this.translucentMaterial.needsUpdate = true
+		const clipStart =
+			this.layerRange && Number.isInteger(this.layerRange[0]) ? -this.layerRange[0] - 0.1 : 0
+		const clipEnd =
+			this.layerRange && Number.isInteger(this.layerRange[1]) ? this.layerRange[1] + 0.1 : 999
+		for (const chunk of this.chunks.values()) {
+			for (const child of chunk.children) {
+				if (child instanceof THREE.Mesh) {
+					const position = child.geometry.getAttribute('position') as THREE.BufferAttribute
+					const blockPosition = child.geometry.getAttribute(
+						'blockPosition',
+					) as THREE.BufferAttribute
+					const basePositions = child.userData.basePositions as Float32Array | undefined
+					if (!basePositions) return
+					const floor = this.bounds?.min.y ?? 0
+					for (let index = 0; index < position.count; index += 1) {
+						const y = blockPosition.getY(index)
+						if (y < clipStart || y > clipEnd) position.setY(index, -99)
+						else
+							position.setY(
+								index,
+								basePositions[index * 3 + 1] + (blockPosition.getY(index) - floor) * this.explosion,
+							)
+					}
+					position.needsUpdate = true
+					child.geometry.computeBoundingBox()
+					child.geometry.computeBoundingSphere()
+				}
+			}
+		}
 	}
 
 	private rebuildGrid() {
