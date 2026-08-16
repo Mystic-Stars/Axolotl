@@ -418,11 +418,13 @@ pub async fn get_loader_version_from_profile_with_cache(
         id => it.id == *id,
     };
 
-    let versions = crate::api::metadata::get_loader_versions_with_cache(
-        loader.as_meta_str(),
-        cache_behaviour,
-    )
-    .await?;
+    let versions =
+        crate::api::metadata::get_loader_versions_for_game_with_cache(
+            loader.as_meta_str(),
+            game_version,
+            cache_behaviour,
+        )
+        .await?;
 
     if let Some(loaders) =
         loader_versions_for_game_version(&versions, game_version)

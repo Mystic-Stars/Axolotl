@@ -189,7 +189,10 @@
 						</div>
 					</div>
 
-					<div v-else-if="searchQuery" class="p-4 text-center text-sm text-secondary">
+					<div
+						v-else-if="searchQuery || showNoOptionsWhenEmpty"
+						class="p-4 text-center text-sm text-secondary"
+					>
 						{{ noOptionsMessage }}
 					</div>
 
@@ -290,6 +293,7 @@ const props = withDefaults(
 		dropdownMinWidth?: string | number
 		forceDirection?: 'up' | 'down'
 		noOptionsMessage?: string
+		showNoOptionsWhenEmpty?: boolean
 		disableSearchFilter?: boolean
 		minSearchLengthToOpen?: number
 		/** Keep the selected option's label in the input after selection, and show all options on focus */
@@ -317,6 +321,7 @@ const props = withDefaults(
 		showIconInSelected: false,
 		maxHeight: DEFAULT_MAX_HEIGHT,
 		noOptionsMessage: 'No results found',
+		showNoOptionsWhenEmpty: false,
 		minSearchLengthToOpen: 0,
 		syncWithSelection: true,
 		selectSearchTextOnFocus: false,
@@ -433,7 +438,12 @@ const filteredOptions = computed(() => {
 })
 
 const hasDropdownContent = computed(() => {
-	return filteredOptions.value.length > 0 || !!searchQuery.value || !!slots['dropdown-footer']
+	return (
+		filteredOptions.value.length > 0 ||
+		!!searchQuery.value ||
+		props.showNoOptionsWhenEmpty ||
+		!!slots['dropdown-footer']
+	)
 })
 
 const shouldRenderDropdown = computed(() => {

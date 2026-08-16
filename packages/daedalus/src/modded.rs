@@ -6,13 +6,13 @@ use serde::{Deserialize, Deserializer, Serialize};
 use std::collections::HashMap;
 
 /// The latest version of the format the fabric model structs deserialize to
-pub const CURRENT_FABRIC_FORMAT_VERSION: usize = 0;
+pub const CURRENT_FABRIC_FORMAT_VERSION: usize = 1;
 /// The latest version of the format the fabric model structs deserialize to
-pub const CURRENT_FORGE_FORMAT_VERSION: usize = 0;
+pub const CURRENT_FORGE_FORMAT_VERSION: usize = 3;
 /// The latest version of the format the quilt model structs deserialize to
-pub const CURRENT_QUILT_FORMAT_VERSION: usize = 1;
+pub const CURRENT_QUILT_FORMAT_VERSION: usize = 2;
 /// The latest version of the format the neoforge model structs deserialize to
-pub const CURRENT_NEOFORGE_FORMAT_VERSION: usize = 0;
+pub const CURRENT_NEOFORGE_FORMAT_VERSION: usize = 1;
 
 /// Metadata for locating and caching a loader manifest.
 #[derive(Debug, Clone)]
@@ -23,7 +23,9 @@ pub struct LoaderManifestMetadata {
     pub format_version: usize,
     /// The cache key that includes the loader format version.
     pub cache_key: String,
-    /// The launcher-meta path to the manifest.
+    /// Optional Minecraft version for game-scoped loader metadata.
+    pub game_version: Option<String>,
+    /// The fallback launcher-meta path to the manifest.
     pub path: String,
 }
 
@@ -31,35 +33,53 @@ pub struct LoaderManifestMetadata {
 pub fn loader_manifest_metadata(loader: &str) -> LoaderManifestMetadata {
     let format_version = current_loader_manifest_format_version(loader);
     let cache_key = format!("{loader}-v{format_version}");
-    let path = format!("{loader}/v{format_version}/manifest.json");
+    let path = fallback_loader_manifest_path(loader);
 
     LoaderManifestMetadata {
         loader: loader.to_string(),
         format_version,
         cache_key,
+        game_version: None,
         path,
     }
+}
+
+/// Returns metadata for a loader manifest scoped to one Minecraft version.
+pub fn loader_manifest_metadata_for_game(
+    loader: &str,
+    game_version: &str,
+) -> LoaderManifestMetadata {
+    let mut metadata = loader_manifest_metadata(loader);
+    metadata.cache_key = format!("{}:{game_version}", metadata.cache_key);
+    metadata.game_version = Some(game_version.to_string());
+    metadata
 }
 
 /// Returns loader manifest metadata from a versioned cache key.
 pub fn loader_manifest_metadata_from_cache_key(
     cache_key: &str,
 ) -> LoaderManifestMetadata {
-    if let Some((loader, format_version)) =
-        cache_key.rsplit_once("-v").and_then(|(loader, version)| {
+    let (manifest_key, game_version) = cache_key
+        .split_once(':')
+        .map_or((cache_key, None), |(key, game_version)| {
+            (key, Some(game_version.to_string()))
+        });
+    if let Some((loader, format_version)) = manifest_key
+        .rsplit_once("-v")
+        .and_then(|(loader, version)| {
             version
                 .parse::<usize>()
                 .ok()
                 .map(|version| (loader, version))
         })
     {
-        let cache_key = format!("{loader}-v{format_version}");
-        let path = format!("{loader}/v{format_version}/manifest.json");
+        let path = fallback_loader_manifest_path(loader);
 
         LoaderManifestMetadata {
             loader: loader.to_string(),
             format_version,
-            cache_key,
+            cache_key: cache_key.to_string(),
+            game_version,
             path,
         }
     } else {
@@ -75,6 +95,14 @@ fn current_loader_manifest_format_version(loader: &str) -> usize {
         "neo" => CURRENT_NEOFORGE_FORMAT_VERSION,
         _ => 0,
     }
+}
+
+fn fallback_loader_manifest_path(loader: &str) -> String {
+    let format_version = match loader {
+        "quilt" => 1,
+        _ => 0,
+    };
+    format!("{loader}/v{format_version}/manifest.json")
 }
 
 /// The dummy replace string library names, inheritsFrom, and version names should be replaced with
@@ -347,6 +375,29 @@ pub struct LoaderVersion {
     pub url: String,
     /// Whether the loader is stable or not
     pub stable: bool,
+    /// How the version profile at `url` should be resolved.
+    #[serde(default, skip_serializing_if = "is_json_profile_source")]
+    pub profile_source: LoaderProfileSource,
+    /// JSON profile used if the official source cannot be resolved.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fallback_url: Option<String>,
+}
+
+/// Source format used to resolve a loader version profile.
+#[derive(
+    Serialize, Deserialize, Debug, Clone, Copy, Default, PartialEq, Eq,
+)]
+#[serde(rename_all = "snake_case")]
+pub enum LoaderProfileSource {
+    /// A partial Minecraft version JSON document.
+    #[default]
+    Json,
+    /// An official Forge-compatible installer JAR.
+    Installer,
+}
+
+fn is_json_profile_source(source: &LoaderProfileSource) -> bool {
+    *source == LoaderProfileSource::Json
 }
 
 #[cfg(test)]
@@ -371,13 +422,31 @@ mod tests {
     #[test]
     fn loader_manifest_metadata_uses_independent_format_versions() {
         let fabric = loader_manifest_metadata("fabric");
-        assert_eq!(fabric.format_version, 0);
-        assert_eq!(fabric.cache_key, "fabric-v0");
+        assert_eq!(fabric.format_version, 1);
+        assert_eq!(fabric.cache_key, "fabric-v1");
+        assert_eq!(fabric.game_version, None);
         assert_eq!(fabric.path, "fabric/v0/manifest.json");
 
-        assert_eq!(loader_manifest_metadata("quilt").format_version, 1);
-        assert_eq!(loader_manifest_metadata("forge").format_version, 0);
-        assert_eq!(loader_manifest_metadata("neo").format_version, 0);
+        assert_eq!(loader_manifest_metadata("quilt").format_version, 2);
+        assert_eq!(loader_manifest_metadata("forge").format_version, 3);
+        assert_eq!(loader_manifest_metadata("neo").format_version, 1);
+        assert_eq!(
+            loader_manifest_metadata("quilt").path,
+            "quilt/v1/manifest.json"
+        );
+
+        let forge_1201 = loader_manifest_metadata_for_game("forge", "1.20.1");
+        let forge_262 = loader_manifest_metadata_for_game("forge", "26.2");
+        assert_eq!(forge_1201.cache_key, "forge-v3:1.20.1");
+        assert_eq!(forge_262.cache_key, "forge-v3:26.2");
+        assert_ne!(forge_1201.cache_key, forge_262.cache_key);
+        assert_eq!(forge_1201.game_version.as_deref(), Some("1.20.1"));
+        assert_eq!(
+            loader_manifest_metadata_from_cache_key(&forge_1201.cache_key)
+                .game_version
+                .as_deref(),
+            Some("1.20.1")
+        );
     }
 
     #[test]

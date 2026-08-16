@@ -13,43 +13,45 @@ pub mod shared;
 pub mod slow;
 pub mod xmcl;
 
-#[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(
+    Debug, Clone, Copy, Default, Eq, PartialEq, Serialize, Deserialize,
+)]
 #[repr(u8)]
 #[serde(rename_all = "snake_case")]
 pub enum DownloadEngine {
-	#[default]
-	Legacy,
-	#[serde(rename = "xmcl", alias = "xmcl_compat")]
-	XmclCompat,
+    #[default]
+    Legacy,
+    #[serde(rename = "xmcl", alias = "xmcl_compat")]
+    XmclCompat,
 }
 
 impl DownloadEngine {
-	pub const fn as_str(self) -> &'static str {
-		match self {
-			Self::Legacy => "legacy",
-			Self::XmclCompat => "xmcl",
-		}
-	}
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Legacy => "legacy",
+            Self::XmclCompat => "xmcl",
+        }
+    }
 
-	pub fn from_str(value: &str) -> Self {
-		match value {
-			"xmcl" | "xmcl_compat" => Self::XmclCompat,
-			_ => Self::Legacy,
-		}
-	}
+    pub fn from_str(value: &str) -> Self {
+        match value {
+            "xmcl" | "xmcl_compat" => Self::XmclCompat,
+            _ => Self::Legacy,
+        }
+    }
 }
 
 static ACTIVE_ENGINE: AtomicU8 = AtomicU8::new(0);
 
 /// Returns the engine the launcher should use for new downloads.
 pub fn active_engine() -> DownloadEngine {
-	match ACTIVE_ENGINE.load(Ordering::Relaxed) {
-		1 => DownloadEngine::XmclCompat,
-		_ => DownloadEngine::Legacy,
-	}
+    match ACTIVE_ENGINE.load(Ordering::Relaxed) {
+        1 => DownloadEngine::XmclCompat,
+        _ => DownloadEngine::Legacy,
+    }
 }
 
 /// Sets the engine used by new downloads.
 pub fn set_active_engine(engine: DownloadEngine) {
-	ACTIVE_ENGINE.store(engine as u8, Ordering::Relaxed);
+    ACTIVE_ENGINE.store(engine as u8, Ordering::Relaxed);
 }

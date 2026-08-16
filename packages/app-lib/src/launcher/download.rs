@@ -1114,14 +1114,10 @@ pub async fn download_version_info(
                     )
                     .await?
                 } else {
-                    fetch_json(
-                        Method::GET,
-                        &loader.url,
-                        None,
-                        None,
-                        None,
-                        &st.api_semaphore,
-                        &st.pool,
+                    crate::api::loader_metadata::resolve_loader_profile(
+                        st,
+                        &version.id,
+                        loader,
                     )
                     .await?
                 };
@@ -1140,6 +1136,8 @@ pub async fn download_version_info(
         write_version_info(&path, serde_json::to_vec(&info)?).await?;
         info
     };
+
+    crate::api::loader_metadata::ensure_installer_artifacts(st, &res).await?;
 
     if let Some(loading_bar) = loading_bar {
         emit_loading(loading_bar, 5.0, None)?;

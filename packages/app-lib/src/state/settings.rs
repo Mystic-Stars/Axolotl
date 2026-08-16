@@ -247,11 +247,13 @@ impl Settings {
             .fetch_one(exec)
             .await?;
 
-        let engine_row = sqlx::query("SELECT download_engine FROM settings WHERE id = 0")
-            .fetch_one(exec)
-            .await?;
-        let download_engine =
-            DownloadEngine::from_str(&engine_row.get::<String, _>("download_engine"));
+        let engine_row =
+            sqlx::query("SELECT download_engine FROM settings WHERE id = 0")
+                .fetch_one(exec)
+                .await?;
+        let download_engine = DownloadEngine::from_str(
+            &engine_row.get::<String, _>("download_engine"),
+        );
 
         let settings = Self {
             max_concurrent_downloads: res.max_concurrent_downloads as usize,
@@ -361,10 +363,7 @@ impl Settings {
         Ok(settings)
     }
 
-    pub async fn update<'a, E>(
-        &self,
-        exec: E,
-    ) -> crate::Result<()>
+    pub async fn update<'a, E>(&self, exec: E) -> crate::Result<()>
     where
         E: sqlx::Executor<'a, Database = sqlx::Sqlite> + Copy,
     {

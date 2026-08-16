@@ -10,6 +10,7 @@ pub mod handler;
 pub mod hongshi;
 pub mod instance;
 pub mod jre;
+pub(crate) mod loader_metadata;
 pub mod logs;
 pub mod memory;
 pub mod metadata;

@@ -292,7 +292,9 @@ pub async fn submit_download_stall(
     context: &str,
 ) -> crate::Result<()> {
     let state = State::get().await?;
-    let message = format!("download_stall engine={engine} rule={rule} src={source} {detail}");
+    let message = format!(
+        "download_stall engine={engine} rule={rule} src={source} {detail}"
+    );
     queue_error(
         &state,
         FrontendErrorReport {
@@ -318,7 +320,8 @@ pub async fn submit_download_error(
     context: Option<&str>,
 ) -> crate::Result<()> {
     let state = State::get().await?;
-    let message = format!("download_error engine={engine} category={category} {message}");
+    let message =
+        format!("download_error engine={engine} category={category} {message}");
     queue_error(
         &state,
         FrontendErrorReport {

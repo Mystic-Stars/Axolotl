@@ -1004,6 +1004,12 @@
 	"creation-flow.modal.custom-setup.content-loader.label": {
 		"defaultMessage": "内容加载器"
 	},
+	"creation-flow.modal.custom-setup.game-version.load-failed": {
+		"defaultMessage": "游戏版本加载失败"
+	},
+	"creation-flow.modal.custom-setup.game-version.no-supported-versions": {
+		"defaultMessage": "没有游戏版本支持此加载器"
+	},
 	"creation-flow.modal.custom-setup.game-version.placeholder": {
 		"defaultMessage": "选择游戏版本"
 	},

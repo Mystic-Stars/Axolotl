@@ -1,5 +1,6 @@
 //! Theseus settings management interface
 
+pub use crate::util::download::DownloadEngine;
 pub use crate::{
     State,
     state::{
@@ -7,7 +8,6 @@ pub use crate::{
         WindowSize,
     },
 };
-pub use crate::util::download::DownloadEngine;
 
 /// Gets entire settings
 #[tracing::instrument]
