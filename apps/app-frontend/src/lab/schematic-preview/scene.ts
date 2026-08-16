@@ -3,6 +3,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls.js'
 
 import type { SchematicMeshData } from './mesh-worker'
+import { ClipLambertMaterial } from './material'
 
 export type SchematicSceneRegion = {
 	id: string
@@ -648,14 +649,14 @@ export class SchematicPreviewScene {
 			texture.generateMipmaps = false
 			texture.needsUpdate = true
 		}
-		return new THREE.MeshLambertMaterial({
-			map: texture,
-			vertexColors: true,
-			alphaTest: translucent ? 0 : 0.08,
-			transparent: translucent,
-			opacity: translucent ? 0.68 : 1,
-			depthWrite: !translucent,
-		})
+		return new ClipLambertMaterial(
+			translucent,
+			{
+				block_position: { value: new THREE.Vector3(0, 0, 0) },
+				clip_y: { value: new THREE.Vector2(0, 999) },
+			},
+			texture,
+		)
 	}
 
 	private accentColor() {
@@ -735,6 +736,8 @@ export class SchematicPreviewScene {
 			: []
 		this.opaqueMaterial.clippingPlanes = clippingPlanes
 		this.translucentMaterial.clippingPlanes = clippingPlanes
+		// TODO: Uniform
+		// this.opaqueMaterial.uniforms
 		this.opaqueMaterial.needsUpdate = true
 		this.translucentMaterial.needsUpdate = true
 	}
