@@ -13,7 +13,7 @@ use crate::{
     },
 };
 
-use super::{finish_import, recache_icon};
+use super::{finish_import, instance_json, recache_icon};
 
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
@@ -33,6 +33,31 @@ pub struct MinecraftInstanceModLoader {
 #[serde(rename_all = "camelCase")]
 pub struct InstalledModpack {
     pub thumbnail_url: Option<String>,
+}
+
+fn parse_curseforge_loader(
+    loader_name: &str,
+    game_version: &str,
+) -> Option<(ModLoader, String)> {
+    let family = crate::api::curseforge::loader_family(loader_name);
+    let loader = match family {
+        "forge" => ModLoader::Forge,
+        "fabric" => ModLoader::Fabric,
+        "quilt" => ModLoader::Quilt,
+        "neo" | "neoforge" => ModLoader::NeoForge,
+        _ => return None,
+    };
+    let detected_version =
+        loader_name.strip_prefix(family)?.strip_prefix('-')?.trim();
+    if detected_version.is_empty() {
+        return None;
+    }
+    let version = instance_json::normalize_imported_loader_version(
+        loader.as_str(),
+        game_version,
+        detected_version,
+    );
+    (!version.is_empty()).then_some((loader, version))
 }
 
 // Check if folder has a minecraftinstance.json that parses
@@ -109,31 +134,31 @@ pub async fn import_curseforge(
     if let Some(instance_mod_loader) = minecraft_instance.base_mod_loader {
         let game_version = minecraft_instance.game_version;
 
-        // CF allows Forge, Fabric, and Vanilla
-        let mut mod_loader = None;
-        let mut loader_version = None;
-
-        match instance_mod_loader.name.split('-').collect::<Vec<&str>>()[..] {
-            ["forge", version] => {
-                mod_loader = Some(ModLoader::Forge);
-                loader_version = Some(version.to_string());
-            }
-            ["fabric", version, _game_version] => {
-                mod_loader = Some(ModLoader::Fabric);
-                loader_version = Some(version.to_string());
-            }
-            _ => {}
-        }
-
-        let mod_loader = mod_loader.unwrap_or(ModLoader::Vanilla);
+        let parsed_loader =
+            parse_curseforge_loader(&instance_mod_loader.name, &game_version);
+        let mod_loader = parsed_loader
+            .as_ref()
+            .map_or(ModLoader::Vanilla, |(loader, _)| *loader);
+        let requested_loader_version =
+            parsed_loader.as_ref().map(|(_, version)| version.as_str());
 
         let loader_version = if mod_loader != ModLoader::Vanilla {
-            crate::launcher::get_loader_version_from_profile(
+            let resolved = crate::launcher::get_loader_version_from_profile(
                 &game_version,
                 mod_loader,
-                loader_version.as_deref(),
+                requested_loader_version,
             )
-            .await?
+            .await?;
+            if resolved.is_none() {
+                return Err(crate::ErrorKind::InputError(format!(
+                    "CurseForge instance loader version {} is not available for {} {}",
+                    requested_loader_version.unwrap_or_default(),
+                    mod_loader.as_str(),
+                    game_version
+                ))
+                .into());
+            }
+            resolved
         } else {
             None
         };
@@ -199,4 +224,40 @@ pub async fn import_curseforge(
     .await?;
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parses_supported_curseforge_instance_loaders() {
+        for (name, game_version, loader, version) in [
+            ("forge-47.4.22", "1.20.1", ModLoader::Forge, "47.4.22"),
+            (
+                "fabric-0.16.10-1.21.1",
+                "1.21.1",
+                ModLoader::Fabric,
+                "0.16.10",
+            ),
+            ("quilt-0.26.4-1.20.1", "1.20.1", ModLoader::Quilt, "0.26.4"),
+            (
+                "neoforge-21.4.157",
+                "1.21.4",
+                ModLoader::NeoForge,
+                "21.4.157",
+            ),
+        ] {
+            assert_eq!(
+                parse_curseforge_loader(name, game_version),
+                Some((loader, version.to_string())),
+                "{name}"
+            );
+        }
+    }
+
+    #[test]
+    fn rejects_unknown_curseforge_instance_loader() {
+        assert_eq!(parse_curseforge_loader("unknown-1.0", "1.20.1"), None);
+    }
 }

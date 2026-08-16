@@ -148,7 +148,12 @@ pub fn detect(path: &Path) -> Option<InstanceInfo> {
         return None;
     }
     vanilla_name = normalize_version(&vanilla_name);
-    let loader = detect_loader(&content, &json);
+    let loader = detect_loader(&content, &json).map(|(loader, version)| {
+        let version = version.map(|version| {
+            normalize_imported_loader_version(&loader, &vanilla_name, &version)
+        });
+        (loader, version)
+    });
     debug!(
         "instance_json: path={} version={} loader={:?}",
         path.display(),
@@ -170,6 +175,40 @@ fn normalize_version(raw: &str) -> String {
     v = v.replace("_unobfuscated", "");
     v = v.replace(" Unobfuscated", "");
     v.trim().to_string()
+}
+
+pub(crate) fn normalize_imported_loader_version(
+    loader: &str,
+    game_version: &str,
+    detected_version: &str,
+) -> String {
+    let detected_version = detected_version.trim();
+    let without_family = match loader {
+        "fabric" | "legacy_fabric" => detected_version
+            .strip_prefix("fabric-loader-")
+            .or_else(|| detected_version.strip_prefix("fabric-")),
+        "quilt" => detected_version
+            .strip_prefix("quilt-loader-")
+            .or_else(|| detected_version.strip_prefix("quilt-")),
+        "forge" => detected_version.strip_prefix("forge-"),
+        "neoforge" => detected_version
+            .strip_prefix("neoforge-")
+            .or_else(|| detected_version.strip_prefix("neo-")),
+        _ => None,
+    }
+    .unwrap_or(detected_version);
+
+    match loader {
+        "fabric" | "legacy_fabric" | "quilt" => without_family
+            .strip_suffix(&format!("-{game_version}"))
+            .unwrap_or(without_family)
+            .to_string(),
+        "forge" | "neoforge" => without_family
+            .strip_prefix(&format!("{game_version}-"))
+            .unwrap_or(without_family)
+            .to_string(),
+        _ => without_family.to_string(),
+    }
 }
 
 fn extract_version(
@@ -413,20 +452,20 @@ fn detect_loader(
         let version = try_extract_version_from_needle(
             content,
             "minecraftforge:forge:",
-            Some('-'),
+            None,
         )
         .or_else(|| {
             try_extract_version_from_needle(
                 content,
                 "net.minecraftforge:forge:",
-                Some('-'),
+                None,
             )
         })
         .or_else(|| {
             try_extract_version_from_needle(
                 content,
                 "net.minecraftforge:fmlloader:",
-                Some('-'),
+                None,
             )
         });
         return Some(("forge".into(), version));
@@ -526,8 +565,35 @@ mod tests {
                 ]
             }"#,
             "forge",
-            Some("52.0.0"),
+            Some("1.21.1-52.0.0"),
         );
+    }
+
+    #[test]
+    fn normalizes_imported_loader_versions_for_central_resolution() {
+        for (loader, game_version, detected, expected) in [
+            ("fabric", "1.20.1", "0.15.11-1.20.1", "0.15.11"),
+            ("quilt", "1.20.1", "0.26.4-1.20.1", "0.26.4"),
+            (
+                "forge",
+                "1.7.10",
+                "1.7.10-10.13.4.1614-1.7.10",
+                "10.13.4.1614-1.7.10",
+            ),
+            ("forge", "1.20.1", "1.20.1-47.4.22", "47.4.22"),
+            ("neoforge", "1.20.1", "1.20.1-44.0.3", "44.0.3"),
+            ("neoforge", "1.21.4", "21.4.157", "21.4.157"),
+        ] {
+            assert_eq!(
+                normalize_imported_loader_version(
+                    loader,
+                    game_version,
+                    detected
+                ),
+                expected,
+                "{loader} {game_version} {detected}"
+            );
+        }
     }
 
     #[test]
@@ -685,6 +751,6 @@ mod tests {
         let info = detect(&instance).expect("detect should succeed");
         assert_eq!(info.vanilla_name, "1.20.1");
         assert_eq!(info.loader.as_deref(), Some("fabric"));
-        assert_eq!(info.loader_version.as_deref(), Some("0.15.11-1.20.1"));
+        assert_eq!(info.loader_version.as_deref(), Some("0.15.11"));
     }
 }

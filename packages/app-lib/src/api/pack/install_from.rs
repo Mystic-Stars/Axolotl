@@ -586,16 +586,30 @@ pub async fn set_instance_information(
     };
 
     let mod_loader = mod_loader.unwrap_or(ModLoader::Vanilla);
+    let requested_loader_version = loader_version.cloned();
     let loader_version = if mod_loader != ModLoader::Vanilla {
         crate::launcher::get_loader_version_from_profile(
             game_version,
             mod_loader,
-            loader_version.cloned().as_deref(),
+            requested_loader_version.as_deref(),
         )
         .await?
     } else {
         None
     };
+    if loader_version.is_none()
+        && requested_loader_version.as_deref().is_some_and(|version| {
+            !version.is_empty() && !matches!(version, "latest" | "stable")
+        })
+    {
+        return Err(crate::ErrorKind::InputError(format!(
+            "Loader version {} is not available for {} {}",
+            requested_loader_version.as_deref().unwrap_or_default(),
+            mod_loader.as_str(),
+            game_version
+        ))
+        .into());
+    }
 
     let link = match (&description.project_id, &description.version_id) {
         (Some(project_id), Some(version_id)) => {

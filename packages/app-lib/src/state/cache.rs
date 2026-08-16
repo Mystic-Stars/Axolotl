@@ -20,8 +20,9 @@ use std::path::{Path, PathBuf};
 // 1 day
 const DEFAULT_ID: &str = "0";
 
-/// All cache expiries are set to 100 years (effectively permanent).
-/// Background refresh is controlled by BACKGROUND_REFRESH_THRESHOLD.
+/// Most cache expiries are set to 100 years (effectively permanent).
+/// Loader manifests expire at the background refresh threshold because newly
+/// published loader versions must become selectable without an app restart.
 const PERMANENT_CACHE_SECONDS: i64 = 100 * 365 * 24 * 60 * 60;
 
 /// How long before an entry should be asynchronously refreshed in the background, in seconds.
@@ -122,10 +123,11 @@ impl CacheValueType {
         matches!(self, CacheValueType::CurseForgeProject)
     }
 
-    /// All cache entries are effectively permanent — data is served from cache
-    /// immediately and refreshed asynchronously in the background.
     pub fn expiry(&self) -> i64 {
-        PERMANENT_CACHE_SECONDS
+        match self {
+            CacheValueType::LoaderManifest => BACKGROUND_REFRESH_THRESHOLD,
+            _ => PERMANENT_CACHE_SECONDS,
+        }
     }
 
     pub fn get_empty_entry(self, key: String) -> CachedEntry {
@@ -165,6 +167,22 @@ impl CacheValueType {
             | CacheValueType::ModpackFiles
             | CacheValueType::ProjectVersions => None,
         }
+    }
+}
+
+#[cfg(test)]
+mod loader_manifest_expiry_tests {
+    use super::{
+        BACKGROUND_REFRESH_THRESHOLD, CacheValueType, PERMANENT_CACHE_SECONDS,
+    };
+
+    #[test]
+    fn loader_manifests_expire_at_refresh_threshold() {
+        assert_eq!(
+            CacheValueType::LoaderManifest.expiry(),
+            BACKGROUND_REFRESH_THRESHOLD
+        );
+        assert_eq!(CacheValueType::Project.expiry(), PERMANENT_CACHE_SECONDS);
     }
 }
 
@@ -1951,7 +1969,7 @@ impl CachedEntry {
                         expired_keys.insert(row.id.clone());
                     }
                 } else if parsed_data.is_some()
-                    && row.expires - PERMANENT_CACHE_SECONDS
+                    && row.expires - type_.expiry()
                         + BACKGROUND_REFRESH_THRESHOLD
                         <= now
                 {
@@ -2506,6 +2524,7 @@ impl CachedEntry {
                         (
                             metadata.cache_key,
                             metadata.loader,
+                            metadata.game_version,
                             format!(
                                 "{}{}",
                                 env!("MODRINTH_LAUNCHER_META_URL"),
@@ -2516,13 +2535,11 @@ impl CachedEntry {
                     .collect::<Vec<_>>();
 
                 futures::future::try_join_all(fetch_urls.iter().map(
-                    |(_, _, url)| {
-                        fetch_json(
-                            Method::GET,
+                    |(_, loader, game_version, url)| {
+                        crate::api::loader_metadata::fetch_loader_manifest_official_first(
+                            loader,
+                            game_version.as_deref(),
                             url,
-                            None,
-                            None,
-                            None,
                             fetch_semaphore,
                             pool,
                         )
@@ -2532,11 +2549,7 @@ impl CachedEntry {
                 .into_iter()
                 .enumerate()
                 .map(|(index, metadata)| {
-                    let mut entry =
-                        CacheValue::LoaderManifest(CachedLoaderManifest {
-                            loader: fetch_urls[index].1.to_string(),
-                            manifest: metadata,
-                        })
+                    let mut entry = CacheValue::LoaderManifest(metadata)
                         .get_entry();
                     entry.id.clone_from(&fetch_urls[index].0);
 

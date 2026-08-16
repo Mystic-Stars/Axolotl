@@ -16,6 +16,12 @@ import { createContext, injectModrinthClient } from '../../../providers'
 import type { ImportableLauncher } from '../../../providers/instance-import'
 import type { MultiStageModal, StageConfigInput } from '../../base'
 import type { ComboboxOption } from '../../base/Combobox.vue'
+import {
+	loaderMetadataCacheKey,
+	loaderMetadataQueryKey,
+	type LoaderMetadataStatus,
+	loaderSupportState,
+} from './loader-metadata'
 import { stageConfigs } from './stages'
 
 export type FlowType = 'world' | 'server-onboarding' | 'reset-server' | 'instance'
@@ -25,14 +31,16 @@ export type Difficulty = 'peaceful' | 'easy' | 'normal' | 'hard'
 export type LoaderVersionType = 'stable' | 'latest' | 'other'
 export type GeneratorSettingsMode = 'default' | 'flat' | 'custom'
 export type LoaderManifest = LauncherMeta.Manifest.v0.Manifest
-export type LoaderManifestResolver = (loader: string) => Promise<LoaderManifest>
+export type LoaderManifestResolver = (
+	loader: string,
+	gameVersion?: string,
+) => Promise<LoaderManifest>
 export interface LoaderVersionEntry {
 	id: string
 	stable: boolean
 }
 
-const loaderManifestQueryKey = (loader: string) =>
-	['creation-flow', 'loader-manifest', loader] as const
+const LOADER_MANIFEST_STALE_TIME = 30 * 60 * 1000
 const paperSupportedVersionsQueryKey = ['creation-flow', 'paper', 'supported-versions'] as const
 const purpurSupportedVersionsQueryKey = ['creation-flow', 'purpur', 'supported-versions'] as const
 
@@ -162,6 +170,7 @@ export interface CreationFlowContextValue {
 	hideLoaderVersion: ComputedRef<boolean>
 	showSnapshots: Ref<boolean>
 	loaderVersionsCache: Ref<Record<string, LoaderManifest>>
+	loaderMetadataStatus: Ref<Record<string, LoaderMetadataStatus>>
 	paperSupportedVersions: Ref<Set<string> | null>
 	purpurSupportedVersions: Ref<Set<string> | null>
 
@@ -215,8 +224,8 @@ export interface CreationFlowContextValue {
 	browseModpacks: () => void
 	finish: () => void
 	buildProperties: () => Archon.Content.v1.PropertiesFields
-	fetchLoaderMetadata: (loader?: string | null) => Promise<void>
-	prefetchLoaderMetadata: () => Promise<void>
+	fetchLoaderMetadata: (loader?: string | null, gameVersion?: string) => Promise<void>
+	prefetchLoaderMetadata: (gameVersion?: string) => Promise<void>
 
 	// Platform-provided search
 	searchModpacks: (query: string, limit?: number) => Promise<ModpackSearchResult>
@@ -312,6 +321,7 @@ export function createCreationFlowContext(
 	const selectedLoaderVersion = ref<string | null>(null)
 	const showSnapshots = ref(false)
 	const loaderVersionsCache = ref<Record<string, LoaderManifest>>({})
+	const loaderMetadataStatus = ref<Record<string, LoaderMetadataStatus>>({})
 	const paperSupportedVersions = ref<Set<string> | null>(null)
 	const purpurSupportedVersions = ref<Set<string> | null>(null)
 
@@ -366,28 +376,38 @@ export function createCreationFlowContext(
 		return loader === 'neoforge' ? 'neo' : loader
 	}
 
-	async function fetchLoaderManifest(loader: string) {
+	async function fetchLoaderManifest(loader: string, gameVersion?: string) {
 		const apiLoader = toApiLoaderName(loader)
-		if (loaderVersionsCache.value[apiLoader]) return
+		const cacheKey = loaderMetadataCacheKey(apiLoader, gameVersion)
+		loaderMetadataStatus.value[cacheKey] = 'loading'
 
 		try {
 			const data = await queryClient.fetchQuery({
-				queryKey: loaderManifestQueryKey(apiLoader),
+				queryKey: loaderMetadataQueryKey(apiLoader, gameVersion),
 				queryFn: async () =>
-					(await getLoaderManifest?.(apiLoader)) ??
+					(await getLoaderManifest?.(apiLoader, gameVersion)) ??
 					(await client.launchermeta.manifest_v0.getManifest(apiLoader)),
-				staleTime: Infinity,
+				staleTime: LOADER_MANIFEST_STALE_TIME,
 			})
-			loaderVersionsCache.value[apiLoader] = data
-			debug('fetchLoaderManifest: loaded', apiLoader, 'gameVersions:', data.gameVersions.length)
+			loaderVersionsCache.value[cacheKey] = data
+			loaderMetadataStatus.value[cacheKey] = 'success'
+			if (gameVersion) {
+				debug(
+					'fetchLoaderManifest: support',
+					cacheKey,
+					loaderSupportState('success', data, gameVersion),
+				)
+			}
+			debug('fetchLoaderManifest: loaded', cacheKey, 'gameVersions:', data.gameVersions.length)
 		} catch (error) {
-			debug('fetchLoaderManifest: failed', apiLoader, error)
-			loaderVersionsCache.value[apiLoader] = { gameVersions: [] }
+			loaderMetadataStatus.value[cacheKey] = 'error'
+			debug('fetchLoaderManifest: failed', cacheKey, error)
 		}
 	}
 
 	async function fetchPaperSupportedVersions() {
 		if (paperSupportedVersions.value) return
+		loaderMetadataStatus.value.paper = 'loading'
 		try {
 			paperSupportedVersions.value = await queryClient.fetchQuery({
 				queryKey: paperSupportedVersionsQueryKey,
@@ -397,13 +417,15 @@ export function createCreationFlowContext(
 				},
 				staleTime: Infinity,
 			})
+			loaderMetadataStatus.value.paper = 'success'
 		} catch {
-			paperSupportedVersions.value = new Set()
+			loaderMetadataStatus.value.paper = 'error'
 		}
 	}
 
 	async function fetchPurpurSupportedVersions() {
 		if (purpurSupportedVersions.value) return
+		loaderMetadataStatus.value.purpur = 'loading'
 		try {
 			purpurSupportedVersions.value = await queryClient.fetchQuery({
 				queryKey: purpurSupportedVersionsQueryKey,
@@ -413,12 +435,13 @@ export function createCreationFlowContext(
 				},
 				staleTime: Infinity,
 			})
+			loaderMetadataStatus.value.purpur = 'success'
 		} catch {
-			purpurSupportedVersions.value = new Set()
+			loaderMetadataStatus.value.purpur = 'error'
 		}
 	}
 
-	async function fetchLoaderMetadata(loader?: string | null) {
+	async function fetchLoaderMetadata(loader?: string | null, gameVersion?: string) {
 		if (!loader || loader === 'vanilla') return
 		if (loader === 'paper') {
 			await fetchPaperSupportedVersions()
@@ -428,14 +451,14 @@ export function createCreationFlowContext(
 			await fetchPurpurSupportedVersions()
 			return
 		}
-		await fetchLoaderManifest(loader)
+		await fetchLoaderManifest(loader, gameVersion)
 	}
 
-	async function prefetchLoaderMetadata() {
+	async function prefetchLoaderMetadata(gameVersion?: string) {
 		await Promise.allSettled(
 			availableLoaders
 				.filter((loader) => loader !== 'vanilla')
-				.map((loader) => fetchLoaderMetadata(loader)),
+				.map((loader) => fetchLoaderMetadata(loader, gameVersion)),
 		)
 	}
 
@@ -591,6 +614,7 @@ export function createCreationFlowContext(
 		hideLoaderVersion,
 		showSnapshots,
 		loaderVersionsCache,
+		loaderMetadataStatus,
 		paperSupportedVersions,
 		purpurSupportedVersions,
 		modpackSelection,

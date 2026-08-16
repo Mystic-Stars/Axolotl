@@ -1019,6 +1019,12 @@
   "creation-flow.modal.custom-setup.game-version-type.snapshot": {
     "defaultMessage": "Snapshot"
   },
+  "creation-flow.modal.custom-setup.game-version.load-failed": {
+    "defaultMessage": "Failed to load game versions"
+  },
+  "creation-flow.modal.custom-setup.game-version.no-supported-versions": {
+    "defaultMessage": "No game versions support this loader"
+  },
   "creation-flow.modal.custom-setup.game-version.placeholder": {
     "defaultMessage": "Select game version"
   },

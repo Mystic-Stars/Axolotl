@@ -3773,7 +3773,7 @@ fn safe_archive_relative_path(value: &str) -> crate::Result<String> {
     Ok(path.to_string_lossy().replace('\\', "/"))
 }
 
-fn loader_family(loader_id: &str) -> &str {
+pub(crate) fn loader_family(loader_id: &str) -> &str {
     loader_id.split('-').next().unwrap_or(loader_id)
 }
 

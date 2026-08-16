@@ -19,6 +19,17 @@ pub async fn metadata_get_game_versions() -> Result<VersionManifest> {
 
 /// Gets the fabric versions from daedalus
 #[tauri::command]
-pub async fn metadata_get_loader_versions(loader: &str) -> Result<Manifest> {
-    Ok(theseus::metadata::get_loader_versions(loader).await?)
+pub async fn metadata_get_loader_versions(
+    loader: &str,
+    game_version: Option<&str>,
+) -> Result<Manifest> {
+    if let Some(game_version) = game_version {
+        Ok(theseus::metadata::get_loader_versions_for_game(
+            loader,
+            game_version,
+        )
+        .await?)
+    } else {
+        Ok(theseus::metadata::get_loader_versions(loader).await?)
+    }
 }

@@ -50,7 +50,7 @@ export function setupInstanceImportProvider(notificationManager: AbstractWebNoti
 			return (await get_importable_instances(launcherName, path)) ?? []
 		},
 		async getLoaderVersions(loader: string, gameVersion: string) {
-			const manifest = await get_loader_versions(loader)
+			const manifest = await get_loader_versions(loader, gameVersion)
 			const gameVersions = manifest?.gameVersions ?? manifest?.game_versions ?? []
 			const versionGroups = manifest?.versionGroups ?? manifest?.version_groups ?? []
 			const entry = gameVersions.find(

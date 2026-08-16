@@ -49,15 +49,13 @@
 			<Combobox
 				v-model="selectedGameVersion"
 				:options="filteredGameVersionOptions"
-				:no-options-message="
-					gameVersionsLoading
-						? formatMessage(commonMessages.loadingLabel)
-						: formatMessage(messages.noVersionsAvailable)
-				"
+				:disabled="gameVersionsLoading"
+				:no-options-message="gameVersionNoOptionsMessage"
+				:show-no-options-when-empty="gameVersionMetadataState !== 'ready'"
 				searchable
 				sync-with-selection
-				:placeholder="formatMessage(messages.selectGameVersion)"
-				:search-placeholder="formatMessage(messages.searchGameVersion)"
+				:placeholder="gameVersionSelectorLabels.placeholder"
+				:search-placeholder="gameVersionSelectorLabels.searchPlaceholder"
 				@option-hover="handleGameVersionHover"
 			/>
 		</div>
@@ -73,8 +71,8 @@
 				v-model="selectedLoader"
 				:items="effectiveLoaders"
 				:format-label="localizedFormatLoaderLabel"
-				:disabled-items="unsupportedLoaders"
-				:disabled-tooltip="formatMessage(messages.loaderUnsupportedTooltip)"
+				:disabled-items="disabledLoaders"
+				:disabled-tooltip="loaderDisabledTooltip"
 			/>
 		</div>
 
@@ -88,8 +86,13 @@
 								? formatMessage(messages.buildNumberLabel)
 								: formatMessage(messages.loaderVersionLabel)
 						}}</span>
+						<span v-if="loaderVersionSummary === 'loading'" class="text-sm text-secondary">
+							{{ formatMessage(commonMessages.loadingLabel) }}
+						</span>
 						<span
-							v-if="!isPaperLike && loaderVersionType !== 'other' && selectedLoaderVersion"
+							v-else-if="
+								!isPaperLike && loaderVersionType !== 'other' && loaderVersionSummary === 'selected'
+							"
 							class="text-sm text-secondary"
 						>
 							{{
@@ -112,6 +115,7 @@
 						<Combobox
 							v-model="selectedLoaderVersion"
 							:options="loaderVersionOptions"
+							:disabled="loaderVersionsLoading"
 							:no-options-message="
 								loaderVersionsLoading
 									? formatMessage(commonMessages.loadingLabel)
@@ -119,16 +123,8 @@
 							"
 							searchable
 							sync-with-selection
-							:placeholder="
-								isPaperLike
-									? formatMessage(messages.selectBuildNumber)
-									: formatMessage(messages.selectLoaderVersion)
-							"
-							:search-placeholder="
-								isPaperLike
-									? formatMessage(messages.searchBuildNumber)
-									: formatMessage(messages.searchLoaderVersion)
-							"
+							:placeholder="loaderVersionSelectorLabels.placeholder"
+							:search-placeholder="loaderVersionSelectorLabels.searchPlaceholder"
 						>
 							<!-- When not Paper, this scoped slot is omitted and Combobox uses default option markup. -->
 							<template v-if="selectedLoader === 'paper'" #option="{ item, isSelected }">
@@ -176,6 +172,18 @@ import PaperChannelBadge from '../../../base/PaperChannelBadge.vue'
 import StyledInput from '../../../base/StyledInput.vue'
 import type { LoaderVersionEntry, LoaderVersionType } from '../creation-flow-context'
 import { injectCreationFlowContext } from '../creation-flow-context'
+import {
+	createLatestRequestGuard,
+	type GameVersionMetadataState,
+	gameVersionSelectorText,
+	isLoaderSupportStateDisabled,
+	loaderMetadataCacheKey,
+	type LoaderSupportState,
+	loaderSupportState,
+	loaderVersionSelectorText,
+	loaderVersionsForGameVersion,
+	loaderVersionSummaryState,
+} from '../loader-metadata'
 import { formatLoaderLabel, type GameVersionType, isVersionTypeMatch } from '../shared'
 
 const localizedFormatLoaderLabel = (item: string) => formatLoaderLabel(item, formatMessage)
@@ -221,6 +229,14 @@ const messages = defineMessages({
 	noVersionsAvailable: {
 		id: 'creation-flow.modal.custom-setup.options.no-versions-available',
 		defaultMessage: 'No versions available',
+	},
+	noGameVersionsForLoader: {
+		id: 'creation-flow.modal.custom-setup.game-version.no-supported-versions',
+		defaultMessage: 'No game versions support this loader',
+	},
+	gameVersionsLoadFailed: {
+		id: 'creation-flow.modal.custom-setup.game-version.load-failed',
+		defaultMessage: 'Failed to load game versions',
 	},
 	selectGameVersion: {
 		id: 'creation-flow.modal.custom-setup.game-version.placeholder',
@@ -331,31 +347,70 @@ const effectiveLoaders = computed(() => {
 	return ctx.availableLoaders
 })
 
-// Loaders that don't support the currently selected game version
-const unsupportedLoaders = computed(() => {
+function loaderCompatibilityState(gameVersion: string, loader: string): LoaderSupportState {
+	if (loader === 'vanilla') return 'supported'
+
+	if (loader === 'paper' || loader === 'purpur') {
+		const status = ctx.loaderMetadataStatus.value[loader] ?? 'unknown'
+		if (status !== 'success') return status
+		const supportedVersions =
+			loader === 'paper' ? ctx.paperSupportedVersions.value : ctx.purpurSupportedVersions.value
+		return supportedVersions?.has(gameVersion) ? 'supported' : 'unsupported'
+	}
+
+	const apiLoader = toApiLoaderName(loader)
+	const cacheKey = loaderMetadataCacheKey(apiLoader, gameVersion)
+	return loaderSupportState(
+		ctx.loaderMetadataStatus.value[cacheKey] ?? 'unknown',
+		ctx.loaderVersionsCache.value[cacheKey],
+		gameVersion,
+	)
+}
+
+const disabledLoaders = computed(() => {
 	const gameVersion = selectedGameVersion.value
-	if (!gameVersion) {
-		return []
-	}
+	if (!gameVersion) return []
 
-	const unsupported: string[] = []
-
-	for (const loader of effectiveLoaders.value) {
-		if (loader === 'vanilla') continue
-		if (!isGameVersionSupportedByLoader(gameVersion, loader)) {
-			unsupported.push(loader)
-		}
-	}
-
-	return unsupported
+	return effectiveLoaders.value.filter((loader) =>
+		isLoaderSupportStateDisabled(loaderCompatibilityState(gameVersion, loader)),
+	)
 })
 
-// When game version changes, clear loader if it's no longer supported
-watch(selectedGameVersion, () => {
-	if (unsupportedLoaders.value.includes(selectedLoader.value)) {
+// Only confirmed incompatibility changes the current selection. Pending metadata merely disables it.
+const unsupportedLoaders = computed(() => {
+	const gameVersion = selectedGameVersion.value
+	if (!gameVersion) return []
+
+	return effectiveLoaders.value.filter(
+		(loader) => loaderCompatibilityState(gameVersion, loader) === 'unsupported',
+	)
+})
+
+function loaderDisabledTooltip(loader: string): string | undefined {
+	const gameVersion = selectedGameVersion.value
+	if (!gameVersion) return undefined
+
+	const state = loaderCompatibilityState(gameVersion, loader)
+	if (state === 'unknown' || state === 'loading') {
+		return formatMessage(commonMessages.loadingLabel)
+	}
+	if (state === 'unsupported') return formatMessage(messages.loaderUnsupportedTooltip)
+	return undefined
+}
+
+watch(
+	selectedGameVersion,
+	(gameVersion) => {
+		if (gameVersion) void ctx.prefetchLoaderMetadata(gameVersion)
+	},
+	{ immediate: true },
+)
+
+watch([selectedGameVersion, unsupportedLoaders], () => {
+	if (selectedLoader.value && unsupportedLoaders.value.includes(selectedLoader.value)) {
 		const fallback = effectiveLoaders.value.includes('vanilla')
 			? 'vanilla'
-			: effectiveLoaders.value[0]
+			: effectiveLoaders.value.find((loader) => !unsupportedLoaders.value.includes(loader))
 		selectedLoader.value = fallback ?? null
 	}
 })
@@ -409,6 +464,41 @@ function removeIcon() {
 
 const loaderVersionsLoading = ref(false)
 const loaderVersionsData = ref<LoaderVersionEntry[]>([])
+const loaderVersionSummary = computed(() =>
+	loaderVersionSummaryState(loaderVersionsLoading.value, selectedLoaderVersion.value),
+)
+
+const loaderVersionSelectorLabels = computed(() => {
+	const loading = formatMessage(commonMessages.loadingLabel)
+	const empty = formatMessage(messages.noVersionsAvailable)
+	const placeholder = isPaperLike.value
+		? formatMessage(messages.selectBuildNumber)
+		: formatMessage(messages.selectLoaderVersion)
+	const searchPlaceholder = isPaperLike.value
+		? formatMessage(messages.searchBuildNumber)
+		: formatMessage(messages.searchLoaderVersion)
+	const loader = selectedLoader.value
+	const gameVersion = selectedGameVersion.value
+	let resolvedEmpty = false
+
+	if (loader && gameVersion && !isPaperLike.value && loader !== 'vanilla') {
+		const apiLoader = toApiLoaderName(loader)
+		const cacheKey = loaderMetadataCacheKey(apiLoader, gameVersion)
+		resolvedEmpty =
+			loaderSupportState(
+				ctx.loaderMetadataStatus.value[cacheKey] ?? 'unknown',
+				ctx.loaderVersionsCache.value[cacheKey],
+				gameVersion,
+			) === 'unsupported'
+	}
+
+	return loaderVersionSelectorText(loaderVersionsLoading.value, resolvedEmpty, {
+		loading,
+		empty,
+		placeholder,
+		searchPlaceholder,
+	})
+})
 
 // Paper/Purpur build caches
 const paperVersions = ref<Record<string, Paper.Versions.v3.Build[]>>({})
@@ -418,19 +508,12 @@ function toApiLoaderName(loader: string): string {
 	return loader === 'neoforge' ? 'neo' : loader
 }
 
-function isGameVersionSupportedByLoader(gameVersion: string, loader: string): boolean {
+function isGameVersionListedByLoader(gameVersion: string, loader: string): boolean {
 	if (loader === 'vanilla') return true
+	if (loader === 'paper') return ctx.paperSupportedVersions.value?.has(gameVersion) ?? false
+	if (loader === 'purpur') return ctx.purpurSupportedVersions.value?.has(gameVersion) ?? false
 
-	if (loader === 'paper') {
-		return ctx.paperSupportedVersions.value?.has(gameVersion) ?? false
-	}
-
-	if (loader === 'purpur') {
-		return ctx.purpurSupportedVersions.value?.has(gameVersion) ?? false
-	}
-
-	const apiLoader = toApiLoaderName(loader)
-	const manifest = ctx.loaderVersionsCache.value[apiLoader]
+	const manifest = ctx.loaderVersionsCache.value[toApiLoaderName(loader)]
 	if (!manifest) return false
 
 	const hasPlaceholder = manifest.gameVersions.some((x) => x.id === '${modrinth.gameVersion}')
@@ -444,9 +527,8 @@ function isGameVersionSupportedByLoader(gameVersion: string, loader: string): bo
 const gameVersionsLoading = computed(() => {
 	const loader = selectedLoader.value
 	if (!loader || loader === 'vanilla') return false
-	if (loader === 'paper') return ctx.paperSupportedVersions.value === null
-	if (loader === 'purpur') return ctx.purpurSupportedVersions.value === null
-	return ctx.loaderVersionsCache.value[toApiLoaderName(loader)] === undefined
+	const status = ctx.loaderMetadataStatus.value[toApiLoaderName(loader)] ?? 'unknown'
+	return status === 'unknown' || status === 'loading'
 })
 
 // Game versions from tags provider, filtered by loader support
@@ -457,7 +539,7 @@ const gameVersionOptions = computed<Array<ComboboxOption<string> & { versionType
 		if (selectedLoader.value && selectedLoader.value !== 'vanilla') {
 			const loader = selectedLoader.value
 			return versions
-				.filter((v) => isGameVersionSupportedByLoader(v.version, loader))
+				.filter((v) => isGameVersionListedByLoader(v.version, loader))
 				.map((v) => ({ value: v.version, label: v.version, versionType: v.version_type }))
 		}
 
@@ -476,6 +558,39 @@ const filteredGameVersionOptions = computed<ComboboxOption<string>[]>(() => {
 		if (!opt.versionType) return false
 		return isVersionTypeMatch(opt.versionType, String(opt.value), selectedVersionType.value)
 	})
+})
+
+const gameVersionMetadataState = computed<GameVersionMetadataState>(() => {
+	const loader = selectedLoader.value
+	if (!loader || loader === 'vanilla') return 'ready'
+
+	const status = ctx.loaderMetadataStatus.value[toApiLoaderName(loader)] ?? 'unknown'
+	if (status === 'unknown' || status === 'loading') return 'loading'
+	if (status === 'error') return 'error'
+	return filteredGameVersionOptions.value.length > 0 ? 'ready' : 'empty'
+})
+
+const gameVersionSelectorLabels = computed(() =>
+	gameVersionSelectorText(gameVersionMetadataState.value, {
+		loading: formatMessage(commonMessages.loadingLabel),
+		empty: formatMessage(messages.noGameVersionsForLoader),
+		error: formatMessage(messages.gameVersionsLoadFailed),
+		placeholder: formatMessage(messages.selectGameVersion),
+		searchPlaceholder: formatMessage(messages.searchGameVersion),
+	}),
+)
+
+const gameVersionNoOptionsMessage = computed(() => {
+	if (gameVersionMetadataState.value === 'loading') {
+		return formatMessage(commonMessages.loadingLabel)
+	}
+	if (gameVersionMetadataState.value === 'empty') {
+		return formatMessage(messages.noGameVersionsForLoader)
+	}
+	if (gameVersionMetadataState.value === 'error') {
+		return formatMessage(messages.gameVersionsLoadFailed)
+	}
+	return formatMessage(messages.noVersionsAvailable)
 })
 
 // Auto-select latest game version when options load, or clear when selection becomes invalid
@@ -508,17 +623,18 @@ watch(
 	{ immediate: true },
 )
 
-async function fetchLoaderManifest(loader: string) {
+async function fetchLoaderManifest(loader: string, gameVersion: string) {
 	const apiLoader = toApiLoaderName(loader)
+	const cacheKey = loaderMetadataCacheKey(apiLoader, gameVersion)
 	debug(
 		'fetchLoaderManifest:',
 		loader,
 		'apiLoader:',
 		apiLoader,
 		'cached:',
-		!!ctx.loaderVersionsCache.value[apiLoader],
+		!!ctx.loaderVersionsCache.value[cacheKey],
 	)
-	await ctx.fetchLoaderMetadata(loader)
+	await ctx.fetchLoaderMetadata(loader, gameVersion)
 }
 
 async function fetchLoaderMetadata(loader?: string | null) {
@@ -567,48 +683,19 @@ function getLoaderVersionsForGameVersion(
 	gameVersion: string,
 ): LoaderVersionEntry[] {
 	const apiLoader = toApiLoaderName(loader)
-	const manifest = ctx.loaderVersionsCache.value[apiLoader]
+	const cacheKey = loaderMetadataCacheKey(apiLoader, gameVersion)
+	const manifest = ctx.loaderVersionsCache.value[cacheKey]
 	debug('getLoaderVersionsForGameVersion:', {
 		loader,
 		apiLoader,
+		cacheKey,
 		gameVersion,
 		hasManifest: !!manifest,
 		manifestLength: manifest?.gameVersions.length,
 	})
-	if (!manifest) return []
-
-	// Some loaders (e.g. Fabric) list all versions under a placeholder entry
-	const placeholder = manifest.gameVersions.find((x) => x.id === '${modrinth.gameVersion}')
-	if (placeholder) {
-		if (!manifest.gameVersions.some((x) => x.id === gameVersion)) return []
-		debug(
-			'getLoaderVersionsForGameVersion: using placeholder, loaders:',
-			placeholder.loaders.length,
-		)
-		return placeholder.loaders
-	}
-
-	const entry = manifest.gameVersions.find((x) => x.id === gameVersion)
-	if (entry?.versionGroup) {
-		const loaders =
-			manifest.versionGroups?.find((group) => group.id === entry.versionGroup)?.loaders ?? []
-		debug(
-			'getLoaderVersionsForGameVersion: version group for',
-			gameVersion,
-			':',
-			entry.versionGroup,
-			loaders.length + ' loaders',
-		)
-		return loaders
-	}
-
-	debug(
-		'getLoaderVersionsForGameVersion: entry for',
-		gameVersion,
-		':',
-		entry ? entry.loaders.length + ' loaders' : 'NOT FOUND',
-	)
-	return entry?.loaders ?? []
+	const loaders = loaderVersionsForGameVersion(manifest, gameVersion)
+	debug('getLoaderVersionsForGameVersion: result', gameVersion, loaders.length + ' loaders')
+	return loaders
 }
 
 // Fetch version data when loader changes so game versions can be filtered
@@ -621,12 +708,13 @@ watch(
 )
 
 // Watch loader + game version to resolve loader versions
-let loaderVersionWatchId = 0
+const loaderVersionRequest = createLatestRequestGuard()
 watch(
 	[() => selectedLoader.value, () => selectedGameVersion.value],
 	async ([loader, gameVersion]) => {
-		const watchId = ++loaderVersionWatchId
+		const watchId = loaderVersionRequest.begin()
 		debug('watch [loader, gameVersion] fired:', { loader, gameVersion, watchId })
+		loaderVersionsLoading.value = false
 		loaderVersionsData.value = []
 		selectedLoaderVersion.value = null
 
@@ -636,7 +724,7 @@ watch(
 
 		if (loader === 'paper') {
 			await fetchPaperVersions(gameVersion)
-			if (watchId !== loaderVersionWatchId) return
+			if (!loaderVersionRequest.isCurrent(watchId)) return
 			loaderVersionsLoading.value = false
 			const builds = paperVersions.value[gameVersion]
 			if (builds?.length) {
@@ -647,7 +735,7 @@ watch(
 
 		if (loader === 'purpur') {
 			await fetchPurpurVersions(gameVersion)
-			if (watchId !== loaderVersionWatchId) return
+			if (!loaderVersionRequest.isCurrent(watchId)) return
 			loaderVersionsLoading.value = false
 			const builds = purpurVersions.value[gameVersion]
 			if (builds?.length) {
@@ -656,11 +744,10 @@ watch(
 			return
 		}
 
-		await fetchLoaderManifest(loader)
-		if (watchId !== loaderVersionWatchId) {
+		await fetchLoaderManifest(loader, gameVersion)
+		if (!loaderVersionRequest.isCurrent(watchId)) {
 			debug('watch [loader, gameVersion]: stale execution, skipping', {
 				watchId,
-				current: loaderVersionWatchId,
 			})
 			return
 		}

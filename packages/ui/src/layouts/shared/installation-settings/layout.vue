@@ -204,6 +204,28 @@ const isLocalFile = computed(() => {
 	return typeof val === 'boolean' ? val : val.value
 })
 
+const loaderVersionState = computed(() => ctx.loaderVersionState?.value ?? 'supported')
+const loaderVersionPlaceholder = computed(() => {
+	if (loaderVersionState.value === 'loading') {
+		return formatMessage(commonMessages.loadingLabel)
+	}
+	if (loaderVersionState.value === 'unsupported') {
+		return formatMessage(messages.unsupportedLoaderVersion)
+	}
+	if (loaderVersionState.value === 'error') {
+		return formatMessage(messages.loaderVersionsError)
+	}
+	return formatMessage(commonMessages.selectVersionPlaceholder)
+})
+const loaderVersionDisabled = computed(
+	() =>
+		ctx.isBusy.value ||
+		loaderVersionState.value === 'unknown' ||
+		loaderVersionState.value === 'loading' ||
+		loaderVersionState.value === 'unsupported' ||
+		loaderVersionState.value === 'error',
+)
+
 const isLinkedModpack = computed(() => showModpackVersionActions.value || isLocalFile.value)
 
 function handleModpackUpdateRequest(version: Labrinth.Versions.v2.Version, event?: MouseEvent) {
@@ -505,6 +527,14 @@ const messages = defineMessages({
 	loaderVersionLabel: {
 		id: 'installation-settings.loader-version',
 		defaultMessage: '{loader} version',
+	},
+	unsupportedLoaderVersion: {
+		id: 'installation-settings.loader-version.unsupported',
+		defaultMessage: 'This loader does not support the selected game version',
+	},
+	loaderVersionsError: {
+		id: 'installation-settings.loader-version.error',
+		defaultMessage: 'Failed to load loader versions',
 	},
 	searchGameVersionPlaceholder: {
 		id: 'installation-settings.search-game-version',
@@ -862,21 +892,27 @@ const messages = defineMessages({
 								searchable
 								sync-with-selection
 								:placeholder="
-									form.loaderVersionDisplayValue.value ||
-									formatMessage(commonMessages.selectVersionPlaceholder)
+									loaderVersionState === 'supported'
+										? form.loaderVersionDisplayValue.value || loaderVersionPlaceholder
+										: loaderVersionPlaceholder
 								"
-								:search-placeholder="formatMessage(commonMessages.searchVersionPlaceholder)"
+								:search-placeholder="
+									loaderVersionState === 'supported'
+										? formatMessage(commonMessages.searchVersionPlaceholder)
+										: loaderVersionPlaceholder
+								"
 								:options="form.loaderVersionOptions.value"
 								:display-value="
-									form.loaderVersionDisplayValue.value ||
-									formatMessage(commonMessages.selectVersionPlaceholder)
+									loaderVersionState === 'supported'
+										? form.loaderVersionDisplayValue.value || loaderVersionPlaceholder
+										: loaderVersionPlaceholder
 								"
 								:aria-label="
 									formatMessage(messages.selectLoaderVersionAriaLabel, {
 										loader: form.formattedLoaderName.value,
 									})
 								"
-								:disabled="ctx.isBusy.value"
+								:disabled="loaderVersionDisabled"
 							>
 								<template
 									v-if="form.selectedPlatform.value === 'paper'"

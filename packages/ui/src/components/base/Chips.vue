@@ -3,7 +3,7 @@
 		<Button
 			v-for="item in items"
 			:key="formatLabel(item)"
-			v-tooltip="isDisabled(item) ? disabledTooltip : undefined"
+			v-tooltip="isDisabled(item) ? getDisabledTooltip(item) : undefined"
 			role="radio"
 			:aria-checked="selected === item"
 			:disabled="isDisabled(item)"
@@ -35,7 +35,7 @@ const props = withDefaults(
 		size?: 'standard' | 'small'
 		ariaLabel?: string
 		disabledItems?: T[]
-		disabledTooltip?: string
+		disabledTooltip?: string | ((item: T) => string | undefined)
 		hideCheckmarkIcon?: boolean
 	}>(),
 	{
@@ -56,6 +56,12 @@ if (props.items.length > 0 && props.neverEmpty && !selected.value) {
 
 function isDisabled(item: T): boolean {
 	return props.disabledItems?.includes(item) ?? false
+}
+
+function getDisabledTooltip(item: T): string | undefined {
+	return typeof props.disabledTooltip === 'function'
+		? props.disabledTooltip(item)
+		: props.disabledTooltip
 }
 
 function toggleItem(item: T) {

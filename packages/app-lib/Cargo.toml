@@ -62,7 +62,7 @@ path-util = { workspace = true }
 phf = { workspace = true }
 png = { workspace = true }
 quartz_nbt = { workspace = true, features = ["serde"] }
-quick-xml = { workspace = true, features = ["async-tokio"] }
+quick-xml = { workspace = true, features = ["async-tokio", "serialize"] }
 rand = { workspace = true }
 regex = { workspace = true }
 reqwest = { workspace = true, features = [

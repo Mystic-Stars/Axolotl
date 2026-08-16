@@ -8,6 +8,6 @@ export async function get_game_versions() {
 
 // Gets the given loader versions from daedalus
 // Returns Manifest
-export async function get_loader_versions(loader) {
-	return await invoke('plugin:metadata|metadata_get_loader_versions', { loader })
+export async function get_loader_versions(loader, gameVersion) {
+	return await invoke('plugin:metadata|metadata_get_loader_versions', { loader, gameVersion })
 }
