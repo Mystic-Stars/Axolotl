@@ -34,6 +34,12 @@ const CONTENT_DEPENDENCY_LOCAL_PROVIDER_MIGRATION_VERSION: i64 = 20260815000001;
 #[cfg(test)]
 const CONTENT_DEPENDENCY_BACKFILL_MARKER_MIGRATION_VERSION: i64 =
     20260815000002;
+#[cfg(test)]
+const CONTENT_DEPENDENCY_ENDPOINT_PROVIDERS_MIGRATION_VERSION: i64 =
+    20260817130000;
+#[cfg(test)]
+const CURSEFORGE_DOWNLOAD_RESTRICTION_BYPASS_MIGRATION_VERSION: i64 =
+    20260817120000;
 const AI_PROVIDER_MIGRATION_VERSION: i64 = 20260805120000;
 
 // This migration was changed by the launcher rebrand after it had already
@@ -1059,6 +1065,54 @@ mod tests {
         .unwrap();
         assert_eq!(locale, "zh-TW");
         assert_eq!(nodes, "[\"wss://center.node.1tmc.top\"]");
+        let foreign_key_errors: Vec<(String, i64, String, i64)> =
+            sqlx::query_as("PRAGMA foreign_key_check")
+                .fetch_all(&pool)
+                .await
+                .unwrap();
+        assert!(foreign_key_errors.is_empty());
+    }
+
+    #[tokio::test]
+    async fn curseforge_download_restriction_bypass_migration_defaults_on() {
+        let pool = SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect("sqlite::memory:")
+            .await
+            .unwrap();
+        sqlx::query("PRAGMA foreign_keys = ON")
+            .execute(&pool)
+            .await
+            .unwrap();
+        let previous_migrator = Migrator {
+            migrations: std::borrow::Cow::Owned(
+                MIGRATOR
+                    .iter()
+                    .filter(|migration| {
+                        migration.version
+                            < CURSEFORGE_DOWNLOAD_RESTRICTION_BYPASS_MIGRATION_VERSION
+                    })
+                    .cloned()
+                    .collect(),
+            ),
+            ..Migrator::DEFAULT
+        };
+        previous_migrator.run(&pool).await.unwrap();
+        sqlx::query("UPDATE settings SET locale = 'zh-CN' WHERE id = 0")
+            .execute(&pool)
+            .await
+            .unwrap();
+
+        MIGRATOR.run(&pool).await.unwrap();
+
+        let (locale, bypass): (String, bool) = sqlx::query_as(
+            "SELECT locale, bypass_curseforge_download_restrictions FROM settings WHERE id = 0",
+        )
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+        assert_eq!(locale, "zh-CN");
+        assert!(bypass);
         let foreign_key_errors: Vec<(String, i64, String, i64)> =
             sqlx::query_as("PRAGMA foreign_key_check")
                 .fetch_all(&pool)
@@ -3136,7 +3190,7 @@ mod tests {
         .unwrap();
     }
 
-    fn dependency_edge_row(
+    fn dependency_edge_row_legacy(
         provider: &str,
         child_entry_id: &str,
         child_project_id: &str,
@@ -3152,6 +3206,28 @@ mod tests {
                     '{child_entry_id}', '{provider}', 'required',
                     'local:parent', '1.0.0', '{child_project_id}', '2.0.0',
                     1, 1)"
+        )
+    }
+
+    fn dependency_edge_row(
+        evidence_provider: &str,
+        parent_provider: &str,
+        child_provider: &str,
+        child_entry_id: &str,
+        child_project_id: &str,
+    ) -> String {
+        format!(
+            "INSERT INTO instance_content_dependencies (
+                id, content_set_id, parent_entry_id, child_entry_id,
+                evidence_provider, parent_provider, child_provider,
+                dependency_kind, parent_project_id, parent_release_id,
+                child_project_id, child_release_id, created_at, modified_at
+            ) VALUES
+                ('edge-{evidence_provider}-{child_entry_id}',
+                    'local-edge-set', 'parent-entry', '{child_entry_id}',
+                    '{evidence_provider}', '{parent_provider}',
+                    '{child_provider}', 'required', 'local:parent', '1.0.0',
+                    '{child_project_id}', '2.0.0', 1, 1)"
         )
     }
 
@@ -3172,6 +3248,8 @@ mod tests {
 
         sqlx::raw_sql(&dependency_edge_row(
             "local",
+            "local",
+            "local",
             "child-entry-local",
             "local:child-local",
         ))
@@ -3180,7 +3258,7 @@ mod tests {
         .unwrap();
 
         let providers: Vec<String> = sqlx::query_scalar(
-            "SELECT provider FROM instance_content_dependencies",
+            "SELECT evidence_provider FROM instance_content_dependencies",
         )
         .fetch_all(&pool)
         .await
@@ -3222,7 +3300,7 @@ mod tests {
         };
         previous_migrator.run(&pool).await.unwrap();
         insert_dependency_edge_fixture(&pool).await;
-        sqlx::raw_sql(&dependency_edge_row(
+        sqlx::raw_sql(&dependency_edge_row_legacy(
             "modrinth",
             "child-entry",
             "local:child",
@@ -3231,7 +3309,7 @@ mod tests {
         .await
         .unwrap();
 
-        let local_row = dependency_edge_row(
+        let local_row = dependency_edge_row_legacy(
             "local",
             "child-entry-local",
             "local:child-local",
@@ -3244,7 +3322,7 @@ mod tests {
         MIGRATOR.run(&pool).await.unwrap();
 
         let providers: Vec<String> = sqlx::query_scalar(
-            "SELECT provider FROM instance_content_dependencies
+            "SELECT evidence_provider FROM instance_content_dependencies
              ORDER BY id",
         )
         .fetch_all(&pool)
@@ -3254,6 +3332,8 @@ mod tests {
 
         sqlx::raw_sql(&dependency_edge_row(
             "local",
+            "local",
+            "local",
             "child-entry-local",
             "local:child-local",
         ))
@@ -3262,7 +3342,7 @@ mod tests {
         .unwrap();
 
         let providers: Vec<String> = sqlx::query_scalar(
-            "SELECT provider FROM instance_content_dependencies
+            "SELECT evidence_provider FROM instance_content_dependencies
              ORDER BY id",
         )
         .fetch_all(&pool)
@@ -3270,6 +3350,135 @@ mod tests {
         .unwrap();
         assert_eq!(providers, ["local", "modrinth"]);
 
+        let foreign_key_errors: Vec<(String, i64, String, i64)> =
+            sqlx::query_as("PRAGMA foreign_key_check")
+                .fetch_all(&pool)
+                .await
+                .unwrap();
+        assert!(foreign_key_errors.is_empty());
+    }
+
+    #[tokio::test]
+    async fn content_dependency_endpoint_providers_migration_creates_provider_qualified_schema()
+     {
+        let pool = SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect("sqlite::memory:")
+            .await
+            .unwrap();
+        sqlx::query("PRAGMA foreign_keys = ON")
+            .execute(&pool)
+            .await
+            .unwrap();
+        MIGRATOR.run(&pool).await.unwrap();
+        insert_dependency_edge_fixture(&pool).await;
+
+        sqlx::raw_sql(&dependency_edge_row(
+            "modrinth",
+            "curseforge",
+            "modrinth",
+            "child-entry",
+            "mr-child",
+        ))
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        let providers: (String, String, String) = sqlx::query_as(
+            "SELECT evidence_provider, parent_provider, child_provider
+             FROM instance_content_dependencies",
+        )
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+        assert_eq!(
+            providers,
+            ("modrinth".into(), "curseforge".into(), "modrinth".into())
+        );
+        let foreign_key_errors: Vec<(String, i64, String, i64)> =
+            sqlx::query_as("PRAGMA foreign_key_check")
+                .fetch_all(&pool)
+                .await
+                .unwrap();
+        assert!(foreign_key_errors.is_empty());
+    }
+
+    #[tokio::test]
+    async fn content_dependency_endpoint_providers_migration_backfills_legacy_rows()
+     {
+        let pool = SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect("sqlite::memory:")
+            .await
+            .unwrap();
+        sqlx::query("PRAGMA foreign_keys = ON")
+            .execute(&pool)
+            .await
+            .unwrap();
+        let previous_migrator = Migrator {
+            migrations: std::borrow::Cow::Owned(
+                MIGRATOR
+                    .iter()
+                    .filter(|migration| {
+                        migration.version
+                            < CONTENT_DEPENDENCY_ENDPOINT_PROVIDERS_MIGRATION_VERSION
+                    })
+                    .cloned()
+                    .collect(),
+            ),
+            ..Migrator::DEFAULT
+        };
+        previous_migrator.run(&pool).await.unwrap();
+        insert_dependency_edge_fixture(&pool).await;
+        sqlx::raw_sql(&dependency_edge_row_legacy(
+            "curseforge",
+            "child-entry",
+            "cf-child",
+        ))
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        MIGRATOR.run(&pool).await.unwrap();
+
+        let legacy: (String, String, String) = sqlx::query_as(
+            "SELECT evidence_provider, parent_provider, child_provider
+             FROM instance_content_dependencies WHERE id = 'edge-curseforge'",
+        )
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+        assert_eq!(
+            legacy,
+            (
+                "curseforge".into(),
+                "curseforge".into(),
+                "curseforge".into()
+            )
+        );
+
+        sqlx::raw_sql(&dependency_edge_row(
+            "modrinth",
+            "curseforge",
+            "modrinth",
+            "child-entry-local",
+            "mr-child",
+        ))
+        .execute(&pool)
+        .await
+        .unwrap();
+        let cross_source: (String, String, String) = sqlx::query_as(
+            "SELECT evidence_provider, parent_provider, child_provider
+             FROM instance_content_dependencies
+             WHERE id = 'edge-modrinth-child-entry-local'",
+        )
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+        assert_eq!(
+            cross_source,
+            ("modrinth".into(), "curseforge".into(), "modrinth".into())
+        );
         let foreign_key_errors: Vec<(String, i64, String, i64)> =
             sqlx::query_as("PRAGMA foreign_key_check")
                 .fetch_all(&pool)

@@ -1,4 +1,4 @@
-use std::collections::{HashMap, VecDeque};
+use std::collections::VecDeque;
 use std::fmt::Write as _;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
@@ -39,19 +39,6 @@ static LOG_RING: LazyLock<Mutex<VecDeque<LogLine>>> =
     LazyLock::new(|| Mutex::new(VecDeque::with_capacity(256)));
 static PENDING_RUST_ERRORS: LazyLock<Mutex<VecDeque<PendingRustError>>> =
     LazyLock::new(|| Mutex::new(VecDeque::with_capacity(32)));
-
-#[derive(Default, Clone, Copy)]
-struct DownloadAggregates {
-    files: u64,
-    bytes: u64,
-    failed: u64,
-    stalls: u64,
-    wasted: u64,
-    switches: u64,
-}
-
-static DOWNLOAD_AGGREGATES: LazyLock<Mutex<HashMap<u8, DownloadAggregates>>> =
-    LazyLock::new(|| Mutex::new(HashMap::new()));
 
 static BEARER_RE: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"(?i)\bbearer\s+[a-z0-9._~+/=-]+").expect("valid regex")
@@ -265,6 +252,9 @@ pub async fn set_enabled(state: &State, enabled: bool) -> crate::Result<()> {
     sqlx::query("DELETE FROM telemetry_outbox")
         .execute(&state.pool)
         .await?;
+    sqlx::query("DELETE FROM telemetry_error_daily")
+        .execute(&state.pool)
+        .await?;
 
     if enabled {
         ensure_identity(&state.pool).await?;
@@ -279,35 +269,16 @@ pub async fn submit_frontend_error(
     report: FrontendErrorReport,
 ) -> crate::Result<()> {
     let state = State::get().await?;
-    queue_error(&state, report).await?;
-    wake();
-    Ok(())
+    queue_error(&state, report).await
 }
 
 pub async fn submit_download_stall(
-    engine: &str,
-    rule: u8,
-    source: &str,
-    detail: &str,
-    context: &str,
+    _engine: &str,
+    _rule: u8,
+    _source: &str,
+    _detail: &str,
+    _context: &str,
 ) -> crate::Result<()> {
-    let state = State::get().await?;
-    let message = format!(
-        "download_stall engine={engine} rule={rule} src={source} {detail}"
-    );
-    queue_error(
-        &state,
-        FrontendErrorReport {
-            error_type: "download_stall".to_string(),
-            message,
-            stack: None,
-            route: Some(source.to_string()),
-            command: Some("download".to_string()),
-            context: Some(context.to_string()),
-        },
-    )
-    .await?;
-    wake();
     Ok(())
 }
 
@@ -333,29 +304,7 @@ pub async fn submit_download_error(
             context: context.map(str::to_string),
         },
     )
-    .await?;
-    wake();
-    Ok(())
-}
-
-pub fn record_download_stats(
-    engine: u8,
-    files: u64,
-    bytes: u64,
-    failed: u64,
-    stalls: u64,
-    wasted: u64,
-    switches: u64,
-) {
-    if let Ok(mut aggregates) = DOWNLOAD_AGGREGATES.lock() {
-        let entry = aggregates.entry(engine).or_default();
-        entry.files = entry.files.saturating_add(files);
-        entry.bytes = entry.bytes.saturating_add(bytes);
-        entry.failed = entry.failed.saturating_add(failed);
-        entry.stalls = entry.stalls.saturating_add(stalls);
-        entry.wasted = entry.wasted.saturating_add(wasted);
-        entry.switches = entry.switches.saturating_add(switches);
-    }
+    .await
 }
 
 pub fn notify_online() {
@@ -369,6 +318,9 @@ async fn run_cycle(
     if !is_enabled(state).await? {
         clear_runtime_buffers();
         sqlx::query("DELETE FROM telemetry_outbox")
+            .execute(&state.pool)
+            .await?;
+        sqlx::query("DELETE FROM telemetry_error_daily")
             .execute(&state.pool)
             .await?;
         return Ok(());
@@ -434,33 +386,8 @@ async fn enqueue_heartbeat(state: &State) -> crate::Result<()> {
     }
 
     let event_id = Uuid::new_v4().to_string();
-    let download_stats = {
-        let mut stats = serde_json::Map::new();
-        if let Ok(mut aggregates) = DOWNLOAD_AGGREGATES.lock() {
-            for (engine, aggregate) in aggregates.iter() {
-                stats.insert(
-                    engine.to_string(),
-                    json!({
-                        "files": aggregate.files,
-                        "bytes": aggregate.bytes,
-                        "failed": aggregate.failed,
-                        "stalls": aggregate.stalls,
-                        "wasted": aggregate.wasted,
-                        "switches": aggregate.switches,
-                    }),
-                );
-            }
-            aggregates.clear();
-        }
-        Value::Object(stats)
-    };
-    let payload = json!({
-        "type": "heartbeat",
-        "event_id": event_id,
-        "occurred_at": Utc::now().to_rfc3339_opts(SecondsFormat::Millis, true),
-        "day": day,
-        "download_stats": download_stats,
-    });
+    let occurred_at = Utc::now().to_rfc3339_opts(SecondsFormat::Millis, true);
+    let payload = heartbeat_payload(&event_id, &occurred_at, &day);
     insert_outbox_event(
         state,
         &event_id,
@@ -522,32 +449,8 @@ async fn queue_error(
     let fingerprint = fingerprint(&error_type, &message, stack.as_deref());
     let day = Utc::now().format("%Y-%m-%d").to_string();
 
-    let known = sqlx::query(
-        "SELECT 1 FROM telemetry_error_daily WHERE day = ? AND fingerprint = ?",
-    )
-    .bind(&day)
-    .bind(&fingerprint)
-    .fetch_optional(&state.pool)
-    .await?
-    .is_some();
-    if !known {
-        let count = sqlx::query(
-            "SELECT COUNT(*) AS count FROM telemetry_error_daily WHERE day = ?",
-        )
-        .bind(&day)
-        .fetch_one(&state.pool)
-        .await?
-        .get::<i64, _>("count");
-        if count >= MAX_DISTINCT_ERRORS_PER_DAY {
-            return Ok(());
-        }
-        sqlx::query(
-			"INSERT OR IGNORE INTO telemetry_error_daily (day, fingerprint) VALUES (?, ?)",
-		)
-		.bind(&day)
-		.bind(&fingerprint)
-		.execute(&state.pool)
-		.await?;
+    if !reserve_error_sample(&state.pool, &day, &fingerprint).await? {
+        return Ok(());
     }
 
     let event_id = Uuid::new_v4().to_string();
@@ -564,15 +467,44 @@ async fn queue_error(
         "command": command,
         "context": context,
     });
-    let bucket = Utc::now().timestamp() / 600;
     insert_outbox_event(
         state,
         &event_id,
         "error",
-        &format!("error:{fingerprint}:{bucket}"),
+        &format!("error:{fingerprint}:{day}"),
         &payload,
     )
     .await
+}
+
+fn heartbeat_payload(event_id: &str, occurred_at: &str, day: &str) -> Value {
+    json!({
+        "type": "heartbeat",
+        "event_id": event_id,
+        "occurred_at": occurred_at,
+        "day": day,
+    })
+}
+
+async fn reserve_error_sample(
+    pool: &sqlx::SqlitePool,
+    day: &str,
+    fingerprint: &str,
+) -> crate::Result<bool> {
+    let result = sqlx::query(
+        r#"
+        INSERT OR IGNORE INTO telemetry_error_daily (day, fingerprint)
+        SELECT ?, ?
+        WHERE (SELECT COUNT(*) FROM telemetry_error_daily WHERE day = ?) < ?
+        "#,
+    )
+    .bind(day)
+    .bind(fingerprint)
+    .bind(day)
+    .bind(MAX_DISTINCT_ERRORS_PER_DAY)
+    .execute(pool)
+    .await?;
+    Ok(result.rows_affected() == 1)
 }
 
 async fn insert_outbox_event(
@@ -940,9 +872,6 @@ fn clear_runtime_buffers() {
     if let Ok(mut ring) = LOG_RING.lock() {
         ring.clear();
     }
-    if let Ok(mut aggregates) = DOWNLOAD_AGGREGATES.lock() {
-        aggregates.clear();
-    }
 }
 
 #[cfg(test)]
@@ -990,5 +919,66 @@ mod tests {
         let ids = vec!["one".to_string(), "two".to_string()];
         assert_eq!(stable_batch_id(&ids), stable_batch_id(&ids));
         assert_ne!(stable_batch_id(&ids), stable_batch_id(&ids[..1]));
+    }
+
+    #[tokio::test]
+    async fn error_sampler_keeps_only_the_first_daily_fingerprint_sample() {
+        let pool = sqlx::sqlite::SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect("sqlite::memory:")
+            .await
+            .unwrap();
+        sqlx::query(
+            "CREATE TABLE telemetry_error_daily (day TEXT NOT NULL, fingerprint TEXT NOT NULL, PRIMARY KEY (day, fingerprint))",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        assert!(
+            reserve_error_sample(&pool, "2026-08-17", "a")
+                .await
+                .unwrap()
+        );
+        assert!(
+            !reserve_error_sample(&pool, "2026-08-17", "a")
+                .await
+                .unwrap()
+        );
+        for fingerprint in 1..MAX_DISTINCT_ERRORS_PER_DAY {
+            assert!(
+                reserve_error_sample(
+                    &pool,
+                    "2026-08-17",
+                    &fingerprint.to_string()
+                )
+                .await
+                .unwrap()
+            );
+        }
+        assert!(
+            !reserve_error_sample(&pool, "2026-08-17", "overflow")
+                .await
+                .unwrap()
+        );
+    }
+
+    #[tokio::test]
+    async fn download_stall_submission_is_a_noop() {
+        submit_download_stall("xmcl", 1, "mirror", "no_progress", "")
+            .await
+            .unwrap();
+    }
+
+    #[test]
+    fn heartbeat_payload_matches_the_strict_worker_shape() {
+        let payload = heartbeat_payload(
+            "11111111-1111-4111-8111-111111111111",
+            "2026-08-17T00:00:00.000Z",
+            "2026-08-17",
+        );
+        assert_eq!(payload.as_object().unwrap().len(), 4);
+        assert!(payload.get("download_stats").is_none());
+        assert_eq!(payload["type"], "heartbeat");
     }
 }

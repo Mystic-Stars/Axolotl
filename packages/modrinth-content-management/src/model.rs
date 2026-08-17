@@ -84,6 +84,8 @@ pub enum SkippedReason {
     MissingVersion,
     QuiltFabricApi,
     ExcludedByUser,
+    DependencyCycle,
+    DependencyDepthExceeded,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]

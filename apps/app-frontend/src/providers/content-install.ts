@@ -25,6 +25,7 @@ import {
 	getCurseForgeFile,
 	getCurseForgeFiles,
 	getCurseForgeProject,
+	getCurseForgeProjects,
 	installCurseForgeFile,
 	installCurseForgeModpack,
 	previewCurseForgeFile,
@@ -177,6 +178,14 @@ const dependenciesSkippedMessage = defineMessage({
 	id: 'app.content-install.dependencies-skipped.notification-body',
 	defaultMessage: 'The following dependencies were not installed: {list}',
 })
+const sha1VerifiedModrinthFallbackMessage = defineMessage({
+	id: 'app.content-install.preview.sha1-verified-modrinth-fallback',
+	defaultMessage: 'Modrinth fallback verified by SHA-1',
+})
+const unavailableCurseForgeProjectMessage = defineMessage({
+	id: 'app.content-install.preview.unavailable-curseforge-project',
+	defaultMessage: 'Unavailable CurseForge project',
+})
 const skippedReasonMessages = {
 	already_installed: defineMessage({
 		id: 'app.content-install.preview.skip.already-installed',
@@ -185,6 +194,10 @@ const skippedReasonMessages = {
 	no_compatible_version: defineMessage({
 		id: 'app.content-install.preview.skip.no-compatible-version',
 		defaultMessage: 'No compatible version found',
+	}),
+	modrinth_lookup_failed: defineMessage({
+		id: 'app.content-install.preview.skip.modrinth-lookup-failed',
+		defaultMessage: 'Could not verify the Modrinth fallback',
 	}),
 	embedded: defineMessage({
 		id: 'app.content-install.preview.skip.embedded',
@@ -225,6 +238,14 @@ const skippedReasonMessages = {
 	excluded_by_user: defineMessage({
 		id: 'app.content-install.preview.skip.excluded-by-user',
 		defaultMessage: 'Excluded by user',
+	}),
+	dependency_cycle: defineMessage({
+		id: 'app.content-install.preview.skip.dependency-cycle',
+		defaultMessage: 'Dependency cycle detected',
+	}),
+	dependency_depth_exceeded: defineMessage({
+		id: 'app.content-install.preview.skip.dependency-depth-exceeded',
+		defaultMessage: 'Dependency depth limit reached',
 	}),
 } as const
 const curseForgeNetworkFailureTitleMessage = defineMessage({
@@ -1379,10 +1400,22 @@ export function createContentInstall(opts: {
 		preview: Awaited<ReturnType<typeof previewCurseForgeFile>>,
 	): Promise<number[] | null> {
 		if (!contentInstallPreviewModalRef) return []
-		if (preview.dependencies.length === 0) return []
 		const titleById = new Map<number, string>()
 		for (const item of [preview.primary, ...preview.dependencies]) {
 			titleById.set(item.projectId, item.title)
+		}
+		const unresolvedProjectIds = [
+			...preview.skipped.map((item) => item.projectId),
+			...preview.optionalDependencies,
+			...preview.incompatibleDependencies,
+		].filter((projectId) => !titleById.has(projectId))
+		if (unresolvedProjectIds.length > 0) {
+			const projects = await getCurseForgeProjects([...new Set(unresolvedProjectIds)]).catch(
+				() => [],
+			)
+			for (const project of projects) {
+				titleById.set(project.id, project.name)
+			}
 		}
 		const dependencies = preview.dependencies.map((dependency) => ({
 			id: String(dependency.projectId),
@@ -1395,10 +1428,27 @@ export function createContentInstall(opts: {
 				.filter((title): title is string => !!title),
 			alreadyInstalled: false,
 			versionMismatch: dependency.versionMismatch ?? false,
+			selectionReason:
+				dependency.selectionReason === 'sha1_verified_modrinth_fallback'
+					? formatMessage(sha1VerifiedModrinthFallbackMessage)
+					: undefined,
+			required: true,
 		}))
+		for (const fallback of preview.modrinthFallbacks ?? []) {
+			dependencies.push({
+				id: `modrinth:${fallback.versionId}`,
+				title: fallback.title,
+				iconUrl: fallback.iconUrl ?? null,
+				versionNumber: fallback.versionNumber,
+				requiredBy: [titleById.get(fallback.parentProjectId) ?? String(fallback.parentProjectId)],
+				alreadyInstalled: false,
+				selectionReason: formatMessage(sha1VerifiedModrinthFallbackMessage),
+				required: true,
+			})
+		}
 		const skipped = preview.skipped.map((item) => ({
 			id: String(item.projectId),
-			title: titleById.get(item.projectId) ?? String(item.projectId),
+			title: titleById.get(item.projectId) ?? formatMessage(unavailableCurseForgeProjectMessage),
 			reason: formatMessage(
 				skippedReasonMessages[item.reason as keyof typeof skippedReasonMessages] ??
 					skippedReasonMessages.no_compatible_version,
@@ -1407,7 +1457,7 @@ export function createContentInstall(opts: {
 		for (const projectId of preview.optionalDependencies) {
 			skipped.push({
 				id: String(projectId),
-				title: String(projectId),
+				title: titleById.get(projectId) ?? formatMessage(unavailableCurseForgeProjectMessage),
 				reason: formatMessage(
 					skippedReasonMessages.optional ?? skippedReasonMessages.no_compatible_version,
 				),
@@ -1416,7 +1466,7 @@ export function createContentInstall(opts: {
 		for (const projectId of preview.incompatibleDependencies) {
 			skipped.push({
 				id: String(projectId),
-				title: String(projectId),
+				title: titleById.get(projectId) ?? formatMessage(unavailableCurseForgeProjectMessage),
 				reason: formatMessage(
 					skippedReasonMessages.incompatible ?? skippedReasonMessages.no_compatible_version,
 				),
@@ -1477,7 +1527,11 @@ export function createContentInstall(opts: {
 			const computed = await showCurseForgeInstallPreview(instance, preview)
 			if (computed == null) return null
 			return await queueCurseForgeFile(
-				{ ...request, excludedDependencyProjectIds: computed },
+				{
+					...request,
+					excludedDependencyProjectIds: computed,
+					dependencyPlanId: preview.planId,
+				},
 				{ title: project.title, iconUrl: project.icon_url },
 			)
 		}
@@ -1609,7 +1663,7 @@ export function createContentInstall(opts: {
 		if (currentProvider === 'curseforge') {
 			if (storeInstance) storeInstance.installing = true
 			try {
-				const job = await queueCurrentCurseForgeVersion(instance, currentProject, version)
+				const job = await queueCurrentCurseForgeVersion(selectedInstance, currentProject, version)
 				if (!job) {
 					if (storeInstance) storeInstance.installing = false
 					return

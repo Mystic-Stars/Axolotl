@@ -98,6 +98,7 @@ pub struct State {
     minecraft_file_source: AtomicU8,
     modrinth_source: AtomicU8,
     curseforge_source: AtomicU8,
+    bypass_curseforge_download_restrictions: AtomicBool,
     mojang_auth_use_mirror: AtomicBool,
     auto_prefers_mirror: AtomicBool,
     download_concurrency_target: AtomicUsize,
@@ -580,6 +581,11 @@ impl State {
         )
     }
 
+    pub(crate) fn bypass_curseforge_download_restrictions(&self) -> bool {
+        self.bypass_curseforge_download_restrictions
+            .load(Ordering::Relaxed)
+    }
+
     pub fn mojang_auth_use_mirror(&self) -> bool {
         self.mojang_auth_use_mirror.load(Ordering::Relaxed)
     }
@@ -630,12 +636,14 @@ impl State {
             .store(settings.minecraft_metadata_source as u8, Ordering::Relaxed);
         self.minecraft_file_source
             .store(settings.minecraft_file_source as u8, Ordering::Relaxed);
-        // Modrinth content always uses official sources; the setting is
-        // persisted only for compatibility and is never honoured at runtime.
         self.modrinth_source
-            .store(DownloadSourceMode::OfficialOnly as u8, Ordering::Relaxed);
+            .store(settings.modrinth_source as u8, Ordering::Relaxed);
         self.curseforge_source
             .store(settings.curseforge_source as u8, Ordering::Relaxed);
+        self.bypass_curseforge_download_restrictions.store(
+            settings.bypass_curseforge_download_restrictions,
+            Ordering::Relaxed,
+        );
         match settings.mojang_auth_source {
             DownloadSourceMode::MirrorPreferred => {
                 self.mojang_auth_use_mirror.store(true, Ordering::Relaxed);
@@ -845,10 +853,11 @@ impl State {
             minecraft_file_source: AtomicU8::new(
                 settings.minecraft_file_source as u8,
             ),
-            modrinth_source: AtomicU8::new(
-                DownloadSourceMode::OfficialOnly as u8,
-            ),
+            modrinth_source: AtomicU8::new(settings.modrinth_source as u8),
             curseforge_source: AtomicU8::new(settings.curseforge_source as u8),
+            bypass_curseforge_download_restrictions: AtomicBool::new(
+                settings.bypass_curseforge_download_restrictions,
+            ),
             mojang_auth_use_mirror: AtomicBool::new(
                 match settings.mojang_auth_source {
                     DownloadSourceMode::MirrorPreferred => true,
@@ -920,8 +929,9 @@ pub(crate) async fn test_state(
         api_semaphore: FetchSemaphore(Semaphore::new(8)),
         minecraft_metadata_source: AtomicU8::new(0),
         minecraft_file_source: AtomicU8::new(0),
-        modrinth_source: AtomicU8::new(DownloadSourceMode::OfficialOnly as u8),
+        modrinth_source: AtomicU8::new(0),
         curseforge_source: AtomicU8::new(0),
+        bypass_curseforge_download_restrictions: AtomicBool::new(true),
         mojang_auth_use_mirror: AtomicBool::new(false),
         auto_prefers_mirror: AtomicBool::new(false),
         download_concurrency_target: AtomicUsize::new(8),

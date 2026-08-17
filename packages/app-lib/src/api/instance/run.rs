@@ -28,7 +28,8 @@ pub async fn run(
     quick_play_type: QuickPlayType,
     offline_mode: bool,
 ) -> crate::Result<ProcessMetadata> {
-    run_with_extra_launch_args(instance_id, quick_play_type, offline_mode, None).await
+    run_with_extra_launch_args(instance_id, quick_play_type, offline_mode, None)
+        .await
 }
 
 #[tracing::instrument]

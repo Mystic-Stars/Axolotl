@@ -173,7 +173,7 @@ const props = withDefaults(
 		closeOnClickOutside?: boolean
 	}>(),
 	{
-		closeOnClickOutside: true,
+		closeOnClickOutside: false,
 	},
 )
 

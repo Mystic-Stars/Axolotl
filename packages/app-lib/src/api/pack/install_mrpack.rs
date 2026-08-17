@@ -999,6 +999,7 @@ pub(crate) async fn install_zipped_mrpack_files_with_reporter(
     // download starts with an ordered address list instead of racing queries.
     crate::util::fetch::prewarm_download_dns(&[
         crate::util::fetch::MODRINTH_CDN_OFFICIAL_HOST,
+        crate::util::fetch::TIANPAO_HOST,
         "api.modrinth.com",
     ]);
     let pack_files = pack.files;

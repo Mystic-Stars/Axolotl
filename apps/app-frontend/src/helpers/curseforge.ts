@@ -164,6 +164,7 @@ export interface CurseForgeInstallRequest {
 	worldName?: string
 	installDependencies?: boolean
 	excludedDependencyProjectIds?: number[]
+	dependencyPlanId?: string
 }
 
 export interface CurseForgeWorldInstallRequest {
@@ -209,6 +210,7 @@ export interface CurseForgeInstallResult {
 }
 
 export interface CurseForgeInstallPreview {
+	planId: string
 	primary: {
 		projectId: number
 		fileId: number
@@ -229,6 +231,15 @@ export interface CurseForgeInstallPreview {
 		requiredByProjectIds: number[]
 		iconUrl?: string | null
 		versionMismatch?: boolean
+		selectionReason?: 'native_strict_match' | 'sha1_verified_modrinth_fallback'
+	}>
+	modrinthFallbacks?: Array<{
+		projectId: string
+		versionId: string
+		title: string
+		versionNumber: string
+		parentProjectId: number
+		iconUrl?: string | null
 	}>
 	skipped: Array<{
 		projectId: number
@@ -327,6 +338,10 @@ export function searchCurseForgeProjects(request: CurseForgeSearchRequest, reque
 
 export function getCurseForgeProject(projectId: number) {
 	return invoke<CurseForgeProject>('plugin:curseforge|curseforge_get_project', { projectId })
+}
+
+export function getCurseForgeProjects(projectIds: number[]) {
+	return invoke<CurseForgeProject[]>('plugin:curseforge|curseforge_get_projects', { projectIds })
 }
 
 export function getCurseForgeChangelog(projectId: number, fileId: number) {

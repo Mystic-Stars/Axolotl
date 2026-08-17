@@ -3378,6 +3378,12 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 </template>
 
 <style lang="scss" scoped>
+@property --right-bar-width {
+	syntax: '<length>';
+	inherits: true;
+	initial-value: 0px;
+}
+
 .app-grid-layout,
 .app-contents {
 	--top-bar-height: 3rem;
@@ -3445,7 +3451,7 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 	grid-area: status;
 	padding-right: var(--window-controls-width, 0px);
 	position: relative;
-	z-index: 2;
+	z-index: 200;
 }
 
 [data-tauri-drag-region-exclude] {
@@ -3466,13 +3472,11 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 	--right-bar-width: 0px;
 
 	display: grid;
-	grid-template-columns: 1fr 0px;
+	grid-template-columns: 1fr var(--right-bar-width);
 	// 显式行高：让 .app-viewport 的 height: 100% 有确定参照（隐式 auto 行会使百分比高度失效）
 	grid-template-rows: 1fr;
-	// transition: grid-template-columns 0.4s ease-in-out;
 
 	&.sidebar-enabled {
-		grid-template-columns: 1fr 300px;
 		--right-bar-width: 300px;
 	}
 
@@ -3489,6 +3493,12 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 		.loading-indicator-container {
 			border-top-left-radius: 0;
 		}
+	}
+}
+
+@media (prefers-reduced-motion: no-preference) {
+	.app-contents {
+		transition: --right-bar-width 320ms cubic-bezier(0.22, 1, 0.36, 1);
 	}
 }
 
@@ -3583,21 +3593,21 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 
 	position: absolute;
 	top: 50%;
-	left: -13px;
+	left: -15px;
 	transform: translateY(-50%);
 	z-index: 12;
 
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	width: 13px;
-	height: 36px;
+	width: 15px;
+	height: 40px;
 	padding: 0;
 
 	// 只让外侧(左边)圆润,右边与 Sidebar 完全贴合,单一元素完成形状
 	border: 1px solid var(--handle-border);
 	border-right: none;
-	border-radius: 11px 0 0 11px;
+	border-radius: 12px 0 0 12px;
 
 	background-color: var(--handle-bg);
 	color: var(--color-contrast);

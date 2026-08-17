@@ -62,10 +62,37 @@ pub async fn check_app_update<R: Runtime>(
     webview: Webview<R>,
     source: String,
 ) -> Result<Option<UpdateMetadata>> {
-    let updater = webview
+    let mut updater = webview
         .updater_builder()
-        .endpoints(update_endpoints(&source)?)?
-        .build()?;
+        .endpoints(update_endpoints(&source)?)?;
+
+    #[cfg(target_os = "windows")]
+    {
+        let install_dir = std::env::current_exe()
+            .map_err(|error| {
+                theseus::Error::from(theseus::ErrorKind::OtherError(format!(
+                    "Failed to resolve current executable: {error}"
+                )))
+            })?
+            .parent()
+            .ok_or_else(|| {
+                theseus::Error::from(theseus::ErrorKind::OtherError(
+                    "Current executable has no parent directory".to_string(),
+                ))
+            })?
+            .to_path_buf();
+
+        tracing::debug!(
+            install_dir = %install_dir.display(),
+            "Using current executable directory for Windows app updates"
+        );
+        updater = updater.installer_arg(format!(
+            "/INSTALL_DIR=\"{}\"",
+            install_dir.display()
+        ));
+    }
+
+    let updater = updater.build()?;
     let Some(update) = updater.check().await? else {
         return Ok(None);
     };

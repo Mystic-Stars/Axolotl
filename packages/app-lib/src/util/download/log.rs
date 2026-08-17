@@ -24,6 +24,7 @@ pub fn source_code(source: &str) -> u8 {
         "bmclapi" => 1,
         "mcim" => 2,
         "alternate" => 3,
+        "tianpao" => 5,
         _ => 4,
     }
 }

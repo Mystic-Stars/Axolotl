@@ -3,6 +3,7 @@
 	"private": true,
 	"type": "module",
 	"scripts": {
+		"configure:rate-limit": "node scripts/configure-rate-limit.mjs",
 		"dev": "wrangler dev",
 		"deploy": "wrangler deploy",
 		"lint": "prettier --check . && tsc --noEmit",

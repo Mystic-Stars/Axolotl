@@ -1,8 +1,7 @@
 <script setup lang="ts">
-import { CopyIcon, EditIcon, PlusIcon, SpinnerIcon, TrashIcon, UploadIcon } from '@modrinth/assets'
+import { CopyIcon, EditIcon, SpinnerIcon, TrashIcon, UploadIcon } from '@modrinth/assets'
 import {
 	ButtonStyled,
-	Checkbox,
 	Chips,
 	defineMessages,
 	injectFilePicker,
@@ -19,7 +18,7 @@ import InstanceIcon from '@/components/ui/InstanceIcon.vue'
 import ConfirmDeleteInstanceModal from '@/components/ui/modal/ConfirmDeleteInstanceModal.vue'
 import { trackEvent } from '@/helpers/analytics'
 import { install_duplicate_instance } from '@/helpers/install'
-import { edit, edit_icon, list, remove } from '@/helpers/instance'
+import { edit, edit_icon, remove } from '@/helpers/instance'
 import { injectInstanceSettings } from '@/providers/instance-settings'
 
 import type { GameInstance } from '../../../helpers/types'
@@ -38,14 +37,11 @@ const releaseChannelOptions: ReleaseChannel[] = ['release', 'beta', 'alpha']
 
 const title = ref(instance.value.name)
 const icon: Ref<string | undefined> = ref(instance.value.icon_path)
-const groups = ref([...instance.value.groups])
 const savingReleaseChannel = ref(false)
 const selectedReleaseChannel = ref<ReleaseChannel>(instance.value.update_channel)
 const releaseChannelDisabledItems = computed<ReleaseChannel[]>(() =>
 	savingReleaseChannel.value ? [...releaseChannelOptions] : [],
 )
-
-const newCategoryInput = ref('')
 
 const installing = computed(() => instance.value.install_stage !== 'installed')
 
@@ -56,11 +52,6 @@ async function duplicateInstance() {
 		game_version: instance.value.game_version,
 	})
 }
-
-const allInstances = ref((await list()) as GameInstance[])
-const availableGroups = computed(() => [
-	...new Set([...allInstances.value.flatMap((instance) => instance.groups), ...groups.value]),
-])
 
 function formatReleaseChannelLabel(channel: ReleaseChannel) {
 	switch (channel) {
@@ -135,28 +126,10 @@ async function setIcon() {
 
 const editInstanceObject = computed(() => ({
 	name: title.value.trim().substring(0, 32) ?? 'Instance',
-	groups: groups.value.map((x) => x.trim().substring(0, 32)).filter((x) => x.length > 0),
 }))
 
-const toggleGroup = (group: string) => {
-	if (groups.value.includes(group)) {
-		groups.value = groups.value.filter((x) => x !== group)
-	} else {
-		groups.value.push(group)
-	}
-}
-
-const addCategory = () => {
-	const text = newCategoryInput.value.trim()
-
-	if (text.length > 0) {
-		groups.value.push(text.substring(0, 32))
-		newCategoryInput.value = ''
-	}
-}
-
 watch(
-	[title, groups, groups],
+	title,
 	async () => {
 		if (removing.value) return
 		await edit(instance.value.id, editInstanceObject.value).catch(handleError)
@@ -186,23 +159,6 @@ const messages = defineMessages({
 	name: {
 		id: 'instance.settings.tabs.general.name',
 		defaultMessage: 'Name',
-	},
-	libraryGroups: {
-		id: 'instance.settings.tabs.general.library-groups',
-		defaultMessage: 'Library groups',
-	},
-	libraryGroupsDescription: {
-		id: 'instance.settings.tabs.general.library-groups.description',
-		defaultMessage:
-			'Library groups allow you to organize your instances into different sections in your library.',
-	},
-	libraryGroupsEnterName: {
-		id: 'instance.settings.tabs.general.library-groups.enter-name',
-		defaultMessage: 'Enter group name',
-	},
-	libraryGroupsCreate: {
-		id: 'instance.settings.tabs.general.library-groups.create',
-		defaultMessage: 'Create new group',
 	},
 	editIcon: {
 		id: 'instance.settings.tabs.general.edit-icon',
@@ -372,38 +328,6 @@ const messages = defineMessages({
 				</p>
 			</div>
 		</template>
-		<div class="flex flex-col gap-2.5 mt-6">
-			<h2 class="m-0 text-lg font-semibold text-contrast block">
-				{{ formatMessage(messages.libraryGroups) }}
-			</h2>
-
-			<div class="flex flex-col gap-1">
-				<Checkbox
-					v-for="group in availableGroups"
-					:key="group"
-					:model-value="groups.includes(group)"
-					:label="group"
-					@click="toggleGroup(group)"
-				/>
-				<div class="flex gap-2 items-center">
-					<StyledInput
-						v-model="newCategoryInput"
-						:placeholder="formatMessage(messages.libraryGroupsEnterName)"
-						class="w-full max-w-[300px]"
-						@submit="() => addCategory"
-					/>
-					<ButtonStyled>
-						<button class="w-fit !shadow-none" @click="() => addCategory()">
-							<PlusIcon /> {{ formatMessage(messages.libraryGroupsCreate) }}
-						</button>
-					</ButtonStyled>
-				</div>
-			</div>
-			<p class="m-0">
-				{{ formatMessage(messages.libraryGroupsDescription) }}
-			</p>
-		</div>
-
 		<div class="flex flex-col gap-2.5 mt-6">
 			<h2 class="m-0 text-lg font-semibold text-contrast block">
 				{{ formatMessage(messages.updateChannel) }}

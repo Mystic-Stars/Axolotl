@@ -11,6 +11,8 @@ export interface ContentInstallPreviewDependency {
 	requiredBy: string[]
 	alreadyInstalled: boolean
 	versionMismatch?: boolean
+	selectionReason?: string
+	required?: boolean
 }
 
 export interface ContentInstallPreviewSkipped {
@@ -87,6 +89,10 @@ const messages = defineMessages({
 		id: 'app.content-install.preview.install',
 		defaultMessage: 'Install',
 	},
+	installResolved: {
+		id: 'app.content-install.preview.install-resolved',
+		defaultMessage: 'Install resolved content',
+	},
 })
 
 const modal = ref<InstanceType<typeof NewModal> | null>(null)
@@ -96,13 +102,17 @@ let settled = false
 let resolveShow: ((approvedIds: string[] | null) => void) | null = null
 
 const installableDependencies = computed(
-	() => data.value?.dependencies.filter((dependency) => !dependency.alreadyInstalled) ?? [],
+	() =>
+		data.value?.dependencies.filter(
+			(dependency) => !dependency.alreadyInstalled && !dependency.required,
+		) ?? [],
 )
 const selectedInstallableCount = computed(
 	() =>
 		installableDependencies.value.filter((dependency) => selectedIds.value.has(dependency.id))
 			.length,
 )
+const hasUnresolvedDependencies = computed(() => (data.value?.skipped.length ?? 0) > 0)
 
 function toggleDependency(id: string, value: boolean) {
 	const next = new Set(selectedIds.value)
@@ -226,7 +236,7 @@ defineExpose({ show })
 				>
 					<Checkbox
 						:model-value="selectedIds.has(dependency.id)"
-						:disabled="dependency.alreadyInstalled"
+						:disabled="dependency.alreadyInstalled || dependency.required"
 						class="shrink-0"
 						@update:model-value="(value) => toggleDependency(dependency.id, value)"
 					/>
@@ -255,6 +265,12 @@ defineExpose({ show })
 						class="shrink-0 rounded-full bg-warning-bg px-2 py-0.5 text-xs font-medium text-warning-text"
 					>
 						{{ formatMessage(messages.versionMismatch) }}
+					</span>
+					<span
+						v-if="dependency.selectionReason"
+						class="shrink-0 rounded-full bg-surface-4 px-2 py-0.5 text-xs font-medium text-secondary"
+					>
+						{{ dependency.selectionReason }}
 					</span>
 					<span
 						v-if="dependency.alreadyInstalled"
@@ -287,7 +303,13 @@ defineExpose({ show })
 					<button @click="hide">{{ formatMessage(messages.cancel) }}</button>
 				</ButtonStyled>
 				<ButtonStyled color="brand">
-					<button @click="confirm">{{ formatMessage(messages.install) }}</button>
+					<button @click="confirm">
+						{{
+							hasUnresolvedDependencies
+								? formatMessage(messages.installResolved)
+								: formatMessage(messages.install)
+						}}
+					</button>
 				</ButtonStyled>
 			</div>
 		</template>

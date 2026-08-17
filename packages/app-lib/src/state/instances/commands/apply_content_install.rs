@@ -41,6 +41,21 @@ pub(crate) struct ContentScope {
     pub content_set_id: String,
 }
 
+#[derive(Clone, Debug)]
+pub(crate) struct ToggledContentEntry {
+    pub content_id: String,
+    pub path: String,
+    pub enabled: bool,
+}
+
+struct ContentToggleOperation {
+    content_id: String,
+    current_path: String,
+    new_path: String,
+    enabled: bool,
+    project_type: ProjectType,
+}
+
 pub(crate) struct InstalledContentFile {
     pub relative_path: String,
     pub provider_refs: Vec<ContentProviderRef>,
@@ -503,6 +518,25 @@ async fn add_resolved_content_with_progress(
     Ok(path)
 }
 
+/// Materialize one already-resolved Modrinth dependency without also
+/// installing the plan's primary. CurseForge uses this for a SHA-1 verified
+/// cross-source fallback whose primary is already installed from CurseForge.
+pub(crate) async fn install_resolved_dependency(
+    instance_id: &str,
+    content: &ResolvedContent,
+    state: &State,
+) -> crate::Result<String> {
+    add_resolved_content_with_progress(
+        instance_id,
+        content,
+        DownloadReason::Dependency,
+        true,
+        None,
+        state,
+    )
+    .await
+}
+
 pub(crate) async fn persist_resolved_plan_dependency_edges(
     instance_id: &str,
     paths: &[String],
@@ -565,7 +599,9 @@ pub(crate) async fn persist_resolved_plan_dependency_edges(
                 content_set_id: scope.content_set_id.clone(),
                 parent_entry_id: parent_entry.id,
                 child_entry_id: child_entry.id,
-                provider: crate::state::ContentProvider::Modrinth,
+                evidence_provider: crate::state::ContentProvider::Modrinth,
+                parent_provider: crate::state::ContentProvider::Modrinth,
+                child_provider: crate::state::ContentProvider::Modrinth,
                 dependency_kind:
                     crate::state::instances::ContentDependencyKind::Required,
                 parent_project_id: parent.project_id.clone(),
@@ -633,7 +669,9 @@ pub(crate) async fn persist_resolved_plan_dependency_edges(
                 content_set_id: scope.content_set_id.clone(),
                 parent_entry_id: parent_entry.id,
                 child_entry_id: child_entry.id,
-                provider: crate::state::ContentProvider::Modrinth,
+                evidence_provider: crate::state::ContentProvider::Modrinth,
+                parent_provider: crate::state::ContentProvider::Modrinth,
+                child_provider: crate::state::ContentProvider::Modrinth,
                 dependency_kind:
                     crate::state::instances::ContentDependencyKind::Required,
                 parent_project_id: parent.project_id.clone(),
@@ -1051,6 +1089,26 @@ pub(crate) async fn add_downloaded_project_version(
         version_id,
     } = downloaded;
     let scope = resolve_content_scope(instance_id, None, state).await?;
+    if project_type == ProjectType::Mod {
+        let content_set =
+            content_rows::get_content_set(&scope.content_set_id, &state.pool)
+                .await?
+                .ok_or_else(|| {
+                    crate::ErrorKind::InputError(format!(
+                        "Unknown content set {}",
+                        scope.content_set_id
+                    ))
+                })?;
+        let bytes = bytes::Bytes::from(tokio::fs::read(&path).await?);
+        crate::mod_metadata::validate_mod_metadata_target(
+            &bytes,
+            Some(&content_set.game_version),
+            Some(content_set.loader.as_str()),
+        )
+        .map_err(|message| {
+            crate::Error::from(crate::ErrorKind::InputError(message))
+        })?;
+    }
     let localized_candidate = if project_type == ProjectType::Mod {
         None
     } else {
@@ -2197,6 +2255,216 @@ pub(crate) async fn toggle_disable_project(
     tx.commit().await?;
 
     Ok(new_path)
+}
+
+pub(crate) async fn toggle_content_entries(
+    instance_id: &str,
+    content_ids: &[String],
+    desired_enabled: Option<bool>,
+    state: &State,
+) -> crate::Result<Vec<ToggledContentEntry>> {
+    if content_ids.is_empty() {
+        return Ok(Vec::new());
+    }
+
+    let _instance_lock = state.lock_instance_content(instance_id).await;
+    let scope = resolve_content_scope(instance_id, None, state).await?;
+    let base = instance_full_path(state, &scope.instance);
+    let mut seen_ids = std::collections::HashSet::new();
+    let mut seen_paths = std::collections::HashSet::new();
+    let mut operations = Vec::new();
+
+    for content_id in content_ids {
+        if !seen_ids.insert(content_id.as_str()) {
+            continue;
+        }
+        let target = content_rows::get_content_mutation_target(
+            instance_id,
+            content_id,
+            &state.pool,
+        )
+        .await?
+        .ok_or_else(|| {
+            crate::ErrorKind::InputError(
+                "The selected content no longer exists".to_string(),
+            )
+        })?;
+        let project_path = target.relative_path.ok_or_else(|| {
+            crate::ErrorKind::InputError(
+                "The selected content is not present on disk".to_string(),
+            )
+        })?;
+        let (current_path, enabled, new_path) =
+            resolve_toggle_paths(&base, &project_path, desired_enabled)?;
+
+        if !seen_paths.insert(current_path.clone()) {
+            continue;
+        }
+        operations.push(ContentToggleOperation {
+            content_id: content_id.clone(),
+            current_path,
+            new_path,
+            enabled,
+            project_type: target.project_type,
+        });
+    }
+
+    let indexed_paths =
+        content_rows::get_instance_files(&scope.instance.id, &state.pool)
+            .await?
+            .into_iter()
+            .map(|file| file.relative_path)
+            .collect::<std::collections::HashSet<_>>();
+    for operation in &operations {
+        if !indexed_paths.contains(&operation.current_path) {
+            return Err(crate::ErrorKind::InputError(format!(
+                "The selected content is no longer indexed: {}",
+                operation.current_path
+            ))
+            .into());
+        }
+    }
+
+    let mut destinations = std::collections::HashSet::new();
+    for operation in &operations {
+        if operation.current_path != operation.new_path
+            && !destinations.insert(operation.new_path.as_str())
+        {
+            return Err(crate::ErrorKind::InputError(
+                "The selected content has conflicting destination paths"
+                    .to_string(),
+            )
+            .into());
+        }
+    }
+
+    let mut renamed: Vec<&ContentToggleOperation> = Vec::new();
+    for operation in &operations {
+        if operation.current_path == operation.new_path {
+            continue;
+        }
+        if let Err(error) = io::rename_or_move(
+            &base.join(&operation.current_path),
+            &base.join(&operation.new_path),
+        )
+        .await
+        {
+            for previous in renamed.into_iter().rev() {
+                let _ = io::rename_or_move(
+                    &base.join(&previous.new_path),
+                    &base.join(&previous.current_path),
+                )
+                .await;
+            }
+            return Err(error.into());
+        }
+        renamed.push(operation);
+    }
+
+    let database_result = async {
+        let mut tx = begin_content_write(&state.pool).await?;
+        let modified_at = chrono::Utc::now().timestamp();
+        let mut results = Vec::with_capacity(operations.len());
+
+        for operation in &operations {
+            let file_name = Path::new(&operation.new_path)
+                .file_name()
+                .unwrap_or_default()
+                .to_string_lossy()
+                .to_string();
+            let file = content_rows::rename_instance_file_in_transaction(
+                &scope.instance.id,
+                &operation.current_path,
+                &operation.new_path,
+                &file_name,
+                operation.enabled,
+                &mut tx,
+            )
+            .await?
+            .ok_or_else(|| {
+                crate::ErrorKind::InputError(format!(
+                    "The selected content is no longer indexed: {}",
+                    operation.current_path
+                ))
+            })?;
+            let updated_entry = sqlx::query(
+                "UPDATE instance_content_entries
+                 SET enabled = ?, modified_at = ?
+                 WHERE content_set_id = ? AND file_id = ?",
+            )
+            .bind(i64::from(operation.enabled))
+            .bind(modified_at)
+            .bind(&scope.content_set_id)
+            .bind(&file.id)
+            .execute(&mut *tx)
+            .await?;
+            if updated_entry.rows_affected() == 0 {
+                content_rows::upsert_content_entry_from_parts_in_transaction(
+                    content_rows::UpsertContentEntry {
+                        instance_id: &scope.instance.id,
+                        content_set_id: &scope.content_set_id,
+                        file_id: Some(&file.id),
+                        project_type: operation.project_type,
+                        source_kind: ContentSourceKind::Local,
+                        ownership_kind: ContentOwnershipKind::UserAdded,
+                        auto_dependency: false,
+                        server_requirement: ContentRequirement::Required,
+                        client_requirement: ContentRequirement::Required,
+                        enabled: operation.enabled,
+                    },
+                    &mut tx,
+                )
+                .await?;
+            }
+            sqlx::query(
+                "UPDATE instance_pack_members
+                 SET override_kind = ?, materialization_state = 'present',
+                     modified_at = ?
+                 WHERE content_entry_id IN (
+                    SELECT id FROM instance_content_entries
+                    WHERE content_set_id = ? AND file_id = ?
+                 )",
+            )
+            .bind(if operation.enabled {
+                "none"
+            } else {
+                "disabled"
+            })
+            .bind(modified_at)
+            .bind(&scope.content_set_id)
+            .bind(&file.id)
+            .execute(&mut *tx)
+            .await?;
+            results.push(ToggledContentEntry {
+                content_id: operation.content_id.clone(),
+                path: operation.new_path.clone(),
+                enabled: operation.enabled,
+            });
+        }
+
+        content_rows::bump_content_set_revision_in_transaction(
+            &scope.content_set_id,
+            &mut tx,
+        )
+        .await?;
+        tx.commit().await?;
+        Ok(results)
+    }
+    .await;
+
+    match database_result {
+        Ok(results) => Ok(results),
+        Err(error) => {
+            for operation in renamed.into_iter().rev() {
+                let _ = io::rename_or_move(
+                    &base.join(&operation.new_path),
+                    &base.join(&operation.current_path),
+                )
+                .await;
+            }
+            Err(error)
+        }
+    }
 }
 
 /// Resolves which of `project_path` / `{trimmed}.disabled` currently exists

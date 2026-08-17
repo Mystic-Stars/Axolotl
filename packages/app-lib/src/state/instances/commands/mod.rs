@@ -20,8 +20,8 @@ mod list_content;
 pub(crate) use self::list_content::{
     dependencies_to_content_items, get_content_projects,
     get_installed_project_ids_for_instance, get_instance_install_candidates,
-    get_linked_modpack_info, list_content, list_content_sets,
-    list_linked_modpack_content,
+    get_linked_modpack_info, list_content, list_content_by_paths,
+    list_content_sets, list_linked_modpack_content,
 };
 
 mod content_snapshot;

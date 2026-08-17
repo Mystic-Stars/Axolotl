@@ -64,6 +64,147 @@ describe('telemetry worker', () => {
 		expect(oversized.status).toBe(413)
 	})
 
+	it('drops legacy download_stall batches before quota and storage', async () => {
+		const payload = batch('12111111-1111-4111-8111-111111111111', [
+			{
+				type: 'error',
+				event_id: '13111111-1111-4111-8111-111111111111',
+				occurred_at: new Date().toISOString(),
+				fingerprint: 'a'.repeat(64),
+				occurrence_count: 1,
+				error_type: 'download_stall',
+				message: 'no progress',
+			},
+		])
+
+		const response = await post(payload)
+		expect(response.status).toBe(200)
+		expect(await response.json()).toEqual({ accepted: true, duplicate: false, dropped: true })
+
+		const stored = await env.DB.prepare(
+			'SELECT COUNT(*) AS count FROM accepted_batches WHERE batch_id = ?',
+		)
+			.bind('12111111-1111-4111-8111-111111111111')
+			.first<{ count: number }>()
+		expect(stored?.count).toBe(0)
+		expect(
+			await env.DB.prepare('SELECT COUNT(*) AS count FROM error_reports').first<{
+				count: number
+			}>(),
+		).toEqual({ count: 0 })
+	})
+
+	it('filters download_stall events from mixed legacy batches', async () => {
+		const fingerprint = 'b'.repeat(64)
+		const response = await post(
+			batch('14111111-1111-4111-8111-111111111111', [
+				{
+					type: 'error',
+					event_id: '15111111-1111-4111-8111-111111111111',
+					occurred_at: new Date().toISOString(),
+					fingerprint: 'c'.repeat(64),
+					occurrence_count: 1,
+					error_type: 'download_stall',
+					message: 'no progress',
+				},
+				{
+					type: 'error',
+					event_id: '16111111-1111-4111-8111-111111111111',
+					occurred_at: new Date().toISOString(),
+					fingerprint,
+					occurrence_count: 1,
+					error_type: 'download_error',
+					message: 'connection reset',
+				},
+			]),
+		)
+		expect(response.status).toBe(200)
+
+		const reports = await env.DB.prepare(
+			'SELECT error_type FROM error_reports WHERE fingerprint = ?',
+		)
+			.bind(fingerprint)
+			.all<{ error_type: string }>()
+		expect(reports.results).toEqual([{ error_type: 'download_error' }])
+		expect(
+			await env.DB.prepare(
+				"SELECT COUNT(*) AS count FROM error_reports WHERE error_type = 'download_stall'",
+			).first<{ count: number }>(),
+		).toEqual({ count: 0 })
+	})
+
+	it('enforces the daily installation batch cap without charging duplicates', async () => {
+		const cappedInstallation = '018f6ee8-4cb1-7db3-8a8d-8df96f122d99'
+		const day = new Date().toISOString().slice(0, 10)
+		const payloadFor = (index: number) =>
+			batch(
+				`60000000-0000-4000-8000-${index.toString().padStart(12, '0')}`,
+				[
+					{
+						type: 'heartbeat',
+						event_id: `70000000-0000-4000-8000-${index.toString().padStart(12, '0')}`,
+						occurred_at: new Date().toISOString(),
+						day,
+					},
+				],
+				cappedInstallation,
+			)
+
+		for (let index = 0; index < 25; index++) {
+			expect((await post(payloadFor(index))).status).toBe(200)
+		}
+		expect((await post(payloadFor(0))).status).toBe(200)
+
+		const rejected = await post(payloadFor(25))
+		expect(rejected.status).toBe(429)
+		expect(rejected.headers.get('Retry-After')).not.toBeNull()
+
+		const used = await env.DB.prepare(
+			'SELECT accepted_batches FROM ingestion_daily WHERE day = ? ORDER BY accepted_batches DESC LIMIT 1',
+		)
+			.bind(day)
+			.first<{ accepted_batches: number }>()
+		expect(used?.accepted_batches).toBe(25)
+	})
+
+	it('opens the global ingestion circuit breaker at 100,000 accepted batches', async () => {
+		const day = new Date().toISOString().slice(0, 10)
+		await env.DB.prepare(
+			`INSERT INTO ingestion_global_daily (day, accepted_batches)
+			VALUES (?, 99999)
+			ON CONFLICT (day) DO UPDATE SET accepted_batches = 99999`,
+		)
+			.bind(day)
+			.run()
+
+		const first = batch(
+			'80000000-0000-4000-8000-000000000001',
+			[
+				{
+					type: 'heartbeat',
+					event_id: '81000000-0000-4000-8000-000000000001',
+					occurred_at: new Date().toISOString(),
+					day,
+				},
+			],
+			'018f6ee8-4cb1-7db3-8a8d-8df96f122d98',
+		)
+		expect((await post(first)).status).toBe(200)
+
+		const rejected = await post({
+			...first,
+			batch_id: '80000000-0000-4000-8000-000000000002',
+			events: [
+				{
+					...(first.events as Array<Record<string, unknown>>)[0],
+					event_id: '81000000-0000-4000-8000-000000000002',
+				},
+			],
+		})
+		expect(rejected.status).toBe(429)
+		expect(rejected.headers.get('Retry-After')).not.toBeNull()
+	})
+
 	it('hashes installations and keeps heartbeat batches idempotent', async () => {
 		const payload = batch('31111111-1111-4111-8111-111111111111', [
 			{

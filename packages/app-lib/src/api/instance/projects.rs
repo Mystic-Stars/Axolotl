@@ -24,6 +24,14 @@ pub struct InstallProjectWithDependenciesRequest {
     pub excluded_project_ids: Vec<String>,
 }
 
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ContentToggleResult {
+    pub content_id: String,
+    pub path: String,
+    pub enabled: bool,
+}
+
 #[tracing::instrument]
 pub async fn update_all_projects(
     instance_id: &str,
@@ -443,13 +451,45 @@ pub async fn toggle_content_entry(
     content_id: &str,
     desired_enabled: Option<bool>,
 ) -> crate::Result<String> {
-    let target = content_mutation_target(instance_id, content_id).await?;
-    let path = target.relative_path.ok_or_else(|| {
+    let mut results = toggle_content_entries(
+        instance_id,
+        vec![content_id.to_string()],
+        desired_enabled,
+    )
+    .await?;
+    results.pop().map(|result| result.path).ok_or_else(|| {
         crate::ErrorKind::InputError(
-            "The selected content is not present on disk".to_string(),
+            "The selected content no longer exists".to_string(),
         )
-    })?;
-    toggle_disable_project(instance_id, &path, desired_enabled).await
+        .into()
+    })
+}
+
+#[tracing::instrument]
+pub async fn toggle_content_entries(
+    instance_id: &str,
+    content_ids: Vec<String>,
+    desired_enabled: Option<bool>,
+) -> crate::Result<Vec<ContentToggleResult>> {
+    let state = State::get().await?;
+    let results = crate::state::instances::commands::toggle_content_entries(
+        instance_id,
+        &content_ids,
+        desired_enabled,
+        &state,
+    )
+    .await?
+    .into_iter()
+    .map(|result| ContentToggleResult {
+        content_id: result.content_id,
+        path: result.path,
+        enabled: result.enabled,
+    })
+    .collect::<Vec<_>>();
+    if !results.is_empty() {
+        emit_content_changed(instance_id).await?;
+    }
+    Ok(results)
 }
 
 #[tracing::instrument]
@@ -659,6 +699,7 @@ pub async fn restore_pack_member_default(
 					world_name: None,
 					install_dependencies: false,
 					excluded_dependency_project_ids: Vec::new(),
+					dependency_plan_id: None,
 				},
 			)
 			.await?;

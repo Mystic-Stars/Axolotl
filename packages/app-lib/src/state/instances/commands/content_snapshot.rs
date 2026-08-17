@@ -45,7 +45,16 @@ pub(crate) async fn get_content_snapshot(
             })?;
     let link =
         instance_rows::get_instance_link(instance_id, &state.pool).await?;
-    let files = sync_instance_content_files(&instance, state).await?;
+    // Opening the content page must be a database read. A full file-system
+    // reconciliation hashes and upserts every file, which is prohibitively
+    // expensive for large modpacks and unnecessary after launcher-owned
+    // mutations. Explicit refreshes and external file-change events use the
+    // remote refresh path below.
+    let files = if refresh_remote {
+        sync_instance_content_files(&instance, state).await?
+    } else {
+        content_rows::get_instance_files(&instance.id, &state.pool).await?
+    };
     let mut warnings = Vec::new();
     if refresh_remote
         && let InstanceLink::CurseForgeModpack {
@@ -328,14 +337,114 @@ pub(crate) async fn get_content_snapshot(
         ));
     }
 
-    backfill_dependency_edges_from_metadata(
-        &entries,
-        &refs_by_entry,
-        &content_set,
-        &local_metadata_by_entry,
-        state,
-    )
-    .await?;
+    // Dependency discovery can fetch metadata for every member of a pack.
+    // Even an explicit refresh returns the file snapshot first; the slower
+    // metadata pass publishes one lightweight follow-up snapshot when done.
+    if refresh_remote {
+        let instance_id = instance_id.to_string();
+        let entries = entries.clone();
+        let refs_by_entry = refs_by_entry.clone();
+        let content_set = content_set.clone();
+        let local_metadata_by_entry = local_metadata_by_entry.clone();
+        tokio::spawn(async move {
+            let state = match State::get().await {
+                Ok(state) => state,
+                Err(error) => {
+                    tracing::warn!(
+                        "Content dependency backfill skipped: {error}"
+                    );
+                    return;
+                }
+            };
+            let backfill = match backfill_dependency_edges_from_metadata(
+                &entries,
+                &refs_by_entry,
+                &content_set,
+                &local_metadata_by_entry,
+                &state,
+            )
+            .await
+            {
+                Ok(backfill) => backfill,
+                Err(error) => {
+                    tracing::warn!(
+                        "Content dependency backfill failed: {error}"
+                    );
+                    return;
+                }
+            };
+            if backfill.is_empty() {
+                return;
+            }
+
+            let _instance_lock =
+                state.lock_instance_content(&instance_id).await;
+            let mut tx = match state.pool.begin_with("BEGIN IMMEDIATE").await {
+                Ok(tx) => tx,
+                Err(error) => {
+                    tracing::warn!(
+                        "Content dependency revision update failed: {error}"
+                    );
+                    return;
+                }
+            };
+            for edge in &backfill.edges {
+                if let Err(error) =
+                    content_rows::upsert_content_dependency_edge_in_transaction(
+                        edge, &mut tx,
+                    )
+                    .await
+                {
+                    tracing::warn!(
+                        "Content dependency backfill write failed: {error}"
+                    );
+                    return;
+                }
+            }
+            for entry_id in &backfill.backfilled_entry_ids {
+                if let Err(error) = content_rows::set_content_entry_dependency_backfilled_in_transaction(
+                    entry_id,
+                    &mut tx,
+                )
+                .await
+                {
+                    tracing::warn!("Content dependency backfill write failed: {error}");
+                    return;
+                }
+            }
+            let revision =
+                match content_rows::bump_content_set_revision_in_transaction(
+                    &content_set.id,
+                    &mut tx,
+                )
+                .await
+                {
+                    Ok(revision) => revision,
+                    Err(error) => {
+                        tracing::warn!(
+                            "Content dependency revision update failed: {error}"
+                        );
+                        return;
+                    }
+                };
+            if let Err(error) = tx.commit().await {
+                tracing::warn!(
+                    "Content dependency revision commit failed: {error}"
+                );
+                return;
+            }
+            if let Err(error) = crate::event::emit::emit_instance(
+                &instance_id,
+                crate::event::InstancePayloadType::ContentChanged { revision },
+            )
+            .await
+            {
+                tracing::warn!(
+                    "Content dependency change event failed: {error}"
+                );
+            }
+        });
+    }
 
     attach_dependency_info(&mut items, &entries, &content_set.id, state)
         .await?;
@@ -910,6 +1019,18 @@ fn normalized_content_path(path: &str) -> String {
         .to_ascii_lowercase()
 }
 
+#[derive(Default)]
+struct DependencyBackfill {
+    edges: Vec<crate::state::instances::ContentDependencyEdge>,
+    backfilled_entry_ids: HashSet<String>,
+}
+
+impl DependencyBackfill {
+    fn is_empty(&self) -> bool {
+        self.edges.is_empty() && self.backfilled_entry_ids.is_empty()
+    }
+}
+
 async fn backfill_dependency_edges_from_metadata(
     entries: &[crate::state::instances::ContentEntry],
     refs_by_entry: &HashMap<String, Vec<ContentProviderRef>>,
@@ -919,7 +1040,7 @@ async fn backfill_dependency_edges_from_metadata(
         crate::mod_metadata::LocalModMetadata,
     >,
     state: &State,
-) -> crate::Result<()> {
+) -> crate::Result<DependencyBackfill> {
     // Only entries that have never had their edges persisted are backfilled.
     // Checking the table as a whole would leave entries installed before the
     // edges feature without edges as soon as any other entry had edges.
@@ -932,41 +1053,56 @@ async fn backfill_dependency_edges_from_metadata(
         .iter()
         .map(|edge| edge.parent_entry_id.as_str())
         .collect::<HashSet<_>>();
-
-    for entry in entries {
-        if entries_with_edges.contains(entry.id.as_str()) {
-            continue;
-        }
-        let Some(provider_refs) = refs_by_entry.get(&entry.id) else {
-            continue;
-        };
-        let Some(origin) =
-            provider_refs.iter().find_map(|reference| match reference {
-                ContentProviderRef::Modrinth {
-                    project_id,
-                    version_id: Some(version_id),
-                } => Some((project_id.clone(), version_id.clone())),
-                _ => None,
+    let modrinth_origins = entries
+        .iter()
+        .filter(|entry| !entries_with_edges.contains(entry.id.as_str()))
+        .filter_map(|entry| {
+            refs_by_entry.get(&entry.id).and_then(|references| {
+                references.iter().find_map(|reference| match reference {
+                    ContentProviderRef::Modrinth {
+                        project_id,
+                        version_id: Some(version_id),
+                    } => Some((
+                        entry.id.clone(),
+                        (project_id.clone(), version_id.clone()),
+                    )),
+                    _ => None,
+                })
             })
-        else {
-            continue;
-        };
-        // Use the default cache behaviour (serve stale, fetch when missing,
-        // tolerate offline) instead of CacheOnly: on a fresh instance the
-        // version metadata for pack members is not cached yet, and the
-        // enrichment pass that would cache it runs after this backfill.
-        // Fetching here lets the very first snapshot build the edges.
-        let Some(version) = CachedEntry::get_version(
-            &origin.1,
+        })
+        .collect::<HashMap<_, _>>();
+    let version_ids = modrinth_origins
+        .values()
+        .map(|(_, version_id)| version_id.clone())
+        .collect::<Vec<_>>();
+    let versions_by_id = if version_ids.is_empty() {
+        HashMap::new()
+    } else {
+        CachedEntry::get_version_many(
+            &version_ids,
             None,
             &state.pool,
             &state.api_semaphore,
         )
         .await?
+        .into_iter()
+        .map(|version| (version.id.clone(), version))
+        .collect::<HashMap<_, _>>()
+    };
+    let mut backfill = DependencyBackfill::default();
+
+    for entry in entries {
+        if entries_with_edges.contains(entry.id.as_str()) {
+            continue;
+        }
+        let Some((project_id, version_id)) = modrinth_origins.get(&entry.id)
         else {
             continue;
         };
-        for dependency in version.dependencies {
+        let Some(version) = versions_by_id.get(version_id.as_str()) else {
+            continue;
+        };
+        for dependency in &version.dependencies {
             if !matches!(
                 dependency.dependency_type,
                 crate::state::DependencyType::Required
@@ -1039,25 +1175,22 @@ async fn backfill_dependency_edges_from_metadata(
                 continue;
             }
             let now = chrono::Utc::now();
-            content_rows::upsert_content_dependency_edge(
-                &crate::state::instances::ContentDependencyEdge {
-                    id: format!("content-dependency:{}", uuid::Uuid::new_v4()),
-                    content_set_id: content_set.id.clone(),
-                    parent_entry_id: entry.id.clone(),
-                    child_entry_id: child_entry.id,
-                    provider: ContentProvider::Modrinth,
-                    dependency_kind:
-                        crate::state::instances::ContentDependencyKind::Required,
-                    parent_project_id: origin.0.to_string(),
-                    parent_release_id: origin.1.to_string(),
-                    child_project_id: dependency_project_id,
-                    child_release_id,
-                    created_at: now,
-                    modified_at: now,
-                },
-                &state.pool,
-            )
-            .await?;
+            backfill.edges.push(crate::state::instances::ContentDependencyEdge {
+                id: format!("content-dependency:{}", uuid::Uuid::new_v4()),
+                content_set_id: content_set.id.clone(),
+                parent_entry_id: entry.id.clone(),
+                child_entry_id: child_entry.id,
+                evidence_provider: ContentProvider::Modrinth,
+                parent_provider: ContentProvider::Modrinth,
+                child_provider: ContentProvider::Modrinth,
+                dependency_kind: crate::state::instances::ContentDependencyKind::Required,
+                parent_project_id: project_id.to_string(),
+                parent_release_id: version_id.to_string(),
+                child_project_id: dependency_project_id,
+                child_release_id,
+                created_at: now,
+                modified_at: now,
+            });
         }
     }
 
@@ -1067,6 +1200,7 @@ async fn backfill_dependency_edges_from_metadata(
         &entries_with_edges,
         content_set,
         state,
+        &mut backfill,
     )
     .await?;
 
@@ -1076,9 +1210,11 @@ async fn backfill_dependency_edges_from_metadata(
         &entries_with_edges,
         content_set,
         local_metadata_by_entry,
-        state,
+        &mut backfill,
     )
-    .await
+    .await?;
+
+    Ok(backfill)
 }
 
 /// Link CurseForge-identified entries (installed files and pack members alike)
@@ -1091,6 +1227,7 @@ async fn backfill_curseforge_dependency_edges(
     entries_with_edges: &HashSet<&str>,
     content_set: &crate::state::instances::ContentSet,
     state: &State,
+    backfill: &mut DependencyBackfill,
 ) -> crate::Result<()> {
     let backfilled_entry_ids =
         content_rows::get_dependency_backfilled_entry_ids(
@@ -1191,13 +1328,15 @@ async fn backfill_curseforge_dependency_edges(
                 })
                 .unwrap_or_default();
             let now = chrono::Utc::now();
-            content_rows::upsert_content_dependency_edge(
-                &crate::state::instances::ContentDependencyEdge {
+            backfill.edges.push(
+                crate::state::instances::ContentDependencyEdge {
                     id: format!("content-dependency:{}", uuid::Uuid::new_v4()),
                     content_set_id: content_set.id.clone(),
                     parent_entry_id: entry.id.clone(),
                     child_entry_id: child_entry.id,
-                    provider: ContentProvider::CurseForge,
+                    evidence_provider: ContentProvider::CurseForge,
+                    parent_provider: ContentProvider::CurseForge,
+                    child_provider: ContentProvider::CurseForge,
                     dependency_kind: if dependency.relation_type
                         == crate::api::curseforge::DEPENDENCY_RELATION_INCLUDE
                     {
@@ -1212,16 +1351,10 @@ async fn backfill_curseforge_dependency_edges(
                     created_at: now,
                     modified_at: now,
                 },
-                &state.pool,
-            )
-            .await?;
+            );
         }
         if resolved_all {
-            content_rows::set_content_entry_dependency_backfilled(
-                &entry.id,
-                &state.pool,
-            )
-            .await?;
+            backfill.backfilled_entry_ids.insert(entry.id.clone());
         }
     }
     Ok(())
@@ -1241,7 +1374,7 @@ async fn backfill_local_dependency_edges(
         String,
         crate::mod_metadata::LocalModMetadata,
     >,
-    state: &State,
+    backfill: &mut DependencyBackfill,
 ) -> crate::Result<()> {
     let local_entry_ids = entries
         .iter()
@@ -1292,34 +1425,22 @@ async fn backfill_local_dependency_edges(
                 continue;
             };
             let now = chrono::Utc::now();
-            content_rows::upsert_content_dependency_edge(
-                &crate::state::instances::ContentDependencyEdge {
-                    id: format!("content-dependency:{}", uuid::Uuid::new_v4()),
-                    content_set_id: content_set.id.clone(),
-                    parent_entry_id: entry.id.clone(),
-                    child_entry_id: (*child_entry_id).to_string(),
-                    provider: ContentProvider::Local,
-                    dependency_kind:
-                        crate::state::instances::ContentDependencyKind::Required,
-                    parent_project_id: format!("local:{}", metadata.mod_id),
-                    parent_release_id: metadata
-                        .version
-                        .clone()
-                        .unwrap_or_default(),
-                    child_project_id: format!(
-                        "local:{}",
-                        child_metadata.mod_id
-                    ),
-                    child_release_id: child_metadata
-                        .version
-                        .clone()
-                        .unwrap_or_default(),
-                    created_at: now,
-                    modified_at: now,
-                },
-                &state.pool,
-            )
-            .await?;
+            backfill.edges.push(crate::state::instances::ContentDependencyEdge {
+                id: format!("content-dependency:{}", uuid::Uuid::new_v4()),
+                content_set_id: content_set.id.clone(),
+                parent_entry_id: entry.id.clone(),
+                child_entry_id: (*child_entry_id).to_string(),
+                evidence_provider: ContentProvider::Local,
+                parent_provider: ContentProvider::Local,
+                child_provider: ContentProvider::Local,
+                dependency_kind: crate::state::instances::ContentDependencyKind::Required,
+                parent_project_id: format!("local:{}", metadata.mod_id),
+                parent_release_id: metadata.version.clone().unwrap_or_default(),
+                child_project_id: format!("local:{}", child_metadata.mod_id),
+                child_release_id: child_metadata.version.clone().unwrap_or_default(),
+                created_at: now,
+                modified_at: now,
+            });
         }
     }
     Ok(())
@@ -1343,7 +1464,7 @@ async fn attach_dependency_info(
             .entry(edge.child_entry_id.clone())
             .or_default()
             .push(ContentDependencyRef {
-                provider: edge.provider,
+                provider: edge.parent_provider,
                 project_id: edge.parent_project_id.clone(),
                 release_id: edge.parent_release_id.clone(),
             });
@@ -1351,7 +1472,7 @@ async fn attach_dependency_info(
             .entry(edge.parent_entry_id.clone())
             .or_default()
             .push(ContentDependencyRef {
-                provider: edge.provider,
+                provider: edge.child_provider,
                 project_id: edge.child_project_id.clone(),
                 release_id: edge.child_release_id.clone(),
             });

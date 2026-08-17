@@ -10,6 +10,7 @@ import {
 	SearchIcon,
 	StopCircleIcon,
 	TrashIcon,
+	XIcon,
 } from '@modrinth/assets'
 import {
 	Accordion,
@@ -21,7 +22,6 @@ import {
 	FloatingActionBar,
 	formatLoader,
 	injectNotificationManager,
-	OverflowMenu,
 	StyledInput,
 	useVIntl,
 } from '@modrinth/ui'
@@ -61,7 +61,6 @@ const messages = defineMessages({
 	loader: { id: 'app.instances.group.loader', defaultMessage: 'Loader' },
 	none: { id: 'app.instances.group.none', defaultMessage: 'None' },
 	ungrouped: { id: 'app.instances.group.ungrouped', defaultMessage: 'No group' },
-	exitSelectMode: { id: 'app.instances.exit-select-mode', defaultMessage: 'Exit' },
 	editGroups: { id: 'app.instances.edit-groups', defaultMessage: 'Edit groups' },
 	selectAll: { id: 'app.instances.select-all', defaultMessage: 'Select all' },
 	deselectAll: { id: 'app.instances.deselect-all', defaultMessage: 'Deselect all' },
@@ -101,6 +100,7 @@ const props = defineProps({
 const instanceOptions = ref(null)
 const instanceComponents = ref(null)
 const currentDeleteInstance = ref(null)
+const batchDeleteCount = ref(0)
 const confirmModal = ref(null)
 const search = ref('')
 
@@ -122,6 +122,7 @@ async function deleteInstance() {
 		)
 		await remove(currentDeleteInstance.value.id).catch(handleError)
 	}
+	batchDeleteCount.value = 0
 }
 
 async function duplicateInstance(p) {
@@ -203,13 +204,6 @@ const handleOptionsClick = async (args) => {
 	}
 }
 
-const overflowOptions = (instance) => [
-	{
-		id: instance.pinned_at ? 'unpin' : 'pin',
-		action: () => set_pinned(instance.id, !instance.pinned_at).catch(handleError),
-	},
-]
-
 // Selection mode
 const selectMode = ref(false)
 const selectedInstanceIds = ref(new Set())
@@ -275,6 +269,22 @@ function handleCheckboxClick(instanceId) {
 
 function openBatchEdit() {
 	batchEditModal.value?.show()
+}
+
+const batchDeleteConfirmModal = ref(null)
+
+function openBatchDelete() {
+	batchDeleteCount.value = selectedInstanceIds.value.size
+	batchDeleteConfirmModal.value?.show()
+}
+
+async function batchDeleteInstances() {
+	for (const id of selectedInstanceIds.value) {
+		instanceComponents.value = instanceComponents.value.filter((x) => x.instance.id !== id)
+		await remove(id).catch(handleError)
+	}
+	selectedInstanceIds.value.clear()
+	selectMode.value = false
 }
 
 const visibleInstanceIds = computed(() => {
@@ -397,7 +407,7 @@ function onBatchEditApplied() {
 					</div>
 				</div>
 				<div
-					class="absolute left-2 top-2 z-10 transition-opacity"
+					class="absolute right-2 bottom-2 z-10 transition-opacity"
 					:class="
 						selectMode && selectedInstanceIds.has(instance.id)
 							? ''
@@ -410,21 +420,12 @@ function onBatchEditApplied() {
 				<div
 					v-if="!selectMode"
 					class="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity"
-					@click.stop
+					@click.stop="(event) => handleRightClick(event, instance.id)"
 				>
 					<ButtonStyled circular size="small" type="transparent">
-						<OverflowMenu
-							:options="overflowOptions(instance)"
-							:tooltip="
-								formatMessage(instance.pinned_at ? messages.unpinFromHome : messages.pinToHome)
-							"
-						>
+						<button type="button">
 							<MoreVerticalIcon />
-							<template #pin> <PinIcon /> {{ formatMessage(messages.pinToHome) }} </template>
-							<template #unpin>
-								<PinIcon class="rotate-45" /> {{ formatMessage(messages.unpinFromHome) }}
-							</template>
-						</OverflowMenu>
+						</button>
 					</ButtonStyled>
 				</div>
 			</div>
@@ -433,14 +434,20 @@ function onBatchEditApplied() {
 	<ConfirmDeleteInstanceModal
 		ref="confirmModal"
 		:symlink-target="currentDeleteInstance?.symlink_target"
-		@delete="deleteInstance"
+		:count="batchDeleteCount"
+		@delete="batchDeleteCount > 0 ? batchDeleteInstances() : deleteInstance()"
+	/>
+	<ConfirmDeleteInstanceModal
+		ref="batchDeleteConfirmModal"
+		:count="selectedInstanceIds.size"
+		@delete="batchDeleteInstances"
 	/>
 	<BatchEditGroupsModal
 		ref="batchEditModal"
 		:instance-ids="[...selectedInstanceIds]"
 		@applied="onBatchEditApplied"
 	/>
-	<FloatingActionBar :shown="selectMode" aria-label="Instance selection">
+	<FloatingActionBar :shown="selectMode" position="top" aria-label="Instance selection">
 		<span class="px-3 py-2 text-base font-semibold text-contrast tabular-nums">
 			{{ formatMessage(messages.selectedCount, { count: selectedInstanceIds.size }) }}
 		</span>
@@ -457,10 +464,17 @@ function onBatchEditApplied() {
 				<span>{{ formatMessage(messages.editGroups) }}</span>
 			</button>
 		</ButtonStyled>
+		<ButtonStyled color="red" type="transparent">
+			<button type="button" @click="openBatchDelete">
+				<TrashIcon />
+				<span class="bar-label">{{ formatMessage(commonMessages.deleteLabel) }}</span>
+			</button>
+		</ButtonStyled>
 		<div class="ml-auto" />
 		<ButtonStyled type="transparent">
-			<button type="button" @click="toggleSelectMode">
-				<span>{{ formatMessage(messages.exitSelectMode) }}</span>
+			<button class="!text-primary" type="button" @click="toggleSelectMode">
+				<XIcon class="hidden cq-show-icon" />
+				<span class="bar-label">{{ formatMessage(commonMessages.clearButton) }}</span>
 			</button>
 		</ButtonStyled>
 	</FloatingActionBar>

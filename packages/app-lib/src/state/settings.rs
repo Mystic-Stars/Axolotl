@@ -114,6 +114,8 @@ pub struct Settings {
     pub modrinth_source: DownloadSourceMode,
     #[serde(default)]
     pub curseforge_source: DownloadSourceMode,
+    #[serde(default = "default_true")]
+    pub bypass_curseforge_download_restrictions: bool,
     #[serde(default)]
     pub mojang_auth_source: DownloadSourceMode,
     #[serde(default, rename = "use_minecraft_mirror", skip_serializing)]
@@ -191,6 +193,10 @@ pub struct PrivacySettings {
     pub consent_version: u32,
 }
 
+fn default_true() -> bool {
+    true
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, Eq, Hash, PartialEq)]
 #[serde(rename_all = "snake_case")]
 pub enum FeatureFlag {
@@ -255,6 +261,11 @@ impl Settings {
         let download_engine = DownloadEngine::from_str(
             &engine_row.get::<String, _>("download_engine"),
         );
+        let bypass_curseforge_download_restrictions: bool = sqlx::query_scalar(
+            "SELECT bypass_curseforge_download_restrictions FROM settings WHERE id = 0",
+        )
+        .fetch_one(exec)
+        .await?;
 
         let settings = Self {
             max_concurrent_downloads: res.max_concurrent_downloads as usize,
@@ -273,6 +284,7 @@ impl Settings {
             curseforge_source: DownloadSourceMode::from_string(
                 &res.curseforge_source,
             ),
+            bypass_curseforge_download_restrictions,
             mojang_auth_source: DownloadSourceMode::from_string(
                 &res.mojang_auth_source,
             ),
@@ -549,6 +561,12 @@ impl Settings {
             .bind(self.download_engine.as_str())
             .execute(exec)
             .await?;
+        sqlx::query(
+            "UPDATE settings SET bypass_curseforge_download_restrictions = ? WHERE id = 0",
+        )
+        .bind(self.bypass_curseforge_download_restrictions)
+        .execute(exec)
+        .await?;
 
         Ok(())
     }
@@ -1018,6 +1036,25 @@ mod tests {
             settings.curseforge_source,
             DownloadSourceMode::OfficialPreferred
         );
+    }
+
+    #[tokio::test]
+    async fn curseforge_bypass_defaults_on_and_round_trips() {
+        let pool = sqlx::sqlite::SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect("sqlite::memory:")
+            .await
+            .unwrap();
+        sqlx::migrate!().run(&pool).await.unwrap();
+
+        let mut settings = Settings::get(&pool).await.unwrap();
+        assert!(settings.bypass_curseforge_download_restrictions);
+
+        settings.bypass_curseforge_download_restrictions = false;
+        settings.update(&pool).await.unwrap();
+
+        let reloaded = Settings::get(&pool).await.unwrap();
+        assert!(!reloaded.bypass_curseforge_download_restrictions);
     }
 
     #[tokio::test]

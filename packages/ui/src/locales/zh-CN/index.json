@@ -4399,5 +4399,11 @@
 	},
 	"drop.confirm.as-data-pack-desc": {
 		"defaultMessage": "将数据包安装到存档"
+	},
+	"installation-settings.loader-version.error": {
+		"defaultMessage": "加载加载器版本数据失败"
+	},
+	"installation-settings.loader-version.unsupported": {
+		"defaultMessage": "此加载器不支持所选游戏版本"
 	}
 }

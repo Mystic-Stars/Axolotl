@@ -5,15 +5,21 @@
 		</p>
 
 		<div class="flex flex-col gap-3 mt-4">
-			<div class="flex flex-col gap-1">
-				<Checkbox
-					v-for="group in availableGroups"
-					:key="group"
-					:model-value="selectedGroups.includes(group)"
-					:label="group"
-					@click="toggleGroup(group)"
-				/>
-			</div>
+			<RadioButtons v-model="selectedGroup" :items="groupOptions">
+				<template #default="{ item }">
+					<span class="flex items-center justify-between flex-1 leading-none">
+						<span>{{ item || formatMessage(messages.noGroup) }}</span>
+						<button
+							v-if="item"
+							class="bg-transparent border-none cursor-pointer text-secondary hover:text-red rounded flex items-center justify-center w-6 h-6"
+							@click.stop="deleteGroup(item)"
+						>
+							<TrashIcon class="w-4 h-4" />
+						</button>
+						<span v-else class="w-6 h-6" />
+					</span>
+				</template>
+			</RadioButtons>
 
 			<div class="flex gap-2 items-center">
 				<StyledInput
@@ -50,13 +56,13 @@
 </template>
 
 <script setup lang="ts">
-import { CheckIcon, PlusIcon, XIcon } from '@modrinth/assets'
+import { CheckIcon, PlusIcon, TrashIcon, XIcon } from '@modrinth/assets'
 import {
 	ButtonStyled,
-	Checkbox,
 	commonMessages,
 	defineMessages,
 	NewModal,
+	RadioButtons,
 	StyledInput,
 	useVIntl,
 } from '@modrinth/ui'
@@ -96,10 +102,14 @@ const messages = defineMessages({
 		id: 'app.instances.batch-edit-groups.apply',
 		defaultMessage: 'Apply',
 	},
+	noGroup: {
+		id: 'app.instances.group.ungrouped',
+		defaultMessage: 'No group',
+	},
 })
 
 const modal = ref<InstanceType<typeof NewModal>>()
-const selectedGroups = ref<string[]>([])
+const selectedGroup = ref('')
 const newGroupInput = ref('')
 const allInstances = ref<GameInstance[]>([])
 
@@ -113,8 +123,10 @@ const availableGroups = computed(() => {
 	return [...groups]
 })
 
+const groupOptions = computed(() => ['', ...availableGroups.value])
+
 function show() {
-	selectedGroups.value = []
+	selectedGroup.value = ''
 	newGroupInput.value = ''
 	list().then((instances) => {
 		allInstances.value = instances as GameInstance[]
@@ -122,31 +134,37 @@ function show() {
 	modal.value?.show()
 }
 
-function toggleGroup(group: string) {
-	if (selectedGroups.value.includes(group)) {
-		selectedGroups.value = selectedGroups.value.filter((x) => x !== group)
-	} else {
-		selectedGroups.value.push(group)
-	}
-}
-
 function addNewGroup() {
 	const text = newGroupInput.value.trim()
 	if (text.length > 0) {
 		const groupName = text.substring(0, 32)
-		selectedGroups.value.push(groupName)
-		// Add a dummy instance with this group so it shows in availableGroups
 		allInstances.value.push({ groups: [groupName] } as GameInstance)
+		selectedGroup.value = groupName
 		newGroupInput.value = ''
 	}
 }
 
+async function deleteGroup(group: string) {
+	for (const instance of allInstances.value) {
+		if (instance.groups.includes(group)) {
+			const newGroups = instance.groups.filter((g) => g !== group)
+			await edit(instance.id, { groups: newGroups }).catch(() => {})
+			instance.groups = newGroups
+		}
+	}
+	if (selectedGroup.value === group) {
+		selectedGroup.value = ''
+	}
+}
+
 async function confirm() {
+	if (newGroupInput.value.trim().length > 0) {
+		addNewGroup()
+	}
+
 	modal.value?.hide()
 
-	const groups = selectedGroups.value
-		.map((x) => x.trim().substring(0, 32))
-		.filter((x) => x.length > 0)
+	const groups = selectedGroup.value ? [selectedGroup.value.trim().substring(0, 32)] : []
 
 	for (const instanceId of props.instanceIds) {
 		await edit(instanceId, { groups }).catch(() => {})

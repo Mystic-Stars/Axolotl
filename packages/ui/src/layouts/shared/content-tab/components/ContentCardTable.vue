@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ChevronDownIcon, ChevronUpIcon } from '@modrinth/assets'
-import { computed, getCurrentInstance, ref, toRef } from 'vue'
+import { computed, getCurrentInstance, ref, toRef, watch } from 'vue'
 
 import Checkbox from '#ui/components/base/Checkbox.vue'
 import { useVIntl } from '#ui/composables/i18n'
@@ -56,6 +56,7 @@ const emit = defineEmits<{
 	rollback: [id: string]
 	sort: [column: ContentCardTableSortColumn, direction: ContentCardTableSortDirection]
 	toggleExpand: [groupId: string]
+	visibleItems: [items: ContentCardTableItem[]]
 }>()
 
 // Check if any actions are available
@@ -98,6 +99,14 @@ const { listContainer, totalHeight, visibleRange, visibleTop, visibleItems } = u
 		initialItemCount: 20,
 		enabled: toRef(props, 'virtualized'),
 	},
+)
+
+watch(
+	visibleItems,
+	(items) => {
+		emit('visibleItems', items)
+	},
+	{ immediate: true },
 )
 
 // Expose for perf monitoring

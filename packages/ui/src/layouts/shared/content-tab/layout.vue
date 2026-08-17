@@ -63,6 +63,18 @@ const props = withDefaults(
 	},
 )
 
+const emit = defineEmits<{
+	visibleItems: [items: ContentItem[]]
+}>()
+
+function handleVisibleTableItems(visibleTableItems: ContentCardTableItem[]) {
+	const visibleContentItems = visibleTableItems
+		.map((item) => findContentItem(item.id))
+		.filter((item): item is ContentItem => item !== undefined)
+
+	emit('visibleItems', visibleContentItems)
+}
+
 const messages = defineMessages({
 	failedToLoad: {
 		id: 'content.page-layout.failed-to-load',
@@ -389,8 +401,7 @@ function mapToTableItem(item: ContentItem, group?: string): ContentCardTableItem
 		...base,
 		id,
 		group,
-		disabled:
-			isChanging(id) || ctx.isBusy.value || isBulkOperating.value || item.installing === true,
+		disabled: isChanging(id) || ctx.isBusy.value || item.installing === true,
 		disabledTooltip: ctx.isBusy.value
 			? (ctx.busyMessage?.value ?? null)
 			: (base.disabledTooltip ?? null),
@@ -956,6 +967,7 @@ const confirmUnlinkModal = ref<InstanceType<typeof ConfirmUnlinkModal>>()
 					@switch-version="handleSwitchVersionById"
 					@rollback="handleRollbackById"
 					@toggle-expand="toggleGroupExpand"
+					@visible-items="handleVisibleTableItems"
 				>
 					<template #header-project>
 						<ContentMetadataFilterBar

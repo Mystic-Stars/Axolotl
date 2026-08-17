@@ -1049,8 +1049,17 @@
 	"app.instance.confirm-delete.delete-button": {
 		"message": "删除实例"
 	},
+	"app.instance.confirm-delete.batch-delete-button": {
+		"message": "删除 {count, plural, other {#}} 个实例"
+	},
 	"app.instance.confirm-delete.header": {
 		"message": "删除实例"
+	},
+	"app.instance.confirm-delete.batch-header": {
+		"message": "删除实例"
+	},
+	"app.instance.confirm-delete.batch-admonition-body": {
+		"message": "将永久删除 {count, plural, other {#}} 个实例，包括存档、配置和所有已安装内容。"
 	},
 	"app.instance.copy-links": {
 		"message": "复制链接"
@@ -2500,6 +2509,12 @@
 	},
 	"app.settings.resources.curseforge-mirror-description": {
 		"message": "CurseForge 公共 API 请求和文件下载。"
+	},
+	"app.settings.resources.curseforge-restriction-bypass": {
+		"message": "自动下载受限的 CurseForge 文件"
+	},
+	"app.settings.resources.curseforge-restriction-bypass-description": {
+		"message": "当 CurseForge 不提供下载地址时，根据文件信息推导其 CDN 地址并尝试自动下载。关闭后将使用手动下载流程。"
 	},
 	"app.settings.resources.mojang-auth-service": {
 		"message": "Mojang 认证服务"
@@ -6923,9 +6938,6 @@
 	"app.instances.select-all": {
 		"message": "全选"
 	},
-	"app.instances.exit-select-mode": {
-		"message": "退出"
-	},
 	"app.instances.edit-groups": {
 		"message": "编辑分组"
 	},
@@ -6980,6 +6992,9 @@
 	"app.content-install.preview.skipped-header": {
 		"message": "跳过"
 	},
+	"app.content-install.preview.unavailable-curseforge-project": {
+		"message": "CurseForge 项目不可用"
+	},
 	"app.content-install.preview.skip.unsupported-project-type": {
 		"message": "不支持的项目类型"
 	},
@@ -7013,8 +7028,20 @@
 	"app.content-install.preview.skip.conflicting-dependency": {
 		"message": "前置版本冲突"
 	},
+	"app.content-install.preview.skip.dependency-cycle": {
+		"message": "检测到前置循环依赖"
+	},
+	"app.content-install.preview.skip.dependency-depth-exceeded": {
+		"message": "已达到前置解析深度上限"
+	},
 	"app.content-install.preview.skip.already-installed": {
 		"message": "已安装"
+	},
+	"app.content-install.preview.skip.modrinth-lookup-failed": {
+		"message": "无法验证 Modrinth 兜底版本"
+	},
+	"app.content-install.preview.sha1-verified-modrinth-fallback": {
+		"message": "已通过 SHA-1 验证的 Modrinth 兜底版本"
 	},
 	"app.content-install.preview.select-all": {
 		"message": "全选"
@@ -7027,6 +7054,9 @@
 	},
 	"app.content-install.preview.install": {
 		"message": "安装"
+	},
+	"app.content-install.preview.install-resolved": {
+		"message": "安装已解析内容"
 	},
 	"app.content-install.preview.header": {
 		"message": "确认安装"
@@ -7081,5 +7111,20 @@
 	},
 	"app.appearance-settings.auto-install-dependencies.description": {
 		"message": "安装内容时自动下载所需前置。每次安装前仍可在确认对话框中调整选择。"
+	},
+	"app.settings.resources.source.tianpao": {
+		"message": "优先 Tianpao"
+	},
+	"app.settings.resources.modrinth-mirror-description": {
+		"message": "Modrinth 文件下载。"
+	},
+	"app.settings.resources.modrinth-mirror": {
+		"message": "Modrinth"
+	},
+	"app.downloads.source.tianpao": {
+		"message": "Tianpao 镜像"
+	},
+	"app.content-install.preview.version-mismatch": {
+		"message": "下载的版本可能与当前版本不兼容。"
 	}
 }

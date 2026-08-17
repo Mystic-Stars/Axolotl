@@ -390,6 +390,52 @@ pub(crate) async fn list_all_content(
     .await
 }
 
+pub(crate) async fn list_content_by_paths(
+    instance_id: &str,
+    paths: &[String],
+    cache_behaviour: Option<CacheBehaviour>,
+    state: &State,
+) -> crate::Result<Vec<ContentItem>> {
+    if paths.is_empty() {
+        return Ok(Vec::new());
+    }
+
+    let resolved =
+        resolve_content_scope_with_instance(instance_id, None, &state.pool)
+            .await?;
+
+    let path_set = paths.iter().map(String::as_str).collect::<HashSet<_>>();
+
+    let files = sqlite::content_rows::get_instance_files(
+        &resolved.instance.id,
+        &state.pool,
+    )
+    .await?
+    .into_iter()
+    .filter(|file| path_set.contains(file.relative_path.as_str()))
+    .collect::<Vec<_>>();
+
+    let files = content_projects_for_files(
+        &resolved,
+        files,
+        cache_behaviour,
+        state,
+        ContentFilter::All,
+        false,
+    )
+    .await?
+    .into_iter()
+    .collect::<Vec<_>>();
+
+    content_files_to_content_items(
+        &resolved.instance,
+        &files,
+        cache_behaviour,
+        state,
+    )
+    .await
+}
+
 pub(crate) async fn list_linked_modpack_content(
     instance_id: &str,
     content_set_id: Option<&str>,
@@ -644,6 +690,15 @@ async fn get_curseforge_linked_modpack_info(
     pool: &SqlitePool,
     fetch_semaphore: &FetchSemaphore,
 ) -> crate::Result<Option<LinkedModpackInfo>> {
+    // A normal content snapshot is explicitly cache-only. CurseForge file
+    // metadata has no local cache representation, so attempting to enrich a
+    // linked pack here would turn every page open into network I/O. The UI
+    // already has an instance-backed fallback card; full metadata is fetched
+    // by the explicit refresh path instead.
+    if cache_behaviour == Some(CacheBehaviour::CacheOnly) {
+        return Ok(None);
+    }
+
     let numeric_project_id = project_id.parse::<u32>().map_err(|_| {
         crate::ErrorKind::InputError(format!(
             "Linked CurseForge project ID {project_id} is invalid"
@@ -1216,7 +1271,35 @@ async fn content_projects_for_scope(
     filter: ContentFilter<'_>,
     refresh_file_updates: bool,
 ) -> crate::Result<DashMap<String, ContentFile>> {
-    let files = sync_instance_content_files(&resolved.instance, state).await?;
+    let files = if cache_behaviour == Some(CacheBehaviour::CacheOnly) {
+        sqlite::content_rows::get_instance_files(
+            &resolved.instance.id,
+            &state.pool,
+        )
+        .await?
+    } else {
+        sync_instance_content_files(&resolved.instance, state).await?
+    };
+
+    content_projects_for_files(
+        resolved,
+        files,
+        cache_behaviour,
+        state,
+        filter,
+        refresh_file_updates,
+    )
+    .await
+}
+
+async fn content_projects_for_files(
+    resolved: &ResolvedContentScope,
+    files: Vec<InstanceFile>,
+    cache_behaviour: Option<CacheBehaviour>,
+    state: &State,
+    filter: ContentFilter<'_>,
+    refresh_file_updates: bool,
+) -> crate::Result<DashMap<String, ContentFile>> {
     let mut entry_maps =
         load_entry_maps(&resolved.content_set.id, &state.pool).await?;
     let hashes = files
@@ -1234,7 +1317,9 @@ async fn content_projects_for_scope(
         .into_iter()
         .map(|file| (file.hash.clone(), file))
         .collect::<HashMap<_, _>>();
-    let reconciled = if matches!(filter, ContentFilter::All) {
+    let reconciled = if matches!(filter, ContentFilter::All)
+        && cache_behaviour != Some(CacheBehaviour::CacheOnly)
+    {
         reconcile_hash_matched_entries(
             resolved,
             &files,
@@ -1630,7 +1715,9 @@ async fn content_files_to_content_items(
             ContentProviderRef::Modrinth { .. } => None,
         })
         .collect::<HashSet<_>>();
-    let curseforge_projects = if curseforge_project_ids.is_empty()
+    let curseforge_projects = if cache_behaviour
+        == Some(CacheBehaviour::CacheOnly)
+        || curseforge_project_ids.is_empty()
         || crate::api::curseforge::capability().status
             != crate::api::curseforge::CurseForgeCapabilityStatus::Ready
     {

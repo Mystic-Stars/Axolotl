@@ -109,7 +109,7 @@
 			"capabilities": ["core", "plugins"],
 			"csp": {
 				"default-src": "'self' customprotocol: asset:",
-				"connect-src": "ipc: http://ipc.localhost https://modrinth.com https://*.modrinth.com https://api.mclo.gs https://api.logshare.cn https://logshare.cn http://textures.minecraft.net https://textures.minecraft.net https://fill.papermc.io https://api.purpurmc.org https://mod.mcimirror.top 'self' data: blob:",
+				"connect-src": "ipc: http://ipc.localhost https://modrinth.com https://*.modrinth.com https://api.mclo.gs https://api.logshare.cn https://logshare.cn http://textures.minecraft.net https://textures.minecraft.net https://fill.papermc.io https://api.purpurmc.org https://mod.mcimirror.top https://mod.tianpao.top 'self' data: blob:",
 				"font-src": ["https://cdn-raw.modrinth.com/fonts/"],
 				"img-src": "https: 'unsafe-inline' 'self' asset: http://asset.localhost http://textures.minecraft.net blob: data:",
 				"style-src": "'unsafe-inline' 'self'",

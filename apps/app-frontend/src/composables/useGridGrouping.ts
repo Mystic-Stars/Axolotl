@@ -127,14 +127,12 @@ export function useGridGrouping<T extends Record<string, any>>(
 			case 'Group':
 				instances.forEach((instance) => {
 					const groups = getGroups(instance)
-					const categories = groups.length > 0 ? groups : [UNGROUPED_GROUP_KEY]
+					const category = groups.length > 0 ? groups[0] : UNGROUPED_GROUP_KEY
 
-					for (const category of categories) {
-						if (!instanceMap.has(category)) {
-							instanceMap.set(category, [])
-						}
-						instanceMap.get(category)!.push(instance)
+					if (!instanceMap.has(category)) {
+						instanceMap.set(category, [])
 					}
+					instanceMap.get(category)!.push(instance)
 				})
 				break
 

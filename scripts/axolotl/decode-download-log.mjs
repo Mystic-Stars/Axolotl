@@ -27,6 +27,7 @@ const sources = {
 	2: 'mcim',
 	3: 'alternate',
 	4: 'unknown',
+	5: 'tianpao',
 }
 
 for (const line of input.split('\n')) {

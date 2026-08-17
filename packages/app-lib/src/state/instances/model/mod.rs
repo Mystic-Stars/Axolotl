@@ -6,6 +6,9 @@ pub use self::content_entry::*;
 mod content_dependency;
 pub use self::content_dependency::*;
 
+mod dependency_resolution;
+pub use self::dependency_resolution::*;
+
 mod content_ownership;
 pub use self::content_ownership::*;
 

@@ -431,6 +431,12 @@
 	"app.appearance-settings.auto-hide-downloads-button.title": {
 		"message": "Auto-hide downloads button"
 	},
+	"app.appearance-settings.auto-install-dependencies.description": {
+		"message": "Download required dependencies when installing content. You can adjust the selection in the confirmation dialog before each install."
+	},
+	"app.appearance-settings.auto-install-dependencies.title": {
+		"message": "Automatically install dependencies"
+	},
 	"app.appearance-settings.color-theme.description": {
 		"message": "Select your preferred color theme for Axolotl Launcher."
 	},
@@ -614,17 +620,29 @@
 	"app.browse.discover-servers": {
 		"message": "Discover servers"
 	},
+	"app.browse.display-mode.compact-list": {
+		"message": "Compact list"
+	},
+	"app.browse.display-mode.grid": {
+		"message": "Grid"
+	},
+	"app.browse.display-mode.list": {
+		"message": "List"
+	},
+	"app.browse.display-mode.switch": {
+		"message": "Switch view"
+	},
 	"app.browse.hide-added-servers": {
 		"message": "Hide servers already added"
+	},
+	"app.browse.maps-no-installable-file": {
+		"message": "The selected CurseForge map does not have an installable file."
 	},
 	"app.browse.maps-unavailable": {
 		"message": "Maps unavailable"
 	},
 	"app.browse.maps-unavailable-description": {
 		"message": "Configure a CurseForge API key to browse and install maps."
-	},
-	"app.browse.maps-no-installable-file": {
-		"message": "The selected CurseForge map does not have an installable file."
 	},
 	"app.browse.project-type.datapacks": {
 		"message": "Data Packs"
@@ -680,6 +698,18 @@
 	"app.community-announcement.title": {
 		"message": "To all our users"
 	},
+	"app.content-install.dependencies-installed.notification-body": {
+		"message": "Installed {count, plural, one {# dependency} other {# dependencies}} automatically: {list}"
+	},
+	"app.content-install.dependencies-installed.notification-title": {
+		"message": "Dependencies installed"
+	},
+	"app.content-install.dependencies-skipped.notification-body": {
+		"message": "The following dependencies were not installed: {list}"
+	},
+	"app.content-install.dependencies-skipped.notification-title": {
+		"message": "Some dependencies were skipped"
+	},
 	"app.content-install.no-compatible-versions": {
 		"message": "No available versions match {compatibilityLabel}. Select a version to install anyway. Matching dependencies will still be installed."
 	},
@@ -707,6 +737,9 @@
 	"app.content-install.preview.install": {
 		"message": "Install"
 	},
+	"app.content-install.preview.install-resolved": {
+		"message": "Install resolved content"
+	},
 	"app.content-install.preview.only-checked": {
 		"message": "Only checked dependencies will be installed."
 	},
@@ -716,11 +749,20 @@
 	"app.content-install.preview.select-all": {
 		"message": "Select all"
 	},
+	"app.content-install.preview.sha1-verified-modrinth-fallback": {
+		"message": "Modrinth fallback verified by SHA-1"
+	},
 	"app.content-install.preview.skip.already-installed": {
 		"message": "Already installed"
 	},
 	"app.content-install.preview.skip.conflicting-dependency": {
 		"message": "Conflicting dependency version"
+	},
+	"app.content-install.preview.skip.dependency-cycle": {
+		"message": "Dependency cycle detected"
+	},
+	"app.content-install.preview.skip.dependency-depth-exceeded": {
+		"message": "Dependency depth limit reached"
 	},
 	"app.content-install.preview.skip.duplicate-project": {
 		"message": "Already included"
@@ -736,6 +778,9 @@
 	},
 	"app.content-install.preview.skip.missing-version": {
 		"message": "Referenced version was not found"
+	},
+	"app.content-install.preview.skip.modrinth-lookup-failed": {
+		"message": "Could not verify the Modrinth fallback"
 	},
 	"app.content-install.preview.skip.no-compatible-version": {
 		"message": "No compatible version found"
@@ -754,6 +799,9 @@
 	},
 	"app.content-install.preview.skipped-header": {
 		"message": "Skipped"
+	},
+	"app.content-install.preview.unavailable-curseforge-project": {
+		"message": "Unavailable CurseForge project"
 	},
 	"app.content-install.preview.version-mismatch": {
 		"message": "Version may not match this instance"
@@ -1165,6 +1213,9 @@
 	},
 	"app.downloads.source.mcim": {
 		"message": "MCIM"
+	},
+	"app.downloads.source.tianpao": {
+		"message": "Tian pao"
 	},
 	"app.downloads.source.official": {
 		"message": "Official"
@@ -1685,11 +1736,11 @@
 	"app.home.minimal.choose-instance": {
 		"message": "Choose instance"
 	},
-	"app.home.minimal.picker.no-results": {
-		"message": "No matching instances"
-	},
 	"app.home.minimal.picker.no-instances": {
 		"message": "No instances available"
+	},
+	"app.home.minimal.picker.no-results": {
+		"message": "No matching instances"
 	},
 	"app.home.minimal.picker.search": {
 		"message": "Search instances"
@@ -1988,6 +2039,15 @@
 	"app.instance.confirm-delete.admonition-header": {
 		"message": "This action cannot be undone"
 	},
+	"app.instance.confirm-delete.batch-admonition-body": {
+		"message": "{count, plural, one {# instance} other {# instances}} will be permanently deleted, including worlds, configs, and all installed content."
+	},
+	"app.instance.confirm-delete.batch-delete-button": {
+		"message": "Delete {count, plural, one {# instance} other {# instances}}"
+	},
+	"app.instance.confirm-delete.batch-header": {
+		"message": "Delete instances"
+	},
 	"app.instance.confirm-delete.delete-button": {
 		"message": "Delete instance"
 	},
@@ -2168,6 +2228,12 @@
 	"app.instance.mods.missing-files-warning.title": {
 		"message": "Some modpack files are missing"
 	},
+	"app.instance.mods.orphaned-dependencies.body": {
+		"message": "These dependencies are no longer required by other content and will not be removed automatically: {list}"
+	},
+	"app.instance.mods.orphaned-dependencies.title": {
+		"message": "Dependencies are no longer required"
+	},
 	"app.instance.mods.pack-member-missing": {
 		"message": "This modpack file is missing locally"
 	},
@@ -2212,6 +2278,30 @@
 	},
 	"app.instance.mods.successfully-uploaded": {
 		"message": "Successfully uploaded"
+	},
+	"app.instance.mods.toggle-dependencies.apply": {
+		"message": "Toggle related content"
+	},
+	"app.instance.mods.toggle-dependencies.bulk-body": {
+		"message": "Toggling the selected content will affect {count, plural, one {# other item} other {# other items}}."
+	},
+	"app.instance.mods.toggle-dependencies.selected-only": {
+		"message": "Only toggle selected"
+	},
+	"app.instance.mods.toggle-dependencies.single-body": {
+		"message": "Toggling {project} will affect {count, plural, one {# other item} other {# other items}}."
+	},
+	"app.instance.mods.toggle-dependencies.title": {
+		"message": "Confirm toggle"
+	},
+	"app.instance.mods.toggle-dependencies.warning": {
+		"message": "Do you want to apply these related changes automatically? Ignoring them may break the game."
+	},
+	"app.instance.mods.toggle-dependencies.will-disable": {
+		"message": "The following content will be disabled:"
+	},
+	"app.instance.mods.toggle-dependencies.will-enable": {
+		"message": "The following content will be enabled:"
 	},
 	"app.instance.mods.update-added-content": {
 		"message": "Update added content"
@@ -2402,9 +2492,6 @@
 	"app.instances.edit-groups": {
 		"message": "Edit groups"
 	},
-	"app.instances.exit-select-mode": {
-		"message": "Exit"
-	},
 	"app.instances.group-by": {
 		"message": "Group by:"
 	},
@@ -2463,7 +2550,7 @@
 		"message": "Arguments"
 	},
 	"app.java-arguments.presets.auth-group-title": {
-		"message": "Mojang Auth service proxy"
+		"message": "Authentication service"
 	},
 	"app.java-arguments.presets.auth-mirror.description": {
 		"message": "HTTP forwarding for the Mojang authentication servers hosted by Fallen-Breath."
@@ -2493,7 +2580,7 @@
 		"message": "Resolved → {strategy}"
 	},
 	"app.java-arguments.presets.gc.auto.title": {
-		"message": "Auto GC"
+		"message": "Auto"
 	},
 	"app.java-arguments.presets.gc.g1gc-mojang.description": {
 		"message": "G1GC tuning used by the official Minecraft launcher"
@@ -5408,11 +5495,29 @@
 	"app.settings.resources.curseforge-mirror-description": {
 		"message": "CurseForge public API requests and file downloads."
 	},
+	"app.settings.resources.curseforge-restriction-bypass": {
+		"message": "Automatically download restricted CurseForge files"
+	},
+	"app.settings.resources.curseforge-restriction-bypass-description": {
+		"message": "When CurseForge does not provide a download address, derive its CDN address and try downloading the file automatically. Disable this to use the manual download workflow."
+	},
 	"app.settings.resources.database-backups": {
 		"message": "App database backups"
 	},
 	"app.settings.resources.database-backups-description": {
 		"message": "Backups of important app data are stored here in case you need to recover them later."
+	},
+	"app.settings.resources.download-engine": {
+		"message": "Download engine"
+	},
+	"app.settings.resources.download-engine-description": {
+		"message": "Choose which download engine the launcher uses."
+	},
+	"app.settings.resources.download-engine.legacy": {
+		"message": "Native engine"
+	},
+	"app.settings.resources.download-engine.xmcl": {
+		"message": "XMCL-compatible"
 	},
 	"app.settings.resources.download-mirrors": {
 		"message": "Download sources"
@@ -5443,6 +5548,12 @@
 	},
 	"app.settings.resources.minecraft-metadata-source-description": {
 		"message": "Version manifests and metadata for Minecraft and supported mod loaders."
+	},
+	"app.settings.resources.modrinth-mirror": {
+		"message": "Modrinth"
+	},
+	"app.settings.resources.modrinth-mirror-description": {
+		"message": "Modrinth file downloads."
 	},
 	"app.settings.resources.missing-content-auto-import": {
 		"message": "Automatically import missing modpack files"
@@ -5488,6 +5599,9 @@
 	},
 	"app.settings.resources.source.mcim": {
 		"message": "Prefer MCIM"
+	},
+	"app.settings.resources.source.tianpao": {
+		"message": "Prefer Tianpao"
 	},
 	"app.settings.resources.source.mojang-mirror-preferred": {
 		"message": "Prefer Fallen-Proxy"
@@ -6344,11 +6458,11 @@
 	"app.world.world-item.players-online": {
 		"message": "{count} online"
 	},
-	"app.worlds.install-map.invalid-project": {
-		"message": "The selected project is not a CurseForge map."
-	},
 	"app.worlds.install-map.instance-not-ready": {
 		"message": "Wait for this instance to finish installing before adding a map."
+	},
+	"app.worlds.install-map.invalid-project": {
+		"message": "The selected project is not a CurseForge map."
 	},
 	"app.worlds.install-map.unknown-instance": {
 		"message": "The selected instance is no longer available."
@@ -6631,18 +6745,6 @@
 	},
 	"instance.settings.tabs.general.icon": {
 		"message": "Icon"
-	},
-	"instance.settings.tabs.general.library-groups": {
-		"message": "Library groups"
-	},
-	"instance.settings.tabs.general.library-groups.create": {
-		"message": "Create new group"
-	},
-	"instance.settings.tabs.general.library-groups.description": {
-		"message": "Library groups allow you to organize your instances into different sections in your library."
-	},
-	"instance.settings.tabs.general.library-groups.enter-name": {
-		"message": "Enter group name"
 	},
 	"instance.settings.tabs.general.name": {
 		"message": "Name"
@@ -7012,77 +7114,5 @@
 	},
 	"unknown-pack-warning-modal.warning.title": {
 		"message": "Unknown file warning"
-	},
-	"app.settings.resources.download-engine.xmcl": {
-		"message": "XMCL-compatible"
-	},
-	"app.settings.resources.download-engine.legacy": {
-		"message": "Native engine"
-	},
-	"app.settings.resources.download-engine-description": {
-		"message": "Choose which download engine the launcher uses."
-	},
-	"app.settings.resources.download-engine": {
-		"message": "Download engine"
-	},
-	"app.instance.mods.toggle-dependencies.will-enable": {
-		"message": "The following content will be enabled:"
-	},
-	"app.instance.mods.toggle-dependencies.will-disable": {
-		"message": "The following content will be disabled:"
-	},
-	"app.instance.mods.toggle-dependencies.warning": {
-		"message": "Do you want to apply these related changes automatically? Ignoring them may break the game."
-	},
-	"app.instance.mods.toggle-dependencies.title": {
-		"message": "Confirm toggle"
-	},
-	"app.instance.mods.toggle-dependencies.single-body": {
-		"message": "Toggling {project} will affect {count, plural, one {# other item} other {# other items}}."
-	},
-	"app.instance.mods.toggle-dependencies.selected-only": {
-		"message": "Only toggle selected"
-	},
-	"app.instance.mods.toggle-dependencies.bulk-body": {
-		"message": "Toggling the selected content will affect {count, plural, one {# other item} other {# other items}}."
-	},
-	"app.instance.mods.toggle-dependencies.apply": {
-		"message": "Toggle related content"
-	},
-	"app.instance.mods.orphaned-dependencies.title": {
-		"message": "Dependencies are no longer required"
-	},
-	"app.instance.mods.orphaned-dependencies.body": {
-		"message": "These dependencies are no longer required by other content and will not be removed automatically: {list}"
-	},
-	"app.content-install.dependencies-skipped.notification-title": {
-		"message": "Some dependencies were skipped"
-	},
-	"app.content-install.dependencies-skipped.notification-body": {
-		"message": "The following dependencies were not installed: {list}"
-	},
-	"app.content-install.dependencies-installed.notification-title": {
-		"message": "Dependencies installed"
-	},
-	"app.content-install.dependencies-installed.notification-body": {
-		"message": "Installed {count, plural, one {# dependency} other {# dependencies}} automatically: {list}"
-	},
-	"app.browse.display-mode.switch": {
-		"message": "Switch view"
-	},
-	"app.browse.display-mode.list": {
-		"message": "List"
-	},
-	"app.browse.display-mode.grid": {
-		"message": "Grid"
-	},
-	"app.browse.display-mode.compact-list": {
-		"message": "Compact list"
-	},
-	"app.appearance-settings.auto-install-dependencies.title": {
-		"message": "Automatically install dependencies"
-	},
-	"app.appearance-settings.auto-install-dependencies.description": {
-		"message": "Download required dependencies when installing content. You can adjust the selection in the confirmation dialog before each install."
 	}
 }

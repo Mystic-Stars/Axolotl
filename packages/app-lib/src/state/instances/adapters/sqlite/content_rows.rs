@@ -726,9 +726,32 @@ pub(crate) async fn rename_instance_file(
     enabled: bool,
     pool: &SqlitePool,
 ) -> crate::Result<Option<InstanceFile>> {
+    let mut tx = pool.begin().await?;
+
+    let file = rename_instance_file_in_transaction(
+        instance_id,
+        old_relative_path,
+        new_relative_path,
+        new_file_name,
+        enabled,
+        &mut tx,
+    )
+    .await?;
+    tx.commit().await?;
+
+    Ok(file)
+}
+
+pub(crate) async fn rename_instance_file_in_transaction(
+    instance_id: &str,
+    old_relative_path: &str,
+    new_relative_path: &str,
+    new_file_name: &str,
+    enabled: bool,
+    tx: &mut Transaction<'_, Sqlite>,
+) -> crate::Result<Option<InstanceFile>> {
     let enabled = i64::from(enabled);
     let modified_at = Utc::now().timestamp();
-    let mut tx = pool.begin().await?;
 
     let source_id = sqlx::query_scalar!(
         "
@@ -739,7 +762,7 @@ pub(crate) async fn rename_instance_file(
         instance_id,
         old_relative_path,
     )
-    .fetch_optional(&mut *tx)
+    .fetch_optional(&mut **tx)
     .await?;
     let target_id = sqlx::query_scalar!(
         "
@@ -750,7 +773,7 @@ pub(crate) async fn rename_instance_file(
         instance_id,
         new_relative_path,
     )
-    .fetch_optional(&mut *tx)
+    .fetch_optional(&mut **tx)
     .await?;
 
     if let (Some(source_id), Some(target_id)) =
@@ -778,7 +801,7 @@ pub(crate) async fn rename_instance_file(
             target_id,
             source_id,
         )
-        .execute(&mut *tx)
+        .execute(&mut **tx)
         .await?;
 
         sqlx::query!(
@@ -792,7 +815,7 @@ pub(crate) async fn rename_instance_file(
             instance_id,
             target_id,
         )
-        .execute(&mut *tx)
+        .execute(&mut **tx)
         .await?;
 
         sqlx::query!(
@@ -802,7 +825,7 @@ pub(crate) async fn rename_instance_file(
 				",
             target_id,
         )
-        .execute(&mut *tx)
+        .execute(&mut **tx)
         .await?;
     }
 
@@ -824,13 +847,19 @@ pub(crate) async fn rename_instance_file(
         instance_id,
         old_relative_path,
     )
-    .execute(&mut *tx)
+    .execute(&mut **tx)
     .await?;
 
-    tx.commit().await?;
+    let row = sqlx::query_as::<_, InstanceFileRow>(
+        "SELECT * FROM instance_files
+         WHERE instance_id = ? AND relative_path = ?",
+    )
+    .bind(instance_id)
+    .bind(new_relative_path)
+    .fetch_optional(&mut **tx)
+    .await?;
 
-    get_instance_file_by_relative_path(instance_id, new_relative_path, pool)
-        .await
+    row.map(TryInto::try_into).transpose()
 }
 
 pub(crate) async fn move_instance_file_in_transaction(
@@ -1526,9 +1555,9 @@ pub(crate) async fn get_dependency_backfilled_entry_ids(
     Ok(rows.into_iter().collect())
 }
 
-pub(crate) async fn set_content_entry_dependency_backfilled(
+pub(crate) async fn set_content_entry_dependency_backfilled_in_transaction(
     content_entry_id: &str,
-    pool: &SqlitePool,
+    tx: &mut Transaction<'_, Sqlite>,
 ) -> crate::Result<()> {
     sqlx::query(
         "UPDATE instance_content_entries
@@ -1537,18 +1566,8 @@ pub(crate) async fn set_content_entry_dependency_backfilled(
     )
     .bind(Utc::now().timestamp())
     .bind(content_entry_id)
-    .execute(pool)
+    .execute(&mut **tx)
     .await?;
-    Ok(())
-}
-
-pub(crate) async fn upsert_content_dependency_edge(
-    edge: &ContentDependencyEdge,
-    pool: &SqlitePool,
-) -> crate::Result<()> {
-    let mut tx = pool.begin().await?;
-    upsert_content_dependency_edge_in_transaction(edge, &mut tx).await?;
-    tx.commit().await?;
     Ok(())
 }
 
@@ -1563,7 +1582,9 @@ pub(crate) async fn upsert_content_dependency_edge_in_transaction(
 			content_set_id,
 			parent_entry_id,
 			child_entry_id,
-			provider,
+			evidence_provider,
+			parent_provider,
+			child_provider,
 			dependency_kind,
 			parent_project_id,
 			parent_release_id,
@@ -1572,14 +1593,16 @@ pub(crate) async fn upsert_content_dependency_edge_in_transaction(
 			created_at,
 			modified_at
 		)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT (
 			content_set_id,
 			parent_entry_id,
 			child_entry_id,
 			dependency_kind
 		) DO UPDATE SET
-			provider = excluded.provider,
+			evidence_provider = excluded.evidence_provider,
+			parent_provider = excluded.parent_provider,
+			child_provider = excluded.child_provider,
 			parent_project_id = excluded.parent_project_id,
 			parent_release_id = excluded.parent_release_id,
 			child_project_id = excluded.child_project_id,
@@ -1591,7 +1614,9 @@ pub(crate) async fn upsert_content_dependency_edge_in_transaction(
     .bind(&edge.content_set_id)
     .bind(&edge.parent_entry_id)
     .bind(&edge.child_entry_id)
-    .bind(edge.provider.as_str())
+    .bind(edge.evidence_provider.as_str())
+    .bind(edge.parent_provider.as_str())
+    .bind(edge.child_provider.as_str())
     .bind(edge.dependency_kind.as_str())
     .bind(&edge.parent_project_id)
     .bind(&edge.parent_release_id)
@@ -1631,7 +1656,8 @@ pub(crate) async fn get_content_dependency_edges(
 ) -> crate::Result<Vec<ContentDependencyEdge>> {
     let rows = sqlx::query(
         "SELECT id, content_set_id, parent_entry_id, child_entry_id,
-                provider, dependency_kind, parent_project_id,
+                evidence_provider, parent_provider, child_provider,
+                dependency_kind, parent_project_id,
                 parent_release_id, child_project_id, child_release_id,
                 created_at, modified_at
          FROM instance_content_dependencies
@@ -1644,8 +1670,14 @@ pub(crate) async fn get_content_dependency_edges(
 
     rows.into_iter()
         .map(|row| {
-            let provider = ContentProvider::from_str(
-                &row.try_get::<String, _>("provider")?,
+            let evidence_provider = ContentProvider::from_str(
+                &row.try_get::<String, _>("evidence_provider")?,
+            )?;
+            let parent_provider = ContentProvider::from_str(
+                &row.try_get::<String, _>("parent_provider")?,
+            )?;
+            let child_provider = ContentProvider::from_str(
+                &row.try_get::<String, _>("child_provider")?,
             )?;
             let dependency_kind = ContentDependencyKind::from_str(
                 &row.try_get::<String, _>("dependency_kind")?,
@@ -1658,7 +1690,9 @@ pub(crate) async fn get_content_dependency_edges(
                 content_set_id: row.try_get("content_set_id")?,
                 parent_entry_id: row.try_get("parent_entry_id")?,
                 child_entry_id: row.try_get("child_entry_id")?,
-                provider,
+                evidence_provider,
+                parent_provider,
+                child_provider,
                 dependency_kind,
                 parent_project_id: row.try_get("parent_project_id")?,
                 parent_release_id: row.try_get("parent_release_id")?,

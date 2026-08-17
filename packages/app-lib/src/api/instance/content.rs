@@ -82,6 +82,22 @@ pub async fn get_content_items(
 }
 
 #[tracing::instrument]
+pub async fn get_content_items_by_paths(
+    instance_id: &str,
+    paths: Vec<String>,
+    cache_behaviour: Option<CacheBehaviour>,
+) -> crate::Result<Vec<ContentItem>> {
+    let state = State::get().await?;
+    crate::state::list_content_by_paths(
+        instance_id,
+        &paths,
+        cache_behaviour,
+        &state,
+    )
+    .await
+}
+
+#[tracing::instrument]
 pub async fn get_content_snapshot(
     instance_id: &str,
 ) -> crate::Result<InstanceContentSnapshot> {

@@ -14,7 +14,7 @@ const FABRIC_API_PROJECT_ID: &str = "P7dR8mSH";
 const QUILTED_FABRIC_API_PROJECT_ID: &str = "qvIfYCYJ";
 const IRIS_PROJECT_ID: &str = "YL57xq9U";
 const SODIUM_PROJECT_ID: &str = "AANobbMI";
-const MAX_DEPENDENCY_DEPTH: usize = 20;
+const MAX_DEPENDENCY_DEPTH: usize = 32;
 
 // Some Modrinth versions omit required dependencies from their metadata even
 // though the mod JAR itself declares them (e.g. several Iris releases omit
@@ -94,6 +94,10 @@ async fn resolve_primary_version<P: ContentMetadataProvider>(
             });
         }
 
+        if !version_matches(&version, request.content_type, &request.target) {
+            return Err(Error::NoCompatibleVersion(request.project_id.clone()));
+        }
+
         return Ok(version);
     }
 
@@ -162,9 +166,21 @@ impl<'a, P: ContentMetadataProvider> InstallResolver<'a, P> {
 
         while let Some((version, depth)) = stack.pop() {
             if !self.visited_versions.insert(version.id.clone()) {
+                self.skipped.push(SkippedContent {
+                    project_id: version.project_id,
+                    version_id: Some(version.id),
+                    dependent_on_version_id: None,
+                    reason: SkippedReason::DependencyCycle,
+                });
                 continue;
             }
             if depth >= MAX_DEPENDENCY_DEPTH {
+                self.skipped.push(SkippedContent {
+                    project_id: version.project_id,
+                    version_id: Some(version.id),
+                    dependent_on_version_id: None,
+                    reason: SkippedReason::DependencyDepthExceeded,
+                });
                 continue;
             }
 
@@ -280,6 +296,19 @@ impl<'a, P: ContentMetadataProvider> InstallResolver<'a, P> {
                     dependent_on_version_id: None,
                     reason: SkippedReason::MissingVersion,
                 });
+            } else if let Some(version) = &version
+                && !version_matches(version, self.content_type, self.target)
+            {
+                self.skipped.push(SkippedContent {
+                    project_id: dependency
+                        .project_id
+                        .clone()
+                        .unwrap_or_else(|| version.project_id.clone()),
+                    version_id: Some(version_id.clone()),
+                    dependent_on_version_id: None,
+                    reason: SkippedReason::NoCompatibleVersion,
+                });
+                return Ok(None);
             }
             return Ok(version);
         }
@@ -395,46 +424,23 @@ fn matches_game_versions(
 
 fn matches_loaders(
     version: &Version,
-    content_type: ContentType,
+    _content_type: ContentType,
     preferences: &ResolutionPreferences,
 ) -> bool {
     if preferences.loaders.is_empty() {
         return true;
     }
 
-    let direct_match = preferences.loaders.iter().any(|loader| {
+    preferences.loaders.iter().any(|loader| {
         version
             .loaders
             .iter()
             .any(|candidate| loaders_match(loader, candidate))
-    });
-
-    if direct_match {
-        return true;
-    }
-
-    content_type == ContentType::Mod
-        && version.loaders.iter().any(|loader| loader == "datapack")
+    })
 }
 
 fn loaders_match(expected: &str, candidate: &str) -> bool {
-    let expected = expected.to_lowercase();
-    let candidate = candidate.to_lowercase();
-
-    expected == candidate
-        || loader_aliases(&expected).contains(&candidate.as_str())
-        || loader_aliases(&candidate).contains(&expected.as_str())
-}
-
-fn loader_aliases(loader: &str) -> &'static [&'static str] {
-    match loader {
-        "neoforge" => &["neo"],
-        "neo" => &["neoforge"],
-        "paper" | "purpur" | "spigot" | "bukkit" => {
-            &["paper", "purpur", "spigot", "bukkit"]
-        }
-        _ => &[],
-    }
+    expected.eq_ignore_ascii_case(candidate)
 }
 
 fn should_use_quilted_fabric_api(

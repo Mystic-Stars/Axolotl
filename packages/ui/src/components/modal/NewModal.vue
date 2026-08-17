@@ -188,7 +188,7 @@ const props = withDefaults(
 		closable: true,
 		danger: false,
 		fade: undefined,
-		closeOnClickOutside: true,
+		closeOnClickOutside: false,
 		closeOnEsc: true,
 		warnOnClose: false,
 		header: undefined,

@@ -25,8 +25,8 @@ const officialLabrinthBaseUrl = trimTrailingSlash(
 )
 type DownloadSourceMode = 'auto' | 'official_only' | 'mirror_preferred' | 'official_preferred'
 
-// Modrinth content always uses the official sources: mirror selectors are
-// accepted for compatibility but never change the base URL.
+// The Modrinth API always uses the official source; Modrinth download mirror
+// routing is handled by the Rust download layer.
 export function setModrinthSourceMode(_sourceMode: DownloadSourceMode) {}
 
 export function setModrinthMirrorEnabled(_enabled: boolean) {}
