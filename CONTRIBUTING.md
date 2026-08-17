@@ -24,6 +24,32 @@
    pnpm app:dev
    ```
 
+#### Nix 开发环境
+
+在受支持的 `x86_64-linux` 或 `aarch64-linux` 系统上，可使用仓库已提交的 `flake.lock` 进入固定版本的开发环境。该环境不会自动初始化子模块或安装 JavaScript 依赖：
+
+```bash
+git submodule update --init --recursive
+nix develop
+pnpm install --frozen-lockfile
+pnpm app:dev
+```
+
+进入 `nix develop` 后，可直接运行下方现有检查命令。
+
+#### direnv 自动加载
+
+已安装 [direnv](https://direnv.net/) 并为当前 Shell 配置 hook 后，仓库根目录的 `.envrc` 会通过 `use flake` 自动加载同一个默认 Nix 开发环境。首次进入仓库时执行：
+
+```bash
+git submodule update --init --recursive
+direnv allow
+pnpm install --frozen-lockfile
+pnpm app:dev
+```
+
+`.envrc` 不会初始化子模块或安装依赖；direnv 的本地缓存目录 `.direnv/` 已被 Git 忽略。`.envrc` 内容变更后，需要重新运行 `direnv allow`。
+
 ### 常用检查命令
 
 在提交代码前，建议运行以下命令确保代码符合规范：
@@ -79,6 +105,7 @@ git push origin v1.2.3
 预发布版本请使用带后缀的标签（如 `v1.2.3-beta.1`）。
 
 **自动发布工作流执行步骤**：
+
 1. 将标签版本写入桌面应用构建配置。
 2. 在 GitHub 托管的 Windows、macOS 和 Linux runner 上并行构建安装包。
 3. 使用仓库 Secrets 中的 Tauri 私钥生成签名更新包。

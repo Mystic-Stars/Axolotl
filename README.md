@@ -74,6 +74,28 @@ curl -fsSL https://ppa.axlmc.org/setup.sh | sudo bash
 sudo apt install axolotl-launcher
 ```
 
+**Nix / NixOS**（`x86_64-linux`、`aarch64-linux`）：
+
+无需安装即可直接运行：
+
+```bash
+nix run github:Mystic-Stars/Axolotl
+```
+
+作为 NixOS flake 输入安装：
+
+```nix
+inputs.axolotl.url = "github:Mystic-Stars/Axolotl";
+
+environment.systemPackages = [ inputs.axolotl.packages.${pkgs.system}.default ];
+```
+
+使用 Home Manager 时，将同一包加入用户环境：
+
+```nix
+home.packages = [ inputs.axolotl.packages.${pkgs.system}.default ];
+```
+
 </details>
 
 ## 参与项目开发
