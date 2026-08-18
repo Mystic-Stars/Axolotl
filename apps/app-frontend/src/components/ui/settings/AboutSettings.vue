@@ -30,6 +30,7 @@ import { isDev } from '@/helpers/utils'
 import { handleSevereError } from '@/store/error.js'
 
 import QqChannelIcon from './QqChannelIcon.vue'
+import AboutScene from '../AboutScene.vue'
 
 const { formatMessage } = useVIntl()
 const version = await getVersion()
@@ -213,8 +214,17 @@ function triggerTestNotificationError() {
 
 <template>
 	<div class="flex flex-col gap-6">
-		<section class="rounded-xl bg-surface-4 p-5">
-			<div class="flex items-center gap-4">
+		<section class="rounded-xl bg-surface-4">
+			<div
+				class="m-0 w-full overflow-hidden h-300"
+				style="
+					mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
+					-webkit-mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
+				"
+			>
+				<AboutScene />
+			</div>
+			<div class="flex items-center gap-4 m-5">
 				<img class="size-20 object-contain" src="@/assets/axolotl.png" alt="" />
 				<div class="min-w-0">
 					<h2 class="m-0 text-xl font-semibold text-contrast">
@@ -229,7 +239,7 @@ function triggerTestNotificationError() {
 					</p>
 				</div>
 			</div>
-			<p class="m-0 mt-4 text-primary">
+			<p class="m-5 mt-9 text-primary">
 				{{ formatMessage(messages.productDescription) }}
 			</p>
 		</section>
