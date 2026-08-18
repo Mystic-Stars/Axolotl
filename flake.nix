@@ -70,7 +70,7 @@
         {
           axolotl-launcher = axolotl;
           default = axolotl;
-          gradle-deps-update = axolotl.passthru.unwrapped.mitmCache.updateScript;
+          gradle-deps-update = axolotl.passthru.gradle-deps-update;
         }
       );
 
