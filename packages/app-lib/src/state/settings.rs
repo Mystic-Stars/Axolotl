@@ -844,7 +844,7 @@ impl Theme {
 #[derive(Serialize, Deserialize, Debug, Clone, Copy)]
 pub struct MemorySettings {
     pub maximum: u32,
-    #[serde(default)]
+    #[serde(default = "default_true")]
     pub automatic: bool,
 }
 

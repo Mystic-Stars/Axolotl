@@ -272,6 +272,12 @@
 	"app.appearance-settings.page-transitions.title": {
 		"message": "页面切换过渡动画"
 	},
+	"app.appearance-settings.auto-install-dependencies.description": {
+		"message": "安装内容时自动下载所需前置。每次安装前仍可在确认对话框中调整选择。"
+	},
+	"app.appearance-settings.auto-install-dependencies.title": {
+		"message": "自动安装前置"
+	},
 	"app.appearance-settings.select-option": {
 		"message": "选择一个选项"
 	},
@@ -433,6 +439,93 @@
 	},
 	"app.content-install.no-compatible-versions": {
 		"message": "没有与 {compatibilityLabel} 匹配的可用版本。如果仍要安装，请选择一个版本。匹配的前置仍会安装。"
+	},
+	"app.content-install.dependencies-installed.notification-body": {
+		"message": "已自动安装 {count, plural, other {# 个前置}}：{list}"
+	},
+	"app.content-install.dependencies-installed.notification-title": {
+		"message": "已安装前置"
+	},
+	"app.content-install.dependencies-skipped.notification-body": {
+		"message": "以下前置未安装：{list}"
+	},
+	"app.content-install.dependencies-skipped.notification-title": {
+		"message": "部分前置已跳过"
+	},
+	"app.content-install.preview.already-installed": {
+		"message": "已安装"
+	},
+	"app.content-install.preview.cancel": {
+		"message": "取消"
+	},
+	"app.content-install.preview.clear-all": {
+		"message": "全部取消"
+	},
+	"app.content-install.preview.dependencies-count": {
+		"message": "{count, number} 个前置"
+	},
+	"app.content-install.preview.dependencies-header": {
+		"message": "前置"
+	},
+	"app.content-install.preview.description": {
+		"message": "将在 {instance} 中为 {project} 自动安装 {count, plural, other {# 个前置}}。"
+	},
+	"app.content-install.preview.header": {
+		"message": "确认安装"
+	},
+	"app.content-install.preview.install": {
+		"message": "安装"
+	},
+	"app.content-install.preview.only-checked": {
+		"message": "只会安装勾选的前置。"
+	},
+	"app.content-install.preview.required-by": {
+		"message": "被 {projects} 需要"
+	},
+	"app.content-install.preview.select-all": {
+		"message": "全选"
+	},
+	"app.content-install.preview.skip.already-installed": {
+		"message": "已安装"
+	},
+	"app.content-install.preview.skip.conflicting-dependency": {
+		"message": "前置版本冲突"
+	},
+	"app.content-install.preview.skip.duplicate-project": {
+		"message": "已包含"
+	},
+	"app.content-install.preview.skip.embedded": {
+		"message": "已内置于项目中"
+	},
+	"app.content-install.preview.skip.excluded-by-user": {
+		"message": "已由用户取消"
+	},
+	"app.content-install.preview.skip.incompatible": {
+		"message": "不兼容的前置"
+	},
+	"app.content-install.preview.skip.missing-version": {
+		"message": "找不到引用的版本"
+	},
+	"app.content-install.preview.skip.no-compatible-version": {
+		"message": "找不到兼容版本"
+	},
+	"app.content-install.preview.skip.optional": {
+		"message": "可选前置"
+	},
+	"app.content-install.preview.skip.quilt-fabric-api": {
+		"message": "已替换为 Quilt 版本"
+	},
+	"app.content-install.preview.skip.tool": {
+		"message": "开发工具，不安装"
+	},
+	"app.content-install.preview.skip.unsupported-project-type": {
+		"message": "不支持的项目类型"
+	},
+	"app.content-install.preview.skipped-header": {
+		"message": "跳过"
+	},
+	"app.content-install.preview.version-mismatch": {
+		"message": "当前版本可能不匹配实例版本"
 	},
 	"app.content.add-from-file": {
 		"message": "从文件添加"
@@ -885,7 +978,7 @@
 		"message": "无法登录 Minecraft"
 	},
 	"app.error.minecraft-required": {
-		"message": "要游玩此实例，请在下方使用 Microsoft 账号登录。如果没有 Minecraft 账号，可以在 Minecraft 官网购买游戏。"
+		"message": "要游玩此实例，请创建账户。如果没有 Minecraft 账号，可以在右侧使用离线账户登陆。"
 	},
 	"app.error.minecraft-sign-in-title": {
 		"message": "登录 Minecraft"
@@ -1222,6 +1315,36 @@
 	},
 	"app.instance.mods.content-type-project": {
 		"message": "项目"
+	},
+	"app.instance.mods.orphaned-dependencies.body": {
+		"message": "以下前置已不再被其他内容需要，且不会被自动删除：{list}"
+	},
+	"app.instance.mods.orphaned-dependencies.title": {
+		"message": "前置已不再被需要"
+	},
+	"app.instance.mods.toggle-dependencies.apply": {
+		"message": "切换相关内容"
+	},
+	"app.instance.mods.toggle-dependencies.bulk-body": {
+		"message": "切换所选内容将同时影响 {count} 个其他内容。"
+	},
+	"app.instance.mods.toggle-dependencies.selected-only": {
+		"message": "仅切换所选"
+	},
+	"app.instance.mods.toggle-dependencies.single-body": {
+		"message": "切换 {project} 将同时影响 {count} 个其他内容。"
+	},
+	"app.instance.mods.toggle-dependencies.title": {
+		"message": "确认切换"
+	},
+	"app.instance.mods.toggle-dependencies.warning": {
+		"message": "是否自动应用这些相关更改？忽略它们可能导致游戏无法正常运行。"
+	},
+	"app.instance.mods.toggle-dependencies.will-disable": {
+		"message": "以下内容将同时禁用："
+	},
+	"app.instance.mods.toggle-dependencies.will-enable": {
+		"message": "以下内容将同时启用："
 	},
 	"app.instance.mods.project-was-added": {
 		"message": "已添加 “{name}”"
@@ -2548,6 +2671,18 @@
 	},
 	"app.settings.resources.source.mojang-official-preferred": {
 		"message": "优先官方源"
+	},
+	"app.settings.resources.download-engine": {
+		"message": "下载引擎"
+	},
+	"app.settings.resources.download-engine-description": {
+		"message": "选择启动器使用的下载引擎。"
+	},
+	"app.settings.resources.download-engine.legacy": {
+		"message": "原生引擎"
+	},
+	"app.settings.resources.download-engine.xmcl": {
+		"message": "XMCL"
 	},
 	"app.settings.resources.maximum-downloads": {
 		"message": "最大并发下载数"
@@ -5938,6 +6073,12 @@
 	},
 	"app.multiplayer.download-terracotta": {
 		"message": "下载陶瓦联机"
+	},
+	"app.multiplayer.terracotta.update": {
+		"message": "更新陶瓦联机"
+	},
+	"app.multiplayer.terracotta.update-available": {
+		"message": "陶瓦联机 {version} 已可安装。"
 	},
 	"app.multiplayer.status.downloading": {
 		"message": "下载中..."

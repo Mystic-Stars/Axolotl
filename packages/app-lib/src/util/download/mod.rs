@@ -1,12 +1,16 @@
 //! Modular download engine selection.
 //!
-//! The launcher can use either the legacy adaptive engine or the
-//! XMCL-compatible engine. The legacy engine remains available as a
-//! fallback and for users who opt out of the new engine.
+//! The launcher can use either the native adaptive engine (HTTP/2
+//! multiplexing with shared per-authority connections, falling back to
+//! HTTP/1.1 single-stream) or the XMCL-compatible engine. The native engine
+//! is the default; the XMCL engine remains available for users who prefer it.
 
 use serde::{Deserialize, Serialize};
 use std::sync::atomic::{AtomicU8, Ordering};
 
+pub mod h2_download;
+pub mod h2_pool;
+pub mod legacy;
 pub mod log;
 pub mod shared;
 pub mod slow;
@@ -18,8 +22,8 @@ pub mod xmcl;
 #[repr(u8)]
 #[serde(rename_all = "snake_case")]
 pub enum DownloadEngine {
-    Legacy,
     #[default]
+    Legacy,
     #[serde(rename = "xmcl", alias = "xmcl_compat")]
     XmclCompat,
 }
@@ -40,7 +44,7 @@ impl DownloadEngine {
     }
 }
 
-static ACTIVE_ENGINE: AtomicU8 = AtomicU8::new(1);
+static ACTIVE_ENGINE: AtomicU8 = AtomicU8::new(0);
 
 /// Returns the engine the launcher should use for new downloads.
 pub fn active_engine() -> DownloadEngine {

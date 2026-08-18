@@ -43,9 +43,11 @@ flate2 = { workspace = true }
 fs4 = { workspace = true, features = ["tokio"] }
 futures = { workspace = true, features = ["alloc", "async-await"] }
 futures-lite = { workspace = true }
+h2 = { workspace = true }
 heck = { workspace = true }
 hickory-resolver = { workspace = true }
 hmac = { workspace = true }
+http = { workspace = true }
 indicatif = { workspace = true, optional = true }
 itertools = { workspace = true }
 jsonwebtoken = { workspace = true }
@@ -80,6 +82,9 @@ reqwest = { workspace = true, features = [
   "stream",
 ] }
 rgb = { workspace = true }
+rustls = { workspace = true }
+rustls-native-certs = { workspace = true }
+rustls-pki-types = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_ini = { workspace = true }
 serde_json = { workspace = true }
@@ -111,6 +116,7 @@ tokio = { workspace = true, features = [
   "sync",
   "time",
 ] }
+tokio-rustls = { workspace = true }
 tokio-util = { workspace = true, features = [
   "compat",
   "io",
@@ -125,6 +131,7 @@ tracing-subscriber = { workspace = true, features = ["chrono", "env-filter"] }
 url = { workspace = true, features = ["serde"] }
 urlencoding = { workspace = true }
 uuid = { workspace = true, features = ["serde", "v4"] }
+webpki-roots = { workspace = true }
 whoami = { workspace = true }
 xz2 = { workspace = true }
 zbus = { workspace = true }

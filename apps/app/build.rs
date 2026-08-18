@@ -565,7 +565,9 @@ fn main() {
                         "terracotta_join",
                         "terracotta_reset",
                         "terracotta_get_platform_key",
+                        "terracotta_check_for_update",
                         "terracotta_download",
+                        "terracotta_update",
                         "terracotta_get_player_name",
                         "terracotta_get_diagnostic_report",
                     ])

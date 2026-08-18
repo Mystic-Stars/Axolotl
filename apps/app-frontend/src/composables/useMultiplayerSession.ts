@@ -8,7 +8,7 @@ import {
 	type MultiplayerProvider,
 	type MultiplayerState,
 } from '@/helpers/multiplayer'
-import { terracotta } from '@/helpers/terracotta'
+import { terracotta, type TerracottaUpdate } from '@/helpers/terracotta'
 import { exportErrorLogs } from '@/helpers/utils'
 
 const ACTIVE_POLL_INTERVAL = 500
@@ -25,6 +25,7 @@ export function useMultiplayerSession() {
 	const isActionPending = ref(false)
 	const isNodesLoading = ref(false)
 	const isExportingReport = ref(false)
+	const terracottaUpdate = ref<TerracottaUpdate | null>(null)
 
 	let mounted = false
 	let pollTimer: ReturnType<typeof setTimeout> | undefined
@@ -104,6 +105,10 @@ export function useMultiplayerSession() {
 	const stop = () => runAction(multiplayer.stop)
 	const reset = () => runAction(multiplayer.reset)
 	const downloadTerracotta = () => runAction(terracotta.download)
+	const updateTerracotta = () =>
+		runAction(async () => {
+			terracottaUpdate.value = await terracotta.update()
+		})
 	const downloadHongshi = () => runAction(multiplayer.downloadHongshi)
 	async function exportTerracottaReport() {
 		if (isExportingReport.value) return
@@ -126,6 +131,12 @@ export function useMultiplayerSession() {
 			.getPlatformKey()
 			.then((value) => {
 				if (mounted) platformKey.value = value
+			})
+			.catch(() => undefined)
+		void terracotta
+			.checkForUpdate()
+			.then((update) => {
+				if (mounted) terracottaUpdate.value = update
 			})
 			.catch(() => undefined)
 		void multiplayer
@@ -166,5 +177,7 @@ export function useMultiplayerSession() {
 		state,
 		stop,
 		switchProvider,
+		terracottaUpdate,
+		updateTerracotta,
 	}
 }

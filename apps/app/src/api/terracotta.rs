@@ -12,7 +12,9 @@ pub fn init<R: tauri::Runtime>() -> tauri::plugin::TauriPlugin<R> {
             terracotta_join,
             terracotta_reset,
             terracotta_get_platform_key,
+            terracotta_check_for_update,
             terracotta_download,
+            terracotta_update,
             terracotta_get_player_name,
             terracotta_get_diagnostic_report,
         ])
@@ -132,6 +134,14 @@ pub async fn terracotta_get_platform_key() -> Result<String> {
 }
 
 #[tauri::command]
+pub async fn terracotta_check_for_update()
+-> Result<theseus::terracotta::TerracottaUpdate> {
+    Ok(theseus::terracotta::check_for_update()
+        .await
+        .map_err(theseus::Error::from)?)
+}
+
+#[tauri::command]
 pub async fn terracotta_download(version: Option<String>) -> Result<()> {
     theseus::terracotta::download_terracotta(version)
         .await
@@ -140,6 +150,17 @@ pub async fn terracotta_download(version: Option<String>) -> Result<()> {
             theseus::Error::from(error)
         })?;
     Ok(())
+}
+
+#[tauri::command]
+pub async fn terracotta_update() -> Result<theseus::terracotta::TerracottaUpdate>
+{
+    Ok(theseus::terracotta::update_terracotta()
+		.await
+		.map_err(|error| {
+			tracing::error!(target: "theseus::terracotta", action = "update", error = %error);
+			theseus::Error::from(error)
+		})?)
 }
 
 #[tauri::command]

@@ -197,6 +197,14 @@ const messages = defineMessages({
 		id: 'app.multiplayer.download-terracotta',
 		defaultMessage: 'Download Terracotta',
 	},
+	updateTerracotta: {
+		id: 'app.multiplayer.terracotta.update',
+		defaultMessage: 'Update Terracotta',
+	},
+	terracottaUpdateAvailable: {
+		id: 'app.multiplayer.terracotta.update-available',
+		defaultMessage: 'Terracotta {version} is ready to install.',
+	},
 	retry: {
 		id: 'app.multiplayer.retry',
 		defaultMessage: 'Retry',
@@ -368,6 +376,8 @@ const {
 	state,
 	stop: stopMultiplayer,
 	switchProvider,
+	terracottaUpdate,
+	updateTerracotta,
 } = useMultiplayerSession()
 
 const providerStorageKey = 'axolotl-multiplayer-provider'
@@ -993,6 +1003,25 @@ function submitJoin() {
 
 			<Card v-else-if="!isRunning" class="!m-0">
 				<div class="flex flex-col gap-5">
+					<Admonition
+						v-if="terracottaUpdate?.update_available"
+						type="info"
+						:header="
+							formatMessage(messages.terracottaUpdateAvailable, {
+								version: terracottaUpdate.latest_version,
+							})
+						"
+					>
+						<template #actions>
+							<ButtonStyled color="brand">
+								<button type="button" :disabled="isActionPending" @click="updateTerracotta">
+									<DownloadIcon />
+									{{ formatMessage(messages.updateTerracotta) }}
+								</button>
+							</ButtonStyled>
+						</template>
+					</Admonition>
+
 					<div class="flex items-start gap-3">
 						<div
 							class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-highlight text-brand"

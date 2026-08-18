@@ -29,7 +29,8 @@ pub(crate) async fn sync_instance_content_files(
     instance: &Instance,
     state: &State,
 ) -> crate::Result<Vec<InstanceFile>> {
-    cleanup_install_temporary_files(instance, state)?;
+    // Keep the filesystem snapshot stable until its database rows commit.
+    let _instance_lock = state.lock_instance_content(&instance.id).await;
     let scanned = filesystem::scan_content_files(
         &state.directories.instances_dir(),
         &instance.path,
@@ -242,13 +243,6 @@ pub(crate) async fn sync_instance_content_files(
         }
     }
 
-    // The write below inserts foreign-keyed `instance_files` rows. Serialize it
-    // with instance deletion and re-validate the parent row inside the
-    // transaction so a concurrent delete fails with a clean error instead of
-    // FK 787. Scanning and hashing above stay unlocked to keep concurrent
-    // operations parallel.
-    let _instance_lock = state.lock_instance_content(&instance.id).await;
-
     let mut tx = state.pool.begin_with("BEGIN IMMEDIATE").await?;
     sqlite::content_rows::ensure_instance_exists(&instance.id, &mut tx).await?;
     sqlite::content_rows::mark_instance_files_missing(&instance.id, &mut tx)
@@ -337,37 +331,6 @@ fn icon_extension(entry_name: &str) -> &str {
     } else {
         "png"
     }
-}
-
-fn cleanup_install_temporary_files(
-    instance: &Instance,
-    state: &State,
-) -> crate::Result<()> {
-    let instance_dir = state.directories.instances_dir().join(&instance.path);
-    for project_type in ProjectType::iterator() {
-        let folder = instance_dir.join(project_type.get_folder());
-        if !folder.is_dir() {
-            continue;
-        }
-        for entry in std::fs::read_dir(&folder)
-            .map_err(crate::util::io::IOError::from)?
-        {
-            let path = entry.map_err(crate::util::io::IOError::from)?.path();
-            let name = path
-                .file_name()
-                .and_then(|name| name.to_str())
-                .unwrap_or_default();
-            if (name.ends_with(".installing")
-                || name.ends_with(".installing.previous")
-                || name.ends_with(".installing.download"))
-                && path.is_file()
-            {
-                std::fs::remove_file(path)
-                    .map_err(crate::util::io::IOError::from)?;
-            }
-        }
-    }
-    Ok(())
 }
 
 pub(crate) fn project_type_for_file(
@@ -557,6 +520,7 @@ mod tests {
         CurseForgeFileId, CurseForgeProjectId, ModrinthProjectId,
         ModrinthVersionId,
     };
+    use std::fs;
 
     fn modrinth_ref() -> ContentProviderRef {
         ContentProviderRef::Modrinth {
@@ -593,5 +557,28 @@ mod tests {
             Some(ContentProvider::Modrinth),
             &[curseforge_ref(), modrinth_ref()],
         ));
+    }
+
+    #[test]
+    fn content_scan_preserves_install_temporary_files() {
+        let root = tempfile::tempdir().unwrap();
+        let mods = root.path().join("instance/mods");
+        fs::create_dir_all(&mods).unwrap();
+        let temporary_names = [
+            "example.jar.installing.download",
+            "example.jar.installing",
+            "example.jar.installing.previous",
+        ];
+        for name in temporary_names {
+            fs::write(mods.join(name), name).unwrap();
+        }
+
+        let scanned =
+            filesystem::scan_content_files(root.path(), "instance").unwrap();
+
+        assert!(scanned.is_empty());
+        for name in temporary_names {
+            assert!(mods.join(name).is_file());
+        }
     }
 }

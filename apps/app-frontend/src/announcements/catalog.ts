@@ -33,6 +33,31 @@ export const ANNOUNCEMENT_CHANGE_TYPES: readonly AnnouncementChangeType[] = [
 
 export const launcherAnnouncements: readonly LauncherAnnouncement[] = [
 	{
+		id: 'launcher-1.8.4',
+		version: '1.8.4',
+		publishedAt: '2026-08-18',
+		title: {
+			'en-US': 'Axolotl Launcher 1.8.4',
+			'zh-CN': 'Axolotl Launcher 1.8.4',
+		},
+		changes: {
+			fixed: [
+				{
+					'en-US':
+						'Fixed CurseForge and Modrinth installs rejecting valid legacy mods when embedded loader metadata was missing or outdated.',
+					'zh-CN':
+						'修复 CurseForge 和 Modrinth 安装会因加载器元数据缺失或过时而拒绝有效旧版模组的问题。',
+				},
+				{
+					'en-US':
+						'Fixed modpack downloads randomly failing when a content refresh removed files that were still being installed.',
+					'zh-CN':
+						'修复下载整合包时，内容刷新误删仍在安装的文件并导致随机下载失败的问题。',
+				},
+			],
+		},
+	},
+	{
 		id: 'launcher-1.8.3',
 		version: '1.8.3',
 		publishedAt: '2026-08-17',
@@ -42,6 +67,11 @@ export const launcherAnnouncements: readonly LauncherAnnouncement[] = [
 		},
 		changes: {
 			added: [
+				{
+					'en-US':
+						'Added built-in Terracotta update checks and one-click updates when multiplayer is not running.',
+					'zh-CN': '新增陶瓦联机内置更新检查，并可在服务停止时一键更新。',
+				},
 				{
 					'en-US':
 						'Added CurseForge map browsing and installation into existing instances, including recovery for maps that require a manual ZIP download.',

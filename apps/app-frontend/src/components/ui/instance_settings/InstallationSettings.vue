@@ -23,7 +23,7 @@ import { computed, ref } from 'vue'
 import SymlinkInstanceWarning from '@/components/ui/SymlinkInstanceWarning.vue'
 import { trackEvent } from '@/helpers/analytics'
 import { get_project_versions, get_version } from '@/helpers/cache'
-import { type CurseForgeFile, updateManagedCurseForgeModpack } from '@/helpers/curseforge'
+import { updateManagedCurseForgeModpack, type CurseForgeFile } from '@/helpers/curseforge'
 import {
 	install_duplicate_instance,
 	install_existing_instance,

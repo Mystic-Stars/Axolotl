@@ -38,6 +38,9 @@ struct InstallProgressReporterState {
     postponed_java_versions: HashSet<u32>,
     last_live_emit_at: Instant,
     last_live_persist_at: Instant,
+    /// Paths with a pending stalled-download check task, so at most one
+    /// delayed check is scheduled per active download at a time.
+    pending_stall_checks: HashSet<String>,
 }
 
 #[derive(serde::Serialize)]
@@ -108,6 +111,7 @@ impl InstallProgressReporter {
                             postponed_java_versions: HashSet::new(),
                             last_live_emit_at: Instant::now(),
                             last_live_persist_at: Instant::now(),
+                            pending_stall_checks: HashSet::new(),
                         }));
                     entry.insert(Arc::downgrade(&state));
                     state
@@ -123,6 +127,7 @@ impl InstallProgressReporter {
                         postponed_java_versions: HashSet::new(),
                         last_live_emit_at: Instant::now(),
                         last_live_persist_at: Instant::now(),
+                        pending_stall_checks: HashSet::new(),
                     }));
                 entry.insert(Arc::downgrade(&state));
                 state
@@ -300,9 +305,23 @@ impl InstallProgressReporter {
         if refresh_missing_reason {
             refresh_missing_pause_reason(&mut state.job);
         }
-        let record =
-            store::update_state(self.job_id, &state.job, &app_state).await?;
-        state.mark_persisted();
+        // Serialize under the lock; the DB write runs without holding the
+        // reporter mutex so per-file completion events never serialize on it.
+        let json = serde_json::to_string(&state.job)?;
+        let provider = state.job.provider().as_str().to_string();
+        let summary = state.job.download_summary();
+        drop(state);
+        let record = store::update_state_with_progress_columns(
+            self.job_id,
+            &json,
+            &provider,
+            &summary,
+            &app_state,
+        )
+        .await?;
+        if let Ok(mut state) = self.state.try_lock() {
+            state.mark_persisted();
+        }
         let snapshot = record.snapshot();
         emit_install_job(&snapshot).await?;
         Ok(snapshot)
@@ -463,7 +482,16 @@ impl InstallProgressReporter {
                     .saturating_mul(1_000)
                     .checked_div(sample_elapsed_ms)
                     .unwrap_or(0);
-                let new_speed = sample;
+                let new_speed = match active.speed_bytes_per_second {
+                    Some(previous) if sample > previous => {
+                        previous + (((sample - previous) as f64) * 0.5) as u64
+                    }
+                    Some(previous) => {
+                        (((previous as f64) * 0.95) + ((sample as f64) * 0.05))
+                            as u64
+                    }
+                    None => sample,
+                };
                 active.speed_bytes_per_second = Some(new_speed);
                 active.speed_sample_started_at = now;
                 active.speed_sample_started_bytes = bytes;
@@ -485,19 +513,35 @@ impl InstallProgressReporter {
             live_download_metrics(&state.job);
         let should_persist = state.last_live_persist_at.elapsed()
             >= LIVE_PROGRESS_PERSIST_INTERVAL;
-        if should_persist {
+        let schedule_stall_check =
+            state.pending_stall_checks.insert(path.clone());
+        // Serialize and summarize under the lock (CPU only); the DB write
+        // below runs without holding the reporter mutex so progress
+        // callbacks from other files never block on the transaction.
+        let persisted = if should_persist {
+            state.last_live_persist_at = Instant::now();
+            Some((
+                serde_json::to_string(&state.job)?,
+                state.job.provider().as_str().to_string(),
+                state.job.download_summary(),
+            ))
+        } else {
+            None
+        };
+        drop(state);
+        if let Some((json, provider, summary)) = persisted {
             if let Err(error) = store::update_progress_state(
                 self.job_id,
-                &state.job,
+                &json,
+                &provider,
+                &summary,
                 &app_state,
             )
             .await
             {
                 tracing::warn!(%error, "Failed to persist live download progress");
             }
-            state.last_live_persist_at = Instant::now();
         }
-        drop(state);
         emit_download_request_update(&DownloadRequestUpdate::Progress {
             job_id: self.job_id,
             id: path.clone(),
@@ -508,16 +552,21 @@ impl InstallProgressReporter {
         })
         .await?;
 
-        let reporter = self.clone();
-        tokio::spawn(async move {
-            tokio::time::sleep(Duration::from_secs(3)).await;
-            if let Err(error) = reporter
-                .record_download_stalled_if_unchanged(path, bytes)
-                .await
-            {
-                tracing::warn!(%error, "Failed to record stalled download");
-            }
-        });
+        if schedule_stall_check {
+            let reporter = self.clone();
+            tokio::spawn(async move {
+                tokio::time::sleep(Duration::from_secs(3)).await;
+                if let Err(error) = reporter
+                    .record_download_stalled_if_unchanged(path.clone(), bytes)
+                    .await
+                {
+                    tracing::warn!(%error, "Failed to record stalled download");
+                }
+                if let Ok(mut state) = reporter.state.try_lock() {
+                    state.pending_stall_checks.remove(&path);
+                }
+            });
+        }
         Ok(())
     }
 
@@ -718,9 +767,17 @@ impl InstallProgressReporter {
             return Ok(());
         }
 
+        // Serialize and summarize under the lock (CPU only); the DB write
+        // below runs without holding the reporter mutex.
+        let json = serde_json::to_string(&state.job)?;
+        let provider = state.job.provider().as_str().to_string();
+        let summary = state.job.download_summary();
+        drop(state);
         let record = match store::update_progress_state(
             self.job_id,
-            &state.job,
+            &json,
+            &provider,
+            &summary,
             &app_state,
         )
         .await
@@ -735,7 +792,9 @@ impl InstallProgressReporter {
                 return Ok(());
             }
         };
-        state.mark_persisted();
+        if let Ok(mut state) = self.state.try_lock() {
+            state.mark_persisted();
+        }
         if let Err(error) = emit_install_job(&record.snapshot()).await {
             tracing::warn!(%error, "Failed to emit install progress");
         }

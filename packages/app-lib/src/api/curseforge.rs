@@ -1701,8 +1701,6 @@ async fn install_file_with_metrics(
             &file,
             item_type,
             request.world_name.as_deref(),
-            request.game_version.as_deref(),
-            request.mod_loader_type.map(mod_loader_to_slug),
             project_id,
             file_id,
             &project.slug,
@@ -2096,8 +2094,6 @@ async fn install_fixed_curseforge_content(
         &file,
         project_type,
         request.world_name.as_deref(),
-        request.game_version.as_deref(),
-        request.mod_loader_type.map(mod_loader_to_slug),
         project_id,
         file_id,
         &project.slug,
@@ -7506,7 +7502,10 @@ fn validate_cdn_url(url: &reqwest::Url) -> crate::Result<()> {
     #[cfg(debug_assertions)]
     if url.scheme() == "http"
         && matches!(
-            url.host_str().unwrap_or_default().to_ascii_lowercase().as_str(),
+            url.host_str()
+                .unwrap_or_default()
+                .to_ascii_lowercase()
+                .as_str(),
             "127.0.0.1" | "localhost"
         )
     {
@@ -7657,8 +7656,6 @@ async fn download_installed_file(
     file: &CurseForgeFile,
     project_type: ProjectType,
     world_name: Option<&str>,
-    minecraft_version: Option<&str>,
-    loader: Option<&str>,
     project_id: u32,
     file_id: u32,
     project_slug: &str,
@@ -7711,26 +7708,8 @@ async fn download_installed_file(
     if let Some(download_metrics) = download_metrics {
         download_metrics.record(&result);
     }
-    if project_type == ProjectType::Mod {
-        let validation = async {
-            let bytes =
-                bytes::Bytes::from(tokio::fs::read(download_path).await?);
-            crate::mod_metadata::validate_mod_metadata_target(
-                &bytes,
-                minecraft_version,
-                loader,
-            )
-            .map(|_| ())
-            .map_err(|message| {
-                crate::Error::from(ErrorKind::InputError(message))
-            })
-        }
-        .await;
-        if let Err(error) = validation {
-            let _ = crate::util::io::remove_file(download_path).await;
-            return Err(error);
-        }
-    }
+    // Transfers remain concurrent; only publishing into an instance is serialized.
+    let _instance_lock = state.lock_instance_content(instance_id).await;
     let previous_path =
         crate::state::materialize_project_download(download_path, &full_path)
             .await?;
@@ -8996,6 +8975,7 @@ mod tests {
                     world_name: None,
                     install_dependencies: true,
                     excluded_dependency_project_ids: Vec::new(),
+                    dependency_plan_id: None,
                 },
                 display_title: "CurseForge".to_string(),
                 display_icon: None,

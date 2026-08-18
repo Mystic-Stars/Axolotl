@@ -1,6 +1,138 @@
 {
-  "updated_at": "2026-08-16T15:14:15.084Z",
+  "updated_at": "2026-08-18T06:33:34.791Z",
   "announcements": [
+    {
+      "id": "launcher-1.8.4",
+      "version": "1.8.4",
+      "publishedAt": "2026-08-18",
+      "title": {
+        "en-US": "Axolotl Launcher 1.8.4",
+        "zh-CN": "Axolotl Launcher 1.8.4"
+      },
+      "changes": {
+        "fixed": [
+          {
+            "en-US": "Fixed CurseForge and Modrinth installs rejecting valid legacy mods when embedded loader metadata was missing or outdated.",
+            "zh-CN": "修复 CurseForge 和 Modrinth 安装会因加载器元数据缺失或过时而拒绝有效旧版模组的问题。"
+          },
+          {
+            "en-US": "Fixed modpack downloads randomly failing when a content refresh removed files that were still being installed.",
+            "zh-CN": "修复下载整合包时，内容刷新误删仍在安装的文件并导致随机下载失败的问题。"
+          }
+        ]
+      }
+    },
+    {
+      "id": "launcher-1.8.3",
+      "version": "1.8.3",
+      "publishedAt": "2026-08-17",
+      "title": {
+        "en-US": "Axolotl Launcher 1.8.3",
+        "zh-CN": "Axolotl Launcher 1.8.3"
+      },
+      "changes": {
+        "added": [
+          {
+            "en-US": "Added built-in Terracotta update checks and one-click updates when multiplayer is not running.",
+            "zh-CN": "新增陶瓦联机内置更新检查，并可在服务停止时一键更新。"
+          },
+          {
+            "en-US": "Added CurseForge map browsing and installation into existing instances, including recovery for maps that require a manual ZIP download.",
+            "zh-CN": "新增 CurseForge 地图浏览与安装功能，可直接安装到已有实例，并支持需要手动下载 ZIP 的地图恢复流程。"
+          },
+          {
+            "en-US": "Added custom grouping to the instance library selection toolbar",
+            "zh-CN": "为实例库的选择工具栏添加自定义分组功能"
+          },
+          {
+            "en-US": "Added a compact list view to Discover, showing more projects while keeping metadata and install actions aligned.",
+            "zh-CN": "发现内容新增紧凑列表视图，能在同一屏内显示更多项目并保持元数据与安装操作对齐。"
+          }
+        ],
+        "changed": [
+          {
+            "en-US": "Optimized the content page loading for large integration packs, opening now will perform lazy loading updates.",
+            "zh-CN": "优化大型整合包的内容页加载，打开现在会进行懒加载更新。"
+          },
+          {
+            "en-US": "Batch enabling and disabling content now updates selected items together without repeatedly refreshing the entire list.",
+            "zh-CN": "批量启用或禁用内容现在会一次完成选中项更新，不再反复刷新整个列表。"
+          },
+          {
+            "en-US": "Improved the right sidebar toggle with a slightly larger handle and smoother expand and collapse animation.",
+            "zh-CN": "优化右侧边栏切换按钮，增大手柄尺寸并使展开和收起动画更加平滑。"
+          },
+          {
+            "en-US": "Added a Resources setting to control automatic downloads for CurseForge files with distribution restrictions. It is enabled by default and can be disabled to restore manual downloads.",
+            "zh-CN": "资源设置新增 CurseForge 受限文件自动下载开关，默认开启；关闭后可恢复手动下载流程。"
+          },
+          {
+            "en-US": "Discover now reopens the last content type you browsed, including mods, modpacks, resource packs, data packs, and shaders.",
+            "zh-CN": "发现内容现在会记住上次浏览的内容类型，重启后仍会打开对应的模组、整合包、资源包、数据包或光影包。"
+          },
+          {
+            "en-US": "The launcher now avoids localizing physical mod filenames",
+            "zh-CN": "启动器现在不会对模组文件名进行本地化"
+          },
+          {
+            "en-US": "Improved mod prerequisite resolution to target the selected Minecraft and loader versions, resolve nested requirements, and clearly report anything that cannot be resolved.",
+            "zh-CN": "优化模组前置解析：现在会严格匹配所选 Minecraft 与加载器版本，解析嵌套前置，并清晰列出无法解析的项目。"
+          }
+        ],
+        "removed": [
+          {
+            "en-US": "Removed group settings from the instance settings page.",
+            "zh-CN": "移除原有实例设置里面的分组设置。"
+          },
+          {
+            "en-US": "Removed the deprecated legacy Modal component.",
+            "zh-CN": "移除已经废弃的旧 Modal 组件。"
+          }
+        ],
+        "fixed": [
+          {
+            "en-US": "Fixed popup panels blurring the title bar behind them.",
+            "zh-CN": "修复弹出面板的背景模糊把标题栏也模糊的问题。"
+          },
+          {
+            "en-US": "Fixed popup panels closing when clicking outside them.",
+            "zh-CN": "修复点击面板外弹出面板就被关闭的问题。"
+          },
+          {
+            "en-US": "Added delete instance functionality to the instance library selection toolbar.",
+            "zh-CN": "为实例库的选择工具栏加入删除实例功能。"
+          },
+          {
+            "en-US": "Fixed CurseForge modpack metadata requests when opening the Content tab from cached content.",
+            "zh-CN": "修复从缓存打开内容页时仍会请求 CurseForge 整合包元数据的问题。"
+          },
+          {
+            "en-US": "Fixed map browsing returning to shaders after restarting, and prevented downloaded maps from being duplicated in the regular content list.",
+            "zh-CN": "修复重启后地图浏览会跳回光影的问题，并避免已下载地图在常规内容列表中重复显示。"
+          },
+          {
+            "en-US": "Fixed installations on protected paths not requesting administrator permission when needed.",
+            "zh-CN": "修复在受保护路径安装时无法正确请求管理员权限的问题。"
+          },
+          {
+            "en-US": "Canonicalized legacy Forge loader versions",
+            "zh-CN": "修复了旧版 Forge 加载器版本无法识别的问题"
+          },
+          {
+            "en-US": "Fixed launcher updates installing to the previous directory after the launcher was moved.",
+            "zh-CN": "修复移动启动器目录后自动更新仍安装到旧目录的问题。"
+          },
+          {
+            "en-US": "Fixed CurseForge installs into existing instances not passing the instance target to dependency resolution, which could select an incompatible prerequisite version.",
+            "zh-CN": "修复向已有实例安装 CurseForge 内容时未将实例目标传给前置解析，可能选中不兼容前置版本的问题。"
+          },
+          {
+            "en-US": "Fixed CurseForge prerequisite previews showing internal project IDs instead of project names for optional and unavailable prerequisites.",
+            "zh-CN": "修复 CurseForge 前置预览会为可选或不可用前置显示内部项目 ID，而非项目名称的问题。"
+          }
+        ]
+      }
+    },
     {
       "id": "launcher-1.8.2",
       "version": "1.8.2",
@@ -14,6 +146,14 @@
           {
             "en-US": "Fixed some forge artifacts cannot be downloaded",
             "zh-CN": "修复了部分 forge 资源无法下载的问题"
+          },
+          {
+            "en-US": "Added prefix icon to the version display below the instance page title",
+            "zh-CN": "给实例页面标题下方的版本显示添加了前缀图标"
+          },
+          {
+            "en-US": "Fixed discover page card tags not hiding the loader tag when entering from instance install content",
+            "zh-CN": "修复了内容发现页卡片标签从实例安装内容进入时不隐藏加载器标签的问题"
           }
         ]
       }

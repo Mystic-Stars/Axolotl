@@ -623,11 +623,6 @@ impl State {
         self.download_sample_errors.fetch_add(1, Ordering::AcqRel);
     }
 
-    pub(crate) fn record_download_throttle(&self) {
-        self.download_sample_throttles
-            .fetch_add(1, Ordering::AcqRel);
-    }
-
     pub(crate) fn update_download_settings(
         self: &Arc<Self>,
         settings: &Settings,

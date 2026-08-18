@@ -1434,7 +1434,7 @@
 		"message": "Unable to sign in to Minecraft"
 	},
 	"app.error.minecraft-required": {
-		"message": "To play this instance, sign in with Microsoft below. If you do not have a Minecraft account, you can purchase the game on the Minecraft website."
+		"message": "To play this instance, create an account. If you do not have a Minecraft account, you can log in with an offline account on the right."
 	},
 	"app.error.minecraft-sign-in-title": {
 		"message": "Sign in to Minecraft"
@@ -4513,6 +4513,12 @@
 	},
 	"app.multiplayer.download-terracotta": {
 		"message": "Download Terracotta"
+	},
+	"app.multiplayer.terracotta.update": {
+		"message": "Update Terracotta"
+	},
+	"app.multiplayer.terracotta.update-available": {
+		"message": "Terracotta {version} is ready to install."
 	},
 	"app.multiplayer.error.install": {
 		"message": "Installation error"

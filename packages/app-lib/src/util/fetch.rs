@@ -7,7 +7,7 @@ use crate::event::emit::emit_loading;
 use crate::install::{DownloadItemStatus, InstallProgressReporter};
 use crate::{ErrorKind, LabrinthError};
 use bytes::Bytes;
-use chrono::{DateTime, TimeDelta, Utc};
+use chrono::{DateTime, Utc};
 use eyre::{Context, eyre};
 use futures::StreamExt;
 use parking_lot::Mutex;
@@ -91,14 +91,6 @@ const FILE_TRANSFER_FIRST_BYTE_TIMEOUT: time::Duration =
 #[cfg(test)]
 const FILE_TRANSFER_FIRST_BYTE_TIMEOUT: time::Duration =
     time::Duration::from_secs(2);
-const BMCL_REQUEST_BURST: f64 = 32.0;
-const BMCL_REQUEST_RATE_MAX: f64 = 200.0;
-#[cfg(not(test))]
-const BMCL_RATE_RECOVERY_INTERVAL: time::Duration =
-    time::Duration::from_secs(30);
-#[cfg(test)]
-const BMCL_RATE_RECOVERY_INTERVAL: time::Duration =
-    time::Duration::from_millis(100);
 const MAX_DOWNLOAD_ATTEMPT_HISTORY: usize = 12;
 const MAX_DOWNLOAD_DIAGNOSTIC_BYTES: usize = 8 * 1024;
 const H2_FALLBACK_TTL: time::Duration = time::Duration::from_secs(600);
@@ -250,14 +242,14 @@ pub struct DownloadRequest {
     /// Batch schedulers disable it so many small files share one connection
     /// budget instead of each file multiplying its connections.
     pub allow_segmented_download: bool,
-    install_tracking: Option<DownloadInstallTracking>,
+    pub(crate) install_tracking: Option<DownloadInstallTracking>,
 }
 
 #[derive(Clone, Debug)]
-struct DownloadInstallTracking {
-    reporter: InstallProgressReporter,
-    item_id: String,
-    item_name: String,
+pub(crate) struct DownloadInstallTracking {
+    pub(crate) reporter: InstallProgressReporter,
+    pub(crate) item_id: String,
+    pub(crate) item_name: String,
 }
 
 impl DownloadRequest {
@@ -367,68 +359,6 @@ static ROUTE_HEALTH: LazyLock<Mutex<HashMap<RouteHealthKey, RouteHealth>>> =
 static ROUTE_EFFECTIVE_AUTHORITIES: LazyLock<Mutex<HashMap<String, String>>> =
     LazyLock::new(|| Mutex::new(HashMap::new()));
 
-/// Per-authority congestion state for rate-limited responses (429/503).
-/// A throttled host is slept through before the next request to it, so a
-/// single slow CDN cannot stall the whole batch; successful responses decay
-/// the backoff again.
-#[derive(Clone, Default)]
-struct HostThrottle {
-    cooldown_until: Option<Instant>,
-    backoff: u32,
-}
-
-static HOST_THROTTLES: LazyLock<Mutex<HashMap<String, HostThrottle>>> =
-    LazyLock::new(|| Mutex::new(HashMap::new()));
-
-fn throttle_host(authority: &str, retry_after: Option<time::Duration>) {
-    let mut throttles = HOST_THROTTLES.lock();
-    let throttle = throttles.entry(authority.to_string()).or_default();
-    throttle.backoff = throttle.backoff.saturating_add(1).min(6);
-    let delay = retry_after
-        .unwrap_or_else(|| time::Duration::from_secs(1_u64 << throttle.backoff))
-        .max(time::Duration::from_millis(250));
-    throttle.cooldown_until = Some(Instant::now() + delay);
-    tracing::debug!(
-        authority,
-        backoff = throttle.backoff,
-        delay_ms = delay.as_millis(),
-        "Host throttled after a rate-limited response"
-    );
-}
-
-async fn wait_for_host_throttle(authority: &str) {
-    loop {
-        let wait = {
-            let mut throttles = HOST_THROTTLES.lock();
-            let Some(throttle) = throttles.get_mut(authority) else {
-                return;
-            };
-            let Some(cooldown_until) = throttle.cooldown_until else {
-                return;
-            };
-            let now = Instant::now();
-            if now >= cooldown_until {
-                throttle.cooldown_until = None;
-                throttle.backoff = throttle.backoff.saturating_sub(1);
-                return;
-            }
-            cooldown_until.saturating_duration_since(now)
-        };
-        tokio::time::sleep(wait).await;
-    }
-}
-
-fn record_host_success(authority: &str) {
-    let mut throttles = HOST_THROTTLES.lock();
-    let Some(throttle) = throttles.get_mut(authority) else {
-        return;
-    };
-    throttle.backoff = throttle.backoff.saturating_sub(1);
-    if throttle.backoff == 0 {
-        throttle.cooldown_until = None;
-    }
-}
-
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 enum TaskProbeKey {
     Job(Uuid),
@@ -491,7 +421,7 @@ static TASK_PROBE_STATES: LazyLock<
     Mutex<HashMap<TaskProbeKey, Arc<TaskProbeState>>>,
 > = LazyLock::new(|| Mutex::new(HashMap::new()));
 
-fn url_authority(url: &str) -> Option<String> {
+pub(crate) fn url_authority(url: &str) -> Option<String> {
     let url = Url::parse(url).ok()?;
     let host = url.host_str()?.to_ascii_lowercase();
     Some(format!(
@@ -690,7 +620,7 @@ fn cache_busted_download_url(url: &str, attempt: usize) -> String {
     parsed.into()
 }
 
-fn sanitize_url_for_log(url: &str) -> String {
+pub(crate) fn sanitize_url_for_log(url: &str) -> String {
     if let Ok(mut url) = Url::parse(url) {
         let _ = url.set_username("");
         let _ = url.set_password(None);
@@ -1136,7 +1066,7 @@ fn route_host(route: &DownloadRoute) -> Option<String> {
         .and_then(|url| url.host_str().map(str::to_string))
 }
 
-fn is_official_modrinth_download_url(url: &str) -> bool {
+pub(crate) fn is_official_modrinth_download_url(url: &str) -> bool {
     Url::parse(url).is_ok_and(|url| {
         matches!(
             url.host_str(),
@@ -1373,147 +1303,8 @@ pub struct IoSemaphore(pub Semaphore);
 #[derive(Debug)]
 pub struct FetchSemaphore(pub Semaphore);
 
-struct FetchFence {
-    inner: Mutex<HashMap<&'static str, FenceInner>>,
-}
-
-impl FetchFence {
-    pub fn is_blocked(&self, key: &'static str) -> bool {
-        self.inner
-            .lock()
-            .entry(key)
-            .or_insert_with(FenceInner::new)
-            .is_blocked()
-    }
-
-    pub fn record_ok(&self, key: &'static str) {
-        self.inner
-            .lock()
-            .entry(key)
-            .or_insert_with(FenceInner::new)
-            .record_ok()
-    }
-
-    pub fn record_fail(&self, key: &'static str) {
-        self.inner
-            .lock()
-            .entry(key)
-            .or_insert_with(FenceInner::new)
-            .record_fail()
-    }
-
-    pub fn latest_block_minutes(&self) -> u32 {
-        let now = Utc::now();
-
-        self.inner
-            .lock()
-            .values()
-            .filter_map(|fence| fence.block_until)
-            .filter(|until| *until > now)
-            .max()
-            .map(|until| {
-                let seconds = until.signed_duration_since(now).num_seconds();
-                (seconds.max(0) as u32).div_ceil(60).max(1)
-            })
-            .unwrap_or(1)
-    }
-}
-
-struct FenceInner {
-    failures: VecDeque<DateTime<Utc>>,
-    block_until: Option<DateTime<Utc>>,
-    block_factor: i32,
-}
-
-impl FenceInner {
-    const FAILURE_WINDOW: TimeDelta = TimeDelta::seconds(30);
-    const FAILURE_THRESHOLD: usize = 16;
-    const BLOCK_DURATION_MIN_BASE: TimeDelta = TimeDelta::seconds(5);
-    const BLOCK_DURATION_MAX_BASE: TimeDelta = TimeDelta::seconds(15);
-    const BLOCK_DURATION_MAX_FACTOR: i32 = 3;
-
-    pub fn new() -> Self {
-        Self {
-            failures: VecDeque::new(),
-            block_until: None,
-            block_factor: 0,
-        }
-    }
-
-    pub fn is_blocked(&mut self) -> bool {
-        if let Some(until) = self.block_until {
-            if until > Utc::now() {
-                return true;
-            } else {
-                self.block_until = None;
-            }
-        }
-
-        false
-    }
-
-    pub fn record_ok(&mut self) {
-        self.prune(Utc::now());
-    }
-
-    pub fn record_fail(&mut self) {
-        self.prune(Utc::now());
-        self.failures.push_back(Utc::now());
-
-        if self.failures.len() >= Self::FAILURE_THRESHOLD {
-            self.trigger_block();
-        }
-    }
-
-    /// Blocks further requests for a random duration between the min and max base durations, scaled by a factor
-    /// of how many blocks have been triggered in this session.
-    ///
-    /// As such, for the first block, the duration will be between 2 and 5 minutes.
-    /// - For the second block, between 4 and 10 minutes.
-    /// - For the third block and any further blocks, between 6 and 15 minutes.
-    fn trigger_block(&mut self) {
-        self.block_factor =
-            i32::min(self.block_factor + 1, Self::BLOCK_DURATION_MAX_FACTOR);
-
-        let min = Self::BLOCK_DURATION_MIN_BASE
-            .checked_mul(self.block_factor)
-            .unwrap_or(Self::BLOCK_DURATION_MIN_BASE);
-        let max = Self::BLOCK_DURATION_MAX_BASE
-            .checked_mul(self.block_factor)
-            .unwrap_or(Self::BLOCK_DURATION_MAX_BASE);
-
-        let delta_seconds = (max - min).as_seconds_f64()
-            * rand::thread_rng().gen_range(0.0..=1.0);
-        let duration =
-            min + TimeDelta::milliseconds((delta_seconds * 1000.0) as i64);
-
-        self.block_until = Some(Utc::now() + duration);
-    }
-
-    /// Removes all failure points older than the failure window
-    fn prune(&mut self, now: DateTime<Utc>) {
-        let cutoff = now - Self::FAILURE_WINDOW;
-
-        while let Some(&front) = self.failures.front() {
-            if front < cutoff {
-                self.failures.pop_front();
-            } else {
-                break;
-            }
-        }
-    }
-}
-
-static GLOBAL_FETCH_FENCE: LazyLock<FetchFence> =
-    LazyLock::new(|| FetchFence {
-        inner: Mutex::new(HashMap::new()),
-    });
-
-static DOWNLOAD_DNS_RESOLVER: LazyLock<Arc<DownloadDnsResolver>> =
+pub(crate) static DOWNLOAD_DNS_RESOLVER: LazyLock<Arc<DownloadDnsResolver>> =
     LazyLock::new(|| Arc::new(DownloadDnsResolver::default()));
-static MIRROR_REQUEST_LIMITERS: LazyLock<
-    Mutex<HashMap<String, MirrorRequestLimiter>>,
-> = LazyLock::new(|| Mutex::new(HashMap::new()));
 static TAIL_HEDGE_SEMAPHORE: LazyLock<Semaphore> =
     LazyLock::new(|| Semaphore::new(MAX_GLOBAL_TAIL_HEDGES));
 
@@ -1677,7 +1468,7 @@ fn retry_after(response: &reqwest::Response) -> Option<time::Duration> {
     Some(time::Duration::from_secs(seconds.clamp(0, 60) as u64))
 }
 
-fn is_sensitive_header(name: &str) -> bool {
+pub(crate) fn is_sensitive_header(name: &str) -> bool {
     name.eq_ignore_ascii_case("authorization")
         || name.eq_ignore_ascii_case("proxy-authorization")
         || name.eq_ignore_ascii_case("cookie")
@@ -2296,11 +2087,6 @@ async fn fetch_advanced_with_client_and_progress(
         let route_source = route.source;
         let request_target = if is_mirror { "mirror" } else { "official" };
         let has_next_route = route_index + 1 < request_routes.len();
-        let fence_key = if is_api_url && !is_mirror {
-            uri_path
-        } else {
-            None
-        };
         let download_meta_header = (!is_mirror
             && is_official_modrinth_download_url(request_url))
         .then(|| {
@@ -2323,30 +2109,6 @@ async fn fetch_advanced_with_client_and_progress(
             let attempt = route_attempts;
             let has_more_attempts = attempt < max_attempts
                 && total_attempts + remaining_routes < attempt_budget;
-            if let Some(fence_key) = fence_key
-                && GLOBAL_FETCH_FENCE.is_blocked(fence_key)
-            {
-                let error: crate::Error = ErrorKind::ApiIsDownError(
-                    GLOBAL_FETCH_FENCE.latest_block_minutes(),
-                )
-                .into();
-                record_download_attempt_failure(
-                    &mut attempt_history,
-                    route,
-                    total_attempts + 1,
-                    &error,
-                    "blocked_by_fetch_fence",
-                    None,
-                    None,
-                    None,
-                );
-                return Err(attach_download_attempt_history(
-                    error,
-                    &attempt_history,
-                    total_attempts,
-                    attempt_budget,
-                ));
-            }
             total_attempts += 1;
 
             let started = time::Instant::now();
@@ -2416,9 +2178,6 @@ async fn fetch_advanced_with_client_and_progress(
 
             let permit = semaphore.0.acquire().await?;
             let request_started = Instant::now();
-            if let Some(authority) = url_authority(&request_url) {
-                wait_for_host_throttle(&authority).await;
-            }
             let result = req.send().await;
             let ttfb = request_started.elapsed();
             match result {
@@ -2503,19 +2262,6 @@ async fn fetch_advanced_with_client_and_progress(
                         break;
                     }
                     if status.is_client_error() || status.is_server_error() {
-                        if status == StatusCode::TOO_MANY_REQUESTS
-                            || status == StatusCode::SERVICE_UNAVAILABLE
-                        {
-                            if let Some(authority) = url_authority(&request_url)
-                            {
-                                throttle_host(&authority, retry_after);
-                            }
-                        }
-                        if let Some(fence_key) = fence_key
-                            && status.is_server_error()
-                        {
-                            GLOBAL_FETCH_FENCE.record_fail(fence_key);
-                        }
                         record_route_failure(
                             route,
                             resource,
@@ -2630,9 +2376,6 @@ async fn fetch_advanced_with_client_and_progress(
 
                     let response_url = resp.url().to_string();
                     let log_response_url = sanitize_url_for_log(&response_url);
-                    if let Some(authority) = url_authority(&request_url) {
-                        record_host_success(&authority);
-                    }
                     if is_mirror && modrinth_request_kind == Some("CDN") {
                         let cache_status = resp
                             .headers()
@@ -2837,9 +2580,6 @@ async fn fetch_advanced_with_client_and_progress(
                             );
                         }
 
-                        if let Some(fence_key) = fence_key {
-                            GLOBAL_FETCH_FENCE.record_ok(fence_key);
-                        }
                         record_route_success(
                             route,
                             resource,
@@ -3014,7 +2754,7 @@ async fn fetch_advanced_with_client_and_progress(
 }
 
 #[derive(Default)]
-struct IntegrityHashers {
+pub(crate) struct IntegrityHashers {
     sha1: Option<sha1_smol::Sha1>,
     sha512: Option<Sha512>,
     sha256: Option<Sha256>,
@@ -3022,7 +2762,7 @@ struct IntegrityHashers {
 }
 
 #[derive(Default)]
-struct ComputedIntegrity {
+pub(crate) struct ComputedIntegrity {
     size: u64,
     sha1: Option<String>,
     sha512: Option<String>,
@@ -3031,7 +2771,7 @@ struct ComputedIntegrity {
 }
 
 impl IntegrityHashers {
-    fn new(integrity: &Integrity) -> Self {
+    pub(crate) fn new_integrity_hashers(integrity: &Integrity) -> Self {
         Self {
             sha1: integrity.sha1.as_ref().map(|_| sha1_smol::Sha1::new()),
             sha512: integrity.sha512.as_ref().map(|_| Sha512::new()),
@@ -3040,7 +2780,7 @@ impl IntegrityHashers {
         }
     }
 
-    fn update(&mut self, bytes: &[u8]) {
+    pub(crate) fn update(&mut self, bytes: &[u8]) {
         if let Some(hasher) = &mut self.sha1 {
             hasher.update(bytes);
         }
@@ -3055,7 +2795,7 @@ impl IntegrityHashers {
         }
     }
 
-    fn finish(self, size: u64) -> ComputedIntegrity {
+    pub(crate) fn finish(self, size: u64) -> ComputedIntegrity {
         ComputedIntegrity {
             size,
             sha1: self.sha1.map(|hasher| hasher.digest().to_string()),
@@ -3134,6 +2874,16 @@ fn any_route_can_resume(routes: &[DownloadRoute]) -> bool {
         .any(|route| route.supports_range && range_splitting_allowed(route))
 }
 
+/// Whether a `.part` file with resume data exists at `part_path`. The
+/// multiplexed path starts from scratch; resume is handled by the legacy
+/// path so a partially downloaded file is never lost.
+async fn part_resume_expected(part_path: &Path) -> bool {
+    tokio::fs::metadata(part_path)
+        .await
+        .map(|metadata| metadata.len() > 0)
+        .unwrap_or(false)
+}
+
 const STALE_PARTIAL_DOWNLOAD_MAX_AGE: time::Duration =
     time::Duration::from_secs(7 * 24 * 60 * 60);
 
@@ -3205,7 +2955,7 @@ async fn hash_existing_part_prefix(
     expected_len: u64,
 ) -> Option<IntegrityHashers> {
     let mut file = File::open(path).await.ok()?;
-    let mut hashers = IntegrityHashers::new(integrity);
+    let mut hashers = IntegrityHashers::new_integrity_hashers(integrity);
     let mut size = 0_u64;
     let mut buffer = vec![0_u8; 256 * 1024];
     loop {
@@ -3226,7 +2976,7 @@ async fn compute_file_integrity(
     let mut file = File::open(path)
         .await
         .map_err(|error| IOError::with_path(error, path))?;
-    let mut hashers = IntegrityHashers::new(integrity);
+    let mut hashers = IntegrityHashers::new_integrity_hashers(integrity);
     let mut size = 0;
     let mut buffer = vec![0_u8; 256 * 1024];
     loop {
@@ -3243,7 +2993,7 @@ async fn compute_file_integrity(
     Ok(hashers.finish(size))
 }
 
-fn verify_computed_integrity(
+pub(crate) fn verify_computed_integrity(
     expected: &Integrity,
     actual: &ComputedIntegrity,
 ) -> crate::Result<()> {
@@ -3288,7 +3038,18 @@ fn verify_computed_integrity(
     Ok(())
 }
 
-async fn validate_file_content(
+pub(crate) fn is_integrity_error(error: &crate::Error) -> bool {
+    match error.raw.as_ref() {
+        ErrorKind::HashError(..) => true,
+        ErrorKind::OtherError(message) => {
+            message.starts_with("Incorrect ")
+                && message.contains(" hash for download")
+        }
+        _ => false,
+    }
+}
+
+pub(crate) async fn validate_file_content(
     path: &Path,
     validation: ContentValidation,
 ) -> crate::Result<()> {
@@ -3480,111 +3241,6 @@ fn byte_range_header_value(
     })
 }
 
-#[derive(Clone, Debug)]
-struct MirrorRequestLimiter {
-    tokens: f64,
-    rate_per_second: f64,
-    last_refill: Instant,
-    cooldown_until: Option<Instant>,
-    last_throttle: Option<Instant>,
-}
-
-impl MirrorRequestLimiter {
-    fn new(now: Instant) -> Self {
-        Self {
-            tokens: BMCL_REQUEST_BURST,
-            rate_per_second: BMCL_REQUEST_RATE_MAX,
-            last_refill: now,
-            cooldown_until: None,
-            last_throttle: None,
-        }
-    }
-
-    fn refill(&mut self, now: Instant) {
-        let elapsed = now.saturating_duration_since(self.last_refill);
-        self.tokens = (self.tokens
-            + elapsed.as_secs_f64() * self.rate_per_second)
-            .min(BMCL_REQUEST_BURST);
-        self.last_refill = now;
-        if self.last_throttle.is_some_and(|last| {
-            now.saturating_duration_since(last) >= BMCL_RATE_RECOVERY_INTERVAL
-        }) {
-            self.rate_per_second =
-                (self.rate_per_second * 1.25).min(BMCL_REQUEST_RATE_MAX);
-            self.last_throttle =
-                (self.rate_per_second < BMCL_REQUEST_RATE_MAX).then_some(now);
-        }
-    }
-
-    fn throttle(&mut self, now: Instant, retry_after: time::Duration) {
-        self.rate_per_second = (self.rate_per_second / 2.0).max(1.0);
-        self.tokens = 0.0;
-        self.cooldown_until = Some(now + retry_after);
-        self.last_throttle = Some(now);
-    }
-}
-
-fn mirror_limiter_key(route: &DownloadRoute) -> Option<String> {
-    (route.source == DownloadRouteSource::Bmclapi)
-        .then(|| range_splitting_authority(route))
-        .flatten()
-}
-
-async fn wait_for_mirror_request_slot(route: &DownloadRoute) {
-    if route.source != DownloadRouteSource::Bmclapi {
-        return;
-    }
-    let Some(key) = mirror_limiter_key(route) else {
-        return;
-    };
-    loop {
-        let delay = {
-            let now = Instant::now();
-            let mut limiters = MIRROR_REQUEST_LIMITERS.lock();
-            let limiter = limiters
-                .entry(key.clone())
-                .or_insert_with(|| MirrorRequestLimiter::new(now));
-            limiter.refill(now);
-            if let Some(until) = limiter.cooldown_until
-                && until > now
-            {
-                until.saturating_duration_since(now)
-            } else if limiter.tokens >= 1.0 {
-                limiter.cooldown_until = None;
-                limiter.tokens -= 1.0;
-                return;
-            } else {
-                time::Duration::from_secs_f64(
-                    (1.0 - limiter.tokens) / limiter.rate_per_second,
-                )
-            }
-        };
-        tokio::time::sleep(delay).await;
-    }
-}
-
-fn throttle_mirror_request_slot(
-    route: &DownloadRoute,
-    retry_after: Option<time::Duration>,
-) {
-    if let Some(state) = crate::State::get_if_initialized() {
-        state.record_download_throttle();
-    }
-    let Some(key) = mirror_limiter_key(route) else {
-        return;
-    };
-    let now = Instant::now();
-    MIRROR_REQUEST_LIMITERS
-        .lock()
-        .entry(key)
-        .or_insert_with(|| MirrorRequestLimiter::new(now))
-        .throttle(
-            now,
-            retry_after.unwrap_or_else(|| time::Duration::from_secs(1)),
-        );
-}
-
-#[allow(clippy::too_many_arguments)]
 async fn send_path_request_with_clients(
     route: &DownloadRoute,
     custom_header: Option<&(String, String)>,
@@ -3596,7 +3252,6 @@ async fn send_path_request_with_clients(
     direct_client: &reqwest::Client,
     redirect_target: Option<&AsyncMutex<Option<Url>>>,
 ) -> crate::Result<(reqwest::Response, String)> {
-    wait_for_mirror_request_slot(route).await;
     let original = Url::parse(&route.url)?;
     let mut current = match redirect_target {
         Some(target) => target
@@ -3653,10 +3308,6 @@ async fn send_path_request_with_clients(
                 .header(header::RANGE, range)
                 .header(header::ACCEPT_ENCODING, "identity");
         }
-        if let Some(authority) = url_authority(current.as_str()) {
-            wait_for_host_throttle(&authority).await;
-        }
-
         let response = match request.send().await {
             Ok(response) => response,
             Err(error) => {
@@ -3676,21 +3327,7 @@ async fn send_path_request_with_clients(
                 return Err(error.into());
             }
         };
-        if matches!(
-            response.status(),
-            StatusCode::TOO_MANY_REQUESTS | StatusCode::SERVICE_UNAVAILABLE
-        ) {
-            throttle_mirror_request_slot(route, retry_after(&response));
-            if let Some(authority) = url_authority(current.as_str()) {
-                throttle_host(&authority, retry_after(&response));
-            }
-        }
         if !response.status().is_redirection() {
-            if response.status().is_success()
-                && let Some(authority) = url_authority(current.as_str())
-            {
-                record_host_success(&authority);
-            }
             if reused_redirect_target
                 && (response.status().is_client_error()
                     || response.status().is_server_error())
@@ -5387,7 +5024,8 @@ async fn try_segmented_download(
             return SegmentedDownloadOutcome::Fatal(error.into());
         }
     };
-    let mut hashers = IntegrityHashers::new(&request.integrity);
+    let mut hashers =
+        IntegrityHashers::new_integrity_hashers(&request.integrity);
     let mut merged_size = 0_u64;
     let mut buffer = vec![0_u8; 256 * 1024];
     for range in &ranges {
@@ -5549,21 +5187,21 @@ pub(crate) async fn record_install_download_finished(
     }
 }
 
-/// Resolves hosts ahead of the first request without blocking the caller.
-/// Used before batch downloads so every file shares one ordered address list
-/// instead of racing the same DNS queries.
-pub(crate) fn prewarm_download_dns(hosts: &[&str]) {
-    for host in hosts {
+/// Resolves hosts ahead of the first request so every file shares one ordered
+/// address list instead of racing the same DNS queries.
+pub(crate) async fn prewarm_download_dns(hosts: &[&str]) {
+    let requests = hosts.iter().map(|host| {
         let resolver = Arc::clone(&DOWNLOAD_DNS_RESOLVER);
-        let host = host.to_string();
-        tokio::spawn(async move {
+        let host = (*host).to_string();
+        async move {
             let _ = tokio::time::timeout(
                 time::Duration::from_secs(10),
                 resolver.pre_resolve(&host),
             )
             .await;
-        });
-    }
+        }
+    });
+    futures::future::join_all(requests).await;
 }
 
 fn error_chain(error: &crate::Error) -> String {
@@ -5704,6 +5342,10 @@ async fn download_to_path_inner(
             fallback_count: 0,
         });
     }
+    let dns_hosts =
+        routes.iter().filter_map(route_host).collect::<HashSet<_>>();
+    let dns_hosts = dns_hosts.iter().map(String::as_str).collect::<Vec<_>>();
+    prewarm_download_dns(&dns_hosts).await;
     preserve_or_remove_partial(
         &part_path,
         &request.integrity,
@@ -5736,6 +5378,77 @@ async fn download_to_path_inner(
             progress,
         )
         .await;
+    }
+
+    // Prefer a multiplexed HTTP/2 download over a shared per-authority
+    // connection: one handshake per CDN instead of one per file, and range
+    // streams for large files. Any failure falls through to the legacy path.
+    let mut h2_failed_mirror = None;
+    if request.allow_segmented_download
+        && !part_resume_expected(&part_path).await
+        && !request.url.starts_with("http://")
+        && let Some(h2_route) = routes.first().cloned()
+    {
+        match crate::util::download::h2_download::try_download_via_h2(
+            &request,
+            &h2_route,
+            destination,
+            &part_path,
+        )
+        .await
+        {
+            crate::util::download::h2_download::H2DownloadOutcome::Completed(
+                result,
+            ) => {
+                if let Some(tracking) = &request.install_tracking
+                    && let Err(error) = tracking
+                        .reporter
+                        .record_download_request_finished(
+                            &tracking.item_id,
+                            result.size,
+                        )
+                        .await
+                {
+                    tracing::warn!(
+                        error = %error,
+                        "Failed to record completed download request"
+                    );
+                }
+                return Ok(result);
+            }
+            crate::util::download::h2_download::H2DownloadOutcome::Fallback {
+                reason,
+                integrity_failure,
+            } => {
+                if integrity_failure {
+                    if h2_route.is_mirror {
+                        h2_failed_mirror = Some(h2_route.url.clone());
+                        tracing::warn!(
+                            url = %sanitize_url_for_log(&h2_route.url),
+                            source = h2_route.source.as_str(),
+                            "Mirror hash validation failed; falling back to the official source"
+                        );
+                    }
+                } else if let Some(authority) = url_authority(&h2_route.url) {
+                    record_authority_h2_failure(&authority);
+                }
+                tracing::debug!(
+                    url = %sanitize_url_for_log(&h2_route.url),
+                    source = h2_route.source.as_str(),
+                    reason,
+                    "Multiplexed download unavailable; using legacy path"
+                );
+                // Clean up partials and segments left by the multiplexed
+                // attempt; the legacy path starts from a clean slate.
+                remove_if_exists(&part_path).await?;
+                cleanup_segment_files(&part_path, MAX_SEGMENT_CONCURRENCY)
+                    .await?;
+            }
+        }
+    }
+
+    if let Some(failed_route) = h2_failed_mirror.take() {
+        routes.retain(|route| route.url != failed_route);
     }
     ensure_task_routes_probed(
         &request,
@@ -6182,7 +5895,8 @@ async fn download_to_path_inner(
                     break;
                 }
 
-                let mut hashers = IntegrityHashers::new(&request.integrity);
+                let mut hashers =
+                    IntegrityHashers::new_integrity_hashers(&request.integrity);
                 if resume_offset > 0 {
                     if status == StatusCode::PARTIAL_CONTENT {
                         let content_range = parse_content_range(&response);
@@ -6864,17 +6578,12 @@ pub async fn sha1_file_async(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use chrono::{TimeDelta, Utc};
     use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
     use std::time::Duration;
 
     static RANGE_SPLITTING_TEST_LOCK: LazyLock<AsyncMutex<()>> =
         LazyLock::new(|| AsyncMutex::new(()));
-    static MIRROR_REQUEST_SLOT_TEST_LOCK: LazyLock<AsyncMutex<()>> =
-        LazyLock::new(|| AsyncMutex::new(()));
     static AUTO_SOURCE_TEST_LOCK: LazyLock<std::sync::Mutex<()>> =
-        LazyLock::new(|| std::sync::Mutex::new(()));
-    static HOST_THROTTLE_TEST_LOCK: LazyLock<std::sync::Mutex<()>> =
         LazyLock::new(|| std::sync::Mutex::new(()));
 
     async fn spawn_range_server(
@@ -7442,6 +7151,27 @@ mod tests {
     }
 
     #[test]
+    fn identifies_hash_integrity_failures_without_treating_size_errors_as_hash_failures()
+     {
+        let hash_error: crate::Error = ErrorKind::OtherError(
+            "Incorrect sha1 hash for download: expected != actual".to_string(),
+        )
+        .into();
+        assert!(is_integrity_error(&hash_error));
+
+        let typed_hash_error: crate::Error =
+            ErrorKind::HashError("expected".to_string(), "actual".to_string())
+                .into();
+        assert!(is_integrity_error(&typed_hash_error));
+
+        let size_error: crate::Error = ErrorKind::OtherError(
+            "Incorrect size for download: 10 != 20".to_string(),
+        )
+        .into();
+        assert!(!is_integrity_error(&size_error));
+    }
+
+    #[test]
     fn segmented_download_flag_is_buildable_per_request() {
         let request = DownloadRequest::new(
             "https://example.com/a.jar",
@@ -7826,95 +7556,6 @@ mod tests {
             ),
             "https://example.com/file.jar"
         );
-    }
-
-    #[tokio::test]
-    async fn mirror_request_token_bucket_honors_cooldown() {
-        let _guard = MIRROR_REQUEST_SLOT_TEST_LOCK.lock().await;
-        let route = DownloadRoute {
-            url: "https://bmclapi2.bangbang93.com/maven/file.jar".to_string(),
-            source: DownloadRouteSource::Bmclapi,
-            is_mirror: true,
-            allow_sensitive_headers: false,
-            supports_range: true,
-            proxy: ProxyPolicy::System,
-        };
-        let key = mirror_limiter_key(&route).unwrap();
-        let now = Instant::now();
-        let mut limiter = MirrorRequestLimiter::new(now);
-        limiter.throttle(now, time::Duration::from_millis(50));
-        MIRROR_REQUEST_LIMITERS.lock().insert(key, limiter);
-
-        let started = Instant::now();
-        wait_for_mirror_request_slot(&route).await;
-        assert!(
-            started.elapsed() >= time::Duration::from_millis(40),
-            "a request should wait for the paced mirror request slot"
-        );
-    }
-
-    #[tokio::test]
-    async fn mirror_request_token_bucket_allows_burst_then_paces() {
-        let _guard = MIRROR_REQUEST_SLOT_TEST_LOCK.lock().await;
-        MIRROR_REQUEST_LIMITERS.lock().clear();
-        let route = DownloadRoute {
-            url: "https://bmclapi2.bangbang93.com/maven/file.jar".to_string(),
-            source: DownloadRouteSource::Bmclapi,
-            is_mirror: true,
-            allow_sensitive_headers: false,
-            supports_range: true,
-            proxy: ProxyPolicy::System,
-        };
-
-        for _ in 0..BMCL_REQUEST_BURST as usize {
-            wait_for_mirror_request_slot(&route).await;
-        }
-        let started = Instant::now();
-        wait_for_mirror_request_slot(&route).await;
-        assert!(
-            started.elapsed() >= time::Duration::from_millis(2),
-            "a request after the burst should wait for a token"
-        );
-    }
-
-    #[tokio::test]
-    async fn host_throttle_blocks_then_recovers_on_success() {
-        let _guard = HOST_THROTTLE_TEST_LOCK.lock().unwrap();
-        HOST_THROTTLES.lock().clear();
-        let authority = "cdn-alt.modrinth.com:443";
-
-        throttle_host(authority, Some(time::Duration::from_millis(50)));
-        let started = Instant::now();
-        wait_for_host_throttle(authority).await;
-        assert!(
-            started.elapsed() >= Duration::from_millis(40),
-            "a throttled host should sleep through its cooldown"
-        );
-
-        record_host_success(authority);
-        let throttle = HOST_THROTTLES.lock().get(authority).cloned().unwrap();
-        assert_eq!(throttle.backoff, 0);
-        assert!(throttle.cooldown_until.is_none());
-
-        HOST_THROTTLES.lock().clear();
-    }
-
-    #[tokio::test]
-    async fn host_throttle_backoff_grows_with_repeated_pressure() {
-        let _guard = HOST_THROTTLE_TEST_LOCK.lock().unwrap();
-        HOST_THROTTLES.lock().clear();
-        let authority = "cdn-alt.modrinth.com:443";
-
-        throttle_host(authority, None);
-        let first_backoff =
-            HOST_THROTTLES.lock().get(authority).unwrap().backoff;
-        throttle_host(authority, None);
-        let second_backoff =
-            HOST_THROTTLES.lock().get(authority).unwrap().backoff;
-        assert_eq!(first_backoff, 1);
-        assert_eq!(second_backoff, 2);
-
-        HOST_THROTTLES.lock().clear();
     }
 
     #[test]
@@ -9188,140 +8829,6 @@ mod tests {
             "the preserved partial data should not be discarded"
         );
         server.abort();
-    }
-
-    #[test]
-    fn test_fence_blocks_after_threshold_failures() {
-        // Update tests if the FenceInner constants change
-
-        let mut fence = FenceInner::new();
-
-        for _ in 0..FenceInner::FAILURE_THRESHOLD - 1 {
-            fence.record_fail();
-            assert!(!fence.is_blocked());
-        }
-        fence.record_fail();
-        assert!(fence.is_blocked());
-    }
-
-    #[test]
-    fn test_fetch_fence_keys_are_independent() {
-        let fence = FetchFence {
-            inner: Mutex::new(HashMap::new()),
-        };
-
-        for _ in 0..FenceInner::FAILURE_THRESHOLD {
-            fence.record_fail("/v3/version_file/:sha1/update");
-        }
-
-        assert!(fence.is_blocked("/v3/version_file/:sha1/update"));
-        assert!(!fence.is_blocked("/v3/project/:id"));
-    }
-
-    #[test]
-    fn test_fetch_fence_latest_block_minutes() {
-        let fence = FetchFence {
-            inner: Mutex::new(HashMap::new()),
-        };
-
-        {
-            let mut inner = fence.inner.lock();
-            inner.insert("/expired", FenceInner::new());
-            inner.get_mut("/expired").unwrap().block_until =
-                Some(Utc::now() - TimeDelta::minutes(1));
-            inner.insert("/short", FenceInner::new());
-            inner.get_mut("/short").unwrap().block_until =
-                Some(Utc::now() + TimeDelta::seconds(61));
-            inner.insert("/long", FenceInner::new());
-            inner.get_mut("/long").unwrap().block_until =
-                Some(Utc::now() + TimeDelta::seconds(140));
-        }
-
-        assert_eq!(fence.latest_block_minutes(), 3);
-    }
-
-    #[test]
-    fn test_fence_blocks_after_threshold_failures_with_oks() {
-        // Update tests if the FenceInner constants change
-
-        let mut fence = FenceInner::new();
-
-        for _ in 0..FenceInner::FAILURE_THRESHOLD - 1 {
-            fence.record_fail();
-            assert!(!fence.is_blocked());
-        }
-        fence.record_ok();
-        assert!(!fence.is_blocked());
-        fence.record_fail();
-        assert!(fence.is_blocked());
-    }
-
-    #[test]
-    fn test_fence_not_blocked_after_failures_expire() {
-        // Update tests if the FenceInner constants change
-
-        let mut fence = FenceInner::new();
-
-        for _ in 0..FenceInner::FAILURE_THRESHOLD - 1 {
-            fence.record_fail();
-        }
-        assert!(!fence.is_blocked());
-
-        fence.prune(Utc::now() + TimeDelta::seconds(31)); // Should prune all failures
-        fence.record_fail();
-        assert!(!fence.is_blocked());
-
-        for _ in 1..FenceInner::FAILURE_THRESHOLD {
-            fence.record_fail();
-        }
-        assert!(fence.is_blocked());
-    }
-
-    #[test]
-    fn test_fence_trigger_block_windows() {
-        // brute force flukes
-        for i in 0..128 {
-            let mut fence = FenceInner::new();
-
-            fence.trigger_block();
-            assert!(fence.is_blocked(), "Should be blocked (attempt {i})");
-
-            let block_until = fence.block_until.unwrap();
-            assert!(
-                block_until > Utc::now() + TimeDelta::seconds(4),
-                "Should be more than 5 seconds (with some leeway) (attempt {i})"
-            );
-            assert!(
-                block_until < Utc::now() + TimeDelta::seconds(16),
-                "Should be less than 15 seconds (attempt {i})"
-            );
-
-            fence.block_until = None;
-
-            fence.trigger_block();
-            let block_until = fence.block_until.unwrap();
-            assert!(
-                block_until > Utc::now() + TimeDelta::seconds(9),
-                "Should be more than 10 seconds (with some leeway) (attempt {i})"
-            );
-            assert!(
-                block_until < Utc::now() + TimeDelta::seconds(31),
-                "Should be less than 30 seconds (attempt {i})"
-            );
-
-            fence.block_until = None;
-
-            fence.trigger_block();
-            let block_until = fence.block_until.unwrap();
-            assert!(
-                block_until > Utc::now() + TimeDelta::seconds(14),
-                "Should be more than 15 seconds (with some leeway) (attempt {i})"
-            );
-            assert!(
-                block_until < Utc::now() + TimeDelta::seconds(46),
-                "Should be less than 45 seconds (attempt {i})"
-            );
-        }
     }
 
     #[tokio::test]

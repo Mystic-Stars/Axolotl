@@ -1089,26 +1089,6 @@ pub(crate) async fn add_downloaded_project_version(
         version_id,
     } = downloaded;
     let scope = resolve_content_scope(instance_id, None, state).await?;
-    if project_type == ProjectType::Mod {
-        let content_set =
-            content_rows::get_content_set(&scope.content_set_id, &state.pool)
-                .await?
-                .ok_or_else(|| {
-                    crate::ErrorKind::InputError(format!(
-                        "Unknown content set {}",
-                        scope.content_set_id
-                    ))
-                })?;
-        let bytes = bytes::Bytes::from(tokio::fs::read(&path).await?);
-        crate::mod_metadata::validate_mod_metadata_target(
-            &bytes,
-            Some(&content_set.game_version),
-            Some(content_set.loader.as_str()),
-        )
-        .map_err(|message| {
-            crate::Error::from(crate::ErrorKind::InputError(message))
-        })?;
-    }
     let localized_candidate = if project_type == ProjectType::Mod {
         None
     } else {

@@ -1706,6 +1706,12 @@
 	"installation-settings.loader-version": {
 		"defaultMessage": "{loader} 版本"
 	},
+	"installation-settings.loader-version.error": {
+		"defaultMessage": "无法加载加载器版本"
+	},
+	"installation-settings.loader-version.unsupported": {
+		"defaultMessage": "当前加载器不支持选定的版本"
+	},
 	"installation-settings.platform-lock-tooltip": {
 		"defaultMessage": "你需要重置服务器以切换加载器。"
 	},

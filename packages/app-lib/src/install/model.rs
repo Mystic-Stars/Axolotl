@@ -31,7 +31,7 @@ pub enum InstallContinuationState {
     InstallingPackToExistingInstance { disabled_project_ids: Vec<String> },
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct InstallJobState {
     pub schema_version: u32,
     pub request: InstallRequest,
@@ -59,6 +59,41 @@ pub struct InstallJobState {
     pub missing_content: Option<MissingModpackContentState>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub skipped_missing_content_paths: Vec<String>,
+    /// Incrementally maintained download items, mirroring the replay of
+    /// `events`. Skipped during (de)serialization because it is derivable
+    /// from `events`; rebuilt lazily on first access after a load.
+    #[serde(skip)]
+    download_items_cache: std::sync::Mutex<Option<Vec<DownloadItemSnapshot>>>,
+    #[serde(skip)]
+    summary_cache: std::sync::Mutex<Option<DownloadJobSummary>>,
+}
+
+impl Clone for InstallJobState {
+    fn clone(&self) -> Self {
+        Self {
+            schema_version: self.schema_version,
+            request: self.request.clone(),
+            target: self.target.clone(),
+            cleanup: self.cleanup.clone(),
+            progress: self.progress.clone(),
+            paths: self.paths.clone(),
+            context: self.context.clone(),
+            events: self.events.clone(),
+            active_downloads: self.active_downloads.clone(),
+            display: self.display.clone(),
+            rollback: self.rollback.clone(),
+            error: self.error.clone(),
+            rollback_error: self.rollback_error.clone(),
+            pause_reason: self.pause_reason.clone(),
+            continuation: self.continuation.clone(),
+            missing_content: self.missing_content.clone(),
+            skipped_missing_content_paths: self
+                .skipped_missing_content_paths
+                .clone(),
+            download_items_cache: std::sync::Mutex::new(None),
+            summary_cache: std::sync::Mutex::new(None),
+        }
+    }
 }
 
 impl InstallJobState {
@@ -93,7 +128,15 @@ impl InstallJobState {
             continuation: None,
             missing_content: None,
             skipped_missing_content_paths: Vec::new(),
+            download_items_cache: std::sync::Mutex::new(None),
+            summary_cache: std::sync::Mutex::new(None),
         }
+    }
+
+    /// Invalidates the lazily built download item and summary caches.
+    pub(crate) fn invalidate_download_caches(&mut self) {
+        *self.download_items_cache.lock().unwrap() = None;
+        *self.summary_cache.lock().unwrap() = None;
     }
 
     pub fn record_event(&mut self, kind: InstallJobEventKind) {
@@ -110,6 +153,7 @@ impl InstallJobState {
             at: Utc::now(),
             kind,
         });
+        self.invalidate_download_caches();
     }
 
     pub fn compact_transient_download_events(&mut self) {
@@ -121,6 +165,7 @@ impl InstallJobState {
                     | InstallJobEventKind::DownloadRequestFailed { .. }
             )
         });
+        self.invalidate_download_caches();
     }
 
     pub fn set_context(&mut self, context: Option<InstallErrorContext>) {
@@ -1819,7 +1864,10 @@ impl InstallJobState {
         }
     }
 
-    pub fn download_items(&self) -> Vec<DownloadItemSnapshot> {
+    /// Replays `events` into download item snapshots. This is the expensive
+    /// part of `download_items` and its result is cached; the cheap
+    /// `active_downloads` overlay is applied live by the caller.
+    fn download_items_from_events(&self) -> Vec<DownloadItemSnapshot> {
         let mut items = Vec::<DownloadItemSnapshot>::new();
         let mut indices = HashMap::<String, usize>::new();
         for event in &self.events {
@@ -2119,6 +2167,19 @@ impl InstallJobState {
                 _ => {}
             }
         }
+        items
+    }
+
+    /// Applies the live `active_downloads` overlay on top of an event-replay
+    /// snapshot, producing the final item list.
+    fn overlay_active_downloads(
+        &self,
+        mut items: Vec<DownloadItemSnapshot>,
+    ) -> Vec<DownloadItemSnapshot> {
+        let mut indices = HashMap::<String, usize>::new();
+        for (index, item) in items.iter().enumerate() {
+            indices.insert(item.id.clone(), index);
+        }
         let terminal = self.events.iter().rev().any(|event| {
             matches!(
                 event.kind,
@@ -2162,7 +2223,32 @@ impl InstallJobState {
         items
     }
 
-    pub fn download_summary(&self) -> DownloadJobSummary {
+    pub fn download_items(&self) -> Vec<DownloadItemSnapshot> {
+        let cached = self
+            .download_items_cache
+            .lock()
+            .expect("download items cache lock poisoned")
+            .clone();
+        let from_events = match cached {
+            Some(items) => items,
+            None => {
+                let items = self.download_items_from_events();
+                *self
+                    .download_items_cache
+                    .lock()
+                    .expect("download items cache lock poisoned") =
+                    Some(items.clone());
+                items
+            }
+        };
+        self.overlay_active_downloads(from_events)
+    }
+
+    /// Replays `events` into the event-derived summary base (settled files,
+    /// byte totals, source, fallback count). This is the expensive part of
+    /// `download_summary` and its result is cached; live progress and speed
+    /// are applied by the caller.
+    fn summary_from_events(&self) -> DownloadJobSummary {
         let mut summary = DownloadJobSummary::default();
         let mut settled_content = HashMap::<String, u64>::new();
         for event in &self.events {
@@ -2206,6 +2292,27 @@ impl InstallJobState {
             .values()
             .copied()
             .fold(0_u64, u64::saturating_add);
+        summary
+    }
+
+    pub fn download_summary(&self) -> DownloadJobSummary {
+        let cached = self
+            .summary_cache
+            .lock()
+            .expect("download summary cache lock poisoned")
+            .clone();
+        let mut summary = match cached {
+            Some(summary) => summary,
+            None => {
+                let summary = self.summary_from_events();
+                *self
+                    .summary_cache
+                    .lock()
+                    .expect("download summary cache lock poisoned") =
+                    Some(summary.clone());
+                summary
+            }
+        };
         if let Some(progress) = &self.progress.progress {
             if self.progress.phase == InstallPhaseId::DownloadingContent {
                 summary.files_completed = progress.current;

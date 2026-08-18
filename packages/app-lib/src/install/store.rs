@@ -1,5 +1,6 @@
 use super::model::{
-    InstallJobKind, InstallJobSnapshot, InstallJobState, InstallJobStatus,
+    DownloadJobSummary, InstallJobKind, InstallJobSnapshot, InstallJobState,
+    InstallJobStatus,
 };
 use crate::state::{InstanceInstallStage, State};
 use chrono::{DateTime, TimeZone, Utc};
@@ -300,13 +301,65 @@ pub async fn update_state(
     get_required(id, app_state).await
 }
 
+/// Updates the job state JSON and the denormalized download summary columns
+/// in a single statement, using a caller-supplied serialized state so the
+/// reporter mutex is not held across the DB write.
+pub async fn update_state_with_progress_columns(
+    id: Uuid,
+    json: &str,
+    provider: &str,
+    summary: &DownloadJobSummary,
+    app_state: &State,
+) -> crate::Result<InstallJobRecord> {
+    let now = Utc::now();
+    let instance_id = instance_id_from_json(json);
+    let id_value = id.to_string();
+    let modified = now.timestamp();
+
+    sqlx::query(
+        "UPDATE install_jobs
+         SET instance_id = (SELECT id FROM instances WHERE id = ?),
+             state = ?, modified = ?, provider = ?, files_total = ?,
+             files_completed = ?, bytes_total = ?, bytes_downloaded = ?
+         WHERE id = ?",
+    )
+    .bind(instance_id)
+    .bind(json)
+    .bind(modified)
+    .bind(provider)
+    .bind(summary.files_total.map(|value| value as i64))
+    .bind(summary.files_completed as i64)
+    .bind(summary.bytes_total.map(|value| value as i64))
+    .bind(summary.bytes_downloaded as i64)
+    .bind(id_value)
+    .execute(&app_state.pool)
+    .await?;
+
+    get_required(id, app_state).await
+}
+
+fn instance_id_from_json(json: &str) -> Option<String> {
+    serde_json::from_str::<serde_json::Value>(json)
+        .ok()
+        .and_then(|value| {
+            value
+                .get("target")
+                .and_then(|target| target.get("instance_id"))
+                .and_then(|value| value.as_str())
+                .map(str::to_owned)
+        })
+}
+
+/// Persists a serialized job state. The caller serializes and summarizes
+/// under the reporter lock; this function only performs the DB write so the
+/// reporter mutex is never held across the transaction.
 pub async fn update_progress_state(
     id: Uuid,
-    state: &InstallJobState,
+    json: &str,
+    provider: &str,
+    summary: &DownloadJobSummary,
     app_state: &State,
 ) -> crate::Result<()> {
-    let json = serde_json::to_string(state)?;
-    let summary = state.download_summary();
     let modified = Utc::now().timestamp();
     let id_value = id.to_string();
 
@@ -318,7 +371,7 @@ pub async fn update_progress_state(
     )
     .bind(json)
     .bind(modified)
-    .bind(state.provider().as_str())
+    .bind(provider)
     .bind(summary.files_total.map(|value| value as i64))
     .bind(summary.files_completed as i64)
     .bind(summary.bytes_total.map(|value| value as i64))
@@ -907,7 +960,6 @@ async fn sync_download_details(
 ) -> crate::Result<()> {
     let id_value = id.to_string();
     let summary = state.download_summary();
-    let mut transaction = app_state.pool.begin().await?;
     sqlx::query(
         "UPDATE install_jobs
          SET provider = ?, files_total = ?, files_completed = ?,
@@ -920,59 +972,7 @@ async fn sync_download_details(
     .bind(summary.bytes_total.map(|value| value as i64))
     .bind(summary.bytes_downloaded as i64)
     .bind(&id_value)
-    .execute(&mut *transaction)
+    .execute(&app_state.pool)
     .await?;
-
-    let now = Utc::now().timestamp();
-    for item in state.download_items() {
-        let finished = matches!(
-            item.status,
-            super::model::DownloadItemStatus::Completed
-                | super::model::DownloadItemStatus::Skipped
-                | super::model::DownloadItemStatus::Failed
-                | super::model::DownloadItemStatus::Canceled
-        )
-        .then_some(now);
-        let status = format!("{:?}", item.status).to_ascii_lowercase();
-        sqlx::query(
-            "INSERT INTO install_job_items (
-                id, job_id, name, project_id, version_id, status,
-                bytes_total, bytes_downloaded,
-                attempt, max_attempts, error, manual_url,
-                created, modified, finished
-             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-             ON CONFLICT(job_id, id) DO UPDATE SET
-                name = excluded.name,
-                project_id = excluded.project_id,
-                version_id = excluded.version_id,
-                status = excluded.status,
-                bytes_total = excluded.bytes_total,
-                bytes_downloaded = excluded.bytes_downloaded,
-                attempt = excluded.attempt,
-                max_attempts = excluded.max_attempts,
-                error = excluded.error,
-                manual_url = excluded.manual_url,
-                modified = excluded.modified,
-                finished = excluded.finished",
-        )
-        .bind(item.id)
-        .bind(&id_value)
-        .bind(item.name)
-        .bind(item.project_id)
-        .bind(item.version_id)
-        .bind(status)
-        .bind(item.bytes_total.map(|value| value as i64))
-        .bind(item.bytes_downloaded as i64)
-        .bind(item.attempt.map(i64::from))
-        .bind(item.max_attempts.map(i64::from))
-        .bind(item.error)
-        .bind(item.manual_url)
-        .bind(now)
-        .bind(now)
-        .bind(finished)
-        .execute(&mut *transaction)
-        .await?;
-    }
-    transaction.commit().await?;
     Ok(())
 }

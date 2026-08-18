@@ -232,7 +232,7 @@ import { trackEvent } from '@/helpers/analytics'
 import { get_project_versions, get_version, get_version_many } from '@/helpers/cache.js'
 import { applyContentItemUpdates, matchesContentItem } from '@/helpers/content-item-state'
 import { translateContentItemTitles } from '@/helpers/content-search'
-import { type CurseForgeFile, getCurseForgeChangelog } from '@/helpers/curseforge'
+import { getCurseForgeChangelog, type CurseForgeFile } from '@/helpers/curseforge'
 import {
 	type CurseForgeManualDownloadItem,
 	getCurseForgeManualDownloadUrl,
