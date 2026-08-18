@@ -99,18 +99,22 @@
             packages = with pkgs; [
               cargo-nextest
               git
-              glib-networking
               jdk17
-              libayatana-appindicator
-              librsvg
               nodejs_24
-              openssl
               patchelf
               pkg-config
               pnpm
               rustToolchain
-              webkitgtk_4_1
               xdg-utils
+            ];
+
+            buildInputs = with pkgs; [
+              glib
+              glib-networking
+              libayatana-appindicator
+              librsvg
+              openssl
+              webkitgtk_4_1
             ];
 
             JAVA_HOME = "${pkgs.jdk17}";
