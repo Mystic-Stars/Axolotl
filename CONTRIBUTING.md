@@ -13,14 +13,27 @@
 
 ### 启动开发环境
 
-1. 初始化 Git 子模块（cubiomes 是构建期的编译依赖，缺失会导致 Rust 编译失败），启用 Corepack 并安装依赖：
-   ```powershell
+#### 非 Nix 环境
+
+非 Nix 环境以 [`.nvmrc`](.nvmrc) 指定 Node.js 版本，以根目录 [`package.json`](package.json) 的 `packageManager` 指定 pnpm 版本。不要混用 Nix 提供的 Node.js 或 pnpm。
+
+1. 初始化 Git 子模块（cubiomes 是构建期的编译依赖，缺失会导致 Rust 编译失败）：
+   ```bash
    git submodule update --init --recursive
-   corepack enable
-   pnpm install --frozen-lockfile
    ```
-2. 启动开发服务器：
-   ```powershell
+2. 使用 `.nvmrc` 安装并激活 Node.js。仅当 Node.js 安装目录可写且不由 Nix 管理时，启用 Corepack：
+   ```bash
+   corepack enable
+   ```
+   如果 Node.js 安装目录不可写或由系统包管理器管理，请确保 `$HOME/.local/bin` 在 `PATH` 中，并将 Corepack shim 明确安装到该目录：
+   ```bash
+   export PATH="$HOME/.local/bin:$PATH"
+   corepack enable --install-directory "$HOME/.local/bin"
+   ```
+   Corepack 的缓存环境变量不会改变 shim 的安装目录。
+3. 在仓库根目录安装锁定的依赖，然后启动开发服务器：
+   ```bash
+   pnpm install --frozen-lockfile
    pnpm app:dev
    ```
 
@@ -35,7 +48,7 @@ pnpm install --frozen-lockfile
 pnpm app:dev
 ```
 
-进入 `nix develop` 后，可直接运行下方现有检查命令。
+进入 `nix develop` 后不要运行 `corepack enable`；flake 已将独立固定版本的 pnpm 10.33.2 直接放入 `PATH`。进入开发环境后，可直接运行下方现有检查命令。
 
 #### direnv 自动加载
 
@@ -48,7 +61,9 @@ pnpm install --frozen-lockfile
 pnpm app:dev
 ```
 
-`.envrc` 不会初始化子模块或安装依赖；direnv 的本地缓存目录 `.direnv/` 已被 Git 忽略。`.envrc` 内容变更后，需要重新运行 `direnv allow`。
+direnv 环境中也不要运行 `corepack enable`；flake 已提供独立固定版本的 pnpm 10.33.2。`.envrc` 不会初始化子模块或安装依赖；direnv 的本地缓存目录 `.direnv/` 已被 Git 忽略。`.envrc` 内容变更后，需要重新运行 `direnv allow`。
+
+> `nix build .` 使用 `fetchPnpmDeps` 和 `pnpmConfigHook` 完成封闭构建，`nix run .` 直接启动已打包的原生二进制文件且不需要 Node.js 或 pnpm；二者成功不代表普通宿主 Shell 的开发工具链配置正确。
 
 ### 常用检查命令
 
