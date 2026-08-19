@@ -80,6 +80,13 @@ export interface InstallProgressSecondary {
 	total: number
 }
 
+export interface InstallParallelProgress {
+	phase: InstallPhaseId
+	current: number
+	total: number
+	details: InstallJobSnapshot['details']
+}
+
 export type InstallJavaStep =
 	| 'resolving'
 	| 'fetching_metadata'
@@ -158,6 +165,7 @@ export interface InstallJobSnapshot {
 				title?: string | null
 		  }
 		| { type: 'import'; launcher_type: string; instance_folder: string }
+	parallel?: InstallParallelProgress | null
 	display?: { title: string; icon?: string | null } | null
 	error?: InstallErrorView | null
 	rollback_error?: InstallErrorView | null

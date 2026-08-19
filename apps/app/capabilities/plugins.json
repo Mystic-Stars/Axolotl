@@ -130,6 +130,7 @@
 		"tags:default",
 		"ai:default",
 		"translation:default",
+		"storage:default",
 		"utils:default",
 		"worlds:default",
 		"drop:default",

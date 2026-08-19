@@ -7,9 +7,11 @@ import {
 	setLastBrowseContentDisplayMode,
 	setLastBrowseContentProjectType,
 } from './browse-display-mode.ts'
+import { getSidebarExpanded, setSidebarExpanded } from './sidebar-state.ts'
 
 const storageKey = 'axolotl-browse-content-display-mode'
 const projectTypeStorageKey = 'axolotl-browse-content-project-type'
+const sidebarStorageKey = 'axolotl-right-sidebar-expanded'
 const originalStorageDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'localStorage')
 
 function installMemoryStorage() {
@@ -65,6 +67,25 @@ test('browse project type persists content types and rejects non-content routes'
 
 		values.set(projectTypeStorageKey, 'server')
 		assert.equal(getLastBrowseContentProjectType(), 'modpack')
+	} finally {
+		restoreStorage()
+	}
+})
+
+test('right sidebar expansion persists and defaults to expanded', () => {
+	const values = installMemoryStorage()
+
+	try {
+		assert.equal(getSidebarExpanded(), true)
+
+		setSidebarExpanded(false)
+		assert.equal(getSidebarExpanded(), false)
+
+		setSidebarExpanded(true)
+		assert.equal(getSidebarExpanded(), true)
+
+		values.set(sidebarStorageKey, 'invalid')
+		assert.equal(getSidebarExpanded(), true)
 	} finally {
 		restoreStorage()
 	}

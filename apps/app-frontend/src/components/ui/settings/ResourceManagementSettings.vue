@@ -1,7 +1,6 @@
 <script setup>
 import { BoxIcon, FolderOpenIcon, FolderSearchIcon, TrashIcon } from '@modrinth/assets'
 import {
-	ButtonStyled,
 	Combobox,
 	defineMessages,
 	injectNotificationManager,
@@ -9,6 +8,7 @@ import {
 	StyledInput,
 	Toggle,
 	useVIntl,
+	IconButton,
 } from '@modrinth/ui'
 import { invoke } from '@tauri-apps/api/core'
 import { open } from '@tauri-apps/plugin-dialog'
@@ -131,7 +131,7 @@ const messages = defineMessages({
 	},
 	curseforgeMirrorDescription: {
 		id: 'app.settings.resources.curseforge-mirror-description',
-		defaultMessage: 'CurseForge public API requests and file downloads.',
+		defaultMessage: 'CurseForge file downloads.',
 	},
 	curseforgeRestrictionBypass: {
 		id: 'app.settings.resources.curseforge-restriction-bypass',
@@ -286,6 +286,7 @@ const modrinthSourceOptions = computed(() => [
 const curseforgeSourceOptions = computed(() => [
 	automaticSourceOption.value,
 	officialPreferredSourceOption.value,
+	{ value: 'mirror_preferred', label: formatMessage(messages.tianpaoSource) },
 	officialOnlySourceOption.value,
 ])
 const mojangAuthSource = downloadSourceModel('mojang_auth_source')
@@ -437,11 +438,14 @@ function resetMissingContentImportDirectory() {
 				wrapper-class="w-full"
 			>
 				<template #right>
-					<ButtonStyled circular>
-						<button class="ml-1.5" :disabled="isPortable" @click="findLauncherDir">
-							<FolderSearchIcon />
-						</button>
-					</ButtonStyled>
+					<IconButton
+						:label="formatMessage(messages.appDirectory)"
+						class="ml-1.5"
+						:disabled="isPortable"
+						@click="findLauncherDir"
+					>
+						<FolderSearchIcon />
+					</IconButton>
 				</template>
 			</StyledInput>
 			<p class="m-0 leading-tight text-secondary">
@@ -649,16 +653,15 @@ function resetMissingContentImportDirectory() {
 				wrapper-class="w-full"
 			>
 				<template #right>
-					<ButtonStyled circular>
-						<button
-							class="ml-1.5"
-							:disabled="!missingContentScannerSettings.enabled"
-							:title="formatMessage(messages.selectImportDirectory)"
-							@click="findMissingContentImportDirectory"
-						>
-							<FolderSearchIcon />
-						</button>
-					</ButtonStyled>
+					<IconButton
+						type="base"
+						:label="formatMessage(messages.selectImportDirectory)"
+						class="ml-1.5"
+						:disabled="!missingContentScannerSettings.enabled"
+						@click="findMissingContentImportDirectory"
+					>
+						<FolderSearchIcon />
+					</IconButton>
 				</template>
 			</StyledInput>
 			<button

@@ -1,6 +1,11 @@
 <script setup lang="ts">
 import { SaveIcon, SpinnerIcon } from '@modrinth/assets'
-import { ButtonStyled, defineMessages, injectNotificationManager, useVIntl } from '@modrinth/ui'
+import {
+	defineMessages,
+	injectNotificationManager,
+	NewButton as Button,
+	useVIntl,
+} from '@modrinth/ui'
 import { computed, ref } from 'vue'
 
 import { get as getSettings, set as setSettings } from '@/helpers/settings'
@@ -107,17 +112,17 @@ async function savePublicNodes() {
 		</p>
 
 		<div class="flex justify-end border-0 border-t border-solid border-surface-4 pt-4">
-			<ButtonStyled color="brand">
-				<button
-					type="button"
-					:disabled="!publicNodesChanged || !!parsedPublicNodes.invalidNode || isSavingPublicNodes"
-					@click="savePublicNodes"
-				>
-					<SpinnerIcon v-if="isSavingPublicNodes" class="animate-spin" />
-					<SaveIcon v-else />
-					{{ formatMessage(messages.savePublicNodes) }}
-				</button>
-			</ButtonStyled>
+			<Button
+				type="colored"
+				color="brand"
+				native-type="button"
+				:disabled="!publicNodesChanged || !!parsedPublicNodes.invalidNode || isSavingPublicNodes"
+				@click="savePublicNodes"
+			>
+				<SpinnerIcon v-if="isSavingPublicNodes" class="animate-spin" />
+				<SaveIcon v-else />
+				{{ formatMessage(messages.savePublicNodes) }}
+			</Button>
 		</div>
 	</section>
 </template>

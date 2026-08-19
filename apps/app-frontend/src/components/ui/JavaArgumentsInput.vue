@@ -19,8 +19,9 @@ import {
 } from '@modrinth/ui'
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 
-import type { GcContext } from '@/helpers/gc/types'
 import { resolveAutoGcArgs } from '@/helpers/gc/auto-selector'
+import type { GcContext } from '@/helpers/gc/types'
+import { lastGcLaunchReport } from '@/helpers/gc-notice'
 import {
 	getJavaArgumentPresets,
 	getPresetsByGroup,
@@ -88,6 +89,10 @@ const messages = defineMessages({
 	autoReasonChain: {
 		id: 'app.java-arguments.presets.gc.auto.reason-chain',
 		defaultMessage: 'Decision path: {chain}',
+	},
+	autoVerified: {
+		id: 'app.java-arguments.presets.gc.auto.verified',
+		defaultMessage: 'Last launch: {chosen}',
 	},
 })
 
@@ -242,6 +247,17 @@ function getAutoReasonChainText(preset: JavaArgumentPreset): string | null {
 	return formatMessage(messages.autoReasonChain, { chain: preset.autoReasonChain.join(' → ') })
 }
 
+function getAutoVerifiedLabel(preset: JavaArgumentPreset): string | null {
+	if (preset.id !== 'gc-auto') return null
+	const notice = lastGcLaunchReport.value
+	if (!notice) return null
+	let chosen = notice.chosen_strategy || 'JVM default GC'
+	if (notice.pruned_args.length > 0) {
+		chosen += ` (${notice.pruned_args.length} pruned)`
+	}
+	return formatMessage(messages.autoVerified, { chosen })
+}
+
 const tagsScrollRef = ref<HTMLElement | null>(null)
 const showTagsFade = ref(false)
 let tagsResizeObserver: ResizeObserver | null = null
@@ -389,6 +405,12 @@ onBeforeUnmount(() => {
 											class="m-0 mt-1 text-xs text-secondary"
 										>
 											{{ getAutoReasonChainText(preset) }}
+										</p>
+										<p
+											v-if="showAutoDetails && getAutoVerifiedLabel(preset)"
+											class="m-0 mt-1 text-xs text-warning-text"
+										>
+											{{ getAutoVerifiedLabel(preset) }}
 										</p>
 									</div>
 									<ButtonStyled :type="isPresetActive(preset) ? 'standard' : 'outlined'" color="brand">

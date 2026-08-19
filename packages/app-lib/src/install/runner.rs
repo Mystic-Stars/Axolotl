@@ -267,6 +267,7 @@ pub async fn retry_job(job_id: Uuid) -> crate::Result<InstallJobSnapshot> {
     job.state.progress.phase = InstallPhaseId::PreparingInstance;
     job.state.progress.progress = None;
     job.state.progress.details = InstallPhaseDetails::Empty;
+    job.state.progress.parallel = None;
     prepare_initial_instance(&mut job.state, &state).await?;
     job.state.record_event(InstallJobEventKind::JobQueued {
         kind: job.state.request.kind(),
@@ -623,6 +624,7 @@ fn begin_canceling_job(job_state: &mut InstallJobState) {
     job_state.progress.phase = InstallPhaseId::RollingBack;
     job_state.progress.progress = None;
     job_state.progress.details = InstallPhaseDetails::Empty;
+    job_state.progress.parallel = None;
     job_state.record_event(InstallJobEventKind::RollbackStarted {
         cleanup: job_state.cleanup.clone(),
     });
@@ -888,6 +890,7 @@ fn begin_failed_job_rollback(
     job_state.progress.phase = InstallPhaseId::RollingBack;
     job_state.progress.progress = None;
     job_state.progress.details = InstallPhaseDetails::Empty;
+    job_state.progress.parallel = None;
     job_state.record_event(InstallJobEventKind::RollbackStarted {
         cleanup: job_state.cleanup.clone(),
     });
@@ -901,6 +904,7 @@ fn begin_waiting_for_user(
     job_state.error = None;
     job_state.rollback_error = None;
     job_state.context = None;
+    job_state.progress.parallel = None;
     job_state.record_event(InstallJobEventKind::WaitingForUser { reason });
 }
 
@@ -974,6 +978,7 @@ async fn run_job(job_id: Uuid) -> crate::Result<()> {
             job_state.progress.phase = InstallPhaseId::Finalizing;
             job_state.progress.progress = None;
             job_state.progress.details = InstallPhaseDetails::Empty;
+            job_state.progress.parallel = None;
             job_state.error = None;
             job_state.rollback_error = None;
             job_state.pause_reason = None;

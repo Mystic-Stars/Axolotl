@@ -33,6 +33,166 @@ export const ANNOUNCEMENT_CHANGE_TYPES: readonly AnnouncementChangeType[] = [
 
 export const launcherAnnouncements: readonly LauncherAnnouncement[] = [
 	{
+		id: 'launcher-1.8.7',
+		version: '1.8.7',
+		publishedAt: '2026-08-19',
+		title: {
+			'en-US': 'Axolotl Launcher 1.8.7',
+			'zh-CN': 'Axolotl Launcher 1.8.7',
+		},
+		changes: {
+			changed: [
+				{
+					'en-US':
+						'Discover now remembers filters separately for each content type, including manually unlocked instance filters.',
+					'zh-CN': '发现内容现在会按内容类型分别记住筛选条件，包括手动解除的实例筛选。',
+				},
+				{
+					'en-US': 'Moved JVM settings and memory allocation settings to Java Settings.',
+					'zh-CN': '将 JVM 设置和内存分配设置移动到 Java 设置。',
+				},
+				{
+					'en-US':
+						"Exporting a `.mrpack` now shows a completion notification with an action to open the exported file's folder.",
+					'zh-CN': '导出 `.mrpack` 完成后现在会显示通知，并可直接打开导出文件所在目录。',
+				},
+				{
+					'en-US':
+						'Refreshed buttons throughout Settings with clearer sizing, emphasis, and interaction feedback.',
+					'zh-CN': '更新设置页面中的按钮样式，使尺寸、操作层级和交互反馈更加清晰。',
+				},
+			],
+			fixed: [
+				{
+					'en-US':
+						'Fixed explicitly selected and modpack-pinned files being rejected when CurseForge or Modrinth compatibility metadata did not match the instance.',
+					'zh-CN':
+						'修复明确选择或由整合包固定的文件会因 CurseForge 或 Modrinth 兼容性元数据与实例不匹配而被拒绝的问题。',
+				},
+				{
+					'en-US':
+						'Fixed modpack and server browsing being restricted by the default instance Minecraft version.',
+					'zh-CN': '修复浏览整合包和服务器时会被默认实例的 Minecraft 版本限制的问题。',
+				},
+				{
+					'en-US':
+						'Fixed overlapping server metadata and action buttons in compact and grid views on Discover.',
+					'zh-CN': '修复发现内容的紧凑和网格视图中服务器信息与操作按钮重叠的问题。',
+				},
+				{
+					'en-US': '',
+					'zh-CN': '修复XMCL下载引擎部分情况416的问题。',
+				},
+			],
+			added: [
+				{
+					'en-US': '',
+					'zh-CN': '为存档编辑页面下方选项添加折叠，现在它们默认折叠，并在搜索时展开。',
+				},
+				{
+					'en-US': '',
+					'zh-CN': '为错误弹窗添加5行截断',
+				},
+				{
+					'en-US':
+						'Fixed IPv6 server addresses without ports and bracketed IPv6 addresses with custom ports failing to parse.',
+					'zh-CN': '修复无端口 IPv6 地址以及带自定义端口的方括号 IPv6 地址无法解析的问题。',
+				},
+				{
+					'en-US':
+						'Fixed server status pings starting before the instance protocol version was available, which could show incorrect or failed results.',
+					'zh-CN': '修复实例协议版本尚未就绪时便开始服务器状态检测，导致结果错误或检测失败的问题。',
+				},
+				{
+					'en-US':
+						'Fixed Hardcore worlds from Minecraft 26.1 and newer being identified as normal worlds.',
+					'zh-CN': '修复 Minecraft 26.1 及更高版本的极限模式世界被识别为普通世界的问题。',
+				},
+				{
+					'en-US': 'Fixed deep-link installs for projects whose slugs contain a `+` character.',
+					'zh-CN': '修复项目短标识中包含 `+` 字符时无法通过深层链接安装的问题。',
+				},
+				{
+					'en-US':
+						'Added an instance icon creator with transparent and gradient backgrounds, the original icon set, and a new collection of 3D icons.',
+					'zh-CN': '新增实例图标生成器，支持透明与渐变背景、原版图标，以及一组新的 3D 图标。',
+				},
+				{
+					'en-US':
+						'Added start and end layer controls to the Schematic Workshop for viewing selected vertical sections of a build.',
+					'zh-CN': '投影工坊新增起始层和结束层控制，可查看建筑指定高度范围内的内容。',
+				},
+			],
+		},
+	},
+	{
+		id: 'launcher-1.8.6',
+		version: '1.8.6',
+		publishedAt: '2026-08-18',
+		title: {
+			'en-US': 'Axolotl Launcher 1.8.6',
+			'zh-CN': 'Axolotl Launcher 1.8.6',
+		},
+		changes: {
+			added: [
+				{
+					'en-US':
+						'Added a Storage page with visual disk-usage breakdowns, instance folder details, and symlink-aware reporting.',
+					'zh-CN': '新增存储页面，提供磁盘占用可视化、实例文件夹明细和符号链接占用说明。',
+				},
+				{
+					'en-US':
+						'Added Tianpao mirror routes for CurseForge CDN files, with official-source fallback when needed.',
+					'zh-CN': '为 CurseForge CDN 文件新增 Tianpao 镜像线路，并在需要时回退到官方源。',
+				},
+			],
+			changed: [
+				{
+					'en-US':
+						'Redesigned content downloads with a unified install cart, dependency preview, and duplicate protection across Modrinth and CurseForge.',
+					'zh-CN':
+						'重设计内容下载流程，统一安装购物车、前置预览和 Modrinth 与 CurseForge 跨来源重复安装防护。',
+				},
+				{
+					'en-US':
+						'Minecraft files now download in parallel, reducing wait times during instance creation and content installation.',
+					'zh-CN': 'Minecraft 文件现在支持并行下载，缩短创建实例和安装内容时的等待时间。',
+				},
+				{
+					'en-US':
+						'The right sidebar now remembers its expanded or collapsed state after the launcher restarts.',
+					'zh-CN': '右侧边栏现在会记住展开或收起状态，重启启动器后仍会保持。',
+				},
+			],
+			fixed: [
+				{
+					'en-US':
+						'Fixed incompatible JVM garbage-collector arguments by verifying them against the installed Java runtime and falling back automatically.',
+					'zh-CN':
+						'修复 JVM 垃圾回收器参数不兼容的问题，现在会根据实际 Java 环境校验参数并自动回退。',
+				},
+			],
+		},
+	},
+	{
+		id: 'launcher-1.8.5',
+		version: '1.8.5',
+		publishedAt: '2026-08-18',
+		title: {
+			'en-US': 'Axolotl Launcher 1.8.5',
+			'zh-CN': 'Axolotl Launcher 1.8.5',
+		},
+		changes: {
+			fixed: [
+				{
+					'en-US':
+						'Fix the issue where the NSIS installer does not exclude reparse points during uninstallation.',
+					'zh-CN': '修复 NSIS 程序在卸载时未排除重解析点的问题。',
+				},
+			],
+		},
+	},
+	{
 		id: 'launcher-1.8.4',
 		version: '1.8.4',
 		publishedAt: '2026-08-18',
@@ -51,8 +211,7 @@ export const launcherAnnouncements: readonly LauncherAnnouncement[] = [
 				{
 					'en-US':
 						'Fixed modpack downloads randomly failing when a content refresh removed files that were still being installed.',
-					'zh-CN':
-						'修复下载整合包时，内容刷新误删仍在安装的文件并导致随机下载失败的问题。',
+					'zh-CN': '修复下载整合包时，内容刷新误删仍在安装的文件并导致随机下载失败的问题。',
 				},
 			],
 		},

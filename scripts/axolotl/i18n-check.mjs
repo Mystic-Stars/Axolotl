@@ -36,12 +36,14 @@ const allowedUntranslatedMessages = new Set([
 	'HTML',
 	'Mojang G1GC',
 	'PCL G1GC',
+	'PCL',
 	'Shenandoah',
 	'ZGC',
 	'MineDown',
 	'MiniMessage',
 	'TabooLib',
 	'TrChat',
+	'TNT',
 	'Java {version}',
 ])
 

@@ -8,7 +8,14 @@
 				@mouseleave="$emit('mouseleave')"
 			></AutoLink>
 		</template>
-		<div v-if="layout === 'compact'" :class="[compactCardStyle, 'project-card--compact']">
+		<div
+			v-if="layout === 'compact'"
+			:class="[
+				compactCardStyle,
+				'project-card--compact',
+				{ 'project-card--compact-server': isServerProject },
+			]"
+		>
 			<Avatar :src="iconUrl" size="48px" class="ease-brightness" no-shadow />
 			<div class="project-card--compact__identity flex min-w-0 flex-col justify-center gap-1">
 				<div class="flex min-w-0 items-center gap-2">
@@ -20,6 +27,7 @@
 				</p>
 			</div>
 			<span
+				v-if="provider"
 				class="project-card--compact__provider truncate text-[13px] font-medium leading-4 text-secondary"
 			>
 				{{ provider === 'curseforge' ? 'CurseForge' : 'Modrinth' }}
@@ -119,9 +127,12 @@
 						</div>
 					</div>
 				</div>
-				<div class="mt-auto flex gap-3 justify-between items-end">
+				<div
+					class="project-card--grid__footer mt-auto flex gap-3 justify-between items-end"
+					:class="{ 'project-card--grid__footer-server': isServerProject }"
+				>
 					<div class="flex flex-col gap-3 grow min-w-0">
-						<div class="flex items-center gap-1 min-w-0">
+						<div class="flex flex-wrap items-center gap-1 min-w-0">
 							<template v-if="isServerProject">
 								<ServerOnlinePlayers
 									v-if="serverOnlinePlayers !== undefined"
@@ -172,7 +183,9 @@
 							/>
 						</div>
 					</div>
-					<div class="flex gap-2 shrink-0 empty:hidden smart-clickable:allow-pointer-events">
+					<div
+						class="project-card--grid__actions flex gap-2 shrink-0 empty:hidden smart-clickable:allow-pointer-events"
+					>
 						<slot name="actions" />
 					</div>
 				</div>
@@ -461,6 +474,10 @@ const cssColor = computed(() => {
 	grid-area: tags;
 }
 
+.project-card--compact-server {
+	grid-template-columns: 48px minmax(0, 1fr) minmax(0, auto) auto;
+}
+
 @container (width < 720px) {
 	.project-card--compact {
 		grid-template-columns: 48px minmax(0, 1fr) 5rem 4.5rem 4.5rem 5.5rem;
@@ -498,6 +515,23 @@ const cssColor = computed(() => {
 
 	.project-card--compact__provider {
 		display: none;
+	}
+}
+
+@container (width < 720px) {
+	.project-card--compact-server {
+		grid-template-columns: 48px minmax(0, 1fr) auto;
+	}
+}
+
+@container (width < 600px) {
+	.project-card--grid__footer-server {
+		align-items: stretch;
+		flex-direction: column;
+	}
+
+	.project-card--grid__footer-server .project-card--grid__actions {
+		align-self: flex-end;
 	}
 }
 

@@ -1760,7 +1760,14 @@ onBeforeUnmount(() => {
 							<LayersIcon />
 							<span>Y</span>
 						</span>
-						<strong class="schematic-layer-current">{{ layerMaximum }}</strong>
+						<input
+							class="schematic-layer-current"
+							type="number"
+							v-model.number="layerMaximum"
+							:min="layerFloor"
+							:max="layerCeiling"
+							step="1"
+						/>
 						<span class="schematic-layer-limit">{{ layerCeiling }}</span>
 						<input
 							v-model.number="layerMaximum"
@@ -2528,9 +2535,15 @@ onBeforeUnmount(() => {
 }
 
 .schematic-layer-current {
+	min-height: 0.5rem;
+	height: 1.4em;
+	border-radius: 0.2rem;
+	padding: 0.2rem;
 	color: var(--color-text-dark);
-	font-size: 0.9rem;
+	font-size: 0.7rem;
+	font-weight: bold;
 	font-variant-numeric: tabular-nums;
+	text-align: center;
 }
 
 .schematic-layer-limit,

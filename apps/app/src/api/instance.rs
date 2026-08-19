@@ -111,6 +111,12 @@ pub struct Instance {
     pub symlink_target: Option<String>,
 }
 
+#[derive(Serialize, Debug, Clone)]
+pub struct InstanceRunResult {
+    pub process: ProcessMetadata,
+    pub gc_notice: Option<theseus::instance::GcLaunchReport>,
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum InstanceLink {
@@ -1012,18 +1018,22 @@ pub async fn instance_run(
     server_address: Option<String>,
     offline_mode: bool,
     extra_launch_args: Option<Vec<String>>,
-) -> Result<ProcessMetadata> {
+    gc_intent: Option<theseus::instance::GcLaunchIntent>,
+) -> Result<InstanceRunResult> {
     let quick_play = match server_address {
         Some(addr) => QuickPlayType::Server(ServerAddress::Unresolved(addr)),
         None => QuickPlayType::None,
     };
-    Ok(theseus::instance::run_with_extra_launch_args(
-        instance_id,
-        quick_play,
-        offline_mode,
-        extra_launch_args,
-    )
-    .await?)
+    let (process, gc_notice) =
+        theseus::instance::run_with_extra_launch_args_with_gc(
+            instance_id,
+            quick_play,
+            offline_mode,
+            extra_launch_args,
+            gc_intent,
+        )
+        .await?;
+    Ok(InstanceRunResult { process, gc_notice })
 }
 
 #[tauri::command]

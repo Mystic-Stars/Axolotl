@@ -93,6 +93,7 @@ fn main() {
                         "resolve_chinese_content_search",
                         "lookup_chinese_content_names",
                         "lookup_content_wiki_ids",
+                        "lookup_content_identities",
                     ])
                     .default_permission(
                         DefaultPermissionRule::AllowAllCommands,
@@ -493,6 +494,14 @@ fn main() {
                         "get_opening_command",
                         "get_minecraft_news",
                     ])
+                    .default_permission(
+                        DefaultPermissionRule::AllowAllCommands,
+                    ),
+            )
+            .plugin(
+                "storage",
+                InlinedPlugin::new()
+                    .commands(&["storage_scan_start", "storage_open_paths"])
                     .default_permission(
                         DefaultPermissionRule::AllowAllCommands,
                     ),

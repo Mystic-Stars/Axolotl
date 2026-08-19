@@ -1,12 +1,12 @@
 <script setup>
 import { ArrowLeftIcon, CoffeeIcon, SpinnerIcon, XIcon } from '@modrinth/assets'
 import {
-	ButtonStyled,
 	commonMessages,
 	defineMessages,
 	injectNotificationManager,
 	NewModal,
 	useVIntl,
+	NewButton as Button,
 } from '@modrinth/ui'
 import { ref } from 'vue'
 
@@ -158,36 +158,37 @@ async function downloadVersion(info) {
 					{{ formatMessage(messages.noVendors) }}
 				</div>
 				<div v-else class="grid grid-cols-2 gap-2 sm:grid-cols-3">
-					<ButtonStyled v-for="vendor in vendors" :key="vendor">
-						<button
-							type="button"
-							class="!h-16 !w-full !min-w-0 !justify-start !gap-3 !rounded-lg !px-3 !py-2 !text-left !shadow-none"
-							@click="selectVendor(vendor)"
+					<Button
+						v-for="vendor in vendors"
+						:key="vendor"
+						type="base"
+						class="!h-16 !w-full !min-w-0 !justify-start !gap-3 !rounded-lg !px-3 !py-2 !text-left !shadow-none"
+						@click="selectVendor(vendor)"
+						native-type="button"
+					>
+						<span
+							class="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-md p-1"
 						>
+							<img
+								v-if="vendorBranding[vendor]"
+								:src="vendorBranding[vendor].logo"
+								alt=""
+								class="size-full object-contain"
+							/>
+							<CoffeeIcon v-else class="size-5 text-secondary" aria-hidden="true" />
+						</span>
+						<span class="flex min-w-0 flex-1 flex-col items-start text-left leading-tight">
+							<span class="w-full truncate text-left text-sm font-semibold text-contrast">{{
+								vendor
+							}}</span>
 							<span
-								class="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-md p-1"
+								v-if="vendorBranding[vendor]"
+								class="w-full truncate text-left text-xs font-normal text-secondary"
 							>
-								<img
-									v-if="vendorBranding[vendor]"
-									:src="vendorBranding[vendor].logo"
-									alt=""
-									class="size-full object-contain"
-								/>
-								<CoffeeIcon v-else class="size-5 text-secondary" aria-hidden="true" />
+								{{ vendorBranding[vendor].product }}
 							</span>
-							<span class="flex min-w-0 flex-1 flex-col items-start text-left leading-tight">
-								<span class="w-full truncate text-left text-sm font-semibold text-contrast">{{
-									vendor
-								}}</span>
-								<span
-									v-if="vendorBranding[vendor]"
-									class="w-full truncate text-left text-xs font-normal text-secondary"
-								>
-									{{ vendorBranding[vendor].product }}
-								</span>
-							</span>
-						</button>
-					</ButtonStyled>
+						</span>
+					</Button>
 				</div>
 			</template>
 
@@ -223,42 +224,50 @@ async function downloadVersion(info) {
 					{{ formatMessage(messages.noVersions) }}
 				</div>
 				<div v-else class="grid grid-cols-2 gap-2 sm:grid-cols-4">
-					<ButtonStyled v-for="info in versions" :key="info.major_version">
-						<button
-							type="button"
-							class="!h-12 !w-full !min-w-0 !rounded-lg !px-3 !shadow-none"
-							:disabled="downloading !== null"
-							@click="downloadVersion(info)"
-						>
-							<SpinnerIcon
-								v-if="downloading === info.major_version"
-								class="animate-spin"
-								aria-hidden="true"
-							/>
-							<CoffeeIcon v-else aria-hidden="true" />
-							<span class="truncate text-sm font-semibold tabular-nums">
-								{{ formatMessage(messages.versionLabel, { version: info.major_version }) }}
-							</span>
-						</button>
-					</ButtonStyled>
+					<Button
+						v-for="info in versions"
+						:key="info.major_version"
+						type="base"
+						class="!h-12 !w-full !min-w-0 !rounded-lg !px-3 !shadow-none"
+						:disabled="downloading !== null"
+						@click="downloadVersion(info)"
+						native-type="button"
+					>
+						<SpinnerIcon
+							v-if="downloading === info.major_version"
+							class="animate-spin"
+							aria-hidden="true"
+						/>
+						<CoffeeIcon v-else aria-hidden="true" />
+						<span class="truncate text-sm font-semibold tabular-nums">
+							{{ formatMessage(messages.versionLabel, { version: info.major_version }) }}
+						</span>
+					</Button>
 				</div>
 			</template>
 		</div>
 
 		<template #actions>
 			<div class="flex flex-wrap justify-end gap-2">
-				<ButtonStyled v-if="selectedVendor" type="outlined">
-					<button type="button" :disabled="downloading !== null" @click="backToVendors">
-						<ArrowLeftIcon aria-hidden="true" />
-						{{ formatMessage(messages.back) }}
-					</button>
-				</ButtonStyled>
-				<ButtonStyled type="outlined">
-					<button type="button" :disabled="downloading !== null" @click="modal?.hide()">
-						<XIcon aria-hidden="true" />
-						{{ formatMessage(commonMessages.cancelButton) }}
-					</button>
-				</ButtonStyled>
+				<Button
+					v-if="selectedVendor"
+					type="outlined"
+					:disabled="downloading !== null"
+					@click="backToVendors"
+					native-type="button"
+				>
+					<ArrowLeftIcon aria-hidden="true" />
+					{{ formatMessage(messages.back) }}
+				</Button>
+				<Button
+					type="outlined"
+					:disabled="downloading !== null"
+					@click="modal?.hide()"
+					native-type="button"
+				>
+					<XIcon aria-hidden="true" />
+					{{ formatMessage(commonMessages.cancelButton) }}
+				</Button>
 			</div>
 		</template>
 	</NewModal>

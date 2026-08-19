@@ -113,6 +113,7 @@ enum AttemptError {
     Managed { reason: ManagedReason, offset: u64 },
     Http { error: crate::Error, offset: u64 },
     RangeNotSupported,
+    RangeBeyondEof,
 }
 
 fn authority_of(url: &str) -> Option<String> {
@@ -399,6 +400,15 @@ async fn download_attempt(
     progress_bytes: Option<Arc<AtomicU64>>,
     progress: &mut Option<&mut fetch::FetchProgressFn<'_>>,
 ) -> Result<u64, AttemptError> {
+    // A resume offset at or past the expected size means the part already
+    // holds every byte a Range could serve; asking for `bytes={size}-` would
+    // draw a 416. Skip the request and let verification decide the bytes.
+    if let Some(expected) = expected_total
+        && resume_offset > 0
+        && resume_offset >= expected
+    {
+        return Ok(resume_offset.min(expected));
+    }
     let Some(authority) = authority_of(url) else {
         return Err(AttemptError::Http {
             error: crate::ErrorKind::NetworkError(format!("invalid url {url}"))
@@ -458,6 +468,9 @@ async fn download_attempt(
 
     if require_range {
         if response.status() != reqwest::StatusCode::PARTIAL_CONTENT {
+            if response.status() == reqwest::StatusCode::RANGE_NOT_SATISFIABLE {
+                return Err(AttemptError::RangeBeyondEof);
+            }
             return Err(AttemptError::RangeNotSupported);
         }
         if let Some(start) = content_range_start(&response) {
@@ -471,6 +484,8 @@ async fn download_attempt(
                 return Err(AttemptError::RangeNotSupported);
             }
         }
+    } else if response.status() == reqwest::StatusCode::RANGE_NOT_SATISFIABLE {
+        return Err(AttemptError::RangeBeyondEof);
     } else if response.status() != reqwest::StatusCode::OK {
         return Err(AttemptError::Http {
             error: http_error_for_response(response.status(), url),
@@ -724,6 +739,23 @@ async fn run_single_stream(
                 committed = false;
                 url_index += 1;
             }
+            Err(AttemptError::RangeBeyondEof) => {
+                // The server rejected the resume offset as past its end of
+                // file, so this source is shorter than the expected size. The
+                // partial is untrustworthy; drop it and start the next source
+                // from scratch instead of re-issuing the same Range.
+                let _ = tokio::fs::remove_file(part_path).await;
+                offset = 0;
+                resumes = 0;
+                no_progress = 0;
+                committed = false;
+                last_error = Some(crate::ErrorKind::NetworkError(
+                    "source shorter than the expected size (Range not satisfiable)"
+                        .to_string(),
+                )
+                .into());
+                url_index += 1;
+            }
             Err(AttemptError::RangeNotSupported) => {
                 return Err(crate::ErrorKind::NetworkError(
                     "server ignored Range header".to_string(),
@@ -877,6 +909,9 @@ async fn run_segment(
                 committed = false;
                 url_index += 1;
             }
+            Err(AttemptError::RangeBeyondEof) => {
+                return Err(SegmentError::RangeNotSupported);
+            }
             Err(AttemptError::RangeNotSupported) => {
                 return Err(SegmentError::RangeNotSupported);
             }
@@ -900,6 +935,25 @@ fn is_terminal_http(error: &Option<crate::Error>) -> bool {
             *status == 404 || *status == 410
         }
         _ => false,
+    }
+}
+
+/// Computes a trustworthy resume offset for an existing partial file. A
+/// complete (`part_len == expected`) partial is passed through for in-place
+/// verification, an over-length one is stale and restarted from zero; both
+/// would otherwise command an unsatisfiable Range (HTTP 416). Sizes are only
+/// trusted when the expected total is known.
+fn trusted_resume_offset(expected: Option<u64>, part_len: u64) -> u64 {
+    match expected {
+        Some(expected) if expected > 0 => {
+            if part_len > expected {
+                0
+            } else {
+                part_len
+            }
+        }
+        Some(_) => 0,
+        None => part_len,
     }
 }
 
@@ -1024,10 +1078,11 @@ async fn download_to_path_inner(
 ) -> crate::Result<fetch::DownloadResult> {
     load_reputation_if_needed().await;
     let expected_total = request.integrity.size;
-    let initial_offset = tokio::fs::metadata(part_path)
+    let part_len = tokio::fs::metadata(part_path)
         .await
         .map(|metadata| metadata.len())
         .unwrap_or(0);
+    let initial_offset = trusted_resume_offset(expected_total, part_len);
     let flow_started_at = Instant::now();
     let mut progress = progress;
 
@@ -1198,5 +1253,15 @@ mod tests {
         update_ewma(&mut ewma, 0.0);
         assert!(ewma.score < 100.0);
         assert_eq!(ewma.count, 2);
+    }
+
+    #[test]
+    fn trusted_resume_offset_only_accepts_incomplete_partials() {
+        assert_eq!(trusted_resume_offset(Some(100), 0), 0);
+        assert_eq!(trusted_resume_offset(Some(100), 50), 50);
+        assert_eq!(trusted_resume_offset(Some(100), 100), 100);
+        assert_eq!(trusted_resume_offset(Some(100), 200), 0);
+        assert_eq!(trusted_resume_offset(Some(0), 10), 0);
+        assert_eq!(trusted_resume_offset(None, 10), 10);
     }
 }

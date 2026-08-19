@@ -8,7 +8,6 @@ import {
 	UploadIcon,
 } from '@modrinth/assets'
 import {
-	ButtonStyled,
 	Combobox,
 	defineMessages,
 	injectNotificationManager,
@@ -17,6 +16,7 @@ import {
 	ThemeSelector,
 	Toggle,
 	useVIntl,
+	NewButton as Button,
 } from '@modrinth/ui'
 import { convertFileSrc } from '@tauri-apps/api/core'
 import { appDataDir, join } from '@tauri-apps/api/path'
@@ -663,24 +663,26 @@ watch(
 		</div>
 
 		<div class="mt-3 flex flex-wrap gap-2">
-			<ButtonStyled>
-				<button type="button" @click="chooseCustomBackground">
-					<UploadIcon />
-					{{
-						formatMessage(
-							customBackgroundPreview
-								? messages.customBackgroundReplace
-								: messages.customBackgroundChoose,
-						)
-					}}
-				</button>
-			</ButtonStyled>
-			<ButtonStyled v-if="customBackgroundPreview" color="red" type="outlined">
-				<button type="button" @click="removeCustomBackground">
-					<TrashIcon />
-					{{ formatMessage(messages.customBackgroundRemove) }}
-				</button>
-			</ButtonStyled>
+			<Button type="base" @click="chooseCustomBackground" native-type="button">
+				<UploadIcon />
+				{{
+					formatMessage(
+						customBackgroundPreview
+							? messages.customBackgroundReplace
+							: messages.customBackgroundChoose,
+					)
+				}}
+			</Button>
+			<Button
+				v-if="customBackgroundPreview"
+				type="outlined"
+				color="red"
+				@click="removeCustomBackground"
+				native-type="button"
+			>
+				<TrashIcon />
+				{{ formatMessage(messages.customBackgroundRemove) }}
+			</Button>
 		</div>
 
 		<div v-if="customBackgroundPreview" class="mt-5 grid gap-5 lg:grid-cols-2">
@@ -892,34 +894,28 @@ watch(
 			role="radiogroup"
 			:aria-label="formatMessage(messages.homeLayoutTitle)"
 		>
-			<ButtonStyled
-				:color="settings.home_layout === 'standard' ? 'brand' : 'standard'"
-				:type="settings.home_layout === 'standard' ? 'highlight-colored-text' : 'transparent'"
+			<Button
+				:type="settings.home_layout === 'standard' ? 'colored-text' : 'quiet'"
+				:color="settings.home_layout === 'standard' ? 'brand' : undefined"
+				native-type="button"
+				role="radio"
+				:aria-checked="settings.home_layout === 'standard'"
+				@click="setHomeLayout('standard')"
 			>
-				<button
-					type="button"
-					role="radio"
-					:aria-checked="settings.home_layout === 'standard'"
-					@click="setHomeLayout('standard')"
-				>
-					<LayoutTemplateIcon aria-hidden="true" />
-					{{ formatMessage(messages.homeLayoutStandard) }}
-				</button>
-			</ButtonStyled>
-			<ButtonStyled
-				:color="settings.home_layout === 'minimal' ? 'brand' : 'standard'"
-				:type="settings.home_layout === 'minimal' ? 'highlight-colored-text' : 'transparent'"
+				<LayoutTemplateIcon aria-hidden="true" />
+				{{ formatMessage(messages.homeLayoutStandard) }}
+			</Button>
+			<Button
+				:type="settings.home_layout === 'minimal' ? 'colored-text' : 'quiet'"
+				:color="settings.home_layout === 'minimal' ? 'brand' : undefined"
+				native-type="button"
+				role="radio"
+				:aria-checked="settings.home_layout === 'minimal'"
+				@click="setHomeLayout('minimal')"
 			>
-				<button
-					type="button"
-					role="radio"
-					:aria-checked="settings.home_layout === 'minimal'"
-					@click="setHomeLayout('minimal')"
-				>
-					<MinimizeIcon aria-hidden="true" />
-					{{ formatMessage(messages.homeLayoutMinimal) }}
-				</button>
-			</ButtonStyled>
+				<MinimizeIcon aria-hidden="true" />
+				{{ formatMessage(messages.homeLayoutMinimal) }}
+			</Button>
 		</div>
 	</div>
 

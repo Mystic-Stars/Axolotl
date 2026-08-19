@@ -1,5 +1,11 @@
 <template>
-	<NewModal ref="modal" :header="formatMessage(messages.header)" fade="warning" max-width="500px">
+	<NewModal
+		ref="modal"
+		:header="formatMessage(messages.header)"
+		fade="warning"
+		max-width="500px"
+		:on-hide="handleHide"
+	>
 		<p class="m-0 text-secondary">
 			<IntlFormatted :message-id="messages.body" :values="{ instanceName }">
 				<template #bold="{ children }">
@@ -70,15 +76,18 @@ const messages = defineMessages({
 const emit = defineEmits<{
 	(e: 'go-to-instance', instanceId: string): void
 	(e: 'create-anyway'): void
+	(e: 'cancel'): void
 }>()
 
 const modal = ref<InstanceType<typeof NewModal>>()
 const instanceName = ref('')
 const instanceId = ref('')
+const accepted = ref(false)
 
 function show(name: string, id: string) {
 	instanceName.value = name
 	instanceId.value = id
+	accepted.value = false
 	modal.value?.show()
 }
 
@@ -87,13 +96,19 @@ function handleCancel() {
 }
 
 function handleGoToInstance() {
+	accepted.value = true
 	modal.value?.hide()
 	emit('go-to-instance', instanceId.value)
 }
 
 function handleCreateAnyway() {
+	accepted.value = true
 	modal.value?.hide()
 	emit('create-anyway')
+}
+
+function handleHide() {
+	if (!accepted.value) emit('cancel')
 }
 
 defineExpose({

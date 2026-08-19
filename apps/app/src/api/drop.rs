@@ -218,11 +218,12 @@ pub async fn drop_classify<R: tauri::Runtime>(
 ) -> Result<ClassificationResult, String> {
     debug!("Drop event received: {}", path);
     let path = std::path::PathBuf::from(&path);
+    let path_label = path.to_string_lossy().to_string();
     let _ = app.emit(
         "drop_classify_progress",
         serde_json::json!({
             "phase": "classify",
-            "currentItem": path.to_string_lossy(),
+            "currentItem": path_label,
             "processed": 0,
             "total": null,
         }),
@@ -230,16 +231,22 @@ pub async fn drop_classify<R: tauri::Runtime>(
     // The first pass never unpacks nested archives; when one would be needed
     // the classification reports the total nested size so the frontend can
     // confirm the potentially slow unpack with the user before retrying.
-    let result = if allow_nested_extraction.unwrap_or(false) {
-        classify_dropped_item_with_candidates(&path, true)
-    } else {
-        classify_dropped_item_with_candidates(&path, false)
-    };
+    // Batch drops classify several files concurrently, so the classifier must
+    // run on a blocking thread instead of occupying the async runtime.
+    let result = tokio::task::spawn_blocking(move || {
+        if allow_nested_extraction.unwrap_or(false) {
+            classify_dropped_item_with_candidates(&path, true)
+        } else {
+            classify_dropped_item_with_candidates(&path, false)
+        }
+    })
+    .await
+    .map_err(|e| format!("Classification task panicked: {e}"))?;
     let _ = app.emit(
         "drop_classify_progress",
         serde_json::json!({
             "phase": "done",
-            "currentItem": path.to_string_lossy(),
+            "currentItem": path_label,
             "processed": 1,
             "total": 1,
         }),

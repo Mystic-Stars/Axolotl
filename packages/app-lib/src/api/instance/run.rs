@@ -13,6 +13,8 @@ use std::time::Duration;
 use tokio::process::Command;
 use tracing::{info, warn};
 
+pub use crate::launcher::jvm_args::{GcLaunchIntent, GcLaunchReport};
+
 const LAUNCH_PREPARATION_TIMEOUT: Duration = Duration::from_secs(60);
 
 #[derive(Debug, Clone)]
@@ -39,6 +41,45 @@ pub async fn run_with_extra_launch_args(
     offline_mode: bool,
     extra_launch_args: Option<Vec<String>>,
 ) -> crate::Result<ProcessMetadata> {
+    Ok(run_with_extra_launch_args_inner(
+        instance_id,
+        quick_play_type,
+        offline_mode,
+        extra_launch_args,
+        None,
+    )
+    .await?
+    .0)
+}
+
+/// Like [`run_with_extra_launch_args`], but additionally resolves a GC-args
+/// intent against the actual JVM and reports what was actually used (useful
+/// for surfacing strategy fallback / flag pruning to the user).
+#[tracing::instrument]
+pub async fn run_with_extra_launch_args_with_gc(
+    instance_id: &str,
+    quick_play_type: QuickPlayType,
+    offline_mode: bool,
+    extra_launch_args: Option<Vec<String>>,
+    gc_intent: Option<GcLaunchIntent>,
+) -> crate::Result<(ProcessMetadata, Option<GcLaunchReport>)> {
+    run_with_extra_launch_args_inner(
+        instance_id,
+        quick_play_type,
+        offline_mode,
+        extra_launch_args,
+        gc_intent,
+    )
+    .await
+}
+
+async fn run_with_extra_launch_args_inner(
+    instance_id: &str,
+    quick_play_type: QuickPlayType,
+    offline_mode: bool,
+    extra_launch_args: Option<Vec<String>>,
+    gc_intent: Option<GcLaunchIntent>,
+) -> crate::Result<(ProcessMetadata, Option<GcLaunchReport>)> {
     let state = State::get().await?;
     let default_account = if offline_mode {
         Credentials::get_offline_credential(&state.pool)
@@ -64,6 +105,7 @@ pub async fn run_with_extra_launch_args(
             quick_play_type,
             offline_mode,
             extra_launch_args,
+            gc_intent,
         ),
     )
     .await
@@ -83,7 +125,8 @@ async fn run_credentials(
     quick_play_type: QuickPlayType,
     offline_mode: bool,
     extra_launch_args: Option<Vec<String>>,
-) -> crate::Result<ProcessMetadata> {
+    gc_intent: Option<GcLaunchIntent>,
+) -> crate::Result<(ProcessMetadata, Option<GcLaunchReport>)> {
     let state = State::get().await?;
     let settings = Settings::get(&state.pool).await?;
     let context =
@@ -274,7 +317,8 @@ async fn run_credentials(
         );
     }
 
-    crate::launcher::launch_minecraft(
+    let mut gc_report: Option<GcLaunchReport> = None;
+    let process = crate::launcher::launch_minecraft(
         &java_args,
         &env_args,
         &mc_set_options,
@@ -284,10 +328,13 @@ async fn run_credentials(
         credentials,
         post_exit_hook,
         &context,
+        gc_intent,
+        &mut gc_report,
         quick_play_type,
         offline_mode,
     )
-    .await
+    .await?;
+    Ok((process, gc_report))
 }
 
 fn server_play_project_id(link: &InstanceLink) -> Option<&String> {

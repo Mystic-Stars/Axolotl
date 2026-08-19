@@ -142,6 +142,7 @@ fn version_to_resolver(
         id: version.id,
         project_id: version.project_id,
         date_published: version.date_published,
+        version_type: version.version_type,
         dependencies: version
             .dependencies
             .into_iter()

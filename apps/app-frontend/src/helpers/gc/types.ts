@@ -2,7 +2,7 @@ import type { MessageDescriptor } from '@modrinth/ui'
 
 import type { InstanceLoader } from '@/helpers/types'
 
-export type GcStrategyId = 'g1gc-mojang' | 'g1gc-pcl' | 'shenandoah' | 'zgc' | 'auto'
+export type GcStrategyId = 'g1gc-mojang' | 'pcl' | 'shenandoah' | 'zgc' | 'auto'
 
 export type ResolvedGcStrategyId = Exclude<GcStrategyId, 'auto'>
 

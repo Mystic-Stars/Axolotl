@@ -33,14 +33,18 @@
 		<div class="flex items-center gap-4">
 			<div class="group relative">
 				<Avatar :src="form.removeIcon ? undefined : data.icon" size="64px" />
-				<button
-					v-if="data.icon && !form.removeIcon && !readonly"
-					v-tooltip="formatMessage(messages.resetIcon)"
-					class="absolute inset-0 hidden cursor-pointer items-center justify-center rounded-xl border-none bg-black/60 text-white group-hover:flex"
-					@click="form.removeIcon = true"
-				>
-					<UndoIcon class="size-5" />
-				</button>
+				<Tooltip>
+					<button
+						v-if="data.icon && !form.removeIcon && !readonly"
+						class="absolute inset-0 hidden cursor-pointer items-center justify-center rounded-xl border-none bg-black/60 text-white group-hover:flex"
+						@click="form.removeIcon = true"
+					>
+						<UndoIcon class="size-5" />
+					</button>
+					<template #popper>
+						<span>{{ formatMessage(messages.resetIcon) }}</span>
+					</template>
+				</Tooltip>
 			</div>
 			<div class="flex min-w-0 flex-col gap-1.5">
 				<h1 class="m-0 truncate text-2xl font-extrabold text-contrast">{{ data.name }}</h1>
@@ -181,56 +185,75 @@
 				{{ formatMessage(messages.noRulesFound) }}
 			</div>
 			<div v-for="group in ruleGroups" :key="group.category" class="flex flex-col gap-2">
-				<h3 class="m-0 mt-1 text-base font-bold text-contrast">{{ group.label }}</h3>
-				<div
-					v-for="rule in group.rules"
-					:key="rule.key"
-					class="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-bg-raised px-4 py-2.5"
+				<Accordion
+					:open-by-default="false"
+					:force-open="ruleSearchActive"
+					class="min-w-0 overflow-hidden rounded-xl border border-solid border-surface-4 bg-bg-raised"
+					button-class="group flex w-full cursor-pointer items-center gap-3 border-0 bg-transparent px-4 py-3 text-left"
 				>
-					<div class="flex min-w-0 items-center gap-2">
-						<span
-							v-if="rule.modifiedFromDefault"
-							v-tooltip="formatMessage(messages.modifiedFromDefault)"
-							class="size-2 shrink-0 rounded-full bg-brand"
-						/>
-						<span class="truncate font-medium text-contrast" :title="rule.key">
-							{{ rule.label }}
-						</span>
+					<template #title>
+						<h3 class="m-0 text-base font-bold text-contrast">{{ group.label }}</h3>
+					</template>
+					<div class="border-0 border-t border-solid border-surface-4">
+						<div
+							v-for="rule in group.rules"
+							:key="rule.key"
+							class="flex flex-wrap items-center justify-between gap-2 border-b border-solid border-surface-4 px-4 py-2.5 last:border-b-0"
+						>
+							<div class="flex min-w-0 items-center gap-2">
+								<Tooltip>
+									<span
+										v-if="rule.modifiedFromDefault"
+										class="size-2 shrink-0 rounded-full bg-brand"
+									/>
+									<template #popper>
+										<span>{{ formatMessage(messages.modifiedFromDefault) }}</span>
+									</template>
+								</Tooltip>
+								<span class="truncate font-medium text-contrast" :title="rule.key">
+									{{ rule.label }}
+								</span>
+							</div>
+							<div class="flex items-center gap-1.5">
+								<ButtonStyled v-if="rule.canResetToDefault" type="transparent" size="small">
+									<Tooltip>
+										<button
+											:disabled="readonly"
+											@click="resetRuleToDefault(rule.key, rule.defaultValue)"
+										>
+											<UndoIcon />
+										</button>
+										<template #popper>
+											<span>{{ formatMessage(messages.resetRuleToDefault) }}</span>
+										</template>
+									</Tooltip>
+								</ButtonStyled>
+								<DropdownSelect
+									v-if="rule.widget === 'boolean'"
+									v-model="form.rules[rule.key]"
+									:name="`gamerule-${rule.key}`"
+									class="!w-36"
+									:options="BOOLEAN_OPTIONS"
+									:display-name="booleanLabel"
+									:disabled="readonly"
+									render-up
+								/>
+								<StyledInput
+									v-else
+									v-model="form.rules[rule.key]"
+									autocomplete="off"
+									:spellcheck="false"
+									:disabled="readonly"
+									input-class="font-mono !h-9"
+									wrapper-class="w-36"
+								/>
+							</div>
+							<span v-if="invalidRules.includes(rule.key)" class="w-full text-sm text-red">
+								{{ formatMessage(messages.ruleInvalidInteger) }}
+							</span>
+						</div>
 					</div>
-					<div class="flex items-center gap-1.5">
-						<ButtonStyled v-if="rule.canResetToDefault" type="transparent" size="small">
-							<button
-								v-tooltip="formatMessage(messages.resetRuleToDefault)"
-								:disabled="readonly"
-								@click="resetRuleToDefault(rule.key, rule.defaultValue)"
-							>
-								<UndoIcon />
-							</button>
-						</ButtonStyled>
-						<DropdownSelect
-							v-if="rule.widget === 'boolean'"
-							v-model="form.rules[rule.key]"
-							:name="`gamerule-${rule.key}`"
-							class="!w-36"
-							:options="BOOLEAN_OPTIONS"
-							:display-name="booleanLabel"
-							:disabled="readonly"
-							render-up
-						/>
-						<StyledInput
-							v-else
-							v-model="form.rules[rule.key]"
-							autocomplete="off"
-							:spellcheck="false"
-							:disabled="readonly"
-							input-class="font-mono !h-9"
-							wrapper-class="w-36"
-						/>
-					</div>
-					<span v-if="invalidRules.includes(rule.key)" class="w-full text-sm text-red">
-						{{ formatMessage(messages.ruleInvalidInteger) }}
-					</span>
-				</div>
+				</Accordion>
 			</div>
 		</section>
 
@@ -262,6 +285,7 @@
 <script setup lang="ts">
 import { SaveIcon, SearchIcon, TrashIcon, UndoIcon, XIcon } from '@modrinth/assets'
 import {
+	Accordion,
 	Admonition,
 	Avatar,
 	ButtonStyled,
@@ -277,6 +301,7 @@ import {
 } from '@modrinth/ui'
 import { useQueryClient } from '@tanstack/vue-query'
 import dayjs from 'dayjs'
+import { Tooltip } from 'floating-vue'
 import { computed, ref, watch } from 'vue'
 import { onBeforeRouteLeave, type RouteLocationNormalized, useRoute, useRouter } from 'vue-router'
 
@@ -345,6 +370,8 @@ const savedState = ref<FormState>(emptyForm())
 const loadError = ref<string>()
 const saving = ref(false)
 const ruleSearch = ref('')
+
+const ruleSearchActive = computed(() => ruleSearch.value.trim().length > 0)
 
 function emptyForm(): FormState {
 	return { name: '', gameMode: 'survival', rules: {}, removeIcon: false }

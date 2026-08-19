@@ -232,7 +232,7 @@ import { trackEvent } from '@/helpers/analytics'
 import { get_project_versions, get_version, get_version_many } from '@/helpers/cache.js'
 import { applyContentItemUpdates, matchesContentItem } from '@/helpers/content-item-state'
 import { translateContentItemTitles } from '@/helpers/content-search'
-import { getCurseForgeChangelog, type CurseForgeFile } from '@/helpers/curseforge'
+import { type CurseForgeFile,getCurseForgeChangelog } from '@/helpers/curseforge'
 import {
 	type CurseForgeManualDownloadItem,
 	getCurseForgeManualDownloadUrl,
@@ -241,10 +241,10 @@ import { getMissingContentScannerSettings } from '@/helpers/downloads-scanner'
 import { instance_listener } from '@/helpers/events.js'
 import { install_duplicate_instance, installJobInstanceId } from '@/helpers/install'
 import {
-	get_content_items_by_paths,
 	add_project_from_path,
 	apply_content_update_plan,
 	edit,
+	get_content_items_by_paths,
 	type InstanceContentSnapshotItem,
 	list,
 	plan_content_updates,
@@ -258,8 +258,8 @@ import {
 } from '@/helpers/instance'
 import { readInstanceCache, writeInstanceCache } from '@/helpers/instance-cache'
 import {
-	isWorldSaveContentItem,
 	type InstanceContentData,
+	isWorldSaveContentItem,
 	loadInstanceContentData,
 } from '@/helpers/instance-content'
 import type { CacheBehaviour, GameInstance } from '@/helpers/types'

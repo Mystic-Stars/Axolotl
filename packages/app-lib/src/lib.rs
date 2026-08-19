@@ -20,6 +20,7 @@ mod launcher;
 mod logger;
 pub mod mod_metadata;
 mod state;
+pub mod storage;
 pub mod telemetry;
 
 pub use api::*;
@@ -30,6 +31,7 @@ pub use event::{
 };
 pub use logger::start_logger;
 pub use state::State;
+pub use storage::*;
 pub use util::fetch::DownloadReason;
 pub use util::file_lock::{LockingProcess, get_locking_processes};
 pub use util::platform::is_process_elevated;

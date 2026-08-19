@@ -2,7 +2,13 @@ import type { Labrinth } from '@modrinth/api-client'
 
 import type { FilterValue } from '#ui/utils/search'
 
-export type BrowseInstallContentType = 'modpack' | 'mod' | 'plugin' | 'datapack'
+export type BrowseInstallContentType =
+	| 'modpack'
+	| 'mod'
+	| 'plugin'
+	| 'datapack'
+	| 'resourcepack'
+	| 'shader'
 export type BrowseInstallAddonContentType = Exclude<BrowseInstallContentType, 'modpack'>
 
 /**
@@ -474,9 +480,13 @@ export function getTargetInstallPreferences(
 		loaders:
 			contentType === 'datapack'
 				? ['datapack']
-				: loader && shouldUseTargetRuntime
-					? [loader]
-					: undefined,
+				: contentType === 'resourcepack'
+					? ['minecraft']
+					: contentType === 'shader'
+						? ['iris']
+						: loader && shouldUseTargetRuntime
+							? [loader]
+							: undefined,
 	})
 }
 
@@ -540,7 +550,17 @@ export function getLatestMatchingInstallVersion(
 ) {
 	return [...versions]
 		.filter((version) => versionMatchesPreferences(version, preferences))
-		.sort((a, b) => new Date(b.date_published).getTime() - new Date(a.date_published).getTime())[0]
+		.sort((a, b) => {
+			const channelDifference = versionChannelRank(a.version_type) - versionChannelRank(b.version_type)
+			if (channelDifference) return channelDifference
+			return new Date(b.date_published).getTime() - new Date(a.date_published).getTime()
+		})[0]
+}
+
+function versionChannelRank(versionType: Labrinth.Versions.v2.Version['version_type']) {
+	if (versionType === 'beta') return 1
+	if (versionType === 'alpha') return 2
+	return 0
 }
 
 /**

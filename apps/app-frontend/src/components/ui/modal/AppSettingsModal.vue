@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import {
+	ArchiveIcon,
 	BotIcon,
 	CoffeeIcon,
 	GameIcon,
@@ -37,6 +38,8 @@ import LanguageSettings from '@/components/ui/settings/LanguageSettings.vue'
 import MultiplayerSettings from '@/components/ui/settings/MultiplayerSettings.vue'
 import PrivacySettings from '@/components/ui/settings/PrivacySettings.vue'
 import ResourceManagementSettings from '@/components/ui/settings/ResourceManagementSettings.vue'
+import { storageMessages } from '@/components/ui/settings/storage/storageMessages'
+import StorageSettings from '@/components/ui/settings/StorageSettings.vue'
 import TranslationSettings from '@/components/ui/settings/TranslationSettings.vue'
 import UpdateSettings from '@/components/ui/settings/UpdateSettings.vue'
 import { AxolotlBrandConfig } from '@/config'
@@ -139,6 +142,15 @@ const tabs = [
 		}),
 		icon: UsersIcon,
 		content: MultiplayerSettings,
+	},
+	{
+		name: defineMessage({
+			id: 'app.settings.tabs.storage',
+			defaultMessage: 'Storage',
+		}),
+		icon: ArchiveIcon,
+		content: StorageSettings,
+		onboardingId: 'settings-tab-storage',
 	},
 	{
 		name: defineMessage({

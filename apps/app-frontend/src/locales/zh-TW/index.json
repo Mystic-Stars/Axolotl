@@ -1794,7 +1794,7 @@
 		"message": "搜尋 {count} 個世界..."
 	},
 	"app.settings.resources.curseforge-mirror-description": {
-		"message": "CurseForge API 請求與檔案下載。"
+		"message": "CurseForge 檔案下載。"
 	},
 	"app.instances.add-content": {
 		"message": "新增內容"
@@ -3708,7 +3708,7 @@
 		"message": "CurseForge 服務"
 	},
 	"app.settings.resources.curseforge-mirror-description": {
-		"message": "使用 MCIM 加速 CurseForge API 請求與檔案下載。"
+		"message": "CurseForge 檔案下載。"
 	},
 	"app.settings.resources.database-backups": {
 		"message": "應用程式資料庫備份"

@@ -1,66 +1,90 @@
-import type { GcStrategyDefinition, GcStrategyId, ResolvedGcStrategyId } from './types'
+import type { GcContext, GcStrategyDefinition, GcStrategyId, ResolvedGcStrategyId } from './types'
 
+// Official Minecraft launcher G1GC tuning. `-XX:SurvivorRatio=8` (the flag in
+// the leak of the original list was misspelled "SurvialRation", which JVMs
+// would reject).
 function buildG1gcMojangArgs(): string {
 	return [
 		'-XX:+UseG1GC',
-		'-XX:G1UncommitBias=1',
-		'-XX:G1HeapRegionSize=32M',
+		'-XX:+ParallelRefProcEnabled',
+		'-XX:MaxGCPauseMillis=200',
 		'-XX:+UnlockExperimentalVMOptions',
-		'-XX:G1NewSizePercent=20',
-		'-XX:G1ReservePercent=20',
-		'-XX:MaxGCPauseMillis=0',
-		'-XX:G1HeapWastePercent=0',
+		'-XX:+DisableExplicitGC',
+		'-XX:+AlwaysPreTouch',
+		'-XX:G1NewSizePercent=30',
+		'-XX:G1MaxNewSizePercent=40',
+		'-XX:G1HeapRegionSize=8M',
+		'-XX:G1ReservePercent=15',
+		'-XX:G1HeapWastePercent=5',
 		'-XX:G1MixedGCCountTarget=4',
-		'-XX:InitiatingHeapOccupancyPercent=10',
-	].join(' ')
-}
-
-function buildG1gcPclArgs(): string {
-	return [
-		'-XX:+UseG1GC',
-		'-XX:MaxGCPauseMillis=50',
-		'-XX:G1HeapRegionSize=32M',
-		'-XX:G1NewSizePercent=20',
-		'-XX:G1ReservePercent=20',
 		'-XX:InitiatingHeapOccupancyPercent=15',
-		'-XX:G1MixedGCCountTarget=4',
+		'-XX:G1MixedGCLiveThresholdPercent=90',
+		'-XX:G1RSetUpdatingPauseTimePercent=5',
+		'-XX:SurvivorRatio=8',
 	].join(' ')
 }
 
+// PCL-style Shenandoah (adaptive, no large pages — the safe default variant).
+function buildPclShenandoahArgs(): string {
+	return [
+		'-XX:+UseShenandoahGC',
+		'-XX:ShenandoahGCHeuristics=adaptive',
+		'-XX:+AlwaysPreTouch',
+		'-XX:+DisableExplicitGC',
+	].join(' ')
+}
+
+// Shenandoah with large pages enabled (may warn on systems without support).
 function buildShenandoahArgs(): string {
 	return [
 		'-XX:+UseShenandoahGC',
-		'-XX:ShenandoahHeapRegionSize=256M',
-		'-XX:+UnlockExperimentalVMOptions',
+		'-XX:ShenandoahGCHeuristics=adaptive',
+		'-XX:+AlwaysPreTouch',
+		'-XX:+UseLargePages',
+		'-XX:+DisableExplicitGC',
 	].join(' ')
 }
 
 function buildZgcArgs(javaMajorVersion: number | null): string {
-	const args = ['-XX:+UseZGC', '-XX:+UnlockExperimentalVMOptions']
+	const args = ['-XX:+UseZGC']
+	// Generational ZGC only exists on JDK 21+.
 	if (javaMajorVersion !== null && javaMajorVersion >= 21) {
 		args.push('-XX:+ZGenerational')
 	}
+	args.push('-XX:+AlwaysPreTouch', '-XX:-ZUncommit')
 	return args.join(' ')
 }
 
-function detectG1gcMojang(args: string): boolean {
-	return args.includes('-XX:+UseG1GC') && args.includes('-XX:G1UncommitBias=1')
+// Detection only tags a preset when its *complete* flag set is present in the
+// pasted args — a partial or edited arg list is treated as the user's own raw
+// args, never auto-mislabeled as a preset.
+function tokensOf(argString: string): string[] {
+	return argString.split(/\s+/).filter(Boolean)
 }
 
-function detectG1gcPcl(args: string): boolean {
+function hasFullArgSet(pastedArgs: string, presetArgString: string): boolean {
+	const inputSet = new Set(tokensOf(pastedArgs))
+	return tokensOf(presetArgString).every((token) => inputSet.has(token))
+}
+
+function detectG1gcMojang(args: string): boolean {
+	return hasFullArgSet(args, buildG1gcMojangArgs())
+}
+
+// PCL Shenandoah: complete adaptive set, and no large pages.
+function detectPclShenandoah(args: string): boolean {
 	return (
-		args.includes('-XX:+UseG1GC') &&
-		args.includes('-XX:G1NewSizePercent=20') &&
-		!args.includes('-XX:G1UncommitBias=1')
+		hasFullArgSet(args, buildPclShenandoahArgs()) && !args.includes('-XX:+UseLargePages')
 	)
 }
 
+// Shenandoah with large pages (its full set already requires `-XX:+UseLargePages`).
 function detectShenandoah(args: string): boolean {
-	return args.includes('-XX:+UseShenandoahGC')
+	return hasFullArgSet(args, buildShenandoahArgs())
 }
 
 function detectZgc(args: string): boolean {
-	return args.includes('-XX:+UseZGC')
+	return hasFullArgSet(args, buildZgcArgs(null))
 }
 
 export const GC_STRATEGY_DEFINITIONS: Record<ResolvedGcStrategyId, GcStrategyDefinition> = {
@@ -70,11 +94,11 @@ export const GC_STRATEGY_DEFINITIONS: Record<ResolvedGcStrategyId, GcStrategyDef
 		detect: detectG1gcMojang,
 		buildArgs: () => buildG1gcMojangArgs(),
 	},
-	'g1gc-pcl': {
-		id: 'g1gc-pcl',
-		baseArgs: buildG1gcPclArgs(),
-		detect: detectG1gcPcl,
-		buildArgs: () => buildG1gcPclArgs(),
+	pcl: {
+		id: 'pcl',
+		baseArgs: buildPclShenandoahArgs(),
+		detect: detectPclShenandoah,
+		buildArgs: () => buildPclShenandoahArgs(),
 	},
 	shenandoah: {
 		id: 'shenandoah',
@@ -104,4 +128,40 @@ export function getStrategyBaseArgs(strategyId: GcStrategyId): string {
 		return GC_STRATEGY_DEFINITIONS['g1gc-mojang'].baseArgs
 	}
 	return GC_STRATEGY_DEFINITIONS[strategyId].baseArgs
+}
+
+/**
+ * The preferred strategy plus the fallback chain, ordered by preference. The
+ * backend verifies each block against the actual JVM and picks the first one
+ * that is accepted (pruning unsupported tuning flags along the way).
+ *
+ * Fallbacks only ever move to less resource-hungry strategies — if the
+ * heuristic deliberately avoided ZGC (insufficient resources), we must not
+ * silently jump back up to it when Shenandoah is unavailable.
+ */
+const SAFE_TO_DEMANDING: ResolvedGcStrategyId[] = [
+	'g1gc-mojang',
+	'pcl',
+	'shenandoah',
+	'zgc',
+]
+
+export function buildGcCandidateChain(
+	context: GcContext,
+	preferred: ResolvedGcStrategyId,
+): { ids: string[]; args: string[][] } {
+	const preferredDemand = SAFE_TO_DEMANDING.indexOf(preferred)
+	const ids: string[] = [preferred]
+	if (preferredDemand > 0) {
+		for (let demand = preferredDemand - 1; demand >= 0; demand -= 1) {
+			ids.push(SAFE_TO_DEMANDING[demand])
+		}
+	}
+	// Absolute last resort: just the G1 selector (known to every HotSpot JVM).
+	ids.push('minimal-g1')
+	const args = ids.map((id) => {
+		if (id === 'minimal-g1') return ['-XX:+UseG1GC']
+		return GC_STRATEGY_DEFINITIONS[id].buildArgs(context).split(/\s+/).filter(Boolean)
+	})
+	return { ids, args }
 }

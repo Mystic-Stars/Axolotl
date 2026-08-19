@@ -53,6 +53,7 @@ impl InstallJobRecord {
             phase: self.state.progress.phase,
             progress: self.state.progress.progress.clone(),
             details: self.state.progress.details.clone(),
+            parallel: self.state.progress.parallel.clone(),
             display: self.state.display.clone(),
             error: self.state.error.clone(),
             rollback_error: self.state.rollback_error.clone(),

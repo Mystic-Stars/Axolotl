@@ -14,7 +14,6 @@ import {
 	TrashIcon,
 } from '@modrinth/assets'
 import {
-	ButtonStyled,
 	Combobox,
 	defineMessages,
 	injectNotificationManager,
@@ -22,6 +21,7 @@ import {
 	Tabs,
 	Toggle,
 	useVIntl,
+	NewButton as Button,
 } from '@modrinth/ui'
 import { openUrl } from '@tauri-apps/plugin-opener'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
@@ -933,16 +933,18 @@ onMounted(async () => {
 						{{ formatMessage(messages.credentialConfigured) }}
 					</p>
 					<div class="flex flex-wrap gap-2">
-						<ButtonStyled>
-							<button :disabled="busy || !apiKey.trim()" @click="saveApiKey">
-								<CheckIcon />{{ formatMessage(messages.saveKey) }}
-							</button>
-						</ButtonStyled>
-						<ButtonStyled v-if="selectedConfig.has_api_key" color="red" type="outlined">
-							<button :disabled="busy" @click="clearApiKey">
-								<TrashIcon />{{ formatMessage(messages.clearKey) }}
-							</button>
-						</ButtonStyled>
+						<Button type="base" :disabled="busy || !apiKey.trim()" @click="saveApiKey">
+							<CheckIcon />{{ formatMessage(messages.saveKey) }}
+						</Button>
+						<Button
+							v-if="selectedConfig.has_api_key"
+							type="outlined"
+							color="red"
+							:disabled="busy"
+							@click="clearApiKey"
+						>
+							<TrashIcon />{{ formatMessage(messages.clearKey) }}
+						</Button>
 					</div>
 				</template>
 				<template v-else>
@@ -967,29 +969,25 @@ onMounted(async () => {
 						</span>
 					</label>
 					<div class="flex flex-wrap gap-2">
-						<ButtonStyled>
-							<button
-								:disabled="
-									busy ||
-									!bedrockCredentialFields.some((field) => credentialValues[field.name]?.trim())
-								"
-								@click="saveCredentials(bedrockCredentialFields.map((field) => field.name))"
-							>
-								<CheckIcon />{{ formatMessage(messages.saveCredential) }}
-							</button>
-						</ButtonStyled>
-						<ButtonStyled
-							v-if="bedrockCredentialFields.some((field) => credentialConfigured(field.name))"
-							color="red"
-							type="outlined"
+						<Button
+							type="base"
+							:disabled="
+								busy ||
+								!bedrockCredentialFields.some((field) => credentialValues[field.name]?.trim())
+							"
+							@click="saveCredentials(bedrockCredentialFields.map((field) => field.name))"
 						>
-							<button
-								:disabled="busy"
-								@click="clearCredentials(bedrockCredentialFields.map((field) => field.name))"
-							>
-								<TrashIcon />{{ formatMessage(messages.clearCredential) }}
-							</button>
-						</ButtonStyled>
+							<CheckIcon />{{ formatMessage(messages.saveCredential) }}
+						</Button>
+						<Button
+							v-if="bedrockCredentialFields.some((field) => credentialConfigured(field.name))"
+							type="outlined"
+							color="red"
+							:disabled="busy"
+							@click="clearCredentials(bedrockCredentialFields.map((field) => field.name))"
+						>
+							<TrashIcon />{{ formatMessage(messages.clearCredential) }}
+						</Button>
 					</div>
 				</template>
 			</div>
@@ -1015,23 +1013,22 @@ onMounted(async () => {
 					</span>
 				</label>
 				<div class="flex flex-wrap gap-2">
-					<ButtonStyled>
-						<button
-							:disabled="busy || !credentialValues['vertex-service-account']?.trim()"
-							@click="saveCredential('vertex-service-account')"
-						>
-							<CheckIcon />{{ formatMessage(messages.saveCredential) }}
-						</button>
-					</ButtonStyled>
-					<ButtonStyled
-						v-if="credentialConfigured('vertex-service-account')"
-						color="red"
-						type="outlined"
+					<Button
+						type="base"
+						:disabled="busy || !credentialValues['vertex-service-account']?.trim()"
+						@click="saveCredential('vertex-service-account')"
 					>
-						<button :disabled="busy" @click="clearCredential('vertex-service-account')">
-							<TrashIcon />{{ formatMessage(messages.clearCredential) }}
-						</button>
-					</ButtonStyled>
+						<CheckIcon />{{ formatMessage(messages.saveCredential) }}
+					</Button>
+					<Button
+						v-if="credentialConfigured('vertex-service-account')"
+						type="outlined"
+						color="red"
+						:disabled="busy"
+						@click="clearCredential('vertex-service-account')"
+					>
+						<TrashIcon />{{ formatMessage(messages.clearCredential) }}
+					</Button>
 				</div>
 			</div>
 
@@ -1054,16 +1051,18 @@ onMounted(async () => {
 					}}
 				</p>
 				<div class="flex flex-wrap gap-2">
-					<ButtonStyled>
-						<button :disabled="busy || !apiKey.trim()" @click="saveApiKey">
-							<CheckIcon />{{ formatMessage(messages.saveKey) }}
-						</button>
-					</ButtonStyled>
-					<ButtonStyled v-if="selectedConfig.has_api_key" color="red" type="outlined">
-						<button :disabled="busy" @click="clearApiKey">
-							<TrashIcon />{{ formatMessage(messages.clearKey) }}
-						</button>
-					</ButtonStyled>
+					<Button type="base" :disabled="busy || !apiKey.trim()" @click="saveApiKey">
+						<CheckIcon />{{ formatMessage(messages.saveKey) }}
+					</Button>
+					<Button
+						v-if="selectedConfig.has_api_key"
+						type="outlined"
+						color="red"
+						:disabled="busy"
+						@click="clearApiKey"
+					>
+						<TrashIcon />{{ formatMessage(messages.clearKey) }}
+					</Button>
 				</div>
 			</div>
 
@@ -1075,21 +1074,21 @@ onMounted(async () => {
 					<span v-if="selectedConfig.oauth_connected" class="text-sm font-semibold text-green">
 						{{ formatMessage(messages.connected) }}
 					</span>
-					<ButtonStyled color="brand">
-						<button :disabled="busy" @click="connectOAuth">
-							<ExternalIcon />
-							{{
-								formatMessage(
-									selectedConfig.oauth_connected ? messages.reconnect : messages.connect,
-								)
-							}}
-						</button>
-					</ButtonStyled>
-					<ButtonStyled v-if="selectedConfig.oauth_connected" color="red" type="outlined">
-						<button :disabled="busy" @click="disconnectOAuth">
-							<LogOutIcon />{{ formatMessage(messages.disconnect) }}
-						</button>
-					</ButtonStyled>
+					<Button type="colored" color="brand" :disabled="busy" @click="connectOAuth">
+						<ExternalIcon />
+						{{
+							formatMessage(selectedConfig.oauth_connected ? messages.reconnect : messages.connect)
+						}}
+					</Button>
+					<Button
+						v-if="selectedConfig.oauth_connected"
+						type="outlined"
+						color="red"
+						:disabled="busy"
+						@click="disconnectOAuth"
+					>
+						<LogOutIcon />{{ formatMessage(messages.disconnect) }}
+					</Button>
 				</div>
 				<div v-if="oauthInfo" class="oauth-code-row">
 					<div class="min-w-0 flex-1">
@@ -1100,32 +1099,28 @@ onMounted(async () => {
 							{{ oauthInfo.user_code }}
 						</p>
 					</div>
-					<ButtonStyled type="transparent">
-						<button :title="formatMessage(messages.copyCode)" @click="copyOAuthCode">
-							<CopyIcon />
-						</button>
-					</ButtonStyled>
-					<ButtonStyled type="transparent">
-						<button
-							:disabled="oauthChecking"
-							:title="
-								formatMessage(
-									oauthChecking ? messages.checkingAuthorization : messages.checkAuthorization,
-								)
-							"
-							@click="checkOAuthStatus"
-						>
-							<RefreshCwIcon :class="{ 'animate-spin': oauthChecking }" />
-						</button>
-					</ButtonStyled>
-					<ButtonStyled type="transparent">
-						<button
-							:title="formatMessage(messages.openAuthorization)"
-							@click="openOAuthAuthorization"
-						>
-							<ExternalIcon />
-						</button>
-					</ButtonStyled>
+					<Button type="quiet" :title="formatMessage(messages.copyCode)" @click="copyOAuthCode">
+						<CopyIcon />
+					</Button>
+					<Button
+						type="quiet"
+						:disabled="oauthChecking"
+						:title="
+							formatMessage(
+								oauthChecking ? messages.checkingAuthorization : messages.checkAuthorization,
+							)
+						"
+						@click="checkOAuthStatus"
+					>
+						<RefreshCwIcon :class="{ 'animate-spin': oauthChecking }" />
+					</Button>
+					<Button
+						type="quiet"
+						:title="formatMessage(messages.openAuthorization)"
+						@click="openOAuthAuthorization"
+					>
+						<ExternalIcon />
+					</Button>
 				</div>
 				<p
 					v-if="oauthStatus === 'pending' || oauthStatus === 'slow_down'"
@@ -1154,12 +1149,15 @@ onMounted(async () => {
 							clearable
 							wrapper-class="w-full sm:w-64"
 						/>
-						<ButtonStyled v-if="selectedDefinition.show_model_fetcher" type="outlined">
-							<button :disabled="busy" @click="refreshModels">
-								<RefreshCwIcon :class="{ 'animate-spin': busy }" />
-								{{ formatMessage(busy ? messages.refreshingModels : messages.refreshModels) }}
-							</button>
-						</ButtonStyled>
+						<Button
+							v-if="selectedDefinition.show_model_fetcher"
+							type="outlined"
+							:disabled="busy"
+							@click="refreshModels"
+						>
+							<RefreshCwIcon :class="{ 'animate-spin': busy }" />
+							{{ formatMessage(busy ? messages.refreshingModels : messages.refreshModels) }}
+						</Button>
 					</div>
 				</div>
 				<div v-if="filteredModels.length" class="ai-model-list">
@@ -1173,11 +1171,14 @@ onMounted(async () => {
 								{{ model.id }} · {{ model.source }}
 							</p>
 						</div>
-						<ButtonStyled v-if="model.source === 'custom'" type="transparent">
-							<button :title="formatMessage(messages.clearKey)" @click="removeModel(model.id)">
-								<TrashIcon />
-							</button>
-						</ButtonStyled>
+						<Button
+							v-if="model.source === 'custom'"
+							type="quiet"
+							:title="formatMessage(messages.clearKey)"
+							@click="removeModel(model.id)"
+						>
+							<TrashIcon />
+						</Button>
 						<Toggle
 							:id="`ai-model-${selectedDefinition.id}-${model.id}`"
 							:model-value="model.enabled"
@@ -1205,11 +1206,9 @@ onMounted(async () => {
 						:placeholder="formatMessage(messages.modelName)"
 						wrapper-class="w-full"
 					/>
-					<ButtonStyled>
-						<button :disabled="!customModelId.trim()" @click="addModel">
-							<PlusIcon />{{ formatMessage(messages.addModel) }}
-						</button>
-					</ButtonStyled>
+					<Button type="base" :disabled="!customModelId.trim()" @click="addModel">
+						<PlusIcon />{{ formatMessage(messages.addModel) }}
+					</Button>
 				</div>
 			</div>
 
@@ -1218,16 +1217,17 @@ onMounted(async () => {
 					{{ formatMessage(messages.testModel) }}
 					<Combobox v-model="selectedTestModel" :options="modelOptions" />
 				</label>
-				<ButtonStyled>
-					<button :disabled="busy" @click="saveProvider">
-						<CheckIcon />{{ formatMessage(messages.saveProvider) }}
-					</button>
-				</ButtonStyled>
-				<ButtonStyled color="brand">
-					<button :disabled="busy || !selectedTestModel" @click="testProvider">
-						<PlugIcon />{{ formatMessage(busy ? messages.testing : messages.test) }}
-					</button>
-				</ButtonStyled>
+				<Button type="base" :disabled="busy" @click="saveProvider">
+					<CheckIcon />{{ formatMessage(messages.saveProvider) }}
+				</Button>
+				<Button
+					type="colored"
+					color="brand"
+					:disabled="busy || !selectedTestModel"
+					@click="testProvider"
+				>
+					<PlugIcon />{{ formatMessage(busy ? messages.testing : messages.test) }}
+				</Button>
 			</div>
 			<p v-if="status" class="m-0 text-sm text-secondary">{{ status }}</p>
 		</section>

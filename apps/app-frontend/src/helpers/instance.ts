@@ -8,10 +8,13 @@ import type { ContentItem, ContentOwner } from '@modrinth/ui'
 import { invoke } from '@tauri-apps/api/core'
 
 import { isOfflineMode } from '@/composables/useNetworkStatus'
-import { resolveAutoGcArgs } from '@/helpers/gc/auto-selector'
+import { buildGcCandidateChain, resolveAutoGcStrategy } from '@/helpers/gc/auto-selector'
 import { collectGcContext } from '@/helpers/gc/context'
+import { detectGcStrategy, GC_STRATEGY_DEFINITIONS } from '@/helpers/gc/strategies'
+import type { GcContext, ResolvedGcStrategyId } from '@/helpers/gc/types'
+import { setLastGcLaunchReport } from '@/helpers/gc-notice'
 import { AUTO_GC_PRESET_ARG } from '@/helpers/java-arguments'
-import { get_memory_status } from '@/helpers/jre.js'
+import { get_jre, get_memory_status } from '@/helpers/jre.js'
 import { get as getSettings } from '@/helpers/settings'
 
 import type { InstallJobSnapshot } from './install'
@@ -653,15 +656,84 @@ export async function get_pack_export_candidates(instanceId: string): Promise<st
 	return await invoke('plugin:instance|instance_get_pack_export_candidates', { instanceId })
 }
 
-export async function resolveAutoGcLaunchArgs(instanceId: string): Promise<string[] | null> {
+export interface GcLaunchIntent {
+	active_preset_id: string
+	block_tokens: string[]
+	candidate_ids: string[]
+	candidates: string[][]
+}
+
+export interface GcLaunchReport {
+	preferred_strategy: string
+	chosen_strategy: string
+	chosen_args: string[]
+	pruned_args: string[]
+	reason_chain: string[]
+}
+
+export interface InstanceRunResult {
+	process: unknown
+	gc_notice: GcLaunchReport | null
+}
+
+export function gcReportFellBack(report: GcLaunchReport): boolean {
+	return (
+		report.chosen_strategy !== report.preferred_strategy || report.pruned_args.length > 0
+	)
+}
+
+/**
+ * The Java that will actually run the instance: a per-instance `java_path`
+ * wins, otherwise the optimal JRE for the game version.
+ */
+async function resolveEffectiveJava(
+	instance: Pick<GameInstance, 'java_path'>,
+	instanceId: string,
+): Promise<JavaVersion | null> {
+	if (instance.java_path) {
+		try {
+			return await get_jre(instance.java_path)
+		} catch {
+			// Invalid override; fall back to the optimal JRE.
+		}
+	}
+	return await get_optimal_jre_key(instanceId)
+}
+
+function normalizeJvmToken(token: string): string {
+	const stripped = token.replace(/^-+/, '')
+	const withoutPrefix = stripped.startsWith('XX:') ? stripped.slice(3) : stripped
+	const withoutModifier =
+		withoutPrefix.startsWith('+') || withoutPrefix.startsWith('-')
+			? withoutPrefix.slice(1)
+			: withoutPrefix
+	return withoutModifier.split('=')[0] ?? withoutModifier
+}
+
+function strategyTokenKeys(strategy: ResolvedGcStrategyId, context: GcContext): Set<string> {
+	const tokens = GC_STRATEGY_DEFINITIONS[strategy]
+		.buildArgs(context)
+		.split(/\s+/)
+		.filter(Boolean)
+	return new Set(tokens.map(normalizeJvmToken))
+}
+
+/**
+ * Determine whether the effective Java args contain an auto GC marker or an
+ * active GC preset block, and if so build the ordered candidate chain for the
+ * backend to verify against the actual JVM. The args are returned untouched so
+ * the backend replaces exactly the preset block.
+ */
+export async function resolveGcLaunchIntent(
+	instanceId: string,
+): Promise<{ args: string[]; gcIntent: GcLaunchIntent | null }> {
 	const instance = await get(instanceId)
-	if (!instance) return null
+	if (!instance) return { args: [], gcIntent: null }
 
 	const settings = await getSettings()
 	const effectiveArgs = instance.extra_launch_args ?? settings.extra_launch_args
-	if (!effectiveArgs.includes(AUTO_GC_PRESET_ARG)) return null
 
-	const java = await get_optimal_jre_key(instanceId)
+	const java = await resolveEffectiveJava(instance, instanceId)
 	const javaMajorVersion = java?.parsed_version ?? null
 	let modCount = 0
 	try {
@@ -689,24 +761,59 @@ export async function resolveAutoGcLaunchArgs(instanceId: string): Promise<strin
 		javaMajorVersion,
 		modCount,
 	)
-	const resolvedArgs = resolveAutoGcArgs(context).split(/\s+/).filter(Boolean)
 
-	return effectiveArgs.flatMap((arg) => (arg === AUTO_GC_PRESET_ARG ? resolvedArgs : [arg]))
+	let activePresetId: string | null = null
+	let blockTokens: string[] = []
+	if (effectiveArgs.includes(AUTO_GC_PRESET_ARG)) {
+		activePresetId = 'gc-auto'
+		blockTokens = [AUTO_GC_PRESET_ARG]
+	} else {
+		const detected = detectGcStrategy(effectiveArgs.join(' '))
+		if (detected) {
+			activePresetId = `gc-${detected}`
+			const presetKeys = strategyTokenKeys(detected, context)
+			blockTokens = effectiveArgs.filter((arg) => presetKeys.has(normalizeJvmToken(arg)))
+		}
+	}
+
+	if (!activePresetId || !blockTokens.length) {
+		return { args: effectiveArgs, gcIntent: null }
+	}
+
+	const preferred: ResolvedGcStrategyId =
+		activePresetId === 'gc-auto'
+			? resolveAutoGcStrategy(context).resolvedStrategy
+			: (activePresetId.slice('gc-'.length) as ResolvedGcStrategyId)
+
+	const { ids, args: candidates } = buildGcCandidateChain(context, preferred)
+
+	return {
+		args: effectiveArgs,
+		gcIntent: {
+			active_preset_id: activePresetId,
+			block_tokens: blockTokens,
+			candidate_ids: ids,
+			candidates,
+		},
+	}
 }
 
 // Run Minecraft using an instance
-// Returns PID of child
+// Returns the process metadata plus an optional GC fallback report.
 export async function run(
 	instanceId: string,
 	serverAddress: string | null = null,
-): Promise<unknown> {
-	const extraLaunchArgs = await resolveAutoGcLaunchArgs(instanceId)
-	return await invoke('plugin:instance|instance_run', {
+): Promise<InstanceRunResult> {
+	const { args, gcIntent } = await resolveGcLaunchIntent(instanceId)
+	const result = await invoke<InstanceRunResult>('plugin:instance|instance_run', {
 		instanceId,
 		serverAddress,
 		offlineMode: isOfflineMode(),
-		extraLaunchArgs,
+		extraLaunchArgs: args,
+		gcIntent,
 	})
+	setLastGcLaunchReport(result.gc_notice)
+	return result
 }
 
 export async function kill(instanceId: string): Promise<void> {

@@ -1235,6 +1235,30 @@
   "drop.generic_install.title": {
     "defaultMessage": "Install {type}"
   },
+  "app.drop.batch.scan.title": {
+    "defaultMessage": "Scanning {count, plural, one {# file} other {# files}}…"
+  },
+  "app.drop.batch.scan.subtitle": {
+    "defaultMessage": "Recognized {done} of {total}"
+  },
+  "app.drop.batch.scan.cancel": {
+    "defaultMessage": "Cancel"
+  },
+  "app.drop.batch.scan.pending": {
+    "defaultMessage": "Waiting"
+  },
+  "app.drop.batch.scan.scanning": {
+    "defaultMessage": "Scanning"
+  },
+  "app.drop.batch.scan.done": {
+    "defaultMessage": "Recognized"
+  },
+  "app.drop.batch.scan.skipped": {
+    "defaultMessage": "Skipped"
+  },
+  "app.drop.batch.scan.error": {
+    "defaultMessage": "Failed"
+  },
   "drop.launcher_import.cancel": {
     "defaultMessage": "Cancel"
   },

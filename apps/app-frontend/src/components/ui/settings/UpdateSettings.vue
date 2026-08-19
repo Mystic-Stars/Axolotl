@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { EyeIcon, RefreshCwIcon } from '@modrinth/assets'
 import {
-	ButtonStyled,
 	Combobox,
 	defineMessages,
 	injectNotificationManager,
+	NewButton as Button,
 	useVIntl,
 } from '@modrinth/ui'
 import { getVersion } from '@tauri-apps/api/app'
@@ -156,18 +156,19 @@ async function checkForUpdates() {
 
 		<div class="flex flex-col items-start gap-3">
 			<div class="flex flex-wrap gap-2">
-				<ButtonStyled color="brand">
-					<button :disabled="checking" @click="checkForUpdates">
-						<RefreshCwIcon :class="{ 'animate-spin': checking }" />
-						{{ formatMessage(checking ? messages.checking : messages.check) }}
-					</button>
-				</ButtonStyled>
-				<ButtonStyled v-if="isDevEnvironment && previewUpdateAnnouncement" type="outlined">
-					<button type="button" @click="previewUpdateAnnouncement(currentVersion)">
-						<EyeIcon />
-						{{ formatMessage(messages.preview) }}
-					</button>
-				</ButtonStyled>
+				<Button type="colored" color="brand" :disabled="checking" @click="checkForUpdates">
+					<RefreshCwIcon :class="{ 'animate-spin': checking }" />
+					{{ formatMessage(checking ? messages.checking : messages.check) }}
+				</Button>
+				<Button
+					v-if="isDevEnvironment && previewUpdateAnnouncement"
+					type="outlined"
+					@click="previewUpdateAnnouncement(currentVersion)"
+					native-type="button"
+				>
+					<EyeIcon />
+					{{ formatMessage(messages.preview) }}
+				</Button>
 			</div>
 			<p v-if="checkResult" class="m-0 text-sm text-secondary" role="status">
 				{{ formatMessage(messages[resultMessages[checkResult]]) }}

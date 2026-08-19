@@ -45,7 +45,7 @@ export function createGcPresets(gcContext?: GcContext): JavaArgumentPreset[] {
 			}),
 			description: defineMessage({
 				id: 'app.java-arguments.presets.gc.g1gc-mojang.description',
-				defaultMessage: 'G1GC tuning used by the official Minecraft launcher',
+				defaultMessage: 'G1GC tuning from the official Minecraft launcher',
 			}),
 			args: GC_STRATEGY_DEFINITIONS['g1gc-mojang'].baseArgs,
 			resolveArgs: () => GC_STRATEGY_DEFINITIONS['g1gc-mojang'].baseArgs,
@@ -53,20 +53,20 @@ export function createGcPresets(gcContext?: GcContext): JavaArgumentPreset[] {
 			link: G1GC_DOCS_URL,
 		},
 		{
-			id: 'gc-g1gc-pcl',
+			id: 'gc-pcl',
 			group: 'gc',
 			title: defineMessage({
 				id: 'app.java-arguments.presets.gc.g1gc-pcl.title',
-				defaultMessage: 'PCL G1GC',
+				defaultMessage: 'PCL',
 			}),
 			description: defineMessage({
 				id: 'app.java-arguments.presets.gc.g1gc-pcl.description',
-				defaultMessage: 'G1GC tuning optimized by PCL launcher',
+				defaultMessage: 'Shenandoah (adaptive) tuning used by the PCL launcher',
 			}),
-			args: GC_STRATEGY_DEFINITIONS['g1gc-pcl'].baseArgs,
-			resolveArgs: () => GC_STRATEGY_DEFINITIONS['g1gc-pcl'].baseArgs,
-			detect: GC_STRATEGY_DEFINITIONS['g1gc-pcl'].detect,
-			link: G1GC_DOCS_URL,
+			args: GC_STRATEGY_DEFINITIONS.pcl.baseArgs,
+			resolveArgs: () => GC_STRATEGY_DEFINITIONS.pcl.baseArgs,
+			detect: GC_STRATEGY_DEFINITIONS.pcl.detect,
+			link: SHENANDOAH_DOCS_URL,
 		},
 		{
 			id: 'gc-shenandoah',
@@ -77,7 +77,7 @@ export function createGcPresets(gcContext?: GcContext): JavaArgumentPreset[] {
 			}),
 			description: defineMessage({
 				id: 'app.java-arguments.presets.gc.shenandoah.description',
-				defaultMessage: 'Low-pause GC for medium-to-heavy modpacks (Java 12+)',
+				defaultMessage: 'Low-pause adaptive Shenandoah with large pages (if supported)',
 			}),
 			args: GC_STRATEGY_DEFINITIONS.shenandoah.baseArgs,
 			resolveArgs: () => GC_STRATEGY_DEFINITIONS.shenandoah.baseArgs,

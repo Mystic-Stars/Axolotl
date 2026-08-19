@@ -6777,6 +6777,7 @@ dependencies = [
  "rustls-native-certs",
  "rustls-pki-types",
  "serde",
+ "serde_cbor",
  "serde_ini",
  "serde_json",
  "serde_with",

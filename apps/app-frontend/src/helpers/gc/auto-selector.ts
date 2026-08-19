@@ -89,9 +89,13 @@ export function resolveAutoGcStrategy(context: GcContext): GcResolution {
 export function getResolvedStrategyName(strategyId: ResolvedGcStrategyId): string {
 	const names: Record<ResolvedGcStrategyId, string> = {
 		'g1gc-mojang': 'Mojang G1GC',
-		'g1gc-pcl': 'PCL G1GC',
+		pcl: 'PCL',
 		shenandoah: 'Shenandoah',
 		zgc: 'ZGC',
 	}
 	return names[strategyId]
 }
+
+// Re-exported from strategies so callers can keep importing from the
+// auto-selector module while the chain stays testable via `node --test`.
+export { buildGcCandidateChain } from './strategies'

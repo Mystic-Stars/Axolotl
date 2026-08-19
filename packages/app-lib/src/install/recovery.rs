@@ -32,6 +32,7 @@ pub async fn recover_interrupted_jobs(state: &State) -> crate::Result<()> {
         job.state.progress.phase = InstallPhaseId::RollingBack;
         job.state.progress.progress = None;
         job.state.progress.details = InstallPhaseDetails::Empty;
+        job.state.progress.parallel = None;
         job.state.error = Some(InstallErrorView::from_message(
             "app_closed",
             interrupted_phase,

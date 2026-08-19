@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { PlugIcon, SpinnerIcon, TrashIcon } from '@modrinth/assets'
 import {
-	ButtonStyled,
 	Combobox,
 	defineMessages,
 	injectNotificationManager,
 	LOCALES,
+	NewButton as Button,
 	StyledInput,
 	Toggle,
 	useVIntl,
@@ -523,20 +523,18 @@ async function clearCache() {
 		</div>
 
 		<div class="flex flex-wrap items-center gap-2">
-			<ButtonStyled color="brand">
-				<button :disabled="testing" @click="testProvider">
-					<PlugIcon />{{ formatMessage(testing ? messages.testing : messages.test) }}
-				</button>
-			</ButtonStyled>
+			<Button type="colored" color="brand" :disabled="testing" @click="testProvider">
+				<PlugIcon />{{ formatMessage(testing ? messages.testing : messages.test) }}
+			</Button>
 			<span v-if="status" class="text-sm text-secondary">{{ status }}</span>
 		</div>
 
 		<div class="flex flex-col gap-2">
 			<h3 class="m-0 text-base font-semibold text-contrast">{{ formatMessage(messages.cache) }}</h3>
 			<p class="m-0 text-sm text-secondary">{{ formatMessage(messages.cacheDescription) }}</p>
-			<ButtonStyled>
-				<button @click="clearCache"><TrashIcon />{{ formatMessage(messages.clearCache) }}</button>
-			</ButtonStyled>
+			<Button type="base" @click="clearCache"
+				><TrashIcon />{{ formatMessage(messages.clearCache) }}</Button
+			>
 		</div>
 	</div>
 </template>

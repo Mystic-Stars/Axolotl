@@ -67,14 +67,16 @@
 						</button>
 					</ButtonStyled>
 					<ButtonStyled v-if="managedProjectType || isWorldMap" size="large" color="brand">
-						<button :disabled="installing" @click="installSelected(null)">
+						<button :disabled="installing || cartProjectInstalling" @click="installSelected(null)">
 							<SpinnerIcon v-if="installing" class="animate-spin" />
-							<PlusIcon v-else-if="isWorldMap" />
+							<PlusIcon v-else-if="isWorldMap || cartProjectSelected" />
 							<DownloadIcon v-else />
 							{{
 								formatMessage(
-									installing
+									installing || cartProjectInstalling
 										? commonMessages.installingLabel
+										: cartProjectSelected
+											? commonMessages.selectedLabel
 										: isWorldMap
 											? instanceId
 												? commonMessages.installButton
@@ -120,6 +122,19 @@
 					</ButtonStyled>
 				</template>
 			</ProjectHeader>
+			<SelectedProjectsFloatingBar
+				v-if="cartInstallContext"
+				:install-context="cartInstallContext"
+			/>
+			<BrowseInstanceSelector
+				ref="browseInstanceSelector"
+				:instances="contentSelection.instances.value"
+				:selected-instance="contentSelection.targetInstance.value"
+				:selected-count="contentSelection.selectedCount.value"
+				:install-current="contentSelection.installSelected"
+				:clear-current="contentSelection.clear"
+				@select="contentSelection.setTarget"
+			/>
 
 			<NavTabs
 				:links="[
@@ -209,11 +224,13 @@ import {
 	ProjectSidebarDetails,
 	ProjectSidebarLinks,
 	ProjectSidebarTags,
+	SelectedProjectsFloatingBar,
 	useVIntl,
 } from '@modrinth/ui'
 import { computed, ref, shallowRef, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
+import BrowseInstanceSelector from '@/components/browse/BrowseInstanceSelector.vue'
 import TranslatedProjectDescription from '@/components/ui/TranslatedProjectDescription.vue'
 import { resolveMcmodUrl } from '@/helpers/content-search'
 import {
@@ -236,6 +253,10 @@ import {
 } from '@/helpers/translation'
 import i18n from '@/i18n.config'
 import { injectContentInstall } from '@/providers/content-install'
+import {
+	injectContentSelection,
+	makeContentSelectionKey,
+} from '@/providers/content-selection'
 import { useBreadcrumbs } from '@/store/breadcrumbs'
 import { useTheming } from '@/store/state.js'
 
@@ -248,6 +269,7 @@ const themeStore = useTheming()
 const { addNotification, handleError } = injectNotificationManager()
 const { formatMessage } = useVIntl()
 const { installCurseForge, installCurseForgeWorld } = injectContentInstall()
+const contentSelection = injectContentSelection()
 
 const messages = defineMessages({
 	loading: {
@@ -318,10 +340,15 @@ const messages = defineMessages({
 		id: 'app.browse.add-to-an-instance',
 		defaultMessage: 'Add to an instance',
 	},
+	noCompatibleVersion: {
+		id: 'app.project.install-button.no-compatible-version',
+		defaultMessage: 'No compatible version was found for this instance.',
+	},
 })
 
 const loading = ref(true)
 const installing = ref(false)
+const browseInstanceSelector = ref()
 const project = shallowRef<CurseForgeProject | null>(null)
 const mcmodUrl = ref<string | null>(null)
 const description = ref('')
@@ -362,6 +389,43 @@ const managedProjectType = computed(() =>
 )
 const isWorldMap = computed(() => projectType.value === 'world')
 const instanceId = computed(() => (typeof route.query.i === 'string' ? route.query.i : null))
+const fromBrowse = computed(
+	() => typeof route.query.b === 'string' && route.query.b.startsWith('/browse/'),
+)
+const cartEligible = computed(
+	() =>
+		fromBrowse.value &&
+		['mod', 'resourcepack', 'shader', 'datapack', 'world'].includes(projectType.value),
+)
+const cartProjectKey = computed(() =>
+	project.value ? makeContentSelectionKey('curseforge', project.value.id.toString()) : '',
+)
+const cartProjectSelected = computed(
+	() => !!cartProjectKey.value && contentSelection.isSelected(cartProjectKey.value),
+)
+const cartProjectInstalling = computed(
+	() => !!cartProjectKey.value && contentSelection.isInstalling(cartProjectKey.value),
+)
+const cartInstallContext = computed(() => {
+	const target = contentSelection.targetInstance.value
+	if (!cartEligible.value || !target) return null
+	return {
+		showInstallHeader: false,
+		name: target.name,
+		loader: target.loader,
+		gameVersion: target.game_version,
+		backUrl: typeof route.query.b === 'string' ? route.query.b : `/browse/${projectType.value}`,
+		backLabel: '',
+		heading: '',
+		selectedProjects: contentSelection.selectedProjects.value,
+		isInstallingSelected: ['validating', 'reviewing', 'queueing'].includes(
+			contentSelection.state.value,
+		),
+		installProgress: contentSelection.progress.value,
+		clearSelected: contentSelection.clear,
+		installSelected: contentSelection.installSelected,
+	}
+})
 
 const platformNames = [
 	'forge',
@@ -602,8 +666,64 @@ watch(
 	{ immediate: true },
 )
 
+watch(
+	[fromBrowse, instanceId],
+	async ([enabled, preferredInstanceId]) => {
+		if (enabled) await contentSelection.refreshInstances(preferredInstanceId)
+	},
+	{ immediate: true },
+)
+
 async function installSelected(fileId: string | null) {
 	if (!project.value) return
+	if (cartEligible.value && !contentSelection.targetInstance.value) {
+		await contentSelection.refreshInstances()
+		browseInstanceSelector.value?.show()
+		return
+	}
+	if (cartEligible.value && contentSelection.targetInstance.value) {
+		if (cartProjectSelected.value) {
+			contentSelection.remove(cartProjectKey.value)
+			return
+		}
+		const target = contentSelection.targetInstance.value
+		const expectedLoader = { forge: 1, fabric: 4, quilt: 5, neoforge: 6 }[target.loader]
+		const resolvedFileId =
+			fileId ??
+			project.value.latestFilesIndexes.find(
+				(index) =>
+					index.gameVersion === target.game_version &&
+					(projectType.value !== 'mod' ||
+						!expectedLoader ||
+						index.modLoader === expectedLoader),
+			)?.fileId ??
+			files.value.find(
+				(file) =>
+					file.gameVersions.includes(target.game_version) &&
+					(projectType.value !== 'mod' ||
+						getFilePlatforms(file).includes(target.loader)),
+			)?.id
+		if (!resolvedFileId) {
+			handleError(new Error(formatMessage(messages.noCompatibleVersion)))
+			return
+		}
+		await contentSelection.add({
+			key: cartProjectKey.value,
+			provider: 'curseforge',
+			projectId: project.value.id.toString(),
+			providerProjectId: project.value.id.toString(),
+			versionId: resolvedFileId.toString(),
+			contentType: projectType.value as 'mod' | 'resourcepack' | 'datapack' | 'shader' | 'world',
+			title: project.value.name,
+			iconUrl: getCurseForgeImageUrl(project.value.logo?.thumbnailUrl),
+			slug: project.value.slug,
+			preferences: {
+				gameVersions: [target.game_version],
+				loaders: projectType.value === 'mod' ? [target.loader] : [],
+			},
+		})
+		return
+	}
 	if (isWorldMap.value) {
 		installing.value = true
 		await installCurseForgeWorld(

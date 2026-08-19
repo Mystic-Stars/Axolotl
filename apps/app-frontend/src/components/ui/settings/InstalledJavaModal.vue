@@ -1,13 +1,14 @@
 <script setup>
 import { SpinnerIcon, TrashIcon } from '@modrinth/assets'
 import {
-	ButtonStyled,
 	commonMessages,
 	defineMessages,
 	injectNotificationManager,
 	NewModal,
 	Table,
 	useVIntl,
+	IconButton,
+	NewButton as Button,
 } from '@modrinth/ui'
 import { computed, ref } from 'vue'
 
@@ -127,16 +128,17 @@ defineExpose({ show })
 				</span>
 			</template>
 			<template #cell-actions="{ row }">
-				<ButtonStyled circular color="red" color-fill="none" hover-color-fill="background">
-					<button
-						v-tooltip="formatMessage(messages.remove)"
-						type="button"
-						:aria-label="formatMessage(messages.remove)"
-						@click="removeEntry(row)"
-					>
-						<TrashIcon aria-hidden="true" />
-					</button>
-				</ButtonStyled>
+				<IconButton
+					v-tooltip="formatMessage(messages.remove)"
+					type="quiet"
+					color="red"
+					interaction="filled"
+					:label="formatMessage(messages.remove)"
+					native-type="button"
+					@click="removeEntry(row)"
+				>
+					<TrashIcon aria-hidden="true" />
+				</IconButton>
 			</template>
 			<template #empty-state>
 				<div class="py-8 text-center text-sm text-secondary">
@@ -147,11 +149,9 @@ defineExpose({ show })
 
 		<template #actions>
 			<div class="flex justify-end">
-				<ButtonStyled type="outlined">
-					<button type="button" @click="modal?.hide()">
-						{{ formatMessage(commonMessages.closeButton) }}
-					</button>
-				</ButtonStyled>
+				<Button type="outlined" @click="modal?.hide()" native-type="button">
+					{{ formatMessage(commonMessages.closeButton) }}
+				</Button>
 			</div>
 		</template>
 	</NewModal>

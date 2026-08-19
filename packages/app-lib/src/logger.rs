@@ -366,8 +366,6 @@ fn next_console_token(input: &str, start: usize) -> (usize, usize, bool) {
 
 #[cfg(debug_assertions)]
 const MODRINTH_CONSOLE_MESSAGES: &[&str] = &[
-    "Attempting Modrinth request",
-    "Completed Modrinth request",
     "Modrinth mirror resolved cached file",
     "Modrinth mirror redirected to official CDN; falling back to official source",
     "Modrinth mirror returned an unresolved redirect; falling back to official source",
@@ -639,7 +637,11 @@ pub fn start_logger(app_identifier: &str) -> Option<()> {
     let filter = tracing_subscriber::EnvFilter::try_from_default_env()
         .unwrap_or_else(|_| {
             tracing_subscriber::EnvFilter::new("theseus=info,theseus_gui=info")
-        });
+        })
+        .add_directive("h2=info".parse().ok()?)
+        .add_directive("hyper=info".parse().ok()?)
+        .add_directive("hyper_util=info".parse().ok()?)
+        .add_directive("sqlx=warn".parse().ok()?);
     tracing_subscriber::registry()
         .with(tracing_subscriber::fmt::layer().with_writer(|| {
             TruncatedConsoleWriter {
@@ -697,12 +699,14 @@ mod tests {
     #[test]
     fn modrinth_events_drop_long_span_context_and_keep_route_fields() {
         let input = format!(
-            "2026-07-20T14:20:45Z INFO generate_pack{{ids=\"{}\"}}:fetch{{method=GET url=\"https://cdn.modrinth.com/data/test/file.mrpack\"}}: Attempting Modrinth request source=Mirror request_kind=\"CDN\" method=GET url=https://mod.mcimirror.top/data/test/file.mrpack route=1 attempt=1 max_attempts=5\n",
+            "2026-07-20T14:20:45Z INFO generate_pack{{ids=\"{}\"}}:fetch{{method=GET url=\"https://cdn.modrinth.com/data/test/file.mrpack\"}}: Modrinth mirror resolved cached file source=Mirror request_kind=\"CDN\" method=GET url=https://mod.mcimirror.top/data/test/file.mrpack route=1 attempt=1 max_attempts=5\n",
             "x".repeat(1_000)
         );
         let output = compact_modrinth_console_event(&input).unwrap();
 
-        assert!(output.starts_with("INFO Attempting Modrinth request"));
+        assert!(
+            output.starts_with("INFO Modrinth mirror resolved cached file")
+        );
         assert!(output.contains("mirror_status=attempting"));
         assert!(output.contains("source=Mirror"));
         assert!(
@@ -895,7 +899,11 @@ pub fn start_logger(app_identifier: &str) -> Option<()> {
     };
 
     let filter = tracing_subscriber::EnvFilter::try_from_default_env()
-        .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("theseus=info"));
+        .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("theseus=info"))
+        .add_directive("h2=info".parse().ok()?)
+        .add_directive("hyper=info".parse().ok()?)
+        .add_directive("hyper_util=info".parse().ok()?)
+        .add_directive("sqlx=warn".parse().ok()?);
 
     tracing_subscriber::registry()
         .with(

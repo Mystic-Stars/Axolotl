@@ -1,8 +1,9 @@
 use super::model::{
     ActiveDownloadState, DownloadItemStatus, InstallContinuationState,
     InstallErrorContext, InstallJobEventKind, InstallJobSnapshot,
-    InstallJobState, InstallPauseReason, InstallPhaseDetails, InstallPhaseId,
-    InstallProgress, InstallRollbackState, MissingModpackContentState,
+    InstallJobState, InstallParallelProgress, InstallPauseReason,
+    InstallPhaseDetails, InstallPhaseId, InstallProgress, InstallRollbackState,
+    MissingModpackContentState,
 };
 use super::store;
 use chrono::Utc;
@@ -27,6 +28,11 @@ static REPORTER_STATES: LazyLock<
 pub struct InstallProgressReporter {
     job_id: Uuid,
     state: Arc<Mutex<InstallProgressReporterState>>,
+    /// When set, `update`/`update_with_events` write to the parallel track
+    /// (`InstallProgressState.parallel`) instead of the main phase. Used by
+    /// the modpack installer to report the concurrent Minecraft core download
+    /// while content installation remains the main phase.
+    parallel_output: bool,
 }
 
 #[derive(Debug)]
@@ -136,7 +142,16 @@ impl InstallProgressReporter {
         Self {
             job_id,
             state: shared_state,
+            parallel_output: false,
         }
+    }
+
+    /// Returns a reporter clone whose phase updates are routed to the
+    /// parallel track, leaving the main phase untouched. The underlying job
+    /// state is shared, so both tracks still persist to the same job.
+    pub fn with_parallel_output(mut self) -> Self {
+        self.parallel_output = true;
+        self
     }
 
     pub async fn update(
@@ -145,8 +160,111 @@ impl InstallProgressReporter {
         progress: Option<InstallProgress>,
         details: InstallPhaseDetails,
     ) -> crate::Result<()> {
+        if self.parallel_output {
+            self.update_parallel(phase, progress, details).await
+        } else {
+            self.update_main(phase, progress, details).await
+        }
+    }
+
+    async fn update_main(
+        &self,
+        phase: InstallPhaseId,
+        progress: Option<InstallProgress>,
+        details: InstallPhaseDetails,
+    ) -> crate::Result<()> {
         self.update_with_events(phase, progress, details, Vec::new())
             .await
+    }
+
+    /// Updates the parallel track while the main phase keeps its own
+    /// progress. The parallel track lives on `InstallProgressState` and is
+    /// preserved across main-phase progress updates.
+    async fn update_parallel(
+        &self,
+        phase: InstallPhaseId,
+        progress: Option<InstallProgress>,
+        details: InstallPhaseDetails,
+    ) -> crate::Result<()> {
+        let app_state = match crate::State::get().await {
+            Ok(app_state) => app_state,
+            Err(error) => {
+                tracing::warn!(%error, "Failed to access install progress store");
+                return Ok(());
+            }
+        };
+        let mut state = self.state.lock().await;
+        if let Err(error) = self.sync_latest(&mut state, &app_state).await {
+            tracing::warn!(%error, "Failed to load install progress state");
+            return Ok(());
+        }
+        let (current, total) = match &progress {
+            Some(progress) => (progress.current, progress.total),
+            None => state
+                .job
+                .progress
+                .parallel
+                .as_ref()
+                .map(|parallel| (parallel.current, parallel.total))
+                .unwrap_or((0, 0)),
+        };
+        let previous = &state.job.progress.parallel;
+        let phase_changed = previous
+            .as_ref()
+            .is_none_or(|parallel| parallel.phase != phase);
+        let total_changed = previous
+            .as_ref()
+            .is_none_or(|parallel| parallel.total != total);
+        let enough_progress = previous
+            .as_ref()
+            .map(|parallel| {
+                current.saturating_sub(parallel.current)
+                    >= (parallel.total / 200)
+                        .max(CONTENT_PROGRESS_PERSIST_STEPS)
+            })
+            .unwrap_or(true);
+        state.job.progress.parallel = Some(InstallParallelProgress {
+            phase,
+            current,
+            total,
+            details,
+        });
+        if !(phase_changed || total_changed || enough_progress)
+            && state.last_persisted_at.elapsed() < PROGRESS_PERSIST_INTERVAL
+        {
+            return Ok(());
+        }
+
+        let json = serde_json::to_string(&state.job)?;
+        let provider = state.job.provider().as_str().to_string();
+        let summary = state.job.download_summary();
+        drop(state);
+        let record = match store::update_progress_state(
+            self.job_id,
+            &json,
+            &provider,
+            &summary,
+            &app_state,
+        )
+        .await
+        {
+            Ok(()) => store::get_required(self.job_id, &app_state).await,
+            Err(error) => Err(error),
+        };
+        let record = match record {
+            Ok(record) => record,
+            Err(error) => {
+                tracing::warn!(%error, "Failed to persist parallel install progress");
+                return Ok(());
+            }
+        };
+        if let Ok(mut state) = self.state.try_lock() {
+            state.mark_persisted();
+        }
+        if let Err(error) = emit_install_job(&record.snapshot()).await {
+            tracing::warn!(%error, "Failed to emit parallel install progress");
+        }
+        Ok(())
     }
 
     pub async fn set_context(

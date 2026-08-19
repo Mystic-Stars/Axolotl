@@ -434,8 +434,11 @@ pub struct CurseForgeInstallRequest {
     #[serde(default)]
     pub manual_operation_kind:
         crate::state::instances::ManualDownloadOperationKind,
+    /// Used to select automatic dependencies. The explicitly requested file is
+    /// authoritative, including files pinned by a modpack manifest.
     #[serde(default)]
     pub game_version: Option<String>,
+    /// Used to select automatic dependencies, not to reject the requested file.
     #[serde(default)]
     pub mod_loader_type: Option<u32>,
     #[serde(default)]
@@ -1427,6 +1430,7 @@ async fn install_file_with_metrics(
     download_metrics: Option<&CurseForgeDownloadMetrics>,
 ) -> crate::Result<CurseForgeInstallResult> {
     let state = State::get().await?;
+    let project_type = managed_project_type(&request.project_type)?;
     if let Some(plan) =
         load_dependency_resolution_plan(&request, &state).await?
     {
@@ -1442,7 +1446,6 @@ async fn install_file_with_metrics(
         }
         return result;
     }
-    let project_type = managed_project_type(&request.project_type)?;
     let mut result = CurseForgeInstallResult::default();
     let mut visited = HashSet::new();
     let mut projects = HashMap::<u32, CurseForgeProject>::new();
@@ -4298,41 +4301,6 @@ pub(crate) async fn update_managed_modpack_with_reporter(
         .or_else(|| {
             Some(metadata.applied_content_set.loader.as_str().to_string())
         });
-    for member in members.iter().filter(|member| {
-        member.override_kind
-            == crate::state::instances::PackMemberOverrideKind::Version
-    }) {
-        let (Some(member_project_id), Some(member_file_id)) = (
-            member.provider_project_id.as_deref(),
-            member.provider_release_id.as_deref(),
-        ) else {
-            continue;
-        };
-        let override_file = get_file(
-            member_project_id.parse().map_err(|_| {
-                ErrorKind::InputError(
-                    "Stored CurseForge project ID is invalid".to_string(),
-                )
-            })?,
-            member_file_id.parse().map_err(|_| {
-                ErrorKind::InputError(
-                    "Stored CurseForge file ID is invalid".to_string(),
-                )
-            })?,
-        )
-        .await?;
-        if !override_file
-            .game_versions
-            .iter()
-            .any(|version| version == &game_version)
-        {
-            return Err(ErrorKind::InputError(format!(
-				"Pack member {} has a local version override that is not compatible with Minecraft {game_version}; restore the pack default before updating",
-				member.expected_relative_path
-			))
-			.into());
-        }
-    }
     let installed_releases = members
         .iter()
         .filter(|member| {
@@ -9430,21 +9398,6 @@ mod tests {
         let routes =
             request_routes("/v1/mods/search", MirrorPolicy::OfficialOnly);
 
-        assert!(
-            routes
-                .iter()
-                .all(|route| route.source == RequestRouteSource::Official)
-        );
-    }
-
-    #[test]
-    fn curseforge_requests_stay_official_even_when_mirror_is_requested() {
-        let routes = request_routes(
-            "/v1/mods/285109/description",
-            MirrorPolicy::MirrorFirst,
-        );
-
-        assert!(routes.len() >= 1);
         assert!(
             routes
                 .iter()

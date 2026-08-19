@@ -1,9 +1,11 @@
 <script setup>
 import { DownloadIcon, FolderSearchIcon, ListIcon, ScanEyeIcon, SearchIcon } from '@modrinth/assets'
 import {
-	ButtonStyled,
+	Checkbox,
 	defineMessages,
 	injectNotificationManager,
+	NewButton as Button,
+	Slider,
 	Toggle,
 	useVIntl,
 } from '@modrinth/ui'
@@ -12,6 +14,11 @@ import { platform } from '@tauri-apps/plugin-os'
 import { ref, watch } from 'vue'
 
 import JavaSelector from '@/components/ui/JavaSelector.vue'
+import JavaArgumentsInput from '@/components/ui/JavaArgumentsInput.vue'
+import MemoryAllocationDisplay from '@/components/ui/MemoryAllocationDisplay.vue'
+import useMemorySlider from '@/composables/useMemorySlider'
+import { collectGcContext } from '@/helpers/gc/context'
+import { getJavaArgumentPresets } from '@/helpers/java-argument-presets'
 import DownloadJavaModal from '@/components/ui/settings/DownloadJavaModal.vue'
 import InstalledJavaModal from '@/components/ui/settings/InstalledJavaModal.vue'
 import { trackEvent } from '@/helpers/analytics'
@@ -79,6 +86,30 @@ const messages = defineMessages({
 		id: 'app.settings.java.cancel',
 		defaultMessage: 'Cancel',
 	},
+	memory: {
+		id: 'app.settings.defaults.memory',
+		defaultMessage: 'Memory allocated',
+	},
+	memoryDescription: {
+		id: 'app.settings.defaults.memory-description',
+		defaultMessage: 'The memory allocated to each instance when it is run.',
+	},
+	automaticMemory: {
+		id: 'app.settings.defaults.automatic-memory',
+		defaultMessage: 'Automatically allocate memory at launch',
+	},
+	automaticMemoryDescription: {
+		id: 'app.settings.defaults.automatic-memory-description',
+		defaultMessage: 'Adjusts memory for each launch based on available RAM and installed mods.',
+	},
+	javaArguments: {
+		id: 'app.settings.defaults.java-arguments',
+		defaultMessage: 'Java arguments',
+	},
+	javaArgumentsPlaceholder: {
+		id: 'app.settings.defaults.java-arguments-placeholder',
+		defaultMessage: 'Enter Java arguments...',
+	},
 })
 
 const supportedJavaVersions = [25, 21, 17, 8]
@@ -94,11 +125,58 @@ const supportsHighPerformanceMode = ['windows', 'linux'].includes(await platform
 const settings = ref(await get().catch(handleError))
 const autoHighPerformanceMode = ref(settings.value?.auto_set_java_high_performance_mode ?? false)
 
-watch(autoHighPerformanceMode, async (value) => {
-	if (!settings.value) return
-	settings.value = { ...settings.value, auto_set_java_high_performance_mode: value }
-	await set(settings.value).catch(handleError)
-})
+const javaArgs = ref((settings.value?.extra_launch_args ?? []).join(' '))
+
+const memory = ref(
+	settings.value?.memory ? { ...settings.value.memory } : { maximum: 2048, automatic: true },
+)
+
+let shouldApplyDefaultAuto = (settings.value?.extra_launch_args?.length ?? 0) === 0
+
+const memorySlider = await useMemorySlider().catch(handleError)
+const maxMemory = memorySlider?.maxMemory ?? 4096
+const snapPoints = memorySlider?.snapPoints ?? []
+
+const gcContext = ref(undefined)
+
+async function updateGcContext() {
+	gcContext.value = await collectGcContext(memory.value.maximum, null, null, 0)
+
+	if (shouldApplyDefaultAuto) {
+		const autoPreset = getJavaArgumentPresets(gcContext.value).find(
+			(preset) => preset.id === 'gc-auto',
+		)
+
+		if (autoPreset) {
+			javaArgs.value = autoPreset.resolveArgs
+				? autoPreset.resolveArgs(gcContext.value)
+				: autoPreset.args
+		}
+
+		shouldApplyDefaultAuto = false
+	}
+}
+
+await updateGcContext()
+
+watch(() => memory.value.maximum, updateGcContext)
+
+watch(
+	[autoHighPerformanceMode, memory, javaArgs],
+	async () => {
+		if (!settings.value) return
+
+		settings.value = {
+			...settings.value,
+			auto_set_java_high_performance_mode: autoHighPerformanceMode.value,
+			memory: memory.value,
+			extra_launch_args: javaArgs.value.trim().split(/\s+/).filter(Boolean),
+		}
+
+		await set(settings.value).catch(handleError)
+	},
+	{ deep: true },
+)
 
 async function reloadDefaults() {
 	const defaults = await get_java_default_versions().catch(handleError)
@@ -223,49 +301,63 @@ async function onJavaDownloaded(job) {
 		</div>
 
 		<div class="flex flex-wrap gap-2 border-0 border-t border-solid border-button-border pt-5">
-			<ButtonStyled>
-				<button type="button" class="!shadow-none" :disabled="scanning" @click="runScan(false)">
-					<SearchIcon aria-hidden="true" />
-					{{
-						scanning && scanMode === 'quick'
-							? formatMessage(messages.scanning)
-							: formatMessage(messages.findJava)
-					}}
-				</button>
-			</ButtonStyled>
-			<ButtonStyled>
-				<button type="button" class="!shadow-none" :disabled="scanning" @click="runScan(true)">
-					<ScanEyeIcon aria-hidden="true" />
-					{{
-						scanning && scanMode === 'deep'
-							? formatMessage(messages.scanning)
-							: formatMessage(messages.deepScan)
-					}}
-				</button>
-			</ButtonStyled>
-			<ButtonStyled>
-				<button type="button" class="!shadow-none" :disabled="scanning" @click="handleManualAdd">
-					<FolderSearchIcon aria-hidden="true" />
-					{{ formatMessage(messages.manualAdd) }}
-				</button>
-			</ButtonStyled>
-			<ButtonStyled>
-				<button
-					type="button"
-					class="!shadow-none"
-					:disabled="scanning"
-					@click="downloadJavaModal?.show()"
-				>
-					<DownloadIcon aria-hidden="true" />
-					{{ formatMessage(messages.downloadJava) }}
-				</button>
-			</ButtonStyled>
-			<ButtonStyled>
-				<button type="button" class="!shadow-none" @click="installedJavaModal?.show()">
-					<ListIcon aria-hidden="true" />
-					{{ formatMessage(messages.viewInstalled) }}
-				</button>
-			</ButtonStyled>
+			<Button
+				type="base"
+				native-type="button"
+				class="!shadow-none"
+				:disabled="scanning"
+				@click="runScan(false)"
+			>
+				<SearchIcon aria-hidden="true" />
+				{{
+					scanning && scanMode === 'quick'
+						? formatMessage(messages.scanning)
+						: formatMessage(messages.findJava)
+				}}
+			</Button>
+			<Button
+				type="base"
+				native-type="button"
+				class="!shadow-none"
+				:disabled="scanning"
+				@click="runScan(true)"
+			>
+				<ScanEyeIcon aria-hidden="true" />
+				{{
+					scanning && scanMode === 'deep'
+						? formatMessage(messages.scanning)
+						: formatMessage(messages.deepScan)
+				}}
+			</Button>
+			<Button
+				type="base"
+				native-type="button"
+				class="!shadow-none"
+				:disabled="scanning"
+				@click="handleManualAdd"
+			>
+				<FolderSearchIcon aria-hidden="true" />
+				{{ formatMessage(messages.manualAdd) }}
+			</Button>
+			<Button
+				type="base"
+				native-type="button"
+				class="!shadow-none"
+				:disabled="scanning"
+				@click="downloadJavaModal?.show()"
+			>
+				<DownloadIcon aria-hidden="true" />
+				{{ formatMessage(messages.downloadJava) }}
+			</Button>
+			<Button
+				type="base"
+				native-type="button"
+				class="!shadow-none"
+				@click="installedJavaModal?.show()"
+			>
+				<ListIcon aria-hidden="true" />
+				{{ formatMessage(messages.viewInstalled) }}
+			</Button>
 		</div>
 
 		<div
@@ -274,16 +366,12 @@ async function onJavaDownloaded(job) {
 		>
 			<span>{{ formatMessage(messages.deepScanConfirm) }}</span>
 			<div class="flex flex-wrap gap-2">
-				<ButtonStyled color="red">
-					<button type="button" @click="confirmDeepScan">
-						{{ formatMessage(messages.scanAnyway) }}
-					</button>
-				</ButtonStyled>
-				<ButtonStyled type="outlined">
-					<button type="button" @click="showDeepScanConfirm = false">
-						{{ formatMessage(messages.cancel) }}
-					</button>
-				</ButtonStyled>
+				<Button type="colored" color="red" native-type="button" @click="confirmDeepScan">
+					{{ formatMessage(messages.scanAnyway) }}
+				</Button>
+				<Button type="outlined" native-type="button" @click="showDeepScanConfirm = false">
+					{{ formatMessage(messages.cancel) }}
+				</Button>
 			</div>
 		</div>
 
@@ -301,6 +389,51 @@ async function onJavaDownloaded(job) {
 					</span>
 				</div>
 				<Toggle id="auto-java-high-performance-mode" v-model="autoHighPerformanceMode" />
+			</div>
+		</div>
+
+		<div class="flex flex-col gap-6 border-0 border-t border-solid border-button-border pt-5">
+			<div class="flex flex-col gap-2.5">
+				<h2 class="m-0 text-lg font-semibold text-contrast">
+					{{ formatMessage(messages.memory) }}
+				</h2>
+
+				<Checkbox v-model="memory.automatic" :label="formatMessage(messages.automaticMemory)" />
+
+				<Slider
+					id="max-memory"
+					v-model="memory.maximum"
+					:disabled="memory.automatic"
+					:min="512"
+					:max="maxMemory"
+					:step="64"
+					:snap-points="snapPoints"
+					:snap-range="512"
+					unit="MB"
+				/>
+
+				<p class="m-0 mt-1 leading-tight">
+					{{
+						formatMessage(
+							memory.automatic ? messages.automaticMemoryDescription : messages.memoryDescription,
+						)
+					}}
+				</p>
+
+				<MemoryAllocationDisplay :memory="memory" show-optimize-button />
+			</div>
+
+			<div class="flex flex-col gap-2.5">
+				<h2 class="m-0 text-lg font-semibold text-contrast">
+					{{ formatMessage(messages.javaArguments) }}
+				</h2>
+
+				<JavaArgumentsInput
+					id="java-args"
+					v-model="javaArgs"
+					:gc-context="gcContext"
+					:placeholder="formatMessage(messages.javaArgumentsPlaceholder)"
+				/>
 			</div>
 		</div>
 	</div>

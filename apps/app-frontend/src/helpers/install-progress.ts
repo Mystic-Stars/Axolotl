@@ -7,6 +7,11 @@ export interface ProgressValue {
 export interface ProgressSnapshot {
 	phase: string
 	progress?: ProgressValue | null
+	parallel?: {
+		phase: string
+		current: number
+		total: number
+	} | null
 }
 
 export interface ProgressTextSnapshot extends ProgressSnapshot {
@@ -32,6 +37,16 @@ export function effectiveInstallProgress(
 	}
 
 	return snapshot.progress
+}
+
+export function effectiveParallelProgress(
+	snapshot: ProgressSnapshot,
+): ProgressValue | null | undefined {
+	if (!snapshot.parallel) return null
+	return {
+		current: snapshot.parallel.current,
+		total: snapshot.parallel.total,
+	}
 }
 
 export function hasDeterminateInstallProgress(

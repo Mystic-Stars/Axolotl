@@ -23,6 +23,9 @@ import {
 import {
 	Admonition,
 	Avatar,
+	type BatchDropGroup,
+	type BatchDropItem,
+	type BatchDropPhase,
 	commonMessages,
 	ContentInstallModal,
 	ContentUpdaterModal,
@@ -44,6 +47,7 @@ import {
 	useGlobalDrop,
 	useVIntl,
 } from '@modrinth/ui'
+import BatchScanOverlay from '@modrinth/ui/src/components/flows/drop/BatchScanOverlay.vue'
 import ConfirmDropTypeModal from '@modrinth/ui/src/components/flows/drop/ConfirmDropTypeModal.vue'
 import GenericContentInstallModal from '@modrinth/ui/src/components/flows/drop/GenericContentInstallModal.vue'
 import LauncherImportModal from '@modrinth/ui/src/components/flows/drop/LauncherImportModal.vue'
@@ -146,6 +150,7 @@ import {
 	savePrivacySettings,
 	set as setSettings,
 } from '@/helpers/settings.ts'
+import { getSidebarExpanded, setSidebarExpanded } from '@/helpers/sidebar-state.ts'
 import { get_opening_command, initialize_state, set_discord_activity } from '@/helpers/state'
 import {
 	areUpdatesEnabled,
@@ -173,6 +178,7 @@ import {
 	setAppUpdateActions,
 } from '@/providers/app-update.ts'
 import { createContentInstall, provideContentInstall } from '@/providers/content-install'
+import { createContentSelection, provideContentSelection } from '@/providers/content-selection'
 import { createDownloadManager, provideDownloadManager } from '@/providers/download-manager'
 import {
 	provideAppUpdateDownloadProgress,
@@ -221,10 +227,13 @@ function getPageTransitionKey(route: RouteLocationNormalizedLoaded) {
 }
 const APP_SIDEBAR_WIDTH = 300
 const credentials = ref()
-const sidebarToggled = ref(true)
-const unsubscribeSidebarToggle = themeStore.$subscribe(() => {
-	sidebarToggled.value = !themeStore.toggleSidebar
-})
+const sidebarToggled = ref(getSidebarExpanded())
+
+function toggleSidebar() {
+	sidebarToggled.value = !sidebarToggled.value
+	setSidebarExpanded(sidebarToggled.value)
+}
+
 const forceSidebar = computed(
 	() => route.path.startsWith('/browse') || route.path.startsWith('/project'),
 )
@@ -246,6 +255,12 @@ provideNotificationManager(notificationManager)
 const { handleError, addNotification } = notificationManager
 const downloadManager = createDownloadManager(handleError)
 provideDownloadManager(downloadManager)
+const contentSelection = createContentSelection({
+	addNotification,
+	handleError,
+	downloadManager,
+})
+provideContentSelection(contentSelection)
 
 const popupNotificationManager = new AppPopupNotificationManager()
 providePopupNotificationManager(popupNotificationManager)
@@ -417,7 +432,6 @@ onMounted(async () => {
 onUnmounted(async () => {
 	document.querySelector('body').removeEventListener('click', handleClick)
 	document.querySelector('body').removeEventListener('auxclick', handleAuxClick)
-	unsubscribeSidebarToggle()
 	clearDelayedUpdatePopup()
 	await unlistenUpdateDownload?.()
 	downloadManager.dispose()
@@ -746,6 +760,38 @@ const messages = defineMessages({
 		id: 'app.drop.import-completed-partial-text',
 		defaultMessage: 'Imported {completed} of {total} instances ({failed} failed)',
 	},
+	dropImportCancelledTitle: {
+		id: 'app.drop.batch.import-cancelled-title',
+		defaultMessage: 'Import cancelled',
+	},
+	dropImportCancelledText: {
+		id: 'app.drop.batch.import-cancelled-text',
+		defaultMessage: 'Nothing was imported.',
+	},
+	dropBatchNothingImportableTitle: {
+		id: 'app.drop.batch.nothing-importable-title',
+		defaultMessage: 'Nothing to import',
+	},
+	dropBatchNothingImportableText: {
+		id: 'app.drop.batch.nothing-importable-text',
+		defaultMessage: '{count, plural, one {# file} other {# files}} could not be recognized.',
+	},
+	dropBatchCompletedTitle: {
+		id: 'app.drop.batch.completed-title',
+		defaultMessage: 'Import finished',
+	},
+	dropBatchCompletedText: {
+		id: 'app.drop.batch.completed-text',
+		defaultMessage: 'Imported {succeeded} of {total} ({failed} failed, {skipped} skipped).',
+	},
+	dropBatchTargetLabel: {
+		id: 'app.drop.batch.target-label',
+		defaultMessage: 'Select target instance for this batch',
+	},
+	dropBatchGroupFileLabel: {
+		id: 'app.drop.batch.group-file-label',
+		defaultMessage: '{count, plural, one {# file} other {# files}}: {names}',
+	},
 
 	dropModpackInstallFailed: {
 		id: 'app.drop.modpack-install-failed',
@@ -785,7 +831,7 @@ const messages = defineMessages({
 	dropInstallModWarning: {
 		id: 'app.drop.mod-compatibility-warning',
 		defaultMessage:
-			'This mod targets {modVersion} ({modLoader}), but the instance is {instVersion} ({instLoader}).',
+			'{file} targets {modVersion} ({modLoader}), but the instance is {instVersion} ({instLoader}).',
 	},
 })
 
@@ -1253,6 +1299,7 @@ const {
 	setModpackAlreadyInstalledModal: setContentInstallModpackAlreadyInstalledModal,
 	handleModpackDuplicateCreateAnyway: handleContentInstallModpackDuplicateCreateAnyway,
 	handleModpackDuplicateGoToInstance: handleContentInstallModpackDuplicateGoToInstance,
+	handleModpackDuplicateCancel,
 	setCurseForgeManualDownloadsModal: setContentInstallCurseForgeManualDownloadsModal,
 	handleCurseForgeManualDownloadsImported: handleContentInstallCurseForgeManualDownloadsImported,
 	setIncompatibilityWarningModal: setContentIncompatibilityWarningModal,
@@ -1277,6 +1324,8 @@ async function handleIncompatibilityWarningUpdate(
 	version: Labrinth.Versions.v2.Version,
 	event: MouseEvent,
 ) {
+	const decision = batchCompatResolve
+	batchCompatResolve = null
 	const pending = pendingDropIncompatibility.value
 	if (pending) {
 		pendingDropIncompatibility.value = null
@@ -1295,6 +1344,7 @@ async function handleIncompatibilityWarningUpdate(
 				type: 'error',
 			})
 		}
+		decision?.(true)
 		return
 	}
 	await handleContentInstallIncompatibilityWarningInstall(version, event)
@@ -1304,7 +1354,14 @@ async function handleIncompatibilityWarningUpdate(
  * Handles @cancel from ContentUpdaterModal. Clears drag & drop state if set.
  */
 function handleIncompatibilityWarningCancel() {
+	const decision = batchCompatResolve
+	batchCompatResolve = null
 	pendingDropIncompatibility.value = null
+	if (decision) {
+		// In batch mode cancelling the warning only skips this one mod.
+		decision(false)
+		return
+	}
 	handleContentInstallIncompatibilityWarningCancel()
 }
 
@@ -1313,6 +1370,8 @@ function handleIncompatibilityWarningCancel() {
  * Navigates to the Modrinth project page or browse/search page.
  */
 function handleDropInstallSearchCompat() {
+	const decision = batchCompatResolve
+	batchCompatResolve = null
 	const pending = pendingDropIncompatibility.value
 	if (!pending) return
 	const searchName = pending.meta?.name ?? pending.meta?.mod_id ?? 'mod'
@@ -1320,6 +1379,7 @@ function handleDropInstallSearchCompat() {
 		? `/project/${pending.modrinthLookup.project_id}`
 		: `/browse/mod?q=${encodeURIComponent(searchName)}&i=${pending.instId}`
 	pendingDropIncompatibility.value = null
+	decision?.(false)
 	router.push(searchUrl)
 }
 
@@ -1386,18 +1446,20 @@ const dropDebug = useDebugLogger('DropFlow')
 
 const dropProcessingNotificationId = ref<number | null>(null)
 
-const { isDragging, isProcessing } = useGlobalDrop(
+async function classifyDropPath(path: string): Promise<ClassificationResult> {
+	lastDroppedPath.value = path
+	if (onSkinsPage.value) {
+		return { item_type: 'unknown' as const, file_path: path, reason: 'skipped' }
+	}
+	if (onSchematicWorkshopPage.value && isSchematicFile(path)) {
+		return { item_type: 'unknown' as const, file_path: path, reason: 'skipped' }
+	}
+	return classifyDroppedItem(path)
+}
+
+const { isDragging, isProcessing, finishBatch } = useGlobalDrop(
 	{
-		classifyFile: async (path) => {
-			lastDroppedPath.value = path
-			if (onSkinsPage.value) {
-				return { item_type: 'unknown' as const, file_path: path, reason: 'skipped' }
-			}
-			if (onSchematicWorkshopPage.value && isSchematicFile(path)) {
-				return { item_type: 'unknown' as const, file_path: path, reason: 'skipped' }
-			}
-			return classifyDroppedItem(path)
-		},
+		classifyFile: classifyDropPath,
 		onClassifyStart: (fileName) => {
 			if (onSkinsPage.value) return
 			if (onSchematicWorkshopPage.value && isSchematicFile(fileName)) return
@@ -1463,6 +1525,9 @@ const { isDragging, isProcessing } = useGlobalDrop(
 			confirmDropModal.value?.show()
 		},
 		onImportEnd: () => {},
+		onBatchStart: (paths) => {
+			void startBatchImport(paths)
+		},
 		onError: (reason) => {
 			clearDropProcessingNotification()
 
@@ -1506,6 +1571,742 @@ function clearDropProcessingNotification() {
 function handleDropCancel() {
 	clearDropProcessingNotification()
 	dropClassification.value = null
+}
+
+// ConfirmDropTypeModal event routing shared by single-file and batch group flows.
+function handleConfirmDropCancel() {
+	if (batchGroupMode) {
+		batchGroupMode = false
+		confirmDropModal.value?.hide()
+		void cancelBatch('group-cancel')
+		return
+	}
+	handleDropCancel()
+}
+
+async function handleConfirmDropConfirm(type: string, innerBase?: string) {
+	if (batchGroupMode) {
+		batchGroupMode = false
+		confirmDropModal.value?.hide()
+		onBatchGroupConfirm(type)
+		return
+	}
+	await handleDropConfirm(type, innerBase)
+}
+
+async function handleConfirmDropHelp() {
+	if (batchGroupMode) {
+		batchGroupMode = false
+		confirmDropModal.value?.hide()
+		void cancelBatch('group-help')
+	}
+	await handleDropHelp()
+}
+
+// ── Batch drag-and-drop import ─────────────────────────────────────────────
+
+const batchPhase = ref<BatchDropPhase>('idle')
+const batchActive = computed(() => batchPhase.value !== 'idle')
+const batchItems = ref<BatchDropItem[]>([])
+const batchOriginalCount = ref(0)
+const batchScanDone = ref(0)
+const batchGroups = ref<BatchDropGroup[]>([])
+const batchCurrentGroup = ref<BatchDropGroup | null>(null)
+const batchTargetInstances = ref<BatchTargetInstanceInfo[]>([])
+const batchTargetInstanceId = ref('')
+const batchWorldPath = ref('')
+const batchTempDirs = ref<string[]>([])
+
+interface BatchTargetInstanceInfo {
+	id: string
+	name: string
+	iconUrl?: string | null
+	gameVersion?: string | null
+	loader?: string | null
+}
+
+let batchScanCancelled = false
+let batchInstallCancelled = false
+let batchConfirmIndex = 0
+let batchSymlinkMode = false
+/** When true, GenericContentInstallModal is being used as the batch target picker. */
+let batchTargetPickMode = false
+/** When true, InstanceExportModal is being used as the batch world picker. */
+let batchWorldMode = false
+/** When true, ConfirmDropTypeModal is being used for a merged batch group. */
+let batchGroupMode = false
+/** Forces ConfirmDropTypeModal to remount for each batch group so a pending
+ *  hide from the previous group cannot close the next group's modal. */
+const batchGroupKey = ref(0)
+/** Forces ContentUpdaterModal to remount for each compatibility warning so a
+ *  pending hide from the previous warning cannot close the next warning. */
+const incompatWarningKey = ref(0)
+/** Resolves the per-item compatibility decision during batch install. */
+let batchCompatResolve: ((installed: boolean) => void) | null = null
+
+function resolveBatchClassification(result: ClassificationResult, depth = 0): ClassificationResult {
+	if (result.item_type === 'shortcut_resolved' && result.resolved_to && depth < 3) {
+		return resolveBatchClassification(result.resolved_to, depth + 1)
+	}
+	return result
+}
+
+async function startBatchImport(paths: string[]) {
+	console.log('[BatchDrop] startBatchImport paths=', paths.length, paths)
+	if (batchPhase.value !== 'idle') return
+	batchPhase.value = 'scanning'
+	batchOriginalCount.value = paths.length
+	batchScanDone.value = 0
+	batchScanCancelled = false
+	batchInstallCancelled = false
+	batchConfirmIndex = 0
+	batchTempDirs.value = []
+	batchTargetInstanceId.value = ''
+	batchWorldPath.value = ''
+	batchGroups.value = []
+	batchCurrentGroup.value = null
+	batchItems.value = paths.map((path, index) => ({
+		id: `batch-${Date.now()}-${index}`,
+		sourcePath: path,
+		name: path.split(/[/\\]/).pop() || path,
+		scanState: 'pending',
+		selected: true,
+	}))
+	try {
+		await runBatchScan()
+	} catch (error) {
+		await failBatch(error)
+	}
+}
+
+async function runBatchScan() {
+	const items = batchItems.value
+	const total = items.length
+	let cursor = 0
+	console.log(`[BatchDrop] runBatchScan total=${total}`)
+	const workers = Array.from({ length: Math.min(3, total) }, async () => {
+		while (!batchScanCancelled) {
+			const index = cursor++
+			if (index >= total) return
+			const item = items[index]
+			item.scanState = 'scanning'
+			console.log(`[BatchDrop] scan start idx=${index} path=${item.sourcePath}`)
+			try {
+				const raw = await classifyDropPath(item.sourcePath)
+				const resolved = resolveBatchClassification(raw)
+				if (resolved.item_type === 'shortcut_resolved') {
+					item.scanState = 'skipped'
+					item.reason = 'shortcut-exceeded'
+				} else {
+					await applyBatchClassification(item, resolved)
+				}
+				console.log(
+					`[BatchDrop] scan done idx=${index} type=${item.itemType} state=${item.scanState}`,
+				)
+			} catch (error) {
+				item.scanState = 'error'
+				item.reason = error instanceof Error ? error.message : String(error)
+				console.log(`[BatchDrop] scan ERROR idx=${index}`, error)
+			} finally {
+				batchScanDone.value++
+			}
+		}
+	})
+	await Promise.all(workers)
+	if (batchScanCancelled) {
+		await cancelBatch('scan-cancelled-flag')
+		return
+	}
+	await finishBatchScan()
+}
+
+async function applyBatchClassification(item: BatchDropItem, resolved: ClassificationResult) {
+	console.log(
+		'[BatchDrop] applyBatchClassification item=',
+		item.name,
+		'resolved=',
+		resolved.item_type,
+	)
+	if (resolved.item_type === 'unknown') {
+		item.scanState = 'skipped'
+		item.reason = resolved.reason ?? 'unknown'
+		return
+	}
+
+	if (resolved.item_type === 'launcher' || resolved.item_type === 'hmcl_launcher') {
+		await expandBatchLauncher(item, resolved)
+		return
+	}
+
+	item.scanState = 'done'
+	item.classification = resolved
+	item.innerBase = (resolved as { innerBase?: string }).innerBase
+
+	switch (resolved.item_type) {
+		case 'mod':
+		case 'shader_pack':
+		case 'world_save':
+		case 'litematic':
+			item.itemType = resolved.item_type
+			break
+		case 'modpack':
+			item.itemType = 'modpack'
+			break
+		case 'resource_pack': {
+			const candidates = resolved.candidates ?? []
+			if (candidates.length === 1) {
+				item.itemType = candidates[0]
+			} else if (candidates.length > 1) {
+				item.itemType = 'ambiguous'
+				item.candidates = candidates
+			} else {
+				item.itemType = 'resource_pack'
+			}
+			break
+		}
+		case 'multiple':
+			item.itemType = 'ambiguous'
+			item.choices = resolved.choices
+			item.candidates = [
+				...new Set((resolved.choices ?? []).map((choice) => choice.itemType).filter(Boolean)),
+			]
+			break
+	}
+}
+
+async function expandBatchLauncher(item: BatchDropItem, resolved: ClassificationResult) {
+	const launcherType =
+		resolved.item_type === 'hmcl_launcher'
+			? 'HMCL'
+			: ((resolved as { launcher_type?: string }).launcher_type ?? 'Generic')
+	const rawBasePath =
+		resolved.item_type === 'hmcl_launcher'
+			? ((resolved as { launcher_dir?: string }).launcher_dir ?? '')
+			: ((resolved as { base_path?: string }).base_path ?? '')
+
+	if (!rawBasePath) {
+		item.scanState = 'skipped'
+		item.reason = 'No launcher path'
+		return
+	}
+
+	let scanBasePath = rawBasePath
+	const fromZip = isZipPath(rawBasePath)
+	if (fromZip) {
+		try {
+			const tempDir = await extractZipToTemp(rawBasePath)
+			batchTempDirs.value.push(tempDir)
+			const innerBase = (resolved as { innerBase?: string }).innerBase
+			scanBasePath = innerBase ? `${tempDir}/${innerBase}` : tempDir
+		} catch (error) {
+			item.scanState = 'error'
+			item.reason = error instanceof Error ? error.message : String(error)
+			return
+		}
+	}
+
+	try {
+		const results = await scanLauncherInstances(launcherType, scanBasePath)
+		const instances = results.flatMap((result) => result.instances)
+		console.log(
+			`[BatchDrop] expand launcher type=${launcherType} base=${scanBasePath} instances=${instances.length}`,
+		)
+		if (instances.length === 0) {
+			item.scanState = 'skipped'
+			item.reason = 'No importable instances found'
+			return
+		}
+		item.scanState = 'done'
+		item.itemType = 'launcher_container'
+		for (const inst of instances) {
+			batchItems.value.push({
+				id: `batch-${Date.now()}-${batchItems.value.length}`,
+				sourcePath: item.sourcePath,
+				name: inst.name,
+				sourceLabel: item.name,
+				scanState: 'done',
+				itemType: 'instance',
+				launcherType,
+				basePath: scanBasePath,
+				instanceFolder: inst.name,
+				instancePath: inst.path,
+				fromZip: fromZip || undefined,
+				selected: true,
+			})
+		}
+	} catch (error) {
+		item.scanState = 'error'
+		item.reason = error instanceof Error ? error.message : String(error)
+	}
+}
+
+async function finishBatchScan() {
+	const hasImportable = batchItems.value.some(
+		(item) => item.itemType && item.itemType !== 'launcher_container' && item.scanState === 'done',
+	)
+	console.log('[BatchDrop] finishBatchScan hasImportable=', hasImportable)
+	if (!hasImportable) {
+		await showBatchSummaryFromScan()
+		return
+	}
+
+	const needsInstance = batchItems.value.some(
+		(item) =>
+			item.itemType &&
+			[
+				'mod',
+				'resource_pack',
+				'shader_pack',
+				'world_save',
+				'litematic',
+				'data_pack',
+				'ambiguous',
+			].includes(item.itemType),
+	)
+	if (needsInstance) {
+		// Reuse the single-file flow's in-instance shortcut: when we are on an
+		// instance page, install straight into the current instance instead of
+		// asking for a target.
+		if (isInInstance.value && instanceId.value) {
+			console.log('[BatchDrop] in-instance context, using current instance directly')
+			await proceedBatchWithTargetInstance(instanceId.value)
+			return
+		}
+		console.log('[BatchDrop] finishBatchScan needsInstance=true (show target instance picker)')
+		batchPhase.value = 'picking-instance'
+		await loadBatchTargetInstances()
+		return
+	}
+
+	console.log('[BatchDrop] finishBatchScan needsInstance=false (go to group confirms)')
+	await startBatchGroupConfirms()
+}
+
+/** Applies a shared target instance and continues with world/group confirmation. */
+async function proceedBatchWithTargetInstance(instanceId: string) {
+	batchTargetInstanceId.value = instanceId
+	const needsWorld = batchItems.value.some(
+		(item) =>
+			item.itemType === 'data_pack' ||
+			(item.itemType === 'ambiguous' && (item.candidates ?? []).includes('data_pack')),
+	)
+	if (needsWorld) {
+		// Reuse the existing world picker (InstanceExportModal), pre-opened on
+		// the target instance's worlds.
+		batchPhase.value = 'picking-world'
+		batchWorldMode = true
+		dataPackWorldModal.value?.show(instanceId)
+		console.log('[BatchDrop] dataPackWorldModal.show (batch world) called')
+	} else {
+		await startBatchGroupConfirms()
+	}
+}
+
+async function loadBatchTargetInstances() {
+	try {
+		const all = await listInstances()
+		batchTargetInstances.value = all.map((inst) => ({
+			id: inst.id,
+			name: inst.name,
+			iconUrl: getDisplayInstanceIcon(inst.icon_path, inst.loader).url,
+			gameVersion: inst.game_version || null,
+			loader: inst.loader || null,
+		}))
+		console.log('[BatchDrop] loadBatchTargetInstances count=', batchTargetInstances.value.length)
+	} catch (error) {
+		batchTargetInstances.value = []
+		console.log('[BatchDrop] loadBatchTargetInstances ERROR', error)
+	}
+	// Reuse the existing instance picker (GenericContentInstallModal).
+	await nextTick()
+	genericInstallModal.value?.show({
+		contentType: 'mod',
+		fileName: formatMessage(messages.dropBatchTargetLabel),
+		instances: batchTargetInstances.value,
+	})
+	// Set the mode after show() so any hide/cancel emitted synchronously while
+	// opening the modal does not cancel the batch.
+	batchTargetPickMode = true
+	console.log('[BatchDrop] genericInstallModal.show (batch target) called')
+}
+
+async function handleBatchOrDatapackWorldSelect(target: { instanceId: string; worldPath: string }) {
+	if (batchWorldMode) {
+		batchWorldMode = false
+		batchTargetInstanceId.value = target.instanceId
+		batchWorldPath.value = target.worldPath
+		console.log('[BatchDrop] batch world selected world=', target.worldPath)
+		try {
+			await startBatchGroupConfirms()
+		} catch (error) {
+			await failBatch(error)
+		}
+		return
+	}
+	await handleDatapackWorldSelect(target)
+}
+
+function handleBatchWorldAfterHide() {
+	// InstanceExportModal was dismissed without picking a world.
+	if (batchWorldMode) {
+		batchWorldMode = false
+		void cancelBatch('world-cancel')
+	}
+}
+
+async function startBatchGroupConfirms() {
+	const groups: BatchDropGroup[] = []
+	const typeOrder = [
+		'modpack',
+		'ambiguous',
+		'mod',
+		'resource_pack',
+		'shader_pack',
+		'world_save',
+		'litematic',
+		'data_pack',
+		'instance',
+	]
+	const byType = new Map<string, BatchDropItem[]>()
+	for (const item of batchItems.value) {
+		if (item.selected === false || !item.itemType || item.itemType === 'launcher_container')
+			continue
+		if (item.scanState !== 'done') continue
+		const list = byType.get(item.itemType) ?? []
+		list.push(item)
+		byType.set(item.itemType, list)
+	}
+	for (const type of typeOrder) {
+		const list = byType.get(type)
+		if (list?.length) groups.push({ id: type, type, items: list })
+	}
+	batchGroups.value = groups
+	batchConfirmIndex = 0
+	batchPhase.value = 'confirming'
+	console.log(
+		'[BatchDrop] startBatchGroupConfirms groups=',
+		groups.map((g) => `${g.type}:${g.items.length}`),
+	)
+	await showNextBatchGroup()
+}
+
+async function showNextBatchGroup() {
+	try {
+		if (batchConfirmIndex >= batchGroups.value.length) {
+			console.log('[BatchDrop] showNextBatchGroup done all groups, run install')
+			await runBatchInstall()
+			return
+		}
+		const group = batchGroups.value[batchConfirmIndex]
+		batchCurrentGroup.value = group
+		console.log(
+			`[BatchDrop] showNextBatchGroup idx=${batchConfirmIndex} type=${group.type} count=${group.items.length}`,
+		)
+		if (group.type === 'instance') {
+			// Instances extracted from a compressed launcher live in a temporary
+			// directory that is deleted after the import, so symlinking is never
+			// an option — import as copies, matching the single-file flow.
+			if (group.items.some((item) => item.fromZip)) {
+				for (const item of group.items) item.symlink = false
+				batchConfirmIndex++
+				await showNextBatchGroup()
+				return
+			}
+			const cap = await check_symlink_capability()
+			batchSymlinkMode = true
+			symlinkCardsModal.value?.show({
+				instances: group.items.map((item) => ({
+					name: item.name,
+					path: item.instancePath,
+					launcherType: item.launcherType,
+					basePath: item.basePath,
+				})),
+				symlinkCapable: cap,
+			})
+		} else {
+			await showBatchGroupConfirmModal(group)
+		}
+	} catch (error) {
+		await failBatch(error)
+	}
+}
+
+async function showBatchGroupConfirmModal(group: BatchDropGroup) {
+	// Remount ConfirmDropTypeModal so any pending hide from the previous group
+	// is discarded instead of closing this newly opened modal.
+	batchGroupKey.value++
+	await nextTick()
+
+	// Reuse the single-file ConfirmDropTypeModal by feeding it a synthetic
+	// classification that only exposes the option(s) for this merged group.
+	let classification: ClassificationResult
+	if (group.type === 'ambiguous') {
+		const choices = group.items
+			.flatMap((item) =>
+				item.choices?.length
+					? item.choices
+					: (item.candidates ?? []).map((candidate) => ({ itemType: candidate })),
+			)
+			.filter(
+				(choice, index, all) => all.findIndex((c) => c.itemType === choice.itemType) === index,
+			)
+		classification = { item_type: 'multiple', file_path: group.items[0]?.sourcePath, choices }
+	} else {
+		classification = { item_type: group.type } as unknown as ClassificationResult
+	}
+	dropClassification.value = classification
+	dropFileName.value = formatMessage(messages.dropBatchGroupFileLabel, {
+		count: group.items.length,
+		names: group.items.map((item) => item.name).join(', '),
+	})
+	batchGroupMode = true
+	confirmDropModal.value?.show()
+}
+
+function onBatchGroupConfirm(type: string) {
+	const group = batchCurrentGroup.value
+	if (!group) return
+	console.log('[BatchDrop] onBatchGroupConfirm group=', group.type, 'type=', type)
+	for (const item of group.items) {
+		item.selected = true
+		item.confirmedType = type
+		item.itemType = type
+		// Multi-candidate sources carry per-candidate inner paths; keep the
+		// one that matches the chosen type so installs target the right folder.
+		const choice = item.choices?.find((c) => c.itemType === type)
+		if (choice?.innerBase !== undefined) {
+			item.innerBase = choice.innerBase
+		}
+	}
+	batchConfirmIndex++
+	void showNextBatchGroup()
+}
+
+function cancelBatchScan() {
+	console.log('[BatchDrop] cancelBatchScan clicked')
+	batchScanCancelled = true
+	void cancelBatch('scan-button')
+}
+
+async function cancelBatch(source = 'unknown') {
+	console.log(
+		`[BatchDrop] cancelBatch INVOKED source=${source} phase=${batchPhase.value}`,
+		new Error(source).stack,
+	)
+	if (batchPhase.value === 'idle' || batchPhase.value === 'cancelled') return
+	batchScanCancelled = true
+	batchInstallCancelled = true
+	batchSymlinkMode = false
+	batchTargetPickMode = false
+	batchWorldMode = false
+	batchGroupMode = false
+	confirmDropModal.value?.hide()
+	symlinkCardsModal.value?.hide()
+	// GenericContentInstallModal and InstanceExportModal are hidden by their own
+	// flows; calling hide() here can re-enter their onHide/cancel handlers.
+	await cleanupBatchTempDirs()
+	addNotification({
+		title: formatMessage(messages.dropImportCancelledTitle),
+		text: formatMessage(messages.dropImportCancelledText),
+		type: 'info',
+	})
+	finishBatch()
+	batchPhase.value = 'idle'
+}
+
+/** Cleans up after an unexpected batch error so no overlay stays stuck. */
+async function failBatch(error: unknown) {
+	console.error('[BatchDrop] batch failed', error)
+	addNotification({
+		title: formatMessage(messages.dropImportFailedTitle),
+		text: error instanceof Error ? error.message : String(error),
+		type: 'error',
+	})
+	batchPhase.value = 'idle'
+	batchScanCancelled = true
+	batchInstallCancelled = true
+	batchTargetPickMode = false
+	batchWorldMode = false
+	batchGroupMode = false
+	confirmDropModal.value?.hide()
+	symlinkCardsModal.value?.hide()
+	await cleanupBatchTempDirs()
+	finishBatch()
+}
+
+async function cleanupBatchTempDirs() {
+	const dirs = [...batchTempDirs.value]
+	batchTempDirs.value = []
+	for (const dir of dirs) {
+		try {
+			await removeTempDir(dir)
+		} catch {
+			// Best-effort cleanup; stale dirs are swept by the backend.
+		}
+	}
+}
+
+async function showBatchSummaryFromScan() {
+	const skipped = batchItems.value.filter(
+		(item) => item.scanState === 'skipped' || item.scanState === 'error',
+	)
+	if (skipped.length > 0) {
+		addNotification({
+			title: formatMessage(messages.dropBatchNothingImportableTitle),
+			text: formatMessage(messages.dropBatchNothingImportableText, {
+				count: skipped.length,
+			}),
+			type: 'warning',
+		})
+	}
+	await finishBatchImport()
+}
+
+async function runBatchInstall() {
+	batchPhase.value = 'installing'
+	batchInstallCancelled = false
+	console.log('[BatchDrop] runBatchInstall start')
+	const typeOrder = [
+		'modpack',
+		'instance',
+		'mod',
+		'resource_pack',
+		'shader_pack',
+		'world_save',
+		'litematic',
+		'data_pack',
+	]
+	const queue = typeOrder.flatMap((type) =>
+		batchItems.value.filter(
+			(item) => item.selected !== false && item.scanState === 'done' && item.itemType === type,
+		),
+	)
+	for (const item of batchItems.value) {
+		if (
+			item.selected !== false &&
+			item.scanState === 'done' &&
+			item.itemType &&
+			!typeOrder.includes(item.itemType)
+		) {
+			queue.push(item)
+		}
+	}
+
+	let succeeded = 0
+	let failed = 0
+	let skipped = 0
+	for (const item of queue) {
+		if (batchInstallCancelled) {
+			addNotification({
+				title: formatMessage(messages.dropImportCancelledTitle),
+				text: formatMessage(messages.dropImportCancelledText),
+				type: 'info',
+			})
+			break
+		}
+		item.installState = 'processing'
+		console.log(`[BatchDrop] install start type=${item.itemType} name=${item.name}`)
+		try {
+			await installBatchItem(item)
+			if (pendingDropIncompatibility.value) {
+				// A compatibility warning opened and install did not finish;
+				// wait for the user to install anyway or skip this one mod.
+				const installed = await new Promise<boolean>((resolve) => {
+					batchCompatResolve = resolve
+				})
+				if (installed) {
+					item.installState = 'success'
+					succeeded++
+					console.log(`[BatchDrop] install SUCCESS (compat) name=${item.name}`)
+				} else {
+					item.installState = 'skipped'
+					skipped++
+					console.log(`[BatchDrop] install SKIPPED (compat cancelled) name=${item.name}`)
+				}
+			} else {
+				item.installState = 'success'
+				succeeded++
+				console.log(`[BatchDrop] install SUCCESS name=${item.name}`)
+			}
+		} catch (error) {
+			item.installState = 'failed'
+			failed++
+			console.log(`[BatchDrop] install FAILED name=${item.name}`, error)
+		}
+	}
+	console.log(
+		`[BatchDrop] runBatchInstall finished queue=${queue.length} success=${succeeded} failed=${failed} skipped=${skipped}`,
+	)
+
+	addNotification({
+		title: formatMessage(messages.dropBatchCompletedTitle),
+		text: formatMessage(messages.dropBatchCompletedText, {
+			succeeded,
+			failed,
+			skipped,
+			total: queue.length,
+		}),
+		type: failed > 0 || skipped > 0 ? 'warning' : 'success',
+	})
+	await finishBatchImport()
+}
+
+async function installBatchItem(item: BatchDropItem) {
+	console.log(
+		`[BatchDrop] installBatchItem type=${item.itemType} name=${item.name} path=${item.sourcePath}`,
+	)
+	switch (item.itemType) {
+		case 'modpack':
+			await installModpackFromPath(item.sourcePath, item.name, { persistUntilDone: false })
+			return
+		case 'instance': {
+			const job = await import_instance(
+				item.launcherType,
+				item.basePath,
+				item.instanceFolder,
+				item.symlink ?? false,
+				item.instancePath,
+				item.gameVersion ?? undefined,
+				item.loader ?? undefined,
+				item.loaderVersion ?? undefined,
+			)
+			await wait_for_install_job(job.job_id)
+			return
+		}
+		case 'data_pack':
+			if (!batchTargetInstanceId.value || !batchWorldPath.value) {
+				throw new Error('Missing target instance or world for datapack')
+			}
+			await install_datapack_to_world(
+				batchTargetInstanceId.value,
+				batchWorldPath.value,
+				item.sourcePath,
+				item.innerBase,
+			)
+			return
+		case 'mod':
+		case 'resource_pack':
+		case 'shader_pack':
+		case 'world_save':
+		case 'litematic':
+		case 'schematic':
+			await installContentDirectly(
+				item.itemType,
+				item.sourcePath,
+				batchTargetInstanceId.value,
+				item.innerBase,
+			)
+			return
+		default:
+			throw new Error(`Unsupported batch item type: ${item.itemType}`)
+	}
+}
+
+async function finishBatchImport() {
+	await cleanupBatchTempDirs()
+	batchPhase.value = 'idle'
+	batchItems.value = []
+	finishBatch()
 }
 
 async function handleDropConfirm(type: string, innerBase?: string) {
@@ -1891,6 +2692,7 @@ async function installContentDirectly(
 						modrinthLookup,
 					}
 					const warning = formatMessage(messages.dropInstallModWarning, {
+						file: filePath.split(/[/\\]/).pop() || filePath,
 						modVersion: modMcVersion ?? 'any',
 						modLoader: modLoader ?? 'any',
 						instVersion: instVersion ?? 'any',
@@ -1903,6 +2705,9 @@ async function installContentDirectly(
 					contentInstallIncompatibilityWarningProjectName.value = meta?.name ?? 'Mod'
 					contentInstallIncompatibilityWarningMessage.value = warning
 					contentInstallIncompatibilityWarningInstalling.value = false
+					// Remount so a previous warning's 300 ms hide cannot race the
+					// next warning when several incompatible mods are imported.
+					incompatWarningKey.value++
 					await nextTick()
 					incompatibilityWarningModal.value?.show()
 					return
@@ -2106,6 +2911,17 @@ function unknownReasonMessage(reason: string | undefined): string {
 }
 
 async function handleGenericInstall(instanceId: string) {
+	// Batch mode: the shared target-instance picker (reusing this modal).
+	if (batchTargetPickMode) {
+		batchTargetPickMode = false
+		genericInstallModal.value?.hide()
+		try {
+			await proceedBatchWithTargetInstance(instanceId)
+		} catch (error) {
+			await failBatch(error)
+		}
+		return
+	}
 	genericInstallModal.value?.hide()
 	const pending = pendingInstall.value
 	pendingInstall.value = null
@@ -2114,8 +2930,22 @@ async function handleGenericInstall(instanceId: string) {
 	await installContentDirectly(pending.type, pending.filePath, instanceId, pending.innerBase)
 }
 
+function handleGenericInstallCancel() {
+	if (batchTargetPickMode) {
+		batchTargetPickMode = false
+		genericInstallModal.value?.hide()
+		void cancelBatch('target-instance-cancel')
+		return
+	}
+	dropClassification.value = null
+}
+
 async function handleGenericInstallNavigateCreate() {
-	genericInstallModal.value?.hide()
+	if (batchTargetPickMode) {
+		batchTargetPickMode = false
+		genericInstallModal.value?.hide()
+		void cancelBatch('target-instance-navigate-create')
+	}
 	router.push('/create')
 }
 
@@ -2230,6 +3060,11 @@ function onSymlinkMethodCancelled() {
 		symlinkChoiceResolve = null
 	}
 	symlinkCardsModal.value?.hide()
+	if (batchSymlinkMode) {
+		batchSymlinkMode = false
+		void cancelBatch('symlink-cancel')
+		return
+	}
 	cleanupLauncherZipTemp()
 }
 
@@ -2238,6 +3073,32 @@ async function onSymlinkMethodConfirmed(choices: SymlinkMethodChoice[] | boolean
 	if (symlinkChoiceResolve) {
 		symlinkChoiceResolve(Array.isArray(choices) ? (choices[0]?.symlink ?? false) : choices)
 		symlinkChoiceResolve = null
+		return
+	}
+
+	// Batch drop import: store per-instance choices and advance to the next group.
+	if (batchSymlinkMode) {
+		const group = batchCurrentGroup.value
+		batchSymlinkMode = false
+		symlinkCardsModal.value?.hide()
+		if (group) {
+			const choiceArray = Array.isArray(choices) ? choices : []
+			for (const item of group.items) {
+				const choice = choiceArray.find(
+					(c) =>
+						c.instanceName === item.name &&
+						(c.instancePath ?? undefined) === (item.instancePath ?? undefined),
+				)
+				if (choice) {
+					item.symlink = choice.symlink
+					item.gameVersion = choice.gameVersion
+					item.loader = choice.loader
+					item.loaderVersion = choice.loaderVersion
+				}
+			}
+		}
+		batchConfirmIndex++
+		void showNextBatchGroup()
 		return
 	}
 
@@ -2375,11 +3236,15 @@ async function handleDropHelp() {
 	await confirmDropModal.value?.hide()
 }
 
-watch(incompatibilityWarningModal, (modal) => {
-	if (modal) {
-		setContentIncompatibilityWarningModal(modal)
-	}
-})
+watch(
+	incompatibilityWarningModal,
+	(modal) => {
+		if (modal) {
+			setContentIncompatibilityWarningModal(modal)
+		}
+	},
+	{ flush: 'post' },
+)
 
 setupAuthProvider(credentials, async (_redirectPath) => {
 	if (AxolotlBrandConfig.capabilities.privateModrinthServices) await signIn()
@@ -2450,6 +3315,7 @@ onMounted(() => {
 	setContentIncompatibilityWarningModal(incompatibilityWarningModal.value)
 	setContentInstallModal(modInstallModal.value)
 	setContentInstallPreviewModal(contentInstallPreviewModal.value)
+	contentSelection.setPreviewModal(contentInstallPreviewModal.value)
 	setContentInstallModpackAlreadyInstalledModal(contentInstallModpackAlreadyInstalledModal.value)
 	setContentInstallCurseForgeManualDownloadsModal(
 		contentInstallCurseForgeManualDownloadsModal.value,
@@ -3203,7 +4069,7 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 						: formatMessage(messages.expandSidebar)
 				"
 				type="button"
-				@click="sidebarToggled = !sidebarToggled"
+				@click="toggleSidebar"
 			>
 				<RightArrowIcon
 					class="w-2.5 h-2.5 -translate-x-[1px] transition-transform duration-300"
@@ -3270,6 +4136,7 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 		ref="modpackAlreadyInstalledModal"
 		@create-anyway="handleModpackDuplicateCreateAnyway"
 		@go-to-instance="handleModpackDuplicateGoToInstance"
+		@cancel="handleModpackDuplicateCancel"
 	/>
 	<AddServerToInstanceModal
 		ref="addServerToInstanceModal"
@@ -3277,6 +4144,7 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 	/>
 	<ContentUpdaterModal
 		ref="incompatibilityWarningModal"
+		:key="incompatWarningKey"
 		mode="incompatibility-warning"
 		:versions="contentInstallIncompatibilityWarningVersions"
 		:current-game-version="contentInstallIncompatibilityWarningCurrentGameVersion"
@@ -3318,7 +4186,7 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 
 	<!-- Processing overlay -->
 	<div
-		v-if="(isProcessing || scanningInstances) && !isDragging && !onSkinsPage"
+		v-if="(isProcessing || scanningInstances) && !isDragging && !onSkinsPage && !batchActive"
 		class="fixed inset-0 z-[9999] bg-black/20 flex items-center justify-center"
 	>
 		<div class="flex flex-col items-center gap-3">
@@ -3332,18 +4200,19 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 	<!-- Drop type confirmation modal -->
 	<ConfirmDropTypeModal
 		ref="confirmDropModal"
+		:key="batchGroupKey"
 		:classification="dropClassification"
 		:file-name="dropFileName"
-		@confirm="handleDropConfirm"
-		@cancel="handleDropCancel"
-		@help="handleDropHelp"
+		@confirm="handleConfirmDropConfirm"
+		@cancel="handleConfirmDropCancel"
+		@help="handleConfirmDropHelp"
 	/>
 
 	<!-- Generic content install modal (instance selection when not in an instance page) -->
 	<GenericContentInstallModal
 		ref="genericInstallModal"
 		@install="handleGenericInstall"
-		@cancel="dropClassification = null"
+		@cancel="handleGenericInstallCancel"
 		@navigate-create="handleGenericInstallNavigateCreate"
 	/>
 
@@ -3351,7 +4220,8 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 	<InstanceExportModal
 		ref="dataPackWorldModal"
 		:show-save-as="false"
-		@select="handleDatapackWorldSelect"
+		@select="handleBatchOrDatapackWorldSelect"
+		@after-hide="handleBatchWorldAfterHide"
 	/>
 
 	<!-- Launcher import instance selection modal -->
@@ -3366,6 +4236,15 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 		ref="symlinkCardsModal"
 		@confirm="onSymlinkMethodConfirmed"
 		@cancel="onSymlinkMethodCancelled"
+	/>
+
+	<!-- Batch drag-and-drop import UI -->
+	<BatchScanOverlay
+		v-if="batchPhase === 'scanning'"
+		:items="batchItems"
+		:done="batchScanDone"
+		:total="batchOriginalCount"
+		@cancel="cancelBatchScan"
 	/>
 
 	<OnboardingOverlay
@@ -3489,7 +4368,9 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 			border: none;
 			box-shadow: none;
 		}
+	}
 
+	&.has-custom-background {
 		.loading-indicator-container {
 			border-top-left-radius: 0;
 		}
@@ -3529,14 +4410,25 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 }
 
 .app-contents.has-transparent-background {
-	// Sourced from the opaque snapshot: `--color-bg` is itself translucent in
-	// this mode, so mixing it again would compound. Sits slightly below the
-	// chosen alpha because pages paint their own surface on top of it.
 	background-color: color-mix(
 		in srgb,
-		var(--surface-1-opaque) calc(var(--window-alpha) * 0.82),
+		var(--surface-3-opaque) var(--window-alpha-chrome),
 		transparent
 	);
+
+	&::before {
+		position: absolute;
+		inset: 0;
+		z-index: -10;
+		border: none;
+		box-shadow: none;
+		border-top-left-radius: var(--radius-xl);
+		background-color: color-mix(
+			in srgb,
+			var(--surface-1-opaque) calc(var(--window-alpha) * 0.82),
+			transparent
+		);
+	}
 }
 
 .loading-indicator-container {
@@ -3651,6 +4543,7 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 	overflow: auto;
 	overflow-x: hidden;
 	scrollbar-gutter: stable;
+	padding-bottom: var(--floating-action-bar-clearance, 0px);
 }
 
 .app-contents::before {

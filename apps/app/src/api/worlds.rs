@@ -1,9 +1,9 @@
 use crate::api::Result;
+use crate::api::instance::InstanceRunResult;
 use either::Either;
 use enumset::EnumSet;
 use tauri::{AppHandle, Manager, Runtime};
-use theseus::instance::{self, QuickPlayType, get_full_path};
-use theseus::prelude::ProcessMetadata;
+use theseus::instance::{self, GcLaunchIntent, QuickPlayType, get_full_path};
 use theseus::server_address::ServerAddress;
 use theseus::worlds;
 use theseus::worlds::{
@@ -259,16 +259,18 @@ pub async fn start_join_singleplayer_world(
     world: String,
     offline_mode: bool,
     extra_launch_args: Option<Vec<String>>,
-) -> Result<ProcessMetadata> {
-    let process = instance::run_with_extra_launch_args(
+    gc_intent: Option<GcLaunchIntent>,
+) -> Result<InstanceRunResult> {
+    let (process, gc_notice) = instance::run_with_extra_launch_args_with_gc(
         instance_id,
         QuickPlayType::Singleplayer(world),
         offline_mode,
         extra_launch_args,
+        gc_intent,
     )
     .await?;
 
-    Ok(process)
+    Ok(InstanceRunResult { process, gc_notice })
 }
 
 #[tauri::command]
@@ -277,14 +279,16 @@ pub async fn start_join_server(
     address: &str,
     offline_mode: bool,
     extra_launch_args: Option<Vec<String>>,
-) -> Result<ProcessMetadata> {
-    let process = instance::run_with_extra_launch_args(
+    gc_intent: Option<GcLaunchIntent>,
+) -> Result<InstanceRunResult> {
+    let (process, gc_notice) = instance::run_with_extra_launch_args_with_gc(
         instance_id,
         QuickPlayType::Server(ServerAddress::Unresolved(address.to_owned())),
         offline_mode,
         extra_launch_args,
+        gc_intent,
     )
     .await?;
 
-    Ok(process)
+    Ok(InstanceRunResult { process, gc_notice })
 }

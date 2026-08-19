@@ -413,7 +413,7 @@ async fn read_singleplayer_world_maybe_locked(
         .to_string();
     let last_played = data.get::<_, i64>("LastPlayed").unwrap_or(0);
     let game_type = data.get::<_, i32>("GameType").unwrap_or(0);
-    let hardcore = data.get::<_, i8>("hardcore").unwrap_or(0) != 0;
+    let hardcore = read_hardcore(data);
 
     let icon = if tokio::fs::try_exists(world_path.join("icon.png"))
         .await
@@ -448,6 +448,14 @@ async fn read_singleplayer_world_maybe_locked(
             locked,
         },
     })
+}
+
+fn read_hardcore(data: &NbtCompound) -> bool {
+    data.get::<_, &NbtCompound>("difficulty_settings")
+        .and_then(|settings| settings.get::<_, i8>("hardcore"))
+        .or_else(|_| data.get::<_, i8>("hardcore"))
+        .unwrap_or(0)
+        != 0
 }
 
 /// Reads the `DataPacks` tag from a world's `level.dat` to determine which
@@ -1159,4 +1167,28 @@ async fn _get_server_status_new(
         enforces_secure_chat: false,
         ping: Some(latency),
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::read_hardcore;
+    use quartz_nbt::{NbtCompound, NbtTag};
+
+    #[test]
+    fn reads_hardcore_from_legacy_and_26_1_layouts() {
+        let mut legacy = NbtCompound::new();
+        legacy.insert("hardcore", NbtTag::Byte(1));
+        assert!(read_hardcore(&legacy));
+
+        let mut difficulty_settings = NbtCompound::new();
+        difficulty_settings.insert("hardcore", NbtTag::Byte(1));
+        let mut modern = NbtCompound::new();
+        modern.insert(
+            "difficulty_settings",
+            NbtTag::Compound(difficulty_settings),
+        );
+        assert!(read_hardcore(&modern));
+
+        assert!(!read_hardcore(&NbtCompound::new()));
+    }
 }

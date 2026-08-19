@@ -28,6 +28,27 @@ const PERMANENT_CACHE_SECONDS: i64 = 100 * 365 * 24 * 60 * 60;
 /// How long before an entry should be asynchronously refreshed in the background, in seconds.
 const BACKGROUND_REFRESH_THRESHOLD: i64 = 30 * 60; // 30 minutes
 
+fn encode_json_query_value<T: Serialize>(
+    value: &T,
+) -> serde_json::Result<String> {
+    serde_json::to_string(value).map(|json| {
+        url::form_urlencoded::byte_serialize(json.as_bytes()).collect()
+    })
+}
+
+#[cfg(test)]
+mod query_encoding_tests {
+    use super::encode_json_query_value;
+
+    #[test]
+    fn preserves_plus_signs_in_batched_query_values() {
+        assert_eq!(
+            encode_json_query_value(&["foo+bar"]).unwrap(),
+            "%5B%22foo%2Bbar%22%5D"
+        );
+    }
+}
+
 #[derive(Serialize, Deserialize, Copy, Clone, Debug, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum CacheValueType {
@@ -2179,7 +2200,7 @@ impl CachedEntry {
                 .collect::<Vec<_>>()
                 .chunks(MAX_REQUEST_SIZE)
                 .map(|chunk| {
-                    serde_json::to_string(&chunk)
+                    encode_json_query_value(&chunk)
                         .map(|keys| format!("{api_url}{url}{keys}"))
                 })
                 .collect::<Result<Vec<_>, _>>()?;

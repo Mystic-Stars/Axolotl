@@ -52,7 +52,7 @@
 		</Teleport>
 		<div class="flex flex-col gap-4 p-6">
 			<div
-				v-if="projectInstallContext"
+				v-if="projectInstallContext && projectInstallContext.showInstallHeader !== false"
 				class="sticky top-0 z-20 -mx-6 -mt-6 rounded-tl-[--radius-xl] border-0 border-b border-solid bg-surface-1 p-3 border-surface-5"
 			>
 				<BrowseInstallHeader :install-context="projectInstallContext" />
@@ -200,7 +200,11 @@
 									v-if="installButtonLoading && !installButtonInstalled"
 									class="animate-spin"
 								/>
-								<DownloadIcon v-else-if="!installButtonInstalled && !serverProjectSelected" />
+								<DownloadIcon
+									v-else-if="
+										!installButtonInstalled && !serverProjectSelected && !cartProjectSelected
+									"
+								/>
 								<CheckIcon v-else />
 								{{ installButtonLabel }}
 							</button>
@@ -304,6 +308,15 @@
 			v-if="projectInstallContext"
 			:install-context="projectInstallContext"
 		/>
+		<BrowseInstanceSelector
+			ref="browseInstanceSelector"
+			:instances="contentSelection.instances.value"
+			:selected-instance="contentSelection.targetInstance.value"
+			:selected-count="contentSelection.selectedCount.value"
+			:install-current="contentSelection.installSelected"
+			:clear-current="contentSelection.clear"
+			@select="contentSelection.setTarget"
+		/>
 		<ContextMenu ref="options" @option-clicked="handleOptionsClick">
 			<template #install>
 				<DownloadIcon /> {{ formatMessage(commonMessages.installButton) }}
@@ -361,6 +374,7 @@ import {
 	commonProjectSettingsMessages,
 	CreationFlowModal,
 	defineMessages,
+	getLatestMatchingInstallVersion,
 	getTargetInstallPreferences,
 	injectNotificationManager,
 	NavTabs,
@@ -385,6 +399,7 @@ import { computed, onUnmounted, ref, shallowRef, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import { SwapIcon } from '@/assets/icons/index.js'
+import BrowseInstanceSelector from '@/components/browse/BrowseInstanceSelector.vue'
 import ContextMenu from '@/components/ui/ContextMenu.vue'
 import InstanceIndicator from '@/components/ui/InstanceIndicator.vue'
 import {
@@ -422,6 +437,7 @@ import {
 import { getServerAddress } from '@/helpers/worlds'
 import i18n from '@/i18n.config'
 import { injectContentInstall } from '@/providers/content-install'
+import { injectContentSelection, makeContentSelectionKey } from '@/providers/content-selection'
 import { injectServerInstall } from '@/providers/server-install'
 import { createServerInstallContent } from '@/providers/setup/server-install-content'
 import { useBreadcrumbs } from '@/store/breadcrumbs'
@@ -431,6 +447,7 @@ dayjs.extend(relativeTime)
 
 const { addNotification, handleError } = injectNotificationManager()
 const { install: installVersion } = injectContentInstall()
+const contentSelection = injectContentSelection()
 const route = useRoute()
 const router = useRouter()
 const queryClient = useQueryClient()
@@ -454,6 +471,10 @@ const messages = defineMessages({
 	switchVersion: {
 		id: 'app.project.install-button.switch-version',
 		defaultMessage: 'Switch version',
+	},
+	noCompatibleVersion: {
+		id: 'app.project.install-button.no-compatible-version',
+		defaultMessage: 'No compatible version was found for this instance.',
 	},
 	openInMcmod: {
 		id: 'app.project.open-in-mcmod',
@@ -500,6 +521,7 @@ const messages = defineMessages({
 const { installingServerProjects, playServerProject, showAddServerToInstanceModal } =
 	injectServerInstall()
 const installing = ref(false)
+const browseInstanceSelector = ref()
 const data = shallowRef(null)
 const mcmodUrl = ref(null)
 const versions = shallowRef([])
@@ -596,6 +618,27 @@ const projectBrowseBackUrl = computed(() => {
 	const type = data.value?.project_type ? `${data.value.project_type}` : 'mod'
 	return buildBrowseHref(`/browse/${type}`)
 })
+const fromBrowse = computed(
+	() => typeof route.query.b === 'string' && route.query.b.startsWith('/browse/'),
+)
+const cartEligible = computed(
+	() =>
+		fromBrowse.value &&
+		!!data.value &&
+		['mod', 'resourcepack', 'datapack', 'shader'].includes(data.value.project_type),
+)
+const cartTarget = computed(() => contentSelection.targetInstance.value)
+const cartProjectKey = computed(() =>
+	data.value ? makeContentSelectionKey('modrinth', data.value.id) : '',
+)
+const cartProjectSelected = computed(
+	() => !!cartProjectKey.value && contentSelection.isSelected(cartProjectKey.value),
+)
+
+async function syncContentSelectionTarget() {
+	if (!fromBrowse.value) return
+	await contentSelection.refreshInstances(instance.value?.id ?? null)
+}
 
 const projectInstallContext = computed(() => {
 	const serverData = serverInstallContent.serverContextServerData.value
@@ -622,6 +665,28 @@ const projectInstallContext = computed(() => {
 		}
 	}
 
+	if (cartEligible.value && cartTarget.value) {
+		const target = cartTarget.value
+		const displayIcon = getDisplayInstanceIcon(target.icon_path, target.loader)
+		return {
+			showInstallHeader: !!instance.value,
+			name: target.name,
+			loader: target.loader,
+			gameVersion: target.game_version,
+			iconSrc: displayIcon.url,
+			iconFrameless: displayIcon.frameless,
+			backUrl: projectBrowseBackUrl.value,
+			backLabel: formatMessage(messages.backToBrowse),
+			heading: formatMessage(messages.installContentToInstance),
+			selectedProjects: contentSelection.selectedProjects.value,
+			isInstallingSelected: ['validating', 'reviewing', 'queueing'].includes(
+				contentSelection.state.value,
+			),
+			installProgress: contentSelection.progress.value,
+			clearSelected: contentSelection.clear,
+			installSelected: contentSelection.installSelected,
+		}
+	}
 	if (instance.value) {
 		const displayIcon = getDisplayInstanceIcon(instance.value.icon_path, instance.value.loader)
 		return {
@@ -654,7 +719,10 @@ const serverProjectInstalled = computed(
 			serverInstallContent.serverContextServerData.value?.upstream?.project_id === data.value.id),
 )
 const installButtonLoading = computed(
-	() => installing.value || serverInstallContent.isInstallingQueuedServerInstalls.value,
+	() =>
+		installing.value ||
+		serverInstallContent.isInstallingQueuedServerInstalls.value ||
+		(cartProjectKey.value ? contentSelection.isInstalling(cartProjectKey.value) : false),
 )
 const installButtonValidating = computed(
 	() =>
@@ -674,6 +742,7 @@ const installButtonLabel = computed(() => {
 	if (installButtonValidating.value) return formatMessage(commonMessages.validatingLabel)
 	if (installButtonLoading.value) return formatMessage(commonMessages.installingLabel)
 	if (serverProjectSelected.value) return formatMessage(commonMessages.selectedLabel)
+	if (cartProjectSelected.value) return formatMessage(commonMessages.selectedLabel)
 	return formatMessage(commonMessages.installButton)
 })
 const installButtonTooltip = computed(() => {
@@ -939,6 +1008,7 @@ function fetchDeferredServerData(project) {
 }
 
 await fetchProjectData()
+await syncContentSelectionTarget()
 
 let unlistenProcesses
 process_listener((e) => {
@@ -962,6 +1032,7 @@ watch(
 	async () => {
 		if (route.params.id && route.path.startsWith('/project')) {
 			await fetchProjectData()
+			await syncContentSelectionTarget()
 		}
 	},
 )
@@ -1010,6 +1081,44 @@ async function install(version) {
 			})
 		} catch (err) {
 			handleError(err)
+		} finally {
+			installing.value = false
+		}
+		return
+	}
+	if (cartEligible.value && !cartTarget.value) {
+		await contentSelection.refreshInstances()
+		browseInstanceSelector.value?.show()
+		return
+	}
+	if (cartEligible.value && data.value && cartTarget.value) {
+		if (cartProjectSelected.value) {
+			contentSelection.remove(cartProjectKey.value)
+			return
+		}
+		installing.value = true
+		try {
+			const preferences = getTargetInstallPreferences(
+				{ gameVersion: cartTarget.value.game_version, loader: cartTarget.value.loader },
+				data.value.project_type,
+			)
+			const selectedVersion =
+				version ?? getLatestMatchingInstallVersion(versions.value, preferences)?.id
+			if (!selectedVersion) throw new Error(formatMessage(messages.noCompatibleVersion))
+			await contentSelection.add({
+				key: cartProjectKey.value,
+				provider: 'modrinth',
+				projectId: data.value.id,
+				providerProjectId: data.value.id,
+				versionId: selectedVersion,
+				contentType: data.value.project_type,
+				title: data.value.title,
+				iconUrl: data.value.icon_url,
+				slug: data.value.slug,
+				preferences,
+			})
+		} catch (error) {
+			handleError(error)
 		} finally {
 			installing.value = false
 		}

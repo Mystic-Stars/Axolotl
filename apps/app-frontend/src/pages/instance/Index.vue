@@ -334,10 +334,8 @@
 </template>
 <script setup lang="ts">
 import type { Labrinth } from '@modrinth/api-client'
-import { BoxIcon, getLoaderIcon } from '@modrinth/assets'
-import {
-	BoxesIcon,
-	CheckCircleIcon,
+import { 	BoxesIcon,
+BoxIcon, 	CheckCircleIcon,
 	ClipboardCopyIcon,
 	DownloadIcon,
 	DropdownIcon,
@@ -345,6 +343,7 @@ import {
 	ExternalIcon,
 	EyeIcon,
 	FolderOpenIcon,
+getLoaderIcon,
 	GlobeIcon,
 	HashIcon,
 	ImageIcon,
@@ -359,8 +358,7 @@ import {
 	TerminalSquareIcon,
 	UpdatedIcon,
 	UserPlusIcon,
-	XIcon,
-} from '@modrinth/assets'
+	XIcon } from '@modrinth/assets'
 import {
 	Avatar,
 	ButtonStyled,
@@ -402,7 +400,14 @@ import { trackEvent } from '@/helpers/analytics'
 import { get_project_v3 } from '@/helpers/cache.js'
 import { instance_listener, process_listener } from '@/helpers/events'
 import { install_existing_instance, install_pack_to_existing_instance } from '@/helpers/install'
-import { allow_symlink_target, get, get_full_path, kill, run } from '@/helpers/instance'
+import {
+	allow_symlink_target,
+	gcReportFellBack,
+	get,
+	get_full_path,
+	kill,
+	run,
+} from '@/helpers/instance'
 import { get_by_instance_id } from '@/helpers/process'
 import type { GameInstance } from '@/helpers/types'
 import { createInstanceShortcut, showInstanceInFolder } from '@/helpers/utils.js'
@@ -458,6 +463,10 @@ const messages = defineMessages({
 	offlineInstalledOnly: {
 		id: 'app.instance.offline-installed-only',
 		defaultMessage: 'Offline mode can only launch fully downloaded instances.',
+	},
+	gcFallbackNotice: {
+		id: 'app.gc-notice.fallback',
+		defaultMessage: 'Java did not accept {preferred}; using {chosen}.',
 	},
 })
 
@@ -702,7 +711,17 @@ const startInstance = async (context: string) => {
 		launchElapsedSeconds.value += 1
 	}, 1000)
 	try {
-		await run(props.id)
+		const result = await run(props.id)
+		const gcNotice = result.gc_notice
+		if (gcNotice && gcReportFellBack(gcNotice)) {
+			addNotification({
+				type: 'warning',
+				title: formatMessage(messages.gcFallbackNotice, {
+					preferred: gcNotice.preferred_strategy || 'auto',
+					chosen: gcNotice.chosen_strategy || 'JVM default GC',
+				}),
+			})
+		}
 		playing.value = true
 	} catch (err) {
 		const handled = await handleMinecraftLaunchError(err, {

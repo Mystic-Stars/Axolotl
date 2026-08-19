@@ -93,12 +93,18 @@ pub struct Version {
     pub id: String,
     pub project_id: String,
     pub date_published: DateTime<Utc>,
+    #[serde(default = "default_version_type")]
+    pub version_type: String,
     #[serde(default)]
     pub dependencies: Vec<Dependency>,
     #[serde(default)]
     pub game_versions: Vec<String>,
     #[serde(default)]
     pub loaders: Vec<String>,
+}
+
+fn default_version_type() -> String {
+    "release".to_string()
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]

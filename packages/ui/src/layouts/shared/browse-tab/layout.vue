@@ -98,7 +98,13 @@ const selectedDisplayMode = computed(() =>
 </script>
 
 <template>
-	<template v-if="ctx.installContext?.value && ctx.variant !== 'web'">
+	<template
+		v-if="
+			ctx.installContext?.value &&
+			ctx.installContext.value.showInstallHeader !== false &&
+			ctx.variant !== 'web'
+		"
+	>
 		<div
 			ref="stickyInstallHeaderRef"
 			class="sticky top-0 z-20 -mx-6 -mt-6 rounded-tl-[--radius-xl] border-0 border-b border-solid bg-surface-1 p-3 border-surface-5"

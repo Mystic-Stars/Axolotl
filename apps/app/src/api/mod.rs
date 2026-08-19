@@ -19,6 +19,7 @@ pub mod schematic_preview;
 pub mod seed_map;
 pub mod settings;
 pub mod shortcuts;
+pub mod storage;
 pub mod tags;
 pub mod telemetry;
 pub mod terracotta;

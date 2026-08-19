@@ -42,6 +42,7 @@ use winreg::{RegKey, enums::HKEY_CURRENT_USER};
 mod args;
 
 pub mod download;
+pub mod jvm_args;
 pub mod language;
 pub mod optifine;
 pub mod quick_play_version;
@@ -1280,6 +1281,8 @@ pub async fn launch_minecraft(
     credentials: &Credentials,
     post_exit_hook: Option<String>,
     context: &InstanceLaunchContext,
+    gc_intent: Option<crate::launcher::jvm_args::GcLaunchIntent>,
+    gc_report: &mut Option<crate::launcher::jvm_args::GcLaunchReport>,
     mut quick_play_type: QuickPlayType,
     offline_mode: bool,
 ) -> crate::Result<ProcessMetadata> {
@@ -1448,6 +1451,29 @@ pub async fn launch_minecraft(
     let java_version =
         crate::api::jre::check_jre(java_version.path.clone().into()).await?;
 
+    // Runtime-verify and fall back for GC arguments against the *actual* JVM
+    // that will run Minecraft. The frontend supplies an ordered candidate
+    // chain; we keep the preferred strategy only if this JVM understands it,
+    // pruning unsupported tuning flags and falling back down the chain as
+    // needed. A `None` keeps the args passed in untouched.
+    let mut resolved_java_args = java_args.to_vec();
+    if let Some(gc_intent) = gc_intent {
+        tracing::info!(
+            java = %java_version.path,
+            "Verifying GC arguments against the selected JVM",
+        );
+        let report = crate::launcher::jvm_args::resolve_gc_block(
+            Path::new(java_version.path.as_str()),
+            &mut resolved_java_args,
+            &gc_intent,
+        )
+        .await;
+        if report.fell_back() {
+            tracing::info!(?report, "GC arguments adjusted for this JVM");
+        }
+        *gc_report = Some(report);
+    }
+
     let settings = crate::state::Settings::get(&state.pool).await?;
 
     #[cfg(target_os = "windows")]
@@ -1611,7 +1637,7 @@ pub async fn launch_minecraft(
             &main_class_path,
             &version_jar,
             *memory,
-            Vec::from(java_args),
+            resolved_java_args.clone(),
             &java_version.architecture,
             &quick_play_type,
             quick_play_version,

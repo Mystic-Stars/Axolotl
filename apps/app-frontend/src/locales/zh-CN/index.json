@@ -525,7 +525,7 @@
 		"message": "跳过"
 	},
 	"app.content-install.preview.version-mismatch": {
-		"message": "当前版本可能不匹配实例版本"
+		"message": "下载的版本可能与当前版本不兼容。"
 	},
 	"app.content.add-from-file": {
 		"message": "从文件添加"
@@ -978,7 +978,7 @@
 		"message": "无法登录 Minecraft"
 	},
 	"app.error.minecraft-required": {
-		"message": "要游玩此实例，请创建账户。如果没有 Minecraft 账号，可以在右侧使用离线账户登陆。"
+		"message": "要游玩此实例，请在下方使用 Microsoft 账号登录。如果没有 Minecraft 账号，可以在 Minecraft 官网购买游戏。"
 	},
 	"app.error.minecraft-sign-in-title": {
 		"message": "登录 Minecraft"
@@ -1182,7 +1182,7 @@
 		"message": "显示/隐藏未选项"
 	},
 	"app.instance.icon-picker.description": {
-		"message": "选择一个内置 Minecraft 图标，或上传自己的图片。"
+		"message": "组合背景和 Minecraft 元素，或上传自己的图片。"
 	},
 	"app.instance.icon-picker.icon.bread": {
 		"message": "面包"
@@ -1260,7 +1260,7 @@
 		"message": "无法加载内置图标。"
 	},
 	"app.instance.icon-picker.title": {
-		"message": "选择实例图标"
+		"message": "创建实例图标"
 	},
 	"app.instance.icon-picker.upload": {
 		"message": "上传图片"
@@ -1674,19 +1674,19 @@
 		"message": "自动GC"
 	},
 	"app.java-arguments.presets.gc.g1gc-mojang.description": {
-		"message": "官方 Minecraft 启动器使用的 G1GC 调优"
+		"message": "接近官方的 G1GC 调优"
 	},
 	"app.java-arguments.presets.gc.g1gc-mojang.title": {
 		"message": "Mojang G1GC"
 	},
 	"app.java-arguments.presets.gc.g1gc-pcl.description": {
-		"message": "PCL 启动器优化的 G1GC 调优"
+		"message": "PCL 启动器使用的 Shenandoah（adaptive）调优"
 	},
 	"app.java-arguments.presets.gc.g1gc-pcl.title": {
-		"message": "PCL G1GC"
+		"message": "PCL"
 	},
 	"app.java-arguments.presets.gc.shenandoah.description": {
-		"message": "面向中大型整合包的低停顿 GC（Java 12+）"
+		"message": "自适应低停顿 Shenandoah，启用大页内存（如支持）"
 	},
 	"app.java-arguments.presets.gc.shenandoah.title": {
 		"message": "Shenandoah"
@@ -2823,7 +2823,7 @@
 		"message": "默认实例选项"
 	},
 	"app.settings.tabs.java-installations": {
-		"message": "Java 管理"
+		"message": "Java 与内存管理"
 	},
 	"app.settings.tabs.language": {
 		"message": "语言"
@@ -4311,7 +4311,7 @@
 		"message": "版本不匹配"
 	},
 	"app.drop.mod-compatibility-warning": {
-		"message": "此模组目标版本为 {modVersion}（{modLoader}），但实例的版本是 {instVersion}（{instLoader}）。"
+		"message": "{file} 的目标版本为 {modVersion}（{modLoader}），但实例的版本是 {instVersion}（{instLoader}）。"
 	},
 	"app.drop.unknown-force-analysis-title": {
 		"message": "无法识别文件类型"
@@ -7061,18 +7061,6 @@
 	"app.curseforge.manual-downloads.state-changed": {
 		"message": "下载状态已被更改，正在等待同步。"
 	},
-	"app.settings.resources.download-engine.xmcl": {
-		"message": "XMCL"
-	},
-	"app.settings.resources.download-engine.legacy": {
-		"message": "原生引擎"
-	},
-	"app.settings.resources.download-engine-description": {
-		"message": "选择启动器使用的下载引擎。"
-	},
-	"app.settings.resources.download-engine": {
-		"message": "下载引擎"
-	},
 	"app.instances.selected-count": {
 		"message": "已选择 {count} 个"
 	},
@@ -7100,74 +7088,8 @@
 	"app.instances.batch-edit-groups.apply": {
 		"message": "应用"
 	},
-	"app.instance.mods.toggle-dependencies.will-enable": {
-		"message": "以下内容将同时启用："
-	},
-	"app.instance.mods.toggle-dependencies.will-disable": {
-		"message": "以下内容将同时禁用："
-	},
-	"app.instance.mods.toggle-dependencies.warning": {
-		"message": "是否自动应用这些相关更改？忽略它们可能导致游戏无法正常运行。"
-	},
-	"app.instance.mods.toggle-dependencies.title": {
-		"message": "确认切换"
-	},
-	"app.instance.mods.toggle-dependencies.single-body": {
-		"message": "切换 {project} 将同时影响 {count} 个其他内容。"
-	},
-	"app.instance.mods.toggle-dependencies.selected-only": {
-		"message": "仅切换所选"
-	},
-	"app.instance.mods.toggle-dependencies.bulk-body": {
-		"message": "切换所选内容将同时影响 {count} 个其他内容。"
-	},
-	"app.instance.mods.toggle-dependencies.apply": {
-		"message": "切换相关内容"
-	},
-	"app.instance.mods.orphaned-dependencies.title": {
-		"message": "前置已不再被需要"
-	},
-	"app.instance.mods.orphaned-dependencies.body": {
-		"message": "以下前置已不再被其他内容需要，且不会被自动删除：{list}"
-	},
-	"app.content-install.preview.skipped-header": {
-		"message": "跳过"
-	},
 	"app.content-install.preview.unavailable-curseforge-project": {
 		"message": "CurseForge 项目不可用"
-	},
-	"app.content-install.preview.skip.unsupported-project-type": {
-		"message": "不支持的项目类型"
-	},
-	"app.content-install.preview.skip.tool": {
-		"message": "开发工具，不安装"
-	},
-	"app.content-install.preview.skip.quilt-fabric-api": {
-		"message": "已替换为 Quilt 版本"
-	},
-	"app.content-install.preview.skip.optional": {
-		"message": "可选前置"
-	},
-	"app.content-install.preview.skip.no-compatible-version": {
-		"message": "找不到兼容版本"
-	},
-	"app.content-install.preview.skip.missing-version": {
-		"message": "找不到引用的版本"
-	},
-	"app.content-install.preview.skip.incompatible": {
-		"message": "不兼容的前置"
-	},
-	"app.content-install.preview.skip.excluded-by-user": {
-		"message": "已由用户取消"
-	},
-	"app.content-install.preview.skip.embedded": {
-		"message": "已内置于项目中"
-	},
-	"app.content-install.preview.skip.duplicate-project": {
-		"message": "已包含"
-	},
-	"app.content-install.preview.skip.conflicting-dependency": {
-		"message": "前置版本冲突"
 	},
 	"app.content-install.preview.skip.dependency-cycle": {
 		"message": "检测到前置循环依赖"
@@ -7175,62 +7097,14 @@
 	"app.content-install.preview.skip.dependency-depth-exceeded": {
 		"message": "已达到前置解析深度上限"
 	},
-	"app.content-install.preview.skip.already-installed": {
-		"message": "已安装"
-	},
 	"app.content-install.preview.skip.modrinth-lookup-failed": {
 		"message": "无法验证 Modrinth 兜底版本"
 	},
 	"app.content-install.preview.sha1-verified-modrinth-fallback": {
 		"message": "已通过 SHA-1 验证的 Modrinth 兜底版本"
 	},
-	"app.content-install.preview.select-all": {
-		"message": "全选"
-	},
-	"app.content-install.preview.required-by": {
-		"message": "被 {projects} 需要"
-	},
-	"app.content-install.preview.only-checked": {
-		"message": "只会安装勾选的前置。"
-	},
-	"app.content-install.preview.install": {
-		"message": "安装"
-	},
 	"app.content-install.preview.install-resolved": {
 		"message": "安装已解析内容"
-	},
-	"app.content-install.preview.header": {
-		"message": "确认安装"
-	},
-	"app.content-install.preview.description": {
-		"message": "将在 {instance} 中为 {project} 自动安装 {count, plural, other {# 个前置}}。"
-	},
-	"app.content-install.preview.dependencies-header": {
-		"message": "前置"
-	},
-	"app.content-install.preview.dependencies-count": {
-		"message": "{count, number} 个前置"
-	},
-	"app.content-install.preview.clear-all": {
-		"message": "全部取消"
-	},
-	"app.content-install.preview.cancel": {
-		"message": "取消"
-	},
-	"app.content-install.preview.already-installed": {
-		"message": "已安装"
-	},
-	"app.content-install.dependencies-skipped.notification-title": {
-		"message": "部分前置已跳过"
-	},
-	"app.content-install.dependencies-skipped.notification-body": {
-		"message": "以下前置未安装：{list}"
-	},
-	"app.content-install.dependencies-installed.notification-title": {
-		"message": "已安装前置"
-	},
-	"app.content-install.dependencies-installed.notification-body": {
-		"message": "已自动安装 {count, plural, other {# 个前置}}：{list}"
 	},
 	"app.browse.display-mode.switch": {
 		"message": "切换视图"
@@ -7247,12 +7121,6 @@
 	"app.browse.add": {
 		"message": "添加"
 	},
-	"app.appearance-settings.auto-install-dependencies.title": {
-		"message": "自动安装前置"
-	},
-	"app.appearance-settings.auto-install-dependencies.description": {
-		"message": "安装内容时自动下载所需前置。每次安装前仍可在确认对话框中调整选择。"
-	},
 	"app.settings.resources.source.tianpao": {
 		"message": "优先 Tianpao"
 	},
@@ -7265,7 +7133,436 @@
 	"app.downloads.source.tianpao": {
 		"message": "Tianpao 镜像"
 	},
-	"app.content-install.preview.version-mismatch": {
-		"message": "下载的版本可能与当前版本不兼容。"
+	"app.browse.choose-instance": {
+		"message": "选择实例"
+	},
+	"app.browse.install-selected": {
+		"message": "安装 {count} 个内容"
+	},
+	"app.browse.preparing-selected": {
+		"message": "正在准备 {completed}/{total}"
+	},
+	"app.browse.selected": {
+		"message": "已选择"
+	},
+	"app.browse.no-compatible-version": {
+		"message": "未找到与所选实例兼容的版本。"
+	},
+	"app.browse.instance-selector.title": {
+		"message": "选择一个实例"
+	},
+	"app.browse.instance-selector.search": {
+		"message": "搜索实例"
+	},
+	"app.browse.instance-selector.no-instances": {
+		"message": "请先创建实例再安装内容"
+	},
+	"app.browse.instance-selector.no-results": {
+		"message": "没有匹配的实例"
+	},
+	"app.browse.instance-selector.select": {
+		"message": "选择 {name}"
+	},
+	"app.browse.instance-selector.create": {
+		"message": "创建实例"
+	},
+	"app.browse.instance-selector.switch-title": {
+		"message": "更改安装目标？"
+	},
+	"app.browse.instance-selector.switch-description": {
+		"message": "{count, plural, other {已为当前目标解析 # 个选定项目。切换后会丢弃已解析的版本。}}"
+	},
+	"app.browse.instance-selector.current-target": {
+		"message": "当前目标"
+	},
+	"app.browse.instance-selector.new-target": {
+		"message": "新目标"
+	},
+	"app.browse.instance-selector.install-current": {
+		"message": "安装到当前实例"
+	},
+	"app.browse.instance-selector.installing-current": {
+		"message": "正在准备安装…"
+	},
+	"app.browse.instance-selector.clear-and-switch": {
+		"message": "清空并切换"
+	},
+	"app.browse.instance-selector.cancel": {
+		"message": "取消"
+	},
+	"app.content-install.preview.batch-description": {
+		"message": "请确认将在 {instance} 中安装 {projectCount, plural, other {# 个内容}} 和 {dependencyCount, plural, other {# 个前置}}。"
+	},
+	"app.content-install.preview.selected-content-header": {
+		"message": "已选内容"
+	},
+	"app.content-install.preview.remove-project": {
+		"message": "从本次安装中移除 {project}"
+	},
+	"app.content-install.preview.conflict-header": {
+		"message": "可能重复的内容"
+	},
+	"app.content-install.preview.conflict-description": {
+		"message": "{candidate} 可能与已安装或已选择的内容相同，仍要继续吗？"
+	},
+	"app.content-install.preview.continue-anyway": {
+		"message": "仍然安装"
+	},
+	"app.content-install.preview.existing-content": {
+		"message": "已有内容"
+	},
+	"app.content-selection.preview-failed": {
+		"message": "部分所选内容无法准备安装。请移除后重试。"
+	},
+	"app.settings.storage.total": {
+		"message": "总大小"
+	},
+	"app.settings.storage.total-description": {
+		"message": "总大小包含符号链接与 Junction 引用的大小"
+	},
+	"app.settings.storage.instance-data": {
+		"message": "实例数据"
+	},
+	"app.settings.storage.cache-data": {
+		"message": "缓存数据"
+	},
+	"app.settings.storage.meta-data": {
+		"message": "Meta 数据"
+	},
+	"app.settings.storage.database": {
+		"message": "数据库"
+	},
+	"app.settings.storage.other": {
+		"message": "其他"
+	},
+	"app.settings.storage.instance": {
+		"message": "实例"
+	},
+	"app.settings.storage.mods": {
+		"message": "模组"
+	},
+	"app.settings.storage.replay": {
+		"message": "回放"
+	},
+	"app.settings.storage.resourcepacks": {
+		"message": "资源包"
+	},
+	"app.settings.storage.saves": {
+		"message": "存档"
+	},
+	"app.settings.storage.world": {
+		"message": "世界"
+	},
+	"app.settings.storage.schematics": {
+		"message": "投影"
+	},
+	"app.settings.storage.screenshots": {
+		"message": "截图"
+	},
+	"app.settings.storage.shaderpacks": {
+		"message": "光影包"
+	},
+	"app.settings.storage.minimap": {
+		"message": "小地图"
+	},
+	"app.settings.storage.distant-horizons": {
+		"message": "虚拟视距缓存"
+	},
+	"app.settings.storage.db-file": {
+		"message": "数据库文件"
+	},
+	"app.settings.storage.db-backup": {
+		"message": "数据库备份"
+	},
+	"app.settings.storage.item-count": {
+		"message": "{count} 个"
+	},
+	"app.settings.storage.instance-count": {
+		"message": "{count} 个实例"
+	},
+	"app.settings.storage.actual-size-tooltip": {
+		"message": "实际大小：{size}"
+	},
+	"app.settings.storage.symlink-size-tooltip": {
+		"message": "符号链接或 Junction 引用的大小：{size}"
+	},
+	"app.settings.storage.open-action": {
+		"message": "在启动器中打开或打开位置"
+	},
+	"app.settings.storage.expand-action": {
+		"message": "展开"
+	},
+	"app.settings.storage.collapse-action": {
+		"message": "收起"
+	},
+	"app.settings.storage.symlink-label": {
+		"message": "软链接"
+	},
+	"app.settings.storage.symlink-help": {
+		"message": "什么是软链接？"
+	},
+	"app.settings.storage.symlink-help-tooltip": {
+		"message": "软链接指本启动器从其它位置引用的MC资源，这些文件可能实际位于其它启动器的目录\n例如“20MB + 1.2GB”指本启动器目录中有20MB文件，引用外部1.2GB文件"
+	},
+	"app.content-selection.queue-failed": {
+		"message": "部分内容未能加入安装队列，仍保留在已选列表中。"
+	},
+	"app.content-selection.dependency-conflict": {
+		"message": "{dependency} 在当前选择中解析出了冲突版本。"
+	},
+	"app.content-selection.unknown-dependency": {
+		"message": "前置 {id}"
+	},
+	"app.settings.storage.last-updated-label": {
+		"message": "上次更新："
+	},
+	"app.settings.storage.update": {
+		"message": "更新"
+	},
+	"app.settings.storage.updating": {
+		"message": "更新中…"
+	},
+	"app.settings.storage.scanning": {
+		"message": "正在扫描存储…"
+	},
+	"app.content-selection.unknown-reason": {
+		"message": "无法解析"
+	},
+	"app.content-selection.target-changed": {
+		"message": "所选内容属于另一个实例。请切换回该实例或先清空选择。"
+	},
+	"app.content-selection.duplicate-content": {
+		"message": "{project} 已从另一个来源安装或选中。"
+	},
+	"app.content-selection.conflict-unavailable": {
+		"message": "无法确认该内容是否与另一个来源重复。"
+	},
+	"app.project.install-button.no-compatible-version": {
+		"message": "当前实例没有兼容版本。"
+	},
+	"browse.selected-projects-floating-bar.show-projects": {
+		"message": "显示 {count, plural, other {# 个已选内容}}"
+	},
+	"browse.selected-projects-floating-bar.hide-projects": {
+		"message": "隐藏已选内容"
+	},
+	"app.settings.tabs.storage": {
+		"message": "存储"
+	},
+	"app.instance.icon-picker.use-icon": {
+		"message": "使用此图标"
+	},
+	"app.instance.icon-picker.surprise-me": {
+		"message": "随机生成"
+	},
+	"app.instance.icon-picker.saving": {
+		"message": "保存中……"
+	},
+	"app.instance.icon-picker.modrinth-3d.zombie": {
+		"message": "僵尸"
+	},
+	"app.instance.icon-picker.modrinth-3d.wrench-rinth": {
+		"message": "Modrinth 扳手"
+	},
+	"app.instance.icon-picker.modrinth-3d.wrench": {
+		"message": "扳手"
+	},
+	"app.instance.icon-picker.modrinth-3d.tnt": {
+		"message": "TNT"
+	},
+	"app.instance.icon-picker.modrinth-3d.tire": {
+		"message": "轮胎"
+	},
+	"app.instance.icon-picker.modrinth-3d.tiny-potato": {
+		"message": "小土豆"
+	},
+	"app.instance.icon-picker.modrinth-3d.terminal": {
+		"message": "终端"
+	},
+	"app.instance.icon-picker.modrinth-3d.sword": {
+		"message": "剑"
+	},
+	"app.instance.icon-picker.modrinth-3d.sticky-piston": {
+		"message": "黏性活塞"
+	},
+	"app.instance.icon-picker.modrinth-3d.space-helmet": {
+		"message": "太空头盔"
+	},
+	"app.instance.icon-picker.modrinth-3d.slime-block": {
+		"message": "黏液块"
+	},
+	"app.instance.icon-picker.modrinth-3d.skillet": {
+		"message": "煎锅"
+	},
+	"app.instance.icon-picker.modrinth-3d.skeleton": {
+		"message": "骷髅"
+	},
+	"app.instance.icon-picker.modrinth-3d.sculk-sensor": {
+		"message": "幽匿感测体"
+	},
+	"app.instance.icon-picker.modrinth-3d.redstone-block": {
+		"message": "红石块"
+	},
+	"app.instance.icon-picker.modrinth-3d.poke-ball": {
+		"message": "精灵球"
+	},
+	"app.instance.icon-picker.modrinth-3d.pickaxe": {
+		"message": "镐"
+	},
+	"app.instance.icon-picker.modrinth-3d.pancakes": {
+		"message": "煎饼"
+	},
+	"app.instance.icon-picker.modrinth-3d.oxygen-distributor": {
+		"message": "氧气分配器"
+	},
+	"app.instance.icon-picker.modrinth-3d.orb": {
+		"message": "起源之球"
+	},
+	"app.instance.icon-picker.modrinth-3d.mr-pack": {
+		"message": "Mr-Pack"
+	},
+	"app.instance.icon-picker.modrinth-3d.moobloom": {
+		"message": "哞花"
+	},
+	"app.instance.icon-picker.modrinth-3d.lantern": {
+		"message": "灯笼"
+	},
+	"app.instance.icon-picker.modrinth-3d.grass-block": {
+		"message": "草方块"
+	},
+	"app.instance.icon-picker.modrinth-3d.globe": {
+		"message": "地球仪"
+	},
+	"app.instance.icon-picker.modrinth-3d.gizmo": {
+		"message": "小装置"
+	},
+	"app.instance.icon-picker.modrinth-3d.furnace": {
+		"message": "熔炉"
+	},
+	"app.instance.icon-picker.modrinth-3d.engine": {
+		"message": "引擎"
+	},
+	"app.instance.icon-picker.modrinth-3d.ender-dragon": {
+		"message": "末影龙"
+	},
+	"app.instance.icon-picker.modrinth-3d.ender-chest": {
+		"message": "末影箱"
+	},
+	"app.instance.icon-picker.modrinth-3d.enchanting-table": {
+		"message": "附魔台"
+	},
+	"app.instance.icon-picker.modrinth-3d.creeper": {
+		"message": "苦力怕"
+	},
+	"app.instance.icon-picker.modrinth-3d.crafting-table": {
+		"message": "工作台"
+	},
+	"app.instance.icon-picker.modrinth-3d.couch": {
+		"message": "沙发"
+	},
+	"app.instance.icon-picker.modrinth-3d.cooking-pot": {
+		"message": "烹饪锅"
+	},
+	"app.instance.icon-picker.modrinth-3d.command-block": {
+		"message": "命令方块"
+	},
+	"app.instance.icon-picker.modrinth-3d.cogwheel": {
+		"message": "齿轮"
+	},
+	"app.instance.icon-picker.modrinth-3d.chest": {
+		"message": "箱子"
+	},
+	"app.instance.icon-picker.modrinth-3d.campfire": {
+		"message": "营火"
+	},
+	"app.instance.icon-picker.modrinth-3d.cake": {
+		"message": "蛋糕"
+	},
+	"app.instance.icon-picker.modrinth-3d.brown-bear": {
+		"message": "棕熊"
+	},
+	"app.instance.icon-picker.modrinth-3d.bookshelf": {
+		"message": "书架"
+	},
+	"app.instance.icon-picker.modrinth-3d.blue-shark": {
+		"message": "蓝鲨"
+	},
+	"app.instance.icon-picker.modrinth-3d.beacon": {
+		"message": "信标"
+	},
+	"app.instance.icon-picker.modrinth-3d.backpack": {
+		"message": "背包"
+	},
+	"app.instance.icon-picker.group.original": {
+		"message": "原版图标"
+	},
+	"app.instance.icon-picker.group.modrinth-3d": {
+		"message": "Modrinth 3D 图标"
+	},
+	"app.instance.icon-picker.background.transparent": {
+		"message": "透明"
+	},
+	"app.instance.icon-picker.background.sunset": {
+		"message": "日落"
+	},
+	"app.instance.icon-picker.background.stone": {
+		"message": "石头"
+	},
+	"app.instance.icon-picker.background.slime": {
+		"message": "史莱姆"
+	},
+	"app.instance.icon-picker.background.ocean": {
+		"message": "海洋"
+	},
+	"app.instance.icon-picker.background.nether": {
+		"message": "下界"
+	},
+	"app.instance.icon-picker.background.midnight": {
+		"message": "午夜"
+	},
+	"app.instance.icon-picker.background.grass": {
+		"message": "草地"
+	},
+	"app.instance.icon-picker.background.deep-dark": {
+		"message": "深暗之域"
+	},
+	"app.instance.icon-picker.background.cherry": {
+		"message": "樱花"
+	},
+	"app.instance.icon-picker.background.amethyst": {
+		"message": "紫水晶"
+	},
+	"app.instance.icon-picker.background": {
+		"message": "背景"
+	},
+	"app.export-modal.export-complete-description": {
+		"message": "{name} 已成功导出。"
+	},
+	"app.export-modal.export-complete": {
+		"message": "导出完成"
+	},
+	"app.drop.batch.target-label": {
+		"message": "为该批次选择目标实例"
+	},
+	"app.drop.batch.nothing-importable-title": {
+		"message": "没有可导入的内容"
+	},
+	"app.drop.batch.nothing-importable-text": {
+		"message": "{count, plural, one {# 个文件} other {# 个文件}}无法识别。"
+	},
+	"app.drop.batch.import-cancelled-title": {
+		"message": "导入已取消"
+	},
+	"app.drop.batch.import-cancelled-text": {
+		"message": "未导入任何内容。"
+	},
+	"app.drop.batch.group-file-label": {
+		"message": "{count, plural, one {# 个文件} other {# 个文件}}：{names}"
+	},
+	"app.drop.batch.completed-title": {
+		"message": "导入完成"
+	},
+	"app.drop.batch.completed-text": {
+		"message": "已导入 {succeeded} / {total}（{failed} 失败，{skipped} 跳过）。"
 	}
 }

@@ -1,24 +1,9 @@
 <script setup lang="ts">
-import {
-	Checkbox,
-	defineMessages,
-	injectNotificationManager,
-	Slider,
-	StyledInput,
-	Toggle,
-	useVIntl,
-} from '@modrinth/ui'
+import { defineMessages, StyledInput, Toggle, useVIntl } from '@modrinth/ui'
 import { ref, watch } from 'vue'
 
-import JavaArgumentsInput from '@/components/ui/JavaArgumentsInput.vue'
-import MemoryAllocationDisplay from '@/components/ui/MemoryAllocationDisplay.vue'
-import useMemorySlider from '@/composables/useMemorySlider'
-import { collectGcContext } from '@/helpers/gc/context'
-import type { GcContext } from '@/helpers/gc/types'
-import { getJavaArgumentPresets } from '@/helpers/java-argument-presets'
 import { get, set } from '@/helpers/settings.ts'
 
-const { handleError } = injectNotificationManager()
 const { formatMessage } = useVIntl()
 
 const messages = defineMessages({
@@ -44,27 +29,6 @@ const messages = defineMessages({
 	heightPlaceholder: {
 		id: 'app.settings.defaults.height-placeholder',
 		defaultMessage: 'Enter height...',
-	},
-	memory: { id: 'app.settings.defaults.memory', defaultMessage: 'Memory allocated' },
-	memoryDescription: {
-		id: 'app.settings.defaults.memory-description',
-		defaultMessage: 'The memory allocated to each instance when it is run.',
-	},
-	automaticMemory: {
-		id: 'app.settings.defaults.automatic-memory',
-		defaultMessage: 'Automatically allocate memory at launch',
-	},
-	automaticMemoryDescription: {
-		id: 'app.settings.defaults.automatic-memory-description',
-		defaultMessage: 'Adjusts memory for each launch based on available RAM and installed mods.',
-	},
-	javaArguments: {
-		id: 'app.settings.defaults.java-arguments',
-		defaultMessage: 'Java arguments',
-	},
-	javaArgumentsPlaceholder: {
-		id: 'app.settings.defaults.java-arguments-placeholder',
-		defaultMessage: 'Enter Java arguments...',
 	},
 	environmentVariables: {
 		id: 'app.settings.defaults.environment-variables',
@@ -107,49 +71,21 @@ const messages = defineMessages({
 })
 
 const fetchSettings = await get()
-fetchSettings.launchArgs = fetchSettings.extra_launch_args.join(' ')
-fetchSettings.envVars = fetchSettings.custom_env_vars.map((x) => x.join('=')).join(' ')
-
-const settings = ref(fetchSettings)
-let shouldApplyDefaultAuto = fetchSettings.extra_launch_args.length === 0
-
-const { maxMemory, snapPoints } = (await useMemorySlider().catch(handleError)) as unknown as {
-	maxMemory: number
-	snapPoints: number[]
-}
-
-const gcContext = ref<GcContext | null>(null)
-
-async function updateGcContext() {
-	gcContext.value = await collectGcContext(settings.value.memory.maximum, null, null, 0)
-	if (shouldApplyDefaultAuto) {
-		const autoPreset = getJavaArgumentPresets(gcContext.value ?? undefined).find(
-			(preset) => preset.id === 'gc-auto',
-		)
-		if (autoPreset) {
-			settings.value.launchArgs = autoPreset.resolveArgs
-				? autoPreset.resolveArgs(gcContext.value ?? undefined)
-				: autoPreset.args
-		}
-		shouldApplyDefaultAuto = false
-	}
-}
-
-await updateGcContext()
-
-watch(() => settings.value.memory.maximum, updateGcContext)
+const settings = ref({
+	...fetchSettings,
+	envVars: fetchSettings.custom_env_vars.map((x) => x.join('=')).join(' '),
+})
 
 watch(
 	settings,
 	async () => {
 		const setSettings = JSON.parse(JSON.stringify(settings.value))
 
-		setSettings.extra_launch_args = setSettings.launchArgs.trim().split(/\s+/).filter(Boolean)
 		setSettings.custom_env_vars = setSettings.envVars
 			.trim()
 			.split(/\s+/)
 			.filter(Boolean)
-			.map((x) => x.split('=').filter(Boolean))
+			.map((x: string) => x.split('=').filter(Boolean))
 
 		if (!setSettings.hooks.pre_launch) {
 			setSettings.hooks.pre_launch = null
@@ -227,49 +163,6 @@ watch(
 		<hr class="my-6 bg-button-border border-none h-[1px]" />
 
 		<div class="flex flex-col gap-6">
-			<div class="flex flex-col gap-2.5">
-				<h2 class="m-0 text-lg font-semibold text-contrast">
-					{{ formatMessage(messages.memory) }}
-				</h2>
-				<Checkbox
-					v-model="settings.memory.automatic"
-					:label="formatMessage(messages.automaticMemory)"
-				/>
-				<Slider
-					id="max-memory"
-					v-model="settings.memory.maximum"
-					:disabled="settings.memory.automatic"
-					:min="512"
-					:max="maxMemory"
-					:step="64"
-					:snap-points="snapPoints"
-					:snap-range="512"
-					unit="MB"
-				/>
-				<p class="m-0 mt-1 leading-tight">
-					{{
-						formatMessage(
-							settings.memory.automatic
-								? messages.automaticMemoryDescription
-								: messages.memoryDescription,
-						)
-					}}
-				</p>
-				<MemoryAllocationDisplay :memory="settings.memory" show-optimize-button />
-			</div>
-
-			<div class="flex flex-col gap-2.5">
-				<h2 class="m-0 text-lg font-semibold text-contrast">
-					{{ formatMessage(messages.javaArguments) }}
-				</h2>
-				<JavaArgumentsInput
-					id="java-args"
-					v-model="settings.launchArgs"
-					:gc-context="gcContext"
-					:placeholder="formatMessage(messages.javaArgumentsPlaceholder)"
-				/>
-			</div>
-
 			<div class="flex flex-col gap-2.5">
 				<h2 class="m-0 text-lg font-semibold text-contrast">
 					{{ formatMessage(messages.environmentVariables) }}

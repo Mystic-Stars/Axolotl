@@ -122,6 +122,103 @@ pub struct WikiIdLookup {
     pub curseforge: HashMap<String, u32>,
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ContentIdentityCounterpart {
+    pub provider: String,
+    pub project_id: String,
+    pub slug: String,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ContentIdentityRecord {
+    pub key: String,
+    pub counterparts: Vec<ContentIdentityCounterpart>,
+}
+
+#[derive(Debug, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ContentIdentityLookup {
+    pub modrinth: HashMap<String, Vec<ContentIdentityRecord>>,
+    pub curseforge: HashMap<String, Vec<ContentIdentityRecord>>,
+}
+
+/// Resolves curated cross-platform identities for project slugs.
+///
+/// Only entries that contain both a CurseForge and a Modrinth slug are
+/// returned. A slug may have more than one candidate identity; callers must
+/// treat that result as ambiguous instead of hard-blocking an installation.
+pub fn lookup_content_identities(
+    modrinth_slugs: &[String],
+    curseforge_slugs: &[String],
+) -> ContentIdentityLookup {
+    let requested_modrinth = modrinth_slugs
+        .iter()
+        .map(|slug| (slug.to_lowercase(), slug.clone()))
+        .collect::<HashMap<_, _>>();
+    let requested_curseforge = curseforge_slugs
+        .iter()
+        .map(|slug| (slug.to_lowercase(), slug.clone()))
+        .collect::<HashMap<_, _>>();
+    let mut modrinth = HashMap::<String, Vec<ContentIdentityRecord>>::new();
+    let mut curseforge = HashMap::<String, Vec<ContentIdentityRecord>>::new();
+
+    for entry in WIKI_ENTRIES.iter() {
+        let (Some(curseforge_slug), Some(modrinth_slug)) = (
+            entry.curseforge_slug.as_deref(),
+            entry.modrinth_slug.as_deref(),
+        ) else {
+            continue;
+        };
+        let key = format!("mapping:{}", entry.wiki_id);
+        let counterparts = vec![
+            ContentIdentityCounterpart {
+                provider: "curseforge".to_string(),
+                project_id: curseforge_slug.to_string(),
+                slug: curseforge_slug.to_string(),
+            },
+            ContentIdentityCounterpart {
+                provider: "modrinth".to_string(),
+                project_id: modrinth_slug.to_string(),
+                slug: modrinth_slug.to_string(),
+            },
+        ];
+        let record = ContentIdentityRecord {
+            key: key.clone(),
+            counterparts,
+        };
+        if let Some(original) =
+            requested_modrinth.get(&modrinth_slug.to_lowercase())
+        {
+            push_identity_record(&mut modrinth, original, &record);
+        }
+        if let Some(original) =
+            requested_curseforge.get(&curseforge_slug.to_lowercase())
+        {
+            push_identity_record(&mut curseforge, original, &record);
+        }
+    }
+
+    ContentIdentityLookup {
+        modrinth,
+        curseforge,
+    }
+}
+
+fn push_identity_record(
+    index: &mut HashMap<String, Vec<ContentIdentityRecord>>,
+    slug: &str,
+    record: &ContentIdentityRecord,
+) {
+    let records = index.entry(slug.to_string()).or_default();
+    if records.iter().any(|candidate| candidate.key == record.key) {
+        return;
+    }
+    records.push(record.clone());
+    records.sort_by(|left, right| left.key.cmp(&right.key));
+}
+
 /// Batch-resolves MC 百科 (mcmod.cn) class IDs for known platform slugs,
 /// keyed by each input slug exactly as it was passed in.
 pub fn lookup_content_wiki_ids(
@@ -909,6 +1006,38 @@ mod tests {
         assert_eq!(lookup.modrinth.get("industrial-craft"), Some(&2));
         assert!(!lookup.modrinth.contains_key("totally-unknown-project"));
         assert_eq!(lookup.curseforge.get("Industrial-Craft"), Some(&2));
+    }
+
+    #[test]
+    fn looks_up_cross_platform_content_identities() {
+        let lookup = lookup_content_identities(
+            &["ae2".to_string(), "unknown".to_string()],
+            &["applied-energistics-2".to_string()],
+        );
+        let modrinth = lookup.modrinth.get("ae2").expect("Modrinth identity");
+        let curseforge = lookup
+            .curseforge
+            .get("applied-energistics-2")
+            .expect("CurseForge identity");
+        assert_eq!(modrinth.len(), 1);
+        assert_eq!(modrinth[0].key, curseforge[0].key);
+        assert!(
+            modrinth[0]
+                .counterparts
+                .iter()
+                .any(|counterpart| counterpart.provider == "curseforge")
+        );
+        assert!(!lookup.modrinth.contains_key("unknown"));
+    }
+
+    #[test]
+    fn cross_platform_identity_lookup_requires_both_slugs() {
+        let lookup = lookup_content_identities(
+            &["only-mr".to_string()],
+            &["not-present".to_string()],
+        );
+        assert!(lookup.modrinth.is_empty());
+        assert!(lookup.curseforge.is_empty());
     }
 
     #[test]

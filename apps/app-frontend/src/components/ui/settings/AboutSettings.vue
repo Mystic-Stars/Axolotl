@@ -14,9 +14,9 @@ import {
 } from '@modrinth/assets'
 import {
 	Avatar,
-	ButtonStyled,
 	defineMessages,
 	injectNotificationManager,
+	NewButton as Button,
 	useVIntl,
 } from '@modrinth/ui'
 import { getVersion } from '@tauri-apps/api/app'
@@ -418,11 +418,9 @@ function triggerTestNotificationError() {
 		</details>
 
 		<div class="flex flex-wrap gap-2">
-			<ButtonStyled>
-				<button @click="replayOnboarding?.('main')">
-					{{ formatMessage(messages.replayOnboarding) }}
-				</button>
-			</ButtonStyled>
+			<Button type="base" @click="replayOnboarding?.('main')">
+				{{ formatMessage(messages.replayOnboarding) }}
+			</Button>
 		</div>
 
 		<section v-if="isDevEnvironment">
@@ -431,26 +429,18 @@ function triggerTestNotificationError() {
 				{{ formatMessage(messages.developerTools) }}
 			</h3>
 			<div class="flex flex-wrap gap-2">
-				<ButtonStyled>
-					<button @click="triggerTestError">
-						<WrenchIcon /> {{ formatMessage(messages.testError) }}
-					</button>
-				</ButtonStyled>
-				<ButtonStyled>
-					<button @click="triggerTestNotificationError">
-						<WrenchIcon /> {{ formatMessage(messages.testNotificationError) }}
-					</button>
-				</ButtonStyled>
-				<ButtonStyled>
-					<button @click="previewMinecraftCrashModal?.()">
-						<WrenchIcon /> {{ formatMessage(messages.previewMinecraftCrashModal) }}
-					</button>
-				</ButtonStyled>
-				<ButtonStyled>
-					<button @click="previewPrivacyConsentModal?.()">
-						<WrenchIcon /> {{ formatMessage(messages.previewPrivacyConsentModal) }}
-					</button>
-				</ButtonStyled>
+				<Button type="base" @click="triggerTestError">
+					<WrenchIcon /> {{ formatMessage(messages.testError) }}
+				</Button>
+				<Button type="base" @click="triggerTestNotificationError">
+					<WrenchIcon /> {{ formatMessage(messages.testNotificationError) }}
+				</Button>
+				<Button type="base" @click="previewMinecraftCrashModal?.()">
+					<WrenchIcon /> {{ formatMessage(messages.previewMinecraftCrashModal) }}
+				</Button>
+				<Button type="base" @click="previewPrivacyConsentModal?.()">
+					<WrenchIcon /> {{ formatMessage(messages.previewPrivacyConsentModal) }}
+				</Button>
 			</div>
 		</section>
 	</div>

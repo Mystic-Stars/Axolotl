@@ -4211,6 +4211,30 @@
 	"drop.generic_install.no_instances": {
 		"message": "未找到实例"
 	},
+	"app.drop.batch.scan.title": {
+		"message": "正在识别 {count, plural, one {# 个文件} other {# 个文件}}…"
+	},
+	"app.drop.batch.scan.subtitle": {
+		"message": "已识别 {done} / {total}"
+	},
+	"app.drop.batch.scan.cancel": {
+		"message": "取消"
+	},
+	"app.drop.batch.scan.pending": {
+		"message": "等待"
+	},
+	"app.drop.batch.scan.scanning": {
+		"message": "扫描中"
+	},
+	"app.drop.batch.scan.done": {
+		"message": "已识别"
+	},
+	"app.drop.batch.scan.skipped": {
+		"message": "已跳过"
+	},
+	"app.drop.batch.scan.error": {
+		"message": "失败"
+	},
 	"drop.launcher_import.title": {
 		"message": "从 {launcherName} 导入实例"
 	},

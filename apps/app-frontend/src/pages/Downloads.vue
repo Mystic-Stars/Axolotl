@@ -238,6 +238,16 @@
 						:waiting="job.status === 'queued' || !hasDeterminateProgress(job)"
 						show-progress
 					/>
+					<div v-if="job.parallel" class="mt-2">
+						<ProgressBar
+							full-width
+							:progress="parallelPercent(job)"
+							:max="100"
+							:label="parallelProgressText(job)"
+							:waiting="job.status === 'queued' || !hasDeterminateParallelProgress(job)"
+							show-progress
+						/>
+					</div>
 				</div>
 
 				<div v-if="job.status === 'waiting_for_user'" class="px-4 pb-4">
@@ -410,6 +420,7 @@ import {
 } from '@/helpers/install'
 import {
 	effectiveInstallProgress,
+	effectiveParallelProgress,
 	hasDeterminateInstallProgress,
 	installProgressTextSource,
 } from '@/helpers/install-progress'
@@ -807,6 +818,24 @@ function jobPercent(job: InstallJobSnapshot) {
 
 function hasDeterminateProgress(job: InstallJobSnapshot) {
 	return hasDeterminateInstallProgress(effectiveInstallProgress(job))
+}
+
+function parallelPercent(job: InstallJobSnapshot) {
+	const progress = effectiveParallelProgress(job)
+	if (!hasDeterminateInstallProgress(progress)) return 0
+	return Math.min(100, Math.max(0, (progress.current / progress.total) * 100))
+}
+
+function hasDeterminateParallelProgress(job: InstallJobSnapshot) {
+	return hasDeterminateInstallProgress(effectiveParallelProgress(job))
+}
+
+function parallelProgressText(job: InstallJobSnapshot) {
+	const progress = effectiveParallelProgress(job)
+	if (!hasDeterminateInstallProgress(progress)) {
+		return job.parallel ? phaseLabel(job.parallel.phase) : ''
+	}
+	return `${phaseLabel(job.parallel!.phase)}: ${formatBytes(progress.current)} / ${formatBytes(progress.total)}`
 }
 
 function progressText(job: InstallJobSnapshot) {

@@ -458,6 +458,7 @@ fn main() {
         .plugin(api::mod_translation::init())
         .plugin(api::process::init())
         .plugin(api::settings::init())
+        .plugin(api::storage::init())
         .plugin(api::seed_map::init())
         .plugin(api::schematic_preview::init())
         .plugin(api::shortcuts::init())

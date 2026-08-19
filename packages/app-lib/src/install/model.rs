@@ -112,6 +112,7 @@ impl InstallJobState {
                 phase,
                 progress: None,
                 details: InstallPhaseDetails::Empty,
+                parallel: None,
             },
             paths: InstallJobPaths::default(),
             context: None,
@@ -1474,6 +1475,21 @@ pub struct InstallProgressState {
     pub phase: InstallPhaseId,
     pub progress: Option<InstallProgress>,
     pub details: InstallPhaseDetails,
+    /// A concurrently running secondary track (e.g. the Minecraft core
+    /// download while modpack content is being installed). The frontend
+    /// renders it as a separate progress bar alongside the main phase.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub parallel: Option<InstallParallelProgress>,
+}
+
+/// Progress of a parallel install track that runs while the main phase
+/// advances. Self-contained so the UI can render an independent bar.
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct InstallParallelProgress {
+    pub phase: InstallPhaseId,
+    pub current: u64,
+    pub total: u64,
+    pub details: InstallPhaseDetails,
 }
 
 #[derive(Serialize, Deserialize, Clone, Copy, Debug, Eq, PartialEq)]
@@ -1766,6 +1782,7 @@ pub struct InstallJobSnapshot {
     pub phase: InstallPhaseId,
     pub progress: Option<InstallProgress>,
     pub details: InstallPhaseDetails,
+    pub parallel: Option<InstallParallelProgress>,
     pub display: Option<InstallJobDisplay>,
     pub error: Option<InstallErrorView>,
     pub rollback_error: Option<InstallErrorView>,

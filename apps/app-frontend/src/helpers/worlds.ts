@@ -4,7 +4,7 @@ import { invoke } from '@tauri-apps/api/core'
 import dayjs from 'dayjs'
 
 import { isOfflineMode } from '@/composables/useNetworkStatus'
-import { get_full_path, resolveAutoGcLaunchArgs } from '@/helpers/instance'
+import { get_full_path, resolveGcLaunchIntent } from '@/helpers/instance'
 import { openPath } from '@/helpers/utils'
 
 type BaseWorld = {
@@ -247,22 +247,24 @@ export async function start_join_singleplayer_world(
 	instanceId: string,
 	world: string,
 ): Promise<unknown> {
-	const extraLaunchArgs = await resolveAutoGcLaunchArgs(instanceId)
+	const { args, gcIntent } = await resolveGcLaunchIntent(instanceId)
 	return await invoke('plugin:worlds|start_join_singleplayer_world', {
 		instanceId,
 		world,
 		offlineMode: isOfflineMode(),
-		extraLaunchArgs,
+		extraLaunchArgs: args,
+		gcIntent,
 	})
 }
 
 export async function start_join_server(instanceId: string, address: string): Promise<unknown> {
-	const extraLaunchArgs = await resolveAutoGcLaunchArgs(instanceId)
+	const { args, gcIntent } = await resolveGcLaunchIntent(instanceId)
 	return await invoke('plugin:worlds|start_join_server', {
 		instanceId,
 		address,
 		offlineMode: isOfflineMode(),
-		extraLaunchArgs,
+		extraLaunchArgs: args,
+		gcIntent,
 	})
 }
 
@@ -499,11 +501,12 @@ export async function refreshServerData(
 	}
 }
 
-export function refreshServers(
+export async function refreshServers(
 	worlds: World[],
 	serverData: Record<string, ServerData>,
 	protocolVersion: ProtocolVersion | null,
-) {
+	ping = true,
+): Promise<void> {
 	const servers = worlds.filter(isServerWorld)
 	servers.forEach((server) => {
 		if (!serverData[server.address]) {
@@ -515,9 +518,12 @@ export function refreshServers(
 		}
 	})
 
-	// noinspection ES6MissingAwait - handled by refreshServerData
-	Object.keys(serverData).forEach((address) =>
-		refreshServerData(serverData[address], protocolVersion, address),
+	if (!ping) return
+
+	await Promise.all(
+		Object.keys(serverData).map((address) =>
+			refreshServerData(serverData[address], protocolVersion, address),
+		),
 	)
 }
 
