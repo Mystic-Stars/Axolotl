@@ -34,6 +34,7 @@ function createWaterMaterial(): THREE.ShaderMaterial {
 		uniforms: {
 			time: { value: 0 },
 			seed: { value: Math.random() + 10 },
+			color: { value: new THREE.Color(0.3, 0.3, 1.0) },
 		},
 		transparent: true,
 		vertexShader: `#define WATER_VERT
@@ -45,6 +46,7 @@ void main() {
 		fragmentShader: `#define WATER_FRAG
 uniform float time;
 uniform float seed;
+uniform vec3 color;
 varying vec2 vUv;
 
 vec2 randomGradient(vec2 p) {
@@ -88,14 +90,12 @@ void main() {
 
     float thickness = 0.01;
     if(vUv.y < height - thickness) {
-        gl_FragColor = vec4(0.3, 0.3, 1.0, 0.8);
+        gl_FragColor = vec4(color, 0.8);
     } else if(vUv.y > height + thickness) {
         gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);
     } else {
-        gl_FragColor = vec4(0.3, 0.3, 1.0, 1.0);
+        gl_FragColor = vec4(color, 1.0);
     }
-        // gl_FragColor = vec
-    //gl_FragColor = vec4(height, 0.0, 0.0, 1.0);
 }`,
 	})
 }
@@ -149,6 +149,11 @@ function main() {
 	scene.add(createWater(waterMaterial, 0, -6.5, 4))
 	scene.add(createWater(waterMaterial, -1, -8, -4))
 
+	const accentColor =
+		getComputedStyle(document.documentElement).getPropertyValue('--color-brand').trim() || '#4444ff'
+
+	waterMaterial.uniforms.color.value = new THREE.Color(accentColor).multiplyScalar(0.8)
+
 	async function load() {
 		const axlGLTF = await loadGLTF('/models/axolotl.gltf')
 
@@ -169,7 +174,7 @@ function main() {
 		axlLabel.rotateY(-Math.PI / 2)
 		axlLabel.position.set(0, 5.2, 0)
 
-		scene.add(axlLabel)
+		// scene.add(axlLabel)
 
 		const originAxlModelPosition = axlModel.position.clone()
 		return function (deltaTime: number, elapsedTime: number) {
@@ -213,7 +218,9 @@ function main() {
 		camera.position.copy(newPosition)
 	}
 
+	var isUpdating = true
 	function updateSize() {
+		if (!isUpdating) return
 		if (!canvas) return
 		const rect = canvas.getBoundingClientRect()
 		const w = rect.width
@@ -230,10 +237,12 @@ function main() {
 
 	addEventListener('mousemove', onMouseMove)
 	onScopeDispose(() => {
+		isUpdating = false
 		removeEventListener('mousemove', onMouseMove)
 		resizeObserver.disconnect()
 		deltaClock.stop()
 		elapseClock.stop()
+		renderer.dispose()
 	})
 }
 // main();

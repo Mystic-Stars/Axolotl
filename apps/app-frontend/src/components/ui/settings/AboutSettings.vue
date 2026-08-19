@@ -216,7 +216,7 @@ function triggerTestNotificationError() {
 	<div class="flex flex-col gap-6">
 		<section class="rounded-xl bg-surface-4">
 			<div
-				class="m-0 w-full overflow-hidden h-300"
+				class="m-0 w-full overflow-hidden h-200"
 				style="
 					mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
 					-webkit-mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
