@@ -2,8 +2,6 @@ name: Axolotl release
 
 on:
   push:
-    branches:
-      - 'feat/nix-cachix'
     tags:
       - 'v*'
 
@@ -16,7 +14,6 @@ concurrency:
 
 jobs:
   preflight:
-    if: startsWith(github.ref, 'refs/tags/v')
     name: Release preflight
     runs-on: ubuntu-24.04
     env:
@@ -79,7 +76,6 @@ jobs:
           gh release create "${GITHUB_REF_NAME}" "${release_args[@]}"
 
   build:
-    if: startsWith(github.ref, 'refs/tags/v')
     name: Build (${{ matrix.name }})
     needs: preflight
     strategy:
@@ -279,7 +275,6 @@ jobs:
         run: nix build ".#packages.${{ matrix.system }}.axolotl-launcher" --print-build-logs
 
   verify-and-publish:
-    if: startsWith(github.ref, 'refs/tags/v')
     name: Verify and publish
     needs: [build, nix-build]
     runs-on: ubuntu-24.04
