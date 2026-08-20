@@ -1,5 +1,9 @@
 {
   description = "Axolotl Launcher";
+  nixConfig = {
+    extra-substituters = [ "https://axolotl-launcher.cachix.org" ];
+    extra-trusted-public-keys = [ "axolotl-launcher.cachix.org-1:IaUmtBg0bBZuCrmtO7WnxfYsLDYJCg+epTtGxHeSeYg=" ];
+  };
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";

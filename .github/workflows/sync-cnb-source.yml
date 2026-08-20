@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - '**'
+      - '!feat/nix-cachix'
     tags:
       - '**'
   delete:

@@ -82,6 +82,8 @@ sudo apt install axolotl-launcher
 nix run github:Mystic-Stars/Axolotl
 ```
 
+该 flake 已声明 `https://axolotl-launcher.cachix.org` 及其公开验证密钥；首次运行若 Nix 要求确认 flake configuration，请核对后接受，即可使用预构建缓存，无需配置 Cachix 写入 token。
+
 作为 NixOS flake 输入安装：
 
 ```nix
