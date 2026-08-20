@@ -76,7 +76,7 @@ let
           'vue-tsc --noEmit && vite build'
     '';
 
-    cargoHash = "sha256-+qF2afe13Flk2uYFTto6ebn25gKB/aHQcEJJkX/WpC8=";
+    cargoHash = "sha256-Uba0m3TpiX1/tHGHNWu7Jsnm3HSVqo7QC9LfrLHMTNc=";
 
     mitmCache = gradle.fetchDeps {
       pkg = finalAttrs.finalPackage;
