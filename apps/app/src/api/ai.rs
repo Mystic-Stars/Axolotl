@@ -1,7 +1,8 @@
 use crate::api::Result;
 use theseus::ai::{
-    self, AiModelUpdate, AiProviderConfigUpdate, AiProviderDefinition,
-    AiProviderModel, AiSettings, AiState, OAuthDeviceCode, OAuthPollStatus,
+    self, AiBulkModelUpdate, AiModelUpdate, AiProviderConfigUpdate,
+    AiProviderDefinition, AiProviderModel, AiSettings, AiState,
+    OAuthDeviceCode, OAuthPollStatus,
 };
 
 pub fn init<R: tauri::Runtime>() -> tauri::plugin::TauriPlugin<R> {
@@ -15,6 +16,7 @@ pub fn init<R: tauri::Runtime>() -> tauri::plugin::TauriPlugin<R> {
             ai_set_credential,
             ai_update_model,
             ai_remove_model,
+            ai_update_models_bulk,
             ai_fetch_models,
             ai_test_provider,
             ai_begin_oauth,
@@ -72,6 +74,11 @@ pub async fn ai_remove_model(
     model_id: String,
 ) -> Result<()> {
     Ok(ai::remove_model(provider_id, model_id).await?)
+}
+
+#[tauri::command]
+pub async fn ai_update_models_bulk(update: AiBulkModelUpdate) -> Result<()> {
+    Ok(ai::update_models_bulk(update).await?)
 }
 
 #[tauri::command]

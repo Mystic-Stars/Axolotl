@@ -6824,6 +6824,9 @@
 	"app.ai-settings.models": {
 		"message": "文本模型"
 	},
+	"app.ai-settings.models-selected": {
+		"message": "已选 {count} 个"
+	},
 	"app.ai-settings.no-matching-models": {
 		"message": "没有符合搜索条件的模型。"
 	},
@@ -6832,6 +6835,36 @@
 	},
 	"app.ai-settings.no-providers": {
 		"message": "未找到供应商。"
+	},
+	"app.ai-settings.delete-selected-models": {
+		"message": "删除所选"
+	},
+	"app.ai-settings.delete-selected-title": {
+		"message": "删除所选 {count} 个模型？"
+	},
+	"app.ai-settings.delete-selected-description": {
+		"message": "所选模型将从该供应商中移除。自定义与发现的模型会在再次添加前消失。"
+	},
+	"app.ai-settings.disable-selected-models": {
+		"message": "停用所选"
+	},
+	"app.ai-settings.enable-selected-models": {
+		"message": "启用所选"
+	},
+	"app.ai-settings.select-all-models": {
+		"message": "全选"
+	},
+	"app.ai-settings.discovered-models-title": {
+		"message": "可用模型"
+	},
+	"app.ai-settings.discovered-models-description": {
+		"message": "选择要添加到该供应商的模型。"
+	},
+	"app.ai-settings.add-selected-models": {
+		"message": "添加所选模型（{count}）"
+	},
+	"app.ai-settings.cancel": {
+		"message": "取消"
 	},
 	"app.ai-settings.oauth.code": {
 		"message": "授权码"

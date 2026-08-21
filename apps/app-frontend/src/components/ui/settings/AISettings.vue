@@ -12,11 +12,16 @@ import {
 	SearchIcon,
 	SpinnerIcon,
 	TrashIcon,
+	XIcon,
 } from '@modrinth/assets'
 import {
+	ButtonStyled,
+	Checkbox,
 	Combobox,
+	ConfirmModal,
 	defineMessages,
 	injectNotificationManager,
+	NewModal,
 	StyledInput,
 	Tabs,
 	Toggle,
@@ -24,13 +29,14 @@ import {
 	NewButton as Button,
 } from '@modrinth/ui'
 import { openUrl } from '@tauri-apps/plugin-opener'
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 
 import providerDescriptionsEn from '@/data/lobehub-provider-descriptions/en-US.json'
 import providerDescriptionsZh from '@/data/lobehub-provider-descriptions/zh-CN.json'
 import {
 	type AIProviderConfig,
 	type AIProviderDefinition,
+	type AIProviderModel,
 	type AIState,
 	beginAIOAuth,
 	disconnectAIOAuth,
@@ -46,6 +52,7 @@ import {
 	sharedAIState,
 	testAIProvider,
 	updateAIModel,
+	updateAIModelsBulk,
 	updateAIProvider,
 	updateAISettings,
 } from '@/helpers/ai'
@@ -179,6 +186,45 @@ const messages = defineMessages({
 		defaultMessage: 'No models match your search.',
 	},
 	searchModels: { id: 'app.ai-settings.search-models', defaultMessage: 'Search models' },
+	discoveredModelsTitle: {
+		id: 'app.ai-settings.discovered-models-title',
+		defaultMessage: 'Available models',
+	},
+	discoveredModelsDescription: {
+		id: 'app.ai-settings.discovered-models-description',
+		defaultMessage: 'Select the models you want to add to this provider.',
+	},
+	addSelectedModels: {
+		id: 'app.ai-settings.add-selected-models',
+		defaultMessage: 'Add selected ({count})',
+	},
+	cancel: { id: 'app.ai-settings.cancel', defaultMessage: 'Cancel' },
+	selectAllModels: { id: 'app.ai-settings.select-all-models', defaultMessage: 'Select all' },
+	modelsSelected: {
+		id: 'app.ai-settings.models-selected',
+		defaultMessage: '{count} selected',
+	},
+	enableSelectedModels: {
+		id: 'app.ai-settings.enable-selected-models',
+		defaultMessage: 'Enable selected',
+	},
+	disableSelectedModels: {
+		id: 'app.ai-settings.disable-selected-models',
+		defaultMessage: 'Disable selected',
+	},
+	deleteSelectedModels: {
+		id: 'app.ai-settings.delete-selected-models',
+		defaultMessage: 'Delete selected',
+	},
+	deleteSelectedTitle: {
+		id: 'app.ai-settings.delete-selected-title',
+		defaultMessage: 'Delete {count} selected models?',
+	},
+	deleteSelectedDescription: {
+		id: 'app.ai-settings.delete-selected-description',
+		defaultMessage:
+			'Selected models will be removed from this provider. Custom and discovered models disappear until added again.',
+	},
 	testModel: { id: 'app.ai-settings.test-model', defaultMessage: 'Test model' },
 	test: { id: 'app.ai-settings.test', defaultMessage: 'Test provider' },
 	testing: { id: 'app.ai-settings.testing', defaultMessage: 'Testing…' },
@@ -571,11 +617,196 @@ async function removeModel(modelId: string) {
 	}
 }
 
-async function refreshModels() {
-	if (!selectedConfig.value) return
+const selectedModelIds = ref<Set<string>>(new Set())
+const deleteConfirmModal = ref<InstanceType<typeof ConfirmModal>>()
+
+function clearModelSelection() {
+	selectedModelIds.value = new Set()
+}
+
+watch(selectedId, clearModelSelection)
+
+const isAllModelsSelected = computed(
+	() =>
+		filteredModels.value.length > 0 &&
+		filteredModels.value.every((model) => selectedModelIds.value.has(model.id)),
+)
+const isSomeModelsSelected = computed(
+	() =>
+		selectedModelIds.value.size > 0 && selectedModelIds.value.size < filteredModels.value.length,
+)
+const selectedModelsAllEnabled = computed(() => {
+	const selected = (selectedConfig.value?.models ?? []).filter((model) =>
+		selectedModelIds.value.has(model.id),
+	)
+	return selected.length > 0 && selected.every((model) => model.enabled)
+})
+
+function toggleModelSelection(modelId: string) {
+	const next = new Set(selectedModelIds.value)
+	if (next.has(modelId)) {
+		next.delete(modelId)
+	} else {
+		next.add(modelId)
+	}
+	selectedModelIds.value = next
+}
+
+function toggleSelectAllModels() {
+	if (isAllModelsSelected.value) {
+		selectedModelIds.value = new Set()
+	} else {
+		selectedModelIds.value = new Set(filteredModels.value.map((model) => model.id))
+	}
+}
+
+async function setSelectedModelsEnabled(enabled: boolean) {
+	const config = selectedConfig.value
+	if (!config) return
+	const selected = config.models.filter((model) => selectedModelIds.value.has(model.id))
+	if (!selected.length) return
 	busy.value = true
 	try {
-		await fetchAIModels(selectedConfig.value.provider_id)
+		await updateAIModelsBulk({
+			provider_id: config.provider_id,
+			from_remote: false,
+			model_updates: selected.map((model) => ({
+				provider_id: config.provider_id,
+				model_id: model.id,
+				display_name: model.name,
+				enabled,
+			})),
+			remove_model_ids: [],
+		})
+		await reloadState()
+	} catch (error) {
+		handleError(error)
+	} finally {
+		busy.value = false
+	}
+}
+
+async function deleteSelectedModels() {
+	const config = selectedConfig.value
+	if (!config) return
+	const selected = Array.from(selectedModelIds.value)
+	if (!selected.length) return
+	busy.value = true
+	try {
+		await updateAIModelsBulk({
+			provider_id: config.provider_id,
+			from_remote: false,
+			model_updates: [],
+			remove_model_ids: selected,
+		})
+		selectedModelIds.value = new Set()
+		await reloadState()
+	} catch (error) {
+		handleError(error)
+	} finally {
+		busy.value = false
+	}
+}
+
+function confirmDeleteSelectedModels() {
+	deleteConfirmModal.value?.show()
+}
+
+const discoveredModelsModal = ref<InstanceType<typeof NewModal>>()
+const discoveredModels = ref<AIProviderModel[]>([])
+const discoveredModelSearch = ref('')
+const discoveredModelSelection = ref<Set<string>>(new Set())
+const discoveredModelsLoading = ref(false)
+
+const filteredDiscoveredModels = computed(() => {
+	const query = discoveredModelSearch.value.trim().toLocaleLowerCase()
+	if (!query) return discoveredModels.value
+	return discoveredModels.value.filter((model) =>
+		[model.id, model.name, model.source].some((value) =>
+			value?.toLocaleLowerCase().includes(query),
+		),
+	)
+})
+
+const selectableDiscoveredModels = computed(() =>
+	filteredDiscoveredModels.value.filter((model) => !isModelAlreadyConfigured(model.id)),
+)
+const isAllDiscoveredModelsSelected = computed(
+	() =>
+		selectableDiscoveredModels.value.length > 0 &&
+		selectableDiscoveredModels.value.every((model) => discoveredModelSelection.value.has(model.id)),
+)
+const isSomeDiscoveredModelsSelected = computed(
+	() =>
+		discoveredModelSelection.value.size > 0 &&
+		(!isAllDiscoveredModelsSelected.value ||
+			discoveredModelSelection.value.size < filteredDiscoveredModels.value.length),
+)
+
+function toggleDiscoveredModelSelection(modelId: string) {
+	const next = new Set(discoveredModelSelection.value)
+	if (next.has(modelId)) {
+		next.delete(modelId)
+	} else {
+		next.add(modelId)
+	}
+	discoveredModelSelection.value = next
+}
+
+function toggleSelectAllDiscoveredModels() {
+	if (isAllDiscoveredModelsSelected.value) {
+		discoveredModelSelection.value = new Set()
+	} else {
+		discoveredModelSelection.value = new Set(
+			selectableDiscoveredModels.value.map((model) => model.id),
+		)
+	}
+}
+
+function isModelAlreadyConfigured(modelId: string) {
+	return selectedConfig.value?.models.some((model) => model.id === modelId) ?? false
+}
+
+async function refreshModels() {
+	if (!selectedConfig.value) return
+	discoveredModelsLoading.value = true
+	try {
+		discoveredModels.value = await fetchAIModels(selectedConfig.value.provider_id)
+		discoveredModelSelection.value = new Set(
+			discoveredModels.value
+				.filter((model) => !isModelAlreadyConfigured(model.id))
+				.map((model) => model.id),
+		)
+		discoveredModelSearch.value = ''
+		discoveredModelsModal.value?.show()
+	} catch (error) {
+		handleError(error)
+	} finally {
+		discoveredModelsLoading.value = false
+	}
+}
+
+async function addDiscoveredModels() {
+	const config = selectedConfig.value
+	if (!config) return
+	const selected = discoveredModels.value.filter((model) =>
+		discoveredModelSelection.value.has(model.id),
+	)
+	if (!selected.length) return
+	busy.value = true
+	try {
+		await updateAIModelsBulk({
+			provider_id: config.provider_id,
+			from_remote: true,
+			model_updates: selected.map((model) => ({
+				provider_id: config.provider_id,
+				model_id: model.id,
+				display_name: model.name,
+				enabled: true,
+			})),
+			remove_model_ids: [],
+		})
+		discoveredModelsModal.value?.hide()
 		await reloadState()
 	} catch (error) {
 		handleError(error)
@@ -1161,7 +1392,26 @@ onMounted(async () => {
 					</div>
 				</div>
 				<div v-if="filteredModels.length" class="ai-model-list">
-					<div v-for="model in filteredModels" :key="model.id" class="ai-model-row">
+					<Checkbox
+						:model-value="isAllModelsSelected"
+						:indeterminate="isSomeModelsSelected"
+						:label="formatMessage(messages.selectAllModels)"
+						label-class="text-xs font-semibold text-secondary"
+						:disabled="busy"
+						@update:model-value="toggleSelectAllModels"
+					/>
+					<div
+						v-for="model in filteredModels"
+						:key="model.id"
+						class="ai-model-row"
+						:class="{ selected: selectedModelIds.has(model.id) }"
+					>
+						<Checkbox
+							:model-value="selectedModelIds.has(model.id)"
+							:disabled="busy"
+							:aria-label="model.name || model.id"
+							@update:model-value="toggleModelSelection(model.id)"
+						/>
 						<AIIcon kind="model" :value="model.id" :size="32" />
 						<div class="min-w-0 flex-1">
 							<p class="m-0 truncate text-sm font-semibold text-contrast">
@@ -1195,6 +1445,35 @@ onMounted(async () => {
 						)
 					}}
 				</p>
+				<div
+					v-if="selectedModelIds.size > 0"
+					class="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-button-bg px-3 py-2"
+				>
+					<span class="text-xs font-semibold text-secondary">
+						{{
+							formatMessage(messages.modelsSelected, {
+								count: selectedModelIds.size,
+							})
+						}}
+					</span>
+					<div class="flex flex-wrap items-center gap-2">
+						<ButtonStyled type="outlined" :color="selectedModelsAllEnabled ? 'standard' : 'green'">
+							<button :disabled="busy" @click="setSelectedModelsEnabled(true)">
+								<CheckIcon />{{ formatMessage(messages.enableSelectedModels) }}
+							</button>
+						</ButtonStyled>
+						<ButtonStyled type="outlined">
+							<button :disabled="busy" @click="setSelectedModelsEnabled(false)">
+								<XIcon />{{ formatMessage(messages.disableSelectedModels) }}
+							</button>
+						</ButtonStyled>
+						<ButtonStyled color="red" type="outlined">
+							<button :disabled="busy" @click="confirmDeleteSelectedModels">
+								<TrashIcon />{{ formatMessage(messages.deleteSelectedModels) }}
+							</button>
+						</ButtonStyled>
+					</div>
+				</div>
 				<div class="grid grid-cols-1 gap-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
 					<StyledInput
 						v-model="customModelId"
@@ -1232,6 +1511,97 @@ onMounted(async () => {
 			<p v-if="status" class="m-0 text-sm text-secondary">{{ status }}</p>
 		</section>
 	</div>
+
+	<ConfirmModal
+		ref="deleteConfirmModal"
+		:danger="true"
+		:title="formatMessage(messages.deleteSelectedTitle, { count: selectedModelIds.size })"
+		:description="formatMessage(messages.deleteSelectedDescription)"
+		:proceed-label="formatMessage(messages.deleteSelectedModels)"
+		@proceed="deleteSelectedModels"
+	/>
+
+	<NewModal
+		ref="discoveredModelsModal"
+		:header="formatMessage(messages.discoveredModelsTitle)"
+		max-width="32rem"
+	>
+		<div class="flex flex-col gap-3">
+			<p class="m-0 text-sm text-secondary">
+				{{ formatMessage(messages.discoveredModelsDescription) }}
+			</p>
+			<StyledInput
+				v-model="discoveredModelSearch"
+				:icon="SearchIcon"
+				:placeholder="formatMessage(messages.searchModels)"
+				clearable
+				wrapper-class="w-full"
+			/>
+			<div v-if="discoveredModelsLoading" class="flex items-center justify-center py-8">
+				<SpinnerIcon class="size-6 animate-spin text-secondary" />
+			</div>
+			<div v-else class="flex max-h-80 flex-col gap-0.5 overflow-y-auto">
+				<Checkbox
+					v-if="selectableDiscoveredModels.length > 0"
+					:model-value="isAllDiscoveredModelsSelected"
+					:indeterminate="isSomeDiscoveredModelsSelected"
+					:label="formatMessage(messages.selectAllModels)"
+					label-class="text-xs font-semibold text-secondary"
+					@update:model-value="toggleSelectAllDiscoveredModels"
+				/>
+				<div
+					v-for="model in filteredDiscoveredModels"
+					:key="model.id"
+					class="flex items-center gap-3 rounded-lg px-2 py-1.5 hover:bg-button-bg"
+				>
+					<Checkbox
+						:model-value="discoveredModelSelection.has(model.id)"
+						:disabled="isModelAlreadyConfigured(model.id)"
+						:description="model.name || model.id"
+						@update:model-value="toggleDiscoveredModelSelection(model.id)"
+					/>
+					<AIIcon kind="model" :value="model.id" :size="28" />
+					<div class="min-w-0 flex-1">
+						<p class="m-0 truncate text-sm font-semibold text-contrast">
+							{{ model.name || model.id }}
+						</p>
+						<p class="m-0 truncate text-xs text-secondary">{{ model.id }}</p>
+					</div>
+					<span
+						v-if="isModelAlreadyConfigured(model.id)"
+						class="shrink-0 rounded-full bg-button-bg px-2 py-0.5 text-xs font-semibold text-secondary"
+					>
+						{{ formatMessage(messages.enabled) }}
+					</span>
+				</div>
+				<p v-if="filteredDiscoveredModels.length === 0" class="m-2 text-sm text-secondary">
+					{{ formatMessage(messages.noMatchingModels) }}
+				</p>
+			</div>
+		</div>
+		<template #actions>
+			<div class="flex justify-end gap-2">
+				<ButtonStyled type="outlined">
+					<button @click="discoveredModelsModal?.hide()">
+						<XIcon />{{ formatMessage(messages.cancel) }}
+					</button>
+				</ButtonStyled>
+				<ButtonStyled>
+					<button
+						:disabled="busy || discoveredModelSelection.size === 0"
+						@click="addDiscoveredModels"
+					>
+						<PlusIcon />
+						{{
+							formatMessage(messages.addSelectedModels, {
+								count: discoveredModelSelection.size,
+							})
+						}}
+					</button>
+				</ButtonStyled>
+			</div>
+		</template>
+	</NewModal>
 </template>
 
 <style scoped>

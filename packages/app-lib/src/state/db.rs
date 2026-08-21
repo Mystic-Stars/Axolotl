@@ -2914,6 +2914,7 @@ mod tests {
         assert_eq!(
             ai_tables,
             vec![
+                "ai_deleted_builtin_models".to_string(),
                 "ai_provider_configs".to_string(),
                 "ai_provider_models".to_string(),
                 "ai_settings".to_string(),

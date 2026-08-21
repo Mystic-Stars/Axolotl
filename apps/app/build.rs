@@ -461,6 +461,7 @@ fn main() {
                         "ai_set_credential",
                         "ai_update_model",
                         "ai_remove_model",
+                        "ai_update_models_bulk",
                         "ai_fetch_models",
                         "ai_test_provider",
                         "ai_begin_oauth",

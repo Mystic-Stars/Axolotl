@@ -67,6 +67,13 @@ export interface AIModelUpdate {
 	enabled: boolean
 }
 
+export interface AIBulkModelUpdate {
+	provider_id: string
+	from_remote: boolean
+	model_updates: AIModelUpdate[]
+	remove_model_ids: string[]
+}
+
 export interface OAuthDeviceCode {
 	flow_id: string
 	user_code: string
@@ -117,6 +124,10 @@ export async function updateAIModel(update: AIModelUpdate): Promise<void> {
 
 export async function removeAIModel(providerId: string, modelId: string): Promise<void> {
 	await invoke('plugin:ai|ai_remove_model', { providerId, modelId })
+}
+
+export async function updateAIModelsBulk(update: AIBulkModelUpdate): Promise<void> {
+	await invoke('plugin:ai|ai_update_models_bulk', { update })
 }
 
 export async function fetchAIModels(providerId: string): Promise<AIProviderModel[]> {

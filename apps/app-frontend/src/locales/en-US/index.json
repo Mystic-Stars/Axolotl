@@ -359,6 +359,39 @@
 	"app.ai-settings.search-models": {
 		"message": "Search models"
 	},
+	"app.ai-settings.discovered-models-title": {
+		"message": "Available models"
+	},
+	"app.ai-settings.discovered-models-description": {
+		"message": "Select the models you want to add to this provider."
+	},
+	"app.ai-settings.add-selected-models": {
+		"message": "Add selected ({count})"
+	},
+	"app.ai-settings.cancel": {
+		"message": "Cancel"
+	},
+	"app.ai-settings.select-all-models": {
+		"message": "Select all"
+	},
+	"app.ai-settings.models-selected": {
+		"message": "{count} selected"
+	},
+	"app.ai-settings.enable-selected-models": {
+		"message": "Enable selected"
+	},
+	"app.ai-settings.disable-selected-models": {
+		"message": "Disable selected"
+	},
+	"app.ai-settings.delete-selected-models": {
+		"message": "Delete selected"
+	},
+	"app.ai-settings.delete-selected-title": {
+		"message": "Delete {count} selected models?"
+	},
+	"app.ai-settings.delete-selected-description": {
+		"message": "Selected models will be removed from this provider. Custom and discovered models disappear until added again."
+	},
 	"app.ai-settings.test": {
 		"message": "Test provider"
 	},
