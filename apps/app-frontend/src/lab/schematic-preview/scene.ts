@@ -3,6 +3,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls.js'
 
 import type { SchematicMeshData } from './mesh-worker'
+import { DefaultMaterial } from './materials/default'
 
 export type SchematicSceneRegion = {
 	id: string
@@ -648,14 +649,19 @@ export class SchematicPreviewScene {
 			texture.generateMipmaps = false
 			texture.needsUpdate = true
 		}
-		return new THREE.MeshLambertMaterial({
-			map: texture,
-			vertexColors: true,
-			alphaTest: translucent ? 0 : 0.08,
-			transparent: translucent,
-			opacity: translucent ? 0.68 : 1,
-			depthWrite: !translucent,
-		})
+		return new DefaultMaterial(
+			translucent,
+			{ clipY: { value: new THREE.Vector2(0, 999) } },
+			texture,
+		)
+		// return new THREE.MeshLambertMaterial({
+		// 	map: texture,
+		// 	vertexColors: true,
+		// 	alphaTest: translucent ? 0 : 0.08,
+		// 	transparent: translucent,
+		// 	opacity: translucent ? 0.68 : 1,
+		// 	depthWrite: !translucent,
+		// })
 	}
 
 	private accentColor() {
@@ -735,6 +741,14 @@ export class SchematicPreviewScene {
 			: []
 		this.opaqueMaterial.clippingPlanes = clippingPlanes
 		this.translucentMaterial.clippingPlanes = clippingPlanes
+
+		const clipStart = this.layerRange && this.layerRange[0] ? this.layerRange[0] : 0
+		const clipEnd =
+			this.layerRange && Number.isInteger(this.layerRange[1]) ? this.layerRange[1] : 999
+
+		this.translucentMaterial.setClipY(new THREE.Vector2(clipStart, clipEnd))
+		this.opaqueMaterial.setClipY(new THREE.Vector2(clipStart, clipEnd))
+
 		this.opaqueMaterial.needsUpdate = true
 		this.translucentMaterial.needsUpdate = true
 	}

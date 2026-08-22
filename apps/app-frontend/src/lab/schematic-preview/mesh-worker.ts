@@ -352,12 +352,8 @@ function buildChunk(message: WorkerMeshMessage) {
 						schematicBlockAt(blocks, neighborFaces, x + 1, y, z),
 						'east',
 					),
-					down: shouldCull(
-						paletteIndex,
-						schematicBlockAt(blocks, neighborFaces, x, y - 1, z),
-						'down',
-					),
-					up: shouldCull(paletteIndex, schematicBlockAt(blocks, neighborFaces, x, y + 1, z), 'up'),
+					down: false,
+					up: false,
 					north: shouldCull(
 						paletteIndex,
 						schematicBlockAt(blocks, neighborFaces, x, y, z - 1),
