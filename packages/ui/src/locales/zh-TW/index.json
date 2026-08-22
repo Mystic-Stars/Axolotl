@@ -2,12 +2,6 @@
 	"action.no-permission": {
 		"defaultMessage": "你沒有權限。"
 	},
-	"app.symlink-warning.write.body": {
-		"message": "This instance is linked to "
-	},
-	"app.symlink-warning.write.header": {
-		"message": "Shared instance"
-	},
 	"badge.alpha": {
 		"defaultMessage": "Alpha 版"
 	},
@@ -38,17 +32,11 @@
 	"browse.selected-projects-floating-bar.aria-label": {
 		"defaultMessage": "已選取專案"
 	},
-	"browse.selected-projects-floating-bar.hide-projects": {
-		"defaultMessage": "隐藏已选项目"
-	},
 	"browse.selected-projects-floating-bar.install": {
 		"defaultMessage": "安裝 {count, plural, other {# 個專案}}"
 	},
 	"browse.selected-projects-floating-bar.selected-count": {
 		"defaultMessage": "{count, plural, other {已選取 # 個專案}}"
-	},
-	"browse.selected-projects-floating-bar.show-projects": {
-		"defaultMessage": "显示{count, plural, other {#个已选项目}}"
 	},
 	"browse.selected-projects-leave-modal.admonition-body": {
 		"defaultMessage": "你已選取 {count, plural, other {# 個專案}}來安裝。立即安裝專案，或返回而不安裝。"
@@ -61,27 +49,6 @@
 	},
 	"browse.selected-projects-leave-modal.header": {
 		"defaultMessage": "你選取的專案尚未安裝"
-	},
-	"browse.sort.date-published": {
-		"message": "Date published"
-	},
-	"browse.sort.date-updated": {
-		"message": "Date updated"
-	},
-	"browse.sort.downloads": {
-		"message": "Downloads"
-	},
-	"browse.sort.followers": {
-		"message": "Followers"
-	},
-	"browse.sort.players": {
-		"message": "Players"
-	},
-	"browse.sort.relevance": {
-		"message": "Relevance"
-	},
-	"browse.sort.verified-plays": {
-		"message": "Verified plays"
 	},
 	"browse.view-prefix": {
 		"defaultMessage": "檢視模式："
@@ -179,9 +146,6 @@
 	"button.open-folder": {
 		"defaultMessage": "開啟資料夾"
 	},
-	"button.open-in-browser": {
-		"message": "Open in browser"
-	},
 	"button.open-in-folder": {
 		"defaultMessage": "在資料夾中開啟"
 	},
@@ -250,9 +214,6 @@
 	},
 	"button.stop": {
 		"defaultMessage": "停止"
-	},
-	"button.switch-to-version": {
-		"message": "Switch to version"
 	},
 	"button.switch-version": {
 		"defaultMessage": "切換版本"
@@ -599,29 +560,8 @@
 	"console.notification.share-failed": {
 		"defaultMessage": "分享日誌失敗"
 	},
-	"console.notification.share-truncated": {
-		"defaultMessage": "日志过大，已自动截取最后 9MB 上传。"
-	},
 	"console.notification.unknown-error": {
 		"defaultMessage": "未知錯誤。"
-	},
-	"console.log.toggle-wrap": {
-		"defaultMessage": "切换换行"
-	},
-	"console.log.wrap-label": {
-		"defaultMessage": "换行"
-	},
-	"console.empty.instance-title": {
-		"defaultMessage": "暂无日志"
-	},
-	"console.empty.instance-description": {
-		"defaultMessage": "点击右上角「开始游戏」即可接收实时日志"
-	},
-	"console.empty.server-title": {
-		"defaultMessage": "欢迎使用 Modrinth 服务器！"
-	},
-	"console.empty.server-description": {
-		"defaultMessage": "点击启动按钮即可启动服务器！"
 	},
 	"console.search.placeholder": {
 		"defaultMessage": "搜尋日誌"
@@ -634,27 +574,6 @@
 	},
 	"content-type.item.lowercase": {
 		"defaultMessage": "{count, plural, other {項目}}"
-	},
-	"content.card.dependency-badge": {
-		"defaultMessage": "前置"
-	},
-	"content.card.duplicate-mod": {
-		"defaultMessage": "此模组已安装 {count, number} 次。"
-	},
-	"content.card.group.hardcore": {
-		"defaultMessage": "硬核模式"
-	},
-	"content.card.group.not-played-yet": {
-		"defaultMessage": "尚未游玩"
-	},
-	"content.card.orphaned-dependency-badge": {
-		"defaultMessage": "孤立前置"
-	},
-	"content.card.pending-manual-download": {
-		"message": "Manual download required"
-	},
-	"content.card.rollback-tooltip": {
-		"defaultMessage": "回滾到 {fileName}"
 	},
 	"content.card.select-project": {
 		"defaultMessage": "選取「{project}」"
@@ -773,9 +692,6 @@
 	"content.filter.disabled": {
 		"defaultMessage": "停用"
 	},
-	"content.filter.duplicates": {
-		"defaultMessage": "重复"
-	},
 	"content.filter.enabled": {
 		"defaultMessage": "啟用"
 	},
@@ -784,120 +700,6 @@
 	},
 	"content.filter.warnings": {
 		"defaultMessage": "警告"
-	},
-	"content.metadata-filter.author": {
-		"defaultMessage": "作者"
-	},
-	"content.metadata-filter.clear": {
-		"defaultMessage": "清除"
-	},
-	"content.metadata-filter.environment": {
-		"defaultMessage": "环境"
-	},
-	"content.metadata-filter.environment.client": {
-		"defaultMessage": "客户端"
-	},
-	"content.metadata-filter.environment.client-and-server": {
-		"defaultMessage": "客户端和服务端"
-	},
-	"content.metadata-filter.environment.server": {
-		"defaultMessage": "服务端"
-	},
-	"content.metadata-filter.environment.singleplayer": {
-		"defaultMessage": "单人游戏"
-	},
-	"content.metadata-filter.external": {
-		"defaultMessage": "外部文件"
-	},
-	"content.metadata-filter.external.external": {
-		"defaultMessage": "外部文件"
-	},
-	"content.metadata-filter.external.linked": {
-		"defaultMessage": "在线项目"
-	},
-	"content.metadata-filter.loader": {
-		"defaultMessage": "加载器"
-	},
-	"content.metadata-filter.loader.fabric": {
-		"defaultMessage": "Fabric"
-	},
-	"content.metadata-filter.loader.forge": {
-		"defaultMessage": "Forge"
-	},
-	"content.metadata-filter.loader.neoforge": {
-		"defaultMessage": "NeoForge"
-	},
-	"content.metadata-filter.loader.other": {
-		"defaultMessage": "其他"
-	},
-	"content.metadata-filter.loader.quilt": {
-		"defaultMessage": "Quilt"
-	},
-	"content.metadata-filter.long-press-reset": {
-		"defaultMessage": "长按重置筛选"
-	},
-	"content.metadata-filter.open-source": {
-		"defaultMessage": "开源"
-	},
-	"content.metadata-filter.open-source.closed": {
-		"defaultMessage": "非开源"
-	},
-	"content.metadata-filter.open-source.open": {
-		"defaultMessage": "开源"
-	},
-	"content.metadata-filter.search": {
-		"defaultMessage": "搜索..."
-	},
-	"content.metadata-filter.select-all": {
-		"defaultMessage": "全选"
-	},
-	"content.metadata-filter.source": {
-		"defaultMessage": "来源"
-	},
-	"content.metadata-filter.source.curseforge": {
-		"defaultMessage": "CurseForge"
-	},
-	"content.metadata-filter.source.imported-modpack": {
-		"defaultMessage": "导入整合包"
-	},
-	"content.metadata-filter.source.local": {
-		"defaultMessage": "本地"
-	},
-	"content.metadata-filter.source.modrinth-modpack": {
-		"defaultMessage": "Modrinth 整合包"
-	},
-	"content.metadata-filter.source.server-project": {
-		"defaultMessage": "服务器项目"
-	},
-	"content.metadata-filter.source.shared-instance": {
-		"defaultMessage": "共享实例"
-	},
-	"content.metadata-filter.state": {
-		"defaultMessage": "状态"
-	},
-	"content.metadata-filter.state.disabled": {
-		"defaultMessage": "已禁用"
-	},
-	"content.metadata-filter.state.enabled": {
-		"defaultMessage": "已启用"
-	},
-	"content.metadata-filter.toggle": {
-		"defaultMessage": "筛选"
-	},
-	"content.metadata-filter.toggle-active": {
-		"defaultMessage": "筛选（已启用 {count, number} 项）"
-	},
-	"content.metadata-filter.unknown": {
-		"defaultMessage": "未知"
-	},
-	"content.metadata-filter.update.available": {
-		"defaultMessage": "可更新"
-	},
-	"content.metadata-filter.update.up-to-date": {
-		"defaultMessage": "已是最新"
-	},
-	"content.metadata-filter.updates": {
-		"defaultMessage": "更新"
 	},
 	"content.page-layout.browse-content": {
 		"defaultMessage": "瀏覽內容"
@@ -935,12 +737,6 @@
 	"content.page-layout.sort.alphabetical": {
 		"defaultMessage": "字母順序"
 	},
-	"content.page-layout.sort.file-name-ascending": {
-		"defaultMessage": "文件名 A-Z"
-	},
-	"content.page-layout.sort.file-name-descending": {
-		"defaultMessage": "文件名 Z-A"
-	},
 	"content.page-layout.sort.date-added-newest": {
 		"defaultMessage": "最新在前"
 	},
@@ -950,26 +746,8 @@
 	"content.page-layout.sort.label": {
 		"defaultMessage": "排序依據：{mode}"
 	},
-	"content.page-layout.sort.project-name-ascending": {
-		"defaultMessage": "项目名称 A-Z"
-	},
-	"content.page-layout.sort.project-name-descending": {
-		"defaultMessage": "项目名称 Z-A"
-	},
-	"content.page-layout.pin-view": {
-		"defaultMessage": "固定当前视图"
-	},
-	"content.page-layout.reset-view": {
-		"defaultMessage": "重置视图"
-	},
-	"content.page-layout.unpin-view": {
-		"defaultMessage": "取消固定当前视图"
-	},
 	"content.page-layout.update-all": {
 		"defaultMessage": "更新全部"
-	},
-	"content.page-layout.view-options": {
-		"defaultMessage": "视图选项"
 	},
 	"content.selection-bar.all-already-disabled": {
 		"defaultMessage": "所有已選擇的內容已經停用"
@@ -1037,33 +815,6 @@
 	"creation-flow.button.setup-server": {
 		"defaultMessage": "設定伺服器"
 	},
-	"creation-flow.modal.custom-setup.adjunct.hint": {
-		"defaultMessage": "下载前会自动选择兼容版本。"
-	},
-	"creation-flow.modal.custom-setup.adjunct.checking-compatibility": {
-		"defaultMessage": "正在检查兼容性……"
-	},
-	"creation-flow.modal.custom-setup.adjunct.compatibility-load-failed": {
-		"defaultMessage": "无法验证 {loader} 的兼容性。"
-	},
-	"creation-flow.modal.custom-setup.adjunct.label": {
-		"defaultMessage": "附加加载器"
-	},
-	"creation-flow.modal.custom-setup.adjunct.optifabric-load-failed": {
-		"defaultMessage": "无法验证 OptiFabric 兼容性。"
-	},
-	"creation-flow.modal.custom-setup.adjunct.optifabric-unsupported": {
-		"defaultMessage": "OptiFine 需要 OptiFabric，但当前游戏版本没有兼容版本。"
-	},
-	"creation-flow.modal.custom-setup.adjunct.primary-unsupported": {
-		"defaultMessage": "所选主加载器不支持当前游戏版本。"
-	},
-	"creation-flow.modal.custom-setup.adjunct.select-game-version": {
-		"defaultMessage": "请先选择游戏版本以检查兼容性。"
-	},
-	"creation-flow.modal.custom-setup.adjunct.unsupported": {
-		"defaultMessage": "{loader} 没有支持当前游戏版本的兼容版本。"
-	},
 	"creation-flow.modal.custom-setup.build-number.label": {
 		"defaultMessage": "組建編號"
 	},
@@ -1121,9 +872,6 @@
 	"creation-flow.modal.custom-setup.loader-version.search-placeholder": {
 		"defaultMessage": "搜尋載入器版本..."
 	},
-	"creation-flow.modal.custom-setup.loader.compatibility-load-failed": {
-		"defaultMessage": "无法验证加载器兼容性"
-	},
 	"creation-flow.modal.custom-setup.loader.label": {
 		"defaultMessage": "載入器"
 	},
@@ -1144,12 +892,6 @@
 	},
 	"creation-flow.modal.custom-setup.will-install-loader-version": {
 		"defaultMessage": "將會安裝：{loader} {version}"
-	},
-	"creation-flow.modal.import-instance.import-prompt": {
-		"defaultMessage": "拖拽启动器文件夹、整合包文件或 .minecraft 文件夹即可一键导入实例"
-	},
-	"creation-flow.modal.import-instance.select-file": {
-		"defaultMessage": "选择要导入的文件"
 	},
 	"creation-flow.modal.setup-type.instance.description": {
 		"defaultMessage": "實例是指具有特定載入器、版本及模組的 Minecraft 設定。"
@@ -1259,21 +1001,6 @@
 	"files.delete-modal.deleting-name": {
 		"defaultMessage": "正在刪除「{name}」"
 	},
-	"files.delete-modal.deleting-multiple": {
-		"message": "Deleting {count} items"
-	},
-	"files.delete-modal.bulk-header": {
-		"message": "Delete multiple items"
-	},
-	"files.delete-modal.bulk-warning": {
-		"message": "The selected items will be permanently deleted. This action cannot be undone."
-	},
-	"files.delete-modal.symlink-warning-header": {
-		"message": "Shared instance"
-	},
-	"files.delete-modal.symlink-warning-body": {
-		"message": "You are modifying files in a shared instance linked to "
-	},
 	"files.delete-modal.header": {
 		"defaultMessage": "刪除檔案"
 	},
@@ -1342,9 +1069,6 @@
 	},
 	"files.editor.save-failed-title": {
 		"defaultMessage": "儲存失敗"
-	},
-	"files.editor.share-truncated-warning": {
-		"defaultMessage": "日志文件过大，已自动截取最后 9MB 上传。"
 	},
 	"files.error.go-to-home": {
 		"defaultMessage": "前往家資料夾"
@@ -1454,9 +1178,6 @@
 	"files.navbar.search-files": {
 		"defaultMessage": "搜尋檔案"
 	},
-	"files.navbar.share-log": {
-		"defaultMessage": "分享日志"
-	},
 	"files.navbar.upload-from-zip": {
 		"defaultMessage": "從 .zip 檔案上傳"
 	},
@@ -1471,9 +1192,6 @@
 	},
 	"files.row.item-count": {
 		"defaultMessage": "{count, plural, other {# 個項目}}"
-	},
-	"files.row.parent-folder": {
-		"message": "Parent folder"
 	},
 	"files.table-header.created": {
 		"defaultMessage": "建立時間"
@@ -1658,9 +1376,6 @@
 	"header.category.category": {
 		"defaultMessage": "類別"
 	},
-	"header.category.cf-extra": {
-		"message": "More CurseForge categories"
-	},
 	"header.category.feature": {
 		"defaultMessage": "功能"
 	},
@@ -1774,12 +1489,6 @@
 	},
 	"installation-settings.loader-version": {
 		"defaultMessage": "{loader} 版本"
-	},
-	"installation-settings.loader-version.error": {
-		"defaultMessage": "加载加载器版本数据失败"
-	},
-	"installation-settings.loader-version.unsupported": {
-		"defaultMessage": "此加载器不支持所选游戏版本"
 	},
 	"installation-settings.platform-lock-tooltip": {
 		"defaultMessage": "你需要重設伺服器才能切換載入器。"
@@ -2213,9 +1922,6 @@
 	"label.server": {
 		"defaultMessage": "伺服器"
 	},
-	"label.server-only": {
-		"message": "Server only"
-	},
 	"label.servers": {
 		"defaultMessage": "伺服器"
 	},
@@ -2531,9 +2237,6 @@
 	"modal.open-in-app.why-use": {
 		"defaultMessage": "為何使用 Modrinth App"
 	},
-	"multiselect.selection-actions.label": {
-		"defaultMessage": "已选 {count, number} 项"
-	},
 	"notification.error.title": {
 		"defaultMessage": "發生錯誤"
 	},
@@ -2620,9 +2323,6 @@
 	},
 	"omorphia.component.environment-indicator.label.unsupported": {
 		"defaultMessage": "不支援"
-	},
-	"omorphia.component.loading-indicator.label": {
-		"message": "Loading"
 	},
 	"payment-method.amazon_pay": {
 		"defaultMessage": "Amazon Pay"
@@ -2861,9 +2561,6 @@
 	"project.about.links.issues": {
 		"defaultMessage": "回報問題"
 	},
-	"project.about.links.mcmod": {
-		"defaultMessage": "MC Mod"
-	},
 	"project.about.links.site": {
 		"defaultMessage": "前往網站"
 	},
@@ -2926,12 +2623,6 @@
 	},
 	"project.recent-plays.tooltip": {
 		"defaultMessage": "過去 2 週內來自 Modrinth 的 {count} 次{countPlural, plural, other {最近遊玩次數}}"
-	},
-	"project.environment.tag.not-applicable": {
-		"defaultMessage": "不適用"
-	},
-	"project.environment.tag.unknown": {
-		"defaultMessage": "未知"
 	},
 	"project.server.customModpackTooltip": {
 		"defaultMessage": "這個專案使用了自訂模組包"
@@ -3254,44 +2945,14 @@
 	"project.versions.channel.release.symbol": {
 		"defaultMessage": "R"
 	},
-	"project.versions.filter.toggle-tooltip": {
-		"message": "Toggle filter for {filter}"
-	},
-	"project.versions.platform.modloader.short": {
-		"message": "ModLoader"
-	},
-	"project.versions.table.downloads": {
-		"defaultMessage": "下载量"
-	},
-	"project.versions.table.environment": {
-		"defaultMessage": "运行环境"
-	},
-	"project.versions.table.game-version": {
-		"defaultMessage": "游戏版本"
-	},
-	"project.versions.table.platform": {
-		"defaultMessage": "平台"
-	},
-	"project.versions.table.published": {
-		"defaultMessage": "发布时间"
-	},
-	"project.versions.table.version": {
-		"defaultMessage": "版本"
-	},
 	"project.versions.version.withheld": {
 		"defaultMessage": "保留"
 	},
 	"project.versions.version.withheld.tooltip": {
 		"defaultMessage": "版本由於缺少授權資訊而被保留"
 	},
-	"project.versions.filter.projectChannels": {
-		"defaultMessage": "更新通道"
-	},
 	"project.versions.withheld-versions-warning.resolve-button": {
 		"defaultMessage": "解決"
-	},
-	"project.versions.filter.gameVersions": {
-		"defaultMessage": "游戏版本"
 	},
 	"project.visibility.archived": {
 		"defaultMessage": "已封存"
@@ -3364,18 +3025,6 @@
 	},
 	"search.filter.option.show_more": {
 		"defaultMessage": "顯示更多內容"
-	},
-	"search.filter_type.advanced": {
-		"message": "Advanced"
-	},
-	"search.filter_type.advanced.exclude_datapack": {
-		"message": "Exclude data packs"
-	},
-	"search.filter_type.advanced.exclude_mod": {
-		"message": "Exclude mods"
-	},
-	"search.filter_type.advanced.exclude_plugin": {
-		"message": "Exclude plugins"
 	},
 	"search.filter_type.environment": {
 		"defaultMessage": "環境"
@@ -3568,9 +3217,6 @@
 	},
 	"settings.sessions.title": {
 		"defaultMessage": "工作階段"
-	},
-	"skin.preview.drag-to-rotate": {
-		"message": "Drag to rotate"
 	},
 	"tag.category.128x": {
 		"defaultMessage": "128x"
@@ -4196,11 +3842,14 @@
 	"version.supplementary-resources.type": {
 		"defaultMessage": "類型"
 	},
+	"files.row.parent-folder": {
+		"message": "Parent folder"
+	},
+	"omorphia.component.loading-indicator.label": {
+		"message": "Loading"
+	},
 	"drop.confirm.title": {
 		"message": "你想以什麼類型匯入？"
-	},
-	"drop.confirm.not-this": {
-		"message": "作為其他內容匯入"
 	},
 	"drop.confirm.cancel": {
 		"message": "取消"
@@ -4280,30 +3929,6 @@
 	"drop.generic_install.no_instances": {
 		"message": "找不到實例"
 	},
-	"app.drop.batch.scan.title": {
-		"message": "正在識別 {count, plural, one {# 個檔案} other {# 個檔案}}…"
-	},
-	"app.drop.batch.scan.subtitle": {
-		"message": "已識別 {done} / {total}"
-	},
-	"app.drop.batch.scan.cancel": {
-		"message": "取消"
-	},
-	"app.drop.batch.scan.pending": {
-		"message": "等待"
-	},
-	"app.drop.batch.scan.scanning": {
-		"message": "掃描中"
-	},
-	"app.drop.batch.scan.done": {
-		"message": "已識別"
-	},
-	"app.drop.batch.scan.skipped": {
-		"message": "已跳過"
-	},
-	"app.drop.batch.scan.error": {
-		"message": "失敗"
-	},
 	"drop.launcher_import.title": {
 		"message": "從 {launcherName} 匯入實例"
 	},
@@ -4355,11 +3980,398 @@
 	"drop.symlink_method.cancel": {
 		"message": "取消"
 	},
-	"drop.symlink_method.reset_changes": {
-		"message": "重置更改"
-	},
 	"drop.symlink_method.confirm": {
 		"message": "確認"
+	},
+	"project.versions.filter.toggle-tooltip": {
+		"message": "Toggle filter for {filter}"
+	},
+	"project.versions.platform.modloader.short": {
+		"message": "ModLoader"
+	},
+	"skin.preview.drag-to-rotate": {
+		"message": "Drag to rotate"
+	},
+	"browse.sort.relevance": {
+		"message": "Relevance"
+	},
+	"browse.sort.downloads": {
+		"message": "Downloads"
+	},
+	"browse.sort.followers": {
+		"message": "Followers"
+	},
+	"browse.sort.date-published": {
+		"message": "Date published"
+	},
+	"browse.sort.date-updated": {
+		"message": "Date updated"
+	},
+	"browse.sort.verified-plays": {
+		"message": "Verified plays"
+	},
+	"browse.sort.players": {
+		"message": "Players"
+	},
+	"content.card.pending-manual-download": {
+		"message": "Manual download required"
+	},
+	"content.card.rollback-tooltip": {
+		"defaultMessage": "回滾到 {fileName}"
+	},
+	"app.symlink-warning.write.header": {
+		"message": "Shared instance"
+	},
+	"app.symlink-warning.write.body": {
+		"message": "This instance is linked to "
+	},
+	"instances.updater-modal.search-compat": {
+		"message": "尋找相容版本"
+	},
+	"files.delete-modal.bulk-header": {
+		"message": "Delete multiple items"
+	},
+	"files.delete-modal.deleting-multiple": {
+		"message": "Deleting {count} items"
+	},
+	"files.delete-modal.bulk-warning": {
+		"message": "The selected items will be permanently deleted. This action cannot be undone."
+	},
+	"files.delete-modal.symlink-warning-header": {
+		"message": "Shared instance"
+	},
+	"files.delete-modal.symlink-warning-body": {
+		"message": "You are modifying files in a shared instance linked to "
+	},
+	"button.open-in-browser": {
+		"message": "Open in browser"
+	},
+	"label.server-only": {
+		"message": "Server only"
+	},
+	"button.switch-to-version": {
+		"message": "Switch to version"
+	},
+	"project-type.schematic.category": {
+		"message": "投影"
+	},
+	"project-type.schematic.capital": {
+		"message": "{count, plural, one {投影} other {投影}}"
+	},
+	"project-type.schematic.lowercase": {
+		"message": "{count, plural, one {投影} other {投影}}"
+	},
+	"search.filter_type.advanced.exclude_mod": {
+		"message": "Exclude mods"
+	},
+	"search.filter_type.advanced.exclude_plugin": {
+		"message": "Exclude plugins"
+	},
+	"search.filter_type.advanced.exclude_datapack": {
+		"message": "Exclude data packs"
+	},
+	"search.filter_type.advanced": {
+		"message": "Advanced"
+	},
+	"header.category.cf-extra": {
+		"message": "More CurseForge categories"
+	},
+	"project.environment.tag.not-applicable": {
+		"defaultMessage": "不適用"
+	},
+	"project.environment.tag.unknown": {
+		"defaultMessage": "未知"
+	},
+	"browse.selected-projects-floating-bar.hide-projects": {
+		"defaultMessage": "隐藏已选项目"
+	},
+	"browse.selected-projects-floating-bar.show-projects": {
+		"defaultMessage": "显示{count, plural, other {#个已选项目}}"
+	},
+	"console.notification.share-truncated": {
+		"defaultMessage": "日志过大，已自动截取最后 9MB 上传。"
+	},
+	"console.log.toggle-wrap": {
+		"defaultMessage": "切换换行"
+	},
+	"console.log.wrap-label": {
+		"defaultMessage": "换行"
+	},
+	"console.empty.instance-title": {
+		"defaultMessage": "暂无日志"
+	},
+	"console.empty.instance-description": {
+		"defaultMessage": "点击右上角「开始游戏」即可接收实时日志"
+	},
+	"console.empty.server-title": {
+		"defaultMessage": "欢迎使用 Modrinth 服务器！"
+	},
+	"console.empty.server-description": {
+		"defaultMessage": "点击启动按钮即可启动服务器！"
+	},
+	"content.card.dependency-badge": {
+		"defaultMessage": "前置"
+	},
+	"content.card.duplicate-mod": {
+		"defaultMessage": "此模组已安装 {count, number} 次。"
+	},
+	"content.card.group.hardcore": {
+		"defaultMessage": "硬核模式"
+	},
+	"content.card.group.not-played-yet": {
+		"defaultMessage": "尚未游玩"
+	},
+	"content.card.orphaned-dependency-badge": {
+		"defaultMessage": "孤立前置"
+	},
+	"content.filter.duplicates": {
+		"defaultMessage": "重复"
+	},
+	"content.metadata-filter.author": {
+		"defaultMessage": "作者"
+	},
+	"content.metadata-filter.clear": {
+		"defaultMessage": "清除"
+	},
+	"content.metadata-filter.environment": {
+		"defaultMessage": "环境"
+	},
+	"content.metadata-filter.environment.client": {
+		"defaultMessage": "客户端"
+	},
+	"content.metadata-filter.environment.client-and-server": {
+		"defaultMessage": "客户端和服务端"
+	},
+	"content.metadata-filter.environment.server": {
+		"defaultMessage": "服务端"
+	},
+	"content.metadata-filter.environment.singleplayer": {
+		"defaultMessage": "单人游戏"
+	},
+	"content.metadata-filter.external": {
+		"defaultMessage": "外部文件"
+	},
+	"content.metadata-filter.external.external": {
+		"defaultMessage": "外部文件"
+	},
+	"content.metadata-filter.external.linked": {
+		"defaultMessage": "在线项目"
+	},
+	"content.metadata-filter.loader": {
+		"defaultMessage": "加载器"
+	},
+	"content.metadata-filter.loader.fabric": {
+		"defaultMessage": "Fabric"
+	},
+	"content.metadata-filter.loader.forge": {
+		"defaultMessage": "Forge"
+	},
+	"content.metadata-filter.loader.neoforge": {
+		"defaultMessage": "NeoForge"
+	},
+	"content.metadata-filter.loader.other": {
+		"defaultMessage": "其他"
+	},
+	"content.metadata-filter.loader.quilt": {
+		"defaultMessage": "Quilt"
+	},
+	"content.metadata-filter.long-press-reset": {
+		"defaultMessage": "长按重置筛选"
+	},
+	"content.metadata-filter.open-source": {
+		"defaultMessage": "开源"
+	},
+	"content.metadata-filter.open-source.closed": {
+		"defaultMessage": "非开源"
+	},
+	"content.metadata-filter.open-source.open": {
+		"defaultMessage": "开源"
+	},
+	"content.metadata-filter.search": {
+		"defaultMessage": "搜索..."
+	},
+	"content.metadata-filter.select-all": {
+		"defaultMessage": "全选"
+	},
+	"content.metadata-filter.source": {
+		"defaultMessage": "来源"
+	},
+	"content.metadata-filter.source.curseforge": {
+		"defaultMessage": "CurseForge"
+	},
+	"content.metadata-filter.source.imported-modpack": {
+		"defaultMessage": "导入整合包"
+	},
+	"content.metadata-filter.source.local": {
+		"defaultMessage": "本地"
+	},
+	"content.metadata-filter.source.modrinth-modpack": {
+		"defaultMessage": "Modrinth 整合包"
+	},
+	"content.metadata-filter.source.server-project": {
+		"defaultMessage": "服务器项目"
+	},
+	"content.metadata-filter.source.shared-instance": {
+		"defaultMessage": "共享实例"
+	},
+	"content.metadata-filter.state": {
+		"defaultMessage": "状态"
+	},
+	"content.metadata-filter.state.disabled": {
+		"defaultMessage": "已禁用"
+	},
+	"content.metadata-filter.state.enabled": {
+		"defaultMessage": "已启用"
+	},
+	"content.metadata-filter.toggle": {
+		"defaultMessage": "筛选"
+	},
+	"content.metadata-filter.toggle-active": {
+		"defaultMessage": "筛选（已启用 {count, number} 项）"
+	},
+	"content.metadata-filter.unknown": {
+		"defaultMessage": "未知"
+	},
+	"content.metadata-filter.update.available": {
+		"defaultMessage": "可更新"
+	},
+	"content.metadata-filter.update.up-to-date": {
+		"defaultMessage": "已是最新"
+	},
+	"content.metadata-filter.updates": {
+		"defaultMessage": "更新"
+	},
+	"content.page-layout.sort.file-name-ascending": {
+		"defaultMessage": "文件名 A-Z"
+	},
+	"content.page-layout.sort.file-name-descending": {
+		"defaultMessage": "文件名 Z-A"
+	},
+	"content.page-layout.sort.project-name-ascending": {
+		"defaultMessage": "项目名称 A-Z"
+	},
+	"content.page-layout.sort.project-name-descending": {
+		"defaultMessage": "项目名称 Z-A"
+	},
+	"content.page-layout.pin-view": {
+		"defaultMessage": "固定当前视图"
+	},
+	"content.page-layout.reset-view": {
+		"defaultMessage": "重置视图"
+	},
+	"content.page-layout.unpin-view": {
+		"defaultMessage": "取消固定当前视图"
+	},
+	"content.page-layout.view-options": {
+		"defaultMessage": "视图选项"
+	},
+	"creation-flow.modal.custom-setup.adjunct.hint": {
+		"defaultMessage": "下载前会自动选择兼容版本。"
+	},
+	"creation-flow.modal.custom-setup.adjunct.checking-compatibility": {
+		"defaultMessage": "正在检查兼容性……"
+	},
+	"creation-flow.modal.custom-setup.adjunct.compatibility-load-failed": {
+		"defaultMessage": "无法验证 {loader} 的兼容性。"
+	},
+	"creation-flow.modal.custom-setup.adjunct.label": {
+		"defaultMessage": "附加加载器"
+	},
+	"creation-flow.modal.custom-setup.adjunct.optifabric-load-failed": {
+		"defaultMessage": "无法验证 OptiFabric 兼容性。"
+	},
+	"creation-flow.modal.custom-setup.adjunct.optifabric-unsupported": {
+		"defaultMessage": "OptiFine 需要 OptiFabric，但当前游戏版本没有兼容版本。"
+	},
+	"creation-flow.modal.custom-setup.adjunct.primary-unsupported": {
+		"defaultMessage": "所选主加载器不支持当前游戏版本。"
+	},
+	"creation-flow.modal.custom-setup.adjunct.select-game-version": {
+		"defaultMessage": "请先选择游戏版本以检查兼容性。"
+	},
+	"creation-flow.modal.custom-setup.adjunct.unsupported": {
+		"defaultMessage": "{loader} 没有支持当前游戏版本的兼容版本。"
+	},
+	"creation-flow.modal.custom-setup.loader.compatibility-load-failed": {
+		"defaultMessage": "无法验证加载器兼容性"
+	},
+	"creation-flow.modal.import-instance.import-prompt": {
+		"defaultMessage": "拖拽启动器文件夹、整合包文件或 .minecraft 文件夹即可一键导入实例"
+	},
+	"creation-flow.modal.import-instance.select-file": {
+		"defaultMessage": "选择要导入的文件"
+	},
+	"files.editor.share-truncated-warning": {
+		"defaultMessage": "日志文件过大，已自动截取最后 9MB 上传。"
+	},
+	"files.navbar.share-log": {
+		"defaultMessage": "分享日志"
+	},
+	"installation-settings.loader-version.error": {
+		"defaultMessage": "加载加载器版本数据失败"
+	},
+	"installation-settings.loader-version.unsupported": {
+		"defaultMessage": "此加载器不支持所选游戏版本"
+	},
+	"multiselect.selection-actions.label": {
+		"defaultMessage": "已选 {count, number} 项"
+	},
+	"project.about.links.mcmod": {
+		"defaultMessage": "MC Mod"
+	},
+	"project.versions.table.downloads": {
+		"defaultMessage": "下载量"
+	},
+	"project.versions.table.environment": {
+		"defaultMessage": "运行环境"
+	},
+	"project.versions.table.game-version": {
+		"defaultMessage": "游戏版本"
+	},
+	"project.versions.table.platform": {
+		"defaultMessage": "平台"
+	},
+	"project.versions.table.published": {
+		"defaultMessage": "发布时间"
+	},
+	"project.versions.table.version": {
+		"defaultMessage": "版本"
+	},
+	"project.versions.filter.projectChannels": {
+		"defaultMessage": "更新通道"
+	},
+	"project.versions.filter.gameVersions": {
+		"defaultMessage": "游戏版本"
+	},
+	"drop.confirm.not-this": {
+		"message": "作為其他內容匯入"
+	},
+	"app.drop.batch.scan.title": {
+		"message": "正在識別 {count, plural, one {# 個檔案} other {# 個檔案}}…"
+	},
+	"app.drop.batch.scan.subtitle": {
+		"message": "已識別 {done} / {total}"
+	},
+	"app.drop.batch.scan.cancel": {
+		"message": "取消"
+	},
+	"app.drop.batch.scan.pending": {
+		"message": "等待"
+	},
+	"app.drop.batch.scan.scanning": {
+		"message": "掃描中"
+	},
+	"app.drop.batch.scan.done": {
+		"message": "已識別"
+	},
+	"app.drop.batch.scan.skipped": {
+		"message": "已跳過"
+	},
+	"app.drop.batch.scan.error": {
+		"message": "失敗"
+	},
+	"drop.symlink_method.reset_changes": {
+		"message": "重置更改"
 	},
 	"drop.symlink_method.next": {
 		"message": "下一步"
@@ -4471,18 +4483,6 @@
 	},
 	"drop.symlink_method.stats_network_tooltip": {
 		"message": "需要下載"
-	},
-	"instances.updater-modal.search-compat": {
-		"message": "尋找相容版本"
-	},
-	"project-type.schematic.category": {
-		"message": "投影"
-	},
-	"project-type.schematic.capital": {
-		"message": "{count, plural, one {投影} other {投影}}"
-	},
-	"project-type.schematic.lowercase": {
-		"message": "{count, plural, one {投影} other {投影}}"
 	},
 	"creation-flow.modal.import-instance.select-folder.description": {
 		"defaultMessage": "导入启动器文件夹或 .minecraft 文件夹"
