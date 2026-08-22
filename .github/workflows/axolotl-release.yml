@@ -230,9 +230,53 @@ jobs:
             throw "Binary not found at $appExe"
           }
 
+  nix-build:
+    name: Nix build (${{ matrix.name }})
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Linux x64
+            system: x86_64-linux
+            runner: ubuntu-24.04
+          - name: Linux arm64
+            system: aarch64-linux
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - name: Check out source
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          submodules: recursive
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@13d8dd58da0234aa297dedd986986ccb8e7f3e24 # v31.11.1
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Require Cachix push token
+        env:
+          CACHIX_AUTH_TOKEN: ${{ secrets.CACHIX_AUTH_TOKEN }}
+        run: |
+          if [[ -z "$CACHIX_AUTH_TOKEN" ]]; then
+            echo "::error::CACHIX_AUTH_TOKEN is not configured"
+            exit 1
+          fi
+
+      - name: Configure Cachix
+        uses: cachix/cachix-action@5f2d7c5294214f71b873db4b969586b980625e71 # v17
+        with:
+          name: axolotl-launcher
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+
+      - name: Build Nix package
+        run: nix build ".#packages.${{ matrix.system }}.axolotl-launcher" --print-build-logs
+
   verify-and-publish:
     name: Verify and publish
-    needs: build
+    needs: [build, nix-build]
     runs-on: ubuntu-24.04
     steps:
       - name: Check out source

@@ -93,6 +93,7 @@
 			"inputs": ["$TURBO_DEFAULT$", ".env*"],
 			"env": ["CARGO_*", "RUST_*", "RUSTFLAGS", "FORCE_COLOR", "NEXTEST_*"],
 			"passThroughEnv": [
+				"PKG_CONFIG_PATH",
 				"DISPLAY",
 				"WEBKIT_DISABLE_DMABUF_RENDERER",
 				"JAVA_HOME",
