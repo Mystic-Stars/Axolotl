@@ -25,6 +25,14 @@ jobs:
         with:
           github-token: ${{ github.token }}
           script: |
+            // GitHub's automatic token cannot write to PRs that come from forks
+            // ("Resource not accessible by integration"), so skip the changelog
+            // comment for external contributions instead of failing the check.
+            if (context.payload.pull_request?.head?.repo?.fork) {
+              core.info('Fork PR - skipping changelog comment (automatic token is read-only)');
+              return;
+            }
+
             const marker = '<!-- changelog -->';
             const mergedMarker = '<!-- changelog-merged -->';
 
