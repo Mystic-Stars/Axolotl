@@ -35,6 +35,20 @@ pub fn read_jar_manifest(path: &Path) -> Option<JarManifest> {
     Some(parse_manifest(&content))
 }
 
+/// Read and parse `META-INF/MANIFEST.MF` from an already-opened ZIP archive.
+///
+/// Used by mod metadata extraction to resolve Gradle placeholders such as
+/// `${file.jarVersion}` in Forge `mods.toml` files.
+pub(crate) fn archive_manifest<R: std::io::Read + std::io::Seek>(
+    archive: &mut zip::ZipArchive<R>,
+) -> Option<JarManifest> {
+    let mut entry = archive.by_name("META-INF/MANIFEST.MF").ok()?;
+    let mut content = String::new();
+    entry.read_to_string(&mut content).ok()?;
+
+    Some(parse_manifest(&content))
+}
+
 /// Parse raw MANIFEST.MF text into a `JarManifest`.
 ///
 /// Handles continuation lines (lines starting with a space) and

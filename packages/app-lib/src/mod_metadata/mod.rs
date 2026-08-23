@@ -171,9 +171,11 @@ fn try_toml_path(
     archive: &mut zip::ZipArchive<std::io::Cursor<&[u8]>>,
     path: &str,
 ) -> Option<LocalModMetadata> {
-    let mut file = archive.by_name(path).ok()?;
     let mut content = String::new();
-    std::io::Read::read_to_string(&mut file, &mut content).ok()?;
+    {
+        let mut file = archive.by_name(path).ok()?;
+        std::io::Read::read_to_string(&mut file, &mut content).ok()?;
+    }
     let parsed: toml_mod::ModsToml = toml::from_str(&content).ok()?;
 
     // A mod jar may declare several [[mods]] entries (bundled mods); report
@@ -240,10 +242,16 @@ fn try_toml_path(
         })
         .unwrap_or_default();
 
+    // Forge `mods.toml` commonly stores the version as a Gradle placeholder
+    // (e.g. `${file.jarVersion}`) that the loader resolves at runtime from the
+    // JAR manifest's `Implementation-Version`. Resolve it here so the
+    // placeholder never surfaces as a version in the UI.
+    let version = resolve_toml_version(entry.version.clone(), archive);
+
     Some(LocalModMetadata {
         mod_id,
         name: entry.display_name,
-        version: entry.version,
+        version,
         authors,
         description: entry.description,
         url: entry.display_url,
@@ -308,4 +316,94 @@ fn extract_contact_url(contact: &Option<serde_json::Value>) -> Option<String> {
     }
     // Fallback: return the first string field found.
     obj.values().find_map(|v| v.as_str().map(String::from))
+}
+
+/// Resolve a Forge `mods.toml` version string.
+///
+/// Gradle builds often write an unresolved placeholder (e.g.
+/// `${file.jarVersion}`) which the loader substitutes from the JAR manifest at
+/// runtime; surface the real `Implementation-Version` from the manifest when
+/// present, falling back to the original value otherwise.
+fn resolve_toml_version(
+    version: Option<String>,
+    archive: &mut zip::ZipArchive<std::io::Cursor<&[u8]>>,
+) -> Option<String> {
+    let placeholder = version.clone()?;
+    if !placeholder.starts_with("${") {
+        return Some(placeholder);
+    }
+
+    Some(
+        manifest::archive_manifest(archive)
+            .and_then(|manifest| manifest.implementation_version)
+            .filter(|resolved| !resolved.trim().is_empty())
+            .unwrap_or(placeholder),
+    )
+}
+
+#[cfg(test)]
+mod tests {
+    use std::io::Write;
+
+    fn build_jar(entries: &[(&str, &str)]) -> bytes::Bytes {
+        let mut buffer = std::io::Cursor::new(Vec::new());
+        {
+            let mut archive = zip::ZipWriter::new(&mut buffer);
+            let options = zip::write::FileOptions::<()>::default();
+            for (name, content) in entries {
+                archive.start_file(*name, options).expect("start zip entry");
+                archive
+                    .write_all(content.as_bytes())
+                    .expect("write zip entry");
+            }
+            archive.finish().expect("finish zip");
+        }
+        bytes::Bytes::from(buffer.into_inner())
+    }
+
+    #[test]
+    fn forge_placeholder_version_resolves_from_manifest() {
+        let jar = build_jar(&[
+            (
+                "META-INF/MANIFEST.MF",
+                "Manifest-Version: 1.0\nImplementation-Title: Example\nImplementation-Version: 1.2.3\n",
+            ),
+            (
+                "META-INF/mods.toml",
+                "modLoader = \"javafml\"\nloaderVersion = \"[4,)\"\n\n[[mods]]\nmodId = \"example\"\ndisplayName = \"Example\"\nversion = \"${file.jarVersion}\"\n",
+            ),
+        ]);
+
+        let meta = super::extract_mod_metadata(&jar).expect("mod metadata");
+        assert_eq!(meta.mod_id, "example");
+        assert_eq!(meta.version.as_deref(), Some("1.2.3"));
+    }
+
+    #[test]
+    fn resolved_mods_toml_version_is_kept_as_is() {
+        let jar = build_jar(&[
+            (
+                "META-INF/MANIFEST.MF",
+                "Manifest-Version: 1.0\nImplementation-Version: 9.9.9\n",
+            ),
+            (
+                "META-INF/mods.toml",
+                "[[mods]]\nmodId = \"example\"\nversion = \"1.0.0\"\n",
+            ),
+        ]);
+
+        let meta = super::extract_mod_metadata(&jar).expect("mod metadata");
+        assert_eq!(meta.version.as_deref(), Some("1.0.0"));
+    }
+
+    #[test]
+    fn placeholder_version_without_manifest_attribute_is_kept() {
+        let jar = build_jar(&[(
+            "META-INF/mods.toml",
+            "[[mods]]\nmodId = \"example\"\nversion = \"${file.jarVersion}\"\n",
+        )]);
+
+        let meta = super::extract_mod_metadata(&jar).expect("mod metadata");
+        assert_eq!(meta.version.as_deref(), Some("${file.jarVersion}"));
+    }
 }
