@@ -396,7 +396,7 @@ async function fetchMirrorDescription(hit: TranslatableHit): Promise<string | nu
  *
  * @param hits      Search result hits that carry at least provider + ID and
  *                  description fields.
- * @param locale    Target locale; descriptions are translated into this locale.
+ * @param locale    Fallback target locale when no target language is configured.
  * @param force     - When true, skip the `auto_translate` setting check;
  *                  always translate.
  * @param useServer - If true, sends the description via the Rust backend;
@@ -409,11 +409,13 @@ export async function translateSearchDescriptions<T extends TranslatableHit>(
 	useServer = false,
 ): Promise<T[]> {
 	if (hits.length === 0) return hits
+	let targetLanguage = locale
 	if (!_force) {
 		const settings = await getTranslationSettings()
 		if (!settings.auto_translate) return hits
+		targetLanguage = settings.target_language?.trim() || locale
 	}
-	if (!locale || locale === 'en-US') return hits
+	if (!targetLanguage || targetLanguage === 'en-US') return hits
 
 	if (useServer) {
 		const segments: TranslationSegment[] = hits.map((hit) => ({
@@ -422,7 +424,7 @@ export async function translateSearchDescriptions<T extends TranslatableHit>(
 			format: 'html',
 		}))
 		const request: TranslationRequest = {
-			target_language: locale,
+			target_language: targetLanguage,
 			source_language: 'en',
 			segments,
 			context: {
