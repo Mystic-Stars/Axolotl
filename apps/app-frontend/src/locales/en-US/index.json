@@ -2267,6 +2267,123 @@
   "app.instance.create-shortcut": {
     "message": "Create shortcut"
   },
+  "app.instance.dependencies.all-sources": {
+    "message": "All sources"
+  },
+  "app.instance.dependencies.all-statuses": {
+    "message": "All statuses"
+  },
+  "app.instance.dependencies.all-types": {
+    "message": "All types"
+  },
+  "app.instance.dependencies.cycle": {
+    "message": "Cycle"
+  },
+  "app.instance.dependencies.cycle-reference": {
+    "message": "Cycle continues here"
+  },
+  "app.instance.dependencies.direct-dependencies": {
+    "message": "Direct dependencies"
+  },
+  "app.instance.dependencies.direct-dependents": {
+    "message": "Direct dependents"
+  },
+  "app.instance.dependencies.disabled": {
+    "message": "Disabled"
+  },
+  "app.instance.dependencies.file": {
+    "message": "File {file}"
+  },
+  "app.instance.dependencies.graph-direction": {
+    "message": "Arrows point from dependent content to the content it uses."
+  },
+  "app.instance.dependencies.graph-hint": {
+    "message": "Drag the canvas to explore. Drag a card to arrange it."
+  },
+  "app.instance.dependencies.graph-view": {
+    "message": "Relationship graph"
+  },
+  "app.instance.dependencies.header": {
+    "message": "Dependency relationships"
+  },
+  "app.instance.dependencies.isolated-summary": {
+    "message": "{count, number} isolated items are kept out of the relationship graph."
+  },
+  "app.instance.dependencies.local-discovered": {
+    "message": "Local"
+  },
+  "app.instance.dependencies.missing": {
+    "message": "Missing"
+  },
+  "app.instance.dependencies.no-content": {
+    "message": "No content to analyze."
+  },
+  "app.instance.dependencies.no-dependencies": {
+    "message": "No dependency edges were found."
+  },
+  "app.instance.dependencies.no-graph-relations": {
+    "message": "No visible relationships match these filters."
+  },
+  "app.instance.dependencies.no-matches": {
+    "message": "No dependencies match these filters."
+  },
+  "app.instance.dependencies.only-related": {
+    "message": "Only show related content"
+  },
+  "app.instance.dependencies.orphaned": {
+    "message": "Orphaned"
+  },
+  "app.instance.dependencies.pack-managed": {
+    "message": "Pack managed"
+  },
+  "app.instance.dependencies.reference": {
+    "message": "Referenced elsewhere"
+  },
+  "app.instance.dependencies.required-by": {
+    "message": "Dependents"
+  },
+  "app.instance.dependencies.requires": {
+    "message": "Dependencies"
+  },
+  "app.instance.dependencies.reset-zoom": {
+    "message": "Fit graph to view"
+  },
+  "app.instance.dependencies.search": {
+    "message": "Search dependencies..."
+  },
+  "app.instance.dependencies.show-isolated": {
+    "message": "Show isolated content"
+  },
+  "app.instance.dependencies.source": {
+    "message": "Source"
+  },
+  "app.instance.dependencies.stats": {
+    "message": "{nodes, number} items, {edges, number} relationships"
+  },
+  "app.instance.dependencies.status": {
+    "message": "Status"
+  },
+  "app.instance.dependencies.tree-view": {
+    "message": "Dependency tree"
+  },
+  "app.instance.dependencies.unresolved": {
+    "message": "Unresolved"
+  },
+  "app.instance.dependencies.unresolved-label": {
+    "message": "Dependency details are unavailable."
+  },
+  "app.instance.dependencies.user-added": {
+    "message": "User added"
+  },
+  "app.instance.dependencies.version": {
+    "message": "Version {version}"
+  },
+  "app.instance.dependencies.zoom-in": {
+    "message": "Zoom in"
+  },
+  "app.instance.dependencies.zoom-out": {
+    "message": "Zoom out"
+  },
   "app.instance.disable-selected": {
     "message": "Disable selected"
   },

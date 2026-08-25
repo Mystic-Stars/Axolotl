@@ -2348,11 +2348,20 @@
   "app.instance.dependencies.file": {
     "message": "文件 {file}"
   },
+  "app.instance.dependencies.graph-direction": {
+    "message": "箭头从依赖方指向它所使用的内容。"
+  },
+  "app.instance.dependencies.graph-hint": {
+    "message": "拖动画布以浏览关系；拖动卡片可调整布局。"
+  },
   "app.instance.dependencies.graph-view": {
     "message": "关系图"
   },
   "app.instance.dependencies.header": {
     "message": "依赖关系"
+  },
+  "app.instance.dependencies.isolated-summary": {
+    "message": "{count, number} 个孤立项目未显示在关系图中。"
   },
   "app.instance.dependencies.local-discovered": {
     "message": "本地发现"
@@ -2365,6 +2374,9 @@
   },
   "app.instance.dependencies.no-dependencies": {
     "message": "未发现依赖关系。"
+  },
+  "app.instance.dependencies.no-graph-relations": {
+    "message": "当前筛选条件下没有可显示的关系。"
   },
   "app.instance.dependencies.no-matches": {
     "message": "没有依赖项符合这些筛选条件。"
@@ -2393,11 +2405,8 @@
   "app.instance.dependencies.search": {
     "message": "搜索依赖项……"
   },
-  "app.instance.dependencies.show-all": {
-    "message": "显示全部内容"
-  },
-  "app.instance.dependencies.show-connected": {
-    "message": "显示关联内容"
+  "app.instance.dependencies.show-isolated": {
+    "message": "显示孤立内容"
   },
   "app.instance.dependencies.source": {
     "message": "来源"
@@ -9778,5 +9787,11 @@
   },
   "unknown-pack-warning-modal.warning.title": {
     "message": "未知文件警告"
+  },
+  "app.instance.dependencies.graph-direction": {
+    "defaultMessage": "箭头从依赖方指向它使用的内容。"
+  },
+  "app.instance.dependencies.no-graph-relations": {
+    "defaultMessage": "当前筛选条件下没有可显示的关系。"
   }
 }

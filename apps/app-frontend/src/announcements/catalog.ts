@@ -33,6 +33,24 @@ export const ANNOUNCEMENT_CHANGE_TYPES: readonly AnnouncementChangeType[] = [
 
 export const launcherAnnouncements: readonly LauncherAnnouncement[] = [
 	{
+		id: 'launcher-1.8.15',
+		version: '1.8.15',
+		publishedAt: '2026-08-25',
+		title: {
+			'en-US': 'Axolotl Launcher 1.8.15',
+			'zh-CN': 'Axolotl Launcher 1.8.15',
+		},
+		changes: {
+			added: [
+				{
+					'en-US':
+						'Added a dependency relationship graph to the Content tab for exploring installed content and its dependencies.',
+					'zh-CN': '内容页新增依赖关系图，可查看已安装内容及其依赖关系。',
+				},
+			],
+		},
+	},
+	{
 		id: 'launcher-1.8.13',
 		version: '1.8.13',
 		publishedAt: '2026-08-24',

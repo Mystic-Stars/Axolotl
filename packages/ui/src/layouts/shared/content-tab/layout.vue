@@ -1073,8 +1073,10 @@ const confirmUnlinkModal = ref<InstanceType<typeof ConfirmUnlinkModal>>()
 					:disable-add-content="ctx.disableAddContent?.value"
 					:disable-add-content-tooltip="ctx.disableAddContentTooltip"
 					:refreshing="refreshing"
+					:view-dependencies="!!ctx.viewDependencies"
 					@browse="ctx.browse"
 					@refresh="handleRefresh"
+					@view-dependencies="ctx.viewDependencies?.()"
 				/>
 
 				<ContentTypeFilter

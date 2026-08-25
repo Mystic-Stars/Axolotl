@@ -1052,6 +1052,9 @@
   "content.page-layout.update-all": {
     "defaultMessage": "Update all"
   },
+  "content.page-layout.view-dependencies": {
+    "defaultMessage": "View dependencies"
+  },
   "content.page-layout.view-options": {
     "defaultMessage": "View options"
   },

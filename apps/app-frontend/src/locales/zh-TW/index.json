@@ -9631,5 +9631,122 @@
   },
   "unknown-pack-warning-modal.warning.title": {
     "message": "未知檔案警告"
+  },
+  "app.instance.dependencies.all-sources": {
+    "message": "所有來源"
+  },
+  "app.instance.dependencies.all-statuses": {
+    "message": "所有狀態"
+  },
+  "app.instance.dependencies.all-types": {
+    "message": "所有類型"
+  },
+  "app.instance.dependencies.cycle": {
+    "message": "循環依賴"
+  },
+  "app.instance.dependencies.cycle-reference": {
+    "message": "循環依賴在此繼續"
+  },
+  "app.instance.dependencies.direct-dependencies": {
+    "message": "直接依賴"
+  },
+  "app.instance.dependencies.direct-dependents": {
+    "message": "直接依賴方"
+  },
+  "app.instance.dependencies.disabled": {
+    "message": "已停用"
+  },
+  "app.instance.dependencies.file": {
+    "message": "檔案 {file}"
+  },
+  "app.instance.dependencies.graph-hint": {
+    "message": "拖曳畫布以瀏覽關係；拖曳卡片可調整配置。"
+  },
+  "app.instance.dependencies.graph-view": {
+    "message": "關係圖"
+  },
+  "app.instance.dependencies.header": {
+    "message": "依賴關係"
+  },
+  "app.instance.dependencies.isolated-summary": {
+    "message": "{count, number} 個孤立項目未顯示在關係圖中。"
+  },
+  "app.instance.dependencies.local-discovered": {
+    "message": "本機發現"
+  },
+  "app.instance.dependencies.missing": {
+    "message": "遺失"
+  },
+  "app.instance.dependencies.no-content": {
+    "message": "沒有可分析的內容。"
+  },
+  "app.instance.dependencies.no-dependencies": {
+    "message": "找不到依賴關係。"
+  },
+  "app.instance.dependencies.no-graph-relations": {
+    "message": "目前篩選條件下沒有可顯示的關係。"
+  },
+  "app.instance.dependencies.graph-direction": {
+    "message": "箭頭從依賴方指向它使用的內容。"
+  },
+  "app.instance.dependencies.no-matches": {
+    "message": "沒有依賴項符合這些篩選條件。"
+  },
+  "app.instance.dependencies.only-related": {
+    "message": "只顯示相關內容"
+  },
+  "app.instance.dependencies.orphaned": {
+    "message": "孤立依賴"
+  },
+  "app.instance.dependencies.pack-managed": {
+    "message": "由模組包管理"
+  },
+  "app.instance.dependencies.reference": {
+    "message": "在其他位置被引用"
+  },
+  "app.instance.dependencies.required-by": {
+    "message": "依賴方"
+  },
+  "app.instance.dependencies.requires": {
+    "message": "依賴項"
+  },
+  "app.instance.dependencies.reset-zoom": {
+    "message": "重設關係圖檢視"
+  },
+  "app.instance.dependencies.search": {
+    "message": "搜尋依賴項……"
+  },
+  "app.instance.dependencies.show-isolated": {
+    "message": "顯示孤立內容"
+  },
+  "app.instance.dependencies.source": {
+    "message": "來源"
+  },
+  "app.instance.dependencies.stats": {
+    "message": "{nodes, number} 個項目，{edges, number} 個關係"
+  },
+  "app.instance.dependencies.status": {
+    "message": "狀態"
+  },
+  "app.instance.dependencies.tree-view": {
+    "message": "依賴樹"
+  },
+  "app.instance.dependencies.unresolved": {
+    "message": "未解析"
+  },
+  "app.instance.dependencies.unresolved-label": {
+    "message": "依賴詳細資料無法使用。"
+  },
+  "app.instance.dependencies.user-added": {
+    "message": "使用者新增"
+  },
+  "app.instance.dependencies.version": {
+    "message": "版本 {version}"
+  },
+  "app.instance.dependencies.zoom-in": {
+    "message": "放大"
+  },
+  "app.instance.dependencies.zoom-out": {
+    "message": "縮小"
   }
 }
