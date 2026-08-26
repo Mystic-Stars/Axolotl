@@ -42,6 +42,7 @@ const WALK_SPEED_MINIMUM = 4
 const WALK_SPEED_MAXIMUM = 60
 const WALK_SPEED_MULTIPLIER = 0.85
 const NATIVE_WALK_MOUSE_DELTA_MAXIMUM = 128
+const LAYER_MAX = 999
 
 export function filterNativeWalkMouseDelta(delta: number) {
 	return Number.isFinite(delta) && Math.abs(delta) <= NATIVE_WALK_MOUSE_DELTA_MAXIMUM ? delta : 0
@@ -651,7 +652,7 @@ export class SchematicPreviewScene {
 		}
 		return new DefaultMaterial(
 			translucent,
-			{ clipY: { value: new THREE.Vector2(0, 999) } },
+			{ clipY: { value: new THREE.Vector2(0, LAYER_MAX) } },
 			texture,
 		)
 		// return new THREE.MeshLambertMaterial({
@@ -732,22 +733,28 @@ export class SchematicPreviewScene {
 		return new THREE.Box3(center.clone().addScalar(-0.5), center.clone().addScalar(0.5))
 	}
 
+	private getLayerRange() {
+		const clipStart = this.layerRange && this.layerRange[0] ? this.layerRange[0] : 0
+		const clipEnd =
+			this.layerRange && Number.isInteger(this.layerRange[1]) ? this.layerRange[1] : LAYER_MAX
+
+		return [clipStart, clipEnd]
+	}
+
 	private applyClippingPlanes() {
+		const layerRange = this.getLayerRange()
+
 		const clippingPlanes = this.layerRange
 			? [
-					new THREE.Plane(new THREE.Vector3(0, 1, 0), -this.layerRange[0]),
-					new THREE.Plane(new THREE.Vector3(0, -1, 0), this.layerRange[1] + 1),
+					new THREE.Plane(new THREE.Vector3(0, 1, 0), -layerRange[0]),
+					new THREE.Plane(new THREE.Vector3(0, -1, 0), layerRange[1] + 1),
 				]
 			: []
 		this.opaqueMaterial.clippingPlanes = clippingPlanes
 		this.translucentMaterial.clippingPlanes = clippingPlanes
 
-		const clipStart = this.layerRange && this.layerRange[0] ? this.layerRange[0] : 0
-		const clipEnd =
-			this.layerRange && Number.isInteger(this.layerRange[1]) ? this.layerRange[1] : 999
-
-		this.translucentMaterial.setClipY(new THREE.Vector2(clipStart, clipEnd))
-		this.opaqueMaterial.setClipY(new THREE.Vector2(clipStart, clipEnd))
+		this.translucentMaterial.setClipY(new THREE.Vector2(layerRange[0], layerRange[1]))
+		this.opaqueMaterial.setClipY(new THREE.Vector2(layerRange[0], layerRange[1]))
 
 		this.opaqueMaterial.needsUpdate = true
 		this.translucentMaterial.needsUpdate = true
