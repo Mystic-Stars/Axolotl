@@ -13,6 +13,8 @@ use tauri::{
 };
 use theseus::prelude::CommandPayload;
 
+type AppHandle = tauri::AppHandle<crate::AppRuntime>;
+
 const MAIN_WINDOW_LABEL: &str = "main";
 const LIGHTWEIGHT_HOST_WINDOW_LABEL: &str = "lightweight-host";
 const TRAY_ID: &str = "main";
