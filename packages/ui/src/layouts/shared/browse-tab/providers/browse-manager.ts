@@ -49,7 +49,9 @@ export interface BrowseManagerContext {
 		result: Labrinth.Search.v3.ResultSearchProject,
 	) => string | RouteLocationRaw
 
-	selectableProjectTypes: ComputedRef<{ label: string; href: string; shown?: boolean }[]>
+	selectableProjectTypes: ComputedRef<
+		{ label: string; href: string; shown?: boolean; onboardingId?: string }[]
+	>
 	showProjectTypeTabs: ComputedRef<boolean>
 
 	variant: 'app' | 'web'

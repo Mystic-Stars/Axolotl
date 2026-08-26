@@ -11,51 +11,66 @@
 		:disable-close="resolveCtxFn(currentStage.disableClose, context)"
 	>
 		<template #title>
-			<div
-				v-if="breadcrumbs && !resolveCtxFn(currentStage.nonProgressStage, context)"
-				class="relative w-full"
-			>
-				<div
-					class="pointer-events-none absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-bg-raised to-transparent z-10 transition-opacity duration-200"
-					:class="showLeftShadow ? 'opacity-100' : 'opacity-0'"
-				/>
-				<div
-					ref="breadcrumbScroller"
-					class="flex w-full overflow-x-auto overflow-y-hidden scrollbar-hide pr-6"
-					@wheel.prevent="onBreadcrumbWheel"
-					@scroll="updateScrollShadows"
+			<div class="flex w-full min-w-0 items-center gap-3">
+				<ButtonStyled
+					v-if="backButtonVisible"
+					class="shrink-0"
+					type="outlined"
+					circular
+					size="small"
 				>
-					<template v-for="(stage, index) in breadcrumbStages" :key="stage.id">
-						<div
-							:ref="(el) => setBreadcrumbRef(stage.id, el as HTMLElement | null)"
-							class="flex w-max items-center"
-						>
-							<button
-								class="bg-transparent active:scale-95 font-bold text-secondary p-0 w-max py-3 px-1"
-								:class="{
-									'!text-contrast font-bold': resolveCtxFn(currentStage.id, context) === stage.id,
-									'font-bold': resolveCtxFn(currentStage.id, context) !== stage.id,
-									'opacity-50 cursor-not-allowed': cannotNavigateToStage(index),
-								}"
-								:disabled="cannotNavigateToStage(index)"
-								@click="setStage(stage.id)"
-							>
-								{{ resolveCtxFn(stage.title, context) }}
-							</button>
-							<ChevronRightIcon
-								v-if="index < breadcrumbStages.length - 1"
-								class="h-5 w-5 text-secondary"
-								stroke-width="3"
-							/>
-						</div>
-					</template>
-				</div>
+					<button v-tooltip="backButtonLabel" :aria-label="backButtonLabel" @click="prevStage()">
+						<ChevronLeftIcon />
+					</button>
+				</ButtonStyled>
 				<div
-					class="pointer-events-none absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-bg-raised to-transparent z-10 transition-opacity duration-200"
-					:class="showRightShadow ? 'opacity-100' : 'opacity-0'"
-				/>
+					v-if="breadcrumbs && !resolveCtxFn(currentStage.nonProgressStage, context)"
+					class="relative min-w-0 flex-1"
+				>
+					<div
+						class="pointer-events-none absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-bg-raised to-transparent z-10 transition-opacity duration-200"
+						:class="showLeftShadow ? 'opacity-100' : 'opacity-0'"
+					/>
+					<div
+						ref="breadcrumbScroller"
+						class="flex w-full overflow-x-auto overflow-y-hidden scrollbar-hide pr-6"
+						@wheel.prevent="onBreadcrumbWheel"
+						@scroll="updateScrollShadows"
+					>
+						<template v-for="(stage, index) in breadcrumbStages" :key="stage.id">
+							<div
+								:ref="(el) => setBreadcrumbRef(stage.id, el as HTMLElement | null)"
+								class="flex w-max items-center"
+							>
+								<button
+									class="bg-transparent active:scale-95 font-bold text-secondary p-0 w-max py-3 px-1"
+									:class="{
+										'!text-contrast font-bold': resolveCtxFn(currentStage.id, context) === stage.id,
+										'font-bold': resolveCtxFn(currentStage.id, context) !== stage.id,
+										'opacity-50 cursor-not-allowed': cannotNavigateToStage(index),
+									}"
+									:disabled="cannotNavigateToStage(index)"
+									@click="setStage(stage.id)"
+								>
+									{{ resolveCtxFn(stage.title, context) }}
+								</button>
+								<ChevronRightIcon
+									v-if="index < breadcrumbStages.length - 1"
+									class="h-5 w-5 text-secondary"
+									stroke-width="3"
+								/>
+							</div>
+						</template>
+					</div>
+					<div
+						class="pointer-events-none absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-bg-raised to-transparent z-10 transition-opacity duration-200"
+						:class="showRightShadow ? 'opacity-100' : 'opacity-0'"
+					/>
+				</div>
+				<span v-else class="min-w-0 flex-1 text-lg font-bold text-contrast sm:text-xl">{{
+					resolvedTitle
+				}}</span>
 			</div>
-			<span v-else class="text-lg font-bold text-contrast sm:text-xl">{{ resolvedTitle }}</span>
 		</template>
 
 		<progress
@@ -70,7 +85,7 @@
 		<template #actions>
 			<div
 				class="flex flex-col justify-end gap-2 sm:flex-row"
-				:class="leftButtonConfig || rightButtonConfig ? 'mt-4' : ''"
+				:class="leftButtonConfig || rightButtonConfig || cancelButton ? 'mt-4' : ''"
 			>
 				<ButtonStyled v-if="leftButtonConfig" type="outlined">
 					<button
@@ -81,6 +96,11 @@
 					>
 						<component :is="leftButtonConfig.icon" />
 						{{ leftButtonConfig.label }}
+					</button>
+				</ButtonStyled>
+				<ButtonStyled v-if="cancelButton" type="outlined">
+					<button :disabled="cancelButton.disabled" @click="cancelButton.onClick">
+						{{ cancelButton.label }}
 					</button>
 				</ButtonStyled>
 				<ButtonStyled v-if="rightButtonConfig" :color="rightButtonConfig.color">
@@ -119,8 +139,8 @@
 </template>
 
 <script lang="ts">
-import { ChevronRightIcon, SpinnerIcon } from '@modrinth/assets'
-import { ButtonStyled, NewModal } from '@modrinth/ui'
+import { ChevronLeftIcon, ChevronRightIcon, SpinnerIcon } from '@modrinth/assets'
+import { ButtonStyled, commonMessages, NewModal, useVIntl } from '@modrinth/ui'
 import type { Component } from 'vue'
 import { computed, nextTick, ref, useTemplateRef, watch } from 'vue'
 
@@ -171,14 +191,31 @@ const props = withDefaults(
 		fade?: 'standard' | 'warning' | 'danger'
 		disableProgress?: boolean
 		closeOnClickOutside?: boolean
+		/** Whether to show a back (previous stage) button at the left of the title. */
+		backButtonEnabled?: MaybeCtxFn<T, boolean>
+		/** Renders an extra outlined button at the bottom right, before the primary action. */
+		cancelButton?: {
+			label: string
+			disabled?: boolean
+			onClick: () => void
+		} | null
 	}>(),
 	{
-		closeOnClickOutside: true,
+		closeOnClickOutside: false,
+		backButtonEnabled: (() => false) as () => boolean,
+		cancelButton: null,
 	},
 )
 
 const modal = useTemplateRef<InstanceType<typeof NewModal>>('modal')
 const currentStageIndex = ref<number>(0)
+
+const { formatMessage } = useVIntl()
+const backButtonLabel = computed(() => formatMessage(commonMessages.backButton))
+const backButtonVisible = computed(
+	() =>
+		currentStageIndex.value > 0 && resolveCtxFn(props.backButtonEnabled ?? false, props.context),
+)
 
 function show() {
 	modal.value?.show()

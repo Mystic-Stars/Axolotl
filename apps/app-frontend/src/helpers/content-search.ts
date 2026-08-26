@@ -18,6 +18,10 @@ export interface ChineseSearchResolution {
 	translations: ChineseSearchTranslation[]
 }
 
+export interface ContentSearchExpansion {
+	suggestedSplit?: string | null
+}
+
 export interface ChineseNameLookup {
 	modrinth: Record<string, string>
 	curseforge: Record<string, string>
@@ -34,6 +38,17 @@ export function containsChineseSearchText(query: string): boolean {
 
 export function resolveChineseContentSearch(query: string) {
 	return invoke<ChineseSearchResolution>('plugin:content-search|resolve_chinese_content_search', {
+		query,
+	})
+}
+
+/**
+ * Resolves the dictionary-based segmentation of a compact (separator-free)
+ * search query, e.g. `sodiumextra` → `sodium extra`. Returns `null` when the
+ * bundled dictionary cannot safely split the query.
+ */
+export function expandContentSearchQuery(query: string) {
+	return invoke<ContentSearchExpansion>('plugin:content-search|expand_content_search_query', {
 		query,
 	})
 }

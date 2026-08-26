@@ -41,6 +41,21 @@ pub(crate) struct ContentScope {
     pub content_set_id: String,
 }
 
+#[derive(Clone, Debug)]
+pub(crate) struct ToggledContentEntry {
+    pub content_id: String,
+    pub path: String,
+    pub enabled: bool,
+}
+
+struct ContentToggleOperation {
+    content_id: String,
+    current_path: String,
+    new_path: String,
+    enabled: bool,
+    project_type: ProjectType,
+}
+
 pub(crate) struct InstalledContentFile {
     pub relative_path: String,
     pub provider_refs: Vec<ContentProviderRef>,
@@ -63,6 +78,7 @@ pub(crate) struct InstanceInstallProjectRequest {
     pub content_type: ContentType,
     pub selected: ResolutionPreferences,
     pub excluded_project_ids: Vec<String>,
+    pub force_project_ids: Vec<String>,
 }
 
 struct CachedEntryContentProvider<'a> {
@@ -127,6 +143,7 @@ fn version_to_resolver(
         id: version.id,
         project_id: version.project_id,
         date_published: version.date_published,
+        version_type: version.version_type,
         dependencies: version
             .dependencies
             .into_iter()
@@ -174,7 +191,11 @@ fn target_preferences(
     };
 
     ResolutionPreferences {
-        game_versions: vec![game_version],
+        game_versions: if content_type == ContentType::ResourcePack {
+            Vec::new()
+        } else {
+            vec![game_version]
+        },
         loaders: vec![loader],
     }
 }
@@ -216,6 +237,7 @@ pub(crate) async fn resolve_install_plan(
         ),
         existing_project_ids,
         excluded_project_ids: request.excluded_project_ids,
+        force_project_ids: request.force_project_ids,
     };
 
     modrinth_content_management::resolve_content(provider, request)
@@ -242,6 +264,7 @@ pub(crate) async fn resolve_install_plan_for_target(
         target: target_preferences(game_version, loader, content_type),
         existing_project_ids: Vec::new(),
         excluded_project_ids: request.excluded_project_ids,
+        force_project_ids: request.force_project_ids,
     };
 
     modrinth_content_management::resolve_content(provider, request)
@@ -388,6 +411,7 @@ pub(crate) async fn switch_project_version_with_dependencies(
             content_type,
             selected: ResolutionPreferences::default(),
             excluded_project_ids: Vec::new(),
+            force_project_ids: Vec::new(),
         },
         state,
     )
@@ -503,6 +527,25 @@ async fn add_resolved_content_with_progress(
     Ok(path)
 }
 
+/// Materialize one already-resolved Modrinth dependency without also
+/// installing the plan's primary. CurseForge uses this for a SHA-1 verified
+/// cross-source fallback whose primary is already installed from CurseForge.
+pub(crate) async fn install_resolved_dependency(
+    instance_id: &str,
+    content: &ResolvedContent,
+    state: &State,
+) -> crate::Result<String> {
+    add_resolved_content_with_progress(
+        instance_id,
+        content,
+        DownloadReason::Dependency,
+        true,
+        None,
+        state,
+    )
+    .await
+}
+
 pub(crate) async fn persist_resolved_plan_dependency_edges(
     instance_id: &str,
     paths: &[String],
@@ -565,7 +608,9 @@ pub(crate) async fn persist_resolved_plan_dependency_edges(
                 content_set_id: scope.content_set_id.clone(),
                 parent_entry_id: parent_entry.id,
                 child_entry_id: child_entry.id,
-                provider: crate::state::ContentProvider::Modrinth,
+                evidence_provider: crate::state::ContentProvider::Modrinth,
+                parent_provider: crate::state::ContentProvider::Modrinth,
+                child_provider: crate::state::ContentProvider::Modrinth,
                 dependency_kind:
                     crate::state::instances::ContentDependencyKind::Required,
                 parent_project_id: parent.project_id.clone(),
@@ -633,7 +678,9 @@ pub(crate) async fn persist_resolved_plan_dependency_edges(
                 content_set_id: scope.content_set_id.clone(),
                 parent_entry_id: parent_entry.id,
                 child_entry_id: child_entry.id,
-                provider: crate::state::ContentProvider::Modrinth,
+                evidence_provider: crate::state::ContentProvider::Modrinth,
+                parent_provider: crate::state::ContentProvider::Modrinth,
+                child_provider: crate::state::ContentProvider::Modrinth,
                 dependency_kind:
                     crate::state::instances::ContentDependencyKind::Required,
                 parent_project_id: parent.project_id.clone(),
@@ -766,6 +813,47 @@ pub(crate) async fn download_project_version_with_progress(
     progress: Option<ResolvedContentDownloadProgress>,
     state: &State,
 ) -> crate::Result<DownloadedProjectVersion> {
+    download_project_version_with_reporting(
+        instance_id,
+        version_id,
+        reason,
+        dependent_on_version_id,
+        progress,
+        None,
+        state,
+    )
+    .await
+}
+
+pub(crate) async fn download_project_version_with_reporter(
+    instance_id: &str,
+    version_id: &str,
+    reason: DownloadReason,
+    dependent_on_version_id: Option<String>,
+    reporter: crate::install::InstallProgressReporter,
+    state: &State,
+) -> crate::Result<DownloadedProjectVersion> {
+    download_project_version_with_reporting(
+        instance_id,
+        version_id,
+        reason,
+        dependent_on_version_id,
+        None,
+        Some(reporter),
+        state,
+    )
+    .await
+}
+
+async fn download_project_version_with_reporting(
+    instance_id: &str,
+    version_id: &str,
+    reason: DownloadReason,
+    dependent_on_version_id: Option<String>,
+    progress: Option<ResolvedContentDownloadProgress>,
+    reporter: Option<crate::install::InstallProgressReporter>,
+    state: &State,
+) -> crate::Result<DownloadedProjectVersion> {
     let prepared = prepare_version_download(
         instance_id,
         version_id,
@@ -778,9 +866,13 @@ pub(crate) async fn download_project_version_with_progress(
         DownloadRequest::new(&prepared.url, ResourceClass::Modrinth)
             .with_integrity(prepared.integrity)
             .with_download_meta(prepared.download_meta);
-    if let Some(progress) = &progress {
+    let tracking_reporter = progress
+        .as_ref()
+        .map(|progress| progress.reporter.clone())
+        .or(reporter);
+    if let Some(reporter) = tracking_reporter {
         request = request.with_install_tracking(
-            progress.reporter.clone(),
+            reporter,
             &prepared.path.display().to_string(),
             &prepared.file_name,
         );
@@ -1051,12 +1143,15 @@ pub(crate) async fn add_downloaded_project_version(
         version_id,
     } = downloaded;
     let scope = resolve_content_scope(instance_id, None, state).await?;
-    let localized_candidate =
+    let localized_candidate = if project_type == ProjectType::Mod {
+        None
+    } else {
         modrinth_chinese_file_name_candidate(&project_id, &file_name, state)
             .await
             .map(|file_name| {
                 format!("{}/{}", project_type.get_folder(), file_name)
-            });
+            })
+    };
     let relative_path = resolve_content_install_relative_path(
         instance_id,
         format!("{}/{}", project_type.get_folder(), file_name),
@@ -1102,6 +1197,65 @@ pub(crate) async fn add_downloaded_project_version(
         }
     }
     Ok(relative_path)
+}
+
+pub(crate) async fn apply_downloaded_project_version_at_path(
+    instance_id: &str,
+    relative_path: &str,
+    downloaded: DownloadedProjectVersion,
+    source_kind: ContentSourceKind,
+    ownership_kind: ContentOwnershipKind,
+    state: &State,
+) -> crate::Result<String> {
+    let _instance_lock = state.lock_instance_content(instance_id).await;
+    let DownloadedProjectVersion {
+        path,
+        sha1,
+        size,
+        project_type,
+        project_id,
+        version_id,
+        ..
+    } = downloaded;
+    let scope = resolve_content_scope(instance_id, None, state).await?;
+    let full_path =
+        instance_full_path(state, &scope.instance).join(relative_path);
+    let previous_path = materialize_project_download(&path, &full_path).await?;
+    let provider_ref = ContentProviderRef::Modrinth {
+        project_id: ModrinthProjectId::new(project_id.clone())?,
+        version_id: Some(ModrinthVersionId::new(version_id.clone())?),
+    };
+    let record_result = record_project_file_atomic(
+        instance_id,
+        relative_path,
+        &sha1,
+        size,
+        project_type,
+        source_kind,
+        ownership_kind,
+        Some(&provider_ref),
+        true,
+        Some(KnownModrinthFile {
+            project_id: &project_id,
+            version_id: &version_id,
+        }),
+        state,
+    )
+    .await;
+    match record_result {
+        Ok(()) => {
+            finalize_project_materialization(previous_path.as_deref()).await?
+        }
+        Err(error) => {
+            restore_project_materialization(
+                &full_path,
+                previous_path.as_deref(),
+            )
+            .await?;
+            return Err(error);
+        }
+    }
+    Ok(relative_path.to_string())
 }
 
 pub(crate) async fn content_ownership_for_path(
@@ -1590,9 +1744,57 @@ pub(crate) async fn add_project_bytes(
     source_kind: ContentSourceKind,
     state: &State,
 ) -> crate::Result<String> {
+    add_project_bytes_with_provider(
+        instance_id,
+        file_name,
+        bytes,
+        hash,
+        project_type,
+        source_kind,
+        None,
+        state,
+    )
+    .await
+}
+
+pub(crate) async fn add_project_bytes_from_provider(
+    instance_id: &str,
+    file_name: &str,
+    bytes: Bytes,
+    hash: Option<&str>,
+    project_type: ProjectType,
+    source_kind: ContentSourceKind,
+    provider_ref: &ContentProviderRef,
+    state: &State,
+) -> crate::Result<String> {
+    add_project_bytes_with_provider(
+        instance_id,
+        file_name,
+        bytes,
+        hash,
+        Some(project_type),
+        source_kind,
+        Some(provider_ref),
+        state,
+    )
+    .await
+}
+
+#[allow(clippy::too_many_arguments)]
+async fn add_project_bytes_with_provider(
+    instance_id: &str,
+    file_name: &str,
+    bytes: Bytes,
+    hash: Option<&str>,
+    project_type: Option<ProjectType>,
+    source_kind: ContentSourceKind,
+    provider_ref: Option<&ContentProviderRef>,
+    state: &State,
+) -> crate::Result<String> {
     let _instance_lock = state.lock_instance_content(instance_id).await;
 
     let scope = resolve_content_scope(instance_id, None, state).await?;
+    let file_name = sanitize_file_name(file_name);
     let project_type = match project_type {
         Some(project_type) => project_type,
         None => infer_project_type(&bytes)?,
@@ -1602,6 +1804,13 @@ pub(crate) async fn add_project_bytes(
     // in one folder; extract the pack folder(s) directly so the result is
     // usable as-is — no re-packing, no recompression.
     if let Some(plan) = wrapped_pack_plan(&bytes, project_type) {
+        if provider_ref.is_some() {
+            return Err(crate::ErrorKind::InputError(
+                "Provider-managed wrapped archives are not supported"
+                    .to_string(),
+            )
+            .into());
+        }
         let install_path = install_wrapped_pack(
             &bytes,
             &plan,
@@ -1649,7 +1858,7 @@ pub(crate) async fn add_project_bytes(
         content_rows::UpsertInstanceFile {
             instance_id: &scope.instance.id,
             relative_path: &relative_path,
-            file_name,
+            file_name: &file_name,
             enabled: !relative_path.ends_with(".disabled"),
             sha1: &sha1,
             size: bytes.len() as u64,
@@ -1666,8 +1875,8 @@ pub(crate) async fn add_project_bytes(
         project_type,
         source_kind,
         ContentOwnershipKind::UserAdded,
-        None,
-        false,
+        provider_ref,
+        provider_ref.is_some(),
         state,
     )
     .await?;
@@ -2196,6 +2405,216 @@ pub(crate) async fn toggle_disable_project(
     Ok(new_path)
 }
 
+pub(crate) async fn toggle_content_entries(
+    instance_id: &str,
+    content_ids: &[String],
+    desired_enabled: Option<bool>,
+    state: &State,
+) -> crate::Result<Vec<ToggledContentEntry>> {
+    if content_ids.is_empty() {
+        return Ok(Vec::new());
+    }
+
+    let _instance_lock = state.lock_instance_content(instance_id).await;
+    let scope = resolve_content_scope(instance_id, None, state).await?;
+    let base = instance_full_path(state, &scope.instance);
+    let mut seen_ids = std::collections::HashSet::new();
+    let mut seen_paths = std::collections::HashSet::new();
+    let mut operations = Vec::new();
+
+    for content_id in content_ids {
+        if !seen_ids.insert(content_id.as_str()) {
+            continue;
+        }
+        let target = content_rows::get_content_mutation_target(
+            instance_id,
+            content_id,
+            &state.pool,
+        )
+        .await?
+        .ok_or_else(|| {
+            crate::ErrorKind::InputError(
+                "The selected content no longer exists".to_string(),
+            )
+        })?;
+        let project_path = target.relative_path.ok_or_else(|| {
+            crate::ErrorKind::InputError(
+                "The selected content is not present on disk".to_string(),
+            )
+        })?;
+        let (current_path, enabled, new_path) =
+            resolve_toggle_paths(&base, &project_path, desired_enabled)?;
+
+        if !seen_paths.insert(current_path.clone()) {
+            continue;
+        }
+        operations.push(ContentToggleOperation {
+            content_id: content_id.clone(),
+            current_path,
+            new_path,
+            enabled,
+            project_type: target.project_type,
+        });
+    }
+
+    let indexed_paths =
+        content_rows::get_instance_files(&scope.instance.id, &state.pool)
+            .await?
+            .into_iter()
+            .map(|file| file.relative_path)
+            .collect::<std::collections::HashSet<_>>();
+    for operation in &operations {
+        if !indexed_paths.contains(&operation.current_path) {
+            return Err(crate::ErrorKind::InputError(format!(
+                "The selected content is no longer indexed: {}",
+                operation.current_path
+            ))
+            .into());
+        }
+    }
+
+    let mut destinations = std::collections::HashSet::new();
+    for operation in &operations {
+        if operation.current_path != operation.new_path
+            && !destinations.insert(operation.new_path.as_str())
+        {
+            return Err(crate::ErrorKind::InputError(
+                "The selected content has conflicting destination paths"
+                    .to_string(),
+            )
+            .into());
+        }
+    }
+
+    let mut renamed: Vec<&ContentToggleOperation> = Vec::new();
+    for operation in &operations {
+        if operation.current_path == operation.new_path {
+            continue;
+        }
+        if let Err(error) = io::rename_or_move(
+            &base.join(&operation.current_path),
+            &base.join(&operation.new_path),
+        )
+        .await
+        {
+            for previous in renamed.into_iter().rev() {
+                let _ = io::rename_or_move(
+                    &base.join(&previous.new_path),
+                    &base.join(&previous.current_path),
+                )
+                .await;
+            }
+            return Err(error.into());
+        }
+        renamed.push(operation);
+    }
+
+    let database_result = async {
+        let mut tx = begin_content_write(&state.pool).await?;
+        let modified_at = chrono::Utc::now().timestamp();
+        let mut results = Vec::with_capacity(operations.len());
+
+        for operation in &operations {
+            let file_name = Path::new(&operation.new_path)
+                .file_name()
+                .unwrap_or_default()
+                .to_string_lossy()
+                .to_string();
+            let file = content_rows::rename_instance_file_in_transaction(
+                &scope.instance.id,
+                &operation.current_path,
+                &operation.new_path,
+                &file_name,
+                operation.enabled,
+                &mut tx,
+            )
+            .await?
+            .ok_or_else(|| {
+                crate::ErrorKind::InputError(format!(
+                    "The selected content is no longer indexed: {}",
+                    operation.current_path
+                ))
+            })?;
+            let updated_entry = sqlx::query(
+                "UPDATE instance_content_entries
+                 SET enabled = ?, modified_at = ?
+                 WHERE content_set_id = ? AND file_id = ?",
+            )
+            .bind(i64::from(operation.enabled))
+            .bind(modified_at)
+            .bind(&scope.content_set_id)
+            .bind(&file.id)
+            .execute(&mut *tx)
+            .await?;
+            if updated_entry.rows_affected() == 0 {
+                content_rows::upsert_content_entry_from_parts_in_transaction(
+                    content_rows::UpsertContentEntry {
+                        instance_id: &scope.instance.id,
+                        content_set_id: &scope.content_set_id,
+                        file_id: Some(&file.id),
+                        project_type: operation.project_type,
+                        source_kind: ContentSourceKind::Local,
+                        ownership_kind: ContentOwnershipKind::UserAdded,
+                        auto_dependency: false,
+                        server_requirement: ContentRequirement::Required,
+                        client_requirement: ContentRequirement::Required,
+                        enabled: operation.enabled,
+                    },
+                    &mut tx,
+                )
+                .await?;
+            }
+            sqlx::query(
+                "UPDATE instance_pack_members
+                 SET override_kind = ?, materialization_state = 'present',
+                     modified_at = ?
+                 WHERE content_entry_id IN (
+                    SELECT id FROM instance_content_entries
+                    WHERE content_set_id = ? AND file_id = ?
+                 )",
+            )
+            .bind(if operation.enabled {
+                "none"
+            } else {
+                "disabled"
+            })
+            .bind(modified_at)
+            .bind(&scope.content_set_id)
+            .bind(&file.id)
+            .execute(&mut *tx)
+            .await?;
+            results.push(ToggledContentEntry {
+                content_id: operation.content_id.clone(),
+                path: operation.new_path.clone(),
+                enabled: operation.enabled,
+            });
+        }
+
+        content_rows::bump_content_set_revision_in_transaction(
+            &scope.content_set_id,
+            &mut tx,
+        )
+        .await?;
+        tx.commit().await?;
+        Ok(results)
+    }
+    .await;
+
+    match database_result {
+        Ok(results) => Ok(results),
+        Err(error) => {
+            for operation in renamed.into_iter().rev() {
+                let _ = io::rename_or_move(
+                    &base.join(&operation.new_path),
+                    &base.join(&operation.current_path),
+                )
+                .await;
+            }
+            Err(error)
+        }
+    }
+}
+
 /// Resolves which of `project_path` / `{trimmed}.disabled` currently exists
 /// and which path the toggle should end up at.
 fn resolve_toggle_paths(
@@ -2674,7 +3093,7 @@ pub(crate) fn instance_full_path(
     state: &State,
     instance: &Instance,
 ) -> PathBuf {
-    state.directories.instances_dir().join(&instance.path)
+    state.directories.instance_game_dir(instance)
 }
 
 async fn index_existing_file(
@@ -2879,6 +3298,21 @@ mod tests {
     use super::*;
     use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
     use std::time::Duration;
+
+    #[test]
+    fn resource_pack_target_preferences_ignore_game_version() {
+        assert_eq!(
+            target_preferences(
+                "26.2".to_string(),
+                ModLoader::NeoForge,
+                ContentType::ResourcePack,
+            ),
+            ResolutionPreferences {
+                game_versions: Vec::new(),
+                loaders: vec!["minecraft".to_string()],
+            },
+        );
+    }
 
     #[test]
     fn backup_relative_path_for_update_naming() {

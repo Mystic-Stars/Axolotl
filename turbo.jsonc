@@ -10,6 +10,7 @@
 	"globalEnv": [
 		"CF_ACCESS_AUDIENCE",
 		"CF_ACCESS_TEAM_DOMAIN",
+		"DEV",
 		"MODRINTH_URL",
 		"MODRINTH_API_BASE_URL",
 		"MODRINTH_ARCHON_BASE_URL",
@@ -34,8 +35,6 @@
 			"outputs": [".nuxt/**", "dist/**", ".output/**"],
 			"env": [
 				"NODE_ENV",
-				"GITHUB_TOKEN",
-				"AXOLOTL_GITHUB_TOKEN",
 				"SITE_URL",
 				"BASE_URL",
 				"PREVIEW",

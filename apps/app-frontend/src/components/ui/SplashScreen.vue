@@ -1,14 +1,14 @@
 <template>
 	<Transition name="splash-fade" @after-leave="onAfterLeave">
-		<div v-if="!doneLoading" class="splash-screen dark">
-			<div class="app-logo-wrapper" data-tauri-drag-region>
+		<div v-if="!doneLoading" class="fixed inset-0 z-[10000] dark">
+			<div class="absolute h-screen w-full flex flex-col justify-center items-center gap-4 z-[9998]" data-tauri-drag-region>
 				<img class="app-logo" src="@/assets/axolotl.png" alt="Axolotl Launcher" />
-				<ProgressBar class="loading-bar" :progress="Math.min(loadingProgress, 100)" />
+				<ProgressBar class="max-w-xs" :progress="Math.min(loadingProgress, 100)" />
 				<span v-if="message">{{ message }}</span>
 			</div>
 			<div class="gradient-bg" data-tauri-drag-region></div>
 			<div class="cube-bg"></div>
-			<div class="base-bg"></div>
+			<div class="absolute top-0 left-0 w-full h-full bg-bg z-[9995]"></div>
 		</div>
 	</Transition>
 </template>
@@ -92,12 +92,6 @@ loading_listener(async (e) => {
 </script>
 
 <style scoped lang="scss">
-.splash-screen {
-	position: fixed;
-	inset: 0;
-	z-index: 10000;
-}
-
 .splash-fade-leave-active {
 	transition: opacity 0.3s ease-in-out;
 }
@@ -106,30 +100,11 @@ loading_listener(async (e) => {
 	opacity: 0;
 }
 
-.app-logo-wrapper {
-	position: absolute;
-	height: 100vh;
-	width: 100%;
-
-	display: flex;
-	flex-direction: column;
-	justify-content: center;
-	align-items: center;
-
-	gap: 1rem;
-
-	z-index: 9998;
-}
-
 .app-logo {
 	height: min(18rem, 45vh);
 	width: min(18rem, 45vw);
 	object-fit: contain;
 	filter: drop-shadow(0 0 2rem rgba(255, 77, 157, 0.35));
-}
-
-.loading-bar {
-	max-width: 20rem;
 }
 
 .gradient-bg {
@@ -158,13 +133,4 @@ loading_listener(async (e) => {
 	z-index: 9996;
 }
 
-.base-bg {
-	position: absolute;
-	top: 0;
-	left: 0;
-	width: 100%;
-	height: 100%;
-	background: var(--color-bg);
-	z-index: 9995;
-}
 </style>

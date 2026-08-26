@@ -51,6 +51,10 @@ const messages = defineMessages({
 		id: 'content.card.pending-manual-download',
 		defaultMessage: 'Manual download required',
 	},
+	duplicateMod: {
+		id: 'content.card.duplicate-mod',
+		defaultMessage: 'This mod is installed {count, number} times.',
+	},
 	rollbackTooltip: {
 		id: 'content.card.rollback-tooltip',
 		defaultMessage: 'Roll back to {fileName}',
@@ -82,6 +86,7 @@ interface Props {
 	enabled?: boolean
 	installing?: boolean
 	pendingManualDownload?: boolean
+	duplicateCount?: number
 	hasUpdate?: boolean
 	rollbackFileName?: string
 	isClientOnly?: boolean
@@ -91,6 +96,7 @@ interface Props {
 	inlineActions?: ContentRowInlineAction[]
 	disabled?: boolean
 	disabledTooltip?: string | null
+	postUpgradeWarningTooltip?: string | null
 	toggleDisabled?: boolean
 	toggleDisabledTooltip?: string | null
 	dependencyBadge?: {
@@ -126,6 +132,7 @@ const props = withDefaults(defineProps<Props>(), {
 	enabled: undefined,
 	installing: false,
 	pendingManualDownload: false,
+	duplicateCount: undefined,
 	hasUpdate: false,
 	rollbackFileName: undefined,
 	isClientOnly: false,
@@ -135,6 +142,7 @@ const props = withDefaults(defineProps<Props>(), {
 	inlineActions: undefined,
 	disabled: false,
 	disabledTooltip: undefined,
+	postUpgradeWarningTooltip: undefined,
 	toggleDisabled: false,
 	toggleDisabledTooltip: undefined,
 	dependencyBadge: null,
@@ -211,7 +219,7 @@ const deleteHovered = ref(false)
 				? selected
 					? 'card-shadow !bg-surface-2.5 rounded-lg p-3'
 					: 'card-shadow !bg-bg-raised rounded-lg p-3 hover:!bg-bg-raised'
-				: 'px-3 hover:bg-[hsla(0,0%,50%,0.1)]',
+				: 'px-3 hover:bg-[hsl(230deg,6.98%,16.86%,60%)]',
 		]"
 		:style="
 			groupDepth && groupKind !== 'world' ? { paddingLeft: `${groupDepth * 2.5}rem` } : undefined
@@ -243,6 +251,12 @@ const deleteHovered = ref(false)
 				/>
 				<div class="flex min-w-0 flex-col gap-0.5">
 					<div class="flex min-w-0 items-center gap-1">
+						<TriangleAlertIcon
+							v-if="postUpgradeWarningTooltip"
+							v-tooltip="postUpgradeWarningTooltip"
+							class="size-4 shrink-0 text-brand-orange"
+							aria-hidden="true"
+						/>
 						<AutoLink
 							:target="
 								typeof projectLink === 'string' && projectLink.startsWith('http')
@@ -511,6 +525,18 @@ const deleteHovered = ref(false)
 						>
 							{{ project.title }}
 						</AutoLink>
+						<TriangleAlertIcon
+							v-if="postUpgradeWarningTooltip"
+							v-tooltip="postUpgradeWarningTooltip"
+							class="size-4 shrink-0 text-brand-orange"
+							aria-hidden="true"
+						/>
+						<TriangleAlertIcon
+							v-if="duplicateCount && duplicateCount > 1"
+							v-tooltip="formatMessage(messages.duplicateMod, { count: duplicateCount })"
+							class="size-4 shrink-0 text-red"
+							aria-hidden="true"
+						/>
 						<span
 							v-if="dependencyBadge"
 							v-tooltip="

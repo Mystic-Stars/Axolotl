@@ -35,20 +35,6 @@ static HONGSHI_DOWNLOAD_URL: LazyLock<Mutex<Option<CachedDownloadUrl>>> =
     LazyLock::new(|| Mutex::new(None));
 static DETECTED_PORTS: LazyLock<Mutex<HashMap<String, DetectedLanPort>>> =
     LazyLock::new(|| Mutex::new(HashMap::new()));
-static NODE_CLIENT: LazyLock<reqwest::Client> = LazyLock::new(|| {
-    reqwest::Client::builder()
-        .connect_timeout(Duration::from_secs(3))
-        .timeout(Duration::from_secs(5))
-        .build()
-        .expect("RedStone node client should build")
-});
-static DOWNLOAD_CLIENT: LazyLock<reqwest::Client> = LazyLock::new(|| {
-    reqwest::Client::builder()
-        .connect_timeout(Duration::from_secs(10))
-        .timeout(Duration::from_secs(600))
-        .build()
-        .expect("RedStone download client should build")
-});
 static LAN_PORT_PATTERNS: LazyLock<Vec<Regex>> = LazyLock::new(|| {
     [
         r"(?i)local game hosted on port\s+(\d{1,5})",
@@ -408,6 +394,12 @@ async fn parse_api_error(response: reqwest::Response) -> String {
         })
 }
 
+async fn download_client() -> eyre::Result<reqwest::Client> {
+    crate::util::fetch::configured_client()
+        .await
+        .map_err(|error| eyre::eyre!(error.to_string()))
+}
+
 async fn request_download_url(endpoint: &str) -> eyre::Result<reqwest::Url> {
     {
         let mut cached = HONGSHI_DOWNLOAD_URL.lock().await;
@@ -419,7 +411,8 @@ async fn request_download_url(endpoint: &str) -> eyre::Result<reqwest::Url> {
         *cached = None;
     }
 
-    let mut response = DOWNLOAD_CLIENT
+    let client = download_client().await?;
+    let mut response = client
         .get(endpoint)
         .send()
         .await
@@ -435,7 +428,7 @@ async fn request_download_url(endpoint: &str) -> eyre::Result<reqwest::Url> {
             "RedStone download URL request was rate limited; retrying once"
         );
         tokio::time::sleep(delay).await;
-        response = DOWNLOAD_CLIENT
+        response = client
             .get(endpoint)
             .send()
             .await
@@ -486,7 +479,8 @@ async fn download_inner() -> eyre::Result<()> {
         state.error_message = None;
     }
     let download_url = request_download_url(&endpoint).await?;
-    let response = DOWNLOAD_CLIENT
+    let client = download_client().await?;
+    let response = client
         .get(download_url)
         .send()
         .await
@@ -695,7 +689,8 @@ async fn write_node_cache(
 async fn load_node_map(
     _force_refresh: bool,
 ) -> eyre::Result<(BTreeMap<String, String>, bool)> {
-    match NODE_CLIENT.get(NODE_ENDPOINT).send().await {
+    let client = download_client().await?;
+    match client.get(NODE_ENDPOINT).send().await {
         Ok(response) => match response.error_for_status() {
             Ok(response) => {
                 let bytes = response.bytes().await?;

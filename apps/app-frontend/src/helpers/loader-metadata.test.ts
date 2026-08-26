@@ -11,8 +11,13 @@ import {
 	loaderVersionSelectorText,
 	loaderVersionsForGameVersion,
 	loaderVersionSummaryState,
+	preserveOrSelectGameVersion,
 	scopedLoaderMetadataQueryKey,
 } from '../../../../packages/ui/src/components/flows/creation-flow-modal/loader-metadata.ts'
+import {
+	clientInstallableLoaders,
+	instanceInstallablePlatforms,
+} from '../../../../packages/ui/src/utils/loaders.ts'
 
 const manifest = (gameVersion: string, versions: string[]) => ({
 	gameVersions: [
@@ -21,6 +26,24 @@ const manifest = (gameVersion: string, versions: string[]) => ({
 			loaders: versions.map((id) => ({ id, stable: true })),
 		},
 	],
+})
+
+test('shares the complete client loader list with instance installation settings', () => {
+	assert.deepEqual(
+		[...clientInstallableLoaders],
+		[
+			'fabric',
+			'neoforge',
+			'forge',
+			'quilt',
+			'optifine',
+			'cleanroom',
+			'lite_loader',
+			'legacy_fabric',
+			'babric',
+		],
+	)
+	assert.deepEqual([...instanceInstallablePlatforms], ['vanilla', ...clientInstallableLoaders])
 })
 
 test('instance settings scopes Forge and Fabric queries by Minecraft version', () => {
@@ -143,12 +166,18 @@ test('restores loader support state across Minecraft version changes', () => {
 	assert.equal(support('1.20.1'), 'supported')
 })
 
-test('disables unresolved and unsupported loader chips without disabling request errors', () => {
+test('disables loader chips until compatibility is positively confirmed', () => {
 	assert.equal(isLoaderSupportStateDisabled('unknown'), true)
 	assert.equal(isLoaderSupportStateDisabled('loading'), true)
 	assert.equal(isLoaderSupportStateDisabled('unsupported'), true)
 	assert.equal(isLoaderSupportStateDisabled('supported'), false)
-	assert.equal(isLoaderSupportStateDisabled('error'), false)
+	assert.equal(isLoaderSupportStateDisabled('error'), true)
+})
+
+test('does not replace an explicit Minecraft version when loader options change', () => {
+	assert.equal(preserveOrSelectGameVersion('26.2', ['26.1.2', '1.21.11']), '26.2')
+	assert.equal(preserveOrSelectGameVersion(null, ['26.1.2', '1.21.11']), '26.1.2')
+	assert.equal(preserveOrSelectGameVersion(null, []), null)
 })
 
 test('tracks loader chips through pending, supported, and unsupported responses', () => {

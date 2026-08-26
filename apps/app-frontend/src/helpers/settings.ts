@@ -6,20 +6,17 @@
 import { invoke } from '@tauri-apps/api/core'
 
 import type { HomeDashboardConfig } from '@/components/home/home-dashboard'
-import type { Hooks, MemorySettings, WindowSize } from '@/helpers/types'
+import type { Hooks, MemorySettings } from '@/helpers/types'
 import type { AccentColorSetting, ColorTheme, FeatureFlag, HomeLayout } from '@/store/theme.ts'
 import { DEFAULT_FEATURE_FLAGS } from '@/store/theme.ts'
 
+export type { BrowseContentDisplayMode, BrowseContentProjectType } from './browse-display-mode.ts'
 export {
 	getLastBrowseContentDisplayMode,
 	getLastBrowseContentProjectType,
 	isBrowseContentProjectType,
 	setLastBrowseContentDisplayMode,
 	setLastBrowseContentProjectType,
-} from './browse-display-mode.ts'
-export type {
-	BrowseContentDisplayMode,
-	BrowseContentProjectType,
 } from './browse-display-mode.ts'
 
 // Settings object
@@ -45,7 +42,7 @@ Memorysettings {
 
 */
 
-export type UpdateSource = 'cnb' | 'github'
+export type UpdateSource = 'miawa' | 'cnb' | 'github'
 export type DownloadSourceMode =
 	| 'auto'
 	| 'official_only'
@@ -53,32 +50,67 @@ export type DownloadSourceMode =
 	| 'official_preferred'
 export type DownloadEngine = 'legacy' | 'xmcl'
 
-const UPDATE_SOURCE_STORAGE_KEY = 'axolotl-update-source'
+export type ProxyMode = 'none' | 'system' | 'custom'
+export type ProxyConfig = {
+	mode: ProxyMode
+	url: string
+	username: string
+	password: string
+}
+export type ProxyTestResult = {
+	success: boolean
+	latency_ms: number | null
+	message: string
+}
+
+const UPDATE_SOURCE_STORAGE_KEY = 'axolotl-update-source-v2'
 
 export function getUpdateSource(): UpdateSource {
 	const value = localStorage.getItem(UPDATE_SOURCE_STORAGE_KEY)
-	const source = value === 'github' || value === 'official' ? 'github' : 'cnb'
-	if (value !== source) {
-		localStorage.setItem(UPDATE_SOURCE_STORAGE_KEY, source)
-	}
-	return source
+	if (value === 'cnb') return 'cnb'
+	if (value === 'github' || value === 'official') return 'github'
+	return 'miawa'
 }
 
 export function setUpdateSource(source: UpdateSource) {
 	localStorage.setItem(UPDATE_SOURCE_STORAGE_KEY, source)
 }
 
-export type BrowseContentSource = 'all' | 'modrinth' | 'curseforge'
+export type BrowseContentSource =
+	| 'all'
+	| 'modrinth'
+	| 'curseforge'
+	| 'mcarchive'
+	| 'planet_minecraft'
 
 const BROWSE_CONTENT_SOURCE_STORAGE_KEY = 'axolotl-browse-content-source'
+const BROWSE_DEFAULT_INSTANCE_STORAGE_KEY = 'axolotl-browse-default-instance'
 
 export function getLastBrowseContentSource(): BrowseContentSource | null {
 	const value = localStorage.getItem(BROWSE_CONTENT_SOURCE_STORAGE_KEY)
-	return value === 'all' || value === 'modrinth' || value === 'curseforge' ? value : null
+	return value === 'all' ||
+		value === 'modrinth' ||
+		value === 'curseforge' ||
+		value === 'mcarchive' ||
+		value === 'planet_minecraft'
+		? value
+		: null
 }
 
 export function setLastBrowseContentSource(source: BrowseContentSource) {
 	localStorage.setItem(BROWSE_CONTENT_SOURCE_STORAGE_KEY, source)
+}
+
+export function getBrowseDefaultInstanceId(): string | null {
+	return localStorage.getItem(BROWSE_DEFAULT_INSTANCE_STORAGE_KEY)
+}
+
+export function setBrowseDefaultInstanceId(instanceId: string | null) {
+	if (instanceId) {
+		localStorage.setItem(BROWSE_DEFAULT_INSTANCE_STORAGE_KEY, instanceId)
+	} else {
+		localStorage.removeItem(BROWSE_DEFAULT_INSTANCE_STORAGE_KEY)
+	}
 }
 
 export type AppSettings = {
@@ -90,6 +122,7 @@ export type AppSettings = {
 	minecraft_file_source: DownloadSourceMode
 	modrinth_source: DownloadSourceMode
 	curseforge_source: DownloadSourceMode
+	bypass_curseforge_download_restrictions: boolean
 	mojang_auth_source: DownloadSourceMode
 
 	theme: ColorTheme
@@ -125,8 +158,9 @@ export type AppSettings = {
 	custom_env_vars: [string, string][]
 	memory: MemorySettings
 	force_fullscreen: boolean
-	game_resolution: WindowSize
+	game_resolution: [number, number]
 	hide_on_process_start: boolean
+	enter_lightweight_mode_on_game_launch: boolean
 	auto_set_java_high_performance_mode: boolean
 	hooks: Hooks
 
@@ -170,7 +204,7 @@ function normalizeDownloadSettings(settings: AppSettings & LegacyMirrorSettings)
 		enabled ? 'mirror_preferred' : 'official_only'
 
 	settings.auto_concurrent_downloads ??= true
-	settings.download_engine ??= 'xmcl'
+	settings.download_engine ??= 'legacy'
 	settings.auto_set_java_high_performance_mode ??= true
 	settings.minecraft_metadata_source ??=
 		usesLegacyDefaults || !hasLegacySettings ? 'auto' : legacySource(settings.use_minecraft_mirror)
@@ -180,9 +214,10 @@ function normalizeDownloadSettings(settings: AppSettings & LegacyMirrorSettings)
 		usesLegacyDefaults || !hasLegacySettings ? 'auto' : legacySource(settings.use_modrinth_mirror)
 	settings.curseforge_source ??=
 		usesLegacyDefaults || !hasLegacySettings ? 'auto' : legacySource(settings.use_curseforge_mirror)
+	settings.bypass_curseforge_download_restrictions ??= true
 	settings.mojang_auth_source ??= 'auto'
 	settings.terracotta_public_nodes ??= ['wss://center.node.1tmc.top']
-	settings.feature_flags ??= {}
+	settings.feature_flags ??= { ...DEFAULT_FEATURE_FLAGS }
 	for (const [key, value] of Object.entries(DEFAULT_FEATURE_FLAGS)) {
 		settings.feature_flags[key as FeatureFlag] ??= value
 	}
@@ -250,4 +285,16 @@ export async function setTelemetryEnabled(enabled: boolean): Promise<PrivacySett
 
 export async function setDiscordRpcEnabled(enabled: boolean): Promise<PrivacySettings> {
 	return await invoke('plugin:settings|discord_rpc_set', { enabled })
+}
+
+export async function getProxyConfig(): Promise<ProxyConfig> {
+	return await invoke('plugin:settings|proxy_get')
+}
+
+export async function setProxyConfig(config: ProxyConfig): Promise<void> {
+	await invoke('plugin:settings|proxy_set', { config })
+}
+
+export async function testProxyConfig(config: ProxyConfig): Promise<ProxyTestResult> {
+	return await invoke('plugin:settings|proxy_test', { config })
 }

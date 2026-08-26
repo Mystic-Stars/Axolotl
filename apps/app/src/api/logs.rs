@@ -3,7 +3,8 @@ use async_zip::tokio::write::ZipFileWriter;
 use std::path::PathBuf;
 use theseus::logs::LogType;
 use theseus::logs::{
-    self, CensoredString, CrashAnalysis, LatestLogCursor, Logs,
+    self, CensoredString, CrashAnalysis, CrashAnalysisAiExplanation,
+    CrashAnalysisAiSettings, LatestLogCursor, Logs,
 };
 
 /*
@@ -28,6 +29,10 @@ pub fn init<R: tauri::Runtime>() -> tauri::plugin::TauriPlugin<R> {
             logs_get_live_log_buffer,
             logs_clear_live_log_buffer,
             logs_analyze_crash,
+            logs_get_crash_analysis_ai_settings,
+            logs_update_crash_analysis_ai_settings,
+            logs_explain_crash_with_ai,
+            logs_undo_added_mod,
             logs_export_crash_context,
         ])
         .build()
@@ -108,6 +113,35 @@ pub async fn logs_clear_live_log_buffer(instance_id: &str) -> Result<()> {
 #[tauri::command]
 pub async fn logs_analyze_crash(instance_id: &str) -> Result<CrashAnalysis> {
     Ok(logs::analyze_crash(instance_id).await?)
+}
+
+#[tauri::command]
+pub async fn logs_get_crash_analysis_ai_settings()
+-> Result<CrashAnalysisAiSettings> {
+    Ok(logs::get_crash_analysis_ai_settings().await?)
+}
+
+#[tauri::command]
+pub async fn logs_update_crash_analysis_ai_settings(
+    settings: CrashAnalysisAiSettings,
+) -> Result<()> {
+    Ok(logs::update_crash_analysis_ai_settings(settings).await?)
+}
+
+#[tauri::command]
+pub async fn logs_explain_crash_with_ai(
+    instance_id: &str,
+) -> Result<CrashAnalysisAiExplanation> {
+    Ok(logs::explain_crash_with_ai(instance_id).await?)
+}
+
+#[tauri::command]
+pub async fn logs_undo_added_mod(
+    instance_id: &str,
+    filename: &str,
+    expected_hash: &str,
+) -> Result<()> {
+    Ok(logs::undo_added_mod(instance_id, filename, expected_hash).await?)
 }
 
 /// Export the latest run's censored diagnostic context as a ZIP archive.

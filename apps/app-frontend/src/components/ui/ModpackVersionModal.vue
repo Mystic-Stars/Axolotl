@@ -68,25 +68,25 @@ const onHide = () => {
 		:header="formatMessage(messages.changeVersion)"
 		:on-hide="onHide"
 	>
-		<div class="modal-body">
+		<div class="modal-body flex flex-col gap-3">
 			<SymlinkInstanceWarning
 				v-if="instance?.symlink_target"
 				:symlink-target="instance.symlink_target"
 			/>
 			<div v-if="instance.link" class="mod-card">
-				<div class="table">
-					<div class="table-row with-columns table-head">
-						<div class="table-cell table-text download-cell" />
+				<div class="table border border-bg">
+					<div class="table-row grid-cols-[min-content_1fr_1fr] table-head">
+						<div class="table-cell table-text w-16 p-4" />
 						<div class="name-cell table-cell table-text">
 							{{ formatMessage(messages.name) }}
 						</div>
 						<div class="table-cell table-text">{{ formatMessage(messages.supports) }}</div>
 					</div>
-					<div class="scrollable">
+					<div class="overflow-y-auto max-h-[25rem]">
 						<div
 							v-for="version in filteredVersions"
 							:key="version.id"
-							class="table-row with-columns selectable"
+							class="table-row grid-cols-[min-content_1fr_1fr] selectable"
 							@click="$router.push(`/project/${version.project_id}/version/${version.id}`)"
 						>
 							<div class="table-cell table-text">
@@ -107,7 +107,7 @@ const onHide = () => {
 								<div class="version-link">
 									{{ version.name.charAt(0).toUpperCase() + version.name.slice(1) }}
 									<div class="version-badge">
-										<div class="channel-indicator">
+										<div class="channel-indicator mr-2">
 											<Badge
 												:color="releaseColor(version.version_type)"
 												:type="
@@ -143,24 +143,6 @@ const onHide = () => {
 </template>
 
 <style scoped lang="scss">
-.filter-header {
-	display: flex;
-	flex-wrap: wrap;
-	justify-content: space-between;
-	align-items: center;
-	gap: 0.5rem;
-	margin-bottom: 0.5rem;
-}
-
-.with-columns {
-	grid-template-columns: min-content 1fr 1fr;
-}
-
-.scrollable {
-	overflow-y: auto;
-	max-height: 25rem;
-}
-
 .card-row {
 	display: flex;
 	align-items: center;
@@ -184,10 +166,6 @@ const onHide = () => {
 	.version-badge {
 		display: flex;
 		flex-wrap: wrap;
-
-		.channel-indicator {
-			margin-right: 0.5rem;
-		}
 	}
 }
 
@@ -198,18 +176,4 @@ const onHide = () => {
 	align-items: flex-start;
 }
 
-.download-cell {
-	width: 4rem;
-	padding: 1rem;
-}
-
-.modal-body {
-	display: flex;
-	flex-direction: column;
-	gap: var(--gap-md);
-}
-
-.table {
-	border: 1px solid var(--color-bg);
-}
 </style>

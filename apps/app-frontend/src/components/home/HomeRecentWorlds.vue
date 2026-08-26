@@ -162,11 +162,11 @@ async function stopInstance(instance: GameInstance) {
 </script>
 
 <template>
-	<section class="home-recent-worlds" :data-size="dashboardSize">
-		<div class="home-widget-heading">
+	<section class="home-recent-worlds flex min-w-0 min-h-0 h-full flex-col gap-3" :data-size="dashboardSize">
+		<div class="home-widget-heading flex min-w-0 h-8 flex-none items-center gap-2">
 			<h2>{{ formatMessage(messages.recentTitle) }}</h2>
 		</div>
-		<div v-if="recentItems.length > 0" class="home-recent-list">
+		<div v-if="recentItems.length > 0" class="home-recent-list flex min-w-0 min-h-0 flex-1 flex-col gap-1 overflow-x-hidden overflow-y-auto pr-1">
 			<template
 				v-for="item in recentItems"
 				:key="item.type === 'world' ? worldKey(item.world) : `${item.instance.id}:instance`"
@@ -233,24 +233,6 @@ async function stopInstance(instance: GameInstance) {
 </template>
 
 <style scoped>
-.home-recent-worlds {
-	display: flex;
-	min-width: 0;
-	min-height: 0;
-	height: 100%;
-	flex-direction: column;
-	gap: 0.75rem;
-}
-
-.home-widget-heading {
-	display: flex;
-	min-width: 0;
-	height: 2rem;
-	flex: 0 0 auto;
-	align-items: center;
-	gap: 0.5rem;
-}
-
 .home-widget-heading h2 {
 	min-width: 0;
 	overflow: hidden;
@@ -261,18 +243,6 @@ async function stopInstance(instance: GameInstance) {
 	letter-spacing: 0;
 	text-overflow: ellipsis;
 	white-space: nowrap;
-}
-
-.home-recent-list {
-	display: flex;
-	min-width: 0;
-	min-height: 0;
-	flex: 1;
-	flex-direction: column;
-	gap: 0.25rem;
-	overflow-x: hidden;
-	overflow-y: auto;
-	padding-right: 0.25rem;
 }
 
 .home-recent-worlds[data-size='2x1'] {

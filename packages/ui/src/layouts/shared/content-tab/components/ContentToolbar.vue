@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { CompassIcon, RefreshCwIcon, SearchIcon } from '@modrinth/assets'
+import { CompassIcon, GitGraphIcon, RefreshCwIcon, SearchIcon } from '@modrinth/assets'
 
 import ButtonStyled from '#ui/components/base/ButtonStyled.vue'
 import StyledInput from '#ui/components/base/StyledInput.vue'
@@ -17,6 +17,10 @@ const messages = defineMessages({
 		id: 'content.page-layout.browse-content',
 		defaultMessage: 'Browse content',
 	},
+	viewDependencies: {
+		id: 'content.page-layout.view-dependencies',
+		defaultMessage: 'View dependencies',
+	},
 })
 
 const searchQuery = defineModel<string>('searchQuery', { required: true })
@@ -30,6 +34,7 @@ const props = withDefaults(
 		disableAddContent?: boolean
 		disableAddContentTooltip?: string
 		refreshing?: boolean
+		viewDependencies?: boolean
 	}>(),
 	{
 		busy: false,
@@ -37,12 +42,14 @@ const props = withDefaults(
 		disableAddContent: false,
 		disableAddContentTooltip: undefined,
 		refreshing: false,
+		viewDependencies: false,
 	},
 )
 
 const emit = defineEmits<{
 	browse: []
 	refresh: []
+	viewDependencies: []
 }>()
 </script>
 
@@ -82,6 +89,17 @@ const emit = defineEmits<{
 				>
 					<CompassIcon class="size-5" />
 					<span>{{ formatMessage(messages.browseContent) }}</span>
+				</button>
+			</ButtonStyled>
+			<ButtonStyled v-if="props.viewDependencies" type="outlined">
+				<button
+					v-tooltip="formatMessage(messages.viewDependencies)"
+					:disabled="props.busy"
+					class="!h-10 flex items-center gap-2"
+					@click="emit('viewDependencies')"
+				>
+					<GitGraphIcon class="size-5" />
+					<span>{{ formatMessage(messages.viewDependencies) }}</span>
 				</button>
 			</ButtonStyled>
 			<ButtonStyled type="outlined">

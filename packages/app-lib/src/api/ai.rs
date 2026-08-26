@@ -123,6 +123,8 @@ pub struct AiProviderDefinition {
     pub check_model: &'static str,
     pub show_model_fetcher: bool,
     pub required_settings: &'static [&'static str],
+    #[serde(default)]
+    pub sponsored: bool,
 }
 
 macro_rules! provider {
@@ -136,6 +138,7 @@ macro_rules! provider {
 			check_model: $model,
 			show_model_fetcher: $fetch,
 			required_settings: &[],
+			sponsored: false,
 		}
 	};
 	($id:literal, $name:literal, $protocol:ident, $endpoint:literal, $model:literal, $fetch:literal, $auth:ident) => {
@@ -148,6 +151,7 @@ macro_rules! provider {
 			check_model: $model,
 			show_model_fetcher: $fetch,
 			required_settings: &[],
+			sponsored: false,
 		}
 	};
 	($id:literal, $name:literal, $protocol:ident, $endpoint:literal, $model:literal, $fetch:literal, [$($setting:literal),*]) => {
@@ -160,6 +164,7 @@ macro_rules! provider {
 			check_model: $model,
 			show_model_fetcher: $fetch,
 			required_settings: &[$($setting),*],
+			sponsored: false,
 		}
 	};
 }
@@ -283,6 +288,16 @@ const PROVIDERS: &[AiProviderDefinition] = &[
         "@hf/meta-llama/meta-llama-3-8b-instruct",
         true,
         ["account_id"]
+    ),
+    // Sponsored listing; kept out of LobeHub syncs by
+    // scripts/axolotl/sync-lobehub-models.mjs. See SPONSORED_PROVIDERS.
+    provider!(
+        "codeflow",
+        "CodeFlow",
+        Openai,
+        "https://codeflow.asia/v1",
+        "gpt-4o-mini",
+        true
     ),
     provider!(
         "cohere",
@@ -797,6 +812,11 @@ const PROVIDERS: &[AiProviderDefinition] = &[
         true
     ),
 ];
+
+/// Sponsored provider ids. These listings are part of paid partnerships and
+/// must survive LobeHub model syncing; scripts/axolotl/sync-lobehub-models.mjs
+/// refuses to rewrite ai.rs when any of them is missing.
+const SPONSORED_PROVIDERS: &[&str] = &["codeflow"];
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AiSettings {
@@ -1401,7 +1421,16 @@ fn write_oauth_credentials(
 }
 
 pub fn catalog() -> Vec<AiProviderDefinition> {
-    PROVIDERS.to_vec()
+    PROVIDERS
+        .iter()
+        .map(|definition| {
+            let mut definition = *definition;
+            if SPONSORED_PROVIDERS.contains(&definition.id) {
+                definition.sponsored = true;
+            }
+            definition
+        })
+        .collect()
 }
 
 async fn discard_legacy_openai_secret() -> crate::Result<()> {
@@ -3585,7 +3614,7 @@ mod tests {
 
     #[test]
     fn catalog_matches_lobehub_text_provider_scope() {
-        assert_eq!(PROVIDERS.len(), 79);
+        assert_eq!(PROVIDERS.len(), 80);
         for excluded in ["bfl", "comfyui", "fal", "replicate", "lobehub"] {
             assert!(!PROVIDERS.iter().any(|provider| provider.id == excluded));
         }
@@ -3595,6 +3624,28 @@ mod tests {
                 AiAuthType::OAuthDeviceFlow
             );
         }
+    }
+
+    #[test]
+    fn sponsored_providers_are_marked_in_catalog() {
+        let catalog = catalog();
+        assert!(
+            catalog
+                .iter()
+                .filter(|provider| provider.sponsored)
+                .all(|provider| SPONSORED_PROVIDERS.contains(&provider.id))
+        );
+        assert!(
+            catalog
+                .iter()
+                .filter(|provider| SPONSORED_PROVIDERS.contains(&provider.id))
+                .all(|provider| provider.sponsored)
+        );
+        assert!(
+            catalog
+                .iter()
+                .any(|provider| provider.id == "codeflow" && provider.sponsored)
+        );
     }
 
     #[test]

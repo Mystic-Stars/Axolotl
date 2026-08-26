@@ -212,8 +212,10 @@ function invertBiomes() {
 				</span>
 				<ChevronDownIcon />
 				<template #menu>
-					<div class="biome-picker-menu">
-						<div class="biome-picker-heading">
+					<div class="flex w-[min(30rem,calc(100vw-1.5rem))] max-h-[min(30rem,calc(100dvh-2rem))] min-h-0 flex-col gap-[0.65rem] overflow-hidden">
+						<div
+							class="biome-picker-heading flex items-center justify-between gap-3 p-[0.1rem_0.2rem] text-contrast max-sm:flex-col max-sm:items-start"
+						>
 							<div>
 								<strong>{{ formatMessage(messages.chooseBiome) }}</strong>
 								<small>
@@ -225,7 +227,7 @@ function invertBiomes() {
 									}}
 								</small>
 							</div>
-							<div class="biome-picker-actions">
+							<div class="flex flex-none items-center gap-[0.15rem] max-sm:w-full max-sm:flex-wrap">
 								<ButtonStyled size="small" type="transparent">
 									<button @click="selectAllBiomes">
 										{{ formatMessage(messages.selectAll) }}
@@ -272,7 +274,7 @@ function invertBiomes() {
 										}}/{{ group.biomes.length }}
 									</small>
 								</template>
-								<div class="biome-picker-options">
+								<div class="grid grid-cols-2 gap-[0.45rem] max-sm:grid-cols-1">
 									<Checkbox
 										v-for="biome in group.biomes"
 										:key="biome.id"
@@ -348,25 +350,6 @@ function invertBiomes() {
 	flex: 0 0 auto;
 }
 
-.biome-picker-menu {
-	display: flex;
-	width: min(30rem, calc(100vw - 1.5rem));
-	max-height: min(30rem, calc(100dvh - 2rem));
-	min-height: 0;
-	flex-direction: column;
-	gap: 0.65rem;
-	overflow: hidden;
-}
-
-.biome-picker-heading {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: 0.75rem;
-	padding: 0.1rem 0.2rem;
-	color: var(--color-text-primary);
-}
-
 .biome-picker-heading > div:first-child {
 	display: flex;
 	min-width: 0;
@@ -378,13 +361,6 @@ function invertBiomes() {
 	color: var(--color-text-secondary);
 	font-size: 0.7rem;
 	font-variant-numeric: tabular-nums;
-}
-
-.biome-picker-actions {
-	display: flex;
-	flex: 0 0 auto;
-	align-items: center;
-	gap: 0.15rem;
 }
 
 .biome-picker-search {
@@ -468,12 +444,6 @@ function invertBiomes() {
 	padding: 0.25rem 0.35rem 0.45rem;
 }
 
-.biome-picker-options {
-	display: grid;
-	grid-template-columns: repeat(2, minmax(0, 1fr));
-	gap: 0.45rem;
-}
-
 .biome-picker-groups :deep(.checkbox-outer) {
 	min-width: 0;
 	gap: 0.5rem;
@@ -529,19 +499,4 @@ function invertBiomes() {
 	overflow: hidden;
 }
 
-@media (max-width: 640px) {
-	.biome-picker-options {
-		grid-template-columns: minmax(0, 1fr);
-	}
-
-	.biome-picker-heading {
-		align-items: flex-start;
-		flex-direction: column;
-	}
-
-	.biome-picker-actions {
-		width: 100%;
-		flex-wrap: wrap;
-	}
-}
 </style>

@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        SELECT path AS \"path!: String\",\n               game_dir_override AS \"game_dir_override?: String\"\n        FROM instances\n        WHERE id = ?\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "path!: String",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "game_dir_override?: String",
+        "ordinal": 1,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      true
+    ]
+  },
+  "hash": "014d584fdb65e90f958426e9eba173d10dc5df408afae578dbcd40907836ef64"
+}

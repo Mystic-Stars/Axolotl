@@ -8,7 +8,8 @@ import { get_memory_status, optimize_memory } from '@/helpers/jre.js'
 const props = withDefaults(
 	defineProps<{
 		instanceId?: string
-		memory: { maximum: number; automatic: boolean }
+
+		memory: { maximum: number; automatic: boolean; optimize_before_launch?: boolean }
 		showOptimizeButton?: boolean
 	}>(),
 	{ instanceId: undefined, showOptimizeButton: false },

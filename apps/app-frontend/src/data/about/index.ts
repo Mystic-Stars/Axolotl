@@ -20,11 +20,9 @@ const teamAvatarModules = import.meta.glob('./avatars/*', {
 	query: '?url',
 }) as Record<string, string>
 
-export const teamMembers: (TeamMember & { avatarUrl?: string })[] = teamData.map((member) => ({
+export const teamMembers: (TeamMember & { avatarUrl: string })[] = teamData.map((member) => ({
 	...member,
-	avatarUrl: member.avatar.startsWith('http')
-		? member.avatar
-		: teamAvatarModules[`./avatars/${member.avatar}`],
+	avatarUrl: teamAvatarModules[`./avatars/${member.avatar}`],
 }))
 
 export const contributors = contributorsData as Contributor[]

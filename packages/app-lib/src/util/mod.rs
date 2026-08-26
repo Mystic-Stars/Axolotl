@@ -11,6 +11,7 @@ pub mod mojang;
 pub mod network;
 pub mod platform;
 pub mod protocol_version;
+pub mod proxy;
 pub mod resolve_shortcut;
 pub mod rpc;
 pub mod server_ping;

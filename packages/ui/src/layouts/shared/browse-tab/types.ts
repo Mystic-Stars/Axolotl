@@ -14,7 +14,7 @@ export interface BrowseSearchResponse {
 	projectHits: (Labrinth.Search.v2.ResultSearchProject & {
 		installed?: boolean
 		installing?: boolean
-		provider: 'modrinth' | 'curseforge'
+		provider: 'modrinth' | 'curseforge' | 'mcarchive' | 'planet_minecraft'
 		provider_project_id?: string
 		author_url?: string
 	})[]
@@ -30,6 +30,7 @@ export interface BrowseSelectedProject {
 }
 
 export interface BrowseInstallContext {
+	showInstallHeader?: boolean
 	name: string
 	loader: string
 	gameVersion: string
@@ -53,6 +54,8 @@ export interface BrowseInstallContext {
 		completed: number
 		total: number
 	}
+	installButtonLabel?: string
+	processingLabel?: string
 	clearSelected?: () => void | Promise<void>
 	discardSelectedAndBack?: () => void | Promise<void>
 	installSelected?: () => boolean | void | Promise<boolean | void>

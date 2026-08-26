@@ -278,8 +278,8 @@ const messages = defineMessages({
 			:class="[
 				{
 					'world-item-highlighted': highlighted,
-					'world-item-dashboard-compact': dashboardDensity === 'compact',
-					'world-item-dashboard-comfortable': dashboardDensity === 'comfortable',
+					'world-item-dashboard-compact grid grid-cols-[auto_minmax(0,1fr)_auto] gap-2 p-1.5': dashboardDensity === 'compact',
+					'world-item-dashboard-comfortable p-2': dashboardDensity === 'comfortable',
 				},
 				flat ? 'px-2 py-2 hover:bg-button-bg' : 'card-shadow bg-bg-raised p-3',
 			]"
@@ -612,10 +612,6 @@ const messages = defineMessages({
 </template>
 <style scoped lang="scss">
 .world-item-dashboard-compact {
-	grid-template-columns: auto minmax(0, 1fr) auto;
-	gap: 0.5rem;
-	padding: 0.375rem;
-
 	> :nth-child(2) > :first-child > :not(:first-child),
 	> :nth-child(3) {
 		display: none;
@@ -632,10 +628,6 @@ const messages = defineMessages({
 	> :last-child {
 		gap: 0.125rem;
 	}
-}
-
-.world-item-dashboard-comfortable {
-	padding: 0.5rem;
 }
 
 .world-item-highlighted {

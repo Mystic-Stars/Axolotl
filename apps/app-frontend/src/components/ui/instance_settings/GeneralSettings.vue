@@ -1,13 +1,13 @@
 <script setup lang="ts">
-import { CopyIcon, EditIcon, PlusIcon, SpinnerIcon, TrashIcon, UploadIcon } from '@modrinth/assets'
+import { CopyIcon, EditIcon, SpinnerIcon, TrashIcon, UploadIcon } from '@modrinth/assets'
 import {
 	ButtonStyled,
-	Checkbox,
 	Chips,
 	defineMessages,
 	injectFilePicker,
 	injectNotificationManager,
 	OverflowMenu,
+	RadioButtons,
 	StyledInput,
 	useVIntl,
 } from '@modrinth/ui'
@@ -19,7 +19,7 @@ import InstanceIcon from '@/components/ui/InstanceIcon.vue'
 import ConfirmDeleteInstanceModal from '@/components/ui/modal/ConfirmDeleteInstanceModal.vue'
 import { trackEvent } from '@/helpers/analytics'
 import { install_duplicate_instance } from '@/helpers/install'
-import { edit, edit_icon, list, remove } from '@/helpers/instance'
+import { edit, edit_icon, remove } from '@/helpers/instance'
 import { injectInstanceSettings } from '@/providers/instance-settings'
 
 import type { GameInstance } from '../../../helpers/types'
@@ -38,14 +38,11 @@ const releaseChannelOptions: ReleaseChannel[] = ['release', 'beta', 'alpha']
 
 const title = ref(instance.value.name)
 const icon: Ref<string | undefined> = ref(instance.value.icon_path)
-const groups = ref([...instance.value.groups])
 const savingReleaseChannel = ref(false)
 const selectedReleaseChannel = ref<ReleaseChannel>(instance.value.update_channel)
 const releaseChannelDisabledItems = computed<ReleaseChannel[]>(() =>
 	savingReleaseChannel.value ? [...releaseChannelOptions] : [],
 )
-
-const newCategoryInput = ref('')
 
 const installing = computed(() => instance.value.install_stage !== 'installed')
 
@@ -56,11 +53,6 @@ async function duplicateInstance() {
 		game_version: instance.value.game_version,
 	})
 }
-
-const allInstances = ref((await list()) as GameInstance[])
-const availableGroups = computed(() => [
-	...new Set([...allInstances.value.flatMap((instance) => instance.groups), ...groups.value]),
-])
 
 function formatReleaseChannelLabel(channel: ReleaseChannel) {
 	switch (channel) {
@@ -133,30 +125,71 @@ async function setIcon() {
 	}
 }
 
-const editInstanceObject = computed(() => ({
-	name: title.value.trim().substring(0, 32) ?? 'Instance',
-	groups: groups.value.map((x) => x.trim().substring(0, 32)).filter((x) => x.length > 0),
-}))
-
-const toggleGroup = (group: string) => {
-	if (groups.value.includes(group)) {
-		groups.value = groups.value.filter((x) => x !== group)
-	} else {
-		groups.value.push(group)
-	}
-}
-
-const addCategory = () => {
-	const text = newCategoryInput.value.trim()
-
-	if (text.length > 0) {
-		groups.value.push(text.substring(0, 32))
-		newCategoryInput.value = ''
-	}
-}
+const gameDirOverride = ref(instance.value.game_dir_override)
+const savingGameDir = ref(false)
 
 watch(
-	[title, groups, groups],
+	() => instance.value.game_dir_override,
+	(path) => {
+		gameDirOverride.value = path
+	},
+)
+
+// An external game dir is stored as a single path. Whether it is version
+// isolated is encoded in the path: `<root>/versions/<name>` vs the `.minecraft`
+// root itself. `isExternal` is false for built-in (managed) instances, which
+// expose no isolation option.
+const isExternal = computed(() => !!gameDirOverride.value)
+
+const gameDirInfo = computed(() => {
+	const path = gameDirOverride.value
+	if (!path) return { isolated: false, baseRoot: null }
+	const normalized = path.replace(/\\/g, '/')
+	const segments = normalized.split('/').filter(Boolean)
+	if (segments.length >= 2 && segments[segments.length - 2] === 'versions') {
+		return { isolated: true, baseRoot: segments.slice(0, -2).join('/') }
+	}
+	return { isolated: false, baseRoot: path }
+})
+
+type GameDirMode = 'isolated' | 'not-isolated'
+const gameDirMode = computed<GameDirMode>({
+	get: () => (gameDirInfo.value.isolated ? 'isolated' : 'not-isolated'),
+	set: (mode) => void setGameDirMode(mode),
+})
+const gameDirModeItems: GameDirMode[] = ['isolated', 'not-isolated']
+
+function gameDirModeLabel(mode: GameDirMode) {
+	return mode === 'isolated' ? messages.gameDirIsolated : messages.gameDirNotIsolated
+}
+
+async function setGameDirMode(mode: GameDirMode) {
+	const baseRoot = gameDirInfo.value.baseRoot
+	if (!baseRoot) return
+	const nextPath = mode === 'isolated' ? `${baseRoot}/versions/${instance.value.name}` : baseRoot
+	if (nextPath === gameDirOverride.value) return
+
+	// The launcher only records the new override path; the user is responsible
+	// for actually moving the mods/saves/config folders to match.
+	const previous = gameDirOverride.value
+	gameDirOverride.value = nextPath
+	savingGameDir.value = true
+	try {
+		await edit(instance.value.id, { game_dir_override: nextPath })
+	} catch (error) {
+		gameDirOverride.value = previous
+		handleError(error)
+	} finally {
+		savingGameDir.value = false
+	}
+}
+
+const editInstanceObject = computed(() => ({
+	name: title.value.trim().substring(0, 32) ?? 'Instance',
+}))
+
+watch(
+	title,
 	async () => {
 		if (removing.value) return
 		await edit(instance.value.id, editInstanceObject.value).catch(handleError)
@@ -186,23 +219,6 @@ const messages = defineMessages({
 	name: {
 		id: 'instance.settings.tabs.general.name',
 		defaultMessage: 'Name',
-	},
-	libraryGroups: {
-		id: 'instance.settings.tabs.general.library-groups',
-		defaultMessage: 'Library groups',
-	},
-	libraryGroupsDescription: {
-		id: 'instance.settings.tabs.general.library-groups.description',
-		defaultMessage:
-			'Library groups allow you to organize your instances into different sections in your library.',
-	},
-	libraryGroupsEnterName: {
-		id: 'instance.settings.tabs.general.library-groups.enter-name',
-		defaultMessage: 'Enter group name',
-	},
-	libraryGroupsCreate: {
-		id: 'instance.settings.tabs.general.library-groups.create',
-		defaultMessage: 'Create new group',
 	},
 	editIcon: {
 		id: 'instance.settings.tabs.general.edit-icon',
@@ -235,6 +251,36 @@ const messages = defineMessages({
 	duplicateButton: {
 		id: 'instance.settings.tabs.general.duplicate-button',
 		defaultMessage: 'Duplicate',
+	},
+	gameDir: {
+		id: 'instance.settings.tabs.general.game-dir',
+		defaultMessage: 'Game directory',
+	},
+	gameDirDescription: {
+		id: 'instance.settings.tabs.general.game-dir.description',
+		defaultMessage:
+			'Uses a separate folder as the working directory for this instance. The game reads mods, saves, configs, and resource packs from that folder instead of the managed instance folder.',
+	},
+	gameDirCurrent: {
+		id: 'instance.settings.tabs.general.game-dir.current',
+		defaultMessage: 'Current directory',
+	},
+	gameDirIsolated: {
+		id: 'instance.settings.tabs.general.game-dir.isolated',
+		defaultMessage: 'Version isolated (stored in versions/)',
+	},
+	gameDirNotIsolated: {
+		id: 'instance.settings.tabs.general.game-dir.not-isolated',
+		defaultMessage: 'Version shared (.minecraft/)',
+	},
+	gameDirMoveNote: {
+		id: 'instance.settings.tabs.general.game-dir.move-note',
+		defaultMessage:
+			'Switching isolation only updates the launcher path. Move the mods, saves, and config folders yourself to match.',
+	},
+	gameDirManagedNote: {
+		id: 'instance.settings.tabs.general.game-dir.managed-note',
+		defaultMessage: 'This instance uses the Axolotl-managed folder.',
 	},
 	updateChannel: {
 		id: 'instance.settings.tabs.general.update-channel',
@@ -374,36 +420,31 @@ const messages = defineMessages({
 		</template>
 		<div class="flex flex-col gap-2.5 mt-6">
 			<h2 class="m-0 text-lg font-semibold text-contrast block">
-				{{ formatMessage(messages.libraryGroups) }}
+				{{ formatMessage(messages.gameDir) }}
 			</h2>
-
-			<div class="flex flex-col gap-1">
-				<Checkbox
-					v-for="group in availableGroups"
-					:key="group"
-					:model-value="groups.includes(group)"
-					:label="group"
-					@click="toggleGroup(group)"
-				/>
-				<div class="flex gap-2 items-center">
-					<StyledInput
-						v-model="newCategoryInput"
-						:placeholder="formatMessage(messages.libraryGroupsEnterName)"
-						class="w-full max-w-[300px]"
-						@submit="() => addCategory"
-					/>
-					<ButtonStyled>
-						<button class="w-fit !shadow-none" @click="() => addCategory()">
-							<PlusIcon /> {{ formatMessage(messages.libraryGroupsCreate) }}
-						</button>
-					</ButtonStyled>
-				</div>
-			</div>
 			<p class="m-0">
-				{{ formatMessage(messages.libraryGroupsDescription) }}
+				{{ formatMessage(messages.gameDirDescription) }}
+			</p>
+			<template v-if="isExternal">
+				<div class="flex flex-col gap-1.5">
+					<RadioButtons v-model="gameDirMode" :items="gameDirModeItems" force-selection>
+						<template #default="{ item }">
+							{{ formatMessage(gameDirModeLabel(item)) }}
+						</template>
+					</RadioButtons>
+				</div>
+				<p v-if="gameDirOverride" class="m-0 text-secondary break-all">
+					{{ formatMessage(messages.gameDirCurrent) }}:
+					<code>{{ gameDirOverride }}</code>
+				</p>
+				<p class="m-0 text-sm text-secondary">
+					{{ formatMessage(messages.gameDirMoveNote) }}
+				</p>
+			</template>
+			<p v-else class="m-0 text-sm text-secondary">
+				{{ formatMessage(messages.gameDirManagedNote) }}
 			</p>
 		</div>
-
 		<div class="flex flex-col gap-2.5 mt-6">
 			<h2 class="m-0 text-lg font-semibold text-contrast block">
 				{{ formatMessage(messages.updateChannel) }}

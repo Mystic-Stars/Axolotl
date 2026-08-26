@@ -188,7 +188,10 @@ function draftText(tag: CustomTag) {
 <template>
 	<RecipeSlotDragLayer v-slot="{ startDrag }">
 		<div class="flex min-h-0 min-w-0 flex-1 flex-col gap-2 p-3">
-			<div class="recipe-tag-tabs" role="tablist">
+			<div
+				class="recipe-tag-tabs flex gap-1 border border-surface-5 rounded-[var(--radius-sm)] bg-surface-3 p-[0.2rem]"
+				role="tablist"
+			>
 				<button
 					type="button"
 					role="tab"
@@ -331,7 +334,7 @@ function draftText(tag: CustomTag) {
 							:value="valueDrafts[tag.uid] ?? draftText(tag)"
 							:placeholder="formatMessage(messages.tagValuesPlaceholder)"
 							rows="2"
-							class="recipe-tag-values"
+							class="recipe-tag-values w-full resize-y border border-surface-5 rounded-[var(--radius-sm)] bg-surface-2 p-[0.4rem] text-contrast font-mono text-xs leading-[1.4] outline-none"
 							@input="valueDrafts[tag.uid] = ($event.target as HTMLTextAreaElement).value"
 							@blur="commitValues(tag)"
 						></textarea>
@@ -343,15 +346,6 @@ function draftText(tag: CustomTag) {
 </template>
 
 <style scoped>
-.recipe-tag-tabs {
-	display: flex;
-	gap: 0.25rem;
-	border: 1px solid var(--color-surface-5);
-	border-radius: var(--radius-sm);
-	background: var(--color-surface-3);
-	padding: 0.2rem;
-}
-
 .recipe-tag-tabs button {
 	flex: 1;
 	border: 0;
@@ -461,20 +455,6 @@ function draftText(tag: CustomTag) {
 .recipe-custom-tag.is-dragging {
 	opacity: 0.6;
 	border-color: var(--color-brand);
-}
-
-.recipe-tag-values {
-	width: 100%;
-	resize: vertical;
-	border: 1px solid var(--color-surface-5);
-	border-radius: var(--radius-sm);
-	background: var(--color-surface-2);
-	padding: 0.4rem;
-	color: var(--color-contrast);
-	font-family: monospace;
-	font-size: 0.75rem;
-	line-height: 1.4;
-	outline: none;
 }
 
 .recipe-tag-values:focus {

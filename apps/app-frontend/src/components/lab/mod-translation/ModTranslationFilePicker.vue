@@ -38,8 +38,15 @@ async function pickFile() {
 				<span>{{ formatMessage(messages.selectFile) }}</span>
 			</button>
 		</ButtonStyled>
-		<span v-if="path" class="selected-path" :title="path">{{ path }}</span>
-		<span v-else class="selected-path empty">{{ formatMessage(messages.selectFile) }}…</span>
+		<span
+			v-if="path"
+			class="selected-path min-w-0 overflow-hidden flex-1 text-contrast text-[0.78rem] truncate"
+			:title="path"
+			>{{ path }}</span
+		>
+		<span v-else class="selected-path empty min-w-0 overflow-hidden flex-1 text-secondary text-[0.78rem] truncate"
+			>{{ formatMessage(messages.selectFile) }}…</span
+		>
 	</div>
 </template>
 
@@ -57,17 +64,4 @@ async function pickFile() {
 	white-space: nowrap;
 }
 
-.selected-path {
-	min-width: 0;
-	overflow: hidden;
-	flex: 1;
-	color: var(--color-text-primary);
-	font-size: 0.78rem;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-}
-
-.selected-path.empty {
-	color: var(--color-text-secondary);
-}
 </style>

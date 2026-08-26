@@ -76,12 +76,33 @@ mod tests {
         loaders: &[&str],
         dependencies: Vec<Dependency>,
     ) -> Version {
+        version_with_channel(
+            id,
+            project_id,
+            date,
+            "release",
+            game_versions,
+            loaders,
+            dependencies,
+        )
+    }
+
+    fn version_with_channel(
+        id: &str,
+        project_id: &str,
+        date: &str,
+        version_type: &str,
+        game_versions: &[&str],
+        loaders: &[&str],
+        dependencies: Vec<Dependency>,
+    ) -> Version {
         Version {
             id: id.to_string(),
             project_id: project_id.to_string(),
             date_published: DateTime::parse_from_rfc3339(date)
                 .unwrap()
                 .with_timezone(&Utc),
+            version_type: version_type.to_string(),
             dependencies,
             game_versions: game_versions
                 .iter()
@@ -124,6 +145,7 @@ mod tests {
             },
             existing_project_ids: Vec::new(),
             excluded_project_ids: Vec::new(),
+            force_project_ids: Vec::new(),
         }
     }
 
@@ -135,6 +157,24 @@ mod tests {
             "2024-01-01T00:00:00Z",
             &["1.20.1"],
             &["fabric"],
+            vec![],
+        )]);
+        let mut request = request("p1");
+        request.version_id = Some("v1".to_string());
+
+        let plan = resolve_content(provider, request).await.unwrap();
+
+        assert_eq!(plan.primary.version_id, "v1");
+    }
+
+    #[tokio::test]
+    async fn explicit_primary_version_bypasses_target_filters() {
+        let provider = MemoryProvider::default().with_versions(vec![version(
+            "v1",
+            "p1",
+            "2024-01-01T00:00:00Z",
+            &["1.21.1"],
+            &["neoforge"],
             vec![],
         )]);
         let mut request = request("p1");
@@ -172,6 +212,104 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn automatic_primary_prefers_a_release_over_a_newer_beta() {
+        let provider = MemoryProvider::default().with_versions(vec![
+            version_with_channel(
+                "iris-release",
+                "iris",
+                "2026-05-01T00:00:00Z",
+                "release",
+                &["1.21.1"],
+                &["neoforge"],
+                vec![dependency(
+                    Some("sodium"),
+                    Some("sodium-release"),
+                    DependencyType::Required,
+                )],
+            ),
+            version_with_channel(
+                "iris-newer-beta",
+                "iris",
+                "2026-06-01T00:00:00Z",
+                "beta",
+                &["1.21.1"],
+                &["neoforge"],
+                vec![],
+            ),
+            version_with_channel(
+                "sodium-release",
+                "sodium",
+                "2026-04-01T00:00:00Z",
+                "release",
+                &["1.21.1"],
+                &["neoforge"],
+                vec![],
+            ),
+        ]);
+        let mut install_request = request("iris");
+        install_request.target.game_versions = vec!["1.21.1".to_string()];
+        install_request.target.loaders = vec!["neoforge".to_string()];
+
+        let plan = resolve_content(provider, install_request).await.unwrap();
+
+        assert_eq!(plan.primary.version_id, "iris-release");
+        assert_eq!(plan.dependencies.len(), 1);
+        assert_eq!(plan.dependencies[0].version_id, "sodium-release");
+    }
+
+    #[tokio::test]
+    async fn project_only_dependency_uses_the_target_runtime() {
+        let provider = MemoryProvider::default().with_versions(vec![
+            version_with_channel(
+                "primary",
+                "primary",
+                "2026-06-01T00:00:00Z",
+                "release",
+                &["1.21.1"],
+                &["neoforge"],
+                vec![required_project_dependency("dependency")],
+            ),
+            version_with_channel(
+                "wrong-game-version",
+                "dependency",
+                "2026-07-01T00:00:00Z",
+                "beta",
+                &["1.21.2"],
+                &["neoforge"],
+                vec![],
+            ),
+            version_with_channel(
+                "wrong-loader",
+                "dependency",
+                "2026-06-15T00:00:00Z",
+                "beta",
+                &["1.21.1"],
+                &["fabric"],
+                vec![],
+            ),
+            version_with_channel(
+                "matching-runtime",
+                "dependency",
+                "2026-05-01T00:00:00Z",
+                "release",
+                &["1.21.1"],
+                &["neoforge"],
+                vec![],
+            ),
+        ]);
+        let mut install_request = request("primary");
+        install_request.version_id = Some("primary".to_string());
+        install_request.target.game_versions = vec!["1.21.1".to_string()];
+        install_request.target.loaders = vec!["neoforge".to_string()];
+
+        let plan = resolve_content(provider, install_request).await.unwrap();
+
+        assert_eq!(plan.primary.version_id, "primary");
+        assert_eq!(plan.dependencies.len(), 1);
+        assert_eq!(plan.dependencies[0].version_id, "matching-runtime");
+    }
+
+    #[tokio::test]
     async fn project_only_dependency_selects_matching_version() {
         let provider = MemoryProvider::default().with_versions(vec![
             version(
@@ -202,7 +340,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn exact_version_dependency_is_used_even_when_target_mismatches() {
+    async fn exact_version_dependency_bypasses_target_filters() {
         let provider = MemoryProvider::default().with_versions(vec![
             version(
                 "p1v1",
@@ -224,7 +362,10 @@ mod tests {
 
         let plan = resolve_content(provider, request("p1")).await.unwrap();
 
+        assert_eq!(plan.dependencies.len(), 1);
+        assert_eq!(plan.dependencies[0].project_id, "dep");
         assert_eq!(plan.dependencies[0].version_id, "depv1");
+        assert!(plan.skipped.is_empty());
     }
 
     #[tokio::test]
@@ -448,7 +589,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn mods_can_fall_back_to_datapack_versions() {
+    async fn mods_reject_datapack_versions_when_a_loader_is_requested() {
         let provider = MemoryProvider::default().with_versions(vec![version(
             "p1v1",
             "p1",
@@ -458,13 +599,14 @@ mod tests {
             vec![],
         )]);
 
-        let plan = resolve_content(provider, request("p1")).await.unwrap();
-
-        assert_eq!(plan.primary.version_id, "p1v1");
+        assert!(matches!(
+            resolve_content(provider, request("p1")).await,
+            Err(Error::NoCompatibleVersion(project_id)) if project_id == "p1"
+        ));
     }
 
     #[tokio::test]
-    async fn neoforge_matches_neo_loader_alias() {
+    async fn neoforge_rejects_neo_loader_alias() {
         let provider = MemoryProvider::default().with_versions(vec![version(
             "p1v1",
             "p1",
@@ -476,13 +618,14 @@ mod tests {
         let mut request = request("p1");
         request.target.loaders = vec!["neoforge".to_string()];
 
-        let plan = resolve_content(provider, request).await.unwrap();
-
-        assert_eq!(plan.primary.version_id, "p1v1");
+        assert!(matches!(
+            resolve_content(provider, request).await,
+            Err(Error::NoCompatibleVersion(project_id)) if project_id == "p1"
+        ));
     }
 
     #[tokio::test]
-    async fn paper_matches_bukkit_loader_alias() {
+    async fn paper_rejects_bukkit_loader_alias() {
         let provider = MemoryProvider::default().with_versions(vec![version(
             "p1v1",
             "p1",
@@ -495,9 +638,10 @@ mod tests {
         request.content_type = ContentType::Plugin;
         request.target.loaders = vec!["paper".to_string()];
 
-        let plan = resolve_content(provider, request).await.unwrap();
-
-        assert_eq!(plan.primary.version_id, "p1v1");
+        assert!(matches!(
+            resolve_content(provider, request).await,
+            Err(Error::NoCompatibleVersion(project_id)) if project_id == "p1"
+        ));
     }
 
     #[tokio::test]

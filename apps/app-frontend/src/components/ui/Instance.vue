@@ -8,6 +8,7 @@ import {
 	TimerIcon,
 } from '@modrinth/assets'
 import {
+	Avatar,
 	ButtonStyled,
 	commonMessages,
 	defineMessages,
@@ -26,6 +27,7 @@ import { trackEvent } from '@/helpers/analytics'
 import { process_listener } from '@/helpers/events'
 import { install_existing_instance, install_pack_to_existing_instance } from '@/helpers/install'
 import { kill, run } from '@/helpers/instance'
+import { getDisplayInstanceIcon } from '@/helpers/instance-icons'
 import { get_by_instance_id } from '@/helpers/process'
 import { showInstanceInFolder } from '@/helpers/utils.js'
 import { handleSevereError } from '@/store/error.js'
@@ -61,6 +63,10 @@ const props = defineProps({
 		type: Boolean,
 		default: false,
 	},
+	variant: {
+		type: String,
+		default: 'standard',
+	},
 	playing: {
 		type: Boolean,
 		default: undefined,
@@ -77,6 +83,9 @@ const props = defineProps({
 
 const internalPlaying = ref(false)
 const isPlaying = computed(() => props.playing ?? internalPlaying.value)
+const displayIcon = computed(() =>
+	getDisplayInstanceIcon(props.instance.icon_path, props.instance.loader),
+)
 const loading = ref(false)
 const modLoading = computed(
 	() =>
@@ -258,6 +267,98 @@ onUnmounted(() => unlisten())
 			</div>
 		</div>
 	</template>
+	<div v-else-if="variant === 'library'">
+		<div
+			class="group relative flex w-full cursor-pointer select-none flex-col items-start justify-end gap-3 overflow-clip rounded-[20px] border border-solid border-surface-4 bg-surface-3 p-3 text-left transition-[border-color,filter,transform] hover:border-surface-5 hover:brightness-110 active:scale-[0.98]"
+			@click="seeInstance"
+			@mouseenter="checkProcess"
+		>
+			<div
+				class="relative flex aspect-square w-full shrink-0 items-center overflow-clip rounded-2xl"
+			>
+				<Avatar
+					size="100%"
+					:src="displayIcon.url"
+					:tint-by="instance.id"
+					:class="[
+						'pointer-events-none !rounded-2xl outline-none',
+						{ '!border-0 !bg-transparent !shadow-none': displayIcon.frameless },
+					]"
+					:alt="instance.name"
+				/>
+				<div
+					v-if="modLoading || installing"
+					class="pointer-events-none absolute inset-0 flex items-center justify-center bg-surface-1/30"
+				>
+					<SpinnerIcon
+						v-tooltip="
+							modLoading
+								? formatMessage(messages.loading)
+								: formatMessage(commonMessages.installingLabel)
+						"
+						class="size-[30%] animate-spin text-contrast"
+						tabindex="-1"
+					/>
+				</div>
+				<div class="absolute bottom-1.5 right-1.5 flex size-12 items-center justify-center">
+					<ButtonStyled v-if="isPlaying" size="large" color="red" circular>
+						<button
+							v-tooltip="formatMessage(commonMessages.stopButton)"
+							@click="(e) => stop(e, 'InstanceCard')"
+							@mousehover="checkProcess"
+						>
+							<StopCircleIcon />
+						</button>
+					</ButtonStyled>
+					<ButtonStyled
+						v-else-if="!modLoading && !installing && !installed"
+						size="large"
+						color="brand"
+						circular
+					>
+						<button
+							v-tooltip="
+								offline
+									? formatMessage(messages.offlineInstalledOnly)
+									: formatMessage(commonMessages.repairButton)
+							"
+							:disabled="offline"
+							:class="{
+								'pointer-events-none scale-75 opacity-0': disabled,
+								'scale-75 opacity-0 transition-all group-hover:scale-100 group-hover:opacity-100':
+									!disabled,
+							}"
+							@click="(e) => repair(e)"
+						>
+							<DownloadIcon />
+						</button>
+					</ButtonStyled>
+					<ButtonStyled v-else-if="!modLoading && !installing" size="large" color="brand" circular>
+						<button
+							v-tooltip="formatMessage(commonMessages.playButton)"
+							:class="{
+								'pointer-events-none scale-75 opacity-0': disabled,
+								'scale-75 opacity-0 transition-all group-hover:scale-100 group-hover:opacity-100':
+									!disabled,
+							}"
+							@click="(e) => play(e, 'InstanceCard')"
+							@mousehover="checkProcess"
+						>
+							<PlayIcon class="translate-x-[1px]" />
+						</button>
+					</ButtonStyled>
+				</div>
+			</div>
+			<div class="flex w-full min-w-0 flex-col items-start justify-center gap-1 px-0.5">
+				<p class="m-0 w-full truncate text-base font-semibold leading-5 text-contrast">
+					{{ instance.name }}
+				</p>
+				<p class="m-0 w-full truncate text-sm font-medium capitalize leading-[18px] text-primary">
+					{{ instance.loader }} {{ instance.game_version }}
+				</p>
+			</div>
+		</div>
+	</div>
 	<div v-else>
 		<div
 			class="button-base flex gap-3 group"

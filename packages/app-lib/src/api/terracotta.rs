@@ -69,6 +69,7 @@ pub struct TerracottaState {
     pub download_progress: Option<u8>,
     pub download_stage: Option<TerracottaDownloadStage>,
     pub binary_installed: bool,
+    pub installed_version: Option<String>,
     pub error_type: Option<TerracottaErrorType>,
     pub error_message: Option<String>,
     pub profile_index: Option<u32>,
@@ -179,6 +180,18 @@ pub struct TerracottaMeta {
     pub yggdrasil_port: u16,
     pub target_tuple: String,
     pub target_os: String,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct TerracottaUpdate {
+    pub installed_version: Option<String>,
+    pub latest_version: String,
+    pub update_available: bool,
+}
+
+#[derive(Deserialize, Serialize)]
+struct InstalledTerracottaInfo {
+    version: String,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -342,6 +355,61 @@ async fn get_latest_terracotta_version() -> eyre::Result<String> {
         "failed to fetch latest terracotta release info: {}",
         failures.join("; ")
     )
+}
+
+fn terracotta_version_file() -> PathBuf {
+    terracotta_binary_path().with_file_name("terracotta-version.json")
+}
+
+fn installed_terracotta_version() -> Option<String> {
+    if !is_binary_installed() {
+        return None;
+    }
+
+    let bytes = std::fs::read(terracotta_version_file()).ok()?;
+    let info =
+        serde_json::from_slice::<InstalledTerracottaInfo>(&bytes).ok()?;
+    validate_terracotta_version(&info.version).ok()?;
+    Some(info.version)
+}
+
+async fn persist_installed_terracotta_version(
+    version: &str,
+) -> eyre::Result<()> {
+    let version_file = terracotta_version_file();
+    let temporary_file =
+        version_file.with_file_name("terracotta-version.json.tmp");
+    let contents = serde_json::to_vec(&InstalledTerracottaInfo {
+        version: version.to_string(),
+    })?;
+
+    tokio::fs::write(&temporary_file, contents)
+        .await
+        .wrap_err("failed to write terracotta version metadata")?;
+    tokio::fs::rename(&temporary_file, &version_file)
+        .await
+        .wrap_err("failed to install terracotta version metadata")?;
+    Ok(())
+}
+
+fn update_is_available(
+    installed_version: Option<&str>,
+    latest_version: &str,
+) -> bool {
+    installed_version != Some(latest_version)
+}
+
+pub async fn check_for_update() -> eyre::Result<TerracottaUpdate> {
+    let latest_version = get_latest_terracotta_version().await?;
+    let installed_version = installed_terracotta_version();
+    Ok(TerracottaUpdate {
+        update_available: update_is_available(
+            installed_version.as_deref(),
+            &latest_version,
+        ),
+        installed_version,
+        latest_version,
+    })
 }
 
 async fn download_terracotta_inner(
@@ -569,6 +637,7 @@ skipping verification"
     if !is_terracotta_executable(&expected_path) {
         bail!("installed terracotta binary failed executable validation");
     }
+    persist_installed_terracotta_version(&version).await?;
     info!(
         "installed {} as {}",
         candidate.display(),
@@ -616,6 +685,27 @@ pub async fn download_terracotta(version: Option<String>) -> eyre::Result<()> {
         );
     }
     run_terracotta_download(version).await
+}
+
+pub async fn update_terracotta() -> eyre::Result<TerracottaUpdate> {
+    let _operation = TERRACOTTA_OPERATION.lock().await;
+    if TERRACOTTA_STATE.lock().await.http_port.is_some() {
+        bail!(
+            "cannot update terracotta while the multiplayer service is running"
+        );
+    }
+
+    let latest_version = get_latest_terracotta_version().await?;
+    let installed_version = installed_terracotta_version();
+    if update_is_available(installed_version.as_deref(), &latest_version) {
+        run_terracotta_download(Some(latest_version.clone())).await?;
+    }
+
+    Ok(TerracottaUpdate {
+        installed_version: installed_terracotta_version(),
+        latest_version,
+        update_available: false,
+    })
 }
 
 fn terracotta_client() -> &'static reqwest::Client {
@@ -780,6 +870,7 @@ fn is_binary_installed() -> bool {
 pub async fn get_state() -> TerracottaState {
     let mut state = TERRACOTTA_STATE.lock().await.clone();
     state.binary_installed = is_binary_installed();
+    state.installed_version = installed_terracotta_version();
     state
 }
 
@@ -1521,6 +1612,26 @@ mod tests {
         assert!(validate_terracotta_version("").is_err());
         assert!(validate_terracotta_version("../terracotta").is_err());
         assert!(validate_terracotta_version("0.4.2/other").is_err());
+    }
+
+    #[test]
+    fn flags_unknown_or_different_installed_versions_for_update() {
+        assert!(update_is_available(None, "0.4.2"));
+        assert!(update_is_available(Some("0.4.1"), "0.4.2"));
+        assert!(!update_is_available(Some("0.4.2"), "0.4.2"));
+    }
+
+    #[test]
+    fn cleanup_preserves_version_metadata() {
+        assert!(binary::should_cleanup_terracotta_file(
+            "terracotta-0.4.1-windows-x86_64.exe"
+        ));
+        assert!(!binary::should_cleanup_terracotta_file(
+            "terracotta-version.json"
+        ));
+        assert!(!binary::should_cleanup_terracotta_file(
+            "terracotta-version.json.tmp"
+        ));
     }
 
     #[test]

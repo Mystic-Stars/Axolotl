@@ -30,11 +30,16 @@ const dailyIndex = stableGreetingIndex(
 const challengeIndex = ref(dailyIndex)
 
 const challenge = computed(() => dailyChallenges[challengeIndex.value])
-const challengeText = computed(() =>
-	locale.value.toLowerCase().startsWith('zh')
-		? challenge.value.text['zh-CN']
-		: challenge.value.text['en-US'],
-)
+const challengeText = computed(() => {
+	const lowerLocale = locale.value.toLowerCase()
+	if (lowerLocale == 'zh-tw') {
+		return challenge.value.text['zh-TW']
+	} else {
+		return lowerLocale.startsWith('zh')
+			? challenge.value.text['zh-CN']
+			: challenge.value.text['en-US']
+	}
+})
 
 const difficultyDotClass: Record<ChallengeDifficulty, string> = {
 	easy: 'bg-brand-green',

@@ -24,6 +24,7 @@ export interface AIProviderDefinition {
 	check_model: string
 	show_model_fetcher: boolean
 	required_settings: string[]
+	sponsored: boolean
 }
 
 export interface AIProviderModel {

@@ -45,6 +45,7 @@ export async function import_instance(
 	gameVersion = undefined,
 	loader = undefined,
 	loaderVersion = undefined,
+	gameDirOverride = undefined,
 ) {
 	return await install_import_instance(
 		launcherType,
@@ -55,6 +56,7 @@ export async function import_instance(
 		gameVersion,
 		loader,
 		loaderVersion,
+		gameDirOverride,
 	)
 }
 

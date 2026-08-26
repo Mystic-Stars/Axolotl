@@ -9,7 +9,11 @@ export interface VersionRange {
 	upperInclusive?: boolean
 }
 
-function parseVersion(versionStr: string): { major: number; minor: number; patch: number } | null {
+export function parseVersion(versionStr: string): {
+	major: number
+	minor: number
+	patch: number
+} | null {
 	const match = versionStr.match(/^(\d+)\.(\d+)(?:\.(\d+))?$/)
 	if (!match) return null
 	return {
@@ -127,6 +131,13 @@ function compareVersions(
 	if (a.major !== b.major) return a.major - b.major
 	if (a.minor !== b.minor) return a.minor - b.minor
 	return a.patch - b.patch
+}
+
+export function compareSemanticVersions(left: string, right: string): number | null {
+	const leftVersion = parseVersion(left)
+	const rightVersion = parseVersion(right)
+	if (!leftVersion || !rightVersion) return null
+	return compareVersions(leftVersion, rightVersion)
 }
 
 export function isVersionInRange(instanceVersion: string, modRange: string): boolean {

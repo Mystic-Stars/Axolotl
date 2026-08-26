@@ -72,7 +72,7 @@ function formatWeight(value: number): string {
 		<div class="live" :class="[`live--${job.level}`, { 'live--failed': job.status === 'failed' }]">
 			<span v-if="job.status === 'running'" class="live-dot" />
 			<strong>{{ job.message || '正在准备…' }}</strong>
-			<span class="verification">{{ verificationLabel }}</span>
+			<span class="verification max-sm:hidden">{{ verificationLabel }}</span>
 		</div>
 
 		<div v-if="itemLabel" class="stats">
@@ -298,9 +298,4 @@ function formatWeight(value: number): string {
 	color: var(--color-brand);
 }
 
-@media (max-width: 40rem) {
-	.verification {
-		display: none;
-	}
-}
 </style>

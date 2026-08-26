@@ -561,7 +561,7 @@ defineExpose({ openWidgetPicker, setLayout })
 				:scroll-sensitivity="96"
 				:scroll-speed="24"
 				:bubble-scroll="true"
-				ghost-class="home-widget-ghost"
+				ghost-class="home-widget-ghost !border-2 !border-dashed !border-brand !bg-brand-highlight !shadow-none opacity-[0.45]"
 				chosen-class="home-widget-chosen"
 				drag-class="home-widget-drag"
 				fallback-class="home-widget-fallback"
@@ -631,7 +631,7 @@ defineExpose({ openWidgetPicker, setLayout })
 								</ButtonStyled>
 							</div>
 						</div>
-						<div class="home-widget-content">
+						<div class="home-widget-content min-w-0 min-h-0 flex-1 overflow-hidden p-4">
 							<HomeGreeting
 								v-if="widget.kind === 'greeting'"
 								:player-name="playerName"
@@ -879,14 +879,6 @@ defineExpose({ openWidgetPicker, setLayout })
 	cursor: grabbing;
 }
 
-.home-widget-content {
-	min-width: 0;
-	min-height: 0;
-	flex: 1;
-	overflow: hidden;
-	padding: 1rem;
-}
-
 .home-widget[data-widget-kind='instance'] .home-widget-content,
 .home-widget[data-widget-kind='world'] .home-widget-content,
 .home-widget[data-widget-kind='server'] .home-widget-content {
@@ -896,13 +888,6 @@ defineExpose({ openWidgetPicker, setLayout })
 .home-widget-content > :deep(*) {
 	height: 100%;
 	min-height: 0;
-}
-
-.home-widget-ghost {
-	border: 2px dashed var(--color-brand);
-	background: var(--color-brand-highlight);
-	box-shadow: none;
-	opacity: 0.45;
 }
 
 .home-widget-ghost > * {

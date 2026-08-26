@@ -113,15 +113,6 @@
   "app.instance.worlds.search-worlds-placeholder": {
     "message": "Pretraži {count} svetova..."
   },
-  "app.settings.tabs.appearance": {
-    "message": "Izgled"
-  },
-  "app.settings.tabs.java-installations": {
-    "message": "Java instalacije"
-  },
-  "app.settings.tabs.language": {
-    "message": "Jezik"
-  },
   "friends.friend.cancel-request": {
     "message": "Otkaži zahtev"
   },
@@ -151,9 +142,6 @@
   },
   "instance.settings.tabs.general.deleting.button": {
     "message": "Brisanje..."
-  },
-  "instance.settings.tabs.general.library-groups.create": {
-    "message": "Kreiraj novu grupu"
   },
   "instance.settings.tabs.general.name": {
     "message": "Ime"

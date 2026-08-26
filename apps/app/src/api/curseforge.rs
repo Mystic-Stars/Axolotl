@@ -10,6 +10,7 @@ use theseus::curseforge::{
     CurseForgeProject, CurseForgeRecognitionResult, CurseForgeSearchRequest,
     UnifiedSearchResponse,
 };
+use theseus::prelude::CacheBehaviour;
 
 pub fn init<R: tauri::Runtime>() -> tauri::plugin::TauriPlugin<R> {
     tauri::plugin::Builder::new("curseforge")
@@ -80,8 +81,13 @@ pub async fn curseforge_get_project(
 #[tauri::command]
 pub async fn curseforge_get_projects(
     project_ids: Vec<u32>,
+    cache_behaviour: Option<CacheBehaviour>,
 ) -> Result<Vec<CurseForgeProject>> {
-    Ok(theseus::curseforge::get_projects(project_ids).await?)
+    Ok(theseus::curseforge::get_projects_with_cache_behaviour(
+        project_ids,
+        cache_behaviour,
+    )
+    .await?)
 }
 
 #[tauri::command]

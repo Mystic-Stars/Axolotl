@@ -19,6 +19,8 @@ type CrowdinListResponse<T> = {
 }
 type CrowdinSourceString = { id: number; identifier: string; fileId: number; branchId: number }
 
+const SOURCE_EXTENSION_PATTERN = /\.(vue|ts|tsx|js|jsx|mts|cts|mjs|cjs)$/
+
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const DEFAULT_LOCALE = 'en-US'
 
@@ -239,6 +241,39 @@ function sourceContracts(sourceFile: string, sourceMessages: MessageFile) {
 export async function pruneLocalTranslations(options: { check: boolean; scope?: string }) {
 	const issues: Issue[] = []
 	const entries = await loadCrowdinEntries(options.scope)
+	const sourceRoot = resolve(ROOT, options.scope ?? '', 'src')
+	const sourceReferenceCache = new Map<string, Promise<boolean>>()
+
+	async function sourceReferencesKey(key: string) {
+		let referenced = sourceReferenceCache.get(key)
+		if (!referenced) {
+			referenced = (async () => {
+				const pattern = new RegExp(
+					`["'\`]${key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}["'\`]`,
+				)
+				const files: string[] = []
+				async function walk(dir: string) {
+					for (const entry of await readdir(dir, { withFileTypes: true })) {
+						if (entry.isDirectory()) {
+							if (entry.name === 'node_modules' || entry.name === 'dist') continue
+							await walk(join(dir, entry.name))
+						} else if (SOURCE_EXTENSION_PATTERN.test(entry.name)) {
+							files.push(join(dir, entry.name))
+						}
+					}
+				}
+				if (existsSync(sourceRoot)) await walk(sourceRoot)
+				for (const file of files) {
+					if (pattern.test(await readFile(file, 'utf8'))) {
+						return true
+					}
+				}
+				return false
+			})()
+			sourceReferenceCache.set(key, referenced)
+		}
+		return referenced
+	}
 
 	for (const entry of entries) {
 		for (const sourceFile of await sourceFilesFor(entry)) {
@@ -256,6 +291,12 @@ export async function pruneLocalTranslations(options: { check: boolean; scope?: 
 					const translationText = textOf(value)
 
 					if (!sourceContract) {
+						if (await sourceReferencesKey(key)) {
+							console.log(
+								`${relative(ROOT, translationFile)}: ${key} - still referenced in source but not extractable; keeping translation`,
+							)
+							continue
+						}
 						delete translations[key]
 						changed = true
 						issues.push({ file: translationFile, key, reason: 'source key no longer exists' })

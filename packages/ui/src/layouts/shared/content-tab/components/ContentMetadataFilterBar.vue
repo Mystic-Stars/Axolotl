@@ -28,6 +28,10 @@ const messages = defineMessages({
 		id: 'content.metadata-filter.toggle',
 		defaultMessage: 'Filter',
 	},
+	filterToggleActive: {
+		id: 'content.metadata-filter.toggle-active',
+		defaultMessage: 'Filter ({count, number} active)',
+	},
 	longPressReset: {
 		id: 'content.metadata-filter.long-press-reset',
 		defaultMessage: 'Long-press to reset filters',
@@ -39,9 +43,11 @@ const props = withDefaults(
 		categories: MetadataFilterCategory[]
 		modelValue: Record<string, string[]>
 		filteringKeys?: string[]
+		activeFilterCount?: number
 	}>(),
 	{
 		filteringKeys: () => [],
+		activeFilterCount: 0,
 	},
 )
 
@@ -49,7 +55,6 @@ const emit = defineEmits<{
 	'update:category': [key: string, values: string[]]
 }>()
 
-/** 筛选条折叠状态：默认折叠，点击筛选按钮展开/收起。父层据此决定是否应用筛选。 */
 const expanded = defineModel<boolean>('expanded', { default: false })
 
 // ---- 长按重置筛选（仅在展开状态生效） ----
@@ -126,6 +131,14 @@ function selectedCount(category: MetadataFilterCategory): number {
 function isCategoryFiltering(category: MetadataFilterCategory): boolean {
 	return props.filteringKeys.includes(category.key)
 }
+
+function filterButtonLabel(): string {
+	if (expanded.value) return formatMessage(messages.longPressReset)
+	if (props.activeFilterCount > 0) {
+		return formatMessage(messages.filterToggleActive, { count: props.activeFilterCount })
+	}
+	return formatMessage(messages.filterToggle)
+}
 </script>
 
 <template>
@@ -138,15 +151,14 @@ function isCategoryFiltering(category: MetadataFilterCategory): boolean {
 		>
 			<ButtonStyled
 				circular
-				:type="expanded ? 'chip' : 'transparent'"
-				:color="expanded ? 'brand' : 'standard'"
+				:type="expanded || props.activeFilterCount > 0 ? 'chip' : 'transparent'"
+				:color="expanded || props.activeFilterCount > 0 ? 'brand' : 'standard'"
 				color-fill="text"
 				hover-color-fill="background"
 			>
 				<button
-					:aria-label="
-						expanded ? formatMessage(messages.longPressReset) : formatMessage(messages.filterToggle)
-					"
+					class="relative"
+					:aria-label="filterButtonLabel()"
 					:aria-expanded="expanded"
 					@click="handleToggleClick"
 					@pointerdown="startLongPress"
@@ -155,17 +167,20 @@ function isCategoryFiltering(category: MetadataFilterCategory): boolean {
 					@pointercancel="cancelLongPress"
 				>
 					<FilterIcon />
+					<span
+						v-if="props.activeFilterCount > 0"
+						aria-hidden="true"
+						class="absolute -right-2 -top-2 min-w-4 rounded-full bg-brand-highlight px-1 text-[0.625rem] font-semibold leading-4 text-brand"
+					>
+						{{ props.activeFilterCount }}
+					</span>
 				</button>
 			</ButtonStyled>
 
 			<template #popper>
 				<div class="flex flex-col items-center gap-1">
 					<span class="whitespace-nowrap text-xs font-semibold">
-						{{
-							expanded
-								? formatMessage(messages.longPressReset)
-								: formatMessage(messages.filterToggle)
-						}}
+						{{ filterButtonLabel() }}
 					</span>
 					<div
 						v-if="pressing"

@@ -8,11 +8,12 @@ import {
 } from '@/data/lobeModelIcons'
 import { lobeProviderIcons } from '@/data/lobeProviderIcons'
 
+import CodeFlowLogo from './CodeFlowLogo.vue'
 import LobeBrandCombine from './LobeBrandCombine.vue'
 
 const props = withDefaults(
 	defineProps<{
-		kind: 'model' | 'provider-avatar' | 'provider-combine'
+		kind: 'model' | 'provider-avatar' | 'provider-combine' | 'provider-wordmark'
 		value: string
 		size?: number
 	}>(),
@@ -37,6 +38,7 @@ const iconComponents = Object.fromEntries(
 
 const soraGradientId = useId()
 const providerConfig = computed(() => lobeProviderIcons[props.value.toLocaleLowerCase()])
+const isCodeFlow = computed(() => props.value.toLocaleLowerCase() === 'codeflow')
 const avatarConfig = computed(() => providerConfig.value?.avatar)
 const avatarComponent = computed(() => {
 	if (!providerConfig.value || !avatarConfig.value) return undefined
@@ -94,7 +96,7 @@ const modelAvatarStyle = computed(() => ({
 const avatarStyle = computed(() => ({
 	background: avatarConfig.value?.background,
 	borderRadius: `${Math.floor(props.size * 0.1)}px`,
-	color: avatarConfig.value?.color,
+	color: avatarConfig.value?.color ?? (isCodeFlow.value ? 'var(--color-contrast)' : undefined),
 	height: `${props.size}px`,
 	width: `${props.size}px`,
 }))
@@ -103,7 +105,7 @@ const avatarStyle = computed(() => ({
 <template>
 	<span
 		v-if="kind === 'provider-avatar'"
-		class="lobe-provider-avatar"
+		class="lobe-provider-avatar inline-flex flex-none items-center justify-center overflow-hidden"
 		:class="{
 			'black-background': avatarConfig?.background === '#000',
 			'white-background': avatarConfig?.background === '#fff',
@@ -154,12 +156,13 @@ const avatarStyle = computed(() => ({
 				width: `${size}px`,
 			}"
 		/>
+		<CodeFlowLogo v-else-if="isCodeFlow" :size="size" />
 		<span v-else>{{ value.slice(0, 1).toLocaleUpperCase() }}</span>
 	</span>
 
 	<span
 		v-else-if="kind === 'provider-combine'"
-		class="lobe-provider-combine"
+		class="inline-flex min-w-0 flex-none items-center justify-start text-contrast"
 		:style="{ gap: `${combineSize / 3}px`, height: `${size * 1.5}px` }"
 		aria-hidden="true"
 	>
@@ -169,17 +172,17 @@ const avatarStyle = computed(() => ({
 				class="special-square"
 				:style="{ height: `${combineSize * 1.2}px`, width: `${combineSize * 1.2}px` }"
 			/>
-			<span class="special-divider" :style="{ margin: `0 ${combineSize / 6}px` }" />
+			<span class="block h-[1em] w-px flex-none bg-divider" :style="{ margin: `0 ${combineSize / 6}px` }" />
 			<LobeBrandCombine brand="bedrock" :size="combineSize" />
 		</template>
 		<template v-else-if="providerConfig?.combine.kind === 'google'">
 			<component :is="specialAsset" :style="{ height: `${combineSize * 0.95}px`, width: 'auto' }" />
-			<span class="special-divider" :style="{ margin: `0 ${combineSize / 6}px` }" />
+			<span class="block h-[1em] w-px flex-none bg-divider" :style="{ margin: `0 ${combineSize / 6}px` }" />
 			<LobeBrandCombine brand="gemini" :size="combineSize" />
 		</template>
 		<template v-else-if="providerConfig?.combine.kind === 'azure'">
 			<LobeBrandCombine brand="azure" :size="combineSize * 0.92" />
-			<span class="special-divider" :style="{ margin: `0 ${combineSize / 6}px` }" />
+			<span class="block h-[1em] w-px flex-none bg-divider" :style="{ margin: `0 ${combineSize / 6}px` }" />
 			<LobeBrandCombine brand="openai" :size="combineSize" />
 		</template>
 		<template v-else-if="providerConfig?.combine.kind === 'anthropic'">
@@ -187,27 +190,27 @@ const avatarStyle = computed(() => ({
 				:is="iconComponents['anthropic-text']"
 				:style="{ height: `${combineSize * 0.75}px`, width: 'auto' }"
 			/>
-			<span class="special-divider" :style="{ margin: `0 ${combineSize / 6}px` }" />
+			<span class="block h-[1em] w-px flex-none bg-divider" :style="{ margin: `0 ${combineSize / 6}px` }" />
 			<LobeBrandCombine brand="claude" :size="combineSize" />
 		</template>
 		<template v-else-if="providerConfig?.combine.kind === 'qwen'">
 			<LobeBrandCombine brand="alibabacloud" :size="combineSize" />
-			<span class="special-divider" :style="{ margin: `0 ${combineSize / 6}px` }" />
+			<span class="block h-[1em] w-px flex-none bg-divider" :style="{ margin: `0 ${combineSize / 6}px` }" />
 			<LobeBrandCombine brand="qwen" :size="combineSize * 0.9" />
 		</template>
 		<template v-else-if="providerConfig?.combine.kind === 'wenxin'">
 			<LobeBrandCombine brand="baiducloud" :size="combineSize * 0.9" />
-			<span class="special-divider" :style="{ margin: `0 ${combineSize / 6}px` }" />
+			<span class="block h-[1em] w-px flex-none bg-divider" :style="{ margin: `0 ${combineSize / 6}px` }" />
 			<LobeBrandCombine brand="wenxin" extra="千帆" :size="combineSize" />
 		</template>
 		<template v-else-if="providerConfig?.combine.kind === 'cloudflare'">
 			<LobeBrandCombine brand="cloudflare" :size="combineSize * 1.1" />
-			<span class="special-divider" :style="{ margin: `0 ${combineSize / 6}px` }" />
+			<span class="block h-[1em] w-px flex-none bg-divider" :style="{ margin: `0 ${combineSize / 6}px` }" />
 			<LobeBrandCombine brand="workersai" :size="combineSize * 0.9" />
 		</template>
 		<template v-else-if="providerConfig?.combine.kind === 'v0'">
 			<LobeBrandCombine brand="vercel" :size="combineSize * 0.85" />
-			<span class="special-divider" :style="{ margin: `0 ${combineSize / 6}px` }" />
+			<span class="block h-[1em] w-px flex-none bg-divider" :style="{ margin: `0 ${combineSize / 6}px` }" />
 			<component
 				:is="specialAsset"
 				class="special-square"
@@ -222,12 +225,32 @@ const avatarStyle = computed(() => ({
 			extra="Cloud"
 			:size="size * 1.16"
 		/>
+		<CodeFlowLogo v-else-if="isCodeFlow" :size="combineSize" />
 		<LobeBrandCombine v-else :brand="combineBrand" :size="combineSize" />
 	</span>
 
 	<span
+		v-else-if="kind === 'provider-wordmark'"
+		class="lobe-provider-wordmark"
+		:style="{
+			color: 'var(--color-contrast)',
+			gap: `${Math.max(4, Math.round(size * 0.214))}px`,
+		}"
+		aria-hidden="true"
+	>
+		<CodeFlowLogo v-if="isCodeFlow" :size="size" />
+		<LobeBrandCombine v-else :brand="combineBrand" :size="combineSize" />
+		<span
+			v-if="isCodeFlow"
+			class="font-semibold"
+			:style="{ fontSize: `${Math.round(size * 0.536)}px`, letterSpacing: '-0.01em' }"
+			>CodeFlow</span
+		>
+	</span>
+
+	<span
 		v-else
-		class="model-icon"
+		class="model-icon inline-flex flex-none items-center justify-center overflow-hidden rounded-full"
 		:class="{
 			'black-background': modelBackground === '#000',
 			fallback: !modelMapping,
@@ -384,19 +407,6 @@ const avatarStyle = computed(() => ({
 </template>
 
 <style scoped>
-.lobe-provider-avatar,
-.model-icon {
-	display: inline-flex;
-	flex: none;
-	align-items: center;
-	justify-content: center;
-	overflow: hidden;
-}
-
-.model-icon {
-	border-radius: 50%;
-}
-
 .lobe-provider-avatar.white-background,
 .model-icon.white-background {
 	box-shadow: 0 0 0 1px rgb(0 0 0 / 5%) inset;
@@ -415,27 +425,17 @@ const avatarStyle = computed(() => ({
 	width: 100%;
 }
 
-.lobe-provider-combine {
+.lobe-provider-wordmark {
 	display: inline-flex;
-	min-width: 0;
 	flex: none;
 	align-items: center;
 	justify-content: flex-start;
-	color: var(--color-contrast);
 }
 
 .special-square {
 	display: block;
 	flex: none;
 	object-fit: contain;
-}
-
-.special-divider {
-	display: block;
-	width: 1px;
-	height: 1em;
-	flex: none;
-	background: var(--color-divider);
 }
 
 .model-icon > :deep(svg),

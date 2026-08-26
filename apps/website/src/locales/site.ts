@@ -62,6 +62,7 @@ export const siteLocaleMessages: Record<string, Record<string, string>> = {
 		'axolotl-marketing.download.links-failed': '暂时无法获取最新的下载链接。',
 		'axolotl-marketing.download.manual-fallback': '前往 GitHub Releases 手动下载',
 		'axolotl-marketing.download.cnb-releases': 'CNB Releases（国内推荐）',
+		'axolotl-marketing.download.lemwood-mirror': '柠泽镜像站（国内推荐）',
 		'app-marketing.hero.more-download-options': '更多下载选项',
 		'app-marketing.features.unlike-any-launcher': '与众不同的启动器',
 		'app-marketing.features.youve-used-before': '带来前所未有的体验',
@@ -87,7 +88,8 @@ export const siteLocaleMessages: Record<string, Record<string, string>> = {
 		'app-marketing.features.offline.description':
 			'中文搜索和项目翻译、拖拽导入、Java 管理、离线模式与皮肤管理，随时为你准备好。',
 		'app-marketing.features.follow.title': '联机能力',
-		'app-marketing.features.follow.description': '由陶瓦联机强力驱动，一键体验启动器联机功能，方便快捷。',
+		'app-marketing.features.follow.description':
+			'由陶瓦联机强力驱动，一键体验启动器联机功能，方便快捷。',
 		'app-marketing.download.options-title': '下载选项',
 		'axolotl-marketing.download.title': '下载 Axolotl Launcher',
 		'app-marketing.download.description': '桌面应用支持多个平台，请选择适合你的版本。',
@@ -178,11 +180,13 @@ export const siteLocaleMessages: Record<string, Record<string, string>> = {
 		'axolotl-settings.downloads.description': '选择 Axolotl Launcher 安装程序的下载来源。',
 		'axolotl-settings.download-source.title': '下载源',
 		'axolotl-settings.download-source.description':
-			'自动模式会在中国大陆使用 CNB，其他地区使用 GitHub。',
+			'自动模式会在中国大陆使用柠泽镜像, 失败回退 CNB，其他地区使用 GitHub。',
 		'axolotl-settings.download-source.auto': '自动选择',
 		'axolotl-settings.download-source.auto.description': '根据浏览器语言和时区选择下载源。',
+		'axolotl-settings.download-source.miawa': '柠泽镜像',
+		'axolotl-settings.download-source.miawa.description': '推荐中国大陆访客使用。',
 		'axolotl-settings.download-source.cnb': 'CNB',
-		'axolotl-settings.download-source.cnb.description': '推荐中国大陆访客使用。',
+		'axolotl-settings.download-source.cnb.description': '中国大陆备用源。',
 		'axolotl-settings.download-source.github': 'GitHub',
 		'axolotl-settings.download-source.github.description': '从官方 GitHub 版本下载。',
 		'axolotl-settings.download-source.current': '当前下载源：{source}',

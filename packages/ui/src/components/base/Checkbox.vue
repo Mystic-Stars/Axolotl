@@ -17,7 +17,7 @@
 			class="w-5 h-5 aspect-square rounded-md flex shrink-0 items-center justify-center border-[1px] border-solid"
 			:class="{
 				'bg-brand border-button-border text-brand-inverted': modelValue,
-				'bg-surface-2 border-surface-5 text-primary': !modelValue,
+				'bg-surface-2 border-divider-dark text-primary': !modelValue,
 				'checkbox-shadow group-active:scale-95': !disabled,
 			}"
 		>

@@ -9,6 +9,7 @@ use super::unknown_value;
 pub enum ContentSourceKind {
     Local,
     CurseForge,
+    McArchive,
     ModrinthModpack,
     ServerProject,
     ImportedModpack,
@@ -20,6 +21,7 @@ impl ContentSourceKind {
         match self {
             Self::Local => "local",
             Self::CurseForge => "curseforge",
+            Self::McArchive => "mcarchive",
             Self::ModrinthModpack => "modrinth_modpack",
             Self::ServerProject => "server_project",
             Self::ImportedModpack => "imported_modpack",
@@ -31,6 +33,7 @@ impl ContentSourceKind {
         match value {
             "local" => Ok(Self::Local),
             "curseforge" => Ok(Self::CurseForge),
+            "mcarchive" => Ok(Self::McArchive),
             "modrinth_modpack" => Ok(Self::ModrinthModpack),
             "server_project" => Ok(Self::ServerProject),
             "imported_modpack" => Ok(Self::ImportedModpack),

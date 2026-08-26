@@ -65,7 +65,7 @@ const handleSearchContent = async () => {
 				<DropdownIcon />
 				<template #from_file>
 					<FolderOpenIcon />
-					<span class="no-wrap">{{ formatMessage(messages.addFromFile) }}</span>
+					<span class="whitespace-nowrap">{{ formatMessage(messages.addFromFile) }}</span>
 				</template>
 			</OverflowMenu>
 		</ButtonStyled>

@@ -1,24 +1,16 @@
 <template>
-	<div class="axolotl-logo">
+	<div class="flex items-center justify-center h-20 mt-4">
 		<img src="/axolotl.png" alt="" />
 	</div>
 </template>
 
 <style lang="scss" scoped>
-.axolotl-logo {
-	display: flex;
-	align-items: center;
-	justify-content: center;
+img {
+	width: 5rem;
 	height: 5rem;
-	margin-top: 1rem;
-
-	img {
-		width: 5rem;
-		height: 5rem;
-		object-fit: contain;
-		filter: drop-shadow(0 0.75rem 1.5rem rgb(245 139 174 / 28%));
-		animation: float 3.5s ease-in-out infinite;
-	}
+	object-fit: contain;
+	filter: drop-shadow(0 0.75rem 1.5rem rgb(245 139 174 / 28%));
+	animation: float 3.5s ease-in-out infinite;
 }
 
 @keyframes float {

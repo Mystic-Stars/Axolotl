@@ -34,7 +34,15 @@ const CONTENT_DEPENDENCY_LOCAL_PROVIDER_MIGRATION_VERSION: i64 = 20260815000001;
 #[cfg(test)]
 const CONTENT_DEPENDENCY_BACKFILL_MARKER_MIGRATION_VERSION: i64 =
     20260815000002;
+#[cfg(test)]
+const CONTENT_DEPENDENCY_ENDPOINT_PROVIDERS_MIGRATION_VERSION: i64 =
+    20260817130000;
+#[cfg(test)]
+const CURSEFORGE_DOWNLOAD_RESTRICTION_BYPASS_MIGRATION_VERSION: i64 =
+    20260817120000;
 const AI_PROVIDER_MIGRATION_VERSION: i64 = 20260805120000;
+const PROXY_CONFIG_MIGRATION_VERSION: i64 = 20260820120000;
+const CONTENT_FAVORITES_MIGRATION_VERSION: i64 = 20260820200000;
 
 // This migration was changed by the launcher rebrand after it had already
 // shipped. Keep the checksums of the original LF and CRLF variants so existing
@@ -104,6 +112,8 @@ async fn open_migrated_app_db(db_path: &Path) -> crate::Result<Pool<Sqlite>> {
     reconcile_legacy_ai_provider_migration(&pool).await?;
     reconcile_compatible_migration_checksums(&pool).await?;
     reconcile_existing_java_discovery_migration(&pool).await?;
+    reconcile_existing_proxy_config_migration(&pool).await?;
+    reconcile_existing_content_favorites_migration(&pool).await?;
     reconcile_pending_instance_content_ownership_duplicates(&pool).await?;
     MIGRATOR.run(&pool).await?;
     record_current_app_version(&pool).await?;
@@ -898,6 +908,233 @@ async fn reconcile_existing_java_discovery_migration(
     Ok(())
 }
 
+async fn reconcile_existing_proxy_config_migration(
+    pool: &Pool<Sqlite>,
+) -> crate::Result<()> {
+    let has_migrations_table: bool = sqlx::query_scalar(
+        "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = '_sqlx_migrations')",
+    )
+    .fetch_one(pool)
+    .await?;
+    if !has_migrations_table {
+        return Ok(());
+    }
+
+    let migration_applied: bool = sqlx::query_scalar(
+        "SELECT EXISTS(SELECT 1 FROM _sqlx_migrations WHERE version = ?)",
+    )
+    .bind(PROXY_CONFIG_MIGRATION_VERSION)
+    .fetch_one(pool)
+    .await?;
+    if migration_applied {
+        return Ok(());
+    }
+
+    let columns: Vec<(String, String, i64, Option<String>, i64)> =
+        sqlx::query_as(
+            "SELECT name, type, \"notnull\", dflt_value, pk
+             FROM pragma_table_info('settings')
+             WHERE name IN (
+                'proxy_mode', 'proxy_url', 'proxy_username', 'proxy_password'
+             )
+             ORDER BY cid",
+        )
+        .fetch_all(pool)
+        .await?;
+    let expected_columns = [
+        ("proxy_mode", "TEXT", 1, Some("'system'"), 0),
+        ("proxy_url", "TEXT", 1, Some("''"), 0),
+        ("proxy_username", "TEXT", 1, Some("''"), 0),
+        ("proxy_password", "TEXT", 1, Some("''"), 0),
+    ];
+    let columns_match = columns.len() == expected_columns.len()
+        && columns.iter().zip(expected_columns).all(
+            |(
+                (name, data_type, not_null, default_value, primary_key),
+                expected,
+            )| {
+                name == expected.0
+                    && data_type.eq_ignore_ascii_case(expected.1)
+                    && *not_null == expected.2
+                    && default_value.as_deref() == expected.3
+                    && *primary_key == expected.4
+            },
+        );
+    if !columns_match {
+        return Ok(());
+    }
+
+    let settings_sql: Option<String> = sqlx::query_scalar(
+        "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'settings'",
+    )
+    .fetch_optional(pool)
+    .await?;
+    if !settings_sql.as_deref().is_some_and(|sql| {
+        sql.contains("CHECK (proxy_mode IN ('none', 'system', 'custom'))")
+    }) {
+        return Ok(());
+    }
+
+    let migration = MIGRATOR
+        .iter()
+        .find(|migration| migration.version == PROXY_CONFIG_MIGRATION_VERSION)
+        .expect("Proxy config migration should be embedded");
+    sqlx::query(
+        "INSERT INTO _sqlx_migrations (
+            version, description, success, checksum, execution_time
+         ) VALUES (?, ?, TRUE, ?, 0)",
+    )
+    .bind(migration.version)
+    .bind(migration.description.as_ref())
+    .bind(migration.checksum.as_ref())
+    .execute(pool)
+    .await?;
+
+    tracing::warn!(
+        version = PROXY_CONFIG_MIGRATION_VERSION,
+        "Reconciled fully applied proxy config schema with canonical migration"
+    );
+    Ok(())
+}
+
+async fn reconcile_existing_content_favorites_migration(
+    pool: &Pool<Sqlite>,
+) -> crate::Result<()> {
+    let has_migrations_table: bool = sqlx::query_scalar(
+        "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = '_sqlx_migrations')",
+    )
+    .fetch_one(pool)
+    .await?;
+    if !has_migrations_table {
+        return Ok(());
+    }
+
+    let migration_applied: bool = sqlx::query_scalar(
+        "SELECT EXISTS(SELECT 1 FROM _sqlx_migrations WHERE version = ?)",
+    )
+    .bind(CONTENT_FAVORITES_MIGRATION_VERSION)
+    .fetch_one(pool)
+    .await?;
+    if migration_applied {
+        return Ok(());
+    }
+
+    let columns: Vec<(String, String, i64, Option<String>, i64)> =
+        sqlx::query_as(
+            "SELECT name, type, \"notnull\", dflt_value, pk
+             FROM pragma_table_info('content_favorites')
+             ORDER BY cid",
+        )
+        .fetch_all(pool)
+        .await?;
+    let expected_columns = [
+        ("provider", "TEXT", 1, None, 1),
+        ("project_id", "TEXT", 1, None, 2),
+        ("content_type", "TEXT", 1, None, 0),
+        ("saved_at", "INTEGER", 1, None, 0),
+    ];
+    let columns_match = columns.len() == expected_columns.len()
+        && columns.iter().zip(expected_columns).all(
+            |(
+                (name, data_type, not_null, default_value, primary_key),
+                expected,
+            )| {
+                name == expected.0
+                    && data_type.eq_ignore_ascii_case(expected.1)
+                    && *not_null == expected.2
+                    && default_value.as_deref() == expected.3
+                    && *primary_key == expected.4
+            },
+        );
+    if !columns_match {
+        return Ok(());
+    }
+
+    let table_sql: Option<String> = sqlx::query_scalar(
+        "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'content_favorites'",
+    )
+    .fetch_optional(pool)
+    .await?;
+    if !table_sql.as_deref().is_some_and(|sql| {
+        sql.contains("CHECK (provider IN ('modrinth', 'curseforge'))")
+            && sql.contains("CHECK (length(project_id) > 0)")
+            && sql.contains(
+                "CHECK (content_type IN ('mod', 'resourcepack', 'datapack', 'shader'))",
+            )
+            && sql.contains("PRIMARY KEY (provider, project_id)")
+    }) {
+        return Ok(());
+    }
+
+    let indexes: Vec<(String, i64, String, i64)> = sqlx::query_as(
+        "SELECT name, \"unique\", origin, partial
+         FROM pragma_index_list('content_favorites')
+         ORDER BY name",
+    )
+    .fetch_all(pool)
+    .await?;
+    let indexes_match = indexes.len() == 2
+        && indexes.iter().any(|index| {
+            index.0 == "content_favorites_saved_at_idx"
+                && index.1 == 0
+                && index.2 == "c"
+                && index.3 == 0
+        })
+        && indexes.iter().any(|index| {
+            index.0.starts_with("sqlite_autoindex_content_favorites_")
+                && index.1 == 1
+                && index.2 == "pk"
+                && index.3 == 0
+        });
+    if !indexes_match {
+        return Ok(());
+    }
+
+    let saved_at_index_columns: Vec<(String, i64)> = sqlx::query_as(
+        "SELECT name, desc
+         FROM pragma_index_xinfo('content_favorites_saved_at_idx')
+         WHERE key = 1
+         ORDER BY seqno",
+    )
+    .fetch_all(pool)
+    .await?;
+    if saved_at_index_columns != [("saved_at".to_string(), 1)] {
+        return Ok(());
+    }
+
+    let foreign_key_count: i64 = sqlx::query_scalar(
+        "SELECT COUNT(*) FROM pragma_foreign_key_list('content_favorites')",
+    )
+    .fetch_one(pool)
+    .await?;
+    if foreign_key_count != 0 {
+        return Ok(());
+    }
+
+    let migration = MIGRATOR
+        .iter()
+        .find(|migration| {
+            migration.version == CONTENT_FAVORITES_MIGRATION_VERSION
+        })
+        .expect("Content favorites migration should be embedded");
+    sqlx::query(
+        "INSERT INTO _sqlx_migrations (
+            version, description, success, checksum, execution_time
+         ) VALUES (?, ?, TRUE, ?, 0)",
+    )
+    .bind(migration.version)
+    .bind(migration.description.as_ref())
+    .bind(migration.checksum.as_ref())
+    .execute(pool)
+    .await?;
+
+    tracing::warn!(
+        version = CONTENT_FAVORITES_MIGRATION_VERSION,
+        "Reconciled fully applied content favorites schema with canonical migration"
+    );
+    Ok(())
+}
+
 fn is_compatible_migration_checksum(
     version: i64,
     applied_checksum: &[u8],
@@ -997,7 +1234,374 @@ mod tests {
     use std::collections::HashSet;
 
     const TERRACOTTA_PUBLIC_NODES_MIGRATION_VERSION: i64 = 20260812120000;
+    const INSTANCE_LOADER_COMPONENTS_MIGRATION_VERSION: i64 = 20260819120000;
+    const INSTANCE_POST_UPGRADE_NOTICES_MIGRATION_VERSION: i64 = 20260824000000;
+    const MCARCHIVE_PROVIDER_FILE_ID_MIGRATION_VERSION: i64 = 20260823020000;
 
+    #[tokio::test]
+    async fn post_upgrade_notices_migrate_fresh_and_existing_databases() {
+        for previous_schema in [false, true] {
+            let pool = SqlitePoolOptions::new()
+                .max_connections(1)
+                .connect("sqlite::memory:")
+                .await
+                .unwrap();
+            sqlx::query("PRAGMA foreign_keys = ON")
+                .execute(&pool)
+                .await
+                .unwrap();
+            if previous_schema {
+                let previous_migrator = Migrator {
+                    migrations: std::borrow::Cow::Owned(
+                        MIGRATOR
+                            .iter()
+                            .filter(|migration| {
+                                migration.version
+                                    < INSTANCE_POST_UPGRADE_NOTICES_MIGRATION_VERSION
+                            })
+                            .cloned()
+                            .collect(),
+                    ),
+                    ..Migrator::DEFAULT
+                };
+                previous_migrator.run(&pool).await.unwrap();
+            }
+            MIGRATOR.run(&pool).await.unwrap();
+
+            let table_exists: bool = sqlx::query_scalar(
+                "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'instance_post_upgrade_notices')",
+            )
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+            assert!(table_exists);
+            let foreign_key_errors: Vec<(String, i64, String, i64)> =
+                sqlx::query_as("PRAGMA foreign_key_check")
+                    .fetch_all(&pool)
+                    .await
+                    .unwrap();
+            assert!(foreign_key_errors.is_empty());
+        }
+    }
+    #[tokio::test]
+    async fn loader_components_migrate_fresh_and_existing_instances() {
+        let fresh = SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect("sqlite::memory:")
+            .await
+            .unwrap();
+        sqlx::query("PRAGMA foreign_keys = ON")
+            .execute(&fresh)
+            .await
+            .unwrap();
+        MIGRATOR.run(&fresh).await.unwrap();
+        let table_exists: bool = sqlx::query_scalar(
+            "SELECT EXISTS(
+				SELECT 1 FROM sqlite_master
+				WHERE type = 'table' AND name = 'instance_loader_components'
+			)",
+        )
+        .fetch_one(&fresh)
+        .await
+        .unwrap();
+        assert!(table_exists);
+        let fresh_foreign_key_errors: Vec<(String, i64, String, i64)> =
+            sqlx::query_as("PRAGMA foreign_key_check")
+                .fetch_all(&fresh)
+                .await
+                .unwrap();
+        assert!(fresh_foreign_key_errors.is_empty());
+
+        let upgraded = SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect("sqlite::memory:")
+            .await
+            .unwrap();
+        sqlx::query("PRAGMA foreign_keys = ON")
+            .execute(&upgraded)
+            .await
+            .unwrap();
+        let previous_migrator = Migrator {
+            migrations: std::borrow::Cow::Owned(
+                MIGRATOR
+                    .iter()
+                    .filter(|migration| {
+                        migration.version
+                            < INSTANCE_LOADER_COMPONENTS_MIGRATION_VERSION
+                    })
+                    .cloned()
+                    .collect(),
+            ),
+            ..Migrator::DEFAULT
+        };
+        previous_migrator.run(&upgraded).await.unwrap();
+        for (id, loader, loader_version) in [
+            ("forge", "forge", Some("14.23.5.2860")),
+            ("optifine", "optifine", Some("HD_U_G5")),
+            ("vanilla", "vanilla", None),
+        ] {
+            let content_set_id = format!("{id}-set");
+            sqlx::query(
+                "INSERT INTO instances (
+					id, path, applied_content_set_id, install_stage,
+					launcher_feature_version, update_channel, name,
+					created, modified, submitted_time_played,
+					recent_time_played
+				 ) VALUES (?, ?, ?, 'installed', 'migrated_launch_hooks',
+					'release', ?, 1, 1, 0, 0)",
+            )
+            .bind(id)
+            .bind(id)
+            .bind(&content_set_id)
+            .bind(id)
+            .execute(&upgraded)
+            .await
+            .unwrap();
+            sqlx::query(
+                "INSERT INTO instance_content_sets (
+					id, instance_id, name, source_kind, status,
+					game_version, loader, loader_version, created, modified
+				 ) VALUES (?, ?, 'Default', 'local', 'available',
+					'1.12.2', ?, ?, 1, 1)",
+            )
+            .bind(&content_set_id)
+            .bind(id)
+            .bind(loader)
+            .bind(loader_version)
+            .execute(&upgraded)
+            .await
+            .unwrap();
+        }
+
+        MIGRATOR.run(&upgraded).await.unwrap();
+
+        let rows: Vec<(String, String, Option<String>, String)> =
+            sqlx::query_as(
+                "SELECT instance_id, kind, version, role
+				 FROM instance_loader_components
+				 ORDER BY instance_id, role DESC, kind",
+            )
+            .fetch_all(&upgraded)
+            .await
+            .unwrap();
+        assert_eq!(
+            rows,
+            vec![
+                (
+                    "forge".to_string(),
+                    "forge".to_string(),
+                    Some("14.23.5.2860".to_string()),
+                    "primary".to_string(),
+                ),
+                (
+                    "optifine".to_string(),
+                    "vanilla".to_string(),
+                    None,
+                    "primary".to_string(),
+                ),
+                (
+                    "optifine".to_string(),
+                    "optifine".to_string(),
+                    Some("HD_U_G5".to_string()),
+                    "adjunct".to_string(),
+                ),
+                (
+                    "vanilla".to_string(),
+                    "vanilla".to_string(),
+                    None,
+                    "primary".to_string(),
+                ),
+            ]
+        );
+        let malformed_metadata = sqlx::query(
+            "UPDATE instance_loader_components
+			 SET provider_metadata = '{'
+			 WHERE instance_id = 'forge'",
+        )
+        .execute(&upgraded)
+        .await;
+        assert!(malformed_metadata.is_err());
+        let upgraded_foreign_key_errors: Vec<(String, i64, String, i64)> =
+            sqlx::query_as("PRAGMA foreign_key_check")
+                .fetch_all(&upgraded)
+                .await
+                .unwrap();
+        assert!(upgraded_foreign_key_errors.is_empty());
+    }
+
+    #[tokio::test]
+    async fn mcarchive_provider_file_ids_migrate_fresh_and_preserve_existing_references()
+     {
+        let fresh = SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect("sqlite::memory:")
+            .await
+            .unwrap();
+        sqlx::query("PRAGMA foreign_keys = ON")
+            .execute(&fresh)
+            .await
+            .unwrap();
+        MIGRATOR.run(&fresh).await.unwrap();
+        let fresh_has_file_id: bool = sqlx::query_scalar(
+            "SELECT EXISTS(
+                SELECT 1 FROM pragma_table_info('instance_content_provider_refs')
+                WHERE name = 'provider_file_id'
+            )",
+        )
+        .fetch_one(&fresh)
+        .await
+        .unwrap();
+        assert!(fresh_has_file_id);
+
+        let upgraded = SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect("sqlite::memory:")
+            .await
+            .unwrap();
+        sqlx::query("PRAGMA foreign_keys = ON")
+            .execute(&upgraded)
+            .await
+            .unwrap();
+        let previous_migrator = Migrator {
+            migrations: std::borrow::Cow::Owned(
+                MIGRATOR
+                    .iter()
+                    .filter(|migration| {
+                        migration.version
+                            < MCARCHIVE_PROVIDER_FILE_ID_MIGRATION_VERSION
+                    })
+                    .cloned()
+                    .collect(),
+            ),
+            ..Migrator::DEFAULT
+        };
+        previous_migrator.run(&upgraded).await.unwrap();
+        sqlx::raw_sql(
+            r#"
+            INSERT INTO instances (
+                id, path, applied_content_set_id, install_stage,
+                launcher_feature_version, name, created, modified
+            ) VALUES
+                ('mcarchive-migration-instance', 'mcarchive-migration-instance',
+                    'mcarchive-migration-set', 'installed', '1',
+                    'MCArchive migration', 1, 1);
+
+            INSERT INTO instance_content_sets (
+                id, instance_id, name, source_kind, status, game_version,
+                loader, created, modified
+            ) VALUES
+                ('mcarchive-migration-set', 'mcarchive-migration-instance',
+                    'Default', 'local', 'available', '1.6.2', 'vanilla', 1, 1);
+
+            UPDATE instances
+            SET applied_content_set_id = 'mcarchive-migration-set'
+            WHERE id = 'mcarchive-migration-instance';
+
+            INSERT INTO instance_content_entries (
+                id, instance_id, content_set_id, file_id, project_type,
+                source_kind, server_requirement, client_requirement,
+                enabled, added_at, modified_at
+            ) VALUES
+                ('modrinth-reference', 'mcarchive-migration-instance',
+                    'mcarchive-migration-set', NULL, 'mod', 'local',
+                    'required', 'required', 1, 1, 1),
+                ('curseforge-reference', 'mcarchive-migration-instance',
+                    'mcarchive-migration-set', NULL, 'mod', 'local',
+                    'required', 'required', 1, 1, 1),
+                ('mcarchive-reference', 'mcarchive-migration-instance',
+                    'mcarchive-migration-set', NULL, 'mod', 'mcarchive',
+                    'required', 'required', 1, 1, 1);
+
+            INSERT INTO instance_content_provider_refs (
+                content_entry_id, provider, provider_project_id,
+                provider_release_id, is_origin
+            ) VALUES
+                ('modrinth-reference', 'modrinth', 'modrinth-project',
+                    'modrinth-version', 1),
+                ('curseforge-reference', 'curseforge', '42', '7', 1),
+                ('mcarchive-reference', 'mcarchive', 'project-uuid',
+                    'version-uuid', 1);
+            "#,
+        )
+        .execute(&upgraded)
+        .await
+        .unwrap();
+
+        MIGRATOR.run(&upgraded).await.unwrap();
+
+        let references: Vec<(String, String, Option<String>, Option<String>)> =
+            sqlx::query_as(
+                "SELECT provider, provider_project_id, provider_release_id, provider_file_id
+                 FROM instance_content_provider_refs
+                 ORDER BY provider",
+            )
+            .fetch_all(&upgraded)
+            .await
+            .unwrap();
+        assert_eq!(
+            references,
+            vec![
+                (
+                    "curseforge".to_string(),
+                    "42".to_string(),
+                    Some("7".to_string()),
+                    Some("7".to_string()),
+                ),
+                (
+                    "mcarchive".to_string(),
+                    "project-uuid".to_string(),
+                    Some("version-uuid".to_string()),
+                    None,
+                ),
+                (
+                    "modrinth".to_string(),
+                    "modrinth-project".to_string(),
+                    Some("modrinth-version".to_string()),
+                    None,
+                ),
+            ]
+        );
+
+        sqlx::query(
+            "INSERT INTO instance_content_provider_refs (
+                content_entry_id, provider, provider_project_id,
+                provider_release_id, provider_file_id, is_origin
+            ) VALUES (?, 'mcarchive', 'project-uuid', 'version-uuid', 'file-uuid', 0)",
+        )
+        .bind("mcarchive-reference")
+        .execute(&upgraded)
+        .await
+        .unwrap();
+        let mcarchive_file_id: Option<String> = sqlx::query_scalar(
+            "SELECT provider_file_id FROM instance_content_provider_refs
+             WHERE content_entry_id = 'mcarchive-reference'
+               AND provider_file_id = 'file-uuid'",
+        )
+        .fetch_one(&upgraded)
+        .await
+        .unwrap();
+        assert_eq!(mcarchive_file_id.as_deref(), Some("file-uuid"));
+
+        let old_table_exists: bool = sqlx::query_scalar(
+            "SELECT EXISTS(
+                SELECT 1 FROM sqlite_master
+                WHERE type = 'table'
+                    AND name = 'instance_content_provider_refs_old'
+            )",
+        )
+        .fetch_one(&upgraded)
+        .await
+        .unwrap();
+        assert!(!old_table_exists);
+        let foreign_key_errors: Vec<(String, i64, String, i64)> =
+            sqlx::query_as("PRAGMA foreign_key_check")
+                .fetch_all(&upgraded)
+                .await
+                .unwrap();
+        assert!(foreign_key_errors.is_empty());
+    }
+
+    #[allow(dead_code)]
     async fn settings_snapshot(pool: &Pool<Sqlite>) -> Vec<(String, String)> {
         let columns: Vec<String> = sqlx::query_scalar(
             "SELECT name FROM pragma_table_info('settings') ORDER BY cid",
@@ -1059,6 +1663,54 @@ mod tests {
         .unwrap();
         assert_eq!(locale, "zh-TW");
         assert_eq!(nodes, "[\"wss://center.node.1tmc.top\"]");
+        let foreign_key_errors: Vec<(String, i64, String, i64)> =
+            sqlx::query_as("PRAGMA foreign_key_check")
+                .fetch_all(&pool)
+                .await
+                .unwrap();
+        assert!(foreign_key_errors.is_empty());
+    }
+
+    #[tokio::test]
+    async fn curseforge_download_restriction_bypass_migration_defaults_on() {
+        let pool = SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect("sqlite::memory:")
+            .await
+            .unwrap();
+        sqlx::query("PRAGMA foreign_keys = ON")
+            .execute(&pool)
+            .await
+            .unwrap();
+        let previous_migrator = Migrator {
+            migrations: std::borrow::Cow::Owned(
+                MIGRATOR
+                    .iter()
+                    .filter(|migration| {
+                        migration.version
+                            < CURSEFORGE_DOWNLOAD_RESTRICTION_BYPASS_MIGRATION_VERSION
+                    })
+                    .cloned()
+                    .collect(),
+            ),
+            ..Migrator::DEFAULT
+        };
+        previous_migrator.run(&pool).await.unwrap();
+        sqlx::query("UPDATE settings SET locale = 'zh-CN' WHERE id = 0")
+            .execute(&pool)
+            .await
+            .unwrap();
+
+        MIGRATOR.run(&pool).await.unwrap();
+
+        let (locale, bypass): (String, bool) = sqlx::query_as(
+            "SELECT locale, bypass_curseforge_download_restrictions FROM settings WHERE id = 0",
+        )
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+        assert_eq!(locale, "zh-CN");
+        assert!(bypass);
         let foreign_key_errors: Vec<(String, i64, String, i64)> =
             sqlx::query_as("PRAGMA foreign_key_check")
                 .fetch_all(&pool)
@@ -1253,7 +1905,6 @@ mod tests {
         .execute(&pool)
         .await
         .unwrap();
-        let before = settings_snapshot(&pool).await;
 
         let migration = official_preferred_download_source_migration();
         let legacy_sql = format!("{}\n", migration.sql);
@@ -1288,8 +1939,37 @@ mod tests {
         assert_eq!(reconciled_checksum, migration.checksum.as_ref());
 
         MIGRATOR.run(&pool).await.unwrap();
-        let after = settings_snapshot(&pool).await;
-        assert_eq!(after, before);
+
+        let proxy_mode: String =
+            sqlx::query_scalar("SELECT proxy_mode FROM settings WHERE id = 0")
+                .fetch_one(&pool)
+                .await
+                .unwrap();
+        assert_eq!(proxy_mode, "system");
+
+        let proxy_url: String =
+            sqlx::query_scalar("SELECT proxy_url FROM settings WHERE id = 0")
+                .fetch_one(&pool)
+                .await
+                .unwrap();
+        assert_eq!(proxy_url, "");
+
+        let proxy_username: String = sqlx::query_scalar(
+            "SELECT proxy_username FROM settings WHERE id = 0",
+        )
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+        assert_eq!(proxy_username, "");
+
+        let proxy_password: String = sqlx::query_scalar(
+            "SELECT proxy_password FROM settings WHERE id = 0",
+        )
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+        assert_eq!(proxy_password, "");
+
         let foreign_key_errors: Vec<(String, i64, String, i64)> =
             sqlx::query_as("PRAGMA foreign_key_check")
                 .fetch_all(&pool)
@@ -1426,7 +2106,291 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn removes_system_proxy_setting_without_data_loss() {
+    async fn reconciles_fully_applied_proxy_config_without_migration_record() {
+        let pool = SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect("sqlite::memory:")
+            .await
+            .unwrap();
+        sqlx::query("PRAGMA foreign_keys = ON")
+            .execute(&pool)
+            .await
+            .unwrap();
+        let previous_migrator = Migrator {
+            migrations: std::borrow::Cow::Owned(
+                MIGRATOR
+                    .iter()
+                    .filter(|migration| {
+                        migration.version < PROXY_CONFIG_MIGRATION_VERSION
+                    })
+                    .cloned()
+                    .collect(),
+            ),
+            ..Migrator::DEFAULT
+        };
+        previous_migrator.run(&pool).await.unwrap();
+        let migration = MIGRATOR
+            .iter()
+            .find(|migration| {
+                migration.version == PROXY_CONFIG_MIGRATION_VERSION
+            })
+            .unwrap();
+        sqlx::raw_sql(migration.sql.as_ref())
+            .execute(&pool)
+            .await
+            .unwrap();
+        sqlx::query(
+            "UPDATE settings
+             SET proxy_mode = 'custom', proxy_url = 'http://localhost:7890',
+                 proxy_username = 'user', proxy_password = 'secret'
+             WHERE id = 0",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        reconcile_existing_proxy_config_migration(&pool)
+            .await
+            .unwrap();
+        let stored_checksum: Vec<u8> = sqlx::query_scalar(
+            "SELECT checksum FROM _sqlx_migrations WHERE version = ?",
+        )
+        .bind(PROXY_CONFIG_MIGRATION_VERSION)
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+        assert_eq!(stored_checksum, migration.checksum.as_ref());
+
+        MIGRATOR.run(&pool).await.unwrap();
+        let settings: (String, String, String, String) = sqlx::query_as(
+            "SELECT proxy_mode, proxy_url, proxy_username, proxy_password
+             FROM settings WHERE id = 0",
+        )
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+        assert_eq!(
+            settings,
+            (
+                "custom".to_string(),
+                "http://localhost:7890".to_string(),
+                "user".to_string(),
+                "secret".to_string(),
+            )
+        );
+        let foreign_key_errors: Vec<(String, i64, String, i64)> =
+            sqlx::query_as("PRAGMA foreign_key_check")
+                .fetch_all(&pool)
+                .await
+                .unwrap();
+        assert!(foreign_key_errors.is_empty());
+    }
+
+    #[tokio::test]
+    async fn does_not_reconcile_incomplete_proxy_config_schema() {
+        let pool = SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect("sqlite::memory:")
+            .await
+            .unwrap();
+        let previous_migrator = Migrator {
+            migrations: std::borrow::Cow::Owned(
+                MIGRATOR
+                    .iter()
+                    .filter(|migration| {
+                        migration.version < PROXY_CONFIG_MIGRATION_VERSION
+                    })
+                    .cloned()
+                    .collect(),
+            ),
+            ..Migrator::DEFAULT
+        };
+        previous_migrator.run(&pool).await.unwrap();
+        sqlx::raw_sql(
+            "ALTER TABLE settings ADD COLUMN proxy_mode TEXT NOT NULL DEFAULT 'system';
+             ALTER TABLE settings ADD COLUMN proxy_url TEXT NOT NULL DEFAULT '';
+             ALTER TABLE settings ADD COLUMN proxy_username TEXT NOT NULL DEFAULT '';
+             ALTER TABLE settings ADD COLUMN proxy_password TEXT NOT NULL DEFAULT '';",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        reconcile_existing_proxy_config_migration(&pool)
+            .await
+            .unwrap();
+        let migration_recorded: bool = sqlx::query_scalar(
+            "SELECT EXISTS(SELECT 1 FROM _sqlx_migrations WHERE version = ?)",
+        )
+        .bind(PROXY_CONFIG_MIGRATION_VERSION)
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+        assert!(!migration_recorded);
+        assert!(MIGRATOR.run(&pool).await.is_err());
+    }
+
+    #[tokio::test]
+    async fn reconciles_fully_applied_content_favorites_without_migration_record()
+     {
+        let pool = SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect("sqlite::memory:")
+            .await
+            .unwrap();
+        sqlx::query("PRAGMA foreign_keys = ON")
+            .execute(&pool)
+            .await
+            .unwrap();
+        let previous_migrator = Migrator {
+            migrations: std::borrow::Cow::Owned(
+                MIGRATOR
+                    .iter()
+                    .filter(|migration| {
+                        migration.version < CONTENT_FAVORITES_MIGRATION_VERSION
+                    })
+                    .cloned()
+                    .collect(),
+            ),
+            ..Migrator::DEFAULT
+        };
+        previous_migrator.run(&pool).await.unwrap();
+        let migration = MIGRATOR
+            .iter()
+            .find(|migration| {
+                migration.version == CONTENT_FAVORITES_MIGRATION_VERSION
+            })
+            .unwrap();
+        sqlx::raw_sql(migration.sql.as_ref())
+            .execute(&pool)
+            .await
+            .unwrap();
+        sqlx::query(
+            "INSERT INTO content_favorites (
+                provider, project_id, content_type, saved_at
+             ) VALUES
+                ('modrinth', 'modrinth-project', 'mod', 10),
+                ('curseforge', 'curseforge-project', 'resourcepack', 20)",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        reconcile_existing_content_favorites_migration(&pool)
+            .await
+            .unwrap();
+        let stored_checksum: Vec<u8> = sqlx::query_scalar(
+            "SELECT checksum FROM _sqlx_migrations WHERE version = ?",
+        )
+        .bind(CONTENT_FAVORITES_MIGRATION_VERSION)
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+        assert_eq!(stored_checksum, migration.checksum.as_ref());
+
+        MIGRATOR.run(&pool).await.unwrap();
+        let favorites: Vec<(String, String, String, i64)> = sqlx::query_as(
+            "SELECT provider, project_id, content_type, saved_at
+             FROM content_favorites
+             ORDER BY provider",
+        )
+        .fetch_all(&pool)
+        .await
+        .unwrap();
+        assert_eq!(
+            favorites,
+            [
+                (
+                    "curseforge".to_string(),
+                    "curseforge-project".to_string(),
+                    "resourcepack".to_string(),
+                    20,
+                ),
+                (
+                    "modrinth".to_string(),
+                    "modrinth-project".to_string(),
+                    "mod".to_string(),
+                    10,
+                ),
+            ]
+        );
+        sqlx::query(
+            "INSERT INTO content_favorites (
+                provider, project_id, content_type, saved_at
+             ) VALUES ('mcarchive', 'mcarchive-project', 'mod', 30)",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+        let old_table_exists: bool = sqlx::query_scalar(
+            "SELECT EXISTS(
+                SELECT 1 FROM sqlite_master
+                WHERE type = 'table' AND name = 'content_favorites_old'
+             )",
+        )
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+        assert!(!old_table_exists);
+        let foreign_key_errors: Vec<(String, i64, String, i64)> =
+            sqlx::query_as("PRAGMA foreign_key_check")
+                .fetch_all(&pool)
+                .await
+                .unwrap();
+        assert!(foreign_key_errors.is_empty());
+    }
+
+    #[tokio::test]
+    async fn does_not_reconcile_incomplete_content_favorites_schema() {
+        let pool = SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect("sqlite::memory:")
+            .await
+            .unwrap();
+        let previous_migrator = Migrator {
+            migrations: std::borrow::Cow::Owned(
+                MIGRATOR
+                    .iter()
+                    .filter(|migration| {
+                        migration.version < CONTENT_FAVORITES_MIGRATION_VERSION
+                    })
+                    .cloned()
+                    .collect(),
+            ),
+            ..Migrator::DEFAULT
+        };
+        previous_migrator.run(&pool).await.unwrap();
+        sqlx::raw_sql(
+            "CREATE TABLE content_favorites (
+                provider TEXT NOT NULL,
+                project_id TEXT NOT NULL,
+                content_type TEXT NOT NULL,
+                saved_at INTEGER NOT NULL,
+                PRIMARY KEY (provider, project_id)
+             );
+             CREATE INDEX content_favorites_saved_at_idx
+                ON content_favorites (saved_at DESC);",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        reconcile_existing_content_favorites_migration(&pool)
+            .await
+            .unwrap();
+        let migration_recorded: bool = sqlx::query_scalar(
+            "SELECT EXISTS(SELECT 1 FROM _sqlx_migrations WHERE version = ?)",
+        )
+        .bind(CONTENT_FAVORITES_MIGRATION_VERSION)
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+        assert!(!migration_recorded);
+        assert!(MIGRATOR.run(&pool).await.is_err());
+    }
+
+    #[tokio::test]
+    async fn proxy_config_migration_preserves_existing_settings() {
         let pool = SqlitePoolOptions::new()
             .max_connections(1)
             .connect("sqlite::memory:")
@@ -1467,12 +2431,39 @@ mod tests {
         .execute(&pool)
         .await
         .unwrap();
-        let before = settings_snapshot(&pool).await;
 
         MIGRATOR.run(&pool).await.unwrap();
 
-        let after = settings_snapshot(&pool).await;
-        assert_eq!(after, before);
+        let proxy_mode: String =
+            sqlx::query_scalar("SELECT proxy_mode FROM settings WHERE id = 0")
+                .fetch_one(&pool)
+                .await
+                .unwrap();
+        assert_eq!(proxy_mode, "system");
+
+        let proxy_url: String =
+            sqlx::query_scalar("SELECT proxy_url FROM settings WHERE id = 0")
+                .fetch_one(&pool)
+                .await
+                .unwrap();
+        assert_eq!(proxy_url, "");
+
+        let proxy_username: String = sqlx::query_scalar(
+            "SELECT proxy_username FROM settings WHERE id = 0",
+        )
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+        assert_eq!(proxy_username, "");
+
+        let proxy_password: String = sqlx::query_scalar(
+            "SELECT proxy_password FROM settings WHERE id = 0",
+        )
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+        assert_eq!(proxy_password, "");
+
         let proxy_column_count: i64 = sqlx::query_scalar(
             "SELECT COUNT(*) FROM pragma_table_info('settings')
              WHERE name = 'use_system_proxy'",
@@ -1481,6 +2472,7 @@ mod tests {
         .await
         .unwrap();
         assert_eq!(proxy_column_count, 0);
+
         let legacy_table_exists: bool = sqlx::query_scalar(
             "SELECT EXISTS(
                 SELECT 1 FROM sqlite_master
@@ -1492,6 +2484,7 @@ mod tests {
         .await
         .unwrap();
         assert!(!legacy_table_exists);
+
         let foreign_key_errors: Vec<(String, i64, String, i64)> =
             sqlx::query_as("PRAGMA foreign_key_check")
                 .fetch_all(&pool)
@@ -3136,7 +4129,7 @@ mod tests {
         .unwrap();
     }
 
-    fn dependency_edge_row(
+    fn dependency_edge_row_legacy(
         provider: &str,
         child_entry_id: &str,
         child_project_id: &str,
@@ -3152,6 +4145,28 @@ mod tests {
                     '{child_entry_id}', '{provider}', 'required',
                     'local:parent', '1.0.0', '{child_project_id}', '2.0.0',
                     1, 1)"
+        )
+    }
+
+    fn dependency_edge_row(
+        evidence_provider: &str,
+        parent_provider: &str,
+        child_provider: &str,
+        child_entry_id: &str,
+        child_project_id: &str,
+    ) -> String {
+        format!(
+            "INSERT INTO instance_content_dependencies (
+                id, content_set_id, parent_entry_id, child_entry_id,
+                evidence_provider, parent_provider, child_provider,
+                dependency_kind, parent_project_id, parent_release_id,
+                child_project_id, child_release_id, created_at, modified_at
+            ) VALUES
+                ('edge-{evidence_provider}-{child_entry_id}',
+                    'local-edge-set', 'parent-entry', '{child_entry_id}',
+                    '{evidence_provider}', '{parent_provider}',
+                    '{child_provider}', 'required', 'local:parent', '1.0.0',
+                    '{child_project_id}', '2.0.0', 1, 1)"
         )
     }
 
@@ -3172,6 +4187,8 @@ mod tests {
 
         sqlx::raw_sql(&dependency_edge_row(
             "local",
+            "local",
+            "local",
             "child-entry-local",
             "local:child-local",
         ))
@@ -3180,7 +4197,7 @@ mod tests {
         .unwrap();
 
         let providers: Vec<String> = sqlx::query_scalar(
-            "SELECT provider FROM instance_content_dependencies",
+            "SELECT evidence_provider FROM instance_content_dependencies",
         )
         .fetch_all(&pool)
         .await
@@ -3222,7 +4239,7 @@ mod tests {
         };
         previous_migrator.run(&pool).await.unwrap();
         insert_dependency_edge_fixture(&pool).await;
-        sqlx::raw_sql(&dependency_edge_row(
+        sqlx::raw_sql(&dependency_edge_row_legacy(
             "modrinth",
             "child-entry",
             "local:child",
@@ -3231,7 +4248,7 @@ mod tests {
         .await
         .unwrap();
 
-        let local_row = dependency_edge_row(
+        let local_row = dependency_edge_row_legacy(
             "local",
             "child-entry-local",
             "local:child-local",
@@ -3244,7 +4261,7 @@ mod tests {
         MIGRATOR.run(&pool).await.unwrap();
 
         let providers: Vec<String> = sqlx::query_scalar(
-            "SELECT provider FROM instance_content_dependencies
+            "SELECT evidence_provider FROM instance_content_dependencies
              ORDER BY id",
         )
         .fetch_all(&pool)
@@ -3254,6 +4271,8 @@ mod tests {
 
         sqlx::raw_sql(&dependency_edge_row(
             "local",
+            "local",
+            "local",
             "child-entry-local",
             "local:child-local",
         ))
@@ -3262,7 +4281,7 @@ mod tests {
         .unwrap();
 
         let providers: Vec<String> = sqlx::query_scalar(
-            "SELECT provider FROM instance_content_dependencies
+            "SELECT evidence_provider FROM instance_content_dependencies
              ORDER BY id",
         )
         .fetch_all(&pool)
@@ -3270,6 +4289,135 @@ mod tests {
         .unwrap();
         assert_eq!(providers, ["local", "modrinth"]);
 
+        let foreign_key_errors: Vec<(String, i64, String, i64)> =
+            sqlx::query_as("PRAGMA foreign_key_check")
+                .fetch_all(&pool)
+                .await
+                .unwrap();
+        assert!(foreign_key_errors.is_empty());
+    }
+
+    #[tokio::test]
+    async fn content_dependency_endpoint_providers_migration_creates_provider_qualified_schema()
+     {
+        let pool = SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect("sqlite::memory:")
+            .await
+            .unwrap();
+        sqlx::query("PRAGMA foreign_keys = ON")
+            .execute(&pool)
+            .await
+            .unwrap();
+        MIGRATOR.run(&pool).await.unwrap();
+        insert_dependency_edge_fixture(&pool).await;
+
+        sqlx::raw_sql(&dependency_edge_row(
+            "modrinth",
+            "curseforge",
+            "modrinth",
+            "child-entry",
+            "mr-child",
+        ))
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        let providers: (String, String, String) = sqlx::query_as(
+            "SELECT evidence_provider, parent_provider, child_provider
+             FROM instance_content_dependencies",
+        )
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+        assert_eq!(
+            providers,
+            ("modrinth".into(), "curseforge".into(), "modrinth".into())
+        );
+        let foreign_key_errors: Vec<(String, i64, String, i64)> =
+            sqlx::query_as("PRAGMA foreign_key_check")
+                .fetch_all(&pool)
+                .await
+                .unwrap();
+        assert!(foreign_key_errors.is_empty());
+    }
+
+    #[tokio::test]
+    async fn content_dependency_endpoint_providers_migration_backfills_legacy_rows()
+     {
+        let pool = SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect("sqlite::memory:")
+            .await
+            .unwrap();
+        sqlx::query("PRAGMA foreign_keys = ON")
+            .execute(&pool)
+            .await
+            .unwrap();
+        let previous_migrator = Migrator {
+            migrations: std::borrow::Cow::Owned(
+                MIGRATOR
+                    .iter()
+                    .filter(|migration| {
+                        migration.version
+                            < CONTENT_DEPENDENCY_ENDPOINT_PROVIDERS_MIGRATION_VERSION
+                    })
+                    .cloned()
+                    .collect(),
+            ),
+            ..Migrator::DEFAULT
+        };
+        previous_migrator.run(&pool).await.unwrap();
+        insert_dependency_edge_fixture(&pool).await;
+        sqlx::raw_sql(&dependency_edge_row_legacy(
+            "curseforge",
+            "child-entry",
+            "cf-child",
+        ))
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        MIGRATOR.run(&pool).await.unwrap();
+
+        let legacy: (String, String, String) = sqlx::query_as(
+            "SELECT evidence_provider, parent_provider, child_provider
+             FROM instance_content_dependencies WHERE id = 'edge-curseforge'",
+        )
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+        assert_eq!(
+            legacy,
+            (
+                "curseforge".into(),
+                "curseforge".into(),
+                "curseforge".into()
+            )
+        );
+
+        sqlx::raw_sql(&dependency_edge_row(
+            "modrinth",
+            "curseforge",
+            "modrinth",
+            "child-entry-local",
+            "mr-child",
+        ))
+        .execute(&pool)
+        .await
+        .unwrap();
+        let cross_source: (String, String, String) = sqlx::query_as(
+            "SELECT evidence_provider, parent_provider, child_provider
+             FROM instance_content_dependencies
+             WHERE id = 'edge-modrinth-child-entry-local'",
+        )
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+        assert_eq!(
+            cross_source,
+            ("modrinth".into(), "curseforge".into(), "modrinth".into())
+        );
         let foreign_key_errors: Vec<(String, i64, String, i64)> =
             sqlx::query_as("PRAGMA foreign_key_check")
                 .fetch_all(&pool)

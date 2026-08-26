@@ -39,6 +39,12 @@ fn parse_curseforge_loader(
     loader_name: &str,
     game_version: &str,
 ) -> Option<(ModLoader, String)> {
+    let loader_name = loader_name.trim();
+    if loader_name.eq_ignore_ascii_case("labymod")
+        || loader_name.to_ascii_lowercase().starts_with("labymod-")
+    {
+        return None;
+    }
     let family = crate::api::curseforge::loader_family(loader_name);
     let loader = match family {
         "forge" => ModLoader::Forge,
@@ -136,32 +142,33 @@ pub async fn import_curseforge(
 
         let parsed_loader =
             parse_curseforge_loader(&instance_mod_loader.name, &game_version);
-        let mod_loader = parsed_loader
-            .as_ref()
-            .map_or(ModLoader::Vanilla, |(loader, _)| *loader);
-        let requested_loader_version =
-            parsed_loader.as_ref().map(|(_, version)| version.as_str());
+        let (mod_loader, requested_loader_version) = parsed_loader.ok_or_else(|| {
+			let loader_name = instance_mod_loader.name.trim();
+			let message = if loader_name.eq_ignore_ascii_case("labymod")
+				|| loader_name.to_ascii_lowercase().starts_with("labymod-")
+			{
+				"Unsupported loader LabyMod: Axolotl does not install, update, or repair LabyMod instances".to_string()
+			} else {
+				format!(
+					"Unsupported loader {loader_name}: the instance was not imported as Vanilla"
+				)
+			};
+			crate::ErrorKind::InputError(message)
+		})?;
 
-        let loader_version = if mod_loader != ModLoader::Vanilla {
-            let resolved = crate::launcher::get_loader_version_from_profile(
-                &game_version,
-                mod_loader,
-                requested_loader_version,
-            )
-            .await?;
-            if resolved.is_none() {
-                return Err(crate::ErrorKind::InputError(format!(
-                    "CurseForge instance loader version {} is not available for {} {}",
-                    requested_loader_version.unwrap_or_default(),
-                    mod_loader.as_str(),
-                    game_version
-                ))
-                .into());
-            }
-            resolved
-        } else {
-            None
-        };
+        let loader_version = crate::launcher::get_loader_version_from_profile(
+            &game_version,
+            mod_loader,
+            Some(&requested_loader_version),
+        )
+        .await?;
+        if loader_version.is_none() {
+            return Err(crate::ErrorKind::InputError(format!(
+				"CurseForge instance loader version {requested_loader_version} is not available for {} {game_version}",
+				mod_loader.as_str(),
+			))
+			.into());
+        }
 
         crate::api::instance::edit(
             instance_id,
@@ -259,5 +266,10 @@ mod tests {
     #[test]
     fn rejects_unknown_curseforge_instance_loader() {
         assert_eq!(parse_curseforge_loader("unknown-1.0", "1.20.1"), None);
+    }
+
+    #[test]
+    fn rejects_labymod_curseforge_instance_loader() {
+        assert_eq!(parse_curseforge_loader("labymod-4.4.20", "1.20.1"), None);
     }
 }

@@ -158,7 +158,7 @@ defineExpose({ show })
 					<button
 						v-for="instance in instances"
 						:key="instance.id"
-						class="seed-import-row"
+						class="seed-import-row flex items-center gap-[0.65rem] border border-surface-5 rounded-[var(--radius-md)] bg-surface-2 px-[0.65rem] py-2 text-contrast cursor-pointer text-left enabled:hover:bg-surface-4 disabled:cursor-default disabled:opacity-70"
 						@click="openInstance(instance)"
 					>
 						<InstanceIcon
@@ -198,7 +198,7 @@ defineExpose({ show })
 					<button
 						v-for="world in worlds"
 						:key="world.path"
-						class="seed-import-row"
+						class="seed-import-row flex items-center gap-[0.65rem] border border-surface-5 rounded-[var(--radius-md)] bg-surface-2 px-[0.65rem] py-2 text-contrast cursor-pointer text-left enabled:hover:bg-surface-4 disabled:cursor-default disabled:opacity-70"
 						:disabled="importingWorldPath !== null"
 						@click="importWorld(world)"
 					>
@@ -271,28 +271,6 @@ defineExpose({ show })
 	overflow-y: auto;
 	overscroll-behavior: contain;
 	padding-right: 0.2rem;
-}
-
-.seed-import-row {
-	display: flex;
-	align-items: center;
-	gap: 0.65rem;
-	border: 1px solid var(--surface-5);
-	border-radius: var(--radius-md);
-	background: var(--surface-2);
-	padding: 0.5rem 0.65rem;
-	color: var(--color-text-primary);
-	cursor: pointer;
-	text-align: left;
-}
-
-.seed-import-row:hover:not(:disabled) {
-	background: var(--surface-4);
-}
-
-.seed-import-row:disabled {
-	cursor: default;
-	opacity: 0.7;
 }
 
 .seed-import-avatar {

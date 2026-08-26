@@ -310,45 +310,7 @@ async fn import_mmc_unmanaged(
     details: InstallPhaseDetails,
     symlink: bool,
 ) -> crate::Result<()> {
-    // Pack dependencies stored in mmc-pack.json, we convert to .mrpack pack dependencies
-    let dependencies = mmc_pack
-        .components
-        .iter()
-        .filter_map(|component| {
-            if component.uid.starts_with("net.fabricmc.fabric-loader") {
-                return Some((
-                    PackDependency::FabricLoader,
-                    component.version.clone().unwrap_or_default(),
-                ));
-            }
-            if component.uid.starts_with("net.minecraftforge") {
-                return Some((
-                    PackDependency::Forge,
-                    component.version.clone().unwrap_or_default(),
-                ));
-            }
-            if component.uid.starts_with("net.neoforged") {
-                return Some((
-                    PackDependency::NeoForge,
-                    component.version.clone().unwrap_or_default(),
-                ));
-            }
-            if component.uid.starts_with("org.quiltmc.quilt-loader") {
-                return Some((
-                    PackDependency::QuiltLoader,
-                    component.version.clone().unwrap_or_default(),
-                ));
-            }
-            if component.uid.starts_with("net.minecraft") {
-                return Some((
-                    PackDependency::Minecraft,
-                    component.version.clone().unwrap_or_default(),
-                ));
-            }
-
-            None
-        })
-        .collect();
+    let dependencies = mmc_dependencies(&mmc_pack)?;
 
     install_from::set_instance_information(
         instance_id.to_string(),
@@ -372,4 +334,130 @@ async fn import_mmc_unmanaged(
     )
     .await?;
     Ok(())
+}
+
+fn mmc_dependencies(
+    mmc_pack: &MMCPack,
+) -> crate::Result<std::collections::HashMap<PackDependency, String>> {
+    let mut dependencies = std::collections::HashMap::new();
+    let has_legacy_fabric = mmc_pack.components.iter().any(|component| {
+        component
+            .uid
+            .to_ascii_lowercase()
+            .starts_with("net.legacyfabric")
+    });
+    let has_cleanroom = mmc_pack.components.iter().any(|component| {
+        component
+            .uid
+            .to_ascii_lowercase()
+            .starts_with("com.cleanroommc")
+    });
+    for component in &mmc_pack.components {
+        let uid = component.uid.to_ascii_lowercase();
+        if uid.contains("labymod") {
+            return Err(crate::ErrorKind::InputError(
+				"Unsupported loader LabyMod: Axolotl does not install, update, or repair LabyMod instances"
+					.to_string(),
+			)
+			.into());
+        }
+        let dependency = if uid.starts_with("net.fabricmc.fabric-loader") {
+            Some(if has_legacy_fabric {
+                PackDependency::LegacyFabric
+            } else {
+                PackDependency::FabricLoader
+            })
+        } else if uid.starts_with("net.legacyfabric") {
+            Some(PackDependency::LegacyFabric)
+        } else if uid.starts_with("net.minecraftforge") {
+            (!has_cleanroom).then_some(PackDependency::Forge)
+        } else if uid.starts_with("net.neoforged") {
+            Some(PackDependency::NeoForge)
+        } else if uid.starts_with("org.quiltmc.quilt-loader") {
+            Some(PackDependency::QuiltLoader)
+        } else if uid.starts_with("com.cleanroommc") {
+            Some(PackDependency::Cleanroom)
+        } else if uid.contains("liteloader") {
+            Some(PackDependency::LiteLoader)
+        } else if uid.contains("optifabric") {
+            Some(PackDependency::OptiFabric)
+        } else if uid.contains("optifine") {
+            Some(PackDependency::OptiFine)
+        } else if uid.starts_with("net.minecraft") {
+            Some(PackDependency::Minecraft)
+        } else {
+            None
+        };
+        if let Some(dependency) = dependency {
+            let version = component
+                .version
+                .clone()
+                .filter(|v| !v.is_empty())
+                .ok_or_else(|| {
+                crate::ErrorKind::InputError(format!(
+                    "MultiMC component {} is missing its version",
+                    component.uid
+                ))
+            })?;
+            dependencies.insert(dependency, version);
+        }
+    }
+    Ok(dependencies)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn component(uid: &str, version: &str) -> MMCComponent {
+        MMCComponent {
+            uid: uid.to_string(),
+            version: Some(version.to_string()),
+            dependency_only: false,
+            important: true,
+            disabled: false,
+            cached_name: None,
+            cached_version: None,
+            cached_requires: Vec::new(),
+            cached_conflicts: Vec::new(),
+        }
+    }
+
+    #[test]
+    fn dependencies_preserve_legacy_fabric_and_optifine_components() {
+        let pack = MMCPack {
+            format_version: 1,
+            components: vec![
+                component("net.minecraft", "1.8.9"),
+                component("net.legacyfabric.intermediary", "1.8.9"),
+                component("net.fabricmc.fabric-loader", "0.13.1.4"),
+                component("optifine.OptiFine", "1.8.9_HD_U_M6_pre2"),
+                component("optifabric.OptiFabric", "1.13.16"),
+            ],
+        };
+        let dependencies = mmc_dependencies(&pack).unwrap();
+
+        assert_eq!(
+            dependencies.get(&PackDependency::LegacyFabric),
+            Some(&"0.13.1.4".to_string())
+        );
+        assert_eq!(
+            dependencies.get(&PackDependency::OptiFine),
+            Some(&"1.8.9_HD_U_M6_pre2".to_string())
+        );
+        assert_eq!(
+            dependencies.get(&PackDependency::OptiFabric),
+            Some(&"1.13.16".to_string())
+        );
+    }
+
+    #[test]
+    fn dependencies_reject_labymod_components() {
+        let pack = MMCPack {
+            format_version: 1,
+            components: vec![component("net.labymod.LabyMod", "4.4.20")],
+        };
+
+        assert!(mmc_dependencies(&pack).is_err());
+    }
 }

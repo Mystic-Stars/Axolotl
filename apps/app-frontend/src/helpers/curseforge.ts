@@ -124,6 +124,10 @@ export interface CurseForgeFile {
 	dependencies: Array<{ modId: number; relationType: number }>
 }
 
+export function hasCompatibleCurseForgeFile(files: CurseForgeFile[], gameVersion: string) {
+	return files.some((file) => file.isAvailable && file.gameVersions.includes(gameVersion))
+}
+
 export function getCurseForgeImageUrl(source?: string | null, width = 256): string | undefined {
 	if (!source) return undefined
 
@@ -164,6 +168,14 @@ export interface CurseForgeInstallRequest {
 	worldName?: string
 	installDependencies?: boolean
 	excludedDependencyProjectIds?: number[]
+	forceDependencyProjectIds?: number[]
+	dependencyPlanId?: string
+}
+
+export interface CurseForgeWorldInstallRequest {
+	instanceId: string
+	projectId: number
+	fileId: number
 }
 
 export interface CurseForgeInstallResult {
@@ -203,6 +215,7 @@ export interface CurseForgeInstallResult {
 }
 
 export interface CurseForgeInstallPreview {
+	planId: string
 	primary: {
 		projectId: number
 		fileId: number
@@ -223,6 +236,17 @@ export interface CurseForgeInstallPreview {
 		requiredByProjectIds: number[]
 		iconUrl?: string | null
 		versionMismatch?: boolean
+		selectionReason?: 'native_strict_match' | 'sha1_verified_modrinth_fallback'
+		required?: boolean
+	}>
+	modrinthFallbacks?: Array<{
+		projectId: string
+		versionId: string
+		title: string
+		versionNumber: string
+		parentProjectId: number
+		iconUrl?: string | null
+		required?: boolean
 	}>
 	skipped: Array<{
 		projectId: number
@@ -323,6 +347,13 @@ export function getCurseForgeProject(projectId: number) {
 	return invoke<CurseForgeProject>('plugin:curseforge|curseforge_get_project', { projectId })
 }
 
+export function getCurseForgeProjects(projectIds: number[], cacheBehaviour?: CacheBehaviour) {
+	return invoke<CurseForgeProject[]>('plugin:curseforge|curseforge_get_projects', {
+		projectIds,
+		cacheBehaviour,
+	})
+}
+
 export function getCurseForgeChangelog(projectId: number, fileId: number) {
 	return invoke<string>('plugin:curseforge|curseforge_get_changelog', {
 		projectId,
@@ -376,6 +407,17 @@ export function queueCurseForgeFile(
 	display: { title: string; iconUrl?: string | null },
 ) {
 	return invoke<InstallJobSnapshot>('plugin:instance|instance_queue_curseforge_content', {
+		request,
+		displayTitle: display.title,
+		displayIcon: display.iconUrl ?? null,
+	})
+}
+
+export function queueCurseForgeWorld(
+	request: CurseForgeWorldInstallRequest,
+	display: { title: string; iconUrl?: string | null },
+) {
+	return invoke<InstallJobSnapshot>('plugin:instance|instance_queue_curseforge_world', {
 		request,
 		displayTitle: display.title,
 		displayIcon: display.iconUrl ?? null,

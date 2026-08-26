@@ -26,7 +26,7 @@
       {
         "name": "state!: String",
         "ordinal": 4,
-        "type_info": "Text"
+        "type_info": "Null"
       },
       {
         "name": "created!: i64",

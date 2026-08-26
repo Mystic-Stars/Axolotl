@@ -14,10 +14,10 @@ import {
 	TrashIcon,
 } from '@modrinth/assets'
 import {
-	ButtonStyled,
 	Combobox,
 	defineMessages,
 	injectNotificationManager,
+	NewButton as Button,
 	StyledInput,
 	Tabs,
 	Toggle,
@@ -28,6 +28,7 @@ import { computed, onMounted, onUnmounted, ref } from 'vue'
 
 import providerDescriptionsEn from '@/data/lobehub-provider-descriptions/en-US.json'
 import providerDescriptionsZh from '@/data/lobehub-provider-descriptions/zh-CN.json'
+import { sponsoredProviderWebsites } from '@/data/sponsoredProviders'
 import {
 	type AIProviderConfig,
 	type AIProviderDefinition,
@@ -98,6 +99,14 @@ const messages = defineMessages({
 	disabledProviders: {
 		id: 'app.ai-settings.disabled-providers',
 		defaultMessage: 'Disabled providers',
+	},
+	sponsoredProviders: {
+		id: 'app.ai-settings.sponsored-providers',
+		defaultMessage: 'Sponsored providers',
+	},
+	visitWebsite: {
+		id: 'app.ai-settings.visit-website',
+		defaultMessage: 'Visit website',
 	},
 	configuredModels: {
 		id: 'app.ai-settings.configured-models',
@@ -246,16 +255,26 @@ const filteredProviderItems = computed(() => {
 })
 
 const enabledProviderItems = computed(() =>
-	filteredProviderItems.value.filter(({ config }) => config.enabled),
+	filteredProviderItems.value.filter(
+		({ config, definition }) => config.enabled && !definition.sponsored,
+	),
+)
+const sponsoredProviderItems = computed(() =>
+	filteredProviderItems.value.filter(({ definition }) => definition.sponsored),
 )
 const disabledProviderItems = computed(() =>
-	filteredProviderItems.value.filter(({ config }) => !config.enabled),
+	filteredProviderItems.value.filter(
+		({ config, definition }) => !config.enabled && !definition.sponsored,
+	),
 )
 const allEnabledProviderItems = computed(() =>
-	providerItems.value.filter(({ config }) => config.enabled),
+	providerItems.value.filter(({ config, definition }) => config.enabled && !definition.sponsored),
+)
+const allSponsoredProviderItems = computed(() =>
+	providerItems.value.filter(({ definition }) => definition.sponsored),
 )
 const allDisabledProviderItems = computed(() =>
-	providerItems.value.filter(({ config }) => !config.enabled),
+	providerItems.value.filter(({ config, definition }) => !config.enabled && !definition.sponsored),
 )
 const providerDescriptions = computed<Record<string, string>>(() =>
 	locale.value.toLocaleLowerCase().startsWith('zh')
@@ -345,6 +364,17 @@ async function reloadState() {
 	await getAIState()
 	selectedTestModel.value =
 		selectedConfig.value?.models.find((model) => model.enabled)?.id ?? selectedTestModel.value
+}
+
+async function openSponsoredWebsite() {
+	if (!selectedDefinition.value?.sponsored) return
+	const url = sponsoredProviderWebsites[selectedDefinition.value.id]
+	if (!url) return
+	try {
+		await openUrl(url)
+	} catch (error) {
+		handleError(error)
+	}
 }
 
 async function setMasterEnabled(enabled: boolean) {
@@ -696,7 +726,7 @@ onMounted(async () => {
 		<SpinnerIcon class="size-6 animate-spin text-secondary" />
 	</div>
 
-	<div v-else class="ai-provider-layout">
+	<div v-else id="settings-target-ai-providers" tabindex="-1" class="ai-provider-layout">
 		<aside class="ai-provider-sidebar">
 			<div class="ai-provider-search">
 				<StyledInput
@@ -711,7 +741,7 @@ onMounted(async () => {
 				<button
 					v-if="!search.trim()"
 					type="button"
-					class="ai-provider-item ai-provider-all"
+					class="ai-provider-item mb-1"
 					:class="{ selected: selectedId === 'all' }"
 					@click="selectProvider('all')"
 				>
@@ -721,8 +751,8 @@ onMounted(async () => {
 					</span>
 				</button>
 
-				<div v-if="enabledProviderItems.length" class="ai-provider-group">
-					<p class="ai-provider-group-title">
+				<div v-if="enabledProviderItems.length" class="flex flex-none flex-col gap-1">
+					<p class="m-0 flex items-center justify-between px-2 pb-1 pt-2 text-xs font-semibold text-secondary">
 						<span>{{ formatMessage(messages.enabledProviders) }}</span>
 						<span>{{ enabledProviderItems.length }}</span>
 					</p>
@@ -742,8 +772,29 @@ onMounted(async () => {
 					</button>
 				</div>
 
-				<div v-if="disabledProviderItems.length" class="ai-provider-group">
-					<p class="ai-provider-group-title">
+				<div v-if="sponsoredProviderItems.length" class="flex flex-none flex-col gap-1">
+					<p class="m-0 flex items-center justify-between px-2 pb-1 pt-2 text-xs font-semibold text-secondary">
+						<span>{{ formatMessage(messages.sponsoredProviders) }}</span>
+						<span>{{ sponsoredProviderItems.length }}</span>
+					</p>
+					<button
+						v-for="{ definition: provider, config } in sponsoredProviderItems"
+						:key="provider.id"
+						type="button"
+						class="ai-provider-item"
+						:class="{ selected: selectedId === provider.id }"
+						@click="selectProvider(provider.id)"
+					>
+						<AIIcon kind="provider-avatar" :value="provider.id" :size="22" />
+						<span class="min-w-0 flex-1 truncate text-left text-sm font-semibold">
+							{{ provider.name }}
+						</span>
+						<span v-if="config.enabled" class="size-2 shrink-0 rounded-full bg-green" />
+					</button>
+				</div>
+
+				<div v-if="disabledProviderItems.length" class="flex flex-none flex-col gap-1">
+					<p class="m-0 flex items-center justify-between px-2 pb-1 pt-2 text-xs font-semibold text-secondary">
 						<span>{{ formatMessage(messages.disabledProviders) }}</span>
 						<span>{{ disabledProviderItems.length }}</span>
 					</p>
@@ -785,7 +836,7 @@ onMounted(async () => {
 					<h2>{{ formatMessage(messages.enabledProviders) }}</h2>
 					<span>{{ allEnabledProviderItems.length }}</span>
 				</div>
-				<div class="ai-provider-grid">
+				<div class="ai-provider-grid grid grid-cols-2 gap-3">
 					<article
 						v-for="{ definition, config } in allEnabledProviderItems"
 						:key="definition.id"
@@ -807,7 +858,55 @@ onMounted(async () => {
 								{{ providerDescription(definition.id) }}
 							</span>
 						</button>
-						<div class="ai-provider-card-footer">
+						<div class="mt-auto flex min-h-11 items-center justify-between gap-3 bg-transparent px-4 text-xs font-semibold text-secondary">
+							<span>
+								<span class="capitalize">{{ definition.protocol }}</span>
+								·
+								{{ formatMessage(messages.configuredModels, { count: config.models.length }) }}
+							</span>
+							<Toggle
+								:id="`ai-overview-provider-${definition.id}`"
+								:model-value="config.enabled"
+								:disabled="busy"
+								small
+								@update:model-value="setProviderEnabledById(definition.id, $event)"
+							/>
+						</div>
+					</article>
+				</div>
+			</div>
+
+			<div v-if="allSponsoredProviderItems.length" class="ai-overview-group">
+				<div class="ai-overview-heading">
+					<h2>{{ formatMessage(messages.sponsoredProviders) }}</h2>
+					<span>{{ allSponsoredProviderItems.length }}</span>
+				</div>
+				<div class="ai-provider-grid grid grid-cols-2 gap-3">
+					<article
+						v-for="{ definition, config } in allSponsoredProviderItems"
+						:key="definition.id"
+						class="ai-provider-card"
+					>
+						<button
+							type="button"
+							class="ai-provider-card-main"
+							@click="selectProvider(definition.id)"
+						>
+							<span class="ai-provider-card-title">
+								<template v-if="definition.sponsored">
+									<AIIcon kind="provider-wordmark" :value="definition.id" :size="28" />
+								</template>
+								<template v-else-if="definition.id === 'chatgpt'">
+									<AIIcon kind="provider-avatar" :value="definition.id" :size="24" />
+									<strong>{{ definition.name }}</strong>
+								</template>
+								<AIIcon v-else kind="provider-combine" :value="definition.id" :size="24" />
+							</span>
+							<span class="ai-provider-card-description">
+								{{ providerDescription(definition.id) }}
+							</span>
+						</button>
+						<div class="mt-auto flex min-h-11 items-center justify-between gap-3 bg-transparent px-4 text-xs font-semibold text-secondary">
 							<span>
 								<span class="capitalize">{{ definition.protocol }}</span>
 								·
@@ -830,7 +929,7 @@ onMounted(async () => {
 					<h2>{{ formatMessage(messages.disabledProviders) }}</h2>
 					<span>{{ allDisabledProviderItems.length }}</span>
 				</div>
-				<div class="ai-provider-grid">
+				<div class="ai-provider-grid grid grid-cols-2 gap-3">
 					<article
 						v-for="{ definition, config } in allDisabledProviderItems"
 						:key="definition.id"
@@ -852,7 +951,7 @@ onMounted(async () => {
 								{{ providerDescription(definition.id) }}
 							</span>
 						</button>
-						<div class="ai-provider-card-footer">
+						<div class="mt-auto flex min-h-11 items-center justify-between gap-3 bg-transparent px-4 text-xs font-semibold text-secondary">
 							<span>
 								<span class="capitalize">{{ definition.protocol }}</span>
 								·
@@ -872,7 +971,7 @@ onMounted(async () => {
 		</section>
 
 		<section v-else-if="selectedDefinition && selectedConfig" class="ai-provider-detail">
-			<div class="flex items-center justify-between gap-4 pb-2">
+			<header class="ai-provider-detail-header">
 				<div class="flex min-w-0 items-center gap-3">
 					<AIIcon kind="provider-avatar" :value="selectedDefinition.id" :size="40" />
 					<div class="min-w-0">
@@ -885,6 +984,9 @@ onMounted(async () => {
 					</div>
 				</div>
 				<div class="flex shrink-0 items-center gap-2 text-sm font-semibold text-secondary">
+					<Button v-if="selectedDefinition.sponsored" type="quiet" @click="openSponsoredWebsite">
+						<ExternalIcon />{{ formatMessage(messages.visitWebsite) }}
+					</Button>
 					{{ formatMessage(selectedConfig.enabled ? messages.enabled : messages.disabled) }}
 					<Toggle
 						:id="`ai-provider-${selectedDefinition.id}`"
@@ -893,343 +995,363 @@ onMounted(async () => {
 						@update:model-value="setProviderEnabled"
 					/>
 				</div>
-			</div>
+			</header>
 
-			<div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
-				<label
-					v-if="!['bedrock', 'vertexai'].includes(selectedDefinition.id)"
-					class="flex flex-col gap-1.5 text-sm font-semibold text-contrast lg:col-span-2"
+			<div class="ai-provider-detail-scroll">
+				<div
+					v-if="
+						!['bedrock', 'vertexai'].includes(selectedDefinition.id) ||
+						selectedDefinition.required_settings.length
+					"
+					class="ai-provider-connection-fields grid grid-cols-1 gap-4 lg:grid-cols-2"
 				>
-					{{ formatMessage(messages.providerEndpoint) }}
-					<StyledInput v-model="selectedConfig.endpoint" type="url" wrapper-class="w-full" />
-				</label>
-				<label
-					v-for="field in selectedDefinition.required_settings"
-					:key="field"
-					class="flex flex-col gap-1.5 text-sm font-semibold text-contrast"
-				>
-					{{ fieldName(field) }}
-					<StyledInput v-model="selectedConfig.settings[field]" wrapper-class="w-full" />
-				</label>
-			</div>
-
-			<div v-if="selectedDefinition.id === 'bedrock'" class="flex flex-col gap-3">
-				<div class="flex flex-col gap-1.5 text-sm font-semibold text-contrast">
-					{{ formatMessage(messages.bedrockAuthentication) }}
-					<Tabs v-model:value="bedrockAuthMode" :tabs="bedrockAuthTabs" />
-				</div>
-				<template v-if="bedrockAuthMode === 'api-key'">
-					<label class="flex flex-col gap-1.5 text-sm font-semibold text-contrast">
-						{{ formatMessage(messages.apiKey) }}
-						<StyledInput
-							v-model="apiKey"
-							:icon="KeyIcon"
-							type="password"
-							autocomplete="off"
-							wrapper-class="w-full"
-						/>
-					</label>
-					<p v-if="selectedConfig.has_api_key" class="m-0 text-xs text-secondary">
-						{{ formatMessage(messages.credentialConfigured) }}
-					</p>
-					<div class="flex flex-wrap gap-2">
-						<ButtonStyled>
-							<button :disabled="busy || !apiKey.trim()" @click="saveApiKey">
-								<CheckIcon />{{ formatMessage(messages.saveKey) }}
-							</button>
-						</ButtonStyled>
-						<ButtonStyled v-if="selectedConfig.has_api_key" color="red" type="outlined">
-							<button :disabled="busy" @click="clearApiKey">
-								<TrashIcon />{{ formatMessage(messages.clearKey) }}
-							</button>
-						</ButtonStyled>
-					</div>
-				</template>
-				<template v-else>
 					<label
-						v-for="field in bedrockCredentialFields"
-						:key="field.name"
+						v-if="!['bedrock', 'vertexai'].includes(selectedDefinition.id)"
+						class="flex flex-col gap-1.5 text-sm font-semibold text-contrast lg:col-span-2"
+					>
+						{{ formatMessage(messages.providerEndpoint) }}
+						<StyledInput v-model="selectedConfig.endpoint" type="url" wrapper-class="w-full" />
+					</label>
+					<label
+						v-for="field in selectedDefinition.required_settings"
+						:key="field"
 						class="flex flex-col gap-1.5 text-sm font-semibold text-contrast"
 					>
-						{{ field.label }}
-						<StyledInput
-							v-model="credentialValues[field.name]"
-							:icon="KeyIcon"
-							type="password"
-							autocomplete="off"
-							wrapper-class="w-full"
-						/>
-						<span
-							v-if="credentialConfigured(field.name)"
-							class="font-normal text-xs text-secondary"
-						>
-							{{ formatMessage(messages.credentialConfigured) }}
-						</span>
+						{{ fieldName(field) }}
+						<StyledInput v-model="selectedConfig.settings[field]" wrapper-class="w-full" />
 					</label>
-					<div class="flex flex-wrap gap-2">
-						<ButtonStyled>
-							<button
-								:disabled="
-									busy ||
-									!bedrockCredentialFields.some((field) => credentialValues[field.name]?.trim())
-								"
-								@click="saveCredentials(bedrockCredentialFields.map((field) => field.name))"
+				</div>
+
+				<div
+					v-if="
+						selectedDefinition.id === 'bedrock' ||
+						selectedDefinition.id === 'vertexai' ||
+						selectedDefinition.auth_type === 'apiKey' ||
+						selectedDefinition.auth_type === 'oauthDeviceFlow'
+					"
+					class="ai-provider-credentials"
+				>
+					<div v-if="selectedDefinition.id === 'bedrock'" class="flex flex-col gap-3">
+						<div class="flex flex-col gap-1.5 text-sm font-semibold text-contrast">
+							{{ formatMessage(messages.bedrockAuthentication) }}
+							<Tabs v-model:value="bedrockAuthMode" :tabs="bedrockAuthTabs" />
+						</div>
+						<template v-if="bedrockAuthMode === 'api-key'">
+							<label class="flex flex-col gap-1.5 text-sm font-semibold text-contrast">
+								{{ formatMessage(messages.apiKey) }}
+								<StyledInput
+									v-model="apiKey"
+									:icon="KeyIcon"
+									type="password"
+									autocomplete="off"
+									wrapper-class="w-full"
+								/>
+							</label>
+							<p v-if="selectedConfig.has_api_key" class="m-0 text-xs text-secondary">
+								{{ formatMessage(messages.credentialConfigured) }}
+							</p>
+							<div class="flex flex-wrap gap-2">
+								<Button type="base" :disabled="busy || !apiKey.trim()" @click="saveApiKey">
+									<CheckIcon />{{ formatMessage(messages.saveKey) }}
+								</Button>
+								<Button
+									v-if="selectedConfig.has_api_key"
+									type="outlined"
+									color="red"
+									:disabled="busy"
+									@click="clearApiKey"
+								>
+									<TrashIcon />{{ formatMessage(messages.clearKey) }}
+								</Button>
+							</div>
+						</template>
+						<template v-else>
+							<label
+								v-for="field in bedrockCredentialFields"
+								:key="field.name"
+								class="flex flex-col gap-1.5 text-sm font-semibold text-contrast"
+							>
+								{{ field.label }}
+								<StyledInput
+									v-model="credentialValues[field.name]"
+									:icon="KeyIcon"
+									type="password"
+									autocomplete="off"
+									wrapper-class="w-full"
+								/>
+								<span
+									v-if="credentialConfigured(field.name)"
+									class="font-normal text-xs text-secondary"
+								>
+									{{ formatMessage(messages.credentialConfigured) }}
+								</span>
+							</label>
+							<div class="flex flex-wrap gap-2">
+								<Button
+									type="base"
+									:disabled="
+										busy ||
+										!bedrockCredentialFields.some((field) => credentialValues[field.name]?.trim())
+									"
+									@click="saveCredentials(bedrockCredentialFields.map((field) => field.name))"
+								>
+									<CheckIcon />{{ formatMessage(messages.saveCredential) }}
+								</Button>
+								<Button
+									v-if="bedrockCredentialFields.some((field) => credentialConfigured(field.name))"
+									type="outlined"
+									color="red"
+									:disabled="busy"
+									@click="clearCredentials(bedrockCredentialFields.map((field) => field.name))"
+								>
+									<TrashIcon />{{ formatMessage(messages.clearCredential) }}
+								</Button>
+							</div>
+						</template>
+					</div>
+
+					<div v-else-if="selectedDefinition.id === 'vertexai'" class="flex flex-col gap-2">
+						<label class="flex flex-col gap-1.5 text-sm font-semibold text-contrast">
+							{{ formatMessage(messages.vertexServiceAccount) }}
+							<StyledInput
+								v-model="credentialValues['vertex-service-account']"
+								:icon="KeyIcon"
+								type="password"
+								autocomplete="off"
+								wrapper-class="w-full"
+							/>
+							<span class="font-normal text-xs text-secondary">
+								{{ formatMessage(messages.vertexServiceAccountDescription) }}
+							</span>
+							<span
+								v-if="credentialConfigured('vertex-service-account')"
+								class="font-normal text-xs text-secondary"
+							>
+								{{ formatMessage(messages.credentialConfigured) }}
+							</span>
+						</label>
+						<div class="flex flex-wrap gap-2">
+							<Button
+								type="base"
+								:disabled="busy || !credentialValues['vertex-service-account']?.trim()"
+								@click="saveCredential('vertex-service-account')"
 							>
 								<CheckIcon />{{ formatMessage(messages.saveCredential) }}
-							</button>
-						</ButtonStyled>
-						<ButtonStyled
-							v-if="bedrockCredentialFields.some((field) => credentialConfigured(field.name))"
-							color="red"
-							type="outlined"
-						>
-							<button
+							</Button>
+							<Button
+								v-if="credentialConfigured('vertex-service-account')"
+								type="outlined"
+								color="red"
 								:disabled="busy"
-								@click="clearCredentials(bedrockCredentialFields.map((field) => field.name))"
+								@click="clearCredential('vertex-service-account')"
 							>
 								<TrashIcon />{{ formatMessage(messages.clearCredential) }}
-							</button>
-						</ButtonStyled>
+							</Button>
+						</div>
 					</div>
-				</template>
-			</div>
 
-			<div v-else-if="selectedDefinition.id === 'vertexai'" class="flex flex-col gap-2">
-				<label class="flex flex-col gap-1.5 text-sm font-semibold text-contrast">
-					{{ formatMessage(messages.vertexServiceAccount) }}
-					<StyledInput
-						v-model="credentialValues['vertex-service-account']"
-						:icon="KeyIcon"
-						type="password"
-						autocomplete="off"
-						wrapper-class="w-full"
-					/>
-					<span class="font-normal text-xs text-secondary">
-						{{ formatMessage(messages.vertexServiceAccountDescription) }}
-					</span>
-					<span
-						v-if="credentialConfigured('vertex-service-account')"
-						class="font-normal text-xs text-secondary"
-					>
-						{{ formatMessage(messages.credentialConfigured) }}
-					</span>
-				</label>
-				<div class="flex flex-wrap gap-2">
-					<ButtonStyled>
-						<button
-							:disabled="busy || !credentialValues['vertex-service-account']?.trim()"
-							@click="saveCredential('vertex-service-account')"
-						>
-							<CheckIcon />{{ formatMessage(messages.saveCredential) }}
-						</button>
-					</ButtonStyled>
-					<ButtonStyled
-						v-if="credentialConfigured('vertex-service-account')"
-						color="red"
-						type="outlined"
-					>
-						<button :disabled="busy" @click="clearCredential('vertex-service-account')">
-							<TrashIcon />{{ formatMessage(messages.clearCredential) }}
-						</button>
-					</ButtonStyled>
-				</div>
-			</div>
-
-			<div v-else-if="selectedDefinition.auth_type === 'apiKey'" class="flex flex-col gap-2">
-				<label class="flex flex-col gap-1.5 text-sm font-semibold text-contrast">
-					{{ formatMessage(messages.apiKey) }}
-					<StyledInput
-						v-model="apiKey"
-						:icon="KeyIcon"
-						type="password"
-						autocomplete="off"
-						wrapper-class="w-full"
-					/>
-				</label>
-				<p class="m-0 text-xs text-secondary">
-					{{
-						formatMessage(
-							selectedConfig.has_api_key ? messages.apiKeyConfigured : messages.apiKeyOptional,
-						)
-					}}
-				</p>
-				<div class="flex flex-wrap gap-2">
-					<ButtonStyled>
-						<button :disabled="busy || !apiKey.trim()" @click="saveApiKey">
-							<CheckIcon />{{ formatMessage(messages.saveKey) }}
-						</button>
-					</ButtonStyled>
-					<ButtonStyled v-if="selectedConfig.has_api_key" color="red" type="outlined">
-						<button :disabled="busy" @click="clearApiKey">
-							<TrashIcon />{{ formatMessage(messages.clearKey) }}
-						</button>
-					</ButtonStyled>
-				</div>
-			</div>
-
-			<div
-				v-else-if="selectedDefinition.auth_type === 'oauthDeviceFlow'"
-				class="flex flex-col gap-3"
-			>
-				<div class="flex flex-wrap items-center gap-2">
-					<span v-if="selectedConfig.oauth_connected" class="text-sm font-semibold text-green">
-						{{ formatMessage(messages.connected) }}
-					</span>
-					<ButtonStyled color="brand">
-						<button :disabled="busy" @click="connectOAuth">
-							<ExternalIcon />
+					<div v-else-if="selectedDefinition.auth_type === 'apiKey'" class="flex flex-col gap-2">
+						<label class="flex flex-col gap-1.5 text-sm font-semibold text-contrast">
+							{{ formatMessage(messages.apiKey) }}
+							<StyledInput
+								v-model="apiKey"
+								:icon="KeyIcon"
+								type="password"
+								autocomplete="off"
+								wrapper-class="w-full"
+							/>
+						</label>
+						<p class="m-0 text-xs text-secondary">
 							{{
 								formatMessage(
-									selectedConfig.oauth_connected ? messages.reconnect : messages.connect,
+									selectedConfig.has_api_key ? messages.apiKeyConfigured : messages.apiKeyOptional,
 								)
 							}}
-						</button>
-					</ButtonStyled>
-					<ButtonStyled v-if="selectedConfig.oauth_connected" color="red" type="outlined">
-						<button :disabled="busy" @click="disconnectOAuth">
-							<LogOutIcon />{{ formatMessage(messages.disconnect) }}
-						</button>
-					</ButtonStyled>
-				</div>
-				<div v-if="oauthInfo" class="oauth-code-row">
-					<div class="min-w-0 flex-1">
-						<p class="m-0 text-xs font-semibold text-secondary">
-							{{ formatMessage(messages.oauthCode) }}
 						</p>
-						<p class="m-0 mt-1 font-mono text-lg font-semibold text-contrast">
-							{{ oauthInfo.user_code }}
+						<div class="flex flex-wrap gap-2">
+							<Button type="base" :disabled="busy || !apiKey.trim()" @click="saveApiKey">
+								<CheckIcon />{{ formatMessage(messages.saveKey) }}
+							</Button>
+							<Button
+								v-if="selectedConfig.has_api_key"
+								type="outlined"
+								color="red"
+								:disabled="busy"
+								@click="clearApiKey"
+							>
+								<TrashIcon />{{ formatMessage(messages.clearKey) }}
+							</Button>
+						</div>
+					</div>
+
+					<div
+						v-else-if="selectedDefinition.auth_type === 'oauthDeviceFlow'"
+						class="flex flex-col gap-3"
+					>
+						<div class="flex flex-wrap items-center gap-2">
+							<span v-if="selectedConfig.oauth_connected" class="text-sm font-semibold text-green">
+								{{ formatMessage(messages.connected) }}
+							</span>
+							<Button type="colored" color="brand" :disabled="busy" @click="connectOAuth">
+								<ExternalIcon />
+								{{
+									formatMessage(
+										selectedConfig.oauth_connected ? messages.reconnect : messages.connect,
+									)
+								}}
+							</Button>
+							<Button
+								v-if="selectedConfig.oauth_connected"
+								type="outlined"
+								color="red"
+								:disabled="busy"
+								@click="disconnectOAuth"
+							>
+								<LogOutIcon />{{ formatMessage(messages.disconnect) }}
+							</Button>
+						</div>
+						<div v-if="oauthInfo" class="oauth-code-row">
+							<div class="min-w-0 flex-1">
+								<p class="m-0 text-xs font-semibold text-secondary">
+									{{ formatMessage(messages.oauthCode) }}
+								</p>
+								<p class="m-0 mt-1 font-mono text-lg font-semibold text-contrast">
+									{{ oauthInfo.user_code }}
+								</p>
+							</div>
+							<Button type="quiet" :title="formatMessage(messages.copyCode)" @click="copyOAuthCode">
+								<CopyIcon />
+							</Button>
+							<Button
+								type="quiet"
+								:disabled="oauthChecking"
+								:title="
+									formatMessage(
+										oauthChecking ? messages.checkingAuthorization : messages.checkAuthorization,
+									)
+								"
+								@click="checkOAuthStatus"
+							>
+								<RefreshCwIcon :class="{ 'animate-spin': oauthChecking }" />
+							</Button>
+							<Button
+								type="quiet"
+								:title="formatMessage(messages.openAuthorization)"
+								@click="openOAuthAuthorization"
+							>
+								<ExternalIcon />
+							</Button>
+						</div>
+						<p
+							v-if="oauthStatus === 'pending' || oauthStatus === 'slow_down'"
+							class="m-0 text-sm text-secondary"
+						>
+							{{ formatMessage(messages.oauthPending) }}
+						</p>
+						<p v-else-if="oauthStatus === 'expired'" class="m-0 text-sm text-red">
+							{{ formatMessage(messages.oauthExpired) }}
+						</p>
+						<p v-else-if="oauthStatus === 'denied'" class="m-0 text-sm text-red">
+							{{ formatMessage(messages.oauthDenied) }}
 						</p>
 					</div>
-					<ButtonStyled type="transparent">
-						<button :title="formatMessage(messages.copyCode)" @click="copyOAuthCode">
-							<CopyIcon />
-						</button>
-					</ButtonStyled>
-					<ButtonStyled type="transparent">
-						<button
-							:disabled="oauthChecking"
-							:title="
-								formatMessage(
-									oauthChecking ? messages.checkingAuthorization : messages.checkAuthorization,
-								)
-							"
-							@click="checkOAuthStatus"
-						>
-							<RefreshCwIcon :class="{ 'animate-spin': oauthChecking }" />
-						</button>
-					</ButtonStyled>
-					<ButtonStyled type="transparent">
-						<button
-							:title="formatMessage(messages.openAuthorization)"
-							@click="openOAuthAuthorization"
-						>
-							<ExternalIcon />
-						</button>
-					</ButtonStyled>
 				</div>
-				<p
-					v-if="oauthStatus === 'pending' || oauthStatus === 'slow_down'"
-					class="m-0 text-sm text-secondary"
-				>
-					{{ formatMessage(messages.oauthPending) }}
-				</p>
-				<p v-else-if="oauthStatus === 'expired'" class="m-0 text-sm text-red">
-					{{ formatMessage(messages.oauthExpired) }}
-				</p>
-				<p v-else-if="oauthStatus === 'denied'" class="m-0 text-sm text-red">
-					{{ formatMessage(messages.oauthDenied) }}
-				</p>
-			</div>
 
-			<div class="flex flex-col gap-3 pt-2">
-				<div class="flex flex-wrap items-center justify-between gap-2">
-					<h4 class="m-0 text-sm font-semibold text-contrast">
-						{{ formatMessage(messages.models) }}
-					</h4>
-					<div class="ai-model-actions">
-						<StyledInput
-							v-model="modelSearch"
-							:icon="SearchIcon"
-							:placeholder="formatMessage(messages.searchModels)"
-							clearable
-							wrapper-class="w-full sm:w-64"
-						/>
-						<ButtonStyled v-if="selectedDefinition.show_model_fetcher" type="outlined">
-							<button :disabled="busy" @click="refreshModels">
+				<div class="ai-provider-models-section">
+					<div class="flex flex-wrap items-center justify-between gap-2">
+						<h4 class="m-0 text-sm font-semibold text-contrast">
+							{{ formatMessage(messages.models) }}
+						</h4>
+						<div class="ai-model-actions">
+							<StyledInput
+								v-model="modelSearch"
+								:icon="SearchIcon"
+								:placeholder="formatMessage(messages.searchModels)"
+								clearable
+								wrapper-class="w-full sm:w-64"
+							/>
+							<Button
+								v-if="selectedDefinition.show_model_fetcher"
+								type="outlined"
+								:disabled="busy"
+								@click="refreshModels"
+							>
 								<RefreshCwIcon :class="{ 'animate-spin': busy }" />
 								{{ formatMessage(busy ? messages.refreshingModels : messages.refreshModels) }}
-							</button>
-						</ButtonStyled>
-					</div>
-				</div>
-				<div v-if="filteredModels.length" class="ai-model-list">
-					<div v-for="model in filteredModels" :key="model.id" class="ai-model-row">
-						<AIIcon kind="model" :value="model.id" :size="32" />
-						<div class="min-w-0 flex-1">
-							<p class="m-0 truncate text-sm font-semibold text-contrast">
-								{{ model.name || model.id }}
-							</p>
-							<p class="m-0 mt-0.5 truncate text-xs text-secondary">
-								{{ model.id }} · {{ model.source }}
-							</p>
+							</Button>
 						</div>
-						<ButtonStyled v-if="model.source === 'custom'" type="transparent">
-							<button :title="formatMessage(messages.clearKey)" @click="removeModel(model.id)">
+					</div>
+					<div v-if="filteredModels.length" class="ai-model-list">
+						<div v-for="model in filteredModels" :key="model.id" class="ai-model-row">
+							<AIIcon kind="model" :value="model.id" :size="32" />
+							<div class="min-w-0 flex-1">
+								<p class="m-0 truncate text-sm font-semibold text-contrast">
+									{{ model.name || model.id }}
+								</p>
+								<p class="m-0 mt-0.5 truncate text-xs text-secondary">
+									{{ model.id }} · {{ model.source }}
+								</p>
+							</div>
+							<Button
+								v-if="model.source === 'custom'"
+								type="quiet"
+								:title="formatMessage(messages.clearKey)"
+								@click="removeModel(model.id)"
+							>
 								<TrashIcon />
-							</button>
-						</ButtonStyled>
-						<Toggle
-							:id="`ai-model-${selectedDefinition.id}-${model.id}`"
-							:model-value="model.enabled"
-							:disabled="busy"
-							small
-							@update:model-value="setModelEnabled(model.id, $event)"
+							</Button>
+							<Toggle
+								:id="`ai-model-${selectedDefinition.id}-${model.id}`"
+								:model-value="model.enabled"
+								:disabled="busy"
+								small
+								@update:model-value="setModelEnabled(model.id, $event)"
+							/>
+						</div>
+					</div>
+					<p v-else class="m-0 text-sm text-secondary">
+						{{
+							formatMessage(
+								selectedConfig.models.length ? messages.noMatchingModels : messages.noModels,
+							)
+						}}
+					</p>
+					<div class="grid grid-cols-1 gap-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
+						<StyledInput
+							v-model="customModelId"
+							:placeholder="formatMessage(messages.modelId)"
+							wrapper-class="w-full"
 						/>
+						<StyledInput
+							v-model="customModelName"
+							:placeholder="formatMessage(messages.modelName)"
+							wrapper-class="w-full"
+						/>
+						<Button type="base" :disabled="!customModelId.trim()" @click="addModel">
+							<PlusIcon />{{ formatMessage(messages.addModel) }}
+						</Button>
 					</div>
 				</div>
-				<p v-else class="m-0 text-sm text-secondary">
-					{{
-						formatMessage(
-							selectedConfig.models.length ? messages.noMatchingModels : messages.noModels,
-						)
-					}}
-				</p>
-				<div class="grid grid-cols-1 gap-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
-					<StyledInput
-						v-model="customModelId"
-						:placeholder="formatMessage(messages.modelId)"
-						wrapper-class="w-full"
-					/>
-					<StyledInput
-						v-model="customModelName"
-						:placeholder="formatMessage(messages.modelName)"
-						wrapper-class="w-full"
-					/>
-					<ButtonStyled>
-						<button :disabled="!customModelId.trim()" @click="addModel">
-							<PlusIcon />{{ formatMessage(messages.addModel) }}
-						</button>
-					</ButtonStyled>
-				</div>
-			</div>
 
-			<div class="flex flex-wrap items-end gap-2 pt-2">
-				<label class="flex min-w-48 flex-1 flex-col gap-1.5 text-sm font-semibold text-contrast">
-					{{ formatMessage(messages.testModel) }}
-					<Combobox v-model="selectedTestModel" :options="modelOptions" />
-				</label>
-				<ButtonStyled>
-					<button :disabled="busy" @click="saveProvider">
+				<div class="ai-provider-actions">
+					<label class="flex min-w-48 flex-1 flex-col gap-1.5 text-sm font-semibold text-contrast">
+						{{ formatMessage(messages.testModel) }}
+						<Combobox v-model="selectedTestModel" :options="modelOptions" />
+					</label>
+					<Button type="base" :disabled="busy" @click="saveProvider">
 						<CheckIcon />{{ formatMessage(messages.saveProvider) }}
-					</button>
-				</ButtonStyled>
-				<ButtonStyled color="brand">
-					<button :disabled="busy || !selectedTestModel" @click="testProvider">
+					</Button>
+					<Button
+						type="colored"
+						color="brand"
+						:disabled="busy || !selectedTestModel"
+						@click="testProvider"
+					>
 						<PlugIcon />{{ formatMessage(busy ? messages.testing : messages.test) }}
-					</button>
-				</ButtonStyled>
+					</Button>
+				</div>
+				<p v-if="status" class="m-0 text-sm text-secondary">{{ status }}</p>
 			</div>
-			<p v-if="status" class="m-0 text-sm text-secondary">{{ status }}</p>
 		</section>
 	</div>
 </template>
@@ -1237,12 +1359,14 @@ onMounted(async () => {
 <style scoped>
 .ai-provider-layout {
 	display: grid;
-	grid-template-columns: minmax(10.5rem, 12rem) minmax(0, 1fr);
+	grid-template-columns: minmax(14rem, 16rem) minmax(0, 1fr);
 	grid-template-rows: minmax(0, 1fr);
 	height: 100%;
 	min-height: 0;
 	width: 100%;
 	overflow: hidden;
+	box-sizing: border-box;
+	border-radius: var(--radius-lg);
 }
 
 .ai-provider-sidebar {
@@ -1252,18 +1376,19 @@ onMounted(async () => {
 	min-width: 0;
 	flex-direction: column;
 	overflow: hidden;
-	border-right: 1px solid var(--color-divider);
-	background: var(--color-raised-bg);
+	border-right: 1px solid
+		var(--settings-divider, color-mix(in srgb, var(--surface-4) 55%, transparent));
 }
 
 .ai-provider-search {
 	flex: none;
-	padding: 0.75rem;
+	padding: var(--gap-lg);
+	border-bottom: 1px solid
+		var(--settings-divider, color-mix(in srgb, var(--surface-4) 55%, transparent));
 }
 
 .ai-provider-list,
 .ai-provider-overview,
-.ai-provider-detail,
 .ai-model-list {
 	min-height: 0;
 	overflow-y: auto;
@@ -1273,69 +1398,42 @@ onMounted(async () => {
 	display: flex;
 	flex: 1 1 0;
 	flex-direction: column;
-	gap: 0.5rem;
+	gap: var(--gap-sm);
 	overscroll-behavior: contain;
 	overflow-x: hidden;
 	overflow-y: auto;
-	padding: 0 0.5rem 0.75rem;
+	padding: 0 var(--gap-md) var(--gap-md);
 	scrollbar-gutter: stable;
 	touch-action: pan-y;
-}
-
-.ai-provider-group {
-	display: flex;
-	flex: none;
-	flex-direction: column;
-	gap: 0.25rem;
-}
-
-.ai-provider-group-title {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	margin: 0;
-	padding: 0.5rem 0.625rem 0.25rem;
-	color: var(--color-secondary);
-	font-size: 0.75rem;
-	font-weight: 600;
 }
 
 .ai-provider-item {
 	display: flex;
 	width: 100%;
-	min-height: 2.5rem;
+	min-height: 2.25rem;
 	flex: none;
 	align-items: center;
-	gap: 0.625rem;
+	gap: var(--gap-sm);
 	box-sizing: border-box;
-	padding: 0.375rem 0.5rem;
+	padding: 0 var(--gap-sm);
 	border: 0;
-	border-radius: 0.75rem;
+	border-radius: var(--radius-sm);
 	background: transparent;
 	color: var(--color-secondary);
 	cursor: pointer;
 	transition:
 		background-color 120ms ease,
-		color 120ms ease,
-		transform 120ms ease;
+		color 120ms ease;
 }
 
 .ai-provider-item:hover {
-	background: var(--color-button-bg);
+	background: var(--surface-3);
 	color: var(--color-contrast);
 }
 
 .ai-provider-item.selected {
-	background: var(--color-button-bg);
-	color: var(--color-contrast);
-}
-
-.ai-provider-item:active {
-	transform: scale(0.98);
-}
-
-.ai-provider-all {
-	margin-bottom: 0.125rem;
+	background: var(--color-button-bg-selected);
+	color: var(--color-button-text-selected);
 }
 
 .ai-master-switch {
@@ -1344,9 +1442,10 @@ onMounted(async () => {
 	flex: none;
 	align-items: center;
 	justify-content: space-between;
-	gap: 0.75rem;
-	padding: 0 0.75rem;
-	background: var(--color-surface-4);
+	gap: var(--gap-md);
+	padding: var(--gap-md) var(--gap-lg);
+	border-top: 1px solid
+		var(--settings-divider, color-mix(in srgb, var(--surface-4) 55%, transparent));
 }
 
 .ai-provider-overview {
@@ -1355,21 +1454,21 @@ onMounted(async () => {
 	min-width: 0;
 	box-sizing: border-box;
 	flex-direction: column;
-	gap: 1.75rem;
-	padding: 1.5rem;
+	gap: var(--gap-xl);
+	padding: var(--gap-xl);
 	scrollbar-gutter: stable;
 }
 
 .ai-overview-group {
 	display: flex;
 	flex-direction: column;
-	gap: 0.875rem;
+	gap: var(--gap-md);
 }
 
 .ai-overview-heading {
 	display: flex;
 	align-items: center;
-	gap: 0.5rem;
+	gap: var(--gap-sm);
 }
 
 .ai-overview-heading h2 {
@@ -1387,17 +1486,11 @@ onMounted(async () => {
 	justify-content: center;
 	box-sizing: border-box;
 	padding: 0 0.4rem;
-	border-radius: 999px;
-	background: var(--color-button-bg);
+	border-radius: var(--radius-sm);
+	background: var(--surface-3);
 	color: var(--color-secondary);
 	font-size: 0.75rem;
 	font-weight: 700;
-}
-
-.ai-provider-grid {
-	display: grid;
-	grid-template-columns: repeat(2, minmax(0, 1fr));
-	gap: 1rem;
 }
 
 .ai-provider-card {
@@ -1405,19 +1498,18 @@ onMounted(async () => {
 	min-width: 0;
 	flex-direction: column;
 	overflow: hidden;
-	border-radius: 0.75rem;
-	background: var(--color-surface-4);
+	border: 1px solid
+		var(--settings-card-border, color-mix(in srgb, var(--surface-4) 72%, transparent));
+	border-radius: var(--radius-md);
+	background: var(--surface-2);
 	transition:
-		background-color 150ms ease,
-		transform 150ms ease;
+		border-color 150ms ease,
+		background-color 150ms ease;
 }
 
 .ai-provider-card:hover {
-	background: var(--color-surface-5);
-}
-
-.ai-provider-card:active {
-	transform: scale(0.99);
+	border-color: var(--surface-5);
+	background: var(--surface-3);
 }
 
 .ai-provider-card-main {
@@ -1464,20 +1556,7 @@ onMounted(async () => {
 	font-size: 0.8125rem;
 	line-height: 1.45;
 	text-align: left;
-}
-
-.ai-provider-card-footer {
-	display: flex;
-	min-height: 2.75rem;
-	align-items: center;
-	justify-content: space-between;
-	gap: 0.75rem;
-	margin-top: auto;
-	padding: 0 1rem;
-	background: color-mix(in srgb, var(--color-button-bg) 52%, transparent);
-	color: var(--color-secondary);
-	font-size: 0.75rem;
-	font-weight: 600;
+	white-space: pre-line;
 }
 
 .ai-provider-detail {
@@ -1485,9 +1564,51 @@ onMounted(async () => {
 	height: 100%;
 	min-width: 0;
 	flex-direction: column;
-	gap: 1.25rem;
-	padding: 1.25rem 1.5rem 1.5rem;
+	overflow: hidden;
+}
+
+.ai-provider-detail-header {
+	display: flex;
+	min-height: 5.25rem;
+	flex: none;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--gap-lg);
+	padding: var(--gap-lg) var(--gap-xl);
+	border-bottom: 1px solid
+		var(--settings-divider, color-mix(in srgb, var(--surface-4) 55%, transparent));
+	background: transparent;
+}
+
+.ai-provider-detail-scroll {
+	display: flex;
+	min-height: 0;
+	flex: 1;
+	flex-direction: column;
+	gap: var(--gap-xl);
+	overflow-y: auto;
+	padding: var(--gap-xl);
 	scrollbar-gutter: stable;
+}
+
+@media (min-width: 1024px) {
+	.ai-provider-connection-fields > :first-child:last-child {
+		grid-column: span 2 / span 2;
+	}
+}
+
+.ai-provider-credentials {
+	display: flex;
+	flex-direction: column;
+	gap: 0.875rem;
+}
+
+.ai-provider-actions {
+	display: flex;
+	flex-direction: row;
+	flex-wrap: wrap;
+	align-items: end;
+	gap: 0.5rem;
 }
 
 .ai-model-actions {
@@ -1514,12 +1635,12 @@ onMounted(async () => {
 	gap: 0.75rem;
 	box-sizing: border-box;
 	padding: 0.625rem 0.75rem;
-	border-radius: 0.75rem;
+	border-radius: var(--radius-sm);
 	transition: background-color 120ms ease;
 }
 
 .ai-model-row:hover {
-	background: var(--color-button-bg);
+	background: var(--surface-3);
 }
 
 .oauth-code-row {
@@ -1527,8 +1648,10 @@ onMounted(async () => {
 	align-items: center;
 	gap: 0.5rem;
 	padding: 0.75rem;
-	border-radius: 0.75rem;
-	background: var(--color-button-bg);
+	border: 1px solid
+		var(--settings-card-border, color-mix(in srgb, var(--surface-4) 72%, transparent));
+	border-radius: var(--radius-sm);
+	background: var(--surface-2);
 }
 
 @media (max-width: 760px) {
@@ -1540,10 +1663,16 @@ onMounted(async () => {
 	.ai-provider-sidebar {
 		max-height: 16rem;
 		border-right: 0;
-		border-bottom: 1px solid var(--color-divider);
+		border-bottom: 1px solid
+			var(--settings-divider, color-mix(in srgb, var(--surface-4) 55%, transparent));
 	}
 
 	.ai-provider-detail {
+		height: auto;
+		overflow: visible;
+	}
+
+	.ai-provider-detail-scroll {
 		overflow: visible;
 	}
 

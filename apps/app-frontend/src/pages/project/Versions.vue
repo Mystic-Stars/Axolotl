@@ -157,23 +157,8 @@ const [loaders, gameVersions] = await Promise.all([
 </script>
 
 <style scoped lang="scss">
-.filter-header {
-	display: flex;
-	flex-wrap: wrap;
-	justify-content: space-between;
-	align-items: center;
-	gap: 0.5rem;
-	margin-bottom: 0.5rem;
-}
-
 .table-row {
 	grid-template-columns: min-content 1fr 1fr 1.5fr;
-}
-
-.manage {
-	display: flex;
-	gap: 0.5rem;
-	flex-grow: 1;
 }
 
 .card-row {
@@ -181,20 +166,6 @@ const [loaders, gameVersions] = await Promise.all([
 	align-items: center;
 	justify-content: space-between;
 	background-color: var(--color-raised-bg);
-}
-
-.mod-card {
-	display: flex;
-	flex-direction: column;
-	gap: 1rem;
-	overflow: hidden;
-	margin-top: 0.5rem;
-}
-
-.text-combo {
-	display: flex;
-	align-items: center;
-	gap: 0.5rem;
 }
 
 .select {
@@ -211,23 +182,7 @@ const [loaders, gameVersions] = await Promise.all([
 	.version-badge {
 		display: flex;
 		flex-wrap: wrap;
-
-		.channel-indicator {
-			margin-right: 0.5rem;
-		}
 	}
-}
-
-.stacked-text {
-	display: flex;
-	flex-direction: column;
-	gap: 0.25rem;
-	align-items: flex-start;
-}
-
-.download-cell {
-	width: 4rem;
-	padding: 1rem;
 }
 
 .filter-checkbox {

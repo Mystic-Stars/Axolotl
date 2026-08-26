@@ -40,6 +40,10 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Install Blockbench skin editor dependencies
+        run: npm ci
+        working-directory: third-party/blockbench
+
       - name: Run release guardrails
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -117,6 +121,27 @@ jobs:
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@4be7066ada62dd38de10e7b70166bc74ed198c30 # stable
 
+      - name: Set up Rust compiler cache
+        if: runner.os == 'Windows'
+        uses: mozilla-actions/sccache-action@2df7dbab909c49ab7d3382d05da469f3f975c2d6 # v0.0.7
+
+      - name: Check Rust compiler cache availability
+        id: sccache
+        if: runner.os == 'Windows'
+        continue-on-error: true
+        shell: bash
+        env:
+          SCCACHE_GHA_ENABLED: 'true'
+        run: ${SCCACHE_PATH} rustc -vV
+
+      - name: Enable Rust compiler cache
+        if: runner.os == 'Windows' && steps.sccache.outcome == 'success'
+        shell: bash
+        run: |
+          echo 'RUSTC_WRAPPER=sccache' >> "$GITHUB_ENV"
+          echo 'SCCACHE_GHA_ENABLED=true' >> "$GITHUB_ENV"
+          echo 'SCCACHE_CACHE_SIZE=4G' >> "$GITHUB_ENV"
+
       - name: Add macOS universal targets
         if: runner.os == 'macOS'
         run: rustup target add aarch64-apple-darwin x86_64-apple-darwin
@@ -127,6 +152,10 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Install Blockbench skin editor dependencies
+        run: npm ci
+        working-directory: third-party/blockbench
 
       - uses: ./.github/actions/replace-gradle-mirror
 
@@ -153,6 +182,11 @@ jobs:
           includeUpdaterJson: false
           updaterJsonPreferNsis: true
           retryAttempts: 2
+
+      - name: Show Rust compiler cache statistics
+        if: runner.os == 'Windows' && steps.sccache.outcome == 'success' && always()
+        shell: bash
+        run: ${SCCACHE_PATH} --show-stats
 
       - name: Publish Windows distribution variants
         if: runner.os == 'Windows'
@@ -282,6 +316,7 @@ jobs:
             apps/website/releases/latest.json
           node scripts/axolotl/create-website-release-catalog.mjs \
             apps/website/releases/catalog.json
+          sleep 600
 
           git config user.name "Axolotl Release Bot"
           git config user.email "release@axolotl.local"

@@ -8,7 +8,7 @@
 	>
 		<div
 			:class="[
-				'grid-area-[title] flex items-center gap-2 font-bold text-[var(--font-size-md)]',
+				'[grid-area:title] flex items-center gap-2 font-bold text-[var(--font-size-md)]',
 				iconClasses[variant],
 			]"
 		>
@@ -16,17 +16,17 @@
 			<slot name="title" />
 		</div>
 
-		<div class="grid-area-[description] flex flex-col gap-3">
+		<div class="[grid-area:description] flex flex-col gap-3">
 			<slot name="description" />
 		</div>
 
-		<div v-if="$slots.actions" class="grid-area-[actions] flex items-center gap-2">
+		<div v-if="$slots.actions" class="[grid-area:actions] flex items-center gap-2">
 			<slot name="actions" />
 		</div>
 
 		<div
 			v-if="$slots.actions_right || $slots.actions_top_right"
-			class="grid-area-[actions_right] flex flex-col gap-2 items-end"
+			class="[grid-area:actions_right] flex flex-col gap-2 items-end"
 		>
 			<div v-if="$slots.actions_top_right" class="flex items-center gap-2 justify-end">
 				<slot name="actions_top_right" />
@@ -84,19 +84,6 @@ const iconClasses = {
 
 .banner-grid.slim {
 	@apply flex py-4 gap-2 items-center;
-}
-
-.grid-area-\[title\] {
-	grid-area: title;
-}
-.grid-area-\[description\] {
-	grid-area: description;
-}
-.grid-area-\[actions\] {
-	grid-area: actions;
-}
-.grid-area-\[actions_right\] {
-	grid-area: actions_right;
 }
 
 .banner-grid a {

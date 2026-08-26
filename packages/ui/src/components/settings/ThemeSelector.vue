@@ -61,7 +61,7 @@ function getPreviewClass(option: T): string {
 </script>
 
 <template>
-	<div class="theme-options mt-4">
+	<div class="theme-options grid grid-cols-[repeat(auto-fit,minmax(12rem,1fr))] gap-4 mt-4">
 		<button
 			v-for="option in themeOptions"
 			:key="option"
@@ -97,10 +97,6 @@ function getPreviewClass(option: T): string {
 
 <style scoped lang="scss">
 .theme-options {
-	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
-	gap: var(--gap-lg);
-
 	.preview {
 		&.light-mode {
 			@extend .light-mode;

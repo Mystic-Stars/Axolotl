@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ChevronDownIcon, ChevronUpIcon } from '@modrinth/assets'
-import { computed, getCurrentInstance, ref, toRef } from 'vue'
+import { computed, getCurrentInstance, ref, toRef, watch } from 'vue'
 
 import Checkbox from '#ui/components/base/Checkbox.vue'
 import { useVIntl } from '#ui/composables/i18n'
@@ -56,6 +56,7 @@ const emit = defineEmits<{
 	rollback: [id: string]
 	sort: [column: ContentCardTableSortColumn, direction: ContentCardTableSortDirection]
 	toggleExpand: [groupId: string]
+	visibleItems: [items: ContentCardTableItem[]]
 }>()
 
 // Check if any actions are available
@@ -100,6 +101,14 @@ const { listContainer, totalHeight, visibleRange, visibleTop, visibleItems } = u
 	},
 )
 
+watch(
+	visibleItems,
+	(items) => {
+		emit('visibleItems', items)
+	},
+	{ immediate: true },
+)
+
 // Expose for perf monitoring
 defineExpose({
 	visibleRange,
@@ -133,6 +142,7 @@ function handleSort(column: ContentCardTableSortColumn) {
 
 <template>
 	<div
+		data-content-card-table
 		role="table"
 		class="@container border border-solid border-surface-4 shadow-sm overflow-clip"
 		:class="[flat ? '' : 'rounded-[20px]', isStuck || hideHeader ? 'border-t-0' : '']"
@@ -228,6 +238,7 @@ function handleSort(column: ContentCardTableSortColumn) {
 					v-for="(item, idx) in visibleItems"
 					:key="item.id"
 					data-content-card-item
+					:data-content-card-item-id="item.id"
 					:project="item.project"
 					:project-link="item.projectLink"
 					:version="item.version"
@@ -236,6 +247,7 @@ function handleSort(column: ContentCardTableSortColumn) {
 					:enabled="item.enabled"
 					:installing="item.installing"
 					:pending-manual-download="item.pendingManualDownload"
+					:duplicate-count="item.duplicateCount"
 					:has-update="item.hasUpdate"
 					:rollback-file-name="item.rollbackFileName"
 					:is-client-only="item.isClientOnly"
@@ -244,6 +256,7 @@ function handleSort(column: ContentCardTableSortColumn) {
 					:overflow-options="item.overflowOptions"
 					:disabled="item.disabled"
 					:disabled-tooltip="item.disabledTooltip"
+					:post-upgrade-warning-tooltip="item.postUpgradeWarningTooltip"
 					:toggle-disabled="item.toggleDisabled"
 					:toggle-disabled-tooltip="item.toggleDisabledTooltip"
 					:dependency-badge="item.dependencyBadge"
@@ -316,6 +329,7 @@ function handleSort(column: ContentCardTableSortColumn) {
 				v-for="(item, index) in items"
 				:key="item.id"
 				data-content-card-item
+				:data-content-card-item-id="item.id"
 				:project="item.project"
 				:project-link="item.projectLink"
 				:version="item.version"
@@ -324,6 +338,7 @@ function handleSort(column: ContentCardTableSortColumn) {
 				:enabled="item.enabled"
 				:installing="item.installing"
 				:pending-manual-download="item.pendingManualDownload"
+				:duplicate-count="item.duplicateCount"
 				:has-update="item.hasUpdate"
 				:rollback-file-name="item.rollbackFileName"
 				:is-client-only="item.isClientOnly"
@@ -331,6 +346,7 @@ function handleSort(column: ContentCardTableSortColumn) {
 				:overflow-options="item.overflowOptions"
 				:disabled="item.disabled"
 				:disabled-tooltip="item.disabledTooltip"
+				:post-upgrade-warning-tooltip="item.postUpgradeWarningTooltip"
 				:toggle-disabled="item.toggleDisabled"
 				:toggle-disabled-tooltip="item.toggleDisabledTooltip"
 				:dependency-badge="item.dependencyBadge"

@@ -47,21 +47,6 @@
   "app.settings.downloading": {
     "message": "Se descarcă v{version}"
   },
-  "app.settings.tabs.appearance": {
-    "message": "Aspect"
-  },
-  "app.settings.tabs.default-instance-options": {
-    "message": "Opțiuni implicite instanță"
-  },
-  "app.settings.tabs.java-installations": {
-    "message": "Instalări Java"
-  },
-  "app.settings.tabs.language": {
-    "message": "Limbă"
-  },
-  "app.settings.tabs.resource-management": {
-    "message": "Administrare resurse"
-  },
   "app.update-popup.body.download-complete": {
     "message": "Aplicația Axolotl Launcherv{version} a terminat descărcarea. Reîncărcați pentru a actualiza acum sau automat când închideți aplicația Axolotl Launcher."
   },
@@ -226,18 +211,6 @@
   },
   "instance.settings.tabs.general.edit-icon.select": {
     "message": "Selectează pictograma"
-  },
-  "instance.settings.tabs.general.library-groups": {
-    "message": "Grupuri din bibliotecă"
-  },
-  "instance.settings.tabs.general.library-groups.create": {
-    "message": "Creează grup nou"
-  },
-  "instance.settings.tabs.general.library-groups.description": {
-    "message": "Grupurile din bibliotecă îți permit să-ți organizezi instanțele în diferite secțiuni în biblioteca ta."
-  },
-  "instance.settings.tabs.general.library-groups.enter-name": {
-    "message": "Introdu numele grupului"
   },
   "instance.settings.tabs.general.name": {
     "message": "Nume"

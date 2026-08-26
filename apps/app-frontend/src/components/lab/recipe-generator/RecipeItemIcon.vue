@@ -106,7 +106,7 @@ watch(
 
 <template>
 	<div
-		class="recipe-item-icon"
+		class="relative inline-block flex-none overflow-hidden border border-surface-5 box-border"
 		:style="{ width: `${size}px`, height: `${size}px` }"
 		:title="display?.label"
 	>
@@ -120,7 +120,7 @@ watch(
 		<span v-else class="recipe-item-empty" aria-hidden="true"></span>
 		<span
 			v-if="showCount && display?.count && display.count > 1"
-			class="recipe-item-count"
+			class="absolute text-white font-bold leading-none pointer-events-none"
 			:style="countStyle"
 			>{{ display.count }}</span
 		>
@@ -128,15 +128,6 @@ watch(
 </template>
 
 <style scoped>
-.recipe-item-icon {
-	position: relative;
-	display: inline-block;
-	flex: 0 0 auto;
-	overflow: hidden;
-	border: 1px solid var(--surface-5);
-	box-sizing: border-box;
-}
-
 .recipe-item-canvas {
 	display: block;
 	width: 100%;
@@ -151,11 +142,4 @@ watch(
 	background-size: 8px 8px;
 }
 
-.recipe-item-count {
-	position: absolute;
-	color: #fff;
-	font-weight: 700;
-	line-height: 1;
-	pointer-events: none;
-}
 </style>

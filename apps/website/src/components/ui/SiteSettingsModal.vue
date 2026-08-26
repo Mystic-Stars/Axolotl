@@ -54,7 +54,8 @@ const messages = defineMessages({
 	},
 	downloadSourceDescription: {
 		id: 'axolotl-settings.download-source.description',
-		defaultMessage: 'Automatic selection uses CNB in mainland China and GitHub elsewhere.',
+		defaultMessage:
+			'Automatic selection uses Lemwood Mirror in mainland China and GitHub elsewhere.',
 	},
 	downloadSourceAuto: {
 		id: 'axolotl-settings.download-source.auto',
@@ -64,13 +65,21 @@ const messages = defineMessages({
 		id: 'axolotl-settings.download-source.auto.description',
 		defaultMessage: 'Choose a source from your browser language and timezone.',
 	},
+	downloadSourceMiawa: {
+		id: 'axolotl-settings.download-source.miawa',
+		defaultMessage: 'Lemwood Mirror',
+	},
+	downloadSourceMiawaDescription: {
+		id: 'axolotl-settings.download-source.miawa.description',
+		defaultMessage: 'Recommended for visitors in mainland China.',
+	},
 	downloadSourceCnb: {
 		id: 'axolotl-settings.download-source.cnb',
 		defaultMessage: 'CNB',
 	},
 	downloadSourceCnbDescription: {
 		id: 'axolotl-settings.download-source.cnb.description',
-		defaultMessage: 'Recommended for visitors in mainland China.',
+		defaultMessage: 'Alternative source for mainland China.',
 	},
 	downloadSourceGithub: {
 		id: 'axolotl-settings.download-source.github',
@@ -130,6 +139,11 @@ const downloadSourceOptions = computed<
 		subLabel: formatMessage(messages.downloadSourceAutoDescription),
 	},
 	{
+		value: 'miawa',
+		label: formatMessage(messages.downloadSourceMiawa),
+		subLabel: formatMessage(messages.downloadSourceMiawaDescription),
+	},
+	{
 		value: 'cnb',
 		label: formatMessage(messages.downloadSourceCnb),
 		subLabel: formatMessage(messages.downloadSourceCnbDescription),
@@ -141,11 +155,11 @@ const downloadSourceOptions = computed<
 	},
 ])
 
-const resolvedDownloadSourceLabel = computed(() =>
-	formatMessage(
-		resolvedSource.value === 'cnb' ? messages.downloadSourceCnb : messages.downloadSourceGithub,
-	),
-)
+const resolvedDownloadSourceLabel = computed(() => {
+	if (resolvedSource.value === 'miawa') return formatMessage(messages.downloadSourceMiawa)
+	if (resolvedSource.value === 'cnb') return formatMessage(messages.downloadSourceCnb)
+	return formatMessage(messages.downloadSourceGithub)
+})
 
 let systemThemeQuery: MediaQueryList | undefined
 
@@ -331,7 +345,7 @@ onBeforeUnmount(() => {
 								</button>
 							</nav>
 
-							<div class="settings-brand">
+							<div class="settings-brand flex items-center gap-3 mt-auto px-1 pt-4 text-[var(--color-secondary)] text-[0.8rem]">
 								<img src="/axolotl.png" alt="" />
 								<div>
 									<strong>Axolotl Launcher</strong>
@@ -341,7 +355,7 @@ onBeforeUnmount(() => {
 						</aside>
 
 						<div class="settings-main">
-							<section v-if="activeTab === 'appearance'" class="settings-pane">
+							<section v-if="activeTab === 'appearance'" class="settings-pane px-8 pl-6 pb-12">
 								<div class="settings-section">
 									<h3>{{ formatMessage(messages.themeTitle) }}</h3>
 									<p>{{ formatMessage(messages.themeDescription) }}</p>
@@ -353,10 +367,10 @@ onBeforeUnmount(() => {
 									/>
 								</div>
 
-								<div class="settings-section interface-section">
+								<div class="settings-section mt-7 pt-6 border-t border-divider">
 									<h3>{{ formatMessage(messages.interfaceTitle) }}</h3>
 									<p>{{ formatMessage(messages.interfaceDescription) }}</p>
-									<div class="settings-toggles">
+									<div class="flex flex-col mt-3">
 										<div class="setting-row">
 											<label for="advanced-rendering">
 												<strong>{{ formatMessage(messages.advancedRenderingTitle) }}</strong>
@@ -382,7 +396,7 @@ onBeforeUnmount(() => {
 								</div>
 							</section>
 
-							<section v-else-if="activeTab === 'downloads'" class="settings-pane">
+							<section v-else-if="activeTab === 'downloads'" class="settings-pane px-8 pl-6 pb-12">
 								<div class="settings-section">
 									<h3>{{ formatMessage(messages.downloadsTitle) }}</h3>
 									<p>{{ formatMessage(messages.downloadsDescription) }}</p>
@@ -412,7 +426,7 @@ onBeforeUnmount(() => {
 								</div>
 							</section>
 
-							<section v-else-if="activeTab === 'language'" class="settings-pane language-pane">
+							<section v-else-if="activeTab === 'language'" class="settings-pane px-8 pl-6 pb-12 language-pane">
 								<div class="settings-section">
 									<h3>{{ formatMessage(messages.languageTitle) }}</h3>
 									<p>{{ formatMessage(messages.languageDescription) }}</p>
@@ -540,14 +554,6 @@ onBeforeUnmount(() => {
 }
 
 .settings-brand {
-	display: flex;
-	align-items: center;
-	gap: 0.75rem;
-	margin-top: auto;
-	padding: 1rem 0.25rem 0;
-	color: var(--color-secondary);
-	font-size: 0.8rem;
-
 	img {
 		width: 2.25rem;
 		height: 2.25rem;
@@ -592,10 +598,6 @@ onBeforeUnmount(() => {
 	pointer-events: none;
 }
 
-.settings-pane {
-	padding: 0 2rem 3rem 1.5rem;
-}
-
 .settings-section {
 	h3,
 	p {
@@ -612,18 +614,6 @@ onBeforeUnmount(() => {
 		margin-top: 0.25rem;
 		color: var(--color-base);
 	}
-}
-
-.interface-section {
-	margin-top: 1.75rem;
-	padding-top: 1.5rem;
-	border-top: 1px solid var(--color-divider);
-}
-
-.settings-toggles {
-	display: flex;
-	flex-direction: column;
-	margin-top: 0.75rem;
 }
 
 .setting-row {

@@ -67,3 +67,77 @@ Var /GLOBAL OldInstallDir
         Return
     ${EndIf}
 !macroend
+
+
+!macro NSIS_HOOK_PREUNINSTALL
+    ${If} $DeleteAppDataCheckboxState = 1
+    ${AndIf} $UpdateMode <> 1
+        ${If} ${FileExists} "$APPDATA\${BUNDLEID}"
+            Push "$APPDATA\${BUNDLEID}"
+            Call un.RemoveReparsePoints
+        ${EndIf}
+        ${If} ${FileExists} "$LOCALAPPDATA\${BUNDLEID}"
+            Push "$LOCALAPPDATA\${BUNDLEID}"
+            Call un.RemoveReparsePoints
+        ${EndIf}
+    ${EndIf}
+!macroend
+
+Function un.RemoveReparsePoints
+    Exch $0 ; root directory to scan
+    Push $1 ; FindFirst handle
+    Push $2 ; current entry name
+    Push $3 ; current entry path
+    Push $4 ; entry attributes
+    Push $5 ; spare
+
+    FindFirst $1 $2 "$0\*"
+    ${If} ${Errors}
+        Goto done
+    ${EndIf}
+
+    loop:
+        StrCmp $2 "." next
+        StrCmp $2 ".." next
+
+        StrCpy $3 "$0\$2"
+        System::Call 'kernel32::GetFileAttributes(t r3) i.r4'
+
+        IntOp $4 $4 & 0x400 ; FILE_ATTRIBUTE_REPARSE_POINT
+        IntCmp $4 0 notReparse isReparse isReparse
+
+        isReparse:
+            System::Call 'kernel32::GetFileAttributes(t r3) i.r4'
+            IntOp $4 $4 & 0x10 ; FILE_ATTRIBUTE_DIRECTORY
+            IntCmp $4 0 removeFileLink removeDirLink removeDirLink
+
+            removeDirLink:
+                RmDir "$3" ; removes the junction / directory symlink itself
+                Goto next
+            removeFileLink:
+                Delete "$3" ; removes the file symlink itself
+                Goto next
+
+        notReparse:
+            System::Call 'kernel32::GetFileAttributes(t r3) i.r4'
+            IntOp $4 $4 & 0x10
+            IntCmp $4 0 next recurse recurse
+
+            recurse:
+                Push $3
+                Call un.RemoveReparsePoints
+
+        next:
+            FindNext $1 $2
+            IfErrors done
+            Goto loop
+
+    done:
+        FindClose $1
+        Pop $5
+        Pop $4
+        Pop $3
+        Pop $2
+        Pop $1
+        Pop $0
+FunctionEnd

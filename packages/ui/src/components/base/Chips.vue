@@ -1,5 +1,5 @@
 <template>
-	<div class="chips" role="radiogroup" :aria-label="ariaLabel">
+	<div class="chips flex gap-2 flex-wrap" role="radiogroup" :aria-label="ariaLabel">
 		<Button
 			v-for="item in items"
 			:key="formatLabel(item)"
@@ -76,10 +76,6 @@ function toggleItem(item: T) {
 
 <style lang="scss" scoped>
 .chips {
-	display: flex;
-	grid-gap: 0.5rem;
-	flex-wrap: wrap;
-
 	.btn {
 		border: 1px solid transparent;
 		&.capitalize {

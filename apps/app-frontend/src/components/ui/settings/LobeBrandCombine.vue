@@ -60,7 +60,7 @@ const extraStyle = computed(() => ({
 <template>
 	<span
 		v-if="config"
-		class="lobe-brand-combine"
+		class="lobe-brand-combine inline-flex min-w-0 flex-none items-center justify-start"
 		:class="{ inverse: config.inverse }"
 		:style="{ color: config.color }"
 	>
@@ -78,7 +78,7 @@ const extraStyle = computed(() => ({
 		<template v-else>
 			<span
 				v-if="avatarComponent && brandAvatar"
-				class="lobe-brand-avatar"
+				class="lobe-brand-avatar inline-flex flex-none items-center justify-center overflow-hidden"
 				:style="{
 					background: brandAvatar.background,
 					borderRadius: `${Math.floor(size * 0.1)}px`,
@@ -101,7 +101,7 @@ const extraStyle = computed(() => ({
 			<component
 				:is="logoComponent"
 				v-else-if="logoComponent"
-				class="lobe-brand-logo"
+				class="lobe-brand-logo object-contain"
 				:style="{
 					height: `${size}px`,
 					marginLeft: config.inverse ? `${logoMargin}px` : undefined,
@@ -116,29 +116,13 @@ const extraStyle = computed(() => ({
 				:style="{ height: `${textSize}px` }"
 			/>
 		</template>
-		<span v-if="extra" class="lobe-brand-extra" :style="extraStyle">{{ extra }}</span>
+		<span v-if="extra" class="flex-none leading-none" :style="extraStyle">{{ extra }}</span>
 	</span>
 </template>
 
 <style scoped>
-.lobe-brand-combine {
-	display: inline-flex;
-	min-width: 0;
-	flex: none;
-	align-items: center;
-	justify-content: flex-start;
-}
-
 .lobe-brand-combine.inverse {
 	flex-direction: row-reverse;
-}
-
-.lobe-brand-avatar {
-	display: inline-flex;
-	flex: none;
-	align-items: center;
-	justify-content: center;
-	overflow: hidden;
 }
 
 .lobe-brand-avatar > :deep(svg),
@@ -148,14 +132,5 @@ const extraStyle = computed(() => ({
 	display: block;
 	flex: none;
 	width: auto;
-}
-
-.lobe-brand-logo {
-	object-fit: contain;
-}
-
-.lobe-brand-extra {
-	flex: none;
-	line-height: 1;
 }
 </style>

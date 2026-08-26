@@ -2189,7 +2189,7 @@ function clampWorldCoordinate(value: number) {
 </script>
 
 <template>
-	<main class="seed-map-page mx-auto flex h-full w-full max-w-[110rem] flex-col gap-3 p-4">
+	<main class="seed-map-page mx-auto flex h-full min-h-0 w-full max-w-[110rem] flex-col gap-3 p-4">
 		<header class="flex min-h-9 items-center justify-between gap-3">
 			<div class="min-w-0">
 				<h1 class="m-0 truncate text-xl font-bold text-contrast">
@@ -2200,7 +2200,7 @@ function clampWorldCoordinate(value: number) {
 					{{ dimensionLabel(workspace.dimension) }}
 				</p>
 			</div>
-			<div class="seed-map-header-actions">
+			<div class="seed-map-header-actions flex shrink-0 items-center gap-2">
 				<span class="map-scale-badge">{{
 					formatMessage(messages.mapScale, { scale: mapScaleLabel })
 				}}</span>
@@ -2220,7 +2220,7 @@ function clampWorldCoordinate(value: number) {
 			<div class="toolbar-primary">
 				<div class="control-group seed-map-edition">
 					<span class="control-label">{{ formatMessage(messages.edition) }}</span>
-					<div class="seed-map-dropdown">
+					<div class="seed-map-dropdown min-w-0">
 						<DropdownSelect
 							v-model="workspace.edition"
 							:options="editionOptions"
@@ -2231,7 +2231,7 @@ function clampWorldCoordinate(value: number) {
 				</div>
 				<div class="control-group seed-map-version">
 					<span class="control-label">{{ formatMessage(messages.gameVersion) }}</span>
-					<div class="seed-map-dropdown">
+					<div class="seed-map-dropdown min-w-0">
 						<DropdownSelect
 							v-model="workspace.gameVersion"
 							:options="availableVersions"
@@ -2246,7 +2246,7 @@ function clampWorldCoordinate(value: number) {
 							v-model="workspace.seed"
 							:icon="HashIcon"
 							:placeholder="formatMessage(messages.seedPlaceholder)"
-							wrapper-class="seed-map-seed"
+							wrapper-class="seed-map-seed w-full"
 						/>
 						<ButtonStyled circular type="outlined">
 							<button
@@ -2327,10 +2327,10 @@ function clampWorldCoordinate(value: number) {
 			</div>
 
 			<div class="toolbar-secondary">
-				<div class="control-group dimension-group">
+				<div class="control-group dimension-group shrink-0">
 					<span class="control-label">{{ formatMessage(messages.dimension) }}</span>
 					<div
-						class="dimension-control"
+						class="dimension-control flex h-10 items-stretch overflow-hidden rounded-[var(--radius-md)] border border-surface-5 bg-surface-3"
 						role="group"
 						:aria-label="formatMessage(messages.dimension)"
 					>
@@ -2351,19 +2351,19 @@ function clampWorldCoordinate(value: number) {
 						</ButtonStyled>
 					</div>
 				</div>
-				<div class="control-group coordinate-group">
+				<div class="control-group coordinate-group min-w-80">
 					<span class="control-label">{{ formatMessage(messages.coordinates) }}</span>
 					<div class="coordinate-control" :aria-label="formatMessage(messages.coordinates)">
-						<label class="coordinate-field"
+						<label class="coordinate-field relative flex min-w-0 items-center"
 							><span>X</span
 							><StyledInput v-model="coordinateX" type="number" @keydown.enter="goToCoordinates"
 						/></label>
-						<label class="coordinate-field"
+						<label class="coordinate-field relative flex min-w-0 items-center"
 							><span>Z</span
 							><StyledInput v-model="coordinateZ" type="number" @keydown.enter="goToCoordinates"
 						/></label>
 						<ButtonStyled color="brand"
-							><button class="coordinate-go" @click="goToCoordinates">
+							><button class="coordinate-go h-10" @click="goToCoordinates">
 								<CompassIcon />{{ formatMessage(messages.go) }}
 							</button></ButtonStyled
 						>
@@ -2379,7 +2379,7 @@ function clampWorldCoordinate(value: number) {
 
 		<Admonition
 			v-if="mapError"
-			class="seed-map-error"
+			class="seed-map-error p-3"
 			type="critical"
 			:header="formatMessage(messages.mapFailed)"
 			:body="mapError"
@@ -2462,9 +2462,9 @@ function clampWorldCoordinate(value: number) {
 						>
 							<button
 								v-tooltip="featureTooltip(feature.kind, feature.maxScale)"
-								class="layer-option"
+								class="layer-option w-10 p-1"
 								:class="{
-									unavailable: tileScale > feature.maxScale,
+									'opacity-[0.68]': tileScale > feature.maxScale,
 									named: showLayerNames,
 								}"
 								:aria-pressed="workspace.visibleFeatures.includes(feature.kind)"
@@ -2490,7 +2490,7 @@ function clampWorldCoordinate(value: number) {
 						>
 							<button
 								v-tooltip="oreLabel(ore.kind)"
-								class="layer-option"
+								class="layer-option w-10 p-1"
 								:class="{ named: showLayerNames }"
 								:aria-pressed="workspace.selectedOres.includes(ore.kind)"
 								@click="toggleOre(ore.kind)"
@@ -2514,7 +2514,7 @@ function clampWorldCoordinate(value: number) {
 					>
 						<button
 							v-tooltip="formatMessage(messages.spawnPoint)"
-							class="layer-option"
+							class="layer-option w-10 p-1"
 							:class="{ named: showLayerNames }"
 							:aria-pressed="workspace.showSpawn"
 							@click="workspace.showSpawn = !workspace.showSpawn"
@@ -2562,7 +2562,7 @@ function clampWorldCoordinate(value: number) {
 								:description="featureTooltip(feature.kind, feature.maxScale)"
 								@update:model-value="toggleFeature(feature.kind)"
 							>
-								<span class="layer-checklist-label">
+								<span class="layer-checklist-label flex min-w-0 items-center gap-2">
 									<img
 										v-if="featureImageSource(feature.kind)"
 										:src="featureImageSource(feature.kind)"
@@ -2580,7 +2580,7 @@ function clampWorldCoordinate(value: number) {
 								:description="oreLabel(ore.kind)"
 								@update:model-value="toggleOre(ore.kind)"
 							>
-								<span class="layer-checklist-label">
+								<span class="layer-checklist-label flex min-w-0 items-center gap-2">
 									<img :src="ore.image" alt="" />
 									<span>{{ oreLabel(ore.kind) }}</span>
 									<small>Y {{ ore.yMin }}~{{ ore.yMax }}</small>
@@ -2593,7 +2593,7 @@ function clampWorldCoordinate(value: number) {
 							:description="formatMessage(messages.spawnPoint)"
 							@update:model-value="workspace.showSpawn = !workspace.showSpawn"
 						>
-							<span class="layer-checklist-label">
+							<span class="layer-checklist-label flex min-w-0 items-center gap-2">
 								<img :src="`${structureAssetRoot}/spawn_point.webp`" alt="" />
 								<span>{{ formatMessage(messages.spawnPoint) }}</span>
 							</span>
@@ -2633,7 +2633,7 @@ function clampWorldCoordinate(value: number) {
 			</div>
 
 			<div
-				class="seed-map-canvas-shell min-h-[32rem] border-x border-b border-surface-5 bg-surface-2"
+				class="seed-map-canvas-shell relative flex-1 overflow-hidden rounded-b-[var(--radius-md)] min-h-[32rem] border-x border-b border-surface-5 bg-surface-2"
 				data-onboarding-id="seed-map-canvas"
 			>
 				<canvas
@@ -2660,7 +2660,7 @@ function clampWorldCoordinate(value: number) {
 					}}</span>
 				</div>
 
-				<div class="map-control-stack map-control-stack-left">
+				<div class="map-control-stack map-control-stack-left left-3">
 					<ButtonStyled circular type="standard"
 						><button
 							v-tooltip="formatMessage(messages.zoomIn)"
@@ -2690,7 +2690,7 @@ function clampWorldCoordinate(value: number) {
 					></ButtonStyled>
 				</div>
 
-				<div class="map-control-stack map-control-stack-right">
+				<div class="map-control-stack map-control-stack-right right-3">
 					<ButtonStyled circular type="standard"
 						><button
 							v-tooltip="
@@ -2879,7 +2879,7 @@ function clampWorldCoordinate(value: number) {
 						<p v-if="!workspace.markers.length" class="m-0 text-xs text-secondary">
 							{{ formatMessage(messages.noMarkers) }}
 						</p>
-						<div v-else class="marker-list">
+						<div v-else class="marker-list flex flex-col gap-1">
 							<div v-for="marker in workspace.markers" :key="marker.id">
 								<button class="marker-jump" @click="jumpToMarker(marker)">
 									<i :style="{ backgroundColor: marker.color }"></i><span>{{ marker.name }}</span
@@ -2922,10 +2922,10 @@ function clampWorldCoordinate(value: number) {
 							:min="-64"
 							:max="320"
 							:disabled="terrainEnabled"
-							wrapper-class="elevation-input"
+							wrapper-class="elevation-input w-20"
 						/>
 					</label>
-					<div class="map-bottom-actions">
+					<div class="map-bottom-actions max-sm:w-full max-sm:flex-wrap max-sm:justify-start max-sm:ml-0">
 						<ButtonStyled
 							:type="terrainEnabled ? 'highlight-colored-text' : 'outlined'"
 							color="brand"
@@ -2969,17 +2969,6 @@ function clampWorldCoordinate(value: number) {
 </template>
 
 <style scoped>
-.seed-map-page {
-	min-height: 0;
-}
-
-.seed-map-header-actions {
-	display: flex;
-	flex: 0 0 auto;
-	align-items: center;
-	gap: 0.5rem;
-}
-
 .map-scale-badge {
 	flex: 0 0 auto;
 	min-width: 7.5rem;
@@ -3038,10 +3027,6 @@ function clampWorldCoordinate(value: number) {
 	font-size: 0.7rem;
 	font-weight: 700;
 	line-height: 1;
-}
-
-.seed-map-dropdown {
-	min-width: 0;
 }
 
 :deep(.seed-map-dropdown .animated-dropdown) {
@@ -3216,24 +3201,6 @@ function clampWorldCoordinate(value: number) {
 	border-radius: 50%;
 }
 
-.seed-map-seed {
-	width: 100%;
-}
-
-.dimension-group {
-	flex: 0 0 auto;
-}
-
-.dimension-control {
-	display: flex;
-	height: 2.5rem;
-	align-items: stretch;
-	overflow: hidden;
-	border: 1px solid var(--surface-5);
-	border-radius: var(--radius-md);
-	background: var(--surface-3);
-}
-
 .dimension-control :deep(.btn-wrapper > button.dimension-option) {
 	height: 100%;
 	min-width: 5.5rem;
@@ -3249,10 +3216,6 @@ function clampWorldCoordinate(value: number) {
 	border-radius: 0 calc(var(--radius-md) - 1px) calc(var(--radius-md) - 1px) 0;
 }
 
-.coordinate-group {
-	min-width: 20rem;
-}
-
 .coordinate-control {
 	display: grid;
 	grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
@@ -3262,17 +3225,6 @@ function clampWorldCoordinate(value: number) {
 
 .coordinate-control :deep(input) {
 	height: 2.5rem;
-}
-
-.coordinate-go {
-	height: 2.5rem;
-}
-
-.coordinate-field {
-	position: relative;
-	display: flex;
-	min-width: 0;
-	align-items: center;
 }
 
 .coordinate-field > span {
@@ -3295,10 +3247,6 @@ function clampWorldCoordinate(value: number) {
 
 .share-button :deep(button) {
 	height: 2.5rem;
-}
-
-.seed-map-error {
-	padding: 0.75rem;
 }
 
 .seed-map-experience {
@@ -3425,13 +3373,6 @@ function clampWorldCoordinate(value: number) {
 	background: var(--surface-4);
 }
 
-.layer-checklist-label {
-	display: flex;
-	min-width: 0;
-	align-items: center;
-	gap: 0.5rem;
-}
-
 .layer-checklist-label img,
 .layer-checklist-label svg {
 	width: 1.35rem;
@@ -3499,21 +3440,12 @@ function clampWorldCoordinate(value: number) {
 	font-weight: 700;
 }
 
-.layer-option {
-	width: 2.5rem;
-	padding: 0.25rem;
-}
-
 .layer-option svg,
 .layer-option img {
 	width: 1.5rem;
 	height: 1.5rem;
 	flex: 0 0 auto;
 	object-fit: contain;
-}
-
-.layer-option.unavailable {
-	opacity: 0.68;
 }
 
 .layer-option.named {
@@ -3527,13 +3459,6 @@ function clampWorldCoordinate(value: number) {
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
-}
-
-.seed-map-canvas-shell {
-	position: relative;
-	flex: 1;
-	overflow: hidden;
-	border-radius: 0 0 var(--radius-md) var(--radius-md);
 }
 
 .seed-map-canvas-shell canvas {
@@ -3552,14 +3477,6 @@ function clampWorldCoordinate(value: number) {
 	background: var(--surface-3);
 	box-shadow: 0 8px 20px rgb(0 0 0 / 0.28);
 	padding: 0.35rem;
-}
-
-.map-control-stack-left {
-	left: 0.75rem;
-}
-
-.map-control-stack-right {
-	right: 0.75rem;
 }
 
 .map-control-stack :deep(button) {
@@ -3671,12 +3588,6 @@ function clampWorldCoordinate(value: number) {
 	margin-top: 0.75rem;
 	color: var(--color-text-primary);
 	font-size: 0.8rem;
-}
-
-.marker-list {
-	display: flex;
-	flex-direction: column;
-	gap: 0.25rem;
 }
 
 .marker-list > div {
@@ -3800,10 +3711,6 @@ function clampWorldCoordinate(value: number) {
 
 .map-elevation.locked {
 	color: var(--color-text-secondary);
-}
-
-.elevation-input {
-	width: 5rem;
 }
 
 .map-bottom-actions {
@@ -3932,13 +3839,6 @@ function clampWorldCoordinate(value: number) {
 	.map-bottom-toolbar {
 		max-height: calc(100% - 5rem);
 		overflow-y: auto;
-	}
-
-	.map-bottom-actions {
-		width: 100%;
-		flex-wrap: wrap;
-		justify-content: flex-start;
-		margin-left: 0;
 	}
 
 	.map-ruler-status {

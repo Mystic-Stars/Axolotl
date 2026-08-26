@@ -136,6 +136,7 @@ async fn apply_content_update(
                     content_type,
                     selected: Default::default(),
                     excluded_project_ids: Vec::new(),
+                    force_project_ids: Vec::new(),
                 },
                 state,
             )
@@ -399,7 +400,9 @@ async fn persist_bulk_dependency_edges(
                 content_set_id: scope.content_set_id.clone(),
                 parent_entry_id: parent_entry.id,
                 child_entry_id: child_entry.id,
-                provider: crate::state::ContentProvider::Modrinth,
+                evidence_provider: crate::state::ContentProvider::Modrinth,
+                parent_provider: crate::state::ContentProvider::Modrinth,
+                child_provider: crate::state::ContentProvider::Modrinth,
                 dependency_kind:
                     crate::state::instances::ContentDependencyKind::Required,
                 parent_project_id: parent.project_id.clone(),

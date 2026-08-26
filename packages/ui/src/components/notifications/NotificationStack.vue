@@ -5,7 +5,7 @@
 			'has-sidebar': hasSidebar,
 		}"
 	>
-		<TransitionGroup name="notification-stack-item" tag="div" class="notification-stack-items">
+		<TransitionGroup name="notification-stack-item" tag="div" class="flex flex-col gap-4">
 			<slot />
 		</TransitionGroup>
 	</div>
@@ -39,12 +39,6 @@ withDefaults(
 	.notification-stack {
 		right: 0.75rem;
 	}
-}
-
-.notification-stack-items {
-	display: flex;
-	flex-direction: column;
-	gap: 1rem;
 }
 
 :global(.notification-stack-item-enter-active),

@@ -17,6 +17,7 @@
 	},
 	"scripts": {
 		"lint": "eslint . && prettier --check .",
+		"test": "node --test \"src/**/*.test.ts\"",
 		"fix": "eslint . --fix && prettier --write .",
 		"intl:extract": "formatjs extract \"src/**/*.{vue,ts,tsx,js,jsx,mts,cts,mjs,cjs}\" --ignore \"src/**/*.d.ts\" --out-file src/locales/en-US/index.json --preserve-whitespace",
 		"intl:prune-local": "pnpm -w scripts i18n-icu-contract prune-local --scope packages/ui"

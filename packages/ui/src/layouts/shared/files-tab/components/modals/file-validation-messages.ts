@@ -17,6 +17,6 @@ export const fileValidationMessages = defineMessages({
 	nameInvalidDirectory: {
 		id: 'files.validation.name-invalid-directory',
 		defaultMessage:
-			'Name must contain only alphanumeric characters, dashes, underscores, or spaces.',
+			'Name must contain only alphanumeric characters, dashes, underscores, dots, or spaces.',
 	},
 })

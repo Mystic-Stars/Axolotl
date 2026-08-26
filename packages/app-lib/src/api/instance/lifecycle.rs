@@ -18,6 +18,7 @@ pub(crate) async fn create(
     icon_path: Option<String>,
     link: InstanceLink,
     symlink_target: Option<String>,
+    game_dir_override: Option<String>,
 ) -> crate::Result<InstanceMetadata> {
     let state = State::get().await?;
     let instance = crate::state::create_instance(
@@ -30,6 +31,7 @@ pub(crate) async fn create(
             icon_path,
             link,
             symlink_target,
+            game_dir_override,
         },
         &state,
     )

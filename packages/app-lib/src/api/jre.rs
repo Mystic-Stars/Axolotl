@@ -1495,7 +1495,7 @@ async fn fetch_jdk_feed() -> crate::Result<JdkFeed> {
     }
 
     // Download feed
-    let client = reqwest::Client::new();
+    let client = crate::util::fetch::configured_client().await?;
     let response = client.get(JDK_FEED_URL).send().await?;
     let bytes = response.bytes().await?;
 
@@ -2005,11 +2005,11 @@ pub async fn get_memory_status(
                 | crate::state::ModLoader::Fabric
                 | crate::state::ModLoader::Quilt
                 | crate::state::ModLoader::NeoForge
+                | crate::state::ModLoader::Cleanroom
+                | crate::state::ModLoader::LiteLoader
+                | crate::state::ModLoader::LegacyFabric
         );
-        let path = state
-            .directories
-            .instances_dir()
-            .join(context.instance.path);
+        let path = state.directories.instance_game_dir(&context.instance);
         (modded, count_mods(&path))
     } else {
         (false, 0)

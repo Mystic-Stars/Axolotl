@@ -142,7 +142,7 @@ defineExpose({ show })
 			>
 				{{ formatMessage(messages.empty) }}
 			</p>
-			<div v-else class="block-picker-grid" role="listbox">
+			<div v-else class="block-picker-grid grid grid-cols-4 gap-2" role="listbox">
 				<button
 					v-for="block in visibleBlocks"
 					:key="block.name"
@@ -194,12 +194,6 @@ defineExpose({ show })
 </template>
 
 <style scoped>
-.block-picker-grid {
-	display: grid;
-	grid-template-columns: repeat(4, minmax(0, 1fr));
-	gap: 0.5rem;
-}
-
 .block-picker-option {
 	position: relative;
 	display: grid;

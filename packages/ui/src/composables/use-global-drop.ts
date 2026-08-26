@@ -64,6 +64,12 @@ export interface UseGlobalDropOptions {
 	/** Called after processing ends (success or error). */
 	onImportEnd?: () => void
 
+	/**
+	 * Called when the user drops multiple files. The consumer owns the rest of
+	 * the batch flow and must call `finishBatch()` when it is done.
+	 */
+	onBatchStart?: (paths: string[]) => void
+
 	/** Called when an error occurs (unknown type, too many files, etc.). */
 	onError?: (message: string) => void
 }
@@ -126,8 +132,15 @@ export function useGlobalDrop(
 			return
 		}
 
-		// Only one file at a time
+		// Multiple files start a batch flow owned by the consumer.
 		if (paths.length > 1) {
+			console.log('[BatchDrop] native drop MULTI paths=', paths)
+			if (options.onBatchStart) {
+				isProcessing.value = true
+				droppedFileName.value = null
+				options.onBatchStart(paths)
+				return
+			}
 			options.onError?.('multiple-files')
 			return
 		}
@@ -235,9 +248,16 @@ export function useGlobalDrop(
 		}
 	})
 
+	/** Ends the batch flow and clears the global processing flag. */
+	function finishBatch() {
+		isProcessing.value = false
+		options.onImportEnd?.()
+	}
+
 	return {
 		isDragging,
 		isProcessing,
 		droppedFileName,
+		finishBatch,
 	}
 }

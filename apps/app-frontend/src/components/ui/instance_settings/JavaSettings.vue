@@ -7,13 +7,16 @@ import {
 	StyledInput,
 	useVIntl,
 } from '@modrinth/ui'
+import { platform } from '@tauri-apps/plugin-os'
 import { computed, readonly, ref, watch } from 'vue'
 
 import JavaArgumentsInput from '@/components/ui/JavaArgumentsInput.vue'
 import JavaSelector from '@/components/ui/JavaSelector.vue'
 import MemoryAllocationDisplay from '@/components/ui/MemoryAllocationDisplay.vue'
 import useMemorySlider from '@/composables/useMemorySlider'
-import { edit, get_optimal_jre_key } from '@/helpers/instance'
+import { collectGcContext, extractJavaMajorVersion } from '@/helpers/gc/context'
+import type { GcContext } from '@/helpers/gc/types'
+import { edit, get_content_snapshot, get_optimal_jre_key } from '@/helpers/instance'
 import { get } from '@/helpers/settings'
 import { injectInstanceSettings } from '@/providers/instance-settings'
 
@@ -46,6 +49,14 @@ const messages = defineMessages({
 		id: 'instance.settings.tabs.java.automatic-memory',
 		defaultMessage: 'Automatically allocate memory at launch',
 	},
+	optimizeMemoryBeforeLaunch: {
+		id: 'instance.settings.tabs.java.optimize-memory-before-launch',
+		defaultMessage: 'Optimize memory before launching the game',
+	},
+	optimizeMemoryBeforeLaunchDescription: {
+		id: 'instance.settings.tabs.java.optimize-memory-before-launch-description',
+		defaultMessage: 'Waits for Windows memory optimization to finish before starting the game.',
+	},
 	javaArguments: {
 		id: 'instance.settings.tabs.java.java-arguments',
 		defaultMessage: 'Java arguments',
@@ -73,6 +84,7 @@ const messages = defineMessages({
 })
 
 const { instance } = injectInstanceSettings()
+const supportsMemoryOptimization = (await platform()) === 'windows'
 
 const globalSettings = (await get().catch(handleError)) as unknown as AppSettings
 const optimalJava = readonly(await get_optimal_jre_key(instance.value.id).catch(handleError))
@@ -108,14 +120,14 @@ const envVars = ref(
 		.join(' '),
 )
 
+const defaultMemory = { maximum: 2048, automatic: true, optimize_before_launch: false }
 const overrideMemorySettings = ref(!!instance.value.memory)
-const memory = ref(
-	instance.value.memory ?? globalSettings?.memory ?? { maximum: 2048, automatic: true },
-)
+const memory = ref({
+	...defaultMemory,
+	...(instance.value.memory ?? globalSettings?.memory),
+})
 const effectiveMemory = computed(() =>
-	overrideMemorySettings.value
-		? memory.value
-		: (globalSettings?.memory ?? { maximum: 2048, automatic: true }),
+	overrideMemorySettings.value ? memory.value : { ...defaultMemory, ...globalSettings?.memory },
 )
 const memData = await useMemorySlider().catch(() => ({
 	maxMemory: ref(4096),
@@ -123,6 +135,31 @@ const memData = await useMemorySlider().catch(() => ({
 }))
 const maxMemory = memData.maxMemory
 const snapPoints = memData.snapPoints
+
+const gcContext = ref<GcContext | null>(null)
+
+async function updateGcContext() {
+	const javaMajorVersion = extractJavaMajorVersion(displayedJava.value?.parsed_version)
+	let modCount = 0
+	try {
+		const snapshot = await get_content_snapshot(instance.value.id)
+		modCount = snapshot.items.filter(
+			(item) => item.projectType === 'mod' && item.materializationState === 'present',
+		).length
+	} catch {
+		modCount = 0
+	}
+	gcContext.value = await collectGcContext(
+		memory.value.maximum,
+		instance.value.loader,
+		javaMajorVersion,
+		modCount,
+	)
+}
+
+await updateGcContext()
+
+watch([memory, displayedJava, () => instance.value.loader], updateGcContext)
 
 const editInstanceObject = computed(() => ({
 	java_path:
@@ -192,6 +229,18 @@ watch(
 			:label="formatMessage(messages.automaticMemory)"
 			class="mb-2"
 		/>
+		<div
+			v-if="supportsMemoryOptimization && overrideMemorySettings"
+			class="mb-2 flex flex-col gap-1"
+		>
+			<Checkbox
+				v-model="memory.optimize_before_launch"
+				:label="formatMessage(messages.optimizeMemoryBeforeLaunch)"
+			/>
+			<p class="m-0 text-xs leading-tight text-secondary">
+				{{ formatMessage(messages.optimizeMemoryBeforeLaunchDescription) }}
+			</p>
+		</div>
 		<Slider
 			id="max-memory"
 			v-model="memory.maximum"
@@ -217,6 +266,8 @@ watch(
 			id="java-args"
 			v-model="javaArgs"
 			:disabled="!overrideJavaArgs"
+			:gc-context="gcContext"
+			:show-auto-details="true"
 			:placeholder="formatMessage(messages.enterJavaArguments)"
 		/>
 

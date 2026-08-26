@@ -9,7 +9,7 @@ import QqIcon from '~/components/landing/QqIcon.vue'
 
 const { formatMessage } = useVIntl()
 
-const QQ_GROUP_NUMBER = '955605306'
+const QQ_GROUP_NUMBER = '737601250'
 const QQ_CHANNEL_URL = 'https://pd.qq.com/s/9nfp5rlz0'
 
 const copied = ref(false)
@@ -72,21 +72,21 @@ const messages = defineMessages({
 <template>
 	<section id="community" class="community-section" aria-labelledby="community-title">
 		<div class="community-intro">
-			<span class="community-eyebrow">{{ formatMessage(messages.eyebrow) }}</span>
+			<span class="text-xs font-extrabold uppercase tracking-[0.1em] text-brand">{{ formatMessage(messages.eyebrow) }}</span>
 			<h2 id="community-title">{{ formatMessage(messages.title) }}</h2>
 			<p>{{ formatMessage(messages.description) }}</p>
 		</div>
 
-		<div class="community-cards">
+		<div class="community-cards flex items-stretch justify-center w-[min(44rem,100%)] mx-auto mt-10">
 			<button
 				type="button"
 				class="community-card"
 				:aria-label="formatMessage(messages.copyQqGroup)"
 				@click="copyQqGroupNumber"
 			>
-				<span class="community-icon"><QqIcon /></span>
-				<span class="community-title">{{ formatMessage(messages.qqGroup) }}</span>
-				<span class="community-description">
+				<span class="grid place-items-center w-12 h-12 text-[var(--color-contrast)]"><QqIcon /></span>
+				<span class="text-[var(--color-contrast)] text-[1.05rem] font-bold">{{ formatMessage(messages.qqGroup) }}</span>
+				<span class="m-0 text-[var(--color-secondary)] text-sm leading-[1.6]">
 					{{ formatMessage(messages.qqGroupDescription, { number: QQ_GROUP_NUMBER }) }}
 				</span>
 				<span class="community-action" :class="{ copied }" aria-live="polite">
@@ -97,9 +97,9 @@ const messages = defineMessages({
 			</button>
 
 			<a class="community-card" :href="QQ_CHANNEL_URL" target="_blank" rel="noopener">
-				<span class="community-icon"><QqChannelIcon /></span>
-				<span class="community-title">{{ formatMessage(messages.qqChannel) }}</span>
-				<span class="community-description">
+				<span class="grid place-items-center w-12 h-12 text-[var(--color-contrast)]"><QqChannelIcon /></span>
+				<span class="text-[var(--color-contrast)] text-[1.05rem] font-bold">{{ formatMessage(messages.qqChannel) }}</span>
+				<span class="m-0 text-[var(--color-secondary)] text-sm leading-[1.6]">
 					{{ formatMessage(messages.qqChannelDescription) }}
 				</span>
 				<span class="community-action">
@@ -136,22 +136,6 @@ const messages = defineMessages({
 		font-size: 1.05rem;
 		line-height: 1.7;
 	}
-}
-
-.community-eyebrow {
-	color: var(--color-brand);
-	font-size: 0.75rem;
-	font-weight: 800;
-	letter-spacing: 0.1em;
-	text-transform: uppercase;
-}
-
-.community-cards {
-	display: flex;
-	justify-content: center;
-	align-items: stretch;
-	width: min(44rem, 100%);
-	margin: 2.5rem auto 0;
 }
 
 .community-card {
@@ -203,27 +187,6 @@ const messages = defineMessages({
 		outline: 2px solid var(--color-brand);
 		outline-offset: 2px;
 	}
-}
-
-.community-icon {
-	display: grid;
-	place-items: center;
-	width: 3rem;
-	height: 3rem;
-	color: var(--color-contrast);
-}
-
-.community-title {
-	color: var(--color-contrast);
-	font-size: 1.05rem;
-	font-weight: 700;
-}
-
-.community-description {
-	margin: 0;
-	color: var(--color-secondary);
-	font-size: 0.875rem;
-	line-height: 1.6;
 }
 
 .community-action {

@@ -4,6 +4,7 @@ import type {
 	ContentModpackCardVersion,
 	ContentOwner,
 } from '@modrinth/ui'
+import { convertFileSrc } from '@tauri-apps/api/core'
 
 import {
 	get_content_snapshot,
@@ -27,6 +28,15 @@ export type InstanceContentModpackData = {
 	owner: ContentOwner | null
 	hasUpdate: boolean
 	updateVersionId: string | null
+}
+
+export function isWorldSaveContentItem(item: Pick<ContentItem, 'project_type'>): boolean {
+	return ['world', 'worldsave', 'world_save'].includes(item.project_type)
+}
+
+export function localContentIconUrl(iconUrl?: string | null): string {
+	if (!iconUrl) return ''
+	return /^(https?:|data:|blob:|asset:|tauri:)/.test(iconUrl) ? iconUrl : convertFileSrc(iconUrl)
 }
 
 export async function loadInstanceContentData(

@@ -132,8 +132,8 @@ async function openChangelog() {
 			<section
 				v-for="(category, index) in categoryRows"
 				:key="category.type"
-				class="grid grid-cols-1 gap-2 border-0 border-t border-solid border-surface-5 py-4 sm:grid-cols-[7rem_minmax(0,1fr)] sm:gap-5"
-				:class="{ 'pt-0 border-t-0': index === 0 }"
+				class="announcement-category grid grid-cols-1 gap-2 py-4 sm:grid-cols-[7rem_minmax(0,1fr)] sm:gap-5"
+				:class="{ 'border-t-0 pt-0': index === 0 }"
 			>
 				<h3 class="m-0 flex items-center gap-2 text-sm font-semibold text-secondary">
 					<span
@@ -150,7 +150,7 @@ async function openChangelog() {
 		</div>
 		<Admonition v-else type="info" :body="formatMessage(messages.unknownBody)" />
 
-		<div v-if="announcement?.notes" class="border-0 border-t border-solid border-surface-5 pt-4">
+		<div v-if="announcement?.notes" class="announcement-notes">
 			<h3 class="m-0 mb-2 text-sm font-semibold text-secondary">
 				{{ formatMessage(messages.notes) }}
 			</h3>
@@ -167,3 +167,16 @@ async function openChangelog() {
 		</ButtonStyled>
 	</div>
 </template>
+
+<style scoped>
+.announcement-category {
+	border-top: 1px solid
+		var(--settings-divider, color-mix(in srgb, var(--surface-4) 55%, transparent));
+}
+
+.announcement-notes {
+	padding-top: var(--gap-md);
+	border-top: 1px solid
+		var(--settings-divider, color-mix(in srgb, var(--surface-4) 55%, transparent));
+}
+</style>

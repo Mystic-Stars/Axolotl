@@ -1,8 +1,10 @@
 <script setup>
 import {
 	ClipboardCopyIcon,
+	CollectionIcon,
 	EyeIcon,
 	FolderOpenIcon,
+	GridIcon,
 	MoreVerticalIcon,
 	PinIcon,
 	PlayIcon,
@@ -10,17 +12,19 @@ import {
 	SearchIcon,
 	StopCircleIcon,
 	TrashIcon,
+	XIcon,
 } from '@modrinth/assets'
 import {
 	Accordion,
 	ButtonStyled,
+	Checkbox,
 	commonMessages,
 	defineMessages,
 	DropdownSelect,
 	FloatingActionBar,
 	formatLoader,
 	injectNotificationManager,
-	OverflowMenu,
+	PopoutMenu,
 	StyledInput,
 	useVIntl,
 } from '@modrinth/ui'
@@ -28,12 +32,15 @@ import { computed, ref } from 'vue'
 
 import ContextMenu from '@/components/ui/ContextMenu.vue'
 import Instance from '@/components/ui/Instance.vue'
-import ConfirmDeleteInstanceModal from '@/components/ui/modal/ConfirmDeleteInstanceModal.vue'
 import BatchEditGroupsModal from '@/components/ui/modal/BatchEditGroupsModal.vue'
+import ConfirmDeleteInstanceModal from '@/components/ui/modal/ConfirmDeleteInstanceModal.vue'
+import { UNGROUPED_GROUP_KEY, useGridGrouping } from '@/composables/useGridGrouping'
 import { install_duplicate_instance } from '@/helpers/install'
-import { edit, remove, set_pinned } from '@/helpers/instance'
-import { Checkbox } from '@modrinth/ui'
-import { useGridGrouping, UNGROUPED_GROUP_KEY } from '@/composables/useGridGrouping'
+import { remove, set_pinned } from '@/helpers/instance'
+import {
+	getLastLibraryDisplayMode,
+	setLastLibraryDisplayMode,
+} from '@/helpers/library-display-mode'
 
 const { handleError } = injectNotificationManager()
 
@@ -61,7 +68,6 @@ const messages = defineMessages({
 	loader: { id: 'app.instances.group.loader', defaultMessage: 'Loader' },
 	none: { id: 'app.instances.group.none', defaultMessage: 'None' },
 	ungrouped: { id: 'app.instances.group.ungrouped', defaultMessage: 'No group' },
-	exitSelectMode: { id: 'app.instances.exit-select-mode', defaultMessage: 'Exit' },
 	editGroups: { id: 'app.instances.edit-groups', defaultMessage: 'Edit groups' },
 	selectAll: { id: 'app.instances.select-all', defaultMessage: 'Select all' },
 	deselectAll: { id: 'app.instances.deselect-all', defaultMessage: 'Deselect all' },
@@ -69,6 +75,9 @@ const messages = defineMessages({
 		id: 'app.instances.selected-count',
 		defaultMessage: '{count, plural, one {# selected} other {# selected}}',
 	},
+	view: { id: 'app.library.view', defaultMessage: 'View' },
+	standardView: { id: 'app.library.view.standard', defaultMessage: 'Standard grid' },
+	cardsView: { id: 'app.library.view.cards', defaultMessage: 'Library cards' },
 })
 
 const optionMessages = {
@@ -101,8 +110,24 @@ const props = defineProps({
 const instanceOptions = ref(null)
 const instanceComponents = ref(null)
 const currentDeleteInstance = ref(null)
+const batchDeleteCount = ref(0)
 const confirmModal = ref(null)
 const search = ref('')
+const displayMode = ref(getLastLibraryDisplayMode())
+
+const displayModeOptions = computed(() => [
+	{ id: 'standard', label: formatMessage(messages.standardView), icon: GridIcon },
+	{ id: 'cards', label: formatMessage(messages.cardsView), icon: CollectionIcon },
+])
+
+const currentDisplayMode = computed(() =>
+	displayModeOptions.value.find((option) => option.id === displayMode.value),
+)
+
+function setDisplayMode(mode) {
+	displayMode.value = mode
+	setLastLibraryDisplayMode(mode)
+}
 
 const filteredInstances = computed(() =>
 	props.instances.filter((instance) =>
@@ -122,6 +147,7 @@ async function deleteInstance() {
 		)
 		await remove(currentDeleteInstance.value.id).catch(handleError)
 	}
+	batchDeleteCount.value = 0
 }
 
 async function duplicateInstance(p) {
@@ -203,13 +229,6 @@ const handleOptionsClick = async (args) => {
 	}
 }
 
-const overflowOptions = (instance) => [
-	{
-		id: instance.pinned_at ? 'unpin' : 'pin',
-		action: () => set_pinned(instance.id, !instance.pinned_at).catch(handleError),
-	},
-]
-
 // Selection mode
 const selectMode = ref(false)
 const selectedInstanceIds = ref(new Set())
@@ -236,7 +255,7 @@ function cancelLongPress() {
 	}
 }
 
-function handleCardClick(instanceId, event) {
+function handleCardClick(instanceId, _event) {
 	if (longPressTriggered) {
 		longPressTriggered = false
 		return
@@ -275,6 +294,22 @@ function handleCheckboxClick(instanceId) {
 
 function openBatchEdit() {
 	batchEditModal.value?.show()
+}
+
+const batchDeleteConfirmModal = ref(null)
+
+function openBatchDelete() {
+	batchDeleteCount.value = selectedInstanceIds.value.size
+	batchDeleteConfirmModal.value?.show()
+}
+
+async function batchDeleteInstances() {
+	for (const id of selectedInstanceIds.value) {
+		instanceComponents.value = instanceComponents.value.filter((x) => x.instance.id !== id)
+		await remove(id).catch(handleError)
+	}
+	selectedInstanceIds.value.clear()
+	selectMode.value = false
 }
 
 const visibleInstanceIds = computed(() => {
@@ -324,6 +359,31 @@ function onBatchEditApplied() {
 			clearable
 			wrapper-class="flex-1"
 		/>
+		<PopoutMenu :tooltip="formatMessage(messages.view)" placement="bottom-end">
+			<ButtonStyled circular>
+				<button :aria-label="formatMessage(messages.view)">
+					<component :is="currentDisplayMode?.icon" />
+				</button>
+			</ButtonStyled>
+			<template #menu>
+				<div class="flex w-44 flex-col gap-1 p-1">
+					<ButtonStyled
+						v-for="option in displayModeOptions"
+						:key="option.id"
+						:type="displayMode === option.id ? 'filled' : 'transparent'"
+					>
+						<button
+							class="flex w-full items-center gap-2 !justify-start text-left"
+							:aria-pressed="displayMode === option.id"
+							@click="setDisplayMode(option.id)"
+						>
+							<component :is="option.icon" class="size-4" />
+							{{ option.label }}
+						</button>
+					</ButtonStyled>
+				</div>
+			</template>
+		</PopoutMenu>
 		<DropdownSelect
 			v-slot="{ selected }"
 			v-model="state.sortBy"
@@ -359,7 +419,7 @@ function onBatchEditApplied() {
 		:key="instanceSection.key"
 		:divider="grouping === 'Group' || instanceSection.key !== UNGROUPED_GROUP_KEY"
 		:open-by-default="!isSectionCollapsed(instanceSection.key)"
-		class="row"
+		class="w-full"
 		@on-open="setSectionCollapsed(instanceSection.key, false)"
 		@on-close="setSectionCollapsed(instanceSection.key, true)"
 	>
@@ -370,7 +430,12 @@ function onBatchEditApplied() {
 					: instanceSection.key
 			}}</span>
 		</template>
-		<section class="instances">
+		<section
+			class="grid grid-cols-[repeat(auto-fill,minmax(16rem,1fr))] w-full gap-3 mr-auto scroll-smooth overflow-y-auto"
+			:class="{
+				'grid-cols-[repeat(auto-fill,minmax(13rem,1fr))] gap-4': displayMode === 'cards',
+			}"
+		>
 			<div
 				v-for="instance in instanceSection.value"
 				:key="instance.id + instance.install_stage"
@@ -378,7 +443,7 @@ function onBatchEditApplied() {
 			>
 				<div
 					class="relative cursor-pointer select-none rounded-lg transition-all hover:brightness-90 active:scale-[0.98]"
-					@click="handleCardClick(instance.id, $event)"
+					@click="handleCardClick(instance.id)"
 					@mousedown="!selectMode && startLongPress(instance.id)"
 					@mouseup="cancelLongPress"
 					@mouseleave="cancelLongPress"
@@ -391,13 +456,14 @@ function onBatchEditApplied() {
 							ref="instanceComponents"
 							:instance="instance"
 							:disabled="selectMode"
+							:variant="displayMode === 'cards' ? 'library' : 'standard'"
 							:class="{ 'opacity-50': selectMode && !selectedInstanceIds.has(instance.id) }"
 							@contextmenu.prevent.stop="(event) => handleRightClick(event, instance.id)"
 						/>
 					</div>
 				</div>
 				<div
-					class="absolute left-2 top-2 z-10 transition-opacity"
+					class="absolute right-2 bottom-2 z-10 transition-opacity"
 					:class="
 						selectMode && selectedInstanceIds.has(instance.id)
 							? ''
@@ -410,21 +476,12 @@ function onBatchEditApplied() {
 				<div
 					v-if="!selectMode"
 					class="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity"
-					@click.stop
+					@click.stop="(event) => handleRightClick(event, instance.id)"
 				>
 					<ButtonStyled circular size="small" type="transparent">
-						<OverflowMenu
-							:options="overflowOptions(instance)"
-							:tooltip="
-								formatMessage(instance.pinned_at ? messages.unpinFromHome : messages.pinToHome)
-							"
-						>
+						<button type="button">
 							<MoreVerticalIcon />
-							<template #pin> <PinIcon /> {{ formatMessage(messages.pinToHome) }} </template>
-							<template #unpin>
-								<PinIcon class="rotate-45" /> {{ formatMessage(messages.unpinFromHome) }}
-							</template>
-						</OverflowMenu>
+						</button>
 					</ButtonStyled>
 				</div>
 			</div>
@@ -433,14 +490,20 @@ function onBatchEditApplied() {
 	<ConfirmDeleteInstanceModal
 		ref="confirmModal"
 		:symlink-target="currentDeleteInstance?.symlink_target"
-		@delete="deleteInstance"
+		:count="batchDeleteCount"
+		@delete="batchDeleteCount > 0 ? batchDeleteInstances() : deleteInstance()"
+	/>
+	<ConfirmDeleteInstanceModal
+		ref="batchDeleteConfirmModal"
+		:count="selectedInstanceIds.size"
+		@delete="batchDeleteInstances"
 	/>
 	<BatchEditGroupsModal
 		ref="batchEditModal"
 		:instance-ids="[...selectedInstanceIds]"
 		@applied="onBatchEditApplied"
 	/>
-	<FloatingActionBar :shown="selectMode" aria-label="Instance selection">
+	<FloatingActionBar :shown="selectMode" position="top" aria-label="Instance selection">
 		<span class="px-3 py-2 text-base font-semibold text-contrast tabular-nums">
 			{{ formatMessage(messages.selectedCount, { count: selectedInstanceIds.size }) }}
 		</span>
@@ -457,10 +520,17 @@ function onBatchEditApplied() {
 				<span>{{ formatMessage(messages.editGroups) }}</span>
 			</button>
 		</ButtonStyled>
+		<ButtonStyled color="red" type="transparent">
+			<button type="button" @click="openBatchDelete">
+				<TrashIcon />
+				<span class="bar-label">{{ formatMessage(commonMessages.deleteLabel) }}</span>
+			</button>
+		</ButtonStyled>
 		<div class="ml-auto" />
 		<ButtonStyled type="transparent">
-			<button type="button" @click="toggleSelectMode">
-				<span>{{ formatMessage(messages.exitSelectMode) }}</span>
+			<button class="!text-primary" type="button" @click="toggleSelectMode">
+				<XIcon class="hidden cq-show-icon" />
+				<span class="bar-label">{{ formatMessage(commonMessages.clearButton) }}</span>
 			</button>
 		</ButtonStyled>
 	</FloatingActionBar>
@@ -484,17 +554,4 @@ function onBatchEditApplied() {
 	</ContextMenu>
 </template>
 <style lang="scss" scoped>
-.row {
-	width: 100%;
-}
-
-.instances {
-	display: grid;
-	grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
-	width: 100%;
-	gap: 0.75rem;
-	margin-right: auto;
-	scroll-behavior: smooth;
-	overflow-y: auto;
-}
 </style>

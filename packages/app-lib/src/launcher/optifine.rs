@@ -304,6 +304,7 @@ pub(crate) async fn build_partial_version_info(
         minecraft_arguments,
         arguments,
         libraries,
+        java_version: None,
         type_: vanilla.type_.clone(),
         data: None,
         processors: None,

@@ -1,7 +1,9 @@
 use crate::state::InstanceInstallStage;
 use crate::state::instances::{
-    InstanceLaunchContext,
-    adapters::sqlite::{config_sync_rows, instance_rows},
+    InstanceLaunchContext, LoaderComponent,
+    adapters::sqlite::{
+        config_sync_rows, instance_rows, loader_component_rows,
+    },
     config_sync, playtime_to_storage,
 };
 use chrono::{DateTime, Local, NaiveDate, TimeZone, Utc};
@@ -14,6 +16,39 @@ pub(crate) async fn get_instance_launch_context(
     pool: &SqlitePool,
 ) -> crate::Result<Option<InstanceLaunchContext>> {
     instance_rows::get_instance_launch_context(instance_id, pool).await
+}
+
+pub(crate) async fn replace_instance_loader_components(
+    instance_id: &str,
+    components: &[LoaderComponent],
+    pool: &SqlitePool,
+) -> crate::Result<()> {
+    let (loader, loader_version) =
+        crate::state::project_loader_components(components)?;
+    let mut tx = pool.begin().await?;
+    loader_component_rows::replace_loader_components(
+        instance_id,
+        components,
+        &mut tx,
+    )
+    .await?;
+    sqlx::query(
+        "UPDATE instance_content_sets
+		 SET loader = ?, loader_version = ?, modified = ?
+		 WHERE id = (
+			SELECT applied_content_set_id FROM instances WHERE id = ?
+		 )",
+    )
+    .bind(loader.as_str())
+    .bind(loader_version)
+    .bind(Utc::now().timestamp())
+    .bind(instance_id)
+    .execute(&mut *tx)
+    .await?;
+    config_sync_rows::upsert_config_updated_at(instance_id, &mut *tx).await?;
+    tx.commit().await?;
+    config_sync::mark_dirty(instance_id);
+    Ok(())
 }
 
 pub(crate) async fn set_instance_install_stage(

@@ -2,12 +2,13 @@ use crate::State;
 use crate::api::pack::detect::detect_local_pack_sync;
 use crate::data::ModLoader;
 use crate::install::{
-    InstallErrorContext, InstallPhaseDetails, InstallPhaseId, InstallProgress,
-    InstallProgressReporter,
+    InstallErrorContext, InstallJobEventKind, InstallPhaseDetails,
+    InstallPhaseId, InstallProgress, InstallProgressReporter,
 };
 use crate::state::{
     AppliedContentSetPatch, CacheBehaviour, CachedEntry, ContentSourceKind,
-    EditInstance, InstanceInstallStage, InstanceLink, ModrinthProjectId,
+    EditInstance, InstanceInstallStage, InstanceLink, LoaderComponent,
+    LoaderComponentKind, LoaderComponentRole, ModrinthProjectId,
     ModrinthVersionId, SideType,
 };
 use crate::util::fetch::{
@@ -89,6 +90,18 @@ pub enum PackDependency {
 
     #[serde(rename = "optifine")]
     OptiFine,
+
+    #[serde(rename = "cleanroom")]
+    Cleanroom,
+
+    #[serde(rename = "lite_loader", alias = "liteloader")]
+    LiteLoader,
+
+    #[serde(rename = "legacy_fabric", alias = "legacyfabric")]
+    LegacyFabric,
+
+    #[serde(rename = "optifabric")]
+    OptiFabric,
 
     #[serde(rename = "minecraft")]
     Minecraft,
@@ -279,7 +292,8 @@ pub(crate) async fn generate_pack_from_version_id_with_reporter(
         let loader = version
             .loaders
             .first()
-            .map(|l| ModLoader::from_string(l))
+            .map(|loader| ModLoader::try_from_string(loader))
+            .transpose()?
             .unwrap_or(ModLoader::Vanilla);
         let game_version = game_version.clone();
         crate::api::instance::edit(
@@ -388,8 +402,9 @@ pub(crate) async fn generate_pack_from_version_id_with_reporter(
         .version_id(version_id.clone())
         .build();
     reporter.set_context(context).await?;
+    let item_path = pack_path.display().to_string();
     reporter
-        .update(
+        .update_with_events(
             InstallPhaseId::DownloadingPackFile,
             Some(InstallProgress {
                 current: 0,
@@ -397,6 +412,11 @@ pub(crate) async fn generate_pack_from_version_id_with_reporter(
                 secondary: None,
             }),
             details.clone(),
+            vec![InstallJobEventKind::ContentFileQueued {
+                path: item_path,
+                bytes_total: Some(pack_file.size as u64),
+                max_attempts: 5,
+            }],
         )
         .await?;
     reporter.persist().await?;
@@ -549,32 +569,9 @@ pub async fn set_instance_information(
     _ignore_lock: bool,
 ) -> crate::Result<()> {
     let mut game_version: Option<&String> = None;
-    let mut mod_loader = None;
-    let mut loader_version = None;
-
     for (key, value) in dependencies {
-        match key {
-            PackDependency::Forge => {
-                mod_loader = Some(ModLoader::Forge);
-                loader_version = Some(value);
-            }
-            PackDependency::NeoForge => {
-                mod_loader = Some(ModLoader::NeoForge);
-                loader_version = Some(value);
-            }
-            PackDependency::FabricLoader => {
-                mod_loader = Some(ModLoader::Fabric);
-                loader_version = Some(value);
-            }
-            PackDependency::QuiltLoader => {
-                mod_loader = Some(ModLoader::Quilt);
-                loader_version = Some(value);
-            }
-            PackDependency::OptiFine => {
-                mod_loader = Some(ModLoader::OptiFine);
-                loader_version = Some(value);
-            }
-            PackDependency::Minecraft => game_version = Some(value),
+        if *key == PackDependency::Minecraft {
+            game_version = Some(value);
         }
     }
 
@@ -585,31 +582,101 @@ pub async fn set_instance_information(
         .into());
     };
 
-    let mod_loader = mod_loader.unwrap_or(ModLoader::Vanilla);
-    let requested_loader_version = loader_version.cloned();
-    let loader_version = if mod_loader != ModLoader::Vanilla {
-        crate::launcher::get_loader_version_from_profile(
-            game_version,
-            mod_loader,
-            requested_loader_version.as_deref(),
-        )
-        .await?
-    } else {
-        None
-    };
-    if loader_version.is_none()
-        && requested_loader_version.as_deref().is_some_and(|version| {
-            !version.is_empty() && !matches!(version, "latest" | "stable")
-        })
-    {
+    let primary_dependencies = [
+        (PackDependency::Forge, ModLoader::Forge),
+        (PackDependency::NeoForge, ModLoader::NeoForge),
+        (PackDependency::FabricLoader, ModLoader::Fabric),
+        (PackDependency::QuiltLoader, ModLoader::Quilt),
+        (PackDependency::Cleanroom, ModLoader::Cleanroom),
+        (PackDependency::LegacyFabric, ModLoader::LegacyFabric),
+    ]
+    .into_iter()
+    .filter(|(dependency, _)| dependencies.contains_key(dependency))
+    .collect::<Vec<_>>();
+    if primary_dependencies.len() > 1 {
         return Err(crate::ErrorKind::InputError(format!(
-            "Loader version {} is not available for {} {}",
-            requested_loader_version.as_deref().unwrap_or_default(),
-            mod_loader.as_str(),
-            game_version
+            "Pack declares incompatible primary loaders: {}",
+            primary_dependencies
+                .iter()
+                .map(|(_, loader)| loader.as_str())
+                .collect::<Vec<_>>()
+                .join(", ")
         ))
         .into());
     }
+
+    let primary_loader = primary_dependencies
+        .first()
+        .map(|(_, loader)| *loader)
+        .unwrap_or(ModLoader::Vanilla);
+    let mut components = vec![LoaderComponent::new_primary(
+        instance_id.clone(),
+        primary_loader,
+        None,
+    )];
+    if let Some((dependency, loader)) = primary_dependencies.first() {
+        let version = resolve_pack_loader_version(
+            dependencies,
+            *dependency,
+            *loader,
+            game_version,
+        )
+        .await?;
+        components[0].version = Some(version);
+        components[0].provider_metadata = Some(serde_json::json!({
+            "source": "pack"
+        }));
+    }
+    for (dependency, loader, kind) in [
+        (
+            PackDependency::LiteLoader,
+            ModLoader::LiteLoader,
+            LoaderComponentKind::LiteLoader,
+        ),
+        (
+            PackDependency::OptiFine,
+            ModLoader::OptiFine,
+            LoaderComponentKind::OptiFine,
+        ),
+    ] {
+        if dependencies.contains_key(&dependency) {
+            let version = resolve_pack_loader_version(
+                dependencies,
+                dependency,
+                loader,
+                game_version,
+            )
+            .await?;
+            components.push(LoaderComponent {
+                instance_id: instance_id.clone(),
+                kind,
+                version: Some(version),
+                role: LoaderComponentRole::Adjunct,
+                provider_metadata: Some(serde_json::json!({
+                    "source": "pack"
+                })),
+            });
+        }
+    }
+    if let Some(version) = dependencies
+        .get(&PackDependency::OptiFabric)
+        .filter(|version| !version.trim().is_empty())
+    {
+        components.push(LoaderComponent {
+            instance_id: instance_id.clone(),
+            kind: LoaderComponentKind::OptiFabric,
+            version: Some(version.clone()),
+            role: LoaderComponentRole::Adjunct,
+            provider_metadata: Some(serde_json::json!({
+                "projectId": crate::install::runner::OPTIFABRIC_CURSEFORGE_PROJECT_ID,
+                "provider": "curseforge",
+                "source": "pack"
+            })),
+        });
+    }
+    crate::install::runner::validate_loader_components(&components)?;
+    let (mod_loader, loader_version) =
+        crate::state::project_loader_components(&components)?;
 
     let link = match (&description.project_id, &description.version_id) {
         (Some(project_id), Some(version_id)) => {
@@ -658,11 +725,49 @@ pub async fn set_instance_information(
                 game_version: Some(game_version.clone()),
                 protocol_version: Some(None),
                 loader: Some(mod_loader),
-                loader_version: Some(loader_version.clone().map(|x| x.id)),
+                loader_version: Some(loader_version),
             }),
             ..EditInstance::default()
         },
     )
     .await?;
+    let state = State::get().await?;
+    crate::state::instances::commands::replace_instance_loader_components(
+        &instance_id,
+        &components,
+        &state.pool,
+    )
+    .await?;
     Ok(())
+}
+
+async fn resolve_pack_loader_version(
+    dependencies: &HashMap<PackDependency, String>,
+    dependency: PackDependency,
+    loader: ModLoader,
+    game_version: &str,
+) -> crate::Result<String> {
+    let requested = dependencies
+        .get(&dependency)
+        .filter(|version| !version.trim().is_empty())
+        .ok_or_else(|| {
+            crate::ErrorKind::InputError(format!(
+                "Pack is missing the {} version",
+                loader.as_str()
+            ))
+        })?;
+    crate::launcher::get_loader_version_from_profile(
+        game_version,
+        loader,
+        Some(requested),
+    )
+    .await?
+    .map(|version| version.id)
+    .ok_or_else(|| {
+        crate::ErrorKind::InputError(format!(
+            "Loader version {requested} is not available for {} {game_version}",
+            loader.as_str()
+        ))
+        .into()
+    })
 }

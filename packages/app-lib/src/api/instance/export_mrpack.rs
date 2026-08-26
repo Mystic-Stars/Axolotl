@@ -394,6 +394,11 @@ async fn create_mrpack_json_inner(
         (ModLoader::Quilt, Some(v)) => {
             dependencies.insert(PackDependency::QuiltLoader, v)
         }
+		(ModLoader::Babric, _) => {
+			return Err(crate::ErrorKind::OtherError(
+				"Babric instances cannot be exported to mrpack, as the format has no Babric dependency type".to_string(),
+			).into())
+		}
         (ModLoader::Vanilla, _) => None,
         (ModLoader::OptiFine, _) => {
             return Err(crate::ErrorKind::OtherError(

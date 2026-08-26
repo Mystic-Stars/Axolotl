@@ -1272,7 +1272,7 @@ function slotEditorSlots(type: RecipeType): RecipeSlot[] {
 			<span class="recipe-resource-spinner" aria-hidden="true"></span>
 			{{ formatMessage(messages.loadingResources) }}
 		</div>
-		<div v-else-if="resourceError" class="recipe-resource-state recipe-resource-error">
+		<div v-else-if="resourceError" class="recipe-resource-state recipe-resource-error text-red">
 			{{ formatMessage(messages.resourceError) }}
 			<span class="font-mono text-xs">{{ resourceError }}</span>
 		</div>
@@ -1289,7 +1289,7 @@ function slotEditorSlots(type: RecipeType): RecipeSlot[] {
 					<div
 						v-for="recipe in store.recipes"
 						:key="recipe.id"
-						class="recipe-sidebar-row"
+						class="recipe-sidebar-row focus-within:border-brand"
 						:class="{ active: recipe.id === store.selectedRecipeId }"
 					>
 						<button
@@ -1326,15 +1326,15 @@ function slotEditorSlots(type: RecipeType): RecipeSlot[] {
 				</div>
 				<div class="recipe-sidebar-footer">
 					<ButtonStyled color="brand">
-						<button class="recipe-export-datapack" @click="exportDatapack">
+						<button class="recipe-export-datapack w-full" @click="exportDatapack">
 							<DownloadIcon />{{ formatMessage(messages.exportDatapack) }}
 						</button>
 					</ButtonStyled>
 				</div>
 			</aside>
 
-			<section ref="recipeEditor" class="lab-panel recipe-editor">
-				<div class="lab-panel-section recipe-options-section">
+			<section ref="recipeEditor" class="lab-panel recipe-editor overflow-visible">
+				<div class="lab-panel-section p-4 recipe-options-section">
 					<div class="recipe-section-heading">
 						<h2>{{ formatMessage(messages.optionsTitle) }}</h2>
 					</div>
@@ -1464,7 +1464,7 @@ function slotEditorSlots(type: RecipeType): RecipeSlot[] {
 					</span>
 				</div>
 
-				<div class="lab-panel-section">
+				<div class="lab-panel-section p-4">
 					<div class="recipe-section-heading">
 						<h2>{{ formatMessage(messages.previewTitle) }}</h2>
 						<div class="recipe-preview-actions">
@@ -1498,7 +1498,7 @@ function slotEditorSlots(type: RecipeType): RecipeSlot[] {
 								:style="slotBoxStyle(entry.box)"
 								aria-hidden="true"
 							>
-								<span v-if="barrierDisplay" class="recipe-layout-barrier-icon">
+								<span v-if="barrierDisplay" class="recipe-layout-barrier-icon flex">
 									<RecipeItemIcon
 										:display="barrierDisplay"
 										:atlas="TEXTURE_ATLAS"
@@ -1592,7 +1592,7 @@ function slotEditorSlots(type: RecipeType): RecipeSlot[] {
 					</div>
 				</div>
 
-				<div class="lab-panel-section">
+				<div class="lab-panel-section p-4">
 					<div class="recipe-section-heading">
 						<h2>{{ formatMessage(messages.outputTitle) }}</h2>
 						<div class="recipe-output-actions">
@@ -1865,10 +1865,6 @@ function slotEditorSlots(type: RecipeType): RecipeSlot[] {
 	}
 }
 
-.recipe-resource-error {
-	color: var(--color-red);
-}
-
 .recipe-workbench {
 	display: grid;
 	grid-template-columns: minmax(14rem, 0.55fr) minmax(26rem, 1.45fr) minmax(18rem, 0.9fr);
@@ -1883,10 +1879,6 @@ function slotEditorSlots(type: RecipeType): RecipeSlot[] {
 	border-radius: var(--radius-lg);
 	background: var(--surface-2);
 	box-shadow: var(--shadow-card);
-}
-
-.lab-panel-section {
-	padding: 1rem;
 }
 
 .lab-panel-section + .lab-panel-section {
@@ -1941,10 +1933,6 @@ function slotEditorSlots(type: RecipeType): RecipeSlot[] {
 .recipe-sidebar-row.active {
 	border-color: var(--color-brand);
 	background: var(--color-brand-highlight);
-}
-
-.recipe-sidebar-row:focus-within {
-	border-color: var(--color-brand);
 }
 
 .recipe-sidebar-select {
@@ -2020,14 +2008,6 @@ function slotEditorSlots(type: RecipeType): RecipeSlot[] {
 .recipe-sidebar-footer {
 	border-top: 1px solid var(--color-surface-5);
 	padding: 0.85rem 1rem;
-}
-
-.recipe-export-datapack {
-	width: 100%;
-}
-
-.recipe-editor {
-	overflow: visible;
 }
 
 .recipe-editor :deep(.recipe-slot-row .recipe-slot-cell),
@@ -2189,10 +2169,6 @@ function slotEditorSlots(type: RecipeType): RecipeSlot[] {
 	overflow: hidden;
 	background: rgb(0 0 0 / 0.58);
 	pointer-events: none;
-}
-
-.recipe-layout-barrier-icon {
-	display: flex;
 }
 
 .recipe-layout-barrier-icon :deep(.recipe-item-icon) {

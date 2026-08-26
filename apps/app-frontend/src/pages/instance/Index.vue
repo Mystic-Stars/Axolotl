@@ -2,12 +2,12 @@
 	<div
 		v-if="instance"
 		:class="{
-			'flex h-full flex-col': isFixedRender,
+			'flex h-full min-h-0 flex-col': isFixedRender,
 			'instance-fixed-render': isFixedRender,
 		}"
 	>
 		<div
-			:class="['p-6 pr-2 pb-4', { 'shrink-0': isFixedRender }]"
+			:class="['p-6 pr-2 pb-4', { 'shrink-0': isFixedRender, hidden: isStudioMode }]"
 			@contextmenu.prevent.stop="(event) => handleRightClick(event)"
 		>
 			<ExportModal ref="exportModal" :instance="instance" />
@@ -39,6 +39,15 @@
 								<BoxIcon class="h-4 w-4" />
 								{{ instance.game_version }}
 							</div>
+							<Badge
+								v-if="postUpgradeNotice"
+								color="green"
+								:type="
+									formatMessage(messages.upgradedTo, {
+										version: postUpgradeNotice.targetGameVersion,
+									})
+								"
+							/>
 
 							<div class="w-1.5 h-1.5 rounded-full bg-surface-5"></div>
 
@@ -240,6 +249,9 @@
 										id: 'create-shortcut',
 										action: () => createShortcut(),
 									},
+									...(canUpgradeInstance
+										? [{ id: 'upgrade-instance', action: () => openUpgrade() }]
+										: []),
 								]"
 							>
 								<MoreVerticalIcon />
@@ -258,22 +270,28 @@
 								<template #create-shortcut>
 									<ExternalIcon /> {{ formatMessage(messages.createShortcut) }}
 								</template>
+								<template #upgrade-instance>
+									<UpdatedIcon /> {{ formatMessage(messages.upgradeInstance) }}
+								</template>
 							</OverflowMenu>
 						</ButtonStyled>
 					</div>
 				</template>
 			</ContentPageHeader>
 		</div>
-		<div data-onboarding-id="instance-tabs" :class="['px-6', { 'shrink-0': isFixedRender }]">
+		<div
+			data-onboarding-id="instance-tabs"
+			:class="['px-6', { 'shrink-0': isFixedRender, hidden: isStudioMode }]"
+		>
 			<SymlinkInstanceWarning
 				v-if="instance?.symlink_target && !symlinkWarning.isHidden.value"
 				:symlink-target="instance.symlink_target"
 				class="mb-3"
 				dismissible
 			/>
-			<NavTabs :links="tabs" />
+			<NavTabs v-if="!hideInstanceTabs" :links="tabs" />
 		</div>
-		<div :class="['p-6 pt-4', { 'min-h-0 flex-1 overflow-y-auto': isFixedRender }]">
+		<div :class="['p-6 pt-4', { 'flex min-h-0 flex-1 flex-col overflow-hidden': isFixedRender }]">
 			<RouterView v-slot="{ Component }" :key="instance.id" :route="displayedInstanceRoute">
 				<template v-if="Component">
 					<Suspense
@@ -334,9 +352,9 @@
 </template>
 <script setup lang="ts">
 import type { Labrinth } from '@modrinth/api-client'
-import { BoxIcon, getLoaderIcon } from '@modrinth/assets'
 import {
 	BoxesIcon,
+	BoxIcon,
 	CheckCircleIcon,
 	ClipboardCopyIcon,
 	DownloadIcon,
@@ -345,6 +363,7 @@ import {
 	ExternalIcon,
 	EyeIcon,
 	FolderOpenIcon,
+	getLoaderIcon,
 	GlobeIcon,
 	HashIcon,
 	ImageIcon,
@@ -363,6 +382,7 @@ import {
 } from '@modrinth/assets'
 import {
 	Avatar,
+	Badge,
 	ButtonStyled,
 	commonMessages,
 	ContentPageHeader,
@@ -397,12 +417,25 @@ import {
 import { useInstanceConsole } from '@/composables/useInstanceConsole'
 import { useMinecraftLaunchError } from '@/composables/useMinecraftLaunchError'
 import { useNetworkStatus } from '@/composables/useNetworkStatus'
+import { postUpgradeNoticeQueryKey, usePostUpgradeNotice } from '@/composables/usePostUpgradeNotice'
 import { useSymlinkWarningDismiss } from '@/composables/useSymlinkWarningDismiss'
 import { trackEvent } from '@/helpers/analytics'
 import { get_project_v3 } from '@/helpers/cache.js'
 import { instance_listener, process_listener } from '@/helpers/events'
-import { install_existing_instance, install_pack_to_existing_instance } from '@/helpers/install'
-import { allow_symlink_target, get, get_full_path, kill, run } from '@/helpers/instance'
+import {
+	install_existing_instance,
+	install_job_list,
+	install_pack_to_existing_instance,
+} from '@/helpers/install'
+import {
+	allow_symlink_target,
+	gcReportFellBack,
+	get,
+	get_full_path,
+	kill,
+	run,
+} from '@/helpers/instance'
+import { getDisplayInstanceIcon } from '@/helpers/instance-icons'
 import { get_by_instance_id } from '@/helpers/process'
 import type { GameInstance } from '@/helpers/types'
 import { createInstanceShortcut, showInstanceInFolder } from '@/helpers/utils.js'
@@ -410,6 +443,8 @@ import { refreshWorlds, type ServerStatus } from '@/helpers/worlds'
 import { injectServerInstall } from '@/providers/server-install'
 import { handleSevereError } from '@/store/error.js'
 import { useBreadcrumbs, useTheming } from '@/store/state'
+
+import { isActiveUpgradeJobForInstance, isUnmanagedUpgradeEligible } from './upgrade/entry'
 
 dayjs.extend(duration)
 dayjs.extend(relativeTime)
@@ -425,6 +460,10 @@ const { formatMessage } = useVIntl()
 
 const messages = defineMessages({
 	neverPlayed: { id: 'app.instance.never-played', defaultMessage: 'Never played' },
+	upgradedTo: {
+		id: 'app.instance.post-upgrade-status',
+		defaultMessage: 'Upgraded to {version}',
+	},
 	linkedTo: { id: 'app.instance.linked-to', defaultMessage: 'Linked to' },
 	stopping: { id: 'app.instance.stopping', defaultMessage: 'Stopping...' },
 	joinServer: { id: 'app.instance.join-server', defaultMessage: 'Join server' },
@@ -435,6 +474,7 @@ const messages = defineMessages({
 	createServer: { id: 'app.instance.create-server', defaultMessage: 'Create a server' },
 	exportModpack: { id: 'app.instance.export-modpack', defaultMessage: 'Export modpack' },
 	createShortcut: { id: 'app.instance.create-shortcut', defaultMessage: 'Create shortcut' },
+	upgradeInstance: { id: 'app.instance.upgrade-instance', defaultMessage: 'Upgrade instance' },
 	addContent: { id: 'app.instances.add-content', defaultMessage: 'Add content' },
 	copyPath: { id: 'app.instances.copy-path', defaultMessage: 'Copy path' },
 	copyNames: { id: 'app.instance.copy-names', defaultMessage: 'Copy names' },
@@ -459,6 +499,10 @@ const messages = defineMessages({
 		id: 'app.instance.offline-installed-only',
 		defaultMessage: 'Offline mode can only launch fully downloaded instances.',
 	},
+	gcFallbackNotice: {
+		id: 'app.gc-notice.fallback',
+		defaultMessage: 'Java did not accept {preferred}; using {chosen}.',
+	},
 })
 
 const router = useRouter()
@@ -471,6 +515,8 @@ const { offline } = useNetworkStatus()
 
 const instance = ref<GameInstance>()
 const instanceId = computed(() => instance.value?.id)
+const postUpgradeNoticeQuery = usePostUpgradeNotice(() => instance.value?.id ?? props.id)
+const postUpgradeNotice = computed(() => postUpgradeNoticeQuery.data.value ?? null)
 const symlinkWarning = useSymlinkWarningDismiss(instanceId)
 const playing = ref(false)
 const loading = ref(false)
@@ -486,6 +532,9 @@ useLoadingBarToken(subpagePending)
 const isServerInstance = ref(false)
 const linkedProjectV3 = ref<Labrinth.Projects.v3.Project>()
 const selected = ref<unknown[]>([])
+const canUpgradeInstance = computed(() =>
+	instance.value ? isUnmanagedUpgradeEligible(instance.value) : false,
+)
 
 const minecraftServer = computed(() => linkedProjectV3.value?.minecraft_server)
 const javaServerPingData = computed(() => linkedProjectV3.value?.minecraft_java_server?.ping?.data)
@@ -634,6 +683,10 @@ const renderMode = computed<'scroll' | 'fixed'>(() =>
 	displayedInstanceRoute.value.meta.renderMode === 'fixed' ? 'fixed' : 'scroll',
 )
 const isFixedRender = computed(() => renderMode.value === 'fixed')
+const hideInstanceTabs = computed(() =>
+	displayedInstanceRoute.value.matched.some((record) => record.meta.hideInstanceTabs === true),
+)
+const isStudioMode = computed(() => displayedInstanceRoute.value.name === 'FileStudio')
 const tabs = computed(() => [
 	{
 		label: formatMessage(messages.contentTab),
@@ -664,16 +717,11 @@ const tabs = computed(() => [
 
 function updateBreadcrumbs() {
 	if (instance.value) {
-		breadcrumbs.setName(
-			'Instance',
-			instance.value.name.length > 40
-				? instance.value.name.substring(0, 40) + '...'
-				: instance.value.name,
-		)
-		breadcrumbs.setContext({
+		breadcrumbs.setRootContext({
 			name: instance.value.name,
 			link: displayedInstanceRoute.value.path,
 			query: displayedInstanceRoute.value.query,
+			iconUrl: getDisplayInstanceIcon(instance.value.icon_path, instance.value.loader).url,
 		})
 	}
 }
@@ -702,7 +750,17 @@ const startInstance = async (context: string) => {
 		launchElapsedSeconds.value += 1
 	}, 1000)
 	try {
-		await run(props.id)
+		const result = await run(props.id)
+		const gcNotice = result.gc_notice
+		if (gcNotice && gcReportFellBack(gcNotice)) {
+			addNotification({
+				type: 'warning',
+				title: formatMessage(messages.gcFallbackNotice, {
+					preferred: gcNotice.preferred_strategy || 'auto',
+					chosen: gcNotice.chosen_strategy || 'JVM default GC',
+				}),
+			})
+		}
 		playing.value = true
 	} catch (err) {
 		const handled = await handleMinecraftLaunchError(err, {
@@ -786,6 +844,18 @@ const createShortcut = async () => {
 	}
 }
 
+const openUpgrade = async () => {
+	if (!instance.value) return
+	const active = (await install_job_list(true).catch(() => [])).find((job) =>
+		isActiveUpgradeJobForInstance(job, instance.value!.id),
+	)
+	if (active) {
+		await router.push({ path: '/downloads', query: { job: active.job_id } })
+		return
+	}
+	await router.push(`/instance/${encodeURIComponent(instance.value.id)}/upgrade`)
+}
+
 const handleRightClick = (event: MouseEvent) => {
 	const baseOptions = [
 		{ name: 'add_content' },
@@ -866,12 +936,14 @@ const unlistenInstances = await instance_listener(
 			linkedProjectV3.value = undefined
 			isServerInstance.value = false
 		}
+		void queryClient.invalidateQueries({ queryKey: postUpgradeNoticeQueryKey(props.id) })
 	},
 )
 
 const unlistenProcesses = await process_listener((e: { event: string; instance_id: string }) => {
 	if (e.event === 'finished' && e.instance_id === props.id) {
 		playing.value = false
+		void queryClient.invalidateQueries({ queryKey: postUpgradeNoticeQueryKey(props.id) })
 	}
 })
 
@@ -912,20 +984,8 @@ onUnmounted(() => {
 </script>
 
 <style scoped lang="scss">
-.instance-card {
-	display: flex;
-	flex-direction: column;
-	gap: 1rem;
-}
-
 Button {
 	width: 100%;
-}
-
-.button-group {
-	display: flex;
-	flex-direction: row;
-	gap: 0.5rem;
 }
 
 .side-cards {
@@ -969,10 +1029,6 @@ Button {
 	text-overflow: ellipsis;
 }
 
-.metadata {
-	text-transform: capitalize;
-}
-
 .instance-container {
 	display: flex;
 	flex-direction: row;
@@ -980,12 +1036,6 @@ Button {
 	gap: 1rem;
 	min-height: 100%;
 	padding: 1rem;
-}
-
-.instance-info {
-	display: flex;
-	flex-direction: column;
-	width: 100%;
 }
 
 .badge {
@@ -997,10 +1047,6 @@ Button {
 }
 
 .pages-list {
-	display: flex;
-	flex-direction: column;
-	gap: var(--gap-xs);
-
 	.btn {
 		font-size: 100%;
 		font-weight: 400;
@@ -1039,10 +1085,6 @@ Button {
 	gap: 0.5rem;
 	height: min-content;
 	width: 100%;
-}
-
-.instance-button {
-	width: fit-content;
 }
 
 .actions {
@@ -1089,10 +1131,6 @@ Button {
 		}
 	}
 
-	.date {
-		margin-top: auto;
-	}
-
 	@media screen and (max-width: 750px) {
 		flex-direction: row;
 		column-gap: var(--gap-md);
@@ -1110,12 +1148,13 @@ Button {
 </style>
 
 <style>
-/*
- * fixed 渲染模式（日志页）：页面自身不滚动，日志区内部滚动。
- * 只去掉 .app-viewport 的 scrollbar-gutter（避免多余的空滚动条轨道），
- * 保留 overflow: auto 作为兜底——内容万一超出视口仍可滚动，不会被裁切。
- */
 .app-viewport:has(.instance-fixed-render) {
 	scrollbar-gutter: auto;
+}
+
+.app-viewport:has(.instance-fixed-render) .page-transition-grid,
+.app-viewport:has(.instance-fixed-render) .page-transition-layer {
+	height: 100%;
+	min-height: 0;
 }
 </style>

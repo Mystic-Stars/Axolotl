@@ -1,9 +1,9 @@
 use crate::minecraft::{
-    Argument, ArgumentType, Library, VersionInfo, VersionType,
+    Argument, ArgumentType, JavaVersion, Library, VersionInfo, VersionType,
 };
 use chrono::{DateTime, NaiveDateTime, Utc};
 use serde::{Deserialize, Deserializer, Serialize};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 /// The latest version of the format the fabric model structs deserialize to
 pub const CURRENT_FABRIC_FORMAT_VERSION: usize = 1;
@@ -13,6 +13,16 @@ pub const CURRENT_FORGE_FORMAT_VERSION: usize = 3;
 pub const CURRENT_QUILT_FORMAT_VERSION: usize = 2;
 /// The latest version of the format the neoforge model structs deserialize to
 pub const CURRENT_NEOFORGE_FORMAT_VERSION: usize = 1;
+/// Current OptiFine manifest cache format.
+pub const CURRENT_OPTIFINE_FORMAT_VERSION: usize = 1;
+/// Current Cleanroom manifest cache format.
+pub const CURRENT_CLEANROOM_FORMAT_VERSION: usize = 1;
+/// Current LiteLoader manifest cache format.
+pub const CURRENT_LITELOADER_FORMAT_VERSION: usize = 2;
+/// Current Legacy Fabric manifest cache format.
+pub const CURRENT_LEGACY_FABRIC_FORMAT_VERSION: usize = 1;
+/// Current Babric manifest cache format.
+pub const CURRENT_BABRIC_FORMAT_VERSION: usize = 2;
 
 /// Metadata for locating and caching a loader manifest.
 #[derive(Debug, Clone)]
@@ -93,6 +103,11 @@ fn current_loader_manifest_format_version(loader: &str) -> usize {
         "forge" => CURRENT_FORGE_FORMAT_VERSION,
         "quilt" => CURRENT_QUILT_FORMAT_VERSION,
         "neo" => CURRENT_NEOFORGE_FORMAT_VERSION,
+        "optifine" => CURRENT_OPTIFINE_FORMAT_VERSION,
+        "cleanroom" => CURRENT_CLEANROOM_FORMAT_VERSION,
+        "lite_loader" => CURRENT_LITELOADER_FORMAT_VERSION,
+        "legacy_fabric" => CURRENT_LEGACY_FABRIC_FORMAT_VERSION,
+        "babric" => CURRENT_BABRIC_FORMAT_VERSION,
         _ => 0,
     }
 }
@@ -145,22 +160,37 @@ pub fn normalize_loader_libraries(
     game_version: &str,
     libraries: &mut Vec<Library>,
 ) -> Vec<String> {
-    if loader != "fabric" || !uses_unobfuscated_minecraft(game_version) {
+    let remove_fabric_intermediary =
+        loader == "fabric" && uses_unobfuscated_minecraft(game_version);
+    let remove_cleanroom_conflicts = loader == "cleanroom";
+    if !remove_fabric_intermediary && !remove_cleanroom_conflicts {
         return Vec::new();
     }
 
     let mut removed = Vec::new();
     libraries.retain(|library| {
         let mut coordinates = library.name.split(':');
-        let is_intermediary = coordinates.next() == Some("net.fabricmc")
-            && coordinates.next() == Some("intermediary")
-            && coordinates.next().is_some();
+        let group = coordinates.next();
+        let artifact = coordinates.next();
+        let has_version = coordinates.next().is_some();
+        let is_intermediary = remove_fabric_intermediary
+            && group == Some("net.fabricmc")
+            && artifact == Some("intermediary")
+            && has_version;
+        let conflicts_with_cleanroom = remove_cleanroom_conflicts
+            && has_version
+            && matches!(
+                (group, artifact),
+                (Some("org.lwjgl.lwjgl"), Some("lwjgl"))
+                    | (Some("net.java.dev.jna"), Some("platform"))
+                    | (Some("com.ibm.icu"), Some("icu4j-core-mojang"))
+            );
 
-        if is_intermediary {
+        if is_intermediary || conflicts_with_cleanroom {
             removed.push(library.name.clone());
         }
 
-        !is_intermediary
+        !is_intermediary && !conflicts_with_cleanroom
     });
     removed
 }
@@ -213,6 +243,9 @@ pub struct PartialVersionInfo {
     pub arguments: Option<HashMap<ArgumentType, Vec<Argument>>>,
     /// Libraries that the version depends on
     pub libraries: Vec<Library>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// Java runtime required by the loader profile, when it overrides Minecraft.
+    pub java_version: Option<JavaVersion>,
     #[serde(rename = "type")]
     /// The type of version
     pub type_: VersionType,
@@ -270,63 +303,246 @@ pub fn merge_partial_version(
         }
     }
 
-    VersionInfo {
-        arguments: if let Some(partial_args) = partial.arguments {
-            if let Some(merge_args) = merge.arguments {
-                let mut new_map = HashMap::new();
+    let arguments = if let Some(partial_args) = partial.arguments {
+        if let Some(merge_args) = merge.arguments {
+            let mut new_map = HashMap::new();
 
-                fn add_keys(
-                    new_map: &mut HashMap<ArgumentType, Vec<Argument>>,
-                    args: HashMap<ArgumentType, Vec<Argument>>,
-                ) {
-                    for (type_, arguments) in args {
-                        for arg in arguments {
-                            if let Some(vec) = new_map.get_mut(&type_) {
-                                vec.push(arg);
-                            } else {
-                                new_map.insert(type_, vec![arg]);
-                            }
-                        }
-                    }
-                }
-
-                add_keys(&mut new_map, merge_args);
-                add_keys(&mut new_map, partial_args);
-
-                Some(new_map)
-            } else {
-                Some(partial_args)
+            fn argument_key(argument: &Argument) -> String {
+                serde_json::to_string(argument)
+                    .unwrap_or_else(|_| format!("{argument:?}"))
             }
+
+            fn add_keys(
+                new_map: &mut HashMap<ArgumentType, Vec<Argument>>,
+                args: HashMap<ArgumentType, Vec<Argument>>,
+            ) {
+                for (type_, arguments) in args {
+                    let existing = new_map.entry(type_).or_default();
+                    let max_overlap = existing.len().min(arguments.len());
+                    let overlap = (1..=max_overlap)
+                        .rev()
+                        .find(|&length| {
+                            existing[existing.len() - length..]
+                                .iter()
+                                .map(argument_key)
+                                .eq(arguments[..length]
+                                    .iter()
+                                    .map(argument_key))
+                        })
+                        .unwrap_or(0);
+                    existing.extend(arguments.into_iter().skip(overlap));
+                }
+            }
+
+            add_keys(&mut new_map, merge_args);
+            add_keys(&mut new_map, partial_args);
+
+            Some(new_map)
         } else {
-            merge.arguments
-        },
+            Some(partial_args)
+        }
+    } else {
+        merge.arguments
+    };
+    let mut libraries = libraries
+        .into_iter()
+        .chain(partial.libraries)
+        .map(|mut library| {
+            library.name =
+                library.name.replace(DUMMY_REPLACE_STRING, &merge_id);
+            library
+        })
+        .collect::<Vec<_>>();
+    let mut seen_libraries = HashSet::new();
+    libraries.retain(|library| seen_libraries.insert(library.name.clone()));
+
+    VersionInfo {
+        arguments,
         asset_index: merge.asset_index,
         assets: merge.assets,
         downloads: merge.downloads,
         id: partial.id.replace(DUMMY_REPLACE_STRING, &merge_id),
-        java_version: merge.java_version,
-        libraries: libraries
-            .into_iter()
-            .chain(partial.libraries)
-            .map(|mut x| {
-                x.name = x.name.replace(DUMMY_REPLACE_STRING, &merge_id);
-
-                x
-            })
-            .collect::<Vec<_>>(),
+        java_version: partial.java_version.or(merge.java_version),
+        libraries,
         logging: merge.logging,
         main_class: if let Some(main_class) = partial.main_class {
             main_class
         } else {
             merge.main_class
         },
-        minecraft_arguments: partial.minecraft_arguments,
+        minecraft_arguments: partial
+            .minecraft_arguments
+            .or(merge.minecraft_arguments),
         minimum_launcher_version: merge.minimum_launcher_version,
         release_time: partial.release_time,
         time: partial.time,
         type_: partial.type_,
         data: partial.data,
         processors: partial.processors,
+    }
+}
+
+#[cfg(test)]
+mod merge_tests {
+    use super::*;
+    use chrono::Utc;
+    use std::collections::HashMap;
+
+    fn library(name: &str) -> Library {
+        Library {
+            downloads: None,
+            extract: None,
+            name: name.to_string(),
+            url: None,
+            natives: None,
+            rules: None,
+            checksums: None,
+            include_in_classpath: true,
+            downloadable: true,
+        }
+    }
+
+    fn version_info() -> VersionInfo {
+        VersionInfo {
+            arguments: Some(HashMap::from([(
+                ArgumentType::Game,
+                vec![Argument::Normal("--demo".to_string())],
+            )])),
+            asset_index: serde_json::from_value(serde_json::json!({
+                "id": "legacy",
+                "sha1": "test",
+                "size": 0,
+                "totalSize": 0,
+                "url": "https://example.com/index.json"
+            }))
+            .unwrap(),
+            assets: "legacy".to_string(),
+            downloads: HashMap::new(),
+            id: "1.12.2-forge".to_string(),
+            java_version: None,
+            libraries: vec![
+                library("example:shared:1.0"),
+                library("example:base:1.0"),
+            ],
+            logging: None,
+            main_class: "example.Main".to_string(),
+            minecraft_arguments: Some(
+                "--username ${auth_player_name} --gameDir ${game_directory}"
+                    .to_string(),
+            ),
+            minimum_launcher_version: 0,
+            release_time: Utc::now(),
+            time: Utc::now(),
+            type_: VersionType::Release,
+            data: None,
+            processors: None,
+        }
+    }
+
+    #[test]
+    fn merge_partial_version_keeps_loader_order_and_removes_exact_duplicates() {
+        let now = Utc::now();
+        let partial = PartialVersionInfo {
+            id: "1.12.2-liteloader".to_string(),
+            inherits_from: "1.12.2".to_string(),
+            release_time: now,
+            time: now,
+            main_class: Some("net.minecraft.launchwrapper.Launch".to_string()),
+            minecraft_arguments: None,
+            arguments: Some(HashMap::from([(
+                ArgumentType::Game,
+                vec![
+                    Argument::Normal("--demo".to_string()),
+                    Argument::Normal("--tweakClass".to_string()),
+                    Argument::Normal("example.Tweaker".to_string()),
+                ],
+            )])),
+            libraries: vec![
+                library("example:shared:2.0"),
+                library("example:lite:1.0"),
+            ],
+            java_version: None,
+            type_: VersionType::Release,
+            data: None,
+            processors: None,
+        };
+
+        let merged = merge_partial_version(partial, version_info());
+        assert_eq!(
+            merged
+                .libraries
+                .iter()
+                .map(|library| library.name.as_str())
+                .collect::<Vec<_>>(),
+            ["example:base:1.0", "example:shared:2.0", "example:lite:1.0"]
+        );
+        assert_eq!(merged.main_class, "net.minecraft.launchwrapper.Launch");
+        assert_eq!(
+            merged.minecraft_arguments.as_deref(),
+            Some("--username ${auth_player_name} --gameDir ${game_directory}")
+        );
+        assert_eq!(
+            merged.arguments.unwrap()[&ArgumentType::Game]
+                .iter()
+                .filter_map(|argument| match argument {
+                    Argument::Normal(value) => Some(value.as_str()),
+                    Argument::Ruled { .. } => None,
+                })
+                .collect::<Vec<_>>(),
+            ["--demo", "--tweakClass", "example.Tweaker"]
+        );
+    }
+
+    #[test]
+    fn merge_partial_version_preserves_repeated_jvm_options() {
+        let now = Utc::now();
+        let mut minecraft = version_info();
+        minecraft.arguments = Some(HashMap::from([(
+            ArgumentType::Jvm,
+            vec![Argument::Normal("-cp".to_string())],
+        )]));
+        let partial = PartialVersionInfo {
+            id: "1.20.1-forge".to_string(),
+            inherits_from: "1.20.1".to_string(),
+            release_time: now,
+            time: now,
+            main_class: Some(
+                "cpw.mods.bootstraplauncher.BootstrapLauncher".to_string(),
+            ),
+            minecraft_arguments: None,
+            arguments: Some(HashMap::from([(
+                ArgumentType::Jvm,
+                vec![
+                    Argument::Normal("--add-opens".to_string()),
+                    Argument::Normal(
+                        "java.base/java.util.jar=cpw.mods.securejarhandler"
+                            .to_string(),
+                    ),
+                    Argument::Normal("--add-opens".to_string()),
+                    Argument::Normal(
+                        "java.base/java.lang.invoke=cpw.mods.securejarhandler"
+                            .to_string(),
+                    ),
+                ],
+            )])),
+            libraries: Vec::new(),
+            java_version: None,
+            type_: VersionType::Release,
+            data: None,
+            processors: None,
+        };
+
+        let merged = merge_partial_version(partial, minecraft);
+        let arguments = &merged.arguments.unwrap()[&ArgumentType::Jvm];
+        assert_eq!(
+            arguments
+                .iter()
+                .filter(|argument| {
+                    matches!(argument, Argument::Normal(value) if value == "--add-opens")
+                })
+                .count(),
+            2
+        );
     }
 }
 
@@ -394,6 +610,10 @@ pub enum LoaderProfileSource {
     Json,
     /// An official Forge-compatible installer JAR.
     Installer,
+    /// A profile synthesized from the LiteLoader versions manifest.
+    LiteLoader,
+    /// A profile synthesized from Babric's Glass Maven metadata and legacy profile.
+    Babric,
 }
 
 fn is_json_profile_source(source: &LoaderProfileSource) -> bool {
@@ -430,6 +650,8 @@ mod tests {
         assert_eq!(loader_manifest_metadata("quilt").format_version, 2);
         assert_eq!(loader_manifest_metadata("forge").format_version, 3);
         assert_eq!(loader_manifest_metadata("neo").format_version, 1);
+        assert_eq!(loader_manifest_metadata("babric").format_version, 2);
+        assert_eq!(loader_manifest_metadata("babric").cache_key, "babric-v2");
         assert_eq!(
             loader_manifest_metadata("quilt").path,
             "quilt/v1/manifest.json"
@@ -529,6 +751,57 @@ mod tests {
                     .is_empty()
             );
             assert_eq!(libraries.len(), 1);
+        }
+    }
+
+    #[test]
+    fn cleanroom_normalization_removes_legacy_runtime_conflicts() {
+        let retained = [
+            "org.lwjgl.lwjgl:lwjgl_util:2.9.4-nightly-20150209",
+            "org.lwjgl:lwjgl:3.4.1-unsafe",
+            "net.java.dev.jna:jna:5.19.1",
+            "net.java.dev.jna:jna-platform:5.19.1",
+            "com.ibm.icu:icu4j:78.3",
+            "com.cleanroommc:lwjglxx:1.1.22",
+        ];
+        let removed = [
+            "org.lwjgl.lwjgl:lwjgl:2.9.4-nightly-20150209",
+            "net.java.dev.jna:platform:3.4.0",
+            "com.ibm.icu:icu4j-core-mojang:51.2",
+        ];
+        let mut libraries = removed
+            .iter()
+            .chain(retained.iter())
+            .map(|name| library(name))
+            .collect();
+
+        assert_eq!(
+            normalize_loader_libraries("cleanroom", "1.12.2", &mut libraries),
+            removed
+        );
+        assert_eq!(
+            libraries
+                .iter()
+                .map(|library| library.name.as_str())
+                .collect::<Vec<_>>(),
+            retained
+        );
+    }
+
+    #[test]
+    fn cleanroom_runtime_conflicts_remain_for_other_loaders() {
+        for loader in ["vanilla", "forge", "fabric", "quilt", "neo"] {
+            let mut libraries = vec![
+                library("org.lwjgl.lwjgl:lwjgl:2.9.4-nightly-20150209"),
+                library("net.java.dev.jna:platform:3.4.0"),
+                library("com.ibm.icu:icu4j-core-mojang:51.2"),
+            ];
+
+            assert!(
+                normalize_loader_libraries(loader, "1.12.2", &mut libraries)
+                    .is_empty()
+            );
+            assert_eq!(libraries.len(), 3);
         }
     }
 

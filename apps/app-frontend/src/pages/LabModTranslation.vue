@@ -169,7 +169,7 @@ onMounted(() => {
 </script>
 
 <template>
-	<main class="mod-translation-page flex flex-col gap-4 p-6">
+	<main class="mod-translation-page flex min-h-0 flex-col gap-4 p-6">
 		<header class="flex min-w-0 items-start justify-between gap-4">
 			<div class="min-w-0">
 				<h1 class="m-0 text-2xl font-bold text-contrast">{{ formatMessage(messages.title) }}</h1>
@@ -203,7 +203,7 @@ onMounted(() => {
 							{{ formatMessage(messages.selectFile) }}…
 						</span>
 					</div>
-					<div v-if="analyzing" class="analyze-status">
+					<div v-if="analyzing" class="analyze-status flex items-center gap-2">
 						<span class="analyze-timer">
 							{{ formatMessage(messages.analyzingElapsed, { seconds: analyzeElapsed }) }}
 						</span>
@@ -270,7 +270,7 @@ onMounted(() => {
 
 			<!-- 右栏：任务 -->
 			<div class="flex min-w-0 flex-col">
-				<section class="panel jobs-panel">
+				<section class="panel jobs-panel flex-1">
 					<h2 class="panel-title">{{ formatMessage(messages.jobsSection) }}</h2>
 					<ModTranslationJobList
 						:jobs="jobs"
@@ -285,10 +285,6 @@ onMounted(() => {
 </template>
 
 <style scoped>
-.mod-translation-page {
-	min-height: 0;
-}
-
 .mod-translation-grid {
 	display: grid;
 	grid-template-columns: minmax(0, 1fr);
@@ -312,10 +308,6 @@ onMounted(() => {
 	padding: 1rem;
 }
 
-.jobs-panel {
-	flex: 1;
-}
-
 .panel-title {
 	margin: 0;
 	font-size: 0.72rem;
@@ -328,12 +320,6 @@ onMounted(() => {
 .panel-hint {
 	font-size: 0.72rem;
 	color: var(--color-text-secondary);
-}
-
-.analyze-status {
-	display: flex;
-	align-items: center;
-	gap: 0.5rem;
 }
 
 .analyze-timer {

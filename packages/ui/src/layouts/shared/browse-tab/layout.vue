@@ -98,10 +98,16 @@ const selectedDisplayMode = computed(() =>
 </script>
 
 <template>
-	<template v-if="ctx.installContext?.value && ctx.variant !== 'web'">
+	<template
+		v-if="
+			ctx.installContext?.value &&
+			ctx.installContext.value.showInstallHeader !== false &&
+			ctx.variant !== 'web'
+		"
+	>
 		<div
 			ref="stickyInstallHeaderRef"
-			class="sticky top-0 z-20 -mx-6 -mt-6 rounded-tl-[--radius-xl] border-0 border-b border-solid bg-surface-1 p-3 border-surface-5"
+			class="browse-install-header sticky top-0 z-20 -mx-6 -mt-6 rounded-tl-[--radius-xl] border-0 border-b border-solid bg-surface-1 p-3 border-surface-5"
 			:class="[isInstallHeaderStuck ? 'border-t' : '']"
 		>
 			<BrowseInstallHeader />
@@ -219,6 +225,7 @@ const selectedDisplayMode = computed(() =>
 		:filters="ctx.serverFilterTypes.value"
 		:provided-filters="[]"
 		:overridden-provided-filter-types="[]"
+		:project-type="ctx.projectType.value"
 	/>
 	<SearchFilterControl
 		v-else
@@ -230,8 +237,11 @@ const selectedDisplayMode = computed(() =>
 		"
 		:provided-filters="ctx.providedFilters?.value ?? []"
 		:overridden-provided-filter-types="ctx.overriddenProvidedFilterTypes.value"
+		:project-type="ctx.projectType.value"
 		:provided-message="lockedMessages?.providedBy"
 	/>
+
+	<slot name="above-results" />
 
 	<div class="search">
 		<section v-if="ctx.loading.value" class="offline">

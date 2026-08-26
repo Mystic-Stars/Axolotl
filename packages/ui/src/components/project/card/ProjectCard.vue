@@ -8,7 +8,14 @@
 				@mouseleave="$emit('mouseleave')"
 			></AutoLink>
 		</template>
-		<div v-if="layout === 'compact'" :class="[compactCardStyle, 'project-card--compact']">
+		<div
+			v-if="layout === 'compact'"
+			:class="[
+				compactCardStyle,
+				'project-card--compact',
+				{ 'project-card--compact-server': isServerProject },
+			]"
+		>
 			<Avatar :src="iconUrl" size="48px" class="ease-brightness" no-shadow />
 			<div class="project-card--compact__identity flex min-w-0 flex-col justify-center gap-1">
 				<div class="flex min-w-0 items-center gap-2">
@@ -19,8 +26,11 @@
 					{{ summary }}
 				</p>
 			</div>
-			<span class="project-card--compact__provider truncate text-[13px] font-medium leading-4 text-secondary">
-				{{ provider === 'curseforge' ? 'CurseForge' : 'Modrinth' }}
+			<span
+				v-if="provider"
+				class="project-card--compact__provider truncate text-[13px] font-medium leading-4 text-secondary"
+			>
+				{{ providerLabel }}
 			</span>
 			<div class="project-card--compact__tags flex min-w-0 items-center gap-1 overflow-hidden">
 				<template v-if="isServerProject">
@@ -91,7 +101,7 @@
 					v-else
 					src="https://cdn-raw.modrinth.com/landing-new/landing.webp"
 					alt=""
-					class="absolute w-full h-full inset-0 object-cover object-center placeholder-banner scale-[200%]"
+					class="absolute w-full h-full inset-0 object-cover object-center opacity-70 scale-[200%]"
 				/>
 			</div>
 			<div class="p-4 flex flex-col gap-3 grow">
@@ -106,7 +116,7 @@
 										v-if="provider"
 										class="rounded-full bg-surface-5 px-2 py-0.5 text-xs font-semibold text-secondary"
 									>
-										{{ provider === 'curseforge' ? 'CurseForge' : 'Modrinth' }}
+										{{ providerLabel }}
 									</span>
 									<ProjectStatusBadge v-if="status" :status="status" class="text-sm" />
 								</div>
@@ -117,9 +127,12 @@
 						</div>
 					</div>
 				</div>
-				<div class="mt-auto flex gap-3 justify-between items-end">
+				<div
+					class="project-card--grid__footer mt-auto flex gap-3 justify-between items-end"
+					:class="{ 'project-card--grid__footer-server': isServerProject }"
+				>
 					<div class="flex flex-col gap-3 grow min-w-0">
-						<div class="flex items-center gap-1 min-w-0">
+						<div class="flex flex-wrap items-center gap-1 min-w-0">
 							<template v-if="isServerProject">
 								<ServerOnlinePlayers
 									v-if="serverOnlinePlayers !== undefined"
@@ -170,7 +183,9 @@
 							/>
 						</div>
 					</div>
-					<div class="flex gap-2 shrink-0 empty:hidden smart-clickable:allow-pointer-events">
+					<div
+						class="project-card--grid__actions flex gap-2 shrink-0 empty:hidden smart-clickable:allow-pointer-events"
+					>
 						<slot name="actions" />
 					</div>
 				</div>
@@ -197,7 +212,7 @@
 						v-if="provider"
 						class="rounded-full bg-surface-5 px-2 py-0.5 text-xs font-semibold text-secondary"
 					>
-						{{ provider === 'curseforge' ? 'CurseForge' : 'Modrinth' }}
+						{{ providerLabel }}
 					</span>
 					<ProjectStatusBadge v-if="status" :status="status" />
 				</div>
@@ -340,8 +355,21 @@ const props = defineProps<{
 	environment?: ProjectCardEnvironmentProps
 	status?: ProjectStatus
 	maxTags?: number
-	provider?: 'modrinth' | 'curseforge'
+	provider?: 'modrinth' | 'curseforge' | 'mcarchive' | 'planet_minecraft'
 }>()
+
+const providerLabel = computed(() => {
+	switch (props.provider) {
+		case 'curseforge':
+			return 'CurseForge'
+		case 'mcarchive':
+			return 'MCArchive'
+		case 'planet_minecraft':
+			return 'Planet Minecraft'
+		default:
+			return 'Modrinth'
+	}
+})
 
 const baseCardStyle =
 	'w-full h-full border-[1px] border-solid border-surface-4 overflow-hidden bg-surface-3 rounded-2xl transition-all smart-clickable:outline-on-focus smart-clickable:highlight-on-hover'
@@ -459,6 +487,10 @@ const cssColor = computed(() => {
 	grid-area: tags;
 }
 
+.project-card--compact-server {
+	grid-template-columns: 48px minmax(0, 1fr) minmax(0, auto) auto;
+}
+
 @container (width < 720px) {
 	.project-card--compact {
 		grid-template-columns: 48px minmax(0, 1fr) 5rem 4.5rem 4.5rem 5.5rem;
@@ -496,6 +528,23 @@ const cssColor = computed(() => {
 
 	.project-card--compact__provider {
 		display: none;
+	}
+}
+
+@container (width < 720px) {
+	.project-card--compact-server {
+		grid-template-columns: 48px minmax(0, 1fr) auto;
+	}
+}
+
+@container (width < 600px) {
+	.project-card--grid__footer-server {
+		align-items: stretch;
+		flex-direction: column;
+	}
+
+	.project-card--grid__footer-server .project-card--grid__actions {
+		align-self: flex-end;
 	}
 }
 
@@ -571,9 +620,5 @@ const cssColor = computed(() => {
 	}
 	background-color: var(--_gradient-start);
 	background-image: linear-gradient(to bottom right, var(--_gradient-start), var(--_gradient-end));
-}
-
-.placeholder-banner {
-	opacity: 0.7;
 }
 </style>

@@ -367,6 +367,7 @@ where
                         memory: profile.memory.map(|x| MemorySettings {
                             maximum: x.maximum,
                             automatic: false,
+                            optimize_before_launch: false,
                         }),
                         force_fullscreen: profile.fullscreen,
                         game_resolution: profile

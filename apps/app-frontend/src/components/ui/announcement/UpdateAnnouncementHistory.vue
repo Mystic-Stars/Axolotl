@@ -47,7 +47,7 @@ const historyAnnouncements = computed(() =>
 </script>
 
 <template>
-	<section class="flex min-w-0 flex-col gap-6 border-0 border-t border-solid border-surface-5 pt-6">
+	<section class="update-announcement-history">
 		<div class="flex min-w-0 flex-col gap-1">
 			<h2 class="m-0 text-lg font-semibold text-contrast">
 				{{ formatMessage(messages.title) }}
@@ -57,7 +57,7 @@ const historyAnnouncements = computed(() =>
 			</p>
 		</div>
 
-		<div class="border-0 border-b border-solid border-surface-5 pb-6">
+		<div class="min-w-0">
 			<UpdateAnnouncementContent
 				:announcement="currentAnnouncement"
 				:version="currentVersion"
@@ -77,7 +77,7 @@ const historyAnnouncements = computed(() =>
 				<Accordion
 					v-for="announcement in historyAnnouncements"
 					:key="announcement.id"
-					class="min-w-0 overflow-hidden rounded-lg border border-solid border-surface-5 bg-surface-4 transition-colors hover:border-surface-4 focus-within:border-surface-4"
+					class="update-announcement-history-item hover:border-surface-4 focus-within:border-surface-4"
 					button-class="group flex w-full cursor-pointer items-center gap-3 border-0 bg-transparent px-4 py-3 text-left"
 				>
 					<template #title>
@@ -98,7 +98,7 @@ const historyAnnouncements = computed(() =>
 							</div>
 						</div>
 					</template>
-					<div class="border-0 border-t border-solid border-surface-5 bg-surface-3 px-4 py-5">
+					<div class="update-announcement-history-item-content">
 						<UpdateAnnouncementContent
 							:announcement="announcement"
 							:show-header="false"
@@ -110,3 +110,33 @@ const historyAnnouncements = computed(() =>
 		</div>
 	</section>
 </template>
+
+<style scoped>
+.update-announcement-history {
+	display: flex;
+	min-width: 0;
+	flex-direction: column;
+	gap: var(--gap-xl);
+	padding: var(--gap-xl);
+	border: 1px solid
+		var(--settings-card-border, color-mix(in srgb, var(--surface-4) 72%, transparent));
+	border-radius: var(--radius-md);
+	background: var(--surface-2);
+}
+
+.update-announcement-history-item {
+	min-width: 0;
+	overflow: hidden;
+	border: 1px solid
+		var(--settings-card-border, color-mix(in srgb, var(--surface-4) 72%, transparent));
+	border-radius: var(--radius-sm);
+	background: var(--surface-3);
+	transition: border-color 120ms ease;
+}
+
+.update-announcement-history-item-content {
+	padding: var(--gap-lg);
+	border-top: 1px solid
+		var(--settings-divider, color-mix(in srgb, var(--surface-4) 55%, transparent));
+}
+</style>

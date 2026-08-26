@@ -299,7 +299,7 @@ pub(super) async fn cleanup_legacy_versions(
         let name = name.to_string_lossy();
 
         if file_type.is_file()
-            && (name.starts_with("terracotta-")
+            && (should_cleanup_terracotta_file(&name)
                 || name.ends_with(".tar.gz")
                 || name.ends_with(".old"))
         {
@@ -318,4 +318,10 @@ pub(super) async fn cleanup_legacy_versions(
     }
 
     Ok(())
+}
+
+pub(super) fn should_cleanup_terracotta_file(name: &str) -> bool {
+    name.starts_with("terracotta-")
+        && name != "terracotta-version.json"
+        && name != "terracotta-version.json.tmp"
 }

@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { FileArchiveIcon } from '@modrinth/assets'
+import { CodeIcon, FileArchiveIcon } from '@modrinth/assets'
 import type { EditingFile, FileContextMenuOption, FileItem } from '@modrinth/ui'
 import {
+	ButtonStyled,
 	commonMessages,
 	defineMessages,
 	FilePageLayout,
@@ -56,6 +57,10 @@ const messages = defineMessages({
 	openInSchematicWorkshop: {
 		id: 'instance.files.open-in-schematic-workshop',
 		defaultMessage: 'Open in schematic workshop',
+	},
+	openStudio: {
+		id: 'instance.files.open-studio',
+		defaultMessage: 'Open Studio',
 	},
 })
 
@@ -327,6 +332,28 @@ provideFileManager({
 
 <template>
 	<ReadyTransition :pending="firstPaintPending">
-		<FilePageLayout :show-refresh-button="true" />
+		<div class="flex flex-col gap-4">
+			<FilePageLayout :show-refresh-button="true">
+				<template #before-refresh>
+					<ButtonStyled color="brand">
+						<button
+							type="button"
+							class="!h-10"
+							@click="router.push({ name: 'FileStudio', params: { id: instance.id } })"
+						>
+							<CodeIcon class="size-5" />
+							<span class="inline-flex items-center gap-1">
+								{{ formatMessage(messages.openStudio) }}
+								<span
+									class="rounded bg-orange px-1.5 py-0.5 text-[10px] font-bold uppercase leading-none text-contrast"
+								>
+									Beta
+								</span>
+							</span>
+						</button>
+					</ButtonStyled>
+				</template>
+			</FilePageLayout>
+		</div>
 	</ReadyTransition>
 </template>

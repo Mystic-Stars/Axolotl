@@ -125,6 +125,18 @@ Launcher release announcements are bundled with `apps/app-frontend` and shown af
 - DO NOT use "heading" comments like: `=== Helper methods ===`.
 - Use doc comments, but avoid inline comments unless ABSOLUTELY necessary for clarity. Code should aim to be self documenting!
 
+### Frontend Styling: Prefer Tailwind Utilities
+
+- Express UI styling with Tailwind utility classes directly on elements. Never add a custom CSS class that only aliases one or a few declarations a utility can express verbatim. BAD: `.foo { margin-top: 0.5rem }` plus `class="foo"`. GOOD: `class="mt-2"`.
+- Use the shared tokens and nothing else: the Tailwind preset lives at `packages/tooling-config/tailwind/tailwind-preset.ts`, theme variables in `packages/assets/styles/variables.scss`. Standard mappings: `--gap-xs/sm/md/lg/xl` → `gap-1/2/3/4/6`, `var(--color-secondary)` → `text-secondary`, `var(--color-contrast)` → `text-contrast`, `var(--surface-N)` → `bg-surface-N` / `border-surface-N`, `var(--color-button-bg)` → `bg-button-bg`, `var(--color-divider)` → `border-divider`, `var(--radius-*)` → `rounded-[var(--radius-*)]`. Never reference CSS variables that are not defined in the shared theme (e.g. `--color-text-secondary` is undefined in the desktop app) — an undefined variable silently disables the declaration.
+- Custom classes are acceptable only where utilities cannot express the styling:
+  - Anchors for `:deep`/child-element/pseudo-element selectors and `[data-size]`-style compound state rules that must keep working;
+  - Animated states (`@keyframes`, transitions), `::before`/`::after` with `content`, scrollbar pseudo-elements;
+  - Platform-conditional rules (`.mac`/`.windows`), non-standard-breakpoint media queries, and third-party/rendered content (markdown, terminals, canvas, editors);
+  - Genuinely reusable visual variants composed with `@apply` (prefer `@apply` over hand-written declarations when composing utilities into a component class).
+- In scoped `<style>` blocks, a rule whose declarations each map 1:1 to utilities is a violation: put the utilities on the element and delete the rule. Do not define utility-alias classes even when scoped — they get duplicated across components and drift.
+- Do not copy a style block from one component into another; extract a shared component, an `@apply`-based class, or use utilities inline.
+
 ## Bash Guidelines
 
 ### Output handling

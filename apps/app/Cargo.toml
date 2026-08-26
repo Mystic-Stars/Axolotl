@@ -22,10 +22,12 @@ image = { workspace = true }
 keyring = { workspace = true }
 libc = { workspace = true }
 native-dialog = { workspace = true }
+notify = { workspace = true }
 paste = { workspace = true }
 path-util = { workspace = true }
 quartz_nbt = { workspace = true, features = ["serde"] }
 regex = { workspace = true }
+semver = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 serde_with = { workspace = true }
@@ -46,6 +48,7 @@ tokio = { workspace = true, features = ["rt-multi-thread", "time"] }
 tokio-util = { workspace = true, features = ["compat", "rt"] }
 tracing = { workspace = true }
 tracing-error = { workspace = true }
+trash = { workspace = true }
 url = { workspace = true }
 urlencoding = { workspace = true }
 uuid = { workspace = true, features = ["serde", "v4"] }
@@ -53,7 +56,13 @@ zip = { workspace = true }
 
 [dependencies.tauri]
 workspace = true
-features = ["devtools", "macos-private-api", "protocol-asset"]
+features = [
+  "devtools",
+  "macos-private-api",
+  "protocol-asset",
+  "tray-icon",
+  "unstable"
+]
 
 [build-dependencies]
 cc = { workspace = true }

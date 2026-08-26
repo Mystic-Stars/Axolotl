@@ -88,28 +88,38 @@ pub async fn import_world_save(
     // Create the saves directory if it doesn't exist.
     io::create_dir_all(&saves_dir).await?;
 
-    if source_is_zip {
-        // Extract ZIP archive to the target directory.
-        extract_world_zip(&resolved_source, &target_dir).await?;
-        // Deep-nesting fallback: the archive may wrap the world in backup
-        // folders or even inside another ZIP. Hoist the first `level.dat`'s
-        // folder to the target root, extracting nested archives as needed.
-        let target_for_locator = target_dir.clone();
-        tokio::task::spawn_blocking(move || {
-            locate_world_root_sync(&target_for_locator, 0)
-        })
-        .await
-        .map_err(|e| {
-            ErrorKind::InputError(format!("World location task panicked: {e}"))
-        })?
-        .map_err(|e| {
-            ErrorKind::InputError(format!(
-                "Failed to locate world inside archive: {e}"
-            ))
-        })?;
-    } else {
-        // Copy the folder recursively.
-        io::copy_dir(&resolved_source, &target_dir).await?;
+    let import_result = async {
+        if source_is_zip {
+            // Extract ZIP archive to the target directory.
+            extract_world_zip(&resolved_source, &target_dir).await?;
+            // Deep-nesting fallback: the archive may wrap the world in backup
+            // folders or even inside another ZIP. Hoist the first `level.dat`'s
+            // folder to the target root, extracting nested archives as needed.
+            let target_for_locator = target_dir.clone();
+            tokio::task::spawn_blocking(move || {
+                locate_world_root_sync(&target_for_locator, 0)
+            })
+            .await
+            .map_err(|e| {
+                ErrorKind::InputError(format!(
+                    "World location task panicked: {e}"
+                ))
+            })?
+            .map_err(|e| {
+                ErrorKind::InputError(format!(
+                    "Failed to locate world inside archive: {e}"
+                ))
+            })?;
+        } else {
+            // Copy the folder recursively.
+            io::copy_dir(&resolved_source, &target_dir).await?;
+        }
+        Ok::<(), crate::Error>(())
+    }
+    .await;
+    if let Err(error) = import_result {
+        let _ = tokio::fs::remove_dir_all(&target_dir).await;
+        return Err(error);
     }
 
     // Verify that the extracted/copied world has a level.dat file.
@@ -126,6 +136,13 @@ pub async fn import_world_save(
     crate::event::emit::emit_instance(
         &instance_id_str,
         crate::event::InstancePayloadType::Synced,
+    )
+    .await?;
+    crate::event::emit::emit_instance(
+        &instance_id_str,
+        crate::event::InstancePayloadType::WorldUpdated {
+            world: world_name.clone(),
+        },
     )
     .await?;
 
@@ -182,8 +199,8 @@ fn extract_world_zip_sync(zip_path: &Path, target_dir: &Path) -> Result<()> {
         ErrorKind::InputError(format!("Invalid ZIP archive: {e}"))
     })?;
 
-    // First pass: sanitize every entry name. Entries that try to escape the
-    // extraction directory are skipped instead of written.
+    // First pass: sanitize every entry name before writing anything. A world
+    // archive with an escaping entry is rejected as a whole.
     let mut entries: Vec<(usize, PathBuf, bool)> = Vec::new();
     for i in 0..archive.len() {
         let entry = archive.by_index(i).map_err(|e| {
@@ -196,12 +213,11 @@ fn extract_world_zip_sync(zip_path: &Path, target_dir: &Path) -> Result<()> {
         }
         let is_dir =
             entry.is_dir() || raw_name.replace('\\', "/").ends_with('/');
-        let Some(safe_name) = sanitize_entry_name(&raw_name) else {
-            tracing::warn!(
-                "import_world_save: skipping unsafe ZIP entry '{raw_name}' (path traversal)"
-            );
-            continue;
-        };
+        let safe_name = sanitize_entry_name(&raw_name).ok_or_else(|| {
+            ErrorKind::InputError(format!(
+                "World archive contains an unsafe ZIP entry: {raw_name}"
+            ))
+        })?;
         if safe_name.as_os_str().is_empty() {
             continue;
         }
@@ -456,14 +472,18 @@ mod tests {
 
     #[test]
     fn traversal_entries_are_rejected() {
-        let (dir, out_dir) = extract_to_temp(&[
-            ("../../evil.txt", b"escape"),
-            ("C:/evil.txt", b"drive"),
-            ("/evil.txt", b"absolute"),
-        ]);
+        let dir = tempdir().expect("temp dir");
+        let zip_path = dir.path().join("world.zip");
+        write_zip(
+            &[("level.dat", b"world"), ("../../evil.txt", b"escape")],
+            &zip_path,
+        );
+        let out_dir = tempdir().expect("temp out dir");
+
+        assert!(extract_world_zip_sync(&zip_path, out_dir.path()).is_err());
 
         assert!(!dir.path().join("evil.txt").exists());
-        assert!(!out_dir.path().join("evil.txt").exists());
+        assert!(!out_dir.path().join("level.dat").exists());
         assert_eq!(
             std::fs::read_dir(out_dir.path())
                 .expect("read out dir")

@@ -257,9 +257,9 @@
 				</div>
 			</div>
 		</div>
-		<div ref="editorRef" :class="{ hide: previewMode }" />
-		<div v-if="!previewMode" class="info-blurb mt-2">
-			<div class="info-blurb">
+		<div ref="editorRef" :class="{ hidden: previewMode }" />
+		<div v-if="!previewMode" class="flex items-center justify-between gap-1 mt-2">
+			<div class="flex items-center justify-between gap-1">
 				<InfoIcon />
 				<IntlFormatted :message-id="messages.editorMarkdownFormattingSupport">
 					<template #markdown-link="{ children }">
@@ -273,7 +273,7 @@
 					</template>
 				</IntlFormatted>
 			</div>
-			<div :class="{ hide: !props.maxLength }" class="max-length-label">
+			<div :class="{ hidden: !props.maxLength }" class="max-length-label">
 				<span>{{ formatMessage(messages.editorMaxLengthLabel) }} </span>
 				<span>
 					{{
@@ -1105,10 +1105,6 @@ function openVideoModal() {
 	}
 }
 
-.display-options {
-	margin-bottom: var(--gap-sm);
-}
-
 .editor-action-row {
 	display: flex;
 	align-items: center;
@@ -1151,24 +1147,6 @@ function openVideoModal() {
 	.divider:first-child {
 		display: none;
 	}
-}
-
-.info-blurb {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: var(--gap-xs);
-}
-
-.hide {
-	display: none;
-}
-
-.preview {
-	display: flex;
-	align-items: center;
-	justify-items: end;
-	gap: var(--gap-xs);
 }
 
 .markdown-body-wrapper {

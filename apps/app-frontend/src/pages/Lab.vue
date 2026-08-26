@@ -1,29 +1,41 @@
 <script setup lang="ts">
-import { SearchIcon } from '@modrinth/assets'
+import { ChevronRightIcon, SearchIcon, StarIcon } from '@modrinth/assets'
 import {
 	Card,
 	defineMessages,
 	DropdownSelect,
 	EmptyState,
+	NewButton,
 	StyledInput,
 	TagItem,
 	useVIntl,
 } from '@modrinth/ui'
-import { computed, ref } from 'vue'
-import { RouterLink } from 'vue-router'
+import { computed, ref, watch } from 'vue'
+import { RouterLink, useRouter } from 'vue-router'
 
 import gradientTextToolCover from '@/assets/lab/gradient-text-tool-cover.png'
 import modTranslationCover from '@/assets/lab/mod-translation-cover.png'
 import recipeGeneratorToolCover from '@/assets/lab/recipe-generator-tool-cover.png'
 import schematicPreviewToolCover from '@/assets/lab/schematic-preview-cover.png'
 import seedMapToolCover from '@/assets/lab/seed-map-tool-cover.png'
-import { type LabToolDefinition, labTools } from '@/lab/registry'
-
-type LabCategory = 'all' | LabToolDefinition['category']
+import {
+	getLabCategoryFilter,
+	getLabFavoriteFilter,
+	getLabFavoriteToolIds,
+	type LabCategoryFilter,
+	type LabFavoriteFilter,
+	setLabCategoryFilter,
+	setLabFavoriteFilter,
+	setLabFavoriteToolIds,
+} from '@/helpers/lab-preferences'
+import { labTools } from '@/lab/registry'
 
 const { formatMessage } = useVIntl()
+const router = useRouter()
 const search = ref('')
-const category = ref<LabCategory>('all')
+const category = ref<LabCategoryFilter>(getLabCategoryFilter())
+const favoriteFilter = ref<LabFavoriteFilter>(getLabFavoriteFilter())
+const favoriteToolIds = ref<string[]>(getLabFavoriteToolIds())
 const toolCoverImages: Record<string, string> = {
 	'gradient-text': gradientTextToolCover,
 	'recipe-generator': recipeGeneratorToolCover,
@@ -41,7 +53,23 @@ const messages = defineMessages({
 	creation: { id: 'app.lab.category.creation', defaultMessage: 'Creation' },
 	maintenance: { id: 'app.lab.category.maintenance', defaultMessage: 'Maintenance' },
 	world: { id: 'app.lab.category.world', defaultMessage: 'World' },
+	enter: { id: 'app.lab.enter', defaultMessage: 'Enter' },
+	favoriteFilterAll: { id: 'app.lab.favorite-filter.all', defaultMessage: 'All' },
+	favoriteFilterFavorite: {
+		id: 'app.lab.favorite-filter.favorite',
+		defaultMessage: 'Favorited',
+	},
+	favoriteFilterUnfavorite: {
+		id: 'app.lab.favorite-filter.unfavorite',
+		defaultMessage: 'Not favorited',
+	},
+	favoriteAdd: { id: 'app.lab.favorite.add', defaultMessage: 'Add to favorites' },
+	favoriteRemove: { id: 'app.lab.favorite.remove', defaultMessage: 'Remove from favorites' },
 	noResults: { id: 'app.lab.no-results', defaultMessage: 'No tools match your search.' },
+	noFavorites: {
+		id: 'app.lab.no-favorites',
+		defaultMessage: 'You have not favorited any tools yet.',
+	},
 	gradientTextTitle: {
 		id: 'app.lab.gradient-text.title',
 		defaultMessage: 'Gradient text generator',
@@ -79,14 +107,40 @@ const messages = defineMessages({
 		id: 'app.lab.mod-translation.description',
 		defaultMessage: 'Translate any Minecraft mod JAR into Simplified Chinese.',
 	},
+	skinEditorTitle: { id: 'app.lab.skin-editor.title', defaultMessage: 'Skin editor' },
+	skinEditorDescription: {
+		id: 'app.lab.skin-editor.description',
+		defaultMessage: 'Create and edit Minecraft player skins locally.',
+	},
 })
 
-const categoryOptions: LabCategory[] = ['all', 'creation', 'maintenance', 'world']
+const categoryOptions: LabCategoryFilter[] = ['all', 'creation', 'maintenance', 'world']
+const favoriteFilterOptions: LabFavoriteFilter[] = ['all', 'favorite', 'unfavorite']
+
+watch(category, (value) => setLabCategoryFilter(value))
+watch(favoriteFilter, (value) => setLabFavoriteFilter(value))
+watch(favoriteToolIds, (ids) => setLabFavoriteToolIds(ids))
+
+function isFavorite(toolId: string) {
+	return favoriteToolIds.value.includes(toolId)
+}
+
+function toggleFavorite(toolId: string) {
+	favoriteToolIds.value = isFavorite(toolId)
+		? favoriteToolIds.value.filter((id) => id !== toolId)
+		: [...favoriteToolIds.value, toolId]
+}
+
 const visibleTools = computed(() => {
 	const normalizedSearch = search.value.trim().toLocaleLowerCase()
+	const favoriteSet = new Set(favoriteToolIds.value)
 
-	return labTools.filter((tool) => {
+	const filtered = labTools.filter((tool) => {
 		const matchingCategory = category.value === 'all' || tool.category === category.value
+		const matchingFavorite =
+			favoriteFilter.value === 'all' ||
+			(favoriteFilter.value === 'favorite' && favoriteSet.has(tool.id)) ||
+			(favoriteFilter.value === 'unfavorite' && !favoriteSet.has(tool.id))
 		const matchingSearch =
 			!normalizedSearch ||
 			[toolTitle(tool.id, tool.title), toolDescription(tool.id, tool.description)]
@@ -94,11 +148,23 @@ const visibleTools = computed(() => {
 				.toLocaleLowerCase()
 				.includes(normalizedSearch)
 
-		return matchingCategory && matchingSearch
+		return matchingCategory && matchingFavorite && matchingSearch
 	})
+
+	const favorited = filtered.filter((tool) => favoriteSet.has(tool.id))
+	const unfavorited = filtered.filter((tool) => !favoriteSet.has(tool.id))
+	return [...favorited, ...unfavorited]
+})
+
+const emptyHeading = computed(() => {
+	if (favoriteFilter.value === 'favorite' && favoriteToolIds.value.length === 0) {
+		return formatMessage(messages.noFavorites)
+	}
+	return formatMessage(messages.noResults)
 })
 
 function toolTitle(toolId: string, fallback: string) {
+	if (toolId === 'skin-editor') return formatMessage(messages.skinEditorTitle)
 	if (toolId === 'gradient-text') return formatMessage(messages.gradientTextTitle)
 	if (toolId === 'recipe-generator') return formatMessage(messages.recipeGeneratorTitle)
 	if (toolId === 'seed-map') return formatMessage(messages.seedMapTitle)
@@ -108,6 +174,7 @@ function toolTitle(toolId: string, fallback: string) {
 }
 
 function toolDescription(toolId: string, fallback: string) {
+	if (toolId === 'skin-editor') return formatMessage(messages.skinEditorDescription)
 	if (toolId === 'gradient-text') return formatMessage(messages.gradientTextDescription)
 	if (toolId === 'recipe-generator') return formatMessage(messages.recipeGeneratorDescription)
 	if (toolId === 'seed-map') return formatMessage(messages.seedMapDescription)
@@ -127,9 +194,15 @@ function toolIconClasses(toolId: string) {
 	return 'bg-brand-highlight text-brand'
 }
 
-function categoryLabel(value: LabCategory) {
+function categoryLabel(value: LabCategoryFilter) {
 	if (value === 'all') return formatMessage(messages.allTools)
 	return formatMessage(messages[value])
+}
+
+function favoriteFilterLabel(value: LabFavoriteFilter) {
+	if (value === 'all') return formatMessage(messages.favoriteFilterAll)
+	if (value === 'favorite') return formatMessage(messages.favoriteFilterFavorite)
+	return formatMessage(messages.favoriteFilterUnfavorite)
 }
 </script>
 
@@ -163,61 +236,97 @@ function categoryLabel(value: LabCategory) {
 				name="Lab category"
 				class="w-48 max-[576px]:w-full"
 			/>
+			<DropdownSelect
+				v-model="favoriteFilter"
+				:options="favoriteFilterOptions"
+				:display-name="favoriteFilterLabel"
+				name="Lab favorite filter"
+				class="w-48 max-[576px]:w-full"
+			/>
 		</div>
 
 		<section
 			v-if="visibleTools.length"
 			aria-label="Lab tools"
 			data-onboarding-id="lab-tools"
-			class="grid grid-cols-[repeat(auto-fit,minmax(min(18rem,100%),24rem))] gap-3"
+			class="flex flex-col gap-3"
 		>
-			<RouterLink
+			<Card
 				v-for="tool in visibleTools"
 				:key="tool.id"
-				:data-onboarding-id="toolOnboardingId(tool.id)"
-				:to="tool.route"
-				class="group min-w-0 text-inherit no-underline focus-visible:outline-none"
+				class="!m-0 relative flex items-end gap-4 !p-4 transition-[border-color,filter] duration-200 hover:border-surface-5 hover:brightness-[1.05]"
 			>
-				<Card
-					class="!m-0 flex h-full flex-col overflow-hidden !p-0 transition-[filter,border-color] duration-200 group-hover:brightness-[0.85] group-focus-visible:brightness-[0.85] group-focus-visible:!border-brand"
+				<button
+					class="absolute right-4 top-4 z-20 flex size-8 items-center justify-center rounded-md text-secondary transition-colors hover:text-brand focus-visible:outline-none"
+					:aria-label="
+						isFavorite(tool.id)
+							? formatMessage(messages.favoriteRemove)
+							: formatMessage(messages.favoriteAdd)
+					"
+					:aria-pressed="isFavorite(tool.id)"
+					@click="toggleFavorite(tool.id)"
+				>
+					<StarIcon
+						class="size-5"
+						:class="isFavorite(tool.id) ? 'fill-brand text-brand' : 'text-secondary'"
+					/>
+				</button>
+
+				<RouterLink
+					:to="tool.route"
+					aria-hidden="true"
+					tabindex="-1"
+					class="shrink-0 rounded-[var(--radius-lg)] focus-visible:outline-none"
 				>
 					<div
-						class="relative flex aspect-[2/1] w-full shrink-0 items-center justify-center overflow-hidden border-0 border-b border-solid border-divider bg-surface-2"
+						class="relative aspect-[2/1] w-56 overflow-hidden rounded-[var(--radius-lg)] bg-surface-2 max-[576px]:w-36"
 					>
-						<TagItem class="absolute right-3 top-3 z-10">
-							{{ categoryLabel(tool.category) }}
-						</TagItem>
 						<img
 							v-if="toolCoverImages[tool.id]"
 							:src="toolCoverImages[tool.id]"
 							alt=""
-							class="h-full w-full object-cover"
+							class="absolute inset-0 h-full w-full object-cover"
 						/>
 						<div
 							v-else
-							class="flex size-14 items-center justify-center rounded-xl"
+							class="flex h-full items-center justify-center"
 							:class="toolIconClasses(tool.id)"
 						>
-							<component :is="tool.icon" class="size-7" />
+							<component :is="tool.icon" class="size-8" />
 						</div>
 					</div>
-					<div class="flex min-w-0 flex-1 flex-col p-4">
-						<h2 class="m-0 line-clamp-1 text-lg font-bold leading-tight text-contrast">
+				</RouterLink>
+
+				<div class="flex min-w-0 flex-1 flex-col">
+					<RouterLink
+						:to="tool.route"
+						:data-onboarding-id="toolOnboardingId(tool.id)"
+						class="min-w-0 rounded-[var(--radius-lg)] text-inherit no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+					>
+						<h2 class="m-0 line-clamp-1 pr-10 text-lg font-bold leading-tight text-contrast">
 							{{ toolTitle(tool.id, tool.title) }}
 						</h2>
 						<p class="m-0 mt-1 line-clamp-2 text-sm leading-5 text-secondary">
 							{{ toolDescription(tool.id, tool.description) }}
 						</p>
+					</RouterLink>
+					<div class="mt-auto flex items-center justify-between gap-3 pt-4">
+						<TagItem>{{ categoryLabel(tool.category) }}</TagItem>
+						<NewButton
+							type="colored"
+							color="brand"
+							size="sm"
+							class="min-w-20 justify-between px-3"
+							@click="router.push(tool.route)"
+						>
+							<ChevronRightIcon />
+							{{ formatMessage(messages.enter) }}
+						</NewButton>
 					</div>
-				</Card>
-			</RouterLink>
+				</div>
+			</Card>
 		</section>
 
-		<EmptyState
-			v-else
-			type="no-search-result"
-			:heading="formatMessage(messages.noResults)"
-			aria-live="polite"
-		/>
+		<EmptyState v-else type="no-search-result" :heading="emptyHeading" aria-live="polite" />
 	</main>
 </template>

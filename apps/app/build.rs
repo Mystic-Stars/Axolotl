@@ -1,6 +1,67 @@
+use std::process::Command;
 use tauri_build::{DefaultPermissionRule, InlinedPlugin};
 
+#[cfg(windows)]
+const NPM_COMMAND: &str = "npm.cmd";
+#[cfg(not(windows))]
+const NPM_COMMAND: &str = "npm";
+
+fn run_command(command: &mut Command, description: &str) {
+    let status = command.status().unwrap_or_else(|error| {
+        panic!("Failed to start {description}: {error}")
+    });
+    assert!(
+        status.success(),
+        "{description} failed with status {status}"
+    );
+}
+
+fn build_blockbench_skin_editor() {
+    let blockbench_dir = std::path::Path::new("../../third-party/blockbench");
+    assert!(
+        blockbench_dir.join("package.json").is_file(),
+        "Blockbench skin editor submodule is missing. Run git submodule update --init --recursive."
+    );
+    if !blockbench_dir.join("node_modules").is_dir() {
+        run_command(
+            Command::new(NPM_COMMAND)
+                .arg("ci")
+                .current_dir(blockbench_dir),
+            "Blockbench skin editor dependency install",
+        );
+    }
+
+    run_command(
+        Command::new(NPM_COMMAND)
+            .arg("run")
+            .arg("build-skin")
+            .current_dir(blockbench_dir),
+        "Blockbench skin editor build",
+    );
+    run_command(
+        Command::new("node")
+            .arg("scripts/axolotl/sync-blockbench-skin-editor.mjs")
+            .current_dir("../.."),
+        "Blockbench skin editor resource sync",
+    );
+}
+
 fn main() {
+    println!("cargo:rerun-if-changed=tauri.conf.json");
+    println!("cargo:rerun-if-changed=tauri.windows.conf.json");
+    println!("cargo:rerun-if-changed=tauri.macos.conf.json");
+    println!("cargo:rerun-if-changed=tauri.linux.conf.json");
+    println!("cargo:rerun-if-changed=tauri-modern.conf.json");
+    println!("cargo:rerun-if-changed=tauri-release.conf.json");
+    println!("cargo:rerun-if-changed=../../third-party/blockbench");
+    // Tauri validates frontendDist during Cargo metadata/check builds. The
+    // frontend build runs in parallel in CI, so create the directory before
+    // tauri-build reads the configuration. A real frontend build overwrites
+    // this directory with the actual assets before packaging.
+    std::fs::create_dir_all("../app-frontend/dist")
+        .expect("Failed to create the frontend distribution directory");
+    build_blockbench_skin_editor();
+
     let cubiomes_dir = std::path::Path::new("vendor/cubiomes");
     cc::Build::new()
         .include(cubiomes_dir)
@@ -91,8 +152,22 @@ fn main() {
                 InlinedPlugin::new()
                     .commands(&[
                         "resolve_chinese_content_search",
+                        "expand_content_search_query",
                         "lookup_chinese_content_names",
                         "lookup_content_wiki_ids",
+                        "lookup_content_identities",
+                    ])
+                    .default_permission(
+                        DefaultPermissionRule::AllowAllCommands,
+                    ),
+            )
+            .plugin(
+                "content-favorites",
+                InlinedPlugin::new()
+                    .commands(&[
+                        "content_favorites_list",
+                        "content_favorites_add",
+                        "content_favorites_remove",
                     ])
                     .default_permission(
                         DefaultPermissionRule::AllowAllCommands,
@@ -138,6 +213,20 @@ fn main() {
                         "curseforge_configure_manual_download_watcher",
                         "curseforge_install_modpack",
                         "curseforge_update_managed_modpack",
+                    ])
+                    .default_permission(
+                        DefaultPermissionRule::AllowAllCommands,
+                    ),
+            )
+            .plugin(
+                "mcarchive",
+                InlinedPlugin::new()
+                    .commands(&[
+                        "mcarchive_get_game_versions",
+                        "mcarchive_search_mods",
+                        "mcarchive_get_mod_by_slug",
+                        "mcarchive_get_file_by_filename",
+                        "mcarchive_get_file_by_sha256",
                     ])
                     .default_permission(
                         DefaultPermissionRule::AllowAllCommands,
@@ -197,6 +286,10 @@ fn main() {
                         "logs_get_live_log_buffer",
                         "logs_clear_live_log_buffer",
                         "logs_analyze_crash",
+                        "logs_get_crash_analysis_ai_settings",
+                        "logs_update_crash_analysis_ai_settings",
+                        "logs_explain_crash_with_ai",
+                        "logs_undo_added_mod",
                         "logs_export_crash_context",
                     ])
                     .default_permission(
@@ -301,6 +394,18 @@ fn main() {
                     ),
             )
             .plugin(
+                "planet-minecraft",
+                InlinedPlugin::new()
+                    .commands(&[
+                        "planet_minecraft_connector_available",
+                        "planet_minecraft_search_projects",
+                        "planet_minecraft_get_project",
+                    ])
+                    .default_permission(
+                        DefaultPermissionRule::AllowAllCommands,
+                    ),
+            )
+            .plugin(
                 "instance",
                 InlinedPlugin::new()
                     .commands(&[
@@ -311,15 +416,40 @@ fn main() {
                         "instance_get_installed_project_ids",
                         "instance_get_install_candidates",
                         "instance_content",
+                        "instance_get_content_items_by_paths",
                         "instance_get_content_items",
                         "instance_get_content_snapshot",
                         "instance_refresh_content",
                         "instance_plan_content_updates",
                         "instance_apply_content_update_plan",
+                        "instance_plan_upgrade",
+                        "instance_get_upgrade_plan",
+                        "instance_update_upgrade_resolution",
+                        "instance_update_upgrade_resolutions",
+                        "instance_reset_upgrade_resolution",
+                        "instance_select_upgrade_solution",
+                        "instance_resolve_custom_upgrade_solution",
+                        "instance_execute_upgrade",
+                        "instance_get_post_upgrade_notice",
+                        "instance_dismiss_post_upgrade_notice",
                         "instance_get_dependencies_as_content_items",
                         "instance_get_linked_modpack_info",
                         "instance_get_linked_modpack_content",
                         "instance_get_optimal_jre_key",
+                        "instance_list_core_components",
+                        "instance_add_core_jar_mod",
+                        "instance_replace_core_jar",
+                        "instance_move_core_component",
+                        "instance_set_core_component_enabled",
+                        "instance_remove_core_component",
+                        "instance_restore_core_component",
+                        "instance_preview_core_jar",
+                        "instance_install_mcarchive_modloader",
+                        "instance_import_mcarchive_modloader",
+                        "instance_install_mcarchive_content",
+                        "instance_import_mcarchive_content",
+                        "instance_install_planet_minecraft_content",
+                        "instance_import_planet_minecraft_content",
                         "instance_get_full_path",
                         "instance_get_mod_full_path",
                         "instance_list",
@@ -335,6 +465,7 @@ fn main() {
                         "instance_preview_project_with_dependencies_for_target",
                         "instance_queue_project_with_dependencies",
                         "instance_queue_curseforge_content",
+                        "instance_queue_curseforge_world",
                         "instance_switch_project_version_with_dependencies",
                         "instance_add_project_from_path",
                         "instance_import_world_save",
@@ -342,6 +473,7 @@ fn main() {
                         "instance_install_datapack_to_world_bytes",
                         "instance_toggle_disable_project",
                         "instance_toggle_content_entry",
+                        "instance_toggle_content_entries",
                         "instance_rollback_project",
                         "instance_remove_project",
                         "instance_remove_content_entry",
@@ -372,7 +504,11 @@ fn main() {
                         "privacy_set",
                         "telemetry_set",
                         "discord_rpc_set",
+                        "download_engine_set",
                         "cancel_directory_change",
+                        "proxy_get",
+                        "proxy_set",
+                        "proxy_test",
                     ])
                     .default_permission(
                         DefaultPermissionRule::AllowAllCommands,
@@ -495,12 +631,27 @@ fn main() {
                     ),
             )
             .plugin(
+                "storage",
+                InlinedPlugin::new()
+                    .commands(&["storage_scan_start", "storage_open_paths"])
+                    .default_permission(
+                        DefaultPermissionRule::AllowAllCommands,
+                    ),
+            )
+            .plugin(
                 "files",
                 InlinedPlugin::new()
                     .commands(&[
                         "file_extract_zip",
                         "file_save_as",
                         "file_read_dragged_file",
+                        "screenshot_thumbnail",
+                        "studio_read_text",
+                        "studio_read_binary",
+                        "studio_write_binary",
+                        "studio_trash",
+                        "studio_watch_register",
+                        "studio_watch_unregister",
                     ])
                     .default_permission(
                         DefaultPermissionRule::AllowAllCommands,
@@ -562,7 +713,9 @@ fn main() {
                         "terracotta_join",
                         "terracotta_reset",
                         "terracotta_get_platform_key",
+                        "terracotta_check_for_update",
                         "terracotta_download",
+                        "terracotta_update",
                         "terracotta_get_player_name",
                         "terracotta_get_diagnostic_report",
                     ])
@@ -586,6 +739,32 @@ fn main() {
                         "multiplayer_reset",
                         "multiplayer_get_player_name",
                         "multiplayer_open_hongshi_logs",
+                    ])
+                    .default_permission(
+                        DefaultPermissionRule::AllowAllCommands,
+                    ),
+            )
+            .plugin(
+                "servers",
+                InlinedPlugin::new()
+                    .commands(&[
+                        "servers_list",
+                        "servers_get",
+                        "servers_create",
+                        "servers_update_settings",
+                        "servers_set_icon",
+                        "servers_delete",
+                        "servers_read_file",
+                        "servers_write_file",
+                        "servers_download_file",
+                        "servers_start",
+                        "servers_send_command",
+                        "servers_stop",
+                        "servers_kill",
+                        "servers_kill_port_process",
+                        "servers_port_process",
+                        "servers_get_log_buffer",
+                        "servers_clear_log",
                     ])
                     .default_permission(
                         DefaultPermissionRule::AllowAllCommands,

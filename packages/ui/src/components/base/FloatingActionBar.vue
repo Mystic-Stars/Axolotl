@@ -4,19 +4,26 @@ import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useModalStack } from '../../composables/modal-stack'
 import { injectPageContext } from '../../providers'
 
-const visibleFloatingActionBars = new Set<symbol>()
+const visibleFloatingActionBars = new Map<symbol, number>()
 
-function updateFloatingActionBarBodyClass() {
+function updateFloatingActionBarDocumentState() {
 	if (typeof document === 'undefined') return
 
 	document.body.classList.toggle('floating-action-bar-shown', visibleFloatingActionBars.size > 0)
+	const clearance = Math.max(0, ...visibleFloatingActionBars.values())
+	if (clearance > 0) {
+		document.documentElement.style.setProperty('--floating-action-bar-clearance', `${clearance}px`)
+	} else {
+		document.documentElement.style.removeProperty('--floating-action-bar-clearance')
+	}
 }
 
 const props = defineProps<{
 	shown: boolean
 	ariaLabel?: string
-	belowModal?: boolean
 	hideWhenModalOpen?: boolean
+	position?: 'bottom' | 'top'
+	allowOverflow?: boolean
 }>()
 
 const INTERCOM_BUBBLE_GAP = 8
@@ -30,21 +37,28 @@ const pageContext = injectPageContext(null)
 const shown = computed(() => props.shown && (!props.hideWhenModalOpen || stackCount.value === 0))
 const floatingActionBarId = Symbol('floating-action-bar')
 const intercomBubbleClearanceRequestId = Symbol('floating-action-bar')
-const zIndex = computed(() => 100 + stackCount.value * 10 + 8 + (!props.belowModal ? 1 : 0))
-const leftOffset = computed(() =>
-	stackCount.value > 0
-		? '0px'
-		: (pageContext?.floatingActionBarOffsets?.left.value ?? 'var(--left-bar-width, 0px)'),
+const zIndex = computed(() => 100 + stackCount.value * 10 + 7)
+const leftOffset = computed(
+	() => pageContext?.floatingActionBarOffsets?.left.value ?? 'var(--left-bar-width, 0px)',
 )
-const rightOffset = computed(() =>
-	stackCount.value > 0
-		? '0px'
-		: (pageContext?.floatingActionBarOffsets?.right.value ?? 'var(--right-bar-width, 0px)'),
-)
+const scrollbarWidth = ref(0)
+
+const rightOffset = computed(() => {
+	const base = pageContext?.floatingActionBarOffsets?.right.value ?? 'var(--right-bar-width, 0px)'
+	if (stackCount.value > 0) {
+		return `calc(${base} + ${scrollbarWidth.value}px)`
+	}
+	return base
+})
 const barStyle = computed(() => ({
 	zIndex: zIndex.value,
 	'--floating-action-bar-left-offset': leftOffset.value,
 	'--floating-action-bar-right-offset': rightOffset.value,
+}))
+
+const barClasses = computed(() => ({
+	'bottom-0': !props.position || props.position === 'bottom',
+	'top-12': props.position === 'top',
 }))
 
 function checkCompact() {
@@ -102,16 +116,26 @@ function updateIntercomBubbleClearance() {
 	)
 }
 
-function updateBodyState(isShown = shown.value) {
-	if (typeof document === 'undefined') return
+function getBottomClearance() {
+	if (
+		typeof window === 'undefined' ||
+		!barEl.value ||
+		(props.position !== undefined && props.position !== 'bottom')
+	) {
+		return 0
+	}
 
+	return Math.max(0, Math.ceil(window.innerHeight - barEl.value.getBoundingClientRect().top))
+}
+
+function updateFloatingActionBarState(isShown = shown.value) {
 	if (isShown) {
-		visibleFloatingActionBars.add(floatingActionBarId)
+		visibleFloatingActionBars.set(floatingActionBarId, getBottomClearance())
 	} else {
 		visibleFloatingActionBars.delete(floatingActionBarId)
 	}
 
-	updateFloatingActionBarBodyClass()
+	updateFloatingActionBarDocumentState()
 	if (!isShown) {
 		clearIntercomBubbleClearance()
 	}
@@ -120,7 +144,7 @@ function updateBodyState(isShown = shown.value) {
 let observer: ResizeObserver | null = null
 let updateFrame: number | null = null
 
-function scheduleIntercomBubbleClearanceUpdate() {
+function scheduleFloatingActionBarLayoutUpdate() {
 	if (typeof window === 'undefined') return
 	if (updateFrame !== null) {
 		window.cancelAnimationFrame(updateFrame)
@@ -128,6 +152,7 @@ function scheduleIntercomBubbleClearanceUpdate() {
 
 	updateFrame = window.requestAnimationFrame(() => {
 		updateFrame = null
+		updateFloatingActionBarState()
 		updateIntercomBubbleClearance()
 	})
 }
@@ -139,11 +164,11 @@ watch(
 		if (!el) return
 		observer = new ResizeObserver(() => {
 			checkCompact()
-			scheduleIntercomBubbleClearanceUpdate()
+			scheduleFloatingActionBarLayoutUpdate()
 		})
 		observer.observe(el.parentElement!)
 		checkCompact()
-		scheduleIntercomBubbleClearanceUpdate()
+		scheduleFloatingActionBarLayoutUpdate()
 	},
 	{ immediate: true },
 )
@@ -152,8 +177,8 @@ watch(
 	shown,
 	async (isShown) => {
 		await nextTick()
-		updateBodyState(isShown)
-		scheduleIntercomBubbleClearanceUpdate()
+		updateFloatingActionBarState(isShown)
+		scheduleFloatingActionBarLayoutUpdate()
 	},
 	{ immediate: true },
 )
@@ -167,25 +192,38 @@ watch(
 		() => pageContext?.intercomBubble?.horizontalPadding.value,
 		() => pageContext?.intercomBubble?.width.value,
 	],
-	() => scheduleIntercomBubbleClearanceUpdate(),
+	() => scheduleFloatingActionBarLayoutUpdate(),
 	{ immediate: true },
 )
 
+function handleResize() {
+	if (stackCount.value === 0) {
+		scrollbarWidth.value = window.innerWidth - document.documentElement.clientWidth
+	}
+	scheduleFloatingActionBarLayoutUpdate()
+}
+
+function handleTransitionEnd(event: TransitionEvent) {
+	if (event.target === barEl.value && event.propertyName === 'bottom') {
+		scheduleFloatingActionBarLayoutUpdate()
+	}
+}
+
 onMounted(() => {
-	window.addEventListener('resize', scheduleIntercomBubbleClearanceUpdate)
-	scheduleIntercomBubbleClearanceUpdate()
+	scrollbarWidth.value = window.innerWidth - document.documentElement.clientWidth
+	window.addEventListener('resize', handleResize)
+	scheduleFloatingActionBarLayoutUpdate()
 })
 
 onUnmounted(() => {
 	observer?.disconnect()
-	window.removeEventListener('resize', scheduleIntercomBubbleClearanceUpdate)
+	window.removeEventListener('resize', handleResize)
 	if (updateFrame !== null) {
 		window.cancelAnimationFrame(updateFrame)
 	}
 	clearIntercomBubbleClearance()
 	visibleFloatingActionBars.delete(floatingActionBarId)
-	if (typeof document === 'undefined') return
-	updateFloatingActionBarBodyClass()
+	updateFloatingActionBarDocumentState()
 })
 </script>
 
@@ -195,16 +233,22 @@ onUnmounted(() => {
 			<div
 				v-if="shown"
 				ref="barEl"
-				class="floating-action-bar drop-shadow-2xl fixed p-4 bottom-0"
+				class="floating-action-bar drop-shadow-2xl fixed p-4"
+				:class="barClasses"
 				:style="barStyle"
 				aria-live="polite"
+				@transitionend.self="handleTransitionEnd"
 			>
 				<div
 					ref="toolbarEl"
 					role="toolbar"
 					:aria-label="ariaLabel"
-					class="relative overflow-clip flex items-center gap-1.5 rounded-[20px] bg-surface-3 border border-surface-5 border-solid mx-auto md:max-w-[60vw] px-3 py-2.5 shadow-[0px_1px_3px_0px_rgba(0,0,0,0.3),0px_6px_10px_0px_rgba(0,0,0,0.15)]"
-					:class="{ 'bar-compact': compact }"
+					class="relative flex items-center gap-1.5 rounded-[20px] bg-surface-3 border border-surface-5 border-solid mx-auto md:max-w-[60vw] px-3 py-2.5 shadow-[0px_1px_3px_0px_rgba(0,0,0,0.3),0px_6px_10px_0px_rgba(0,0,0,0.15)]"
+					:class="{
+						'overflow-visible': allowOverflow,
+						'overflow-clip': !allowOverflow,
+						'bar-compact': compact,
+					}"
 				>
 					<slot />
 				</div>
@@ -217,7 +261,9 @@ onUnmounted(() => {
 .floating-action-bar {
 	left: var(--floating-action-bar-left-offset, var(--left-bar-width, 0px));
 	right: var(--floating-action-bar-right-offset, var(--right-bar-width, 0px));
-	transition: bottom 0.25s ease-in-out;
+	transition:
+		bottom 0.25s ease-in-out,
+		top 0.25s ease-in-out;
 }
 
 .floating-action-bar-enter-active {
@@ -233,21 +279,21 @@ onUnmounted(() => {
 }
 
 .floating-action-bar-enter-from {
-	transform: scale(0.5) translateY(10rem);
+	transform: scale(0.5) translateY(-10rem);
 	opacity: 0;
 }
 
 .floating-action-bar-leave-to {
-	transform: scale(0.96) translateY(0.25rem);
+	transform: scale(0.96) translateY(-0.25rem);
 	opacity: 0;
 }
 
 @media (any-hover: none) and (max-width: 640px) {
-	.floating-action-bar {
+	.floating-action-bar.bottom-0 {
 		bottom: var(--size-mobile-navbar-height);
 	}
 
-	.expanded-mobile-nav .floating-action-bar {
+	.expanded-mobile-nav .floating-action-bar.bottom-0 {
 		bottom: var(--size-mobile-navbar-height-expanded);
 	}
 }

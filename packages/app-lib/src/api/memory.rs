@@ -61,27 +61,63 @@ fn optimize_blocking() -> crate::Result<MemoryOptimizationResult> {
 
 #[cfg(target_os = "windows")]
 fn run_elevated_helper() -> Result<(), String> {
-    use std::process::Command;
+    use std::mem::size_of;
+    use std::os::windows::ffi::OsStrExt;
+    use windows::Win32::Foundation::{CloseHandle, WAIT_OBJECT_0};
+    use windows::Win32::System::Threading::{
+        GetExitCodeProcess, INFINITE, WaitForSingleObject,
+    };
+    use windows::Win32::UI::Shell::{
+        SEE_MASK_NOCLOSEPROCESS, SHELLEXECUTEINFOW, ShellExecuteExW,
+    };
+    use windows::core::{PCWSTR, w};
 
-    let executable = std::env::current_exe().map_err(|error| {
-        format!("Could not locate launcher executable: {error}")
-    })?;
-    let escaped = executable.to_string_lossy().replace('\'', "''");
-    let command = format!(
-        "$process = Start-Process -FilePath '{escaped}' -ArgumentList '--memory-optimize' -Verb RunAs -WindowStyle Hidden -Wait -PassThru; exit $process.ExitCode"
-    );
-    let status = Command::new("powershell")
-        .args(["-NoProfile", "-NonInteractive", "-Command", &command])
-        .status()
+    let mut executable = std::env::current_exe()
         .map_err(|error| {
-            format!("Could not request administrator permission: {error}")
-        })?;
+            format!("Could not locate launcher executable: {error}")
+        })?
+        .into_os_string()
+        .encode_wide()
+        .collect::<Vec<_>>();
+    executable.push(0);
+    let arguments = "--memory-optimize\0".encode_utf16().collect::<Vec<_>>();
+    let mut execute_info = SHELLEXECUTEINFOW {
+        cbSize: size_of::<SHELLEXECUTEINFOW>() as u32,
+        fMask: SEE_MASK_NOCLOSEPROCESS,
+        lpVerb: w!("runas"),
+        lpFile: PCWSTR::from_raw(executable.as_ptr()),
+        lpParameters: PCWSTR::from_raw(arguments.as_ptr()),
+        // Run the elevated helper without a visible console window.
+        nShow: 0,
+        ..Default::default()
+    };
 
-    if status.success() {
-        Ok(())
-    } else {
-        Err("Administrator permission was denied".to_string())
-    }
+    unsafe { ShellExecuteExW(&raw mut execute_info) }.map_err(|error| {
+        format!("Could not request administrator permission: {error}")
+    })?;
+
+    let process = execute_info.hProcess;
+    let result = (|| {
+        if unsafe { WaitForSingleObject(process, INFINITE) } != WAIT_OBJECT_0 {
+            return Err(
+                "Elevated memory optimization did not finish".to_string()
+            );
+        }
+
+        let mut exit_code = 0;
+        unsafe { GetExitCodeProcess(process, &mut exit_code) }.map_err(
+            |error| format!("Could not read elevated process status: {error}"),
+        )?;
+        if exit_code == 0 {
+            Ok(())
+        } else {
+            Err("Administrator permission was denied".to_string())
+        }
+    })();
+    unsafe { CloseHandle(process) }.map_err(|error| {
+        format!("Could not close elevated process handle: {error}")
+    })?;
+    result
 }
 
 #[cfg(target_os = "windows")]

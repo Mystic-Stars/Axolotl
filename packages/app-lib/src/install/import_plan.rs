@@ -175,12 +175,22 @@ async fn run_import_plan(
         .loader_version
         .clone()
         .or_else(|| detected.loader_version.clone());
-    if !matches!(
-        loader.as_deref(),
-        Some("forge" | "neoforge" | "fabric" | "quilt")
-    ) {
-        loader = None;
-        loader_version = None;
+    if let Some(loader_name) = loader.as_deref() {
+        let supported = matches!(
+            loader_name,
+            "forge"
+                | "neoforge"
+                | "fabric"
+                | "quilt"
+                | "optifine"
+                | "cleanroom"
+                | "lite_loader"
+                | "legacy_fabric"
+        );
+        if !supported {
+            loader = None;
+            loader_version = None;
+        }
     }
 
     emit_import_plan(&snapshot_for(
@@ -400,6 +410,12 @@ fn detect_import_plan_info(
     dotminecraft: &Path,
 ) -> DetectedInstanceInfo {
     let json_info = instance_json::detect(dotminecraft);
+    if let Some(info) = &json_info {
+        tracing::debug!(
+            adjunct_count = info.adjuncts.len(),
+            "Detected imported loader adjuncts"
+        );
+    }
     let config_info = read_axolotl_config(source);
     DetectedInstanceInfo {
         vanilla_name: config_info
@@ -477,34 +493,49 @@ async fn scan_import_plan(
                     .to_string(),
             )
         })?;
-    let mut loader = request
+    let detected_loader =
+        detected.loader.as_deref().map(str::to_ascii_lowercase);
+    if detected_loader.as_deref().is_some_and(|loader| {
+        loader == "labymod" || loader.starts_with("labymod-")
+    }) {
+        return Err(crate::ErrorKind::InputError(
+            "Unsupported loader LabyMod: Axolotl does not install, update, or repair LabyMod instances"
+                .to_string(),
+        )
+        .into());
+    }
+    let loader = request
         .loader
         .or_else(|| {
-            detected
-                .loader
+            detected_loader
                 .as_deref()
                 .and_then(|loader_name| match loader_name {
                     "forge" => Some(ModLoader::Forge),
-                    "neoforge" => Some(ModLoader::NeoForge),
+                    "neoforge" | "neo_forge" => Some(ModLoader::NeoForge),
                     "fabric" => Some(ModLoader::Fabric),
                     "quilt" => Some(ModLoader::Quilt),
+                    "optifine" => Some(ModLoader::OptiFine),
+                    "cleanroom" => Some(ModLoader::Cleanroom),
+                    "lite_loader" | "liteloader" => Some(ModLoader::LiteLoader),
+                    "legacy_fabric" | "legacyfabric" => {
+                        Some(ModLoader::LegacyFabric)
+                    }
                     _ => None,
                 })
         })
         .unwrap_or(ModLoader::Vanilla);
-    let mut loader_version = request
+    let loader_version = request
         .loader_version
         .clone()
         .or_else(|| detected.loader_version.clone());
-    if !matches!(
-        loader,
-        ModLoader::Forge
-            | ModLoader::NeoForge
-            | ModLoader::Fabric
-            | ModLoader::Quilt
-    ) {
-        loader = ModLoader::Vanilla;
-        loader_version = None;
+    if let Some(detected_loader) = detected_loader
+        && loader == ModLoader::Vanilla
+        && detected_loader != "vanilla"
+    {
+        return Err(crate::ErrorKind::InputError(format!(
+            "Unsupported loader {detected_loader}: the instance was not planned as Vanilla"
+        ))
+        .into());
     }
     let requested_loader_version = loader_version
         .as_deref()

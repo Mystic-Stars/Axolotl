@@ -6,13 +6,19 @@ import java.io.IOException;
 import java.lang.reflect.AccessibleObject;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.concurrent.CompletableFuture;
 
 public final class MinecraftLaunch {
+    private static final String UTF8_GAME_ARGUMENT_PREFIX = "__THESEUS_UTF8__:";
+
     public static void main(String[] args) throws IOException, ReflectiveOperationException {
         final String mainClass = args[0];
-        final String[] gameArgs = Arrays.copyOfRange(args, 1, args.length);
+        final String[] gameArgs = Arrays.stream(args, 1, args.length)
+                .map(MinecraftLaunch::decodeGameArgument)
+                .toArray(String[]::new);
 
         System.setProperty("modrinth.process.args", String.join("\u001f", gameArgs));
 
@@ -26,6 +32,15 @@ public final class MinecraftLaunch {
 
         waitForLaunch.join();
         relaunch(mainClass, gameArgs);
+    }
+
+    static String decodeGameArgument(String argument) {
+        if (!argument.startsWith(UTF8_GAME_ARGUMENT_PREFIX)) {
+            return argument;
+        }
+
+        final byte[] encoded = Base64.getDecoder().decode(argument.substring(UTF8_GAME_ARGUMENT_PREFIX.length()));
+        return new String(encoded, StandardCharsets.UTF_8);
     }
 
     private static void relaunch(String mainClassName, String[] args) throws ReflectiveOperationException {

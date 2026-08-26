@@ -15,6 +15,8 @@ pub struct Instance {
     pub name: String,
     pub icon_path: Option<String>,
     pub symlink_target: Option<String>,
+    #[serde(default)]
+    pub game_dir_override: Option<String>,
     pub created: DateTime<Utc>,
     pub modified: DateTime<Utc>,
     pub last_played: Option<DateTime<Utc>>,

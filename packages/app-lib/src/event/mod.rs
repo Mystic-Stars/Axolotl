@@ -234,7 +234,7 @@ pub enum InstanceBulkUpdateProgressStage {
     Finishing,
 }
 
-#[derive(Serialize, Clone)]
+#[derive(Serialize, Deserialize, Clone)]
 #[serde(tag = "event")]
 pub enum CommandPayload {
     InstallMod {
@@ -280,6 +280,32 @@ pub struct ProcessPayload {
 pub enum ProcessPayloadType {
     Launched,
     Finished,
+}
+
+#[derive(Serialize, Clone)]
+#[cfg(feature = "tauri")]
+pub struct ServerPayload {
+    #[serde(rename = "serverId")]
+    pub server_id: String,
+    #[serde(flatten)]
+    pub event: ServerPayloadType,
+}
+
+#[derive(Serialize, Clone, Debug)]
+#[serde(tag = "event", rename_all = "snake_case")]
+pub enum ServerPayloadType {
+    Log {
+        line: String,
+    },
+    DownloadProgress {
+        downloaded: u64,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        total: Option<u64>,
+    },
+    Started,
+    Stopped {
+        crashed: bool,
+    },
 }
 
 #[derive(Serialize, Clone)]

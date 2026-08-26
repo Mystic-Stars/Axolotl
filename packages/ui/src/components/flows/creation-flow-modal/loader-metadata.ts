@@ -61,7 +61,14 @@ export function loaderSupportState(
 }
 
 export function isLoaderSupportStateDisabled(state: LoaderSupportState): boolean {
-	return state === 'unknown' || state === 'loading' || state === 'unsupported'
+	return state !== 'supported'
+}
+
+export function preserveOrSelectGameVersion(
+	selectedGameVersion: string | null,
+	availableGameVersions: readonly string[],
+): string | null {
+	return selectedGameVersion ?? availableGameVersions[0] ?? null
 }
 
 export function gameVersionSelectorText(

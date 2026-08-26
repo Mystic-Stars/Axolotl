@@ -6,9 +6,10 @@ export const AxolotlBrandConfig = Object.freeze({
 	website: 'https://www.axlmc.org/',
 	repositoryUrl: 'https://github.com/Mystic-Stars/Axolotl',
 	supportUrl: 'https://github.com/Mystic-Stars/Axolotl/issues',
-	qqGroupNumber: '955605306',
+	qqGroupNumber: '737601250',
 	qqChannelUrl: 'https://pd.qq.com/s/9nfp5rlz0',
 	sponsorUrl: 'https://afdian.com/a/Mystic-Stars',
+	surveyUrl: 'https://gcnpznwdnhl4.feishu.cn/share/base/form/shrcndevRao1jpNw3cATAX4NbGh',
 	bundleIdentifier: 'red.ghs.axolotl',
 	deepLinkScheme: 'axolotl',
 	userAgent: (version: string, os: string) => `garbage-human-studio/axolotl/${version} (${os})`,
@@ -25,8 +26,8 @@ const officialLabrinthBaseUrl = trimTrailingSlash(
 )
 type DownloadSourceMode = 'auto' | 'official_only' | 'mirror_preferred' | 'official_preferred'
 
-// Modrinth content always uses the official sources: mirror selectors are
-// accepted for compatibility but never change the base URL.
+// The Modrinth API always uses the official source; Modrinth download mirror
+// routing is handled by the Rust download layer.
 export function setModrinthSourceMode(_sourceMode: DownloadSourceMode) {}
 
 export function setModrinthMirrorEnabled(_enabled: boolean) {}

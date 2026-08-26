@@ -24,7 +24,7 @@ use base64::Engine;
 use base64::prelude::BASE64_STANDARD;
 use chrono::Utc;
 use daedalus as d;
-use daedalus::minecraft::{LoggingSide, RuleAction, VersionInfo};
+use daedalus::minecraft::{LoggingSide, VersionInfo};
 use daedalus::modded::{LoaderVersion, Manifest};
 use regex::Regex;
 use serde::Deserialize;
@@ -42,9 +42,23 @@ use winreg::{RegKey, enums::HKEY_CURRENT_USER};
 mod args;
 
 pub mod download;
+pub mod jvm_args;
 pub mod language;
 pub mod optifine;
 pub mod quick_play_version;
+
+const UTF8_GAME_ARGUMENT_PREFIX: &str = "__THESEUS_UTF8__:";
+
+fn encode_game_argument(argument: String) -> String {
+    if argument.is_ascii() && !argument.starts_with(UTF8_GAME_ARGUMENT_PREFIX) {
+        argument
+    } else {
+        format!(
+            "{UTF8_GAME_ARGUMENT_PREFIX}{}",
+            BASE64_STANDARD.encode(argument.as_bytes())
+        )
+    }
+}
 
 #[cfg(target_os = "windows")]
 fn set_high_performance_gpu_preference(
@@ -162,19 +176,16 @@ pub fn parse_rules(
     quick_play_type: &QuickPlayType,
     minecraft_updated: bool,
 ) -> bool {
-    let mut x = rules
+    if rules.is_empty() {
+        return true;
+    }
+
+    let x = rules
         .iter()
         .map(|x| {
             parse_rule(x, java_version, quick_play_type, minecraft_updated)
         })
         .collect::<Vec<Option<bool>>>();
-
-    if rules
-        .iter()
-        .all(|x| matches!(x.action, RuleAction::Disallow))
-    {
-        x.push(Some(true))
-    }
 
     !(x.iter().any(|x| x == &Some(false)) || x.iter().all(|x| x.is_none()))
 }
@@ -212,7 +223,10 @@ pub fn parse_rule(
                     && matches!(quick_play_type, QuickPlayType::Server(..)))
                 || !features.is_quick_play_realms.unwrap_or(true)
         }
-        _ => return Some(true),
+        _ => match rule.action {
+            RuleAction::Allow => return Some(true),
+            RuleAction::Disallow => return Some(false),
+        },
     };
 
     match rule.action {
@@ -220,7 +234,7 @@ pub fn parse_rule(
             if res {
                 Some(true)
             } else {
-                Some(false)
+                None
             }
         }
         RuleAction::Disallow => {
@@ -367,18 +381,61 @@ pub async fn get_java_version_from_launch_context(
             crate::api::jre::check_jre(std::path::PathBuf::from(java)).await;
 
         if let Ok(java) = java {
+            validate_loader_java_version(version_info, &java)?;
             return Ok(Some(java));
         }
     }
 
-    let key = version_info
-        .java_version
-        .as_ref()
-        .map_or(8, |it| it.major_version);
+    let key = required_java_major(version_info);
 
     let java_version = crate::api::jre::find_java_for_version(key).await?;
 
+    if let Some(java_version) = &java_version {
+        validate_loader_java_version(version_info, java_version)?;
+    }
+
     Ok(java_version)
+}
+
+fn required_java_major(version_info: &VersionInfo) -> u32 {
+    if version_uses_liteloader(version_info) {
+        8
+    } else {
+        version_info
+            .java_version
+            .as_ref()
+            .map_or(8, |java| java.major_version)
+    }
+}
+
+fn version_uses_liteloader(version_info: &VersionInfo) -> bool {
+    version_info
+        .libraries
+        .iter()
+        .any(|library| is_liteloader_library(&library.name))
+}
+
+fn is_liteloader_library(name: &str) -> bool {
+    let mut coordinates = name.split(':');
+    coordinates.next() == Some("com.mumfrey")
+        && coordinates.next() == Some("liteloader")
+        && coordinates.next().is_some()
+}
+
+fn validate_loader_java_version(
+    version_info: &VersionInfo,
+    java_version: &JavaVersion,
+) -> crate::Result<()> {
+    if version_uses_liteloader(version_info) && java_version.parsed_version != 8
+    {
+        return Err(crate::ErrorKind::LauncherError(format!(
+            "LiteLoader requires Java 8, but Java {} is selected",
+            java_version.parsed_version
+        ))
+        .into());
+    }
+
+    Ok(())
 }
 
 pub async fn get_loader_version_from_profile(
@@ -473,6 +530,10 @@ fn installed_offline_loader_version(
             | ModLoader::Forge
             | ModLoader::NeoForge
             | ModLoader::Quilt
+            | ModLoader::Cleanroom
+            | ModLoader::LiteLoader
+            | ModLoader::LegacyFabric
+            | ModLoader::Babric
     ) {
         return None;
     }
@@ -562,10 +623,16 @@ pub async fn resolve_minecraft_manifest_with_cache(
     Ok((refreshed, idx))
 }
 
-async fn get_instance_full_path(instance_path: &str) -> crate::Result<PathBuf> {
+async fn get_instance_full_path(
+    instance_path: &str,
+    game_dir_override: Option<&str>,
+) -> crate::Result<PathBuf> {
     let state = State::get().await?;
-    let instances_dir = state.directories.instances_dir();
-    let full_path = io::canonicalize(instances_dir.join(instance_path))?;
+    let full_path = io::canonicalize(
+        state
+            .directories
+            .resolve_game_dir(instance_path, game_dir_override),
+    )?;
     Ok(full_path)
 }
 
@@ -695,7 +762,11 @@ async fn install_minecraft_with_local_source(
     .await?;
     emit_instance(&instance.id, InstancePayloadType::Edited).await?;
 
-    let instance_path = get_instance_full_path(&instance.path).await?;
+    let instance_path = get_instance_full_path(
+        &instance.path,
+        instance.game_dir_override.as_deref(),
+    )
+    .await?;
     if let Some(reporter) = &reporter {
         reporter
             .update(
@@ -774,10 +845,7 @@ async fn install_minecraft_with_local_source(
     )
     .await?;
 
-    let key = version_info
-        .java_version
-        .as_ref()
-        .map_or(8, |it| it.major_version);
+    let key = required_java_major(&version_info);
     if let Some(reporter) = &reporter {
         reporter
             .update(
@@ -839,6 +907,7 @@ async fn install_minecraft_with_local_source(
                 .await?;
         }
         let java_version = crate::api::jre::check_jre(java_path).await?;
+        validate_loader_java_version(&version_info, &java_version)?;
 
         if set_java {
             java_version.upsert(&state.pool).await?;
@@ -1280,6 +1349,8 @@ pub async fn launch_minecraft(
     credentials: &Credentials,
     post_exit_hook: Option<String>,
     context: &InstanceLaunchContext,
+    gc_intent: Option<crate::launcher::jvm_args::GcLaunchIntent>,
+    gc_report: &mut Option<crate::launcher::jvm_args::GcLaunchReport>,
     mut quick_play_type: QuickPlayType,
     offline_mode: bool,
 ) -> crate::Result<ProcessMetadata> {
@@ -1304,7 +1375,11 @@ pub async fn launch_minecraft(
 
     let state = State::get().await?;
 
-    let instance_path = get_instance_full_path(&instance.path).await?;
+    let instance_path = get_instance_full_path(
+        &instance.path,
+        instance.game_dir_override.as_deref(),
+    )
+    .await?;
     let offline_skin_pack =
         crate::minecraft_skins::prepare_offline_skin_resource_pack(
             credentials,
@@ -1420,10 +1495,7 @@ pub async fn launch_minecraft(
     {
         crate::api::jre::check_jre(std::path::PathBuf::from(java)).await?
     } else {
-        let key = version_info
-            .java_version
-            .as_ref()
-            .map_or(8, |it| it.major_version);
+        let key = required_java_major(&version_info);
 
         if let Some(java) = crate::api::jre::find_java_for_version(key).await? {
             java
@@ -1447,6 +1519,30 @@ pub async fn launch_minecraft(
     // Test jre version
     let java_version =
         crate::api::jre::check_jre(java_version.path.clone().into()).await?;
+    validate_loader_java_version(&version_info, &java_version)?;
+
+    // Runtime-verify and fall back for GC arguments against the *actual* JVM
+    // that will run Minecraft. The frontend supplies an ordered candidate
+    // chain; we keep the preferred strategy only if this JVM understands it,
+    // pruning unsupported tuning flags and falling back down the chain as
+    // needed. A `None` keeps the args passed in untouched.
+    let mut resolved_java_args = java_args.to_vec();
+    if let Some(gc_intent) = gc_intent {
+        tracing::info!(
+            java = %java_version.path,
+            "Verifying GC arguments against the selected JVM",
+        );
+        let report = crate::launcher::jvm_args::resolve_gc_block(
+            Path::new(java_version.path.as_str()),
+            &mut resolved_java_args,
+            &gc_intent,
+        )
+        .await;
+        if report.fell_back() {
+            tracing::info!(?report, "GC arguments adjusted for this JVM");
+        }
+        *gc_report = Some(report);
+    }
 
     let settings = crate::state::Settings::get(&state.pool).await?;
 
@@ -1480,10 +1576,20 @@ pub async fn launch_minecraft(
             Vec::new()
         };
 
-    let client_path = state
+    let vanilla_client_path = state
         .directories
         .version_dir(&version_jar)
         .join(format!("{version_jar}.jar"));
+    let client_path = match crate::api::instance::assemble_for_launch(
+        &instance_path,
+        &content_set.game_version,
+        &vanilla_client_path,
+    )
+    .await?
+    {
+        Some(assembled) => assembled,
+        None => vanilla_client_path,
+    };
 
     let args = version_info.arguments.clone().unwrap_or_default();
     let mut command = match wrapper {
@@ -1611,7 +1717,7 @@ pub async fn launch_minecraft(
             &main_class_path,
             &version_jar,
             *memory,
-            Vec::from(java_args),
+            resolved_java_args.clone(),
             &java_version.architecture,
             &quick_play_type,
             quick_play_version,
@@ -1632,7 +1738,7 @@ pub async fn launch_minecraft(
 
     // The java launcher code requires internal JDK code in Java 25+ in order to support JEP 512
     if java_version.parsed_version >= 25 {
-        command.arg("--add-opens=jdk.internal/jdk.internal.misc=ALL-UNNAMED");
+        command.arg("--add-opens=java.base/jdk.internal.misc=ALL-UNNAMED");
     }
 
     if let Some((agent_path, api_root, prefetched_metadata)) = yggdrasil_agent {
@@ -1667,7 +1773,8 @@ pub async fn launch_minecraft(
                 quick_play_version,
             )
             .await?
-            .into_iter(),
+            .into_iter()
+            .map(encode_game_argument),
         )
         .current_dir(instance_path.clone());
 
@@ -1760,19 +1867,6 @@ pub async fn launch_minecraft(
     )
     .await?;
 
-    // If in tauri, and the 'minimize on launch' setting is enabled, minimize the window
-    #[cfg(feature = "tauri")]
-    {
-        use crate::EventState;
-
-        let window = EventState::get_main_window().await?;
-        if let Some(window) = window
-            && settings.hide_on_process_start
-        {
-            window.minimize()?;
-        }
-    }
-
     let _ = state
         .discord_rpc
         .set_activity(&format!("Playing {}", instance.name), true)
@@ -1788,7 +1882,9 @@ pub async fn launch_minecraft(
             &instance.name,
             command,
             post_exit_hook,
-            state.directories.instance_logs_dir(&instance.path),
+            state
+                .directories
+                .game_logs_dir(&state.directories.instance_game_dir(&instance)),
             version_info.logging.is_some(),
             main_class_keep_alive,
             rpc_server,
@@ -1823,6 +1919,46 @@ pub async fn launch_minecraft(
             },
         )
         .await
+}
+
+#[cfg(test)]
+mod game_argument_encoding_tests {
+    use super::*;
+
+    #[test]
+    fn ascii_game_argument_stays_unchanged() {
+        assert_eq!(
+            encode_game_argument("--username".to_string()),
+            "--username"
+        );
+    }
+
+    #[test]
+    fn non_ascii_game_argument_uses_ascii_transport() {
+        let original = r"E:\Games\Minecraft\profiles\Prominence™ II";
+        let encoded = encode_game_argument(original.to_string());
+
+        assert!(encoded.is_ascii());
+        let payload = encoded
+            .strip_prefix(UTF8_GAME_ARGUMENT_PREFIX)
+            .expect("non-ASCII argument should be encoded");
+        assert_eq!(
+            BASE64_STANDARD.decode(payload).unwrap(),
+            original.as_bytes()
+        );
+    }
+
+    #[test]
+    fn reserved_prefix_is_escaped() {
+        let original = format!("{UTF8_GAME_ARGUMENT_PREFIX}literal");
+        let encoded = encode_game_argument(original.clone());
+        let payload = encoded.strip_prefix(UTF8_GAME_ARGUMENT_PREFIX).unwrap();
+
+        assert_eq!(
+            BASE64_STANDARD.decode(payload).unwrap(),
+            original.as_bytes()
+        );
+    }
 }
 
 fn update_offline_skin_resource_pack_option(
@@ -1884,6 +2020,19 @@ fn update_offline_skin_resource_pack_option(
 #[cfg(test)]
 mod loader_resolution_tests {
     use super::*;
+    use daedalus::minecraft::RuleAction;
+
+    #[test]
+    fn disallow_only_library_rules_are_not_downloaded() {
+        let rules = [d::minecraft::Rule {
+            action: RuleAction::Disallow,
+            os: None,
+            features: None,
+        }];
+
+        assert!(!parse_rules(&rules, "8", &QuickPlayType::None, false,));
+        assert!(parse_rules(&[], "8", &QuickPlayType::None, false,));
+    }
 
     fn loader_version(id: &str, stable: bool) -> LoaderVersion {
         LoaderVersion {
@@ -1893,6 +2042,15 @@ mod loader_resolution_tests {
             profile_source: Default::default(),
             fallback_url: None,
         }
+    }
+
+    #[test]
+    fn liteloader_runtime_detection_uses_the_maven_coordinate() {
+        assert!(is_liteloader_library(
+            "com.mumfrey:liteloader:1.12.2-SNAPSHOT"
+        ));
+        assert!(!is_liteloader_library("example:liteloader:1.12.2-SNAPSHOT"));
+        assert!(!is_liteloader_library("com.mumfrey:liteloader"));
     }
 
     #[test]

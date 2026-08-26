@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use serde::Deserialize;
 
@@ -111,6 +111,25 @@ pub fn get_pcl_instance_path(instance_name: &str) -> Option<String> {
     }
     tracing::warn!(instance_name = %instance_name, "get_pcl_instance_path: not found");
     None
+}
+
+/// Checks if a `.minecraft` folder exists next to the launcher (i.e. at
+/// `base_path/.minecraft`) and returns it as a `(name, path)` pair suitable
+/// for merging into the GameDir list.
+pub fn get_local_dotminecraft(base_path: &Path) -> Option<(String, String)> {
+    let dot_mc = base_path.join(".minecraft");
+    if dot_mc.is_dir() {
+        tracing::debug!(
+            path = %dot_mc.display(),
+            "get_local_dotminecraft: found .minecraft next to launcher"
+        );
+        Some((
+            ".minecraft".to_string(),
+            dot_mc.to_string_lossy().to_string(),
+        ))
+    } else {
+        None
+    }
 }
 
 pub fn get_pclce_instance_path(instance_name: &str) -> Option<String> {

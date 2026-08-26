@@ -114,6 +114,8 @@ pub struct Settings {
     pub modrinth_source: DownloadSourceMode,
     #[serde(default)]
     pub curseforge_source: DownloadSourceMode,
+    #[serde(default = "default_true")]
+    pub bypass_curseforge_download_restrictions: bool,
     #[serde(default)]
     pub mojang_auth_source: DownloadSourceMode,
     #[serde(default, rename = "use_minecraft_mirror", skip_serializing)]
@@ -167,6 +169,7 @@ pub struct Settings {
     pub force_fullscreen: bool,
     pub game_resolution: WindowSize,
     pub hide_on_process_start: bool,
+    pub enter_lightweight_mode_on_game_launch: bool,
     pub auto_set_java_high_performance_mode: bool,
     pub hooks: Hooks,
 
@@ -189,6 +192,10 @@ pub struct PrivacySettings {
     pub telemetry: bool,
     pub discord_rpc: bool,
     pub consent_version: u32,
+}
+
+fn default_true() -> bool {
+    true
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, Eq, Hash, PartialEq)]
@@ -231,7 +238,7 @@ impl Settings {
 				discord_rpc, developer_mode, telemetry, telemetry_consent_version, personalized_ads,
                 onboarded, onboarding_version, onboarding_instance_tour_completed,
                 json(extra_launch_args) extra_launch_args, json(custom_env_vars) custom_env_vars,
-                mc_memory_max, mc_memory_auto, mc_force_fullscreen, mc_game_resolution_x, mc_game_resolution_y, hide_on_process_start,
+                mc_memory_max, mc_memory_auto, mc_force_fullscreen, mc_game_resolution_x, mc_game_resolution_y, hide_on_process_start, enter_lightweight_mode_on_game_launch,
                 auto_set_java_high_performance_mode,
                 hook_pre_launch, hook_wrapper, hook_post_exit,
                 custom_dir, prev_custom_dir, migrated, json(feature_flags) feature_flags, toggle_sidebar,
@@ -255,7 +262,11 @@ impl Settings {
         let download_engine = DownloadEngine::from_str(
             &engine_row.get::<String, _>("download_engine"),
         );
-
+        let bypass_curseforge_download_restrictions: bool = sqlx::query_scalar(
+            "SELECT bypass_curseforge_download_restrictions FROM settings WHERE id = 0",
+        )
+        .fetch_one(exec)
+        .await?;
         let settings = Self {
             max_concurrent_downloads: res.max_concurrent_downloads as usize,
             max_concurrent_writes: res.max_concurrent_writes as usize,
@@ -273,6 +284,7 @@ impl Settings {
             curseforge_source: DownloadSourceMode::from_string(
                 &res.curseforge_source,
             ),
+            bypass_curseforge_download_restrictions,
             mojang_auth_source: DownloadSourceMode::from_string(
                 &res.mojang_auth_source,
             ),
@@ -331,6 +343,11 @@ impl Settings {
             memory: MemorySettings {
                 maximum: res.mc_memory_max as u32,
                 automatic: res.mc_memory_auto == 1,
+                optimize_before_launch: sqlx::query_scalar(
+                    "SELECT mc_memory_optimize FROM settings WHERE id = 0",
+                )
+                .fetch_one(exec)
+                .await?,
             },
             force_fullscreen: res.mc_force_fullscreen == 1,
             game_resolution: WindowSize(
@@ -338,6 +355,9 @@ impl Settings {
                 res.mc_game_resolution_y as u16,
             ),
             hide_on_process_start: res.hide_on_process_start == 1,
+            enter_lightweight_mode_on_game_launch: res
+                .enter_lightweight_mode_on_game_launch
+                == 1,
             auto_set_java_high_performance_mode: res
                 .auto_set_java_high_performance_mode
                 == 1,
@@ -545,8 +565,25 @@ impl Settings {
         .execute(exec)
         .await?;
 
+        sqlx::query(
+			"UPDATE settings SET enter_lightweight_mode_on_game_launch = ? WHERE id = 0",
+		)
+		.bind(self.enter_lightweight_mode_on_game_launch)
+		.execute(exec)
+		.await?;
+
         sqlx::query("UPDATE settings SET download_engine = ? WHERE id = 0")
             .bind(self.download_engine.as_str())
+            .execute(exec)
+            .await?;
+        sqlx::query(
+            "UPDATE settings SET bypass_curseforge_download_restrictions = ? WHERE id = 0",
+        )
+        .bind(self.bypass_curseforge_download_restrictions)
+        .execute(exec)
+        .await?;
+        sqlx::query("UPDATE settings SET mc_memory_optimize = ? WHERE id = 0")
+            .bind(self.memory.optimize_before_launch)
             .execute(exec)
             .await?;
 
@@ -826,8 +863,10 @@ impl Theme {
 #[derive(Serialize, Deserialize, Debug, Clone, Copy)]
 pub struct MemorySettings {
     pub maximum: u32,
-    #[serde(default)]
+    #[serde(default = "default_true")]
     pub automatic: bool,
+    #[serde(default)]
+    pub optimize_before_launch: bool,
 }
 
 /// Game window size
@@ -1017,6 +1056,105 @@ mod tests {
         assert_eq!(
             settings.curseforge_source,
             DownloadSourceMode::OfficialPreferred
+        );
+    }
+
+    #[tokio::test]
+    async fn curseforge_bypass_defaults_on_and_round_trips() {
+        let pool = sqlx::sqlite::SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect("sqlite::memory:")
+            .await
+            .unwrap();
+        sqlx::migrate!().run(&pool).await.unwrap();
+
+        let mut settings = Settings::get(&pool).await.unwrap();
+        assert!(settings.bypass_curseforge_download_restrictions);
+
+        settings.bypass_curseforge_download_restrictions = false;
+        settings.update(&pool).await.unwrap();
+
+        let reloaded = Settings::get(&pool).await.unwrap();
+        assert!(!reloaded.bypass_curseforge_download_restrictions);
+    }
+
+    #[tokio::test]
+    async fn memory_optimization_round_trips_in_a_fresh_database() {
+        let pool = sqlx::sqlite::SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect("sqlite::memory:")
+            .await
+            .unwrap();
+        sqlx::migrate!().run(&pool).await.unwrap();
+
+        let mut settings = Settings::get(&pool).await.unwrap();
+        assert!(!settings.memory.optimize_before_launch);
+
+        settings.memory.optimize_before_launch = true;
+        settings.update(&pool).await.unwrap();
+
+        let reloaded = Settings::get(&pool).await.unwrap();
+        assert!(reloaded.memory.optimize_before_launch);
+    }
+
+    #[tokio::test]
+    async fn lightweight_mode_setting_defaults_off_and_round_trips() {
+        let pool = sqlx::sqlite::SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect("sqlite::memory:")
+            .await
+            .unwrap();
+        sqlx::migrate!().run(&pool).await.unwrap();
+
+        let mut settings = Settings::get(&pool).await.unwrap();
+        assert!(!settings.enter_lightweight_mode_on_game_launch);
+
+        settings.enter_lightweight_mode_on_game_launch = true;
+        settings.update(&pool).await.unwrap();
+
+        let reloaded = Settings::get(&pool).await.unwrap();
+        assert!(reloaded.enter_lightweight_mode_on_game_launch);
+    }
+
+    #[tokio::test]
+    async fn lightweight_mode_migration_upgrades_existing_settings_database() {
+        let pool = sqlx::sqlite::SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect("sqlite::memory:")
+            .await
+            .unwrap();
+        sqlx::query(
+            "CREATE TABLE settings (id INTEGER PRIMARY KEY CHECK (id = 0))",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+        sqlx::query("INSERT INTO settings (id) VALUES (0)")
+            .execute(&pool)
+            .await
+            .unwrap();
+
+        sqlx::raw_sql(include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/migrations/20260821120001_lightweight-mode.sql"
+        )))
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        let enabled: i64 = sqlx::query_scalar(
+            "SELECT enter_lightweight_mode_on_game_launch FROM settings WHERE id = 0",
+        )
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+        assert_eq!(enabled, 0);
+        assert!(
+            sqlx::query("PRAGMA foreign_key_check")
+                .fetch_all(&pool)
+                .await
+                .unwrap()
+                .is_empty()
         );
     }
 

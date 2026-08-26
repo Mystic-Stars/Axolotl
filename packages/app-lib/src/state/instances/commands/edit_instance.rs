@@ -1,6 +1,9 @@
 use crate::state::instances::{
     ContentSourceKind, Instance, InstanceLaunchOverrides, InstanceLink,
-    adapters::sqlite::{config_sync_rows, content_rows, instance_rows},
+    LoaderComponent,
+    adapters::sqlite::{
+        config_sync_rows, content_rows, instance_rows, loader_component_rows,
+    },
     config_sync,
 };
 use crate::state::{
@@ -41,6 +44,12 @@ pub struct EditInstance {
         with = "serde_with::rust::double_option"
     )]
     pub symlink_target: Option<Option<String>>,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        with = "serde_with::rust::double_option"
+    )]
+    pub game_dir_override: Option<Option<String>>,
 }
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
@@ -117,6 +126,10 @@ pub(crate) async fn edit_instance(
     let now = Utc::now();
 
     apply_instance_patch(&mut instance, &patch, now);
+    let loader_projection_changed =
+        patch.content_set_patch.as_ref().is_some_and(|patch| {
+            patch.loader.is_some() || patch.loader_version.is_some()
+        });
 
     let mut content_set = match patch.content_set_patch {
         Some(content_set_patch) => {
@@ -157,11 +170,50 @@ pub(crate) async fn edit_instance(
 
     if let Some(content_set) = content_set.as_mut() {
         content_rows::update_content_set(content_set, &mut tx).await?;
+        if loader_projection_changed {
+            let components = LoaderComponent::from_legacy_projection(
+                instance.id.clone(),
+                content_set.loader,
+                content_set.loader_version.clone(),
+            );
+            loader_component_rows::replace_loader_components(
+                &instance.id,
+                &components,
+                &mut tx,
+            )
+            .await?;
+        }
     }
 
     if let Some(link) = &patch.link {
         instance_rows::upsert_instance_link(&instance.id, link, &mut tx)
             .await?;
+        if matches!(link, InstanceLink::Unmanaged) {
+            let content_set_id = content_set
+                .as_ref()
+                .map(|content_set| content_set.id.as_str())
+                .or(instance.applied_content_set_id.as_deref());
+            if let Some(content_set_id) = content_set_id {
+                sqlx::query(
+                    "UPDATE instance_content_sets SET source_kind = 'local', modified = ? WHERE id = ?",
+                )
+                .bind(now.timestamp())
+                .bind(content_set_id)
+                .execute(&mut *tx)
+                .await?;
+                sqlx::query(
+                    "UPDATE instance_content_entries SET source_kind = 'local', ownership_kind = 'user_added', modified_at = ? WHERE content_set_id = ? AND ownership_kind = 'pack_managed'",
+                )
+                .bind(now.timestamp())
+                .bind(content_set_id)
+                .execute(&mut *tx)
+                .await?;
+                sqlx::query("DELETE FROM instance_pack_members WHERE content_set_id = ?")
+                    .bind(content_set_id)
+                    .execute(&mut *tx)
+                    .await?;
+            }
+        }
     }
 
     if let Some(groups) = &patch.groups {
@@ -193,6 +245,12 @@ pub(crate) async fn restore_instance_metadata(
 
     instance_rows::update_instance(&instance, &mut tx).await?;
     content_rows::update_content_set(&mut content_set, &mut tx).await?;
+    loader_component_rows::replace_loader_components(
+        &instance.id,
+        &metadata.loader_components,
+        &mut tx,
+    )
+    .await?;
     instance_rows::upsert_instance_link(&instance.id, &metadata.link, &mut tx)
         .await?;
     instance_rows::replace_instance_groups(
@@ -241,6 +299,9 @@ fn apply_instance_patch(
     }
     if let Some(symlink_target) = &patch.symlink_target {
         instance.symlink_target = symlink_target.clone();
+    }
+    if let Some(game_dir_override) = &patch.game_dir_override {
+        instance.game_dir_override = game_dir_override.clone();
     }
 
     instance.modified = now;

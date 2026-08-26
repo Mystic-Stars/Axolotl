@@ -1,5 +1,6 @@
 use super::model::{
-    InstallJobKind, InstallJobSnapshot, InstallJobState, InstallJobStatus,
+    DownloadJobSummary, InstallJobKind, InstallJobSnapshot, InstallJobState,
+    InstallJobStatus,
 };
 use crate::state::{InstanceInstallStage, State};
 use chrono::{DateTime, TimeZone, Utc};
@@ -43,6 +44,7 @@ impl InstallJobRecord {
         InstallJobSnapshot {
             job_id: self.id,
             instance_id: self.instance_id.clone().or(recorded_instance_id),
+            source_instance_id: self.state.source_instance_id(),
             instance_deleted,
             kind: self.kind,
             status: self.status,
@@ -52,10 +54,12 @@ impl InstallJobRecord {
             phase: self.state.progress.phase,
             progress: self.state.progress.progress.clone(),
             details: self.state.progress.details.clone(),
+            parallel: self.state.progress.parallel.clone(),
             display: self.state.display.clone(),
             error: self.state.error.clone(),
             rollback_error: self.state.rollback_error.clone(),
             pause_reason: self.state.pause_reason.clone(),
+            upgrade_result: self.state.upgrade_result.clone(),
             created: self.created,
             modified: self.modified,
             finished: self.finished,
@@ -300,13 +304,65 @@ pub async fn update_state(
     get_required(id, app_state).await
 }
 
+/// Updates the job state JSON and the denormalized download summary columns
+/// in a single statement, using a caller-supplied serialized state so the
+/// reporter mutex is not held across the DB write.
+pub async fn update_state_with_progress_columns(
+    id: Uuid,
+    json: &str,
+    provider: &str,
+    summary: &DownloadJobSummary,
+    app_state: &State,
+) -> crate::Result<InstallJobRecord> {
+    let now = Utc::now();
+    let instance_id = instance_id_from_json(json);
+    let id_value = id.to_string();
+    let modified = now.timestamp();
+
+    sqlx::query(
+        "UPDATE install_jobs
+         SET instance_id = (SELECT id FROM instances WHERE id = ?),
+             state = ?, modified = ?, provider = ?, files_total = ?,
+             files_completed = ?, bytes_total = ?, bytes_downloaded = ?
+         WHERE id = ?",
+    )
+    .bind(instance_id)
+    .bind(json)
+    .bind(modified)
+    .bind(provider)
+    .bind(summary.files_total.map(|value| value as i64))
+    .bind(summary.files_completed as i64)
+    .bind(summary.bytes_total.map(|value| value as i64))
+    .bind(summary.bytes_downloaded as i64)
+    .bind(id_value)
+    .execute(&app_state.pool)
+    .await?;
+
+    get_required(id, app_state).await
+}
+
+fn instance_id_from_json(json: &str) -> Option<String> {
+    serde_json::from_str::<serde_json::Value>(json)
+        .ok()
+        .and_then(|value| {
+            value
+                .get("target")
+                .and_then(|target| target.get("instance_id"))
+                .and_then(|value| value.as_str())
+                .map(str::to_owned)
+        })
+}
+
+/// Persists a serialized job state. The caller serializes and summarizes
+/// under the reporter lock; this function only performs the DB write so the
+/// reporter mutex is never held across the transaction.
 pub async fn update_progress_state(
     id: Uuid,
-    state: &InstallJobState,
+    json: &str,
+    provider: &str,
+    summary: &DownloadJobSummary,
     app_state: &State,
 ) -> crate::Result<()> {
-    let json = serde_json::to_string(state)?;
-    let summary = state.download_summary();
     let modified = Utc::now().timestamp();
     let id_value = id.to_string();
 
@@ -318,7 +374,7 @@ pub async fn update_progress_state(
     )
     .bind(json)
     .bind(modified)
-    .bind(state.provider().as_str())
+    .bind(provider)
     .bind(summary.files_total.map(|value| value as i64))
     .bind(summary.files_completed as i64)
     .bind(summary.bytes_total.map(|value| value as i64))
@@ -453,6 +509,38 @@ pub async fn complete_running_job(
         transaction.rollback().await?;
         return Ok(None);
     }
+    if let super::model::InstallRequest::UpgradeUnmanagedInstance {
+        execution,
+        ..
+    } = &state.request
+        && let Some(upgrade_result) = state.upgrade_result.as_ref()
+        && let Some(target_environment) =
+            upgrade_result.target_environment.as_ref()
+    {
+        let notice = crate::state::InstancePostUpgradeNotice {
+            instance_id: upgrade_result.target_instance_id.clone(),
+            upgrade_job_id: id_value.clone(),
+            target_game_version: target_environment.game_version.clone(),
+            consecutive_clean_launches: 0,
+            warnings: crate::state::instances::commands::post_upgrade_warnings_from_result(
+                upgrade_result,
+                execution,
+            ),
+        };
+        tracing::debug!(
+            target_instance_id = %notice.instance_id,
+            upgrade_job_id = %notice.upgrade_job_id,
+            target_game_version = %notice.target_game_version,
+            structured_compatibility_warning_count = upgrade_result.compatibility_warning_details.len(),
+            post_upgrade_warning_count = notice.warnings.len(),
+            "Persisting completed unmanaged upgrade notice"
+        );
+        crate::state::instances::commands::replace_instance_post_upgrade_notice_on_connection(
+            &notice,
+            &mut transaction,
+        )
+        .await?;
+    }
     transaction.commit().await?;
 
     if let Err(error) = sync_download_details(id, state, app_state).await {
@@ -515,6 +603,7 @@ mod tests {
             None,
             crate::state::InstanceLink::Unmanaged,
             None,
+            None,
         )
         .await
         .unwrap();
@@ -545,6 +634,8 @@ mod tests {
                 world_name: None,
                 install_dependencies: false,
                 excluded_dependency_project_ids: Vec::new(),
+                force_dependency_project_ids: Vec::new(),
+                dependency_plan_id: None,
             },
             display_title: "CurseForge content".to_string(),
             display_icon: None,
@@ -572,6 +663,101 @@ mod tests {
         insert(Uuid::new_v4(), state, InstallJobStatus::Running, app_state)
             .await
             .unwrap()
+    }
+
+    #[cfg(not(feature = "tauri"))]
+    fn upgrade_completion_state(
+        source_instance_id: &str,
+        target_instance_id: &str,
+        mode: super::super::model::SharedUpgradeMode,
+    ) -> InstallJobState {
+        use super::super::model::{
+            InstallRequest, InstanceUpgradeCompatibilityWarning,
+            InstanceUpgradeDisplayNames, InstanceUpgradeExecution,
+            InstanceUpgradeResult,
+        };
+        use crate::state::{
+            ContentProvider, InstanceUpgradeEnvironment,
+            InstanceUpgradeIssueCode, InstanceUpgradeSolution,
+            InstanceUpgradeSolutionKind, ModLoader, ShaderRuntime,
+        };
+
+        let source_environment = InstanceUpgradeEnvironment {
+            game_version: "1.21.8".to_string(),
+            mod_loader: ModLoader::Fabric,
+            mod_loader_version: Some("0.18.4".to_string()),
+            shader_runtime: ShaderRuntime::Iris,
+        };
+        let target_environment = InstanceUpgradeEnvironment {
+            game_version: "1.21.9".to_string(),
+            mod_loader: ModLoader::Fabric,
+            mod_loader_version: Some("0.18.5".to_string()),
+            shader_runtime: ShaderRuntime::Iris,
+        };
+        let solution = InstanceUpgradeSolution {
+            kind: InstanceUpgradeSolutionKind::Custom,
+            selections: Vec::new(),
+            dependency_changes: Vec::new(),
+            warnings: Vec::new(),
+        };
+        let execution = InstanceUpgradeExecution {
+            source_revision: 1,
+            source_files: Vec::new(),
+            source_environment: source_environment.clone(),
+            target_environment: target_environment.clone(),
+            items: Vec::new(),
+            solution: solution.clone(),
+            warnings: Vec::new(),
+            source_watch: None,
+        };
+        let mut state =
+            InstallJobState::new(InstallRequest::UpgradeUnmanagedInstance {
+                instance_id: source_instance_id.to_string(),
+                plan_id: "plan".to_string(),
+                execution,
+                create_full_backup: false,
+                shared_upgrade_mode: mode,
+                display_names: InstanceUpgradeDisplayNames::default(),
+            });
+        state.target = match mode {
+            super::super::model::SharedUpgradeMode::Direct => {
+                super::super::model::InstallTarget::ExistingInstance {
+                    instance_id: target_instance_id.to_string(),
+                }
+            }
+            super::super::model::SharedUpgradeMode::CopyAndUpgrade => {
+                super::super::model::InstallTarget::NewInstance {
+                    instance_id: Some(target_instance_id.to_string()),
+                }
+            }
+        };
+        state.upgrade_result = Some(InstanceUpgradeResult {
+            plan_id: "plan".to_string(),
+            source_instance_id: source_instance_id.to_string(),
+            target_instance_id: target_instance_id.to_string(),
+            backup_instance_id: None,
+            source_environment: Some(source_environment),
+            target_environment: Some(target_environment),
+            solution,
+            compatibility_warnings: Vec::new(),
+            compatibility_warning_details: (0..30)
+                .map(|index| InstanceUpgradeCompatibilityWarning {
+                    code: InstanceUpgradeIssueCode::KeepIncompatible,
+                    relative_path: Some(if index == 0 {
+                        "resourcepacks/foo.zip".to_string()
+                    } else {
+                        format!("mods/preserved-{index}.jar")
+                    }),
+                    content_id: Some(format!("content-{index}")),
+                    provider: Some(ContentProvider::Modrinth),
+                    project_id: Some(format!("project-{index}")),
+                    conflicting_project_id: None,
+                })
+                .collect(),
+            external_changes: Vec::new(),
+            skipped_due_to_external_conflict: Vec::new(),
+        });
+        state
     }
 
     #[cfg(not(feature = "tauri"))]
@@ -650,6 +836,93 @@ mod tests {
             instance_install_stage(&instance_id, &state).await,
             InstanceInstallStage::Installed
         );
+    }
+
+    #[cfg(not(feature = "tauri"))]
+    #[tokio::test]
+    async fn direct_upgrade_completion_atomically_persists_target_notice() {
+        let (state, instance_id) =
+            create_completion_test_instance("direct upgrade notice").await;
+        let job_state = upgrade_completion_state(
+            &instance_id,
+            &instance_id,
+            super::super::model::SharedUpgradeMode::Direct,
+        );
+        let job = insert_running_job(&job_state, &state).await;
+
+        complete_running_job(job.id, &job_state, &state)
+            .await
+            .unwrap()
+            .unwrap();
+
+        let notice = crate::state::instances::commands::get_instance_post_upgrade_notice(
+            &instance_id,
+            &state.pool,
+        )
+        .await
+        .unwrap()
+        .unwrap();
+        assert_eq!(notice.instance_id, instance_id);
+        assert_eq!(notice.upgrade_job_id, job.id.to_string());
+        assert_eq!(notice.target_game_version, "1.21.9");
+        assert_eq!(notice.consecutive_clean_launches, 0);
+        assert_eq!(notice.warnings.len(), 30);
+        assert_eq!(
+            notice.warnings[0].relative_path.as_deref(),
+            Some("resourcepacks/foo.zip")
+        );
+    }
+
+    #[cfg(not(feature = "tauri"))]
+    #[tokio::test]
+    async fn copy_upgrade_completion_persists_notice_only_for_target() {
+        let (state, source_id) =
+            create_completion_test_instance("copy upgrade source").await;
+        let target = crate::api::instance::create(
+            format!("Copy upgrade target {}", Uuid::new_v4()),
+            "1.21.8".to_string(),
+            crate::state::ModLoader::Fabric,
+            Some("0.18.4".to_string()),
+            None,
+            crate::state::InstanceLink::Unmanaged,
+            None,
+            None,
+        )
+        .await
+        .unwrap();
+        let job_state = upgrade_completion_state(
+            &source_id,
+            &target.instance.id,
+            super::super::model::SharedUpgradeMode::CopyAndUpgrade,
+        );
+        let job = insert_running_job(&job_state, &state).await;
+
+        complete_running_job(job.id, &job_state, &state)
+            .await
+            .unwrap()
+            .unwrap();
+
+        assert!(
+            crate::state::instances::commands::get_instance_post_upgrade_notice(
+                &source_id,
+                &state.pool,
+            )
+            .await
+            .unwrap()
+            .is_none()
+        );
+        let target_notice =
+            crate::state::instances::commands::get_instance_post_upgrade_notice(
+                &target.instance.id,
+                &state.pool,
+            )
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(target_notice.instance_id, target.instance.id);
+        assert_eq!(target_notice.upgrade_job_id, job.id.to_string());
+        assert_eq!(target_notice.target_game_version, "1.21.9");
+        assert_eq!(target_notice.warnings.len(), 30);
     }
 
     #[cfg(not(feature = "tauri"))]
@@ -906,7 +1179,6 @@ async fn sync_download_details(
 ) -> crate::Result<()> {
     let id_value = id.to_string();
     let summary = state.download_summary();
-    let mut transaction = app_state.pool.begin().await?;
     sqlx::query(
         "UPDATE install_jobs
          SET provider = ?, files_total = ?, files_completed = ?,
@@ -919,59 +1191,7 @@ async fn sync_download_details(
     .bind(summary.bytes_total.map(|value| value as i64))
     .bind(summary.bytes_downloaded as i64)
     .bind(&id_value)
-    .execute(&mut *transaction)
+    .execute(&app_state.pool)
     .await?;
-
-    let now = Utc::now().timestamp();
-    for item in state.download_items() {
-        let finished = matches!(
-            item.status,
-            super::model::DownloadItemStatus::Completed
-                | super::model::DownloadItemStatus::Skipped
-                | super::model::DownloadItemStatus::Failed
-                | super::model::DownloadItemStatus::Canceled
-        )
-        .then_some(now);
-        let status = format!("{:?}", item.status).to_ascii_lowercase();
-        sqlx::query(
-            "INSERT INTO install_job_items (
-                id, job_id, name, project_id, version_id, status,
-                bytes_total, bytes_downloaded,
-                attempt, max_attempts, error, manual_url,
-                created, modified, finished
-             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-             ON CONFLICT(job_id, id) DO UPDATE SET
-                name = excluded.name,
-                project_id = excluded.project_id,
-                version_id = excluded.version_id,
-                status = excluded.status,
-                bytes_total = excluded.bytes_total,
-                bytes_downloaded = excluded.bytes_downloaded,
-                attempt = excluded.attempt,
-                max_attempts = excluded.max_attempts,
-                error = excluded.error,
-                manual_url = excluded.manual_url,
-                modified = excluded.modified,
-                finished = excluded.finished",
-        )
-        .bind(item.id)
-        .bind(&id_value)
-        .bind(item.name)
-        .bind(item.project_id)
-        .bind(item.version_id)
-        .bind(status)
-        .bind(item.bytes_total.map(|value| value as i64))
-        .bind(item.bytes_downloaded as i64)
-        .bind(item.attempt.map(i64::from))
-        .bind(item.max_attempts.map(i64::from))
-        .bind(item.error)
-        .bind(item.manual_url)
-        .bind(now)
-        .bind(now)
-        .bind(finished)
-        .execute(&mut *transaction)
-        .await?;
-    }
-    transaction.commit().await?;
     Ok(())
 }

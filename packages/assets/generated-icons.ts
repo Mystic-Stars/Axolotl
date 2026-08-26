@@ -56,6 +56,7 @@ import _BookIcon from './icons/book.svg?component'
 import _BookOpenIcon from './icons/book-open.svg?component'
 import _BookTextIcon from './icons/book-text.svg?component'
 import _BookmarkIcon from './icons/bookmark.svg?component'
+import _BookmarkFilledIcon from './icons/bookmark-filled.svg?component'
 import _BotIcon from './icons/bot.svg?component'
 import _BoxIcon from './icons/box.svg?component'
 import _BoxImportIcon from './icons/box-import.svg?component'
@@ -495,6 +496,7 @@ export const BookIcon = _BookIcon
 export const BookOpenIcon = _BookOpenIcon
 export const BookTextIcon = _BookTextIcon
 export const BookmarkIcon = _BookmarkIcon
+export const BookmarkFilledIcon = _BookmarkFilledIcon
 export const BotIcon = _BotIcon
 export const BoxIcon = _BoxIcon
 export const BoxImportIcon = _BoxImportIcon

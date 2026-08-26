@@ -4,10 +4,22 @@
  *  and deserialized into a usable JS object.
  */
 import type { Labrinth } from '@modrinth/api-client'
-import type { ContentItem, ContentOwner } from '@modrinth/ui'
+import {
+	clearPinnedContentViewPreferences,
+	type ContentItem,
+	type ContentOwner,
+} from '@modrinth/ui'
 import { invoke } from '@tauri-apps/api/core'
 
 import { isOfflineMode } from '@/composables/useNetworkStatus'
+import { buildGcCandidateChain, resolveAutoGcStrategy } from '@/helpers/gc/auto-selector'
+import { collectGcContext } from '@/helpers/gc/context'
+import { detectGcStrategy, GC_STRATEGY_DEFINITIONS } from '@/helpers/gc/strategies'
+import type { GcContext, ResolvedGcStrategyId } from '@/helpers/gc/types'
+import { setLastGcLaunchReport } from '@/helpers/gc-notice'
+import { AUTO_GC_PRESET_ARG } from '@/helpers/java-arguments'
+import { get_jre, get_memory_status } from '@/helpers/jre.js'
+import { get as getSettings } from '@/helpers/settings'
 
 import type { InstallJobSnapshot } from './install'
 import { removeInstanceCache } from './instance-cache'
@@ -19,9 +31,34 @@ import type {
 	InstanceLoader,
 } from './types'
 
+export interface InstancePostUpgradeWarning {
+	code: import('./instance-upgrade').InstanceUpgradeIssueCode
+	contentId: string | null
+	relativePath: string | null
+}
+
+export interface InstancePostUpgradeNotice {
+	instanceId: string
+	upgradeJobId: string
+	targetGameVersion: string
+	consecutiveCleanLaunches: number
+	warnings: InstancePostUpgradeWarning[]
+}
+
+export async function get_post_upgrade_notice(
+	instanceId: string,
+): Promise<InstancePostUpgradeNotice | null> {
+	return await invoke('plugin:instance|instance_get_post_upgrade_notice', { instanceId })
+}
+
+export async function dismiss_post_upgrade_notice(instanceId: string): Promise<void> {
+	await invoke('plugin:instance|instance_dismiss_post_upgrade_notice', { instanceId })
+}
+
 export async function remove(instanceId: string): Promise<void> {
+	await invoke('plugin:instance|instance_remove', { instanceId })
 	removeInstanceCache(instanceId)
-	return await invoke('plugin:instance|instance_remove', { instanceId })
+	clearPinnedContentViewPreferences(instanceId)
 }
 
 export async function get(instanceId: string): Promise<GameInstance | null> {
@@ -41,6 +78,221 @@ export async function get_projects(
 
 export async function get_installed_project_ids(instanceId: string): Promise<string[]> {
 	return await invoke('plugin:instance|instance_get_installed_project_ids', { instanceId })
+}
+
+export type CoreComponentKind = 'jar_mod' | 'replacement_jar' | 'agent'
+
+export type CoreComponentSource = {
+	provider: string
+	projectId: string | null
+	versionId: string | null
+	fileId: string | null
+	pageUrl: string | null
+}
+
+export type CoreComponent = {
+	id: string
+	kind: CoreComponentKind
+	fileName: string
+	relativePath: string
+	enabled: boolean
+	removed: boolean
+	order: number
+	sha1: string | null
+	sha256: string | null
+	source: CoreComponentSource | null
+	targetGameVersion: string
+	createdAt: string
+	modifiedAt: string
+	failureReason: string | null
+}
+
+export type CoreJarPreview = {
+	outputPath: string
+	componentCount: number
+	replacementComponentId: string | null
+	entries: number
+	sha1: string
+	sha256: string
+}
+
+export type McArchiveCoreInstallResult =
+	| { state: 'installed'; component: CoreComponent }
+	| {
+			state: 'manual_download'
+			fileName: string
+			pageUrl: string | null
+			expectedSha256: string | null
+	  }
+
+export async function list_core_components(instanceId: string): Promise<CoreComponent[]> {
+	return await invoke('plugin:instance|instance_list_core_components', { instanceId })
+}
+
+export async function add_core_jar_mod(
+	instanceId: string,
+	sourcePath: string,
+	targetGameVersion: string,
+	source?: CoreComponentSource,
+): Promise<CoreComponent> {
+	return await invoke('plugin:instance|instance_add_core_jar_mod', {
+		instanceId,
+		sourcePath,
+		targetGameVersion,
+		source,
+	})
+}
+
+export async function replace_core_jar(
+	instanceId: string,
+	sourcePath: string,
+	targetGameVersion: string,
+	source?: CoreComponentSource,
+): Promise<CoreComponent> {
+	return await invoke('plugin:instance|instance_replace_core_jar', {
+		instanceId,
+		sourcePath,
+		targetGameVersion,
+		source,
+	})
+}
+
+export async function move_core_component(
+	instanceId: string,
+	componentId: string,
+	direction: -1 | 1,
+): Promise<CoreComponent[]> {
+	return await invoke('plugin:instance|instance_move_core_component', {
+		instanceId,
+		componentId,
+		direction,
+	})
+}
+
+export async function set_core_component_enabled(
+	instanceId: string,
+	componentId: string,
+	enabled: boolean,
+): Promise<CoreComponent> {
+	return await invoke('plugin:instance|instance_set_core_component_enabled', {
+		instanceId,
+		componentId,
+		enabled,
+	})
+}
+
+export async function remove_core_component(
+	instanceId: string,
+	componentId: string,
+): Promise<void> {
+	await invoke('plugin:instance|instance_remove_core_component', { instanceId, componentId })
+}
+
+export async function restore_core_component(
+	instanceId: string,
+	componentId: string,
+): Promise<CoreComponent> {
+	return await invoke('plugin:instance|instance_restore_core_component', {
+		instanceId,
+		componentId,
+	})
+}
+
+export async function preview_core_jar(instanceId: string): Promise<CoreJarPreview | null> {
+	return await invoke('plugin:instance|instance_preview_core_jar', { instanceId })
+}
+
+export async function install_mcarchive_modloader(
+	instanceId: string,
+	gameVersion: string,
+): Promise<McArchiveCoreInstallResult> {
+	return await invoke('plugin:instance|instance_install_mcarchive_modloader', {
+		instanceId,
+		gameVersion,
+	})
+}
+
+export async function import_mcarchive_modloader(
+	instanceId: string,
+	gameVersion: string,
+	sourcePath: string,
+): Promise<McArchiveCoreInstallResult> {
+	return await invoke('plugin:instance|instance_import_mcarchive_modloader', {
+		instanceId,
+		gameVersion,
+		sourcePath,
+	})
+}
+
+export type McArchiveContentInstallRequest = {
+	projectId: string
+	projectSlug: string
+	versionId: string
+	fileId: string
+	projectType: ContentFileProjectType
+}
+
+export type McArchiveContentInstallResult =
+	| { state: 'installed'; relativePath: string }
+	| {
+			state: 'manual_download'
+			fileName: string
+			pageUrl: string | null
+			expectedSha256: string | null
+	  }
+
+export type PlanetMinecraftContentInstallRequest = {
+	projectId: string
+	versionId: string
+	projectType: ContentFileProjectType
+}
+
+export type PlanetMinecraftContentInstallResult =
+	| { state: 'installed'; relativePath: string }
+	| { state: 'manual_download'; pageUrl: string; fileName: string | null }
+
+export async function install_mcarchive_content(
+	instanceId: string,
+	request: McArchiveContentInstallRequest,
+): Promise<McArchiveContentInstallResult> {
+	return await invoke('plugin:instance|instance_install_mcarchive_content', {
+		instanceId,
+		request,
+	})
+}
+
+export async function import_mcarchive_content(
+	instanceId: string,
+	request: McArchiveContentInstallRequest,
+	sourcePath: string,
+): Promise<McArchiveContentInstallResult> {
+	return await invoke('plugin:instance|instance_import_mcarchive_content', {
+		instanceId,
+		request,
+		sourcePath,
+	})
+}
+
+export async function install_planet_minecraft_content(
+	instanceId: string,
+	request: PlanetMinecraftContentInstallRequest,
+): Promise<PlanetMinecraftContentInstallResult> {
+	return await invoke('plugin:instance|instance_install_planet_minecraft_content', {
+		instanceId,
+		request,
+	})
+}
+
+export async function import_planet_minecraft_content(
+	instanceId: string,
+	request: PlanetMinecraftContentInstallRequest,
+	sourcePath: string,
+): Promise<PlanetMinecraftContentInstallResult> {
+	return await invoke('plugin:instance|instance_import_planet_minecraft_content', {
+		instanceId,
+		request,
+		sourcePath,
+	})
 }
 
 export type InstanceInstallTarget = {
@@ -84,6 +336,18 @@ export async function get_content_items(
 	return items
 }
 
+export async function get_content_items_by_paths(
+	instanceId: string,
+	paths: string[],
+	cacheBehaviour?: CacheBehaviour,
+): Promise<ContentItem[]> {
+	return await invoke<ContentItem[]>('plugin:instance|instance_get_content_items_by_paths', {
+		instanceId,
+		paths,
+		cacheBehaviour,
+	})
+}
+
 export type ContentOwnershipKind = 'pack_managed' | 'user_added' | 'local_discovered'
 export type PackMemberMaterializationState = 'present' | 'pending_manual' | 'missing' | 'removed'
 export type PackMemberOverrideKind = 'none' | 'disabled' | 'removed' | 'version'
@@ -98,7 +362,7 @@ export interface InstanceContentSnapshotItem {
 	expectedRelativePath: string
 	required: boolean
 	projectType: string
-	provider: 'modrinth' | 'curseforge' | null
+	provider: 'modrinth' | 'curseforge' | 'mcarchive' | null
 	providerProjectId: string | null
 	providerReleaseId: string | null
 	content: ContentItem | null
@@ -112,12 +376,12 @@ export interface InstanceContentSnapshotItem {
 	dependency: {
 		autoDependency: boolean
 		requiredBy: Array<{
-			provider: 'modrinth' | 'curseforge' | 'local'
+			provider: 'modrinth' | 'curseforge' | 'mcarchive' | 'local'
 			projectId: string
 			releaseId: string
 		}>
 		requires: Array<{
-			provider: 'modrinth' | 'curseforge' | 'local'
+			provider: 'modrinth' | 'curseforge' | 'mcarchive' | 'local'
 			projectId: string
 			releaseId: string
 		}>
@@ -133,7 +397,7 @@ export interface PendingManualDownload {
 	operationKind: 'pack_install' | 'pack_update' | 'content_install' | 'content_update'
 	operationTargetId: string | null
 	projectType: string
-	provider: 'modrinth' | 'curseforge'
+	provider: 'modrinth' | 'curseforge' | 'mcarchive'
 	providerProjectId: string
 	providerReleaseId: string
 	fileName: string
@@ -154,7 +418,7 @@ export interface InstanceContentSnapshot {
 	pack: {
 		name: string
 		iconPath: string | null
-		provider: 'modrinth' | 'curseforge' | null
+		provider: 'modrinth' | 'curseforge' | 'mcarchive' | null
 		projectId: string | null
 		versionId: string | null
 		reconciled: boolean
@@ -166,7 +430,7 @@ export interface InstanceContentSnapshot {
 	warnings: Array<{
 		code: string
 		message: string
-		provider: 'modrinth' | 'curseforge' | null
+		provider: 'modrinth' | 'curseforge' | 'mcarchive' | null
 	}>
 }
 
@@ -189,7 +453,7 @@ export interface ContentUpdatePlan {
 		contentId: string
 		relativePath: string | null
 		ownershipKind: ContentOwnershipKind
-		provider: 'modrinth' | 'curseforge'
+		provider: 'modrinth' | 'curseforge' | 'mcarchive'
 		currentReleaseId: string | null
 		targetReleaseId: string
 	}>
@@ -367,12 +631,14 @@ export interface ResolveContentRequest {
 	content_type: Labrinth.Content.v3.ContentType
 	selected?: ResolutionPreferences
 	excluded_project_ids?: string[]
+	force_project_ids?: string[]
 }
 
 export interface ResolvedContent {
 	project_id: string
 	version_id: string
 	dependent_on_version_id?: string | null
+	required?: boolean
 }
 
 export interface ResolveContentPlan {
@@ -526,6 +792,24 @@ export async function toggle_content_entry(
 	})
 }
 
+export type ContentToggleResult = {
+	contentId: string
+	path: string
+	enabled: boolean
+}
+
+export async function toggle_content_entries(
+	instanceId: string,
+	contentIds: string[],
+	desiredEnabled?: boolean,
+): Promise<ContentToggleResult[]> {
+	return await invoke('plugin:instance|instance_toggle_content_entries', {
+		instanceId,
+		contentIds,
+		desiredEnabled,
+	})
+}
+
 // Roll back an updated project to its previous file (kept as a .old backup)
 export async function rollback_project(instanceId: string, projectPath: string): Promise<string> {
 	return await invoke('plugin:instance|instance_rollback_project', {
@@ -618,17 +902,159 @@ export async function get_pack_export_candidates(instanceId: string): Promise<st
 	return await invoke('plugin:instance|instance_get_pack_export_candidates', { instanceId })
 }
 
+export interface GcLaunchIntent {
+	active_preset_id: string
+	block_tokens: string[]
+	candidate_ids: string[]
+	candidates: string[][]
+}
+
+export interface GcLaunchReport {
+	preferred_strategy: string
+	chosen_strategy: string
+	chosen_args: string[]
+	pruned_args: string[]
+	reason_chain: string[]
+}
+
+export interface InstanceRunResult {
+	process: unknown
+	gc_notice: GcLaunchReport | null
+}
+
+export function gcReportFellBack(report: GcLaunchReport): boolean {
+	return report.chosen_strategy !== report.preferred_strategy || report.pruned_args.length > 0
+}
+
+/**
+ * The Java that will actually run the instance: a per-instance `java_path`
+ * wins, otherwise the optimal JRE for the game version.
+ */
+async function resolveEffectiveJava(
+	instance: Pick<GameInstance, 'java_path'>,
+	instanceId: string,
+): Promise<JavaVersion | null> {
+	if (instance.java_path) {
+		try {
+			return await get_jre(instance.java_path)
+		} catch {
+			// Invalid override; fall back to the optimal JRE.
+		}
+	}
+	return await get_optimal_jre_key(instanceId)
+}
+
+function normalizeJvmToken(token: string): string {
+	const stripped = token.replace(/^-+/, '')
+	const withoutPrefix = stripped.startsWith('XX:') ? stripped.slice(3) : stripped
+	const withoutModifier =
+		withoutPrefix.startsWith('+') || withoutPrefix.startsWith('-')
+			? withoutPrefix.slice(1)
+			: withoutPrefix
+	return withoutModifier.split('=')[0] ?? withoutModifier
+}
+
+function strategyTokenKeys(strategy: ResolvedGcStrategyId, context: GcContext): Set<string> {
+	const tokens = GC_STRATEGY_DEFINITIONS[strategy].buildArgs(context).split(/\s+/).filter(Boolean)
+	return new Set(tokens.map(normalizeJvmToken))
+}
+
+/**
+ * Determine whether the effective Java args contain an auto GC marker or an
+ * active GC preset block, and if so build the ordered candidate chain for the
+ * backend to verify against the actual JVM. The args are returned untouched so
+ * the backend replaces exactly the preset block.
+ */
+export async function resolveGcLaunchIntent(
+	instanceId: string,
+): Promise<{ args: string[]; gcIntent: GcLaunchIntent | null }> {
+	const instance = await get(instanceId)
+	if (!instance) return { args: [], gcIntent: null }
+
+	const settings = await getSettings()
+	const effectiveArgs = instance.extra_launch_args ?? settings.extra_launch_args
+
+	const java = await resolveEffectiveJava(instance, instanceId)
+	const javaMajorVersion = java?.parsed_version ?? null
+	let modCount = 0
+	try {
+		const snapshot = await get_content_snapshot(instanceId)
+		modCount = snapshot.items.filter(
+			(item) => item.projectType === 'mod' && item.materializationState === 'present',
+		).length
+	} catch {
+		modCount = 0
+	}
+
+	const memory = instance.memory ?? settings.memory
+	let allocatedMemoryMb = memory.maximum
+	if (memory.automatic) {
+		try {
+			const status = await get_memory_status(instanceId, memory.maximum, true)
+			allocatedMemoryMb = status.allocated_mb
+		} catch {
+			// Fall back to the configured value when automatic memory info is unavailable.
+		}
+	}
+	const context = await collectGcContext(
+		allocatedMemoryMb,
+		instance.loader,
+		javaMajorVersion,
+		modCount,
+	)
+
+	let activePresetId: string | null = null
+	let blockTokens: string[] = []
+	if (effectiveArgs.includes(AUTO_GC_PRESET_ARG)) {
+		activePresetId = 'gc-auto'
+		blockTokens = [AUTO_GC_PRESET_ARG]
+	} else {
+		const detected = detectGcStrategy(effectiveArgs.join(' '))
+		if (detected) {
+			activePresetId = `gc-${detected}`
+			const presetKeys = strategyTokenKeys(detected, context)
+			blockTokens = effectiveArgs.filter((arg) => presetKeys.has(normalizeJvmToken(arg)))
+		}
+	}
+
+	if (!activePresetId || !blockTokens.length) {
+		return { args: effectiveArgs, gcIntent: null }
+	}
+
+	const preferred: ResolvedGcStrategyId =
+		activePresetId === 'gc-auto'
+			? resolveAutoGcStrategy(context).resolvedStrategy
+			: (activePresetId.slice('gc-'.length) as ResolvedGcStrategyId)
+
+	const { ids, args: candidates } = buildGcCandidateChain(context, preferred)
+
+	return {
+		args: effectiveArgs,
+		gcIntent: {
+			active_preset_id: activePresetId,
+			block_tokens: blockTokens,
+			candidate_ids: ids,
+			candidates,
+		},
+	}
+}
+
 // Run Minecraft using an instance
-// Returns PID of child
+// Returns the process metadata plus an optional GC fallback report.
 export async function run(
 	instanceId: string,
 	serverAddress: string | null = null,
-): Promise<unknown> {
-	return await invoke('plugin:instance|instance_run', {
+): Promise<InstanceRunResult> {
+	const { args, gcIntent } = await resolveGcLaunchIntent(instanceId)
+	const result = await invoke<InstanceRunResult>('plugin:instance|instance_run', {
 		instanceId,
 		serverAddress,
 		offlineMode: isOfflineMode(),
+		extraLaunchArgs: args,
+		gcIntent,
 	})
+	setLastGcLaunchReport(result.gc_notice)
+	return result
 }
 
 export async function kill(instanceId: string): Promise<void> {

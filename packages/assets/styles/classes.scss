@@ -466,12 +466,6 @@ a:not(.no-click-animation),
 	transform: rotate(180deg);
 }
 
-.btn-group {
-	display: flex;
-	grid-gap: var(--gap-sm);
-	flex-wrap: wrap;
-}
-
 .joined-buttons {
 	display: flex;
 	gap: 1px;
@@ -555,21 +549,6 @@ a:not(.no-click-animation),
 	word-break: break-word;
 	-webkit-hyphens: auto;
 	hyphens: auto;
-}
-
-.sr-only {
-	position: absolute;
-	width: 0;
-	height: 0;
-	overflow: hidden;
-}
-
-.card-divider {
-	background-color: var(--color-button-bg);
-	border: none;
-	color: var(--color-button-bg);
-	height: 1px;
-	margin: var(--gap-sm) 0;
 }
 
 // TABLE

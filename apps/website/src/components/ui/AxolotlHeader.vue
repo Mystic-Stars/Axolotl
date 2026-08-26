@@ -64,17 +64,20 @@ function openSettings() {
 </script>
 
 <template>
-	<header class="site-header">
+	<header class="absolute top-0 left-0 w-full z-40 pointer-events-none">
 		<div class="header-inner">
 			<NuxtLink
 				to="/"
 				:aria-label="formatMessage(messages.home)"
-				class="brand-link button-animation"
+				class="w-fit no-underline button-animation"
 			>
 				<AxolotlWordmark />
 			</NuxtLink>
 
-			<nav class="desktop-navigation" :aria-label="formatMessage(messages.primary)">
+			<nav
+				class="desktop-navigation hidden lg:flex items-center gap-1 pointer-events-auto"
+				:aria-label="formatMessage(messages.primary)"
+			>
 				<ButtonStyled type="transparent">
 					<NuxtLink to="/#features">{{ formatMessage(messages.features) }}</NuxtLink>
 				</ButtonStyled>
@@ -98,8 +101,8 @@ function openSettings() {
 				</ButtonStyled>
 			</nav>
 
-			<div class="header-actions">
-				<ButtonStyled class="desktop-download" color="brand">
+			<div class="header-actions flex items-center gap-1 pointer-events-auto">
+				<ButtonStyled class="desktop-download hidden lg:flex" color="brand">
 					<a href="#download">
 						<DownloadIcon aria-hidden="true" />
 						{{ formatMessage(messages.download) }}
@@ -112,7 +115,7 @@ function openSettings() {
 				</ButtonStyled>
 				<ButtonStyled
 					ref="mobileMenuButtonRef"
-					class="mobile-menu-button"
+					class="hidden max-lg:flex"
 					circular
 					type="transparent"
 				>
@@ -132,7 +135,7 @@ function openSettings() {
 			<nav
 				v-if="mobileMenuOpen"
 				ref="mobileMenuRef"
-				class="mobile-navigation"
+				class="mobile-navigation hidden max-lg:flex"
 				:aria-label="formatMessage(messages.mobile)"
 			>
 				<NuxtLink to="/#features" @click="mobileMenuOpen = false">
@@ -168,15 +171,6 @@ function openSettings() {
 </template>
 
 <style scoped lang="scss">
-.site-header {
-	position: absolute;
-	top: 0;
-	left: 0;
-	width: 100%;
-	z-index: 40;
-	pointer-events: none;
-}
-
 .header-inner {
 	display: grid;
 	grid-template-columns: 1fr auto;
@@ -185,19 +179,6 @@ function openSettings() {
 	max-width: 1360px;
 	margin: 0 auto;
 	padding: 1.15rem 1.5rem;
-	pointer-events: auto;
-}
-
-.brand-link {
-	width: fit-content;
-	text-decoration: none;
-}
-
-.desktop-navigation,
-.header-actions {
-	display: flex;
-	align-items: center;
-	gap: 0.25rem;
 	pointer-events: auto;
 }
 
@@ -225,11 +206,6 @@ function openSettings() {
 	grid-column: 2;
 	grid-row: 1;
 	justify-content: flex-end;
-}
-
-.mobile-menu-button,
-.mobile-navigation {
-	display: none;
 }
 
 .mobile-navigation {
@@ -300,16 +276,6 @@ function openSettings() {
 	.header-inner {
 		grid-template-columns: 1fr auto;
 		padding: 0.875rem 1rem;
-	}
-
-	.desktop-navigation,
-	.desktop-download {
-		display: none;
-	}
-
-	.mobile-menu-button,
-	.mobile-navigation {
-		display: flex;
 	}
 }
 </style>

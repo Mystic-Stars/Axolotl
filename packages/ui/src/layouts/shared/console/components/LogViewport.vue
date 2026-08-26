@@ -2,11 +2,11 @@
 	<div
 		ref="viewportRef"
 		class="log-viewport font-mono"
-		:class="{ 'log-viewport-wrap': wrap }"
+		:class="{ 'log-viewport-wrap': wrap, 'overflow-x-hidden': wrap }"
 		:style="{ fontSize: fontSize + 'px' }"
 		@scroll="handleScroll"
 	>
-		<div v-if="lines.length === 0" class="log-viewport-empty">
+		<div v-if="lines.length === 0" class="flex items-center justify-center h-full">
 			<EmptyState
 				v-if="emptyStateType === 'instance'"
 				:heading="formatMessage(consoleMessages.emptyInstanceTitle)"
@@ -19,7 +19,7 @@
 			/>
 		</div>
 
-		<div v-else class="log-viewport-spacer relative" :style="{ height: totalHeight + 'px' }">
+		<div v-else class="log-viewport-spacer relative w-full min-w-max" :style="{ height: totalHeight + 'px' }">
 			<div
 				class="absolute inset-x-0 top-0"
 				:style="{ transform: 'translateY(' + topOffset + 'px)' }"
@@ -28,18 +28,24 @@
 					v-for="item in windowItems"
 					:key="item.originalIndex"
 					:data-line="item.originalIndex + 1"
-					class="log-line"
+					class="log-line flex items-stretch whitespace-pre"
 					:class="entryClass(item.line)"
 					:style="{ height: estimateHeight(item) + 'px' }"
 				>
-					<span class="log-line-num">{{ item.originalIndex + 1 }}</span>
-					<span class="log-line-content" v-html="renderLine(item)"></span>
+					<span
+						class="shrink-0 w-[52px] pr-2.5 text-right text-secondary bg-surface-3 border-r border-solid border-surface-5 select-none overflow-hidden"
+						>{{ item.originalIndex + 1 }}</span
+					>
+					<span
+						class="log-line-content flex-1 px-2 break-all [overflow-wrap:anywhere]"
+						v-html="renderLine(item)"
+					></span>
 				</div>
 			</div>
 		</div>
 
 		<Transition name="scroll-to-bottom-fade">
-			<div v-if="lines.length > 0 && !stickToBottom" class="log-viewport-scroll-bottom">
+			<div v-if="lines.length > 0 && !stickToBottom" class="absolute bottom-4 right-4 z-10">
 				<ButtonStyled circular type="highlight" size="large">
 					<button aria-label="Scroll to bottom" @click="scrollToBottom">
 						<ChevronDownIcon />
@@ -266,20 +272,6 @@ defineExpose({
 	user-select: text;
 }
 
-.log-viewport-empty {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	height: 100%;
-}
-
-.log-viewport-scroll-bottom {
-	position: absolute;
-	bottom: 1rem;
-	right: 1rem;
-	z-index: 10;
-}
-
 .scroll-to-bottom-fade-enter-active,
 .scroll-to-bottom-fade-leave-active {
 	transition: opacity 250ms ease-in-out;
@@ -290,23 +282,8 @@ defineExpose({
 	opacity: 0;
 }
 
-.log-viewport-spacer {
-	width: 100%;
-	min-width: max-content;
-}
-
-.log-viewport-wrap {
-	overflow-x: hidden;
-}
-
 .log-viewport-wrap .log-viewport-spacer {
 	min-width: 0;
-}
-
-.log-line {
-	display: flex;
-	align-items: stretch;
-	white-space: pre;
 }
 
 .log-viewport-wrap .log-line {
@@ -315,25 +292,6 @@ defineExpose({
 
 .log-viewport-wrap .log-line-content {
 	min-width: 0;
-}
-
-.log-line-num {
-	flex-shrink: 0;
-	width: 52px;
-	padding: 0 10px 0 0;
-	text-align: right;
-	color: var(--color-text-tertiary);
-	background-color: var(--surface-3);
-	border-right: 1px solid var(--surface-5);
-	user-select: none;
-	overflow: hidden;
-}
-
-.log-line-content {
-	flex: 1;
-	padding: 0 8px;
-	word-break: break-all;
-	overflow-wrap: anywhere;
 }
 
 .log-line.entry-error {

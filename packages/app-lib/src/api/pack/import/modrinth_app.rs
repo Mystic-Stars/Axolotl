@@ -92,23 +92,46 @@ fn dependencies(
     game_version: String,
     loader: String,
     loader_version: Option<String>,
-) -> HashMap<PackDependency, String> {
+) -> crate::Result<HashMap<PackDependency, String>> {
     let mut dependencies =
         HashMap::from([(PackDependency::Minecraft, game_version)]);
-    if let Some(loader_version) = loader_version {
-        let dependency = match loader.as_str() {
-            "fabric" => Some(PackDependency::FabricLoader),
-            "forge" => Some(PackDependency::Forge),
-            "neoforge" | "neo_forge" => Some(PackDependency::NeoForge),
-            "quilt" => Some(PackDependency::QuiltLoader),
-            "optifine" => Some(PackDependency::OptiFine),
-            _ => None,
-        };
-        if let Some(dependency) = dependency {
-            dependencies.insert(dependency, loader_version);
-        }
+    let loader = loader.trim().to_ascii_lowercase();
+    if loader == "vanilla" || loader.is_empty() {
+        return Ok(dependencies);
     }
-    dependencies
+    if loader == "labymod" || loader.starts_with("labymod-") {
+        return Err(crate::ErrorKind::InputError(
+            "Unsupported loader LabyMod: Axolotl does not install, update, or repair LabyMod instances"
+                .to_string(),
+        )
+        .into());
+    }
+
+    let dependency = match loader.as_str() {
+        "fabric" => PackDependency::FabricLoader,
+        "forge" => PackDependency::Forge,
+        "neoforge" | "neo_forge" => PackDependency::NeoForge,
+        "quilt" => PackDependency::QuiltLoader,
+        "optifine" => PackDependency::OptiFine,
+        "cleanroom" => PackDependency::Cleanroom,
+        "lite_loader" | "liteloader" => PackDependency::LiteLoader,
+        "legacy_fabric" | "legacyfabric" => PackDependency::LegacyFabric,
+        _ => {
+            return Err(crate::ErrorKind::InputError(format!(
+                "Unsupported loader {loader}: the instance was not imported as Vanilla"
+            ))
+            .into());
+        }
+    };
+    let loader_version = loader_version
+        .filter(|version| !version.trim().is_empty())
+        .ok_or_else(|| {
+            crate::ErrorKind::InputError(format!(
+                "Modrinth source instance is missing the {loader} version and was not imported as Vanilla"
+            ))
+        })?;
+    dependencies.insert(dependency, loader_version);
+    Ok(dependencies)
 }
 
 pub async fn import_instance(
@@ -179,7 +202,7 @@ pub async fn import_instance(
         &description,
         "Imported from Modrinth source installation",
         None,
-        &dependencies(game_version, loader, loader_version),
+        &dependencies(game_version, loader, loader_version)?,
         false,
     )
     .await?;
@@ -194,4 +217,38 @@ pub async fn import_instance(
         symlink,
     )
     .await
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn source_dependencies_preserve_supported_loaders() {
+        let dependencies = dependencies(
+            "1.12.2".to_string(),
+            "cleanroom".to_string(),
+            Some("0.6.11-alpha".to_string()),
+        )
+        .unwrap();
+
+        assert_eq!(
+            dependencies.get(&PackDependency::Cleanroom),
+            Some(&"0.6.11-alpha".to_string())
+        );
+    }
+
+    #[test]
+    fn source_dependencies_reject_labymod_and_missing_versions() {
+        for result in [
+            dependencies(
+                "1.20.1".to_string(),
+                "labymod".to_string(),
+                Some("4.4.20".to_string()),
+            ),
+            dependencies("1.12.2".to_string(), "lite_loader".to_string(), None),
+        ] {
+            assert!(result.is_err());
+        }
+    }
 }

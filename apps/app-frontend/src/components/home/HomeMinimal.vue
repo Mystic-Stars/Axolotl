@@ -214,7 +214,7 @@ onUnmounted(() => {
 			<HomeGreeting :player-name="playerName" variant="minimal" />
 
 			<template v-if="selectedInstance">
-				<Card class="minimal-instance-card mt-10 w-full text-left">
+				<Card class="mb-0 mt-10 w-full text-left">
 					<div
 						class="grid min-w-0 grid-cols-1 items-center gap-5 sm:grid-cols-[minmax(0,1fr)_auto]"
 					>
@@ -297,7 +297,7 @@ onUnmounted(() => {
 			</template>
 
 			<template v-else>
-				<Card class="minimal-instance-card mt-10 w-full text-left">
+				<Card class="mb-0 mt-10 w-full text-left">
 					<div class="flex min-w-0 flex-wrap items-center gap-4">
 						<div
 							class="flex size-16 shrink-0 items-center justify-center rounded-lg bg-button-bg text-secondary"
@@ -333,9 +333,5 @@ onUnmounted(() => {
 <style scoped>
 .minimal-home-stage {
 	min-height: calc(100vh - var(--top-bar-height) - 4rem);
-}
-
-.minimal-instance-card {
-	margin-bottom: 0;
 }
 </style>

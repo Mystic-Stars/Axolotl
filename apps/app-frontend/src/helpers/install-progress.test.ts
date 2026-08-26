@@ -3,6 +3,7 @@ import test from 'node:test'
 
 import {
 	effectiveInstallProgress,
+	effectiveParallelProgress,
 	hasDeterminateInstallProgress,
 	installProgressFraction,
 	installProgressTextSource,
@@ -37,6 +38,23 @@ test('clears completed content progress when the next phase has no progress', ()
 	}
 	assert.equal(effectiveInstallProgress(nextPhase), null)
 	assert.equal(installProgressFraction(nextPhase), null)
+})
+
+test('parallel track exposes its own progress', () => {
+	const job = {
+		phase: 'downloading_content',
+		progress: { current: 2, total: 3, secondary: { current: 220, total: 300 } },
+		parallel: {
+			phase: 'downloading_minecraft',
+			current: 120,
+			total: 300,
+		},
+	}
+	assert.deepEqual(effectiveInstallProgress(job), { current: 220, total: 300 })
+	assert.deepEqual(effectiveParallelProgress(job), { current: 120, total: 300 })
+	assert.equal(installProgressFraction(job), 220 / 300)
+
+	assert.equal(effectiveParallelProgress({ phase: 'downloading_minecraft', progress: null }), null)
 })
 
 test('treats zero and non-finite totals as indeterminate', () => {

@@ -2,7 +2,7 @@ use parking_lot::Mutex;
 use reqwest::dns::{Addrs, Name, Resolve, Resolving};
 use std::collections::HashMap;
 use std::net::{IpAddr, SocketAddr};
-use std::sync::Arc;
+use std::sync::{Arc, LazyLock};
 
 #[derive(Clone, Default)]
 pub struct DownloadDnsResolver {
@@ -11,6 +11,9 @@ pub struct DownloadDnsResolver {
     #[cfg(test)]
     test_addresses: Arc<Mutex<HashMap<String, Vec<SocketAddr>>>>,
 }
+
+static PRE_RESOLVE_LOCK: LazyLock<tokio::sync::Mutex<()>> =
+    LazyLock::new(|| tokio::sync::Mutex::new(()));
 
 impl DownloadDnsResolver {
     pub fn record_result(&self, address: IpAddr, result: f64) {
@@ -45,6 +48,10 @@ impl DownloadDnsResolver {
     /// failed lookup leaves the resolver untouched and requests will resolve
     /// on demand later.
     pub async fn pre_resolve(&self, host: &str) {
+        if !self.resolved_addresses(host).is_empty() {
+            return;
+        }
+        let _guard = PRE_RESOLVE_LOCK.lock().await;
         if !self.resolved_addresses(host).is_empty() {
             return;
         }
@@ -118,21 +125,32 @@ impl Resolve for DownloadDnsResolver {
         let host = name.as_str().to_string();
         let resolver = self.clone();
         Box::pin(async move {
+            let cached_addresses = resolver
+                .resolved_addresses(&host)
+                .into_iter()
+                .map(|address| SocketAddr::new(address, 0))
+                .collect::<Vec<_>>();
             #[cfg(test)]
             let test_addresses =
                 resolver.test_addresses.lock().get(&host).cloned();
             #[cfg(test)]
             let addresses = if let Some(addresses) = test_addresses {
                 addresses
+            } else if !cached_addresses.is_empty() {
+                cached_addresses
             } else {
                 tokio::net::lookup_host((host.as_str(), 0))
                     .await?
                     .collect::<Vec<_>>()
             };
             #[cfg(not(test))]
-            let addresses = tokio::net::lookup_host((host.as_str(), 0))
-                .await?
-                .collect::<Vec<_>>();
+            let addresses = if !cached_addresses.is_empty() {
+                cached_addresses
+            } else {
+                tokio::net::lookup_host((host.as_str(), 0))
+                    .await?
+                    .collect::<Vec<_>>()
+            };
             let addresses = resolver.order_addresses(&host, addresses);
             resolver.last_resolved.lock().insert(
                 host,

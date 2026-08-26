@@ -3,7 +3,7 @@ use std::{
     io::Write,
     os::windows::process::CommandExt,
     path::{Path, PathBuf},
-    process::{Command, ExitStatus},
+    process::Command,
     thread,
     time::Duration,
 };
@@ -17,6 +17,17 @@ use tao::{
     event::{Event, StartCause, WindowEvent},
     event_loop::{ControlFlow, EventLoopBuilder, EventLoopProxy},
     window::{Theme, WindowBuilder},
+};
+use windows::{
+    Win32::{
+        Foundation::{CloseHandle, HANDLE, WAIT_OBJECT_0, WAIT_TIMEOUT},
+        System::Threading::{GetExitCodeProcess, WaitForSingleObject},
+        UI::Shell::{
+            SEE_MASK_NOCLOSEPROCESS, SHELLEXECUTEINFOW, ShellExecuteExW,
+        },
+        UI::WindowsAndMessaging::SW_HIDE,
+    },
+    core::PCWSTR,
 };
 use wry::{NewWindowResponse, WebView, WebViewBuilder, http::Request};
 
@@ -91,6 +102,45 @@ enum UserEvent {
 struct InstallFailure {
     exit_code: Option<i32>,
     message: String,
+}
+
+enum InstallerProcess {
+    Direct(std::process::Child),
+    Elevated(HANDLE),
+}
+
+impl InstallerProcess {
+    fn try_wait(&mut self) -> std::io::Result<Option<i32>> {
+        match self {
+            Self::Direct(child) => child
+                .try_wait()
+                .map(|status| status.map(|status| status.code().unwrap_or(1))),
+            Self::Elevated(process) => {
+                match unsafe { WaitForSingleObject(*process, 0) } {
+                    WAIT_OBJECT_0 => {
+                        let mut exit_code = 0;
+                        unsafe { GetExitCodeProcess(*process, &mut exit_code) }
+                            .map_err(windows_error)?;
+                        let process = std::mem::take(process);
+                        let _ = unsafe { CloseHandle(process) };
+                        Ok(Some(exit_code as i32))
+                    }
+                    WAIT_TIMEOUT => Ok(None),
+                    _ => Err(std::io::Error::last_os_error()),
+                }
+            }
+        }
+    }
+}
+
+impl Drop for InstallerProcess {
+    fn drop(&mut self) {
+        if let Self::Elevated(process) = self
+            && !process.is_invalid()
+        {
+            let _ = unsafe { CloseHandle(*process) };
+        }
+    }
 }
 
 pub fn run() -> Result<(), String> {
@@ -445,20 +495,18 @@ fn spawn_installer(
     installer: &Path,
     request: &InstallRequest,
     status_path: &Path,
-) -> std::io::Result<std::process::Child> {
+) -> std::io::Result<InstallerProcess> {
     let arguments = installer_arguments(request, status_path);
     if install_dir_requires_elevation(Path::new(request.install_dir.trim())) {
-        let command = elevated_powershell_command(installer, &arguments);
-        return Command::new("powershell")
-            .args(["-NoProfile", "-NonInteractive", "-Command", &command])
-            .spawn();
+        return elevated_installer_process(installer, &arguments)
+            .map(InstallerProcess::Elevated);
     }
 
     let mut command = Command::new(installer);
     for argument in arguments {
         command.raw_arg(argument);
     }
-    command.spawn()
+    command.spawn().map(InstallerProcess::Direct)
 }
 
 fn installer_arguments(
@@ -500,19 +548,56 @@ fn install_dir_requires_elevation(install_dir: &Path) -> bool {
     !(can_write && removed)
 }
 
-fn elevated_powershell_command(
+fn elevated_installer_process(
     installer: &Path,
     arguments: &[String],
-) -> String {
-    let installer = powershell_literal(&installer.to_string_lossy());
-    let arguments = powershell_literal(&arguments.join(" "));
-    format!(
-        "$process = Start-Process -FilePath {installer} -ArgumentList {arguments} -Verb RunAs -WindowStyle Hidden -Wait -PassThru -ErrorAction Stop; if ($null -eq $process) {{ exit 1 }}; exit $process.ExitCode"
-    )
+) -> std::io::Result<HANDLE> {
+    let verb = wide_null("runas");
+    let installer = wide_null(installer.as_os_str());
+    let arguments = wide_null(arguments.join(" "));
+    let mut execute_info = SHELLEXECUTEINFOW {
+        cbSize: size_of::<SHELLEXECUTEINFOW>() as u32,
+        fMask: SEE_MASK_NOCLOSEPROCESS,
+        lpVerb: PCWSTR(verb.as_ptr()),
+        lpFile: PCWSTR(installer.as_ptr()),
+        lpParameters: PCWSTR(arguments.as_ptr()),
+        nShow: SW_HIDE.0,
+        ..Default::default()
+    };
+
+    unsafe { ShellExecuteExW(&mut execute_info) }.map_err(windows_error)?;
+    if execute_info.hProcess.is_invalid() {
+        return Err(std::io::Error::other(
+            "elevated installer did not return a process handle",
+        ));
+    }
+
+    Ok(execute_info.hProcess)
 }
 
-fn powershell_literal(value: &str) -> String {
-    format!("'{}'", value.replace('\'', "''"))
+fn wide_null(value: impl AsRef<std::ffi::OsStr>) -> Vec<u16> {
+    use std::os::windows::ffi::OsStrExt;
+
+    value.as_ref().encode_wide().chain(Some(0)).collect()
+}
+
+fn windows_error(error: windows::core::Error) -> std::io::Error {
+    use windows::core::HRESULT;
+
+    const FACILITY_WIN32: i32 = 7;
+
+    let hr: HRESULT = error.code();
+    let raw = hr.0;
+
+    // If this is a Win32 error (FACILITY_WIN32), extract the underlying Win32 error code
+    let facility = (raw >> 16) & 0x1fff;
+    if facility == FACILITY_WIN32 {
+        let win32_code = (raw & 0xFFFF) as i32;
+        std::io::Error::from_raw_os_error(win32_code)
+    } else {
+        // Fall back to using the HRESULT value as a raw OS error code when representable
+        std::io::Error::from_raw_os_error(raw)
+    }
 }
 
 fn nsis_value_option(name: &str, value: &str) -> String {
@@ -520,7 +605,7 @@ fn nsis_value_option(name: &str, value: &str) -> String {
 }
 
 fn wait_for_installer(
-    child: &mut std::process::Child,
+    process: &mut InstallerProcess,
     status_path: &Path,
     proxy: &EventLoopProxy<UserEvent>,
 ) -> Result<(), InstallFailure> {
@@ -534,8 +619,8 @@ fn wait_for_installer(
             let _ = proxy.send_event(UserEvent::Progress(progress.min(99)));
         }
 
-        match child.try_wait() {
-            Ok(Some(status)) => return installer_result(status),
+        match process.try_wait() {
+            Ok(Some(exit_code)) => return installer_result(exit_code),
             Ok(None) => thread::sleep(Duration::from_millis(120)),
             Err(error) => {
                 return Err(InstallFailure {
@@ -547,12 +632,12 @@ fn wait_for_installer(
     }
 }
 
-fn installer_result(status: ExitStatus) -> Result<(), InstallFailure> {
-    if status.success() {
+fn installer_result(exit_code: i32) -> Result<(), InstallFailure> {
+    if exit_code == 0 {
         Ok(())
     } else {
         Err(InstallFailure {
-            exit_code: status.code(),
+            exit_code: Some(exit_code),
             message: "The NSIS installation core returned an error".to_string(),
         })
     }
@@ -578,9 +663,8 @@ fn send_to_webview(webview: Option<&WebView>, payload: serde_json::Value) {
 #[cfg(test)]
 mod tests {
     use super::{
-        UiCommand, dialog_initial_location, elevated_powershell_command,
-        install_dir_requires_elevation, launch_main_process, nsis_value_option,
-        powershell_literal,
+        UiCommand, dialog_initial_location, install_dir_requires_elevation,
+        launch_main_process, nsis_value_option, wide_null,
     };
     use std::{
         fs,
@@ -657,29 +741,14 @@ mod tests {
     }
 
     #[test]
-    fn powershell_literals_escape_apostrophes() {
+    fn wide_strings_preserve_windows_paths_and_end_with_null() {
+        let value = wide_null(r"C:\Downloads\Axolotl Launcher Setup.exe");
+
+        assert_eq!(value.last(), Some(&0));
         assert_eq!(
-            powershell_literal("C:\\O'Hare\\setup.exe"),
-            "'C:\\O''Hare\\setup.exe'"
-        );
-    }
-
-    #[test]
-    fn elevated_command_preserves_the_nsis_arguments() {
-        let arguments = vec![
-            "/S".to_string(),
-            r#"/INSTALL_DIR="C:\Program Files\Axolotl Launcher""#.to_string(),
-        ];
-        let command = elevated_powershell_command(
-            &PathBuf::from(r"C:\Downloads\Axolotl Launcher Setup.exe"),
-            &arguments,
-        );
-
-        assert!(command.contains("-Verb RunAs"));
-        assert!(
-            command.contains(
-                r#"/INSTALL_DIR="C:\Program Files\Axolotl Launcher""#
-            )
+            String::from_utf16(&value[..value.len() - 1])
+                .expect("test path should be valid UTF-16"),
+            r"C:\Downloads\Axolotl Launcher Setup.exe"
         );
     }
 

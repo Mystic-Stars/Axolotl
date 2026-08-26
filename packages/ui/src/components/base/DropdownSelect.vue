@@ -17,12 +17,12 @@
 			class="selected"
 			:class="{
 				disabled: disabled,
-				'render-down': dropdownVisible && !renderUp && !disabled,
-				'render-up': dropdownVisible && renderUp && !disabled,
+				'render-down': dropdownVisible && !effectiveRenderUp && !disabled,
+				'render-up': dropdownVisible && effectiveRenderUp && !disabled,
 			}"
 			@click="toggleDropdown"
 		>
-			<div>
+			<div class="min-w-0 overflow-hidden">
 				<slot :selected="selectedOption">
 					<span>
 						{{ selectedOption }}
@@ -31,13 +31,14 @@
 			</div>
 			<DropdownIcon class="arrow" :class="{ rotate: dropdownVisible }" />
 		</div>
-		<div class="options-wrapper" :class="{ down: !renderUp, up: renderUp }">
+		<div class="options-wrapper" :class="{ down: !effectiveRenderUp, up: effectiveRenderUp }">
 			<transition name="options">
 				<div
 					v-show="dropdownVisible"
 					class="options"
 					role="listbox"
-					:class="{ down: !renderUp, up: renderUp }"
+					:class="{ down: !effectiveRenderUp, up: effectiveRenderUp }"
+					:style="automaticMenuStyle"
 				>
 					<div
 						v-for="(option, index) in options"
@@ -68,7 +69,13 @@
 
 <script setup>
 import { DropdownIcon } from '@modrinth/assets'
-import { computed, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+
+import { dropdownPlacement } from './dropdown-placement'
+
+const OPTION_HEIGHT_REM = 3
+const DEFAULT_MAX_MENU_HEIGHT_REM = 18.75
+const SAFE_GAP_REM = 0.5
 
 const props = defineProps({
 	options: {
@@ -92,6 +99,10 @@ const props = defineProps({
 		default: null,
 	},
 	renderUp: {
+		type: Boolean,
+		default: false,
+	},
+	autoPlacement: {
 		type: Boolean,
 		default: false,
 	},
@@ -120,6 +131,52 @@ const selectedValue = ref(props.modelValue || props.defaultValue)
 const focusedOptionIndex = ref(null)
 const dropdown = ref(null)
 const optionElements = ref(null)
+const automaticRenderUp = ref(false)
+const automaticAvailableHeight = ref(null)
+const effectiveRenderUp = computed(() =>
+	props.autoPlacement ? automaticRenderUp.value : props.renderUp,
+)
+const automaticMenuStyle = computed(() =>
+	props.autoPlacement && automaticAvailableHeight.value !== null
+		? { maxHeight: `${automaticAvailableHeight.value}px` }
+		: undefined,
+)
+
+function cssPixels(property, fallback = 0) {
+	const value = Number.parseFloat(
+		getComputedStyle(document.documentElement).getPropertyValue(property),
+	)
+	return Number.isFinite(value) ? value : fallback
+}
+
+function updatePlacement() {
+	if (!props.autoPlacement || !dropdown.value) return
+	const rect = dropdown.value.getBoundingClientRect()
+	const rootFontSize = cssPixels('font-size', 16)
+	const maxMenuHeight =
+		(props.maxVisibleOptions ?? DEFAULT_MAX_MENU_HEIGHT_REM / OPTION_HEIGHT_REM) *
+		OPTION_HEIGHT_REM *
+		rootFontSize
+	const expectedMenuHeight = Math.min(
+		props.options.length * OPTION_HEIGHT_REM * rootFontSize,
+		maxMenuHeight,
+	)
+	const placement = dropdownPlacement({
+		viewportHeight: window.innerHeight,
+		controlTop: rect.top,
+		controlBottom: rect.bottom,
+		floatingActionBarClearance: cssPixels('--floating-action-bar-clearance'),
+		safeGap: SAFE_GAP_REM * rootFontSize,
+		expectedMenuHeight,
+	})
+	automaticRenderUp.value = placement.renderUp
+	automaticAvailableHeight.value = Math.min(expectedMenuHeight, placement.availableHeight)
+}
+
+function schedulePlacementUpdate() {
+	if (!dropdownVisible.value) return
+	void nextTick(updatePlacement)
+}
 
 const selectedOption = computed(() => {
 	return getOptionLabel(selectedValue.value) ?? props.placeholder ?? 'Select an option'
@@ -144,6 +201,7 @@ watch(
 
 const toggleDropdown = () => {
 	if (!props.disabled) {
+		if (!dropdownVisible.value) updatePlacement()
 		dropdownVisible.value = !dropdownVisible.value
 		dropdown.value.focus()
 	}
@@ -157,10 +215,25 @@ const selectOption = (option, index) => {
 
 const onFocus = () => {
 	if (!props.disabled) {
+		updatePlacement()
 		focusedOptionIndex.value = props.options.findIndex((option) => option === selectedValue.value)
 		dropdownVisible.value = true
 	}
 }
+
+onMounted(() => {
+	if (!props.autoPlacement) return
+	window.addEventListener('resize', schedulePlacementUpdate)
+	window.addEventListener('scroll', schedulePlacementUpdate, true)
+})
+
+onBeforeUnmount(() => {
+	if (!props.autoPlacement) return
+	window.removeEventListener('resize', schedulePlacementUpdate)
+	window.removeEventListener('scroll', schedulePlacementUpdate, true)
+})
+
+watch(() => props.options.length, schedulePlacementUpdate)
 
 const onBlur = (event) => {
 	if (!isChildOfDropdown(event.relatedTarget)) {
@@ -204,6 +277,7 @@ const isChildOfDropdown = (element) => {
 <style lang="scss" scoped>
 .animated-dropdown {
 	width: 20rem;
+	max-width: 100%;
 	height: 40px;
 	position: relative;
 	display: inline-block;
@@ -230,6 +304,13 @@ const isChildOfDropdown = (element) => {
 			0 0 0 0 transparent;
 
 		transition: 0.05s;
+
+		span {
+			display: block;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			white-space: nowrap;
+		}
 
 		&:not(.render-down):not(.render-up) {
 			transition-delay: 0.2s;
@@ -282,6 +363,8 @@ const isChildOfDropdown = (element) => {
 
 			> label {
 				cursor: pointer;
+				min-width: 0;
+				overflow-wrap: anywhere;
 			}
 
 			&:hover {
@@ -335,7 +418,7 @@ const isChildOfDropdown = (element) => {
 .options-wrapper {
 	position: absolute;
 	width: 100%;
-	overflow: auto;
+	overflow-x: hidden;
 	z-index: 9;
 
 	&.up {

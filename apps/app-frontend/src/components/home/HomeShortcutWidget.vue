@@ -268,30 +268,48 @@ watch(
 </script>
 
 <template>
-	<div class="home-shortcut-widget" :data-size="dashboardSize" :data-kind="placement.kind">
-		<div v-if="loadingTarget" class="home-shortcut-missing">
+	<div
+		class="home-shortcut-widget min-w-0 min-h-0 h-full"
+		:data-size="dashboardSize"
+		:data-kind="placement.kind"
+	>
+		<div
+			v-if="loadingTarget"
+			class="flex min-w-0 min-h-0 h-full flex-col items-center justify-center gap-2 p-4 box-border text-center"
+		>
 			<SpinnerIcon class="size-6 animate-spin text-secondary" aria-hidden="true" />
 			<span class="text-sm text-secondary">{{ formatMessage(commonMessages.loadingLabel) }}</span>
 		</div>
-		<div v-else-if="missing" class="home-shortcut-missing">
+		<div
+			v-else-if="missing"
+			class="flex min-w-0 min-h-0 h-full flex-col items-center justify-center gap-2 p-4 box-border text-center"
+		>
 			<IssuesIcon class="size-6 text-secondary" aria-hidden="true" />
 			<strong class="max-w-full truncate text-contrast">{{
 				placement.target?.fallbackLabel
 			}}</strong>
 			<span class="text-sm text-secondary">{{ formatMessage(messages.unavailable) }}</span>
 		</div>
-		<div v-else class="home-shortcut-card">
-			<router-link class="home-shortcut-visual" :to="shortcutRoute" tabindex="-1">
-				<component :is="kindIcon" class="home-shortcut-watermark" aria-hidden="true" />
+		<div v-else class="home-shortcut-card grid min-w-0 min-h-0 h-full overflow-hidden">
+			<router-link
+				class="home-shortcut-visual relative flex min-w-0 min-h-0 items-center justify-center overflow-hidden bg-button-bg text-secondary no-underline"
+				:to="shortcutRoute"
+				tabindex="-1"
+			>
+				<component
+					:is="kindIcon"
+					class="home-shortcut-watermark absolute -bottom-3 right-3 size-[4.5rem] opacity-[0.08]"
+					aria-hidden="true"
+				/>
 				<Avatar
 					v-if="shortcutIcon"
-					class="home-shortcut-icon"
+					class="home-shortcut-icon relative z-10 flex-none shadow-[var(--shadow-card)]"
 					:src="shortcutIcon"
 					:size="dashboardSize === '2x1' ? '72px' : '44px'"
 				/>
 				<InstanceIcon
 					v-else-if="instance"
-					class="home-shortcut-icon"
+					class="home-shortcut-icon relative z-10 flex-none shadow-[var(--shadow-card)]"
 					:icon-path="instance.icon_path"
 					:instance-id="instance.id"
 					:loader="instance.loader"
@@ -299,14 +317,24 @@ watch(
 				/>
 			</router-link>
 
-			<div class="home-shortcut-body">
-				<router-link class="home-shortcut-copy" :to="shortcutRoute">
-					<span class="home-shortcut-kind">
+			<div class="home-shortcut-body relative flex min-w-0 min-h-0 items-stretch">
+				<router-link
+					class="home-shortcut-copy flex min-w-0 flex-1 flex-col text-inherit no-underline"
+					:to="shortcutRoute"
+				>
+					<span
+						class="home-shortcut-kind flex min-w-0 items-center gap-[0.3rem] text-secondary text-[0.6875rem] font-bold leading-none"
+					>
 						<component :is="kindIcon" aria-hidden="true" />
 						{{ kindLabel }}
 					</span>
-					<strong class="home-shortcut-title">{{ shortcutTitle }}</strong>
-					<span class="home-shortcut-meta home-shortcut-primary">
+					<strong
+						class="home-shortcut-title min-w-0 truncate text-contrast font-[750]"
+						>{{ shortcutTitle }}</strong
+					>
+					<span
+						class="home-shortcut-meta home-shortcut-primary flex min-w-0 items-center gap-[0.35rem] truncate text-xs font-semibold leading-[1.2] text-secondary"
+					>
 						<SpinnerIcon
 							v-if="world?.type === 'server' && serverData?.refreshing"
 							class="animate-spin"
@@ -315,14 +343,16 @@ watch(
 						<component :is="statusIcon" v-else aria-hidden="true" />
 						{{ primaryLabel }}
 					</span>
-					<span class="home-shortcut-meta home-shortcut-secondary">
+					<span
+						class="home-shortcut-meta home-shortcut-secondary flex min-w-0 items-center gap-[0.35rem] truncate text-xs font-semibold leading-[1.2] text-secondary"
+					>
 						<TimerIcon v-if="world?.type !== 'server'" aria-hidden="true" />
 						<ServerIcon v-else aria-hidden="true" />
 						{{ secondaryLabel }}
 					</span>
 				</router-link>
 
-				<div class="home-shortcut-action">
+				<div class="absolute bottom-3 right-3 z-[2]">
 					<ButtonStyled v-if="isRunning" circular size="small" color="red">
 						<button v-tooltip="formatMessage(commonMessages.stopButton)" @click="stopInstance">
 							<StopCircleIcon />
@@ -345,79 +375,10 @@ watch(
 </template>
 
 <style scoped>
-.home-shortcut-widget,
-.home-shortcut-card {
-	min-width: 0;
-	min-height: 0;
-	height: 100%;
-}
-
-.home-shortcut-card {
-	display: grid;
-	overflow: hidden;
-}
-
-.home-shortcut-visual {
-	position: relative;
-	display: flex;
-	min-width: 0;
-	min-height: 0;
-	align-items: center;
-	justify-content: center;
-	overflow: hidden;
-	background: var(--color-button-bg);
-	color: var(--color-secondary);
-	text-decoration: none;
-}
-
-.home-shortcut-watermark {
-	position: absolute;
-	right: 0.75rem;
-	bottom: -0.75rem;
-	width: 4.5rem;
-	height: 4.5rem;
-	opacity: 0.08;
-}
-
-.home-shortcut-icon {
-	position: relative;
-	z-index: 1;
-	flex: 0 0 auto;
-	box-shadow: var(--shadow-card);
-}
-
-.home-shortcut-body {
-	position: relative;
-	display: flex;
-	min-width: 0;
-	min-height: 0;
-	align-items: stretch;
-}
-
-.home-shortcut-copy {
-	display: flex;
-	min-width: 0;
-	flex: 1;
-	flex-direction: column;
-	color: inherit;
-	text-decoration: none;
-}
-
 .home-shortcut-copy:focus-visible {
 	border-radius: 6px;
 	outline: 4px solid var(--color-brand-shadow);
 	outline-offset: 2px;
-}
-
-.home-shortcut-kind {
-	display: flex;
-	min-width: 0;
-	align-items: center;
-	gap: 0.3rem;
-	color: var(--color-secondary);
-	font-size: 0.6875rem;
-	font-weight: 700;
-	line-height: 1;
 }
 
 .home-shortcut-kind svg,
@@ -427,38 +388,8 @@ watch(
 	flex: 0 0 auto;
 }
 
-.home-shortcut-title {
-	min-width: 0;
-	overflow: hidden;
-	color: var(--color-contrast);
-	font-weight: 750;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-}
-
 .home-shortcut-copy:hover .home-shortcut-title {
 	text-decoration: underline;
-}
-
-.home-shortcut-meta {
-	display: flex;
-	min-width: 0;
-	align-items: center;
-	gap: 0.35rem;
-	overflow: hidden;
-	color: var(--color-secondary);
-	font-size: 0.75rem;
-	font-weight: 600;
-	line-height: 1.2;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-}
-
-.home-shortcut-action {
-	position: absolute;
-	right: 0.75rem;
-	bottom: 0.75rem;
-	z-index: 2;
 }
 
 .home-shortcut-widget[data-size='1x1'] .home-shortcut-card {
@@ -527,19 +458,5 @@ watch(
 
 .home-shortcut-widget[data-size='2x1'] .home-shortcut-secondary {
 	margin-top: 0.3rem;
-}
-
-.home-shortcut-missing {
-	display: flex;
-	min-width: 0;
-	min-height: 0;
-	height: 100%;
-	flex-direction: column;
-	align-items: center;
-	justify-content: center;
-	gap: 0.5rem;
-	padding: 1rem;
-	box-sizing: border-box;
-	text-align: center;
 }
 </style>

@@ -21,38 +21,27 @@ function copy() {
 </script>
 
 <template>
-	<section class="technical">
-		<div class="head">
-			<button :aria-expanded="open" @click="open = !open">
+	<section class="flex flex-col gap-[0.4rem]">
+		<div class="flex justify-between gap-2">
+			<button
+				:aria-expanded="open"
+				class="inline-flex items-center gap-[0.3rem] border-0 bg-transparent p-[0.2rem] text-secondary text-[0.68rem]"
+				@click="open = !open"
+			>
 				技术详情 <ChevronUpIcon v-if="open" /><ChevronDownIcon v-else />
 			</button>
-			<button @click="copy">复制诊断信息</button>
+			<button
+				class="inline-flex items-center gap-[0.3rem] border-0 bg-transparent p-[0.2rem] text-secondary text-[0.68rem]"
+				@click="copy"
+			>
+				复制诊断信息
+			</button>
 		</div>
 		<pre v-if="open">{{ JSON.stringify(diagnostic, null, 2) }}</pre>
 	</section>
 </template>
 
 <style scoped>
-.technical {
-	display: flex;
-	flex-direction: column;
-	gap: 0.4rem;
-}
-.head {
-	display: flex;
-	justify-content: space-between;
-	gap: 0.5rem;
-}
-.head button {
-	display: inline-flex;
-	align-items: center;
-	gap: 0.3rem;
-	border: 0;
-	background: transparent;
-	padding: 0.2rem;
-	color: var(--color-text-secondary);
-	font-size: 0.68rem;
-}
 .head button:focus-visible {
 	outline: 2px solid var(--color-brand);
 	outline-offset: 2px;

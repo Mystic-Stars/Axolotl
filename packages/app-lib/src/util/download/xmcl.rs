@@ -45,33 +45,6 @@ const XMCL_OTHER_CONCURRENCY: usize = 16;
 static AUTHORITY_SEMAPHORES: LazyLock<Mutex<HashMap<String, Arc<Semaphore>>>> =
     LazyLock::new(|| Mutex::new(HashMap::new()));
 static GLOBAL_SPEED_BPS: AtomicU64 = AtomicU64::new(0);
-static XMCL_SINGLE_CLIENT: LazyLock<reqwest::Client> = LazyLock::new(|| {
-    reqwest::Client::builder()
-        .connect_timeout(Duration::from_secs(20))
-        .read_timeout(Duration::from_secs(10))
-        .tcp_keepalive(Some(Duration::from_secs(10)))
-        .tcp_nodelay(true)
-        .pool_max_idle_per_host(16)
-        .http1_only()
-        .redirect(reqwest::redirect::Policy::limited(5))
-        .user_agent(crate::launcher_user_agent())
-        .build()
-        .expect("XMCL single-stream client configuration should be valid")
-});
-static XMCL_SEGMENT_CLIENT: LazyLock<reqwest::Client> = LazyLock::new(|| {
-    reqwest::Client::builder()
-        .connect_timeout(Duration::from_secs(20))
-        .read_timeout(Duration::from_secs(10))
-        .tcp_keepalive(Some(Duration::from_secs(10)))
-        .tcp_nodelay(true)
-        .pool_max_idle_per_host(16)
-        .http1_only()
-        .redirect(reqwest::redirect::Policy::limited(5))
-        .user_agent(crate::launcher_user_agent())
-        .build()
-        .expect("XMCL segment client configuration should be valid")
-});
-
 const CB_THRESHOLD: u32 = 16;
 const CB_COOLDOWN: Duration = Duration::from_secs(30);
 const CB_PROBE_EVERY: u32 = 24;
@@ -115,6 +88,7 @@ enum AttemptError {
     Managed { reason: ManagedReason, offset: u64 },
     Http { error: crate::Error, offset: u64 },
     RangeNotSupported,
+    RangeBeyondEof,
 }
 
 fn authority_of(url: &str) -> Option<String> {
@@ -335,14 +309,6 @@ async fn report_stall(rule: SlowRule, source: &str, detail: String) {
         let path = state.directories.settings_dir.join("download.log");
         let _ = super::log::append_stall(&path, &event);
     }
-    let _ = crate::telemetry::submit_download_stall(
-        "xmcl",
-        rule.as_u8(),
-        source,
-        &event.detail,
-        "",
-    )
-    .await;
 }
 
 fn http_error_for_response(
@@ -409,6 +375,15 @@ async fn download_attempt(
     progress_bytes: Option<Arc<AtomicU64>>,
     progress: &mut Option<&mut fetch::FetchProgressFn<'_>>,
 ) -> Result<u64, AttemptError> {
+    // A resume offset at or past the expected size means the part already
+    // holds every byte a Range could serve; asking for `bytes={size}-` would
+    // draw a 416. Skip the request and let verification decide the bytes.
+    if let Some(expected) = expected_total
+        && resume_offset > 0
+        && resume_offset >= expected
+    {
+        return Ok(resume_offset.min(expected));
+    }
     let Some(authority) = authority_of(url) else {
         return Err(AttemptError::Http {
             error: crate::ErrorKind::NetworkError(format!("invalid url {url}"))
@@ -428,11 +403,12 @@ async fn download_attempt(
     let _activity = crate::State::get_if_initialized()
         .map(|state| state.begin_download_connection());
 
-    let client = if range_end.is_some() {
-        &XMCL_SEGMENT_CLIENT
-    } else {
-        &XMCL_SINGLE_CLIENT
-    };
+    let client = fetch::configured_client().await.map_err(|error| {
+        AttemptError::Http {
+            error,
+            offset: resume_offset,
+        }
+    })?;
     let mut http_request = client.get(url);
     if let Some(end) = range_end {
         http_request = http_request
@@ -468,6 +444,9 @@ async fn download_attempt(
 
     if require_range {
         if response.status() != reqwest::StatusCode::PARTIAL_CONTENT {
+            if response.status() == reqwest::StatusCode::RANGE_NOT_SATISFIABLE {
+                return Err(AttemptError::RangeBeyondEof);
+            }
             return Err(AttemptError::RangeNotSupported);
         }
         if let Some(start) = content_range_start(&response) {
@@ -481,6 +460,8 @@ async fn download_attempt(
                 return Err(AttemptError::RangeNotSupported);
             }
         }
+    } else if response.status() == reqwest::StatusCode::RANGE_NOT_SATISFIABLE {
+        return Err(AttemptError::RangeBeyondEof);
     } else if response.status() != reqwest::StatusCode::OK {
         return Err(AttemptError::Http {
             error: http_error_for_response(response.status(), url),
@@ -734,6 +715,23 @@ async fn run_single_stream(
                 committed = false;
                 url_index += 1;
             }
+            Err(AttemptError::RangeBeyondEof) => {
+                // The server rejected the resume offset as past its end of
+                // file, so this source is shorter than the expected size. The
+                // partial is untrustworthy; drop it and start the next source
+                // from scratch instead of re-issuing the same Range.
+                let _ = tokio::fs::remove_file(part_path).await;
+                offset = 0;
+                resumes = 0;
+                no_progress = 0;
+                committed = false;
+                last_error = Some(crate::ErrorKind::NetworkError(
+                    "source shorter than the expected size (Range not satisfiable)"
+                        .to_string(),
+                )
+                .into());
+                url_index += 1;
+            }
             Err(AttemptError::RangeNotSupported) => {
                 return Err(crate::ErrorKind::NetworkError(
                     "server ignored Range header".to_string(),
@@ -887,6 +885,9 @@ async fn run_segment(
                 committed = false;
                 url_index += 1;
             }
+            Err(AttemptError::RangeBeyondEof) => {
+                return Err(SegmentError::RangeNotSupported);
+            }
             Err(AttemptError::RangeNotSupported) => {
                 return Err(SegmentError::RangeNotSupported);
             }
@@ -910,6 +911,25 @@ fn is_terminal_http(error: &Option<crate::Error>) -> bool {
             *status == 404 || *status == 410
         }
         _ => false,
+    }
+}
+
+/// Computes a trustworthy resume offset for an existing partial file. A
+/// complete (`part_len == expected`) partial is passed through for in-place
+/// verification, an over-length one is stale and restarted from zero; both
+/// would otherwise command an unsatisfiable Range (HTTP 416). Sizes are only
+/// trusted when the expected total is known.
+fn trusted_resume_offset(expected: Option<u64>, part_len: u64) -> u64 {
+    match expected {
+        Some(expected) if expected > 0 => {
+            if part_len > expected {
+                0
+            } else {
+                part_len
+            }
+        }
+        Some(_) => 0,
+        None => part_len,
     }
 }
 
@@ -1034,10 +1054,11 @@ async fn download_to_path_inner(
 ) -> crate::Result<fetch::DownloadResult> {
     load_reputation_if_needed().await;
     let expected_total = request.integrity.size;
-    let initial_offset = tokio::fs::metadata(part_path)
+    let part_len = tokio::fs::metadata(part_path)
         .await
         .map(|metadata| metadata.len())
         .unwrap_or(0);
+    let initial_offset = trusted_resume_offset(expected_total, part_len);
     let flow_started_at = Instant::now();
     let mut progress = progress;
 
@@ -1071,9 +1092,6 @@ async fn download_to_path_inner(
                     fetch::finalize_download(part_path, destination).await?;
                     fetch::record_install_download_finished(request, size)
                         .await;
-                    crate::telemetry::record_download_stats(
-                        1, 1, size, 0, 0, 0, 0,
-                    );
                     let route = routes.first().cloned().unwrap_or_else(|| {
                         fetch::DownloadRoute {
                             url: request.url.clone(),
@@ -1129,8 +1147,6 @@ async fn download_to_path_inner(
     .await;
     fetch::finalize_download(part_path, destination).await?;
     fetch::record_install_download_finished(request, size).await;
-    crate::telemetry::record_download_stats(1, 1, size, 0, 0, 0, 0);
-
     let route =
         routes
             .first()
@@ -1176,7 +1192,6 @@ pub(crate) async fn download_to_path(
             state.record_download_error();
         }
         cleanup_segment_files(part_path).await;
-        crate::telemetry::record_download_stats(1, 0, 0, 1, 0, 0, 0);
     }
     result
 }
@@ -1214,5 +1229,15 @@ mod tests {
         update_ewma(&mut ewma, 0.0);
         assert!(ewma.score < 100.0);
         assert_eq!(ewma.count, 2);
+    }
+
+    #[test]
+    fn trusted_resume_offset_only_accepts_incomplete_partials() {
+        assert_eq!(trusted_resume_offset(Some(100), 0), 0);
+        assert_eq!(trusted_resume_offset(Some(100), 50), 50);
+        assert_eq!(trusted_resume_offset(Some(100), 100), 100);
+        assert_eq!(trusted_resume_offset(Some(100), 200), 0);
+        assert_eq!(trusted_resume_offset(Some(0), 10), 0);
+        assert_eq!(trusted_resume_offset(None, 10), 10);
     }
 }

@@ -5,12 +5,36 @@ use serde::{Deserialize, Serialize};
 use zhconv::{Variant, zhconv};
 
 const WIKI_ENTRIES_DATA: &str = include_str!("content_search/WikiEntries.txt");
+const SEARCHER_WORDS_DATA: &str =
+    include_str!("content_search/searcher_words.txt");
 const RADIX_DIGITS: &str = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz/+=!?@#$%^&*()[]{}<>;:',";
 const MAX_MATCHES: usize = 100;
 const MIN_SIMILARITY: f64 = 0.25;
+/// Compact queries shorter than this are never worth segmenting; they are
+/// either a single known word or too ambiguous to split safely.
+const MIN_COMPACT_QUERY_LENGTH: usize = 6;
 
 static WIKI_ENTRIES: LazyLock<Vec<WikiEntry>> =
     LazyLock::new(|| parse_wiki_entries(WIKI_ENTRIES_DATA));
+
+/// Segmentation dictionary, sorted longest-first so greedy prefix matching
+/// prefers the longest known word at every step.
+static SEARCHER_WORDS: LazyLock<Vec<String>> = LazyLock::new(|| {
+    let mut words = SEARCHER_WORDS_DATA
+        .lines()
+        .map(str::trim)
+        .filter(|line| !line.is_empty() && !line.starts_with('#'))
+        .filter(|line| {
+            line.chars()
+                .all(|character| character.is_ascii_alphabetic())
+        })
+        .map(str::to_lowercase)
+        .collect::<Vec<_>>();
+    words.sort();
+    words.dedup();
+    words.sort_by(|left, right| right.len().cmp(&left.len()));
+    words
+});
 
 static CHINESE_NAME_INDEX: LazyLock<ChineseNameIndex> =
     LazyLock::new(|| build_chinese_name_index(&WIKI_ENTRIES));
@@ -120,6 +144,103 @@ struct WikiIdIndex {
 pub struct WikiIdLookup {
     pub modrinth: HashMap<String, u32>,
     pub curseforge: HashMap<String, u32>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ContentIdentityCounterpart {
+    pub provider: String,
+    pub project_id: String,
+    pub slug: String,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ContentIdentityRecord {
+    pub key: String,
+    pub counterparts: Vec<ContentIdentityCounterpart>,
+}
+
+#[derive(Debug, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ContentIdentityLookup {
+    pub modrinth: HashMap<String, Vec<ContentIdentityRecord>>,
+    pub curseforge: HashMap<String, Vec<ContentIdentityRecord>>,
+}
+
+/// Resolves curated cross-platform identities for project slugs.
+///
+/// Only entries that contain both a CurseForge and a Modrinth slug are
+/// returned. A slug may have more than one candidate identity; callers must
+/// treat that result as ambiguous instead of hard-blocking an installation.
+pub fn lookup_content_identities(
+    modrinth_slugs: &[String],
+    curseforge_slugs: &[String],
+) -> ContentIdentityLookup {
+    let requested_modrinth = modrinth_slugs
+        .iter()
+        .map(|slug| (slug.to_lowercase(), slug.clone()))
+        .collect::<HashMap<_, _>>();
+    let requested_curseforge = curseforge_slugs
+        .iter()
+        .map(|slug| (slug.to_lowercase(), slug.clone()))
+        .collect::<HashMap<_, _>>();
+    let mut modrinth = HashMap::<String, Vec<ContentIdentityRecord>>::new();
+    let mut curseforge = HashMap::<String, Vec<ContentIdentityRecord>>::new();
+
+    for entry in WIKI_ENTRIES.iter() {
+        let (Some(curseforge_slug), Some(modrinth_slug)) = (
+            entry.curseforge_slug.as_deref(),
+            entry.modrinth_slug.as_deref(),
+        ) else {
+            continue;
+        };
+        let key = format!("mapping:{}", entry.wiki_id);
+        let counterparts = vec![
+            ContentIdentityCounterpart {
+                provider: "curseforge".to_string(),
+                project_id: curseforge_slug.to_string(),
+                slug: curseforge_slug.to_string(),
+            },
+            ContentIdentityCounterpart {
+                provider: "modrinth".to_string(),
+                project_id: modrinth_slug.to_string(),
+                slug: modrinth_slug.to_string(),
+            },
+        ];
+        let record = ContentIdentityRecord {
+            key: key.clone(),
+            counterparts,
+        };
+        if let Some(original) =
+            requested_modrinth.get(&modrinth_slug.to_lowercase())
+        {
+            push_identity_record(&mut modrinth, original, &record);
+        }
+        if let Some(original) =
+            requested_curseforge.get(&curseforge_slug.to_lowercase())
+        {
+            push_identity_record(&mut curseforge, original, &record);
+        }
+    }
+
+    ContentIdentityLookup {
+        modrinth,
+        curseforge,
+    }
+}
+
+fn push_identity_record(
+    index: &mut HashMap<String, Vec<ContentIdentityRecord>>,
+    slug: &str,
+    record: &ContentIdentityRecord,
+) {
+    let records = index.entry(slug.to_string()).or_default();
+    if records.iter().any(|candidate| candidate.key == record.key) {
+        return;
+    }
+    records.push(record.clone());
+    records.sort_by(|left, right| left.key.cmp(&right.key));
 }
 
 /// Batch-resolves MC 百科 (mcmod.cn) class IDs for known platform slugs,
@@ -411,6 +532,60 @@ pub fn resolve_chinese_content_search(query: &str) -> ChineseSearchResolution {
         modrinth_slugs,
         translations,
     }
+}
+
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ContentSearchExpansion {
+    /// Dictionary-based segmentation of a compact (separator-free) query,
+    /// e.g. `sodiumextra` → `sodium extra`. `None` when the query is already
+    /// a single known word, cannot be fully segmented, or is too short.
+    pub suggested_split: Option<String>,
+}
+
+/// Expands a browse search query with the bundled segmentation dictionary.
+///
+/// Server-side search (Modrinth, CurseForge) tokenizes on whitespace and
+/// separators, so a query typed without spaces (`sodiumextra`) cannot match a
+/// project named "Sodium Extra". This resolves such queries to their
+/// space-separated form whenever the whole query can be reconstructed from
+/// known words; ambiguity (`xyzabc`) yields no suggestion.
+pub fn expand_content_search_query(query: &str) -> ContentSearchExpansion {
+    let compact = query
+        .chars()
+        .filter(|character| character.is_alphanumeric())
+        .collect::<String>()
+        .to_lowercase();
+    ContentSearchExpansion {
+        suggested_split: segment_compact_query(&compact),
+    }
+}
+
+fn segment_compact_query(compact: &str) -> Option<String> {
+    if compact.len() < MIN_COMPACT_QUERY_LENGTH
+        || SEARCHER_WORDS.iter().any(|word| word == compact)
+    {
+        return None;
+    }
+    let mut parts = Vec::new();
+    let mut rest = compact;
+    while !rest.is_empty() {
+        let Some((word, remainder)) = longest_prefix_word(rest) else {
+            return None;
+        };
+        parts.push(word);
+        rest = remainder;
+    }
+    if parts.len() < 2 || parts.iter().any(|part| part.len() < 2) {
+        return None;
+    }
+    Some(parts.join(" "))
+}
+
+fn longest_prefix_word<'a>(value: &'a str) -> Option<(&'a str, &'a str)> {
+    SEARCHER_WORDS.iter().find_map(|word| {
+        value.strip_prefix(word).map(|rest| (word.as_str(), rest))
+    })
 }
 
 fn parse_wiki_entries(source: &str) -> Vec<WikiEntry> {
@@ -912,6 +1087,38 @@ mod tests {
     }
 
     #[test]
+    fn looks_up_cross_platform_content_identities() {
+        let lookup = lookup_content_identities(
+            &["ae2".to_string(), "unknown".to_string()],
+            &["applied-energistics-2".to_string()],
+        );
+        let modrinth = lookup.modrinth.get("ae2").expect("Modrinth identity");
+        let curseforge = lookup
+            .curseforge
+            .get("applied-energistics-2")
+            .expect("CurseForge identity");
+        assert_eq!(modrinth.len(), 1);
+        assert_eq!(modrinth[0].key, curseforge[0].key);
+        assert!(
+            modrinth[0]
+                .counterparts
+                .iter()
+                .any(|counterpart| counterpart.provider == "curseforge")
+        );
+        assert!(!lookup.modrinth.contains_key("unknown"));
+    }
+
+    #[test]
+    fn cross_platform_identity_lookup_requires_both_slugs() {
+        let lookup = lookup_content_identities(
+            &["only-mr".to_string()],
+            &["not-present".to_string()],
+        );
+        assert!(lookup.modrinth.is_empty());
+        assert!(lookup.curseforge.is_empty());
+    }
+
+    #[test]
     fn wiki_id_index_prefers_more_popular_entries_for_duplicate_slugs() {
         let entries = parse_wiki_entries("dup@|旧名\ndup@|新名\n001002");
         let index = build_wiki_id_index(&entries);
@@ -1019,5 +1226,64 @@ mod tests {
         assert!(words.contains(&"ender".to_string()));
         assert!(words.contains(&"io".to_string()));
         assert!(!words.contains(&"enderio".to_string()));
+    }
+
+    #[test]
+    fn segments_compact_queries_into_known_words() {
+        assert_eq!(
+            expand_content_search_query("sodiumextra")
+                .suggested_split
+                .as_deref(),
+            Some("sodium extra")
+        );
+        assert_eq!(
+            expand_content_search_query("irisshaders")
+                .suggested_split
+                .as_deref(),
+            Some("iris shaders")
+        );
+        assert_eq!(
+            expand_content_search_query("examplemod")
+                .suggested_split
+                .as_deref(),
+            Some("example mod")
+        );
+        assert_eq!(
+            expand_content_search_query("thetwilightforest")
+                .suggested_split
+                .as_deref(),
+            Some("the twilight forest")
+        );
+        assert_eq!(
+            expand_content_search_query("shulkerbox")
+                .suggested_split
+                .as_deref(),
+            Some("shulker box")
+        );
+    }
+
+    #[test]
+    fn leaves_known_and_unsegmentable_queries_without_a_split() {
+        assert_eq!(expand_content_search_query("sodium").suggested_split, None);
+        assert_eq!(expand_content_search_query("ae2").suggested_split, None);
+        assert_eq!(expand_content_search_query("xyzabc").suggested_split, None);
+        assert_eq!(expand_content_search_query("").suggested_split, None);
+        assert_eq!(expand_content_search_query("a b").suggested_split, None);
+    }
+
+    #[test]
+    fn segmentation_ignores_separators_and_case() {
+        assert_eq!(
+            expand_content_search_query("Sodium-Extra")
+                .suggested_split
+                .as_deref(),
+            Some("sodium extra")
+        );
+        assert_eq!(
+            expand_content_search_query("sodium extra")
+                .suggested_split
+                .as_deref(),
+            Some("sodium extra")
+        );
     }
 }

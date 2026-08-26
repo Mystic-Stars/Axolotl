@@ -1,10 +1,14 @@
 <script setup lang="ts">
 import type { Labrinth } from '@modrinth/api-client'
 import {
+	BookmarkFilledIcon,
+	BookmarkIcon,
 	CheckIcon,
+	ChevronDownIcon,
 	ClipboardCopyIcon,
 	CurseForgeIcon,
 	ExternalIcon,
+	FileArchiveIcon,
 	GenericListIcon,
 	GlobeIcon,
 	GridIcon,
@@ -12,12 +16,13 @@ import {
 	ListIcon,
 	ModrinthIcon,
 	PlusIcon,
+	SparklesIcon,
 	SpinnerIcon,
 } from '@modrinth/assets'
 import type {
-	BrowseInstallContentType,
 	BrowseDisplayMode,
 	BrowseDisplayModeOption,
+	BrowseInstallContentType,
 	BrowseSearchResponse,
 	CardAction,
 	ProjectType,
@@ -30,10 +35,12 @@ import {
 	commonMessages,
 	CreationFlowModal,
 	defineMessages,
+	EmptyState,
 	getLatestMatchingInstallVersion,
 	getSelectedInstallPreferences,
 	getTargetInstallPreferences,
 	injectNotificationManager,
+	isVersionTypeMatch,
 	PopoutMenu,
 	preferencesDiffer,
 	provideBrowseManager,
@@ -42,19 +49,33 @@ import {
 	stripServerRuntimeInstallOverrides,
 	useBrowseSearch,
 	useDebugLogger,
+	usesTargetGameVersion,
 	useVIntl,
 } from '@modrinth/ui'
 import { useQueryClient } from '@tanstack/vue-query'
-import type { Ref } from 'vue'
 import { computed, nextTick, onMounted, onUnmounted, ref, shallowRef, watch } from 'vue'
 import type { LocationQuery } from 'vue-router'
 import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
 
+import BrowseInstanceSelector from '@/components/browse/BrowseInstanceSelector.vue'
 import ContextMenu from '@/components/ui/ContextMenu.vue'
+import InstanceIcon from '@/components/ui/InstanceIcon.vue'
 import { useAppServerBrowse } from '@/composables/browse/use-app-server-browse'
+import { useContentFavorites } from '@/composables/useContentFavorites'
 import { useNetworkStatus } from '@/composables/useNetworkStatus'
 import { useTranslationToggle } from '@/composables/useTranslationToggle'
+import {
+	type BrowseFilterMemory,
+	getBrowseFilterMemory,
+	setBrowseFilterMemory,
+} from '@/helpers/browse-filter-memory'
 import { mergeProviderResults } from '@/helpers/browse-merge'
+import { createBrowseProjectTabs, getBrowseProjectTabOptions } from '@/helpers/browse-project-tabs'
+import {
+	curseForgeQueryVariants,
+	expandSearchQuery,
+	normalizeSearchText,
+} from '@/helpers/search-query'
 import {
 	completeBrowseReturnNavigation,
 	consumeBrowseReturnSnapshot,
@@ -69,11 +90,13 @@ import {
 	get_search_results_v3,
 	get_version_many,
 } from '@/helpers/cache.js'
+import { type FavoriteContentType, isFavoriteContentType } from '@/helpers/content-favorites'
 import {
 	bilingualTitle,
 	type ChineseSearchResolution,
 	type ChineseSearchTranslation,
 	containsChineseSearchText,
+	expandContentSearchQuery,
 	resolveChineseContentSearch,
 	translateSearchHitTitles,
 } from '@/helpers/content-search'
@@ -81,6 +104,7 @@ import {
 	type CurseForgeCategory,
 	getCurseForgeCapability,
 	getCurseForgeCategories,
+	getCurseForgeFiles,
 	getCurseForgeImageUrl,
 	searchCurseForgeProjects,
 	type UnifiedSearchHit,
@@ -100,7 +124,18 @@ import {
 	get_installed_project_ids as getInstalledProjectIds,
 } from '@/helpers/instance'
 import { getDisplayInstanceIcon } from '@/helpers/instance-icons'
+import {
+	getMcArchiveGameVersions,
+	type McArchiveGameVersion,
+	type McArchiveMod,
+	searchMcArchiveMods,
+} from '@/helpers/mcarchive'
 import { get_loader_versions as getLoaderManifest } from '@/helpers/metadata'
+import {
+	planetMinecraftConnectorAvailable,
+	type PlanetMinecraftProject,
+	searchPlanetMinecraftProjects,
+} from '@/helpers/planet-minecraft'
 import {
 	type BrowseContentSource,
 	get as getSettings,
@@ -109,14 +144,16 @@ import {
 	isBrowseContentProjectType,
 	set as setSettings,
 	setLastBrowseContentDisplayMode,
-	setLastBrowseContentSource,
 	setLastBrowseContentProjectType,
+	setLastBrowseContentSource,
 } from '@/helpers/settings.ts'
 import { get_categories, get_game_versions, get_loaders } from '@/helpers/tags'
 import { translateSearchDescriptions } from '@/helpers/translation'
+import type { GameInstance } from '@/helpers/types'
 import { get_instance_worlds } from '@/helpers/worlds'
 import i18n from '@/i18n.config'
 import { injectContentInstall } from '@/providers/content-install'
+import { injectContentSelection, makeContentSelectionKey } from '@/providers/content-selection'
 import { injectServerInstall } from '@/providers/server-install'
 import {
 	createServerInstallContent,
@@ -130,11 +167,18 @@ const { formatMessage } = useVIntl()
 const { installingServerProjects, playServerProject, showAddServerToInstanceModal } =
 	injectServerInstall()
 const { install: installVersion, installCurseForge } = injectContentInstall()
+const contentSelection = injectContentSelection()
+const contentFavorites = useContentFavorites()
 const queryClient = useQueryClient()
 const debugLog = useDebugLogger('Browse')
 const router = useRouter()
 const route = useRoute()
+
+void contentFavorites.load().catch(handleError)
 const projectType = ref<ProjectType>(route.params.projectType as ProjectType)
+const WORLD_BROWSE_PROJECT_TYPE = 'world' as ProjectType
+const isWorldMapBrowse = computed(() => projectType.value === WORLD_BROWSE_PROJECT_TYPE)
+const isWorldMapContext = computed(() => route.query.from === 'world-maps')
 
 function rememberBrowseContentProjectType(type: ProjectType) {
 	if (
@@ -164,6 +208,7 @@ const curseForgeClassIds: Partial<Record<ProjectType, number>> = {
 	datapack: 6945,
 	shader: 6552,
 	modpack: 4471,
+	[WORLD_BROWSE_PROJECT_TYPE]: 17,
 }
 
 const curseForgeCapability = ref(
@@ -172,9 +217,23 @@ const curseForgeCapability = ref(
 		configured: false,
 	})),
 )
+const planetMinecraftAvailable = ref(await planetMinecraftConnectorAvailable().catch(() => false))
 const rememberedContentSource = getLastBrowseContentSource()
 
 function resolveInitialContentSource(): BrowseContentSource {
+	if (route.params.projectType === WORLD_BROWSE_PROJECT_TYPE) {
+		return 'curseforge'
+	}
+	if (route.params.projectType === 'mod' && route.query.source === 'mcarchive') {
+		return 'mcarchive'
+	}
+	if (
+		route.params.projectType === 'mod' &&
+		route.query.source === 'planet_minecraft' &&
+		planetMinecraftAvailable.value
+	) {
+		return 'planet_minecraft'
+	}
 	if (curseForgeCapability.value.configured && route.query.source === 'curseforge') {
 		return 'curseforge'
 	}
@@ -187,10 +246,23 @@ function resolveInitialContentSource(): BrowseContentSource {
 	if (rememberedContentSource === 'modrinth') {
 		return 'modrinth'
 	}
+	if (rememberedContentSource === 'mcarchive' && route.params.projectType === 'mod') {
+		return 'mcarchive'
+	}
+	if (
+		rememberedContentSource === 'planet_minecraft' &&
+		route.params.projectType === 'mod' &&
+		planetMinecraftAvailable.value
+	) {
+		return 'planet_minecraft'
+	}
 	return curseForgeCapability.value.configured ? 'all' : 'modrinth'
 }
 
 const contentSource = ref<BrowseContentSource>(resolveInitialContentSource())
+if (isWorldMapBrowse.value) {
+	contentSource.value = 'curseforge'
+}
 const curseForgeCategoriesByClass = ref<Record<number, CurseForgeCategory[]>>({})
 
 async function ensureCurseForgeCategories(projectTypeValue: ProjectType) {
@@ -251,17 +323,33 @@ const {
 } = serverInstallContent
 
 debugLog('fetching tags (categories, loaders, gameVersions)')
-const [categories, loaders, availableGameVersions] = await Promise.all([
-	get_categories()
-		.catch(handleError)
-		.then(ref<Labrinth.Tags.v2.Category[]>),
-	get_loaders()
-		.catch(handleError)
-		.then(ref<Labrinth.Tags.v2.Loader[]>),
-	get_game_versions()
-		.catch(handleError)
-		.then(ref<Labrinth.Tags.v2.GameVersion[]>),
-])
+let categories: Ref<Labrinth.Tags.v2.Category[]> = ref([])
+let loaders: Ref<Labrinth.Tags.v2.Loader[]> = ref([])
+let availableGameVersions: Ref<Labrinth.Tags.v2.GameVersion[]> = ref([])
+const mcArchiveGameVersions = ref<McArchiveGameVersion[]>([])
+if (!isWorldMapBrowse.value) {
+	;[categories, loaders, availableGameVersions] = await Promise.all([
+		get_categories()
+			.catch(handleError)
+			.then(ref<Labrinth.Tags.v2.Category[]>),
+		get_loaders()
+			.catch(handleError)
+			.then(ref<Labrinth.Tags.v2.Loader[]>),
+		get_game_versions()
+			.catch(handleError)
+			.then(ref<Labrinth.Tags.v2.GameVersion[]>),
+	])
+}
+
+async function refreshMcArchiveGameVersions() {
+	if (mcArchiveGameVersions.value.length > 0) return
+	mcArchiveGameVersions.value = await getMcArchiveGameVersions().catch((error) => {
+		handleError(error)
+		return []
+	})
+}
+
+if (contentSource.value === 'mcarchive') await refreshMcArchiveGameVersions()
 
 const curseForgeCategoryTags = computed(() => {
 	const classId = curseForgeClassIds[projectType.value]
@@ -327,32 +415,42 @@ const allSourceCategoryTags = computed(() => {
 })
 
 const tags: Ref<Tags> = computed(() => ({
-	gameVersions: availableGameVersions.value ?? [],
-	loaders: loaders.value ?? [],
+	gameVersions:
+		contentSource.value === 'mcarchive'
+			? mcArchiveGameVersions.value.map((version) => ({
+					version: version.name,
+					version_type: version.versionType ?? 'release',
+					date: '',
+					major: false,
+				}))
+			: (availableGameVersions.value ?? []),
+	loaders:
+		contentSource.value === 'mcarchive' || contentSource.value === 'planet_minecraft'
+			? []
+			: (loaders.value ?? []),
 	categories:
-		contentSource.value === 'curseforge'
-			? curseForgeCategoryTags.value
-			: contentSource.value === 'all'
-				? allSourceCategoryTags.value
-				: (categories.value ?? []),
+		contentSource.value === 'mcarchive' || contentSource.value === 'planet_minecraft'
+			? []
+			: contentSource.value === 'curseforge'
+				? curseForgeCategoryTags.value
+				: contentSource.value === 'all'
+					? allSourceCategoryTags.value
+					: (categories.value ?? []),
 }))
 
-type Instance = {
-	game_version: string
-	loader: string
-	path: string
-	install_stage: string
-	icon_path?: string
-	name: string
-	link?: {
-		type: string
-		project_id: string
-		version_id: string
-	}
-}
-
-const instance: Ref<Instance | null> = ref(null)
-const installedProjectIds: Ref<string[] | null> = ref(null)
+const instance = ref<GameInstance | null>(null)
+const instanceSelector = ref()
+const pendingRouteInstanceSwitch = ref<GameInstance | null>(null)
+const activeInstance = computed(() => contentSelection.targetInstance.value ?? instance.value)
+const mcArchiveAvailable = computed(() => {
+	const gameVersion = activeInstance.value?.game_version
+	if (!gameVersion) return false
+	const metadata = availableGameVersions.value.find((version) => version.version === gameVersion)
+	return metadata ? isVersionTypeMatch(metadata.version_type, gameVersion, 'ancient') : false
+})
+const installedProjectIds = ref<string[] | null>(null)
+const installedProjectIdsInstanceId = ref<string | null>(null)
+let installedProjectRequestId = 0
 const instanceHideInstalled = ref(false)
 const newlyInstalled = ref<string[]>([])
 const hiddenInstanceProjectIds = ref<Set<string>>(new Set())
@@ -368,13 +466,19 @@ if (isFromWorlds.value && route.params.projectType !== 'server') {
 
 enforceSetupModpackRoute(route.params.projectType as string | undefined)
 
+const scopedInstalledProjectIds = computed(() =>
+	installedProjectIdsInstanceId.value === activeInstance.value?.id
+		? (installedProjectIds.value ?? [])
+		: [],
+)
+
 const allInstalledIds = computed(
-	() => new Set([...newlyInstalled.value, ...(installedProjectIds.value ?? [])]),
+	() => new Set([...newlyInstalled.value, ...scopedInstalledProjectIds.value]),
 )
 
 function syncHiddenInstanceProjectIds() {
 	hiddenInstanceProjectIds.value = new Set([
-		...(installedProjectIds.value ?? []),
+		...scopedInstalledProjectIds.value,
 		...newlyInstalled.value,
 	])
 	hiddenInstanceProjectIdsInitialized.value = true
@@ -396,25 +500,47 @@ watchServerContextChanges()
 await initInstanceContext()
 
 async function refreshInstalledProjectIds() {
-	if (!route.query.i) return
+	const requestId = ++installedProjectRequestId
+	const instanceId = activeInstance.value?.id
+	if (!instanceId) {
+		installedProjectIds.value = null
+		installedProjectIdsInstanceId.value = null
+		return
+	}
+	const requestInstanceId = instanceId
+	if (installedProjectIdsInstanceId.value !== requestInstanceId) {
+		installedProjectIds.value = null
+		installedProjectIdsInstanceId.value = null
+		hiddenInstanceProjectIds.value = new Set()
+		hiddenInstanceProjectIdsInitialized.value = false
+	}
 
 	if (route.query.from === 'worlds') {
-		const worlds = await get_instance_worlds(route.query.i as string).catch(handleError)
+		const worlds = await get_instance_worlds(requestInstanceId).catch(handleError)
 		if (!worlds) return
+		if (requestId !== installedProjectRequestId || activeInstance.value?.id !== requestInstanceId)
+			return
 
 		const serverProjectIds = worlds
 			.filter((w) => w.type === 'server' && 'project_id' in w && w.project_id)
 			.map((w) => (w as { project_id: string }).project_id)
 		debugLog('installedServerProjectIds loaded', { count: serverProjectIds.length })
 		installedProjectIds.value = serverProjectIds
+		installedProjectIdsInstanceId.value = requestInstanceId
 		return
 	}
 
-	const ids = await getInstalledProjectIds(route.query.i as string).catch(handleError)
-	if (!ids) return
-
-	debugLog('installedProjectIds loaded', { count: ids.length })
-	installedProjectIds.value = ids
+	const ids = await getInstalledProjectIds(requestInstanceId).catch(handleError)
+	if (
+		ids &&
+		requestId === installedProjectRequestId &&
+		activeInstance.value?.id === requestInstanceId
+	) {
+		debugLog('installedProjectIds loaded', { count: ids.length })
+		installedProjectIds.value = ids
+		installedProjectIdsInstanceId.value = requestInstanceId
+		await contentSelection.refreshInstalledIdentities()
+	}
 }
 
 async function initInstanceContext() {
@@ -426,16 +552,28 @@ async function initInstanceContext() {
 		queryFrom: route.query.from,
 	})
 	await initServerContext()
+	await contentSelection.refreshInstances((route.query.i as string | undefined) ?? undefined)
 
 	if (route.query.i) {
 		instance.value = (await getInstance(route.query.i as string).catch(handleError)) ?? null
+		if (
+			instance.value?.install_stage === 'installed' &&
+			(contentSelection.selectedCount.value === 0 ||
+				contentSelection.targetInstance.value?.id === instance.value.id)
+		) {
+			contentSelection.setTarget(instance.value)
+		} else if (
+			instance.value?.install_stage === 'installed' &&
+			contentSelection.selectedCount.value > 0 &&
+			contentSelection.targetInstance.value?.id !== instance.value.id
+		) {
+			pendingRouteInstanceSwitch.value = instance.value
+		}
 		debugLog('instance loaded', {
 			name: instance.value?.name,
 			loader: instance.value?.loader,
 			gameVersion: instance.value?.game_version,
 		})
-
-		await refreshInstalledProjectIds()
 
 		if (instance.value?.link?.project_id) {
 			debugLog('checking linked project for server status', instance.value.link.project_id)
@@ -449,6 +587,14 @@ async function initInstanceContext() {
 			}
 		}
 	}
+	if (!instance.value && activeInstance.value?.link?.project_id) {
+		const projectV3 = await get_project_v3(
+			activeInstance.value.link.project_id,
+			'must_revalidate',
+		).catch(handleError)
+		isServerInstance.value = projectV3?.minecraft_server != null
+	}
+	await refreshInstalledProjectIds()
 
 	if (route.query.ai && !(route.params.projectType === 'modpack')) {
 		debugLog('setting instanceHideInstalled from query', route.query.ai)
@@ -459,13 +605,13 @@ async function initInstanceContext() {
 const instanceFilters = computed(() => {
 	const filters = []
 
-	if (instance.value) {
-		const gameVersion = instance.value.game_version
-		if (gameVersion) {
+	if (activeInstance.value) {
+		const gameVersion = activeInstance.value.game_version
+		if (gameVersion && usesTargetGameVersion(projectType.value)) {
 			filters.push({ type: 'game_version', option: gameVersion })
 		}
 
-		const platform = instance.value.loader
+		const platform = activeInstance.value.loader
 		const supportedModLoaders = ['fabric', 'forge', 'quilt', 'neoforge']
 
 		if (platform && projectType.value === 'mod' && supportedModLoaders.includes(platform)) {
@@ -516,7 +662,9 @@ const serverContextFilters = computed(() => {
 
 	if (pt !== 'modpack') {
 		const gameVersion = serverContextServerData.value.mc_version
-		if (gameVersion) filters.push({ type: 'game_version', option: gameVersion })
+		if (gameVersion && usesTargetGameVersion(pt)) {
+			filters.push({ type: 'game_version', option: gameVersion })
+		}
 
 		const platform = serverContextServerData.value.loader?.toLowerCase()
 		if (platform && ['fabric', 'forge', 'quilt', 'neoforge'].includes(platform))
@@ -549,9 +697,12 @@ const serverContextFilters = computed(() => {
 	return filters
 })
 
-const combinedProvidedFilters = computed(() =>
-	isServerContext.value ? serverContextFilters.value : instanceFilters.value,
-)
+const combinedProvidedFilters = computed(() => {
+	if (contentSource.value === 'mcarchive') return []
+	if (isServerContext.value) return serverContextFilters.value
+	if (projectType.value === 'modpack' || projectType.value === 'server') return []
+	return instanceFilters.value
+})
 
 const {
 	serverPings,
@@ -580,6 +731,34 @@ const messages = defineMessages({
 		id: 'app.browse.add',
 		defaultMessage: 'Add',
 	},
+	chooseInstance: {
+		id: 'app.browse.choose-instance',
+		defaultMessage: 'Choose instance',
+	},
+	installSelected: {
+		id: 'app.browse.install-selected',
+		defaultMessage: 'Install {count} content',
+	},
+	preparingSelected: {
+		id: 'app.browse.preparing-selected',
+		defaultMessage: 'Preparing {completed}/{total}',
+	},
+	selected: {
+		id: 'app.browse.selected',
+		defaultMessage: 'Selected',
+	},
+	addToFavorites: {
+		id: 'app.content-favorites.add',
+		defaultMessage: 'Add to favorites',
+	},
+	removeFromFavorites: {
+		id: 'app.content-favorites.remove',
+		defaultMessage: 'Remove from favorites',
+	},
+	noCompatibleVersion: {
+		id: 'app.browse.no-compatible-version',
+		defaultMessage: 'No compatible version was found for the selected instance.',
+	},
 	addServersToInstance: {
 		id: 'app.browse.add-servers-to-instance',
 		defaultMessage: 'Adding server to instance',
@@ -595,6 +774,34 @@ const messages = defineMessages({
 	discoverServers: {
 		id: 'app.browse.discover-servers',
 		defaultMessage: 'Discover servers',
+	},
+	discoverMaps: {
+		id: 'app.browse.discover-maps',
+		defaultMessage: 'Discover maps',
+	},
+	mapsProjectType: {
+		id: 'app.browse.project-type.maps',
+		defaultMessage: 'Maps',
+	},
+	mapsUnavailable: {
+		id: 'app.browse.maps-unavailable',
+		defaultMessage: 'Maps unavailable',
+	},
+	mapsUnavailableDescription: {
+		id: 'app.browse.maps-unavailable-description',
+		defaultMessage: 'Configure a CurseForge API key to browse and install maps.',
+	},
+	mapsNoInstallableFile: {
+		id: 'app.browse.maps-no-installable-file',
+		defaultMessage: 'The selected CurseForge map does not have an installable file.',
+	},
+	fuzzySearchPrefix: {
+		id: 'app.browse.fuzzy-search.prefix',
+		defaultMessage: 'No results found for “{original}”. Showing results for',
+	},
+	fuzzySearchSuffix: {
+		id: 'app.browse.fuzzy-search.suffix',
+		defaultMessage: 'instead',
 	},
 	environmentProvidedByServer: {
 		id: 'search.filter.locked.server-environment.title',
@@ -653,6 +860,10 @@ const messages = defineMessages({
 		id: 'app.browse.project-type.servers',
 		defaultMessage: 'Servers',
 	},
+	favoritesProjectType: {
+		id: 'app.browse.project-type.favorites',
+		defaultMessage: 'Favorites',
+	},
 	modLoaderProvidedByServer: {
 		id: 'search.filter.locked.server-loader.title',
 		defaultMessage: 'Loader is provided by the server',
@@ -697,6 +908,14 @@ const messages = defineMessages({
 		id: 'app.browse.source.curseforge',
 		defaultMessage: 'CurseForge',
 	},
+	mcArchiveSource: {
+		id: 'app.browse.source.mcarchive',
+		defaultMessage: 'MCArchive',
+	},
+	planetMinecraftSource: {
+		id: 'app.browse.source.planet-minecraft',
+		defaultMessage: 'Planet Minecraft',
+	},
 	translateProject: {
 		id: 'app.project.translation.translate',
 		defaultMessage: 'Translate',
@@ -712,21 +931,46 @@ const messages = defineMessages({
 })
 
 const sourceIcon = computed(() => {
+	if (!sourceOptions.value.some((option) => option.id === contentSource.value)) {
+		return GlobeIcon
+	}
 	switch (contentSource.value) {
 		case 'modrinth':
 			return ModrinthIcon
 		case 'curseforge':
 			return CurseForgeIcon
+		case 'mcarchive':
+			return FileArchiveIcon
+		case 'planet_minecraft':
+			return GlobeIcon
 		default:
 			return GlobeIcon
 	}
 })
 
-const sourceOptions = computed(() => [
-	{ id: 'all' as const, label: messages.allSources, icon: GlobeIcon },
-	{ id: 'modrinth' as const, label: messages.modrinthSource, icon: ModrinthIcon },
-	{ id: 'curseforge' as const, label: messages.curseForgeSource, icon: CurseForgeIcon },
-])
+const sourceOptions = computed(() =>
+	isWorldMapBrowse.value
+		? [{ id: 'curseforge' as const, label: messages.curseForgeSource, icon: CurseForgeIcon }]
+		: [
+				{ id: 'all' as const, label: messages.allSources, icon: GlobeIcon },
+				{ id: 'modrinth' as const, label: messages.modrinthSource, icon: ModrinthIcon },
+				...(curseForgeCapability.value.configured
+					? [{ id: 'curseforge' as const, label: messages.curseForgeSource, icon: CurseForgeIcon }]
+					: []),
+				...(projectType.value === 'mod' && mcArchiveAvailable.value
+					? [{ id: 'mcarchive' as const, label: messages.mcArchiveSource, icon: FileArchiveIcon }]
+					: []),
+				...(projectType.value === 'mod' && planetMinecraftAvailable.value
+					? [
+							{
+								id: 'planet_minecraft' as const,
+								label: messages.planetMinecraftSource,
+								icon: GlobeIcon,
+							},
+						]
+					: []),
+			],
+)
 
 const currentSourceLabel = computed(() => {
 	const current = sourceOptions.value.find((opt) => opt.id === contentSource.value)
@@ -735,14 +979,22 @@ const currentSourceLabel = computed(() => {
 
 const breadcrumbs = useBreadcrumbs()
 const browseTitle = computed(() =>
-	formatMessage(isFromWorlds.value ? messages.discoverServers : messages.discoverContent),
+	formatMessage(
+		isFromWorlds.value
+			? messages.discoverServers
+			: isWorldMapBrowse.value
+				? messages.discoverMaps
+				: messages.discoverContent,
+	),
 )
 breadcrumbs.setName('BrowseTitle', browseTitle.value)
 if (instance.value) {
 	const instanceLink = `/instance/${encodeURIComponent(instance.value.id)}`
+	const instanceIcon = getDisplayInstanceIcon(instance.value.icon_path, instance.value.loader).url
 	breadcrumbs.setContext({
 		name: instance.value.name,
-		link: isFromWorlds.value ? `${instanceLink}/worlds` : instanceLink,
+		link: isFromWorlds.value || isWorldMapContext.value ? `${instanceLink}/worlds` : instanceLink,
+		iconUrl: instanceIcon,
 	})
 } else {
 	breadcrumbs.setContext(null)
@@ -769,7 +1021,7 @@ onBeforeRouteLeave((to) => {
 	}
 
 	breadcrumbs.setContext({
-		name: browseTitle.value,
+		name: '?BrowseTitle',
 		link: `/browse/${projectType.value}`,
 		query: route.query,
 	})
@@ -780,7 +1032,9 @@ function resetInstanceContext() {
 
 	debugLog('instance context removed, resetting')
 	instance.value = null
+	installedProjectRequestId += 1
 	installedProjectIds.value = null
+	installedProjectIdsInstanceId.value = null
 	instanceHideInstalled.value = false
 	newlyInstalled.value = []
 	hiddenInstanceProjectIds.value = new Set()
@@ -815,29 +1069,6 @@ watch(
 )
 
 const selectableProjectTypes = computed(() => {
-	let dataPacks = false,
-		mods = false,
-		modpacks = false
-
-	if (instance.value) {
-		if (
-			availableGameVersions.value &&
-			availableGameVersions.value.findIndex((x) => x.version === instance.value?.game_version) <=
-				availableGameVersions.value.findIndex((x) => x.version === '1.13') &&
-			!isServerInstance.value
-		) {
-			dataPacks = true
-		}
-
-		if (instance.value.loader !== 'vanilla') {
-			mods = true
-		}
-	} else {
-		dataPacks = true
-		mods = true
-		modpacks = true
-	}
-
 	const params: LocationQuery = {}
 
 	if (route.query.i) params.i = route.query.i
@@ -856,32 +1087,35 @@ const selectableProjectTypes = computed(() => {
 	}
 
 	if (isFromWorlds.value) {
-		return [{ label: 'Servers', href: `/browse/server${suffix}` }]
+		return [{ label: formatMessage(messages.serversProjectType), href: `/browse/server${suffix}` }]
+	}
+	if (isWorldMapContext.value) {
+		return [
+			{
+				label: formatMessage(messages.mapsProjectType),
+				href: `/browse/${WORLD_BROWSE_PROJECT_TYPE}${suffix}`,
+			},
+		]
 	}
 
-	return [
+	return createBrowseProjectTabs(
 		{
-			label: formatMessage(messages.modpacksProjectType),
-			href: `/browse/modpack${suffix}`,
-			shown: modpacks,
+			modpacks: formatMessage(messages.modpacksProjectType),
+			mods: formatMessage(messages.modsProjectType),
+			resourcepacks: formatMessage(messages.resourcepacksProjectType),
+			datapacks: formatMessage(messages.datapacksProjectType),
+			maps: formatMessage(messages.mapsProjectType),
+			shaders: formatMessage(messages.shadersProjectType),
+			servers: formatMessage(messages.serversProjectType),
+			favorites: formatMessage(messages.favoritesProjectType),
 		},
-		{ label: formatMessage(messages.modsProjectType), href: `/browse/mod${suffix}`, shown: mods },
-		{
-			label: formatMessage(messages.resourcepacksProjectType),
-			href: `/browse/resourcepack${suffix}`,
-		},
-		{
-			label: formatMessage(messages.datapacksProjectType),
-			href: `/browse/datapack${suffix}`,
-			shown: dataPacks,
-		},
-		{ label: formatMessage(messages.shadersProjectType), href: `/browse/shader${suffix}` },
-		{
-			label: formatMessage(messages.serversProjectType),
-			href: `/browse/server${suffix}`,
-			shown: !instance.value,
-		},
-	]
+		suffix,
+		getBrowseProjectTabOptions({
+			instance: activeInstance.value,
+			hasInstanceContext: !!instance.value,
+			isServerInstance: isServerInstance.value,
+		}),
+	)
 })
 
 const installContext = computed(() => {
@@ -909,15 +1143,22 @@ const installContext = computed(() => {
 			installSelected: installQueuedServerInstallsAndBack,
 		}
 	}
-	if (instance.value) {
-		const displayIcon = getDisplayInstanceIcon(instance.value.icon_path, instance.value.loader)
+	if (activeInstance.value) {
+		const target = activeInstance.value
+		const displayIcon = getDisplayInstanceIcon(target.icon_path, target.loader)
+		const processing = ['validating', 'reviewing', 'queueing'].includes(
+			contentSelection.state.value,
+		)
 		return {
-			name: instance.value.name,
-			loader: instance.value.loader,
-			gameVersion: instance.value.game_version,
+			showInstallHeader: !!instance.value,
+			name: target.name,
+			loader: target.loader,
+			gameVersion: target.game_version,
 			iconSrc: displayIcon.url,
 			iconFrameless: displayIcon.frameless,
-			backUrl: `/instance/${encodeURIComponent(instance.value.id)}${isFromWorlds.value ? '/worlds' : ''}`,
+			backUrl: instance.value
+				? `/instance/${encodeURIComponent(instance.value.id)}${isFromWorlds.value || isWorldMapContext.value ? '/worlds' : ''}`
+				: route.fullPath,
 			backLabel: formatMessage(messages.backToInstance),
 			heading: formatMessage(
 				isFromWorlds.value ? messages.addServersToInstance : commonMessages.installingContentLabel,
@@ -926,12 +1167,25 @@ const installContext = computed(() => {
 				isServerInstance.value && !isFromWorlds.value
 					? formatMessage(messages.serverInstanceContentWarning)
 					: undefined,
+			selectedProjects: contentSelection.selectedProjects.value,
+			isInstallingSelected: processing,
+			installProgress: contentSelection.progress.value,
+			installButtonLabel: formatMessage(messages.installSelected, {
+				count: contentSelection.selectedCount.value,
+			}),
+			processingLabel: formatMessage(messages.preparingSelected, {
+				completed: contentSelection.progress.value.completed,
+				total: contentSelection.progress.value.total,
+			}),
+			clearSelected: contentSelection.clear,
+			installSelected: contentSelection.installSelected,
 		}
 	}
 	return null
 })
 
 const installingProjectIds = ref<Set<string>>(new Set())
+const CART_CONTENT_TYPES = new Set(['mod', 'resourcepack', 'datapack', 'shader', 'world'])
 
 function setProjectInstalling(projectId: string, installing: boolean) {
 	const next = new Set(installingProjectIds.value)
@@ -941,6 +1195,100 @@ function setProjectInstalling(projectId: string, installing: boolean) {
 		next.delete(projectId)
 	}
 	installingProjectIds.value = next
+}
+
+async function selectTargetInstance(target: GameInstance) {
+	contentSelection.setTarget(target)
+	newlyInstalled.value = []
+	hiddenInstanceProjectIds.value = new Set()
+	hiddenInstanceProjectIdsInitialized.value = false
+	if (route.query.i) {
+		instance.value = target
+		await router.replace({ query: { ...route.query, i: target.id } })
+		breadcrumbs.setContext({
+			name: target.name,
+			link: `/instance/${encodeURIComponent(target.id)}`,
+			iconUrl: getDisplayInstanceIcon(target.icon_path, target.loader).url,
+		})
+	}
+	await refreshInstalledProjectIds()
+	await searchState.refreshSearch()
+}
+
+async function cancelTargetInstanceSwitch() {
+	const target = contentSelection.targetInstance.value
+	if (!target || !route.query.i || route.query.i === target.id) return
+	instance.value = target
+	await router.replace({ query: { ...route.query, i: target.id } })
+	breadcrumbs.setContext({
+		name: target.name,
+		link: `/instance/${encodeURIComponent(target.id)}`,
+		iconUrl: getDisplayInstanceIcon(target.icon_path, target.loader).url,
+	})
+}
+
+async function toggleContentSelection(
+	project: (Labrinth.Search.v2.ResultSearchProject & Labrinth.Search.v3.ResultSearchProject) & {
+		provider: BrowseContentProvider
+		provider_project_id?: string
+		latest_version?: string | null
+	},
+	contentType: string,
+) {
+	const target = activeInstance.value
+	if (!target) {
+		instanceSelector.value?.show()
+		return
+	}
+	const providerProjectId =
+		project.provider === 'curseforge'
+			? (project.provider_project_id ?? project.project_id.replace(/^curseforge:/, ''))
+			: project.project_id
+	const key = makeContentSelectionKey(project.provider, providerProjectId)
+	if (contentSelection.isSelected(key)) {
+		contentSelection.remove(key)
+		return
+	}
+
+	setProjectInstalling(project.project_id, true)
+	try {
+		const preferences = getInstanceInstallTargetPreferences(contentType)
+		let versionId = project.latest_version || null
+		if (project.provider === 'modrinth') {
+			versionId =
+				getLatestMatchingInstallVersion(
+					await getInstallProjectVersions(project.project_id),
+					preferences,
+				)?.id ?? null
+		} else {
+			const files = await getCurseForgeFiles(Number(providerProjectId), {
+				gameVersion: usesTargetGameVersion(contentType) ? target.game_version : undefined,
+				modLoaderType: contentType === 'mod' ? curseForgeLoaderTypes[target.loader] : undefined,
+			})
+			versionId = files.files.find((file) => file.isAvailable)?.id.toString() ?? null
+		}
+		if (!versionId) {
+			throw new Error(
+				contentType === WORLD_BROWSE_PROJECT_TYPE
+					? formatMessage(messages.mapsNoInstallableFile)
+					: formatMessage(messages.noCompatibleVersion),
+			)
+		}
+		await contentSelection.add({
+			key,
+			provider: project.provider,
+			projectId: project.provider === 'modrinth' ? project.project_id : providerProjectId,
+			providerProjectId,
+			versionId,
+			contentType: contentType as 'mod' | 'resourcepack' | 'datapack' | 'shader' | 'world',
+			title: project.title,
+			iconUrl: project.icon_url,
+			slug: project.slug,
+			preferences,
+		})
+	} finally {
+		setProjectInstalling(project.project_id, false)
+	}
 }
 
 const serverInstallQueue = {
@@ -970,8 +1318,8 @@ function getServerInstallTargetPreferences(contentType: BrowseInstallContentType
 function getInstanceInstallTargetPreferences(projectTypeValue: string) {
 	return getTargetInstallPreferences(
 		{
-			gameVersion: instance.value?.game_version,
-			loader: instance.value?.loader,
+			gameVersion: activeInstance.value?.game_version,
+			loader: activeInstance.value?.loader,
 		},
 		projectTypeValue,
 	)
@@ -989,7 +1337,7 @@ async function chooseInstanceInstallVersion(
 	project: Labrinth.Search.v2.ResultSearchProject & Labrinth.Search.v3.ResultSearchProject,
 	projectTypeValue: string,
 ) {
-	const targetInstance = instance.value
+	const targetInstance = activeInstance.value
 	if (!targetInstance) {
 		return { versionId: null as string | null }
 	}
@@ -1012,10 +1360,15 @@ async function chooseInstanceInstallVersion(
 	return { versionId: selectedVersion.id }
 }
 
-type BrowseContentProvider = 'modrinth' | 'curseforge'
+type BrowseContentProvider = 'modrinth' | 'curseforge' | 'mcarchive' | 'planet_minecraft'
 
 function isBrowseContentProvider(provider: unknown): provider is BrowseContentProvider {
-	return provider === 'modrinth' || provider === 'curseforge'
+	return (
+		provider === 'modrinth' ||
+		provider === 'curseforge' ||
+		provider === 'mcarchive' ||
+		provider === 'planet_minecraft'
+	)
 }
 
 function getCardActions(
@@ -1035,12 +1388,34 @@ function getCardActions(
 		provider_project_id?: string
 	}
 	if (!isBrowseContentProvider(projectResult.provider)) return []
+	if (projectResult.provider === 'mcarchive' || projectResult.provider === 'planet_minecraft')
+		return []
+	const providerProjectId =
+		projectResult.provider === 'curseforge'
+			? (projectResult.provider_project_id ?? projectResult.project_id.replace(/^curseforge:/, ''))
+			: projectResult.project_id
+	const selectionKey = makeContentSelectionKey(projectResult.provider, providerProjectId)
+	const isInstalling =
+		installingProjectIds.value.has(projectResult.project_id) ||
+		contentSelection.isInstalling(selectionKey)
+	const isSelected = contentSelection.isSelected(selectionKey)
 	const isInstalled =
-		projectResult.installed ||
-		allInstalledIds.value.has(projectResult.project_id || '') ||
-		serverContentProjectIds.value.has(projectResult.project_id || '') ||
-		serverContextServerData.value?.upstream?.project_id === projectResult.project_id
-	const isInstalling = installingProjectIds.value.has(projectResult.project_id)
+		(isServerContext.value
+			? serverContentProjectIds.value.has(projectResult.project_id || '')
+			: !!activeInstance.value && allInstalledIds.value.has(projectResult.project_id || '')) ||
+		(!isServerContext.value &&
+			!!activeInstance.value &&
+			contentSelection.isInstalledIdentity(
+				projectResult.provider,
+				providerProjectId,
+				projectResult.slug,
+			)) ||
+		(isServerContext.value &&
+			serverContextServerData.value?.upstream?.project_id === projectResult.project_id)
+	const favoriteAction =
+		!isServerContext.value && isFavoriteContentType(currentProjectType)
+			? createFavoriteCardAction(projectResult, providerProjectId, currentProjectType)
+			: null
 
 	if (
 		isServerContext.value &&
@@ -1124,11 +1499,51 @@ function getCardActions(
 					}
 				},
 			},
+			...(favoriteAction ? [favoriteAction] : []),
 		]
 	}
 
 	const isModpack =
 		projectResult.project_types?.includes('modpack') || projectResult.project_type === 'modpack'
+	if (CART_CONTENT_TYPES.has(currentProjectType)) {
+		if (
+			currentProjectType === WORLD_BROWSE_PROJECT_TYPE &&
+			projectResult.provider !== 'curseforge'
+		) {
+			return []
+		}
+		return [
+			{
+				key: 'install',
+				label: formatMessage(
+					isInstalling
+						? commonMessages.validatingLabel
+						: isSelected
+							? messages.selected
+							: activeInstance.value
+								? commonMessages.installButton
+								: messages.chooseInstance,
+				),
+				compactLabel:
+					!isInstalling && !isSelected && !activeInstance.value
+						? formatMessage(messages.add)
+						: undefined,
+				icon: isInstalling ? SpinnerIcon : isSelected ? CheckIcon : PlusIcon,
+				iconClass: isInstalling ? 'animate-spin' : undefined,
+				disabled: isInstalled || isInstalling,
+				color: isSelected ? 'green' : 'brand',
+				type: 'outlined',
+				onClick: async () => {
+					try {
+						await toggleContentSelection(projectResult, currentProjectType)
+					} catch (error) {
+						handleError(error)
+					}
+				},
+			},
+			...(favoriteAction ? [favoriteAction] : []),
+		]
+	}
 	const shouldUseInstallIcon = !!instance.value || isModpack
 	const installActionLabel = isInstalling
 		? messages.installingToServer
@@ -1138,9 +1553,7 @@ function getCardActions(
 				? commonMessages.installButton
 				: messages.addToAnInstance
 	const compactInstallLabel =
-		!isInstalling && !isInstalled && !shouldUseInstallIcon
-			? formatMessage(messages.add)
-			: undefined
+		!isInstalling && !isInstalled && !shouldUseInstallIcon ? formatMessage(messages.add) : undefined
 
 	return [
 		{
@@ -1153,6 +1566,7 @@ function getCardActions(
 			color: 'brand',
 			type: 'outlined',
 			onClick: async () => {
+				const installInstanceId = instance.value?.id ?? null
 				setProjectInstalling(projectResult.project_id, true)
 				try {
 					const selectedInstall =
@@ -1178,7 +1592,7 @@ function getCardActions(
 						'SearchCard',
 						(versionId, installedProjectIds) => {
 							setProjectInstalling(projectResult.project_id, false)
-							if (versionId) {
+							if (versionId && activeInstance.value?.id === installInstanceId) {
 								onSearchResultsInstalled(installedProjectIds ?? [projectResult.project_id])
 							}
 						},
@@ -1198,6 +1612,39 @@ function getCardActions(
 			},
 		},
 	]
+}
+
+function createFavoriteCardAction(
+	project: Labrinth.Search.v2.ResultSearchProject & {
+		provider: BrowseContentProvider
+	},
+	providerProjectId: string,
+	contentType: FavoriteContentType,
+): CardAction {
+	const favorite = contentFavorites.isFavorite(project.provider, providerProjectId)
+	const pending = contentFavorites.isPending(project.provider, providerProjectId)
+	return {
+		key: 'favorite',
+		label: formatMessage(favorite ? messages.removeFromFavorites : messages.addToFavorites),
+		icon: pending ? SpinnerIcon : favorite ? BookmarkFilledIcon : BookmarkIcon,
+		iconClass: pending ? 'animate-spin' : undefined,
+		disabled: pending,
+		color: favorite ? 'brand' : undefined,
+		type: 'transparent',
+		circular: true,
+		tooltip: formatMessage(favorite ? messages.removeFromFavorites : messages.addToFavorites),
+		onClick: async () => {
+			try {
+				await contentFavorites.toggle({
+					provider: project.provider,
+					project_id: providerProjectId,
+					content_type: contentType,
+				})
+			} catch (error) {
+				handleError(error)
+			}
+		},
+	}
 }
 
 function onSearchResultInstalled(id: string) {
@@ -1391,6 +1838,78 @@ type ChineseSearchHit = Labrinth.Search.v2.ResultSearchProject & {
 	chinese_search_score?: number
 }
 
+type McArchiveSearchHit = Labrinth.Search.v2.ResultSearchProject & {
+	provider: 'mcarchive'
+	provider_project_id: string
+}
+
+function mapMcArchiveHit(project: McArchiveMod): McArchiveSearchHit {
+	const versions = Array.from(
+		new Set(
+			project.modVersions.flatMap((version) =>
+				version.gameVersions.map((gameVersion) => gameVersion.name),
+			),
+		),
+	)
+	return {
+		project_id: `mcarchive:${project.uuid}`,
+		provider_project_id: project.uuid,
+		provider: 'mcarchive',
+		project_type: 'mod',
+		project_types: ['mod'],
+		slug: project.slug,
+		author: '',
+		title: project.name,
+		description: project.summary ?? project.description ?? '',
+		categories: [],
+		display_categories: [],
+		versions,
+		downloads: 0,
+		follows: 0,
+		icon_url: '',
+		date_created: '',
+		date_modified: '',
+		latest_version: '',
+		license: '',
+		client_side: 'unknown',
+		server_side: 'unknown',
+		gallery: [],
+		featured_gallery: null,
+		color: null,
+	} as McArchiveSearchHit
+}
+
+function mapPlanetMinecraftHit(project: PlanetMinecraftProject) {
+	return {
+		project_id: `planet_minecraft:${project.id}`,
+		provider_project_id: project.id,
+		provider: 'planet_minecraft' as const,
+		project_type: 'mod',
+		slug: project.id,
+		author: '',
+		title: project.title,
+		description: project.summary ?? '',
+		categories: [],
+		display_categories: [],
+		versions: Array.from(new Set(project.versions.flatMap((version) => version.gameVersions))),
+		downloads: 0,
+		follows: 0,
+		icon_url: '',
+		date_created: '',
+		date_modified: '',
+		latest_version: '',
+		license: '',
+		client_side: 'unknown',
+		server_side: 'unknown',
+		gallery: [],
+		featured_gallery: null,
+		color: null,
+	} as Labrinth.Search.v2.ResultSearchProject & {
+		provider: 'planet_minecraft'
+		provider_project_id: string
+	}
+}
+
 interface DirectModrinthProject {
 	id: string
 	slug?: string
@@ -1418,6 +1937,28 @@ function replaceSearchQuery(requestParams: string, query: string) {
 	const result = params.toString()
 	return result ? `?${result}` : ''
 }
+
+/**
+ * Upper bound on sequential fallback search attempts when the primary query
+ * yields no hits. Each attempt queries the providers in parallel.
+ */
+const MAX_SEARCH_VARIANT_ATTEMPTS = 3
+
+/**
+ * A dictionary-split replacement result must be clearly better than the
+ * primary compact-query match before it may replace the primary hits.
+ */
+const MIN_VARIANT_REPLACEMENT_HITS = 5
+
+interface FuzzySearchNotice {
+	/** The query exactly as the user typed it. */
+	original: string
+	/** The rewritten query that actually produced the shown results. */
+	used: string
+}
+
+let pendingFuzzyNotice: FuzzySearchNotice | null = null
+const searchNotice = ref<FuzzySearchNotice | null>(null)
 
 function findChineseTranslation(
 	resolution: ChineseSearchResolution | null,
@@ -1543,19 +2084,79 @@ function rankChineseProviderHits(hits: ChineseSearchHit[], sort: string | null) 
 
 async function search(requestParams: string, signal: AbortSignal) {
 	debugLog('searching v3', requestParams)
+	pendingFuzzyNotice = null
 	const isServer = projectType.value === 'server'
+	if (isWorldMapBrowse.value && !curseForgeCapability.value.configured) {
+		return {
+			projectHits: [],
+			serverHits: [],
+			total_hits: 0,
+			per_page: 20,
+		}
+	}
 	const params = new URLSearchParams(requestParams)
 	const limit = Math.min(Number(params.get('limit') ?? 20), 50)
 	const offset = Number(params.get('offset') ?? 0)
 	const rawQuery = params.get('query') ?? ''
+	const filters = params.get('new_filters') ?? ''
+	const gameVersion = getFirstSearchFilter(filters, 'game_versions')
+	const isMcArchiveBrowse =
+		mcArchiveAvailable.value &&
+		(contentSource.value === 'mcarchive' || route.query.source === 'mcarchive')
+	if (isMcArchiveBrowse) {
+		if (projectType.value !== 'mod') {
+			return {
+				projectHits: [],
+				serverHits: [],
+				total_hits: 0,
+				per_page: limit,
+			}
+		}
+		const projects = await searchMcArchiveMods(normalizeSearchText(rawQuery), gameVersion).catch((error) => {
+			debugLog('mcarchive search failed', error)
+			throw error
+		})
+		signal.throwIfAborted()
+		// The MCArchive list endpoint deliberately returns project summaries. It does
+		// not include modVersions, so applying the selected Minecraft version here
+		// would discard every result. Version compatibility is resolved after opening
+		// the project detail, where the full release list is available.
+		const hits = projects.map(mapMcArchiveHit)
+		const safeOffset = offset < hits.length ? offset : 0
+		return {
+			projectHits: hits.slice(safeOffset, safeOffset + limit),
+			serverHits: [],
+			total_hits: hits.length,
+			per_page: limit,
+		}
+	}
+	if (contentSource.value === 'planet_minecraft') {
+		if (projectType.value !== 'mod' || !planetMinecraftAvailable.value) {
+			return { projectHits: [], serverHits: [], total_hits: 0, per_page: limit }
+		}
+		const projects = await searchPlanetMinecraftProjects(
+			normalizeSearchText(rawQuery),
+			gameVersion,
+		).catch((error) => {
+			debugLog('planet minecraft search failed', error)
+			throw error
+		})
+		signal.throwIfAborted()
+		const hits = projects.map(mapPlanetMinecraftHit)
+		return {
+			projectHits: hits.slice(offset, offset + limit),
+			serverHits: [],
+			total_hits: hits.length,
+			per_page: limit,
+		}
+	}
 	let chineseResolution: ChineseSearchResolution | null = null
-	if (containsChineseSearchText(rawQuery)) {
+	if (!isWorldMapBrowse.value && containsChineseSearchText(rawQuery)) {
 		chineseResolution = await resolveChineseContentSearch(rawQuery).catch((error) => {
 			debugLog('chinese search resolution failed, using original query', error)
 			return null
 		})
 	}
-	const filters = params.get('new_filters') ?? ''
 	const categoryValues = getSearchFilterValues(filters, 'categories')
 	const hasOnlyCurseForgeExclusiveCategories =
 		categoryValues.length > 0 &&
@@ -1565,6 +2166,7 @@ async function search(requestParams: string, signal: AbortSignal) {
 		categoryValues.some((value) => isCurseForgeOnlyCategoryName(value))
 
 	const includeModrinth =
+		!isWorldMapBrowse.value &&
 		(contentSource.value !== 'curseforge' || isServer) &&
 		!(contentSource.value === 'all' && hasOnlyCurseForgeExclusiveCategories)
 	let includeCurseForge =
@@ -1577,7 +2179,6 @@ async function search(requestParams: string, signal: AbortSignal) {
 		await ensureCurseForgeCategories(projectType.value).catch(handleError)
 	}
 
-	const gameVersion = getFirstSearchFilter(filters, 'game_versions')
 	const loader = categoryValues.find((value) => curseForgeLoaderTypes[value] !== undefined)
 	const nonLoaderCategoryValues = categoryValues.filter(
 		(value) => curseForgeLoaderTypes[value] === undefined,
@@ -1632,90 +2233,237 @@ async function search(requestParams: string, signal: AbortSignal) {
 	}
 	signal.addEventListener('abort', cancelProviderRequests, { once: true })
 
-	const modrinthRequest = includeModrinth
-		? queryClient.fetchQuery({
-				queryKey: ['search', 'v3', modrinthRequestParams],
-				queryFn: () =>
-					trackProviderRequest(
-						modrinthRequestId,
-						get_search_results_v3(
-							modrinthRequestParams,
-							'must_revalidate',
-							modrinthRequestId,
-						) as Promise<{
-							result: Labrinth.Search.v3.SearchResults & {
-								hits: (Labrinth.Search.v3.ResultSearchProject & {
-									installed?: boolean
-								})[]
-							}
-						} | null>,
-					),
-				staleTime: 30_000,
-			})
-		: Promise.resolve(null)
-	if (includeCurseForge) {
-		debugLog('curseforge filters', {
-			filters,
-			categoryValues,
-			categoryIds: curseForgeCategoryIds,
-			gameVersion,
-			loader,
-		})
+	interface ProviderAttemptStep {
+		modrinthQuery: string | null
+		curseforgeFilter: string | null
 	}
-	const curseForgeRequest = includeCurseForge
-		? trackProviderRequest(
-				curseForgeRequestId,
-				searchCurseForgeProjects(
-					{
-						classId: curseForgeClassIds[projectType.value]!,
-						categoryIds: curseForgeCategoryIds,
-						searchFilter: (chineseResolution?.curseforgeQuery ?? rawQuery) || undefined,
-						gameVersion: gameVersion || undefined,
-						modLoaderType: loader ? curseForgeLoaderTypes[loader] : undefined,
-						sortField: getCurseForgeSortField(params.get('index')),
-						sortOrder: 'desc',
-						index: offset,
-						pageSize: limit,
-					},
-					curseForgeRequestId,
-				),
-			)
-		: Promise.resolve(null)
-	const directModrinthRequest =
-		includeModrinth &&
-		!isServer &&
-		offset === 0 &&
-		(chineseResolution?.modrinthSlugs.length ?? 0) > 0
-			? get_project_v3_many(chineseResolution!.modrinthSlugs, 'must_revalidate')
-			: Promise.resolve([])
-	const [modrinthResult, curseForgeResult, directModrinthResult] = await Promise.race([
-		Promise.allSettled([modrinthRequest, curseForgeRequest, directModrinthRequest]),
-		providerSearchCancelled,
-	]).finally(() => signal.removeEventListener('abort', cancelProviderRequests))
-	const rawResults = modrinthResult.status === 'fulfilled' ? modrinthResult.value : null
-	const rawCurseForge = curseForgeResult.status === 'fulfilled' ? curseForgeResult.value : null
-	const rawDirectModrinth =
-		directModrinthResult.status === 'fulfilled'
-			? (directModrinthResult.value as DirectModrinthProject[])
-			: []
 
-	if (modrinthResult.status === 'rejected') {
-		debugLog('modrinth search failed', modrinthResult.reason)
+	const queryExpansion = expandSearchQuery(rawQuery)
+	const isChineseQuery = chineseResolution?.isChinese ?? false
+	const curseForgeQueryBase = chineseResolution?.curseforgeQuery ?? rawQuery
+	const curseForgeQueryVariantsList = queryExpansion
+		? curseForgeQueryVariants(curseForgeQueryBase)
+		: []
+	const primaryCurseForgeFilter =
+		queryExpansion ? (curseForgeQueryVariantsList[0] ?? null) : null
+
+	const runProviderAttempt = async (
+		attemptParams: {
+			modrinthParams: string | null
+			curseforgeFilter: string | null
+		},
+		includeDirectModrinth: boolean,
+	) => {
+		const modrinthRequest =
+			includeModrinth && attemptParams.modrinthParams !== null
+				? queryClient.fetchQuery({
+						queryKey: ['search', 'v3', attemptParams.modrinthParams],
+						queryFn: () =>
+							trackProviderRequest(
+								modrinthRequestId,
+								get_search_results_v3(
+									attemptParams.modrinthParams,
+									'must_revalidate',
+									modrinthRequestId,
+								) as Promise<{
+									result: Labrinth.Search.v3.SearchResults & {
+										hits: (Labrinth.Search.v3.ResultSearchProject & {
+											installed?: boolean
+										})[]
+									}
+								} | null>,
+							),
+						staleTime: 30_000,
+					})
+				: Promise.resolve(null)
+		const curseForgeRequest =
+			includeCurseForge && attemptParams.curseforgeFilter !== null
+				? trackProviderRequest(
+						curseForgeRequestId,
+						searchCurseForgeProjects(
+							{
+								classId: curseForgeClassIds[projectType.value]!,
+								categoryIds: curseForgeCategoryIds,
+								searchFilter: attemptParams.curseforgeFilter || undefined,
+								gameVersion: gameVersion || undefined,
+								modLoaderType: loader ? curseForgeLoaderTypes[loader] : undefined,
+								sortField: getCurseForgeSortField(params.get('index')),
+								sortOrder: 'desc',
+								index: offset,
+								pageSize: limit,
+							},
+							curseForgeRequestId,
+						),
+					)
+				: Promise.resolve(null)
+		const directModrinthRequest =
+			includeModrinth &&
+			includeDirectModrinth &&
+			!isServer &&
+			offset === 0 &&
+			(chineseResolution?.modrinthSlugs.length ?? 0) > 0
+				? get_project_v3_many(chineseResolution!.modrinthSlugs, 'must_revalidate')
+				: Promise.resolve([])
+		const [modrinthResult, curseForgeResult, directModrinthResult] = await Promise.allSettled([
+			modrinthRequest,
+			curseForgeRequest,
+			directModrinthRequest,
+		])
+		return {
+			rawResults: modrinthResult.status === 'fulfilled' ? modrinthResult.value : null,
+			rawCurseForge: curseForgeResult.status === 'fulfilled' ? curseForgeResult.value : null,
+			rawDirectModrinth:
+				directModrinthResult.status === 'fulfilled'
+					? (directModrinthResult.value as DirectModrinthProject[])
+					: [],
+			modrinthError: modrinthResult.status === 'rejected' ? modrinthResult.reason : null,
+			curseForgeError: curseForgeResult.status === 'rejected' ? curseForgeResult.reason : null,
+			directModrinthError:
+				directModrinthResult.status === 'rejected'
+					? directModrinthResult.reason
+					: null,
+		}
 	}
-	if (curseForgeResult.status === 'rejected') {
-		debugLog('curseforge search failed', curseForgeResult.reason)
+	type ProviderAttemptResults = Awaited<ReturnType<typeof runProviderAttempt>>
+
+	const attemptHasHits = (results: ProviderAttemptResults) =>
+		(results.rawResults?.result.total_hits ?? 0) > 0 ||
+		(results.rawCurseForge?.total_hits ?? 0) > 0 ||
+		results.rawDirectModrinth.length > 0
+
+	let cachedCompactSplit: string | null | undefined
+	const resolveCompactSplit = async () => {
+		if (cachedCompactSplit === undefined) {
+			cachedCompactSplit = await expandContentSearchQuery(rawQuery)
+				.then((expansion) => expansion.suggestedSplit ?? null)
+				.catch((error) => {
+					debugLog('search query expansion failed', error)
+					return null
+				})
+		}
+		return cachedCompactSplit
 	}
-	if (directModrinthResult.status === 'rejected') {
-		debugLog('direct modrinth chinese candidates failed', directModrinthResult.reason)
+
+	const buildFallbackSteps = async (): Promise<ProviderAttemptStep[]> => {
+		const steps: ProviderAttemptStep[] = []
+		if (!queryExpansion) return steps
+		const mrVariants = isChineseQuery ? [] : queryExpansion.modrinthVariants.slice(1)
+		const cfVariants = queryExpansion.curseforgeVariants.slice(1)
+		if (queryExpansion.compact && !isChineseQuery && includeModrinth) {
+			const dictSplit = await resolveCompactSplit()
+			if (dictSplit && !queryExpansion.modrinthVariants.includes(dictSplit)) {
+				steps.push({
+					modrinthQuery: dictSplit,
+					curseforgeFilter: curseForgeQueryVariants(dictSplit)[0] ?? null,
+				})
+			}
+		}
+		const maxVariants = Math.max(mrVariants.length, cfVariants.length)
+		for (let index = 0; index < maxVariants && steps.length < MAX_SEARCH_VARIANT_ATTEMPTS; index += 1) {
+			const modrinthQuery = mrVariants[index] ?? null
+			const curseforgeFilter = cfVariants[index] ?? null
+			if (modrinthQuery !== null || curseforgeFilter !== null) {
+				steps.push({ modrinthQuery, curseforgeFilter })
+			}
+		}
+		return steps
+	}
+
+	const shouldImproveCompactMatch = (results: ProviderAttemptResults) => {
+		if (!queryExpansion || !queryExpansion.compact || isChineseQuery) return false
+		if (!includeModrinth || (results.rawResults?.result.hits.length ?? 0) === 0) return false
+		const total = results.rawResults?.result.total_hits ?? 0
+		return total >= 1 && total <= 2
+	}
+
+	const performSearch = async (): Promise<ProviderAttemptResults> => {
+		if (includeCurseForge) {
+			debugLog('curseforge filters', {
+				filters,
+				categoryValues,
+				categoryIds: curseForgeCategoryIds,
+				gameVersion,
+				loader,
+				searchFilter: primaryCurseForgeFilter,
+			})
+		}
+		const attemptParams = (step: ProviderAttemptStep) => ({
+			modrinthParams:
+				step.modrinthQuery === null
+					? null
+					: replaceSearchQuery(modrinthRequestParams, step.modrinthQuery),
+			curseforgeFilter: step.curseforgeFilter,
+		})
+		const primaryResults = await runProviderAttempt(
+			{
+				modrinthParams: includeModrinth ? modrinthRequestParams : null,
+				curseforgeFilter: primaryCurseForgeFilter,
+			},
+			true,
+		)
+		let results = primaryResults
+		if (!attemptHasHits(primaryResults)) {
+			const fallbackAttempts = await buildFallbackSteps()
+			for (const step of fallbackAttempts) {
+				signal.throwIfAborted()
+				results = await runProviderAttempt(attemptParams(step), false)
+				if (attemptHasHits(results)) {
+					debugLog('search fallback matched query variant', step)
+					pendingFuzzyNotice = {
+						original: rawQuery,
+						used:
+							step.modrinthQuery ??
+							(step.curseforgeFilter ? step.curseforgeFilter.replaceAll('-', ' ') : ''),
+					}
+					break
+				}
+			}
+		} else if (shouldImproveCompactMatch(primaryResults)) {
+			// Server fuzzy matching can return a single poor hit for compact
+			// queries (e.g. `irisshaders`); when the dictionary splits the query
+			// into a clearly better result set, prefer the split form.
+			const swapQuery = await resolveCompactSplit()
+			if (swapQuery && !queryExpansion!.modrinthVariants.includes(swapQuery)) {
+				const swapped = await runProviderAttempt(
+					attemptParams({ modrinthQuery: swapQuery, curseforgeFilter: null }),
+					false,
+				)
+				if ((swapped.rawResults?.result.total_hits ?? 0) >= MIN_VARIANT_REPLACEMENT_HITS) {
+					debugLog('search compact query replaced with split form', swapQuery)
+					pendingFuzzyNotice = { original: rawQuery, used: swapQuery }
+					results = {
+						...swapped,
+						rawCurseForge: primaryResults.rawCurseForge,
+						rawDirectModrinth: primaryResults.rawDirectModrinth,
+					}
+				}
+			}
+		}
+		return results
+	}
+
+	const searched = await Promise.race([performSearch(), providerSearchCancelled]).finally(() =>
+		signal.removeEventListener('abort', cancelProviderRequests),
+	)
+	const rawResults = searched.rawResults
+	const rawCurseForge = searched.rawCurseForge
+	const rawDirectModrinth = searched.rawDirectModrinth
+
+	if (searched.modrinthError) {
+		debugLog('modrinth search failed', searched.modrinthError)
+	}
+	if (searched.curseForgeError) {
+		debugLog('curseforge search failed', searched.curseForgeError)
+	}
+	if (searched.directModrinthError) {
+		debugLog('direct modrinth chinese candidates failed', searched.directModrinthError)
 	}
 
 	if (!rawResults && !rawCurseForge && rawDirectModrinth.length === 0) {
 		const error =
-			modrinthResult.status === 'rejected'
-				? modrinthResult.reason
-				: curseForgeResult.status === 'rejected'
-					? curseForgeResult.reason
-					: new Error('No content providers are available')
+			searched.modrinthError ??
+			searched.curseForgeError ??
+			new Error('No content providers are available')
 		throw error
 	}
 
@@ -1739,12 +2487,12 @@ async function search(requestParams: string, signal: AbortSignal) {
 			provider: 'modrinth' as const,
 		} as unknown as Labrinth.Search.v2.ResultSearchProject & {
 			installed?: boolean
-			provider: 'modrinth' | 'curseforge'
+			provider: 'modrinth' | 'curseforge' | 'mcarchive' | 'planet_minecraft'
 		}
 
-		if (instance.value || isServerContext.value) {
-			const installedIds = instance.value
-				? new Set([...newlyInstalled.value, ...(installedProjectIds.value ?? [])])
+		if (activeInstance.value || isServerContext.value) {
+			const installedIds = activeInstance.value
+				? allInstalledIds.value
 				: serverContentProjectIds.value
 			mapped.installed = installedIds.has(hit.project_id)
 		}
@@ -1758,9 +2506,9 @@ async function search(requestParams: string, signal: AbortSignal) {
 		.map(mapDirectModrinthProject)
 		.map((hit) => applyChineseTranslation(hit, chineseResolution))
 		.map((hit) => {
-			if (instance.value || isServerContext.value) {
-				const installedIds = instance.value
-					? new Set([...newlyInstalled.value, ...(installedProjectIds.value ?? [])])
+			if (activeInstance.value || isServerContext.value) {
+				const installedIds = activeInstance.value
+					? allInstalledIds.value
 					: serverContentProjectIds.value
 				hit.installed = installedIds.has(hit.project_id)
 			}
@@ -1777,6 +2525,10 @@ async function search(requestParams: string, signal: AbortSignal) {
 	).length
 	const curseForgeHits = (rawCurseForge?.hits ?? [])
 		.map(mapCurseForgeHit)
+		.map((hit) => {
+			if (activeInstance.value) hit.installed = allInstalledIds.value.has(hit.project_id)
+			return hit
+		})
 		.map((hit) => applyChineseTranslation(hit as ChineseSearchHit, chineseResolution))
 	const locale = i18n.global.locale.value
 	const [localizedModrinthHits, localizedCurseForgeHits] = await Promise.all([
@@ -1853,7 +2605,11 @@ const searchState = useBrowseSearch({
 	tags,
 	providedFilters: combinedProvidedFilters,
 	installContextLoader: computed(() => installContext.value?.loader),
-	search,
+	search: async (requestParams: string, signal: AbortSignal) => {
+		const response = await search(requestParams, signal)
+		searchNotice.value = pendingFuzzyNotice
+		return response
+	},
 	persistentQueryParams: ['i', 'ai', 'shi', 'sid', 'wid', 'from', 'source'],
 	getExtraQueryParams: () => ({
 		sid: serverIdQuery.value || undefined,
@@ -1865,6 +2621,90 @@ const searchState = useBrowseSearch({
 	initialSearchResponse: browseReturnSnapshot?.state.searchResponse,
 	displayMode,
 })
+
+const NON_FILTER_BROWSE_QUERY_PARAMS = new Set([
+	'i',
+	'ai',
+	'shi',
+	'sid',
+	'wid',
+	'from',
+	'source',
+	'q',
+	's',
+	'ss',
+	'm',
+	'o',
+	'page',
+	'b',
+])
+
+function hasExplicitFilterQuery() {
+	return Object.keys(route.query).some((key) => !NON_FILTER_BROWSE_QUERY_PARAMS.has(key))
+}
+
+function availableRememberedFilters(type: ProjectType, filters: BrowseFilterMemory['filters']) {
+	const filterTypes =
+		type === 'server' ? searchState.serverFilterTypes.value : searchState.filters.value
+	return filters.filter((filter) => {
+		const filterType = filterTypes.find((candidate) => candidate.id === filter.type)
+		return (
+			filterType &&
+			(filterType.allows_custom_options ||
+				filterType.options.some((option) => option.id === filter.option))
+		)
+	})
+}
+
+function applyRememberedFilters(type: ProjectType, resetWhenMissing: boolean) {
+	const memory = getBrowseFilterMemory(type)
+	if (!memory && !resetWhenMissing) return
+
+	if (type === 'server') {
+		searchState.serverCurrentFilters.value = memory
+			? availableRememberedFilters(type, memory.filters)
+			: [{ type: 'server_status', option: 'online' }]
+		searchState.serverToggledGroups.value = memory ? [...memory.toggledGroups] : []
+		return
+	}
+
+	const filterTypeIds = new Set(searchState.filters.value.map((filter) => filter.id))
+	searchState.currentFilters.value = memory ? availableRememberedFilters(type, memory.filters) : []
+	searchState.toggledGroups.value = memory ? [...memory.toggledGroups] : []
+	searchState.overriddenProvidedFilterTypes.value = memory
+		? memory.overriddenProvidedFilterTypes.filter((filterType) => filterTypeIds.has(filterType))
+		: []
+}
+
+if (!hasExplicitFilterQuery()) {
+	applyRememberedFilters(projectType.value, false)
+}
+
+watch(projectType, (type) => applyRememberedFilters(type, true))
+
+watch(
+	[
+		projectType,
+		searchState.currentFilters,
+		searchState.toggledGroups,
+		searchState.overriddenProvidedFilterTypes,
+		searchState.serverCurrentFilters,
+		searchState.serverToggledGroups,
+	],
+	() => {
+		const isServer = projectType.value === 'server'
+		setBrowseFilterMemory(projectType.value, {
+			filters: isServer ? searchState.serverCurrentFilters.value : searchState.currentFilters.value,
+			toggledGroups: isServer
+				? searchState.serverToggledGroups.value
+				: searchState.toggledGroups.value,
+			overriddenProvidedFilterTypes: isServer
+				? []
+				: searchState.overriddenProvidedFilterTypes.value,
+		})
+	},
+	{ deep: true },
+)
 
 /** Translation state for search result titles and descriptions. */
 const originalProjectHits = shallowRef<typeof searchState.projectHits.value>([])
@@ -1994,17 +2834,47 @@ watch(contentSource, async (source) => {
 	if (source === 'curseforge' || source === 'all') {
 		await ensureCurseForgeCategories(projectType.value).catch(handleError)
 	}
+	if (source === 'mcarchive') await refreshMcArchiveGameVersions()
 	await searchState.refreshSearch()
 })
 
 watch(projectType, async (type) => {
+	if (
+		type !== 'mod' &&
+		(contentSource.value === 'mcarchive' || contentSource.value === 'planet_minecraft')
+	) {
+		contentSource.value = 'all'
+		setLastBrowseContentSource('all')
+	}
+	if (type === WORLD_BROWSE_PROJECT_TYPE && contentSource.value !== 'curseforge') {
+		contentSource.value = 'curseforge'
+		return
+	}
 	if (contentSource.value === 'curseforge' || contentSource.value === 'all') {
 		await ensureCurseForgeCategories(type).catch(handleError)
 	}
 })
 
+watch(
+	mcArchiveAvailable,
+	(available) => {
+		if (!available && contentSource.value === 'mcarchive') {
+			contentSource.value = 'all'
+			setLastBrowseContentSource('all')
+		}
+	},
+	{ immediate: !route.query.i },
+)
+
 function selectContentSource(source: string) {
-	if (source === 'all' || source === 'modrinth' || source === 'curseforge') {
+	if (isWorldMapBrowse.value) return
+	if (
+		source === 'all' ||
+		source === 'modrinth' ||
+		source === 'curseforge' ||
+		(source === 'mcarchive' && projectType.value === 'mod' && mcArchiveAvailable.value) ||
+		(source === 'planet_minecraft' && projectType.value === 'mod' && planetMinecraftAvailable.value)
+	) {
 		contentSource.value = source
 		setLastBrowseContentSource(source)
 	}
@@ -2020,7 +2890,7 @@ watch(
 	() => {
 		if (isServerContext.value) {
 			syncHiddenServerContentProjectIds()
-		} else if (instance.value) {
+		} else if (activeInstance.value) {
 			syncHiddenInstanceProjectIds()
 		}
 	},
@@ -2033,17 +2903,7 @@ watch(queuedServerInstallCount, (count) => {
 	}
 })
 
-if (instance.value?.game_version) {
-	const gv = instance.value.game_version
-	const alreadyHasGv = searchState.serverCurrentFilters.value.some(
-		(f) => f.type === 'server_game_version' && f.option === gv,
-	)
-	if (!alreadyHasGv) {
-		searchState.serverCurrentFilters.value.push({ type: 'server_game_version', option: gv })
-	}
-}
-
-if (!browseReturnSnapshot) {
+if (!browseReturnSnapshot || contentSource.value === 'mcarchive') {
 	void searchState.refreshSearch()
 }
 
@@ -2053,6 +2913,10 @@ let isUnmounted = false
 let unlistenInstances: UnlistenFn | null = null
 
 onMounted(() => {
+	if (pendingRouteInstanceSwitch.value) {
+		instanceSelector.value?.requestSwitch(pendingRouteInstanceSwitch.value)
+		pendingRouteInstanceSwitch.value = null
+	}
 	if (browseReturnSnapshot) {
 		void nextTick().then(
 			() =>
@@ -2069,7 +2933,11 @@ onMounted(() => {
 	}
 
 	instance_listener(async (event: { event: string; instance_id: string }) => {
-		if (instance.value && event.instance_id === instance.value.id && event.event === 'synced') {
+		if (
+			activeInstance.value &&
+			event.instance_id === activeInstance.value.id &&
+			['synced', 'content_install_finished', 'content_install_failed'].includes(event.event)
+		) {
 			await refreshInstalledProjectIds()
 			await searchState.refreshSearch()
 		}
@@ -2118,16 +2986,20 @@ provideBrowseManager({
 	advancedFiltersCollapsed,
 	getProjectLink: (
 		result: Labrinth.Search.v2.ResultSearchProject & {
-			provider: 'modrinth' | 'curseforge'
+			provider: 'modrinth' | 'curseforge' | 'mcarchive' | 'planet_minecraft'
 			provider_project_id?: string
 		},
 	) => ({
 		path:
 			result.provider === 'curseforge'
 				? `/project/curseforge/${result.provider_project_id}`
-				: result.provider === 'modrinth'
-					? `/project/${result.project_id ?? result.slug}`
-					: route.path,
+				: result.provider === 'mcarchive'
+					? `/project/mcarchive/${result.slug}`
+					: result.provider === 'planet_minecraft'
+						? `/project/planet-minecraft/${result.provider_project_id}`
+						: result.provider === 'modrinth'
+							? `/project/${result.project_id ?? result.slug}`
+							: route.path,
 		query: getProjectBrowseQuery(),
 	}),
 	getServerProjectLink: (result: Labrinth.Search.v3.ResultSearchProject) => ({
@@ -2153,7 +3025,9 @@ provideBrowseManager({
 		},
 	}),
 	showHideInstalled: computed(
-		() => (isServerContext.value && projectType.value !== 'modpack') || !!instance.value,
+		() =>
+			!isWorldMapBrowse.value &&
+			((isServerContext.value && projectType.value !== 'modpack') || !!activeInstance.value),
 	),
 	hideInstalledLabel: computed(() =>
 		formatMessage(
@@ -2187,7 +3061,7 @@ provideBrowseManager({
 
 <template>
 	<div data-onboarding-id="browse-content" class="flex flex-col gap-3 p-6">
-		<BrowsePageLayout>
+		<BrowsePageLayout v-if="!isWorldMapBrowse || curseForgeCapability.configured">
 			<template #nav-tabs-actions>
 				<ButtonStyled size="large" type="transparent">
 					<button :disabled="translationLoading" @click="toggleTranslation">
@@ -2206,10 +3080,33 @@ provideBrowseManager({
 				</ButtonStyled>
 			</template>
 			<template #search-bar-actions>
-				<PopoutMenu
-					v-if="curseForgeCapability.configured && projectType !== 'server'"
-					placement="bottom-end"
+				<ButtonStyled
+					v-if="!isServerContext && projectType !== 'server' && projectType !== 'modpack'"
+					size="standard"
+					type="standard"
 				>
+					<button class="flex min-w-0 items-center gap-2" @click="instanceSelector?.show()">
+						<InstanceIcon
+							v-if="activeInstance"
+							class="shrink-0"
+							size="1.25rem"
+							:icon-path="activeInstance.icon_path"
+							:instance-id="activeInstance.id"
+							:loader="activeInstance.loader"
+						/>
+						<PlusIcon v-else class="size-5 shrink-0" />
+						<span class="max-w-40 truncate font-medium">
+							{{ activeInstance?.name ?? formatMessage(messages.chooseInstance) }}
+						</span>
+						<span
+							aria-hidden="true"
+							class="flex size-4 shrink-0 items-center justify-center text-secondary"
+						>
+							<ChevronDownIcon class="size-4" />
+						</span>
+					</button>
+				</ButtonStyled>
+				<PopoutMenu v-if="projectType !== 'server' && !isWorldMapBrowse" placement="bottom-end">
 					<ButtonStyled size="standard" type="standard">
 						<button class="flex items-center gap-2">
 							<component :is="sourceIcon" class="h-5 w-5" />
@@ -2245,7 +3142,33 @@ provideBrowseManager({
 					</template>
 				</ContextMenu>
 			</template>
+			<template #above-results>
+				<div
+					v-if="searchNotice"
+					class="flex items-center gap-2 px-1 pb-1 text-sm"
+					aria-live="polite"
+				>
+					<SparklesIcon class="size-3.5 shrink-0 text-brand" />
+					<p class="m-0 text-secondary">
+						{{ formatMessage(messages.fuzzySearchPrefix, searchNotice) }}
+						<button
+							type="button"
+							class="font-medium text-contrast underline-offset-2 hover:text-brand hover:underline"
+							@click="searchState.query.value = searchNotice.used"
+						>
+							{{ searchNotice.used }}
+						</button>
+						{{ formatMessage(messages.fuzzySearchSuffix) }}
+					</p>
+				</div>
+			</template>
 		</BrowsePageLayout>
+		<EmptyState
+			v-else
+			type="empty-inbox"
+			:heading="formatMessage(messages.mapsUnavailable)"
+			:description="formatMessage(messages.mapsUnavailableDescription)"
+		/>
 		<CreationFlowModal
 			v-if="isServerContext && projectType === 'modpack'"
 			ref="serverSetupModalRef"
@@ -2259,6 +3182,16 @@ provideBrowseManager({
 			@hide="() => {}"
 			@browse-modpacks="() => {}"
 			@create="handleServerModpackFlowCreate"
+		/>
+		<BrowseInstanceSelector
+			ref="instanceSelector"
+			:instances="contentSelection.instances.value"
+			:selected-instance="activeInstance"
+			:selected-count="contentSelection.selectedCount.value"
+			:install-current="contentSelection.installSelected"
+			:clear-current="contentSelection.clear"
+			@select="selectTargetInstance"
+			@cancel-switch="cancelTargetInstanceSwitch"
 		/>
 		<Teleport to="#sidebar-teleport-target">
 			<BrowseSidebar />

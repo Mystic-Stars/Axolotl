@@ -22,6 +22,16 @@ pub struct InstallProjectWithDependenciesRequest {
     pub selected: ResolutionPreferences,
     #[serde(default)]
     pub excluded_project_ids: Vec<String>,
+    #[serde(default)]
+    pub force_project_ids: Vec<String>,
+}
+
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ContentToggleResult {
+    pub content_id: String,
+    pub path: String,
+    pub enabled: bool,
 }
 
 #[tracing::instrument]
@@ -112,6 +122,7 @@ pub async fn install_project_with_dependencies(
             content_type: request.content_type,
             selected: request.selected,
             excluded_project_ids: request.excluded_project_ids,
+            force_project_ids: request.force_project_ids,
         },
         &state,
     )
@@ -189,6 +200,7 @@ pub async fn preview_project_with_dependencies(
             content_type: request.content_type,
             selected: request.selected,
             excluded_project_ids: request.excluded_project_ids,
+            force_project_ids: request.force_project_ids,
         },
         &state,
     )
@@ -209,6 +221,7 @@ pub async fn preview_project_with_dependencies_for_target(
             content_type: request.content_type,
             selected: request.selected,
             excluded_project_ids: request.excluded_project_ids,
+            force_project_ids: request.force_project_ids,
         },
         game_version,
         loader,
@@ -244,6 +257,20 @@ pub async fn queue_curseforge_content(
     display_icon: Option<String>,
 ) -> crate::Result<crate::install::InstallJobSnapshot> {
     crate::install::install_curseforge_content(
+        request,
+        display_title,
+        display_icon,
+    )
+    .await
+}
+
+#[tracing::instrument]
+pub async fn queue_curseforge_world(
+    request: crate::api::curseforge::CurseForgeWorldInstallRequest,
+    display_title: String,
+    display_icon: Option<String>,
+) -> crate::Result<crate::install::InstallJobSnapshot> {
+    crate::install::install_curseforge_world(
         request,
         display_title,
         display_icon,
@@ -429,13 +456,45 @@ pub async fn toggle_content_entry(
     content_id: &str,
     desired_enabled: Option<bool>,
 ) -> crate::Result<String> {
-    let target = content_mutation_target(instance_id, content_id).await?;
-    let path = target.relative_path.ok_or_else(|| {
+    let mut results = toggle_content_entries(
+        instance_id,
+        vec![content_id.to_string()],
+        desired_enabled,
+    )
+    .await?;
+    results.pop().map(|result| result.path).ok_or_else(|| {
         crate::ErrorKind::InputError(
-            "The selected content is not present on disk".to_string(),
+            "The selected content no longer exists".to_string(),
         )
-    })?;
-    toggle_disable_project(instance_id, &path, desired_enabled).await
+        .into()
+    })
+}
+
+#[tracing::instrument]
+pub async fn toggle_content_entries(
+    instance_id: &str,
+    content_ids: Vec<String>,
+    desired_enabled: Option<bool>,
+) -> crate::Result<Vec<ContentToggleResult>> {
+    let state = State::get().await?;
+    let results = crate::state::instances::commands::toggle_content_entries(
+        instance_id,
+        &content_ids,
+        desired_enabled,
+        &state,
+    )
+    .await?
+    .into_iter()
+    .map(|result| ContentToggleResult {
+        content_id: result.content_id,
+        path: result.path,
+        enabled: result.enabled,
+    })
+    .collect::<Vec<_>>();
+    if !results.is_empty() {
+        emit_content_changed(instance_id).await?;
+    }
+    Ok(results)
 }
 
 #[tracing::instrument]
@@ -478,6 +537,11 @@ pub async fn update_content_entry(
             emit_content_changed(instance_id).await?;
             Ok(updated_path)
         }
+        Some(ContentProvider::McArchive) => Err(crate::ErrorKind::InputError(
+            "MCArchive content updates require selecting a file manually"
+                .to_string(),
+        )
+        .into()),
         _ => update_project(instance_id, &path, None).await,
     }
 }
@@ -515,6 +579,11 @@ pub async fn switch_content_entry_version(
             emit_content_changed(instance_id).await?;
             Ok(updated_path)
         }
+		Some(ContentProvider::McArchive) => Err(crate::ErrorKind::InputError(
+			"MCArchive content version changes require selecting a file manually"
+				.to_string(),
+		)
+		.into()),
         _ => {
             switch_project_version_with_dependencies(
                 instance_id,
@@ -645,6 +714,8 @@ pub async fn restore_pack_member_default(
 					world_name: None,
 					install_dependencies: false,
 					excluded_dependency_project_ids: Vec::new(),
+					force_dependency_project_ids: Vec::new(),
+					dependency_plan_id: None,
 				},
 			)
 			.await?;
@@ -672,6 +743,13 @@ pub async fn restore_pack_member_default(
         Some(ContentProvider::Local) => {
             return Err(crate::ErrorKind::InputError(
                 "This pack member has no managed provider".to_string(),
+            )
+            .into());
+        }
+        Some(ContentProvider::McArchive) => {
+            return Err(crate::ErrorKind::InputError(
+                "MCArchive pack members must be restored from an imported file"
+                    .to_string(),
             )
             .into());
         }
@@ -776,8 +854,12 @@ async fn content_mutation_target(
 
 fn curseforge_loader_type(loader: crate::state::ModLoader) -> Option<u32> {
     match loader {
-        crate::state::ModLoader::Forge => Some(1),
-        crate::state::ModLoader::Fabric => Some(4),
+        crate::state::ModLoader::Forge | crate::state::ModLoader::Cleanroom => {
+            Some(1)
+        }
+        crate::state::ModLoader::LiteLoader => Some(3),
+        crate::state::ModLoader::Fabric
+        | crate::state::ModLoader::LegacyFabric => Some(4),
         crate::state::ModLoader::Quilt => Some(5),
         crate::state::ModLoader::NeoForge => Some(6),
         _ => None,

@@ -31,7 +31,7 @@ const progressWidth = computed(() => `${Math.min(100, (props.current / props.tot
 		<div class="onboarding-dialogue-copy">
 			<div class="onboarding-dialogue-header">
 				<div class="onboarding-dialogue-heading">
-					<p class="onboarding-progress">{{ current }} / {{ total }}</p>
+					<p class="m-0 mb-1.5 text-[0.8125rem] font-bold text-brand">{{ current }} / {{ total }}</p>
 					<h2 :id="`onboarding-title-${step.id}`">{{ formatMessage(step.title) }}</h2>
 				</div>
 				<ButtonStyled circular type="transparent">
@@ -117,8 +117,7 @@ const progressWidth = computed(() => `${Math.min(100, (props.current / props.tot
 }
 
 .onboarding-dialogue-heading h2,
-.onboarding-dialogue-body p,
-.onboarding-progress {
+.onboarding-dialogue-body p {
 	margin: 0;
 }
 

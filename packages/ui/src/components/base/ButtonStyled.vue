@@ -240,7 +240,7 @@ const fontSize = computed(() => {
 
 <template>
 	<div
-		class="btn-wrapper"
+		class="btn-wrapper contents"
 		:class="[
 			{ outline: type === 'outlined', transparent: type === 'transparent', chip: type === 'chip' },
 			fontSize,
@@ -252,10 +252,6 @@ const fontSize = computed(() => {
 </template>
 
 <style scoped lang="scss">
-.btn-wrapper {
-	display: contents;
-}
-
 /* Searches up to 4 children deep for valid button */
 .btn-wrapper :deep(:is(button, a, .button-like):first-child),
 .btn-wrapper :slotted(:is(button, a, .button-like):first-child),

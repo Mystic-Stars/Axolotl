@@ -1,5 +1,5 @@
 <template>
-	<div class="scrollable-pane-wrapper">
+	<div class="flex flex-col relative">
 		<div
 			class="wrapper-wrapper"
 			:class="{
@@ -74,12 +74,6 @@ function onScroll({ target: { scrollTop, offsetHeight, scrollHeight } }) {
 	syntax: '<length-percentage>';
 	inherits: false;
 	initial-value: 0%;
-}
-
-.scrollable-pane-wrapper {
-	display: flex;
-	flex-direction: column;
-	position: relative;
 }
 
 .wrapper-wrapper {

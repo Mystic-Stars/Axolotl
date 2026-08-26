@@ -5,14 +5,22 @@
 #![recursion_limit = "256"]
 
 use native_dialog::{DialogBuilder, MessageLevel};
-use std::env;
 use std::sync::atomic::Ordering;
-use tauri::{Listener, Manager};
+use std::{
+    env, fs,
+    io::Read,
+    path::{Component, Path, PathBuf},
+};
+use tauri::{
+    Listener, Manager,
+    http::{Response, StatusCode, header},
+};
 use tauri_plugin_fs::FsExt;
 use theseus::prelude::*;
 
 mod api;
 mod error;
+mod lightweight_mode;
 mod mod_translation;
 mod portable;
 mod seed_map;
@@ -24,6 +32,152 @@ mod macos;
 mod updater_impl;
 #[cfg(not(feature = "updater"))]
 mod updater_impl_noop;
+
+const BLOCKBENCH_SKIN_RESOURCE_DIR: &str = "resources/blockbench-skin";
+
+fn blockbench_skin_response(
+    path: &str,
+    resource_dir: &Path,
+) -> Response<Vec<u8>> {
+    let requested_path = path.trim_start_matches('/');
+    let requested_path = if requested_path.is_empty() {
+        "index.html"
+    } else {
+        requested_path
+    };
+    let relative_path = Path::new(requested_path);
+    if relative_path
+        .components()
+        .any(|component| !matches!(component, Component::Normal(_)))
+    {
+        return Response::builder()
+            .status(StatusCode::BAD_REQUEST)
+            .body(Vec::new())
+            .expect("failed to build Blockbench skin response");
+    }
+
+    let is_compressed_bundle = requested_path == "dist/skin.bundle.js";
+    let file_path = resource_dir.join(if is_compressed_bundle {
+        PathBuf::from("dist/skin.bundle.js.gz")
+    } else {
+        relative_path.to_path_buf()
+    });
+    let contents = match fs::read(file_path) {
+        Ok(contents) => contents,
+        Err(_) => {
+            return Response::builder()
+                .status(StatusCode::NOT_FOUND)
+                .body(Vec::new())
+                .expect("failed to build Blockbench skin response");
+        }
+    };
+    let contents = if is_compressed_bundle {
+        let mut decompressed = Vec::new();
+        if flate2::read::GzDecoder::new(contents.as_slice())
+            .read_to_end(&mut decompressed)
+            .is_err()
+        {
+            return Response::builder()
+                .status(StatusCode::INTERNAL_SERVER_ERROR)
+                .body(Vec::new())
+                .expect("failed to build Blockbench skin response");
+        }
+        decompressed
+    } else {
+        contents
+    };
+
+    let content_type = match relative_path
+        .extension()
+        .and_then(|extension| extension.to_str())
+    {
+        Some("css") => "text/css; charset=utf-8",
+        Some("js") => "text/javascript; charset=utf-8",
+        Some("json") => "application/json; charset=utf-8",
+        Some("svg") => "image/svg+xml",
+        Some("png") => "image/png",
+        Some("webp") => "image/webp",
+        Some("woff") => "font/woff",
+        Some("woff2") => "font/woff2",
+        Some("ttf") => "font/ttf",
+        Some("ico") => "image/x-icon",
+        _ => "text/html; charset=utf-8",
+    };
+    let response =
+        Response::builder().header(header::CONTENT_TYPE, content_type);
+    response
+        .body(contents)
+        .expect("failed to build Blockbench skin response")
+}
+
+fn is_allowed_blockbench_skin_request(
+    request: &tauri::http::Request<Vec<u8>>,
+) -> bool {
+    if !matches!(
+        request.uri().host(),
+        Some("localhost") | Some("axolotl-skin.localhost")
+    ) {
+        return false;
+    }
+
+    const ALLOWED_ORIGINS: [&str; 6] = [
+        "http://localhost:5201",
+        "http://tauri.localhost",
+        "https://tauri.localhost",
+        "tauri://localhost",
+        "axolotl-skin://localhost",
+        "http://axolotl-skin.localhost",
+    ];
+    let is_allowed_source = |value: &str| {
+        ALLOWED_ORIGINS.iter().any(|origin| {
+            value == *origin || value.starts_with(&format!("{origin}/"))
+        })
+    };
+
+    if let Some(origin) = request
+        .headers()
+        .get(header::ORIGIN)
+        .and_then(|value| value.to_str().ok())
+    {
+        if !is_allowed_source(origin) {
+            return false;
+        }
+
+        if let Some(referer) = request
+            .headers()
+            .get(header::REFERER)
+            .and_then(|value| value.to_str().ok())
+        {
+            return is_skin_editor_referer(referer, &is_allowed_source);
+        }
+
+        return true;
+    }
+
+    request
+        .headers()
+        .get(header::REFERER)
+        .and_then(|value| value.to_str().ok())
+        .is_some_and(|referer| {
+            is_skin_editor_referer(referer, &is_allowed_source)
+        })
+}
+
+fn is_skin_editor_referer(
+    referer: &str,
+    is_allowed_source: &impl Fn(&str) -> bool,
+) -> bool {
+    let Ok(url) = referer.parse::<url::Url>() else {
+        return false;
+    };
+    if !is_allowed_source(url.origin().ascii_serialization().as_str())
+        || url.path() != "/index.html"
+    {
+        return false;
+    }
+    url.query_pairs()
+        .any(|(key, value)| key == "embed" && value == "skin")
+}
 
 // Should be called in launcher initialization
 #[tracing::instrument(skip_all)]
@@ -44,6 +198,10 @@ async fn initialize_state(app: tauri::AppHandle) -> api::Result<()> {
         .allow_directory(state.directories.instances_dir(), true)?;
     app.fs_scope()
         .allow_directory(state.directories.instances_dir(), true)?;
+    app.asset_protocol_scope()
+        .allow_directory(state.directories.servers_dir(), true)?;
+    app.fs_scope()
+        .allow_directory(state.directories.servers_dir(), true)?;
 
     Ok(())
 }
@@ -329,7 +487,26 @@ fn main() {
 
     tracing::info!("Initialized tracing subscriber. Loading Axolotl Launcher!");
 
-    let mut builder = tauri::Builder::default();
+    let mut builder = tauri::Builder::default().register_uri_scheme_protocol(
+        "axolotl-skin",
+        move |context, request| {
+            if !is_allowed_blockbench_skin_request(&request) {
+                return Response::builder()
+                    .status(StatusCode::FORBIDDEN)
+                    .body(Vec::new())
+                    .expect(
+                        "failed to build Blockbench skin forbidden response",
+                    );
+            }
+            let resource_dir = context
+                .app_handle()
+                .path()
+                .resource_dir()
+                .expect("failed to resolve Tauri resource directory")
+                .join(BLOCKBENCH_SKIN_RESOURCE_DIR);
+            blockbench_skin_response(request.uri().path(), &resource_dir)
+        },
+    );
 
     #[cfg(feature = "updater")]
     {
@@ -386,6 +563,7 @@ fn main() {
             window_state_builder.build()
         })
         .setup(|app| {
+            lightweight_mode::init(&app.handle());
             let app_handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
                 tokio::time::sleep(std::time::Duration::from_secs(4)).await;
@@ -454,10 +632,13 @@ fn main() {
         .plugin(api::logs::init())
         .plugin(api::jre::init())
         .plugin(api::metadata::init())
+        .plugin(api::mcarchive::init())
         .plugin(api::minecraft_skins::init())
         .plugin(api::mod_translation::init())
         .plugin(api::process::init())
+        .plugin(api::planet_minecraft::init())
         .plugin(api::settings::init())
+        .plugin(api::storage::init())
         .plugin(api::seed_map::init())
         .plugin(api::schematic_preview::init())
         .plugin(api::shortcuts::init())
@@ -466,6 +647,7 @@ fn main() {
         .plugin(api::translation::init())
         .plugin(api::utils::init())
         .plugin(api::cache::init())
+        .plugin(api::content_favorites::init())
         .plugin(api::content_search::init())
         .plugin(api::curseforge::init())
         .plugin(api::datapacks::init())
@@ -475,6 +657,8 @@ fn main() {
         .plugin(api::worlds::init())
         .plugin(api::terracotta::init())
         .plugin(api::multiplayer::init())
+        .manage(api::files::StudioWatchers::default())
+        .plugin(api::servers::init())
         .manage(PendingUpdateData::default())
         .invoke_handler(tauri::generate_handler![
             initialize_state,
@@ -494,6 +678,8 @@ fn main() {
             check_symlink_capability,
             is_elevated,
             allow_symlink_target,
+            lightweight_mode::lightweight_mode_frontend_ready,
+            lightweight_mode::lightweight_mode_set_route,
         ]);
 
     tracing::info!("Initializing app...");
@@ -554,6 +740,14 @@ fn main() {
                         } else {
                             (**update).clone().restart_after_install(false)
                         };
+
+                        // Persist the trigger before installing: on Windows the
+                        // updater plugin launches the NSIS installer and exits the
+                        // process via `std::process::exit(0)` without returning, so
+                        // the success path below never runs there.
+                        #[cfg(target_os = "windows")]
+                        set_changelog_toast(Some(update.version.clone()));
+
                         match update.install(data) {
                             Ok(()) => {
                                 set_changelog_toast(Some(update.version.clone()));

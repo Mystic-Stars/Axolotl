@@ -4,6 +4,7 @@ import {
 	ChevronRightIcon,
 	CodeIcon,
 	CoffeeIcon,
+	FileArchiveIcon,
 	InfoIcon,
 	MonitorIcon,
 	WrenchIcon,
@@ -19,6 +20,7 @@ import type { PlatformTag } from '@modrinth/utils'
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import { computed, nextTick, ref, watch } from 'vue'
 
+import CoreComponentsSettings from '@/components/ui/instance_settings/CoreComponentsSettings.vue'
 import GeneralSettings from '@/components/ui/instance_settings/GeneralSettings.vue'
 import HooksSettings from '@/components/ui/instance_settings/HooksSettings.vue'
 import InstallationSettings from '@/components/ui/instance_settings/InstallationSettings.vue'
@@ -102,6 +104,15 @@ const tabs = computed<TabbedModalTab[]>(() => [
 		}),
 		icon: WrenchIcon,
 		content: InstallationSettings,
+	},
+	{
+		// Core component editing is instance-specific and advanced, so it is intentionally excluded from first-run onboarding.
+		name: defineMessage({
+			id: 'instance.settings.tabs.core-components',
+			defaultMessage: 'Core components',
+		}),
+		icon: FileArchiveIcon,
+		content: CoreComponentsSettings,
 	},
 	{
 		name: defineMessage({

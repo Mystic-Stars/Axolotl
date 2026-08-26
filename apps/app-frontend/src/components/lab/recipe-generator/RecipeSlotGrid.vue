@@ -74,7 +74,10 @@ function updateCount(slot: RecipeSlot, count: number) {
 <template>
 	<div class="recipe-slot-grid" :class="`is-${variant}`">
 		<div v-if="variant === 'crafting'" class="recipe-crafting-editor">
-			<div class="recipe-crafting-grid" :class="{ 'is-two-by-two': twoByTwo }">
+			<div
+				class="recipe-crafting-grid grid grid-cols-[repeat(3,3.75rem)] grid-auto-rows-[3.75rem] gap-[0.45rem] border border-surface-5 rounded-[var(--radius-md)] bg-surface-1 p-[0.6rem]"
+				:class="{ 'is-two-by-two': twoByTwo }"
+			>
 				<RecipeSlotCell
 					v-for="slot in gridSlots"
 					:key="slot"
@@ -135,17 +138,6 @@ function updateCount(slot: RecipeSlot, count: number) {
 	justify-content: center;
 	gap: 1.5rem;
 	padding-top: 0.25rem;
-}
-
-.recipe-crafting-grid {
-	display: grid;
-	grid-template-columns: repeat(3, 3.75rem);
-	grid-auto-rows: 3.75rem;
-	gap: 0.45rem;
-	border: 1px solid var(--color-surface-5);
-	border-radius: var(--radius-md);
-	background: var(--color-surface-1);
-	padding: 0.6rem;
 }
 
 .recipe-crafting-grid.is-two-by-two {

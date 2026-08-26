@@ -1,5 +1,5 @@
 <template>
-	<div class="categories">
+	<div class="categories flex flex-row flex-wrap gap-2">
 		<slot />
 		<span v-for="category in categories.filter((x) => !!x)" :key="category">
 			<component :is="getTagIcon(category)" v-if="getTagIcon(category)" />
@@ -22,11 +22,6 @@ defineProps<{
 
 <style lang="scss" scoped>
 .categories {
-	display: flex;
-	flex-direction: row;
-	flex-wrap: wrap;
-	gap: var(--gap-sm);
-
 	:deep(span) {
 		display: flex;
 		flex-direction: row;

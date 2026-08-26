@@ -27,10 +27,14 @@ const NEWS_SKELETON_COUNT = 4
 
 const newsItems = ref<MinecraftNewsItem[]>([])
 const loading = ref(true)
+const htmlDecoder = document.createElement('textarea')
 
 get_minecraft_news(NEWS_COUNT)
 	.then((items) => {
-		newsItems.value = items
+		newsItems.value = items.map((item) => ({
+			...item,
+			title: decodeHtmlEntities(item.title),
+		}))
 	})
 	.catch(() => {
 		newsItems.value = []
@@ -45,6 +49,11 @@ function newsDateLabel(item: MinecraftNewsItem): string | null {
 	if (!item.date) return null
 	const parsed = new Date(item.date)
 	return Number.isNaN(parsed.getTime()) ? null : formatDate(parsed)
+}
+
+function decodeHtmlEntities(value: string): string {
+	htmlDecoder.innerHTML = value
+	return htmlDecoder.value
 }
 
 async function openArticle(item: MinecraftNewsItem) {

@@ -136,6 +136,7 @@ export interface SymlinkMethodChoice {
 	gameVersion?: string | null
 	loader?: string | null
 	loaderVersion?: string | null
+	gameDirOverride?: string | null
 }
 
 export interface InstanceImportProvider {
@@ -168,6 +169,7 @@ export interface InstanceImportProvider {
 			gameVersion?: string | null
 			loader?: string | null
 			loaderVersion?: string | null
+			gameDirOverride?: string | null
 		}[],
 	) => Promise<void>
 	/** Open a directory picker (platform-specific) */

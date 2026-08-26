@@ -77,6 +77,11 @@
         "name": "pinned_at",
         "ordinal": 14,
         "type_info": "Integer"
+      },
+      {
+        "name": "game_dir_override",
+        "ordinal": 15,
+        "type_info": "Text"
       }
     ],
     "parameters": {
@@ -96,6 +101,7 @@
       true,
       false,
       false,
+      true,
       true,
       true
     ]

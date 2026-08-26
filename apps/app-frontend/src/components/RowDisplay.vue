@@ -274,15 +274,17 @@ onUnmounted(() => {
 		@delete="deleteInstance"
 	/>
 	<div ref="rowContainer" class="flex flex-col gap-4">
-		<div v-for="row in actualInstances" ref="rows" :key="row.label" class="row">
+		<div v-for="row in actualInstances" ref="rows" :key="row.label" class="row flex flex-col items-start overflow-hidden w-full min-w-full">
 			<HeadingLink class="mt-1" :to="row.route">
 				{{ row.label }}
 			</HeadingLink>
 			<section
 				v-if="row.instance"
 				ref="modsRow"
-				class="instances"
-				:class="{ compact: row.compact }"
+				class="grid grid-cols-[repeat(auto-fill,minmax(20rem,1fr))] gap-3 w-full"
+				:class="{
+					'grid-cols-[repeat(auto-fill,minmax(18rem,1fr))] gap-3': row.compact,
+				}"
 			>
 				<Instance
 					v-for="(instance, instanceIndex) in row.instances.slice(
@@ -296,7 +298,11 @@ onUnmounted(() => {
 					@contextmenu.prevent.stop="(event) => handleInstanceRightClick(event, instance)"
 				/>
 			</section>
-			<section v-else ref="modsRow" class="projects">
+			<section
+				v-else
+				ref="modsRow"
+				class="projects grid w-full grid-cols-[repeat(auto-fill,minmax(18rem,1fr))] gap-3"
+			>
 				<LegacyProjectCard
 					v-for="project in row.instances.slice(0, maxProjectsPerRow)"
 					:key="project?.project_id"
@@ -333,76 +339,12 @@ onUnmounted(() => {
 	</ContextMenu>
 </template>
 <style lang="scss" scoped>
-.content {
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	justify-content: center;
-	width: 100%;
-	gap: 1rem;
-
-	-ms-overflow-style: none;
-	scrollbar-width: none;
-
-	&::-webkit-scrollbar {
-		width: 0;
-		background: transparent;
-	}
-}
-
 .row {
-	display: flex;
-	flex-direction: column;
-	align-items: flex-start;
-	overflow: hidden;
-	width: 100%;
-	min-width: 100%;
-
 	&:nth-child(even) {
 		background: var(--color-bg);
 	}
 
-	.header {
-		width: 100%;
-		margin-bottom: 1rem;
-		gap: var(--gap-xs);
-		display: flex;
-		flex-direction: row;
-		align-items: center;
-
-		a {
-			margin: 0;
-			font-size: var(--font-size-md);
-			font-weight: bolder;
-			white-space: nowrap;
-			color: var(--color-base);
-		}
-
-		svg {
-			height: 1.25rem;
-			width: 1.25rem;
-			color: var(--color-base);
-		}
-	}
-
-	.instances {
-		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(20rem, 1fr));
-		grid-gap: 0.75rem;
-		width: 100%;
-
-		&.compact {
-			grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
-			gap: 0.75rem;
-		}
-	}
-
 	.projects {
-		display: grid;
-		width: 100%;
-		grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
-		grid-gap: 0.75rem;
-
 		.item {
 			width: 100%;
 			max-width: 100%;

@@ -3,6 +3,7 @@ import {
 	CheckIcon,
 	ChevronDownIcon,
 	CopyIcon,
+	EditIcon,
 	ExternalIcon,
 	GithubIcon,
 	GlobeIcon,
@@ -10,15 +11,8 @@ import {
 	IssuesIcon,
 	ScaleIcon,
 	UsersIcon,
-	WrenchIcon,
 } from '@modrinth/assets'
-import {
-	Avatar,
-	ButtonStyled,
-	defineMessages,
-	injectNotificationManager,
-	useVIntl,
-} from '@modrinth/ui'
+import { Avatar, defineMessages, NewButton as Button, useVIntl } from '@modrinth/ui'
 import { getVersion } from '@tauri-apps/api/app'
 import { inject, ref } from 'vue'
 
@@ -26,19 +20,13 @@ import AfdianIcon from '@/assets/external/afdian.png'
 import QqIcon from '@/assets/external/qq.svg?component'
 import { AxolotlBrandConfig } from '@/config'
 import { contributors, teamMembers } from '@/data/about'
-import { isDev } from '@/helpers/utils'
-import { handleSevereError } from '@/store/error.js'
 
 import QqChannelIcon from './QqChannelIcon.vue'
 
 const { formatMessage } = useVIntl()
 const version = await getVersion()
-const isDevEnvironment = await isDev()
 const copied = ref(false)
-const { addNotification } = injectNotificationManager()
 const replayOnboarding = inject<(mode: 'main' | 'instance') => Promise<void>>('replayOnboarding')
-const previewMinecraftCrashModal = inject<() => void>('previewMinecraftCrashModal')
-const previewPrivacyConsentModal = inject<() => Promise<void>>('previewPrivacyConsentModal')
 
 const licenseUrl = `${AxolotlBrandConfig.repositoryUrl}/blob/main/LICENSE`
 const thirdPartyLicensesUrl = `${AxolotlBrandConfig.repositoryUrl}/tree/main/third-party/licenses`
@@ -112,6 +100,14 @@ const messages = defineMessages({
 		id: 'app.settings.about.afdian-description',
 		defaultMessage: 'Help support continued development',
 	},
+	survey: {
+		id: 'app.settings.about.survey',
+		defaultMessage: 'Community survey',
+	},
+	surveyDescription: {
+		id: 'app.settings.about.survey-description',
+		defaultMessage: 'Help us improve Axolotl Launcher',
+	},
 	licenseAttribution: {
 		id: 'app.settings.about.license-attribution',
 		defaultMessage: 'License & attribution',
@@ -145,34 +141,6 @@ const messages = defineMessages({
 		id: 'app.settings.about.contributors-count',
 		defaultMessage: '{count, plural, one {# contributor} other {# contributors}}',
 	},
-	developerTools: {
-		id: 'app.settings.about.developer-tools',
-		defaultMessage: 'Developer tools',
-	},
-	testError: {
-		id: 'app.settings.about.test-error',
-		defaultMessage: 'Trigger test error',
-	},
-	testErrorMessage: {
-		id: 'app.settings.about.test-error-message',
-		defaultMessage: 'Test error triggered from the development settings.',
-	},
-	testNotificationError: {
-		id: 'app.settings.about.test-notification-error',
-		defaultMessage: 'Trigger notification test error',
-	},
-	testNotificationErrorTitle: {
-		id: 'app.settings.about.test-notification-error-title',
-		defaultMessage: 'Test notification error',
-	},
-	previewMinecraftCrashModal: {
-		id: 'app.settings.about.preview-minecraft-crash-modal',
-		defaultMessage: 'Preview Minecraft crash window',
-	},
-	previewPrivacyConsentModal: {
-		id: 'app.settings.about.preview-privacy-consent-modal',
-		defaultMessage: 'Preview privacy & security modal',
-	},
 })
 
 const projectLinks = [
@@ -197,23 +165,11 @@ const projectLinks = [
 		icon: QqChannelIcon,
 	},
 ]
-
-function triggerTestError() {
-	handleSevereError(new Error(formatMessage(messages.testErrorMessage)))
-}
-
-function triggerTestNotificationError() {
-	addNotification({
-		title: formatMessage(messages.testNotificationErrorTitle),
-		text: formatMessage(messages.testErrorMessage),
-		type: 'error',
-	})
-}
 </script>
 
 <template>
-	<div class="flex flex-col gap-6">
-		<section class="rounded-xl bg-surface-4 p-5">
+	<div class="about-page flex flex-col gap-6">
+		<section id="settings-target-about-product" tabindex="-1" class="about-panel">
 			<div class="flex items-center gap-4">
 				<img class="size-20 object-contain" src="@/assets/axolotl.png" alt="" />
 				<div class="min-w-0">
@@ -335,6 +291,28 @@ function triggerTestNotificationError() {
 					</span>
 					<ExternalIcon class="size-5 shrink-0 text-secondary" />
 				</a>
+
+				<a
+					:href="AxolotlBrandConfig.surveyUrl"
+					target="_blank"
+					rel="noopener noreferrer"
+					class="flex min-w-0 items-center gap-3 rounded-xl bg-surface-4 p-4 transition-colors hover:bg-surface-5 sm:col-span-2"
+				>
+					<span
+						class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-surface-2 text-contrast"
+					>
+						<EditIcon class="size-6" />
+					</span>
+					<span class="min-w-0 flex-1">
+						<span class="block font-semibold text-contrast">
+							{{ formatMessage(messages.survey) }}
+						</span>
+						<span class="block text-sm text-secondary">
+							{{ formatMessage(messages.surveyDescription) }}
+						</span>
+					</span>
+					<ExternalIcon class="size-5 shrink-0 text-secondary" />
+				</a>
 			</div>
 		</section>
 
@@ -343,7 +321,7 @@ function triggerTestNotificationError() {
 				<ScaleIcon class="size-5 text-secondary" />
 				{{ formatMessage(messages.licenseAttribution) }}
 			</h3>
-			<div class="rounded-xl bg-surface-4 p-4">
+			<div class="about-panel about-panel-compact">
 				<p class="m-0 text-primary">
 					{{ formatMessage(messages.attribution) }}
 				</p>
@@ -382,7 +360,7 @@ function triggerTestNotificationError() {
 			</div>
 		</section>
 
-		<details class="group border-t border-surface-4 pt-4">
+		<details class="group pt-4 about-settings-details">
 			<summary
 				class="flex cursor-pointer list-none items-center gap-2 text-base font-semibold text-contrast [&::-webkit-details-marker]:hidden"
 			>
@@ -417,41 +395,40 @@ function triggerTestNotificationError() {
 			</div>
 		</details>
 
-		<div class="flex flex-wrap gap-2">
-			<ButtonStyled>
-				<button @click="replayOnboarding?.('main')">
-					{{ formatMessage(messages.replayOnboarding) }}
-				</button>
-			</ButtonStyled>
+		<div id="settings-target-about-replay-tour" tabindex="-1" class="flex flex-wrap gap-2">
+			<Button type="base" @click="replayOnboarding?.('main')">
+				{{ formatMessage(messages.replayOnboarding) }}
+			</Button>
 		</div>
-
-		<section v-if="isDevEnvironment">
-			<h3 class="m-0 mb-3 flex items-center gap-2 text-base font-semibold text-contrast">
-				<WrenchIcon class="size-5 text-secondary" />
-				{{ formatMessage(messages.developerTools) }}
-			</h3>
-			<div class="flex flex-wrap gap-2">
-				<ButtonStyled>
-					<button @click="triggerTestError">
-						<WrenchIcon /> {{ formatMessage(messages.testError) }}
-					</button>
-				</ButtonStyled>
-				<ButtonStyled>
-					<button @click="triggerTestNotificationError">
-						<WrenchIcon /> {{ formatMessage(messages.testNotificationError) }}
-					</button>
-				</ButtonStyled>
-				<ButtonStyled>
-					<button @click="previewMinecraftCrashModal?.()">
-						<WrenchIcon /> {{ formatMessage(messages.previewMinecraftCrashModal) }}
-					</button>
-				</ButtonStyled>
-				<ButtonStyled>
-					<button @click="previewPrivacyConsentModal?.()">
-						<WrenchIcon /> {{ formatMessage(messages.previewPrivacyConsentModal) }}
-					</button>
-				</ButtonStyled>
-			</div>
-		</section>
 	</div>
 </template>
+
+<style scoped>
+.about-settings-details {
+	border-top: 1px solid
+		var(--settings-divider, color-mix(in srgb, var(--surface-4) 55%, transparent));
+}
+
+.about-panel {
+	padding: 1.25rem;
+	border: 1px solid
+		var(--settings-card-border, color-mix(in srgb, var(--surface-4) 72%, transparent));
+	border-radius: var(--radius-md);
+	background: var(--surface-2);
+}
+
+.about-panel-compact {
+	padding: var(--gap-lg);
+}
+
+.about-page :deep(.rounded-xl.bg-surface-4) {
+	border: 1px solid
+		var(--settings-card-border, color-mix(in srgb, var(--surface-4) 72%, transparent));
+	border-radius: var(--radius-md);
+	background: var(--surface-2);
+}
+
+.about-page :deep(.rounded-xl.bg-surface-2) {
+	border-radius: var(--radius-sm);
+}
+</style>

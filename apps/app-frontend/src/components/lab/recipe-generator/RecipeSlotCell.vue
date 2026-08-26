@@ -127,7 +127,7 @@ function onDrop(event: DragEvent) {
 
 <template>
 	<div
-		class="recipe-slot-cell"
+		class="flex min-w-0 flex-col items-center gap-[0.35rem]"
 		:class="{ 'is-drag-target': dragActive }"
 		:data-recipe-slot="recipeSlot"
 		@axolotl-recipe-slot-drop="onSlotDropEvent"
@@ -152,14 +152,6 @@ function onDrop(event: DragEvent) {
 </template>
 
 <style scoped>
-.recipe-slot-cell {
-	display: flex;
-	min-width: 0;
-	flex-direction: column;
-	align-items: center;
-	gap: 0.35rem;
-}
-
 .recipe-slot-button {
 	display: flex;
 	width: 3.5rem;

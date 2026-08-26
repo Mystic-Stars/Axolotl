@@ -233,21 +233,6 @@
   "app.settings.downloading": {
     "message": "A transferir v{version}"
   },
-  "app.settings.tabs.appearance": {
-    "message": "Aparência"
-  },
-  "app.settings.tabs.default-instance-options": {
-    "message": "Opções padrão de instância"
-  },
-  "app.settings.tabs.java-installations": {
-    "message": "Instalações Java"
-  },
-  "app.settings.tabs.language": {
-    "message": "Linguagem"
-  },
-  "app.settings.tabs.resource-management": {
-    "message": "Gestão de recursos"
-  },
   "app.skins.delete-modal.title": {
     "message": "Tens a certeza que queres apagar esta skin?"
   },
@@ -442,18 +427,6 @@
   },
   "instance.settings.tabs.general.edit-icon.select": {
     "message": "Selecionar ícone"
-  },
-  "instance.settings.tabs.general.library-groups": {
-    "message": "Grupos da biblioteca"
-  },
-  "instance.settings.tabs.general.library-groups.create": {
-    "message": "Criar novo grupo"
-  },
-  "instance.settings.tabs.general.library-groups.description": {
-    "message": "Grupos da biblioteca permitem-te organizar as tuas instâncias em secções diferentes da tua biblioteca."
-  },
-  "instance.settings.tabs.general.library-groups.enter-name": {
-    "message": "Insere o nome do grupo"
   },
   "instance.settings.tabs.general.name": {
     "message": "Nome"

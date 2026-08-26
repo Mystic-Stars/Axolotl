@@ -13,8 +13,10 @@
 				ref="tabLinkElements"
 				:replace="replace"
 				:to="query ? (link.href ? `?${query}=${link.href}` : '?') : link.href"
+				:data-onboarding-id="link.onboardingId"
 				class="button-animation z-[1] flex flex-row items-center gap-2 px-4 py-2 focus:rounded-full"
 				:class="getSSRFallbackClasses(index)"
+				@click="saveSliderSnapshot(true)"
 				@mouseenter="link.onHover?.()"
 				@focus="link.onHover?.()"
 			>
@@ -59,7 +61,7 @@
 
 <script setup lang="ts">
 import type { Component } from 'vue'
-import { computed, nextTick, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 
 const route = useRoute()
@@ -71,7 +73,20 @@ interface Tab {
 	icon?: Component
 	subpages?: string[]
 	onHover?: () => void
+	onboardingId?: string
 }
+
+interface SliderSnapshot {
+	left: number
+	top: number
+	right: number
+	bottom: number
+	savedAt: number
+	preserveOnUnmount: boolean
+}
+
+const sliderSnapshotMaxAge = 1000
+const navigationSliderSnapshots = new Map<string, SliderSnapshot>()
 
 const props = withDefaults(
 	defineProps<{
@@ -114,6 +129,11 @@ const transitionsEnabled = ref(false)
 const sliderDelays = ref({ left: '0ms', top: '0ms', right: '0ms', bottom: '0ms' })
 
 const filteredLinks = computed(() => props.links.filter((link) => link.shown ?? true))
+const navigationGroupKey = computed(() =>
+	props.mode === 'navigation'
+		? filteredLinks.value.map((link) => link.href.split('?')[0]).join('|')
+		: null,
+)
 
 const sliderStyle = computed(() => ({
 	left: `${sliderLeft.value}px`,
@@ -260,6 +280,20 @@ function animateSliderTo(newPosition: {
 	sliderBottom.value = newPosition.bottom
 }
 
+function saveSliderSnapshot(preserveOnUnmount = false) {
+	const key = navigationGroupKey.value
+	if (!key || !sliderReady.value || currentActiveIndex.value === -1) return
+
+	navigationSliderSnapshots.set(key, {
+		left: sliderLeft.value,
+		top: sliderTop.value,
+		right: sliderRight.value,
+		bottom: sliderBottom.value,
+		savedAt: Date.now(),
+		preserveOnUnmount,
+	})
+}
+
 async function updateActiveTab() {
 	await nextTick()
 	const { index, isSubpage } = computeActiveIndex()
@@ -278,7 +312,46 @@ const initialActive = computeActiveIndex()
 currentActiveIndex.value = initialActive.index
 subpageSelected.value = initialActive.isSubpage
 
-onMounted(updateActiveTab)
+const restoredNavigationGroupKey = navigationGroupKey.value
+const navigationGroupSnapshot = restoredNavigationGroupKey
+	? navigationSliderSnapshots.get(restoredNavigationGroupKey)
+	: undefined
+const restoredSliderSnapshot =
+	!!navigationGroupSnapshot && Date.now() - navigationGroupSnapshot.savedAt <= sliderSnapshotMaxAge
+if (restoredSliderSnapshot) {
+	sliderLeft.value = navigationGroupSnapshot.left
+	sliderTop.value = navigationGroupSnapshot.top
+	sliderRight.value = navigationGroupSnapshot.right
+	sliderBottom.value = navigationGroupSnapshot.bottom
+	sliderReady.value = true
+	transitionsEnabled.value = true
+	navigationSliderSnapshots.delete(restoredNavigationGroupKey)
+} else if (restoredNavigationGroupKey) {
+	navigationSliderSnapshots.delete(restoredNavigationGroupKey)
+}
+
+onMounted(() => {
+	if (!restoredSliderSnapshot) {
+		void updateActiveTab()
+		return
+	}
+
+	requestAnimationFrame(() => {
+		requestAnimationFrame(() => void updateActiveTab())
+	})
+})
+
+onBeforeUnmount(() => {
+	const key = navigationGroupKey.value
+	const existingSnapshot = key ? navigationSliderSnapshots.get(key) : undefined
+	if (
+		existingSnapshot?.preserveOnUnmount &&
+		Date.now() - existingSnapshot.savedAt <= sliderSnapshotMaxAge
+	) {
+		return
+	}
+	saveSliderSnapshot()
+})
 
 watch(
 	() => [route.path, route.query],

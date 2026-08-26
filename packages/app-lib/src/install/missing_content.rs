@@ -1080,10 +1080,7 @@ async fn instance_base(
                 "Unknown target instance {instance_id}"
             ))
         })?;
-    Ok(state
-        .directories
-        .instances_dir()
-        .join(instance.instance.path))
+    Ok(state.directories.instance_game_dir(&instance.instance))
 }
 
 async fn materialize_verified_file<F, Fut>(
@@ -1606,6 +1603,7 @@ mod tests {
             None,
             None,
             InstanceLink::Unmanaged,
+            None,
             None,
         )
         .await

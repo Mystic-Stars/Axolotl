@@ -71,10 +71,10 @@ onBeforeUnmount(release)
 <template>
 	<template v-if="useShell">
 		<Transition name="ready-fade" mode="out-in" :duration="props.duration">
-			<div v-if="!resolvedPending" key="content" class="ready-transition-content">
+			<div v-if="!resolvedPending" key="content" class="w-full">
 				<slot />
 			</div>
-			<div v-else key="pending" class="ready-transition-pending">
+			<div v-else key="pending" class="w-full h-full">
 				<slot name="pending" />
 			</div>
 		</Transition>
@@ -91,14 +91,5 @@ onBeforeUnmount(release)
 .ready-fade-enter-from,
 .ready-fade-leave-to {
 	opacity: 0;
-}
-
-.ready-transition-content {
-	width: 100%;
-}
-
-.ready-transition-pending {
-	width: 100%;
-	height: 100%;
 }
 </style>

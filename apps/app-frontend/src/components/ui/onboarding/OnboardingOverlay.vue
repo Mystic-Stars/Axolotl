@@ -37,7 +37,7 @@ const {
 </script>
 
 <template>
-	<div v-if="visible" class="onboarding-overlay" aria-live="polite">
+	<div v-if="visible" class="fixed inset-0 z-[10001] overflow-hidden pointer-events-none" aria-live="polite">
 		<div
 			v-if="targetRect && step.spotlight === 'control'"
 			class="onboarding-spotlight"
@@ -88,14 +88,6 @@ const {
 </template>
 
 <style scoped lang="scss">
-.onboarding-overlay {
-	position: fixed;
-	inset: 0;
-	z-index: 10001;
-	overflow: hidden;
-	pointer-events: none;
-}
-
 .onboarding-spotlight {
 	position: fixed;
 	pointer-events: none;

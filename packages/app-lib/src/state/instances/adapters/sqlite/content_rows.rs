@@ -94,7 +94,7 @@ impl TryFrom<ContentSetRow> for ContentSet {
             status: ContentSetStatus::from_str(&row.status)?,
             game_version: row.game_version,
             protocol_version: row.protocol_version.map(|value| value as u32),
-            loader: ModLoader::from_string(&row.loader),
+            loader: ModLoader::try_from_string(&row.loader)?,
             loader_version: row.loader_version,
             revision: unsigned(row.revision, "instance_content_sets.revision")?,
             created: timestamp(row.created),
@@ -726,9 +726,32 @@ pub(crate) async fn rename_instance_file(
     enabled: bool,
     pool: &SqlitePool,
 ) -> crate::Result<Option<InstanceFile>> {
+    let mut tx = pool.begin().await?;
+
+    let file = rename_instance_file_in_transaction(
+        instance_id,
+        old_relative_path,
+        new_relative_path,
+        new_file_name,
+        enabled,
+        &mut tx,
+    )
+    .await?;
+    tx.commit().await?;
+
+    Ok(file)
+}
+
+pub(crate) async fn rename_instance_file_in_transaction(
+    instance_id: &str,
+    old_relative_path: &str,
+    new_relative_path: &str,
+    new_file_name: &str,
+    enabled: bool,
+    tx: &mut Transaction<'_, Sqlite>,
+) -> crate::Result<Option<InstanceFile>> {
     let enabled = i64::from(enabled);
     let modified_at = Utc::now().timestamp();
-    let mut tx = pool.begin().await?;
 
     let source_id = sqlx::query_scalar!(
         "
@@ -739,7 +762,7 @@ pub(crate) async fn rename_instance_file(
         instance_id,
         old_relative_path,
     )
-    .fetch_optional(&mut *tx)
+    .fetch_optional(&mut **tx)
     .await?;
     let target_id = sqlx::query_scalar!(
         "
@@ -750,7 +773,7 @@ pub(crate) async fn rename_instance_file(
         instance_id,
         new_relative_path,
     )
-    .fetch_optional(&mut *tx)
+    .fetch_optional(&mut **tx)
     .await?;
 
     if let (Some(source_id), Some(target_id)) =
@@ -778,7 +801,7 @@ pub(crate) async fn rename_instance_file(
             target_id,
             source_id,
         )
-        .execute(&mut *tx)
+        .execute(&mut **tx)
         .await?;
 
         sqlx::query!(
@@ -792,7 +815,7 @@ pub(crate) async fn rename_instance_file(
             instance_id,
             target_id,
         )
-        .execute(&mut *tx)
+        .execute(&mut **tx)
         .await?;
 
         sqlx::query!(
@@ -802,7 +825,7 @@ pub(crate) async fn rename_instance_file(
 				",
             target_id,
         )
-        .execute(&mut *tx)
+        .execute(&mut **tx)
         .await?;
     }
 
@@ -824,13 +847,19 @@ pub(crate) async fn rename_instance_file(
         instance_id,
         old_relative_path,
     )
-    .execute(&mut *tx)
+    .execute(&mut **tx)
     .await?;
 
-    tx.commit().await?;
+    let row = sqlx::query_as::<_, InstanceFileRow>(
+        "SELECT * FROM instance_files
+         WHERE instance_id = ? AND relative_path = ?",
+    )
+    .bind(instance_id)
+    .bind(new_relative_path)
+    .fetch_optional(&mut **tx)
+    .await?;
 
-    get_instance_file_by_relative_path(instance_id, new_relative_path, pool)
-        .await
+    row.map(TryInto::try_into).transpose()
 }
 
 pub(crate) async fn move_instance_file_in_transaction(
@@ -1222,6 +1251,7 @@ pub(crate) async fn upsert_content_provider_ref_in_transaction(
     let provider = provider_ref.provider().as_str();
     let project_id = provider_ref.database_project_id();
     let release_id = provider_ref.database_release_id();
+    let file_id = provider_ref.database_file_id();
 
     if origin {
         sqlx::query(
@@ -1240,13 +1270,15 @@ pub(crate) async fn upsert_content_provider_ref_in_transaction(
          WHERE content_entry_id = ?
            AND provider = ?
            AND provider_project_id = ?
-           AND provider_release_id IS ?",
+           AND provider_release_id IS ?
+           AND provider_file_id IS ?",
     )
     .bind(i64::from(origin))
     .bind(content_entry_id)
     .bind(provider)
     .bind(&project_id)
     .bind(&release_id)
+    .bind(&file_id)
     .execute(&mut **tx)
     .await?;
 
@@ -1257,13 +1289,15 @@ pub(crate) async fn upsert_content_provider_ref_in_transaction(
                 provider,
                 provider_project_id,
                 provider_release_id,
+				provider_file_id,
                 is_origin
-             ) VALUES (?, ?, ?, ?, ?)",
+             ) VALUES (?, ?, ?, ?, ?, ?)",
         )
         .bind(content_entry_id)
         .bind(provider)
         .bind(project_id)
         .bind(release_id)
+        .bind(file_id)
         .bind(i64::from(origin))
         .execute(&mut **tx)
         .await?;
@@ -1277,10 +1311,11 @@ pub(crate) async fn get_content_provider_refs(
     pool: &SqlitePool,
 ) -> crate::Result<Vec<ContentProviderRef>> {
     let rows = sqlx::query(
-        "SELECT provider, provider_project_id, provider_release_id
+        "SELECT provider, provider_project_id, provider_release_id, provider_file_id
          FROM instance_content_provider_refs
          WHERE content_entry_id = ?
-         ORDER BY provider ASC",
+         ORDER BY is_origin DESC, provider ASC, provider_project_id ASC,
+            provider_release_id IS NULL ASC, provider_release_id ASC",
     )
     .bind(content_entry_id)
     .fetch_all(pool)
@@ -1292,10 +1327,12 @@ pub(crate) async fn get_content_provider_refs(
         let project_id = row.try_get::<String, _>("provider_project_id")?;
         let release_id =
             row.try_get::<Option<String>, _>("provider_release_id")?;
+        let file_id = row.try_get::<Option<String>, _>("provider_file_id")?;
         let provider_ref = ContentProviderRef::from_database(
             &provider,
             &project_id,
             release_id.as_deref(),
+			file_id.as_deref(),
         )
         .map_err(|error| {
             crate::ErrorKind::InputError(format!(
@@ -1313,10 +1350,11 @@ pub(crate) async fn get_content_provider_refs_with_origin(
     pool: &SqlitePool,
 ) -> crate::Result<Vec<(ContentProviderRef, bool)>> {
     let rows = sqlx::query(
-        "SELECT provider, provider_project_id, provider_release_id, is_origin
+        "SELECT provider, provider_project_id, provider_release_id, provider_file_id, is_origin
          FROM instance_content_provider_refs
          WHERE content_entry_id = ?
-         ORDER BY provider ASC, provider_project_id ASC",
+         ORDER BY is_origin DESC, provider ASC, provider_project_id ASC,
+            provider_release_id IS NULL ASC, provider_release_id ASC",
     )
     .bind(content_entry_id)
     .fetch_all(pool)
@@ -1328,15 +1366,76 @@ pub(crate) async fn get_content_provider_refs_with_origin(
             let project_id = row.try_get::<String, _>("provider_project_id")?;
             let release_id =
                 row.try_get::<Option<String>, _>("provider_release_id")?;
+            let file_id =
+                row.try_get::<Option<String>, _>("provider_file_id")?;
             let origin = row.try_get::<i64, _>("is_origin")? != 0;
             let provider_ref = ContentProviderRef::from_database(
                 &provider,
                 &project_id,
                 release_id.as_deref(),
+                file_id.as_deref(),
             )?;
             Ok((provider_ref, origin))
         })
         .collect()
+}
+
+pub(crate) async fn invalidate_exact_provider_refs_for_file_in_transaction(
+    content_set_id: &str,
+    file_id: &str,
+    tx: &mut Transaction<'_, Sqlite>,
+) -> crate::Result<bool> {
+    let rows = sqlx::query(
+        "SELECT ref.content_entry_id, ref.provider,
+            ref.provider_project_id, ref.is_origin
+         FROM instance_content_provider_refs ref
+         INNER JOIN instance_content_entries entry
+            ON entry.id = ref.content_entry_id
+         WHERE entry.content_set_id = ? AND entry.file_id = ?
+            AND ref.provider_release_id IS NOT NULL
+         ORDER BY ref.is_origin DESC, ref.provider,
+            ref.provider_project_id",
+    )
+    .bind(content_set_id)
+    .bind(file_id)
+    .fetch_all(&mut **tx)
+    .await?;
+    if rows.is_empty() {
+        return Ok(false);
+    }
+
+    for row in &rows {
+        let entry_id = row.try_get::<String, _>("content_entry_id")?;
+        let provider = row.try_get::<String, _>("provider")?;
+        let project_id = row.try_get::<String, _>("provider_project_id")?;
+        let origin = row.try_get::<i64, _>("is_origin")? != 0;
+        let project_ref = ContentProviderRef::from_database(
+            &provider,
+            &project_id,
+            None,
+            None,
+        )?;
+        upsert_content_provider_ref_in_transaction(
+            &entry_id,
+            &project_ref,
+            origin,
+            tx,
+        )
+        .await?;
+    }
+    sqlx::query(
+        "DELETE FROM instance_content_provider_refs
+         WHERE content_entry_id IN (
+            SELECT id FROM instance_content_entries
+            WHERE content_set_id = ? AND file_id = ?
+         ) AND provider_release_id IS NOT NULL",
+    )
+    .bind(content_set_id)
+    .bind(file_id)
+    .execute(&mut **tx)
+    .await?;
+
+    Ok(true)
 }
 
 pub(crate) async fn restore_content_entry_in_transaction(
@@ -1526,9 +1625,9 @@ pub(crate) async fn get_dependency_backfilled_entry_ids(
     Ok(rows.into_iter().collect())
 }
 
-pub(crate) async fn set_content_entry_dependency_backfilled(
+pub(crate) async fn set_content_entry_dependency_backfilled_in_transaction(
     content_entry_id: &str,
-    pool: &SqlitePool,
+    tx: &mut Transaction<'_, Sqlite>,
 ) -> crate::Result<()> {
     sqlx::query(
         "UPDATE instance_content_entries
@@ -1537,18 +1636,8 @@ pub(crate) async fn set_content_entry_dependency_backfilled(
     )
     .bind(Utc::now().timestamp())
     .bind(content_entry_id)
-    .execute(pool)
+    .execute(&mut **tx)
     .await?;
-    Ok(())
-}
-
-pub(crate) async fn upsert_content_dependency_edge(
-    edge: &ContentDependencyEdge,
-    pool: &SqlitePool,
-) -> crate::Result<()> {
-    let mut tx = pool.begin().await?;
-    upsert_content_dependency_edge_in_transaction(edge, &mut tx).await?;
-    tx.commit().await?;
     Ok(())
 }
 
@@ -1563,7 +1652,9 @@ pub(crate) async fn upsert_content_dependency_edge_in_transaction(
 			content_set_id,
 			parent_entry_id,
 			child_entry_id,
-			provider,
+			evidence_provider,
+			parent_provider,
+			child_provider,
 			dependency_kind,
 			parent_project_id,
 			parent_release_id,
@@ -1572,14 +1663,16 @@ pub(crate) async fn upsert_content_dependency_edge_in_transaction(
 			created_at,
 			modified_at
 		)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT (
 			content_set_id,
 			parent_entry_id,
 			child_entry_id,
 			dependency_kind
 		) DO UPDATE SET
-			provider = excluded.provider,
+			evidence_provider = excluded.evidence_provider,
+			parent_provider = excluded.parent_provider,
+			child_provider = excluded.child_provider,
 			parent_project_id = excluded.parent_project_id,
 			parent_release_id = excluded.parent_release_id,
 			child_project_id = excluded.child_project_id,
@@ -1591,7 +1684,9 @@ pub(crate) async fn upsert_content_dependency_edge_in_transaction(
     .bind(&edge.content_set_id)
     .bind(&edge.parent_entry_id)
     .bind(&edge.child_entry_id)
-    .bind(edge.provider.as_str())
+    .bind(edge.evidence_provider.as_str())
+    .bind(edge.parent_provider.as_str())
+    .bind(edge.child_provider.as_str())
     .bind(edge.dependency_kind.as_str())
     .bind(&edge.parent_project_id)
     .bind(&edge.parent_release_id)
@@ -1631,7 +1726,8 @@ pub(crate) async fn get_content_dependency_edges(
 ) -> crate::Result<Vec<ContentDependencyEdge>> {
     let rows = sqlx::query(
         "SELECT id, content_set_id, parent_entry_id, child_entry_id,
-                provider, dependency_kind, parent_project_id,
+                evidence_provider, parent_provider, child_provider,
+                dependency_kind, parent_project_id,
                 parent_release_id, child_project_id, child_release_id,
                 created_at, modified_at
          FROM instance_content_dependencies
@@ -1644,8 +1740,14 @@ pub(crate) async fn get_content_dependency_edges(
 
     rows.into_iter()
         .map(|row| {
-            let provider = ContentProvider::from_str(
-                &row.try_get::<String, _>("provider")?,
+            let evidence_provider = ContentProvider::from_str(
+                &row.try_get::<String, _>("evidence_provider")?,
+            )?;
+            let parent_provider = ContentProvider::from_str(
+                &row.try_get::<String, _>("parent_provider")?,
+            )?;
+            let child_provider = ContentProvider::from_str(
+                &row.try_get::<String, _>("child_provider")?,
             )?;
             let dependency_kind = ContentDependencyKind::from_str(
                 &row.try_get::<String, _>("dependency_kind")?,
@@ -1658,7 +1760,9 @@ pub(crate) async fn get_content_dependency_edges(
                 content_set_id: row.try_get("content_set_id")?,
                 parent_entry_id: row.try_get("parent_entry_id")?,
                 child_entry_id: row.try_get("child_entry_id")?,
-                provider,
+                evidence_provider,
+                parent_provider,
+                child_provider,
                 dependency_kind,
                 parent_project_id: row.try_get("parent_project_id")?,
                 parent_release_id: row.try_get("parent_release_id")?,
@@ -2311,6 +2415,7 @@ fn unsigned(value: i64, column: &str) -> crate::Result<u64> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::state::{ModrinthProjectId, ModrinthVersionId};
     use sqlx::sqlite::SqlitePoolOptions;
 
     async fn test_pool() -> SqlitePool {
@@ -2465,6 +2570,62 @@ mod tests {
         ensure_instance_exists("instance", &mut tx)
             .await
             .expect("existing instance passes");
+    }
+
+    #[tokio::test]
+    async fn in_place_upgrade_lists_new_origin_release_before_old_ref() {
+        let pool = test_pool().await;
+        sqlx::raw_sql(
+            "
+			CREATE TABLE instance_content_provider_refs (
+				id INTEGER PRIMARY KEY AUTOINCREMENT,
+				content_entry_id TEXT NOT NULL,
+				provider TEXT NOT NULL,
+				provider_project_id TEXT NOT NULL,
+				provider_release_id TEXT NULL,
+				is_origin INTEGER NOT NULL DEFAULT 0
+			);
+			CREATE UNIQUE INDEX instance_content_provider_refs_identity
+				ON instance_content_provider_refs (
+					content_entry_id,
+					provider,
+					provider_project_id,
+					COALESCE(provider_release_id, '')
+				);
+			CREATE UNIQUE INDEX instance_content_provider_refs_origin
+				ON instance_content_provider_refs(content_entry_id)
+				WHERE is_origin = 1;
+			",
+        )
+        .execute(&pool)
+        .await
+        .expect("provider ref table");
+        let old = ContentProviderRef::Modrinth {
+            project_id: ModrinthProjectId::new("AANobbMI").unwrap(),
+            version_id: Some(ModrinthVersionId::new("7pwil2dy").unwrap()),
+        };
+        let target = ContentProviderRef::Modrinth {
+            project_id: ModrinthProjectId::new("AANobbMI").unwrap(),
+            version_id: Some(ModrinthVersionId::new("vf7UgZpC").unwrap()),
+        };
+
+        upsert_content_provider_ref("entry", &old, true, &pool)
+            .await
+            .unwrap();
+        upsert_content_provider_ref("entry", &target, true, &pool)
+            .await
+            .unwrap();
+
+        assert_eq!(
+            get_content_provider_refs("entry", &pool).await.unwrap(),
+            vec![target.clone(), old.clone()]
+        );
+        assert_eq!(
+            get_content_provider_refs_with_origin("entry", &pool)
+                .await
+                .unwrap(),
+            vec![(target, true), (old, false)]
+        );
     }
 
     #[tokio::test]

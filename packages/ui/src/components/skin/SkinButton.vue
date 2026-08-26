@@ -50,7 +50,8 @@ watch(
 			{
 				'skin-button--with-actions': $slots['overlay-buttons'] && !disabled,
 				'skin-button--disabled': disabled,
-				'skin-button--dragging': isDragging,
+				'opacity-[0.65]': disabled,
+				'pointer-events-none': isDragging,
 			},
 		]"
 	>
@@ -74,7 +75,7 @@ watch(
 			class="pointer-events-none absolute right-3 top-3 z-20 size-3 rounded-full border-2 border-solid border-surface-3 bg-green"
 		></span>
 
-		<div v-if="!imagesLoaded.forward" class="skeleton-loader h-full w-full">
+		<div v-if="!imagesLoaded.forward" class="aspect-[31/40] h-full w-full">
 			<div class="skeleton absolute inset-0 aspect-[5/7]"></div>
 		</div>
 
@@ -82,7 +83,7 @@ watch(
 			v-show="imagesLoaded.forward"
 			:key="`${selected}-${active}`"
 			:class="[
-				'skin-button__image-parent pointer-events-none relative z-0 mb-[1.5px] grid place-items-stretch with-shadow',
+				'skin-button__image-parent w-full h-[95%] pointer-events-none relative z-0 mb-[1.5px] grid place-items-stretch with-shadow',
 			]"
 		>
 			<img
@@ -104,10 +105,6 @@ watch(
 </template>
 
 <style scoped lang="scss">
-.skeleton-loader {
-	aspect-ratio: 31 / 40;
-}
-
 .skeleton {
 	background: linear-gradient(
 		90deg,
@@ -177,21 +174,8 @@ watch(
 	background: var(--color-brand-highlight);
 }
 
-.skin-button--disabled {
-	opacity: 0.65;
-}
-
 .skin-button--disabled button {
 	cursor: not-allowed;
-}
-
-.skin-button--dragging {
-	pointer-events: none;
-}
-
-.skin-button__image-parent {
-	width: 100%;
-	height: 95%;
 }
 
 .skin-button__image-facing {

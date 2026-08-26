@@ -15,7 +15,7 @@ use std::collections::HashMap;
 use std::env;
 use std::fmt::Display;
 use std::hash::Hash;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 // 1 day
 const DEFAULT_ID: &str = "0";
@@ -27,6 +27,27 @@ const PERMANENT_CACHE_SECONDS: i64 = 100 * 365 * 24 * 60 * 60;
 
 /// How long before an entry should be asynchronously refreshed in the background, in seconds.
 const BACKGROUND_REFRESH_THRESHOLD: i64 = 30 * 60; // 30 minutes
+
+fn encode_json_query_value<T: Serialize>(
+    value: &T,
+) -> serde_json::Result<String> {
+    serde_json::to_string(value).map(|json| {
+        url::form_urlencoded::byte_serialize(json.as_bytes()).collect()
+    })
+}
+
+#[cfg(test)]
+mod query_encoding_tests {
+    use super::encode_json_query_value;
+
+    #[test]
+    fn preserves_plus_signs_in_batched_query_values() {
+        assert_eq!(
+            encode_json_query_value(&["foo+bar"]).unwrap(),
+            "%5B%22foo%2Bbar%22%5D"
+        );
+    }
+}
 
 #[derive(Serialize, Deserialize, Copy, Clone, Debug, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
@@ -2179,7 +2200,7 @@ impl CachedEntry {
                 .collect::<Vec<_>>()
                 .chunks(MAX_REQUEST_SIZE)
                 .map(|chunk| {
-                    serde_json::to_string(&chunk)
+                    encode_json_query_value(&chunk)
                         .map(|keys| format!("{api_url}{url}{keys}"))
                 })
                 .collect::<Result<Vec<_>, _>>()?;
@@ -2663,18 +2684,69 @@ impl CachedEntry {
                 )
             }
             CacheValueType::FileHash => {
-                // TODO: Replace state call here
                 let state = crate::State::get().await?;
-                let instances_dir = state.directories.instances_dir();
+
+                // The cache key is `{size}-{instance.path}/{relative}`. Resolve
+                // each instance's game working directory (which honours a
+                // per-instance `game_dir_override`) ONCE per distinct instance
+                // path, instead of once per file, so override-instance content
+                // is hashed from the correct root without issuing N identical
+                // DB lookups per content scan.
+                let keys: Vec<String> =
+                    keys.into_iter().map(|k| k.to_string()).collect();
+
+                let mut base_dirs: HashMap<String, PathBuf> = HashMap::new();
+                for key in &keys {
+                    let path =
+                        key.split_once('-').map(|x| x.1).unwrap_or_default();
+                    if let Some((instance_path, _)) =
+                        path.split_once('/').or_else(|| path.split_once('\\'))
+                    {
+                        if !base_dirs.contains_key(instance_path) {
+                            let override_dir = crate::state::instances::adapters::sqlite::instance_rows::get_game_dir_override_by_path(
+                                    instance_path,
+                                    &state.pool,
+                                )
+                                .await?;
+                            base_dirs.insert(
+                                instance_path.to_string(),
+                                state.directories.resolve_game_dir(
+                                    instance_path,
+                                    override_dir.as_deref(),
+                                ),
+                            );
+                        }
+                    }
+                }
 
                 async fn hash_file(
-                    instances_dir: &Path,
+                    state: &crate::State,
+                    base_dirs: &HashMap<String, PathBuf>,
                     key: String,
                 ) -> crate::Result<(CachedEntry, bool)> {
                     let path =
                         key.split_once('-').map(|x| x.1).unwrap_or_default();
 
-                    let full_path = instances_dir.join(path);
+                    let (base_dir, relative) = match path
+                        .split_once('/')
+                        .or_else(|| path.split_once('\\'))
+                    {
+                        Some((instance_path, relative)) => {
+                            let base_dir = base_dirs
+                                .get(instance_path)
+                                .cloned()
+                                .unwrap_or_else(|| {
+                                    state.directories.instances_dir()
+                                });
+                            (base_dir, relative.to_string())
+                        }
+                        None => (
+                            state.directories.instances_dir(),
+                            path.to_string(),
+                        ),
+                    };
+
+                    let full_path = base_dir.join(relative);
 
                     let mut file = tokio::fs::File::open(&full_path).await?;
                     let size = file.metadata().await?.len();
@@ -2711,7 +2783,7 @@ impl CachedEntry {
 
                 use futures::stream::StreamExt;
                 let results: Vec<_> = futures::stream::iter(keys)
-                    .map(|x| hash_file(&instances_dir, x.to_string()))
+                    .map(|x| hash_file(&state, &base_dirs, x))
                     .buffer_unordered(64) // hash 64 files at once
                     .collect::<Vec<_>>()
                     .await

@@ -28,9 +28,9 @@ const messages = defineMessages({
 </script>
 
 <template>
-	<footer class="site-footer">
+	<footer class="site-footer relative border-t border-divider bg-surface-1 text-[var(--color-base)]">
 		<div class="footer-inner">
-			<div class="footer-legal">
+			<div class="footer-legal flex flex-wrap gap-x-[1.4rem] gap-y-[0.4rem] text-[var(--color-secondary)] text-[0.78rem]">
 				<p>© {{ new Date().getFullYear() }} {{ formatMessage(messages.developer) }}</p>
 				<p class="open-source">
 					{{ formatMessage(messages.openSourcePrefix) }}
@@ -40,7 +40,7 @@ const messages = defineMessages({
 				</p>
 			</div>
 
-			<nav class="footer-links" aria-label="Footer">
+			<nav class="footer-links flex flex-wrap justify-end gap-x-[1.3rem] gap-y-[0.35rem]" aria-label="Footer">
 				<NuxtLink to="/#features">{{ formatMessage(messages.features) }}</NuxtLink>
 				<NuxtLink to="/#faq">{{ formatMessage(messages.faq) }}</NuxtLink>
 				<a href="#download">{{ formatMessage(messages.downloads) }}</a>
@@ -49,18 +49,13 @@ const messages = defineMessages({
 				<NuxtLink to="/privacy">{{ formatMessage(messages.privacy) }}</NuxtLink>
 			</nav>
 
-			<p class="disclaimer">{{ formatMessage(messages.disclaimer) }}</p>
+			<p class="col-span-full m-0 text-center text-[0.64rem] text-[var(--color-secondary)] tracking-[0.015em] opacity-45">{{ formatMessage(messages.disclaimer) }}</p>
 		</div>
 	</footer>
 </template>
 
 <style scoped lang="scss">
 .site-footer {
-	position: relative;
-	border-top: 1px solid var(--color-divider);
-	background: var(--surface-1);
-	color: var(--color-base);
-
 	&::before {
 		position: absolute;
 		top: -1px;
@@ -85,12 +80,6 @@ const messages = defineMessages({
 }
 
 .footer-legal {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 0.4rem 1.4rem;
-	color: var(--color-secondary);
-	font-size: 0.78rem;
-
 	p {
 		margin: 0;
 	}
@@ -102,11 +91,6 @@ const messages = defineMessages({
 }
 
 .footer-links {
-	display: flex;
-	flex-wrap: wrap;
-	justify-content: flex-end;
-	gap: 0.35rem 1.3rem;
-
 	a {
 		color: var(--color-secondary);
 		font-size: 0.82rem;
@@ -118,16 +102,6 @@ const messages = defineMessages({
 			color: var(--color-brand);
 		}
 	}
-}
-
-.disclaimer {
-	grid-column: 1 / -1;
-	margin: 0;
-	color: var(--color-secondary);
-	font-size: 0.64rem;
-	letter-spacing: 0.015em;
-	text-align: center;
-	opacity: 0.45;
 }
 
 @media (max-width: 900px) {

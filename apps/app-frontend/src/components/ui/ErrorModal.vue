@@ -125,7 +125,7 @@ const messages = defineMessages({
 	minecraftRequired: {
 		id: 'app.error.minecraft-required',
 		defaultMessage:
-			'To play this instance, sign in with Microsoft below. If you do not have a Minecraft account, you can purchase the game on the Minecraft website.',
+			'You are not logged in to any account. Please log in below. If you do not have a licensed account, you can create an offline account or log in with a third-party service in the sidebar.',
 	},
 	stateDescription: {
 		id: 'app.error.state-description',
@@ -313,7 +313,7 @@ async function exportLogs() {
 
 <template>
 	<ModalWrapper ref="errorModal" :header="title" :closable="closable">
-		<div class="modal-body max-w-[550px]">
+		<div class="modal-body flex flex-col gap-3 max-w-[550px]">
 			<div class="markdown-body">
 				<template v-if="errorType === 'minecraft_auth'">
 					<template v-if="metadata.network">
@@ -339,7 +339,7 @@ async function exportLogs() {
 						<p>
 							{{ formatMessage(messages.accountDescription) }}
 						</p>
-						<div class="cta-button">
+						<div class="flex items-center justify-center p-2 gap-2">
 							<button class="btn btn-primary" :disabled="loadingMinecraft" @click="loginMinecraft">
 								<LogInIcon /> {{ formatMessage(messages.tryAnotherAccountButton) }}
 							</button>
@@ -353,7 +353,7 @@ async function exportLogs() {
 							{{ formatMessage(messages.officialLauncherAfter) }}
 						</p>
 					</template>
-					<div class="cta-button">
+					<div class="flex items-center justify-center p-2 gap-2">
 						<button class="btn btn-primary" :disabled="loadingMinecraft" @click="loginMinecraft">
 							<LogInIcon /> {{ formatMessage(messages.tryAgain) }}
 						</button>
@@ -378,7 +378,7 @@ async function exportLogs() {
 						</p>
 					</template>
 
-					<div class="cta-button">
+					<div class="flex items-center justify-center p-2 gap-2">
 						<button class="btn" @click="retryDirectoryChange">
 							<UpdatedIcon /> {{ formatMessage(messages.retryDirectory) }}
 						</button>
@@ -391,7 +391,7 @@ async function exportLogs() {
 					<p>
 						{{ formatMessage(messages.minecraftRequired) }}
 					</p>
-					<div class="cta-button">
+					<div class="flex items-center justify-center p-2 gap-2">
 						<button class="btn btn-primary" :disabled="loadingMinecraft" @click="loginMinecraft">
 							<LogInIcon /> {{ formatMessage(messages.minecraftSignInTitle) }}
 						</button>
@@ -410,7 +410,7 @@ async function exportLogs() {
 				<template v-else-if="errorType === 'no_loader_version'">
 					<p>{{ formatMessage(messages.loaderDescription) }}</p>
 					<p>{{ formatMessage(messages.loaderFix) }}</p>
-					<div class="cta-button">
+					<div class="flex items-center justify-center p-2 gap-2">
 						<button class="btn btn-primary" :disabled="loadingRepair" @click="repairInstance">
 							<HammerIcon /> {{ formatMessage(messages.repairInstance) }}
 						</button>
@@ -501,44 +501,6 @@ async function exportLogs() {
 </style>
 
 <style scoped lang="scss">
-.cta-button {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	padding: 0.5rem;
-	gap: 0.5rem;
-}
-
-.warning-banner {
-	display: flex;
-	flex-direction: column;
-	gap: 0.5rem;
-	padding: var(--gap-lg);
-	background-color: var(--color-orange-bg);
-	border: 2px solid var(--color-orange);
-	border-radius: var(--radius-md);
-	margin-bottom: 1rem;
-}
-
-.warning-banner__title {
-	display: flex;
-	align-items: center;
-	gap: 0.5rem;
-	font-weight: 700;
-
-	svg {
-		color: var(--color-orange);
-		height: 1.5rem;
-		width: 1.5rem;
-	}
-}
-
-.modal-body {
-	display: flex;
-	flex-direction: column;
-	gap: var(--gap-md);
-}
-
 .markdown-body {
 	overflow: auto;
 }

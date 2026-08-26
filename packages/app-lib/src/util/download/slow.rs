@@ -3,8 +3,7 @@
 //!
 //! The detector is intentionally local and cheap. It only fires while a
 //! download is stalled or wasting work, and the resulting events are
-//! written to the local compact log and optionally sent through the
-//! existing error telemetry channel.
+//! written to the local compact log.
 
 use serde::{Deserialize, Serialize};
 use std::time::Instant;
@@ -16,17 +15,6 @@ pub enum SlowRule {
     R2BelowExpectation,
     R3SegmentWaste,
     R4FrequentSwitches,
-}
-
-impl SlowRule {
-    pub const fn as_u8(self) -> u8 {
-        match self {
-            Self::R1NoProgress => 1,
-            Self::R2BelowExpectation => 2,
-            Self::R3SegmentWaste => 3,
-            Self::R4FrequentSwitches => 4,
-        }
-    }
 }
 
 #[derive(

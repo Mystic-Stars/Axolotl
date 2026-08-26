@@ -12,6 +12,22 @@ const RUST_API_PATH = resolve(REPOSITORY_ROOT, 'packages/app-lib/src/api/ai.rs')
 const SOURCE_PATTERN = /^LobeHub ([0-9a-f]{40}) model-bank chat models$/
 const RUST_SOURCE_PATTERN = /const CATALOG_SOURCE: &str = "LobeHub ([0-9a-f]{40})";/g
 
+// Sponsored providers are paid partner listings that must survive every
+// synchronization, even if a future rewrite of ai.rs drops upstream providers.
+// Keep this list in sync with SPONSORED_PROVIDERS in packages/app-lib/src/api/ai.rs.
+const SPONSORED_PROVIDER_IDS = ['codeflow']
+
+function assertSponsoredProvidersPreserved(rustSource) {
+	for (const providerId of SPONSORED_PROVIDER_IDS) {
+		const pattern = new RegExp(`provider!\\s*\\(\\s*"${providerId}"`)
+		if (!pattern.test(rustSource)) {
+			throw new Error(
+				`Sponsored provider ${providerId} is missing from ai.rs; refusing to rewrite it`,
+			)
+		}
+	}
+}
+
 function usage() {
 	console.log(`Usage: node --experimental-vm-modules scripts/axolotl/sync-lobehub-models.mjs \\
 	--upstream <lobehub checkout> [--commit <40-character SHA>] [--check]`)
@@ -213,6 +229,15 @@ function buildCatalog(models, currentProviders) {
 		})
 	}
 
+	for (const providerId of SPONSORED_PROVIDER_IDS) {
+		const sponsorModels = currentProviders[providerId]
+		if (!sponsorModels?.length) continue
+		providers[providerId] = [...sponsorModels]
+		console.log(
+			`Preserved ${sponsorModels.length} sponsored model(s) for ${providerId}`,
+		)
+	}
+
 	const previousCount = countModels(currentProviders)
 	const synchronizedCount = countModels(providers)
 	const minimumCount = Math.max(100, Math.floor(previousCount * 0.7))
@@ -238,6 +263,7 @@ const [catalogText, rustSource] = await Promise.all([
 	fs.readFile(CATALOG_PATH, 'utf8'),
 	fs.readFile(RUST_API_PATH, 'utf8'),
 ])
+assertSponsoredProvidersPreserved(rustSource)
 const currentCatalog = JSON.parse(catalogText)
 const currentProviders = validateCurrentCatalog(currentCatalog, rustSource)
 const loadModels = createModelBankLoader(upstreamRoot)
@@ -266,6 +292,7 @@ const nextRustSource = rustSource.replace(
 	RUST_SOURCE_PATTERN,
 	`const CATALOG_SOURCE: &str = "LobeHub ${commit}";`,
 )
+assertSponsoredProvidersPreserved(nextRustSource)
 
 if (options.check) {
 	console.error(

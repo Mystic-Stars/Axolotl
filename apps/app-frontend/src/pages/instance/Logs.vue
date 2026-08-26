@@ -6,10 +6,8 @@
 
 <script setup>
 import {
-	analyseLogs,
 	ConsolePageLayout,
 	defineMessages,
-	injectModrinthClient,
 	injectNotificationManager,
 	provideConsoleManager,
 	useVIntl,
@@ -26,7 +24,6 @@ import {
 	get_output_by_filename,
 } from '@/helpers/logs.js'
 
-const client = injectModrinthClient()
 const { handleError } = injectNotificationManager()
 const route = useRoute()
 const { formatMessage } = useVIntl()
@@ -143,22 +140,10 @@ watchEffect(() => {
 	triggerRef(logLines)
 })
 
-const crashAnalysis = ref(null)
-
 async function analyseForCrash() {
-	const localAnalysis = await refreshCrashAnalysis().catch((error) => {
+	await refreshCrashAnalysis().catch((error) => {
 		handleError(error)
-		return null
 	})
-	if (!localAnalysis?.crashed || !localAnalysis.combined_log || props.offline) return
-	try {
-		const data = await analyseLogs(client, localAnalysis.combined_log)
-		if (data.analysis?.problems?.length > 0) {
-			crashAnalysis.value = data
-		}
-	} catch (error) {
-		handleError(error)
-	}
 }
 
 async function exportCrashContext() {
@@ -201,10 +186,6 @@ provideConsoleManager({
 	localCrashAnalysis,
 	crashAnalysisLoading,
 	onExportCrashContext: exportCrashContext,
-	crashAnalysis,
-	onDismissCrash: () => {
-		crashAnalysis.value = null
-	},
 })
 
 watch(selectedLogIndex, async (newIndex) => {
@@ -249,7 +230,6 @@ const unlistenProcesses = await process_listener(async (e) => {
 	if (e.event === 'launched') {
 		liveConsole.clear()
 		clearCrashAnalysis()
-		crashAnalysis.value = null
 		invalidate()
 		selectedLogIndex.value = 0
 	}

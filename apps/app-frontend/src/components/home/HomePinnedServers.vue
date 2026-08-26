@@ -141,8 +141,8 @@ async function unpinServer(world: ServerWorld & WorldWithInstance) {
 </script>
 
 <template>
-	<section class="home-pinned-servers" :data-size="dashboardSize">
-		<div class="home-widget-heading">
+	<section class="home-pinned-servers flex min-w-0 min-h-0 h-full flex-col gap-3" :data-size="dashboardSize">
+		<div class="home-widget-heading flex min-w-0 h-8 flex-none items-center gap-2">
 			<ServerIcon class="size-5 shrink-0 text-brand" aria-hidden="true" />
 			<h2>{{ formatMessage(messages.pinnedServers) }}</h2>
 		</div>
@@ -150,8 +150,8 @@ async function unpinServer(world: ServerWorld & WorldWithInstance) {
 			<ServerIcon aria-hidden="true" />
 			<span>{{ formatMessage(messages.emptyServers) }}</span>
 		</div>
-		<ul v-else class="home-server-list">
-			<li v-for="server in servers" :key="serverKey(server.world)" class="home-server-row group">
+		<ul v-else class="home-server-list grid min-w-0 min-h-0 flex-1 grid-auto-rows-max gap-1 m-0 overflow-x-hidden overflow-y-auto pr-1 list-none">
+			<li v-for="server in servers" :key="serverKey(server.world)" class="home-server-row group hover:bg-button-bg focus-within:bg-button-bg">
 				<div class="relative shrink-0">
 					<Avatar
 						:src="dataFor(server.world).status?.favicon ?? (server.world.icon || undefined)"
@@ -252,24 +252,6 @@ async function unpinServer(world: ServerWorld & WorldWithInstance) {
 </template>
 
 <style scoped>
-.home-pinned-servers {
-	display: flex;
-	min-width: 0;
-	min-height: 0;
-	height: 100%;
-	flex-direction: column;
-	gap: 0.75rem;
-}
-
-.home-widget-heading {
-	display: flex;
-	min-width: 0;
-	height: 2rem;
-	flex: 0 0 auto;
-	align-items: center;
-	gap: 0.5rem;
-}
-
 .home-widget-heading h2 {
 	min-width: 0;
 	overflow: hidden;
@@ -282,20 +264,6 @@ async function unpinServer(world: ServerWorld & WorldWithInstance) {
 	white-space: nowrap;
 }
 
-.home-server-list {
-	display: grid;
-	min-width: 0;
-	min-height: 0;
-	flex: 1;
-	grid-auto-rows: max-content;
-	gap: 0.25rem;
-	margin: 0;
-	overflow-x: hidden;
-	overflow-y: auto;
-	padding: 0 0.25rem 0 0;
-	list-style: none;
-}
-
 .home-server-row {
 	display: flex;
 	min-width: 0;
@@ -304,11 +272,6 @@ async function unpinServer(world: ServerWorld & WorldWithInstance) {
 	padding: 0.5rem;
 	border-radius: 6px;
 	transition: background-color 120ms ease;
-}
-
-.home-server-row:hover,
-.home-server-row:focus-within {
-	background: var(--color-button-bg);
 }
 
 .home-pinned-servers[data-size='2x1'] .home-server-list,

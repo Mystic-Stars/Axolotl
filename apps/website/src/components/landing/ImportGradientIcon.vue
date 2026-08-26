@@ -1,6 +1,6 @@
 <template>
 	<svg
-		class="dark-icon"
+		class="dark-icon w-6 h-6"
 		xmlns="http://www.w3.org/2000/svg"
 		width="24"
 		height="24"
@@ -30,7 +30,7 @@
 	</svg>
 
 	<svg
-		class="light-icon"
+		class="light-icon w-6 h-6"
 		xmlns="http://www.w3.org/2000/svg"
 		width="24"
 		height="24"
@@ -59,11 +59,3 @@
 		</defs>
 	</svg>
 </template>
-
-<style scoped>
-.dark-icon,
-.light-icon {
-	width: 1.5rem;
-	height: 1.5rem;
-}
-</style>

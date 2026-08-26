@@ -44,10 +44,11 @@ export type FilterType = {
 	}[]
 	searchable: boolean
 	allows_custom_options?: 'and' | 'or'
+	custom_option_field?: string
 	ordering?: number
 } & (
 	| {
-			display: 'all' | 'scrollable' | 'none' | 'toggle'
+			display: 'all' | 'scrollable' | 'none' | 'toggle' | 'depends-on-project'
 	  }
 	| {
 			display: 'expandable'
@@ -59,6 +60,43 @@ export type FilterValue = {
 	type: string
 	option: string
 	negative?: boolean
+}
+
+export type DependencyType = 'required' | 'optional' | 'embedded'
+
+const DEPENDENCY_TYPE_FIELDS: Record<DependencyType, string> = {
+	required: 'required_dependency_project_ids',
+	optional: 'optional_dependency_project_ids',
+	embedded: 'embedded_dependency_project_ids',
+}
+
+const DEPENDENCY_TYPES = Object.keys(DEPENDENCY_TYPE_FIELDS) as DependencyType[]
+
+export function formatDependencyProjectFilterOption(
+	projectId: string,
+	dependencyTypes: readonly DependencyType[],
+): string {
+	return `${dependencyTypes.join(',')}:${projectId}`
+}
+
+export function parseDependencyProjectFilterOption(option: string): {
+	projectId: string
+	dependencyTypes: DependencyType[]
+} {
+	const separatorIndex = option.indexOf(':')
+	if (separatorIndex === -1) return { projectId: option, dependencyTypes: ['required'] }
+
+	const dependencyTypes = option
+		.slice(0, separatorIndex)
+		.split(',')
+		.filter((type): type is DependencyType => DEPENDENCY_TYPES.includes(type as DependencyType))
+	const projectId = option.slice(separatorIndex + 1)
+
+	if (dependencyTypes.length === 0 || !projectId) {
+		return { projectId: option, dependencyTypes: ['required'] }
+	}
+
+	return { projectId, dependencyTypes }
 }
 
 export type EnvironmentSearchOverride =
@@ -153,6 +191,14 @@ export function useSearch(
 	const overriddenProvidedFilterTypes = ref<string[]>([])
 
 	const { formatMessage, locale } = useVIntl()
+	const dependsOnFilterName = defineMessage({
+		id: 'search.filter_type.compatible_dependency_project_ids',
+		defaultMessage: 'Depends on',
+	})
+	const includedContentFilterName = defineMessage({
+		id: 'search.filter_type.included_content',
+		defaultMessage: 'Included content',
+	})
 	const formatCategoryName = (categoryName: string) => {
 		return formatCategory(formatMessage, categoryName)
 	}
@@ -239,6 +285,21 @@ export function useSearch(
 
 		const filterTypes: FilterType[] = [
 			...Object.values(categoryFilters),
+			{
+				id: 'compatible_dependency_project_ids',
+				formatted_name: formatMessage(
+					projectTypes.value.includes('modpack') ? includedContentFilterName : dependsOnFilterName,
+				),
+				supported_project_types: ALL_PROJECT_TYPES,
+				query_param: 'dep',
+				supports_negative_filter: true,
+				display: 'depends-on-project',
+				searchable: false,
+				options: [],
+				allows_custom_options: 'and',
+				custom_option_field: 'compatible_dependency_project_ids',
+				ordering: projectTypes.value.includes('modpack') ? undefined : -999,
+			},
 			{
 				id: 'environment',
 				formatted_name: formatMessage(
@@ -541,6 +602,25 @@ export function useSearch(
 		const negativeByType: Record<string, string[]> = {}
 
 		for (const filterValue of filterValues) {
+			if (filterValue.type === 'compatible_dependency_project_ids') {
+				const { projectId, dependencyTypes } = parseDependencyProjectFilterOption(
+					filterValue.option,
+				)
+				const fields = projectTypes.value.includes('modpack')
+					? ['compatible_dependency_project_ids']
+					: dependencyTypes.map((type) => DEPENDENCY_TYPE_FIELDS[type])
+				const operator = filterValue.negative ? '!=' : '='
+				const conditions = fields.map(
+					(field) => `${field} ${operator} ${formatSearchFilterValue(projectId)}`,
+				)
+				parts.push(
+					conditions.length === 1
+						? conditions[0]
+						: `(${conditions.join(filterValue.negative ? ' AND ' : ' OR ')})`,
+				)
+				continue
+			}
+
 			const type = filters.value.find((type) => type.id === filterValue.type)
 			if (!type) {
 				console.error(`Filter type ${filterValue.type} not found`)
@@ -556,7 +636,9 @@ export function useSearch(
 					formatted_name: filterValue.option,
 					icon: undefined,
 					method: type.allows_custom_options,
-					value: filterValue.option,
+					value: type.custom_option_field
+						? `${type.custom_option_field}:${filterValue.option}`
+						: filterValue.option,
 				}
 			} else if (!option) {
 				console.error(`Filter option ${filterValue.option} not found`)
@@ -750,7 +832,7 @@ export function useSearch(
 			const values = getParamValuesAsArray(route.query[key])
 
 			for (const value of values) {
-				const negative = !value.includes(':') && value.includes('!=')
+				const negative = value.startsWith('!=') || (!value.includes(':') && value.includes('!='))
 				let matched = false
 
 				for (const type of types) {
@@ -773,7 +855,7 @@ export function useSearch(
 					if (customType) {
 						currentFilters.value.push({
 							type: customType.id,
-							option: value.replace('!=', ':'),
+							option: value.startsWith('!=') ? value.slice(2) : value.replace('!=', ':'),
 							negative: negative,
 						})
 					} else {
@@ -794,8 +876,12 @@ export function useSearch(
 		currentFilters.value.forEach((filterValue) => {
 			const type = filters.value.find((type) => type.id === filterValue.type)
 			const option = type?.options.find((option) => option.id === filterValue.option)
-			if (type && option) {
-				const value = getOptionValue(option, filterValue.negative)
+			if (type && (option || type.allows_custom_options)) {
+				const value = option
+					? getOptionValue(option, filterValue.negative)
+					: filterValue.negative
+						? `!=${filterValue.option}`
+						: filterValue.option
 				if (items[type.query_param]) {
 					items[type.query_param].push(value)
 				} else {

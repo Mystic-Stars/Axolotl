@@ -16,7 +16,7 @@ const hasWarnings = computed(
 		class="result"
 		:class="[`result--${job.status}`, { 'result--warning': hasWarnings }]"
 	>
-		<div class="result-head">
+		<div class="result-head flex items-center gap-[0.45rem] text-green">
 			<span class="result-badge">
 				<CheckCircleIcon v-if="job.status === 'completed'" />
 				<XIcon v-else />
@@ -86,13 +86,6 @@ const hasWarnings = computed(
 .result--warning {
 	border-color: color-mix(in srgb, var(--color-orange) 30%, var(--color-divider));
 	background: color-mix(in srgb, var(--color-orange) 7%, var(--color-button-bg));
-}
-
-.result-head {
-	display: flex;
-	align-items: center;
-	gap: 0.45rem;
-	color: var(--color-green);
 }
 
 .result--failed .result-head {

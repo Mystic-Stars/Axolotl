@@ -25,6 +25,19 @@
   </p>
 </div>
 
+<details>
+<summary><strong>赞助与合作</strong></summary>
+
+感谢以下赞助商与合作伙伴对 Axolotl Launcher 的支持。
+
+|   |   |   |
+| - | - | - |
+| <img src="./.github/assets/codeflow-logo.png" width="72" alt="Codeflow Logo" /> | **Codeflow**<br>更稳、更省地调用顶级 AI 模型<br>原生协议转发 · 无需海外网络 · 支付宝即充即用 | [访问 Codeflow](https://codeflow.asia/register?invite=4UHP2KYH) |
+
+- [在爱发电支持 Axolotl Launcher](https://ifdian.net/a/Mystic-Stars) — 你的支持将帮助项目持续维护与改进
+
+</details>
+
 ---
 
 **Axolotl Launcher（美西螈启动器）** 是一款免费、开源、跨平台的 Minecraft Java 版第三方启动器，支持在一个客户端中搜索、安装和更新来自 Modrinth 与 CurseForge 的模组、整合包、资源包和光影，并提供实例管理、多种账户认证、个性化外观与 Axolotl 实验室工具。
@@ -82,5 +95,3 @@ Axolotl Launcher 的进步离不开社区的反馈与贡献。
 如果遇到 Bug 或有新的功能点子，欢迎提交 Issue。如需搭建本地开发环境或查阅打包发布规范，请阅读详细的 [贡献指南 (CONTRIBUTING.md)](CONTRIBUTING.md)。
 
 ---
-
-> 推荐 API 服务（广告）：[FutureAPI](https://www.futureapi.cc/register?invite=8xmfivnh)

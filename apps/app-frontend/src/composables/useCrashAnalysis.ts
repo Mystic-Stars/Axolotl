@@ -21,7 +21,34 @@ export interface CrashAnalysisMod {
 	matched_class?: string
 }
 
+export interface CrashModChange {
+	kind: 'added' | 'removed' | 'modified'
+	filename: string
+	previous_size?: number
+	current_size?: number
+	current_sha256?: string
+	project_id?: string
+	project_title?: string
+	icon_url?: string
+	version_id?: string
+	version_number?: string
+}
+
+export interface CrashModChangeCounts {
+	added: number
+	removed: number
+	modified: number
+}
+
+export interface WindowsCrashEvent {
+	event_id: number
+	provider: string
+	time_created: string
+	message: string
+}
+
 export interface CrashAnalysisResult {
+	instance_id: string
 	ruleset: string
 	crashed: boolean
 	sources: Array<{
@@ -34,6 +61,9 @@ export interface CrashAnalysisResult {
 	findings: CrashAnalysisFinding[]
 	mods: CrashAnalysisMod[]
 	combined_log: string
+	mod_changes: CrashModChange[]
+	mod_change_counts: CrashModChangeCounts
+	windows_events: WindowsCrashEvent[]
 }
 
 interface CrashAnalysisState {

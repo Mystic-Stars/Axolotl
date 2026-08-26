@@ -35,21 +35,6 @@
   "app.settings.downloading": {
     "message": "Laster ned v{version}"
   },
-  "app.settings.tabs.appearance": {
-    "message": "Utseende"
-  },
-  "app.settings.tabs.default-instance-options": {
-    "message": "Standard instansinstillinger"
-  },
-  "app.settings.tabs.java-installations": {
-    "message": "Java installasjoner"
-  },
-  "app.settings.tabs.language": {
-    "message": "Språk"
-  },
-  "app.settings.tabs.resource-management": {
-    "message": "Ressursforvaltning"
-  },
   "app.update.complete-toast.text": {
     "message": "Klikk her for å se endringsloggen."
   },
@@ -190,18 +175,6 @@
   },
   "instance.settings.tabs.general.edit-icon.select": {
     "message": "Velg ikon"
-  },
-  "instance.settings.tabs.general.library-groups": {
-    "message": "Bibliotekgrupper"
-  },
-  "instance.settings.tabs.general.library-groups.create": {
-    "message": "Lag ny gruppe"
-  },
-  "instance.settings.tabs.general.library-groups.description": {
-    "message": "Bibliotekgrupper lar deg organisere instansene dine inn i ulike seksjoner i biblioteket ditt."
-  },
-  "instance.settings.tabs.general.library-groups.enter-name": {
-    "message": "Skriv inn gruppenavn"
   },
   "instance.settings.tabs.general.name": {
     "message": "Navn"

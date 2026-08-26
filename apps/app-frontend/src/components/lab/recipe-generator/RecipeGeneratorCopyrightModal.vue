@@ -59,7 +59,7 @@ defineExpose({
 <template>
 	<ModalWrapper ref="modal" :header="formatMessage(messages.title)">
 		<div class="copyright-notice">
-			<section class="notice-section">
+			<section class="notice-section grid grid-cols-[1.5rem_minmax(0,1fr)] gap-3 border-b border-surface-5 pb-4">
 				<CodeIcon aria-hidden="true" />
 				<div>
 					<h3>{{ formatMessage(messages.tagsHeading) }}</h3>
@@ -73,7 +73,7 @@ defineExpose({
 				</div>
 			</section>
 
-			<section class="notice-section">
+			<section class="notice-section grid grid-cols-[1.5rem_minmax(0,1fr)] gap-3 border-b border-surface-5 pb-4">
 				<ImageIcon aria-hidden="true" />
 				<div>
 					<h3>{{ formatMessage(messages.texturesHeading) }}</h3>
@@ -87,7 +87,7 @@ defineExpose({
 				</div>
 			</section>
 
-			<section class="notice-section">
+			<section class="notice-section grid grid-cols-[1.5rem_minmax(0,1fr)] gap-3 border-b border-surface-5 pb-4">
 				<InfoIcon aria-hidden="true" />
 				<div>
 					<h3>{{ formatMessage(messages.disclaimerHeading) }}</h3>
@@ -104,14 +104,6 @@ defineExpose({
 	width: min(34rem, calc(100vw - 3rem));
 	flex-direction: column;
 	gap: 1rem;
-}
-
-.notice-section {
-	display: grid;
-	grid-template-columns: 1.5rem minmax(0, 1fr);
-	gap: 0.75rem;
-	border-bottom: 1px solid var(--surface-5);
-	padding-bottom: 1rem;
 }
 
 .notice-section:last-child {

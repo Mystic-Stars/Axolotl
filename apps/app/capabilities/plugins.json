@@ -35,13 +35,19 @@
 					"url": "https://api.mclo.gs/*"
 				},
 				{
-					"url": "https://api.logshare.cn/*"
-				},
-				{
-					"url": "https://logshare.cn/*"
-				},
-				{
 					"url": "https://fill.papermc.io/*"
+				},
+				{
+					"url": "https://api.papermc.io/*"
+				},
+				{
+					"url": "https://piston-meta.mojang.com/*"
+				},
+				{
+					"url": "https://launchermeta.mojang.com/*"
+				},
+				{
+					"url": "https://meta.fabricmc.net/*"
 				},
 				{
 					"url": "https://api.purpurmc.org/*"
@@ -60,6 +66,9 @@
 				},
 				{
 					"url": "https://mod.mcimirror.top/*"
+				},
+				{
+					"url": "https://mod.telepao.com/*"
 				}
 			]
 		},
@@ -76,6 +85,7 @@
 		"fs:allow-stat",
 		"fs:allow-exists",
 		"fs:allow-mkdir",
+		"fs:allow-watch",
 		{
 			"identifier": "fs:scope",
 			"allow": [
@@ -102,6 +112,24 @@
 				},
 				{
 					"path": "$CONFIG/profiles/**"
+				},
+				{
+					"path": "$APPDATA/servers"
+				},
+				{
+					"path": "$APPDATA/servers/**"
+				},
+				{
+					"path": "$APPCONFIG/servers"
+				},
+				{
+					"path": "$APPCONFIG/servers/**"
+				},
+				{
+					"path": "$CONFIG/servers"
+				},
+				{
+					"path": "$CONFIG/servers/**"
 				}
 			]
 		},
@@ -117,7 +145,9 @@
 		"process:default",
 		"cache:default",
 		"content-search:default",
+		"content-favorites:default",
 		"curseforge:default",
+		"mcarchive:default",
 		"datapacks:default",
 		"files:default",
 		"settings:default",
@@ -127,10 +157,13 @@
 		"tags:default",
 		"ai:default",
 		"translation:default",
+		"storage:default",
 		"utils:default",
 		"worlds:default",
 		"drop:default",
 		"terracotta:default",
-		"multiplayer:default"
+		"multiplayer:default",
+		"servers:default",
+		"planet-minecraft:default"
 	]
 }

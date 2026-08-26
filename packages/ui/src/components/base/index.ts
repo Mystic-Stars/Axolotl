@@ -9,6 +9,17 @@ export { default as BaseTerminal } from './BaseTerminal.vue'
 export { default as BigOptionButton } from './BigOptionButton.vue'
 export { default as BulletDivider } from './BulletDivider.vue'
 export { default as Button } from './Button.vue'
+export { default as NewButton } from './buttons/Button.vue'
+export { default as IconButton } from './buttons/IconButton.vue'
+export type {
+	ButtonColor,
+	ButtonElementHandle,
+	ButtonInteraction,
+	ButtonNativeType,
+	ButtonSize,
+	ButtonType,
+	ButtonVisualProps,
+} from './buttons/types'
 export { default as ButtonStyled } from './ButtonStyled.vue'
 export { default as Card } from './Card.vue'
 export { default as Checkbox } from './Checkbox.vue'

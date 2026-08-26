@@ -9,11 +9,13 @@ export type GameInstance = {
 	name: string
 	icon_path?: string
 	symlink_target?: string | null
+	game_dir_override?: string | null
 
 	game_version: string
 	protocol_version?: number
 	loader: InstanceLoader
 	loader_version?: string
+	loader_components: LoaderComponent[]
 
 	groups: string[]
 
@@ -101,10 +103,19 @@ export type InstanceLoader =
 	| 'fabric'
 	| 'quilt'
 	| 'neoforge'
+	| 'optifine'
 	| 'lite_loader'
-	| 'labymod'
 	| 'cleanroom'
 	| 'legacy_fabric'
+	| 'babric'
+
+export type LoaderComponent = {
+	instanceId: string
+	kind: InstanceLoader | 'optifabric'
+	version?: string | null
+	role: 'primary' | 'adjunct'
+	providerMetadata?: unknown
+}
 
 type ContentFile = {
 	enabled: boolean
@@ -113,12 +124,12 @@ type ContentFile = {
 		version_id: string
 	}
 	provider_refs: Array<{
-		provider: 'modrinth' | 'curseforge'
+		provider: 'modrinth' | 'curseforge' | 'mcarchive'
 		project_id: string | number
 		version_id?: string | null
-		file_id?: number | null
+		file_id?: string | number | null
 	}>
-	origin_provider: 'modrinth' | 'curseforge' | null
+	origin_provider: 'modrinth' | 'curseforge' | 'mcarchive' | null
 }
 
 type ContentFileProjectType = 'mod' | 'datapack' | 'resourcepack' | 'shaderpack' | 'schematic'
@@ -137,6 +148,7 @@ type CacheBehaviour =
 type MemorySettings = {
 	maximum: number
 	automatic: boolean
+	optimize_before_launch: boolean
 }
 
 type WindowSize = {
@@ -209,6 +221,7 @@ type AppSettings = {
 	force_fullscreen: boolean
 	game_resolution: [number, number]
 	hide_on_process_start: boolean
+	enter_lightweight_mode_on_game_launch: boolean
 	auto_set_java_high_performance_mode: boolean
 	hooks: Hooks
 	mojang_auth_source: 'auto' | 'official_only' | 'mirror_preferred' | 'official_preferred'

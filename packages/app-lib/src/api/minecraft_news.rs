@@ -1,40 +1,32 @@
-//! Minecraft official news from the Mojang launcher content API.
+//! Minecraft official news from the Minecraft website search API.
 use reqwest::Method;
 use serde::{Deserialize, Serialize};
 
 use crate::State;
 use crate::util::fetch::fetch_json;
 
-const LAUNCHER_CONTENT_BASE: &str = "https://launchercontent.mojang.com";
-const MINECRAFT_SITE_BASE: &str = "https://www.minecraft.net";
-const JAVA_NEWS_CATEGORY: &str = "Minecraft: Java Edition";
+const MINECRAFT_NEWS_SEARCH_URL: &str = "https://net-secondary.web.minecraft-services.net/api/v1.0/en-us/search?pageSize=24&sortType=Recent&category=News&newsOnly=true&geography=USA";
+const MINECRAFT_ARTICLE_BASE: &str = "https://www.minecraft.net/en-us/article/";
 
 #[derive(Deserialize)]
-struct NewsFile {
-    entries: Vec<NewsEntry>,
+struct NewsSearchResponse {
+    result: NewsSearchResult,
 }
 
 #[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
+struct NewsSearchResult {
+    results: Vec<NewsEntry>,
+}
+
+#[derive(Deserialize)]
 struct NewsEntry {
     title: String,
     #[serde(default)]
-    tag: Option<String>,
+    url: Option<String>,
     #[serde(default)]
-    category: Option<String>,
+    image: Option<String>,
     #[serde(default)]
-    date: Option<String>,
-    #[serde(default)]
-    news_page_image: Option<NewsImage>,
-    #[serde(default)]
-    play_page_image: Option<NewsImage>,
-    #[serde(default)]
-    read_more_link: Option<String>,
-}
-
-#[derive(Deserialize)]
-struct NewsImage {
-    url: String,
+    time: Option<i64>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -51,9 +43,9 @@ pub async fn get_minecraft_news(
     limit: usize,
 ) -> crate::Result<Vec<MinecraftNewsItem>> {
     let state = State::get().await?;
-    let news = fetch_json::<NewsFile>(
+    let news = fetch_json::<NewsSearchResponse>(
         Method::GET,
-        &format!("{LAUNCHER_CONTENT_BASE}/v2/news.json"),
+        MINECRAFT_NEWS_SEARCH_URL,
         None,
         None,
         None,
@@ -63,20 +55,22 @@ pub async fn get_minecraft_news(
     .await?;
 
     let mut items: Vec<MinecraftNewsItem> = news
-        .entries
+        .result
+        .results
         .into_iter()
-        .filter(|entry| entry.category.as_deref() == Some(JAVA_NEWS_CATEGORY))
         .filter_map(|entry| {
-            let read_more_url = article_url(entry.read_more_link.as_deref()?)?;
+            let read_more_url = article_url(entry.url.as_deref()?)?;
             Some(MinecraftNewsItem {
                 title: entry.title,
-                category: entry.category,
-                tag: entry.tag,
-                date: entry.date,
-                image_url: entry
-                    .news_page_image
-                    .or(entry.play_page_image)
-                    .map(|image| absolute_content_url(&image.url)),
+                category: None,
+                tag: None,
+                date: entry
+                    .time
+                    .and_then(|timestamp| {
+                        chrono::DateTime::from_timestamp(timestamp, 0)
+                    })
+                    .map(|timestamp| timestamp.to_rfc3339()),
+                image_url: entry.image,
                 read_more_url,
             })
         })
@@ -88,28 +82,21 @@ pub async fn get_minecraft_news(
 }
 
 fn article_url(url: &str) -> Option<String> {
-    let url = url.trim();
-    let parsed = if url.starts_with('/') {
-        url::Url::parse(MINECRAFT_SITE_BASE).ok()?.join(url).ok()?
-    } else {
-        url::Url::parse(url).ok()?
-    };
-
-    if matches!(parsed.scheme(), "http" | "https")
-        && parsed.host_str().is_some()
+    let parsed = url::Url::parse(url.trim()).ok()?;
+    if parsed.scheme() != "https"
+        || parsed.host_str() != Some("www.minecraft.net")
     {
-        Some(parsed.to_string())
-    } else {
-        None
+        return None;
     }
-}
-
-fn absolute_content_url(url: &str) -> String {
-    if url.starts_with("http://") || url.starts_with("https://") {
-        url.to_string()
-    } else {
-        format!("{LAUNCHER_CONTENT_BASE}{url}")
-    }
+    let article_id = parsed
+        .path_segments()?
+        .filter(|segment| !segment.is_empty())
+        .last()?;
+    url::Url::parse(MINECRAFT_ARTICLE_BASE)
+        .ok()?
+        .join(article_id)
+        .ok()
+        .map(|url| url.to_string())
 }
 
 #[cfg(test)]
@@ -117,15 +104,16 @@ mod tests {
     use super::article_url;
 
     #[test]
-    fn normalizes_article_urls() {
+    fn derives_article_urls_from_search_results() {
         assert_eq!(
-            article_url("/article/example"),
-            Some("https://www.minecraft.net/article/example".to_string())
+            article_url("https://www.minecraft.net/en-us/article/example"),
+            Some("https://www.minecraft.net/en-us/article/example".to_string())
         );
         assert_eq!(
-            article_url("https://www.minecraft.net/article/example"),
-            Some("https://www.minecraft.net/article/example".to_string())
+            article_url("https://www.minecraft.net/fr-fr/article/example"),
+            Some("https://www.minecraft.net/en-us/article/example".to_string())
         );
+        assert_eq!(article_url("https://example.com/article/example"), None);
         assert_eq!(article_url("javascript:alert(1)"), None);
         assert_eq!(article_url("https://"), None);
         assert_eq!(article_url("  "), None);

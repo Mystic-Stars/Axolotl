@@ -166,8 +166,8 @@ onUnmounted(() => {
 			:class="[
 				flat ? 'px-2 py-2 hover:bg-button-bg' : 'card-shadow bg-bg-raised p-3',
 				{
-					'instance-item-dashboard-compact': dashboardDensity === 'compact',
-					'instance-item-dashboard-comfortable': dashboardDensity === 'comfortable',
+					'instance-item-dashboard-compact grid grid-cols-[auto_minmax(0,1fr)_auto] gap-2 p-1.5': dashboardDensity === 'compact',
+					'instance-item-dashboard-comfortable p-2': dashboardDensity === 'comfortable',
 				},
 			]"
 		>
@@ -276,12 +276,6 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-.instance-item-dashboard-compact {
-	grid-template-columns: auto minmax(0, 1fr) auto;
-	gap: 0.5rem;
-	padding: 0.375rem;
-}
-
 .instance-item-dashboard-compact > :nth-child(2) {
 	grid-column: auto;
 }
@@ -298,7 +292,4 @@ onUnmounted(() => {
 	gap: 0.125rem;
 }
 
-.instance-item-dashboard-comfortable {
-	padding: 0.5rem;
-}
 </style>

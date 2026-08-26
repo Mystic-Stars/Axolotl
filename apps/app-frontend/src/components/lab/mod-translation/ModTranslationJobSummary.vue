@@ -79,7 +79,11 @@ function formatDuration(seconds: number): string {
 			<span>{{ elapsed }}</span>
 		</div>
 		<span v-if="job.status === 'running'" class="job-percent">{{ job.percent }}%</span>
-		<span v-else class="job-status" :class="{ 'job-status--failed': job.status === 'failed' }">
+		<span
+			v-else
+			class="job-status inline-flex items-center gap-[0.3rem] text-[0.72rem] font-extrabold text-green"
+			:class="{ 'text-red': job.status === 'failed' }"
+		>
 			<CheckCircleIcon v-if="job.status === 'completed'" />
 			<XIcon v-else />
 			{{ formatMessage(job.status === 'completed' ? messages.done : messages.failed) }}
@@ -175,19 +179,6 @@ function formatDuration(seconds: number): string {
 	font-weight: 800;
 	font-variant-numeric: tabular-nums;
 	color: var(--color-brand);
-}
-
-.job-status {
-	display: inline-flex;
-	align-items: center;
-	gap: 0.3rem;
-	font-size: 0.72rem;
-	font-weight: 800;
-	color: var(--color-green);
-}
-
-.job-status--failed {
-	color: var(--color-red);
 }
 
 .job-status :deep(svg),

@@ -49,6 +49,7 @@ use std::io::{Cursor, ErrorKind};
 use std::path::{Path, PathBuf};
 use tokio::io::AsyncWriteExt;
 use tokio::sync::Mutex;
+use tokio_util::sync::CancellationToken;
 
 type ExtractProgressFn<'a> = dyn FnMut(u64) -> Pin<Box<dyn Future<Output = crate::Result<()>> + Send + 'a>>
     + Send
@@ -62,11 +63,47 @@ const ITEM_FAILURE_REASON_CHAR_LIMIT: usize = 1_024;
 /// over a single connection (no range segmentation) and only after every pass
 /// is exhausted does the install ask the user about missing content.
 const AUTO_RETRY_PASSES: usize = 2;
+const NATIVE_CONTENT_TASK_CONCURRENCY: usize = 32;
 
 pub(crate) enum MrpackInstallOutcome {
     #[allow(dead_code)]
     Completed(String),
     WaitingForUser(InstallPauseReason),
+}
+
+/// Owns the concurrent Minecraft core install that runs while modpack content
+/// downloads. Cancels the background task on drop, so error exits never leak
+/// it; the happy path joins it explicitly and the user-pause path aborts and
+/// waits for a clean stop before returning.
+struct ParallelMinecraftInstall {
+    cancel: CancellationToken,
+    task: Option<tokio::task::JoinHandle<crate::Result<()>>>,
+}
+
+impl ParallelMinecraftInstall {
+    async fn abort(mut self) {
+        self.cancel.cancel();
+        if let Some(task) = self.task.take() {
+            let _ = task.await;
+        }
+    }
+
+    /// Waits for the parallel Minecraft install to finish naturally. Unlike
+    /// [`Self::abort`] this never cancels: when the modpack content has
+    /// already finished, the Minecraft core download must still run to
+    /// completion before the job is reported done.
+    async fn join(mut self) -> crate::Result<()> {
+        if let Some(task) = self.task.take() {
+            task.await??;
+        }
+        Ok(())
+    }
+}
+
+impl Drop for ParallelMinecraftInstall {
+    fn drop(&mut self) {
+        self.cancel.cancel();
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -295,8 +332,8 @@ async fn resolve_chinese_titles_by_sha1(
 impl ModpackContentInstallContext {
     /// Picks the instance-relative install path for a pack file. Paths already
     /// recorded for this instance win so repairs and locale switches never
-    /// produce duplicate files; new content files get a `[中文名]` prefix when
-    /// Chinese file naming is active.
+    /// produce duplicate files; new non-mod content may get a `[中文名]` prefix
+    /// when Chinese file naming is active. Mod files always keep manifest names.
     fn resolve_install_path(&self, file: &PackFile) -> String {
         let manifest_path = file.path.as_str();
         if let Some(existing) =
@@ -304,7 +341,13 @@ impl ModpackContentInstallContext {
         {
             return existing.clone();
         }
-        if ProjectType::get_from_parent_folder(manifest_path).is_none() {
+        let Some(project_type) =
+            ProjectType::get_from_parent_folder(manifest_path)
+        else {
+            return manifest_path.to_string();
+        };
+
+        if project_type == ProjectType::Mod {
             return manifest_path.to_string();
         }
         let Some(title) = file
@@ -993,8 +1036,39 @@ pub(crate) async fn install_zipped_mrpack_files_with_reporter(
     // download starts with an ordered address list instead of racing queries.
     crate::util::fetch::prewarm_download_dns(&[
         crate::util::fetch::MODRINTH_CDN_OFFICIAL_HOST,
+        crate::util::fetch::TIANPAO_HOST,
         "api.modrinth.com",
-    ]);
+    ])
+    .await;
+    // Start the Minecraft core install concurrently with the content
+    // download so both progress bars advance at once. The Minecraft install
+    // reports on the parallel track (phase + bytes); content stays the main
+    // phase. It is aborted if the content flow pauses for the user or fails.
+    let minecraft_cancel = CancellationToken::new();
+    let task_cancel = minecraft_cancel.clone();
+    let minecraft_parallel_reporter = reporter.clone().with_parallel_output();
+    let minecraft_instance_id = instance_id.clone();
+    let minecraft_task = tokio::spawn(async move {
+        tokio::select! {
+            _ = task_cancel.cancelled() => {
+                tracing::debug!(
+                    instance_id = %minecraft_instance_id,
+                    "Parallel Minecraft install aborted before completion"
+                );
+                Ok(())
+            }
+            result = crate::launcher::install_minecraft_for_instance_id_with_reporter(
+                &minecraft_instance_id,
+                false,
+                Some(minecraft_parallel_reporter),
+                crate::launcher::InstanceCompletionPolicy::DeferToInstallJob,
+            ) => result,
+        }
+    });
+    let minecraft_install = ParallelMinecraftInstall {
+        cancel: minecraft_cancel,
+        task: Some(minecraft_task),
+    };
     let pack_files = pack.files;
     let mut retry_indices = (0..pack_files.len()).collect::<Vec<_>>();
     let mut required_file_failures = Vec::new();
@@ -1009,7 +1083,15 @@ pub(crate) async fn install_zipped_mrpack_files_with_reporter(
         let pass_failures =
             collect_required_file_failures_concurrently(
         tasks,
-        crate::util::download::task_concurrency_limit(state),
+        Some(if crate::util::download::active_engine()
+            == crate::util::download::DownloadEngine::XmclCompat
+        {
+            state.download_concurrency()
+        } else {
+            state
+                .download_concurrency()
+                .min(NATIVE_CONTENT_TASK_CONCURRENCY)
+        }),
         |(manifest_index, project)| {
             let content_context = content_context.clone();
             let skipped_missing_content_paths =
@@ -1186,9 +1268,7 @@ pub(crate) async fn install_zipped_mrpack_files_with_reporter(
                         .with_download_meta(
                             content_context.download_meta.clone(),
                         )
-                        .with_segmented_download(
-                            pass == 0 && content_context.num_files <= 1,
-                        )
+                        .with_segmented_download(true)
                         .with_install_tracking(
                             content_context.reporter.clone(),
                             project_path.clone(),
@@ -1394,6 +1474,7 @@ pub(crate) async fn install_zipped_mrpack_files_with_reporter(
     if let Some(reason) =
         missing_required_content_pause(&required_file_failures)
     {
+        minecraft_install.abort().await;
         return Ok(MrpackInstallOutcome::WaitingForUser(reason));
     }
 
@@ -1567,13 +1648,10 @@ pub(crate) async fn install_zipped_mrpack_files_with_reporter(
             .await?;
     }
 
-    crate::launcher::install_minecraft_for_instance_id_with_reporter(
-        &instance_id,
-        false,
-        Some(reporter.clone()),
-        crate::launcher::InstanceCompletionPolicy::DeferToInstallJob,
-    )
-    .await?;
+    // Join the parallel Minecraft core install: if content finished first,
+    // this waits for the Minecraft download to complete so the instance is
+    // fully installed; if Minecraft finished first, this returns at once.
+    minecraft_install.join().await?;
     reporter.clear_context().await?;
 
     Ok(MrpackInstallOutcome::Completed(instance_id.clone()))

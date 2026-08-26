@@ -1,7 +1,7 @@
 <template>
 	<!-- QQ 频道官方图标（pd.qq.com favicon.svg，原样引用，无明暗切换） -->
 	<svg
-		class="qq-channel-icon"
+		class="w-[2.8rem] h-[2.8rem]"
 		xmlns="http://www.w3.org/2000/svg"
 		viewBox="0 0 128 128"
 		fill="none"
@@ -69,11 +69,6 @@
 </template>
 
 <style scoped>
-.qq-channel-icon {
-	width: 2.8rem;
-	height: 2.8rem;
-}
-
 /* 官方 SVG 字形默认深色；暗色主题下改为白色，亮色主题保持原色 */
 .qq-channel-glyph {
 	fill: #ffffff;

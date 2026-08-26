@@ -1,5 +1,5 @@
 <template>
-	<nav class="breadcrumbs">
+	<nav class="breadcrumbs flex mb-4 items-center flex-wrap">
 		<template v-for="(link, index) in linkStack" :key="index">
 			<RouterLink
 				:to="link.href"
@@ -31,11 +31,6 @@ defineProps({
 
 <style lang="scss" scoped>
 .breadcrumbs {
-	display: flex;
-	margin-bottom: var(--gap-lg);
-	align-items: center;
-	flex-wrap: wrap;
-
 	svg {
 		width: 1.25rem;
 		height: 1.25rem;

@@ -42,10 +42,19 @@ pub use pcl::read_pcl_registry;
 pub mod pe_info;
 
 /// A scanned importable instance with its resolved filesystem path.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct ImportableInstance {
     pub name: String,
     pub path: String,
+    /// Whether this instance qualifies for compatible mode import (single
+    /// version with a shared `mods/` directory and no version isolation).
+    #[serde(default)]
+    pub compatible_mode: bool,
+    /// For compatible mode: the original version subfolder path containing
+    /// the version JSON.  `path` is set to the GameDir, and `version_path`
+    /// records `<GameDir>/versions/<name>` so the importer can locate the JSON.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub version_path: Option<String>,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
@@ -92,7 +101,7 @@ pub async fn get_importable_instances(
     launcher_type: ImportLauncherType,
     base_path: PathBuf,
 ) -> crate::Result<Vec<ImportableInstance>> {
-    match launcher_type {
+    let instances = match launcher_type {
         ImportLauncherType::Axolotl => get_axolotl_instances(&base_path).await,
         ImportLauncherType::ModrinthApp => {
             get_modrinth_app_instances(&base_path).await
@@ -129,6 +138,55 @@ pub async fn get_importable_instances(
         ImportLauncherType::Unknown => {
             get_unknown_launcher_instances(&base_path).await
         }
+    }?;
+
+    // For Generic, compatible mode is already checked inside
+    // `get_generic_instances`.  For launchers that use
+    // `collect_launcher_instances` (PCL2/PCL2CE, HMCL, MultiMC, etc.),
+    // compatible mode is checked per-GameDir inside that function.
+    // No global check needed here.
+
+    Ok(instances)
+}
+
+async fn check_compatible_mode(instance: &mut ImportableInstance) {
+    let path = PathBuf::from(&instance.path);
+    let Some(version_name) = path.file_name().and_then(|n| n.to_str()) else {
+        return;
+    };
+    let Some(parent) = path.parent() else {
+        return;
+    };
+    if parent.file_name().and_then(|n| n.to_str()) != Some("versions") {
+        return;
+    }
+    let Some(game_dir) = parent.parent() else {
+        return;
+    };
+    let mods_dir = game_dir.join("mods");
+    let version_dir = game_dir.join("versions").join(version_name);
+
+    let has_mods = mods_dir.is_dir();
+
+    let no_resourcepacks = !version_dir.join("resourcepacks").is_dir();
+    let has_valid_json = instance_json::detect(&version_dir).is_some();
+
+    if has_mods && no_resourcepacks && has_valid_json {
+        instance.compatible_mode = true;
+    }
+}
+
+fn finalize_compatible_instance(instance: &mut ImportableInstance) {
+    instance.version_path = Some(instance.path.clone());
+    if let Some(pos) = instance.name.rfind(':') {
+        instance.name = instance.name[pos + 1..].to_string();
+    }
+    if let Some(stripped) = instance.name.strip_prefix("versions/") {
+        instance.name = stripped.to_string();
+    }
+    let p = PathBuf::from(&instance.path);
+    if let Some(game_dir) = p.parent().and_then(|v| v.parent()) {
+        instance.path = game_dir.to_string_lossy().to_string();
     }
 }
 
@@ -161,6 +219,8 @@ async fn get_instances_subfolder_scan(
                 result.push(ImportableInstance {
                     path: path.to_string_lossy().to_string(),
                     name,
+                    compatible_mode: false,
+                    version_path: None,
                 });
             }
         }
@@ -179,6 +239,8 @@ async fn get_modrinth_app_instances(
         .map(|n| ImportableInstance {
             name: n.clone(),
             path: n,
+            compatible_mode: false,
+            version_path: None,
         })
         .collect())
 }
@@ -201,6 +263,10 @@ async fn get_pcl_instances(
     if pcl::config_exists() {
         collect_launcher_instances(&mut collector, pcl::get_pclce_instances())
             .await;
+    }
+    // Also check for a .minecraft folder next to the launcher executable.
+    if let Some(entry) = pcl::get_local_dotminecraft(base_path) {
+        collect_launcher_instances(&mut collector, vec![entry]).await;
     }
     Ok(collector.instances)
 }
@@ -232,6 +298,8 @@ async fn get_axolotl_instances(
         return Ok(vec![ImportableInstance {
             name,
             path: base_path.to_string_lossy().to_string(),
+            compatible_mode: false,
+            version_path: None,
         }]);
     }
 
@@ -246,6 +314,8 @@ async fn get_axolotl_instances(
             instances.push(ImportableInstance {
                 name: name.to_string_lossy().to_string(),
                 path: path.to_string_lossy().to_string(),
+                compatible_mode: false,
+                version_path: None,
             });
         }
     }
@@ -263,12 +333,11 @@ async fn get_generic_instances(
             .map(|(n, p)| ImportableInstance {
                 name: n,
                 path: p.to_string_lossy().to_string(),
+                compatible_mode: false,
+                version_path: None,
             })
             .collect();
 
-    // PCL-style folders bundle sibling version folders, each its own
-    // instance root (root jar+json / version json / mods). When the base
-    // itself carries no instance markers, enumerate direct child folders.
     if instances.is_empty() && base_path.is_dir() {
         let mut dir = io::read_dir(base_path).await?;
         while let Some(entry) = dir.next_entry().await? {
@@ -280,8 +349,17 @@ async fn get_generic_instances(
                 instances.push(ImportableInstance {
                     name: name.to_string_lossy().to_string(),
                     path: path.to_string_lossy().to_string(),
+                    compatible_mode: false,
+                    version_path: None,
                 });
             }
+        }
+    }
+
+    for instance in &mut instances {
+        check_compatible_mode(instance).await;
+        if instance.compatible_mode {
+            finalize_compatible_instance(instance);
         }
     }
 
@@ -309,6 +387,13 @@ async fn get_unknown_launcher_instances(
     {
         collect_launcher_instances(&mut collector, pcl::get_pclce_instances())
             .await;
+    }
+
+    // Also check for a .minecraft folder next to the launcher executable.
+    if pe_info::folder_has_product(base_path, "Plain Craft Launcher") {
+        if let Some(entry) = pcl::get_local_dotminecraft(base_path) {
+            collect_launcher_instances(&mut collector, vec![entry]).await;
+        }
     }
 
     // HMCL
@@ -340,6 +425,8 @@ async fn get_unknown_launcher_instances(
             collector.instances.push(ImportableInstance {
                 name,
                 path: path.to_string_lossy().to_string(),
+                compatible_mode: false,
+                version_path: None,
             });
         }
     }
@@ -391,10 +478,22 @@ async fn collect_launcher_instances(
     sources: Vec<(String, String)>,
 ) {
     for (name, dir) in sources {
-        for (iname, ipath) in
-            scan_instances_at(&PathBuf::from(dir), Some(&name)).await
-        {
-            collector.push(iname, ipath);
+        let game_dir = PathBuf::from(&dir);
+        let mut game_dir_instances = Vec::new();
+        for (iname, ipath) in scan_instances_at(&game_dir, Some(&name)).await {
+            game_dir_instances.push(ImportableInstance {
+                name: iname,
+                path: ipath.to_string_lossy().to_string(),
+                compatible_mode: false,
+                version_path: None,
+            });
+        }
+        for mut inst in game_dir_instances {
+            check_compatible_mode(&mut inst).await;
+            if inst.compatible_mode {
+                finalize_compatible_instance(&mut inst);
+            }
+            collector.push_instance(inst);
         }
     }
 }
@@ -416,11 +515,22 @@ impl InstanceCollector {
     /// Pushes an instance unless a path with the same resolved path was
     /// already collected.
     fn push(&mut self, name: String, path: PathBuf) {
-        if self.seen.insert(path.clone()) {
-            self.instances.push(ImportableInstance {
-                name,
-                path: path.to_string_lossy().to_string(),
-            });
+        self.push_instance(ImportableInstance {
+            name,
+            path: path.to_string_lossy().to_string(),
+            compatible_mode: false,
+            version_path: None,
+        });
+    }
+
+    fn push_instance(&mut self, instance: ImportableInstance) {
+        let key = instance
+            .version_path
+            .as_ref()
+            .map(PathBuf::from)
+            .unwrap_or_else(|| PathBuf::from(&instance.path));
+        if self.seen.insert(key) {
+            self.instances.push(instance);
         }
     }
 }
@@ -564,9 +674,17 @@ async fn import_configured_instance(
     get_game_dir: impl FnOnce(&str) -> Option<String>,
 ) -> crate::Result<()> {
     let (config_name, rest) = split_config_name(&job.instance_folder);
-    let game_dir = get_game_dir(config_name)
-        .map(PathBuf::from)
-        .unwrap_or_else(|| job.base_path.clone());
+    let game_dir =
+        get_game_dir(config_name)
+            .map(PathBuf::from)
+            .unwrap_or_else(|| {
+                let local = job.base_path.join(config_name);
+                if local.is_dir() {
+                    local
+                } else {
+                    job.base_path.clone()
+                }
+            });
     let target = if rest.is_empty() { config_name } else { rest };
     let path = resolve_instance_path(&game_dir, target);
     generic::import_generic(
@@ -576,6 +694,7 @@ async fn import_configured_instance(
         details,
         job.symlink,
         &job.overrides,
+        None,
     )
     .await
 }
@@ -711,18 +830,31 @@ async fn import_via_launcher(
         }
         ImportLauncherType::PCL2 | ImportLauncherType::PCL2CE => {
             if let Some(path) = instance_path {
-                // Pre-resolved path from frontend scanning — skip re-resolution
-                generic::import_generic(
-                    PathBuf::from(path),
-                    instance_id,
-                    reporter.clone(),
-                    details,
-                    *symlink,
-                    overrides,
-                )
-                .await
+                let path_buf = PathBuf::from(&path);
+                if path_buf.starts_with(base_path.join("versions")) {
+                    generic::import_generic(
+                        base_path.clone(),
+                        instance_id,
+                        reporter.clone(),
+                        details,
+                        *symlink,
+                        overrides,
+                        Some(path_buf),
+                    )
+                    .await
+                } else {
+                    generic::import_generic(
+                        path_buf,
+                        instance_id,
+                        reporter.clone(),
+                        details,
+                        *symlink,
+                        overrides,
+                        None,
+                    )
+                    .await
+                }
             } else {
-                // Legacy fallback: resolve from config/registry
                 import_configured_instance(job, details, |name| {
                     pcl::get_pcl_instance_path(name)
                         .or_else(|| pcl::get_pclce_instance_path(name))
@@ -731,10 +863,37 @@ async fn import_via_launcher(
             }
         }
         ImportLauncherType::HMCL => {
-            import_configured_instance(job, details, |name| {
-                hmcl::get_instance_path(base_path, name)
-            })
-            .await
+            if let Some(path) = instance_path {
+                let path_buf = PathBuf::from(&path);
+                if path_buf.starts_with(base_path.join("versions")) {
+                    generic::import_generic(
+                        base_path.clone(),
+                        instance_id,
+                        reporter.clone(),
+                        details,
+                        *symlink,
+                        overrides,
+                        Some(path_buf),
+                    )
+                    .await
+                } else {
+                    generic::import_generic(
+                        path_buf,
+                        instance_id,
+                        reporter.clone(),
+                        details,
+                        *symlink,
+                        overrides,
+                        None,
+                    )
+                    .await
+                }
+            } else {
+                import_configured_instance(job, details, |name| {
+                    hmcl::get_instance_path(base_path, name)
+                })
+                .await
+            }
         }
         ImportLauncherType::Axolotl => {
             let path = resolve_axolotl_source(base_path, instance_folder);
@@ -749,7 +908,22 @@ async fn import_via_launcher(
             .await
         }
         ImportLauncherType::Generic => {
-            let path = resolve_instance_path(base_path, instance_folder);
+            // In compatible mode, instance_path is the version directory
+            // (e.g. .minecraft/versions/1.12.2) and the game directory is
+            // base_path itself.  Don't call resolve_instance_path because it
+            // would create a spurious base_path/instance_folder path.
+            let version_path = job.instance_path.as_ref().map(PathBuf::from);
+            let path = if version_path.is_some() {
+                base_path.clone()
+            } else {
+                resolve_instance_path(base_path, instance_folder)
+            };
+            tracing::debug!(
+                "Generic import: path={} version_path={:?} symlink={}",
+                path.display(),
+                version_path,
+                *symlink
+            );
             generic::import_generic(
                 path,
                 instance_id,
@@ -757,6 +931,7 @@ async fn import_via_launcher(
                 details,
                 *symlink,
                 overrides,
+                version_path,
             )
             .await
         }
@@ -1016,22 +1191,38 @@ async fn collect_dotminecraft_files(
     let skip_json = format!("{dirname}.json");
     let skip_jar = format!("{dirname}.jar");
 
-    Ok(files
-        .into_iter()
-        .filter_map(|abs_path| {
-            let rel = abs_path.strip_prefix(dotminecraft).ok()?.to_path_buf();
-            // Only filter at root level
-            if rel.parent().is_some_and(|p| !p.as_os_str().is_empty()) {
-                return Some((abs_path, rel));
-            }
-            let name = rel.file_name().and_then(|n| n.to_str()).unwrap_or("");
-            if name != skip_json && name != skip_jar {
-                Some((abs_path, rel))
-            } else {
-                None
-            }
-        })
-        .collect())
+    let mut collected = Vec::new();
+    for abs_path in files {
+        let metadata = tokio::fs::symlink_metadata(&abs_path)
+            .await
+            .map_err(|error| IOError::with_path(error, &abs_path))?;
+        if crate::util::io::is_symlink_or_reparse(&metadata) {
+            tracing::warn!(
+                path = %abs_path.display(),
+                "Skipping nested symlink or reparse point while copying an instance"
+            );
+            continue;
+        }
+        let Some(rel) = abs_path
+            .strip_prefix(dotminecraft)
+            .ok()
+            .map(Path::to_path_buf)
+        else {
+            continue;
+        };
+        if rel
+            .parent()
+            .is_some_and(|path| !path.as_os_str().is_empty())
+        {
+            collected.push((abs_path, rel));
+            continue;
+        }
+        let name = rel.file_name().and_then(|name| name.to_str()).unwrap_or("");
+        if name != skip_json && name != skip_jar {
+            collected.push((abs_path, rel));
+        }
+    }
+    Ok(collected)
 }
 
 /// Copies the collected files into the instance profile concurrently, bounded
@@ -1109,6 +1300,97 @@ async fn copy_files_with_progress(
     Ok(())
 }
 
+/// Determines the real game working directory for an import whose source is a
+/// `versions/<name>` folder.
+///
+/// The game body jar always lives at `<root>/versions/<name>/<name>.jar`
+/// regardless of version isolation (that layout has been stable since 1.6), so
+/// the jar alone cannot tell the two layouts apart — `dir_has_game_body` only
+/// proves "this is a Minecraft game root". The discriminator is where the game
+/// *content* (mods/saves/config/…) actually sits:
+///
+/// - inside the source folder → version-isolated: the version folder itself is
+///   the game dir (`<root>/versions/<name>` with its own mods/saves/config);
+/// - at an ancestor (normally the `.minecraft` root) → shared install: the
+///   `.minecraft` root is the game dir.
+///
+/// A source with no content anywhere (a fresh, never-launched instance) falls
+/// back to the source folder itself: the game creates the content folders
+/// there on first run, and for imports the user's explicit game-dir choice
+/// (or no override, i.e. the managed symlink) decides the rest.
+fn resolve_import_game_root(source: &Path) -> PathBuf {
+    // The source is itself the game root: either a whole Minecraft folder that
+    // carries a game body, or any folder that already holds game content
+    // (a version-isolated `versions/<name>` with mods/saves/config inside).
+    if source.is_dir()
+        && (dir_has_game_content(source) || dir_has_game_body(source))
+    {
+        return source.to_path_buf();
+    }
+
+    // Otherwise the source is a `versions/<name>` subfolder of a shared
+    // install: resolve to the nearest ancestor holding the game content
+    // (normally the `.minecraft` root). Never climb past `.minecraft`.
+    let mut cursor = source.parent();
+    while let Some(dir) = cursor {
+        if dir_has_game_content(dir) {
+            return dir.to_path_buf();
+        }
+        if dir.file_name().and_then(|n| n.to_str()) == Some(".minecraft") {
+            break;
+        }
+        cursor = dir.parent();
+    }
+
+    source.to_path_buf()
+}
+
+/// True if `root` is a Minecraft game root: it has at least one `.jar` game body
+/// under `versions/<name>/` (e.g. `versions/1.20.1/1.20.1.jar`).
+fn dir_has_game_body(root: &Path) -> bool {
+    let versions = root.join("versions");
+    let Ok(entries) = std::fs::read_dir(&versions) else {
+        return false;
+    };
+    for version_entry in entries.flatten() {
+        if !version_entry.path().is_dir() {
+            continue;
+        }
+        let Ok(version_files) = std::fs::read_dir(version_entry.path()) else {
+            continue;
+        };
+        for file in version_files.flatten() {
+            if file.path().extension().is_some_and(|ext| ext == "jar") {
+                return true;
+            }
+        }
+    }
+    false
+}
+
+/// True if `root` directly holds game *content* — the folders/files the running
+/// game creates and writes in its working directory (mods, saves, config,
+/// resourcepacks, …). Unlike the game body jar (which sits at
+/// `<root>/versions/<name>/<name>.jar` in every layout), content appears only in
+/// the folder that actually acts as the game dir, so this is what distinguishes
+/// a version-isolated `versions/<name>` folder from a shared `.minecraft` root.
+fn dir_has_game_content(root: &Path) -> bool {
+    [
+        "mods",
+        "saves",
+        "config",
+        "resourcepacks",
+        "datapacks",
+        "shaderpacks",
+        "logs",
+        "crash-reports",
+    ]
+    .iter()
+    .any(|dir| root.join(dir).is_dir())
+        || root.join("options.txt").is_file()
+        || root.join("servers.dat").is_file()
+}
+
 pub(crate) async fn finish_import(
     instance_id: &str,
     dotminecraft: PathBuf,
@@ -1119,9 +1401,55 @@ pub(crate) async fn finish_import(
 ) -> crate::Result<()> {
     let local_source = LocalRuntimeSource::discover(&dotminecraft);
 
+    // Respect an explicitly chosen game-dir override (the user's isolated /
+    // not-isolated selection, already stored on the instance row at creation).
+    // Only fall back to auto-detection for symlink imports that did not carry
+    // an explicit override, so copy imports always stay built-in (no override)
+    // and the frontend's choice is never clobbered.
+    let state = crate::state::State::get().await?;
+    let pool = &state.pool;
+    let existing_override =
+        instance_rows::get_instance_path_and_game_dir_override_by_id(
+            instance_id,
+            pool,
+        )
+        .await?
+        .map(|(_, override_dir)| override_dir)
+        .unwrap_or(None);
+    if existing_override.is_none() && symlink {
+        // For a non-version-isolated import the game content (mods, saves, config)
+        // lives in the `.minecraft` root, not in the detected `versions/<name>`
+        // subfolder. Detect that and record the override so the instance uses the
+        // real game root directly instead of an empty version subfolder.
+        let game_root = resolve_import_game_root(&dotminecraft);
+        if game_root != dotminecraft {
+            crate::state::edit_instance(
+                instance_id,
+                crate::state::EditInstance {
+                    game_dir_override: Some(Some(
+                        game_root.to_string_lossy().to_string(),
+                    )),
+                    ..Default::default()
+                },
+                pool,
+            )
+            .await?;
+        }
+    }
+
     if symlink {
+        let state = State::get().await?;
+        let relative_path =
+            instance_rows::get_instance_path_by_id(instance_id, &state.pool)
+                .await?
+                .ok_or_else(|| {
+                    crate::ErrorKind::InputError("Unknown instance".to_string())
+                })?;
+        // The instance's managed folder lives at instances_dir/<path>. This is
+        // where the symlink is created; it must NOT go through the game-dir
+        // override (which points at the external .minecraft root).
         let instance_path =
-            crate::api::instance::get_full_path(instance_id).await?;
+            state.directories.instances_dir().join(&relative_path);
 
         if instance_path.exists() {
             // The instance folder is registered with the file watcher as soon
@@ -1129,19 +1457,10 @@ pub(crate) async fn finish_import(
             // an open directory handle, so renaming the folder fails with
             // ERROR_ACCESS_DENIED. Unwatch it first, then re-register once the
             // symlink is in place (or the backup has been restored).
-            let state = State::get().await?;
-            let relative_path = instance_rows::get_instance_path_by_id(
-                instance_id,
-                &state.pool,
-            )
-            .await?
-            .ok_or_else(|| {
-                crate::ErrorKind::InputError("Unknown instance".to_string())
-            })?;
             unwatch_instance_folder(
                 &relative_path,
+                &instance_path,
                 &state.file_watcher,
-                &state.directories,
             )
             .await;
 
@@ -1169,8 +1488,8 @@ pub(crate) async fn finish_import(
                 watch_instance_folder(
                     instance_id,
                     &relative_path,
+                    &instance_path,
                     &state.file_watcher,
-                    &state.directories,
                 )
                 .await;
                 return Err(error.into());
@@ -1182,8 +1501,8 @@ pub(crate) async fn finish_import(
                 watch_instance_folder(
                     instance_id,
                     &relative_path,
+                    &instance_path,
                     &state.file_watcher,
-                    &state.directories,
                 )
                 .await;
                 return Err(error.into());
@@ -1192,8 +1511,8 @@ pub(crate) async fn finish_import(
             watch_instance_folder(
                 instance_id,
                 &relative_path,
+                &instance_path,
                 &state.file_watcher,
-                &state.directories,
             )
             .await;
         } else {
@@ -1338,4 +1657,113 @@ pub async fn get_all_subfiles(
     }
 
     Ok(files)
+}
+
+#[cfg(test)]
+mod import_game_root_tests {
+    use super::{dir_has_game_body, resolve_import_game_root};
+    use std::fs;
+    use std::path::Path;
+    use tempfile::tempdir;
+
+    fn write_game_body(mc: &Path, name: &str) {
+        let version_dir = mc.join("versions").join(name);
+        fs::create_dir_all(&version_dir).unwrap();
+        fs::write(version_dir.join(format!("{name}.jar")), "game").unwrap();
+    }
+
+    #[test]
+    fn resolves_minecraft_root_when_game_body_is_there() {
+        let root = tempdir().unwrap();
+        let mc = root.path().join(".minecraft");
+        let version = mc.join("versions").join("My Pack");
+        // Shared install, played as vanilla: game body under the `.minecraft`
+        // root and content (saves) there too — a mod-less instance has no
+        // `mods/*.jar`, so the content location is what resolves the root.
+        write_game_body(&mc, "My Pack");
+        fs::create_dir_all(mc.join("saves")).unwrap();
+
+        let resolved = resolve_import_game_root(&version);
+        assert_eq!(resolved, mc);
+    }
+
+    #[test]
+    fn keeps_version_dir_when_it_has_the_content() {
+        let root = tempdir().unwrap();
+        let mc = root.path().join(".minecraft");
+        let version = mc.join("versions").join("My Pack");
+        // Version-isolated instance: the game body jar ALSO lives under the
+        // `.minecraft` root, but the content (mods) is inside the version
+        // folder — that folder is the real game dir.
+        write_game_body(&mc, "My Pack");
+        fs::create_dir_all(version.join("mods")).unwrap();
+
+        let resolved = resolve_import_game_root(&version);
+        assert_eq!(resolved, version);
+    }
+
+    #[test]
+    fn resolves_minecraft_root_for_shared_mods() {
+        let root = tempdir().unwrap();
+        let mc = root.path().join(".minecraft");
+        let version = mc.join("versions").join("My Pack");
+        write_game_body(&mc, "My Pack");
+        // Shared install with mods at the `.minecraft` root only.
+        fs::create_dir_all(mc.join("mods")).unwrap();
+        fs::write(mc.join("mods/mod-a.jar"), "a").unwrap();
+
+        let resolved = resolve_import_game_root(&version);
+        assert_eq!(resolved, mc);
+    }
+
+    #[test]
+    fn keeps_version_dir_for_fresh_isolated_instance() {
+        let root = tempdir().unwrap();
+        let mc = root.path().join(".minecraft");
+        let version = mc.join("versions").join("My Pack");
+        // Fresh instance, never launched: only the game body exists, no content
+        // folders anywhere. The jar's location is ambiguous (shared vs
+        // isolated), so fall back to the innermost folder — the launcher will
+        // create content there on first run.
+        write_game_body(&mc, "My Pack");
+
+        let resolved = resolve_import_game_root(&version);
+        assert_eq!(resolved, version);
+    }
+
+    #[test]
+    fn keeps_minecraft_root_when_source_is_root() {
+        let root = tempdir().unwrap();
+        let mc = root.path().join(".minecraft");
+        write_game_body(&mc, "My Pack");
+
+        let resolved = resolve_import_game_root(&mc);
+        assert_eq!(resolved, mc);
+    }
+
+    #[test]
+    fn no_game_body_falls_back_to_source() {
+        let root = tempdir().unwrap();
+        let version = root.path().join(".minecraft/versions/My Pack");
+        fs::create_dir_all(&version).unwrap();
+
+        let resolved = resolve_import_game_root(&version);
+        assert_eq!(resolved, version);
+    }
+
+    #[test]
+    fn detects_game_body_in_versions() {
+        let root = tempdir().unwrap();
+        let mc = root.path().join(".minecraft");
+        assert!(!dir_has_game_body(&mc));
+
+        write_game_body(&mc, "My Pack");
+        assert!(dir_has_game_body(&mc));
+
+        // A mods/ jar alone is not a game body signal.
+        let empty = root.path().join("no-versions");
+        fs::create_dir_all(empty.join("mods")).unwrap();
+        fs::write(empty.join("mods/mod.jar"), "mod").unwrap();
+        assert!(!dir_has_game_body(&empty));
+    }
 }

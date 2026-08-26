@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { EyeIcon, RefreshCwIcon } from '@modrinth/assets'
 import {
-	ButtonStyled,
 	Combobox,
 	defineMessages,
 	injectNotificationManager,
+	NewButton as Button,
 	useVIntl,
 } from '@modrinth/ui'
 import { getVersion } from '@tauri-apps/api/app'
@@ -15,6 +15,9 @@ import UpdateAnnouncementHistory from '@/components/ui/announcement/UpdateAnnoun
 import { getUpdateSource, setUpdateSource, type UpdateSource } from '@/helpers/settings.ts'
 import { isDev } from '@/helpers/utils.js'
 import { type AppUpdateCheckResult, checkForAppUpdate } from '@/providers/app-update.ts'
+
+import SettingsRow from './SettingsRow.vue'
+import SettingsSection from './SettingsSection.vue'
 
 const { formatMessage } = useVIntl()
 const { handleError } = injectNotificationManager()
@@ -40,6 +43,10 @@ const messages = defineMessages({
 	description: {
 		id: 'app.settings.updates.description',
 		defaultMessage: 'Choose where Axolotl checks for launcher updates.',
+	},
+	miawa: {
+		id: 'app.settings.updates.miawa',
+		defaultMessage: 'LemwoodMirror',
 	},
 	cnb: {
 		id: 'app.settings.updates.cnb',
@@ -93,6 +100,7 @@ const messages = defineMessages({
 })
 
 const options: Array<{ value: UpdateSource; label: string }> = [
+	{ value: 'miawa', label: formatMessage(messages.miawa) },
 	{ value: 'cnb', label: formatMessage(messages.cnb) },
 	{ value: 'github', label: formatMessage(messages.github) },
 ]
@@ -135,49 +143,64 @@ async function checkForUpdates() {
 
 <template>
 	<div class="flex flex-col gap-6">
-		<div class="grid grid-cols-[minmax(0,1fr)_11rem] items-center gap-6">
-			<div class="flex min-w-0 flex-col gap-1">
-				<h2 class="m-0 text-lg font-semibold text-contrast">
-					{{ formatMessage(messages.title) }}
-				</h2>
-				<p class="m-0 leading-relaxed text-secondary">
-					{{ formatMessage(messages.description) }}
-				</p>
-			</div>
-			<div class="w-44">
-				<Combobox
-					id="update-source"
-					v-model="selectedSource"
-					name="Update source"
-					:options="options"
-				/>
-			</div>
-		</div>
+		<SettingsSection>
+			<SettingsRow>
+				<template #label>
+					<span id="settings-target-updates-source" tabindex="-1">
+						{{ formatMessage(messages.title) }}
+					</span>
+				</template>
+				<template #description>{{ formatMessage(messages.description) }}</template>
+				<template #control>
+					<Combobox
+						id="update-source"
+						v-model="selectedSource"
+						:name="formatMessage(messages.title)"
+						:options="options"
+					/>
+				</template>
+			</SettingsRow>
+		</SettingsSection>
 
-		<div class="flex flex-col items-start gap-3">
-			<div class="flex flex-wrap gap-2">
-				<ButtonStyled color="brand">
-					<button :disabled="checking" @click="checkForUpdates">
+		<SettingsSection>
+			<div class="flex flex-col items-start gap-3 p-4">
+				<div class="flex flex-wrap gap-2">
+					<Button type="colored" color="brand" :disabled="checking" @click="checkForUpdates">
 						<RefreshCwIcon :class="{ 'animate-spin': checking }" />
 						{{ formatMessage(checking ? messages.checking : messages.check) }}
-					</button>
-				</ButtonStyled>
-				<ButtonStyled v-if="isDevEnvironment && previewUpdateAnnouncement" type="outlined">
-					<button type="button" @click="previewUpdateAnnouncement(currentVersion)">
+					</Button>
+					<Button
+						v-if="isDevEnvironment && previewUpdateAnnouncement"
+						type="outlined"
+						native-type="button"
+						@click="previewUpdateAnnouncement(currentVersion)"
+					>
 						<EyeIcon />
 						{{ formatMessage(messages.preview) }}
-					</button>
-				</ButtonStyled>
+					</Button>
+				</div>
+				<p v-if="checkResult" class="m-0 text-sm text-secondary" role="status">
+					{{ formatMessage(messages[resultMessages[checkResult]]) }}
+				</p>
 			</div>
-			<p v-if="checkResult" class="m-0 text-sm text-secondary" role="status">
-				{{ formatMessage(messages[resultMessages[checkResult]]) }}
-			</p>
-		</div>
+		</SettingsSection>
 
-		<p class="m-0 rounded-xl bg-surface-4 p-4 text-sm leading-tight text-secondary">
-			{{ formatMessage(messages.security) }}
-		</p>
+		<p class="settings-note">{{ formatMessage(messages.security) }}</p>
 
 		<UpdateAnnouncementHistory :current-version="currentVersion" />
 	</div>
 </template>
+
+<style scoped>
+.settings-note {
+	margin: 0;
+	padding: var(--gap-md) var(--gap-lg);
+	border: 1px solid
+		var(--settings-card-border, color-mix(in srgb, var(--surface-4) 72%, transparent));
+	border-radius: var(--radius-md);
+	background: var(--surface-2);
+	color: var(--color-secondary);
+	font-size: 0.8125rem;
+	line-height: 1.5;
+}
+</style>

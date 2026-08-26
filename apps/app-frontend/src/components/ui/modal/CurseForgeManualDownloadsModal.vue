@@ -141,6 +141,7 @@ import {
 import { getMissingContentScannerSettings } from '@/helpers/downloads-scanner'
 import { instance_listener } from '@/helpers/events.js'
 import { get_content_snapshot } from '@/helpers/instance'
+import { get_instance_worlds } from '@/helpers/worlds'
 
 const { formatMessage } = useVIntl()
 const { handleError } = injectNotificationManager()
@@ -316,9 +317,11 @@ async function reconcileManualDownloadState() {
 	const currentInstanceId = instanceId.value
 	if (!scannerActive || !currentInstanceId) return
 	const generation = ++reconciliationGeneration
-	const [pending, snapshot] = await Promise.all([
+	const hasWorldCandidates = candidateItems.value.some((item) => item.projectType === 'world')
+	const [pending, snapshot, worlds] = await Promise.all([
 		listPendingCurseForgeManualDownloads(currentInstanceId),
 		get_content_snapshot(currentInstanceId),
+		hasWorldCandidates ? get_instance_worlds(currentInstanceId) : Promise.resolve([]),
 	])
 	if (
 		!scannerActive ||
@@ -355,6 +358,23 @@ async function reconcileManualDownloadState() {
 	for (const item of nextItems) {
 		const key = itemKey(item)
 		if (pendingByKey.has(key)) continue
+		if (item.projectType === 'world') {
+			const worldName = item.fileName.replace(/\.zip$/i, '')
+			const importedWorld = worlds.some(
+				(world) => world.type === 'singleplayer' && world.path === worldName,
+			)
+			if (importedWorld) {
+				nextImported.add(key)
+				if (!importedKeys.value.has(key)) {
+					newlyImported.push({
+						projectId: item.projectId,
+						fileId: item.fileId,
+						relativePath: `saves/${worldName}`,
+					})
+				}
+				continue
+			}
+		}
 		const relativePath = materializedByKey.get(key)
 		if (relativePath == null) {
 			nextInconsistent.add(key)

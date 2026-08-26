@@ -8,6 +8,10 @@
 		:no-options-message="searchLoading ? loadingMessage : noResultsMessage"
 		:disable-search-filter="true"
 		:disabled="disabled"
+		:sync-with-selection="syncWithSelection"
+		:select-search-text-on-focus="selectSearchTextOnFocus"
+		:show-search-icon="showSearchIcon"
+		:show-chevron="showChevron"
 		show-icon-in-selected
 		@search-input="(query) => handleSearch(query)"
 	/>
@@ -32,7 +36,7 @@ export type ProjectType =
 	| 'plugin'
 	| 'server'
 
-interface SearchHit {
+export interface SearchHit {
 	project_id: string
 	title: string
 	icon_url?: string
@@ -56,6 +60,14 @@ const props = withDefaults(
 		disabled?: boolean
 		/** Maximum number of results to show */
 		limit?: number
+		/** Keep the selected project visible in the trigger */
+		syncWithSelection?: boolean
+		/** Select input text on focus */
+		selectSearchTextOnFocus?: boolean
+		/** Show a search icon */
+		showSearchIcon?: boolean
+		/** Show the chevron */
+		showChevron?: boolean
 		/** Project IDs to exclude from results */
 		excludeProjectIds?: string[]
 		/** Include the user's own projects (including unlisted) in results via Fuse search */
@@ -70,6 +82,10 @@ const props = withDefaults(
 		noResultsMessage: 'No results found',
 		disabled: false,
 		limit: 20,
+		syncWithSelection: true,
+		selectSearchTextOnFocus: false,
+		showSearchIcon: false,
+		showChevron: true,
 	},
 )
 

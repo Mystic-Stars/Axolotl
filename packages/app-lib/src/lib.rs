@@ -20,6 +20,7 @@ mod launcher;
 mod logger;
 pub mod mod_metadata;
 mod state;
+pub mod storage;
 pub mod telemetry;
 
 pub use api::*;
@@ -30,9 +31,11 @@ pub use event::{
 };
 pub use logger::start_logger;
 pub use state::State;
-pub use util::fetch::DownloadReason;
+pub use storage::*;
+pub use util::fetch::{DownloadReason, build_proxied_client};
 pub use util::file_lock::{LockingProcess, get_locking_processes};
 pub use util::platform::is_process_elevated;
+pub use util::proxy::{ProxyConfig, ProxyMode, ProxyTestResult};
 pub use util::symlink::SymlinkCapability;
 
 pub fn launcher_user_agent() -> String {

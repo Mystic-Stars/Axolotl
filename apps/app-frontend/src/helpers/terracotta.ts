@@ -40,9 +40,16 @@ export interface TerracottaState {
 	download_progress: number | null
 	download_stage: TerracottaDownloadStage | null
 	binary_installed: boolean
+	installed_version: string | null
 	error_type: TerracottaErrorType | null
 	error_message: string | null
 	profile_index: number | null
+}
+
+export interface TerracottaUpdate {
+	installed_version: string | null
+	latest_version: string
+	update_available: boolean
 }
 
 const TERRACOTTA_ROOM_CODE_PATTERN = /^U\/[A-Z0-9]{4}(?:-[A-Z0-9]{4}){3}$/i
@@ -88,6 +95,7 @@ export function parseTerracottaPublicNodes(value: string): {
 export const terracotta = {
 	getState: () => invoke<TerracottaState>(command('terracotta_get_state')),
 	getPlatformKey: () => invoke<string>(command('terracotta_get_platform_key')),
+	checkForUpdate: () => invoke<TerracottaUpdate>(command('terracotta_check_for_update')),
 	getPlayerName: () => invoke<string>(command('terracotta_get_player_name')),
 	getDiagnosticReport: () => invoke<string>(command('terracotta_get_diagnostic_report')),
 	start: () => invoke<void>(command('terracotta_start'), { autoDownload: true }),
@@ -100,4 +108,5 @@ export const terracotta = {
 		}),
 	reset: () => invoke<void>(command('terracotta_reset')),
 	download: () => invoke<void>(command('terracotta_download')),
+	update: () => invoke<TerracottaUpdate>(command('terracotta_update')),
 }

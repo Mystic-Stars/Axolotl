@@ -1,0 +1,194 @@
+import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
+import test from 'node:test'
+
+import {
+	getVisibleSettingsCategoryDefinitions,
+	settingsCategoryDefinitions,
+} from './settings-category-definitions.ts'
+import {
+	filterSettingsSearchDocuments,
+	MAX_SETTINGS_SEARCH_RESULTS,
+	normalizeSettingsSearchText,
+} from './settings-search.ts'
+import {
+	getSettingsSearchTargetId,
+	settingsSearchEntries,
+	validateSettingsSearchEntries,
+	validateSettingsSearchMappings,
+} from './settings-search-index.ts'
+
+const settingsComponentFiles = {
+	interface: ['./AppearanceSettings.vue'],
+	'home-navigation': ['./AppearanceSettings.vue'],
+	'language-translation': ['./LanguageSettings.vue', './TranslationSettings.vue'],
+	ai: ['./AISettings.vue'],
+	'java-performance': ['./JavaSettings.vue'],
+	'launch-defaults': ['./DefaultInstanceSettings.vue', './CrashAnalysisAISettings.vue'],
+	'content-downloads': ['./AppearanceSettings.vue', './ResourceManagementSettings.vue'],
+	'network-multiplayer': ['./ResourceManagementSettings.vue', './MultiplayerSettings.vue'],
+	'storage-backups': ['./ResourceManagementSettings.vue', './StorageSettings.vue'],
+	'privacy-data': ['./PrivacySettings.vue'],
+	updates: ['./UpdateSettings.vue'],
+	about: ['./AboutSettings.vue'],
+	'feature-flags': ['./FeatureFlagSettings.vue'],
+} as const
+
+const chineseLocale = JSON.parse(
+	readFileSync(new URL('../../../locales/zh-CN/index.json', import.meta.url), 'utf8'),
+) as Record<string, { message?: string }>
+
+test('normalizes settings search text before matching', () => {
+	assert.equal(normalizeSettingsSearchText('  Proxy\nSettings  '), 'proxy settings')
+	assert.deepEqual(
+		filterSettingsSearchDocuments('proxy settings', [
+			{ item: 'proxy', text: 'Resource management Proxy settings Custom proxy' },
+			{ item: 'theme', text: 'Appearance Color theme' },
+		]).map(({ item }) => item),
+		['proxy'],
+	)
+})
+
+test('returns no documents for an empty settings search', () => {
+	assert.deepEqual(filterSettingsSearchDocuments('', [{ item: 'theme', text: 'Color theme' }]), [])
+})
+
+test('matches setting categories, titles, descriptions, and static option keywords', () => {
+	const documents = [
+		{ item: 'category', text: 'Resource management' },
+		{ item: 'title', text: 'Appearance Color theme' },
+		{
+			item: 'description',
+			text: 'Resource management Proxy settings Connect through a network proxy',
+		},
+		{ item: 'keyword', text: 'Resource management Proxy settings SOCKS5' },
+	]
+
+	assert.deepEqual(
+		filterSettingsSearchDocuments('resource management', documents).map(({ item }) => item),
+		['category', 'keyword', 'description'],
+	)
+	assert.deepEqual(
+		filterSettingsSearchDocuments('color theme', documents).map(({ item }) => item),
+		['title'],
+	)
+	assert.deepEqual(
+		filterSettingsSearchDocuments('network proxy', documents).map(({ item }) => item),
+		['description'],
+	)
+	assert.deepEqual(
+		filterSettingsSearchDocuments('socks5', documents).map(({ item }) => item),
+		['keyword'],
+	)
+})
+
+test('tolerates small spelling errors and limits the result set', () => {
+	assert.deepEqual(
+		filterSettingsSearchDocuments('colur them', [
+			{ item: 'theme', text: 'Appearance Color theme' },
+			{ item: 'proxy', text: 'Network proxy' },
+		]).map(({ item }) => item),
+		['theme'],
+	)
+
+	const documents = Array.from({ length: MAX_SETTINGS_SEARCH_RESULTS + 3 }, (_, index) => ({
+		item: index,
+		text: `Setting ${index}`,
+	}))
+	assert.equal(
+		filterSettingsSearchDocuments('setting', documents).length,
+		MAX_SETTINGS_SEARCH_RESULTS,
+	)
+})
+
+test('settings search index has unique entries with categories', () => {
+	assert.deepEqual(validateSettingsSearchEntries(), [])
+})
+
+test('legacy category names remain searchable after the taxonomy change', () => {
+	const keywordText = settingsSearchEntries
+		.flatMap((entry) => entry.keywords ?? [])
+		.map((keyword) => keyword.defaultMessage)
+		.join(' ')
+
+	assert.equal(keywordText.includes('Resource management'), true)
+	assert.equal(keywordText.includes('Default instance options'), true)
+})
+
+test('developer-only settings stay out of the normal search categories', () => {
+	const visibleCategoryIds = new Set(
+		getVisibleSettingsCategoryDefinitions(false).map((category) => category.id),
+	)
+	const visibleEntries = settingsSearchEntries.filter((entry) =>
+		visibleCategoryIds.has(entry.categoryId),
+	)
+
+	assert.equal(visibleCategoryIds.has('feature-flags'), false)
+	assert.equal(
+		visibleEntries.some((entry) => entry.categoryId === 'feature-flags'),
+		false,
+	)
+	assert.equal(
+		settingsSearchEntries.some((entry) => entry.categoryId === 'feature-flags'),
+		true,
+	)
+	assert.equal(
+		getVisibleSettingsCategoryDefinitions(true).some((category) => category.id === 'feature-flags'),
+		true,
+	)
+})
+
+test('settings navigation groups preserve the intended Axolotl information architecture', () => {
+	const categoriesForGroup = (
+		group: 'launcher' | 'game' | 'data-privacy' | 'support' | 'developer',
+		developerMode = false,
+	) =>
+		getVisibleSettingsCategoryDefinitions(developerMode)
+			.filter((category) => category.group === group)
+			.map((category) => category.id)
+
+	assert.deepEqual(categoriesForGroup('launcher'), [
+		'interface',
+		'home-navigation',
+		'language-translation',
+		'ai',
+	])
+	assert.deepEqual(categoriesForGroup('game'), [
+		'java-performance',
+		'launch-defaults',
+		'content-downloads',
+		'network-multiplayer',
+	])
+	assert.deepEqual(categoriesForGroup('data-privacy'), ['storage-backups', 'privacy-data'])
+	assert.deepEqual(categoriesForGroup('support'), ['updates', 'about'])
+	assert.deepEqual(categoriesForGroup('developer'), [])
+	assert.deepEqual(categoriesForGroup('developer', true), ['feature-flags'])
+})
+
+test('Chinese contains every user-facing settings category label', () => {
+	for (const category of settingsCategoryDefinitions) {
+		if (category.id === 'feature-flags') continue
+
+		assert.equal(typeof chineseLocale[category.name.id]?.message, 'string', category.name.id)
+	}
+})
+
+test('every settings search result resolves to a category and a scroll target', () => {
+	assert.deepEqual(validateSettingsSearchMappings(), [])
+
+	const categoryIds = new Set(settingsCategoryDefinitions.map((category) => category.id))
+	for (const entry of settingsSearchEntries) {
+		assert.equal(categoryIds.has(entry.categoryId), true)
+
+		const targetId = getSettingsSearchTargetId(entry)
+		if (!entry.targetId) {
+			assert.equal(targetId, `settings-category-${entry.categoryId}`)
+			continue
+		}
+
+		const template = settingsComponentFiles[entry.categoryId]
+			.map((file) => readFileSync(new URL(file, import.meta.url), 'utf8'))
+			.join('\n')
+		assert.equal(template.includes(`id="${targetId}"`), true)
+	}
+})

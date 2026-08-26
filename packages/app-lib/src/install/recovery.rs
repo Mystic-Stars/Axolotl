@@ -1,8 +1,9 @@
 use super::events::emit_install_job;
 use super::model::{
-    InstallCleanup, InstallContentRollbackSnapshot,
-    InstallContentRollbackStage, InstallErrorView, InstallInterruptReason,
-    InstallJobDisplay, InstallJobEventKind, InstallJobState, InstallJobStatus,
+    InstallCleanup, InstallContentRollbackScope,
+    InstallContentRollbackSnapshot, InstallContentRollbackStage,
+    InstallErrorView, InstallInterruptReason, InstallJobDisplay,
+    InstallJobEventKind, InstallJobState, InstallJobStatus,
     InstallPhaseDetails, InstallPhaseId, InstallRequest,
     InstallRollbackContentEntry, InstallRollbackFile,
     InstallRollbackProviderRef, InstallTarget,
@@ -32,6 +33,7 @@ pub async fn recover_interrupted_jobs(state: &State) -> crate::Result<()> {
         job.state.progress.phase = InstallPhaseId::RollingBack;
         job.state.progress.progress = None;
         job.state.progress.details = InstallPhaseDetails::Empty;
+        job.state.progress.parallel = None;
         job.state.error = Some(InstallErrorView::from_message(
             "app_closed",
             interrupted_phase,
@@ -60,12 +62,9 @@ pub async fn recover_interrupted_jobs(state: &State) -> crate::Result<()> {
                 });
                 false
             }
-            Ok(()) => {
-                job.state
-                    .record_event(InstallJobEventKind::RollbackCompleted);
-                true
-            }
+            Ok(()) => true,
         };
+        finalize_rollback_state(&mut job.state, cleanup_succeeded);
         if cleanup_succeeded {
             clear_deleted_new_instance_id(&mut job.state);
         }
@@ -81,6 +80,20 @@ pub async fn recover_interrupted_jobs(state: &State) -> crate::Result<()> {
     }
 
     Ok(())
+}
+
+pub(crate) fn finalize_rollback_state(
+    job_state: &mut InstallJobState,
+    cleanup_succeeded: bool,
+) {
+    if !cleanup_succeeded {
+        return;
+    }
+    job_state.record_event(InstallJobEventKind::RollbackCompleted);
+    job_state.progress.phase = InstallPhaseId::Finalizing;
+    job_state.progress.progress = None;
+    job_state.progress.details = InstallPhaseDetails::Empty;
+    job_state.progress.parallel = None;
 }
 
 fn clear_deleted_new_instance_id(job_state: &mut InstallJobState) {
@@ -120,6 +133,7 @@ fn display_from_request(state: &InstallJobState) -> Option<InstallJobDisplay> {
         }),
         InstallRequest::DuplicateInstance { .. }
         | InstallRequest::InstallExistingInstance { .. }
+        | InstallRequest::UpgradeUnmanagedInstance { .. }
         | InstallRequest::InstallPackToExistingInstance { .. }
         | InstallRequest::UpdateManagedCurseForgeModpack { .. } => {
             state.rollback.as_ref().map(|rollback| InstallJobDisplay {
@@ -145,6 +159,14 @@ fn display_from_request(state: &InstallJobState) -> Option<InstallJobDisplay> {
             title: display_title.clone(),
             icon: display_icon.clone(),
         }),
+		InstallRequest::InstallCurseForgeWorld {
+			display_title,
+			display_icon,
+			..
+		} => Some(InstallJobDisplay {
+			title: display_title.clone(),
+			icon: display_icon.clone(),
+		}),
         InstallRequest::DownloadJava { vendor, version } => Some(InstallJobDisplay {
             title: format!("Java {version} ({vendor})"),
             icon: None,
@@ -209,6 +231,39 @@ pub(crate) async fn prepare_existing_content_rollback(
     state: &State,
     extra_relative_paths: Vec<String>,
 ) -> crate::Result<()> {
+    prepare_existing_content_rollback_with_scope(
+        job_id,
+        job_state,
+        state,
+        extra_relative_paths,
+        InstallContentRollbackScope::PackManaged,
+    )
+    .await
+}
+
+pub(crate) async fn prepare_existing_upgrade_content_rollback(
+    job_id: Uuid,
+    job_state: &mut InstallJobState,
+    state: &State,
+    replacement_paths: Vec<String>,
+) -> crate::Result<()> {
+    prepare_existing_content_rollback_with_scope(
+        job_id,
+        job_state,
+        state,
+        replacement_paths,
+        InstallContentRollbackScope::AllContent,
+    )
+    .await
+}
+
+async fn prepare_existing_content_rollback_with_scope(
+    job_id: Uuid,
+    job_state: &mut InstallJobState,
+    state: &State,
+    extra_relative_paths: Vec<String>,
+    scope: InstallContentRollbackScope,
+) -> crate::Result<()> {
     if job_state
         .rollback
         .as_ref()
@@ -227,16 +282,16 @@ pub(crate) async fn prepare_existing_content_rollback(
     let content_set_id = rollback.instance.applied_content_set.id.clone();
     let instance_base = state
         .directories
-        .instances_dir()
-        .join(&rollback.instance.instance.path);
+        .instance_game_dir(&rollback.instance.instance);
     let _instance_lock = state.lock_instance_content(&instance_id).await;
 
     let all_entries =
         content_rows::get_content_entries(&content_set_id, &state.pool).await?;
-    let managed_entries = all_entries
+    let selected_entries = all_entries
         .into_iter()
         .filter(|entry| {
-            entry.ownership_kind == ContentOwnershipKind::PackManaged
+            scope == InstallContentRollbackScope::AllContent
+                || entry.ownership_kind == ContentOwnershipKind::PackManaged
         })
         .collect::<Vec<_>>();
     let instance_files =
@@ -245,16 +300,21 @@ pub(crate) async fn prepare_existing_content_rollback(
         .iter()
         .map(|file| (file.id.clone(), file.clone()))
         .collect::<HashMap<_, _>>();
-    let user_owned_paths = user_owned_paths(
-        &managed_entries,
-        &instance_files,
-        &content_set_id,
-        &state.pool,
-    )
-    .await?;
+    let user_owned_paths = if scope == InstallContentRollbackScope::PackManaged
+    {
+        user_owned_paths(
+            &selected_entries,
+            &instance_files,
+            &content_set_id,
+            &state.pool,
+        )
+        .await?
+    } else {
+        HashSet::new()
+    };
 
-    let mut entry_snapshots = Vec::with_capacity(managed_entries.len());
-    for entry in &managed_entries {
+    let mut entry_snapshots = Vec::with_capacity(selected_entries.len());
+    for entry in &selected_entries {
         let provider_refs =
             content_rows::get_content_provider_refs_with_origin(
                 &entry.id,
@@ -277,7 +337,7 @@ pub(crate) async fn prepare_existing_content_rollback(
         });
     }
 
-    let mut paths = managed_entries
+    let mut paths = selected_entries
         .iter()
         .filter_map(|entry| entry.file_id.as_ref())
         .filter_map(|file_id| files_by_id.get(file_id))
@@ -289,6 +349,7 @@ pub(crate) async fn prepare_existing_content_rollback(
     paths.dedup();
 
     let mut file_snapshots = Vec::with_capacity(paths.len());
+    let mut protected_paths = Vec::new();
     for (index, relative_path) in paths.into_iter().enumerate() {
         let source = checked_instance_path(&instance_base, &relative_path)?;
         let instance_file = instance_files
@@ -304,6 +365,12 @@ pub(crate) async fn prepare_existing_content_rollback(
             && (!metadata.is_file()
                 || crate::util::io::is_symlink_or_reparse(metadata))
         {
+            if scope == InstallContentRollbackScope::AllContent
+                && crate::util::io::is_symlink_or_reparse(metadata)
+            {
+                protected_paths.push(relative_path);
+                continue;
+            }
             return Err(crate::ErrorKind::FSError(format!(
                 "Rollback source is not a regular managed file: {relative_path}"
             ))
@@ -329,14 +396,21 @@ pub(crate) async fn prepare_existing_content_rollback(
     let snapshot = InstallContentRollbackSnapshot {
         staging_id: job_id.to_string(),
         stage: InstallContentRollbackStage::Planned,
+        scope,
         files: file_snapshots,
         entries: entry_snapshots,
+        dependency_edges: content_rows::get_content_dependency_edges(
+            &content_set_id,
+            &state.pool,
+        )
+        .await?,
         pack_members: content_rows::get_pack_members(
             &content_set_id,
             &state.pool,
         )
         .await?,
         replacement_paths: Vec::new(),
+        protected_paths,
     };
     job_state.rollback.as_mut().unwrap().content = Some(snapshot);
     super::events::InstallProgressReporter::new(job_id, job_state.clone())
@@ -374,7 +448,7 @@ pub(crate) async fn prepare_existing_content_rollback(
     super::events::InstallProgressReporter::new(job_id, job_state.clone())
         .set_rollback(job_state.rollback.clone())
         .await?;
-    remove_managed_db_state(job_state, state).await?;
+    remove_snapshotted_db_state(job_state, state).await?;
     Ok(())
 }
 
@@ -401,6 +475,24 @@ pub(crate) async fn discard_content_rollback(
     Ok(())
 }
 
+pub(crate) async fn restore_upgrade_db_baseline(
+    job_state: &InstallJobState,
+    state: &State,
+) -> crate::Result<()> {
+    let scope = job_state
+        .rollback
+        .as_ref()
+        .and_then(|rollback| rollback.content.as_ref())
+        .map(|snapshot| snapshot.scope);
+    if scope != Some(InstallContentRollbackScope::AllContent) {
+        return Err(crate::ErrorKind::OtherError(
+            "Upgrade rollback snapshot is missing".to_string(),
+        )
+        .into());
+    }
+    restore_snapshotted_db_state(job_state, state).await
+}
+
 async fn restore_existing_instance(
     job_state: &mut InstallJobState,
     state: &State,
@@ -419,14 +511,13 @@ async fn restore_existing_instance(
     }
     let instance_base = state
         .directories
-        .instances_dir()
-        .join(&rollback.instance.instance.path);
+        .instance_game_dir(&rollback.instance.instance);
     let _instance_lock = state.lock_instance_content(instance_id).await;
 
     if rollback.content.is_some() {
         clean_replacement_files(job_state, &instance_base, state).await?;
         restore_snapshot_files(job_state, &instance_base, state).await?;
-        restore_managed_db_state(job_state, state).await?;
+        restore_snapshotted_db_state(job_state, state).await?;
     }
     let metadata = job_state.rollback.as_ref().unwrap().instance.clone();
     crate::state::restore_instance_metadata(&metadata, &state.pool).await?;
@@ -531,13 +622,20 @@ async fn stage_snapshot_files(
         let target = staging.join(&file.staged_name);
         if target.exists() {
             verify_file(&target, file).await?;
-            if source.exists() {
+            if source.exists()
+                && snapshot.scope == InstallContentRollbackScope::PackManaged
+            {
                 verify_file(&source, file).await?;
                 crate::util::io::remove_file(&source).await?;
             }
             continue;
         }
-        move_file_verified(&source, &target, file).await?;
+        if snapshot.scope == InstallContentRollbackScope::AllContent {
+            crate::util::io::copy(&source, &target).await?;
+            verify_file(&target, file).await?;
+        } else {
+            move_file_verified(&source, &target, file).await?;
+        }
     }
     Ok(())
 }
@@ -628,7 +726,7 @@ async fn verify_file(
     Ok(())
 }
 
-async fn remove_managed_db_state(
+async fn remove_snapshotted_db_state(
     job_state: &InstallJobState,
     state: &State,
 ) -> crate::Result<()> {
@@ -647,13 +745,25 @@ async fn remove_managed_db_state(
         .bind(content_set_id)
         .execute(&mut *tx)
         .await?;
-    sqlx::query(
-        "DELETE FROM instance_content_entries
-         WHERE content_set_id = ? AND ownership_kind = 'pack_managed'",
-    )
-    .bind(content_set_id)
-    .execute(&mut *tx)
-    .await?;
+    match snapshot.scope {
+        InstallContentRollbackScope::PackManaged => {
+            sqlx::query(
+                "DELETE FROM instance_content_entries
+                 WHERE content_set_id = ? AND ownership_kind = 'pack_managed'",
+            )
+            .bind(content_set_id)
+            .execute(&mut *tx)
+            .await?;
+        }
+        InstallContentRollbackScope::AllContent => {
+            sqlx::query(
+                "DELETE FROM instance_content_entries WHERE content_set_id = ?",
+            )
+            .bind(content_set_id)
+            .execute(&mut *tx)
+            .await?;
+        }
+    }
     for file_id in file_ids {
         sqlx::query(
             "DELETE FROM instance_files
@@ -694,19 +804,21 @@ async fn clean_replacement_files(
         .iter()
         .map(|file| (file.id.as_str(), file.relative_path.as_str()))
         .collect::<HashMap<_, _>>();
-    let managed_paths = current_entries
+    let rollback_paths = current_entries
         .iter()
         .filter(|entry| {
-            entry.ownership_kind == ContentOwnershipKind::PackManaged
+            snapshot.scope == InstallContentRollbackScope::AllContent
+                || entry.ownership_kind == ContentOwnershipKind::PackManaged
         })
         .filter_map(|entry| entry.file_id.as_deref())
         .filter_map(|id| paths_by_id.get(id).copied())
         .map(ToString::to_string)
         .collect::<HashSet<_>>();
-    let user_paths = current_entries
+    let protected_paths = current_entries
         .iter()
         .filter(|entry| {
-            entry.ownership_kind != ContentOwnershipKind::PackManaged
+            snapshot.scope == InstallContentRollbackScope::PackManaged
+                && entry.ownership_kind != ContentOwnershipKind::PackManaged
         })
         .filter_map(|entry| entry.file_id.as_deref())
         .filter_map(|id| paths_by_id.get(id).copied())
@@ -716,12 +828,15 @@ async fn clean_replacement_files(
         .iter()
         .map(|file| file.relative_path.as_str())
         .collect::<HashSet<_>>();
-    let cleanup_paths = managed_paths
+    let cleanup_paths = rollback_paths
         .into_iter()
         .chain(snapshot.replacement_paths.iter().cloned())
         .collect::<HashSet<_>>();
     for relative_path in cleanup_paths {
-        if user_paths.contains(relative_path.as_str()) {
+        if snapshot.protected_paths.contains(&relative_path) {
+            continue;
+        }
+        if protected_paths.contains(relative_path.as_str()) {
             return Err(crate::ErrorKind::FSError(format!(
                 "Refusing to remove user-owned rollback path: {relative_path}"
             ))
@@ -740,7 +855,7 @@ async fn clean_replacement_files(
     Ok(())
 }
 
-async fn restore_managed_db_state(
+async fn restore_snapshotted_db_state(
     job_state: &InstallJobState,
     state: &State,
 ) -> crate::Result<()> {
@@ -750,10 +865,11 @@ async fn restore_managed_db_state(
     let instance_id = &rollback.instance.instance.id;
     let current_entries =
         content_rows::get_content_entries(content_set_id, &state.pool).await?;
-    let current_pack_file_ids = current_entries
+    let current_file_ids = current_entries
         .iter()
         .filter(|entry| {
-            entry.ownership_kind == ContentOwnershipKind::PackManaged
+            snapshot.scope == InstallContentRollbackScope::AllContent
+                || entry.ownership_kind == ContentOwnershipKind::PackManaged
         })
         .filter_map(|entry| entry.file_id.clone())
         .collect::<Vec<_>>();
@@ -763,14 +879,26 @@ async fn restore_managed_db_state(
         .bind(content_set_id)
         .execute(&mut *tx)
         .await?;
-    sqlx::query(
-        "DELETE FROM instance_content_entries
-         WHERE content_set_id = ? AND ownership_kind = 'pack_managed'",
-    )
-    .bind(content_set_id)
-    .execute(&mut *tx)
-    .await?;
-    for file_id in current_pack_file_ids {
+    match snapshot.scope {
+        InstallContentRollbackScope::PackManaged => {
+            sqlx::query(
+                "DELETE FROM instance_content_entries
+                 WHERE content_set_id = ? AND ownership_kind = 'pack_managed'",
+            )
+            .bind(content_set_id)
+            .execute(&mut *tx)
+            .await?;
+        }
+        InstallContentRollbackScope::AllContent => {
+            sqlx::query(
+                "DELETE FROM instance_content_entries WHERE content_set_id = ?",
+            )
+            .bind(content_set_id)
+            .execute(&mut *tx)
+            .await?;
+        }
+    }
+    for file_id in current_file_ids {
         sqlx::query(
             "DELETE FROM instance_files
              WHERE instance_id = ? AND id = ?
@@ -812,6 +940,12 @@ async fn restore_managed_db_state(
             )
             .await?;
         }
+    }
+    for edge in &snapshot.dependency_edges {
+        content_rows::upsert_content_dependency_edge_in_transaction(
+            edge, &mut tx,
+        )
+        .await?;
     }
     for member in &snapshot.pack_members {
         content_rows::upsert_pack_member_in_transaction(member, &mut tx)
@@ -893,6 +1027,7 @@ mod tests {
             None,
             None,
             old_link.clone(),
+            None,
             None,
         )
         .await
@@ -1241,6 +1376,7 @@ mod tests {
             None,
             None,
             InstanceLink::Unmanaged,
+            None,
             None,
         )
         .await

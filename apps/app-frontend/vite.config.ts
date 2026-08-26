@@ -1,6 +1,6 @@
 import vue from '@vitejs/plugin-vue'
-import { existsSync, readFileSync } from 'fs'
-import { resolve } from 'path'
+import { existsSync, readFileSync, statSync } from 'fs'
+import { extname, resolve, sep } from 'path'
 import { defineConfig } from 'vite'
 import vueDevTools from 'vite-plugin-vue-devtools'
 import svgLoader from 'vite-svg-loader'
@@ -10,6 +10,39 @@ import tauriConf from '../app/tauri.conf.json'
 const projectRootDir = resolve(__dirname)
 const appLibEnvDir = resolve(projectRootDir, '../../packages/app-lib')
 const apiClientSource = resolve(projectRootDir, '../../packages/api-client/src/index.ts')
+const blockbenchRoot = resolve(projectRootDir, '../../third-party/blockbench')
+
+function blockbenchSkinDevAssets() {
+	return {
+		name: 'blockbench-skin-dev-assets',
+		configureServer(server) {
+			server.middlewares.use('/__blockbench_skin__', (request, response, next) => {
+				const requestPath = decodeURIComponent((request.url ?? '/').split('?')[0])
+				const relativePath = requestPath === '/' ? 'index.html' : requestPath.replace(/^\/+/, '')
+				const filePath = resolve(blockbenchRoot, relativePath)
+				if (!filePath.startsWith(`${blockbenchRoot}${sep}`) || !existsSync(filePath) || !statSync(filePath).isFile()) {
+					next()
+					return
+				}
+				const contentTypes = {
+					'.css': 'text/css; charset=utf-8',
+					'.html': 'text/html; charset=utf-8',
+					'.ico': 'image/x-icon',
+					'.js': 'text/javascript; charset=utf-8',
+					'.json': 'application/json; charset=utf-8',
+					'.png': 'image/png',
+					'.svg': 'image/svg+xml',
+					'.ttf': 'font/ttf',
+					'.webp': 'image/webp',
+					'.woff': 'font/woff',
+					'.woff2': 'font/woff2',
+				}
+				response.setHeader('Content-Type', contentTypes[extname(filePath)] ?? 'application/octet-stream')
+				response.end(readFileSync(filePath))
+			})
+		},
+	}
+}
 
 // Load .env from app-lib manually instead of using Vite's envDir, which would auto-load .env.local and override values
 const envFilePath = resolve(appLibEnvDir, '.env')
@@ -50,6 +83,7 @@ export default defineConfig({
 		],
 	},
 	plugins: [
+		blockbenchSkinDevAssets(),
 		vueDevTools(),
 		vue(),
 		svgLoader({
@@ -89,7 +123,6 @@ export default defineConfig({
 						sources = Array.isArray(sources) ? sources : [sources]
 						sources.push('ws://localhost:5201')
 					}
-
 					return Array.isArray(sources)
 						? `${directive} ${sources.join(' ')}`
 						: `${directive} ${sources}`

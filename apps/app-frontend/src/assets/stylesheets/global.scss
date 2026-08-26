@@ -128,24 +128,6 @@ html.transparent-window body {
 	box-sizing: border-box;
 }
 
-.card-divider {
-	background-color: var(--color-button-bg);
-	border: none;
-	color: var(--color-button-bg);
-	height: 1px;
-	margin: var(--gap-sm) 0;
-}
-
-.no-wrap {
-	white-space: nowrap;
-}
-
-.no-select {
-	-webkit-user-select: none;
-	-ms-user-select: none;
-	user-select: none;
-}
-
 a {
 	color: inherit;
 	text-decoration: none;
@@ -332,11 +314,6 @@ textarea {
 .slide-leave-to {
 	transform: translateY(-30px);
 	opacity: 0;
-}
-
-.page-transition-grid {
-	display: grid;
-	min-height: 100%;
 }
 
 .page-transition-layer {

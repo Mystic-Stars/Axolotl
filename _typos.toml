@@ -12,6 +12,8 @@ extend-exclude = [
   "apps/app/vendor/",
   # Generated mod search index contains project slugs, names, and compressed data.
   "packages/app-lib/src/api/content_search/WikiEntries.txt",
+  # Bundled Monaco editor runtime contains upstream generated assets.
+  "apps/app-frontend/public/monaco/",
 ]
 
 [default.extend-words]
@@ -27,3 +29,7 @@ Cpy = "Cpy"
 relace = "relace"
 # Minecraft schematic file extension (Sponge schem format)
 schem = "schem"
+# tasklist.exe CSV output format flag
+FO = "FO"
+# short for "Forge" loader monogram
+Fo = "Fo"

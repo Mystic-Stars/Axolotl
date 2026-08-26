@@ -195,7 +195,7 @@ onUnmounted(() => window.clearInterval(timer))
 					: 'gap-1 py-2'
 		"
 	>
-		<span v-if="variant !== 'minimal' && dashboardSize" class="home-greeting-date">
+		<span v-if="variant !== 'minimal' && dashboardSize" class="text-xs font-bold leading-none tracking-normal text-secondary">
 			{{ dateLabel }}
 		</span>
 		<h1
@@ -210,14 +210,6 @@ onUnmounted(() => window.clearInterval(timer))
 </template>
 
 <style scoped>
-.home-greeting-date {
-	color: var(--color-secondary);
-	font-size: 0.75rem;
-	font-weight: 700;
-	letter-spacing: 0;
-	line-height: 1;
-}
-
 .home-greeting-heading {
 	max-width: 44rem;
 	font-family: var(--home-greeting-font-family, var(--font-standard));

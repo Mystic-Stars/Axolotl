@@ -26,6 +26,8 @@ export interface FilePickerProvider {
 	pickImage: () => Promise<PickedFile | null>
 	/** Pick an uploaded or bundled instance icon when the platform provides a dedicated picker */
 	pickInstanceIcon?: () => Promise<PickedFile | null>
+	/** Resolve the default built-in instance icon URL for a loader */
+	getLoaderInstanceIconUrl?: (loader: string) => string | null
 	/** Pick a folder (directory) — returns path only, no file content */
 	pickFolder?: () => Promise<{ path: string } | null>
 	/** Pick a .mrpack modpack file */

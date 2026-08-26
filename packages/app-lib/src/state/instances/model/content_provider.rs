@@ -9,6 +9,7 @@ pub enum ContentProvider {
     Modrinth,
     #[serde(rename = "curseforge")]
     CurseForge,
+    McArchive,
     /// Dependency edges between locally identified files, matched through
     /// embedded mod metadata instead of an online provider.
     Local,
@@ -19,6 +20,7 @@ impl ContentProvider {
         match self {
             Self::Modrinth => "modrinth",
             Self::CurseForge => "curseforge",
+            Self::McArchive => "mcarchive",
             Self::Local => "local",
         }
     }
@@ -27,6 +29,7 @@ impl ContentProvider {
         match value {
             "modrinth" => Ok(Self::Modrinth),
             "curseforge" => Ok(Self::CurseForge),
+            "mcarchive" => Ok(Self::McArchive),
             "local" => Ok(Self::Local),
             other => Err(unknown_value("content provider", other)),
         }
@@ -78,6 +81,9 @@ macro_rules! modrinth_id {
 
 modrinth_id!(ModrinthProjectId, "Modrinth project ID");
 modrinth_id!(ModrinthVersionId, "Modrinth version ID");
+modrinth_id!(McArchiveProjectId, "MCArchive project ID");
+modrinth_id!(McArchiveVersionId, "MCArchive version ID");
+modrinth_id!(McArchiveFileId, "MCArchive file ID");
 
 #[derive(
     Clone,
@@ -154,6 +160,11 @@ pub enum ContentProviderRef {
         project_id: CurseForgeProjectId,
         file_id: Option<CurseForgeFileId>,
     },
+    McArchive {
+        project_id: McArchiveProjectId,
+        version_id: Option<McArchiveVersionId>,
+        file_id: Option<McArchiveFileId>,
+    },
 }
 
 impl ContentProviderRef {
@@ -161,18 +172,20 @@ impl ContentProviderRef {
         match self {
             Self::Modrinth { .. } => ContentProvider::Modrinth,
             Self::CurseForge { .. } => ContentProvider::CurseForge,
+            Self::McArchive { .. } => ContentProvider::McArchive,
         }
     }
 
     pub fn from_database(
         provider: &str,
         project_id: &str,
-        release_id: Option<&str>,
+        version_id: Option<&str>,
+        file_id: Option<&str>,
     ) -> crate::Result<Self> {
         match ContentProvider::from_str(provider)? {
             ContentProvider::Modrinth => Ok(Self::Modrinth {
                 project_id: ModrinthProjectId::new(project_id)?,
-                version_id: release_id
+                version_id: version_id
                     .map(ModrinthVersionId::new)
                     .transpose()?,
             }),
@@ -184,7 +197,7 @@ impl ContentProviderRef {
                         ))
                     })?,
                 )?,
-                file_id: match release_id {
+                file_id: match file_id.or(version_id) {
                     Some(value) => Some(CurseForgeFileId::new(
                         value.parse().map_err(|_| {
                             crate::ErrorKind::InputError(format!(
@@ -194,6 +207,13 @@ impl ContentProviderRef {
                     )?),
                     None => None,
                 },
+            }),
+            ContentProvider::McArchive => Ok(Self::McArchive {
+                project_id: McArchiveProjectId::new(project_id)?,
+                version_id: version_id
+                    .map(McArchiveVersionId::new)
+                    .transpose()?,
+                file_id: file_id.map(McArchiveFileId::new).transpose()?,
             }),
             ContentProvider::Local => Err(crate::ErrorKind::InputError(
                 "Local provider references only exist on dependency edges"
@@ -207,18 +227,37 @@ impl ContentProviderRef {
         match self {
             Self::Modrinth { project_id, .. } => project_id.to_string(),
             Self::CurseForge { project_id, .. } => project_id.get().to_string(),
+            Self::McArchive { project_id, .. } => project_id.to_string(),
         }
     }
 
-    pub fn database_release_id(&self) -> Option<String> {
+    pub fn database_version_id(&self) -> Option<String> {
         match self {
             Self::Modrinth { version_id, .. } => {
                 version_id.as_ref().map(ToString::to_string)
             }
+            Self::CurseForge { .. } => None,
+            Self::McArchive { version_id, .. } => {
+                version_id.as_ref().map(ToString::to_string)
+            }
+        }
+    }
+
+    pub fn database_file_id(&self) -> Option<String> {
+        match self {
+            Self::Modrinth { .. } => None,
             Self::CurseForge { file_id, .. } => {
                 file_id.map(|value| value.get().to_string())
             }
+            Self::McArchive { file_id, .. } => {
+                file_id.as_ref().map(ToString::to_string)
+            }
         }
+    }
+
+    pub fn database_release_id(&self) -> Option<String> {
+        self.database_version_id()
+            .or_else(|| self.database_file_id())
     }
 }
 
@@ -268,13 +307,31 @@ mod tests {
                 "curseforge",
                 "not-a-number",
                 Some("7"),
+                None,
             )
             .is_err()
         );
         assert!(
-            ContentProviderRef::from_database("unknown", "project", None,)
+            ContentProviderRef::from_database("unknown", "project", None, None,)
                 .is_err()
         );
+    }
+
+    #[test]
+    fn mcarchive_version_and_file_identifiers_round_trip() {
+        let reference = ContentProviderRef::McArchive {
+            project_id: McArchiveProjectId::new("project-uuid").unwrap(),
+            version_id: Some(McArchiveVersionId::new("version-uuid").unwrap()),
+            file_id: Some(McArchiveFileId::new("file-uuid").unwrap()),
+        };
+        let restored = ContentProviderRef::from_database(
+            "mcarchive",
+            &reference.database_project_id(),
+            reference.database_version_id().as_deref(),
+            reference.database_file_id().as_deref(),
+        )
+        .unwrap();
+        assert_eq!(restored, reference);
     }
 
     #[test]

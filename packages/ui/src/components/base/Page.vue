@@ -13,7 +13,7 @@ defineProps({
 
 <template>
 	<div
-		class="omorphia__page"
+		class="omorphia__page flex flex-col px-3"
 		:class="{
 			'right-sidebar': rightSidebar,
 			'has-sidebar': !!$slots.sidebar,
@@ -24,7 +24,7 @@ defineProps({
 		<div v-if="!!$slots.header" class="header">
 			<slot name="header" />
 		</div>
-		<div v-if="!!$slots.sidebar" class="sidebar">
+		<div v-if="!!$slots.sidebar" class="sidebar lg:min-w-80 lg:w-80">
 			<slot name="sidebar" />
 		</div>
 		<div class="content">
@@ -38,10 +38,6 @@ defineProps({
 
 <style lang="scss" scoped>
 .omorphia__page {
-	display: flex;
-	flex-direction: column;
-	padding: 0 0.75rem;
-
 	.header {
 		grid-area: header;
 	}
@@ -103,11 +99,6 @@ defineProps({
 				max-width: calc(60rem - 0.75rem);
 			}
 		}
-	}
-
-	.sidebar {
-		min-width: 20rem;
-		width: 20rem;
 	}
 }
 

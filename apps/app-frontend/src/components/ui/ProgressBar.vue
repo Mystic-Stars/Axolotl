@@ -1,7 +1,7 @@
 <template>
-	<div class="progress-bar">
+	<div class="w-full h-2 bg-button-bg rounded-[var(--radius-lg)] overflow-hidden">
 		<div
-			class="progress-bar__fill"
+			class="progress-bar__fill h-full"
 			:style="{
 				width: `${progress}%`,
 				'background-color': error ? 'var(--color-red)' : 'var(--color-brand)',
@@ -27,16 +27,7 @@ defineProps({
 </script>
 
 <style scoped>
-.progress-bar {
-	width: 100%;
-	height: 0.5rem;
-	background-color: var(--color-button-bg);
-	border-radius: var(--radius-lg);
-	overflow: hidden;
-}
-
 .progress-bar__fill {
-	height: 100%;
 	transition: width 0.3s ease-out;
 }
 </style>

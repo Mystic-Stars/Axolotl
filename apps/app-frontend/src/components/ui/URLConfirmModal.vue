@@ -64,7 +64,7 @@ async function install() {
 		ref="confirmModal"
 		:header="formatMessage(messages.installProject, { project: project?.name })"
 	>
-		<div class="modal-body">
+		<div class="modal-body flex flex-col items-center justify-center gap-3">
 			<ProjectCard
 				:title="project.name"
 				:link="() => confirmModal.hide()"
@@ -77,15 +77,15 @@ async function install() {
 				:banner="project.featured_gallery ?? undefined"
 				:color="project.color ?? undefined"
 				layout="list"
-				class="project-card"
+				class="project-card bg-bg w-full"
 			/>
-			<div class="button-row">
+			<div class="flex w-full flex-row justify-between items-center gap-3">
 				<div class="markdown-body">
 					<p>
 						{{ formatMessage(messages.installingVersion, { version: version.id }) }}
 					</p>
 				</div>
-				<div class="button-group">
+				<div class="flex flex-row gap-2">
 					<ButtonStyled color="brand">
 						<button @click="install">{{ formatMessage(commonMessages.installButton) }}</button>
 					</ButtonStyled>
@@ -96,33 +96,7 @@ async function install() {
 </template>
 
 <style scoped lang="scss">
-.modal-body {
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	justify-content: center;
-	gap: var(--gap-md);
-}
-
-.button-row {
-	width: 100%;
-	display: flex;
-	flex-direction: row;
-	justify-content: space-between;
-	align-items: center;
-	gap: var(--gap-md);
-}
-
-.button-group {
-	display: flex;
-	flex-direction: row;
-	gap: var(--gap-sm);
-}
-
 .project-card {
-	background-color: var(--color-bg);
-	width: 100%;
-
 	:deep(.badge) {
 		border: 1px solid var(--color-raised-bg);
 		background-color: var(--color-accent-contrast);

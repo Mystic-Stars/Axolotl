@@ -12,13 +12,28 @@ function toLogicalPosition(position: { x: number; y: number }) {
 
 export function setupFileDropProvider() {
 	let nativeFileDropPaths: string[] = []
+	let nativeFileDropActive = false
+	let internalDragActive = false
+
+	// Tauri emits drag-drop events for HTML drags as well as files from the OS.
+	// Track document drag sources so moving launcher controls cannot activate the
+	// global file-import overlay.
+	window.addEventListener('dragstart', () => {
+		internalDragActive = true
+	})
+	window.addEventListener('dragend', () => {
+		internalDragActive = false
+	})
 
 	const provider = {
 		async listenNativeFileDrop(handler) {
 			return await getCurrentWebview().onDragDropEvent((event: { payload: DragDropEvent }) => {
 				const payload = event.payload
+				if (internalDragActive) return
 
 				if (payload.type === 'leave') {
+					if (!nativeFileDropActive) return
+					nativeFileDropActive = false
 					nativeFileDropPaths = []
 					void handler({
 						type: 'leave',
@@ -29,9 +44,14 @@ export function setupFileDropProvider() {
 				}
 
 				if (payload.type === 'enter') {
+					if (!payload.paths?.length) return
 					nativeFileDropPaths = payload.paths
+					nativeFileDropActive = true
 				} else if (payload.type === 'drop' && payload.paths?.length) {
+					if (!nativeFileDropActive) return
 					nativeFileDropPaths = payload.paths
+				} else if (!nativeFileDropActive) {
+					return
 				}
 
 				void handler({
@@ -41,6 +61,7 @@ export function setupFileDropProvider() {
 				})
 
 				if (payload.type === 'drop') {
+					nativeFileDropActive = false
 					nativeFileDropPaths = []
 				}
 			})

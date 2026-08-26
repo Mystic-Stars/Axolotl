@@ -35,7 +35,11 @@ pub struct ContentDependencyEdge {
     pub content_set_id: String,
     pub parent_entry_id: String,
     pub child_entry_id: String,
-    pub provider: ContentProvider,
+    /// Provider that supplied the dependency declaration or corroborating
+    /// metadata. It is not assumed to own either endpoint.
+    pub evidence_provider: ContentProvider,
+    pub parent_provider: ContentProvider,
+    pub child_provider: ContentProvider,
     pub dependency_kind: ContentDependencyKind,
     pub parent_project_id: String,
     pub parent_release_id: String,

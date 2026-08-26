@@ -1,13 +1,13 @@
 <template>
 	<JavaDetectionModal ref="detectJavaModal" @submit="commitSelection" />
-	<div :id="props.id" class="toggle-setting" :class="{ compact }">
-		<div class="input-with-status">
+	<div :id="props.id" class="flex flex-wrap justify-between items-center gap-2" :class="{ compact }">
+		<div class="flex items-center gap-2 w-full min-w-0">
 			<StyledInput
 				autocomplete="off"
 				:disabled="props.disabled"
 				:model-value="props.modelValue ? props.modelValue.path : ''"
 				:placeholder="placeholder ?? '/path/to/java'"
-				wrapper-class="installation-input"
+				wrapper-class="flex-1 min-w-0"
 				@update:model-value="
 					(val) => {
 						emit('update:modelValue', {
@@ -46,7 +46,7 @@
 				</button>
 			</ButtonStyled>
 		</div>
-		<span class="installation-buttons">
+		<span class="flex items-center gap-2 m-0">
 			<ButtonStyled v-if="props.version">
 				<button
 					v-tooltip="recommendedInstalled ? formatMessage(messages.alreadyInstalled) : undefined"
@@ -289,38 +289,4 @@ async function reinstallJava() {
 </script>
 
 <style lang="scss" scoped>
-.input-with-status {
-	display: flex;
-	flex-direction: row;
-	align-items: center;
-	gap: 0.5rem;
-	width: 100%;
-	min-width: 0;
-}
-
-.installation-input {
-	flex: 1 1 0;
-	min-width: 0;
-}
-
-.toggle-setting {
-	display: flex;
-	flex-wrap: wrap;
-	flex-direction: row;
-	justify-content: space-between;
-	align-items: center;
-	gap: 0.5rem;
-
-	&.compact {
-		flex-wrap: wrap;
-	}
-}
-
-.installation-buttons {
-	display: flex;
-	flex-direction: row;
-	align-items: center;
-	gap: 0.5rem;
-	margin: 0;
-}
 </style>

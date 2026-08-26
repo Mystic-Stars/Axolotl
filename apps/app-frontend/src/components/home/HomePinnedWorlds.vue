@@ -118,11 +118,11 @@ async function stopInstance(instance: GameInstance) {
 </script>
 
 <template>
-	<section class="home-pinned-worlds" :data-size="dashboardSize">
-		<div class="home-widget-heading">
+	<section class="home-pinned-worlds flex min-w-0 min-h-0 h-full flex-col gap-3" :data-size="dashboardSize">
+		<div class="home-widget-heading flex min-w-0 h-8 flex-none items-center gap-2">
 			<h2>{{ formatMessage(messages.pinnedWorlds) }}</h2>
 		</div>
-		<div v-if="favorites.length > 0" class="home-world-list">
+		<div v-if="favorites.length > 0" class="home-world-list flex min-w-0 min-h-0 flex-1 flex-col gap-1 overflow-x-hidden overflow-y-auto pr-1">
 			<WorldItem
 				v-for="favorite in favorites"
 				:key="favoriteKey(favorite.world)"
@@ -157,24 +157,6 @@ async function stopInstance(instance: GameInstance) {
 </template>
 
 <style scoped>
-.home-pinned-worlds {
-	display: flex;
-	min-width: 0;
-	min-height: 0;
-	height: 100%;
-	flex-direction: column;
-	gap: 0.75rem;
-}
-
-.home-widget-heading {
-	display: flex;
-	min-width: 0;
-	height: 2rem;
-	flex: 0 0 auto;
-	align-items: center;
-	gap: 0.5rem;
-}
-
 .home-widget-heading h2 {
 	min-width: 0;
 	overflow: hidden;
@@ -185,18 +167,6 @@ async function stopInstance(instance: GameInstance) {
 	letter-spacing: 0;
 	text-overflow: ellipsis;
 	white-space: nowrap;
-}
-
-.home-world-list {
-	display: flex;
-	min-width: 0;
-	min-height: 0;
-	flex: 1;
-	flex-direction: column;
-	gap: 0.25rem;
-	overflow-x: hidden;
-	overflow-y: auto;
-	padding-right: 0.25rem;
 }
 
 .home-pinned-worlds[data-size='1x1'] {

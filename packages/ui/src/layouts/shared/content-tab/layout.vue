@@ -32,11 +32,17 @@ import ConfirmUnlinkModal from './components/modals/ConfirmUnlinkModal.vue'
 import ContentDependencyWarningModal from './components/modals/ContentDependencyWarningModal.vue'
 import {
 	canToggleContentItem,
+	clearPinnedContentViewPreferences,
+	type ContentSortMode,
+	type ContentViewState,
 	getClientWarningType,
+	getPinnedContentViewPreferences,
 	isClientOnlyEnvironment,
 	isDisabledContentItem,
 	isEnabledContentItem,
 	isPresentContentItem,
+	setPinnedContentViewPreferences,
+	sortContentItems,
 	useBulkOperation,
 	useChangingItems,
 	useContentFolderGroups,
@@ -63,6 +69,18 @@ const props = withDefaults(
 	},
 )
 
+const emit = defineEmits<{
+	visibleItems: [items: ContentItem[]]
+}>()
+
+function handleVisibleTableItems(visibleTableItems: ContentCardTableItem[]) {
+	const visibleContentItems = visibleTableItems
+		.map((item) => findContentItem(item.id))
+		.filter((item): item is ContentItem => item !== undefined)
+
+	emit('visibleItems', visibleContentItems)
+}
+
 const messages = defineMessages({
 	failedToLoad: {
 		id: 'content.page-layout.failed-to-load',
@@ -71,6 +89,22 @@ const messages = defineMessages({
 	sortAlphabetical: {
 		id: 'content.page-layout.sort.alphabetical',
 		defaultMessage: 'Alphabetical',
+	},
+	sortProjectNameAscending: {
+		id: 'content.page-layout.sort.project-name-ascending',
+		defaultMessage: 'Project name A-Z',
+	},
+	sortProjectNameDescending: {
+		id: 'content.page-layout.sort.project-name-descending',
+		defaultMessage: 'Project name Z-A',
+	},
+	sortFileNameAscending: {
+		id: 'content.page-layout.sort.file-name-ascending',
+		defaultMessage: 'File name A-Z',
+	},
+	sortFileNameDescending: {
+		id: 'content.page-layout.sort.file-name-descending',
+		defaultMessage: 'File name Z-A',
 	},
 	sortDateAddedNewest: {
 		id: 'content.page-layout.sort.date-added-newest',
@@ -112,6 +146,22 @@ const messages = defineMessages({
 		id: 'content.page-layout.sort.label',
 		defaultMessage: 'Sort by {mode}',
 	},
+	viewOptions: {
+		id: 'content.page-layout.view-options',
+		defaultMessage: 'View options',
+	},
+	pinView: {
+		id: 'content.page-layout.pin-view',
+		defaultMessage: 'Pin current view',
+	},
+	unpinView: {
+		id: 'content.page-layout.unpin-view',
+		defaultMessage: 'Unpin current view',
+	},
+	resetView: {
+		id: 'content.page-layout.reset-view',
+		defaultMessage: 'Reset view',
+	},
 })
 
 const ctx = injectContentManager()
@@ -136,71 +186,56 @@ function findContentItem(id: string): ContentItem | undefined {
 	return ctx.modpackItems?.value?.find((i) => getItemId(i) === id)
 }
 
-// 排序方式（导航切换保留，关软件丢弃）
-type SortMode = 'alphabetical-asc' | 'alphabetical-desc' | 'date-added-newest' | 'date-added-oldest'
+const viewStateMemory = getMap<string, Partial<ContentViewState>>('viewState')
+const initialPinnedView = ctx.instanceId ? getPinnedContentViewPreferences(ctx.instanceId) : null
+const pinnedView = ref(initialPinnedView !== null)
+const initialViewState = ctx.instanceId ? viewStateMemory.get(ctx.instanceId) : undefined
 
-const sortMemory = getMap<string, SortMode>('sort')
-const sortMode = ref<SortMode>(
-	ctx.instanceId ? (sortMemory.get(ctx.instanceId) ?? 'alphabetical-asc') : 'alphabetical-asc',
+function updateSessionViewState(patch: Partial<ContentViewState>) {
+	if (!ctx.instanceId) return
+	viewStateMemory.set(ctx.instanceId, {
+		...(viewStateMemory.get(ctx.instanceId) ?? {}),
+		...patch,
+	})
+}
+
+const sortMemory = getMap<string, ContentSortMode>('sort')
+const sortMode = ref<ContentSortMode>(
+	initialPinnedView?.sortMode ??
+		(ctx.instanceId ? (sortMemory.get(ctx.instanceId) ?? 'project-name-asc') : 'project-name-asc'),
 )
 
 watch(sortMode, (val) => {
 	if (ctx.instanceId) sortMemory.set(ctx.instanceId, val)
 })
 
-const sortLabels: Record<SortMode, () => string> = {
-	'alphabetical-asc': () => formatMessage(messages.sortAlphabetical),
-	'alphabetical-desc': () => formatMessage(messages.sortAlphabetical),
+const sortLabels: Record<ContentSortMode, () => string> = {
+	'project-name-asc': () => formatMessage(messages.sortProjectNameAscending),
+	'project-name-desc': () => formatMessage(messages.sortProjectNameDescending),
+	'file-name-asc': () => formatMessage(messages.sortFileNameAscending),
+	'file-name-desc': () => formatMessage(messages.sortFileNameDescending),
 	'date-added-newest': () => formatMessage(messages.sortDateAddedNewest),
 	'date-added-oldest': () => formatMessage(messages.sortDateAddedOldest),
 }
 
-function cycleSortMode() {
-	const modes: SortMode[] = [
-		'alphabetical-asc',
-		'alphabetical-desc',
-		'date-added-newest',
-		'date-added-oldest',
-	]
-	const idx = modes.indexOf(sortMode.value)
-	sortMode.value = modes[(idx + 1) % modes.length]
-}
+const sortOptions = computed(() => [
+	{ id: 'project-name-asc' as const, label: formatMessage(messages.sortProjectNameAscending) },
+	{ id: 'project-name-desc' as const, label: formatMessage(messages.sortProjectNameDescending) },
+	{ id: 'file-name-asc' as const, label: formatMessage(messages.sortFileNameAscending) },
+	{ id: 'file-name-desc' as const, label: formatMessage(messages.sortFileNameDescending) },
+	{ id: 'date-added-newest' as const, label: formatMessage(messages.sortDateAddedNewest) },
+	{ id: 'date-added-oldest' as const, label: formatMessage(messages.sortDateAddedOldest) },
+])
 
 function sortItems(items: ContentItem[]): ContentItem[] {
-	const arr = [...items]
-	switch (sortMode.value) {
-		case 'alphabetical-desc':
-			return arr.sort((a, b) => {
-				const nameA = a.project?.title ?? a.file_name
-				const nameB = b.project?.title ?? b.file_name
-				return (
-					nameB.toLowerCase().localeCompare(nameA.toLowerCase()) ||
-					a.file_name.localeCompare(b.file_name)
-				)
-			})
-		case 'date-added-newest':
-			return arr.sort((a, b) => {
-				const dateA = a.date_added ?? ''
-				const dateB = b.date_added ?? ''
-				return dateB.localeCompare(dateA) || a.file_name.localeCompare(b.file_name)
-			})
-		case 'date-added-oldest':
-			return arr.sort((a, b) => {
-				const dateA = a.date_added ?? ''
-				const dateB = b.date_added ?? ''
-				return dateA.localeCompare(dateB) || a.file_name.localeCompare(b.file_name)
-			})
-		default:
-			return arr.sort((a, b) => {
-				const nameA = a.project?.title ?? a.file_name
-				const nameB = b.project?.title ?? b.file_name
-				return (
-					nameA.toLowerCase().localeCompare(nameB.toLowerCase()) ||
-					a.file_name.localeCompare(b.file_name)
-				)
-			})
-	}
+	return sortContentItems(items, sortMode.value, locale.value, getItemId)
 }
+
+const filterOptionsReady = computed(
+	() =>
+		ctx.filterOptionsReady?.value ??
+		(!ctx.loading.value && ctx.items.value.length + (ctx.modpackItems?.value?.length ?? 0) > 0),
+)
 
 const {
 	searchQuery,
@@ -208,6 +243,7 @@ const {
 	modpackItemsNoUpdate,
 	modpackChildIdSet,
 	selectedTypeFilter,
+	selectedStatusFilters,
 	row1FilterOptions,
 	totalCount,
 	filterCounts,
@@ -217,6 +253,7 @@ const {
 } = useContentPipeline({
 	items: ctx.items,
 	modpackItems: ctx.modpackItems,
+	duplicateItems: ctx.duplicateItems,
 	sortItems,
 	getItemId,
 	showTypeFilters: true,
@@ -224,6 +261,8 @@ const {
 	showWarningsFilter: true,
 	isPackLocked: ctx.isPackLocked,
 	memoryKey: ctx.instanceId,
+	initialFilters: initialPinnedView ?? undefined,
+	filterOptionsReady,
 })
 
 const {
@@ -232,9 +271,13 @@ const {
 	setCategorySelection,
 	isCategoryFiltering,
 	applyMetadataFilters,
+	excluded: metadataExcluded,
+	setExcludedValues,
 } = useContentMetadataFilters(
 	computed(() => [...ctx.items.value, ...(ctx.modpackItems?.value ?? [])]),
 	ctx.instanceId,
+	initialPinnedView?.metadataExcluded,
+	filterOptionsReady,
 )
 
 const metadataFilterSelectedValues = computed(() =>
@@ -250,21 +293,17 @@ const metadataFilteringKeys = computed(() =>
 		.filter((category) => isCategoryFiltering(category.key))
 		.map((category) => category.key),
 )
-const metadataFilterExpanded = ref(false)
+const metadataFilterExpanded = ref(initialViewState?.metadataFilterExpanded ?? false)
+watch(metadataFilterExpanded, (expanded) => {
+	updateSessionViewState({ metadataFilterExpanded: expanded })
+})
 
-// Metadata filters (作者/环境/状态/更新/类型/加载器/来源/外部文件/开源) apply on
-// top of the search pipeline, so the whole table (including modpack groups)
-// is filtered consistently.
-const filteredItems = computed(() =>
-	metadataFilterExpanded.value
-		? applyMetadataFilters(pipelineFilteredItems.value)
-		: pipelineFilteredItems.value,
-)
+const filteredItems = computed(() => applyMetadataFilters(pipelineFilteredItems.value))
 const filteredModpackItems = computed(() =>
-	metadataFilterExpanded.value
-		? applyMetadataFilters(pipelineFilteredModpackItems.value)
-		: pipelineFilteredModpackItems.value,
+	applyMetadataFilters(pipelineFilteredModpackItems.value),
 )
+
+const activeMetadataFilterCount = computed(() => metadataFilteringKeys.value.length)
 
 const { selectedIds, selectedItems, clearSelection, removeFromSelection } = useContentSelection(
 	computed(() => {
@@ -301,8 +340,15 @@ const expandedGroupsMemory = getMap<string, Set<string>>('expandedGroups')
 const refreshing = ref(false)
 
 const expandedGroups = ref<Set<string>>(
-	ctx.instanceId ? (expandedGroupsMemory.get(ctx.instanceId) ?? new Set()) : new Set(),
+	ctx.instanceId
+		? new Set(initialViewState?.expandedGroups ?? expandedGroupsMemory.get(ctx.instanceId) ?? [])
+		: new Set(),
 )
+
+watch(expandedGroups, (groups) => {
+	if (ctx.instanceId) expandedGroupsMemory.set(ctx.instanceId, groups)
+	updateSessionViewState({ expandedGroups: [...groups] })
+})
 
 function toggleGroupExpand(groupId: string) {
 	const newSet = new Set(expandedGroups.value)
@@ -312,15 +358,58 @@ function toggleGroupExpand(groupId: string) {
 		newSet.add(groupId)
 	}
 	expandedGroups.value = newSet
-	if (ctx.instanceId) expandedGroupsMemory.set(ctx.instanceId, newSet)
 }
 
 watch(searchQuery, (query) => {
 	if (query.trim()) {
 		expandedGroups.value = new Set([...expandedGroups.value, 'modpack'])
-		if (ctx.instanceId) expandedGroupsMemory.set(ctx.instanceId, expandedGroups.value)
 	}
 })
+
+function getPinnedViewPreferences() {
+	return {
+		sortMode: sortMode.value,
+		typeFilters: [...selectedTypeFilter.value],
+		statusFilters: [...selectedStatusFilters.value],
+		metadataExcluded: metadataExcluded.value,
+	}
+}
+
+function togglePinnedView() {
+	if (!ctx.instanceId) return
+	if (pinnedView.value) {
+		clearPinnedContentViewPreferences(ctx.instanceId)
+		pinnedView.value = false
+		return
+	}
+
+	pinnedView.value = setPinnedContentViewPreferences(ctx.instanceId, getPinnedViewPreferences())
+}
+
+function resetView() {
+	sortMode.value = 'project-name-asc'
+	searchQuery.value = ''
+	selectedTypeFilter.value = []
+	selectedStatusFilters.value = []
+	setExcludedValues({})
+	metadataFilterExpanded.value = false
+	expandedGroups.value = new Set()
+	if (ctx.instanceId) {
+		clearPinnedContentViewPreferences(ctx.instanceId)
+		updateSessionViewState({ scrollTop: 0, anchorId: undefined, anchorOffset: undefined })
+	}
+	pinnedView.value = false
+}
+
+watch(
+	[sortMode, selectedTypeFilter, selectedStatusFilters, metadataExcluded],
+	() => {
+		if (pinnedView.value && ctx.instanceId) {
+			setPinnedContentViewPreferences(ctx.instanceId, getPinnedViewPreferences())
+		}
+	},
+	{ deep: true },
+)
 
 const showScrollToTop = ref(false)
 const sidebarVisible = ref(false)
@@ -328,6 +417,55 @@ const SCROLL_THRESHOLD = 300
 
 function getScrollContainer(): Element | null {
 	return document.querySelector('.app-viewport')
+}
+
+function captureContentViewScroll() {
+	if (!ctx.instanceId) return
+	const container = getScrollContainer()
+	if (!container) return
+
+	const viewportTop = container.getBoundingClientRect().top
+	const rows = [...document.querySelectorAll<HTMLElement>('[data-content-card-item-id]')]
+	const anchor = rows
+		.map((row) => ({ row, offset: row.getBoundingClientRect().top - viewportTop }))
+		.filter(({ offset }) => offset >= 0)
+		.sort((left, right) => left.offset - right.offset)[0]
+
+	updateSessionViewState({
+		scrollTop: container.scrollTop,
+		anchorId: anchor?.row.dataset.contentCardItemId,
+		anchorOffset: anchor?.offset,
+	})
+}
+
+let scrollStateRestored = false
+
+function restoreContentViewScroll() {
+	if (scrollStateRestored || !ctx.instanceId || tableItems.value.length === 0) return
+	const saved = viewStateMemory.get(ctx.instanceId)
+	if (saved?.scrollTop === undefined) {
+		scrollStateRestored = true
+		return
+	}
+
+	void nextTick(() => {
+		const container = getScrollContainer()
+		const table = document.querySelector<HTMLElement>('[data-content-card-table]')
+		if (!container || !table) return
+
+		let top = saved.scrollTop ?? 0
+		const anchorIndex = saved.anchorId
+			? tableItems.value.findIndex((item) => item.id === saved.anchorId)
+			: -1
+		if (anchorIndex >= 0) {
+			const containerRect = container.getBoundingClientRect()
+			const tableTop = table.getBoundingClientRect().top - containerRect.top + container.scrollTop
+			top = tableTop + 48 + anchorIndex * 74 - (saved.anchorOffset ?? 0)
+		}
+
+		container.scrollTo({ top: Math.max(0, top) })
+		scrollStateRestored = true
+	})
 }
 
 function checkSidebarVisibility() {
@@ -366,6 +504,7 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
+	captureContentViewScroll()
 	const container = getScrollContainer()
 	if (container) {
 		container.removeEventListener('scroll', handleScroll)
@@ -389,8 +528,7 @@ function mapToTableItem(item: ContentItem, group?: string): ContentCardTableItem
 		...base,
 		id,
 		group,
-		disabled:
-			isChanging(id) || ctx.isBusy.value || isBulkOperating.value || item.installing === true,
+		disabled: isChanging(id) || ctx.isBusy.value || item.installing === true,
 		disabledTooltip: ctx.isBusy.value
 			? (ctx.busyMessage?.value ?? null)
 			: (base.disabledTooltip ?? null),
@@ -554,6 +692,8 @@ const tableItems = computed<ContentCardTableItem[]>(() => {
 
 	return items
 })
+
+watch(tableItems, restoreContentViewScroll, { flush: 'post', immediate: true })
 
 const hasOutdatedProjects = computed(() => {
 	const outdated = ctx.items.value.filter((p) => p.update != null)
@@ -933,8 +1073,10 @@ const confirmUnlinkModal = ref<InstanceType<typeof ConfirmUnlinkModal>>()
 					:disable-add-content="ctx.disableAddContent?.value"
 					:disable-add-content-tooltip="ctx.disableAddContentTooltip"
 					:refreshing="refreshing"
+					:view-dependencies="!!ctx.viewDependencies"
 					@browse="ctx.browse"
 					@refresh="handleRefresh"
+					@view-dependencies="ctx.viewDependencies?.()"
 				/>
 
 				<ContentTypeFilter
@@ -956,6 +1098,7 @@ const confirmUnlinkModal = ref<InstanceType<typeof ConfirmUnlinkModal>>()
 					@switch-version="handleSwitchVersionById"
 					@rollback="handleRollbackById"
 					@toggle-expand="toggleGroupExpand"
+					@visible-items="handleVisibleTableItems"
 				>
 					<template #header-project>
 						<ContentMetadataFilterBar
@@ -963,6 +1106,7 @@ const confirmUnlinkModal = ref<InstanceType<typeof ConfirmUnlinkModal>>()
 							:categories="metadataFilterCategories"
 							:model-value="metadataFilterSelectedValues"
 							:filtering-keys="metadataFilteringKeys"
+							:active-filter-count="activeMetadataFilterCount"
 							@update:category="setCategorySelection"
 						/>
 					</template>
@@ -970,6 +1114,11 @@ const confirmUnlinkModal = ref<InstanceType<typeof ConfirmUnlinkModal>>()
 						<ContentTableHeaderActions
 							:sort-mode="sortMode"
 							:sort-label="formatMessage(messages.sortByLabel, { mode: sortLabels[sortMode]() })"
+							:sort-options="sortOptions"
+							:view-options-label="formatMessage(messages.viewOptions)"
+							:pinned="pinnedView"
+							:pin-tooltip="formatMessage(pinnedView ? messages.unpinView : messages.pinView)"
+							:reset-tooltip="formatMessage(messages.resetView)"
 							:has-bulk-update-support="hasBulkUpdateSupport"
 							:has-outdated-projects="hasOutdatedProjects"
 							:bulk-update-tooltip="
@@ -978,7 +1127,9 @@ const confirmUnlinkModal = ref<InstanceType<typeof ConfirmUnlinkModal>>()
 								formatMessage(messages.updateAll)
 							"
 							:is-bulk-operating="isBulkOperating"
-							@sort="cycleSortMode"
+							@select-sort="(mode) => (sortMode = mode)"
+							@toggle-pin="togglePinnedView"
+							@reset-view="resetView"
 							@update-all="promptUpdateAll"
 						/>
 					</template>

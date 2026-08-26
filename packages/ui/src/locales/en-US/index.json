@@ -2,6 +2,30 @@
   "action.no-permission": {
     "defaultMessage": "You do not have permission."
   },
+  "app.drop.batch.scan.cancel": {
+    "defaultMessage": "Cancel"
+  },
+  "app.drop.batch.scan.done": {
+    "defaultMessage": "Recognized"
+  },
+  "app.drop.batch.scan.error": {
+    "defaultMessage": "Failed"
+  },
+  "app.drop.batch.scan.pending": {
+    "defaultMessage": "Waiting"
+  },
+  "app.drop.batch.scan.scanning": {
+    "defaultMessage": "Scanning"
+  },
+  "app.drop.batch.scan.skipped": {
+    "defaultMessage": "Skipped"
+  },
+  "app.drop.batch.scan.subtitle": {
+    "defaultMessage": "Recognized {done} of {total}"
+  },
+  "app.drop.batch.scan.title": {
+    "defaultMessage": "Scanning {count, plural, one {# file} other {# files}}…"
+  },
   "app.symlink-warning.write.body": {
     "defaultMessage": "This instance is linked to \"{path}\". Changes will also affect the original files."
   },
@@ -38,11 +62,17 @@
   "browse.selected-projects-floating-bar.aria-label": {
     "defaultMessage": "Selected projects"
   },
+  "browse.selected-projects-floating-bar.hide-projects": {
+    "defaultMessage": "Hide selected projects"
+  },
   "browse.selected-projects-floating-bar.install": {
     "defaultMessage": "Install {count, plural, one {# project} other {# projects}}"
   },
   "browse.selected-projects-floating-bar.selected-count": {
     "defaultMessage": "{count, plural, one {# project selected} other {# projects selected}}"
+  },
+  "browse.selected-projects-floating-bar.show-projects": {
+    "defaultMessage": "Show {count, plural, one {# selected project} other {# selected projects}}"
   },
   "browse.selected-projects-leave-modal.admonition-body": {
     "defaultMessage": "You have selected {count, plural, one {# project} other {# projects}} to install. Install them now or go back without installing them."
@@ -278,6 +308,9 @@
   "console.command.disabled-placeholder": {
     "defaultMessage": "Command input disabled"
   },
+  "console.command.placeholder": {
+    "defaultMessage": "Send a command"
+  },
   "console.command.server-not-running-placeholder": {
     "defaultMessage": "Server is not running"
   },
@@ -289,6 +322,12 @@
   },
   "console.crash.finding.amd-driver.title": {
     "defaultMessage": "The AMD graphics driver crashed"
+  },
+  "console.crash.finding.connector-incompatible-fabric-mods.action": {
+    "defaultMessage": "Remove or replace the Fabric Mods named in the Connector error with Forge-compatible alternatives."
+  },
+  "console.crash.finding.connector-incompatible-fabric-mods.title": {
+    "defaultMessage": "Sinytra Connector found incompatible Fabric Mods"
   },
   "console.crash.finding.content-verification.action": {
     "defaultMessage": "Remove and reinstall the file named in the evidence from a trusted source."
@@ -307,6 +346,12 @@
   },
   "console.crash.finding.definite-mod.title": {
     "defaultMessage": "A specific Mod caused the crash"
+  },
+  "console.crash.finding.disk-space.action": {
+    "defaultMessage": "Free space on the drive containing the instance, then retry the launch or installation."
+  },
+  "console.crash.finding.disk-space.title": {
+    "defaultMessage": "The disk ran out of free space"
   },
   "console.crash.finding.duplicate-mod.action": {
     "defaultMessage": "Keep only one compatible version of each Mod in the mods folder."
@@ -331,6 +376,12 @@
   },
   "console.crash.finding.fallback-title": {
     "defaultMessage": "Unknown diagnosis: {finding}"
+  },
+  "console.crash.finding.file-in-use.action": {
+    "defaultMessage": "Close the program named in the evidence, including other launchers, backup tools, or antivirus scans, then retry."
+  },
+  "console.crash.finding.file-in-use.title": {
+    "defaultMessage": "Another process is using a required file"
   },
   "console.crash.finding.forge-error.action": {
     "defaultMessage": "Review the Forge failure evidence and test the named Mod without recent changes."
@@ -398,6 +449,12 @@
   "console.crash.finding.jvm-arguments.title": {
     "defaultMessage": "Invalid JVM arguments"
   },
+  "console.crash.finding.known-signature.action": {
+    "defaultMessage": "Review the evidence and the related Minecraft, loader, Java, graphics, or Mod versions before changing the instance."
+  },
+  "console.crash.finding.known-signature.title": {
+    "defaultMessage": "A known crash signature was detected"
+  },
   "console.crash.finding.large-resource-pack.action": {
     "defaultMessage": "Disable the resource pack or use a lower-resolution version."
   },
@@ -418,6 +475,18 @@
   },
   "console.crash.finding.missing-dependency.title": {
     "defaultMessage": "A Mod dependency is missing or unsupported"
+  },
+  "console.crash.finding.missing-embeddium.action": {
+    "defaultMessage": "Install the Embeddium version required by Oculus for this Minecraft and Forge version."
+  },
+  "console.crash.finding.missing-embeddium.title": {
+    "defaultMessage": "Oculus requires Embeddium"
+  },
+  "console.crash.finding.missing-indium.action": {
+    "defaultMessage": "Install the Indium version compatible with the installed Fabric Loader and Sodium version."
+  },
+  "console.crash.finding.missing-indium.title": {
+    "defaultMessage": "A Mod requires Indium"
   },
   "console.crash.finding.mixin-bootstrap.action": {
     "defaultMessage": "Repair the mod loader installation and verify that every mod targets the installed loader."
@@ -566,8 +635,29 @@
   "console.crash.local-header": {
     "defaultMessage": "{findings, plural, one {# local diagnosis result} other {# local diagnosis results}} from {sources, plural, one {# related file} other {# related files}}"
   },
+  "console.crash.mod-change": {
+    "defaultMessage": "{kind}: {filename}"
+  },
+  "console.crash.mod-change.added": {
+    "defaultMessage": "Added"
+  },
+  "console.crash.mod-change.modified": {
+    "defaultMessage": "Modified"
+  },
+  "console.crash.mod-change.removed": {
+    "defaultMessage": "Removed"
+  },
+  "console.crash.mod-changes.summary": {
+    "defaultMessage": "{added} added, {removed} removed, {modified} modified"
+  },
+  "console.crash.mod-changes.title": {
+    "defaultMessage": "Mod files changed since the last successful launch"
+  },
   "console.crash.problems-detected": {
     "defaultMessage": "{count, plural, one {# problem detected} other {# problems detected}}"
+  },
+  "console.crash.windows-events.title": {
+    "defaultMessage": "Related Windows application events"
   },
   "console.delete-modal.confirmation": {
     "defaultMessage": "Deleting this log file cannot be undone. Are you sure you want to continue?"
@@ -585,7 +675,7 @@
     "defaultMessage": "No logs yet"
   },
   "console.empty.server-description": {
-    "defaultMessage": "Click the green start button to start the server!"
+    "defaultMessage": "Click the start button to start the server!"
   },
   "console.empty.server-title": {
     "defaultMessage": "Welcome to your Modrinth server!"
@@ -631,6 +721,9 @@
   },
   "content.card.dependency-badge": {
     "defaultMessage": "Dependency"
+  },
+  "content.card.duplicate-mod": {
+    "defaultMessage": "This mod is installed {count, number} times."
   },
   "content.card.group.hardcore": {
     "defaultMessage": "Hardcore mode"
@@ -764,6 +857,9 @@
   "content.filter.disabled": {
     "defaultMessage": "Disabled"
   },
+  "content.filter.duplicates": {
+    "defaultMessage": "Duplicates"
+  },
   "content.filter.enabled": {
     "defaultMessage": "Enabled"
   },
@@ -872,6 +968,9 @@
   "content.metadata-filter.toggle": {
     "defaultMessage": "Filter"
   },
+  "content.metadata-filter.toggle-active": {
+    "defaultMessage": "Filter ({count, number} active)"
+  },
   "content.metadata-filter.unknown": {
     "defaultMessage": "Unknown"
   },
@@ -898,6 +997,12 @@
   },
   "content.page-layout.no-content-found": {
     "defaultMessage": "No content found."
+  },
+  "content.page-layout.pin-view": {
+    "defaultMessage": "Pin current view"
+  },
+  "content.page-layout.reset-view": {
+    "defaultMessage": "Reset view"
   },
   "content.page-layout.search-placeholder": {
     "defaultMessage": "Search {count, number} {contentType}..."
@@ -926,11 +1031,32 @@
   "content.page-layout.sort.date-added-oldest": {
     "defaultMessage": "Oldest first"
   },
+  "content.page-layout.sort.file-name-ascending": {
+    "defaultMessage": "File name A-Z"
+  },
+  "content.page-layout.sort.file-name-descending": {
+    "defaultMessage": "File name Z-A"
+  },
   "content.page-layout.sort.label": {
     "defaultMessage": "Sort by {mode}"
   },
+  "content.page-layout.sort.project-name-ascending": {
+    "defaultMessage": "Project name A-Z"
+  },
+  "content.page-layout.sort.project-name-descending": {
+    "defaultMessage": "Project name Z-A"
+  },
+  "content.page-layout.unpin-view": {
+    "defaultMessage": "Unpin current view"
+  },
   "content.page-layout.update-all": {
     "defaultMessage": "Update all"
+  },
+  "content.page-layout.view-dependencies": {
+    "defaultMessage": "View dependencies"
+  },
+  "content.page-layout.view-options": {
+    "defaultMessage": "View options"
   },
   "content.selection-bar.all-already-disabled": {
     "defaultMessage": "All selected content is already disabled"
@@ -998,6 +1124,33 @@
   "creation-flow.button.setup-server": {
     "defaultMessage": "Setup server"
   },
+  "creation-flow.modal.custom-setup.adjunct.checking-compatibility": {
+    "defaultMessage": "Checking compatibility..."
+  },
+  "creation-flow.modal.custom-setup.adjunct.compatibility-load-failed": {
+    "defaultMessage": "Failed to verify {loader} compatibility."
+  },
+  "creation-flow.modal.custom-setup.adjunct.hint": {
+    "defaultMessage": "A compatible version will be selected before downloading."
+  },
+  "creation-flow.modal.custom-setup.adjunct.label": {
+    "defaultMessage": "Additional loaders"
+  },
+  "creation-flow.modal.custom-setup.adjunct.optifabric-load-failed": {
+    "defaultMessage": "Failed to verify OptiFabric compatibility."
+  },
+  "creation-flow.modal.custom-setup.adjunct.optifabric-unsupported": {
+    "defaultMessage": "OptiFine requires OptiFabric, but no compatible version is available."
+  },
+  "creation-flow.modal.custom-setup.adjunct.primary-unsupported": {
+    "defaultMessage": "The selected mod loader does not support this game version."
+  },
+  "creation-flow.modal.custom-setup.adjunct.select-game-version": {
+    "defaultMessage": "Select a game version to check compatibility."
+  },
+  "creation-flow.modal.custom-setup.adjunct.unsupported": {
+    "defaultMessage": "No compatible {loader} version is available for this game version."
+  },
   "creation-flow.modal.custom-setup.build-number.label": {
     "defaultMessage": "Build number"
   },
@@ -1010,8 +1163,26 @@
   "creation-flow.modal.custom-setup.content-loader.label": {
     "defaultMessage": "Content loader"
   },
+  "creation-flow.modal.custom-setup.game-dir.choose-folder": {
+    "defaultMessage": "Choose folder"
+  },
+  "creation-flow.modal.custom-setup.game-dir.isolated": {
+    "defaultMessage": "Custom · Version isolated (.minecraft/versions/instance name/)"
+  },
+  "creation-flow.modal.custom-setup.game-dir.label": {
+    "defaultMessage": "Game directory"
+  },
+  "creation-flow.modal.custom-setup.game-dir.managed": {
+    "defaultMessage": "Axolotl directory"
+  },
+  "creation-flow.modal.custom-setup.game-dir.not-isolated": {
+    "defaultMessage": "Custom · Version shared (.minecraft/)"
+  },
   "creation-flow.modal.custom-setup.game-version-type.alpha": {
     "defaultMessage": "April Fools"
+  },
+  "creation-flow.modal.custom-setup.game-version-type.ancient": {
+    "defaultMessage": "Ancient"
   },
   "creation-flow.modal.custom-setup.game-version-type.release": {
     "defaultMessage": "Release"
@@ -1054,6 +1225,9 @@
   },
   "creation-flow.modal.custom-setup.loader-version.search-placeholder": {
     "defaultMessage": "Search loader version..."
+  },
+  "creation-flow.modal.custom-setup.loader.compatibility-load-failed": {
+    "defaultMessage": "Failed to verify loader compatibility"
   },
   "creation-flow.modal.custom-setup.loader.label": {
     "defaultMessage": "Mod Loader"
@@ -1280,6 +1454,15 @@
   "drop.symlink_method.detecting": {
     "defaultMessage": "Detecting..."
   },
+  "drop.symlink_method.game-dir.isolated": {
+    "defaultMessage": "Version isolated"
+  },
+  "drop.symlink_method.game-dir.label": {
+    "defaultMessage": "Game directory"
+  },
+  "drop.symlink_method.game-dir.not-isolated": {
+    "defaultMessage": "Version shared (.minecraft/)"
+  },
   "drop.symlink_method.game_version": {
     "defaultMessage": "Game version"
   },
@@ -1480,6 +1663,9 @@
   },
   "files.delete-modal.warning.folder": {
     "defaultMessage": "This folder and all its contents will be permanently deleted. This action cannot be undone."
+  },
+  "files.editor.editor-unavailable-placeholder": {
+    "defaultMessage": "Code editor unavailable"
   },
   "files.editor.failed-to-open-text": {
     "defaultMessage": "Could not load file contents."
@@ -1695,7 +1881,7 @@
     "defaultMessage": "Unsaved changes"
   },
   "files.validation.name-invalid-directory": {
-    "defaultMessage": "Name must contain only alphanumeric characters, dashes, underscores, or spaces."
+    "defaultMessage": "Name must contain only alphanumeric characters, dashes, underscores, dots, or spaces."
   },
   "files.validation.name-invalid-file": {
     "defaultMessage": "Name must contain only alphanumeric characters, dashes, underscores, dots, or spaces."
@@ -1972,6 +2158,12 @@
   },
   "installation-settings.loader-version": {
     "defaultMessage": "{loader} version"
+  },
+  "installation-settings.loader-version.error": {
+    "defaultMessage": "Failed to load loader versions"
+  },
+  "installation-settings.loader-version.unsupported": {
+    "defaultMessage": "This loader does not support the selected game version"
   },
   "installation-settings.platform-lock-tooltip": {
     "defaultMessage": "You will need to reset your server to switch loader."
@@ -3539,6 +3731,33 @@
   "report.item-type.version": {
     "defaultMessage": "version"
   },
+  "search.filter.dependency_type.embedded": {
+    "defaultMessage": "Embedded"
+  },
+  "search.filter.dependency_type.optional": {
+    "defaultMessage": "Optional"
+  },
+  "search.filter.dependency_type.required": {
+    "defaultMessage": "Required"
+  },
+  "search.filter.dependent_project": {
+    "defaultMessage": "Depends on: {project}"
+  },
+  "search.filter.dependent_project.search_placeholder": {
+    "defaultMessage": "Search for a project..."
+  },
+  "search.filter.excluded_projects": {
+    "defaultMessage": "Excludes: {projects}"
+  },
+  "search.filter.included_content.remove_project.tooltip": {
+    "defaultMessage": "Remove project"
+  },
+  "search.filter.included_content.search_placeholder": {
+    "defaultMessage": "Search content..."
+  },
+  "search.filter.included_projects": {
+    "defaultMessage": "Includes: {projects}"
+  },
   "search.filter.locked.default": {
     "defaultMessage": "Filter locked"
   },
@@ -3581,6 +3800,9 @@
   "search.filter_type.advanced.exclude_plugin": {
     "defaultMessage": "Exclude plugins"
   },
+  "search.filter_type.compatible_dependency_project_ids": {
+    "defaultMessage": "Depends on"
+  },
   "search.filter_type.environment": {
     "defaultMessage": "Environment"
   },
@@ -3595,6 +3817,9 @@
   },
   "search.filter_type.game_version.all_versions": {
     "defaultMessage": "Show all versions"
+  },
+  "search.filter_type.included_content": {
+    "defaultMessage": "Included content"
   },
   "search.filter_type.license": {
     "defaultMessage": "License"

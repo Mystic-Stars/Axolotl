@@ -7,9 +7,13 @@ import {
 	setLastBrowseContentDisplayMode,
 	setLastBrowseContentProjectType,
 } from './browse-display-mode.ts'
+import { getLastLibraryDisplayMode, setLastLibraryDisplayMode } from './library-display-mode.ts'
+import { getSidebarExpanded, setSidebarExpanded } from './sidebar-state.ts'
 
 const storageKey = 'axolotl-browse-content-display-mode'
 const projectTypeStorageKey = 'axolotl-browse-content-project-type'
+const libraryDisplayModeStorageKey = 'axolotl-library-display-mode'
+const sidebarStorageKey = 'axolotl-right-sidebar-expanded'
 const originalStorageDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'localStorage')
 
 function installMemoryStorage() {
@@ -51,7 +55,7 @@ test('browse display mode persists valid values and falls back to the list', () 
 	}
 })
 
-test('browse project type persists resources and rejects non-content routes', () => {
+test('browse project type persists content types and rejects non-content routes', () => {
 	const values = installMemoryStorage()
 
 	try {
@@ -60,11 +64,46 @@ test('browse project type persists resources and rejects non-content routes', ()
 		setLastBrowseContentProjectType('mod')
 		assert.equal(getLastBrowseContentProjectType(), 'mod')
 
-		setLastBrowseContentProjectType('shader')
-		assert.equal(getLastBrowseContentProjectType(), 'shader')
+		setLastBrowseContentProjectType('world')
+		assert.equal(getLastBrowseContentProjectType(), 'world')
 
 		values.set(projectTypeStorageKey, 'server')
 		assert.equal(getLastBrowseContentProjectType(), 'modpack')
+	} finally {
+		restoreStorage()
+	}
+})
+
+test('library display mode persists cards and falls back to the standard grid', () => {
+	const values = installMemoryStorage()
+
+	try {
+		assert.equal(getLastLibraryDisplayMode(), 'standard')
+
+		setLastLibraryDisplayMode('cards')
+		assert.equal(getLastLibraryDisplayMode(), 'cards')
+
+		values.set(libraryDisplayModeStorageKey, 'invalid')
+		assert.equal(getLastLibraryDisplayMode(), 'standard')
+	} finally {
+		restoreStorage()
+	}
+})
+
+test('right sidebar expansion persists and defaults to expanded', () => {
+	const values = installMemoryStorage()
+
+	try {
+		assert.equal(getSidebarExpanded(), true)
+
+		setSidebarExpanded(false)
+		assert.equal(getSidebarExpanded(), false)
+
+		setSidebarExpanded(true)
+		assert.equal(getSidebarExpanded(), true)
+
+		values.set(sidebarStorageKey, 'invalid')
+		assert.equal(getSidebarExpanded(), true)
 	} finally {
 		restoreStorage()
 	}

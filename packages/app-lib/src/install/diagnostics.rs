@@ -214,6 +214,16 @@ fn timeline_event_description(event: &InstallJobEvent) -> Option<String> {
         | InstallJobEventKind::ContentFileFailed { .. }
         | InstallJobEventKind::ContentFileCompleted { .. }
         | InstallJobEventKind::TargetInstanceDeleted { .. } => None,
+        InstallJobEventKind::UpgradeExternalChange {
+            relative_path,
+            kind,
+        } => Some(format!(
+            "Detected external upgrade change at {relative_path} ({kind:?})"
+        )),
+        InstallJobEventKind::UpgradeItemSkipped {
+            relative_path,
+            reason,
+        } => Some(format!("Skipped upgrade item {relative_path}: {reason}")),
         InstallJobEventKind::DownloadRequestStarted {
             url,
             source,
@@ -486,6 +496,8 @@ async fn write_latest_log(details: &mut String, state: &State) {
 fn phase_label(phase: InstallPhaseId) -> &'static str {
     match phase {
         InstallPhaseId::PreparingInstance => "preparing instance",
+        InstallPhaseId::CreatingBackup => "creating backup",
+        InstallPhaseId::StagingContent => "staging content",
         InstallPhaseId::ResolvingPack => "resolving pack",
         InstallPhaseId::DownloadingPackFile => "downloading pack file",
         InstallPhaseId::ReadingPackManifest => "reading pack manifest",
@@ -496,7 +508,11 @@ fn phase_label(phase: InstallPhaseId) -> &'static str {
         InstallPhaseId::PreparingJava => "preparing Java",
         InstallPhaseId::DownloadingMinecraft => "downloading Minecraft",
         InstallPhaseId::RunningLoaderProcessors => "running loader processors",
+        InstallPhaseId::ApplyingContent => "applying content",
+        InstallPhaseId::UpdatingLoader => "updating loader",
+        InstallPhaseId::Verifying => "verifying",
         InstallPhaseId::Finalizing => "finalizing",
+        InstallPhaseId::Completed => "completed",
         InstallPhaseId::RollingBack => "rolling back",
     }
 }

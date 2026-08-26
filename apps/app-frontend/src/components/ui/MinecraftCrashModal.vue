@@ -6,22 +6,24 @@ import {
 	defineMessages,
 	injectModrinthClient,
 	injectNotificationManager,
-	isAIAnalysisAvailable,
 	NewModal,
 	shareLogs,
 	useVIntl,
 } from '@modrinth/ui'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 
-import AILogAnalysisModal from '@/components/ui/AILogAnalysisModal.vue'
+import CrashAIExplanationModal from '@/components/ui/CrashAIExplanationModal.vue'
+import CrashModChangesModal from '@/components/ui/CrashModChangesModal.vue'
 import {
 	clearCrashAnalysis,
 	type CrashAnalysisResult,
 	refreshCrashAnalysis,
 } from '@/composables/useCrashAnalysis'
 import type { MinecraftLaunchErrorPayload } from '@/composables/useMinecraftLaunchError'
+import { getAIState } from '@/helpers/ai'
 import { process_listener } from '@/helpers/events.js'
 import { get as getInstance } from '@/helpers/instance'
+import { get_crash_analysis_ai_settings } from '@/helpers/logs.js'
 import { shouldShowMinecraftCrash } from '@/helpers/process.js'
 
 interface CrashModalPayload extends MinecraftLaunchErrorPayload {
@@ -48,15 +50,18 @@ const { formatMessage } = useVIntl()
 const client = injectModrinthClient()
 const { addNotification } = injectNotificationManager()
 const modal = ref<InstanceType<typeof NewModal>>()
-const aiModal = ref<InstanceType<typeof AILogAnalysisModal>>()
+const aiModal = ref<InstanceType<typeof CrashAIExplanationModal>>()
+const modChangesModal = ref<InstanceType<typeof CrashModChangesModal>>()
 const payload = ref<Partial<CrashModalPayload>>({})
 const sharing = ref(false)
 let lastAnalysis: CrashAnalysisResult | null = null
+const modChangesAvailable = ref(false)
 const activeRuns = new Map<string, string>()
 const lastShownAt = new Map<string, number>()
 let unlistenProcess: Unlisten | undefined
 let mounted = false
 let analysisVersion = 0
+const aiAvailable = ref(false)
 
 const messages = defineMessages({
 	title: {
@@ -116,6 +121,19 @@ const messages = defineMessages({
 	evidence: {
 		id: 'app.minecraft-crash.evidence',
 		defaultMessage: 'Reference evidence: {evidence}',
+	},
+	viewModChanges: {
+		id: 'app.minecraft-crash.view-mod-changes',
+		defaultMessage: 'View Mod changes',
+	},
+	modChangesTitle: {
+		id: 'app.minecraft-crash.mod-changes-title',
+		defaultMessage: 'Possible issue: Mod files changed since the last successful launch',
+	},
+	modChangesAction: {
+		id: 'app.minecraft-crash.mod-changes-action',
+		defaultMessage:
+			'Review the changed Mod files and restore the previous setup manually if the crash started after those changes.',
 	},
 	jvmArgumentsTitle: {
 		id: 'app.minecraft-crash.diagnosis.jvm-arguments.title',
@@ -198,6 +216,24 @@ const messages = defineMessages({
 		defaultMessage:
 			'You can try increasing the instance memory allocation, or removing memory-heavy Mods and resource packs.',
 	},
+	diskSpaceTitle: {
+		id: 'app.minecraft-crash.diagnosis.disk-space.title',
+		defaultMessage: 'Possible issue: the disk ran out of free space',
+	},
+	diskSpaceAction: {
+		id: 'app.minecraft-crash.diagnosis.disk-space.action',
+		defaultMessage:
+			'Free space on the drive containing this instance, then launch Minecraft again.',
+	},
+	fileInUseTitle: {
+		id: 'app.minecraft-crash.diagnosis.file-in-use.title',
+		defaultMessage: 'Possible issue: another process is using a required file',
+	},
+	fileInUseAction: {
+		id: 'app.minecraft-crash.diagnosis.file-in-use.action',
+		defaultMessage:
+			'Close the program named in the log, including other launchers, backup tools, or antivirus scans, then launch again.',
+	},
 	knownFailureTitle: {
 		id: 'app.minecraft-crash.diagnosis.known-failure.title',
 		defaultMessage: 'Possible issue: a specific launch problem was detected',
@@ -227,23 +263,22 @@ const messages = defineMessages({
 		id: 'app.minecraft-crash.share-copied',
 		defaultMessage: 'Diagnostic link copied to your clipboard',
 	},
+	shareReady: {
+		id: 'app.minecraft-crash.share-ready',
+		defaultMessage: 'Diagnostic link is ready to share',
+	},
 	copyLink: {
 		id: 'app.minecraft-crash.copy-link',
 		defaultMessage: 'Copy link',
 	},
 	aiAnalyze: {
-		id: 'app.minecraft-crash.ai-analyze',
-		defaultMessage: 'AI analysis',
+		id: 'app.crash-analysis.ai.action',
+		defaultMessage: 'Use AI to explain',
 	},
 	noLogContent: {
 		id: 'app.minecraft-crash.no-log-content',
 		defaultMessage:
 			'No log content was found to share or analyze. Make sure the instance has logs generated in the last few minutes.',
-	},
-	aiUnavailable: {
-		id: 'app.minecraft-crash.ai-unavailable',
-		defaultMessage:
-			'AI analysis is not supported by the current log service (mclo.gs). Switch to LogShare.CN in Settings to use it.',
 	},
 })
 
@@ -257,6 +292,8 @@ const diagnosisMessages = {
 	jdk_runtime: [messages.jdkRuntimeTitle, messages.jdkRuntimeAction],
 	forge_java_incompatible: [messages.forgeJavaTitle, messages.forgeJavaAction],
 	out_of_memory: [messages.outOfMemoryTitle, messages.outOfMemoryAction],
+	disk_space: [messages.diskSpaceTitle, messages.diskSpaceAction],
+	file_in_use: [messages.fileInUseTitle, messages.fileInUseAction],
 } as const
 
 const title = computed(
@@ -276,21 +313,43 @@ function applyAnalysis(
 	analysis: CrashAnalysisResult | null,
 ): CrashModalPayload {
 	const finding = analysis?.findings[0]
-	if (!finding) return modalPayload
+	const modChanges = analysis?.mod_changes ?? []
+	if (!finding && modChanges.length === 0) return modalPayload
 
-	const [titleMessage, actionMessage] = diagnosisMessages[
-		finding.id as keyof typeof diagnosisMessages
-	] ?? [messages.knownFailureTitle, messages.knownFailureAction]
-	const evidence = finding.evidence[0]
+	const diagnosis = finding
+		? diagnosisMessages[finding.id as keyof typeof diagnosisMessages]
+		: undefined
+	const [titleMessage, actionMessage] = diagnosis ?? [
+		messages.knownFailureTitle,
+		messages.knownFailureAction,
+	]
+	const resolvedTitleMessage = finding ? titleMessage : messages.modChangesTitle
+	const resolvedActionMessage = finding ? actionMessage : messages.modChangesAction
+	const evidence = finding?.evidence[0]
 	return {
 		...modalPayload,
-		summary: formatMessage(titleMessage),
-		body: formatMessage(actionMessage),
+		summary: formatMessage(resolvedTitleMessage),
+		body: formatMessage(resolvedActionMessage),
 		hint: evidence
 			? formatMessage(messages.evidence, {
 					evidence: `${evidence.filename}:${evidence.line} - ${evidence.text}`,
 				})
 			: modalPayload.hint,
+		/*
+		...(false
+			? {
+					hint: `${formatMessage(messages.modChanges, {
+						changes: modChanges.map((change) => `${change.kind}: ${change.filename}`).join('; '),
+					})}${
+						evidence
+							? ` ${formatMessage(messages.evidence, {
+									evidence: `${evidence.filename}:${evidence.line} - ${evidence.text}`,
+								})}`
+							: ''
+					}`,
+				}
+			: {}),
+		*/
 	}
 }
 
@@ -305,6 +364,10 @@ function show(modalPayload: CrashModalPayload, isPreview = false): boolean {
 	payload.value = modalPayload
 	modal.value?.show()
 	return true
+}
+
+function openModChanges(): void {
+	if (lastAnalysis?.mod_changes.length) modChangesModal.value?.show(lastAnalysis)
 }
 
 function launchErrorText(error: unknown): string {
@@ -352,6 +415,7 @@ async function analyzeAndUpdate(
 		return null
 	})
 	lastAnalysis = analysis
+	modChangesAvailable.value = !!analysis?.mod_changes.length
 	if (mounted && version === analysisVersion) {
 		payload.value = applyAnalysis(modalPayload, analysis)
 		if (!analysis?.findings.length && fallbackHint) payload.value.hint = fallbackHint
@@ -396,7 +460,6 @@ function showPreview(): void {
 }
 
 const shareUrl = ref('')
-let lastShare: { id?: string; url?: string } | null = null
 
 function notifyNoLogContent(): void {
 	addNotification({
@@ -422,12 +485,19 @@ async function shareDiagnostic(): Promise<void> {
 			})
 		}
 		shareUrl.value = result.url
-		lastShare = result.id ? { id: result.id, url: result.url } : null
-		await navigator.clipboard.writeText(result.url)
-		addNotification({
-			title: formatMessage(messages.shareCopied),
-			type: 'success',
-		})
+		try {
+			await navigator.clipboard.writeText(result.url)
+			addNotification({
+				title: formatMessage(messages.shareCopied),
+				type: 'success',
+			})
+		} catch (error) {
+			console.error('Failed to copy shared diagnostic URL', error)
+			addNotification({
+				title: formatMessage(messages.shareReady),
+				type: 'success',
+			})
+		}
 	} catch (error) {
 		console.error('Failed to share crash diagnostic', error)
 		addNotification({
@@ -452,25 +522,33 @@ async function copyShareUrl(): Promise<void> {
 	}
 }
 
-function openAIAnalysis(): void {
+function _openAIAnalysis(): void {
 	if (!lastAnalysis?.combined_log) {
 		notifyNoLogContent()
 		return
 	}
-	if (!isAIAnalysisAvailable()) {
-		addNotification({
-			title: formatMessage(messages.aiUnavailable),
-			type: 'warning',
-		})
-		return
+	aiModal.value?.show(payload.value.instance_id!)
+}
+
+async function refreshAIAvailability(): Promise<void> {
+	try {
+		const [settings, state] = await Promise.all([get_crash_analysis_ai_settings(), getAIState()])
+		const provider = state.providers.find((item) => item.provider_id === settings.provider_id)
+		aiAvailable.value =
+			settings.enabled &&
+			state.settings.enabled &&
+			!!provider?.enabled &&
+			provider.models.some((model) => model.id === settings.model_id && model.enabled)
+	} catch {
+		aiAvailable.value = false
 	}
-	aiModal.value?.show(lastAnalysis, lastShare)
 }
 
 async function handleProcessEvent(event: ProcessEvent): Promise<void> {
 	if (event.event === 'launched') {
 		activeRuns.set(event.instance_id, event.uuid)
 		clearCrashAnalysis(event.instance_id)
+		modChangesAvailable.value = false
 		return
 	}
 	if (event.event !== 'finished' || activeRuns.get(event.instance_id) !== event.uuid) return
@@ -488,6 +566,7 @@ async function handleProcessEvent(event: ProcessEvent): Promise<void> {
 			return null
 		})
 		lastAnalysis = analysis
+		modChangesAvailable.value = !!analysis?.mod_changes.length
 		if (!mounted) return
 
 		const instance = await getInstance(event.instance_id).catch(() => null)
@@ -508,6 +587,7 @@ async function handleProcessEvent(event: ProcessEvent): Promise<void> {
 
 onMounted(async () => {
 	mounted = true
+	void refreshAIAvailability()
 	const unlisten = await process_listener((event: ProcessEvent) => void handleProcessEvent(event))
 	if (!mounted) {
 		unlisten()
@@ -566,13 +646,19 @@ defineExpose({ handleLaunchError, handleWarning, isLaunchFailure, showPreview })
 						}}
 					</button>
 				</ButtonStyled>
-				<ButtonStyled color="brand">
+				<ButtonStyled v-if="aiAvailable" color="brand">
 					<button @click="openAIAnalysis">
 						{{ formatMessage(messages.aiAnalyze) }}
+					</button>
+				</ButtonStyled>
+				<ButtonStyled v-if="modChangesAvailable" type="outlined">
+					<button @click="openModChanges">
+						{{ formatMessage(messages.viewModChanges) }}
 					</button>
 				</ButtonStyled>
 			</div>
 		</template>
 	</NewModal>
-	<AILogAnalysisModal ref="aiModal" />
+	<CrashAIExplanationModal ref="aiModal" />
+	<CrashModChangesModal ref="modChangesModal" />
 </template>

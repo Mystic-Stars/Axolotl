@@ -13,8 +13,7 @@ use super::archive_util;
 use crate::State;
 use crate::data::ModLoader;
 use crate::install::{
-    InstallJobEventKind, InstallPhaseDetails, InstallPhaseId,
-    InstallProgressReporter,
+    InstallPhaseDetails, InstallPhaseId, InstallProgressReporter,
 };
 use crate::pack::detect::HMCL_MANIFEST;
 use crate::state::{
@@ -63,6 +62,7 @@ pub(crate) async fn install_hmcl_pack_with_reporter(
     let mut loader = ModLoader::Vanilla;
     let mut loader_version = None;
     let mut optifine_version = None;
+    let mut lite_loader_version = None;
     for addon in &manifest.addons {
         match addon.id.to_ascii_lowercase().as_str() {
             "game" => {
@@ -71,27 +71,88 @@ pub(crate) async fn install_hmcl_pack_with_reporter(
                 }
             }
             "forge" => {
+                if loader != ModLoader::Vanilla {
+                    return Err(crate::ErrorKind::InputError(
+                        "HMCL modpack declares multiple primary loaders"
+                            .to_string(),
+                    )
+                    .into());
+                }
                 loader = ModLoader::Forge;
                 loader_version = Some(addon.version.clone());
             }
             "neoforge" => {
+                if loader != ModLoader::Vanilla {
+                    return Err(crate::ErrorKind::InputError(
+                        "HMCL modpack declares multiple primary loaders"
+                            .to_string(),
+                    )
+                    .into());
+                }
                 loader = ModLoader::NeoForge;
                 loader_version = Some(addon.version.clone());
             }
             "fabric" => {
+                if loader != ModLoader::Vanilla {
+                    return Err(crate::ErrorKind::InputError(
+                        "HMCL modpack declares multiple primary loaders"
+                            .to_string(),
+                    )
+                    .into());
+                }
                 loader = ModLoader::Fabric;
                 loader_version = Some(addon.version.clone());
             }
             "quilt" => {
+                if loader != ModLoader::Vanilla {
+                    return Err(crate::ErrorKind::InputError(
+                        "HMCL modpack declares multiple primary loaders"
+                            .to_string(),
+                    )
+                    .into());
+                }
                 loader = ModLoader::Quilt;
                 loader_version = Some(addon.version.clone());
             }
+            "cleanroom" => {
+                if loader != ModLoader::Vanilla {
+                    return Err(crate::ErrorKind::InputError(
+                        "HMCL modpack declares multiple primary loaders"
+                            .to_string(),
+                    )
+                    .into());
+                }
+                loader = ModLoader::Cleanroom;
+                loader_version = Some(addon.version.clone());
+            }
+            "legacy_fabric" | "legacyfabric" => {
+                if loader != ModLoader::Vanilla {
+                    return Err(crate::ErrorKind::InputError(
+                        "HMCL modpack declares multiple primary loaders"
+                            .to_string(),
+                    )
+                    .into());
+                }
+                loader = ModLoader::LegacyFabric;
+                loader_version = Some(addon.version.clone());
+            }
+            "lite_loader" | "liteloader" => {
+                lite_loader_version = Some(addon.version.clone());
+            }
             "optifine" => optifine_version = Some(addon.version.clone()),
+            "labymod" => {
+                return Err(crate::ErrorKind::InputError(
+                    "Unsupported loader LabyMod: Axolotl does not install, update, or repair LabyMod instances"
+                        .to_string(),
+                )
+                .into());
+            }
             other => {
-                tracing::warn!(
-                    "Ignoring unsupported HMCL addon {other} {}",
+                return Err(crate::ErrorKind::InputError(format!(
+                    "Unsupported HMCL loader component {other} {}",
                     addon.version
-                );
+                ))
+                .into());
             }
         }
     }
@@ -102,7 +163,28 @@ pub(crate) async fn install_hmcl_pack_with_reporter(
         .into());
     };
 
+    let mut lite_loader_as_adjunct = None;
+    if let Some(lite_loader_version) = lite_loader_version {
+        match loader {
+            ModLoader::Vanilla => {
+                loader = ModLoader::LiteLoader;
+                loader_version = Some(lite_loader_version);
+            }
+            ModLoader::Forge => {
+                lite_loader_as_adjunct = Some(lite_loader_version);
+            }
+            _ => {
+                return Err(crate::ErrorKind::InputError(format!(
+                    "LiteLoader is not supported with {}",
+                    loader.as_str()
+                ))
+                .into());
+            }
+        }
+    }
+
     let mut optifine_as_mod = None;
+    let mut requires_optifabric = false;
     if let Some(optifine_version) = optifine_version {
         match loader {
             ModLoader::Vanilla => {
@@ -112,11 +194,16 @@ pub(crate) async fn install_hmcl_pack_with_reporter(
             ModLoader::Forge | ModLoader::NeoForge => {
                 optifine_as_mod = Some(optifine_version);
             }
+            ModLoader::Fabric | ModLoader::LegacyFabric => {
+                optifine_as_mod = Some(optifine_version);
+                requires_optifabric = true;
+            }
             _ => {
-                tracing::warn!(
-                    "Skipping OptiFine {optifine_version}: not compatible with {}",
+                return Err(crate::ErrorKind::InputError(format!(
+                    "OptiFine is not supported with {}",
                     loader.as_str()
-                );
+                ))
+                .into());
             }
         }
     }
@@ -143,6 +230,34 @@ pub(crate) async fn install_hmcl_pack_with_reporter(
     reporter
         .update(InstallPhaseId::ResolvingPack, None, pack_details.clone())
         .await?;
+
+    let lite_loader_as_adjunct = if let Some(requested_version) =
+        lite_loader_as_adjunct
+    {
+        Some(
+			crate::launcher::get_loader_version_from_profile(
+				&game_version,
+				ModLoader::LiteLoader,
+				Some(&requested_version),
+			)
+			.await?
+			.ok_or_else(|| {
+				crate::ErrorKind::InputError(format!(
+					"No LiteLoader version {requested_version} supports Minecraft {game_version}"
+				))
+			})?,
+		)
+    } else {
+        None
+    };
+    let optifabric_version = if requires_optifabric {
+        Some(
+            crate::install::runner::resolve_optifabric_version(&game_version)
+                .await?,
+        )
+    } else {
+        None
+    };
 
     let resolved_loader_version = if loader != ModLoader::Vanilla {
         crate::launcher::get_loader_version_from_profile(
@@ -207,8 +322,18 @@ pub(crate) async fn install_hmcl_pack_with_reporter(
     )
     .await?;
 
-    if let Some(optifine_version) = optifine_as_mod
-        && let Err(error) = super::install_mcbbs::install_optifine_mod(
+    if let Some(lite_loader_version) = lite_loader_as_adjunct {
+        super::install_mcbbs::install_liteloader_component(
+            &state,
+            &instance_id,
+            &game_version,
+            loader,
+            &lite_loader_version,
+        )
+        .await?;
+    }
+    if let Some(optifine_version) = optifine_as_mod {
+        super::install_mcbbs::install_optifine_mod(
             &state,
             &instance_id,
             reporter.cancellation_token(),
@@ -216,29 +341,20 @@ pub(crate) async fn install_hmcl_pack_with_reporter(
             &optifine_version,
             &instance_path,
         )
-        .await
-    {
-        tracing::warn!(
-            "Failed to install OptiFine {optifine_version} as a mod: {error}"
-        );
-        reporter
-            .update_with_events(
-                InstallPhaseId::DownloadingContent,
-                None,
-                pack_details.clone(),
-                vec![InstallJobEventKind::ContentFileSkipped {
-                    path: format!("OptiFine {optifine_version}"),
-                    reason: format!(
-                        "OptiFine could not be installed automatically: {error}"
-                    ),
-                    project_id: None,
-                    version_id: None,
-                    manual_url: Some(
-                        "https://optifine.net/downloads".to_string(),
-                    ),
-                }],
-            )
-            .await?;
+        .await?;
+        super::install_mcbbs::record_optifine_component(
+            &instance_id,
+            &optifine_version,
+        )
+        .await?;
+    }
+    if let Some(optifabric_version) = optifabric_version {
+        super::install_mcbbs::install_optifabric_component(
+            &instance_id,
+            &game_version,
+            &optifabric_version,
+        )
+        .await?;
     }
 
     reporter.clear_context().await?;

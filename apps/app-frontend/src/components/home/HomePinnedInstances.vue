@@ -51,8 +51,8 @@ async function updatePinned(instance: GameInstance, pinned: boolean) {
 </script>
 
 <template>
-	<section class="home-pinned-instances" :data-size="dashboardSize">
-		<div class="home-widget-heading">
+	<section class="home-pinned-instances flex min-w-0 min-h-0 h-full flex-col gap-3" :data-size="dashboardSize">
+		<div class="home-widget-heading flex min-w-0 h-8 flex-none items-center gap-2">
 			<h2>
 				{{ formatMessage(messages.pinnedInstances) }}
 			</h2>
@@ -63,7 +63,7 @@ async function updatePinned(instance: GameInstance, pinned: boolean) {
 				</router-link>
 			</ButtonStyled>
 		</div>
-		<div v-if="pinnedInstances.length > 0" class="home-instance-list">
+		<div v-if="pinnedInstances.length > 0" class="home-instance-list grid min-w-0 min-h-0 flex-1 grid-auto-rows-max gap-1 overflow-x-hidden overflow-y-auto pr-1">
 			<HomeInstanceCard
 				v-for="instance in pinnedInstances"
 				:key="instance.id"
@@ -82,24 +82,6 @@ async function updatePinned(instance: GameInstance, pinned: boolean) {
 </template>
 
 <style scoped>
-.home-pinned-instances {
-	display: flex;
-	min-width: 0;
-	min-height: 0;
-	height: 100%;
-	flex-direction: column;
-	gap: 0.75rem;
-}
-
-.home-widget-heading {
-	display: flex;
-	min-width: 0;
-	height: 2rem;
-	flex: 0 0 auto;
-	align-items: center;
-	gap: 0.5rem;
-}
-
 .home-widget-heading h2 {
 	min-width: 0;
 	overflow: hidden;
@@ -110,18 +92,6 @@ async function updatePinned(instance: GameInstance, pinned: boolean) {
 	letter-spacing: 0;
 	text-overflow: ellipsis;
 	white-space: nowrap;
-}
-
-.home-instance-list {
-	display: grid;
-	min-width: 0;
-	min-height: 0;
-	flex: 1;
-	grid-auto-rows: max-content;
-	gap: 0.25rem;
-	overflow-x: hidden;
-	overflow-y: auto;
-	padding-right: 0.25rem;
 }
 
 .home-pinned-instances[data-size='2x1'] .home-instance-list,

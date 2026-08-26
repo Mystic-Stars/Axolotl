@@ -465,9 +465,11 @@ pub async fn get_world_level_data(
     world: &str,
 ) -> Result<WorldLevelData> {
     let state = State::get().await?;
-    let (_, instance_path) =
+    let (_, instance_path, game_dir_override) =
         resolve_instance_identity(instance, &state).await?;
-    let instance_dir = state.directories.instances_dir().join(instance_path);
+    let instance_dir = state
+        .directories
+        .resolve_game_dir(&instance_path, game_dir_override.as_deref());
     let world_dir = get_world_dir(&instance_dir, world);
 
     let locked = try_get_world_session_lock(&world_dir).await?.is_none();

@@ -179,21 +179,6 @@
   "app.settings.downloading": {
     "message": "מוריד גרסה {version}"
   },
-  "app.settings.tabs.appearance": {
-    "message": "מראה"
-  },
-  "app.settings.tabs.default-instance-options": {
-    "message": "אפשרויות ברירת מחדל של התקנה"
-  },
-  "app.settings.tabs.java-installations": {
-    "message": "התקנות ג'אווה"
-  },
-  "app.settings.tabs.language": {
-    "message": "שפה"
-  },
-  "app.settings.tabs.resource-management": {
-    "message": "ניהול משאבים"
-  },
   "app.update-popup.body.download-complete": {
     "message": "Axolotl Launcher v{version} סיימה את תהליך ההורדה. יש לרענן כדי לעדכן עכשיו, או באופן אוטומטי בעת סגירת האפליקציה."
   },
@@ -379,18 +364,6 @@
   },
   "instance.settings.tabs.general.edit-icon.select": {
     "message": "בחירת סמל"
-  },
-  "instance.settings.tabs.general.library-groups": {
-    "message": "קבוצות ספרייה"
-  },
-  "instance.settings.tabs.general.library-groups.create": {
-    "message": "יצירת קבוצה חדשה"
-  },
-  "instance.settings.tabs.general.library-groups.description": {
-    "message": "קבוצות ספרייה מאפשרות לך לארגן את ההתקנות שלך לחלקים שונים בספרייה שלך."
-  },
-  "instance.settings.tabs.general.library-groups.enter-name": {
-    "message": "שם קבוצה"
   },
   "instance.settings.tabs.general.name": {
     "message": "שם"

@@ -54,7 +54,16 @@ const headerState = computed(() => {
 	<div class="flex flex-col gap-2">
 		<template v-if="jobs.length">
 			<div class="job-list-header">
-				<span class="live-dot" :class="`live-dot--${headerState}`" />
+				<span
+					class="w-2 h-2 flex-none rounded-full"
+					:class="
+						headerState === 'running'
+							? 'live-dot--running'
+							: headerState === 'completed'
+								? 'bg-green'
+								: 'bg-red'
+					"
+				/>
 				<span v-if="counts.running" class="header-chip header-chip--running">
 					{{ formatMessage(messages.activeCount, { count: counts.running }) }}
 				</span>
@@ -93,24 +102,9 @@ const headerState = computed(() => {
 	gap: 0.5rem;
 }
 
-.live-dot {
-	width: 0.5rem;
-	height: 0.5rem;
-	flex: 0 0 auto;
-	border-radius: 999px;
-}
-
 .live-dot--running {
 	background: var(--color-brand);
 	animation: list-pulse 1.6s ease-out infinite;
-}
-
-.live-dot--completed {
-	background: var(--color-green);
-}
-
-.live-dot--failed {
-	background: var(--color-red);
 }
 
 @keyframes list-pulse {

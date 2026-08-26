@@ -40,7 +40,7 @@ function copyDebug(value: unknown) {
 </script>
 
 <template>
-	<section class="timeline-shell">
+	<section class="flex flex-col gap-[0.35rem] border-t border-divider pt-[0.55rem]">
 		<button type="button" class="toggle" :aria-expanded="open" @click="open = !open">
 			<HistoryIcon />处理时间线 ({{ entries.length }}) <ChevronUpIcon v-if="open" /><ChevronDownIcon
 				v-else
@@ -53,7 +53,7 @@ function copyDebug(value: unknown) {
 				<div
 					v-for="entry in group.entries"
 					:key="entry.id"
-					class="entry"
+					class="entry grid grid-cols-[auto_minmax(0,1fr)] gap-2"
 					:class="`entry--${entry.status}`"
 				>
 					<span class="dot" />
@@ -82,13 +82,6 @@ function copyDebug(value: unknown) {
 </template>
 
 <style scoped>
-.timeline-shell {
-	display: flex;
-	flex-direction: column;
-	gap: 0.35rem;
-	border-top: 1px solid var(--color-divider);
-	padding-top: 0.55rem;
-}
 .toggle {
 	display: flex;
 	width: 100%;
@@ -143,11 +136,6 @@ function copyDebug(value: unknown) {
 	color: var(--color-brand);
 	font-size: 0.68rem;
 	text-transform: uppercase;
-}
-.entry {
-	display: grid;
-	grid-template-columns: auto minmax(0, 1fr);
-	gap: 0.5rem;
 }
 .dot {
 	width: 0.5rem;

@@ -1,4 +1,3 @@
-import type { Logshare } from '@modrinth/api-client'
 import type { ComputedRef, Ref } from 'vue'
 
 import { createContext } from '#ui/providers/create-context'
@@ -18,6 +17,25 @@ export interface LocalCrashAnalysis {
 		id?: string
 		name?: string
 		matched_class?: string
+	}>
+	mod_changes: Array<{
+		kind: 'added' | 'removed' | 'modified'
+		filename: string
+		previous_size?: number
+		current_size?: number
+		current_sha256?: string
+		project_id?: string
+		project_title?: string
+		icon_url?: string
+		version_id?: string
+		version_number?: string
+	}>
+	mod_change_counts: { added: number; removed: number; modified: number }
+	windows_events: Array<{
+		event_id: number
+		provider: string
+		time_created: string
+		message: string
 	}>
 }
 
@@ -48,8 +66,6 @@ export interface ConsoleManagerContext {
 	localCrashAnalysis?: Ref<LocalCrashAnalysis | null>
 	crashAnalysisLoading?: Ref<boolean>
 	onExportCrashContext?: () => Promise<void>
-	crashAnalysis?: Ref<Logshare.Insights.v1.InsightsResponse | null>
-	onDismissCrash?: () => void
 }
 
 export const [injectConsoleManager, provideConsoleManager] = createContext<ConsoleManagerContext>(

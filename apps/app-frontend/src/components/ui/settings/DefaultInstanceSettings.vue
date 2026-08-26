@@ -1,21 +1,13 @@
 <script setup lang="ts">
-import {
-	Checkbox,
-	defineMessages,
-	injectNotificationManager,
-	Slider,
-	StyledInput,
-	Toggle,
-	useVIntl,
-} from '@modrinth/ui'
+import { defineMessages, StyledInput, Toggle, useVIntl } from '@modrinth/ui'
 import { ref, watch } from 'vue'
 
-import JavaArgumentsInput from '@/components/ui/JavaArgumentsInput.vue'
-import MemoryAllocationDisplay from '@/components/ui/MemoryAllocationDisplay.vue'
-import useMemorySlider from '@/composables/useMemorySlider'
 import { get, set } from '@/helpers/settings.ts'
 
-const { handleError } = injectNotificationManager()
+import CrashAnalysisAISettings from './CrashAnalysisAISettings.vue'
+import SettingsRow from './SettingsRow.vue'
+import SettingsSection from './SettingsSection.vue'
+
 const { formatMessage } = useVIntl()
 
 const messages = defineMessages({
@@ -41,27 +33,6 @@ const messages = defineMessages({
 	heightPlaceholder: {
 		id: 'app.settings.defaults.height-placeholder',
 		defaultMessage: 'Enter height...',
-	},
-	memory: { id: 'app.settings.defaults.memory', defaultMessage: 'Memory allocated' },
-	memoryDescription: {
-		id: 'app.settings.defaults.memory-description',
-		defaultMessage: 'The memory allocated to each instance when it is run.',
-	},
-	automaticMemory: {
-		id: 'app.settings.defaults.automatic-memory',
-		defaultMessage: 'Automatically allocate memory at launch',
-	},
-	automaticMemoryDescription: {
-		id: 'app.settings.defaults.automatic-memory-description',
-		defaultMessage: 'Adjusts memory for each launch based on available RAM and installed mods.',
-	},
-	javaArguments: {
-		id: 'app.settings.defaults.java-arguments',
-		defaultMessage: 'Java arguments',
-	},
-	javaArgumentsPlaceholder: {
-		id: 'app.settings.defaults.java-arguments-placeholder',
-		defaultMessage: 'Enter Java arguments...',
 	},
 	environmentVariables: {
 		id: 'app.settings.defaults.environment-variables',
@@ -101,30 +72,41 @@ const messages = defineMessages({
 		id: 'app.settings.defaults.post-exit-description',
 		defaultMessage: 'Run after the game closes.',
 	},
+	lightweightMode: {
+		id: 'app.appearance-settings.lightweight-mode.title',
+		defaultMessage: 'Enter lightweight mode after launching a game',
+	},
+	lightweightModeDescription: {
+		id: 'app.appearance-settings.lightweight-mode.description',
+		defaultMessage:
+			'Closes the launcher webview after Minecraft starts to reduce memory use. Restore it from the system tray.',
+	},
+	minimizeLauncher: {
+		id: 'app.appearance-settings.minimize-launcher.title',
+		defaultMessage: 'Minimize launcher',
+	},
+	minimizeLauncherDescription: {
+		id: 'app.appearance-settings.minimize-launcher.description',
+		defaultMessage: 'Minimize the launcher when a Minecraft process starts.',
+	},
 })
 
 const fetchSettings = await get()
-fetchSettings.launchArgs = fetchSettings.extra_launch_args.join(' ')
-fetchSettings.envVars = fetchSettings.custom_env_vars.map((x) => x.join('=')).join(' ')
-
-const settings = ref(fetchSettings)
-
-const { maxMemory, snapPoints } = (await useMemorySlider().catch(handleError)) as unknown as {
-	maxMemory: number
-	snapPoints: number[]
-}
+const settings = ref({
+	...fetchSettings,
+	envVars: fetchSettings.custom_env_vars.map((x) => x.join('=')).join(' '),
+})
 
 watch(
 	settings,
 	async () => {
 		const setSettings = JSON.parse(JSON.stringify(settings.value))
 
-		setSettings.extra_launch_args = setSettings.launchArgs.trim().split(/\s+/).filter(Boolean)
 		setSettings.custom_env_vars = setSettings.envVars
 			.trim()
 			.split(/\s+/)
 			.filter(Boolean)
-			.map((x) => x.split('=').filter(Boolean))
+			.map((x: string) => x.split('=').filter(Boolean))
 
 		if (!setSettings.hooks.pre_launch) {
 			setSettings.hooks.pre_launch = null
@@ -147,165 +129,155 @@ watch(
 </script>
 
 <template>
-	<div>
-		<div class="flex flex-col gap-6">
-			<div class="flex items-center justify-between gap-4">
-				<div class="flex flex-col gap-1">
-					<h3 class="m-0 text-lg font-semibold text-contrast">
+	<div class="flex flex-col gap-6">
+		<SettingsSection>
+			<SettingsRow>
+				<template #label>
+					<span id="settings-target-defaults-window" tabindex="-1">
 						{{ formatMessage(messages.fullscreen) }}
-					</h3>
-					<p class="m-0 leading-tight">
-						{{ formatMessage(messages.fullscreenDescription) }}
-					</p>
-				</div>
+					</span>
+				</template>
+				<template #description>{{ formatMessage(messages.fullscreenDescription) }}</template>
+				<template #control><Toggle id="fullscreen" v-model="settings.force_fullscreen" /></template>
+			</SettingsRow>
+			<SettingsRow>
+				<template #label>{{ formatMessage(messages.width) }}</template>
+				<template #description>{{ formatMessage(messages.widthDescription) }}</template>
+				<template #control>
+					<StyledInput
+						id="width"
+						v-model="settings.game_resolution[0]"
+						:disabled="settings.force_fullscreen"
+						autocomplete="off"
+						type="number"
+						:placeholder="formatMessage(messages.widthPlaceholder)"
+					/>
+				</template>
+			</SettingsRow>
+			<SettingsRow>
+				<template #label>{{ formatMessage(messages.height) }}</template>
+				<template #description>{{ formatMessage(messages.heightDescription) }}</template>
+				<template #control>
+					<StyledInput
+						id="height"
+						v-model="settings.game_resolution[1]"
+						:disabled="settings.force_fullscreen"
+						autocomplete="off"
+						type="number"
+						:placeholder="formatMessage(messages.heightPlaceholder)"
+					/>
+				</template>
+			</SettingsRow>
+		</SettingsSection>
 
-				<Toggle id="fullscreen" v-model="settings.force_fullscreen" />
-			</div>
+		<SettingsSection>
+			<SettingsRow stacked>
+				<template #label>
+					<span id="settings-target-defaults-environment" tabindex="-1">
+						{{ formatMessage(messages.environmentVariables) }}
+					</span>
+				</template>
+				<template #control>
+					<StyledInput
+						id="env-vars"
+						v-model="settings.envVars"
+						autocomplete="off"
+						type="text"
+						:placeholder="formatMessage(messages.environmentVariablesPlaceholder)"
+						wrapper-class="w-full"
+					/>
+				</template>
+			</SettingsRow>
+		</SettingsSection>
 
-			<div class="flex items-center justify-between gap-4">
-				<div class="flex flex-col gap-1">
-					<h3 class="m-0 text-lg font-semibold text-contrast">
-						{{ formatMessage(messages.width) }}
-					</h3>
-					<p class="m-0 leading-tight">{{ formatMessage(messages.widthDescription) }}</p>
-				</div>
+		<SettingsSection>
+			<SettingsRow stacked>
+				<template #label>
+					<span id="settings-target-defaults-launch-hooks" tabindex="-1">
+						{{ formatMessage(messages.preLaunchHook) }}
+					</span>
+				</template>
+				<template #description>{{ formatMessage(messages.preLaunchDescription) }}</template>
+				<template #control>
+					<StyledInput
+						id="pre-launch"
+						v-model="settings.hooks.pre_launch"
+						autocomplete="off"
+						type="text"
+						:placeholder="formatMessage(messages.preLaunchPlaceholder)"
+						wrapper-class="w-full"
+					/>
+				</template>
+			</SettingsRow>
+			<SettingsRow stacked>
+				<template #label>{{ formatMessage(messages.wrapperHook) }}</template>
+				<template #description>{{ formatMessage(messages.wrapperDescription) }}</template>
+				<template #control>
+					<StyledInput
+						id="wrapper"
+						v-model="settings.hooks.wrapper"
+						autocomplete="off"
+						type="text"
+						:placeholder="formatMessage(messages.wrapperPlaceholder)"
+						wrapper-class="w-full"
+					/>
+				</template>
+			</SettingsRow>
+			<SettingsRow stacked>
+				<template #label>{{ formatMessage(messages.postExitHook) }}</template>
+				<template #description>{{ formatMessage(messages.postExitDescription) }}</template>
+				<template #control>
+					<StyledInput
+						id="post-exit"
+						v-model="settings.hooks.post_exit"
+						autocomplete="off"
+						type="text"
+						:placeholder="formatMessage(messages.postExitPlaceholder)"
+						wrapper-class="w-full"
+					/>
+				</template>
+			</SettingsRow>
+		</SettingsSection>
 
-				<StyledInput
-					id="width"
-					v-model="settings.game_resolution[0]"
-					:disabled="settings.force_fullscreen"
-					autocomplete="off"
-					type="number"
-					:placeholder="formatMessage(messages.widthPlaceholder)"
-				/>
-			</div>
+		<SettingsSection>
+			<SettingsRow>
+				<template #label>
+					<span id="settings-target-launch-lightweight-mode" tabindex="-1">
+						{{ formatMessage(messages.lightweightMode) }}
+					</span>
+				</template>
+				<template #description>{{ formatMessage(messages.lightweightModeDescription) }}</template>
+				<template #control>
+					<Toggle
+						id="enter-lightweight-mode-on-game-launch"
+						:model-value="settings.enter_lightweight_mode_on_game_launch"
+						@update:model-value="
+							(value) => {
+								settings.enter_lightweight_mode_on_game_launch = !!value
+								if (value) settings.hide_on_process_start = false
+							}
+						"
+					/>
+				</template>
+			</SettingsRow>
+			<SettingsRow>
+				<template #label>
+					<span id="settings-target-launch-minimize" tabindex="-1">
+						{{ formatMessage(messages.minimizeLauncher) }}
+					</span>
+				</template>
+				<template #description>{{ formatMessage(messages.minimizeLauncherDescription) }}</template>
+				<template #control>
+					<Toggle
+						id="minimize-launcher"
+						:model-value="settings.hide_on_process_start"
+						:disabled="settings.enter_lightweight_mode_on_game_launch"
+						@update:model-value="(value) => (settings.hide_on_process_start = !!value)"
+					/>
+				</template>
+			</SettingsRow>
+		</SettingsSection>
 
-			<div class="flex items-center justify-between gap-4">
-				<div class="flex flex-col gap-1">
-					<h3 class="m-0 text-lg font-semibold text-contrast">
-						{{ formatMessage(messages.height) }}
-					</h3>
-					<p class="m-0 leading-tight">{{ formatMessage(messages.heightDescription) }}</p>
-				</div>
-
-				<StyledInput
-					id="height"
-					v-model="settings.game_resolution[1]"
-					:disabled="settings.force_fullscreen"
-					autocomplete="off"
-					type="number"
-					:placeholder="formatMessage(messages.heightPlaceholder)"
-				/>
-			</div>
-		</div>
-
-		<hr class="my-6 bg-button-border border-none h-[1px]" />
-
-		<div class="flex flex-col gap-6">
-			<div class="flex flex-col gap-2.5">
-				<h2 class="m-0 text-lg font-semibold text-contrast">
-					{{ formatMessage(messages.memory) }}
-				</h2>
-				<Checkbox
-					v-model="settings.memory.automatic"
-					:label="formatMessage(messages.automaticMemory)"
-				/>
-				<Slider
-					id="max-memory"
-					v-model="settings.memory.maximum"
-					:disabled="settings.memory.automatic"
-					:min="512"
-					:max="maxMemory"
-					:step="64"
-					:snap-points="snapPoints"
-					:snap-range="512"
-					unit="MB"
-				/>
-				<p class="m-0 mt-1 leading-tight">
-					{{
-						formatMessage(
-							settings.memory.automatic
-								? messages.automaticMemoryDescription
-								: messages.memoryDescription,
-						)
-					}}
-				</p>
-				<MemoryAllocationDisplay :memory="settings.memory" show-optimize-button />
-			</div>
-
-			<div class="flex flex-col gap-2.5">
-				<h2 class="m-0 text-lg font-semibold text-contrast">
-					{{ formatMessage(messages.javaArguments) }}
-				</h2>
-				<JavaArgumentsInput
-					id="java-args"
-					v-model="settings.launchArgs"
-					:placeholder="formatMessage(messages.javaArgumentsPlaceholder)"
-				/>
-			</div>
-
-			<div class="flex flex-col gap-2.5">
-				<h2 class="m-0 text-lg font-semibold text-contrast">
-					{{ formatMessage(messages.environmentVariables) }}
-				</h2>
-				<StyledInput
-					id="env-vars"
-					v-model="settings.envVars"
-					autocomplete="off"
-					type="text"
-					:placeholder="formatMessage(messages.environmentVariablesPlaceholder)"
-					wrapper-class="w-full"
-				/>
-			</div>
-		</div>
-
-		<hr class="my-6 bg-button-border border-none h-[1px]" />
-
-		<div class="flex flex-col gap-6">
-			<div class="flex flex-col gap-2.5">
-				<h3 class="m-0 text-lg font-semibold text-contrast">
-					{{ formatMessage(messages.preLaunchHook) }}
-				</h3>
-				<StyledInput
-					id="pre-launch"
-					v-model="settings.hooks.pre_launch"
-					autocomplete="off"
-					type="text"
-					:placeholder="formatMessage(messages.preLaunchPlaceholder)"
-					wrapper-class="w-full"
-				/>
-				<p class="m-0 leading-tight">{{ formatMessage(messages.preLaunchDescription) }}</p>
-			</div>
-
-			<div class="flex flex-col gap-2.5">
-				<h3 class="m-0 text-lg font-semibold text-contrast">
-					{{ formatMessage(messages.wrapperHook) }}
-				</h3>
-				<StyledInput
-					id="wrapper"
-					v-model="settings.hooks.wrapper"
-					autocomplete="off"
-					type="text"
-					:placeholder="formatMessage(messages.wrapperPlaceholder)"
-					wrapper-class="w-full"
-				/>
-				<p class="m-0 leading-tight">{{ formatMessage(messages.wrapperDescription) }}</p>
-			</div>
-
-			<div class="flex flex-col gap-2.5">
-				<h3 class="m-0 text-lg font-semibold text-contrast">
-					{{ formatMessage(messages.postExitHook) }}
-				</h3>
-				<StyledInput
-					id="post-exit"
-					v-model="settings.hooks.post_exit"
-					autocomplete="off"
-					type="text"
-					:placeholder="formatMessage(messages.postExitPlaceholder)"
-					wrapper-class="w-full"
-				/>
-				<p class="m-0 leading-tight">{{ formatMessage(messages.postExitDescription) }}</p>
-			</div>
-		</div>
+		<CrashAnalysisAISettings />
 	</div>
 </template>

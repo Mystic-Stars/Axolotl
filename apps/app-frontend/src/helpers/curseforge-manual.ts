@@ -86,6 +86,7 @@ export function getCurseForgeManualDownloadUrl(item: CurseForgeManualDownloadIte
 		resourcepack: 'texture-packs',
 		shader: 'shaders',
 		shaderpack: 'shaders',
+		world: 'worlds',
 	}[item.projectType ?? '']
 	const fallback =
 		item.projectSlug && projectTypePath
@@ -99,7 +100,7 @@ export function getCurseForgeManualDownloadUrl(item: CurseForgeManualDownloadIte
 			return item.websiteUrl
 		}
 		const projectPath = url.pathname.match(
-			/^\/minecraft\/(?:mc-mods|modpacks|data-packs|texture-packs|shaders)\/([^/]+)/i,
+			/^\/minecraft\/(?:mc-mods|modpacks|data-packs|texture-packs|shaders|worlds)\/([^/]+)/i,
 		)
 		if (projectPath?.[1] && /^\d+$/.test(projectPath[1])) return fallback
 		url.pathname = url.pathname.replace(

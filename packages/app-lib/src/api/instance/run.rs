@@ -13,6 +13,8 @@ use std::time::Duration;
 use tokio::process::Command;
 use tracing::{info, warn};
 
+pub use crate::launcher::jvm_args::{GcLaunchIntent, GcLaunchReport};
+
 const LAUNCH_PREPARATION_TIMEOUT: Duration = Duration::from_secs(60);
 
 #[derive(Debug, Clone)]
@@ -28,6 +30,56 @@ pub async fn run(
     quick_play_type: QuickPlayType,
     offline_mode: bool,
 ) -> crate::Result<ProcessMetadata> {
+    run_with_extra_launch_args(instance_id, quick_play_type, offline_mode, None)
+        .await
+}
+
+#[tracing::instrument]
+pub async fn run_with_extra_launch_args(
+    instance_id: &str,
+    quick_play_type: QuickPlayType,
+    offline_mode: bool,
+    extra_launch_args: Option<Vec<String>>,
+) -> crate::Result<ProcessMetadata> {
+    Ok(run_with_extra_launch_args_inner(
+        instance_id,
+        quick_play_type,
+        offline_mode,
+        extra_launch_args,
+        None,
+    )
+    .await?
+    .0)
+}
+
+/// Like [`run_with_extra_launch_args`], but additionally resolves a GC-args
+/// intent against the actual JVM and reports what was actually used (useful
+/// for surfacing strategy fallback / flag pruning to the user).
+#[tracing::instrument]
+pub async fn run_with_extra_launch_args_with_gc(
+    instance_id: &str,
+    quick_play_type: QuickPlayType,
+    offline_mode: bool,
+    extra_launch_args: Option<Vec<String>>,
+    gc_intent: Option<GcLaunchIntent>,
+) -> crate::Result<(ProcessMetadata, Option<GcLaunchReport>)> {
+    run_with_extra_launch_args_inner(
+        instance_id,
+        quick_play_type,
+        offline_mode,
+        extra_launch_args,
+        gc_intent,
+    )
+    .await
+}
+
+async fn run_with_extra_launch_args_inner(
+    instance_id: &str,
+    quick_play_type: QuickPlayType,
+    offline_mode: bool,
+    extra_launch_args: Option<Vec<String>>,
+    gc_intent: Option<GcLaunchIntent>,
+) -> crate::Result<(ProcessMetadata, Option<GcLaunchReport>)> {
     let state = State::get().await?;
     let default_account = if offline_mode {
         Credentials::get_offline_credential(&state.pool)
@@ -52,6 +104,8 @@ pub async fn run(
             &default_account,
             quick_play_type,
             offline_mode,
+            extra_launch_args,
+            gc_intent,
         ),
     )
     .await
@@ -70,7 +124,9 @@ async fn run_credentials(
     credentials: &Credentials,
     quick_play_type: QuickPlayType,
     offline_mode: bool,
-) -> crate::Result<ProcessMetadata> {
+    extra_launch_args: Option<Vec<String>>,
+    gc_intent: Option<GcLaunchIntent>,
+) -> crate::Result<(ProcessMetadata, Option<GcLaunchReport>)> {
     let state = State::get().await?;
     let settings = Settings::get(&state.pool).await?;
     let context =
@@ -113,10 +169,10 @@ async fn run_credentials(
 
         if let Some(command) = cmd.next() {
             let full_path = crate::util::io::canonicalize(
-                state
-                    .directories
-                    .instances_dir()
-                    .join(&context.instance.path),
+                state.directories.resolve_game_dir(
+                    &context.instance.path,
+                    context.instance.game_dir_override.as_deref(),
+                ),
             )?;
             let mut command = Command::new(command);
             command.args(cmd).current_dir(&full_path).kill_on_drop(true);
@@ -137,11 +193,15 @@ async fn run_credentials(
         }
     }
 
-    let java_args = context
-        .launch_overrides
-        .extra_launch_args
-        .clone()
-        .unwrap_or(settings.extra_launch_args);
+    let java_args = if let Some(extra_launch_args) = extra_launch_args {
+        extra_launch_args
+    } else {
+        context
+            .launch_overrides
+            .extra_launch_args
+            .clone()
+            .unwrap_or(settings.extra_launch_args)
+    };
     let wrapper = context
         .launch_overrides
         .hooks
@@ -236,11 +296,18 @@ async fn run_credentials(
     } else {
         crate::minecraft_skins::flush_pending_skin_change().await?;
     }
+    if memory.optimize_before_launch
+        && crate::api::memory::optimization_supported()
+    {
+        tracing::info!("Optimizing memory before launching Minecraft");
+        crate::api::memory::optimize().await?;
+    }
+
     if memory.automatic {
-        let instance_path = state
-            .directories
-            .instances_dir()
-            .join(&context.instance.path);
+        let instance_path = state.directories.resolve_game_dir(
+            &context.instance.path,
+            context.instance.game_dir_override.as_deref(),
+        );
         memory.maximum = crate::api::jre::automatic_memory_max_mb_for_instance(
             &instance_path,
             matches!(
@@ -249,6 +316,10 @@ async fn run_credentials(
                     | crate::state::ModLoader::Fabric
                     | crate::state::ModLoader::Quilt
                     | crate::state::ModLoader::NeoForge
+                    | crate::state::ModLoader::Cleanroom
+                    | crate::state::ModLoader::LiteLoader
+                    | crate::state::ModLoader::LegacyFabric
+                    | crate::state::ModLoader::Babric
             ),
         );
         tracing::info!(
@@ -257,7 +328,8 @@ async fn run_credentials(
         );
     }
 
-    crate::launcher::launch_minecraft(
+    let mut gc_report: Option<GcLaunchReport> = None;
+    let process = crate::launcher::launch_minecraft(
         &java_args,
         &env_args,
         &mc_set_options,
@@ -267,10 +339,13 @@ async fn run_credentials(
         credentials,
         post_exit_hook,
         &context,
+        gc_intent,
+        &mut gc_report,
         quick_play_type,
         offline_mode,
     )
-    .await
+    .await?;
+    Ok((process, gc_report))
 }
 
 fn server_play_project_id(link: &InstanceLink) -> Option<&String> {

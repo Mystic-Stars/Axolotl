@@ -1,6 +1,6 @@
 <template>
 	<svg
-		class="qq-icon"
+		class="w-[2.1rem] h-[2.4rem]"
 		xmlns="http://www.w3.org/2000/svg"
 		viewBox="0 0 448 512"
 		fill="currentColor"
@@ -11,10 +11,3 @@
 		/>
 	</svg>
 </template>
-
-<style scoped>
-.qq-icon {
-	width: 2.1rem;
-	height: 2.4rem;
-}
-</style>

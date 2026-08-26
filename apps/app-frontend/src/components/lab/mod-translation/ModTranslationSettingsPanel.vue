@@ -180,7 +180,7 @@ loadDefaults()
 				</label>
 				<label class="flex flex-col gap-2 font-semibold text-contrast">
 					{{ formatMessage(messages.model) }}
-					<div class="model-combobox" :class="{ 'has-model-icon': modelId }">
+					<div class="model-combobox relative" :class="{ 'has-model-icon': modelId }">
 						<AIIcon
 							v-if="modelId"
 							class="pointer-events-none absolute left-3 top-1/2 z-[2] -translate-y-1/2"
@@ -257,10 +257,6 @@ loadDefaults()
 </template>
 
 <style scoped>
-.model-combobox {
-	position: relative;
-}
-
 .model-combobox.has-model-icon :deep(input) {
 	padding-left: 2.75rem !important;
 }

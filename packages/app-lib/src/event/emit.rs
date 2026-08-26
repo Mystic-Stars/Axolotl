@@ -2,11 +2,12 @@ use super::{FriendPayload, LoadingBarId};
 use crate::event::{
     CommandPayload, EventError, InstanceBulkUpdateProgressPayload,
     InstancePayloadType, LoadingBar, LoadingBarType, ProcessPayloadType,
+    ServerPayloadType,
 };
 #[cfg(feature = "tauri")]
 use crate::event::{
     InstancePayload, JavaDiscoveryPayload, JavaDownloadConfirmationPayload,
-    LoadingPayload, ProcessPayload, WarningPayload,
+    LoadingPayload, ProcessPayload, ServerPayload, WarningPayload,
 };
 use futures::prelude::*;
 use serde_json::Value;
@@ -362,6 +363,29 @@ pub async fn emit_instance(
                 "instance",
                 InstancePayload {
                     instance_id: instance_id.to_string(),
+                    event,
+                },
+            )
+            .map_err(EventError::from)?;
+    }
+    Ok(())
+}
+
+// emit_server(server_id, event)
+#[allow(unused_variables)]
+pub async fn emit_server(
+    server_id: &str,
+    event: ServerPayloadType,
+) -> crate::Result<()> {
+    #[cfg(feature = "tauri")]
+    {
+        let event_state = crate::EventState::get()?;
+        event_state
+            .app
+            .emit(
+                "server",
+                ServerPayload {
+                    server_id: server_id.to_string(),
                     event,
                 },
             )

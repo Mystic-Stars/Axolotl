@@ -1,0 +1,24 @@
+{
+	"name": "@modrinth/server",
+	"version": "0.0.0",
+	"description": "Minecraft dedicated server management core: config file schemas, manifest types, and download resolution shared by the Axolotl app and CLI.",
+	"license": "LGPL-3.0-only",
+	"type": "module",
+	"main": "./index.ts",
+	"types": "./index.ts",
+	"exports": {
+		".": {
+			"types": "./index.ts",
+			"default": "./index.ts"
+		}
+	},
+	"scripts": {
+		"lint": "eslint . && prettier --check .",
+		"fix": "eslint . --fix && prettier --write .",
+		"test": "node --test \"src/**/*.test.ts\"",
+		"prepr": "pnpm run fix"
+	},
+	"devDependencies": {
+		"@modrinth/tooling-config": "workspace:*"
+	}
+}

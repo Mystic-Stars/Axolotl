@@ -52,6 +52,20 @@
 							<span>{{ formatMessage(messages.browseServers) }}</span>
 						</button>
 					</ButtonStyled>
+					<ButtonStyled type="outlined">
+						<button
+							class="!h-10 flex items-center gap-2"
+							@click="
+								router.push({
+									path: '/browse/world',
+									query: { i: instance.id, from: 'world-maps' },
+								})
+							"
+						>
+							<WorldIcon class="size-5" />
+							<span>{{ formatMessage(messages.browseMaps) }}</span>
+						</button>
+					</ButtonStyled>
 				</div>
 			</div>
 			<div class="flex flex-wrap items-center justify-between gap-2">
@@ -142,12 +156,30 @@
 						<span>{{ formatMessage(messages.browseServers) }}</span>
 					</button>
 				</ButtonStyled>
+				<ButtonStyled type="outlined">
+					<button
+						class="!h-10 flex items-center gap-2"
+						@click="
+							router.push({ path: '/browse/world', query: { i: instance.id, from: 'world-maps' } })
+						"
+					>
+						<WorldIcon class="size-5" />
+						<span>{{ formatMessage(messages.browseMaps) }}</span>
+					</button>
+				</ButtonStyled>
 			</template>
 		</EmptyState>
 	</ReadyTransition>
 </template>
 <script setup lang="ts">
-import { CompassIcon, FilterIcon, PlusIcon, RefreshCwIcon, SearchIcon } from '@modrinth/assets'
+import {
+	CompassIcon,
+	FilterIcon,
+	PlusIcon,
+	RefreshCwIcon,
+	SearchIcon,
+	WorldIcon,
+} from '@modrinth/assets'
 import {
 	ButtonStyled,
 	commonMessages,
@@ -219,6 +251,10 @@ const messages = defineMessages({
 	browseServers: {
 		id: 'app.instance.worlds.browse-servers',
 		defaultMessage: 'Browse servers',
+	},
+	browseMaps: {
+		id: 'app.instance.worlds.browse-maps',
+		defaultMessage: 'Browse maps',
 	},
 	noWorldsHeading: {
 		id: 'app.instance.worlds.no-worlds-heading',
@@ -329,6 +365,7 @@ const isLinux = platform() === 'linux'
 const linuxRefreshCount = ref(0)
 
 const protocolVersion = ref<ProtocolVersion | null>(null)
+const protocolVersionReady = ref(false)
 
 const gameVersions = ref<GameVersion[]>([])
 const supportsServerQuickPlay = computed(() =>
@@ -343,8 +380,15 @@ watch(
 	(data) => {
 		if (data) {
 			worlds.value = [...data]
-			refreshServers(worlds.value, serverData.value, protocolVersion.value)
 			hadNoWorlds.value = worlds.value.length === 0
+			if (!refreshingAll.value) {
+				void refreshServers(
+					worlds.value,
+					serverData.value,
+					protocolVersion.value,
+					protocolVersionReady.value,
+				)
+			}
 		}
 	},
 	{ immediate: true },
@@ -444,6 +488,11 @@ async function initWorldsTab() {
 	unlistenInstance = _unlistenInstance
 	protocolVersion.value = resolvedProtocolVersion
 	gameVersions.value = resolvedGameVersions
+	protocolVersionReady.value = true
+
+	if (worlds.value.length > 0) {
+		void refreshServers(worlds.value, serverData.value, protocolVersion.value)
+	}
 }
 
 await initWorldsTab()
@@ -454,6 +503,7 @@ async function refreshServer(address: string) {
 			refreshing: true,
 		}
 	}
+	if (!protocolVersionReady.value) return
 	await refreshServerData(serverData.value[address], protocolVersion.value, address)
 }
 
@@ -464,8 +514,27 @@ async function refreshAllWorlds() {
 	}
 
 	refreshingAll.value = true
-	await queryClient.invalidateQueries({ queryKey: ['worlds', instance.value.id] })
-	refreshingAll.value = false
+	try {
+		for (const world of worlds.value) {
+			if (world.type === 'server') {
+				if (!serverData.value[world.address]) {
+					serverData.value[world.address] = { refreshing: true }
+				} else {
+					serverData.value[world.address].refreshing = true
+				}
+			}
+		}
+
+		await queryClient.invalidateQueries({ queryKey: ['worlds', instance.value.id] })
+		await refreshServers(
+			worlds.value,
+			serverData.value,
+			protocolVersion.value,
+			protocolVersionReady.value,
+		)
+	} finally {
+		refreshingAll.value = false
+	}
 }
 
 async function addServer(server: ServerWorld) {

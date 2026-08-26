@@ -1,5 +1,5 @@
 <template>
-	<div class="smart-clickable" :class="{ 'smart-clickable--has-clickable': !!$slots.clickable }">
+	<div class="smart-clickable grid" :class="{ 'smart-clickable--has-clickable': !!$slots.clickable }">
 		<slot name="clickable" />
 		<div
 			v-bind="$attrs"
@@ -20,8 +20,6 @@ defineOptions({
 </script>
 <style scoped lang="scss">
 .smart-clickable {
-	display: grid;
-
 	> * {
 		grid-area: 1 / 1;
 	}

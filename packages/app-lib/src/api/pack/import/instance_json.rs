@@ -7,6 +7,7 @@ pub struct InstanceInfo {
     pub vanilla_name: String,
     pub loader: Option<String>,
     pub loader_version: Option<String>,
+    pub adjuncts: Vec<(String, Option<String>)>,
 }
 
 fn find_json(path: &Path) -> Option<(String, String)> {
@@ -154,6 +155,18 @@ pub fn detect(path: &Path) -> Option<InstanceInfo> {
         });
         (loader, version)
     });
+    let adjuncts = detect_adjuncts(
+        &content,
+        loader.as_ref().map(|(loader, _)| loader.as_str()),
+    )
+    .into_iter()
+    .map(|(loader, version)| {
+        let version = version.map(|version| {
+            normalize_imported_loader_version(&loader, &vanilla_name, &version)
+        });
+        (loader, version)
+    })
+    .collect();
     debug!(
         "instance_json: path={} version={} loader={:?}",
         path.display(),
@@ -164,6 +177,7 @@ pub fn detect(path: &Path) -> Option<InstanceInfo> {
         vanilla_name,
         loader: loader.as_ref().map(|(t, _)| t.clone()),
         loader_version: loader.and_then(|(_, v)| v),
+        adjuncts,
     })
 }
 
@@ -203,10 +217,20 @@ pub(crate) fn normalize_imported_loader_version(
             .strip_suffix(&format!("-{game_version}"))
             .unwrap_or(without_family)
             .to_string(),
-        "forge" | "neoforge" => without_family
-            .strip_prefix(&format!("{game_version}-"))
-            .unwrap_or(without_family)
-            .to_string(),
+        "forge" | "neoforge" => {
+            let stripped = without_family
+                .strip_prefix(&format!("{game_version}-"))
+                .unwrap_or(without_family);
+            // Legacy Forge (e.g. 1.7.10) embeds the MC version as a trailing
+            // suffix: `1.7.10-10.13.4.1614-1.7.10` -> `10.13.4.1614`. Strip it so
+            // the id matches the metadata manifest. When the suffix is absent
+            // (modern `1.20.1-47.4.22`), keep the already prefix-stripped
+            // version rather than reverting to the raw detected value.
+            stripped
+                .strip_suffix(&format!("-{game_version}"))
+                .unwrap_or(stripped)
+                .to_string()
+        }
         _ => without_family.to_string(),
     }
 }
@@ -490,15 +514,11 @@ fn detect_loader(
 
     // OptiFine
     if lower.contains("optifine") {
-        let version = content
-            .split("optifine:OptiFine:")
-            .nth(1)
-            .and_then(|s| {
-                s.trim_matches(|c: char| c == '"' || c == ',' || c == ' ')
-                    .split('_')
-                    .next()
-            })
-            .map(|s| s.to_string());
+        let version = try_extract_version_from_needle(
+            content,
+            "optifine:OptiFine:",
+            None,
+        );
         if version.is_some() {
             return Some(("optifine".into(), version));
         }
@@ -511,6 +531,46 @@ fn detect_loader(
 
     debug!("detect_loader: no known loader library found in JSON content");
     None
+}
+
+fn detect_adjuncts(
+    content: &str,
+    primary_loader: Option<&str>,
+) -> Vec<(String, Option<String>)> {
+    let lower = content.to_ascii_lowercase();
+    let mut adjuncts = Vec::new();
+    if primary_loader != Some("lite_loader") && lower.contains("liteloader") {
+        adjuncts.push(("lite_loader".to_string(), None));
+    }
+    if primary_loader != Some("optifine") && lower.contains("optifine") {
+        let version = try_extract_version_from_needle(
+            content,
+            "optifine:OptiFine:",
+            None,
+        )
+        .or_else(|| {
+            try_extract_version_from_needle(&lower, "optifine:optifine:", None)
+        });
+        if version.is_some() {
+            adjuncts.push(("optifine".to_string(), version));
+        }
+    }
+    if lower.contains("optifabric") {
+        let version = try_extract_version_from_needle(
+            &lower,
+            "me.modmuss50:optifabric:",
+            None,
+        )
+        .or_else(|| {
+            try_extract_version_from_needle(
+                &lower,
+                "optifabric:optifabric:",
+                None,
+            )
+        });
+        adjuncts.push(("optifabric".to_string(), version));
+    }
+    adjuncts
 }
 
 /// Extracts the loader version string from JSON content by finding a needle
@@ -578,7 +638,7 @@ mod tests {
                 "forge",
                 "1.7.10",
                 "1.7.10-10.13.4.1614-1.7.10",
-                "10.13.4.1614-1.7.10",
+                "10.13.4.1614",
             ),
             ("forge", "1.20.1", "1.20.1-47.4.22", "47.4.22"),
             ("neoforge", "1.20.1", "1.20.1-44.0.3", "44.0.3"),
@@ -656,7 +716,31 @@ mod tests {
                 ]
             }"#,
             "optifine",
-            Some("1.8.9"),
+            Some("1.8.9_HD_U_H5"),
+        );
+    }
+
+    #[test]
+    fn detects_forge_with_liteloader_and_optifine_adjuncts() {
+        let content = r#"{
+            "id": "1.12.2-forge-combined",
+            "libraries": [
+                { "name": "net.minecraftforge:forge:1.12.2-14.23.5.2860" },
+                { "name": "com.mumfrey:liteloader:1.12.2-SNAPSHOT" },
+                { "name": "optifine:OptiFine:1.12.2_HD_U_G5" }
+            ]
+        }"#;
+        let json: Value = serde_json::from_str(content).unwrap();
+        let primary = detect_loader(content, &json).unwrap();
+        let adjuncts = detect_adjuncts(content, Some(&primary.0));
+
+        assert_eq!(primary.0, "forge");
+        assert_eq!(
+            adjuncts,
+            vec![
+                ("lite_loader".to_string(), None),
+                ("optifine".to_string(), Some("1.12.2_HD_U_G5".to_string())),
+            ]
         );
     }
 

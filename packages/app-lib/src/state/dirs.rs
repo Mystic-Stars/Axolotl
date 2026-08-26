@@ -12,6 +12,7 @@ use tokio::fs;
 pub const CACHES_FOLDER_NAME: &str = "caches";
 pub const LAUNCHER_LOGS_FOLDER_NAME: &str = "launcher_logs";
 pub const INSTANCES_FOLDER_NAME: &str = "profiles";
+pub const SERVERS_FOLDER_NAME: &str = "servers";
 pub const INSTALL_ROLLBACKS_FOLDER_NAME: &str = "install-rollbacks";
 pub const METADATA_FOLDER_NAME: &str = "meta";
 
@@ -155,6 +156,18 @@ impl DirectoryInfo {
         self.config_dir.join(INSTANCES_FOLDER_NAME)
     }
 
+    /// Get the directory containing managed dedicated servers
+    #[inline]
+    pub fn servers_dir(&self) -> PathBuf {
+        self.config_dir.join(SERVERS_FOLDER_NAME)
+    }
+
+    /// Gets the directory of a managed dedicated server by id
+    #[inline]
+    pub fn server_dir(&self, server_id: &str) -> PathBuf {
+        self.servers_dir().join(server_id)
+    }
+
     #[inline]
     pub fn install_rollbacks_dir(&self) -> PathBuf {
         self.config_dir.join(INSTALL_ROLLBACKS_FOLDER_NAME)
@@ -166,12 +179,73 @@ impl DirectoryInfo {
         self.instances_dir().join(instance_path).join("logs")
     }
 
+    /// Gets the logs dir for a resolved game directory (honours a per-instance
+    /// `game_dir_override`), so launcher-captured logs follow the game dir.
+    #[inline]
+    pub fn game_logs_dir(&self, game_dir: &std::path::Path) -> PathBuf {
+        game_dir.join("logs")
+    }
+
     /// Gets the crash reports dir for a given instance path
     #[inline]
     pub fn crash_reports_dir(&self, instance_path: &str) -> PathBuf {
         self.instances_dir()
             .join(instance_path)
             .join("crash-reports")
+    }
+
+    /// Gets the crash reports dir for a resolved game directory (honours a
+    /// per-instance `game_dir_override`), so game-written crash reports are
+    /// read from the same place the game writes them.
+    #[inline]
+    pub fn game_crash_reports_dir(
+        &self,
+        game_dir: &std::path::Path,
+    ) -> PathBuf {
+        game_dir.join("crash-reports")
+    }
+
+    /// Resolve the game working directory (the "content" directory the game
+    /// actually reads and writes: mods, saves, config, logs, crash-reports,
+    /// options.txt, resourcepacks, datapacks, shaders, worlds) for an instance.
+    ///
+    /// Returns the per-instance override when set (an external /
+    /// non-version-isolated folder), otherwise the managed folder under the
+    /// instances directory.
+    ///
+    /// This is the SOLE resolver for anything that represents the game's own
+    /// content. Launcher-owned bookkeeping (instance config file, icon, install
+    /// rollbacks, content-backup metadata) must keep using `instances_dir()` and
+    /// not go through this function.
+    pub fn resolve_game_dir(
+        &self,
+        instance_path: &str,
+        game_dir_override: Option<&str>,
+    ) -> PathBuf {
+        match game_dir_override {
+            // The override must be an absolute path; a relative override would
+            // make the game's working directory depend on the process cwd, so
+            // treat it as unset and fall back to the managed folder.
+            Some(override_dir)
+                if !override_dir.is_empty()
+                    && Path::new(override_dir).is_absolute() =>
+            {
+                PathBuf::from(override_dir)
+            }
+            _ => self.instances_dir().join(instance_path),
+        }
+    }
+
+    /// Convenience: `resolve_game_dir` for an `Instance`, borrowing its
+    /// relative `path` and optional `game_dir_override`.
+    pub fn instance_game_dir(
+        &self,
+        instance: &crate::state::instances::Instance,
+    ) -> PathBuf {
+        self.resolve_game_dir(
+            &instance.path,
+            instance.game_dir_override.as_deref(),
+        )
     }
 
     #[inline]
@@ -567,5 +641,57 @@ impl DirectoryInfo {
         settings.update(exec).await?;
 
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod resolve_game_dir_tests {
+    use super::DirectoryInfo;
+    use std::path::PathBuf;
+
+    fn dirs() -> DirectoryInfo {
+        DirectoryInfo {
+            settings_dir: PathBuf::from(r"C:\launcher\settings"),
+            config_dir: PathBuf::from(r"C:\launcher"),
+            app_identifier: "test".to_string(),
+        }
+    }
+
+    #[test]
+    fn override_used_when_set_and_absolute() {
+        let dirs = dirs();
+        assert_eq!(
+            dirs.resolve_game_dir("inst", Some(r"D:\Games\.minecraft")),
+            PathBuf::from(r"D:\Games\.minecraft")
+        );
+    }
+
+    #[test]
+    fn managed_folder_used_without_override() {
+        let dirs = dirs();
+        assert_eq!(
+            dirs.resolve_game_dir("inst", None),
+            dirs.instances_dir().join("inst")
+        );
+    }
+
+    #[test]
+    fn managed_folder_used_for_empty_override() {
+        let dirs = dirs();
+        assert_eq!(
+            dirs.resolve_game_dir("inst", Some("")),
+            dirs.instances_dir().join("inst")
+        );
+    }
+
+    #[test]
+    fn managed_folder_used_for_relative_override() {
+        // A relative override must be treated as unset to avoid a cwd-dependent
+        // game working directory.
+        let dirs = dirs();
+        assert_eq!(
+            dirs.resolve_game_dir("inst", Some(r"relative\dir")),
+            dirs.instances_dir().join("inst")
+        );
     }
 }

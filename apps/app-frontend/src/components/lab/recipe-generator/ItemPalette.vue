@@ -210,7 +210,7 @@ function startPointerDrag(event: PointerEvent, entry: PaletteEntry, startDrag: S
 					:style="{ height: `${totalHeight}px`, overflowAnchor: 'none' }"
 				>
 					<div
-						class="recipe-palette-window"
+						class="absolute inset-x-0 grid grid-auto-rows-[4rem] gap-[0.4rem] p-[0.1rem_0.25rem_0.25rem_0.1rem]"
 						:style="{
 							top: `${visibleTop}px`,
 							gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
@@ -260,15 +260,6 @@ function startPointerDrag(event: PointerEvent, entry: PaletteEntry, startDrag: S
 	position: relative;
 	width: 100%;
 	min-height: 0;
-}
-
-.recipe-palette-window {
-	position: absolute;
-	inset-inline: 0;
-	display: grid;
-	grid-auto-rows: 4rem;
-	gap: 0.4rem;
-	padding: 0.1rem 0.25rem 0.25rem 0.1rem;
 }
 
 .recipe-palette-item {

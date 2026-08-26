@@ -276,6 +276,25 @@ pub async fn get_minecraft_arguments(
     let profile = credentials.maybe_online_profile().await;
     let mut parsed_arguments = Vec::new();
 
+    if let Some(legacy_arguments) = legacy_arguments {
+        for x in legacy_arguments.split(' ') {
+            parsed_arguments.push(parse_minecraft_argument(
+                &x.replace(' ', TEMPORARY_REPLACE_CHAR),
+                &access_token,
+                &profile.name,
+                profile.id,
+                user_type,
+                version,
+                asset_index_name,
+                game_directory,
+                assets_directory,
+                version_type,
+                resolution,
+                quick_play_type,
+            )?);
+        }
+    }
+
     if let Some(arguments) = arguments {
         parse_arguments(
             arguments,
@@ -299,23 +318,6 @@ pub async fn get_minecraft_arguments(
             java_arch,
             quick_play_type,
         )?;
-    } else if let Some(legacy_arguments) = legacy_arguments {
-        for x in legacy_arguments.split(' ') {
-            parsed_arguments.push(parse_minecraft_argument(
-                &x.replace(' ', TEMPORARY_REPLACE_CHAR),
-                &access_token,
-                &profile.name,
-                profile.id,
-                user_type,
-                version,
-                asset_index_name,
-                game_directory,
-                assets_directory,
-                version_type,
-                resolution,
-                quick_play_type,
-            )?);
-        }
     }
 
     if let QuickPlayType::Server(server) = quick_play_type
@@ -558,4 +560,53 @@ pub async fn get_processor_main_class(
     .await??;
 
     Ok(main_class)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::launcher::quick_play_version::QuickPlaySingleplayerVersion;
+
+    #[tokio::test]
+    async fn mixed_legacy_and_modern_game_arguments_are_both_preserved() {
+        let directory = tempfile::tempdir().unwrap();
+        let game_directory = directory.path().join("instance");
+        let assets_directory = directory.path().join("assets");
+        std::fs::create_dir_all(&game_directory).unwrap();
+        std::fs::create_dir_all(&assets_directory).unwrap();
+        let credentials = Credentials::offline("Player").unwrap();
+        let modern = vec![
+            Argument::Normal("--tweakClass".to_string()),
+            Argument::Normal("example.LiteLoaderTweaker".to_string()),
+        ];
+
+        let parsed = get_minecraft_arguments(
+            Some(&modern),
+            Some("--username ${auth_player_name} --gameDir ${game_directory}"),
+            &credentials,
+            "1.12.2",
+            "1.12",
+            &game_directory,
+            &assets_directory,
+            &VersionType::Release,
+            WindowSize(854, 480),
+            "x86_64",
+            &QuickPlayType::None,
+            QuickPlayVersion {
+                server: QuickPlayServerVersion::Unsupported,
+                singleplayer: QuickPlaySingleplayerVersion::Unsupported,
+            },
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(parsed[0], "--username");
+        assert_eq!(parsed[1], "Player");
+        assert_eq!(parsed[2], "--gameDir");
+        assert_eq!(
+            parsed[3],
+            canonicalize(&game_directory).unwrap().to_string_lossy()
+        );
+        assert_eq!(&parsed[4..], ["--tweakClass", "example.LiteLoaderTweaker"]);
+    }
 }

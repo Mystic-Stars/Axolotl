@@ -41,7 +41,7 @@ const menuOptions = computed(() => [
 </script>
 
 <template>
-	<div class="home-instance-card" :data-layout="layout" :data-compact="compact">
+	<div class="home-instance-card relative min-w-0" :data-layout="layout" :data-compact="compact">
 		<Instance
 			:instance="instance"
 			:compact="compact"
@@ -67,11 +67,6 @@ const menuOptions = computed(() => [
 </template>
 
 <style scoped>
-.home-instance-card {
-	position: relative;
-	min-width: 0;
-}
-
 .home-instance-card[data-compact='true'] {
 	padding-right: 2.25rem;
 }

@@ -97,6 +97,11 @@ const weekdayLabels = computed(() =>
 	Array.from({ length: 7 }, (_, index) => formatWeekday(new Date(2024, 0, index + 1, 12))),
 )
 const dailyByDate = computed(() => new Map(dailyPlaytime.value.map((entry) => [entry.date, entry])))
+
+function heatmapLevelClass(dateKey: string): string {
+	const level = getPlaytimeLevel(dailyByDate.value.get(dateKey)?.played_seconds ?? 0)
+	return level === 0 ? 'bg-surface-4' : `home-calendar-level-${level}`
+}
 const canGoForward = computed(() => toDateKey(periodEnd.value) < todayKey)
 const instanceById = computed(
 	() => new Map(props.instances.map((instance) => [instance.id, instance])),
@@ -227,19 +232,19 @@ watch(instanceRevision, async () => {
 </script>
 
 <template>
-	<section class="home-calendar-dashboard p-2">
-		<header class="home-calendar-header">
-			<div class="home-calendar-title">
+	<section class="flex min-w-0 min-h-0 h-full flex-col gap-2.5 overflow-hidden p-2">
+		<header class="flex min-w-0 h-8 flex-none items-center gap-2">
+			<div class="home-calendar-title flex min-w-0 items-center gap-2">
 				<CalendarIcon class="size-5 shrink-0 text-brand" aria-hidden="true" />
 				<h2>{{ formatMessage(messages.calendar) }}</h2>
 			</div>
-			<div class="home-calendar-navigation">
+			<div class="ml-auto flex min-w-0 items-center gap-0.5">
 				<ButtonStyled circular size="small" type="transparent">
 					<button v-tooltip="formatMessage(messages.previousMonth)" @click="movePeriod(-1)">
 						<ChevronLeftIcon />
 					</button>
 				</ButtonStyled>
-				<ButtonStyled type="transparent" size="small" class="home-calendar-period">
+				<ButtonStyled type="transparent" size="small" class="home-calendar-period min-w-0">
 					<button v-tooltip="formatMessage(messages.thisMonth)" @click="goToThisMonth">
 						{{ periodLabel }}
 					</button>
@@ -256,28 +261,35 @@ watch(instanceRevision, async () => {
 			</div>
 		</header>
 		<div
-			class="home-calendar-month"
+			class="flex-none"
 			@pointerover="showTooltip"
 			@pointerleave="activeTooltip = null"
 			@focusin="showTooltip"
 			@focusout="activeTooltip = null"
 		>
-			<div class="home-calendar-weekdays" aria-hidden="true">
+			<div
+				class="mb-1 grid grid-cols-7 gap-[0.1875rem] text-center text-xs font-semibold text-secondary"
+				aria-hidden="true"
+			>
 				<span v-for="(weekday, index) in weekdayLabels" :key="index">{{ weekday }}</span>
 			</div>
-			<div class="home-calendar-grid" role="grid" :aria-label="formatMessage(messages.calendar)">
+			<div class="grid grid-cols-7 gap-[0.1875rem]" role="grid" :aria-label="formatMessage(messages.calendar)">
 				<button
 					v-for="day in days"
 					:key="day.dateKey"
 					type="button"
-					class="home-calendar-cell"
+					class="home-calendar-cell h-[1.4rem] border border-solid rounded-[var(--radius-sm)] text-[0.6875rem] font-semibold outline-none p-0"
 					:class="{
-						'home-calendar-cell-outside': !day.inPeriod,
-						'home-calendar-cell-future': day.inPeriod && day.dateKey > todayKey,
+						'text-contrast': !(day.inPeriod && day.dateKey > todayKey),
+						'text-secondary opacity-50 cursor-default':
+							day.inPeriod && day.dateKey > todayKey,
+						'cursor-default': !day.inPeriod,
+						'cursor-pointer': day.inPeriod && day.dateKey <= todayKey,
+						'border-transparent': !(day.inPeriod && day.dateKey === todayKey),
+						'border-brand': day.inPeriod && day.dateKey === todayKey,
+						'bg-transparent': !(day.inPeriod && day.dateKey <= todayKey),
 						'home-calendar-cell-selected': day.inPeriod && day.dateKey === selectedKey,
-						'home-calendar-cell-today': day.inPeriod && day.dateKey === todayKey,
-						[`home-calendar-level-${getPlaytimeLevel(dailyByDate.get(day.dateKey)?.played_seconds ?? 0)}`]:
-							day.inPeriod && day.dateKey <= todayKey,
+						[heatmapLevelClass(day.dateKey)]: day.inPeriod && day.dateKey <= todayKey,
 					}"
 					:tabindex="day.inPeriod && day.dateKey <= todayKey ? 0 : -1"
 					:disabled="!day.inPeriod || day.dateKey > todayKey"
@@ -294,14 +306,16 @@ watch(instanceRevision, async () => {
 				</button>
 			</div>
 		</div>
-		<div class="home-calendar-details">
+		<div
+			class="flex min-w-0 min-h-[3.75rem] flex-1 flex-col gap-1.5 overflow-y-auto border-t border-divider pt-2.5"
+		>
 			<h3 class="m-0 text-sm font-bold text-contrast">
 				{{ formatMessage(messages.playedOn, { date: selectedDateLabel }) }}
 			</h3>
 			<p v-if="dayDetails.length === 0" class="m-0 text-sm text-secondary">
 				{{ formatMessage(messages.noActivity) }}
 			</p>
-			<ul v-else class="home-calendar-detail-list m-0 flex list-none flex-col p-0">
+			<ul v-else class="m-0 flex list-none flex-col p-0">
 				<li
 					v-for="row in detailRows"
 					:key="row.entry.instance_id"
@@ -368,32 +382,6 @@ watch(instanceRevision, async () => {
 </template>
 
 <style scoped>
-.home-calendar-dashboard {
-	display: flex;
-	min-width: 0;
-	min-height: 0;
-	height: 100%;
-	flex-direction: column;
-	gap: 0.625rem;
-	overflow: hidden;
-}
-
-.home-calendar-header {
-	display: flex;
-	min-width: 0;
-	height: 2rem;
-	flex: 0 0 auto;
-	align-items: center;
-	gap: 0.5rem;
-}
-
-.home-calendar-title {
-	display: flex;
-	min-width: 0;
-	align-items: center;
-	gap: 0.5rem;
-}
-
 .home-calendar-title h2 {
 	overflow: hidden;
 	margin: 0;
@@ -405,18 +393,6 @@ watch(instanceRevision, async () => {
 	white-space: nowrap;
 }
 
-.home-calendar-navigation {
-	display: flex;
-	min-width: 0;
-	margin-left: auto;
-	align-items: center;
-	gap: 0.125rem;
-}
-
-.home-calendar-period {
-	min-width: 0;
-}
-
 .home-calendar-period :deep(button) {
 	max-width: 7.5rem;
 	overflow: hidden;
@@ -424,38 +400,7 @@ watch(instanceRevision, async () => {
 	white-space: nowrap;
 }
 
-.home-calendar-month {
-	flex: 0 0 auto;
-}
-
-.home-calendar-weekdays {
-	display: grid;
-	grid-template-columns: repeat(7, minmax(0, 1fr));
-	gap: 0.1875rem;
-	margin-bottom: 0.25rem;
-	color: var(--color-secondary);
-	font-size: 0.75rem;
-	font-weight: 600;
-	text-align: center;
-}
-
-.home-calendar-grid {
-	display: grid;
-	grid-template-columns: repeat(7, minmax(0, 1fr));
-	gap: 0.1875rem;
-}
-
 .home-calendar-cell {
-	height: 1.4rem;
-	border: 1px solid transparent;
-	border-radius: var(--radius-sm);
-	background: transparent;
-	color: var(--color-contrast);
-	font-size: 0.6875rem;
-	font-weight: 600;
-	outline: none;
-	padding: 0;
-	cursor: pointer;
 	transition:
 		box-shadow 100ms ease,
 		background-color 100ms ease;
@@ -465,39 +410,10 @@ watch(instanceRevision, async () => {
 	box-shadow: 0 0 0 2px var(--color-brand);
 }
 
-.home-calendar-cell-outside,
-.home-calendar-cell-future {
-	cursor: default;
-}
-
-.home-calendar-cell-future {
-	color: var(--color-secondary);
-	opacity: 0.5;
-}
-
-.home-calendar-cell-today {
-	border-color: var(--color-brand);
-}
-
 .home-calendar-cell-selected {
 	box-shadow: 0 0 0 2px var(--color-brand);
 }
 
-.home-calendar-details {
-	display: flex;
-	min-width: 0;
-	min-height: 3.75rem;
-	flex: 1;
-	flex-direction: column;
-	gap: 0.375rem;
-	overflow-y: auto;
-	padding-top: 0.625rem;
-	border-top: 1px solid var(--color-divider);
-}
-
-.home-calendar-level-0 {
-	background: var(--surface-4);
-}
 .home-calendar-level-1 {
 	background: color-mix(in oklab, var(--color-brand) 28%, var(--surface-4));
 }

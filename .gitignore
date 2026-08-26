@@ -70,6 +70,10 @@ access-jwt*.txt
 !.claude/skills/
 .letta
 
+# ZCode agent session data
+/.zcode/
+/zcode/
+
 # Agent skill lock files
 /skills-lock.json
 
@@ -89,6 +93,7 @@ target/*
 *.sqlite3
 
 plugins-workspace/*
+apps/app/resources/blockbench-skin/
 
 # Oh My OpenCode
 .omo/

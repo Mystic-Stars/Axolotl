@@ -1,4 +1,4 @@
-export type DownloadSource = 'auto' | 'cnb' | 'github'
+export type DownloadSource = 'auto' | 'miawa' | 'cnb' | 'github'
 export type ResolvedDownloadSource = Exclude<DownloadSource, 'auto'>
 
 const DOWNLOAD_SOURCE_STORAGE_KEY = 'axolotl-download-source'
@@ -11,7 +11,7 @@ const MAINLAND_CHINA_TIMEZONES = new Set([
 ])
 
 function isDownloadSource(value: string | null): value is DownloadSource {
-	return value === 'auto' || value === 'cnb' || value === 'github'
+	return value === 'auto' || value === 'miawa' || value === 'cnb' || value === 'github'
 }
 
 function isMainlandChinaBrowser() {
@@ -28,8 +28,8 @@ export function useDownloadSource() {
 
 	const resolvedSource = computed<ResolvedDownloadSource>(() => {
 		if (selectedSource.value !== 'auto') return selectedSource.value
-		if (!browserInformationReady.value) return 'cnb'
-		return isMainlandChinaBrowser() ? 'cnb' : 'github'
+		if (!browserInformationReady.value) return 'miawa'
+		return isMainlandChinaBrowser() ? 'miawa' : 'github'
 	})
 
 	function setDownloadSource(source: DownloadSource) {

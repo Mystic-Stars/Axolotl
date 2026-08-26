@@ -4,6 +4,7 @@
 		{{ formatMessage(messages.loading) }}
 	</div>
 	<div v-else-if="data">
+		<UpgradeProjectReturnBar />
 		<Teleport to="#sidebar-teleport-target">
 			<ProjectSidebarCompatibility
 				:project="data"
@@ -42,6 +43,10 @@
 			<Teleport v-if="themeStore.featureFlags.project_background" to="#background-teleport-target">
 				<ProjectBackgroundGradient :project="data" />
 			</Teleport>
+			<BrowseInstallHeader
+				v-if="fromInstanceContent && cartInstallContext"
+				:install-context="cartInstallContext"
+			/>
 			<ProjectHeader
 				:project="data"
 				:show-followers="false"
@@ -66,21 +71,47 @@
 							}}
 						</button>
 					</ButtonStyled>
-					<ButtonStyled v-if="managedProjectType" size="large" color="brand">
-						<button :disabled="installing" @click="installSelected(null)">
+					<ButtonStyled v-if="managedProjectType || isWorldMap" size="large" color="brand">
+						<button :disabled="installing || cartProjectInstalling" @click="installSelected(null)">
 							<SpinnerIcon v-if="installing" class="animate-spin" />
+							<PlusIcon v-else-if="isWorldMap || cartProjectSelected" />
 							<DownloadIcon v-else />
 							{{
 								formatMessage(
-									installing ? commonMessages.installingLabel : commonMessages.installButton,
+									installing || cartProjectInstalling
+										? commonMessages.installingLabel
+										: cartProjectSelected
+											? commonMessages.selectedLabel
+											: isWorldMap
+												? instanceId
+													? commonMessages.installButton
+													: messages.addToAnInstance
+												: commonMessages.installButton,
 								)
 							}}
 						</button>
 					</ButtonStyled>
-					<ButtonStyled v-if="data.site_url || mcmodUrl" size="large" circular type="transparent">
+					<ButtonStyled
+						v-if="data.site_url || mcmodUrl || favoriteSupported"
+						size="large"
+						circular
+						type="transparent"
+					>
 						<OverflowMenu
 							:tooltip="formatMessage(commonMessages.moreOptionsButton)"
 							:options="[
+								...(favoriteSupported
+									? [
+											{
+												id: 'save',
+												disabled: favoritePending,
+												tooltip: formatMessage(
+													favoriteSaved ? messages.removeFromFavorites : messages.addToFavorites,
+												),
+												action: () => toggleFavorite(),
+											},
+										]
+									: []),
 								...(data.site_url
 									? [
 											{
@@ -109,10 +140,36 @@
 							<template #open-in-mcmod>
 								<BookOpenIcon /> {{ formatMessage(messages.openInMcmod) }}
 							</template>
+							<template v-if="favoriteSupported" #save>
+								<BookmarkFilledIcon v-if="favoriteSaved" class="text-brand" />
+								<BookmarkIcon v-else />
+								{{
+									formatMessage(
+										favoritePending
+											? messages.favoritesLoading
+											: favoriteSaved
+												? messages.removeFromFavorites
+												: messages.addToFavorites,
+									)
+								}}
+							</template>
 						</OverflowMenu>
 					</ButtonStyled>
 				</template>
 			</ProjectHeader>
+			<SelectedProjectsFloatingBar
+				v-if="cartInstallContext"
+				:install-context="cartInstallContext"
+			/>
+			<BrowseInstanceSelector
+				ref="browseInstanceSelector"
+				:instances="contentSelection.instances.value"
+				:selected-instance="contentSelection.targetInstance.value"
+				:selected-count="contentSelection.selectedCount.value"
+				:install-current="contentSelection.installSelected"
+				:clear-current="contentSelection.clear"
+				@select="contentSelection.setTarget"
+			/>
 
 			<NavTabs
 				:links="[
@@ -132,7 +189,14 @@
 				]"
 			/>
 
-			<Gallery v-if="activeTab === 'gallery'" :project="data" />
+			<Gallery
+				v-if="activeTab === 'gallery'"
+				:project="data"
+				:translation-active="translationActive"
+				:translations="translations"
+				:translation-mode="translationMode"
+				:translation-style="translationStyle"
+			/>
 			<ProjectPageVersions
 				v-else-if="activeTab === 'versions'"
 				:loaders="allLoaders"
@@ -142,13 +206,16 @@
 				:show-environment-column="themeStore.featureFlags.show_version_environment_column"
 			>
 				<template #actions="{ version }">
-					<ButtonStyled circular type="transparent" color="green">
+					<ButtonStyled circular type="transparent" :color="isWorldMap ? 'brand' : 'green'">
 						<button
-							v-tooltip="formatMessage(commonMessages.installButton)"
+							v-tooltip="
+								formatMessage(isWorldMap ? messages.addToAnInstance : commonMessages.installButton)
+							"
 							:disabled="installing"
 							@click.stop="installSelected(version.id)"
 						>
-							<DownloadIcon />
+							<PlusIcon v-if="isWorldMap" />
+							<DownloadIcon v-else />
 						</button>
 					</ButtonStyled>
 				</template>
@@ -177,14 +244,18 @@
 
 <script setup lang="ts">
 import {
+	BookmarkFilledIcon,
+	BookmarkIcon,
 	BookOpenIcon,
 	DownloadIcon,
 	ExternalIcon,
 	LanguagesIcon,
 	MoreVerticalIcon,
+	PlusIcon,
 	SpinnerIcon,
 } from '@modrinth/assets'
 import {
+	BrowseInstallHeader,
 	ButtonStyled,
 	Card,
 	commonMessages,
@@ -200,12 +271,17 @@ import {
 	ProjectSidebarDetails,
 	ProjectSidebarLinks,
 	ProjectSidebarTags,
+	SelectedProjectsFloatingBar,
+	usesTargetGameVersion,
 	useVIntl,
 } from '@modrinth/ui'
 import { computed, ref, shallowRef, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
+import BrowseInstanceSelector from '@/components/browse/BrowseInstanceSelector.vue'
 import TranslatedProjectDescription from '@/components/ui/TranslatedProjectDescription.vue'
+import { useContentFavorites } from '@/composables/useContentFavorites'
+import { isFavoriteContentType } from '@/helpers/content-favorites'
 import { resolveMcmodUrl } from '@/helpers/content-search'
 import {
 	type CurseForgeFile,
@@ -215,6 +291,7 @@ import {
 	getCurseForgeImageUrl,
 	getCurseForgeProject,
 } from '@/helpers/curseforge'
+import { projectGalleryTranslationSegments } from '@/helpers/project-gallery'
 import { createProjectBrowseLocation, type ProjectBrowseFilter } from '@/helpers/project-links'
 import { get_game_versions, get_loaders } from '@/helpers/tags'
 import {
@@ -227,10 +304,12 @@ import {
 } from '@/helpers/translation'
 import i18n from '@/i18n.config'
 import { injectContentInstall } from '@/providers/content-install'
+import { injectContentSelection, makeContentSelectionKey } from '@/providers/content-selection'
 import { useBreadcrumbs } from '@/store/breadcrumbs'
 import { useTheming } from '@/store/state.js'
 
 import Gallery from './Gallery.vue'
+import UpgradeProjectReturnBar from './UpgradeProjectReturnBar.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -238,7 +317,11 @@ const breadcrumbs = useBreadcrumbs()
 const themeStore = useTheming()
 const { addNotification, handleError } = injectNotificationManager()
 const { formatMessage } = useVIntl()
-const { installCurseForge } = injectContentInstall()
+const { installCurseForge, installCurseForgeWorld } = injectContentInstall()
+const contentSelection = injectContentSelection()
+const contentFavorites = useContentFavorites()
+
+void contentFavorites.load().catch(handleError)
 
 const messages = defineMessages({
 	loading: {
@@ -305,10 +388,35 @@ const messages = defineMessages({
 		id: 'app.project.curseforge.unavailable-description',
 		defaultMessage: 'The CurseForge project did not return any data.',
 	},
+	addToAnInstance: {
+		id: 'app.browse.add-to-an-instance',
+		defaultMessage: 'Add to an instance',
+	},
+	noCompatibleVersion: {
+		id: 'app.project.install-button.no-compatible-version',
+		defaultMessage: 'No compatible version was found for this instance.',
+	},
+	backToInstanceContent: {
+		id: 'app.project.install-context.back-to-instance-content',
+		defaultMessage: 'Back to instance content',
+	},
+	addToFavorites: {
+		id: 'app.content-favorites.add',
+		defaultMessage: 'Add to favorites',
+	},
+	removeFromFavorites: {
+		id: 'app.content-favorites.remove',
+		defaultMessage: 'Remove from favorites',
+	},
+	favoritesLoading: {
+		id: 'app.content-favorites.loading',
+		defaultMessage: 'Updating favorites…',
+	},
 })
 
 const loading = ref(true)
 const installing = ref(false)
+const browseInstanceSelector = ref()
 const project = shallowRef<CurseForgeProject | null>(null)
 const mcmodUrl = ref<string | null>(null)
 const description = ref('')
@@ -344,9 +452,85 @@ const projectType = computed(() => {
 	}
 })
 
+const favoriteSupported = computed(() => isFavoriteContentType(projectType.value))
+const favoriteProjectId = computed(() => project.value?.id.toString() ?? '')
+const favoriteSaved = computed(() =>
+	favoriteProjectId.value
+		? contentFavorites.isFavorite('curseforge', favoriteProjectId.value)
+		: false,
+)
+const favoritePending = computed(() =>
+	favoriteProjectId.value
+		? contentFavorites.isPending('curseforge', favoriteProjectId.value)
+		: false,
+)
+
+function toggleFavorite() {
+	if (!favoriteSupported.value || !favoriteProjectId.value || favoritePending.value) return
+	void contentFavorites
+		.toggle({
+			provider: 'curseforge',
+			project_id: favoriteProjectId.value,
+			content_type: projectType.value,
+		})
+		.catch(handleError)
+}
+
 const managedProjectType = computed(() =>
 	['mod', 'resourcepack', 'shader', 'datapack', 'modpack'].includes(projectType.value),
 )
+const isWorldMap = computed(() => projectType.value === 'world')
+const instanceId = computed(() => (typeof route.query.i === 'string' ? route.query.i : null))
+const fromBrowse = computed(
+	() => typeof route.query.b === 'string' && route.query.b.startsWith('/browse/'),
+)
+const fromInstanceContent = computed(
+	() => route.query.from === 'instance-content' && instanceId.value !== null,
+)
+const instanceContentTarget = computed(() => {
+	if (!fromInstanceContent.value) return null
+	const target = contentSelection.targetInstance.value
+	return target?.id === instanceId.value ? target : null
+})
+const instanceContentBackUrl = computed(() =>
+	instanceContentTarget.value ? `/instance/${encodeURIComponent(instanceId.value!)}` : null,
+)
+const cartEligible = computed(
+	() =>
+		(fromBrowse.value || instanceContentTarget.value !== null) &&
+		['mod', 'resourcepack', 'shader', 'datapack', 'world'].includes(projectType.value),
+)
+const cartProjectKey = computed(() =>
+	project.value ? makeContentSelectionKey('curseforge', project.value.id.toString()) : '',
+)
+const cartProjectSelected = computed(
+	() => !!cartProjectKey.value && contentSelection.isSelected(cartProjectKey.value),
+)
+const cartProjectInstalling = computed(
+	() => !!cartProjectKey.value && contentSelection.isInstalling(cartProjectKey.value),
+)
+const cartInstallContext = computed(() => {
+	const target = contentSelection.targetInstance.value
+	if (!cartEligible.value || !target) return null
+	return {
+		showInstallHeader: false,
+		name: target.name,
+		loader: target.loader,
+		gameVersion: target.game_version,
+		backUrl:
+			instanceContentBackUrl.value ??
+			(typeof route.query.b === 'string' ? route.query.b : `/browse/${projectType.value}`),
+		backLabel: fromInstanceContent.value ? formatMessage(messages.backToInstanceContent) : '',
+		heading: '',
+		selectedProjects: contentSelection.selectedProjects.value,
+		isInstallingSelected: ['validating', 'reviewing', 'queueing'].includes(
+			contentSelection.state.value,
+		),
+		installProgress: contentSelection.progress.value,
+		clearSelected: contentSelection.clear,
+		installSelected: contentSelection.installSelected,
+	}
+})
 
 const platformNames = [
 	'forge',
@@ -552,6 +736,10 @@ async function loadProject(projectId: number) {
 		if (requestVersion !== projectRequestVersion) return
 		project.value = projectData
 		breadcrumbs.setName('Project', projectData.name)
+		breadcrumbs.setNameIcon(
+			'Project',
+			projectData.logo?.thumbnailUrl ?? projectData.logo?.url ?? null,
+		)
 		loading.value = false
 		void resolveMcmodUrl(projectData.slug, 'curseforge').then((url) => {
 			if (requestVersion === projectRequestVersion) mcmodUrl.value = url
@@ -587,13 +775,90 @@ watch(
 	{ immediate: true },
 )
 
+watch(
+	[fromBrowse, fromInstanceContent, instanceId],
+	async ([fromBrowseEnabled, fromInstanceContentEnabled, preferredInstanceId]) => {
+		if (fromBrowseEnabled || fromInstanceContentEnabled) {
+			await contentSelection.refreshInstances(preferredInstanceId)
+			if (fromInstanceContentEnabled && preferredInstanceId) {
+				const preferredInstance = contentSelection.instances.value.find(
+					(instance) => instance.id === preferredInstanceId,
+				)
+				if (preferredInstance) contentSelection.setTarget(preferredInstance)
+			}
+		}
+	},
+	{ immediate: true },
+)
+
 async function installSelected(fileId: string | null) {
 	if (!project.value) return
+	if (cartEligible.value && !contentSelection.targetInstance.value) {
+		await contentSelection.refreshInstances()
+		browseInstanceSelector.value?.show()
+		return
+	}
+	if (cartEligible.value && contentSelection.targetInstance.value) {
+		if (cartProjectSelected.value) {
+			contentSelection.remove(cartProjectKey.value)
+			return
+		}
+		const target = contentSelection.targetInstance.value
+		const expectedLoader = { forge: 1, fabric: 4, quilt: 5, neoforge: 6 }[target.loader]
+		let resolvedFileId: string | number | null = fileId
+		if (!resolvedFileId && !usesTargetGameVersion(projectType.value)) {
+			resolvedFileId = files.value.find((file) => file.isAvailable)?.id ?? null
+		} else if (!resolvedFileId) {
+			resolvedFileId =
+				project.value.latestFilesIndexes.find(
+					(index) =>
+						index.gameVersion === target.game_version &&
+						(projectType.value !== 'mod' || !expectedLoader || index.modLoader === expectedLoader),
+				)?.fileId ??
+				files.value.find(
+					(file) =>
+						file.gameVersions.includes(target.game_version) &&
+						(projectType.value !== 'mod' || getFilePlatforms(file).includes(target.loader)),
+				)?.id ??
+				null
+		}
+		if (!resolvedFileId) {
+			handleError(new Error(formatMessage(messages.noCompatibleVersion)))
+			return
+		}
+		await contentSelection.add({
+			key: cartProjectKey.value,
+			provider: 'curseforge',
+			projectId: project.value.id.toString(),
+			providerProjectId: project.value.id.toString(),
+			versionId: resolvedFileId.toString(),
+			contentType: projectType.value as 'mod' | 'resourcepack' | 'datapack' | 'shader' | 'world',
+			title: project.value.name,
+			iconUrl: getCurseForgeImageUrl(project.value.logo?.thumbnailUrl),
+			slug: project.value.slug,
+			preferences: {
+				gameVersions: usesTargetGameVersion(projectType.value) ? [target.game_version] : [],
+				loaders: projectType.value === 'mod' ? [target.loader] : [],
+			},
+		})
+		return
+	}
+	if (isWorldMap.value) {
+		installing.value = true
+		await installCurseForgeWorld(project.value.id, fileId, instanceId.value, 'ProjectPage', () => {
+			installing.value = false
+		}).catch((error) => {
+			installing.value = false
+			handleError(error)
+		})
+		return
+	}
+
 	installing.value = true
 	await installCurseForge(
 		project.value.id.toString(),
 		fileId,
-		typeof route.query.i === 'string' ? route.query.i : null,
+		instanceId.value,
 		'ProjectPage',
 		() => {
 			installing.value = false
@@ -643,6 +908,7 @@ async function translateProject() {
 		const allSegments = [
 			{ id: 'title', text: data.value.title, format: 'plain' },
 			{ id: 'description', text: data.value.description, format: 'plain' },
+			...projectGalleryTranslationSegments(data.value.gallery),
 			...prepared.segments,
 		]
 

@@ -79,6 +79,22 @@ export async function analyze_crash(instanceId) {
 	return await invoke('plugin:logs|logs_analyze_crash', { instanceId })
 }
 
+export async function get_crash_analysis_ai_settings() {
+	return await invoke('plugin:logs|logs_get_crash_analysis_ai_settings')
+}
+
+export async function update_crash_analysis_ai_settings(settings) {
+	return await invoke('plugin:logs|logs_update_crash_analysis_ai_settings', { settings })
+}
+
+export async function explain_crash_with_ai(instanceId) {
+	return await invoke('plugin:logs|logs_explain_crash_with_ai', { instanceId })
+}
+
+export async function undo_added_mod(instanceId, filename, expectedHash) {
+	return await invoke('plugin:logs|logs_undo_added_mod', { instanceId, filename, expectedHash })
+}
+
 /// Export the censored files and local analysis from an instance's latest run.
 export async function export_crash_context(instanceId, instanceName) {
 	const timestamp = new Date().toISOString().replace(/[:.]/g, '-')

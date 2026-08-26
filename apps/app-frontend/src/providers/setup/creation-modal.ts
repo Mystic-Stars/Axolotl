@@ -3,6 +3,7 @@ import type {
 	AbstractWebNotificationManager,
 	CreationFlowContextValue,
 	CreationFlowModal,
+	SymlinkMethodChoice,
 } from '@modrinth/ui'
 import { defineMessages, useVIntl } from '@modrinth/ui'
 import { inject, provide, ref, useTemplateRef } from 'vue'
@@ -13,6 +14,7 @@ import type UnknownPackWarningModal from '@/components/ui/install_flow/UnknownPa
 import type ModpackAlreadyInstalledModal from '@/components/ui/modal/ModpackAlreadyInstalledModal.vue'
 import { trackEvent } from '@/helpers/analytics'
 import { get_project_versions, get_search_results } from '@/helpers/cache.js'
+import { getCurseForgeFiles, hasCompatibleCurseForgeFile } from '@/helpers/curseforge'
 import { install_job_listener } from '@/helpers/events.js'
 import { import_instance } from '@/helpers/import.js'
 import {
@@ -82,6 +84,8 @@ const modpackMessages = defineMessages({
 		defaultMessage: 'Unexpected type: {type}',
 	},
 })
+
+const OPTIFABRIC_CURSEFORGE_PROJECT_ID = 322385
 
 export function setupCreationModal(
 	notificationManager: AbstractWebNotificationManager,
@@ -200,21 +204,30 @@ export function setupCreationModal(
 				const chooseImportMethod: (options: {
 					instanceNames: string[]
 					symlinkCapable: 'supported' | 'requires_admin' | 'unsupported'
-				}) => Promise<boolean> = inject('chooseImportMethod')!
+				}) => Promise<SymlinkMethodChoice[]> = inject('chooseImportMethod')!
 
-				const useSymlink = await chooseImportMethod({
+				const choices = await chooseImportMethod({
 					instanceNames: instanceEntries.map((e) => e.instanceName),
 					symlinkCapable: capability,
 				})
 
+				if (choices.length === 0) return
+
+				const choiceByInstanceName = new Map(choices.map((choice) => [choice.instanceName, choice]))
+
 				for (const entry of instanceEntries) {
+					const choice = choiceByInstanceName.get(entry.instanceName)
 					try {
 						const job = await import_instance(
 							entry.launcherType,
 							entry.path,
 							entry.instanceName,
-							useSymlink,
+							choice?.symlink ?? false,
 							entry.instancePath,
+							undefined,
+							undefined,
+							undefined,
+							choice?.gameDirOverride ?? null,
 						)
 						await wait_for_install_job(job.job_id)
 					} catch (error) {
@@ -250,13 +263,34 @@ export function setupCreationModal(
 				: (config.selectedLoaderVersion.value ?? config.loaderVersionType.value)
 			const iconPath = config.instanceIconPath.value ?? null
 			const name = config.instanceName.value.trim() || config.autoInstanceName.value
+			// Game directory: `gameDirOverride` holds the picked `.minecraft`
+			// root. Builtin keeps the managed folder (null); external resolves to
+			// `<root>/versions/<name>` when version-isolated, or the `.minecraft`
+			// root itself when not.
+			const mode = config.gameDirOverrideMode.value
+			const gameRoot = config.gameDirOverride.value ?? null
+			const gameDirOverride =
+				mode === 'builtin'
+					? null
+					: gameRoot
+						? mode === 'isolated'
+							? `${gameRoot}/versions/${name}`
+							: gameRoot
+						: null
 
 			await install_create_instance({
 				name,
 				gameVersion: config.selectedGameVersion.value!,
 				loader: loader as InstanceLoader,
 				loaderVersion,
+				adjuncts: config.selectedAdjuncts.value.map((kind) => ({
+					instanceId: '',
+					kind,
+					version: null,
+					role: 'adjunct',
+				})),
 				iconPath,
+				gameDirOverride,
 			}).catch(handleError)
 
 			trackEvent('InstanceCreate', {
@@ -340,8 +374,16 @@ export function setupCreationModal(
 	}
 
 	async function getProjectVersions(projectId: string) {
-		const versions = await get_project_versions(projectId)
+		const versions = await get_project_versions(projectId, 'must_revalidate')
 		return versions ?? []
+	}
+
+	async function hasCompatibleOptiFabric(gameVersion: string) {
+		const response = await getCurseForgeFiles(OPTIFABRIC_CURSEFORGE_PROJECT_ID, {
+			index: 0,
+			pageSize: 50,
+		})
+		return hasCompatibleCurseForgeFile(response.files, gameVersion)
 	}
 
 	let _currentFlowCtx: CreationFlowContextValue | null = null
@@ -414,6 +456,7 @@ export function setupCreationModal(
 		handleBrowseModpacks,
 		searchModpacks,
 		getProjectVersions,
+		hasCompatibleOptiFabric,
 		getLoaderManifest,
 		installModpackFromPath,
 		setModpackAlreadyInstalledModal,

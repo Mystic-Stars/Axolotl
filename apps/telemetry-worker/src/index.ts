@@ -8,6 +8,8 @@ const MAX_CONTEXT_OBJECT_BYTES = 16 * 1024
 const HARD_MAX_CONTEXTS_PER_DAY = 2_000
 const HARD_MAX_SAMPLES_PER_GROUP = 3
 const DETAIL_SAMPLES_PER_GROUP_PER_DAY = 2
+const HARD_MAX_BATCHES_PER_INSTALLATION_PER_DAY = 25
+const HARD_MAX_ACCEPTED_BATCHES_PER_DAY = 100_000
 
 export interface Bindings {
 	DB: D1Database
@@ -16,6 +18,10 @@ export interface Bindings {
 	STORE_ERROR_CONTEXT?: string
 	MAX_ERROR_CONTEXTS_PER_DAY?: string
 	MAX_ERROR_SAMPLES_PER_GROUP?: string
+	INGEST_ENABLED?: string
+	DROP_DOWNLOAD_STALL?: string
+	MAX_BATCHES_PER_INSTALLATION_PER_DAY?: string
+	MAX_ACCEPTED_BATCHES_PER_DAY?: string
 }
 
 type Variables = {
@@ -31,6 +37,8 @@ interface ErrorGroupKey {
 	latestMessage: string
 	hasSample: boolean
 }
+
+type IngestionReservation = 'reserved' | 'duplicate' | 'installation_limit' | 'global_limit'
 
 const app = new Hono<{ Bindings: Bindings; Variables: Variables }>()
 
@@ -77,6 +85,9 @@ app.post('/v1/batch', async (context) => {
 			400,
 		)
 	}
+	if (context.env.INGEST_ENABLED === 'false') {
+		return context.json({ error: 'ingest_disabled' }, 503, { 'Retry-After': '60' })
+	}
 	if (!context.env.INSTALLATION_HMAC_SECRET || context.env.INSTALLATION_HMAC_SECRET.length < 32) {
 		return context.json({ error: 'service_unavailable' }, 503)
 	}
@@ -93,9 +104,41 @@ app.post('/v1/batch', async (context) => {
 			context.env.INSTALLATION_HMAC_SECRET,
 			parsed.data.installation_id,
 		)
-		const sanitized = sanitizeBatch(parsed.data)
-		const objectKeys = await storeErrorContexts(context.env, sanitized)
-		await persistBatch(context.env.DB, sanitized, installationHash, objectKeys)
+		const filtered = filterDroppedEvents(parsed.data, context.env.DROP_DOWNLOAD_STALL === 'true')
+		if (filtered.events.length === 0) {
+			return context.json({ accepted: true, duplicate: false, dropped: true })
+		}
+
+		const limits = ingestionLimits(context.env)
+		const reservation = await reserveIngestion(
+			context.env.DB,
+			parsed.data.batch_id,
+			installationHash,
+			limits,
+		)
+		if (reservation === 'duplicate') return context.json({ accepted: true, duplicate: true })
+		if (reservation === 'installation_limit') {
+			return context.json({ error: 'installation_batch_limit' }, 429, {
+				'Retry-After': retryAfterSeconds().toString(),
+			})
+		}
+		if (reservation === 'global_limit') {
+			console.error('Telemetry ingestion budget exhausted', {
+				limit: limits.global,
+			})
+			return context.json({ error: 'global_batch_limit' }, 429, {
+				'Retry-After': retryAfterSeconds().toString(),
+			})
+		}
+
+		try {
+			const sanitized = sanitizeBatch(filtered)
+			const objectKeys = await storeErrorContexts(context.env, sanitized)
+			await persistBatch(context.env.DB, sanitized, installationHash, objectKeys)
+		} catch (error) {
+			await rollbackIngestion(context.env.DB, parsed.data.batch_id, installationHash)
+			throw error
+		}
 		return context.json({ accepted: true, duplicate: false })
 	} catch (error) {
 		console.error('Telemetry ingestion failed', {
@@ -125,6 +168,115 @@ async function hmacInstallationId(secret: string, installationId: string): Promi
 	)
 	const signature = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(installationId))
 	return [...new Uint8Array(signature)].map((byte) => byte.toString(16).padStart(2, '0')).join('')
+}
+
+function filterDroppedEvents(batch: TelemetryBatch, dropDownloadStall: boolean): TelemetryBatch {
+	if (!dropDownloadStall) return batch
+	return {
+		...batch,
+		events: batch.events.filter(
+			(event) => event.type !== 'error' || event.error_type !== 'download_stall',
+		),
+	}
+}
+
+function ingestionLimits(env: Bindings): { installation: number; global: number } {
+	return {
+		installation: Math.min(
+			positiveInteger(
+				env.MAX_BATCHES_PER_INSTALLATION_PER_DAY,
+				HARD_MAX_BATCHES_PER_INSTALLATION_PER_DAY,
+			),
+			HARD_MAX_BATCHES_PER_INSTALLATION_PER_DAY,
+		),
+		global: Math.min(
+			positiveInteger(env.MAX_ACCEPTED_BATCHES_PER_DAY, HARD_MAX_ACCEPTED_BATCHES_PER_DAY),
+			HARD_MAX_ACCEPTED_BATCHES_PER_DAY,
+		),
+	}
+}
+
+async function reserveIngestion(
+	db: D1Database,
+	batchId: string,
+	installationHash: string,
+	limits: { installation: number; global: number },
+): Promise<IngestionReservation> {
+	const day = utcDay()
+	const batch = await db
+		.prepare(
+			'INSERT OR IGNORE INTO accepted_batches (batch_id, installation_hash, accepted_at) VALUES (?, ?, unixepoch())',
+		)
+		.bind(batchId, installationHash)
+		.run()
+	if (batch.meta.changes !== 1) return 'duplicate'
+
+	const installation = await db
+		.prepare(
+			`INSERT INTO ingestion_daily (day, installation_hash, accepted_batches)
+			VALUES (?, ?, 1)
+			ON CONFLICT (day, installation_hash) DO UPDATE
+			SET accepted_batches = accepted_batches + 1
+			WHERE accepted_batches < ?`,
+		)
+		.bind(day, installationHash, limits.installation)
+		.run()
+	if (installation.meta.changes !== 1) {
+		await db.prepare('DELETE FROM accepted_batches WHERE batch_id = ?').bind(batchId).run()
+		return 'installation_limit'
+	}
+
+	const global = await db
+		.prepare(
+			`INSERT INTO ingestion_global_daily (day, accepted_batches)
+			VALUES (?, 1)
+			ON CONFLICT (day) DO UPDATE
+			SET accepted_batches = accepted_batches + 1
+			WHERE accepted_batches < ?`,
+		)
+		.bind(day, limits.global)
+		.run()
+	if (global.meta.changes !== 1) {
+		await db.batch([
+			db
+				.prepare(
+					'UPDATE ingestion_daily SET accepted_batches = accepted_batches - 1 WHERE day = ? AND installation_hash = ?',
+				)
+				.bind(day, installationHash),
+			db.prepare('DELETE FROM accepted_batches WHERE batch_id = ?').bind(batchId),
+		])
+		return 'global_limit'
+	}
+
+	const currentGlobal = await db
+		.prepare('SELECT accepted_batches FROM ingestion_global_daily WHERE day = ?')
+		.bind(day)
+		.first<{ accepted_batches: number }>()
+	if (currentGlobal) warnIngestionThresholds(currentGlobal.accepted_batches, limits.global)
+	return 'reserved'
+}
+
+async function rollbackIngestion(
+	db: D1Database,
+	batchId: string,
+	installationHash: string,
+): Promise<void> {
+	const day = utcDay()
+	await db.batch([
+		db
+			.prepare('DELETE FROM accepted_batches WHERE batch_id = ? AND installation_hash = ?')
+			.bind(batchId, installationHash),
+		db
+			.prepare(
+				'UPDATE ingestion_daily SET accepted_batches = accepted_batches - 1 WHERE day = ? AND installation_hash = ?',
+			)
+			.bind(day, installationHash),
+		db
+			.prepare(
+				'UPDATE ingestion_global_daily SET accepted_batches = accepted_batches - 1 WHERE day = ?',
+			)
+			.bind(day),
+	])
 }
 
 function sanitizeBatch(batch: TelemetryBatch): TelemetryBatch {
@@ -387,13 +539,6 @@ async function persistBatch(
 	}
 
 	statements.push(...detailInserts)
-	statements.push(
-		db
-			.prepare(
-				'INSERT INTO accepted_batches (batch_id, installation_hash, accepted_at) VALUES (?, ?, unixepoch())',
-			)
-			.bind(batch.batch_id, installationHash),
-	)
 	await db.batch(statements)
 }
 
@@ -599,6 +744,8 @@ async function runMaintenance(db: D1Database): Promise<void> {
 		db.prepare("DELETE FROM error_daily WHERE day < date('now', '-365 days')"),
 		db.prepare("DELETE FROM error_groups WHERE last_seen_day < date('now', '-365 days')"),
 		db.prepare("DELETE FROM accepted_batches WHERE accepted_at < unixepoch('now', '-8 days')"),
+		db.prepare("DELETE FROM ingestion_daily WHERE day < date('now', '-8 days')"),
+		db.prepare("DELETE FROM ingestion_global_daily WHERE day < date('now', '-8 days')"),
 		db.prepare("DELETE FROM error_daily_installations WHERE day < date('now', '-1 days')"),
 		db.prepare("DELETE FROM daily_active_dims WHERE day < date('now', '-365 days')"),
 	])
@@ -631,7 +778,24 @@ function warnAtThresholds(count: number, limit: number): void {
 	}
 }
 
-export { app, hmacInstallationId, runMaintenance, sanitizeBatch }
+function warnIngestionThresholds(count: number, limit: number): void {
+	for (const ratio of [0.8, 0.9, 0.95]) {
+		if (count === Math.ceil(limit * ratio)) {
+			console.warn('Telemetry ingestion budget threshold reached', {
+				count,
+				limit,
+				percent: ratio * 100,
+			})
+		}
+	}
+}
+
+function retryAfterSeconds(now = new Date()): number {
+	const nextDay = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1)
+	return Math.max(1, Math.ceil((nextDay - now.getTime()) / 1_000))
+}
+
+export { app, filterDroppedEvents, hmacInstallationId, runMaintenance, sanitizeBatch }
 
 export default {
 	fetch: app.fetch,

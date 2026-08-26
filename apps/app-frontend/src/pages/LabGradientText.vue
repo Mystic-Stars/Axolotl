@@ -656,7 +656,7 @@ function formatAdapterName(adapterId: GradientFormatId): string {
 
 		<div class="lab-workbench" data-onboarding-id="lab-gradient-text-editor">
 			<section class="lab-panel min-w-0">
-				<section class="lab-panel-section">
+				<section class="lab-panel-section p-4">
 					<div class="mb-3 flex flex-wrap items-center justify-between gap-3">
 						<h2 class="m-0 text-base font-bold text-contrast">
 							{{ formatMessage(messages.inputTitle) }}
@@ -701,7 +701,7 @@ function formatAdapterName(adapterId: GradientFormatId): string {
 					></div>
 				</section>
 
-				<section class="lab-panel-section lab-colors-section">
+				<section class="lab-panel-section p-4 lab-colors-section">
 					<div class="mb-3 flex flex-wrap items-center justify-between gap-2">
 						<div>
 							<h2 class="m-0 text-base font-bold text-contrast">
@@ -808,7 +808,7 @@ function formatAdapterName(adapterId: GradientFormatId): string {
 				</section>
 
 				<Accordion
-					class="lab-panel-section"
+					class="lab-panel-section p-4"
 					content-class="pt-3"
 					button-class="group flex w-full items-center gap-2 border-0 bg-transparent p-0 text-left"
 				>
@@ -891,7 +891,7 @@ function formatAdapterName(adapterId: GradientFormatId): string {
 			<section class="lab-panel min-w-0">
 				<div
 					v-if="currentAdapter.supportsVanillaCharacter || currentAdapter.supportsSimplify"
-					class="lab-panel-section flex flex-wrap items-center gap-x-5 gap-y-3"
+					class="lab-panel-section p-4 flex flex-wrap items-center gap-x-5 gap-y-3"
 				>
 					<div v-if="currentAdapter.supportsVanillaCharacter" class="flex items-center gap-2">
 						<span class="text-sm font-semibold text-primary">{{
@@ -931,7 +931,7 @@ function formatAdapterName(adapterId: GradientFormatId): string {
 					</label>
 				</div>
 
-				<section class="lab-panel-section lab-preview-section">
+				<section class="lab-panel-section p-4 lab-preview-section">
 					<div class="mb-3 flex items-center justify-between gap-3">
 						<h2 class="m-0 text-base font-bold text-contrast">
 							{{ formatMessage(messages.previewTitle) }}
@@ -970,7 +970,7 @@ function formatAdapterName(adapterId: GradientFormatId): string {
 					</div>
 				</section>
 
-				<section class="lab-panel-section">
+				<section class="lab-panel-section p-4">
 					<div class="mb-3 flex items-center justify-between gap-3">
 						<h2 class="m-0 text-base font-bold text-contrast">
 							{{ formatMessage(messages.outputTitle) }}
@@ -1011,10 +1011,6 @@ function formatAdapterName(adapterId: GradientFormatId): string {
 	border: 1px solid var(--color-surface-5);
 	border-radius: var(--radius-lg);
 	background: var(--color-surface-2);
-}
-
-.lab-panel-section {
-	padding: 1rem;
 }
 
 .lab-panel-section + .lab-panel-section {

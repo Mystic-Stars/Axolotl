@@ -75,6 +75,19 @@ export const onboardingMessages = defineMessages({
 		defaultMessage:
 			'Use types, search, and filters to narrow things down. Project pages keep versions, changelogs, galleries, and install options in one place.',
 	},
+	favoritesTitle: {
+		id: 'app.onboarding.favorites.title',
+		defaultMessage: 'Keep a short list',
+	},
+	favoritesDescription: {
+		id: 'app.onboarding.favorites.description',
+		defaultMessage:
+			'Open Favorites to revisit saved mods, resource packs, data packs, and shaders. The launcher refreshes their project details, then you can choose an instance and add mixed sources to the same install cart.',
+	},
+	clickFavorites: {
+		id: 'app.onboarding.action.click-favorites',
+		defaultMessage: 'Click Favorites to continue',
+	},
 	homeLayoutTitle: {
 		id: 'app.onboarding.home-layout.title',
 		defaultMessage: 'Change the amount of detail',
@@ -135,7 +148,7 @@ export const onboardingMessages = defineMessages({
 	settingsDescription: {
 		id: 'app.onboarding.settings.description',
 		defaultMessage:
-			'The useful knobs live here: appearance, language, translation, AI providers, Java, storage, and updates.',
+			'The useful controls live here: launcher preferences, game launch behavior, content downloads, and privacy.',
 	},
 	clickSettings: {
 		id: 'app.onboarding.action.click-settings',
@@ -145,7 +158,7 @@ export const onboardingMessages = defineMessages({
 	appearanceDescription: {
 		id: 'app.onboarding.appearance.description',
 		defaultMessage:
-			'Theme, accent, background, Home layout, and window behavior. Make this launcher look familiar.',
+			'Theme, accent, backgrounds, and window effects all live here. Make the launcher feel familiar.',
 	},
 	languageTitle: { id: 'app.onboarding.language.title', defaultMessage: 'Speak your language' },
 	languageDescription: {
@@ -188,7 +201,8 @@ export const onboardingMessages = defineMessages({
 	},
 	resourcesDescription: {
 		id: 'app.onboarding.resources.description',
-		defaultMessage: 'Tune downloads, storage, and app resources. Give the fan a little dignity.',
+		defaultMessage:
+			'Choose how content downloads and installs, from download sources to safety checks.',
 	},
 	privacyTitle: {
 		id: 'app.onboarding.privacy.title',
@@ -412,53 +426,22 @@ const inspect = (
 
 const settingsTourSteps: Array<[string, string, MessageDescriptor, MessageDescriptor]> = [
 	[
-		'settings-appearance',
-		'settings-tab-appearance',
+		'settings-interface',
+		'settings-tab-interface',
 		onboardingMessages.appearanceTitle,
 		onboardingMessages.appearanceDescription,
 	],
 	[
-		'settings-language',
-		'settings-tab-language',
-		onboardingMessages.languageTitle,
-		onboardingMessages.languageDescription,
-	],
-	[
-		'settings-translation',
-		'settings-tab-translation',
-		onboardingMessages.translationTitle,
-		onboardingMessages.translationDescription,
-	],
-	['settings-ai', 'settings-tab-ai', onboardingMessages.aiTitle, onboardingMessages.aiDescription],
-	[
-		'settings-java',
-		'settings-tab-java',
-		onboardingMessages.javaTitle,
-		onboardingMessages.javaDescription,
-	],
-	[
-		'settings-defaults',
-		'settings-tab-defaults',
+		'settings-launch-defaults',
+		'settings-tab-launch-defaults',
 		onboardingMessages.defaultsTitle,
 		onboardingMessages.defaultsDescription,
 	],
 	[
-		'settings-resources',
-		'settings-tab-resources',
+		'settings-content-downloads',
+		'settings-tab-content-downloads',
 		onboardingMessages.resourcesTitle,
 		onboardingMessages.resourcesDescription,
-	],
-	[
-		'settings-privacy',
-		'settings-tab-privacy',
-		onboardingMessages.privacyTitle,
-		onboardingMessages.privacyDescription,
-	],
-	[
-		'settings-updates',
-		'settings-tab-updates',
-		onboardingMessages.updatesTitle,
-		onboardingMessages.updatesDescription,
 	],
 ]
 
@@ -506,6 +489,22 @@ export const onboardingTours: Record<OnboardingMode, OnboardingStep[]> = {
 			'browse-content',
 			onboardingMessages.browseTitle,
 			onboardingMessages.browseDescription,
+		),
+		step(
+			'discover-favorites-navigation',
+			'navigate',
+			copy(
+				onboardingMessages.favoritesTitle,
+				onboardingMessages.favoritesDescription,
+				onboardingMessages.clickFavorites,
+			),
+			control('browse-favorites-tab', '/browse/favorites'),
+		),
+		inspect(
+			'discover-favorites-content',
+			'browse-favorites-content',
+			onboardingMessages.favoritesTitle,
+			onboardingMessages.favoritesDescription,
 		),
 		step(
 			'skins-navigation',
@@ -657,7 +656,7 @@ export const onboardingTours: Record<OnboardingMode, OnboardingStep[]> = {
 				onboardingMessages.settingsDescription,
 				onboardingMessages.clickSettings,
 			),
-			control('nav-settings'),
+			control('nav-settings', '/settings'),
 		),
 		...settingsTourSteps.map(([id, targetId, title, description], index) =>
 			step(id, 'activate', copy(title, description, onboardingMessages.clickTab), {

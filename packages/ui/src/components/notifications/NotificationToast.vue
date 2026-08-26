@@ -83,7 +83,9 @@
 				:tint-by="entityLabel"
 				class="!rounded-xl border border-solid border-surface-5"
 			/>
-			<div class="notification-toast-main-grid min-w-0 flex-1 text-base leading-5">
+			<div
+				class="grid grid-cols-[minmax(0,1fr)_auto] gap-x-1 gap-y-[0.1875rem] min-w-0 flex-1 text-base leading-5"
+			>
 				<p
 					ref="titleRef"
 					v-tooltip="truncatedTooltip(titleRef, entityLabel)"
@@ -116,7 +118,7 @@
 					</p>
 					<div
 						v-if="type === 'instance-download' && progressLabel"
-						class="notification-inline-progress-label flex-none text-xs"
+						class="flex-none text-xs text-secondary tabular-nums pointer-events-none text-right whitespace-nowrap"
 					>
 						{{ progressLabel }}
 					</div>
@@ -133,7 +135,10 @@
 							<button @click="$emit('open-instance')">Instance</button>
 						</ButtonStyled>
 					</div>
-					<div v-if="progressLabel" class="notification-inline-progress-label flex-none">
+					<div
+						v-if="progressLabel"
+						class="flex-none text-secondary tabular-nums pointer-events-none text-right whitespace-nowrap"
+					>
 						{{ progressLabel }}
 					</div>
 				</div>
@@ -319,22 +324,6 @@ const statusRef = ref<HTMLElement | null>(null)
 <style scoped>
 .notification-toast {
 	width: min(420px, calc(100vw - 1.5rem));
-}
-
-.notification-toast-main-grid {
-	display: grid;
-	grid-template-columns: minmax(0, 1fr) auto;
-	column-gap: 0.25rem;
-	row-gap: 0.1875rem;
-}
-
-.notification-inline-progress-label {
-	flex: 0 0 auto;
-	color: var(--color-secondary);
-	font-variant-numeric: tabular-nums;
-	pointer-events: none;
-	text-align: right;
-	white-space: nowrap;
 }
 
 .notification-toast-dismiss {

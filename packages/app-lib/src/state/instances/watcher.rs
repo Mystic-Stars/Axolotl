@@ -24,14 +24,39 @@ use super::config_sync::{CONFIG_FILE_NAME, CONFIG_FILE_TEMP_NAME};
 pub struct FileWatcher {
     watcher: RwLock<Debouncer<RecommendedWatcher>>,
     instance_ids: Arc<RwLock<HashMap<String, String>>>,
+    content_changes: Arc<RwLock<HashMap<String, InstanceContentChangeState>>>,
     manual_import_directory: Arc<RwLock<Option<PathBuf>>>,
     manual_import_generation: Arc<AtomicU64>,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct InstanceContentWatchSnapshot {
+    pub epoch: u64,
+    pub generation: u64,
+    pub dirty_paths: HashSet<String>,
+    pub directory_dirty: bool,
+}
+
+#[derive(Default)]
+struct InstanceContentChangeState {
+    epoch: u64,
+    generation: u64,
+    dirty_paths: HashSet<String>,
+    directory_dirty: bool,
+    tracked_paths: HashSet<String>,
+}
+
+static NEXT_CONTENT_EPOCH: AtomicU64 = AtomicU64::new(1);
+
 pub async fn init_watcher() -> crate::Result<FileWatcher> {
     let (tx, mut rx) = channel(1);
-    let instance_ids = Arc::new(RwLock::new(HashMap::new()));
+    let instance_ids = Arc::new(RwLock::new(HashMap::<String, String>::new()));
     let event_instance_ids = instance_ids.clone();
+    let content_changes = Arc::new(RwLock::new(HashMap::<
+        String,
+        InstanceContentChangeState,
+    >::new()));
+    let event_content_changes = content_changes.clone();
     let manual_import_directory = Arc::new(RwLock::new(None::<PathBuf>));
     let event_manual_import_directory = manual_import_directory.clone();
     let manual_import_generation = Arc::new(AtomicU64::new(0));
@@ -88,6 +113,24 @@ pub async fn init_watcher() -> crate::Result<FileWatcher> {
                                 .skip_while(|x| x.as_os_str() != instance_path)
                                 .nth(1)
                                 .map(|x| x.as_os_str());
+                            let relative_path = e
+                                .path
+                                .components()
+                                .skip_while(|x| x.as_os_str() != instance_path)
+                                .skip(1)
+                                .map(|component| {
+                                    component.as_os_str().to_string_lossy()
+                                })
+                                .collect::<Vec<_>>()
+                                .join("/");
+                            if !relative_path.is_empty() {
+                                record_upgrade_content_change(
+                                    &event_content_changes,
+                                    &instance_id,
+                                    &relative_path,
+                                )
+                                .await;
+                            }
                             if first_file_name
                                 .is_some_and(is_config_sync_file_name)
                             {
@@ -210,12 +253,49 @@ pub async fn init_watcher() -> crate::Result<FileWatcher> {
     Ok(FileWatcher {
         watcher: RwLock::new(file_watcher),
         instance_ids,
+        content_changes,
         manual_import_directory,
         manual_import_generation,
     })
 }
 
 impl FileWatcher {
+    pub(crate) async fn track_upgrade_source(
+        &self,
+        instance_id: &str,
+        paths: impl IntoIterator<Item = String>,
+    ) -> Option<InstanceContentWatchSnapshot> {
+        let mut changes = self.content_changes.write().await;
+        let change = changes.get_mut(instance_id)?;
+        change.tracked_paths.extend(paths);
+        Some(change.snapshot())
+    }
+
+    pub(crate) async fn content_watch_snapshot(
+        &self,
+        instance_id: &str,
+    ) -> Option<InstanceContentWatchSnapshot> {
+        self.content_changes
+            .read()
+            .await
+            .get(instance_id)
+            .map(InstanceContentChangeState::snapshot)
+    }
+
+    #[cfg(test)]
+    pub(crate) async fn record_upgrade_content_change(
+        &self,
+        instance_id: &str,
+        relative_path: &str,
+    ) {
+        record_upgrade_content_change(
+            &self.content_changes,
+            instance_id,
+            relative_path,
+        )
+        .await;
+    }
+
     pub(crate) async fn configure_manual_import_directory(
         &self,
         directory: Option<PathBuf>,
@@ -280,20 +360,23 @@ pub(crate) async fn watch_instances_init(
     };
 
     for instance in instances {
-        watch_instance_folder(&instance.id, &instance.path, watcher, dirs)
-            .await;
+        watch_instance_folder(
+            &instance.id,
+            &instance.path,
+            &dirs.instance_game_dir(&instance),
+            watcher,
+        )
+        .await;
     }
 }
 
 pub(crate) async fn watch_instance_folder(
     instance_id: &str,
     instance_path: &str,
+    full_instance_path: &Path,
     watcher: &FileWatcher,
-    dirs: &DirectoryInfo,
 ) {
-    let full_instance_path = dirs.instances_dir().join(instance_path);
-
-    let Ok(metadata) = tokio::fs::metadata(&full_instance_path).await else {
+    let Ok(metadata) = tokio::fs::metadata(full_instance_path).await else {
         return;
     };
 
@@ -302,8 +385,8 @@ pub(crate) async fn watch_instance_folder(
     }
 
     let mut to_watch = Vec::new();
-    for full_path in instance_watch_paths(&full_instance_path) {
-        if full_path == full_instance_path {
+    for full_path in instance_watch_paths(full_instance_path) {
+        if &full_path == full_instance_path {
             // The root is watched non-recursively after the subfolders.
             continue;
         }
@@ -344,7 +427,7 @@ pub(crate) async fn watch_instance_folder(
 
     if let Err(e) = debouncer
         .watcher()
-        .watch(&full_instance_path, RecursiveMode::NonRecursive)
+        .watch(full_instance_path, RecursiveMode::NonRecursive)
     {
         tracing::error!(
             "Failed to watch root instance directory for watcher {full_instance_path:?}: {e}"
@@ -356,6 +439,11 @@ pub(crate) async fn watch_instance_folder(
         .write()
         .await
         .insert(instance_path.to_string(), instance_id.to_string());
+    watcher
+        .content_changes
+        .write()
+        .await
+        .insert(instance_id.to_string(), new_instance_content_change_state());
 }
 
 /// Stops watching an instance folder and forgets its instance-id mapping.
@@ -366,17 +454,63 @@ pub(crate) async fn watch_instance_folder(
 /// unwatched first and re-registered afterwards.
 pub(crate) async fn unwatch_instance_folder(
     instance_path: &str,
+    full_instance_path: &Path,
     watcher: &FileWatcher,
-    dirs: &DirectoryInfo,
 ) {
-    let full_instance_path = dirs.instances_dir().join(instance_path);
-
     let mut debouncer = watcher.watcher.write().await;
-    for full_path in instance_watch_paths(&full_instance_path) {
+    for full_path in instance_watch_paths(full_instance_path) {
         let _ = debouncer.watcher().unwatch(&full_path);
     }
 
-    watcher.instance_ids.write().await.remove(instance_path);
+    let instance_id = watcher.instance_ids.write().await.remove(instance_path);
+    if let Some(instance_id) = instance_id {
+        watcher.content_changes.write().await.remove(&instance_id);
+    }
+}
+
+impl InstanceContentChangeState {
+    fn snapshot(&self) -> InstanceContentWatchSnapshot {
+        InstanceContentWatchSnapshot {
+            epoch: self.epoch,
+            generation: self.generation,
+            dirty_paths: self.dirty_paths.clone(),
+            directory_dirty: self.directory_dirty,
+        }
+    }
+}
+
+fn new_instance_content_change_state() -> InstanceContentChangeState {
+    InstanceContentChangeState {
+        epoch: NEXT_CONTENT_EPOCH.fetch_add(1, Ordering::Relaxed),
+        ..InstanceContentChangeState::default()
+    }
+}
+
+fn is_upgrade_content_change(
+    relative_path: &str,
+    tracked_paths: &HashSet<String>,
+) -> bool {
+    let normalized = relative_path.replace('\\', "/");
+    let top_level = normalized.split('/').next().unwrap_or_default();
+    matches!(
+        top_level,
+        "mods" | "resourcepacks" | "shaderpacks" | "datapacks"
+    ) || tracked_paths.contains(&normalized)
+}
+
+async fn record_upgrade_content_change(
+    content_changes: &RwLock<HashMap<String, InstanceContentChangeState>>,
+    instance_id: &str,
+    relative_path: &str,
+) {
+    let mut content_changes = content_changes.write().await;
+    if let Some(change) = content_changes.get_mut(instance_id)
+        && is_upgrade_content_change(relative_path, &change.tracked_paths)
+    {
+        change.generation = change.generation.wrapping_add(1);
+        change.dirty_paths.insert(relative_path.replace('\\', "/"));
+        change.directory_dirty = true;
+    }
 }
 
 /// All paths `watch_instance_folder` registers for a single instance,
@@ -451,8 +585,13 @@ mod tests {
         let full_path = dirs.instances_dir().join(instance_path);
         std::fs::create_dir_all(&full_path).unwrap();
 
-        watch_instance_folder("instance-1", instance_path, &watcher, &dirs)
-            .await;
+        watch_instance_folder(
+            "instance-1",
+            instance_path,
+            &full_path,
+            &watcher,
+        )
+        .await;
 
         // On Windows, an active watch keeps a directory handle open and blocks
         // renaming the instance folder (ERROR_ACCESS_DENIED). This is the
@@ -469,7 +608,7 @@ mod tests {
         // The import flow unwatches the folder first; after that the rename
         // must succeed (the watcher closes its handles asynchronously, so a
         // short retry window is needed).
-        unwatch_instance_folder(instance_path, &watcher, &dirs).await;
+        unwatch_instance_folder(instance_path, &full_path, &watcher).await;
 
         let mut renamed = false;
         for _ in 0..20 {
@@ -500,7 +639,7 @@ mod tests {
 
 #[cfg(test)]
 mod config_file_name_tests {
-    use super::is_config_sync_file_name;
+    use super::*;
     use std::ffi::OsStr;
 
     #[test]
@@ -511,5 +650,95 @@ mod config_file_name_tests {
         )));
         assert!(!is_config_sync_file_name(OsStr::new("mods")));
         assert!(!is_config_sync_file_name(OsStr::new("servers.dat")));
+    }
+
+    #[tokio::test]
+    async fn content_change_tracking_ignores_unrelated_paths() {
+        let watcher = init_watcher().await.unwrap();
+        watcher.content_changes.write().await.insert(
+            "instance".to_string(),
+            new_instance_content_change_state(),
+        );
+        watcher
+            .track_upgrade_source(
+                "instance",
+                ["schematics/existing.schem".to_string()],
+            )
+            .await;
+
+        watcher
+            .record_upgrade_content_change("instance", "config/options.txt")
+            .await;
+        watcher
+            .record_upgrade_content_change(
+                "instance",
+                "schematics/existing.schem",
+            )
+            .await;
+        watcher
+            .record_upgrade_content_change("instance", "mods/new.jar")
+            .await;
+
+        let snapshot =
+            watcher.content_watch_snapshot("instance").await.unwrap();
+        assert_eq!(snapshot.generation, 2);
+        assert!(snapshot.dirty_paths.contains("mods/new.jar"));
+        assert!(snapshot.dirty_paths.contains("schematics/existing.schem"));
+        assert!(!snapshot.dirty_paths.contains("config/options.txt"));
+    }
+
+    #[tokio::test]
+    async fn concurrent_content_notifications_do_not_lose_generation() {
+        let watcher = Arc::new(init_watcher().await.unwrap());
+        watcher.content_changes.write().await.insert(
+            "instance".to_string(),
+            new_instance_content_change_state(),
+        );
+        let mut tasks = Vec::new();
+        for index in 0..32 {
+            let watcher = Arc::clone(&watcher);
+            tasks.push(tokio::spawn(async move {
+                watcher
+                    .record_upgrade_content_change(
+                        "instance",
+                        &format!("mods/{index}.jar"),
+                    )
+                    .await;
+            }));
+        }
+        for task in tasks {
+            task.await.unwrap();
+        }
+
+        let snapshot =
+            watcher.content_watch_snapshot("instance").await.unwrap();
+        assert_eq!(snapshot.generation, 32);
+        assert_eq!(snapshot.dirty_paths.len(), 32);
+    }
+
+    #[tokio::test]
+    async fn watcher_reinitialization_changes_content_epoch() {
+        let first = init_watcher().await.unwrap();
+        let second = init_watcher().await.unwrap();
+        first.content_changes.write().await.insert(
+            "instance".to_string(),
+            new_instance_content_change_state(),
+        );
+        second.content_changes.write().await.insert(
+            "instance".to_string(),
+            new_instance_content_change_state(),
+        );
+        assert_ne!(
+            first
+                .content_watch_snapshot("instance")
+                .await
+                .unwrap()
+                .epoch,
+            second
+                .content_watch_snapshot("instance")
+                .await
+                .unwrap()
+                .epoch
+        );
     }
 }

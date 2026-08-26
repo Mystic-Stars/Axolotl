@@ -105,7 +105,7 @@ const error = computed(() => {
 			return formatMessage(fileValidationMessages.nameInvalidFile)
 		}
 	} else {
-		const validPattern = /^[a-zA-Z0-9-_\s]+$/
+		const validPattern = /^[a-zA-Z0-9-_.\s]+$/
 		if (!validPattern.test(itemName.value)) {
 			return formatMessage(fileValidationMessages.nameInvalidDirectory)
 		}

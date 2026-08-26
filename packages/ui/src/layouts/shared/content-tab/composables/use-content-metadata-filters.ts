@@ -4,6 +4,7 @@ import { computed, ref, watch } from 'vue'
 import { defineMessages, useVIntl } from '#ui/composables/i18n'
 
 import type { ContentItem } from '../types'
+import { pruneMetadataFilterSelections } from './content-filter-state'
 
 export interface MetadataFilterOption {
 	value: string
@@ -233,6 +234,8 @@ function getMap<K, V>(namespace: string): Map<K, V> {
 export function useContentMetadataFilters(
 	items: Ref<ContentItem[]> | ComputedRef<ContentItem[]>,
 	persistKey?: string,
+	initialExcluded?: Record<string, string[]>,
+	filterOptionsReady?: Ref<boolean> | ComputedRef<boolean>,
 ) {
 	const { formatMessage } = useVIntl()
 
@@ -432,11 +435,28 @@ export function useContentMetadataFilters(
 			})
 			.filter((category) => category.options.length > 0),
 	)
+	const metadataFilterValidationOptions = computed<MetadataFilterCategory[]>(() =>
+		definitions.value
+			.map((definition) => {
+				const values = new Set<string>()
+				for (const item of items.value) {
+					for (const value of definition.values(item)) values.add(value)
+				}
+				return {
+					key: definition.key,
+					label: definition.label,
+					options: [...values].map((value) => ({ value, label: definition.labelFor(value) })),
+				}
+			})
+			.filter((category) => category.options.length > 0),
+	)
 
 	// ---- 选择状态（排除式：勾选 = 显示，取消勾选 = 隐藏；默认全部勾选） ----
 
 	const memory = getMap<string, Record<string, string[]>>('metadataFilters')
-	const excluded = ref<Record<string, string[]>>(persistKey ? (memory.get(persistKey) ?? {}) : {})
+	const excluded = ref<Record<string, string[]>>(
+		initialExcluded ?? (persistKey ? (memory.get(persistKey) ?? {}) : {}),
+	)
 
 	function optionsByKey(key: string): MetadataFilterOption[] {
 		return metadataFilterCategories.value.find((category) => category.key === key)?.options ?? []
@@ -466,6 +486,12 @@ export function useContentMetadataFilters(
 		}
 	}
 
+	function setExcludedValues(nextExcluded: Record<string, string[]>) {
+		excluded.value = Object.fromEntries(
+			Object.entries(nextExcluded).map(([key, values]) => [key, [...values]]),
+		)
+	}
+
 	function isCategoryFiltering(key: string): boolean {
 		const options = optionsByKey(key)
 		if (options.length === 0) return false
@@ -475,18 +501,14 @@ export function useContentMetadataFilters(
 
 	// 选项变化时修剪失效的排除值（选项消失 → 自动从排除集移除）。
 	watch(
-		metadataFilterCategories,
-		(categories) => {
-			if (categories.length === 0) return
-			let changed = false
-			const next: Record<string, string[]> = {}
-			for (const [key, values] of Object.entries(excluded.value)) {
-				const valid = new Set(optionsByKey(key).map((o) => o.value))
-				const pruned = values.filter((value) => valid.has(value))
-				if (pruned.length > 0) next[key] = pruned
-				if (pruned.length !== values.length) changed = true
-			}
-			if (changed) excluded.value = next
+		[metadataFilterValidationOptions, () => filterOptionsReady?.value ?? true],
+		([categories]) => {
+			const next = pruneMetadataFilterSelections(
+				excluded.value,
+				categories,
+				filterOptionsReady?.value ?? true,
+			)
+			if (JSON.stringify(next) !== JSON.stringify(excluded.value)) excluded.value = next
 		},
 		{ immediate: true },
 	)
@@ -516,8 +538,10 @@ export function useContentMetadataFilters(
 
 	return {
 		metadataFilterCategories,
+		excluded,
 		getSelectedValues,
 		setCategorySelection,
+		setExcludedValues,
 		isCategoryFiltering,
 		applyMetadataFilters,
 	}

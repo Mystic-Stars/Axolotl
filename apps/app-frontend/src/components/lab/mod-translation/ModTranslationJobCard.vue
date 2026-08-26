@@ -17,7 +17,10 @@ const emit = defineEmits<{
 </script>
 
 <template>
-	<article class="job-card" :class="`job-card--${job.status}`">
+	<article
+		class="job-card flex min-w-0 flex-col gap-[0.7rem] rounded-[var(--radius-lg)] bg-surface-3 p-[0.95rem_1rem]"
+		:class="`job-card--${job.status}`"
+	>
 		<ModTranslationJobSummary
 			:job="props.job"
 			@cancel="emit('cancel', $event)"
@@ -32,16 +35,6 @@ const emit = defineEmits<{
 </template>
 
 <style scoped>
-.job-card {
-	display: flex;
-	min-width: 0;
-	flex-direction: column;
-	gap: 0.7rem;
-	border-radius: var(--radius-lg);
-	background: var(--surface-3);
-	padding: 0.95rem 1rem;
-}
-
 .job-card--running {
 	background:
 		linear-gradient(

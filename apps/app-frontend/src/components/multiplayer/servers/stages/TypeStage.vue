@@ -1,0 +1,129 @@
+<script setup lang="ts">
+import { isServerTypeSupported, listServerTypes, type ServerTypeId } from '@modrinth/server'
+import { Combobox, type ComboboxOption, defineMessages, Toggle, useVIntl } from '@modrinth/ui'
+import { computed } from 'vue'
+
+import { injectCreateServerFlow } from '../create-server-flow'
+import { SERVER_TYPE_META } from '../server-type'
+
+const { formatMessage } = useVIntl()
+const ctx = injectCreateServerFlow()
+
+const messages = defineMessages({
+	heading: { id: 'app.servers.wizard.type-heading', defaultMessage: 'Choose a server type' },
+	gameVersion: { id: 'app.servers.wizard.game-version', defaultMessage: 'Game version' },
+	loaderVersion: { id: 'app.servers.wizard.loader-version', defaultMessage: 'Loader version' },
+	showSnapshots: { id: 'app.servers.wizard.show-snapshots', defaultMessage: 'Show snapshots' },
+})
+
+const serverTypeOptions = listServerTypes().filter((type) => isServerTypeSupported(type.id))
+
+const gameVersionOptions = computed<ComboboxOption<string>[]>(() =>
+	ctx.availableGameVersions.value.map((version) => ({ value: version, label: version })),
+)
+
+const loaderVersionOptions = computed<ComboboxOption<string>[]>(() =>
+	ctx.loaderVersions.value.map((loader) => ({ value: loader.id, label: loader.id })),
+)
+
+function selectType(typeId: string) {
+	ctx.serverType.value = typeId as ServerTypeId
+	void ctx.loadLoaderVersions()
+}
+
+function selectGameVersion(version: string) {
+	ctx.selectedGameVersion.value = version
+	void ctx.loadLoaderVersions()
+}
+
+// Inline styles instead of Tailwind arbitrary values: underscores inside
+// `var(--_color)` are converted to spaces by Tailwind's arbitrary-value
+// parsing, which generates invalid CSS and breaks the production build.
+const monogramStyles = computed<Record<string, string>>(() =>
+	Object.fromEntries(
+		serverTypeOptions.map((type) => [
+			type.id,
+			`color-mix(in srgb, ${SERVER_TYPE_META[type.id].colorVar} 14%, transparent)`,
+		]),
+	),
+)
+</script>
+
+<template>
+	<div class="flex flex-col gap-5">
+		<div>
+			<h2 class="m-0 text-lg font-semibold text-contrast">
+				{{ formatMessage(messages.heading) }}
+			</h2>
+		</div>
+
+		<div class="grid grid-cols-1 gap-2 sm:grid-cols-3">
+			<button
+				v-for="type in serverTypeOptions"
+				:key="type.id"
+				type="button"
+				class="flex items-center gap-2.5 rounded-lg border border-solid px-3 py-2.5 text-left transition-colors"
+				:class="
+					ctx.serverType.value === type.id
+						? 'border-brand bg-brand-highlight'
+						: 'border-surface-4 bg-surface-2 hover:border-surface-5'
+				"
+				@click="selectType(type.id)"
+			>
+				<span
+					class="flex size-7 shrink-0 items-center justify-center rounded-md text-xs font-bold"
+					:style="{
+						color: SERVER_TYPE_META[type.id].colorVar,
+						backgroundColor: monogramStyles[type.id],
+					}"
+				>
+					{{ SERVER_TYPE_META[type.id].monogram }}
+				</span>
+				<span class="min-w-0 truncate font-semibold text-contrast">{{ type.label }}</span>
+			</button>
+		</div>
+
+		<div class="flex items-end justify-between gap-4">
+			<div class="flex min-w-0 flex-1 flex-col gap-2">
+				<span class="font-semibold text-contrast">
+					{{ formatMessage(messages.gameVersion) }}
+				</span>
+				<Combobox
+					:model-value="ctx.selectedGameVersion.value"
+					:options="gameVersionOptions"
+					:placeholder="formatMessage(messages.gameVersion)"
+					@update:model-value="selectGameVersion"
+				/>
+			</div>
+
+			<div class="flex shrink-0 items-center gap-2 pb-2.5">
+				<span class="whitespace-nowrap text-sm text-secondary">
+					{{ formatMessage(messages.showSnapshots) }}
+				</span>
+				<Toggle
+					id="wizard-show-snapshots"
+					:model-value="ctx.showSnapshots.value"
+					small
+					@update:model-value="
+						(value) => {
+							ctx.showSnapshots.value = !!value
+							void ctx.loadVersions()
+						}
+					"
+				/>
+			</div>
+		</div>
+
+		<div v-if="ctx.needsLoaderVersion.value" class="flex min-w-0 flex-col gap-2">
+			<span class="font-semibold text-contrast">
+				{{ formatMessage(messages.loaderVersion) }}
+			</span>
+			<Combobox
+				:model-value="ctx.selectedLoaderVersion.value"
+				:options="loaderVersionOptions"
+				:placeholder="formatMessage(messages.loaderVersion)"
+				@update:model-value="(value) => (ctx.selectedLoaderVersion.value = value)"
+			/>
+		</div>
+	</div>
+</template>

@@ -1,9 +1,9 @@
 <template>
-	<div class="joined-buttons">
+	<div class="joined-buttons flex items-center">
 		<ButtonStyled :color="color" :size="size">
 			<button
 				v-tooltip="primaryTooltip"
-				:class="{ 'joined-buttons__primary--muted': primaryMuted }"
+				:class="{ 'opacity-60': primaryMuted }"
 				:disabled="primaryDisabledResolved"
 				@click="handlePrimaryAction"
 			>
@@ -116,11 +116,6 @@ function handlePrimaryAction() {
 </script>
 
 <style scoped>
-.joined-buttons {
-	display: flex;
-	align-items: center;
-}
-
 .joined-buttons > :deep(.btn) {
 	border-radius: 0;
 }
@@ -142,9 +137,5 @@ function handlePrimaryAction() {
 
 .btn-dropdown-animation {
 	padding: 0.5rem !important;
-}
-
-.joined-buttons__primary--muted {
-	opacity: 0.6;
 }
 </style>

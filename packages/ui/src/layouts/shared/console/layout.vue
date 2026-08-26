@@ -6,7 +6,11 @@
 		"
 	>
 		<div
-			v-if="ctx.localCrashAnalysis?.value?.findings.length && !isFullscreen"
+			v-if="
+				(ctx.localCrashAnalysis?.value?.findings.length ||
+					ctx.localCrashAnalysis?.value?.mod_changes.length) &&
+				!isFullscreen
+			"
 			class="flex flex-col gap-2"
 		>
 			<CollapsibleAdmonition type="critical" :header="localCrashHeader" :items="localCrashItems" />
@@ -19,15 +23,6 @@
 				</ButtonStyled>
 			</div>
 		</div>
-		<CollapsibleAdmonition
-			v-if="ctx.crashAnalysis?.value && !isFullscreen"
-			type="critical"
-			:header="crashHeader"
-			:items="crashItems"
-			dismissible
-			@dismiss="ctx.onDismissCrash?.()"
-		/>
-
 		<div class="flex items-center gap-2">
 			<StyledInput
 				v-model="searchQuery"
@@ -107,6 +102,24 @@
 				</div>
 			</Transition>
 		</div>
+
+		<div
+			v-if="showCommandInput"
+			class="rounded-[20px] border border-solid border-surface-4 bg-surface-3 p-4"
+		>
+			<StyledInput
+				v-model="commandInput"
+				v-tooltip="commandDisabled ? commandDisabledTooltip : undefined"
+				:icon="TerminalSquareIcon"
+				:placeholder="commandPlaceholder"
+				:disabled="commandDisabled"
+				wrapper-class="w-full"
+				input-class="!h-10"
+				autocomplete="off"
+				:spellcheck="false"
+				@keydown.enter="submitCommand"
+			/>
+		</div>
 	</div>
 	<ShareModal
 		ref="shareModal"
@@ -145,7 +158,14 @@
 </template>
 
 <script setup lang="ts">
-import { DownloadIcon, SearchIcon, TrashIcon, WrapTextIcon, XIcon } from '@modrinth/assets'
+import {
+	DownloadIcon,
+	SearchIcon,
+	TerminalSquareIcon,
+	TrashIcon,
+	WrapTextIcon,
+	XIcon,
+} from '@modrinth/assets'
 import { computed, isRef, onBeforeUnmount, ref } from 'vue'
 
 import Admonition from '#ui/components/base/Admonition.vue'
@@ -237,6 +257,26 @@ const localFindingCopy = {
 	missing_dependency: {
 		title: localFindingMessages.missingDependencyTitle,
 		action: localFindingMessages.missingDependencyAction,
+	},
+	disk_space: {
+		title: localFindingMessages.diskSpaceTitle,
+		action: localFindingMessages.diskSpaceAction,
+	},
+	file_in_use: {
+		title: localFindingMessages.fileInUseTitle,
+		action: localFindingMessages.fileInUseAction,
+	},
+	connector_incompatible_fabric_mods: {
+		title: localFindingMessages.connectorIncompatibleFabricModsTitle,
+		action: localFindingMessages.connectorIncompatibleFabricModsAction,
+	},
+	missing_embeddium: {
+		title: localFindingMessages.missingEmbeddiumTitle,
+		action: localFindingMessages.missingEmbeddiumAction,
+	},
+	missing_indium: {
+		title: localFindingMessages.missingIndiumTitle,
+		action: localFindingMessages.missingIndiumAction,
 	},
 	mod_id_limit: {
 		title: localFindingMessages.modIdLimitTitle,
@@ -362,6 +402,122 @@ const localFindingCopy = {
 		title: localFindingMessages.specificEntityTitle,
 		action: localFindingMessages.specificEntityAction,
 	},
+	hs_err_al_lib_alc_cleanup: {
+		title: consoleMessages.knownSignatureTitle,
+		action: consoleMessages.knownSignatureAction,
+	},
+	hs_err_glfw_driver: {
+		title: consoleMessages.knownSignatureTitle,
+		action: consoleMessages.knownSignatureAction,
+	},
+	hs_err_intel_driver: {
+		title: consoleMessages.knownSignatureTitle,
+		action: consoleMessages.knownSignatureAction,
+	},
+	hs_err_java_too_high: {
+		title: consoleMessages.knownSignatureTitle,
+		action: consoleMessages.knownSignatureAction,
+	},
+	hs_err_jvm: {
+		title: consoleMessages.knownSignatureTitle,
+		action: consoleMessages.knownSignatureAction,
+	},
+	hs_err_openal: {
+		title: consoleMessages.knownSignatureTitle,
+		action: consoleMessages.knownSignatureAction,
+	},
+	hs_err_macos_shader: {
+		title: consoleMessages.knownSignatureTitle,
+		action: consoleMessages.knownSignatureAction,
+	},
+	hs_err_apple_jdk: {
+		title: consoleMessages.knownSignatureTitle,
+		action: consoleMessages.knownSignatureAction,
+	},
+	hs_err_gpu_driver: {
+		title: consoleMessages.knownSignatureTitle,
+		action: consoleMessages.knownSignatureAction,
+	},
+	create_addons: {
+		title: consoleMessages.knownSignatureTitle,
+		action: consoleMessages.knownSignatureAction,
+	},
+	ctov_missing_lithostitched: {
+		title: consoleMessages.knownSignatureTitle,
+		action: consoleMessages.knownSignatureAction,
+	},
+	curseforge_corrupted: {
+		title: consoleMessages.knownSignatureTitle,
+		action: consoleMessages.knownSignatureAction,
+	},
+	epic_fight_addons: {
+		title: consoleMessages.knownSignatureTitle,
+		action: consoleMessages.knownSignatureAction,
+	},
+	feature_order_cycle: {
+		title: consoleMessages.knownSignatureTitle,
+		action: consoleMessages.knownSignatureAction,
+	},
+	ferrite_core_neighbor_table: {
+		title: consoleMessages.knownSignatureTitle,
+		action: consoleMessages.knownSignatureAction,
+	},
+	geckolib_oculus_compat: {
+		title: consoleMessages.knownSignatureTitle,
+		action: consoleMessages.knownSignatureAction,
+	},
+	groovy_mod_loader_ipv6: {
+		title: consoleMessages.knownSignatureTitle,
+		action: consoleMessages.knownSignatureAction,
+	},
+	kubejs_datapack: {
+		title: consoleMessages.knownSignatureTitle,
+		action: consoleMessages.knownSignatureAction,
+	},
+	language_provider_mismatch: {
+		title: consoleMessages.knownSignatureTitle,
+		action: consoleMessages.knownSignatureAction,
+	},
+	legacy_too_many_ids: {
+		title: consoleMessages.knownSignatureTitle,
+		action: consoleMessages.knownSignatureAction,
+	},
+	module_resolution: {
+		title: consoleMessages.knownSignatureTitle,
+		action: consoleMessages.knownSignatureAction,
+	},
+	modernfix_watchdog: {
+		title: consoleMessages.knownSignatureTitle,
+		action: consoleMessages.knownSignatureAction,
+	},
+	neoforge_1_20_1: {
+		title: consoleMessages.knownSignatureTitle,
+		action: consoleMessages.knownSignatureAction,
+	},
+	resource_location: {
+		title: consoleMessages.knownSignatureTitle,
+		action: consoleMessages.knownSignatureAction,
+	},
+	rubidium_deprecated: {
+		title: consoleMessages.knownSignatureTitle,
+		action: consoleMessages.knownSignatureAction,
+	},
+	server_config_corrupted: {
+		title: consoleMessages.knownSignatureTitle,
+		action: consoleMessages.knownSignatureAction,
+	},
+	version_1_21: {
+		title: consoleMessages.knownSignatureTitle,
+		action: consoleMessages.knownSignatureAction,
+	},
+	used_by_another_process: {
+		title: consoleMessages.knownSignatureTitle,
+		action: consoleMessages.knownSignatureAction,
+	},
+	windows_closed_process: {
+		title: consoleMessages.knownSignatureTitle,
+		action: consoleMessages.knownSignatureAction,
+	},
 } as const
 
 const localCrashHeader = computed(() => {
@@ -374,7 +530,7 @@ const localCrashHeader = computed(() => {
 const localCrashItems = computed<CollapsibleAdmonitionItem[]>(() => {
 	const analysis = ctx.localCrashAnalysis?.value
 	if (!analysis) return []
-	return analysis.findings.map((finding) => {
+	const items = analysis.findings.map((finding) => {
 		const copy = localFindingCopy[finding.id as keyof typeof localFindingCopy]
 		const title = copy
 			? formatMessage(copy.title)
@@ -397,20 +553,35 @@ const localCrashItems = computed<CollapsibleAdmonitionItem[]>(() => {
 			descriptions: [action, ...mods, ...evidence],
 		}
 	})
-})
-
-const crashHeader = computed(() => {
-	const problems = ctx.crashAnalysis?.value?.analysis.problems ?? []
-	const count = problems.length
-	return formatMessage(consoleMessages.problemsDetected, { count })
-})
-
-const crashItems = computed<CollapsibleAdmonitionItem[]>(() => {
-	const problems = ctx.crashAnalysis?.value?.analysis.problems ?? []
-	return problems.map((p) => ({
-		title: p.message,
-		descriptions: p.solutions.map((s) => s.message),
-	}))
+	if (analysis.mod_changes.length > 0) {
+		const counts = analysis.mod_change_counts
+		const changeKindMessages = {
+			added: consoleMessages.modChangeAdded,
+			removed: consoleMessages.modChangeRemoved,
+			modified: consoleMessages.modChangeModified,
+		} as const
+		items.push({
+			title: formatMessage(consoleMessages.modChangesTitle),
+			descriptions: [
+				formatMessage(consoleMessages.modChangesSummary, counts),
+				...analysis.mod_changes.map((change) =>
+					formatMessage(consoleMessages.modChange, {
+						kind: formatMessage(changeKindMessages[change.kind]),
+						filename: change.filename,
+					}),
+				),
+			],
+		})
+	}
+	if (analysis.windows_events.length > 0) {
+		items.push({
+			title: formatMessage(consoleMessages.windowsEventsTitle),
+			descriptions: analysis.windows_events.map(
+				(event) => `Event ${event.event_id} · ${event.provider}: ${event.message}`,
+			),
+		})
+	}
+	return items
 })
 
 const viewportRef = ref<InstanceType<typeof LogViewport> | null>(null)
@@ -504,6 +675,33 @@ const resolvedShareDisabled = computed(() => {
 	if (!v) return false
 	return isRef(v) ? v.value : v
 })
+
+const commandInput = ref('')
+
+const showCommandInput = computed(() => {
+	if (!ctx.sendCommand) return false
+	return unwrapMaybeRef(ctx.showCommandInput) ?? false
+})
+
+const commandDisabled = computed(() => unwrapMaybeRef(ctx.disableCommandInput) ?? false)
+
+const commandDisabledTooltip = computed(() => ctx.disableCommandInputTooltip?.value)
+
+const commandPlaceholder = computed(() => {
+	if (!commandDisabled.value) return formatMessage(consoleMessages.commandPlaceholder)
+	return formatMessage(
+		ctx.emptyStateType === 'server'
+			? consoleMessages.serverNotRunning
+			: consoleMessages.commandInputDisabled,
+	)
+})
+
+function submitCommand() {
+	const command = commandInput.value.trim()
+	if (!command || commandDisabled.value || !ctx.sendCommand) return
+	ctx.sendCommand(command)
+	commandInput.value = ''
+}
 
 const showDelete = computed(() => !isLiveSource.value && ctx.onDelete != null)
 

@@ -15,4 +15,5 @@ export {
 	loaderVersionsForGameVersion,
 	scopedLoaderMetadataQueryKey,
 } from './creation-flow-modal/loader-metadata'
+export { aprilFoolsVersions, isVersionTypeMatch } from './creation-flow-modal/shared'
 export * from './drop'

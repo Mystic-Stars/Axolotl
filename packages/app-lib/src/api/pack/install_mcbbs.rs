@@ -13,8 +13,7 @@ use super::archive_util;
 use crate::State;
 use crate::data::ModLoader;
 use crate::install::{
-    InstallJobEventKind, InstallPhaseDetails, InstallPhaseId,
-    InstallProgressReporter,
+    InstallPhaseDetails, InstallPhaseId, InstallProgressReporter,
 };
 use crate::pack::detect::{CURSEFORGE_MANIFEST, MCBBS_MANIFEST};
 use crate::state::{
@@ -103,31 +102,93 @@ pub(crate) async fn install_mcbbs_pack_with_reporter(
     let mut loader = ModLoader::Vanilla;
     let mut loader_version = None;
     let mut optifine_version = None;
+    let mut lite_loader_version = None;
     for addon in &manifest.addons {
         match addon.id.to_ascii_lowercase().as_str() {
             "game" => game_version = Some(addon.version.clone()),
             "forge" => {
+                if loader != ModLoader::Vanilla {
+                    return Err(crate::ErrorKind::InputError(
+                        "MCBBS modpack declares multiple primary loaders"
+                            .to_string(),
+                    )
+                    .into());
+                }
                 loader = ModLoader::Forge;
                 loader_version = Some(addon.version.clone());
             }
             "neoforge" => {
+                if loader != ModLoader::Vanilla {
+                    return Err(crate::ErrorKind::InputError(
+                        "MCBBS modpack declares multiple primary loaders"
+                            .to_string(),
+                    )
+                    .into());
+                }
                 loader = ModLoader::NeoForge;
                 loader_version = Some(addon.version.clone());
             }
             "fabric" => {
+                if loader != ModLoader::Vanilla {
+                    return Err(crate::ErrorKind::InputError(
+                        "MCBBS modpack declares multiple primary loaders"
+                            .to_string(),
+                    )
+                    .into());
+                }
                 loader = ModLoader::Fabric;
                 loader_version = Some(addon.version.clone());
             }
             "quilt" => {
+                if loader != ModLoader::Vanilla {
+                    return Err(crate::ErrorKind::InputError(
+                        "MCBBS modpack declares multiple primary loaders"
+                            .to_string(),
+                    )
+                    .into());
+                }
                 loader = ModLoader::Quilt;
                 loader_version = Some(addon.version.clone());
             }
+            "cleanroom" => {
+                if loader != ModLoader::Vanilla {
+                    return Err(crate::ErrorKind::InputError(
+                        "MCBBS modpack declares multiple primary loaders"
+                            .to_string(),
+                    )
+                    .into());
+                }
+                loader = ModLoader::Cleanroom;
+                loader_version = Some(addon.version.clone());
+            }
+            "legacy_fabric" | "legacyfabric" => {
+                if loader != ModLoader::Vanilla {
+                    return Err(crate::ErrorKind::InputError(
+                        "MCBBS modpack declares multiple primary loaders"
+                            .to_string(),
+                    )
+                    .into());
+                }
+                loader = ModLoader::LegacyFabric;
+                loader_version = Some(addon.version.clone());
+            }
+            "lite_loader" | "liteloader" => {
+                lite_loader_version = Some(addon.version.clone());
+            }
             "optifine" => optifine_version = Some(addon.version.clone()),
+            "labymod" => {
+                return Err(crate::ErrorKind::InputError(
+                    "Unsupported loader LabyMod: Axolotl does not install, update, or repair LabyMod instances"
+                        .to_string(),
+                )
+                .into());
+            }
             other => {
-                tracing::warn!(
-                    "Ignoring unsupported MCBBS addon {other} {}",
+                return Err(crate::ErrorKind::InputError(format!(
+                    "Unsupported MCBBS loader component {other} {}",
                     addon.version
-                );
+                ))
+                .into());
             }
         }
     }
@@ -138,9 +199,28 @@ pub(crate) async fn install_mcbbs_pack_with_reporter(
         .into());
     };
 
-    // Standalone OptiFine packs install OptiFine as the loader; packs that
-    // also declare Forge/NeoForge get OptiFine dropped into mods/ instead.
+    let mut lite_loader_as_adjunct = None;
+    if let Some(lite_loader_version) = lite_loader_version {
+        match loader {
+            ModLoader::Vanilla => {
+                loader = ModLoader::LiteLoader;
+                loader_version = Some(lite_loader_version);
+            }
+            ModLoader::Forge => {
+                lite_loader_as_adjunct = Some(lite_loader_version);
+            }
+            _ => {
+                return Err(crate::ErrorKind::InputError(format!(
+                    "LiteLoader is not supported with {}",
+                    loader.as_str()
+                ))
+                .into());
+            }
+        }
+    }
+
     let mut optifine_as_mod = None;
+    let mut requires_optifabric = false;
     if let Some(optifine_version) = optifine_version {
         match loader {
             ModLoader::Vanilla => {
@@ -150,11 +230,16 @@ pub(crate) async fn install_mcbbs_pack_with_reporter(
             ModLoader::Forge | ModLoader::NeoForge => {
                 optifine_as_mod = Some(optifine_version);
             }
+            ModLoader::Fabric | ModLoader::LegacyFabric => {
+                optifine_as_mod = Some(optifine_version);
+                requires_optifabric = true;
+            }
             _ => {
-                tracing::warn!(
-                    "Skipping OptiFine {optifine_version}: not compatible with {}",
+                return Err(crate::ErrorKind::InputError(format!(
+                    "OptiFine is not supported with {}",
                     loader.as_str()
-                );
+                ))
+                .into());
             }
         }
     }
@@ -181,6 +266,34 @@ pub(crate) async fn install_mcbbs_pack_with_reporter(
     reporter
         .update(InstallPhaseId::ResolvingPack, None, pack_details.clone())
         .await?;
+
+    let lite_loader_as_adjunct = if let Some(requested_version) =
+        lite_loader_as_adjunct
+    {
+        Some(
+			crate::launcher::get_loader_version_from_profile(
+				&game_version,
+				ModLoader::LiteLoader,
+				Some(&requested_version),
+			)
+			.await?
+			.ok_or_else(|| {
+				crate::ErrorKind::InputError(format!(
+					"No LiteLoader version {requested_version} supports Minecraft {game_version}"
+				))
+			})?,
+		)
+    } else {
+        None
+    };
+    let optifabric_version = if requires_optifabric {
+        Some(
+            crate::install::runner::resolve_optifabric_version(&game_version)
+                .await?,
+        )
+    } else {
+        None
+    };
 
     let resolved_loader_version = if loader != ModLoader::Vanilla {
         crate::launcher::get_loader_version_from_profile(
@@ -291,8 +404,18 @@ pub(crate) async fn install_mcbbs_pack_with_reporter(
     )
     .await?;
 
-    if let Some(optifine_version) = optifine_as_mod
-        && let Err(error) = install_optifine_mod(
+    if let Some(lite_loader_version) = lite_loader_as_adjunct {
+        install_liteloader_component(
+            &state,
+            &instance_id,
+            &game_version,
+            loader,
+            &lite_loader_version,
+        )
+        .await?;
+    }
+    if let Some(optifine_version) = optifine_as_mod {
+        install_optifine_mod(
             &state,
             &instance_id,
             reporter.cancellation_token(),
@@ -300,33 +423,120 @@ pub(crate) async fn install_mcbbs_pack_with_reporter(
             &optifine_version,
             &instance_path,
         )
-        .await
-    {
-        tracing::warn!(
-            "Failed to install OptiFine {optifine_version} as a mod: {error}"
-        );
-        reporter
-            .update_with_events(
-                InstallPhaseId::DownloadingContent,
-                None,
-                pack_details.clone(),
-                vec![InstallJobEventKind::ContentFileSkipped {
-                    path: format!("OptiFine {optifine_version}"),
-                    reason: format!(
-                        "OptiFine could not be installed automatically: {error}"
-                    ),
-                    project_id: None,
-                    version_id: None,
-                    manual_url: Some(
-                        "https://optifine.net/downloads".to_string(),
-                    ),
-                }],
-            )
-            .await?;
+        .await?;
+        record_optifine_component(&instance_id, &optifine_version).await?;
+    }
+    if let Some(optifabric_version) = optifabric_version {
+        install_optifabric_component(
+            &instance_id,
+            &game_version,
+            &optifabric_version,
+        )
+        .await?;
     }
 
     reporter.clear_context().await?;
     Ok(())
+}
+
+pub(crate) async fn record_optifine_component(
+    instance_id: &str,
+    version: &str,
+) -> crate::Result<()> {
+    record_loader_component(
+        instance_id,
+        crate::state::LoaderComponentKind::OptiFine,
+        version,
+        Some(serde_json::json!({ "source": "pack" })),
+    )
+    .await
+}
+
+pub(crate) async fn record_loader_component(
+    instance_id: &str,
+    kind: crate::state::LoaderComponentKind,
+    version: &str,
+    provider_metadata: Option<serde_json::Value>,
+) -> crate::Result<()> {
+    let state = State::get().await?;
+    let metadata =
+        crate::api::instance::get(instance_id)
+            .await?
+            .ok_or_else(|| {
+                crate::ErrorKind::InputError(format!(
+                    "Unknown instance {instance_id}"
+                ))
+            })?;
+    let mut components = metadata.loader_components;
+    components.retain(|component| component.kind != kind);
+    components.push(crate::state::LoaderComponent {
+        instance_id: instance_id.to_string(),
+        kind,
+        version: Some(version.to_string()),
+        role: crate::state::LoaderComponentRole::Adjunct,
+        provider_metadata,
+    });
+    crate::state::instances::commands::replace_instance_loader_components(
+        instance_id,
+        &components,
+        &state.pool,
+    )
+    .await
+}
+
+pub(crate) async fn install_liteloader_component(
+    state: &State,
+    instance_id: &str,
+    game_version: &str,
+    primary_loader: ModLoader,
+    resolved_version: &daedalus::modded::LoaderVersion,
+) -> crate::Result<()> {
+    let metadata =
+        crate::api::instance::get(instance_id)
+            .await?
+            .ok_or_else(|| {
+                crate::ErrorKind::InputError(format!(
+                    "Unknown instance {instance_id}"
+                ))
+            })?;
+    let version = crate::install::runner::install_liteloader_adjunct_resolved(
+        state,
+        &metadata,
+        game_version,
+        primary_loader,
+        resolved_version,
+    )
+    .await?;
+    record_loader_component(
+        instance_id,
+        crate::state::LoaderComponentKind::LiteLoader,
+        &version,
+        Some(serde_json::json!({ "source": "pack" })),
+    )
+    .await
+}
+
+pub(crate) async fn install_optifabric_component(
+    instance_id: &str,
+    game_version: &str,
+    version: &str,
+) -> crate::Result<()> {
+    let version = crate::install::runner::install_optifabric_file(
+        instance_id,
+        game_version,
+        version,
+    )
+    .await?;
+    record_loader_component(
+        instance_id,
+        crate::state::LoaderComponentKind::OptiFabric,
+        &version,
+        Some(serde_json::json!({
+            "projectId": crate::install::runner::OPTIFABRIC_CURSEFORGE_PROJECT_ID,
+            "provider": "curseforge"
+        })),
+    )
+    .await
 }
 
 /// Installs OptiFine into the instance's mods folder for packs that pair it
@@ -352,10 +562,18 @@ pub(crate) async fn install_optifine_mod(
         Some(loader_version) => format!("{game_version}-{loader_version}"),
         None => game_version.to_string(),
     };
-    let client_jar = state
+    let loader_client_jar = state
         .directories
         .version_dir(&version_jar)
         .join(format!("{version_jar}.jar"));
+    let client_jar = if loader_client_jar.is_file() {
+        loader_client_jar
+    } else {
+        state
+            .directories
+            .version_dir(game_version)
+            .join(format!("{game_version}.jar"))
+    };
 
     let (manifest, version_index) =
         crate::launcher::resolve_minecraft_manifest(game_version, state)

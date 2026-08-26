@@ -52,6 +52,7 @@ export interface ContentCardTableItem {
 	enabled?: boolean
 	disabled?: boolean
 	disabledTooltip?: string | null
+	postUpgradeWarningTooltip?: string | null
 	toggleDisabled?: boolean
 	toggleDisabledTooltip?: string | null
 	installing?: boolean
@@ -63,6 +64,8 @@ export interface ContentCardTableItem {
 	clientWarning?: ClientWarningType | null
 	hideSwitchVersion?: boolean
 	pendingManualDownload?: boolean
+	/** Number of installed copies of this online project, when more than one is present. */
+	duplicateCount?: number
 	instanceFileId?: string
 	instanceEntryId?: string
 	instanceMemberId?: string

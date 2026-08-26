@@ -6,6 +6,9 @@ pub use self::content_entry::*;
 mod content_dependency;
 pub use self::content_dependency::*;
 
+mod dependency_resolution;
+pub use self::dependency_resolution::*;
+
 mod content_ownership;
 pub use self::content_ownership::*;
 
@@ -14,6 +17,12 @@ pub use self::content_snapshot::*;
 
 mod content_update_plan;
 pub use self::content_update_plan::*;
+
+mod instance_upgrade_plan;
+pub use self::instance_upgrade_plan::*;
+
+mod post_upgrade_notice;
+pub use self::post_upgrade_notice::*;
 
 mod content_provider;
 pub use self::content_provider::*;
@@ -26,6 +35,9 @@ pub use self::content_set_remote_ref::*;
 
 mod content_set_sync_state;
 pub use self::content_set_sync_state::*;
+
+mod core_component;
+pub use self::core_component::*;
 
 mod file;
 pub use self::file::*;
@@ -41,6 +53,9 @@ pub use self::launch::*;
 
 mod link;
 pub use self::link::*;
+
+mod loader_component;
+pub use self::loader_component::*;
 
 mod manifest;
 

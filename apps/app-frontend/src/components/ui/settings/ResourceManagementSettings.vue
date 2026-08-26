@@ -1,9 +1,9 @@
 <script setup>
 import { BoxIcon, FolderOpenIcon, FolderSearchIcon, TrashIcon } from '@modrinth/assets'
 import {
-	ButtonStyled,
 	Combobox,
 	defineMessages,
+	IconButton,
 	injectNotificationManager,
 	Slider,
 	StyledInput,
@@ -21,9 +21,21 @@ import {
 	getMissingContentScannerSettings,
 	setMissingContentScannerSettings,
 } from '@/helpers/downloads-scanner'
-import { get, set } from '@/helpers/settings.ts'
+import { get, getProxyConfig, set, setProxyConfig, testProxyConfig } from '@/helpers/settings.ts'
 import { showAppDbBackupsFolder } from '@/helpers/utils.js'
 import { useTheming } from '@/store/state'
+
+import SettingsRow from './SettingsRow.vue'
+import SettingsSection from './SettingsSection.vue'
+
+const props = defineProps({
+	scope: {
+		type: String,
+		default: 'content-downloads',
+		validator: (value) =>
+			['content-downloads', 'network-multiplayer', 'storage-backups'].includes(value),
+	},
+})
 
 const { handleError } = injectNotificationManager()
 const themeStore = useTheming()
@@ -38,6 +50,61 @@ try {
 	isPortable.value = await invoke('is_portable_mode')
 } catch (error) {
 	console.error('Failed to determine portable mode', error)
+}
+
+// Proxy settings
+/** @type {import('@/helpers/settings.ts').ProxyConfig} */
+const proxyConfig = ref({ mode: 'none', url: '', username: '', password: '' })
+const proxyTesting = ref(false)
+/** @type {import('vue').Ref<string>} */
+const proxyTestResult = ref('')
+
+try {
+	proxyConfig.value = await getProxyConfig()
+} catch (error) {
+	console.error('Failed to load proxy configuration', error)
+}
+
+async function saveProxyConfig(silent = true) {
+	try {
+		await setProxyConfig(proxyConfig.value)
+	} catch (error) {
+		if (!silent) {
+			handleError(error)
+		}
+	}
+}
+
+async function testProxy() {
+	if (proxyConfig.value.mode === 'custom' && !proxyConfig.value.url?.trim()) {
+		proxyTestResult.value = formatMessage(messages.proxyUrlRequired)
+		return
+	}
+	proxyTesting.value = true
+	proxyTestResult.value = ''
+	try {
+		const result = await testProxyConfig(proxyConfig.value)
+		if (result.success) {
+			proxyTestResult.value =
+				result.latency_ms != null
+					? formatMessage(messages.proxyTestSuccessWithLatency, { latency: result.latency_ms })
+					: formatMessage(messages.proxyTestSuccess)
+		} else {
+			proxyTestResult.value = result.message || formatMessage(messages.proxyTestFailed)
+		}
+	} catch (error) {
+		const message =
+			error instanceof Error
+				? error.message
+				: typeof error === 'object' && error !== null && 'message' in error
+					? String(error.message)
+					: typeof error === 'string'
+						? error
+						: JSON.stringify(error)
+		proxyTestResult.value = message
+	} finally {
+		proxyTesting.value = false
+	}
 }
 
 const messages = defineMessages({
@@ -97,9 +164,9 @@ const messages = defineMessages({
 		id: 'app.settings.resources.source.open-bmcl-api',
 		defaultMessage: 'Prefer OpenBMCLAPI',
 	},
-	mcimSource: {
-		id: 'app.settings.resources.source.mcim',
-		defaultMessage: 'Prefer MCIM',
+	tianpaoSource: {
+		id: 'app.settings.resources.source.tianpao',
+		defaultMessage: 'Prefer Tianpao',
 	},
 	minecraftMetadataSource: {
 		id: 'app.settings.resources.minecraft-metadata-source',
@@ -117,13 +184,30 @@ const messages = defineMessages({
 		id: 'app.settings.resources.minecraft-file-source-description',
 		defaultMessage: 'Game files, assets, libraries, mod loaders, and Java runtimes.',
 	},
+	modrinthMirror: {
+		id: 'app.settings.resources.modrinth-mirror',
+		defaultMessage: 'Modrinth',
+	},
+	modrinthMirrorDescription: {
+		id: 'app.settings.resources.modrinth-mirror-description',
+		defaultMessage: 'Modrinth file downloads.',
+	},
 	curseforgeMirror: {
 		id: 'app.settings.resources.curseforge-mirror',
 		defaultMessage: 'CurseForge',
 	},
 	curseforgeMirrorDescription: {
 		id: 'app.settings.resources.curseforge-mirror-description',
-		defaultMessage: 'CurseForge public API requests and file downloads.',
+		defaultMessage: 'CurseForge file downloads.',
+	},
+	curseforgeRestrictionBypass: {
+		id: 'app.settings.resources.curseforge-restriction-bypass',
+		defaultMessage: 'Automatically download restricted CurseForge files',
+	},
+	curseforgeRestrictionBypassDescription: {
+		id: 'app.settings.resources.curseforge-restriction-bypass-description',
+		defaultMessage:
+			'When CurseForge does not provide a download address, derive its CDN address and try downloading the file automatically. Disable this to use the manual download workflow.',
 	},
 	mojangAuthService: {
 		id: 'app.settings.resources.mojang-auth-service',
@@ -184,6 +268,79 @@ const messages = defineMessages({
 		defaultMessage:
 			'The maximum number of files the launcher can write to disk at once. Use a lower value if you frequently get I/O errors. An app restart is required.',
 	},
+	proxySettings: {
+		id: 'app.settings.resources.proxy-settings',
+		defaultMessage: 'Proxy settings',
+	},
+	proxySettingsDescription: {
+		id: 'app.settings.resources.proxy-settings-description',
+		defaultMessage:
+			'Configure how the launcher connects to the internet. System proxy follows your OS settings. Custom proxy lets you specify a URL with optional authentication.',
+	},
+	proxyMode: {
+		id: 'app.settings.resources.proxy-mode',
+		defaultMessage: 'Proxy mode',
+	},
+	proxyModeNone: {
+		id: 'app.settings.resources.proxy-mode.none',
+		defaultMessage: 'No proxy (direct connection)',
+	},
+	proxyModeSystem: {
+		id: 'app.settings.resources.proxy-mode.system',
+		defaultMessage: 'Use system proxy',
+	},
+	proxyModeCustom: {
+		id: 'app.settings.resources.proxy-mode.custom',
+		defaultMessage: 'Custom proxy',
+	},
+	proxyUrl: {
+		id: 'app.settings.resources.proxy-url',
+		defaultMessage: 'Proxy URL',
+	},
+	proxyUrlRequired: {
+		id: 'app.settings.resources.proxy-url-required',
+		defaultMessage: 'Proxy URL is required',
+	},
+	proxyUrlPlaceholder: {
+		id: 'app.settings.resources.proxy-url-placeholder',
+		defaultMessage: 'http/https/socks5://ip:port',
+	},
+	proxyUsername: {
+		id: 'app.settings.resources.proxy-username',
+		defaultMessage: 'Username',
+	},
+	proxyUsernamePlaceholder: {
+		id: 'app.settings.resources.proxy-username-placeholder',
+		defaultMessage: 'Username (optional)',
+	},
+	proxyPassword: {
+		id: 'app.settings.resources.proxy-password',
+		defaultMessage: 'Password',
+	},
+	proxyPasswordPlaceholder: {
+		id: 'app.settings.resources.proxy-password-placeholder',
+		defaultMessage: 'Password (optional)',
+	},
+	proxyTest: {
+		id: 'app.settings.resources.proxy-test',
+		defaultMessage: 'Test connection',
+	},
+	proxyTesting: {
+		id: 'app.settings.resources.proxy-testing',
+		defaultMessage: 'Testing...',
+	},
+	proxyTestSuccess: {
+		id: 'app.settings.resources.proxy-test-success',
+		defaultMessage: 'Connection successful',
+	},
+	proxyTestSuccessWithLatency: {
+		id: 'app.settings.resources.proxy-test-success-latency',
+		defaultMessage: 'Connection successful ({latency} ms)',
+	},
+	proxyTestFailed: {
+		id: 'app.settings.resources.proxy-test-failed',
+		defaultMessage: 'Connection failed',
+	},
 	missingContentAutoImport: {
 		id: 'app.settings.resources.missing-content-auto-import',
 		defaultMessage: 'Automatically import missing modpack files',
@@ -240,6 +397,7 @@ function downloadSourceModel(setting) {
 
 const minecraftMetadataSource = downloadSourceModel('minecraft_metadata_source')
 const minecraftFileSource = downloadSourceModel('minecraft_file_source')
+const modrinthDownloadSource = downloadSourceModel('modrinth_source')
 const curseforgeDownloadSource = downloadSourceModel('curseforge_source')
 const automaticSourceOption = computed(() => ({
 	value: 'auto',
@@ -259,10 +417,16 @@ const minecraftSourceOptions = computed(() => [
 	{ value: 'mirror_preferred', label: formatMessage(messages.openBmclApiSource) },
 	officialOnlySourceOption.value,
 ])
-const mcimSourceOptions = computed(() => [
+const modrinthSourceOptions = computed(() => [
 	automaticSourceOption.value,
 	officialPreferredSourceOption.value,
-	{ value: 'mirror_preferred', label: formatMessage(messages.mcimSource) },
+	{ value: 'mirror_preferred', label: formatMessage(messages.tianpaoSource) },
+	officialOnlySourceOption.value,
+])
+const curseforgeSourceOptions = computed(() => [
+	automaticSourceOption.value,
+	officialPreferredSourceOption.value,
+	{ value: 'mirror_preferred', label: formatMessage(messages.tianpaoSource) },
 	officialOnlySourceOption.value,
 ])
 const mojangAuthSource = downloadSourceModel('mojang_auth_source')
@@ -305,6 +469,21 @@ const downloadEngineOptions = computed(() => [
 	},
 ])
 
+const proxyModeOptions = computed(() => [
+	{
+		value: 'none',
+		label: formatMessage(messages.proxyModeNone),
+	},
+	{
+		value: 'system',
+		label: formatMessage(messages.proxyModeSystem),
+	},
+	{
+		value: 'custom',
+		label: formatMessage(messages.proxyModeCustom),
+	},
+])
+
 const appDirectoryDescriptionText = computed(() =>
 	isPortable.value
 		? formatMessage(messages.appDirectoryDescriptionPortable)
@@ -330,6 +509,14 @@ watch(
 	(value) => {
 		setMissingContentScannerSettings(value)
 		void configureCurseForgeManualDownloadWatcher(value.enabled, value.directory).catch(handleError)
+	},
+	{ deep: true },
+)
+
+watch(
+	proxyConfig,
+	async () => {
+		await saveProxyConfig(true)
 	},
 	{ deep: true },
 )
@@ -401,238 +588,354 @@ function resetMissingContentImportDirectory() {
 
 <template>
 	<div class="flex flex-col gap-6">
-		<div class="flex flex-col gap-2.5">
-			<h2 class="m-0 text-lg font-semibold text-contrast">
-				{{ formatMessage(messages.appDirectory) }}
-			</h2>
-			<StyledInput
-				id="appDir"
-				v-model="settings.custom_dir"
-				:icon="BoxIcon"
-				type="text"
-				:disabled="isPortable"
-				wrapper-class="w-full"
-			>
-				<template #right>
-					<ButtonStyled circular>
-						<button class="ml-1.5" :disabled="isPortable" @click="findLauncherDir">
-							<FolderSearchIcon />
-						</button>
-					</ButtonStyled>
+		<ConfirmModalWrapper
+			ref="purgeCacheConfirmModal"
+			:title="formatMessage(messages.purgeConfirmTitle)"
+			:description="formatMessage(messages.purgeConfirmDescription)"
+			:has-to-type="false"
+			:proceed-label="formatMessage(messages.purgeCache)"
+			:show-ad-on-close="false"
+			@proceed="purgeCache"
+		/>
+
+		<SettingsSection v-if="props.scope === 'storage-backups'">
+			<SettingsRow stacked>
+				<template #label>
+					<span id="settings-target-storage-app-directory" tabindex="-1">
+						{{ formatMessage(messages.appDirectory) }}
+					</span>
 				</template>
-			</StyledInput>
-			<p class="m-0 leading-tight text-secondary">
-				{{ appDirectoryDescriptionText }}
-			</p>
-		</div>
+				<template #description>{{ appDirectoryDescriptionText }}</template>
+				<template #control>
+					<StyledInput
+						id="appDir"
+						v-model="settings.custom_dir"
+						:icon="BoxIcon"
+						type="text"
+						:disabled="isPortable"
+						wrapper-class="w-full"
+					>
+						<template #right>
+							<IconButton
+								:label="formatMessage(messages.appDirectory)"
+								class="ml-1.5"
+								:disabled="isPortable"
+								@click="findLauncherDir"
+							>
+								<FolderSearchIcon />
+							</IconButton>
+						</template>
+					</StyledInput>
+				</template>
+			</SettingsRow>
+			<SettingsRow>
+				<template #label>
+					<span id="settings-target-storage-cache" tabindex="-1">
+						{{ formatMessage(messages.appCache) }}
+					</span>
+				</template>
+				<template #description>{{ formatMessage(messages.appCacheDescription) }}</template>
+				<template #control>
+					<button id="purge-cache" class="btn min-w-max" @click="handlePurgeCacheClick">
+						<TrashIcon />
+						{{ formatMessage(messages.purgeCache) }}
+					</button>
+				</template>
+			</SettingsRow>
+			<SettingsRow>
+				<template #label>
+					<span id="settings-target-resources-database-backups" tabindex="-1">
+						{{ formatMessage(messages.databaseBackups) }}
+					</span>
+				</template>
+				<template #description>{{ formatMessage(messages.databaseBackupsDescription) }}</template>
+				<template #control>
+					<button id="open-db-backups-folder" class="btn min-w-max" @click="openDbBackupsFolder">
+						<FolderOpenIcon />
+						{{ formatMessage(messages.openBackupsFolder) }}
+					</button>
+				</template>
+			</SettingsRow>
+		</SettingsSection>
 
-		<div class="flex flex-col gap-2.5">
-			<ConfirmModalWrapper
-				ref="purgeCacheConfirmModal"
-				:title="formatMessage(messages.purgeConfirmTitle)"
-				:description="formatMessage(messages.purgeConfirmDescription)"
-				:has-to-type="false"
-				:proceed-label="formatMessage(messages.purgeCache)"
-				:show-ad-on-close="false"
-				@proceed="purgeCache"
-			/>
-			<h2 class="m-0 text-lg font-semibold text-contrast">
-				{{ formatMessage(messages.appCache) }}
-			</h2>
-			<button id="purge-cache" class="btn min-w-max" @click="handlePurgeCacheClick">
-				<TrashIcon />
-				{{ formatMessage(messages.purgeCache) }}
-			</button>
-			<p class="m-0 leading-tight text-secondary">
-				{{ formatMessage(messages.appCacheDescription) }}
-			</p>
-		</div>
-
-		<div class="flex flex-col gap-3">
-			<div>
-				<h2 class="m-0 text-lg font-semibold text-contrast mt-4">
+		<SettingsSection v-if="props.scope === 'content-downloads'">
+			<template #header>
+				<h2
+					id="settings-target-resources-download-mirrors"
+					tabindex="-1"
+					class="m-0 text-lg font-semibold text-contrast"
+				>
 					{{ formatMessage(messages.downloadMirrors) }}
 				</h2>
-				<p class="m-0 leading-tight text-secondary">
+				<p class="m-0 mt-1 text-sm leading-relaxed text-secondary">
 					{{ formatMessage(messages.downloadMirrorsDescription) }}
 				</p>
-			</div>
-
-			<div class="flex items-center justify-between gap-4">
-				<div class="flex flex-col gap-1">
-					<h3 class="m-0 text-base font-semibold text-contrast">
-						{{ formatMessage(messages.minecraftMetadataSource) }}
-					</h3>
-					<p class="m-0 leading-tight text-secondary">
-						{{ formatMessage(messages.minecraftMetadataSourceDescription) }}
-					</p>
-				</div>
-				<div class="w-48 shrink-0">
-					<Combobox v-model="minecraftMetadataSource" :options="minecraftSourceOptions" />
-				</div>
-			</div>
-
-			<div class="flex items-center justify-between gap-4">
-				<div class="flex flex-col gap-1">
-					<h3 class="m-0 text-base font-semibold text-contrast">
-						{{ formatMessage(messages.minecraftFileSource) }}
-					</h3>
-					<p class="m-0 leading-tight text-secondary">
-						{{ formatMessage(messages.minecraftFileSourceDescription) }}
-					</p>
-				</div>
-				<div class="w-48 shrink-0">
-					<Combobox v-model="minecraftFileSource" :options="minecraftSourceOptions" />
-				</div>
-			</div>
-
-			<div class="flex items-center justify-between gap-4">
-				<div class="flex flex-col gap-1">
-					<h3 class="m-0 text-base font-semibold text-contrast">
-						{{ formatMessage(messages.curseforgeMirror) }}
-					</h3>
-					<p class="m-0 leading-tight text-secondary">
-						{{ formatMessage(messages.curseforgeMirrorDescription) }}
-					</p>
-				</div>
-				<div class="w-48 shrink-0">
-					<Combobox v-model="curseforgeDownloadSource" :options="mcimSourceOptions" />
-				</div>
-			</div>
-
-			<div class="flex items-center justify-between gap-4">
-				<div class="flex flex-col gap-1">
-					<h3 class="m-0 text-base font-semibold text-contrast">
-						{{ formatMessage(messages.mojangAuthService) }}
-					</h3>
-					<p class="m-0 leading-tight text-secondary">
-						{{ formatMessage(messages.mojangAuthServiceDescription) }}
-					</p>
-				</div>
-				<div class="w-48 shrink-0">
-					<Combobox v-model="mojangAuthSource" :options="mojangAuthSourceOptions" />
-				</div>
-			</div>
-		</div>
-
-		<div class="flex flex-col gap-2.5">
-			<div class="flex items-center justify-between gap-4">
-				<div>
-					<h2 class="m-0 text-lg font-semibold text-contrast">
-						{{ formatMessage(messages.downloadEngine) }}
-					</h2>
-					<p class="m-0 leading-tight text-secondary">
-						{{ formatMessage(messages.downloadEngineDescription) }}
-					</p>
-				</div>
-				<div class="w-48 shrink-0">
-					<Combobox v-model="downloadEngine" :options="downloadEngineOptions" />
-				</div>
-			</div>
-		</div>
-
-		<div class="flex flex-col gap-2.5">
-			<div class="flex items-center justify-between gap-4 mt-4">
-				<h2 class="m-0 text-lg font-semibold text-contrast">
-					{{ formatMessage(messages.maximumDownloads) }}
-				</h2>
-				<div class="w-48 shrink-0">
-					<Combobox v-model="downloadConcurrencyMode" :options="downloadConcurrencyOptions" />
-				</div>
-			</div>
-			<Slider
-				v-if="!settings.auto_concurrent_downloads"
-				id="max-downloads"
-				v-model="settings.max_concurrent_downloads"
-				:min="1"
-				:max="256"
-				:step="1"
-			/>
-			<p class="m-0 leading-tight text-secondary">
-				{{ formatMessage(messages.maximumDownloadsDescription) }}
-			</p>
-		</div>
-
-		<div class="flex flex-col gap-2.5">
-			<h2 class="mt-0 m-0 text-lg font-semibold text-contrast">
-				{{ formatMessage(messages.maximumWrites) }}
-			</h2>
-			<Slider
-				id="max-writes"
-				v-model="settings.max_concurrent_writes"
-				:min="1"
-				:max="50"
-				:step="1"
-			/>
-			<p class="m-0 leading-tight text-secondary">
-				{{ formatMessage(messages.maximumWritesDescription) }}
-			</p>
-		</div>
-
-		<div class="flex flex-col gap-2.5">
-			<div class="flex items-center justify-between gap-4">
-				<div>
-					<h2 class="m-0 text-lg font-semibold text-contrast">
-						{{ formatMessage(messages.missingContentAutoImport) }}
-					</h2>
-					<p class="m-0 mt-1 leading-tight text-secondary">
-						{{ formatMessage(messages.missingContentAutoImportDescription) }}
-					</p>
-				</div>
-				<Toggle id="missing-content-auto-import" v-model="missingContentScannerSettings.enabled" />
-			</div>
-
-			<h3 class="mb-0 mt-2 text-base font-semibold text-contrast">
-				{{ formatMessage(messages.missingContentImportDirectory) }}
-			</h3>
-			<StyledInput
-				id="missing-content-import-directory"
-				:model-value="
-					missingContentScannerSettings.directory ??
-					formatMessage(messages.systemDownloadsDirectory)
-				"
-				:icon="FolderOpenIcon"
-				type="text"
-				readonly
-				wrapper-class="w-full"
-			>
-				<template #right>
-					<ButtonStyled circular>
-						<button
-							class="ml-1.5"
-							:disabled="!missingContentScannerSettings.enabled"
-							:title="formatMessage(messages.selectImportDirectory)"
-							@click="findMissingContentImportDirectory"
-						>
-							<FolderSearchIcon />
-						</button>
-					</ButtonStyled>
+			</template>
+			<SettingsRow>
+				<template #label>{{ formatMessage(messages.minecraftMetadataSource) }}</template>
+				<template #description>{{
+					formatMessage(messages.minecraftMetadataSourceDescription)
+				}}</template>
+				<template #control>
+					<div class="w-full">
+						<Combobox v-model="minecraftMetadataSource" :options="minecraftSourceOptions" />
+					</div>
 				</template>
-			</StyledInput>
-			<button
-				v-if="missingContentScannerSettings.directory"
-				class="btn min-w-max"
-				:disabled="!missingContentScannerSettings.enabled"
-				@click="resetMissingContentImportDirectory"
-			>
-				{{ formatMessage(messages.resetImportDirectory) }}
-			</button>
-			<p class="m-0 leading-tight text-secondary">
-				{{ formatMessage(messages.missingContentImportDirectoryDescription) }}
-			</p>
-		</div>
+			</SettingsRow>
+			<SettingsRow>
+				<template #label>{{ formatMessage(messages.minecraftFileSource) }}</template>
+				<template #description>{{
+					formatMessage(messages.minecraftFileSourceDescription)
+				}}</template>
+				<template #control>
+					<div class="w-full">
+						<Combobox v-model="minecraftFileSource" :options="minecraftSourceOptions" />
+					</div>
+				</template>
+			</SettingsRow>
+			<SettingsRow>
+				<template #label>{{ formatMessage(messages.modrinthMirror) }}</template>
+				<template #description>{{ formatMessage(messages.modrinthMirrorDescription) }}</template>
+				<template #control>
+					<div class="w-full">
+						<Combobox v-model="modrinthDownloadSource" :options="modrinthSourceOptions" />
+					</div>
+				</template>
+			</SettingsRow>
+			<SettingsRow>
+				<template #label>{{ formatMessage(messages.curseforgeMirror) }}</template>
+				<template #description>{{ formatMessage(messages.curseforgeMirrorDescription) }}</template>
+				<template #control>
+					<div class="w-full">
+						<Combobox v-model="curseforgeDownloadSource" :options="curseforgeSourceOptions" />
+					</div>
+				</template>
+			</SettingsRow>
+			<SettingsRow>
+				<template #label>{{ formatMessage(messages.curseforgeRestrictionBypass) }}</template>
+				<template #description>
+					{{ formatMessage(messages.curseforgeRestrictionBypassDescription) }}
+				</template>
+				<template #control>
+					<Toggle
+						id="curseforge-restriction-bypass"
+						v-model="settings.bypass_curseforge_download_restrictions"
+					/>
+				</template>
+			</SettingsRow>
+		</SettingsSection>
 
-		<div class="flex flex-col gap-2.5">
-			<h2 class="mt-0 m-0 text-lg font-semibold text-contrast">
-				{{ formatMessage(messages.databaseBackups) }}
-			</h2>
-			<button id="open-db-backups-folder" class="btn min-w-max" @click="openDbBackupsFolder">
-				<FolderOpenIcon />
-				{{ formatMessage(messages.openBackupsFolder) }}
-			</button>
-			<p class="m-0 leading-tight text-secondary">
-				{{ formatMessage(messages.databaseBackupsDescription) }}
-			</p>
-		</div>
+		<SettingsSection v-if="props.scope === 'content-downloads'">
+			<SettingsRow>
+				<template #label>
+					<span id="settings-target-resources-download-engine" tabindex="-1">
+						{{ formatMessage(messages.downloadEngine) }}
+					</span>
+				</template>
+				<template #description>{{ formatMessage(messages.downloadEngineDescription) }}</template>
+				<template #control>
+					<div class="w-full">
+						<Combobox v-model="downloadEngine" :options="downloadEngineOptions" />
+					</div>
+				</template>
+			</SettingsRow>
+			<SettingsRow stacked>
+				<template #label>
+					<span id="settings-target-resources-maximum-downloads" tabindex="-1">
+						{{ formatMessage(messages.maximumDownloads) }}
+					</span>
+				</template>
+				<template #description>{{ formatMessage(messages.maximumDownloadsDescription) }}</template>
+				<template #control>
+					<div class="flex w-full flex-col gap-3">
+						<div class="w-48 max-w-full">
+							<Combobox v-model="downloadConcurrencyMode" :options="downloadConcurrencyOptions" />
+						</div>
+						<Slider
+							v-if="!settings.auto_concurrent_downloads"
+							id="max-downloads"
+							v-model="settings.max_concurrent_downloads"
+							:min="1"
+							:max="256"
+							:step="1"
+						/>
+					</div>
+				</template>
+			</SettingsRow>
+			<SettingsRow stacked>
+				<template #label>{{ formatMessage(messages.maximumWrites) }}</template>
+				<template #description>{{ formatMessage(messages.maximumWritesDescription) }}</template>
+				<template #control>
+					<div class="w-full">
+						<Slider
+							id="max-writes"
+							v-model="settings.max_concurrent_writes"
+							:min="1"
+							:max="50"
+							:step="1"
+						/>
+					</div>
+				</template>
+			</SettingsRow>
+		</SettingsSection>
+
+		<SettingsSection v-if="props.scope === 'network-multiplayer'">
+			<SettingsRow>
+				<template #label>
+					<span id="settings-target-network-mojang-auth-source" tabindex="-1">
+						{{ formatMessage(messages.mojangAuthService) }}
+					</span>
+				</template>
+				<template #description>{{ formatMessage(messages.mojangAuthServiceDescription) }}</template>
+				<template #control>
+					<div class="w-full">
+						<Combobox v-model="mojangAuthSource" :options="mojangAuthSourceOptions" />
+					</div>
+				</template>
+			</SettingsRow>
+		</SettingsSection>
+
+		<SettingsSection v-if="props.scope === 'network-multiplayer'">
+			<template #header>
+				<h2
+					id="settings-target-resources-proxy"
+					tabindex="-1"
+					class="m-0 text-lg font-semibold text-contrast"
+				>
+					{{ formatMessage(messages.proxySettings) }}
+				</h2>
+				<p class="m-0 mt-1 text-sm leading-relaxed text-secondary">
+					{{ formatMessage(messages.proxySettingsDescription) }}
+				</p>
+			</template>
+			<SettingsRow>
+				<template #label>{{ formatMessage(messages.proxyMode) }}</template>
+				<template #control>
+					<div class="w-full">
+						<Combobox v-model="proxyConfig.mode" :options="proxyModeOptions" />
+					</div>
+				</template>
+			</SettingsRow>
+			<SettingsRow v-if="proxyConfig.mode === 'custom'" stacked>
+				<template #label>{{ formatMessage(messages.proxyUrl) }}</template>
+				<template #control>
+					<StyledInput
+						id="proxy-url"
+						v-model="proxyConfig.url"
+						type="text"
+						:placeholder="formatMessage(messages.proxyUrlPlaceholder)"
+						wrapper-class="w-full"
+						@blur="saveProxyConfig(false)"
+					/>
+				</template>
+			</SettingsRow>
+			<SettingsRow v-if="proxyConfig.mode === 'custom'" stacked>
+				<template #label>{{ formatMessage(messages.proxyUsername) }}</template>
+				<template #control>
+					<StyledInput
+						id="proxy-username"
+						v-model="proxyConfig.username"
+						type="text"
+						:placeholder="formatMessage(messages.proxyUsernamePlaceholder)"
+						wrapper-class="w-full"
+						@blur="saveProxyConfig(false)"
+					/>
+				</template>
+			</SettingsRow>
+			<SettingsRow v-if="proxyConfig.mode === 'custom'" stacked>
+				<template #label>{{ formatMessage(messages.proxyPassword) }}</template>
+				<template #control>
+					<StyledInput
+						id="proxy-password"
+						v-model="proxyConfig.password"
+						type="password"
+						:placeholder="formatMessage(messages.proxyPasswordPlaceholder)"
+						wrapper-class="w-full"
+						@blur="saveProxyConfig(false)"
+					/>
+				</template>
+			</SettingsRow>
+			<SettingsRow compact>
+				<template #label>{{ formatMessage(messages.proxyTest) }}</template>
+				<template #control>
+					<div class="flex flex-wrap items-center justify-end gap-3">
+						<span v-if="proxyTestResult" class="text-sm text-secondary">{{ proxyTestResult }}</span>
+						<button
+							:disabled="
+								proxyTesting ||
+								proxyConfig.mode === 'none' ||
+								(proxyConfig.mode === 'custom' && !proxyConfig.url?.trim())
+							"
+							class="btn min-w-max"
+							@click="testProxy"
+						>
+							{{ formatMessage(proxyTesting ? messages.proxyTesting : messages.proxyTest) }}
+						</button>
+					</div>
+				</template>
+			</SettingsRow>
+		</SettingsSection>
+
+		<SettingsSection v-if="props.scope === 'content-downloads'">
+			<SettingsRow>
+				<template #label>
+					<span id="settings-target-resources-missing-content-import" tabindex="-1">
+						{{ formatMessage(messages.missingContentAutoImport) }}
+					</span>
+				</template>
+				<template #description>
+					{{ formatMessage(messages.missingContentAutoImportDescription) }}
+				</template>
+				<template #control>
+					<Toggle
+						id="missing-content-auto-import"
+						v-model="missingContentScannerSettings.enabled"
+					/>
+				</template>
+			</SettingsRow>
+			<SettingsRow stacked>
+				<template #label>{{ formatMessage(messages.missingContentImportDirectory) }}</template>
+				<template #description>
+					{{ formatMessage(messages.missingContentImportDirectoryDescription) }}
+				</template>
+				<template #control>
+					<div class="flex w-full flex-wrap items-center gap-2">
+						<div class="min-w-0 flex-1">
+							<StyledInput
+								id="missing-content-import-directory"
+								:model-value="
+									missingContentScannerSettings.directory ??
+									formatMessage(messages.systemDownloadsDirectory)
+								"
+								:icon="FolderOpenIcon"
+								type="text"
+								readonly
+								wrapper-class="w-full"
+							>
+								<template #right>
+									<IconButton
+										type="base"
+										:label="formatMessage(messages.selectImportDirectory)"
+										class="ml-1.5"
+										:disabled="!missingContentScannerSettings.enabled"
+										@click="findMissingContentImportDirectory"
+									>
+										<FolderSearchIcon />
+									</IconButton>
+								</template>
+							</StyledInput>
+						</div>
+						<button
+							v-if="missingContentScannerSettings.directory"
+							class="btn min-w-max"
+							:disabled="!missingContentScannerSettings.enabled"
+							@click="resetMissingContentImportDirectory"
+						>
+							{{ formatMessage(messages.resetImportDirectory) }}
+						</button>
+					</div>
+				</template>
+			</SettingsRow>
+		</SettingsSection>
 	</div>
 </template>

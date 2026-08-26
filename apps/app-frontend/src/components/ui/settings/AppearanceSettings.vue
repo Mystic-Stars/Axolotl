@@ -8,11 +8,11 @@ import {
 	UploadIcon,
 } from '@modrinth/assets'
 import {
-	ButtonStyled,
 	Combobox,
 	defineMessages,
 	injectNotificationManager,
 	type MessageDescriptor,
+	NewButton as Button,
 	Slider,
 	ThemeSelector,
 	Toggle,
@@ -37,6 +37,16 @@ import {
 	hslToHex,
 	parseCustomAccentColor,
 } from '@/store/theme.ts'
+
+import SettingsRow from './SettingsRow.vue'
+import SettingsSection from './SettingsSection.vue'
+
+const props = withDefaults(
+	defineProps<{
+		scope?: 'interface' | 'home-navigation' | 'content-downloads'
+	}>(),
+	{ scope: 'interface' },
+)
 
 const themeStore = useTheming()
 const { formatMessage } = useVIntl()
@@ -88,10 +98,6 @@ const messages = defineMessages({
 	accentColorCustom: {
 		id: 'app.appearance-settings.accent-color.custom',
 		defaultMessage: 'Custom',
-	},
-	accentColorCustomPalette: {
-		id: 'app.appearance-settings.accent-color.custom-palette',
-		defaultMessage: 'Preset palette',
 	},
 	accentColorCustomHue: {
 		id: 'app.appearance-settings.accent-color.custom-hue',
@@ -222,14 +228,6 @@ const messages = defineMessages({
 		id: 'app.appearance-settings.native-decorations.description',
 		defaultMessage: 'Use system window frame (app restart required).',
 	},
-	minimizeLauncherTitle: {
-		id: 'app.appearance-settings.minimize-launcher.title',
-		defaultMessage: 'Minimize launcher',
-	},
-	minimizeLauncherDescription: {
-		id: 'app.appearance-settings.minimize-launcher.description',
-		defaultMessage: 'Minimize the launcher when a Minecraft process starts.',
-	},
 	defaultLandingPageTitle: {
 		id: 'app.appearance-settings.default-landing-page.title',
 		defaultMessage: 'Default landing page',
@@ -343,21 +341,6 @@ const accentColorOptions: Array<{
 	{ value: 'purple', color: 'var(--color-purple)', label: messages.accentColorPurple },
 ]
 
-const CUSTOM_ACCENT_PALETTE = [
-	'#ef4444',
-	'#f97316',
-	'#f59e0b',
-	'#84cc16',
-	'#22c55e',
-	'#14b8a6',
-	'#06b6d4',
-	'#3b82f6',
-	'#6366f1',
-	'#a855f7',
-	'#ec4899',
-	'#f43f5e',
-]
-
 const isCustomAccent = computed(() => settings.value.accent_color.startsWith('custom:'))
 const customAccentHex = ref(parseCustomAccentColor(settings.value.accent_color) ?? '#db2777')
 const customAccentHexInput = ref(customAccentHex.value)
@@ -406,17 +389,24 @@ async function chooseCustomBackground() {
 	try {
 		const extension = selectedPath.split('.').pop()?.toLowerCase() ?? 'png'
 		const backgroundDirectory = await join(await appDataDir(), 'backgrounds')
-		const storedPath = await join(backgroundDirectory, `launcher-background.${extension}`)
+		const storedPath = await join(
+			backgroundDirectory,
+			`launcher-background-${Date.now()}.${extension}`,
+		)
 		const previousPath = settings.value.custom_background_path
 
 		await mkdir(backgroundDirectory, { recursive: true })
 		await writeFile(storedPath, await readFile(selectedPath))
 
-		if (previousPath && previousPath !== storedPath && (await exists(previousPath))) {
-			await remove(previousPath)
-		}
-
 		settings.value.custom_background_path = storedPath
+
+		if (previousPath && previousPath !== storedPath && (await exists(previousPath))) {
+			try {
+				await remove(previousPath)
+			} catch (error) {
+				console.warn('Failed to remove previous custom background', error)
+			}
+		}
 	} catch (error) {
 		handleError(error)
 	}
@@ -476,580 +466,608 @@ watch(
 )
 </script>
 <template>
-	<h2 class="m-0 text-lg font-semibold text-contrast">
-		{{ formatMessage(messages.colorThemeTitle) }}
-	</h2>
-	<p class="m-0 mt-1">{{ formatMessage(messages.colorThemeDescription) }}</p>
-
-	<ThemeSelector
-		:update-color-theme="
-			(theme: ColorTheme) => {
-				themeStore.setThemeState(theme)
-				settings.theme = theme
-			}
-		"
-		:current-theme="settings.theme"
-		:theme-options="themeStore.getThemeOptions()"
-		system-theme-color="system"
-	/>
-
-	<div class="mt-6">
-		<h2 class="m-0 text-lg font-semibold text-contrast">
-			{{ formatMessage(messages.accentColorTitle) }}
-		</h2>
-		<p class="m-0 mt-1">{{ formatMessage(messages.accentColorDescription) }}</p>
-
-		<div
-			class="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6"
-			role="radiogroup"
-			:aria-label="formatMessage(messages.accentColorTitle)"
-		>
-			<button
-				v-for="accentColor in accentColorOptions"
-				:key="accentColor.value"
-				type="button"
-				role="radio"
-				:aria-checked="settings.accent_color === accentColor.value"
-				class="flex min-w-0 items-center gap-2 rounded-xl border border-solid px-3 py-2.5 font-semibold transition-all active:scale-[0.97]"
-				:class="
-					settings.accent_color === accentColor.value
-						? 'border-brand bg-brand-highlight text-brand'
-						: 'border-divider bg-button-bg text-secondary hover:border-surface-5 hover:text-contrast'
-				"
-				@click="
-					() => {
-						themeStore.setAccentColor(accentColor.value)
-						settings.accent_color = accentColor.value
-					}
-				"
-			>
-				<span
-					class="size-4 shrink-0 rounded-full ring-2 ring-white/20"
-					:style="{ backgroundColor: accentColor.color }"
-				/>
-				<span class="truncate">{{ formatMessage(accentColor.label) }}</span>
-				<CheckIcon
-					v-if="settings.accent_color === accentColor.value"
-					class="ml-auto size-4 shrink-0"
-				/>
-			</button>
-			<button
-				type="button"
-				role="radio"
-				:aria-checked="isCustomAccent"
-				class="flex min-w-0 items-center gap-2 rounded-xl border border-solid px-3 py-2.5 font-semibold transition-all active:scale-[0.97]"
-				:class="
-					isCustomAccent
-						? 'border-brand bg-brand-highlight text-brand'
-						: 'border-divider bg-button-bg text-secondary hover:border-surface-5 hover:text-contrast'
-				"
-				@click="applyCustomAccent(customAccentHex)"
-			>
-				<span
-					class="size-4 shrink-0 rounded-full ring-2 ring-white/20"
-					:style="{
-						background: isCustomAccent
-							? customAccentHex
-							: 'conic-gradient(#ef4444, #f59e0b, #22c55e, #06b6d4, #6366f1, #ec4899, #ef4444)',
-					}"
-				/>
-				<span class="truncate">{{ formatMessage(messages.accentColorCustom) }}</span>
-				<CheckIcon v-if="isCustomAccent" class="ml-auto size-4 shrink-0" />
-			</button>
-		</div>
-
-		<div
-			v-if="isCustomAccent"
-			class="mt-3 rounded-xl border border-solid border-divider bg-button-bg p-4"
-		>
-			<div
-				class="flex flex-wrap gap-2"
-				role="group"
-				:aria-label="formatMessage(messages.accentColorCustomPalette)"
-			>
-				<button
-					v-for="presetColor in CUSTOM_ACCENT_PALETTE"
-					:key="presetColor"
-					type="button"
-					class="size-7 shrink-0 cursor-pointer rounded-full border-none ring-2 transition-transform hover:scale-110 active:scale-95"
-					:class="customAccentHex === presetColor ? 'ring-brand' : 'ring-white/20'"
-					:style="{ backgroundColor: presetColor }"
-					:aria-label="presetColor"
-					@click="applyCustomAccent(presetColor)"
-				/>
-			</div>
-
-			<label class="mt-4 block">
-				<span class="text-sm font-semibold text-contrast">
-					{{ formatMessage(messages.accentColorCustomHue) }}
-				</span>
-				<input
-					type="range"
-					min="0"
-					max="360"
-					step="1"
-					:value="customAccentHue"
-					class="hue-slider mt-2"
-					:aria-label="formatMessage(messages.accentColorCustomHue)"
-					@input="onCustomHueInput(($event.target as HTMLInputElement).value)"
-				/>
-			</label>
-
-			<div class="mt-4 flex flex-wrap items-center gap-x-6 gap-y-3">
-				<label class="flex items-center gap-2">
-					<span class="text-sm font-semibold text-contrast">
-						{{ formatMessage(messages.accentColorCustomHex) }}
-					</span>
-					<input
-						type="text"
-						maxlength="7"
-						spellcheck="false"
-						:value="customAccentHexInput"
-						class="w-28"
-						@input="onCustomHexInput(($event.target as HTMLInputElement).value)"
-						@blur="customAccentHexInput = customAccentHex"
-					/>
-				</label>
-				<div class="flex items-center gap-2">
-					<span
-						class="size-6 shrink-0 rounded-full ring-2 ring-white/20"
-						:style="{ backgroundColor: customAccentPreview.light }"
-					/>
-					<span class="text-sm text-secondary">
-						{{ formatMessage(messages.accentColorCustomPreviewLight) }}
-					</span>
-				</div>
-				<div class="flex items-center gap-2">
-					<span
-						class="size-6 shrink-0 rounded-full ring-2 ring-white/20"
-						:style="{ backgroundColor: customAccentPreview.dark }"
-					/>
-					<span class="text-sm text-secondary">
-						{{ formatMessage(messages.accentColorCustomPreviewDark) }}
-					</span>
-				</div>
-			</div>
-		</div>
-	</div>
-
-	<div class="mt-6">
-		<h2 class="m-0 text-lg font-semibold text-contrast">
-			{{ formatMessage(messages.customBackgroundTitle) }}
-		</h2>
-		<p class="m-0 mt-1">{{ formatMessage(messages.customBackgroundDescription) }}</p>
-
-		<div
-			class="relative mt-3 h-44 overflow-hidden rounded-2xl border border-solid border-divider bg-bg"
-		>
-			<div
-				v-if="customBackgroundPreview"
-				class="absolute -inset-10 bg-cover bg-center"
-				:style="{
-					backgroundImage: `url(&quot;${customBackgroundPreview}&quot;)`,
-					filter: `blur(${settings.custom_background_blur}px)`,
-					opacity: settings.custom_background_opacity / 100,
-				}"
-			/>
-			<div class="absolute inset-0 bg-bg/35" />
-			<div class="relative flex h-full items-center justify-center">
-				<div
-					v-if="!customBackgroundPreview"
-					class="flex flex-col items-center gap-2 text-secondary"
+	<div class="flex flex-col gap-6">
+		<SettingsSection v-if="props.scope === 'interface'">
+			<template #header>
+				<h2
+					id="settings-target-appearance-color-theme"
+					tabindex="-1"
+					class="m-0 text-lg font-semibold text-contrast"
 				>
-					<ImageIcon class="size-8" />
-					<span class="font-semibold">{{ formatMessage(messages.customBackgroundEmpty) }}</span>
-				</div>
-			</div>
-		</div>
-
-		<div class="mt-3 flex flex-wrap gap-2">
-			<ButtonStyled>
-				<button type="button" @click="chooseCustomBackground">
-					<UploadIcon />
-					{{
-						formatMessage(
-							customBackgroundPreview
-								? messages.customBackgroundReplace
-								: messages.customBackgroundChoose,
-						)
-					}}
-				</button>
-			</ButtonStyled>
-			<ButtonStyled v-if="customBackgroundPreview" color="red" type="outlined">
-				<button type="button" @click="removeCustomBackground">
-					<TrashIcon />
-					{{ formatMessage(messages.customBackgroundRemove) }}
-				</button>
-			</ButtonStyled>
-		</div>
-
-		<div v-if="customBackgroundPreview" class="mt-5 grid gap-5 lg:grid-cols-2">
-			<div class="flex flex-col gap-2">
-				<h3 class="m-0 font-semibold text-contrast">
-					{{ formatMessage(messages.customBackgroundBlur) }}
-				</h3>
-				<Slider
-					id="custom-background-blur"
-					v-model="settings.custom_background_blur"
-					:min="0"
-					:max="40"
-					:step="1"
-					unit="px"
-				/>
-				<p class="m-0 text-sm text-secondary">
-					{{ formatMessage(messages.customBackgroundBlurDescription) }}
-				</p>
-			</div>
-			<div class="flex flex-col gap-2">
-				<h3 class="m-0 font-semibold text-contrast">
-					{{ formatMessage(messages.customBackgroundOpacity) }}
-				</h3>
-				<Slider
-					id="custom-background-opacity"
-					v-model="settings.custom_background_opacity"
-					:min="10"
-					:max="100"
-					:step="5"
-					unit="%"
-				/>
-				<p class="m-0 text-sm text-secondary">
-					{{ formatMessage(messages.customBackgroundOpacityDescription) }}
-				</p>
-			</div>
-		</div>
-	</div>
-
-	<div class="mt-6">
-		<div class="flex items-center justify-between gap-4">
-			<div>
-				<h2 class="m-0 text-lg font-semibold text-contrast">
-					{{ formatMessage(messages.transparentBackgroundTitle) }}
+					{{ formatMessage(messages.colorThemeTitle) }}
 				</h2>
-				<p class="m-0 mt-1">{{ formatMessage(messages.transparentBackgroundDescription) }}</p>
-			</div>
-
-			<Toggle
-				id="transparent-background"
-				:model-value="settings.transparent_background"
-				@update:model-value="(e) => (settings.transparent_background = !!e)"
-			/>
-		</div>
-
-		<div v-if="settings.transparent_background" class="mt-4 flex flex-col gap-2">
-			<h3 class="m-0 font-semibold text-contrast">
-				{{ formatMessage(messages.transparentBackgroundOpacity) }}
-			</h3>
-			<Slider
-				id="transparent-background-opacity"
-				v-model="settings.transparent_background_opacity"
-				:min="0"
-				:max="100"
-				:step="5"
-				unit="%"
-			/>
-			<p class="m-0 text-sm text-secondary">
-				{{ formatMessage(messages.transparentBackgroundOpacityDescription) }}
-			</p>
-			<p v-if="customBackgroundPreview" class="m-0 text-sm text-orange">
-				{{ formatMessage(messages.transparentBackgroundConflict) }}
-			</p>
-		</div>
-
-		<div
-			v-if="settings.transparent_background && os !== 'Linux'"
-			class="mt-4 flex items-center justify-between gap-4"
-		>
-			<div>
-				<h3 class="m-0 font-semibold text-contrast">
-					{{ formatMessage(messages.transparentBackgroundBlurTitle) }}
-				</h3>
-				<p class="m-0 mt-1 text-sm text-secondary">
-					{{ formatMessage(messages.transparentBackgroundBlurDescription) }}
+				<p class="m-0 mt-1 text-sm leading-relaxed text-secondary">
+					{{ formatMessage(messages.colorThemeDescription) }}
 				</p>
+			</template>
+			<div class="flex flex-col gap-4 p-4">
+				<ThemeSelector
+					:update-color-theme="
+						(theme: ColorTheme) => {
+							themeStore.setThemeState(theme)
+							settings.theme = theme
+						}
+					"
+					:current-theme="settings.theme"
+					:theme-options="themeStore.getThemeOptions()"
+					system-theme-color="system"
+				/>
 			</div>
+		</SettingsSection>
 
-			<Toggle
-				id="transparent-background-blur"
-				:model-value="settings.transparent_background_blur"
-				@update:model-value="(e) => (settings.transparent_background_blur = !!e)"
-			/>
-		</div>
-	</div>
-
-	<div class="mt-6 flex items-center justify-between">
-		<div>
-			<h2 class="m-0 text-lg font-semibold text-contrast">
-				{{ formatMessage(messages.advancedRenderingTitle) }}
-			</h2>
-			<p class="m-0 mt-1">
-				{{ formatMessage(messages.advancedRenderingDescription) }}
-			</p>
-		</div>
-
-		<Toggle
-			id="advanced-rendering"
-			:model-value="themeStore.advancedRendering"
-			@update:model-value="
-				(e) => {
-					themeStore.advancedRendering = !!e
-					settings.advanced_rendering = themeStore.advancedRendering
-				}
-			"
-		/>
-	</div>
-
-	<div class="mt-6 flex items-center justify-between gap-4">
-		<div>
-			<h2 class="m-0 text-lg font-semibold text-contrast">
-				{{ formatMessage(messages.pageTransitionsTitle) }}
-			</h2>
-			<p class="m-0 mt-1">{{ formatMessage(messages.pageTransitionsDescription) }}</p>
-		</div>
-
-		<Toggle
-			id="page-transitions"
-			:model-value="themeStore.getFeatureFlag(pageTransitionsFlag)"
-			@update:model-value="
-				(value) => {
-					const enabled = !!value
-					themeStore.featureFlags[pageTransitionsFlag] = enabled
-					settings.feature_flags[pageTransitionsFlag] = enabled
-				}
-			"
-		/>
-	</div>
-
-	<div class="mt-6 flex items-center justify-between gap-4">
-		<div>
-			<h2 class="m-0 text-lg font-semibold text-contrast">
-				{{ formatMessage(messages.autoInstallDependenciesTitle) }}
-			</h2>
-			<p class="m-0 mt-1">
-				{{ formatMessage(messages.autoInstallDependenciesDescription) }}
-			</p>
-		</div>
-		<Toggle
-			id="auto-install-dependencies"
-			:model-value="themeStore.getFeatureFlag(autoInstallDependenciesFlag)"
-			@update:model-value="
-				(value) => {
-					const enabled = !!value
-					themeStore.featureFlags[autoInstallDependenciesFlag] = enabled
-					settings.feature_flags[autoInstallDependenciesFlag] = enabled
-				}
-			"
-		/>
-	</div>
-
-	<div v-if="os !== 'MacOS'" class="mt-6 flex items-center justify-between gap-4">
-		<div>
-			<h2 class="m-0 text-lg font-semibold text-contrast">
-				{{ formatMessage(messages.nativeDecorationsTitle) }}
-			</h2>
-			<p class="m-0 mt-1">{{ formatMessage(messages.nativeDecorationsDescription) }}</p>
-		</div>
-		<Toggle id="native-decorations" v-model="settings.native_decorations" />
-	</div>
-
-	<div class="mt-6 flex items-center justify-between">
-		<div>
-			<h2 class="m-0 text-lg font-semibold text-contrast">
-				{{ formatMessage(messages.minimizeLauncherTitle) }}
-			</h2>
-			<p class="m-0 mt-1">{{ formatMessage(messages.minimizeLauncherDescription) }}</p>
-		</div>
-		<Toggle id="minimize-launcher" v-model="settings.hide_on_process_start" />
-	</div>
-
-	<div class="mt-6 flex items-center justify-between">
-		<div>
-			<h2 class="m-0 text-lg font-semibold text-contrast">
-				{{ formatMessage(messages.showPlayTimeTitle) }}
-			</h2>
-			<p class="m-0 mt-1">{{ formatMessage(messages.showPlayTimeDescription) }}</p>
-		</div>
-		<Toggle
-			:model-value="themeStore.getFeatureFlag(showPlayTimeFlag)"
-			@update:model-value="
-				() => {
-					const newValue = !themeStore.getFeatureFlag(showPlayTimeFlag)
-					themeStore.featureFlags[showPlayTimeFlag] = newValue
-					settings.feature_flags[showPlayTimeFlag] = newValue
-				}
-			"
-		/>
-	</div>
-
-	<div class="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-		<div>
-			<h2 class="m-0 text-lg font-semibold text-contrast">
-				{{ formatMessage(messages.homeLayoutTitle) }}
-			</h2>
-			<p class="m-0 mt-1">{{ formatMessage(messages.homeLayoutDescription) }}</p>
-		</div>
-		<div
-			class="inline-flex shrink-0 items-center gap-1 rounded-xl border border-solid border-divider bg-bg-raised p-1"
-			role="radiogroup"
-			:aria-label="formatMessage(messages.homeLayoutTitle)"
-		>
-			<ButtonStyled
-				:color="settings.home_layout === 'standard' ? 'brand' : 'standard'"
-				:type="settings.home_layout === 'standard' ? 'highlight-colored-text' : 'transparent'"
-			>
-				<button
-					type="button"
-					role="radio"
-					:aria-checked="settings.home_layout === 'standard'"
-					@click="setHomeLayout('standard')"
+		<SettingsSection v-if="props.scope === 'interface'">
+			<template #header>
+				<h2
+					id="settings-target-appearance-accent-color"
+					tabindex="-1"
+					class="m-0 text-lg font-semibold text-contrast"
 				>
-					<LayoutTemplateIcon aria-hidden="true" />
-					{{ formatMessage(messages.homeLayoutStandard) }}
-				</button>
-			</ButtonStyled>
-			<ButtonStyled
-				:color="settings.home_layout === 'minimal' ? 'brand' : 'standard'"
-				:type="settings.home_layout === 'minimal' ? 'highlight-colored-text' : 'transparent'"
-			>
-				<button
-					type="button"
-					role="radio"
-					:aria-checked="settings.home_layout === 'minimal'"
-					@click="setHomeLayout('minimal')"
+					{{ formatMessage(messages.accentColorTitle) }}
+				</h2>
+				<p class="m-0 mt-1 text-sm leading-relaxed text-secondary">
+					{{ formatMessage(messages.accentColorDescription) }}
+				</p>
+			</template>
+			<div class="flex flex-col gap-4 p-4 @container">
+				<div
+					class="grid grid-cols-6 gap-1 @2xl:gap-2"
+					role="radiogroup"
+					:aria-label="formatMessage(messages.accentColorTitle)"
 				>
-					<MinimizeIcon aria-hidden="true" />
-					{{ formatMessage(messages.homeLayoutMinimal) }}
-				</button>
-			</ButtonStyled>
-		</div>
-	</div>
+					<button
+						v-for="accentColor in accentColorOptions"
+						:key="accentColor.value"
+						type="button"
+						role="radio"
+						:aria-checked="settings.accent_color === accentColor.value"
+						class="flex min-w-0 items-center justify-center gap-2 rounded-lg border border-solid px-1 py-2.5 @2xl:px-2 @4xl:px-3 font-semibold transition-all active:scale-[0.97]"
+						:class="
+							settings.accent_color === accentColor.value
+								? 'border-brand bg-brand-highlight text-brand'
+								: 'border-surface-4 bg-surface-3 text-secondary hover:border-surface-5 hover:text-contrast'
+						"
+						@click="
+							() => {
+								themeStore.setAccentColor(accentColor.value)
+								settings.accent_color = accentColor.value
+							}
+						"
+					>
+						<span
+							class="size-4 shrink-0 rounded-full ring-2 ring-white/20"
+							:style="{ backgroundColor: accentColor.color }"
+						/>
+						<span class="hidden truncate @xl:inline">{{ formatMessage(accentColor.label) }}</span>
+						<CheckIcon
+							v-if="settings.accent_color === accentColor.value"
+							class="ml-auto hidden size-4 shrink-0 @4xl:block"
+						/>
+					</button>
+					<button
+						type="button"
+						role="radio"
+						:aria-checked="isCustomAccent"
+						class="flex min-w-0 items-center justify-center gap-2 rounded-lg border border-solid px-1 py-2.5 @2xl:px-2 @4xl:px-3 font-semibold transition-all active:scale-[0.97]"
+						:class="
+							isCustomAccent
+								? 'border-brand bg-brand-highlight text-brand'
+								: 'border-surface-4 bg-surface-3 text-secondary hover:border-surface-5 hover:text-contrast'
+						"
+						@click="applyCustomAccent(customAccentHex)"
+					>
+						<span
+							class="size-4 shrink-0 rounded-full ring-2 ring-white/20"
+							:style="{
+								background: isCustomAccent
+									? customAccentHex
+									: 'conic-gradient(#ef4444, #f59e0b, #22c55e, #06b6d4, #6366f1, #ec4899, #ef4444)',
+							}"
+						/>
+						<span class="hidden truncate @xl:inline">{{
+							formatMessage(messages.accentColorCustom)
+						}}</span>
+						<CheckIcon v-if="isCustomAccent" class="ml-auto hidden size-4 shrink-0 @4xl:block" />
+					</button>
+				</div>
 
-	<div class="mt-6 flex flex-col gap-2">
-		<div>
-			<h2 class="m-0 text-lg font-semibold text-contrast">
-				{{ formatMessage(messages.sidebarInstanceCountTitle) }}
-			</h2>
-			<p class="m-0 mt-1">{{ formatMessage(messages.sidebarInstanceCountDescription) }}</p>
-		</div>
-		<Slider
-			id="sidebar-instance-count"
-			v-model="settings.sidebar_instance_count"
-			:min="0"
-			:max="50"
-			:step="1"
-		/>
-	</div>
+				<div
+					v-if="isCustomAccent"
+					class="rounded-lg border border-solid border-surface-4 bg-surface-3 p-4"
+				>
+					<label class="block">
+						<span class="text-sm font-semibold text-contrast">
+							{{ formatMessage(messages.accentColorCustomHue) }}
+						</span>
+						<input
+							type="range"
+							min="0"
+							max="360"
+							step="1"
+							:value="customAccentHue"
+							class="hue-slider mt-2"
+							:aria-label="formatMessage(messages.accentColorCustomHue)"
+							@input="onCustomHueInput(($event.target as HTMLInputElement).value)"
+						/>
+					</label>
 
-	<div class="mt-6 flex items-center justify-between gap-4">
-		<div>
-			<h2 class="m-0 text-lg font-semibold text-contrast">
-				{{ formatMessage(messages.autoHideDownloadsButtonTitle) }}
-			</h2>
-			<p class="m-0 mt-1">
-				{{ formatMessage(messages.autoHideDownloadsButtonDescription) }}
-			</p>
-		</div>
-		<Toggle
-			id="auto-hide-downloads-button"
-			:model-value="themeStore.autoHideDownloadsButton"
-			@update:model-value="
-				(value) => {
-					themeStore.autoHideDownloadsButton = !!value
-					settings.auto_hide_downloads_button = themeStore.autoHideDownloadsButton
-				}
-			"
-		/>
-	</div>
+					<div class="mt-4 flex flex-wrap items-center gap-x-6 gap-y-3">
+						<label class="flex items-center gap-2">
+							<span class="text-sm font-semibold text-contrast">
+								{{ formatMessage(messages.accentColorCustomHex) }}
+							</span>
+							<input
+								type="text"
+								maxlength="7"
+								spellcheck="false"
+								:value="customAccentHexInput"
+								class="w-28"
+								@input="onCustomHexInput(($event.target as HTMLInputElement).value)"
+								@blur="customAccentHexInput = customAccentHex"
+							/>
+						</label>
+						<div class="flex items-center gap-2">
+							<span
+								class="size-6 shrink-0 rounded-full ring-2 ring-white/20"
+								:style="{ backgroundColor: customAccentPreview.light }"
+							/>
+							<span class="text-sm text-secondary">
+								{{ formatMessage(messages.accentColorCustomPreviewLight) }}
+							</span>
+						</div>
+						<div class="flex items-center gap-2">
+							<span
+								class="size-6 shrink-0 rounded-full ring-2 ring-white/20"
+								:style="{ backgroundColor: customAccentPreview.dark }"
+							/>
+							<span class="text-sm text-secondary">
+								{{ formatMessage(messages.accentColorCustomPreviewDark) }}
+							</span>
+						</div>
+					</div>
+				</div>
+			</div>
+		</SettingsSection>
 
-	<div class="mt-6 flex items-center justify-between">
-		<div>
-			<h2 class="m-0 text-lg font-semibold text-contrast">
-				{{ formatMessage(messages.hideNametagTitle) }}
-			</h2>
-			<p class="m-0 mt-1">{{ formatMessage(messages.hideNametagDescription) }}</p>
-		</div>
-		<Toggle
-			id="hide-nametag-skins-page"
-			:model-value="themeStore.hideNametagSkinsPage"
-			@update:model-value="
-				(e) => {
-					themeStore.hideNametagSkinsPage = !!e
-					settings.hide_nametag_skins_page = themeStore.hideNametagSkinsPage
-				}
-			"
-		/>
-	</div>
+		<SettingsSection v-if="props.scope === 'interface'">
+			<template #header>
+				<h2
+					id="settings-target-appearance-launcher-background"
+					tabindex="-1"
+					class="m-0 text-lg font-semibold text-contrast"
+				>
+					{{ formatMessage(messages.customBackgroundTitle) }}
+				</h2>
+				<p class="m-0 mt-1 text-sm leading-relaxed text-secondary">
+					{{ formatMessage(messages.customBackgroundDescription) }}
+				</p>
+			</template>
+			<div class="flex flex-col gap-4 p-4 appearance-panel--divided">
+				<div
+					class="relative h-44 overflow-hidden rounded-lg border border-solid border-surface-4 bg-surface-1"
+				>
+					<div
+						v-if="customBackgroundPreview"
+						class="absolute -inset-10 bg-cover bg-center"
+						:style="{
+							backgroundImage: `url(&quot;${customBackgroundPreview}&quot;)`,
+							filter: `blur(${settings.custom_background_blur}px)`,
+							opacity: settings.custom_background_opacity / 100,
+						}"
+					/>
+					<div class="absolute inset-0 bg-surface-1/35" />
+					<div class="relative flex h-full items-center justify-center">
+						<div
+							v-if="!customBackgroundPreview"
+							class="flex flex-col items-center gap-2 text-secondary"
+						>
+							<ImageIcon class="size-8" />
+							<span class="font-semibold">{{ formatMessage(messages.customBackgroundEmpty) }}</span>
+						</div>
+					</div>
+				</div>
 
-	<div class="mt-6 flex items-center justify-between">
-		<div>
-			<h2 class="m-0 text-lg font-semibold text-contrast">
-				{{ formatMessage(messages.defaultLandingPageTitle) }}
-			</h2>
-			<p class="m-0 mt-1">{{ formatMessage(messages.defaultLandingPageDescription) }}</p>
-		</div>
-		<Combobox
-			id="opening-page"
-			v-model="settings.default_page"
-			name="Opening page dropdown"
-			class="max-w-40"
-			:placeholder="formatMessage(messages.selectOption)"
-			:options="[
-				{
-					value: 'Home',
-					label: formatMessage(messages.defaultLandingPageHome),
-				},
-				{
-					value: 'DiscoverContent',
-					label: formatMessage(messages.defaultLandingPageDiscoverContent),
-				},
-				{
-					value: 'Library',
-					label: formatMessage(messages.defaultLandingPageLibrary),
-				},
-			]"
-		/>
-	</div>
+				<div class="flex flex-wrap gap-2">
+					<Button type="base" native-type="button" @click="chooseCustomBackground">
+						<UploadIcon />
+						{{
+							formatMessage(
+								customBackgroundPreview
+									? messages.customBackgroundReplace
+									: messages.customBackgroundChoose,
+							)
+						}}
+					</Button>
+					<Button
+						v-if="customBackgroundPreview"
+						type="outlined"
+						color="red"
+						native-type="button"
+						@click="removeCustomBackground"
+					>
+						<TrashIcon />
+						{{ formatMessage(messages.customBackgroundRemove) }}
+					</Button>
+				</div>
 
-	<div class="mt-6 flex items-center justify-between gap-4">
-		<div>
-			<h2 class="m-0 text-lg font-semibold text-contrast">
-				{{ formatMessage(messages.unknownPackWarningTitle) }}
-			</h2>
-			<p class="m-0 mt-1">{{ formatMessage(messages.unknownPackWarningDescription) }}</p>
-		</div>
-		<Toggle
-			:model-value="!themeStore.getFeatureFlag(skipUnknownPackWarningFlag)"
-			@update:model-value="
-				(e) => {
-					const warnBeforeUnknownPackInstall = !!e
-					const skipUnknownPackWarning = !warnBeforeUnknownPackInstall
-					themeStore.featureFlags[skipUnknownPackWarningFlag] = skipUnknownPackWarning
-					settings.feature_flags[skipUnknownPackWarningFlag] = skipUnknownPackWarning
-				}
-			"
-		/>
-	</div>
+				<div v-if="customBackgroundPreview" class="grid gap-5 lg:grid-cols-2">
+					<div class="flex flex-col gap-2">
+						<h3 class="m-0 font-semibold text-contrast">
+							{{ formatMessage(messages.customBackgroundBlur) }}
+						</h3>
+						<Slider
+							id="custom-background-blur"
+							v-model="settings.custom_background_blur"
+							:min="0"
+							:max="40"
+							:step="1"
+							unit="px"
+						/>
+						<p class="m-0 text-sm text-secondary">
+							{{ formatMessage(messages.customBackgroundBlurDescription) }}
+						</p>
+					</div>
+					<div class="flex flex-col gap-2">
+						<h3 class="m-0 font-semibold text-contrast">
+							{{ formatMessage(messages.customBackgroundOpacity) }}
+						</h3>
+						<Slider
+							id="custom-background-opacity"
+							v-model="settings.custom_background_opacity"
+							:min="10"
+							:max="100"
+							:step="5"
+							unit="%"
+						/>
+						<p class="m-0 text-sm text-secondary">
+							{{ formatMessage(messages.customBackgroundOpacityDescription) }}
+						</p>
+					</div>
+				</div>
+			</div>
+			<SettingsRow>
+				<template #label>
+					<span id="settings-target-appearance-transparent-background" tabindex="-1">
+						{{ formatMessage(messages.transparentBackgroundTitle) }}
+					</span>
+				</template>
+				<template #description>
+					<span class="block">{{ formatMessage(messages.transparentBackgroundDescription) }}</span>
+					<span v-if="customBackgroundPreview" class="mt-1 block text-orange">
+						{{ formatMessage(messages.transparentBackgroundConflict) }}
+					</span>
+				</template>
+				<template #control>
+					<Toggle
+						id="transparent-background"
+						:model-value="settings.transparent_background"
+						@update:model-value="(e) => (settings.transparent_background = !!e)"
+					/>
+				</template>
+			</SettingsRow>
+			<SettingsRow v-if="settings.transparent_background" stacked>
+				<template #label>{{ formatMessage(messages.transparentBackgroundOpacity) }}</template>
+				<template #description>
+					{{ formatMessage(messages.transparentBackgroundOpacityDescription) }}
+				</template>
+				<template #control>
+					<div class="w-full">
+						<Slider
+							id="transparent-background-opacity"
+							v-model="settings.transparent_background_opacity"
+							:min="0"
+							:max="100"
+							:step="5"
+							unit="%"
+						/>
+					</div>
+				</template>
+			</SettingsRow>
+			<SettingsRow v-if="settings.transparent_background && os !== 'Linux'">
+				<template #label>{{ formatMessage(messages.transparentBackgroundBlurTitle) }}</template>
+				<template #description>
+					{{ formatMessage(messages.transparentBackgroundBlurDescription) }}
+				</template>
+				<template #control>
+					<Toggle
+						id="transparent-background-blur"
+						:model-value="settings.transparent_background_blur"
+						@update:model-value="(e) => (settings.transparent_background_blur = !!e)"
+					/>
+				</template>
+			</SettingsRow>
+		</SettingsSection>
 
-	<div class="mt-6 flex items-center justify-between gap-4">
-		<div>
-			<h2 class="m-0 text-lg font-semibold text-contrast">
-				{{ formatMessage(messages.skipNonEssentialWarningsTitle) }}
-			</h2>
-			<p class="m-0 mt-1">{{ formatMessage(messages.skipNonEssentialWarningsDescription) }}</p>
-		</div>
-		<Toggle
-			:model-value="themeStore.getFeatureFlag(skipNonEssentialWarningsFlag)"
-			@update:model-value="
-				() => {
-					const newValue = !themeStore.getFeatureFlag(skipNonEssentialWarningsFlag)
-					themeStore.featureFlags[skipNonEssentialWarningsFlag] = newValue
-					settings.feature_flags[skipNonEssentialWarningsFlag] = newValue
-				}
-			"
-		/>
+		<SettingsSection v-if="props.scope === 'home-navigation'">
+			<SettingsRow>
+				<template #label>
+					<span id="settings-target-appearance-home-layout" tabindex="-1">
+						{{ formatMessage(messages.homeLayoutTitle) }}
+					</span>
+				</template>
+				<template #description>{{ formatMessage(messages.homeLayoutDescription) }}</template>
+				<template #control>
+					<div
+						class="inline-flex shrink-0 items-center gap-1 rounded-lg border border-solid border-surface-4 bg-surface-3 p-1"
+						role="radiogroup"
+						:aria-label="formatMessage(messages.homeLayoutTitle)"
+					>
+						<Button
+							:type="settings.home_layout === 'standard' ? 'colored-text' : 'quiet'"
+							:color="settings.home_layout === 'standard' ? 'brand' : undefined"
+							native-type="button"
+							role="radio"
+							:aria-checked="settings.home_layout === 'standard'"
+							@click="setHomeLayout('standard')"
+						>
+							<LayoutTemplateIcon aria-hidden="true" />
+							{{ formatMessage(messages.homeLayoutStandard) }}
+						</Button>
+						<Button
+							:type="settings.home_layout === 'minimal' ? 'colored-text' : 'quiet'"
+							:color="settings.home_layout === 'minimal' ? 'brand' : undefined"
+							native-type="button"
+							role="radio"
+							:aria-checked="settings.home_layout === 'minimal'"
+							@click="setHomeLayout('minimal')"
+						>
+							<MinimizeIcon aria-hidden="true" />
+							{{ formatMessage(messages.homeLayoutMinimal) }}
+						</Button>
+					</div>
+				</template>
+			</SettingsRow>
+			<SettingsRow>
+				<template #label>
+					<span id="settings-target-appearance-default-landing-page" tabindex="-1">
+						{{ formatMessage(messages.defaultLandingPageTitle) }}
+					</span>
+				</template>
+				<template #description>{{
+					formatMessage(messages.defaultLandingPageDescription)
+				}}</template>
+				<template #control>
+					<div class="w-full">
+						<Combobox
+							id="opening-page"
+							v-model="settings.default_page"
+							:name="formatMessage(messages.defaultLandingPageTitle)"
+							:placeholder="formatMessage(messages.selectOption)"
+							:options="[
+								{
+									value: 'Home',
+									label: formatMessage(messages.defaultLandingPageHome),
+								},
+								{
+									value: 'DiscoverContent',
+									label: formatMessage(messages.defaultLandingPageDiscoverContent),
+								},
+								{
+									value: 'Library',
+									label: formatMessage(messages.defaultLandingPageLibrary),
+								},
+							]"
+						/>
+					</div>
+				</template>
+			</SettingsRow>
+			<SettingsRow stacked>
+				<template #label>
+					<span id="settings-target-appearance-sidebar-instance-limit" tabindex="-1">
+						{{ formatMessage(messages.sidebarInstanceCountTitle) }}
+					</span>
+				</template>
+				<template #description>{{
+					formatMessage(messages.sidebarInstanceCountDescription)
+				}}</template>
+				<template #control>
+					<div class="w-full">
+						<Slider
+							id="sidebar-instance-count"
+							v-model="settings.sidebar_instance_count"
+							:min="0"
+							:max="50"
+							:step="1"
+						/>
+					</div>
+				</template>
+			</SettingsRow>
+			<SettingsRow>
+				<template #label>
+					<span id="settings-target-appearance-auto-hide-downloads" tabindex="-1">
+						{{ formatMessage(messages.autoHideDownloadsButtonTitle) }}
+					</span>
+				</template>
+				<template #description>
+					{{ formatMessage(messages.autoHideDownloadsButtonDescription) }}
+				</template>
+				<template #control>
+					<Toggle
+						id="auto-hide-downloads-button"
+						:model-value="themeStore.autoHideDownloadsButton"
+						@update:model-value="
+							(value) => {
+								themeStore.autoHideDownloadsButton = !!value
+								settings.auto_hide_downloads_button = themeStore.autoHideDownloadsButton
+							}
+						"
+					/>
+				</template>
+			</SettingsRow>
+			<SettingsRow>
+				<template #label>
+					<span id="settings-target-appearance-show-play-time" tabindex="-1">
+						{{ formatMessage(messages.showPlayTimeTitle) }}
+					</span>
+				</template>
+				<template #description>{{ formatMessage(messages.showPlayTimeDescription) }}</template>
+				<template #control>
+					<Toggle
+						:model-value="themeStore.getFeatureFlag(showPlayTimeFlag)"
+						@update:model-value="
+							() => {
+								const newValue = !themeStore.getFeatureFlag(showPlayTimeFlag)
+								themeStore.featureFlags[showPlayTimeFlag] = newValue
+								settings.feature_flags[showPlayTimeFlag] = newValue
+							}
+						"
+					/>
+				</template>
+			</SettingsRow>
+		</SettingsSection>
+
+		<SettingsSection v-if="props.scope === 'interface'">
+			<SettingsRow>
+				<template #label>
+					<span id="settings-target-appearance-advanced-rendering" tabindex="-1">
+						{{ formatMessage(messages.advancedRenderingTitle) }}
+					</span>
+				</template>
+				<template #description>{{ formatMessage(messages.advancedRenderingDescription) }}</template>
+				<template #control>
+					<Toggle
+						id="advanced-rendering"
+						:model-value="themeStore.advancedRendering"
+						@update:model-value="
+							(e) => {
+								themeStore.advancedRendering = !!e
+								settings.advanced_rendering = themeStore.advancedRendering
+							}
+						"
+					/>
+				</template>
+			</SettingsRow>
+			<SettingsRow>
+				<template #label>
+					<span id="settings-target-appearance-page-transitions" tabindex="-1">
+						{{ formatMessage(messages.pageTransitionsTitle) }}
+					</span>
+				</template>
+				<template #description>{{ formatMessage(messages.pageTransitionsDescription) }}</template>
+				<template #control>
+					<Toggle
+						id="page-transitions"
+						:model-value="themeStore.getFeatureFlag(pageTransitionsFlag)"
+						@update:model-value="
+							(value) => {
+								const enabled = !!value
+								themeStore.featureFlags[pageTransitionsFlag] = enabled
+								settings.feature_flags[pageTransitionsFlag] = enabled
+							}
+						"
+					/>
+				</template>
+			</SettingsRow>
+			<SettingsRow v-if="os !== 'MacOS'">
+				<template #label>
+					<span id="settings-target-appearance-native-decorations" tabindex="-1">
+						{{ formatMessage(messages.nativeDecorationsTitle) }}
+					</span>
+				</template>
+				<template #description>{{ formatMessage(messages.nativeDecorationsDescription) }}</template>
+				<template #control>
+					<Toggle id="native-decorations" v-model="settings.native_decorations" />
+				</template>
+			</SettingsRow>
+			<SettingsRow>
+				<template #label>
+					<span id="settings-target-appearance-hide-nametag" tabindex="-1">
+						{{ formatMessage(messages.hideNametagTitle) }}
+					</span>
+				</template>
+				<template #description>{{ formatMessage(messages.hideNametagDescription) }}</template>
+				<template #control>
+					<Toggle
+						id="hide-nametag-skins-page"
+						:model-value="themeStore.hideNametagSkinsPage"
+						@update:model-value="
+							(e) => {
+								themeStore.hideNametagSkinsPage = !!e
+								settings.hide_nametag_skins_page = themeStore.hideNametagSkinsPage
+							}
+						"
+					/>
+				</template>
+			</SettingsRow>
+		</SettingsSection>
+
+		<SettingsSection v-if="props.scope === 'content-downloads'">
+			<SettingsRow>
+				<template #label>
+					<span id="settings-target-content-auto-install-dependencies" tabindex="-1">
+						{{ formatMessage(messages.autoInstallDependenciesTitle) }}
+					</span>
+				</template>
+				<template #description>
+					{{ formatMessage(messages.autoInstallDependenciesDescription) }}
+				</template>
+				<template #control>
+					<Toggle
+						id="auto-install-dependencies"
+						:model-value="themeStore.getFeatureFlag(autoInstallDependenciesFlag)"
+						@update:model-value="
+							(value) => {
+								const enabled = !!value
+								themeStore.featureFlags[autoInstallDependenciesFlag] = enabled
+								settings.feature_flags[autoInstallDependenciesFlag] = enabled
+							}
+						"
+					/>
+				</template>
+			</SettingsRow>
+			<SettingsRow>
+				<template #label>
+					<span id="settings-target-appearance-unknown-pack-warning" tabindex="-1">
+						{{ formatMessage(messages.unknownPackWarningTitle) }}
+					</span>
+				</template>
+				<template #description>{{
+					formatMessage(messages.unknownPackWarningDescription)
+				}}</template>
+				<template #control>
+					<Toggle
+						:model-value="!themeStore.getFeatureFlag(skipUnknownPackWarningFlag)"
+						@update:model-value="
+							(e) => {
+								const warnBeforeUnknownPackInstall = !!e
+								const skipUnknownPackWarning = !warnBeforeUnknownPackInstall
+								themeStore.featureFlags[skipUnknownPackWarningFlag] = skipUnknownPackWarning
+								settings.feature_flags[skipUnknownPackWarningFlag] = skipUnknownPackWarning
+							}
+						"
+					/>
+				</template>
+			</SettingsRow>
+			<SettingsRow>
+				<template #label>
+					<span id="settings-target-content-skip-nonessential-warnings" tabindex="-1">
+						{{ formatMessage(messages.skipNonEssentialWarningsTitle) }}
+					</span>
+				</template>
+				<template #description>
+					{{ formatMessage(messages.skipNonEssentialWarningsDescription) }}
+				</template>
+				<template #control>
+					<Toggle
+						:model-value="themeStore.getFeatureFlag(skipNonEssentialWarningsFlag)"
+						@update:model-value="
+							() => {
+								const newValue = !themeStore.getFeatureFlag(skipNonEssentialWarningsFlag)
+								themeStore.featureFlags[skipNonEssentialWarningsFlag] = newValue
+								settings.feature_flags[skipNonEssentialWarningsFlag] = newValue
+							}
+						"
+					/>
+				</template>
+			</SettingsRow>
+		</SettingsSection>
 	</div>
 </template>
 
 <style scoped lang="scss">
+.appearance-panel--divided {
+	border-bottom: 1px solid var(--settings-divider, var(--surface-4));
+}
+
 .hue-slider {
 	appearance: none;
 	display: block;

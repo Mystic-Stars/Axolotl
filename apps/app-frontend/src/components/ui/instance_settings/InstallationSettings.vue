@@ -7,6 +7,7 @@ import {
 	injectFilePicker,
 	injectNotificationManager,
 	InstallationSettingsLayout,
+	instanceInstallablePlatforms,
 	type LoaderMetadataStatus,
 	loaderSupportState,
 	loaderVersionsForGameVersion,
@@ -16,7 +17,7 @@ import {
 	useDebugLogger,
 	useVIntl,
 } from '@modrinth/ui'
-import type { GameVersionTag, PlatformTag } from '@modrinth/utils'
+import type { GameVersionTag } from '@modrinth/utils'
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import { computed, ref } from 'vue'
 
@@ -39,7 +40,7 @@ import {
 	update_repair_modrinth,
 } from '@/helpers/instance'
 import { get_loader_versions } from '@/helpers/metadata'
-import { get_game_versions, get_loaders } from '@/helpers/tags'
+import { get_game_versions } from '@/helpers/tags'
 import { injectInstanceSettings } from '@/providers/instance-settings'
 import { useTheming } from '@/store/state'
 
@@ -63,14 +64,6 @@ debug('metadata load: start', {
 	gameVersion: instance.value.game_version,
 	installStage: instance.value.install_stage,
 })
-
-function getSupportedModpackLoaders() {
-	return get_loaders().then((value: PlatformTag[]) =>
-		value
-			.filter((item) => item.supported_project_types.includes('modpack') || item.name === 'vanilla')
-			.sort((a, b) => (a.name === 'vanilla' ? -1 : b.name === 'vanilla' ? 1 : 0)),
-	)
-}
 
 const gameVersionsQuery = useQuery({
 	queryKey: ['instance-settings', 'game-versions'],
@@ -107,14 +100,7 @@ const scopedLoaderVersionState = computed(() =>
 		editingGameVersion.value,
 	),
 )
-const loadersQuery = useQuery({
-	queryKey: ['instance-settings', 'loaders', 'modpack'],
-	queryFn: getSupportedModpackLoaders,
-})
-
-const metadataLoading = computed(() =>
-	[gameVersionsQuery, loadersQuery].some((query) => query.isLoading.value),
-)
+const metadataLoading = computed(() => gameVersionsQuery.isLoading.value)
 
 debug('metadata queries configured', {
 	instanceId: instance.value.id,
@@ -202,7 +188,16 @@ provideInstallationSettings({
 				value: instance.value.game_version,
 			},
 		]
-		if (instance.value.loader !== 'vanilla' && instance.value.loader_version) {
+		if ((instance.value.loader_components ?? []).length > 1) {
+			for (const component of instance.value.loader_components ?? []) {
+				rows.push({
+					label: formatMessage(messages.loaderVersion, {
+						loader: formatLoaderLabel(component.kind),
+					}),
+					value: component.version ?? formatLoaderLabel(component.kind),
+				})
+			}
+		} else if (instance.value.loader !== 'vanilla' && instance.value.loader_version) {
 			rows.push({
 				label: formatMessage(messages.loaderVersion, {
 					loader: formatLoaderLabel(instance.value.loader),
@@ -272,7 +267,7 @@ provideInstallationSettings({
 	currentPlatform: computed(() => instance.value.loader),
 	currentGameVersion: computed(() => instance.value.game_version),
 	currentLoaderVersion: computed(() => instance.value.loader_version ?? ''),
-	availablePlatforms: computed(() => loadersQuery.data.value?.map((x) => x.name) ?? []),
+	availablePlatforms: computed(() => [...instanceInstallablePlatforms]),
 	editingPlatformRef: editingPlatform,
 	editingGameVersionRef: editingGameVersion,
 	loaderVersionState: scopedLoaderVersionState,

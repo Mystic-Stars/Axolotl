@@ -146,12 +146,16 @@ useHead({
 			<p>{{ formatMessage(messages.description) }}</p>
 		</header>
 
-		<div v-if="isLoading" class="status-panel" role="status">
+		<div v-if="isLoading" class="status-panel flex items-center justify-center gap-3 m-0 p-8 border border-surface-5 rounded-lg bg-surface-4 text-[var(--color-secondary)] text-center" role="status">
 			<div class="loading-indicator" aria-hidden="true" />
 			{{ formatMessage(messages.loading) }}
 		</div>
 
-		<div v-else-if="error" class="status-panel error-panel" role="alert">
+		<div
+			v-else-if="error"
+			class="status-panel flex items-center justify-center gap-3 m-0 p-8 border border-surface-5 rounded-lg bg-surface-4 text-[var(--color-secondary)] text-center error-panel justify-between text-left"
+			role="alert"
+		>
 			<div>
 				<h2>{{ formatMessage(messages.errorTitle) }}</h2>
 				<p>{{ formatMessage(messages.errorDescription) }}</p>
@@ -161,25 +165,25 @@ useHead({
 			</ButtonStyled>
 		</div>
 
-		<p v-else-if="!announcements?.length" class="status-panel">
+		<p v-else-if="!announcements?.length" class="status-panel flex items-center justify-center gap-3 m-0 p-8 border border-surface-5 rounded-lg bg-surface-4 text-[var(--color-secondary)] text-center">
 			{{ formatMessage(messages.empty) }}
 		</p>
 
-		<div v-else class="announcement-list">
+		<div v-else class="flex flex-col gap-3">
 			<Accordion
 				v-for="(announcement, index) in announcements"
 				:key="announcement.id"
 				:open-by-default="index === 0"
-				class="announcement"
+				class="overflow-hidden border border-surface-5 rounded-lg bg-surface-4"
 				button-class="group flex w-full cursor-pointer items-center gap-4 border-0 bg-transparent px-5 py-4 text-left"
 			>
 				<template #title>
-					<div class="announcement-heading">
-						<div class="announcement-title-row">
+					<div class="announcement-heading flex min-w-0 flex-1 items-center justify-between gap-4">
+						<div class="flex items-center min-w-0 gap-3">
 							<h2>{{ getLocalizedText(announcement.title) }}</h2>
 							<TagItem>{{ announcement.version }}</TagItem>
 						</div>
-						<div class="announcement-date">
+						<div class="flex items-center shrink-0 gap-[0.35rem] text-[var(--color-secondary)] text-[0.8125rem]">
 							<CalendarIcon aria-hidden="true" />
 							<time :datetime="announcement.publishedAt">
 								{{ announcement.publishedAt }}
@@ -188,13 +192,13 @@ useHead({
 					</div>
 				</template>
 
-				<div class="announcement-content">
+				<div class="px-[1.25rem] pb-2 border-t border-surface-5 bg-surface-3">
 					<p
 						v-if="
 							!announcement.changes ||
 							CHANGE_TYPES.every((type) => !announcement.changes?.[type]?.length)
 						"
-						class="no-release-notes"
+						class="m-0 pt-4 pb-2 text-[var(--color-secondary)] leading-[1.6]"
 					>
 						{{ formatMessage(messages.noReleaseNotes) }}
 					</p>
@@ -218,7 +222,7 @@ useHead({
 			</Accordion>
 		</div>
 
-		<div class="changelog-footer">
+		<div class="flex items-center justify-center gap-2 mt-8 text-[var(--color-secondary)] text-sm">
 			<HistoryIcon aria-hidden="true" />
 			<a href="https://github.com/Mystic-Stars/Axolotl/releases" target="_blank" rel="noopener">
 				GitHub Releases
@@ -252,39 +256,7 @@ useHead({
 	}
 }
 
-.announcement-list {
-	display: flex;
-	flex-direction: column;
-	gap: 0.75rem;
-}
-
-.announcement {
-	overflow: hidden;
-	border: 1px solid var(--surface-5);
-	border-radius: 0.5rem;
-	background: var(--surface-4);
-}
-
-.announcement-heading {
-	display: flex;
-	min-width: 0;
-	flex: 1;
-	align-items: center;
-	justify-content: space-between;
-	gap: 1rem;
-}
-
-.announcement-title-row,
-.announcement-date,
-.changelog-footer {
-	display: flex;
-	align-items: center;
-}
-
 .announcement-title-row {
-	min-width: 0;
-	gap: 0.75rem;
-
 	h2 {
 		margin: 0;
 		overflow: hidden;
@@ -297,28 +269,10 @@ useHead({
 }
 
 .announcement-date {
-	flex-shrink: 0;
-	gap: 0.35rem;
-	color: var(--color-secondary);
-	font-size: 0.8125rem;
-
 	svg {
 		width: 1rem;
 		height: 1rem;
 	}
-}
-
-.announcement-content {
-	padding: 0 1.25rem 0.5rem;
-	border-top: 1px solid var(--surface-5);
-	background: var(--surface-3);
-}
-
-.no-release-notes {
-	margin: 0;
-	padding: 1rem 0 0.5rem;
-	color: var(--color-secondary);
-	line-height: 1.6;
 }
 
 .change-group {
@@ -360,24 +314,7 @@ useHead({
 	}
 }
 
-.status-panel {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	gap: 0.75rem;
-	margin: 0;
-	padding: 2rem;
-	border: 1px solid var(--surface-5);
-	border-radius: 0.5rem;
-	background: var(--surface-4);
-	color: var(--color-secondary);
-	text-align: center;
-}
-
 .error-panel {
-	justify-content: space-between;
-	text-align: left;
-
 	h2,
 	p {
 		margin: 0;
@@ -403,12 +340,6 @@ useHead({
 }
 
 .changelog-footer {
-	justify-content: center;
-	gap: 0.5rem;
-	margin-top: 2rem;
-	color: var(--color-secondary);
-	font-size: 0.875rem;
-
 	svg {
 		width: 1rem;
 		height: 1rem;

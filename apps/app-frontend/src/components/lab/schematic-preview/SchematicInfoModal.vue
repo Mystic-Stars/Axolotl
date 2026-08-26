@@ -101,7 +101,7 @@ defineExpose({ show: () => modal.value?.show() })
 				</div>
 			</section>
 
-			<section v-if="warnings.length" class="info-section warning-section">
+			<section v-if="warnings.length" class="info-section flex min-w-0 flex-col gap-3 warning-section text-orange">
 				<h2><TriangleAlertIcon />{{ formatMessage(messages.warnings) }}</h2>
 				<ul>
 					<li v-for="warning in warnings" :key="warning">{{ warning }}</li>
@@ -112,13 +112,6 @@ defineExpose({ show: () => modal.value?.show() })
 </template>
 
 <style scoped>
-.info-section {
-	display: flex;
-	min-width: 0;
-	flex-direction: column;
-	gap: 0.75rem;
-}
-
 .info-section h2 {
 	display: flex;
 	align-items: center;
@@ -171,10 +164,6 @@ defineExpose({ show: () => modal.value?.show() })
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
-}
-
-.warning-section {
-	color: var(--color-orange);
 }
 
 .warning-section ul {

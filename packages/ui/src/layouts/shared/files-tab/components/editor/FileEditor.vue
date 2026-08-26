@@ -30,8 +30,17 @@
 			@init="onEditorInit"
 		/>
 		<FileImageViewer v-else-if="isEditingImage && imagePreview" :image-blob="imagePreview" />
+		<textarea
+			v-else-if="!isEditingImage && !isLoading"
+			:value="fileContent"
+			:readonly="isEditorReadOnly"
+			:placeholder="formatMessage(messages.editorUnavailablePlaceholder)"
+			class="w-full resize-none rounded-[20px] bg-bg-raised p-3 font-mono text-sm text-primary outline-none"
+			:style="{ height: editorHeight }"
+			@input="onFallbackInput"
+		/>
 		<div
-			v-else-if="isLoading || !props.editorComponent"
+			v-else-if="isLoading"
 			class="flex items-center justify-center rounded-[20px] bg-bg-raised"
 			:style="{ height: editorHeight }"
 		>
@@ -114,6 +123,10 @@ const messages = defineMessages({
 	logTruncatedWarning: {
 		id: 'files.editor.share-truncated-warning',
 		defaultMessage: 'The log file is too large, so only the last 9 MB was uploaded.',
+	},
+	editorUnavailablePlaceholder: {
+		id: 'files.editor.editor-unavailable-placeholder',
+		defaultMessage: 'Code editor unavailable',
 	},
 })
 
@@ -207,6 +220,10 @@ const hasUnsavedChanges = computed(
 
 function revertChanges() {
 	fileContent.value = originalContent.value
+}
+
+function onFallbackInput(event: Event) {
+	fileContent.value = (event.target as HTMLTextAreaElement).value
 }
 
 function resetState() {

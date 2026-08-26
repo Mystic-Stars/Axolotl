@@ -6,6 +6,7 @@ import {
 	BoxIcon,
 	CheckIcon,
 	ChevronDownIcon,
+	ContractIcon,
 	CopyIcon,
 	CubeIcon,
 	DownloadIcon,
@@ -168,6 +169,7 @@ const { formatMessage, locale } = useVIntl()
 const route = useRoute()
 const canvas = useTemplateRef<HTMLCanvasElement>('canvas')
 const workspace = useTemplateRef<HTMLElement>('workspace')
+const viewport = useTemplateRef<HTMLElement>('viewport')
 const instancePicker =
 	useTemplateRef<InstanceType<typeof SchematicInstancePickerModal>>('instancePicker')
 const blockPicker = useTemplateRef<InstanceType<typeof SchematicBlockPickerModal>>('blockPicker')
@@ -209,6 +211,7 @@ const showBounds = ref(true)
 const showTranslucent = ref(true)
 const seamlessGlass = ref(true)
 const inspectorOpen = ref(true)
+const isFullscreen = ref(false)
 const dragging = ref(false)
 const contextLost = ref(false)
 const loadingStage = ref<LoadingStage>()
@@ -274,6 +277,10 @@ const messages = defineMessages({
 	walkView: { id: 'app.lab.schematic-preview.walk-view', defaultMessage: 'Walk view' },
 	orbitView: { id: 'app.lab.schematic-preview.orbit-view', defaultMessage: 'Orbit view' },
 	fullscreen: { id: 'app.lab.schematic-preview.fullscreen', defaultMessage: 'Toggle fullscreen' },
+	exitFullscreen: {
+		id: 'app.lab.schematic-preview.exit-fullscreen',
+		defaultMessage: 'Exit fullscreen',
+	},
 	grid: { id: 'app.lab.schematic-preview.grid', defaultMessage: 'Show grid' },
 	bounds: { id: 'app.lab.schematic-preview.bounds', defaultMessage: 'Show region boundaries' },
 	translucent: {
@@ -1301,8 +1308,16 @@ function toggleViewMode() {
 }
 
 async function toggleFullscreen() {
-	const window = getCurrentWindow()
-	await window.setFullscreen(!(await window.isFullscreen()))
+	try {
+		if (document.fullscreenElement) await document.exitFullscreen()
+		else await viewport.value?.requestFullscreen()
+	} catch (error) {
+		handleError(error)
+	}
+}
+
+function onFullscreenChange() {
+	isFullscreen.value = document.fullscreenElement === viewport.value
 }
 
 async function copySelectedCoordinates() {
@@ -1418,6 +1433,7 @@ watch(seamlessGlass, rebuildMeshes)
 onMounted(async () => {
 	await loadInstances()
 	window.addEventListener('keydown', handleKeydown)
+	document.addEventListener('fullscreenchange', onFullscreenChange)
 	await setupNativeDrop().catch(() => undefined)
 
 	const instanceId = typeof route.query.instance === 'string' ? route.query.instance : ''
@@ -1437,6 +1453,7 @@ onBeforeUnmount(() => {
 	if (activeOpenRequestId) void cancelSchematicPreview(activeOpenRequestId)
 	terminateWorkers()
 	window.removeEventListener('keydown', handleKeydown)
+	document.removeEventListener('fullscreenchange', onFullscreenChange)
 	unlistenNativeDrop?.()
 	scene?.dispose()
 	resources.value?.texture.dispose()
@@ -1482,7 +1499,7 @@ onBeforeUnmount(() => {
 				<p v-if="error" class="m-0 max-w-2xl text-center text-sm text-brand-red">{{ error }}</p>
 			</section>
 
-			<section v-if="recent.length" class="schematic-recent">
+			<section v-if="recent.length" class="schematic-recent w-[min(52rem,calc(100%-3rem))] mx-auto mb-8">
 				<header class="flex items-center justify-between gap-3">
 					<h2 class="m-0 text-base text-contrast">{{ formatMessage(messages.recent) }}</h2>
 					<ButtonStyled size="small" type="transparent">
@@ -1491,8 +1508,8 @@ onBeforeUnmount(() => {
 						</button>
 					</ButtonStyled>
 				</header>
-				<ul class="schematic-recent-list">
-					<li v-for="record in recent" :key="record.id" class="schematic-recent-row">
+				<ul class="schematic-recent-list m-0 list-none p-0">
+					<li v-for="record in recent" :key="record.id" class="schematic-recent-row flex min-w-0 items-center gap-3 py-2">
 						<FileArchiveIcon class="size-5 shrink-0 text-secondary" />
 						<button
 							class="min-w-0 flex-1 cursor-pointer border-0 bg-transparent p-0 text-left"
@@ -1539,7 +1556,7 @@ onBeforeUnmount(() => {
 						{{ formatMessage(messages.blocks).toLocaleLowerCase(locale) }}
 					</p>
 				</div>
-				<div class="schematic-toolbar-actions">
+				<div class="schematic-toolbar-actions flex shrink-0 items-center gap-2">
 					<div class="schematic-command-group">
 						<ButtonStyled circular type="transparent">
 							<button
@@ -1566,7 +1583,7 @@ onBeforeUnmount(() => {
 					</div>
 					<ButtonStyled type="outlined">
 						<OverflowMenu
-							class="schematic-command-button"
+							class="schematic-command-button min-w-0"
 							:options="openMenuOptions"
 							:aria-label="formatMessage(messages.open)"
 						>
@@ -1583,7 +1600,7 @@ onBeforeUnmount(() => {
 					</ButtonStyled>
 					<ButtonStyled color="brand">
 						<OverflowMenu
-							class="schematic-command-button"
+							class="schematic-command-button min-w-0"
 							:options="exportMenuOptions"
 							:aria-label="formatMessage(messages.exportSchematic)"
 						>
@@ -1640,7 +1657,7 @@ onBeforeUnmount(() => {
 			</header>
 
 			<div class="schematic-workbench">
-				<section class="schematic-viewport">
+				<section ref="viewport" class="schematic-viewport">
 					<canvas
 						ref="canvas"
 						class="block size-full"
@@ -1725,7 +1742,7 @@ onBeforeUnmount(() => {
 					</div>
 					<div
 						v-else-if="viewMode === 'orbit' && workspaceTool === 'measure' && measurementStart"
-						class="schematic-tool-context schematic-measurement-readout"
+						class="schematic-tool-context schematic-measurement-readout w-[min(42rem,calc(100%-1.5rem))]"
 					>
 						<div class="min-w-0 flex-1">
 							<div class="truncate text-xs text-secondary">
@@ -1760,7 +1777,14 @@ onBeforeUnmount(() => {
 							<LayersIcon />
 							<span>Y</span>
 						</span>
-						<strong class="schematic-layer-current">{{ layerMaximum }}</strong>
+						<input
+							v-model.number="layerMaximum"
+							class="schematic-layer-current"
+							type="number"
+							:min="layerFloor"
+							:max="layerCeiling"
+							step="1"
+						/>
 						<span class="schematic-layer-limit">{{ layerCeiling }}</span>
 						<input
 							v-model.number="layerMaximum"
@@ -1870,14 +1894,16 @@ onBeforeUnmount(() => {
 							>
 								<EyeIcon /></button
 						></ButtonStyled>
-						<ButtonStyled circular size="small" type="outlined"
+						<ButtonStyled circular size="small" :type="isFullscreen ? 'standard' : 'outlined'"
 							><button
-								v-tooltip.top="`${formatMessage(messages.fullscreen)} (F11)`"
+								v-tooltip.top="`${formatMessage(isFullscreen ? messages.exitFullscreen : messages.fullscreen)} (F11)`"
 								type="button"
-								:aria-label="formatMessage(messages.fullscreen)"
+								:aria-label="
+									formatMessage(isFullscreen ? messages.exitFullscreen : messages.fullscreen)
+								"
 								@click="toggleFullscreen"
 							>
-								<MaximizeIcon /></button
+								<ContractIcon v-if="isFullscreen" /><MaximizeIcon v-else /></button
 						></ButtonStyled>
 					</div>
 					<div v-if="loadingStage" class="schematic-loading-status">
@@ -1903,25 +1929,25 @@ onBeforeUnmount(() => {
 				</section>
 
 				<aside
-					class="schematic-inspector"
+					class="schematic-inspector flex min-h-0 flex-col border-l-0 bg-surface-2"
 					:class="{ 'schematic-inspector-collapsed': !inspectorOpen }"
 				>
 					<button
 						type="button"
-						class="schematic-inspector-toggle"
+						class="schematic-inspector-toggle hidden"
 						@click="inspectorOpen = !inspectorOpen"
 					>
 						<strong>{{ formatMessage(messages.inspector) }}</strong
 						><ChevronDownIcon :class="{ 'rotate-180': inspectorOpen }" />
 					</button>
-					<div class="schematic-inspector-body">
+					<div class="schematic-inspector-body flex min-h-0 flex-1 flex-col gap-3 p-3">
 						<Tabs v-if="viewMode === 'orbit'" v-model:value="inspectorTab" :tabs="inspectorTabs" />
 
 						<div
 							v-if="viewMode === 'orbit' && inspectorTab === 'edit'"
 							class="schematic-inspector-scroll"
 						>
-							<section class="inspector-section">
+							<section class="inspector-section flex flex-col gap-2 border-t border-surface-5 pt-3">
 								<h2><BoxesIcon />{{ formatMessage(messages.selectedBlock) }}</h2>
 								<div class="selection-summary">
 									<strong>{{
@@ -1974,7 +2000,7 @@ onBeforeUnmount(() => {
 								</div>
 							</section>
 
-							<section class="inspector-section">
+							<section class="inspector-section flex flex-col gap-2 border-t border-surface-5 pt-3">
 								<h2><EyeIcon />{{ formatMessage(messages.visibility) }}</h2>
 								<div class="editor-action-grid">
 									<ButtonStyled type="outlined">
@@ -2016,7 +2042,7 @@ onBeforeUnmount(() => {
 								</div>
 							</section>
 
-							<section class="inspector-section">
+							<section class="inspector-section flex flex-col gap-2 border-t border-surface-5 pt-3">
 								<h2><EditIcon />{{ formatMessage(messages.edit) }}</h2>
 								<div class="editor-action-grid">
 									<ButtonStyled color="brand">
@@ -2036,7 +2062,7 @@ onBeforeUnmount(() => {
 								</div>
 							</section>
 
-							<section class="inspector-section">
+							<section class="inspector-section flex flex-col gap-2 border-t border-surface-5 pt-3">
 								<h2><RotateClockwiseIcon />{{ formatMessage(messages.transform) }}</h2>
 								<div class="editor-action-grid">
 									<ButtonStyled type="outlined">
@@ -2118,7 +2144,7 @@ onBeforeUnmount(() => {
 							>
 								{{ formatMessage(messages.noMaterials) }}
 							</p>
-							<ul v-else class="material-list">
+							<ul v-else class="material-list flex flex-col gap-0.5 list-none m-0 p-0">
 								<li v-for="material in visibleMaterials" :key="material.name">
 									<button
 										type="button"
@@ -2218,25 +2244,6 @@ onBeforeUnmount(() => {
 	padding: 2rem;
 }
 
-.schematic-recent {
-	width: min(52rem, calc(100% - 3rem));
-	margin: 0 auto 2rem;
-}
-
-.schematic-recent-list {
-	margin: 0;
-	padding: 0;
-	list-style: none;
-}
-
-.schematic-recent-row {
-	display: flex;
-	min-width: 0;
-	align-items: center;
-	gap: 0.75rem;
-	padding: 0.5rem 0;
-}
-
 .schematic-toolbar {
 	display: flex;
 	min-height: 4.25rem;
@@ -2246,13 +2253,6 @@ onBeforeUnmount(() => {
 	border-bottom: 1px solid var(--surface-5);
 	padding: 0.65rem 1rem;
 	background: var(--surface-2);
-}
-
-.schematic-toolbar-actions {
-	display: flex;
-	flex-shrink: 0;
-	align-items: center;
-	gap: 0.5rem;
 }
 
 .schematic-command-group {
@@ -2268,10 +2268,6 @@ onBeforeUnmount(() => {
 .schematic-canvas-controls :deep(.button-outer) {
 	width: 2.25rem;
 	height: 2.25rem;
-}
-
-.schematic-command-button {
-	min-width: 0;
 }
 
 .schematic-command-chevron {
@@ -2330,6 +2326,12 @@ onBeforeUnmount(() => {
 	border-right: 1px solid rgb(255 255 255 / 7%);
 	background: #0a0a0a;
 	box-shadow: inset 0 0 0 1px rgb(255 255 255 / 3%);
+}
+
+.schematic-viewport:fullscreen {
+	height: 100vh;
+	border-right: none;
+	box-shadow: none;
 }
 
 .schematic-mode-toolbar,
@@ -2399,10 +2401,6 @@ onBeforeUnmount(() => {
 	width: 1rem;
 	height: 1rem;
 	color: var(--color-brand);
-}
-
-.schematic-measurement-readout {
-	width: min(42rem, calc(100% - 1.5rem));
 }
 
 .schematic-canvas-controls {
@@ -2528,9 +2526,15 @@ onBeforeUnmount(() => {
 }
 
 .schematic-layer-current {
+	min-height: 0.5rem;
+	height: 1.4em;
+	border-radius: 0.2rem;
+	padding: 0.2rem;
 	color: var(--color-text-dark);
-	font-size: 0.9rem;
+	font-size: 0.7rem;
+	font-weight: bold;
 	font-variant-numeric: tabular-nums;
+	text-align: center;
 }
 
 .schematic-layer-limit,
@@ -2632,27 +2636,6 @@ onBeforeUnmount(() => {
 	backdrop-filter: blur(8px);
 }
 
-.schematic-inspector {
-	display: flex;
-	min-height: 0;
-	flex-direction: column;
-	border-left: 0;
-	background: var(--surface-2);
-}
-
-.schematic-inspector-toggle {
-	display: none;
-}
-
-.schematic-inspector-body {
-	display: flex;
-	min-height: 0;
-	flex: 1;
-	flex-direction: column;
-	gap: 0.75rem;
-	padding: 0.75rem;
-}
-
 .selection-summary {
 	display: flex;
 	min-width: 0;
@@ -2703,14 +2686,6 @@ onBeforeUnmount(() => {
 	padding-right: 0.15rem;
 }
 
-.inspector-section {
-	display: flex;
-	flex-direction: column;
-	gap: 0.5rem;
-	border-top: 1px solid var(--surface-5);
-	padding-top: 0.75rem;
-}
-
 .inspector-section:first-child {
 	border-top: 0;
 	padding-top: 0;
@@ -2728,15 +2703,6 @@ onBeforeUnmount(() => {
 .inspector-section h2 svg {
 	width: 1rem;
 	height: 1rem;
-}
-
-.material-list {
-	display: flex;
-	margin: 0;
-	flex-direction: column;
-	gap: 0.2rem;
-	padding: 0;
-	list-style: none;
 }
 
 .material-list li {

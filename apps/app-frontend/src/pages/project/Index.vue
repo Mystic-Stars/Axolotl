@@ -1,5 +1,6 @@
 <template>
 	<div v-if="data">
+		<UpgradeProjectReturnBar />
 		<Teleport to="#sidebar-teleport-target">
 			<ProjectSidebarCompatibility
 				v-if="!isServerProject"
@@ -52,7 +53,7 @@
 		</Teleport>
 		<div class="flex flex-col gap-4 p-6">
 			<div
-				v-if="projectInstallContext"
+				v-if="projectInstallContext && projectInstallContext.showInstallHeader !== false"
 				class="sticky top-0 z-20 -mx-6 -mt-6 rounded-tl-[--radius-xl] border-0 border-b border-solid bg-surface-1 p-3 border-surface-5"
 			>
 				<BrowseInstallHeader :install-context="projectInstallContext" />
@@ -121,7 +122,7 @@
 						</ButtonStyled>
 						<ButtonStyled size="large" circular type="transparent">
 							<OverflowMenu
-								:tooltip="`More options`"
+								:tooltip="formatMessage(commonMessages.moreOptionsButton)"
 								:options="[
 									{
 										id: 'open-in-browser',
@@ -200,7 +201,11 @@
 									v-if="installButtonLoading && !installButtonInstalled"
 									class="animate-spin"
 								/>
-								<DownloadIcon v-else-if="!installButtonInstalled && !serverProjectSelected" />
+								<DownloadIcon
+									v-else-if="
+										!installButtonInstalled && !serverProjectSelected && !cartProjectSelected
+									"
+								/>
 								<CheckIcon v-else />
 								{{ installButtonLabel }}
 							</button>
@@ -215,12 +220,19 @@
 										tooltip: 'Coming soon',
 										action: () => {},
 									},
-									{
-										id: 'save',
-										disabled: true,
-										tooltip: 'Coming soon',
-										action: () => {},
-									},
+									...(favoriteSupported
+										? [
+												{
+													id: 'save',
+													disabled: favoritePending,
+													tooltip: formatMessage(
+														favoriteSaved ? messages.removeFromFavorites : messages.addToFavorites,
+													),
+													action: () => void toggleFavorite(),
+												},
+											]
+										: []),
+									...getDependentSearchActions(),
 									{
 										id: 'open-in-browser',
 										link: `https://modrinth.com/${data.project_type}/${data.slug}`,
@@ -257,7 +269,19 @@
 								<template #follow>
 									<HeartIcon /> {{ formatMessage(commonMessages.followButton) }}
 								</template>
-								<template #save> <BookmarkIcon /> Save </template>
+								<template v-if="favoriteSupported" #save>
+									<BookmarkFilledIcon v-if="favoriteSaved" class="text-brand" />
+									<BookmarkIcon v-else />
+									{{
+										formatMessage(
+											favoritePending
+												? messages.favoritesLoading
+												: favoriteSaved
+													? messages.removeFromFavorites
+													: messages.addToFavorites,
+										)
+									}}
+								</template>
 								<template #report> <ReportIcon /> Report </template>
 							</OverflowMenu>
 						</ButtonStyled>
@@ -304,6 +328,15 @@
 			v-if="projectInstallContext"
 			:install-context="projectInstallContext"
 		/>
+		<BrowseInstanceSelector
+			ref="browseInstanceSelector"
+			:instances="contentSelection.instances.value"
+			:selected-instance="contentSelection.targetInstance.value"
+			:selected-count="contentSelection.selectedCount.value"
+			:install-current="contentSelection.installSelected"
+			:clear-current="contentSelection.clear"
+			@select="contentSelection.setTarget"
+		/>
 		<ContextMenu ref="options" @option-clicked="handleOptionsClick">
 			<template #install>
 				<DownloadIcon /> {{ formatMessage(commonMessages.installButton) }}
@@ -338,6 +371,7 @@
 
 <script setup>
 import {
+	BookmarkFilledIcon,
 	BookmarkIcon,
 	BookOpenIcon,
 	CheckIcon,
@@ -348,9 +382,11 @@ import {
 	HeartIcon,
 	LanguagesIcon,
 	MoreVerticalIcon,
+	PackageIcon,
 	PlayIcon,
 	PlusIcon,
 	ReportIcon,
+	SearchIcon,
 	SpinnerIcon,
 	StopCircleIcon,
 } from '@modrinth/assets'
@@ -361,6 +397,9 @@ import {
 	commonProjectSettingsMessages,
 	CreationFlowModal,
 	defineMessages,
+	formatDependencyProjectFilterOption,
+	formatProjectTypeSentence,
+	getLatestMatchingInstallVersion,
 	getTargetInstallPreferences,
 	injectNotificationManager,
 	NavTabs,
@@ -375,6 +414,7 @@ import {
 	ProjectSidebarTags,
 	requestInstall,
 	SelectedProjectsFloatingBar,
+	usesTargetGameVersion,
 	useVIntl,
 } from '@modrinth/ui'
 import { useQueryClient } from '@tanstack/vue-query'
@@ -385,12 +425,14 @@ import { computed, onUnmounted, ref, shallowRef, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import { SwapIcon } from '@/assets/icons/index.js'
+import BrowseInstanceSelector from '@/components/browse/BrowseInstanceSelector.vue'
 import ContextMenu from '@/components/ui/ContextMenu.vue'
 import InstanceIndicator from '@/components/ui/InstanceIndicator.vue'
 import {
 	fetchCachedServerStatus,
 	getFreshCachedServerStatus,
 } from '@/composables/instances/use-server-status-query'
+import { useContentFavorites } from '@/composables/useContentFavorites'
 import {
 	get_organization,
 	get_project,
@@ -399,6 +441,7 @@ import {
 	get_version,
 	get_version_many,
 } from '@/helpers/cache.js'
+import { isFavoriteContentType } from '@/helpers/content-favorites'
 import { resolveMcmodUrl } from '@/helpers/content-search'
 import { process_listener } from '@/helpers/events'
 import {
@@ -410,6 +453,7 @@ import {
 import { getDisplayInstanceIcon } from '@/helpers/instance-icons'
 import { get_loader_versions as getLoaderManifest } from '@/helpers/metadata'
 import { get_by_instance_id } from '@/helpers/process'
+import { projectGalleryTranslationSegments } from '@/helpers/project-gallery'
 import { createProjectBrowseLocation } from '@/helpers/project-links'
 import { get_categories, get_game_versions, get_loaders } from '@/helpers/tags'
 import {
@@ -422,26 +466,37 @@ import {
 import { getServerAddress } from '@/helpers/worlds'
 import i18n from '@/i18n.config'
 import { injectContentInstall } from '@/providers/content-install'
+import { injectContentSelection, makeContentSelectionKey } from '@/providers/content-selection'
 import { injectServerInstall } from '@/providers/server-install'
 import { createServerInstallContent } from '@/providers/setup/server-install-content'
 import { useBreadcrumbs } from '@/store/breadcrumbs'
 import { useTheming } from '@/store/state.js'
 
+import UpgradeProjectReturnBar from './UpgradeProjectReturnBar.vue'
+
 dayjs.extend(relativeTime)
 
 const { addNotification, handleError } = injectNotificationManager()
 const { install: installVersion } = injectContentInstall()
+const contentSelection = injectContentSelection()
 const route = useRoute()
 const router = useRouter()
 const queryClient = useQueryClient()
 const breadcrumbs = useBreadcrumbs()
 const themeStore = useTheming()
 const { formatMessage } = useVIntl()
+const contentFavorites = useContentFavorites()
+
+void contentFavorites.load().catch(handleError)
 
 const messages = defineMessages({
 	backToBrowse: {
 		id: 'app.project.install-context.back-to-browse',
 		defaultMessage: 'Back to discover',
+	},
+	backToInstanceContent: {
+		id: 'app.project.install-context.back-to-instance-content',
+		defaultMessage: 'Back to instance content',
 	},
 	installContentToInstance: {
 		id: 'app.project.install-context.install-content-to-instance',
@@ -454,6 +509,10 @@ const messages = defineMessages({
 	switchVersion: {
 		id: 'app.project.install-button.switch-version',
 		defaultMessage: 'Switch version',
+	},
+	noCompatibleVersion: {
+		id: 'app.project.install-button.no-compatible-version',
+		defaultMessage: 'No compatible version was found for this instance.',
 	},
 	openInMcmod: {
 		id: 'app.project.open-in-mcmod',
@@ -495,11 +554,36 @@ const messages = defineMessages({
 		id: 'app.translation.error.network',
 		defaultMessage: 'The translation service could not be reached. Check your network or proxy.',
 	},
+	addToFavorites: {
+		id: 'app.content-favorites.add',
+		defaultMessage: 'Add to favorites',
+	},
+	removeFromFavorites: {
+		id: 'app.content-favorites.remove',
+		defaultMessage: 'Remove from favorites',
+	},
+	favoritesLoading: {
+		id: 'app.content-favorites.loading',
+		defaultMessage: 'Updating favorites…',
+	},
+	viewDependents: {
+		id: 'project.actions.view-dependents',
+		defaultMessage: 'View dependents',
+	},
+	viewProjectTypeDependents: {
+		id: 'project.actions.view-project-type-dependents',
+		defaultMessage: 'View {projectType} dependents',
+	},
+	viewModpacks: {
+		id: 'project.actions.view-modpacks',
+		defaultMessage: 'View modpacks',
+	},
 })
 
 const { installingServerProjects, playServerProject, showAddServerToInstanceModal } =
 	injectServerInstall()
 const installing = ref(false)
+const browseInstanceSelector = ref()
 const data = shallowRef(null)
 const mcmodUrl = ref(null)
 const versions = shallowRef([])
@@ -508,6 +592,25 @@ const categories = shallowRef([])
 const organization = shallowRef(null)
 const instance = ref(null)
 const instanceProjects = ref(null)
+
+const favoriteSupported = computed(() => isFavoriteContentType(data.value?.project_type ?? ''))
+const favoritePending = computed(() =>
+	data.value ? contentFavorites.isPending('modrinth', data.value.id) : false,
+)
+const favoriteSaved = computed(() =>
+	data.value ? contentFavorites.isFavorite('modrinth', data.value.id) : false,
+)
+
+async function toggleFavorite() {
+	if (!data.value || !favoriteSupported.value || favoritePending.value) return
+	await contentFavorites
+		.toggle({
+			provider: 'modrinth',
+			project_id: data.value.id,
+			content_type: data.value.project_type,
+		})
+		.catch(handleError)
+}
 
 function browseByProjectFilter(filter, value) {
 	const projectType = isServerProject.value ? 'server' : data.value?.project_type
@@ -554,7 +657,10 @@ const instanceFilters = computed(() => {
 		}
 	}
 
-	return { l: loaders, g: instance.value.game_version }
+	return {
+		l: loaders,
+		g: usesTargetGameVersion(data.value.project_type) ? instance.value.game_version : undefined,
+	}
 })
 
 function buildProjectHref(path, extraQuery = {}) {
@@ -590,12 +696,44 @@ const versionsHref = computed(() =>
 )
 const projectGalleryHref = computed(() => buildProjectHref(`/project/${route.params.id}/gallery`))
 
+const instanceContentBackUrl = computed(() => {
+	if (route.query.from !== 'instance-content' || typeof route.query.i !== 'string') return null
+	if (instance.value?.id !== route.query.i) return null
+	return `/instance/${encodeURIComponent(route.query.i)}`
+})
 const projectBrowseBackUrl = computed(() => {
+	if (instanceContentBackUrl.value) return instanceContentBackUrl.value
 	const browsePath = route.query.b
 	if (typeof browsePath === 'string' && browsePath.startsWith('/browse/')) return browsePath
 	const type = data.value?.project_type ? `${data.value.project_type}` : 'mod'
 	return buildBrowseHref(`/browse/${type}`)
 })
+const projectBackLabel = computed(() =>
+	formatMessage(
+		instanceContentBackUrl.value ? messages.backToInstanceContent : messages.backToBrowse,
+	),
+)
+const fromBrowse = computed(
+	() => typeof route.query.b === 'string' && route.query.b.startsWith('/browse/'),
+)
+const cartEligible = computed(
+	() =>
+		fromBrowse.value &&
+		!!data.value &&
+		['mod', 'resourcepack', 'datapack', 'shader'].includes(data.value.project_type),
+)
+const cartTarget = computed(() => contentSelection.targetInstance.value)
+const cartProjectKey = computed(() =>
+	data.value ? makeContentSelectionKey('modrinth', data.value.id) : '',
+)
+const cartProjectSelected = computed(
+	() => !!cartProjectKey.value && contentSelection.isSelected(cartProjectKey.value),
+)
+
+async function syncContentSelectionTarget() {
+	if (!fromBrowse.value) return
+	await contentSelection.refreshInstances(instance.value?.id ?? null)
+}
 
 const projectInstallContext = computed(() => {
 	const serverData = serverInstallContent.serverContextServerData.value
@@ -609,7 +747,7 @@ const projectInstallContext = computed(() => {
 			iconSrc: null,
 			isMedal: serverData.is_medal,
 			backUrl: projectBrowseBackUrl.value,
-			backLabel: formatMessage(messages.backToBrowse),
+			backLabel: projectBackLabel.value,
 			heading: serverInstallContent.serverBrowseHeading.value,
 			queuedCount: serverInstallContent.queuedServerInstallCount.value,
 			selectedProjects: serverInstallContent.selectedServerInstallProjects.value,
@@ -622,6 +760,28 @@ const projectInstallContext = computed(() => {
 		}
 	}
 
+	if (cartEligible.value && cartTarget.value) {
+		const target = cartTarget.value
+		const displayIcon = getDisplayInstanceIcon(target.icon_path, target.loader)
+		return {
+			showInstallHeader: !!instance.value,
+			name: target.name,
+			loader: target.loader,
+			gameVersion: target.game_version,
+			iconSrc: displayIcon.url,
+			iconFrameless: displayIcon.frameless,
+			backUrl: projectBrowseBackUrl.value,
+			backLabel: projectBackLabel.value,
+			heading: formatMessage(messages.installContentToInstance),
+			selectedProjects: contentSelection.selectedProjects.value,
+			isInstallingSelected: ['validating', 'reviewing', 'queueing'].includes(
+				contentSelection.state.value,
+			),
+			installProgress: contentSelection.progress.value,
+			clearSelected: contentSelection.clear,
+			installSelected: contentSelection.installSelected,
+		}
+	}
 	if (instance.value) {
 		const displayIcon = getDisplayInstanceIcon(instance.value.icon_path, instance.value.loader)
 		return {
@@ -631,7 +791,7 @@ const projectInstallContext = computed(() => {
 			iconSrc: displayIcon.url,
 			iconFrameless: displayIcon.frameless,
 			backUrl: projectBrowseBackUrl.value,
-			backLabel: formatMessage(messages.backToBrowse),
+			backLabel: projectBackLabel.value,
 			heading: formatMessage(messages.installContentToInstance),
 		}
 	}
@@ -654,7 +814,10 @@ const serverProjectInstalled = computed(
 			serverInstallContent.serverContextServerData.value?.upstream?.project_id === data.value.id),
 )
 const installButtonLoading = computed(
-	() => installing.value || serverInstallContent.isInstallingQueuedServerInstalls.value,
+	() =>
+		installing.value ||
+		serverInstallContent.isInstallingQueuedServerInstalls.value ||
+		(cartProjectKey.value ? contentSelection.isInstalling(cartProjectKey.value) : false),
 )
 const installButtonValidating = computed(
 	() =>
@@ -674,6 +837,7 @@ const installButtonLabel = computed(() => {
 	if (installButtonValidating.value) return formatMessage(commonMessages.validatingLabel)
 	if (installButtonLoading.value) return formatMessage(commonMessages.installingLabel)
 	if (serverProjectSelected.value) return formatMessage(commonMessages.selectedLabel)
+	if (cartProjectSelected.value) return formatMessage(commonMessages.selectedLabel)
 	return formatMessage(commonMessages.installButton)
 })
 const installButtonTooltip = computed(() => {
@@ -683,6 +847,44 @@ const installButtonTooltip = computed(() => {
 
 const showSwitchVersion = computed(() => !!instance.value && installed.value)
 const onVersionsPage = computed(() => route.name === 'Versions')
+
+function getDependentSearchTypes() {
+	if (!data.value) return []
+	if (data.value.project_type !== 'mod')
+		return [isServerProject.value ? 'server' : data.value.project_type]
+	const loaders = data.value.loaders ?? []
+	const types = []
+	if (loaders.some((loader) => ['fabric', 'forge', 'neoforge', 'quilt'].includes(loader)))
+		types.push('mod')
+	if (loaders.some((loader) => ['paper', 'purpur', 'spigot', 'folia'].includes(loader)))
+		types.push('plugin')
+	if (loaders.some((loader) => ['datapack'].includes(loader))) types.push('datapack')
+	return types.length ? types : ['mod']
+}
+
+function getDependentSearchActions() {
+	if (!data.value) return []
+	const types = getDependentSearchTypes()
+	return [
+		...types.map((projectType) => ({
+			id: formatMessage(
+				types.length === 1 ? messages.viewDependents : messages.viewProjectTypeDependents,
+				{ projectType: formatProjectTypeSentence(formatMessage, projectType) },
+			),
+			icon: SearchIcon,
+			link: `/browse/${projectType}?dep=${encodeURIComponent(formatDependencyProjectFilterOption(data.value.id, ['required']))}`,
+		})),
+		...(data.value.project_type !== 'modpack' && types.length !== 1
+			? [
+					{
+						id: formatMessage(messages.viewModpacks),
+						icon: PackageIcon,
+						link: `/browse/modpack?dep=${encodeURIComponent(formatDependencyProjectFilterOption(data.value.id, ['required']))}`,
+					},
+				]
+			: []),
+	]
+}
 
 function goToVersions() {
 	router.push(versionsHref.value)
@@ -784,6 +986,7 @@ async function fetchProjectData() {
 	serverStatusOnline.value = !!projectV3.value?.minecraft_java_server?.ping?.data
 
 	breadcrumbs.setName('Project', data.value.title)
+	breadcrumbs.setNameIcon('Project', data.value.icon_url)
 
 	fetchDeferredServerData(project)
 	void maybeAutoTranslate()
@@ -825,6 +1028,7 @@ async function translateProject() {
 		const allSegments = [
 			{ id: 'title', text: data.value.title ?? '', format: 'plain' },
 			{ id: 'description', text: data.value.description ?? '', format: 'plain' },
+			...projectGalleryTranslationSegments(data.value.gallery),
 			...prepared.segments,
 		]
 
@@ -939,6 +1143,7 @@ function fetchDeferredServerData(project) {
 }
 
 await fetchProjectData()
+await syncContentSelectionTarget()
 
 let unlistenProcesses
 process_listener((e) => {
@@ -962,6 +1167,7 @@ watch(
 	async () => {
 		if (route.params.id && route.path.startsWith('/project')) {
 			await fetchProjectData()
+			await syncContentSelectionTarget()
 		}
 	},
 )
@@ -1010,6 +1216,44 @@ async function install(version) {
 			})
 		} catch (err) {
 			handleError(err)
+		} finally {
+			installing.value = false
+		}
+		return
+	}
+	if (cartEligible.value && !cartTarget.value) {
+		await contentSelection.refreshInstances()
+		browseInstanceSelector.value?.show()
+		return
+	}
+	if (cartEligible.value && data.value && cartTarget.value) {
+		if (cartProjectSelected.value) {
+			contentSelection.remove(cartProjectKey.value)
+			return
+		}
+		installing.value = true
+		try {
+			const preferences = getTargetInstallPreferences(
+				{ gameVersion: cartTarget.value.game_version, loader: cartTarget.value.loader },
+				data.value.project_type,
+			)
+			const selectedVersion =
+				version ?? getLatestMatchingInstallVersion(versions.value, preferences)?.id
+			if (!selectedVersion) throw new Error(formatMessage(messages.noCompatibleVersion))
+			await contentSelection.add({
+				key: cartProjectKey.value,
+				provider: 'modrinth',
+				projectId: data.value.id,
+				providerProjectId: data.value.id,
+				versionId: selectedVersion,
+				contentType: data.value.project_type,
+				title: data.value.title,
+				iconUrl: data.value.icon_url,
+				slug: data.value.slug,
+				preferences,
+			})
+		} catch (error) {
+			handleError(error)
 		} finally {
 			installing.value = false
 		}
@@ -1072,12 +1316,6 @@ const handleOptionsClick = (args) => {
 </script>
 
 <style scoped lang="scss">
-.root-container {
-	display: flex;
-	flex-direction: row;
-	min-height: 100%;
-}
-
 .project-sidebar {
 	position: fixed;
 	width: calc(300px + 1.5rem);
@@ -1095,12 +1333,6 @@ const handleOptionsClick = (args) => {
 	}
 }
 
-.sidebar-card {
-	display: flex;
-	flex-direction: column;
-	gap: 1rem;
-}
-
 .content-container {
 	display: flex;
 	flex-direction: column;
@@ -1109,19 +1341,7 @@ const handleOptionsClick = (args) => {
 	margin-left: calc(300px + 1rem);
 }
 
-.button-group {
-	display: flex;
-	flex-wrap: wrap;
-	flex-direction: row;
-	gap: 0.5rem;
-}
-
 .stats {
-	display: flex;
-	flex-direction: column;
-	flex-wrap: wrap;
-	gap: var(--gap-md);
-
 	.stat {
 		display: flex;
 		flex-direction: row;
@@ -1143,19 +1363,9 @@ const handleOptionsClick = (args) => {
 			min-width: var(--stat-strong-size);
 		}
 	}
-
-	.date {
-		margin-top: auto;
-	}
 }
 
 .tabs {
-	display: flex;
-	flex-direction: row;
-	gap: 1rem;
-	margin-bottom: var(--gap-md);
-	justify-content: space-between;
-
 	.tab {
 		display: flex;
 		flex-direction: row;

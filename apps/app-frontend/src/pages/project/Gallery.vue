@@ -1,82 +1,4 @@
-<template>
-	<div class="gallery">
-		<Card v-for="(image, index) in filteredGallery" :key="image.url" class="gallery-item">
-			<a @click="expandImage(image, index)">
-				<img :src="image.url" :alt="image.title" class="gallery-image" />
-			</a>
-			<div class="gallery-body">
-				<h3>{{ image.title }}</h3>
-				{{ image.description }}
-			</div>
-			<span class="gallery-time">
-				<CalendarIcon />
-				{{ formatDate(new Date(image.created)) }}
-			</span>
-		</Card>
-	</div>
-	<div v-if="expandedGalleryItem" class="expanded-image-modal" @click="hideImage">
-		<div class="content">
-			<img
-				class="image"
-				:class="{ 'zoomed-in': zoomedIn }"
-				:src="expandedGalleryItem.raw_url ? expandedGalleryItem.raw_url : expandedGalleryItem.url"
-				:alt="expandedGalleryItem.title ? expandedGalleryItem.title : 'gallery-image'"
-				@click.stop="() => {}"
-			/>
-
-			<div class="floating" @click.stop="() => {}">
-				<div class="text">
-					<h2 v-if="expandedGalleryItem.title">
-						{{ expandedGalleryItem.title }}
-					</h2>
-					<p v-if="expandedGalleryItem.description">
-						{{ expandedGalleryItem.description }}
-					</p>
-				</div>
-				<div class="controls">
-					<div class="buttons">
-						<ButtonStyled circular>
-							<button class="close" @click="hideImage">
-								<XIcon aria-hidden="true" />
-							</button>
-						</ButtonStyled>
-						<ButtonStyled circular>
-							<a
-								class="open btn icon-only"
-								target="_blank"
-								:href="
-									expandedGalleryItem.raw_url
-										? expandedGalleryItem.raw_url
-										: expandedGalleryItem.url
-								"
-							>
-								<ExternalIcon aria-hidden="true" />
-							</a>
-						</ButtonStyled>
-						<ButtonStyled circular>
-							<button @click="zoomedIn = !zoomedIn">
-								<ExpandIcon v-if="!zoomedIn" aria-hidden="true" />
-								<ContractIcon v-else aria-hidden="true" />
-							</button>
-						</ButtonStyled>
-						<ButtonStyled v-if="filteredGallery.length > 1" circular>
-							<button class="previous" @click="previousImage()">
-								<LeftArrowIcon aria-hidden="true" />
-							</button>
-						</ButtonStyled>
-						<ButtonStyled v-if="filteredGallery.length > 1" circular>
-							<button class="next" @click="nextImage()">
-								<RightArrowIcon aria-hidden="true" />
-							</button>
-						</ButtonStyled>
-					</div>
-				</div>
-			</div>
-		</div>
-	</div>
-</template>
-
-<script setup>
+<script setup lang="ts">
 import {
 	CalendarIcon,
 	ContractIcon,
@@ -84,265 +6,363 @@ import {
 	ExternalIcon,
 	LeftArrowIcon,
 	RightArrowIcon,
-	XIcon,
 } from '@modrinth/assets'
-import { ButtonStyled, Card, useFormatDateTime } from '@modrinth/ui'
+import {
+	ButtonStyled,
+	commonMessages,
+	commonProjectSettingsMessages,
+	defineMessages,
+	NewModal,
+	useFormatDateTime,
+	useVIntl,
+} from '@modrinth/ui'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 
 import { trackEvent } from '@/helpers/analytics'
+import {
+	type ProjectGalleryCaptionField,
+	projectGalleryTranslationSegmentId,
+	visibleProjectGallery,
+} from '@/helpers/project-gallery'
+import type { TranslationMode, TranslationStyle } from '@/helpers/translation'
 
-const MC_SERVER_BANNER_NAME = '__mc_server_banner__'
+interface GalleryImage {
+	url: string
+	raw_url?: string
+	title?: string
+	description?: string
+	created: string
+}
 
+interface GalleryEntry {
+	image: GalleryImage
+	index: number
+}
+
+const props = withDefaults(
+	defineProps<{
+		project: {
+			id: string
+			gallery?: GalleryImage[]
+		}
+		translationActive?: boolean
+		translations?: Record<string, string>
+		translationMode?: TranslationMode
+		translationStyle?: TranslationStyle
+	}>(),
+	{
+		translationActive: false,
+		translations: () => ({}),
+		translationMode: 'bilingual',
+		translationStyle: 'weakened',
+	},
+)
+
+const { formatMessage } = useVIntl()
 const formatDate = useFormatDateTime({
 	year: 'numeric',
 	month: 'long',
 	day: 'numeric',
 })
 
-const props = defineProps({
-	project: {
-		type: Object,
-		default: () => ({}),
+const screenshotMessages = defineMessages({
+	zoomIn: {
+		id: 'app.instance.screenshots.zoom-in',
+		defaultMessage: 'View at full size',
+	},
+	zoomOut: {
+		id: 'app.instance.screenshots.zoom-out',
+		defaultMessage: 'Fit to window',
 	},
 })
 
-const filteredGallery = computed(
-	() => props.project.gallery?.filter((img) => img.title !== MC_SERVER_BANNER_NAME) ?? [],
-)
-
-const expandedGalleryItem = ref(null)
-const expandedGalleryIndex = ref(0)
+const filteredGallery = computed<GalleryEntry[]>(() => visibleProjectGallery(props.project.gallery))
+const selectedGalleryItem = ref<GalleryEntry | null>(null)
 const zoomedIn = ref(false)
+const viewerModal = ref<InstanceType<typeof NewModal>>()
 
-const hideImage = () => {
-	expandedGalleryItem.value = null
+const viewerTitle = computed(() => {
+	if (!selectedGalleryItem.value) return formatMessage(commonProjectSettingsMessages.gallery)
+	return (
+		galleryText(selectedGalleryItem.value, 'title') ||
+		formatMessage(commonProjectSettingsMessages.gallery)
+	)
+})
+
+const viewerImageUrl = computed(() => {
+	if (!selectedGalleryItem.value) return ''
+	return zoomedIn.value
+		? (selectedGalleryItem.value.image.raw_url ?? selectedGalleryItem.value.image.url)
+		: selectedGalleryItem.value.image.url
+})
+
+const translationClass = computed(() => [
+	'gallery-translation',
+	`gallery-translation--${props.translationStyle}`,
+])
+
+function translationFor(
+	entry: GalleryEntry,
+	field: ProjectGalleryCaptionField,
+): string | undefined {
+	if (!props.translationActive) return undefined
+	return (
+		props.translations[projectGalleryTranslationSegmentId(entry.index, field)]?.trim() || undefined
+	)
 }
 
-const nextImage = () => {
-	expandedGalleryIndex.value++
-	if (expandedGalleryIndex.value >= filteredGallery.value.length) {
-		expandedGalleryIndex.value = 0
-	}
-	expandedGalleryItem.value = filteredGallery.value[expandedGalleryIndex.value]
-	trackEvent('GalleryImageNext', {
-		project_id: props.project.id,
-		url: expandedGalleryItem.value.url,
-	})
+function galleryText(entry: GalleryEntry, field: ProjectGalleryCaptionField): string {
+	const original = entry.image[field] ?? ''
+	const translated = translationFor(entry, field)
+	return props.translationMode === 'translation-only' && translated ? translated : original
 }
 
-const previousImage = () => {
-	expandedGalleryIndex.value--
-	if (expandedGalleryIndex.value < 0) {
-		expandedGalleryIndex.value = filteredGallery.value.length - 1
-	}
-	expandedGalleryItem.value = filteredGallery.value[expandedGalleryIndex.value]
-	trackEvent('GalleryImagePrevious', {
-		project_id: props.project.id,
-		url: expandedGalleryItem.value,
-	})
+function showBilingualTranslation(entry: GalleryEntry, field: ProjectGalleryCaptionField): boolean {
+	return props.translationMode === 'bilingual' && !!translationFor(entry, field)
 }
 
-const expandImage = (item, index) => {
-	expandedGalleryItem.value = item
-	expandedGalleryIndex.value = index
+function imageAlt(entry: GalleryEntry): string {
+	return galleryText(entry, 'title') || formatMessage(commonProjectSettingsMessages.gallery)
+}
+
+function viewImage(entry: GalleryEntry) {
+	selectedGalleryItem.value = entry
 	zoomedIn.value = false
+	viewerModal.value?.show()
 
 	trackEvent('GalleryImageExpand', {
 		project_id: props.project.id,
-		url: item.url,
+		url: entry.image.url,
 	})
 }
 
-function keyListener(e) {
-	if (expandedGalleryItem.value) {
-		if (e.key === 'Escape') {
-			e.preventDefault()
-			hideImage()
-		} else if (e.key === 'ArrowLeft') {
-			e.preventDefault()
-			previousImage()
-		} else if (e.key === 'ArrowRight') {
-			e.preventDefault()
-			nextImage()
-		}
+function changeImage(offset: number) {
+	if (!selectedGalleryItem.value || filteredGallery.value.length < 2) return
+	const currentIndex = filteredGallery.value.findIndex(
+		(entry) => entry.index === selectedGalleryItem.value?.index,
+	)
+	const nextIndex =
+		(currentIndex + offset + filteredGallery.value.length) % filteredGallery.value.length
+	selectedGalleryItem.value = filteredGallery.value[nextIndex]
+	zoomedIn.value = false
+
+	trackEvent(offset > 0 ? 'GalleryImageNext' : 'GalleryImagePrevious', {
+		project_id: props.project.id,
+		url: selectedGalleryItem.value.image.url,
+	})
+}
+
+function handleViewerHide() {
+	selectedGalleryItem.value = null
+	zoomedIn.value = false
+}
+
+function keyListener(event: KeyboardEvent) {
+	if (!selectedGalleryItem.value) return
+	if (event.key === 'ArrowLeft') {
+		event.preventDefault()
+		changeImage(-1)
+	} else if (event.key === 'ArrowRight') {
+		event.preventDefault()
+		changeImage(1)
 	}
 }
 
 onMounted(() => {
-	document.addEventListener('keydown', keyListener)
+	window.addEventListener('keydown', keyListener)
 })
 
 onUnmounted(() => {
-	document.removeEventListener('keydown', keyListener)
+	window.removeEventListener('keydown', keyListener)
 })
 </script>
 
-<style scoped lang="scss">
-.gallery {
-	display: grid;
-	grid-template-columns: repeat(auto-fill, minmax(20rem, 1fr));
-	width: 100%;
-	gap: 1rem;
+<template>
+	<div class="grid grid-cols-[repeat(auto-fill,minmax(17rem,1fr))] gap-4">
+		<article
+			v-for="entry in filteredGallery"
+			:key="entry.image.url"
+			class="group overflow-hidden rounded-2xl border border-solid border-surface-5 bg-surface-2 transition-colors hover:border-brand"
+		>
+			<button
+				class="relative block aspect-video w-full cursor-zoom-in overflow-hidden border-0 bg-surface-1 p-0"
+				:aria-label="formatMessage(commonMessages.viewLabel)"
+				@click="viewImage(entry)"
+			>
+				<img
+					:src="entry.image.url"
+					:alt="imageAlt(entry)"
+					class="size-full object-cover transition-transform duration-200 group-hover:scale-[1.02]"
+				/>
+			</button>
+			<div class="flex min-h-0 flex-1 flex-col gap-2 p-3">
+				<div
+					v-if="galleryText(entry, 'title') || galleryText(entry, 'description')"
+					class="min-w-0"
+				>
+					<h3
+						v-if="galleryText(entry, 'title')"
+						class="m-0 break-words font-semibold text-contrast"
+					>
+						{{ galleryText(entry, 'title') }}
+					</h3>
+					<p v-if="showBilingualTranslation(entry, 'title')" :class="translationClass">
+						{{ translationFor(entry, 'title') }}
+					</p>
+					<p v-if="galleryText(entry, 'description')" class="mb-0 mt-1 break-words text-secondary">
+						{{ galleryText(entry, 'description') }}
+					</p>
+					<p v-if="showBilingualTranslation(entry, 'description')" :class="translationClass">
+						{{ translationFor(entry, 'description') }}
+					</p>
+				</div>
+				<div class="mt-auto flex items-center gap-2 text-sm text-secondary">
+					<CalendarIcon class="size-4 shrink-0" aria-hidden="true" />
+					{{ formatDate(new Date(entry.image.created)) }}
+				</div>
+			</div>
+		</article>
+	</div>
+
+	<NewModal
+		ref="viewerModal"
+		:max-width="'92rem'"
+		:width="'calc(100vw - 4rem)'"
+		:no-padding="true"
+		:header="viewerTitle"
+		:on-hide="handleViewerHide"
+	>
+		<div
+			v-if="selectedGalleryItem"
+			class="relative flex min-h-64 max-h-[calc(100vh-13rem)] items-center justify-center overflow-auto bg-surface-1 p-4"
+		>
+			<img
+				:src="viewerImageUrl"
+				:alt="imageAlt(selectedGalleryItem)"
+				:class="
+					zoomedIn
+						? 'max-w-none cursor-zoom-out'
+						: 'max-h-[calc(100vh-15rem)] max-w-full cursor-zoom-in'
+				"
+				@click="zoomedIn = !zoomedIn"
+			/>
+			<ButtonStyled v-if="filteredGallery.length > 1" circular>
+				<button
+					class="absolute left-4 top-1/2 -translate-y-1/2"
+					:aria-label="formatMessage(commonMessages.backButton)"
+					@click="changeImage(-1)"
+				>
+					<LeftArrowIcon />
+				</button>
+			</ButtonStyled>
+			<ButtonStyled v-if="filteredGallery.length > 1" circular>
+				<button
+					class="absolute right-4 top-1/2 -translate-y-1/2"
+					:aria-label="formatMessage(commonMessages.nextButton)"
+					@click="changeImage(1)"
+				>
+					<RightArrowIcon />
+				</button>
+			</ButtonStyled>
+		</div>
+		<template #actions>
+			<div v-if="selectedGalleryItem" class="flex flex-wrap items-center justify-between gap-2">
+				<div class="min-w-0 text-sm text-secondary">
+					<p v-if="galleryText(selectedGalleryItem, 'description')" class="m-0 break-words">
+						{{ galleryText(selectedGalleryItem, 'description') }}
+					</p>
+					<p
+						v-if="showBilingualTranslation(selectedGalleryItem, 'description')"
+						:class="translationClass"
+					>
+						{{ translationFor(selectedGalleryItem, 'description') }}
+					</p>
+					<div class="mt-1 flex items-center gap-2">
+						<CalendarIcon class="size-4 shrink-0" aria-hidden="true" />
+						{{ formatDate(new Date(selectedGalleryItem.image.created)) }}
+					</div>
+				</div>
+				<div class="flex flex-wrap items-center gap-2">
+					<ButtonStyled>
+						<button @click="zoomedIn = !zoomedIn">
+							<ContractIcon v-if="zoomedIn" />
+							<ExpandIcon v-else />
+							{{ formatMessage(zoomedIn ? screenshotMessages.zoomOut : screenshotMessages.zoomIn) }}
+						</button>
+					</ButtonStyled>
+					<ButtonStyled>
+						<a
+							target="_blank"
+							rel="noreferrer"
+							:href="selectedGalleryItem.image.raw_url ?? selectedGalleryItem.image.url"
+						>
+							<ExternalIcon />
+							{{ formatMessage(commonMessages.openInBrowserButton) }}
+						</a>
+					</ButtonStyled>
+				</div>
+			</div>
+		</template>
+	</NewModal>
+</template>
+
+<style scoped>
+.gallery-translation {
+	margin: 0.25rem 0 0;
+	animation: translation-float-in 0.5s ease-out both;
 }
 
-.gallery-item {
-	padding: 0;
-	overflow: hidden;
-	margin: 0;
-	display: flex;
-	flex-direction: column;
-
-	.gallery-image {
-		width: 100%;
-		aspect-ratio: 2/1;
-		object-fit: cover;
-		object-position: center;
-	}
-
-	.gallery-body {
-		flex-grow: 1;
-		padding: 1rem;
-	}
-
-	.gallery-time {
-		padding: 0 1rem 1rem;
-		vertical-align: center;
-	}
+.gallery-translation--weakened {
+	color: var(--color-secondary);
 }
 
-.expanded-image-modal {
-	position: fixed;
-	z-index: 11;
-	overflow: auto;
-	top: 0;
-	left: 0;
-	width: 100%;
-	height: 100%;
-	background-color: #000000;
-	background-color: rgba(0, 0, 0, 0.7);
-	display: flex;
-	justify-content: center;
-	align-items: center;
-
-	.content {
-		position: relative;
-		width: calc(100vw - 2 * var(--gap-lg));
-		height: calc(100vh - 2 * var(--gap-lg));
-
-		.circle-button {
-			padding: 0.5rem;
-			line-height: 1;
-			display: flex;
-			max-width: 2rem;
-			color: var(--color-button-text);
-			background-color: var(--color-button-bg);
-			border-radius: var(--size-rounded-max);
-			margin: 0;
-			box-shadow: inset 0px -1px 1px rgb(17 24 39 / 10%);
-
-			&:not(:last-child) {
-				margin-right: 0.5rem;
-			}
-
-			&:hover {
-				background-color: var(--color-button-bg-hover) !important;
-
-				svg {
-					color: var(--color-button-text-hover) !important;
-				}
-			}
-
-			&:active {
-				background-color: var(--color-button-bg-active) !important;
-
-				svg {
-					color: var(--color-button-text-active) !important;
-				}
-			}
-
-			svg {
-				height: 1rem;
-				width: 1rem;
-			}
-		}
-
-		.image {
-			position: absolute;
-			left: 50%;
-			top: 50%;
-			transform: translate(-50%, -50%);
-			max-width: calc(100vw - 2 * var(--gap-lg));
-			max-height: calc(100vh - 2 * var(--gap-lg));
-			border-radius: var(--radius-lg);
-
-			&.zoomed-in {
-				object-fit: cover;
-				width: auto;
-				height: calc(100vh - 2 * var(--gap-lg));
-				max-width: calc(100vw - 2 * var(--gap-lg));
-			}
-		}
-		.floating {
-			position: absolute;
-			left: 50%;
-			transform: translateX(-50%);
-			bottom: var(--gap-md);
-			display: flex;
-			flex-direction: column;
-			align-items: center;
-			gap: var(--gap-md);
-			transition: opacity 0.25s ease-in-out;
-			opacity: 1;
-			padding: 2rem 2rem 0 2rem;
-
-			&:not(&:hover) {
-				opacity: 0.4;
-				.text {
-					transform: translateY(2.5rem) scale(0.8);
-					opacity: 0;
-				}
-				.controls {
-					transform: translateY(0.25rem) scale(0.9);
-				}
-			}
-
-			.text {
-				display: flex;
-				flex-direction: column;
-				max-width: 40rem;
-				transition:
-					opacity 0.25s ease-in-out,
-					transform 0.25s ease-in-out;
-				text-shadow: 1px 1px 10px #000000d4;
-				margin-bottom: 0.25rem;
-				gap: 0.5rem;
-
-				h2 {
-					color: var(--dark-color-base);
-					font-size: 1.25rem;
-					text-align: center;
-					margin: 0;
-				}
-
-				p {
-					color: var(--dark-color-base);
-					margin: 0;
-				}
-			}
-			.controls {
-				background-color: var(--color-raised-bg);
-				padding: var(--gap-md);
-				border-radius: var(--radius-md);
-				transition:
-					opacity 0.25s ease-in-out,
-					transform 0.25s ease-in-out;
-			}
-		}
-	}
+.gallery-translation--blur {
+	filter: blur(4px);
+	opacity: 0.75;
+	transition:
+		filter 0.1s ease-in-out,
+		opacity 0.1s ease-in-out;
 }
 
-.buttons {
-	display: flex;
-	gap: 0.5rem;
+.gallery-translation--blur:hover {
+	filter: blur(0);
+	opacity: 1;
+}
+
+.gallery-translation--blockquote {
+	padding: 4px 0 4px 8px;
+	border-left: 4px solid var(--color-brand);
+}
+
+.gallery-translation--dashed-line {
+	text-decoration: underline dashed var(--color-brand);
+	text-underline-offset: 5px;
+}
+
+.gallery-translation--border {
+	padding: 2px 4px;
+	border: 1px solid var(--color-brand);
+	border-radius: 4px;
+}
+
+.gallery-translation--text-color {
+	color: oklch(0.693 0.17 162.48);
+}
+
+.gallery-translation--background {
+	padding: 2px 4px;
+	border-radius: 4px;
+	background-color: color-mix(in srgb, var(--color-brand) 15%, transparent);
+}
+
+@keyframes translation-float-in {
+	from {
+		opacity: 0;
+		transform: translateY(12px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
 }
 </style>

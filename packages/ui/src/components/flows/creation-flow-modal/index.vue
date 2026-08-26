@@ -20,6 +20,8 @@ import {
 	type FlowType,
 	type LoaderManifestResolver,
 	type ModpackSearchResult,
+	type OptiFabricCompatibilityResolver,
+	type ProjectVersionCompatibility,
 	provideCreationFlowContext,
 } from './creation-flow-context'
 
@@ -36,7 +38,8 @@ const props = withDefaults(
 		onBack?: (() => void) | null
 		fade?: 'standard' | 'warning' | 'danger'
 		searchModpacks?: (query: string, limit?: number) => Promise<ModpackSearchResult>
-		getProjectVersions?: (projectId: string) => Promise<{ id: string }[]>
+		getProjectVersions?: (projectId: string) => Promise<ProjectVersionCompatibility[]>
+		hasCompatibleOptiFabric?: OptiFabricCompatibilityResolver
 		getLoaderManifest?: LoaderManifestResolver
 		finishDisabled?: boolean
 		finishDisabledTooltip?: string
@@ -85,6 +88,7 @@ const ctx = createCreationFlowContext(
 		onBack: props.onBack ?? undefined,
 		searchModpacks: props.searchModpacks,
 		getProjectVersions: props.getProjectVersions,
+		hasCompatibleOptiFabric: props.hasCompatibleOptiFabric,
 		getLoaderManifest: props.getLoaderManifest,
 		finishDisabled: computed(() => props.finishDisabled ?? false),
 		finishDisabledTooltip: computed(() => props.finishDisabledTooltip),

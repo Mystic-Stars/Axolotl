@@ -15,7 +15,7 @@
 								stroke-width="6"
 							/>
 							<circle
-								class="countdown-progress"
+								class="countdown-progress stroke-green"
 								cx="50"
 								cy="50"
 								r="45"
@@ -26,7 +26,7 @@
 								stroke-linecap="round"
 							/>
 						</svg>
-						<span class="countdown-number">{{ countdown }}</span>
+						<span class="text-5xl font-bold text-contrast z-[1]">{{ countdown }}</span>
 					</div>
 
 					<h2 class="m-0 text-3xl font-bold text-contrast text-center">
@@ -315,19 +315,7 @@ defineExpose({ show, hide, open })
 	transform: rotate(-90deg);
 }
 
-.countdown-bg {
-	stroke: var(--surface-4);
-}
-
 .countdown-progress {
-	stroke: var(--color-green);
 	transition: stroke-dashoffset 0.05s linear;
-}
-
-.countdown-number {
-	font-size: 3rem;
-	font-weight: 700;
-	color: var(--color-contrast);
-	z-index: 1;
 }
 </style>

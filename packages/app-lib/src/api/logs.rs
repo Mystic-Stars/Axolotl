@@ -1,5 +1,6 @@
 use std::fmt::Write as _;
 use std::io::{BufRead, SeekFrom};
+use std::path::Path;
 use std::time::SystemTime;
 
 use futures::TryFutureExt;
@@ -17,8 +18,12 @@ use crate::{
 
 mod crash_analysis;
 pub use crash_analysis::{
-    CrashAnalysis, CrashAnalysisEvidence, CrashAnalysisFinding,
-    CrashAnalysisMod, CrashAnalysisSource, analyze_crash,
+    CrashAnalysis, CrashAnalysisAiExplanation, CrashAnalysisAiSettings,
+    CrashAnalysisEvidence, CrashAnalysisFinding, CrashAnalysisMod,
+    CrashAnalysisSource, CrashModChange, CrashModChangeCounts, analyze_crash,
+    explain_crash_with_ai, get_crash_analysis_ai_settings,
+    save_successful_mod_snapshot, undo_added_mod,
+    update_crash_analysis_ai_settings,
 };
 
 #[derive(Serialize, Debug)]
@@ -100,10 +105,10 @@ struct CompactedLog {
 async fn resolve_instance_path(
     instance: &str,
     state: &State,
-) -> crate::Result<String> {
-    sqlx::query_scalar!(
+) -> crate::Result<(String, Option<String>)> {
+    let row = sqlx::query!(
         "
-        SELECT path
+        SELECT path, game_dir_override
         FROM instances
         WHERE id = ? OR path = ?
         ORDER BY CASE WHEN id = ? THEN 0 ELSE 1 END
@@ -120,7 +125,9 @@ async fn resolve_instance_path(
             "Unknown instance id or path: {instance}"
         ))
         .as_error()
-    })
+    })?;
+
+    Ok((row.path, row.game_dir_override))
 }
 
 fn split_line_ending(line: &str) -> (&str, &str) {
@@ -253,7 +260,7 @@ impl Logs {
     async fn build(
         log_type: LogType,
         age: SystemTime,
-        instance_path: &str,
+        game_dir: &Path,
         filename: String,
         clear_contents: Option<bool>,
     ) -> crate::Result<Self> {
@@ -269,10 +276,7 @@ impl Logs {
                 let state = State::get().await?;
                 Some(
                     get_output_by_filename_from_path(
-                        &state,
-                        instance_path,
-                        log_type,
-                        &filename,
+                        &state, game_dir, log_type, &filename,
                     )
                     .await?,
                 )
@@ -290,12 +294,16 @@ pub async fn get_logs_from_type(
     logs: &mut Vec<crate::Result<Logs>>,
 ) -> crate::Result<()> {
     let state = State::get().await?;
-    let instance_path = resolve_instance_path(instance_id, &state).await?;
+    let (instance_path, game_dir_override) =
+        resolve_instance_path(instance_id, &state).await?;
+    let game_dir = state
+        .directories
+        .resolve_game_dir(&instance_path, game_dir_override.as_deref());
 
     let logs_folder = match log_type {
-        LogType::InfoLog => state.directories.instance_logs_dir(&instance_path),
+        LogType::InfoLog => state.directories.game_logs_dir(&game_dir),
         LogType::CrashReport => {
-            state.directories.crash_reports_dir(&instance_path)
+            state.directories.game_crash_reports_dir(&game_dir)
         }
     };
 
@@ -319,7 +327,7 @@ pub async fn get_logs_from_type(
                     Logs::build(
                         log_type,
                         age,
-                        &instance_path,
+                        &game_dir,
                         file_name,
                         clear_contents,
                     )
@@ -364,12 +372,16 @@ pub async fn get_logs_by_filename(
     filename: String,
 ) -> crate::Result<Logs> {
     let state = State::get().await?;
-    let instance_path = resolve_instance_path(instance_id, &state).await?;
+    let (instance_path, game_dir_override) =
+        resolve_instance_path(instance_id, &state).await?;
+    let game_dir = state
+        .directories
+        .resolve_game_dir(&instance_path, game_dir_override.as_deref());
 
     let path = match log_type {
-        LogType::InfoLog => state.directories.instance_logs_dir(&instance_path),
+        LogType::InfoLog => state.directories.game_logs_dir(&game_dir),
         LogType::CrashReport => {
-            state.directories.crash_reports_dir(&instance_path)
+            state.directories.game_crash_reports_dir(&game_dir)
         }
     }
     .join(&filename);
@@ -377,19 +389,19 @@ pub async fn get_logs_by_filename(
     let metadata = std::fs::metadata(&path)?;
     let age = metadata.modified().unwrap_or(SystemTime::UNIX_EPOCH);
 
-    Logs::build(log_type, age, &instance_path, filename, Some(true)).await
+    Logs::build(log_type, age, &game_dir, filename, Some(true)).await
 }
 
 async fn get_output_by_filename_from_path(
     state: &State,
-    instance_path: &str,
+    game_dir: &Path,
     log_type: LogType,
     file_name: &str,
 ) -> crate::Result<CensoredString> {
     let logs_folder = match log_type {
-        LogType::InfoLog => state.directories.instance_logs_dir(instance_path),
+        LogType::InfoLog => state.directories.game_logs_dir(game_dir),
         LogType::CrashReport => {
-            state.directories.crash_reports_dir(instance_path)
+            state.directories.game_crash_reports_dir(game_dir)
         }
     };
 
@@ -436,22 +448,25 @@ pub async fn get_output_by_filename(
     file_name: &str,
 ) -> crate::Result<CensoredString> {
     let state = State::get().await?;
-    let instance_path = resolve_instance_path(instance_id, &state).await?;
-    get_output_by_filename_from_path(
-        &state,
-        &instance_path,
-        log_type,
-        file_name,
-    )
-    .await
+    let (instance_path, game_dir_override) =
+        resolve_instance_path(instance_id, &state).await?;
+    let game_dir = state
+        .directories
+        .resolve_game_dir(&instance_path, game_dir_override.as_deref());
+    get_output_by_filename_from_path(&state, &game_dir, log_type, file_name)
+        .await
 }
 
 #[tracing::instrument]
 pub async fn delete_logs(instance_id: &str) -> crate::Result<()> {
     let state = State::get().await?;
-    let instance_path = resolve_instance_path(instance_id, &state).await?;
+    let (instance_path, game_dir_override) =
+        resolve_instance_path(instance_id, &state).await?;
+    let game_dir = state
+        .directories
+        .resolve_game_dir(&instance_path, game_dir_override.as_deref());
 
-    let logs_folder = state.directories.instance_logs_dir(&instance_path);
+    let logs_folder = state.directories.game_logs_dir(&game_dir);
     for entry in std::fs::read_dir(&logs_folder)
         .map_err(|e| IOError::with_path(e, &logs_folder))?
     {
@@ -471,12 +486,16 @@ pub async fn delete_logs_by_filename(
     filename: &str,
 ) -> crate::Result<()> {
     let state = State::get().await?;
-    let instance_path = resolve_instance_path(instance_id, &state).await?;
+    let (instance_path, game_dir_override) =
+        resolve_instance_path(instance_id, &state).await?;
+    let game_dir = state
+        .directories
+        .resolve_game_dir(&instance_path, game_dir_override.as_deref());
 
     let logs_folder = match log_type {
-        LogType::InfoLog => state.directories.instance_logs_dir(&instance_path),
+        LogType::InfoLog => state.directories.game_logs_dir(&game_dir),
         LogType::CrashReport => {
-            state.directories.crash_reports_dir(&instance_path)
+            state.directories.game_crash_reports_dir(&game_dir)
         }
     };
 
@@ -522,8 +541,12 @@ pub async fn get_generic_live_log_cursor(
     mut cursor: u64, // 0 to start at beginning of file
 ) -> crate::Result<LatestLogCursor> {
     let state = State::get().await?;
-    let instance_path = resolve_instance_path(instance_id, &state).await?;
-    let logs_folder = state.directories.instance_logs_dir(&instance_path);
+    let (instance_path, game_dir_override) =
+        resolve_instance_path(instance_id, &state).await?;
+    let game_dir = state
+        .directories
+        .resolve_game_dir(&instance_path, game_dir_override.as_deref());
+    let logs_folder = state.directories.game_logs_dir(&game_dir);
     let path = logs_folder.join(log_file_name);
     if !path.exists() {
         // Allow silent failure if latest.log doesn't exist (as the instance may have been launched, but not yet created the file)

@@ -11,12 +11,12 @@
       {
         "name": "played_seconds!: i64",
         "ordinal": 1,
-        "type_info": "Integer"
+        "type_info": "Null"
       },
       {
         "name": "session_count!: i64",
         "ordinal": 2,
-        "type_info": "Integer"
+        "type_info": "Null"
       },
       {
         "name": "top_instance_name?: String",
@@ -29,9 +29,9 @@
     },
     "nullable": [
       false,
-      false,
-      false,
-      true
+      null,
+      null,
+      false
     ]
   },
   "hash": "c202748e82d8a91d5e1644c8762cec73095e860c35693af4f87c4357611cab03"

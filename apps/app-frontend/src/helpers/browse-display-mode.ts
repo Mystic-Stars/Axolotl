@@ -1,5 +1,11 @@
 export type BrowseContentDisplayMode = 'list' | 'compact' | 'grid'
-export type BrowseContentProjectType = 'modpack' | 'mod' | 'resourcepack' | 'datapack' | 'shader'
+export type BrowseContentProjectType =
+	| 'modpack'
+	| 'mod'
+	| 'resourcepack'
+	| 'datapack'
+	| 'shader'
+	| 'world'
 
 const BROWSE_CONTENT_DISPLAY_MODE_STORAGE_KEY = 'axolotl-browse-content-display-mode'
 const BROWSE_CONTENT_PROJECT_TYPE_STORAGE_KEY = 'axolotl-browse-content-project-type'
@@ -14,7 +20,7 @@ export function setLastBrowseContentDisplayMode(mode: BrowseContentDisplayMode) 
 }
 
 export function isBrowseContentProjectType(value: string): value is BrowseContentProjectType {
-	return ['modpack', 'mod', 'resourcepack', 'datapack', 'shader'].includes(value)
+	return ['modpack', 'mod', 'resourcepack', 'datapack', 'shader', 'world'].includes(value)
 }
 
 export function getLastBrowseContentProjectType(): BrowseContentProjectType {
