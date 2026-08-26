@@ -247,14 +247,17 @@ export class SchematicPreviewScene {
 		chunkPosition: [number, number, number],
 		opaque: SchematicMeshData,
 		translucent: SchematicMeshData,
+		insert = false,
 	) {
 		const key = `${regionId}:${chunkPosition.join(':')}`
 		const previous = this.chunks.get(key)
-		if (previous) {
+		if (previous && !insert) {
 			previous.parent?.remove(previous)
 			this.disposeObject(previous)
 		}
-		const group = new THREE.Group()
+
+		const group = insert && previous ? previous : new THREE.Group()
+
 		group.userData.chunkPosition = chunkPosition
 		const opaqueMesh = this.createMesh(opaque, false, regionId)
 		if (opaqueMesh) group.add(opaqueMesh)
