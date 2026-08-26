@@ -48,6 +48,13 @@ mod updater_impl;
 #[cfg(not(feature = "updater"))]
 mod updater_impl_noop;
 
+#[cfg(feature = "cef")]
+pub(crate) type AppRuntime = tauri::Cef;
+#[cfg(not(feature = "cef"))]
+pub(crate) type AppRuntime = tauri::Wry;
+type AppHandle = tauri::AppHandle<AppRuntime>;
+type Window = tauri::Window<AppRuntime>;
+
 const BLOCKBENCH_SKIN_RESOURCE_DIR: &str = "resources/blockbench-skin";
 
 fn blockbench_skin_response(
@@ -206,7 +213,7 @@ fn is_skin_editor_referer(
 // Should be called in launcher initialization
 #[tracing::instrument(skip_all)]
 #[tauri::command]
-async fn initialize_state(app: tauri::AppHandle) -> api::Result<()> {
+async fn initialize_state(app: AppHandle) -> api::Result<()> {
     tracing::info!("Initializing app event state...");
     theseus::EventState::init(app.clone()).await?;
 
@@ -402,7 +409,7 @@ async fn set_discord_activity(activity: String) -> api::Result<()> {
 // Should be call once Vue has mounted the app
 #[tracing::instrument(skip_all)]
 #[tauri::command]
-fn show_window(app: tauri::AppHandle) {
+fn show_window(app: AppHandle) {
     let win = app.get_window("main").unwrap();
     if let Err(e) = win.show() {
         DialogBuilder::message()
@@ -423,7 +430,7 @@ fn show_window(app: tauri::AppHandle) {
 #[tauri::command]
 fn set_transparent_window_frame(
     enabled: bool,
-    window: tauri::Window,
+    window: Window,
 ) -> Result<(), String> {
     #[cfg(windows)]
     {
@@ -489,7 +496,7 @@ pub use updater_impl_noop::*;
 
 // Toggles decorations
 #[tauri::command]
-async fn toggle_decorations(b: bool, window: tauri::Window) -> api::Result<()> {
+async fn toggle_decorations(b: bool, window: Window) -> api::Result<()> {
     window.set_decorations(b).map_err(|e| {
         theseus::Error::from(theseus::ErrorKind::OtherError(format!(
             "Failed to toggle decorations: {e}"
@@ -499,7 +506,7 @@ async fn toggle_decorations(b: bool, window: tauri::Window) -> api::Result<()> {
 }
 
 #[tauri::command]
-fn restart_app(app: tauri::AppHandle) {
+fn restart_app(app: AppHandle) {
     app.restart();
 }
 
@@ -525,7 +532,7 @@ fn is_elevated() -> bool {
 }
 
 #[tauri::command]
-fn allow_symlink_target(app: tauri::AppHandle, path: String) {
+fn allow_symlink_target(app: AppHandle, path: String) {
     use tauri_plugin_fs::FsExt;
     let _ = app.fs_scope().allow_directory(&path, true);
 }
@@ -586,6 +593,7 @@ fn raise_file_descriptor_limit() {
 
 // if Tauri app is called with arguments, then those arguments will be treated as commands
 // ie: deep links or filepaths for .mrpacks
+#[cfg_attr(feature = "cef", tauri::cef_entry_point)]
 fn main() {
     // Initialize portable mode first (checks .Axolotl folder and sets THESEUS_CONFIG_DIR)
     // SAFETY: Called at the start of main() before any threads or tokio runtime are spawned
@@ -624,7 +632,7 @@ fn main() {
     }
 
     // Workaround: NVIDIA's proprietary EGL driver crashes WebKitGTK's DMA-BUF renderer
-    #[cfg(target_os = "linux")]
+    #[cfg(all(target_os = "linux", not(feature = "cef")))]
     if env::var_os("WEBKIT_DISABLE_DMABUF_RENDERER").is_none()
         && std::path::Path::new("/proc/driver/nvidia/version").exists()
     {
@@ -673,26 +681,27 @@ fn main() {
 
     tracing::info!("Initialized tracing subscriber. Loading Axolotl Launcher!");
 
-    let mut builder = tauri::Builder::default().register_uri_scheme_protocol(
-        "axolotl-skin",
-        move |context, request| {
-            if !is_allowed_blockbench_skin_request(&request) {
-                return Response::builder()
+    let mut builder = tauri::Builder::<AppRuntime>::default()
+        .register_uri_scheme_protocol(
+            "axolotl-skin",
+            move |context, request| {
+                if !is_allowed_blockbench_skin_request(&request) {
+                    return Response::builder()
                     .status(StatusCode::FORBIDDEN)
                     .body(Vec::new())
                     .expect(
                         "failed to build Blockbench skin forbidden response",
                     );
-            }
-            let resource_dir = context
-                .app_handle()
-                .path()
-                .resource_dir()
-                .expect("failed to resolve Tauri resource directory")
-                .join(BLOCKBENCH_SKIN_RESOURCE_DIR);
-            blockbench_skin_response(request.uri().path(), &resource_dir)
-        },
-    );
+                }
+                let resource_dir = context
+                    .app_handle()
+                    .path()
+                    .resource_dir()
+                    .expect("failed to resolve Tauri resource directory")
+                    .join(BLOCKBENCH_SKIN_RESOURCE_DIR);
+                blockbench_skin_response(request.uri().path(), &resource_dir)
+            },
+        );
 
     #[cfg(feature = "updater")]
     {

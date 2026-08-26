@@ -169,6 +169,7 @@ windows-core = { workspace = true }
 winreg = { workspace = true }
 
 [features]
+cef = []
 cli = ["dep:indicatif"]
 tauri = ["dep:tauri"]
 
