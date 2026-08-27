@@ -560,9 +560,17 @@ impl SseParser {
     fn feed(&mut self, chunk: &str) -> Vec<ParsedEvent> {
         self.buffer.push_str(chunk);
         let mut events = Vec::new();
-        while let Some(pos) = self.buffer.find("\n\n") {
+        while {
+            let lf_pos = self.buffer.find("\n\n");
+            let crlf_pos = self.buffer.find("\r\n\r\n");
+            let (pos, separator_len) = match (lf_pos, crlf_pos) {
+                (Some(lf_pos), Some(crlf_pos)) if crlf_pos < lf_pos => (crlf_pos, 4),
+                (Some(lf_pos), _) => (lf_pos, 2),
+                (None, Some(crlf_pos)) => (crlf_pos, 4),
+                (None, None) => break,
+            };
             let block = self.buffer[..pos].to_string();
-            self.buffer.drain(..pos + 2);
+            self.buffer.drain(..pos + separator_len);
             if let Some(event) = parse_sse_block(&block) {
                 events.push(event);
             }
