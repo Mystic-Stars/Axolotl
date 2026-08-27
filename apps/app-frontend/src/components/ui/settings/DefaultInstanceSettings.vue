@@ -4,9 +4,10 @@ import { ref, watch } from 'vue'
 
 import { get, set } from '@/helpers/settings.ts'
 
-import CrashAnalysisAISettings from './CrashAnalysisAISettings.vue'
+import LogShareSettings from './LogShareSettings.vue'
 import SettingsRow from './SettingsRow.vue'
 import SettingsSection from './SettingsSection.vue'
+import SharedLogsSettings from './SharedLogsSettings.vue'
 
 const { formatMessage } = useVIntl()
 
@@ -278,6 +279,7 @@ watch(
 			</SettingsRow>
 		</SettingsSection>
 
-		<CrashAnalysisAISettings />
+		<LogShareSettings />
+		<SharedLogsSettings />
 	</div>
 </template>

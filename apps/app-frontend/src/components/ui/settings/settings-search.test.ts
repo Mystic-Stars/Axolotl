@@ -24,7 +24,11 @@ const settingsComponentFiles = {
 	'language-translation': ['./LanguageSettings.vue', './TranslationSettings.vue'],
 	ai: ['./AISettings.vue'],
 	'java-performance': ['./JavaSettings.vue'],
-	'launch-defaults': ['./DefaultInstanceSettings.vue', './CrashAnalysisAISettings.vue'],
+	'launch-defaults': [
+		'./DefaultInstanceSettings.vue',
+		'./LogShareSettings.vue',
+		'./SharedLogsSettings.vue',
+	],
 	'content-downloads': ['./AppearanceSettings.vue', './ResourceManagementSettings.vue'],
 	'network-multiplayer': ['./ResourceManagementSettings.vue', './MultiplayerSettings.vue'],
 	'storage-backups': ['./ResourceManagementSettings.vue', './StorageSettings.vue'],
