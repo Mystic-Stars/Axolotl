@@ -931,6 +931,7 @@ async fn collect_windows_crash_events(
     );
     let output = Command::new("powershell.exe")
         .args(["-NoProfile", "-NonInteractive", "-Command", &command])
+        .creation_flags(0x0800_0000)
         .output()
         .await;
     let Ok(output) = output else {

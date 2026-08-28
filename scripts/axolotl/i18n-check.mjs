@@ -24,6 +24,8 @@ const allowedUntranslatedMessages = new Set([
 	'/path/to/java',
 	'https://example.com/api/yggdrasil',
 	'Fabric',
+	'Forge',
+	'Paper',
 	'Cleanroom',
 	'LiteLoader',
 	'LogShare.CN',

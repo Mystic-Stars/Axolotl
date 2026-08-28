@@ -1,4 +1,4 @@
-import { CheckIcon, CopyIcon, UpdatedIcon } from '@modrinth/assets'
+import { CheckIcon, CopyIcon, UpdatedIcon, XIcon } from '@modrinth/assets'
 import {
 	defineMessages,
 	type PopupNotificationButton,
@@ -29,6 +29,10 @@ const messages = defineMessages({
 	installs: {
 		id: 'app.action-bar.installs',
 		defaultMessage: 'Installs',
+	},
+	cancel: {
+		id: 'app.action-bar.install.cancel',
+		defaultMessage: 'Cancel',
 	},
 	retry: {
 		id: 'app.action-bar.install.retry',
@@ -622,6 +626,18 @@ export async function useInstallJobNotifications(opts: {
 
 	function getButtons(job: InstallJobSnapshot): PopupNotificationButton[] {
 		const buttons: PopupNotificationButton[] = []
+
+		if (!isTerminalJob(job) && job.status !== 'canceling') {
+			buttons.push({
+				label: formatMessage(messages.cancel),
+				icon: XIcon,
+				color: 'red',
+				keepOpen: true,
+				action: async () => {
+					await opts.manager.cancel(job.job_id).catch(opts.handleError)
+				},
+			})
+		}
 
 		if (isTerminalJob(job)) {
 			const requiresCacheRepair = job.error?.code === 'cache_repair_required'

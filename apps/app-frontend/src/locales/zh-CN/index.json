@@ -6023,8 +6023,14 @@
   "app.server.search-instance": {
     "message": "搜索实例"
   },
+  "app.servers.action.continue-download": {
+    "message": "继续下载"
+  },
   "app.servers.action.open-folder": {
     "message": "打开目录"
+  },
+  "app.servers.action.retry-download": {
+    "message": "重试下载"
   },
   "app.servers.action.share": {
     "message": "分享到公网"
@@ -6457,6 +6463,12 @@
   },
   "app.servers.status.crashed": {
     "message": "已崩溃"
+  },
+  "app.servers.status.download-failed": {
+    "message": "下载失败"
+  },
+  "app.servers.status.download-interrupted": {
+    "message": "下载中断"
   },
   "app.servers.status.downloading": {
     "message": "下载中"

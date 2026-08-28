@@ -6730,6 +6730,7 @@ dependencies = [
  "chrono",
  "chrono-tz",
  "cidre",
+ "crc32fast",
  "daedalus",
  "dashmap",
  "data-url",

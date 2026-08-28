@@ -194,6 +194,7 @@ fn create_link_elevated_blocking(
     target: &Path,
     link: &Path,
 ) -> std::io::Result<()> {
+    use std::os::windows::process::CommandExt;
     use std::process::Command;
 
     let result_file = std::env::temp_dir()
@@ -224,6 +225,7 @@ fn create_link_elevated_blocking(
     );
     let status = Command::new("powershell")
         .args(["-NoProfile", "-NonInteractive", "-Command", &command])
+        .creation_flags(0x0800_0000)
         .status()
         .map_err(|error| {
             std::io::Error::other(format!(

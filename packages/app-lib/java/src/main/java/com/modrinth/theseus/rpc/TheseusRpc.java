@@ -98,19 +98,33 @@ public final class TheseusRpc {
                 writer.flush();
             }
         } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            failAwaitingResponses(e);
         } catch (InterruptedException ignored) {
+            Thread.currentThread().interrupt();
         }
     }
 
     private void readThread() {
+        IOException closed = new EOFException("Theseus RPC connection closed");
         try {
             final BufferedReader reader =
                     new BufferedReader(new InputStreamReader(socket.getInputStream(), StandardCharsets.UTF_8));
             while (true) {
-                final RpcMessage message = GSON.fromJson(reader.readLine(), MESSAGE_TYPE);
+                final String line = reader.readLine();
+                if (line == null) {
+                    return;
+                }
+                final RpcMessage message = GSON.fromJson(line, MESSAGE_TYPE);
+                if (message == null) {
+                    System.err.println("Received null Theseus RPC message");
+                    continue;
+                }
+                if (message.id == null) {
+                    System.err.println("Received Theseus RPC message without an id");
+                    continue;
+                }
                 if (message.method == null) {
-                    final ResponseWaiter<?> waiter = awaitingResponse.get(message.id);
+                    final ResponseWaiter<?> waiter = awaitingResponse.remove(message.id);
                     if (waiter != null) {
                         handleResponse(waiter, message);
                     }
@@ -119,9 +133,26 @@ public final class TheseusRpc {
                 }
             }
         } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            closed = e;
+            if (!socket.isClosed()) {
+                System.err.println("Theseus RPC read failed: " + e);
+            }
+        } catch (JsonParseException e) {
+            System.err.println("Invalid Theseus RPC message: " + e);
         } catch (InterruptedException ignored) {
+            Thread.currentThread().interrupt();
+        } finally {
+            failAwaitingResponses(closed);
+            try {
+                socket.close();
+            } catch (IOException ignored) {
+            }
         }
+    }
+
+    private void failAwaitingResponses(IOException error) {
+        awaitingResponse.forEach((id, waiter) -> waiter.future.completeExceptionally(error));
+        awaitingResponse.clear();
     }
 
     private <T> void handleResponse(ResponseWaiter<T> waiter, RpcMessage message) {

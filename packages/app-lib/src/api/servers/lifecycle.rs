@@ -285,7 +285,11 @@ fn forge_launch_args(dir: &Path) -> Result<Vec<String>> {
         .join("minecraftforge")
         .join("forge");
     if let Ok(entries) = std::fs::read_dir(&forge_dir) {
-        let args_file = if cfg!(windows) { "win_args.txt" } else { "unix_args.txt" };
+        let args_file = if cfg!(windows) {
+            "win_args.txt"
+        } else {
+            "unix_args.txt"
+        };
         for entry in entries.flatten() {
             let candidate = entry.path().join(args_file);
             if candidate.is_file() {
@@ -309,15 +313,10 @@ fn forge_launch_args(dir: &Path) -> Result<Vec<String>> {
 }
 
 fn find_forge_jar(dir: &Path) -> Option<String> {
-    let entry = std::fs::read_dir(dir)
-        .ok()?
-        .flatten()
-        .find(|e| {
-            e.file_name()
-                .to_string_lossy()
-                .starts_with("forge-")
-                && e.path().extension().is_some_and(|ext| ext == "jar")
-        })?;
+    let entry = std::fs::read_dir(dir).ok()?.flatten().find(|e| {
+        e.file_name().to_string_lossy().starts_with("forge-")
+            && e.path().extension().is_some_and(|ext| ext == "jar")
+    })?;
     Some(entry.file_name().to_string_lossy().into_owned())
 }
 

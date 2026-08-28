@@ -95,9 +95,13 @@ async fn process_name(pid: u32) -> Option<String> {
 }
 
 #[cfg(target_os = "windows")]
+const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+
+#[cfg(target_os = "windows")]
 async fn port_listener_pids(port: u16) -> Result<Vec<u32>> {
     let output = Command::new("netstat")
         .args(["-ano", "-p", "tcp"])
+        .creation_flags(CREATE_NO_WINDOW)
         .output()
         .await
         .map_err(|e| {
@@ -130,6 +134,7 @@ async fn port_listener_pids(port: u16) -> Result<Vec<u32>> {
 async fn force_terminate_pid(pid: u32) -> Result<()> {
     let output = Command::new("taskkill")
         .args(["/F", "/PID", &pid.to_string()])
+        .creation_flags(CREATE_NO_WINDOW)
         .output()
         .await
         .map_err(|e| {
@@ -151,6 +156,7 @@ async fn force_terminate_pid(pid: u32) -> Result<()> {
 async fn process_name(pid: u32) -> Option<String> {
     let output = Command::new("tasklist")
         .args(["/FI", &format!("PID eq {pid}"), "/FO", "CSV", "/NH"])
+        .creation_flags(CREATE_NO_WINDOW)
         .output()
         .await
         .ok()?;

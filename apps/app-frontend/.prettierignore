@@ -1,4 +1,5 @@
 **/dist
+public/monaco
 *.gltf
 src/locales/
 src/assets/**/*.svg

@@ -1,6 +1,55 @@
 {
-  "updated_at": "2026-08-26T07:58:44.397Z",
+  "updated_at": "2026-08-28T07:34:04.163Z",
   "announcements": [
+    {
+      "id": "launcher-1.9.1",
+      "version": "1.9.1",
+      "publishedAt": "2026-08-27",
+      "title": {
+        "en-US": "Axolotl Launcher 1.9.1",
+        "zh-CN": "Axolotl Launcher 1.9.1"
+      },
+      "changes": {
+        "added": [
+          {
+            "en-US": "Added a modpack installation confirmation dialog for Modrinth and CurseForge, with version selection and a custom instance name.",
+            "zh-CN": "Modrinth 与 CurseForge 整合包安装新增确认弹窗，可选择版本并自定义实例名称。"
+          }
+        ],
+        "changed": [
+          {
+            "en-US": "Modpack installation now shows existing installs and the collision-safe instance folder name before creating a separate instance.",
+            "zh-CN": "安装整合包前现在会显示已有安装状态及避免重名冲突后的实例文件夹名称，并可创建独立实例。"
+          }
+        ],
+        "fixed": [
+          {
+            "en-US": "Fixed the Discover page source selection changing to CurseForge after browsing maps.",
+            "zh-CN": "修复浏览地图后“发现内容”页的来源选择被切换为 CurseForge 的问题。"
+          },
+          {
+            "en-US": "Fixed the right sidebar remaining collapsed after leaving the Settings page.",
+            "zh-CN": "修复从设置页面返回其他页面后右侧边栏仍保持收起的问题。"
+          },
+          {
+            "en-US": "Fixed CurseForge showing no content under Discover when no search query is entered — browsing CurseForge now loads content again.",
+            "zh-CN": "修复发现内容页不输入搜索词时 CurseForge 空白无内容的问题，现在打开 CurseForge 来源即可正常浏览内容。"
+          },
+          {
+            "en-US": "Fixed legacy Forge instances (such as Minecraft 1.6.4) failing to launch with a missing-library-path error, because the main artifacts of their native libraries are not published.",
+            "zh-CN": "修复旧版 Forge 实例（如 Minecraft 1.6.4）因原生库主构件不存在而报“库文件缺失”无法启动的问题。"
+          },
+          {
+            "en-US": "Fixed legacy Forge instances failing to launch because game arguments were passed twice (for example --gameDir), which legacy launch wrappers reject.",
+            "zh-CN": "修复旧版 Forge 实例因启动参数重复传递（如 --gameDir 出现两次）而被旧版启动器拒绝启动的问题。"
+          },
+          {
+            "en-US": "Native libraries are now verified and automatically restored before launch, fixing instances that failed to start with \"lwjgl.dll not found\" after their native libraries were missing or corrupted.",
+            "zh-CN": "启动前现在会自动校验并恢复原生库，修复原生库缺失或损坏时实例报“找不到 lwjgl.dll”无法启动的问题。"
+          }
+        ]
+      }
+    },
     {
       "id": "launcher-1.9.0",
       "version": "1.9.0",

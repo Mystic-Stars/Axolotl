@@ -1065,14 +1065,14 @@ mod tests {
     use crate::api::pack::install_from::CreatePackLocation;
     use crate::install::InstallRequest;
     #[cfg(not(feature = "tauri"))]
+    use crate::install::model::InstallProgress;
+    #[cfg(not(feature = "tauri"))]
     use crate::install::model::InstallProgressSecondary;
     use crate::install::model::{
         InstallJobEventKind, InstallJobExecutionMode, InstallJobKind,
         InstallJobStatus, InstallPauseReason, InstallPhaseDetails,
         InstallPhaseId, MissingModpackContentState,
     };
-    #[cfg(not(feature = "tauri"))]
-    use crate::install::model::InstallProgress;
     use crate::state::{InstanceLink, ModLoader};
 
     #[cfg(not(feature = "tauri"))]

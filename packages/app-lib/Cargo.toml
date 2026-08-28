@@ -28,6 +28,7 @@ bytemuck = { workspace = true, features = ["extern_crate_alloc"] }
 bytes = { workspace = true, features = ["serde"] }
 chardetng = { workspace = true }
 chrono = { workspace = true, features = ["serde"] }
+crc32fast = { workspace = true }
 daedalus = { workspace = true }
 dashmap = { workspace = true, features = ["serde"] }
 data-url = { workspace = true }

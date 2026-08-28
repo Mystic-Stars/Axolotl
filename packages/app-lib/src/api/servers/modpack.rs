@@ -386,7 +386,9 @@ async fn run_modpack_install(
         .iter()
         .filter_map(|file| {
             let path = file.path.replace('\\', "/");
-            if path.starts_with("mods/") && path.to_ascii_lowercase().ends_with(".jar") {
+            if path.starts_with("mods/")
+                && path.to_ascii_lowercase().ends_with(".jar")
+            {
                 Some(path.rsplit('/').next().unwrap_or(&path).to_string())
             } else {
                 None
@@ -394,7 +396,13 @@ async fn run_modpack_install(
         })
         .collect();
 
-    prune_uninstallable_mods(server_id, dir, &unavailable_ids, &explicitly_server_installable).await?;
+    prune_uninstallable_mods(
+        server_id,
+        dir,
+        &unavailable_ids,
+        &explicitly_server_installable,
+    )
+    .await?;
 
     log(
         &server_id,
@@ -676,7 +684,11 @@ async fn prune_uninstallable_mods(
     }
 
     let metas = collect_mod_metadata(mods_dir).await?;
-    for (path, reason) in compute_prune_plan(&metas, unavailable_ids, explicitly_server_installable) {
+    for (path, reason) in compute_prune_plan(
+        &metas,
+        unavailable_ids,
+        explicitly_server_installable,
+    ) {
         log(
             server_id,
             &format!(
@@ -998,9 +1010,14 @@ mod tests {
         std::fs::write(mods.join("corrupt.jar"), b"not a zip").unwrap();
         std::fs::write(mods.join("readme.txt"), "keep me").unwrap();
 
-        prune_uninstallable_mods("test-server", dir.path(), &HashSet::new(), &HashSet::new())
-            .await
-            .unwrap();
+        prune_uninstallable_mods(
+            "test-server",
+            dir.path(),
+            &HashSet::new(),
+            &HashSet::new(),
+        )
+        .await
+        .unwrap();
 
         assert!(!mods.join("fancymenu.jar").exists());
         assert!(!versioned.join("nested-client.jar").exists());
@@ -1053,9 +1070,14 @@ mod tests {
         // its env mark: only its mod ID is known (via fetch_excluded_mod_ids),
         // the jar itself never lands on disk.
         let unavailable = HashSet::from(["melody".to_string()]);
-        prune_uninstallable_mods("test-server", dir.path(), &unavailable, &HashSet::new())
-            .await
-            .unwrap();
+        prune_uninstallable_mods(
+            "test-server",
+            dir.path(),
+            &unavailable,
+            &HashSet::new(),
+        )
+        .await
+        .unwrap();
 
         assert!(!mods.join("fancymenu.jar").exists());
         assert!(!mods.join("konkrete.jar").exists());
@@ -1115,8 +1137,12 @@ mod tests {
         shim.provides = vec!["melody".to_string()];
         let metas = vec![("shim.jar".into(), shim), metas[1].clone()];
         assert!(
-            compute_prune_plan(&metas, &HashSet::from(["melody".to_string()]), &HashSet::new())
-                .is_empty()
+            compute_prune_plan(
+                &metas,
+                &HashSet::from(["melody".to_string()]),
+                &HashSet::new()
+            )
+            .is_empty()
         );
 
         // Once the provider itself is removed, the dependent goes with it.
@@ -1167,8 +1193,13 @@ mod tests {
     #[tokio::test]
     async fn missing_mods_dir_is_tolerated_when_pruning() {
         let dir = tempfile::tempdir().unwrap();
-        prune_uninstallable_mods("test-server", dir.path(), &HashSet::new(), &HashSet::new())
-            .await
-            .unwrap();
+        prune_uninstallable_mods(
+            "test-server",
+            dir.path(),
+            &HashSet::new(),
+            &HashSet::new(),
+        )
+        .await
+        .unwrap();
     }
 }

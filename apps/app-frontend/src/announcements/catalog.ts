@@ -33,6 +33,24 @@ export const ANNOUNCEMENT_CHANGE_TYPES: readonly AnnouncementChangeType[] = [
 
 export const launcherAnnouncements: readonly LauncherAnnouncement[] = [
 	{
+		id: 'launcher-1.9.2',
+		version: '1.9.2',
+		publishedAt: '2026-08-28',
+		title: {
+			'en-US': 'Axolotl Launcher 1.9.2',
+			'zh-CN': 'Axolotl Launcher 1.9.2',
+		},
+		changes: {
+			fixed: [
+				{
+					'en-US':
+						'Fixed the Skin editor failing to open in macOS builds when its embedded editor resources were rejected with a 403 error.',
+					'zh-CN': '修复 macOS 构建中皮肤编辑器的嵌入资源被 403 拒绝，导致无法打开的问题。',
+				},
+			],
+		},
+	},
+	{
 		id: 'launcher-1.9.1',
 		version: '1.9.1',
 		publishedAt: '2026-08-27',
