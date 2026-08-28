@@ -95,6 +95,50 @@ export async function undo_added_mod(instanceId, filename, expectedHash) {
 	return await invoke('plugin:logs|logs_undo_added_mod', { instanceId, filename, expectedHash })
 }
 
+export async function get_log_share_settings() {
+	return await invoke('plugin:logs|logs_get_log_share_settings')
+}
+
+export async function update_log_share_settings(settings) {
+	return await invoke('plugin:logs|logs_update_log_share_settings', { settings })
+}
+
+export async function logshare_upload_crash(instanceId) {
+	return await invoke('plugin:logs|logs_logshare_upload_crash', { instanceId })
+}
+
+export async function logshare_get_insights(id) {
+	return await invoke('plugin:logs|logs_logshare_get_insights', { id })
+}
+
+export async function logshare_analyse_crash_direct(instanceId) {
+	return await invoke('plugin:logs|logs_logshare_analyse_crash_direct', { instanceId })
+}
+
+export async function logshare_ai_analyze_stored(instanceId, id) {
+	return await invoke('plugin:logs|logs_logshare_ai_analyze_stored', { instanceId, id })
+}
+
+export async function logshare_ai_analyze_direct(instanceId) {
+	return await invoke('plugin:logs|logs_logshare_ai_analyze_direct', { instanceId })
+}
+
+export async function logshare_delete(id, token) {
+	return await invoke('plugin:logs|logs_logshare_delete', { id, token })
+}
+
+export async function list_shared_logs() {
+	return await invoke('plugin:logs|logs_list_shared_logs')
+}
+
+export async function record_shared_log(log) {
+	return await invoke('plugin:logs|logs_record_shared_log', { log })
+}
+
+export async function delete_shared_log(id, token) {
+	return await invoke('plugin:logs|logs_delete_shared_log', { id, token })
+}
+
 /// Export the censored files and local analysis from an instance's latest run.
 export async function export_crash_context(instanceId, instanceName) {
 	const timestamp = new Date().toISOString().replace(/[:.]/g, '-')

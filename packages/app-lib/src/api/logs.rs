@@ -26,6 +26,15 @@ pub use crash_analysis::{
     update_crash_analysis_ai_settings,
 };
 
+mod logshare;
+pub use logshare::{
+    LogShareDeleteResponse, LogShareSettings, LogShareUploadResponse,
+    SharedLog, ai_analyze_direct, ai_analyze_stored, analyse_crash_direct,
+    delete_log, delete_shared_log, get_insights, get_log_share_settings,
+    list_shared_logs, record_shared_log, update_log_share_settings,
+    upload_crash,
+};
+
 #[derive(Serialize, Debug)]
 pub struct Logs {
     pub log_type: LogType,

@@ -211,6 +211,15 @@ pub struct JavaDiscoveryPayload {
 
 #[derive(Serialize, Clone)]
 #[cfg(feature = "tauri")]
+#[serde(rename_all = "snake_case")]
+pub struct LogShareAiEventPayload {
+    pub instance_id: String,
+    pub event_type: String,
+    pub data: serde_json::Value,
+}
+
+#[derive(Serialize, Clone)]
+#[cfg(feature = "tauri")]
 #[serde(rename_all = "camelCase")]
 pub struct JavaDownloadConfirmationPayload {
     pub request_id: Uuid,

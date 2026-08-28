@@ -201,11 +201,21 @@ export const settingsSearchEntries: SettingsSearchEntry[] = [
 		keywords: [message('app.settings.tabs.ai', 'AI')],
 	},
 	{
-		id: 'crash-analysis-ai',
+		id: 'log-share',
 		categoryId: 'launch-defaults',
-		targetId: 'settings-target-crash-analysis-ai',
-		label: message('app.crash-analysis.ai.settings.title', 'Crash AI explanation'),
-		keywords: [message('app.settings.tabs.launch-defaults', 'Launch & instance defaults')],
+		targetId: 'settings-target-log-share',
+		label: message('app.log-share.settings.title', 'Log sharing & AI analysis'),
+		keywords: [
+			message('app.log-share.settings.share-provider', 'Log sharing service'),
+			message('app.log-share.settings.ai-source', 'AI analysis source'),
+		],
+	},
+	{
+		id: 'shared-logs',
+		categoryId: 'launch-defaults',
+		targetId: 'settings-target-shared-logs',
+		label: message('app.log-share.shared-logs.title', 'Shared logs'),
+		keywords: [message('app.log-share.settings.title', 'Log sharing & AI analysis')],
 	},
 	{
 		id: 'privacy-telemetry',

@@ -291,6 +291,17 @@ fn main() {
                         "logs_explain_crash_with_ai",
                         "logs_undo_added_mod",
                         "logs_export_crash_context",
+                        "logs_get_log_share_settings",
+                        "logs_update_log_share_settings",
+                        "logs_logshare_upload_crash",
+                        "logs_logshare_get_insights",
+                        "logs_logshare_analyse_crash_direct",
+                        "logs_logshare_ai_analyze_stored",
+                        "logs_logshare_ai_analyze_direct",
+                        "logs_logshare_delete",
+                        "logs_list_shared_logs",
+                        "logs_record_shared_log",
+                        "logs_delete_shared_log",
                     ])
                     .default_permission(
                         DefaultPermissionRule::AllowAllCommands,

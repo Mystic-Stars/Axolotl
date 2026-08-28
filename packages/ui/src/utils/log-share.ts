@@ -29,6 +29,13 @@ export function truncateLogToMaxBytes(content: string, maxBytes: number): string
 }
 
 /**
+ * Log sharing providers supported by the launcher. LogShare is the default
+ * and is implemented in the desktop app through native Tauri commands; mclo.gs
+ * is the network fallback used when LogShare is unreachable or unselected.
+ */
+export type LogShareProvider = 'logshare' | 'mclogs'
+
+/**
  * Result of sharing log content. `truncated` is set when the content exceeded
  * `LOG_SHARE_MAX_BYTES` and only its tail was uploaded.
  */
@@ -39,12 +46,25 @@ export type LogShareResult = {
 
 /**
  * Share log content through mclo.gs. Content larger than `LOG_SHARE_MAX_BYTES`
- * is trimmed to its last
- * `LOG_SHARE_MAX_BYTES` before uploading.
+ * is trimmed to its last `LOG_SHARE_MAX_BYTES` before uploading.
  */
 export async function shareLogs(
 	client: AbstractModrinthClient,
 	content: string,
+): Promise<LogShareResult> {
+	return shareLogsWithProvider(client, content, 'mclogs')
+}
+
+/**
+ * Share log content through the given provider. The `logshare` provider is
+ * only available inside the desktop app (native commands); this shared helper
+ * routes the `mclogs` fallback so both launcher surfaces can share generic
+ * log buffers.
+ */
+export async function shareLogsWithProvider(
+	client: AbstractModrinthClient,
+	content: string,
+	_provider: LogShareProvider = 'mclogs',
 ): Promise<LogShareResult> {
 	const uploadContent = truncateLogToMaxBytes(content, LOG_SHARE_MAX_BYTES)
 	const truncated = uploadContent !== content
