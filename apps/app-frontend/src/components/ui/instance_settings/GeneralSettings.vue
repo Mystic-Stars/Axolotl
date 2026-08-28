@@ -6,6 +6,7 @@ import {
 	defineMessages,
 	injectFilePicker,
 	injectNotificationManager,
+	joinIsolatedGameDir,
 	OverflowMenu,
 	RadioButtons,
 	StyledInput,
@@ -166,7 +167,7 @@ function gameDirModeLabel(mode: GameDirMode) {
 async function setGameDirMode(mode: GameDirMode) {
 	const baseRoot = gameDirInfo.value.baseRoot
 	if (!baseRoot) return
-	const nextPath = mode === 'isolated' ? `${baseRoot}/versions/${instance.value.name}` : baseRoot
+	const nextPath = mode === 'isolated' ? joinIsolatedGameDir(baseRoot, instance.value.name) : baseRoot
 	if (nextPath === gameDirOverride.value) return
 
 	// The launcher only records the new override path; the user is responsible

@@ -5,7 +5,7 @@ import type {
 	CreationFlowModal,
 	SymlinkMethodChoice,
 } from '@modrinth/ui'
-import { defineMessages, useVIntl } from '@modrinth/ui'
+import { defineMessages, joinIsolatedGameDir, useVIntl } from '@modrinth/ui'
 import { inject, provide, ref, useTemplateRef } from 'vue'
 import type { ComponentExposed } from 'vue-component-type-helpers'
 import { useRouter } from 'vue-router'
@@ -261,7 +261,7 @@ export function setupCreationModal(
 					? null
 					: gameRoot
 						? mode === 'isolated'
-							? `${gameRoot}/versions/${name}`
+							? joinIsolatedGameDir(gameRoot, name)
 							: gameRoot
 						: null
 

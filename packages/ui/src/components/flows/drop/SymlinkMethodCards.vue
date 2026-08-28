@@ -398,6 +398,7 @@ import {
 	type SymlinkMethodChoice,
 	type SymlinkMethodInstance,
 } from '#ui/providers'
+import { isolatedGameDirOverride } from '#ui/utils/instance-game-dir'
 import { formatLoaderLabel } from '#ui/utils/loaders'
 
 const { formatMessage } = useVIntl()
@@ -677,10 +678,9 @@ const activeGameRoot = computed(
 )
 const gameDirOverride = computed(() => {
 	const root = activeGameRoot.value
-	if (method.value !== 'symlink' || !root) return null
-	return gameDirMode.value === 'isolated'
-		? `${root}/versions/${activeInstance.value?.name ?? ''}`
-		: root
+	const instance = activeInstance.value
+	if (method.value !== 'symlink' || !root || !instance) return null
+	return gameDirMode.value === 'isolated' ? isolatedGameDirOverride(root, instance) : root
 })
 const statsLoading = computed(() => Object.values(scanning.value).some(Boolean))
 const planError = computed(() => planErrors.value[activeIndex.value] ?? null)
@@ -1223,7 +1223,7 @@ function handleConfirm() {
 			gameDirOverride:
 				method.value === 'symlink' && root
 					? gameDirMode.value === 'isolated'
-						? `${root}/versions/${instance.name}`
+						? isolatedGameDirOverride(root, instance)
 						: root
 					: null,
 		}
