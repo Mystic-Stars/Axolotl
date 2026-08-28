@@ -12,7 +12,7 @@ export function instanceVersionFolderName(instance: SymlinkMethodInstance): stri
 	const name = instance.name ?? ''
 	const colon = name.lastIndexOf(':')
 	const stripped = colon >= 0 ? name.slice(colon + 1) : name
-	return stripped.startsWith('versions/') ? stripped.slice('versions/'.length) : stripped
+	return stripped.replace(/^versions[\\/]/, '')
 }
 
 /**

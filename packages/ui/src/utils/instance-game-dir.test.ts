@@ -32,6 +32,11 @@ test('falls back to stripping the key when no path is available', () => {
 	assert.equal(instanceVersionFolderName({ name: '.minecraft:versions/bmc4-v61' }), 'bmc4-v61')
 })
 
+test('strips a backslash versions/ segment from scan keys without a path', () => {
+	assert.equal(instanceVersionFolderName({ name: 'versions\\bmc4-v61' }), 'bmc4-v61')
+	assert.equal(instanceVersionFolderName({ name: '.minecraft:versions\\bmc4-v61' }), 'bmc4-v61')
+})
+
 test('keeps plain instance names unchanged', () => {
 	assert.equal(instanceVersionFolderName({ name: 'My Pack' }), 'My Pack')
 	assert.equal(
