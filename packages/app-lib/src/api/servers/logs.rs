@@ -1,11 +1,8 @@
 //! Console output buffering and streaming for servers.
 
-use std::path::PathBuf;
-use tokio::fs::File;
-use tokio::io::{AsyncBufReadExt, AsyncSeekExt, BufReader};
+use tokio::io::{AsyncBufReadExt, BufReader};
 
 use crate::Result;
-use crate::api::servers::lifecycle::is_server_running;
 use crate::event::emit::emit_server;
 use crate::event::{ExitReason, ServerPayloadType};
 use crate::state::{clear_log_buffer, push_log_line};
@@ -36,21 +33,6 @@ pub(super) async fn stream_server_output(
                 if cleaned.is_empty() {
                     continue;
                 }
-                // The server also echoes its log4j output (timestamped lines) to
-                // stdout/stderr in a console format that duplicates every line
-                // already delivered losslessly by `tail_server_log_file` from
-                // `logs/latest.log`. Drop those here so the file tail stays the
-                // single source of truth; only non-logged process output
-                // (bootstrap, patcher progress, JVM warnings) is streamed.
-                if is_timestamped_log_line(&cleaned) {
-                    continue;
-                }
-                // The server echoes entered commands to its own log (e.g.
-                // "> time set 0"), which the file tailer already streams. Skip
-                // those here so they are not duplicated by the stdout pipe.
-                if cleaned.starts_with("> ") {
-                    continue;
-                }
                 push_log_line(&server_id, cleaned.clone());
                 emit_server(
                     &server_id,
@@ -77,66 +59,6 @@ pub(super) async fn stream_server_output(
     }
 }
 
-/// Streams the server's `logs/latest.log` file into the console buffer. The
-/// Minecraft/Fabric log4j console output is frequently not delivered through
-/// the process stdout pipe (it goes to the log file instead), so tailing this
-/// file is the authoritative, lossless source of the server's own logs. Lines
-/// already present in the buffer (e.g. delivered via the stdout/stderr pipes)
-/// are skipped to avoid duplicates.
-pub(super) async fn tail_server_log_file(server_id: String, dir: PathBuf) {
-    let log_path = dir.join("logs").join("latest.log");
-    let mut reader = loop {
-        if !is_server_running(&server_id) {
-            return;
-        }
-        match File::open(&log_path).await {
-            Ok(file) => break BufReader::new(file),
-            // The file only appears once the server starts logging; poll until then.
-            Err(_) => {
-                tokio::time::sleep(std::time::Duration::from_millis(250)).await;
-            }
-        }
-    };
-
-    let mut line = String::new();
-    loop {
-        if !is_server_running(&server_id) {
-            return;
-        }
-        line.clear();
-        match reader.read_line(&mut line).await {
-            Ok(0) => {
-                // Caught up. Detect log rotation (file replaced/truncated) and
-                // otherwise wait for more output to be appended.
-                if let Ok(meta) = tokio::fs::metadata(&log_path).await
-                    && let Ok(pos) = reader.stream_position().await
-                    && meta.len() < pos
-                    && let Ok(file) = File::open(&log_path).await
-                {
-                    reader = BufReader::new(file);
-                }
-                tokio::time::sleep(std::time::Duration::from_millis(200)).await;
-            }
-            Ok(_) => {
-                let trimmed = line.trim_end_matches(['\r', '\n']);
-                let cleaned = strip_ansi(trimmed);
-                let already_present =
-                    crate::state::get_log_buffer(&server_id).contains(&cleaned);
-                if !cleaned.is_empty() && !already_present {
-                    push_log_line(&server_id, cleaned.clone());
-                    emit_server(
-                        &server_id,
-                        ServerPayloadType::Log { line: cleaned },
-                    )
-                    .await
-                    .ok();
-                }
-            }
-            Err(_) => break,
-        }
-    }
-}
-
 /// Matches the native abort of the known JNA (< 5.13.0) macOS bug (JNA issue
 /// #1452): a failed library load overflows JNA's fixed error buffer and the
 /// JVM dies with SIGABRT before any Java-level exception can be reported.
@@ -144,23 +66,6 @@ fn is_jna_macos_assertion(line: &str) -> bool {
     line.contains("Assertion failed:")
         && line.contains("snprintf() output has been truncated")
         && line.contains("dispatch.c")
-}
-
-/// Detects a server log4j line by its leading `[HH:MM:SS]` timestamp, covering
-/// both console (`[HH:MM:SS INFO]:`) and file (`[HH:MM:SS] [Thread/INFO]:`)
-/// formats. Used to suppress the process-pipe echo of server logs so they are
-/// not duplicated by `tail_server_log_file`.
-fn is_timestamped_log_line(line: &str) -> bool {
-    let b = line.as_bytes();
-    b.first() == Some(&b'[')
-        && b.get(1).is_some_and(|c| c.is_ascii_digit())
-        && b.get(2).is_some_and(|c| c.is_ascii_digit())
-        && b.get(3) == Some(&b':')
-        && b.get(4).is_some_and(|c| c.is_ascii_digit())
-        && b.get(5).is_some_and(|c| c.is_ascii_digit())
-        && b.get(6) == Some(&b':')
-        && b.get(7).is_some_and(|c| c.is_ascii_digit())
-        && b.get(8).is_some_and(|c| c.is_ascii_digit())
 }
 
 /// How many lines at the end of a server's output are inspected when
@@ -245,33 +150,6 @@ mod tests {
         assert_eq!(strip_ansi("\u{1b}]0;Server console\u{1b}\\done"), "done");
         assert_eq!(strip_ansi("plain text stays"), "plain text stays");
         assert_eq!(strip_ansi("h\u{e9}llo \u{1b}[31mred"), "h\u{e9}llo red");
-    }
-
-    #[test]
-    fn detects_timestamped_log_lines() {
-        // Console format (no thread) — duplicated by Paper's stdout echo.
-        assert!(is_timestamped_log_line(
-            "[11:13:49 INFO]: [bootstrap] Running Java 25"
-        ));
-        // File format (with thread) — authoritative source from latest.log.
-        assert!(is_timestamped_log_line(
-            "[11:13:49] [ServerMain/INFO]: [bootstrap] Running"
-        ));
-        assert!(is_timestamped_log_line(
-            "[11:13:49] [Server thread/INFO]: Stopped IO worker!"
-        ));
-        // Non-logged process output must NOT be suppressed.
-        assert!(!is_timestamped_log_line("Downloading mojang_26.2.jar"));
-        assert!(!is_timestamped_log_line("Applying patches"));
-        assert!(!is_timestamped_log_line(
-            "Starting org.bukkit.craftbukkit.Main"
-        ));
-        assert!(!is_timestamped_log_line(
-            "WARNING: A terminally deprecated method in sun.misc.Unsafe"
-        ));
-        assert!(!is_timestamped_log_line(
-            "2026-08-29T03:13:49.279070900Z ServerMain WARN Advanced terminal features",
-        ));
     }
 
     #[test]

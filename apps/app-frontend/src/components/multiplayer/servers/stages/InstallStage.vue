@@ -8,24 +8,24 @@ import { injectCreateServerFlow } from '../create-server-flow'
 const { formatMessage } = useVIntl()
 const ctx = injectCreateServerFlow()
 
-const messages = defineMessages({
-	downloading: {
-		id: 'app.servers.wizard.downloading',
-		defaultMessage: 'Downloading server files...',
-	},
-	firstRun: { id: 'app.servers.wizard.first-run', defaultMessage: 'Running first start...' },
-	eulaWait: {
-		id: 'app.servers.wizard.eula-wait',
-		defaultMessage: 'Waiting for EULA confirmation',
-	},
-	done: { id: 'app.servers.wizard.done', defaultMessage: 'Server ready' },
-	failed: { id: 'app.servers.wizard.failed', defaultMessage: 'Setup failed' },
-	installLog: { id: 'app.servers.wizard.log', defaultMessage: 'Output' },
-	backgroundHint: {
-		id: 'app.servers.wizard.background-hint',
-		defaultMessage: 'You can close this window — the download continues in the background.',
-	},
-})
+	const messages = defineMessages({
+		downloading: {
+			id: 'app.servers.wizard.downloading',
+			defaultMessage: 'Downloading server files...',
+		},
+		firstRun: { id: 'app.servers.wizard.first-run', defaultMessage: 'Running first start...' },
+		eulaWait: {
+			id: 'app.servers.wizard.eula-wait',
+			defaultMessage: 'Waiting for EULA confirmation',
+		},
+		done: { id: 'app.servers.wizard.done', defaultMessage: 'Server ready' },
+		failed: { id: 'app.servers.wizard.failed', defaultMessage: 'Setup failed' },
+		installLog: { id: 'app.servers.wizard.log', defaultMessage: 'Output' },
+		backgroundHint: {
+			id: 'app.servers.wizard.background-hint',
+			defaultMessage: 'You can close this window — the download continues in the background.',
+		},
+	})
 
 onMounted(() => {
 	if (ctx.installPhase.value === 'idle' || ctx.installPhase.value === 'error') {
@@ -98,7 +98,10 @@ const isBusy = computed(
 			{{ ctx.installError.value }}
 		</Admonition>
 
-		<div v-if="ctx.installPhase.value === 'error'" class="flex flex-col gap-2">
+		<div
+			v-if="ctx.installPhase.value === 'error'"
+			class="flex flex-col gap-2"
+		>
 			<span class="text-sm font-semibold text-secondary">
 				{{ formatMessage(messages.installLog) }}
 			</span>

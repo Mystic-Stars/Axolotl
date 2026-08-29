@@ -124,14 +124,19 @@ pub async fn is_valid_atlauncher(instance_folder: PathBuf) -> bool {
 
 #[tracing::instrument]
 
-pub async fn import_atlauncher_dir(
-    atlauncher_base_path: PathBuf,
-    atlauncher_instance_path: PathBuf,
+pub async fn import_atlauncher(
+    atlauncher_base_path: PathBuf, // path to base atlauncher folder
+    instance_folder: String,       // instance folder in atlauncher_base_path
     instance_id: &str,
     reporter: InstallProgressReporter,
     details: InstallPhaseDetails,
     symlink: bool,
 ) -> crate::Result<()> {
+    let atlauncher_instance_path = atlauncher_base_path
+        .join("instances")
+        .join(&instance_folder);
+
+    // Load instance.json
     let atinstance = serde_json::from_str::<ATInstance>(
         &io::read_any_encoding_to_string(
             &atlauncher_instance_path.join("instance.json"),
@@ -141,6 +146,8 @@ pub async fn import_atlauncher_dir(
         .0,
     )?;
 
+    // Icon path should be {instance_folder}/instance.png if it exists,
+    // Second possibility is ATLauncher/configs/images/{safe_pack_name}.png (safe pack name is alphanumeric lowercase)
     let icon_path_primary = atlauncher_instance_path.join("instance.png");
     let safe_pack_name = atinstance
         .launcher
@@ -158,6 +165,7 @@ pub async fn import_atlauncher_dir(
         _ => None,
     };
 
+    // Create description from instance.cfg
     let description = CreatePackDescription {
         icon,
         override_title: Some(atinstance.launcher.name.clone()),
@@ -167,13 +175,7 @@ pub async fn import_atlauncher_dir(
         source_filename: None,
     };
 
-    let backup_name = format!(
-        "ATLauncher-{}",
-        atlauncher_instance_path
-            .file_name()
-            .map(|name| name.to_string_lossy())
-            .unwrap_or_default()
-    );
+    let backup_name = format!("ATLauncher-{instance_folder}");
     let minecraft_folder = atlauncher_instance_path;
 
     import_atlauncher_unmanaged(

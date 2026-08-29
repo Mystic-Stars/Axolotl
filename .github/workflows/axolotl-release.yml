@@ -316,6 +316,7 @@ jobs:
             apps/website/releases/latest.json
           node scripts/axolotl/create-website-release-catalog.mjs \
             apps/website/releases/catalog.json
+          sleep 600
 
           git config user.name "Axolotl Release Bot"
           git config user.email "release@axolotl.local"

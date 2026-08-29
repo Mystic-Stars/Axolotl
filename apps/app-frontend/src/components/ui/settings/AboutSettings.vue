@@ -18,8 +18,6 @@ import { inject, nextTick, onScopeDispose, ref, shallowRef } from 'vue'
 
 import AfdianIcon from '@/assets/external/afdian.png'
 import QqIcon from '@/assets/external/qq.svg?component'
-import EasterEggContributorsModal from '@/components/ui/easteregg/EasterEggContributorsModal.vue'
-import EasterEggGameModal from '@/components/ui/easteregg/EasterEggGameModal.vue'
 import { AxolotlBrandConfig } from '@/config'
 import { contributors, type TeamMember, teamMembers } from '@/data/about'
 
@@ -92,50 +90,6 @@ function handleMemberContextMenu(member: TeamMember, event: MouseEvent) {
 function closeMemberExperience() {
 	activeMemberExperience.value = undefined
 }
-
-const gameModal = ref<InstanceType<typeof EasterEggGameModal> | null>(null)
-const contributorsModal = ref<InstanceType<typeof EasterEggContributorsModal> | null>(null)
-
-let typedBuffer = ''
-const secretCodes = ['cyf112233', 'cxkcxkckx']
-
-const konamiSequence = [
-	'ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown',
-	'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight',
-	'KeyB', 'KeyA',
-]
-let konamiIndex = 0
-
-function handleEasterEggKeydown(event: KeyboardEvent) {
-	typedBuffer = (typedBuffer + event.key).toLowerCase()
-	const maxCodeLen = Math.max(...secretCodes.map((c) => c.length))
-	if (typedBuffer.length > maxCodeLen) {
-		typedBuffer = typedBuffer.slice(-maxCodeLen)
-	}
-	if (secretCodes.some((code) => typedBuffer.endsWith(code))) {
-		typedBuffer = ''
-		gameModal.value?.show()
-		return
-	}
-
-	const expected = konamiSequence[konamiIndex]
-	if (event.code === expected) {
-		konamiIndex++
-		if (konamiIndex === konamiSequence.length) {
-			konamiIndex = 0
-			contributorsModal.value?.show()
-		}
-	} else {
-		konamiIndex = event.code === konamiSequence[0] ? 1 : 0
-	}
-}
-
-function onEasterEggOpenGame() {
-	gameModal.value?.show()
-}
-
-document.addEventListener('keydown', handleEasterEggKeydown)
-onScopeDispose(() => document.removeEventListener('keydown', handleEasterEggKeydown))
 
 onScopeDispose(cancelMemberLongPress)
 
@@ -525,9 +479,6 @@ const projectLinks = [
 			</Button>
 		</div>
 	</div>
-
-	<EasterEggGameModal ref="gameModal" />
-	<EasterEggContributorsModal ref="contributorsModal" @open-game="onEasterEggOpenGame" />
 </template>
 
 <style scoped>

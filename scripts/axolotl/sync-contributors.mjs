@@ -44,13 +44,11 @@ async function fetchPage(page) {
 }
 
 function normalizeContributor(contributor) {
-	if (!contributor || typeof contributor !== 'object' || Array.isArray(contributor))
-		return undefined
+	if (!contributor || typeof contributor !== 'object' || Array.isArray(contributor)) return undefined
 	if (typeof contributor.login !== 'string' || !contributor.login) return undefined
 	if (typeof contributor.html_url !== 'string' || !contributor.html_url) return undefined
 	if (typeof contributor.avatar_url !== 'string' || !contributor.avatar_url) return undefined
-	if (!Number.isInteger(contributor.contributions) || contributor.contributions < 1)
-		return undefined
+	if (!Number.isInteger(contributor.contributions) || contributor.contributions < 1) return undefined
 
 	const avatarUrl = new URL(contributor.avatar_url)
 	avatarUrl.searchParams.set('s', '96')
@@ -81,34 +79,27 @@ async function fetchContributors() {
 				right.contributions - left.contributions || left.name.localeCompare(right.name),
 		)
 
-	if (contributors.length === 0)
-		throw new Error('The contributors response did not contain any people')
+	if (contributors.length === 0) throw new Error('The contributors response did not contain any people')
 	return contributors
 }
 
-async function main() {
-	let contributors
-	try {
-		contributors = await fetchContributors()
-	} catch (error) {
-		if (existsSync(OUTPUT_PATH)) {
-			console.warn(
-				`Unable to refresh contributors, keeping the existing snapshot: ${error.message}`,
-			)
-			return
-		}
-		throw error
+let contributors
+try {
+	contributors = await fetchContributors()
+} catch (error) {
+	if (existsSync(OUTPUT_PATH)) {
+		console.warn(`Unable to refresh contributors, keeping the existing snapshot: ${error.message}`)
+		process.exit(0)
 	}
-
-	const nextText = `${JSON.stringify(contributors, null, '\t')}\n`
-	const currentText = existsSync(OUTPUT_PATH) ? await fs.readFile(OUTPUT_PATH, 'utf8') : ''
-
-	if (currentText === nextText) {
-		console.log(`Contributors are up to date (${contributors.length} people).`)
-		return
-	}
-
-	await fs.writeFile(OUTPUT_PATH, nextText)
-	console.log(`Synchronized ${contributors.length} contributors from ${REPOSITORY}.`)
+	throw error
 }
-await main()
+
+const nextText = `${JSON.stringify(contributors, null, '\t')}\n`
+const currentText = existsSync(OUTPUT_PATH) ? await fs.readFile(OUTPUT_PATH, 'utf8') : ''
+if (currentText === nextText) {
+	console.log(`Contributors are up to date (${contributors.length} people).`)
+	process.exit(0)
+}
+
+await fs.writeFile(OUTPUT_PATH, nextText)
+console.log(`Synchronized ${contributors.length} contributors from ${REPOSITORY}.`)

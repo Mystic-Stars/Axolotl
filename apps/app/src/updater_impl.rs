@@ -1,7 +1,6 @@
 use crate::api::Result;
 use semver::Version;
 use serde::{Deserialize, Serialize};
-use std::path::Path;
 use std::sync::{Arc, Mutex};
 use tauri::http::HeaderValue;
 use tauri::http::header::ACCEPT;
@@ -10,7 +9,7 @@ use tauri_plugin_http::reqwest;
 use tauri_plugin_http::reqwest::ClientBuilder;
 use tauri_plugin_updater::{Error, Update, UpdaterExt};
 use theseus::{
-    LoadingBarType, emit_loading, init_loading, launcher_user_agent, settings,
+    LoadingBarType, emit_loading, init_loading, launcher_user_agent,
 };
 use tokio::time::Instant;
 use url::Url;
@@ -19,12 +18,6 @@ const MIAWA_API_BASE: &str = "https://miawa.cn/api/v2";
 const MIAWA_HOST: &str = "https://miawa.cn";
 const MIAWA_API_TIMEOUT: std::time::Duration =
     std::time::Duration::from_secs(15);
-
-// Debian and derivatives update via the apt package manager. The whole
-// operation (repo setup script plus package install) runs as a single
-// `pkexec` invocation so the polkit authorization prompt appears only once.
-const AXOLOTL_APT_SETUP_URL: &str = "https://ppa.axlmc.org/setup.sh";
-const AXOLOTL_APT_PACKAGE: &str = "axolotl-launcher";
 
 // The updater plugin builds `Update` with no request timeout, so a stalled
 // connection would hang the download forever. Bound the whole download
@@ -455,82 +448,4 @@ pub async fn enqueue_update_for_installation<R: Runtime>(
 pub fn remove_enqueued_update<R: Runtime>(webview: Webview<R>) {
     let pending_data = webview.state::<PendingUpdateData>().inner();
     pending_data.0.lock().unwrap().take();
-}
-
-// ── Debian / derivatives apt update ─────────────────────────────
-
-/// Whether this Linux system updates Axolotl through apt (Debian and its
-/// derivatives) and has `pkexec` available for a single privileged prompt.
-#[tauri::command]
-pub fn is_apt_linux() -> bool {
-    #[cfg(target_os = "linux")]
-    {
-        let debian_like = Path::new("/etc/debian_version").exists()
-            || Path::new("/etc/apt").is_dir()
-            || Path::new("/usr/bin/apt-get").exists();
-        let has_pkexec = ["/usr/bin/pkexec", "/bin/pkexec"]
-            .iter()
-            .any(|path| Path::new(path).exists());
-        debian_like && has_pkexec
-    }
-    #[cfg(not(target_os = "linux"))]
-    {
-        false
-    }
-}
-
-/// Update Axolotl on Debian and its derivatives through apt, prompting for
-/// root once via `pkexec`. Runs the repo setup script and the package
-/// install in a single privileged shell so only one authorization is asked.
-#[tauri::command]
-pub async fn install_apt_update(version: String) -> Result<()> {
-    if !is_apt_linux() {
-        return Err(theseus::Error::from(theseus::ErrorKind::OtherError(
-            "apt updates are only supported on Debian-based Linux systems with pkexec"
-                .to_string(),
-        ))
-        .into());
-    }
-
-    // Everything runs as root under one pkexec prompt; no `sudo` needed inside.
-    let script = format!(
-        "curl -fsSL {AXOLOTL_APT_SETUP_URL} | bash && \
-         apt-get update && \
-         apt-get install -y {AXOLOTL_APT_PACKAGE}"
-    );
-
-    let output = tokio::task::spawn_blocking(move || {
-        std::process::Command::new("pkexec")
-            .arg("sh")
-            .arg("-c")
-            .arg(&script)
-            .output()
-    })
-    .await
-    .map_err(|join| {
-        theseus::Error::from(theseus::ErrorKind::OtherError(format!(
-            "Failed to run the apt updater: {join}"
-        )))
-    })?
-    .map_err(|io| {
-        theseus::Error::from(theseus::ErrorKind::OtherError(format!(
-            "Failed to start pkexec: {io}"
-        )))
-    })?;
-
-    if !output.status.success() {
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        return Err(theseus::Error::from(theseus::ErrorKind::OtherError(
-            format!("apt update failed: {}", stderr.trim()),
-        ))
-        .into());
-    }
-
-    // Persist the post-update announcement trigger so the new release notes
-    // show after the app restarts into the freshly installed version.
-    let mut current = settings::get().await?;
-    current.pending_update_toast_for_version = Some(version);
-    settings::set(current).await?;
-
-    Ok(())
 }

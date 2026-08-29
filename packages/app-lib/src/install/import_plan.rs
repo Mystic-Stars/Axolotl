@@ -148,7 +148,7 @@ async fn run_import_plan(
         return Ok(());
     }
 
-    let source = resolve_source(request)?;
+    let source = resolve_source(request);
     let import_path = source.to_string_lossy().to_string();
     let dotminecraft = if source.join(".minecraft").is_dir() {
         source.join(".minecraft")
@@ -368,22 +368,41 @@ fn snapshot_for(
     }
 }
 
-fn resolve_source(request: &ImportPlanRequest) -> crate::Result<PathBuf> {
-    let Some(instance_path) = &request.instance_path else {
-        return Err(crate::ErrorKind::InputError(
-            "Import source path is required".to_string(),
-        )
-        .into());
-    };
-    let source = PathBuf::from(instance_path);
-    if !source.is_dir() {
-        return Err(crate::ErrorKind::InputError(format!(
-            "Import source path does not exist: {}",
-            source.display()
-        ))
-        .into());
+fn resolve_source(request: &ImportPlanRequest) -> PathBuf {
+    if let Some(instance_path) = &request.instance_path {
+        return PathBuf::from(instance_path);
     }
-    Ok(source)
+
+    if let Some(rest) = request.instance_folder.strip_prefix("versions/") {
+        return request.base_path.join("versions").join(rest);
+    }
+
+    if request
+        .base_path
+        .file_name()
+        .map(|name| name.to_string_lossy().to_string())
+        .as_deref()
+        == Some(request.instance_folder.as_str())
+    {
+        return request.base_path.clone();
+    }
+
+    match request.launcher_type {
+        crate::api::pack::import::ImportLauncherType::Curseforge => request
+            .base_path
+            .join("Instances")
+            .join(&request.instance_folder),
+        crate::api::pack::import::ImportLauncherType::GDLauncher => request
+            .base_path
+            .join("instances")
+            .join(&request.instance_folder),
+        crate::api::pack::import::ImportLauncherType::Axolotl
+            if request.base_path.join("axolotl_config.json").is_file() =>
+        {
+            request.base_path.clone()
+        }
+        _ => request.base_path.join(&request.instance_folder),
+    }
 }
 
 fn detect_import_plan_info(

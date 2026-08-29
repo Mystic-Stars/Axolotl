@@ -6555,10 +6555,10 @@
     "message": "显示快照版本"
   },
   "app.servers.wizard.type-heading": {
-    "message": "选择服务器核心"
+    "message": "选择服务端类型"
   },
   "app.servers.wizard.type-title": {
-    "message": "服务器类型"
+    "message": "服务端类型"
   },
   "app.servers.type.vanilla": {
     "message": "原版"
@@ -7738,9 +7738,6 @@
   },
   "app.update-popup.download": {
     "message": "下载（{size}）"
-  },
-  "app.update-popup.apt-update": {
-    "message": "更新"
   },
   "app.update-popup.download-complete": {
     "message": "下载完成"

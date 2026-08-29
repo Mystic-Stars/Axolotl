@@ -1,6 +1,5 @@
 import 'floating-vue/dist/style.css'
 import 'overlayscrollbars/overlayscrollbars.css'
-import '@/assets/stylesheets/global.css'
 
 import { VueQueryPlugin } from '@tanstack/vue-query'
 import FloatingVue from 'floating-vue'

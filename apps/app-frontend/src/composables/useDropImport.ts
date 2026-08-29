@@ -12,10 +12,14 @@ import type {
 	ClassificationResult,
 	SymlinkMethodChoice,
 } from '@modrinth/ui'
-import { useDebugLogger, useGlobalDrop, useInstanceContext, useVIntl } from '@modrinth/ui'
+import {
+	useDebugLogger,
+	useGlobalDrop,
+	useInstanceContext,
+	useVIntl,
+} from '@modrinth/ui'
 import { computed, type ComputedRef, nextTick, ref } from 'vue'
 import type { Router } from 'vue-router'
-import { join } from '@tauri-apps/api/path'
 
 import {
 	classifyDroppedItem,
@@ -590,18 +594,6 @@ export function useDropImport(options: DropImportOptions) {
 		})
 
 		if (choice === 'compatible') {
-			const single = scanResults?.[0]?.instances[0]
-			if (!single?.versionPath) {
-				currentImportContext.value = null
-				dropDebug('handleCompatibleModeConfirm: missing versionPath', {
-					instanceName,
-				})
-				addNotification({
-					title: formatMessage(messages.dropNoInstances),
-					type: 'error',
-				})
-				return
-			}
 			selectedInstances.value = [
 				{
 					launcherType,
@@ -609,7 +601,7 @@ export function useDropImport(options: DropImportOptions) {
 					name: versionName,
 					path: gameDir,
 					compatibleMode: true,
-					versionPath: single.versionPath,
+					versionPath: `${gameDir}/versions/${versionName}`,
 				},
 			]
 			const cap = await check_symlink_capability()
@@ -621,7 +613,6 @@ export function useDropImport(options: DropImportOptions) {
 						launcherType,
 						basePath: gameDir,
 						compatibleMode: true,
-						versionPath: single.versionPath,
 					},
 				],
 				symlinkCapable: cap,
@@ -772,8 +763,6 @@ export function useDropImport(options: DropImportOptions) {
 							path: single.compatibleMode ? (single.versionPath ?? single.path) : single.path,
 							launcherType: 'Generic',
 							basePath: single.compatibleMode ? single.path : dropFilePath.value,
-							compatibleMode: single.compatibleMode,
-							versionPath: single.versionPath,
 						},
 					],
 					symlinkCapable: cap,
@@ -804,7 +793,7 @@ export function useDropImport(options: DropImportOptions) {
 					const tempDir = await extractZipToTemp(basePath)
 					launcherZipTempDir.value = tempDir
 					scanBasePath = classification!.innerBase
-						? await join(tempDir, classification!.innerBase)
+						? `${tempDir}/${classification!.innerBase}`
 						: tempDir
 					dropDebug('handleDropConfirm: extracted launcher zip', {
 						tempDir,
@@ -881,8 +870,6 @@ export function useDropImport(options: DropImportOptions) {
 							path: single.compatibleMode ? (single.versionPath ?? single.path) : single.path,
 							launcherType,
 							basePath: single.compatibleMode ? single.path : scanBasePath,
-							compatibleMode: single.compatibleMode,
-							versionPath: single.versionPath,
 						},
 					],
 					symlinkCapable: cap,
@@ -938,10 +925,8 @@ export function useDropImport(options: DropImportOptions) {
 			dropDebug('handleDropConfirm: data pack requires a world target', {
 				filePath,
 			})
-			pendingInstall.value = { type, filePath, innerBase }
-			dataPackWorldModal.value?.show(
-				isInInstance.value ? (instanceId.value ?? undefined) : undefined,
-			)
+		pendingInstall.value = { type, filePath, innerBase }
+		dataPackWorldModal.value?.show(isInInstance.value ? (instanceId.value ?? undefined) : undefined)
 			return
 		}
 
@@ -1396,8 +1381,6 @@ export function useDropImport(options: DropImportOptions) {
 				path: i.path,
 				launcherType: i.launcherType,
 				basePath: i.basePath || i.path,
-				compatibleMode: i.compatibleMode,
-				versionPath: i.versionPath,
 			})),
 			symlinkCapable: cap,
 		})
@@ -1422,7 +1405,14 @@ export function useDropImport(options: DropImportOptions) {
 		ctx: ImportContext | null,
 	): string | undefined {
 		if (inst.compatibleMode) return inst.versionPath
-		return inst.path
+		const launcherType = ctx?.launcherType ?? inst.launcherType
+		return (
+			launcherType === 'PCL2' ||
+			launcherType === 'PCL2CE' ||
+			launcherType === 'HMCL'
+		)
+			? inst.path
+			: undefined
 	}
 
 	async function onSymlinkMethodConfirmed(choices: SymlinkMethodChoice[] | boolean) {
@@ -1482,7 +1472,7 @@ export function useDropImport(options: DropImportOptions) {
 					inst.compatibleMode ? inst.basePath : (ctx?.basePath ?? inst.path),
 					inst.name,
 					choice?.symlink ?? (Array.isArray(choices) ? false : choices),
-					resolvedInstancePath(inst),
+					resolvedInstancePath(inst, ctx),
 					inst.compatibleMode ? undefined : (choice?.gameVersion ?? undefined),
 					inst.compatibleMode ? undefined : (choice?.loader ?? undefined),
 					inst.compatibleMode ? undefined : (choice?.loaderVersion ?? undefined),
@@ -1547,7 +1537,7 @@ export function useDropImport(options: DropImportOptions) {
 					inst.compatibleMode ? inst.basePath : (ctx?.basePath ?? inst.path),
 					inst.name,
 					choice?.symlink ?? (Array.isArray(choices) ? false : choices),
-					resolvedInstancePath(inst),
+					resolvedInstancePath(inst, ctx),
 					inst.compatibleMode ? undefined : (choice?.gameVersion ?? undefined),
 					inst.compatibleMode ? undefined : (choice?.loader ?? undefined),
 					inst.compatibleMode ? undefined : (choice?.loaderVersion ?? undefined),
@@ -1742,7 +1732,7 @@ export function useDropImport(options: DropImportOptions) {
 				const tempDir = await extractZipToTemp(rawBasePath)
 				batchTempDirs.value.push(tempDir)
 				const innerBase = (resolved as { innerBase?: string }).innerBase
-				scanBasePath = innerBase ? await join(tempDir, innerBase) : tempDir
+				scanBasePath = innerBase ? `${tempDir}/${innerBase}` : tempDir
 			} catch (error) {
 				item.scanState = 'error'
 				item.reason = error instanceof Error ? error.message : String(error)

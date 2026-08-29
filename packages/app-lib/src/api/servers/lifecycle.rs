@@ -12,13 +12,11 @@ use tokio::process::{Child, ChildStdin, Command};
 
 use crate::event::ServerPayloadType;
 use crate::event::emit::emit_server;
-use crate::state::{clear_log_buffer, get_log_buffer, push_log_line};
+use crate::state::{clear_log_buffer, get_log_buffer};
 use crate::util::io::IOError;
 use crate::{ErrorKind, Result};
 
-use super::logs::{
-    analyze_exit_reason, stream_server_output, tail_server_log_file,
-};
+use super::logs::{analyze_exit_reason, stream_server_output};
 use super::manifest::{
     read_manifest, resolve_jar_name, server_path, write_manifest,
 };
@@ -41,12 +39,6 @@ static SERVER_PROCESSES: LazyLock<DashMap<String, Arc<ServerProcess>>> =
 static SERVER_STARTING: LazyLock<DashSet<String>> = LazyLock::new(DashSet::new);
 
 pub(super) fn is_running(server_id: &str) -> bool {
-    SERVER_PROCESSES.contains_key(server_id)
-}
-
-/// Whether a server process is currently tracked. Used by the log-file tailer
-/// to stop following once the server has exited.
-pub(super) fn is_server_running(server_id: &str) -> bool {
     SERVER_PROCESSES.contains_key(server_id)
 }
 
@@ -100,8 +92,7 @@ async fn start_inner(
 
     // Ensure eula.txt exists (create with eula=false if missing)
     let eula_path = dir.join("eula.txt");
-    let eula_created = !eula_path.exists();
-    if eula_created {
+    if !eula_path.exists() {
         tokio::fs::write(&eula_path, "eula=false\n")
             .await
             .map_err(|e| IOError::with_path(e, &eula_path))?;
@@ -148,56 +139,6 @@ async fn start_inner(
     write_manifest(&dir, &manifest).await?;
 
     clear_log_buffer(server_id);
-
-    // Start each run from a clean log file. Minecraft's log4j appender appends
-    // to logs/latest.log across launches, so without truncating it the file
-    // tailer would replay the previous run's history into the fresh buffer on
-    // every restart.
-    let _ = std::fs::remove_file(dir.join("logs").join("latest.log"));
-
-    // Surface every startup step in the console. A loader's first launch (e.g.
-    // Fabric downloading the Minecraft server) can stay silent for a long time,
-    // so these lines stop the console from looking frozen.
-    let loader_first_run =
-        matches!(manifest.server_type.as_str(), "fabric" | "quilt")
-            && !dir
-                .join(format!("{}-server-launch.jar", manifest.server_type))
-                .exists();
-
-    log_server_step(
-        server_id,
-        &format!(
-            "Starting server '{}' ({} · Minecraft {})",
-            manifest.name, manifest.server_type, manifest.game_version,
-        ),
-    )
-    .await;
-    log_server_step(server_id, &format!("Java: {java}")).await;
-    log_server_step(server_id, &format!("Memory: {memory} MB")).await;
-    if eula_created {
-        log_server_step(
-            server_id,
-            "eula.txt not found — created with eula=false. Accept the EULA to start the server.",
-        )
-        .await;
-    }
-    log_server_step(
-        server_id,
-        &format!(
-            "Launching {} server ({} · nogui)",
-            manifest.server_type,
-            resolve_jar_name(&manifest),
-        ),
-    )
-    .await;
-    if loader_first_run {
-        log_server_step(
-            server_id,
-            "First launch: downloading Minecraft server files. This may take a few minutes — the console will keep updating as it progresses.",
-        )
-        .await;
-    }
-
     let process = Arc::new(ServerProcess {
         child: tokio::sync::Mutex::new(child),
         stdin: tokio::sync::Mutex::new(stdin.ok_or_else(|| {
@@ -216,11 +157,6 @@ async fn start_inner(
     if let Some(stderr) = stderr {
         tokio::spawn(stream_server_output(server_id.to_string(), stderr));
     }
-    // The process pipes (above) capture JVM/installer output, but the server's
-    // own log4j console output is normally written to logs/latest.log rather
-    // than the stdout pipe. Tail that file so the console always shows the
-    // complete, lossless server log (matching what's on disk).
-    tokio::spawn(tail_server_log_file(server_id.to_string(), dir.clone()));
     tokio::spawn(monitor_server_process(server_id.to_string(), dir, process));
 
     emit_server(server_id, ServerPayloadType::Started)
@@ -395,19 +331,4 @@ async fn read_eula_accepted(dir: &Path) -> bool {
             }),
         Err(_) => false,
     }
-}
-
-/// Emits a timestamped, info-level line to the server console: it is both
-/// persisted to the log buffer and pushed as a live `Log` event, so startup
-/// progress is visible even before the JVM produces any output of its own.
-async fn log_server_step(server_id: &str, message: &str) {
-    let line = format!(
-        "{} [Axolotl/INFO]: {}",
-        chrono::Local::now().format("%H:%M:%S"),
-        message,
-    );
-    push_log_line(server_id, line.clone());
-    emit_server(server_id, ServerPayloadType::Log { line })
-        .await
-        .ok();
 }

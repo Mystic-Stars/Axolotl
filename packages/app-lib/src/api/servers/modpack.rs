@@ -194,12 +194,12 @@ pub async fn install_modpack(
     drop(manifest);
 
     // Set the icon path early so the server shows the modpack icon immediately
-    if let Some(icon_url) = modpack_icon_url.as_deref()
-        && let Ok(icon_path) = download_icon(&dir, icon_url).await
-    {
-        let mut manifest = read_manifest(&dir).await?;
-        manifest.icon_path = Some(icon_path.to_string_lossy().into_owned());
-        write_manifest(&dir, &manifest).await?;
+    if let Some(icon_url) = modpack_icon_url.as_deref() {
+        if let Ok(icon_path) = download_icon(&dir, icon_url).await {
+            let mut manifest = read_manifest(&dir).await?;
+            manifest.icon_path = Some(icon_path.to_string_lossy().into_owned());
+            write_manifest(&dir, &manifest).await?;
+        }
     }
 
     let result = run_modpack_install(
@@ -218,23 +218,23 @@ pub async fn install_modpack(
         Ok(()) => {
             manifest.jar_name = Some(jar_filename.to_string());
             // Icon was already downloaded at the start; only download if still missing
-            if manifest.icon_path.is_none()
-                && let Some(icon_url) = modpack_icon_url.as_deref()
-            {
-                match download_icon(&dir, icon_url).await {
-                    Ok(icon_path) => {
-                        manifest.icon_path =
-                            Some(icon_path.to_string_lossy().into_owned());
-                    }
-                    Err(error) => {
-                        log(
-                            server_id,
-                            &format!(
-                                "Failed to download modpack icon: {error}"
-                            ),
-                        )
-                        .await
-                        .ok();
+            if manifest.icon_path.is_none() {
+                if let Some(icon_url) = modpack_icon_url.as_deref() {
+                    match download_icon(&dir, icon_url).await {
+                        Ok(icon_path) => {
+                            manifest.icon_path =
+                                Some(icon_path.to_string_lossy().into_owned());
+                        }
+                        Err(error) => {
+                            log(
+                                server_id,
+                                &format!(
+                                    "Failed to download modpack icon: {error}"
+                                ),
+                            )
+                            .await
+                            .ok();
+                        }
                     }
                 }
             }
@@ -364,7 +364,7 @@ async fn run_modpack_install(
     )
     .await?;
 
-    log(server_id, "Applying modpack overrides").await?;
+    log(&server_id, "Applying modpack overrides").await?;
     extract_archive_subdir(
         archive_path.clone(),
         format!("{base_folder}{OVERRIDES_DIR}/"),
@@ -405,7 +405,7 @@ async fn run_modpack_install(
     .await?;
 
     log(
-        server_id,
+        &server_id,
         &format!("Downloading server launcher ({jar_filename})"),
     )
     .await?;
@@ -421,7 +421,7 @@ async fn run_modpack_install(
             .ok();
     }
     download_to_dir(
-        server_id,
+        &server_id,
         dir,
         jar_url,
         jar_filename,
@@ -725,9 +725,10 @@ async fn collect_mod_metadata(
                 } else if path
                     .extension()
                     .is_some_and(|ext| ext.eq_ignore_ascii_case("jar"))
-                    && let Some(metadata) = read_mod_metadata(&path)
                 {
-                    found.push((path, metadata));
+                    if let Some(metadata) = read_mod_metadata(&path) {
+                        found.push((path, metadata));
+                    }
                 }
             }
         }
@@ -931,7 +932,7 @@ mod tests {
             env: Some(MrpackEnv {
                 server: Some("unsupported".to_string()),
             }),
-            ..installable
+            ..installable.clone()
         };
         assert!(!is_server_installable(&client_only));
     }
@@ -961,7 +962,7 @@ mod tests {
         // Datapacks stay: dedicated servers load them.
         assert!(is_server_installable(&MrpackFile {
             path: "datapacks/data.zip".to_string(),
-            ..base
+            ..base.clone()
         }));
     }
 
@@ -1127,7 +1128,7 @@ mod tests {
 
     #[test]
     fn prune_plan_respects_local_provides() {
-        let metas = [
+        let metas = vec![
             meta("shim.jar", "melody-shim", serde_json::json!({})),
             meta("ui.jar", "ui", serde_json::json!({"melody": ">=1.0"})),
         ];

@@ -176,6 +176,29 @@ async fn load_instance_cfg(file_path: &Path) -> crate::Result<MMCInstance> {
 }
 
 // #[tracing::instrument]
+pub async fn import_mmc(
+    mmc_base_path: PathBuf,  // path to base mmc folder
+    instance_folder: String, // instance folder in mmc_base_path
+    instance_id: &str,
+    reporter: InstallProgressReporter,
+    details: InstallPhaseDetails,
+    symlink: bool,
+) -> crate::Result<()> {
+    let mmc_instance_path =
+        mmc_base_path.join("instances").join(instance_folder);
+    import_mmc_instance_dir(
+        mmc_instance_path,
+        Some(mmc_base_path.join("icons")),
+        instance_id,
+        reporter,
+        details,
+        symlink,
+    )
+    .await
+}
+
+/// Imports an MMC/Prism instance directly from its instance directory, used
+/// both for launcher-folder imports and extracted MultiMC export zips.
 pub(crate) async fn import_mmc_instance_dir(
     mmc_instance_path: PathBuf,
     icons_dir: Option<PathBuf>,

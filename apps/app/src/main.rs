@@ -154,18 +154,13 @@ fn is_allowed_blockbench_skin_request(
         return true;
     }
 
-    let Some(referer) = request
+    request
         .headers()
         .get(header::REFERER)
         .and_then(|value| value.to_str().ok())
-    else {
-        // WKWebView omits both Origin and Referer for custom-scheme iframe
-        // navigations and their subresources. The handler only exposes packaged
-        // editor assets, so a host-validated request remains safe to serve.
-        return true;
-    };
-
-    is_skin_editor_referer(referer, &is_allowed_source)
+        .is_some_and(|referer| {
+            is_skin_editor_referer(referer, &is_allowed_source)
+        })
 }
 
 fn is_skin_editor_referer(
@@ -682,8 +677,6 @@ fn main() {
             enqueue_update_for_installation,
             remove_enqueued_update,
             set_restart_after_pending_update,
-            is_apt_linux,
-            install_apt_update,
             toggle_decorations,
             set_transparent_window_frame,
             show_window,

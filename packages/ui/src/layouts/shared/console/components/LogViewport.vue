@@ -19,11 +19,7 @@
 			/>
 		</div>
 
-		<div
-			v-else
-			class="log-viewport-spacer relative w-full min-w-max"
-			:style="{ height: totalHeight + 'px' }"
-		>
+		<div v-else class="log-viewport-spacer relative w-full min-w-max" :style="{ height: totalHeight + 'px' }">
 			<div
 				class="absolute inset-x-0 top-0"
 				:style="{ transform: 'translateY(' + topOffset + 'px)' }"
@@ -37,7 +33,7 @@
 					:style="{ height: estimateHeight(item) + 'px' }"
 				>
 					<span
-						class="flex shrink-0 w-[52px] items-center justify-end leading-none text-right text-secondary bg-surface-3 border-r border-solid border-surface-3 select-none overflow-hidden"
+						class="shrink-0 w-[52px] pr-2.5 text-right text-secondary bg-surface-3 border-r border-solid border-surface-5 select-none overflow-hidden"
 						>{{ item.originalIndex + 1 }}</span
 					>
 					<span

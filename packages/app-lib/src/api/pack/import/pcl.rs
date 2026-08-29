@@ -89,6 +89,30 @@ pub fn get_pclce_instances() -> Vec<(String, String)> {
     instances
 }
 
+pub fn get_pcl_instance_path(instance_name: &str) -> Option<String> {
+    let raw = read_pcl_registry()?;
+    tracing::debug!(instance_name = %instance_name, "get_pcl_instance_path: looking up");
+    for entry in raw.split('|') {
+        let entry = entry.trim();
+        if entry.is_empty() {
+            continue;
+        }
+        if let Some((name, path)) = entry.split_once('>')
+            && name.trim() == instance_name
+        {
+            let path = PathBuf::from(path.trim());
+            if path.is_dir() {
+                tracing::info!(instance_name = %instance_name, path = %path.display(), "get_pcl_instance_path: found");
+                return Some(path.to_string_lossy().to_string());
+            } else {
+                tracing::warn!(instance_name = %instance_name, path = %path.display(), "get_pcl_instance_path: path no longer exists");
+            }
+        }
+    }
+    tracing::warn!(instance_name = %instance_name, "get_pcl_instance_path: not found");
+    None
+}
+
 /// Checks if a `.minecraft` folder exists next to the launcher (i.e. at
 /// `base_path/.minecraft`) and returns it as a `(name, path)` pair suitable
 /// for merging into the GameDir list.
@@ -106,4 +130,28 @@ pub fn get_local_dotminecraft(base_path: &Path) -> Option<(String, String)> {
     } else {
         None
     }
+}
+
+pub fn get_pclce_instance_path(instance_name: &str) -> Option<String> {
+    let raw = read_pclce_config()?;
+    tracing::debug!(instance_name = %instance_name, "get_pclce_instance_path: looking up");
+    for entry in raw.split('|') {
+        let entry = entry.trim();
+        if entry.is_empty() {
+            continue;
+        }
+        if let Some((name, path)) = entry.split_once('>')
+            && name.trim() == instance_name
+        {
+            let path = PathBuf::from(path.trim());
+            if path.is_dir() {
+                tracing::info!(instance_name = %instance_name, path = %path.display(), "get_pclce_instance_path: found");
+                return Some(path.to_string_lossy().to_string());
+            } else {
+                tracing::warn!(instance_name = %instance_name, path = %path.display(), "get_pclce_instance_path: path no longer exists");
+            }
+        }
+    }
+    tracing::warn!(instance_name = %instance_name, "get_pclce_instance_path: not found");
+    None
 }

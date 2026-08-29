@@ -33,47 +33,6 @@ export const ANNOUNCEMENT_CHANGE_TYPES: readonly AnnouncementChangeType[] = [
 
 export const launcherAnnouncements: readonly LauncherAnnouncement[] = [
 	{
-		id: 'launcher-1.9.2',
-		version: '1.9.2',
-		publishedAt: '2026-08-29',
-		title: {
-			'en-US': 'Axolotl Launcher 1.9.2',
-			'zh-CN': 'Axolotl Launcher 1.9.2',
-		},
-		changes: {
-			fixed: [
-				{
-					'en-US':
-						'Fixed the Skin editor failing to open in macOS builds when its embedded editor resources were rejected with a 403 error.',
-					'zh-CN': '修复 macOS 构建中皮肤编辑器的嵌入资源被 403 拒绝，导致无法打开的问题。',
-				},
-				{
-					'en-US':
-						'Fixed the path concatenation error when importing instances; the path is no longer constructed from the instance name.',
-					'zh-CN': '修复导入实例拼接路径错误，现在不再从实例名拼接路径。',
-				},
-				{
-					'en-US': 'Fix the cmd window appearing after launch.',
-					'zh-CN': '修复启动后显示cmd窗口。',
-				},
-				{
-					'en-US': 'Disable global text selection; keep only specific text selectable.',
-					'zh-CN': '全局文字禁止选择，仅保留部分文字可被选中。',
-				},
-				{
-					'en-US': 'Unify scrollbar position.',
-					'zh-CN': '统一滚动条位置',
-				},
-			],
-			added: [
-				{
-					'en-US': 'Added an Easter egg to the About page! It might be hard to find~',
-					'zh-CN': '关于页面新增彩蛋！可能较难发现哦~',
-				},
-			],
-		},
-	},
-	{
 		id: 'launcher-1.9.1',
 		version: '1.9.1',
 		publishedAt: '2026-08-27',
@@ -93,8 +52,7 @@ export const launcherAnnouncements: readonly LauncherAnnouncement[] = [
 				{
 					'en-US':
 						'Modpack installation now shows existing installs and the collision-safe instance folder name before creating a separate instance.',
-					'zh-CN':
-						'安装整合包前现在会显示已有安装状态及避免重名冲突后的实例文件夹名称，并可创建独立实例。',
+					'zh-CN': '安装整合包前现在会显示已有安装状态及避免重名冲突后的实例文件夹名称，并可创建独立实例。',
 				},
 			],
 			fixed: [

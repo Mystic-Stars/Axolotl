@@ -242,7 +242,7 @@ const pageTitle: MessageDescriptor = settingsPageTitle
 </script>
 
 <template>
-	<div class="settings-fixed-render h-full min-h-0 pt-6 pl-6 pb-6">
+	<div class="settings-fixed-render h-full min-h-0 p-6">
 		<div class="settings-layout h-full min-h-0">
 			<aside class="settings-sidebar">
 				<div class="relative shrink-0">

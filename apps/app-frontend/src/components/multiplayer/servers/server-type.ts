@@ -4,19 +4,15 @@ import type { ServerTypeId } from '@modrinth/server'
 export interface ServerTypeMeta {
 	colorVar: string
 	monogram: string
-	icon?: string
 }
-
-const typeIcon = (name: string) =>
-	new URL(`../../../assets/instance-icons/${name}`, import.meta.url).href
 
 const PLATFORM_ID = (id: ServerTypeId) => `var(--color-platform-${id})`
 
 export const SERVER_TYPE_META: Record<ServerTypeId, ServerTypeMeta> = {
-	vanilla: { colorVar: 'var(--color-brand)', monogram: 'V', icon: typeIcon('Mojang.svg') },
-	fabric: { colorVar: PLATFORM_ID('fabric'), monogram: 'F', icon: typeIcon('Fabric.png') },
-	paper: { colorVar: PLATFORM_ID('paper'), monogram: 'P', icon: typeIcon('Paper.svg') },
-	forge: { colorVar: PLATFORM_ID('forge'), monogram: 'Fo', icon: typeIcon('Forge.jpeg') },
+	vanilla: { colorVar: 'var(--color-brand)', monogram: 'V' },
+	fabric: { colorVar: PLATFORM_ID('fabric'), monogram: 'F' },
+	paper: { colorVar: PLATFORM_ID('paper'), monogram: 'P' },
+	forge: { colorVar: PLATFORM_ID('forge'), monogram: 'Fo' },
 	neoforge: { colorVar: PLATFORM_ID('neoforge'), monogram: 'N' },
 	quilt: { colorVar: PLATFORM_ID('quilt'), monogram: 'Q' },
 }

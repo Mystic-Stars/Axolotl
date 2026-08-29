@@ -158,7 +158,8 @@ export function createModpackServerFlowContext(
 		modpackVersionNumber.value = packVersion.version_number ?? ''
 		modpackIconUrl.value = packProject.icon_url ?? undefined
 
-		const gameVersion = packVersion.game_versions?.[0] ?? packProject.game_versions?.[0] ?? ''
+		const gameVersion =
+			packVersion.game_versions?.[0] ?? packProject.game_versions?.[0] ?? ''
 		// Merge both the project-level and version-level loader declarations.
 		// Modpack versions frequently leave `version.loaders` empty (the project
 		// field is the reliable source); the authoritative source is the mrpack's

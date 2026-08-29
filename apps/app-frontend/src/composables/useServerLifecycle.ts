@@ -6,7 +6,7 @@ import type { ComponentExposed } from 'vue-component-type-helpers'
 import type EulaModal from '@/components/multiplayer/servers/EulaModal.vue'
 import { resumeModpackInstall } from '@/composables/useServerInstalls'
 import { type ServerView, setServerExitReasonHandler, useServers } from '@/composables/useServers'
-import { serverEventListener, servers as serversApi } from '@/helpers/servers'
+import { serverEventListener,servers as serversApi } from '@/helpers/servers'
 import { injectDownloadManager } from '@/providers/download-manager'
 
 /**
@@ -154,13 +154,5 @@ export function useServerLifecycle() {
 		}
 	}
 
-	return {
-		eulaModal,
-		eulaText,
-		tryStartServer,
-		acceptEula,
-		declineEula,
-		resumeInstall,
-		offerEulaAfterExit,
-	}
+	return { eulaModal, eulaText, tryStartServer, acceptEula, declineEula, resumeInstall, offerEulaAfterExit }
 }

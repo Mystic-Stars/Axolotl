@@ -29,14 +29,3 @@ fn updates_are_disabled() -> Result<()> {
 
 #[tauri::command]
 pub fn remove_enqueued_update() {}
-
-#[tauri::command]
-pub fn is_apt_linux() -> bool {
-    false
-}
-
-#[tauri::command]
-pub async fn install_apt_update(version: String) -> Result<()> {
-    let _ = version;
-    updates_are_disabled()
-}

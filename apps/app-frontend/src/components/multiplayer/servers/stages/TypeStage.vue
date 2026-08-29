@@ -15,7 +15,7 @@ const { formatMessage } = useVIntl()
 const ctx = injectCreateServerFlow()
 
 const messages = defineMessages({
-	heading: { id: 'app.servers.wizard.type-heading', defaultMessage: 'Choose a server core' },
+	heading: { id: 'app.servers.wizard.type-heading', defaultMessage: 'Choose a server type' },
 	gameVersion: { id: 'app.servers.wizard.game-version', defaultMessage: 'Game version' },
 	loaderVersion: { id: 'app.servers.wizard.loader-version', defaultMessage: 'Loader version' },
 	showSnapshots: { id: 'app.servers.wizard.show-snapshots', defaultMessage: 'Show snapshots' },
@@ -93,17 +93,6 @@ const monogramStyles = computed<Record<string, string>>(() =>
 				@click="selectType(type.id)"
 			>
 				<span
-					v-if="SERVER_TYPE_META[type.id].icon"
-					class="flex size-7 shrink-0 items-center justify-center overflow-hidden"
-				>
-					<img
-						:src="SERVER_TYPE_META[type.id].icon"
-						:alt="serverTypeLabel(type)"
-						class="size-full object-contain"
-					/>
-				</span>
-				<span
-					v-else
 					class="flex size-7 shrink-0 items-center justify-center rounded-md text-xs font-bold"
 					:style="{
 						color: SERVER_TYPE_META[type.id].colorVar,

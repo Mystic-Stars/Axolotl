@@ -40,7 +40,6 @@ use tokio_util::sync::CancellationToken;
 use winreg::{RegKey, enums::HKEY_CURRENT_USER};
 
 mod args;
-mod natives;
 
 pub mod download;
 pub mod jvm_args;
@@ -1631,32 +1630,16 @@ pub async fn launch_minecraft(
     if !natives_dir.exists() {
         io::create_dir_all(&natives_dir).await?;
     }
-    if offline_mode {
-        natives::prepare_native_libraries(
-            &state.directories.natives_dir(),
-            &state.directories.libraries_dir(),
-            &state.directories.caches_dir(),
-            version_info.libraries.as_slice(),
-            &version_jar,
-            &java_version.architecture,
-            minecraft_updated,
-        )
-        .await?;
-    } else {
-        download::download_libraries(
-            &state,
-            None,
-            version_info.libraries.as_slice(),
-            &version_jar,
-            None,
-            0.0,
-            &java_version.architecture,
-            false,
-            minecraft_updated,
-            None,
-        )
-        .await?;
-    }
+    download::ensure_native_libraries_extracted(
+        &state.directories.natives_dir(),
+        &state.directories.libraries_dir(),
+        &state.directories.caches_dir(),
+        version_info.libraries.as_slice(),
+        &version_jar,
+        &java_version.architecture,
+        minecraft_updated,
+    )
+    .await?;
 
     let quick_play_version =
         QuickPlayVersion::find_version(version_index, &minecraft.versions);

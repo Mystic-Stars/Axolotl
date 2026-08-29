@@ -127,8 +127,6 @@ export interface SymlinkMethodInstance {
 	path?: string
 	launcherType?: string
 	basePath?: string
-	versionPath?: string
-	compatibleMode?: boolean
 }
 
 export interface SymlinkMethodChoice {
