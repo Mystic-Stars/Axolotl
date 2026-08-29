@@ -173,6 +173,7 @@ export function useContentPipeline(config: ContentPipelineConfig) {
 		const type = new Set<string>()
 		const status = new Set<string>()
 		const allItems = [...modpackItemsNoUpdate.value, ...sortedItems.value]
+		const duplicateItemIds = new Set((duplicateItems?.value ?? []).map((item) => getItemId(item)))
 
 		for (const item of allItems) {
 			type.add(normalizeProjectType(item.project_type))
@@ -180,6 +181,9 @@ export function useContentPipeline(config: ContentPipelineConfig) {
 			if (showWarningsFilter && getClientWarningType(item) !== null) status.add('warnings')
 			if (isEnabledContentItem(item)) status.add('enabled')
 			if (isDisabledContentItem(item)) status.add('disabled')
+		}
+		if (allItems.some((item) => duplicateItemIds.has(getItemId(item)))) {
+			type.add('duplicates')
 		}
 
 		return {

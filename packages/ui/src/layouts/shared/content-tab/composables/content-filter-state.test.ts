@@ -39,6 +39,17 @@ test('keeps valid filters when the current search has no matches', () => {
 	)
 })
 
+test('keeps the duplicate filter when sorting changes the available type options', () => {
+	assert.deepEqual(
+		pruneContentFilterSelections(
+			{ typeFilters: ['duplicates'], statusFilters: [] },
+			{ type: ['mod', 'duplicates'], status: [] },
+			true,
+		),
+		{ typeFilters: ['duplicates'], statusFilters: [] },
+	)
+})
+
 test('keeps metadata exclusions through an empty loading state', () => {
 	const selections = { state: ['enabled'], loader: ['forge'] }
 	assert.deepEqual(pruneMetadataFilterSelections(selections, [], false), selections)
