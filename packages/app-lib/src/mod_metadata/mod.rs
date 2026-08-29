@@ -12,6 +12,7 @@
 mod fabric;
 pub mod icon;
 pub mod manifest;
+pub mod mod_analysis;
 mod mcmod_info;
 mod toml_mod;
 

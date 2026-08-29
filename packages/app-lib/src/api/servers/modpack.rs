@@ -787,7 +787,9 @@ fn compute_prune_plan(
         if is_explicitly_allowed {
             continue;
         }
-        if metadata.environment.as_deref() == Some("client") {
+        if crate::mod_metadata::mod_analysis::environment_is_client_only(
+            metadata.environment.as_deref(),
+        ) {
             planned[index] = true;
             reasons[index] = Some("client-only".to_string());
         }
