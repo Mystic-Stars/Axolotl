@@ -41,6 +41,23 @@ export const launcherAnnouncements: readonly LauncherAnnouncement[] = [
 			'zh-CN': 'Axolotl Launcher 1.9.1',
 		},
 		changes: {
+			security: [
+				{
+					'en-US': 'Revert all changes from the previous version.',
+					'zh-CN': '回退上版本所有更改。',
+				},
+			],
+		},
+	},
+	{
+		id: 'launcher-1.9.1',
+		version: '1.9.1',
+		publishedAt: '2026-08-27',
+		title: {
+			'en-US': 'Axolotl Launcher 1.9.1',
+			'zh-CN': 'Axolotl Launcher 1.9.1',
+		},
+		changes: {
 			added: [
 				{
 					'en-US':
@@ -52,7 +69,8 @@ export const launcherAnnouncements: readonly LauncherAnnouncement[] = [
 				{
 					'en-US':
 						'Modpack installation now shows existing installs and the collision-safe instance folder name before creating a separate instance.',
-					'zh-CN': '安装整合包前现在会显示已有安装状态及避免重名冲突后的实例文件夹名称，并可创建独立实例。',
+					'zh-CN':
+						'安装整合包前现在会显示已有安装状态及避免重名冲突后的实例文件夹名称，并可创建独立实例。',
 				},
 			],
 			fixed: [
