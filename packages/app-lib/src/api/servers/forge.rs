@@ -7,6 +7,8 @@
 //! down the loader, its libraries, and the `@args` launch files. The regular
 //! `servers.start` flow then boots that output (see `lifecycle::forge_launch_args`).
 
+use std::path::Path;
+
 use tokio::process::Command;
 
 use crate::event::ServerPayloadType;
@@ -21,6 +23,51 @@ use super::manifest::{
 
 const FORGE_MAVEN: &str =
     "https://maven.minecraftforge.net/net/minecraftforge/forge";
+
+/// Runs a downloaded Forge/NeoForge installer jar headlessly with
+/// `--installServer <dir>`, materializing the server launcher (`@args` files,
+/// libraries, and the runnable `forge-*.jar`) without ever opening the
+/// interactive GUI wizard. Used both by the dedicated `install_forge` path and
+/// by the modpack installer, whose server launcher is also a Forge installer.
+pub(crate) async fn run_forge_installer(
+    server_id: &str,
+    installer_path: &Path,
+    dir: &Path,
+    java: &str,
+) -> Result<()> {
+    log(server_id, "Running Forge installer (this may take a while)").await?;
+    let output = Command::new(java)
+        .arg("-jar")
+        .arg(installer_path)
+        .arg("--installServer")
+        .arg(dir)
+        .current_dir(dir)
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .output()
+        .await
+        .map_err(|e| {
+            ErrorKind::LauncherError(format!(
+                "Failed to run Forge installer: {e}"
+            ))
+            .as_error()
+        })?;
+
+    // The installer is verbose; surface a condensed tail so failures are diagnosable.
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    for line in stderr.lines().rev().take(20) {
+        log(server_id, line).await.ok();
+    }
+
+    if !output.status.success() {
+        return Err(ErrorKind::LauncherError(
+            "Forge installer failed. Check that the selected Java version supports this game version."
+                .to_string(),
+        )
+        .as_error());
+    }
+    Ok(())
+}
 
 /// Downloads the Forge installer for `mc_version`/`build` into the server dir
 /// and runs it headlessly (`--installServer`) to lay down the launcher. The
@@ -55,41 +102,13 @@ pub async fn install_forge(
     let installer_path = dir.join(&installer_name);
     let java = java_path.clone().unwrap_or_else(|| "java".to_string());
 
-    log(server_id, "Running Forge installer (this may take a while)").await?;
-    let output = Command::new(&java)
-        .arg("-jar")
-        .arg(&installer_path)
-        .arg("--installServer")
-        .arg(&dir)
-        .current_dir(&dir)
-        .stdout(std::process::Stdio::piped())
-        .stderr(std::process::Stdio::piped())
-        .output()
-        .await
-        .map_err(|e| {
-            ErrorKind::LauncherError(format!(
-                "Failed to run Forge installer: {e}"
-            ))
-            .as_error()
-        })?;
-
-    // The installer is verbose; surface a condensed tail so failures are diagnosable.
-    let stderr = String::from_utf8_lossy(&output.stderr);
-    for line in stderr.lines().rev().take(20) {
-        log(server_id, line).await.ok();
-    }
-
-    if !output.status.success() {
+    if let Err(error) = run_forge_installer(server_id, &installer_path, &dir, &java).await {
         let mut manifest = read_manifest(&dir).await?;
         manifest.install_state = Some(InstallState::Failed);
         manifest.install_error =
             Some("Forge installer exited with an error".to_string());
         write_manifest(&dir, &manifest).await?;
-        return Err(ErrorKind::LauncherError(
-			"Forge installer failed. Check that the selected Java version supports this game version."
-				.to_string(),
-		)
-		.as_error());
+        return Err(error);
     }
 
     // Ensure eula.txt exists (eula=false) so the manual-start gate can offer it

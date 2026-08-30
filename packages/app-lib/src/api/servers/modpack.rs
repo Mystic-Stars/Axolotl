@@ -9,7 +9,6 @@
 
 use std::collections::{HashMap, HashSet};
 use std::future::Future;
-use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::pin::Pin;
 use std::sync::Arc;
@@ -26,6 +25,7 @@ use crate::api::pack::detect::decode_zip_entry_name;
 use crate::event::ServerPayloadType;
 use crate::event::emit::emit_server;
 use crate::event::emit::loading_try_for_each_concurrent;
+use crate::mod_metadata::mod_analysis::{analyze_mod_side, ModAnalysis};
 use crate::util::fetch::{
     DownloadRequest, FetchProgressFn, Integrity, ResourceClass,
     download_to_path,
@@ -34,9 +34,13 @@ use crate::util::io::IOError;
 use crate::{ErrorKind, Result};
 
 use super::files::download_to_dir;
+use super::forge::run_forge_installer;
+use super::lifecycle::forge_launch_args;
+use tokio::process::Command;
 use super::manifest::{
     InstallState, ModpackInfo, read_manifest, server_path, write_manifest,
 };
+use zip::ZipArchive;
 
 const MRPACK_MANIFEST_ENTRY: &str = "modrinth.index.json";
 const MRPACK_FILENAME: &str = "pack.mrpack";
@@ -81,6 +85,12 @@ impl AggregateProgress {
 struct MrpackIndex {
     #[serde(default)]
     files: Vec<MrpackFile>,
+    /// Loader/game versions pinned by the pack author, e.g.
+    /// `{ "minecraft": "1.19.2", "fabric-loader": "0.14.19" }`. The Fabric/Quilt
+    /// server jar must match the pinned loader, not whichever version the install
+    /// wizard happened to resolve.
+    #[serde(default)]
+    dependencies: HashMap<String, String>,
 }
 
 #[derive(Deserialize, Clone)]
@@ -102,51 +112,276 @@ struct MrpackEnv {
     server: Option<String>,
 }
 
-/// Fabric metadata embedded in a mod jar. Only identity and dependency
-/// information are modeled; this is the same signal Fabric Loader uses to
-/// resolve mods at runtime.
-#[derive(Clone, Deserialize)]
-struct ModMetadata {
-    #[serde(default)]
-    id: Option<String>,
-    #[serde(default)]
-    environment: Option<String>,
-    #[serde(default)]
-    provides: Vec<String>,
-    // Modeled as raw JSON: most mods use an object keyed by mod id, but
-    // non-standard shapes (plain lists) exist and must not fail parsing.
-    #[serde(default)]
-    depends: Option<serde_json::Value>,
+/// Returns true if `path` is a Forge/NeoForge *installer* jar (it bootstraps the
+/// loader rather than being a runnable server). Detected by the presence of
+/// `install_profile.json`, the marker both Forge and NeoForge installers ship at
+/// their root — distinct from the loader jars they materialize.
+fn is_forge_installer(path: &Path) -> bool {
+    std::fs::File::open(path)
+        .ok()
+        .and_then(|file| ZipArchive::new(file).ok())
+        .is_some_and(|mut archive| archive.by_name("install_profile.json").is_ok())
 }
 
-impl ModMetadata {
-    /// Upper bound on how many bytes of `fabric.mod.json` are read, so a
-    /// bloated or malicious entry cannot balloon memory.
-    const MAX_READ_BYTES: u64 = 1024 * 1024;
+/// After a headless Forge/NeoForge install, the runnable server jar is named
+/// `forge-<mc>-<build>.jar` (or `neoforge-<ver>.jar`) — distinct from the
+/// `<loader>-...-installer.jar` that bootstrapped it. Returns that name so the
+/// manifest records the real launcher instead of the installer.
+fn find_installed_loader_jar(dir: &Path) -> Option<String> {
+    std::fs::read_dir(dir)
+        .ok()?
+        .flatten()
+        .find_map(|entry| {
+            let name = entry.file_name().to_string_lossy().into_owned();
+            let is_loader_jar = (name.starts_with("forge-") || name.starts_with("neoforge-"))
+                && name.ends_with(".jar")
+                && !name.contains("installer");
+            is_loader_jar.then_some(name)
+        })
+}
 
-    fn owned_ids(&self) -> impl Iterator<Item = &str> {
-        self.id
-            .iter()
-            .map(String::as_str)
-            .chain(self.provides.iter().map(String::as_str))
-    }
-
-    fn hard_dependencies(&self) -> Vec<&str> {
-        match self.depends.as_ref().and_then(|value| value.as_object()) {
-            Some(dependencies) => dependencies
-                .iter()
-                .filter_map(|(id, spec)| {
-                    let optional = spec
-                        .as_object()
-                        .and_then(|object| object.get("optional"))
-                        .and_then(|value| value.as_bool())
-                        .unwrap_or(false);
-                    (!optional).then_some(id.as_str())
-                })
-                .collect(),
-            None => Vec::new(),
+/// Parses the FML `LoadingFailedException` log for the mod ids that failed to
+/// load on the dedicated server, e.g. `Neat (neat) has failed to load correctly`.
+///
+/// Only the `id` inside the parentheses is returned, deduplicated.
+fn parse_failed_mod_ids(log: &str) -> Vec<String> {
+    let mut ids = Vec::new();
+    for line in log.lines() {
+        if let Some(idx) = line.find("has failed to load correctly") {
+            let prefix = &line[..idx];
+            if let Some(open) = prefix.rfind('(') {
+                let rest = &prefix[open + 1..];
+                if let Some(close) = rest.find(')') {
+                    let id = &rest[..close];
+                    if !id.is_empty() && !ids.iter().any(|x| x == id) {
+                        ids.push(id.to_string());
+                    }
+                }
+            }
         }
     }
+    ids
+}
+
+/// Locates the jar in `dir/mods` that provides `id`. The parsed metadata mod id
+/// is checked first; as a fallback the jar filename is matched against `id`
+/// (covers mods whose metadata `analyze_mod_side` cannot read, e.g. IMBlocker).
+fn find_mod_jar_by_id(dir: &Path, id: &str) -> Option<PathBuf> {
+    let mods = dir.join("mods");
+    let mut filename_hit: Option<PathBuf> = None;
+    for entry in std::fs::read_dir(&mods).ok()?.flatten() {
+        let path = entry.path();
+        if !path.extension().map_or(false, |e| e.eq_ignore_ascii_case("jar")) {
+            continue;
+        }
+        if let Ok(analysis) = analyze_mod_side(&path) {
+            if analysis
+                .mod_id
+                .as_deref()
+                .is_some_and(|m| m.eq_ignore_ascii_case(id))
+            {
+                return Some(path);
+            }
+        }
+        if filename_hit.is_none() {
+            let name = path.file_name()?.to_string_lossy().to_lowercase();
+            if name.contains(&id.to_lowercase()) {
+                filename_hit = Some(path);
+            }
+        }
+    }
+    filename_hit
+}
+
+/// Best-effort guard against client-only mods slipping into a dedicated server.
+///
+/// `analyze_mod_side` cannot reliably flag Forge client mods (they almost never
+/// declare `clientSideOnly`), so we boot the freshly installed server headlessly
+/// and let Forge report which mods fail to load on `DEDICATED_SERVER`. Every mod
+/// named by the FML `LoadingFailedException` is moved out of `mods/`, then the
+/// server is booted again to catch the next batch (dependency chains, etc.).
+///
+/// This is intentionally best-effort: if the loader cannot boot here (missing
+/// Java, wrong version, network), we log and stop without failing the install.
+async fn prune_client_mods_by_boot(server_id: &str, dir: &Path, java: &str) -> Result<()> {
+    let args = match forge_launch_args(dir) {
+        Ok(args) => args,
+        Err(_) => {
+            log(server_id, "Skipping client-mod boot check: server launcher not found")
+                .await
+                .ok();
+            return Ok(());
+        }
+    };
+
+    let eula_path = dir.join("eula.txt");
+    let original_eula = tokio::fs::read_to_string(&eula_path).await.unwrap_or_default();
+    tokio::fs::write(&eula_path, "eula=true\n").await.ok();
+
+    let log_path = dir.join("logs").join("latest.log");
+    let mut iteration = 0;
+    loop {
+        iteration += 1;
+        if iteration > 3 {
+            break;
+        }
+
+        // Drop the prior run's log so stale failure lines don't mask progress.
+        let _ = tokio::fs::remove_file(&log_path).await;
+
+        let mut cmd = Command::new(java);
+        cmd.args(&args).current_dir(dir);
+        let mut child = match cmd.spawn() {
+            Ok(child) => child,
+            Err(e) => {
+                log(
+                    server_id,
+                    &format!("Skipping client-mod boot check: cannot launch Java ({e})"),
+                )
+                .await
+                .ok();
+                break;
+            }
+        };
+
+        let started = std::time::Instant::now();
+        let mut outcome = "unknown";
+        loop {
+            tokio::time::sleep(std::time::Duration::from_secs(5)).await;
+            if let Ok(content) = tokio::fs::read_to_string(&log_path).await {
+                if content.contains("has failed to load correctly") {
+                    outcome = "fail";
+                    break;
+                }
+                if content.contains("Preparing start region")
+                    || content.contains("Starting Minecraft server")
+                    || content.contains("Preparing level")
+                {
+                    outcome = "ok";
+                    break;
+                }
+            }
+            if let Ok(Some(_)) = child.try_wait() {
+                if let Ok(content) = tokio::fs::read_to_string(&log_path).await {
+                    outcome = if content.contains("has failed to load correctly") {
+                        "fail"
+                    } else {
+                        "ok"
+                    };
+                }
+                break;
+            }
+            if started.elapsed().as_secs() > 240 {
+                break;
+            }
+        }
+
+        let _ = child.kill().await;
+
+        if outcome != "fail" {
+            break;
+        }
+
+        let log_content = tokio::fs::read_to_string(&log_path).await.unwrap_or_default();
+        let failed_ids = parse_failed_mod_ids(&log_content);
+        if failed_ids.is_empty() {
+            break;
+        }
+
+        let mut removed = 0;
+        for id in &failed_ids {
+            if let Some(jar) = find_mod_jar_by_id(dir, id) {
+                if tokio::fs::remove_file(&jar).await.is_ok() {
+                    removed += 1;
+                    log(
+                        server_id,
+                        &format!(
+                            "Removed client-only mod '{id}' (crashed on dedicated server)"
+                        ),
+                    )
+                    .await
+                    .ok();
+                }
+            } else {
+                log(
+                    server_id,
+                    &format!("Client-only mod '{id}' reported by server but not found in mods/; left in place"),
+                )
+                .await
+                .ok();
+            }
+        }
+        if removed == 0 {
+            break;
+        }
+    }
+
+    tokio::fs::write(&eula_path, original_eula).await.ok();
+    Ok(())
+}
+
+/// The Fabric/Quilt loader version pinned by the modpack, if the index declares
+/// one. The `modrinth.index.json` `dependencies` map pins the loader directly
+/// (e.g. `"fabric-loader": "0.14.19"`), which is the version the server jar must
+/// use — not the newest the install wizard might resolve.
+fn pinned_loader_version(index: &MrpackIndex, server_type: &str) -> Option<String> {
+    match server_type {
+        "fabric" => index.dependencies.get("fabric-loader").cloned(),
+        "quilt" => index.dependencies.get("quilt-loader").cloned(),
+        _ => None,
+    }
+}
+
+/// Fetches the newest installer version from a Fabric/Quilt meta
+/// `versions/installer` endpoint (a JSON array whose first entry is newest).
+async fn fetch_newest_installer_version(meta_url: &str) -> Result<Option<String>> {
+    let client = reqwest::Client::builder()
+        .user_agent(crate::launcher_user_agent())
+        .build()
+        .map_err(|e| ErrorKind::NetworkError(e.to_string()))?;
+    let response = client
+        .get(meta_url)
+        .send()
+        .await
+        .map_err(|e| ErrorKind::NetworkError(e.to_string()))?
+        .error_for_status()
+        .map_err(|e| ErrorKind::NetworkError(e.to_string()))?;
+    let versions: Vec<serde_json::Value> = response
+        .json()
+        .await
+        .map_err(|e| ErrorKind::NetworkError(e.to_string()))?;
+    Ok(versions
+        .first()
+        .and_then(|v| v.get("version").and_then(|s| s.as_str()).map(String::from)))
+}
+
+/// Resolves the server launcher jar URL for a Fabric/Quilt server pinned to a
+/// specific loader version. The meta endpoint requires the (game, loader,
+/// installer) triple, so we fetch the latest installer version to complete it.
+async fn resolve_pinned_loader_jar_url(
+    server_type: &str,
+    game_version: &str,
+    pinned_loader: &str,
+) -> Result<Option<String>> {
+    let (installer_url, jar_template) = match server_type {
+        "fabric" => (
+            "https://meta.fabricmc.net/v2/versions/installer",
+            "https://meta.fabricmc.net/v2/versions/loader/{game}/{loader}/{installer}/server/jar",
+        ),
+        "quilt" => (
+            "https://meta.quiltmc.org/v3/versions/installer",
+            "https://meta.quiltmc.org/v3/versions/loader/{game}/{loader}/{installer}/server/jar",
+        ),
+        _ => return Ok(None),
+    };
+    let Some(installer) = fetch_newest_installer_version(installer_url).await? else {
+        return Ok(None);
+    };
+    let url = jar_template
+        .replace("{game}", game_version)
+        .replace("{loader}", pinned_loader)
+        .replace("{installer}", &installer);
+    Ok(Some(url))
 }
 
 /// Installs a modpack into an existing managed server.
@@ -176,6 +411,8 @@ pub async fn install_modpack(
 ) -> Result<()> {
     let dir = server_path(server_id).await?;
     let mut manifest = read_manifest(&dir).await?;
+    // The server's chosen Java runs the loader installer headlessly during install.
+    let java_path = manifest.java_path.clone();
     manifest.install_state = Some(InstallState::Incomplete);
     manifest.install_error = None;
     // Record the source pack before any bytes move so an interrupted install
@@ -210,13 +447,14 @@ pub async fn install_modpack(
         jar_url,
         jar_filename,
         jar_sha1.as_deref(),
+        java_path.as_deref(),
     )
     .await;
 
     let mut manifest = read_manifest(&dir).await?;
     match result {
-        Ok(()) => {
-            manifest.jar_name = Some(jar_filename.to_string());
+        Ok(launcher_jar) => {
+            manifest.jar_name = Some(launcher_jar);
             // Icon was already downloaded at the start; only download if still missing
             if manifest.icon_path.is_none()
                 && let Some(icon_url) = modpack_icon_url.as_deref()
@@ -263,7 +501,8 @@ async fn run_modpack_install(
     jar_url: &str,
     jar_filename: &str,
     jar_sha1: Option<&str>,
-) -> Result<()> {
+    java_path: Option<&str>,
+) -> Result<String> {
     let state = State::get().await?;
 
     log(server_id, "Downloading modpack archive").await?;
@@ -282,6 +521,56 @@ async fn run_modpack_install(
     let manifest_entry = find_manifest_entry(&archive_path).await?;
     let base_folder = base_folder(&manifest_entry);
     let index = parse_index(&archive_path, &manifest_entry).await?;
+
+    // Honor the loader version pinned by the modpack (modrinth.index.json
+    // `dependencies`) for Fabric/Quilt. The install wizard resolves a loader
+    // version up front, usually the newest, but the server jar must match the
+    // version the pack was built against or its mods fail to load.
+    let mut manifest = read_manifest(dir).await?;
+    let server_type = manifest.server_type.clone();
+    let game_version = manifest.game_version.clone();
+    let pinned = pinned_loader_version(&index, &server_type);
+    let effective_jar_url: String = if let Some(pinned) = &pinned {
+        if matches!(server_type.as_str(), "fabric" | "quilt")
+            && !jar_url.contains(&format!("/{pinned}/"))
+        {
+            match resolve_pinned_loader_jar_url(&server_type, &game_version, pinned).await {
+                Ok(Some(url)) => {
+                    log(
+                        server_id,
+                        &format!(
+                            "Modpack pins {server_type} loader {pinned}; using matching server jar"
+                        ),
+                    )
+                    .await
+                    .ok();
+                    url
+                }
+                Ok(None) => jar_url.to_string(),
+                Err(error) => {
+                    log(
+                        server_id,
+                        &format!(
+                            "Could not resolve pinned loader jar ({error}); using resolved version"
+                        ),
+                    )
+                    .await
+                    .ok();
+                    jar_url.to_string()
+                }
+            }
+        } else {
+            jar_url.to_string()
+        }
+    } else {
+        jar_url.to_string()
+    };
+    // Keep the manifest's loader version in sync with the installed jar.
+    if let Some(pinned) = &pinned {
+        manifest.loader_version = Some(pinned.clone());
+        write_manifest(dir, &manifest).await?;
+    }
+    drop(manifest);
 
     let (installable_files, excluded_files): (
         Vec<&MrpackFile>,
@@ -420,16 +709,47 @@ async fn run_modpack_install(
             .await
             .ok();
     }
+    let effective_jar_sha1: Option<String> =
+        if effective_jar_url == jar_url {
+            jar_sha1.map(str::to_string)
+        } else {
+            None
+        };
     download_to_dir(
         server_id,
         dir,
-        jar_url,
+        &effective_jar_url,
         jar_filename,
-        jar_sha1.map(str::to_string),
+        effective_jar_sha1,
     )
     .await?;
 
-    Ok(())
+    // A Forge/NeoForge modpack ships the loader's *installer* jar as its server
+    // launcher. Running it directly (`java -jar <installer> nogui`) opens the
+    // interactive GUI wizard and blocks on a manual choice, so instead we run it
+    // headlessly (`--installServer`) to materialize the real server files, then
+    // drop the installer so it is never mistaken for the launcher jar.
+    let launcher_jar = if is_forge_installer(&dir.join(jar_filename)) {
+        let java = java_path.unwrap_or("java").to_string();
+        let installer_path = dir.join(jar_filename);
+        run_forge_installer(server_id, &installer_path, dir, &java).await?;
+        let real = match find_installed_loader_jar(dir) {
+            Some(real) => {
+                let _ = tokio::fs::remove_file(&installer_path).await;
+                real
+            }
+            None => jar_filename.to_string(),
+        };
+        // Best-effort: boot the server once and drop any client-only mod (e.g.
+        // Forge mods that omit clientSideOnly) that crashes the dedicated server.
+        // The metadata pruner cannot flag these reliably.
+        let _ = prune_client_mods_by_boot(server_id, dir, &java).await;
+        real
+    } else {
+        jar_filename.to_string()
+    };
+
+    Ok(launcher_jar)
 }
 
 /// Fetches the modpack icon into the server directory and returns its path.
@@ -614,12 +934,13 @@ async fn fetch_excluded_mod_ids(
     for (filename, url, sha1) in candidates {
         let destination = temp_dir.path().join(&filename);
         match download_metadata_jar(state, &url, &destination, sha1).await {
-            Ok(()) => match read_mod_metadata(&destination) {
-                Some(metadata) => {
-                    unavailable
-                        .extend(metadata.owned_ids().map(str::to_string));
+            Ok(()) => match analyze_mod_side(&destination) {
+                Ok(analysis) => {
+                    if let Some(id) = analysis.mod_id {
+                        unavailable.insert(id);
+                    }
                 }
-                None => {
+                Err(_) => {
                     log(
 						server_id,
 						&format!("Could not read metadata of client-side mod {filename}"),
@@ -665,13 +986,16 @@ async fn download_metadata_jar(
 }
 
 /// Removes mods that cannot run on a dedicated server: those declaring
-/// themselves client-only in their Fabric metadata, and transitively any mod
-/// whose hard dependencies point to a removed or excluded mod. Left in place,
-/// such mods crash the server during dependency resolution.
+/// themselves client-only (Fabric `environment: "client"` or Forge
+/// `clientSideOnly`), and transitively any mod whose hard dependencies point to
+/// a removed or excluded mod. Left in place, such mods crash the server during
+/// dependency resolution.
 ///
-/// Mods that are explicitly marked as server-installable in the modpack index
-/// (via `env.server != "unsupported"`) are never pruned, even if their own
-/// metadata declares them as client-only. This respects the pack author's intent.
+/// Side support is determined by [`crate::mod_metadata::mod_analysis`], which
+/// covers Fabric and Forge (and is the same rule the loaders enforce). Mods that
+/// are explicitly marked as server-installable in the modpack index (via
+/// `env.server != "unsupported"`) are never pruned, even if their own metadata
+/// declares them as client-only. This respects the pack author's intent.
 async fn prune_uninstallable_mods(
     server_id: &str,
     dir: &Path,
@@ -683,7 +1007,7 @@ async fn prune_uninstallable_mods(
         return Ok(());
     }
 
-    let metas = collect_mod_metadata(mods_dir).await?;
+    let metas = collect_server_mod_analyses(mods_dir).await?;
     for (path, reason) in compute_prune_plan(
         &metas,
         unavailable_ids,
@@ -705,13 +1029,14 @@ async fn prune_uninstallable_mods(
     Ok(())
 }
 
-/// Walks the mods directory recursively and reads each jar's embedded Fabric
-/// metadata. Jars without readable metadata are skipped entirely: only an
-/// explicit declaration justifies a removal.
-async fn collect_mod_metadata(
+/// Walks the mods directory recursively and analyzes every jar with the unified
+/// mod analyzer (Fabric + Forge + ...). Jars that fail to analyze (unreadable,
+/// corrupt, or carrying no embedded metadata) are skipped: only an explicit
+/// side-support declaration justifies a removal.
+async fn collect_server_mod_analyses(
     mods_dir: PathBuf,
-) -> Result<Vec<(PathBuf, ModMetadata)>> {
-    tokio::task::spawn_blocking(move || {
+) -> Result<Vec<(PathBuf, ModAnalysis)>> {
+    tokio::task::spawn_blocking(move || -> Result<Vec<(PathBuf, ModAnalysis)>> {
         let mut found = Vec::new();
         let mut pending = vec![mods_dir];
         while let Some(current) = pending.pop() {
@@ -725,47 +1050,33 @@ async fn collect_mod_metadata(
                 } else if path
                     .extension()
                     .is_some_and(|ext| ext.eq_ignore_ascii_case("jar"))
-                    && let Some(metadata) = read_mod_metadata(&path)
                 {
-                    found.push((path, metadata));
+                    if let Ok(analysis) = analyze_mod_side(&path) {
+                        found.push((path, analysis));
+                    }
                 }
             }
         }
-        found
+        Ok(found)
     })
     .await
     .map_err(|e| {
-        ErrorKind::FSError(format!("Failed to scan installed mods: {e}"))
-            .as_error()
-    })
+        ErrorKind::FSError(format!("Failed to scan installed mods: {e}")).as_error()
+    })?
 }
 
-/// Reads a jar's embedded `fabric.mod.json`.
-fn read_mod_metadata(path: &Path) -> Option<ModMetadata> {
-    let file = std::fs::File::open(path).ok()?;
-    let mut archive = zip::ZipArchive::new(file).ok()?;
-    let mut entry = archive.by_name("fabric.mod.json").ok()?;
-    let mut contents = Vec::new();
-    entry
-        .by_ref()
-        .take(ModMetadata::MAX_READ_BYTES)
-        .read_to_end(&mut contents)
-        .ok()?;
-    serde_json::from_slice(&contents).ok()
-}
-
-/// Plans which installed mods must be removed. Seeds are mods declaring
-/// themselves client-only plus every excluded mod's ID that no local mod
-/// owns; removal then cascades through hard `depends` edges until stable.
+/// Plans which installed mods must be removed. Seeds are mods that do not
+/// support the server (client-only) plus every excluded mod's ID that no local
+/// mod owns; removal then cascades through hard dependency edges until stable.
 /// Returns paths with a human-readable reason for each removal.
 fn compute_prune_plan(
-    metas: &[(PathBuf, ModMetadata)],
+    metas: &[(PathBuf, ModAnalysis)],
     unavailable_ids: &HashSet<String>,
     explicitly_server_installable: &HashSet<String>,
 ) -> Vec<(PathBuf, String)> {
     let locally_owned: HashSet<&str> = metas
         .iter()
-        .flat_map(|(_, metadata)| metadata.owned_ids())
+        .filter_map(|(_, analysis)| analysis.mod_id.as_deref())
         .collect();
     let mut removed: HashSet<String> = unavailable_ids
         .iter()
@@ -775,11 +1086,11 @@ fn compute_prune_plan(
 
     let mut planned = vec![false; metas.len()];
     let mut reasons: Vec<Option<String>> = vec![None; metas.len()];
-    for (index, (path, metadata)) in metas.iter().enumerate() {
+    for (index, (path, analysis)) in metas.iter().enumerate() {
         let filename = path.file_name().unwrap_or_default().to_string_lossy();
-        // Skip pruning if this mod is explicitly marked as server-installable in the modpack index
-        let is_explicitly_allowed = metadata
-            .id
+        // Skip pruning if this mod is explicitly marked as server-installable in the modpack index.
+        let is_explicitly_allowed = analysis
+            .mod_id
             .as_ref()
             .map(|id| explicitly_server_installable.contains(id))
             .unwrap_or(false)
@@ -787,11 +1098,15 @@ fn compute_prune_plan(
         if is_explicitly_allowed {
             continue;
         }
-        if crate::mod_metadata::mod_analysis::environment_is_client_only(
-            metadata.environment.as_deref(),
-        ) {
+        // A mod that declares client-only support (no server support) crashes a
+        // dedicated server. Unknown side support is kept to avoid discarding
+        // universal mods that the analyzer could not classify.
+        if analysis.side_support.client && !analysis.side_support.server {
             planned[index] = true;
             reasons[index] = Some("client-only".to_string());
+            if let Some(id) = &analysis.mod_id {
+                removed.insert(id.clone());
+            }
         }
     }
 
@@ -803,15 +1118,16 @@ fn compute_prune_plan(
             }
             let missing = metas[index]
                 .1
-                .hard_dependencies()
-                .into_iter()
+                .dependencies
+                .iter()
+                .map(|dependency| &dependency.mod_id)
                 .find(|dependency| removed.contains(*dependency));
             if let Some(missing) = missing {
                 planned[index] = true;
                 reasons[index] = Some(format!("requires {missing}"));
                 changed = true;
-                for id in metas[index].1.owned_ids() {
-                    removed.insert(id.to_string());
+                if let Some(id) = &metas[index].1.mod_id {
+                    removed.insert(id.clone());
                 }
             }
         }
@@ -909,6 +1225,40 @@ async fn log(server_id: &str, line: &str) -> Result<()> {
 mod tests {
     use super::*;
     use std::io::Write;
+
+    use crate::mod_metadata::LocalModDependency;
+    use crate::mod_metadata::mod_analysis::{ModType, SideSupport};
+
+    #[test]
+    fn parse_failed_mod_ids_extracts_ids() {
+        let log = "\
+[14:43:14] [modloading-worker-0/ERROR] [ne.minecraftforge.fml.loading.ModLoader/]: Failed to load mods:
+[14:43:14] [main/ERROR] [ne.minecraftforge.fml.loading.ModLoader/]: Failed to load mods:
+net.minecraftforge.fml.LoadingFailedException: Loading errors for mods:
+\tNeat (neat) has failed to load correctly
+\tTooltip Texts Scroller (tooltipscroller) has failed to load correctly
+\tEntity Model Features (entity_model_features) has failed to load correctly
+\tEntity Texture Features (entity_texture_features) has failed to load correctly
+\tOculus (oculus) has failed to load correctly
+\tJust Enough Characters (jecharacters) has failed to load correctly
+\tSmooth Swapping (smoothswapping) has failed to load correctly
+\tIMBlocker (imblocker) has failed to load correctly
+";
+        let ids = parse_failed_mod_ids(log);
+        assert_eq!(
+            ids,
+            vec![
+                "neat",
+                "tooltipscroller",
+                "entity_model_features",
+                "entity_texture_features",
+                "oculus",
+                "jecharacters",
+                "smoothswapping",
+                "imblocker",
+            ]
+        );
+    }
 
     #[test]
     fn server_only_files_are_installable() {
@@ -1091,14 +1441,42 @@ mod tests {
         path: &str,
         id: &str,
         depends: serde_json::Value,
-    ) -> (PathBuf, ModMetadata) {
+    ) -> (PathBuf, ModAnalysis) {
+        let dependencies = match depends {
+            serde_json::Value::Object(map) => map
+                .into_iter()
+                .filter_map(|(dep_id, spec)| {
+                    let optional = spec
+                        .get("optional")
+                        .and_then(|v| v.as_bool())
+                        .unwrap_or(false);
+                    (!optional).then_some(LocalModDependency {
+                        mod_id: dep_id,
+                        version_range: None,
+                    })
+                })
+                .collect(),
+            serde_json::Value::Array(list) => list
+                .into_iter()
+                .filter_map(|v| {
+                    v.as_str().map(|s| LocalModDependency {
+                        mod_id: s.to_string(),
+                        version_range: None,
+                    })
+                })
+                .collect(),
+            _ => Vec::new(),
+        };
         (
             PathBuf::from(path),
-            serde_json::from_value(serde_json::json!({
-                "id": id,
-                "depends": depends,
-            }))
-            .unwrap(),
+            ModAnalysis {
+                mod_type: ModType::Fabric,
+                side_support: SideSupport::both(),
+                mod_id: Some(id.to_string()),
+                name: None,
+                version: None,
+                dependencies,
+            },
         )
     }
 
@@ -1128,15 +1506,13 @@ mod tests {
     }
 
     #[test]
-    fn prune_plan_respects_local_provides() {
-        let metas = [
-            meta("shim.jar", "melody-shim", serde_json::json!({})),
+    fn prune_plan_respects_local_mod_ids() {
+        // A dependent of an excluded ID is pruned only when no local mod owns that
+        // ID. Here "melody" is provided by a local mod, so the dependent stays.
+        let metas = vec![
+            meta("provider.jar", "melody", serde_json::json!({})),
             meta("ui.jar", "ui", serde_json::json!({"melody": ">=1.0"})),
         ];
-        // A local mod provides the "missing" dependency, so the dependent stays.
-        let mut shim = metas[0].1.clone();
-        shim.provides = vec!["melody".to_string()];
-        let metas = vec![("shim.jar".into(), shim), metas[1].clone()];
         assert!(
             compute_prune_plan(
                 &metas,
@@ -1146,11 +1522,16 @@ mod tests {
             .is_empty()
         );
 
-        // Once the provider itself is removed, the dependent goes with it.
-        let mut provider = metas[0].1.clone();
-        provider.provides = vec!["melody".to_string()];
-        provider.depends = Some(serde_json::json!({"removed-core": "*"}));
-        let metas = vec![("provider.jar".into(), provider), metas[1].clone()];
+        // Once the local provider itself depends on another excluded ID, both the
+        // provider and its dependent are removed.
+        let metas = vec![
+            meta(
+                "provider.jar",
+                "melody",
+                serde_json::json!({"removed-core": "*"}),
+            ),
+            meta("ui.jar", "ui", serde_json::json!({"melody": ">=1.0"})),
+        ];
         let plan = compute_prune_plan(
             &metas,
             &HashSet::from(["melody".to_string(), "removed-core".to_string()]),

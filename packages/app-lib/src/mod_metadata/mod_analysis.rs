@@ -25,8 +25,13 @@
 use std::io::Read;
 use std::path::{Path, PathBuf};
 
+use bytes::Bytes;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
+
+use crate::mod_metadata::extract_mod_metadata;
+use crate::mod_metadata::is_env_dependency_id;
+use crate::mod_metadata::LocalModDependency;
 
 /// Errors produced while locating, opening, or parsing a mod file.
 #[derive(Debug, Error)]
@@ -204,6 +209,12 @@ pub struct ModAnalysis {
     /// Mod version string, if present.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub version: Option<String>,
+
+    /// Hard dependencies declared in the embedded metadata (Fabric `depends`,
+    /// Forge mandatory `[[dependencies]]`). Used by the server pruner to cascade
+    /// removals: dropping a client-only mod also drops mods that require it.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub dependencies: Vec<LocalModDependency>,
 }
 
 impl ModAnalysis {
@@ -215,6 +226,7 @@ impl ModAnalysis {
             mod_id: None,
             name: None,
             version: None,
+            dependencies: Vec::new(),
         }
     }
 
@@ -484,6 +496,7 @@ impl ModDetector for FabricDetector {
             mod_id: parsed.id,
             name: parsed.name,
             version: parsed.version,
+            dependencies: Vec::new(),
         })
     }
 }
@@ -616,6 +629,7 @@ impl ModDetector for ForgeDetector {
             mod_id: None,
             name: None,
             version: None,
+            dependencies: Vec::new(),
         })
     }
 }
@@ -690,6 +704,7 @@ fn analyze_mods_toml(
         mod_id,
         name,
         version,
+        dependencies: Vec::new(),
     })
 }
 
@@ -727,6 +742,7 @@ fn analyze_mcmod_info(raw: &[u8]) -> Result<ModAnalysis, ModAnalysisError> {
         mod_id,
         name,
         version,
+        dependencies: Vec::new(),
     })
 }
 
@@ -778,7 +794,20 @@ impl ModAnalyzer {
 /// This is the simplest function to call from other crates (e.g. the server
 /// component) when only a single analysis is needed.
 pub fn analyze_mod_side(path: impl AsRef<Path>) -> Result<ModAnalysis, ModAnalysisError> {
-    ModAnalyzer::new().analyze_path(path)
+    let mut analysis = ModAnalyzer::new().analyze_path(&path)?;
+    // Enrich with dependency edges from the unified embedded-metadata extractor
+    // so the server pruner can cascade removals through hard dependencies.
+    if let Ok(bytes) = std::fs::read(path.as_ref()) {
+        if let Some(meta) = extract_mod_metadata(&Bytes::from(bytes)) {
+            if let Some(deps) = meta.dependencies {
+                analysis.dependencies = deps
+                    .into_iter()
+                    .filter(|d| !is_env_dependency_id(&d.mod_id))
+                    .collect();
+            }
+        }
+    }
+    Ok(analysis)
 }
 
 /// One mod file's result from [`analyze_mod_side_dir`].

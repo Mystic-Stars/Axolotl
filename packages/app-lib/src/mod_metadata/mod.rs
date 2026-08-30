@@ -55,7 +55,7 @@ pub struct LocalModMetadata {
 }
 
 /// One required dependency declared in embedded mod metadata.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct LocalModDependency {
     pub mod_id: String,
     #[serde(default)]
