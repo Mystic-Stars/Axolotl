@@ -37,10 +37,10 @@ export function activeInstallFor(serverId: string): ActiveServerInstall | null {
 }
 
 export function serverSetupStatus(server: ServerInfoData): ServerSetupStatus | null {
-	if (activeInstalls[server.id]) return 'installing'
-	if (server.installState === 'incomplete') return 'interrupted'
-	if (server.installState === 'failed') return 'failed'
-	return null
+    if (activeInstalls[server.id]) return 'installing'
+    if (server.installState === 'incomplete') return 'installing'
+    if (server.installState === 'failed') return 'failed'
+    return null
 }
 
 /**
