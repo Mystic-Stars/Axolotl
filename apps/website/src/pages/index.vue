@@ -1544,6 +1544,8 @@ useHead(() => ({
 
 .mods,
 .website {
+	grid-column: span 3 / span 3;
+
 	h3,
 	p {
 		margin: 0;
