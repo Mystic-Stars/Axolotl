@@ -68,13 +68,16 @@ html {
 }
 
 .site-layout {
+	// svh 以小视口（工具栏展开时）为基准，避免移动端 Firefox/Chrome 动态工具栏导致的高度偏差
 	min-height: 100vh;
+	min-height: 100svh;
 	background: linear-gradient(rgb(255 255 255 / 1%) 1px, transparent 1px), var(--color-bg);
 	background-size: 100% 8rem;
 }
 
 .site-layout > main {
 	min-height: calc(100vh - 4.5rem);
+	min-height: calc(100svh - 4.5rem);
 }
 
 .reduced-effects * {

@@ -193,7 +193,8 @@ const messages = defineMessages({
 	.row {
 		--gap: var(--gap-md);
 
-		width: 100vw;
+		// 100vw 在桌面 Firefox（经典滚动条）下包含滚动条宽度会横向溢出，改用容器宽度
+		width: 100%;
 		gap: var(--gap);
 		margin-bottom: var(--gap);
 		display: flex;

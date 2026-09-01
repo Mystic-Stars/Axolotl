@@ -455,7 +455,9 @@ onBeforeUnmount(() => {
 	display: flex;
 	flex-direction: column;
 	width: min(60rem, 100%);
+	// 手机 Firefox/Chrome 的动态工具栏不计入 vh，用 dvh 避免面板底部被遮挡
 	height: min(40rem, calc(100vh - 2rem));
+	height: min(40rem, calc(100dvh - 2rem));
 	overflow: hidden;
 	border: 1px solid var(--color-divider);
 	border-radius: 1.25rem;
@@ -668,6 +670,7 @@ onBeforeUnmount(() => {
 
 	.settings-panel {
 		height: 94vh;
+		height: 94dvh;
 		border-radius: 1.25rem 1.25rem 0 0;
 	}
 
