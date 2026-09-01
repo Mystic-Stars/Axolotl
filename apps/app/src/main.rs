@@ -296,9 +296,7 @@ async fn resolve_update_channel<R: tauri::Runtime>(
 }
 
 #[tauri::command]
-async fn get_current_app_database_path(
-    app: tauri::AppHandle,
-) -> api::Result<String> {
+async fn get_current_app_database_path(app: AppHandle) -> api::Result<String> {
     Ok(theseus::current_app_database_path(&app.config().identifier)
         .await?
         .to_string_lossy()
@@ -383,16 +381,14 @@ fn write_update_channel_state(
 }
 
 #[tauri::command]
-async fn copy_release_database_to_beta(
-    app: tauri::AppHandle,
-) -> api::Result<()> {
+async fn copy_release_database_to_beta(app: AppHandle) -> api::Result<()> {
     theseus::copy_release_database_to_beta(&app.config().identifier).await?;
     Ok(())
 }
 
 #[tauri::command]
 async fn copy_database_between_channels(
-    app: tauri::AppHandle,
+    app: AppHandle,
     source_channel: String,
     target_channel: String,
 ) -> api::Result<()> {
@@ -406,13 +402,13 @@ async fn copy_database_between_channels(
 }
 
 #[tauri::command]
-async fn beta_database_exists(app: tauri::AppHandle) -> api::Result<bool> {
+async fn beta_database_exists(app: AppHandle) -> api::Result<bool> {
     Ok(theseus::beta_database_exists(&app.config().identifier).await?)
 }
 
 #[tauri::command]
 async fn backup_app_db_for_update(
-    app: tauri::AppHandle,
+    app: AppHandle,
     version: String,
 ) -> api::Result<()> {
     theseus::backup_current_app_db_for_update(
