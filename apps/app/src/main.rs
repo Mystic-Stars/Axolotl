@@ -240,7 +240,7 @@ async fn initialize_state(app: AppHandle) -> api::Result<()> {
 }
 
 #[tauri::command]
-fn get_update_channel(app: tauri::AppHandle) -> api::Result<String> {
+fn get_update_channel(app: AppHandle) -> api::Result<String> {
     let channel = read_update_channel_state(&app)?
         .active_channel
         .unwrap_or_else(|| "release".to_string());
@@ -255,9 +255,7 @@ fn get_update_channel(app: tauri::AppHandle) -> api::Result<String> {
 }
 
 #[tauri::command]
-async fn get_current_app_database_path(
-    app: tauri::AppHandle,
-) -> api::Result<String> {
+async fn get_current_app_database_path(app: AppHandle) -> api::Result<String> {
     Ok(theseus::current_app_database_path(&app.config().identifier)
         .await?
         .to_string_lossy()
@@ -265,10 +263,7 @@ async fn get_current_app_database_path(
 }
 
 #[tauri::command]
-fn set_update_channel(
-    app: tauri::AppHandle,
-    channel: String,
-) -> api::Result<()> {
+fn set_update_channel(app: AppHandle, channel: String) -> api::Result<()> {
     if !matches!(channel.as_str(), "release" | "beta") {
         return Err(theseus::Error::from(theseus::ErrorKind::FSError(
             "Invalid update channel".to_string(),
@@ -283,9 +278,7 @@ fn set_update_channel(
 }
 
 #[tauri::command]
-fn get_update_preferences(
-    app: tauri::AppHandle,
-) -> api::Result<UpdatePreferences> {
+fn get_update_preferences(app: AppHandle) -> api::Result<UpdatePreferences> {
     let state = read_update_channel_state(&app)?;
     let is_beta = state.active_channel.as_deref() == Some("beta");
     Ok(UpdatePreferences {
@@ -297,7 +290,7 @@ fn get_update_preferences(
 
 #[tauri::command]
 fn set_update_preferences(
-    app: tauri::AppHandle,
+    app: AppHandle,
     immediate_update_fetch: bool,
     updates_paused: bool,
 ) -> api::Result<()> {
@@ -307,7 +300,7 @@ fn set_update_preferences(
     write_update_channel_state(&app, &state)
 }
 
-fn update_channel_state_path(app: &tauri::AppHandle) -> api::Result<PathBuf> {
+fn update_channel_state_path(app: &AppHandle) -> api::Result<PathBuf> {
     let settings_dir = theseus::DirectoryInfo::initial_settings_dir_path(
         &app.config().identifier,
     )
@@ -320,7 +313,7 @@ fn update_channel_state_path(app: &tauri::AppHandle) -> api::Result<PathBuf> {
 }
 
 fn read_update_channel_state(
-    app: &tauri::AppHandle,
+    app: &AppHandle,
 ) -> api::Result<UpdateChannelState> {
     let path = update_channel_state_path(app)?;
     match std::fs::read_to_string(path) {
@@ -338,7 +331,7 @@ fn read_update_channel_state(
 }
 
 fn write_update_channel_state(
-    app: &tauri::AppHandle,
+    app: &AppHandle,
     state: &UpdateChannelState,
 ) -> api::Result<()> {
     let path = update_channel_state_path(app)?;
@@ -356,16 +349,14 @@ fn write_update_channel_state(
 }
 
 #[tauri::command]
-async fn copy_release_database_to_beta(
-    app: tauri::AppHandle,
-) -> api::Result<()> {
+async fn copy_release_database_to_beta(app: AppHandle) -> api::Result<()> {
     theseus::copy_release_database_to_beta(&app.config().identifier).await?;
     Ok(())
 }
 
 #[tauri::command]
 async fn copy_database_between_channels(
-    app: tauri::AppHandle,
+    app: AppHandle,
     source_channel: String,
     target_channel: String,
 ) -> api::Result<()> {
@@ -379,13 +370,13 @@ async fn copy_database_between_channels(
 }
 
 #[tauri::command]
-async fn beta_database_exists(app: tauri::AppHandle) -> api::Result<bool> {
+async fn beta_database_exists(app: AppHandle) -> api::Result<bool> {
     Ok(theseus::beta_database_exists(&app.config().identifier).await?)
 }
 
 #[tauri::command]
 async fn backup_app_db_for_update(
-    app: tauri::AppHandle,
+    app: AppHandle,
     version: String,
 ) -> api::Result<()> {
     theseus::backup_current_app_db_for_update(
