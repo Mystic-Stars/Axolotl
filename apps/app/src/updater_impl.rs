@@ -21,6 +21,16 @@ const UPDATE_SERVER_LATEST_URL: &str = "https://update.axlmc.org/latest";
 const AXOLOTL_APT_SETUP_URL: &str = "https://ppa.axlmc.org/setup.sh";
 const AXOLOTL_APT_PACKAGE: &str = "axolotl-launcher";
 
+/// SHA-256 digest of the repository setup script at `AXOLOTL_APT_SETUP_URL`.
+///
+/// The script is downloaded to a temporary file and handed to `pkexec sh`
+/// only when its digest matches this pinned value, so unverified remote text
+/// is never executed as root. Keep this in sync with the published script;
+/// leaving it `None` disables first-time repository setup entirely
+/// (fail-closed): the package must be installed through a pre-configured
+/// repository instead.
+const AXOLOTL_APT_SETUP_SHA256: Option<&str> = None;
+
 // The updater plugin builds `Update` with no request timeout, so a stalled
 // connection would hang the download forever. Bound the whole download.
 const UPDATE_DOWNLOAD_TIMEOUT: std::time::Duration =
@@ -297,37 +307,151 @@ pub fn is_apt_linux() -> bool {
     }
 }
 
-/// Update Axolotl on Debian and its derivatives through apt, prompting for
-/// root once via `pkexec`. Runs the repo setup script and the package
-/// install in a single privileged shell so only one authorization is asked.
-#[tauri::command]
-pub async fn install_apt_update(version: String) -> Result<()> {
-    if !is_apt_linux() {
+/// Validates an apt package version against the character set Debian accepts
+/// for version strings, so it can never smuggle shell syntax or unexpected
+/// arguments into a privileged command.
+fn validate_apt_version(version: &str) -> Result<()> {
+    if version.is_empty()
+        || version.len() > 128
+        || !version.bytes().all(|byte| {
+            byte.is_ascii_alphanumeric() || b".+-:~".contains(&byte)
+        })
+    {
+        return Err(theseus::Error::from(theseus::ErrorKind::InputError(
+            "invalid apt version".to_string(),
+        ))
+        .into());
+    }
+    Ok(())
+}
+
+/// Queries the installed version of a package through dpkg without root.
+fn query_dpkg_version(package: &str) -> Result<String> {
+    let output = std::process::Command::new("dpkg-query")
+        .args(["-W", "-f=${Version}", package])
+        .output()?;
+    if !output.status.success() {
         return Err(theseus::Error::from(theseus::ErrorKind::OtherError(
-            "apt updates are only supported on Debian-based Linux systems with pkexec"
+            format!(
+                "dpkg-query failed for {package}: {}",
+                String::from_utf8_lossy(&output.stderr).trim()
+            ),
+        ))
+        .into());
+    }
+    Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
+}
+
+/// Detects whether the Axolotl apt repository is already configured, so a
+/// first-time installation knows whether it must run the hash-verified setup
+/// script. Checks the standard source-list locations and, as a fallback, the
+/// dpkg status of the launcher package.
+fn apt_repository_configured() -> bool {
+    for path in [
+        "/etc/apt/sources.list.d/axolotl.list",
+        "/etc/apt/sources.list.d/axolotl.sources",
+        "/etc/apt/sources.list.d/axlmc.list",
+        "/etc/apt/sources.list.d/axlmc.sources",
+    ] {
+        if std::path::Path::new(path).exists() {
+            return true;
+        }
+    }
+    if let Ok(entries) = std::fs::read_dir("/etc/apt/sources.list.d") {
+        for entry in entries.flatten() {
+            let name = entry.file_name().to_string_lossy().to_ascii_lowercase();
+            if name.contains("axolotl") || name.contains("axlmc") {
+                return true;
+            }
+        }
+    }
+    std::process::Command::new("dpkg-query")
+        .args(["-W", "-f=${Status}", AXOLOTL_APT_PACKAGE])
+        .output()
+        .map(|output| {
+            output.status.success()
+                && String::from_utf8_lossy(&output.stdout)
+                    .contains("install ok installed")
+        })
+        .unwrap_or(false)
+}
+
+/// Runs the first-time repository setup script after verifying its SHA-256
+/// digest against the pinned value above. The script is written to a
+/// temporary file and executed as a fixed local path via `pkexec sh`; an
+/// unverified or mismatching script is never executed.
+async fn run_apt_setup_script() -> Result<()> {
+    let expected = AXOLOTL_APT_SETUP_SHA256.ok_or_else(|| {
+        theseus::Error::from(theseus::ErrorKind::OtherError(
+            "the Axolotl apt repository is not configured and no pinned setup script hash is \
+             available; add the repository manually and retry"
                 .to_string(),
+        ))
+    })?;
+
+    let response = ClientBuilder::new()
+        .user_agent(launcher_user_agent())
+        .timeout(UPDATE_DOWNLOAD_TIMEOUT)
+        .build()?
+        .get(AXOLOTL_APT_SETUP_URL)
+        .send()
+        .await?;
+    if !response.status().is_success() {
+        return Err(theseus::Error::from(theseus::ErrorKind::OtherError(
+            format!(
+                "failed to download the apt setup script: {}",
+                response.status()
+            ),
+        ))
+        .into());
+    }
+    let bytes = response.bytes().await?;
+
+    use sha2::{Digest, Sha256};
+    let actual = format!("{:x}", Sha256::digest(&bytes));
+    if !actual.eq_ignore_ascii_case(expected) {
+        return Err(theseus::Error::from(theseus::ErrorKind::OtherError(
+            format!(
+                "apt setup script hash mismatch (expected {expected}, got {actual}); refusing to run it"
+            ),
         ))
         .into());
     }
 
-    // Everything runs as root under one pkexec prompt; no `sudo` needed inside.
-    let script = format!(
-        "curl -fsSL {AXOLOTL_APT_SETUP_URL} | bash && \
-         apt-get update && \
-         apt-get install -y {AXOLOTL_APT_PACKAGE}"
-    );
+    // Persist the verified bytes in a uniquely named, exclusively created
+    // temporary file (mode 0600 on Unix). The handle is moved into the
+    // spawn_blocking closure and kept alive for the whole pkexec run, so no
+    // other local process can predict or swap the path between our hash
+    // check and the privileged execution.
+    use std::io::Write;
+    let mut script_file = tempfile::NamedTempFile::new().map_err(|io| {
+        theseus::Error::from(theseus::ErrorKind::OtherError(format!(
+            "failed to create temporary apt setup script: {io}"
+        )))
+    })?;
+    script_file.write_all(&bytes).map_err(|io| {
+        theseus::Error::from(theseus::ErrorKind::OtherError(format!(
+            "failed to write temporary apt setup script: {io}"
+        )))
+    })?;
+    script_file.flush().map_err(|io| {
+        theseus::Error::from(theseus::ErrorKind::OtherError(format!(
+            "failed to flush temporary apt setup script: {io}"
+        )))
+    })?;
+    let script_path = script_file.path().to_path_buf();
 
     let output = tokio::task::spawn_blocking(move || {
+        // `script_file` is kept alive here; dropping it would delete the file.
+        let _script_file = script_file;
         std::process::Command::new("pkexec")
-            .arg("sh")
-            .arg("-c")
-            .arg(&script)
+            .args(["sh", script_path.to_str().unwrap_or("")])
             .output()
     })
     .await
     .map_err(|join| {
         theseus::Error::from(theseus::ErrorKind::OtherError(format!(
-            "Failed to run the apt updater: {join}"
+            "Failed to run the apt setup script: {join}"
         )))
     })?
     .map_err(|io| {
@@ -339,16 +463,126 @@ pub async fn install_apt_update(version: String) -> Result<()> {
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
         return Err(theseus::Error::from(theseus::ErrorKind::OtherError(
+            format!("apt setup script failed: {}", stderr.trim()),
+        ))
+        .into());
+    }
+    Ok(())
+}
+
+/// Runs a pkexec command with a fixed argument list (no shell) on the blocking
+/// pool, returning its output. The command line is never assembled from
+/// remote or user-controlled text.
+async fn run_pkexec_async(args: Vec<String>) -> Result<std::process::Output> {
+    let task_result = tokio::task::spawn_blocking(move || {
+        std::process::Command::new("pkexec").args(&args).output()
+    })
+    .await
+    .map_err(|join| {
+        theseus::Error::from(theseus::ErrorKind::OtherError(format!(
+            "Failed to run pkexec task: {join}"
+        )))
+    })?;
+
+    let output = task_result.map_err(|io| {
+        theseus::Error::from(theseus::ErrorKind::OtherError(format!(
+            "Failed to start pkexec: {io}"
+        )))
+    })?;
+
+    Ok(output)
+}
+
+/// Update Axolotl on Debian and its derivatives through apt, prompting for
+/// root via `pkexec`. The repository is configured first (through a
+/// hash-verified setup script on first use), then `apt-get update` and a
+/// version-pinned `apt-get install` run with fixed arguments — never through
+/// a shell that could interpolate remote or user-controlled text.
+#[tauri::command]
+pub async fn install_apt_update(version: String) -> Result<()> {
+    if !is_apt_linux() {
+        return Err(theseus::Error::from(theseus::ErrorKind::OtherError(
+            "apt updates are only supported on Debian-based Linux systems with pkexec"
+                .to_string(),
+        ))
+        .into());
+    }
+    validate_apt_version(&version)?;
+
+    // First-time installation needs the repository to exist; configure it
+    // through the hash-verified setup script when it is missing.
+    if !apt_repository_configured() {
+        run_apt_setup_script().await?;
+    }
+
+    let update_output =
+        run_pkexec_async(vec!["apt-get".to_string(), "update".to_string()])
+            .await?;
+    if !update_output.status.success() {
+        let stderr = String::from_utf8_lossy(&update_output.stderr);
+        return Err(theseus::Error::from(theseus::ErrorKind::OtherError(
             format!("apt update failed: {}", stderr.trim()),
         ))
         .into());
     }
 
-    // Persist the post-update announcement trigger so the new release notes
-    // show after the app restarts into the freshly installed version.
+    let install_output = run_pkexec_async(vec![
+        "apt-get".to_string(),
+        "install".to_string(),
+        "-y".to_string(),
+        format!("{AXOLOTL_APT_PACKAGE}={version}"),
+    ])
+    .await?;
+    if !install_output.status.success() {
+        let stderr = String::from_utf8_lossy(&install_output.stderr);
+        return Err(theseus::Error::from(theseus::ErrorKind::OtherError(
+            format!("apt install failed: {}", stderr.trim()),
+        ))
+        .into());
+    }
+
+    // Persist the success announcement only after the installed version is
+    // verified to match the requested one.
+    let installed = query_dpkg_version(AXOLOTL_APT_PACKAGE)?;
+    if installed != version {
+        return Err(theseus::Error::from(theseus::ErrorKind::OtherError(
+            format!("installed version {installed} != requested {version}"),
+        ))
+        .into());
+    }
+
     let mut current = settings::get().await?;
     current.pending_update_toast_for_version = Some(version);
     settings::set(current).await?;
 
     Ok(())
+}
+
+#[cfg(test)]
+mod apt_version_tests {
+    use super::*;
+
+    #[test]
+    fn apt_version_accepts_valid_debian_versions() {
+        for v in ["1.9.5", "1:2.3-4", "1.2.3~beta+git", "1.0-1~bpo11+1"] {
+            assert!(validate_apt_version(v).is_ok(), "should accept {v}");
+        }
+    }
+
+    #[test]
+    fn apt_version_rejects_shell_injection() {
+        for v in [
+            "",
+            "1.2;rm -rf /",
+            "1.2$(id)",
+            "1.2`id`",
+            "1.2 | sh",
+            "1.2 && apt",
+            "1.2\nreboot",
+            "a b",
+            "1..2/..",
+        ] {
+            assert!(validate_apt_version(v).is_err(), "should reject {v:?}");
+        }
+    }
 }
