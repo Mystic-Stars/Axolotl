@@ -3101,6 +3101,36 @@ fn is_partial_download_file_name(name: &str) -> bool {
             })
 }
 
+/// Derives the download destination for a partial download file, so cleanup
+/// can take the same lock that download writers hold. Plain parts are
+/// `<dest>.part`; range-segmented parts are `<dest>.part.segment-<n>`.
+fn partial_download_destination(entry_path: &Path) -> Option<PathBuf> {
+    let name = entry_path.file_name()?.to_string_lossy();
+    let (base, _index) = match name.rsplit_once(".segment-") {
+        Some((base, index))
+            if base.ends_with(".part")
+                && !index.is_empty()
+                && index.bytes().all(|byte| byte.is_ascii_digit()) =>
+        {
+            (base, index)
+        }
+        Some(_) => return None,
+        None => (name.as_ref(), ""),
+    };
+    let dest_name = base.strip_suffix(".part")?;
+    Some(entry_path.with_file_name(dest_name))
+}
+
+/// Acquires a destination download lock from the blocking pool. The stale
+/// cleanup runs on `spawn_blocking`, so it cannot `await` the async mutex;
+/// blocking on the same `Arc<AsyncMutex<()>>` used by writers gives real
+/// mutual exclusion with active downloads of the same destination.
+fn blocking_acquire_download_lock(
+    lock: &Arc<AsyncMutex<()>>,
+) -> tokio::sync::MutexGuard<'_, ()> {
+    tokio::runtime::Handle::current().block_on(lock.lock())
+}
+
 /// Removes partial download files under launcher-managed directories that
 /// have not been written to for a week. Partial data is preserved between
 /// attempts so interrupted downloads can resume, but destinations that are
@@ -3134,12 +3164,34 @@ pub fn cleanup_stale_partial_downloads(directories: Vec<PathBuf>) {
                 {
                     continue;
                 }
+                // Derive the destination so cleanup takes the same lock a
+                // download writer holds, avoiding a race where an active or
+                // resumable download is deleted out from under its writer.
+                let Some(destination) =
+                    partial_download_destination(&entry.path())
+                else {
+                    continue;
+                };
+                let lock = destination_download_lock(&destination);
+                let _guard = blocking_acquire_download_lock(&lock);
+                // Re-check freshness inside the lock to avoid a TOCTOU race
+                // with a writer that refreshed the file while we waited.
                 let stale = entry
                     .metadata()
                     .and_then(|metadata| metadata.modified())
                     .is_ok_and(|modified| modified < cutoff);
-                if stale && std::fs::remove_file(entry.path()).is_ok() {
-                    removed += 1;
+                if stale {
+                    match std::fs::remove_file(entry.path()) {
+                        Ok(()) => removed += 1,
+                        Err(error)
+                            if error.kind() == std::io::ErrorKind::NotFound => {
+                        }
+                        Err(error) => tracing::warn!(
+                            path = %entry.path().display(),
+                            error = %error,
+                            "partial cleanup failed"
+                        ),
+                    }
                 }
             }
         }
@@ -9591,5 +9643,32 @@ mod tests {
         assert!(authority_uses_http1_fallback("example.com:443"));
         assert!(!authority_uses_http1_fallback("other.com:443"));
         H2_FALLBACK_AUTHORITIES.lock().clear();
+    }
+}
+
+#[cfg(test)]
+mod partial_destination_tests {
+    use super::*;
+
+    #[test]
+    fn partial_destination_derives_target() {
+        let cases = [
+            ("/x/foo.part", "/x/foo"),
+            ("C:/x/foo.part", "C:/x/foo"),
+            ("/x/foo.part.segment-0", "/x/foo"),
+            ("/x/foo.part.segment-12", "/x/foo"),
+        ];
+        for (input, expected) in cases {
+            let got = partial_download_destination(Path::new(input))
+                .unwrap_or_else(|| panic!("{input} should map"));
+            assert_eq!(got, PathBuf::from(expected), "for {input}");
+        }
+        assert!(
+            partial_download_destination(Path::new("/x/foo.txt")).is_none()
+        );
+        assert!(
+            partial_download_destination(Path::new("/x/foo.part.segment-x"))
+                .is_none()
+        );
     }
 }
