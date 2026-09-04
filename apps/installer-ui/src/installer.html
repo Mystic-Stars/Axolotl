@@ -1306,7 +1306,7 @@
 
 			const language = boot.language === 'zhCn' ? 'zhCn' : 'en'
 			const t = copy[language]
-			const state = { screen: 'welcome', progress: 4, failed: false, launchFailed: false }
+			const state = { screen: 'welcome', progress: 4, failed: false, launchFailed: false, launchAfter: true }
 			const screens = ['welcome', 'configure', 'installing', 'complete']
 			const $ = (selector) => document.querySelector(selector)
 			const post = (payload) => window.ipc.postMessage(JSON.stringify(payload))
@@ -1383,8 +1383,8 @@
 					$('#footer-note').textContent = state.launchFailed
 						? t.footerLaunchFailed
 						: t.footerComplete
-					$('#primary-label').textContent = $('#launch-after').checked ? t.launch : t.finish
-					icon.innerHTML = $('#launch-after').checked
+					$('#primary-label').textContent = state.launchAfter ? t.launch : t.finish
+					icon.innerHTML = state.launchAfter
 						? '<path d="M5 12h14m-6-6 6 6-6 6"/>'
 						: '<path d="m5 12 4 4L19 6"/>'
 				}
@@ -1396,12 +1396,13 @@
 				$('#launch-error').classList.remove('visible')
 				state.failed = false
 				state.launchFailed = false
+				state.launchAfter = $('#launch-after').checked
 				post({
 					command: 'install',
 					installDir: $('#install-dir').value.trim(),
 					resourceDir: $('#resource-dir').value.trim(),
 					desktopShortcut: $('#desktop-shortcut').checked,
-					launchAfter: $('#launch-after').checked,
+					launchAfter: state.launchAfter,
 				})
 
 				// Developer Preview Mock
@@ -1444,14 +1445,17 @@
 			$('#browse-resource').addEventListener('click', () =>
 				post({ command: 'browse', target: 'resource', current: $('#resource-dir').value }),
 			)
-			$('#launch-after').addEventListener('change', renderFooter)
+			$('#launch-after').addEventListener('change', () => {
+				state.launchAfter = $('#launch-after').checked
+				renderFooter()
+			})
 
 			$('#primary-action').addEventListener('click', () => {
 				if (state.screen === 'welcome') setScreen('configure')
 				else if (state.screen === 'configure' || (state.screen === 'installing' && state.failed))
 					install()
 				else if (state.screen === 'complete')
-					post({ command: 'finish', launch: $('#launch-after').checked })
+					post({ command: 'finish', launch: state.launchAfter })
 			})
 			$('#secondary-action').addEventListener('click', () => setScreen('welcome'))
 
@@ -1473,10 +1477,12 @@
 					} else if (message.type === 'progress') {
 						setProgress(message.value)
 					} else if (message.type === 'installFinished') {
+						state.launchAfter = message.launchAfter ?? state.launchAfter
 						setProgress(100)
 						setScreen('complete')
 					} else if (message.type === 'launchFailed') {
 						state.launchFailed = true
+						state.launchAfter = true
 						setProgress(100)
 						$('#launch-error').textContent = t.launchFailed
 						$('#launch-error').classList.add('visible')

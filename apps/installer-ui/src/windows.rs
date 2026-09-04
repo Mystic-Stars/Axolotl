@@ -312,7 +312,10 @@ pub fn run() -> Result<(), String> {
                     }
                     Ok(()) => send_to_webview(
                         webview.as_ref(),
-                        json!({ "type": "installFinished" }),
+                        json!({
+                            "type": "installFinished",
+                            "launchAfter": launch_after_install,
+                        }),
                     ),
                     Err(error) => send_to_webview(
                         webview.as_ref(),
