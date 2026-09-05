@@ -531,6 +531,9 @@ importers:
       '@modrinth/utils':
         specifier: workspace:*
         version: link:../utils
+      '@sfirew/minecraft-motd-parser':
+        specifier: ^1.1.6
+        version: 1.1.6
       '@tanstack/vue-query':
         specifier: 5.90.7
         version: 5.90.7(vue@3.5.27(typescript@5.9.3))

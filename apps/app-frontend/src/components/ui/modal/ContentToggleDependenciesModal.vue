@@ -4,9 +4,12 @@ import {
 	ButtonStyled,
 	commonMessages,
 	defineMessages,
+	IntlFormatted,
+	MinecraftFormattedText,
 	NewModal,
 	useVIntl,
 } from '@modrinth/ui'
+import { autoCleanToText } from '@sfirew/minecraft-motd-parser'
 import { ref } from 'vue'
 
 export interface ContentToggleDependencyItem {
@@ -99,12 +102,14 @@ defineExpose({ show })
 	>
 		<div v-if="data" class="flex flex-col gap-4">
 			<p class="m-0 text-primary">
-				{{
-					formatMessage(data.bulk ? messages.bulkBody : messages.singleBody, {
-						project: data.primaryTitle,
-						count: data.related.length,
-					})
-				}}
+				<IntlFormatted
+					:message-id="data.bulk ? messages.bulkBody : messages.singleBody"
+					:values="{ count: data.related.length }"
+				>
+					<template #project>
+						<MinecraftFormattedText :text="data.primaryTitle" />
+					</template>
+				</IntlFormatted>
 			</p>
 
 			<div v-if="data.related.length > 0" class="flex flex-col gap-2">
@@ -118,13 +123,16 @@ defineExpose({ show })
 				>
 					<Avatar
 						:src="item.iconUrl"
-						:alt="item.title"
+						:alt="autoCleanToText(item.title)"
 						size="2.5rem"
 						:tint-by="item.title"
 						no-shadow
 					/>
 					<div class="flex min-w-0 flex-col gap-0.5">
-						<span class="truncate font-semibold text-contrast">{{ item.title }}</span>
+						<MinecraftFormattedText
+							:text="item.title"
+							class="truncate font-semibold text-contrast"
+						/>
 						<span v-if="item.versionNumber" class="truncate text-sm text-secondary">
 							{{ item.versionNumber }}
 						</span>

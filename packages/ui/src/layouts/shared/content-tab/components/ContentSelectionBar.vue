@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { PowerIcon, PowerOffIcon, XIcon } from '@modrinth/assets'
+import { autoCleanToText, autoToHTML } from '@sfirew/minecraft-motd-parser'
 import { computed } from 'vue'
 
 import Avatar from '#ui/components/base/Avatar.vue'
@@ -135,6 +136,14 @@ function resolveItemId(item: ContentItem) {
 	return props.getItemId?.(item) ?? item.file_path ?? item.file_name ?? item.id
 }
 
+function resolveItemTitle(item: ContentItem) {
+	return item.project?.title ?? item.file_name
+}
+
+function itemTitleTooltip(item: ContentItem) {
+	return { content: autoToHTML(resolveItemTitle(item)), html: true }
+}
+
 const allDisabled = computed(
 	() =>
 		!props.selectedItems.some((item) => canToggleContentItem(item) && isEnabledContentItem(item)),
@@ -199,13 +208,13 @@ const bulkProgressMessage = computed(() => {
 				<div
 					v-for="(item, index) in visibleItems"
 					:key="resolveItemId(item)"
-					v-tooltip="item.project?.title ?? item.file_name"
+					v-tooltip="itemTitleTooltip(item)"
 					class="absolute top-0 flex h-8 w-8 items-center justify-center overflow-hidden rounded-lg border-[1.5px] border-solid border-surface-3 bg-surface-4"
 					:style="{ left: `${index * iconStackOffset}px`, zIndex: visibleItems.length - index }"
 				>
 					<Avatar
 						:src="item.project?.icon_url"
-						:alt="item.project?.title ?? item.file_name"
+						:alt="autoCleanToText(resolveItemTitle(item))"
 						:tint-by="resolveItemId(item)"
 						size="100%"
 						no-shadow

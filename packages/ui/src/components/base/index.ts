@@ -21,7 +21,6 @@ export type {
 	ButtonVisualProps,
 } from './buttons/types'
 export { default as ButtonStyled } from './ButtonStyled.vue'
-export { default as ScrollToTopButton } from './ScrollToTopButton.vue'
 export { default as Card } from './Card.vue'
 export { default as Checkbox } from './Checkbox.vue'
 export { default as Chips } from './Chips.vue'
@@ -65,6 +64,7 @@ export { default as LoadingBar } from './LoadingBar.vue'
 export { default as LoadingIndicator } from './LoadingIndicator.vue'
 export { default as ManySelect } from './ManySelect.vue'
 export { default as MarkdownEditor } from './MarkdownEditor.vue'
+export { default as MinecraftFormattedText } from './MinecraftFormattedText.vue'
 export type {
 	MultiSelectItem,
 	MultiSelectOption,
@@ -87,6 +87,7 @@ export { default as RadialHeader } from './RadialHeader.vue'
 export { default as RadioButtons } from './RadioButtons.vue'
 export { default as ReadyTransition } from './ReadyTransition.vue'
 export { default as ScrollablePanel } from './ScrollablePanel.vue'
+export { default as ScrollToTopButton } from './ScrollToTopButton.vue'
 export { default as SelectionCard } from './SelectionCard.vue'
 export { default as ServerNotice } from './ServerNotice.vue'
 export { default as SettingsLabel } from './SettingsLabel.vue'

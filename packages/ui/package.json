@@ -46,6 +46,7 @@
 		"@modrinth/api-client": "workspace:*",
 		"@modrinth/assets": "workspace:*",
 		"@modrinth/utils": "workspace:*",
+		"@sfirew/minecraft-motd-parser": "^1.1.6",
 		"@tanstack/vue-query": "5.90.7",
 		"@tauri-apps/plugin-dialog": "^2.2.1",
 		"@tresjs/cientos": "^4.3.0",

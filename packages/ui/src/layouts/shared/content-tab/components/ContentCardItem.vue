@@ -14,6 +14,7 @@ import {
 	UndoIcon,
 	UserIcon,
 } from '@modrinth/assets'
+import { autoCleanToText } from '@sfirew/minecraft-motd-parser'
 import { useMagicKeys } from '@vueuse/core'
 import { computed, getCurrentInstance, ref } from 'vue'
 import type { RouteLocationRaw } from 'vue-router'
@@ -23,6 +24,7 @@ import Avatar from '#ui/components/base/Avatar.vue'
 import BulletDivider from '#ui/components/base/BulletDivider.vue'
 import ButtonStyled from '#ui/components/base/ButtonStyled.vue'
 import Checkbox from '#ui/components/base/Checkbox.vue'
+import MinecraftFormattedText from '#ui/components/base/MinecraftFormattedText.vue'
 import type { Option as OverflowMenuOption } from '#ui/components/base/OverflowMenu.vue'
 import TeleportOverflowMenu from '#ui/components/base/TeleportOverflowMenu.vue'
 import Toggle from '#ui/components/base/Toggle.vue'
@@ -195,6 +197,7 @@ const fileNameRef = ref<HTMLElement | null>(null)
 
 const isDisabled = computed(() => props.disabled || props.installing)
 const isToggleDisabled = computed(() => isDisabled.value || props.toggleDisabled)
+const plainProjectTitle = computed(() => autoCleanToText(props.project.title))
 
 const interactiveSelectors = 'a, button, input, select, [role="checkbox"], [role="button"]'
 
@@ -236,7 +239,7 @@ const deleteHovered = ref(false)
 				v-if="showCheckbox"
 				:model-value="selected ?? false"
 				:indeterminate="groupCheckboxIndeterminate"
-				:aria-label="formatMessage(messages.selectProject, { project: project.title })"
+				:aria-label="formatMessage(messages.selectProject, { project: plainProjectTitle })"
 				class="shrink-0"
 				@update:model-value="(value, event) => emit('select', value, event)"
 			/>
@@ -244,7 +247,7 @@ const deleteHovered = ref(false)
 			<div class="flex min-w-0 items-center gap-3">
 				<Avatar
 					:src="project.icon_url"
-					:alt="project.title"
+					:alt="plainProjectTitle"
 					size="3rem"
 					no-shadow
 					class="rounded-2xl border border-surface-5"
@@ -270,7 +273,7 @@ const deleteHovered = ref(false)
 								{ 'hover:underline': projectLink },
 							]"
 						>
-							{{ project.title }}
+							<MinecraftFormattedText :text="project.title" />
 						</AutoLink>
 						<span
 							v-if="groupKind === 'world'"
@@ -472,7 +475,7 @@ const deleteHovered = ref(false)
 			<Checkbox
 				v-if="showCheckbox"
 				:model-value="selected ?? false"
-				:aria-label="formatMessage(messages.selectProject, { project: project.title })"
+				:aria-label="formatMessage(messages.selectProject, { project: plainProjectTitle })"
 				class="shrink-0"
 				@update:model-value="(value, event) => emit('select', value, event)"
 			/>
@@ -493,7 +496,7 @@ const deleteHovered = ref(false)
 				>
 					<Avatar
 						:src="project.icon_url"
-						:alt="project.title"
+						:alt="plainProjectTitle"
 						size="3rem"
 						no-shadow
 						class="rounded-2xl border border-surface-5"
@@ -523,7 +526,7 @@ const deleteHovered = ref(false)
 							class="truncate font-semibold leading-6 text-contrast !decoration-contrast"
 							:class="{ 'hover:underline': projectLink }"
 						>
-							{{ project.title }}
+							<MinecraftFormattedText :text="project.title" />
 						</AutoLink>
 						<TriangleAlertIcon
 							v-if="postUpgradeWarningTooltip"
@@ -740,7 +743,7 @@ const deleteHovered = ref(false)
 				"
 				:model-value="enabled"
 				:disabled="isToggleDisabled"
-				:aria-label="project.title"
+				:aria-label="plainProjectTitle"
 				class="my-auto"
 				@update:model-value="(val) => emit('update:enabled', val as boolean)"
 			/>

@@ -3,15 +3,20 @@
 		<div class="flex flex-col gap-6">
 			<SymlinkWarningAdmonition :symlink-target="symlinkTarget" />
 			<Admonition type="critical" :header="formatMessage(messages.admonitionHeader)">
-				{{
-					visibleItems.length === 1
-						? formatMessage(messages.singleAdmonitionBody, {
-								project:
-									visibleItems[0]?.project.title ?? formatMessage(commonMessages.unknownLabel),
-								context: contextLabel,
-							})
-						: formatMessage(messages.bulkAdmonitionBody, { context: contextLabel })
-				}}
+				<IntlFormatted
+					v-if="visibleItems.length === 1"
+					:message-id="messages.singleAdmonitionBody"
+					:values="{ context: contextLabel }"
+				>
+					<template #project>
+						<MinecraftFormattedText
+							:text="visibleItems[0]?.project.title ?? formatMessage(commonMessages.unknownLabel)"
+						/>
+					</template>
+				</IntlFormatted>
+				<template v-else>
+					{{ formatMessage(messages.bulkAdmonitionBody, { context: contextLabel }) }}
+				</template>
 			</Admonition>
 
 			<div v-if="visibleItems.length > 0" class="flex flex-col gap-2">
@@ -105,11 +110,11 @@
 										<span
 											v-for="dependency in dependent.dependencies"
 											:key="dependency.id"
-											:title="dependency.project.title"
+											v-tooltip="{ content: autoToHTML(dependency.project.title), html: true }"
 										>
-											<span class="truncate text-xs text-secondary mr-0.5"
-												>({{ dependency.project.title }})</span
-											>
+											<span class="mr-0.5 truncate text-xs text-secondary">
+												(<MinecraftFormattedText :text="dependency.project.title" />)
+											</span>
 										</span>
 									</span>
 								</template>
@@ -180,11 +185,14 @@
 
 <script setup lang="ts">
 import { TrashIcon, XIcon } from '@modrinth/assets'
+import { autoToHTML } from '@sfirew/minecraft-motd-parser'
 import { computed, nextTick, ref } from 'vue'
 
 import Admonition from '#ui/components/base/Admonition.vue'
 import ButtonStyled from '#ui/components/base/ButtonStyled.vue'
 import Checkbox from '#ui/components/base/Checkbox.vue'
+import IntlFormatted from '#ui/components/base/IntlFormatted.vue'
+import MinecraftFormattedText from '#ui/components/base/MinecraftFormattedText.vue'
 import NewModal from '#ui/components/modal/NewModal.vue'
 import { defineMessages, useVIntl } from '#ui/composables/i18n'
 import { useScrollIndicator } from '#ui/composables/scroll-indicator'
