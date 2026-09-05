@@ -627,6 +627,12 @@ enum AssetBatchItemOutcome {
     LocalObjectFailed {
         error: crate::Error,
     },
+    /// The server answered with a redirect status that only the regular
+    /// per-file download layer can explain: it owns Location following, hop
+    /// limits and route selection. The item is handed straight back to that
+    /// layer, never counted as a line-level transfer failure and never
+    /// retried inside the batch.
+    RedirectFallback,
 }
 
 impl Clone for H2BatchAsset {
@@ -966,6 +972,18 @@ where
                         local_object_error = Some(error);
                     }
                 }
+                Ok(AssetBatchItemOutcome::RedirectFallback) => {
+                    tracing::debug!(
+                        url = %fetch::sanitize_url_for_log(&item.url),
+                        "Asset batch received a redirect status; deferring to the regular download path"
+                    );
+                    // Redirect responses are explained by the regular per-file
+                    // layer (Location following, hop limit, route fallback).
+                    // Do not spend another batch pass on them and do not count
+                    // them as transfer failures: #487 keeps original_url so the
+                    // ordinary path can rebuild official and mirror candidates.
+                    failed.push(item);
+                }
                 Err(error) => {
                     network_failures = network_failures.saturating_add(1);
                     tracing::debug!(
@@ -1044,17 +1062,34 @@ async fn download_asset_item(
     // A different downloader may have committed the object while this item
     // waited for the destination lock. Reuse it instead of opening another
     // stream, which also prevents cross-engine `.part`/rename races.
-    if fetch::verify_file(&item.destination, &integrity)
-        .await
-        .is_ok()
-    {
-        return Ok(match copy_asset_legacy_destinations(item).await {
-            Ok(()) => AssetBatchItemOutcome::Completed { downloaded: false },
-            Err(error) => AssetBatchItemOutcome::LocalCopyFailed {
-                downloaded: false,
-                error,
-            },
-        });
+    // Existence is checked before full hash verification: `verify_file`
+    // acquires the global validation budget before it opens the file, so a
+    // batch full of missing objects must not queue behind unrelated hashing
+    // work before it can even reach the network stage. Existence alone is
+    // never treated as correctness; an existing object is still verified.
+    match tokio::fs::try_exists(&item.destination).await {
+        Ok(true) => {
+            if fetch::verify_file(&item.destination, &integrity)
+                .await
+                .is_ok()
+            {
+                return Ok(match copy_asset_legacy_destinations(item).await {
+                    Ok(()) => {
+                        AssetBatchItemOutcome::Completed { downloaded: false }
+                    }
+                    Err(error) => AssetBatchItemOutcome::LocalCopyFailed {
+                        downloaded: false,
+                        error,
+                    },
+                });
+            }
+        }
+        Ok(false) => {}
+        Err(error) => {
+            return Ok(AssetBatchItemOutcome::LocalObjectFailed {
+                error: error.into(),
+            });
+        }
     }
     let part_path = match prepare_asset_part_path(&item.destination).await {
         Ok(part_path) => part_path,
@@ -1079,6 +1114,13 @@ async fn download_asset_item(
 
     let (response, mut stream) = open_stream(&connection, uri, headers).await?;
     if !response.status().is_success() {
+        // 301/302/303/307/308 are redirect responses that must be interpreted
+        // by the redirect-handling layer, not treated as line-level transfer
+        // failures. 304 is deliberately excluded: it is not a downloadable
+        // redirect for these objects.
+        if matches!(response.status().as_u16(), 301 | 302 | 303 | 307 | 308) {
+            return Ok(AssetBatchItemOutcome::RedirectFallback);
+        }
         return Err(crate::ErrorKind::OtherError(format!(
             "HTTP/2 GET failed with status {}",
             response.status()
