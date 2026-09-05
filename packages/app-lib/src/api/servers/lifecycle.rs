@@ -13,6 +13,7 @@ use tokio::process::{Child, ChildStdin, Command};
 use crate::event::ServerPayloadType;
 use crate::event::emit::emit_server;
 use crate::state::{clear_log_buffer, get_log_buffer, push_log_line};
+use crate::api::jre::get_java_default_versions;
 use crate::util::io::IOError;
 use crate::{ErrorKind, Result};
 
@@ -69,6 +70,51 @@ pub async fn start(
     result
 }
 
+/// The minimum Java major version a game version requires, mirroring the
+/// frontend `requiredJavaMajorVersion` helper.
+fn required_java_major(game_version: &str) -> u32 {
+    if let Some(rest) = game_version.strip_prefix("1.") {
+        if let Ok(minor) = rest.split('.').next().unwrap_or("").parse::<u32>() {
+            if minor >= 20 {
+                return 21;
+            }
+            if minor >= 17 {
+                return 17;
+            }
+            return 8;
+        }
+    }
+    if let Some(wyear) = game_version.strip_suffix('w') {
+        if let Ok(year) = wyear.parse::<u32>() {
+            return if year >= 26 { 25 } else { 21 };
+        }
+    }
+    if let Ok(year) = game_version.parse::<u32>() {
+        if year >= 21 {
+            return 25;
+        }
+    }
+    17
+}
+
+/// Resolves a usable Java executable when the server records no `javaPath`.
+/// Mirrors the launcher's `loadDefaultJava` selection so a freshly created
+/// server still boots instead of failing with "program not found" when `java`
+/// is not on the system PATH.
+async fn resolve_default_java_for_game(game_version: &str) -> Option<String> {
+    let versions = get_java_default_versions().await.ok()?;
+    if versions.is_empty() {
+        return None;
+    }
+    let major = required_java_major(game_version);
+    versions
+        .iter()
+        .filter(|v| v.parsed_version >= major)
+        .min_by_key(|v| v.parsed_version)
+        .or_else(|| versions.first())
+        .map(|v| v.path.clone())
+}
+
 async fn start_inner(
     server_id: &str,
     java_path: Option<String>,
@@ -91,9 +137,12 @@ async fn start_inner(
         vec!["-jar".to_string(), jar_name, "nogui".to_string()]
     };
 
-    let java = java_path
-        .or_else(|| manifest.java_path.clone())
-        .unwrap_or_else(|| "java".to_string());
+    let java = match java_path.or_else(|| manifest.java_path.clone()) {
+        Some(path) => path,
+        None => resolve_default_java_for_game(&manifest.game_version)
+            .await
+            .unwrap_or_else(|| "java".to_string()),
+    };
     let memory = memory_mb
         .or(manifest.memory_mb)
         .unwrap_or(DEFAULT_MEMORY_MB);
@@ -193,7 +242,7 @@ async fn start_inner(
     if loader_first_run {
         log_server_step(
             server_id,
-            "First launch: downloading Minecraft server files. This may take a few minutes — the console will keep updating as it progresses.",
+            "downloading Minecraft server files.",
         )
         .await;
     }
@@ -339,31 +388,36 @@ async fn monitor_server_process(
     }
 }
 
-/// Builds the JVM launch arguments for a Forge server. Modern Forge (1.17+)
-/// ships `@args` files that enumerate the classpath and main class; legacy Forge
-/// (<=1.16) produces a single runnable `forge-*.jar`.
-fn forge_launch_args(dir: &Path) -> Result<Vec<String>> {
-    let forge_dir = dir
-        .join("libraries")
-        .join("net")
-        .join("minecraftforge")
-        .join("forge");
-    if let Ok(entries) = std::fs::read_dir(&forge_dir) {
-        let args_file = if cfg!(windows) {
-            "win_args.txt"
-        } else {
-            "unix_args.txt"
-        };
-        for entry in entries.flatten() {
-            let candidate = entry.path().join(args_file);
-            if candidate.is_file() {
-                let mut args = Vec::new();
-                if dir.join("user_jvm_args.txt").exists() {
-                    args.push("@user_jvm_args.txt".to_string());
+/// Builds the JVM launch arguments for a Forge or NeoForge server. Modern
+/// loaders (1.17+) ship `@args` files that enumerate the classpath and main
+/// class; legacy Forge (<=1.16) produces a single runnable `forge-*.jar`.
+pub(crate) fn forge_launch_args(dir: &Path) -> Result<Vec<String>> {
+    // Forge and NeoForge lay their `@args` files under different library roots.
+    let args_dirs = [
+        dir.join("libraries")
+            .join("net")
+            .join("minecraftforge")
+            .join("forge"),
+        dir.join("libraries").join("net").join("neoforge").join("neoforge"),
+    ];
+    for forge_dir in &args_dirs {
+        if let Ok(entries) = std::fs::read_dir(forge_dir) {
+            let args_file = if cfg!(windows) {
+                "win_args.txt"
+            } else {
+                "unix_args.txt"
+            };
+            for entry in entries.flatten() {
+                let candidate = entry.path().join(args_file);
+                if candidate.is_file() {
+                    let mut args = Vec::new();
+                    if dir.join("user_jvm_args.txt").exists() {
+                        args.push("@user_jvm_args.txt".to_string());
+                    }
+                    args.push(format!("@{}", candidate.to_string_lossy()));
+                    args.push("nogui".to_string());
+                    return Ok(args);
                 }
-                args.push(format!("@{}", candidate.to_string_lossy()));
-                args.push("nogui".to_string());
-                return Ok(args);
             }
         }
     }
@@ -378,8 +432,12 @@ fn forge_launch_args(dir: &Path) -> Result<Vec<String>> {
 
 fn find_forge_jar(dir: &Path) -> Option<String> {
     let entry = std::fs::read_dir(dir).ok()?.flatten().find(|e| {
-        e.file_name().to_string_lossy().starts_with("forge-")
-            && e.path().extension().is_some_and(|ext| ext == "jar")
+        let name = e.file_name().to_string_lossy().into_owned();
+        (name.starts_with("forge-") || name.starts_with("neoforge-"))
+            && name.ends_with(".jar")
+            // Never treat the `<loader>-...-installer.jar` bootstrapper as the
+            // runnable server — running it pops the interactive GUI wizard.
+            && !name.contains("installer")
     })?;
     Some(entry.file_name().to_string_lossy().into_owned())
 }

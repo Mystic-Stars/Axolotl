@@ -38,14 +38,15 @@ export interface ServerView extends ServerInfoData {
 }
 
 export function serverStatus(server: ServerInfoData): ServerStatus {
-	return computeServerStatus({
-		manifest: { id: server.id },
-		isRunning: server.running,
-		isStarting: false,
-		lastExitWasCrash: server.lastExitCrashed,
-		eulaAccepted: server.eulaAccepted,
-		eulaFileExists: server.eulaExists,
-	})
+    if (server.installState === 'incomplete') return 'downloading'
+    return computeServerStatus({
+        manifest: { id: server.id },
+        isRunning: server.running,
+        isStarting: false,
+        lastExitWasCrash: server.lastExitCrashed,
+        eulaAccepted: server.eulaAccepted,
+        eulaFileExists: server.eulaExists,
+    })
 }
 
 async function appendLog(serverId: string, line: string) {

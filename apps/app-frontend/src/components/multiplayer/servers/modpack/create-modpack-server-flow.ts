@@ -212,9 +212,11 @@ export function createModpackServerFlowContext(
 				version: string
 				path: string
 			}>
+			const geMajors = defaults.filter((entry) => entry.parsed_version >= major)
 			const match =
-				defaults.find((entry) => entry.parsed_version === major) ??
-				defaults.find((entry) => entry.parsed_version >= major)
+				geMajors.find((entry) => entry.parsed_version === major) ??
+				geMajors.sort((a, b) => a.parsed_version - b.parsed_version)[0] ??
+				defaults.sort((a, b) => a.parsed_version - b.parsed_version)[0]
 			if (match) {
 				selectedJava.value = { path: match.path, version: match.version }
 				return

@@ -3,6 +3,7 @@ import { defineMessages } from '@modrinth/ui'
 
 export const serverStatusMessages = defineMessages({
 	created: { id: 'app.servers.status.created', defaultMessage: 'Not set up' },
+	downloading: { id: 'app.servers.status.downloading', defaultMessage: 'Downloading' },
 	eulaPending: { id: 'app.servers.status.eula-pending', defaultMessage: 'EULA pending' },
 	ready: { id: 'app.servers.status.ready', defaultMessage: 'Ready' },
 	starting: { id: 'app.servers.status.starting', defaultMessage: 'Starting' },
@@ -17,6 +18,7 @@ export interface ServerStatusMeta {
 
 export const SERVER_STATUS_META: Record<ServerStatus, ServerStatusMeta> = {
 	created: { label: serverStatusMessages.created, color: 'text-secondary' },
+	downloading: { label: serverStatusMessages.downloading, color: 'text-orange' },
 	eula_pending: { label: serverStatusMessages.eulaPending, color: 'text-orange' },
 	ready: { label: serverStatusMessages.ready, color: 'text-brand' },
 	starting: { label: serverStatusMessages.starting, color: 'text-orange' },

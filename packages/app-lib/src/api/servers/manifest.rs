@@ -129,7 +129,13 @@ pub(super) async fn server_path(server_id: &str) -> Result<PathBuf> {
 }
 
 pub(super) async fn read_manifest(dir: &Path) -> Result<ServerManifest> {
-    let bytes = io::read(dir.join(MANIFEST_FILE)).await?;
+    let mut bytes = io::read(dir.join(MANIFEST_FILE)).await?;
+    // Strip a leading UTF-8 BOM (EF BB BF) if present. Manifests edited by
+    // external tools may prepend one, and serde_json::from_slice rejects it,
+    // which would otherwise make the server silently vanish from the list.
+    if bytes.starts_with(&[0xEF, 0xBB, 0xBF]) {
+        bytes.drain(..3);
+    }
     serde_json::from_slice(&bytes).map_err(|e| {
         ErrorKind::FSError(format!("Failed to parse server manifest: {e}"))
             .as_error()
@@ -264,5 +270,38 @@ mod tests {
 
         manifest.jar_name = Some("custom.jar".to_string());
         assert_eq!(resolve_jar_name(&manifest), "custom.jar");
+    }
+
+    #[tokio::test]
+    async fn read_manifest_strips_utf8_bom() {
+        let dir = std::env::temp_dir().join(format!("axolotl-bom-test-{}", uuid::Uuid::new_v4()));
+        tokio::fs::create_dir_all(&dir).await.unwrap();
+        let manifest = ServerManifest {
+            id: "test-bom-12345678".to_string(),
+            name: "Test".to_string(),
+            server_type: "vanilla".to_string(),
+            game_version: "1.21.4".to_string(),
+            loader_version: None,
+            jar_name: None,
+            java_path: None,
+            memory_mb: Some(2048),
+            icon_path: None,
+            modpack: None,
+            install_state: None,
+            install_error: None,
+            jvm_args: Vec::new(),
+            created_at: Utc::now(),
+            last_started_at: None,
+            last_exit_crashed: false,
+        };
+        let json = serde_json::to_string_pretty(&manifest).unwrap();
+        let mut bytes = Vec::new();
+        bytes.extend_from_slice(&[0xEF, 0xBB, 0xBF]);
+        bytes.extend_from_slice(json.as_bytes());
+        tokio::fs::write(dir.join(MANIFEST_FILE), bytes).await.unwrap();
+
+        let parsed = read_manifest(&dir).await.unwrap();
+        assert_eq!(parsed.id, manifest.id);
+        let _ = tokio::fs::remove_dir_all(&dir).await;
     }
 }

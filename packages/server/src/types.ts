@@ -60,7 +60,7 @@ export interface ResolveServerJarInput {
 	paperBuild?: PaperBuild
 }
 
-export type ServerStatus = 'created' | 'eula_pending' | 'ready' | 'starting' | 'running' | 'crashed'
+export type ServerStatus = 'created' | 'downloading' | 'eula_pending' | 'ready' | 'starting' | 'running' | 'crashed'
 
 /** Persisted server manifest, stored as `axolotl-server.json` in the server directory. */
 export interface ManagedServerManifest {

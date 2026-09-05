@@ -37,10 +37,10 @@ export function activeInstallFor(serverId: string): ActiveServerInstall | null {
 }
 
 export function serverSetupStatus(server: ServerInfoData): ServerSetupStatus | null {
-	if (activeInstalls[server.id]) return 'installing'
-	if (server.installState === 'incomplete') return 'interrupted'
-	if (server.installState === 'failed') return 'failed'
-	return null
+    if (activeInstalls[server.id]) return 'installing'
+    if (server.installState === 'incomplete') return 'installing'
+    if (server.installState === 'failed') return 'failed'
+    return null
 }
 
 /**
@@ -125,9 +125,15 @@ export async function startModpackServerInstall(
 
 	// [SERVER-DOWNLOAD-BRIDGE] Register a cancel handler so the Downloads page
 	// can abort the running server install when the user clicks Cancel.
+	// Clean up `activeInstalls` immediately so the servers list stops
+	// showing "installing", then delete the partial server directory
+	// (and whatever was already downloaded) so the cancelled server
+	// disappears from the multiplayer servers list entirely.
 	bridge?.cancel(async () => {
 		console.log(`[SERVER-DOWNLOAD-BRIDGE] Cancelling server install ${serverId}`)
-		await servers.stop(serverId).catch(() => {})
+		activeInstalls[serverId] = undefined
+		await servers.delete(serverId).catch(() => {})
+		void refreshServerList()
 	})
 
 	let installSucceeded = false
