@@ -15,6 +15,7 @@ use theseus::data::{
 };
 use theseus::instance::InstallProjectWithDependenciesRequest;
 use theseus::instance::QuickPlayType;
+use theseus::pack::import::ImportLauncherType;
 use theseus::prelude::*;
 use theseus::server_address::ServerAddress;
 
@@ -22,6 +23,8 @@ pub fn init<R: tauri::Runtime>() -> tauri::plugin::TauriPlugin<R> {
     tauri::plugin::Builder::new("instance")
         .invoke_handler(tauri::generate_handler![
             instance_remove,
+            instance_create_direct_link,
+            instance_sync_direct_links,
             instance_get,
             instance_get_many,
             instance_list,
@@ -136,6 +139,21 @@ pub struct Instance {
     pub hooks: Hooks,
     pub symlink_target: Option<String>,
     pub game_dir_override: Option<String>,
+    pub linked_launcher: Option<String>,
+    pub linked_launcher_root: Option<String>,
+    pub linked_dot_minecraft: Option<String>,
+    pub linked_version_id: Option<String>,
+    pub linked_version_json_path: Option<String>,
+}
+
+#[derive(Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct CreateDirectLinkInstanceRequest {
+    pub name: Option<String>,
+    pub launcher_type: ImportLauncherType,
+    pub base_path: PathBuf,
+    pub instance_folder: String,
+    pub instance_path: Option<String>,
 }
 
 #[derive(Serialize, Debug, Clone)]
@@ -286,6 +304,13 @@ impl From<InstanceMetadata> for Instance {
             hooks: metadata.launch_overrides.hooks,
             symlink_target: metadata.instance.symlink_target,
             game_dir_override: metadata.instance.game_dir_override,
+            linked_launcher: metadata.instance.linked_launcher,
+            linked_launcher_root: metadata.instance.linked_launcher_root,
+            linked_dot_minecraft: metadata.instance.linked_dot_minecraft,
+            linked_version_id: metadata.instance.linked_version_id,
+            linked_version_json_path: metadata
+                .instance
+                .linked_version_json_path,
         }
     }
 }
@@ -464,6 +489,30 @@ async fn instance_from_metadata(
 pub async fn instance_remove(instance_id: &str) -> Result<()> {
     theseus::instance::remove(instance_id).await?;
     Ok(())
+}
+
+#[tauri::command]
+pub async fn instance_create_direct_link(
+    request: CreateDirectLinkInstanceRequest,
+) -> Result<Instance> {
+    let metadata = theseus::instance::create_with_direct_link(
+        theseus::data::CreateDirectLinkInstance {
+            name: request.name,
+            launcher_type: request.launcher_type,
+            base_path: request.base_path,
+            instance_folder: request.instance_folder,
+            instance_path: request.instance_path,
+        },
+    )
+    .await?;
+    instance_from_metadata(metadata).await
+}
+
+#[tauri::command]
+pub async fn instance_sync_direct_links(
+    roots: Vec<PathBuf>,
+) -> Result<theseus::data::DirectLinkSyncReport> {
+    Ok(theseus::instance::sync_direct_links(roots).await?)
 }
 
 #[tauri::command]
@@ -788,16 +837,27 @@ pub async fn instance_get_linked_modpack_content(
 }
 
 #[tauri::command]
-pub async fn instance_get_full_path(instance_id: &str) -> Result<PathBuf> {
-    Ok(theseus::instance::get_full_path(instance_id).await?)
+pub async fn instance_get_full_path<R: tauri::Runtime>(
+    app: tauri::AppHandle<R>,
+    instance_id: &str,
+) -> Result<PathBuf> {
+    let path = theseus::instance::get_full_path(instance_id).await?;
+    crate::api::files::ensure_browsable(&app, &path);
+    Ok(path)
 }
 
 #[tauri::command]
-pub async fn instance_get_mod_full_path(
+pub async fn instance_get_mod_full_path<R: tauri::Runtime>(
+    app: tauri::AppHandle<R>,
     instance_id: &str,
     project_path: &str,
 ) -> Result<PathBuf> {
-    Ok(theseus::instance::get_mod_full_path(instance_id, project_path).await?)
+    let path =
+        theseus::instance::get_mod_full_path(instance_id, project_path).await?;
+    if let Some(parent) = path.parent() {
+        crate::api::files::ensure_browsable(&app, parent);
+    }
+    Ok(path)
 }
 
 #[tauri::command]

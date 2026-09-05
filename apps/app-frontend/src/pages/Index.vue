@@ -246,12 +246,15 @@ const instancesLoaded = await fetchInstances()
 if (!instancesLoaded || instances.value.length > 0) void fetchPlayerName()
 await loadDashboardConfig()
 
+window.addEventListener('axolotl-direct-links-synced', fetchInstances)
+
 const unlistenInstance = await instance_listener(async () => {
 	await fetchInstances()
 })
 
 onUnmounted(() => {
 	unlistenInstance()
+	window.removeEventListener('axolotl-direct-links-synced', fetchInstances)
 })
 </script>
 

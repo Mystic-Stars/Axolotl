@@ -25,9 +25,3 @@ pub fn remove_enqueued_update() {}
 pub fn is_apt_linux() -> bool {
     false
 }
-
-#[tauri::command]
-pub async fn install_apt_update(version: String) -> Result<()> {
-    let _ = version;
-    Ok(())
-}

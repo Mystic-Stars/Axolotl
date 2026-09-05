@@ -58,7 +58,7 @@
 							<button
 								v-tooltip="formatMessage(messages.dismissNotification)"
 								class="shrink-0 text-secondary hover:text-contrast"
-								@click="collapseNotification(item)"
+								@click="dismissNotification(item)"
 							>
 								<XIcon class="size-4" />
 							</button>
@@ -235,7 +235,7 @@ type NotificationHistoryItem = {
 	type?: 'error' | 'warning' | 'success' | 'info' | 'download'
 	collapsed?: boolean
 	expand: () => void
-	collapse: () => void
+	dismiss: () => void
 }
 
 const notificationHistory = computed<NotificationHistoryItem[]>(() =>
@@ -248,7 +248,7 @@ const notificationHistory = computed<NotificationHistoryItem[]>(() =>
 			type: item.type,
 			collapsed: item.collapsed,
 			expand: () => notificationManager.expandNotification(item.id),
-			collapse: () => notificationManager.collapseNotification(item.id),
+			dismiss: () => notificationManager.removeNotification(item.id),
 		})),
 		...popupNotificationManager.getNotifications().map((item: PopupNotification) => ({
 			key: `popup-${item.id}`,
@@ -264,7 +264,7 @@ const notificationHistory = computed<NotificationHistoryItem[]>(() =>
 			type: item.type,
 			collapsed: item.collapsed,
 			expand: () => popupNotificationManager.expandNotification(item.id),
-			collapse: () => popupNotificationManager.collapseNotification(item.id),
+			dismiss: () => popupNotificationManager.removeNotification(item.id),
 		})),
 	].sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0)),
 )
@@ -283,8 +283,8 @@ function notificationDotClass(type?: NotificationHistoryItem['type']): string {
 	return 'bg-blue'
 }
 
-function collapseNotification(item: NotificationHistoryItem) {
-	item.collapse()
+function dismissNotification(item: NotificationHistoryItem) {
+	item.dismiss()
 }
 
 async function openNotification(item: NotificationHistoryItem) {

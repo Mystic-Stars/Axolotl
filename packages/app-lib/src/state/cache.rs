@@ -2699,6 +2699,11 @@ impl CachedEntry {
                 for key in &keys {
                     let path =
                         key.split_once('-').map(|x| x.1).unwrap_or_default();
+                    // Directly associated instances embed an absolute linked
+                    // root in the key; it needs no base resolution.
+                    if std::path::Path::new(path).is_absolute() {
+                        continue;
+                    }
                     if let Some((instance_path, _)) =
                         path.split_once('/').or_else(|| path.split_once('\\'))
                     {
@@ -2727,26 +2732,35 @@ impl CachedEntry {
                     let path =
                         key.split_once('-').map(|x| x.1).unwrap_or_default();
 
-                    let (base_dir, relative) = match path
-                        .split_once('/')
-                        .or_else(|| path.split_once('\\'))
+                    // Absolute keys (directly associated instances) point at
+                    // the linked installation itself; joining would strip the
+                    // base, so use them as-is. `Path::join` would actually
+                    // replace the base for absolute paths, but the split below
+                    // destroys the leading separator first.
+                    let full_path = if std::path::Path::new(path).is_absolute()
                     {
-                        Some((instance_path, relative)) => {
-                            let base_dir = base_dirs
-                                .get(instance_path)
-                                .cloned()
-                                .unwrap_or_else(|| {
-                                    state.directories.instances_dir()
-                                });
-                            (base_dir, relative.to_string())
-                        }
-                        None => (
-                            state.directories.instances_dir(),
-                            path.to_string(),
-                        ),
+                        PathBuf::from(path)
+                    } else {
+                        let (base_dir, relative) = match path
+                            .split_once('/')
+                            .or_else(|| path.split_once('\\'))
+                        {
+                            Some((instance_path, relative)) => {
+                                let base_dir = base_dirs
+                                    .get(instance_path)
+                                    .cloned()
+                                    .unwrap_or_else(|| {
+                                        state.directories.instances_dir()
+                                    });
+                                (base_dir, relative.to_string())
+                            }
+                            None => (
+                                state.directories.instances_dir(),
+                                path.to_string(),
+                            ),
+                        };
+                        base_dir.join(relative)
                     };
-
-                    let full_path = base_dir.join(relative);
 
                     let mut file = tokio::fs::File::open(&full_path).await?;
                     let size = file.metadata().await?.len();

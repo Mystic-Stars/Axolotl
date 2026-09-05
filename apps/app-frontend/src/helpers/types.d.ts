@@ -10,6 +10,11 @@ export type GameInstance = {
 	icon_path?: string
 	symlink_target?: string | null
 	game_dir_override?: string | null
+	linked_launcher?: string | null
+	linked_launcher_root?: string | null
+	linked_dot_minecraft?: string | null
+	linked_version_id?: string | null
+	linked_version_json_path?: string | null
 
 	game_version: string
 	protocol_version?: number

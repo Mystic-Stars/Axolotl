@@ -463,7 +463,7 @@ async fn download_minecraft_file_with_candidates(
     Ok(result)
 }
 
-fn minecraft_library_mirrors(url: &str) -> Vec<String> {
+pub(crate) fn minecraft_library_mirrors(url: &str) -> Vec<String> {
     const MACHINA_LWJGL_RELEASE: &str = "https://github.com/MinecraftMachina/lwjgl/releases/download/2.9.4-20150209-mmachina.2/";
     const MOJANG_LWJGL_PATH: &str = "https://libraries.minecraft.net/org/lwjgl/lwjgl/lwjgl-platform/2.9.4-nightly-20150209/";
 
@@ -475,7 +475,7 @@ fn minecraft_library_mirrors(url: &str) -> Vec<String> {
 }
 
 const LAUNCHER_META_MAVEN: &str = "https://launcher-meta.modrinth.com/maven";
-const LIBRARIES_MAVEN: &str = "https://libraries.minecraft.net";
+pub(crate) const LIBRARIES_MAVEN: &str = "https://libraries.minecraft.net";
 const FABRIC_MAVEN: &str = "https://maven.fabricmc.net";
 const FORGE_MAVEN: &str = "https://maven.minecraftforge.net";
 const NEOFORGE_MAVEN: &str = "https://maven.neoforged.net/releases";
@@ -483,7 +483,7 @@ const QUILT_MAVEN: &str = "https://maven.quiltmc.org/repository/release";
 const SPONGE_MAVEN: &str = "https://repo.spongepowered.org/maven";
 const MAVEN_CENTRAL: &str = "https://repo.maven.apache.org/maven2";
 
-fn legacy_library_download_urls(
+pub(crate) fn legacy_library_download_urls(
     repository: Option<&str>,
     artifact_path: &str,
 ) -> Option<Vec<String>> {
@@ -1621,7 +1621,7 @@ fn build_fallback_asset_from_batch(item: H2BatchAsset) -> FallbackAsset {
         name: item.sha1.clone(),
         hash: item.sha1,
         size: item.size,
-        url: item.url,
+        url: item.original_url,
         resource_path: item.destination,
         legacy_resource_paths: item.legacy_destinations,
         logical_items: item.logical_items,
@@ -1710,6 +1710,7 @@ pub async fn download_assets(
                     sub_hash = &hash[..2]
                 );
                 batch_items.push(H2BatchAsset {
+                    original_url: url.clone(),
                     url,
                     destination: resource_path,
                     legacy_destinations: should_fetch_legacy
@@ -1820,7 +1821,7 @@ pub async fn download_assets(
                 apply_native_policy.then_some(&st.fetch_semaphore),
                 callback,
             )
-            .await;
+            .await?;
             if !failed.is_empty() {
                 tracing::warn!(
                     items = failed.len(),
@@ -2465,6 +2466,8 @@ mod tests {
         let first_legacy = PathBuf::from("resources/first");
         let second_legacy = PathBuf::from("resources/second");
         let make_item = |legacy_destinations| H2BatchAsset {
+            original_url: "https://resources.download.minecraft.net/ab/abcdef"
+                .into(),
             url: "https://resources.download.minecraft.net/ab/abcdef".into(),
             destination: destination.clone(),
             legacy_destinations,
@@ -2490,6 +2493,9 @@ mod tests {
     fn batch_assets_do_not_coalesce_different_integrity_contracts() {
         let destination = PathBuf::from("assets/objects/ab/object");
         let make_item = |sha1: &str, size| H2BatchAsset {
+            original_url: format!(
+                "https://resources.download.minecraft.net/ab/{sha1}"
+            ),
             url: format!("https://resources.download.minecraft.net/ab/{sha1}"),
             destination: destination.clone(),
             legacy_destinations: Vec::new(),
@@ -2507,6 +2513,31 @@ mod tests {
             .len(),
             3
         );
+    }
+
+    #[test]
+    fn batch_fallback_restores_official_asset_route_after_mirror_failure() {
+        let official = "https://resources.download.minecraft.net/14/14b3534e2622470a71dbe69474c15e6a233cc1c6";
+        let item = H2BatchAsset {
+            original_url: official.into(),
+            url: "https://bmclapi2.bangbang93.com/assets/14/14b3534e2622470a71dbe69474c15e6a233cc1c6"
+                .into(),
+            destination: PathBuf::from("assets/objects/14/hash"),
+            legacy_destinations: Vec::new(),
+            sha1: "14b3534e2622470a71dbe69474c15e6a233cc1c6".into(),
+            size: 42,
+            logical_items: 1,
+        };
+
+        let fallback = build_fallback_asset_from_batch(item);
+        let routes = resolve_download_routes_for(
+            &fallback.url,
+            ResourceClass::MinecraftAsset,
+            crate::state::DownloadSourceMode::MirrorPreferred,
+        );
+
+        assert_eq!(fallback.url, official);
+        assert!(routes.iter().any(|route| route.url == official));
     }
 
     #[test]

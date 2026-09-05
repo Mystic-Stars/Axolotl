@@ -19,6 +19,7 @@ export type NotificationPanelLocation = 'left' | 'right'
 
 export abstract class AbstractWebNotificationManager {
 	protected readonly DEFAULT_AUTO_DISMISS_DELAY_MS = 30 * 1000
+	private lastGeneratedNotificationId = 0
 
 	abstract getNotifications(): WebNotification[]
 	abstract getNotificationLocation(): NotificationPanelLocation
@@ -153,9 +154,15 @@ export abstract class AbstractWebNotificationManager {
 	}
 
 	private createNotification(notification: Partial<WebNotification>): WebNotification {
+		// Notifications can be created in the same millisecond. Keep generated
+		// ids unique so dismissing one item never targets its siblings.
+		const now = Date.now()
+		const id = Math.max(now, this.lastGeneratedNotificationId + 1)
+		this.lastGeneratedNotificationId = id
+
 		return {
 			...notification,
-			id: new Date().getTime(),
+			id,
 			createdAt: Date.now(),
 			count: 1,
 		} as WebNotification

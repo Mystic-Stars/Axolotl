@@ -1,5 +1,5 @@
 <script setup>
-import { BoxIcon, FolderOpenIcon, FolderSearchIcon, TrashIcon } from '@modrinth/assets'
+import { BoxIcon, FolderOpenIcon, FolderSearchIcon, PlusIcon, TrashIcon } from '@modrinth/assets'
 import {
 	Combobox,
 	defineMessages,
@@ -23,6 +23,7 @@ import {
 } from '@/helpers/downloads-scanner'
 import { get, getProxyConfig, set, setProxyConfig, testProxyConfig } from '@/helpers/settings.ts'
 import { showAppDbBackupsFolder } from '@/helpers/utils.js'
+import { sync_direct_links } from '@/helpers/instance'
 import { useTheming } from '@/store/state'
 
 import SettingsRow from './SettingsRow.vue'
@@ -41,6 +42,8 @@ const { handleError } = injectNotificationManager()
 const themeStore = useTheming()
 const settings = ref(await get())
 const missingContentScannerSettings = ref(getMissingContentScannerSettings())
+const minecraftDirectories = ref(loadMinecraftDirectories())
+const minecraftDirectoryError = ref(null)
 const purgeCacheConfirmModal = ref(null)
 const { formatMessage } = useVIntl()
 
@@ -113,6 +116,10 @@ const messages = defineMessages({
 		defaultMessage: 'Select a new app directory',
 	},
 	appDirectory: { id: 'app.settings.resources.app-directory', defaultMessage: 'App directory' },
+	axolotlDataDirectory: {
+		id: 'app.settings.resources.axolotl-data-directory',
+		defaultMessage: 'Axolotl data directory',
+	},
 	appDirectoryDescription: {
 		id: 'app.settings.resources.app-directory-description',
 		defaultMessage:
@@ -122,6 +129,31 @@ const messages = defineMessages({
 		id: 'app.settings.resources.app-directory-description-portable',
 		defaultMessage:
 			'You are currently running in portable mode. The app directory is fixed and cannot be changed.',
+	},
+	minecraftDirectories: {
+		id: 'app.settings.resources.minecraft-directories',
+		defaultMessage: 'Minecraft directories',
+	},
+	minecraftDirectoriesDescription: {
+		id: 'app.settings.resources.minecraft-directories-description',
+		defaultMessage:
+			'Add one or more .minecraft folders for instances that use an external game directory. These folders are kept separate from Axolotl data.',
+	},
+	addMinecraftDirectory: {
+		id: 'app.settings.resources.add-minecraft-directory',
+		defaultMessage: 'Add .minecraft directory',
+	},
+	selectMinecraftDirectory: {
+		id: 'app.settings.resources.select-minecraft-directory',
+		defaultMessage: 'Select a .minecraft directory',
+	},
+	removeMinecraftDirectory: {
+		id: 'app.settings.resources.remove-minecraft-directory',
+		defaultMessage: 'Remove .minecraft directory',
+	},
+	minecraftDirectoryMustEndWith: {
+		id: 'app.settings.resources.minecraft-directory-must-end-with',
+		defaultMessage: 'The selected folder must be named .minecraft.',
 	},
 	purgeConfirmTitle: {
 		id: 'app.settings.resources.purge-confirm-title',
@@ -386,6 +418,38 @@ const messages = defineMessages({
 	},
 })
 
+const MINECRAFT_DIRECTORIES_STORAGE_KEY = 'axolotl-minecraft-directories'
+
+function isMinecraftDirectoryPath(value) {
+	const normalized = value.trim().replace(/[\\/]+$/, '')
+	return normalized.length > 0 && normalized.split(/[\\/]/).at(-1)?.toLowerCase() === '.minecraft'
+}
+
+function loadMinecraftDirectories() {
+	try {
+		const raw = localStorage.getItem(MINECRAFT_DIRECTORIES_STORAGE_KEY)
+		if (!raw) return []
+		const parsed = JSON.parse(raw)
+		if (!Array.isArray(parsed)) return []
+		return [...new Set(parsed.filter((value) => typeof value === 'string'))].filter(
+			isMinecraftDirectoryPath,
+		)
+	} catch {
+		return []
+	}
+}
+
+function persistMinecraftDirectories(values) {
+	try {
+		const validValues = [
+			...new Set(values.map((value) => value.trim()).filter(isMinecraftDirectoryPath)),
+		]
+		localStorage.setItem(MINECRAFT_DIRECTORIES_STORAGE_KEY, JSON.stringify(validValues))
+	} catch {
+		// Local storage may be unavailable in an embedded or restricted webview.
+	}
+}
+
 function downloadSourceModel(setting) {
 	return computed({
 		get: () => settings.value[setting],
@@ -505,6 +569,31 @@ watch(
 )
 
 watch(
+	minecraftDirectories,
+	(value) => {
+		persistMinecraftDirectories(value)
+		void syncDirectLinkInstances(true)
+	},
+	{ deep: true },
+)
+
+let directLinkSyncRunning = false
+async function syncDirectLinkInstances(allowEmpty = false) {
+	if (directLinkSyncRunning || (!allowEmpty && minecraftDirectories.value.length === 0)) return
+	directLinkSyncRunning = true
+	try {
+		await sync_direct_links(minecraftDirectories.value)
+		window.dispatchEvent(new Event('axolotl-direct-links-synced'))
+	} catch (error) {
+		console.warn('Failed to sync external Minecraft instances', error)
+	} finally {
+		directLinkSyncRunning = false
+	}
+}
+
+void syncDirectLinkInstances()
+
+watch(
 	missingContentScannerSettings,
 	(value) => {
 		setMissingContentScannerSettings(value)
@@ -584,6 +673,37 @@ async function findMissingContentImportDirectory() {
 function resetMissingContentImportDirectory() {
 	missingContentScannerSettings.value.directory = null
 }
+
+async function addMinecraftDirectory() {
+	minecraftDirectoryError.value = null
+	const directory = await open({
+		multiple: false,
+		directory: true,
+		title: formatMessage(messages.selectMinecraftDirectory),
+	})
+	if (typeof directory !== 'string') return
+
+	const normalized = directory.trim().replace(/[\\/]+$/, '')
+	if (!isMinecraftDirectoryPath(normalized)) {
+		minecraftDirectoryError.value = formatMessage(messages.minecraftDirectoryMustEndWith)
+		return
+	}
+	if (!minecraftDirectories.value.includes(normalized)) {
+		minecraftDirectories.value.push(normalized)
+	}
+}
+
+function removeMinecraftDirectory(index) {
+	minecraftDirectories.value.splice(index, 1)
+	if (minecraftDirectoryError.value) minecraftDirectoryError.value = null
+}
+
+function validateMinecraftDirectory(value) {
+	minecraftDirectoryError.value =
+		value.trim() && !isMinecraftDirectoryPath(value)
+			? formatMessage(messages.minecraftDirectoryMustEndWith)
+			: null
+}
 </script>
 
 <template>
@@ -602,7 +722,7 @@ function resetMissingContentImportDirectory() {
 			<SettingsRow stacked>
 				<template #label>
 					<span id="settings-target-storage-app-directory" tabindex="-1">
-						{{ formatMessage(messages.appDirectory) }}
+						{{ formatMessage(messages.axolotlDataDirectory) }}
 					</span>
 				</template>
 				<template #description>{{ appDirectoryDescriptionText }}</template>
@@ -626,6 +746,47 @@ function resetMissingContentImportDirectory() {
 							</IconButton>
 						</template>
 					</StyledInput>
+				</template>
+			</SettingsRow>
+			<SettingsRow stacked>
+				<template #label>
+					<span id="settings-target-storage-minecraft-directories" tabindex="-1">
+						{{ formatMessage(messages.minecraftDirectories) }}
+					</span>
+				</template>
+				<template #description>{{
+					formatMessage(messages.minecraftDirectoriesDescription)
+				}}</template>
+				<template #control>
+					<div class="flex w-full flex-col gap-2">
+						<div
+							v-for="(directory, index) in minecraftDirectories"
+							:key="`${directory}-${index}`"
+							class="flex min-w-0 items-center gap-2"
+						>
+							<StyledInput
+								:id="`minecraft-directory-${index}`"
+								v-model="minecraftDirectories[index]"
+								:icon="BoxIcon"
+								type="text"
+								wrapper-class="min-w-0 flex-1"
+								@change="validateMinecraftDirectory(minecraftDirectories[index])"
+							/>
+							<IconButton
+								:label="formatMessage(messages.removeMinecraftDirectory)"
+								@click="removeMinecraftDirectory(index)"
+							>
+								<TrashIcon />
+							</IconButton>
+						</div>
+						<p v-if="minecraftDirectoryError" class="m-0 text-sm text-red">
+							{{ minecraftDirectoryError }}
+						</p>
+						<button class="btn min-w-max self-start" @click="addMinecraftDirectory">
+							<PlusIcon />
+							{{ formatMessage(messages.addMinecraftDirectory) }}
+						</button>
+					</div>
 				</template>
 			</SettingsRow>
 			<SettingsRow>

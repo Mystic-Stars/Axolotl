@@ -1,3 +1,4 @@
+use super::sync_content_files::join_content_path;
 use crate::api::content_search::{
     chinese_file_title_for_modrinth_slug, localized_content_file_name,
 };
@@ -1159,8 +1160,10 @@ pub(crate) async fn add_downloaded_project_version(
         &state.pool,
     )
     .await?;
-    let full_path =
-        instance_full_path(state, &scope.instance).join(&relative_path);
+    let full_path = join_content_path(
+        &instance_full_path(state, &scope.instance),
+        &relative_path,
+    );
     let previous_path = materialize_project_download(&path, &full_path).await?;
     let provider_ref = ContentProviderRef::Modrinth {
         project_id: ModrinthProjectId::new(project_id.clone())?,
@@ -1218,8 +1221,10 @@ pub(crate) async fn apply_downloaded_project_version_at_path(
         ..
     } = downloaded;
     let scope = resolve_content_scope(instance_id, None, state).await?;
-    let full_path =
-        instance_full_path(state, &scope.instance).join(relative_path);
+    let full_path = join_content_path(
+        &instance_full_path(state, &scope.instance),
+        relative_path,
+    );
     let previous_path = materialize_project_download(&path, &full_path).await?;
     let provider_ref = ContentProviderRef::Modrinth {
         project_id: ModrinthProjectId::new(project_id.clone())?,
@@ -1828,8 +1833,10 @@ async fn add_project_bytes_with_provider(
         return Ok(install_path);
     }
     let relative_path = format!("{}/{}", project_type.get_folder(), file_name);
-    let full_path =
-        instance_full_path(state, &scope.instance).join(&relative_path);
+    let full_path = join_content_path(
+        &instance_full_path(state, &scope.instance),
+        &relative_path,
+    );
     let sha1 = match hash {
         Some(hash) => hash.to_string(),
         None => fetch::sha1_async(bytes.clone()).await?,
@@ -2330,8 +2337,11 @@ pub(crate) async fn toggle_disable_project(
         resolve_toggle_paths(&base, project_path, desired_enabled)?;
 
     if current_path != new_path {
-        io::rename_or_move(&base.join(&current_path), &base.join(&new_path))
-            .await?;
+        io::rename_or_move(
+            &join_content_path(&base, &current_path),
+            &join_content_path(&base, &new_path),
+        )
+        .await?;
     }
 
     let file = rename_indexed_file(
@@ -2492,15 +2502,15 @@ pub(crate) async fn toggle_content_entries(
             continue;
         }
         if let Err(error) = io::rename_or_move(
-            &base.join(&operation.current_path),
-            &base.join(&operation.new_path),
+            &join_content_path(&base, &operation.current_path),
+            &join_content_path(&base, &operation.new_path),
         )
         .await
         {
             for previous in renamed.into_iter().rev() {
                 let _ = io::rename_or_move(
-                    &base.join(&previous.new_path),
-                    &base.join(&previous.current_path),
+                    &join_content_path(&base, &previous.new_path),
+                    &join_content_path(&base, &previous.current_path),
                 )
                 .await;
             }
@@ -2605,8 +2615,8 @@ pub(crate) async fn toggle_content_entries(
         Err(error) => {
             for operation in renamed.into_iter().rev() {
                 let _ = io::rename_or_move(
-                    &base.join(&operation.new_path),
-                    &base.join(&operation.current_path),
+                    &join_content_path(&base, &operation.new_path),
+                    &join_content_path(&base, &operation.current_path),
                 )
                 .await;
             }
@@ -2623,11 +2633,11 @@ fn resolve_toggle_paths(
     desired_enabled: Option<bool>,
 ) -> crate::Result<(String, bool, String)> {
     let trimmed = project_path.trim_end_matches(".disabled");
-    let current_path = if base.join(project_path).exists() {
+    let current_path = if join_content_path(base, project_path).exists() {
         project_path.to_string()
-    } else if base.join(format!("{trimmed}.disabled")).exists() {
+    } else if join_content_path(base, &format!("{trimmed}.disabled")).exists() {
         format!("{trimmed}.disabled")
-    } else if base.join(trimmed).exists() {
+    } else if join_content_path(base, trimmed).exists() {
         trimmed.to_string()
     } else {
         return Err(crate::ErrorKind::FSError(format!(
@@ -2707,7 +2717,7 @@ pub(crate) async fn remove_project(
     )
     .await?;
 
-    let full_path = base.join(project_path);
+    let full_path = join_content_path(&base, project_path);
     let staged_path =
         full_path.with_extension(format!("{}.removing", uuid::Uuid::new_v4()));
     if full_path.exists() {
@@ -2803,7 +2813,7 @@ pub(crate) async fn archive_project_file(
 
     let scope = resolve_content_scope(instance_id, None, state).await?;
     let base = instance_full_path(state, &scope.instance);
-    let full_old = base.join(old_path);
+    let full_old = join_content_path(&base, old_path);
     if !full_old.exists() {
         return Ok(None);
     }
@@ -2816,7 +2826,7 @@ pub(crate) async fn archive_project_file(
         .and_then(|value| value.to_str())
         .unwrap_or_default()
         .trim_end_matches(".disabled");
-    let full_backup = base.join(&backup_relative_path);
+    let full_backup = join_content_path(&base, &backup_relative_path);
     if full_backup.exists() {
         io::remove_file(&full_backup).await?;
     }
@@ -2909,11 +2919,11 @@ pub(crate) async fn rollback_project(
     }
 
     let disabled = active_name.ends_with(".disabled");
-    let full_active = base.join(project_path);
+    let full_active = join_content_path(&base, project_path);
     let full_backup = folder.join(&backup_name);
     let restored_name = old_base.to_string();
     let restored_relative_path = format!("{active_dir}/{restored_name}");
-    let full_restored = base.join(&restored_relative_path);
+    let full_restored = join_content_path(&base, &restored_relative_path);
     let archive_name = format!("{old_base}_{active_base}.old");
     let full_archive = folder.join(&archive_name);
 
@@ -2929,7 +2939,11 @@ pub(crate) async fn rollback_project(
 
     let final_relative_path = if disabled {
         let disabled_path = format!("{restored_relative_path}.disabled");
-        io::rename_or_move(&full_restored, &base.join(&disabled_path)).await?;
+        io::rename_or_move(
+            &full_restored,
+            &join_content_path(&base, &disabled_path),
+        )
+        .await?;
         disabled_path
     } else {
         restored_relative_path
@@ -2944,7 +2958,7 @@ pub(crate) async fn rollback_project(
     let local_mod_data = if project_type_for_file_path(&final_relative_path)
         == Some(ProjectType::Mod)
     {
-        tokio::fs::read(&base.join(&final_relative_path))
+        tokio::fs::read(join_content_path(&base, &final_relative_path))
             .await
             .ok()
             .and_then(|data| {
@@ -3093,7 +3107,9 @@ pub(crate) fn instance_full_path(
     state: &State,
     instance: &Instance,
 ) -> PathBuf {
-    state.directories.instance_game_dir(instance)
+    crate::launcher::linked_game_dir(instance)
+        .or_else(|| instance.linked_dot_minecraft.as_deref().map(PathBuf::from))
+        .unwrap_or_else(|| state.directories.instance_game_dir(instance))
 }
 
 async fn index_existing_file(
@@ -3101,8 +3117,10 @@ async fn index_existing_file(
     relative_path: &str,
     state: &State,
 ) -> crate::Result<InstanceFile> {
-    let full_path =
-        instance_full_path(state, &scope.instance).join(relative_path);
+    let full_path = join_content_path(
+        &instance_full_path(state, &scope.instance),
+        relative_path,
+    );
     // Reuse the size-keyed hash cache (same key format the content scanner
     // uses) before hashing from disk: batch enable/disable of many untracked
     // files otherwise re-reads every file, which is both slow and CPU-heavy.

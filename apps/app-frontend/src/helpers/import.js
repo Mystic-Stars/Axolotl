@@ -11,6 +11,19 @@ import {
 	install_start_import_plan,
 } from './install'
 
+/** Create an Axolotl record that directly manages an external version folder. */
+export async function create_direct_link_instance(
+	name,
+	launcherType,
+	basePath,
+	instanceFolder,
+	instancePath = undefined,
+) {
+	return await invoke('plugin:instance|instance_create_direct_link', {
+		request: { name, launcherType, basePath, instanceFolder, instancePath },
+	})
+}
+
 /*
   API for importing instances from other launchers
   launcherType can be one of the following:

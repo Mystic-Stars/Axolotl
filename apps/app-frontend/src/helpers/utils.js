@@ -39,15 +39,6 @@ export async function setRestartAfterPendingUpdate(should_restart) {
 	return await invoke('set_restart_after_pending_update', { shouldRestart: should_restart })
 }
 
-// Debian and its derivatives update through apt with a single pkexec prompt
-export async function isAptLinux() {
-	return await invoke('is_apt_linux')
-}
-
-export async function installAptUpdate(version) {
-	return await invoke('install_apt_update', { version })
-}
-
 // One of 'Windows', 'Linux', 'MacOS'
 export async function getOS() {
 	return await invoke('plugin:utils|get_os')

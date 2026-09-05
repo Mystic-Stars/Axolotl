@@ -328,7 +328,13 @@ export const settingsSearchEntries: SettingsSearchEntry[] = [
 		id: 'storage-app-directory',
 		categoryId: 'storage-backups',
 		targetId: 'settings-target-storage-app-directory',
-		label: message('app.settings.resources.app-directory', 'App directory'),
+		label: message('app.settings.resources.axolotl-data-directory', 'Axolotl data directory'),
+	},
+	{
+		id: 'storage-minecraft-directories',
+		categoryId: 'storage-backups',
+		targetId: 'settings-target-storage-minecraft-directories',
+		label: message('app.settings.resources.minecraft-directories', 'Minecraft directories'),
 	},
 	{
 		id: 'storage-cache',

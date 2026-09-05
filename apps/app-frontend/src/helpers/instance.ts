@@ -61,6 +61,33 @@ export async function remove(instanceId: string): Promise<void> {
 	clearPinnedContentViewPreferences(instanceId)
 }
 
+export interface CreateDirectLinkInstanceRequest {
+	name?: string | null
+	launcherType: 'HMCL' | 'PCL2' | 'PCL2CE' | 'Generic'
+	basePath: string
+	instanceFolder: string
+	instancePath?: string | null
+}
+
+/** Associate an existing `.minecraft/versions/<id>` directory in place. */
+export async function create_direct_link(request: CreateDirectLinkInstanceRequest) {
+	return await invoke<GameInstance>('plugin:instance|instance_create_direct_link', { request })
+}
+
+export interface DirectLinkSyncReport {
+	imported: number
+	updated: number
+	removed: number
+	missing: number
+	errors: string[]
+}
+
+export async function sync_direct_links(roots: string[]): Promise<DirectLinkSyncReport> {
+	return await invoke<DirectLinkSyncReport>('plugin:instance|instance_sync_direct_links', {
+		roots,
+	})
+}
+
 export async function get(instanceId: string): Promise<GameInstance | null> {
 	return await invoke('plugin:instance|instance_get', { instanceId })
 }

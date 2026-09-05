@@ -6968,11 +6968,32 @@
   "app.settings.resources.app-directory": {
     "message": "App directory"
   },
+  "app.settings.resources.axolotl-data-directory": {
+    "message": "Axolotl data directory"
+  },
   "app.settings.resources.app-directory-description": {
     "message": "The directory where the launcher stores all of its files. Changes apply after restarting the launcher."
   },
   "app.settings.resources.app-directory-description-portable": {
     "message": "You are currently running in portable mode. The app directory is fixed and cannot be changed."
+  },
+  "app.settings.resources.minecraft-directories": {
+    "message": "Minecraft directories"
+  },
+  "app.settings.resources.minecraft-directories-description": {
+    "message": "Add one or more .minecraft folders for instances that use an external game directory. These folders are kept separate from Axolotl data."
+  },
+  "app.settings.resources.add-minecraft-directory": {
+    "message": "Add .minecraft directory"
+  },
+  "app.settings.resources.select-minecraft-directory": {
+    "message": "Select a .minecraft directory"
+  },
+  "app.settings.resources.remove-minecraft-directory": {
+    "message": "Remove .minecraft directory"
+  },
+  "app.settings.resources.minecraft-directory-must-end-with": {
+    "message": "The selected folder must be named .minecraft."
   },
   "app.settings.resources.concurrency.manual": {
     "message": "Manual"
@@ -8755,6 +8776,9 @@
   },
   "instance.settings.tabs.general.game-dir.managed-note": {
     "message": "This instance uses the Axolotl-managed folder."
+  },
+  "instance.settings.tabs.general.game-dir.external-note": {
+    "message": "This instance uses an external .minecraft folder and manages files in place."
   },
   "instance.settings.tabs.general.game-dir.move-note": {
     "message": "Switching isolation only updates the launcher path. Move the mods, saves, and config folders yourself to match."

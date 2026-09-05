@@ -45,12 +45,12 @@ pub(crate) async fn get_content_snapshot(
             })?;
     let link =
         instance_rows::get_instance_link(instance_id, &state.pool).await?;
-    // Opening the content page must be a database read. A full file-system
-    // reconciliation hashes and upserts every file, which is prohibitively
-    // expensive for large modpacks and unnecessary after launcher-owned
-    // mutations. Explicit refreshes and external file-change events use the
-    // remote refresh path below.
-    let files = if refresh_remote {
+    // Managed instances keep their cached database snapshot on first open.
+    // Directly associated instances have no install pipeline to seed that
+    // snapshot, so their first content-page load must scan the external game
+    // directory. Later loads reuse the populated rows unless explicitly
+    // refreshed.
+    let files = if refresh_remote || instance.is_direct_linked() {
         sync_instance_content_files(&instance, state).await?
     } else {
         content_rows::get_instance_files(&instance.id, &state.pool).await?

@@ -15,6 +15,7 @@ use crate::util::fetch::{self, write_cached_icon};
 use crate::util::io;
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
+use std::path::{Path, PathBuf};
 use tracing::{info, trace};
 use uuid::Uuid;
 
@@ -50,6 +51,20 @@ pub(crate) async fn create_instance(
     }
 
     let result = async {
+        if let Some(game_dir_override) = input.game_dir_override.as_deref() {
+            // External game directories are created before the launcher
+            // resolves them with `canonicalize` during installation.
+            io::create_dir_all(&PathBuf::from(game_dir_override)).await?;
+            if is_version_isolated_game_dir(Path::new(game_dir_override)) {
+                // Keep the generic direct-link resolver on the isolated
+                // version directory even while it is still empty.
+                io::create_dir_all(
+                    PathBuf::from(game_dir_override).join("mods"),
+                )
+                .await?;
+            }
+        }
+
         info!(
             "Creating instance at path {}",
             &io::canonicalize(&full_path)?.display()
@@ -82,6 +97,11 @@ pub(crate) async fn create_instance(
             name: input.name,
             icon_path,
             symlink_target: input.symlink_target,
+            linked_launcher: None,
+            linked_launcher_root: None,
+            linked_dot_minecraft: None,
+            linked_version_id: None,
+            linked_version_json_path: None,
             game_dir_override: input.game_dir_override,
             created: now,
             modified: now,
@@ -155,7 +175,7 @@ pub(crate) async fn create_instance(
     result
 }
 
-async fn resolve_instance_path(
+pub(crate) async fn resolve_instance_path(
     name: &str,
     path: Option<&str>,
     state: &State,
@@ -181,6 +201,13 @@ async fn resolve_instance_path(
 
         which += 1;
     }
+}
+
+fn is_version_isolated_game_dir(path: &Path) -> bool {
+    path.parent()
+        .and_then(Path::file_name)
+        .and_then(|name| name.to_str())
+        .is_some_and(|name| name.eq_ignore_ascii_case("versions"))
 }
 
 async fn path_available(

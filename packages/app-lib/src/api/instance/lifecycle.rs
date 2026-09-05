@@ -2,11 +2,12 @@ use crate::event::InstancePayloadType;
 use crate::event::emit::emit_instance;
 use crate::state::instances::adapters::sqlite::instance_rows;
 use crate::state::{
-    CreateInstance, EditInstance, InstanceLink, InstanceMetadata, ModLoader,
-    State,
+    CreateDirectLinkInstance, CreateInstance, EditInstance, InstanceLink,
+    InstanceMetadata, ModLoader, State,
 };
 use crate::util::{fetch::write_cached_icon, io};
 use std::path::Path;
+use std::path::PathBuf;
 
 #[tracing::instrument]
 #[allow(clippy::too_many_arguments)]
@@ -56,6 +57,46 @@ pub(crate) async fn create(
     }
 
     result
+}
+
+/// Creates a "directly associated" instance that launches an externally
+/// managed (HMCL/PCL) local version in place: nothing is copied, symlinked,
+/// or reinstalled, and the game directory points at the linked `.minecraft`.
+#[tracing::instrument]
+pub async fn create_with_direct_link(
+    input: CreateDirectLinkInstance,
+) -> crate::Result<InstanceMetadata> {
+    let state = State::get().await?;
+    let instance =
+        crate::state::create_direct_link_instance(input, &state).await?;
+
+    let result = async {
+        emit_instance(&instance.id, InstancePayloadType::Created).await?;
+
+        crate::state::get_instance(&instance.id, &state.pool)
+            .await?
+            .ok_or_else(|| {
+                crate::ErrorKind::InputError(
+                    "Created instance could not be loaded".to_string(),
+                )
+                .into()
+            })
+    }
+    .await;
+
+    if result.is_err() {
+        let _ = crate::state::remove_instance(&instance.id, &state).await;
+    }
+
+    result
+}
+
+/// Reconcile configured external Minecraft roots with direct-link records.
+pub async fn sync_direct_links(
+    roots: Vec<PathBuf>,
+) -> crate::Result<crate::state::DirectLinkSyncReport> {
+    let state = State::get().await?;
+    crate::state::sync_direct_link_instances(roots, &state).await
 }
 
 pub async fn edit(

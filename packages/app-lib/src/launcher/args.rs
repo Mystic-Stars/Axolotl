@@ -1,5 +1,9 @@
 //! Minecraft CLI argument logic
 use crate::instance::QuickPlayType;
+use crate::launcher::direct_link::{
+    DirectLinkedLaunch, is_native_only_library,
+};
+use crate::launcher::local_version::LinkedLibrary;
 use crate::launcher::quick_play_version::QuickPlayServerVersion;
 use crate::launcher::{QuickPlayVersion, parse_rules};
 use crate::state::Credentials;
@@ -92,6 +96,69 @@ pub fn get_class_paths(
         }))
         .process_results(|iter| {
             iter.unique().join(classpath_separator(java_arch))
+        })
+}
+
+pub fn get_linked_class_paths(
+    direct: &DirectLinkedLaunch,
+    libraries: &[LinkedLibrary],
+    launcher_class_path: &[&Path],
+    java_arch: &str,
+    minecraft_updated: bool,
+) -> crate::Result<String> {
+    launcher_class_path
+        .iter()
+        .map(|path| {
+            Ok(canonicalize(path)
+                .map_err(|error| {
+                    crate::ErrorKind::LauncherError(format!(
+                        "Specified class path {} does not exist: {error}",
+                        path.display()
+                    ))
+                    .as_error()
+                })?
+                .to_string_lossy()
+                .to_string())
+        })
+        .chain(libraries.iter().filter_map(|library| {
+            if let Some(rules) = library.library.rules.as_deref()
+                && !parse_rules(
+                    rules,
+                    java_arch,
+                    &QuickPlayType::None,
+                    minecraft_updated,
+                )
+            {
+                return None;
+            }
+            if !library.library.include_in_classpath {
+                return None;
+            }
+            // A natives-only declaration (e.g. the 1.12.2
+            // `net.java.jinput:jinput-platform:2.0.5`) publishes no plain jar
+            // anywhere, so it must never become a classpath entry. This
+            // mirrors HMCL's `DefaultLauncher.getClasspath`, which contributes
+            // natives libraries only through native extraction; the same
+            // predicate keeps the ensure stage from planning the plain jar.
+            if is_native_only_library(&library.library) {
+                return None;
+            }
+
+            Some(direct.library_path(library).and_then(|path| {
+                canonicalize(&path)
+                    .map(|path| path.to_string_lossy().to_string())
+                    .map_err(|error| {
+                        crate::ErrorKind::LauncherError(format!(
+                            "Could not resolve linked library {} at {}: {error}",
+                            library.library.name,
+                            path.display()
+                        ))
+                        .as_error()
+                    })
+            }))
+        }))
+        .process_results(|paths| {
+            paths.unique().join(classpath_separator(java_arch))
         })
 }
 
@@ -617,7 +684,9 @@ pub async fn get_processor_main_class(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::launcher::direct_link::LinkedLauncherDialect;
     use crate::launcher::quick_play_version::QuickPlaySingleplayerVersion;
+    use serde_json::json;
 
     #[tokio::test]
     async fn mixed_legacy_and_modern_game_arguments_are_both_preserved() {
@@ -660,6 +729,73 @@ mod tests {
             canonicalize(&game_directory).unwrap().to_string_lossy()
         );
         assert_eq!(&parsed[4..], ["--tweakClass", "example.LiteLoaderTweaker"]);
+    }
+
+    #[test]
+    fn linked_classpath_uses_download_and_local_paths_and_skips_native_only() {
+        let root = tempfile::tempdir().unwrap();
+        let artifact = root.path().join("libraries/custom/a.jar");
+        let local = root.path().join("versions/demo/libraries/local.jar");
+        let main = root.path().join("main.jar");
+        let client = root.path().join("client.jar");
+        std::fs::create_dir_all(artifact.parent().unwrap()).unwrap();
+        std::fs::create_dir_all(local.parent().unwrap()).unwrap();
+        std::fs::write(&artifact, b"artifact").unwrap();
+        std::fs::write(&local, b"local").unwrap();
+        std::fs::write(&main, b"main").unwrap();
+        std::fs::write(&client, b"client").unwrap();
+
+        let libraries: Vec<LinkedLibrary> = serde_json::from_value(json!([
+            {
+                "name":"x:artifact:1",
+                "downloads":{"artifact":{"path":"custom/a.jar", "sha1":"", "size":0, "url":""}}
+            },
+            {
+                "name":"x:local:1",
+                "MMC-hint":"local",
+                "MMC-filename":"local.jar"
+            },
+            {
+                "name":"x:native:1",
+                "natives":{"linux":"natives-linux"},
+                "downloads":{"classifiers":{"natives-linux":{"path":"unused.jar", "sha1":"", "size":0, "url":""}}}
+            }
+        ]))
+        .unwrap();
+        let direct = DirectLinkedLaunch {
+            dot_minecraft: root.path().to_path_buf(),
+            launcher_root: None,
+            version_id: "demo".to_string(),
+            version_json: None,
+            dialect: LinkedLauncherDialect::Hmcl,
+        };
+
+        let classpath = get_linked_class_paths(
+            &direct,
+            &libraries,
+            &[&main, &client],
+            std::env::consts::ARCH,
+            true,
+        )
+        .unwrap();
+        let paths = classpath
+            .split(classpath_separator(std::env::consts::ARCH))
+            .collect::<Vec<_>>();
+        assert!(
+            paths.contains(
+                &canonicalize(main).unwrap().to_string_lossy().as_ref()
+            )
+        );
+        assert!(paths.contains(
+            &canonicalize(client).unwrap().to_string_lossy().as_ref()
+        ));
+        assert!(paths.contains(
+            &canonicalize(artifact).unwrap().to_string_lossy().as_ref()
+        ));
+        assert!(paths.contains(
+            &canonicalize(local).unwrap().to_string_lossy().as_ref()
+        ));
+        assert_eq!(paths.len(), 4);
     }
 
     #[tokio::test]

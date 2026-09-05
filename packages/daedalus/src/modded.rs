@@ -155,6 +155,28 @@ pub fn uses_unobfuscated_minecraft(game_version: &str) -> bool {
 }
 
 /// Removes loader libraries that are incompatible with the selected game version.
+///
+/// For Cleanroom the vanilla LWJGL 2 family is dropped: the
+/// `org.lwjgl.lwjgl:lwjgl` binding (shares the `org.lwjgl` package with the
+/// Cleanroom LWJGL 3 line), the natives-only carrier
+/// `org.lwjgl.lwjgl:lwjgl-platform` (whose root-level extracted `lwjgl.dll` /
+/// `liblwjgl.so` / `liblwjgl.dylib` would be what `System.loadLibrary("lwjgl")`
+/// resolves first in the natives directory, while the Cleanroom LWJGL 3
+/// natives are nested), and `org.lwjgl.lwjgl:lwjgl_util` at exactly
+/// `2.9.4-nightly-20150209` (LWJGL 2 utility classes the LWJGL 3 port does
+/// not provide; the version condition mirrors HMCL's `DefaultLauncher`
+/// Cleanroom handling, which removes every classpath entry containing
+/// `2.9.4-nightly-20150209`). HMCL itself never classpaths native jars and
+/// its first-wins native extraction over self-contained official Cleanroom
+/// manifests keeps the old LWJGL 2 native out of the natives directory, so
+/// dropping the carrier is an Axolotl-side strengthening for merged
+/// direct links, not an HMCL library rule. The vanilla JNA platform and the
+/// Mojang ICU bundle are removed by the pre-existing Axolotl Cleanroom rule
+/// (not HMCL logic): with Cleanroom's newer JNA line on the classpath the
+/// 1.12.2-era `net.java.dev.jna:platform` and `com.ibm.icu:icu4j-core-mojang`
+/// carry conflicting runtime-class versions. The Cleanroom LWJGL 3 line
+/// (`org.lwjgl:lwjgl:3.4.1-unsafe`), `lwjglxx`, and the vanilla JNA core are
+/// untouched.
 pub fn normalize_loader_libraries(
     loader: &str,
     game_version: &str,
@@ -172,19 +194,23 @@ pub fn normalize_loader_libraries(
         let mut coordinates = library.name.split(':');
         let group = coordinates.next();
         let artifact = coordinates.next();
-        let has_version = coordinates.next().is_some();
+        let version = coordinates.next();
+        let has_version = version.is_some();
         let is_intermediary = remove_fabric_intermediary
             && group == Some("net.fabricmc")
             && artifact == Some("intermediary")
             && has_version;
         let conflicts_with_cleanroom = remove_cleanroom_conflicts
             && has_version
-            && matches!(
+            && (matches!(
                 (group, artifact),
                 (Some("org.lwjgl.lwjgl"), Some("lwjgl"))
+                    | (Some("org.lwjgl.lwjgl"), Some("lwjgl-platform"))
                     | (Some("net.java.dev.jna"), Some("platform"))
                     | (Some("com.ibm.icu"), Some("icu4j-core-mojang"))
-            );
+            ) || (group == Some("org.lwjgl.lwjgl")
+                && artifact == Some("lwjgl_util")
+                && version == Some("2.9.4-nightly-20150209")));
 
         if is_intermediary || conflicts_with_cleanroom {
             removed.push(library.name.clone());
@@ -785,10 +811,16 @@ mod tests {
     }
 
     #[test]
-    fn cleanroom_normalization_removes_legacy_runtime_conflicts() {
+    fn cleanroom_normalization_removes_lwjgl2_family_and_legacy_mojang_conflicts()
+     {
+        // The vanilla LWJGL 2 family (binding, util at 2.9.4-nightly-20150209,
+        // natives carrier at any version) plus the pre-existing Axolotl
+        // Cleanroom rule targets (vanilla JNA platform, Mojang ICU) are
+        // removed. The Cleanroom LWJGL 3 line, lwjglxx, the version-scoped
+        // lwjgl_util at other versions, and the Cleanroom JNA core stay.
         let retained = [
-            "org.lwjgl.lwjgl:lwjgl_util:2.9.4-nightly-20150209",
             "org.lwjgl:lwjgl:3.4.1-unsafe",
+            "org.lwjgl.lwjgl:lwjgl_util:2.9.2-nightly-20140822",
             "net.java.dev.jna:jna:5.19.1",
             "net.java.dev.jna:jna-platform:5.19.1",
             "com.ibm.icu:icu4j:78.3",
@@ -796,8 +828,11 @@ mod tests {
         ];
         let removed = [
             "org.lwjgl.lwjgl:lwjgl:2.9.4-nightly-20150209",
+            "org.lwjgl.lwjgl:lwjgl_util:2.9.4-nightly-20150209",
+            "org.lwjgl.lwjgl:lwjgl-platform:2.9.4-nightly-20150209",
             "net.java.dev.jna:platform:3.4.0",
             "com.ibm.icu:icu4j-core-mojang:51.2",
+            "org.lwjgl.lwjgl:lwjgl-platform:2.9.2-nightly-20140822",
         ];
         let mut libraries = removed
             .iter()
@@ -819,10 +854,55 @@ mod tests {
     }
 
     #[test]
+    fn cleanroom_normalization_matches_lwjgl2_coordinates_by_version_scope() {
+        // lwjgl and lwjgl-platform keep the pre-existing artifact match (any
+        // version); lwjgl_util only matches at 2.9.4-nightly-20150209,
+        // mirroring HMCL's classpath filter for Cleanroom. The LWJGL 3 line
+        // and lwjglxx never match.
+        let mut libraries = vec![
+            library("org.lwjgl.lwjgl:lwjgl:2.9.4-nightly-20150209"),
+            library("org.lwjgl.lwjgl:lwjgl_util:2.9.4-nightly-20150209"),
+            library("org.lwjgl.lwjgl:lwjgl-platform:2.9.4-nightly-20150209"),
+            library("org.lwjgl.lwjgl:lwjgl:2.9.2-nightly-20140822"),
+            library("org.lwjgl.lwjgl:lwjgl-platform:2.9.2-nightly-20140822"),
+            library("org.lwjgl.lwjgl:lwjgl_util:2.9.2-nightly-20140822"),
+            library("org.lwjgl:lwjgl:3.4.1-unsafe"),
+            library("org.lwjgl:lwjgl-platform:9.9.9"),
+            library("com.cleanroommc:lwjglxx:1.1.22"),
+        ];
+
+        assert_eq!(
+            normalize_loader_libraries("cleanroom", "1.12.2", &mut libraries),
+            [
+                "org.lwjgl.lwjgl:lwjgl:2.9.4-nightly-20150209",
+                "org.lwjgl.lwjgl:lwjgl_util:2.9.4-nightly-20150209",
+                "org.lwjgl.lwjgl:lwjgl-platform:2.9.4-nightly-20150209",
+                "org.lwjgl.lwjgl:lwjgl:2.9.2-nightly-20140822",
+                "org.lwjgl.lwjgl:lwjgl-platform:2.9.2-nightly-20140822",
+            ]
+        );
+        assert_eq!(
+            libraries
+                .iter()
+                .map(|library| library.name.as_str())
+                .collect::<Vec<_>>(),
+            [
+                "org.lwjgl.lwjgl:lwjgl_util:2.9.2-nightly-20140822",
+                "org.lwjgl:lwjgl:3.4.1-unsafe",
+                "org.lwjgl:lwjgl-platform:9.9.9",
+                "com.cleanroommc:lwjglxx:1.1.22",
+            ]
+        );
+    }
+
+    #[test]
     fn cleanroom_runtime_conflicts_remain_for_other_loaders() {
         for loader in ["vanilla", "forge", "fabric", "quilt", "neo"] {
             let mut libraries = vec![
                 library("org.lwjgl.lwjgl:lwjgl:2.9.4-nightly-20150209"),
+                library(
+                    "org.lwjgl.lwjgl:lwjgl-platform:2.9.4-nightly-20150209",
+                ),
                 library("net.java.dev.jna:platform:3.4.0"),
                 library("com.ibm.icu:icu4j-core-mojang:51.2"),
             ];
@@ -831,7 +911,7 @@ mod tests {
                 normalize_loader_libraries(loader, "1.12.2", &mut libraries)
                     .is_empty()
             );
-            assert_eq!(libraries.len(), 3);
+            assert_eq!(libraries.len(), 4);
         }
     }
 

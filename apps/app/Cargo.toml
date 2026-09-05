@@ -16,6 +16,7 @@ dashmap = { workspace = true }
 either = { workspace = true }
 enumset = { workspace = true, features = ["serde"] }
 flate2 = { workspace = true }
+futures = { workspace = true }
 hyper = { workspace = true, features = ["server"] }
 hyper-util = { workspace = true }
 image = { workspace = true }

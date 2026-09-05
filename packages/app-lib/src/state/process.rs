@@ -364,6 +364,7 @@ impl ProcessManager {
         tokio::spawn(Process::sequential_process_manager(
             instance_id.to_string(),
             instance_path.to_string(),
+            logs_folder,
             post_exit_command,
             metadata.uuid,
             crash_reports_before,
@@ -925,6 +926,7 @@ impl Process {
     async fn sequential_process_manager(
         instance_id: String,
         instance_path: String,
+        logs_folder: PathBuf,
         post_exit_command: Option<String>,
         uuid: Uuid,
         crash_reports_before: Option<CrashReportSnapshot>,
@@ -1070,7 +1072,6 @@ impl Process {
             }
         });
 
-        let logs_folder = state.directories.instance_logs_dir(&instance_path);
         let log_path = logs_folder.join(LAUNCHER_LOG_PATH);
 
         if log_path.exists()

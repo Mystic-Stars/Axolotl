@@ -209,6 +209,9 @@ const notificationGroupStyle = computed(() => ({
 	zIndex: hasModalActive.value ? 100 + stackCount.value * 10 + 8 : 200,
 }))
 const exporting = ref<Record<string | number, boolean>>({})
+// Download progress items share one parent popup notification. Keep dismissal
+// state per item so closing one row does not hide the other rows.
+const dismissedProgressItems = ref<Record<string, string[]>>({})
 
 const stopTimer = (n: PopupNotification) => popupNotificationManager.stopNotificationTimer(n)
 const setNotificationTimer = (n: PopupNotification) =>
@@ -223,22 +226,23 @@ function isDownloadNotification(item: PopupNotification) {
 }
 
 function downloadToastItems(item: PopupNotification): PopupNotificationProgressItem[] {
-	if (item.progressItems?.length) {
-		return item.progressItems
-	}
+	const dismissed = dismissedProgressItems.value[String(item.id)] ?? []
+	const items = item.progressItems?.length
+		? item.progressItems
+		: [
+				{
+					id: `${item.id}`,
+					title: item.title,
+					text: item.text,
+					iconUrl: item.iconUrl,
+					progress: item.progress ?? 0,
+					waiting: item.waiting ?? false,
+					showProgress: true,
+					progressType: 'percentage',
+				},
+			]
 
-	return [
-		{
-			id: `${item.id}`,
-			title: item.title,
-			text: item.text,
-			iconUrl: item.iconUrl,
-			progress: item.progress ?? 0,
-			waiting: item.waiting ?? false,
-			showProgress: true,
-			progressType: 'percentage',
-		},
-	]
+	return items.filter((progressItem) => !dismissed.includes(progressItem.id))
 }
 
 function handleDownloadClick(item: PopupNotification, event: MouseEvent) {
@@ -248,10 +252,21 @@ function handleDownloadClick(item: PopupNotification, event: MouseEvent) {
 
 async function handleProgressItemDismiss(
 	item: PopupNotification,
-	_progressItem: PopupNotificationProgressItem,
+	progressItem: PopupNotificationProgressItem,
 ) {
 	// Dismissal is presentation-only. Download history must remain available for diagnosis.
-	dismiss(item.id)
+	const notificationKey = String(item.id)
+	const dismissed = dismissedProgressItems.value[notificationKey] ?? []
+	if (!dismissed.includes(progressItem.id)) {
+		dismissedProgressItems.value = {
+			...dismissedProgressItems.value,
+			[notificationKey]: [...dismissed, progressItem.id],
+		}
+	}
+
+	if (downloadToastItems(item).length === 0) {
+		dismiss(item.id)
+	}
 }
 
 async function handleProgressItemAction(

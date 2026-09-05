@@ -67,6 +67,7 @@ import { computed, nextTick, onMounted, onUnmounted, provide, ref, watch } from 
 import { type RouteLocationNormalizedLoaded, RouterView, useRoute, useRouter } from 'vue-router'
 
 import { getAnnouncementByVersion } from '@/announcements/catalog'
+import { sync_direct_links } from '@/helpers/instance'
 import InstanceExportModal from '@/components/lab/recipe-generator/InstanceExportModal.vue'
 import AccountsCard from '@/components/ui/AccountsCard.vue'
 import UpdateAnnouncementModal from '@/components/ui/announcement/UpdateAnnouncementModal.vue'
@@ -139,8 +140,6 @@ import {
 	exportErrorLogs,
 	getOS,
 	getUpdateSize,
-	installAptUpdate,
-	isAptLinux,
 	isDev,
 	isElevated,
 	isNetworkMetered,
@@ -321,7 +320,6 @@ const onboardingReplay = ref(false)
 const nativeDecorations = ref(false)
 
 const os = ref('')
-const aptLinux = ref(false)
 const isDevEnvironment = ref(false)
 
 /**
@@ -502,7 +500,53 @@ onMounted(async () => {
 
 	checkUpdates()
 	void warnIfRunningElevated()
+	startDirectLinkSync()
 })
+
+let directLinkSync: (() => Promise<void>) | undefined
+let stopDirectLinkSync: (() => void) | undefined
+function startDirectLinkSync() {
+	const readRoots = () => {
+		try {
+			const parsed = JSON.parse(localStorage.getItem('axolotl-minecraft-directories') ?? '[]')
+			return Array.isArray(parsed)
+				? parsed.filter((value): value is string => typeof value === 'string' && value.trim())
+				: []
+		} catch {
+			return []
+		}
+	}
+	let syncInFlight: Promise<void> | undefined
+	const sync = async () => {
+		if (syncInFlight) return syncInFlight
+
+		syncInFlight = (async () => {
+			const roots = readRoots()
+			if (roots.length === 0) return
+			await sync_direct_links(roots)
+				.catch((error) => {
+					console.warn('Failed to sync external Minecraft instances', error)
+				})
+			window.dispatchEvent(new Event('axolotl-direct-links-synced'))
+		})().finally(() => {
+			syncInFlight = undefined
+		})
+
+		return syncInFlight
+	}
+	const handleWindowFocus = () => {
+		void sync()
+	}
+
+	directLinkSync = sync
+	window.addEventListener('focus', handleWindowFocus)
+	void sync()
+	stopDirectLinkSync = () => {
+		window.removeEventListener('focus', handleWindowFocus)
+		if (directLinkSync === sync) directLinkSync = undefined
+		if (stopDirectLinkSync) stopDirectLinkSync = undefined
+	}
+}
 
 onUnmounted(async () => {
 	window.removeEventListener('keydown', handleGlobalKeydown, true)
@@ -511,6 +555,7 @@ onUnmounted(async () => {
 	document.querySelector('body').removeEventListener('click', handleClick)
 	document.querySelector('body').removeEventListener('auxclick', handleAuxClick)
 	clearDelayedUpdatePopup()
+	stopDirectLinkSync?.()
 	await unlistenUpdateDownload?.()
 	downloadManager.dispose()
 })
@@ -1023,7 +1068,6 @@ async function setupApp() {
 	if (defaultPageRoute && defaultPageRoute !== '/') await router.push(defaultPageRoute)
 
 	os.value = await getOS()
-	aptLinux.value = await isAptLinux().catch(() => false)
 	const dev = await isDev()
 	isDevEnvironment.value = dev
 	pendingUpdateAnnouncementVersion.value = pending_update_toast_for_version
@@ -1391,7 +1435,10 @@ router.afterEach((to, from, failure) => {
 		fromPath: from.path,
 		failed: failure,
 	})
-	if (!failure && stateInitialized.value) syncDiscordActivity(to)
+	if (!failure) {
+		void directLinkSync?.()
+		if (stateInitialized.value) syncDiscordActivity(to)
+	}
 	setTimeout(() => {
 		if (!suspensePending && stateInitialized.value) {
 			if (initialLoadToken) {
@@ -1814,18 +1861,9 @@ const updatePopupMessages = defineMessages({
 		id: 'app.update-popup.body.download-complete',
 		defaultMessage: `Axolotl Launcher v{version} has finished downloading. Reload to update now, or automatically when you close Axolotl Launcher.`,
 	},
-	linuxBody: {
-		id: 'app.update-popup.body.linux',
-		defaultMessage:
-			'Axolotl Launcher v{version} is available. Use your package manager to update for the latest features and fixes!',
-	},
 	reload: {
 		id: 'app.update-popup.reload',
 		defaultMessage: 'Reload to update',
-	},
-	aptUpdate: {
-		id: 'app.update-popup.apt-update',
-		defaultMessage: 'Update',
 	},
 	download: {
 		id: 'app.update-popup.download',
@@ -1887,28 +1925,7 @@ function showDelayedUpdatePopup() {
 		return
 	}
 
-	if (aptLinux.value && !finishedDownloading.value) {
-		// Debian and derivatives: the update installs through the package
-		// manager with a single pkexec prompt, so there is no download size.
-		addPopupNotification({
-			title: formatMessage(updatePopupMessages.updateAvailable),
-			text: formatMessage(updatePopupMessages.linuxBody, { version: update.version }),
-			type: 'info',
-			autoCloseMs: null,
-			buttons: [
-				{
-					label: formatMessage(updatePopupMessages.aptUpdate),
-					action: () => downloadAvailableAppUpdate(),
-					color: 'brand',
-				},
-				{
-					label: formatMessage(updatePopupMessages.changelog),
-					action: () => openAppUpdateChangelog(),
-					keepOpen: true,
-				},
-			],
-		})
-	} else if (metered.value && !finishedDownloading.value) {
+	if (metered.value && !finishedDownloading.value) {
 		addPopupNotification({
 			title: formatMessage(updatePopupMessages.updateAvailable),
 			text: formatMessage(updatePopupMessages.meteredBody, { version: update.version }),
@@ -2012,20 +2029,6 @@ async function performUpdateCheck() {
 	console.log(`Update ${update.version} is available.`)
 
 	metered.value = await isNetworkMetered()
-	if (aptLinux.value) {
-		// Debian and derivatives update through apt; the pkexec prompt is the
-		// single authorization for the whole repo setup + package install.
-		console.log('apt-managed system; updating through apt')
-		if (!metered.value) {
-			console.log('Starting apt update')
-			downloadUpdate(update)
-		} else {
-			console.log(`Metered connection detected, not auto-updating via apt.`)
-			markAppUpdateActionable(update.version)
-			scheduleDelayedUpdatePopup()
-		}
-		return 'available'
-	}
 
 	if (!metered.value) {
 		console.log('Starting download of update')
@@ -2068,9 +2071,6 @@ async function downloadUpdate(versionToDownload) {
 		return
 	}
 
-	if (aptLinux.value) {
-		return installAptUpdateForVersion(versionToDownload)
-	}
 	if (downloading.value || appUpdateDownload.progress.value !== 0) {
 		console.error(`Update ${versionToDownload.version} already downloading`)
 		return
@@ -2110,44 +2110,8 @@ async function downloadUpdate(versionToDownload) {
 	}
 }
 
-// Debian and derivatives update through apt with a single pkexec prompt.
-// The package is installed directly, so there is no separate download step.
-async function installAptUpdateForVersion(versionToDownload) {
-	if (downloading.value) {
-		console.error(`Update ${versionToDownload.version} already installing`)
-		return
-	}
-
-	console.log(`Installing update ${versionToDownload.version} via apt`)
-	downloading.value = true
-	try {
-		await backupAppDbForUpdate(versionToDownload.version)
-		await installAptUpdate(versionToDownload.version)
-		downloading.value = false
-		finishedDownloading.value = true
-		console.log('Finished installing via apt!')
-		markAppUpdateActionable(versionToDownload.version, 'downloaded')
-		scheduleDelayedUpdatePopup()
-	} catch (error) {
-		downloading.value = false
-		handleError(error)
-	}
-}
-
 async function installUpdate() {
 	restarting.value = true
-
-	if (aptLinux.value) {
-		// The apt package was already installed by pkexec; just relaunch into
-		// the new version.
-		try {
-			await restartApp()
-		} catch (e) {
-			restarting.value = false
-			handleError(e)
-		}
-		return
-	}
 
 	try {
 		await backupAppDbForUpdate(availableUpdate.value?.version)

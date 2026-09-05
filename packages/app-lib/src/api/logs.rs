@@ -13,6 +13,7 @@ use tokio::{
 use crate::{
     State,
     prelude::Credentials,
+    state::instances::adapters::sqlite::instance_rows,
     util::io::{self, IOError},
 };
 
@@ -106,28 +107,51 @@ async fn resolve_instance_path(
     instance: &str,
     state: &State,
 ) -> crate::Result<(String, Option<String>)> {
-    let row = sqlx::query!(
-        "
-        SELECT path, game_dir_override
-        FROM instances
-        WHERE id = ? OR path = ?
-        ORDER BY CASE WHEN id = ? THEN 0 ELSE 1 END
-        LIMIT 1
-        ",
-        instance,
-        instance,
-        instance,
-    )
-    .fetch_optional(&state.pool)
-    .await?
-    .ok_or_else(|| {
-        crate::ErrorKind::InputError(format!(
-            "Unknown instance id or path: {instance}"
-        ))
-        .as_error()
-    })?;
+    let instance =
+        match instance_rows::get_instance_by_id(instance, &state.pool).await? {
+            Some(instance) => instance,
+            None => {
+                // Preserve the historical id-or-path lookup, with id winning.
+                match instance_rows::get_instance_by_path(instance, &state.pool)
+                    .await?
+                {
+                    Some(instance) => instance,
+                    None => {
+                        return Err(crate::ErrorKind::InputError(format!(
+                            "Unknown instance id or path: {instance}"
+                        ))
+                        .as_error());
+                    }
+                }
+            }
+        };
 
-    Ok((row.path, row.game_dir_override))
+    // Directly associated instances have no profile folder of their own:
+    // their logs and crash reports live inside the externally managed
+    // installation, at the real game directory the launch runs from. That
+    // path is absolute, so `resolve_game_dir` returns it unchanged and
+    // `instance_logs_dir` / `crash_reports_dir` naturally land on
+    // `<game>/logs` / `<game>/crash-reports`.
+    if instance.is_direct_linked() {
+        if let Some(game_dir) = crate::launcher::linked_game_dir(&instance) {
+            return Ok((game_dir.to_string_lossy().into_owned(), None));
+        }
+        tracing::warn!(
+            instance_id = %instance.id,
+            "Directly linked instance metadata is incomplete; falling back \
+             to the recorded linked `.minecraft` root for log resolution"
+        );
+        if let Some(linked) = instance
+            .linked_dot_minecraft
+            .as_deref()
+            .map(str::trim)
+            .filter(|linked| !linked.is_empty())
+        {
+            return Ok((linked.to_string(), None));
+        }
+    }
+
+    Ok((instance.path, instance.game_dir_override))
 }
 
 fn split_line_ending(line: &str) -> (&str, &str) {
@@ -597,4 +621,223 @@ pub async fn get_generic_live_log_cursor(
         new_file,
         output,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::state::CreateDirectLinkInstance;
+    use std::sync::Arc;
+    use tempfile::TempDir;
+
+    /// The launcher state is a process-wide singleton; initialize it once and
+    /// reuse it so `State::get()` resolves inside these APIs. The state root
+    /// is intentionally leaked (`.keep()`) because the shared state outlives
+    /// this function.
+    async fn global_state() -> Arc<State> {
+        if !State::initialized() {
+            let root = TempDir::new().unwrap().keep();
+            let _ =
+                State::init_for_test(root.to_string_lossy().to_string()).await;
+        }
+        State::get().await.unwrap()
+    }
+
+    /// Creates a directly associated instance whose linked `.minecraft`
+    /// lives in a fresh temp dir (generic dialect: launches from the linked
+    /// `.minecraft/versions/<id>` directory).
+    async fn create_direct_link_fixture(
+        label: &str,
+    ) -> (TempDir, crate::state::InstanceMetadata) {
+        let state = global_state().await;
+        let minecraft = TempDir::new().unwrap();
+        let version_dir = minecraft.path().join("versions").join(label);
+        std::fs::create_dir_all(&version_dir).unwrap();
+        std::fs::write(
+            version_dir.join(format!("{label}.json")),
+            serde_json::to_vec_pretty(&serde_json::json!({
+                "id": label,
+                "inheritsFrom": "1.20.1",
+                "mainClass": "net.minecraft.client.main.Main"
+            }))
+            .unwrap(),
+        )
+        .unwrap();
+
+        let instance = crate::state::create_direct_link_instance(
+            CreateDirectLinkInstance {
+                name: None,
+                launcher_type:
+                    crate::api::pack::import::ImportLauncherType::Generic,
+                base_path: minecraft.path().to_path_buf(),
+                instance_folder: format!("versions/{label}"),
+                instance_path: None,
+            },
+            &state,
+        )
+        .await
+        .unwrap();
+        let metadata = crate::state::get_instance(&instance.id, &state.pool)
+            .await
+            .unwrap()
+            .expect("metadata for created fixture");
+        (minecraft, metadata)
+    }
+
+    #[tokio::test]
+    async fn direct_link_instance_resolves_to_linked_game_dir() {
+        let state = global_state().await;
+        let (minecraft, metadata) =
+            create_direct_link_fixture("logs-resolve").await;
+
+        let (resolved, game_dir_override) =
+            resolve_instance_path(&metadata.instance.id, &state)
+                .await
+                .unwrap();
+
+        // The generic dialect resolves to the isolated version directory; the
+        // absolute path keeps helpers inside the linked installation instead
+        // of a ghost `profiles/<path>` folder.
+        assert_eq!(
+            resolved,
+            minecraft
+                .path()
+                .join("versions")
+                .join("logs-resolve")
+                .to_string_lossy()
+        );
+        assert!(game_dir_override.is_none());
+        assert_eq!(
+            state.directories.instance_logs_dir(&resolved),
+            minecraft
+                .path()
+                .join("versions")
+                .join("logs-resolve")
+                .join("logs")
+        );
+        assert_eq!(
+            state.directories.crash_reports_dir(&resolved),
+            minecraft
+                .path()
+                .join("versions")
+                .join("logs-resolve")
+                .join("crash-reports")
+        );
+        assert!(
+            !state
+                .directories
+                .instances_dir()
+                .join(&metadata.instance.path)
+                .exists(),
+            "no profile directory may be created for a direct-link instance"
+        );
+    }
+
+    #[tokio::test]
+    async fn ordinary_instance_still_resolves_to_relative_path() {
+        let state = global_state().await;
+        let metadata = crate::api::instance::create(
+            format!("logs-normal {}", uuid::Uuid::new_v4()),
+            "1.20.1".to_string(),
+            crate::state::ModLoader::Vanilla,
+            None,
+            None,
+            crate::state::InstanceLink::Unmanaged,
+            None,
+            None,
+        )
+        .await
+        .unwrap();
+
+        let (resolved, game_dir_override) =
+            resolve_instance_path(&metadata.instance.id, &state)
+                .await
+                .unwrap();
+        assert_eq!(
+            resolved, metadata.instance.path,
+            "ordinary instances keep resolving through their relative profile path"
+        );
+        assert!(game_dir_override.is_none());
+    }
+
+    #[tokio::test]
+    async fn direct_link_instance_logs_are_enumerated_from_linked_root() {
+        let state = global_state().await;
+        let (minecraft, metadata) =
+            create_direct_link_fixture("logs-enum").await;
+
+        let version_dir = minecraft.path().join("versions").join("logs-enum");
+        std::fs::create_dir_all(version_dir.join("logs")).unwrap();
+        std::fs::write(
+            version_dir.join("logs").join("latest.log"),
+            b"[12:00:00] [Render thread/INFO]: Setting user\n",
+        )
+        .unwrap();
+        std::fs::create_dir_all(version_dir.join("crash-reports")).unwrap();
+        std::fs::write(
+            version_dir
+                .join("crash-reports")
+                .join("crash-2026-01-02_03.04.05-server.txt"),
+            b"---- Minecraft Crash Report ----\n",
+        )
+        .unwrap();
+
+        let logs = get_logs(&metadata.instance.id, None).await.unwrap();
+        let filenames = logs
+            .iter()
+            .map(|log| log.filename.as_str())
+            .collect::<Vec<_>>();
+        assert!(
+            filenames.contains(&"latest.log"),
+            "logs must be enumerated from the linked root: {filenames:?}"
+        );
+        assert!(
+            filenames.contains(&"crash-2026-01-02_03.04.05-server.txt"),
+            "crash reports must be enumerated from the linked root: {filenames:?}"
+        );
+        // The log browser must never consult the nonexistent profile folder.
+        assert!(
+            !state
+                .directories
+                .instances_dir()
+                .join(&metadata.instance.path)
+                .exists()
+        );
+    }
+
+    #[tokio::test]
+    async fn direct_link_crash_analysis_finds_linked_crash_reports() {
+        let _state = global_state().await;
+        let (minecraft, metadata) =
+            create_direct_link_fixture("logs-crash").await;
+
+        let version_dir = minecraft.path().join("versions").join("logs-crash");
+        std::fs::create_dir_all(version_dir.join("logs")).unwrap();
+        std::fs::write(
+            version_dir.join("logs").join("latest.log"),
+            b"[12:00:00] [Render thread/INFO]: Setting user\n",
+        )
+        .unwrap();
+        std::fs::create_dir_all(version_dir.join("crash-reports")).unwrap();
+        std::fs::write(
+            version_dir
+                .join("crash-reports")
+                .join("crash-2026-01-02_03.04.05-server.txt"),
+            b"---- Minecraft Crash Report ----\n\
+              // Who set us up the TNT?\n\
+              java.lang.OutOfMemoryError: Java heap space\n",
+        )
+        .unwrap();
+
+        let analysis = crate::api::logs::analyze_crash(&metadata.instance.id)
+            .await
+            .unwrap();
+        assert!(
+            analysis
+                .sources
+                .iter()
+                .any(|source| source.source_type == "crash_report"),
+            "crash analysis must discover reports under the linked root"
+        );
+    }
 }

@@ -1163,20 +1163,11 @@
   "creation-flow.modal.custom-setup.content-loader.label": {
     "defaultMessage": "Content loader"
   },
-  "creation-flow.modal.custom-setup.game-dir.choose-folder": {
-    "defaultMessage": "Choose folder"
-  },
-  "creation-flow.modal.custom-setup.game-dir.isolated": {
-    "defaultMessage": "Custom · Version isolated (.minecraft/versions/instance name/)"
-  },
   "creation-flow.modal.custom-setup.game-dir.label": {
     "defaultMessage": "Game directory"
   },
   "creation-flow.modal.custom-setup.game-dir.managed": {
     "defaultMessage": "Axolotl directory"
-  },
-  "creation-flow.modal.custom-setup.game-dir.not-isolated": {
-    "defaultMessage": "Custom · Version shared (.minecraft/)"
   },
   "creation-flow.modal.custom-setup.game-version-type.alpha": {
     "defaultMessage": "April Fools"

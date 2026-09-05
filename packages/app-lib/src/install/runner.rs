@@ -167,6 +167,22 @@ pub async fn import_instance_with_plan(
 pub async fn duplicate_instance(
     source_instance_id: String,
 ) -> crate::Result<InstallJobSnapshot> {
+    // Directly associated instances own no files to copy: duplicating one
+    // would clone the linked launcher's `.minecraft` into Axolotl.
+    let state = State::get().await?;
+    if let Some(metadata) =
+        crate::state::get_instance(&source_instance_id, &state.pool).await?
+        && metadata.instance.is_direct_linked()
+    {
+        return Err(crate::ErrorKind::InputError(format!(
+            "\"{}\" is directly associated with an external launcher and \
+             cannot be duplicated; its files are managed by that launcher",
+            metadata.instance.name
+        ))
+        .into());
+    }
+    drop(state);
+
     start(InstallRequest::DuplicateInstance { source_instance_id }).await
 }
 
@@ -5706,6 +5722,60 @@ mod tests {
                 InstallJobEventKind::RollbackStarted { .. }
             )));
         }
+    }
+
+    /// The launcher state is a process-wide singleton; initialize it once and
+    /// reuse it so `State::get()` resolves inside these APIs. The state root
+    /// is intentionally leaked (`.keep()`) because the shared state outlives
+    /// this function.
+    async fn global_state() -> std::sync::Arc<State> {
+        if !State::initialized() {
+            let root = tempfile::tempdir().unwrap().keep();
+            let _ =
+                State::init_for_test(root.to_string_lossy().to_string()).await;
+        }
+        State::get().await.unwrap()
+    }
+
+    #[tokio::test]
+    async fn direct_link_instances_cannot_be_duplicated() {
+        let state = global_state().await;
+        let minecraft = tempfile::tempdir().unwrap();
+        let version_dir = minecraft.path().join("versions/duplicate-demo");
+        std::fs::create_dir_all(&version_dir).unwrap();
+        std::fs::write(
+            version_dir.join("duplicate-demo.json"),
+            serde_json::to_vec_pretty(&serde_json::json!({
+                "id": "duplicate-demo",
+                "inheritsFrom": "1.20.1",
+                "mainClass": "net.minecraft.client.main.Main"
+            }))
+            .unwrap(),
+        )
+        .unwrap();
+
+        let instance = crate::state::create_direct_link_instance(
+            crate::state::CreateDirectLinkInstance {
+                name: None,
+                launcher_type:
+                    crate::api::pack::import::ImportLauncherType::Generic,
+                base_path: minecraft.path().to_path_buf(),
+                instance_folder: "versions/duplicate-demo".to_string(),
+                instance_path: None,
+            },
+            &state,
+        )
+        .await
+        .unwrap();
+
+        let error = duplicate_instance(instance.id)
+            .await
+            .expect_err("directly associated instances must be rejected");
+
+        assert!(
+            error.to_string().contains("directly associated"),
+            "expected a friendly rejection, got: {error}"
+        );
     }
 
     #[test]

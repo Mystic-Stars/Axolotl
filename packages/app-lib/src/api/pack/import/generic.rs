@@ -57,7 +57,9 @@ pub async fn import_generic(
 /// Stage 1 — resolve the name and the `.minecraft` directory of an imported
 /// instance folder. Falls back to the folder itself when there is no nested
 /// `.minecraft` subdirectory.
-fn resolve_dotminecraft(instance_folder: &Path) -> (String, PathBuf) {
+pub(crate) fn resolve_dotminecraft(
+    instance_folder: &Path,
+) -> (String, PathBuf) {
     let name = instance_folder
         .file_name()
         .map(|n| n.to_string_lossy().to_string())

@@ -6959,11 +6959,32 @@
   "app.settings.resources.app-directory": {
     "message": "应用目录"
   },
+  "app.settings.resources.axolotl-data-directory": {
+    "message": "Axolotl 数据目录"
+  },
   "app.settings.resources.app-directory-description": {
     "message": "启动器用于存储全部游戏文件的目录。更改将在重启启动器后生效。"
   },
   "app.settings.resources.app-directory-description-portable": {
     "message": "正在以便携模式运行，所有数据已固定在程序目录下，无法修改。"
+  },
+  "app.settings.resources.minecraft-directories": {
+    "message": "Minecraft 目录"
+  },
+  "app.settings.resources.minecraft-directories-description": {
+    "message": "添加一个或多个供实例使用的外部 .minecraft 文件夹。这些文件夹与 Axolotl 数据分开保存。"
+  },
+  "app.settings.resources.add-minecraft-directory": {
+    "message": "添加 .minecraft 目录"
+  },
+  "app.settings.resources.select-minecraft-directory": {
+    "message": "选择 .minecraft 目录"
+  },
+  "app.settings.resources.remove-minecraft-directory": {
+    "message": "删除 .minecraft 目录"
+  },
+  "app.settings.resources.minecraft-directory-must-end-with": {
+    "message": "所选文件夹名称必须是 .minecraft。"
   },
   "app.settings.resources.concurrency.manual": {
     "message": "手动"
@@ -8782,6 +8803,9 @@
   },
   "instance.settings.tabs.general.game-dir.managed-note": {
     "message": "此实例使用 Axolotl 托管目录。"
+  },
+  "instance.settings.tabs.general.game-dir.external-note": {
+    "message": "此实例使用外部 .minecraft 目录，文件会直接在原位置管理。"
   },
   "instance.settings.tabs.general.icon": {
     "message": "图标"

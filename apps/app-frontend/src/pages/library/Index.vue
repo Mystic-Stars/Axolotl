@@ -41,13 +41,20 @@ breadcrumbs.setRootContext({ name: formatMessage(messages.library), link: route.
 
 const instances = shallowRef(await list().catch(handleError))
 
+const refreshInstances = async () => {
+	instances.value = await list().catch(handleError)
+}
+
+window.addEventListener('axolotl-direct-links-synced', refreshInstances)
+
 const { offline } = useNetworkStatus()
 
 const unlistenInstance = await instance_listener(async () => {
-	instances.value = await list().catch(handleError)
+	await refreshInstances()
 })
 onUnmounted(() => {
 	unlistenInstance()
+	window.removeEventListener('axolotl-direct-links-synced', refreshInstances)
 })
 </script>
 

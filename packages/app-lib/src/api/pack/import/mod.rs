@@ -29,6 +29,7 @@ use crate::{
 pub mod atlauncher;
 mod axolotl;
 pub mod curseforge;
+pub(crate) mod direct_link;
 pub mod gdlauncher;
 pub(crate) mod generic;
 pub mod hmcl;

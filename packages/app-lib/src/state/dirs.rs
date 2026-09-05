@@ -228,7 +228,8 @@ impl DirectoryInfo {
             // treat it as unset and fall back to the managed folder.
             Some(override_dir)
                 if !override_dir.is_empty()
-                    && Path::new(override_dir).is_absolute() =>
+                    && (Path::new(override_dir).is_absolute()
+                        || Self::is_absolute_override(override_dir)) =>
             {
                 PathBuf::from(override_dir)
             }
@@ -251,6 +252,18 @@ impl DirectoryInfo {
             .as_deref()
             .or(instance.symlink_target.as_deref());
         self.resolve_game_dir(&instance.path, game_dir)
+    }
+
+    /// `Path::is_absolute` treats a Windows drive-letter path (e.g.
+    /// `D:\Games\.minecraft`) as relative on non-Windows builds. Overrides are
+    /// persisted and round-trip across OSes, so a drive-letter path must be
+    /// honored as absolute on every platform.
+    fn is_absolute_override(value: &str) -> bool {
+        let bytes = value.as_bytes();
+        bytes.len() >= 3
+            && bytes[0].is_ascii_alphabetic()
+            && bytes[1] == b':'
+            && matches!(bytes[2], b'/' | b'\\')
     }
 
     #[inline]

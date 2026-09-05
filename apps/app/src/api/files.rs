@@ -13,6 +13,16 @@ use theseus::instance::get_full_path;
 
 const STUDIO_FILES_CHANGED_EVENT: &str = "studio-files-changed";
 
+pub(crate) fn ensure_browsable<R: tauri::Runtime>(
+    app: &tauri::AppHandle<R>,
+    root: &std::path::Path,
+) {
+    use tauri_plugin_fs::FsExt;
+    if let Err(error) = app.fs_scope().allow_directory(root, true) {
+        tracing::warn!(%error, path = %root.display(), "Failed to grant webview access to external instance");
+    }
+}
+
 #[derive(Default)]
 pub struct StudioWatchers {
     watchers: Mutex<HashMap<String, StudioWatcher>>,

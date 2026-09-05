@@ -39,21 +39,11 @@
 			class="flex flex-col gap-2"
 		>
 			<span class="font-semibold text-contrast">{{ formatMessage(messages.gameDirLabel) }}</span>
-			<RadioButtons v-model="gameDirMode" :items="gameDirModeItems" force-selection>
+			<RadioButtons v-model="gameDirSelection" :items="gameDirOptions" force-selection>
 				<template #default="{ item }">
-					{{ formatMessage(gameDirModeLabel(item)) }}
+					{{ item === BUILTIN_GAME_DIR ? formatMessage(messages.gameDirManaged) : item }}
 				</template>
 			</RadioButtons>
-			<div v-if="gameDirMode !== 'builtin'" class="flex items-center gap-2">
-				<ButtonStyled type="outlined">
-					<button @click="pickGameDir">
-						{{ formatMessage(messages.gameDirChooseFolder) }}
-					</button>
-				</ButtonStyled>
-				<span v-if="ctx.gameDirOverride.value" class="text-sm text-secondary break-all">
-					{{ ctx.gameDirOverride.value }}
-				</span>
-			</div>
 		</div>
 
 		<!-- Game version -->
@@ -220,12 +210,7 @@ import Collapsible from '../../../base/Collapsible.vue'
 import Combobox, { type ComboboxOption } from '../../../base/Combobox.vue'
 import PaperChannelBadge from '../../../base/PaperChannelBadge.vue'
 import StyledInput from '../../../base/StyledInput.vue'
-import type {
-	AdjunctLoader,
-	GameDirOverrideMode,
-	LoaderVersionEntry,
-	LoaderVersionType,
-} from '../creation-flow-context'
+import type { AdjunctLoader, LoaderVersionEntry, LoaderVersionType } from '../creation-flow-context'
 import { injectCreationFlowContext } from '../creation-flow-context'
 import {
 	createLatestRequestGuard,
@@ -271,21 +256,9 @@ const messages = defineMessages({
 		id: 'creation-flow.modal.custom-setup.game-dir.label',
 		defaultMessage: 'Game directory',
 	},
-	gameDirIsolated: {
-		id: 'creation-flow.modal.custom-setup.game-dir.isolated',
-		defaultMessage: 'Custom · Version isolated (.minecraft/versions/instance name/)',
-	},
-	gameDirNotIsolated: {
-		id: 'creation-flow.modal.custom-setup.game-dir.not-isolated',
-		defaultMessage: 'Custom · Version shared (.minecraft/)',
-	},
 	gameDirManaged: {
 		id: 'creation-flow.modal.custom-setup.game-dir.managed',
 		defaultMessage: 'Axolotl directory',
-	},
-	gameDirChooseFolder: {
-		id: 'creation-flow.modal.custom-setup.game-dir.choose-folder',
-		defaultMessage: 'Choose folder',
 	},
 	nameLabel: {
 		id: 'creation-flow.modal.custom-setup.name.label',
@@ -738,38 +711,52 @@ function removeIcon() {
 	ctx.instanceIconPath.value = null
 }
 
-const gameDirMode = computed<GameDirOverrideMode>({
-	get: () => ctx.gameDirOverrideMode.value,
-	set: (mode) => setGameDirMode(mode),
+const BUILTIN_GAME_DIR = 'builtin'
+const MINECRAFT_DIRECTORIES_STORAGE_KEY = 'axolotl-minecraft-directories'
+
+function loadMinecraftDirectories(): string[] {
+	try {
+		const parsed = JSON.parse(localStorage.getItem(MINECRAFT_DIRECTORIES_STORAGE_KEY) ?? '[]')
+		if (!Array.isArray(parsed)) return []
+		return [
+			...new Set(
+				parsed.filter(
+					(value): value is string => typeof value === 'string' && value.trim().length > 0,
+				),
+			),
+		]
+	} catch {
+		return []
+	}
+}
+
+const configuredMinecraftDirectories = loadMinecraftDirectories()
+const gameDirOptions = [BUILTIN_GAME_DIR, ...configuredMinecraftDirectories]
+if (
+	ctx.gameDirOverrideMode.value !== 'builtin' &&
+	ctx.gameDirOverride.value &&
+	!gameDirOptions.includes(ctx.gameDirOverride.value)
+) {
+	// Keep an older/custom selection visible when reopening a flow so existing
+	// configuration remains usable even if its root is no longer in Settings.
+	gameDirOptions.push(ctx.gameDirOverride.value)
+}
+
+const gameDirSelection = computed<string>({
+	get: () =>
+		ctx.gameDirOverrideMode.value === 'builtin'
+			? BUILTIN_GAME_DIR
+			: (ctx.gameDirOverride.value ?? BUILTIN_GAME_DIR),
+	set: (selection) => {
+		if (selection === BUILTIN_GAME_DIR) {
+			ctx.gameDirOverrideMode.value = 'builtin'
+			ctx.gameDirOverride.value = null
+			return
+		}
+		ctx.gameDirOverrideMode.value = 'isolated'
+		ctx.gameDirOverride.value = selection
+	},
 })
-
-function setGameDirMode(mode: GameDirOverrideMode) {
-	ctx.gameDirOverrideMode.value = mode
-	// Switching back to the managed (builtin) folder drops any previously
-	// chosen external root so it is not silently retained.
-	if (mode === 'builtin') {
-		ctx.gameDirOverride.value = null
-	}
-}
-
-const gameDirModeItems: GameDirOverrideMode[] = ['builtin', 'isolated', 'not-isolated']
-
-function gameDirModeLabel(mode: GameDirOverrideMode) {
-	switch (mode) {
-		case 'isolated':
-			return messages.gameDirIsolated
-		case 'not-isolated':
-			return messages.gameDirNotIsolated
-		default:
-			return messages.gameDirManaged
-	}
-}
-
-async function pickGameDir() {
-	const picked = await filePicker.pickFolder()
-	if (!picked?.path) return
-	ctx.gameDirOverride.value = picked.path
-}
 
 const loaderVersionsLoading = ref(false)
 const loaderVersionsData = ref<LoaderVersionEntry[]>([])

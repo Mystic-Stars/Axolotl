@@ -1,7 +1,7 @@
 use super::sync_content_files::{
     fetch_content_file_updates, installed_modrinth_version_id,
-    modrinth_update_enabled, project_type_for_file,
-    sync_instance_content_files,
+    instance_content_root, join_content_path, modrinth_update_enabled,
+    project_type_for_file, sync_instance_content_files,
 };
 use crate::State;
 use crate::pack::install_from::{PackFileHash, PackFormat};
@@ -1797,10 +1797,10 @@ async fn content_files_to_content_items(
         &state.api_semaphore,
     )
     .await?;
-    let instance_path = state.directories.instance_game_dir(&instance);
+    let instance_path = instance_content_root(&state.directories, instance)?;
     let paths = files
         .iter()
-        .map(|(path, _)| instance_path.join(path))
+        .map(|(path, _)| join_content_path(&instance_path, path))
         .collect::<Vec<_>>();
     let modification_times: Vec<Option<String>> =
         tokio::task::spawn_blocking(move || {
@@ -1818,6 +1818,9 @@ async fn content_files_to_content_items(
                 .collect()
         })
         .await?;
+    // Backups are read from the resolved root: the linked installation for
+    // directly associated instances, the `game_dir_override` target (or the
+    // profile directory) otherwise.
     let content_backups =
         crate::state::instances::adapters::filesystem::scan_content_backups_from(
             &instance_path,

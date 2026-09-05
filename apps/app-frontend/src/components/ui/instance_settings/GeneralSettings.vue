@@ -12,7 +12,7 @@ import {
 	useVIntl,
 } from '@modrinth/ui'
 import { useQueryClient } from '@tanstack/vue-query'
-import { join } from '@tauri-apps/api/path'
+import { basename, dirname, join } from '@tauri-apps/api/path'
 import { computed, type Ref, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
@@ -20,7 +20,7 @@ import InstanceIcon from '@/components/ui/InstanceIcon.vue'
 import ConfirmDeleteInstanceModal from '@/components/ui/modal/ConfirmDeleteInstanceModal.vue'
 import { trackEvent } from '@/helpers/analytics'
 import { install_duplicate_instance } from '@/helpers/install'
-import { edit, edit_icon, remove } from '@/helpers/instance'
+import { edit, edit_icon, get_full_path, remove } from '@/helpers/instance'
 import { injectInstanceSettings } from '@/providers/instance-settings'
 
 import type { GameInstance } from '../../../helpers/types'
@@ -128,30 +128,79 @@ async function setIcon() {
 
 const gameDirOverride = ref(instance.value.game_dir_override)
 const savingGameDir = ref(false)
+const isDirectLinked = computed(() => !!instance.value.linked_dot_minecraft)
+const configuredExternalGameDir = computed(
+	() => gameDirOverride.value ?? instance.value.linked_dot_minecraft ?? null,
+)
+const resolvedExternalGameDir = ref<string | null>(null)
+const externalGameDir = computed(
+	() => resolvedExternalGameDir.value ?? configuredExternalGameDir.value,
+)
+
+let pathResolutionRevision = 0
+async function refreshExternalGameDir() {
+	const revision = ++pathResolutionRevision
+	if (!configuredExternalGameDir.value) {
+		resolvedExternalGameDir.value = null
+		return
+	}
+	try {
+		const path = await get_full_path(instance.value.id)
+		if (revision === pathResolutionRevision) resolvedExternalGameDir.value = path
+	} catch {
+		// Keep the configured path visible while the external chain is unavailable.
+		if (revision === pathResolutionRevision) resolvedExternalGameDir.value = null
+	}
+}
 
 watch(
 	() => instance.value.game_dir_override,
 	(path) => {
 		gameDirOverride.value = path
+		void refreshExternalGameDir()
 	},
+)
+
+watch(
+	() => [instance.value.id, instance.value.linked_dot_minecraft] as const,
+	() => void refreshExternalGameDir(),
+	{ immediate: true },
 )
 
 // An external game dir is stored as a single path. Whether it is version
 // isolated is encoded in the path: `<root>/versions/<name>` vs the `.minecraft`
 // root itself. `isExternal` is false for built-in (managed) instances, which
 // expose no isolation option.
-const isExternal = computed(() => !!gameDirOverride.value)
+const isExternal = computed(() => !!externalGameDir.value)
 
-const gameDirInfo = computed(() => {
-	const path = gameDirOverride.value
-	if (!path) return { isolated: false, baseRoot: null }
-	const normalized = path.replace(/\\/g, '/')
-	const segments = normalized.split('/').filter(Boolean)
-	if (segments.length >= 2 && segments[segments.length - 2] === 'versions') {
-		return { isolated: true, baseRoot: segments.slice(0, -2).join('/') }
-	}
-	return { isolated: false, baseRoot: path }
+const gameDirInfo = ref<{ isolated: boolean; baseRoot: string | null }>({
+	isolated: false,
+	baseRoot: null,
 })
+
+async function refreshGameDirInfo() {
+	const path = configuredExternalGameDir.value
+	if (!path || isDirectLinked.value) {
+		gameDirInfo.value = { isolated: false, baseRoot: null }
+		return
+	}
+	try {
+		const parent = await dirname(path)
+		if ((await basename(parent)).toLowerCase() === 'versions') {
+			gameDirInfo.value = { isolated: true, baseRoot: await dirname(parent) }
+		} else {
+			gameDirInfo.value = { isolated: false, baseRoot: path }
+		}
+	} catch {
+		gameDirInfo.value = { isolated: false, baseRoot: path }
+	}
+}
+
+watch(
+	() => [configuredExternalGameDir.value, isDirectLinked.value] as const,
+	() => void refreshGameDirInfo(),
+	{ immediate: true },
+)
 
 type GameDirMode = 'isolated' | 'not-isolated'
 const gameDirMode = computed<GameDirMode>({
@@ -283,6 +332,10 @@ const messages = defineMessages({
 	gameDirManagedNote: {
 		id: 'instance.settings.tabs.general.game-dir.managed-note',
 		defaultMessage: 'This instance uses the Axolotl-managed folder.',
+	},
+	gameDirExternalNote: {
+		id: 'instance.settings.tabs.general.game-dir.external-note',
+		defaultMessage: 'This instance uses an external .minecraft folder managed in place.',
 	},
 	updateChannel: {
 		id: 'instance.settings.tabs.general.update-channel',
@@ -428,19 +481,22 @@ const messages = defineMessages({
 				{{ formatMessage(messages.gameDirDescription) }}
 			</p>
 			<template v-if="isExternal">
-				<div class="flex flex-col gap-1.5">
+				<div v-if="!isDirectLinked" class="flex flex-col gap-1.5">
 					<RadioButtons v-model="gameDirMode" :items="gameDirModeItems" force-selection>
 						<template #default="{ item }">
 							{{ formatMessage(gameDirModeLabel(item)) }}
 						</template>
 					</RadioButtons>
 				</div>
-				<p v-if="gameDirOverride" class="m-0 text-secondary break-all">
+				<p v-if="externalGameDir" class="m-0 text-secondary break-all">
 					{{ formatMessage(messages.gameDirCurrent) }}:
-					<code>{{ gameDirOverride }}</code>
+					<code>{{ externalGameDir }}</code>
 				</p>
-				<p class="m-0 text-sm text-secondary">
+				<p v-if="!isDirectLinked" class="m-0 text-sm text-secondary">
 					{{ formatMessage(messages.gameDirMoveNote) }}
+				</p>
+				<p v-else class="m-0 text-sm text-secondary">
+					{{ formatMessage(messages.gameDirExternalNote) }}
 				</p>
 			</template>
 			<p v-else class="m-0 text-sm text-secondary">

@@ -411,6 +411,8 @@ fn main() {
                 InlinedPlugin::new()
                     .commands(&[
                         "instance_remove",
+                        "instance_create_direct_link",
+                        "instance_sync_direct_links",
                         "instance_get",
                         "instance_get_many",
                         "instance_get_projects",

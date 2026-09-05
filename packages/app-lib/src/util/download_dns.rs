@@ -117,7 +117,6 @@ impl DownloadDnsResolver {
             .filter(|entry| entry.addresses.contains(&address))
         {
             entry.consecutive_connection_failures = 0;
-            entry.resolved_at = Instant::now();
             drop(cached);
             self.record_result(address, 0.5);
         }
@@ -403,6 +402,41 @@ mod tests {
 
         assert_eq!(resolver.score(failed), 0.0);
         assert!(resolver.score(succeeded) > 0.0);
+    }
+
+    #[test]
+    fn host_success_does_not_refresh_an_expired_dns_entry() {
+        let resolver = DownloadDnsResolver::default();
+        let address = IpAddr::V4(Ipv4Addr::new(203, 0, 113, 11));
+        resolver.cache_addresses(
+            "expired-success.test".to_string(),
+            vec![SocketAddr::new(address, 0)],
+        );
+        resolver.expire_cache("expired-success.test");
+
+        resolver.record_host_success("expired-success.test", address);
+
+        assert!(
+            resolver
+                .resolved_addresses("expired-success.test")
+                .is_empty()
+        );
+    }
+
+    #[test]
+    fn late_success_does_not_undo_failure_expiration() {
+        let resolver = DownloadDnsResolver::default();
+        let address = IpAddr::V4(Ipv4Addr::new(203, 0, 113, 12));
+        resolver.cache_addresses(
+            "late-success.test".to_string(),
+            vec![SocketAddr::new(address, 0)],
+        );
+        assert!(!resolver.record_connection_failure("late-success.test"));
+        assert!(resolver.record_connection_failure("late-success.test"));
+
+        resolver.record_host_success("late-success.test", address);
+
+        assert!(resolver.resolved_addresses("late-success.test").is_empty());
     }
 
     #[tokio::test]

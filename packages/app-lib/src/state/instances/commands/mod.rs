@@ -2,6 +2,13 @@ mod create_instance;
 pub use self::create_instance::CreateInstance;
 pub(crate) use self::create_instance::create_instance;
 
+mod create_direct_link_instance;
+pub use self::create_direct_link_instance::CreateDirectLinkInstance;
+pub(crate) use self::create_direct_link_instance::create_direct_link_instance;
+mod sync_direct_link_instances;
+pub use self::sync_direct_link_instances::DirectLinkSyncReport;
+pub(crate) use self::sync_direct_link_instances::sync_direct_link_instances;
+
 mod edit_instance;
 pub use self::edit_instance::{
     AppliedContentSetPatch, EditInstance, InstanceLaunchOverridesPatch,
@@ -36,7 +43,9 @@ mod refresh_instances;
 pub(crate) use self::refresh_instances::*;
 
 mod sync_content_files;
-pub(crate) use self::sync_content_files::sync_content_files;
+pub(crate) use self::sync_content_files::{
+    instance_content_root, sync_content_files,
+};
 
 mod launch_context;
 pub(crate) use self::launch_context::*;

@@ -107,6 +107,12 @@ async fn sync_instance_with_dirs(
         return Ok(());
     };
 
+    // Directly associated instances have no profile folder of their own and
+    // must never write into the linked `.minecraft`; skip them entirely.
+    if metadata.instance.linked_dot_minecraft.is_some() {
+        return Ok(());
+    }
+
     let config_path = config_path(dirs, &metadata.instance.path);
     let temp_path = config_path.with_file_name(CONFIG_FILE_TEMP_NAME);
 
@@ -421,6 +427,11 @@ mod tests {
             name: "Serialized Instance".to_string(),
             icon_path: Some(r"C:\absolute\icon.png".to_string()),
             symlink_target: Some(r"Z:\target".to_string()),
+            linked_launcher: None,
+            linked_launcher_root: None,
+            linked_dot_minecraft: None,
+            linked_version_id: None,
+            linked_version_json_path: None,
             game_dir_override: Some(r"D:\Games\.minecraft".to_string()),
             created: now,
             modified: now,

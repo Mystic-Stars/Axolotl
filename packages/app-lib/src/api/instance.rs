@@ -38,7 +38,10 @@ pub use self::home::{
 };
 pub use self::install::get_optimal_jre_key;
 pub(crate) use self::lifecycle::create;
-pub use self::lifecycle::{cache_icon, edit, edit_icon, remove};
+pub use self::lifecycle::{
+    cache_icon, create_with_direct_link, edit, edit_icon, remove,
+    sync_direct_links,
+};
 pub use self::mcarchive::{
     McArchiveContentInstallRequest, McArchiveContentInstallResult,
     import_mcarchive_content, install_mcarchive_content,

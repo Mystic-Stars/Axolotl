@@ -6716,11 +6716,32 @@
   "app.settings.resources.app-directory": {
     "message": "應用程式目錄"
   },
+  "app.settings.resources.axolotl-data-directory": {
+    "message": "Axolotl 資料目錄"
+  },
   "app.settings.resources.app-directory-description": {
     "message": "啟動器用於儲存全部遊戲檔案的目錄。變更後將在重新啟動啟動器後生效。"
   },
   "app.settings.resources.app-directory-description-portable": {
     "message": "正在以便攜模式運行，所有數據已固定在程序目錄下，無法修改。"
+  },
+  "app.settings.resources.minecraft-directories": {
+    "message": "Minecraft 目錄"
+  },
+  "app.settings.resources.minecraft-directories-description": {
+    "message": "新增一或多個供實例使用的外部 .minecraft 資料夾。這些資料夾會與 Axolotl 資料分開保存。"
+  },
+  "app.settings.resources.add-minecraft-directory": {
+    "message": "新增 .minecraft 目錄"
+  },
+  "app.settings.resources.select-minecraft-directory": {
+    "message": "選擇 .minecraft 目錄"
+  },
+  "app.settings.resources.remove-minecraft-directory": {
+    "message": "移除 .minecraft 目錄"
+  },
+  "app.settings.resources.minecraft-directory-must-end-with": {
+    "message": "所選資料夾名稱必須是 .minecraft。"
   },
   "app.settings.resources.concurrency.manual": {
     "message": "手動"

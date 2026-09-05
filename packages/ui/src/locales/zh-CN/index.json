@@ -1139,20 +1139,11 @@
   "creation-flow.modal.custom-setup.content-loader.label": {
     "defaultMessage": "内容加载器"
   },
-  "creation-flow.modal.custom-setup.game-dir.choose-folder": {
-    "defaultMessage": "选择文件夹"
-  },
-  "creation-flow.modal.custom-setup.game-dir.isolated": {
-    "defaultMessage": "自定义 · 版本隔离 (.minecraft/versions/实例名/)"
-  },
   "creation-flow.modal.custom-setup.game-dir.label": {
     "defaultMessage": "游戏目录"
   },
   "creation-flow.modal.custom-setup.game-dir.managed": {
     "defaultMessage": "Axolotl 目录"
-  },
-  "creation-flow.modal.custom-setup.game-dir.not-isolated": {
-    "defaultMessage": "自定义 · 版本共享 (.minecraft/)"
   },
   "creation-flow.modal.custom-setup.game-version.load-failed": {
     "defaultMessage": "游戏版本加载失败"
