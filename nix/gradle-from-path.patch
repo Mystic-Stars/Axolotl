@@ -1,0 +1,27 @@
+diff --git a/packages/app-lib/build.rs b/packages/app-lib/build.rs
+index 9a0ecde1..70f996fe 100644
+--- a/packages/app-lib/build.rs
++++ b/packages/app-lib/build.rs
+@@ -78,21 +78,11 @@ fn build_java_jars() {
+         out_dir.join("java/libs").display()
+     );
+ 
+-    let gradle_path = fs::canonicalize(
+-        #[cfg(target_os = "windows")]
+-        "java\\gradlew.bat",
+-        #[cfg(not(target_os = "windows"))]
+-        "java/gradlew",
+-    )
+-    .unwrap();
+-
+     let mut build_dir_str = OsString::from("-Dorg.gradle.project.buildDir=");
+     build_dir_str.push(out_dir.join("java"));
+-    let exit_status = Command::new(gradle_path)
++    let exit_status = Command::new("@gradle@")
+         .arg(build_dir_str)
+         .arg("build")
+-        .arg("--no-daemon")
+-        .arg("--console=rich")
+         .current_dir(dunce::canonicalize("java").unwrap())
+         .status()
+         .expect("Failed to wait on Gradle build");
