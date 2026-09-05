@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { CheckCircleIcon, SpinnerIcon } from '@modrinth/assets'
 import { Admonition, defineMessages, ProgressBar, useVIntl } from '@modrinth/ui'
-import { computed, onMounted } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
 
 import { injectCreateServerFlow } from '../create-server-flow'
 
 const { formatMessage } = useVIntl()
 const ctx = injectCreateServerFlow()
+const logOutput = ref<HTMLElement | null>(null)
+const followLogOutput = ref(true)
 
 const messages = defineMessages({
 	downloading: {
@@ -60,6 +62,26 @@ const isBusy = computed(
 		ctx.installPhase.value === 'downloading' ||
 		ctx.installPhase.value === 'first-run',
 )
+
+function handleLogScroll() {
+	const output = logOutput.value
+	if (!output) return
+	followLogOutput.value = output.scrollHeight - output.scrollTop - output.clientHeight < 24
+}
+
+watch(
+	() => ctx.installLog.value.slice(-40),
+	async (lines) => {
+		if (lines.length === 0) {
+			followLogOutput.value = true
+			return
+		}
+		if (!followLogOutput.value) return
+		await nextTick()
+		if (logOutput.value) logOutput.value.scrollTop = logOutput.value.scrollHeight
+	},
+	{ immediate: true },
+)
 </script>
 
 <template>
@@ -98,12 +120,14 @@ const isBusy = computed(
 			{{ ctx.installError.value }}
 		</Admonition>
 
-		<div v-if="ctx.installPhase.value === 'error'" class="flex flex-col gap-2">
+		<div v-if="ctx.installLog.value.length > 0" class="flex flex-col gap-2">
 			<span class="text-sm font-semibold text-secondary">
 				{{ formatMessage(messages.installLog) }}
 			</span>
 			<pre
+				ref="logOutput"
 				class="max-h-56 overflow-y-auto whitespace-pre-wrap rounded-xl border border-solid border-surface-4 bg-surface-3 p-3 font-mono text-xs leading-relaxed text-primary"
+				@scroll="handleLogScroll"
 				>{{ ctx.installLog.value.slice(-40).join('\n') }}</pre
 			>
 		</div>

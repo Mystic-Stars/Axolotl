@@ -15,6 +15,7 @@ use crate::util::io::IOError;
 use crate::{ErrorKind, Result};
 
 use super::files::download_to_dir;
+use super::logs::stream_server_output;
 use super::manifest::{
     InstallState, read_manifest, server_path, write_manifest,
 };
@@ -56,7 +57,7 @@ pub async fn install_forge(
     let java = java_path.clone().unwrap_or_else(|| "java".to_string());
 
     log(server_id, "Running Forge installer (this may take a while)").await?;
-    let output = Command::new(&java)
+    let mut child = Command::new(&java)
         .arg("-jar")
         .arg(&installer_path)
         .arg("--installServer")
@@ -64,8 +65,7 @@ pub async fn install_forge(
         .current_dir(&dir)
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::piped())
-        .output()
-        .await
+        .spawn()
         .map_err(|e| {
             ErrorKind::LauncherError(format!(
                 "Failed to run Forge installer: {e}"
@@ -73,13 +73,27 @@ pub async fn install_forge(
             .as_error()
         })?;
 
-    // The installer is verbose; surface a condensed tail so failures are diagnosable.
-    let stderr = String::from_utf8_lossy(&output.stderr);
-    for line in stderr.lines().rev().take(20) {
-        log(server_id, line).await.ok();
-    }
+    let stdout = child.stdout.take();
+    let stderr = child.stderr.take();
+    let stream_stdout = async {
+        if let Some(stdout) = stdout {
+            stream_server_output(server_id.to_string(), stdout).await;
+        }
+    };
+    let stream_stderr = async {
+        if let Some(stderr) = stderr {
+            stream_server_output(server_id.to_string(), stderr).await;
+        }
+    };
+    let wait_for_exit = child.wait();
+    let (_, _, status) =
+        tokio::join!(stream_stdout, stream_stderr, wait_for_exit);
+    let status = status.map_err(|e| {
+        ErrorKind::LauncherError(format!("Failed to run Forge installer: {e}"))
+            .as_error()
+    })?;
 
-    if !output.status.success() {
+    if !status.success() {
         let mut manifest = read_manifest(&dir).await?;
         manifest.install_state = Some(InstallState::Failed);
         manifest.install_error =

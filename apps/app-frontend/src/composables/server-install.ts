@@ -9,6 +9,7 @@ import { serverEventListener, servers } from '@/helpers/servers'
 import type { DownloadManager } from '@/providers/download-manager'
 
 import { createServerDownloadBridge, type ServerDownloadBridge } from './server-download-bridge'
+import { beginActiveServerInstall, finishActiveServerInstall } from './useServerInstalls'
 
 export interface ServerInstallInputs {
 	gameVersion: string
@@ -103,18 +104,24 @@ export async function runServerInstall(options: RunServerInstallOptions): Promis
 		await servers.stop(serverId).catch(() => {})
 	})
 
-	const unlisten = await serverEventListener((eventServerId, payload) => {
-		if (eventServerId !== serverId) return
-		if (payload.event === 'download_progress') {
-			const progress = { downloaded: payload.downloaded, total: payload.total ?? null }
-			onProgress?.(progress)
-			bridge?.update(progress, null, null)
-		} else if (payload.event === 'log') {
-			onLog?.(payload.line)
-		}
-	})
-
+	const activeInstall = beginActiveServerInstall(serverId)
+	let unlisten: (() => void) | null = null
 	try {
+		unlisten = await serverEventListener((eventServerId, payload) => {
+			if (eventServerId !== serverId) return
+			if (payload.event === 'download_progress') {
+				const progress = { downloaded: payload.downloaded, total: payload.total ?? null }
+				activeInstall.progress = progress
+				onProgress?.(progress)
+				bridge?.update(progress, null, null)
+			} else if (payload.event === 'log') {
+				activeInstall.log.push(payload.line)
+				if (activeInstall.log.length > 500) {
+					activeInstall.log.splice(0, activeInstall.log.length - 500)
+				}
+				onLog?.(payload.line)
+			}
+		})
 		await strategy.install(serverId, inputs)
 		bridge?.complete(true)
 		// The server was created up front, but the shared list only refreshes on
@@ -126,6 +133,7 @@ export async function runServerInstall(options: RunServerInstallOptions): Promis
 		bridge?.complete(false)
 		throw error
 	} finally {
-		unlisten()
+		unlisten?.()
+		finishActiveServerInstall(serverId, activeInstall)
 	}
 }

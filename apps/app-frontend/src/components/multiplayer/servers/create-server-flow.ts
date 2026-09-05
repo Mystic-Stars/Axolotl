@@ -269,6 +269,7 @@ export function createCreateServerFlowContext(
 				memoryMb: memoryMb.value,
 			})
 			createdServer.value = manifest
+			installPhase.value = 'downloading'
 
 			// [SERVER-INSTALL] The shared orchestrator owns the sidebar download
 			// job, progress/log event forwarding, and cancellation. Each server

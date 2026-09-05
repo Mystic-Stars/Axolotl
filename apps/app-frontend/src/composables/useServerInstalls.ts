@@ -36,6 +36,19 @@ export function activeInstallFor(serverId: string): ActiveServerInstall | null {
 	return activeInstalls[serverId] ?? null
 }
 
+export function beginActiveServerInstall(serverId: string): ActiveServerInstall {
+	if (activeInstalls[serverId]) {
+		throw new Error('This server already has an install running')
+	}
+	const install: ActiveServerInstall = { progress: null, log: [] }
+	activeInstalls[serverId] = install
+	return activeInstalls[serverId]!
+}
+
+export function finishActiveServerInstall(serverId: string, install: ActiveServerInstall): void {
+	if (activeInstalls[serverId] === install) activeInstalls[serverId] = undefined
+}
+
 export function serverSetupStatus(server: ServerInfoData): ServerSetupStatus | null {
 	if (activeInstalls[server.id]) return 'installing'
 	if (server.installState === 'incomplete') return 'interrupted'
@@ -64,11 +77,7 @@ export async function startModpackServerInstall(
 	options: InstallModpackOptions,
 	downloadManager?: import('@/providers/download-manager').DownloadManager | null,
 ): Promise<void> {
-	if (activeInstalls[serverId]) {
-		throw new Error('This server already has an install running')
-	}
-	const entry: ActiveServerInstall = { progress: null, log: [] }
-	activeInstalls[serverId] = entry
+	const entry = beginActiveServerInstall(serverId)
 
 	// [SERVER-DOWNLOAD-BRIDGE] Create a synthetic job that mirrors this server
 	// install in the global Downloads page.  The job_id uses a `server-` prefix
@@ -140,7 +149,7 @@ export async function startModpackServerInstall(
 		// [SERVER-DOWNLOAD-BRIDGE] Mark the synthetic job as succeeded or failed
 		// so it transitions out of the active tab and into history.
 		bridge?.complete(installSucceeded, entry.progress ?? undefined)
-		activeInstalls[serverId] = undefined
+		finishActiveServerInstall(serverId, entry)
 		void refreshServerList()
 	}
 }
