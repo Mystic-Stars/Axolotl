@@ -88,11 +88,14 @@ pub fn get_class_paths(
                 .to_string())
         })
         .chain(libraries.into_iter().rev().map(|library| {
-            get_lib_path(
-                libraries_path,
-                &library.name,
-                crate::launcher::download::is_native_library(library),
-            )
+            // A merged library carrying both a Java artifact and native
+            // classifiers (e.g. LWJGL) must have its JAR present on disk.
+            // Pure native libraries (no Java artifact) remain tolerated
+            // when absent, matching the pre-existing classpath behaviour.
+            let allow_not_exist =
+                crate::launcher::download::is_native_library(library)
+                    && !crate::launcher::download::needs_java_artifact(library);
+            get_lib_path(libraries_path, &library.name, allow_not_exist)
         }))
         .process_results(|iter| {
             iter.unique().join(classpath_separator(java_arch))
