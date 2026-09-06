@@ -2,7 +2,6 @@ import { z } from 'zod'
 
 const uuid = z.string().regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)
 const timestamp = z.string().datetime({ offset: true })
-const optionalText = (max: number) => z.string().max(max).nullable().optional()
 
 export const heartbeatEventSchema = z
 	.object({
@@ -13,26 +12,7 @@ export const heartbeatEventSchema = z
 	})
 	.strict()
 
-export const errorEventSchema = z
-	.object({
-		type: z.literal('error'),
-		event_id: uuid,
-		occurred_at: timestamp,
-		fingerprint: z.string().regex(/^[0-9a-f]{64}$/),
-		occurrence_count: z.number().int().min(1).max(10_000),
-		error_type: z.string().min(1).max(128),
-		message: z.string().min(1).max(1_024),
-		stack: optionalText(8_192),
-		route: optionalText(256),
-		command: optionalText(256),
-		context: optionalText(16_384),
-	})
-	.strict()
-
-export const telemetryEventSchema = z.discriminatedUnion('type', [
-	heartbeatEventSchema,
-	errorEventSchema,
-])
+export const telemetryEventSchema = heartbeatEventSchema
 
 export const batchSchema = z
 	.object({
@@ -52,4 +32,3 @@ export const batchSchema = z
 	.strict()
 
 export type TelemetryBatch = z.infer<typeof batchSchema>
-export type ErrorEvent = z.infer<typeof errorEventSchema>

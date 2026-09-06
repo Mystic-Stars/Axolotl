@@ -91,14 +91,6 @@ function isOpenSource(item: ContentItem): boolean {
 const loaderKeys = new Set(['fabric', 'forge', 'neoforge', 'quilt'])
 
 const messages = defineMessages({
-	categoryState: {
-		id: 'content.metadata-filter.state',
-		defaultMessage: 'Status',
-	},
-	categoryUpdates: {
-		id: 'content.metadata-filter.updates',
-		defaultMessage: 'Updates',
-	},
 	categoryAuthor: {
 		id: 'content.metadata-filter.author',
 		defaultMessage: 'Author',
@@ -122,22 +114,6 @@ const messages = defineMessages({
 	categoryOpenSource: {
 		id: 'content.metadata-filter.open-source',
 		defaultMessage: 'Open source',
-	},
-	optionEnabled: {
-		id: 'content.metadata-filter.state.enabled',
-		defaultMessage: 'Enabled',
-	},
-	optionDisabled: {
-		id: 'content.metadata-filter.state.disabled',
-		defaultMessage: 'Disabled',
-	},
-	optionUpdateAvailable: {
-		id: 'content.metadata-filter.update.available',
-		defaultMessage: 'Update available',
-	},
-	optionUpToDate: {
-		id: 'content.metadata-filter.update.up-to-date',
-		defaultMessage: 'Up to date',
 	},
 	optionUnknown: {
 		id: 'content.metadata-filter.unknown',
@@ -241,27 +217,6 @@ export function useContentMetadataFilters(
 
 	const definitions = computed<MetadataFilterDefinition[]>(() => {
 		return [
-			{
-				key: 'state',
-				label: formatMessage(messages.categoryState),
-				order: ['enabled', 'disabled'],
-				values: (item) =>
-					item.enabled === undefined ? [] : [item.enabled ? 'enabled' : 'disabled'],
-				labelFor: (value) =>
-					value === 'enabled'
-						? formatMessage(messages.optionEnabled)
-						: formatMessage(messages.optionDisabled),
-			},
-			{
-				key: 'updates',
-				label: formatMessage(messages.categoryUpdates),
-				order: ['available', 'current'],
-				values: (item) => [item.update != null ? 'available' : 'current'],
-				labelFor: (value) =>
-					value === 'available'
-						? formatMessage(messages.optionUpdateAvailable)
-						: formatMessage(messages.optionUpToDate),
-			},
 			{
 				key: 'author',
 				label: formatMessage(messages.categoryAuthor),

@@ -191,6 +191,7 @@ impl ProcessManager {
         instance_name: &str,
         mut mc_command: Command,
         post_exit_command: Option<String>,
+        game_dir: PathBuf,
         logs_folder: PathBuf,
         xml_logging: bool,
         main_class_keep_alive: TempDir,
@@ -347,7 +348,7 @@ impl ProcessManager {
         let crash_reports_before = match crate::State::get().await {
             Ok(state) => Some(
                 snapshot_crash_reports(
-                    &state.directories.crash_reports_dir(instance_path),
+                    &state.directories.game_crash_reports_dir(&game_dir),
                 )
                 .await,
             ),
@@ -364,6 +365,7 @@ impl ProcessManager {
         tokio::spawn(Process::sequential_process_manager(
             instance_id.to_string(),
             instance_path.to_string(),
+            game_dir,
             logs_folder,
             post_exit_command,
             metadata.uuid,
@@ -926,6 +928,7 @@ impl Process {
     async fn sequential_process_manager(
         instance_id: String,
         instance_path: String,
+        game_dir: PathBuf,
         logs_folder: PathBuf,
         post_exit_command: Option<String>,
         uuid: Uuid,
@@ -1041,7 +1044,7 @@ impl Process {
         update_playtime(&mut last_updated_playtime, &instance_id, true).await;
 
         let crash_reports_after = snapshot_crash_reports(
-            &state.directories.crash_reports_dir(&instance_path),
+            &state.directories.game_crash_reports_dir(&game_dir),
         )
         .await;
         let clean_launch = mc_exit_status.success()

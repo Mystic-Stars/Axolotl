@@ -23,7 +23,7 @@ const messages = defineMessages({
 	telemetryDescription: {
 		id: 'app.settings.privacy.telemetry-description',
 		defaultMessage:
-			'Send an anonymous daily activity signal and sanitized launcher error reports. Minecraft logs and account credentials are never uploaded.',
+			'Send one anonymous daily activity signal to improve usage statistics. Minecraft logs and account credentials are never uploaded.',
 	},
 	discordRpc: {
 		id: 'app.settings.privacy.discord-rpc',
@@ -36,7 +36,7 @@ const messages = defineMessages({
 	dataHandling: {
 		id: 'app.settings.privacy.data-handling',
 		defaultMessage:
-			'Telemetry uses a random installation identifier. Error context is sanitized and limited before it leaves this device. Turning telemetry off clears pending reports immediately.',
+			'Telemetry uses a random installation identifier and sends only a daily activity signal. Turning telemetry off clears pending data immediately.',
 	},
 })
 const saveStatus = computed(() => {

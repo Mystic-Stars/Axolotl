@@ -1,7 +1,6 @@
 import { defineStore } from 'pinia'
 
 import { findMinecraftAuthError } from '@/components/ui/minecraft-auth-error-modal/minecraft-auth-errors'
-import { reportTelemetryError } from '@/helpers/telemetry'
 
 export const useError = defineStore('errorsStore', {
 	state: () => ({
@@ -36,10 +35,6 @@ export const useError = defineStore('errorsStore', {
 })
 
 export const handleSevereError = (err, context) => {
-	reportTelemetryError(err, {
-		error_type: 'severe_error',
-		context: typeof context === 'string' ? context : undefined,
-	})
 	const error = useError()
 	error.showError(err, context)
 	console.error(err)

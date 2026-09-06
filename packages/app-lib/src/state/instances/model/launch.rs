@@ -12,6 +12,8 @@ pub struct InstanceLaunchOverrides {
     pub memory: Option<MemorySettings>,
     pub force_fullscreen: Option<bool>,
     pub game_resolution: Option<WindowSize>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub launch_preparation_timeout: Option<u64>,
     pub hooks: Hooks,
 }
 
@@ -25,6 +27,7 @@ impl InstanceLaunchOverrides {
             memory: None,
             force_fullscreen: None,
             game_resolution: None,
+            launch_preparation_timeout: None,
             hooks: Hooks {
                 pre_launch: None,
                 wrapper: None,
@@ -48,6 +51,8 @@ pub(crate) struct InstanceLaunchOverridesData {
     pub force_fullscreen: Option<bool>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub game_resolution: Option<WindowSize>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub launch_preparation_timeout: Option<u64>,
     #[serde(default)]
     pub hooks: Hooks,
 }
@@ -65,6 +70,7 @@ impl InstanceLaunchOverridesData {
             memory: self.memory,
             force_fullscreen: self.force_fullscreen,
             game_resolution: self.game_resolution,
+            launch_preparation_timeout: self.launch_preparation_timeout,
             hooks: self.hooks,
         }
     }
@@ -79,6 +85,7 @@ impl From<&InstanceLaunchOverrides> for InstanceLaunchOverridesData {
             memory: overrides.memory,
             force_fullscreen: overrides.force_fullscreen,
             game_resolution: overrides.game_resolution,
+            launch_preparation_timeout: overrides.launch_preparation_timeout,
             hooks: overrides.hooks.clone(),
         }
     }

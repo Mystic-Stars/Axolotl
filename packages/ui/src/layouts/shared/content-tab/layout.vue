@@ -245,11 +245,13 @@ const {
 	selectedTypeFilter,
 	selectedStatusFilters,
 	row1FilterOptions,
+	row2FilterOptions,
 	totalCount,
 	filterCounts,
 	filteredItems: pipelineFilteredItems,
 	filteredModpackItems: pipelineFilteredModpackItems,
 	toggleTypeFilter,
+	toggleStatusFilter,
 } = useContentPipeline({
 	items: ctx.items,
 	modpackItems: ctx.modpackItems,
@@ -1087,14 +1089,55 @@ const confirmUnlinkModal = ref<InstanceType<typeof ConfirmUnlinkModal>>()
 					@visible-items="handleVisibleTableItems"
 				>
 					<template #header-project>
-						<ContentMetadataFilterBar
-							v-model:expanded="metadataFilterExpanded"
-							:categories="metadataFilterCategories"
-							:model-value="metadataFilterSelectedValues"
-							:filtering-keys="metadataFilteringKeys"
-							:active-filter-count="activeMetadataFilterCount"
-							@update:category="setCategorySelection"
-						/>
+						<div class="flex min-w-0 flex-1 items-center gap-4">
+							<div class="flex shrink-0 items-center gap-4">
+								<button
+									class="relative pb-1 text-base font-semibold transition-colors"
+									:class="
+										selectedStatusFilters.length === 0
+											? 'text-brand'
+											: 'text-secondary hover:text-primary'
+									"
+									:aria-pressed="selectedStatusFilters.length === 0"
+									@click="selectedStatusFilters = []"
+								>
+									{{ formatMessage(commonMessages.allProjectType) }}
+									<span
+										v-if="selectedStatusFilters.length === 0"
+										class="absolute bottom-0 left-0 right-0 h-0.5 rounded-full bg-brand"
+									/>
+								</button>
+								<button
+									v-for="option in row2FilterOptions"
+									:key="option.id"
+									class="relative pb-1 text-base font-semibold transition-colors"
+									:class="
+										selectedStatusFilters.includes(option.id)
+											? 'text-brand'
+											: 'text-secondary hover:text-primary'
+									"
+									:aria-pressed="selectedStatusFilters.includes(option.id)"
+									@click="toggleStatusFilter(option.id)"
+								>
+									{{ option.label }}
+									<span class="ml-1 text-sm font-normal opacity-70">{{
+										filterCounts[option.id] ?? 0
+									}}</span>
+									<span
+										v-if="selectedStatusFilters.includes(option.id)"
+										class="absolute bottom-0 left-0 right-0 h-0.5 rounded-full bg-brand"
+									/>
+								</button>
+							</div>
+							<ContentMetadataFilterBar
+								v-model:expanded="metadataFilterExpanded"
+								:categories="metadataFilterCategories"
+								:model-value="metadataFilterSelectedValues"
+								:filtering-keys="metadataFilteringKeys"
+								:active-filter-count="activeMetadataFilterCount"
+								@update:category="setCategorySelection"
+							/>
+						</div>
 					</template>
 					<template #header-actions>
 						<ContentTableHeaderActions

@@ -153,7 +153,8 @@ impl DirectLinkedLaunch {
                     self.launcher_root.as_deref(),
                 )?
             }
-            LinkedLauncherDialect::Hmcl => resolve_content_game_dir(
+            LinkedLauncherDialect::Hmcl => resolve_hmcl_game_dir(
+                self.launcher_root.as_deref(),
                 &self.dot_minecraft,
                 &self.version_dir(),
             )?,
@@ -282,6 +283,24 @@ fn resolve_content_game_dir(
         }
     }
     Ok(dot_minecraft.to_path_buf())
+}
+
+fn resolve_hmcl_game_dir(
+    launcher_root: Option<&Path>,
+    dot_minecraft: &Path,
+    version_dir: &Path,
+) -> crate::Result<PathBuf> {
+    if let Some(launcher_root) = launcher_root
+        && let Some(game_dir) =
+            crate::api::pack::import::hmcl::configured_game_dir(
+                launcher_root,
+                dot_minecraft,
+                version_dir,
+            )
+    {
+        return Ok(game_dir);
+    }
+    resolve_content_game_dir(dot_minecraft, version_dir)
 }
 
 /// Applies the managed-install loader normalization to a directly linked
@@ -1868,6 +1887,36 @@ mod tests {
             dialect: LinkedLauncherDialect::Generic,
         };
         assert_eq!(direct.resolve().unwrap().game_dir, version);
+    }
+
+    #[test]
+    fn hmcl_explicitly_configured_empty_version_is_isolated() {
+        let launcher = tempfile::tempdir().unwrap();
+        let dot_minecraft = launcher.path().join("game");
+        let version = dot_minecraft.join("versions").join("demo");
+        std::fs::create_dir_all(&version).unwrap();
+        let hmcl_dir = launcher.path().join(".hmcl");
+        std::fs::create_dir_all(&hmcl_dir).unwrap();
+        std::fs::write(
+            hmcl_dir.join("hmcl.json"),
+            serde_json::to_vec(&serde_json::json!({
+                "configurations": {
+                    "demo": { "gameDir": version.to_string_lossy() }
+                }
+            }))
+            .unwrap(),
+        )
+        .unwrap();
+
+        assert_eq!(
+            resolve_hmcl_game_dir(
+                Some(launcher.path()),
+                &dot_minecraft,
+                &version
+            )
+            .unwrap(),
+            version
+        );
     }
 
     #[test]

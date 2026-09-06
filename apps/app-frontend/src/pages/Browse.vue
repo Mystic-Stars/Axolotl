@@ -203,13 +203,15 @@ const curseForgeClassIds: Partial<Record<ProjectType, number>> = {
 	[WORLD_BROWSE_PROJECT_TYPE]: 17,
 }
 
-const curseForgeCapability = ref(
-	await getCurseForgeCapability().catch(() => ({
+const [initialCurseForgeCapability, initialPlanetMinecraftAvailable] = await Promise.all([
+	getCurseForgeCapability().catch(() => ({
 		status: 'missing_key' as const,
 		configured: false,
 	})),
-)
-const planetMinecraftAvailable = ref(await planetMinecraftConnectorAvailable().catch(() => false))
+	planetMinecraftConnectorAvailable().catch(() => false),
+])
+const curseForgeCapability = ref(initialCurseForgeCapability)
+const planetMinecraftAvailable = ref(initialPlanetMinecraftAvailable)
 const rememberedContentSource = getLastBrowseContentSource()
 
 function resolveInitialContentSource(): BrowseContentSource {
@@ -271,12 +273,12 @@ async function ensureCurseForgeCategories(projectTypeValue: ProjectType) {
 	}
 }
 
-if (
+const initialCurseForgeCategoriesPromise =
 	curseForgeCapability.value.configured &&
 	(contentSource.value === 'curseforge' || contentSource.value === 'all')
-) {
-	await ensureCurseForgeCategories(projectType.value).catch(handleError)
-}
+		? ensureCurseForgeCategories(projectType.value).catch(handleError)
+		: Promise.resolve()
+if (route.query.f || route.query.g) await initialCurseForgeCategoriesPromise
 
 const themeStore = useTheming()
 const serverSetupModalRef = ref<InstanceType<typeof CreationFlowModal> | null>(null)
@@ -492,6 +494,8 @@ watch(
 
 watchServerContextChanges()
 
+let initialInstanceFilterPromise: Promise<void> = Promise.resolve()
+let initialInstalledProjectsPromise: Promise<void> = Promise.resolve()
 await initInstanceContext()
 
 async function refreshInstalledProjectIds() {
@@ -572,29 +576,35 @@ async function initInstanceContext() {
 
 		if (instance.value?.link?.project_id) {
 			debugLog('checking linked project for server status', instance.value.link.project_id)
-			const projectV3 = await get_project_v3(
+			initialInstanceFilterPromise = get_project_v3(
 				instance.value.link.project_id,
 				'must_revalidate',
-			).catch(handleError)
-			if (projectV3?.minecraft_server != null) {
-				debugLog('instance is a server instance')
-				isServerInstance.value = true
-			}
+			)
+				.then((projectV3) => {
+					if (projectV3?.minecraft_server != null) {
+						debugLog('instance is a server instance')
+						isServerInstance.value = true
+					}
+				})
+				.catch((error) => handleError(error))
 		}
 	}
 	if (!instance.value && activeInstance.value?.link?.project_id) {
-		const projectV3 = await get_project_v3(
+		initialInstanceFilterPromise = get_project_v3(
 			activeInstance.value.link.project_id,
 			'must_revalidate',
-		).catch(handleError)
-		isServerInstance.value = projectV3?.minecraft_server != null
+		)
+			.then((projectV3) => {
+				isServerInstance.value = projectV3?.minecraft_server != null
+			})
+			.catch((error) => handleError(error))
 	}
-	await refreshInstalledProjectIds()
 
 	if (route.query.ai && !(route.params.projectType === 'modpack')) {
 		debugLog('setting instanceHideInstalled from query', route.query.ai)
 		instanceHideInstalled.value = route.query.ai === 'true'
 	}
+	initialInstalledProjectsPromise = refreshInstalledProjectIds()
 }
 
 const instanceFilters = computed(() => {
@@ -2937,7 +2947,11 @@ onMounted(() => {
 		instanceSelector.value?.requestSwitch(pendingRouteInstanceSwitch.value)
 		pendingRouteInstanceSwitch.value = null
 	}
-	void searchState.refreshSearch()
+	const initialSearchDependencies = [initialInstanceFilterPromise]
+	if (instanceHideInstalled.value) initialSearchDependencies.push(initialInstalledProjectsPromise)
+	void Promise.allSettled(initialSearchDependencies).then(() => {
+		if (!isUnmounted) void searchState.refreshSearch()
+	})
 
 	instance_listener(async (event: { event: string; instance_id: string }) => {
 		if (

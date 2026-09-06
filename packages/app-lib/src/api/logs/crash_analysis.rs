@@ -1183,7 +1183,7 @@ async fn collect_candidates(
     directories: &crate::prelude::DirectoryInfo,
 ) -> crate::Result<Vec<SourceCandidate>> {
     let mut candidates = Vec::new();
-    let locations = [
+    let mut locations = vec![
         (directories.game_logs_dir(instance_root), "minecraft_log"),
         (
             directories.game_crash_reports_dir(instance_root),
@@ -1191,6 +1191,11 @@ async fn collect_candidates(
         ),
         (instance_root.to_path_buf(), "instance_log"),
     ];
+    if let Some(dot_minecraft) = isolated_minecraft_root(instance_root) {
+        // PCL-CE also searches the shared `.minecraft` root for JVM crash
+        // logs when a version-isolated instance is active.
+        locations.push((dot_minecraft, "minecraft_root_log"));
+    }
 
     for (directory, default_type) in locations {
         if !tokio::fs::try_exists(&directory).await? {
@@ -1231,6 +1236,12 @@ async fn collect_candidates(
                     | "latest_stdout.log"
             ) {
                 "minecraft_log"
+            } else if matches!(
+                default_type,
+                "instance_log" | "minecraft_root_log"
+            ) && lower.ends_with(".log")
+            {
+                "minecraft_log"
             } else {
                 continue;
             };
@@ -1243,6 +1254,18 @@ async fn collect_candidates(
         }
     }
     Ok(candidates)
+}
+
+fn isolated_minecraft_root(instance_root: &Path) -> Option<PathBuf> {
+    let versions_dir = instance_root.parent()?;
+    if versions_dir
+        .file_name()
+        .is_some_and(|name| name.eq_ignore_ascii_case("versions"))
+    {
+        versions_dir.parent().map(Path::to_path_buf)
+    } else {
+        None
+    }
 }
 
 fn select_run_candidates(
@@ -1736,6 +1759,21 @@ fn system_time_seconds(time: SystemTime) -> u64 {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn isolated_instance_resolves_its_minecraft_root() {
+        let instance_root = PathBuf::from("minecraft-root")
+            .join("versions")
+            .join("isolated-instance");
+
+        assert_eq!(
+            isolated_minecraft_root(&instance_root),
+            Some(PathBuf::from("minecraft-root"))
+        );
+        assert!(
+            isolated_minecraft_root(&PathBuf::from("minecraft-root")).is_none()
+        );
+    }
 
     fn source(filename: &str, content: &str) -> SourceText {
         SourceText {

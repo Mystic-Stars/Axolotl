@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { BarChart3, CircleAlert, Search, Server } from 'lucide-vue-next'
+import { BarChart3, Search, Server } from 'lucide-vue-next'
 import {
 	DialogContent,
 	DialogDescription,
@@ -14,7 +14,6 @@ const query = ref('')
 const router = useRouter()
 const items = [
 	{ label: '数据总览', path: '/', icon: BarChart3 },
-	{ label: '错误分析', path: '/errors', icon: CircleAlert },
 	{ label: '系统状态', path: '/system', icon: Server },
 ]
 const filtered = computed(() =>

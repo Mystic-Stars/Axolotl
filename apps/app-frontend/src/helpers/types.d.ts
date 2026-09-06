@@ -42,6 +42,7 @@ export type GameInstance = {
 	memory?: MemorySettings
 	force_fullscreen?: boolean
 	game_resolution?: [number, number]
+	launch_preparation_timeout?: number | null
 	hooks: Hooks
 }
 

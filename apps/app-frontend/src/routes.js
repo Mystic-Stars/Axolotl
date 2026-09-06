@@ -100,6 +100,7 @@ export default new createRouter({
 			meta: {
 				breadcrumb: [{ name: 'Multiplayer' }],
 				discordActivity: 'Idling...',
+				pageTransitionGroup: 'multiplayer',
 			},
 			children: [
 				{

@@ -133,7 +133,7 @@ const tabs = computed<TabbedModalTab[]>(() => [
 	{
 		name: defineMessage({
 			id: 'instance.settings.tabs.hooks',
-			defaultMessage: 'Launch hooks',
+			defaultMessage: 'Launch preparation',
 		}),
 		icon: CodeIcon,
 		content: HooksSettings,

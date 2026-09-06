@@ -213,6 +213,12 @@ const breadcrumbs = computed<Breadcrumb[]>(() => {
 				? breadcrumbData.rootContext
 				: null
 	const crumbs = (route.meta.breadcrumb ?? []) as Breadcrumb[]
+	if (
+		additionalContext?.name.startsWith('?') &&
+		crumbs.some((crumb) => crumb.name === additionalContext.name)
+	) {
+		return crumbs
+	}
 	return additionalContext ? [additionalContext as Breadcrumb, ...crumbs] : crumbs
 })
 

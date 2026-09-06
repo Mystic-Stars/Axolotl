@@ -12,6 +12,7 @@ import { useRoute, useRouter } from 'vue-router'
 
 import { NewInstanceImage } from '@/assets/icons'
 import { useNetworkStatus } from '@/composables/useNetworkStatus'
+import { DIRECT_LINKS_SYNCED_EVENT } from '@/helpers/direct-link-sync'
 import { instance_listener } from '@/helpers/events.js'
 import { list } from '@/helpers/instance'
 import { useBreadcrumbs } from '@/store/breadcrumbs.js'
@@ -45,7 +46,7 @@ const refreshInstances = async () => {
 	instances.value = await list().catch(handleError)
 }
 
-window.addEventListener('axolotl-direct-links-synced', refreshInstances)
+window.addEventListener(DIRECT_LINKS_SYNCED_EVENT, refreshInstances)
 
 const { offline } = useNetworkStatus()
 
@@ -54,7 +55,7 @@ const unlistenInstance = await instance_listener(async () => {
 })
 onUnmounted(() => {
 	unlistenInstance()
-	window.removeEventListener('axolotl-direct-links-synced', refreshInstances)
+	window.removeEventListener(DIRECT_LINKS_SYNCED_EVENT, refreshInstances)
 })
 </script>
 

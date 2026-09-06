@@ -13,7 +13,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onBeforeUnmount, onMounted, ref } from 'vue'
 
 import { injectNotificationManager } from '../../providers'
 
@@ -99,6 +99,10 @@ const allowDrag = (event: DragEvent) => {
 
 onMounted(() => {
 	document.addEventListener('dragenter', allowDrag)
+})
+
+onBeforeUnmount(() => {
+	document.removeEventListener('dragenter', allowDrag)
 })
 </script>
 

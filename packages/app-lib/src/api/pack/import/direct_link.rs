@@ -1,5 +1,7 @@
 use std::path::{Path, PathBuf};
 
+use serde_json::Value;
+
 use super::{ImportLauncherType, generic, hmcl, instance_json, pcl};
 use crate::state::ModLoader;
 
@@ -24,6 +26,73 @@ pub(crate) struct ResolvedDirectLink {
     /// external launcher), so this is not persisted anywhere yet.
     #[allow(dead_code)]
     pub loader_version: Option<String>,
+}
+
+/// The launcher's dialect and root used to resolve a traditional
+/// `.minecraft/versions/<id>` directory. The root is intentionally separate
+/// from the game directory: PCL stores its settings beside the executable,
+/// while its `.minecraft` may be a sibling directory.
+#[derive(Clone, Debug)]
+pub(crate) struct DirectLinkSource {
+    pub launcher: ImportLauncherType,
+    pub launcher_root: PathBuf,
+}
+
+/// Identifies the launcher that owns an externally selected version folder.
+///
+/// Direct-link Settings receives `.minecraft` roots rather than launcher
+/// executables, so the normal import scanner cannot infer PCL from its
+/// executable alone. Probe the selected root and its parent, where portable
+/// PCL/PCL-CE installations keep their executable and `PCL` configuration.
+/// HMCL is only selected when its configuration actually references the
+/// supplied game directory; an unrelated `.hmcl` folder must not relabel a
+/// generic Minecraft installation.
+pub(crate) fn detect_direct_link_source(
+    dot_minecraft: &Path,
+    version_dir: &Path,
+) -> DirectLinkSource {
+    for launcher_root in [
+        dot_minecraft.parent().map(Path::to_path_buf),
+        Some(dot_minecraft.to_path_buf()),
+    ]
+    .into_iter()
+    .flatten()
+    {
+        if super::pe_info::folder_has_product(
+            &launcher_root,
+            "Plain Craft Launcher",
+        ) {
+            let launcher =
+                if launcher_root.join("PCL").join("config.v1.yml").is_file() {
+                    ImportLauncherType::PCL2CE
+                } else {
+                    ImportLauncherType::PCL2
+                };
+            return DirectLinkSource {
+                launcher,
+                launcher_root,
+            };
+        }
+
+        if super::hmcl::config_exists(&launcher_root)
+            && super::hmcl::configured_game_dir(
+                &launcher_root,
+                dot_minecraft,
+                version_dir,
+            )
+            .is_some()
+        {
+            return DirectLinkSource {
+                launcher: ImportLauncherType::HMCL,
+                launcher_root,
+            };
+        }
+    }
+
+    DirectLinkSource {
+        launcher: ImportLauncherType::Generic,
+        launcher_root: dot_minecraft.to_path_buf(),
+    }
 }
 
 /// Returns the stable user-facing group for a directly linked `.minecraft`
@@ -373,9 +442,60 @@ fn compatible_game_dir(
     Ok(dot_minecraft)
 }
 
-/// Finds the actual manifest selected by upstream launchers: same-name first,
-/// then the sole JSON in the version directory. Ambiguous folders are rejected
-/// instead of guessing which manifest the UI intended.
+/// Returns whether a file is a Minecraft version manifest rather than a JSON
+/// sidecar produced by the game or a launcher. Version folders often contain
+/// files such as `usercache.json`; those must not make a copied PCL instance
+/// appear ambiguous.
+fn is_minecraft_version_manifest(path: &Path) -> bool {
+    let Ok(contents) = std::fs::read_to_string(path) else {
+        return false;
+    };
+    let Ok(value) = serde_json::from_str::<Value>(&contents) else {
+        return false;
+    };
+    let Some(object) = value.as_object() else {
+        return false;
+    };
+
+    object
+        .get("id")
+        .and_then(Value::as_str)
+        .is_some_and(|id| !id.trim().is_empty())
+        && [
+            "arguments",
+            "assetIndex",
+            "assets",
+            "clientVersion",
+            "downloads",
+            "inheritsFrom",
+            "jar",
+            "libraries",
+            "mainClass",
+            "minecraftArguments",
+        ]
+        .iter()
+        .any(|field| object.contains_key(*field))
+}
+
+/// Returns whether a version directory contains at least one usable Minecraft
+/// version manifest. This lets a root scan ignore launcher bookkeeping folders
+/// that are not launchable instances.
+pub(crate) fn has_minecraft_version_manifest(version_dir: &Path) -> bool {
+    std::fs::read_dir(version_dir).is_ok_and(|entries| {
+        entries.flatten().map(|entry| entry.path()).any(|path| {
+            path.is_file()
+                && path.extension().is_some_and(|extension| {
+                    extension.eq_ignore_ascii_case("json")
+                })
+                && is_minecraft_version_manifest(&path)
+        })
+    })
+}
+
+/// Finds the actual manifest selected by upstream launchers: a valid
+/// same-name manifest first, then the sole valid manifest in the version
+/// directory. Ambiguous folders are rejected instead of guessing which
+/// manifest the UI intended.
 pub(crate) fn discover_version_json(
     version_dir: &Path,
 ) -> crate::Result<PathBuf> {
@@ -384,7 +504,7 @@ pub(crate) fn discover_version_json(
         .and_then(|name| name.to_str())
         .ok_or_else(|| invalid_version_directory(version_dir))?;
     let same_name = version_dir.join(format!("{folder_name}.json"));
-    if same_name.is_file() {
+    if same_name.is_file() && is_minecraft_version_manifest(&same_name) {
         return Ok(same_name);
     }
 
@@ -402,6 +522,7 @@ pub(crate) fn discover_version_json(
                 && path.extension().is_some_and(|extension| {
                     extension.eq_ignore_ascii_case("json")
                 })
+                && is_minecraft_version_manifest(path)
         })
         .collect::<Vec<_>>();
     json_files.sort();
@@ -409,12 +530,12 @@ pub(crate) fn discover_version_json(
     match json_files.as_slice() {
         [only] => Ok(only.clone()),
         [] => Err(crate::ErrorKind::InputError(format!(
-            "No version JSON found in {}",
+            "No Minecraft version JSON found in {}",
             version_dir.display()
         ))
         .into()),
         _ => Err(crate::ErrorKind::InputError(format!(
-            "Multiple version JSON files found in {}; expected a same-name JSON or one unique fallback",
+            "Multiple Minecraft version JSON files found in {}; expected a same-name JSON or one unique fallback",
             version_dir.display()
         ))
         .into()),
@@ -568,6 +689,32 @@ mod tests {
         );
     }
 
+    #[test]
+    fn identifies_hmcl_only_when_it_owns_the_game_directory() {
+        let root = TempDir::new().unwrap();
+        let game_dir = root.path().join("game");
+        std::fs::create_dir_all(game_dir.join("versions")).unwrap();
+        let hmcl_dir = root.path().join(".hmcl");
+        std::fs::create_dir_all(&hmcl_dir).unwrap();
+        std::fs::write(
+            hmcl_dir.join("hmcl.json"),
+            serde_json::to_vec(&json!({
+                "configurations": {
+                    "default": { "gameDir": game_dir.to_string_lossy() }
+                }
+            }))
+            .unwrap(),
+        )
+        .unwrap();
+
+        let source = detect_direct_link_source(
+            &game_dir,
+            &game_dir.join("versions").join("demo"),
+        );
+        assert_eq!(source.launcher, ImportLauncherType::HMCL);
+        assert_eq!(source.launcher_root, root.path());
+    }
+
     #[tokio::test]
     async fn resolves_compatible_mode_from_game_dir_and_version_path() {
         let root = TempDir::new().unwrap();
@@ -619,6 +766,39 @@ mod tests {
 
         assert_eq!(resolved.version_id, "actual-version-id");
         assert!(resolved.version_json.ends_with("actual-version-id.json"));
+    }
+
+    #[test]
+    fn ignores_runtime_json_when_finding_a_copied_pcl_instance() {
+        let root = TempDir::new().unwrap();
+        let version_dir =
+            root.path().join("versions").join("1.19.2 - 64bit - copy");
+        write_json(&version_dir, "1.19.2 - 64bit");
+        std::fs::write(
+            version_dir.join("usercache.json"),
+            r#"[{"name":"player","uuid":"example"}]"#,
+        )
+        .unwrap();
+
+        assert!(has_minecraft_version_manifest(&version_dir));
+        assert_eq!(
+            discover_version_json(&version_dir).unwrap(),
+            version_dir.join("1.19.2 - 64bit.json")
+        );
+    }
+
+    #[test]
+    fn rejects_a_pcl_bookkeeping_directory_without_a_version_manifest() {
+        let root = TempDir::new().unwrap();
+        let version_dir = root.path().join("versions").join("Sodium Plus");
+        std::fs::create_dir_all(version_dir.join("PCL")).unwrap();
+        std::fs::write(
+            version_dir.join("PCL").join("config.v1.yml"),
+            "VersionVanilla: 1.21.1\n",
+        )
+        .unwrap();
+
+        assert!(!has_minecraft_version_manifest(&version_dir));
     }
 
     #[tokio::test]

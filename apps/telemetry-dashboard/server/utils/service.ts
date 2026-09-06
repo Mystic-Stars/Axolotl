@@ -7,7 +7,6 @@ import { dashboardBindings } from './bindings'
 import {
 	D1TelemetryAdminApi,
 	type TelemetryDatabase,
-	type TelemetryObjectStore,
 } from './d1-admin-api'
 import { unavailable } from './errors'
 import { MockTelemetryAdminApi } from './mock-admin-api'
@@ -31,12 +30,11 @@ export function getAdminApi(event: H3Event): TelemetryAdminApi {
 	const bindings = dashboardBindings(event as unknown as { context: Record<string, unknown> })
 	const remote = remoteTelemetryDataSource()
 	const db = (bindings.DB as unknown as TelemetryDatabase | undefined) ?? remote?.db
-	const r2 = (bindings.ERROR_CONTEXTS as unknown as TelemetryObjectStore | undefined) ?? remote?.r2
 	const accountTag = String(bindings.CLOUDFLARE_ACCOUNT_ID ?? '').trim()
 	const analyticsToken = String(bindings.CLOUDFLARE_ANALYTICS_TOKEN ?? '').trim()
 	if (db) {
-		context.adminApi = new D1TelemetryAdminApi(db, r2, {
-			storeErrorContext: String(config.storeErrorContext) === 'true',
+		context.adminApi = new D1TelemetryAdminApi(db, undefined, {
+			storeErrorContext: false,
 			healthUrl: String(config.publicWorkerHealthUrl),
 			analytics:
 				accountTag && analyticsToken ? { accountTag, apiToken: analyticsToken } : undefined,

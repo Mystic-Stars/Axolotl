@@ -105,6 +105,15 @@ test('settings search index has unique entries with categories', () => {
 	assert.deepEqual(validateSettingsSearchEntries(), [])
 })
 
+test('settings search keywords are valid message descriptors', () => {
+	for (const entry of settingsSearchEntries) {
+		for (const keyword of entry.keywords ?? []) {
+			assert.equal(typeof keyword.id, 'string', entry.id)
+			assert.equal(typeof keyword.defaultMessage, 'string', entry.id)
+		}
+	}
+})
+
 test('legacy category names remain searchable after the taxonomy change', () => {
 	const keywordText = settingsSearchEntries
 		.flatMap((entry) => entry.keywords ?? [])

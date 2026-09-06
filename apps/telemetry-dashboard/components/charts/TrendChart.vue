@@ -8,7 +8,7 @@ import { formatNumber, formatUtcDay } from '~/utils/format'
 const props = defineProps<{
 	data: DailyPointDto[]
 	series: Array<{
-		key: 'activeInstallations' | 'newInstallations' | 'errorOccurrences'
+		key: 'activeInstallations' | 'newInstallations'
 		label: string
 		color: string
 	}>

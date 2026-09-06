@@ -154,6 +154,9 @@ pub(crate) async fn import_axolotl(
                     config.launch_overrides.force_fullscreen,
                 ),
                 game_resolution: Some(config.launch_overrides.game_resolution),
+                launch_preparation_timeout: Some(
+                    config.launch_overrides.launch_preparation_timeout,
+                ),
                 hooks: Some(config.launch_overrides.hooks.clone()),
             }),
             ..EditInstance::default()

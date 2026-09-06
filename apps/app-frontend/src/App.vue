@@ -67,7 +67,6 @@ import { computed, nextTick, onMounted, onUnmounted, provide, ref, watch } from 
 import { type RouteLocationNormalizedLoaded, RouterView, useRoute, useRouter } from 'vue-router'
 
 import { getAnnouncementByVersion } from '@/announcements/catalog'
-import { sync_direct_links } from '@/helpers/instance'
 import InstanceExportModal from '@/components/lab/recipe-generator/InstanceExportModal.vue'
 import AccountsCard from '@/components/ui/AccountsCard.vue'
 import UpdateAnnouncementModal from '@/components/ui/announcement/UpdateAnnouncementModal.vue'
@@ -95,6 +94,7 @@ import NavButton from '@/components/ui/NavButton.vue'
 import NavRail from '@/components/ui/NavRail.vue'
 import OnboardingOverlay from '@/components/ui/onboarding/OnboardingOverlay.vue'
 import QuickInstanceSwitcher from '@/components/ui/QuickInstanceSwitcher.vue'
+import RemoteAnnouncements from '@/components/ui/RemoteAnnouncements.vue'
 import SplashScreen from '@/components/ui/SplashScreen.vue'
 import WindowControls from '@/components/ui/WindowControls.vue'
 import { useCheckDisableMouseover } from '@/composables/macCssFix.js'
@@ -106,6 +106,7 @@ import { trackEvent } from '@/helpers/analytics'
 import { check_reachable } from '@/helpers/auth.js'
 import { get_user, get_version } from '@/helpers/cache.js'
 import { configureCurseForgeManualDownloadWatcher } from '@/helpers/curseforge'
+import { DIRECT_LINKS_SYNCED_EVENT, syncConfiguredDirectLinks } from '@/helpers/direct-link-sync'
 import { getMissingContentScannerSettings } from '@/helpers/downloads-scanner'
 import { classifyDroppedItem } from '@/helpers/drop'
 import {
@@ -115,7 +116,7 @@ import {
 	warning_listener,
 } from '@/helpers/events.js'
 import { install_create_modpack_instance, install_get_modpack_preview } from '@/helpers/install'
-import { get as getInstance, run } from '@/helpers/instance'
+import { type DirectLinkSyncReport, get as getInstance, run } from '@/helpers/instance'
 import { reconcileMojangAuthSourceAtStartup } from '@/helpers/mojang-auth'
 import { cancelLogin, get as getCreds, login, logout } from '@/helpers/mr_auth.ts'
 import { mergeUrlQuery, parseModrinthLink } from '@/helpers/project-links.ts'
@@ -497,6 +498,7 @@ onMounted(async () => {
 	unlistenCloseRequested = await getCurrentWindow().onCloseRequested(handleCloseRequested)
 	document.querySelector('body').addEventListener('click', handleClick)
 	document.querySelector('body').addEventListener('auxclick', handleAuxClick)
+	window.addEventListener(DIRECT_LINKS_SYNCED_EVENT, handleDirectLinkSyncReport)
 
 	checkUpdates()
 	void warnIfRunningElevated()
@@ -505,6 +507,28 @@ onMounted(async () => {
 
 let directLinkSync: (() => Promise<void>) | undefined
 let stopDirectLinkSync: (() => void) | undefined
+let directLinkSyncErrorSignature = ''
+
+function handleDirectLinkSyncReport(event: Event) {
+	if (!(event instanceof CustomEvent)) return
+	const report = event.detail as DirectLinkSyncReport
+	if (!Array.isArray(report?.errors)) return
+
+	const details = report.errors.join('\n')
+	if (!details) {
+		directLinkSyncErrorSignature = ''
+		return
+	}
+	if (details === directLinkSyncErrorSignature) return
+
+	directLinkSyncErrorSignature = details
+	addNotification({
+		title: formatMessage(messages.directLinkSyncIssuesTitle),
+		text: details,
+		type: 'warning',
+	})
+}
+
 function startDirectLinkSync() {
 	const readRoots = () => {
 		try {
@@ -516,24 +540,7 @@ function startDirectLinkSync() {
 			return []
 		}
 	}
-	let syncInFlight: Promise<void> | undefined
-	const sync = async () => {
-		if (syncInFlight) return syncInFlight
-
-		syncInFlight = (async () => {
-			const roots = readRoots()
-			if (roots.length === 0) return
-			await sync_direct_links(roots)
-				.catch((error) => {
-					console.warn('Failed to sync external Minecraft instances', error)
-				})
-			window.dispatchEvent(new Event('axolotl-direct-links-synced'))
-		})().finally(() => {
-			syncInFlight = undefined
-		})
-
-		return syncInFlight
-	}
+	const sync = () => syncConfiguredDirectLinks(readRoots()).catch(handleError)
 	const handleWindowFocus = () => {
 		void sync()
 	}
@@ -554,6 +561,7 @@ onUnmounted(async () => {
 	unlistenLightweightModeError?.()
 	document.querySelector('body').removeEventListener('click', handleClick)
 	document.querySelector('body').removeEventListener('auxclick', handleAuxClick)
+	window.removeEventListener(DIRECT_LINKS_SYNCED_EVENT, handleDirectLinkSyncReport)
 	clearDelayedUpdatePopup()
 	stopDirectLinkSync?.()
 	await unlistenUpdateDownload?.()
@@ -655,6 +663,10 @@ const messages = defineMessages({
 	updateInstalledToastText: {
 		id: 'app.update.complete-toast.text',
 		defaultMessage: 'Click here to view the changelog.',
+	},
+	directLinkSyncIssuesTitle: {
+		id: 'app.direct-link-sync.issues-title',
+		defaultMessage: 'External Minecraft instances need attention',
 	},
 	authUnreachableHeader: {
 		id: 'app.auth-servers.unreachable.header',
@@ -1283,6 +1295,10 @@ provide(
 		(await minecraftCrashModal.value?.handleLaunchError(launchError, payload)) ?? false,
 )
 provide('previewMinecraftCrashModal', () => minecraftCrashModal.value?.showPreview())
+const remoteAnnouncementPreview = ref<InstanceType<typeof RemoteAnnouncements>>()
+provide('previewRemoteAnnouncement', (type: 'modal' | 'notification', withAction = false) => {
+	remoteAnnouncementPreview.value?.preview(type, withAction)
+})
 provide('previewPrivacyConsentModal', previewPrivacyConsentModal)
 provide('previewUpdateAnnouncement', (version = null) => {
 	const previewVersion = version ?? pendingUpdateAnnouncementVersion.value
@@ -2545,6 +2561,18 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 	<JavaDownloadConfirmationModal ref="javaDownloadConfirmationModal" />
 	<PrivacyConsentModal ref="privacyConsentModal" @saved="handlePrivacyConsentSaved" />
 	<CommunityAnnouncementModal ref="communityAnnouncementModal" />
+	<RemoteAnnouncements
+		:ready="
+			stateInitialized && !privacyConsentPending && !showOnboarding && !updateAnnouncementShowing
+		"
+	/>
+	<RemoteAnnouncements
+		ref="remoteAnnouncementPreview"
+		preview-only
+		:ready="
+			stateInitialized && !privacyConsentPending && !showOnboarding && !updateAnnouncementShowing
+		"
+	/>
 	<SurveyAnnouncementModal ref="surveyModal" />
 	<UpdateAnnouncementModal ref="updateAnnouncementModal" @closed="handleUpdateAnnouncementClosed" />
 	<NewModal

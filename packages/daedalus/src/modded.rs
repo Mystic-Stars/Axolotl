@@ -389,6 +389,7 @@ pub fn merge_partial_version(
             .iter_mut()
             .find(|existing: &&mut Library| existing.name == library.name)
         {
+            existing.include_in_classpath |= library.include_in_classpath;
             if existing.natives.is_none() {
                 existing.natives = library.natives.clone();
             }

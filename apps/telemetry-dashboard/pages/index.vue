@@ -1,12 +1,9 @@
 <script setup lang="ts">
 import {
 	Activity,
-	Bug,
 	CalendarDays,
 	Clock3,
 	Database,
-	FolderArchive,
-	Gauge,
 	PackagePlus,
 	Users,
 } from 'lucide-vue-next'
@@ -47,9 +44,6 @@ const metricDefinitions = [
 	{ key: 'wau', title: '周活跃安装（WAU）', icon: CalendarDays, tone: 'cyan' },
 	{ key: 'mau', title: '月活跃安装（MAU）', icon: Users, tone: 'cyan' },
 	{ key: 'newInstallationsToday', title: '今日新增安装', icon: PackagePlus, tone: 'green' },
-	{ key: 'errorOccurrences', title: '错误发生次数', icon: Bug, tone: 'coral' },
-	{ key: 'distinctErrorGroups', title: '不同错误组', icon: Gauge, tone: 'gold' },
-	{ key: 'r2SamplesToday', title: '今日 R2 样本', icon: FolderArchive, tone: 'gold' },
 ] as const
 
 const trendCharts = [
@@ -68,11 +62,6 @@ const trendCharts = [
 		title: '每日新增安装趋势',
 		description: '按 UTC 自然日首次出现的同意遥测安装。',
 		series: [{ key: 'newInstallations' as const, label: '新增安装', color: 'var(--chart-cyan)' }],
-	},
-	{
-		title: '错误发生趋势',
-		description: '按 UTC 自然日聚合的启动器错误次数。',
-		series: [{ key: 'errorOccurrences' as const, label: '错误次数', color: 'var(--chart-coral)' }],
 	},
 ]
 
@@ -102,7 +91,7 @@ const distributionCharts = computed(() => [
 	<div>
 		<PageHeader
 			title="数据总览"
-			description="查看匿名启动器遥测的活跃度、增长、错误和运行环境分布。"
+			description="查看匿名启动器遥测的活跃度、增长和运行环境分布。"
 		>
 			<Badge v-if="data" variant="secondary" class="gap-1.5 px-2.5 py-1">
 				<Clock3 class="size-3.5" />更新于 {{ formatUtcTimestamp(data.overview.generatedAt) }}
@@ -114,7 +103,7 @@ const distributionCharts = computed(() => [
 
 		<div v-if="status === 'pending' && !data" data-state="loading">
 			<div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
-				<Skeleton v-for="index in 8" :key="index" class="h-32" />
+				<Skeleton v-for="index in 5" :key="index" class="h-32" />
 			</div>
 			<div class="mt-5 grid gap-4 xl:grid-cols-2">
 				<Skeleton v-for="index in 4" :key="index" class="h-80" />
@@ -140,10 +129,10 @@ const distributionCharts = computed(() => [
 
 			<section class="mt-6">
 				<div class="mb-3">
-					<h2 class="text-sm font-semibold">活跃与质量趋势</h2>
+					<h2 class="text-sm font-semibold">使用者趋势</h2>
 					<p class="mt-0.5 text-xs text-muted-foreground">当前范围 {{ range }}，截止今日 UTC。</p>
 				</div>
-				<div class="grid gap-4 xl:grid-cols-3">
+				<div class="grid gap-4 xl:grid-cols-2">
 					<Card v-for="chart in trendCharts" :key="chart.title" class="min-w-0 p-4">
 						<h3 class="text-sm font-semibold">{{ chart.title }}</h3>
 						<p class="mt-1 text-xs text-muted-foreground">{{ chart.description }}</p>

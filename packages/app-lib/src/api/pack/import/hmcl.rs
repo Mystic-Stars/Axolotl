@@ -79,3 +79,38 @@ pub fn get_instance_path(
         .find(|(key, _)| key == instance_key)
         .map(|(_, path)| path)
 }
+
+/// Returns the configured HMCL game directory when it explicitly owns either
+/// the shared `.minecraft` root or this version directory. An explicit entry
+/// wins over content-folder heuristics, which cannot distinguish a newly
+/// created isolated instance from a shared one.
+pub fn configured_game_dir(
+    base_path: &Path,
+    dot_minecraft: &Path,
+    version_dir: &Path,
+) -> Option<PathBuf> {
+    let game_dirs = get_instances(base_path)
+        .into_iter()
+        .map(|(_, game_dir)| PathBuf::from(game_dir))
+        .collect::<Vec<_>>();
+    game_dirs
+        .iter()
+        .find(|game_dir| paths_match(game_dir, version_dir))
+        .cloned()
+        .or_else(|| {
+            game_dirs
+                .iter()
+                .find(|game_dir| paths_match(game_dir, dot_minecraft))
+                .cloned()
+        })
+}
+
+fn paths_match(left: &Path, right: &Path) -> bool {
+    match (
+        crate::util::io::canonicalize(left),
+        crate::util::io::canonicalize(right),
+    ) {
+        (Ok(left), Ok(right)) => left == right,
+        _ => left == right,
+    }
+}

@@ -110,7 +110,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
 	window.removeEventListener('click', handleClickOutside)
-	document.removeEventListener('keyup', onEscKeyRelease)
+	document.body.removeEventListener('keyup', onEscKeyRelease)
 })
 </script>
 

@@ -10,6 +10,7 @@ import {
 import { getVersion } from '@tauri-apps/api/app'
 import { platform as getOsPlatform, version as getOsVersion } from '@tauri-apps/plugin-os'
 import { computed, nextTick, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
 
 import {
 	getVisibleSettingsCategories,
@@ -38,6 +39,7 @@ interface SettingsSearchResult {
 }
 
 const themeStore = useTheming()
+const route = useRoute()
 const { formatMessage } = useVIntl()
 const { progress, version: downloadingVersion } = injectAppUpdateDownloadProgress()
 
@@ -47,7 +49,7 @@ const osVersion = getOsVersion()
 const settings = ref(loadedSettings)
 const devModeCounter = ref(0)
 const searchQuery = ref('')
-const selectedCategoryId = ref('interface')
+const selectedCategoryId = ref(route.hash.slice(1) || 'interface')
 const settingsContentPending = ref(false)
 const contentContainer = ref<HTMLElement | null>(null)
 const searchHighlightTarget = ref<HTMLElement | null>(null)
@@ -153,6 +155,14 @@ watch(visibleCategories, (categories) => {
 	}
 })
 
+watch(
+	() => route.hash,
+	(hash) => {
+		const categoryId = hash.slice(1)
+		if (categoryId) selectedCategoryId.value = categoryId
+	},
+)
+
 function selectCategory(categoryId: string) {
 	selectedCategoryId.value = categoryId
 	const category = visibleCategories.value.find((item) => item.id === categoryId)
@@ -203,7 +213,9 @@ function entryName(entry: SettingsSearchEntry): string {
 }
 
 function messageSearchTexts(message?: MessageDescriptor): string[] {
-	if (!message) return []
+	// Search metadata is assembled from several registries. Guard the runtime
+	// boundary so a malformed entry cannot abort the entire settings render.
+	if (!message || typeof message !== 'object' || typeof message.id !== 'string') return []
 
 	const texts = [formatMessage(message), message.defaultMessage].filter(
 		(text): text is string => !!text,
@@ -389,11 +401,10 @@ const pageTitle: MessageDescriptor = settingsPageTitle
 						tabindex="-1"
 					>
 						<Suspense
-							:key="activeCategory.id"
 							@pending="settingsContentPending = true"
 							@resolve="settingsContentPending = false"
 						>
-							<component :is="activeCategory.content" />
+							<component :is="activeCategory.content" :key="activeCategory.id" />
 							<template #fallback>
 								<div class="settings-content-fallback" aria-hidden="true" />
 							</template>

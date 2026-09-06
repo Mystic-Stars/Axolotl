@@ -297,11 +297,12 @@ export class D1TelemetryAdminApi implements TelemetryAdminApi {
 			const row = await this.db
 				.prepare(
 					`SELECT
-						(SELECT COALESCE(SUM(new_installations), 0) FROM daily_totals)
-							+ (SELECT COUNT(*) FROM installations WHERE first_seen_day = ?) AS total_installations,
+						(SELECT COUNT(*) FROM installations) AS total_installations,
 						(SELECT COUNT(*) FROM daily_active WHERE day = ?) AS dau,
-						(SELECT COUNT(*) FROM wau_seen) AS wau,
-						(SELECT COUNT(*) FROM mau_seen) AS mau,
+						(SELECT COUNT(DISTINCT installation_hash) FROM daily_active
+							WHERE day >= date(?, '-6 days') AND day <= ?) AS wau,
+						(SELECT COUNT(DISTINCT installation_hash) FROM daily_active
+							WHERE day >= date(?, '-29 days') AND day <= ?) AS mau,
 						(SELECT COUNT(*) FROM installations WHERE first_seen_day = ?) AS new_today,
 						(SELECT COALESCE(SUM(error_occurrences), 0) FROM daily_totals
 							WHERE day >= ? AND day <= ?)
@@ -310,7 +311,7 @@ export class D1TelemetryAdminApi implements TelemetryAdminApi {
 							+ (SELECT COUNT(*) FROM error_daily WHERE day = ?) AS distinct_groups,
 						(SELECT COALESCE(object_count, 0) FROM error_context_budget WHERE day = ?) AS r2_today`,
 				)
-				.bind(today, today, today, start, yesterday, today, ...groupCountBindings, today, today)
+				.bind(today, today, today, today, today, today, start, yesterday, today, ...groupCountBindings, today, today)
 				.first<OverviewRow>()
 			if (!row) throw unavailable()
 			const metric = (value: number, label: string) => ({ value: Number(value), label })
@@ -360,18 +361,16 @@ export class D1TelemetryAdminApi implements TelemetryAdminApi {
 		return this.cached(`distributions:${range}`, CACHE_TTL_DISTRIBUTIONS, async () => {
 			const start = startDay(range, this.now())
 			const today = utcDay(this.now())
-			const dimensionOf = (field: 'app_version' | 'platform' | 'arch') =>
-				field === 'app_version' ? 'version' : field
 			const query = async (
-				field: 'app_version' | 'platform' | 'arch',
-			): Promise<DistributionItemDto[]> => {
-				const result = await this.db
-					.prepare(
-						`SELECT label, SUM(install_count) AS value
-						FROM daily_active_dims WHERE dimension = ? AND day >= ? AND day <= ?
-						GROUP BY label ORDER BY value DESC, label ASC LIMIT 12`,
-					)
-					.bind(dimensionOf(field), start, today)
+					field: 'app_version' | 'platform' | 'arch',
+				): Promise<DistributionItemDto[]> => {
+					const result = await this.db
+						.prepare(
+							`SELECT ${field} AS label, COUNT(DISTINCT installation_hash) AS value
+							FROM daily_active WHERE day >= ? AND day <= ?
+							GROUP BY ${field} ORDER BY value DESC, label ASC LIMIT 12`,
+						)
+						.bind(start, today)
 					.all<DistributionRow>()
 				return result.results.map((row) => ({ label: row.label, value: Number(row.value) }))
 			}

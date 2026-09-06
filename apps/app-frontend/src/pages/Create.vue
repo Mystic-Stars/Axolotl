@@ -44,6 +44,14 @@ const messages = defineMessages({
 		id: 'create.back',
 		defaultMessage: 'Back to Library',
 	},
+	pclHmclHint: {
+		id: 'create.pcl-hmcl-hint',
+		defaultMessage: 'Using PCL / HMCL?',
+	},
+	addMinecraftFolder: {
+		id: 'create.add-minecraft-folder',
+		defaultMessage: 'Add .minecraft folder',
+	},
 })
 
 const navigateBack = () => router.push('/library')
@@ -96,6 +104,17 @@ function handleImportExisting() {
 					@click="handleImportExisting"
 				/>
 			</div>
+
+			<p class="m-0 text-sm text-secondary">
+				{{ formatMessage(messages.pclHmclHint) }}
+				{{ ' ' }}
+				<RouterLink
+					to="/settings#storage-backups"
+					class="text-brand underline decoration-transparent underline-offset-2 transition-colors hover:decoration-current"
+				>
+					{{ formatMessage(messages.addMinecraftFolder) }}
+				</RouterLink>
+			</p>
 
 			<Button transparent class="self-start" @click="navigateBack">
 				<LeftArrowIcon class="size-4" stroke-width="2" />

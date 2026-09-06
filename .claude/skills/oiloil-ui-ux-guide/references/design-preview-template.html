@@ -1,0 +1,1813 @@
+<!--
+  Design Preview Template (Config-Driven, Style-Neutral, Extended)
+  ================================================================
+  STATIC template. Do NOT modify per-user.
+
+  Goals:
+  1. The template chrome is intentionally neutral so it never overwhelms
+     the design being previewed.
+  2. Compare mode shows multiple candidate token sets side by side,
+     each rendering the same realistic micro-surface.
+  3. Full mode renders the full system across multiple SURFACES
+     (dashboard, marketing, content, form, pricing) with switchers for:
+     - container strategy (border / tinted-surface / elevation / divider / none)
+     - icon set (lucide / phosphor / heroicons — inline SVG)
+     - decoration (gradients / textures on/off)
+     - viewport (desktop / tablet / mobile)
+     - theme (light / dark)
+     - locale (en / zh-CN / ja) — affects demo copy and font fallback
+
+  Usage:
+  1. cp this file to /tmp/design-preview.html (first time only)
+  2. Write /tmp/design-config.js with window.__DESIGN_CONFIG__ = {...}
+  3. open /tmp/design-preview.html
+  4. Iterate by rewriting design-config.js only; user refreshes.
+
+  Two modes:
+
+  COMPARE mode:
+  {
+    mode: "compare",
+    title: "Pick whichever feels closest",
+    subtitle: "Optional secondary line",
+    surface: "dashboard",
+    locale: "en",                         // optional — default "en"
+    containerStrategy: "border",          // optional — default "border"
+    iconSet: "lucide",                    // optional — default "lucide"
+    options: [ { label, family, subtitle, colors, fonts, radius }, ... ]
+  }
+
+  FULL mode:
+  {
+    mode: "full",
+    name: "ProjectName",
+    family: "modern-minimal",
+    surfaces: ["dashboard","marketing","content","form","pricing"],
+    defaultSurface: "dashboard",
+    containerStrategy: "border",          // initial value, user can switch
+    iconSystem: { set: "lucide", weight: "regular", treatment: "monochrome" },
+    decoration: { gradients: "none", textures: "none", motifs: "none" },
+    locale: { primary: "en", secondary: [] },
+    colors: { ..., dark: {...} },
+    fonts: { heading, body, mono },
+    radius: { sm, md, lg },
+    shadows: { sm, md, lg },
+    spacing: "compact" | "balanced" | "spacious",
+    motion:  "minimal" | "subtle"   | "expressive"
+  }
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Design Preview</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-font-smoothing: antialiased; }
+  html, body { height: 100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    background: #f5f5f5;
+    color: #1a1a1a;
+    line-height: 1.5;
+  }
+
+  /* ===== APP SHELL: sidebar + stage ===== */
+  .app-shell {
+    display: flex;
+    min-height: 100vh;
+    background: #fafafa;
+  }
+  .sidebar {
+    width: 260px;
+    flex-shrink: 0;
+    background: #ffffff;
+    border-right: 1px solid #ececec;
+    padding: 20px 16px 24px;
+    display: flex; flex-direction: column;
+    gap: 16px;
+    position: sticky; top: 0; align-self: flex-start;
+    height: 100vh; overflow-y: auto;
+    z-index: 100;
+  }
+  .sidebar-title {
+    font-size: 13px; font-weight: 700; color: #0a0a0a;
+    letter-spacing: -0.01em; line-height: 1.3;
+    padding: 0 4px 12px;
+    border-bottom: 1px solid #ececec;
+  }
+  .sidebar-title small {
+    display: block; font-weight: 400; color: #999; font-size: 11px;
+    margin-top: 4px; letter-spacing: 0;
+  }
+  .sidebar-section { display: flex; flex-direction: column; gap: 6px; padding: 0 4px; }
+  .sidebar-label {
+    font-size: 10px; font-weight: 700; color: #999;
+    text-transform: uppercase; letter-spacing: 0.06em;
+  }
+  .chrome-group {
+    display: flex; flex-wrap: wrap; gap: 4px;
+    padding: 3px;
+    background: #f5f5f5;
+    border-radius: 6px;
+  }
+  .chrome-btn {
+    background: transparent; border: none;
+    padding: 5px 9px; font-size: 11px; font-weight: 500;
+    color: #555; cursor: pointer; border-radius: 4px;
+    transition: background 120ms, color 120ms;
+    font-family: inherit;
+    flex: 1 1 auto; min-width: 0;
+    white-space: nowrap;
+  }
+  .chrome-btn:hover:not(:disabled) { color: #0a0a0a; }
+  .chrome-btn.active { background: #ffffff; color: #0a0a0a; box-shadow: 0 1px 2px rgba(0,0,0,0.06); }
+  .chrome-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .sidebar-spacer { flex: 1; }
+
+  .stage {
+    flex: 1;
+    padding: 32px;
+    background: #fafafa;
+    min-width: 0;
+  }
+  /* Mobile: fold sidebar to top */
+  @media (max-width: 900px) {
+    .app-shell { flex-direction: column; }
+    .sidebar {
+      width: 100%; height: auto; position: static;
+      border-right: none; border-bottom: 1px solid #ececec;
+      padding: 16px 20px;
+    }
+    .stage { padding: 20px; }
+  }
+
+  /* ===== COMPARE MODE ===== */
+  .compare-header { margin-bottom: 24px; padding: 0; }
+  .compare-header h1 { font-size: 22px; font-weight: 700; color: #0a0a0a; letter-spacing: -0.01em; margin-bottom: 4px; }
+  .compare-header p { font-size: 13px; color: #777; max-width: 720px; }
+  .compare-grid {
+    display: grid; gap: 20px;
+    grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+  }
+  .candidate {
+    background: #ffffff; border: 1px solid #e5e5e5; border-radius: 8px;
+    overflow: hidden; display: flex; flex-direction: column;
+  }
+  .candidate-head { padding: 12px 14px; border-bottom: 1px solid #e5e5e5; display: flex; align-items: center; gap: 10px; }
+  .candidate-label {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.04em;
+    background: #1a1a1a; color: #fff; padding: 3px 7px; border-radius: 3px;
+    min-width: 22px; text-align: center;
+  }
+  .candidate-meta { flex: 1; min-width: 0; }
+  .candidate-family { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; }
+  .candidate-subtitle { font-size: 13px; color: #1a1a1a; font-weight: 500; margin-top: 1px; }
+  .candidate-stage { padding: 0; background: var(--c-bg); color: var(--c-text); border-bottom: 1px solid #e5e5e5; overflow: hidden; }
+  .candidate-tokens { padding: 10px 14px; background: #fafafa; display: flex; flex-direction: column; gap: 6px; }
+  .token-row { display: flex; align-items: center; gap: 8px; font-size: 11px; color: #666; }
+  .token-row strong { font-weight: 600; color: #444; min-width: 56px; }
+  .token-swatch { width: 14px; height: 14px; border-radius: 3px; border: 1px solid rgba(0,0,0,0.08); }
+  .token-pill { background: #fff; border: 1px solid #e5e5e5; padding: 1px 6px; border-radius: 3px; font-size: 10px; color: #555; font-family: ui-monospace, "SF Mono", Menlo, monospace; }
+
+  /* ===== FULL MODE ===== */
+  .full-frame {
+    width: 100%;
+    max-width: var(--viewport-width, none);
+    margin: 0 auto;
+    background: var(--c-bg);
+    color: var(--c-text);
+    border: 1px solid #ececec;
+    border-radius: 10px;
+    overflow: hidden;
+    transition: max-width 200ms ease;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.04);
+  }
+  .viewport-tablet  { --viewport-width: 820px; }
+  .viewport-mobile  { --viewport-width: 390px; }
+
+  /* === SURFACE STAGE root: must be respected by all surfaces === */
+  .stage-root {
+    font-family: var(--f-body);
+    color: var(--c-text);
+    background: var(--c-bg);
+  }
+
+  /* ====== Container strategy CSS variants ====== */
+  /* Each surface uses .surface-card / .surface-row / .surface-section / .surface-pane.
+     A class on the stage controls how those render. Defaults to border. */
+
+  /* Border (default) */
+  .strategy-border .surface-card,
+  .strategy-border .surface-pane {
+    background: var(--c-surface);
+    border: 1px solid var(--c-border);
+    border-radius: var(--r-md);
+  }
+  .strategy-border .surface-row {
+    border-bottom: 1px solid var(--c-border);
+  }
+  .strategy-border .surface-row:last-child { border-bottom: none; }
+
+  /* Tinted surface — no border, surface offset from bg */
+  .strategy-tinted .surface-card,
+  .strategy-tinted .surface-pane {
+    background: var(--c-surface);
+    border-radius: var(--r-md);
+    border: none;
+  }
+  .strategy-tinted .surface-row {
+    border-bottom: 1px solid color-mix(in srgb, var(--c-border) 50%, transparent);
+  }
+  .strategy-tinted .surface-row:last-child { border-bottom: none; }
+
+  /* Elevation — shadow does the work */
+  .strategy-elevation .surface-card,
+  .strategy-elevation .surface-pane {
+    background: var(--c-surface);
+    border: none;
+    border-radius: var(--r-md);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.06);
+  }
+  .strategy-elevation .surface-row { border-bottom: 1px solid color-mix(in srgb, var(--c-border) 30%, transparent); }
+  .strategy-elevation .surface-row:last-child { border-bottom: none; }
+
+  /* Divider — no card chrome, only horizontal dividers between rows */
+  .strategy-divider .surface-card,
+  .strategy-divider .surface-pane {
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    padding: 0 !important;
+  }
+  .strategy-divider .surface-row {
+    border-bottom: 1px solid var(--c-border);
+  }
+  .strategy-divider .surface-row:last-child { border-bottom: none; }
+  .strategy-divider .surface-section {
+    border-top: 1px solid var(--c-border);
+    padding-top: 24px;
+    margin-top: 24px;
+  }
+
+  /* None — pure spacing */
+  .strategy-none .surface-card,
+  .strategy-none .surface-pane {
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+  }
+  .strategy-none .surface-row { border-bottom: none; padding-top: 14px; padding-bottom: 14px; }
+  .strategy-none .surface-section { margin-top: 40px; }
+
+  /* ===== Decoration: gradients ===== */
+  .decoration-gradient-subtle .deco-gradient-target {
+    background-image: linear-gradient(135deg, var(--c-primary-subtle) 0%, transparent 70%);
+  }
+  .decoration-gradient-expressive .deco-gradient-target {
+    background-image: linear-gradient(135deg, var(--c-primary) 0%, var(--c-primary-hover) 50%, color-mix(in srgb, var(--c-primary) 60%, var(--c-bg)) 100%);
+    color: #fff;
+  }
+  .decoration-gradient-expressive .deco-gradient-target * { color: inherit !important; }
+
+  /* ===== Decoration: textures ===== */
+  .decoration-texture-noise .deco-texture-target {
+    background-image:
+      var(--bg-image, none),
+      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.06 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  }
+  .decoration-texture-dot-grid .deco-texture-target {
+    background-image:
+      radial-gradient(circle, color-mix(in srgb, var(--c-text) 15%, transparent) 1px, transparent 1px);
+    background-size: 16px 16px;
+  }
+  .decoration-texture-paper .deco-texture-target {
+    background-image:
+      linear-gradient(0deg, color-mix(in srgb, var(--c-text) 3%, transparent), transparent 30%, transparent 70%, color-mix(in srgb, var(--c-text) 3%, transparent));
+  }
+  .decoration-texture-scan-lines .deco-texture-target {
+    background-image:
+      repeating-linear-gradient(0deg, transparent 0, transparent 2px, color-mix(in srgb, var(--c-text) 6%, transparent) 2px, color-mix(in srgb, var(--c-text) 6%, transparent) 3px);
+  }
+
+  /* ===== Surface-specific layouts (use surface-* utility classes) ===== */
+
+  /* DASHBOARD */
+  .s-dash { display: flex; min-height: 560px; }
+  .s-dash-side { width: 220px; padding: 18px 12px; flex-shrink: 0; }
+  .strategy-border .s-dash-side, .strategy-tinted .s-dash-side {
+    background: var(--c-surface);
+    border-right: 1px solid var(--c-border);
+  }
+  .strategy-elevation .s-dash-side {
+    background: var(--c-surface);
+    box-shadow: 1px 0 0 0 var(--c-border);
+  }
+  .strategy-divider .s-dash-side, .strategy-none .s-dash-side {
+    background: transparent;
+    border-right: 1px solid var(--c-border);
+  }
+  .s-dash-brand {
+    display: flex; align-items: center; gap: 8px;
+    padding: 0 8px 16px; margin-bottom: 8px;
+    border-bottom: 1px solid var(--c-border);
+  }
+  .s-dash-brand-dot {
+    width: 22px; height: 22px;
+    border-radius: var(--r-sm);
+    background: var(--c-primary);
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-weight: 800; font-size: 12px;
+    flex-shrink: 0;
+  }
+  .s-dash-brand-name { font-family: var(--f-heading); font-weight: 700; font-size: 14px; color: var(--c-text); letter-spacing: -0.01em; }
+  .s-dash-nav-section { font-size: 10px; color: var(--c-text-muted); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; padding: 12px 8px 4px; }
+  .s-dash-nav { display: flex; flex-direction: column; gap: 1px; }
+  .s-dash-nav-item { padding: 7px 8px; border-radius: var(--r-sm); font-size: 13px; color: var(--c-text-sec); cursor: pointer; display: flex; align-items: center; gap: 8px; }
+  .s-dash-nav-item.active { background: var(--c-primary-subtle); color: var(--c-primary); font-weight: 600; }
+  .s-dash-nav-item .badge-mini {
+    margin-left: auto;
+    background: color-mix(in srgb, var(--c-text) 8%, transparent);
+    color: var(--c-text-sec); font-size: 10px; font-weight: 600;
+    padding: 1px 6px; border-radius: 9999px; min-width: 18px; text-align: center;
+  }
+  .s-dash-nav-item.active .badge-mini { background: var(--c-primary); color: #fff; }
+
+  .s-dash-main { flex: 1; padding: 28px 32px; min-width: 0; display: flex; flex-direction: column; gap: 20px; }
+  .s-dash-pageHead { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+  .s-dash-h1 { font-family: var(--f-heading); font-size: 24px; font-weight: 700; letter-spacing: -0.015em; margin-bottom: 4px; }
+  .s-dash-sub { font-size: 13px; color: var(--c-text-muted); }
+  .s-dash-actions { display: flex; gap: 8px; flex-shrink: 0; }
+
+  .s-dash-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
+  .s-dash-stat {
+    padding: 16px 18px;
+    display: flex; flex-direction: column; gap: 6px;
+    position: relative; overflow: hidden;
+  }
+  .s-dash-stat-label { font-size: 11px; color: var(--c-text-muted); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; }
+  .s-dash-stat-row { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+  .s-dash-stat-val { font-family: var(--f-heading); font-size: 26px; font-weight: 700; letter-spacing: -0.02em; line-height: 1; }
+  .s-dash-stat-trend {
+    font-size: 11px; font-weight: 600;
+    color: var(--c-success);
+    background: color-mix(in srgb, var(--c-success) 10%, transparent);
+    padding: 2px 6px; border-radius: var(--r-sm);
+    display: inline-flex; align-items: center; gap: 2px;
+  }
+  .s-dash-stat-trend.down { color: var(--c-error); background: color-mix(in srgb, var(--c-error) 10%, transparent); }
+  .s-dash-stat-spark { height: 28px; margin-top: 4px; opacity: 0.85; }
+  .s-dash-stat-spark path { fill: none; stroke: var(--c-primary); stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+  .s-dash-stat-spark .spark-area { fill: var(--c-primary-subtle); stroke: none; opacity: 0.6; }
+
+  .s-dash-table { overflow: hidden; }
+  .s-dash-row { display: grid; grid-template-columns: 1fr 140px 100px 36px; gap: 12px; padding: 12px 16px; align-items: center; font-size: 13px; transition: background 120ms; }
+  .strategy-border .s-dash-row:hover, .strategy-tinted .s-dash-row:hover, .strategy-elevation .s-dash-row:hover {
+    background: color-mix(in srgb, var(--c-primary) 4%, transparent);
+  }
+  .s-dash-row-head { background: color-mix(in srgb, var(--c-text) 3%, transparent); font-size: 10px; color: var(--c-text-muted); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; padding: 9px 16px; }
+  .s-dash-row-head:hover { background: color-mix(in srgb, var(--c-text) 3%, transparent) !important; }
+  .strategy-divider .s-dash-row, .strategy-none .s-dash-row { padding-left: 0; padding-right: 0; }
+
+  .s-dash-cell-title { display: flex; align-items: center; gap: 10px; font-weight: 500; min-width: 0; }
+  .s-dash-cell-title .row-icon {
+    width: 28px; height: 28px;
+    border-radius: var(--r-sm);
+    background: color-mix(in srgb, var(--c-primary) 12%, transparent);
+    color: var(--c-primary);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .s-dash-cell-title .row-text { min-width: 0; overflow: hidden; }
+  .s-dash-cell-title .row-text strong { display: block; font-weight: 600; color: var(--c-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .s-dash-cell-title .row-text span { display: block; font-size: 11px; color: var(--c-text-muted); margin-top: 1px; }
+
+  .s-dash-cell-owner { display: flex; align-items: center; gap: 8px; color: var(--c-text-sec); }
+  .s-dash-avatar {
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    color: #fff;
+    font-size: 10px; font-weight: 700;
+    display: inline-flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .s-dash-badge { font-size: 11px; padding: 3px 8px; border-radius: 9999px; font-weight: 600; display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+  .s-dash-badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+  .s-dash-badge-s { background: color-mix(in srgb, var(--c-success) 12%, transparent); color: var(--c-success); }
+  .s-dash-badge-w { background: color-mix(in srgb, var(--c-warning) 12%, transparent); color: var(--c-warning); }
+  .s-dash-badge-i { background: color-mix(in srgb, var(--c-info) 12%, transparent); color: var(--c-info); }
+
+  /* MARKETING */
+  .s-mkt { padding: 72px 40px 72px; min-height: 580px; position: relative; overflow: hidden; }
+  .s-mkt-hero { position: relative; max-width: 920px; margin: 0 auto 80px; }
+  .s-mkt-eyebrow {
+    font-size: 12px; color: var(--c-primary); font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.08em;
+    margin-bottom: 16px;
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 5px 12px; border-radius: 9999px;
+    background: color-mix(in srgb, var(--c-primary) 10%, transparent);
+  }
+  .s-mkt-eyebrow::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--c-primary); animation: pulse 2s ease-in-out infinite; }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+  .s-mkt-h1 {
+    font-family: var(--f-heading);
+    font-size: clamp(36px, 5.2vw, 64px);
+    font-weight: 800;
+    line-height: 1.02;
+    letter-spacing: -0.025em;
+    margin-bottom: 22px;
+    max-width: 820px;
+  }
+  .s-mkt-lead {
+    font-size: 18px; line-height: 1.5;
+    color: var(--c-text-sec);
+    max-width: 600px;
+    margin-bottom: 32px;
+  }
+  .s-mkt-cta-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 32px; }
+  .s-mkt-cta-meta { font-size: 13px; color: var(--c-text-muted); display: inline-flex; align-items: center; gap: 6px; }
+  .s-mkt-cta-meta::before { content: ''; width: 4px; height: 4px; border-radius: 50%; background: var(--c-text-muted); }
+  .s-mkt-trust {
+    display: flex; gap: 32px; align-items: center;
+    padding: 20px 0; margin-bottom: 64px;
+    border-top: 1px solid var(--c-border);
+    border-bottom: 1px solid var(--c-border);
+    overflow: hidden; flex-wrap: wrap;
+  }
+  .s-mkt-trust-label { font-size: 11px; color: var(--c-text-muted); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; }
+  .s-mkt-trust-logos { display: flex; gap: 28px; align-items: center; flex-wrap: wrap; }
+  .s-mkt-trust-logo { font-family: var(--f-heading); font-weight: 700; font-size: 16px; color: var(--c-text-muted); opacity: 0.6; letter-spacing: -0.01em; }
+  .s-mkt-features { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 32px; max-width: 1100px; margin: 0 auto; }
+  .s-mkt-feat { display: flex; flex-direction: column; gap: 10px; }
+  .s-mkt-feat-icon {
+    color: var(--c-primary);
+    width: 40px; height: 40px;
+    border-radius: var(--r-md);
+    background: color-mix(in srgb, var(--c-primary) 10%, transparent);
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 4px;
+  }
+  .s-mkt-feat-h { font-family: var(--f-heading); font-size: 17px; font-weight: 700; letter-spacing: -0.01em; }
+  .s-mkt-feat-p { font-size: 14px; line-height: 1.5; color: var(--c-text-sec); }
+  .s-mkt-feat-link { font-size: 13px; font-weight: 600; color: var(--c-primary); display: inline-flex; align-items: center; gap: 4px; margin-top: 4px; }
+
+  /* CONTENT */
+  .s-art { padding: 64px 40px 80px; max-width: 720px; margin: 0 auto; min-height: 560px; }
+  .s-art-meta {
+    display: flex; align-items: center; gap: 12px;
+    font-size: 12px; color: var(--c-text-muted);
+    margin-bottom: 18px;
+    text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700;
+  }
+  .s-art-meta-tag { background: color-mix(in srgb, var(--c-primary) 10%, transparent); color: var(--c-primary); padding: 3px 8px; border-radius: 9999px; }
+  .s-art-meta-dot { width: 3px; height: 3px; border-radius: 50%; background: var(--c-text-muted); }
+  .s-art-h1 {
+    font-family: var(--f-heading);
+    font-size: clamp(32px, 4vw, 44px);
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    margin-bottom: 12px;
+  }
+  .s-art-deck {
+    font-size: 19px; line-height: 1.45;
+    color: var(--c-text-sec);
+    margin-bottom: 36px;
+    font-family: var(--f-heading);
+    font-weight: 400;
+  }
+  .s-art-author {
+    display: flex; align-items: center; gap: 12px;
+    padding-bottom: 28px; margin-bottom: 36px;
+    border-bottom: 1px solid var(--c-border);
+  }
+  .s-art-author .s-dash-avatar { width: 36px; height: 36px; font-size: 13px; }
+  .s-art-author-info strong { display: block; font-weight: 600; font-size: 14px; }
+  .s-art-author-info span { display: block; font-size: 12px; color: var(--c-text-muted); margin-top: 1px; }
+  .s-art p { font-size: 17px; line-height: var(--body-line-height, 1.7); color: var(--c-text); margin-bottom: 22px; }
+  .s-art p strong { font-weight: 700; }
+  .s-art p em { background: color-mix(in srgb, var(--c-primary) 14%, transparent); color: var(--c-text); font-style: normal; padding: 1px 4px; border-radius: 3px; }
+  .s-art-pull {
+    border-left: 3px solid var(--c-primary);
+    padding: 4px 0 4px 24px; margin: 32px 0;
+    font-family: var(--f-heading);
+    font-size: 22px; font-weight: 600;
+    line-height: 1.35; color: var(--c-text);
+    letter-spacing: -0.005em;
+  }
+  .s-art-figure {
+    padding: 32px 24px;
+    margin: 32px 0;
+    text-align: center;
+    background: color-mix(in srgb, var(--c-text) 3%, transparent);
+    border-radius: var(--r-md);
+  }
+  .s-art-figure-icon { color: var(--c-primary); margin-bottom: 12px; opacity: 0.8; }
+  .s-art-figure-cap { font-size: 12px; color: var(--c-text-muted); font-style: italic; }
+
+  /* FORM */
+  .s-form { padding: 36px 40px 48px; max-width: 680px; margin: 0 auto; min-height: 560px; }
+  .s-form-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px; gap: 16px; }
+  .s-form-head-text { min-width: 0; }
+  .s-form-h1 { font-family: var(--f-heading); font-size: 24px; font-weight: 700; letter-spacing: -0.015em; margin-bottom: 6px; }
+  .s-form-sub { font-size: 13px; color: var(--c-text-muted); }
+  .s-form-section {
+    padding: 24px;
+    margin-bottom: 16px;
+  }
+  .s-form-section-title {
+    display: flex; align-items: center; gap: 8px;
+    font-family: var(--f-heading);
+    font-size: 13px; font-weight: 700;
+    color: var(--c-text);
+    margin-bottom: 16px;
+    text-transform: uppercase; letter-spacing: 0.04em;
+  }
+  .s-form-section-title-icon { color: var(--c-primary); }
+  .s-form-group { margin-bottom: 16px; }
+  .s-form-group:last-child { margin-bottom: 0; }
+  .s-form-label { display: block; font-size: 13px; font-weight: 600; color: var(--c-text); margin-bottom: 6px; }
+  .s-form-label-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
+  .s-form-label-row .s-form-label { margin-bottom: 0; }
+  .s-form-required { color: var(--c-error); font-size: 11px; font-weight: 600; }
+  .s-form-help { font-size: 12px; color: var(--c-text-muted); margin-top: 6px; line-height: 1.5; }
+  .s-form-input-wrap { position: relative; }
+  .s-form-input-icon {
+    position: absolute; left: 11px; top: 50%; transform: translateY(-50%);
+    color: var(--c-text-muted); pointer-events: none;
+  }
+  .s-form-input, .s-form-select, .s-form-textarea {
+    width: 100%; background: var(--c-bg); color: var(--c-text);
+    border: 1px solid var(--c-border); border-radius: var(--r-sm);
+    padding: 9px 12px; font-size: 14px; font-family: inherit;
+    outline: none; transition: border-color 120ms, box-shadow 120ms;
+  }
+  .s-form-input.has-icon { padding-left: 36px; }
+  .s-form-input:focus, .s-form-select:focus, .s-form-textarea:focus { border-color: var(--c-primary); box-shadow: 0 0 0 3px var(--c-primary-subtle); }
+  .s-form-textarea { min-height: 88px; resize: vertical; line-height: 1.5; }
+  .s-form-toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 14px 0; border-top: 1px solid var(--c-border); }
+  .s-form-toggle-row:first-of-type { border-top: none; padding-top: 0; }
+  .s-form-toggle-info strong { display: block; font-size: 14px; font-weight: 600; margin-bottom: 3px; }
+  .s-form-toggle-info span { font-size: 12px; color: var(--c-text-muted); line-height: 1.5; }
+  .s-form-toggle {
+    width: 36px; height: 20px;
+    background: color-mix(in srgb, var(--c-text) 18%, transparent);
+    border-radius: 9999px;
+    position: relative; cursor: pointer; transition: background 120ms;
+    flex-shrink: 0;
+  }
+  .s-form-toggle::after {
+    content: ''; position: absolute;
+    top: 2px; left: 2px; width: 16px; height: 16px;
+    border-radius: 50%; background: #fff;
+    transition: transform 120ms;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+  }
+  .s-form-toggle.on { background: var(--c-primary); }
+  .s-form-toggle.on::after { transform: translateX(16px); }
+  .s-form-actions {
+    display: flex; gap: 10px; padding-top: 24px;
+    border-top: 1px solid var(--c-border);
+    margin-top: 24px;
+    align-items: center;
+  }
+  .s-form-actions .keyboard-hint {
+    margin-left: auto;
+    font-size: 11px; color: var(--c-text-muted);
+    display: inline-flex; align-items: center; gap: 4px;
+  }
+  .s-form-actions .keyboard-hint kbd {
+    background: color-mix(in srgb, var(--c-text) 8%, transparent);
+    color: var(--c-text-sec);
+    padding: 2px 6px; border-radius: 3px;
+    font-family: var(--f-mono, ui-monospace, monospace);
+    font-size: 10px; font-weight: 600;
+    border: 1px solid var(--c-border);
+    border-bottom-width: 2px;
+  }
+
+  /* PRICING */
+  .s-price { padding: 64px 32px 64px; min-height: 580px; }
+  .s-price-head { text-align: center; max-width: 600px; margin: 0 auto 36px; }
+  .s-price-h1 { font-family: var(--f-heading); font-size: clamp(32px, 4vw, 44px); font-weight: 700; letter-spacing: -0.02em; margin-bottom: 12px; }
+  .s-price-sub { font-size: 16px; color: var(--c-text-sec); line-height: 1.5; }
+  .s-price-toggle {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 4px;
+    background: color-mix(in srgb, var(--c-text) 5%, transparent);
+    border-radius: 9999px;
+    margin: 24px auto 40px;
+    text-align: center;
+  }
+  .s-price-toggle-wrap { text-align: center; }
+  .s-price-toggle button {
+    background: transparent; border: none;
+    padding: 7px 16px; font-size: 13px; font-weight: 600;
+    color: var(--c-text-sec); cursor: pointer;
+    border-radius: 9999px;
+    font-family: inherit;
+    transition: background 120ms, color 120ms;
+  }
+  .s-price-toggle button.active { background: var(--c-bg); color: var(--c-text); box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+  .s-price-toggle .price-save {
+    font-size: 10px; color: var(--c-success); font-weight: 700;
+    margin-left: 4px;
+    background: color-mix(in srgb, var(--c-success) 12%, transparent);
+    padding: 1px 6px; border-radius: 9999px;
+  }
+  .s-price-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; max-width: 1000px; margin: 0 auto; }
+  .s-price-card { padding: 28px 24px; display: flex; flex-direction: column; gap: 16px; position: relative; }
+  .s-price-card.featured {
+    outline: 2px solid var(--c-primary);
+    transform: translateY(-4px);
+  }
+  .s-price-card.featured::before {
+    content: attr(data-popular); position: absolute; top: -11px; left: 50%; transform: translateX(-50%);
+    background: var(--c-primary); color: #fff;
+    font-size: 10px; font-weight: 700; padding: 4px 10px;
+    border-radius: 9999px; letter-spacing: 0.04em; text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .s-price-tier { font-family: var(--f-heading); font-size: 13px; font-weight: 700; color: var(--c-text-sec); text-transform: uppercase; letter-spacing: 0.06em; }
+  .s-price-tier-desc { font-size: 12px; color: var(--c-text-muted); margin-top: 2px; }
+  .s-price-amount { font-family: var(--f-heading); font-size: 36px; font-weight: 800; letter-spacing: -0.025em; line-height: 1; }
+  .s-price-amount span { font-size: 13px; color: var(--c-text-muted); font-weight: 400; margin-left: 4px; letter-spacing: 0; }
+  .s-price-list {
+    list-style: none; display: flex; flex-direction: column; gap: 10px;
+    padding: 16px 0; border-top: 1px solid var(--c-border);
+    flex: 1;
+  }
+  .s-price-list li { font-size: 13px; color: var(--c-text-sec); padding-left: 26px; position: relative; line-height: 1.5; }
+  .s-price-list li svg { position: absolute; left: 0; top: 2px; color: var(--c-primary); }
+  .s-price-list li.muted { color: var(--c-text-muted); }
+  .s-price-list li.muted svg { color: var(--c-text-muted); }
+
+  /* shared atoms */
+  .b-primary, .b-secondary, .b-ghost {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 8px 16px; font-size: 14px; font-weight: 600;
+    border-radius: var(--r-sm); cursor: pointer; border: 1px solid transparent;
+    font-family: inherit; line-height: 1.4;
+    transition: background 120ms, color 120ms, border-color 120ms;
+  }
+  .b-primary { background: var(--c-primary); color: #fff; }
+  .b-primary:hover { background: var(--c-primary-hover); }
+  .b-secondary { background: transparent; color: var(--c-text); border-color: var(--c-border); }
+  .b-secondary:hover { border-color: var(--c-primary); color: var(--c-primary); }
+  .b-ghost { background: transparent; color: var(--c-primary); }
+  .b-lg { padding: 12px 22px; font-size: 15px; }
+
+  /* Compare-mode mini surface scaling */
+  .candidate-stage .s-dash { min-height: 320px; }
+  .candidate-stage .s-dash-side { width: 140px; padding: 14px 10px; }
+  .candidate-stage .s-dash-side-title { font-size: 12px; }
+  .candidate-stage .s-dash-nav-item { font-size: 12px; padding: 5px 8px; }
+  .candidate-stage .s-dash-main { padding: 18px; }
+  .candidate-stage .s-dash-h1 { font-size: 18px; }
+  .candidate-stage .s-dash-sub { font-size: 12px; margin-bottom: 14px; }
+  .candidate-stage .s-dash-stats { gap: 8px; margin-bottom: 14px; }
+  .candidate-stage .s-dash-stat { padding: 10px; }
+  .candidate-stage .s-dash-stat-val { font-size: 18px; }
+  .candidate-stage .s-dash-row { font-size: 12px; padding: 8px 12px; }
+  .candidate-stage .s-mkt { padding: 28px 20px 32px; min-height: 320px; }
+  .candidate-stage .s-mkt-h1 { font-size: 24px; line-height: 1.1; margin-bottom: 12px; }
+  .candidate-stage .s-mkt-lead { font-size: 14px; margin-bottom: 18px; }
+  .candidate-stage .s-mkt-cta-row { margin-bottom: 28px; }
+  .candidate-stage .s-mkt-features { padding-top: 20px; gap: 18px; }
+  .candidate-stage .s-art { padding: 24px 22px; min-height: 320px; }
+  .candidate-stage .s-art-h1 { font-size: 22px; margin-bottom: 14px; }
+  .candidate-stage .s-art p { font-size: 14px; margin-bottom: 12px; }
+  .candidate-stage .s-art-pull { font-size: 16px; margin: 18px 0; padding-left: 14px; }
+  .candidate-stage .s-form { padding: 22px 22px 28px; min-height: 320px; }
+  .candidate-stage .s-form-h1 { font-size: 18px; }
+  .candidate-stage .s-form-sub { font-size: 12px; margin-bottom: 16px; }
+  .candidate-stage .s-price { padding: 24px 18px; min-height: 320px; }
+  .candidate-stage .s-price-h1 { font-size: 20px; margin-bottom: 4px; }
+  .candidate-stage .s-price-sub { font-size: 13px; margin-bottom: 20px; }
+
+  /* CJK locale: bump body line-height and disable display tracking */
+  .locale-zh-CN, .locale-ja, .locale-ko {
+    --body-line-height: 1.75;
+  }
+  .locale-zh-CN .s-mkt-h1, .locale-ja .s-mkt-h1, .locale-ko .s-mkt-h1,
+  .locale-zh-CN .s-art-h1, .locale-ja .s-art-h1, .locale-ko .s-art-h1,
+  .locale-zh-CN .s-price-h1, .locale-ja .s-price-h1, .locale-ko .s-price-h1 {
+    letter-spacing: 0;
+  }
+
+  /* ===== Compare mode: Pick button + selected state ===== */
+  .candidate-pick {
+    background: transparent; border: 1px solid #e5e5e5;
+    color: #555; font-family: inherit;
+    padding: 4px 10px; border-radius: 4px;
+    font-size: 11px; font-weight: 600; cursor: pointer;
+    transition: background 120ms, color 120ms, border-color 120ms;
+    white-space: nowrap;
+  }
+  .candidate-pick:hover { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
+  .candidate.selected { outline: 2px solid #1a1a1a; outline-offset: -1px; }
+  .candidate.selected .candidate-pick {
+    background: #1a1a1a; color: #fff; border-color: #1a1a1a;
+  }
+  .candidate.selected .candidate-pick::after { content: ' ✓'; }
+
+  /* ===== Floating action bar (Compare mode) ===== */
+  .action-bar {
+    position: fixed; left: 50%; bottom: 24px;
+    transform: translateX(-50%) translateY(120%);
+    background: #1a1a1a; color: #fff;
+    border-radius: 999px;
+    padding: 8px 8px 8px 18px;
+    display: flex; align-items: center; gap: 16px;
+    box-shadow: 0 12px 32px rgba(0,0,0,0.18), 0 2px 8px rgba(0,0,0,0.12);
+    transition: transform 280ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    z-index: 200;
+    font-size: 13px;
+    max-width: calc(100vw - 48px);
+  }
+  .action-bar.visible { transform: translateX(-50%) translateY(0); }
+  .action-bar-text { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 320px; }
+  .action-bar-text strong { font-weight: 700; }
+  .action-bar-copy {
+    background: #ffffff; color: #1a1a1a;
+    border: none; border-radius: 999px;
+    padding: 8px 18px; font-size: 13px; font-weight: 600;
+    cursor: pointer; font-family: inherit;
+    transition: background 120ms;
+    white-space: nowrap;
+  }
+  .action-bar-copy:hover { background: #f0f0f0; }
+  .action-bar-copy.copied { background: #16a34a; color: #fff; }
+
+  /* ===== Full mode: Copy config button (in sidebar bottom) ===== */
+  .chrome-copy {
+    width: 100%;
+    background: #0a0a0a; color: #fff;
+    border: none; border-radius: 6px;
+    padding: 10px 14px; font-size: 12px; font-weight: 600;
+    cursor: pointer; font-family: inherit;
+    transition: background 120ms;
+    margin-top: 4px;
+  }
+  .chrome-copy:hover { background: #2a2a2a; }
+  .chrome-copy.copied { background: #16a34a; }
+</style>
+</head>
+<body>
+<div id="root"><p style="color:#888;text-align:center;padding:80px 0;font-size:14px;">Loading design config…</p></div>
+<script src="design-config.js"></script>
+<script>
+(function() {
+  const C = window.__DESIGN_CONFIG__;
+  if (!C) {
+    // Try to detect locale from browser for the error message
+    const navLoc = (navigator.language || 'en').toLowerCase();
+    const errLoc = navLoc.startsWith('zh') ? 'zh-CN' : navLoc.startsWith('ja') ? 'ja' : 'en';
+    document.getElementById('root').innerHTML =
+      '<p style="color:#c00;text-align:center;padding:80px 0;font-size:14px;">' + tt(errLoc).missingConfig + '</p>';
+    return;
+  }
+
+  const root = document.getElementById('root');
+  root.innerHTML = '';
+
+  const SURFACES = [
+    { id: 'dashboard', label: 'Dashboard' },
+    { id: 'marketing', label: 'Marketing' },
+    { id: 'content',   label: 'Article'   },
+    { id: 'form',      label: 'Form'      },
+    { id: 'pricing',   label: 'Pricing'   }
+  ];
+
+  const STRATEGIES = [
+    { id: 'border',         label: 'Border'   },
+    { id: 'tinted',         label: 'Tinted'   },
+    { id: 'elevation',      label: 'Elevation'},
+    { id: 'divider',        label: 'Divider'  },
+    { id: 'none',           label: 'None'     }
+  ];
+
+  const ICON_SETS = [
+    { id: 'lucide',     label: 'Lucide'    },
+    { id: 'phosphor',   label: 'Phosphor'  },
+    { id: 'heroicons',  label: 'Heroicons' }
+  ];
+
+  const LOCALES = [
+    { id: 'en',     label: 'EN'    },
+    { id: 'zh-CN',  label: '中文'  },
+    { id: 'ja',     label: '日本語'}
+  ];
+
+  // ================== INLINE SVG ICON SPRITES ==================
+  // Each set has the same conceptual icons (inbox, users, settings, billing,
+  // overview, check, plus, search), styled to match the set's voice.
+  const ICONS = {
+    lucide: {
+      // monoline 1.5px stroke, regular weight
+      overview:  '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>',
+      projects:  '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>',
+      team:      '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+      billing:   '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>',
+      settings:  '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>',
+      check:     '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
+      arrow:     '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>',
+      bolt:      '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>',
+      shield:    '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>',
+      keyboard:  '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M6 12h.01M10 12h.01M14 12h.01M18 12h.01M7 16h10"/></svg>'
+    },
+    phosphor: {
+      // bolder geometric, 2px stroke, slight optical correction
+      overview:  '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 256 256" fill="currentColor"><path d="M104,40H56A16,16,0,0,0,40,56v48a16,16,0,0,0,16,16h48a16,16,0,0,0,16-16V56A16,16,0,0,0,104,40Zm0,64H56V56h48v48Zm96-64H152a16,16,0,0,0-16,16v48a16,16,0,0,0,16,16h48a16,16,0,0,0,16-16V56A16,16,0,0,0,200,40Zm0,64H152V56h48v48Zm-96,32H56a16,16,0,0,0-16,16v48a16,16,0,0,0,16,16h48a16,16,0,0,0,16-16V152A16,16,0,0,0,104,136Zm0,64H56V152h48v48Zm96-64H152a16,16,0,0,0-16,16v48a16,16,0,0,0,16,16h48a16,16,0,0,0,16-16V152A16,16,0,0,0,200,136Zm0,64H152V152h48v48Z"/></svg>',
+      projects:  '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 256 256" fill="currentColor"><path d="M216,72H131.31L104,44.69A15.86,15.86,0,0,0,92.69,40H40A16,16,0,0,0,24,56V200.62A15.4,15.4,0,0,0,39.38,216H216.4A15.6,15.6,0,0,0,232,200.4V88A16,16,0,0,0,216,72ZM40,56H92.69l16,16H40ZM216,200H40V88H216Z"/></svg>',
+      team:      '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 256 256" fill="currentColor"><path d="M256,168a8,8,0,0,1-8,8H230.81l-19.32,30.93A16.06,16.06,0,0,1,198,216H180.41a4,4,0,0,1-3.39-6.13L191.5,184l-23-32H136.41a4,4,0,0,1-3.39-6.13L147.5,120l-23-32H103.5L88,108v40h32a16,16,0,0,1,16,16v40a16,16,0,0,1-16,16H56a16,16,0,0,1-16-16V164a16,16,0,0,1,16-16H72V108a16,16,0,0,1,3.2-9.6L89.5,80H64A40,40,0,1,1,80,40,40,40,0,1,1,80,40h128A40,40,0,1,1,224,80a40,40,0,1,1,0-40v9.5L249.6,109.4a16,16,0,0,1,3.2,9.6V160h-8a8,8,0,0,1,8,8Z"/></svg>',
+      billing:   '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 256 256" fill="currentColor"><path d="M224,48H32A16,16,0,0,0,16,64V192a16,16,0,0,0,16,16H224a16,16,0,0,0,16-16V64A16,16,0,0,0,224,48Zm0,16V88H32V64Zm0,128H32V104H224V192Z"/></svg>',
+      settings:  '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 256 256" fill="currentColor"><path d="M128,80a48,48,0,1,0,48,48A48.05,48.05,0,0,0,128,80Zm0,80a32,32,0,1,1,32-32A32,32,0,0,1,128,160Zm88-29.84q.06-2.16,0-4.32l14.92-18.64a8,8,0,0,0,1.48-7.06,107.21,107.21,0,0,0-10.88-26.25,8,8,0,0,0-6-3.93l-23.72-2.64q-1.48-1.56-3-3L186,40.54a8,8,0,0,0-3.94-6,107.71,107.71,0,0,0-26.25-10.87,8,8,0,0,0-7.06,1.49L130.16,40Q128,40,125.84,40L107.2,25.11a8,8,0,0,0-7.06-1.48A107.6,107.6,0,0,0,73.89,34.51a8,8,0,0,0-3.93,6L67.32,64.27q-1.56,1.49-3,3L40.54,70a8,8,0,0,0-6,3.94,107.71,107.71,0,0,0-10.87,26.25,8,8,0,0,0,1.49,7.06L40,125.84Q40,128,40,130.16L25.11,148.8a8,8,0,0,0-1.48,7.06,107.21,107.21,0,0,0,10.88,26.25,8,8,0,0,0,6,3.93l23.72,2.64q1.49,1.56,3,3L70,215.46a8,8,0,0,0,3.94,6,107.71,107.71,0,0,0,26.25,10.87,8,8,0,0,0,7.06-1.49L125.84,216q2.16.06,4.32,0l18.64,14.92a8,8,0,0,0,7.06,1.48,107.21,107.21,0,0,0,26.25-10.88,8,8,0,0,0,3.93-6l2.64-23.72q1.56-1.48,3-3L215.46,186a8,8,0,0,0,6-3.94,107.71,107.71,0,0,0,10.87-26.25,8,8,0,0,0-1.49-7.06ZM199.94,154.94l-2.32,20.92a91.27,91.27,0,0,1-15.91,15.91l-20.92-2.32a8,8,0,0,0-6.85,2.81l-13.78,17.27a91.66,91.66,0,0,1-22.32,0L104.07,192.26a8,8,0,0,0-6.07-2.84l-.78,0-20.91,2.32a91.27,91.27,0,0,1-15.92-15.91l2.32-20.92a8,8,0,0,0-2.81-6.85L42.63,134.32a91.66,91.66,0,0,1,0-22.32L59.9,98.21a8,8,0,0,0,2.81-6.85L60.39,70.45A91.27,91.27,0,0,1,76.3,54.54l20.92,2.32a8,8,0,0,0,6.85-2.81l13.78-17.27a91.66,91.66,0,0,1,22.32,0l13.78,17.27a8,8,0,0,0,6.85,2.81l20.92-2.32A91.27,91.27,0,0,1,197.62,70.45l-2.32,20.92a8,8,0,0,0,2.81,6.85l17.27,13.78a91.66,91.66,0,0,1,0,22.32L198.11,148.1A8,8,0,0,0,199.94,154.94Z"/></svg>',
+      check:     '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 256 256" fill="currentColor"><path d="M229.66,77.66l-128,128a8,8,0,0,1-11.32,0l-56-56a8,8,0,0,1,11.32-11.32L96,188.69,218.34,66.34a8,8,0,0,1,11.32,11.32Z"/></svg>',
+      arrow:     '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 256 256" fill="currentColor"><path d="M221.66,133.66l-72,72a8,8,0,0,1-11.32-11.32L196.69,136H40a8,8,0,0,1,0-16H196.69L138.34,61.66a8,8,0,0,1,11.32-11.32l72,72A8,8,0,0,1,221.66,133.66Z"/></svg>',
+      bolt:      '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 256 256" fill="currentColor"><path d="M213.85,125.46l-112,120a8,8,0,0,1-13.69-7l14.66-73.33L45.19,143.13a8,8,0,0,1-3-13L154.15,10.54a8,8,0,0,1,13.69,7L153.18,90.87l57.63,22a8,8,0,0,1,3,12.61Z"/></svg>',
+      shield:    '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 256 256" fill="currentColor"><path d="M208,40H48A16,16,0,0,0,32,56v58.78c0,89.61,75.82,119.34,91,124.39a15.53,15.53,0,0,0,10,0c15.2-5.05,91-34.78,91-124.39V56A16,16,0,0,0,208,40Zm0,74.79c0,78.42-66.35,104.62-80,109.18-13.53-4.51-80-30.69-80-109.18V56l160,0Z"/></svg>',
+      keyboard:  '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 256 256" fill="currentColor"><path d="M224,64H32A16,16,0,0,0,16,80V176a16,16,0,0,0,16,16H224a16,16,0,0,0,16-16V80A16,16,0,0,0,224,64Zm0,112H32V80H224V176ZM56,108a8,8,0,0,1,8-8h0a8,8,0,0,1,0,16h0A8,8,0,0,1,56,108Zm32,0a8,8,0,0,1,8-8h0a8,8,0,0,1,0,16h0A8,8,0,0,1,88,108Zm32,0a8,8,0,0,1,8-8h0a8,8,0,0,1,0,16h0A8,8,0,0,1,120,108Zm32,0a8,8,0,0,1,8-8h0a8,8,0,0,1,0,16h0A8,8,0,0,1,152,108Zm32,0a8,8,0,0,1,8-8h0a8,8,0,0,1,0,16h0A8,8,0,0,1,184,108ZM56,140a8,8,0,0,1,8-8h0a8,8,0,0,1,0,16h0A8,8,0,0,1,56,140Zm32,0a8,8,0,0,1,8-8h64a8,8,0,0,1,0,16H96A8,8,0,0,1,88,140Zm96,0a8,8,0,0,1,8-8h0a8,8,0,0,1,0,16h0A8,8,0,0,1,184,140Z"/></svg>'
+    },
+    heroicons: {
+      // outline 2px, slightly more rectangular than lucide
+      overview:  '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 8.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z"/></svg>',
+      projects:  '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z"/></svg>',
+      team:      '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"/></svg>',
+      billing:   '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z"/></svg>',
+      settings:  '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>',
+      check:     '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>',
+      arrow:     '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg>',
+      bolt:      '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z"/></svg>',
+      shield:    '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 01-1.043 3.296 3.745 3.745 0 01-3.296 1.043A3.745 3.745 0 0112 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 01-3.296-1.043 3.745 3.745 0 01-1.043-3.296A3.745 3.745 0 013 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 011.043-3.296 3.745 3.745 0 013.296-1.043A3.745 3.745 0 0112 3c1.268 0 2.39.63 3.068 1.593a3.745 3.745 0 013.296 1.043 3.745 3.745 0 011.043 3.296A3.745 3.745 0 0121 12z"/></svg>',
+      keyboard:  '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5.25 8.25h.008v.008H5.25V8.25zm0 2.25h.008v.008H5.25V10.5zm0 2.25h.008v.008H5.25V12.75zm0 2.25h.008v.008H5.25v-.008zm2.25-6.75h.008v.008H7.5V8.25zm0 2.25h.008v.008H7.5V10.5zm0 2.25h.008v.008H7.5V12.75zm0 2.25h.008v.008H7.5v-.008zm2.25-6.75h.008v.008H9.75V8.25zm0 2.25h.008v.008H9.75V10.5zm0 2.25h7.5M12 8.25h.008v.008H12V8.25zm0 2.25h.008v.008H12V10.5zm2.25-2.25h.008v.008h-.008V8.25zm0 2.25h.008v.008h-.008V10.5zm2.25-2.25h.008v.008h-.008V8.25zm0 2.25h.008v.008h-.008V10.5zm2.25-2.25h.008v.008h-.008V8.25zm0 2.25h.008v.008h-.008V10.5zM3 5.25A2.25 2.25 0 015.25 3h13.5A2.25 2.25 0 0121 5.25v9.75a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 15V5.25z"/></svg>'
+    }
+  };
+
+  function icon(name, set) {
+    set = set || (window.__currentIconSet) || 'lucide';
+    return (ICONS[set] && ICONS[set][name]) || ICONS.lucide[name] || '';
+  }
+
+  // ================== UI COPY (chrome strings, per locale) ==================
+  // Distinct from COPY (demo content). UI_COPY localizes the template's own
+  // controls so a Chinese-speaking user doesn't see "Surface / Container /
+  // Gradient" in English while previewing a Chinese product.
+  const UI_COPY = {
+    'en': {
+      compareTitle: 'Compare directions',
+      compareMeta:  function(n) { return n + ' options · same content, same surface'; },
+      designSystem: 'Design System',
+      // chrome labels
+      lSurface:'Surface', lContainer:'Container', lIcons:'Icons', lGradient:'Gradient',
+      lTexture:'Texture', lLocale:'Locale', lViewport:'Viewport', lTheme:'Theme',
+      // strategy
+      sBorder:'Border', sTinted:'Tinted', sElevation:'Elevation', sDivider:'Divider', sNone:'None',
+      // gradient / texture / theme / viewport
+      gNone:'None', gSubtle:'Subtle', gExpressive:'Expressive',
+      tNone:'None', tNoise:'Noise', tDot:'Dot', tPaper:'Paper', tScan:'Scan',
+      thLight:'Light', thDark:'Dark',
+      vDesktop:'Desktop', vTablet:'Tablet', vMobile:'Mobile',
+      // pick + action bar
+      pickThis:'Pick',
+      barSelected:function(label,subtitle){ return 'Direction <strong>' + label + '</strong>' + (subtitle?' · '+subtitle:'') + ' selected'; },
+      copyPrompt:'Copy prompt',
+      copied:'Copied',
+      // copy-prompt body for compare
+      promptCompareIntro:function(label,subtitle){ return 'I pick direction ' + label + (subtitle?' — "' + subtitle + '"':''); },
+      promptCompareUse:'Use this token set to continue Phase 3.',
+      // copy-config (full mode)
+      copyConfig:'Copy current state',
+      promptFullIntro:function(name){ return 'Current state of "' + (name||'project') + '" preview that I am happy with:'; },
+      promptFullNext:'Please proceed to Phase 4b (business mockup) using these tokens.',
+      // banners
+      missingConfig:'Missing /tmp/design-config.js',
+      loadingConfig:'Loading design config…',
+      noDarkTokens:'No dark tokens defined in config'
+    },
+    'zh-CN': {
+      compareTitle: '方向对比',
+      compareMeta:  function(n) { return n + ' 个候选 · 相同内容、相同页面'; },
+      designSystem: '设计系统',
+      lSurface:'页面', lContainer:'容器', lIcons:'图标', lGradient:'渐变',
+      lTexture:'纹理', lLocale:'语言', lViewport:'视口', lTheme:'主题',
+      sBorder:'边框', sTinted:'色块', sElevation:'阴影', sDivider:'分隔线', sNone:'无',
+      gNone:'无', gSubtle:'克制', gExpressive:'强烈',
+      tNone:'无', tNoise:'噪点', tDot:'点阵', tPaper:'纸纹', tScan:'扫描线',
+      thLight:'浅色', thDark:'深色',
+      vDesktop:'桌面', vTablet:'平板', vMobile:'手机',
+      pickThis:'选这个',
+      barSelected:function(label,subtitle){ return '已选方向 <strong>' + label + '</strong>' + (subtitle?' · '+subtitle:''); },
+      copyPrompt:'复制提示词',
+      copied:'已复制',
+      promptCompareIntro:function(label,subtitle){ return '我选 ' + label + ' 方向' + (subtitle?'——"' + subtitle + '"':''); },
+      promptCompareUse:'请用这套 token 继续 Phase 3，问我下一组细节。',
+      copyConfig:'复制当前配置',
+      promptFullIntro:function(name){ return '我对当前的 "' + (name||'项目') + '" 预览状态感觉不错，配置如下：'; },
+      promptFullNext:'请用这套 token 进入 Phase 4b，开始生成业务设计稿。',
+      missingConfig:'缺少 /tmp/design-config.js',
+      loadingConfig:'正在加载配置…',
+      noDarkTokens:'配置中未定义深色 token'
+    },
+    'ja': {
+      compareTitle: '方向の比較',
+      compareMeta:  function(n) { return n + ' 案 · 同じコンテンツ、同じ画面'; },
+      designSystem: 'デザインシステム',
+      lSurface:'画面', lContainer:'コンテナ', lIcons:'アイコン', lGradient:'グラデーション',
+      lTexture:'テクスチャ', lLocale:'言語', lViewport:'ビューポート', lTheme:'テーマ',
+      sBorder:'枠線', sTinted:'色面', sElevation:'シャドウ', sDivider:'区切り線', sNone:'なし',
+      gNone:'なし', gSubtle:'控えめ', gExpressive:'強調',
+      tNone:'なし', tNoise:'ノイズ', tDot:'ドット', tPaper:'ペーパー', tScan:'走査線',
+      thLight:'ライト', thDark:'ダーク',
+      vDesktop:'PC', vTablet:'タブレット', vMobile:'モバイル',
+      pickThis:'これを選ぶ',
+      barSelected:function(label,subtitle){ return '<strong>' + label + '</strong>' + (subtitle?' · '+subtitle:'') + ' を選択中'; },
+      copyPrompt:'プロンプトをコピー',
+      copied:'コピー済み',
+      promptCompareIntro:function(label,subtitle){ return '方向 ' + label + (subtitle?'（' + subtitle + '）':'') + ' を選びます'; },
+      promptCompareUse:'この token セットで Phase 3 を続けてください。',
+      copyConfig:'現状をコピー',
+      promptFullIntro:function(name){ return '現時点で気に入っている "' + (name||'プロジェクト') + '" プレビューの設定：'; },
+      promptFullNext:'これらの token で Phase 4b（ビジネスモックアップ）へ進んでください。',
+      missingConfig:'/tmp/design-config.js が見つかりません',
+      loadingConfig:'設定を読み込み中…',
+      noDarkTokens:'ダーク token が config に定義されていません'
+    }
+  };
+
+  function tt(locale) { return UI_COPY[locale] || UI_COPY.en; }
+
+  // ================== DEMO COPY (per locale) ==================
+  const COPY = {
+    'en': {
+      brand:     'Acme',
+      brandInitial: 'A',
+      nav: [
+        { section: 'Workspace', items: [
+          { id:'overview',  label:'Overview' },
+          { id:'projects',  label:'Projects', badge:'12' },
+          { id:'team',      label:'Team' }
+        ]},
+        { section: 'Account', items: [
+          { id:'billing',   label:'Billing' },
+          { id:'settings',  label:'Settings' }
+        ]}
+      ],
+      dashTitle: 'Overview',
+      dashSub:   'How the project is performing this week.',
+      dashAction:'New project',
+      stats:     [
+        {label:'Active users', val:'2,847',  trend:'+12.5%', spark:[8,12,11,15,18,17,21,24]},
+        {label:'Revenue',      val:'$48.2k', trend:'+8.1%',  spark:[20,18,22,21,25,24,28,30]},
+        {label:'Conversion',   val:'3.4%',   trend:'+0.6%',  spark:[2,3,3,2,4,3,4,4]},
+        {label:'Avg session',  val:'4m 32s', trend:'-2.1%', trendDown:true, spark:[12,14,11,13,10,11,9,10]}
+      ],
+      tableHead: ['Project','Owner','Status',''],
+      tableRows: [
+        {project:'Design system audit',  desc:'Refresh tokens for v3 release',  owner:'Sarah Chen',  state:'active',  badge:'Active',  rowIcon:'projects'},
+        {project:'API integration v2',   desc:'Migrate to streaming endpoints', owner:'Marcus Yi',   state:'pending', badge:'Pending', rowIcon:'bolt'},
+        {project:'Mobile responsive pass', desc:'Audit forms on viewport <600', owner:'Jia Lin',     state:'draft',   badge:'Draft',   rowIcon:'keyboard'}
+      ],
+      mktEyebrow: 'New · v3 is here',
+      mktH1:      'Ship faster without losing the thread.',
+      mktLead:    'A single workspace for the messy middle of building software — issues, decisions, and the changelog, kept in one place.',
+      mktCtaA:    'Start free',
+      mktCtaB:    'Read the changelog',
+      mktCtaMeta: 'No credit card · 14-day trial',
+      mktTrustLabel: 'Trusted by teams at',
+      mktTrustLogos: ['Northwind','Crescent','Helix','Marigold','Ember'],
+      features: [
+        {icon:'shield',   h:'One source of truth', p:'Issues, docs, and decisions live next to the code, searchable from one bar.', link:'See how it works'},
+        {icon:'keyboard', h:'Built for keyboards', p:'Every action has a shortcut. The mouse is optional.', link:'View shortcuts'},
+        {icon:'bolt',     h:'Audit-friendly history', p:'Every change is signed, attributed, and reversible at any point in time.', link:'Read more'}
+      ],
+      artTag:     'Design',
+      artMeta:    '8 min read · 18 Apr 2026',
+      artH1:      'A design system that survives its first year',
+      artDeck:    'The reason most teams\' design systems collapse isn\'t the tokens. It\'s that they documented components instead of decisions.',
+      artAuthor:  'Sarah Chen',
+      artAuthorTitle: 'Lead designer · Acme',
+      artP1:      'Most design systems collapse the moment a real product hits them. The reason is rarely the tokens themselves — it\'s that the system was specified in <strong>terms of components</strong>, not in terms of <em>decisions</em>.',
+      artP2:      'What you actually want is a record of every choice the team has already made, so the next contributor can either reuse it or argue with it. That\'s it.',
+      artPull:    'A design system is not a component library. It is the documentation of every taste decision your team has made — and is willing to defend.',
+      artP3:      'The implication: the spec must be opinionated and contain reasoning. "Buttons are 8px radius" is not a spec; it\'s a hex code. "Buttons are 8px radius because we picked balance over softness" is a spec — and the next person can disagree explicitly.',
+      artFigCap:  'Figure 1 · Token decisions cascade through every component',
+      formH1:     'Workspace settings',
+      formSub:    'Changes apply to everyone in this workspace.',
+      formSection1: 'General',
+      formSection2: 'Security',
+      formNameL:  'Workspace name',     formNameV:  'Acme',
+      formSlugL:  'URL slug',           formSlugV:  'acme',
+      formSlugH:  'Lowercase letters, numbers, and dashes only. Will be visible at acme.app/[slug].',
+      formContactL:'Primary contact',
+      formContactO:['sarah@acme.co','marcus@acme.co'],
+      formDescL:  'Description',         formDescV:  'A workspace for our design system experiments.',
+      formRequired: 'Required',
+      togglePub:  {h:'Public discoverability', s:'Allow anyone with the URL to view your public pages.', on:false},
+      toggle2fa:  {h:'Two-factor for everyone', s:'Require all members to enable 2FA before they can sign in.', on:true},
+      formSave:   'Save changes',        formCancel: 'Cancel',
+      formKbHint: 'to save',
+      priceH1:    'Pricing that grows with the team',
+      priceSub:   'Start free. Add seats only when you need them. Switch plans anytime.',
+      pricingMonthly: 'Monthly', pricingYearly: 'Yearly',
+      pricingSave: 'Save 20%',
+      tiers: [
+        {name:'Starter',    desc:'For solo and small teams', price:'Free',    unit:'forever',          feats:[{t:'Up to 3 seats'},{t:'Unlimited projects'},{t:'Community support'},{t:'API access', muted:true}], cta:'Get started'},
+        {name:'Team',       desc:'For growing teams',        price:'$12',     unit:'/ seat / month',   feats:[{t:'Unlimited seats'},{t:'SSO and audit log'},{t:'Priority support'},{t:'API access'},{t:'Custom integrations'}], cta:'Start trial', popular:true, popularLabel:'Most popular'},
+        {name:'Enterprise', desc:'For large organizations',  price:'Custom',  unit:'contact us',       feats:[{t:'Everything in Team'},{t:'Custom contracts'},{t:'Dedicated infrastructure'},{t:'24/7 service-level agreement'}], cta:'Contact sales'}
+      ]
+    },
+    'zh-CN': {
+      brand:     '广源科技',
+      brandInitial: '广',
+      nav: [
+        { section: '工作空间', items: [
+          { id:'overview',  label:'概览' },
+          { id:'projects',  label:'项目', badge:'12' },
+          { id:'team',      label:'团队' }
+        ]},
+        { section: '账户', items: [
+          { id:'billing',   label:'账单' },
+          { id:'settings',  label:'设置' }
+        ]}
+      ],
+      dashTitle: '概览',
+      dashSub:   '本周项目运行情况速览。',
+      dashAction:'新建项目',
+      stats:     [
+        {label:'活跃用户', val:'2,847',   trend:'+12.5%', spark:[8,12,11,15,18,17,21,24]},
+        {label:'营收',     val:'¥35.6万', trend:'+8.1%',  spark:[20,18,22,21,25,24,28,30]},
+        {label:'转化率',   val:'3.4%',    trend:'+0.6%',  spark:[2,3,3,2,4,3,4,4]},
+        {label:'平均时长', val:'4分32秒', trend:'-2.1%', trendDown:true, spark:[12,14,11,13,10,11,9,10]}
+      ],
+      tableHead: ['项目','负责人','状态',''],
+      tableRows: [
+        {project:'设计规范升级',     desc:'为 v3 版本刷新 token 体系',  owner:'王晓晗',   state:'active',  badge:'进行中', rowIcon:'projects'},
+        {project:'API 接入第二期',   desc:'切换到流式接口',             owner:'李子轩',   state:'pending', badge:'待处理', rowIcon:'bolt'},
+        {project:'移动端适配回归',   desc:'审查 600px 以下视口的表单',  owner:'陈嘉',     state:'draft',   badge:'草稿',   rowIcon:'keyboard'}
+      ],
+      mktEyebrow: '上新 · v3 已发布',
+      mktH1:      '更快交付，思路不丢失。',
+      mktLead:    '一个工作空间，承载软件开发过程中所有混沌中段——问题、决策与变更记录，统一可查。',
+      mktCtaA:    '免费开始',
+      mktCtaB:    '阅读更新日志',
+      mktCtaMeta: '无需信用卡 · 14 天试用',
+      mktTrustLabel: '正在被这些团队使用',
+      mktTrustLogos: ['北望科技','弦月','螺旋实验室','金盏花','余烬'],
+      features: [
+        {icon:'shield',   h:'唯一信息源', p:'问题、文档、决策与代码并行存在，单一搜索栏即可定位。', link:'查看演示'},
+        {icon:'keyboard', h:'键盘优先',   p:'每个操作都有快捷键，鼠标只是可选项。', link:'查看快捷键列表'},
+        {icon:'bolt',     h:'可审计历史', p:'每次变更都有签名、归属、可回滚到任何时间点。', link:'阅读详情'}
+      ],
+      artTag:     '设计',
+      artMeta:    '阅读 8 分钟 · 2026.04.18',
+      artH1:      '一套能撑过第一年的设计系统',
+      artDeck:    '大多数设计系统崩溃，原因不是 token，而是它们记录的是组件，而不是决策。',
+      artAuthor:  '王晓晗',
+      artAuthorTitle: '首席设计师 · 广源科技',
+      artP1:      '大多数设计系统在真实产品压力下就会崩。原因往往不是 token 本身，而是这个系统被定义成了<strong>组件清单</strong>，而不是被定义成一系列<em>决策</em>。',
+      artP2:      '你真正想要的是一份记录——团队过去每一个口味判断的记录，让下一个加入的人可以选择沿用或重新讨论。仅此而已。',
+      artPull:    '设计系统不是组件库。它是团队所做过的每一个口味决策的文档——并且团队愿意为它辩护。',
+      artP3:      '推论是：规范必须有立场，必须包含推理。"按钮圆角 8px" 不是规范，那只是一个数值。"按钮圆角 8px 是因为我们在均衡和柔和之间选了均衡" 才是规范——并且下一个人可以明确地反对它。',
+      artFigCap:  '图 1 · 一个 token 的决策会向下级联到所有组件',
+      formH1:     '工作空间设置',
+      formSub:    '改动会影响整个工作空间的所有成员。',
+      formSection1: '基本信息',
+      formSection2: '安全',
+      formNameL:  '工作空间名称',  formNameV:  '广源科技',
+      formSlugL:  'URL 标识',      formSlugV:  'guangyuan',
+      formSlugH:  '只能使用小写字母、数字和连字符。最终展示为 acme.app/[标识]。',
+      formContactL:'主联系人',
+      formContactO:['wangxiaohan@guangyuan.cn','lizixuan@guangyuan.cn'],
+      formDescL:  '简介',          formDescV:  '我们用于设计系统实验的工作空间。',
+      formRequired: '必填',
+      togglePub:  {h:'公开可见',           s:'允许任何拿到 URL 的人查看公开页面。', on:false},
+      toggle2fa:  {h:'强制双因素认证',     s:'所有成员登录前必须启用二次验证。',   on:true},
+      formSave:   '保存修改',      formCancel: '取消',
+      formKbHint: '保存',
+      priceH1:    '随团队成长的定价方案',
+      priceSub:   '免费起步，按需添加席位。可随时切换方案。',
+      pricingMonthly: '按月', pricingYearly: '按年',
+      pricingSave: '省 20%',
+      tiers: [
+        {name:'起步版',  desc:'适合个人与小团队', price:'免费',    unit:'永久免费',     feats:[{t:'最多 3 个席位'},{t:'不限项目数'},{t:'社区支持'},{t:'API 访问', muted:true}], cta:'立即开始'},
+        {name:'团队版',  desc:'适合成长中的团队', price:'¥88',     unit:'/ 席位 / 月',  feats:[{t:'不限席位'},{t:'单点登录与审计日志'},{t:'优先客服'},{t:'API 访问'},{t:'自定义集成'}], cta:'开始试用', popular:true, popularLabel:'最受欢迎'},
+        {name:'企业版',  desc:'适合大型组织',     price:'定制',    unit:'联系我们',     feats:[{t:'团队版的全部功能'},{t:'定制合同'},{t:'独立部署环境'},{t:'7×24 服务等级协议'}], cta:'联系销售'}
+      ]
+    },
+    'ja': {
+      brand:     'アクメ',
+      brandInitial: 'ア',
+      nav: [
+        { section: 'ワークスペース', items: [
+          { id:'overview',  label:'概要' },
+          { id:'projects',  label:'プロジェクト', badge:'12' },
+          { id:'team',      label:'チーム' }
+        ]},
+        { section: 'アカウント', items: [
+          { id:'billing',   label:'請求' },
+          { id:'settings',  label:'設定' }
+        ]}
+      ],
+      dashTitle: '概要',
+      dashSub:   '今週のプロジェクトの状況です。',
+      dashAction:'新規プロジェクト',
+      stats:     [
+        {label:'アクティブユーザー', val:'2,847',  trend:'+12.5%', spark:[8,12,11,15,18,17,21,24]},
+        {label:'売上',               val:'¥4.82M', trend:'+8.1%',  spark:[20,18,22,21,25,24,28,30]},
+        {label:'CVR',                val:'3.4%',   trend:'+0.6%',  spark:[2,3,3,2,4,3,4,4]},
+        {label:'平均滞在',           val:'4分32秒',trend:'-2.1%', trendDown:true, spark:[12,14,11,13,10,11,9,10]}
+      ],
+      tableHead: ['プロジェクト','担当','ステータス',''],
+      tableRows: [
+        {project:'デザインシステム監査', desc:'v3 リリースに向け token を更新',  owner:'佐藤 美咲', state:'active',  badge:'進行中', rowIcon:'projects'},
+        {project:'API連携 v2',           desc:'ストリーミング API へ移行',        owner:'田中 太郎', state:'pending', badge:'保留',   rowIcon:'bolt'},
+        {project:'モバイル対応',         desc:'600px 以下のフォーム監査',         owner:'山田 花子', state:'draft',   badge:'下書き', rowIcon:'keyboard'}
+      ],
+      mktEyebrow: '新登場 · v3 公開',
+      mktH1:      '速く出荷し、文脈を失わない。',
+      mktLead:    'ソフトウェア開発の煩雑な中間地帯を一つのワークスペースに——課題・意思決定・変更履歴を一か所で管理。',
+      mktCtaA:    '無料で始める',
+      mktCtaB:    '更新履歴を見る',
+      mktCtaMeta: 'クレカ不要 · 14 日間トライアル',
+      mktTrustLabel: 'こちらのチームに使われています',
+      mktTrustLogos: ['北星','三日月','螺旋研','金盞花','残光'],
+      features: [
+        {icon:'shield',   h:'唯一の情報源', p:'課題・ドキュメント・意思決定をコードの隣に置き、ひとつのバーで検索可能。', link:'仕組みを見る'},
+        {icon:'keyboard', h:'キーボード設計', p:'すべての操作にショートカット。マウスは任意。', link:'ショートカット一覧'},
+        {icon:'bolt',     h:'監査可能な履歴', p:'変更には署名・帰属・取り消し可能性が常に紐づく。', link:'詳しく読む'}
+      ],
+      artTag:     'デザイン',
+      artMeta:    '読了 8 分 · 2026年4月18日',
+      artH1:      '初年度を生き延びるデザインシステム',
+      artDeck:    '多くのデザインシステムが崩壊するのは token のせいではなく、コンポーネントを記録して意思決定を記録しなかったからです。',
+      artAuthor:  '佐藤 美咲',
+      artAuthorTitle: 'リードデザイナー · アクメ',
+      artP1:      '多くのデザインシステムは実プロダクトに当たった瞬間に崩壊します。原因は token 自体ではなく、システムを<strong>コンポーネントの集合</strong>として定義し、<em>意思決定の記録</em>を残さなかったことにあります。',
+      artP2:      '本当に欲しいのは、チームが下したすべての判断の記録です。次に来る人がそれを再利用するか、明示的に再議論できるようにするためです。',
+      artPull:    'デザインシステムはコンポーネントライブラリではない。チームが下した一つひとつの趣味判断の文書化であり、チームが守る価値があると考えるものだ。',
+      artP3:      '結果として、仕様は意見を持ち、理由を含むべきです。「ボタンの角丸は 8px」は仕様ではありません。「柔らかさよりバランスを選んだので 8px」が仕様であり、次の人が明示的に異論を唱えられます。',
+      artFigCap:  '図 1 · 一つの token がすべてのコンポーネントに波及する',
+      formH1:     'ワークスペース設定',
+      formSub:    '変更はワークスペースの全メンバーに適用されます。',
+      formSection1: '基本情報',
+      formSection2: 'セキュリティ',
+      formNameL:  'ワークスペース名',   formNameV:  'アクメ',
+      formSlugL:  'URL スラッグ',       formSlugV:  'acme',
+      formSlugH:  '小文字・数字・ハイフンのみ。acme.app/[スラッグ] として表示されます。',
+      formContactL:'主連絡先',
+      formContactO:['sato@acme.jp','tanaka@acme.jp'],
+      formDescL:  '説明',                 formDescV:  'デザインシステムを試行するワークスペース。',
+      formRequired: '必須',
+      togglePub:  {h:'公開ディスカバリー', s:'URL を持つ誰でも公開ページを閲覧可能。',         on:false},
+      toggle2fa:  {h:'全員に二要素認証',   s:'サインイン前に全メンバーが 2FA を有効化する。', on:true},
+      formSave:   '変更を保存',           formCancel: 'キャンセル',
+      formKbHint: '保存',
+      priceH1:    'チームに合わせた料金',
+      priceSub:   '無料で始め、必要なときにシートを追加。プランはいつでも変更可能。',
+      pricingMonthly: '月額', pricingYearly: '年額',
+      pricingSave: '20% お得',
+      tiers: [
+        {name:'スターター',       desc:'個人・小規模チーム向け', price:'無料',    unit:'永続無料',          feats:[{t:'シート 3 まで'},{t:'プロジェクト無制限'},{t:'コミュニティサポート'},{t:'API アクセス', muted:true}], cta:'開始'},
+        {name:'チーム',           desc:'成長中のチーム向け',     price:'¥1,200',  unit:'/ 席 / 月',         feats:[{t:'シート無制限'},{t:'SSO と監査ログ'},{t:'優先サポート'},{t:'API アクセス'},{t:'カスタム連携'}], cta:'試用開始', popular:true, popularLabel:'人気'},
+        {name:'エンタープライズ', desc:'大規模組織向け',         price:'要相談',  unit:'お問い合わせ',      feats:[{t:'チームの全機能'},{t:'カスタム契約'},{t:'専用インフラ'},{t:'24/7 SLA'}], cta:'営業に問い合わせ'}
+      ]
+    }
+  };
+
+  function copy(locale) { return COPY[locale] || COPY.en; }
+
+  function loadFonts(names, locale) {
+    const set = [...new Set(names.filter(Boolean))];
+    if (locale && locale !== 'en') {
+      // Add locale-appropriate sans fallback to the request
+      if (locale === 'zh-CN' || locale === 'zh-TW') set.push('Noto Sans SC');
+      if (locale === 'ja')    set.push('Noto Sans JP');
+      if (locale === 'ko')    set.push('Noto Sans KR');
+    }
+    if (!set.length) return;
+    const url = 'https://fonts.googleapis.com/css2?' +
+      set.map(f => 'family=' + encodeURIComponent(f) + ':wght@400;500;600;700;800').join('&') +
+      '&display=swap';
+    const link = document.createElement('link');
+    link.rel = 'stylesheet'; link.href = url;
+    document.head.appendChild(link);
+  }
+
+  function applyTokens(el, opt, locale) {
+    const c = opt.colors, f = opt.fonts || {}, r = opt.radius || { sm:'4px', md:'8px', lg:'12px' };
+    el.style.setProperty('--c-primary',         c.primary);
+    el.style.setProperty('--c-primary-hover',   c.primaryHover || c.primary);
+    el.style.setProperty('--c-primary-subtle',  c.primarySubtle || 'rgba(0,0,0,0.04)');
+    el.style.setProperty('--c-bg',              c.bg);
+    el.style.setProperty('--c-surface',         c.surface);
+    el.style.setProperty('--c-border',          c.border);
+    el.style.setProperty('--c-text',            c.text);
+    el.style.setProperty('--c-text-sec',        c.textSecondary);
+    el.style.setProperty('--c-text-muted',      c.textMuted);
+    el.style.setProperty('--c-success',         c.success || '#16a34a');
+    el.style.setProperty('--c-warning',         c.warning || '#d97706');
+    el.style.setProperty('--c-error',           c.error   || '#dc2626');
+    el.style.setProperty('--c-info',            c.info    || '#2563eb');
+
+    const cjkFallback =
+      locale === 'zh-CN' || locale === 'zh-TW' ? `, "Noto Sans SC", "PingFang SC", "Microsoft YaHei"` :
+      locale === 'ja'                          ? `, "Noto Sans JP", "Hiragino Kaku Gothic ProN"` :
+      locale === 'ko'                          ? `, "Noto Sans KR", "Apple SD Gothic Neo"` : '';
+
+    el.style.setProperty('--f-heading', '"' + (f.heading || 'system-ui') + '"' + cjkFallback + ', -apple-system, sans-serif');
+    el.style.setProperty('--f-body',    '"' + (f.body    || 'system-ui') + '"' + cjkFallback + ', -apple-system, sans-serif');
+    el.style.setProperty('--r-sm',              r.sm || '4px');
+    el.style.setProperty('--r-md',              r.md || '8px');
+    el.style.setProperty('--r-lg',              r.lg || '12px');
+  }
+
+  // ================== SURFACE RENDERERS ==================
+
+  function renderSurface(id, locale, iconSet) {
+    window.__currentIconSet = iconSet;
+    const t = copy(locale);
+    if (id === 'marketing') return surfaceMarketing(t, iconSet);
+    if (id === 'content')   return surfaceContent(t, iconSet);
+    if (id === 'form')      return surfaceForm(t, iconSet);
+    if (id === 'pricing')   return surfacePricing(t, iconSet);
+    return surfaceDashboard(t, iconSet);
+  }
+
+  // --- helpers ---
+  function sparkline(values, w, h) {
+    w = w || 100; h = h || 28;
+    const min = Math.min.apply(null, values);
+    const max = Math.max.apply(null, values);
+    const range = max - min || 1;
+    const step = w / (values.length - 1);
+    const pts = values.map((v, i) => {
+      const x = i * step;
+      const y = h - ((v - min) / range) * (h - 4) - 2;
+      return [x, y];
+    });
+    let line = 'M ' + pts.map(p => p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join(' L ');
+    let area = line + ' L ' + w + ' ' + h + ' L 0 ' + h + ' Z';
+    return '<svg class="s-dash-stat-spark" viewBox="0 0 ' + w + ' ' + h + '" preserveAspectRatio="none">' +
+      '<path class="spark-area" d="' + area + '"/>' +
+      '<path d="' + line + '"/>' +
+      '</svg>';
+  }
+  function hashHue(str) {
+    let h = 0;
+    for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) % 360;
+    return h;
+  }
+  function avatar(name) {
+    const initial = (name || '?').trim().charAt(0).toUpperCase();
+    const hue = hashHue(name || 'x');
+    return '<span class="s-dash-avatar" style="background:hsl(' + hue + ', 55%, 52%);">' + initial + '</span>';
+  }
+
+  function surfaceDashboard(t, iconSet) {
+    const navHTML = t.nav.map(group =>
+      '<div class="s-dash-nav-section">' + group.section + '</div>' +
+      '<nav class="s-dash-nav">' +
+        group.items.map((item, i) => {
+          const isActive = item.id === 'overview';
+          const badgeHTML = item.badge ? '<span class="badge-mini">' + item.badge + '</span>' : '';
+          return '<div class="s-dash-nav-item' + (isActive ? ' active' : '') + '">' +
+            icon(item.id, iconSet) + '<span>' + item.label + '</span>' + badgeHTML +
+          '</div>';
+        }).join('') +
+      '</nav>'
+    ).join('');
+
+    const stats = t.stats.map(s =>
+      '<div class="s-dash-stat surface-card">' +
+        '<div class="s-dash-stat-label">' + s.label + '</div>' +
+        '<div class="s-dash-stat-row">' +
+          '<div class="s-dash-stat-val">' + s.val + '</div>' +
+          '<div class="s-dash-stat-trend' + (s.trendDown ? ' down' : '') + '">' + s.trend + '</div>' +
+        '</div>' +
+        sparkline(s.spark || [4,5,4,6,7,6,8,9]) +
+      '</div>'
+    ).join('');
+
+    const headRow = '<div class="s-dash-row s-dash-row-head">' +
+      '<div>' + t.tableHead[0] + '</div>' +
+      '<div>' + t.tableHead[1] + '</div>' +
+      '<div>' + t.tableHead[2] + '</div>' +
+      '<div></div>' +
+    '</div>';
+
+    const rows = t.tableRows.map(r =>
+      '<div class="s-dash-row">' +
+        '<div class="s-dash-cell-title">' +
+          '<span class="row-icon">' + icon(r.rowIcon || 'projects', iconSet) + '</span>' +
+          '<div class="row-text"><strong>' + r.project + '</strong>' + (r.desc ? '<span>' + r.desc + '</span>' : '') + '</div>' +
+        '</div>' +
+        '<div class="s-dash-cell-owner">' + avatar(r.owner) + '<span>' + r.owner + '</span></div>' +
+        '<div><span class="s-dash-badge s-dash-badge-' + (r.state==='active'?'s':r.state==='pending'?'w':'i') + '">' + r.badge + '</span></div>' +
+        '<button class="b-ghost" style="padding:4px 6px;">' + icon('arrow', iconSet) + '</button>' +
+      '</div>'
+    ).join('');
+
+    return '<div class="s-dash">' +
+      '<aside class="s-dash-side">' +
+        '<div class="s-dash-brand">' +
+          '<div class="s-dash-brand-dot">' + (t.brandInitial || t.brand.charAt(0)) + '</div>' +
+          '<div class="s-dash-brand-name">' + t.brand + '</div>' +
+        '</div>' +
+        navHTML +
+      '</aside>' +
+      '<main class="s-dash-main">' +
+        '<div class="s-dash-pageHead">' +
+          '<div><h1 class="s-dash-h1">' + t.dashTitle + '</h1><p class="s-dash-sub">' + t.dashSub + '</p></div>' +
+          '<div class="s-dash-actions">' +
+            '<button class="b-secondary" style="padding:7px 12px;font-size:13px;">' + icon('settings', iconSet) + '</button>' +
+            '<button class="b-primary" style="padding:7px 14px;font-size:13px;">' + icon('check', iconSet) + ' ' + t.dashAction + '</button>' +
+          '</div>' +
+        '</div>' +
+        '<div class="s-dash-stats">' + stats + '</div>' +
+        '<div class="s-dash-table surface-pane">' + headRow + rows + '</div>' +
+      '</main>' +
+    '</div>';
+  }
+
+  function surfaceMarketing(t, iconSet) {
+    const features = t.features.map(f =>
+      '<div class="s-mkt-feat">' +
+        '<div class="s-mkt-feat-icon">' + icon(f.icon, iconSet) + '</div>' +
+        '<div class="s-mkt-feat-h">' + f.h + '</div>' +
+        '<p class="s-mkt-feat-p">' + f.p + '</p>' +
+        (f.link ? '<a class="s-mkt-feat-link">' + f.link + ' ' + icon('arrow', iconSet) + '</a>' : '') +
+      '</div>'
+    ).join('');
+
+    const trustLogos = (t.mktTrustLogos || []).map(l => '<span class="s-mkt-trust-logo">' + l + '</span>').join('');
+
+    return '<div class="s-mkt deco-gradient-target deco-texture-target">' +
+      '<div class="s-mkt-hero">' +
+        '<div class="s-mkt-eyebrow">' + t.mktEyebrow + '</div>' +
+        '<h1 class="s-mkt-h1">' + t.mktH1 + '</h1>' +
+        '<p class="s-mkt-lead">' + t.mktLead + '</p>' +
+        '<div class="s-mkt-cta-row">' +
+          '<button class="b-primary b-lg">' + t.mktCtaA + ' ' + icon('arrow', iconSet) + '</button>' +
+          '<button class="b-secondary b-lg">' + t.mktCtaB + '</button>' +
+          (t.mktCtaMeta ? '<span class="s-mkt-cta-meta">' + t.mktCtaMeta + '</span>' : '') +
+        '</div>' +
+        (trustLogos ? '<div class="s-mkt-trust"><span class="s-mkt-trust-label">' + (t.mktTrustLabel || '') + '</span><div class="s-mkt-trust-logos">' + trustLogos + '</div></div>' : '') +
+      '</div>' +
+      '<div class="s-mkt-features">' + features + '</div>' +
+    '</div>';
+  }
+
+  function surfaceContent(t, iconSet) {
+    return '<article class="s-art">' +
+      '<div class="s-art-meta">' +
+        (t.artTag ? '<span class="s-art-meta-tag">' + t.artTag + '</span>' : '') +
+        '<span>' + (t.artMeta || '') + '</span>' +
+      '</div>' +
+      '<h1 class="s-art-h1">' + t.artH1 + '</h1>' +
+      (t.artDeck ? '<p class="s-art-deck">' + t.artDeck + '</p>' : '') +
+      (t.artAuthor ? '<div class="s-art-author">' + avatar(t.artAuthor) +
+        '<div class="s-art-author-info"><strong>' + t.artAuthor + '</strong><span>' + (t.artAuthorTitle || '') + '</span></div>' +
+      '</div>' : '') +
+      '<p>' + t.artP1 + '</p>' +
+      '<p>' + t.artP2 + '</p>' +
+      '<blockquote class="s-art-pull">' + t.artPull + '</blockquote>' +
+      '<p>' + t.artP3 + '</p>' +
+      '<div class="s-art-figure">' +
+        '<div class="s-art-figure-icon">' + icon('overview', iconSet) + '</div>' +
+        '<div class="s-art-figure-cap">' + (t.artFigCap || '') + '</div>' +
+      '</div>' +
+    '</article>';
+  }
+
+  function surfaceForm(t, iconSet) {
+    const opts = t.formContactO.map(o => '<option>' + o + '</option>').join('');
+    return '<div class="s-form">' +
+      '<div class="s-form-head">' +
+        '<div class="s-form-head-text">' +
+          '<h1 class="s-form-h1">' + t.formH1 + '</h1>' +
+          '<p class="s-form-sub">' + t.formSub + '</p>' +
+        '</div>' +
+        '<button class="b-secondary" style="padding:7px 12px;font-size:13px;">' + icon('settings', iconSet) + '</button>' +
+      '</div>' +
+
+      '<div class="s-form-section surface-card">' +
+        '<div class="s-form-section-title"><span class="s-form-section-title-icon">' + icon('overview', iconSet) + '</span>' + (t.formSection1 || '') + '</div>' +
+        '<div class="s-form-group">' +
+          '<div class="s-form-label-row"><label class="s-form-label">' + t.formNameL + '</label><span class="s-form-required">' + (t.formRequired || '') + '</span></div>' +
+          '<div class="s-form-input-wrap"><span class="s-form-input-icon">' + icon('projects', iconSet) + '</span><input class="s-form-input has-icon" type="text" value="' + t.formNameV + '"></div>' +
+        '</div>' +
+        '<div class="s-form-group">' +
+          '<label class="s-form-label">' + t.formSlugL + '</label>' +
+          '<input class="s-form-input" type="text" value="' + t.formSlugV + '">' +
+          '<div class="s-form-help">' + t.formSlugH + '</div>' +
+        '</div>' +
+        '<div class="s-form-group">' +
+          '<label class="s-form-label">' + t.formContactL + '</label>' +
+          '<select class="s-form-select">' + opts + '</select>' +
+        '</div>' +
+        '<div class="s-form-group">' +
+          '<label class="s-form-label">' + t.formDescL + '</label>' +
+          '<textarea class="s-form-textarea">' + t.formDescV + '</textarea>' +
+        '</div>' +
+      '</div>' +
+
+      '<div class="s-form-section surface-card">' +
+        '<div class="s-form-section-title"><span class="s-form-section-title-icon">' + icon('shield', iconSet) + '</span>' + (t.formSection2 || '') + '</div>' +
+        '<div class="s-form-toggle-row">' +
+          '<div class="s-form-toggle-info"><strong>' + t.togglePub.h + '</strong><span>' + t.togglePub.s + '</span></div>' +
+          '<div class="s-form-toggle' + (t.togglePub.on ? ' on' : '') + '"></div>' +
+        '</div>' +
+        '<div class="s-form-toggle-row">' +
+          '<div class="s-form-toggle-info"><strong>' + t.toggle2fa.h + '</strong><span>' + t.toggle2fa.s + '</span></div>' +
+          '<div class="s-form-toggle' + (t.toggle2fa.on ? ' on' : '') + '"></div>' +
+        '</div>' +
+      '</div>' +
+
+      '<div class="s-form-actions">' +
+        '<button class="b-primary">' + t.formSave + '</button>' +
+        '<button class="b-secondary">' + t.formCancel + '</button>' +
+        '<span class="keyboard-hint"><kbd>⌘</kbd><kbd>S</kbd> ' + (t.formKbHint || '') + '</span>' +
+      '</div>' +
+    '</div>';
+  }
+
+  function surfacePricing(t, iconSet) {
+    const tiers = t.tiers.map(tier => {
+      const feats = tier.feats.map(f => {
+        const obj = (typeof f === 'string') ? {t: f} : f;
+        return '<li' + (obj.muted ? ' class="muted"' : '') + '>' + icon('check', iconSet) + ' ' + obj.t + '</li>';
+      }).join('');
+      return '<div class="s-price-card surface-card' + (tier.popular ? ' featured' : '') + '"' + (tier.popular ? ' data-popular="' + tier.popularLabel + '"' : '') + '>' +
+        '<div><div class="s-price-tier">' + tier.name + '</div>' + (tier.desc ? '<div class="s-price-tier-desc">' + tier.desc + '</div>' : '') + '</div>' +
+        '<div class="s-price-amount">' + tier.price + '<span>' + tier.unit + '</span></div>' +
+        '<ul class="s-price-list">' + feats + '</ul>' +
+        '<button class="' + (tier.popular ? 'b-primary' : 'b-secondary') + '">' + tier.cta + '</button>' +
+      '</div>';
+    }).join('');
+
+    return '<div class="s-price">' +
+      '<div class="s-price-head">' +
+        '<h1 class="s-price-h1">' + t.priceH1 + '</h1>' +
+        '<p class="s-price-sub">' + t.priceSub + '</p>' +
+      '</div>' +
+      '<div class="s-price-toggle-wrap"><div class="s-price-toggle">' +
+        '<button>' + (t.pricingMonthly || 'Monthly') + '</button>' +
+        '<button class="active">' + (t.pricingYearly || 'Yearly') + '<span class="price-save">' + (t.pricingSave || 'Save 20%') + '</span></button>' +
+      '</div></div>' +
+      '<div class="s-price-grid">' + tiers + '</div>' +
+    '</div>';
+  }
+
+  // ================== MODE DISPATCH ==================
+  if (C.mode === 'compare') renderCompare();
+  else renderFull();
+
+  // ================== COMPARE MODE ==================
+  function renderCompare() {
+    const fonts = [];
+    C.options.forEach(o => { if (o.fonts) fonts.push(o.fonts.heading, o.fonts.body); });
+
+    let state = {
+      surface:   C.surface || 'dashboard',
+      strategy:  C.containerStrategy || 'border',
+      iconSet:   C.iconSet || 'lucide',
+      locale:    C.locale || 'en',
+      selected:  null   // index of currently picked option
+    };
+    loadFonts(fonts, state.locale);
+
+    const shell = document.createElement('div');
+    shell.className = 'app-shell';
+    root.appendChild(shell);
+
+    const chrome = document.createElement('aside');
+    chrome.className = 'sidebar';
+    shell.appendChild(chrome);
+
+    const stage = document.createElement('main');
+    stage.className = 'stage';
+    const headEl = document.createElement('div');
+    if (C.title || C.subtitle) {
+      headEl.className = 'compare-header';
+      headEl.innerHTML = `${C.title ? `<h1>${C.title}</h1>` : ''}${C.subtitle ? `<p>${C.subtitle}</p>` : ''}`;
+      stage.appendChild(headEl);
+    }
+    const grid = document.createElement('div');
+    grid.className = 'compare-grid';
+    stage.appendChild(grid);
+    shell.appendChild(stage);
+
+    // Floating action bar (hidden until something is picked)
+    const bar = document.createElement('div');
+    bar.className = 'action-bar';
+    bar.innerHTML =
+      '<span class="action-bar-text" id="bar-text"></span>' +
+      '<button class="action-bar-copy" id="bar-copy"></button>';
+    document.body.appendChild(bar);
+
+    function localizedStrategyLabel(id) {
+      const T = tt(state.locale);
+      return ({border:T.sBorder, tinted:T.sTinted, elevation:T.sElevation, divider:T.sDivider, none:T.sNone})[id] || id;
+    }
+
+    function paintChrome() {
+      const T = tt(state.locale);
+      function section(label, groupId, items, dataKey, current, labelOf) {
+        const btns = items.map(s =>
+          '<button class="chrome-btn ' + (s.id===current?'active':'') + '" data-' + dataKey + '="' + s.id + '">' + (labelOf ? labelOf(s) : s.label) + '</button>'
+        ).join('');
+        return '<div class="sidebar-section">' +
+          '<div class="sidebar-label">' + label + '</div>' +
+          '<div class="chrome-group" id="' + groupId + '">' + btns + '</div>' +
+        '</div>';
+      }
+      chrome.innerHTML =
+        '<div class="sidebar-title">' + T.compareTitle + '<small>' + T.compareMeta(C.options.length) + '</small></div>' +
+        section(T.lSurface,    'cmp-surface',  SURFACES,   'surface',  state.surface) +
+        section(T.lContainer,  'cmp-strategy', STRATEGIES, 'strategy', state.strategy, s => localizedStrategyLabel(s.id)) +
+        section(T.lIcons,      'cmp-icon',     ICON_SETS,  'icon',     state.iconSet) +
+        section(T.lLocale,     'cmp-locale',   LOCALES,    'locale',   state.locale);
+      attachChromeBindings();
+    }
+
+    function paintGrid() {
+      const T = tt(state.locale);
+      grid.innerHTML = '';
+      C.options.forEach((opt, idx) => {
+        const card = document.createElement('div');
+        card.className = 'candidate' + (state.selected === idx ? ' selected' : '');
+        const c = opt.colors, f = opt.fonts || {}, r = opt.radius || { sm:'4px', md:'8px', lg:'12px' };
+        card.innerHTML =
+          '<div class="candidate-head">' +
+            '<span class="candidate-label">' + (opt.label || '') + '</span>' +
+            '<div class="candidate-meta">' +
+              (opt.family ? '<div class="candidate-family">' + opt.family + '</div>' : '') +
+              '<div class="candidate-subtitle">' + (opt.subtitle || '') + '</div>' +
+            '</div>' +
+            '<button class="candidate-pick" data-pick-idx="' + idx + '">' + T.pickThis + '</button>' +
+          '</div>' +
+          '<div class="candidate-stage stage-root strategy-' + state.strategy + ' locale-' + state.locale + '">' +
+            renderSurface(state.surface, state.locale, state.iconSet) +
+          '</div>' +
+          '<div class="candidate-tokens">' +
+            '<div class="token-row"><strong>Color</strong>' +
+              '<span class="token-swatch" style="background:' + c.primary + ';"></span>' +
+              '<span class="token-swatch" style="background:' + c.bg + ';"></span>' +
+              '<span class="token-swatch" style="background:' + c.surface + ';"></span>' +
+              '<span class="token-swatch" style="background:' + c.text + ';"></span>' +
+              '<span class="token-swatch" style="background:' + c.border + ';"></span>' +
+            '</div>' +
+            '<div class="token-row"><strong>Type</strong>' +
+              '<span class="token-pill">' + (f.heading || 'system') + '</span>' +
+              '<span class="token-pill">' + (f.body || 'system') + '</span>' +
+            '</div>' +
+            '<div class="token-row"><strong>Radius</strong>' +
+              '<span class="token-pill">' + r.sm + '</span>' +
+              '<span class="token-pill">' + r.md + '</span>' +
+              (r.lg ? '<span class="token-pill">' + r.lg + '</span>' : '') +
+            '</div>' +
+          '</div>';
+        applyTokens(card.querySelector('.candidate-stage'), opt, state.locale);
+        grid.appendChild(card);
+      });
+      // bind pick buttons
+      grid.querySelectorAll('[data-pick-idx]').forEach(btn => {
+        btn.addEventListener('click', e => {
+          e.stopPropagation();
+          state.selected = parseInt(btn.dataset.pickIdx, 10);
+          paintGrid();
+          paintBar();
+        });
+      });
+    }
+
+    function buildPrompt() {
+      if (state.selected === null) return '';
+      const T = tt(state.locale);
+      const opt = C.options[state.selected];
+      const c = opt.colors, f = opt.fonts || {}, r = opt.radius || {};
+      const lines = [
+        T.promptCompareIntro(opt.label, opt.subtitle),
+        '- Family: ' + (opt.family || 'unset'),
+        '- Primary: ' + c.primary + (c.primaryHover ? ' / hover ' + c.primaryHover : ''),
+        '- Heading: ' + (f.heading || 'system') + ' / Body: ' + (f.body || 'system'),
+        '- Radius: ' + (r.sm || '?') + ' / ' + (r.md || '?') + (r.lg ? ' / ' + r.lg : ''),
+        '- Container: ' + state.strategy + ' / Icons: ' + state.iconSet + ' / Surface previewed: ' + state.surface + ' / Locale: ' + state.locale,
+        '',
+        T.promptCompareUse
+      ];
+      return lines.join('\n');
+    }
+
+    function paintBar() {
+      const T = tt(state.locale);
+      const copy = bar.querySelector('#bar-copy');
+      const text = bar.querySelector('#bar-text');
+      if (state.selected === null) {
+        bar.classList.remove('visible');
+        return;
+      }
+      const opt = C.options[state.selected];
+      text.innerHTML = T.barSelected(opt.label, opt.subtitle);
+      copy.textContent = T.copyPrompt;
+      copy.classList.remove('copied');
+      bar.classList.add('visible');
+    }
+    bar.querySelector('#bar-copy').addEventListener('click', () => {
+      const T = tt(state.locale);
+      navigator.clipboard.writeText(buildPrompt()).then(() => {
+        const copy = bar.querySelector('#bar-copy');
+        copy.textContent = T.copied;
+        copy.classList.add('copied');
+        setTimeout(() => {
+          copy.textContent = T.copyPrompt;
+          copy.classList.remove('copied');
+        }, 1800);
+      });
+    });
+
+    function attachChromeBindings() {
+      function bind(group, key, target, after) {
+        chrome.querySelector(group).querySelectorAll('button').forEach(btn => {
+          btn.addEventListener('click', () => {
+            chrome.querySelector(group).querySelectorAll('button').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            state[target] = btn.dataset[key];
+            if (after) after();
+            paintGrid();
+            paintBar();
+          });
+        });
+      }
+      bind('#cmp-surface',  'surface',  'surface');
+      bind('#cmp-strategy', 'strategy', 'strategy');
+      bind('#cmp-icon',     'icon',     'iconSet');
+      bind('#cmp-locale',   'locale',   'locale', () => {
+        loadFonts(fonts, state.locale);
+        paintChrome();    // re-render chrome with new UI language
+      });
+    }
+
+    paintChrome();
+    paintGrid();
+    document.title = C.title || (tt(state.locale).compareTitle);
+  }
+
+  // ================== FULL MODE ==================
+  function renderFull() {
+    const surfacesAll = (C.surfaces && C.surfaces.length) ? C.surfaces : SURFACES.map(s => s.id);
+    const surfaceList = SURFACES.filter(s => surfacesAll.includes(s.id));
+
+    let state = {
+      surface:   C.defaultSurface && surfacesAll.includes(C.defaultSurface) ? C.defaultSurface : surfaceList[0].id,
+      viewport:  'desktop',
+      darkMode:  false,
+      strategy:  C.containerStrategy || 'border',
+      iconSet:   (C.iconSystem && C.iconSystem.set) || 'lucide',
+      locale:    (C.locale && C.locale.primary) || 'en',
+      gradient:  (C.decoration && C.decoration.gradients) || 'none',
+      texture:   (C.decoration && C.decoration.textures)  || 'none'
+    };
+
+    loadFonts([C.fonts.heading, C.fonts.body, C.fonts.mono], state.locale);
+
+    const shell = document.createElement('div');
+    shell.className = 'app-shell';
+    root.appendChild(shell);
+
+    const chrome = document.createElement('aside');
+    chrome.className = 'sidebar';
+    shell.appendChild(chrome);
+
+    const stage = document.createElement('main');
+    stage.className = 'stage';
+    const frame = document.createElement('div');
+    frame.className = 'full-frame';
+    stage.appendChild(frame);
+    shell.appendChild(stage);
+
+    function localizedStrategyLabel(id) {
+      const T = tt(state.locale);
+      return ({border:T.sBorder, tinted:T.sTinted, elevation:T.sElevation, divider:T.sDivider, none:T.sNone})[id] || id;
+    }
+
+    function paintChrome() {
+      const T = tt(state.locale);
+      function section(label, groupId, items, dataKey, current, labelOf) {
+        const btns = items.map(s =>
+          '<button class="chrome-btn ' + (s.id===current?'active':'') + '" data-' + dataKey + '="' + s.id + '"' + (s.disabled || '') + '>' + (labelOf ? labelOf(s) : s.label) + '</button>'
+        ).join('');
+        return '<div class="sidebar-section">' +
+          '<div class="sidebar-label">' + label + '</div>' +
+          '<div class="chrome-group" id="' + groupId + '">' + btns + '</div>' +
+        '</div>';
+      }
+      chrome.innerHTML =
+        '<div class="sidebar-title">' + (C.name || T.designSystem) + (C.family ? '<small>' + C.family + '</small>' : '') + '</div>' +
+        section(T.lSurface,    'full-surface',  surfaceList, 'surface', state.surface) +
+        section(T.lContainer,  'full-strategy', STRATEGIES,  'strategy', state.strategy, s => localizedStrategyLabel(s.id)) +
+        section(T.lIcons,      'full-icon',     ICON_SETS,   'icon',     state.iconSet) +
+        section(T.lGradient,   'full-gradient',
+          [{id:'none',label:T.gNone},{id:'subtle',label:T.gSubtle},{id:'expressive',label:T.gExpressive}],
+          'gradient', state.gradient) +
+        section(T.lTexture,    'full-texture',
+          [{id:'none',label:T.tNone},{id:'noise',label:T.tNoise},{id:'dot-grid',label:T.tDot},{id:'paper',label:T.tPaper},{id:'scan-lines',label:T.tScan}],
+          'texture', state.texture) +
+        section(T.lLocale,     'full-locale',   LOCALES, 'locale', state.locale) +
+        section(T.lViewport,   'full-viewport',
+          [{id:'desktop',label:T.vDesktop},{id:'tablet',label:T.vTablet},{id:'mobile',label:T.vMobile}],
+          'viewport', state.viewport) +
+        section(T.lTheme,      'full-theme',
+          [{id:'light',label:T.thLight},{id:'dark',label:T.thDark, disabled: C.colors.dark ? '' : ' disabled title="' + T.noDarkTokens + '"'}],
+          'theme', state.darkMode ? 'dark' : 'light') +
+        '<div class="sidebar-spacer"></div>' +
+        '<button class="chrome-copy" id="full-copy">' + T.copyConfig + '</button>';
+
+      attachChromeBindings();
+    }
+
+    function paint() {
+      frame.className = 'full-frame stage-root viewport-' + state.viewport + ' strategy-' + state.strategy + ' locale-' + state.locale +
+        ' decoration-gradient-' + state.gradient + ' decoration-texture-' + state.texture;
+      const c = { ...C.colors };
+      if (state.darkMode && C.colors.dark) Object.assign(c, C.colors.dark);
+      applyTokens(frame, { colors: c, fonts: C.fonts, radius: C.radius }, state.locale);
+      frame.innerHTML = renderSurface(state.surface, state.locale, state.iconSet);
+    }
+
+    function buildConfigPrompt() {
+      const T = tt(state.locale);
+      const c = C.colors, f = C.fonts || {}, r = C.radius || {};
+      return [
+        T.promptFullIntro(C.name),
+        '- Family: ' + (C.family || 'unset'),
+        '- Surface previewed: ' + state.surface + ' / Viewport: ' + state.viewport + ' / Theme: ' + (state.darkMode ? 'dark' : 'light'),
+        '- Container strategy: ' + state.strategy,
+        '- Icon system: ' + state.iconSet,
+        '- Decoration: gradients=' + state.gradient + ' / textures=' + state.texture,
+        '- Locale: ' + state.locale,
+        '- Primary: ' + c.primary + (c.primaryHover ? ' / hover ' + c.primaryHover : ''),
+        '- Heading: ' + (f.heading || 'system') + ' / Body: ' + (f.body || 'system') + (f.mono ? ' / Mono: ' + f.mono : ''),
+        '- Radius: ' + (r.sm || '?') + ' / ' + (r.md || '?') + (r.lg ? ' / ' + r.lg : ''),
+        '- Spacing: ' + (C.spacing || 'unset') + ' / Motion: ' + (C.motion || 'unset'),
+        '',
+        T.promptFullNext
+      ].join('\n');
+    }
+
+    function attachChromeBindings() {
+      function bind(group, key, target, after) {
+        chrome.querySelector(group).querySelectorAll('button').forEach(btn => {
+          btn.addEventListener('click', () => {
+            if (btn.disabled) return;
+            chrome.querySelector(group).querySelectorAll('button').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            state[target] = btn.dataset[key];
+            if (after) after(btn);
+            paint();
+          });
+        });
+      }
+      bind('#full-surface',   'surface',   'surface');
+      bind('#full-strategy',  'strategy',  'strategy');
+      bind('#full-icon',      'icon',      'iconSet');
+      bind('#full-gradient',  'gradient',  'gradient');
+      bind('#full-texture',   'texture',   'texture');
+      bind('#full-locale',    'locale',    'locale', () => {
+        loadFonts([C.fonts.heading, C.fonts.body, C.fonts.mono], state.locale);
+        paintChrome(); // re-render chrome with new UI language
+      });
+      bind('#full-viewport',  'viewport',  'viewport');
+      bind('#full-theme',     'theme',     'darkMode', (btn) => { state.darkMode = btn.dataset.theme === 'dark'; });
+
+      const copyBtn = chrome.querySelector('#full-copy');
+      if (copyBtn) {
+        copyBtn.addEventListener('click', () => {
+          const T = tt(state.locale);
+          navigator.clipboard.writeText(buildConfigPrompt()).then(() => {
+            copyBtn.textContent = T.copied;
+            copyBtn.classList.add('copied');
+            setTimeout(() => {
+              copyBtn.textContent = T.copyConfig;
+              copyBtn.classList.remove('copied');
+            }, 1800);
+          });
+        });
+      }
+    }
+
+    paintChrome();
+    paint();
+    document.title = 'Design Preview — ' + (C.name || 'Project');
+  }
+})();
+</script>
+</body>
+</html>

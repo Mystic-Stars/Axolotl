@@ -68,7 +68,7 @@
 			</template>
 		</Dropdown>
 		<ButtonStyled
-			v-if="!isDownloadsPage && hasDownloadsPageContent && !hasVisibleActiveDownloadToasts"
+			v-if="!isDownloadsPage && hasActiveDownloads && !hasVisibleActiveDownloadToasts"
 			color="brand"
 			type="transparent"
 			circular
@@ -500,11 +500,18 @@ function getNotification(): PopupNotification | null {
 	return notification ?? null
 }
 
-function removeNotification(): void {
+function collapseNotification(): void {
 	if (!notificationId.value) {
 		return
 	}
 	popupNotificationManager.collapseNotification(notificationId.value)
+}
+
+function removeNotification(): void {
+	if (!notificationId.value) {
+		return
+	}
+	popupNotificationManager.removeNotification(notificationId.value)
 	notificationId.value = null
 }
 
@@ -533,23 +540,22 @@ const hasVisibleActiveDownloadToasts = computed(() => {
 	const notification = getNotification()
 	return !!notification && !notification.collapsed
 })
-const hasDownloadsPageContent = computed(
+const hasActiveDownloads = computed(
 	() =>
 		installJobNotifications.active.value ||
 		currentLoadingBars.value.some((bar) => downloadBarTypes.has(bar.bar_type?.type ?? '')),
 )
+const hasDownloadNotificationItems = computed(
+	() => installJobNotifications.hasItems.value || currentLoadingBars.value.length > 0,
+)
 
 function updateNotification(resummon = false): void {
-	if (isDownloadsPage.value) {
-		removeNotification()
-		return
-	}
-
-	if (resummon) {
+	const shouldResummon = resummon && !isDownloadsPage.value
+	if (shouldResummon) {
 		dismissed.value = false
 	}
 
-	if (currentLoadingBars.value.length === 0 && !installJobNotifications.active.value) {
+	if (!hasDownloadNotificationItems.value) {
 		removeNotification()
 		dismissed.value = false
 		return
@@ -560,24 +566,24 @@ function updateNotification(resummon = false): void {
 		dismissed.value = true
 	}
 
-	if (dismissed.value && !resummon) {
+	if (dismissed.value && !shouldResummon) {
 		return
 	}
 
 	let notif = getNotification()
-	if (notif?.collapsed && resummon) {
+	if (notif?.collapsed && shouldResummon) {
 		notif.collapsed = false
 	}
 	const progressItems = buildDownloadItems()
 
 	if (notif) {
-		notif.title = installJobNotifications.active.value
+		notif.title = installJobNotifications.hasItems.value
 			? installJobNotifications.title.value
 			: formatMessage(messages.downloads)
 		notif.text = undefined
 		notif.progressItems = progressItems
 		notif.buttons = installJobNotifications.buttons.value
-		notif.onClick = hasDownloadsPageContent.value ? goToDownloads : undefined
+		notif.onClick = hasDownloadNotificationItems.value ? goToDownloads : undefined
 		notif.progress = undefined
 		notif.waiting = undefined
 		notif.autoCloseMs =
@@ -587,16 +593,19 @@ function updateNotification(resummon = false): void {
 		if (!notif.collapsed) popupNotificationManager.setNotificationTimer(notif)
 	} else {
 		notif = popupNotificationManager.addPopupNotification({
-			title: installJobNotifications.active.value
+			title: installJobNotifications.hasItems.value
 				? installJobNotifications.title.value
 				: formatMessage(messages.downloads),
 			type: 'download',
 			autoCloseMs: null,
 			progressItems,
 			buttons: installJobNotifications.buttons.value,
-			onClick: hasDownloadsPageContent.value ? goToDownloads : undefined,
+			onClick: hasDownloadNotificationItems.value ? goToDownloads : undefined,
 		})
 		notificationId.value = notif.id
+		if (isDownloadsPage.value) {
+			popupNotificationManager.collapseNotification(notif.id)
+		}
 		if (progressItems.length > 0 && progressItems.every((item) => item.showProgress === false)) {
 			notif.autoCloseMs = 30 * 1000
 			popupNotificationManager.setNotificationTimer(notif)
@@ -738,8 +747,12 @@ const unlistenLoading = await loading_listener((payload: LoadingEventPayload) =>
 		loadingNotificationTimer = null
 		if (newBarDuringWindow) {
 			newBarDuringWindow = false
-			removeNotification()
-			updateNotification(true)
+			if (isDownloadsPage.value) {
+				updateNotification()
+			} else {
+				removeNotification()
+				updateNotification(true)
+			}
 		} else {
 			updateNotification()
 		}
@@ -752,7 +765,12 @@ function goToDownloads() {
 
 watch(
 	() => route.path,
-	() => updateNotification(),
+	() => {
+		if (isDownloadsPage.value) {
+			collapseNotification()
+		}
+		updateNotification()
+	},
 )
 
 function selectProcess(process: RunningProcess) {

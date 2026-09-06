@@ -9,19 +9,13 @@ directory = ".output/public"
 binding = "ASSETS"
 
 [vars]
-NUXT_PUBLIC_ADMIN_ORIGIN = "https://admin.axlmc.org"
+NUXT_PUBLIC_ADMIN_ORIGIN = "https://telemetry-api.axlmc.org"
 NUXT_PUBLIC_WORKER_HEALTH_URL = "https://telemetry.axlmc.org/health"
-NUXT_STORE_ERROR_CONTEXT = "true"
 
 [[d1_databases]]
 binding = "DB"
 database_name = "axolotl-telemetry"
 database_id = "8692e2b1-6156-4b0b-94f5-6e7204c05dff"
-remote = true
-
-[[r2_buckets]]
-binding = "ERROR_CONTEXTS"
-bucket_name = "axolotl-telemetry-errors"
 remote = true
 
 [observability]

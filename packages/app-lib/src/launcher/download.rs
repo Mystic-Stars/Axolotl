@@ -636,12 +636,47 @@ pub(crate) fn is_native_library(library: &Library) -> bool {
 /// canonical example); the two are independent and must not be treated as
 /// mutually exclusive.
 pub(crate) fn needs_java_artifact(library: &Library) -> bool {
-    library
+    // Four-part native coordinates (group:artifact:version:natives-*) store
+    // their native archive metadata in downloads.artifact, which is not a
+    // Java JAR. Exclude them so they only produce NativeArtifact tasks.
+    if library_classifier(&library.name)
+        .is_some_and(|classifier| classifier.starts_with("natives-"))
+    {
+        return false;
+    }
+    // Legacy pure-native libraries carry a natives map but no downloads.artifact;
+    // their main JAR is not downloaded by the original installer either.
+    let artifact = library
         .downloads
         .as_ref()
-        .and_then(|downloads| downloads.artifact.as_ref())
-        .is_some()
-        || library.url.is_some()
+        .and_then(|downloads| downloads.artifact.as_ref());
+    let legacy_url =
+        library.url.as_deref().filter(|url| !url.trim().is_empty());
+    if library.natives.is_some()
+        && artifact.is_none_or(|artifact| artifact.url.trim().is_empty())
+        && legacy_url.is_none()
+    {
+        return false;
+    }
+    artifact.is_some_and(|artifact| !artifact.url.trim().is_empty())
+        || legacy_url.is_some()
+}
+
+fn java_artifact_applies(
+    library: &Library,
+    java_arch: &str,
+    minecraft_updated: bool,
+) -> bool {
+    library.downloadable
+        && needs_java_artifact(library)
+        && library.rules.as_ref().is_none_or(|rules| {
+            parse_rules(
+                rules,
+                java_arch,
+                &QuickPlayType::None,
+                minecraft_updated,
+            )
+        })
 }
 
 fn library_classifier(library_name: &str) -> Option<&str> {
@@ -2049,7 +2084,7 @@ pub async fn download_libraries(
     // Deduplicate by target path so repeated manifest entries download once.
     let mut seen_java_paths = std::collections::HashSet::new();
     for library in libraries {
-        if !needs_java_artifact(library) {
+        if !java_artifact_applies(library, java_arch, minecraft_updated) {
             continue;
         }
         let target = d::get_path_from_artifact(&library.name)
@@ -2276,6 +2311,61 @@ pub async fn download_libraries(
                             .await?;
                             if reused {
                                 tracing::trace!("Reused native {}", &library.name);
+                            }
+                            path
+                        } else if library_classifier(&library.name)
+                            .is_some_and(|value| value.starts_with("natives-"))
+                            && let Some(artifact) = library
+                                .downloads
+                                .as_ref()
+                                .and_then(|downloads| downloads.artifact.as_ref())
+                                .filter(|artifact| !artifact.url.trim().is_empty())
+                        {
+                            let artifact_path =
+                                native_library_artifact_path(library, &classifier)?;
+                            let path = st
+                                .directories
+                                .libraries_dir()
+                                .join(&artifact_path);
+                            let local_relative =
+                                Path::new("libraries").join(&artifact_path);
+                            let context = InstallErrorContext::new(
+                                "download Minecraft native library",
+                            )
+                            .minecraft_version(version.to_string())
+                            .file_path(format!("{}:{classifier}", library.name))
+                            .target_path(path.display().to_string())
+                            .build();
+                            let reused = download_or_reuse_local(
+                                st,
+                                local_source,
+                                &local_relative,
+                                &path,
+                                Some(&artifact.sha1),
+                                Some(artifact.size as u64),
+                                progress.as_ref(),
+                                context.clone(),
+                                force,
+                                || {
+                                    download_minecraft_file(
+                                        st,
+                                        &artifact.url,
+                                        Some(&artifact.sha1),
+                                        Some(artifact.size as u64),
+                                        &path,
+                                        ResourceClass::MinecraftLibrary,
+                                        ContentValidation::Jar,
+                                        force,
+                                        progress.clone(),
+                                        context,
+                                    )
+                                },
+                            )
+                            .await?;
+                            if reused {
+                                tracing::trace!("Reused native {}", &library.name);
+                            } else {
+                                tracing::trace!("Fetched native {}", &library.name);
                             }
                             path
                         } else {
@@ -2684,12 +2774,21 @@ mod tests {
                 "linux": "natives-linux",
                 "osx": "natives-osx",
                 "windows": "natives-windows"
-            }
+            },
+            "checksums": ["05fac94380a70241f23780e7aef62b190894238f"]
         }))
         .unwrap();
 
         assert!(library.natives_os_key_and_classifiers("x86_64").is_none());
         let classifier = library_native_classifier(&library, "x86_64").unwrap();
+        assert_eq!(
+            legacy_library_sha1(&library),
+            Some("05fac94380a70241f23780e7aef62b190894238f")
+        );
+        assert_eq!(
+            legacy_library_content_validation("lwjgl-platform.jar"),
+            ContentValidation::Jar
+        );
         let artifact_path =
             classified_library_artifact_path(&library.name, &classifier)
                 .unwrap();
@@ -2707,6 +2806,56 @@ mod tests {
             .unwrap()[0],
             format!("https://maven.legacyfabric.net/{artifact_path}")
         );
+    }
+
+    #[test]
+    fn native_library_with_legacy_repository_keeps_java_artifact_task() {
+        let library: Library = serde_json::from_value(serde_json::json!({
+            "name": "org.lwjgl.lwjgl:lwjgl-platform:2.9.4",
+            "url": "https://libraries.minecraft.net/",
+            "natives": {
+                "windows": "natives-windows"
+            }
+        }))
+        .unwrap();
+
+        assert!(needs_java_artifact(&library));
+    }
+
+    #[test]
+    fn java_artifact_rules_are_applied_before_path_deduplication() {
+        let blocked: Library = serde_json::from_value(serde_json::json!({
+            "name": "example:library:1.0",
+            "rules": [{"action": "allow", "features": {"is_demo_user": true}}],
+            "downloads": {"artifact": {
+                "url": "https://example.invalid/library.jar",
+                "sha1": "", "size": 1
+            }}
+        }))
+        .unwrap();
+        let allowed: Library = serde_json::from_value(serde_json::json!({
+            "name": "example:library:1.0",
+            "downloads": {"artifact": {
+                "url": "https://example.invalid/library.jar",
+                "sha1": "", "size": 1
+            }}
+        }))
+        .unwrap();
+
+        assert!(!java_artifact_applies(&blocked, "x86_64", true));
+        assert!(java_artifact_applies(&allowed, "x86_64", true));
+    }
+
+    #[test]
+    fn empty_legacy_repository_is_not_a_java_artifact_source() {
+        let library: Library = serde_json::from_value(serde_json::json!({
+            "name": "example:native:1.0",
+            "url": "",
+            "natives": {"windows": "natives-windows"}
+        }))
+        .unwrap();
+
+        assert!(!needs_java_artifact(&library));
     }
 
     #[test]

@@ -32,7 +32,6 @@ export default defineNuxtConfig({
 		mockAuth: false,
 		mockScenario: 'normal',
 		publicWorkerHealthUrl: 'https://telemetry.axlmc.org/health',
-		storeErrorContext: 'true',
 		public: {
 			adminOrigin: 'https://admin.axlmc.org',
 		},

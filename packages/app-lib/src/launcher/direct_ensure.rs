@@ -25,7 +25,8 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
 use daedalus::minecraft::{
-    AssetIndex, AssetsIndex, LoggingConfiguration, LoggingSide, VersionInfo,
+    AssetIndex, AssetsIndex, DownloadType, LoggingConfiguration, LoggingSide,
+    VersionInfo,
 };
 use futures::prelude::*;
 
@@ -198,6 +199,26 @@ pub(crate) fn linked_classpath_plan(
     }))
 }
 
+/// Plan for the client jar that the directly linked version starts. The
+/// merged document carries the vanilla client's declared download while the
+/// launcher convention keeps the jar beside the linked version JSON.
+fn linked_client_plan(
+    direct: &DirectLinkedLaunch,
+    version_info: &VersionInfo,
+) -> Option<LinkedFilePlan> {
+    let client = version_info.downloads.get(&DownloadType::Client)?;
+    let url = non_empty(&client.url)?;
+
+    Some(LinkedFilePlan {
+        label: format!("Minecraft client {}", direct.version_id),
+        urls: vec![url],
+        destination: direct.client_jar(&direct.version_id),
+        sha1: non_empty(&client.sha1),
+        size: (client.size > 0).then_some(client.size as u64),
+        validation: ContentValidation::Jar,
+    })
+}
+
 /// Plan for the native classifier jar selected for this platform, using the
 /// same path resolution as native extraction so the archive is present before
 /// extraction runs. Returns `None` when no native applies to this platform.
@@ -272,37 +293,39 @@ pub(crate) fn linked_native_plan(
     }))
 }
 
-/// Whether the file exists and matches its declared SHA1 (when one exists).
-/// An unreadable file counts as not current so it gets replaced.
+/// Whether the file exists and satisfies the metadata available for it.
+/// SHA1 is authoritative when declared; otherwise a declared size still
+/// protects against accepting a partial or truncated file. An unreadable file
+/// counts as not current so it gets replaced.
 async fn file_is_current(
     path: &std::path::Path,
     expected_sha1: Option<&str>,
+    expected_size: Option<u64>,
 ) -> bool {
     if !path.is_file() {
         return false;
     }
-    let Some(expected) = expected_sha1 else {
-        return true;
-    };
-    match fetch::sha1_file_async(path).await {
-        Ok((_, actual)) => actual.eq_ignore_ascii_case(expected),
-        Err(_) => false,
+    if let Some(expected_size) = expected_size
+        && std::fs::metadata(path)
+            .map_or(true, |metadata| metadata.len() != expected_size)
+    {
+        return false;
+    }
+    match expected_sha1 {
+        Some(expected) => match fetch::sha1_file_async(path).await {
+            Ok((_, actual)) => actual.eq_ignore_ascii_case(expected),
+            Err(_) => false,
+        },
+        None => true,
     }
 }
 
 /// Makes sure one planned file exists in the linked installation. Returns
 /// `true` when it had to be downloaded.
 async fn ensure_file(st: &State, plan: &LinkedFilePlan) -> crate::Result<bool> {
-    if file_is_current(&plan.destination, plan.sha1.as_deref()).await {
+    if file_is_current(&plan.destination, plan.sha1.as_deref(), plan.size).await
+    {
         return Ok(false);
-    }
-    if plan.destination.exists() {
-        tracing::warn!(
-            dependency = %plan.label,
-            path = %plan.destination.display(),
-            "Replacing corrupt linked dependency"
-        );
-        io::remove_file(&plan.destination).await?;
     }
 
     let Some(primary) = plan.urls.first() else {
@@ -349,9 +372,7 @@ const MINECRAFT_RESOURCES_BASE: &str =
     "https://resources.download.minecraft.net";
 
 /// Ensures the assets index exists under the linked `assets/indexes` and then
-/// backfills any missing asset objects under `assets/objects`. Objects that
-/// are already on disk are never re-verified (there can be thousands), which
-/// matches how HMCL treats an existing asset store.
+/// backfills missing or corrupt asset objects under `assets/objects`.
 pub(crate) async fn ensure_linked_assets(
     st: &State,
     direct: &DirectLinkedLaunch,
@@ -383,8 +404,12 @@ pub(crate) async fn ensure_linked_assets_from(
         .join("indexes")
         .join(format!("{index_id}.json"));
 
-    if !file_is_current(&index_path, non_empty(&asset_index.sha1).as_deref())
-        .await
+    if !file_is_current(
+        &index_path,
+        non_empty(&asset_index.sha1).as_deref(),
+        (asset_index.size > 0).then_some(asset_index.size as u64),
+    )
+    .await
     {
         let Some(index_url) = non_empty(&asset_index.url) else {
             if !index_path.exists() {
@@ -450,19 +475,18 @@ pub(crate) async fn ensure_linked_assets_from(
     };
 
     let objects_dir = direct.assets_dir().join("objects");
-    let missing: Vec<(String, u64, PathBuf)> = index
-        .objects
-        .values()
-        .filter_map(|asset| {
-            let hash = &asset.hash;
-            if hash.len() < 2 {
-                return None;
-            }
-            let destination = objects_dir.join(&hash[..2]).join(hash);
-            (!destination.is_file())
-                .then(|| (hash.clone(), u64::from(asset.size), destination))
-        })
-        .collect();
+    let mut missing = Vec::new();
+    for asset in index.objects.values() {
+        let hash = &asset.hash;
+        if hash.len() < 2 {
+            continue;
+        }
+        let destination = objects_dir.join(&hash[..2]).join(hash);
+        let size = u64::from(asset.size);
+        if !file_is_current(&destination, Some(hash), Some(size)).await {
+            missing.push((hash.clone(), size, destination));
+        }
+    }
     if !missing.is_empty() {
         tracing::info!(
             count = missing.len(),
@@ -538,7 +562,13 @@ pub(crate) async fn ensure_linked_log_config(
         return Ok(());
     };
     let destination = direct.log_configs_dir().join(&config_id);
-    if file_is_current(&destination, non_empty(&file.sha1).as_deref()).await {
+    if file_is_current(
+        &destination,
+        non_empty(&file.sha1).as_deref(),
+        (file.size > 0).then_some(file.size as u64),
+    )
+    .await
+    {
         return Ok(());
     }
     let Some(config_url) = non_empty(&file.url) else {
@@ -591,6 +621,9 @@ pub(crate) async fn ensure_direct_launch_dependencies(
     minecraft_updated: bool,
 ) -> crate::Result<()> {
     let mut plans = Vec::new();
+    if let Some(plan) = linked_client_plan(direct, version_info) {
+        plans.push(plan);
+    }
     for library in libraries {
         if let Some(rules) = library.library.rules.as_deref()
             && !super::parse_rules(
@@ -617,7 +650,9 @@ pub(crate) async fn ensure_direct_launch_dependencies(
     // zero network requests.
     let mut pending = Vec::new();
     for plan in plans {
-        if !file_is_current(&plan.destination, plan.sha1.as_deref()).await {
+        if !file_is_current(&plan.destination, plan.sha1.as_deref(), plan.size)
+            .await
+        {
             pending.push(plan);
         }
     }
@@ -1376,6 +1411,42 @@ mod tests {
         );
         first_server.abort();
         second_server.abort();
+    }
+
+    #[tokio::test]
+    async fn failed_replacement_keeps_the_existing_linked_file() {
+        let (_state_temp, state) = ensure_test_state().await;
+        let root = tempdir().unwrap();
+        let (base, _hits, server) = spawn_fixture_server(HashMap::new()).await;
+        let destination = root.path().join("libraries/existing/file.jar");
+        std::fs::create_dir_all(destination.parent().unwrap()).unwrap();
+        std::fs::write(&destination, b"existing external content").unwrap();
+
+        let plan = LinkedFilePlan {
+            label: "existing external content".to_string(),
+            urls: vec![format!("{base}/missing/file.jar")],
+            destination: destination.clone(),
+            sha1: Some(sha1_hex(b"replacement content")),
+            size: Some(b"replacement content".len() as u64),
+            validation: ContentValidation::None,
+        };
+
+        assert!(ensure_file(&state, &plan).await.is_err());
+        assert_eq!(
+            std::fs::read(destination).unwrap(),
+            b"existing external content"
+        );
+        server.abort();
+    }
+
+    #[tokio::test]
+    async fn file_without_sha1_uses_its_declared_size() {
+        let root = tempdir().unwrap();
+        let path = root.path().join("file.bin");
+        std::fs::write(&path, b"four").unwrap();
+
+        assert!(file_is_current(&path, None, Some(4)).await);
+        assert!(!file_is_current(&path, None, Some(5)).await);
     }
 
     #[tokio::test]

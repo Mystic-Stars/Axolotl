@@ -1,4 +1,16 @@
 {
+  "app.settings.developer.announcement-preview": {"message":"公告样式预览"},
+  "app.settings.developer.announcement-preview-description": {"message":"使用本地示例预览真实公告组件，不请求远端公告，也不改变真实公告的已读状态。"},
+  "app.settings.developer.preview-with-action": {"message":"显示可选的外部链接按钮"},
+  "app.settings.developer.preview-announcement-modal": {"message":"预览启动弹窗"},
+  "app.settings.developer.preview-announcement-popup": {"message":"预览 Popup 通知"},
+  "app.remote-announcements.preview-title": {"message":"公告样式预览"},
+  "app.remote-announcements.preview-summary": {"message":"这是一条本地预览通知，点击“查看公告”可查看完整 Markdown 正文。"},
+  "app.remote-announcements.preview-action": {"message":"访问官网"},
+  "app.remote-announcements.preview-content": {"message":"## 公告预览\n\n这是**示例正文**，不是已发布公告。\n\n- 支持标题、列表和链接\n- 默认自带关闭按钮\n\n> 预览不会影响真实公告的已读状态。\n\n| 类型 | 展示方式 |\n| --- | --- |\n| 启动弹窗 | 完整 Markdown 正文 |\n| Popup 通知 | 先显示摘要，再查看全文 |\n\n[访问官网](https://axlmc.org)"},
+  "app.remote-announcements.view": { "message": "查看公告" },
+  "app.remote-announcements.unread": { "message": "未读" },
+  "app.remote-announcements.read-all": { "message": "将所有公告标为已读" },
   "app.account.signed-in-as": {
     "message": "登录身份："
   },
@@ -5163,7 +5175,7 @@
     "message": "没有找到可分享或分析的日志内容，请确认实例中有最近几分钟内生成的日志。"
   },
   "app.minecraft-crash.preparation-timed-out": {
-    "message": "启动准备在 60 秒内未能完成，现已取消。请检查 Java 路径、启动前命令、包装器命令和网络连接，然后重试。"
+    "message": "启动准备未能在设定的超时时间内完成，现已取消。请检查 Java 路径、启动前命令、包装器命令和网络连接，然后重试。"
   },
   "app.minecraft-crash.preview-instance": {
     "message": "Minecraft 测试实例"
@@ -5901,7 +5913,7 @@
     "message": "允许匿名遥测"
   },
   "app.privacy-consent.telemetry-description": {
-    "message": "通过脱敏且限长的报告统计选择加入的安装量并排查启动器错误。不会上传完整 Minecraft 日志或账户凭据。"
+    "message": "用于统计选择加入的安装量和每日活跃用户。绝不上传完整 Minecraft 日志或账户凭据。"
   },
   "app.privacy-consent.title": {
     "message": "隐私与安全"
@@ -6936,7 +6948,7 @@
     "message": "查看已安装 Java"
   },
   "app.settings.privacy.data-handling": {
-    "message": "遥测使用随机安装标识。错误上下文离开设备前会经过脱敏和长度限制。关闭遥测会立即清空待发送报告。"
+    "message": "遥测使用随机安装标识，仅发送每日活跃信号。关闭遥测会立即清空待发送数据。"
   },
   "app.settings.privacy.discord-rpc": {
     "message": "Discord 活动状态"
@@ -6948,7 +6960,7 @@
     "message": "允许遥测"
   },
   "app.settings.privacy.telemetry-description": {
-    "message": "发送匿名每日活跃信号和脱敏的启动器错误报告。绝不上传 Minecraft 日志或账户凭据。"
+    "message": "发送匿名每日活跃信号以优化使用统计。绝不上传 Minecraft 日志或账户凭据。"
   },
   "app.settings.resources.app-cache": {
     "message": "应用缓存"
@@ -8333,6 +8345,12 @@
   "create.back": {
     "message": "返回库"
   },
+  "create.pcl-hmcl-hint": {
+    "message": "正在使用 PCL / HMCL？"
+  },
+  "create.add-minecraft-folder": {
+    "message": "添加 .minecraft 文件夹"
+  },
   "create.import.description": {
     "message": "从其他启动器导入实例，或安装整合包。"
   },
@@ -8838,13 +8856,22 @@
     "message": "选择更新渠道"
   },
   "instance.settings.tabs.hooks": {
-    "message": "启动 Hooks"
+    "message": "启动准备"
   },
   "instance.settings.tabs.hooks.custom-hooks": {
     "message": "自定义启动 Hooks"
   },
+  "instance.settings.tabs.hooks.custom-launch-preparation-timeout": {
+    "message": "使用自定义启动准备超时时间"
+  },
   "instance.settings.tabs.hooks.description": {
-    "message": "Hooks允许高级用户在启动游戏前后运行特定的系统命令。"
+    "message": "配置启动准备阶段的等待时间，以及在游戏启动前后运行的可选命令。"
+  },
+  "instance.settings.tabs.hooks.launch-preparation-timeout": {
+    "message": "启动准备超时时间"
+  },
+  "instance.settings.tabs.hooks.launch-preparation-timeout.description": {
+    "message": "启动准备阶段允许的最长等待时间，单位为秒（30–600）。"
   },
   "instance.settings.tabs.hooks.post-exit": {
     "message": "退出后执行"
@@ -8865,7 +8892,7 @@
     "message": "输入启动前命令……"
   },
   "instance.settings.tabs.hooks.title": {
-    "message": "游戏启动钩子"
+    "message": "启动准备"
   },
   "instance.settings.tabs.hooks.wrapper": {
     "message": "包装器命令"

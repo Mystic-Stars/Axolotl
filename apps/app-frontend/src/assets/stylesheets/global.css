@@ -19,3 +19,10 @@ select,
 	-moz-user-select: text;
 	user-select: text;
 }
+
+input:placeholder-shown,
+textarea:placeholder-shown {
+	-webkit-user-select: none;
+	-moz-user-select: none;
+	user-select: none;
+}

@@ -234,18 +234,22 @@ onUnmounted(() => {
 	>
 		<div
 			v-if="selectedGalleryItem"
-			class="relative flex min-h-64 max-h-[calc(100vh-13rem)] items-center justify-center overflow-auto bg-surface-1 p-4"
+			class="relative flex w-full min-h-64 max-h-[calc(100vh-13rem)] items-center justify-center overflow-hidden bg-surface-1"
 		>
-			<img
-				:src="viewerImageUrl"
-				:alt="imageAlt(selectedGalleryItem)"
-				:class="
-					zoomedIn
-						? 'max-w-none cursor-zoom-out'
-						: 'max-h-[calc(100vh-15rem)] max-w-full cursor-zoom-in'
-				"
-				@click="zoomedIn = !zoomedIn"
-			/>
+			<div
+				class="min-w-0 flex max-h-[calc(100vh-13rem)] w-full items-center justify-center overflow-auto p-4"
+			>
+				<img
+					:src="viewerImageUrl"
+					:alt="imageAlt(selectedGalleryItem)"
+					:class="
+						zoomedIn
+							? 'max-w-none cursor-zoom-out'
+							: 'max-h-[calc(100vh-15rem)] max-w-full cursor-zoom-in'
+					"
+					@click="zoomedIn = !zoomedIn"
+				/>
+			</div>
 			<ButtonStyled v-if="filteredGallery.length > 1" circular>
 				<button
 					class="absolute left-4 top-1/2 -translate-y-1/2"

@@ -71,15 +71,12 @@ useHead({
 			<li>游戏日志、崩溃信息、缓存、下载记录及更新状态。</li>
 		</ul>
 		<p>
-			这些数据用于登录、启动游戏、管理内容、诊断故障和提供你主动使用的功能。启动器会在首次运行或功能升级后询问是否允许匿名遥测；未确认或关闭时不会发送遥测。允许后，启动器每天最多发送一次匿名活跃信号，并自动提交经过脱敏和长度限制的启动器错误报告，用于统计选择加入遥测的匿名安装量、DAU、WAU、MAU
-			和排查故障。不会自动上传完整的启动器日志或 Minecraft 日志，也不会上传 Minecraft
+			这些数据用于登录、启动游戏、管理内容、诊断故障和提供你主动使用的功能。启动器会在首次运行或功能升级后询问是否允许匿名遥测；未确认或关闭时不会发送遥测。允许后，启动器每天最多发送一次匿名活跃信号，用于统计选择加入遥测的匿名安装量、DAU、WAU、MAU。不会自动上传完整的启动器日志或 Minecraft
 			令牌、账户凭据或原始随机安装标识。
 		</p>
 		<p>
 			遥测使用本地生成的随机安装标识；服务端仅保存经密钥 HMAC-SHA256
-			处理后的不可逆标识。错误报告可包含错误类型、规范化消息、栈、应用版本、平台、架构、相关路由或命令及最多
-			16 KiB
-			的脱敏上下文。你可随时在“隐私与安全”中关闭遥测；关闭后会停止后续采集并清空本地待发送队列，但已经上传的数据仍按下述保留周期清理。Discord
+			处理后的不可逆标识。你可随时在“隐私与安全”中关闭遥测；关闭后会停止后续采集并清空本地待发送队列，但已经上传的数据仍按下述保留周期清理。Discord
 			Rich Presence 是独立的本地开关，不属于遥测。
 		</p>
 
@@ -94,7 +91,7 @@ useHead({
 			<li>Modrinth、CurseForge 及内容作者提供的 API 和下载地址；</li>
 			<li>Update Server、GitHub 及其他用于版本检查、更新或文件分发的服务；</li>
 			<li>用于官网用户体验分析和反馈收集的浩客（Howxm）；</li>
-			<li>用于接收和保存选择加入的匿名遥测数据的 Cloudflare Workers、D1 和 R2；</li>
+			<li>用于接收和保存选择加入的匿名遥测数据的 Cloudflare Workers 和 D1；</li>
 			<li>你主动连接的 Minecraft 服务器或其他外部链接。</li>
 		</ul>
 		<p>项目维护者不会出售你的个人信息。第三方如何保存和使用请求数据，由其各自的隐私政策决定。</p>
@@ -104,9 +101,8 @@ useHead({
 			网站偏好保存在你的浏览器中；启动器数据主要保存在你的设备中。你可以清除浏览器站点数据，或在启动器内移除账户、实例和缓存。卸载应用不一定自动删除全部数据目录，请在确认备份需求后手动清理残留文件。
 		</p>
 		<p>
-			遥测中的匿名日活记录保留 35 天；错误报告索引和对应错误上下文保留 30 天；错误聚合保留最多 12
-			个月；每日汇总和匿名安装哈希会长期保留，用于历史趋势和累计安装统计。项目不会在遥测数据库中保存请求
-			IP，也不提供公开的错误上下文列表或批量读取接口。Cloudflare
+			遥测中的匿名日活记录保留 35 天；每日汇总和匿名安装哈希会长期保留，用于历史趋势和累计安装统计。项目不会在遥测数据库中保存请求
+			IP。Cloudflare
 			作为基础设施提供者仍可能按其自身政策处理网络请求所必需的信息。
 		</p>
 		<p>
@@ -199,16 +195,13 @@ useHead({
 			providing features you actively use. The launcher asks whether to allow anonymous telemetry on
 			first use or after a relevant consent update. No telemetry is sent before confirmation or
 			while it is disabled. When enabled, the launcher sends at most one anonymous daily activity
-			signal and automatically submits sanitized, length-limited launcher error reports. These are
-			used to count opted-in anonymous installations, DAU, WAU, and MAU and to diagnose faults. Full
+			 signal. This is used to count opted-in anonymous installations, DAU, WAU, and MAU. Full
 			launcher or Minecraft logs, Minecraft tokens, account credentials, and the original random
 			installation identifier are not uploaded automatically.
 		</p>
 		<p>
 			Telemetry uses a random installation identifier generated locally; the service stores only an
-			irreversible HMAC-SHA256 value produced with a server secret. Error reports may contain an
-			error type, normalized message, stack, application version, platform, architecture, related
-			route or command, and up to 16 KiB of sanitized context. You can disable telemetry at any time
+			irreversible HMAC-SHA256 value produced with a server secret. You can disable telemetry at any time
 			under Privacy & security. Disabling it stops future collection and clears the local pending
 			queue, while previously uploaded records are deleted under the retention periods below.
 			Discord Rich Presence is an independent local setting and is not telemetry.
@@ -232,7 +225,7 @@ useHead({
 			</li>
 			<li>Howxm for official-website user-experience analytics and feedback collection;</li>
 			<li>
-				Cloudflare Workers, D1, and R2 for opted-in anonymous telemetry ingestion and storage;
+				Cloudflare Workers and D1 for opted-in anonymous telemetry ingestion and storage;
 			</li>
 			<li>Minecraft servers or other external links you connect to.</li>
 		</ul>
@@ -249,12 +242,9 @@ useHead({
 			after confirming your backup needs, manually clean up any leftover files.
 		</p>
 		<p>
-			Anonymous daily-active records are retained for 35 days; error report indexes and
-			corresponding error context are retained for 30 days; error aggregates are retained for up to
-			12 months; daily totals and anonymous installation hashes are retained long-term for
+			Anonymous daily-active records are retained for 35 days; daily totals and anonymous installation hashes are retained long-term for
 			historical trends and cumulative installation counts. The project does not store request IP
-			addresses in the telemetry database and does not expose a public error-context listing or
-			bulk-read API. Cloudflare, as the infrastructure provider, may still process information
+			addresses in the telemetry database. Cloudflare, as the infrastructure provider, may still process information
 			required to deliver network requests under its own policies.
 		</p>
 		<p>

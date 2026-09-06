@@ -24,7 +24,29 @@ const { addNotification } = injectNotificationManager()
 const isDevEnvironment = await isDev()
 const previewMinecraftCrashModal = inject<() => void>('previewMinecraftCrashModal')
 const previewPrivacyConsentModal = inject<() => Promise<void>>('previewPrivacyConsentModal')
+const previewRemoteAnnouncement = inject<(type: 'modal' | 'notification', withAction: boolean) => void>('previewRemoteAnnouncement')
+const previewWithAction = ref(false)
 const messages = defineMessages({
+	announcementPreview: {
+		id: 'app.settings.developer.announcement-preview',
+		defaultMessage: 'Announcement preview',
+	},
+	announcementPreviewDescription: {
+		id: 'app.settings.developer.announcement-preview-description',
+		defaultMessage: 'Preview the real announcement components using local sample content, without fetching or marking real announcements as read.',
+	},
+	previewWithAction: {
+		id: 'app.settings.developer.preview-with-action',
+		defaultMessage: 'Include an optional external-link button',
+	},
+	previewModal: {
+		id: 'app.settings.developer.preview-announcement-modal',
+		defaultMessage: 'Preview startup modal',
+	},
+	previewPopup: {
+		id: 'app.settings.developer.preview-announcement-popup',
+		defaultMessage: 'Preview Popup notification',
+	},
 	resetToDefault: {
 		id: 'app.settings.feature-flags.reset-to-default',
 		defaultMessage: 'Reset to default',
@@ -108,6 +130,27 @@ watch(
 				</div>
 			</template>
 		</SettingsRow>
+	</SettingsSection>
+
+	<SettingsSection v-if="(themeStore.devMode || isDevEnvironment) && previewRemoteAnnouncement">
+		<template #header>
+			<h2 class="m-0 text-lg font-semibold text-contrast">{{ formatMessage(messages.announcementPreview) }}</h2>
+		</template>
+		<div class="flex flex-col gap-4 p-4">
+			<p class="m-0 text-sm text-secondary">{{ formatMessage(messages.announcementPreviewDescription) }}</p>
+			<div class="flex items-center gap-2">
+				<Toggle id="announcement-preview-action" v-model="previewWithAction" />
+				<label for="announcement-preview-action">{{ formatMessage(messages.previewWithAction) }}</label>
+			</div>
+			<div class="flex flex-wrap gap-2">
+				<Button type="base" @click="previewRemoteAnnouncement('modal', previewWithAction)">
+					{{ formatMessage(messages.previewModal) }}
+				</Button>
+				<Button type="base" @click="previewRemoteAnnouncement('notification', previewWithAction)">
+					{{ formatMessage(messages.previewPopup) }}
+				</Button>
+			</div>
+		</div>
 	</SettingsSection>
 
 	<SettingsSection v-if="isDevEnvironment">

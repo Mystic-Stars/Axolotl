@@ -136,6 +136,7 @@ pub struct Instance {
     pub memory: Option<MemorySettings>,
     pub force_fullscreen: Option<bool>,
     pub game_resolution: Option<WindowSize>,
+    pub launch_preparation_timeout: Option<u64>,
     pub hooks: Hooks,
     pub symlink_target: Option<String>,
     pub game_dir_override: Option<String>,
@@ -258,6 +259,12 @@ pub struct EditInstance {
         with = "serde_with::rust::double_option"
     )]
     pub game_resolution: Option<Option<WindowSize>>,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        with = "serde_with::rust::double_option"
+    )]
+    pub launch_preparation_timeout: Option<Option<u64>>,
     pub hooks: Option<Hooks>,
 
     #[serde(
@@ -301,6 +308,9 @@ impl From<InstanceMetadata> for Instance {
             memory: metadata.launch_overrides.memory,
             force_fullscreen: metadata.launch_overrides.force_fullscreen,
             game_resolution: metadata.launch_overrides.game_resolution,
+            launch_preparation_timeout: metadata
+                .launch_overrides
+                .launch_preparation_timeout,
             hooks: metadata.launch_overrides.hooks,
             symlink_target: metadata.instance.symlink_target,
             game_dir_override: metadata.instance.game_dir_override,
@@ -449,6 +459,8 @@ fn edit_to_core(edit_instance: EditInstance) -> Result<CoreEditInstance> {
             memory: edit_instance.memory,
             force_fullscreen: edit_instance.force_fullscreen,
             game_resolution: edit_instance.game_resolution,
+            launch_preparation_timeout: edit_instance
+                .launch_preparation_timeout,
             hooks: edit_instance.hooks,
         }),
         content_set_patch: Some(AppliedContentSetPatch {

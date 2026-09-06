@@ -1,4 +1,16 @@
 {
+  "app.settings.developer.announcement-preview": {"message":"Announcement preview"},
+  "app.settings.developer.announcement-preview-description": {"message":"Preview the real announcement components using local sample content, without fetching or marking real announcements as read."},
+  "app.settings.developer.preview-with-action": {"message":"Include an optional external-link button"},
+  "app.settings.developer.preview-announcement-modal": {"message":"Preview startup modal"},
+  "app.settings.developer.preview-announcement-popup": {"message":"Preview Popup notification"},
+  "app.remote-announcements.preview-title": {"message":"Announcement style preview"},
+  "app.remote-announcements.preview-summary": {"message":"This is a local preview. Select View announcement to preview the full Markdown content."},
+  "app.remote-announcements.preview-action": {"message":"Visit website"},
+  "app.remote-announcements.preview-content": {"message":"## Announcement preview\n\nThis is **sample content**, not a published announcement.\n\n- Supports headings, lists, and links\n- Close buttons are always available\n\n> Previewing does not change real announcement read status.\n\n| Type | Display |\n| --- | --- |\n| Modal | Full Markdown content |\n| Popup | Summary, then full content |\n\n[Visit the website](https://axlmc.org)"},
+  "app.remote-announcements.view": { "message": "View announcement" },
+  "app.remote-announcements.unread": { "message": "Unread" },
+  "app.remote-announcements.read-all": { "message": "Mark all announcements as read" },
   "app.account.signed-in-as": {
     "message": "Signed in as"
   },
@@ -5109,7 +5121,7 @@
     "message": "No log content was found to share or analyze. Make sure the instance has logs generated in the last few minutes."
   },
   "app.minecraft-crash.preparation-timed-out": {
-    "message": "Launch preparation did not finish within 60 seconds and was cancelled. Check the Java path, launch hooks, wrapper command, and network connection, then try again."
+    "message": "Launch preparation did not finish within the configured timeout and was cancelled. Check the Java path, launch hooks, wrapper command, and network connection, then try again."
   },
   "app.minecraft-crash.preview-instance": {
     "message": "Minecraft test instance"
@@ -5847,7 +5859,7 @@
     "message": "Allow anonymous telemetry"
   },
   "app.privacy-consent.telemetry-description": {
-    "message": "Helps count opted-in installations and diagnose launcher errors using sanitized, limited reports. Full Minecraft logs and account credentials are not uploaded."
+    "message": "Helps count opted-in installations and daily active users. Full Minecraft logs and account credentials are never uploaded."
   },
   "app.privacy-consent.title": {
     "message": "Privacy & security"
@@ -6945,7 +6957,7 @@
     "message": "View installed Java"
   },
   "app.settings.privacy.data-handling": {
-    "message": "Telemetry uses a random installation identifier. Error context is sanitized and limited before it leaves this device. Turning telemetry off clears pending reports immediately."
+    "message": "Telemetry uses a random installation identifier and sends only a daily activity signal. Turning telemetry off clears pending data immediately."
   },
   "app.settings.privacy.discord-rpc": {
     "message": "Discord Rich Presence"
@@ -6957,7 +6969,7 @@
     "message": "Allow telemetry"
   },
   "app.settings.privacy.telemetry-description": {
-    "message": "Send an anonymous daily activity signal and sanitized launcher error reports. Minecraft logs and account credentials are never uploaded."
+    "message": "Send one anonymous daily activity signal to improve usage statistics. Minecraft logs and account credentials are never uploaded."
   },
   "app.settings.resources.app-cache": {
     "message": "App cache"
@@ -8312,6 +8324,12 @@
   "create.back": {
     "message": "Back to Library"
   },
+  "create.pcl-hmcl-hint": {
+    "message": "Using PCL / HMCL?"
+  },
+  "create.add-minecraft-folder": {
+    "message": "Add .minecraft folder"
+  },
   "create.import.description": {
     "message": "Import instances from other launchers or install a modpack."
   },
@@ -8817,13 +8835,22 @@
     "message": "Select update channel"
   },
   "instance.settings.tabs.hooks": {
-    "message": "Launch hooks"
+    "message": "Launch preparation"
   },
   "instance.settings.tabs.hooks.custom-hooks": {
     "message": "Custom launch hooks"
   },
+  "instance.settings.tabs.hooks.custom-launch-preparation-timeout": {
+    "message": "Use a custom launch preparation timeout"
+  },
   "instance.settings.tabs.hooks.description": {
-    "message": "Hooks allow advanced users to run certain system commands before and after launching the game."
+    "message": "Configure the time allowed for launch preparation and optional commands that run before and after the game."
+  },
+  "instance.settings.tabs.hooks.launch-preparation-timeout": {
+    "message": "Launch preparation timeout"
+  },
+  "instance.settings.tabs.hooks.launch-preparation-timeout.description": {
+    "message": "Maximum time to wait for launch preparation to finish, in seconds (30–600)."
   },
   "instance.settings.tabs.hooks.post-exit": {
     "message": "Post-exit"
@@ -8844,7 +8871,7 @@
     "message": "Enter pre-launch command..."
   },
   "instance.settings.tabs.hooks.title": {
-    "message": "Game launch hooks"
+    "message": "Launch preparation"
   },
   "instance.settings.tabs.hooks.wrapper": {
     "message": "Wrapper"

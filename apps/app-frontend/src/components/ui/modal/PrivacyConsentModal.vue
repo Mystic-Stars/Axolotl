@@ -42,7 +42,7 @@ const messages = defineMessages({
 	telemetryDescription: {
 		id: 'app.privacy-consent.telemetry-description',
 		defaultMessage:
-			'Helps count opted-in installations and diagnose launcher errors using sanitized, limited reports. Full Minecraft logs and account credentials are not uploaded.',
+			'Helps count opted-in installations and daily active users. Full Minecraft logs and account credentials are never uploaded.',
 	},
 	discordRpc: {
 		id: 'app.privacy-consent.discord-rpc',

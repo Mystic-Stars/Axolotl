@@ -8559,7 +8559,7 @@
     "message": "選擇更新通道"
   },
   "instance.settings.tabs.hooks": {
-    "message": "啟動掛鉤"
+    "message": "啟動準備"
   },
   "instance.settings.tabs.hooks.custom-hooks": {
     "message": "自訂啟動掛鉤"
@@ -8586,7 +8586,7 @@
     "message": "輸入啟動前指令..."
   },
   "instance.settings.tabs.hooks.title": {
-    "message": "遊戲啟動掛鉤"
+    "message": "啟動準備"
   },
   "instance.settings.tabs.hooks.wrapper": {
     "message": "包裝器指令"

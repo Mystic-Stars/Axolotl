@@ -17,13 +17,13 @@ import { computed, ref, watch } from 'vue'
 import ConfirmModalWrapper from '@/components/ui/modal/ConfirmModalWrapper.vue'
 import { purge_cache_types } from '@/helpers/cache.js'
 import { configureCurseForgeManualDownloadWatcher } from '@/helpers/curseforge'
+import { syncConfiguredDirectLinks } from '@/helpers/direct-link-sync'
 import {
 	getMissingContentScannerSettings,
 	setMissingContentScannerSettings,
 } from '@/helpers/downloads-scanner'
 import { get, getProxyConfig, set, setProxyConfig, testProxyConfig } from '@/helpers/settings.ts'
 import { showAppDbBackupsFolder } from '@/helpers/utils.js'
-import { sync_direct_links } from '@/helpers/instance'
 import { useTheming } from '@/store/state'
 
 import SettingsRow from './SettingsRow.vue'
@@ -577,17 +577,12 @@ watch(
 	{ deep: true },
 )
 
-let directLinkSyncRunning = false
 async function syncDirectLinkInstances(allowEmpty = false) {
-	if (directLinkSyncRunning || (!allowEmpty && minecraftDirectories.value.length === 0)) return
-	directLinkSyncRunning = true
+	if (!allowEmpty && minecraftDirectories.value.length === 0) return
 	try {
-		await sync_direct_links(minecraftDirectories.value)
-		window.dispatchEvent(new Event('axolotl-direct-links-synced'))
+		await syncConfiguredDirectLinks(minecraftDirectories.value)
 	} catch (error) {
-		console.warn('Failed to sync external Minecraft instances', error)
-	} finally {
-		directLinkSyncRunning = false
+		handleError(error)
 	}
 }
 

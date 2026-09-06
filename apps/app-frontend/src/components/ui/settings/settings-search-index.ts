@@ -120,7 +120,11 @@ export const settingsSearchEntries: SettingsSearchEntry[] = [
 			'app.appearance-settings.close-behavior.title',
 			'Choose how to close Axolotl Launcher',
 		),
-		keywords: ['close', 'tray', 'lightweight'],
+		keywords: [
+			message('app.appearance-settings.close-behavior.close', 'Close directly'),
+			message('app.appearance-settings.close-behavior.lightweight', 'Hide to tray'),
+			message('app.appearance-settings.lightweight-mode.title', 'Lightweight mode'),
+		],
 	},
 	{
 		id: 'launch-minimize-launcher',
