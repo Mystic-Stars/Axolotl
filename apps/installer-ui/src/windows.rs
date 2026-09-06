@@ -521,6 +521,7 @@ fn installer_arguments(
         nsis_value_option("INSTALL_DIR", request.install_dir.trim()),
         nsis_value_option("RESOURCE_DIR", request.resource_dir.trim()),
         nsis_value_option("STATUS_FILE", &status_path.to_string_lossy()),
+        "/NO_RUN_AFTER_INSTALL".to_string(),
     ];
     if !request.desktop_shortcut {
         arguments.push("/NO_DESKTOP_SHORTCUT".to_string());

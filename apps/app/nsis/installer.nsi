@@ -115,6 +115,7 @@ Var InstallerBodyFont
 Var InstallerTitleFont
 Var InstallerSmallFont
 Var StatusFile
+Var NoRunAfterInstall
 
 !macro AxlStyleControl CONTROL FOREGROUND BACKGROUND
   SetCtlColors ${CONTROL} ${FOREGROUND} ${BACKGROUND}
@@ -903,6 +904,11 @@ Function .onInit
     StrCpy $NoDesktopShortcutMode 1
   ${EndIf}
 
+  ${GetOptions} $CMDLINE "/NO_RUN_AFTER_INSTALL" $0
+  ${IfNot} ${Errors}
+    StrCpy $NoRunAfterInstall 1
+  ${EndIf}
+
   ${GetOptions} $CMDLINE "/STATUS_FILE=" $StatusFile
   ${If} ${Errors}
     StrCpy $StatusFile ""
@@ -1238,14 +1244,18 @@ Function .onInstSuccess
   Push 100
   Call ReportInstallerProgress
 
-  ; Check for `/R` flag only in silent and passive installers because
-  ; GUI installer has a toggle for the user to (re)start the app
-  ${If} $PassiveMode = 1
-  ${OrIf} ${Silent}
-    ${GetOptions} $CMDLINE "/R" $R0
-    ${IfNot} ${Errors}
-      ${GetOptions} $CMDLINE "/ARGS" $R0
-      nsis_tauri_utils::RunAsUser "$INSTDIR\${MAINBINARYNAME}.exe" "$R0"
+  ; Installer-ui runs the silent core and starts the app itself based on the
+  ; user's "Launch when complete" choice, so never auto-launch there.
+  ${If} $NoRunAfterInstall <> 1
+    ; Check for `/R` flag only in silent and passive installers because
+    ; GUI installer has a toggle for the user to (re)start the app
+    ${If} $PassiveMode = 1
+    ${OrIf} ${Silent}
+      ${GetOptions} $CMDLINE "/R" $R0
+      ${IfNot} ${Errors}
+        ${GetOptions} $CMDLINE "/ARGS" $R0
+        nsis_tauri_utils::RunAsUser "$INSTDIR\${MAINBINARYNAME}.exe" "$R0"
+      ${EndIf}
     ${EndIf}
   ${EndIf}
 FunctionEnd
