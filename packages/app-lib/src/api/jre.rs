@@ -912,6 +912,149 @@ async fn validate_installed_java(
     Ok(path)
 }
 
+/// Atomically swaps a fully staged runtime into place with a backup for
+/// rollback.
+///
+/// The new runtime is validated in its staging directory first (a quiet,
+/// fail-fast check that never touches the working installation). The previous
+/// runtime at `final_root` is moved to a `.backup` sibling instead of being
+/// deleted, the staged directory is renamed into place, and the installed
+/// runtime is validated again with progress reporting. Only then is the
+/// backup removed; any failure restores the previous runtime, so an update
+/// can never leave the launcher with a missing or broken Java. A leftover
+/// backup from an interrupted previous swap is recovered or disposed of
+/// safely before anything is mutated.
+async fn install_runtime_atomically(
+    staging: &Path,
+    staging_executable: PathBuf,
+    final_root: &Path,
+    final_executable: PathBuf,
+    java_version: u32,
+    reporter: Option<&InstallProgressReporter>,
+    loading_bar: Option<&crate::event::LoadingBarId>,
+) -> crate::Result<PathBuf> {
+    let backup = PathBuf::from(format!("{}.backup", final_root.display()));
+
+    // Validate the freshly staged runtime before it replaces anything.
+    if let Err(error) =
+        validate_installed_java(staging_executable, java_version, None, None)
+            .await
+    {
+        let _ = remove_path_if_present(staging).await;
+        return Err(error);
+    }
+
+    // Recover from an interrupted previous swap before mutating anything.
+    if !final_root.exists() && backup.exists() {
+        tokio::fs::rename(&backup, final_root).await?;
+    } else {
+        remove_path_if_present(&backup).await?;
+    }
+
+    if final_root.exists() {
+        tokio::fs::rename(final_root, &backup).await?;
+    }
+
+    if let Err(error) = tokio::fs::rename(staging, final_root).await {
+        // The new runtime could not be placed; restore the previous one. A
+        // failure here must not be swallowed: otherwise the caller sees an
+        // error yet the old runtime is also gone.
+        let restore_result = if backup.exists() {
+            tokio::fs::rename(&backup, final_root).await
+        } else {
+            Ok(())
+        };
+        if let Err(restore_error) = restore_result {
+            return Err(crate::ErrorKind::OtherError(format!(
+                "failed to place the new runtime: {error}; restoring the \
+                 previous runtime also failed: {restore_error}"
+            ))
+            .into());
+        }
+        return Err(error.into());
+    }
+
+    match validate_installed_java(
+        final_executable,
+        java_version,
+        reporter,
+        loading_bar,
+    )
+    .await
+    {
+        Ok(path) => {
+            let _ = remove_path_if_present(&backup).await;
+            Ok(path)
+        }
+        Err(error) => {
+            // The new runtime is broken; remove it and restore the backup.
+            // Failures here are reported so a caller never believes the old
+            // runtime is intact when it actually is missing or corrupted.
+            if let Err(cleanup_error) = remove_path_if_present(final_root).await
+            {
+                return Err(crate::ErrorKind::OtherError(format!(
+                    "new runtime failed validation: {error}; removing the \
+                     broken runtime also failed: {cleanup_error}"
+                ))
+                .into());
+            }
+            let restore_result = if backup.exists() {
+                tokio::fs::rename(&backup, final_root).await
+            } else {
+                Ok(())
+            };
+            if let Err(restore_error) = restore_result {
+                return Err(crate::ErrorKind::OtherError(format!(
+                    "new runtime failed validation: {error}; restoring the \
+                     previous runtime also failed: {restore_error}"
+                ))
+                .into());
+            }
+            Err(error)
+        }
+    }
+}
+
+/// Returns `true` when `root` looks like a runtime directory that contains
+/// the java binary at the platform's expected location.
+fn runtime_has_java_binary(root: &Path) -> bool {
+    let executable = if cfg!(target_os = "macos") {
+        root.join("Contents/Home/bin").join(jre::JAVA_BIN)
+    } else {
+        root.join("bin").join(jre::JAVA_BIN)
+    };
+    executable.is_file()
+}
+
+/// Locates the actual runtime directory inside an extracted archive by
+/// structure (the directory that contains the java binary) rather than
+/// blindly taking the first archive entry.
+fn find_runtime_dir(staging_root: &Path) -> crate::Result<PathBuf> {
+    let mut candidates = Vec::new();
+    for entry in std::fs::read_dir(staging_root)? {
+        let entry = entry?;
+        if !entry.file_type()?.is_dir() {
+            continue;
+        }
+        let path = entry.path();
+        if runtime_has_java_binary(&path) {
+            candidates.push(path);
+        }
+    }
+    if candidates.is_empty() && runtime_has_java_binary(staging_root) {
+        candidates.push(staging_root.to_path_buf());
+    }
+    // Deterministic order so the result is stable across runs.
+    candidates.sort();
+    candidates.into_iter().next().ok_or_else(|| {
+        crate::ErrorKind::InputError(
+            "Java archive does not contain a runtime directory with the java binary"
+                .to_string(),
+        )
+        .into()
+    })
+}
+
 async fn install_mojang_runtime(
     state: &State,
     java_version: u32,
@@ -1193,14 +1336,14 @@ async fn install_mojang_runtime(
         emit_loading(loading_bar, 80.0, Some("Installing java runtime"))?;
     }
 
-    if final_root.exists() {
-        io::remove_dir_all(&final_root).await?;
-    }
-    tokio::fs::rename(&staging_root, &final_root).await?;
-    let executable = final_root.join(executable_relative);
+    let staged_executable = staging_root.join(&executable_relative);
+    let final_executable = final_root.join(&executable_relative);
     Ok(Some(
-        validate_installed_java(
-            executable,
+        install_runtime_atomically(
+            &staging_root,
+            staged_executable,
+            &final_root,
+            final_executable,
             java_version,
             reporter,
             loading_bar,
@@ -1223,11 +1366,173 @@ fn validate_archive_file_name(name: &Path) -> crate::Result<()> {
     Ok(())
 }
 
+/// Resource limits for Java runtime archive extraction, defending against
+/// zip bombs and malicious archives.
+const MAX_ARCHIVE_FILES: u64 = 100_000;
+const MAX_ARCHIVE_EXPANDED_BYTES: u64 = 8 * 1024 * 1024 * 1024;
+const MAX_ARCHIVE_SINGLE_FILE_BYTES: u64 = 2 * 1024 * 1024 * 1024;
+const ARCHIVE_SAFETY_MARGIN_BYTES: u64 = 512 * 1024 * 1024;
+
+fn archive_safety_error(reason: &str) -> crate::Error {
+    crate::ErrorKind::InputError(format!("Java archive rejected: {reason}"))
+        .into()
+}
+
+fn archive_limit_error(reason: &str) -> crate::Error {
+    crate::ErrorKind::InputError(format!(
+        "Java archive exceeds limits: {reason}"
+    ))
+    .into()
+}
+
+/// Validates every entry of a zip archive before extraction: rejects
+/// absolute paths, `..` traversal and links, and enforces file count, single
+/// file size and total expanded size limits. Returns the total expanded size.
+fn preflight_zip_archive(
+    archive: &mut zip::ZipArchive<std::fs::File>,
+) -> crate::Result<u64> {
+    let mut files = 0_u64;
+    let mut expanded = 0_u64;
+    for index in 0..archive.len() {
+        let file = archive.by_index(index).map_err(|error| {
+            crate::ErrorKind::InputError(format!(
+                "Failed to read Java archive entry: {error}"
+            ))
+        })?;
+        // `enclosed_name` is None for absolute paths and `..` traversal.
+        if file.enclosed_name().is_none() {
+            return Err(archive_safety_error(
+                "entry escapes the extraction directory",
+            ));
+        }
+        if let Some(mode) = file.unix_mode() {
+            const S_IFMT: u32 = 0o170000;
+            const S_IFREG: u32 = 0o100000;
+            const S_IFDIR: u32 = 0o040000;
+            let file_type = mode & S_IFMT;
+            if file_type != S_IFREG && file_type != S_IFDIR {
+                return Err(archive_safety_error(
+                    "non-regular entry (link or device)",
+                ));
+            }
+        }
+        if file.is_dir() {
+            continue;
+        }
+        files += 1;
+        let size = file.size();
+        if size > MAX_ARCHIVE_SINGLE_FILE_BYTES {
+            return Err(archive_limit_error("single file too large"));
+        }
+        expanded = expanded
+            .checked_add(size)
+            .ok_or_else(|| archive_limit_error("expanded size overflow"))?;
+        if files > MAX_ARCHIVE_FILES || expanded > MAX_ARCHIVE_EXPANDED_BYTES {
+            return Err(archive_limit_error(
+                "too many files or expanded bytes",
+            ));
+        }
+    }
+    Ok(expanded)
+}
+
+/// Validates a single tar entry, rejecting absolute paths, `..` traversal,
+/// and every entry type other than regular files and directories (symlinks,
+/// hard links, FIFOs and character/block devices are all refused).
+fn validate_tar_entry<R: std::io::Read>(
+    entry: &tar::Entry<'_, R>,
+) -> crate::Result<()> {
+    let path = entry.path()?;
+    let entry_type = entry.header().entry_type();
+    if path.is_absolute()
+        || path.components().any(|component| {
+            matches!(
+                component,
+                Component::ParentDir
+                    | Component::RootDir
+                    | Component::Prefix(_)
+            )
+        })
+        || !(entry_type.is_file() || entry_type.is_dir())
+    {
+        return Err(archive_safety_error("unsafe tar entry"));
+    }
+    Ok(())
+}
+
+/// Validates every entry of a tar archive and computes its total expanded
+/// size without extracting anything.
+fn preflight_tar_archive<R: std::io::Read>(
+    archive: &mut tar::Archive<R>,
+) -> crate::Result<u64> {
+    let mut files = 0_u64;
+    let mut expanded = 0_u64;
+    for entry in archive.entries()? {
+        let entry = entry?;
+        validate_tar_entry(&entry)?;
+        if entry.header().entry_type().is_dir() {
+            continue;
+        }
+        files += 1;
+        let size = entry.size();
+        if size > MAX_ARCHIVE_SINGLE_FILE_BYTES {
+            return Err(archive_limit_error("single file too large"));
+        }
+        expanded = expanded
+            .checked_add(size)
+            .ok_or_else(|| archive_limit_error("expanded size overflow"))?;
+        if files > MAX_ARCHIVE_FILES || expanded > MAX_ARCHIVE_EXPANDED_BYTES {
+            return Err(archive_limit_error(
+                "too many files or expanded bytes",
+            ));
+        }
+    }
+    Ok(expanded)
+}
+
+/// Ensures the destination filesystem has room for the compressed archive
+/// plus its expanded contents plus a safety margin before extraction starts.
+fn ensure_extraction_disk_space(
+    dest: &Path,
+    compressed_bytes: u64,
+    expanded_bytes: u64,
+) -> crate::Result<()> {
+    let required = compressed_bytes
+        .saturating_add(expanded_bytes)
+        .saturating_add(ARCHIVE_SAFETY_MARGIN_BYTES);
+    let Some(available) = available_disk_space(dest) else {
+        // The disk cannot be determined; extraction will surface a real IO error.
+        return Ok(());
+    };
+    if available < required {
+        return Err(crate::ErrorKind::OtherError(format!(
+            "insufficient disk space to extract Java runtime: need at least {required} bytes, \
+             only {available} available"
+        ))
+        .into());
+    }
+    Ok(())
+}
+
+/// Returns the available bytes on the filesystem containing `path`.
+fn available_disk_space(path: &Path) -> Option<u64> {
+    let disks = sysinfo::Disks::new_with_refreshed_list();
+    let path =
+        std::fs::canonicalize(path).unwrap_or_else(|_| path.to_path_buf());
+    let disk = disks
+        .iter()
+        .filter(|disk| path.starts_with(disk.mount_point()))
+        .max_by_key(|disk| disk.mount_point().components().count())
+        .or_else(|| disks.iter().next());
+    disk.map(|disk| disk.available_space())
+}
+
 fn extract_azul_archive(
     archive_path: &Path,
     staging_root: &Path,
 ) -> crate::Result<PathBuf> {
     let file = std::fs::File::open(archive_path)?;
+    let compressed = file.metadata()?.len();
     let mut archive = zip::ZipArchive::new(file).map_err(|error| {
         crate::ErrorKind::InputError(format!(
             "Failed to read Java archive: {error}"
@@ -1246,6 +1551,8 @@ fn extract_azul_archive(
             )
         })?;
     validate_archive_file_name(&root)?;
+    let expanded = preflight_zip_archive(&mut archive)?;
+    ensure_extraction_disk_space(staging_root, compressed, expanded)?;
     archive.extract(staging_root).map_err(|error| {
         crate::ErrorKind::InputError(format!(
             "Failed to extract Java archive: {error}"
@@ -1437,17 +1744,30 @@ async fn install_azul_runtime(
     .await??;
     let extracted_path = staging_root.join(&extracted_root);
     let final_root = java_root.join(&extracted_root);
-    remove_path_if_present(&final_root).await?;
-    tokio::fs::rename(&extracted_path, &final_root).await?;
-    remove_path_if_present(&staging_root).await?;
-
-    let executable = if cfg!(target_os = "macos") {
-        final_root.join("Contents/Home/bin/java")
+    let executable_relative = if cfg!(target_os = "macos") {
+        Path::new("Contents/Home/bin").join(jre::JAVA_BIN)
     } else {
-        final_root.join("bin").join(jre::JAVA_BIN)
+        Path::new("bin").join(jre::JAVA_BIN)
     };
-    validate_installed_java(executable, java_version, reporter, loading_bar)
-        .await
+    let installed = match install_runtime_atomically(
+        &extracted_path,
+        extracted_path.join(&executable_relative),
+        &final_root,
+        final_root.join(&executable_relative),
+        java_version,
+        reporter,
+        loading_bar,
+    )
+    .await
+    {
+        Ok(path) => path,
+        Err(error) => {
+            let _ = remove_path_if_present(&staging_root).await;
+            return Err(error);
+        }
+    };
+    remove_path_if_present(&staging_root).await?;
+    Ok(installed)
 }
 
 // Validates JRE at a given at a given path
@@ -1588,12 +1908,16 @@ pub async fn list_java_feed_versions(
     Ok(versions)
 }
 
-/// Extracts a zip or tar.gz archive to the destination directory.
+/// Extracts a zip or tar.gz archive to the destination directory, enforcing
+/// path safety and resource limits before writing anything.
 fn extract_archive(archive_path: &Path, dest: &Path) -> crate::Result<()> {
+    let compressed = std::fs::metadata(archive_path)?.len();
     // Try zip first
     {
         let file = std::fs::File::open(archive_path)?;
         if let Ok(mut archive) = zip::ZipArchive::new(file) {
+            let expanded = preflight_zip_archive(&mut archive)?;
+            ensure_extraction_disk_space(dest, compressed, expanded)?;
             archive.extract(dest).map_err(|error| {
                 crate::ErrorKind::InputError(format!(
                     "Failed to extract zip archive: {error}"
@@ -1603,11 +1927,30 @@ fn extract_archive(archive_path: &Path, dest: &Path) -> crate::Result<()> {
         }
     }
 
-    // Fall back to tar.gz
+    // Fall back to tar.gz: validate and compute the expanded size in a first
+    // pass, then extract with path containment in a second pass.
+    let expanded = {
+        let file = std::fs::File::open(archive_path)?;
+        let decoder = flate2::read::GzDecoder::new(file);
+        let mut archive = tar::Archive::new(decoder);
+        preflight_tar_archive(&mut archive)?
+    };
+    ensure_extraction_disk_space(dest, compressed, expanded)?;
     let file = std::fs::File::open(archive_path)?;
     let decoder = flate2::read::GzDecoder::new(file);
     let mut archive = tar::Archive::new(decoder);
-    archive.unpack(dest)?;
+    for entry in archive.entries()? {
+        let mut entry = entry?;
+        validate_tar_entry(&entry)?;
+        if entry.header().entry_type().is_dir() {
+            entry.unpack_in(dest)?;
+            continue;
+        }
+        if entry.size() > MAX_ARCHIVE_SINGLE_FILE_BYTES {
+            return Err(archive_limit_error("single file too large"));
+        }
+        entry.unpack_in(dest)?;
+    }
     Ok(())
 }
 
@@ -1834,24 +2177,33 @@ async fn download_java_from_feed_inner(
 
     io::remove_file(&archive_path).await?;
 
-    // Find the extracted directory (first entry)
-    let extracted_dir = {
-        let mut entries = std::fs::read_dir(&staging_root)?;
-        let first = entries.next().ok_or_else(|| {
-            std::io::Error::new(std::io::ErrorKind::NotFound, "Empty archive")
-        })??;
-        first.path()
-    };
-
-    remove_path_if_present(&final_root).await?;
-    tokio::fs::rename(&extracted_dir, &final_root).await?;
-    remove_path_if_present(&staging_root).await?;
-
-    let executable = if cfg!(target_os = "macos") {
-        final_root.join("Contents/Home/bin/java")
+    // Locate the runtime directory by structure (contains the java binary)
+    // rather than blindly taking the first archive entry, then install it
+    // atomically with rollback.
+    let extracted_dir = find_runtime_dir(&staging_root)?;
+    let executable_relative = if cfg!(target_os = "macos") {
+        Path::new("Contents/Home/bin").join(jre::JAVA_BIN)
     } else {
-        final_root.join("bin").join(jre::JAVA_BIN)
+        Path::new("bin").join(jre::JAVA_BIN)
     };
+    let executable = match install_runtime_atomically(
+        &extracted_dir,
+        extracted_dir.join(&executable_relative),
+        &final_root,
+        final_root.join(&executable_relative),
+        jdk_version_major,
+        reporter.as_ref(),
+        loading_bar.as_ref(),
+    )
+    .await
+    {
+        Ok(path) => path,
+        Err(error) => {
+            let _ = remove_path_if_present(&staging_root).await;
+            return Err(error);
+        }
+    };
+    remove_path_if_present(&staging_root).await?;
 
     // Advance from 50 % (post-download) to 90 % to reflect installation work
     if let Some(loading_bar) = &loading_bar {
@@ -2153,5 +2505,124 @@ mod tests {
     fn automatic_memory_matches_mod_targets() {
         assert_eq!(automatic_memory_max_mb(8 * GIB, 100, true), 5836);
         assert_eq!(automatic_memory_max_mb(0, 300, true), 2560);
+    }
+}
+
+#[cfg(test)]
+mod archive_preflight_tests {
+    use super::*;
+    use std::io::Write;
+
+    fn make_zip(path: &std::path::Path, names: &[&str]) {
+        let file = std::fs::File::create(path).unwrap();
+        let mut zip = zip::ZipWriter::new(file);
+        for name in names {
+            zip.start_file(*name, zip::write::SimpleFileOptions::default())
+                .unwrap();
+            zip.write_all(b"hello").unwrap();
+        }
+        zip.finish().unwrap();
+    }
+
+    fn preflight(path: &std::path::Path) -> crate::Result<u64> {
+        let file = std::fs::File::open(path).unwrap();
+        let mut archive = zip::ZipArchive::new(file).unwrap();
+        preflight_zip_archive(&mut archive)
+    }
+
+    #[test]
+    fn preflight_accepts_normal_zip() {
+        let dir = std::env::temp_dir()
+            .join(format!("axolotl-pf-ok-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("ok.zip");
+        make_zip(&path, &["jre17/bin/java", "jre17/README"]);
+        assert!(preflight(&path).is_ok());
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn preflight_rejects_traversal() {
+        let dir = std::env::temp_dir()
+            .join(format!("axolotl-pf-tr-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("evil.zip");
+        make_zip(&path, &["../escape", "ok"]);
+        assert!(preflight(&path).is_err());
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn preflight_rejects_absolute() {
+        let dir = std::env::temp_dir()
+            .join(format!("axolotl-pf-ab-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("abs.zip");
+        make_zip(&path, &["/etc/passwd"]);
+        assert!(preflight(&path).is_err());
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    fn make_tar_gz(path: &std::path::Path, special: tar::EntryType) {
+        let file = std::fs::File::create(path).unwrap();
+        let encoder =
+            flate2::write::GzEncoder::new(file, flate2::Compression::default());
+        let mut builder = tar::Builder::new(encoder);
+
+        let mut regular = tar::Header::new_gnu();
+        regular.set_size(3);
+        regular.set_mode(0o644);
+        regular.set_cksum();
+        builder
+            .append_data(&mut regular, "jre17/bin/java", &b"abc"[..])
+            .unwrap();
+
+        let mut special_header = tar::Header::new_gnu();
+        special_header.set_entry_type(special);
+        special_header.set_size(0);
+        special_header.set_mode(0o644);
+        special_header.set_cksum();
+        builder
+            .append_data(&mut special_header, "special", std::io::empty())
+            .unwrap();
+
+        let encoder = builder.into_inner().unwrap();
+        encoder.finish().unwrap();
+    }
+
+    fn tar_preflight(path: &std::path::Path) -> crate::Result<u64> {
+        let file = std::fs::File::open(path).unwrap();
+        let decoder = flate2::read::GzDecoder::new(file);
+        let mut archive = tar::Archive::new(decoder);
+        preflight_tar_archive(&mut archive)
+    }
+
+    #[test]
+    fn tar_preflight_accepts_regular_entries() {
+        let dir = std::env::temp_dir()
+            .join(format!("axolotl-pf-tok-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("ok.tar.gz");
+        make_tar_gz(&path, tar::EntryType::Regular);
+        assert!(tar_preflight(&path).is_ok());
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn tar_preflight_rejects_special_files() {
+        for special in [
+            tar::EntryType::Fifo,
+            tar::EntryType::Char,
+            tar::EntryType::Block,
+            tar::EntryType::Symlink,
+        ] {
+            let dir = std::env::temp_dir()
+                .join(format!("axolotl-pf-ts-{}", std::process::id()));
+            std::fs::create_dir_all(&dir).unwrap();
+            let path = dir.join("special.tar.gz");
+            make_tar_gz(&path, special);
+            assert!(tar_preflight(&path).is_err(), "should reject {special:?}");
+            let _ = std::fs::remove_dir_all(&dir);
+        }
     }
 }
