@@ -21,6 +21,7 @@ import {
 	UserIcon,
 	UsersIcon,
 	WorldIcon,
+	XIcon,
 } from '@modrinth/assets'
 import {
 	Admonition,
@@ -902,6 +903,10 @@ const messages = defineMessages({
 		defaultMessage:
 			'Minecraft authentication servers may be down right now. Check your internet connection and try again later.',
 	},
+	quitLauncher: {
+		id: 'app.initialization.quit',
+		defaultMessage: 'Quit launcher',
+	},
 	runningAsAdmin: {
 		id: 'app.warning.running-as-admin',
 		defaultMessage:
@@ -1603,14 +1608,34 @@ stateInitialization
 		setupApp().catch((err) => {
 			stateFailed.value = true
 			console.error(err)
-			error.showError(err, null, false, 'state_init')
+			error.showError(err, null, true, 'state_init')
 		})
 	})
 	.catch((err) => {
 		stateFailed.value = true
 		console.error('Failed to initialize app', err)
-		error.showError(err, null, false, 'state_init')
+		error.showError(err, null, true, 'state_init')
 	})
+
+/**
+ * Exits a launcher that failed to initialize.
+ *
+ * The window is frameless and the app shell (which owns the only window
+ * controls) never rendered, so without this the user has no way out short of
+ * the task manager. It deliberately skips `closeWindowImmediately`, which
+ * saves window state first and would hit the same broken initialization.
+ */
+async function forceExit() {
+	try {
+		await invoke('exit_app')
+	} catch (error) {
+		// Closing the window still reaches the exit path, one dialog later.
+		console.error('Failed to exit the launcher; closing the window', error)
+		await getCurrentWindow()
+			.close()
+			.catch(() => {})
+	}
+}
 
 async function closeWindowImmediately() {
 	if (closeRequestInProgress.value) return
@@ -2517,6 +2542,28 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 
 <template>
 	<SplashScreen v-if="!stateFailed" ref="splashScreen" data-tauri-drag-region />
+	<!--
+		A failed initialization never renders the app shell, so this framed window
+		ends up with no title bar and no controls at all. This strip keeps the
+		window draggable and offers a way to quit that does not depend on the
+		parts which failed to load.
+	-->
+	<div
+		v-if="stateFailed && !stateInitialized"
+		data-tauri-drag-region
+		class="fixed inset-x-0 top-0 z-[300] flex h-9 items-center justify-end px-1"
+	>
+		<button
+			v-tooltip.bottom="formatMessage(messages.quitLauncher)"
+			data-tauri-drag-region-exclude
+			class="flex size-8 cursor-pointer items-center justify-center rounded-md border-0 bg-transparent text-secondary transition-colors hover:bg-surface-4 hover:text-contrast"
+			type="button"
+			:aria-label="formatMessage(messages.quitLauncher)"
+			@click="forceExit"
+		>
+			<XIcon class="size-4" />
+		</button>
+	</div>
 	<div id="teleports"></div>
 	<div
 		v-if="stateInitialized && themeStore.customBackgroundPath && !themeStore.transparentBackground"
@@ -2903,7 +2950,7 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 		<div class="mt-4">
 			<Checkbox
 				v-model="closeChoiceRemember"
-				:disabled="closeRequestInProgress"
+				:disabled="closeRequestInProgress || stateFailed"
 				:label="formatMessage(messages.closeLauncherRemember)"
 			/>
 		</div>

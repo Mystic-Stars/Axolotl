@@ -1754,6 +1754,18 @@
   "app.error.space-title": {
     "message": "Not enough space"
   },
+  "app.error.state-database-newer-description": {
+    "message": "The database was last opened by a newer version of Axolotl, which upgraded it to a format this version cannot read. Your instances and settings are still there."
+  },
+  "app.error.state-database-newer-fix-downgrade": {
+    "message": "If you are trying out a build rather than using the launcher normally, revert the database with scripts/axolotl/downgrade-app-db.mjs instead."
+  },
+  "app.error.state-database-newer-fix-intro": {
+    "message": "To start the launcher again, either:"
+  },
+  "app.error.state-database-newer-fix-update": {
+    "message": "Reinstall the newer version of Axolotl - it opens this database as it is."
+  },
   "app.error.state-description": {
     "message": "Axolotl Launcher failed to load correctly. A file may be corrupted or an essential file may be missing."
   },
@@ -2248,6 +2260,9 @@
   },
   "app.home.worlds.pinned": {
     "message": "Pinned worlds"
+  },
+  "app.initialization.quit": {
+    "message": "Quit launcher"
   },
   "app.install.phase.downloading_content": {
     "message": "Downloading content"
@@ -6875,6 +6890,9 @@
   "app.settings.about.project-license": {
     "message": "Project license (GPL-3.0)"
   },
+  "app.settings.about.copying-guidelines": {
+    "defaultMessage": "Copying guidelines"
+  },
   "app.settings.about.project-website": {
     "message": "Project website"
   },
@@ -7129,6 +7147,102 @@
   },
   "app.settings.java.view-installed": {
     "message": "View installed Java"
+  },
+  "app.settings.logs.export.button": {
+    "message": "Export logs…"
+  },
+  "app.settings.logs.export.description": {
+    "message": "Package launcher logs with an optional environment summary, instance log, and crash analysis."
+  },
+  "app.settings.logs.export.modal.cancel": {
+    "message": "Cancel"
+  },
+  "app.settings.logs.export.modal.confirm": {
+    "message": "Export"
+  },
+  "app.settings.logs.export.modal.crash-analysis": {
+    "message": "Crash analysis (when a crash is detected)"
+  },
+  "app.settings.logs.export.modal.description": {
+    "message": "Choose how much detail to include. Exported logs have access tokens, Minecraft tokens, and IP addresses replaced with placeholders."
+  },
+  "app.settings.logs.export.modal.extras": {
+    "message": "Additional information"
+  },
+  "app.settings.logs.export.modal.instance-logs": {
+    "message": "Most recent instance log"
+  },
+  "app.settings.logs.export.modal.level": {
+    "message": "Log level"
+  },
+  "app.settings.logs.export.modal.level.all": {
+    "message": "All levels"
+  },
+  "app.settings.logs.export.modal.level.debug": {
+    "message": "Debug and above"
+  },
+  "app.settings.logs.export.modal.level.info": {
+    "message": "Info and above"
+  },
+  "app.settings.logs.export.modal.range": {
+    "message": "Time range"
+  },
+  "app.settings.logs.export.modal.range.2-hours": {
+    "message": "Last 2 hours"
+  },
+  "app.settings.logs.export.modal.range.30-minutes": {
+    "message": "Last 30 minutes"
+  },
+  "app.settings.logs.export.modal.range.all": {
+    "message": "All sessions"
+  },
+  "app.settings.logs.export.modal.system-info": {
+    "message": "System and environment summary"
+  },
+  "app.settings.logs.export.modal.title": {
+    "message": "Export logs"
+  },
+  "app.settings.logs.export.notification-text": {
+    "message": "The log archive was saved to {path}"
+  },
+  "app.settings.logs.export.notification-title": {
+    "message": "Logs exported"
+  },
+  "app.settings.logs.export.title": {
+    "message": "Export logs"
+  },
+  "app.settings.logs.level.debug": {
+    "message": "Debug"
+  },
+  "app.settings.logs.level.description": {
+    "message": "Choose the lowest level written to the launcher log files."
+  },
+  "app.settings.logs.level.error": {
+    "message": "Error"
+  },
+  "app.settings.logs.level.hint": {
+    "message": "Trace captures everything and is the default, so reports keep their full detail. Higher levels write smaller files."
+  },
+  "app.settings.logs.level.info": {
+    "message": "Info"
+  },
+  "app.settings.logs.level.title": {
+    "message": "Log level"
+  },
+  "app.settings.logs.level.trace": {
+    "message": "Trace (everything)"
+  },
+  "app.settings.logs.level.warn": {
+    "message": "Warning"
+  },
+  "app.settings.logs.open-folder": {
+    "message": "Open logs folder"
+  },
+  "app.settings.logs.retention.description": {
+    "message": "The last 30 minutes keep every level. Trace entries are dropped after 30 minutes, and debug entries after 2 hours. Warnings and errors stay for up to 3 days."
+  },
+  "app.settings.logs.retention.title": {
+    "message": "Automatic log retention"
   },
   "app.settings.privacy.data-handling": {
     "message": "Telemetry uses a random installation identifier and sends only a daily activity signal. Turning telemetry off clears pending data immediately."
@@ -7627,6 +7741,9 @@
   },
   "app.settings.tabs.launch-defaults": {
     "message": "Launch & instance defaults"
+  },
+  "app.settings.tabs.logs": {
+    "message": "Logs"
   },
   "app.settings.tabs.network-multiplayer": {
     "message": "Network & multiplayer"

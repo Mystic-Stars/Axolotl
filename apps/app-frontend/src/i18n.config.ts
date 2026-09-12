@@ -38,4 +38,14 @@ export function resolveInitialLocale(preferredLocales: readonly string[]): strin
 	return 'en-US'
 }
 
+// The locale the user picked lives in the app database, which is exactly what is
+// unreadable when startup fails - and a startup failure is when the remaining
+// dialogs matter most. Starting from the system language keeps them in a
+// language the user reads; `setupApp` still applies the saved locale once the
+// database is available.
+const preferredLocales = navigator.languages?.length
+	? navigator.languages
+	: [navigator.language ?? 'en-US']
+i18n.global.locale.value = resolveInitialLocale(preferredLocales)
+
 export default i18n

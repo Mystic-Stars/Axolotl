@@ -263,6 +263,12 @@ impl Error {
     /// deleted while a content write is still in flight; the write-path
     /// validation already reports most of these cleanly, this is the final
     /// fallback at the Tauri boundary.
+    ///
+    /// A missing migration means the database was last opened by a newer build
+    /// that recorded a schema this one does not know. sqlx refuses to continue,
+    /// and its own wording ("previously applied but is missing in the resolved
+    /// migrations") reads like internal corruption rather than the downgrade it
+    /// actually is, so it is replaced with the situation and the two ways out.
     pub fn user_facing_message(&self) -> String {
         if let ErrorKind::Sqlx(sqlx::Error::Database(db_error)) =
             self.raw.as_ref()
@@ -270,6 +276,14 @@ impl Error {
         {
             return "This instance was deleted or is being modified; refresh the instance list and try again."
                 .to_string();
+        }
+        if let ErrorKind::SqlxMigrate(
+            sqlx::migrate::MigrateError::VersionMissing(version),
+        ) = self.raw.as_ref()
+        {
+            return format!(
+                "The app database was created by a newer Axolotl build (migration {version} is missing from this build), so this build cannot open it. Install the newer build again, or downgrade the database before starting this build."
+            );
         }
         self.to_string()
     }
@@ -307,3 +321,36 @@ impl ErrorKind {
 }
 
 pub type Result<T> = core::result::Result<T, Error>;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn missing_migration_is_explained_as_a_downgrade() {
+        let error: Error =
+            sqlx::migrate::MigrateError::VersionMissing(20260909010000).into();
+        let message = error.user_facing_message();
+
+        assert!(
+            message.contains("was created by a newer Axolotl build"),
+            "the frontend matches on this wording, got: {message}"
+        );
+        assert!(
+            message.contains("20260909010000"),
+            "the message should name the migration that is missing, got: {message}"
+        );
+        assert!(
+            !message.contains("previously applied but is missing"),
+            "the raw sqlx wording should have been replaced, got: {message}"
+        );
+    }
+
+    #[test]
+    fn other_migration_failures_keep_their_own_message() {
+        let error: Error =
+            sqlx::migrate::MigrateError::VersionMismatch(20260909010000).into();
+
+        assert_eq!(error.user_facing_message(), error.to_string());
+    }
+}

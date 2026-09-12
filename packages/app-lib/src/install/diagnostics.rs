@@ -670,7 +670,7 @@ fn read_file_tail(path: &Path, max_bytes: u64) -> crate::Result<String> {
     Ok(output)
 }
 
-async fn censor_support_text(
+pub(crate) async fn censor_support_text(
     mut text: String,
     state: &State,
 ) -> crate::Result<String> {

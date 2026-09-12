@@ -1952,6 +1952,18 @@
   "app.error.space-title": {
     "message": "空间不足"
   },
+  "app.error.state-database-newer-description": {
+    "message": "数据库最后一次是被较新版本的 Axolotl 打开的，它将其升级为当前版本无法读取的格式。你的实例与设置仍然保留。"
+  },
+  "app.error.state-database-newer-fix-downgrade": {
+    "message": "如果你只是在试用构建、并非日常使用启动器，可以改用 scripts/axolotl/downgrade-app-db.mjs 将数据库回退。"
+  },
+  "app.error.state-database-newer-fix-intro": {
+    "message": "要让启动器重新启动，可以任选其一："
+  },
+  "app.error.state-database-newer-fix-update": {
+    "message": "重新安装较新版本的 Axolotl——它可以直接打开这个数据库。"
+  },
   "app.error.state-description": {
     "message": "Axolotl Launcher 未能正确加载，可能有文件损坏或缺少必要文件。"
   },
@@ -2446,6 +2458,9 @@
   },
   "app.home.worlds.pinned": {
     "message": "固定的世界"
+  },
+  "app.initialization.quit": {
+    "message": "退出启动器"
   },
   "app.install.phase.downloading_content": {
     "message": "正在下载内容"
@@ -6881,6 +6896,9 @@
   "app.settings.about.project-license": {
     "message": "项目许可证（GPL-3.0）"
   },
+  "app.settings.about.copying-guidelines": {
+    "defaultMessage": "复制准则"
+  },
   "app.settings.about.project-website": {
     "message": "项目网站"
   },
@@ -7119,7 +7137,103 @@
     "message": "版本"
   },
   "app.settings.java.view-installed": {
-    "message": "查看已安装 Java"
+    "message": "查看已安装的 Java"
+  },
+  "app.settings.logs.export.button": {
+    "message": "导出日志…"
+  },
+  "app.settings.logs.export.description": {
+    "message": "将启动器日志打包，可附带环境摘要、最近的实例日志与崩溃分析。"
+  },
+  "app.settings.logs.export.modal.cancel": {
+    "message": "取消"
+  },
+  "app.settings.logs.export.modal.confirm": {
+    "message": "导出"
+  },
+  "app.settings.logs.export.modal.crash-analysis": {
+    "message": "崩溃分析（检测到崩溃时）"
+  },
+  "app.settings.logs.export.modal.description": {
+    "message": "选择要包含的详细程度。导出的日志会把访问令牌、Minecraft 令牌与 IP 地址替换为占位符。"
+  },
+  "app.settings.logs.export.modal.extras": {
+    "message": "附加信息"
+  },
+  "app.settings.logs.export.modal.instance-logs": {
+    "message": "最近的实例日志"
+  },
+  "app.settings.logs.export.modal.level": {
+    "message": "日志等级"
+  },
+  "app.settings.logs.export.modal.level.all": {
+    "message": "全部等级"
+  },
+  "app.settings.logs.export.modal.level.debug": {
+    "message": "DEBUG 及以上"
+  },
+  "app.settings.logs.export.modal.level.info": {
+    "message": "INFO 及以上"
+  },
+  "app.settings.logs.export.modal.range": {
+    "message": "时间范围"
+  },
+  "app.settings.logs.export.modal.range.2-hours": {
+    "message": "最近 2 小时"
+  },
+  "app.settings.logs.export.modal.range.30-minutes": {
+    "message": "最近 30 分钟"
+  },
+  "app.settings.logs.export.modal.range.all": {
+    "message": "全部会话"
+  },
+  "app.settings.logs.export.modal.system-info": {
+    "message": "系统与环境摘要"
+  },
+  "app.settings.logs.export.modal.title": {
+    "message": "导出日志"
+  },
+  "app.settings.logs.export.notification-text": {
+    "message": "日志压缩包已保存到 {path}"
+  },
+  "app.settings.logs.export.notification-title": {
+    "message": "日志已导出"
+  },
+  "app.settings.logs.export.title": {
+    "message": "导出日志"
+  },
+  "app.settings.logs.level.debug": {
+    "message": "DEBUG"
+  },
+  "app.settings.logs.level.description": {
+    "message": "选择写入启动器日志文件的最低等级。"
+  },
+  "app.settings.logs.level.error": {
+    "message": "ERROR"
+  },
+  "app.settings.logs.level.hint": {
+    "message": "TRACE 会记录全部内容且为默认值，便于反馈问题时保留完整细节；等级越高，日志文件越小。"
+  },
+  "app.settings.logs.level.info": {
+    "message": "INFO"
+  },
+  "app.settings.logs.level.title": {
+    "message": "日志等级"
+  },
+  "app.settings.logs.level.trace": {
+    "message": "TRACE（全部）"
+  },
+  "app.settings.logs.level.warn": {
+    "message": "WARN"
+  },
+  "app.settings.logs.open-folder": {
+    "message": "打开日志文件夹"
+  },
+  "app.settings.logs.retention.description": {
+    "message": "最近 30 分钟保留全部等级；超过 30 分钟丢弃 TRACE，超过 2 小时再丢弃 DEBUG；WARN 与 ERROR 最多保留 3 天。"
+  },
+  "app.settings.logs.retention.title": {
+    "message": "日志自动保留策略"
   },
   "app.settings.privacy.data-handling": {
     "message": "遥测使用随机安装标识，仅发送每日活跃信号。关闭遥测会立即清空待发送数据。"
@@ -7627,6 +7741,9 @@
   },
   "app.settings.tabs.launch-defaults": {
     "message": "启动与实例默认值"
+  },
+  "app.settings.tabs.logs": {
+    "message": "日志"
   },
   "app.settings.tabs.network-multiplayer": {
     "message": "网络与多人游戏"

@@ -1,6 +1,75 @@
 {
-  "updated_at": "2026-09-09T21:20:31.000Z",
+  "updated_at": "2026-09-12T21:00:36.000Z",
   "announcements": [
+    {
+      "id": "launcher-1.9.6-beta.5",
+      "version": "1.9.6-beta.5",
+      "publishedAt": "2026-09-12",
+      "title": {
+        "en-US": "Axolotl Launcher 1.9.6-beta.5",
+        "zh-CN": "Axolotl Launcher 1.9.6-beta.5"
+      },
+      "changes": {
+        "added": [
+          {
+            "en-US": "Added crash-log sharing with AI-assisted analysis and queue status.",
+            "zh-CN": "新增崩溃日志分享、AI 辅助分析和队列状态显示。"
+          },
+          {
+            "en-US": "Added configurable launcher shortcuts for navigation, scrolling, and back-to-top.",
+            "zh-CN": "新增可配置的启动器导航、滚动和返回顶部快捷键。"
+          },
+          {
+            "en-US": "Added build-specific launcher data directories.",
+            "zh-CN": "新增按构建版本隔离启动器数据目录。"
+          },
+          {
+            "en-US": "Added copying guidelines and a license-guidelines link in About settings.",
+            "zh-CN": "在关于设置中新增版权使用指引及相关链接。"
+          },
+          {
+            "en-US": "Added log-level retention, configurable levels, and export functionality.",
+            "zh-CN": "日志分级保留、可配置等级与导出功能区"
+          }
+        ],
+        "changed": [
+          {
+            "en-US": "Improved Modrinth, CurseForge, mrpack, and ZIP modpack downloads with pipelined downloads, verification, batched database writes, and in-memory live progress.",
+            "zh-CN": "通过下载、校验与数据库写入流水线化、数据库批处理及内存实时进度，改进 Modrinth、CurseForge、mrpack 和 ZIP 整合包下载。"
+          },
+          {
+            "en-US": "Refactored installation, upgrade, loader, recovery, cancellation, and database workflows for better reliability.",
+            "zh-CN": "重构安装、升级、加载器、恢复、取消和数据库流程，提升可靠性。"
+          },
+          {
+            "en-US": "Improved database migration, downgrade, channel, startup, and native input handling.",
+            "zh-CN": "改进数据库迁移、降级、频道处理、启动流程和输入框原生编辑。"
+          }
+        ],
+        "fixed": [
+          {
+            "en-US": "Fixed modpack download freezes, stale or regressing progress, ineffective cancellation, and leftover files after failed installs.",
+            "zh-CN": "修复整合包下载卡顿、进度回退或过期、取消无效，以及安装失败后残留文件的问题。"
+          },
+          {
+            "en-US": "Fixed CurseForge file selection, filename validation, dependency resolution, installation-context, and persistence errors.",
+            "zh-CN": "修复 CurseForge 文件选择、文件名校验、依赖解析、安装上下文和持久化错误。"
+          },
+          {
+            "en-US": "Fixed mrpack and ZIP materialization rollback, archive replacement recovery, Forge and low-version installs, and instance imports.",
+            "zh-CN": "修复 mrpack 和 ZIP 物化回滚、归档替换恢复、Forge 与低版本安装及实例导入问题。"
+          },
+          {
+            "en-US": "Fixed shortcut focus and defaults, skin preview updates, long real-time logs, display-scaling freezes, and launcher startup issues.",
+            "zh-CN": "修复快捷键焦点与默认值、皮肤预览更新、实时日志过长、显示缩放冻结及启动器启动问题。"
+          },
+          {
+            "en-US": "Fixed an incorrect license URL in the settings page.",
+            "zh-CN": "修复设置页面许可证链接错误的问题。"
+          }
+        ]
+      }
+    },
     {
       "id": "launcher-1.9.6-beta.4",
       "version": "1.9.6-beta.4",

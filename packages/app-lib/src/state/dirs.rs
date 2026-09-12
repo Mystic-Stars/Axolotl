@@ -35,8 +35,13 @@ impl DirectoryInfo {
     // Get the settings directory
     // init() is not needed for this function
     pub fn initial_settings_dir_path(app_identifier: &str) -> Option<PathBuf> {
-        Self::env_path("THESEUS_CONFIG_DIR")
-            .or_else(|| Some(dirs::data_dir()?.join(app_identifier)))
+        Self::env_path("THESEUS_CONFIG_DIR").or_else(|| {
+            Some(
+                dirs::data_dir()?.join(crate::brand::app_data_dir_identifier(
+                    app_identifier,
+                )),
+            )
+        })
     }
 
     /// Get all paths needed for Theseus to operate properly

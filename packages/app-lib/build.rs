@@ -3,6 +3,11 @@ use std::path::PathBuf;
 use std::process::{Command, exit};
 use std::{env, fs};
 
+/// Build-time opt-in to a private launcher data directory. Read by
+/// `theseus::brand::app_data_dir_identifier`, which appends it to the directory
+/// name.
+const DATA_DIR_SUFFIX_VAR: &str = "AXOLOTL_DATA_DIR_SUFFIX";
+
 fn main() {
     println!("cargo::rerun-if-changed=.env");
     println!("cargo::rerun-if-env-changed=CURSEFORGE_API_KEY");
@@ -31,8 +36,12 @@ fn set_env() {
     for (var_name, var_value) in
         dotenvy::dotenv_iter().into_iter().flatten().flatten()
     {
-        if var_name == "DATABASE_URL" || var_name == "CURSEFORGE_API_KEY" {
-            // The sqlx database URL is a build-time detail that should not be exposed to the crate
+        if var_name == "DATABASE_URL"
+            || var_name == "CURSEFORGE_API_KEY"
+            || var_name == DATA_DIR_SUFFIX_VAR
+        {
+            // Handled explicitly below, where an empty value can be rejected
+            // instead of baked into the crate.
             continue;
         }
 
@@ -41,6 +50,37 @@ fn set_env() {
 
     if let Some(curseforge_api_key) = curseforge_api_key {
         println!("cargo::rustc-env=CURSEFORGE_API_KEY={curseforge_api_key}");
+    }
+
+    // Lets a local or test build keep its own data directory, so it cannot write
+    // the database an installed launcher is using. Releases leave it unset and
+    // resolve to the plain identifier.
+    println!("cargo::rerun-if-env-changed={DATA_DIR_SUFFIX_VAR}");
+    let data_dir_suffix = env::var(DATA_DIR_SUFFIX_VAR)
+        .ok()
+        .filter(|suffix| !suffix.is_empty())
+        .or_else(|| {
+            read_dotenv_literal(DATA_DIR_SUFFIX_VAR)
+                .filter(|suffix| !suffix.is_empty())
+        });
+
+    if let Some(data_dir_suffix) = data_dir_suffix {
+        // brand::data_dir_identifier drops every character that is not ASCII
+        // alphanumeric or `-_.` and then trims dots and dashes off both ends, so
+        // a suffix holding none of what survives sanitizes to nothing and the
+        // build would fall back to the installed launcher's own data directory -
+        // exactly the state this variable exists to avoid. Stop the build
+        // instead of letting that happen silently.
+        if !data_dir_suffix.chars().any(|character| {
+            character.is_ascii_alphanumeric() || character == '_'
+        }) {
+            println!(
+                "cargo::error={DATA_DIR_SUFFIX_VAR} leaves no usable directory name, so this build would use the installed launcher's data directory"
+            );
+            exit(1);
+        }
+
+        println!("cargo::rustc-env={DATA_DIR_SUFFIX_VAR}={data_dir_suffix}");
     }
 }
 
