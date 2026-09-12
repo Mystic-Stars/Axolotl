@@ -18,6 +18,12 @@ jobs:
   comment:
     name: Post changelog comment
     runs-on: ubuntu-latest
+    # Fork PRs get a GITHUB_TOKEN that cannot write issue comments on the base
+    # repository ("Resource not accessible by integration"). Skip the job there
+    # instead of failing a check the contributor cannot fix.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.pull_request.head.repo.full_name == github.repository
 
     steps:
       - name: Post or update changelog comment
@@ -53,19 +59,48 @@ jobs:
               return;
             }
 
+            const isPermissionError = (error) =>
+              error.status === 403 || error.status === 404;
+
             // Get PR details (need base ref for child PR detection)
-            const { data: pr } = await github.rest.pulls.get({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              pull_number: prNumber,
-            });
+            let pr;
+            try {
+              ({ data: pr } = await github.rest.pulls.get({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: prNumber,
+              }));
+            } catch (error) {
+              if (isPermissionError(error)) {
+                core.notice(`Skipping changelog comment on PR #${prNumber}: token cannot read the pull request (${error.status}).`);
+                return;
+              }
+              throw error;
+            }
+
+            // Same repository as the workflow? Forks cannot receive comments with this token.
+            const headRepo = pr.head.repo?.full_name;
+            const baseRepo = `${context.repo.owner}/${context.repo.repo}`;
+            if (headRepo && headRepo !== baseRepo) {
+              core.notice(`Skipping changelog comment on fork PR #${prNumber} (${headRepo}).`);
+              return;
+            }
 
             // Check if bot comment already exists
-            const { data: comments } = await github.rest.issues.listComments({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: prNumber,
-            });
+            let comments;
+            try {
+              ({ data: comments } = await github.rest.issues.listComments({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+              }));
+            } catch (error) {
+              if (isPermissionError(error)) {
+                core.notice(`Skipping changelog comment on PR #${prNumber}: token cannot list comments (${error.status}).`);
+                return;
+              }
+              throw error;
+            }
 
             const existingComment = comments.find(c => c.body.includes(marker));
             if (existingComment) {
@@ -74,12 +109,20 @@ jobs:
             }
 
             // Post the template comment
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: prNumber,
-              body: template,
-            });
+            try {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+                body: template,
+              });
+            } catch (error) {
+              if (isPermissionError(error)) {
+                core.notice(`Skipping changelog comment on PR #${prNumber}: token cannot create comments (${error.status}).`);
+                return;
+              }
+              throw error;
+            }
 
             core.info(`Posted changelog comment on PR #${prNumber}`);
 
@@ -114,10 +157,18 @@ jobs:
 
             const childChangelogComment = childComments.find(c => c.body.includes(marker));
             if (childChangelogComment && !childChangelogComment.body.includes(mergedMarker)) {
-              await github.rest.issues.updateComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                comment_id: childChangelogComment.id,
-                body: `${mergedMarker}\n> [!NOTE]\n> This changelog has been merged into the changelog for #${parentPR.number}\n\n${childChangelogComment.body}`,
-              });
+              try {
+                await github.rest.issues.updateComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  comment_id: childChangelogComment.id,
+                  body: `${mergedMarker}\n> [!NOTE]\n> This changelog has been merged into the changelog for #${parentPR.number}\n\n${childChangelogComment.body}`,
+                });
+              } catch (error) {
+                if (isPermissionError(error)) {
+                  core.notice(`Could not mark child changelog on PR #${prNumber} as merged (${error.status}).`);
+                  return;
+                }
+                throw error;
+              }
             }
