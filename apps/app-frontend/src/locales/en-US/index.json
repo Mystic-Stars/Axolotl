@@ -6890,9 +6890,6 @@
   "app.settings.about.project-license": {
     "message": "Project license (GPL-3.0)"
   },
-  "app.settings.about.copying-guidelines": {
-    "defaultMessage": "Copying guidelines"
-  },
   "app.settings.about.project-website": {
     "message": "Project website"
   },
