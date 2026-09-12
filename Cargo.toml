@@ -205,9 +205,11 @@ tauri-plugin-window-state = { git = "https://github.com/Lintern/plugins-workspac
 [profile.dev]
 incremental = false
 
-# Optimize for speed and reduce size on release builds
+# Optimize for speed and reduce size on release builds.
+# LTO stays off here so local and CI release builds stay fast; the release
+# workflow re-enables full LTO with CARGO_PROFILE_RELEASE_LTO=true.
 [profile.release]
 opt-level = "s"  # Optimize for binary size
 strip = true  # Remove debug symbols
-lto = true  # Enables link to optimizations
+lto = false
 panic = "abort"  # Strip expensive panic clean-up logic

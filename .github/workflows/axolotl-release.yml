@@ -102,6 +102,8 @@ jobs:
     runs-on: ${{ matrix.runner }}
     env:
       SQLX_OFFLINE: true
+      # Published binaries keep full LTO; PR CI stays on the fast profile.
+      CARGO_PROFILE_RELEASE_LTO: 'true'
     steps:
       - name: Check out source
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -210,7 +212,8 @@ jobs:
           }
           gh release delete-asset "${{ github.ref_name }}" $modernInstallers[0].Name --yes
 
-          pnpm --filter @modrinth/app tauri build --config tauri-release.conf.json --config tauri-native.conf.json
+          # Reuse the binary and frontend assets already built by tauri-action.
+          pnpm --filter @modrinth/app tauri build --config tauri-release.conf.json --config tauri-native.conf.json --config tauri-reuse-assets.conf.json
 
           $nativeInstallers = @(Get-ChildItem $outDir -Filter '*-setup.exe' -File)
           if ($nativeInstallers.Count -ne 1) {

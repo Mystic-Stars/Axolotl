@@ -44,10 +44,21 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, macos-latest, ubuntu-latest]
+        include:
+          # Authoritative typecheck/unit-test gate. Other OSes must not repeat it.
+          - os: ubuntu-latest
+            role: check
+          # macOS-only cfg code still needs a compile canary; no tests, no bundles.
+          - os: macos-latest
+            role: check-platform
+          # Packaging only. Consumes the frontend/installer-ui assets built once.
+          - os: windows-latest
+            role: package
     runs-on: ${{ matrix.os }}
     env:
       SQLX_OFFLINE: true
+      # Keep PR packaging on the fast release profile; tags re-enable full LTO.
+      CARGO_PROFILE_RELEASE_LTO: 'false'
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -76,34 +87,52 @@ jobs:
         run: npm ci
         working-directory: third-party/blockbench
       - uses: ./.github/actions/replace-gradle-mirror
-      - run: pnpm --filter @modrinth/app-frontend build
+      - name: Build frontend once
+        run: pnpm --filter @modrinth/app-frontend build
       - name: Test version metadata writes
+        if: matrix.role == 'check'
         run: cargo test --package theseus writing_version_info_creates_missing_parent_directory
-      - run: cargo check --package theseus_gui --features updater
+      - name: Check theseus_gui
+        if: matrix.role == 'check' || matrix.role == 'check-platform'
+        run: cargo check --package theseus_gui --features updater
+      - name: Build installer UI once
+        if: matrix.role == 'package'
+        run: cargo build --release --package axolotl-installer-ui
+      # Both Windows installers share the same cargo features and skip
+      # beforeBuildCommand so the second NSIS package reuses the release exe
+      # and the already-built frontend / installer-ui assets.
       - name: Build modern Windows installer
-        if: runner.os == 'Windows'
-        run: pnpm --filter @modrinth/app tauri build --config tauri-release.conf.json --config tauri-modern.conf.json
-      - name: Verify modern Windows installer
-        if: runner.os == 'Windows'
+        if: matrix.role == 'package'
+        run: pnpm --filter @modrinth/app tauri build --config tauri-release.conf.json --config tauri-modern.conf.json --config tauri-reuse-assets.conf.json
+      - name: Stash modern Windows installer
+        if: matrix.role == 'package'
         shell: pwsh
         run: |
           $installers = @(Get-ChildItem target/release/bundle/nsis -Filter '*-setup.exe' -File)
           if ($installers.Count -ne 1) {
             throw "Expected one modern NSIS installer, found $($installers.Count)"
           }
-          Write-Output "Built modern installer: $($installers[0].Name)"
+          $stashDir = 'target/release/bundle/nsis-modern'
+          New-Item -ItemType Directory -Force -Path $stashDir | Out-Null
+          Move-Item -Force $installers[0].FullName $stashDir
+          Write-Output "Stashed modern installer: $($installers[0].Name)"
       - name: Build native NSIS Windows installer
-        if: runner.os == 'Windows'
-        run: pnpm --filter @modrinth/app tauri build
+        if: matrix.role == 'package'
+        run: pnpm --filter @modrinth/app tauri build --config tauri-release.conf.json --config tauri-native.conf.json --config tauri-reuse-assets.conf.json
       - name: Verify native NSIS Windows installer
-        if: runner.os == 'Windows'
+        if: matrix.role == 'package'
         shell: pwsh
         run: |
           $installers = @(Get-ChildItem target/release/bundle/nsis -Filter '*-setup.exe' -File)
           if ($installers.Count -ne 1) {
             throw "Expected one native NSIS installer, found $($installers.Count)"
           }
-          Write-Output "Built native NSIS installer: $($installers[0].Name)"
+          Write-Output "Built native installer: $($installers[0].Name)"
+          $modern = @(Get-ChildItem target/release/bundle/nsis-modern -Filter '*-setup.exe' -File)
+          if ($modern.Count -ne 1) {
+            throw "Expected one stashed modern NSIS installer, found $($modern.Count)"
+          }
+          Write-Output "Modern installer preserved: $($modern[0].Name)"
 
   website:
     needs: guardrails
