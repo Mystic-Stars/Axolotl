@@ -3,6 +3,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls.js'
 
 import type { SchematicMeshData } from './mesh-worker'
+import { DefaultMaterial } from './materials/default'
 
 export type SchematicSceneRegion = {
 	id: string
@@ -41,6 +42,7 @@ const WALK_SPEED_MINIMUM = 4
 const WALK_SPEED_MAXIMUM = 60
 const WALK_SPEED_MULTIPLIER = 0.85
 const NATIVE_WALK_MOUSE_DELTA_MAXIMUM = 128
+const LAYER_MAX = 999
 
 export function filterNativeWalkMouseDelta(delta: number) {
 	return Number.isFinite(delta) && Math.abs(delta) <= NATIVE_WALK_MOUSE_DELTA_MAXIMUM ? delta : 0
@@ -245,14 +247,17 @@ export class SchematicPreviewScene {
 		chunkPosition: [number, number, number],
 		opaque: SchematicMeshData,
 		translucent: SchematicMeshData,
+		insert = false,
 	) {
 		const key = `${regionId}:${chunkPosition.join(':')}`
 		const previous = this.chunks.get(key)
-		if (previous) {
+		if (previous && !insert) {
 			previous.parent?.remove(previous)
 			this.disposeObject(previous)
 		}
-		const group = new THREE.Group()
+
+		const group = insert && previous ? previous : new THREE.Group()
+
 		group.userData.chunkPosition = chunkPosition
 		const opaqueMesh = this.createMesh(opaque, false, regionId)
 		if (opaqueMesh) group.add(opaqueMesh)
@@ -648,14 +653,19 @@ export class SchematicPreviewScene {
 			texture.generateMipmaps = false
 			texture.needsUpdate = true
 		}
-		return new THREE.MeshLambertMaterial({
-			map: texture,
-			vertexColors: true,
-			alphaTest: translucent ? 0 : 0.08,
-			transparent: translucent,
-			opacity: translucent ? 0.68 : 1,
-			depthWrite: !translucent,
-		})
+		return new DefaultMaterial(
+			translucent,
+			{ clipY: { value: new THREE.Vector2(0, LAYER_MAX) } },
+			texture,
+		)
+		// return new THREE.MeshLambertMaterial({
+		// 	map: texture,
+		// 	vertexColors: true,
+		// 	alphaTest: translucent ? 0 : 0.08,
+		// 	transparent: translucent,
+		// 	opacity: translucent ? 0.68 : 1,
+		// 	depthWrite: !translucent,
+		// })
 	}
 
 	private accentColor() {
@@ -726,15 +736,29 @@ export class SchematicPreviewScene {
 		return new THREE.Box3(center.clone().addScalar(-0.5), center.clone().addScalar(0.5))
 	}
 
+	private getLayerRange() {
+		const clipStart = this.layerRange && this.layerRange[0] ? this.layerRange[0] : 0
+		const clipEnd =
+			this.layerRange && Number.isInteger(this.layerRange[1]) ? this.layerRange[1] : LAYER_MAX
+
+		return [clipStart, clipEnd]
+	}
+
 	private applyClippingPlanes() {
+		const layerRange = this.getLayerRange()
+
 		const clippingPlanes = this.layerRange
 			? [
-					new THREE.Plane(new THREE.Vector3(0, 1, 0), -this.layerRange[0]),
-					new THREE.Plane(new THREE.Vector3(0, -1, 0), this.layerRange[1] + 1),
+					new THREE.Plane(new THREE.Vector3(0, 1, 0), -layerRange[0]),
+					new THREE.Plane(new THREE.Vector3(0, -1, 0), layerRange[1] + 1),
 				]
 			: []
 		this.opaqueMaterial.clippingPlanes = clippingPlanes
 		this.translucentMaterial.clippingPlanes = clippingPlanes
+
+		this.translucentMaterial.setClipY(new THREE.Vector2(layerRange[0], layerRange[1]))
+		this.opaqueMaterial.setClipY(new THREE.Vector2(layerRange[0], layerRange[1]))
+
 		this.opaqueMaterial.needsUpdate = true
 		this.translucentMaterial.needsUpdate = true
 	}
