@@ -6896,9 +6896,6 @@
   "app.settings.about.project-license": {
     "message": "项目许可证（GPL-3.0）"
   },
-  "app.settings.about.copying-guidelines": {
-    "defaultMessage": "复制准则"
-  },
   "app.settings.about.project-website": {
     "message": "项目网站"
   },
