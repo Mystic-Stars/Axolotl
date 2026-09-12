@@ -273,7 +273,7 @@ console.log('resolving the settings directory')
 
 console.log('keeping the migration mapping honest')
 {
-	const { loadRevertibleMigrations, parseAddColumns, OLDEST_REVERTIBLE_VERSION } =
+	const { loadRevertibleMigrations, parseAddColumns, parseCreatedTables, OLDEST_REVERTIBLE_VERSION } =
 		await import('./migration-revert.mjs')
 
 	const parsed = parseAddColumns(
@@ -283,6 +283,16 @@ console.log('keeping the migration mapping honest')
 		'parses ADD COLUMN into table/column pairs',
 		parsed.length === 1 && parsed[0].table === 'settings' && parsed[0].column === 'log_level',
 		JSON.stringify(parsed),
+	)
+
+	check(
+		'ignores CREATE TABLE inside comments',
+		parseCreatedTables('-- CREATE TABLE fake (id INTEGER);\nCREATE TABLE real (id INTEGER);').join() ===
+			'real',
+	)
+	check(
+		'ignores ADD COLUMN inside comments',
+		parseAddColumns('-- ALTER TABLE settings ADD COLUMN fake TEXT;\n').length === 0,
 	)
 
 	const revertible = loadRevertibleMigrations(migrationsDir)

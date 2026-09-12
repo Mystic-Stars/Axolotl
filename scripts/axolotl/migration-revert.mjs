@@ -24,11 +24,54 @@ const ADD_COLUMN_RE =
 const CREATE_TABLE_RE =
 	/CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?["'`]?([A-Za-z_][A-Za-z0-9_]*)["'`]?/gi
 
+// Remove line/block comments and string literals so DDL recognizers only see
+// executable SQL. A commented-out CREATE TABLE must not look like a real table.
+export function stripSqlNoise(sql) {
+	let out = ''
+	let index = 0
+	while (index < sql.length) {
+		const rest = sql.slice(index)
+		if (rest.startsWith('--')) {
+			const newline = sql.indexOf('\n', index)
+			index = newline === -1 ? sql.length : newline + 1
+			out += '\n'
+			continue
+		}
+		if (rest.startsWith('/*')) {
+			const end = sql.indexOf('*/', index + 2)
+			index = end === -1 ? sql.length : end + 2
+			out += ' '
+			continue
+		}
+		const quote = sql[index]
+		if (quote === "'" || quote === '"' || quote === '`') {
+			index += 1
+			while (index < sql.length) {
+				if (sql[index] === quote) {
+					if (sql[index + 1] === quote) {
+						index += 2
+						continue
+					}
+					index += 1
+					break
+				}
+				index += 1
+			}
+			out += '""'
+			continue
+		}
+		out += sql[index]
+		index += 1
+	}
+	return out
+}
+
 export function parseAddColumns(sql) {
+	const source = stripSqlNoise(sql)
 	const columns = []
 	ADD_COLUMN_RE.lastIndex = 0
 	let match
-	while ((match = ADD_COLUMN_RE.exec(sql)) !== null) {
+	while ((match = ADD_COLUMN_RE.exec(source)) !== null) {
 		const table = match[1]
 		const column = match[2]
 		if (!columns.some((entry) => entry.table === table && entry.column === column)) {
@@ -39,10 +82,11 @@ export function parseAddColumns(sql) {
 }
 
 export function parseCreatedTables(sql) {
+	const source = stripSqlNoise(sql)
 	const tables = []
 	CREATE_TABLE_RE.lastIndex = 0
 	let match
-	while ((match = CREATE_TABLE_RE.exec(sql)) !== null) {
+	while ((match = CREATE_TABLE_RE.exec(source)) !== null) {
 		const table = match[1]
 		if (!tables.includes(table)) tables.push(table)
 	}

@@ -70,6 +70,13 @@ function currentBranch() {
 	return git(['rev-parse', '--abbrev-ref', 'HEAD']).output
 }
 
+function originOwner() {
+	const url = git(['remote', 'get-url', 'origin']).output
+	const match = url.match(/github\.com[/:]([^/]+)\//)
+	if (!match) fail(`could not parse an owner from origin remote url: ${url}`)
+	return match[1]
+}
+
 function openPullRequests() {
 	const listed = gh([
 		'pr',
@@ -81,13 +88,13 @@ function openPullRequests() {
 		'--json',
 		'number,headRefName,headRepositoryOwner,title',
 		'--limit',
-		'50',
+		'1000',
 	])
 	return JSON.parse(listed.output)
 }
 
-function behindCount(branch) {
-	const counts = git(['rev-list', '--left-right', '--count', `${branch}...upstream/main`], {
+function behindCount(ref) {
+	const counts = git(['rev-list', '--left-right', '--count', `${ref}...upstream/main`], {
 		allowFailure: true,
 	}).output
 	const [ahead, behind] = counts.split(/\s+/).map((part) => Number(part))
@@ -96,12 +103,26 @@ function behindCount(branch) {
 
 function syncBranch(pr, { dryRun }) {
 	const branch = pr.headRefName
+	const remoteRef = `origin/${branch}`
 	console.log(`\n#${pr.number} ${branch} — ${pr.title}`)
 
 	git(['fetch', 'origin', branch])
 	git(['fetch', 'upstream', 'main'])
+
+	if (dryRun) {
+		// Never switch or merge in dry-run: only inspect the fetched remote tip.
+		const counts = behindCount(remoteRef)
+		console.log(`  ahead ${counts.ahead}, behind ${counts.behind} (vs ${remoteRef})`)
+		if (counts.behind === 0) {
+			console.log('  already up to date')
+			return { pr: pr.number, status: 'clean' }
+		}
+		console.log('  dry-run: would merge upstream/main and push')
+		return { pr: pr.number, status: 'would-sync', ...counts }
+	}
+
 	git(['switch', branch])
-	git(['merge', '--ff-only', 'origin/' + branch], { allowFailure: true })
+	git(['merge', '--ff-only', remoteRef], { allowFailure: true })
 
 	const counts = behindCount(branch)
 	console.log(`  ahead ${counts.ahead}, behind ${counts.behind}`)
@@ -110,19 +131,22 @@ function syncBranch(pr, { dryRun }) {
 		return { pr: pr.number, status: 'clean' }
 	}
 
-	if (dryRun) {
-		console.log('  dry-run: would merge upstream/main and push')
-		return { pr: pr.number, status: 'would-sync', ...counts }
-	}
-
-	const merged = git(['merge', 'upstream/main', '--no-edit', '--no-gpg-sign'], { allowFailure: true })
+	const merged = git(['merge', 'upstream/main', '--no-edit', '--no-gpg-sign'], {
+		allowFailure: true,
+	})
 	if (merged.status !== 0) {
 		console.error(merged.output)
 		git(['merge', '--abort'], { allowFailure: true })
 		return { pr: pr.number, status: 'conflict', ...counts }
 	}
 
-	git(['push', 'origin', branch])
+	const pushed = git(['push', 'origin', branch], { allowFailure: true })
+	if (pushed.status !== 0) {
+		console.error(pushed.output)
+		// Leave the local merge in place for inspection, but do not kill the run.
+		return { pr: pr.number, status: 'push-failed', ...counts }
+	}
+
 	const after = behindCount(branch)
 	console.log(`  pushed; ahead ${after.ahead}, behind ${after.behind}`)
 	return { pr: pr.number, status: 'synced', ...after }
@@ -137,10 +161,11 @@ function main() {
 	}
 
 	git(['fetch', 'upstream', 'main'])
+	const owner = originOwner()
 	const prs = openPullRequests().filter((pr) => {
 		if (args.only && !args.only.has(pr.number)) return false
-		// Only branches that live on this fork.
-		return pr.headRepositoryOwner?.login !== undefined
+		// Only branches that live on this fork's origin remote.
+		return pr.headRepositoryOwner?.login === owner
 	})
 
 	if (prs.length === 0) {
@@ -149,24 +174,28 @@ function main() {
 	}
 
 	const results = []
-	for (const pr of prs) {
-		try {
-			results.push(syncBranch(pr, args))
-		} catch (error) {
-			console.error(`  failed: ${error.message}`)
-			results.push({ pr: pr.number, status: 'failed' })
+	try {
+		for (const pr of prs) {
+			try {
+				results.push(syncBranch(pr, args))
+			} catch (error) {
+				console.error(`  failed: ${error.message}`)
+				results.push({ pr: pr.number, status: 'failed' })
+			}
 		}
+	} finally {
+		git(['switch', original], { allowFailure: true })
 	}
-
-	git(['switch', original])
 
 	console.log('\nsummary')
 	for (const result of results) {
 		console.log(`  #${result.pr}: ${result.status}`)
 	}
 
-	const conflicts = results.filter((result) => result.status === 'conflict' || result.status === 'failed')
-	if (conflicts.length > 0) {
+	const bad = results.filter((result) =>
+		['conflict', 'failed', 'push-failed'].includes(result.status),
+	)
+	if (bad.length > 0) {
 		process.exitCode = 1
 	}
 }
