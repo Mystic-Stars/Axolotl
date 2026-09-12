@@ -18,11 +18,13 @@ function fail(message) {
 
 function git(args, { allowFailure = false } = {}) {
 	const result = spawnSync('git', args, { encoding: 'utf8' })
-	const output = `${result.stdout ?? ''}${result.stderr ?? ''}`.trim()
+	const stdout = (result.stdout ?? '').trim()
+	const stderr = (result.stderr ?? '').trim()
+	const output = [stdout, stderr].filter(Boolean).join('\n')
 	if (result.status !== 0 && !allowFailure) {
-		fail(`git ${args.join(' ')} failed:\n${output}`)
+		throw new Error(`git ${args.join(' ')} failed:\n${output}`)
 	}
-	return { status: result.status, output }
+	return { status: result.status, stdout, stderr, output }
 }
 
 function gh(args, { allowFailure = false } = {}) {
@@ -67,11 +69,11 @@ function parseArgs(argv) {
 }
 
 function currentBranch() {
-	return git(['rev-parse', '--abbrev-ref', 'HEAD']).output
+	return git(['rev-parse', '--abbrev-ref', 'HEAD']).stdout
 }
 
 function originOwner() {
-	const url = git(['remote', 'get-url', 'origin']).output
+	const url = git(['remote', 'get-url', 'origin']).stdout
 	const match = url.match(/github\.com[/:]([^/]+)\//)
 	if (!match) fail(`could not parse an owner from origin remote url: ${url}`)
 	return match[1]
@@ -94,11 +96,23 @@ function openPullRequests() {
 }
 
 function behindCount(ref) {
-	const counts = git(['rev-list', '--left-right', '--count', `${ref}...upstream/main`], {
+	const result = git(['rev-list', '--left-right', '--count', `${ref}...upstream/main`], {
 		allowFailure: true,
-	}).output
-	const [ahead, behind] = counts.split(/\s+/).map((part) => Number(part))
-	return { ahead: ahead ?? 0, behind: behind ?? 0 }
+	})
+	if (result.status !== 0) {
+		return { ahead: 0, behind: 0, error: result.output }
+	}
+	const [ahead, behind] = result.stdout.split(/\s+/).map((part) => Number(part))
+	return {
+		ahead: Number.isFinite(ahead) ? ahead : 0,
+		behind: Number.isFinite(behind) ? behind : 0,
+	}
+}
+
+function sameTip(a, b) {
+	const left = git(['rev-parse', a], { allowFailure: true })
+	const right = git(['rev-parse', b], { allowFailure: true })
+	return left.status === 0 && right.status === 0 && left.stdout === right.stdout
 }
 
 function syncBranch(pr, { dryRun }) {
@@ -125,8 +139,19 @@ function syncBranch(pr, { dryRun }) {
 	git(['merge', '--ff-only', remoteRef], { allowFailure: true })
 
 	const counts = behindCount(branch)
+	const localDiffersFromRemote = !sameTip(branch, remoteRef)
 	console.log(`  ahead ${counts.ahead}, behind ${counts.behind}`)
 	if (counts.behind === 0) {
+		if (localDiffersFromRemote) {
+			// Local tip already contains the merge (e.g. a previous push failed).
+			const pushed = git(['push', 'origin', branch], { allowFailure: true })
+			if (pushed.status !== 0) {
+				console.error(pushed.output)
+				return { pr: pr.number, status: 'push-failed', ...counts }
+			}
+			console.log('  pushed previously merged local tip')
+			return { pr: pr.number, status: 'synced', ...counts }
+		}
 		console.log('  already up to date')
 		return { pr: pr.number, status: 'clean' }
 	}
@@ -155,7 +180,7 @@ function syncBranch(pr, { dryRun }) {
 function main() {
 	const args = parseArgs(process.argv.slice(2))
 	const original = currentBranch()
-	const originalStatus = git(['status', '--porcelain']).output
+	const originalStatus = git(['status', '--porcelain']).stdout
 	if (originalStatus !== '') {
 		fail('working tree is not clean; commit or stash before syncing PR branches')
 	}

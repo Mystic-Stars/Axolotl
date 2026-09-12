@@ -45,6 +45,7 @@ export function stripSqlNoise(sql) {
 		}
 		const quote = sql[index]
 		if (quote === "'" || quote === '"' || quote === '`') {
+			const start = index
 			index += 1
 			while (index < sql.length) {
 				if (sql[index] === quote) {
@@ -57,7 +58,10 @@ export function stripSqlNoise(sql) {
 				}
 				index += 1
 			}
-			out += '""'
+			// Keep identifier quotes so "table"."column" still matches DDL regexes;
+			// string literals become empty quotes and cannot fake identifiers.
+			const raw = sql.slice(start, index)
+			out += quote === "'" ? "''" : raw
 			continue
 		}
 		out += sql[index]
@@ -123,8 +127,4 @@ export function loadRevertibleMigrations(dir = MIGRATIONS_DIR) {
 		})
 	}
 	return map
-}
-
-export function isRevertibleVersion(version, revertible = loadRevertibleMigrations()) {
-	return revertible.has(Number(version))
 }

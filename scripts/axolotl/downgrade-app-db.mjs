@@ -440,9 +440,10 @@ function reportPlan({ applied, failed, plan }) {
 
 	if (failed.length > 0) {
 		note(
-			`\nwarning: ${failed.join(', ')} are recorded as FAILED migrations. Removing their\n` +
-				'records lets a build that carries them try again, but a half-applied migration\n' +
-				'may have left the schema in a state neither build expects.',
+			`\nwarning: ${failed.join(', ')} are recorded as FAILED migrations. Their records\n` +
+				'are removed together with the successful ones so a build that carries them can\n' +
+				'try again, but a half-applied migration may have left the schema in a state\n' +
+				'neither build expects.',
 		)
 	}
 }
@@ -466,6 +467,27 @@ function checkMappings(plan) {
 
 function unmappedVersions(plan) {
 	return plan.filter(({ mapped }) => !mapped).map(({ version }) => version)
+}
+
+function createdTableVersions(plan) {
+	return plan
+		.filter(({ createdTables }) => createdTables.length > 0)
+		.map(({ version, createdTables }) => ({ version, createdTables }))
+}
+
+function checkCreatedTables(plan) {
+	const risky = createdTableVersions(plan)
+	if (risky.length === 0) return
+
+	const details = risky
+		.map(({ version, createdTables }) => `${version} (${createdTables.join(', ')})`)
+		.join('; ')
+	fail(
+		`${details} created tables this script will not drop. Removing only the migration\n` +
+			'record leaves objects behind, and reinstalling that build fails on\n' +
+			'"table already exists". Drop those objects by hand after inspecting the backup,\n' +
+			'or downgrade to a version before this migration instead.',
+	)
 }
 
 function main() {
@@ -508,9 +530,17 @@ function main() {
 	}
 
 	if (!args.apply) {
+		const risky = createdTableVersions(state.plan)
+		if (risky.length > 0) {
+			note(
+				'\nnote: --apply will refuse migrations that created tables this script will not drop.',
+			)
+		}
 		note('\ndry run: rerun with --apply to perform the downgrade')
 		return
 	}
+
+	checkCreatedTables(state.plan)
 
 	const running = runningLauncher()
 	if (running) {
@@ -534,9 +564,12 @@ function main() {
 					if (present) writable.exec(`ALTER TABLE ${table} DROP COLUMN ${column}`)
 				}
 			}
-			writable
-				.prepare(`DELETE FROM _sqlx_migrations WHERE version IN (${state.applied.join(', ')})`)
-				.run()
+			const versions = [...state.applied, ...state.failed]
+			if (versions.length > 0) {
+				writable
+					.prepare(`DELETE FROM _sqlx_migrations WHERE version IN (${versions.join(', ')})`)
+					.run()
+			}
 			writable.exec('COMMIT')
 		} catch (error) {
 			writable.exec('ROLLBACK')

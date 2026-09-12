@@ -294,6 +294,15 @@ console.log('keeping the migration mapping honest')
 		'ignores ADD COLUMN inside comments',
 		parseAddColumns('-- ALTER TABLE settings ADD COLUMN fake TEXT;\n').length === 0,
 	)
+	check(
+		'keeps quoted identifiers',
+		parseAddColumns('ALTER TABLE "settings" ADD COLUMN "log_level" TEXT;')[0]?.column ===
+			'log_level',
+	)
+	check(
+		'does not treat string contents as DDL',
+		parseCreatedTables("SELECT 'CREATE TABLE nope (id INTEGER);';").length === 0,
+	)
 
 	const revertible = loadRevertibleMigrations(migrationsDir)
 	const versions = [...revertible.keys()].sort((a, b) => a - b)

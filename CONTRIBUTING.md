@@ -109,7 +109,7 @@ node scripts/axolotl/downgrade-app-db.mjs --suffix pr538 --to 20260903120000 --a
 - 合并上游后若迁移版本撞车，用 `node scripts/axolotl/migration.mjs renumber <旧> <新>` 改名（只改文件名）。
 - 某个 PR 合并进 main 后，可运行 `node scripts/axolotl/sync-open-prs.mjs`（或 `--dry-run`）把其余在飞 PR 分支 merge 到最新 main。
 
-该脚本依赖 Node 内置的 `node:sqlite`，并要求 Windows（解析默认数据目录需要 `APPDATA`；其他平台请用 `--db` 指定路径）。
+该脚本依赖 Node 内置的 `node:sqlite`，并要求 Windows（解析默认数据目录需要 `APPDATA`；其他平台请用 `--db` 指定路径）。`migration.mjs` / `sync-open-prs.mjs` 无此限制。
 
 ## 仓库范围
 
