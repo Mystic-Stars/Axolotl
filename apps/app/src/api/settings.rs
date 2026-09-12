@@ -36,7 +36,13 @@ pub async fn settings_set(
     app: tauri::AppHandle<impl Runtime>,
     settings: Settings,
 ) -> Result<()> {
+    let log_level = settings.log_level.clone();
     settings::set(settings).await?;
+    // Apply the log level right away so the new verbosity takes effect without
+    // a restart. Invalid values are rejected by the settings table itself.
+    if let Err(error) = theseus::set_log_level(&log_level) {
+        tracing::warn!("Keeping the previous log level: {error}");
+    }
     let _ = app.emit("settings", ());
     Ok(())
 }

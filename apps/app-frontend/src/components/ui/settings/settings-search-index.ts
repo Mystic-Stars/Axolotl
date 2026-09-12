@@ -107,6 +107,26 @@ export const settingsSearchEntries: SettingsSearchEntry[] = [
 		),
 	},
 	{
+		id: 'logs-level',
+		categoryId: 'logs',
+		targetId: 'settings-target-logs-level',
+		label: message('app.settings.logs.level.title', 'Log level'),
+		description: message(
+			'app.settings.logs.level.description',
+			'Choose the lowest level written to the launcher log files.',
+		),
+	},
+	{
+		id: 'logs-export',
+		categoryId: 'logs',
+		targetId: 'settings-target-logs-export',
+		label: message('app.settings.logs.export.title', 'Export logs'),
+		description: message(
+			'app.settings.logs.export.description',
+			'Package launcher logs with an optional environment summary, instance log, and crash analysis.',
+		),
+	},
+	{
 		id: 'appearance-show-scroll-top',
 		categoryId: 'home-navigation',
 		targetId: 'settings-target-appearance-show-scroll-top',

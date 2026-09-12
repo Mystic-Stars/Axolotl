@@ -70,6 +70,8 @@ const REVERTIBLE_COLUMNS = {
 	20260908010000: [{ table: 'instances', column: 'linked_game_dir_mode' }],
 	// crash_analysis_ai_settings.ai_source
 	20260911120000: [{ table: 'crash_analysis_ai_settings', column: 'ai_source' }],
+	// settings.log_level
+	20260912120000: [{ table: 'settings', column: 'log_level' }],
 }
 
 function fail(message) {

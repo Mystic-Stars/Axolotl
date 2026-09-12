@@ -32,6 +32,106 @@ const LAUNCHER_LOG_MAX_FILES: usize = 5;
 const LAUNCHER_LOG_MAX_AGE: std::time::Duration =
     std::time::Duration::from_secs(3 * 24 * 60 * 60);
 
+/// Logs younger than this are kept at full fidelity, including TRACE.
+#[cfg(any(test, not(debug_assertions)))]
+const LAUNCHER_LOG_FULL_FIDELITY_AGE: std::time::Duration =
+    std::time::Duration::from_secs(30 * 60);
+/// Logs older than this drop TRACE; older than the debug window they also
+/// drop DEBUG.
+#[cfg(any(test, not(debug_assertions)))]
+const LAUNCHER_LOG_DEBUG_FIDELITY_AGE: std::time::Duration =
+    std::time::Duration::from_secs(2 * 60 * 60);
+#[cfg(not(debug_assertions))]
+const LAUNCHER_LOG_PRUNE_INTERVAL: std::time::Duration =
+    std::time::Duration::from_secs(5 * 60);
+
+/// Level used until the stored user preference is applied; full collection so
+/// early startup logs are never lost, and incidents can always be reported.
+pub const DEFAULT_LOG_LEVEL: &str = "trace";
+
+/// Dependency directives that stay pinned regardless of the user level, so
+/// noisy third-party crates never drown out launcher logs.
+const THIRD_PARTY_LOG_DIRECTIVES: [&str; 4] =
+    ["h2=info", "hyper=info", "hyper_util=info", "sqlx=warn"];
+
+static LOG_FILTER_RELOAD: std::sync::OnceLock<
+    tracing_subscriber::reload::Handle<
+        tracing_subscriber::EnvFilter,
+        tracing_subscriber::Registry,
+    >,
+> = std::sync::OnceLock::new();
+
+fn log_level_directives(level: &str) -> String {
+    format!("theseus={level},theseus_gui={level}")
+}
+
+fn add_third_party_directives(
+    mut filter: tracing_subscriber::EnvFilter,
+) -> tracing_subscriber::EnvFilter {
+    for directive in THIRD_PARTY_LOG_DIRECTIVES {
+        if let Ok(parsed) = directive.parse() {
+            filter = filter.add_directive(parsed);
+        }
+    }
+    filter
+}
+
+/// Filter used when the logger starts: `RUST_LOG` wins when present, otherwise
+/// the given default level seeds collection until the stored preference is
+/// applied.
+fn initial_log_filter(
+    default_level: &str,
+) -> Option<tracing_subscriber::EnvFilter> {
+    let filter = tracing_subscriber::EnvFilter::try_from_default_env()
+        .unwrap_or_else(|_| {
+            tracing_subscriber::EnvFilter::new(log_level_directives(
+                default_level,
+            ))
+        });
+    Some(add_third_party_directives(filter))
+}
+
+/// Validates a stored log level, returning its canonical directive value.
+fn normalize_log_level(level: &str) -> crate::Result<&'static str> {
+    match level.trim().to_ascii_lowercase().as_str() {
+        "error" => Ok("error"),
+        "warn" => Ok("warn"),
+        "info" => Ok("info"),
+        "debug" => Ok("debug"),
+        "trace" => Ok("trace"),
+        other => Err(crate::ErrorKind::InputError(format!(
+            "Invalid log level {other:?}; expected one of error, warn, info, debug, trace"
+        ))
+        .into()),
+    }
+}
+
+/// Applies the lowest level written to disk (and the console in debug builds).
+///
+/// The launcher starts logging at [`DEFAULT_LOG_LEVEL`] because the logger is
+/// initialized before the database is available; the stored preference is
+/// applied here once settings have loaded, and again whenever the user changes
+/// it. `RUST_LOG` still takes precedence for the initial filter so developers
+/// keep their escape hatch, but an explicit change from the settings page
+/// always wins from then on.
+pub fn set_log_level(level: &str) -> crate::Result<()> {
+    let level = normalize_log_level(level)?;
+    let filter = add_third_party_directives(
+        tracing_subscriber::EnvFilter::new(log_level_directives(level)),
+    );
+
+    let Some(handle) = LOG_FILTER_RELOAD.get() else {
+        // The logger was never started (or is not reloadable yet).
+        return Ok(());
+    };
+    handle.reload(filter).map_err(|error| {
+        crate::ErrorKind::OtherError(format!(
+            "Failed to apply log level {level:?}: {error}"
+        ))
+        .into()
+    })
+}
+
 #[cfg(any(test, not(debug_assertions)))]
 #[derive(Clone)]
 struct RotatingLogWriter {
@@ -82,6 +182,9 @@ impl RotatingLogWriter {
                 .max(1),
         };
         writer.cleanup_old_logs();
+        // Apply the retention ladder once at startup so logs left behind by a
+        // previous session are degraded immediately.
+        writer.prune_old_logs();
         Ok(writer)
     }
 
@@ -253,6 +356,296 @@ fn launcher_log_is_expired(
     now.duration_since(created).is_ok_and(|age| age > max_age)
 }
 
+/// Lowest level kept for a given log age: full fidelity (TRACE) inside the
+/// full window, DEBUG up to the debug window, and INFO beyond it.
+#[cfg(any(test, not(debug_assertions)))]
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum LogFidelity {
+    Trace,
+    Debug,
+    Info,
+}
+
+#[cfg(any(test, not(debug_assertions)))]
+fn log_fidelity_for_age(age: std::time::Duration) -> LogFidelity {
+    if age <= LAUNCHER_LOG_FULL_FIDELITY_AGE {
+        LogFidelity::Trace
+    } else if age <= LAUNCHER_LOG_DEBUG_FIDELITY_AGE {
+        LogFidelity::Debug
+    } else {
+        LogFidelity::Info
+    }
+}
+
+/// Ordinal for the levels the launcher writes, ordered from most to least
+/// verbose. Unknown tokens are ignored so unrecognized lines are never pruned.
+fn log_level_ordinal(token: &str) -> Option<u8> {
+    match token {
+        "TRACE" => Some(0),
+        "DEBUG" => Some(1),
+        "INFO" => Some(2),
+        "WARN" => Some(3),
+        "ERROR" => Some(4),
+        _ => None,
+    }
+}
+
+#[cfg(any(test, not(debug_assertions)))]
+fn minimum_kept_ordinal(fidelity: LogFidelity) -> u8 {
+    match fidelity {
+        LogFidelity::Trace => 0,
+        LogFidelity::Debug => 1,
+        LogFidelity::Info => 2,
+    }
+}
+
+fn log_level_minimum_ordinal(level: &str) -> Option<u8> {
+    match level {
+        "trace" => Some(0),
+        "debug" => Some(1),
+        "info" => Some(2),
+        "warn" => Some(3),
+        "error" => Some(4),
+        _ => None,
+    }
+}
+
+/// How a log line relates to the surrounding entries.
+enum LogEntryHeader {
+    /// Timestamp and level parsed: the entry can be filtered.
+    Classified(chrono::DateTime<chrono::FixedOffset>, u8),
+    /// Timestamp parsed but the level is unknown: keep it rather than
+    /// dropping content this logic does not understand.
+    Unclassified,
+}
+
+/// Reads the timestamp and level of an entry line. Continuation lines of a
+/// multi-line message carry no prefix and return `None`, so callers keep them
+/// grouped with the entry they belong to.
+fn parse_log_entry_header(line: &str) -> Option<LogEntryHeader> {
+    let (timestamp, rest) = line.split_once(char::is_whitespace)?;
+    let timestamp = chrono::DateTime::parse_from_rfc3339(timestamp).ok()?;
+    let level = rest.trim_start().split_whitespace().next()?;
+    Some(match log_level_ordinal(level) {
+        Some(ordinal) => LogEntryHeader::Classified(timestamp, ordinal),
+        None => LogEntryHeader::Unclassified,
+    })
+}
+
+/// Keeps or drops whole log entries by a predicate over their timestamp and
+/// level ordinal, returning `None` when nothing was dropped.
+///
+/// Multi-line messages are kept or dropped together with their header, the
+/// bytes of kept lines are preserved exactly (no re-encoding), and entries
+/// whose level cannot be classified are always kept.
+fn filter_log_entries<F>(contents: &[u8], keep: F) -> Option<Vec<u8>>
+where
+    F: Fn(chrono::DateTime<chrono::FixedOffset>, u8) -> bool,
+{
+    let mut kept = Vec::with_capacity(contents.len());
+    let mut changed = false;
+    let mut keep_entry = true;
+
+    for line in contents.split_inclusive(|byte| *byte == b'\n') {
+        match parse_log_entry_header(&String::from_utf8_lossy(line)) {
+            Some(LogEntryHeader::Classified(timestamp, ordinal)) => {
+                keep_entry = keep(timestamp, ordinal);
+            }
+            Some(LogEntryHeader::Unclassified) => keep_entry = true,
+            // Continuation line: it follows the decision of its entry.
+            None => {}
+        }
+
+        if keep_entry {
+            kept.extend_from_slice(line);
+        } else {
+            changed = true;
+        }
+    }
+
+    changed.then_some(kept)
+}
+
+/// Drops log lines that fall outside the retention ladder.
+#[cfg(any(test, not(debug_assertions)))]
+fn prune_log_contents(
+    contents: &[u8],
+    now: chrono::DateTime<chrono::FixedOffset>,
+) -> Option<Vec<u8>> {
+    filter_log_entries(contents, |timestamp, ordinal| {
+        let age = (now - timestamp).to_std().unwrap_or_default();
+        ordinal >= minimum_kept_ordinal(log_fidelity_for_age(age))
+    })
+}
+
+/// Filters launcher log bytes for an export: entries older than `max_age` and
+/// entries below `min_level` are removed. Pass `None` for either bound to keep
+/// everything on that axis. Multi-line messages stay intact.
+pub fn filter_log_contents(
+    contents: &[u8],
+    max_age: Option<std::time::Duration>,
+    min_level: Option<&str>,
+) -> Vec<u8> {
+    let now = chrono::Local::now().fixed_offset();
+    let minimum = min_level.and_then(log_level_minimum_ordinal);
+
+    filter_log_entries(contents, |timestamp, ordinal| {
+        if let Some(minimum) = minimum
+            && ordinal < minimum
+        {
+            return false;
+        }
+        if let Some(max_age) = max_age {
+            let age = (now - timestamp).to_std().unwrap_or_default();
+            if age > max_age {
+                return false;
+            }
+        }
+        true
+    })
+    .unwrap_or_else(|| contents.to_vec())
+}
+
+/// Path of the scratch file used while a log segment is being rewritten.
+#[cfg(any(test, not(debug_assertions)))]
+fn prune_temporary_path(path: &std::path::Path) -> std::path::PathBuf {
+    path.with_extension("log.pruning")
+}
+
+/// Writes contents durably, so an interrupted rewrite can never leave a
+/// partially written file behind.
+#[cfg(any(test, not(debug_assertions)))]
+fn write_file_durably(
+    path: &std::path::Path,
+    contents: &[u8],
+) -> std::io::Result<()> {
+    let mut file = std::fs::File::create(path)?;
+    std::io::Write::write_all(&mut file, contents)?;
+    std::io::Write::flush(&mut file)?;
+    file.sync_all()
+}
+
+/// Rewrites a rotated log file through a temporary sibling, so a crash during
+/// pruning never leaves a truncated file behind.
+#[cfg(any(test, not(debug_assertions)))]
+fn prune_inactive_log_file(
+    path: &std::path::Path,
+    now: chrono::DateTime<chrono::FixedOffset>,
+) -> std::io::Result<()> {
+    let contents = std::fs::read(path)?;
+    let Some(pruned) = prune_log_contents(&contents, now) else {
+        return Ok(());
+    };
+
+    let temporary = prune_temporary_path(path);
+    if let Err(error) = write_file_durably(&temporary, &pruned) {
+        let _ = std::fs::remove_file(&temporary);
+        return Err(error);
+    }
+    if let Err(error) = std::fs::rename(&temporary, path) {
+        let _ = std::fs::remove_file(&temporary);
+        return Err(error);
+    }
+    Ok(())
+}
+
+/// Rewrites the active segment by moving the pruned copy into place and
+/// reopening it for appending.
+///
+/// Replacing the file instead of truncating it keeps a crash or a failed write
+/// from shortening the log being written, and the replacement is only adopted
+/// once the pruned copy is safely on disk. The writer holds the lock for the
+/// whole swap, so no event can land in the discarded file.
+#[cfg(any(test, not(debug_assertions)))]
+fn prune_active_log_file(
+    state: &mut RotatingLogState,
+    path: &std::path::Path,
+    now: chrono::DateTime<chrono::FixedOffset>,
+) -> std::io::Result<()> {
+    let contents = std::fs::read(path)?;
+    let Some(pruned) = prune_log_contents(&contents, now) else {
+        return Ok(());
+    };
+
+    std::io::Write::flush(&mut state.file)?;
+
+    let temporary = prune_temporary_path(path);
+    if let Err(error) = write_file_durably(&temporary, &pruned) {
+        let _ = std::fs::remove_file(&temporary);
+        return Err(error);
+    }
+
+    // Opening the replacement before the swap means a failure here leaves the
+    // original segment untouched and still being appended to.
+    let replacement = match open_log_file(&temporary) {
+        Ok(file) => file,
+        Err(error) => {
+            let _ = std::fs::remove_file(&temporary);
+            return Err(error);
+        }
+    };
+    if let Err(error) = std::fs::rename(&temporary, path) {
+        drop(replacement);
+        let _ = std::fs::remove_file(&temporary);
+        return Err(error);
+    }
+
+    state.file = replacement;
+    state.bytes_written = pruned.len() as u64;
+    Ok(())
+}
+
+/// Applies the retention ladder to every launcher log file, including the
+/// active segment, and returns one message per file that could not be pruned.
+///
+/// Callers must hold the writer lock; failures are returned instead of logged
+/// because emitting a tracing event here would deadlock on that same lock.
+#[cfg(any(test, not(debug_assertions)))]
+fn prune_launcher_logs(
+    state: &mut RotatingLogState,
+    now: chrono::DateTime<chrono::FixedOffset>,
+) -> Vec<String> {
+    let active_path =
+        rotating_log_path(&state.logs_dir, &state.session_name, state.segment);
+    let Ok(entries) = std::fs::read_dir(&state.logs_dir) else {
+        return Vec::new();
+    };
+    let mut paths = Vec::new();
+    for entry in entries.filter_map(Result::ok) {
+        let path = entry.path();
+        let Some(name) = path.file_name().and_then(|name| name.to_str()) else {
+            continue;
+        };
+        if !entry.file_type().is_ok_and(|kind| kind.is_file()) {
+            continue;
+        }
+        // A scratch file left behind by an interrupted rewrite is an orphan:
+        // rewriting is serialized under the writer lock, so nothing else can
+        // own it now.
+        if name.starts_with("session_") && name.ends_with(".log.pruning") {
+            let _ = std::fs::remove_file(&path);
+            continue;
+        }
+        if name.starts_with("session_") && name.ends_with(".log") {
+            paths.push(path);
+        }
+    }
+    paths.sort();
+
+    let mut failures = Vec::new();
+    for path in paths {
+        let result = if path == active_path {
+            prune_active_log_file(state, &path, now)
+        } else {
+            prune_inactive_log_file(&path, now)
+        };
+        if let Err(error) = result {
+            failures.push(format!("{}: {error}", path.display()));
+        }
+    }
+    failures
+}
+
 #[cfg(any(test, not(debug_assertions)))]
 struct LogEventWriter {
     writer: RotatingLogWriter,
@@ -321,6 +714,21 @@ impl RotatingLogWriter {
             writer: self.clone(),
             buffer: Vec::new(),
             max_file_bytes,
+        }
+    }
+
+    /// Applies the retention ladder now. Failures are reported after the lock
+    /// is released, since tracing into the held writer would deadlock.
+    fn prune_old_logs(&self) {
+        let failures = match self.state.lock() {
+            Ok(mut state) => {
+                let now = chrono::Local::now().fixed_offset();
+                prune_launcher_logs(&mut state, now)
+            }
+            Err(_) => return,
+        };
+        for failure in failures {
+            tracing::warn!("Failed to prune launcher log: {failure}");
         }
     }
 }
@@ -632,23 +1040,21 @@ impl std::io::Write for TruncatedConsoleWriter {
 #[cfg(debug_assertions)]
 pub fn start_logger(_app_identifier: &str) -> Option<()> {
     use tracing_subscriber::prelude::*;
-    let filter = tracing_subscriber::EnvFilter::try_from_default_env()
-        .unwrap_or_else(|_| {
-            tracing_subscriber::EnvFilter::new("theseus=info,theseus_gui=info")
-        })
-        .add_directive("h2=info".parse().ok()?)
-        .add_directive("hyper=info".parse().ok()?)
-        .add_directive("hyper_util=info".parse().ok()?)
-        .add_directive("sqlx=warn".parse().ok()?);
+    // Development keeps the console quieter by default; the stored preference
+    // still applies through `set_log_level`, and RUST_LOG keeps working.
+    let filter = initial_log_filter("info")?;
+    let (filter_layer, reload_handle) =
+        tracing_subscriber::reload::Layer::new(filter);
     tracing_subscriber::registry()
+        .with(filter_layer)
         .with(tracing_subscriber::fmt::layer().with_writer(|| {
             TruncatedConsoleWriter {
                 stdout: std::io::stdout(),
             }
         }))
-        .with(filter)
         .with(tracing_error::ErrorLayer::default())
         .init();
+    let _ = LOG_FILTER_RELOAD.set(reload_handle);
     Some(())
 }
 
@@ -856,6 +1262,199 @@ mod tests {
         assert!(!old_path.exists());
         assert!(active_path.exists());
     }
+
+    fn test_now() -> chrono::DateTime<chrono::FixedOffset> {
+        chrono::Local::now().fixed_offset()
+    }
+
+    fn log_line(
+        now: chrono::DateTime<chrono::FixedOffset>,
+        age: chrono::Duration,
+        level: &str,
+        message: &str,
+    ) -> String {
+        format!("{} {level} theseus: {message}\n", (now - age).to_rfc3339())
+    }
+
+    #[test]
+    fn retention_ladder_degrades_old_log_levels() {
+        let now = test_now();
+        let contents = [
+            log_line(now, chrono::Duration::minutes(1), "TRACE", "hot trace"),
+            log_line(now, chrono::Duration::minutes(45), "TRACE", "cold trace"),
+            log_line(now, chrono::Duration::minutes(45), "DEBUG", "cold debug"),
+            log_line(now, chrono::Duration::hours(3), "DEBUG", "stale debug"),
+            log_line(now, chrono::Duration::hours(3), "INFO", "stale info"),
+            log_line(now, chrono::Duration::hours(3), "ERROR", "stale error"),
+        ]
+        .concat();
+
+        let pruned = String::from_utf8(
+            prune_log_contents(contents.as_bytes(), now)
+                .expect("stale verbose lines are pruned"),
+        )
+        .unwrap();
+
+        assert!(pruned.contains("hot trace"));
+        assert!(!pruned.contains("cold trace"));
+        assert!(pruned.contains("cold debug"));
+        assert!(!pruned.contains("stale debug"));
+        assert!(pruned.contains("stale info"));
+        assert!(pruned.contains("stale error"));
+    }
+
+    #[test]
+    fn retention_ladder_leaves_unprunable_contents_untouched() {
+        let now = test_now();
+        let contents = [
+            log_line(now, chrono::Duration::minutes(1), "TRACE", "hot trace"),
+            log_line(now, chrono::Duration::hours(3), "INFO", "stale info"),
+        ]
+        .concat();
+
+        assert!(prune_log_contents(contents.as_bytes(), now).is_none());
+    }
+
+    #[test]
+    fn multi_line_entries_are_pruned_as_one_unit() {
+        let now = test_now();
+        let stale = (now - chrono::Duration::hours(3)).to_rfc3339();
+        let contents = format!(
+            "{stale} DEBUG theseus: dropped header\n  dropped continuation\n{stale} INFO theseus: kept header\n  kept continuation\n"
+        );
+
+        let pruned = String::from_utf8(
+            prune_log_contents(contents.as_bytes(), now)
+                .expect("the stale debug entry is pruned"),
+        )
+        .unwrap();
+
+        assert!(!pruned.contains("dropped header"));
+        assert!(!pruned.contains("dropped continuation"));
+        assert!(pruned.contains("kept header"));
+        assert!(pruned.contains("kept continuation"));
+    }
+
+    #[test]
+    fn pruning_the_active_segment_keeps_appends_working() {
+        let directory = tempfile::tempdir().unwrap();
+        let session_name = "session_20260722_120000".to_string();
+        let writer = RotatingLogWriter::new(
+            directory.path().to_path_buf(),
+            session_name.clone(),
+            10_000,
+            30_000,
+            5,
+            std::time::Duration::from_secs(3 * 24 * 60 * 60),
+        )
+        .unwrap();
+
+        let now = test_now();
+        let contents = [
+            log_line(now, chrono::Duration::hours(3), "TRACE", "stale trace"),
+            log_line(now, chrono::Duration::minutes(1), "TRACE", "hot trace"),
+        ]
+        .concat();
+        writer.write_event(contents.as_bytes(), 10_000).unwrap();
+
+        writer.prune_old_logs();
+
+        let path = directory.path().join(format!("{session_name}.log"));
+        let pruned = std::fs::read_to_string(&path).unwrap();
+        assert!(!pruned.contains("stale trace"));
+        assert!(pruned.contains("hot trace"));
+        assert_eq!(
+            pruned.len() as u64,
+            writer.state.lock().unwrap().bytes_written
+        );
+
+        writer.write_event(b"appended\n", 10_000).unwrap();
+        writer.flush().unwrap();
+        assert!(
+            std::fs::read_to_string(&path)
+                .unwrap()
+                .ends_with("appended\n")
+        );
+    }
+
+    #[test]
+    fn rotated_log_files_are_pruned_atomically() {
+        let directory = tempfile::tempdir().unwrap();
+        let rotated = directory.path().join("session_20260722_110000.log");
+        let now = test_now();
+        let contents = [
+            log_line(now, chrono::Duration::minutes(1), "TRACE", "hot trace"),
+            log_line(now, chrono::Duration::hours(3), "DEBUG", "stale debug"),
+        ]
+        .concat();
+        std::fs::write(&rotated, contents).unwrap();
+
+        prune_inactive_log_file(&rotated, now).unwrap();
+
+        let pruned = std::fs::read_to_string(&rotated).unwrap();
+        assert!(pruned.contains("hot trace"));
+        assert!(!pruned.contains("stale debug"));
+        assert!(!rotated.with_extension("log.pruning").exists());
+    }
+
+    #[test]
+    fn entries_with_unknown_levels_are_kept() {
+        let now = test_now();
+        let stale = (now - chrono::Duration::hours(3)).to_rfc3339();
+        let fresh = (now - chrono::Duration::minutes(1)).to_rfc3339();
+        let contents = format!(
+            "{stale} DEBUG theseus: dropped header\n{stale} NOTICE theseus: unclassified line\n{fresh} TRACE theseus: kept trace\n"
+        );
+
+        let pruned = String::from_utf8(
+            prune_log_contents(contents.as_bytes(), now)
+                .expect("the stale debug entry is pruned"),
+        )
+        .unwrap();
+
+        assert!(!pruned.contains("dropped header"));
+        assert!(pruned.contains("unclassified line"));
+        assert!(pruned.contains("kept trace"));
+    }
+
+    #[test]
+    fn interrupted_rewrites_leave_no_scratch_files_behind() {
+        let directory = tempfile::tempdir().unwrap();
+        let session_name = "session_20260722_120000".to_string();
+        let writer = RotatingLogWriter::new(
+            directory.path().to_path_buf(),
+            session_name.clone(),
+            10_000,
+            30_000,
+            5,
+            std::time::Duration::from_secs(3 * 24 * 60 * 60),
+        )
+        .unwrap();
+
+        let orphan =
+            directory.path().join(format!("{session_name}.log.pruning"));
+        std::fs::write(&orphan, b"half written").unwrap();
+
+        writer.prune_old_logs();
+
+        assert!(!orphan.exists());
+        assert!(
+            directory
+                .path()
+                .join(format!("{session_name}.log"))
+                .exists()
+        );
+    }
+
+    #[test]
+    fn log_levels_are_validated_before_being_applied() {
+        assert_eq!(normalize_log_level(" TRACE ").unwrap(), "trace");
+        assert_eq!(normalize_log_level("Debug").unwrap(), "debug");
+        assert!(normalize_log_level("verbose").is_err());
+        assert!(set_log_level("verbose").is_err());
+        // No logger is installed in tests, so a valid level is a quiet no-op.
+        assert!(set_log_level("debug").is_ok());
+    }
 }
 
 // Handling for the live production logging
@@ -893,23 +1492,37 @@ pub fn start_logger(app_identifier: &str) -> Option<()> {
         }
     };
 
-    let filter = tracing_subscriber::EnvFilter::try_from_default_env()
-        .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("theseus=info"))
-        .add_directive("h2=info".parse().ok()?)
-        .add_directive("hyper=info".parse().ok()?)
-        .add_directive("hyper_util=info".parse().ok()?)
-        .add_directive("sqlx=warn".parse().ok()?);
+    let filter = match initial_log_filter(DEFAULT_LOG_LEVEL) {
+        Some(filter) => filter,
+        None => return None,
+    };
+    let (filter_layer, reload_handle) =
+        tracing_subscriber::reload::Layer::new(filter);
 
     tracing_subscriber::registry()
+        .with(filter_layer)
         .with(
             tracing_subscriber::fmt::layer()
-                .with_writer(writer)
+                .with_writer(writer.clone())
                 .with_ansi(false) // disable ANSI escape codes
                 .with_timer(ChronoLocal::rfc_3339()),
         )
-        .with(filter)
         .with(tracing_error::ErrorLayer::default())
         .init();
+    let _ = LOG_FILTER_RELOAD.set(reload_handle);
+
+    // Retention degrades by age (30 minutes / 2 hours), so a coarse periodic
+    // sweep is enough; rotating on size does not need to trigger one.
+    let prune_writer = writer;
+    std::thread::Builder::new()
+        .name("launcher-log-prune".to_string())
+        .spawn(move || {
+            loop {
+                std::thread::sleep(LAUNCHER_LOG_PRUNE_INTERVAL);
+                prune_writer.prune_old_logs();
+            }
+        })
+        .ok();
 
     Some(())
 }

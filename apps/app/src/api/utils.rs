@@ -25,6 +25,7 @@ pub fn init<R: Runtime>() -> tauri::plugin::TauriPlugin<R> {
             open_path,
             show_launcher_logs_folder,
             export_error_logs,
+            export_launcher_logs,
             show_app_db_backups_folder,
             progress_bars_list,
             get_opening_command,
@@ -151,6 +152,10 @@ pub async fn export_error_logs(
             }
 
             let file_name = entry.file_name().to_string_lossy().to_string();
+            // Scratch files from an interrupted log rewrite are not logs.
+            if file_name.ends_with(".log.pruning") {
+                continue;
+            }
             write_zip_file(
                 &mut writer,
                 &format!("launcher_logs/{file_name}"),
@@ -162,6 +167,312 @@ pub async fn export_error_logs(
 
     writer.close().await.map_err(zip_error)?;
     Ok(())
+}
+
+/// Time window included in a launcher log export.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum LogExportRange {
+    Last30Minutes,
+    Last2Hours,
+    All,
+}
+
+impl LogExportRange {
+    fn max_age(self) -> Option<std::time::Duration> {
+        match self {
+            Self::Last30Minutes => {
+                Some(std::time::Duration::from_secs(30 * 60))
+            }
+            Self::Last2Hours => {
+                Some(std::time::Duration::from_secs(2 * 60 * 60))
+            }
+            Self::All => None,
+        }
+    }
+
+    fn label(self) -> &'static str {
+        match self {
+            Self::Last30Minutes => "last 30 minutes",
+            Self::Last2Hours => "last 2 hours",
+            Self::All => "all sessions",
+        }
+    }
+}
+
+/// Lowest level included in a launcher log export.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum LogExportLevel {
+    All,
+    Debug,
+    Info,
+}
+
+impl LogExportLevel {
+    fn minimum(self) -> Option<&'static str> {
+        match self {
+            Self::All => None,
+            Self::Debug => Some("debug"),
+            Self::Info => Some("info"),
+        }
+    }
+
+    fn label(self) -> &'static str {
+        match self {
+            Self::All => "all levels",
+            Self::Debug => "debug and above",
+            Self::Info => "info and above",
+        }
+    }
+}
+
+/// Instance log tail included in an export, in bytes.
+const LOG_EXPORT_INSTANCE_LOG_TAIL_BYTES: u64 = 512 * 1024;
+
+/// Export launcher logs (filtered by time range and level) plus optional
+/// system information, the most recent instance log, and a crash analysis
+/// summary into a ZIP archive.
+#[tauri::command]
+pub async fn export_launcher_logs(
+    output_path: PathBuf,
+    range: LogExportRange,
+    level: LogExportLevel,
+    include_system_info: bool,
+    include_instance_logs: bool,
+    include_crash_analysis: bool,
+) -> Result<()> {
+    // Censoring needs the app state (credentials, IPs). Without it an export
+    // would silently ship secrets, so fail rather than degrade.
+    let state = theseus::State::get().await?;
+    let archive = tokio::fs::File::create(&output_path).await?;
+    let mut writer = ZipFileWriter::with_tokio(archive);
+
+    let (exported_logs, skipped_logs) =
+        write_exported_logs(&mut writer, range, level, &state).await?;
+
+    let mut manifest = format!(
+        "Axolotl Launcher log export\n\
+         Exported at: {}\n\
+         App version: {}\n\
+         Time range: {}\n\
+         Level filter: {}\n\
+         System information: {}\n\
+         Recent instance log: {}\n\
+         Crash analysis: {}\n\
+         Log files: {exported_logs}\n\n\
+         Access tokens, Minecraft tokens, and IP addresses are replaced with placeholders.\n",
+        chrono::Local::now().to_rfc3339(),
+        env!("CARGO_PKG_VERSION"),
+        range.label(),
+        level.label(),
+        if include_system_info {
+            "included"
+        } else {
+            "omitted"
+        },
+        if include_instance_logs {
+            "included"
+        } else {
+            "omitted"
+        },
+        if include_crash_analysis {
+            "included"
+        } else {
+            "omitted"
+        },
+    );
+    if !skipped_logs.is_empty() {
+        manifest.push_str("\nSkipped unreadable log files:\n");
+        for name in &skipped_logs {
+            manifest.push_str(&format!("- {name}\n"));
+        }
+    }
+    write_zip_entry(&mut writer, "manifest.txt", manifest.as_bytes()).await?;
+
+    if include_system_info {
+        let environment = build_environment_report();
+        let environment = censor_export_text(environment, &state).await?;
+        write_zip_entry(
+            &mut writer,
+            "system-information.txt",
+            environment.as_bytes(),
+        )
+        .await?;
+    }
+
+    let recent_instance = if include_instance_logs || include_crash_analysis {
+        newest_instance_log(&state).await
+    } else {
+        None
+    };
+
+    if include_instance_logs
+        && let Some((instance_id, path)) = recent_instance.as_ref()
+    {
+        let tail = read_file_tail(path, LOG_EXPORT_INSTANCE_LOG_TAIL_BYTES)?;
+        let tail = censor_export_text(tail, &state).await?;
+        write_zip_entry(
+            &mut writer,
+            &format!("minecraft/{instance_id}/latest.log"),
+            tail.as_bytes(),
+        )
+        .await?;
+    }
+
+    if include_crash_analysis
+        && let Some((instance_id, _)) = recent_instance.as_ref()
+        && let Ok(analysis) = theseus::logs::analyze_crash(instance_id).await
+        && (analysis.crashed || !analysis.findings.is_empty())
+        && let Ok(report) = serde_json::to_vec_pretty(&analysis)
+    {
+        // The analysis carries raw log text and Windows event messages, so it
+        // goes through the same censoring as the exported logs.
+        let report = censor_export_text(
+            String::from_utf8_lossy(&report).into_owned(),
+            &state,
+        )
+        .await?;
+        write_zip_entry(
+            &mut writer,
+            &format!("minecraft/{instance_id}/crash-analysis.json"),
+            report.as_bytes(),
+        )
+        .await?;
+    }
+
+    writer.close().await.map_err(zip_error)?;
+    Ok(())
+}
+
+/// Writes the matching launcher logs and reports how many were written plus
+/// the names of any files that could not be read.
+async fn write_exported_logs(
+    writer: &mut ZipFileWriter<tokio::fs::File>,
+    range: LogExportRange,
+    level: LogExportLevel,
+    state: &theseus::State,
+) -> Result<(usize, Vec<String>)> {
+    let Some(directories) = DirectoryInfo::global_handle_if_ready() else {
+        return Ok((0, Vec::new()));
+    };
+    let Some(logs_dir) = directories.launcher_logs_dir() else {
+        return Ok((0, Vec::new()));
+    };
+    if !tokio::fs::try_exists(&logs_dir).await? {
+        return Ok((0, Vec::new()));
+    }
+
+    let mut entries = tokio::fs::read_dir(&logs_dir).await?;
+    let mut paths = Vec::new();
+    while let Some(entry) = entries.next_entry().await? {
+        let path = entry.path();
+        let is_session_log =
+            path.file_name().and_then(|name| name.to_str()).is_some_and(
+                |name| name.starts_with("session_") && name.ends_with(".log"),
+            );
+        if is_session_log && entry.file_type().await?.is_file() {
+            paths.push(path);
+        }
+    }
+    paths.sort();
+
+    let mut exported = 0;
+    let mut skipped = Vec::new();
+    for path in paths {
+        let file_name = path
+            .file_name()
+            .map(|name| name.to_string_lossy().into_owned())
+            .unwrap_or_else(|| "session.log".to_string());
+
+        // A single unreadable file must not lose the whole report.
+        let Ok(contents) = tokio::fs::read(&path).await else {
+            skipped.push(file_name);
+            continue;
+        };
+        let filtered = theseus::filter_log_contents(
+            &contents,
+            range.max_age(),
+            level.minimum(),
+        );
+        let text = String::from_utf8_lossy(&filtered).into_owned();
+        let censored = censor_export_text(text, state).await?;
+        write_zip_entry(
+            writer,
+            &format!("launcher_logs/{file_name}"),
+            censored.as_bytes(),
+        )
+        .await?;
+        exported += 1;
+    }
+
+    Ok((exported, skipped))
+}
+
+/// Replaces credentials and IP addresses with placeholders. Censoring failures
+/// propagate so an export never ships unredacted content.
+async fn censor_export_text(
+    text: String,
+    state: &theseus::State,
+) -> Result<String> {
+    Ok(theseus::install::censor_shared_text(text, state).await?)
+}
+
+fn build_environment_report() -> String {
+    format!(
+        "Axolotl Launcher environment\n\
+         App version: {}\n\
+         Operating system: {}\n\
+         Architecture: {}\n",
+        env!("CARGO_PKG_VERSION"),
+        std::env::consts::OS,
+        std::env::consts::ARCH,
+    )
+}
+
+/// The instance whose log was written most recently, if any.
+async fn newest_instance_log(
+    state: &theseus::State,
+) -> Option<(String, PathBuf)> {
+    let instances_dir = state.directories.instances_dir();
+    let mut entries = tokio::fs::read_dir(&instances_dir).await.ok()?;
+    let mut newest: Option<(std::time::SystemTime, String, PathBuf)> = None;
+
+    while let Some(entry) = entries.next_entry().await.ok()? {
+        if !entry.file_type().await.ok()?.is_dir() {
+            continue;
+        }
+        let log_path = entry.path().join("logs").join("latest.log");
+        let Ok(metadata) = tokio::fs::metadata(&log_path).await else {
+            continue;
+        };
+        let Ok(modified) = metadata.modified() else {
+            continue;
+        };
+        let is_newer = newest
+            .as_ref()
+            .is_none_or(|(newest_modified, ..)| modified > *newest_modified);
+        if is_newer {
+            let id = entry.file_name().to_string_lossy().into_owned();
+            newest = Some((modified, id, log_path));
+        }
+    }
+
+    newest.map(|(_, id, path)| (id, path))
+}
+
+fn read_file_tail(path: &Path, max_bytes: u64) -> Result<String> {
+    use std::io::{Read, Seek, SeekFrom};
+
+    let mut file = std::fs::File::open(path)?;
+    let length = file.metadata()?.len();
+    if length > max_bytes {
+        file.seek(SeekFrom::Start(length - max_bytes))?;
+    }
+
+    let mut contents = Vec::new();
+    file.read_to_end(&mut contents)?;
+    Ok(String::from_utf8_lossy(&contents).into_owned())
 }
 
 async fn write_zip_file(
