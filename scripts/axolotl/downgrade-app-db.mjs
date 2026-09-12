@@ -37,40 +37,19 @@ import { spawnSync } from 'node:child_process'
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { join, basename, dirname } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
+import { loadRevertibleMigrations } from './migration-revert.mjs'
 
 const SETTINGS_DIR_NAME = 'red.ghs.axolotl'
 const APP_DB = 'app.db'
 const CHANNELS = ['release', 'beta']
 
-// Schema added by known migrations, used to undo it. Every migration a
-// downgrade is allowed to pass needs an entry here: `ALTER TABLE ... ADD COLUMN`
-// cannot be reversed in place, and leaving the column behind breaks the next
-// install of a build that carries the migration. A migration that only moves
-// data (DELETE, UPDATE) gets an empty list - there is nothing to drop, but
-// naming it keeps the downgrade from stopping on a migration it could pass.
-//
-// Only recent migrations are listed. Dropping to a threshold before them is
-// refused rather than guessed at; --allow-unmapped accepts the risk explicitly.
-const REVERTIBLE_COLUMNS = {
-	// settings.close_behavior
-	20260903120000: [{ table: 'settings', column: 'close_behavior' }],
-	// instances: the direct link columns
-	20260904120000: [
-		{ table: 'instances', column: 'linked_launcher' },
-		{ table: 'instances', column: 'linked_launcher_root' },
-		{ table: 'instances', column: 'linked_dot_minecraft' },
-		{ table: 'instances', column: 'linked_version_id' },
-		{ table: 'instances', column: 'linked_version_json_path' },
-	],
-	// telemetry samples; the tables stay, so nothing to drop
-	20260905000000: [],
-	// settings.mc_maximize_window
-	20260908000000: [{ table: 'settings', column: 'mc_maximize_window' }],
-	// instances.linked_game_dir_mode
-	20260908010000: [{ table: 'instances', column: 'linked_game_dir_mode' }],
-	// crash_analysis_ai_settings.ai_source
-	20260911120000: [{ table: 'crash_analysis_ai_settings', column: 'ai_source' }],
-}
+// Columns a downgrade must drop are derived from the migration SQL
+// (see migration-revert.mjs). Migrations at or after
+// OLDEST_REVERTIBLE_VERSION are always known; ADD COLUMN statements become
+// DROP COLUMN on the way down. Data-only migrations map to an empty list.
+// Older migrations stay unmapped so a downgrade into them refuses rather
+// than guesses; --allow-unmapped accepts the risk explicitly.
+const REVERTIBLE_MIGRATIONS = loadRevertibleMigrations()
 
 function fail(message) {
 	console.error(`error: ${message}`)
@@ -421,20 +400,28 @@ function planDowngrade(db, target) {
 	const applied = rows.filter((row) => row.success).map((row) => Number(row.version))
 	const failed = rows.filter((row) => !row.success).map((row) => Number(row.version))
 
-	const plan = applied.map((version) => ({
-		version,
-		mapped: REVERTIBLE_COLUMNS[version] !== undefined,
-		columns: columnsPresent(db, REVERTIBLE_COLUMNS[version] ?? []),
-	}))
+	const plan = applied.map((version) => {
+		const known = REVERTIBLE_MIGRATIONS.get(version)
+		return {
+			version,
+			mapped: known !== undefined,
+			columns: columnsPresent(db, known?.columns ?? []),
+			createdTables: known?.createdTables ?? [],
+		}
+	})
 
 	return { applied, failed, plan }
 }
 
 function reportPlan({ applied, failed, plan }) {
 	note(`migrations to remove: ${applied.join(', ')}`)
-	for (const { version, mapped, columns } of plan) {
+	for (const { version, mapped, columns, createdTables } of plan) {
 		if (!mapped) {
 			note(`  ${version}: no known schema for this migration, removing its record only`)
+			continue
+		}
+		if (columns.length === 0 && createdTables.length === 0) {
+			note(`  ${version}: no columns to drop`)
 			continue
 		}
 		for (const { table, column, present } of columns) {
@@ -442,6 +429,11 @@ function reportPlan({ applied, failed, plan }) {
 				present
 					? `  ${version}: drop ${table}.${column}`
 					: `  ${version}: ${table}.${column} is NOT in the database`,
+			)
+		}
+		if (createdTables.length > 0) {
+			note(
+				`  ${version}: created tables stay in place (${createdTables.join(', ')}) - this script only drops columns`,
 			)
 		}
 	}
@@ -467,7 +459,7 @@ function checkMappings(plan) {
 
 	if (mismatched.length > 0) {
 		fail(
-			`the schema recorded here for ${mismatched.join(', ')} does not match this database.\nRefusing to remove the records: reinstalling that build would then fail on a duplicate\ncolumn, and neither build could open the database. Check REVERTIBLE_COLUMNS against\npackages/app-lib/migrations, and use --list to inspect the database.`,
+			`the schema derived from the migration SQL for ${mismatched.join(', ')} does not match this database.\nRefusing to remove the records: reinstalling that build would then fail on a duplicate\ncolumn, and neither build could open the database. Check packages/app-lib/migrations against\nthe database, and use --list to inspect it.`,
 		)
 	}
 }
