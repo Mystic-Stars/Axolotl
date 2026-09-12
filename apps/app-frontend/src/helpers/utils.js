@@ -80,6 +80,38 @@ export async function exportErrorLogs(
 	return await invoke('plugin:utils|export_error_logs', { outputPath, errorMessage })
 }
 
+export async function exportLauncherLogs({
+	range = 'last2Hours',
+	level = 'all',
+	includeSystemInfo = true,
+	includeInstanceLogs = false,
+	includeCrashAnalysis = false,
+	fileNamePrefix = 'Axolotl Launcher logs',
+} = {}) {
+	const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
+	const outputPath = await save({
+		defaultPath: `${fileNamePrefix} ${timestamp}.zip`,
+		filters: [
+			{
+				name: 'ZIP archive',
+				extensions: ['zip'],
+			},
+		],
+	})
+
+	if (!outputPath) return null
+
+	await invoke('plugin:utils|export_launcher_logs', {
+		outputPath,
+		range,
+		level,
+		includeSystemInfo,
+		includeInstanceLogs,
+		includeCrashAnalysis,
+	})
+	return outputPath
+}
+
 export async function createInstanceShortcut(instanceName, instanceId, options = {}) {
 	const outputPath = await save({
 		defaultPath: `Modrinth - ${instanceName}`,

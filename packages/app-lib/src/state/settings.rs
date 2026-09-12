@@ -143,6 +143,8 @@ pub struct Settings {
     pub sidebar_instance_count: u32,
     #[serde(default)]
     pub close_behavior: String,
+    #[serde(default = "default_log_level")]
+    pub log_level: String,
     #[serde(default)]
     pub auto_hide_downloads_button: bool,
     #[serde(default)]
@@ -199,6 +201,12 @@ pub struct PrivacySettings {
 
 fn default_true() -> bool {
     true
+}
+
+/// Default log level, kept in sync with the `log_level` column default and
+/// the logger's own fallback.
+fn default_log_level() -> String {
+    crate::logger::DEFAULT_LOG_LEVEL.to_string()
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, Eq, Hash, PartialEq)]
@@ -264,6 +272,11 @@ impl Settings {
         .fetch_one(exec)
         .await?;
 
+        let log_level: String =
+            sqlx::query_scalar("SELECT log_level FROM settings WHERE id = 0")
+                .fetch_one(exec)
+                .await?;
+
         let engine_row =
             sqlx::query("SELECT download_engine FROM settings WHERE id = 0")
                 .fetch_one(exec)
@@ -318,6 +331,7 @@ impl Settings {
             transparent_background_blur: res.transparent_background_blur == 1,
             sidebar_instance_count: res.sidebar_instance_count as u32,
             close_behavior,
+            log_level,
             auto_hide_downloads_button: res.auto_hide_downloads_button == 1,
             home_layout: HomeLayout::from_string(&res.home_layout),
             minimal_home_instance_id: res.minimal_home_instance_id,
@@ -587,6 +601,11 @@ impl Settings {
 
         sqlx::query("UPDATE settings SET close_behavior = ? WHERE id = 0")
             .bind(&self.close_behavior)
+            .execute(exec)
+            .await?;
+
+        sqlx::query("UPDATE settings SET log_level = ? WHERE id = 0")
+            .bind(&self.log_level)
             .execute(exec)
             .await?;
 

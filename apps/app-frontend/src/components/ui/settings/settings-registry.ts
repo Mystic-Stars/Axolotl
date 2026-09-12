@@ -3,6 +3,7 @@ import {
 	BotIcon,
 	CoffeeIcon,
 	CpuIcon,
+	FileTextIcon,
 	GameIcon,
 	GaugeIcon,
 	InfoIcon,
@@ -85,6 +86,10 @@ const categoryContent: Record<SettingsCategoryId, Pick<SettingsCategory, 'icon' 
 	updates: {
 		icon: RefreshCwIcon,
 		content: defineAsyncComponent(() => import('./UpdateSettings.vue')),
+	},
+	logs: {
+		icon: FileTextIcon,
+		content: defineAsyncComponent(() => import('./LogsSettings.vue')),
 	},
 	about: { icon: InfoIcon, content: defineAsyncComponent(() => import('./AboutSettings.vue')) },
 	'feature-flags': {

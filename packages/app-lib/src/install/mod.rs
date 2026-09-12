@@ -42,6 +42,15 @@ pub use runner::{
     update_managed_curseforge_modpack, upgrade_unmanaged_instance,
 };
 
+/// Replaces credentials and IP addresses in text the user may share publicly
+/// (support reports, exported logs) with placeholders.
+pub async fn censor_shared_text(
+    text: String,
+    state: &crate::State,
+) -> crate::Result<String> {
+    diagnostics::censor_support_text(text, state).await
+}
+
 /// Runs fallible work with bounded concurrency without dropping peer futures
 /// after the first error. The cancellation token is tripped immediately so
 /// producers stop adding work, while every already buffered task still gets

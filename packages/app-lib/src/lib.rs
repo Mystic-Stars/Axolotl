@@ -29,7 +29,9 @@ pub use event::{
     EventState, LoadingBar, LoadingBarType, emit::emit_loading,
     emit::emit_logshare_ai_event, emit::init_loading,
 };
-pub use logger::start_logger;
+pub use logger::{
+    DEFAULT_LOG_LEVEL, filter_log_contents, set_log_level, start_logger,
+};
 pub use state::db::{
     UpdateChannelState, backup_current_app_db_for_update, beta_database_exists,
     copy_database_between_channels, copy_release_database_to_beta,
