@@ -55,11 +55,11 @@ const categoryLabels: Record<StorageNodeType, MessageDescriptor> = {
 
 // 醒目高对比度色彩配置
 const categoryColors: Record<StorageNodeType, { actual: string; symlink: string }> = {
-	instances: { actual: '#10b981', symlink: '#06b6d4' }, // 翡翠绿 / 亮青
-	cache: { actual: '#f59e0b', symlink: '#eab308' }, // 琥珀黄 / 明黄
-	meta: { actual: '#8b5cf6', symlink: '#ec4899' }, // 靛紫 / 靓粉
-	database: { actual: '#3b82f6', symlink: '#6366f1' }, // 靛蓝 / 靛青
-	other: { actual: '#6b7280', symlink: '#9ca3af' }, // 中灰 / 浅灰
+	instances: { actual: 'var(--color-green)', symlink: '#06b6d4' }, // 翡翠绿 / 亮青
+	cache: { actual: 'var(--color-orange)', symlink: '#eab308' }, // 琥珀黄 / 明黄
+	meta: { actual: 'var(--color-purple)', symlink: '#ec4899' }, // 靛紫 / 靓粉
+	database: { actual: 'var(--color-blue)', symlink: '#6366f1' }, // 靛蓝 / 靛青
+	other: { actual: 'var(--color-secondary)', symlink: '#9ca3af' }, // 中灰 / 浅灰
 }
 
 const hoveredId = ref<string | null>(null)
@@ -374,7 +374,9 @@ function formatDateTime(date: Date) {
 					</h2>
 
 					<div class="storage-total-value">
-						<span class="text-3xl font-bold leading-[1.1] text-contrast">{{ formatBytes(tree.total.actual) }}</span>
+						<span class="text-3xl font-bold leading-[1.1] text-contrast">{{
+							formatBytes(tree.total.actual)
+						}}</span>
 						<span v-if="tree.total.symlink > 0" class="total-symlink">
 							+ {{ formatBytes(tree.total.symlink) }} ({{
 								formatMessage(storageMessages.symlinkLabel)
@@ -436,7 +438,9 @@ function formatDateTime(date: Date) {
 							/>
 
 							<div class="legend-info">
-								<span class="whitespace-nowrap text-[0.8125rem] font-semibold text-contrast">{{ slice.label }}</span>
+								<span class="whitespace-nowrap text-[0.8125rem] font-semibold text-contrast">{{
+									slice.label
+								}}</span>
 								<span class="legend-size">{{ slice.formattedSize }}</span>
 								<span class="legend-percent">{{ slice.percentText }}</span>
 							</div>

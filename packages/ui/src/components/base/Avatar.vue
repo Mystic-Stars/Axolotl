@@ -184,7 +184,7 @@ function hash(str: string): number {
 	}
 
 	&.raised {
-		background-color: var(--color-raised-bg);
+		background-color: var(--surface-2);
 	}
 
 	&.tint {

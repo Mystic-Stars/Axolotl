@@ -75,7 +75,7 @@
 				<div v-if="!isEditing">
 					<div
 						ref="fileUploadEl"
-						class="@container relative flex flex-col overflow-clip rounded-[20px] border border-solid border-surface-4 shadow-sm"
+						class="@container relative flex flex-col overflow-clip rounded-[var(--radius-xl)] border border-solid border-surface-4 shadow-sm"
 					>
 						<FileTableHeader
 							:sort-field="sortField"

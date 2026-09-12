@@ -216,7 +216,7 @@ const rememberedContentSource = getLastBrowseContentSource()
 
 function resolveInitialContentSource(): BrowseContentSource {
 	if (route.params.projectType === WORLD_BROWSE_PROJECT_TYPE) {
-		return 'curseforge'
+		return curseForgeCapability.value.configured ? 'curseforge' : 'modrinth'
 	}
 	if (route.params.projectType === 'mod' && route.query.source === 'mcarchive') {
 		return 'mcarchive'
@@ -257,12 +257,13 @@ const contentSource = ref<BrowseContentSource>(resolveInitialContentSource())
 const sourceBeforeWorldMapBrowse = ref<BrowseContentSource>(
 	isWorldMapBrowse.value ? (getLastBrowseContentSource() ?? 'all') : contentSource.value,
 )
-if (isWorldMapBrowse.value) {
+if (isWorldMapBrowse.value && curseForgeCapability.value.configured) {
 	contentSource.value = 'curseforge'
 }
 const curseForgeCategoriesByClass = ref<Record<number, CurseForgeCategory[]>>({})
 
 async function ensureCurseForgeCategories(projectTypeValue: ProjectType) {
+	if (!curseForgeCapability.value.configured) return
 	const classId = curseForgeClassIds[projectTypeValue]
 	if (!classId || curseForgeCategoriesByClass.value[classId]) return
 
@@ -2868,7 +2869,11 @@ watch(contentSource, async (source) => {
 watch(projectType, async (type, previousType) => {
 	if (type === WORLD_BROWSE_PROJECT_TYPE) {
 		sourceBeforeWorldMapBrowse.value = contentSource.value
-		contentSource.value = 'curseforge'
+		// Maps are CurseForge-only. Without an API key keep the source inert so
+		// category fetches and unified search never hit the missing-key error.
+		if (curseForgeCapability.value.configured) {
+			contentSource.value = 'curseforge'
+		}
 		return
 	}
 	if (previousType === WORLD_BROWSE_PROJECT_TYPE) {

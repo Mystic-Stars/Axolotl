@@ -145,7 +145,7 @@ function handleSort(column: ContentCardTableSortColumn) {
 		data-content-card-table
 		role="table"
 		class="@container border border-solid border-surface-4 shadow-sm overflow-clip"
-		:class="[flat ? '' : 'rounded-[20px]', isStuck || hideHeader ? 'border-t-0' : '']"
+		:class="[flat ? '' : 'rounded-[var(--radius-xl)]', isStuck || hideHeader ? 'border-t-0' : '']"
 	>
 		<div
 			v-if="!hideHeader"

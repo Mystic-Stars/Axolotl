@@ -17,7 +17,7 @@ import {
 	UsersIcon,
 } from '@modrinth/assets'
 import { commonMessages, defineMessages, type MessageDescriptor } from '@modrinth/ui'
-import { type Component,defineAsyncComponent } from 'vue'
+import { type Component, defineAsyncComponent } from 'vue'
 
 import {
 	getVisibleSettingsCategoryDefinitions,
@@ -99,7 +99,7 @@ const categoryContent: Record<SettingsCategoryId, Pick<SettingsCategory, 'icon' 
 }
 
 const messages = defineMessages({
-	launcher: { id: 'app.settings.groups.launcher', defaultMessage: 'Launcher' },
+	launcher: { id: 'app.settings.groups.launcher', defaultMessage: 'Interface' },
 	game: { id: 'app.settings.groups.game', defaultMessage: 'Game' },
 	dataPrivacy: { id: 'app.settings.groups.data-privacy', defaultMessage: 'Data & privacy' },
 	support: { id: 'app.settings.groups.support', defaultMessage: 'App & support' },

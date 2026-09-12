@@ -208,7 +208,19 @@ function getPageTransitionKey(route: RouteLocationNormalizedLoaded) {
 	if (typeof transitionGroup !== 'string') return route.fullPath
 
 	const routeId = route.params.id
-	return `${transitionGroup}:${Array.isArray(routeId) ? routeId.join('/') : (routeId ?? '')}`
+	if (routeId !== undefined) {
+		return `${transitionGroup}:${Array.isArray(routeId) ? routeId.join('/') : routeId}`
+	}
+
+	// Browse-style routes use :projectType instead of :id. Keying on that lets
+	// tab switches remount cleanly while query-only pagination keeps the same
+	// SPA instance (loading mask / skeleton instead of a full page transition).
+	const projectType = route.params.projectType
+	if (typeof projectType === 'string') {
+		return `${transitionGroup}:${projectType}`
+	}
+
+	return `${transitionGroup}:`
 }
 const APP_SIDEBAR_WIDTH = 300
 const credentials = ref()
@@ -2758,7 +2770,7 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 					<AxolotlLogo class="h-full w-auto shrink-0 pointer-events-none" />
 					<span
 						v-if="isBetaBuild"
-						class="inline-flex shrink-0 rounded-full bg-[#b6e9ff] px-2 py-0.5 text-xs font-semibold leading-none text-[#005bda]"
+						class="inline-flex shrink-0 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-semibold leading-none text-blue-700"
 					>
 						{{ formatMessage(messages.betaBuild) }}
 					</span>

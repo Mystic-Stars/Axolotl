@@ -1,6 +1,6 @@
 <template>
 	<button
-		class="group flex w-full hover:cursor-pointer gap-3 rounded-[20px] p-3 text-left transition-all hover:brightness-110 active:scale-[0.98] border-none"
+		class="group flex w-full hover:cursor-pointer gap-3 rounded-[var(--radius-xl)] p-3 text-left transition-all hover:brightness-110 active:scale-[0.98] border-none"
 		:class="['items-center', selected ? 'bg-brand-highlight' : 'bg-surface-4']"
 		@click="$emit('click')"
 	>

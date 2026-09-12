@@ -108,9 +108,9 @@ watch(
 .skeleton {
 	background: linear-gradient(
 		90deg,
-		var(--color-bg) 25%,
-		var(--color-raised-bg) 50%,
-		var(--color-bg) 75%
+		var(--surface-1) 25%,
+		var(--surface-2) 50%,
+		var(--surface-1) 75%
 	);
 	background-size: 200% 100%;
 	animation: wave 1500ms infinite linear;
@@ -128,7 +128,7 @@ watch(
 .skin-button {
 	aspect-ratio: 31 / 40;
 	border-color: var(--surface-4);
-	border-radius: 20px;
+	border-radius: var(--radius-xl);
 	background: var(--surface-3);
 	isolation: isolate;
 	box-shadow:

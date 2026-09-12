@@ -50,11 +50,26 @@
   "browse.filter-results": {
     "defaultMessage": "Filter results..."
   },
+  "browse.clear-search": {
+    "defaultMessage": "Clear search"
+  },
+  "browse.loading-results": {
+    "defaultMessage": "Loading results…"
+  },
   "browse.no-results": {
     "defaultMessage": "No results found for your query!"
   },
+  "browse.no-results.heading": {
+    "defaultMessage": "Nothing here yet"
+  },
   "browse.offline": {
     "defaultMessage": "You are currently offline. Connect to the internet to browse Modrinth!"
+  },
+  "browse.offline.heading": {
+    "defaultMessage": "No connection"
+  },
+  "browse.retry": {
+    "defaultMessage": "Try again"
   },
   "browse.search.placeholder": {
     "defaultMessage": "Search {projectType}..."
@@ -3019,6 +3034,15 @@
   },
   "omorphia.component.loading-indicator.label": {
     "defaultMessage": "Loading"
+  },
+  "pagination.go-to-page": {
+    "defaultMessage": "Go to page"
+  },
+  "pagination.go-to-page.placeholder": {
+    "defaultMessage": "Page"
+  },
+  "pagination.loading-page": {
+    "defaultMessage": "Loading page…"
   },
   "payment-method.amazon_pay": {
     "defaultMessage": "Amazon Pay"

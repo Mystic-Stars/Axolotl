@@ -26,11 +26,26 @@
   "browse.filter-results": {
     "defaultMessage": "筛选结果……"
   },
+  "browse.clear-search": {
+    "defaultMessage": "清除搜索"
+  },
+  "browse.loading-results": {
+    "defaultMessage": "正在加载结果……"
+  },
   "browse.no-results": {
     "defaultMessage": "没有找到您的查询结果！"
   },
+  "browse.no-results.heading": {
+    "defaultMessage": "这里还是空的"
+  },
   "browse.offline": {
     "defaultMessage": "你目前处于离线状态。连接互联网来浏览Modrinth！"
+  },
+  "browse.offline.heading": {
+    "defaultMessage": "网络未连接"
+  },
+  "browse.retry": {
+    "defaultMessage": "重试"
   },
   "browse.search.placeholder": {
     "defaultMessage": "搜索{projectType}……"
@@ -2716,6 +2731,15 @@
   },
   "omorphia.component.loading-indicator.label": {
     "defaultMessage": "加载中"
+  },
+  "pagination.go-to-page": {
+    "defaultMessage": "跳转到页码"
+  },
+  "pagination.go-to-page.placeholder": {
+    "defaultMessage": "页码"
+  },
+  "pagination.loading-page": {
+    "defaultMessage": "正在加载页面……"
   },
   "payment-method.amazon_pay": {
     "defaultMessage": "Amazon 支付"

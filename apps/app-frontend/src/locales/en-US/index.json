@@ -546,7 +546,7 @@
     "message": "Show a floating back-to-top button on scrollable pages."
   },
   "app.appearance-settings.show-scroll-top.title": {
-    "message": "Show \u201cback to top\u201d button"
+    "message": "Show “back to top” button"
   },
   "app.appearance-settings.sidebar-instance-count.description": {
     "message": "Maximum number of instances to show in the sidebar. Set to 0 to show all."
@@ -6794,6 +6794,9 @@
   "app.settings.about.copy-qq-group": {
     "message": "Copy group number"
   },
+  "app.settings.about.copying-guidelines": {
+    "message": "Copying guidelines"
+  },
   "app.settings.about.description": {
     "message": "Your last launcher."
   },
@@ -7056,7 +7059,7 @@
     "message": "Game"
   },
   "app.settings.groups.launcher": {
-    "message": "Launcher"
+    "message": "Interface"
   },
   "app.settings.groups.support": {
     "message": "App & support"
@@ -7614,7 +7617,7 @@
     "message": "About"
   },
   "app.settings.tabs.ai": {
-    "message": "AI"
+    "message": "AI features"
   },
   "app.settings.tabs.content-downloads": {
     "message": "Content & downloads"
@@ -7623,7 +7626,7 @@
     "message": "Home & navigation"
   },
   "app.settings.tabs.interface": {
-    "message": "Interface & appearance"
+    "message": "Appearance"
   },
   "app.settings.tabs.java-performance": {
     "message": "Java & performance"
@@ -7632,7 +7635,7 @@
     "message": "Language & translation"
   },
   "app.settings.tabs.shortcut-settings": {
-    "message": "Shortcut settings"
+    "message": "Keyboard shortcuts"
   },
   "app.shortcut-settings.change-shortcut": {
     "message": "Change the shortcut for {action}"
@@ -7737,10 +7740,10 @@
     "message": "Quick scrolling"
   },
   "app.settings.tabs.launch-defaults": {
-    "message": "Launch & instance defaults"
+    "message": "Launch defaults"
   },
   "app.settings.tabs.logs": {
-    "message": "Logs"
+    "message": "Logs & diagnostics"
   },
   "app.settings.tabs.network-multiplayer": {
     "message": "Network & multiplayer"

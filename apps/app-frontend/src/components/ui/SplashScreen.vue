@@ -1,7 +1,10 @@
 <template>
 	<Transition name="splash-fade" @after-leave="onAfterLeave">
 		<div v-if="!doneLoading" class="fixed inset-0 z-[10000] dark">
-			<div class="absolute h-screen w-full flex flex-col justify-center items-center gap-4 z-[9998]" data-tauri-drag-region>
+			<div
+				class="absolute h-screen w-full flex flex-col justify-center items-center gap-4 z-[9998]"
+				data-tauri-drag-region
+			>
 				<img class="app-logo" src="@/assets/axolotl.png" alt="Axolotl Launcher" />
 				<ProgressBar class="max-w-xs" :progress="Math.min(loadingProgress, 100)" />
 				<span v-if="message">{{ message }}</span>
@@ -104,7 +107,7 @@ loading_listener(async (e) => {
 	height: min(18rem, 45vh);
 	width: min(18rem, 45vw);
 	object-fit: contain;
-	filter: drop-shadow(0 0 2rem rgba(255, 77, 157, 0.35));
+	filter: drop-shadow(0 0 2rem var(--color-brand-shadow));
 }
 
 .gradient-bg {
@@ -127,10 +130,9 @@ loading_listener(async (e) => {
 	width: 180vw;
 	height: 180vh;
 	opacity: 0.8;
-	background: #16181c url('@/assets/loading/cube.png') center no-repeat;
+	background: var(--surface-1) url('@/assets/loading/cube.png') center no-repeat;
 	background-size: contain;
 
 	z-index: 9996;
 }
-
 </style>

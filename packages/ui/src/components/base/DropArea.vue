@@ -128,7 +128,7 @@ onBeforeUnmount(() => {
 		left: var(--indent);
 		width: calc(100% - (2 * var(--indent)));
 		height: calc(100% - (2 * var(--indent)));
-		border-radius: 1rem;
+		border-radius: var(--radius-lg);
 		border: 0.25rem dashed var(--color-button-bg);
 	}
 

@@ -1,7 +1,7 @@
 <template>
 	<div
 		ref="editorContainer"
-		class="relative flex flex-col overflow-hidden rounded-[20px] border border-solid border-surface-4 shadow-sm"
+		class="relative flex flex-col overflow-hidden rounded-[var(--radius-xl)] border border-solid border-surface-4 shadow-sm"
 	>
 		<EditorFindReplace
 			ref="findReplaceRef"
@@ -26,7 +26,7 @@
 			:readonly="isEditorReadOnly"
 			:print-margin="false"
 			:style="{ height: editorHeight, fontSize: '0.875rem' }"
-			class="ace-modrinth rounded-[20px]"
+			class="ace-modrinth rounded-[var(--radius-xl)]"
 			@init="onEditorInit"
 		/>
 		<FileImageViewer v-else-if="isEditingImage && imagePreview" :image-blob="imagePreview" />
@@ -35,13 +35,13 @@
 			:value="fileContent"
 			:readonly="isEditorReadOnly"
 			:placeholder="formatMessage(messages.editorUnavailablePlaceholder)"
-			class="w-full resize-none rounded-[20px] bg-bg-raised p-3 font-mono text-sm text-primary outline-none"
+			class="w-full resize-none rounded-[var(--radius-xl)] bg-bg-raised p-3 font-mono text-sm text-primary outline-none"
 			:style="{ height: editorHeight }"
 			@input="onFallbackInput"
 		/>
 		<div
 			v-else-if="isLoading"
-			class="flex items-center justify-center rounded-[20px] bg-bg-raised"
+			class="flex items-center justify-center rounded-[var(--radius-xl)] bg-bg-raised"
 			:style="{ height: editorHeight }"
 		>
 			<SpinnerIcon class="h-8 w-8 animate-spin text-secondary" />

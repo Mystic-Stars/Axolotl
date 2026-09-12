@@ -1499,7 +1499,10 @@ onBeforeUnmount(() => {
 				<p v-if="error" class="m-0 max-w-2xl text-center text-sm text-brand-red">{{ error }}</p>
 			</section>
 
-			<section v-if="recent.length" class="schematic-recent w-[min(52rem,calc(100%-3rem))] mx-auto mb-8">
+			<section
+				v-if="recent.length"
+				class="schematic-recent w-[min(52rem,calc(100%-3rem))] mx-auto mb-8"
+			>
 				<header class="flex items-center justify-between gap-3">
 					<h2 class="m-0 text-base text-contrast">{{ formatMessage(messages.recent) }}</h2>
 					<ButtonStyled size="small" type="transparent">
@@ -1509,7 +1512,11 @@ onBeforeUnmount(() => {
 					</ButtonStyled>
 				</header>
 				<ul class="schematic-recent-list m-0 list-none p-0">
-					<li v-for="record in recent" :key="record.id" class="schematic-recent-row flex min-w-0 items-center gap-3 py-2">
+					<li
+						v-for="record in recent"
+						:key="record.id"
+						class="schematic-recent-row flex min-w-0 items-center gap-3 py-2"
+					>
 						<FileArchiveIcon class="size-5 shrink-0 text-secondary" />
 						<button
 							class="min-w-0 flex-1 cursor-pointer border-0 bg-transparent p-0 text-left"
@@ -1896,7 +1903,9 @@ onBeforeUnmount(() => {
 						></ButtonStyled>
 						<ButtonStyled circular size="small" :type="isFullscreen ? 'standard' : 'outlined'"
 							><button
-								v-tooltip.top="`${formatMessage(isFullscreen ? messages.exitFullscreen : messages.fullscreen)} (F11)`"
+								v-tooltip.top="
+									`${formatMessage(isFullscreen ? messages.exitFullscreen : messages.fullscreen)} (F11)`
+								"
 								type="button"
 								:aria-label="
 									formatMessage(isFullscreen ? messages.exitFullscreen : messages.fullscreen)
@@ -2315,7 +2324,7 @@ onBeforeUnmount(() => {
 	min-height: 0;
 	flex: 1;
 	grid-template-columns: minmax(0, 1fr) 340px;
-	background: #0a0a0a;
+	background: var(--surface-1);
 }
 
 .schematic-viewport {
@@ -2323,9 +2332,9 @@ onBeforeUnmount(() => {
 	min-width: 0;
 	min-height: 0;
 	overflow: hidden;
-	border-right: 1px solid rgb(255 255 255 / 7%);
-	background: #0a0a0a;
-	box-shadow: inset 0 0 0 1px rgb(255 255 255 / 3%);
+	border-right: 1px solid var(--color-divider);
+	background: var(--surface-1);
+	box-shadow: inset 0 0 0 1px var(--color-divider);
 }
 
 .schematic-viewport:fullscreen {
@@ -2476,10 +2485,10 @@ onBeforeUnmount(() => {
 	display: flex;
 	align-items: center;
 	gap: 0.4rem;
-	border: 1px solid rgb(255 255 255 / 12%);
+	border: 1px solid var(--color-divider);
 	border-radius: var(--radius-md);
 	padding: 0.4rem 0.6rem;
-	background: rgb(8 9 9 / 88%);
+	background: color-mix(in srgb, var(--surface-2) 88%, transparent);
 	box-shadow: 0 0.5rem 1.5rem rgb(0 0 0 / 35%);
 	color: rgb(255 255 255 / 72%);
 	font-size: 0.7rem;
@@ -2628,10 +2637,10 @@ onBeforeUnmount(() => {
 	display: flex;
 	height: 1.75rem;
 	align-items: center;
-	border-top: 1px solid rgb(255 255 255 / 8%);
+	border-top: 1px solid var(--color-divider);
 	padding: 0 0.65rem;
-	background: rgb(8 9 9 / 90%);
-	color: #e5e7eb;
+	background: color-mix(in srgb, var(--surface-2) 90%, transparent);
+	color: var(--color-contrast);
 	font-size: 0.72rem;
 	backdrop-filter: blur(8px);
 }
@@ -2734,7 +2743,7 @@ onBeforeUnmount(() => {
 	width: 1.4rem;
 	height: 1.4rem;
 	flex-shrink: 0;
-	border: 1px solid rgb(255 255 255 / 15%);
+	border: 1px solid var(--color-divider);
 	border-radius: 0.2rem;
 	image-rendering: pixelated;
 }
