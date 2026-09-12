@@ -56,6 +56,7 @@ target
 generated
 .env
 .dev.vars
+/.direnv/
 .dev.vars.*
 !.dev.vars.example
 .wrangler/
