@@ -6794,6 +6794,9 @@
   "app.settings.about.copy-qq-group": {
     "message": "Copy group number"
   },
+  "app.settings.about.copying-guidelines": {
+    "message": "Copying guidelines"
+  },
   "app.settings.about.description": {
     "message": "Your last launcher."
   },

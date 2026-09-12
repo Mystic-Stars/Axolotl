@@ -6866,6 +6866,9 @@
   "app.settings.about.copy-qq-group": {
     "message": "复制群号"
   },
+  "app.settings.about.copying-guidelines": {
+    "message": "复制准则"
+  },
   "app.settings.about.description": {
     "message": "你的最后一款启动器。"
   },

@@ -39,6 +39,7 @@ let suppressNextMemberClick = false
 const replayOnboarding = inject<(mode: 'main' | 'instance') => Promise<void>>('replayOnboarding')
 
 const licenseUrl = `${AxolotlBrandConfig.repositoryUrl}/blob/main/LICENSE`
+const copyingUrl = `${AxolotlBrandConfig.repositoryUrl}/blob/main/COPYING.md`
 const thirdPartyLicensesUrl = `${AxolotlBrandConfig.repositoryUrl}/tree/main/third-party/licenses`
 
 async function copyQqGroupNumber() {
@@ -228,6 +229,10 @@ const messages = defineMessages({
 	projectLicense: {
 		id: 'app.settings.about.project-license',
 		defaultMessage: 'Project license (GPL-3.0)',
+	},
+	copyingGuidelines: {
+		id: 'app.settings.about.copying-guidelines',
+		defaultMessage: 'Copying guidelines',
 	},
 	thirdPartyLicenses: {
 		id: 'app.settings.about.third-party-licenses',
@@ -461,6 +466,15 @@ const projectLinks = [
 					class="inline-flex items-center gap-2 rounded-lg bg-surface-4 px-3 py-2 text-sm font-semibold text-contrast transition-colors hover:bg-surface-5"
 				>
 					{{ formatMessage(messages.projectLicense) }}
+					<ExternalIcon class="size-4 text-secondary" />
+				</a>
+				<a
+					:href="copyingUrl"
+					target="_blank"
+					rel="noopener noreferrer"
+					class="inline-flex items-center gap-2 rounded-lg bg-surface-4 px-3 py-2 text-sm font-semibold text-contrast transition-colors hover:bg-surface-5"
+				>
+					{{ formatMessage(messages.copyingGuidelines) }}
 					<ExternalIcon class="size-4 text-secondary" />
 				</a>
 				<a
