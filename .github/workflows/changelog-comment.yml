@@ -20,7 +20,9 @@ jobs:
     runs-on: ubuntu-latest
     # Fork PRs get a GITHUB_TOKEN that cannot write issue comments on the base
     # repository ("Resource not accessible by integration"). Skip the job there
-    # instead of failing a check the contributor cannot fix.
+    # instead of failing a check the contributor cannot fix. Known limitation:
+    # outside contributors do not receive the bot changelog template; a
+    # maintainer can still post it by hand or via workflow_dispatch.
     if: >-
       github.event_name == 'workflow_dispatch' ||
       github.event.pull_request.head.repo.full_name == github.repository
@@ -28,6 +30,8 @@ jobs:
     steps:
       - name: Post or update changelog comment
         uses: actions/github-script@d746ffe35508b1917358783b479e04febd2b8f71 # v9.0.0
+        env:
+          PR_NUMBER: ${{ github.event.inputs.pr_number }}
         with:
           github-token: ${{ github.token }}
           script: |
@@ -50,17 +54,19 @@ jobs:
               productBlock('Website'),
             ].join('\n');
 
-            // Resolve PR number from event or workflow_dispatch input
+            // Resolve PR number from event or workflow_dispatch input (via env,
+            // never interpolated into the script source).
             const prNumber = context.payload.pull_request?.number
-              ?? parseInt('${{ github.event.inputs.pr_number }}', 10);
+              ?? Number.parseInt(process.env.PR_NUMBER ?? '', 10);
 
-            if (!prNumber || isNaN(prNumber)) {
+            if (!Number.isInteger(prNumber) || prNumber <= 0) {
               core.setFailed('Could not determine PR number');
               return;
             }
 
-            const isPermissionError = (error) =>
-              error.status === 403 || error.status === 404;
+            // Soft-succeed only when the token is forbidden. A 404 on a known
+            // PR number is a real failure (missing PR / bad dispatch input).
+            const isForbidden = (error) => error.status === 403 || error.status === 401;
 
             // Get PR details (need base ref for child PR detection)
             let pr;
@@ -71,7 +77,7 @@ jobs:
                 pull_number: prNumber,
               }));
             } catch (error) {
-              if (isPermissionError(error)) {
+              if (isForbidden(error)) {
                 core.notice(`Skipping changelog comment on PR #${prNumber}: token cannot read the pull request (${error.status}).`);
                 return;
               }
@@ -95,7 +101,7 @@ jobs:
                 issue_number: prNumber,
               }));
             } catch (error) {
-              if (isPermissionError(error)) {
+              if (isForbidden(error)) {
                 core.notice(`Skipping changelog comment on PR #${prNumber}: token cannot list comments (${error.status}).`);
                 return;
               }
@@ -117,7 +123,7 @@ jobs:
                 body: template,
               });
             } catch (error) {
-              if (isPermissionError(error)) {
+              if (isForbidden(error)) {
                 core.notice(`Skipping changelog comment on PR #${prNumber}: token cannot create comments (${error.status}).`);
                 return;
               }
@@ -165,7 +171,7 @@ jobs:
                   body: `${mergedMarker}\n> [!NOTE]\n> This changelog has been merged into the changelog for #${parentPR.number}\n\n${childChangelogComment.body}`,
                 });
               } catch (error) {
-                if (isPermissionError(error)) {
+                if (isForbidden(error)) {
                   core.notice(`Could not mark child changelog on PR #${prNumber} as merged (${error.status}).`);
                   return;
                 }
