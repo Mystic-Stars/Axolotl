@@ -123,17 +123,24 @@ jobs:
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@4be7066ada62dd38de10e7b70166bc74ed198c30 # stable
 
-      # Restores the dependency cache that the desktop CI job keeps warm on
-      # main. The key is shared with that job so the two line up; the runner
-      # OS and architecture are part of the key, so platforms stay separate.
-      # Release runs are triggered by tags, and a cache saved under one tag
-      # can never be read by another, so this job deliberately only restores:
-      # writing here would strand entries that no later release could use.
+      # Restores a warm dependency cache. Release uses full LTO while PR CI
+      # builds with LTO off, so this job keeps its own shared-key suffix and
+      # only restores: writing here would strand entries no later release
+      # could read (tags cannot share caches with each other).
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
         with:
-          shared-key: axolotl-rust-deps
+          shared-key: axolotl-rust-deps-release
           save-if: false
+
+      - name: Require full LTO for published binaries
+        shell: bash
+        run: |
+          if [ "${CARGO_PROFILE_RELEASE_LTO}" != "true" ]; then
+            echo "CARGO_PROFILE_RELEASE_LTO must be 'true' for release builds, got '${CARGO_PROFILE_RELEASE_LTO:-}'" >&2
+            exit 1
+          fi
+          echo "Release LTO enabled"
 
       - name: Add macOS universal targets
         if: runner.os == 'macOS'

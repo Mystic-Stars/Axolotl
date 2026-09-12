@@ -46,13 +46,13 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Authoritative typecheck/unit-test gate. Other OSes must not repeat it.
+          # Ubuntu runs the authoritative unit-test + typecheck gate.
           - os: ubuntu-latest
             role: check
-          # macOS-only cfg code still needs a compile canary; no tests, no bundles.
+          # macOS is a compile canary for cfg(target_os = \"macos\") code only.
           - os: macos-latest
             role: check-platform
-          # Packaging only. Consumes the frontend/installer-ui assets built once.
+          # Windows packages installers only and consumes prebuilt assets.
           - os: windows-latest
             role: package
     runs-on: ${{ matrix.os }}
@@ -73,12 +73,13 @@ jobs:
       # Replaces an sccache setup whose startup probe failed on every run:
       # the shared cache service rejected it, the enable step was skipped, and
       # Windows rebuilt the whole dependency tree uncached (~56 minutes).
-      # The shared key deliberately matches the release workflow's build job,
-      # so tagged releases can restore the cache this job keeps warm on main.
+      # Keyed separately from the release job: CI builds with LTO off, tags with
+      # full LTO, so release-profile fingerprints differ and sharing one key only
+      # thrashes the cache.
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
         with:
-          shared-key: axolotl-rust-deps
+          shared-key: axolotl-rust-deps-ci
           # A failing build still warms the cache for the next attempt.
           cache-on-failure: true
       - if: runner.os == 'Linux'
@@ -89,7 +90,12 @@ jobs:
         working-directory: third-party/blockbench
       - uses: ./.github/actions/replace-gradle-mirror
       - name: Build frontend once
+        if: matrix.role == 'package'
         run: pnpm --filter @modrinth/app-frontend build
+      - name: Prepare empty frontend dist for typecheck
+        if: matrix.role != 'package'
+        shell: bash
+        run: mkdir -p apps/app-frontend/dist && touch apps/app-frontend/dist/.keep
       - name: Test version metadata writes
         if: matrix.role == 'check'
         run: cargo test --package theseus writing_version_info_creates_missing_parent_directory
@@ -99,6 +105,14 @@ jobs:
       - name: Build installer UI once
         if: matrix.role == 'package'
         run: cargo build --release --package axolotl-installer-ui
+      - name: Require packaged frontend assets
+        if: matrix.role == 'package'
+        shell: bash
+        run: |
+          if [ ! -d apps/app-frontend/dist ] || [ -z "$(ls -A apps/app-frontend/dist 2>/dev/null | grep -v '^\.keep$')" ]; then
+            echo "apps/app-frontend/dist is missing or empty; tauri-reuse-assets would package a stale/empty frontend" >&2
+            exit 1
+          fi
       # Both Windows installers share the same cargo features and skip
       # beforeBuildCommand so the second NSIS package reuses the release exe
       # and the already-built frontend / installer-ui assets.
