@@ -4,6 +4,8 @@ import { defineMessages, NavTabs, useVIntl } from '@modrinth/ui'
 import { computed } from 'vue'
 import { RouterView, useRoute, useRouter } from 'vue-router'
 
+defineOptions({ name: 'AxolotlNavMultiplayer' }) // KeepAlive cache key (App.vue CACHED_LEFT_NAV_PAGES)
+
 const { formatMessage } = useVIntl()
 const route = useRoute()
 const router = useRouter()

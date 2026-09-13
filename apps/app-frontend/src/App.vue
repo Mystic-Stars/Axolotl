@@ -224,6 +224,23 @@ function getPageTransitionKey(route: RouteLocationNormalizedLoaded) {
 
 	return `${transitionGroup}:`
 }
+
+/**
+ * Left-rail destinations stay alive so switching Home/Skins/Discover/etc.
+ * does not tear down WebGL previews, search state, or page Suspense.
+ * Matches `defineOptions({ name })` on those pages.
+ */
+const CACHED_LEFT_NAV_PAGES = [
+	'AxolotlNavHome',
+	'AxolotlNavWorlds',
+	'AxolotlNavBrowse',
+	'AxolotlNavSkins',
+	'AxolotlNavMultiplayer',
+	'AxolotlNavLibrary',
+	'AxolotlNavLab',
+	'AxolotlNavDownloads',
+	'AxolotlNavSettings',
+]
 const APP_SIDEBAR_WIDTH = 300
 const credentials = ref()
 const sidebarToggled = ref(getSidebarExpanded())
@@ -2856,17 +2873,19 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 			<div class="page-transition-grid grid min-h-full">
 				<RouterView v-slot="{ Component, route: pageRoute }">
 					<!--
-						Enter animation is keyed only on the route (see getPageTransitionKey).
-						The layer mounts as soon as the URL changes — not when the async page
-						Suspense resolves — so nav switches stay smooth while data loads.
+						KeepAlive caches left-rail pages (see CACHED_LEFT_NAV_PAGES) so a nav
+						switch reactivates the existing tree instead of remounting + re-running
+						Suspense/WebGL. Detail routes (project/instance) still remount via key.
+						Page-slide Transition was removed here: a keyed shell destroyed the
+						KeepAlive cache on every path change and caused layout thrash.
 					-->
-					<Transition name="page-slide" :css="themeStore.getFeatureFlag('page_transitions')" appear>
-						<div :key="getPageTransitionKey(pageRoute)" class="page-transition-layer">
+					<div class="page-transition-layer">
+						<KeepAlive :include="CACHED_LEFT_NAV_PAGES" :max="10">
 							<Suspense v-if="Component" @pending="onSuspensePending" @resolve="onSuspenseResolve">
-								<component :is="Component"></component>
+								<component :is="Component" :key="getPageTransitionKey(pageRoute)"></component>
 							</Suspense>
-						</div>
-					</Transition>
+						</KeepAlive>
+					</div>
 				</RouterView>
 			</div>
 			<ScrollToTopButton v-if="themeStore.showScrollTop" />

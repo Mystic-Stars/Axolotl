@@ -31,6 +31,8 @@ import {
 } from '@/helpers/lab-preferences'
 import { labTools } from '@/lab/registry'
 
+defineOptions({ name: 'AxolotlNavLab' }) // KeepAlive cache key (App.vue CACHED_LEFT_NAV_PAGES)
+
 const { formatMessage } = useVIntl()
 const router = useRouter()
 const search = ref('')

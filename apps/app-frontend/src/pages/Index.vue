@@ -42,6 +42,8 @@ import { useBreadcrumbs } from '@/store/breadcrumbs'
 import { useTheming } from '@/store/state'
 import type { FeatureFlag, HomeLayout } from '@/store/theme'
 
+defineOptions({ name: 'AxolotlNavHome' }) // KeepAlive cache key (App.vue CACHED_LEFT_NAV_PAGES)
+
 const { handleError } = injectNotificationManager()
 const route = useRoute()
 const router = useRouter()

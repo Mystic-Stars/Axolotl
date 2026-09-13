@@ -166,6 +166,8 @@ import {
 import { useBreadcrumbs } from '@/store/breadcrumbs'
 import { useTheming } from '@/store/state'
 
+defineOptions({ name: 'AxolotlNavBrowse' }) // KeepAlive cache key (App.vue CACHED_LEFT_NAV_PAGES)
+
 const { addNotification, handleError } = injectNotificationManager()
 const { formatMessage } = useVIntl()
 const { installingServerProjects, playServerProject, showAddServerToInstanceModal } =

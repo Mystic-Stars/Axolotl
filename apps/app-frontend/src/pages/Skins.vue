@@ -52,6 +52,8 @@ import {
 } from '@/helpers/skins.ts'
 import { useTheming } from '@/store/state'
 
+defineOptions({ name: 'AxolotlNavSkins' }) // KeepAlive cache key (App.vue CACHED_LEFT_NAV_PAGES)
+
 async function generateSkinPreviews(skins: Skin[], capes: Cape[]) {
 	const { generateSkinPreviews: generate } =
 		await import('@/helpers/rendering/skin-preview-renderer')

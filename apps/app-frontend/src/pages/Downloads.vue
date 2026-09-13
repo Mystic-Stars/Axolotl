@@ -482,6 +482,8 @@ import {
 } from './download-focus'
 import { isSuccessfulUpgradeJob, upgradeResultLocation } from './instance/upgrade/result'
 
+defineOptions({ name: 'AxolotlNavDownloads' }) // KeepAlive cache key (App.vue CACHED_LEFT_NAV_PAGES)
+
 type DownloadItem = InstallJobSnapshot['items'][number]
 
 const manager = injectDownloadManager()

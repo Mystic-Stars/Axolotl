@@ -31,6 +31,8 @@ import { get, set } from '@/helpers/settings'
 import { injectAppUpdateDownloadProgress } from '@/providers/download-progress'
 import { useTheming } from '@/store/state'
 
+defineOptions({ name: 'AxolotlNavSettings' }) // KeepAlive cache key (App.vue CACHED_LEFT_NAV_PAGES)
+
 interface SettingsSearchResult {
 	category: SettingsCategory
 	entry?: SettingsSearchEntry

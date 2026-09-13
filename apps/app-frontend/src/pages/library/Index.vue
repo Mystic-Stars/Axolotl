@@ -17,6 +17,8 @@ import { instance_listener } from '@/helpers/events.js'
 import { list } from '@/helpers/instance'
 import { useBreadcrumbs } from '@/store/breadcrumbs.js'
 
+defineOptions({ name: 'AxolotlNavLibrary' }) // KeepAlive cache key (App.vue CACHED_LEFT_NAV_PAGES)
+
 const { handleError } = injectNotificationManager()
 const route = useRoute()
 const router = useRouter()
