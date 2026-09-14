@@ -29,13 +29,7 @@ import ModpackInstallStage from './stages/ModpackInstallStage.vue'
 import ModpackSetupStage from './stages/ModpackSetupStage.vue'
 
 export type ModpackInstallPhase =
-	| 'idle'
-	| 'preparing'
-	| 'downloading'
-	| 'first-run'
-	| 'eula'
-	| 'error'
-	| 'done'
+	'idle' | 'preparing' | 'downloading' | 'first-run' | 'eula' | 'error' | 'done'
 
 export interface ModpackServerOptions {
 	project: Labrinth.Projects.v2.Project

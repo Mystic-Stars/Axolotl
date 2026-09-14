@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ChevronDownIcon, SearchIcon, XIcon } from '@modrinth/assets'
+import { ChevronDownIcon, ChevronRightIcon, SearchIcon, XIcon } from '@modrinth/assets'
 import {
 	defineMessages,
 	type MessageDescriptor,
@@ -9,7 +9,7 @@ import {
 } from '@modrinth/ui'
 import { getVersion } from '@tauri-apps/api/app'
 import { platform as getOsPlatform, version as getOsVersion } from '@tauri-apps/plugin-os'
-import { computed, nextTick, ref, watch } from 'vue'
+import { computed, nextTick, onUnmounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 
 import {
@@ -61,7 +61,63 @@ const expandedGroups = ref<Record<string, boolean>>({
 	developer: false,
 })
 const hasSearchQuery = computed(() => !!normalizeSettingsSearchText(searchQuery.value))
+const debouncedSearchQuery = ref('')
+const searchResultsPending = ref(false)
+const showContentSkeleton = ref(false)
+let searchDebounceTimer: ReturnType<typeof window.setTimeout> | undefined
 let searchHighlightTimer: ReturnType<typeof window.setTimeout> | undefined
+let categoryTransitionToken = 0
+
+const SEARCH_DEBOUNCE_MS = 120
+const CATEGORY_SKELETON_MIN_MS = 160
+
+const isContentLoading = computed(() => showContentSkeleton.value || settingsContentPending.value)
+
+watch(searchQuery, (value) => {
+	searchResultsPending.value = true
+	if (searchDebounceTimer) window.clearTimeout(searchDebounceTimer)
+	searchDebounceTimer = window.setTimeout(() => {
+		debouncedSearchQuery.value = value
+		void nextTick(() => {
+			searchResultsPending.value = false
+		})
+	}, SEARCH_DEBOUNCE_MS)
+})
+
+watch(selectedCategoryId, () => {
+	const token = ++categoryTransitionToken
+	showContentSkeleton.value = true
+	const startedAt = Date.now()
+
+	// Suspense may enter pending a tick after the category id changes. Poll until
+	// it settles, then keep the skeleton for the minimum visible duration.
+	const tick = () => {
+		if (token !== categoryTransitionToken) return
+
+		if (settingsContentPending.value) {
+			window.setTimeout(tick, 32)
+			return
+		}
+
+		const remaining = Math.max(0, CATEGORY_SKELETON_MIN_MS - (Date.now() - startedAt))
+		window.setTimeout(() => {
+			if (token !== categoryTransitionToken) return
+			if (!settingsContentPending.value) {
+				showContentSkeleton.value = false
+				return
+			}
+			tick()
+		}, remaining || 16)
+	}
+
+	window.setTimeout(tick, 40)
+})
+
+onUnmounted(() => {
+	categoryTransitionToken++
+	if (searchDebounceTimer) window.clearTimeout(searchDebounceTimer)
+	if (searchHighlightTimer) window.clearTimeout(searchHighlightTimer)
+})
 
 // The settings registry keeps each category lazy. Track only the currently
 // selected async component so the shared top loading bar reflects navigation
@@ -138,7 +194,9 @@ const searchResults = computed<SettingsSearchResult[]>(() => {
 		}),
 	)
 
-	return filterSettingsSearchDocuments(searchQuery.value, documents).map(({ item }) => item)
+	return filterSettingsSearchDocuments(debouncedSearchQuery.value, documents).map(
+		({ item }) => item,
+	)
 })
 
 watch(
@@ -232,7 +290,7 @@ function searchResultKey(result: SettingsSearchResult): string {
 }
 
 function searchMatchSegments(text: string) {
-	const query = normalizeSettingsSearchText(searchQuery.value)
+	const query = normalizeSettingsSearchText(debouncedSearchQuery.value)
 	if (!query) return [{ text, matched: false }]
 
 	const index = text.toLocaleLowerCase().indexOf(query)
@@ -294,30 +352,65 @@ const pageTitle: MessageDescriptor = settingsPageTitle
 
 				<div
 					v-if="hasSearchQuery"
-					class="settings-sidebar-list"
+					class="settings-sidebar-list settings-search-results"
 					:aria-label="formatMessage(messages.results)"
+					:aria-busy="searchResultsPending"
 				>
-					<button
-						v-for="result in searchResults"
-						:key="searchResultKey(result)"
-						type="button"
-						class="settings-search-result items-center gap-2 p-2 hover:bg-surface-3 hover:text-contrast"
-						@click="selectSearchResult(result)"
-					>
-						<component :is="result.category.icon" class="size-4 shrink-0 text-secondary" />
-						<span class="settings-search-result-copy">
-							<span class="settings-search-result-label">
-								<template v-for="segment in searchMatchSegments(result.label)" :key="segment.text">
-									<mark v-if="segment.matched" class="settings-search-match">{{
-										segment.text
-									}}</mark>
-									<span v-else>{{ segment.text }}</span>
-								</template>
+					<div v-if="searchResultsPending" class="settings-search-skeleton" aria-hidden="true">
+						<div v-for="row in 5" :key="row" class="settings-search-skeleton-row">
+							<div class="settings-search-skeleton-icon animate-pulse" />
+							<div class="settings-search-skeleton-copy">
+								<div
+									class="settings-search-skeleton-line animate-pulse"
+									:class="row % 2 === 0 ? 'is-wide' : 'is-medium'"
+								/>
+								<div class="settings-search-skeleton-line is-short animate-pulse" />
+							</div>
+						</div>
+					</div>
+
+					<TransitionGroup v-else name="settings-search">
+						<button
+							v-for="(result, index) in searchResults"
+							:key="searchResultKey(result)"
+							type="button"
+							class="settings-search-result"
+							:class="result.entry ? 'is-entry' : 'is-category'"
+							:style="{ '--search-stagger': `${Math.min(index * 28, 168)}ms` }"
+							@click="selectSearchResult(result)"
+						>
+							<component
+								:is="result.category.icon"
+								class="settings-search-result-icon"
+								aria-hidden="true"
+							/>
+							<span class="settings-search-result-copy">
+								<span class="settings-search-result-label">
+									<template
+										v-for="segment in searchMatchSegments(result.label)"
+										:key="segment.text"
+									>
+										<mark v-if="segment.matched" class="settings-search-match">{{
+											segment.text
+										}}</mark>
+										<span v-else>{{ segment.text }}</span>
+									</template>
+								</span>
+								<span v-if="result.breadcrumb" class="settings-search-result-breadcrumb">
+									{{ result.breadcrumb }}
+								</span>
 							</span>
-							<span class="truncate text-xs text-secondary">{{ result.breadcrumb }}</span>
-						</span>
-					</button>
-					<p v-if="searchResults.length === 0" class="m-0 px-3 py-4 text-sm text-secondary">
+							<ChevronRightIcon
+								v-if="!result.entry"
+								class="settings-search-result-chevron"
+								aria-hidden="true"
+							/>
+						</button>
+					</TransitionGroup>
+					<p
+						v-if="!searchResultsPending && searchResults.length === 0"
+						class="m-0 px-3 py-4 text-sm text-secondary"
+					>
 						{{ formatMessage(messages.noResults) }}
 					</p>
 				</div>
@@ -382,33 +475,69 @@ const pageTitle: MessageDescriptor = settingsPageTitle
 			</aside>
 
 			<section class="settings-content" :aria-label="formatMessage(pageTitle)">
-				<header class="settings-content-header">
-					<component :is="activeCategory?.icon" class="size-5 text-secondary" />
-					<h1 class="m-0 text-xl font-semibold text-contrast">
-						{{ activeCategory ? categoryName(activeCategory) : formatMessage(pageTitle) }}
-					</h1>
-				</header>
+				<Transition name="settings-content-header" mode="out-in">
+					<header :key="activeCategory?.id ?? 'settings'" class="settings-content-header">
+						<component :is="activeCategory?.icon" class="size-5 text-secondary" />
+						<h1 class="m-0 text-xl font-semibold text-contrast">
+							{{ activeCategory ? categoryName(activeCategory) : formatMessage(pageTitle) }}
+						</h1>
+					</header>
+				</Transition>
 				<div
 					ref="contentContainer"
 					class="settings-content-scroll min-h-0 flex-1"
 					:class="activeCategory?.flushContent ? 'overflow-hidden' : 'overflow-y-auto'"
 				>
-					<div
-						v-if="activeCategory"
-						:id="`settings-category-${activeCategory.id}`"
-						class="min-h-0"
-						:class="activeCategory.flushContent ? 'h-full' : 'mx-auto max-w-5xl px-6 pb-6'"
-						tabindex="-1"
-					>
-						<Suspense
-							@pending="settingsContentPending = true"
-							@resolve="settingsContentPending = false"
+					<div class="settings-content-stage relative min-h-0">
+						<Transition name="settings-content-skeleton">
+							<div v-if="isContentLoading" class="settings-content-skeleton" aria-hidden="true">
+								<div class="settings-content-skeleton-inner">
+									<div class="h-6 w-40 animate-pulse rounded bg-surface-3" />
+									<div class="h-3 w-72 max-w-full animate-pulse rounded bg-surface-2" />
+									<div class="mt-2 flex flex-col gap-3">
+										<div
+											v-for="row in 5"
+											:key="row"
+											class="flex items-center gap-3 rounded-lg border border-solid p-4"
+											:style="{
+												borderColor: 'var(--settings-card-border)',
+												background: 'color-mix(in srgb, var(--surface-2) 35%, transparent)',
+											}"
+										>
+											<div class="flex min-w-0 flex-1 flex-col gap-2">
+												<div
+													class="h-4 animate-pulse rounded bg-surface-3"
+													:class="row % 2 === 0 ? 'w-2/5' : 'w-1/3'"
+												/>
+												<div class="h-3 w-3/5 animate-pulse rounded bg-surface-2" />
+											</div>
+											<div class="h-8 w-16 shrink-0 animate-pulse rounded-lg bg-surface-3" />
+										</div>
+									</div>
+								</div>
+							</div>
+						</Transition>
+
+						<div
+							v-if="activeCategory"
+							:id="`settings-category-${activeCategory.id}`"
+							class="settings-content-body min-h-0"
+							:class="[
+								activeCategory.flushContent ? 'h-full' : 'mx-auto max-w-5xl px-6 pb-6',
+								isContentLoading ? 'is-loading' : 'is-ready',
+							]"
+							tabindex="-1"
 						>
-							<component :is="activeCategory.content" :key="activeCategory.id" />
-							<template #fallback>
-								<div class="settings-content-fallback" aria-hidden="true" />
-							</template>
-						</Suspense>
+							<Suspense
+								@pending="settingsContentPending = true"
+								@resolve="settingsContentPending = false"
+							>
+								<component :is="activeCategory.content" :key="activeCategory.id" />
+								<template #fallback>
+									<div class="settings-content-fallback" aria-hidden="true" />
+								</template>
+							</Suspense>
+						</div>
 					</div>
 				</div>
 			</section>
@@ -479,8 +608,7 @@ const pageTitle: MessageDescriptor = settingsPageTitle
 		color 120ms ease;
 }
 
-.settings-category-button,
-.settings-search-result {
+.settings-category-button {
 	display: flex;
 	width: 100%;
 	border: 0;
@@ -492,9 +620,6 @@ const pageTitle: MessageDescriptor = settingsPageTitle
 	transition:
 		background-color 120ms ease,
 		color 120ms ease;
-}
-
-.settings-category-button {
 	align-items: center;
 	gap: 0.625rem;
 	min-height: 2.25rem;
@@ -509,27 +634,199 @@ const pageTitle: MessageDescriptor = settingsPageTitle
 	color: var(--color-button-text-selected);
 }
 
+.settings-search-results {
+	position: relative;
+	gap: var(--gap-xs);
+}
+
+.settings-search-result {
+	display: flex;
+	width: 100%;
+	align-items: flex-start;
+	gap: var(--gap-sm);
+	padding: 0.55rem 0.65rem;
+	border: 0;
+	border-radius: var(--radius-sm);
+	background: transparent;
+	color: var(--color-text-primary);
+	text-align: left;
+	cursor: pointer;
+	transition:
+		background-color 140ms ease,
+		color 140ms ease,
+		transform 140ms ease,
+		box-shadow 140ms ease;
+}
+
+.settings-search-result:hover {
+	background: var(--surface-3);
+	color: var(--color-contrast);
+}
+
+.settings-search-result:active {
+	background: var(--surface-4);
+	transform: scale(0.985);
+}
+
+.settings-search-result:focus-visible {
+	outline: 2px solid color-mix(in srgb, var(--color-brand) 55%, transparent);
+	outline-offset: 1px;
+}
+
+.settings-search-result.is-entry {
+	padding-left: 0.85rem;
+}
+
+.settings-search-result-icon {
+	width: 1rem;
+	height: 1rem;
+	flex-shrink: 0;
+	margin-top: 0.15rem;
+	color: var(--color-secondary);
+	transition: color 140ms ease;
+}
+
+.settings-search-result.is-category .settings-search-result-icon {
+	color: var(--color-contrast);
+}
+
+.settings-search-result:hover .settings-search-result-icon {
+	color: var(--color-brand);
+}
+
 .settings-search-result-copy {
 	display: flex;
 	min-width: 0;
 	flex: 1;
 	flex-direction: column;
-	gap: 0.125rem;
+	gap: 0.15rem;
 }
 
 .settings-search-result-label {
 	overflow: hidden;
-	color: var(--color-contrast);
+	color: inherit;
 	font-size: 0.875rem;
 	font-weight: 600;
+	line-height: 1.35;
 	text-overflow: ellipsis;
 	white-space: nowrap;
+}
+
+.settings-search-result.is-entry .settings-search-result-label {
+	font-weight: 500;
+}
+
+.settings-search-result-breadcrumb {
+	overflow: hidden;
+	color: var(--color-secondary);
+	font-size: 0.75rem;
+	line-height: 1.3;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.settings-search-result-chevron {
+	width: 0.875rem;
+	height: 0.875rem;
+	flex-shrink: 0;
+	margin-top: 0.2rem;
+	color: var(--color-secondary);
+	opacity: 0.7;
+	transition:
+		color 140ms ease,
+		opacity 140ms ease,
+		transform 140ms ease;
+}
+
+.settings-search-result:hover .settings-search-result-chevron {
+	color: var(--color-brand);
+	opacity: 1;
+	transform: translateX(1px);
 }
 
 .settings-search-match {
 	background: transparent;
 	color: var(--color-brand);
 	padding: 0;
+	font-weight: 700;
+}
+
+.settings-search-enter-active {
+	transition:
+		opacity 180ms ease var(--search-stagger, 0ms),
+		transform 180ms ease var(--search-stagger, 0ms);
+}
+
+.settings-search-enter-from {
+	opacity: 0;
+	transform: translateY(-6px);
+}
+
+.settings-search-leave-active {
+	position: absolute;
+	width: 100%;
+	pointer-events: none;
+	transition: opacity 100ms ease;
+}
+
+.settings-search-leave-to {
+	opacity: 0;
+}
+
+.settings-search-move {
+	transition: transform 160ms ease;
+}
+
+.settings-search-skeleton {
+	display: flex;
+	flex-direction: column;
+	gap: var(--gap-xs);
+	padding: 0.15rem 0;
+}
+
+.settings-search-skeleton-row {
+	display: flex;
+	align-items: flex-start;
+	gap: var(--gap-sm);
+	padding: 0.55rem 0.65rem;
+}
+
+.settings-search-skeleton-icon {
+	width: 1rem;
+	height: 1rem;
+	flex-shrink: 0;
+	margin-top: 0.15rem;
+	border-radius: 9999px;
+	background: var(--surface-3);
+}
+
+.settings-search-skeleton-copy {
+	display: flex;
+	min-width: 0;
+	flex: 1;
+	flex-direction: column;
+	gap: 0.35rem;
+}
+
+.settings-search-skeleton-line {
+	height: 0.75rem;
+	border-radius: var(--radius-sm);
+	background: var(--surface-3);
+}
+
+.settings-search-skeleton-line.is-wide {
+	width: 72%;
+	height: 0.875rem;
+}
+
+.settings-search-skeleton-line.is-medium {
+	width: 55%;
+	height: 0.875rem;
+}
+
+.settings-search-skeleton-line.is-short {
+	width: 40%;
+	background: var(--surface-2);
 }
 
 .settings-content {
@@ -538,6 +835,69 @@ const pageTitle: MessageDescriptor = settingsPageTitle
 	flex-direction: column;
 	min-height: 0;
 	overflow: hidden;
+}
+
+.settings-content-stage {
+	min-height: 100%;
+}
+
+.settings-content-skeleton {
+	position: absolute;
+	inset: 0;
+	z-index: 2;
+	padding: 0 1.5rem 1.5rem;
+	background: var(--surface-1);
+}
+
+.settings-content-skeleton-inner {
+	display: flex;
+	max-width: 64rem;
+	margin: 0 auto;
+	flex-direction: column;
+	gap: 0.75rem;
+}
+
+.settings-content-body {
+	transition:
+		opacity 180ms ease,
+		transform 180ms ease;
+}
+
+.settings-content-body.is-loading {
+	opacity: 0;
+	transform: translateY(4px);
+	pointer-events: none;
+}
+
+.settings-content-body.is-ready {
+	opacity: 1;
+	transform: none;
+}
+
+.settings-content-skeleton-enter-active,
+.settings-content-skeleton-leave-active {
+	transition:
+		opacity 160ms ease,
+		transform 160ms ease;
+}
+
+.settings-content-skeleton-enter-from,
+.settings-content-skeleton-leave-to {
+	opacity: 0;
+	transform: translateY(4px);
+}
+
+.settings-content-header-enter-active,
+.settings-content-header-leave-active {
+	transition:
+		opacity 140ms ease,
+		transform 140ms ease;
+}
+
+.settings-content-header-enter-from,
+.settings-content-header-leave-to {
+	opacity: 0;
+	transform: translateY(-4px);
 }
 
 .settings-content-fallback {

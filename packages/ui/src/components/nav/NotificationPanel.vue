@@ -72,8 +72,8 @@
 							</ButtonStyled>
 							<ButtonStyled circular size="small">
 								<button
-									:aria-label="formatMessage(messages.dismiss)"
 									v-tooltip="formatMessage(messages.dismiss)"
+									:aria-label="formatMessage(messages.dismiss)"
 									@click="dismissNotification(index)"
 								>
 									<XIcon />

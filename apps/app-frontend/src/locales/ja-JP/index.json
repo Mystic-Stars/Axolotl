@@ -326,9 +326,6 @@
   "app.update-popup.body.download-complete": {
     "message": "Axolotl Launcher v{version} のダウンロードが完了しました。今すぐ更新するには再読み込みするか、Axolotl Launcherを閉じる際に自動更新されます。"
   },
-  "app.update-popup.body.linux": {
-    "message": "Axolotl Launcher v{version} が利用可能です。最新の機能と修正プログラムを入手するには、パッケージマネージャーを使用して更新してください！"
-  },
   "app.update-popup.body.metered": {
     "message": "Axolotl Launcher v{version} が利用可能になりました！お使いのネットワークが従量制のため、自動ダウンロードは行っておりません。"
   },

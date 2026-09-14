@@ -89,14 +89,12 @@ import MinecraftCrashModal from '@/components/ui/MinecraftCrashModal.vue'
 import AuthGrantFlowWaitModal from '@/components/ui/modal/AuthGrantFlowWaitModal.vue'
 import CommunityAnnouncementModal from '@/components/ui/modal/CommunityAnnouncementModal.vue'
 import CurseForgeManualDownloadsModal from '@/components/ui/modal/CurseForgeManualDownloadsModal.vue'
-import InstallToPlayModal from '@/components/ui/modal/InstallToPlayModal.vue'
 import InstanceIconPickerModal from '@/components/ui/modal/InstanceIconPickerModal.vue'
 import JavaDownloadConfirmationModal from '@/components/ui/modal/JavaDownloadConfirmationModal.vue'
 import ModpackAlreadyInstalledModal from '@/components/ui/modal/ModpackAlreadyInstalledModal.vue'
 import ModpackInstallModal from '@/components/ui/modal/ModpackInstallModal.vue'
 import PrivacyConsentModal from '@/components/ui/modal/PrivacyConsentModal.vue'
 import SurveyAnnouncementModal from '@/components/ui/modal/SurveyAnnouncementModal.vue'
-import UpdateToPlayModal from '@/components/ui/modal/UpdateToPlayModal.vue'
 import NavButton from '@/components/ui/NavButton.vue'
 import NavRail from '@/components/ui/NavRail.vue'
 import OnboardingOverlay from '@/components/ui/onboarding/OnboardingOverlay.vue'
@@ -127,6 +125,7 @@ import { type DirectLinkSyncReport, get as getInstance, run } from '@/helpers/in
 import { reconcileMojangAuthSourceAtStartup } from '@/helpers/mojang-auth'
 import { cancelLogin, get as getCreds, login, logout } from '@/helpers/mr_auth.ts'
 import { getNavShortcutEnabled } from '@/helpers/nav-shortcut-state'
+import { runWhenIdle } from '@/helpers/page-transition'
 import { mergeUrlQuery, parseModrinthLink } from '@/helpers/project-links.ts'
 import { getQuickScrollEnabled, getShowScrollTop } from '@/helpers/scroll-top-state'
 import {
@@ -158,11 +157,10 @@ import {
 	isDev,
 	isElevated,
 	isNetworkMetered,
-	restartApp,
 	setRestartAfterPendingUpdate,
 } from '@/helpers/utils.js'
 import { start_join_server, start_join_singleplayer_world } from '@/helpers/worlds.ts'
-import i18n, { resolveInitialLocale } from '@/i18n.config'
+import { applyLocalePreference, setFollowSystemLocale } from '@/i18n.config'
 import {
 	appUpdateState,
 	downloadAvailableAppUpdate,
@@ -198,6 +196,7 @@ const router = useRouter()
 const route = useRoute()
 const onSkinsPage = computed(() => route.path === '/skins')
 const onSchematicWorkshopPage = computed(() => route.path === '/lab/schematic-preview')
+const onSettingsPage = computed(() => route.path.startsWith('/settings'))
 const isSchematicFile = (path: string) => /\.(litematic|schematic|schem)$/i.test(path)
 const APP_LEFT_NAV_WIDTH = '4rem'
 
@@ -208,7 +207,19 @@ function getPageTransitionKey(route: RouteLocationNormalizedLoaded) {
 	if (typeof transitionGroup !== 'string') return route.fullPath
 
 	const routeId = route.params.id
-	return `${transitionGroup}:${Array.isArray(routeId) ? routeId.join('/') : (routeId ?? '')}`
+	if (routeId !== undefined) {
+		return `${transitionGroup}:${Array.isArray(routeId) ? routeId.join('/') : routeId}`
+	}
+
+	// Browse-style routes use :projectType instead of :id. Keep tab switches on
+	// the same SPA instance (Browse already watches the param) so only the
+	// results area refreshes — no full page transition. Favorites is a different
+	// component under the same group; give it its own key so it still remounts.
+	if (route.name === 'Favorites') {
+		return `${transitionGroup}:favorites`
+	}
+
+	return `${transitionGroup}:`
 }
 const APP_SIDEBAR_WIDTH = 300
 const credentials = ref()
@@ -703,9 +714,12 @@ onMounted(async () => {
 	document.querySelector('body').addEventListener('auxclick', handleAuxClick)
 	window.addEventListener(DIRECT_LINKS_SYNCED_EVENT, handleDirectLinkSyncReport)
 
-	checkUpdates()
-	void warnIfRunningElevated()
-	startDirectLinkSync()
+	// Background maintenance must not compete with first paint / route enter.
+	runWhenIdle(() => {
+		void checkUpdates()
+		void warnIfRunningElevated()
+		startDirectLinkSync()
+	})
 })
 
 let directLinkSync: (() => Promise<void>) | undefined
@@ -1291,12 +1305,12 @@ async function setupApp() {
 		pending_update_toast_for_version,
 	} = initialSettings
 
-	// Initialize locale from saved settings
-	if (locale) {
-		i18n.global.locale.value = locale
-	} else {
-		const resolvedLocale = resolveInitialLocale(navigator.languages)
-		i18n.global.locale.value = resolvedLocale
+	// Initialize locale from saved settings. Empty/'system' (or the follow-system
+	// flag) keeps tracking the OS language and stores a concrete locale for backend
+	// checks that compare against codes like `zh-CN`.
+	if (!locale) setFollowSystemLocale(true)
+	const resolvedLocale = applyLocalePreference(locale)
+	if (!locale || locale !== resolvedLocale) {
 		initialSettings.locale = resolvedLocale
 		await setSettings(initialSettings)
 	}
@@ -1892,10 +1906,7 @@ const {
 const serverInstall = createServerInstall({ router, handleError, popupNotificationManager })
 provideServerInstall(serverInstall)
 const {
-	setInstallToPlayModal: setServerInstallToPlayModal,
-	setUpdateToPlayModal: setServerUpdateToPlayModal,
 	setAddServerToInstanceModal: setServerAddServerToInstanceModal,
-	playServerProject,
 	symlinkTarget: addServerSymlinkTarget,
 } = serverInstall
 
@@ -1908,9 +1919,6 @@ const handleContentInstallModpackDuplicateGoToInstance = (instanceId: string) =>
 const contentInstallCurseForgeManualDownloadsModal = ref()
 const addServerToInstanceModal = ref()
 const incompatibilityWarningModal = ref()
-const installToPlayModal = ref()
-const updateToPlayModal = ref()
-
 const modrinthLoginFlowWaitModal = ref()
 
 // ── Drop import system ──────────────────────────────────────────────────
@@ -1922,6 +1930,7 @@ const dropImport = useDropImport({
 	fileDrop,
 	onSkinsPage,
 	onSchematicWorkshopPage,
+	onSettingsPage,
 	isSchematicFile,
 	trackEvent,
 	router,
@@ -2078,8 +2087,6 @@ onMounted(() => {
 	)
 	setModpackAlreadyInstalledModal(modpackAlreadyInstalledModal.value)
 	setServerAddServerToInstanceModal(addServerToInstanceModal.value)
-	setServerInstallToPlayModal(installToPlayModal.value)
-	setServerUpdateToPlayModal(updateToPlayModal.value)
 	void (async () => {
 		try {
 			const ready = await invoke<{
@@ -2158,9 +2165,6 @@ async function handleCommand(e) {
 		} else {
 			await run(e.id).catch(handleLaunchCommandError)
 		}
-	} else if (e.event === 'InstallServer') {
-		await router.push(`/project/${e.id}`)
-		await playServerProject(e.id).catch(handleError)
 	} else if (e.event === 'InstallVersion') {
 		const version = await get_version(e.id, 'must_revalidate').catch(handleError)
 		if (version) {
@@ -2758,7 +2762,7 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 					<AxolotlLogo class="h-full w-auto shrink-0 pointer-events-none" />
 					<span
 						v-if="isBetaBuild"
-						class="inline-flex shrink-0 rounded-full bg-[#b6e9ff] px-2 py-0.5 text-xs font-semibold leading-none text-[#005bda]"
+						class="inline-flex shrink-0 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-semibold leading-none text-blue-700"
 					>
 						{{ formatMessage(messages.betaBuild) }}
 					</span>
@@ -2833,10 +2837,15 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 				{{ formatMessage(messages.authUnreachableBody) }}
 			</Admonition>
 			<div class="page-transition-grid grid min-h-full">
-				<RouterView v-slot="{ Component, route }">
-					<Transition name="page-slide" :css="themeStore.getFeatureFlag('page_transitions')">
-						<div v-if="Component" :key="getPageTransitionKey(route)" class="page-transition-layer">
-							<Suspense @pending="onSuspensePending" @resolve="onSuspenseResolve">
+				<RouterView v-slot="{ Component, route: pageRoute }">
+					<!--
+						Enter animation is keyed only on the route (see getPageTransitionKey).
+						The layer mounts as soon as the URL changes — not when the async page
+						Suspense resolves — so nav switches stay smooth while data loads.
+					-->
+					<Transition name="page-slide" :css="themeStore.getFeatureFlag('page_transitions')" appear>
+						<div :key="getPageTransitionKey(pageRoute)" class="page-transition-layer">
+							<Suspense v-if="Component" @pending="onSuspensePending" @resolve="onSuspenseResolve">
 								<component :is="Component"></component>
 							</Suspense>
 						</div>
@@ -3012,12 +3021,10 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 		@view-instance="handleContentInstallModpackDuplicateGoToInstance"
 		@imported="handleContentInstallCurseForgeManualDownloadsImported"
 	/>
-	<InstallToPlayModal ref="installToPlayModal" />
-	<UpdateToPlayModal ref="updateToPlayModal" />
 
 	<!-- Global drop overlay -->
 	<div
-		v-if="isDragging && !onSkinsPage"
+		v-if="isDragging && !onSkinsPage && !onSettingsPage"
 		class="fixed inset-0 z-[9999] bg-black/40 flex items-center justify-center pointer-events-none"
 	>
 		<div class="rounded-2xl border-2 border-dashed border-brand bg-surface-2/90 p-8 text-center">
@@ -3028,7 +3035,13 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 
 	<!-- Processing overlay -->
 	<div
-		v-if="(isProcessing || scanningInstances) && !isDragging && !onSkinsPage && !batchActive"
+		v-if="
+			(isProcessing || scanningInstances) &&
+			!isDragging &&
+			!onSkinsPage &&
+			!onSettingsPage &&
+			!batchActive
+		"
 		class="fixed inset-0 z-[9999] bg-black/20 flex items-center justify-center"
 	>
 		<div class="flex flex-col items-center gap-3">
@@ -3244,6 +3257,9 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 	background-color: var(--color-bg);
 	border-top-left-radius: var(--radius-xl);
 	overflow: hidden;
+	// Keep sticky/fixed chrome and the page-layer stack from spilling or
+	// re-anchoring while slide/opacity transitions repaint.
+	isolation: isolate;
 	--right-bar-width: 0px;
 
 	display: grid;
@@ -3455,12 +3471,12 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 .app-contents::before {
 	z-index: 30;
 	content: '';
-	position: fixed;
-	left: var(--left-bar-width);
-	top: var(--top-bar-height);
-	right: calc(-1 * var(--left-bar-width));
-	bottom: calc(-1 * var(--left-bar-width));
-	border-radius: var(--radius-xl);
+	// Absolute (not fixed) so the inset edge shadow stays glued to the content
+	// pane. Fixed coordinates recompute against the viewport and can desync
+	// from the nav/content boundary during page-layer compositing.
+	position: absolute;
+	inset: 0;
+	border-top-left-radius: var(--radius-xl);
 	box-shadow: 1px 1px 15px rgba(0, 0, 0, 0.1) inset;
 	border-color: var(--surface-5);
 	border-width: 1px;

@@ -119,13 +119,12 @@ function updateIntercomBubbleClearance() {
 function getBottomClearance() {
 	if (
 		typeof window === 'undefined' ||
-		!barEl.value ||
 		(props.position !== undefined && props.position !== 'bottom')
 	) {
 		return 0
 	}
 
-	return Math.max(0, Math.ceil(window.innerHeight - barEl.value.getBoundingClientRect().top))
+	return 44
 }
 
 function updateFloatingActionBarState(isShown = shown.value) {
@@ -243,7 +242,7 @@ onUnmounted(() => {
 					ref="toolbarEl"
 					role="toolbar"
 					:aria-label="ariaLabel"
-					class="pointer-events-auto relative flex items-center gap-1.5 rounded-[20px] bg-surface-3 border border-surface-5 border-solid mx-auto md:max-w-[60vw] px-3 py-2.5 shadow-[0px_1px_3px_0px_rgba(0,0,0,0.3),0px_6px_10px_0px_rgba(0,0,0,0.15)]"
+					class="pointer-events-auto relative flex items-center gap-1.5 rounded-[var(--radius-xl)] bg-surface-3 border border-surface-5 border-solid mx-auto md:max-w-[60vw] px-3 py-2.5 shadow-[0px_1px_3px_0px_rgba(0,0,0,0.3),0px_6px_10px_0px_rgba(0,0,0,0.15)]"
 					:class="{
 						'overflow-visible': allowOverflow,
 						'overflow-clip': !allowOverflow,

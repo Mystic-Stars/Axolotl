@@ -797,6 +797,14 @@ mod tests {
         assert_eq!(summary.speed_bytes_per_second, Some(200));
         assert_eq!(summary.eta_seconds, Some(3));
 
+        job.active_downloads.get_mut("client.jar").unwrap().status =
+            DownloadItemStatus::Verifying;
+        let verifying = job.download_summary();
+        assert_eq!(verifying.speed_bytes_per_second, None);
+        assert_eq!(verifying.eta_seconds, None);
+        job.active_downloads.get_mut("client.jar").unwrap().status =
+            DownloadItemStatus::Downloading;
+
         job.active_downloads
             .get_mut("client.jar")
             .unwrap()
@@ -1509,9 +1517,38 @@ pub enum InstallRequest {
         #[serde(default)]
         display_icon: Option<String>,
     },
+    InstallContentBatch {
+        instance_id: String,
+        items: Vec<InstallContentBatchItem>,
+        display_title: String,
+        #[serde(default)]
+        display_icon: Option<String>,
+    },
     DownloadJava {
         vendor: String,
         version: u32,
+    },
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(tag = "type", rename_all = "snake_case")]
+pub enum InstallContentBatchItem {
+    Modrinth {
+        project_id: String,
+        version_id: Option<String>,
+        content_type: ContentType,
+        #[serde(default)]
+        selected: ResolutionPreferences,
+        #[serde(default)]
+        excluded_project_ids: Vec<String>,
+        #[serde(default)]
+        force_project_ids: Vec<String>,
+    },
+    CurseForge {
+        request: CurseForgeInstallRequest,
+    },
+    CurseForgeWorld {
+        request: CurseForgeWorldInstallRequest,
     },
 }
 
@@ -1541,6 +1578,7 @@ impl InstallRequest {
             Self::InstallContent { .. }
             | Self::InstallCurseForgeContent { .. }
             | Self::InstallCurseForgeWorld { .. }
+            | Self::InstallContentBatch { .. }
             | Self::DownloadJava { .. } => false,
         }
     }
@@ -1572,6 +1610,7 @@ impl InstallRequest {
             Self::InstallCurseForgeWorld { .. } => {
                 InstallJobKind::InstallContent
             }
+            Self::InstallContentBatch { .. } => InstallJobKind::InstallContent,
             Self::DownloadJava { .. } => InstallJobKind::DownloadJava,
         }
     }
@@ -1608,6 +1647,11 @@ impl InstallRequest {
                     instance_id: request.instance_id.clone(),
                 }
             }
+            Self::InstallContentBatch { instance_id, .. } => {
+                InstallTarget::ExistingInstance {
+                    instance_id: instance_id.clone(),
+                }
+            }
             _ => InstallTarget::NewInstance { instance_id: None },
         }
     }
@@ -1638,6 +1682,7 @@ impl InstallRequest {
             Self::InstallContent { .. } => InstallCleanup::None,
             Self::InstallCurseForgeContent { .. } => InstallCleanup::None,
             Self::InstallCurseForgeWorld { .. } => InstallCleanup::None,
+            Self::InstallContentBatch { .. } => InstallCleanup::None,
             _ => InstallCleanup::DeleteNewInstance { instance_id: None },
         }
     }
@@ -2408,6 +2453,23 @@ impl InstallJobState {
             InstallRequest::InstallContent { .. } => {
                 InstallJobProvider::Modrinth
             }
+            InstallRequest::InstallContentBatch { items, .. } => {
+                if items.iter().all(|item| {
+                    matches!(item, InstallContentBatchItem::Modrinth { .. })
+                }) {
+                    InstallJobProvider::Modrinth
+                } else if items.iter().all(|item| {
+                    matches!(
+                        item,
+                        InstallContentBatchItem::CurseForge { .. }
+                            | InstallContentBatchItem::CurseForgeWorld { .. }
+                    )
+                }) {
+                    InstallJobProvider::CurseForge
+                } else {
+                    InstallJobProvider::Application
+                }
+            }
             InstallRequest::InstallCurseForgeContent { .. }
             | InstallRequest::InstallCurseForgeWorld { .. }
             | InstallRequest::UpdateManagedCurseForgeModpack { .. } => {
@@ -2915,14 +2977,16 @@ impl InstallJobState {
                 ..
             }
         );
+        let now = Utc::now();
         let active_speed = self
             .active_downloads
             .values()
             .filter(|download| {
-                Utc::now()
-                    .signed_duration_since(download.last_progress_at)
-                    .num_milliseconds()
-                    < 3_000
+                download.status == DownloadItemStatus::Downloading
+                    && now
+                        .signed_duration_since(download.last_progress_at)
+                        .num_milliseconds()
+                        < 3_000
             })
             .filter_map(|download| download.speed_bytes_per_second)
             .fold(0_u64, u64::saturating_add);

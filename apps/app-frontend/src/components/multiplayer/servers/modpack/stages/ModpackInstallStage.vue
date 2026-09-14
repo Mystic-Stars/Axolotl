@@ -117,8 +117,7 @@ const isBusy = computed(
 			</span>
 			<pre
 				class="max-h-56 overflow-y-auto whitespace-pre-wrap rounded-xl border border-solid border-surface-4 bg-surface-3 p-3 font-mono text-xs leading-relaxed text-primary"
-				>{{ ctx.installLog.value.slice(-40).join('\n') }}</pre
-			>
+				>{{ ctx.installLog.value.slice(-40).join('\n') }}</pre>
 		</div>
 	</div>
 </template>

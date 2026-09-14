@@ -297,5 +297,4 @@ function formatWeight(value: number): string {
 .sample-arrow {
 	color: var(--color-brand);
 }
-
 </style>

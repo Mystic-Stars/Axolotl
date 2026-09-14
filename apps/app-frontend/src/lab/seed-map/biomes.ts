@@ -1,3 +1,5 @@
+import { defineMessages } from '@modrinth/ui'
+
 export type SeedMapDimension = 'overworld' | 'nether' | 'end'
 
 export type SeedMapBiomeCategory =
@@ -194,4 +196,176 @@ export function seedMapBiomeGroups(): SeedMapBiomeGroup[] {
 
 export function seedMapBiomeSlug(name: string): string {
 	return name.toLocaleLowerCase().replaceAll(' ', '-')
+}
+
+/** Static descriptors so FormatJS can extract biome labels (dynamic ids cannot). */
+export const seedMapBiomeMessages = defineMessages({
+	ocean: { id: 'app.lab.seed-map.biome.ocean', defaultMessage: 'Ocean' },
+	plains: { id: 'app.lab.seed-map.biome.plains', defaultMessage: 'Plains' },
+	desert: { id: 'app.lab.seed-map.biome.desert', defaultMessage: 'Desert' },
+	'windswept-hills': {
+		id: 'app.lab.seed-map.biome.windswept-hills',
+		defaultMessage: 'Windswept Hills',
+	},
+	forest: { id: 'app.lab.seed-map.biome.forest', defaultMessage: 'Forest' },
+	taiga: { id: 'app.lab.seed-map.biome.taiga', defaultMessage: 'Taiga' },
+	swamp: { id: 'app.lab.seed-map.biome.swamp', defaultMessage: 'Swamp' },
+	river: { id: 'app.lab.seed-map.biome.river', defaultMessage: 'River' },
+	'nether-wastes': {
+		id: 'app.lab.seed-map.biome.nether-wastes',
+		defaultMessage: 'Nether Wastes',
+	},
+	'the-end': { id: 'app.lab.seed-map.biome.the-end', defaultMessage: 'The End' },
+	'frozen-ocean': {
+		id: 'app.lab.seed-map.biome.frozen-ocean',
+		defaultMessage: 'Frozen Ocean',
+	},
+	'frozen-river': {
+		id: 'app.lab.seed-map.biome.frozen-river',
+		defaultMessage: 'Frozen River',
+	},
+	'snowy-plains': {
+		id: 'app.lab.seed-map.biome.snowy-plains',
+		defaultMessage: 'Snowy Plains',
+	},
+	'mushroom-fields': {
+		id: 'app.lab.seed-map.biome.mushroom-fields',
+		defaultMessage: 'Mushroom Fields',
+	},
+	beach: { id: 'app.lab.seed-map.biome.beach', defaultMessage: 'Beach' },
+	jungle: { id: 'app.lab.seed-map.biome.jungle', defaultMessage: 'Jungle' },
+	'sparse-jungle': {
+		id: 'app.lab.seed-map.biome.sparse-jungle',
+		defaultMessage: 'Sparse Jungle',
+	},
+	'deep-ocean': { id: 'app.lab.seed-map.biome.deep-ocean', defaultMessage: 'Deep Ocean' },
+	'stony-shore': { id: 'app.lab.seed-map.biome.stony-shore', defaultMessage: 'Stony Shore' },
+	'snowy-beach': { id: 'app.lab.seed-map.biome.snowy-beach', defaultMessage: 'Snowy Beach' },
+	'birch-forest': {
+		id: 'app.lab.seed-map.biome.birch-forest',
+		defaultMessage: 'Birch Forest',
+	},
+	'dark-forest': { id: 'app.lab.seed-map.biome.dark-forest', defaultMessage: 'Dark Forest' },
+	'snowy-taiga': { id: 'app.lab.seed-map.biome.snowy-taiga', defaultMessage: 'Snowy Taiga' },
+	'old-growth-pine-taiga': {
+		id: 'app.lab.seed-map.biome.old-growth-pine-taiga',
+		defaultMessage: 'Old Growth Pine Taiga',
+	},
+	'windswept-forest': {
+		id: 'app.lab.seed-map.biome.windswept-forest',
+		defaultMessage: 'Windswept Forest',
+	},
+	savanna: { id: 'app.lab.seed-map.biome.savanna', defaultMessage: 'Savanna' },
+	'savanna-plateau': {
+		id: 'app.lab.seed-map.biome.savanna-plateau',
+		defaultMessage: 'Savanna Plateau',
+	},
+	badlands: { id: 'app.lab.seed-map.biome.badlands', defaultMessage: 'Badlands' },
+	'wooded-badlands': {
+		id: 'app.lab.seed-map.biome.wooded-badlands',
+		defaultMessage: 'Wooded Badlands',
+	},
+	'small-end-islands': {
+		id: 'app.lab.seed-map.biome.small-end-islands',
+		defaultMessage: 'Small End Islands',
+	},
+	'end-midlands': { id: 'app.lab.seed-map.biome.end-midlands', defaultMessage: 'End Midlands' },
+	'end-highlands': {
+		id: 'app.lab.seed-map.biome.end-highlands',
+		defaultMessage: 'End Highlands',
+	},
+	'end-barrens': { id: 'app.lab.seed-map.biome.end-barrens', defaultMessage: 'End Barrens' },
+	'warm-ocean': { id: 'app.lab.seed-map.biome.warm-ocean', defaultMessage: 'Warm Ocean' },
+	'lukewarm-ocean': {
+		id: 'app.lab.seed-map.biome.lukewarm-ocean',
+		defaultMessage: 'Lukewarm Ocean',
+	},
+	'cold-ocean': { id: 'app.lab.seed-map.biome.cold-ocean', defaultMessage: 'Cold Ocean' },
+	'deep-lukewarm-ocean': {
+		id: 'app.lab.seed-map.biome.deep-lukewarm-ocean',
+		defaultMessage: 'Deep Lukewarm Ocean',
+	},
+	'deep-cold-ocean': {
+		id: 'app.lab.seed-map.biome.deep-cold-ocean',
+		defaultMessage: 'Deep Cold Ocean',
+	},
+	'deep-frozen-ocean': {
+		id: 'app.lab.seed-map.biome.deep-frozen-ocean',
+		defaultMessage: 'Deep Frozen Ocean',
+	},
+	'sunflower-plains': {
+		id: 'app.lab.seed-map.biome.sunflower-plains',
+		defaultMessage: 'Sunflower Plains',
+	},
+	'windswept-gravelly-hills': {
+		id: 'app.lab.seed-map.biome.windswept-gravelly-hills',
+		defaultMessage: 'Windswept Gravelly Hills',
+	},
+	'flower-forest': {
+		id: 'app.lab.seed-map.biome.flower-forest',
+		defaultMessage: 'Flower Forest',
+	},
+	'ice-spikes': { id: 'app.lab.seed-map.biome.ice-spikes', defaultMessage: 'Ice Spikes' },
+	'old-growth-birch-forest': {
+		id: 'app.lab.seed-map.biome.old-growth-birch-forest',
+		defaultMessage: 'Old Growth Birch Forest',
+	},
+	'old-growth-spruce-taiga': {
+		id: 'app.lab.seed-map.biome.old-growth-spruce-taiga',
+		defaultMessage: 'Old Growth Spruce Taiga',
+	},
+	'windswept-savanna': {
+		id: 'app.lab.seed-map.biome.windswept-savanna',
+		defaultMessage: 'Windswept Savanna',
+	},
+	'eroded-badlands': {
+		id: 'app.lab.seed-map.biome.eroded-badlands',
+		defaultMessage: 'Eroded Badlands',
+	},
+	'bamboo-jungle': {
+		id: 'app.lab.seed-map.biome.bamboo-jungle',
+		defaultMessage: 'Bamboo Jungle',
+	},
+	'soul-sand-valley': {
+		id: 'app.lab.seed-map.biome.soul-sand-valley',
+		defaultMessage: 'Soul Sand Valley',
+	},
+	'crimson-forest': {
+		id: 'app.lab.seed-map.biome.crimson-forest',
+		defaultMessage: 'Crimson Forest',
+	},
+	'warped-forest': {
+		id: 'app.lab.seed-map.biome.warped-forest',
+		defaultMessage: 'Warped Forest',
+	},
+	'basalt-deltas': {
+		id: 'app.lab.seed-map.biome.basalt-deltas',
+		defaultMessage: 'Basalt Deltas',
+	},
+	'dripstone-caves': {
+		id: 'app.lab.seed-map.biome.dripstone-caves',
+		defaultMessage: 'Dripstone Caves',
+	},
+	'lush-caves': { id: 'app.lab.seed-map.biome.lush-caves', defaultMessage: 'Lush Caves' },
+	meadow: { id: 'app.lab.seed-map.biome.meadow', defaultMessage: 'Meadow' },
+	grove: { id: 'app.lab.seed-map.biome.grove', defaultMessage: 'Grove' },
+	'snowy-slopes': {
+		id: 'app.lab.seed-map.biome.snowy-slopes',
+		defaultMessage: 'Snowy Slopes',
+	},
+	'jagged-peaks': { id: 'app.lab.seed-map.biome.jagged-peaks', defaultMessage: 'Jagged Peaks' },
+	'frozen-peaks': { id: 'app.lab.seed-map.biome.frozen-peaks', defaultMessage: 'Frozen Peaks' },
+	'stony-peaks': { id: 'app.lab.seed-map.biome.stony-peaks', defaultMessage: 'Stony Peaks' },
+	'deep-dark': { id: 'app.lab.seed-map.biome.deep-dark', defaultMessage: 'Deep Dark' },
+	'mangrove-swamp': {
+		id: 'app.lab.seed-map.biome.mangrove-swamp',
+		defaultMessage: 'Mangrove Swamp',
+	},
+	'cherry-grove': { id: 'app.lab.seed-map.biome.cherry-grove', defaultMessage: 'Cherry Grove' },
+	'pale-garden': { id: 'app.lab.seed-map.biome.pale-garden', defaultMessage: 'Pale Garden' },
+	'sulfur-caves': { id: 'app.lab.seed-map.biome.sulfur-caves', defaultMessage: 'Sulfur Caves' },
+})
+
+export function seedMapBiomeMessage(name: string) {
+	return seedMapBiomeMessages[seedMapBiomeSlug(name) as keyof typeof seedMapBiomeMessages]
 }

@@ -72,6 +72,8 @@ const REVERTIBLE_COLUMNS = {
 	20260911120000: [{ table: 'crash_analysis_ai_settings', column: 'ai_source' }],
 	// settings.log_level
 	20260912120000: [{ table: 'settings', column: 'log_level' }],
+	// log level default normalization; data only
+	20260913170000: [],
 }
 
 function fail(message) {

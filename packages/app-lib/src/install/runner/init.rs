@@ -304,6 +304,21 @@ pub(super) async fn prepare_initial_instance(
                 })?;
             set_display(job_state, display_title, display_icon);
         }
+        InstallRequest::InstallContentBatch {
+            instance_id,
+            display_title,
+            display_icon,
+            ..
+        } => {
+            crate::state::get_instance(&instance_id, &state.pool)
+                .await?
+                .ok_or_else(|| {
+                    crate::ErrorKind::InputError(format!(
+                        "Unknown instance {instance_id}"
+                    ))
+                })?;
+            set_display(job_state, display_title, display_icon);
+        }
         InstallRequest::DownloadJava { vendor, version } => {
             set_display(job_state, format!("Java {version} ({vendor})"), None);
         }

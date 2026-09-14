@@ -64,8 +64,7 @@ export interface BindingConflict {
 }
 
 export type BindingIssue =
-	| { kind: 'conflict'; label: string; reserved: boolean }
-	| { kind: 'needs-modifier' }
+	{ kind: 'conflict'; label: string; reserved: boolean } | { kind: 'needs-modifier' }
 
 export interface KeybindingLabels {
 	mod: string

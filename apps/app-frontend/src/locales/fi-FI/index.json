@@ -548,9 +548,6 @@
   "app.update-popup.body.download-complete": {
     "message": "Axolotl Launcher versio {version} on ladattu. Voit käynnistää sovelluksen uudelleen päivittääksesi heti tai antaa päivityksen asentua automaattisesti, kun suljet Axolotl Launcherin."
   },
-  "app.update-popup.body.linux": {
-    "message": "Axolotl Launcher versio {version} on saatavilla. Käytä paketinhallintasi ja päivitä käyttääksesi uusimpia ominaisuuksia ja korjauksia!"
-  },
   "app.update-popup.body.metered": {
     "message": "Axolotl Launcher versio {version} on nyt saatavilla! Koska käytät käytön mukaan laskutettavaa verkkoa, emme ladannut sitä automaattisesti."
   },

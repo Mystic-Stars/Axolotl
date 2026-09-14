@@ -21,6 +21,14 @@ pub fn init<R: tauri::Runtime>() -> tauri::plugin::TauriPlugin<R> {
         .build()
 }
 
+pub(crate) fn log_level_for_channel(channel: &str, log_level: &str) -> String {
+    if channel == "beta" && !matches!(log_level, "debug" | "trace") {
+        "debug".to_string()
+    } else {
+        log_level.to_string()
+    }
+}
+
 // Get full settings
 // invoke('plugin:settings|settings_get')
 #[tauri::command]
@@ -34,8 +42,10 @@ pub async fn settings_get() -> Result<Settings> {
 #[tauri::command]
 pub async fn settings_set(
     app: tauri::AppHandle<impl Runtime>,
-    settings: Settings,
+    mut settings: Settings,
 ) -> Result<()> {
+    let channel = crate::resolve_update_channel(&app).await?;
+    settings.log_level = log_level_for_channel(&channel, &settings.log_level);
     let log_level = settings.log_level.clone();
     settings::set(settings).await?;
     // Apply the log level right away so the new verbosity takes effect without
@@ -45,6 +55,25 @@ pub async fn settings_set(
     }
     let _ = app.emit("settings", ());
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::log_level_for_channel;
+
+    #[test]
+    fn beta_only_allows_verbose_log_levels() {
+        assert_eq!(log_level_for_channel("beta", "info"), "debug");
+        assert_eq!(log_level_for_channel("beta", "debug"), "debug");
+        assert_eq!(log_level_for_channel("beta", "trace"), "trace");
+    }
+
+    #[test]
+    fn release_preserves_the_selected_log_level() {
+        assert_eq!(log_level_for_channel("release", "error"), "error");
+        assert_eq!(log_level_for_channel("release", "info"), "info");
+        assert_eq!(log_level_for_channel("release", "trace"), "trace");
+    }
 }
 
 #[tauri::command]

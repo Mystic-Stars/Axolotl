@@ -264,9 +264,7 @@ export interface CurseForgeManualDownloadImport {
 }
 
 export type CurseForgeManualDownloadImportErrorKind =
-	| 'not_pending'
-	| 'verification_failed'
-	| 'other'
+	'not_pending' | 'verification_failed' | 'other'
 
 export interface CurseForgeManualDownloadScanResult {
 	downloadDirectory?: string | null

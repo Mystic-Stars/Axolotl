@@ -259,7 +259,7 @@ onMounted(() => {
 					/>
 					<div class="flex flex-col gap-1.5">
 						<ButtonStyled color="brand">
-							<button class="start-button" @click="startTranslation" :disabled="!canStart">
+							<button class="start-button" :disabled="!canStart" @click="startTranslation">
 								<PlayIcon />{{ formatMessage(messages.start) }}
 							</button>
 						</ButtonStyled>

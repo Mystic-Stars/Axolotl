@@ -12,12 +12,7 @@ export type BatchDropPhase =
 
 export type BatchDropScanState = 'pending' | 'scanning' | 'done' | 'skipped' | 'error'
 export type BatchDropInstallState =
-	| 'queued'
-	| 'processing'
-	| 'success'
-	| 'failed'
-	| 'cancelled'
-	| 'skipped'
+	'queued' | 'processing' | 'success' | 'failed' | 'cancelled' | 'skipped'
 export type BatchDropResultStatus = 'success' | 'failed' | 'skipped' | 'cancelled'
 
 export interface BatchDropItem {

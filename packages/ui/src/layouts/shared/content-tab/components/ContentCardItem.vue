@@ -34,7 +34,6 @@ import { commonMessages } from '#ui/utils/common-messages'
 import { truncatedTooltip } from '#ui/utils/truncate'
 
 import type {
-	ClientWarningType,
 	ContentCardProject,
 	ContentCardVersion,
 	ContentOwner,
@@ -91,8 +90,6 @@ interface Props {
 	duplicateCount?: number
 	hasUpdate?: boolean
 	rollbackFileName?: string
-	isClientOnly?: boolean
-	clientWarning?: ClientWarningType | null
 	hideSwitchVersion?: boolean
 	overflowOptions?: OverflowMenuOption[]
 	inlineActions?: ContentRowInlineAction[]
@@ -137,8 +134,6 @@ const props = withDefaults(defineProps<Props>(), {
 	duplicateCount: undefined,
 	hasUpdate: false,
 	rollbackFileName: undefined,
-	isClientOnly: false,
-	clientWarning: null,
 	hideSwitchVersion: false,
 	overflowOptions: undefined,
 	inlineActions: undefined,

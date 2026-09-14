@@ -145,7 +145,7 @@ function handleSort(column: ContentCardTableSortColumn) {
 		data-content-card-table
 		role="table"
 		class="@container border border-solid border-surface-4 shadow-sm overflow-clip"
-		:class="[flat ? '' : 'rounded-[20px]', isStuck || hideHeader ? 'border-t-0' : '']"
+		:class="[flat ? '' : 'rounded-[var(--radius-xl)]', isStuck || hideHeader ? 'border-t-0' : '']"
 	>
 		<div
 			v-if="!hideHeader"
@@ -250,8 +250,6 @@ function handleSort(column: ContentCardTableSortColumn) {
 					:duplicate-count="item.duplicateCount"
 					:has-update="item.hasUpdate"
 					:rollback-file-name="item.rollbackFileName"
-					:is-client-only="item.isClientOnly"
-					:client-warning="item.clientWarning"
 					:hide-switch-version="item.hideSwitchVersion"
 					:overflow-options="item.overflowOptions"
 					:disabled="item.disabled"
@@ -341,8 +339,6 @@ function handleSort(column: ContentCardTableSortColumn) {
 				:duplicate-count="item.duplicateCount"
 				:has-update="item.hasUpdate"
 				:rollback-file-name="item.rollbackFileName"
-				:is-client-only="item.isClientOnly"
-				:client-warning="item.clientWarning"
 				:overflow-options="item.overflowOptions"
 				:disabled="item.disabled"
 				:disabled-tooltip="item.disabledTooltip"

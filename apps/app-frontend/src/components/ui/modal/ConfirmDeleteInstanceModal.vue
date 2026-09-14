@@ -66,6 +66,7 @@ withDefaults(
 		count?: number
 	}>(),
 	{
+		symlinkTarget: null,
 		count: 1,
 	},
 )

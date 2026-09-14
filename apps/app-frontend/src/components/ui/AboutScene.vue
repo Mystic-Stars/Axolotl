@@ -5,7 +5,7 @@
 <script setup lang="ts">
 import * as THREE from 'three'
 import { type GLTF, GLTFLoader } from 'three/examples/jsm/Addons.js'
-import { onMounted, onScopeDispose, useTemplateRef } from 'vue'
+import { onMounted, onScopeDispose } from 'vue'
 
 import { useTheming } from '@/store/theme'
 

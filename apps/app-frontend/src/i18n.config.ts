@@ -38,14 +38,53 @@ export function resolveInitialLocale(preferredLocales: readonly string[]): strin
 	return 'en-US'
 }
 
+export const SYSTEM_LOCALE_VALUE = 'system'
+const FOLLOW_SYSTEM_LOCALE_KEY = 'axolotl.follow-system-locale'
+
+function preferredNavigatorLocales(): readonly string[] {
+	return navigator.languages?.length ? navigator.languages : [navigator.language ?? 'en-US']
+}
+
+export function getSystemResolvedLocale(): string {
+	return resolveInitialLocale(preferredNavigatorLocales())
+}
+
+export function isFollowingSystemLocale(storedLocale: string | null | undefined): boolean {
+	if (!storedLocale || storedLocale === SYSTEM_LOCALE_VALUE) return true
+	try {
+		return localStorage.getItem(FOLLOW_SYSTEM_LOCALE_KEY) === '1'
+	} catch {
+		return false
+	}
+}
+
+export function setFollowSystemLocale(follow: boolean) {
+	try {
+		if (follow) localStorage.setItem(FOLLOW_SYSTEM_LOCALE_KEY, '1')
+		else localStorage.removeItem(FOLLOW_SYSTEM_LOCALE_KEY)
+	} catch {
+		// localStorage may be unavailable; system-follow then relies on empty/'system' locale only.
+	}
+}
+
+/** Applies the stored locale preference and returns the concrete locale used. */
+export function applyLocalePreference(storedLocale: string | null | undefined): string {
+	if (isFollowingSystemLocale(storedLocale)) {
+		const resolved = getSystemResolvedLocale()
+		i18n.global.locale.value = resolved
+		return resolved
+	}
+
+	const locale = storedLocale && storedLocale !== SYSTEM_LOCALE_VALUE ? storedLocale : 'en-US'
+	i18n.global.locale.value = locale
+	return locale
+}
+
 // The locale the user picked lives in the app database, which is exactly what is
 // unreadable when startup fails - and a startup failure is when the remaining
 // dialogs matter most. Starting from the system language keeps them in a
 // language the user reads; `setupApp` still applies the saved locale once the
 // database is available.
-const preferredLocales = navigator.languages?.length
-	? navigator.languages
-	: [navigator.language ?? 'en-US']
-i18n.global.locale.value = resolveInitialLocale(preferredLocales)
+i18n.global.locale.value = getSystemResolvedLocale()
 
 export default i18n

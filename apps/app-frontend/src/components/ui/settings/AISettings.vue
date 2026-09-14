@@ -14,6 +14,7 @@ import {
 	TrashIcon,
 } from '@modrinth/assets'
 import {
+	Admonition,
 	Combobox,
 	defineMessages,
 	injectNotificationManager,
@@ -25,6 +26,7 @@ import {
 } from '@modrinth/ui'
 import { openUrl } from '@tauri-apps/plugin-opener'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 
 import providerDescriptionsEn from '@/data/lobehub-provider-descriptions/en-US.json'
 import providerDescriptionsZh from '@/data/lobehub-provider-descriptions/zh-CN.json'
@@ -55,6 +57,7 @@ import AIIcon from './AIIcon.vue'
 
 const { formatMessage, locale } = useVIntl()
 const { handleError } = injectNotificationManager()
+const router = useRouter()
 const emptyState: AIState = {
 	settings: { enabled: true },
 	catalog_source: '',
@@ -83,6 +86,19 @@ const messages = defineMessages({
 	description: {
 		id: 'app.ai-settings.description',
 		defaultMessage: 'Configure text models once, then use them across launcher features.',
+	},
+	lookingForTranslation: {
+		id: 'app.ai-settings.looking-for-translation',
+		defaultMessage: 'Looking for content translation?',
+	},
+	lookingForTranslationDescription: {
+		id: 'app.ai-settings.looking-for-translation.description',
+		defaultMessage:
+			'Translating project titles and descriptions is configured under Language & translation. AI providers here can power that feature when you pick the AI translation service.',
+	},
+	openLanguageTranslation: {
+		id: 'app.ai-settings.open-language-translation',
+		defaultMessage: 'Open Language & translation',
 	},
 	masterSwitch: { id: 'app.ai-settings.master-switch', defaultMessage: 'Enable AI features' },
 	masterSwitchDescription: {
@@ -702,6 +718,10 @@ async function disconnectOAuth() {
 	}
 }
 
+function openLanguageTranslationSettings() {
+	void router.push('/settings#language-translation')
+}
+
 onUnmounted(() => {
 	stopOAuthPolling()
 	window.removeEventListener('focus', checkOAuthOnFocus)
@@ -752,7 +772,9 @@ onMounted(async () => {
 				</button>
 
 				<div v-if="enabledProviderItems.length" class="flex flex-none flex-col gap-1">
-					<p class="m-0 flex items-center justify-between px-2 pb-1 pt-2 text-xs font-semibold text-secondary">
+					<p
+						class="m-0 flex items-center justify-between px-2 pb-1 pt-2 text-xs font-semibold text-secondary"
+					>
 						<span>{{ formatMessage(messages.enabledProviders) }}</span>
 						<span>{{ enabledProviderItems.length }}</span>
 					</p>
@@ -773,7 +795,9 @@ onMounted(async () => {
 				</div>
 
 				<div v-if="sponsoredProviderItems.length" class="flex flex-none flex-col gap-1">
-					<p class="m-0 flex items-center justify-between px-2 pb-1 pt-2 text-xs font-semibold text-secondary">
+					<p
+						class="m-0 flex items-center justify-between px-2 pb-1 pt-2 text-xs font-semibold text-secondary"
+					>
 						<span>{{ formatMessage(messages.sponsoredProviders) }}</span>
 						<span>{{ sponsoredProviderItems.length }}</span>
 					</p>
@@ -794,7 +818,9 @@ onMounted(async () => {
 				</div>
 
 				<div v-if="disabledProviderItems.length" class="flex flex-none flex-col gap-1">
-					<p class="m-0 flex items-center justify-between px-2 pb-1 pt-2 text-xs font-semibold text-secondary">
+					<p
+						class="m-0 flex items-center justify-between px-2 pb-1 pt-2 text-xs font-semibold text-secondary"
+					>
 						<span>{{ formatMessage(messages.disabledProviders) }}</span>
 						<span>{{ disabledProviderItems.length }}</span>
 					</p>
@@ -831,6 +857,22 @@ onMounted(async () => {
 		</aside>
 
 		<section v-if="selectedId === 'all'" class="ai-provider-overview">
+			<Admonition type="info">
+				<div class="flex flex-col gap-2">
+					<strong class="text-contrast">
+						{{ formatMessage(messages.lookingForTranslation) }}
+					</strong>
+					<span class="text-sm text-secondary">
+						{{ formatMessage(messages.lookingForTranslationDescription) }}
+					</span>
+					<div>
+						<Button type="outlined" @click="openLanguageTranslationSettings">
+							{{ formatMessage(messages.openLanguageTranslation) }}
+						</Button>
+					</div>
+				</div>
+			</Admonition>
+
 			<div v-if="allEnabledProviderItems.length" class="ai-overview-group">
 				<div class="ai-overview-heading">
 					<h2>{{ formatMessage(messages.enabledProviders) }}</h2>
@@ -858,7 +900,9 @@ onMounted(async () => {
 								{{ providerDescription(definition.id) }}
 							</span>
 						</button>
-						<div class="mt-auto flex min-h-11 items-center justify-between gap-3 bg-transparent px-4 text-xs font-semibold text-secondary">
+						<div
+							class="mt-auto flex min-h-11 items-center justify-between gap-3 bg-transparent px-4 text-xs font-semibold text-secondary"
+						>
 							<span>
 								<span class="capitalize">{{ definition.protocol }}</span>
 								·
@@ -906,7 +950,9 @@ onMounted(async () => {
 								{{ providerDescription(definition.id) }}
 							</span>
 						</button>
-						<div class="mt-auto flex min-h-11 items-center justify-between gap-3 bg-transparent px-4 text-xs font-semibold text-secondary">
+						<div
+							class="mt-auto flex min-h-11 items-center justify-between gap-3 bg-transparent px-4 text-xs font-semibold text-secondary"
+						>
 							<span>
 								<span class="capitalize">{{ definition.protocol }}</span>
 								·
@@ -951,7 +997,9 @@ onMounted(async () => {
 								{{ providerDescription(definition.id) }}
 							</span>
 						</button>
-						<div class="mt-auto flex min-h-11 items-center justify-between gap-3 bg-transparent px-4 text-xs font-semibold text-secondary">
+						<div
+							class="mt-auto flex min-h-11 items-center justify-between gap-3 bg-transparent px-4 text-xs font-semibold text-secondary"
+						>
 							<span>
 								<span class="capitalize">{{ definition.protocol }}</span>
 								·

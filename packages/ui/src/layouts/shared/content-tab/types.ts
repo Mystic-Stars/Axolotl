@@ -25,8 +25,6 @@ export interface ContentOwner {
 	link?: string | RouteLocationRaw | (() => void)
 }
 
-export type ClientWarningType = 'retained' | 'depends' | 'environment'
-
 export interface ContentRowInlineAction {
 	id: string
 	label: string
@@ -60,8 +58,6 @@ export interface ContentCardTableItem {
 	/** File name that would be restored by the rollback action, when the item
 	 * has an update backup (`{active}_{previous}.old`) available. */
 	rollbackFileName?: string
-	isClientOnly?: boolean
-	clientWarning?: ClientWarningType | null
 	hideSwitchVersion?: boolean
 	pendingManualDownload?: boolean
 	/** Number of installed copies of this online project, when more than one is present. */
@@ -157,8 +153,6 @@ export interface ContentItem extends Omit<
 	external?: boolean
 	/** Loader derived from the installed version or locally parsed mod metadata. */
 	loader?: string
-	pack_client_retained?: boolean
-	pack_client_depends?: boolean
 	installing?: boolean
 	pendingManualDownload?: boolean
 	rollback?: { file_name: string } | null

@@ -17,9 +17,9 @@ import {
 	installJobInstanceId,
 	type InstallJobSnapshot,
 } from '@/helpers/install'
+import { effectiveInstallProgress, hasDeterminateInstallProgress } from '@/helpers/install-progress'
 import type { LoadingBar } from '@/helpers/state'
 import { progress_bars_list } from '@/helpers/state'
-import { effectiveInstallProgress, hasDeterminateInstallProgress } from '@/helpers/install-progress'
 
 const activeStatuses = new Set(['queued', 'running', 'canceling', 'waiting_for_user'])
 export const downloadBarTypes = new Set([

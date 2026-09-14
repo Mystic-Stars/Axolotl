@@ -17,7 +17,7 @@
 		position: absolute;
 		bottom: -4px;
 		right: -4px;
-		background-color: var(--color-bg);
+		background-color: var(--surface-1);
 		padding: var(--spacing-card-xs);
 		border-radius: 50%;
 		aspect-ratio: 1 / 1;

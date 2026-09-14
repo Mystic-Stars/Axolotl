@@ -41,6 +41,11 @@ export const configurationNuxtToAppend = [
 				},
 			],
 			'vue/no-undef-properties': 'warn',
+			// Optional props are common across the design system; defaults would
+			// only silence lints without changing runtime behavior for omitted props.
+			'vue/require-default-prop': 'off',
+			// Markdown/rich-text surfaces intentionally render sanitized HTML.
+			'vue/no-v-html': 'off',
 		},
 		languageOptions: {
 			parserOptions: {

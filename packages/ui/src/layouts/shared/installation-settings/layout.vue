@@ -604,7 +604,7 @@ const messages = defineMessages({
 				<span class="text-lg font-semibold text-contrast">
 					{{ formatMessage(commonMessages.installationInfoTitle) }}
 				</span>
-				<div class="flex flex-col gap-2.5 rounded-[20px] bg-surface-2 p-4">
+				<div class="flex flex-col gap-2.5 rounded-[var(--radius-xl)] bg-surface-2 p-4">
 					<div
 						v-for="row in ctx.installationInfo.value"
 						:key="row.label"
@@ -629,7 +629,7 @@ const messages = defineMessages({
 					</span>
 					<div
 						v-if="ctx.modpack.value"
-						class="flex items-center gap-2.5 rounded-[20px] bg-surface-2 p-3"
+						class="flex items-center gap-2.5 rounded-[var(--radius-xl)] bg-surface-2 p-3"
 					>
 						<AutoLink :to="ctx.modpack.value.link" class="shrink-0">
 							<Avatar
@@ -819,7 +819,9 @@ const messages = defineMessages({
 					<span class="text-lg font-semibold text-contrast">
 						{{ formatMessage(messages.editInstallationTitle) }}
 					</span>
-					<div class="flex flex-col gap-3 rounded-[20px] border border-solid border-surface-5 p-4">
+					<div
+						class="flex flex-col gap-3 rounded-[var(--radius-xl)] border border-solid border-surface-5 p-4"
+					>
 						<div class="flex flex-col gap-2.5">
 							<span class="font-semibold text-contrast">
 								{{ formatMessage(commonMessages.platformLabel) }}
@@ -981,7 +983,7 @@ const messages = defineMessages({
 					<span class="text-lg font-semibold text-contrast">
 						{{ formatMessage(commonMessages.installationInfoTitle) }}
 					</span>
-					<div class="flex flex-col gap-2.5 rounded-[20px] bg-surface-2 p-4">
+					<div class="flex flex-col gap-2.5 rounded-[var(--radius-xl)] bg-surface-2 p-4">
 						<div
 							v-for="row in ctx.installationInfo.value"
 							:key="row.label"

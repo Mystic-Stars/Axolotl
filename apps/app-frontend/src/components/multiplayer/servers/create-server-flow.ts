@@ -32,13 +32,7 @@ import SetupStage from './stages/SetupStage.vue'
 import TypeStage from './stages/TypeStage.vue'
 
 export type InstallPhase =
-	| 'idle'
-	| 'preparing'
-	| 'downloading'
-	| 'first-run'
-	| 'eula'
-	| 'error'
-	| 'done'
+	'idle' | 'preparing' | 'downloading' | 'first-run' | 'eula' | 'error' | 'done'
 
 export interface JavaSelection {
 	path: string

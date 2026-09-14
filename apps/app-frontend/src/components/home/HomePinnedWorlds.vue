@@ -118,11 +118,17 @@ async function stopInstance(instance: GameInstance) {
 </script>
 
 <template>
-	<section class="home-pinned-worlds flex min-w-0 min-h-0 h-full flex-col gap-3" :data-size="dashboardSize">
+	<section
+		class="home-pinned-worlds flex min-w-0 min-h-0 h-full flex-col gap-3"
+		:data-size="dashboardSize"
+	>
 		<div class="home-widget-heading flex min-w-0 h-8 flex-none items-center gap-2">
 			<h2>{{ formatMessage(messages.pinnedWorlds) }}</h2>
 		</div>
-		<div v-if="favorites.length > 0" class="home-world-list flex min-w-0 min-h-0 flex-1 flex-col gap-1 overflow-x-hidden overflow-y-auto pr-1">
+		<div
+			v-if="favorites.length > 0"
+			class="home-world-list flex min-w-0 min-h-0 flex-1 flex-col gap-1 overflow-x-hidden overflow-y-auto pr-1"
+		>
 			<WorldItem
 				v-for="favorite in favorites"
 				:key="favoriteKey(favorite.world)"

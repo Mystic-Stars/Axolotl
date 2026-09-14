@@ -548,9 +548,6 @@
   "app.update-popup.body.download-complete": {
     "message": "Axolotl Launcher v{version} indirildi. Güncellemek için yeniden başlatın veya Axolotl Launcher’i kapattığınızda otomatik olarak güncellenecektir."
   },
-  "app.update-popup.body.linux": {
-    "message": "Axolotl Launcher v{version} yayımlandı. En yeni özellikler ve hata düzeltmeleri için paket yöneticin üzerinden güncelle!"
-  },
   "app.update-popup.body.metered": {
     "message": "Axolotl Launcher v{version} mevcut! Kısıtlı bağlantıda olduğunuzdan otomatik olarak indirmedik."
   },

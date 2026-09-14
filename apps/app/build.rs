@@ -484,6 +484,7 @@ fn main() {
                         "instance_preview_project_with_dependencies",
                         "instance_preview_project_with_dependencies_for_target",
                         "instance_queue_project_with_dependencies",
+                        "instance_queue_content_batch",
                         "instance_queue_curseforge_content",
                         "instance_queue_curseforge_world",
                         "instance_switch_project_version_with_dependencies",

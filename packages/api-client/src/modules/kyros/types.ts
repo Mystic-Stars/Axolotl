@@ -3,12 +3,7 @@ export namespace Kyros {
 		export namespace v1 {
 			export type Scope = 'content' | 'files'
 			export type UploadSessionStatus =
-				| 'active'
-				| 'uploading'
-				| 'finalizing'
-				| 'cancelled'
-				| 'finalized'
-				| 'expired'
+				'active' | 'uploading' | 'finalizing' | 'cancelled' | 'finalized' | 'expired'
 
 			export interface UploadSessionResponse {
 				upload_id: string

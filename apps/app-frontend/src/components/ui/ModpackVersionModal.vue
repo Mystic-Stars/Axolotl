@@ -175,5 +175,4 @@ const onHide = () => {
 	gap: 0.25rem;
 	align-items: flex-start;
 }
-
 </style>

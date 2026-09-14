@@ -72,21 +72,29 @@ const messages = defineMessages({
 <template>
 	<section id="community" class="community-section" aria-labelledby="community-title">
 		<div class="community-intro">
-			<span class="text-xs font-extrabold uppercase tracking-[0.1em] text-brand">{{ formatMessage(messages.eyebrow) }}</span>
+			<span class="text-xs font-extrabold uppercase tracking-[0.1em] text-brand">{{
+				formatMessage(messages.eyebrow)
+			}}</span>
 			<h2 id="community-title">{{ formatMessage(messages.title) }}</h2>
 			<p>{{ formatMessage(messages.description) }}</p>
 		</div>
 
-		<div class="community-cards flex items-stretch justify-center w-[min(44rem,100%)] mx-auto mt-10">
+		<div
+			class="community-cards mx-auto mt-10 flex w-[min(44rem,100%)] items-stretch justify-center"
+		>
 			<button
 				type="button"
 				class="community-card"
 				:aria-label="formatMessage(messages.copyQqGroup)"
 				@click="copyQqGroupNumber"
 			>
-				<span class="grid place-items-center w-12 h-12 text-[var(--color-contrast)]"><QqIcon /></span>
-				<span class="text-[var(--color-contrast)] text-[1.05rem] font-bold">{{ formatMessage(messages.qqGroup) }}</span>
-				<span class="m-0 text-[var(--color-secondary)] text-sm leading-[1.6]">
+				<span class="grid h-12 w-12 place-items-center text-[var(--color-contrast)]"
+					><QqIcon
+				/></span>
+				<span class="text-[1.05rem] font-bold text-[var(--color-contrast)]">{{
+					formatMessage(messages.qqGroup)
+				}}</span>
+				<span class="m-0 text-sm leading-[1.6] text-[var(--color-secondary)]">
 					{{ formatMessage(messages.qqGroupDescription, { number: QQ_GROUP_NUMBER }) }}
 				</span>
 				<span class="community-action" :class="{ copied }" aria-live="polite">
@@ -97,9 +105,13 @@ const messages = defineMessages({
 			</button>
 
 			<a class="community-card" :href="QQ_CHANNEL_URL" target="_blank" rel="noopener">
-				<span class="grid place-items-center w-12 h-12 text-[var(--color-contrast)]"><QqChannelIcon /></span>
-				<span class="text-[var(--color-contrast)] text-[1.05rem] font-bold">{{ formatMessage(messages.qqChannel) }}</span>
-				<span class="m-0 text-[var(--color-secondary)] text-sm leading-[1.6]">
+				<span class="grid h-12 w-12 place-items-center text-[var(--color-contrast)]"
+					><QqChannelIcon
+				/></span>
+				<span class="text-[1.05rem] font-bold text-[var(--color-contrast)]">{{
+					formatMessage(messages.qqChannel)
+				}}</span>
+				<span class="m-0 text-sm leading-[1.6] text-[var(--color-secondary)]">
 					{{ formatMessage(messages.qqChannelDescription) }}
 				</span>
 				<span class="community-action">

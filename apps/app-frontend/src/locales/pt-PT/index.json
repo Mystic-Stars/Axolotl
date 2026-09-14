@@ -245,9 +245,6 @@
   "app.update-popup.body.download-complete": {
     "message": "Axolotl Launcher v{version} acabou de ser transferida. Recarrega para atualizar agora, ou automaticamente quando fechares a Axolotl Launcher."
   },
-  "app.update-popup.body.linux": {
-    "message": "Axolotl Launcher v{version} está disponível. Usa o teu gestor de pacotes para atualizar e receber as correções e recursos mais recentes!"
-  },
   "app.update-popup.body.metered": {
     "message": "Axolotl Launcher v{version} está disponível! Como estás numa rede com tráfego limitado, não a transferimos automaticamente."
   },

@@ -704,7 +704,6 @@ async fn import_instance_inner(
     job: ImportJob,
     launcher_type: ImportLauncherType,
 ) -> crate::Result<()> {
-    let instance_id = job.instance_id.clone();
     tracing::debug!(
         "Importing instance from {} (symlink={}, launcher_type={launcher_type})",
         job.instance_folder,
@@ -714,21 +713,11 @@ async fn import_instance_inner(
         launcher_type,
         instance_folder: job.instance_folder.clone(),
     };
-    let res = if launcher_type == ImportLauncherType::Unknown {
+    if launcher_type == ImportLauncherType::Unknown {
         import_unknown_launcher(job).await
     } else {
         import_via_launcher(launcher_type, &job, details).await
-    };
-
-    // If import failed, delete the profile
-    match res {
-        Ok(_) => {}
-        Err(e) => {
-            tracing::warn!("Import failed: {:?}", e);
-            let _ = crate::api::instance::remove(&instance_id).await;
-            return Err(e);
-        }
-    }
+    }?;
 
     tracing::debug!("Completed import.");
     Ok(())

@@ -1,3 +1,4 @@
+use super::super::model::InstallContentBatchItem;
 use super::*;
 
 pub(super) async fn run_request(
@@ -551,6 +552,90 @@ pub(super) async fn run_request(
                     },
                 ));
             }
+            Ok(InstallExecutionOutcome::Completed(Some(instance_id)))
+        }
+        InstallRequest::InstallContentBatch {
+            instance_id, items, ..
+        } => {
+            update_progress(
+                job_id,
+                job_state,
+                state,
+                InstallPhaseId::DownloadingContent,
+                InstallPhaseDetails::Empty,
+            )
+            .await?;
+            let reporter =
+                InstallProgressReporter::new(job_id, job_state.clone());
+            let results = futures::stream::iter(items)
+                .map(|item| {
+                    let reporter = reporter.clone();
+                    let instance_id = instance_id.clone();
+                    async move {
+                        match item {
+                            InstallContentBatchItem::Modrinth {
+                                project_id,
+                                version_id,
+                                content_type,
+                                selected,
+                                excluded_project_ids,
+                                force_project_ids,
+                            } => {
+                                let plan = crate::state::instances::commands::resolve_install_plan(
+                                    &instance_id,
+                                    crate::state::instances::commands::InstanceInstallProjectRequest {
+                                        project_id: project_id.clone(),
+                                        version_id,
+                                        content_type,
+                                        selected,
+                                        excluded_project_ids,
+                                        force_project_ids,
+                                    },
+                                    state,
+                                ).await?;
+                                crate::state::instances::commands::install_resolved_content_plan_with_reporter(
+                                    &instance_id, &plan, Some(reporter.clone()), state,
+                                ).await?;
+                                Ok::<Option<InstallPauseReason>, crate::Error>(None)
+                            }
+                            InstallContentBatchItem::CurseForge { request } => {
+                                let result = crate::api::curseforge::install_file_with_reporter(
+                                    request, reporter.clone(),
+                                ).await?;
+                                Ok(if result.manual_downloads.is_empty() {
+                                    None
+                                } else {
+                                    Some(InstallPauseReason::MissingRequiredContent {
+                                        failed_files: result.manual_downloads.len() as u64,
+                                        paths: result.manual_downloads.iter().map(|download| download.file_name.clone()).collect(),
+                                    })
+                                })
+                            }
+                            InstallContentBatchItem::CurseForgeWorld { request } => {
+                                let result = crate::api::curseforge::install_world_with_reporter(
+                                    request, reporter,
+                                ).await?;
+                                Ok(result.manual_download.map(|download| InstallPauseReason::MissingRequiredContent {
+                                    failed_files: 1,
+                                    paths: vec![format!("saves/{}", download.file_name)],
+                                }))
+                            }
+                        }
+                    }
+                })
+                .buffer_unordered(32)
+                .collect::<Vec<_>>()
+                .await;
+            let mut pause_reason = None;
+            for result in results {
+                if let Some(reason) = result? {
+                    pause_reason = Some(reason);
+                }
+            }
+            if let Some(reason) = pause_reason {
+                return Ok(InstallExecutionOutcome::WaitingForUser(reason));
+            }
+            crate::api::instance::emit_content_changed(&instance_id).await?;
             Ok(InstallExecutionOutcome::Completed(Some(instance_id)))
         }
         InstallRequest::UpdateManagedCurseForgeModpack {

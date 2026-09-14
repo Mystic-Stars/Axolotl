@@ -15,9 +15,58 @@ type TourEvents = {
 	closeSettings: () => void
 }
 
-const controlSpotlightPadding = 3
-const missingTargetRetryLimit = 8
-const missingTargetRetryDelay = 250
+const controlSpotlightPadding = 6
+const missingTargetRetryLimit = 12
+const missingTargetRetryDelay = 200
+
+function readCssLength(variableName: string, fallback: number) {
+	if (typeof window === 'undefined') return fallback
+	const raw = getComputedStyle(document.documentElement).getPropertyValue(variableName).trim()
+	if (!raw) return fallback
+	const parsed = Number.parseFloat(raw)
+	if (Number.isFinite(parsed)) {
+		return raw.endsWith('px') || !raw.endsWith('rem')
+			? parsed
+			: parsed * Number.parseFloat(getComputedStyle(document.documentElement).fontSize)
+	}
+	return fallback
+}
+
+function safeTopInset() {
+	// Match the live chrome instead of assuming a fixed 48px status bar.
+	return Math.max(16, readCssLength('--top-bar-height', 48) + 8)
+}
+
+function scrollTargetIntoView(target: HTMLElement, reservedBottom: number) {
+	target.scrollIntoView({ block: 'nearest', inline: 'nearest' })
+
+	// Custom sidebars, collapsed rails, and docked dialogue can leave the target
+	// under chrome or under the bottom bubble after replay. Nudge scrollable
+	// ancestors so the control stays in the free area.
+	const rect = target.getBoundingClientRect()
+	const maxBottom = window.innerHeight - reservedBottom
+	if (rect.bottom > maxBottom) {
+		const delta = rect.bottom - maxBottom + 12
+		const scroller = target.closest<HTMLElement>(
+			'[data-onboarding-scroll], .overflow-y-auto, .settings-content-scroll, .app-viewport',
+		)
+		if (scroller && scroller.scrollHeight > scroller.clientHeight) {
+			scroller.scrollTop += delta
+		} else {
+			window.scrollBy({ top: delta, left: 0 })
+		}
+	} else if (rect.top < safeTopInset()) {
+		const delta = safeTopInset() - rect.top + 12
+		const scroller = target.closest<HTMLElement>(
+			'[data-onboarding-scroll], .overflow-y-auto, .settings-content-scroll, .app-viewport',
+		)
+		if (scroller && scroller.scrollTop > 0) {
+			scroller.scrollTop = Math.max(0, scroller.scrollTop - delta)
+		} else {
+			window.scrollBy({ top: -delta, left: 0 })
+		}
+	}
+}
 
 export function useOnboardingTour(
 	visible: Ref<boolean>,
@@ -35,6 +84,7 @@ export function useOnboardingTour(
 	let targetObserver: ResizeObserver | undefined
 	let bubbleObserver: ResizeObserver | undefined
 	let targetRetryTimer: ReturnType<typeof setTimeout> | undefined
+	let measureTimer: ReturnType<typeof requestAnimationFrame> | undefined
 	let advanceTimer: ReturnType<typeof setTimeout> | undefined
 	let unlockTimer: ReturnType<typeof setTimeout> | undefined
 	let targetRetryCount = 0
@@ -46,14 +96,21 @@ export function useOnboardingTour(
 	const isDialogueStep = computed(
 		() => !!step.value.targetId && (step.value.spotlight !== 'control' || !targetRect.value),
 	)
-	const controlSpotlightStyle = computed(() => {
+	const showSpotlight = computed(
+		() => !!targetRect.value && !!step.value.targetId && !isWelcomeStep.value,
+	)
+	const showSpotlightCorners = computed(
+		() => showSpotlight.value && step.value.spotlight === 'control',
+	)
+	const spotlightStyle = computed(() => {
 		if (!targetRect.value) return {}
 		const rect = targetRect.value
+		const pad = controlSpotlightPadding
 		return {
-			left: `${Math.max(0, rect.left - controlSpotlightPadding)}px`,
-			top: `${Math.max(0, rect.top - controlSpotlightPadding)}px`,
-			width: `${rect.width + controlSpotlightPadding * 2}px`,
-			height: `${rect.height + controlSpotlightPadding * 2}px`,
+			left: `${Math.max(0, rect.left - pad)}px`,
+			top: `${Math.max(0, rect.top - pad)}px`,
+			width: `${rect.width + pad * 2}px`,
+			height: `${rect.height + pad * 2}px`,
 		}
 	})
 	const bubblePlacement = computed(() => {
@@ -61,9 +118,12 @@ export function useOnboardingTour(
 
 		const rect = targetRect.value
 		const safeInset = 16
-		const safeTop = 48
+		const topInset = safeTopInset()
 		const bubbleWidth = Math.min(bubbleSize.value.width, window.innerWidth - safeInset * 2)
-		const bubbleHeight = Math.min(bubbleSize.value.height, window.innerHeight - safeTop - safeInset)
+		const bubbleHeight = Math.min(
+			bubbleSize.value.height,
+			window.innerHeight - topInset - safeInset,
+		)
 		const gap = 20
 		const positions = [
 			{
@@ -91,7 +151,7 @@ export function useOnboardingTour(
 			positions.find(
 				(candidate) =>
 					candidate.left >= safeInset &&
-					candidate.top >= safeTop &&
+					candidate.top >= topInset &&
 					candidate.left + bubbleWidth <= window.innerWidth - safeInset &&
 					candidate.top + bubbleHeight <= window.innerHeight - safeInset,
 			) ?? positions[0]
@@ -101,11 +161,11 @@ export function useOnboardingTour(
 			style: {
 				left: `${Math.min(
 					Math.max(safeInset, position.left),
-					window.innerWidth - bubbleWidth - safeInset,
+					Math.max(safeInset, window.innerWidth - bubbleWidth - safeInset),
 				)}px`,
 				top: `${Math.min(
-					Math.max(safeTop, position.top),
-					window.innerHeight - bubbleHeight - safeInset,
+					Math.max(topInset, position.top),
+					Math.max(topInset, window.innerHeight - bubbleHeight - safeInset),
 				)}px`,
 			},
 		}
@@ -116,6 +176,8 @@ export function useOnboardingTour(
 		targetObserver = undefined
 		if (targetRetryTimer) clearTimeout(targetRetryTimer)
 		targetRetryTimer = undefined
+		if (measureTimer !== undefined) cancelAnimationFrame(measureTimer)
+		measureTimer = undefined
 	}
 
 	function clearModalReservation() {
@@ -168,8 +230,7 @@ export function useOnboardingTour(
 		const target = document.querySelector<HTMLElement>(
 			onboardingTargetSelector(step.value.targetId),
 		)
-		const rect = target?.getBoundingClientRect()
-		if (!target || !rect || rect.width < 1 || rect.height < 1) {
+		if (!target) {
 			targetElement.value = undefined
 			targetRect.value = null
 			clearModalReservation()
@@ -177,16 +238,33 @@ export function useOnboardingTour(
 			return
 		}
 
+		// Replay on a customized shell can leave the target scrolled out or under
+		// the docked dialogue / status bar. Bring it into the free area first,
+		// then measure against the live layout.
+		const reservedBottom = isDialogueStep.value ? bubbleSize.value.height + 24 : 24
+		scrollTargetIntoView(target, reservedBottom)
+
 		targetRetryCount = 0
 		targetElement.value = target
 		const updateRect = () => {
-			targetRect.value = target.getBoundingClientRect()
+			const rect = target.getBoundingClientRect()
+			if (rect.width < 1 || rect.height < 1) {
+				targetRect.value = null
+				scheduleMissingTargetRetry(step.value.id)
+				return
+			}
+			targetRect.value = rect
 		}
 		updateRect()
 		targetObserver = new ResizeObserver(updateRect)
 		targetObserver.observe(target)
 		updateModalReservation()
-		requestAnimationFrame(updateRect)
+		measureTimer = requestAnimationFrame(() => {
+			updateRect()
+			updateBubbleSize()
+			// Second pass after any scroll/layout settle from custom chrome.
+			measureTimer = requestAnimationFrame(updateRect)
+		})
 	}
 
 	function goTo(destination: StepDestination) {
@@ -360,7 +438,9 @@ export function useOnboardingTour(
 		advance,
 		bubbleElement,
 		bubblePlacement,
-		controlSpotlightStyle,
+		spotlightStyle,
+		showSpotlight,
+		showSpotlightCorners,
 		handleManualClick,
 		isDialogueStep,
 		isWelcomeStep,

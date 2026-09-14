@@ -172,17 +172,26 @@ const avatarStyle = computed(() => ({
 				class="special-square"
 				:style="{ height: `${combineSize * 1.2}px`, width: `${combineSize * 1.2}px` }"
 			/>
-			<span class="block h-[1em] w-px flex-none bg-divider" :style="{ margin: `0 ${combineSize / 6}px` }" />
+			<span
+				class="block h-[1em] w-px flex-none bg-divider"
+				:style="{ margin: `0 ${combineSize / 6}px` }"
+			/>
 			<LobeBrandCombine brand="bedrock" :size="combineSize" />
 		</template>
 		<template v-else-if="providerConfig?.combine.kind === 'google'">
 			<component :is="specialAsset" :style="{ height: `${combineSize * 0.95}px`, width: 'auto' }" />
-			<span class="block h-[1em] w-px flex-none bg-divider" :style="{ margin: `0 ${combineSize / 6}px` }" />
+			<span
+				class="block h-[1em] w-px flex-none bg-divider"
+				:style="{ margin: `0 ${combineSize / 6}px` }"
+			/>
 			<LobeBrandCombine brand="gemini" :size="combineSize" />
 		</template>
 		<template v-else-if="providerConfig?.combine.kind === 'azure'">
 			<LobeBrandCombine brand="azure" :size="combineSize * 0.92" />
-			<span class="block h-[1em] w-px flex-none bg-divider" :style="{ margin: `0 ${combineSize / 6}px` }" />
+			<span
+				class="block h-[1em] w-px flex-none bg-divider"
+				:style="{ margin: `0 ${combineSize / 6}px` }"
+			/>
 			<LobeBrandCombine brand="openai" :size="combineSize" />
 		</template>
 		<template v-else-if="providerConfig?.combine.kind === 'anthropic'">
@@ -190,27 +199,42 @@ const avatarStyle = computed(() => ({
 				:is="iconComponents['anthropic-text']"
 				:style="{ height: `${combineSize * 0.75}px`, width: 'auto' }"
 			/>
-			<span class="block h-[1em] w-px flex-none bg-divider" :style="{ margin: `0 ${combineSize / 6}px` }" />
+			<span
+				class="block h-[1em] w-px flex-none bg-divider"
+				:style="{ margin: `0 ${combineSize / 6}px` }"
+			/>
 			<LobeBrandCombine brand="claude" :size="combineSize" />
 		</template>
 		<template v-else-if="providerConfig?.combine.kind === 'qwen'">
 			<LobeBrandCombine brand="alibabacloud" :size="combineSize" />
-			<span class="block h-[1em] w-px flex-none bg-divider" :style="{ margin: `0 ${combineSize / 6}px` }" />
+			<span
+				class="block h-[1em] w-px flex-none bg-divider"
+				:style="{ margin: `0 ${combineSize / 6}px` }"
+			/>
 			<LobeBrandCombine brand="qwen" :size="combineSize * 0.9" />
 		</template>
 		<template v-else-if="providerConfig?.combine.kind === 'wenxin'">
 			<LobeBrandCombine brand="baiducloud" :size="combineSize * 0.9" />
-			<span class="block h-[1em] w-px flex-none bg-divider" :style="{ margin: `0 ${combineSize / 6}px` }" />
+			<span
+				class="block h-[1em] w-px flex-none bg-divider"
+				:style="{ margin: `0 ${combineSize / 6}px` }"
+			/>
 			<LobeBrandCombine brand="wenxin" extra="千帆" :size="combineSize" />
 		</template>
 		<template v-else-if="providerConfig?.combine.kind === 'cloudflare'">
 			<LobeBrandCombine brand="cloudflare" :size="combineSize * 1.1" />
-			<span class="block h-[1em] w-px flex-none bg-divider" :style="{ margin: `0 ${combineSize / 6}px` }" />
+			<span
+				class="block h-[1em] w-px flex-none bg-divider"
+				:style="{ margin: `0 ${combineSize / 6}px` }"
+			/>
 			<LobeBrandCombine brand="workersai" :size="combineSize * 0.9" />
 		</template>
 		<template v-else-if="providerConfig?.combine.kind === 'v0'">
 			<LobeBrandCombine brand="vercel" :size="combineSize * 0.85" />
-			<span class="block h-[1em] w-px flex-none bg-divider" :style="{ margin: `0 ${combineSize / 6}px` }" />
+			<span
+				class="block h-[1em] w-px flex-none bg-divider"
+				:style="{ margin: `0 ${combineSize / 6}px` }"
+			/>
 			<component
 				:is="specialAsset"
 				class="special-square"

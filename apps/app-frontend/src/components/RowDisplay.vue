@@ -274,7 +274,12 @@ onUnmounted(() => {
 		@delete="deleteInstance"
 	/>
 	<div ref="rowContainer" class="flex flex-col gap-4">
-		<div v-for="row in actualInstances" ref="rows" :key="row.label" class="row flex flex-col items-start overflow-hidden w-full min-w-full">
+		<div
+			v-for="row in actualInstances"
+			ref="rows"
+			:key="row.label"
+			class="row flex flex-col items-start overflow-hidden w-full min-w-full"
+		>
 			<HeadingLink class="mt-1" :to="row.route">
 				{{ row.label }}
 			</HeadingLink>

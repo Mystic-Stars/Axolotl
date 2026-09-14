@@ -148,7 +148,7 @@ export const onboardingMessages = defineMessages({
 	settingsDescription: {
 		id: 'app.onboarding.settings.description',
 		defaultMessage:
-			'The useful controls live here: launcher preferences, game launch behavior, content downloads, and privacy.',
+			'Appearance, language, AI providers, launch defaults, content downloads, and privacy all live here.',
 	},
 	clickSettings: {
 		id: 'app.onboarding.action.click-settings',
@@ -158,12 +158,13 @@ export const onboardingMessages = defineMessages({
 	appearanceDescription: {
 		id: 'app.onboarding.appearance.description',
 		defaultMessage:
-			'Theme, accent, backgrounds, and window effects all live here. Make the launcher feel familiar.',
+			'Theme, accent, custom launcher background, and window effects all live here. Make the launcher feel familiar.',
 	},
 	languageTitle: { id: 'app.onboarding.language.title', defaultMessage: 'Speak your language' },
 	languageDescription: {
 		id: 'app.onboarding.language.description',
-		defaultMessage: 'Pick the launcher language and manage translations. No decoder ring required.',
+		defaultMessage:
+			'Switch the launcher UI language here, or keep System language. Content translation for project pages is configured on this page too.',
 	},
 	translationTitle: {
 		id: 'app.onboarding.translation.title',
@@ -424,25 +425,36 @@ const inspect = (
 	description: MessageDescriptor,
 ) => step(id, 'inspect', copy(title, description, onboardingMessages.continueArea), { targetId })
 
-const settingsTourSteps: Array<[string, string, MessageDescriptor, MessageDescriptor]> = [
-	[
-		'settings-interface',
-		'settings-tab-interface',
-		onboardingMessages.appearanceTitle,
-		onboardingMessages.appearanceDescription,
-	],
-	[
-		'settings-launch-defaults',
-		'settings-tab-launch-defaults',
-		onboardingMessages.defaultsTitle,
-		onboardingMessages.defaultsDescription,
-	],
-	[
-		'settings-content-downloads',
-		'settings-tab-content-downloads',
-		onboardingMessages.resourcesTitle,
-		onboardingMessages.resourcesDescription,
-	],
+const settingsTourSteps: Array<{
+	id: string
+	targetId: string
+	title: MessageDescriptor
+	description: MessageDescriptor
+}> = [
+	{
+		id: 'settings-interface',
+		targetId: 'settings-tab-interface',
+		title: onboardingMessages.appearanceTitle,
+		description: onboardingMessages.appearanceDescription,
+	},
+	{
+		id: 'settings-language-translation',
+		targetId: 'settings-tab-language-translation',
+		title: onboardingMessages.languageTitle,
+		description: onboardingMessages.languageDescription,
+	},
+	{
+		id: 'settings-launch-defaults',
+		targetId: 'settings-tab-launch-defaults',
+		title: onboardingMessages.defaultsTitle,
+		description: onboardingMessages.defaultsDescription,
+	},
+	{
+		id: 'settings-content-downloads',
+		targetId: 'settings-tab-content-downloads',
+		title: onboardingMessages.resourcesTitle,
+		description: onboardingMessages.resourcesDescription,
+	},
 ]
 
 export const onboardingTours: Record<OnboardingMode, OnboardingStep[]> = {
@@ -482,7 +494,8 @@ export const onboardingTours: Record<OnboardingMode, OnboardingStep[]> = {
 				onboardingMessages.discoverDescription,
 				onboardingMessages.clickDiscover,
 			),
-			control('nav-discover', '/browse/modpack'),
+			// Discover keeps the last project type, so the path is not fixed.
+			control('nav-discover'),
 		),
 		inspect(
 			'discover-content',
@@ -658,11 +671,16 @@ export const onboardingTours: Record<OnboardingMode, OnboardingStep[]> = {
 			),
 			control('nav-settings', '/settings'),
 		),
-		...settingsTourSteps.map(([id, targetId, title, description], index) =>
-			step(id, 'activate', copy(title, description, onboardingMessages.clickTab), {
-				...control(targetId),
-				closeSettingsAfter: index === settingsTourSteps.length - 1,
-			}),
+		...settingsTourSteps.map((entry, index) =>
+			step(
+				entry.id,
+				'activate',
+				copy(entry.title, entry.description, onboardingMessages.clickTab),
+				{
+					...control(entry.targetId),
+					closeSettingsAfter: index === settingsTourSteps.length - 1,
+				},
+			),
 		),
 		step(
 			'library-navigation',

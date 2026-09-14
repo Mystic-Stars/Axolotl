@@ -1,3 +1,4 @@
+import { defineMessages } from '@modrinth/ui'
 import { renderHighlightedString } from '@modrinth/utils'
 import { configuredXss } from '@modrinth/utils/parse'
 import { invoke } from '@tauri-apps/api/core'
@@ -94,6 +95,65 @@ export async function getTranslationSettings(): Promise<TranslationSettings> {
 	return await invoke('plugin:translation|translation_get_settings')
 }
 
+const AUTO_TRANSLATE_HINT_STORAGE_KEY = 'axolotl.auto-translate-hint-shown'
+const AUTO_TRANSLATE_HINT_CLICK_THRESHOLD = 3
+let manualTranslateClickCount = 0
+
+function readAutoTranslateHintShown() {
+	try {
+		return localStorage.getItem(AUTO_TRANSLATE_HINT_STORAGE_KEY) === '1'
+	} catch {
+		return false
+	}
+}
+
+function markAutoTranslateHintShown() {
+	try {
+		localStorage.setItem(AUTO_TRANSLATE_HINT_STORAGE_KEY, '1')
+	} catch {
+		// Storage may be unavailable; the in-memory counter still limits the tip.
+	}
+}
+
+/**
+ * Counts manual translate toggles on browse / project pages. After a few uses
+ * of the translate button, returns true once so the caller can point at
+ * Settings → Language & translation. Returns false when auto-translate is
+ * already on (and remembers that so later sessions skip too) or when the tip
+ * was already shown.
+ */
+export async function noteManualTranslateClick(): Promise<boolean> {
+	if (readAutoTranslateHintShown()) return false
+
+	try {
+		const settings = await getTranslationSettings()
+		if (settings.auto_translate) {
+			markAutoTranslateHintShown()
+			return false
+		}
+	} catch {
+		return false
+	}
+
+	manualTranslateClickCount += 1
+	if (manualTranslateClickCount < AUTO_TRANSLATE_HINT_CLICK_THRESHOLD) return false
+
+	markAutoTranslateHintShown()
+	return true
+}
+
+export const autoTranslateHintMessages = defineMessages({
+	title: {
+		id: 'app.translation.auto-translate-hint.title',
+		defaultMessage: 'Use automatic translation',
+	},
+	text: {
+		id: 'app.translation.auto-translate-hint.text',
+		defaultMessage:
+			'You can turn this on in Settings → Language & translation so browse results and project pages translate for you.',
+	},
+})
+
 export async function updateTranslationSettings(settings: TranslationSettings): Promise<void> {
 	await invoke('plugin:translation|translation_update_settings', { settings })
 }
@@ -115,11 +175,7 @@ export async function getGoogleIpPoolSize(): Promise<number> {
 }
 
 export type TranslationErrorKind =
-	| 'rate-limited'
-	| 'authentication'
-	| 'content-too-long'
-	| 'network'
-	| 'provider'
+	'rate-limited' | 'authentication' | 'content-too-long' | 'network' | 'provider'
 
 function translationErrorMessage(error: unknown): string {
 	if (error instanceof Error) return error.message

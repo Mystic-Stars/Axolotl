@@ -81,10 +81,7 @@ export type SchematicEditResult = {
 }
 
 export type SchematicTransform =
-	| 'rotate_clockwise'
-	| 'rotate_counter_clockwise'
-	| 'mirror_x'
-	| 'mirror_z'
+	'rotate_clockwise' | 'rotate_counter_clockwise' | 'mirror_x' | 'mirror_z'
 
 export async function openSchematicPreview(
 	source: SchematicPreviewSource,

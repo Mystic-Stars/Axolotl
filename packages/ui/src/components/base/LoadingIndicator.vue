@@ -61,7 +61,7 @@ const { formatMessage } = useVIntl()
 	opacity: 0.25;
 	position: relative;
 	overflow: hidden;
-	background-color: var(--color-raised-bg);
+	background-color: var(--surface-2);
 	animation: pop 4s ease-in-out infinite;
 	border: 1px solid transparent;
 

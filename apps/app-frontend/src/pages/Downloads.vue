@@ -583,7 +583,7 @@ const messages = defineMessages({
 	},
 	itemProgress: { id: 'app.downloads.item-progress', defaultMessage: 'Downloaded' },
 	manualDownload: {
-		id: 'app.curseforge.manual-downloads.open',
+		id: 'app.downloads.open-manual-download',
 		defaultMessage: 'Open',
 	},
 	manualDownloadRequired: {
@@ -591,7 +591,7 @@ const messages = defineMessages({
 		defaultMessage: 'CurseForge requires this file to be downloaded manually.',
 	},
 	projectFile: {
-		id: 'app.curseforge.manual-downloads.project-file',
+		id: 'app.downloads.manual-download-project-file',
 		defaultMessage: 'Project {projectId} · File {fileId}',
 	},
 	downloadSource: { id: 'app.downloads.download-source', defaultMessage: 'Source: {source}' },
@@ -1254,14 +1254,12 @@ async function resolveMissing(job: InstallJobSnapshot) {
 				(item) =>
 					item.status === 'skipped' && item.manual_url && item.project_id && item.version_id,
 			)
-			.map(
-				(item): CurseForgeManualDownloadItem => ({
-					projectId: Number(item.project_id),
-					fileId: Number(item.version_id),
-					fileName: item.name,
-					websiteUrl: item.manual_url ?? undefined,
-				}),
-			)
+			.map((item): CurseForgeManualDownloadItem => ({
+				projectId: Number(item.project_id),
+				fileId: Number(item.version_id),
+				fileName: item.name,
+				websiteUrl: item.manual_url ?? undefined,
+			}))
 		const instanceId = job.instance_id
 		const hasGeneralMissingItems = job.items.some((item) => item.status === 'failed')
 		if (instanceId && (job.provider === 'curse_forge' || fallbackCurseForgeItems.length > 0)) {

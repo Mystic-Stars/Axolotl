@@ -1,11 +1,6 @@
 export type BrowseContentDisplayMode = 'list' | 'compact' | 'grid'
 export type BrowseContentProjectType =
-	| 'modpack'
-	| 'mod'
-	| 'resourcepack'
-	| 'datapack'
-	| 'shader'
-	| 'world'
+	'modpack' | 'mod' | 'resourcepack' | 'datapack' | 'shader' | 'world'
 
 const BROWSE_CONTENT_DISPLAY_MODE_STORAGE_KEY = 'axolotl-browse-content-display-mode'
 const BROWSE_CONTENT_PROJECT_TYPE_STORAGE_KEY = 'axolotl-browse-content-project-type'

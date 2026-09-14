@@ -39,7 +39,7 @@ const messages = defineMessages({
 	changeIcon: { id: 'app.servers.icon.change', defaultMessage: 'Change icon' },
 	removeIcon: { id: 'app.servers.icon.remove', defaultMessage: 'Remove icon' },
 	java: { id: 'app.servers.settings.java', defaultMessage: 'Java' },
-	memory: { id: 'app.servers.settings.memory', defaultMessage: 'Memory (MB)' },
+	memory: { id: 'app.servers.settings.memory-mb', defaultMessage: 'Memory (MB)' },
 	jvmArgs: { id: 'app.servers.settings.jvm-args', defaultMessage: 'JVM arguments' },
 	jvmArgsHint: {
 		id: 'app.servers.settings.jvm-args-hint',

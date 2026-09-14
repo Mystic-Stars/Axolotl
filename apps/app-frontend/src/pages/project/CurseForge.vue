@@ -295,8 +295,10 @@ import { projectGalleryTranslationSegments } from '@/helpers/project-gallery'
 import { createProjectBrowseLocation, type ProjectBrowseFilter } from '@/helpers/project-links'
 import { get_game_versions, get_loaders } from '@/helpers/tags'
 import {
+	autoTranslateHintMessages,
 	getTranslationErrorKind,
 	getTranslationSettings,
+	noteManualTranslateClick,
 	prepareDescription,
 	translateInBatches as translateContent,
 	type TranslationStyle,
@@ -946,6 +948,15 @@ async function maybeAutoTranslate() {
 	}
 }
 
+async function maybeHintAutoTranslate() {
+	if (!(await noteManualTranslateClick())) return
+	addNotification({
+		title: formatMessage(autoTranslateHintMessages.title),
+		text: formatMessage(autoTranslateHintMessages.text),
+		type: 'info',
+	})
+}
+
 function toggleTranslation() {
 	if (translationActive.value) {
 		translationRequestVersion++
@@ -953,6 +964,7 @@ function toggleTranslation() {
 		translationLoading.value = false
 		return
 	}
+	void maybeHintAutoTranslate()
 	void translateProject()
 }
 </script>

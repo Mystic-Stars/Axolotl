@@ -10,15 +10,14 @@ import {
 	useVIntl,
 } from '@modrinth/ui'
 import { getVersion } from '@tauri-apps/api/app'
-import { invoke } from '@tauri-apps/api/core'
 import { fetch as tauriFetch } from '@tauri-apps/plugin-http'
 import { inject, nextTick, ref, watch } from 'vue'
 
 import UpdateAnnouncementHistory from '@/components/ui/announcement/UpdateAnnouncementHistory.vue'
 import {
 	betaDatabaseExists,
-	copyReleaseDatabaseToBeta,
 	copyDatabaseBetweenChannels,
+	copyReleaseDatabaseToBeta,
 	getCurrentAppDatabasePath,
 	getUpdateChannel,
 	getUpdatePreferences,
@@ -34,30 +33,22 @@ import SettingsSection from './SettingsSection.vue'
 
 const { formatMessage } = useVIntl()
 const { addNotification, handleError } = injectNotificationManager()
-const [
-	activeChannel,
-	initialUpdatePreferences,
-	currentVersion,
-	isDevEnvironment,
-	databasePath,
-	portable,
-] = await Promise.all([
-	getUpdateChannel(),
-	getUpdatePreferences(),
-	getVersion(),
-	isDev(),
-	getCurrentAppDatabasePath().catch(() => ''),
-	invoke<boolean>('is_portable_mode').catch(() => false),
-])
+const [activeChannel, initialUpdatePreferences, currentVersion, isDevEnvironment, databasePath] =
+	await Promise.all([
+		getUpdateChannel(),
+		getUpdatePreferences(),
+		getVersion(),
+		isDev(),
+		getCurrentAppDatabasePath().catch(() => ''),
+	])
 const selectedChannel = ref<UpdateChannel>(activeChannel)
 const updatePreferences = ref(initialUpdatePreferences)
 const checking = ref(false)
-const checkResult = ref<AppUpdateCheckResult | 'failed' | 'portable' | null>(null)
+const checkResult = ref<AppUpdateCheckResult | 'failed' | null>(null)
 const currentDatabasePath = ref(databasePath)
 const latestChannelVersions = ref<Partial<Record<UpdateChannel, string>>>({})
 const latestChannelVersionsLoaded = ref(false)
 const previewUpdateAnnouncement = inject<(version: string) => void>('previewUpdateAnnouncement')
-const isPortable = ref(portable)
 const restartModal = ref<InstanceType<typeof NewModal>>()
 const copyDatabaseModal = ref<InstanceType<typeof NewModal>>()
 const databaseOperationModal = ref<InstanceType<typeof NewModal>>()
@@ -134,11 +125,6 @@ const messages = defineMessages({
 	failed: {
 		id: 'app.settings.updates.failed',
 		defaultMessage: 'Could not check for updates.',
-	},
-	portable: {
-		id: 'app.settings.updates.portable',
-		defaultMessage:
-			'Portable mode cannot update automatically. Please download the latest version manually.',
 	},
 	security: {
 		id: 'app.settings.updates.security',
@@ -314,16 +300,14 @@ async function loadLatestChannelVersions() {
 
 void loadLatestChannelVersions()
 
-const resultMessages: Record<AppUpdateCheckResult | 'failed' | 'portable', keyof typeof messages> =
-	{
-		available: 'available',
-		'up-to-date': 'upToDate',
-		disabled: 'disabled',
-		offline: 'offline',
-		failed: 'failed',
-		portable: 'portable',
-		paused: 'paused',
-	}
+const resultMessages: Record<AppUpdateCheckResult | 'failed', keyof typeof messages> = {
+	available: 'available',
+	'up-to-date': 'upToDate',
+	disabled: 'disabled',
+	offline: 'offline',
+	failed: 'failed',
+	paused: 'paused',
+}
 
 watch(selectedChannel, async (channel, previousChannel) => {
 	if (restoringChannelSelection) return
@@ -405,12 +389,6 @@ async function checkForUpdates() {
 	checking.value = true
 	checkResult.value = null
 
-	if (isPortable.value) {
-		checkResult.value = 'portable'
-		checking.value = false
-		return
-	}
-
 	try {
 		checkResult.value = await checkForAppUpdate()
 	} catch (error) {
@@ -454,7 +432,7 @@ async function confirmDatabaseOperation() {
 						: formatMessage(messages.betaDatabase),
 			}),
 		})
-	} catch (error) {
+	} catch {
 		handleError(
 			new Error(
 				targetChannel === activeChannel
@@ -974,7 +952,6 @@ function onDatabaseOperationModalHide() {
 }
 
 .update-check-result-paused,
-.update-check-result-portable,
 .update-check-result-disabled {
 	border-color: color-mix(in srgb, var(--color-yellow) 45%, var(--surface-4));
 	color: var(--color-yellow);

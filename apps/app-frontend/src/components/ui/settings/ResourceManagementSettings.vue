@@ -449,18 +449,22 @@ function loadMinecraftDirectories() {
 		const directories = parsed.flatMap((value) => {
 			if (typeof value === 'string') return [{ path: value, mode: 'isolated' }]
 			if (value && typeof value === 'object' && typeof value.path === 'string') {
-				return [{
-					path: value.path,
-					mode: value.mode === 'shared' ? 'shared' : 'isolated',
-				}]
+				return [
+					{
+						path: value.path,
+						mode: value.mode === 'shared' ? 'shared' : 'isolated',
+					},
+				]
 			}
 			return []
 		})
-		return [...new Map(
-			directories
-				.filter((directory) => isMinecraftDirectoryPath(directory.path))
-				.map((directory) => [directory.path.trim(), directory]),
-		).values()]
+		return [
+			...new Map(
+				directories
+					.filter((directory) => isMinecraftDirectoryPath(directory.path))
+					.map((directory) => [directory.path.trim(), directory]),
+			).values(),
+		]
 	} catch {
 		return []
 	}
@@ -469,15 +473,17 @@ function loadMinecraftDirectories() {
 /** @param {ExternalMinecraftRoot[]} values */
 function persistMinecraftDirectories(values) {
 	try {
-		const validValues = [...new Map(
-			values
-				.map((value) => ({
-					path: value.path.trim(),
-					mode: value.mode === 'shared' ? 'shared' : 'isolated',
-				}))
-				.filter((value) => isMinecraftDirectoryPath(value.path))
-				.map((value) => [value.path, value]),
-		).values()]
+		const validValues = [
+			...new Map(
+				values
+					.map((value) => ({
+						path: value.path.trim(),
+						mode: value.mode === 'shared' ? 'shared' : 'isolated',
+					}))
+					.filter((value) => isMinecraftDirectoryPath(value.path))
+					.map((value) => [value.path, value]),
+			).values(),
+		]
 		localStorage.setItem(MINECRAFT_DIRECTORIES_STORAGE_KEY, JSON.stringify(validValues))
 	} catch {
 		// Local storage may be unavailable in an embedded or restricted webview.

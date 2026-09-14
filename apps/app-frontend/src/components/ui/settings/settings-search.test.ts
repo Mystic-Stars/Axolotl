@@ -165,18 +165,18 @@ test('settings navigation groups preserve the intended Axolotl information archi
 	assert.deepEqual(categoriesForGroup('launcher'), [
 		'interface',
 		'home-navigation',
+		'shortcut-settings',
 		'language-translation',
 		'ai',
-		'shortcut-settings',
 	])
 	assert.deepEqual(categoriesForGroup('game'), [
-		'java-performance',
 		'launch-defaults',
+		'java-performance',
 		'content-downloads',
 		'network-multiplayer',
 	])
 	assert.deepEqual(categoriesForGroup('data-privacy'), ['storage-backups', 'privacy-data'])
-	assert.deepEqual(categoriesForGroup('support'), ['updates', 'logs', 'about'])
+	assert.deepEqual(categoriesForGroup('support'), ['updates', 'about', 'logs'])
 	assert.deepEqual(categoriesForGroup('developer'), [])
 	assert.deepEqual(categoriesForGroup('developer', true), ['feature-flags'])
 })
