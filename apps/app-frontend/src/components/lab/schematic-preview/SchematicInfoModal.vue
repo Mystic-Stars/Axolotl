@@ -101,7 +101,10 @@ defineExpose({ show: () => modal.value?.show() })
 				</div>
 			</section>
 
-			<section v-if="warnings.length" class="info-section flex min-w-0 flex-col gap-3 warning-section text-orange">
+			<section
+				v-if="warnings.length"
+				class="info-section flex min-w-0 flex-col gap-3 warning-section text-orange"
+			>
 				<h2><TriangleAlertIcon />{{ formatMessage(messages.warnings) }}</h2>
 				<ul>
 					<li v-for="warning in warnings" :key="warning">{{ warning }}</li>

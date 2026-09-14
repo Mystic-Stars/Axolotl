@@ -195,7 +195,10 @@ onUnmounted(() => window.clearInterval(timer))
 					: 'gap-1 py-2'
 		"
 	>
-		<span v-if="variant !== 'minimal' && dashboardSize" class="text-xs font-bold leading-none tracking-normal text-secondary">
+		<span
+			v-if="variant !== 'minimal' && dashboardSize"
+			class="text-xs font-bold leading-none tracking-normal text-secondary"
+		>
 			{{ dateLabel }}
 		</span>
 		<h1

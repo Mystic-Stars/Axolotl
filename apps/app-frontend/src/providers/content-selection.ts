@@ -1093,19 +1093,20 @@ export function createContentSelection({
 	}
 
 	watch(
-		() => downloadManager.jobs.value,
+		() => downloadManager.jobs.value.map(({ job_id, status }) => ({ job_id, status })),
 		(jobs) => {
 			const terminalJobIds = new Set(
 				jobs.filter((job) => !activeJobStatuses.has(job.status)).map((job) => job.job_id),
 			)
 			if (!terminalJobIds.size) return
-			const next = new Map(jobIdsByKey.value)
-			for (const [key, jobId] of next) {
-				if (terminalJobIds.has(jobId)) next.delete(key)
+			let next: Map<string, string> | undefined
+			for (const [key, jobId] of jobIdsByKey.value) {
+				if (!terminalJobIds.has(jobId)) continue
+				next ??= new Map(jobIdsByKey.value)
+				next.delete(key)
 			}
-			jobIdsByKey.value = next
+			if (next) jobIdsByKey.value = next
 		},
-		{ deep: true },
 	)
 
 	return {

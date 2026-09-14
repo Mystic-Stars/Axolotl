@@ -8,15 +8,10 @@ import { commonProjectTypeCategoryMessages, normalizeProjectType } from '#ui/uti
 import type { ContentItem } from '../types'
 import { type ContentFilterSelections, pruneContentFilterSelections } from './content-filter-state'
 import type { ContentFilterOption } from './content-filtering'
-import {
-	getClientWarningType,
-	isDisabledContentItem,
-	isEnabledContentItem,
-} from './content-filtering'
+import { isDisabledContentItem, isEnabledContentItem } from './content-filtering'
 
 // Re-export utility functions and types for convenience
 export type { ContentFilterOption } from './content-filtering'
-export { getClientWarningType, isClientOnlyEnvironment } from './content-filtering'
 
 // ---- window 级内存持久化（导航切换保留，关软件丢弃） ----
 
@@ -38,7 +33,6 @@ export interface ContentPipelineConfig {
 	getItemId: (item: ContentItem) => string
 	showTypeFilters?: boolean
 	showUpdateFilter?: boolean
-	showWarningsFilter?: boolean
 	isPackLocked?: Ref<boolean>
 	memoryKey?: string
 	searchKeys?: string[]
@@ -61,10 +55,6 @@ const filterMessages = defineMessages({
 	updates: {
 		id: 'content.filter.updates',
 		defaultMessage: 'Update available',
-	},
-	warnings: {
-		id: 'content.filter.warnings',
-		defaultMessage: 'Warnings',
 	},
 	duplicates: {
 		id: 'content.filter.duplicates',
@@ -93,7 +83,7 @@ export function useContentPipeline(config: ContentPipelineConfig) {
 		getItemId,
 		showTypeFilters = false,
 		showUpdateFilter = false,
-		showWarningsFilter = false,
+		isPackLocked,
 		memoryKey = '',
 		searchKeys = ['project.title', 'owner.name', 'file_name'],
 		initialFilters,
@@ -178,7 +168,6 @@ export function useContentPipeline(config: ContentPipelineConfig) {
 		for (const item of allItems) {
 			type.add(normalizeProjectType(item.project_type))
 			if (showUpdateFilter && item.update != null) status.add('updates')
-			if (showWarningsFilter && getClientWarningType(item) !== null) status.add('warnings')
 			if (isEnabledContentItem(item)) status.add('enabled')
 			if (isDisabledContentItem(item)) status.add('disabled')
 		}
@@ -260,9 +249,6 @@ export function useContentPipeline(config: ContentPipelineConfig) {
 		if (showUpdateFilter && typeFiltered.some((item) => item.update != null)) {
 			availableStatusFilters.add('updates')
 		}
-		if (showWarningsFilter && typeFiltered.some((item) => getClientWarningType(item) !== null)) {
-			availableStatusFilters.add('warnings')
-		}
 		if (hasEnabled) availableStatusFilters.add('enabled')
 		if (hasDisabled) availableStatusFilters.add('disabled')
 		const effectiveStatusFilters = statusFilters.filter((filter) =>
@@ -276,7 +262,6 @@ export function useContentPipeline(config: ContentPipelineConfig) {
 					if (f === 'updates' && item.update == null) return false
 					if (f === 'enabled' && !isEnabledContentItem(item)) return false
 					if (f === 'disabled' && !isDisabledContentItem(item)) return false
-					if (f === 'warnings' && getClientWarningType(item) === null) return false
 				}
 				return true
 			})
@@ -298,7 +283,6 @@ export function useContentPipeline(config: ContentPipelineConfig) {
 		counts['updates'] = typeFiltered.filter((m) => m.update != null).length
 		counts['enabled'] = typeFiltered.filter(isEnabledContentItem).length
 		counts['disabled'] = typeFiltered.filter(isDisabledContentItem).length
-		counts['warnings'] = typeFiltered.filter((m) => getClientWarningType(m) !== null).length
 
 		// totalCount: from statusFiltered (same as old code)
 		const totalCount = statusFiltered.length
@@ -328,10 +312,6 @@ export function useContentPipeline(config: ContentPipelineConfig) {
 		if (showUpdateFilter && typeFiltered.some((m) => m.update != null)) {
 			row2.push({ id: 'updates', label: formatMessage(filterMessages.updates) })
 		}
-		if (showWarningsFilter && typeFiltered.some((m) => getClientWarningType(m) !== null)) {
-			row2.push({ id: 'warnings', label: formatMessage(filterMessages.warnings) })
-		}
-
 		if (hasEnabled && hasDisabled) {
 			row2.push({ id: 'enabled', label: formatMessage(filterMessages.enabled) })
 			row2.push({ id: 'disabled', label: formatMessage(filterMessages.disabled) })
@@ -351,7 +331,6 @@ export function useContentPipeline(config: ContentPipelineConfig) {
 						if (f === 'updates' && item.update == null) return false
 						if (f === 'enabled' && !isEnabledContentItem(item)) return false
 						if (f === 'disabled' && !isDisabledContentItem(item)) return false
-						if (f === 'warnings' && getClientWarningType(item) === null) return false
 					}
 					return true
 				})
@@ -481,16 +460,16 @@ export function useContentPipeline(config: ContentPipelineConfig) {
 					filterId,
 				]
 			} else {
-				selectedStatusFilters.value.splice(index, 1)
+				selectedStatusFilters.value = selectedStatusFilters.value.filter((_, i) => i !== index)
 			}
 			return
 		}
 
 		const index = selectedStatusFilters.value.indexOf(filterId)
 		if (index === -1) {
-			selectedStatusFilters.value.push(filterId)
+			selectedStatusFilters.value = [...selectedStatusFilters.value, filterId]
 		} else {
-			selectedStatusFilters.value.splice(index, 1)
+			selectedStatusFilters.value = selectedStatusFilters.value.filter((_, i) => i !== index)
 		}
 	}
 

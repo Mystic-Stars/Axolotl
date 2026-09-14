@@ -45,9 +45,8 @@ const LAUNCHER_LOG_DEBUG_FIDELITY_AGE: std::time::Duration =
 const LAUNCHER_LOG_PRUNE_INTERVAL: std::time::Duration =
     std::time::Duration::from_secs(5 * 60);
 
-/// Level used until the stored user preference is applied; full collection so
-/// early startup logs are never lost, and incidents can always be reported.
-pub const DEFAULT_LOG_LEVEL: &str = "trace";
+/// Level used until the stored user preference is applied.
+pub const DEFAULT_LOG_LEVEL: &str = "info";
 
 /// Dependency directives that stay pinned regardless of the user level, so
 /// noisy third-party crates never drown out launcher logs.

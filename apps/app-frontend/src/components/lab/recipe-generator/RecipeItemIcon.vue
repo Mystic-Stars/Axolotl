@@ -141,5 +141,4 @@ watch(
 	background: repeating-conic-gradient(var(--surface-5) 0% 25%, var(--surface-3) 0% 50%);
 	background-size: 8px 8px;
 }
-
 </style>

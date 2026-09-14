@@ -382,9 +382,11 @@ use super::download::native_request::byte_range_header_value;
 use super::download::native_request::{
     send_path_request, send_path_request_with_clients,
 };
+#[cfg(test)]
+use super::download::route_health::resource_family;
 use super::download::route_health::{
     ROUTE_HEALTH, ResourceFamily, RouteHealth, RouteHealthKey,
-    TASK_PROBE_STATES, TaskProbeGuard, TaskProbeKey, resource_family,
+    TASK_PROBE_STATES, TaskProbeGuard, TaskProbeKey,
 };
 
 pub(crate) fn url_authority(url: &str) -> Option<String> {

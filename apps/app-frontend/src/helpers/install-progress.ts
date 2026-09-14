@@ -26,8 +26,7 @@ export interface ProgressTextSnapshot extends ProgressSnapshot {
 }
 
 export type InstallProgressTextSource =
-	| { type: 'required_files' | 'phase' }
-	| { type: 'bytes' | 'items'; current: number; total: number }
+	{ type: 'required_files' | 'phase' } | { type: 'bytes' | 'items'; current: number; total: number }
 
 export function effectiveInstallProgress(
 	snapshot: ProgressSnapshot,

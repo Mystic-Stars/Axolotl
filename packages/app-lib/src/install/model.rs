@@ -797,6 +797,14 @@ mod tests {
         assert_eq!(summary.speed_bytes_per_second, Some(200));
         assert_eq!(summary.eta_seconds, Some(3));
 
+        job.active_downloads.get_mut("client.jar").unwrap().status =
+            DownloadItemStatus::Verifying;
+        let verifying = job.download_summary();
+        assert_eq!(verifying.speed_bytes_per_second, None);
+        assert_eq!(verifying.eta_seconds, None);
+        job.active_downloads.get_mut("client.jar").unwrap().status =
+            DownloadItemStatus::Downloading;
+
         job.active_downloads
             .get_mut("client.jar")
             .unwrap()
@@ -2969,14 +2977,16 @@ impl InstallJobState {
                 ..
             }
         );
+        let now = Utc::now();
         let active_speed = self
             .active_downloads
             .values()
             .filter(|download| {
-                Utc::now()
-                    .signed_duration_since(download.last_progress_at)
-                    .num_milliseconds()
-                    < 3_000
+                download.status == DownloadItemStatus::Downloading
+                    && now
+                        .signed_duration_since(download.last_progress_at)
+                        .num_milliseconds()
+                        < 3_000
             })
             .filter_map(|download| download.speed_bytes_per_second)
             .fold(0_u64, u64::saturating_add);

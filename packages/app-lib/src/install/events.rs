@@ -591,17 +591,7 @@ impl InstallProgressReporter {
                     .saturating_mul(1_000)
                     .checked_div(sample_elapsed_ms)
                     .unwrap_or(0);
-                let new_speed = match active.speed_bytes_per_second {
-                    Some(previous) if sample > previous => {
-                        previous + (((sample - previous) as f64) * 0.5) as u64
-                    }
-                    Some(previous) => {
-                        (((previous as f64) * 0.95) + ((sample as f64) * 0.05))
-                            as u64
-                    }
-                    None => sample,
-                };
-                active.speed_bytes_per_second = Some(new_speed);
+                active.speed_bytes_per_second = Some(sample);
                 active.speed_sample_started_at = now;
                 active.speed_sample_started_bytes = bytes;
             }
@@ -1241,6 +1231,57 @@ mod tests {
         .unwrap();
         drop(guard);
         InstallProgressReporter::reset_job(job_id);
+    }
+
+    #[tokio::test]
+    async fn download_progress_speed_drops_without_retaining_the_peak() {
+        let job_id = Uuid::new_v4();
+        let reporter = InstallProgressReporter::new(
+            job_id,
+            InstallJobState::new(InstallRequest::CreateInstance {
+                name: "Speed test".to_string(),
+                game_version: "1.21.1".to_string(),
+                loader: ModLoader::Vanilla,
+                loader_version: None,
+                adjuncts: Vec::new(),
+                icon_path: None,
+                link: InstanceLink::Unmanaged,
+                game_dir_override: None,
+            }),
+        );
+        let mib = 1024 * 1024;
+        {
+            let mut state = reporter.state.lock().await;
+            state.initialized_from_store = true;
+            state.job.active_downloads.insert(
+                "file".to_string(),
+                ActiveDownloadState {
+                    name: "file".to_string(),
+                    url: String::new(),
+                    source: String::new(),
+                    bytes_downloaded: 40 * mib,
+                    bytes_total: Some(100 * mib),
+                    attempt: 1,
+                    max_attempts: 1,
+                    status: DownloadItemStatus::Downloading,
+                    last_reported_bytes: u64::MAX,
+                    last_progress_at: Utc::now(),
+                    speed_bytes_per_second: Some(40 * mib),
+                    speed_sample_started_at: Utc::now()
+                        - chrono::TimeDelta::seconds(1),
+                    speed_sample_started_bytes: 40 * mib,
+                },
+            );
+        }
+        reporter
+            .record_download_progress("file", 42 * mib, 100 * mib)
+            .await
+            .unwrap();
+        let state = reporter.state.lock().await;
+        let speed = state.job.active_downloads["file"]
+            .speed_bytes_per_second
+            .unwrap();
+        assert!(speed > 0 && speed <= 2 * mib);
     }
 
     #[tokio::test]

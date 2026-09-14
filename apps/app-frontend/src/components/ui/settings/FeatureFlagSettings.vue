@@ -24,7 +24,9 @@ const { addNotification } = injectNotificationManager()
 const isDevEnvironment = await isDev()
 const previewMinecraftCrashModal = inject<() => void>('previewMinecraftCrashModal')
 const previewPrivacyConsentModal = inject<() => Promise<void>>('previewPrivacyConsentModal')
-const previewRemoteAnnouncement = inject<(type: 'modal' | 'notification', withAction: boolean) => void>('previewRemoteAnnouncement')
+const previewRemoteAnnouncement = inject<
+	(type: 'modal' | 'notification', withAction: boolean) => void
+>('previewRemoteAnnouncement')
 const previewWithAction = ref(false)
 const messages = defineMessages({
 	announcementPreview: {
@@ -33,7 +35,8 @@ const messages = defineMessages({
 	},
 	announcementPreviewDescription: {
 		id: 'app.settings.developer.announcement-preview-description',
-		defaultMessage: 'Preview the real announcement components using local sample content, without fetching or marking real announcements as read.',
+		defaultMessage:
+			'Preview the real announcement components using local sample content, without fetching or marking real announcements as read.',
 	},
 	previewWithAction: {
 		id: 'app.settings.developer.preview-with-action',
@@ -134,13 +137,19 @@ watch(
 
 	<SettingsSection v-if="(themeStore.devMode || isDevEnvironment) && previewRemoteAnnouncement">
 		<template #header>
-			<h2 class="m-0 text-lg font-semibold text-contrast">{{ formatMessage(messages.announcementPreview) }}</h2>
+			<h2 class="m-0 text-lg font-semibold text-contrast">
+				{{ formatMessage(messages.announcementPreview) }}
+			</h2>
 		</template>
 		<div class="flex flex-col gap-4 p-4">
-			<p class="m-0 text-sm text-secondary">{{ formatMessage(messages.announcementPreviewDescription) }}</p>
+			<p class="m-0 text-sm text-secondary">
+				{{ formatMessage(messages.announcementPreviewDescription) }}
+			</p>
 			<div class="flex items-center gap-2">
 				<Toggle id="announcement-preview-action" v-model="previewWithAction" />
-				<label for="announcement-preview-action">{{ formatMessage(messages.previewWithAction) }}</label>
+				<label for="announcement-preview-action">{{
+					formatMessage(messages.previewWithAction)
+				}}</label>
 			</div>
 			<div class="flex flex-wrap gap-2">
 				<Button type="base" @click="previewRemoteAnnouncement('modal', previewWithAction)">

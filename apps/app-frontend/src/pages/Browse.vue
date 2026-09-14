@@ -125,6 +125,7 @@ import {
 	searchMcArchiveMods,
 } from '@/helpers/mcarchive'
 import { get_loader_versions as getLoaderManifest } from '@/helpers/metadata'
+import { runAfterPageTransitionSettle } from '@/helpers/page-transition'
 import {
 	planetMinecraftConnectorAvailable,
 	type PlanetMinecraftProject,
@@ -147,7 +148,11 @@ import {
 	setLastBrowseContentSource,
 } from '@/helpers/settings.ts'
 import { get_categories, get_game_versions, get_loaders } from '@/helpers/tags'
-import { translateSearchDescriptions } from '@/helpers/translation'
+import {
+	autoTranslateHintMessages,
+	noteManualTranslateClick,
+	translateSearchDescriptions,
+} from '@/helpers/translation'
 import type { GameInstance } from '@/helpers/types'
 import { get_instance_worlds } from '@/helpers/worlds'
 import i18n from '@/i18n.config'
@@ -161,7 +166,7 @@ import {
 import { useBreadcrumbs } from '@/store/breadcrumbs'
 import { useTheming } from '@/store/state'
 
-const { handleError } = injectNotificationManager()
+const { addNotification, handleError } = injectNotificationManager()
 const { formatMessage } = useVIntl()
 const { installingServerProjects, playServerProject, showAddServerToInstanceModal } =
 	injectServerInstall()
@@ -216,7 +221,7 @@ const rememberedContentSource = getLastBrowseContentSource()
 
 function resolveInitialContentSource(): BrowseContentSource {
 	if (route.params.projectType === WORLD_BROWSE_PROJECT_TYPE) {
-		return 'curseforge'
+		return curseForgeCapability.value.configured ? 'curseforge' : 'modrinth'
 	}
 	if (route.params.projectType === 'mod' && route.query.source === 'mcarchive') {
 		return 'mcarchive'
@@ -257,12 +262,13 @@ const contentSource = ref<BrowseContentSource>(resolveInitialContentSource())
 const sourceBeforeWorldMapBrowse = ref<BrowseContentSource>(
 	isWorldMapBrowse.value ? (getLastBrowseContentSource() ?? 'all') : contentSource.value,
 )
-if (isWorldMapBrowse.value) {
+if (isWorldMapBrowse.value && curseForgeCapability.value.configured) {
 	contentSource.value = 'curseforge'
 }
 const curseForgeCategoriesByClass = ref<Record<number, CurseForgeCategory[]>>({})
 
 async function ensureCurseForgeCategories(projectTypeValue: ProjectType) {
+	if (!curseForgeCapability.value.configured) return
 	const classId = curseForgeClassIds[projectTypeValue]
 	if (!classId || curseForgeCategoriesByClass.value[classId]) return
 
@@ -276,7 +282,15 @@ async function ensureCurseForgeCategories(projectTypeValue: ProjectType) {
 const initialCurseForgeCategoriesPromise =
 	curseForgeCapability.value.configured &&
 	(contentSource.value === 'curseforge' || contentSource.value === 'all')
-		? ensureCurseForgeCategories(projectType.value).catch(handleError)
+		? new Promise<void>((resolve) => {
+				// Defer the first category fetch so route enter animation is not
+				// competing with a large CF payload on the main thread.
+				runAfterPageTransitionSettle(() => {
+					void ensureCurseForgeCategories(projectType.value)
+						.catch(handleError)
+						.finally(() => resolve())
+				})
+			})
 		: Promise.resolve()
 if (route.query.f || route.query.g) await initialCurseForgeCategoriesPromise
 
@@ -649,7 +663,9 @@ function shouldHideInstalledProject(projectId: string): boolean {
 	if (isServerContext.value) {
 		return serverHideInstalled.value && hiddenServerContentProjectIds.value.has(projectId)
 	}
-	return !!activeInstance.value && instanceHideInstalled.value && allInstalledIds.value.has(projectId)
+	return (
+		!!activeInstance.value && instanceHideInstalled.value && allInstalledIds.value.has(projectId)
+	)
 }
 
 function syncHiddenServerContentProjectIds() {
@@ -999,7 +1015,13 @@ const browseTitle = computed(() =>
 				: messages.discoverContent,
 	),
 )
-breadcrumbs.setName('BrowseTitle', browseTitle.value)
+watch(
+	browseTitle,
+	(title) => {
+		breadcrumbs.setName('BrowseTitle', title)
+	},
+	{ immediate: true },
+)
 if (instance.value) {
 	const instanceLink = `/instance/${encodeURIComponent(instance.value.id)}`
 	const instanceIcon = getDisplayInstanceIcon(instance.value.icon_path, instance.value.loader).url
@@ -1058,6 +1080,8 @@ watch(
 
 		debugLog('projectType route param changed', { from: projectType.value, to: newType })
 		projectType.value = newType
+		// SPA tab switch reuses this instance; remount used to reset scroll.
+		document.querySelector('.app-viewport')?.scrollTo({ top: 0 })
 	},
 )
 
@@ -1193,11 +1217,7 @@ function projectInstallingKey(projectId: string, instanceId?: string | null) {
 	return `${instanceId ?? activeInstance.value?.id ?? ''}\0${projectId}`
 }
 
-function setProjectInstalling(
-	projectId: string,
-	installing: boolean,
-	instanceId?: string | null,
-) {
+function setProjectInstalling(projectId: string, installing: boolean, instanceId?: string | null) {
 	const key = projectInstallingKey(projectId, instanceId)
 	const next = new Set(installingProjectIds.value)
 	if (installing) {
@@ -2840,6 +2860,15 @@ async function translateCurrentHits() {
 	}
 }
 
+async function maybeHintAutoTranslate() {
+	if (!(await noteManualTranslateClick())) return
+	addNotification({
+		title: formatMessage(autoTranslateHintMessages.title),
+		text: formatMessage(autoTranslateHintMessages.text),
+		type: 'info',
+	})
+}
+
 function toggleTranslation() {
 	toggle(
 		() => {
@@ -2848,7 +2877,10 @@ function toggleTranslation() {
 			searchState.serverHits.value = originalServerHits.value
 			isUpdatingProjectHitsFromTranslation = false
 		},
-		() => void translateCurrentHits(),
+		() => {
+			void maybeHintAutoTranslate()
+			void translateCurrentHits()
+		},
 	)
 }
 
@@ -2870,7 +2902,11 @@ watch(contentSource, async (source) => {
 watch(projectType, async (type, previousType) => {
 	if (type === WORLD_BROWSE_PROJECT_TYPE) {
 		sourceBeforeWorldMapBrowse.value = contentSource.value
-		contentSource.value = 'curseforge'
+		// Maps are CurseForge-only. Without an API key keep the source inert so
+		// category fetches and unified search never hit the missing-key error.
+		if (curseForgeCapability.value.configured) {
+			contentSource.value = 'curseforge'
+		}
 		return
 	}
 	if (previousType === WORLD_BROWSE_PROJECT_TYPE) {
@@ -2974,8 +3010,13 @@ onMounted(() => {
 	if (instanceHideInstalled.value) initialSearchDependencies.push(initialInstalledProjectsPromise)
 	void Promise.allSettled(initialSearchDependencies).then(() => {
 		if (isUnmounted) return
-		restoreBrowseReturnPage()
-		void searchState.refreshSearch()
+		// First search waits until the page-slide opacity transition has painted
+		// so switching nav pages does not hitch mid-animation.
+		runAfterPageTransitionSettle(() => {
+			if (isUnmounted) return
+			restoreBrowseReturnPage()
+			void searchState.refreshSearch()
+		})
 	})
 
 	instance_listener(async (event: { event: string; instance_id: string }) => {

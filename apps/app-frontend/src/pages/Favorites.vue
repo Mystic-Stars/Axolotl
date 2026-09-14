@@ -60,6 +60,7 @@ import {
 	getCurseForgeProjects,
 } from '@/helpers/curseforge'
 import { getDisplayInstanceIcon } from '@/helpers/instance-icons'
+import { runAfterPageTransitionSettle } from '@/helpers/page-transition'
 import {
 	getLastBrowseContentDisplayMode,
 	setLastBrowseContentDisplayMode,
@@ -725,7 +726,10 @@ onMounted(async () => {
 				}),
 		)
 	}
-	await refreshProjects()
+	// Match Browse: first network fetch waits for the page-enter paint.
+	runAfterPageTransitionSettle(() => {
+		void refreshProjects()
+	})
 })
 </script>
 

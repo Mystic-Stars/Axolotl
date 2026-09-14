@@ -15,8 +15,6 @@ export type {
 	ContentInstallProjectOwner,
 } from './components/modals/ContentInstallModal.vue'
 export { default as ContentInstallModal } from './components/modals/ContentInstallModal.vue'
-export type { ModpackContentModalState } from './components/modals/ModpackContentModal.vue'
-export { default as ModpackContentModal } from './components/modals/ModpackContentModal.vue'
 export { clearPinnedContentViewPreferences } from './composables/content-view-state'
 export { default as ContentCardLayout } from './layout.vue'
 export { default as ContentPageLayout } from './layout.vue'

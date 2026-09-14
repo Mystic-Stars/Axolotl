@@ -17,6 +17,7 @@ import {
 	SEED_MAP_BIOMES,
 	type SeedMapBiomeCategory,
 	seedMapBiomeGroups,
+	seedMapBiomeMessage,
 	type SeedMapDimension,
 } from '@/lab/seed-map'
 
@@ -141,10 +142,8 @@ const enabledModel = computed({
 function biomeLabel(biome: number) {
 	const name = SEED_MAP_BIOME_NAMES[biome]
 	if (!name) return formatMessage(messages.chooseBiome)
-	return formatMessage({
-		id: `app.lab.seed-map.biome.${biomeSlug(name)}`,
-		defaultMessage: name,
-	})
+	const descriptor = seedMapBiomeMessage(name)
+	return descriptor ? formatMessage(descriptor) : name
 }
 
 function biomeSlug(name: string) {

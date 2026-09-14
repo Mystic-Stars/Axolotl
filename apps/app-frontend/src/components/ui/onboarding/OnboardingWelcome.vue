@@ -1,8 +1,15 @@
 <script setup lang="ts">
-import { RightArrowIcon } from '@modrinth/assets'
-import { ButtonStyled, useVIntl } from '@modrinth/ui'
+import { MonitorIcon, RightArrowIcon } from '@modrinth/assets'
+import { ButtonStyled, defineMessages, LOCALES, useVIntl } from '@modrinth/ui'
+import { computed, onMounted, ref } from 'vue'
 
 import AxolotlLogo from '@/components/ui/AxolotlLogo.vue'
+import { get, set } from '@/helpers/settings.ts'
+import i18n, {
+	getSystemResolvedLocale,
+	isFollowingSystemLocale,
+	setFollowSystemLocale,
+} from '@/i18n.config'
 
 import { onboardingMessages, type OnboardingStep } from './onboardingConfig'
 
@@ -16,6 +23,109 @@ defineEmits<{
 }>()
 
 const { formatMessage } = useVIntl()
+
+const messages = defineMessages({
+	languageLabel: {
+		id: 'app.onboarding.welcome.language-label',
+		defaultMessage: 'Language',
+	},
+	systemLanguage: {
+		id: 'app.settings.language.system',
+		defaultMessage: 'System language',
+	},
+	systemLanguageEnabledTooltip: {
+		id: 'app.settings.language.system.enabled-tooltip',
+		defaultMessage:
+			'Following this device. Open the language list or turn this off to pick manually.',
+	},
+	systemLanguageDisabledTooltip: {
+		id: 'app.settings.language.system.disabled-tooltip',
+		defaultMessage: 'Turn on to follow the language of this device automatically.',
+	},
+})
+
+const applyingLocale = ref(false)
+const settingsLocale = ref('')
+const followSystem = ref(true)
+
+onMounted(async () => {
+	try {
+		const loaded = await get()
+		settingsLocale.value = loaded.locale
+		followSystem.value = isFollowingSystemLocale(loaded.locale)
+	} catch (error) {
+		console.warn('Failed to load settings for onboarding language picker', error)
+	}
+})
+
+const systemResolvedLocale = computed(() => getSystemResolvedLocale())
+
+const systemLocaleName = computed(() => {
+	const code = systemResolvedLocale.value
+	return LOCALES.find((locale) => locale.code === code)?.name ?? code
+})
+
+const selectedLocale = computed(() =>
+	followSystem.value
+		? systemResolvedLocale.value
+		: settingsLocale.value || systemResolvedLocale.value,
+)
+
+const systemToggleTooltip = computed(() =>
+	formatMessage(
+		followSystem.value
+			? messages.systemLanguageEnabledTooltip
+			: messages.systemLanguageDisabledTooltip,
+	),
+)
+
+// Native select keeps the welcome picker usable under the full-screen onboarding
+// overlay (Combobox teleports its dropdown below the overlay z-index).
+const localeOptions = computed(() =>
+	LOCALES.map((locale) => ({
+		value: locale.code,
+		label: `${locale.name} — ${formatMessage(locale.translatedName)}`,
+	})),
+)
+
+async function persistLocale(follow: boolean, concreteLocale: string) {
+	if (applyingLocale.value) return
+	applyingLocale.value = true
+	try {
+		setFollowSystemLocale(follow)
+		followSystem.value = follow
+		i18n.global.locale.value = concreteLocale
+		const loaded = await get()
+		loaded.locale = concreteLocale
+		await set(loaded)
+		settingsLocale.value = concreteLocale
+	} catch (error) {
+		console.warn('Failed to apply onboarding language', error)
+		followSystem.value = isFollowingSystemLocale(settingsLocale.value)
+	} finally {
+		applyingLocale.value = false
+	}
+}
+
+async function unlockSystemLanguage() {
+	if (!followSystem.value || applyingLocale.value) return
+	await persistLocale(false, settingsLocale.value || systemResolvedLocale.value)
+}
+
+async function onLocaleChange(event: Event) {
+	const newLocale = (event.target as HTMLSelectElement).value
+	if (!newLocale) return
+	await persistLocale(false, newLocale)
+}
+
+async function toggleFollowSystem() {
+	if (applyingLocale.value) return
+	if (followSystem.value) {
+		await unlockSystemLanguage()
+		return
+	}
+	await persistLocale(true, systemResolvedLocale.value)
+}
 </script>
 
 <template>
@@ -40,6 +150,46 @@ const { formatMessage } = useVIntl()
 					<p :id="`onboarding-description-${step.id}`">
 						{{ formatMessage(step.description) }}
 					</p>
+					<div class="onboarding-welcome-language">
+						<label class="onboarding-welcome-language-label" for="onboarding-welcome-language">
+							{{ formatMessage(messages.languageLabel) }}
+						</label>
+						<div class="onboarding-welcome-language-row">
+							<select
+								id="onboarding-welcome-language"
+								class="onboarding-welcome-language-select"
+								:value="followSystem ? '' : selectedLocale"
+								:disabled="applyingLocale"
+								@pointerdown="unlockSystemLanguage"
+								@focus="unlockSystemLanguage"
+								@change="onLocaleChange"
+							>
+								<option v-if="followSystem" value="" disabled>
+									{{ formatMessage(messages.systemLanguage) }}
+								</option>
+								<option v-for="option in localeOptions" :key="option.value" :value="option.value">
+									{{ option.label }}
+								</option>
+							</select>
+							<button
+								v-tooltip="systemToggleTooltip"
+								type="button"
+								role="switch"
+								class="onboarding-welcome-language-system"
+								:class="{ 'is-active': followSystem }"
+								:aria-checked="followSystem"
+								:aria-label="formatMessage(messages.systemLanguage)"
+								:disabled="applyingLocale"
+								@click="toggleFollowSystem"
+							>
+								<MonitorIcon class="size-4 shrink-0" />
+								<span>{{ formatMessage(messages.systemLanguage) }}</span>
+							</button>
+						</div>
+						<p v-if="followSystem" class="onboarding-welcome-language-system-meta">
+							{{ systemLocaleName }}
+						</p>
+					</div>
 				</div>
 				<div class="onboarding-welcome-actions">
 					<ButtonStyled color="brand">
@@ -208,6 +358,98 @@ const { formatMessage } = useVIntl()
 	font-size: 1rem;
 	line-height: 1.55;
 	text-wrap: pretty;
+}
+
+.onboarding-welcome-language {
+	display: flex;
+	flex-direction: column;
+	gap: 0.4rem;
+	max-width: 22rem;
+	margin-top: 1.1rem;
+}
+
+.onboarding-welcome-language-label {
+	color: var(--color-secondary);
+	font-size: 0.8125rem;
+	font-weight: 600;
+}
+
+.onboarding-welcome-language-row {
+	display: flex;
+	align-items: stretch;
+	gap: 0.5rem;
+}
+
+.onboarding-welcome-language-select {
+	min-width: 0;
+	flex: 1;
+	min-height: 2.5rem;
+	padding: 0.5rem 0.75rem;
+	border: 1px solid var(--color-divider);
+	border-radius: var(--radius-md);
+	background: var(--color-button-bg);
+	color: var(--color-contrast);
+	font: inherit;
+	font-size: 0.9375rem;
+	box-sizing: border-box;
+}
+
+.onboarding-welcome-language-select:focus-visible {
+	outline: 2px solid var(--color-brand);
+	outline-offset: 1px;
+}
+
+.onboarding-welcome-language-select:disabled {
+	opacity: 0.75;
+	cursor: default;
+}
+
+.onboarding-welcome-language-system {
+	display: inline-flex;
+	min-height: 2.5rem;
+	flex-shrink: 0;
+	align-items: center;
+	gap: 0.4rem;
+	padding: 0 0.75rem;
+	border: 1px solid var(--color-divider);
+	border-radius: var(--radius-md);
+	background: var(--color-button-bg);
+	color: var(--color-secondary);
+	font: inherit;
+	font-size: 0.8125rem;
+	font-weight: 600;
+	white-space: nowrap;
+	cursor: pointer;
+	transition:
+		background-color 140ms ease,
+		border-color 140ms ease,
+		color 140ms ease;
+}
+
+.onboarding-welcome-language-system:hover:not(:disabled) {
+	color: var(--color-contrast);
+}
+
+.onboarding-welcome-language-system:focus-visible {
+	outline: 2px solid var(--color-brand);
+	outline-offset: 1px;
+}
+
+.onboarding-welcome-language-system.is-active {
+	border-color: var(--color-brand);
+	background: color-mix(in srgb, var(--color-brand) 16%, transparent);
+	color: var(--color-brand);
+}
+
+.onboarding-welcome-language-system:disabled {
+	opacity: 0.7;
+	cursor: default;
+}
+
+.onboarding-welcome-language-system-meta {
+	margin: 0.35rem 0 0;
+	color: var(--color-secondary);
+	font-size: 0.75rem;
 }
 
 .onboarding-welcome-actions {

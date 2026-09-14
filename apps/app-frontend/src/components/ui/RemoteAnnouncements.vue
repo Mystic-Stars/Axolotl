@@ -1,7 +1,12 @@
 <script setup lang="ts">
 import {
-	ButtonStyled, commonMessages, defineMessages, injectPopupNotificationManager,
-	NewModal, type PopupNotification, useVIntl,
+	ButtonStyled,
+	commonMessages,
+	defineMessages,
+	injectPopupNotificationManager,
+	NewModal,
+	type PopupNotification,
+	useVIntl,
 } from '@modrinth/ui'
 import { useModalStack } from '@modrinth/ui/src/composables/modal-stack'
 import { renderString } from '@modrinth/utils'
@@ -10,8 +15,11 @@ import { openUrl } from '@tauri-apps/plugin-opener'
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 
 import {
-	announcementKey, isAnnouncementActive, parseAnnouncements,
-	type RemoteAnnouncement, safeAnnouncementUrl,
+	announcementKey,
+	isAnnouncementActive,
+	parseAnnouncements,
+	type RemoteAnnouncement,
+	safeAnnouncementUrl,
 } from '@/helpers/remote-announcements'
 import { getUpdateChannel } from '@/helpers/settings'
 
@@ -22,12 +30,23 @@ const { hasModal } = useModalStack()
 const messages = defineMessages({
 	view: { id: 'app.remote-announcements.view', defaultMessage: 'View announcement' },
 	unread: { id: 'app.remote-announcements.unread', defaultMessage: 'Unread' },
-	readAll: { id: 'app.remote-announcements.read-all', defaultMessage: 'Mark all announcements as read' },
-	previewTitle: { id: 'app.remote-announcements.preview-title', defaultMessage: 'Announcement style preview' },
-	previewSummary: { id: 'app.remote-announcements.preview-summary', defaultMessage: 'This is a local preview. Select View announcement to preview the full Markdown content.' },
+	readAll: {
+		id: 'app.remote-announcements.read-all',
+		defaultMessage: 'Mark all announcements as read',
+	},
+	previewTitle: {
+		id: 'app.remote-announcements.preview-title',
+		defaultMessage: 'Announcement style preview',
+	},
+	previewSummary: {
+		id: 'app.remote-announcements.preview-summary',
+		defaultMessage:
+			'This is a local preview. Select View announcement to preview the full Markdown content.',
+	},
 	previewContent: {
 		id: 'app.remote-announcements.preview-content',
-		defaultMessage: '## Announcement preview\n\nThis is **sample content**, not a published announcement.\n\n- Supports headings, lists, and links\n- Close buttons are always available\n\n> Previewing does not change real announcement read status.\n\n| Type | Display |\n| --- | --- |\n| Modal | Full Markdown content |\n| Popup | Summary, then full content |\n\n[Visit the website](https://axlmc.org)',
+		defaultMessage:
+			'## Announcement preview\n\nThis is **sample content**, not a published announcement.\n\n- Supports headings, lists, and links\n- Close buttons are always available\n\n> Previewing does not change real announcement read status.\n\n| Type | Display |\n| --- | --- |\n| Modal | Full Markdown content |\n| Popup | Summary, then full content |\n\n[Visit the website](https://axlmc.org)',
 	},
 	previewAction: { id: 'app.remote-announcements.preview-action', defaultMessage: 'Visit website' },
 })
@@ -55,20 +74,29 @@ let advanceTimer: ReturnType<typeof setTimeout> | undefined
 function persist() {
 	if (props.previewOnly) return
 	try {
-		localStorage.setItem(stateKey, JSON.stringify({
-			reminded: [...reminded].slice(-1000), read: [...read].slice(-1000),
-		}))
-	} catch {}
+		localStorage.setItem(
+			stateKey,
+			JSON.stringify({
+				reminded: [...reminded].slice(-1000),
+				read: [...read].slice(-1000),
+			}),
+		)
+	} catch {
+		// localStorage may be unavailable (private mode / quota)
+	}
 }
 function updateNotice(item: RemoteAnnouncement, popup: PopupNotification) {
 	const unread = !read.has(announcementKey(item))
 	popup.title = unread ? formatMessage(messages.unread) + ' · ' + item.title : item.title
 	popup.text = item.summary || item.content.slice(0, 300)
 	popup.onClick = () => show(item)
-	popup.buttons = [{ label: formatMessage(messages.view), action: () => show(item), keepOpen: true }]
+	popup.buttons = [
+		{ label: formatMessage(messages.view), action: () => show(item), keepOpen: true },
+	]
 }
 async function show(item: RemoteAnnouncement) {
-	if (disposed || !props.ready || !isAnnouncementActive(item) || (hasModal.value && !active.value)) return
+	if (disposed || !props.ready || !isAnnouncementActive(item) || (hasModal.value && !active.value))
+		return
 	selected.value = item
 	active.value = true
 	const key = announcementKey(item)
@@ -80,7 +108,7 @@ async function show(item: RemoteAnnouncement) {
 		manager.collapseNotification(popup.id)
 		updateNotice(item, popup)
 	}
-	pending = pending.filter(entry => announcementKey(entry) !== key)
+	pending = pending.filter((entry) => announcementKey(entry) !== key)
 	await nextTick()
 	if (!disposed) modal.value?.show()
 }
@@ -89,7 +117,10 @@ function markAllRead() {
 		read.add(announcementKey(item))
 		reminded.add(announcementKey(item))
 		const popup = notices.get(announcementKey(item))
-		if (popup) { updateNotice(item, popup); manager.collapseNotification(popup.id) }
+		if (popup) {
+			updateNotice(item, popup)
+			manager.collapseNotification(popup.id)
+		}
 	}
 	pending = []
 	persist()
@@ -97,7 +128,10 @@ function markAllRead() {
 function advance() {
 	if (disposed || !props.ready || hasModal.value || active.value) return
 	const next = pending.shift()
-	if (next) { void show(next); return }
+	if (next) {
+		void show(next)
+		return
+	}
 	for (const item of items) {
 		const key = announcementKey(item)
 		const popup = notices.get(key)
@@ -115,18 +149,26 @@ function closed() {
 	advanceTimer = setTimeout(advance, 350)
 }
 function sync(next: RemoteAnnouncement[], fresh: boolean) {
-	items = next.filter(item => isAnnouncementActive(item))
+	items = next.filter((item) => isAnnouncementActive(item))
 	const keys = new Set(items.map(announcementKey))
 	for (const [key, popup] of notices) {
-		if (!keys.has(key)) { manager.removeNotification(popup.id); notices.delete(key) }
+		if (!keys.has(key)) {
+			manager.removeNotification(popup.id)
+			notices.delete(key)
+		}
 	}
-	pending = pending.filter(item => keys.has(announcementKey(item)))
+	pending = pending.filter((item) => keys.has(announcementKey(item)))
 	if (selected.value && !keys.has(announcementKey(selected.value))) modal.value?.hide()
 	for (const item of [...items].reverse()) {
 		const key = announcementKey(item)
 		let popup = notices.get(key)
 		if (!popup) {
-			popup = manager.addPopupNotification({ title: item.title, type: 'info', collapsed: true, autoCloseMs: 15000 })
+			popup = manager.addPopupNotification({
+				title: item.title,
+				type: 'info',
+				collapsed: true,
+				autoCloseMs: 15000,
+			})
 			notices.set(key, popup)
 		}
 		updateNotice(item, popup)
@@ -134,7 +176,11 @@ function sync(next: RemoteAnnouncement[], fresh: boolean) {
 	if (fresh) {
 		for (const item of items) {
 			const key = announcementKey(item)
-			if (item.type === 'modal' && !queuedThisSession.has(key) && (!read.has(key) || item.priority === 'critical')) {
+			if (
+				item.type === 'modal' &&
+				!queuedThisSession.has(key) &&
+				(!read.has(key) || item.priority === 'critical')
+			) {
 				queuedThisSession.add(key)
 				pending.push(item)
 			}
@@ -151,7 +197,9 @@ function loadCache() {
 			const parsed = parseAnnouncements(cached.items)
 			if (parsed) sync(parsed, false)
 		}
-	} catch {}
+	} catch {
+		// Ignore malformed or expired cache payloads
+	}
 }
 async function refresh() {
 	if (inFlight || disposed) return
@@ -163,7 +211,10 @@ async function refresh() {
 	try {
 		if (!endpoint) {
 			const [version, channel] = await Promise.all([getVersion(), getUpdateChannel()])
-			endpoint = new URL(import.meta.env.VITE_AXO_ANNOUNCEMENTS_URL || 'https://admin.axlmc.org/api/public/announcements')
+			endpoint = new URL(
+				import.meta.env.VITE_AXO_ANNOUNCEMENTS_URL ||
+					'https://admin.axlmc.org/api/public/announcements',
+			)
 			endpoint.searchParams.set('version', version)
 			endpoint.searchParams.set('channel', channel === 'release' ? 'stable' : 'beta')
 			cacheKey = stateKey + ':cache:' + endpoint.href
@@ -178,14 +229,27 @@ async function refresh() {
 		const parsed = parseAnnouncements(result.announcements)
 		if (!parsed || disposed) return
 		sync(parsed, true)
-		try { localStorage.setItem(cacheKey, JSON.stringify({ savedAt: Date.now(), items: parsed })) } catch {}
-	} catch {}
-	finally { clearTimeout(timeout); inFlight = false; controller = undefined }
+		try {
+			localStorage.setItem(cacheKey, JSON.stringify({ savedAt: Date.now(), items: parsed }))
+		} catch {
+			// Ignore cache write failures
+		}
+	} catch {
+		// Network/parse failures are non-fatal; next reconnect retries
+	} finally {
+		clearTimeout(timeout)
+		inFlight = false
+		controller = undefined
+	}
 }
 async function openLink(value: unknown) {
 	const url = safeAnnouncementUrl(value)
 	if (!url) return
-	try { await openUrl(url) } catch {}
+	try {
+		await openUrl(url)
+	} catch {
+		// Opener may reject unknown schemes
+	}
 }
 function contentClick(event: MouseEvent) {
 	const link = event.target instanceof Element ? event.target.closest('a') : null
@@ -223,16 +287,28 @@ onMounted(() => {
 	if (props.previewOnly) return
 	try {
 		const saved = JSON.parse(localStorage.getItem(stateKey) ?? 'null')
-		if (saved && Array.isArray(saved.reminded)) for (const key of saved.reminded) if (typeof key === 'string') reminded.add(key)
-		if (saved && Array.isArray(saved.read)) for (const key of saved.read) if (typeof key === 'string') read.add(key)
-	} catch {}
-	void refresh()
-	interval = setInterval(() => {
-		sync(items, false)
-		advance()
-		if (Date.now() - lastAttempt >= 300000) void refresh()
-	}, 15000)
-	window.addEventListener('online', reconnect)
+		if (saved && Array.isArray(saved.reminded))
+			for (const key of saved.reminded) if (typeof key === 'string') reminded.add(key)
+		if (saved && Array.isArray(saved.read))
+			for (const key of saved.read) if (typeof key === 'string') read.add(key)
+	} catch {
+		// Ignore malformed local read-state
+	}
+	const start = () => {
+		void refresh()
+		interval = setInterval(() => {
+			sync(items, false)
+			advance()
+			if (Date.now() - lastAttempt >= 300000) void refresh()
+		}, 15000)
+		window.addEventListener('online', reconnect)
+	}
+	// Defer network polling until after first paint.
+	if (typeof requestIdleCallback === 'function') {
+		requestIdleCallback(start, { timeout: 2000 })
+	} else {
+		setTimeout(start, 500)
+	}
 })
 watch([() => props.ready, hasModal], () => {
 	if (advanceTimer) clearTimeout(advanceTimer)
@@ -250,14 +326,25 @@ onUnmounted(() => {
 
 <template>
 	<NewModal ref="modal" :header="selected?.title" :on-hide="closed" max-width="640px" scrollable>
-		<div class="markdown-body break-words" @click="contentClick" @auxclick="contentClick" v-html="html" />
+		<div
+			class="markdown-body break-words"
+			@click="contentClick"
+			@auxclick="contentClick"
+			v-html="html"
+		/>
 		<template #actions>
 			<div class="flex flex-wrap justify-end gap-2">
-				<ButtonStyled><button @click="markAllRead">{{ formatMessage(messages.readAll) }}</button></ButtonStyled>
+				<ButtonStyled
+					><button @click="markAllRead">{{ formatMessage(messages.readAll) }}</button></ButtonStyled
+				>
 				<ButtonStyled v-if="selected?.action_url && selected.action_label" color="brand">
 					<button @click="openLink(selected.action_url)">{{ selected.action_label }}</button>
 				</ButtonStyled>
-				<ButtonStyled><button @click="modal?.hide()">{{ formatMessage(commonMessages.closeButton) }}</button></ButtonStyled>
+				<ButtonStyled
+					><button @click="modal?.hide()">
+						{{ formatMessage(commonMessages.closeButton) }}
+					</button></ButtonStyled
+				>
 			</div>
 		</template>
 	</NewModal>

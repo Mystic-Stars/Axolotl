@@ -19,13 +19,7 @@ export type DonationPlatform =
 	| { short: 'other'; name: 'Other' }
 
 export type ProjectType =
-	| 'mod'
-	| 'modpack'
-	| 'resourcepack'
-	| 'shader'
-	| 'plugin'
-	| 'datapack'
-	| 'project'
+	'mod' | 'modpack' | 'resourcepack' | 'shader' | 'plugin' | 'datapack' | 'project'
 export type MonetizationStatus = 'monetized' | 'demonetized' | 'force-demonetized'
 
 export type GameVersion = string
@@ -501,9 +495,7 @@ export interface ModerationIdentifiedModpackItem extends ModerationBaseModpackIt
 }
 
 export type ModerationModpackItem =
-	| ModerationUnknownModpackItem
-	| ModerationFlameModpackItem
-	| ModerationIdentifiedModpackItem
+	ModerationUnknownModpackItem | ModerationFlameModpackItem | ModerationIdentifiedModpackItem
 
 export interface ModerationModpackResponse {
 	identified?: Record<
@@ -568,8 +560,7 @@ export interface Charge {
 }
 
 export type SubscriptionMetadata =
-	| { type: 'pyro'; id: string; region?: string }
-	| { type: 'medal'; id: string }
+	{ type: 'pyro'; id: string; region?: string } | { type: 'medal'; id: string }
 
 // Delphi
 export interface DelphiReport {
@@ -609,12 +600,7 @@ export interface DelphiReport {
 export type PayoutId = string
 export type UserId = string
 export type PayoutStatus =
-	| 'success'
-	| 'in-transit'
-	| 'cancelled'
-	| 'cancelling'
-	| 'failed'
-	| 'unknown'
+	'success' | 'in-transit' | 'cancelled' | 'cancelling' | 'failed' | 'unknown'
 export type PayoutMethodType = 'venmo' | 'paypal' | 'tremendous' | 'muralpay' | 'unknown'
 
 export interface Payout {

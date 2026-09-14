@@ -98,11 +98,7 @@ export interface InstallParallelProgress {
 }
 
 export type InstallJavaStep =
-	| 'resolving'
-	| 'fetching_metadata'
-	| 'downloading'
-	| 'extracting'
-	| 'validating'
+	'resolving' | 'fetching_metadata' | 'downloading' | 'extracting' | 'validating'
 
 export interface InstallErrorView {
 	code: string

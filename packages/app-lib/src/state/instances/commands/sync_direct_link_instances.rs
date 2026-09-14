@@ -8,7 +8,7 @@ use crate::launcher::ExternalGameDirMode;
 use crate::state::instances::{
     CreateDirectLinkInstance, EditInstance, adapters::sqlite::instance_rows,
 };
-use crate::state::{AppliedContentSetPatch, State};
+use crate::state::{AppliedContentSetPatch, InstanceInstallStage, State};
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 
@@ -146,6 +146,24 @@ pub(crate) async fn sync_direct_link_instances(
 
             if let Some(metadata) = existing_instance {
                 let instance = &metadata.instance;
+                if instance.symlink_target.is_some() {
+                    // Symlink imports can point at the same external version,
+                    // but they are ordinary managed instances rather than
+                    // records owned by direct-link reconciliation.
+                    continue;
+                }
+                if !instance.is_direct_linked()
+                    && !is_unpromoted_direct_link_candidate(
+                        instance.install_stage,
+                        instance.symlink_target.as_deref(),
+                    )
+                {
+                    // An import can temporarily have the same isolated
+                    // game-dir override before its symlink metadata is
+                    // persisted. Reserve the external version for that import
+                    // without promoting, duplicating, or deleting its record.
+                    continue;
+                }
                 let fields_changed = instance.linked_version_id.as_deref()
                     != Some(resolved.version_id.as_str())
                     || instance.linked_launcher.as_deref()
@@ -272,6 +290,12 @@ pub(crate) async fn sync_direct_link_instances(
         if metadata.instance.linked_dot_minecraft.is_some() {
             continue;
         }
+        if !is_unpromoted_direct_link_candidate(
+            metadata.instance.install_stage,
+            metadata.instance.symlink_target.as_deref(),
+        ) {
+            continue;
+        }
         let Some(game_dir_override) =
             metadata.instance.game_dir_override.as_deref()
         else {
@@ -295,6 +319,9 @@ pub(crate) async fn sync_direct_link_instances(
     }
 
     for metadata in existing {
+        if metadata.instance.symlink_target.is_some() {
+            continue;
+        }
         let Some(json_path) =
             metadata.instance.linked_version_json_path.as_deref()
         else {
@@ -341,6 +368,13 @@ pub(crate) async fn sync_direct_link_instances(
     }
 
     Ok(report)
+}
+
+fn is_unpromoted_direct_link_candidate(
+    install_stage: InstanceInstallStage,
+    symlink_target: Option<&str>,
+) -> bool {
+    install_stage == InstanceInstallStage::Installed && symlink_target.is_none()
 }
 
 fn version_isolated_root(path: &str) -> Option<PathBuf> {
@@ -416,6 +450,34 @@ mod tests {
                 path: PathBuf::from("other-root"),
                 mode: ExternalGameDirMode::Isolated,
             }],
+        ));
+    }
+
+    #[test]
+    fn installing_override_is_not_treated_as_an_orphaned_direct_link() {
+        assert!(!is_unpromoted_direct_link_candidate(
+            InstanceInstallStage::NotInstalled,
+            None,
+        ));
+        assert!(!is_unpromoted_direct_link_candidate(
+            InstanceInstallStage::MinecraftInstalling,
+            None,
+        ));
+    }
+
+    #[test]
+    fn completed_symlink_import_is_not_treated_as_an_orphaned_direct_link() {
+        assert!(!is_unpromoted_direct_link_candidate(
+            InstanceInstallStage::Installed,
+            Some(r"D:\Minecraft\.minecraft\versions\1.20.1"),
+        ));
+    }
+
+    #[test]
+    fn installed_unpromoted_direct_link_remains_eligible_for_cleanup() {
+        assert!(is_unpromoted_direct_link_candidate(
+            InstanceInstallStage::Installed,
+            None,
         ));
     }
 }

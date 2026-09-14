@@ -101,9 +101,16 @@ let typedBuffer = ''
 const secretCodes = ['cyf112233', 'cxkcxkckx']
 
 const konamiSequence = [
-	'ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown',
-	'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight',
-	'KeyB', 'KeyA',
+	'ArrowUp',
+	'ArrowUp',
+	'ArrowDown',
+	'ArrowDown',
+	'ArrowLeft',
+	'ArrowRight',
+	'ArrowLeft',
+	'ArrowRight',
+	'KeyB',
+	'KeyA',
 ]
 let konamiIndex = 0
 

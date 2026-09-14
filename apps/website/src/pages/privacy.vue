@@ -71,8 +71,8 @@ useHead({
 			<li>游戏日志、崩溃信息、缓存、下载记录及更新状态。</li>
 		</ul>
 		<p>
-			这些数据用于登录、启动游戏、管理内容、诊断故障和提供你主动使用的功能。启动器会在首次运行或功能升级后询问是否允许匿名遥测；未确认或关闭时不会发送遥测。允许后，启动器每天最多发送一次匿名活跃信号，用于统计选择加入遥测的匿名安装量、DAU、WAU、MAU。不会自动上传完整的启动器日志或 Minecraft
-			令牌、账户凭据或原始随机安装标识。
+			这些数据用于登录、启动游戏、管理内容、诊断故障和提供你主动使用的功能。启动器会在首次运行或功能升级后询问是否允许匿名遥测；未确认或关闭时不会发送遥测。允许后，启动器每天最多发送一次匿名活跃信号，用于统计选择加入遥测的匿名安装量、DAU、WAU、MAU。不会自动上传完整的启动器日志或
+			Minecraft 令牌、账户凭据或原始随机安装标识。
 		</p>
 		<p>
 			遥测使用本地生成的随机安装标识；服务端仅保存经密钥 HMAC-SHA256
@@ -101,9 +101,9 @@ useHead({
 			网站偏好保存在你的浏览器中；启动器数据主要保存在你的设备中。你可以清除浏览器站点数据，或在启动器内移除账户、实例和缓存。卸载应用不一定自动删除全部数据目录，请在确认备份需求后手动清理残留文件。
 		</p>
 		<p>
-			遥测中的匿名日活记录保留 35 天；每日汇总和匿名安装哈希会长期保留，用于历史趋势和累计安装统计。项目不会在遥测数据库中保存请求
-			IP。Cloudflare
-			作为基础设施提供者仍可能按其自身政策处理网络请求所必需的信息。
+			遥测中的匿名日活记录保留 35
+			天；每日汇总和匿名安装哈希会长期保留，用于历史趋势和累计安装统计。项目不会在遥测数据库中保存请求
+			IP。Cloudflare 作为基础设施提供者仍可能按其自身政策处理网络请求所必需的信息。
 		</p>
 		<p>
 			第三方服务保存的数据须通过对应服务的账户设置或隐私渠道管理。项目维护者无法代你访问、导出或删除第三方持有的数据。
@@ -195,16 +195,16 @@ useHead({
 			providing features you actively use. The launcher asks whether to allow anonymous telemetry on
 			first use or after a relevant consent update. No telemetry is sent before confirmation or
 			while it is disabled. When enabled, the launcher sends at most one anonymous daily activity
-			 signal. This is used to count opted-in anonymous installations, DAU, WAU, and MAU. Full
+			signal. This is used to count opted-in anonymous installations, DAU, WAU, and MAU. Full
 			launcher or Minecraft logs, Minecraft tokens, account credentials, and the original random
 			installation identifier are not uploaded automatically.
 		</p>
 		<p>
 			Telemetry uses a random installation identifier generated locally; the service stores only an
-			irreversible HMAC-SHA256 value produced with a server secret. You can disable telemetry at any time
-			under Privacy & security. Disabling it stops future collection and clears the local pending
-			queue, while previously uploaded records are deleted under the retention periods below.
-			Discord Rich Presence is an independent local setting and is not telemetry.
+			irreversible HMAC-SHA256 value produced with a server secret. You can disable telemetry at any
+			time under Privacy & security. Disabling it stops future collection and clears the local
+			pending queue, while previously uploaded records are deleted under the retention periods
+			below. Discord Rich Presence is an independent local setting and is not telemetry.
 		</p>
 
 		<h2>4. Sharing and Transfers with Third Parties</h2>
@@ -224,9 +224,7 @@ useHead({
 				distribution;
 			</li>
 			<li>Howxm for official-website user-experience analytics and feedback collection;</li>
-			<li>
-				Cloudflare Workers and D1 for opted-in anonymous telemetry ingestion and storage;
-			</li>
+			<li>Cloudflare Workers and D1 for opted-in anonymous telemetry ingestion and storage;</li>
 			<li>Minecraft servers or other external links you connect to.</li>
 		</ul>
 		<p>
@@ -242,10 +240,11 @@ useHead({
 			after confirming your backup needs, manually clean up any leftover files.
 		</p>
 		<p>
-			Anonymous daily-active records are retained for 35 days; daily totals and anonymous installation hashes are retained long-term for
-			historical trends and cumulative installation counts. The project does not store request IP
-			addresses in the telemetry database. Cloudflare, as the infrastructure provider, may still process information
-			required to deliver network requests under its own policies.
+			Anonymous daily-active records are retained for 35 days; daily totals and anonymous
+			installation hashes are retained long-term for historical trends and cumulative installation
+			counts. The project does not store request IP addresses in the telemetry database. Cloudflare,
+			as the infrastructure provider, may still process information required to deliver network
+			requests under its own policies.
 		</p>
 		<p>
 			Data stored by third-party services must be managed through the corresponding service's

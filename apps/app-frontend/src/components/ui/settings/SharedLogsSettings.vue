@@ -88,16 +88,10 @@ onMounted(refresh)
 			<template #control>
 				<div class="flex min-w-0 flex-col gap-2">
 					<p v-if="loading" class="m-0 p-2 text-sm text-secondary">…</p>
-					<p
-						v-else-if="!logs.length"
-						class="m-0 p-2 text-sm text-secondary"
-					>
+					<p v-else-if="!logs.length" class="m-0 p-2 text-sm text-secondary">
 						{{ formatMessage(messages.empty) }}
 					</p>
-					<ul
-						v-else
-						class="m-0 flex max-h-72 list-none flex-col gap-1 overflow-y-auto p-2"
-					>
+					<ul v-else class="m-0 flex max-h-72 list-none flex-col gap-1 overflow-y-auto p-2">
 						<li
 							v-for="log in logs"
 							:key="log.id"
@@ -116,16 +110,11 @@ onMounted(refresh)
 								<template v-if="log.truncated">
 									· {{ formatMessage(messages.truncated) }}
 								</template>
-								<template v-if="log.instance_name">
-									· {{ log.instance_name }}
-								</template>
+								<template v-if="log.instance_name"> · {{ log.instance_name }} </template>
 								· {{ formatDate(log.created_at) }}
 							</span>
 							<ButtonStyled type="outlined">
-								<button
-									:disabled="deletingId === log.id"
-									@click="remove(log)"
-								>
+								<button :disabled="deletingId === log.id" @click="remove(log)">
 									{{
 										deletingId === log.id
 											? formatMessage(messages.deleting)

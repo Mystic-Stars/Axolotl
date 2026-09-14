@@ -51,14 +51,7 @@ export type GameVersionTag = {
 }
 
 export type DisplayProjectType =
-	| 'mod'
-	| 'plugin'
-	| 'datapack'
-	| 'resourcepack'
-	| 'modpack'
-	| 'shader'
-	| 'server'
-	| 'project'
+	'mod' | 'plugin' | 'datapack' | 'resourcepack' | 'modpack' | 'shader' | 'server' | 'project'
 
 export type PlatformTag = {
 	icon: string

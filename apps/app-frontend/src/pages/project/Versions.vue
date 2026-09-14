@@ -87,6 +87,7 @@ import {
 	DownloadIcon,
 	ExternalIcon,
 	MoreVerticalIcon,
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars -- used by temporarily commented start-server button
 	ServerIcon,
 } from '@modrinth/assets'
 import {
@@ -158,6 +159,8 @@ const props = defineProps({
 	},
 })
 
+// Used by the temporarily commented start-server button.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const serverCapable = computed(
 	() => props.project?.project_type === 'modpack' && props.project?.server_side !== 'unsupported',
 )

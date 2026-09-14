@@ -12,10 +12,14 @@
 				>
 					{{ formatMessage(messages.score, { score }) }}
 				</span>
-				<span class="shrink-0 whitespace-nowrap rounded-full bg-surface-3 px-2 py-0.5 tabular-nums text-secondary">
+				<span
+					class="shrink-0 whitespace-nowrap rounded-full bg-surface-3 px-2 py-0.5 tabular-nums text-secondary"
+				>
 					{{ formatMessage(messages.highestLevel, { level: highestLevel + 1 }) }}
 				</span>
-				<span class="shrink-0 whitespace-nowrap rounded-full bg-surface-3 px-2 py-0.5 tabular-nums text-secondary">
+				<span
+					class="shrink-0 whitespace-nowrap rounded-full bg-surface-3 px-2 py-0.5 tabular-nums text-secondary"
+				>
 					{{ formatMessage(messages.best, { score: bestScore }) }}
 				</span>
 				<NewButton type="base" size="sm" class="shrink-0" @click="settleGame">
@@ -80,7 +84,10 @@
 					</div>
 				</div>
 			</Transition>
-			<div v-if="gameOver && !endedManually" class="tide-drain pointer-events-none absolute inset-0 z-20" />
+			<div
+				v-if="gameOver && !endedManually"
+				class="tide-drain pointer-events-none absolute inset-0 z-20"
+			/>
 			<Transition name="panel">
 				<div
 					v-if="gameOver"
@@ -115,16 +122,26 @@
 						</div>
 						<div class="grid w-full min-w-0 grid-cols-3 gap-1.5">
 							<div class="flex min-w-0 flex-col items-center rounded-lg bg-surface-3 px-1 py-1">
-								<span class="text-[9px] text-secondary">{{ formatMessage(messages.levelLabel) }}</span>
-								<span class="text-sm font-bold tabular-nums text-contrast">{{ highestLevel + 1 }}</span>
+								<span class="text-[9px] text-secondary">{{
+									formatMessage(messages.levelLabel)
+								}}</span>
+								<span class="text-sm font-bold tabular-nums text-contrast">{{
+									highestLevel + 1
+								}}</span>
 							</div>
 							<div class="flex min-w-0 flex-col items-center rounded-lg bg-surface-3 px-1 py-1">
-								<span class="text-[9px] text-secondary">{{ formatMessage(messages.bestLabel) }}</span>
+								<span class="text-[9px] text-secondary">{{
+									formatMessage(messages.bestLabel)
+								}}</span>
 								<span class="text-sm font-bold tabular-nums text-contrast">{{ bestScore }}</span>
 							</div>
 							<div class="flex min-w-0 flex-col items-center rounded-lg bg-surface-3 px-1 py-1">
-								<span class="text-[9px] text-secondary">{{ formatMessage(messages.overtimesLabel) }}</span>
-								<span class="text-sm font-bold tabular-nums text-contrast">{{ overtimeCount }}</span>
+								<span class="text-[9px] text-secondary">{{
+									formatMessage(messages.overtimesLabel)
+								}}</span>
+								<span class="text-sm font-bold tabular-nums text-contrast">{{
+									overtimeCount
+								}}</span>
 							</div>
 						</div>
 						<div class="flex flex-wrap justify-center gap-2">
@@ -225,7 +242,10 @@ const messages = defineMessages({
 		id: 'app.settings.about.game.highest-level',
 		defaultMessage: 'Highest: level {level}',
 	},
-	gameOver: { id: 'app.settings.about.game.game-over', defaultMessage: 'The axolotls got stranded!' },
+	gameOver: {
+		id: 'app.settings.about.game.game-over',
+		defaultMessage: 'The axolotls got stranded!',
+	},
 	completed: { id: 'app.settings.about.game.completed', defaultMessage: 'Rainbow axolotl!' },
 	overtime: { id: 'app.settings.about.game.overtime', defaultMessage: 'Tide surge!' },
 	overtimeDetail: {
@@ -396,7 +416,14 @@ function mergePieces(a: Piece, b: Piece) {
 	score.value += points[level]
 	highestLevel.value = Math.max(highestLevel.value, level)
 	const isRainbow = level === colors.length - 1
-	spawnBurst(x, y, isRainbow ? rainbowColors : [colors[level]], 10 + level * 3, 130 + level * 20, 3.4)
+	spawnBurst(
+		x,
+		y,
+		isRainbow ? rainbowColors : [colors[level]],
+		10 + level * 3,
+		130 + level * 20,
+		3.4,
+	)
 	spawnShockwave(x, y, 46 + level * 26, 'rgba(255, 255, 255, 0.9)', Math.min(3, 1.4 + level * 0.3))
 	shakePower = Math.max(shakePower, Math.min(2 + level * 1.2, 7))
 	spawnFloater(x, y, `+${points[level]}`, 15 + level * 3, colors[level])
@@ -423,7 +450,14 @@ function easeOutBack(t: number) {
 	return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2)
 }
 
-function spawnBurst(x: number, y: number, palette: string[], count: number, speed: number, size: number) {
+function spawnBurst(
+	x: number,
+	y: number,
+	palette: string[],
+	count: number,
+	speed: number,
+	size: number,
+) {
 	for (let i = 0; i < count; i++) {
 		if (particles.length >= 260) return
 		const angle = Math.random() * Math.PI * 2
@@ -508,7 +542,8 @@ function update(delta: number) {
 	if (overtimeStartAt >= 0) {
 		const overtimeElapsed = elapsed - overtimeStartAt
 		if (overtimeElapsed < 0.8) {
-			surfaceRatio = overtimeFromRatio + (0.05 - overtimeFromRatio) * easeInOutCubic(overtimeElapsed / 0.8)
+			surfaceRatio =
+				overtimeFromRatio + (0.05 - overtimeFromRatio) * easeInOutCubic(overtimeElapsed / 0.8)
 		} else {
 			overtimeStartAt = -1
 		}
@@ -670,17 +705,7 @@ function prepareBallSprite(src: string, level: number) {
 		sprite.height = Math.max(1, Math.round(bounds.h * scale))
 		const ctx = sprite.getContext('2d')
 		if (!ctx) return
-		ctx.drawImage(
-			image,
-			bounds.x,
-			bounds.y,
-			bounds.w,
-			bounds.h,
-			0,
-			0,
-			sprite.width,
-			sprite.height,
-		)
+		ctx.drawImage(image, bounds.x, bounds.y, bounds.w, bounds.h, 0, 0, sprite.width, sprite.height)
 		ballSprites[level] = sprite
 	}
 	image.src = src
@@ -692,9 +717,7 @@ function drawAxolotl(piece: Piece) {
 	const spawnProgress = Math.min(1, (elapsed - piece.spawnAt) / 0.22)
 	const spawnScale = spawnProgress >= 1 ? 1 : easeOutBack(spawnProgress)
 	const radius =
-		piece.radius *
-		spawnScale *
-		(isRainbow ? 1 + 0.05 * Math.sin(elapsed * 3.2 + piece.id) : 1)
+		piece.radius * spawnScale * (isRainbow ? 1 + 0.05 * Math.sin(elapsed * 3.2 + piece.id) : 1)
 	context.save()
 	context.translate(piece.x, piece.y)
 	const hue = (elapsed * 55) % 360
@@ -792,9 +815,7 @@ function draw() {
 	context.beginPath()
 	for (let x = 0; x <= width; x += 8) {
 		const waveY =
-			surfaceY +
-			Math.sin(x * 0.045 + elapsed * 1.8) * 2.5 +
-			Math.sin(x * 0.013 + elapsed * 0.9) * 2
+			surfaceY + Math.sin(x * 0.045 + elapsed * 1.8) * 2.5 + Math.sin(x * 0.013 + elapsed * 0.9) * 2
 		if (x === 0) context.moveTo(x, waveY)
 		else context.lineTo(x, waveY)
 	}
@@ -807,7 +828,12 @@ function draw() {
 		const progress = Math.min(1, (elapsed - waveStart) / 0.8)
 		const waveY = height * (1 - progress)
 		const bandHeight = Math.max(22, height * 0.1)
-		const gradient = context.createLinearGradient(0, waveY - bandHeight, 0, waveY + bandHeight * 0.5)
+		const gradient = context.createLinearGradient(
+			0,
+			waveY - bandHeight,
+			0,
+			waveY + bandHeight * 0.5,
+		)
 		gradient.addColorStop(0, 'rgba(255, 255, 255, 0)')
 		gradient.addColorStop(0.55, 'rgba(96, 178, 255, 0.5)')
 		gradient.addColorStop(1, 'rgba(255, 255, 255, 0)')

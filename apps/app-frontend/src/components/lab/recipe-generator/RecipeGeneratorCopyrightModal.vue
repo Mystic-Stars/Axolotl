@@ -59,7 +59,9 @@ defineExpose({
 <template>
 	<ModalWrapper ref="modal" :header="formatMessage(messages.title)">
 		<div class="copyright-notice">
-			<section class="notice-section grid grid-cols-[1.5rem_minmax(0,1fr)] gap-3 border-b border-surface-5 pb-4">
+			<section
+				class="notice-section grid grid-cols-[1.5rem_minmax(0,1fr)] gap-3 border-b border-surface-5 pb-4"
+			>
 				<CodeIcon aria-hidden="true" />
 				<div>
 					<h3>{{ formatMessage(messages.tagsHeading) }}</h3>
@@ -73,7 +75,9 @@ defineExpose({
 				</div>
 			</section>
 
-			<section class="notice-section grid grid-cols-[1.5rem_minmax(0,1fr)] gap-3 border-b border-surface-5 pb-4">
+			<section
+				class="notice-section grid grid-cols-[1.5rem_minmax(0,1fr)] gap-3 border-b border-surface-5 pb-4"
+			>
 				<ImageIcon aria-hidden="true" />
 				<div>
 					<h3>{{ formatMessage(messages.texturesHeading) }}</h3>
@@ -87,7 +91,9 @@ defineExpose({
 				</div>
 			</section>
 
-			<section class="notice-section grid grid-cols-[1.5rem_minmax(0,1fr)] gap-3 border-b border-surface-5 pb-4">
+			<section
+				class="notice-section grid grid-cols-[1.5rem_minmax(0,1fr)] gap-3 border-b border-surface-5 pb-4"
+			>
 				<InfoIcon aria-hidden="true" />
 				<div>
 					<h3>{{ formatMessage(messages.disclaimerHeading) }}</h3>

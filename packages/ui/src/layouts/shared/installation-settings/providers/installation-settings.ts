@@ -12,11 +12,7 @@ import type {
 } from '../types'
 
 export type LoaderVersionResolutionState =
-	| 'unknown'
-	| 'loading'
-	| 'supported'
-	| 'unsupported'
-	| 'error'
+	'unknown' | 'loading' | 'supported' | 'unsupported' | 'error'
 
 export interface InstallationSettingsContext {
 	loading: Ref<boolean> | ComputedRef<boolean>

@@ -11,8 +11,8 @@ import {
 	StyledInput,
 	useVIntl,
 } from '@modrinth/ui'
-import { save } from '@tauri-apps/plugin-dialog'
 import { join } from '@tauri-apps/api/path'
+import { save } from '@tauri-apps/plugin-dialog'
 import { readDir, stat } from '@tauri-apps/plugin-fs'
 import { ref } from 'vue'
 

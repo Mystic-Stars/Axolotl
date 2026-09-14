@@ -105,7 +105,10 @@ const openActionLabel = computed(() => formatMessage(storageMessages.openAction)
 </script>
 
 <template>
-	<div class="tree-row hover:bg-surface-2" :class="{ clickable: hasChildren, 'is-expanded': expanded }">
+	<div
+		class="tree-row hover:bg-surface-2"
+		:class="{ clickable: hasChildren, 'is-expanded': expanded }"
+	>
 		<!-- 左侧树层级与名称部分 -->
 		<div class="flex h-full min-w-0 flex-1 items-center">
 			<!-- 根据 depth 生成层级缩进和导轨线 -->
@@ -153,7 +156,9 @@ const openActionLabel = computed(() => formatMessage(storageMessages.openAction)
 				<span v-if="node.size.symlink > 0" class="text-secondary"> + {{ symlinkSizeText }} </span>
 			</div>
 
-			<div class="w-9 max-sm:hidden text-right text-xs tabular-nums text-secondary">{{ percent }}%</div>
+			<div class="w-9 max-sm:hidden text-right text-xs tabular-nums text-secondary">
+				{{ percent }}%
+			</div>
 
 			<progress
 				v-tooltip="progressTooltip"

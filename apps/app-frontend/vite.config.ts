@@ -20,7 +20,11 @@ function blockbenchSkinDevAssets() {
 				const requestPath = decodeURIComponent((request.url ?? '/').split('?')[0])
 				const relativePath = requestPath === '/' ? 'index.html' : requestPath.replace(/^\/+/, '')
 				const filePath = resolve(blockbenchRoot, relativePath)
-				if (!filePath.startsWith(`${blockbenchRoot}${sep}`) || !existsSync(filePath) || !statSync(filePath).isFile()) {
+				if (
+					!filePath.startsWith(`${blockbenchRoot}${sep}`) ||
+					!existsSync(filePath) ||
+					!statSync(filePath).isFile()
+				) {
 					next()
 					return
 				}
@@ -37,7 +41,10 @@ function blockbenchSkinDevAssets() {
 					'.woff': 'font/woff',
 					'.woff2': 'font/woff2',
 				}
-				response.setHeader('Content-Type', contentTypes[extname(filePath)] ?? 'application/octet-stream')
+				response.setHeader(
+					'Content-Type',
+					contentTypes[extname(filePath)] ?? 'application/octet-stream',
+				)
 				response.end(readFileSync(filePath))
 			})
 		},

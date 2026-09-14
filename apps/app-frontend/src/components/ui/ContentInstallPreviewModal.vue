@@ -198,8 +198,7 @@ let batchMode = false
 let conflictMode = false
 const conflictPrompt = ref<ContentInstallConflictPrompt | null>(null)
 let resolveShow:
-	| ((result: string[] | ContentInstallBatchPreviewResult | boolean | null) => void)
-	| null = null
+	((result: string[] | ContentInstallBatchPreviewResult | boolean | null) => void) | null = null
 
 const primaries = computed(() => {
 	if (!data.value) return []

@@ -440,9 +440,6 @@
   "app.update-popup.body.download-complete": {
     "message": "Axolotl Launcher v{version} is klaar met downloaden. Herlaad om nu te updaten, of automatisch wanneer je de Axolotl Launcher afsluit."
   },
-  "app.update-popup.body.linux": {
-    "message": "Axolotl Launcher v{version} is beschikbaar. Gebruik je pakketbeheerder om te updaten voor de laatste functies en oplossingen!"
-  },
   "app.update-popup.body.metered": {
     "message": "Axolotl Launcher v{version} is nu beschikbaar! Omdat je nu op een netwerk met datalimiet zit, is de download niet automatisch gestart."
   },

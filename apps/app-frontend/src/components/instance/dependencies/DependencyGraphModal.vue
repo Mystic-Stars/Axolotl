@@ -138,15 +138,7 @@ const messages = defineMessages({
 
 type ViewMode = 'tree' | 'graph'
 type Filter =
-	| 'all'
-	| 'pack'
-	| 'user'
-	| 'local'
-	| 'disabled'
-	| 'missing'
-	| 'orphaned'
-	| 'cycle'
-	| 'unresolved'
+	'all' | 'pack' | 'user' | 'local' | 'disabled' | 'missing' | 'orphaned' | 'cycle' | 'unresolved'
 type Point = { x: number; y: number }
 
 const minZoom = 0.32

@@ -437,9 +437,6 @@
   "app.update-popup.body.download-complete": {
     "message": "ดาวน์โหลด Axolotl Launcherv{version} สำเร็จแล้ว เปิดโปรแกรมใหม่อีกครั้งเพื่ออัปเดตตอนนี้ หรือจะรออัปเดตอัตโนมัติ ซึ่งจะเกิดขึ้นเมื่อคุณกดปิดโปรแกรม Axolotl Launcher"
   },
-  "app.update-popup.body.linux": {
-    "message": "Axolotl Launcherv{version} พร้อมให้อัปเดตแล้ว โปรดไปที่การจัดการแพ็กเกจของคุณสำหรับการอัปเดตคุณสมบัติใหม่และการแก้ไขต่าง ๆ"
-  },
   "app.update-popup.body.metered": {
     "message": "Axolotl Launcherv{version} พร้อมให้บริการแล้ว! แต่เนื่องจากคุณเปิดโหมดจำกัดปริมาณการใช้ข้อมูลเครือข่าย เราจึงไม่ได้อัปเดตเนื้อหาโดยอัตโนมัติ"
   },

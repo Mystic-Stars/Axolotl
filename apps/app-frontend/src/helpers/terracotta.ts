@@ -15,12 +15,7 @@ export type TerracottaStatus =
 	| 'fatal'
 
 export type TerracottaDownloadStage =
-	| 'preparing'
-	| 'downloading'
-	| 'verifying'
-	| 'extracting'
-	| 'installing'
-	| 'complete'
+	'preparing' | 'downloading' | 'verifying' | 'extracting' | 'installing' | 'complete'
 
 export type TerracottaErrorType = 'os' | 'network' | 'install' | 'terracotta' | 'unknown'
 

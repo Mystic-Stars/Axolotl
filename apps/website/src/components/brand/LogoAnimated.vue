@@ -1,5 +1,5 @@
 <template>
-	<div class="flex items-center justify-center h-20 mt-4">
+	<div class="mt-4 flex h-20 items-center justify-center">
 		<img src="/axolotl.png" alt="" />
 	</div>
 </template>

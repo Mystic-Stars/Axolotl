@@ -1,11 +1,5 @@
 export type ModTranslationPhase =
-	| 'prepare'
-	| 'research'
-	| 'language'
-	| 'repair'
-	| 'class'
-	| 'validation'
-	| 'packaging'
+	'prepare' | 'research' | 'language' | 'repair' | 'class' | 'validation' | 'packaging'
 
 export type ModTranslationLevel = 'info' | 'warn' | 'error'
 export type ModTranslationTaskStatus = 'running' | 'completed' | 'failed'

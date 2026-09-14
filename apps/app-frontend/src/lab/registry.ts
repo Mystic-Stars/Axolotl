@@ -1,4 +1,11 @@
-import { BlocksIcon, BoxIcon, LanguagesIcon, PaletteIcon, PencilIcon, WorldIcon } from '@modrinth/assets'
+import {
+	BlocksIcon,
+	BoxIcon,
+	LanguagesIcon,
+	PaletteIcon,
+	PencilIcon,
+	WorldIcon,
+} from '@modrinth/assets'
 import type { Component } from 'vue'
 
 export type LabToolDefinition = {

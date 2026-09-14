@@ -107,9 +107,7 @@ export function curseForgeQueryVariants(base: string): string[] {
 	if (!normalized) return []
 	const slug = slugifySearchText(normalized)
 	const camelCaseSlug = slugifySearchText(
-		splitCamelCaseSearchText(
-			compactSearchTextPreservingCase(base),
-		).toLocaleLowerCase(),
+		splitCamelCaseSearchText(compactSearchTextPreservingCase(base)).toLocaleLowerCase(),
 	)
 	const compact = compactSearchText(base)
 	return dedupe([slug, normalized, camelCaseSlug, compact]).slice(0, 3)

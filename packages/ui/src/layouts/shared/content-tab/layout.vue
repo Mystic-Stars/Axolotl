@@ -35,9 +35,7 @@ import {
 	clearPinnedContentViewPreferences,
 	type ContentSortMode,
 	type ContentViewState,
-	getClientWarningType,
 	getPinnedContentViewPreferences,
-	isClientOnlyEnvironment,
 	isDisabledContentItem,
 	isEnabledContentItem,
 	isPresentContentItem,
@@ -260,7 +258,6 @@ const {
 	getItemId,
 	showTypeFilters: true,
 	showUpdateFilter: ctx.hasUpdateSupport,
-	showWarningsFilter: true,
 	isPackLocked: ctx.isPackLocked,
 	memoryKey: ctx.instanceId,
 	initialFilters: initialPinnedView ?? undefined,
@@ -528,11 +525,6 @@ function mapToTableItem(item: ContentItem, group?: string): ContentCardTableItem
 		pendingManualDownload: item.pendingManualDownload === true,
 		hasUpdate: group ? false : item.update != null,
 		rollbackFileName: item.rollback?.file_name,
-		isClientOnly:
-			isClientOnlyEnvironment(item.environment) ||
-			!!item.pack_client_retained ||
-			!!item.pack_client_depends,
-		clientWarning: getClientWarningType(item),
 		hideSwitchVersion: base.hideSwitchVersion ?? !base.versionLink,
 		overflowOptions: buildItemOverflowOptions(item),
 	}

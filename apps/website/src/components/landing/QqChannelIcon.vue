@@ -1,7 +1,7 @@
 <template>
 	<!-- QQ 频道官方图标（pd.qq.com favicon.svg，原样引用，无明暗切换） -->
 	<svg
-		class="w-[2.8rem] h-[2.8rem]"
+		class="h-[2.8rem] w-[2.8rem]"
 		xmlns="http://www.w3.org/2000/svg"
 		viewBox="0 0 128 128"
 		fill="none"

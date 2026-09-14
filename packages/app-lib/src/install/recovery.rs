@@ -190,7 +190,20 @@ pub async fn apply_cleanup(
         InstallCleanup::DeleteNewInstance { instance_id } => {
             if let Some(instance_id) = instance_id {
                 if !job_state.instance_deleted() {
-                    crate::state::remove_instance(&instance_id, state).await?;
+                    let preserve_external_files = matches!(
+                        &job_state.request,
+                        InstallRequest::ImportInstance { symlink: true, .. }
+                    );
+                    if preserve_external_files {
+                        crate::state::remove_instance_preserving_external_files(
+                            &instance_id,
+                            state,
+                        )
+                        .await?;
+                    } else {
+                        crate::state::remove_instance(&instance_id, state)
+                            .await?;
+                    }
                     job_state.record_event(
                         InstallJobEventKind::TargetInstanceDeleted {
                             instance_id: instance_id.clone(),
@@ -1447,6 +1460,64 @@ mod tests {
         assert!(!new_instance_base.exists());
         assert!(
             crate::state::get_instance(&new_instance_id, &state.pool)
+                .await
+                .unwrap()
+                .is_none()
+        );
+
+        let external_instance =
+            root.join("external-launcher/versions/source-instance");
+        crate::util::io::create_dir_all(&external_instance)
+            .await
+            .unwrap();
+        let external_marker = external_instance.join("original-world.dat");
+        crate::util::io::write(&external_marker, b"must survive cancellation")
+            .await
+            .unwrap();
+        let linked_import = crate::api::instance::create(
+            "Canceled Symlink Import".to_string(),
+            "1.21.1".to_string(),
+            ModLoader::Vanilla,
+            None,
+            None,
+            InstanceLink::Unmanaged,
+            None,
+            Some(external_instance.to_string_lossy().to_string()),
+        )
+        .await
+        .unwrap();
+        let linked_import_id = linked_import.instance.id.clone();
+        let managed_import_path = state
+            .directories
+            .instances_dir()
+            .join(&linked_import.instance.path);
+        let mut linked_import_job =
+            InstallJobState::new(InstallRequest::ImportInstance {
+                launcher_type:
+                    crate::api::pack::import::ImportLauncherType::Generic,
+                base_path: root.clone(),
+                instance_folder: "source-instance".to_string(),
+                instance_path: Some(
+                    external_instance.to_string_lossy().to_string(),
+                ),
+                symlink: true,
+                game_version: None,
+                loader: None,
+                loader_version: None,
+                game_dir_override: Some(
+                    external_instance.to_string_lossy().to_string(),
+                ),
+            });
+        linked_import_job.cleanup = InstallCleanup::DeleteNewInstance {
+            instance_id: Some(linked_import_id.clone()),
+        };
+
+        apply_cleanup(&mut linked_import_job, &state).await.unwrap();
+
+        assert!(external_marker.exists());
+        assert!(!managed_import_path.exists());
+        assert!(
+            crate::state::get_instance(&linked_import_id, &state.pool)
                 .await
                 .unwrap()
                 .is_none()

@@ -539,9 +539,6 @@
   "app.update-popup.body.download-complete": {
     "message": "Скачивание версии Axolotl Launcher {version} завершено. Перезапустите приложение, чтобы обновить его, или оно обновится автоматически после закрытия."
   },
-  "app.update-popup.body.linux": {
-    "message": "Доступна версия Axolotl Launcher {version}. Обновите приложение через менеджер пакетов, чтобы получить последние улучшения и исправления!"
-  },
   "app.update-popup.body.metered": {
     "message": "Версия Axolotl Launcher {version} доступна для скачивания! Используется сеть с лимитным тарифным планом, поэтому скачивание не началось автоматически."
   },

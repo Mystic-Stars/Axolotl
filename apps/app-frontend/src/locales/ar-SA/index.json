@@ -317,9 +317,6 @@
   "app.update-popup.body.download-complete": {
     "message": "انتهى تنزيل تطبيق Axolotl Launcherv{version}. أعد التحميل للتحديث الآن، أو تلقائيًا عند إغلاق تطبيق Axolotl Launcher."
   },
-  "app.update-popup.body.linux": {
-    "message": "تطبيق Axolotl Launcherv {version} متاح. استخدم مدير الحزم الخاص بك للتحديث للحصول على أحدث الميزات والإصلاحات!"
-  },
   "app.update-popup.body.metered": {
     "message": "تطبيق Axolotl Launcherv{version} متاح الآن! وبما أنك متصل بشبكة مقيّدة، لم نقم بتنزيله تلقائيًا."
   },

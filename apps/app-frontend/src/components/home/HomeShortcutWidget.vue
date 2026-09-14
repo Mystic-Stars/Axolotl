@@ -75,11 +75,11 @@ const messages = defineMessages({
 	hardcore: { id: 'instance.worlds.hardcore', defaultMessage: 'Hardcore mode' },
 	noServerQuickPlay: {
 		id: 'instance.worlds.no_server_quick_play',
-		defaultMessage: 'Direct server join is unavailable for this Minecraft version.',
+		defaultMessage: 'You can only jump straight into servers on Minecraft Alpha 1.0.5+',
 	},
 	noWorldQuickPlay: {
 		id: 'instance.worlds.no_singleplayer_quick_play',
-		defaultMessage: 'Direct world launch is unavailable for this Minecraft version.',
+		defaultMessage: 'You can only jump straight into singleplayer worlds on Minecraft 1.20+',
 	},
 })
 
@@ -328,10 +328,9 @@ watch(
 						<component :is="kindIcon" aria-hidden="true" />
 						{{ kindLabel }}
 					</span>
-					<strong
-						class="home-shortcut-title min-w-0 truncate text-contrast font-[750]"
-						>{{ shortcutTitle }}</strong
-					>
+					<strong class="home-shortcut-title min-w-0 truncate text-contrast font-[750]">{{
+						shortcutTitle
+					}}</strong>
 					<span
 						class="home-shortcut-meta home-shortcut-primary flex min-w-0 items-center gap-[0.35rem] truncate text-xs font-semibold leading-[1.2] text-secondary"
 					>
