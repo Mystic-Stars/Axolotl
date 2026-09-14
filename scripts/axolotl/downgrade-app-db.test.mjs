@@ -273,28 +273,62 @@ console.log('resolving the settings directory')
 
 console.log('keeping the migration mapping honest')
 {
-	const source = fs.readFileSync(script, 'utf8')
-	const block = source.slice(source.indexOf('const REVERTIBLE_COLUMNS = {'))
-	const body = block.slice(0, block.indexOf('\n}'))
-	const registered = [...body.matchAll(/^\t(\d{14}):/gm)].map((match) => Number(match[1]))
+	const { loadRevertibleMigrations, parseAddColumns, parseCreatedTables, OLDEST_REVERTIBLE_VERSION } =
+		await import('./migration-revert.mjs')
+
+	const parsed = parseAddColumns(
+		'ALTER TABLE settings ADD COLUMN log_level TEXT NOT NULL DEFAULT \'trace\';',
+	)
+	check(
+		'parses ADD COLUMN into table/column pairs',
+		parsed.length === 1 && parsed[0].table === 'settings' && parsed[0].column === 'log_level',
+		JSON.stringify(parsed),
+	)
+
+	check(
+		'ignores CREATE TABLE inside comments',
+		parseCreatedTables('-- CREATE TABLE fake (id INTEGER);\nCREATE TABLE real (id INTEGER);').join() ===
+			'real',
+	)
+	check(
+		'ignores ADD COLUMN inside comments',
+		parseAddColumns('-- ALTER TABLE settings ADD COLUMN fake TEXT;\n').length === 0,
+	)
+	check(
+		'keeps quoted identifiers',
+		parseAddColumns('ALTER TABLE "settings" ADD COLUMN "log_level" TEXT;')[0]?.column ===
+			'log_level',
+	)
+	check(
+		'does not treat string contents as DDL',
+		parseCreatedTables("SELECT 'CREATE TABLE nope (id INTEGER);';").length === 0,
+	)
+
+	const revertible = loadRevertibleMigrations(migrationsDir)
+	const versions = [...revertible.keys()].sort((a, b) => a - b)
+	check('derives at least the oldest revertible migration', versions[0] === OLDEST_REVERTIBLE_VERSION)
 
 	const files = fs.readdirSync(migrationsDir).filter((name) => name.endsWith('.sql'))
-	const versions = files.map((name) => Number(name.slice(0, 14)))
-
-	// A mapping for a migration that does not exist is dead weight: it can never
-	// match anything, and it makes the table look considered when it is not.
-	const unknown = registered.filter((version) => !versions.includes(version))
-	check('every mapped migration exists', unknown.length === 0, unknown.join(', '))
-
-	// The script refuses any applied migration it has no mapping for, so a
-	// column added without one turns the documented recovery into a refusal.
-	const oldest = Math.min(...registered)
 	const addingColumns = files
 		.filter((name) => /ADD COLUMN/i.test(fs.readFileSync(path.join(migrationsDir, name), 'utf8')))
 		.map((name) => Number(name.slice(0, 14)))
-		.filter((version) => version >= oldest)
-	const unmapped = addingColumns.filter((version) => !registered.includes(version))
+		.filter((version) => version >= OLDEST_REVERTIBLE_VERSION)
+	const unmapped = addingColumns.filter((version) => !revertible.has(version))
 	check('every migration that adds a column is mapped', unmapped.length === 0, unmapped.join(', '))
+
+	const closeBehavior = revertible.get(OLDEST_REVERTIBLE_VERSION)
+	check(
+		'derives close_behavior from the close-behavior migration',
+		closeBehavior?.columns.some((entry) => entry.table === 'settings' && entry.column === 'close_behavior'),
+		JSON.stringify(closeBehavior?.columns),
+	)
+
+	const dataOnly = revertible.get(20260905000000)
+	check(
+		'data-only migrations map to an empty column list',
+		dataOnly !== undefined && dataOnly.columns.length === 0,
+		JSON.stringify(dataOnly),
+	)
 }
 
 // --- refusing a database a running launcher holds open ------------------------

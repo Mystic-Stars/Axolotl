@@ -38,6 +38,7 @@ jobs:
       - run: node scripts/axolotl/brand-guard.mjs
       - run: node scripts/axolotl/i18n-check.mjs
       - run: node scripts/axolotl/downgrade-app-db.test.mjs
+      - run: node scripts/axolotl/migration.test.mjs
       - run: cargo fmt --all --check
 
   desktop:
