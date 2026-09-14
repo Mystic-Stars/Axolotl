@@ -440,9 +440,6 @@
   "app.update-popup.body.download-complete": {
     "message": "Axolotl Launcher v{version} telah selesai mengunduh. Muat ulang untuk memperbarui sekarang, atau secara otomatis saat Anda menutup Axolotl Launcher."
   },
-  "app.update-popup.body.linux": {
-    "message": "Axolotl Launcher v{version} tersedia. Gunakan pengelola paket Anda untuk memperbarui dan mendapatkan fitur-fitur dan perbaikan terbaru!"
-  },
   "app.update-popup.body.metered": {
     "message": "Axolotl Launcher v{version} sudah tersedia! Karena Anda saat ini sedang berada dalam jaringan terukur, kami tidak mengunduhnya secara otomatis."
   },

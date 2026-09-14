@@ -49,11 +49,7 @@ export type GameInstance = {
 }
 
 type InstallStage =
-	| 'installed'
-	| 'minecraft_installing'
-	| 'pack_installed'
-	| 'pack_installing'
-	| 'not_installed'
+	'installed' | 'minecraft_installing' | 'pack_installed' | 'pack_installing' | 'not_installed'
 
 type InstanceLinkIdentity = {
 	project_id?: ModrinthId | null

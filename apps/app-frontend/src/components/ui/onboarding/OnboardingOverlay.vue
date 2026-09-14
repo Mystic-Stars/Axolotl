@@ -20,7 +20,9 @@ const emit = defineEmits<{
 const {
 	bubbleElement,
 	bubblePlacement,
-	controlSpotlightStyle,
+	spotlightStyle,
+	showSpotlight,
+	showSpotlightCorners,
 	handleManualClick,
 	isDialogueStep,
 	isWelcomeStep,
@@ -37,11 +39,19 @@ const {
 </script>
 
 <template>
-	<div v-if="visible" class="fixed inset-0 z-[10001] overflow-hidden pointer-events-none" aria-live="polite">
+	<div
+		v-if="visible"
+		class="fixed inset-0 z-[10001] overflow-hidden pointer-events-none"
+		aria-live="polite"
+	>
+		<div v-if="showSpotlight" class="onboarding-mask" aria-hidden="true">
+			<div class="onboarding-mask-hole" :style="spotlightStyle" />
+		</div>
+
 		<div
-			v-if="targetRect && step.spotlight === 'control'"
+			v-if="showSpotlightCorners && targetRect"
 			class="onboarding-spotlight"
-			:style="controlSpotlightStyle"
+			:style="spotlightStyle"
 			aria-hidden="true"
 		>
 			<span class="onboarding-corner onboarding-corner-top-left"></span>
@@ -88,8 +98,27 @@ const {
 </template>
 
 <style scoped lang="scss">
+.onboarding-mask {
+	position: fixed;
+	inset: 0;
+	z-index: 0;
+	pointer-events: none;
+}
+
+.onboarding-mask-hole {
+	position: fixed;
+	border-radius: var(--radius-md);
+	box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.55);
+	transition:
+		left 160ms ease,
+		top 160ms ease,
+		width 160ms ease,
+		height 160ms ease;
+}
+
 .onboarding-spotlight {
 	position: fixed;
+	z-index: 1;
 	pointer-events: none;
 	transform-origin: center;
 	animation: onboarding-focus 1.6s ease-in-out infinite;
@@ -134,7 +163,7 @@ const {
 
 .onboarding-surface {
 	position: fixed;
-	z-index: 1;
+	z-index: 2;
 	width: min(32rem, calc(100vw - 2rem));
 	max-height: calc(100vh - 4rem);
 	overflow-y: auto;
@@ -144,6 +173,7 @@ const {
 	padding: 1.25rem;
 	box-sizing: border-box;
 	pointer-events: auto;
+	box-shadow: 0 18px 48px rgba(0, 0, 0, 0.35);
 }
 
 .onboarding-surface-centered {
@@ -200,6 +230,10 @@ const {
 @media (prefers-reduced-motion: reduce) {
 	.onboarding-spotlight {
 		animation: none;
+	}
+
+	.onboarding-mask-hole {
+		transition: none;
 	}
 }
 

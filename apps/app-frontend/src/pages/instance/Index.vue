@@ -18,7 +18,6 @@
 				:offline="offline"
 				@unlinked="fetchInstance"
 			/>
-			<UpdateToPlayModal ref="updateToPlayModal" />
 			<ContentPageHeader>
 				<template #icon>
 					<InstanceIcon
@@ -408,7 +407,6 @@ import ContextMenu from '@/components/ui/ContextMenu.vue'
 import ExportModal from '@/components/ui/ExportModal.vue'
 import InstanceIcon from '@/components/ui/InstanceIcon.vue'
 import InstanceSettingsModal from '@/components/ui/modal/InstanceSettingsModal.vue'
-import UpdateToPlayModal from '@/components/ui/modal/UpdateToPlayModal.vue'
 import SymlinkInstanceWarning from '@/components/ui/SymlinkInstanceWarning.vue'
 import {
 	fetchCachedServerStatus,
@@ -524,7 +522,6 @@ const launchElapsedSeconds = ref(0)
 const subpagePending = ref(false)
 const stopping = ref(false)
 const exportModal = ref<InstanceType<typeof ExportModal>>()
-const updateToPlayModal = ref<InstanceType<typeof UpdateToPlayModal>>()
 let launchElapsedTimer: ReturnType<typeof setInterval> | undefined
 
 useLoadingBarToken(subpagePending)
@@ -739,10 +736,6 @@ const options = ref<InstanceType<typeof ContextMenu> | null>(null)
 
 const startInstance = async (context: string) => {
 	if (!instance.value) return
-	if (!offline.value && updateToPlayModal.value?.hasUpdate) {
-		updateToPlayModal.value.show(instance.value)
-		return
-	}
 
 	loading.value = true
 	launchElapsedSeconds.value = 0

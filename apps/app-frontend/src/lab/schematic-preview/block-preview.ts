@@ -119,13 +119,11 @@ function previewTriangles(state: SchematicBlockState, resources: SchematicWorker
 			Cull.none(),
 		)
 		return mesh.quads.flatMap((quad) => {
-			const vertices = quad.vertices().map(
-				(vertex): PreviewVertex => ({
-					position: [vertex.pos.x, vertex.pos.y, vertex.pos.z],
-					texture: vertex.texture ? [...vertex.texture] : undefined,
-					color: [vertex.color[0], vertex.color[1], vertex.color[2]],
-				}),
-			)
+			const vertices = quad.vertices().map((vertex): PreviewVertex => ({
+				position: [vertex.pos.x, vertex.pos.y, vertex.pos.z],
+				texture: vertex.texture ? [...vertex.texture] : undefined,
+				color: [vertex.color[0], vertex.color[1], vertex.color[2]],
+			}))
 			return [
 				[vertices[0], vertices[1], vertices[2]],
 				[vertices[0], vertices[2], vertices[3]],

@@ -44,7 +44,7 @@
 					? providedMessage
 					: formatMessage(providedMessage ?? defaultProvidedMessage)
 			"
-			:style="{ '--_bg-color': `var(--color-raised-bg)` }"
+			:style="{ '--_bg-color': `var(--surface-2)` }"
 		>
 			<LockIcon />
 			{{ providedItem.formatted_name ?? providedItem.option }}

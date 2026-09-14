@@ -207,19 +207,42 @@ async fn initialize_state(app: tauri::AppHandle) -> api::Result<()> {
     State::init(app.config().identifier.clone()).await?;
 
     // The logger starts before the database is available, so the stored level
-    // is applied here once settings can be read. RUST_LOG keeps overriding the
-    // initial filter, exactly as it does when the logger starts.
-    if std::env::var_os("RUST_LOG").is_none() {
-        match theseus::settings::get().await {
-            Ok(settings) => {
-                if let Err(error) = theseus::set_log_level(&settings.log_level)
-                {
-                    tracing::warn!("Keeping the default log level: {error}");
+    // is applied here once settings can be read. Beta keeps enough detail for
+    // diagnostics by requiring DEBUG or TRACE.
+    match theseus::settings::get().await {
+        Ok(mut settings) => {
+            match resolve_update_channel(&app).await {
+                Ok(channel) => {
+                    let log_level = api::settings::log_level_for_channel(
+                        &channel,
+                        &settings.log_level,
+                    );
+                    if log_level != settings.log_level {
+                        settings.log_level = log_level;
+                        if let Err(error) =
+                            theseus::settings::set(settings.clone()).await
+                        {
+                            tracing::warn!(
+                                "Could not save the Beta log level: {error}"
+                            );
+                        }
+                    }
+                }
+                Err(error) => {
+                    tracing::warn!(
+                        "Could not resolve the update channel: {error}"
+                    );
                 }
             }
-            Err(error) => {
-                tracing::warn!("Could not read the stored log level: {error}");
+
+            if std::env::var_os("RUST_LOG").is_none()
+                && let Err(error) = theseus::set_log_level(&settings.log_level)
+            {
+                tracing::warn!("Keeping the default log level: {error}");
             }
+        }
+        Err(error) => {
+            tracing::warn!("Could not read the stored log level: {error}");
         }
     }
 
@@ -244,6 +267,12 @@ async fn initialize_state(app: tauri::AppHandle) -> api::Result<()> {
 
 #[tauri::command]
 async fn get_update_channel(app: tauri::AppHandle) -> api::Result<String> {
+    resolve_update_channel(&app).await
+}
+
+async fn resolve_update_channel<R: tauri::Runtime>(
+    app: &tauri::AppHandle<R>,
+) -> api::Result<String> {
     let settings_dir = update_channel_settings_dir(&app)?;
     let state = theseus::read_update_channel_state(&settings_dir).await?;
     let channel = state
@@ -318,7 +347,9 @@ async fn set_update_preferences(
     write_update_channel_state(&app, &state)
 }
 
-fn update_channel_settings_dir(app: &tauri::AppHandle) -> api::Result<PathBuf> {
+fn update_channel_settings_dir<R: tauri::Runtime>(
+    app: &tauri::AppHandle<R>,
+) -> api::Result<PathBuf> {
     theseus::DirectoryInfo::initial_settings_dir_path(&app.config().identifier)
         .ok_or_else(|| {
             theseus::Error::from(theseus::ErrorKind::FSError(

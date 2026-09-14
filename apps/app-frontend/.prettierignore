@@ -1,5 +1,8 @@
 **/dist
-public/monaco
+public/**
 *.gltf
 src/locales/
 src/assets/**/*.svg
+src/lab/**/assets/**
+src/data/about/
+src/data/lobehub-provider-descriptions/

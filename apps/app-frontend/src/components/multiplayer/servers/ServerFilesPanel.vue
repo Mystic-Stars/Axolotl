@@ -10,8 +10,8 @@ import {
 	provideFileManager,
 	useVIntl,
 } from '@modrinth/ui'
-import { save } from '@tauri-apps/plugin-dialog'
 import { join } from '@tauri-apps/api/path'
+import { save } from '@tauri-apps/plugin-dialog'
 import {
 	copyFile,
 	mkdir,

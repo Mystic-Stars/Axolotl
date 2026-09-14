@@ -15,12 +15,7 @@ export type SyncEventHandler<E extends Archon.Sync.v1.SyncEvent = Archon.Sync.v1
 ) => void
 
 export type SyncStatusState =
-	| 'idle'
-	| 'connecting'
-	| 'connected'
-	| 'reconnecting'
-	| 'disconnected'
-	| 'error'
+	'idle' | 'connecting' | 'connected' | 'reconnecting' | 'disconnected' | 'error'
 
 export type SyncStatus = {
 	state: SyncStatusState

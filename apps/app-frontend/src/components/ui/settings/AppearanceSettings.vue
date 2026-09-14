@@ -18,11 +18,13 @@ import {
 	Toggle,
 	useVIntl,
 } from '@modrinth/ui'
-import { convertFileSrc } from '@tauri-apps/api/core'
+import { convertFileSrc, invoke } from '@tauri-apps/api/core'
 import { appDataDir, join } from '@tauri-apps/api/path'
+import type { DragDropEvent } from '@tauri-apps/api/webview'
+import { getCurrentWebview } from '@tauri-apps/api/webview'
 import { open } from '@tauri-apps/plugin-dialog'
 import { exists, mkdir, readFile, remove, writeFile } from '@tauri-apps/plugin-fs'
-import { computed, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 
 import { getShowScrollTop, setShowScrollTop } from '@/helpers/scroll-top-state'
 import { get, set } from '@/helpers/settings.ts'
@@ -139,7 +141,7 @@ const messages = defineMessages({
 	customBackgroundDescription: {
 		id: 'app.appearance-settings.custom-background.description',
 		defaultMessage:
-			'Choose a custom image and fine-tune how it blends with the launcher interface.',
+			'Choose or drop a custom image, then fine-tune how it blends with the launcher interface.',
 	},
 	customBackgroundEmpty: {
 		id: 'app.appearance-settings.custom-background.empty',
@@ -148,6 +150,14 @@ const messages = defineMessages({
 	customBackgroundChoose: {
 		id: 'app.appearance-settings.custom-background.choose',
 		defaultMessage: 'Choose image',
+	},
+	customBackgroundChooseOrDrop: {
+		id: 'app.appearance-settings.custom-background.choose-or-drop',
+		defaultMessage: 'Click to choose, or drop an image here',
+	},
+	customBackgroundDropHint: {
+		id: 'app.appearance-settings.custom-background.drop-hint',
+		defaultMessage: 'Drop image here',
 	},
 	customBackgroundReplace: {
 		id: 'app.appearance-settings.custom-background.replace',
@@ -421,43 +431,68 @@ function setHomeLayout(value: string | number) {
 	themeStore.homeLayout = value as HomeLayout
 }
 
+const CUSTOM_BACKGROUND_EXTENSIONS = ['png', 'jpeg', 'jpg', 'webp', 'gif', 'avif', 'bmp']
+
+function isCustomBackgroundImagePath(path: string) {
+	const extension = path.split('.').pop()?.toLowerCase() ?? ''
+	return CUSTOM_BACKGROUND_EXTENSIONS.includes(extension)
+}
+
+async function storeCustomBackgroundBytes(bytes: Uint8Array, extension: string) {
+	const backgroundDirectory = await join(await appDataDir(), 'backgrounds')
+	const storedPath = await join(
+		backgroundDirectory,
+		`launcher-background-${Date.now()}.${extension}`,
+	)
+	const previousPath = settings.value.custom_background_path
+
+	await mkdir(backgroundDirectory, { recursive: true })
+	await writeFile(storedPath, bytes)
+
+	settings.value.custom_background_path = storedPath
+
+	if (previousPath && previousPath !== storedPath && (await exists(previousPath))) {
+		try {
+			await remove(previousPath)
+		} catch (error) {
+			console.warn('Failed to remove previous custom background', error)
+		}
+	}
+}
+
+async function storeCustomBackgroundFromPath(sourcePath: string) {
+	try {
+		const extension = sourcePath.split('.').pop()?.toLowerCase() ?? 'png'
+		await storeCustomBackgroundBytes(await readFile(sourcePath), extension)
+	} catch (error) {
+		handleError(error)
+	}
+}
+
+async function storeCustomBackgroundFromDroppedPath(path: string) {
+	try {
+		const data = await invoke<ArrayBuffer>('plugin:files|file_read_dragged_file', { path })
+		const extension = path.split('.').pop()?.toLowerCase() ?? 'png'
+		await storeCustomBackgroundBytes(new Uint8Array(data), extension)
+	} catch (error) {
+		handleError(error)
+	}
+}
+
 async function chooseCustomBackground() {
 	const selectedPath = await open({
 		multiple: false,
 		filters: [
 			{
 				name: 'Image',
-				extensions: ['png', 'jpeg', 'jpg', 'webp', 'gif', 'avif', 'bmp'],
+				extensions: [...CUSTOM_BACKGROUND_EXTENSIONS],
 			},
 		],
 	})
 
 	if (!selectedPath || Array.isArray(selectedPath)) return
 
-	try {
-		const extension = selectedPath.split('.').pop()?.toLowerCase() ?? 'png'
-		const backgroundDirectory = await join(await appDataDir(), 'backgrounds')
-		const storedPath = await join(
-			backgroundDirectory,
-			`launcher-background-${Date.now()}.${extension}`,
-		)
-		const previousPath = settings.value.custom_background_path
-
-		await mkdir(backgroundDirectory, { recursive: true })
-		await writeFile(storedPath, await readFile(selectedPath))
-
-		settings.value.custom_background_path = storedPath
-
-		if (previousPath && previousPath !== storedPath && (await exists(previousPath))) {
-			try {
-				await remove(previousPath)
-			} catch (error) {
-				console.warn('Failed to remove previous custom background', error)
-			}
-		}
-	} catch (error) {
-		handleError(error)
-	}
+	await storeCustomBackgroundFromPath(selectedPath)
 }
 
 async function removeCustomBackground() {
@@ -472,6 +507,59 @@ async function removeCustomBackground() {
 		handleError(error)
 	}
 }
+
+const backgroundPreviewRef = ref<HTMLElement | null>(null)
+const isBackgroundDragActive = ref(false)
+let unlistenNativeBackgroundDrop: (() => void) | null = null
+
+function pointInBackgroundPreview(position: { x: number; y: number }) {
+	const rect = backgroundPreviewRef.value?.getBoundingClientRect()
+	if (!rect) return false
+	const scale = window.devicePixelRatio || 1
+	const x = position.x / scale
+	const y = position.y / scale
+	return x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom
+}
+
+async function setupNativeBackgroundDrop() {
+	if (props.scope !== 'interface') return
+
+	try {
+		unlistenNativeBackgroundDrop = await getCurrentWebview().onDragDropEvent(
+			(event: { payload: DragDropEvent }) => {
+				const payload = event.payload
+				if (payload.type === 'leave') {
+					isBackgroundDragActive.value = false
+					return
+				}
+
+				const path = payload.paths?.find((item) => isCustomBackgroundImagePath(item))
+				const inside = pointInBackgroundPreview(payload.position)
+
+				if (payload.type === 'enter' || payload.type === 'over') {
+					isBackgroundDragActive.value = Boolean(path && inside)
+					return
+				}
+
+				if (payload.type === 'drop') {
+					isBackgroundDragActive.value = false
+					if (path && inside) void storeCustomBackgroundFromDroppedPath(path)
+				}
+			},
+		)
+	} catch (error) {
+		console.warn('Failed to set up native drop handler for launcher background', error)
+	}
+}
+
+onMounted(() => {
+	void setupNativeBackgroundDrop()
+})
+
+onUnmounted(() => {
+	unlistenNativeBackgroundDrop?.()
+	unlistenNativeBackgroundDrop = null
+})
 
 watch(
 	() =>
@@ -560,8 +648,9 @@ watch(
 				</p>
 			</template>
 			<div class="flex flex-col gap-4 p-4 @container">
+				<!-- flex-wrap + per-chip basis: long i18n labels reflow instead of colliding -->
 				<div
-					class="grid grid-cols-4 gap-1 @2xl:gap-2 @4xl:grid-cols-7"
+					class="flex flex-wrap gap-2"
 					role="radiogroup"
 					:aria-label="formatMessage(messages.accentColorTitle)"
 				>
@@ -571,7 +660,7 @@ watch(
 						type="button"
 						role="radio"
 						:aria-checked="settings.accent_color === accentColor.value"
-						class="flex min-w-0 items-center justify-center gap-2 rounded-lg border border-solid px-1 py-2.5 @2xl:px-2 @4xl:px-3 font-semibold transition-all active:scale-[0.97]"
+						class="relative flex min-w-0 flex-1 basis-[5.75rem] items-center justify-center gap-2 overflow-hidden rounded-lg border border-solid px-2 py-2.5 @xl:pe-5 @4xl:ps-3 font-semibold transition-all active:scale-[0.97]"
 						:class="
 							settings.accent_color === accentColor.value
 								? 'border-brand bg-brand-highlight text-brand'
@@ -588,10 +677,12 @@ watch(
 							class="size-4 shrink-0 rounded-full ring-2 ring-white/20"
 							:style="{ backgroundColor: accentColor.color }"
 						/>
-						<span class="hidden truncate @xl:inline">{{ formatMessage(accentColor.label) }}</span>
+						<span class="hidden min-w-0 truncate @xl:block">{{
+							formatMessage(accentColor.label)
+						}}</span>
 						<CheckIcon
 							v-if="settings.accent_color === accentColor.value"
-							class="ml-auto hidden size-4 shrink-0 @4xl:block"
+							class="absolute end-2 top-1/2 hidden size-3.5 shrink-0 -translate-y-1/2 @xl:block"
 						/>
 					</button>
 					<button
@@ -606,7 +697,7 @@ watch(
 									: messages.accentColorSystem,
 							)
 						"
-						class="flex min-w-0 items-center justify-center gap-2 rounded-lg border border-solid px-1 py-2.5 @2xl:px-2 @4xl:px-3 font-semibold transition-all enabled:active:scale-[0.97]"
+						class="relative flex min-w-0 flex-1 basis-[8.25rem] items-center justify-center gap-2 overflow-hidden rounded-lg border border-solid px-2 py-2.5 @xl:pe-5 @4xl:ps-3 font-semibold transition-all enabled:active:scale-[0.97]"
 						:class="
 							themeStore.systemAccentSupported !== true
 								? 'cursor-not-allowed border-surface-4 bg-surface-2 text-secondary opacity-60'
@@ -627,7 +718,7 @@ watch(
 								backgroundColor: themeStore.systemAccentColor ?? 'var(--color-pink)',
 							}"
 						/>
-						<span class="hidden min-w-0 flex-col truncate text-start leading-tight @xl:flex">
+						<span class="hidden min-w-0 flex-col text-start leading-tight @xl:flex">
 							<span class="truncate">{{ formatMessage(messages.accentColorSystem) }}</span>
 							<span
 								v-if="themeStore.systemAccentSupported === false"
@@ -636,13 +727,16 @@ watch(
 								{{ formatMessage(messages.accentColorSystemUnsupported) }}
 							</span>
 						</span>
-						<CheckIcon v-if="isSystemAccent" class="ml-auto hidden size-4 shrink-0 @4xl:block" />
+						<CheckIcon
+							v-if="isSystemAccent"
+							class="absolute end-2 top-1/2 hidden size-3.5 shrink-0 -translate-y-1/2 @xl:block"
+						/>
 					</button>
 					<button
 						type="button"
 						role="radio"
 						:aria-checked="isCustomAccent"
-						class="flex min-w-0 items-center justify-center gap-2 rounded-lg border border-solid px-1 py-2.5 @2xl:px-2 @4xl:px-3 font-semibold transition-all active:scale-[0.97]"
+						class="relative flex min-w-0 flex-1 basis-[6.75rem] items-center justify-center gap-2 overflow-hidden rounded-lg border border-solid px-2 py-2.5 @xl:pe-5 @4xl:ps-3 font-semibold transition-all active:scale-[0.97]"
 						:class="
 							isCustomAccent
 								? 'border-brand bg-brand-highlight text-brand'
@@ -658,10 +752,13 @@ watch(
 									: 'conic-gradient(#ef4444, #f59e0b, #22c55e, #06b6d4, #6366f1, #ec4899, #ef4444)',
 							}"
 						/>
-						<span class="hidden truncate @xl:inline">{{
+						<span class="hidden min-w-0 truncate @xl:block">{{
 							formatMessage(messages.accentColorCustom)
 						}}</span>
-						<CheckIcon v-if="isCustomAccent" class="ml-auto hidden size-4 shrink-0 @4xl:block" />
+						<CheckIcon
+							v-if="isCustomAccent"
+							class="absolute end-2 top-1/2 hidden size-3.5 shrink-0 -translate-y-1/2 @xl:block"
+						/>
 					</button>
 				</div>
 
@@ -738,7 +835,17 @@ watch(
 			</template>
 			<div class="flex flex-col gap-4 p-4 appearance-panel--divided">
 				<div
-					class="relative h-44 overflow-hidden rounded-lg border border-solid border-surface-4 bg-surface-1"
+					ref="backgroundPreviewRef"
+					class="group relative h-44 cursor-pointer overflow-hidden rounded-lg border border-solid transition-colors"
+					:class="
+						isBackgroundDragActive ? 'border-brand bg-surface-2' : 'border-surface-4 bg-surface-1'
+					"
+					role="button"
+					tabindex="0"
+					:aria-label="formatMessage(messages.customBackgroundChoose)"
+					@click="chooseCustomBackground"
+					@keydown.enter.prevent="chooseCustomBackground"
+					@keydown.space.prevent="chooseCustomBackground"
 				>
 					<div
 						v-if="customBackgroundPreview"
@@ -756,32 +863,42 @@ watch(
 							class="flex flex-col items-center gap-2 text-secondary"
 						>
 							<ImageIcon class="size-8" />
-							<span class="font-semibold">{{ formatMessage(messages.customBackgroundEmpty) }}</span>
+							<span class="font-semibold">{{
+								isBackgroundDragActive
+									? formatMessage(messages.customBackgroundDropHint)
+									: formatMessage(messages.customBackgroundEmpty)
+							}}</span>
+							<span v-if="!isBackgroundDragActive" class="text-sm">
+								{{ formatMessage(messages.customBackgroundChooseOrDrop) }}
+							</span>
+						</div>
+						<div
+							v-else-if="isBackgroundDragActive"
+							class="absolute inset-0 flex items-center justify-center bg-surface-1/70"
+						>
+							<span class="font-semibold text-contrast">
+								{{ formatMessage(messages.customBackgroundDropHint) }}
+							</span>
+						</div>
+						<div
+							v-if="customBackgroundPreview && !isBackgroundDragActive"
+							class="absolute inset-x-0 bottom-0 flex items-center justify-center gap-2 bg-surface-1/80 p-3 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"
+						>
+							<Button type="base" native-type="button" @click.stop="chooseCustomBackground">
+								<UploadIcon />
+								{{ formatMessage(messages.customBackgroundReplace) }}
+							</Button>
+							<Button
+								type="outlined"
+								color="red"
+								native-type="button"
+								@click.stop="removeCustomBackground"
+							>
+								<TrashIcon />
+								{{ formatMessage(messages.customBackgroundRemove) }}
+							</Button>
 						</div>
 					</div>
-				</div>
-
-				<div class="flex flex-wrap gap-2">
-					<Button type="base" native-type="button" @click="chooseCustomBackground">
-						<UploadIcon />
-						{{
-							formatMessage(
-								customBackgroundPreview
-									? messages.customBackgroundReplace
-									: messages.customBackgroundChoose,
-							)
-						}}
-					</Button>
-					<Button
-						v-if="customBackgroundPreview"
-						type="outlined"
-						color="red"
-						native-type="button"
-						@click="removeCustomBackground"
-					>
-						<TrashIcon />
-						{{ formatMessage(messages.customBackgroundRemove) }}
-					</Button>
 				</div>
 
 				<div v-if="customBackgroundPreview" class="grid gap-5 lg:grid-cols-2">
@@ -1236,7 +1353,7 @@ watch(
 		height: 1.25rem;
 		border-radius: 50%;
 		background: var(--color-brand);
-		border: 0.1875rem solid #ffffff;
+		border: 0.1875rem solid var(--surface-4);
 		box-shadow: var(--shadow-button);
 	}
 
@@ -1245,7 +1362,7 @@ watch(
 		height: 1.25rem;
 		border-radius: 50%;
 		background: var(--color-brand);
-		border: 0.1875rem solid #ffffff;
+		border: 0.1875rem solid var(--surface-4);
 		box-shadow: var(--shadow-button);
 	}
 }

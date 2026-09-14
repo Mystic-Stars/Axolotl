@@ -273,7 +273,11 @@ watch(instanceRevision, async () => {
 			>
 				<span v-for="(weekday, index) in weekdayLabels" :key="index">{{ weekday }}</span>
 			</div>
-			<div class="grid grid-cols-7 gap-[0.1875rem]" role="grid" :aria-label="formatMessage(messages.calendar)">
+			<div
+				class="grid grid-cols-7 gap-[0.1875rem]"
+				role="grid"
+				:aria-label="formatMessage(messages.calendar)"
+			>
 				<button
 					v-for="day in days"
 					:key="day.dateKey"
@@ -281,8 +285,7 @@ watch(instanceRevision, async () => {
 					class="home-calendar-cell h-[1.4rem] border border-solid rounded-[var(--radius-sm)] text-[0.6875rem] font-semibold outline-none p-0"
 					:class="{
 						'text-contrast': !(day.inPeriod && day.dateKey > todayKey),
-						'text-secondary opacity-50 cursor-default':
-							day.inPeriod && day.dateKey > todayKey,
+						'text-secondary opacity-50 cursor-default': day.inPeriod && day.dateKey > todayKey,
 						'cursor-default': !day.inPeriod,
 						'cursor-pointer': day.inPeriod && day.dateKey <= todayKey,
 						'border-transparent': !(day.inPeriod && day.dateKey === todayKey),

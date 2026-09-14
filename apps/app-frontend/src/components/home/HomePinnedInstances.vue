@@ -51,7 +51,10 @@ async function updatePinned(instance: GameInstance, pinned: boolean) {
 </script>
 
 <template>
-	<section class="home-pinned-instances flex min-w-0 min-h-0 h-full flex-col gap-3" :data-size="dashboardSize">
+	<section
+		class="home-pinned-instances flex min-w-0 min-h-0 h-full flex-col gap-3"
+		:data-size="dashboardSize"
+	>
 		<div class="home-widget-heading flex min-w-0 h-8 flex-none items-center gap-2">
 			<h2>
 				{{ formatMessage(messages.pinnedInstances) }}
@@ -63,7 +66,10 @@ async function updatePinned(instance: GameInstance, pinned: boolean) {
 				</router-link>
 			</ButtonStyled>
 		</div>
-		<div v-if="pinnedInstances.length > 0" class="home-instance-list grid min-w-0 min-h-0 flex-1 grid-auto-rows-max gap-1 overflow-x-hidden overflow-y-auto pr-1">
+		<div
+			v-if="pinnedInstances.length > 0"
+			class="home-instance-list grid min-w-0 min-h-0 flex-1 grid-auto-rows-max gap-1 overflow-x-hidden overflow-y-auto pr-1"
+		>
 			<HomeInstanceCard
 				v-for="instance in pinnedInstances"
 				:key="instance.id"

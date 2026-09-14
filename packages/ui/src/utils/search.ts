@@ -100,8 +100,7 @@ export function parseDependencyProjectFilterOption(option: string): {
 }
 
 export type EnvironmentSearchOverride =
-	| { mode: 'include'; values: string[] }
-	| { mode: 'exclude'; values: string[] }
+	{ mode: 'include'; values: string[] } | { mode: 'exclude'; values: string[] }
 
 export const LOADER_FILTER_TYPES = [
 	'mod_loader',
@@ -119,14 +118,7 @@ export interface GameVersion {
 }
 
 export type ProjectType =
-	| 'mod'
-	| 'modpack'
-	| 'resourcepack'
-	| 'shader'
-	| 'datapack'
-	| 'plugin'
-	| 'server'
-	| 'project'
+	'mod' | 'modpack' | 'resourcepack' | 'shader' | 'datapack' | 'plugin' | 'server' | 'project'
 
 const ALL_PROJECT_TYPES: ProjectType[] = [
 	'mod',

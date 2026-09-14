@@ -33,6 +33,8 @@ pub(crate) async fn copy_verified(
     expected_size: Option<u64>,
     semaphore: &IoSemaphore,
 ) -> crate::Result<bool> {
+    let destination_lock = fetch::destination_download_lock(destination);
+    let _destination_guard = destination_lock.lock().await;
     let _permit = semaphore.0.acquire().await?;
     let metadata = match tokio::fs::metadata(source).await {
         Ok(metadata) if metadata.is_file() => metadata,
@@ -49,7 +51,13 @@ pub(crate) async fn copy_verified(
         io::create_dir_all(parent).await?;
     }
     let part_path = fetch::suffixed_path(destination, ".part");
-    let mut input = File::open(source).await?;
+    let mut input = match File::open(source).await {
+        Ok(input) => input,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+            return Ok(false);
+        }
+        Err(error) => return Err(error.into()),
+    };
     let mut output = File::create(&part_path).await?;
     let mut hasher = sha1_smol::Sha1::new();
     let mut copied = 0_u64;
@@ -137,6 +145,36 @@ mod tests {
             .unwrap()
         );
         assert!(!destination.exists());
+        assert!(!fetch::suffixed_path(&destination, ".part").exists());
+    }
+
+    #[tokio::test]
+    async fn concurrent_verified_copies_share_one_destination_safely() {
+        let dir = tempfile::tempdir().unwrap();
+        let source = dir.path().join("source");
+        let destination = dir.path().join("destination");
+        tokio::fs::write(&source, b"asset").await.unwrap();
+        let semaphore = IoSemaphore(Semaphore::new(2));
+
+        let first = copy_verified(
+            &source,
+            &destination,
+            Some("05fac94380a70241f23780e7aef62b190894238f"),
+            Some(5),
+            &semaphore,
+        );
+        let second = copy_verified(
+            &source,
+            &destination,
+            Some("05fac94380a70241f23780e7aef62b190894238f"),
+            Some(5),
+            &semaphore,
+        );
+
+        let (first, second) = tokio::join!(first, second);
+        assert!(first.unwrap());
+        assert!(second.unwrap());
+        assert_eq!(tokio::fs::read(&destination).await.unwrap(), b"asset");
         assert!(!fetch::suffixed_path(&destination, ".part").exists());
     }
 }

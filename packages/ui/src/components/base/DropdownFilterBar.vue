@@ -431,8 +431,7 @@ type RenderedDropdownFilterBarOption = DropdownFilterBarOption & {
 }
 
 type RenderedDropdownFilterBarItem =
-	| RenderedDropdownFilterBarOption
-	| DropdownFilterBarSectionHeader
+	RenderedDropdownFilterBarOption | DropdownFilterBarSectionHeader
 
 type VisibleDropdownFilterBarOption = {
 	item: RenderedDropdownFilterBarItem

@@ -251,6 +251,12 @@
   "app.ai-settings.field.region": {
     "message": "Region"
   },
+  "app.ai-settings.looking-for-translation": {
+    "message": "Looking for content translation?"
+  },
+  "app.ai-settings.looking-for-translation.description": {
+    "message": "Translating project titles and descriptions is configured under Language & translation. AI providers here can power that feature when you pick the AI translation service."
+  },
   "app.ai-settings.master-switch": {
     "message": "Enable AI features"
   },
@@ -310,6 +316,9 @@
   },
   "app.ai-settings.oauth.reconnect": {
     "message": "Reconnect account"
+  },
+  "app.ai-settings.open-language-translation": {
+    "message": "Open Language & translation"
   },
   "app.ai-settings.refresh-models": {
     "message": "Fetch models"
@@ -455,8 +464,14 @@
   "app.appearance-settings.custom-background.choose": {
     "message": "Choose image"
   },
+  "app.appearance-settings.custom-background.choose-or-drop": {
+    "message": "Click to choose, or drop an image here"
+  },
   "app.appearance-settings.custom-background.description": {
-    "message": "Choose a custom image and fine-tune how it blends with the launcher interface."
+    "message": "Choose or drop a custom image, then fine-tune how it blends with the launcher interface."
+  },
+  "app.appearance-settings.custom-background.drop-hint": {
+    "message": "Drop image here"
   },
   "app.appearance-settings.custom-background.empty": {
     "message": "No custom background selected"
@@ -546,7 +561,7 @@
     "message": "Show a floating back-to-top button on scrollable pages."
   },
   "app.appearance-settings.show-scroll-top.title": {
-    "message": "Show \u201cback to top\u201d button"
+    "message": "Show \"back to top\" button"
   },
   "app.appearance-settings.sidebar-instance-count.description": {
     "message": "Maximum number of instances to show in the sidebar. Set to 0 to show all."
@@ -1295,6 +1310,9 @@
   "app.downloads.local": {
     "message": "Local"
   },
+  "app.downloads.manual-download-project-file": {
+    "message": "Project {projectId} · File {fileId}"
+  },
   "app.downloads.manual-download-required": {
     "message": "CurseForge requires this file to be downloaded manually."
   },
@@ -1415,14 +1433,71 @@
   "app.downloads.open-instance": {
     "message": "Open instance"
   },
+  "app.downloads.open-manual-download": {
+    "message": "Open"
+  },
   "app.downloads.operation.upgrade": {
     "message": "Upgrade"
+  },
+  "app.downloads.phase.applying-content": {
+    "message": "Applying content"
+  },
+  "app.downloads.phase.completed": {
+    "message": "Completed"
+  },
+  "app.downloads.phase.creating-backup": {
+    "message": "Creating backup"
+  },
+  "app.downloads.phase.downloading-content": {
+    "message": "Downloading content"
+  },
+  "app.downloads.phase.downloading-minecraft": {
+    "message": "Downloading Minecraft"
   },
   "app.downloads.phase.downloading-pack-file": {
     "message": "Downloading modpack"
   },
+  "app.downloads.phase.extracting-overrides": {
+    "message": "Extracting overrides"
+  },
+  "app.downloads.phase.finalizing": {
+    "message": "Finalizing"
+  },
+  "app.downloads.phase.preparing-instance": {
+    "message": "Preparing instance"
+  },
+  "app.downloads.phase.preparing-java": {
+    "message": "Preparing Java"
+  },
+  "app.downloads.phase.reading-pack-manifest": {
+    "message": "Reading manifest"
+  },
+  "app.downloads.phase.resolving-loader": {
+    "message": "Resolving loader"
+  },
+  "app.downloads.phase.resolving-minecraft": {
+    "message": "Resolving Minecraft"
+  },
+  "app.downloads.phase.resolving-pack": {
+    "message": "Resolving modpack"
+  },
+  "app.downloads.phase.rolling-back": {
+    "message": "Rolling back changes"
+  },
+  "app.downloads.phase.running-loader-processors": {
+    "message": "Installing loader"
+  },
+  "app.downloads.phase.staging-content": {
+    "message": "Staging content"
+  },
   "app.downloads.phase.unknown": {
     "message": "Working"
+  },
+  "app.downloads.phase.updating-loader": {
+    "message": "Updating loader"
+  },
+  "app.downloads.phase.verifying": {
+    "message": "Verifying"
   },
   "app.downloads.phase.verifying-downloaded-files": {
     "message": "Verifying files and continuing installation"
@@ -4439,6 +4514,201 @@
   "app.lab.seed-map.biome-tag": {
     "message": "Biome"
   },
+  "app.lab.seed-map.biome.badlands": {
+    "message": "Badlands"
+  },
+  "app.lab.seed-map.biome.bamboo-jungle": {
+    "message": "Bamboo Jungle"
+  },
+  "app.lab.seed-map.biome.basalt-deltas": {
+    "message": "Basalt Deltas"
+  },
+  "app.lab.seed-map.biome.beach": {
+    "message": "Beach"
+  },
+  "app.lab.seed-map.biome.birch-forest": {
+    "message": "Birch Forest"
+  },
+  "app.lab.seed-map.biome.cherry-grove": {
+    "message": "Cherry Grove"
+  },
+  "app.lab.seed-map.biome.cold-ocean": {
+    "message": "Cold Ocean"
+  },
+  "app.lab.seed-map.biome.crimson-forest": {
+    "message": "Crimson Forest"
+  },
+  "app.lab.seed-map.biome.dark-forest": {
+    "message": "Dark Forest"
+  },
+  "app.lab.seed-map.biome.deep-cold-ocean": {
+    "message": "Deep Cold Ocean"
+  },
+  "app.lab.seed-map.biome.deep-dark": {
+    "message": "Deep Dark"
+  },
+  "app.lab.seed-map.biome.deep-frozen-ocean": {
+    "message": "Deep Frozen Ocean"
+  },
+  "app.lab.seed-map.biome.deep-lukewarm-ocean": {
+    "message": "Deep Lukewarm Ocean"
+  },
+  "app.lab.seed-map.biome.deep-ocean": {
+    "message": "Deep Ocean"
+  },
+  "app.lab.seed-map.biome.desert": {
+    "message": "Desert"
+  },
+  "app.lab.seed-map.biome.dripstone-caves": {
+    "message": "Dripstone Caves"
+  },
+  "app.lab.seed-map.biome.end-barrens": {
+    "message": "End Barrens"
+  },
+  "app.lab.seed-map.biome.end-highlands": {
+    "message": "End Highlands"
+  },
+  "app.lab.seed-map.biome.end-midlands": {
+    "message": "End Midlands"
+  },
+  "app.lab.seed-map.biome.eroded-badlands": {
+    "message": "Eroded Badlands"
+  },
+  "app.lab.seed-map.biome.flower-forest": {
+    "message": "Flower Forest"
+  },
+  "app.lab.seed-map.biome.forest": {
+    "message": "Forest"
+  },
+  "app.lab.seed-map.biome.frozen-ocean": {
+    "message": "Frozen Ocean"
+  },
+  "app.lab.seed-map.biome.frozen-peaks": {
+    "message": "Frozen Peaks"
+  },
+  "app.lab.seed-map.biome.frozen-river": {
+    "message": "Frozen River"
+  },
+  "app.lab.seed-map.biome.grove": {
+    "message": "Grove"
+  },
+  "app.lab.seed-map.biome.ice-spikes": {
+    "message": "Ice Spikes"
+  },
+  "app.lab.seed-map.biome.jagged-peaks": {
+    "message": "Jagged Peaks"
+  },
+  "app.lab.seed-map.biome.jungle": {
+    "message": "Jungle"
+  },
+  "app.lab.seed-map.biome.lukewarm-ocean": {
+    "message": "Lukewarm Ocean"
+  },
+  "app.lab.seed-map.biome.lush-caves": {
+    "message": "Lush Caves"
+  },
+  "app.lab.seed-map.biome.mangrove-swamp": {
+    "message": "Mangrove Swamp"
+  },
+  "app.lab.seed-map.biome.meadow": {
+    "message": "Meadow"
+  },
+  "app.lab.seed-map.biome.mushroom-fields": {
+    "message": "Mushroom Fields"
+  },
+  "app.lab.seed-map.biome.nether-wastes": {
+    "message": "Nether Wastes"
+  },
+  "app.lab.seed-map.biome.ocean": {
+    "message": "Ocean"
+  },
+  "app.lab.seed-map.biome.old-growth-birch-forest": {
+    "message": "Old Growth Birch Forest"
+  },
+  "app.lab.seed-map.biome.old-growth-pine-taiga": {
+    "message": "Old Growth Pine Taiga"
+  },
+  "app.lab.seed-map.biome.old-growth-spruce-taiga": {
+    "message": "Old Growth Spruce Taiga"
+  },
+  "app.lab.seed-map.biome.pale-garden": {
+    "message": "Pale Garden"
+  },
+  "app.lab.seed-map.biome.plains": {
+    "message": "Plains"
+  },
+  "app.lab.seed-map.biome.river": {
+    "message": "River"
+  },
+  "app.lab.seed-map.biome.savanna": {
+    "message": "Savanna"
+  },
+  "app.lab.seed-map.biome.savanna-plateau": {
+    "message": "Savanna Plateau"
+  },
+  "app.lab.seed-map.biome.small-end-islands": {
+    "message": "Small End Islands"
+  },
+  "app.lab.seed-map.biome.snowy-beach": {
+    "message": "Snowy Beach"
+  },
+  "app.lab.seed-map.biome.snowy-plains": {
+    "message": "Snowy Plains"
+  },
+  "app.lab.seed-map.biome.snowy-slopes": {
+    "message": "Snowy Slopes"
+  },
+  "app.lab.seed-map.biome.snowy-taiga": {
+    "message": "Snowy Taiga"
+  },
+  "app.lab.seed-map.biome.soul-sand-valley": {
+    "message": "Soul Sand Valley"
+  },
+  "app.lab.seed-map.biome.sparse-jungle": {
+    "message": "Sparse Jungle"
+  },
+  "app.lab.seed-map.biome.stony-peaks": {
+    "message": "Stony Peaks"
+  },
+  "app.lab.seed-map.biome.stony-shore": {
+    "message": "Stony Shore"
+  },
+  "app.lab.seed-map.biome.sulfur-caves": {
+    "message": "Sulfur Caves"
+  },
+  "app.lab.seed-map.biome.sunflower-plains": {
+    "message": "Sunflower Plains"
+  },
+  "app.lab.seed-map.biome.swamp": {
+    "message": "Swamp"
+  },
+  "app.lab.seed-map.biome.taiga": {
+    "message": "Taiga"
+  },
+  "app.lab.seed-map.biome.the-end": {
+    "message": "The End"
+  },
+  "app.lab.seed-map.biome.warm-ocean": {
+    "message": "Warm Ocean"
+  },
+  "app.lab.seed-map.biome.warped-forest": {
+    "message": "Warped Forest"
+  },
+  "app.lab.seed-map.biome.windswept-forest": {
+    "message": "Windswept Forest"
+  },
+  "app.lab.seed-map.biome.windswept-gravelly-hills": {
+    "message": "Windswept Gravelly Hills"
+  },
+  "app.lab.seed-map.biome.windswept-hills": {
+    "message": "Windswept Hills"
+  },
+  "app.lab.seed-map.biome.windswept-savanna": {
+    "message": "Windswept Savanna"
+  },
+  "app.lab.seed-map.biome.wooded-badlands": {
+    "message": "Wooded Badlands"
+  },
   "app.lab.seed-map.center-spawn": {
     "message": "Center spawn"
   },
@@ -4971,7 +5241,7 @@
     "message": "Custom AI provider"
   },
   "app.log-share.settings.ai-source-description": {
-    "message": "LogShare AI performs a cloud analysis; Custom uses the provider configured below."
+    "message": "Both sources send a sanitized and shortened crash context. AI output may be inaccurate."
   },
   "app.log-share.settings.ai-source-logshare": {
     "message": "LogShare AI"
@@ -5007,7 +5277,7 @@
     "message": "Show AI analysis progress"
   },
   "app.log-share.settings.show-progress-description": {
-    "message": "Display thinking, tool and limit status while LogAgent is working."
+    "message": "Display thinking, tool and limit status while LogShare AI is working."
   },
   "app.log-share.settings.title": {
     "message": "Log sharing & AI analysis"
@@ -5037,7 +5307,7 @@
     "message": "Truncated"
   },
   "app.log-share.summary.loading": {
-    "message": "Loading structured summary…"
+    "message": "Loading structured summary..."
   },
   "app.log-share.summary.title": {
     "message": "LogShare analysis"
@@ -5760,7 +6030,7 @@
     "message": "Bring your own AI provider"
   },
   "app.onboarding.appearance.description": {
-    "message": "Theme, accent, backgrounds, and window effects all live here. Make the launcher feel familiar."
+    "message": "Theme, accent, custom launcher background, and window effects all live here. Make the launcher feel familiar."
   },
   "app.onboarding.appearance.title": {
     "message": "Set the vibe"
@@ -5910,7 +6180,7 @@
     "message": "Useful tools, built in"
   },
   "app.onboarding.language.description": {
-    "message": "Pick the launcher language and manage translations. No decoder ring required."
+    "message": "Switch the launcher UI language here, or keep System language. Content translation for project pages is configured on this page too."
   },
   "app.onboarding.language.title": {
     "message": "Speak your language"
@@ -5943,7 +6213,7 @@
     "message": "Do not cook the computer"
   },
   "app.onboarding.settings.description": {
-    "message": "The useful controls live here: launcher preferences, game launch behavior, content downloads, and privacy."
+    "message": "Appearance, language, AI providers, launch defaults, content downloads, and privacy all live here."
   },
   "app.onboarding.settings.title": {
     "message": "Make it yours"
@@ -5977,6 +6247,9 @@
   },
   "app.onboarding.welcome.footer": {
     "message": "Your last next launcher."
+  },
+  "app.onboarding.welcome.language-label": {
+    "message": "Language"
   },
   "app.onboarding.welcome.title": {
     "message": "Everything is ready"
@@ -6644,6 +6917,9 @@
   "app.servers.settings.memory": {
     "message": "Memory"
   },
+  "app.servers.settings.memory-mb": {
+    "message": "Memory (MB)"
+  },
   "app.servers.settings.name": {
     "message": "Server name"
   },
@@ -6793,6 +7069,9 @@
   },
   "app.settings.about.copy-qq-group": {
     "message": "Copy group number"
+  },
+  "app.settings.about.copying-guidelines": {
+    "message": "Copying guidelines"
   },
   "app.settings.about.description": {
     "message": "Your last launcher."
@@ -7056,7 +7335,7 @@
     "message": "Game"
   },
   "app.settings.groups.launcher": {
-    "message": "Launcher"
+    "message": "Interface"
   },
   "app.settings.groups.support": {
     "message": "App & support"
@@ -7145,6 +7424,18 @@
   "app.settings.java.view-installed": {
     "message": "View installed Java"
   },
+  "app.settings.language.system": {
+    "message": "System language"
+  },
+  "app.settings.language.system.description": {
+    "message": "Follow the language of this device"
+  },
+  "app.settings.language.system.disabled-tooltip": {
+    "message": "Turn on to follow the language of this device automatically."
+  },
+  "app.settings.language.system.enabled-tooltip": {
+    "message": "Following this device. Open the language list or turn this off to pick manually."
+  },
   "app.settings.logs.export.button": {
     "message": "Export logs…"
   },
@@ -7218,7 +7509,10 @@
     "message": "Error"
   },
   "app.settings.logs.level.hint": {
-    "message": "Trace captures everything and is the default, so reports keep their full detail. Higher levels write smaller files."
+    "message": "Info is the default. Debug and Trace record more detail and create larger log files."
+  },
+  "app.settings.logs.level.hint-beta": {
+    "message": "Beta uses Debug by default and only allows Debug or Trace so diagnostics retain enough detail."
   },
   "app.settings.logs.level.info": {
     "message": "Info"
@@ -7614,7 +7908,7 @@
     "message": "About"
   },
   "app.settings.tabs.ai": {
-    "message": "AI"
+    "message": "AI features"
   },
   "app.settings.tabs.content-downloads": {
     "message": "Content & downloads"
@@ -7623,7 +7917,7 @@
     "message": "Home & navigation"
   },
   "app.settings.tabs.interface": {
-    "message": "Interface & appearance"
+    "message": "Appearance"
   },
   "app.settings.tabs.java-performance": {
     "message": "Java & performance"
@@ -7631,122 +7925,20 @@
   "app.settings.tabs.language-translation": {
     "message": "Language & translation"
   },
-  "app.settings.tabs.shortcut-settings": {
-    "message": "Shortcut settings"
-  },
-  "app.shortcut-settings.change-shortcut": {
-    "message": "Change the shortcut for {action}"
-  },
-  "app.shortcut-settings.end-action": {
-    "message": "Scroll to the bottom"
-  },
-  "app.shortcut-settings.end-action-description": {
-    "message": "Moves the page you are reading to the bottom."
-  },
-  "app.shortcut-settings.enable": {
-    "message": "Enable quick scrolling"
-  },
-  "app.shortcut-settings.home-action": {
-    "message": "Scroll to the top"
-  },
-  "app.shortcut-settings.home-action-description": {
-    "message": "Moves the page you are reading to the top."
-  },
-  "app.shortcut-settings.nav-create": {
-    "message": "Create new instance"
-  },
-  "app.shortcut-settings.nav-create-description": {
-    "message": "Jump to creating a new instance."
-  },
-  "app.shortcut-settings.nav-description": {
-    "message": "Jump to a menu item with its shortcut. Each shortcut is off until enabled."
-  },
-  "app.shortcut-settings.nav-discover": {
-    "message": "Discover content"
-  },
-  "app.shortcut-settings.nav-discover-description": {
-    "message": "Jump to browsing content."
-  },
-  "app.shortcut-settings.nav-downloads": {
-    "message": "Downloads"
-  },
-  "app.shortcut-settings.nav-downloads-description": {
-    "message": "Jump to downloads."
-  },
-  "app.shortcut-settings.nav-home": {
-    "message": "Home"
-  },
-  "app.shortcut-settings.nav-home-description": {
-    "message": "Jump to the Home page."
-  },
-  "app.shortcut-settings.nav-lab": {
-    "message": "Lab"
-  },
-  "app.shortcut-settings.nav-lab-description": {
-    "message": "Jump to the Lab."
-  },
-  "app.shortcut-settings.nav-library": {
-    "message": "Library"
-  },
-  "app.shortcut-settings.nav-library-description": {
-    "message": "Jump to your library."
-  },
-  "app.shortcut-settings.nav-multiplayer": {
-    "message": "Multiplayer"
-  },
-  "app.shortcut-settings.nav-multiplayer-description": {
-    "message": "Jump to multiplayer."
-  },
-  "app.shortcut-settings.nav-settings": {
-    "message": "Settings"
-  },
-  "app.shortcut-settings.nav-settings-description": {
-    "message": "Jump to the settings."
-  },
-  "app.shortcut-settings.nav-skins": {
-    "message": "Skin selector"
-  },
-  "app.shortcut-settings.nav-skins-description": {
-    "message": "Jump to the skin selector."
-  },
-  "app.shortcut-settings.nav-title": {
-    "message": "Navigation shortcuts"
-  },
-  "app.shortcut-settings.nav-worlds": {
-    "message": "Worlds"
-  },
-  "app.shortcut-settings.nav-worlds-description": {
-    "message": "Jump to your worlds."
-  },
-  "app.shortcut-settings.page-down-action": {
-    "message": "Scroll down one screen"
-  },
-  "app.shortcut-settings.page-down-action-description": {
-    "message": "Moves the page you are reading down by one screen."
-  },
-  "app.shortcut-settings.page-up-action": {
-    "message": "Scroll up one screen"
-  },
-  "app.shortcut-settings.page-up-action-description": {
-    "message": "Moves the page you are reading up by one screen."
-  },
-  "app.shortcut-settings.scroll-description": {
-    "message": "Move through long pages with the keyboard."
-  },
-  "app.shortcut-settings.scroll-title": {
-    "message": "Quick scrolling"
-  },
   "app.settings.tabs.launch-defaults": {
-    "message": "Launch & instance defaults"
+    "message": "Launch defaults"
   },
   "app.settings.tabs.logs": {
-    "message": "Logs"
+    "message": "Logs & diagnostics"
   },
   "app.settings.tabs.network-multiplayer": {
     "message": "Network & multiplayer"
   },
   "app.settings.tabs.privacy-data": {
     "message": "Privacy & data sharing"
+  },
+  "app.settings.tabs.shortcut-settings": {
+    "message": "Keyboard shortcuts"
   },
   "app.settings.tabs.storage": {
     "message": "Storage"
@@ -7916,9 +8108,6 @@
   "app.settings.updates.paused": {
     "message": "Updates are paused."
   },
-  "app.settings.updates.portable": {
-    "message": "Portable mode cannot update automatically. Please download the latest version manually."
-  },
   "app.settings.updates.preferences.title": {
     "message": "Update behavior"
   },
@@ -7930,6 +8119,108 @@
   },
   "app.settings.updates.up-to-date": {
     "message": "Axolotl is up to date."
+  },
+  "app.shortcut-settings.change-shortcut": {
+    "message": "Change the shortcut for {action}"
+  },
+  "app.shortcut-settings.enable": {
+    "message": "Enable quick scrolling"
+  },
+  "app.shortcut-settings.end-action": {
+    "message": "Scroll to the bottom"
+  },
+  "app.shortcut-settings.end-action-description": {
+    "message": "Moves the page you are reading to the bottom."
+  },
+  "app.shortcut-settings.home-action": {
+    "message": "Scroll to the top"
+  },
+  "app.shortcut-settings.home-action-description": {
+    "message": "Moves the page you are reading to the top."
+  },
+  "app.shortcut-settings.nav-create": {
+    "message": "Create new instance"
+  },
+  "app.shortcut-settings.nav-create-description": {
+    "message": "Jump to creating a new instance."
+  },
+  "app.shortcut-settings.nav-description": {
+    "message": "Jump to a menu item with its shortcut. Each shortcut is off until enabled."
+  },
+  "app.shortcut-settings.nav-discover": {
+    "message": "Discover content"
+  },
+  "app.shortcut-settings.nav-discover-description": {
+    "message": "Jump to browsing content."
+  },
+  "app.shortcut-settings.nav-downloads": {
+    "message": "Downloads"
+  },
+  "app.shortcut-settings.nav-downloads-description": {
+    "message": "Jump to downloads."
+  },
+  "app.shortcut-settings.nav-home": {
+    "message": "Home"
+  },
+  "app.shortcut-settings.nav-home-description": {
+    "message": "Jump to the Home page."
+  },
+  "app.shortcut-settings.nav-lab": {
+    "message": "Lab"
+  },
+  "app.shortcut-settings.nav-lab-description": {
+    "message": "Jump to the Lab."
+  },
+  "app.shortcut-settings.nav-library": {
+    "message": "Library"
+  },
+  "app.shortcut-settings.nav-library-description": {
+    "message": "Jump to your library."
+  },
+  "app.shortcut-settings.nav-multiplayer": {
+    "message": "Multiplayer"
+  },
+  "app.shortcut-settings.nav-multiplayer-description": {
+    "message": "Jump to multiplayer."
+  },
+  "app.shortcut-settings.nav-settings": {
+    "message": "Settings"
+  },
+  "app.shortcut-settings.nav-settings-description": {
+    "message": "Jump to the settings."
+  },
+  "app.shortcut-settings.nav-skins": {
+    "message": "Skin selector"
+  },
+  "app.shortcut-settings.nav-skins-description": {
+    "message": "Jump to the skin selector."
+  },
+  "app.shortcut-settings.nav-title": {
+    "message": "Navigation shortcuts"
+  },
+  "app.shortcut-settings.nav-worlds": {
+    "message": "Worlds"
+  },
+  "app.shortcut-settings.nav-worlds-description": {
+    "message": "Jump to your worlds."
+  },
+  "app.shortcut-settings.page-down-action": {
+    "message": "Scroll down one screen"
+  },
+  "app.shortcut-settings.page-down-action-description": {
+    "message": "Moves the page you are reading down by one screen."
+  },
+  "app.shortcut-settings.page-up-action": {
+    "message": "Scroll up one screen"
+  },
+  "app.shortcut-settings.page-up-action-description": {
+    "message": "Moves the page you are reading up by one screen."
+  },
+  "app.shortcut-settings.scroll-description": {
+    "message": "Move through long pages with the keyboard."
+  },
+  "app.shortcut-settings.scroll-title": {
+    "message": "Quick scrolling"
   },
   "app.sidebar.collapse": {
     "message": "Collapse sidebar"
@@ -8275,6 +8566,12 @@
   },
   "app.translation-settings.title": {
     "message": "Translation"
+  },
+  "app.translation.auto-translate-hint.text": {
+    "message": "You can turn this on in Settings → Language & translation so browse results and project pages translate for you."
+  },
+  "app.translation.auto-translate-hint.title": {
+    "message": "Use automatic translation"
   },
   "app.translation.error.authentication": {
     "message": "The translation service could not authenticate. Please try again later."

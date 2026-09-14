@@ -4,17 +4,17 @@ export type SettingsCategoryId =
 	| 'interface'
 	| 'home-navigation'
 	| 'language-translation'
-	| 'ai'
 	| 'shortcut-settings'
-	| 'java-performance'
+	| 'ai'
 	| 'launch-defaults'
+	| 'java-performance'
 	| 'content-downloads'
 	| 'network-multiplayer'
 	| 'storage-backups'
 	| 'privacy-data'
 	| 'updates'
-	| 'logs'
 	| 'about'
+	| 'logs'
 	| 'feature-flags'
 
 export type SettingsGroupId = 'launcher' | 'game' | 'data-privacy' | 'support' | 'developer'
@@ -28,12 +28,20 @@ export interface SettingsCategoryDefinition {
 	onboardingId?: string
 }
 
+/**
+ * Ordered by daily-use priority within each group:
+ * - launcher: how the shell looks and is operated, then optional AI
+ * - game: how Minecraft launches and gets content
+ * - data-privacy: disk footprint and what leaves the machine
+ * - support: update, identity, then diagnostics
+ * - developer: hidden unless developer mode
+ */
 export const settingsCategoryDefinitions: SettingsCategoryDefinition[] = [
 	{
 		id: 'interface',
 		name: defineMessage({
 			id: 'app.settings.tabs.interface',
-			defaultMessage: 'Interface & appearance',
+			defaultMessage: 'Appearance',
 		}),
 		group: 'launcher',
 		onboardingId: 'settings-tab-interface',
@@ -48,6 +56,15 @@ export const settingsCategoryDefinitions: SettingsCategoryDefinition[] = [
 		onboardingId: 'settings-tab-home-navigation',
 	},
 	{
+		id: 'shortcut-settings',
+		name: defineMessage({
+			id: 'app.settings.tabs.shortcut-settings',
+			defaultMessage: 'Keyboard shortcuts',
+		}),
+		group: 'launcher',
+		onboardingId: 'settings-tab-shortcut-settings',
+	},
+	{
 		id: 'language-translation',
 		name: defineMessage({
 			id: 'app.settings.tabs.language-translation',
@@ -58,19 +75,22 @@ export const settingsCategoryDefinitions: SettingsCategoryDefinition[] = [
 	},
 	{
 		id: 'ai',
-		name: defineMessage({ id: 'app.settings.tabs.ai', defaultMessage: 'AI' }),
+		name: defineMessage({
+			id: 'app.settings.tabs.ai',
+			defaultMessage: 'AI features',
+		}),
 		group: 'launcher',
 		flushContent: true,
 		onboardingId: 'settings-tab-ai',
 	},
 	{
-		id: 'shortcut-settings',
+		id: 'launch-defaults',
 		name: defineMessage({
-			id: 'app.settings.tabs.shortcut-settings',
-			defaultMessage: 'Shortcut settings',
+			id: 'app.settings.tabs.launch-defaults',
+			defaultMessage: 'Launch defaults',
 		}),
-		group: 'launcher',
-		onboardingId: 'settings-tab-shortcut-settings',
+		group: 'game',
+		onboardingId: 'settings-tab-launch-defaults',
 	},
 	{
 		id: 'java-performance',
@@ -80,15 +100,6 @@ export const settingsCategoryDefinitions: SettingsCategoryDefinition[] = [
 		}),
 		group: 'game',
 		onboardingId: 'settings-tab-java-performance',
-	},
-	{
-		id: 'launch-defaults',
-		name: defineMessage({
-			id: 'app.settings.tabs.launch-defaults',
-			defaultMessage: 'Launch & instance defaults',
-		}),
-		group: 'game',
-		onboardingId: 'settings-tab-launch-defaults',
 	},
 	{
 		id: 'content-downloads',
@@ -128,20 +139,30 @@ export const settingsCategoryDefinitions: SettingsCategoryDefinition[] = [
 	},
 	{
 		id: 'updates',
-		name: defineMessage({ id: 'app.settings.tabs.updates', defaultMessage: 'Updates' }),
+		name: defineMessage({
+			id: 'app.settings.tabs.updates',
+			defaultMessage: 'Updates',
+		}),
 		group: 'support',
 		onboardingId: 'settings-tab-updates',
 	},
 	{
-		id: 'logs',
-		name: defineMessage({ id: 'app.settings.tabs.logs', defaultMessage: 'Logs' }),
+		id: 'about',
+		name: defineMessage({
+			id: 'app.settings.tabs.about',
+			defaultMessage: 'About',
+		}),
 		group: 'support',
-		onboardingId: 'settings-tab-logs',
+		onboardingId: 'settings-tab-about',
 	},
 	{
-		id: 'about',
-		name: defineMessage({ id: 'app.settings.tabs.about', defaultMessage: 'About' }),
+		id: 'logs',
+		name: defineMessage({
+			id: 'app.settings.tabs.logs',
+			defaultMessage: 'Logs & diagnostics',
+		}),
 		group: 'support',
+		onboardingId: 'settings-tab-logs',
 	},
 	{
 		id: 'feature-flags',

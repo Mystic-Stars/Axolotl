@@ -1704,6 +1704,32 @@ fn build_fallback_asset_from_batch(item: H2BatchAsset) -> FallbackAsset {
     }
 }
 
+/// Coalesce every fallback that writes the same physical object. This is
+/// especially important for legacy indexes, where several logical names can
+/// share one hash: concurrent local-reuse tasks would otherwise race on the
+/// same `.part` and destination paths.
+fn coalesce_fallback_assets(items: Vec<FallbackAsset>) -> Vec<FallbackAsset> {
+    let mut positions: HashMap<(PathBuf, String, u64), usize> = HashMap::new();
+    let mut coalesced: Vec<FallbackAsset> = Vec::new();
+    for mut item in items {
+        let key = (item.resource_path.clone(), item.hash.clone(), item.size);
+        if let Some(&position) = positions.get(&key) {
+            let existing = &mut coalesced[position];
+            existing.logical_items =
+                existing.logical_items.saturating_add(item.logical_items);
+            for legacy in item.legacy_resource_paths.drain(..) {
+                if !existing.legacy_resource_paths.contains(&legacy) {
+                    existing.legacy_resource_paths.push(legacy);
+                }
+            }
+        } else {
+            positions.insert(key, coalesced.len());
+            coalesced.push(item);
+        }
+    }
+    coalesced
+}
+
 /// Coalesce index aliases that refer to one physical object. The key includes
 /// the destination and full integrity contract so unrelated artifacts can
 /// never share a writer. Legacy paths remain separate outputs of that single
@@ -1953,6 +1979,7 @@ pub async fn download_assets(
     // Per-file fallback path: local runtime reuse, no batch route, or batch
     // failures. Runs concurrently (same budget as the original scheduler) so
     // import flows are not serialised.
+    let fallback_assets = coalesce_fallback_assets(fallback_assets);
     if !fallback_assets.is_empty() {
         let limit = crate::util::download::task_concurrency_limit(st)
             .map(|limit| limit.saturating_mul(2))
@@ -2669,6 +2696,64 @@ mod tests {
 
         assert_eq!(
             coalesce_batch_assets(vec![
+                make_item("first", 42),
+                make_item("second", 42),
+                make_item("first", 43),
+            ])
+            .len(),
+            3
+        );
+    }
+
+    #[test]
+    fn fallback_assets_coalesce_aliases_and_keep_legacy_targets() {
+        let destination = PathBuf::from("assets/objects/85/hash");
+        let first_legacy = PathBuf::from("resources/sound/liquid/splash2.ogg");
+        let second_legacy =
+            PathBuf::from("resources/sounds/liquid/splash2.ogg");
+        let make_item = |name: &str, legacy_resource_paths: Vec<PathBuf>| {
+            FallbackAsset {
+                name: name.into(),
+                hash: "857abbbfb58186c2f1b5510a4072630950e518f6".into(),
+                size: 36_747,
+            url: "https://resources.download.minecraft.net/85/857abbbfb58186c2f1b5510a4072630950e518f6".into(),
+            resource_path: destination.clone(),
+                legacy_resource_paths,
+                logical_items: 1,
+            }
+        };
+
+        let items = coalesce_fallback_assets(vec![
+            make_item("sound/liquid/splash2.ogg", vec![first_legacy.clone()]),
+            make_item(
+                "sounds/liquid/splash2.ogg",
+                vec![second_legacy.clone(), first_legacy.clone()],
+            ),
+        ]);
+
+        assert_eq!(items.len(), 1);
+        assert_eq!(items[0].logical_items, 2);
+        assert_eq!(
+            items[0].legacy_resource_paths,
+            vec![first_legacy, second_legacy]
+        );
+    }
+
+    #[test]
+    fn fallback_assets_do_not_coalesce_different_integrity_contracts() {
+        let destination = PathBuf::from("assets/objects/85/object");
+        let make_item = |hash: &str, size| FallbackAsset {
+            name: hash.into(),
+            hash: hash.into(),
+            size,
+            url: format!("https://resources.download.minecraft.net/85/{hash}"),
+            resource_path: destination.clone(),
+            legacy_resource_paths: Vec::new(),
+            logical_items: 1,
+        };
+
+        assert_eq!(
+            coalesce_fallback_assets(vec![
                 make_item("first", 42),
                 make_item("second", 42),
                 make_item("first", 43),

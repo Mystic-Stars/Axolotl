@@ -2,16 +2,14 @@ use crate::ErrorKind;
 use crate::util::fetch::INSECURE_REQWEST_CLIENT;
 use crate::util::mojang::{mojang_service_url, should_use_mojang_mirror};
 use base64::Engine;
-use base64::prelude::{BASE64_STANDARD, BASE64_URL_SAFE_NO_PAD};
+use base64::prelude::BASE64_URL_SAFE_NO_PAD;
 use chrono::{DateTime, Duration, TimeZone, Utc};
 use dashmap::DashMap;
 use futures::TryStreamExt;
 use heck::ToTitleCase;
-use p256::ecdsa::signature::Signer;
-use p256::ecdsa::{Signature, SigningKey, VerifyingKey};
-use p256::pkcs8::{DecodePrivateKey, EncodePrivateKey, LineEnding};
+use p256::ecdsa::SigningKey;
+use p256::pkcs8::{EncodePrivateKey, LineEnding};
 use rand::Rng;
-use rand::rngs::OsRng;
 use reqwest::header::HeaderMap;
 use reqwest::{Response, StatusCode};
 use serde::de::DeserializeOwned;
@@ -1169,82 +1167,6 @@ pub struct DeviceTokenPair {
 }
 
 impl DeviceTokenPair {
-    #[tracing::instrument(skip(exec))]
-    async fn refresh_and_get_device_token(
-        current_date: DateTime<Utc>,
-        exec: impl sqlx::Executor<'_, Database = sqlx::Sqlite> + Copy,
-    ) -> crate::Result<(Self, DateTime<Utc>)> {
-        let pair = Self::get(exec).await?;
-
-        if let Some(mut pair) = pair {
-            if pair.token.not_after > current_date {
-                Ok((pair, current_date))
-            } else {
-                let res = device_token(&pair.key, current_date).await?;
-
-                pair.token = res.value;
-                pair.upsert(exec).await?;
-
-                Ok((pair, res.date))
-            }
-        } else {
-            let key = generate_key()?;
-            let res = device_token(&key, current_date).await?;
-
-            let pair = Self {
-                key,
-                token: res.value,
-            };
-
-            pair.upsert(exec).await?;
-
-            Ok((pair, res.date))
-        }
-    }
-
-    async fn get(
-        exec: impl sqlx::Executor<'_, Database = sqlx::Sqlite>,
-    ) -> crate::Result<Option<Self>> {
-        let res = sqlx::query!(
-            r#"
-            SELECT
-                uuid, private_key, x, y, issue_instant, not_after, token, json(display_claims) as "display_claims!: serde_json::Value"
-            FROM minecraft_device_tokens
-            "#
-        )
-            .fetch_optional(exec)
-            .await?;
-
-        if let Some(x) = res
-            && let Ok(uuid) = Uuid::parse_str(&x.uuid)
-            && let Ok(private_key) = SigningKey::from_pkcs8_pem(&x.private_key)
-        {
-            return Ok(Some(Self {
-                token: DeviceToken {
-                    issue_instant: Utc
-                        .timestamp_opt(x.issue_instant, 0)
-                        .single()
-                        .unwrap_or_else(Utc::now),
-                    not_after: Utc
-                        .timestamp_opt(x.not_after, 0)
-                        .single()
-                        .unwrap_or_else(Utc::now),
-                    token: x.token,
-                    display_claims: serde_json::from_value(x.display_claims)
-                        .unwrap_or_default(),
-                },
-                key: DeviceTokenKey {
-                    id: uuid,
-                    key: private_key,
-                    x: x.x,
-                    y: x.y,
-                },
-            }));
-        }
-
-        Ok(None)
-    }
-
     pub async fn upsert(
         &self,
         exec: impl sqlx::Executor<'_, Database = sqlx::Sqlite>,
@@ -1314,103 +1236,6 @@ pub struct DeviceToken {
     pub not_after: DateTime<Utc>,
     pub token: String,
     pub display_claims: HashMap<String, serde_json::Value>,
-}
-
-#[tracing::instrument(skip(key))]
-pub async fn device_token(
-    key: &DeviceTokenKey,
-    current_date: DateTime<Utc>,
-) -> Result<RequestWithDate<DeviceToken>, MinecraftAuthenticationError> {
-    let res = send_signed_request(
-        None,
-        "https://device.auth.xboxlive.com/device/authenticate",
-        "/device/authenticate",
-        json!({
-            "Properties": {
-                "AuthMethod": "ProofOfPossession",
-                "Id": format!("{{{}}}", key.id.to_string().to_uppercase()),
-                "DeviceType": "Win32",
-                "Version": "10.16.0",
-                "ProofKey": {
-                    "kty": "EC",
-                    "x": key.x,
-                    "y": key.y,
-                    "crv": "P-256",
-                    "alg": "ES256",
-                    "use": "sig"
-                }
-            },
-            "RelyingParty": "http://auth.xboxlive.com",
-            "TokenType": "JWT"
-
-        }),
-        key,
-        MinecraftAuthStep::GetDeviceToken,
-        current_date,
-    )
-    .await?;
-
-    Ok(RequestWithDate {
-        date: res.current_date,
-        value: res.body,
-    })
-}
-
-#[derive(Deserialize)]
-#[serde(rename_all = "PascalCase")]
-struct RedirectUri {
-    pub msa_oauth_redirect: String,
-}
-
-#[tracing::instrument(skip(key))]
-async fn sisu_authenticate(
-    token: &str,
-    challenge: &str,
-    key: &DeviceTokenKey,
-    current_date: DateTime<Utc>,
-) -> Result<(String, RequestWithDate<RedirectUri>), MinecraftAuthenticationError>
-{
-    let res = send_signed_request::<RedirectUri>(
-        None,
-        "https://sisu.xboxlive.com/authenticate",
-        "/authenticate",
-        json!({
-          "AppId": MICROSOFT_CLIENT_ID,
-          "DeviceToken": token,
-          "Offers": [
-            REQUESTED_SCOPE
-          ],
-          "Query": {
-            "code_challenge": challenge,
-            "code_challenge_method": "S256",
-            "state": generate_oauth_challenge(),
-            "prompt": "select_account"
-          },
-          "RedirectUri": AUTH_REPLY_URL,
-          "Sandbox": "RETAIL",
-          "TokenType": "code",
-          "TitleId": "1794566092",
-        }),
-        key,
-        MinecraftAuthStep::SisuAuthenticate,
-        current_date,
-    )
-    .await?;
-
-    let session_id = res
-        .headers
-        .get("X-SessionId")
-        .and_then(|x| x.to_str().ok())
-        .ok_or_else(|| MinecraftAuthenticationError::NoSessionId)?
-        .to_string();
-
-    Ok((
-        session_id,
-        RequestWithDate {
-            date: res.current_date,
-            value: res.body,
-        },
-    ))
 }
 
 #[derive(Deserialize)]
@@ -2012,123 +1837,6 @@ pub struct DeviceTokenKey {
     pub key: SigningKey,
     pub x: String,
     pub y: String,
-}
-
-#[tracing::instrument]
-fn generate_key() -> Result<DeviceTokenKey, MinecraftAuthenticationError> {
-    let uuid = Uuid::new_v4();
-
-    let signing_key = SigningKey::random(&mut OsRng);
-    let public_key = VerifyingKey::from(&signing_key);
-
-    let encoded_point = public_key.to_encoded_point(false);
-
-    Ok(DeviceTokenKey {
-        id: uuid,
-        key: signing_key,
-        x: BASE64_URL_SAFE_NO_PAD.encode(
-            encoded_point.x().ok_or_else(|| {
-                MinecraftAuthenticationError::ReadingPublicKey
-            })?,
-        ),
-        y: BASE64_URL_SAFE_NO_PAD.encode(
-            encoded_point.y().ok_or_else(|| {
-                MinecraftAuthenticationError::ReadingPublicKey
-            })?,
-        ),
-    })
-}
-
-struct SignedRequestResponse<T> {
-    pub headers: HeaderMap,
-    pub current_date: DateTime<Utc>,
-    pub body: T,
-}
-
-#[tracing::instrument(skip(key))]
-async fn send_signed_request<T: DeserializeOwned>(
-    authorization: Option<&str>,
-    url: &str,
-    url_path: &str,
-    raw_body: serde_json::Value,
-    key: &DeviceTokenKey,
-    step: MinecraftAuthStep,
-    current_date: DateTime<Utc>,
-) -> Result<SignedRequestResponse<T>, MinecraftAuthenticationError> {
-    let auth = authorization.map_or(Vec::new(), |v| v.as_bytes().to_vec());
-
-    let body = serde_json::to_vec(&raw_body).map_err(|source| {
-        MinecraftAuthenticationError::SerializeBody { source, step }
-    })?;
-    let time: u128 =
-        { ((current_date.timestamp() as u128) + 11644473600) * 10000000 };
-
-    let mut buffer = Vec::new();
-    buffer.extend_from_slice(&1_u32.to_be_bytes()[..]);
-    buffer.push(0_u8);
-    buffer.extend_from_slice(&(time as u64).to_be_bytes()[..]);
-    buffer.push(0_u8);
-    buffer.extend_from_slice("POST".as_bytes());
-    buffer.push(0_u8);
-    buffer.extend_from_slice(url_path.as_bytes());
-    buffer.push(0_u8);
-    buffer.extend_from_slice(&auth);
-    buffer.push(0_u8);
-    buffer.extend_from_slice(&body);
-    buffer.push(0_u8);
-
-    let ecdsa_sig: Signature = key.key.sign(&buffer);
-
-    let mut sig_buffer = Vec::new();
-    sig_buffer.extend_from_slice(&1_i32.to_be_bytes()[..]);
-    sig_buffer.extend_from_slice(&(time as u64).to_be_bytes()[..]);
-    sig_buffer.extend_from_slice(&ecdsa_sig.r().to_bytes());
-    sig_buffer.extend_from_slice(&ecdsa_sig.s().to_bytes());
-
-    let signature = BASE64_STANDARD.encode(&sig_buffer);
-
-    let res = auth_retry(|| {
-        let mut request = INSECURE_REQWEST_CLIENT
-            .post(url)
-            .header("Content-Type", "application/json; charset=utf-8")
-            .header("Accept", "application/json")
-            .header("Signature", &signature);
-
-        if url != "https://sisu.xboxlive.com/authorize" {
-            request = request.header("x-xbl-contract-version", "1");
-        }
-
-        if let Some(auth) = authorization {
-            request = request.header("Authorization", auth);
-        }
-
-        request.body(body.clone()).send()
-    })
-    .await
-    .map_err(|source| MinecraftAuthenticationError::Request { source, step })?;
-
-    let status = res.status();
-    let headers = res.headers().clone();
-
-    let current_date = get_date_header(&headers);
-
-    let body = res.text().await.map_err(|source| {
-        MinecraftAuthenticationError::Request { source, step }
-    })?;
-
-    let body = serde_json::from_str(&body).map_err(|source| {
-        MinecraftAuthenticationError::DeserializeResponse {
-            source,
-            raw: body,
-            step,
-            status_code: status,
-        }
-    })?;
-    Ok(SignedRequestResponse {
-        headers,
-        current_date,
-        body,
-    })
 }
 
 #[tracing::instrument]

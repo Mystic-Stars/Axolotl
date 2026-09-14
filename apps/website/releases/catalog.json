@@ -1,6 +1,126 @@
 {
-  "updated_at": "2026-09-12T21:00:36.000Z",
+  "updated_at": "2026-09-13T21:17:55.000Z",
   "announcements": [
+    {
+      "id": "launcher-1.9.6-beta.7",
+      "version": "1.9.6-beta.7",
+      "publishedAt": "2026-09-13",
+      "title": {
+        "en-US": "Axolotl Launcher 1.9.6-beta.7",
+        "zh-CN": "Axolotl Launcher 1.9.6-beta.7"
+      },
+      "changes": {
+        "changed": [
+          {
+            "en-US": "Changed the default launcher log level to Info and normalized existing log-level settings.",
+            "zh-CN": "将启动器的默认日志等级调整为 Info，并统一迁移已有的日志等级设置。"
+          },
+          {
+            "en-US": "Simplified the splash screen appearance by removing its glow effect.",
+            "zh-CN": "移除启动画面的发光效果，使其外观更加简洁。"
+          }
+        ],
+        "fixed": [
+          {
+            "en-US": "Fixed periodic launcher freezes during high-speed downloads, including freezes that continued after navigating to another page.",
+            "zh-CN": "修复高速下载时启动器周期性卡顿，以及切换到其他页面后仍受影响的问题。"
+          },
+          {
+            "en-US": "Fixed download speeds sometimes being reported higher than the actual transfer rate.",
+            "zh-CN": "修复下载速度有时高于实际传输速率的问题。"
+          },
+          {
+            "en-US": "Fixed cancellation or failure of linked instance imports potentially deleting files from the original external instance.",
+            "zh-CN": "修复取消或执行失败的链接实例导入可能删除原外部实例文件、造成数据丢失的问题。"
+          },
+          {
+            "en-US": "Fixed imported and symlinked instances being incorrectly treated as direct-linked instances during synchronization, which could cause duplicate, modified, or removed instance records.",
+            "zh-CN": "修复同步时错误地将导入实例和符号链接实例视为直连实例，可能导致实例记录被重复创建、修改或移除的问题。"
+          },
+          {
+            "en-US": "Fixed an extra background section appearing beside the navigation tabs on the Browse page.",
+            "zh-CN": "修复发现页导航标签旁出现多余背景区块的问题。"
+          },
+          {
+            "en-US": "Fixed the check icon being positioned incorrectly in the accent color settings.",
+            "zh-CN": "修复强调色设置中选中标记位置不正确的问题。"
+          },
+          {
+            "en-US": "Fixed excessive reserved space around the bottom floating action bar.",
+            "zh-CN": "修复底部浮动操作栏自动避让时预留空白过大的问题。"
+          }
+        ]
+      }
+    },
+    {
+      "id": "launcher-1.9.6-beta.6",
+      "version": "1.9.6-beta.6",
+      "publishedAt": "2026-09-13",
+      "title": {
+        "en-US": "Axolotl Launcher 1.9.6-beta.6",
+        "zh-CN": "Axolotl Launcher 1.9.6-beta.6"
+      },
+      "changes": {
+        "added": [
+          {
+            "en-US": "Added concurrent batch downloads for multiple content items from the browse cart.",
+            "zh-CN": "新增浏览购物车中多个内容项目的并发批量下载。"
+          },
+          {
+            "en-US": "Added SPA navigation for browse tabs with sticky toolbars, pagination controls, and go-to-page support.",
+            "zh-CN": "新增浏览页面标签的 SPA 导航、固定工具栏、分页控件和跳转页面功能。"
+          },
+          {
+            "en-US": "Added unified loading skeletons, content-card fade-in effects, refresh masks, and empty states across browse pages.",
+            "zh-CN": "为浏览页面统一添加加载骨架屏、内容卡片淡入效果、刷新遮罩和空状态。"
+          },
+          {
+            "en-US": "Added installed-state indicators to browse actions.",
+            "zh-CN": "为浏览页面操作按钮添加已安装状态提示。"
+          },
+          {
+            "en-US": "Added the copying guidelines link back to About settings.",
+            "zh-CN": "在关于设置中重新添加版权使用指引链接。"
+          }
+        ],
+        "changed": [
+          {
+            "en-US": "Refined settings navigation, language selection, search behavior, background drop handling, and onboarding presentation.",
+            "zh-CN": "优化设置导航、语言选择、搜索行为、背景拖放处理和新手引导展示。"
+          },
+          {
+            "en-US": "Migrated frontend styling to shared design tokens for more consistent colors, spacing, and component appearance.",
+            "zh-CN": "将前端样式迁移至统一设计令牌，使颜色、间距和组件外观更加一致。"
+          },
+          {
+            "en-US": "Improved browse loading performance by deferring data loading until route entry and stabilizing visual transitions.",
+            "zh-CN": "通过延迟至路由进入后加载数据并稳定视觉过渡，提升浏览页面加载体验。"
+          }
+        ],
+        "fixed": [
+          {
+            "en-US": "Fixed browse actions failing to reflect whether content was already installed.",
+            "zh-CN": "修复浏览页面操作按钮无法正确反映内容已安装状态的问题。"
+          },
+          {
+            "en-US": "Fixed browse pagination and tab navigation causing unnecessary page remounts or stale content.",
+            "zh-CN": "修复浏览页面分页和标签导航导致不必要的页面重载或内容过期的问题。"
+          },
+          {
+            "en-US": "Fixed browse skeleton layouts, refresh states, empty states, and chrome shadows displaying inconsistently.",
+            "zh-CN": "修复浏览页面骨架屏布局、刷新状态、空状态和界面阴影显示不一致的问题。"
+          },
+          {
+            "en-US": "Fixed CurseForge map requests being sent when no API key was configured.",
+            "zh-CN": "修复未配置 API 密钥时仍请求 CurseForge 地图数据的问题。"
+          },
+          {
+            "en-US": "Fixed frontend scripts invoking shell commands in an unsafe way.",
+            "zh-CN": "修复前端脚本以不安全方式调用 Shell 命令的问题。"
+          }
+        ]
+      }
+    },
     {
       "id": "launcher-1.9.6-beta.5",
       "version": "1.9.6-beta.5",

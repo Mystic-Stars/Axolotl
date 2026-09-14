@@ -5,12 +5,7 @@ import type { InstanceLoader } from './types'
 
 export type ContentProvider = 'modrinth' | 'curseforge' | 'local'
 export type InstanceUpgradeProjectType =
-	| 'mod'
-	| 'datapack'
-	| 'resourcepack'
-	| 'shaderpack'
-	| 'schematic'
-	| 'worldsave'
+	'mod' | 'datapack' | 'resourcepack' | 'shaderpack' | 'schematic' | 'worldsave'
 export type ShaderRuntime = 'iris' | 'opti_fine' | 'none' | 'unknown'
 export type InstanceUpgradeItemStatus =
 	| 'upgrade_available'

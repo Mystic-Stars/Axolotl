@@ -74,20 +74,6 @@ pub(crate) enum H2DownloadFailure {
 }
 
 impl H2DownloadFailure {
-    pub(crate) const fn as_str(self) -> &'static str {
-        match self {
-            Self::Ineligible(reason) => reason,
-            Self::Connect => "HTTP/2 TCP connection failed",
-            Self::Tls => "HTTP/2 TLS connection failed",
-            Self::Protocol => "HTTP/2 protocol failed",
-            Self::Http => "HTTP/2 response was unsuccessful",
-            Self::Integrity => "HTTP/2 integrity validation failed",
-            Self::Content => "HTTP/2 content validation failed",
-            Self::Io => "HTTP/2 local I/O failed",
-            Self::Slow => "HTTP/2 single stream stayed below expectation",
-        }
-    }
-
     pub(crate) const fn should_cooldown_authority(self) -> bool {
         matches!(self, Self::Protocol)
     }

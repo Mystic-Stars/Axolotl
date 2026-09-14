@@ -16,7 +16,8 @@ pub use self::commands::{
 pub(crate) use self::commands::{
     create_direct_link_instance, create_instance, edit_instance, get_instance,
     get_instances_metadata, list_instances, refresh_all_instances,
-    remove_instance, restore_instance_metadata, sync_direct_link_instances,
+    remove_instance, remove_instance_preserving_external_files,
+    restore_instance_metadata, sync_direct_link_instances,
 };
 pub(crate) use self::commands::{
     dependencies_to_content_items, finalize_project_materialization,

@@ -317,9 +317,6 @@
   "app.update-popup.body.download-complete": {
     "message": "Tapos nang ma-download ang Axolotl Launcher v{version}. Mag-reload upang ma-update ngayon, o awtomatiko sa pagsara ng Axolotl Launcher."
   },
-  "app.update-popup.body.linux": {
-    "message": "Magagamit na ngayon ang Axolotl Launcher v{version}. Gamitin ang iyong package manager upang i-update sa pinabagong tampok at pag-aayos!"
-  },
   "app.update-popup.body.metered": {
     "message": "Magagamit na ngayon ang Axolotl Launcher v{version}! Hindi namin dinanload kaagad dahil naka-metro ang inyong network."
   },

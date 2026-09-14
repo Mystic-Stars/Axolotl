@@ -37,6 +37,7 @@ const props = withDefaults(
 		limit?: HomeRecentLimit
 	}>(),
 	{
+		dashboardSize: null,
 		limit: HOME_RECENT_DEFAULT_LIMIT,
 	},
 )
@@ -162,11 +163,17 @@ async function stopInstance(instance: GameInstance) {
 </script>
 
 <template>
-	<section class="home-recent-worlds flex min-w-0 min-h-0 h-full flex-col gap-3" :data-size="dashboardSize">
+	<section
+		class="home-recent-worlds flex min-w-0 min-h-0 h-full flex-col gap-3"
+		:data-size="dashboardSize"
+	>
 		<div class="home-widget-heading flex min-w-0 h-8 flex-none items-center gap-2">
 			<h2>{{ formatMessage(messages.recentTitle) }}</h2>
 		</div>
-		<div v-if="recentItems.length > 0" class="home-recent-list flex min-w-0 min-h-0 flex-1 flex-col gap-1 overflow-x-hidden overflow-y-auto pr-1">
+		<div
+			v-if="recentItems.length > 0"
+			class="home-recent-list flex min-w-0 min-h-0 flex-1 flex-col gap-1 overflow-x-hidden overflow-y-auto pr-1"
+		>
 			<template
 				v-for="item in recentItems"
 				:key="item.type === 'world' ? worldKey(item.world) : `${item.instance.id}:instance`"

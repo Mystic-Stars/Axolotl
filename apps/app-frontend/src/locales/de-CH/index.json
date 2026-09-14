@@ -548,9 +548,6 @@
   "app.update-popup.body.download-complete": {
     "message": "Axolotl Launcher v{version} wurde heruntergeladen. Lade die App neu um jetzt zu aktualisieren, oder automatisch nach dem schliessen der Axolotl Launcher."
   },
-  "app.update-popup.body.linux": {
-    "message": "Axolotl Launcher v{version} ist verfügbar. Benutze deinen Paketmanager zum aktualisieren, um die neusten Features und Bugfixes zu erhalten!"
-  },
   "app.update-popup.body.metered": {
     "message": "Axolotl Launcher v{version} ist jetzt verfügbar! Da du in einem begrenzten Netzwerk bist, haben wir es nicht automatisch heruntergeladen."
   },

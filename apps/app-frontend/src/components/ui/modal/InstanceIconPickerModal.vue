@@ -33,20 +33,20 @@
 					</h2>
 					<div class="flex flex-wrap gap-2">
 						<button
-							v-for="background in backgrounds"
-							:key="background.id"
+							v-for="iconBackground in backgrounds"
+							:key="iconBackground.id"
 							type="button"
 							class="h-10 w-10 cursor-pointer rounded-xl border-2 border-solid transition-transform hover:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-wait disabled:opacity-60"
 							:class="
-								background.id === selectedBackgroundId
+								iconBackground.id === selectedBackgroundId
 									? 'border-contrast shadow-md'
 									: 'border-transparent'
 							"
-							:style="background.style"
-							:aria-label="formatMessage(background.name)"
-							:aria-pressed="background.id === selectedBackgroundId"
+							:style="iconBackground.style"
+							:aria-label="formatMessage(iconBackground.name)"
+							:aria-pressed="iconBackground.id === selectedBackgroundId"
 							:disabled="saving"
-							@click="selectedBackgroundId = background.id"
+							@click="selectedBackgroundId = iconBackground.id"
 						/>
 					</div>
 				</section>

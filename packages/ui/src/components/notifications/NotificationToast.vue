@@ -1,6 +1,6 @@
 <template>
 	<div
-		class="notification-toast relative overflow-hidden rounded-[20px] border border-solid border-surface-5 bg-surface-3 p-4 shadow-[0px_4px_8px_0px_rgba(0,0,0,0.1),0px_1px_3px_0px_rgba(0,0,0,0.2)]"
+		class="notification-toast relative overflow-hidden rounded-[var(--radius-xl)] border border-solid border-surface-5 bg-surface-3 p-4 shadow-[0px_4px_8px_0px_rgba(0,0,0,0.1),0px_1px_3px_0px_rgba(0,0,0,0.2)]"
 	>
 		<div v-if="isInviteNotification" class="flex w-full items-start gap-3">
 			<Avatar
@@ -190,11 +190,7 @@ import Avatar from '../base/Avatar.vue'
 import ButtonStyled from '../base/ButtonStyled.vue'
 
 type NotificationToastType =
-	| 'friend-request'
-	| 'server-invite'
-	| 'instance-invite'
-	| 'instance-download'
-	| 'instance-ready'
+	'friend-request' | 'server-invite' | 'instance-invite' | 'instance-download' | 'instance-ready'
 
 const props = withDefaults(
 	defineProps<{

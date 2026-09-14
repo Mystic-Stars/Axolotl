@@ -345,13 +345,7 @@ export namespace Archon {
 			}
 
 			export type Modloader =
-				| 'forge'
-				| 'neo_forge'
-				| 'fabric'
-				| 'quilt'
-				| 'paper'
-				| 'purpur'
-				| 'vanilla'
+				'forge' | 'neo_forge' | 'fabric' | 'quilt' | 'paper' | 'purpur' | 'vanilla'
 
 			export type ModpackSpecModrinth = {
 				platform: 'modrinth'
@@ -581,21 +575,10 @@ export namespace Archon {
 			export type Status = 'installing' | 'broken' | 'available' | 'suspended'
 
 			export type SuspensionReason =
-				| 'moderated'
-				| 'paymentfailed'
-				| 'cancelled'
-				| 'upgrading'
-				| 'other'
+				'moderated' | 'paymentfailed' | 'cancelled' | 'upgrading' | 'other'
 
 			export type Loader =
-				| 'Forge'
-				| 'NeoForge'
-				| 'Fabric'
-				| 'Quilt'
-				| 'Purpur'
-				| 'Spigot'
-				| 'Vanilla'
-				| 'Paper'
+				'Forge' | 'NeoForge' | 'Fabric' | 'Quilt' | 'Purpur' | 'Spigot' | 'Vanilla' | 'Paper'
 
 			export type Game = 'Minecraft'
 
@@ -841,12 +824,7 @@ export namespace Archon {
 			export type BackupQueueOperationType = 'create' | 'restore'
 
 			export type BackupQueueState =
-				| 'pending'
-				| 'ongoing'
-				| 'completed'
-				| 'cancelled'
-				| 'failed'
-				| 'timed_out'
+				'pending' | 'ongoing' | 'completed' | 'cancelled' | 'failed' | 'timed_out'
 
 			export type BackupStatus = 'pending' | 'in_progress' | 'timed_out' | 'error' | 'done'
 
@@ -1018,13 +996,7 @@ export namespace Archon {
 			}
 
 			export type BackupState =
-				| 'pending'
-				| 'ongoing'
-				| 'done'
-				| 'failed'
-				| 'cancelled'
-				| 'unchanged'
-				| 'damaged'
+				'pending' | 'ongoing' | 'done' | 'failed' | 'cancelled' | 'unchanged' | 'damaged'
 			export type BackupTask = 'file' | 'create' | 'restore'
 
 			export type WSBackupProgressEvent = {
@@ -1086,8 +1058,7 @@ export namespace Archon {
 			}
 
 			export type WSInstallationResultEvent =
-				| WSInstallationResultOkEvent
-				| WSInstallationResultErrEvent
+				WSInstallationResultOkEvent | WSInstallationResultErrEvent
 
 			export type WSInstallationResultOkEvent = {
 				event: 'installation-result'
@@ -1114,12 +1085,7 @@ export namespace Archon {
 			export type FilesystemOpKind = 'unarchive'
 
 			export type FilesystemOpState =
-				| 'queued'
-				| 'ongoing'
-				| 'done'
-				| 'cancelled'
-				| 'failure-corrupted'
-				| 'failure-invalid-path'
+				'queued' | 'ongoing' | 'done' | 'cancelled' | 'failure-corrupted' | 'failure-invalid-path'
 
 			export type FilesystemOperation = {
 				op: FilesystemOpKind

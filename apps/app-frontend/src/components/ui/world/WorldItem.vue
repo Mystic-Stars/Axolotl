@@ -278,7 +278,8 @@ const messages = defineMessages({
 			:class="[
 				{
 					'world-item-highlighted': highlighted,
-					'world-item-dashboard-compact grid grid-cols-[auto_minmax(0,1fr)_auto] gap-2 p-1.5': dashboardDensity === 'compact',
+					'world-item-dashboard-compact grid grid-cols-[auto_minmax(0,1fr)_auto] gap-2 p-1.5':
+						dashboardDensity === 'compact',
 					'world-item-dashboard-comfortable p-2': dashboardDensity === 'comfortable',
 				},
 				flat ? 'px-2 py-2 hover:bg-button-bg' : 'card-shadow bg-bg-raised p-3',

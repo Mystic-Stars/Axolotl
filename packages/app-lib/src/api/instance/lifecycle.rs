@@ -7,7 +7,6 @@ use crate::state::{
 };
 use crate::util::{fetch::write_cached_icon, io};
 use std::path::Path;
-use std::path::PathBuf;
 
 #[tracing::instrument]
 #[allow(clippy::too_many_arguments)]

@@ -117,7 +117,9 @@ const canInstall = computed(
 )
 
 function versionLabel(version: Labrinth.Versions.v2.Version) {
-	return [version.version_number || version.name, version.game_versions.join(', ')].filter(Boolean).join(' · ')
+	return [version.version_number || version.name, version.game_versions.join(', ')]
+		.filter(Boolean)
+		.join(' · ')
 }
 
 function show(nextData: ModpackInstallModalData) {
@@ -168,7 +170,9 @@ defineExpose({ show, hide })
 					:tint-by="data.project.title"
 					no-shadow
 				/>
-				<span class="min-w-0 truncate text-lg font-semibold text-contrast">{{ data.project.title }}</span>
+				<span class="min-w-0 truncate text-lg font-semibold text-contrast">{{
+					data.project.title
+				}}</span>
 			</div>
 
 			<label class="flex flex-col gap-2">
@@ -177,14 +181,21 @@ defineExpose({ show, hide })
 					v-model="selectedVersionId"
 					:options="versionOptions"
 					:name="formatMessage(messages.version)"
-					:display-value="selectedVersion ? versionLabel(selectedVersion) : formatMessage(messages.selectVersion)"
+					:display-value="
+						selectedVersion ? versionLabel(selectedVersion) : formatMessage(messages.selectVersion)
+					"
 				/>
 			</label>
 
 			<div v-if="selectedVersion" class="flex flex-wrap items-center gap-2 text-sm text-secondary">
-				<Badge :color="releaseColor(selectedVersion.version_type)" :type="selectedVersion.version_type" />
+				<Badge
+					:color="releaseColor(selectedVersion.version_type)"
+					:type="selectedVersion.version_type"
+				/>
 				<span v-if="selectedVersion.loaders.length">{{ selectedVersion.loaders.join(', ') }}</span>
-				<span v-if="selectedVersion.game_versions.length">{{ selectedVersion.game_versions.join(', ') }}</span>
+				<span v-if="selectedVersion.game_versions.length">{{
+					selectedVersion.game_versions.join(', ')
+				}}</span>
 			</div>
 
 			<label class="flex flex-col gap-2">

@@ -7,11 +7,7 @@ export const UNGROUPED_GROUP_KEY = '__ungrouped__'
 
 export type GridGroupingOption = 'Group' | 'Loader' | 'Game version' | 'None'
 export type GridSortOption =
-	| 'Name'
-	| 'Last played'
-	| 'Date created'
-	| 'Date modified'
-	| 'Game version'
+	'Name' | 'Last played' | 'Date created' | 'Date modified' | 'Game version'
 
 export interface GridDisplayState {
 	group: GridGroupingOption

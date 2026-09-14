@@ -13,8 +13,10 @@ use theseus::data::{
     InstanceInstallTarget, InstanceLaunchOverridesPatch,
     InstanceLink as CoreInstanceLink, InstanceMetadata, LinkedModpackInfo,
 };
-use theseus::instance::InstallProjectWithDependenciesRequest;
 use theseus::instance::QuickPlayType;
+use theseus::instance::{
+    InstallContentBatchRequest, InstallProjectWithDependenciesRequest,
+};
 use theseus::pack::import::ImportLauncherType;
 use theseus::prelude::*;
 use theseus::server_address::ServerAddress;
@@ -79,6 +81,7 @@ pub fn init<R: tauri::Runtime>() -> tauri::plugin::TauriPlugin<R> {
             instance_preview_project_with_dependencies,
             instance_preview_project_with_dependencies_for_target,
             instance_queue_project_with_dependencies,
+            instance_queue_content_batch,
             instance_queue_curseforge_content,
             instance_queue_curseforge_world,
             instance_switch_project_version_with_dependencies,
@@ -1182,6 +1185,13 @@ pub async fn instance_queue_project_with_dependencies(
         display_icon,
     )
     .await?)
+}
+
+#[tauri::command]
+pub async fn instance_queue_content_batch(
+    request: InstallContentBatchRequest,
+) -> Result<theseus::install::InstallJobSnapshot> {
+    Ok(theseus::instance::queue_content_batch(request).await?)
 }
 
 #[tauri::command]

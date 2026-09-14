@@ -44,7 +44,9 @@ async function pickFile() {
 			:title="path"
 			>{{ path }}</span
 		>
-		<span v-else class="selected-path empty min-w-0 overflow-hidden flex-1 text-secondary text-[0.78rem] truncate"
+		<span
+			v-else
+			class="selected-path empty min-w-0 overflow-hidden flex-1 text-secondary text-[0.78rem] truncate"
 			>{{ formatMessage(messages.selectFile) }}…</span
 		>
 	</div>
@@ -63,5 +65,4 @@ async function pickFile() {
 	gap: 0.4rem;
 	white-space: nowrap;
 }
-
 </style>

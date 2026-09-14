@@ -8,6 +8,21 @@ pub(crate) async fn remove_instance(
     instance_id: &str,
     state: &State,
 ) -> crate::Result<()> {
+    remove_instance_with_policy(instance_id, state, false).await
+}
+
+pub(crate) async fn remove_instance_preserving_external_files(
+    instance_id: &str,
+    state: &State,
+) -> crate::Result<()> {
+    remove_instance_with_policy(instance_id, state, true).await
+}
+
+async fn remove_instance_with_policy(
+    instance_id: &str,
+    state: &State,
+    preserve_external_files: bool,
+) -> crate::Result<()> {
     let _instance_lock = state.lock_instance_content(instance_id).await;
 
     let instance = instance_rows::get_instance_by_id(instance_id, &state.pool)
@@ -20,7 +35,10 @@ pub(crate) async fn remove_instance(
     // version directory is the instance itself, so removal deliberately
     // deletes the externally managed content in place. Keep the shared
     // `.minecraft` root (assets/libraries/other versions) intact.
-    let path = if instance.is_direct_linked() {
+    let managed_path = state.directories.instances_dir().join(&instance.path);
+    let path = if preserve_external_files || instance.symlink_target.is_some() {
+        managed_path
+    } else if instance.is_direct_linked() {
         crate::launcher::DirectLinkedLaunch::from_instance(&instance)?
             .ok_or_else(|| {
                 crate::ErrorKind::LauncherError(
@@ -40,11 +58,9 @@ pub(crate) async fn remove_instance(
         // (non-isolated) overrides for backwards compatibility.
         game_dir_override
     } else {
-        state.directories.instances_dir().join(&instance.path)
+        managed_path
     };
-    if path.exists() {
-        io::remove_dir_all(&path).await?;
-    }
+    io::remove_dir_all(&path).await?;
 
     let jobs = crate::install::store::mark_instance_deleted(instance_id, state)
         .await?;

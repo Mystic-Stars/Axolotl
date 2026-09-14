@@ -306,7 +306,7 @@ const bulkProgressMessage = computed(() => {
 				:aria-valuenow="bulkWaiting ? undefined : bulkProgress"
 				:aria-valuemin="0"
 				:aria-valuemax="bulkTotal"
-				style="box-shadow: 0px -2px 4px 0px rgba(27, 217, 106, 0.1)"
+				style="box-shadow: 0px -2px 4px 0px var(--color-green)"
 			/>
 		</div>
 	</FloatingActionBar>

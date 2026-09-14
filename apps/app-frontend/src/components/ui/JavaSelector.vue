@@ -1,6 +1,10 @@
 <template>
 	<JavaDetectionModal ref="detectJavaModal" @submit="commitSelection" />
-	<div :id="props.id" class="flex flex-wrap justify-between items-center gap-2" :class="{ compact }">
+	<div
+		:id="props.id"
+		class="flex flex-wrap justify-between items-center gap-2"
+		:class="{ compact }"
+	>
 		<div class="flex items-center gap-2 w-full min-w-0">
 			<StyledInput
 				autocomplete="off"
@@ -288,5 +292,4 @@ async function reinstallJava() {
 }
 </script>
 
-<style lang="scss" scoped>
-</style>
+<style lang="scss" scoped></style>

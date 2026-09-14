@@ -47,14 +47,29 @@
   "badge.release": {
     "defaultMessage": "Release"
   },
+  "browse.clear-search": {
+    "defaultMessage": "Clear search"
+  },
   "browse.filter-results": {
     "defaultMessage": "Filter results..."
+  },
+  "browse.loading-results": {
+    "defaultMessage": "Loading results…"
   },
   "browse.no-results": {
     "defaultMessage": "No results found for your query!"
   },
+  "browse.no-results.heading": {
+    "defaultMessage": "Nothing here yet"
+  },
   "browse.offline": {
     "defaultMessage": "You are currently offline. Connect to the internet to browse Modrinth!"
+  },
+  "browse.offline.heading": {
+    "defaultMessage": "No connection"
+  },
+  "browse.retry": {
+    "defaultMessage": "Try again"
   },
   "browse.search.placeholder": {
     "defaultMessage": "Search {projectType}..."
@@ -305,6 +320,12 @@
   "console.action.share": {
     "defaultMessage": "Share"
   },
+  "console.command-completions.no-results": {
+    "defaultMessage": "No matching completions"
+  },
+  "console.command-completions.search": {
+    "defaultMessage": "Search command completions"
+  },
   "console.command.disabled-placeholder": {
     "defaultMessage": "Command input disabled"
   },
@@ -313,12 +334,6 @@
   },
   "console.command.server-not-running-placeholder": {
     "defaultMessage": "Server is not running"
-  },
-  "console.command-completions.no-results": {
-    "defaultMessage": "No matching completions"
-  },
-  "console.command-completions.search": {
-    "defaultMessage": "Search command completions"
   },
   "console.crash.export-context": {
     "defaultMessage": "Export crash context"
@@ -962,15 +977,6 @@
   "content.metadata-filter.source.shared-instance": {
     "defaultMessage": "Shared instance"
   },
-  "content.metadata-filter.state": {
-    "defaultMessage": "Status"
-  },
-  "content.metadata-filter.state.disabled": {
-    "defaultMessage": "Disabled"
-  },
-  "content.metadata-filter.state.enabled": {
-    "defaultMessage": "Enabled"
-  },
   "content.metadata-filter.toggle": {
     "defaultMessage": "Filter"
   },
@@ -979,15 +985,6 @@
   },
   "content.metadata-filter.unknown": {
     "defaultMessage": "Unknown"
-  },
-  "content.metadata-filter.update.available": {
-    "defaultMessage": "Update available"
-  },
-  "content.metadata-filter.update.up-to-date": {
-    "defaultMessage": "Up to date"
-  },
-  "content.metadata-filter.updates": {
-    "defaultMessage": "Updates"
   },
   "content.page-layout.browse-content": {
     "defaultMessage": "Browse content"
@@ -2531,18 +2528,6 @@
   "label.no-items": {
     "defaultMessage": "No items"
   },
-  "notification.panel.copy": {
-    "defaultMessage": "Copy to clipboard"
-  },
-  "notification.panel.copy-support": {
-    "defaultMessage": "Copy error details for support"
-  },
-  "notification.panel.dismiss": {
-    "defaultMessage": "Dismiss"
-  },
-  "notification.panel.export-error-logs": {
-    "defaultMessage": "Export error logs"
-  },
   "label.notifications": {
     "defaultMessage": "Notifications"
   },
@@ -2933,6 +2918,18 @@
   "notification.error.title": {
     "defaultMessage": "An error occurred"
   },
+  "notification.panel.copy": {
+    "defaultMessage": "Copy to clipboard"
+  },
+  "notification.panel.copy-support": {
+    "defaultMessage": "Copy error details for support"
+  },
+  "notification.panel.dismiss": {
+    "defaultMessage": "Dismiss"
+  },
+  "notification.panel.export-error-logs": {
+    "defaultMessage": "Export error logs"
+  },
   "omorphia.component.badge.label.accepted": {
     "defaultMessage": "Accepted"
   },
@@ -3019,6 +3016,15 @@
   },
   "omorphia.component.loading-indicator.label": {
     "defaultMessage": "Loading"
+  },
+  "pagination.go-to-page": {
+    "defaultMessage": "Go to page"
+  },
+  "pagination.go-to-page.placeholder": {
+    "defaultMessage": "Page"
+  },
+  "pagination.loading-page": {
+    "defaultMessage": "Loading page…"
   },
   "payment-method.amazon_pay": {
     "defaultMessage": "Amazon Pay"

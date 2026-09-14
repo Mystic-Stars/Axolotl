@@ -548,9 +548,6 @@
   "app.update-popup.body.download-complete": {
     "message": "Stahování Axolotl Launcher v{version} bylo dokončeno. Aktualizujte ji znovunačtením nebo se automaticky aktualizuje po zavření."
   },
-  "app.update-popup.body.linux": {
-    "message": "Axolotl Launcher v{version} je k dispozici. Aktualizujte ji pomocí svého správce balíčků, abyste získali nejnovější funkce a opravy!"
-  },
   "app.update-popup.body.metered": {
     "message": "Axolotl Launcher v{version} je nyní k dispozici! Protože jste v měřené síti, nebyla stažena automaticky."
   },

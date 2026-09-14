@@ -64,18 +64,18 @@ function openSettings() {
 </script>
 
 <template>
-	<header class="absolute top-0 left-0 w-full z-40 pointer-events-none">
+	<header class="pointer-events-none absolute left-0 top-0 z-40 w-full">
 		<div class="header-inner">
 			<NuxtLink
 				to="/"
 				:aria-label="formatMessage(messages.home)"
-				class="w-fit no-underline button-animation"
+				class="button-animation w-fit no-underline"
 			>
 				<AxolotlWordmark />
 			</NuxtLink>
 
 			<nav
-				class="desktop-navigation hidden lg:flex items-center gap-1 pointer-events-auto"
+				class="desktop-navigation pointer-events-auto hidden items-center gap-1 lg:flex"
 				:aria-label="formatMessage(messages.primary)"
 			>
 				<ButtonStyled type="transparent">
@@ -101,7 +101,7 @@ function openSettings() {
 				</ButtonStyled>
 			</nav>
 
-			<div class="header-actions flex items-center gap-1 pointer-events-auto">
+			<div class="header-actions pointer-events-auto flex items-center gap-1">
 				<ButtonStyled class="desktop-download hidden lg:flex" color="brand">
 					<a href="#download">
 						<DownloadIcon aria-hidden="true" />

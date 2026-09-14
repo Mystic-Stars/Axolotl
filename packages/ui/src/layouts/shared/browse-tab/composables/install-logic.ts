@@ -3,12 +3,7 @@ import type { Labrinth } from '@modrinth/api-client'
 import type { FilterValue } from '#ui/utils/search'
 
 export type BrowseInstallContentType =
-	| 'modpack'
-	| 'mod'
-	| 'plugin'
-	| 'datapack'
-	| 'resourcepack'
-	| 'shader'
+	'modpack' | 'mod' | 'plugin' | 'datapack' | 'resourcepack' | 'shader'
 export type BrowseInstallAddonContentType = Exclude<BrowseInstallContentType, 'modpack'>
 
 /**

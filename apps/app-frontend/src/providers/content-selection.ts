@@ -35,8 +35,10 @@ import {
 } from '@/helpers/curseforge'
 import {
 	get_content_snapshot,
+	type InstallContentBatchItem,
 	list as listInstances,
 	preview_project_with_dependencies,
+	queue_content_batch,
 	queue_project_with_dependencies,
 	type ResolveContentPlan,
 } from '@/helpers/instance'
@@ -839,7 +841,7 @@ export function createContentSelection({
 		} satisfies ContentInstallPreviewData
 	}
 
-	async function queuePrepared(
+	async function _queuePrepared(
 		selection: PreparedSelection,
 		instance: GameInstance,
 		approvedIds: Set<string>,
@@ -936,6 +938,39 @@ export function createContentSelection({
 		)
 	}
 
+	async function buildCurseForgeRequest(
+		selection: PreparedSelection,
+		instance: GameInstance,
+		approvedIds: Set<string>,
+	) {
+		const preview = selection.curseForgePreview
+		if (!preview) throw new Error('Missing CurseForge install preview')
+		const excludedDependencyProjectIds = preview.dependencies
+			.filter((dependency) => !approvedIds.has(dependencyKey('curseforge', String(dependency.projectId), String(dependency.fileId))))
+			.map((dependency) => dependency.projectId)
+		const forceDependencyProjectIds = preview.skipped
+			.filter((skipped) => skipped.reason === 'already_installed' && approvedIds.has(dependencyKey('curseforge', String(skipped.projectId), String(skipped.fileId ?? 'skipped'))))
+			.map((skipped) => skipped.projectId)
+		for (const fallback of preview.modrinthFallbacks ?? []) {
+			if (!approvedIds.has(dependencyKey('modrinth', fallback.projectId, fallback.versionId))) {
+				excludedDependencyProjectIds.push(fallback.parentProjectId)
+			}
+		}
+		return {
+			instanceId: instance.id,
+			projectId: Number(selection.item.providerProjectId),
+			fileId: Number(selection.item.versionId),
+			projectType: selection.item.contentType,
+			ownershipKind: 'user_added',
+			manualOperationKind: 'content_install',
+			gameVersion: usesTargetGameVersion(selection.item.contentType) ? instance.game_version : undefined,
+			modLoaderType: curseForgeLoaderType(instance.loader),
+			installDependencies: true,
+			excludedDependencyProjectIds: [...new Set(excludedDependencyProjectIds)],
+			forceDependencyProjectIds: [...new Set(forceDependencyProjectIds)],
+		}
+	}
+
 	async function installSelected() {
 		const instance = targetInstance.value
 		if (!instance || items.value.size === 0 || !previewModal) return false
@@ -1001,24 +1036,49 @@ export function createContentSelection({
 		state.value = 'queueing'
 		progress.value = { completed: 0, total: includedKeys.size }
 		const queueFailures = new Set(failed)
-		for (const selection of prepared.filter((candidate) => includedKeys.has(candidate.item.key))) {
-			try {
-				const job = await queuePrepared(selection, instance, approvedIds)
-				installedIdentityCache.delete(instance.id)
-				installedIdentityKeys.value = new Set()
-				installedIdentitySlugs.value = new Set()
-				const nextJobs = new Map(jobIdsByKey.value)
+		const included = prepared.filter((candidate) => includedKeys.has(candidate.item.key))
+		try {
+			const batchItems: InstallContentBatchItem[] = []
+			for (const selection of included) {
+				if (selection.item.provider === 'modrinth') {
+					const plan = selection.modrinthPlan
+					if (!plan) throw new Error('Missing Modrinth install preview')
+					batchItems.push({
+						type: 'modrinth',
+						project_id: selection.item.projectId,
+						version_id: selection.item.versionId,
+						content_type: toModrinthContentType(selection.item.contentType),
+						selected: {
+							game_versions: selection.item.preferences?.gameVersions ?? [],
+							loaders: selection.item.preferences?.loaders ?? [],
+						},
+						excluded_project_ids: plan.dependencies
+							.filter((dependency) => !approvedIds.has(dependencyKey('modrinth', dependency.project_id, dependency.version_id)))
+							.map((dependency) => dependency.project_id),
+						force_project_ids: plan.skipped
+							.filter((skipped) => skipped.reason === 'already_installed' && !!skipped.version_id && approvedIds.has(dependencyKey('modrinth', skipped.project_id, skipped.version_id)))
+							.map((skipped) => skipped.project_id),
+					})
+				} else if (selection.item.contentType === 'world') {
+					batchItems.push({ type: 'curse_forge_world', request: { instanceId: instance.id, projectId: Number(selection.item.providerProjectId), fileId: Number(selection.item.versionId) } })
+				} else {
+					const request = await buildCurseForgeRequest(selection, instance, approvedIds)
+					batchItems.push({ type: 'curse_forge', request })
+				}
+			}
+			const job = await queue_content_batch(instance.id, batchItems, {
+				title: included.length === 1 ? included[0].item.title : `${included.length} items`,
+				iconUrl: included.length === 1 ? included[0].item.iconUrl : null,
+			})
+			const nextJobs = new Map(jobIdsByKey.value)
+			for (const selection of included) {
 				nextJobs.set(installJobKey(instance.id, selection.item.key), job.job_id)
-				jobIdsByKey.value = nextJobs
 				remove(selection.item.key)
-			} catch (error) {
-				queueFailures.add(selection.item.key)
-				handleError(error)
 			}
-			progress.value = {
-				completed: progress.value.completed + 1,
-				total: progress.value.total,
-			}
+			jobIdsByKey.value = nextJobs
+		} catch (error) {
+			for (const selection of included) queueFailures.add(selection.item.key)
+			handleError(error)
 		}
 		errorKeys.value = queueFailures
 		heuristicOverrides.clear()
@@ -1033,19 +1093,20 @@ export function createContentSelection({
 	}
 
 	watch(
-		() => downloadManager.jobs.value,
+		() => downloadManager.jobs.value.map(({ job_id, status }) => ({ job_id, status })),
 		(jobs) => {
 			const terminalJobIds = new Set(
 				jobs.filter((job) => !activeJobStatuses.has(job.status)).map((job) => job.job_id),
 			)
 			if (!terminalJobIds.size) return
-			const next = new Map(jobIdsByKey.value)
-			for (const [key, jobId] of next) {
-				if (terminalJobIds.has(jobId)) next.delete(key)
+			let next: Map<string, string> | undefined
+			for (const [key, jobId] of jobIdsByKey.value) {
+				if (!terminalJobIds.has(jobId)) continue
+				next ??= new Map(jobIdsByKey.value)
+				next.delete(key)
 			}
-			jobIdsByKey.value = next
+			if (next) jobIdsByKey.value = next
 		},
-		{ deep: true },
 	)
 
 	return {

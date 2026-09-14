@@ -273,11 +273,7 @@ const activeJobStatuses = new Set<InstallJobStatus>([
 	'canceling',
 	'waiting_for_user',
 ])
-const cancelableJobStatuses = new Set<InstallJobStatus>([
-	'queued',
-	'running',
-	'waiting_for_user',
-])
+const cancelableJobStatuses = new Set<InstallJobStatus>(['queued', 'running', 'waiting_for_user'])
 const copyDetailsStallMs = 30_000
 
 interface ProgressSnapshot {
@@ -764,13 +760,9 @@ export async function useInstallJobNotifications(opts: {
 				wrapText: isFailedJob(job),
 				progressType: finished ? undefined : getProgressType(job),
 				progressCurrent:
-					!finished && hasDeterminateInstallProgress(progress)
-						? progress.current
-						: undefined,
+					!finished && hasDeterminateInstallProgress(progress) ? progress.current : undefined,
 				progressTotal:
-					!finished && hasDeterminateInstallProgress(progress)
-						? progress.total
-						: undefined,
+					!finished && hasDeterminateInstallProgress(progress) ? progress.total : undefined,
 				buttons: getButtons(job),
 				onDismiss: finished
 					? async () => {

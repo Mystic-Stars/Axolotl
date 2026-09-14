@@ -998,9 +998,6 @@
   "app.crash-analysis.ai.error": {
     "message": "AI 解釋失敗：{message}"
   },
-  "app.crash-analysis.ai.settings.description": {
-    "message": "可選：將經過脫敏和裁剪的崩潰內容傳送給 AI Providers 中設定的模型。"
-  },
   "app.crash-analysis.ai.settings.enabled": {
     "message": "啟用 AI 解釋"
   },
@@ -1015,9 +1012,6 @@
   },
   "app.crash-analysis.ai.settings.provider": {
     "message": "AI Provider"
-  },
-  "app.crash-analysis.ai.settings.title": {
-    "message": "崩潰 AI 解釋"
   },
   "app.crash-analysis.ai.title": {
     "message": "AI 崩潰解釋"
@@ -5879,9 +5873,6 @@
   "app.servers.card.type": {
     "message": "{type} · {version}"
   },
-  "app.servers.console.command-echo": {
-    "message": "> {command}"
-  },
   "app.servers.console.not-running": {
     "message": "伺服器未執行"
   },
@@ -7250,9 +7241,6 @@
   "app.settings.updates.checking": {
     "message": "正在檢查更新..."
   },
-  "app.settings.updates.cnb": {
-    "message": "CNB 管道"
-  },
   "app.settings.updates.current-version": {
     "message": "目前版本 {version}"
   },
@@ -7264,9 +7252,6 @@
   },
   "app.settings.updates.latest-version-loading": {
     "message": "正在取得"
-  },
-  "app.settings.updates.description": {
-    "message": "選擇 Axolotl 檢查啟動器更新的管道。"
   },
   "app.settings.updates.disabled": {
     "message": "此組建已停用更新功能。"
@@ -7283,9 +7268,6 @@
   "app.settings.updates.immediate-fetch.beta-description": {
     "message": "Beta 更新一律立即可用。"
   },
-  "app.settings.updates.github": {
-    "message": "GitHub 管道"
-  },
   "app.settings.updates.offline": {
     "message": "請連線至網際網路後再檢查更新。"
   },
@@ -7297,9 +7279,6 @@
   },
   "app.settings.updates.paused": {
     "message": "更新已暫停。"
-  },
-  "app.settings.updates.portable": {
-    "message": "便攜模式無法自動更新，請手動下載最新版本。"
   },
   "app.settings.updates.preferences.title": {
     "message": "更新行為"
@@ -7708,9 +7687,6 @@
   },
   "app.update-popup.body.download-complete": {
     "message": "Axolotl Launcher v{version} 已完成下載！立即重新載入以更新，或在關閉 Axolotl Launcher 時自動更新。"
-  },
-  "app.update-popup.body.linux": {
-    "message": "Axolotl Launcher v{version} 現已推出。請使用軟體包管理員進行更新，以取得最新的功能與修正！"
   },
   "app.update-popup.body.metered": {
     "message": "Axolotl Launcher v{version} 現已推出！由於你目前使用的是計量付費網路，我們並未自動下載更新。"

@@ -278,6 +278,28 @@ pub async fn queue_curseforge_world(
     .await
 }
 
+#[derive(Debug, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct InstallContentBatchRequest {
+    pub instance_id: String,
+    pub items: Vec<crate::install::InstallContentBatchItem>,
+    pub display_title: String,
+    pub display_icon: Option<String>,
+}
+
+#[tracing::instrument]
+pub async fn queue_content_batch(
+    request: InstallContentBatchRequest,
+) -> crate::Result<crate::install::InstallJobSnapshot> {
+    crate::install::install_content_batch(
+        request.instance_id,
+        request.items,
+        request.display_title,
+        request.display_icon,
+    )
+    .await
+}
+
 fn plan_project_ids(plan: &ResolveContentPlan) -> Vec<String> {
     let mut project_ids = Vec::with_capacity(plan.dependencies.len() + 1);
     project_ids.push(plan.primary.project_id.clone());

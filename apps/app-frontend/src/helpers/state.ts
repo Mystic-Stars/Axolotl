@@ -25,12 +25,7 @@ export interface LoadingBar {
 }
 
 export type OpeningCommandEvent =
-	| 'RunMRPack'
-	| 'InstallServer'
-	| 'InstallVersion'
-	| 'InstallMod'
-	| 'InstallModpack'
-	| string
+	'RunMRPack' | 'InstallServer' | 'InstallVersion' | 'InstallMod' | 'InstallModpack' | string
 
 export interface OpeningCommand {
 	event: OpeningCommandEvent

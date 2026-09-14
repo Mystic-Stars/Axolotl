@@ -33,11 +33,11 @@ import {
 	defineMessages,
 	DropdownSelect,
 	injectNotificationManager,
+	type MessageDescriptor,
 	PopoutMenu,
 	Slider,
 	StyledInput,
 	Toggle,
-	type MessageDescriptor,
 	useRelativeTime,
 	useVIntl,
 } from '@modrinth/ui'
@@ -89,7 +89,7 @@ import {
 	SEED_MAP_ORE_MAX_SCALE,
 	SEED_MAP_SCALES,
 	SEED_MAP_STRUCTURE_ASSET_ROOT as structureAssetRoot,
-	seedMapBiomeSlug,
+	seedMapBiomeMessage,
 	type SeedMapDimension,
 	type SeedMapDisplayMode,
 	type SeedMapEdition,
@@ -1950,10 +1950,8 @@ async function lookupSelectionBiome(point: { x: number; z: number }) {
 function biomeDisplayName(biome: number) {
 	const name = SEED_MAP_BIOME_NAMES[biome]
 	if (!name) return `#${biome}`
-	return formatMessage({
-		id: `app.lab.seed-map.biome.${seedMapBiomeSlug(name)}`,
-		defaultMessage: name,
-	})
+	const descriptor = seedMapBiomeMessage(name)
+	return descriptor ? formatMessage(descriptor) : name
 }
 
 function biomeColorOf(biome: number) {

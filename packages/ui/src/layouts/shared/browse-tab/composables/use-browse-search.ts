@@ -239,12 +239,9 @@ export function useBrowseSearch(options: UseBrowseSearchOptions): BrowseSearchSt
 			params: effectiveRequestParams.value.substring(0, 100),
 		})
 
-		const currentHitsEmpty = isServerType.value
-			? serverHits.value.length === 0
-			: projectHits.value.length === 0
-		if (currentHitsEmpty) {
-			loading.value = true
-		}
+		// Always surface the loading state so pagination/filter changes can mask
+		// or skeleton the results area instead of silently swapping content.
+		loading.value = true
 
 		try {
 			const response = await options.search(effectiveRequestParams.value, abortController.signal)

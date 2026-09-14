@@ -239,6 +239,8 @@ import {
 import { injectServerInstall } from '@/providers/server-install'
 import { handleSevereError } from '@/store/error.js'
 
+defineOptions({ inheritAttrs: false })
+
 const messages = defineMessages({
 	searchWorldsPlaceholder: {
 		id: 'app.instance.worlds.search-worlds-placeholder',
@@ -352,12 +354,15 @@ const worldsQuery = useQuery({
 	queryKey: computed(() => ['worlds', instance.value.id]),
 	queryFn: () => refreshWorlds(instance.value.id),
 	staleTime: 30_000,
+	refetchOnWindowFocus: false,
+	refetchOnReconnect: false,
 })
 
 const worldsReadyPending = useReadyState(worldsQuery)
 
 const worlds = ref<World[]>([])
 const serverData = ref<Record<string, ServerData>>({})
+const hasInitialRefreshed = ref(false)
 
 // Track servers_updated calls on Linux to prevent server ping spam
 const MAX_LINUX_REFRESHES = 3
@@ -381,13 +386,9 @@ watch(
 		if (data) {
 			worlds.value = [...data]
 			hadNoWorlds.value = worlds.value.length === 0
-			if (!refreshingAll.value) {
-				void refreshServers(
-					worlds.value,
-					serverData.value,
-					protocolVersion.value,
-					protocolVersionReady.value,
-				)
+			if (!refreshingAll.value && !hasInitialRefreshed.value && protocolVersionReady.value) {
+				hasInitialRefreshed.value = true
+				void refreshServers(worlds.value, serverData.value, protocolVersion.value)
 			}
 		}
 	},
@@ -491,6 +492,7 @@ async function initWorldsTab() {
 	protocolVersionReady.value = true
 
 	if (worlds.value.length > 0) {
+		hasInitialRefreshed.value = true
 		void refreshServers(worlds.value, serverData.value, protocolVersion.value)
 	}
 }

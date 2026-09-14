@@ -128,15 +128,6 @@ impl SharedH2Connection {
         }
     }
 
-    #[cfg(test)]
-    fn mark_idle_for_test(&self) {
-        *self
-            .last_activity
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner()) =
-            std::time::Instant::now() - IDLE_EVICTION_TIMEOUT;
-    }
-
     fn is_idle_expired(&self) -> bool {
         self.active_streams() == 0
             && self

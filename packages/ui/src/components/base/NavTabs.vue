@@ -3,7 +3,7 @@
 		v-if="filteredLinks.length > 1"
 		ref="scrollContainer"
 		class="relative flex w-fit overflow-x-auto rounded-full bg-bg-raised p-1 text-sm font-bold"
-		:class="{ 'drop-shadow-xl border border-solid border-surface-4': mode === 'navigation' }"
+		:class="{ 'shadow-xl border border-solid border-surface-4': mode === 'navigation' }"
 	>
 		<template v-if="mode === 'navigation'">
 			<RouterLink
@@ -110,6 +110,7 @@ const emit = defineEmits<{
 // DOM refs
 const scrollContainer = ref<HTMLElement | null>(null)
 const tabLinkElements = ref<HTMLElement[]>()
+let containerResizeObserver: ResizeObserver | null = null
 
 // Slider pos state
 const sliderLeft = ref(4)
@@ -229,33 +230,15 @@ function getTabElement(index: number): HTMLElement | null {
 	return element
 }
 
-function positionSlider() {
+function measureActiveTab() {
 	const el = getTabElement(currentActiveIndex.value)
-	if (!el?.offsetParent) return
-
+	if (!el?.offsetParent) return null
 	const parent = el.offsetParent as HTMLElement
-	const newPosition = {
+	return {
 		left: el.offsetLeft,
 		top: el.offsetTop,
 		right: parent.offsetWidth - el.offsetLeft - el.offsetWidth,
 		bottom: parent.offsetHeight - el.offsetTop - el.offsetHeight,
-	}
-
-	const isInitialPosition = sliderLeft.value === 4 && sliderRight.value === 4
-
-	if (!sliderReady.value || isInitialPosition) {
-		sliderLeft.value = newPosition.left
-		sliderRight.value = newPosition.right
-		sliderTop.value = newPosition.top
-		sliderBottom.value = newPosition.bottom
-
-		sliderReady.value = true
-
-		requestAnimationFrame(() => {
-			transitionsEnabled.value = true
-		})
-	} else {
-		animateSliderTo(newPosition)
 	}
 }
 
@@ -278,6 +261,64 @@ function animateSliderTo(newPosition: {
 	sliderRight.value = newPosition.right
 	sliderTop.value = newPosition.top
 	sliderBottom.value = newPosition.bottom
+}
+
+function applySliderPosition(
+	newPosition: { left: number; top: number; right: number; bottom: number },
+	animate: boolean,
+) {
+	if (!animate) {
+		const restore = transitionsEnabled.value
+		transitionsEnabled.value = false
+		sliderLeft.value = newPosition.left
+		sliderTop.value = newPosition.top
+		sliderRight.value = newPosition.right
+		sliderBottom.value = newPosition.bottom
+		sliderReady.value = true
+		requestAnimationFrame(() => {
+			transitionsEnabled.value = restore
+		})
+		return
+	}
+
+	animateSliderTo(newPosition)
+	sliderReady.value = true
+}
+
+function positionSlider() {
+	const newPosition = measureActiveTab()
+	if (!newPosition) return
+
+	// First paint: snap so the pill never slides in from the default 4/4 inset
+	// (that read as a left jump after browse finished loading).
+	if (!sliderReady.value) {
+		transitionsEnabled.value = false
+		applySliderPosition(newPosition, false)
+		requestAnimationFrame(() => {
+			transitionsEnabled.value = true
+		})
+		return
+	}
+
+	applySliderPosition(newPosition, true)
+}
+
+function snapSliderToActiveTab() {
+	// ResizeObserver can fire mid-layout while browse swaps skeletons for cards.
+	// Measure on the next frame, and only commit when the rect actually moved.
+	requestAnimationFrame(() => {
+		const newPosition = measureActiveTab()
+		if (!newPosition) return
+		if (
+			newPosition.left === sliderLeft.value &&
+			newPosition.top === sliderTop.value &&
+			newPosition.right === sliderRight.value &&
+			newPosition.bottom === sliderBottom.value
+		) {
+			return
+		}
+		applySliderPosition(newPosition, false)
+	})
 }
 
 function saveSliderSnapshot(preserveOnUnmount = false) {
@@ -333,15 +374,28 @@ if (restoredSliderSnapshot) {
 onMounted(() => {
 	if (!restoredSliderSnapshot) {
 		void updateActiveTab()
-		return
+	} else {
+		requestAnimationFrame(() => {
+			requestAnimationFrame(() => void updateActiveTab())
+		})
 	}
-
-	requestAnimationFrame(() => {
-		requestAnimationFrame(() => void updateActiveTab())
-	})
 })
 
+watch(
+	scrollContainer,
+	(el) => {
+		containerResizeObserver?.disconnect()
+		containerResizeObserver = null
+		if (!el) return
+		containerResizeObserver = new ResizeObserver(() => snapSliderToActiveTab())
+		containerResizeObserver.observe(el)
+	},
+	{ immediate: true },
+)
+
 onBeforeUnmount(() => {
+	containerResizeObserver?.disconnect()
+	containerResizeObserver = null
 	const key = navigationGroupKey.value
 	const existingSnapshot = key ? navigationSliderSnapshots.get(key) : undefined
 	if (

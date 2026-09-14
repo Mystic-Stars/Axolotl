@@ -670,7 +670,15 @@ async fn promote_external_instance_link(
     instance: &Instance,
     state: &State,
 ) -> crate::Result<()> {
-    if instance.is_direct_linked() {
+    // A symlink import can also carry a version-isolated game-dir override,
+    // but it still owns a managed profile entry. Promoting it would make the
+    // direct-link reconciler treat the external root as authoritative and
+    // eventually delete the imported instance when that root is not listed in
+    // Settings.
+    if !external_link_promotion_allowed(
+        instance.is_direct_linked(),
+        instance.symlink_target.as_deref(),
+    ) {
         return Ok(());
     }
     let Some(direct) = DirectLinkedLaunch::from_game_dir_override(instance)?
@@ -714,6 +722,13 @@ async fn promote_external_instance_link(
     tx.commit().await?;
     emit_instance(&instance.id, InstancePayloadType::Edited).await?;
     Ok(())
+}
+
+fn external_link_promotion_allowed(
+    is_direct_linked: bool,
+    symlink_target: Option<&str>,
+) -> bool {
+    !is_direct_linked && symlink_target.is_none()
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -3182,5 +3197,19 @@ mod linked_rule_tests {
             &QuickPlayType::None,
             true
         ));
+    }
+
+    #[test]
+    fn symlink_profile_is_not_eligible_for_direct_link_promotion() {
+        assert!(!external_link_promotion_allowed(
+            false,
+            Some(r"D:\Minecraft\.minecraft"),
+        ));
+    }
+
+    #[test]
+    fn ordinary_external_override_remains_eligible_for_promotion() {
+        assert!(external_link_promotion_allowed(false, None));
+        assert!(!external_link_promotion_allowed(true, None));
     }
 }

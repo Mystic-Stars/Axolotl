@@ -5,8 +5,8 @@ import { computed, onMounted, ref } from 'vue'
 import { type AIState, getAIState, sharedAIState } from '@/helpers/ai'
 import {
 	get_crash_analysis_ai_settings,
-	update_crash_analysis_ai_settings,
 	get_log_share_settings,
+	update_crash_analysis_ai_settings,
 	update_log_share_settings,
 } from '@/helpers/logs'
 

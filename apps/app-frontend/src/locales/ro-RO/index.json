@@ -50,9 +50,6 @@
   "app.update-popup.body.download-complete": {
     "message": "Aplicația Axolotl Launcherv{version} a terminat descărcarea. Reîncărcați pentru a actualiza acum sau automat când închideți aplicația Axolotl Launcher."
   },
-  "app.update-popup.body.linux": {
-    "message": "Aplicația Axolotl Launcherv{version} este disponibil. Utilizați managerul de pachete pentru a actualiza pentru cele mai recente funcții și remedieri!"
-  },
   "app.update-popup.body.metered": {
     "message": "Aplicația Axolotl Launcherv{version} este disponibil acum! Deoarece sunteți într-o rețea cu contorizare, nu am descărcat-o automat."
   },
