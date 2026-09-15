@@ -21,9 +21,12 @@ import { computed, ref } from 'vue'
 
 import type { HomeWidgetSize } from '@/components/home/home-dashboard'
 import { useHomeDashboardRuntime } from '@/components/home/home-dashboard-runtime'
+import ManagedServerIcon from '@/components/multiplayer/servers/ServerIcon.vue'
 import { useMinecraftLaunchError } from '@/composables/useMinecraftLaunchError'
+import { useServers } from '@/composables/useServers'
 import { trackEvent } from '@/helpers/analytics'
 import { kill } from '@/helpers/instance'
+import { servers as serversApi } from '@/helpers/servers'
 import type { GameInstance } from '@/helpers/types'
 import {
 	type ServerWorld,
@@ -44,6 +47,7 @@ const { formatMessage } = useVIntl()
 const handleMinecraftLaunchError = useMinecraftLaunchError()
 const runtime = useHomeDashboardRuntime()
 const { favoriteWorlds, runningInstanceIds } = runtime
+const { startServer, stopServer } = useServers()
 
 const messages = defineMessages({
 	pinnedServers: {
@@ -78,6 +82,12 @@ const messages = defineMessages({
 		id: 'app.home.servers.more-options',
 		defaultMessage: 'More options',
 	},
+	localServer: {
+		id: 'app.home.servers.local',
+		defaultMessage: 'Local',
+	},
+	start: { id: 'app.servers.action.start', defaultMessage: 'Start' },
+	stop: { id: 'app.servers.action.stop', defaultMessage: 'Stop' },
 })
 
 const startingServerKey = ref<string | null>(null)
@@ -92,6 +102,8 @@ const servers = computed(() =>
 		return instance ? [{ instance, world: world as ServerWorld & WorldWithInstance }] : []
 	}),
 )
+const localServers = computed(() => runtime.pinnedLocalServers.value)
+const hasServers = computed(() => servers.value.length > 0 || localServers.value.length > 0)
 
 function serverKey(world: ServerWorld & WorldWithInstance): string {
 	return `${world.instance_id}:${world.address}`
@@ -138,6 +150,21 @@ async function unpinServer(world: ServerWorld & WorldWithInstance) {
 	)
 	await runtime.refreshFavorites()
 }
+
+async function startLocalServer(serverId: string) {
+	await startServer(serverId)
+	await runtime.refreshPinnedLocalServers()
+}
+
+async function stopLocalServer(serverId: string) {
+	await stopServer(serverId)
+	await runtime.refreshPinnedLocalServers()
+}
+
+async function unpinLocalServer(serverId: string) {
+	await serversApi.updateSettings(serverId, { homePinned: false }).catch(handleError)
+	await runtime.refreshPinnedLocalServers()
+}
 </script>
 
 <template>
@@ -149,7 +176,7 @@ async function unpinServer(world: ServerWorld & WorldWithInstance) {
 			<ServerIcon class="size-5 shrink-0 text-brand" aria-hidden="true" />
 			<h2>{{ formatMessage(messages.pinnedServers) }}</h2>
 		</div>
-		<div v-if="servers.length === 0" class="home-widget-empty">
+		<div v-if="!hasServers" class="home-widget-empty">
 			<ServerIcon aria-hidden="true" />
 			<span>{{ formatMessage(messages.emptyServers) }}</span>
 		</div>
@@ -246,6 +273,66 @@ async function unpinServer(world: ServerWorld & WorldWithInstance) {
 									action: () => unpinServer(server.world),
 								},
 							]"
+							:tooltip="formatMessage(messages.moreOptions)"
+						>
+							<MoreVerticalIcon />
+							<template #unpin>
+								<PinIcon class="rotate-45" aria-hidden="true" />
+								{{ formatMessage(messages.unpin) }}
+							</template>
+						</OverflowMenu>
+					</ButtonStyled>
+				</div>
+			</li>
+			<li
+				v-for="server in localServers"
+				:key="'local-' + server.id"
+				class="home-server-row group hover:bg-button-bg focus-within:bg-button-bg"
+			>
+				<div class="relative shrink-0">
+					<ManagedServerIcon
+						:icon-path="server.iconPath"
+						:server-type="server.serverType"
+						:server-id="server.id"
+						size="36px"
+					/>
+					<span
+						class="absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full border-2 border-solid border-bg-raised"
+						:class="server.running ? 'bg-brand-green' : 'bg-red'"
+						aria-hidden="true"
+					/>
+				</div>
+				<div class="flex min-w-0 flex-1 flex-col gap-0.5">
+					<span class="flex min-w-0 items-center gap-1 text-sm font-semibold text-contrast">
+						<span class="truncate">{{ server.name }}</span>
+						<span
+							class="shrink-0 rounded bg-button-bg px-1 text-[10px] font-semibold text-secondary"
+						>
+							{{ formatMessage(messages.localServer) }}
+						</span>
+					</span>
+					<span class="truncate text-xs text-secondary">
+						{{
+							server.port
+								? `localhost:${server.port}`
+								: `${server.serverType} ${server.gameVersion}`
+						}}
+					</span>
+				</div>
+				<div class="ml-auto flex shrink-0 items-center gap-0.5">
+					<ButtonStyled circular size="small" type="transparent">
+						<button
+							v-tooltip="formatMessage(server.running ? messages.stop : messages.start)"
+							:class="server.running ? '!text-red' : '!text-brand'"
+							@click="server.running ? stopLocalServer(server.id) : startLocalServer(server.id)"
+						>
+							<StopCircleIcon v-if="server.running" />
+							<PlayIcon v-else />
+						</button>
+					</ButtonStyled>
+					<ButtonStyled circular size="small" type="transparent" class="home-server-menu">
+						<OverflowMenu
+							:options="[{ id: 'unpin', action: () => unpinLocalServer(server.id) }]"
 							:tooltip="formatMessage(messages.moreOptions)"
 						>
 							<MoreVerticalIcon />

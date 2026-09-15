@@ -89,6 +89,7 @@ pub async fn create(
         install_state: None,
         install_error: None,
         jvm_args: Vec::new(),
+        home_pinned_at: None,
         created_at: Utc::now(),
         last_started_at: None,
         last_exit_crashed: false,
@@ -115,6 +116,7 @@ pub async fn update_settings(
     java_path: Option<String>,
     memory_mb: Option<u32>,
     jvm_args: Option<Vec<String>>,
+    home_pinned: Option<bool>,
 ) -> Result<ServerManifest> {
     let path = server_path(server_id).await?;
     let mut manifest = read_manifest(&path).await?;
@@ -140,6 +142,9 @@ pub async fn update_settings(
     }
     if let Some(jvm_args) = jvm_args {
         manifest.jvm_args = jvm_args;
+    }
+    if let Some(home_pinned) = home_pinned {
+        manifest.home_pinned_at = home_pinned.then(Utc::now);
     }
     write_manifest(&path, &manifest).await?;
     Ok(manifest)

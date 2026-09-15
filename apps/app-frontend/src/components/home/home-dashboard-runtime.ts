@@ -4,6 +4,7 @@ import { inject, onUnmounted, provide, reactive, ref } from 'vue'
 
 import { instance_listener, process_listener } from '@/helpers/events'
 import { get_all } from '@/helpers/process'
+import { serverEventListener, servers as serversApi, type ServerInfoData } from '@/helpers/servers'
 import { get_game_versions } from '@/helpers/tags'
 import {
 	get_favorite_worlds,
@@ -23,10 +24,12 @@ export type HomeDashboardRuntime = {
 	favoriteWorlds: Ref<WorldWithInstance[]>
 	recentWorlds: Ref<WorldWithInstance[]>
 	runningInstanceIds: Ref<string[]>
+	pinnedLocalServers: Ref<ServerInfoData[]>
 	gameVersions: Ref<GameVersion[]>
 	instanceRevision: Ref<number>
 	refreshFavorites: () => Promise<void>
 	refreshRecentWorlds: () => Promise<void>
+	refreshPinnedLocalServers: () => Promise<void>
 	getInstanceWorlds: (instanceId: string, force?: boolean) => Promise<World[]>
 	getServerData: (instanceId: string, address: string) => ServerData
 	getProtocolVersion: (instanceId: string) => ProtocolVersion | null | undefined
@@ -44,6 +47,7 @@ export function provideHomeDashboardRuntime(handleError: ErrorHandler): HomeDash
 	const favoriteWorlds = ref<WorldWithInstance[]>([])
 	const recentWorlds = ref<WorldWithInstance[]>([])
 	const runningInstanceIds = ref<string[]>([])
+	const pinnedLocalServers = ref<ServerInfoData[]>([])
 	const gameVersions = ref<GameVersion[]>([])
 	const instanceRevision = ref(0)
 	const worldsByInstance = reactive<Record<string, World[]>>({})
@@ -126,6 +130,21 @@ export function provideHomeDashboardRuntime(handleError: ErrorHandler): HomeDash
 		}
 	}
 
+	let pinnedLocalServersGeneration = 0
+
+	async function refreshPinnedLocalServers() {
+		const generation = ++pinnedLocalServersGeneration
+		try {
+			const all = await serversApi.list()
+			if (generation !== pinnedLocalServersGeneration) return
+			pinnedLocalServers.value = all.filter((server) => Boolean(server.homePinnedAt))
+		} catch (error) {
+			if (generation !== pinnedLocalServersGeneration) return
+			handleError(error)
+			pinnedLocalServers.value = []
+		}
+	}
+
 	async function getInstanceWorlds(instanceId: string, force = false) {
 		if (!force && loadedWorlds.has(instanceId)) return worldsByInstance[instanceId] ?? []
 		const pending = worldRequests.get(instanceId)
@@ -152,10 +171,17 @@ export function provideHomeDashboardRuntime(handleError: ErrorHandler): HomeDash
 		})
 		.catch(() => undefined)
 	void refreshRunningInstances()
+	void refreshPinnedLocalServers()
 	void refreshFavorites()
 	void refreshRecentWorlds()
 
 	void process_listener(refreshRunningInstances)
+		.then((unlisten) => {
+			if (disposed) unlisten()
+			else unlisteners.push(unlisten)
+		})
+		.catch(handleError)
+	void serverEventListener(() => refreshPinnedLocalServers())
 		.then((unlisten) => {
 			if (disposed) unlisten()
 			else unlisteners.push(unlisten)
@@ -188,10 +214,12 @@ export function provideHomeDashboardRuntime(handleError: ErrorHandler): HomeDash
 		favoriteWorlds,
 		recentWorlds,
 		runningInstanceIds,
+		pinnedLocalServers,
 		gameVersions,
 		instanceRevision,
 		refreshFavorites,
 		refreshRecentWorlds,
+		refreshPinnedLocalServers,
 		getInstanceWorlds,
 		getServerData,
 		getProtocolVersion: (instanceId) => protocolVersions[instanceId],

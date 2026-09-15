@@ -2303,6 +2303,9 @@
   "app.home.servers.more-options": {
     "message": "更多选项"
   },
+  "app.home.servers.local": {
+    "message": "本地"
+  },
   "app.home.servers.offline": {
     "message": "离线"
   },
@@ -6862,6 +6865,9 @@
   },
   "app.servers.settings.memory-mb": {
     "message": "内存 (MB)"
+  },
+  "app.servers.settings.pin-home": {
+    "message": "固定到主页"
   },
   "app.servers.settings.name": {
     "message": "服务器名称"
