@@ -86,7 +86,6 @@ export interface ContentManagerContext {
 
 	// Modpack actions (optional)
 	updateModpack?: () => void
-	viewModpackContent?: () => void
 	viewDependencies?: () => void
 	unlinkModpack?: () => void
 	openSettings?: () => void

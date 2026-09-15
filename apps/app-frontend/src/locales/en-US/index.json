@@ -9554,9 +9554,6 @@
   "app.settings.updates.paused": {
     "message": "Updates are paused."
   },
-  "app.settings.updates.portable": {
-    "message": "Portable mode cannot update automatically. Please download the latest version manually."
-  },
   "app.settings.updates.preferences.title": {
     "message": "Update behavior"
   },

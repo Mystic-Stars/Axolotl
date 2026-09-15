@@ -7280,9 +7280,6 @@
   "app.settings.updates.paused": {
     "message": "更新已暫停。"
   },
-  "app.settings.updates.portable": {
-    "message": "便攜模式無法自動更新，請手動下載最新版本。"
-  },
   "app.settings.updates.preferences.title": {
     "message": "更新行為"
   },

@@ -155,17 +155,6 @@
 					:share-text="formatMessage(messages.shareText)"
 					:open-in-new-tab="false"
 				/>
-				<ModpackContentModal
-					ref="modpackContentModal"
-					:modpack-name="displayedModpackProject?.title"
-					:modpack-icon-url="displayedModpackProject?.icon_url ?? undefined"
-					:enable-toggle="!props.isServerInstance"
-					:busy="isBulkOperating"
-					:get-overflow-options="getOverflowOptions"
-					@update:enabled="handleModpackContentToggle"
-					@bulk:enable="(items) => handleModpackContentBulkToggle(items, true)"
-					@bulk:disable="(items) => handleModpackContentBulkToggle(items, false)"
-				/>
 				<ConfirmModpackUpdateModal
 					ref="modpackUpdateConfirmModal"
 					:downgrade="isModpackUpdateDowngrade"
@@ -241,8 +230,6 @@ import {
 	defineMessages,
 	injectNotificationManager,
 	LoadingIndicator,
-	ModpackContentModal,
-	type ModpackContentModalState,
 	type OverflowMenuOption,
 	provideAppBackup,
 	provideContentManager,
@@ -465,8 +452,6 @@ const messages = defineMessages({
 		defaultMessage: 'Open in MC Mod',
 	},
 })
-
-let savedModalState: ModpackContentModalState | null = null
 
 const { formatMessage } = useVIntl()
 const debugState = useDebugLogger('Mods:state')
@@ -995,7 +980,6 @@ const isCurseForgeLinkedModpack = computed(
 const shareModal = ref<InstanceType<typeof ShareModalWrapper> | null>()
 const exportModal = ref(null)
 const contentUpdaterModal = ref<InstanceType<typeof ContentUpdaterModal> | null>()
-const modpackContentModal = ref<InstanceType<typeof ModpackContentModal> | null>()
 const dependencyGraphModal = ref<InstanceType<typeof DependencyGraphModal> | null>()
 const modpackUpdateConfirmModal = ref<InstanceType<typeof ConfirmModpackUpdateModal> | null>()
 
@@ -1010,15 +994,6 @@ function allDependencyGraphItems() {
 
 function handleViewDependencies() {
 	dependencyGraphModal.value?.show(allDependencyGraphItems())
-}
-
-async function loadLinkedModpackContentItems(
-	cacheBehaviour?: CacheBehaviour,
-): Promise<ContentItem[]> {
-	await initProjects(cacheBehaviour ?? 'bypass')
-	modpackContentModal.value?.setItems(displayedLinkedModpackContentItems.value)
-	dependencyGraphModal.value?.setItems(allDependencyGraphItems())
-	return displayedLinkedModpackContentItems.value
 }
 
 // TODO: Extract content operation and updater modal state into composables; this page currently owns file mutations, dependency installs, busy flags, and version selection flow.
@@ -1088,7 +1063,6 @@ function mergeVisibleMetadataItems(refreshedItems: ContentItem[]) {
 	projects.value = mergeItems(projects.value)
 	linkedModpackContentItems.value = mergeItems(linkedModpackContentItems.value)
 
-	modpackContentModal.value?.setItems(displayedLinkedModpackContentItems.value)
 	dependencyGraphModal.value?.setItems(allDependencyGraphItems())
 }
 
@@ -1191,18 +1165,8 @@ function contentUpdateId(item: ContentItem): string | null {
 		: String(item.update.target_file_id)
 }
 
-function setContentItemBusy(item: ContentItem, busy: boolean, originalFileName = item.file_name) {
+function setContentItemBusy(item: ContentItem, busy: boolean, _originalFileName = item.file_name) {
 	item.installing = busy
-	modpackContentModal.value?.updateItem(originalFileName, {
-		installing: busy,
-		disabled: busy,
-	})
-	if (item.file_name !== originalFileName) {
-		modpackContentModal.value?.updateItem(item.file_name, {
-			installing: busy,
-			disabled: busy,
-		})
-	}
 }
 
 function beginContentOperation(item: ContentItem) {
@@ -1791,7 +1755,6 @@ function applyBatchToggleState(
 
 	projects.value = updateItems(projects.value)
 	linkedModpackContentItems.value = updateItems(linkedModpackContentItems.value)
-	modpackContentModal.value?.setItems(displayedLinkedModpackContentItems.value)
 }
 
 function applyContentItemToggleState(
@@ -1800,10 +1763,7 @@ function applyContentItemToggleState(
 	originalFilePath: string,
 	updates: Partial<ContentItem>,
 ) {
-	const previousFileName = target.file_name
 	applyContentItemUpdates(projects.value, target, originalFileName, originalFilePath, updates)
-	modpackContentModal.value?.updateItem(previousFileName, updates)
-	modpackContentModal.value?.updateItem(originalFileName, updates)
 	updateLinkedModpackContentCache(target, originalFileName, originalFilePath, updates)
 }
 
@@ -2202,42 +2162,6 @@ async function handleSwitchVersion(item: ContentItem) {
 	loadingVersions.value = false
 
 	updatingProjectVersions.value = versions
-}
-
-async function handleModpackContentToggle(item: ContentItem, enabled: boolean) {
-	await toggleDisableDebounced(item, enabled)
-}
-
-async function handleModpackContentBulkToggle(items: ContentItem[], enabled: boolean) {
-	await toggleDisableBatch(
-		items.filter(
-			(item) =>
-				item.instanceMaterializationState !== 'missing' &&
-				item.instanceMaterializationState !== 'pending_manual' &&
-				item.instanceMaterializationState !== 'removed' &&
-				item.instanceCapabilities?.canToggle !== false,
-		),
-		enabled,
-	)
-}
-
-async function handleModpackContent() {
-	if (!props.instance?.id) return
-
-	if (displayedLinkedModpackContentItems.value.length) {
-		modpackContentModal.value?.show(displayedLinkedModpackContentItems.value)
-		return
-	}
-
-	modpackContentModal.value?.showLoading()
-
-	const items = await loadLinkedModpackContentItems()
-
-	if (items.length > 0) {
-		modpackContentModal.value?.show(items)
-	} else {
-		modpackContentModal.value?.hide()
-	}
 }
 
 async function refreshContentState(cacheBehaviour?: CacheBehaviour) {
@@ -2716,7 +2640,6 @@ function applyContentData(contentData: InstanceContentData) {
 	}
 	projects.value = contentItems
 	linkedModpackContentItems.value = linkedContentItems
-	modpackContentModal.value?.setItems(displayedLinkedModpackContentItems.value)
 	dependencyGraphModal.value?.setItems(allDependencyGraphItems())
 
 	if (contentData.modpack) {
@@ -2908,7 +2831,6 @@ provideContentManager({
 	bulkUpdateIncludesModpack: false,
 	bulkUpdateItem: updateProject,
 	updateModpack: props.isServerInstance ? undefined : handleModpackUpdate,
-	viewModpackContent: handleModpackContent,
 	viewDependencies: handleViewDependencies,
 	unlinkModpack: unpairInstance,
 
@@ -3037,7 +2959,6 @@ provideContentManager({
 type UnlistenFn = () => void
 
 const initialContentReady = loadInitialContent()
-void initialContentReady.then(restoreModpackContentModalState).catch(handleError)
 
 function getInstallRevision() {
 	return installRevisionByInstance.value.get(props.instance.id) ?? 0
@@ -3101,21 +3022,6 @@ async function loadInitialContent(): Promise<void> {
 
 	await initProjects()
 }
-
-async function restoreModpackContentModalState() {
-	if (!savedModalState) return
-
-	const stateToRestore = savedModalState
-	savedModalState = null
-	await nextTick()
-	modpackContentModal.value?.restore(stateToRestore)
-}
-
-// Save modal state when navigating away so it can be restored on back
-const removeBeforeEach = router.beforeEach(() => {
-	const state = modpackContentModal.value?.getState()
-	savedModalState = state ?? null
-})
 
 let unlistenInstances: UnlistenFn | null = null
 const CONTENT_EVENT_DEBOUNCE_MS = 180
@@ -3229,7 +3135,6 @@ onUnmounted(() => {
 	isUnmounted = true
 	if (contentEventTimer) clearTimeout(contentEventTimer)
 	invalidateContentRequests()
-	removeBeforeEach()
 	unlistenInstances?.()
 })
 </script>

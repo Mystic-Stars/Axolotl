@@ -32,20 +32,6 @@ export interface ServerInstallContext {
 	isServerInstalling: (projectId: string) => boolean
 	installServerProject: (serverProjectId: string) => Promise<void>
 	playServerProject: (projectId: string) => Promise<void>
-	setInstallToPlayModal: (
-		ref: ModalRef<
-			(
-				project: Labrinth.Projects.v3.Project,
-				modpackVersionId: string | null,
-				callback?: () => void,
-			) => void
-		>,
-	) => void
-	setUpdateToPlayModal: (
-		ref: ModalRef<
-			(instance: GameInstance, activeVersionId: string | null, callback?: () => void) => void
-		>,
-	) => void
 	setAddServerToInstanceModal: (
 		ref: ModalRef<(serverName: string, serverAddress: string) => void>,
 	) => void
@@ -79,16 +65,6 @@ export function createServerInstall(opts: {
 	const installingServerProjects = ref<string[]>([])
 	const symlinkTarget = ref<string | null | undefined>(undefined)
 
-	let installToPlayModalRef: ModalRef<
-		(
-			project: Labrinth.Projects.v3.Project,
-			modpackVersionId: string | null,
-			callback?: () => void,
-		) => void
-	> | null = null
-	let updateToPlayModalRef: ModalRef<
-		(instance: GameInstance, activeVersionId: string | null, callback?: () => void) => void
-	> | null = null
 	let addServerToInstanceModalRef: ModalRef<
 		(serverName: string, serverAddress: string) => void
 	> | null = null
@@ -314,11 +290,6 @@ export function createServerInstall(opts: {
 			return
 		}
 		if (isModpack && !instance) {
-			installToPlayModalRef?.show(projectV3, modpackVersionId, async () => {
-				const newInstance = await findInstalledInstance(project.id)
-				if (!newInstance) return
-				showModpackInstallSuccess(newInstance, serverAddress)
-			})
 			return
 		}
 
@@ -328,9 +299,6 @@ export function createServerInstall(opts: {
 
 		// Update existing instance if needed
 		if (isModpack && instance.link?.version_id !== modpackVersionId) {
-			updateToPlayModalRef?.show(instance, modpackVersionId, () => {
-				showUpdateSuccess(instance, serverAddress)
-			})
 			return
 		}
 		if (isVanilla && instance.game_version !== recommendedGameVersion) {
@@ -366,12 +334,6 @@ export function createServerInstall(opts: {
 		isServerInstalling,
 		installServerProject,
 		playServerProject,
-		setInstallToPlayModal(ref) {
-			installToPlayModalRef = ref
-		},
-		setUpdateToPlayModal(ref) {
-			updateToPlayModalRef = ref
-		},
 		setAddServerToInstanceModal(ref) {
 			addServerToInstanceModalRef = ref
 		},

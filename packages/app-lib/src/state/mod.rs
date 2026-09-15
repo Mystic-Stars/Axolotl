@@ -659,10 +659,6 @@ impl State {
         self.configured_http_client.read().clone()
     }
 
-    pub(crate) fn auto_prefers_mirror(&self) -> bool {
-        self.auto_prefers_mirror.load(Ordering::Relaxed)
-    }
-
     pub(crate) fn download_concurrency(&self) -> usize {
         self.download_concurrency_target.load(Ordering::Acquire)
     }

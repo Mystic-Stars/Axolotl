@@ -8111,9 +8111,6 @@
   "app.settings.updates.paused": {
     "message": "更新已暂停。"
   },
-  "app.settings.updates.portable": {
-    "message": "便携模式无法自动更新，请手动下载最新版本。"
-  },
   "app.settings.updates.preferences.title": {
     "message": "更新行为"
   },

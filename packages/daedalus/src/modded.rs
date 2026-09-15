@@ -3,7 +3,7 @@ use crate::minecraft::{
 };
 use chrono::{DateTime, NaiveDateTime, Utc};
 use serde::{Deserialize, Deserializer, Serialize};
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 /// The latest version of the format the fabric model structs deserialize to
 pub const CURRENT_FABRIC_FORMAT_VERSION: usize = 1;

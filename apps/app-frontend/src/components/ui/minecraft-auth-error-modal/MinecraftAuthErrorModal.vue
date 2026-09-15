@@ -66,6 +66,18 @@ const messages = defineMessages({
 		defaultMessage: 'Contact support',
 	},
 	signInAgain: { id: 'app.minecraft-auth.sign-in-again', defaultMessage: 'Sign in again' },
+	loginTrouble: {
+		id: 'minecraft-login.trouble',
+		defaultMessage: 'Having trouble?',
+	},
+	loginBrowser: {
+		id: 'minecraft-login.browser',
+		defaultMessage: 'Use browser login',
+	},
+	loginDeviceCode: {
+		id: 'minecraft-login.device-code',
+		defaultMessage: 'Use device code',
+	},
 	debugInformation: {
 		id: 'app.minecraft-auth.debug-information',
 		defaultMessage: 'Debug information',
@@ -112,7 +124,11 @@ defineExpose({
 async function signInAgain() {
 	try {
 		loadingSignIn.value = true
-		const loggedIn = await login_flow()
+		const loggedIn = await login_flow({
+			trouble: formatMessage(messages.loginTrouble),
+			browserLogin: formatMessage(messages.loginBrowser),
+			deviceCode: formatMessage(messages.loginDeviceCode),
+		})
 		if (loggedIn) {
 			await set_default_user(loggedIn.profile.id)
 		}

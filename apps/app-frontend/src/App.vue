@@ -90,14 +90,12 @@ import MinecraftCrashModal from '@/components/ui/MinecraftCrashModal.vue'
 import AuthGrantFlowWaitModal from '@/components/ui/modal/AuthGrantFlowWaitModal.vue'
 import CommunityAnnouncementModal from '@/components/ui/modal/CommunityAnnouncementModal.vue'
 import CurseForgeManualDownloadsModal from '@/components/ui/modal/CurseForgeManualDownloadsModal.vue'
-import InstallToPlayModal from '@/components/ui/modal/InstallToPlayModal.vue'
 import InstanceIconPickerModal from '@/components/ui/modal/InstanceIconPickerModal.vue'
 import JavaDownloadConfirmationModal from '@/components/ui/modal/JavaDownloadConfirmationModal.vue'
 import ModpackAlreadyInstalledModal from '@/components/ui/modal/ModpackAlreadyInstalledModal.vue'
 import ModpackInstallModal from '@/components/ui/modal/ModpackInstallModal.vue'
 import PrivacyConsentModal from '@/components/ui/modal/PrivacyConsentModal.vue'
 import SurveyAnnouncementModal from '@/components/ui/modal/SurveyAnnouncementModal.vue'
-import UpdateToPlayModal from '@/components/ui/modal/UpdateToPlayModal.vue'
 import NavButton from '@/components/ui/NavButton.vue'
 import NavRail from '@/components/ui/NavRail.vue'
 import OnboardingOverlay from '@/components/ui/onboarding/OnboardingOverlay.vue'
@@ -1913,10 +1911,7 @@ const {
 const serverInstall = createServerInstall({ router, handleError, popupNotificationManager })
 provideServerInstall(serverInstall)
 const {
-	setInstallToPlayModal: setServerInstallToPlayModal,
-	setUpdateToPlayModal: setServerUpdateToPlayModal,
 	setAddServerToInstanceModal: setServerAddServerToInstanceModal,
-	playServerProject,
 	symlinkTarget: addServerSymlinkTarget,
 } = serverInstall
 
@@ -1929,9 +1924,6 @@ const handleContentInstallModpackDuplicateGoToInstance = (instanceId: string) =>
 const contentInstallCurseForgeManualDownloadsModal = ref()
 const addServerToInstanceModal = ref()
 const incompatibilityWarningModal = ref()
-const installToPlayModal = ref()
-const updateToPlayModal = ref()
-
 const modrinthLoginFlowWaitModal = ref()
 
 // ── Drop import system ──────────────────────────────────────────────────
@@ -2100,8 +2092,6 @@ onMounted(() => {
 	)
 	setModpackAlreadyInstalledModal(modpackAlreadyInstalledModal.value)
 	setServerAddServerToInstanceModal(addServerToInstanceModal.value)
-	setServerInstallToPlayModal(installToPlayModal.value)
-	setServerUpdateToPlayModal(updateToPlayModal.value)
 	void (async () => {
 		try {
 			const ready = await invoke<{
@@ -2180,9 +2170,6 @@ async function handleCommand(e) {
 		} else {
 			await run(e.id).catch(handleLaunchCommandError)
 		}
-	} else if (e.event === 'InstallServer') {
-		await router.push(`/project/${e.id}`)
-		await playServerProject(e.id).catch(handleError)
 	} else if (e.event === 'InstallVersion') {
 		const version = await get_version(e.id, 'must_revalidate').catch(handleError)
 		if (version) {
@@ -3047,8 +3034,6 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 		@view-instance="handleContentInstallModpackDuplicateGoToInstance"
 		@imported="handleContentInstallCurseForgeManualDownloadsImported"
 	/>
-	<InstallToPlayModal ref="installToPlayModal" />
-	<UpdateToPlayModal ref="updateToPlayModal" />
 
 	<!-- Global drop overlay -->
 	<div
@@ -3504,7 +3489,7 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 	// from the nav/content boundary during page-layer compositing.
 	position: absolute;
 	inset: 0;
-	border-radius: var(--radius-xl);
+	border-top-left-radius: var(--radius-xl);
 	box-shadow: 1px 1px 15px rgba(0, 0, 0, 0.1) inset;
 	border-color: var(--surface-5);
 	border-width: 1px;
