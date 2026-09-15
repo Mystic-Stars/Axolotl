@@ -34,6 +34,7 @@ type WorkerMeshMessage = {
 	chunkPosition: [number, number, number]
 	blocks: ArrayBuffer
 	neighborFaces?: Partial<Record<SchematicDirection, ArrayBuffer>>
+	isYCompletion: boolean
 }
 
 export type SchematicMeshWorkerRequest = WorkerInitMessage | WorkerMeshMessage
@@ -57,6 +58,7 @@ export type SchematicMeshWorkerResponse =
 			opaque: SchematicMeshData
 			translucent: SchematicMeshData
 			missing: string[]
+			isYCompletion: boolean
 	  }
 	| { type: 'error'; epoch: number; jobId?: string; message: string }
 
@@ -341,34 +343,55 @@ function buildChunk(message: WorkerMeshMessage) {
 					chunkOrigin[1] + y,
 					chunkOrigin[2] + z,
 				]
-				const cull = {
-					west: shouldCull(
-						paletteIndex,
-						schematicBlockAt(blocks, neighborFaces, x - 1, y, z),
-						'west',
-					),
-					east: shouldCull(
-						paletteIndex,
-						schematicBlockAt(blocks, neighborFaces, x + 1, y, z),
-						'east',
-					),
-					down: shouldCull(
-						paletteIndex,
-						schematicBlockAt(blocks, neighborFaces, x, y - 1, z),
-						'down',
-					),
-					up: shouldCull(paletteIndex, schematicBlockAt(blocks, neighborFaces, x, y + 1, z), 'up'),
-					north: shouldCull(
-						paletteIndex,
-						schematicBlockAt(blocks, neighborFaces, x, y, z - 1),
-						'north',
-					),
-					south: shouldCull(
-						paletteIndex,
-						schematicBlockAt(blocks, neighborFaces, x, y, z + 1),
-						'south',
-					),
-				}
+				const cull: deepslate.Cull = message.isYCompletion
+					? {
+							west: true,
+							east: true,
+							down: !shouldCull(
+								paletteIndex,
+								schematicBlockAt(blocks, neighborFaces, x, y - 1, z),
+								'down',
+							),
+							up: !shouldCull(
+								paletteIndex,
+								schematicBlockAt(blocks, neighborFaces, x, y + 1, z),
+								'up',
+							),
+							north: true,
+							south: true,
+						}
+					: {
+							west: shouldCull(
+								paletteIndex,
+								schematicBlockAt(blocks, neighborFaces, x - 1, y, z),
+								'west',
+							),
+							east: shouldCull(
+								paletteIndex,
+								schematicBlockAt(blocks, neighborFaces, x + 1, y, z),
+								'east',
+							),
+							down: shouldCull(
+								paletteIndex,
+								schematicBlockAt(blocks, neighborFaces, x, y - 1, z),
+								'down',
+							),
+							up: shouldCull(
+								paletteIndex,
+								schematicBlockAt(blocks, neighborFaces, x, y + 1, z),
+								'up',
+							),
+							north: shouldCull(
+								paletteIndex,
+								schematicBlockAt(blocks, neighborFaces, x, y, z - 1),
+								'north',
+							),
+							south: shouldCull(
+								paletteIndex,
+								schematicBlockAt(blocks, neighborFaces, x, y, z + 1),
+								'south',
+							),
+						}
 				const target = isSchematicTranslucent(state.name) ? translucent : opaque
 				try {
 					const mesh = createSchematicBlockMesh(state, cull)
@@ -412,6 +435,7 @@ function buildChunk(message: WorkerMeshMessage) {
 		jobId: message.jobId,
 		regionId: message.regionId,
 		chunkPosition: message.chunkPosition,
+		isYCompletion: message.isYCompletion,
 		opaque: toMeshData(opaque),
 		translucent: toMeshData(translucent),
 		missing: [...missing],
