@@ -7,6 +7,7 @@ import {
 	openAIModelBackgrounds,
 } from '@/data/lobeModelIcons'
 import { lobeProviderIcons } from '@/data/lobeProviderIcons'
+import { getLobeIconComponent, hasLobeIcon } from '@/data/lobeIconComponents'
 
 import CodeFlowLogo from './CodeFlowLogo.vue'
 import LobeBrandCombine from './LobeBrandCombine.vue'
@@ -20,21 +21,15 @@ const props = withDefaults(
 	{ size: 24 },
 )
 
-const componentModules = import.meta.glob(
-	'../../../../node_modules/@lobehub/icons-static-svg/icons/*.svg',
-	{
-		eager: true,
-		import: 'default',
-		query: '?component',
+// Lazy proxy: only requested lobehub SVGs are transformed/loaded.
+const iconComponents = new Proxy({} as Record<string, Component | undefined>, {
+	get(_target, prop) {
+		return typeof prop === 'string' ? getLobeIconComponent(prop) : undefined
 	},
-) as Record<string, Component>
-
-const iconComponents = Object.fromEntries(
-	Object.entries(componentModules).map(([path, component]) => [
-		path.split('/').pop()?.replace('.svg', ''),
-		component,
-	]),
-) as Record<string, Component>
+	has(_target, prop) {
+		return typeof prop === 'string' && hasLobeIcon(prop)
+	},
+})
 
 const soraGradientId = useId()
 const providerConfig = computed(() => lobeProviderIcons[props.value.toLocaleLowerCase()])

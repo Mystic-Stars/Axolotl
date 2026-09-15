@@ -203,11 +203,20 @@ wildcard_dependencies = "warn"
 tauri-plugin-window-state = { git = "https://github.com/Lintern/plugins-workspace", branch = "v2" }
 
 [profile.dev]
-incremental = false
+# Keep incremental on (Cargo default). Disabling it forces full crate rebuilds
+# of ~170k-line app-lib on every touch and made local app:dev unusably slow.
 
-# Optimize for speed and reduce size on release builds
+# sqlx-macros does heavy compile-time work; unoptimized expansion is a known
+# local rebuild tax. Keep this override.
+[profile.dev.package.sqlx-macros]
+opt-level = 3
+
+# Optimize for speed and reduce size on release builds.
+# LTO stays off for local `pnpm app:build` and PR CI packaging. Tagged
+# releases re-enable fat LTO with CARGO_PROFILE_RELEASE_LTO=true.
+# panic stays at Cargo's default unwind: spawn_blocking JoinError recovery
+# throughout app-lib assumes panics are catchable per-task, not process abort.
 [profile.release]
 opt-level = "s"  # Optimize for binary size
 strip = true  # Remove debug symbols
-lto = true  # Enables link to optimizations
-panic = "abort"  # Strip expensive panic clean-up logic
+lto = false

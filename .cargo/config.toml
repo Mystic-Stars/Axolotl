@@ -5,12 +5,9 @@ rustflags = ["-C", "link-args=/STACK:16777220"]
 [target.x86_64-pc-windows-msvc]
 linker = "rust-lld"
 
-# Reproducible public-service defaults for downstream desktop builds. Private
-# Modrinth services remain disabled by Axolotl capabilities at runtime.
-[env]
-MODRINTH_API_BASE_URL = "https://api.modrinth.com"
-MODRINTH_API_URL = "https://api.modrinth.com/v2/"
-MODRINTH_API_URL_V3 = "https://api.modrinth.com/v3/"
-MODRINTH_LAUNCHER_META_URL = "https://launcher-meta.modrinth.com/"
-MODRINTH_URL = "https://modrinth.com/"
-MODRINTH_SOCKET_URL = "wss://disabled.invalid/"
+# MODRINTH_* service URLs are intentionally NOT set here. They used to live in
+# [env] as public defaults, but Cargo fingerprints those process-env values
+# while app-lib build.rs bakes a different value from packages/app-lib/.env
+# via rustc-env for env!(). That mismatch kept `theseus` permanently dirty.
+# build.rs now owns the single resolution chain: .env → process env → public
+# defaults.

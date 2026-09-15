@@ -2,6 +2,7 @@
 import { type Component, computed } from 'vue'
 
 import { lobeAvatarBrands, lobeCombineBrands } from '@/data/lobeProviderIcons'
+import { getLobeIconComponent, hasLobeIcon } from '@/data/lobeIconComponents'
 
 import HigressTextColor from './HigressTextColor.vue'
 
@@ -16,21 +17,14 @@ const props = withDefaults(
 	{ extra: '', extraFontSize: undefined, extraMarginLeft: undefined },
 )
 
-const iconModules = import.meta.glob(
-	'../../../../node_modules/@lobehub/icons-static-svg/icons/*.svg',
-	{
-		eager: true,
-		import: 'default',
-		query: '?component',
+const iconComponents = new Proxy({} as Record<string, Component | undefined>, {
+	get(_target, prop) {
+		return typeof prop === 'string' ? getLobeIconComponent(prop) : undefined
 	},
-) as Record<string, Component>
-
-const iconComponents = Object.fromEntries(
-	Object.entries(iconModules).map(([path, component]) => [
-		path.split('/').pop()?.replace('.svg', ''),
-		component,
-	]),
-) as Record<string, Component>
+	has(_target, prop) {
+		return typeof prop === 'string' && hasLobeIcon(prop)
+	},
+})
 
 const config = computed(() => lobeCombineBrands[props.brand])
 const brandAvatar = computed(() => lobeAvatarBrands[props.brand])

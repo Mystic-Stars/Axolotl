@@ -16,12 +16,83 @@ fn run_command(command: &mut Command, description: &str) {
     );
 }
 
+fn newest_mtime(path: &std::path::Path) -> Option<std::time::SystemTime> {
+    let mut newest: Option<std::time::SystemTime> = None;
+    if path.is_file() {
+        return path.metadata().and_then(|m| m.modified()).ok();
+    }
+    if path.is_dir() {
+        if let Ok(entries) = std::fs::read_dir(path) {
+            for entry in entries.flatten() {
+                if let Some(time) = newest_mtime(&entry.path()) {
+                    newest =
+                        Some(newest.map_or(time, |current| current.max(time)));
+                }
+            }
+        }
+    }
+    newest
+}
+
+fn blockbench_skin_is_fresh(
+    blockbench_dir: &std::path::Path,
+    synced_bundle: &std::path::Path,
+) -> bool {
+    let bundle = blockbench_dir.join("dist/skin.bundle.js");
+    let Ok(bundle_time) = bundle.metadata().and_then(|m| m.modified()) else {
+        return false;
+    };
+    let Ok(synced_time) = synced_bundle.metadata().and_then(|m| m.modified())
+    else {
+        return false;
+    };
+    if synced_time < bundle_time {
+        return false;
+    }
+
+    // Inputs that feed `npm run build-skin` or the resource sync. node_modules
+    // is intentionally excluded: it is huge and its mtimes churn independently
+    // of Blockbench sources.
+    let input_paths = [
+        blockbench_dir.join("package.json"),
+        blockbench_dir.join("package-lock.json"),
+        blockbench_dir.join("build.js"),
+        blockbench_dir.join("js"),
+        blockbench_dir.join("css"),
+        blockbench_dir.join("assets"),
+        blockbench_dir.join("font"),
+        blockbench_dir.join("index.html"),
+    ];
+    input_paths.iter().all(|input| {
+        newest_mtime(input)
+            .map(|input_time| input_time <= bundle_time)
+            .unwrap_or(true)
+    })
+}
+
 fn build_blockbench_skin_editor() {
+    if std::env::var_os("AXOLOTL_SKIP_BLOCKBENCH_BUILD").is_some_and(|value| {
+        !value.is_empty() && value != "0" && value != "false"
+    }) {
+        println!(
+            "cargo:warning=AXOLOTL_SKIP_BLOCKBENCH_BUILD set; skipping Blockbench skin editor build"
+        );
+        return;
+    }
+
     let blockbench_dir = std::path::Path::new("../../third-party/blockbench");
     assert!(
         blockbench_dir.join("package.json").is_file(),
         "Blockbench skin editor submodule is missing. Run git submodule update --init --recursive."
     );
+
+    let synced_bundle = std::path::Path::new(
+        "resources/blockbench-skin/dist/skin.bundle.js.gz",
+    );
+    if blockbench_skin_is_fresh(blockbench_dir, synced_bundle) {
+        return;
+    }
+
     if !blockbench_dir.join("node_modules").is_dir() {
         run_command(
             Command::new(NPM_COMMAND)
@@ -53,7 +124,20 @@ fn main() {
     println!("cargo:rerun-if-changed=tauri.linux.conf.json");
     println!("cargo:rerun-if-changed=tauri-modern.conf.json");
     println!("cargo:rerun-if-changed=tauri-release.conf.json");
-    println!("cargo:rerun-if-changed=../../third-party/blockbench");
+    // Watch Blockbench inputs only. Watching the whole submodule (including
+    // node_modules) made any npm install churn re-run the entire build script.
+    println!(
+        "cargo:rerun-if-changed=../../third-party/blockbench/package.json"
+    );
+    println!(
+        "cargo:rerun-if-changed=../../third-party/blockbench/package-lock.json"
+    );
+    println!("cargo:rerun-if-changed=../../third-party/blockbench/build.js");
+    println!("cargo:rerun-if-changed=../../third-party/blockbench/js");
+    println!("cargo:rerun-if-changed=../../third-party/blockbench/css");
+    println!("cargo:rerun-if-changed=../../third-party/blockbench/assets");
+    println!("cargo:rerun-if-changed=../../third-party/blockbench/font");
+    println!("cargo:rerun-if-changed=../../third-party/blockbench/index.html");
     // Tauri validates frontendDist during Cargo metadata/check builds. The
     // frontend build runs in parallel in CI, so create the directory before
     // tauri-build reads the configuration. A real frontend build overwrites
