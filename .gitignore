@@ -117,3 +117,6 @@ apps/app/resources/blockbench-skin/
 
 # Vitest failure attachments (screenshots) and cache
 .vitest-attachments/
+
+# Vitest visual-regression screenshots
+**/__screenshots__/
