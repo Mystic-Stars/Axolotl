@@ -1314,6 +1314,8 @@ async function setupApp() {
 		custom_background_blur,
 		custom_background_opacity,
 		custom_background_component_opacity,
+		ui_font,
+		mono_font,
 		transparent_background,
 		transparent_background_opacity,
 		transparent_background_blur,
@@ -1371,6 +1373,10 @@ async function setupApp() {
 	themeStore.customBackgroundOpacity = custom_background_opacity
 	themeStore.customBackgroundComponentOpacity = custom_background_component_opacity ?? 100
 	themeStore.setCustomBackgroundComponentOpacity()
+	themeStore.uiFont = ui_font ?? null
+	themeStore.monoFont = mono_font ?? null
+	themeStore.setUiFont()
+	themeStore.setMonoFont()
 	themeStore.transparentBackground = transparent_background
 	themeStore.transparentBackgroundOpacity = transparent_background_opacity
 	themeStore.transparentBackgroundBlur = transparent_background_blur

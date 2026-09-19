@@ -48,6 +48,26 @@ export const settingsSearchEntries: SettingsSearchEntry[] = [
 		),
 	},
 	{
+		id: 'appearance-ui-font',
+		categoryId: 'interface',
+		targetId: 'settings-target-appearance-ui-font',
+		label: message('app.appearance-settings.fonts.ui-font', 'Interface font'),
+		description: message(
+			'app.appearance-settings.fonts.ui-font-description',
+			'Used across the launcher interface. Only fonts installed on this system are listed.',
+		),
+	},
+	{
+		id: 'appearance-mono-font',
+		categoryId: 'interface',
+		targetId: 'settings-target-appearance-mono-font',
+		label: message('app.appearance-settings.fonts.mono-font', 'Monospace font'),
+		description: message(
+			'app.appearance-settings.fonts.mono-font-description',
+			'Used for logs, the server console, and other monospace content.',
+		),
+	},
+	{
 		id: 'appearance-transparent-background',
 		categoryId: 'interface',
 		targetId: 'settings-target-appearance-transparent-background',

@@ -785,7 +785,7 @@ function onDatabaseOperationModalHide() {
 .database-path code {
 	overflow-wrap: anywhere;
 	color: var(--color-contrast);
-	font-family: var(--font-mono);
+	font-family: var(--mono-font, monospace);
 }
 
 .database-operation {

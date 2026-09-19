@@ -160,6 +160,8 @@ export type AppSettings = {
 	custom_background_blur: number
 	custom_background_opacity: number
 	custom_background_component_opacity: number
+	ui_font: string | null
+	mono_font: string | null
 	transparent_background: boolean
 	transparent_background_opacity: number
 	transparent_background_blur: boolean
@@ -259,6 +261,8 @@ function normalizeDownloadSettings(settings: AppSettings & LegacyMirrorSettings)
 	settings.custom_window_title_enabled ??= false
 	settings.default_window_title ??= 'Minecraft'
 	settings.custom_background_component_opacity ??= 100
+	settings.ui_font ??= null
+	settings.mono_font ??= null
 	settings.feature_flags ??= { ...DEFAULT_FEATURE_FLAGS }
 	settings.sync_features_across_devices ??= false
 	settings.show_files_tab_in_instances ??= true
