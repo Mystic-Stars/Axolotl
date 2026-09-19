@@ -71,6 +71,5 @@
 		"vue-component-type-helpers": "^3.3.11",
 		"vue-tsc": "^2.2.12"
 	},
-	"packageManager": "pnpm@9.4.0",
 	"web-types": "../../web-types.json"
 }
