@@ -53,10 +53,16 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - name: Lint shared UI package
-        run: pnpm --filter @modrinth/ui lint
-      - name: Lint desktop frontend
-        run: pnpm --filter @modrinth/app-frontend lint
+      - name: Install Playwright browser for visual tests
+        run: pnpm --filter @modrinth/ui exec playwright install --with-deps chromium
+      - name: Lint frontend packages
+        run: |
+          pnpm --filter @modrinth/ui lint
+          pnpm --filter @modrinth/app-frontend lint
+          pnpm --filter @modrinth/assets lint
+          pnpm --filter @modrinth/utils lint
+          pnpm --filter @modrinth/server lint
+          pnpm --filter @modrinth/api-client lint
       - name: Test shared UI package
         run: pnpm --filter @modrinth/ui test
       - name: Test desktop frontend

@@ -253,7 +253,6 @@ const {
 	getItemId,
 	showTypeFilters: true,
 	showUpdateFilter: ctx.hasUpdateSupport,
-	isPackLocked: ctx.isPackLocked,
 	memoryKey: ctx.instanceId,
 	initialFilters: initialPinnedView ?? undefined,
 	filterOptionsReady,

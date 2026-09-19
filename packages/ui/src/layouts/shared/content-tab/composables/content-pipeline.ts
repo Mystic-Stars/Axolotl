@@ -39,7 +39,6 @@ export interface ContentPipelineConfig {
 	getItemId: (item: ContentItem) => string
 	showTypeFilters?: boolean
 	showUpdateFilter?: boolean
-	isPackLocked?: Ref<boolean>
 	memoryKey?: string
 	searchKeys?: string[]
 	initialFilters?: ContentFilterSelections
@@ -89,9 +88,6 @@ export function useContentPipeline(config: ContentPipelineConfig) {
 		getItemId,
 		showTypeFilters = false,
 		showUpdateFilter = false,
-		// Reserved: the host passes it through ContentManager, and the pipeline
-		// does not consume it yet.
-		isPackLocked: _isPackLocked,
 		memoryKey = '',
 		searchKeys = ['project.title', 'owner.name', 'file_name'],
 		initialFilters,
