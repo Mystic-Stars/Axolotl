@@ -5,6 +5,10 @@
 module.exports = {
 	semi: false,
 	singleQuote: true,
+	// The repository indents with tabs (.editorconfig + CLAUDE.md); Prettier
+	// defaults to spaces, which made `prettier --check` disagree with every
+	// tab-indented JSON file.
+	useTabs: true,
 	plugins: ['prettier-plugin-toml', 'prettier-plugin-sql-cst', '@prettier/plugin-xml'],
 	overrides: [
 		{

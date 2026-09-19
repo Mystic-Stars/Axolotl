@@ -1,11 +1,11 @@
 import { invoke } from '@tauri-apps/api/core'
 
 import { install_job_listener } from './events'
-export { ACTIVE_INSTALL_JOB_STATUSES, isActiveInstallJobStatus } from './install-job-status.ts'
-export type { InstallJobStatus } from './install-job-status.ts'
 import type { InstallJobStatus } from './install-job-status.ts'
 import type { InstanceUpgradeResult } from './instance-upgrade'
 import type { InstanceLink, InstanceLoader, LoaderComponent } from './types'
+export type { InstallJobStatus } from './install-job-status.ts'
+export { ACTIVE_INSTALL_JOB_STATUSES, isActiveInstallJobStatus } from './install-job-status.ts'
 
 export interface PackLocationVersionId {
 	type: 'fromVersionId'

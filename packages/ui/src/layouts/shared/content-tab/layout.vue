@@ -49,12 +49,7 @@ import {
 	useContentSelection,
 } from './composables'
 import { injectContentManager } from './providers/content-manager'
-import type {
-	BulkOperationStatus,
-	ContentCardTableItem,
-	ContentItem,
-	ContentWorldGroupMeta,
-} from './types'
+import type { ContentCardTableItem, ContentItem, ContentWorldGroupMeta } from './types'
 
 const { formatMessage, locale } = useVIntl()
 

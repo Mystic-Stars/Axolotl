@@ -1377,8 +1377,7 @@ async function setupApp() {
 	themeStore.setTransparentBackgroundClass()
 	await applyWindowFrame()
 	await applyWindowEffects()
-	themeStore.homeWidgetBackgroundOpacity =
-		home_widget_background_opacity ?? 100
+	themeStore.homeWidgetBackgroundOpacity = home_widget_background_opacity ?? 100
 	themeStore.setHomeWidgetBackgroundOpacity()
 	themeStore.hiddenNavItems = hidden_nav_items ?? []
 	themeStore.sidebarInstanceCount = sidebar_instance_count

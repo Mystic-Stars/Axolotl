@@ -89,7 +89,9 @@ export function useContentPipeline(config: ContentPipelineConfig) {
 		getItemId,
 		showTypeFilters = false,
 		showUpdateFilter = false,
-		isPackLocked,
+		// Reserved: the host passes it through ContentManager, and the pipeline
+		// does not consume it yet.
+		isPackLocked: _isPackLocked,
 		memoryKey = '',
 		searchKeys = ['project.title', 'owner.name', 'file_name'],
 		initialFilters,

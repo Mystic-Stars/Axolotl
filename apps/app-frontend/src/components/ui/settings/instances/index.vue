@@ -260,7 +260,8 @@ const hasGameOptionsToEdit = computed(
 		initializedOptions.value.game_options ||
 		instances.value.some(
 			(instance) =>
-				instance?.synced_options?.game_options && eligibleGameOptionSourceIds.value.has(instance.id),
+				instance?.synced_options?.game_options &&
+				eligibleGameOptionSourceIds.value.has(instance.id),
 		),
 )
 const baseOption = ref<SyncedOption | null>(null)
@@ -558,48 +559,48 @@ onScopeDispose(clearBaseSource)
 			<div class="flex flex-col gap-4">
 				<div
 					v-for="row in availableGlobalRows"
-						:key="row.option"
-						class="flex items-center justify-between gap-6"
-					>
+					:key="row.option"
+					class="flex items-center justify-between gap-6"
+				>
 					<div class="flex min-w-0 flex-col gap-1">
-							<h2 class="m-0 text-lg font-semibold text-contrast">
-								{{ formatMessage(messages[row.title]) }}
-							</h2>
-							<p v-if="row.description" class="m-0 text-secondary">
-								{{ formatMessage(messages[row.description]) }}
-							</p>
-						</div>
-					<div class="flex shrink-0 items-center gap-2">
-							<span v-if="row.editable" v-tooltip="editGlobalOptionTooltip(row)" class="flex">
-								<IconButton
-									type="outlined"
-									circular
-									:disabled="
-										!canEditGlobalOption(row) ||
-										initializedOptionsQuery.isPending.value ||
-										globalOptionMutation.isPending.value
-									"
-									:label="
-										formatMessage(
-											row.editable === 'game-settings'
-												? messages.gameSettingsButton
-												: commonMessages.editButton,
-										)
-									"
-									@click="editGlobalOption(row)"
-								>
-									<EditIcon aria-hidden="true" />
-								</IconButton>
-							</span>
-							<Toggle
-								:id="`global-sync-${row.option}`"
-								:model-value="globalOptions[row.option]"
-								:disabled="!canToggleGlobalOptions"
-								:aria-label="formatMessage(messages[row.title])"
-								@update:model-value="(enabled) => toggleGlobalOption(row.option, enabled)"
-							/>
-						</div>
+						<h2 class="m-0 text-lg font-semibold text-contrast">
+							{{ formatMessage(messages[row.title]) }}
+						</h2>
+						<p v-if="row.description" class="m-0 text-secondary">
+							{{ formatMessage(messages[row.description]) }}
+						</p>
 					</div>
+					<div class="flex shrink-0 items-center gap-2">
+						<span v-if="row.editable" v-tooltip="editGlobalOptionTooltip(row)" class="flex">
+							<IconButton
+								type="outlined"
+								circular
+								:disabled="
+									!canEditGlobalOption(row) ||
+									initializedOptionsQuery.isPending.value ||
+									globalOptionMutation.isPending.value
+								"
+								:label="
+									formatMessage(
+										row.editable === 'game-settings'
+											? messages.gameSettingsButton
+											: commonMessages.editButton,
+									)
+								"
+								@click="editGlobalOption(row)"
+							>
+								<EditIcon aria-hidden="true" />
+							</IconButton>
+						</span>
+						<Toggle
+							:id="`global-sync-${row.option}`"
+							:model-value="globalOptions[row.option]"
+							:disabled="!canToggleGlobalOptions"
+							:aria-label="formatMessage(messages[row.title])"
+							@update:model-value="(enabled) => toggleGlobalOption(row.option, enabled)"
+						/>
+					</div>
+				</div>
 			</div>
 		</section>
 	</div>

@@ -111,4 +111,3 @@ test('duplicate filter retention covers transient and stably-empty states', () =
 	// Settled and stably empty past the grace window → stop forcing it.
 	assert.equal(shouldKeepDuplicateFilterOption({ ...base, emptyGraceRemainingMs: 0 }), false)
 })
-

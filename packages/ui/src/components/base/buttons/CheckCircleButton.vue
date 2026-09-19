@@ -35,10 +35,17 @@ defineExpose({ element })
 		role="radio"
 		:aria-checked="checked"
 		class="w-full !justify-between !gap-4 !whitespace-normal !border !border-solid !px-2 !text-left !transition-colors"
-		:class="checked ? '!border-brand !bg-brand-highlight !text-contrast' : '!border-transparent !bg-transparent !text-contrast enabled:hover:!bg-surface-3'"
+		:class="
+			checked
+				? '!border-brand !bg-brand-highlight !text-contrast'
+				: '!border-transparent !bg-transparent !text-contrast enabled:hover:!bg-surface-3'
+		"
 	>
 		<span class="flex min-w-0 flex-1 items-center gap-2"><slot /></span>
-		<span v-if="checked" class="flex size-6 shrink-0 items-center justify-center rounded-full bg-brand text-brand-inverted">
+		<span
+			v-if="checked"
+			class="flex size-6 shrink-0 items-center justify-center rounded-full bg-brand text-brand-inverted"
+		>
 			<CheckIcon class="size-4" aria-hidden="true" />
 		</span>
 		<span v-else class="size-6 shrink-0 rounded-full border border-solid border-surface-5" />
