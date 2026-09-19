@@ -84,25 +84,25 @@ test('notice query uses the target instance value and registered Tauri command',
 
 test('result uses Modrinth Card and Accordion for collapsed compatibility warnings', () => {
 	const source = readFileSync(
-		new URL('../pages/instance/upgrade/UpgradeResultDetails.vue', import.meta.url),
+		new URL('../pages/instance/upgrade/UpgradeResultCollections.vue', import.meta.url),
 		'utf8',
 	)
-	assert.match(source, /<Card v-if="warningRows\.length"/)
-	assert.match(source, /<Accordion[\s\S]*:open-by-default="warningsExpandedByDefault"/)
+	assert.match(source, /<Card v-if="warnings\.length"/)
+	assert.match(source, /<Accordion[\s\S]*:open-by-default="warningsDefaultOpen"/)
 	assert.match(source, /<TriangleAlertIcon/)
 })
 
 test('runtime icon references use names exported by the assets package', () => {
 	const downloadsSource = readFileSync(new URL('../pages/Downloads.vue', import.meta.url), 'utf8')
 	const resultSource = readFileSync(
-		new URL('../pages/instance/upgrade/UpgradeResultDetails.vue', import.meta.url),
+		new URL('../pages/instance/upgrade/UpgradeResultCollections.vue', import.meta.url),
 		'utf8',
 	)
 	const assetsSource = readFileSync(
 		new URL('../../../../packages/assets/generated-icons.ts', import.meta.url),
 		'utf8',
 	)
-	assert.match(downloadsSource, /upgrade_unmanaged_instance' \? RefreshCwIcon/)
+	assert.match(downloadsSource, /upgrade_unmanaged_instance' \|\|[\s\S]*RefreshCwIcon/)
 	assert.doesNotMatch(downloadsSource, /UpdatedIcon/)
 	assert.match(resultSource, /import \{[^}]*TriangleAlertIcon[^}]*\} from '@modrinth\/assets'/)
 	assert.doesNotMatch(resultSource, /WarningIcon/)

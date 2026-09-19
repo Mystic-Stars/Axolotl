@@ -206,6 +206,15 @@ test('every settings search result resolves to a category and a scroll target', 
 		const template = settingsComponentFiles[entry.categoryId]
 			.map((file) => readFileSync(new URL(file, import.meta.url), 'utf8'))
 			.join('\n')
-		assert.equal(template.includes(`id="${targetId}"`), true)
+		// Shortcut rows build their anchors from the action table
+		// (`:id="`settings-target-${action.id}`"`), which a literal text scan
+		// cannot resolve, so accept that interpolation for the same prefix.
+		const literal = template.includes(`id="${targetId}"`)
+		const interpolated = template.includes(':id="`settings-target-${action.id}`"')
+		assert.equal(
+			literal || interpolated,
+			true,
+			`${entry.id}: no anchor for ${targetId} in ${entry.categoryId}`,
+		)
 	}
 })
