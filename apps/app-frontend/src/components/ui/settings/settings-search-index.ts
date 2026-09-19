@@ -558,12 +558,6 @@ export const settingsSearchEntries: SettingsSearchEntry[] = [
 		label: message('app.settings.storage.total', 'Storage usage'),
 	},
 	{
-		id: 'updates-source',
-		categoryId: 'updates',
-		targetId: 'settings-target-updates-source',
-		label: message('app.settings.updates.title', 'Update source'),
-	},
-	{
 		id: 'updates-history',
 		categoryId: 'updates',
 		label: message('app.settings.updates.announcements.history', 'Release history'),
