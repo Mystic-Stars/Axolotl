@@ -63,6 +63,7 @@ jobs:
           pnpm --filter @modrinth/utils lint
           pnpm --filter @modrinth/server lint
           pnpm --filter @modrinth/api-client lint
+          pnpm --filter @modrinth/tooling-config lint
       - name: Test shared UI package
         run: pnpm --filter @modrinth/ui test
       - name: Test desktop frontend

@@ -34,5 +34,5 @@ const catalog = {
 	})),
 }
 
-await fs.writeFile(outputPath, `${JSON.stringify(catalog, null, 2)}\n`)
+await fs.writeFile(outputPath, `${JSON.stringify(catalog, null, '\t')}\n`)
 console.log(`Wrote ${outputPath} with ${catalog.announcements.length} announcements`)

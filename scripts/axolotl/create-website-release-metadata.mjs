@@ -22,7 +22,7 @@ const metadata = {
 		.filter((name) => typeof name === 'string' && name.length > 0),
 }
 
-fs.writeFileSync(outputPath, `${JSON.stringify(metadata, null, 2)}\n`)
+fs.writeFileSync(outputPath, `${JSON.stringify(metadata, null, '\t')}\n`)
 console.log(
 	`Wrote ${outputPath} for ${metadata.tag_name} (${metadata.assets.length} assets)`,
 )
