@@ -1,1 +1,5 @@
 src/locales/**
+
+# Vitest/Playwright artifacts
+.vite/
+.vitest-attachments/

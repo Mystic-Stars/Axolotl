@@ -2721,7 +2721,6 @@ provideContentManager({
 
 		return null
 	}),
-	isPackLocked,
 	isBusy: isInstanceBusy,
 	isBulkOperating,
 	skipNonEssentialWarnings,

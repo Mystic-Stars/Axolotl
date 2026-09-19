@@ -54,6 +54,7 @@ Thumbs.db
 .turbo
 target
 generated
+.vite
 .env
 .dev.vars
 .dev.vars.*
@@ -113,3 +114,6 @@ apps/app/resources/blockbench-skin/
 .netlify
 .cf-reconcile-test
 .cf-reconcile-state-a
+
+# Vitest failure attachments (screenshots) and cache
+.vitest-attachments/
