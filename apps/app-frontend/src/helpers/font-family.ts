@@ -103,6 +103,25 @@ function toOption(family: SystemFontFamily, monospaceLabel?: string): FontFamily
 }
 
 /**
+ * The spelling the font list uses for a stored family. Font names are matched
+ * case-insensitively so a stored value that only differs in case still selects
+ * its option instead of leaving the picker blank.
+ */
+export function canonicalFontFamily(
+	fonts: SystemFontFamily[],
+	setting: string | null | undefined,
+): string {
+	const selected = optionValueToFontSetting(setting ?? '')
+	if (!selected) {
+		return FOLLOW_DEFAULT_FONT
+	}
+
+	const listed = fonts.find((font) => font.family.trim().toLowerCase() === selected.toLowerCase())
+
+	return listed ? listed.family.trim() : selected
+}
+
+/**
  * Builds the picker options for the installed font collection: the default
  * entry first, the current selection re-added when it is no longer installed,
  * and — for the monospace picker — monospaced families ahead of the rest.

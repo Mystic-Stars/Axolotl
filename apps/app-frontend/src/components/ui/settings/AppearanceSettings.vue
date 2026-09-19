@@ -31,11 +31,11 @@ import HeadlessSelect from '@/components/ui/headless/HeadlessSelect.vue'
 import HeadlessTooltip from '@/components/ui/headless/HeadlessTooltip.vue'
 import {
 	buildFontFamilyOptions,
+	canonicalFontFamily,
 	DEFAULT_MONO_FONT_STACK,
 	DEFAULT_UI_FONT_STACK,
 	type FontFamilyOption,
 	type FontFamilyOptionOrDivider,
-	fontSettingToOptionValue,
 	optionValueToFontSetting,
 	resolveFontFamily,
 	type SystemFontFamily,
@@ -800,14 +800,14 @@ const monoFontOptions = computed<FontFamilyOptionOrDivider[]>(() =>
 )
 
 const uiFontSelection = computed({
-	get: () => fontSettingToOptionValue(settings.value.ui_font),
+	get: () => canonicalFontFamily(systemFonts.value, settings.value.ui_font),
 	set: (value: string) => {
 		settings.value.ui_font = optionValueToFontSetting(value)
 	},
 })
 
 const monoFontSelection = computed({
-	get: () => fontSettingToOptionValue(settings.value.mono_font),
+	get: () => canonicalFontFamily(systemFonts.value, settings.value.mono_font),
 	set: (value: string) => {
 		settings.value.mono_font = optionValueToFontSetting(value)
 	},

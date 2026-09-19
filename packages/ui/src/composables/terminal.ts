@@ -11,9 +11,16 @@ import {
 	shallowRef,
 } from 'vue'
 
+/**
+ * Reads a theme token off the element that declares it. The font tokens live on
+ * `body` (see `packages/assets/styles/defaults.scss`), so a lookup that only
+ * ever checked `<html>` would report their fallbacks.
+ */
 export function getCssVar(name: string, fallback: string): string {
 	if (typeof document === 'undefined') return fallback
-	const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim()
+	const value = getComputedStyle(document.body ?? document.documentElement)
+		.getPropertyValue(name)
+		.trim()
 	return value || fallback
 }
 
@@ -170,7 +177,7 @@ export function useTerminal(options: UseTerminalOptions): UseTerminalReturn {
 			scrollback: options.scrollback ?? Infinity,
 			convertEol: true,
 			smoothScrollDuration: 125,
-			fontFamily: 'monospace',
+			fontFamily: getCssVar('--mono-font', 'monospace'),
 			fontSize: 14,
 			lineHeight: 1.5,
 			allowProposedApi: true,

@@ -3,6 +3,7 @@ import test from 'node:test'
 
 import {
 	buildFontFamilyOptions,
+	canonicalFontFamily,
 	cssFontFamilyName,
 	FOLLOW_DEFAULT_FONT,
 	type FontFamilyOption,
@@ -134,4 +135,14 @@ test('does not duplicate a selected family that is installed', () => {
 
 	assert.deepEqual(values(options), [FOLLOW_DEFAULT_FONT, 'JetBrains Mono'])
 	assert.equal((options[1] as FontFamilyOption).subLabel, undefined)
+})
+
+test('canonicalises a stored family that differs only in case', () => {
+	const fonts: SystemFontFamily[] = [{ family: 'JetBrains Mono', monospaced: true }]
+
+	assert.equal(canonicalFontFamily(fonts, 'jetbrains mono'), 'JetBrains Mono')
+	assert.equal(canonicalFontFamily(fonts, '  Inter  '), 'Inter')
+	assert.equal(canonicalFontFamily(fonts, null), FOLLOW_DEFAULT_FONT)
+	assert.equal(canonicalFontFamily(fonts, ''), FOLLOW_DEFAULT_FONT)
+	assert.equal(canonicalFontFamily(fonts, 'JetBrains Mono'), 'JetBrains Mono')
 })
