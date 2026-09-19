@@ -97,7 +97,7 @@ jobs:
             runner: windows-2025
             args: --config tauri-release.conf.json --config tauri-modern.conf.json --config tauri-updater.conf.json
           - name: macOS universal
-            runner: macos-15
+            runner: macos-26
             args: --target universal-apple-darwin --config tauri-release.conf.json --config tauri-updater.conf.json
     runs-on: ${{ matrix.runner }}
     env:
