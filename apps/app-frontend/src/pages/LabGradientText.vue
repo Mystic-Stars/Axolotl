@@ -1033,7 +1033,7 @@ function formatAdapterName(adapterId: GradientFormatId): string {
 	min-width: 0;
 	align-items: center;
 	gap: 0.625rem;
-	color: var(--color-primary);
+	color: var(--color-text-default);
 	font-size: 0.875rem;
 	font-weight: 700;
 }

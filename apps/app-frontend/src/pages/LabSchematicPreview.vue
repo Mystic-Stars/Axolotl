@@ -2401,7 +2401,7 @@ onBeforeUnmount(() => {
 	flex: none;
 	align-items: center;
 	gap: 0.35rem;
-	color: var(--color-text-dark);
+	color: var(--color-contrast);
 	font-size: 0.78rem;
 	font-weight: 600;
 }
@@ -2539,7 +2539,7 @@ onBeforeUnmount(() => {
 	height: 1.4em;
 	border-radius: 0.2rem;
 	padding: 0.2rem;
-	color: var(--color-text-dark);
+	color: var(--color-contrast);
 	font-size: 0.7rem;
 	font-weight: bold;
 	font-variant-numeric: tabular-nums;
@@ -2655,7 +2655,7 @@ onBeforeUnmount(() => {
 	border-radius: var(--radius-md);
 	padding: 0.65rem 0.75rem;
 	background: var(--surface-3);
-	color: var(--color-text-dark);
+	color: var(--color-contrast);
 }
 
 .editor-action-grid {
@@ -2705,7 +2705,7 @@ onBeforeUnmount(() => {
 	align-items: center;
 	gap: 0.4rem;
 	margin: 0;
-	color: var(--color-text-dark);
+	color: var(--color-contrast);
 	font-size: 0.82rem;
 }
 
@@ -2730,7 +2730,7 @@ onBeforeUnmount(() => {
 	border-radius: var(--radius-sm);
 	padding: 0.35rem 0.45rem;
 	background: transparent;
-	color: var(--color-text-dark);
+	color: var(--color-contrast);
 	font: inherit;
 	font-size: 0.72rem;
 }
@@ -2809,7 +2809,7 @@ onBeforeUnmount(() => {
 		border: 0;
 		padding: 0.75rem 1rem;
 		background: transparent;
-		color: var(--color-text-dark);
+		color: var(--color-contrast);
 	}
 
 	.schematic-inspector-toggle svg {

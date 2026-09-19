@@ -207,7 +207,7 @@ defineExpose({ show })
 	border-radius: var(--radius-md);
 	padding: 0.625rem;
 	background: var(--surface-2);
-	color: var(--color-text-dark);
+	color: var(--color-contrast);
 	font: inherit;
 	text-align: left;
 	transition:
@@ -268,7 +268,7 @@ defineExpose({ show })
 	place-items: center;
 	border-radius: 50%;
 	background: var(--color-brand);
-	color: var(--color-brand-inverted);
+	color: var(--color-accent-contrast);
 }
 
 .block-picker-check svg {

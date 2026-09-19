@@ -1493,7 +1493,7 @@ const handleOptionsClick = (args) => {
 		display: flex;
 		flex-direction: row;
 		align-items: center;
-		border-radius: var(--border-radius);
+		border-radius: var(--radius-sm);
 		cursor: pointer;
 		transition: background-color 0.2s ease-in-out;
 
@@ -1512,7 +1512,7 @@ const handleOptionsClick = (args) => {
 		display: inline-flex;
 		align-items: center;
 		border-radius: 1rem;
-		color: var(--color-text);
+		color: var(--color-base);
 
 		svg,
 		img {
@@ -1531,7 +1531,7 @@ const handleOptionsClick = (args) => {
 			svg,
 			img,
 			span {
-				color: var(--color-heading);
+				color: var(--color-contrast);
 			}
 		}
 
@@ -1539,7 +1539,7 @@ const handleOptionsClick = (args) => {
 			svg,
 			img,
 			span {
-				color: var(--color-text-dark);
+				color: var(--color-contrast);
 			}
 		}
 

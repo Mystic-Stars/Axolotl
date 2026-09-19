@@ -117,6 +117,7 @@
 
 	--color-base: var(--color-text-default);
 	--color-secondary: var(--color-text-tertiary);
+	--color-text-secondary: var(--color-secondary);
 	--color-contrast: var(--color-text-primary);
 	--color-accent-contrast: #ffffff;
 
@@ -138,11 +139,13 @@
 	--color-brand: var(--color-green);
 	--color-brand-highlight: var(--color-green-highlight);
 	--color-brand-shadow: rgba(0, 175, 92, 0.7);
+	--color-yellow: var(--color-orange);
 
 	--shadow-inset-lg: inset 0px -2px 2px hsla(221, 39%, 91%, 0.1);
 	--shadow-inset: inset 0px -2px 2px hsla(221, 39%, 91%, 0.05);
 	--shadow-inset-sm: inset 0px -1px 2px hsla(221, 39%, 91%, 0.15);
 
+	--shadow-color: 221 39% 11%;
 	--shadow-raised-lg: 0px 2px 4px hsla(221, 39%, 11%, 0.2);
 	--shadow-raised:
 		0.3px 0.5px 0.6px hsl(var(--shadow-color) / 0.15),
@@ -170,6 +173,8 @@
 
 	--color-button-bg-selected: var(--color-brand);
 	--color-button-text-selected: var(--color-accent-contrast);
+	--color-button-text: var(--color-base);
+	--color-button-text-active: var(--color-contrast);
 
 	--color-gradient-button-bg: linear-gradient(180deg, #f8f9fa 0%, #dce0e6 100%);
 
@@ -357,6 +362,7 @@ html {
 
 	--color-base: var(--color-text-default);
 	--color-secondary: var(--color-text-tertiary);
+	--color-text-secondary: var(--color-secondary);
 	--color-contrast: var(--color-text-primary);
 	--color-accent-contrast: #000000;
 
@@ -378,6 +384,7 @@ html {
 	--color-brand: var(--color-green);
 	--color-brand-highlight: rgba(27, 217, 106, 0.25);
 	--color-brand-shadow: rgba(27, 217, 106, 0.7);
+	--color-yellow: var(--color-orange);
 
 	--shadow-inset-lg: inset 0px -2px 2px hsla(221, 39%, 11%, 0.1);
 	--shadow-inset: inset 0px -2px 2px hsla(221, 39%, 11%, 0.05);
@@ -399,6 +406,8 @@ html {
 
 	--color-button-bg-selected: var(--color-brand-highlight);
 	--color-button-text-selected: var(--color-brand);
+	--color-button-text: var(--color-base);
+	--color-button-text-active: var(--color-contrast);
 
 	--color-gradient-button-bg: linear-gradient(180deg, #3a3d47 0%, #33363d 100%);
 

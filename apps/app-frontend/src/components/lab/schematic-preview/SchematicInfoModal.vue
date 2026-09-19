@@ -120,7 +120,7 @@ defineExpose({ show: () => modal.value?.show() })
 	align-items: center;
 	gap: 0.4rem;
 	margin: 0;
-	color: var(--color-text-dark);
+	color: var(--color-contrast);
 	font-size: 0.9rem;
 }
 
@@ -145,7 +145,7 @@ defineExpose({ show: () => modal.value?.show() })
 	min-width: 0;
 	margin: 0;
 	overflow-wrap: anywhere;
-	color: var(--color-text-dark);
+	color: var(--color-contrast);
 	text-align: right;
 }
 

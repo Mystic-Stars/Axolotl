@@ -104,7 +104,7 @@ withDefaults(
 <style lang="scss" scoped>
 .environment {
 	display: flex;
-	color: var(--color-text) !important;
+	color: var(--color-base) !important;
 	font-weight: bold;
 	font-size: 1rem;
 	align-items: center;

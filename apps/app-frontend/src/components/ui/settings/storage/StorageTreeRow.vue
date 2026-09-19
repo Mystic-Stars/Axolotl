@@ -273,7 +273,7 @@ const openActionLabel = computed(() => formatMessage(storageMessages.openAction)
 .storage-size {
 	font-size: 0.8125rem;
 	font-variant-numeric: tabular-nums;
-	color: var(--color-primary);
+	color: var(--color-text-default);
 	white-space: nowrap;
 	text-align: right;
 	min-width: 5rem;

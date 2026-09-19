@@ -248,7 +248,7 @@ img {
 @import '@modrinth/assets/omorphia.scss';
 
 input {
-	border-radius: var(--size-rounded-sm);
+	border-radius: var(--radius-md);
 	box-sizing: border-box;
 	border: 2px solid transparent;
 	// safari iOS rounds inputs by default
@@ -263,7 +263,7 @@ pre {
 input,
 textarea {
 	background: var(--color-button-bg);
-	color: var(--color-text);
+	color: var(--color-base);
 	padding: 0.5rem 1rem;
 	font-weight: var(--font-weight-medium);
 	border: none;

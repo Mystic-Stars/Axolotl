@@ -1047,7 +1047,7 @@ Button {
 		background: inherit;
 		transition: all ease-in-out 0.1s;
 		width: 100%;
-		color: var(--color-primary);
+		color: var(--color-text-default);
 		box-shadow: none;
 
 		&.router-link-exact-active {
