@@ -141,6 +141,10 @@ pub struct Settings {
     pub custom_background_opacity: u32,
     #[serde(default = "default_custom_background_component_opacity")]
     pub custom_background_component_opacity: u32,
+    #[serde(default)]
+    pub ui_font: Option<String>,
+    #[serde(default)]
+    pub mono_font: Option<String>,
     pub transparent_background: bool,
     pub transparent_background_opacity: u32,
     pub transparent_background_blur: bool,
@@ -241,6 +245,23 @@ fn default_window_title() -> String {
     "Minecraft".to_string()
 }
 
+const MAX_FONT_FAMILY_LENGTH: usize = 128;
+
+/// Font family names are picked from the host's installed fonts, but the
+/// settings table is plain user data: store them trimmed and bounded, with an
+/// empty selection normalised to NULL (follow the launcher default).
+fn sanitize_font_family(family: Option<String>) -> Option<String> {
+    family
+        .map(|value| {
+            value
+                .trim()
+                .chars()
+                .take(MAX_FONT_FAMILY_LENGTH)
+                .collect::<String>()
+        })
+        .filter(|value| !value.is_empty())
+}
+
 /// Default log level, kept in sync with the `log_level` column default and
 /// the logger's own fallback.
 fn default_log_level() -> String {
@@ -321,6 +342,16 @@ impl Settings {
         )
         .fetch_one(exec)
         .await?;
+
+        let ui_font: Option<String> =
+            sqlx::query_scalar("SELECT ui_font FROM settings WHERE id = 0")
+                .fetch_one(exec)
+                .await?;
+
+        let mono_font: Option<String> =
+            sqlx::query_scalar("SELECT mono_font FROM settings WHERE id = 0")
+                .fetch_one(exec)
+                .await?;
 
         let hidden_nav_items_json: String = sqlx::query_scalar(
             "SELECT hidden_nav_items FROM settings WHERE id = 0",
@@ -416,6 +447,8 @@ impl Settings {
             custom_background_opacity: res.custom_background_opacity as u32,
             custom_background_component_opacity:
                 custom_background_component_opacity.clamp(0, 100) as u32,
+            ui_font: sanitize_font_family(ui_font),
+            mono_font: sanitize_font_family(mono_font),
             transparent_background: res.transparent_background == 1,
             transparent_background_opacity: res.transparent_background_opacity
                 as u32,
@@ -722,6 +755,14 @@ impl Settings {
             "UPDATE settings SET custom_background_component_opacity = ? WHERE id = 0",
         )
         .bind(self.custom_background_component_opacity.clamp(0, 100) as i64)
+        .execute(exec)
+        .await?;
+
+        sqlx::query(
+            "UPDATE settings SET ui_font = ?, mono_font = ? WHERE id = 0",
+        )
+        .bind(sanitize_font_family(self.ui_font.clone()))
+        .bind(sanitize_font_family(self.mono_font.clone()))
         .execute(exec)
         .await?;
 
@@ -1402,6 +1443,76 @@ mod tests {
 
         let reloaded = Settings::get(&pool).await.unwrap();
         assert_eq!(reloaded.home_widgets, Some(expected));
+    }
+
+    #[tokio::test]
+    async fn font_columns_upgrade_an_existing_settings_database() {
+        let pool = sqlx::sqlite::SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect("sqlite::memory:")
+            .await
+            .unwrap();
+        sqlx::query(
+            "CREATE TABLE settings (id INTEGER PRIMARY KEY CHECK (id = 0))",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+        sqlx::query("INSERT INTO settings (id) VALUES (0)")
+            .execute(&pool)
+            .await
+            .unwrap();
+
+        sqlx::raw_sql(include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/migrations/20260919120000_custom-fonts.sql"
+        )))
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        let fonts: (Option<String>, Option<String>) = sqlx::query_as(
+            "SELECT ui_font, mono_font FROM settings WHERE id = 0",
+        )
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+        assert_eq!(fonts, (None, None));
+        assert!(
+            sqlx::query("PRAGMA foreign_key_check")
+                .fetch_all(&pool)
+                .await
+                .unwrap()
+                .is_empty()
+        );
+    }
+
+    #[tokio::test]
+    async fn fonts_default_to_none_and_round_trip_in_a_fresh_database() {
+        let pool = sqlx::sqlite::SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect("sqlite::memory:")
+            .await
+            .unwrap();
+        sqlx::migrate!().run(&pool).await.unwrap();
+
+        let mut settings = Settings::get(&pool).await.unwrap();
+        assert_eq!(settings.ui_font, None);
+        assert_eq!(settings.mono_font, None);
+
+        settings.ui_font = Some("  Microsoft YaHei  ".to_string());
+        settings.mono_font = Some("JetBrains Mono".to_string());
+        settings.update(&pool).await.unwrap();
+
+        let reloaded = Settings::get(&pool).await.unwrap();
+        assert_eq!(reloaded.ui_font.as_deref(), Some("Microsoft YaHei"));
+        assert_eq!(reloaded.mono_font.as_deref(), Some("JetBrains Mono"));
+
+        settings.mono_font = Some("   ".to_string());
+        settings.update(&pool).await.unwrap();
+
+        let cleared = Settings::get(&pool).await.unwrap();
+        assert_eq!(cleared.mono_font, None);
     }
 
     #[tokio::test]
