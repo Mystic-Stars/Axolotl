@@ -3,3 +3,4 @@ src/locales/**
 # Vitest/Playwright artifacts
 .vite/
 .vitest-attachments/
+src/test/__screenshots__/
