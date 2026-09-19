@@ -4,7 +4,7 @@ import { inject, onUnmounted, provide, reactive, ref } from 'vue'
 
 import { instance_listener, process_listener } from '@/helpers/events'
 import { get_all } from '@/helpers/process'
-import { serverEventListener, servers as serversApi, type ServerInfoData } from '@/helpers/servers'
+import { serverEventListener, type ServerInfoData, servers as serversApi } from '@/helpers/servers'
 import { get_game_versions } from '@/helpers/tags'
 import {
 	get_favorite_worlds,

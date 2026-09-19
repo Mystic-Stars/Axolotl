@@ -1,8 +1,9 @@
 import type { ContentItem } from '@modrinth/ui'
 
-import { isActiveInstallJobStatus } from './install-job-status.ts'
-import type { InstallJobSnapshot } from './install.ts'
 import type { PendingContentChange } from '@/providers/download-manager.ts'
+
+import type { InstallJobSnapshot } from './install.ts'
+import { isActiveInstallJobStatus } from './install-job-status.ts'
 
 export function activeContentChangeJobs(
 	jobs: InstallJobSnapshot[],

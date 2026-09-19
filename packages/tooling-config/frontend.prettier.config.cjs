@@ -5,6 +5,12 @@
 module.exports = {
 	semi: false,
 	singleQuote: true,
+	// The repository indents source with tabs (.editorconfig + CLAUDE.md), and
+	// the vast majority of tracked JSON is tab-indented too. Without this,
+	// Prettier falls back to `.editorconfig`, whose `[*.{toml,json}]` block
+	// forces spaces, so `prettier --check` failed on the tab-indented JSON in
+	// the packages that use this config.
+	useTabs: true,
 	plugins: [
 		// In typical JS/TS britleness fashion, the Tailwind CSS plugin
 		// has a transitive dependency on an import sort plugin that breaks
@@ -26,6 +32,15 @@ module.exports = {
 				parser: 'jsonc',
 				// By spec, JSONC only extends JSON with comment support, not trailing commas as Prettier likes to add
 				trailingComma: 'none',
+			},
+		},
+		{
+			// TOML is space-indented throughout the repository and is checked by
+			// the `tombi` CI job; tabs would fight both.
+			files: ['*.toml'],
+			options: {
+				useTabs: false,
+				tabWidth: 2,
 			},
 		},
 	],

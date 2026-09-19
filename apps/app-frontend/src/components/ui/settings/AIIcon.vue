@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import { type Component, computed, useId } from 'vue'
 
+import { getLobeIconComponent, hasLobeIcon } from '@/data/lobeIconComponents'
 import {
 	lobeModelAvatarBrands,
 	lobeModelIconMappings,
 	openAIModelBackgrounds,
 } from '@/data/lobeModelIcons'
 import { lobeProviderIcons } from '@/data/lobeProviderIcons'
-import { getLobeIconComponent, hasLobeIcon } from '@/data/lobeIconComponents'
 
 import CodeFlowLogo from './CodeFlowLogo.vue'
 import LobeBrandCombine from './LobeBrandCombine.vue'

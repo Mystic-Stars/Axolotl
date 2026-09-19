@@ -55,7 +55,8 @@ const { showTopFade, showBottomFade, checkScrollState, forceCheck } =
 const modal = ref<InstanceType<typeof NewModal> | null>(null)
 
 function setTab(index: number) {
-	if (index === selectedTab.value || props.beforeTabChange?.(selectedTab.value, index) === false) return
+	if (index === selectedTab.value || props.beforeTabChange?.(selectedTab.value, index) === false)
+		return
 	selectedTab.value = index
 	nextTick(() => forceCheck())
 }

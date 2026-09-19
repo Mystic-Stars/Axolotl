@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { FolderOpenIcon, LeftArrowIcon, SparklesIcon } from '@modrinth/assets'
-import { BigOptionButton, Button, defineMessages, useVIntl } from '@modrinth/ui'
+import { BigOptionButton, defineMessages, LegacyButton as Button, useVIntl } from '@modrinth/ui'
 import { inject } from 'vue'
 import { useRouter } from 'vue-router'
 

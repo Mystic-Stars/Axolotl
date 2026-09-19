@@ -34,7 +34,7 @@
 					"
 				/>
 				<ScrollablePanel v-if="search">
-					<Button
+					<LegacyButton
 						v-for="(option, index) in filteredOptions"
 						:key="`option-${index}`"
 						:transparent="!manyValues.includes(option)"
@@ -47,10 +47,10 @@
 							class="h-5 w-5 text-contrast ml-auto transition-opacity"
 							:class="{ 'opacity-0': !manyValues.includes(option) }"
 						/>
-					</Button>
+					</LegacyButton>
 				</ScrollablePanel>
 				<div v-else class="flex flex-col gap-1">
-					<Button
+					<LegacyButton
 						v-for="(option, index) in filteredOptions"
 						:key="`option-${index}`"
 						:transparent="!manyValues.includes(option)"
@@ -63,7 +63,7 @@
 							class="h-5 w-5 text-contrast ml-auto transition-opacity"
 							:class="{ 'opacity-0': !manyValues.includes(option) }"
 						/>
-					</Button>
+					</LegacyButton>
 				</div>
 				<slot name="footer" />
 			</template>
@@ -74,7 +74,8 @@
 import { CheckIcon, DropdownIcon, SearchIcon } from '@modrinth/assets'
 import { computed, ref } from 'vue'
 
-import { Button, ButtonStyled, PopoutMenu, StyledInput } from '../index'
+import { ButtonStyled, PopoutMenu, StyledInput } from '../index'
+import LegacyButton from './Button.vue'
 import ScrollablePanel from './ScrollablePanel.vue'
 
 type Option = string | number | object

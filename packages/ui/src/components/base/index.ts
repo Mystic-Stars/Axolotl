@@ -8,7 +8,11 @@ export { default as Badge } from './Badge.vue'
 export { default as BaseTerminal } from './BaseTerminal.vue'
 export { default as BigOptionButton } from './BigOptionButton.vue'
 export { default as BulletDivider } from './BulletDivider.vue'
-export { default as Button } from './Button.vue'
+// `Button` is the current button system. The legacy runtime-props component is
+// only reachable as `LegacyButton` so that `import { Button }` can never
+// silently resolve to the generation that ignores `type`/`size`/`interaction`.
+export { default as LegacyButton } from './Button.vue'
+export { default as Button } from './buttons/Button.vue'
 export { default as NewButton } from './buttons/Button.vue'
 export { default as CheckCircleButton } from './buttons/CheckCircleButton.vue'
 export { default as IconButton } from './buttons/IconButton.vue'

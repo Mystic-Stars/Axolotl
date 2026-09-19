@@ -22,7 +22,7 @@ import {
 } from '@/helpers/install'
 import { ACTIVE_INSTALL_JOB_STATUSES, isActiveInstallJobStatus } from '@/helpers/install-job-status'
 import { preserveMonotonicProgress } from '@/helpers/install-progress'
-import { queue_content_change, type ContentChangeIntent } from '@/helpers/instance'
+import { type ContentChangeIntent, queue_content_change } from '@/helpers/instance'
 import type { LoadingBar } from '@/helpers/state'
 import { progress_bars_list } from '@/helpers/state'
 
