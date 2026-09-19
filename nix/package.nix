@@ -5,11 +5,10 @@
   symlinkJoin,
 
   launchEnv ? {},
-  prebuilt,
   ...
 }:
 let
-  enwrap = callPackage ./enwrap.nix { inherit inputs launchEnv prebuilt; };
+  enwrap = callPackage ./enwrap.nix { inherit inputs launchEnv; };
   desktop = callPackage ./desktop.nix { inherit inputs; };
 in
   symlinkJoin {

@@ -7,9 +7,9 @@
 }:
 (
   let
-    axolotl-git= callPackage ./axolotl-git { inherit inputs; };
+    axolotl = callPackage ./axolotl.nix { inherit inputs; };
     update-gradle-deps = writeShellScriptBin "update-gradle-deps" ''
-      ${axolotl-git.mitmCache.updateScript}
+      ${axolotl.mitmCache.updateScript}
     '';
   in
     mkShell {
