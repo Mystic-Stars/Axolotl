@@ -512,6 +512,57 @@
   "app.appearance-settings.default-landing-page.title": {
     "message": "默认起始页"
   },
+  "app.appearance-settings.fonts.default": {
+    "message": "启动器默认"
+  },
+  "app.appearance-settings.fonts.description": {
+    "message": "选择启动器界面与日志使用的字体。"
+  },
+  "app.appearance-settings.fonts.load-failed": {
+    "message": "无法读取已安装的字体列表。"
+  },
+  "app.appearance-settings.fonts.missing": {
+    "message": "未安装"
+  },
+  "app.appearance-settings.fonts.mono-font": {
+    "message": "等宽字体"
+  },
+  "app.appearance-settings.fonts.mono-font-description": {
+    "message": "作用于日志、服务器控制台以及其他等宽内容。"
+  },
+  "app.appearance-settings.fonts.mono-preview-sample": {
+    "message": "[12:34:56] [Server thread/INFO]: 正在准备生成区域: 43%"
+  },
+  "app.appearance-settings.fonts.monospace": {
+    "message": "等宽"
+  },
+  "app.appearance-settings.fonts.no-results": {
+    "message": "没有匹配的字体"
+  },
+  "app.appearance-settings.fonts.preview": {
+    "message": "预览"
+  },
+  "app.appearance-settings.fonts.reset": {
+    "message": "恢复默认"
+  },
+  "app.appearance-settings.fonts.retry": {
+    "message": "重试"
+  },
+  "app.appearance-settings.fonts.search-placeholder": {
+    "message": "搜索已安装的字体"
+  },
+  "app.appearance-settings.fonts.title": {
+    "message": "字体"
+  },
+  "app.appearance-settings.fonts.ui-font": {
+    "message": "界面字体"
+  },
+  "app.appearance-settings.fonts.ui-font-description": {
+    "message": "作用于整个启动器界面，列表仅包含本机已安装的字体。"
+  },
+  "app.appearance-settings.fonts.ui-preview-sample": {
+    "message": "字体预览：山川异域，风月同天。0123456789"
+  },
   "app.appearance-settings.hide-nametag.description": {
     "message": "在皮肤页面中禁用你玩家头顶上的名牌。"
   },

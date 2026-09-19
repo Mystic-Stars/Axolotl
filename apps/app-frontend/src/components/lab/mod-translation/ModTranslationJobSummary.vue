@@ -168,7 +168,7 @@ function formatDuration(seconds: number): string {
 }
 
 .job-title span {
-	font-family: var(--font-mono, monospace);
+	font-family: var(--mono-font, monospace);
 	font-size: 0.66rem;
 	font-variant-numeric: tabular-nums;
 	color: var(--color-text-secondary);

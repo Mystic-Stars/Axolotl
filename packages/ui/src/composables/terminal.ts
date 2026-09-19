@@ -11,10 +11,21 @@ import {
 	shallowRef,
 } from 'vue'
 
+/**
+ * Reads a theme token off the element that declares it. The font tokens live on
+ * `body` (see `packages/assets/styles/defaults.scss`), so a lookup that only
+ * ever checked `<html>` would report their fallbacks.
+ */
 export function getCssVar(name: string, fallback: string): string {
 	if (typeof document === 'undefined') return fallback
-	const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim()
+	const value = getComputedStyle(document.body ?? document.documentElement)
+		.getPropertyValue(name)
+		.trim()
 	return value || fallback
+}
+
+function resolveMonoFont(): string {
+	return getCssVar('--mono-font', 'monospace')
 }
 
 function buildTerminalTheme() {
@@ -87,6 +98,7 @@ export function useTerminal(options: UseTerminalOptions): UseTerminalReturn {
 
 	let resizeObserver: ResizeObserver | null = null
 	let themeObserver: MutationObserver | null = null
+	let fontObserver: MutationObserver | null = null
 	let wheelHandler: ((e: WheelEvent) => void) | null = null
 	let hasWritten = false
 	const pendingWrites: Array<{ data: string; newline: boolean }> = []
@@ -170,7 +182,7 @@ export function useTerminal(options: UseTerminalOptions): UseTerminalReturn {
 			scrollback: options.scrollback ?? Infinity,
 			convertEol: true,
 			smoothScrollDuration: 125,
-			fontFamily: 'monospace',
+			fontFamily: resolveMonoFont(),
 			fontSize: 14,
 			lineHeight: 1.5,
 			allowProposedApi: true,
@@ -251,6 +263,23 @@ export function useTerminal(options: UseTerminalOptions): UseTerminalReturn {
 			attributeFilter: ['data-theme', 'class'],
 		})
 
+		// The font pickers override the tokens as inline properties on <body>, so
+		// a mounted terminal has to follow that element to pick up a change.
+		fontObserver = new MutationObserver(() => {
+			const font = resolveMonoFont()
+			if (term.options.fontFamily !== font) {
+				term.options.fontFamily = font
+				const dims = fit.proposeDimensions()
+				if (dims) {
+					term.resize(dims.cols, dims.rows)
+				}
+			}
+		})
+		fontObserver.observe(document.body, {
+			attributes: true,
+			attributeFilter: ['style'],
+		})
+
 		options.onReady?.(term)
 	})
 
@@ -263,6 +292,8 @@ export function useTerminal(options: UseTerminalOptions): UseTerminalReturn {
 		resizeObserver = null
 		themeObserver?.disconnect()
 		themeObserver = null
+		fontObserver?.disconnect()
+		fontObserver = null
 		terminal.value?.dispose()
 		terminal.value = null
 	})

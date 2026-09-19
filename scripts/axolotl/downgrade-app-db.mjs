@@ -140,6 +140,13 @@ const REVERTIBLE_SCHEMA = {
 	20260917150000: {
 		columns: [{ table: 'settings', column: 'custom_background_component_opacity' }],
 	},
+	// settings.ui_font / mono_font
+	20260919120000: {
+		columns: [
+			{ table: 'settings', column: 'ui_font' },
+			{ table: 'settings', column: 'mono_font' },
+		],
+	},
 }
 
 function fail(message) {

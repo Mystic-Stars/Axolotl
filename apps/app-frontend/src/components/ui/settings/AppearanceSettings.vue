@@ -29,8 +29,20 @@ import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 
 import HeadlessSelect from '@/components/ui/headless/HeadlessSelect.vue'
 import HeadlessTooltip from '@/components/ui/headless/HeadlessTooltip.vue'
+import {
+	buildFontFamilyOptions,
+	canonicalFontFamily,
+	DEFAULT_MONO_FONT_STACK,
+	DEFAULT_UI_FONT_STACK,
+	type FontFamilyOption,
+	type FontFamilyOptionOrDivider,
+	optionValueToFontSetting,
+	resolveFontFamily,
+	type SystemFontFamily,
+} from '@/helpers/font-family.ts'
 import { getShowScrollTop, setShowScrollTop } from '@/helpers/scroll-top-state'
 import { get, set } from '@/helpers/settings.ts'
+import { getSystemFontFamilies } from '@/helpers/system-fonts.ts'
 import { getOS } from '@/helpers/utils'
 import { useTheming } from '@/store/state'
 import {
@@ -435,6 +447,63 @@ const messages = defineMessages({
 	navSkins: { id: 'app.navigation.skin-selector', defaultMessage: 'Skin selector' },
 	navLab: { id: 'app.navigation.lab', defaultMessage: 'Lab' },
 	navDownloads: { id: 'app.navigation.downloads', defaultMessage: 'Downloads' },
+	fontsTitle: { id: 'app.appearance-settings.fonts.title', defaultMessage: 'Fonts' },
+	fontsDescription: {
+		id: 'app.appearance-settings.fonts.description',
+		defaultMessage: 'Choose the fonts the launcher interface and its logs are rendered in.',
+	},
+	uiFontTitle: { id: 'app.appearance-settings.fonts.ui-font', defaultMessage: 'Interface font' },
+	uiFontDescription: {
+		id: 'app.appearance-settings.fonts.ui-font-description',
+		defaultMessage:
+			'Used across the launcher interface. Only fonts installed on this system are listed.',
+	},
+	monoFontTitle: {
+		id: 'app.appearance-settings.fonts.mono-font',
+		defaultMessage: 'Monospace font',
+	},
+	monoFontDescription: {
+		id: 'app.appearance-settings.fonts.mono-font-description',
+		defaultMessage: 'Used for logs, the server console, and other monospace content.',
+	},
+	fontDefault: {
+		id: 'app.appearance-settings.fonts.default',
+		defaultMessage: 'Launcher default',
+	},
+	fontMonospace: {
+		id: 'app.appearance-settings.fonts.monospace',
+		defaultMessage: 'Monospace',
+	},
+	fontMissing: {
+		id: 'app.appearance-settings.fonts.missing',
+		defaultMessage: 'Not installed',
+	},
+	fontSearchPlaceholder: {
+		id: 'app.appearance-settings.fonts.search-placeholder',
+		defaultMessage: 'Search installed fonts',
+	},
+	fontNoResults: {
+		id: 'app.appearance-settings.fonts.no-results',
+		defaultMessage: 'No matching fonts',
+	},
+	fontLoadFailed: {
+		id: 'app.appearance-settings.fonts.load-failed',
+		defaultMessage: "Couldn't read the list of installed fonts.",
+	},
+	fontRetry: { id: 'app.appearance-settings.fonts.retry', defaultMessage: 'Retry' },
+	fontReset: {
+		id: 'app.appearance-settings.fonts.reset',
+		defaultMessage: 'Reset to default',
+	},
+	fontPreviewLabel: { id: 'app.appearance-settings.fonts.preview', defaultMessage: 'Preview' },
+	fontUiPreviewSample: {
+		id: 'app.appearance-settings.fonts.ui-preview-sample',
+		defaultMessage: 'The quick brown fox jumps over the lazy dog. 0123456789',
+	},
+	fontMonoPreviewSample: {
+		id: 'app.appearance-settings.fonts.mono-preview-sample',
+		defaultMessage: '[12:34:56] [Server thread/INFO]: Preparing spawn area: 43%',
+	},
 })
 
 const os = ref(await getOS())
@@ -686,8 +755,85 @@ async function setupNativeBackgroundDrop() {
 	}
 }
 
+const systemFonts = ref<SystemFontFamily[]>([])
+const systemFontsLoading = ref(true)
+const systemFontsFailed = ref(false)
+
+async function loadSystemFonts() {
+	systemFontsLoading.value = true
+	systemFontsFailed.value = false
+
+	try {
+		systemFonts.value = await getSystemFontFamilies()
+	} catch (error) {
+		systemFontsFailed.value = true
+		console.warn('Failed to read the list of installed fonts', error)
+	} finally {
+		systemFontsLoading.value = false
+	}
+}
+
+function selectedOptionLabel(options: FontFamilyOptionOrDivider[], value: string): string {
+	const option = options.find(
+		(entry): entry is FontFamilyOption => 'value' in entry && entry.value === value,
+	)
+
+	return option?.label ?? ''
+}
+
+const uiFontOptions = computed<FontFamilyOptionOrDivider[]>(() =>
+	buildFontFamilyOptions(systemFonts.value, {
+		defaultLabel: formatMessage(messages.fontDefault),
+		missingLabel: formatMessage(messages.fontMissing),
+		selected: settings.value.ui_font,
+	}),
+)
+
+const monoFontOptions = computed<FontFamilyOptionOrDivider[]>(() =>
+	buildFontFamilyOptions(systemFonts.value, {
+		defaultLabel: formatMessage(messages.fontDefault),
+		missingLabel: formatMessage(messages.fontMissing),
+		monospaceLabel: formatMessage(messages.fontMonospace),
+		selected: settings.value.mono_font,
+		groupMonospaced: true,
+	}),
+)
+
+const uiFontSelection = computed({
+	get: () => canonicalFontFamily(systemFonts.value, settings.value.ui_font),
+	set: (value: string) => {
+		settings.value.ui_font = optionValueToFontSetting(value)
+	},
+})
+
+const monoFontSelection = computed({
+	get: () => canonicalFontFamily(systemFonts.value, settings.value.mono_font),
+	set: (value: string) => {
+		settings.value.mono_font = optionValueToFontSetting(value)
+	},
+})
+
+/** Restores the committed family after an abandoned search, instead of the typed text. */
+const uiFontSearchValue = computed(() =>
+	selectedOptionLabel(uiFontOptions.value, uiFontSelection.value),
+)
+const monoFontSearchValue = computed(() =>
+	selectedOptionLabel(monoFontOptions.value, monoFontSelection.value),
+)
+
+const uiFontPreview = computed(() =>
+	resolveFontFamily(settings.value.ui_font, DEFAULT_UI_FONT_STACK),
+)
+const monoFontPreview = computed(() =>
+	resolveFontFamily(settings.value.mono_font, DEFAULT_MONO_FONT_STACK),
+)
+
 onMounted(() => {
 	void setupNativeBackgroundDrop()
+
+	if (props.scope === 'interface') {
+		void loadSystemFonts()
+	}
 })
 
 onUnmounted(() => {
@@ -709,6 +855,8 @@ watch(
 			settings.value.hidden_nav_items,
 			settings.value.sidebar_instance_count,
 			settings.value.close_behavior,
+			settings.value.ui_font,
+			settings.value.mono_font,
 		] as const,
 	([
 		path,
@@ -722,6 +870,8 @@ watch(
 		hiddenNavItems,
 		sidebarInstanceCount,
 		closeBehavior,
+		uiFont,
+		monoFont,
 	]) => {
 		themeStore.customBackgroundPath = path
 		themeStore.customBackgroundBlur = blur
@@ -737,6 +887,10 @@ watch(
 		themeStore.hiddenNavItems = hiddenNavItems
 		themeStore.sidebarInstanceCount = sidebarInstanceCount
 		themeStore.closeBehavior = closeBehavior as CloseBehavior
+		themeStore.uiFont = uiFont
+		themeStore.monoFont = monoFont
+		themeStore.setUiFont()
+		themeStore.setMonoFont()
 	},
 	{ immediate: true },
 )
@@ -1153,6 +1307,118 @@ watch(
 					/>
 				</template>
 			</SettingsRow>
+		</SettingsSection>
+
+		<SettingsSection v-if="props.scope === 'interface'">
+			<template #header>
+				<h2
+					id="settings-target-appearance-fonts"
+					tabindex="-1"
+					class="m-0 text-lg font-semibold text-contrast"
+				>
+					{{ formatMessage(messages.fontsTitle) }}
+				</h2>
+				<p class="m-0 mt-1 text-sm leading-relaxed text-secondary">
+					{{ formatMessage(messages.fontsDescription) }}
+				</p>
+			</template>
+			<SettingsRow stacked>
+				<template #label>
+					<span id="settings-target-appearance-ui-font" tabindex="-1">
+						{{ formatMessage(messages.uiFontTitle) }}
+					</span>
+				</template>
+				<template #description>{{ formatMessage(messages.uiFontDescription) }}</template>
+				<template #control>
+					<div class="flex w-full flex-col gap-3">
+						<div class="flex items-center gap-2">
+							<div class="min-w-0 flex-1">
+								<Combobox
+									v-model="uiFontSelection"
+									:options="uiFontOptions"
+									searchable
+									:search-value="uiFontSearchValue"
+									:search-placeholder="formatMessage(messages.fontSearchPlaceholder)"
+									:no-options-message="formatMessage(messages.fontNoResults)"
+									show-no-options-when-empty
+									:disabled="systemFontsLoading"
+								/>
+							</div>
+							<Button
+								type="quiet"
+								:disabled="settings.ui_font === null"
+								@click="settings.ui_font = null"
+							>
+								{{ formatMessage(messages.fontReset) }}
+							</Button>
+						</div>
+						<div class="flex flex-col gap-1">
+							<span class="text-xs text-secondary">
+								{{ formatMessage(messages.fontPreviewLabel) }}
+							</span>
+							<div
+								class="rounded-[var(--radius-md)] bg-surface-3 px-3 py-2 text-base text-primary"
+								:style="{ fontFamily: uiFontPreview }"
+							>
+								{{ formatMessage(messages.fontUiPreviewSample) }}
+							</div>
+						</div>
+					</div>
+				</template>
+			</SettingsRow>
+			<SettingsRow stacked>
+				<template #label>
+					<span id="settings-target-appearance-mono-font" tabindex="-1">
+						{{ formatMessage(messages.monoFontTitle) }}
+					</span>
+				</template>
+				<template #description>{{ formatMessage(messages.monoFontDescription) }}</template>
+				<template #control>
+					<div class="flex w-full flex-col gap-3">
+						<div class="flex items-center gap-2">
+							<div class="min-w-0 flex-1">
+								<Combobox
+									v-model="monoFontSelection"
+									:options="monoFontOptions"
+									searchable
+									:search-value="monoFontSearchValue"
+									:search-placeholder="formatMessage(messages.fontSearchPlaceholder)"
+									:no-options-message="formatMessage(messages.fontNoResults)"
+									show-no-options-when-empty
+									:disabled="systemFontsLoading"
+								/>
+							</div>
+							<Button
+								type="quiet"
+								:disabled="settings.mono_font === null"
+								@click="settings.mono_font = null"
+							>
+								{{ formatMessage(messages.fontReset) }}
+							</Button>
+						</div>
+						<div class="flex flex-col gap-1">
+							<span class="text-xs text-secondary">
+								{{ formatMessage(messages.fontPreviewLabel) }}
+							</span>
+							<div
+								class="rounded-[var(--radius-md)] bg-surface-3 px-3 py-2 text-xs text-primary"
+								:style="{ fontFamily: monoFontPreview }"
+							>
+								{{ formatMessage(messages.fontMonoPreviewSample) }}
+							</div>
+						</div>
+					</div>
+				</template>
+			</SettingsRow>
+			<div
+				v-if="systemFontsFailed"
+				class="flex items-center justify-between gap-3 px-4 pb-4 text-sm text-secondary"
+			>
+				<span>{{ formatMessage(messages.fontLoadFailed) }}</span>
+				<Button type="quiet" @click="loadSystemFonts">
+					{{ formatMessage(messages.fontRetry) }}
+				</Button>
+			</div>
 		</SettingsSection>
 
 		<SettingsSection v-if="props.scope === 'home-navigation'">
