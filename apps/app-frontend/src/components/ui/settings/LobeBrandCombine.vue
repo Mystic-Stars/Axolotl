@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { type Component, computed } from 'vue'
 
-import { lobeAvatarBrands, lobeCombineBrands } from '@/data/lobeProviderIcons'
 import { getLobeIconComponent, hasLobeIcon } from '@/data/lobeIconComponents'
+import { lobeAvatarBrands, lobeCombineBrands } from '@/data/lobeProviderIcons'
 
 import HigressTextColor from './HigressTextColor.vue'
 

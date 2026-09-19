@@ -277,7 +277,9 @@ function record_upgrade_plan_bench(
 		error,
 	}
 	upgradePlanBenchSamples.push(sample)
-	console.log(`[upgrade-plan-bench] #${sample.run} ${operation}: ${sample.durationMs.toFixed(2)} ms`)
+	console.log(
+		`[upgrade-plan-bench] #${sample.run} ${operation}: ${sample.durationMs.toFixed(2)} ms`,
+	)
 }
 
 if (import.meta.env.DEV) {

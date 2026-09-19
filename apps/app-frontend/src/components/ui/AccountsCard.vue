@@ -740,10 +740,7 @@ function getAccountAvatarUrl(account: MinecraftCredential) {
 	if (cachedHeadUrl) {
 		return cachedHeadUrl
 	}
-	if (
-		account.account_id === selectedAccount.value?.account_id &&
-		equippedSkin.value?.texture_key
-	) {
+	if (account.account_id === selectedAccount.value?.account_id && equippedSkin.value?.texture_key) {
 		const cachedUrl = headUrlCache.value.get(equippedSkin.value.texture_key)
 		if (cachedUrl) {
 			return cachedUrl

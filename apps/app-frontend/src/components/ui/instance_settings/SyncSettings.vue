@@ -71,9 +71,7 @@ const optionSections = computed(() => {
 
 	return [
 		{ key: 'supported', items: supported, disabled: false },
-		...(unsupported.length > 0
-			? [{ key: 'unsupported', items: unsupported, disabled: true }]
-			: []),
+		...(unsupported.length > 0 ? [{ key: 'unsupported', items: unsupported, disabled: true }] : []),
 	]
 })
 
@@ -103,10 +101,7 @@ function enabled(option: SyncedOption) {
 			<p class="m-0 text-secondary">{{ formatMessage(messages.description) }}</p>
 		</div>
 		<template v-for="section in optionSections" :key="section.key">
-			<h3
-				v-if="section.key === 'unsupported'"
-				class="m-0 text-sm font-semibold text-secondary"
-			>
+			<h3 v-if="section.key === 'unsupported'" class="m-0 text-sm font-semibold text-secondary">
 				{{ formatMessage(messages.unsupported) }}
 			</h3>
 			<div

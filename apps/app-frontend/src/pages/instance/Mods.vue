@@ -252,7 +252,6 @@ import { postUpgradeNoticeQueryKey, usePostUpgradeNotice } from '@/composables/u
 import { useWorldDatapacks } from '@/composables/useWorldDatapacks'
 import { trackEvent } from '@/helpers/analytics'
 import { get_project_versions, get_version, get_version_many } from '@/helpers/cache.js'
-import { applyContentItemUpdates, matchesContentItem } from '@/helpers/content-item-state'
 import {
 	activeContentChangeJobs as selectActiveContentChangeJobs,
 	contentItemStableId,
@@ -260,6 +259,7 @@ import {
 	pendingContentChangeAffectsItem,
 } from '@/helpers/content-change-jobs'
 import { mergeContentItemMetadata } from '@/helpers/content-item-metadata'
+import { applyContentItemUpdates, matchesContentItem } from '@/helpers/content-item-state'
 import { lookupContentWikiIds, translateContentItemTitles } from '@/helpers/content-search'
 import { type CurseForgeFile, getCurseForgeChangelog } from '@/helpers/curseforge'
 import {
@@ -2889,7 +2889,7 @@ provideContentManager({
 
 type UnlistenFn = () => void
 
-const initialContentReady = loadInitialContent()
+void loadInitialContent()
 
 function getInstallRevision() {
 	return installRevisionByInstance.value.get(props.instance.id) ?? 0

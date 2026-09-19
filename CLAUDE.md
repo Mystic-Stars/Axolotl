@@ -50,7 +50,7 @@ The website and app `prepr` commands
 
 ### Local App Verification
 
-- Do not take screenshots or perform automated, visual, or manual self-testing of the local app.
+- Automated visual and interaction tests that run in CI are allowed, and may be run locally while developing them. Do not replace the user's own acceptance check: the user still verifies visual and interaction changes themselves.
 
 ### Website Verification
 
