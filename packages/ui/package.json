@@ -14,6 +14,8 @@
 			"node": "./node.ts",
 			"default": "./index.ts"
 		},
+		"./locales.eager": "./src/locales.eager.ts",
+		"./styles/*": "./src/styles/*",
 		"./src/*": "./src/*"
 	},
 	"scripts": {

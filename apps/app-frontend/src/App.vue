@@ -27,6 +27,7 @@ import {
 import {
 	Admonition,
 	Avatar,
+	BatchScanOverlay,
 	BigOptionButton,
 	bindingMatchesKeyboardEvent,
 	bindingMatchesMouseEvent,
@@ -35,12 +36,15 @@ import {
 	Checkbox,
 	clientInstallableLoaders,
 	commonMessages,
+	ConfirmDropTypeModal,
 	ContentInstallModal,
 	ContentUpdaterModal,
 	CreationFlowModal,
 	defineMessages,
+	GenericContentInstallModal,
 	I18nDebugPanel,
 	type KeyBinding,
+	LauncherImportModal,
 	LoadingBar,
 	NewModal,
 	NotificationPanel,
@@ -52,16 +56,12 @@ import {
 	providePageContext,
 	providePopupNotificationManager,
 	ScrollToTopButton,
+	SymlinkMethodCards,
 	useDebugLogger,
 	useFormatBytes,
 	useModalStack,
 	useVIntl,
 } from '@modrinth/ui'
-import BatchScanOverlay from '@modrinth/ui/src/components/flows/drop/BatchScanOverlay.vue'
-import ConfirmDropTypeModal from '@modrinth/ui/src/components/flows/drop/ConfirmDropTypeModal.vue'
-import GenericContentInstallModal from '@modrinth/ui/src/components/flows/drop/GenericContentInstallModal.vue'
-import LauncherImportModal from '@modrinth/ui/src/components/flows/drop/LauncherImportModal.vue'
-import SymlinkMethodCards from '@modrinth/ui/src/components/flows/drop/SymlinkMethodCards.vue'
 import { useQuery } from '@tanstack/vue-query'
 import { getVersion } from '@tauri-apps/api/app'
 import { convertFileSrc, invoke } from '@tauri-apps/api/core'

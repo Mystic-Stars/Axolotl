@@ -1,3 +1,6 @@
+// Deep-imported on purpose: the sibling `instance-files.test.ts` runs under
+// `node --test`, which resolves `@modrinth/ui` to `node.ts` (a Node-only stub),
+// so these pure helpers have to be named by their module.
 import {
 	buildFileTreeRows,
 	collectFileTreeFolders,

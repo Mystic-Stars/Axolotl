@@ -140,10 +140,10 @@ import {
 	injectNotificationManager,
 	NewModal,
 	RadioButtons,
+	SkinPreviewRenderer,
 	useScrollIndicator,
 	useVIntl,
 } from '@modrinth/ui'
-import SkinPreviewRenderer from '@modrinth/ui/src/components/skin/SkinPreviewRenderer.vue'
 import { arrayBufferToBase64 } from '@modrinth/utils'
 import { computed, nextTick, ref, useTemplateRef, watch } from 'vue'
 

@@ -15,9 +15,9 @@ import {
 	defineMessages,
 	injectNotificationManager,
 	NavTabs,
+	SkinPreviewRenderer,
 	useVIntl,
 } from '@modrinth/ui'
-import SkinPreviewRenderer from '@modrinth/ui/src/components/skin/SkinPreviewRenderer.vue'
 import { arrayBufferToBase64 } from '@modrinth/utils'
 import { useQuery } from '@tanstack/vue-query'
 import { invoke } from '@tauri-apps/api/core'

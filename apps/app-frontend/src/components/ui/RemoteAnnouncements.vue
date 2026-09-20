@@ -8,7 +8,7 @@ import {
 	type PopupNotification,
 	useVIntl,
 } from '@modrinth/ui'
-import { useModalStack } from '@modrinth/ui/src/composables/modal-stack'
+import { useModalStack } from '@modrinth/ui'
 import { renderString } from '@modrinth/utils'
 import { getVersion } from '@tauri-apps/api/app'
 import { openUrl } from '@tauri-apps/plugin-opener'
