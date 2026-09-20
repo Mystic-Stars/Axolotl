@@ -149,15 +149,9 @@ allow('declared-outside-scan-roots', [
 	],
 ])
 
-// References with no declaration. The first four are harmless (an inline
-// fallback or a commented-out rule); the rest are real dangling references that
-// a component/style owner still has to fix, listed here so the guard documents
-// them instead of silently passing.
+// References with no declaration. These are harmless: an inline fallback, or a
+// binding whose live value is provided elsewhere.
 allow('known-dangling-reference', [
-	[
-		'timeline-line-color',
-		'packages/ui/src/components/base/Timeline.vue is an optional override with an inline `var(--timeline-line-color, var(--surface-2))` fallback',
-	],
 	[
 		'_mouse-x',
 		'packages/ui/src/components/modal/NewModal.vue references it only inside a commented-out transform; the live value binds via v-bind(mouseXOffset)',
@@ -169,10 +163,6 @@ allow('known-dangling-reference', [
 	[
 		'window-controls-width',
 		'apps/app-frontend/src/App.vue reads it with an inline `0px` fallback; its setter was removed from WindowControls.vue',
-	],
-	[
-		'font-mono',
-		'DANGLING: apps/app-frontend/src/components/ui/settings/UpdateSettings.vue uses it with no declaration (Tailwind v3 does not expose `--font-mono`); fixed in the custom-fonts PR, which owns that file',
 	],
 ])
 

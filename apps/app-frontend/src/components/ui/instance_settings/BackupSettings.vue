@@ -28,12 +28,12 @@ import {
 	getBackupConfig,
 	type InstanceBackupConfig,
 	type InstanceBackupEligibility,
-	listBackups,
 	listBackupOperations,
+	listBackups,
 	listenBackupProgress,
 	restoreBackup,
-	startBackupRestorePreview,
 	startBackup,
+	startBackupRestorePreview,
 	updateBackupExclusions,
 } from '@/helpers/instance-backup'
 import { injectInstanceSettings } from '@/providers/instance-settings'

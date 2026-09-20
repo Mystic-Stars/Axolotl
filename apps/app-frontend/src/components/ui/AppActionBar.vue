@@ -264,10 +264,10 @@ import { trackEvent } from '@/helpers/analytics'
 import { loading_listener, process_listener } from '@/helpers/events'
 import { get_many as getInstances } from '@/helpers/instance'
 import {
-	listBackupOperations,
-	listenBackupProgress,
 	type BackupOperation,
 	type BackupProgressEvent,
+	listBackupOperations,
+	listenBackupProgress,
 } from '@/helpers/instance-backup'
 import { get_all as getRunningProcesses, kill as killProcess } from '@/helpers/process'
 import type { LoadingBar } from '@/helpers/state'
