@@ -294,65 +294,71 @@ async function unpinLocalServer(serverId: string) {
 					</div>
 				</SmartClickable>
 			</li>
-			<li
-				v-for="server in localServers"
-				:key="'local-' + server.id"
-				class="home-server-row group hover:bg-button-bg focus-within:bg-button-bg"
-			>
-				<div class="relative shrink-0">
-					<ManagedServerIcon
-						:icon-path="server.iconPath"
-						:server-type="server.serverType"
-						:server-id="server.id"
-						size="36px"
-					/>
-					<span
-						class="absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full border-2 border-solid border-bg-raised"
-						:class="server.running ? 'bg-brand-green' : 'bg-red'"
-						aria-hidden="true"
-					/>
-				</div>
-				<div class="flex min-w-0 flex-1 flex-col gap-0.5">
-					<span class="flex min-w-0 items-center gap-1 text-sm font-semibold text-contrast">
-						<span class="truncate">{{ server.name }}</span>
-						<span
-							class="shrink-0 rounded bg-button-bg px-1 text-[10px] font-semibold text-secondary"
+			<li v-for="server in localServers" :key="'local-' + server.id">
+				<SmartClickable>
+					<template #clickable>
+						<router-link
+							:aria-label="server.name"
+							:to="`/multiplayer/servers/${encodeURIComponent(server.id)}`"
+						/>
+					</template>
+					<div class="home-server-row group smart-clickable:highlight-on-hover">
+						<div class="relative shrink-0">
+							<ManagedServerIcon
+								:icon-path="server.iconPath"
+								:server-type="server.serverType"
+								:server-id="server.id"
+								size="36px"
+							/>
+							<span
+								class="absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full border-2 border-solid border-bg-raised"
+								:class="server.running ? 'bg-brand-green' : 'bg-red'"
+								aria-hidden="true"
+							/>
+						</div>
+						<div class="flex min-w-0 flex-1 flex-col gap-0.5">
+							<span class="truncate text-sm font-semibold text-contrast">{{ server.name }}</span>
+							<span class="flex min-w-0 items-center gap-1 text-xs text-secondary">
+								<span class="shrink-0 rounded bg-button-bg px-1 text-[10px] font-semibold">
+									{{ formatMessage(messages.localServer) }}
+								</span>
+								<span class="truncate">
+									{{
+										server.port
+											? `localhost:${server.port}`
+											: `${server.serverType} ${server.gameVersion}`
+									}}
+								</span>
+							</span>
+						</div>
+						<div
+							class="ml-auto flex shrink-0 items-center gap-0.5 smart-clickable:allow-pointer-events"
 						>
-							{{ formatMessage(messages.localServer) }}
-						</span>
-					</span>
-					<span class="truncate text-xs text-secondary">
-						{{
-							server.port
-								? `localhost:${server.port}`
-								: `${server.serverType} ${server.gameVersion}`
-						}}
-					</span>
-				</div>
-				<div class="ml-auto flex shrink-0 items-center gap-0.5">
-					<ButtonStyled circular size="small" type="transparent">
-						<button
-							v-tooltip="formatMessage(server.running ? messages.stop : messages.start)"
-							:class="server.running ? '!text-red' : '!text-brand'"
-							@click="server.running ? stopLocalServer(server.id) : startLocalServer(server.id)"
-						>
-							<StopCircleIcon v-if="server.running" />
-							<PlayIcon v-else />
-						</button>
-					</ButtonStyled>
-					<ButtonStyled circular size="small" type="transparent" class="home-server-menu">
-						<OverflowMenu
-							:options="[{ id: 'unpin', action: () => unpinLocalServer(server.id) }]"
-							:tooltip="formatMessage(messages.moreOptions)"
-						>
-							<MoreVerticalIcon />
-							<template #unpin>
-								<PinIcon class="rotate-45" aria-hidden="true" />
-								{{ formatMessage(messages.unpin) }}
-							</template>
-						</OverflowMenu>
-					</ButtonStyled>
-				</div>
+							<ButtonStyled circular size="small" type="transparent">
+								<button
+									v-tooltip="formatMessage(server.running ? messages.stop : messages.start)"
+									:class="server.running ? '!text-red' : '!text-brand'"
+									@click="server.running ? stopLocalServer(server.id) : startLocalServer(server.id)"
+								>
+									<StopCircleIcon v-if="server.running" />
+									<PlayIcon v-else />
+								</button>
+							</ButtonStyled>
+							<ButtonStyled circular size="small" type="transparent" class="home-server-menu">
+								<OverflowMenu
+									:options="[{ id: 'unpin', action: () => unpinLocalServer(server.id) }]"
+									:tooltip="formatMessage(messages.moreOptions)"
+								>
+									<MoreVerticalIcon />
+									<template #unpin>
+										<PinIcon class="rotate-45" aria-hidden="true" />
+										{{ formatMessage(messages.unpin) }}
+									</template>
+								</OverflowMenu>
+							</ButtonStyled>
+						</div>
+					</div>
+				</SmartClickable>
 			</li>
 		</ul>
 	</section>

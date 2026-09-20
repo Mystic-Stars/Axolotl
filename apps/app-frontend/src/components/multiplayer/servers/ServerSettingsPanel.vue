@@ -149,8 +149,8 @@ const generalDirty = computed(
 		javaSelection.value.version !== baseline.value.javaVersion ||
 		memoryMb.value !== baseline.value.memoryMb ||
 		jvmArgsText.value !== baseline.value.jvmArgs ||
-		preLaunchHookText.value !== baseline.value.preLaunchHook,
-	pinnedToHome.value !== baseline.value.homePinned,
+		preLaunchHookText.value !== baseline.value.preLaunchHook ||
+		pinnedToHome.value !== baseline.value.homePinned,
 )
 
 const isDirty = computed(() => generalDirty.value || (editor.value?.isDirty ?? false))

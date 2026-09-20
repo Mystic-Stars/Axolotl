@@ -28,6 +28,88 @@ export const ANNOUNCEMENT_CHANGE_TYPES: readonly AnnouncementChangeType[] = [
 
 export const launcherAnnouncements: readonly LauncherAnnouncement[] = [
 	{
+		id: 'launcher-1.9.7-beta.3',
+		version: '1.9.7-beta.3',
+		publishedAt: '2026-09-20',
+		title: {
+			'en-US': 'Axolotl Launcher 1.9.7-beta.3',
+			'zh-CN': 'Axolotl Launcher 1.9.7-beta.3',
+		},
+		changes: {
+			added: [
+				{
+					'en-US':
+						'Added instance backup management, including configurable backup repositories, exclusions, restore previews, background operations, recovery after restart, and task results in the action bar.',
+					'zh-CN':
+						'新增实例备份管理，支持配置备份仓库、排除规则、恢复预览、后台操作、重启后任务恢复，以及在操作栏中显示任务结果。',
+				},
+				{
+					'en-US':
+						'Added custom interface and monospace font selection using installed system fonts.',
+					'zh-CN': '新增界面字体和等宽字体自定义选择，支持读取已安装的系统字体。',
+				},
+				{
+					'en-US':
+						'Added Cleanroom loader support, including external-instance import recognition and mrpack export.',
+					'zh-CN': '新增 Cleanroom 加载器支持，包括外部实例导入识别和 mrpack 导出。',
+				},
+				{
+					'en-US':
+						'Added an Aliyun mirror for Maven Central libraries to improve library download availability.',
+					'zh-CN': '新增 Maven Central 库文件的阿里云镜像，提高库下载可用性。',
+				},
+			],
+			changed: [
+				{
+					'en-US':
+						'Backup, restore, and repository-move operations now run in the background and remain protected while the launcher exits or moves its data directory.',
+					'zh-CN':
+						'备份、恢复和备份仓库迁移现在会在后台执行，并在启动器退出或移动数据目录时受到保护。',
+				},
+				{
+					'en-US': 'Improved the Discover page filter controls and content-page loading behavior.',
+					'zh-CN': '优化发现页筛选控件和内容页面加载体验。',
+				},
+				{
+					'en-US': 'Updated Nix packaging, Flake defaults, and Home Manager installation guidance.',
+					'zh-CN': '更新 Nix 打包、Flake 默认配置及 Home Manager 安装说明。',
+				},
+			],
+			fixed: [
+				{
+					'en-US':
+						'Fixed local servers pinned to Home not being saved correctly and displaying with inconsistent row styling.',
+					'zh-CN': '修复本地服务器固定到主页后未正确保存，以及主页列表行样式不一致的问题。',
+				},
+				{
+					'en-US':
+						'Fixed interrupted backup restores, concurrent backup operations, backup-repository migration, and downgrade checks.',
+					'zh-CN': '修复备份恢复中断、并发备份操作、备份仓库迁移以及降级检查相关问题。',
+				},
+				{
+					'en-US': 'Fixed Favorites navigation becoming unavailable after entering the page.',
+					'zh-CN': '修复进入收藏夹后无法切换路由的问题。',
+				},
+				{
+					'en-US': 'Fixed CurseForge GIF previews animating unexpectedly.',
+					'zh-CN': '修复 CurseForge GIF 预览意外播放动画的问题。',
+				},
+				{
+					'en-US': 'Fixed fullscreen logs leaving the right-side skin panel visible.',
+					'zh-CN': '修复日志全屏后右侧皮肤栏仍显示的问题。',
+				},
+				{
+					'en-US': 'Fixed armor leggings using an incorrect mirrored texture.',
+					'zh-CN': '修复盔甲护腿使用错误镜像纹理的问题。',
+				},
+				{
+					'en-US': 'Fixed font picker selections being lost when font-name casing differed.',
+					'zh-CN': '修复字体名称大小写不同导致字体选择丢失的问题。',
+				},
+			],
+		},
+	},
+	{
 		id: 'launcher-1.9.7-beta.2',
 		version: '1.9.7-beta.2',
 		publishedAt: '2026-09-19',
