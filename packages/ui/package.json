@@ -65,8 +65,6 @@
 		"@types/three": "^0.185.4",
 		"@vintl/how-ago": "^3.0.1",
 		"@vueuse/core": "^11.3.0",
-		"@xterm/addon-fit": "^0.11.0",
-		"@xterm/addon-search": "^0.16.0",
 		"@xterm/xterm": "^6.0.0",
 		"ace-builds": "^1.14.0",
 		"apexcharts": "^4.7.0",
