@@ -4,8 +4,13 @@
  * bypasses. Without these imports a visual assertion would measure unstyled
  * markup and pass regardless of the token values.
  */
-import '@modrinth/assets/styles/variables.scss'
-import '@modrinth/assets/styles/defaults.scss'
+// Import the SCSS entry directly from this module: Vite compiles it on import,
+// whereas going through an intermediate stylesheet does not run the Sass
+// compiler and silently yields no tokens. This mirrors the app entry, so both
+// the theme tokens and the Tailwind utilities (`h-8`, `rounded-xl`, `px-3`)
+// resolve exactly as they do in production — without Tailwind the utility
+// classes are inert and any assertion about them would be vacuous.
+import './visual-styles.scss'
 
 import { mount, type MountingOptions } from '@vue/test-utils'
 import type { Component } from 'vue'
@@ -25,13 +30,17 @@ export function applyTheme(theme: Theme): void {
 /**
  * Verifies the harness itself before any assertion trusts it: if the token
  * layer failed to load, every computed style downstream would be meaningless.
+ *
+ * The tokens are theme-scoped (`.light-properties` / `.dark-mode`), so a theme
+ * has to be applied first — reading them on a bare document reports nothing.
  */
-export function assertTokensLoaded(): void {
-	const surface = getComputedStyle(document.documentElement).getPropertyValue('--surface-2').trim()
+export function assertTokensLoaded(theme: Theme = 'dark'): void {
+	applyTheme(theme)
+	const surface = computedToken(document.documentElement, '--surface-2')
 
 	if (!surface) {
 		throw new Error(
-			'Design tokens did not load. Check that packages/assets/styles/variables.scss is importable from this package.',
+			'Design tokens did not load. Check that the visual-styles.css entry imports @modrinth/assets/omorphia.scss.',
 		)
 	}
 }
