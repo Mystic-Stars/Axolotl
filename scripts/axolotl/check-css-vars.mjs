@@ -38,7 +38,6 @@ function allow(group, entries) {
 // Values applied through a Vue `:style` binding, `style="--x: …"`, or
 // `element.style.setProperty('--x', …)` at runtime, so no stylesheet declares them.
 allow('runtime-set', [
-	['_progress', 'packages/ui/src/components/base/ProgressSpinner.vue :style `--_progress`'],
 	[
 		'_project-color',
 		'packages/ui/src/components/project/card/ProjectCard.vue :style `--_project-color`',
@@ -50,10 +49,6 @@ allow('runtime-set', [
 	[
 		'button-color',
 		'packages/ui/src/components/base/buttons/ButtonFrame.vue :style `--button-color`',
-	],
-	[
-		'collapsed-height',
-		'packages/ui/src/components/base/CollapsibleRegion.vue :style `--collapsed-height`',
 	],
 	[
 		'connector-length',
