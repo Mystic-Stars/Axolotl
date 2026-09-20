@@ -123,7 +123,7 @@
     "defaultMessage": "Verified plays"
   },
   "browse.view-prefix": {
-    "defaultMessage": "View:"
+    "defaultMessage": "View"
   },
   "button.accept": {
     "defaultMessage": "Accept"
@@ -2709,7 +2709,7 @@
     "defaultMessage": "Singleplayer"
   },
   "label.sort-by": {
-    "defaultMessage": "Sort by: "
+    "defaultMessage": "Sort by"
   },
   "label.success": {
     "defaultMessage": "Success"

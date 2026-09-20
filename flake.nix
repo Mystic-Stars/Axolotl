@@ -3,10 +3,10 @@
 
   nixConfig = {
     extra-substituters = [
-    	"https://axolotl-launcher-git.cachix.org"
+      "https://axolotl-launcher-git.cachix.org"
     ];
     extra-trusted-public-keys = [
-    	"axolotl-launcher-git.cachix.org-1:6OBznZ1/jC7SRgugQ2PNGcy4VFyF0tDeWBMs2BPRt5Q="
+      "axolotl-launcher-git.cachix.org-1:6OBznZ1/jC7SRgugQ2PNGcy4VFyF0tDeWBMs2BPRt5Q="
     ];
   };
 
@@ -32,11 +32,9 @@
         devShells = builtins.mapAttrs (system: pkgs: {
           default = pkgs.callPackage ./nix/devShell.nix { inherit inputs; };
         }) legacyPackages;
-        packages = builtins.mapAttrs (system: pkgs: {
-          axolotl-launcher = {
-	          bin = pkgs.callPackage ./nix/package.nix { inherit inputs; prebuilt = true; };
-	          git = pkgs.callPackage ./nix/package.nix { inherit inputs; prebuilt = false; };
-          };
+        packages = builtins.mapAttrs (system: pkgs: rec {
+          default = axolotl-launcher;
+          axolotl-launcher = pkgs.callPackage ./nix/package.nix { inherit inputs; };
         }) legacyPackages;
         homeModules = import ./nix/home-module.nix { inherit inputs legacyPackages; };
       }

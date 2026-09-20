@@ -441,6 +441,7 @@ const messages = defineMessages({
 <template>
 	<ConfirmDeleteInstanceModal
 		ref="deleteConfirmModal"
+		:instance-id="instance.id"
 		:symlink-target="instance.symlink_target"
 		@delete="removeInstance"
 	/>

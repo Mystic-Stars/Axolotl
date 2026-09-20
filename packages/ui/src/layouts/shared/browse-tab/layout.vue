@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import type { Labrinth } from '@modrinth/api-client'
-import { SearchIcon, SpinnerIcon } from '@modrinth/assets'
+import { ArrowUpDownIcon, EyeIcon, SearchIcon, SpinnerIcon } from '@modrinth/assets'
 import { computed, ref, toValue } from 'vue'
 
 import ButtonStyled from '#ui/components/base/ButtonStyled.vue'
-import Combobox, { type ComboboxOption } from '#ui/components/base/Combobox.vue'
+import DropdownSelect from '#ui/components/base/DropdownSelect.vue'
 import EmptyState from '#ui/components/base/EmptyState.vue'
 import NavTabs from '#ui/components/base/NavTabs.vue'
 import Pagination from '#ui/components/base/Pagination.vue'
@@ -36,11 +36,8 @@ const showInstallHeader = computed(
 		ctx.variant !== 'web',
 )
 
-const maxResultsOptions = computed<ComboboxOption<number>[]>(() =>
-	(ctx.maxResultsOptions?.value ?? [5, 10, 15, 20, 50, 100]).map((n) => ({
-		value: n,
-		label: String(n),
-	})),
+const maxResultsValues = computed<number[]>(
+	() => ctx.maxResultsOptions?.value ?? [5, 10, 15, 20, 50, 100],
 )
 
 const messages = defineMessages({
@@ -110,12 +107,24 @@ function formatSortType(sortType: SortType): string {
 	return message ? formatMessage(message) : sortType.display
 }
 
-const sortOptions = computed<ComboboxOption<SortType>[]>(() =>
-	ctx.effectiveSortTypes.value.map((sortType) => ({
-		value: sortType,
-		label: formatSortType(sortType),
-	})),
+function formatSortTypeName(name: string): string {
+	const sortType = ctx.effectiveSortTypes.value.find((st) => st.name === name)
+	return sortType ? formatSortType(sortType) : name
+}
+
+const sortTypeNames = computed<string[]>(() =>
+	ctx.effectiveSortTypes.value.map((sortType) => sortType.name),
 )
+
+const currentSortTypeName = computed<string>({
+	get: () => ctx.effectiveCurrentSortType.value?.name ?? '',
+	set: (name: string) => {
+		const sortType = ctx.effectiveSortTypes.value.find((st) => st.name === name)
+		if (sortType) {
+			ctx.effectiveCurrentSortType.value = sortType
+		}
+	},
+})
 
 const selectedDisplayMode = computed(() =>
 	ctx.displayModeOptions?.value.find((option) => option.id === ctx.displayMode?.value),
@@ -177,38 +186,35 @@ const skeletonCount = computed(() => {
 			</div>
 
 			<div class="flex flex-wrap items-center gap-2">
-				<Combobox
-					:model-value="ctx.effectiveCurrentSortType.value"
-					:options="sortOptions"
-					:class="
-						ctx.variant === 'web'
-							? '!w-[16rem] min-w-max max-w-full flex-grow md:flex-grow-0'
-							: '!w-[16rem] min-w-max max-w-full'
-					"
-					@update:model-value="(val: SortType) => (ctx.effectiveCurrentSortType.value = val)"
+				<DropdownSelect
+					v-slot="{ selected }"
+					v-model="currentSortTypeName"
+					v-tooltip="{ content: formatMessage(commonMessages.sortByLabel), triggers: ['hover'] }"
+					class="!w-auto"
+					name="Sort Dropdown"
+					:options="sortTypeNames"
+					:display-name="(name: string) => formatSortTypeName(name)"
 				>
-					<template #prefix>
-						<span class="font-semibold text-primary">{{
-							formatMessage(commonMessages.sortByLabel)
-						}}</span>
-					</template>
-				</Combobox>
+					<div class="flex items-center gap-1">
+						<ArrowUpDownIcon class="size-5 shrink-0 text-primary" />
+						<span class="font-semibold text-secondary">{{ selected }}</span>
+					</div>
+				</DropdownSelect>
 
-				<Combobox
-					:model-value="ctx.maxResults.value"
-					:options="maxResultsOptions"
-					:class="
-						ctx.variant === 'web'
-							? '!w-[9rem] min-w-max max-w-full flex-grow md:flex-grow-0'
-							: '!w-[9rem] min-w-max max-w-full'
-					"
-					:placeholder="formatMessage(commonMessages.viewLabel)"
-					@update:model-value="(val: number) => (ctx.maxResults.value = val)"
+				<DropdownSelect
+					v-slot="{ selected }"
+					v-model="ctx.maxResults.value"
+					v-tooltip="{ content: formatMessage(messages.viewPrefix), triggers: ['hover'] }"
+					class="!w-auto"
+					name="View Dropdown"
+					:options="maxResultsValues"
+					:display-name="(n: number) => String(n)"
 				>
-					<template #prefix>
-						<span class="font-semibold text-primary">{{ formatMessage(messages.viewPrefix) }}</span>
-					</template>
-				</Combobox>
+					<div class="flex items-center gap-1">
+						<EyeIcon class="size-5 shrink-0 text-primary" />
+						<span class="font-semibold text-secondary">{{ selected }}</span>
+					</div>
+				</DropdownSelect>
 
 				<div v-if="ctx.filtersMenuOpen && !ctx.filtersMenuOpen.value" class="lg:hidden">
 					<ButtonStyled>

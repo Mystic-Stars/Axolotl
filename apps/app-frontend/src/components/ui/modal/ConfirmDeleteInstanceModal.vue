@@ -22,6 +22,14 @@
 		<Admonition v-else type="critical">
 			{{ formatMessage(messages.symlinkDeleteWarning, { path: symlinkTarget }) }}
 		</Admonition>
+		<p v-if="backupSummary?.snapshot_count" class="m-0 text-secondary">
+			{{
+				formatMessage(messages.backupCascadeWarning, {
+					count: backupSummary.snapshot_count,
+					size: formatBytes(backupSummary.logical_size),
+				})
+			}}
+		</p>
 
 		<template #actions>
 			<div class="flex gap-2 justify-end">
@@ -54,18 +62,24 @@ import {
 	commonMessages,
 	defineMessages,
 	NewModal,
+	useFormatBytes,
 	useVIntl,
 } from '@modrinth/ui'
 import { ref } from 'vue'
 
-const { formatMessage } = useVIntl()
+import { type BackupDeleteSummary, getBackupDeleteSummary } from '@/helpers/instance-backup'
 
-withDefaults(
+const { formatMessage } = useVIntl()
+const formatBytes = useFormatBytes()
+
+const props = withDefaults(
 	defineProps<{
+		instanceId?: string | null
 		symlinkTarget?: string | null
 		count?: number
 	}>(),
 	{
+		instanceId: null,
 		symlinkTarget: null,
 		count: 1,
 	},
@@ -99,6 +113,11 @@ const messages = defineMessages({
 		defaultMessage:
 			'This is a shared instance linked to "{path}". Only the link will be removed; the original files will not be deleted.',
 	},
+	backupCascadeWarning: {
+		id: 'app.instance.confirm-delete.backup-cascade-warning',
+		defaultMessage:
+			'{count, plural, one {# backup} other {# backups}} ({size} total before deduplication) will also be permanently deleted.',
+	},
 	deleteButton: {
 		id: 'app.instance.confirm-delete.delete-button',
 		defaultMessage: 'Delete instance',
@@ -114,9 +133,14 @@ const emit = defineEmits<{
 }>()
 
 const modal = ref<InstanceType<typeof NewModal>>()
+const backupSummary = ref<BackupDeleteSummary | null>(null)
 
-function show() {
+async function show() {
+	backupSummary.value = null
 	modal.value?.show()
+	if (props.instanceId && props.count <= 1) {
+		backupSummary.value = await getBackupDeleteSummary(props.instanceId).catch(() => null)
+	}
 }
 
 function confirm() {

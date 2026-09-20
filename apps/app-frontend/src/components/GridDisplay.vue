@@ -574,6 +574,7 @@ function onBatchEditApplied() {
 	</Accordion>
 	<ConfirmDeleteInstanceModal
 		ref="confirmModal"
+		:instance-id="currentDeleteInstance?.id"
 		:symlink-target="currentDeleteInstance?.symlink_target"
 		:count="batchDeleteCount"
 		@delete="batchDeleteCount > 0 ? batchDeleteInstances() : deleteInstance()"

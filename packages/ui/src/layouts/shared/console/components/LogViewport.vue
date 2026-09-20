@@ -104,6 +104,11 @@ const scrollTop = ref(0)
 const viewportHeight = ref(0)
 const stickToBottom = ref(true)
 
+interface ViewportState {
+	scrollTop: number
+	stickToBottom: boolean
+}
+
 // 行高：单行 = 字号 × 1.4（与等宽字体匹配），wrap 时按估算折行数放大
 const lineHeightPx = computed(() => Math.round(props.fontSize * 1.4))
 // wrap 折行估算：0.6em 为等宽字符平均宽，乘 0.9 留保守余量（行高宁高勿矮，避免内容溢出重叠）
@@ -257,6 +262,26 @@ function syncViewportSize() {
 	if (props.wrap) rebuildHeights()
 }
 
+function captureViewState(): ViewportState {
+	return {
+		scrollTop: viewportRef.value?.scrollTop ?? scrollTop.value,
+		stickToBottom: stickToBottom.value,
+	}
+}
+
+function restoreViewState(state: ViewportState) {
+	const vp = viewportRef.value
+	if (!vp) return
+	syncViewportSize()
+	if (state.stickToBottom) {
+		scrollToBottom()
+		return
+	}
+	vp.scrollTop = Math.min(state.scrollTop, Math.max(0, vp.scrollHeight - vp.clientHeight))
+	scrollTop.value = vp.scrollTop
+	stickToBottom.value = false
+}
+
 let resizeObserver: ResizeObserver | null = null
 
 onMounted(() => {
@@ -274,6 +299,8 @@ onBeforeUnmount(() => {
 })
 
 defineExpose({
+	captureViewState,
+	restoreViewState,
 	scrollToBottom,
 })
 </script>

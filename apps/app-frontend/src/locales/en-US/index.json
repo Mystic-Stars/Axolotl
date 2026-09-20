@@ -11,6 +11,55 @@
   "app.action-bar.downloads": {
     "message": "Downloads"
   },
+  "app.action-bar.active-backups": {
+    "message": "Active backups"
+  },
+  "app.action-bar.backup": {
+    "message": "Backing up"
+  },
+  "app.action-bar.restore": {
+    "message": "Restoring backup"
+  },
+  "app.action-bar.restore-preview": {
+    "message": "Analyzing restore"
+  },
+  "app.action-bar.repository-move": {
+    "message": "Moving backup repository"
+  },
+  "app.action-bar.repository": {
+    "message": "Backup repository"
+  },
+  "app.action-bar.backup-task.completed": {
+    "message": "{operation} completed"
+  },
+  "app.action-bar.backup-task.backup": {
+    "message": "Backup"
+  },
+  "app.action-bar.backup-task.restore": {
+    "message": "Backup restore"
+  },
+  "app.action-bar.backup-task.restore-preview": {
+    "message": "Restore analysis"
+  },
+  "app.action-bar.backup-task.repository-move": {
+    "message": "Backup repository move"
+  },
+  "app.action-bar.backup-task.cancelled": {
+    "message": "{operation} cancelled"
+  },
+  "app.action-bar.backup-task.failed": {
+    "message": "{operation} failed"
+  },
+  "app.action-bar.backup-stage": {
+    "message": "{stage}"
+  },
+  "app.action-bar.backup-stage.queued": { "message": "Queued" },
+  "app.action-bar.backup-stage.scanning": { "message": "Scanning files" },
+  "app.action-bar.backup-stage.hashing": { "message": "Calculating hashes" },
+  "app.action-bar.backup-stage.saving": { "message": "Saving backup" },
+  "app.action-bar.backup-stage.validating": { "message": "Validating backup" },
+  "app.action-bar.backup-stage.materializing": { "message": "Applying files" },
+  "app.action-bar.backup-stage.applying": { "message": "Applying files" },
   "app.action-bar.exporting-modpack": {
     "message": "Exporting modpack"
   },
@@ -512,6 +561,57 @@
   "app.appearance-settings.default-landing-page.title": {
     "message": "Default landing page"
   },
+  "app.appearance-settings.fonts.default": {
+    "message": "Launcher default"
+  },
+  "app.appearance-settings.fonts.description": {
+    "message": "Choose the fonts the launcher interface and its logs are rendered in."
+  },
+  "app.appearance-settings.fonts.load-failed": {
+    "message": "Couldn't read the list of installed fonts."
+  },
+  "app.appearance-settings.fonts.missing": {
+    "message": "Not installed"
+  },
+  "app.appearance-settings.fonts.mono-font": {
+    "message": "Monospace font"
+  },
+  "app.appearance-settings.fonts.mono-font-description": {
+    "message": "Used for logs, the server console, and other monospace content."
+  },
+  "app.appearance-settings.fonts.mono-preview-sample": {
+    "message": "[12:34:56] [Server thread/INFO]: Preparing spawn area: 43%"
+  },
+  "app.appearance-settings.fonts.monospace": {
+    "message": "Monospace"
+  },
+  "app.appearance-settings.fonts.no-results": {
+    "message": "No matching fonts"
+  },
+  "app.appearance-settings.fonts.preview": {
+    "message": "Preview"
+  },
+  "app.appearance-settings.fonts.reset": {
+    "message": "Reset to default"
+  },
+  "app.appearance-settings.fonts.retry": {
+    "message": "Retry"
+  },
+  "app.appearance-settings.fonts.search-placeholder": {
+    "message": "Search installed fonts"
+  },
+  "app.appearance-settings.fonts.title": {
+    "message": "Fonts"
+  },
+  "app.appearance-settings.fonts.ui-font": {
+    "message": "Interface font"
+  },
+  "app.appearance-settings.fonts.ui-font-description": {
+    "message": "Used across the launcher interface. Only fonts installed on this system are listed."
+  },
+  "app.appearance-settings.fonts.ui-preview-sample": {
+    "message": "The quick brown fox jumps over the lazy dog. 0123456789"
+  },
   "app.appearance-settings.hidden-nav-items.description": {
     "message": "Choose which fixed navigation buttons stay visible. Hidden pages remain reachable by URL or keyboard shortcuts."
   },
@@ -829,6 +929,30 @@
   },
   "app.close-launcher.tray": {
     "message": "Hide to tray"
+  },
+  "app.backup-exit.title": {
+    "message": "Backup operations are still running"
+  },
+  "app.backup-exit.body": {
+    "message": "{count, plural, one {# backup operation is} other {# backup operations are}} still running. Keep the launcher open or hide it to the tray to let them finish."
+  },
+  "app.backup-exit.repository-move-body": {
+    "message": "The backup repository is being moved. This task cannot be cancelled or force-stopped; keep the launcher open or hide it to the tray until it finishes."
+  },
+  "app.backup-exit.return": {
+    "message": "Return to launcher"
+  },
+  "app.backup-exit.tray": {
+    "message": "Hide to tray"
+  },
+  "app.backup-exit.cancel": {
+    "message": "Cancel tasks and exit"
+  },
+  "app.backup-exit.force": {
+    "message": "Force exit"
+  },
+  "app.backup-exit.timeout": {
+    "message": "Timed out while waiting for backup operations to stop."
   },
   "app.community-announcement.feedback-middle": {
     "message": ", or share them with us through "
@@ -2258,11 +2382,11 @@
   "app.home.servers.join": {
     "message": "Join server"
   },
-  "app.home.servers.more-options": {
-    "message": "More options"
-  },
   "app.home.servers.local": {
     "message": "Local"
+  },
+  "app.home.servers.more-options": {
+    "message": "More options"
   },
   "app.home.servers.offline": {
     "message": "Offline"
@@ -2518,6 +2642,9 @@
   },
   "app.instance.confirm-delete.admonition-header": {
     "message": "This action cannot be undone"
+  },
+  "app.instance.confirm-delete.backup-cascade-warning": {
+    "message": "{count, plural, one {# backup} other {# backups}} ({size} total before deduplication) will also be permanently deleted."
   },
   "app.instance.confirm-delete.batch-admonition-body": {
     "message": "{count, plural, one {# instance} other {# instances}} will be permanently deleted, including worlds, configs, and all installed content."
@@ -6338,9 +6465,6 @@
   "app.privacy-consent.title": {
     "message": "Privacy & security"
   },
-  "app.project.curseforge.loading": {
-    "message": "Loading CurseForge project…"
-  },
   "app.project.curseforge.unavailable-description": {
     "message": "The CurseForge project did not return any data."
   },
@@ -7133,11 +7257,11 @@
   "app.servers.settings.memory-mb": {
     "message": "Memory (MB)"
   },
-  "app.servers.settings.pin-home": {
-    "message": "Pin to Home"
-  },
   "app.servers.settings.name": {
     "message": "Server name"
+  },
+  "app.servers.settings.pin-home": {
+    "message": "Pin to Home"
   },
   "app.servers.settings.pre-launch-hook-hint": {
     "message": "Runs in the server directory before the server starts. A non-zero exit code cancels the start."
@@ -10802,6 +10926,141 @@
   "instance.add-server.title": {
     "message": "Add a server"
   },
+  "instance.backups.added-size": {
+    "message": "{size} newly stored"
+  },
+  "instance.backups.all-included": {
+    "message": "All instance files and folders are included."
+  },
+  "instance.backups.backup-now": {
+    "message": "Back up now"
+  },
+  "instance.backups.cancel": {
+    "message": "Cancel backup"
+  },
+  "instance.backups.choose": {
+    "message": "Everything is backed up by default. Add files or folders that should be excluded."
+  },
+  "instance.backups.delete": {
+    "message": "Delete backup"
+  },
+  "instance.backups.delete-body": {
+    "message": "This snapshot will be permanently deleted. Unused stored files will also be removed."
+  },
+  "instance.backups.delete-title": {
+    "message": "Delete this backup?"
+  },
+  "instance.backups.description": {
+    "message": "Create deduplicated snapshots of the whole instance while it is closed."
+  },
+  "instance.backups.disable": {
+    "message": "Disable backups"
+  },
+  "instance.backups.disable-blocked": {
+    "message": "Delete every snapshot before disabling backups."
+  },
+  "instance.backups.edit-exclusions": {
+    "message": "Edit exclusions"
+  },
+  "instance.backups.empty": {
+    "message": "No backups have been created yet."
+  },
+  "instance.backups.enable": {
+    "message": "Enable backups"
+  },
+  "instance.backups.excluded-paths": {
+    "message": "Excluded: {paths}"
+  },
+  "instance.backups.exclusions.add-file": {
+    "message": "Add excluded file"
+  },
+  "instance.backups.exclusions.add-folder": {
+    "message": "Add excluded folder"
+  },
+  "instance.backups.exclusions.empty": {
+    "message": "No files or folders are excluded."
+  },
+  "instance.backups.exclusions.remove": {
+    "message": "Remove {path} from exclusions"
+  },
+  "instance.backups.loading": {
+    "message": "Loading backup settings..."
+  },
+  "instance.backups.progress-bytes": {
+    "message": "{processed} of {total}"
+  },
+  "instance.backups.restore": {
+    "message": "Restore backup"
+  },
+  "instance.backups.restore-body": {
+    "message": "Upcoming operations: add {added, plural, one {# file} other {# files}}, modify {modified, plural, one {# file} other {# files}}, and delete {deleted, plural, one {# file} other {# files}}. Continue?"
+  },
+  "instance.backups.restore-title": {
+    "message": "Restore this backup?"
+  },
+  "instance.backups.save-exclusions": {
+    "message": "Save exclusions"
+  },
+  "instance.backups.snapshot-meta": {
+    "message": "{files, plural, one {# file} other {# files}} · {size}"
+  },
+  "instance.backups.snapshots": {
+    "message": "Snapshots"
+  },
+  "instance.backups.stage.failed": {
+    "message": "Backup failed"
+  },
+  "instance.backups.stage.interrupted": {
+    "message": "Backup operation was interrupted"
+  },
+  "instance.backups.stage.hashing": {
+    "message": "Hashing files"
+  },
+  "instance.backups.stage.queued": {
+    "message": "Waiting to start"
+  },
+  "instance.backups.stage.saving": {
+    "message": "Saving snapshot index"
+  },
+  "instance.backups.stage.validating": {
+    "message": "Validating restore"
+  },
+  "instance.backups.stage.materializing": {
+    "message": "Preparing changed files"
+  },
+  "instance.backups.stage.preview": {
+    "message": "Analyzing restore changes"
+  },
+  "instance.backups.stage.applying": {
+    "message": "Applying changed files"
+  },
+  "instance.backups.stage.scanning": {
+    "message": "Scanning files"
+  },
+  "instance.backups.title": {
+    "message": "Instance backups"
+  },
+  "instance.backups.unavailable": {
+    "message": "Backups are unavailable"
+  },
+  "instance.backups.unavailable.direct-linked": {
+    "message": "Instances linked directly to another launcher cannot be backed up."
+  },
+  "instance.backups.unavailable.external-directory": {
+    "message": "Instances that use an external game directory cannot be backed up."
+  },
+  "instance.backups.unavailable.not-installed": {
+    "message": "Finish installing this instance before enabling backups."
+  },
+  "instance.backups.unavailable.root-link": {
+    "message": "Instances whose root folder is a link cannot be backed up."
+  },
+  "instance.backups.unavailable.root-missing": {
+    "message": "The instance folder is missing."
+  },
+  "instance.backups.unavailable.symlink": {
+    "message": "Imported symbolic-link instances cannot be backed up."
+  },
   "instance.edit-server.title": {
     "message": "Edit server"
   },
@@ -10966,6 +11225,9 @@
   },
   "instance.settings.sync.unsupported": {
     "message": "Unavailable for this instance"
+  },
+  "instance.settings.tabs.backups": {
+    "message": "Backups"
   },
   "instance.settings.tabs.core-components": {
     "message": "Core components"
@@ -12550,6 +12812,36 @@
   },
   "search.filter.locked.server-loader.title": {
     "message": "Loader is provided by the server"
+  },
+  "settings.backups.repository.change": {
+    "message": "Change folder"
+  },
+  "settings.backups.repository.description": {
+    "message": "Deduplicated instance backup data and its independent index database."
+  },
+  "settings.backups.repository.location": {
+    "message": "Location"
+  },
+  "settings.backups.repository.location-description": {
+    "message": "Changing the location moves the complete repository. Choose a new or empty folder."
+  },
+  "settings.backups.repository.moving": {
+    "message": "Moving repository..."
+  },
+  "settings.backups.repository.moving-progress": {
+    "message": "Moving repository: {processed} of {total}"
+  },
+  "settings.backups.repository.title": {
+    "message": "Backup repository"
+  },
+  "settings.backups.repository.unavailable": {
+    "message": "Repository unavailable"
+  },
+  "settings.backups.repository.usage": {
+    "message": "Storage usage"
+  },
+  "settings.backups.repository.usage-description": {
+    "message": "{stored} stored for {logical} of backup data across {count, plural, one {# snapshot} other {# snapshots}}."
   },
   "settings.feature-flags.title": {
     "message": "Feature flags"

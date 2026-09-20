@@ -103,6 +103,22 @@ function remapArmorUv(
 		return
 	}
 
+	const leftLegSourceBounds = new Map<string, UvBounds>()
+	for (let index = 0; index < uv.count; index++) {
+		let u = uv.getX(index)
+		if (bodyPart === 'leftLeg') u -= 16 / 64
+		if (bodyPart !== 'leftLeg' || !normal) continue
+
+		const key = normalKey(normal, index)
+		const bounds = leftLegSourceBounds.get(key)
+		if (bounds) {
+			bounds.minU = Math.min(bounds.minU, u)
+			bounds.maxU = Math.max(bounds.maxU, u)
+		} else {
+			leftLegSourceBounds.set(key, { minU: u, maxU: u, minV: 0, maxV: 0 })
+		}
+	}
+
 	for (let index = 0; index < uv.count; index++) {
 		let u = uv.getX(index)
 		let v = uv.getY(index)
@@ -113,6 +129,14 @@ function remapArmorUv(
 		if (bodyPart === 'leftLeg') {
 			u -= 16 / 64
 			v -= 32 / 64
+
+			// ArmorModel uses CubeListBuilder.mirror() for the left leg. Mirror
+			// each face inside its remapped UV rectangle so armor and trims share
+			// the vanilla left-to-right orientation.
+			if (normal) {
+				const bounds = leftLegSourceBounds.get(normalKey(normal, index))
+				if (bounds) u = bounds.minU + bounds.maxU - u
+			}
 		}
 
 		uv.setXY(index, u, v * 2)

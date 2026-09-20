@@ -20,6 +20,7 @@ import type { PlatformTag } from '@modrinth/utils'
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import { computed, nextTick, ref, watch } from 'vue'
 
+import BackupSettings from '@/components/ui/instance_settings/BackupSettings.vue'
 import CoreComponentsSettings from '@/components/ui/instance_settings/CoreComponentsSettings.vue'
 import GeneralSettings from '@/components/ui/instance_settings/GeneralSettings.vue'
 import HooksSettings from '@/components/ui/instance_settings/HooksSettings.vue'
@@ -115,6 +116,14 @@ const tabs = computed<TabbedModalTab[]>(() => [
 		}),
 		icon: WrenchIcon,
 		content: SyncSettings,
+	},
+	{
+		name: defineMessage({
+			id: 'instance.settings.tabs.backups',
+			defaultMessage: 'Backups',
+		}),
+		icon: FileArchiveIcon,
+		content: BackupSettings,
 	},
 	{
 		// Core component editing is instance-specific and advanced, so it is intentionally excluded from first-run onboarding.

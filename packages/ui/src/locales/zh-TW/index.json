@@ -51,7 +51,7 @@
     "defaultMessage": "你選取的專案尚未安裝"
   },
   "browse.view-prefix": {
-    "defaultMessage": "檢視模式："
+    "defaultMessage": "檢視模式"
   },
   "button.accept": {
     "defaultMessage": "接受"
@@ -1935,7 +1935,7 @@
     "defaultMessage": "單人遊戲"
   },
   "label.sort-by": {
-    "defaultMessage": "排序依據："
+    "defaultMessage": "排序依據"
   },
   "label.success": {
     "defaultMessage": "成功"

@@ -4,6 +4,7 @@ import test from 'node:test'
 import {
 	type CurseForgeFile,
 	getCurseForgeDownloadFailureDetails,
+	getCurseForgeImageUrl,
 	hasCompatibleCurseForgeFile,
 } from './curseforge.ts'
 
@@ -55,4 +56,35 @@ test('requires an available exact CurseForge game version match', () => {
 
 	assert.equal(hasCompatibleCurseForgeFile(files, '1.20.1'), true)
 	assert.equal(hasCompatibleCurseForgeFile(files, '1.20.2'), false)
+})
+
+test('preserves every frame of CurseForge GIF images', () => {
+	const result = getCurseForgeImageUrl(
+		'https://media.forgecdn.net/avatars/123/456/example.GIF?cache=1',
+		96,
+	)
+	const proxy = new URL(result!)
+
+	assert.equal(proxy.origin, 'https://images.weserv.nl')
+	assert.equal(
+		proxy.searchParams.get('url'),
+		'https://media.forgecdn.net/avatars/123/456/example.GIF?cache=1',
+	)
+	assert.equal(proxy.searchParams.get('w'), '96')
+	assert.equal(proxy.searchParams.get('output'), 'gif')
+	assert.equal(proxy.searchParams.get('n'), '-1')
+})
+
+test('continues optimizing static CurseForge images as WebP', () => {
+	const result = getCurseForgeImageUrl('https://media.forgecdn.net/avatars/example.png')
+	const proxy = new URL(result!)
+
+	assert.equal(proxy.searchParams.get('output'), 'webp')
+	assert.equal(proxy.searchParams.has('n'), false)
+})
+
+test('does not proxy images outside ForgeCDN', () => {
+	const source = 'https://cdn.modrinth.com/data/example/icon.gif'
+
+	assert.equal(getCurseForgeImageUrl(source), source)
 })

@@ -181,11 +181,11 @@ test('armor arms use vanilla mirrored UV regions on their physical outer and inn
 	assert.ok(Math.abs(uAtFaceEdge(left, '-1,0,0', 'z', 'max') - 40) < 1e-5)
 })
 
-test('left leg reuses the right leg region of the 64x32 armor texture', () => {
+test('left leg reuses and mirrors the right leg region of the 64x32 armor texture', () => {
 	const source = new THREE.BoxGeometry(4 / 16, 12 / 16, 4 / 16)
 	const sourceUv = source.getAttribute('uv') as THREE.BufferAttribute
 	const expected = Array.from({ length: sourceUv.count }, (_, index) => [
-		sourceUv.getX(index),
+		1 - sourceUv.getX(index),
 		sourceUv.getY(index) * 2,
 	])
 	for (let index = 0; index < sourceUv.count; index++) {

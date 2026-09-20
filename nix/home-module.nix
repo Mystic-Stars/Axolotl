@@ -1,7 +1,7 @@
 {
-	inputs,
-	legacyPackages,
-	...
+  inputs,
+  legacyPackages,
+  ...
 }:
 {
   config,
@@ -26,16 +26,6 @@ in
           WEBKIT_DISABLE_DMABUF_RENDERER = 1;
         };
       };
-      prebuilt = mkOption {
-        type = with lib.types; bool;
-        default = true;
-        description = ''
-        	Whether to use prebuilt version of Axolotl Launcher.
-        	When set to false, Axolotl Launcher will be built from source locally.
-        	When set to true, Axolotl Launcher will be downloaded from GitHub.
-        '';
-      	example = false;
-      };
       jres = mkOption {
         type = with lib.types; listOf package;
         default = [];
@@ -48,6 +38,6 @@ in
     };
 
     config = with config.programs.axolotl-launcher; mkIf enable {
-      home.packages = [ (callPackage ./package.nix { inherit inputs launchEnv prebuilt; }) ];
+      home.packages = [ (callPackage ./package.nix { inherit inputs launchEnv; }) ];
     };
   }

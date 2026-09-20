@@ -1,5 +1,11 @@
 <template>
-	<div v-if="data">
+	<template v-if="loading">
+		<Teleport to="#sidebar-teleport-target">
+			<ProjectPageSkeleton variant="sidebar" />
+		</Teleport>
+		<ProjectPageSkeleton />
+	</template>
+	<div v-else-if="data">
 		<UpgradeProjectReturnBar />
 		<Teleport to="#sidebar-teleport-target">
 			<ProjectSidebarCompatibility
@@ -430,6 +436,7 @@ import {
 	OverflowMenu,
 	ProjectBackgroundGradient,
 	ProjectHeader,
+	ProjectPageSkeleton,
 	ProjectSidebarCompatibility,
 	ProjectSidebarCreators,
 	ProjectSidebarDetails,
@@ -626,6 +633,7 @@ const messages = defineMessages({
 
 const { installingServerProjects, playServerProject, showAddServerToInstanceModal } =
 	injectServerInstall()
+const loading = ref(true)
 const installing = ref(false)
 const browseInstanceSelector = ref()
 const data = shallowRef(null)
@@ -724,7 +732,7 @@ const translationStyle = ref('weakened')
 let translationRequestVersion = 0
 
 serverInstallContent.watchServerContextChanges()
-await serverInstallContent.initServerContext()
+const serverContextReady = serverInstallContent.initServerContext().catch(handleError)
 
 const instanceFilters = computed(() => {
 	if (!instance.value) {
@@ -974,10 +982,15 @@ function goToVersions() {
 	router.push(versionsHref.value)
 }
 
-const [allLoaders, allGameVersions] = await Promise.all([
-	get_loaders().catch(handleError).then(ref),
-	get_game_versions().catch(handleError).then(ref),
-])
+const allLoaders = ref([])
+const allGameVersions = ref([])
+const tagsReady = Promise.all([
+	get_loaders().catch(handleError),
+	get_game_versions().catch(handleError),
+]).then(([loaders, gameVersions]) => {
+	allLoaders.value = loaders ?? []
+	allGameVersions.value = gameVersions ?? []
+})
 
 async function handleClickPlay() {
 	if (!isServerProject.value) return
@@ -1236,8 +1249,33 @@ function fetchDeferredServerData(project) {
 	updateServerPlayState()
 }
 
-await fetchProjectData()
-await syncContentSelectionTarget()
+let projectLoadVersion = 0
+
+async function loadProjectPage() {
+	const loadVersion = ++projectLoadVersion
+	loading.value = true
+	data.value = null
+	projectV3.value = null
+	versions.value = []
+	members.value = []
+	categories.value = []
+	organization.value = null
+	instance.value = null
+	instanceProjects.value = null
+	installed.value = false
+	installedVersion.value = null
+
+	try {
+		await Promise.all([serverContextReady, tagsReady])
+		await fetchProjectData()
+		if (loadVersion !== projectLoadVersion) return
+		await syncContentSelectionTarget()
+	} finally {
+		if (loadVersion === projectLoadVersion) loading.value = false
+	}
+}
+
+void loadProjectPage()
 
 let unlistenProcesses
 process_listener((e) => {
@@ -1258,10 +1296,9 @@ onUnmounted(() => {
 
 watch(
 	() => route.params.id,
-	async () => {
+	() => {
 		if (route.params.id && route.path.startsWith('/project')) {
-			await fetchProjectData()
-			await syncContentSelectionTarget()
+			void loadProjectPage()
 		}
 	},
 )

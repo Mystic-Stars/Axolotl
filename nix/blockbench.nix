@@ -5,8 +5,8 @@
 }:
 let
   pname = "blockbench";
-  version = with builtins; (fromJSON (readFile ../../third-party/blockbench/package.json)).version;
-  src = ../../third-party/blockbench;
+  version = with builtins; (fromJSON (readFile ../third-party/blockbench/package.json)).version;
+  src = ../third-party/blockbench;
 in
   buildNpmPackage {
     inherit pname version src;

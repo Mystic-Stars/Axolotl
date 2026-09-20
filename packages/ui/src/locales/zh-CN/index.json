@@ -99,7 +99,7 @@
     "defaultMessage": "已验证游玩次数"
   },
   "browse.view-prefix": {
-    "defaultMessage": "查看："
+    "defaultMessage": "查看"
   },
   "button.accept": {
     "defaultMessage": "接受"
@@ -2316,7 +2316,7 @@
     "defaultMessage": "单人游戏"
   },
   "label.sort-by": {
-    "defaultMessage": "排序方式："
+    "defaultMessage": "排序方式"
   },
   "label.success": {
     "defaultMessage": "成功"

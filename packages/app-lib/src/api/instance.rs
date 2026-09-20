@@ -1,5 +1,6 @@
 //! Theseus instance management interface
 
+mod backup;
 mod content;
 mod core_components;
 mod export_mrpack;
@@ -25,6 +26,33 @@ mod synced_packs_axolotl;
 pub(crate) mod synced_servers;
 mod upgrade;
 
+pub use self::backup::{
+    BackupDeleteSummary, BackupExclusion, BackupExclusionKind, BackupOperation,
+    BackupOperationState, BackupOperationType, BackupRepositoryStatus,
+    BackupRestorePreview, BackupSnapshot, InstanceBackupConfig,
+    InstanceBackupEligibility, cancel_backup,
+    delete_snapshot as delete_backup_snapshot, disable as disable_backups,
+    enable as enable_backups,
+    exclusion_from_absolute_path as get_backup_exclusion_from_path,
+    has_active_operations as has_active_backup_operations,
+    has_active_repository_move as has_active_backup_repository_move,
+    instance_config as get_backup_config,
+    instance_delete_summary as get_backup_delete_summary,
+    interrupt_active_operations as interrupt_active_backup_operations,
+    list_operations as list_backup_operations,
+    list_snapshots as list_backup_snapshots,
+    maintain_repository as maintain_backup_repository,
+    repository_status as get_backup_repository_status, restore_snapshot,
+    start_repository_move as move_backup_repository,
+    start_restore_preview as get_backup_restore_preview,
+    start_snapshot as start_backup_snapshot,
+    update_exclusions as update_backup_exclusions,
+};
+pub(crate) use self::backup::{
+    begin_instance_deletion, cancel_instance_deletion, delete_instance_backups,
+    ensure_backup_eligible_edit, has_active_instance_operation,
+    lock_instance_maintenance, move_default_repository_for_launcher_directory,
+};
 pub(crate) use self::content::resolve_content_change_actions;
 pub use self::content::{
     apply_content_update_plan, get_content_items, get_content_items_by_paths,

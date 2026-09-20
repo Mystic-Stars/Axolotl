@@ -196,7 +196,7 @@ import {
 	WrapTextIcon,
 	XIcon,
 } from '@modrinth/assets'
-import { computed, isRef, onBeforeUnmount, ref } from 'vue'
+import { computed, isRef, nextTick, onBeforeUnmount, ref } from 'vue'
 
 import Admonition from '#ui/components/base/Admonition.vue'
 import ButtonStyled from '#ui/components/base/ButtonStyled.vue'
@@ -821,7 +821,8 @@ function handleFilterToggle(value: LogLevel) {
 	toggleFilter(value)
 }
 
-function toggleFullscreen() {
+async function toggleFullscreen() {
+	const viewportState = viewportRef.value?.captureViewState()
 	isFullscreen.value = !isFullscreen.value
 	if (isFullscreen.value) {
 		document.body.style.overflow = 'hidden'
@@ -844,6 +845,11 @@ function toggleFullscreen() {
 		)
 		modalBehavior?.onHide?.()
 	}
+
+	await nextTick()
+	requestAnimationFrame(() => {
+		if (viewportState) viewportRef.value?.restoreViewState(viewportState)
+	})
 }
 
 function handleClear() {

@@ -139,7 +139,12 @@ export function getCurseForgeImageUrl(source?: string | null, width = 256): stri
 		proxy.searchParams.set('url', source)
 		proxy.searchParams.set('w', String(width))
 		proxy.searchParams.set('fit', 'contain')
-		proxy.searchParams.set('output', 'webp')
+		if (url.pathname.toLowerCase().endsWith('.gif')) {
+			proxy.searchParams.set('output', 'gif')
+			proxy.searchParams.set('n', '-1')
+		} else {
+			proxy.searchParams.set('output', 'webp')
+		}
 		return proxy.toString()
 	} catch {
 		return source
@@ -367,6 +372,13 @@ export function getCurseForgeDescription(projectId: number) {
 
 export function getCurseForgeFiles(projectId: number, request: CurseForgeFilesRequest) {
 	return invoke<CurseForgeFilesResponse>('plugin:curseforge|curseforge_get_files', {
+		projectId,
+		request,
+	})
+}
+
+export function getCurseForgeFilesPage(projectId: number, request: CurseForgeFilesRequest) {
+	return invoke<CurseForgeFilesResponse>('plugin:curseforge|curseforge_get_files_page', {
 		projectId,
 		request,
 	})

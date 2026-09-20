@@ -270,6 +270,7 @@ onUnmounted(() => {
 <template>
 	<ConfirmDeleteInstanceModal
 		ref="deleteConfirmModal"
+		:instance-id="currentDeleteInstance?.id"
 		:symlink-target="currentDeleteInstance?.symlink_target"
 		@delete="deleteInstance"
 	/>

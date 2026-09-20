@@ -158,7 +158,7 @@ import {
 	provideServerInstallContent,
 } from '@/providers/setup/server-install-content'
 import { useBreadcrumbs } from '@/store/breadcrumbs'
-import { useNavigationReturnStore } from '@/store/navigation-return'
+import { isBrowseReturnSourcePath, useNavigationReturnStore } from '@/store/navigation-return'
 import { useTheming } from '@/store/state'
 
 const { addNotification, handleError } = injectNotificationManager()
@@ -1033,7 +1033,7 @@ if (instance.value) {
 onBeforeRouteLeave((to) => {
 	try {
 		const currentPage = searchState.currentPage.value
-		if (navReturn.isBrowseReturnSourcePath(to.path)) {
+		if (isBrowseReturnSourcePath(to.path)) {
 			const viewport = document.querySelector<HTMLElement>('.app-viewport')
 			navReturn.saveBrowseReturnSnapshot({
 				url: route.fullPath,

@@ -23,6 +23,35 @@ async fn remove_instance_with_policy(
     state: &State,
     preserve_external_files: bool,
 ) -> crate::Result<()> {
+    let _maintenance_guard =
+        crate::api::instance::lock_instance_maintenance(instance_id).await;
+    crate::api::instance::begin_instance_deletion(instance_id).await?;
+    let result = remove_instance_files_and_state(
+        instance_id,
+        state,
+        preserve_external_files,
+    )
+    .await;
+    if let Err(error) = result {
+        if let Err(cancel_error) =
+            crate::api::instance::cancel_instance_deletion(instance_id).await
+        {
+            tracing::warn!(
+                instance_id,
+                %cancel_error,
+                "Failed to clear pending backup deletion marker"
+            );
+        }
+        return Err(error);
+    }
+    crate::api::instance::delete_instance_backups(instance_id).await
+}
+
+async fn remove_instance_files_and_state(
+    instance_id: &str,
+    state: &State,
+    preserve_external_files: bool,
+) -> crate::Result<()> {
     let _synced_options_lock = state.lock_synced_options().await;
     let _instance_lock = state.lock_instance_content(instance_id).await;
 

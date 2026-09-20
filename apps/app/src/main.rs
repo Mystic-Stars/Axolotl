@@ -205,6 +205,9 @@ async fn initialize_state(app: tauri::AppHandle) -> api::Result<()> {
 
     tracing::info!("Initializing app state...");
     State::init(app.config().identifier.clone()).await?;
+    if let Err(error) = theseus::instance::maintain_backup_repository().await {
+        tracing::warn!(%error, "Failed to maintain the instance backup repository");
+    }
 
     // The logger starts before the database is available, so the stored level
     // is applied here once settings can be read. Beta keeps enough detail for
@@ -544,13 +547,40 @@ async fn toggle_decorations(b: bool, window: tauri::Window) -> api::Result<()> {
 }
 
 #[tauri::command]
-fn restart_app(app: tauri::AppHandle) {
-    app.restart();
+async fn restart_app(app: tauri::AppHandle) -> api::Result<()> {
+    if theseus::State::initialized()
+        && theseus::instance::has_active_backup_operations().await?
+    {
+        return Err(theseus::Error::from(theseus::ErrorKind::InputError(
+            "Backup operations are still running".to_string(),
+        ))
+        .into());
+    }
+    app.restart()
 }
 
 #[tauri::command]
-fn exit_app(app: tauri::AppHandle) {
+async fn exit_app(app: tauri::AppHandle, force: bool) -> api::Result<()> {
+    if theseus::State::initialized()
+        && theseus::instance::has_active_backup_operations().await?
+    {
+        if !force {
+            return Err(theseus::Error::from(theseus::ErrorKind::InputError(
+                "Backup operations are still running".to_string(),
+            ))
+            .into());
+        }
+        if theseus::instance::has_active_backup_repository_move().await? {
+            return Err(theseus::Error::from(theseus::ErrorKind::InputError(
+                "The launcher cannot force exit while the backup repository is being moved"
+                    .to_string(),
+            ))
+            .into());
+        }
+        theseus::instance::interrupt_active_backup_operations().await?;
+    }
     app.exit(0);
+    Ok(())
 }
 
 #[tauri::command]
@@ -890,6 +920,7 @@ fn main() {
         .plugin(api::datapacks::init())
         .plugin(api::drop::init())
         .plugin(api::files::init())
+        .plugin(api::fonts::init())
         .plugin(api::friends::init())
         .plugin(api::worlds::init())
         .plugin(api::terracotta::init())

@@ -286,6 +286,7 @@ fn main() {
                         "curseforge_get_projects",
                         "curseforge_get_description",
                         "curseforge_get_files",
+                        "curseforge_get_files_page",
                         "curseforge_get_file",
                         "curseforge_get_files_many",
                         "curseforge_get_changelog",
@@ -512,6 +513,21 @@ fn main() {
                 InlinedPlugin::new()
                     .commands(&[
                         "instance_remove",
+                        "instance_get_backup_repository_status",
+                        "instance_move_backup_repository",
+                        "instance_get_backup_config",
+                        "instance_normalize_backup_exclusion",
+                        "instance_enable_backups",
+                        "instance_update_backup_exclusions",
+                        "instance_disable_backups",
+                        "instance_start_backup",
+                        "instance_cancel_backup",
+                        "instance_list_backup_operations",
+                        "instance_list_backups",
+                        "instance_delete_backup",
+                        "instance_get_backup_restore_preview",
+                        "instance_restore_backup",
+                        "instance_get_backup_delete_summary",
                         "instance_create_direct_link",
                         "instance_sync_direct_links",
                         "instance_get",
@@ -807,6 +823,14 @@ fn main() {
                         "studio_watch_register",
                         "studio_watch_unregister",
                     ])
+                    .default_permission(
+                        DefaultPermissionRule::AllowAllCommands,
+                    ),
+            )
+            .plugin(
+                "fonts",
+                InlinedPlugin::new()
+                    .commands(&["fonts_get_system_fonts"])
                     .default_permission(
                         DefaultPermissionRule::AllowAllCommands,
                     ),

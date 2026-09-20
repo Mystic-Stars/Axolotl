@@ -5,13 +5,10 @@
   lib,
 
   launchEnv,
-  prebuilt,
   ...
 }:
 let
-  axolotl = callPackage (
-    if prebuilt then ./axolotl-bin else ./axolotl-git
-  ) { inherit inputs; };
+  axolotl = callPackage ./axolotl.nix { inherit inputs; };
 in
   buildFHSEnv {
     name = "axolotl-launcher";

@@ -123,6 +123,7 @@ import {
 } from '@/helpers/events.js'
 import { install_create_modpack_instance, install_get_modpack_preview } from '@/helpers/install'
 import { type DirectLinkSyncReport, get as getInstance, run } from '@/helpers/instance'
+import { type BackupOperation, cancelBackup, listBackupOperations } from '@/helpers/instance-backup'
 import { reconcileMojangAuthSourceAtStartup } from '@/helpers/mojang-auth'
 import { cancelLogin, get as getCreds, login, logout } from '@/helpers/mr_auth.ts'
 import { getNavShortcutEnabled } from '@/helpers/nav-shortcut-state'
@@ -401,6 +402,8 @@ const communityAnnouncementModal = ref()
 const surveyModal = ref()
 const updateAnnouncementModal = ref()
 const closeChoiceModal = ref<InstanceType<typeof NewModal>>()
+const backupExitModal = ref<InstanceType<typeof NewModal>>()
+const activeBackupOperations = ref<BackupOperation[]>([])
 const closeChoiceOpen = ref(false)
 const closeChoiceRemember = ref(false)
 const closeRequestInProgress = ref(false)
@@ -963,6 +966,31 @@ const messages = defineMessages({
 		id: 'app.close-launcher.remember',
 		defaultMessage: 'Remember my choice',
 	},
+	backupExitTitle: {
+		id: 'app.backup-exit.title',
+		defaultMessage: 'Backup operations are still running',
+	},
+	backupExitBody: {
+		id: 'app.backup-exit.body',
+		defaultMessage:
+			'{count, plural, one {# backup operation is} other {# backup operations are}} still running. Keep the launcher open or hide it to the tray to let them finish.',
+	},
+	backupExitRepositoryMoveBody: {
+		id: 'app.backup-exit.repository-move-body',
+		defaultMessage:
+			'The backup repository is being moved. This task cannot be cancelled or force-stopped; keep the launcher open or hide it to the tray until it finishes.',
+	},
+	backupExitReturn: { id: 'app.backup-exit.return', defaultMessage: 'Return to launcher' },
+	backupExitTray: { id: 'app.backup-exit.tray', defaultMessage: 'Hide to tray' },
+	backupExitCancel: {
+		id: 'app.backup-exit.cancel',
+		defaultMessage: 'Cancel tasks and exit',
+	},
+	backupExitForce: { id: 'app.backup-exit.force', defaultMessage: 'Force exit' },
+	backupExitTimeout: {
+		id: 'app.backup-exit.timeout',
+		defaultMessage: 'Timed out while waiting for backup operations to stop.',
+	},
 	betaBuild: {
 		id: 'app.build.beta',
 		defaultMessage: 'Beta',
@@ -1314,6 +1342,8 @@ async function setupApp() {
 		custom_background_blur,
 		custom_background_opacity,
 		custom_background_component_opacity,
+		ui_font,
+		mono_font,
 		transparent_background,
 		transparent_background_opacity,
 		transparent_background_blur,
@@ -1371,6 +1401,10 @@ async function setupApp() {
 	themeStore.customBackgroundOpacity = custom_background_opacity
 	themeStore.customBackgroundComponentOpacity = custom_background_component_opacity ?? 100
 	themeStore.setCustomBackgroundComponentOpacity()
+	themeStore.uiFont = ui_font ?? null
+	themeStore.monoFont = mono_font ?? null
+	themeStore.setUiFont()
+	themeStore.setMonoFont()
 	themeStore.transparentBackground = transparent_background
 	themeStore.transparentBackgroundOpacity = transparent_background_opacity
 	themeStore.transparentBackgroundBlur = transparent_background_blur
@@ -1665,7 +1699,7 @@ stateInitialization
  */
 async function forceExit() {
 	try {
-		await invoke('exit_app')
+		await invoke('exit_app', { force: true })
 	} catch (error) {
 		// Closing the window still reaches the exit path, one dialog later.
 		console.error('Failed to exit the launcher; closing the window', error)
@@ -1675,13 +1709,28 @@ async function forceExit() {
 	}
 }
 
+async function showBackupExitModalIfNeeded() {
+	activeBackupOperations.value = await listBackupOperations(undefined, true)
+	if (activeBackupOperations.value.length === 0) return false
+	allowWindowClose = false
+	closeRequestInProgress.value = false
+	closeChoiceModal.value?.hide()
+	backupExitModal.value?.show()
+	return true
+}
+
+async function exitLauncher(force = false) {
+	if (!force && (await showBackupExitModalIfNeeded())) return
+	allowWindowClose = true
+	await saveWindowState(StateFlags.ALL)
+	await invoke('exit_app', { force })
+}
+
 async function closeWindowImmediately() {
 	if (closeRequestInProgress.value) return
 	closeRequestInProgress.value = true
-	allowWindowClose = true
 	try {
-		await saveWindowState(StateFlags.ALL)
-		await invoke('exit_app')
+		await exitLauncher()
 	} catch (error) {
 		allowWindowClose = false
 		closeRequestInProgress.value = false
@@ -1715,9 +1764,7 @@ async function applyCloseChoice(choice: 'close' | 'lightweight', remember: boole
 			closeBehaviorPersisted = true
 		}
 		if (choice === 'close') {
-			allowWindowClose = true
-			await saveWindowState(StateFlags.ALL)
-			await invoke('exit_app')
+			await exitLauncher()
 		} else {
 			await enterLightweightModeOnClose()
 		}
@@ -1730,6 +1777,58 @@ async function applyCloseChoice(choice: 'close' | 'lightweight', remember: boole
 		closeChoiceOpen.value = true
 		handleError(error)
 	}
+}
+
+async function cancelBackupsAndExit() {
+	if (closeRequestInProgress.value) return
+	closeRequestInProgress.value = true
+	try {
+		await Promise.all(
+			activeBackupOperations.value
+				.filter((operation) => operation.cancellable)
+				.map((operation) => cancelBackup(operation.id)),
+		)
+		for (let attempt = 0; attempt < 300; attempt++) {
+			const remaining = await listBackupOperations(undefined, true)
+			if (remaining.length === 0) {
+				await exitLauncher()
+				return
+			}
+			await new Promise((resolve) => setTimeout(resolve, 100))
+		}
+		throw new Error(formatMessage(messages.backupExitTimeout))
+	} catch (error) {
+		closeRequestInProgress.value = false
+		handleError(error)
+	}
+}
+
+async function forceBackupExit() {
+	if (closeRequestInProgress.value) return
+	closeRequestInProgress.value = true
+	try {
+		await exitLauncher(true)
+	} catch (error) {
+		allowWindowClose = false
+		closeRequestInProgress.value = false
+		handleError(error)
+	}
+}
+
+const hasActiveRepositoryMove = computed(() =>
+	activeBackupOperations.value.some((operation) => operation.operation_type === 'repository_move'),
+)
+
+function returnFromBackupExit() {
+	backupExitModal.value?.hide()
+	activeBackupOperations.value = []
+	closeRequestInProgress.value = false
+}
+
+async function hideDuringBackups() {
+	backupExitModal.value?.hide()
+	closeRequestInProgress.value = false
+	await enterLightweightModeOnClose()
 }
 
 function onCloseChoiceModalHide() {
@@ -3021,6 +3120,44 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 			/>
 		</div>
 	</NewModal>
+	<NewModal
+		ref="backupExitModal"
+		:header="formatMessage(messages.backupExitTitle)"
+		:disable-close="closeRequestInProgress"
+		fade="danger"
+		max-width="32rem"
+	>
+		<Admonition type="warning">
+			{{ formatMessage(messages.backupExitBody, { count: activeBackupOperations.length }) }}
+		</Admonition>
+		<Admonition v-if="hasActiveRepositoryMove" type="warning" class="mt-3">
+			{{ formatMessage(messages.backupExitRepositoryMoveBody) }}
+		</Admonition>
+		<template #actions>
+			<div class="flex flex-wrap items-center justify-end gap-2">
+				<ButtonStyled type="outlined">
+					<button type="button" :disabled="closeRequestInProgress" @click="returnFromBackupExit">
+						{{ formatMessage(messages.backupExitReturn) }}
+					</button>
+				</ButtonStyled>
+				<ButtonStyled>
+					<button type="button" :disabled="closeRequestInProgress" @click="hideDuringBackups">
+						{{ formatMessage(messages.backupExitTray) }}
+					</button>
+				</ButtonStyled>
+				<ButtonStyled v-if="activeBackupOperations.every((operation) => operation.cancellable)">
+					<button type="button" :disabled="closeRequestInProgress" @click="cancelBackupsAndExit">
+						{{ formatMessage(messages.backupExitCancel) }}
+					</button>
+				</ButtonStyled>
+				<ButtonStyled v-if="!hasActiveRepositoryMove" color="red">
+					<button type="button" :disabled="closeRequestInProgress" @click="forceBackupExit">
+						{{ formatMessage(messages.backupExitForce) }}
+					</button>
+				</ButtonStyled>
+			</div>
+		</template>
+	</NewModal>
 	<ErrorModal ref="errorModal" />
 	<MinecraftAuthErrorModal ref="minecraftAuthErrorModal" />
 	<ContentInstallModal
@@ -3579,6 +3716,16 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 // must not draw through that opaque overlay.
 body.modrinth-console-fullscreen-active .app-contents::before {
 	opacity: 0;
+}
+
+// The body class is the console's authoritative fullscreen state. Keep the
+// shell layout correct even if its companion event is delayed or missed.
+body.modrinth-console-fullscreen-active .app-contents {
+	--right-bar-width: 0px;
+}
+
+body.modrinth-console-fullscreen-active .app-sidebar {
+	display: none;
 }
 
 .sidebar-teleport-content:empty + .sidebar-default-content.sidebar-enabled {

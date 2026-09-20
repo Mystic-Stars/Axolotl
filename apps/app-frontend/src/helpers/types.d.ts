@@ -214,6 +214,8 @@ type AppSettings = {
 	custom_background_blur: number
 	custom_background_opacity: number
 	custom_background_component_opacity: number
+	ui_font: string | null
+	mono_font: string | null
 	transparent_background: boolean
 	transparent_background_opacity: number
 	transparent_background_blur: boolean

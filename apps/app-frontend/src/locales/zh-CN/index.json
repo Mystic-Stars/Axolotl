@@ -11,6 +11,55 @@
   "app.action-bar.downloads": {
     "message": "下载"
   },
+  "app.action-bar.active-backups": {
+    "message": "正在进行的备份任务"
+  },
+  "app.action-bar.backup": {
+    "message": "正在备份"
+  },
+  "app.action-bar.restore": {
+    "message": "正在恢复备份"
+  },
+  "app.action-bar.restore-preview": {
+    "message": "正在分析恢复变更"
+  },
+  "app.action-bar.repository-move": {
+    "message": "正在移动备份仓库"
+  },
+  "app.action-bar.repository": {
+    "message": "备份仓库"
+  },
+  "app.action-bar.backup-task.completed": {
+    "message": "{operation}已完成"
+  },
+  "app.action-bar.backup-task.backup": {
+    "message": "备份"
+  },
+  "app.action-bar.backup-task.restore": {
+    "message": "备份恢复"
+  },
+  "app.action-bar.backup-task.restore-preview": {
+    "message": "恢复分析"
+  },
+  "app.action-bar.backup-task.repository-move": {
+    "message": "备份仓库移动"
+  },
+  "app.action-bar.backup-task.cancelled": {
+    "message": "{operation}已取消"
+  },
+  "app.action-bar.backup-task.failed": {
+    "message": "{operation}失败"
+  },
+  "app.action-bar.backup-stage": {
+    "message": "处理中：{stage}"
+  },
+  "app.action-bar.backup-stage.queued": { "message": "排队中" },
+  "app.action-bar.backup-stage.scanning": { "message": "正在扫描文件" },
+  "app.action-bar.backup-stage.hashing": { "message": "正在计算哈希" },
+  "app.action-bar.backup-stage.saving": { "message": "正在保存备份" },
+  "app.action-bar.backup-stage.validating": { "message": "正在验证备份" },
+  "app.action-bar.backup-stage.materializing": { "message": "正在应用文件" },
+  "app.action-bar.backup-stage.applying": { "message": "正在应用文件" },
   "app.action-bar.exporting-modpack": {
     "message": "正在导出整合包"
   },
@@ -512,6 +561,57 @@
   "app.appearance-settings.default-landing-page.title": {
     "message": "默认起始页"
   },
+  "app.appearance-settings.fonts.default": {
+    "message": "启动器默认"
+  },
+  "app.appearance-settings.fonts.description": {
+    "message": "选择启动器界面与日志使用的字体。"
+  },
+  "app.appearance-settings.fonts.load-failed": {
+    "message": "无法读取已安装的字体列表。"
+  },
+  "app.appearance-settings.fonts.missing": {
+    "message": "未安装"
+  },
+  "app.appearance-settings.fonts.mono-font": {
+    "message": "等宽字体"
+  },
+  "app.appearance-settings.fonts.mono-font-description": {
+    "message": "作用于日志、服务器控制台以及其他等宽内容。"
+  },
+  "app.appearance-settings.fonts.mono-preview-sample": {
+    "message": "[12:34:56] [Server thread/INFO]: 正在准备生成区域: 43%"
+  },
+  "app.appearance-settings.fonts.monospace": {
+    "message": "等宽"
+  },
+  "app.appearance-settings.fonts.no-results": {
+    "message": "没有匹配的字体"
+  },
+  "app.appearance-settings.fonts.preview": {
+    "message": "预览"
+  },
+  "app.appearance-settings.fonts.reset": {
+    "message": "恢复默认"
+  },
+  "app.appearance-settings.fonts.retry": {
+    "message": "重试"
+  },
+  "app.appearance-settings.fonts.search-placeholder": {
+    "message": "搜索已安装的字体"
+  },
+  "app.appearance-settings.fonts.title": {
+    "message": "字体"
+  },
+  "app.appearance-settings.fonts.ui-font": {
+    "message": "界面字体"
+  },
+  "app.appearance-settings.fonts.ui-font-description": {
+    "message": "作用于整个启动器界面，列表仅包含本机已安装的字体。"
+  },
+  "app.appearance-settings.fonts.ui-preview-sample": {
+    "message": "字体预览：山川异域，风月同天。0123456789"
+  },
   "app.appearance-settings.hide-nametag.description": {
     "message": "在皮肤页面中禁用你玩家头顶上的名牌。"
   },
@@ -829,6 +929,30 @@
   },
   "app.close-launcher.tray": {
     "message": "隐藏至托盘"
+  },
+  "app.backup-exit.title": {
+    "message": "备份任务仍在运行"
+  },
+  "app.backup-exit.body": {
+    "message": "仍有 {count} 个备份任务在运行。请保持启动器打开，或将其隐藏到托盘以等待任务完成。"
+  },
+  "app.backup-exit.repository-move-body": {
+    "message": "备份文件仓库正在移动。此任务无法取消或强制终止，请保持启动器打开，或将其隐藏到托盘直至任务完成。"
+  },
+  "app.backup-exit.return": {
+    "message": "返回启动器"
+  },
+  "app.backup-exit.tray": {
+    "message": "隐藏到托盘"
+  },
+  "app.backup-exit.cancel": {
+    "message": "取消任务并退出"
+  },
+  "app.backup-exit.force": {
+    "message": "强制退出"
+  },
+  "app.backup-exit.timeout": {
+    "message": "等待备份任务停止超时。"
   },
   "app.community-announcement.feedback-middle": {
     "message": "，或在 "
@@ -2519,6 +2643,9 @@
   "app.instance.confirm-delete.admonition-header": {
     "message": "此操作无法撤销"
   },
+  "app.instance.confirm-delete.backup-cascade-warning": {
+    "message": "还将永久删除 {count, plural, other {# 个备份}}（去重前共 {size}）。"
+  },
   "app.instance.confirm-delete.batch-admonition-body": {
     "message": "将永久删除 {count, plural, other {#}} 个实例，包括存档、配置和所有已安装内容。"
   },
@@ -3258,7 +3385,7 @@
     "message": "编辑分组"
   },
   "app.instances.group-by": {
-    "message": "分组方式："
+    "message": "分组方式"
   },
   "app.instances.group.game-version": {
     "message": "游戏版本"
@@ -5657,42 +5784,6 @@
   "app.minecraft.playing-as": {
     "message": "当前游玩账号："
   },
-  "app.modal.install-to-play.content-required": {
-    "message": "需求内容"
-  },
-  "app.modal.install-to-play.header": {
-    "message": "安装以游玩"
-  },
-  "app.modal.install-to-play.install-button": {
-    "message": "安装"
-  },
-  "app.modal.install-to-play.mod-count": {
-    "message": "{count} 个模组"
-  },
-  "app.modal.install-to-play.required-modpack": {
-    "message": "需求整合包"
-  },
-  "app.modal.install-to-play.server-requires-mods": {
-    "message": "此服务器需要安装模组才能游玩。点击安装，从 Modrinth 下载所需文件，然后直接进入服务器。"
-  },
-  "app.modal.install-to-play.shared-instance": {
-    "message": "共享实例"
-  },
-  "app.modal.install-to-play.shared-server-instance": {
-    "message": "共享的服务端实例"
-  },
-  "app.modal.install-to-play.view-contents": {
-    "message": "查看内容"
-  },
-  "app.modal.update-to-play.header": {
-    "message": "更新以游玩"
-  },
-  "app.modal.update-to-play.update-required": {
-    "message": "需要更新"
-  },
-  "app.modal.update-to-play.update-required-description": {
-    "message": "需要更新至最新版本才能运行 {name}。请更新后启动游戏。"
-  },
   "app.modpack-install.already-installed": {
     "message": "此版本已安装"
   },
@@ -6373,9 +6464,6 @@
   },
   "app.privacy-consent.title": {
     "message": "隐私与安全"
-  },
-  "app.project.curseforge.loading": {
-    "message": "正在加载 CurseForge 项目…"
   },
   "app.project.curseforge.unavailable-description": {
     "message": "该 CurseForge 项目没有返回任何数据。"
@@ -10853,6 +10941,141 @@
   "instance.add-server.title": {
     "message": "添加服务器"
   },
+  "instance.backups.added-size": {
+    "message": "新增存储 {size}"
+  },
+  "instance.backups.all-included": {
+    "message": "实例中的所有文件和文件夹都会纳入备份。"
+  },
+  "instance.backups.backup-now": {
+    "message": "立即备份"
+  },
+  "instance.backups.cancel": {
+    "message": "取消备份"
+  },
+  "instance.backups.choose": {
+    "message": "默认备份实例中的全部内容，请添加不需要备份的文件或文件夹。"
+  },
+  "instance.backups.delete": {
+    "message": "删除备份"
+  },
+  "instance.backups.delete-body": {
+    "message": "此快照将被永久删除，不再使用的仓库文件也会一并清理。"
+  },
+  "instance.backups.delete-title": {
+    "message": "删除此备份？"
+  },
+  "instance.backups.description": {
+    "message": "在实例关闭时，为整个实例创建去重快照。"
+  },
+  "instance.backups.disable": {
+    "message": "关闭备份"
+  },
+  "instance.backups.disable-blocked": {
+    "message": "必须先删除全部快照才能关闭备份。"
+  },
+  "instance.backups.edit-exclusions": {
+    "message": "编辑排除项"
+  },
+  "instance.backups.empty": {
+    "message": "尚未创建任何备份。"
+  },
+  "instance.backups.enable": {
+    "message": "启用备份"
+  },
+  "instance.backups.excluded-paths": {
+    "message": "不备份：{paths}"
+  },
+  "instance.backups.exclusions.add-file": {
+    "message": "添加忽略文件"
+  },
+  "instance.backups.exclusions.add-folder": {
+    "message": "添加忽略文件夹"
+  },
+  "instance.backups.exclusions.empty": {
+    "message": "没有忽略任何文件或文件夹。"
+  },
+  "instance.backups.exclusions.remove": {
+    "message": "从排除项中移除 {path}"
+  },
+  "instance.backups.loading": {
+    "message": "正在加载备份设置……"
+  },
+  "instance.backups.progress-bytes": {
+    "message": "已处理 {processed}，共 {total}"
+  },
+  "instance.backups.restore": {
+    "message": "恢复备份"
+  },
+  "instance.backups.restore-body": {
+    "message": "即将进行的操作：新增 {added} 个文件，修改 {modified} 个文件，删除 {deleted} 个文件。是否继续？"
+  },
+  "instance.backups.restore-title": {
+    "message": "恢复此备份？"
+  },
+  "instance.backups.save-exclusions": {
+    "message": "保存排除项"
+  },
+  "instance.backups.snapshot-meta": {
+    "message": "{files, plural, other {# 个文件}} · {size}"
+  },
+  "instance.backups.snapshots": {
+    "message": "快照"
+  },
+  "instance.backups.stage.failed": {
+    "message": "备份失败"
+  },
+  "instance.backups.stage.interrupted": {
+    "message": "备份任务已中断"
+  },
+  "instance.backups.stage.hashing": {
+    "message": "正在计算文件哈希"
+  },
+  "instance.backups.stage.queued": {
+    "message": "等待开始"
+  },
+  "instance.backups.stage.saving": {
+    "message": "正在保存快照索引"
+  },
+  "instance.backups.stage.validating": {
+    "message": "正在验证恢复任务"
+  },
+  "instance.backups.stage.materializing": {
+    "message": "正在准备变更文件"
+  },
+  "instance.backups.stage.preview": {
+    "message": "正在分析恢复变更"
+  },
+  "instance.backups.stage.applying": {
+    "message": "正在应用变更文件"
+  },
+  "instance.backups.stage.scanning": {
+    "message": "正在扫描文件"
+  },
+  "instance.backups.title": {
+    "message": "实例备份"
+  },
+  "instance.backups.unavailable": {
+    "message": "备份不可用"
+  },
+  "instance.backups.unavailable.direct-linked": {
+    "message": "不支持备份直接关联到其他启动器的实例。"
+  },
+  "instance.backups.unavailable.external-directory": {
+    "message": "不支持备份使用外部游戏目录的实例。"
+  },
+  "instance.backups.unavailable.not-installed": {
+    "message": "请先完成实例安装，再启用备份。"
+  },
+  "instance.backups.unavailable.root-link": {
+    "message": "不支持备份根文件夹为链接的实例。"
+  },
+  "instance.backups.unavailable.root-missing": {
+    "message": "实例文件夹不存在。"
+  },
+  "instance.backups.unavailable.symlink": {
+    "message": "不支持备份以符号链接导入的实例。"
+  },
   "instance.edit-server.title": {
     "message": "编辑服务器"
   },
@@ -11000,9 +11223,6 @@
   "instance.settings.sync.creative-hotbars": {
     "message": "创造模式快捷栏"
   },
-  "instance.settings.sync.data-packs": {
-    "message": "数据包"
-  },
   "instance.settings.sync.description": {
     "message": "选择此实例要与其他实例共享的设置。"
   },
@@ -11015,9 +11235,6 @@
   "instance.settings.sync.resource-packs": {
     "message": "资源包"
   },
-  "instance.settings.sync.screenshots": {
-    "message": "截图"
-  },
   "instance.settings.sync.title": {
     "message": "设置同步"
   },
@@ -11026,6 +11243,9 @@
   },
   "instance.settings.tabs.core-components": {
     "message": "核心组件"
+  },
+  "instance.settings.tabs.backups": {
+    "message": "备份"
   },
   "instance.settings.tabs.core-components.add": {
     "message": "添加到 Minecraft.jar"
@@ -12607,6 +12827,36 @@
   },
   "search.filter.locked.server-loader.title": {
     "message": "加载器由服务器提供"
+  },
+  "settings.backups.repository.change": {
+    "message": "更改文件夹"
+  },
+  "settings.backups.repository.description": {
+    "message": "存放去重后的实例备份数据及其独立索引数据库。"
+  },
+  "settings.backups.repository.location": {
+    "message": "位置"
+  },
+  "settings.backups.repository.location-description": {
+    "message": "更改位置会移动完整仓库。请选择新的或空的文件夹。"
+  },
+  "settings.backups.repository.moving": {
+    "message": "正在移动仓库……"
+  },
+  "settings.backups.repository.moving-progress": {
+    "message": "正在移动备份仓库：已处理 {processed}，共 {total}"
+  },
+  "settings.backups.repository.title": {
+    "message": "备份文件仓库"
+  },
+  "settings.backups.repository.unavailable": {
+    "message": "仓库不可用"
+  },
+  "settings.backups.repository.usage": {
+    "message": "存储占用"
+  },
+  "settings.backups.repository.usage-description": {
+    "message": "实际存储 {stored}，对应 {logical} 的备份数据，共 {count, plural, other {# 个快照}}。"
   },
   "settings.feature-flags.title": {
     "message": "功能开关"

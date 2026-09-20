@@ -62,7 +62,7 @@ import {
 import type { GameInstance } from '@/helpers/types'
 import { injectContentSelection, makeContentSelectionKey } from '@/providers/content-selection'
 import { useBreadcrumbs } from '@/store/breadcrumbs'
-import { useNavigationReturnStore } from '@/store/navigation-return'
+import { isBrowseReturnSourcePath, useNavigationReturnStore } from '@/store/navigation-return'
 
 type FavoriteFilter = 'all' | FavoriteContentType
 type FavoriteDisplayMode = 'list' | 'compact' | 'grid'
@@ -683,7 +683,7 @@ function getProjectLink(project: FavoriteProject) {
 }
 
 onBeforeRouteLeave((to) => {
-	if (navReturn.isBrowseReturnSourcePath(to.path)) {
+	if (isBrowseReturnSourcePath(to.path)) {
 		const viewport = document.querySelector<HTMLElement>('.app-viewport')
 		navReturn.saveBrowseReturnSnapshot<FavoritesReturnState>({
 			url: route.fullPath,
