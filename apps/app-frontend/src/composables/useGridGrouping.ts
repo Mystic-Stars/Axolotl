@@ -9,10 +9,20 @@ export type GridGroupingOption = 'Group' | 'Loader' | 'Game version' | 'None'
 export type GridSortOption =
 	'Name' | 'Last played' | 'Date created' | 'Date modified' | 'Game version'
 
+export type GridSortDirection = 'asc' | 'desc'
+
+export const defaultSortDirections: Record<GridSortOption, GridSortDirection> = {
+	Name: 'asc',
+	'Last played': 'desc',
+	'Date created': 'desc',
+	'Date modified': 'desc',
+	'Game version': 'asc',
+}
+
 export interface GridDisplayState {
 	group: GridGroupingOption
 	sortBy: GridSortOption
-	sortAscending: boolean
+	sortDirections: Partial<Record<GridSortOption, GridSortDirection>>
 	collapsedGroups: string[]
 }
 
@@ -35,7 +45,7 @@ export function useGridGrouping<T extends Record<string, unknown>>(
 		{
 			group: 'Group',
 			sortBy: 'Name',
-			sortAscending: true,
+			sortDirections: {},
 			collapsedGroups: [],
 		},
 		localStorage,
@@ -149,8 +159,22 @@ export function useGridGrouping<T extends Record<string, unknown>>(
 	function sortSections(
 		instanceMap: Map<string, T[]>,
 		group: GridGroupingOption,
+		sortBy: GridSortOption,
 	): Map<string, T[]> {
 		if (group !== 'Group' && group !== 'Game version') {
+			return instanceMap
+		}
+
+		if (group === 'Group' && sortBy !== 'Name') {
+			if (instanceMap.has(UNGROUPED_GROUP_KEY) && instanceMap.size > 1) {
+				const ungroupedInstances = instanceMap.get(UNGROUPED_GROUP_KEY)!
+				instanceMap.delete(UNGROUPED_GROUP_KEY)
+				const newMap = new Map<string, T[]>([[UNGROUPED_GROUP_KEY, ungroupedInstances]])
+				for (const [key, instances] of instanceMap) {
+					newMap.set(key, instances)
+				}
+				return newMap
+			}
 			return instanceMap
 		}
 
@@ -167,12 +191,30 @@ export function useGridGrouping<T extends Record<string, unknown>>(
 		return instanceMap
 	}
 
-	const filteredResults = computed(() => {
-		const { group = 'Group', sortBy = 'Name', sortAscending = true } = state.value
+	const sortDirection = computed<GridSortDirection>(() => {
+		return (
+			state.value.sortDirections[state.value.sortBy] ?? defaultSortDirections[state.value.sortBy]
+		)
+	})
 
-		const sorted = sortInstances(instances.value, sortBy, sortAscending)
+	const isSortAscending = computed(() => sortDirection.value === 'asc')
+
+	const toggleSortDirection = () => {
+		const current = sortDirection.value
+		const next: GridSortDirection = current === 'asc' ? 'desc' : 'asc'
+		state.value.sortDirections = {
+			...state.value.sortDirections,
+			[state.value.sortBy]: next,
+		}
+	}
+
+	const filteredResults = computed(() => {
+		const { group = 'Group', sortBy = 'Name' } = state.value
+		const ascending = isSortAscending.value
+
+		const sorted = sortInstances(instances.value, sortBy, ascending)
 		const grouped = groupInstances(sorted, group)
-		return sortSections(grouped, group)
+		return sortSections(grouped, group, sortBy)
 	})
 
 	return {
@@ -181,6 +223,9 @@ export function useGridGrouping<T extends Record<string, unknown>>(
 		filteredResults,
 		isSectionCollapsed,
 		setSectionCollapsed,
+		sortDirection,
+		isSortAscending,
+		toggleSortDirection,
 		UNGROUPED_GROUP_KEY,
 	}
 }

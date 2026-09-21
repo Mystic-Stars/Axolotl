@@ -28,6 +28,49 @@ export const ANNOUNCEMENT_CHANGE_TYPES: readonly AnnouncementChangeType[] = [
 
 export const launcherAnnouncements: readonly LauncherAnnouncement[] = [
 	{
+		id: 'launcher-1.9.7-beta.4',
+		version: '1.9.7-beta.4',
+		publishedAt: '2026-09-20',
+		title: {
+			'en-US': 'Axolotl Launcher 1.9.7-beta.4',
+			'zh-CN': 'Axolotl Launcher 1.9.7-beta.4',
+		},
+		changes: {
+			added: [
+				{
+					'en-US':
+						'Added instance grouping: create, rename, delete, collapse/expand, and drag-and-drop reorder groups on the library page.',
+					'zh-CN':
+						'新增实例分组功能：支持在库页面创建、重命名、删除、折叠/展开分组，以及拖拽排序。',
+				},
+				{
+					'en-US':
+						'Added batch group management modal: select multiple instances at once to create a new group or add to an existing group.',
+					'zh-CN': '新增批量分组管理弹窗：一次选择多个实例，创建新分组或添加到已有分组。',
+				},
+			],
+			changed: [
+				{
+					'en-US':
+						'Context menus on the library page now include pin/unpin and remove-from-group actions.',
+					'zh-CN': '库页面的右键菜单现在包含置顶/取消置顶和移出分组操作。',
+				},
+				{
+					'en-US':
+						'Group names can now be edited inline, with validation for empty and overly long names.',
+					'zh-CN': '分组名称现在支持内联编辑，并对空名称和过长名称进行校验。',
+				},
+			],
+			fixed: [
+				{
+					'en-US':
+						'Fixed a missing reka-ui dependency that caused Vite import resolution failures on the library page.',
+					'zh-CN': '修复库页面因缺少 reka-ui 依赖导致 Vite 导入解析失败的问题。',
+				},
+			],
+		},
+	},
+	{
 		id: 'launcher-1.9.7-beta.3',
 		version: '1.9.7-beta.3',
 		publishedAt: '2026-09-20',

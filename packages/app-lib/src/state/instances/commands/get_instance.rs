@@ -1,3 +1,4 @@
+use crate::state::instance_groups;
 use crate::state::instances::{
     ContentSet, Instance, InstanceLaunchOverrides, InstanceLink,
     LoaderComponent,
@@ -92,11 +93,12 @@ impl InstanceMetadata {
         record: instance_rows::InstanceMetadataRecord,
         loader_components: Vec<LoaderComponent>,
     ) -> Self {
+        let groups = instance_groups::group_ids_for(&record.instance.id);
         Self {
             instance: record.instance,
             applied_content_set: record.applied_content_set,
             link: record.link,
-            groups: record.groups,
+            groups,
             launch_overrides: record.launch_overrides,
             loader_components,
             synced_options: crate::state::InstanceSyncedOptions::default(),

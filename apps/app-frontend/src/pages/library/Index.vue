@@ -13,7 +13,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { NewInstanceImage } from '@/assets/icons'
 import { useNetworkStatus } from '@/composables/useNetworkStatus'
 import { DIRECT_LINKS_SYNCED_EVENT } from '@/helpers/direct-link-sync'
-import { instance_listener } from '@/helpers/events.js'
+import { instance_listener, instance_groups_listener } from '@/helpers/events.js'
 import { list } from '@/helpers/instance'
 import { useBreadcrumbs } from '@/store/breadcrumbs.js'
 
@@ -53,8 +53,12 @@ const { offline } = useNetworkStatus()
 const unlistenInstance = await instance_listener(async () => {
 	await refreshInstances()
 })
+const unlistenInstanceGroups = await instance_groups_listener(async () => {
+	await refreshInstances()
+})
 onUnmounted(() => {
 	unlistenInstance()
+	unlistenInstanceGroups()
 	window.removeEventListener(DIRECT_LINKS_SYNCED_EVENT, refreshInstances)
 })
 </script>

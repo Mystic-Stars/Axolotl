@@ -15,6 +15,8 @@ use theseus::data::{
     InstanceInstallTarget, InstanceLaunchOverridesPatch,
     InstanceLink as CoreInstanceLink, InstanceMetadata, LinkedModpackInfo,
 };
+use theseus::instance::InstanceGroup;
+use theseus::instance::InstanceGroupMembershipUpdate;
 use theseus::instance::QuickPlayType;
 use theseus::instance::{
     InstallContentBatchRequest, InstallProjectWithDependenciesRequest,
@@ -164,6 +166,12 @@ pub fn init<R: tauri::Runtime>() -> tauri::plugin::TauriPlugin<R> {
             instance_upload_synced_pack,
             instance_set_synced_pack_enabled,
             instance_remove_synced_pack,
+            instance_list_groups,
+            instance_create_group,
+            instance_rename_group,
+            instance_delete_group,
+            instance_set_group_order,
+            instance_set_group_memberships,
         ])
         .build()
 }
@@ -2087,4 +2095,39 @@ pub async fn instance_edit_icon<R: Runtime>(
         );
     }
     Ok(())
+}
+
+#[tauri::command]
+pub async fn instance_list_groups() -> Result<Vec<InstanceGroup>> {
+    Ok(theseus::instance::list_groups().await?)
+}
+
+#[tauri::command]
+pub async fn instance_create_group(name: String) -> Result<InstanceGroup> {
+    Ok(theseus::instance::create_group(name).await?)
+}
+
+#[tauri::command]
+pub async fn instance_rename_group(
+    id: String,
+    new_name: String,
+) -> Result<InstanceGroup> {
+    Ok(theseus::instance::rename_group(id, new_name).await?)
+}
+
+#[tauri::command]
+pub async fn instance_delete_group(id: String) -> Result<()> {
+    Ok(theseus::instance::delete_group(id).await?)
+}
+
+#[tauri::command]
+pub async fn instance_set_group_order(group_ids: Vec<String>) -> Result<()> {
+    Ok(theseus::instance::set_group_order(group_ids).await?)
+}
+
+#[tauri::command]
+pub async fn instance_set_group_memberships(
+    updates: Vec<InstanceGroupMembershipUpdate>,
+) -> Result<()> {
+    Ok(theseus::instance::set_group_memberships(updates).await?)
 }

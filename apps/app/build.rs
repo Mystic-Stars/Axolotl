@@ -650,6 +650,12 @@ fn main() {
                         "instance_upload_synced_pack",
                         "instance_set_synced_pack_enabled",
                         "instance_remove_synced_pack",
+                        "instance_list_groups",
+                        "instance_create_group",
+                        "instance_rename_group",
+                        "instance_delete_group",
+                        "instance_set_group_order",
+                        "instance_set_group_memberships",
                     ])
                     .default_permission(
                         DefaultPermissionRule::AllowAllCommands,

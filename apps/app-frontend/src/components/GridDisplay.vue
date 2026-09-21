@@ -1,4 +1,5 @@
-<script setup>
+<script setup lang="ts">
+import { DragDropProvider } from '@dnd-kit/vue'
 import {
 	ArrowUpDownIcon,
 	ClipboardCopyIcon,
@@ -7,6 +8,7 @@ import {
 	FolderOpenIcon,
 	GridIcon,
 	LayersIcon,
+	MinusIcon,
 	MoreVerticalIcon,
 	PinIcon,
 	PlayIcon,
@@ -14,14 +16,13 @@ import {
 	SearchIcon,
 	SortAscIcon,
 	SortDescIcon,
+	StarIcon,
 	StopCircleIcon,
 	TrashIcon,
 	XIcon,
 } from '@modrinth/assets'
 import {
-	Accordion,
 	ButtonStyled,
-	Checkbox,
 	commonMessages,
 	defineMessages,
 	DropdownSelect,
@@ -32,20 +33,31 @@ import {
 	StyledInput,
 	useVIntl,
 } from '@modrinth/ui'
-import { computed, ref } from 'vue'
+import { computed, ref, shallowRef, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import Draggable from 'vuedraggable'
 
 import ContextMenu from '@/components/ui/ContextMenu.vue'
-import Instance from '@/components/ui/Instance.vue'
-import BatchEditGroupsModal from '@/components/ui/modal/BatchEditGroupsModal.vue'
+import InstanceGroup from '@/components/ui/library/InstanceGroup.vue'
+import InstanceGroupModal from '@/components/ui/modal/InstanceGroupModal.vue'
 import ConfirmDeleteInstanceModal from '@/components/ui/modal/ConfirmDeleteInstanceModal.vue'
 import { UNGROUPED_GROUP_KEY, useGridGrouping } from '@/composables/useGridGrouping'
+import {
+	MAX_INSTANCE_GROUP_NAME_LENGTH,
+	FAVORITES_GROUP_ID,
+	UNGROUPED_GROUP_ID,
+	useInstanceGroups,
+} from '@/composables/useInstanceGroups'
+import { trackEvent } from '@/helpers/analytics'
 import { install_duplicate_instance } from '@/helpers/install'
-import { remove, set_pinned } from '@/helpers/instance'
+import { edit, kill, remove, run, set_pinned } from '@/helpers/instance'
+import { create_group as createGroup } from '@/helpers/instance-groups'
 import {
 	getLastLibraryDisplayMode,
 	setLastLibraryDisplayMode,
 } from '@/helpers/library-display-mode'
+import type { GameInstance } from '@/helpers/types'
+import { showInstanceInFolder } from '@/helpers/utils.js'
 
 const { handleError } = injectNotificationManager()
 
@@ -60,6 +72,10 @@ const messages = defineMessages({
 	createInstance: {
 		id: 'app.library.create-instance',
 		defaultMessage: 'Create new instance',
+	},
+	newGroup: {
+		id: 'app.library.group.new',
+		defaultMessage: 'New group',
 	},
 	viewInstance: { id: 'app.instances.view-instance', defaultMessage: 'View instance' },
 	duplicateInstance: {
@@ -113,6 +129,26 @@ const messages = defineMessages({
 		id: 'app.instances.sort.direction.desc-recency',
 		defaultMessage: 'Most recent first',
 	},
+	newGroupFromSelection: {
+		id: 'app.library.selection.new-group',
+		defaultMessage: 'New group',
+	},
+	removeFromGroup: {
+		id: 'app.library.selection.remove-from-group',
+		defaultMessage: 'Remove from group',
+	},
+	addToPinned: {
+		id: 'app.library.context-menu.pin-instance',
+		defaultMessage: 'Pin instance',
+	},
+	removeFromPinned: {
+		id: 'app.library.context-menu.unpin-instance',
+		defaultMessage: 'Unpin instance',
+	},
+	removeFromGroup: {
+		id: 'app.library.context-menu.remove-from-group',
+		defaultMessage: 'Remove from group',
+	},
 	ascDate: {
 		id: 'app.instances.sort.direction.asc-date',
 		defaultMessage: 'Oldest first',
@@ -151,12 +187,142 @@ const props = defineProps({
 })
 
 const instanceOptions = ref(null)
-const instanceComponents = ref(null)
+const backgroundContextMenu = ref(null)
 const currentDeleteInstance = ref(null)
+const currentContextSectionKey = ref('')
 const batchDeleteCount = ref(0)
 const confirmModal = ref(null)
 const search = ref('')
 const displayMode = ref(getLastLibraryDisplayMode())
+
+function removeGroup(groupKey: string) {
+	if (groupKey === FAVORITES_GROUP_ID) return
+	deleteGroupById(groupKey).catch(handleError)
+}
+
+function handleRenameGroup(oldKey: string, newKey: string) {
+	if (oldKey === FAVORITES_GROUP_ID) return
+	renameGroupById(oldKey, newKey).catch(handleError)
+}
+
+function canMoveGroupUp(groupKey: string) {
+	if (grouping.value !== 'Group' || groupKey === FAVORITES_GROUP_ID) return false
+	const idx = draggableSections.value.findIndex((s) => s.key === groupKey)
+	return idx > 0 && orderedLibraryGroupIds.value.length > 1
+}
+
+function canMoveGroupDown(groupKey: string) {
+	if (grouping.value !== 'Group' || groupKey === FAVORITES_GROUP_ID) return false
+	const idx = draggableSections.value.findIndex((s) => s.key === groupKey)
+	return idx >= 0 && idx < draggableSections.value.length - 1
+}
+
+function handleMoveGroup(groupKey: string, direction: -1 | 1) {
+	if (grouping.value !== 'Group') return
+	const sections = [...draggableSections.value]
+	const idx = sections.findIndex((s) => s.key === groupKey)
+	if (idx < 0) return
+	const newIdx = idx + direction
+	if (newIdx < 0 || newIdx >= sections.length) return
+	const [item] = sections.splice(idx, 1)
+	sections.splice(newIdx, 0, item)
+	draggableSections.value = sections
+	onGroupReorder()
+	reorderGroups(
+		draggableSections.value
+			.map((s) => s.key)
+			.filter((key) => key !== UNGROUPED_GROUP_KEY && key !== FAVORITES_GROUP_ID),
+	).catch(handleError)
+}
+
+const addToExistingGroupModal = ref(null)
+const addToExistingGroupName = ref('')
+const addToExistingGroupId = ref('')
+
+function handleAddToGroup(groupKey: string) {
+	const group = libraryGroups.value.find((g) => g.id === groupKey)
+	addToExistingGroupName.value = group?.name || groupKey
+	addToExistingGroupId.value = groupKey
+	addToExistingGroupModal.value?.show()
+}
+
+const handleNewInstance = () => {
+	router.push('/create')
+}
+
+function clearLibraryInstanceSelection() {
+	selectedInstanceIds.value.clear()
+	selectMode.value = false
+	anchorInstanceId.value = null
+}
+
+function createGroupFromSelection() {
+	if (busy.value) return
+
+	const instanceIds = [...selectedInstanceIds.value]
+	clearLibraryInstanceSelection()
+
+	let groupNumber = libraryGroups.value.filter((g) => g.id !== FAVORITES_GROUP_ID).length + 1
+	const existingNames = new Set(libraryGroups.value.map((g) => g.name.toLowerCase()))
+	while (existingNames.has(`group ${groupNumber}`)) {
+		groupNumber++
+	}
+	const groupName = `Group ${groupNumber}`
+
+	createGroup(groupName)
+		.then((group) => {
+			const updates = instanceIds.map((instanceId) => {
+				return {
+					instance_id: instanceId,
+					group_ids: [group.id],
+				}
+			})
+			return setMemberships(updates).then(() => group)
+		})
+		.then((group) => {
+			state.value.group = 'Group'
+			groupPendingNameEdit.value = group.id
+		})
+		.catch(handleError)
+}
+
+const busy = computed(
+	() => creatingGroup.value || removingFromGroup.value || deletingInstances.value,
+)
+
+const selectedGroupedInstances = computed(() => {
+	if (grouping.value !== 'Group') return []
+	return props.instances.filter(
+		(i) =>
+			selectedInstanceIds.value.has(i.id) &&
+			(i.groups || []).length > 0 &&
+			!(i.groups || []).includes(UNGROUPED_GROUP_KEY),
+	)
+})
+
+async function removeSelectedInstancesFromGroups() {
+	if (busy.value || selectedGroupedInstances.value.length === 0) return
+
+	removingFromGroup.value = true
+	try {
+		const updates = [...selectedInstanceIds.value].map((instanceId) => ({
+			instance_id: instanceId,
+			group_ids: [],
+		}))
+		await setMemberships(updates)
+		clearLibraryInstanceSelection()
+	} catch (err) {
+		handleError(err)
+	} finally {
+		removingFromGroup.value = false
+	}
+}
+
+const newGroupModal = ref(null)
+
+function openNewGroupModal() {
+	newGroupModal.value?.show([...selectedInstanceIds.value])
+}
 
 const displayModeOptions = computed(() => [
 	{ id: 'standard', label: formatMessage(messages.standardView), icon: GridIcon },
@@ -178,12 +344,152 @@ const filteredInstances = computed(() =>
 	),
 )
 
-const { state, grouping, filteredResults, isSectionCollapsed, setSectionCollapsed } =
-	useGridGrouping(props.label, filteredInstances, {
-		formatLoader: (loader) => formatLoader(formatMessage, loader),
-	})
+const {
+	state,
+	grouping,
+	filteredResults,
+	isSectionCollapsed,
+	setSectionCollapsed,
+	isSortAscending,
+	toggleSortDirection,
+} = useGridGrouping(props.label, filteredInstances, {
+	formatLoader: (loader) => formatLoader(formatMessage, loader),
+})
 
-const isSortAscending = computed(() => state.value.sortAscending ?? true)
+const {
+	libraryGroups,
+	orderedLibraryGroupIds,
+	renameGroupById,
+	deleteGroupById,
+	reorderGroups,
+	setMemberships,
+} = useInstanceGroups(filteredInstances as any)
+
+const groupPendingNameEdit = ref<string | null>(null)
+
+const groupStableIds = ref(new Map<string, string>())
+let groupStableIdCounter = 0
+
+const groupNameMap = computed(() => {
+	const map = new Map<string, string>()
+	for (const group of libraryGroups.value) {
+		map.set(group.id, group.name)
+	}
+	return map
+})
+
+function generateGroupStableId(): string {
+	return `gid_${++groupStableIdCounter}`
+}
+
+function getOrCreateGroupStableId(key: string): string {
+	if (groupStableIds.value.has(key)) {
+		return groupStableIds.value.get(key)!
+	}
+	const id = generateGroupStableId()
+	const newMap = new Map(groupStableIds.value)
+	newMap.set(key, id)
+	groupStableIds.value = newMap
+	return id
+}
+
+type DisplaySection = { id: string; key: string; instances: typeof props.instances }
+
+const displaySections = computed(() => {
+	const resultMap = new Map(filteredResults.value)
+	const result: DisplaySection[] = []
+
+	if (state.value.group === 'Group') {
+		if (resultMap.has(UNGROUPED_GROUP_KEY)) {
+			result.push({
+				id: getOrCreateGroupStableId(UNGROUPED_GROUP_KEY),
+				key: UNGROUPED_GROUP_KEY,
+				instances: resultMap.get(UNGROUPED_GROUP_KEY)!,
+			})
+			resultMap.delete(UNGROUPED_GROUP_KEY)
+		}
+
+		for (const key of orderedLibraryGroupIds.value) {
+			if (key === FAVORITES_GROUP_ID) {
+				resultMap.delete(key)
+				continue
+			}
+			if (resultMap.has(key)) {
+				result.push({
+					id: getOrCreateGroupStableId(key),
+					key,
+					instances: resultMap.get(key)!,
+				})
+				resultMap.delete(key)
+			} else if (libraryGroups.value.some((g) => g.id === key)) {
+				result.push({
+					id: getOrCreateGroupStableId(key),
+					key,
+					instances: [] as typeof props.instances,
+				})
+			}
+		}
+
+		const remaining = Array.from(resultMap.entries()).sort((a, b) => a[0].localeCompare(b[0]))
+		for (const [key, instances] of remaining) {
+			result.push({ id: getOrCreateGroupStableId(key), key, instances })
+		}
+	} else {
+		const remaining = Array.from(resultMap.entries())
+		if (state.value.group === 'Game version') {
+			remaining.sort((a, b) => a[0].localeCompare(b[0], undefined, { numeric: true }))
+		} else {
+			remaining.sort((a, b) => a[0].localeCompare(b[0]))
+		}
+
+		for (const [key, instances] of remaining) {
+			result.push({ id: getOrCreateGroupStableId(key), key, instances })
+		}
+	}
+
+	return result
+})
+
+const pinnedSection = computed(() => {
+	if (state.value.group !== 'Group') return null
+	const instances = filteredResults.value.get(FAVORITES_GROUP_ID)
+	if (!instances || instances.length === 0) return null
+	return {
+		id: getOrCreateGroupStableId(FAVORITES_GROUP_ID),
+		key: FAVORITES_GROUP_ID,
+		instances,
+	}
+})
+
+const draggableSections = shallowRef<DisplaySection[]>([])
+
+const hideUngroupedHeader = computed(() => {
+	if (grouping.value !== 'Group') return false
+	return !draggableSections.value.some((s) => s.key !== UNGROUPED_GROUP_KEY)
+})
+
+const flatVisibleInstanceIds = computed(() => {
+	const ids: string[] = []
+	if (pinnedSection.value) {
+		for (const inst of pinnedSection.value.instances) {
+			ids.push(inst.id)
+		}
+	}
+	for (const section of draggableSections.value) {
+		for (const inst of section.instances) {
+			ids.push(inst.id)
+		}
+	}
+	return ids
+})
+
+watch(
+	displaySections,
+	(sections) => {
+		draggableSections.value = sections
+	},
+	{ immediate: true },
+)
 
 const sortDirectionLabels = {
 	Name: { asc: messages.ascAlphabetical, desc: messages.descAlphabetical },
@@ -198,15 +504,8 @@ const sortDirectionLabel = computed(() => {
 	return formatMessage(isSortAscending.value ? labels.asc : labels.desc)
 })
 
-function toggleSortDirection() {
-	state.value.sortAscending = !state.value.sortAscending
-}
-
 async function deleteInstance() {
 	if (currentDeleteInstance.value) {
-		instanceComponents.value = instanceComponents.value.filter(
-			(x) => x.instance.id !== currentDeleteInstance.value.id,
-		)
 		await remove(currentDeleteInstance.value.id).catch(handleError)
 	}
 	batchDeleteCount.value = 0
@@ -216,17 +515,62 @@ async function duplicateInstance(p) {
 	await install_duplicate_instance(p).catch(handleError)
 }
 
-const handleRightClick = (event, instanceId) => {
-	const item = instanceComponents.value.find((x) => x.instance.id === instanceId)
+function getInstanceProxy(instanceId) {
+	const instanceData = props.instances.find((i) => i.id === instanceId)
+	if (!instanceData) return null
+	return {
+		instance: instanceData,
+		playing: undefined,
+		play: (_e, context) =>
+			run(instanceId).finally(() => {
+				trackEvent('InstanceStart', {
+					loader: instanceData.loader,
+					game_version: instanceData.game_version,
+					source: context,
+				})
+			}),
+		stop: (_e, context) =>
+			kill(instanceId).finally(() => {
+				trackEvent('InstanceStop', {
+					loader: instanceData.loader,
+					game_version: instanceData.game_version,
+					source: context,
+				})
+			}),
+		seeInstance: () => router.push(`/instance/${encodeURIComponent(instanceId)}`),
+		openFolder: () => showInstanceInFolder(instanceId),
+		addContent: () =>
+			router.push({
+				path: `/browse/${instanceData.loader === 'vanilla' ? 'datapack' : 'mod'}`,
+				query: { i: instanceId },
+			}),
+	}
+}
+
+const handleRightClick = (event, instanceId, sectionKey) => {
+	const item = getInstanceProxy(instanceId)
+	if (!item) return
+	currentContextSectionKey.value = sectionKey
+	const isInCustomGroup =
+		grouping.value === 'Group' &&
+		sectionKey !== UNGROUPED_GROUP_KEY &&
+		sectionKey !== FAVORITES_GROUP_ID
 	const baseOptions = [
-		{ name: 'add_content' },
+		{
+			name: item.instance.groups?.includes(FAVORITES_GROUP_ID)
+				? 'remove_from_pinned'
+				: 'add_to_pinned',
+		},
 		{ type: 'divider' },
+		{ name: 'add_content' },
 		{ name: 'edit' },
 		{ name: 'duplicate' },
 		{ name: item.instance.pinned_at ? 'unpin' : 'pin' },
 		{ name: 'open' },
 		{ name: 'copy' },
-		{ type: 'divider' },
+		...(isInCustomGroup
+			? [{ name: 'remove_from_group' }, { type: 'divider' }]
+			: [{ type: 'divider' }]),
 		{
 			name: 'delete',
 			color: 'danger',
@@ -252,6 +596,16 @@ const handleRightClick = (event, instanceId) => {
 					...baseOptions,
 				],
 	)
+}
+
+const handleBackgroundContextMenu = (event: MouseEvent) => {
+	backgroundContextMenu.value?.showMenu(event, null, [{ name: 'create_instance' }])
+}
+
+const handleBackgroundOption = ({ option }: { option: string }) => {
+	if (option === 'create_instance') {
+		handleNewInstance()
+	}
 }
 
 const handleOptionsClick = async (args) => {
@@ -284,6 +638,30 @@ const handleOptionsClick = async (args) => {
 		case 'copy':
 			await navigator.clipboard.writeText(args.item.instance.id)
 			break
+		case 'add_to_pinned':
+			await setMemberships([
+				{
+					instance_id: args.item.instance.id,
+					group_ids: [FAVORITES_GROUP_ID],
+				},
+			]).catch(handleError)
+			break
+		case 'remove_from_pinned':
+			await setMemberships([
+				{
+					instance_id: args.item.instance.id,
+					group_ids: [],
+				},
+			]).catch(handleError)
+			break
+		case 'remove_from_group':
+			await setMemberships([
+				{
+					instance_id: args.item.instance.id,
+					group_ids: [],
+				},
+			]).catch(handleError)
+			break
 		case 'delete':
 			currentDeleteInstance.value = args.item.instance
 			confirmModal.value.show()
@@ -294,6 +672,10 @@ const handleOptionsClick = async (args) => {
 // Selection mode
 const selectMode = ref(false)
 const selectedInstanceIds = ref(new Set())
+const anchorInstanceId = ref<string | null>(null)
+const creatingGroup = ref(false)
+const removingFromGroup = ref(false)
+const deletingInstances = ref(false)
 const batchEditModal = ref(null)
 
 let longPressTimer = null
@@ -317,21 +699,56 @@ function cancelLongPress() {
 	}
 }
 
-function handleCardClick(instanceId, _event) {
+function handleCardClick(instanceId, event) {
 	if (longPressTriggered) {
 		longPressTriggered = false
 		return
 	}
-	if (selectMode.value) {
-		toggleInstanceSelection(instanceId)
+	const shiftKey = event?.shiftKey ?? false
+	if (selectMode.value || shiftKey) {
+		if (!selectMode.value) {
+			selectMode.value = true
+		}
+		handleToggleInstance(instanceId, shiftKey)
 	}
 }
 
-function toggleSelectMode() {
-	selectMode.value = !selectMode.value
-	if (!selectMode.value) {
-		selectedInstanceIds.value.clear()
+function handleToggleInstance(instanceId, shiftKey) {
+	const flatIds = flatVisibleInstanceIds.value
+	const anchor = anchorInstanceId.value
+
+	if (shiftKey && anchor && flatIds.length) {
+		const anchorIndex = flatIds.indexOf(anchor)
+		const targetIndex = flatIds.indexOf(instanceId)
+
+		if (anchorIndex === -1 || targetIndex === -1) {
+			toggleInstanceSelection(instanceId)
+			return
+		}
+
+		const start = Math.min(anchorIndex, targetIndex)
+		const end = Math.max(anchorIndex, targetIndex)
+		const range = flatIds.slice(start, end + 1)
+		const newSet = new Set(selectedInstanceIds.value)
+
+		if (newSet.has(instanceId)) {
+			for (const id of range) {
+				newSet.delete(id)
+			}
+		} else {
+			for (const id of range) {
+				newSet.add(id)
+			}
+		}
+
+		selectedInstanceIds.value = newSet
+		if (newSet.size === 0) selectMode.value = false
+		anchorInstanceId.value = null
+		return
 	}
+
+	toggleInstanceSelection(instanceId)
+	anchorInstanceId.value = selectedInstanceIds.value.has(instanceId) ? instanceId : null
 }
 
 function toggleInstanceSelection(instanceId) {
@@ -347,296 +764,345 @@ function toggleInstanceSelection(instanceId) {
 	}
 }
 
-function handleCheckboxClick(instanceId) {
+function handleCheckboxClick(instanceId, event) {
 	if (!selectMode.value) {
 		selectMode.value = true
 	}
-	toggleInstanceSelection(instanceId)
-}
-
-function openBatchEdit() {
-	batchEditModal.value?.show()
+	const shiftKey = event?.shiftKey ?? false
+	handleToggleInstance(instanceId, shiftKey)
 }
 
 const batchDeleteConfirmModal = ref(null)
 
-function openBatchDelete() {
-	batchDeleteCount.value = selectedInstanceIds.value.size
-	batchDeleteConfirmModal.value?.show()
-}
-
 async function batchDeleteInstances() {
 	for (const id of selectedInstanceIds.value) {
-		instanceComponents.value = instanceComponents.value.filter((x) => x.instance.id !== id)
 		await remove(id).catch(handleError)
 	}
 	selectedInstanceIds.value.clear()
 	selectMode.value = false
 }
 
-const visibleInstanceIds = computed(() => {
-	const ids = []
-	for (const section of Array.from(filteredResults.value, ([, value]) => value)) {
-		for (const instance of section) {
-			ids.push(instance.id)
-		}
-	}
-	return ids
-})
-
-const isAllSelected = computed(() => {
-	const visibleIds = visibleInstanceIds.value
-	return visibleIds.length > 0 && visibleIds.every((id) => selectedInstanceIds.value.has(id))
-})
-
-function toggleSelectAll() {
-	const visibleIds = visibleInstanceIds.value
-	if (isAllSelected.value) {
-		const newSet = new Set(selectedInstanceIds.value)
-		for (const id of visibleIds) {
-			newSet.delete(id)
-		}
-		selectedInstanceIds.value = newSet
-	} else {
-		const newSet = new Set(selectedInstanceIds.value)
-		for (const id of visibleIds) {
-			newSet.add(id)
-		}
-		selectedInstanceIds.value = newSet
-	}
-}
-
 function onBatchEditApplied() {
 	selectedInstanceIds.value.clear()
 	selectMode.value = false
 }
+
+function onGroupReorder() {
+	if (grouping.value !== 'Group') return
+	const groupIds = draggableSections.value
+		.map((s) => s.key)
+		.filter((key) => key !== UNGROUPED_GROUP_KEY)
+	reorderGroups(groupIds).catch(handleError)
+}
+
+type InstanceDragData = { instanceId: string; fromGroup: string }
+type InstanceGroupDropData = { groupId: string }
+
+async function handleInstanceDragEnd(event: {
+	operation: { source?: { data?: unknown }; target?: { data?: unknown } }
+}) {
+	const sourceData = event.operation.source?.data as InstanceDragData | undefined
+	const targetData = event.operation.target?.data as InstanceGroupDropData | undefined
+	if (!sourceData || !targetData) return
+	if (sourceData.fromGroup === targetData.groupId) return
+
+	const instance = props.instances.find((i: GameInstance) => i.id === sourceData.instanceId)
+	if (!instance) return
+
+	const newGroups = targetData.groupId === UNGROUPED_GROUP_KEY ? [] : [targetData.groupId]
+	await setMemberships([{ instance_id: sourceData.instanceId, group_ids: newGroups }]).catch(
+		handleError,
+	)
+}
 </script>
 <template>
-	<div class="flex gap-2">
-		<StyledInput
-			v-model="search"
-			:icon="SearchIcon"
-			type="text"
-			:placeholder="formatMessage(messages.search)"
-			clearable
-			wrapper-class="flex-1"
-		/>
-		<ButtonStyled color="brand">
-			<button @click="router.push('/create')">
-				<PlusIcon />
-				{{ formatMessage(messages.createInstance) }}
-			</button>
-		</ButtonStyled>
-	</div>
-	<div class="flex flex-wrap items-center gap-2">
-		<DropdownSelect
-			v-slot="{ selected }"
-			v-model="state.sortBy"
-			v-tooltip="{ content: formatMessage(messages.sortBy), triggers: ['hover'] }"
-			class="!w-auto"
-			name="Sort Dropdown"
-			:options="['Name', 'Last played', 'Date created', 'Date modified', 'Game version']"
-			:display-name="formatOption"
-			:placeholder="formatMessage(messages.select)"
-		>
-			<div class="flex items-center gap-1">
-				<ArrowUpDownIcon class="size-5 shrink-0 text-primary" />
-				<span class="font-semibold text-secondary">{{ selected }}</span>
-			</div>
-		</DropdownSelect>
-		<button
-			v-tooltip="{ content: sortDirectionLabel, triggers: ['hover'] }"
-			type="button"
-			class="flex h-[40px] w-[40px] shrink-0 cursor-pointer items-center justify-center rounded-xl border-none bg-button-bg p-0 text-button-text transition-all hover:bg-button-bg hover:text-contrast active:scale-[0.97]"
-			:aria-label="sortDirectionLabel"
-			:aria-pressed="isSortAscending"
-			@click="toggleSortDirection()"
-		>
-			<SortAscIcon v-if="isSortAscending" class="size-5" />
-			<SortDescIcon v-else class="size-5" />
-		</button>
-		<div class="mx-2 h-6 w-px bg-surface-5" />
-		<DropdownSelect
-			v-slot="{ selected }"
-			v-model="state.group"
-			v-tooltip="{ content: formatMessage(messages.groupBy), triggers: ['hover'] }"
-			name="Group Dropdown"
-			:options="['Group', 'Loader', 'Game version', 'None']"
-			:display-name="formatOption"
-			:placeholder="formatMessage(messages.select)"
-		>
-			<div class="flex items-center gap-1">
-				<LayersIcon class="size-5 shrink-0 text-primary" />
-				<span class="font-semibold text-secondary">{{ selected }}</span>
-			</div>
-		</DropdownSelect>
-		<PopoutMenu :tooltip="formatMessage(messages.view)" placement="bottom-end">
-			<ButtonStyled circular>
-				<button :aria-label="formatMessage(messages.view)">
-					<component :is="currentDisplayMode?.icon" />
+	<div class="flex flex-col gap-4 pb-16" @contextmenu.prevent="handleBackgroundContextMenu">
+		<div class="flex gap-2">
+			<StyledInput
+				v-model="search"
+				:icon="SearchIcon"
+				type="text"
+				:placeholder="formatMessage(messages.search)"
+				clearable
+				wrapper-class="flex-1"
+			/>
+			<ButtonStyled>
+				<button @click="openNewGroupModal">
+					<PlusIcon />
+					{{ formatMessage(messages.newGroup) }}
 				</button>
 			</ButtonStyled>
-			<template #menu>
-				<div class="flex w-44 flex-col gap-1 p-1">
-					<ButtonStyled
-						v-for="option in displayModeOptions"
-						:key="option.id"
-						:type="displayMode === option.id ? 'filled' : 'transparent'"
-					>
-						<button
-							class="flex w-full items-center gap-2 !justify-start text-left"
-							:aria-pressed="displayMode === option.id"
-							@click="setDisplayMode(option.id)"
-						>
-							<component :is="option.icon" class="size-4" />
-							{{ option.label }}
-						</button>
-					</ButtonStyled>
-				</div>
-			</template>
-		</PopoutMenu>
-	</div>
-	<Accordion
-		v-for="instanceSection in Array.from(filteredResults, ([key, value]) => ({
-			key,
-			value,
-		}))"
-		:key="instanceSection.key"
-		:divider="grouping === 'Group' || instanceSection.key !== UNGROUPED_GROUP_KEY"
-		:open-by-default="!isSectionCollapsed(instanceSection.key)"
-		class="w-full"
-		@on-open="setSectionCollapsed(instanceSection.key, false)"
-		@on-close="setSectionCollapsed(instanceSection.key, true)"
-	>
-		<template v-if="grouping === 'Group' || instanceSection.key !== UNGROUPED_GROUP_KEY" #title>
-			<span class="text-base">{{
-				instanceSection.key === UNGROUPED_GROUP_KEY
-					? formatMessage(messages.ungrouped)
-					: instanceSection.key
-			}}</span>
-		</template>
-		<section
-			class="grid grid-cols-[repeat(auto-fill,minmax(16rem,1fr))] w-full gap-3 mr-auto scroll-smooth overflow-y-auto"
-			:class="{
-				'grid-cols-[repeat(auto-fill,minmax(13rem,1fr))] gap-4': displayMode === 'cards',
-			}"
-		>
-			<div
-				v-for="instance in instanceSection.value"
-				:key="instance.id + instance.install_stage"
-				class="group relative"
+			<ButtonStyled color="brand">
+				<button @click="router.push('/create')">
+					<PlusIcon />
+					{{ formatMessage(messages.createInstance) }}
+				</button>
+			</ButtonStyled>
+		</div>
+		<div class="flex flex-wrap items-center gap-2">
+			<DropdownSelect
+				v-slot="{ selected }"
+				v-model="state.sortBy"
+				v-tooltip="{ content: formatMessage(messages.sortBy), triggers: ['hover'] }"
+				class="!w-auto"
+				name="Sort Dropdown"
+				:options="['Name', 'Last played', 'Date created', 'Date modified', 'Game version']"
+				:display-name="formatOption"
+				:placeholder="formatMessage(messages.select)"
 			>
-				<div
-					class="relative cursor-pointer select-none rounded-lg transition-all hover:brightness-90 active:scale-[0.98]"
-					@click="handleCardClick(instance.id)"
-					@mousedown="!selectMode && startLongPress(instance.id)"
-					@mouseup="cancelLongPress"
-					@mouseleave="cancelLongPress"
-					@touchstart="!selectMode && startLongPress(instance.id)"
-					@touchend="cancelLongPress"
-					@touchcancel="cancelLongPress"
-				>
-					<div :class="{ 'pointer-events-none': selectMode }">
-						<Instance
-							ref="instanceComponents"
-							:instance="instance"
-							:disabled="selectMode"
-							:variant="displayMode === 'cards' ? 'library' : 'standard'"
-							:class="{ 'opacity-50': selectMode && !selectedInstanceIds.has(instance.id) }"
-							@contextmenu.prevent.stop="(event) => handleRightClick(event, instance.id)"
-						/>
+				<div class="flex items-center gap-1">
+					<ArrowUpDownIcon class="size-5 shrink-0 text-primary" />
+					<span class="font-semibold text-secondary">{{ selected }}</span>
+				</div>
+			</DropdownSelect>
+			<button
+				v-tooltip="{ content: sortDirectionLabel, triggers: ['hover'] }"
+				type="button"
+				class="flex h-[40px] w-[40px] shrink-0 cursor-pointer items-center justify-center rounded-xl border-none bg-button-bg p-0 text-button-text transition-all hover:bg-button-bg hover:text-contrast active:scale-[0.97]"
+				:aria-label="sortDirectionLabel"
+				:aria-pressed="isSortAscending"
+				@click="toggleSortDirection()"
+			>
+				<SortAscIcon v-if="isSortAscending" class="size-5" />
+				<SortDescIcon v-else class="size-5" />
+			</button>
+			<div class="mx-2 h-6 w-px bg-surface-5" />
+			<DropdownSelect
+				v-slot="{ selected }"
+				v-model="state.group"
+				v-tooltip="{ content: formatMessage(messages.groupBy), triggers: ['hover'] }"
+				name="Group Dropdown"
+				:options="['Group', 'Loader', 'Game version', 'None']"
+				:display-name="formatOption"
+				:placeholder="formatMessage(messages.select)"
+			>
+				<div class="flex items-center gap-1">
+					<LayersIcon class="size-5 shrink-0 text-primary" />
+					<span class="font-semibold text-secondary">{{ selected }}</span>
+				</div>
+			</DropdownSelect>
+			<PopoutMenu :tooltip="formatMessage(messages.view)" placement="bottom-end">
+				<ButtonStyled circular>
+					<button :aria-label="formatMessage(messages.view)">
+						<component :is="currentDisplayMode?.icon" />
+					</button>
+				</ButtonStyled>
+				<template #menu>
+					<div class="flex w-44 flex-col gap-1 p-1">
+						<ButtonStyled
+							v-for="option in displayModeOptions"
+							:key="option.id"
+							:type="displayMode === option.id ? 'filled' : 'transparent'"
+						>
+							<button
+								class="flex w-full items-center gap-2 !justify-start text-left"
+								:aria-pressed="displayMode === option.id"
+								@click="setDisplayMode(option.id)"
+							>
+								<component :is="option.icon" class="size-4" />
+								{{ option.label }}
+							</button>
+						</ButtonStyled>
 					</div>
-				</div>
-				<div
-					class="absolute right-2 bottom-2 z-10 transition-opacity"
-					:class="
-						selectMode && selectedInstanceIds.has(instance.id)
-							? ''
-							: 'opacity-0 group-hover:opacity-100'
-					"
-					@click.stop="handleCheckboxClick(instance.id)"
-				>
-					<Checkbox :model-value="selectedInstanceIds.has(instance.id)" />
-				</div>
-				<div
-					v-if="!selectMode"
-					class="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity"
-					@click.stop="(event) => handleRightClick(event, instance.id)"
-				>
-					<ButtonStyled circular size="small" type="transparent">
-						<button type="button">
-							<MoreVerticalIcon />
-						</button>
-					</ButtonStyled>
-				</div>
+				</template>
+			</PopoutMenu>
+		</div>
+		<DragDropProvider @drag-end="handleInstanceDragEnd">
+			<InstanceGroup
+				v-if="pinnedSection"
+				:key="pinnedSection.id"
+				:section-key="pinnedSection.key"
+				:group-name="groupNameMap.get(pinnedSection.key) || pinnedSection.key"
+				:instances="pinnedSection.instances"
+				:grouping="grouping"
+				:is-collapsed="isSectionCollapsed(pinnedSection.key)"
+				:display-mode="displayMode"
+				:select-mode="selectMode"
+				:selected-instance-ids="selectedInstanceIds"
+				:is-sort-ascending="isSortAscending"
+				@toggle-collapse="(key: string) => setSectionCollapsed(key, !isSectionCollapsed(key))"
+				@handle-context-menu="
+					(event: MouseEvent, instanceId: string, sectionKey: string) =>
+						handleRightClick(event, instanceId, sectionKey)
+				"
+				@handle-checkbox-click="
+					(instanceId: string, event: MouseEvent) => handleCheckboxClick(instanceId, event)
+				"
+				@handle-card-click="
+					(instanceId: string, event: MouseEvent) => handleCardClick(instanceId, event)
+				"
+				@start-long-press="(instanceId: string) => startLongPress(instanceId)"
+				@cancel-long-press="cancelLongPress"
+				@new-instance="handleNewInstance"
+			>
+				<template #moreIcon>
+					<MoreVerticalIcon />
+				</template>
+			</InstanceGroup>
+			<Draggable
+				v-model="draggableSections"
+				:group="grouping === 'Group' ? 'groups' : undefined"
+				:disabled="grouping !== 'Group'"
+				item-key="id"
+				:animation="250"
+				:swap-threshold="0.75"
+				:invert-swap="true"
+				:force-fallback="true"
+				:fallback-on-body="true"
+				:fallback-tolerance="4"
+				filter=".instance-group-reorder-ignore, input, textarea"
+				handle=".group-drag-handle"
+				:prevent-on-filter="false"
+				ghost-class="opacity-60"
+				chosen-class="shadow-lg"
+				drag-class="opacity-80"
+				@change="onGroupReorder"
+			>
+				<template #item="{ element: instanceSection }">
+					<div :key="instanceSection.id" class="min-w-0 w-full">
+						<InstanceGroup
+							:section-key="instanceSection.key"
+							:group-name="groupNameMap.get(instanceSection.key) || instanceSection.key"
+							:instances="instanceSection.instances"
+							:grouping="grouping"
+							:is-collapsed="isSectionCollapsed(instanceSection.key)"
+							:display-mode="displayMode"
+							:select-mode="selectMode"
+							:selected-instance-ids="selectedInstanceIds"
+							:hide-header="
+								(hideUngroupedHeader && instanceSection.key === UNGROUPED_GROUP_KEY) ||
+								grouping === 'None'
+							"
+							:is-sort-ascending="isSortAscending"
+							:can-move-up="canMoveGroupUp(instanceSection.key)"
+							:can-move-down="canMoveGroupDown(instanceSection.key)"
+							:group-pending-name-edit="groupPendingNameEdit"
+							@toggle-collapse="(key: string) => setSectionCollapsed(key, !isSectionCollapsed(key))"
+							@handle-context-menu="
+								(event: MouseEvent, instanceId: string, sectionKey: string) =>
+									handleRightClick(event, instanceId, sectionKey)
+							"
+							@handle-checkbox-click="
+								(instanceId: string, event: MouseEvent) => handleCheckboxClick(instanceId, event)
+							"
+							@handle-card-click="
+								(instanceId: string, event: MouseEvent) => handleCardClick(instanceId, event)
+							"
+							@start-long-press="(instanceId: string) => startLongPress(instanceId)"
+							@cancel-long-press="cancelLongPress"
+							@delete-group="removeGroup"
+							@rename-group="handleRenameGroup"
+							@move-group="handleMoveGroup"
+							@add-to-group="handleAddToGroup"
+							@new-instance="handleNewInstance"
+							@rename-complete="groupPendingNameEdit = null"
+						>
+							<template #moreIcon>
+								<MoreVerticalIcon />
+							</template>
+						</InstanceGroup>
+					</div>
+				</template>
+			</Draggable>
+		</DragDropProvider>
+		<ConfirmDeleteInstanceModal
+			ref="confirmModal"
+			:symlink-target="currentDeleteInstance?.symlink_target"
+			:count="batchDeleteCount"
+			@delete="batchDeleteCount > 0 ? batchDeleteInstances() : deleteInstance()"
+		/>
+		<ConfirmDeleteInstanceModal
+			ref="batchDeleteConfirmModal"
+			:count="selectedInstanceIds.size"
+			@delete="batchDeleteInstances"
+		/>
+		<InstanceGroupModal
+			ref="batchEditModal"
+			:instance-ids="[...selectedInstanceIds]"
+			@applied="onBatchEditApplied"
+		/>
+		<InstanceGroupModal ref="newGroupModal" :instance-ids="[]" @applied="onBatchEditApplied" />
+		<FloatingActionBar
+			:shown="selectMode"
+			:aria-label="formatMessage(messages.selectedCount, { count: selectedInstanceIds.size })"
+			hide-when-modal-open
+		>
+			<div class="flex items-center gap-0.5">
+				<span class="px-3 py-2 text-base font-semibold text-contrast tabular-nums">
+					{{ formatMessage(messages.selectedCount, { count: selectedInstanceIds.size }) }}
+				</span>
+				<div class="mx-0.5 h-6 w-px bg-surface-5" />
+				<ButtonStyled type="transparent">
+					<button class="!text-primary" :disabled="busy" @click="clearLibraryInstanceSelection">
+						<XIcon class="hidden cq-show-icon" />
+						<span class="bar-label">{{ formatMessage(commonMessages.clearButton) }}</span>
+					</button>
+				</ButtonStyled>
 			</div>
-		</section>
-	</Accordion>
-	<ConfirmDeleteInstanceModal
-		ref="confirmModal"
-		:instance-id="currentDeleteInstance?.id"
-		:symlink-target="currentDeleteInstance?.symlink_target"
-		:count="batchDeleteCount"
-		@delete="batchDeleteCount > 0 ? batchDeleteInstances() : deleteInstance()"
-	/>
-	<ConfirmDeleteInstanceModal
-		ref="batchDeleteConfirmModal"
-		:count="selectedInstanceIds.size"
-		@delete="batchDeleteInstances"
-	/>
-	<BatchEditGroupsModal
-		ref="batchEditModal"
-		:instance-ids="[...selectedInstanceIds]"
-		@applied="onBatchEditApplied"
-	/>
-	<FloatingActionBar :shown="selectMode" position="top" aria-label="Instance selection">
-		<span class="px-3 py-2 text-base font-semibold text-contrast tabular-nums">
-			{{ formatMessage(messages.selectedCount, { count: selectedInstanceIds.size }) }}
-		</span>
-		<div class="mx-0.5 h-6 w-px bg-surface-5" />
-		<ButtonStyled type="transparent">
-			<button type="button" @click="toggleSelectAll">
-				<span>{{
-					isAllSelected ? formatMessage(messages.deselectAll) : formatMessage(messages.selectAll)
-				}}</span>
-			</button>
-		</ButtonStyled>
-		<ButtonStyled type="transparent">
-			<button type="button" @click="openBatchEdit">
-				<span>{{ formatMessage(messages.editGroups) }}</span>
-			</button>
-		</ButtonStyled>
-		<ButtonStyled color="red" type="transparent">
-			<button type="button" @click="openBatchDelete">
-				<TrashIcon />
-				<span class="bar-label">{{ formatMessage(commonMessages.deleteLabel) }}</span>
-			</button>
-		</ButtonStyled>
-		<div class="ml-auto" />
-		<ButtonStyled type="transparent">
-			<button class="!text-primary" type="button" @click="toggleSelectMode">
-				<XIcon class="hidden cq-show-icon" />
-				<span class="bar-label">{{ formatMessage(commonMessages.clearButton) }}</span>
-			</button>
-		</ButtonStyled>
-	</FloatingActionBar>
-	<ContextMenu ref="instanceOptions" @option-clicked="handleOptionsClick">
-		<template #play> <PlayIcon /> {{ formatMessage(commonMessages.playButton) }} </template>
-		<template #stop> <StopCircleIcon /> {{ formatMessage(commonMessages.stopButton) }} </template>
-		<template #add_content> <PlusIcon /> {{ formatMessage(messages.addContent) }} </template>
-		<template #edit> <EyeIcon /> {{ formatMessage(messages.viewInstance) }} </template>
-		<template #duplicate>
-			<ClipboardCopyIcon /> {{ formatMessage(messages.duplicateInstance) }}
-		</template>
-		<template #pin> <PinIcon /> {{ formatMessage(messages.pinToHome) }} </template>
-		<template #unpin>
-			<PinIcon class="rotate-45" /> {{ formatMessage(messages.unpinFromHome) }}
-		</template>
-		<template #delete> <TrashIcon /> {{ formatMessage(commonMessages.deleteLabel) }} </template>
-		<template #open>
-			<FolderOpenIcon /> {{ formatMessage(commonMessages.openFolderButton) }}
-		</template>
-		<template #copy> <ClipboardCopyIcon /> {{ formatMessage(messages.copyPath) }} </template>
-	</ContextMenu>
+			<div class="ml-auto flex items-center gap-0.5">
+				<ButtonStyled v-if="grouping === 'Group'" type="transparent">
+					<button :disabled="busy" @click="createGroupFromSelection">
+						<PlusIcon />
+						<span class="bar-label">{{ formatMessage(messages.newGroupFromSelection) }}</span>
+					</button>
+				</ButtonStyled>
+				<ButtonStyled v-if="selectedGroupedInstances.length > 0" type="transparent">
+					<button :disabled="busy" @click="removeSelectedInstancesFromGroups">
+						<MinusIcon />
+						<span class="bar-label">{{ formatMessage(messages.removeFromGroup) }}</span>
+					</button>
+				</ButtonStyled>
+				<div
+					v-if="grouping === 'Group' || selectedGroupedInstances.length > 0"
+					class="mx-1 h-6 w-px bg-surface-5"
+				/>
+				<ButtonStyled type="transparent" color="red">
+					<button :disabled="busy" @click="batchDeleteConfirmModal?.show()">
+						<TrashIcon />
+						<span class="bar-label">{{ formatMessage(commonMessages.deleteLabel) }}</span>
+					</button>
+				</ButtonStyled>
+			</div>
+		</FloatingActionBar>
+		<InstanceGroupModal
+			ref="addToExistingGroupModal"
+			:instance-ids="[]"
+			:existing-group-name="addToExistingGroupName"
+			:existing-group-id="addToExistingGroupId"
+			@applied="onBatchEditApplied"
+		/>
+		<ContextMenu ref="instanceOptions" @option-clicked="handleOptionsClick">
+			<template #play> <PlayIcon /> {{ formatMessage(commonMessages.playButton) }} </template>
+			<template #stop> <StopCircleIcon /> {{ formatMessage(commonMessages.stopButton) }} </template>
+			<template #add_content> <PlusIcon /> {{ formatMessage(messages.addContent) }} </template>
+			<template #edit> <EyeIcon /> {{ formatMessage(messages.viewInstance) }} </template>
+			<template #duplicate>
+				<ClipboardCopyIcon /> {{ formatMessage(messages.duplicateInstance) }}
+			</template>
+			<template #pin> <PinIcon /> {{ formatMessage(messages.pinToHome) }} </template>
+			<template #unpin>
+				<PinIcon class="rotate-45" /> {{ formatMessage(messages.unpinFromHome) }}
+			</template>
+			<template #delete> <TrashIcon /> {{ formatMessage(commonMessages.deleteLabel) }} </template>
+			<template #open>
+				<FolderOpenIcon /> {{ formatMessage(commonMessages.openFolderButton) }}
+			</template>
+			<template #copy> <ClipboardCopyIcon /> {{ formatMessage(messages.copyPath) }} </template>
+			<template #add_to_pinned> <StarIcon /> {{ formatMessage(messages.addToPinned) }} </template>
+			<template #remove_from_pinned>
+				<StarIcon style="color: var(--color-text-default); fill: var(--color-text-default)" />
+				{{ formatMessage(messages.removeFromPinned) }}
+			</template>
+			<template #remove_from_group>
+				<MinusIcon />
+				{{ formatMessage(messages.removeFromGroup) }}
+			</template>
+		</ContextMenu>
+		<ContextMenu ref="backgroundContextMenu" @option-clicked="handleBackgroundOption">
+			<template #create_instance>
+				<PlusIcon /> {{ formatMessage(messages.createInstance) }}
+			</template>
+		</ContextMenu>
+	</div>
 </template>
 <style lang="scss" scoped></style>

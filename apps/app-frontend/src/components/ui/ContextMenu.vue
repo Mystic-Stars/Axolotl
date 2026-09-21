@@ -1,63 +1,32 @@
 <template>
 	<transition name="fade">
-		<Teleport to="body">
-			<div
-				v-show="shown"
-				ref="contextMenu"
-				class="context-menu"
-				:style="{
-					left: left,
-					top: top,
-				}"
-			>
-				<template v-if="modernMode">
-					<div
-						v-for="(option, index) in modernOptions"
-						:key="option.id ?? index"
-						@click.stop="modernOptionClicked(option)"
-					>
-						<hr v-if="option.type === 'divider'" class="divider" />
-						<div v-else class="item clickable" :class="option.tone === 'red' ? 'red' : 'base'">
-							<slot :name="option.id" :option="option">
-								<component :is="option.icon" v-if="option.icon" aria-hidden="true" />
-								{{ option.label }}
-							</slot>
-						</div>
-					</div>
-				</template>
-				<template v-else>
-					<div
-						v-for="(option, index) in options"
-						:key="index"
-						@click.stop="optionClicked(option.name)"
-					>
-						<hr v-if="option.type === 'divider'" class="divider" />
-						<div
-							v-else-if="!(isInstanceLink(item) && option.name === `add_content`)"
-							class="item clickable"
-							:class="[option.color ?? 'base']"
-						>
-							<slot :name="option.name" />
-						</div>
-					</div>
-				</template>
+		<div
+			v-show="shown"
+			ref="contextMenu"
+			class="context-menu"
+			:style="{
+				left: left,
+				top: top,
+			}"
+		>
+			<div v-for="(option, index) in options" :key="index" @click.stop="optionClicked(option.name)">
+				<hr v-if="option.type === 'divider'" class="divider" />
+				<div
+					v-else-if="!(isInstanceLink(item) && option.name === `add_content`)"
+					class="item clickable"
+					:class="[option.color ?? 'base']"
+				>
+					<slot :name="option.name" />
+				</div>
 			</div>
-		</Teleport>
+		</div>
 	</transition>
 </template>
 
-<script setup lang="ts">
+<script setup>
 import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 
-const emit = defineEmits<{
-	(e: 'menu-closed'): void
-	(e: 'option-clicked', payload: { item: unknown; option: string }): void
-}>()
-
-// Accessibility label for the menu root (fragment/teleport cannot inherit attrs).
-defineProps<{
-	label?: string
-}>()
+const emit = defineEmits(['menu-closed', 'option-clicked'])
 
 const item = ref(null)
 const contextMenu = ref(null)
@@ -65,50 +34,43 @@ const options = ref([])
 const left = ref('0px')
 const top = ref('0px')
 const shown = ref(false)
-const modernOptions = ref([])
-const modernMode = ref(false)
+let justOpened = false
 
-const positionMenu = (event) => {
-	const menuWidth = contextMenu.value?.clientWidth || 200
-	const menuHeight = contextMenu.value?.clientHeight || 100
-	const minFromEdge = 10
-	const x = event.clientX ?? event.pageX
-	const y = event.clientY ?? event.pageY
-
-	// Context menus are fixed to the viewport. Flip to the opposite side when
-	// there is not enough room on the right/bottom instead of allowing them to
-	// be clipped or compressed by a parent layout.
-	left.value =
-		x + menuWidth + minFromEdge >= window.innerWidth
-			? Math.max(minFromEdge, x - menuWidth - minFromEdge) + 'px'
-			: Math.max(minFromEdge, x + minFromEdge) + 'px'
-	top.value =
-		y + menuHeight + minFromEdge >= window.innerHeight
-			? Math.max(minFromEdge, y - menuHeight - minFromEdge) + 'px'
-			: Math.max(minFromEdge, y + minFromEdge) + 'px'
-}
+const CLOSE_ALL_EVENT = 'close-all-context-menus'
 
 defineExpose({
-	open: (event, passedOptions) => {
-		modernMode.value = true
-		modernOptions.value = passedOptions
-		shown.value = true
-		nextTick(() => {
-			positionMenu(event)
-		})
-	},
-	close: () => hideContextMenu(),
 	showMenu: (event, passedItem, passedOptions) => {
-		modernMode.value = false
-		modernOptions.value = []
+		window.dispatchEvent(new CustomEvent(CLOSE_ALL_EVENT))
+
 		item.value = passedItem
 		options.value = passedOptions
+
+		justOpened = true
+		nextTick(() => {
+			justOpened = false
+		})
 
 		// show to get dimensions
 		shown.value = true
 
 		// then, adjust position if overflowing
-		nextTick(() => positionMenu(event))
+		nextTick(() => {
+			const menuWidth = contextMenu.value?.clientWidth || 200
+			const menuHeight = contextMenu.value?.clientHeight || 100
+			const minFromEdge = 10
+
+			if (event.pageX + menuWidth + minFromEdge >= window.innerWidth) {
+				left.value = Math.max(minFromEdge, event.pageX - menuWidth - minFromEdge) + 'px'
+			} else {
+				left.value = event.pageX + minFromEdge + 'px'
+			}
+
+			if (event.pageY + menuHeight + minFromEdge >= window.innerHeight) {
+				top.value = Math.max(minFromEdge, event.pageY - menuHeight - minFromEdge) + 'px'
+			} else {
+				top.value = event.pageY + minFromEdge + 'px'
+			}
+		})
 	},
 })
 
@@ -122,15 +84,8 @@ const isInstanceLink = (item) => {
 }
 
 const hideContextMenu = () => {
-	modernMode.value = false
-	modernOptions.value = []
 	shown.value = false
 	emit('menu-closed')
-}
-
-const modernOptionClicked = (option) => {
-	if (typeof option.action === 'function') option.action()
-	if (!option.remainOpen) hideContextMenu()
 }
 
 const optionClicked = (option) => {
@@ -151,20 +106,28 @@ const handleClickOutside = (event) => {
 	const elements = document.elementsFromPoint(event.clientX, event.clientY)
 	if (
 		contextMenu.value &&
-		contextMenu.value !== event.target &&
-		!elements.includes(contextMenu.value)
+		contextMenu.value.$el !== event.target &&
+		!elements.includes(contextMenu.value.$el)
 	) {
+		hideContextMenu()
+	}
+}
+
+const handleCloseOthers = () => {
+	if (!justOpened) {
 		hideContextMenu()
 	}
 }
 
 onMounted(() => {
 	window.addEventListener('click', handleClickOutside)
+	window.addEventListener(CLOSE_ALL_EVENT, handleCloseOthers)
 	document.body.addEventListener('keyup', onEscKeyRelease)
 })
 
 onBeforeUnmount(() => {
 	window.removeEventListener('click', handleClickOutside)
+	window.removeEventListener(CLOSE_ALL_EVENT, handleCloseOthers)
 	document.body.removeEventListener('keyup', onEscKeyRelease)
 })
 </script>
