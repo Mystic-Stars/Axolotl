@@ -3370,7 +3370,7 @@
     "message": "Enter group name"
   },
   "app.instances.batch-edit-groups.header": {
-    "message": "Edit groups"
+    "message": "Create group"
   },
   "app.instances.copy-path": {
     "message": "Copy path"
@@ -3401,6 +3401,96 @@
   },
   "app.instances.group.ungrouped": {
     "message": "No group"
+  },
+  "app.instances.group.pinned": {
+    "message": "Pinned"
+  },
+  "app.instances.group.empty": {
+    "message": "Drag and drop to add instances."
+  },
+  "app.instances.group.edit-name": {
+    "message": "Edit group name"
+  },
+  "app.instances.group.delete-group": {
+    "message": "Delete group"
+  },
+  "app.instances.group.delete-description": {
+    "message": "Instances in this group will be ungrouped."
+  },
+  "app.instances.group.move-up": {
+    "message": "Move group up"
+  },
+  "app.instances.group.move-down": {
+    "message": "Move group down"
+  },
+  "app.instances.group.add-to-group": {
+    "message": "Add to group"
+  },
+  "app.instances.group.new-instance": {
+    "message": "New instance"
+  },
+  "app.instances.group.collapse": {
+    "message": "Collapse group"
+  },
+  "app.instances.group.expand": {
+    "message": "Expand group"
+  },
+  "app.instances.group.rename-group": {
+    "message": "Rename group"
+  },
+  "app.instances.group.name-empty": {
+    "message": "Group names cannot be empty."
+  },
+  "app.instances.group.name-too-long": {
+    "message": "Group names cannot be longer than {maxLength} characters."
+  },
+  "app.instances.batch-edit-groups.add-to-group-title": {
+    "message": "Add instances to \"{groupName}\""
+  },
+  "app.instances.batch-edit-groups.group-name": {
+    "message": "Group name"
+  },
+  "app.instances.batch-edit-groups.group-name-placeholder": {
+    "message": "Enter group name"
+  },
+  "app.instances.batch-edit-groups.search-instance": {
+    "message": "Search instances"
+  },
+  "app.instances.batch-edit-groups.no-instances-found": {
+    "message": "No instances found"
+  },
+  "app.instances.batch-edit-groups.add": {
+    "message": "Add"
+  },
+  "app.instances.batch-edit-groups.added": {
+    "message": "Added"
+  },
+  "app.instances.batch-edit-groups.cancel": {
+    "message": "Cancel"
+  },
+  "app.instances.batch-edit-groups.create": {
+    "message": "Create group"
+  },
+  "app.instances.batch-edit-groups.save-changes": {
+    "message": "Save"
+  },
+  "app.library.group.new": {
+    "message": "New group"
+  },
+  "app.library.selection.new-group": {
+    "message": "New group"
+  },
+  "app.library.selection.remove-from-group": {
+    "message": "Remove from group"
+  },
+  "app.library.context-menu.pin-instance": {
+    "message": "Pin instance"
+  },
+  "app.library.context-menu.unpin-instance": {
+    "message": "Unpin instance"
+  },
+  "app.library.context-menu.remove-from-group": {
+    "message": "Remove from group"
   },
   "app.instances.pin-to-home": {
     "message": "Pin to Home"

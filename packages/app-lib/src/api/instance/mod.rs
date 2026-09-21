@@ -5,6 +5,7 @@ mod content;
 mod core_components;
 mod export_mrpack;
 mod get;
+mod groups;
 mod home;
 mod install;
 mod lifecycle;
@@ -175,3 +176,9 @@ pub use self::upgrade::{
 };
 pub use crate::state::{DailyPlaytime, DailyPlaytimeEntry};
 pub use crate::state::{InstanceSyncedOptions, SyncedOption};
+
+pub use self::groups::FAVORITES_GROUP_ID;
+pub use self::groups::{
+    InstanceGroup, InstanceGroupMembershipUpdate, create_group, delete_group,
+    list_groups, rename_group, set_group_memberships, set_group_order,
+};

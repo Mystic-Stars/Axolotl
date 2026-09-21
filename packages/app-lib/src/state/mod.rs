@@ -81,6 +81,7 @@ pub use self::mr_auth::*;
 mod legacy_converter;
 
 pub mod attached_world_data;
+pub mod instance_groups;
 pub mod server_join_log;
 
 // Global state

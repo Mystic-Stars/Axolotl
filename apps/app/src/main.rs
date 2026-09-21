@@ -250,6 +250,8 @@ async fn initialize_state(app: tauri::AppHandle) -> api::Result<()> {
     }
 
     let state = State::get().await?;
+    theseus::state::instance_groups::ensure_imported(&state).await?;
+
     app.asset_protocol_scope()
         .allow_directory(state.directories.caches_dir(), true)?;
     app.asset_protocol_scope()

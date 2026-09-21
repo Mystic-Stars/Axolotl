@@ -3370,7 +3370,7 @@
     "message": "分组名称"
   },
   "app.instances.batch-edit-groups.header": {
-    "message": "编辑分组"
+    "message": "创建分组"
   },
   "app.instances.copy-path": {
     "message": "复制路径"
@@ -3401,6 +3401,96 @@
   },
   "app.instances.group.ungrouped": {
     "message": "无分组"
+  },
+  "app.instances.group.pinned": {
+    "message": "已置顶"
+  },
+  "app.instances.group.empty": {
+    "message": "拖放实例到此处添加。"
+  },
+  "app.instances.group.edit-name": {
+    "message": "编辑分组名称"
+  },
+  "app.instances.group.delete-group": {
+    "message": "删除分组"
+  },
+  "app.instances.group.delete-description": {
+    "message": "此分组中的实例将被取消分组。"
+  },
+  "app.instances.group.move-up": {
+    "message": "上移分组"
+  },
+  "app.instances.group.move-down": {
+    "message": "下移分组"
+  },
+  "app.instances.group.add-to-group": {
+    "message": "添加到分组"
+  },
+  "app.instances.group.new-instance": {
+    "message": "新建实例"
+  },
+  "app.instances.group.collapse": {
+    "message": "折叠分组"
+  },
+  "app.instances.group.expand": {
+    "message": "展开分组"
+  },
+  "app.instances.group.rename-group": {
+    "message": "重命名分组"
+  },
+  "app.instances.group.name-empty": {
+    "message": "分组名称不能为空。"
+  },
+  "app.instances.group.name-too-long": {
+    "message": "分组名称不能超过 {maxLength} 个字符。"
+  },
+  "app.instances.batch-edit-groups.add-to-group-title": {
+    "message": "添加实例到「{groupName}」"
+  },
+  "app.instances.batch-edit-groups.group-name": {
+    "message": "分组名称"
+  },
+  "app.instances.batch-edit-groups.group-name-placeholder": {
+    "message": "输入分组名称"
+  },
+  "app.instances.batch-edit-groups.search-instance": {
+    "message": "搜索实例"
+  },
+  "app.instances.batch-edit-groups.no-instances-found": {
+    "message": "未找到实例"
+  },
+  "app.instances.batch-edit-groups.add": {
+    "message": "添加"
+  },
+  "app.instances.batch-edit-groups.added": {
+    "message": "已添加"
+  },
+  "app.instances.batch-edit-groups.cancel": {
+    "message": "取消"
+  },
+  "app.instances.batch-edit-groups.create": {
+    "message": "创建分组"
+  },
+  "app.instances.batch-edit-groups.save-changes": {
+    "message": "保存"
+  },
+  "app.library.group.new": {
+    "message": "新建分组"
+  },
+  "app.library.selection.new-group": {
+    "message": "新建分组"
+  },
+  "app.library.selection.remove-from-group": {
+    "message": "移出分组"
+  },
+  "app.library.context-menu.pin-instance": {
+    "message": "置顶实例"
+  },
+  "app.library.context-menu.unpin-instance": {
+    "message": "取消置顶"
+  },
+  "app.library.context-menu.remove-from-group": {
+    "message": "移出分组"
   },
   "app.instances.pin-to-home": {
     "message": "固定到主页"

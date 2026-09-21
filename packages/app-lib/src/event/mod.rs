@@ -434,6 +434,11 @@ pub enum InstancePayloadType {
 }
 
 #[derive(Serialize, Clone)]
+pub struct InstanceGroupsChangedPayload {
+    pub instance_ids: Vec<String>,
+}
+
+#[derive(Serialize, Clone)]
 #[serde(rename_all = "snake_case")]
 #[serde(tag = "event")]
 pub enum FriendPayload {
