@@ -1,13 +1,13 @@
 //! Instance grouping backed by a standalone JSON file in the app's settings
 //! directory, next to `settings.json`.
 //!
-//! Groups used to live in SQLite (`instance_groups` /
-//! `instance_group_memberships`). That layout could not express membership for
+//! Groups used to live in SQLite as a single `instance_groups` membership table
+//! (`instance_id`, `group_name`). That layout could not express membership for
 //! JSON-backed instances (`local:` ids, i.e. every `.minecraft` and
 //! multi-library instance) because they have no row in the `instances` table,
 //! and it duplicated membership into the per-instance sidecars. This module is
-//! the single source of truth instead; the SQL tables are left untouched but
-//! are no longer read or written (they are only read once, at import time).
+//! the single source of truth instead; the SQL table is left untouched but is
+//! no longer read or written (it is only read once, at import time).
 
 use crate::state::State;
 use serde::{Deserialize, Serialize};
@@ -365,25 +365,30 @@ pub async fn ensure_imported(state: &State) -> crate::Result<()> {
     // Deliberately the runtime API rather than the `query!` macro: these
     // statements exist only for this one-time import, and the macro would
     // require regenerating the whole `.sqlx` offline cache.
-    let rows = sqlx::query_as::<_, (String, String)>(
-        "SELECT id, name FROM instance_groups ORDER BY display_order, name, id",
-    )
-    .fetch_all(&state.pool)
-    .await?;
-    for (id, name) in rows {
-        file.groups.push(GroupDefinition { id, name });
-    }
-
+    //
+    // The legacy table is a plain membership list — `(instance_id, group_name)`
+    // — with no separate group or membership table, so a group is the set of
+    // distinct names and its members are the rows carrying that name. The name
+    // doubles as the id, which keeps the import lossless: the JSON store then
+    // renames only when the user edits a group.
     let memberships = sqlx::query_as::<_, (String, String)>(
-        "SELECT instance_id, group_id FROM instance_group_memberships",
+        "SELECT instance_id, group_name FROM instance_groups ORDER BY group_name",
     )
     .fetch_all(&state.pool)
     .await?;
-    for (instance_id, group_id) in memberships {
+
+    let mut group_ids = HashSet::new();
+    for (instance_id, group_name) in memberships {
+        if group_ids.insert(group_name.clone()) {
+            file.groups.push(GroupDefinition {
+                id: group_name.clone(),
+                name: group_name.clone(),
+            });
+        }
         file.memberships
             .entry(instance_id)
             .or_default()
-            .push(group_id);
+            .push(group_name);
     }
 
     file.normalize();
@@ -409,6 +414,79 @@ pub async fn ensure_imported(state: &State) -> crate::Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// The legacy table is `(instance_id, group_name)` with no separate group
+    /// or membership table. Asserting the query against a real database catches
+    /// a re-introduced assumption that these columns are named otherwise — the
+    /// original import selected `id, name` and `group_id`, which does not exist
+    /// and aborted launcher startup with `no such column: id`.
+    #[tokio::test]
+    async fn legacy_import_query_matches_the_real_schema() {
+        let pool = sqlx::sqlite::SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect("sqlite::memory:")
+            .await
+            .unwrap();
+        sqlx::query("CREATE TABLE instances (id TEXT PRIMARY KEY)")
+            .execute(&pool)
+            .await
+            .unwrap();
+        sqlx::query(
+            "CREATE TABLE instance_groups (
+                instance_id TEXT NOT NULL,
+                group_name TEXT NOT NULL,
+                PRIMARY KEY (instance_id, group_name)
+            )",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+        sqlx::query("INSERT INTO instances (id) VALUES ('one'), ('two')")
+            .execute(&pool)
+            .await
+            .unwrap();
+        sqlx::query(
+            "INSERT INTO instance_groups (instance_id, group_name)
+             VALUES ('one', 'alpha'), ('two', 'alpha'), ('two', 'beta')",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        let rows = sqlx::query_as::<_, (String, String)>(
+            "SELECT instance_id, group_name FROM instance_groups ORDER BY group_name",
+        )
+        .fetch_all(&pool)
+        .await
+        .expect("the legacy import query must match the shipped schema");
+
+        let mut file = InstanceGroupsFile {
+            schema_version: INSTANCE_GROUPS_SCHEMA_VERSION,
+            groups: Vec::new(),
+            memberships: HashMap::new(),
+        };
+        let mut seen = HashSet::new();
+        for (instance_id, group_name) in rows {
+            if seen.insert(group_name.clone()) {
+                file.groups.push(GroupDefinition {
+                    id: group_name.clone(),
+                    name: group_name.clone(),
+                });
+            }
+            file.memberships
+                .entry(instance_id)
+                .or_default()
+                .push(group_name);
+        }
+        file.normalize();
+
+        // `normalize` pins favorites first, so the imported groups follow it.
+        let ids: Vec<_> =
+            file.groups.iter().map(|group| group.id.clone()).collect();
+        assert_eq!(ids, vec![FAVORITES_GROUP_ID, "alpha", "beta"]);
+        assert_eq!(file.memberships["one"], vec!["alpha"]);
+        assert_eq!(file.memberships["two"], vec!["alpha", "beta"]);
+    }
 
     fn file_with_groups(ids: &[&str]) -> InstanceGroupsFile {
         InstanceGroupsFile {
