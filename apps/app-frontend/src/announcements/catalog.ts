@@ -63,6 +63,10 @@ export const launcherAnnouncements: readonly LauncherAnnouncement[] = [
 			],
 			fixed: [
 				{
+					'en-US': 'Fixed the system language toggle button having an incorrect size.',
+					'zh-CN': '修复跟随系统语言按钮大小异常',
+				},
+				{
 					'en-US':
 						'Fixed a missing reka-ui dependency that caused Vite import resolution failures on the library page.',
 					'zh-CN': '修复库页面因缺少 reka-ui 依赖导致 Vite 导入解析失败的问题。',

@@ -193,7 +193,7 @@ function retrySave() {
 						v-tooltip="systemToggleTooltip"
 						type="button"
 						role="switch"
-						class="language-system-toggle"
+						class="inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-xl border border-[var(--color-divider)] bg-[var(--color-button-bg)] px-2.5 py-2 text-[0.8125rem] font-semibold text-secondary whitespace-nowrap cursor-pointer transition-colors language-system-toggle"
 						:class="{ 'is-active': followSystem }"
 						:aria-checked="followSystem"
 						:aria-label="formatMessage(messages.systemLanguage)"
@@ -236,27 +236,6 @@ function retrySave() {
 	color: var(--color-secondary);
 	font-size: 0.875rem;
 	line-height: 1.5;
-}
-
-.language-system-toggle {
-	display: inline-flex;
-	min-height: 2.5rem;
-	flex-shrink: 0;
-	align-items: center;
-	gap: 0.4rem;
-	padding: 0 0.75rem;
-	border: 1px solid var(--color-divider);
-	border-radius: var(--radius-sm);
-	background: var(--color-button-bg);
-	color: var(--color-secondary);
-	font-size: 0.8125rem;
-	font-weight: 600;
-	white-space: nowrap;
-	cursor: pointer;
-	transition:
-		background-color 140ms ease,
-		border-color 140ms ease,
-		color 140ms ease;
 }
 
 .language-system-toggle:hover:not(:disabled) {
