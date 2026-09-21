@@ -1,9 +1,5 @@
 <template>
-	<ModalWrapper
-		ref="detectJavaModal"
-		:header="formatMessage(messages.selectJavaVersion)"
-		:show-ad-on-close="false"
-	>
+	<NewModal ref="detectJavaModal" :header="formatMessage(messages.selectJavaVersion)">
 		<div class="flex flex-col gap-4">
 			<Table :columns="javaInstallColumns" :data="chosenInstallOptions" row-key="path">
 				<template #cell-version="{ value }">
@@ -44,7 +40,7 @@
 				</ButtonStyled>
 			</div>
 		</div>
-	</ModalWrapper>
+	</NewModal>
 </template>
 <script setup>
 import { CheckIcon, PlusIcon, XIcon } from '@modrinth/assets'
@@ -53,12 +49,12 @@ import {
 	commonMessages,
 	defineMessages,
 	injectNotificationManager,
+	NewModal,
 	Table,
 	useVIntl,
 } from '@modrinth/ui'
 import { onUnmounted, ref } from 'vue'
 
-import ModalWrapper from '@/components/ui/modal/ModalWrapper.vue'
 import { trackEvent } from '@/helpers/analytics'
 import { java_discovery_listener } from '@/helpers/events'
 import { find_filtered_jres } from '@/helpers/jre.js'

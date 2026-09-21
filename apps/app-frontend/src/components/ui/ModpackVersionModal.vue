@@ -1,10 +1,9 @@
 <script setup>
 import { CheckIcon } from '@modrinth/assets'
-import { Badge, ButtonStyled, defineMessages, useVIntl } from '@modrinth/ui'
+import { Badge, ButtonStyled, defineMessages, NewModal, useVIntl } from '@modrinth/ui'
 import { computed, ref } from 'vue'
 
 import { SwapIcon } from '@/assets/icons/index.js'
-import ModalWrapper from '@/components/ui/modal/ModalWrapper.vue'
 import SymlinkInstanceWarning from '@/components/ui/SymlinkInstanceWarning.vue'
 import { update_managed_modrinth_version } from '@/helpers/instance'
 import { releaseColor } from '@/helpers/utils'
@@ -62,7 +61,7 @@ const onHide = () => {
 </script>
 
 <template>
-	<ModalWrapper
+	<NewModal
 		ref="modpackVersionModal"
 		class="modpack-version-modal"
 		:header="formatMessage(messages.changeVersion)"
@@ -139,7 +138,7 @@ const onHide = () => {
 				</div>
 			</div>
 		</div>
-	</ModalWrapper>
+	</NewModal>
 </template>
 
 <style scoped lang="scss">

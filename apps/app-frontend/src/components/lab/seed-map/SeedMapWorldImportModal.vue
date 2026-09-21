@@ -5,6 +5,7 @@ import {
 	ButtonStyled,
 	defineMessages,
 	injectNotificationManager,
+	NewModal,
 	useRelativeTime,
 	useVIntl,
 } from '@modrinth/ui'
@@ -12,7 +13,6 @@ import dayjs from 'dayjs'
 import { ref } from 'vue'
 
 import InstanceIcon from '@/components/ui/InstanceIcon.vue'
-import ModalWrapper from '@/components/ui/modal/ModalWrapper.vue'
 import { get_full_path, list } from '@/helpers/instance'
 import type { GameInstance } from '@/helpers/types'
 import {
@@ -144,7 +144,7 @@ defineExpose({ show })
 </script>
 
 <template>
-	<ModalWrapper ref="modal" :header="formatMessage(messages.title)">
+	<NewModal ref="modal" :header="formatMessage(messages.title)">
 		<div class="seed-import-body">
 			<div v-if="!selectedInstance" class="seed-import-step">
 				<p class="seed-import-hint">{{ formatMessage(messages.chooseInstance) }}</p>
@@ -227,7 +227,7 @@ defineExpose({ show })
 				</div>
 			</div>
 		</div>
-	</ModalWrapper>
+	</NewModal>
 </template>
 
 <style scoped>

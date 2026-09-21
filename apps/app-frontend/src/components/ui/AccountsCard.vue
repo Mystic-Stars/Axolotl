@@ -172,7 +172,7 @@
 		</div>
 	</Accordion>
 	<MinecraftLoginModal ref="minecraftLoginModal" @complete="onMicrosoftLogin" />
-	<ModalWrapper ref="offlineAccountModal" :header="formatMessage(messages.offlineModalTitle)">
+	<NewModal ref="offlineAccountModal" :header="formatMessage(messages.offlineModalTitle)">
 		<div class="flex min-w-[22rem] flex-col gap-4">
 			<p class="m-0 text-secondary">{{ formatMessage(messages.offlineModalDescription) }}</p>
 			<label class="flex flex-col gap-2 font-semibold">
@@ -243,8 +243,8 @@
 				</ButtonStyled>
 			</div>
 		</div>
-	</ModalWrapper>
-	<ModalWrapper ref="yggdrasilAccountModal" :header="formatMessage(messages.thirdPartyModalTitle)">
+	</NewModal>
+	<NewModal ref="yggdrasilAccountModal" :header="formatMessage(messages.thirdPartyModalTitle)">
 		<div class="flex min-w-[24rem] flex-col gap-4">
 			<p class="m-0 text-secondary">{{ formatMessage(messages.thirdPartyModalDescription) }}</p>
 			<div v-if="savedYggdrasilLogins.length > 0" class="flex flex-col gap-2">
@@ -328,8 +328,8 @@
 				</ButtonStyled>
 			</div>
 		</div>
-	</ModalWrapper>
-	<ModalWrapper ref="yggdrasilProfileModal" :header="formatMessage(messages.selectProfileTitle)">
+	</NewModal>
+	<NewModal ref="yggdrasilProfileModal" :header="formatMessage(messages.selectProfileTitle)">
 		<div class="flex min-w-[22rem] flex-col gap-2">
 			<p class="m-0 mb-2 text-secondary">{{ formatMessage(messages.selectProfileDescription) }}</p>
 			<ButtonStyled v-for="profile in pendingYggdrasilProfiles" :key="profile.id" class="w-full">
@@ -340,7 +340,7 @@
 				</button>
 			</ButtonStyled>
 		</div>
-	</ModalWrapper>
+	</NewModal>
 </template>
 
 <script setup lang="ts">
@@ -363,6 +363,7 @@ import {
 	commonMessages,
 	defineMessages,
 	injectNotificationManager,
+	NewModal,
 	StyledInput,
 	useVIntl,
 } from '@modrinth/ui'
@@ -375,7 +376,6 @@ import { useRoute } from 'vue-router'
 import axolotlLogo from '@/assets/axolotl.png'
 import steveSkinTexture from '@/assets/skins/steve.png?inline'
 import MinecraftLoginModal from '@/components/ui/MinecraftLoginModal.vue'
-import ModalWrapper from '@/components/ui/modal/ModalWrapper.vue'
 import { useNetworkStatus } from '@/composables/useNetworkStatus'
 import { compareMinecraftAccounts } from '@/helpers/accounts'
 import { trackEvent } from '@/helpers/analytics'
@@ -476,7 +476,7 @@ let refreshGeneration = 0
 let headRefreshTimer: ReturnType<typeof setTimeout> | undefined
 let defaultUserUpdateQueue = Promise.resolve()
 const minecraftLoginModal = ref<InstanceType<typeof MinecraftLoginModal> | null>(null)
-const offlineAccountModal = ref<InstanceType<typeof ModalWrapper> | null>(null)
+const offlineAccountModal = ref<InstanceType<typeof NewModal> | null>(null)
 const offlineUsername = ref('')
 const offlineCustomUuid = ref(false)
 const offlineUuid = ref('')
@@ -496,8 +496,8 @@ watch([offlineUuid, offlineCustomUuid], () => {
 const offlineUsernameContainsChinese = computed(() =>
 	/\p{Script=Han}/u.test(offlineUsername.value.trim()),
 )
-const yggdrasilAccountModal = ref<InstanceType<typeof ModalWrapper> | null>(null)
-const yggdrasilProfileModal = ref<InstanceType<typeof ModalWrapper> | null>(null)
+const yggdrasilAccountModal = ref<InstanceType<typeof NewModal> | null>(null)
+const yggdrasilProfileModal = ref<InstanceType<typeof NewModal> | null>(null)
 const yggdrasilApiRoot = ref(LITTLE_SKIN_API_ROOT)
 const yggdrasilLogin = ref('')
 const yggdrasilPassword = ref('')

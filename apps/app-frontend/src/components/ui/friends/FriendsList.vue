@@ -6,6 +6,7 @@ import {
 	defineMessages,
 	injectNotificationManager,
 	IntlFormatted,
+	NewModal,
 	StyledInput,
 	useRelativeTime,
 	useVIntl,
@@ -13,7 +14,6 @@ import {
 import { computed, onUnmounted, ref, watch } from 'vue'
 
 import FriendsSection from '@/components/ui/friends/FriendsSection.vue'
-import ModalWrapper from '@/components/ui/modal/ModalWrapper.vue'
 import { friend_listener } from '@/helpers/events'
 import {
 	add_friend,
@@ -231,7 +231,7 @@ const messages = defineMessages({
 </script>
 
 <template>
-	<ModalWrapper ref="friendInvitesModal" :header="formatMessage(messages.viewRequests)">
+	<NewModal ref="friendInvitesModal" :header="formatMessage(messages.viewRequests)">
 		<p v-if="incomingRequests.length === 0">{{ formatMessage(messages.noPendingRequests) }}</p>
 		<div v-else class="flex flex-col gap-4 min-w-[40rem]">
 			<div v-for="friend in incomingRequests" :key="friend.username" class="flex gap-2">
@@ -277,8 +277,8 @@ const messages = defineMessages({
 				</div>
 			</div>
 		</div>
-	</ModalWrapper>
-	<ModalWrapper ref="addFriendModal" :header="formatMessage(messages.addingAFriend)">
+	</NewModal>
+	<NewModal ref="addFriendModal" :header="formatMessage(messages.addingAFriend)">
 		<div class="min-w-[30rem]">
 			<h2 class="m-0 text-base font-medium text-primary">
 				{{ formatMessage(messages.usernameTitle) }}
@@ -303,7 +303,7 @@ const messages = defineMessages({
 				</ButtonStyled>
 			</div>
 		</div>
-	</ModalWrapper>
+	</NewModal>
 	<div v-if="userCredentials && !loading" class="flex gap-1 items-center mb-3 -ml-1">
 		<template v-if="sortedFriends.length > 0">
 			<ButtonStyled circular type="transparent">

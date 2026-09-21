@@ -4,12 +4,12 @@ import {
 	commonMessages,
 	defineMessages,
 	injectNotificationManager,
+	NewModal,
 	ProjectCard,
 	useVIntl,
 } from '@modrinth/ui'
 import { ref } from 'vue'
 
-import ModalWrapper from '@/components/ui/modal/ModalWrapper.vue'
 import { get_project_v3, get_version } from '@/helpers/cache.js'
 import { injectContentInstall } from '@/providers/content-install'
 
@@ -60,7 +60,7 @@ async function install() {
 </script>
 
 <template>
-	<ModalWrapper
+	<NewModal
 		ref="confirmModal"
 		:header="formatMessage(messages.installProject, { project: project?.name })"
 	>
@@ -92,7 +92,7 @@ async function install() {
 				</div>
 			</div>
 		</div>
-	</ModalWrapper>
+	</NewModal>
 </template>
 
 <style scoped lang="scss">

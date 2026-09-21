@@ -1,5 +1,5 @@
 <template>
-	<ModalWrapper ref="unsavedModal">
+	<NewModal ref="unsavedModal">
 		<template #title>
 			<span class="font-extrabold text-lg text-contrast">
 				{{ formatMessage(messages.unsavedTitle) }}
@@ -22,7 +22,7 @@
 				</button>
 			</ButtonStyled>
 		</div>
-	</ModalWrapper>
+	</NewModal>
 	<EmptyState
 		v-if="loadError"
 		type="error"
@@ -295,6 +295,7 @@ import {
 	EmptyState,
 	GAME_MODES,
 	injectNotificationManager,
+	NewModal,
 	StyledInput,
 	useRelativeTime,
 	useVIntl,
@@ -305,7 +306,6 @@ import { Tooltip } from 'floating-vue'
 import { computed, ref, watch } from 'vue'
 import { onBeforeRouteLeave, type RouteLocationNormalized, useRoute, useRouter } from 'vue-router'
 
-import ModalWrapper from '@/components/ui/modal/ModalWrapper.vue'
 import SymlinkInstanceWarning from '@/components/ui/SymlinkInstanceWarning.vue'
 import {
 	gameRuleCategoryMessages,
@@ -595,7 +595,7 @@ function resetRuleToDefault(key: string, defaultValue?: string) {
 	}
 }
 
-const unsavedModal = ref<InstanceType<typeof ModalWrapper>>()
+const unsavedModal = ref<InstanceType<typeof NewModal>>()
 let allowLeave = false
 let pendingNavigation: RouteLocationNormalized | null = null
 

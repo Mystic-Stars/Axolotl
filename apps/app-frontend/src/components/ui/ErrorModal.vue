@@ -16,12 +16,12 @@ import {
 	commonMessages,
 	defineMessages,
 	injectNotificationManager,
+	NewModal,
 	useVIntl,
 } from '@modrinth/ui'
 import { computed, ref } from 'vue'
 
 import { ChatIcon } from '@/assets/icons'
-import ModalWrapper from '@/components/ui/modal/ModalWrapper.vue'
 import { AxolotlBrandConfig } from '@/config'
 import { trackEvent } from '@/helpers/analytics'
 import { login as login_flow, set_default_user } from '@/helpers/auth.js'
@@ -354,7 +354,7 @@ async function exportLogs() {
 </script>
 
 <template>
-	<ModalWrapper ref="errorModal" :header="title" :closable="closable">
+	<NewModal ref="errorModal" :header="title" :closable="closable">
 		<div class="modal-body flex flex-col gap-3 max-w-[550px]">
 			<div class="markdown-body">
 				<template v-if="errorType === 'minecraft_auth'">
@@ -538,7 +538,7 @@ async function exportLogs() {
 				</div>
 			</template>
 		</div>
-	</ModalWrapper>
+	</NewModal>
 </template>
 
 <style>

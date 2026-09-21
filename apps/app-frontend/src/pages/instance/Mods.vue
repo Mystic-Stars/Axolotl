@@ -149,7 +149,7 @@
 					:instance-icon-url="localContentIconUrl(props.instance.icon_path)"
 				/>
 
-				<ShareModalWrapper
+				<ShareModal
 					ref="shareModal"
 					:share-title="formatMessage(messages.shareTitle)"
 					:share-text="formatMessage(messages.shareText)"
@@ -233,6 +233,7 @@ import {
 	provideAppBackup,
 	provideContentManager,
 	ReadyTransition,
+	ShareModal,
 	useDebugLogger,
 	useVIntl,
 	versionChangesGameVersion,
@@ -247,7 +248,6 @@ import { useRouter } from 'vue-router'
 import DependencyGraphModal from '@/components/instance/dependencies/DependencyGraphModal.vue'
 import ExportModal from '@/components/ui/ExportModal.vue'
 import ContentToggleDependenciesModal from '@/components/ui/modal/ContentToggleDependenciesModal.vue'
-import ShareModalWrapper from '@/components/ui/modal/ShareModalWrapper.vue'
 import { postUpgradeNoticeQueryKey, usePostUpgradeNotice } from '@/composables/usePostUpgradeNotice'
 import { useWorldDatapacks } from '@/composables/useWorldDatapacks'
 import { trackEvent } from '@/helpers/analytics'
@@ -995,7 +995,7 @@ const isCurseForgeLinkedModpack = computed(
 	() => props.instance?.link?.type === 'curseforge_modpack',
 )
 
-const shareModal = ref<InstanceType<typeof ShareModalWrapper> | null>()
+const shareModal = ref<InstanceType<typeof ShareModal> | null>()
 const exportModal = ref(null)
 const contentUpdaterModal = ref<InstanceType<typeof ContentUpdaterModal> | null>()
 const dependencyGraphModal = ref<InstanceType<typeof DependencyGraphModal> | null>()

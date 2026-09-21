@@ -14,6 +14,7 @@ import {
 	DropdownSelect,
 	injectNotificationManager,
 	type MessageDescriptor,
+	NewModal,
 	StyledInput,
 	Toggle,
 	useVIntl,
@@ -26,7 +27,6 @@ import RecipeGeneratorCopyrightModal from '@/components/lab/recipe-generator/Rec
 import RecipeItemIcon from '@/components/lab/recipe-generator/RecipeItemIcon.vue'
 import RecipeSlotGrid from '@/components/lab/recipe-generator/RecipeSlotGrid.vue'
 import TagPalette from '@/components/lab/recipe-generator/TagPalette.vue'
-import ModalWrapper from '@/components/ui/modal/ModalWrapper.vue'
 import { useResultCountWheel } from '@/composables/lab/useResultCountWheel'
 import { drawCountOnCanvas } from '@/lab/recipe-generator/count-display'
 import {
@@ -139,7 +139,7 @@ const resourceError = ref('')
 const rightTab = ref<'items' | 'tags'>('items')
 const pendingDatapack = ref<{ files: PackFile[]; fileName: string } | null>(null)
 const customItemDraft = reactive({ uid: '', id: '', name: '', texture: '' })
-const customItemModal = useTemplateRef<InstanceType<typeof ModalWrapper>>('customItemModal')
+const customItemModal = useTemplateRef<InstanceType<typeof NewModal>>('customItemModal')
 const copyrightModal =
 	useTemplateRef<InstanceType<typeof RecipeGeneratorCopyrightModal>>('copyrightModal')
 const instanceExportModal =
@@ -1703,7 +1703,7 @@ function slotEditorSlots(type: RecipeType): RecipeSlot[] {
 			</aside>
 		</div>
 
-		<ModalWrapper
+		<NewModal
 			ref="customItemModal"
 			:header="
 				formatMessage(customItemDraft.uid ? messages.editCustomItem : messages.addCustomItem)
@@ -1737,7 +1737,7 @@ function slotEditorSlots(type: RecipeType): RecipeSlot[] {
 					</ButtonStyled>
 				</div>
 			</div>
-		</ModalWrapper>
+		</NewModal>
 		<RecipeGeneratorCopyrightModal ref="copyrightModal" />
 		<InstanceExportModal
 			ref="instanceExportModal"
