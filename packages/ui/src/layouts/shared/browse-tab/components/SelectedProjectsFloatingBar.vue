@@ -107,7 +107,8 @@
 		<div class="ml-auto shrink-0">
 			<ButtonStyled color="brand">
 				<button type="button" :disabled="isInstallingSelected" @click="installSelected">
-					<PlusIcon />
+					<SpinnerIcon v-if="isInstallingSelected" class="animate-spin" />
+					<PlusIcon v-else />
 					{{ actionButtonText }}
 				</button>
 			</ButtonStyled>
@@ -116,7 +117,7 @@
 </template>
 
 <script setup lang="ts">
-import { PlusIcon } from '@modrinth/assets'
+import { PlusIcon, SpinnerIcon } from '@modrinth/assets'
 import { computed, onUnmounted, ref, useId } from 'vue'
 
 import Avatar from '#ui/components/base/Avatar.vue'

@@ -52,6 +52,11 @@ export const launcherAnnouncements: readonly LauncherAnnouncement[] = [
 			changed: [
 				{
 					'en-US':
+						'Optimized content installation: reduced redundant network requests by bundling project metadata into the dependency resolution step.',
+					'zh-CN': '优化内容安装流程：将项目元数据查询合并至依赖解析步骤，减少冗余网络请求。',
+				},
+				{
+					'en-US':
 						'Context menus on the library page now include pin/unpin and remove-from-group actions.',
 					'zh-CN': '库页面的右键菜单现在包含置顶/取消置顶和移出分组操作。',
 				},

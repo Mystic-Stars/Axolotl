@@ -7,9 +7,11 @@ import {
 	measureSchematicPoints,
 	normalizeSchematicAirBlocks,
 	schematicBlockPaletteIndex,
+	schematicBlockStateKey,
 	type SchematicCachedChunk,
 	schematicChunkKey,
 	selectConnectedSchematicBlocks,
+	selectSchematicBlockState,
 	selectSchematicCuboid,
 	selectSchematicLayer,
 	selectSchematicMaterial,
@@ -86,6 +88,20 @@ test('palette lookup handles negative chunk coordinates', () => {
 	)
 })
 
+test('block state keys preserve properties for states sharing a block name', () => {
+	assert.notEqual(
+		schematicBlockStateKey({ name: 'minecraft:oak_slab', properties: { type: 'top' } }),
+		schematicBlockStateKey({ name: 'minecraft:oak_slab', properties: { type: 'bottom' } }),
+	)
+	assert.equal(
+		schematicBlockStateKey({
+			name: 'minecraft:oak_slab',
+			properties: { waterlogged: 'false', type: 'top' },
+		}),
+		'minecraft:oak_slab[type=top,waterlogged=false]',
+	)
+})
+
 test('cuboid selection skips air and keeps the selected region', () => {
 	const selected = selectSchematicCuboid(
 		fixture(),
@@ -104,6 +120,16 @@ test('material, layer, and connected expansion use cached block data', () => {
 		{ name: 'minecraft:dirt', properties: {} },
 	]
 	assert.equal(selectSchematicMaterial(chunks, palette, 'minecraft:dirt').length, 2)
+	const stateChunks = fixture()
+	stateChunks.get(schematicChunkKey('region-0', [-1, 0, 0]))!.blocks[2] = 3
+	assert.equal(
+		selectSchematicBlockState(
+			stateChunks,
+			[...palette, { name: 'minecraft:dirt', properties: { type: 'top' } }],
+			{ name: 'minecraft:dirt', properties: {} },
+		).length,
+		2,
+	)
 	assert.equal(selectSchematicLayer(chunks, 0).length, 3)
 	assert.equal(
 		selectConnectedSchematicBlocks(chunks, {

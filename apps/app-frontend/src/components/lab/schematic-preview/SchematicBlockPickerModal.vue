@@ -4,6 +4,7 @@ import { ButtonStyled, defineMessages, NewModal, StyledInput, useVIntl } from '@
 import { computed, nextTick, ref, useTemplateRef } from 'vue'
 
 import type { SchematicBlockState } from '@/lab/schematic-preview/backend'
+import { schematicBlockStateKey } from '@/lab/schematic-preview/editing'
 import {
 	type LoadedSchematicResources,
 	resolveSchematicMaterialTexture,
@@ -26,7 +27,7 @@ const { formatMessage, locale } = useVIntl()
 const modal = useTemplateRef<InstanceType<typeof NewModal>>('modal')
 const searchInput = useTemplateRef<InstanceType<typeof StyledInput>>('searchInput')
 const search = ref('')
-const selectedName = ref('')
+const selectedStateKey = ref('')
 
 const messages = defineMessages({
 	title: {
@@ -65,15 +66,16 @@ const visibleBlocks = computed(() => {
 				value.toLocaleLowerCase(locale.value).includes(query),
 			)
 		})
-		.sort((left, right) =>
-			props
-				.displayName(left.name)
-				.localeCompare(props.displayName(right.name), locale.value, { sensitivity: 'base' }),
+		.sort(
+			(left, right) =>
+				props.displayName(left.name).localeCompare(props.displayName(right.name), locale.value, {
+					sensitivity: 'base',
+				}) || schematicBlockStateKey(left).localeCompare(schematicBlockStateKey(right)),
 		)
 })
 
 const selectedBlock = computed(() =>
-	props.blocks.find((block) => block.name === selectedName.value),
+	props.blocks.find((block) => schematicBlockStateKey(block) === selectedStateKey.value),
 )
 
 function textureUv(name: string) {
@@ -88,11 +90,17 @@ function fallbackColor(name: string) {
 	return `hsl(${Math.abs(hash) % 360} 42% 48%)`
 }
 
+function stateProperties(block: SchematicBlockState) {
+	return Object.entries(block.properties)
+		.sort(([left], [right]) => left.localeCompare(right))
+		.map(([key, value]) => `${key}=${value}`)
+		.join(', ')
+}
+
 async function show(preferredName?: string) {
 	search.value = ''
-	selectedName.value = props.blocks.some((block) => block.name === preferredName)
-		? (preferredName ?? '')
-		: ''
+	const preferredBlock = props.blocks.find((block) => block.name === preferredName)
+	selectedStateKey.value = preferredBlock ? schematicBlockStateKey(preferredBlock) : ''
 	modal.value?.show()
 	await nextTick()
 	searchInput.value?.focus()
@@ -145,14 +153,16 @@ defineExpose({ show })
 			<div v-else class="block-picker-grid grid grid-cols-4 gap-2" role="listbox">
 				<button
 					v-for="block in visibleBlocks"
-					:key="block.name"
+					:key="schematicBlockStateKey(block)"
 					type="button"
 					class="block-picker-option"
-					:class="{ 'block-picker-option-selected': selectedName === block.name }"
-					:aria-selected="selectedName === block.name"
-					:title="`${displayName(block.name)}\n${block.name}`"
+					:class="{
+						'block-picker-option-selected': selectedStateKey === schematicBlockStateKey(block),
+					}"
+					:aria-selected="selectedStateKey === schematicBlockStateKey(block)"
+					:title="`${displayName(block.name)}\n${block.name}${stateProperties(block) ? ` [${stateProperties(block)}]` : ''}`"
 					role="option"
-					@click="selectedName = block.name"
+					@click="selectedStateKey = schematicBlockStateKey(block)"
 					@dblclick="confirm"
 				>
 					<SchematicMaterialSwatch
@@ -167,9 +177,15 @@ defineExpose({ show })
 					<span v-else class="block-picker-swatch bg-surface-4"></span>
 					<span class="block-picker-copy">
 						<strong>{{ displayName(block.name) }}</strong>
-						<small>{{ block.name }}</small>
+						<small>
+							{{ block.name
+							}}<template v-if="stateProperties(block)"> [{{ stateProperties(block) }}]</template>
+						</small>
 					</span>
-					<span v-if="selectedName === block.name" class="block-picker-check">
+					<span
+						v-if="selectedStateKey === schematicBlockStateKey(block)"
+						class="block-picker-check"
+					>
 						<CheckIcon />
 					</span>
 				</button>

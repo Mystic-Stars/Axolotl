@@ -24,7 +24,7 @@ export interface ContentSelectionItem {
 	provider: ContentSelectionProvider
 	projectId: string
 	providerProjectId: string
-	versionId: string
+	versionId?: string
 	contentType: ContentSelectionType
 	title: string
 	iconUrl?: string | null
@@ -34,6 +34,7 @@ export interface ContentSelectionItem {
 	fileName?: string | null
 	sha1?: string | null
 	identity?: ContentIdentity
+	versionPending?: boolean
 }
 
 export interface PreparedSelection {
@@ -67,6 +68,13 @@ export interface ContentSelectionContext {
 		slug?: string | null,
 	) => boolean
 	isInstalling: (key: string) => boolean
+	hasPendingVersions: ComputedRef<boolean>
+	updateVersion: (
+		key: string,
+		versionId: string,
+		preferences?: BrowseInstallPreferences,
+		sha1?: string,
+	) => void
 	installSelected: () => Promise<boolean>
 	setPreviewModal: (modal: InstanceType<typeof ContentInstallPreviewModal> | null) => void
 }

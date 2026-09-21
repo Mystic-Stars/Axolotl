@@ -78,6 +78,7 @@ export type SchematicChangedChunk = {
 export type SchematicEditResult = {
 	manifest: SchematicPreviewManifest
 	changedChunks: SchematicChangedChunk[]
+	appliedPaletteIndices: number[]
 }
 
 export type SchematicTransform =

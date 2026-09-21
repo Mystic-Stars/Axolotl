@@ -82,6 +82,19 @@ impl PreviewBlockState {
     }
 }
 
+fn replacement_state(
+    source: &PreviewBlockState,
+    target: &PreviewBlockState,
+) -> PreviewBlockState {
+    let mut state = target.clone();
+    for (key, value) in &source.properties {
+        if state.properties.contains_key(key) {
+            state.properties.insert(key.clone(), value.clone());
+        }
+    }
+    state
+}
+
 #[derive(Clone, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PreviewChunkDescriptor {
@@ -166,6 +179,7 @@ pub struct PreviewChangedChunk {
 pub struct PreviewEditResult {
     pub manifest: PreviewManifest,
     pub changed_chunks: Vec<PreviewChangedChunk>,
+    pub applied_palette_indices: Vec<u32>,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize)]
@@ -347,29 +361,59 @@ pub fn schematic_preview_apply_edits(
             "The schematic preview session has expired".to_string()
         })?;
     let mut session = (*active[session_index]).clone();
-    let target_palette_index = if let Some(mut state) = target_state {
+    let target_state = target_state.map(|mut state| {
         state.name = normalize_block_name(&state.name);
-        let key = state.key();
-        if let Some(index) = session
-            .manifest
-            .palette
-            .iter()
-            .position(|candidate| candidate.key() == key)
-        {
-            Some(index as u32)
-        } else {
-            validate_palette_size(session.manifest.palette.len() + 1)?;
-            let index = session.manifest.palette.len() as u32;
-            session.manifest.palette.push(state);
-            Some(index)
-        }
-    } else {
-        None
-    };
+        state
+    });
     let mut changed = BTreeSet::<(String, [i32; 3])>::new();
+    let mut applied_palette_indices = Vec::with_capacity(edits.len());
     for edit in edits {
-        let requested_palette_index =
-            target_palette_index.unwrap_or(edit.palette_index);
+        let source_palette_index = {
+            let region = session
+                .regions
+                .iter()
+                .find(|region| region.manifest.id == edit.region_id)
+                .ok_or_else(|| "Unknown schematic region".to_string())?;
+            let chunk_position =
+                edit.position.map(|value| value.div_euclid(CHUNK_SIZE));
+            let local = edit
+                .position
+                .map(|value| value.rem_euclid(CHUNK_SIZE) as usize);
+            let block_index = local[1] * 256 + local[2] * 16 + local[0];
+            region
+                .chunks
+                .get(&chunk_position)
+                .map(|chunk| chunk.blocks[block_index])
+                .unwrap_or(0)
+        };
+        let requested_palette_index = if let Some(target) = &target_state {
+            let source = session
+                .manifest
+                .palette
+                .get(source_palette_index as usize)
+                .ok_or_else(|| {
+                    format!(
+                        "Unknown schematic palette entry {source_palette_index}"
+                    )
+                })?;
+            let state = replacement_state(source, target);
+            let key = state.key();
+            if let Some(index) = session
+                .manifest
+                .palette
+                .iter()
+                .position(|candidate| candidate.key() == key)
+            {
+                index as u32
+            } else {
+                validate_palette_size(session.manifest.palette.len() + 1)?;
+                let index = session.manifest.palette.len() as u32;
+                session.manifest.palette.push(state);
+                index
+            }
+        } else {
+            edit.palette_index
+        };
         let palette_index = session
             .manifest
             .palette
@@ -386,6 +430,7 @@ pub fn schematic_preview_apply_edits(
                     requested_palette_index
                 }
             })?;
+        applied_palette_indices.push(palette_index);
         let region = session
             .regions
             .iter_mut()
@@ -415,6 +460,7 @@ pub fn schematic_preview_apply_edits(
                 position,
             })
             .collect(),
+        applied_palette_indices,
     };
     active[session_index] = Arc::new(session);
     Ok(result)
@@ -2012,6 +2058,21 @@ mod tests {
         assert!(parse_state_string("minecraft:light").is_air());
         assert!(parse_state_string("minecraft:barrier").is_air());
         assert!(parse_state_string("minecraft:structure_void").is_air());
+    }
+
+    #[test]
+    fn replacement_states_preserve_properties_supported_by_the_target() {
+        let source = parse_state_string(
+            "minecraft:oak_slab[type=top,waterlogged=true,custom=source]",
+        );
+        let target = parse_state_string(
+            "minecraft:stone_slab[type=bottom,waterlogged=false]",
+        );
+
+        assert_eq!(
+            replacement_state(&source, &target).key(),
+            "minecraft:stone_slab[type=top,waterlogged=true]"
+        );
     }
 
     #[test]

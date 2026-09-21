@@ -2499,6 +2499,7 @@ async fn install_fixed_modrinth_content(
             version_id: version_id.to_string(),
             dependent_on_version_id: None,
             required: true,
+            metadata: None,
         },
         state,
     )

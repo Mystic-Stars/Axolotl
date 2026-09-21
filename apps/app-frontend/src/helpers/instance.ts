@@ -768,6 +768,15 @@ export interface ResolvedContent {
 	version_id: string
 	dependent_on_version_id?: string | null
 	required?: boolean
+	metadata?: ContentMetadata | null
+}
+
+export interface ContentMetadata {
+	title?: string | null
+	version_number?: string | null
+	icon_url?: string | null
+	filename?: string | null
+	sha1?: string | null
 }
 
 export interface ResolveContentPlan {

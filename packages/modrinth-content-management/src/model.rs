@@ -68,6 +68,22 @@ pub struct ResolvedContent {
     pub dependent_on_version_id: Option<String>,
     #[serde(default = "default_true")]
     pub required: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub metadata: Option<ContentMetadata>,
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+pub struct ContentMetadata {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub version_number: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub icon_url: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub filename: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sha1: Option<String>,
 }
 
 fn default_true() -> bool {
@@ -109,6 +125,12 @@ pub struct Version {
     pub game_versions: Vec<String>,
     #[serde(default)]
     pub loaders: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub version_number: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub filename: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sha1: Option<String>,
 }
 
 fn default_version_type() -> String {

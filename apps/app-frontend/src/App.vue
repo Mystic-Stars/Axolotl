@@ -419,11 +419,12 @@ const pendingUpdateAnnouncementVersion = ref(null)
 const updateAnnouncementShowing = ref(false)
 
 const isMaximized = ref(false)
+const mojangAuthSourceReady = ref(false)
 
 const authUnreachableDebug = useDebugLogger('AuthReachableChecker')
 const authServerQuery = useQuery({
 	queryKey: ['authServerReachability'],
-	enabled: computed(() => !browserOffline.value),
+	enabled: computed(() => mojangAuthSourceReady.value && !browserOffline.value),
 	queryFn: async () => {
 		try {
 			await check_reachable()
@@ -1322,6 +1323,14 @@ async function exportNotificationErrorLogs(notification) {
 }
 
 async function setupApp() {
+	try {
+		await reconcileMojangAuthSourceAtStartup()
+	} catch (error) {
+		handleError(error)
+	} finally {
+		mojangAuthSourceReady.value = true
+	}
+
 	const initialSettings = await getSettings()
 	await downloadManager.start()
 	const {
@@ -1439,8 +1448,6 @@ async function setupApp() {
 	} else {
 		showOnboarding.value = !onboarded
 	}
-	void reconcileMojangAuthSourceAtStartup().catch(handleError)
-
 	isMaximized.value = await getCurrentWindow().isMaximized()
 
 	unlistenWindowResize = await getCurrentWindow().onResized(() => {

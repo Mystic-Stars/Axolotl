@@ -1107,6 +1107,7 @@ mod tests {
                     version_id: "versionA".into(),
                     dependent_on_version_id: None,
                     required: true,
+                    metadata: None,
                 },
                 dependencies: Vec::new(),
                 skipped: Vec::new(),
