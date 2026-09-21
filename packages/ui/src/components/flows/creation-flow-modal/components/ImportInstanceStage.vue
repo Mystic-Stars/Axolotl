@@ -29,7 +29,8 @@
 import { FileIcon, FolderIcon } from '@modrinth/assets'
 import { BigOptionButton, defineMessages, useVIntl } from '@modrinth/ui'
 
-import { injectFilePicker } from '../../../providers/file-picker'
+import { injectFilePicker } from '#ui/providers/file-picker'
+
 import { injectCreationFlowContext } from '../creation-flow-context'
 
 const ctx = injectCreationFlowContext()

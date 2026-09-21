@@ -27,6 +27,10 @@ export default mergeConfig(
 				provider: playwright(),
 				instances: [{ browser: 'chromium' }],
 				headless: true,
+				// Vitest's default (63315) can land inside a Windows Hyper-V/WSL
+				// reserved port range, where binding fails with EACCES rather
+				// than the port merely being busy, so the run cannot start.
+				api: 51234,
 			},
 		},
 	}),
