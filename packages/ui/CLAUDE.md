@@ -11,21 +11,24 @@ src/
 ├── layouts/          # Self-contained page layouts (see below)
 ├── providers/        # Dependency injection contexts (createContext pattern)
 ├── utils/            # Utility functions and constants
-├── pages/            # Cross platform page components
-├── locales/          # 34 language locale files (FormatJS)
+├── locales/          # 33 language locale files (FormatJS)
 ├── styles/           # Tailwind CSS utilities
 ```
 
-Each subdirectory under `components/` has an `index.ts` barrel file. All public API is re-exported from the root `index.ts`.
+Each subdirectory under `components/` has an `index.ts` barrel file. All public API is re-exported from the root `index.ts`, which is the only entry consumers should import from — reaching into `@modrinth/ui/src/*` is blocked by ESLint.
 
 ### `src/layouts/`
 
-Self-contained page layouts shared across frontends. Split into two categories:
+Self-contained page layouts, currently all consumed by the desktop application:
 
 - **`shared/`** — Reusable layout modules with their own components, composables, providers, and types. Each module is a self-contained unit (e.g. `shared/content-tab/` contains the content/mods tab layout with its own `layout.vue`, `components/`, `composables/`, `providers/`, and `types.ts`).
-- **`wrapped/`** — Page-level Vue components that mirror route structures. These are full page implementations consumed by the desktop application and, where appropriate, the website.
+- **`wrapped/`** — Intended for page-level components mirroring route structures. It is currently empty (its hosting pages were removed); the website does not consume any shared layout, as it provides none of the DI contracts they require.
 
 Files inside `layouts/` use the `#ui/*` import alias (resolved via the `"imports"` field in `package.json`) to reference other `src/` modules like `#ui/components/base/ButtonStyled.vue` or `#ui/composables/i18n`.
+
+### Platform independence
+
+Components here must stay platform-agnostic: platform capabilities arrive through the `providers/` DI contracts. Importing `@tauri-apps/*` from this package is blocked by ESLint, because the Nuxt website consumes it too and has no Tauri runtime.
 
 # Code Guidelines
 
