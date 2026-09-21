@@ -23,7 +23,6 @@ import type {
 	BrowseDisplayMode,
 	BrowseDisplayModeOption,
 	BrowseInstallContentType,
-	BrowseInstallPreferences,
 	CardAction,
 	ProjectType,
 	Tags,
