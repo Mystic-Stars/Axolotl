@@ -115,9 +115,9 @@ import {
 import { computed, ref } from 'vue'
 
 import InstanceIcon from '@/components/ui/InstanceIcon.vue'
-import { create_group, set_group_memberships, list_groups } from '@/helpers/instance-groups'
-import { list } from '@/helpers/instance'
 import { FAVORITES_GROUP_ID } from '@/composables/useInstanceGroups'
+import { list } from '@/helpers/instance'
+import { create_group, list_groups, set_group_memberships } from '@/helpers/instance-groups'
 import type { GameInstance } from '@/helpers/types'
 
 const { formatMessage } = useVIntl()

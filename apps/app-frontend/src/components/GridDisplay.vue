@@ -39,18 +39,13 @@ import Draggable from 'vuedraggable'
 
 import ContextMenu from '@/components/ui/ContextMenu.vue'
 import InstanceGroup from '@/components/ui/library/InstanceGroup.vue'
-import InstanceGroupModal from '@/components/ui/modal/InstanceGroupModal.vue'
 import ConfirmDeleteInstanceModal from '@/components/ui/modal/ConfirmDeleteInstanceModal.vue'
+import InstanceGroupModal from '@/components/ui/modal/InstanceGroupModal.vue'
 import { UNGROUPED_GROUP_KEY, useGridGrouping } from '@/composables/useGridGrouping'
-import {
-	MAX_INSTANCE_GROUP_NAME_LENGTH,
-	FAVORITES_GROUP_ID,
-	UNGROUPED_GROUP_ID,
-	useInstanceGroups,
-} from '@/composables/useInstanceGroups'
+import { FAVORITES_GROUP_ID, useInstanceGroups } from '@/composables/useInstanceGroups'
 import { trackEvent } from '@/helpers/analytics'
 import { install_duplicate_instance } from '@/helpers/install'
-import { edit, kill, remove, run, set_pinned } from '@/helpers/instance'
+import { kill, remove, run, set_pinned } from '@/helpers/instance'
 import { create_group as createGroup } from '@/helpers/instance-groups'
 import {
 	getLastLibraryDisplayMode,
@@ -145,7 +140,7 @@ const messages = defineMessages({
 		id: 'app.library.context-menu.unpin-instance',
 		defaultMessage: 'Unpin instance',
 	},
-	removeFromGroup: {
+	removeFromContextMenu: {
 		id: 'app.library.context-menu.remove-from-group',
 		defaultMessage: 'Remove from group',
 	},
@@ -173,18 +168,16 @@ const optionMessages = {
 const formatOption = (option) =>
 	optionMessages[option] ? formatMessage(optionMessages[option]) : option
 
-const props = defineProps({
-	instances: {
-		type: Array,
-		default() {
-			return []
-		},
+const props = withDefaults(
+	defineProps<{
+		instances?: GameInstance[]
+		label?: string
+	}>(),
+	{
+		instances: () => [],
+		label: '',
 	},
-	label: {
-		type: String,
-		default: '',
-	},
-})
+)
 
 const instanceOptions = ref(null)
 const backgroundContextMenu = ref(null)
@@ -363,7 +356,7 @@ const {
 	deleteGroupById,
 	reorderGroups,
 	setMemberships,
-} = useInstanceGroups(filteredInstances as any)
+} = useInstanceGroups(filteredInstances)
 
 const groupPendingNameEdit = ref<string | null>(null)
 
@@ -1095,7 +1088,7 @@ async function handleInstanceDragEnd(event: {
 			</template>
 			<template #remove_from_group>
 				<MinusIcon />
-				{{ formatMessage(messages.removeFromGroup) }}
+				{{ formatMessage(messages.removeFromContextMenu) }}
 			</template>
 		</ContextMenu>
 		<ContextMenu ref="backgroundContextMenu" @option-clicked="handleBackgroundOption">

@@ -12,10 +12,8 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-	(e: 'contextmenu', event: MouseEvent): void
-	(e: 'card-click', event: MouseEvent): void
-	(e: 'start-long-press'): void
-	(e: 'cancel-long-press'): void
+	(e: 'contextmenu' | 'card-click', event: MouseEvent): void
+	(e: 'start-long-press' | 'cancel-long-press'): void
 }>()
 
 const cardElement = ref<HTMLElement>()

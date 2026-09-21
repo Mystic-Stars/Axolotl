@@ -67,10 +67,6 @@ allow('runtime-set', [
 		'apps/app-frontend/src/store/theme.ts setProperty `--custom-bg-component-opacity`',
 	],
 	[
-		'floating-action-bar-clearance',
-		'packages/ui/src/components/base/FloatingActionBar.vue setProperty `--floating-action-bar-clearance`',
-	],
-	[
 		'floating-action-bar-left-offset',
 		'packages/ui/src/components/base/FloatingActionBar.vue :style `--floating-action-bar-left-offset`',
 	],

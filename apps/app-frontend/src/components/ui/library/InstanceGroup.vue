@@ -10,14 +10,14 @@ import {
 	XIcon,
 } from '@modrinth/assets'
 import {
+	Button,
 	ButtonStyled,
 	Checkbox,
+	commonMessages,
 	defineMessages,
 	IconButton,
 	InlineEditableText,
 	NewModal,
-	commonMessages,
-	Button,
 	TagItem,
 	useVIntl,
 } from '@modrinth/ui'
@@ -107,19 +107,18 @@ const props = defineProps<{
 	groupPendingNameEdit?: string | null
 }>()
 
+// Events sharing a payload shape are declared as one union signature; the
+// per-event payload names are documentation only, not part of the type.
 const emit = defineEmits<{
-	(e: 'toggleCollapse', sectionKey: string): void
+	(
+		e: 'toggleCollapse' | 'deleteGroup' | 'addToGroup' | 'handleCheckboxClick' | 'startLongPress',
+		key: string,
+	): void
 	(e: 'handleContextMenu', event: MouseEvent, instanceId: string, sectionKey: string): void
-	(e: 'deleteGroup', groupKey: string): void
 	(e: 'renameGroup', oldKey: string, newKey: string): void
-	(e: 'handleCheckboxClick', instanceId: string): void
 	(e: 'handleCardClick', instanceId: string, event: MouseEvent): void
-	(e: 'startLongPress', instanceId: string): void
-	(e: 'cancelLongPress'): void
+	(e: 'cancelLongPress' | 'newInstance' | 'renameComplete'): void
 	(e: 'moveGroup', groupKey: string, direction: -1 | 1): void
-	(e: 'addToGroup', groupKey: string): void
-	(e: 'newInstance'): void
-	(e: 'renameComplete'): void
 }>()
 
 const groupOptions = ref<InstanceType<typeof ContextMenu>>()
@@ -365,6 +364,10 @@ function onStartLongPress(instanceId: string) {
 					>
 						<template #default="{ isDragging }">
 							<div
+								:class="{
+									'pointer-events-none': selectMode,
+									'relative cursor-pointer select-none rounded-lg transition-all hover:brightness-90 active:scale-[0.98]': true,
+								}"
 								@click.capture="
 									(event: MouseEvent) => {
 										if (event.shiftKey && !selectMode) {
@@ -373,10 +376,6 @@ function onStartLongPress(instanceId: string) {
 										}
 									}
 								"
-								:class="{
-									'pointer-events-none': selectMode,
-									'relative cursor-pointer select-none rounded-lg transition-all hover:brightness-90 active:scale-[0.98]': true,
-								}"
 							>
 								<Instance
 									:instance="instance"
