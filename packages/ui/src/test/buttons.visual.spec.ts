@@ -116,7 +116,9 @@ describe('button system style contract', () => {
 		const disabledStyle = getComputedStyle(element)
 
 		expect(element.hasAttribute('disabled') || element.getAttribute('aria-disabled')).toBeTruthy()
-		expect(computedToken(element, '--surface-2')).toBeDefined()
+		// `computedToken` returns a string, so `toBeDefined()` would pass on the
+		// empty string too; assert the token actually resolved.
+		expect(computedToken(element, '--surface-2')).not.toBe('')
 		expect(disabledStyle.cursor).not.toBe('pointer')
 	})
 })

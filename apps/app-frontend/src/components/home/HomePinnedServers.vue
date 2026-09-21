@@ -184,7 +184,7 @@ async function unpinLocalServer(serverId: string) {
 		</div>
 		<ul
 			v-else
-			class="home-server-list grid min-w-0 min-h-0 flex-1 grid-auto-rows-max gap-1 m-0 overflow-x-hidden overflow-y-auto pr-1 list-none"
+			class="home-server-list grid min-w-0 min-h-0 flex-1 grid-auto-rows-max content-start gap-1 m-0 list-none overflow-x-hidden overflow-y-auto p-0 pr-1"
 		>
 			<li v-for="server in servers" :key="serverKey(server.world)">
 				<SmartClickable>

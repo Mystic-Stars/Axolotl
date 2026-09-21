@@ -21,10 +21,15 @@ export default config
 	})
 	.append({
 		// `node --test` resolves `@modrinth/ui` to `node.ts`, a deliberate Node
-		// stub that exports only the i18n helpers. Pure-logic modules that a
-		// `node --test` file imports therefore cannot use the barrel and name
-		// their module directly, which the rule must allow.
-		files: ['src/**/*.test.ts', 'src/lab/schematic-preview/instance-files.ts'],
+		// stub that exports only the i18n helpers, so a pure-logic module that a
+		// `node --test` file imports cannot use the barrel and must name its
+		// module. Listed per file rather than as `src/**/*.test.ts` so the
+		// boundary stays enforced everywhere else — a wide exception would let a
+		// new deep import into any test pass unnoticed.
+		files: [
+			'src/helpers/browse-install-preferences.test.ts',
+			'src/lab/schematic-preview/instance-files.ts',
+		],
 		rules: {
 			'no-restricted-imports': 'off',
 		},

@@ -107,16 +107,13 @@ const props = defineProps<{
 	groupPendingNameEdit?: string | null
 }>()
 
-// Events sharing a payload shape are declared as one union signature; the
-// per-event payload names are documentation only, not part of the type.
+// Events are grouped only where the payload shapes genuinely match; the
+// per-event names are documentation, not part of the type.
 const emit = defineEmits<{
-	(
-		e: 'toggleCollapse' | 'deleteGroup' | 'addToGroup' | 'handleCheckboxClick' | 'startLongPress',
-		key: string,
-	): void
+	(e: 'toggleCollapse' | 'deleteGroup' | 'addToGroup' | 'startLongPress', id: string): void
+	(e: 'handleCheckboxClick' | 'handleCardClick', instanceId: string, event: MouseEvent): void
 	(e: 'handleContextMenu', event: MouseEvent, instanceId: string, sectionKey: string): void
 	(e: 'renameGroup', oldKey: string, newKey: string): void
-	(e: 'handleCardClick', instanceId: string, event: MouseEvent): void
 	(e: 'cancelLongPress' | 'newInstance' | 'renameComplete'): void
 	(e: 'moveGroup', groupKey: string, direction: -1 | 1): void
 }>()

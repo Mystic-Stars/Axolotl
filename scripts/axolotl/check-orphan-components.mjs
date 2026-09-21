@@ -45,12 +45,33 @@ for (const root of SEARCH_ROOTS) {
 
 const orphans = []
 
+/**
+ * Reachability, not text coincidence: a component counts as referenced when it
+ * is imported by name or path, or used as a tag / dynamic binding. A bare word
+ * match would be satisfied by a comment, a string, or an unrelated identifier
+ * of the same name, which would let a dead component evade the check.
+ */
+function isReferenced(name, text) {
+	const importStatement = new RegExp(
+		`import\\s[^;]*\\b${name}\\b[^;]*from\\s*['"][^'"]+['"]`,
+	)
+	const namedImport = new RegExp(`\\b${name}\\b\\s*[,}]`)
+	const elementTag = new RegExp(`<${name}[\\s/>]`)
+	const dynamicBinding = new RegExp(`\\b(?:is|component)\\s*[:=]\\s*['"]?${name}\\b`)
+	return (
+		importStatement.test(text) ||
+		(namedImport.test(text) && /import\s/.test(text)) ||
+		elementTag.test(text) ||
+		dynamicBinding.test(text)
+	)
+}
+
 for await (const component of walk(COMPONENT_ROOT, /\.vue$/)) {
 	const name = path.basename(component, '.vue')
 	const componentDirectory = path.dirname(component)
 
-	// Each component is accountable to its own barrel; a sibling that is not
-	// exported there is only suspicious, not dead, unless nothing else names it.
+	// Each component is accountable to its own barrel; one that is not exported
+	// there is only suspicious, not dead, unless nothing else reaches it.
 	const barrelPath = path.join(componentDirectory, 'index.ts')
 	let exported = false
 	try {
@@ -62,7 +83,7 @@ for await (const component of walk(COMPONENT_ROOT, /\.vue$/)) {
 
 	const referenced = sources.some(({ file, text }) => {
 		if (file === component) return false
-		return new RegExp(`\\b${name}\\b`).test(text)
+		return isReferenced(name, text)
 	})
 
 	if (!referenced) orphans.push(component)

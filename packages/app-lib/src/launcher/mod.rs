@@ -1373,6 +1373,11 @@ async fn install_minecraft_with_local_source(
         return Ok(());
     };
 
+    // Loader processors are separate JVMs. Pass the launcher's configured
+    // custom proxy explicitly because child Java processes do not inherit
+    // reqwest's proxy configuration.
+    let java_proxy_args = state.proxy_config().await?.java_args();
+
     if content_set.loader == ModLoader::OptiFine
         && let Some(loader_version) = &loader_version
     {
@@ -1547,6 +1552,7 @@ async fn install_minecraft_with_local_source(
 
                 let mut command = Command::new(&java_version.path);
                 command
+                    .args(&java_proxy_args)
                     .arg("-cp")
                     .arg(args::get_class_paths_jar(
                         &libraries_dir,
