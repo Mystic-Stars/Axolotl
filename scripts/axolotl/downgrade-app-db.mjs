@@ -148,6 +148,13 @@ const REVERTIBLE_SCHEMA = {
 	20260920160000: {
 		tables: ['pending_backup_repository_cleanups'],
 	},
+	// synced pack selection state
+	20260922110000: {
+		columns: [
+			{ table: 'synced_pack_catalog', column: 'selected' },
+			{ table: 'synced_pack_catalog', column: 'selection_order' },
+		],
+	},
 	// settings.ui_font / mono_font
 	20260919120000: {
 		columns: [
