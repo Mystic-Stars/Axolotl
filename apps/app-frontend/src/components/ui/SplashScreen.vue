@@ -6,7 +6,7 @@
 				data-tauri-drag-region
 			>
 				<img class="app-logo" src="@/assets/axolotl.png" alt="Axolotl Launcher" />
-				<ProgressBar class="max-w-xs" :progress="Math.min(loadingProgress, 100)" />
+				<ProgressBar class="max-w-xs" :progress="Math.min(loadingProgress, 100)" :max="100" />
 				<span v-if="message">{{ message }}</span>
 			</div>
 			<div class="gradient-bg" data-tauri-drag-region></div>
@@ -17,10 +17,9 @@
 </template>
 
 <script setup>
-import { defineMessages, injectLoadingState, useVIntl } from '@modrinth/ui'
+import { defineMessages, injectLoadingState, ProgressBar, useVIntl } from '@modrinth/ui'
 import { ref, watch } from 'vue'
 
-import ProgressBar from '@/components/ui/ProgressBar.vue'
 import { loading_listener } from '@/helpers/events.js'
 
 const doneLoading = ref(false)
