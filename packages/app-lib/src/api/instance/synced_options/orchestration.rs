@@ -716,9 +716,9 @@ pub async fn set_instance_option(
     // A global toggle can update this preference before the local projection
     // is created. Re-run the enable path instead of returning early solely
     // because the preference already says enabled.
-    if previous_enabled == enabled && !enabled {
-        return Ok(metadata);
-    }
+    // Disabling is intentionally idempotent: the persisted preference may
+    // already be false while an old projection or pending operation still
+    // needs to be detached.
     let global = get_global_options_with_state(&state).await?;
     let can_reconcile = !sync_files_are_protected(&metadata)
         && (option_can_apply_while_running(option)
@@ -1225,6 +1225,21 @@ pub async fn reconcile_changed_file(
         }
         "resourcepacks" => {
             let option = SyncedOption::ResourcePacks;
+            if !option_participates(&metadata, option, &state).await? {
+                return Ok(());
+            }
+            synced_packs::seed_from_instance(&metadata, option, &state).await?;
+            for target in crate::state::list_instances(&state.pool).await? {
+                if !sync_files_are_protected(&target)
+                    && option_participates(&target, option, &state).await?
+                {
+                    synced_packs::reconcile(&target, option, &state).await?;
+                }
+            }
+            Ok(())
+        }
+        "datapacks" => {
+            let option = SyncedOption::DataPacks;
             if !option_participates(&metadata, option, &state).await? {
                 return Ok(());
             }

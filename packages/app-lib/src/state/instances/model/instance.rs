@@ -43,7 +43,7 @@ impl SyncedOption {
         Self::DataPacks,
     ];
     pub const fn is_available(self) -> bool {
-        !matches!(self, Self::DataPacks)
+        true
     }
     pub const fn as_str(self) -> &'static str {
         match self {

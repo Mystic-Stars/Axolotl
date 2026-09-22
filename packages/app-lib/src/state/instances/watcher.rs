@@ -85,7 +85,23 @@ pub async fn init_watcher() -> crate::Result<FileWatcher> {
                     let mut scan_manual_downloads = false;
 
                     for e in &events {
-                        let mut instance_path = None;
+                        let direct_instance = instance_ids
+                            .iter()
+                            .filter_map(|(root, instance_id)| {
+                                let root = Path::new(root);
+                                root.is_absolute()
+                                    .then_some((root, instance_id))
+                                    .filter(|(root, _)| {
+                                        e.path.starts_with(root)
+                                    })
+                            })
+                            .max_by_key(|(root, _)| root.components().count())
+                            .map(|(root, instance_id)| {
+                                (root.to_path_buf(), instance_id.clone())
+                            });
+                        let mut instance_path = direct_instance
+                            .as_ref()
+                            .and_then(|(root, _)| root.file_name());
 
                         let mut found = false;
                         for component in e.path.components() {
@@ -104,8 +120,14 @@ pub async fn init_watcher() -> crate::Result<FileWatcher> {
                         if let Some(instance_path) = instance_path {
                             let instance_path_str =
                                 instance_path.to_string_lossy().to_string();
-                            let Some(instance_id) =
-                                instance_ids.get(&instance_path_str).cloned()
+                            let Some(instance_id) = direct_instance
+                                .as_ref()
+                                .map(|(_, instance_id)| instance_id.clone())
+                                .or_else(|| {
+                                    instance_ids
+                                        .get(&instance_path_str)
+                                        .cloned()
+                                })
                             else {
                                 continue;
                             };
@@ -126,6 +148,7 @@ pub async fn init_watcher() -> crate::Result<FileWatcher> {
                                             | "options.txt"
                                             | "servers.dat"
                                             | "resourcepacks"
+                                            | "datapacks"
                                     )
                                 })
                             {
@@ -417,10 +440,21 @@ pub(crate) async fn watch_instances_init(
     };
 
     for instance in instances {
+        let Ok(content_root) =
+            crate::state::instances::commands::instance_content_root(
+                dirs, &instance,
+            )
+        else {
+            tracing::warn!(
+                instance_id = instance.id,
+                "Unable to resolve instance content root for watcher"
+            );
+            continue;
+        };
         watch_instance_folder(
             &instance.id,
             &instance.path,
-            &dirs.instance_game_dir(&instance),
+            &content_root,
             watcher,
         )
         .await;
@@ -517,6 +551,10 @@ pub(crate) async fn watch_instance_folder(
         .write()
         .await
         .insert(instance_path.to_string(), instance_id.to_string());
+    watcher.instance_ids.write().await.insert(
+        full_instance_path.to_string_lossy().to_string(),
+        instance_id.to_string(),
+    );
     watcher
         .content_changes
         .write()
@@ -540,7 +578,12 @@ pub(crate) async fn unwatch_instance_folder(
         let _ = debouncer.watcher().unwatch(&full_path);
     }
 
-    let instance_id = watcher.instance_ids.write().await.remove(instance_path);
+    let instance_id = {
+        let mut instance_ids = watcher.instance_ids.write().await;
+        let instance_id = instance_ids.remove(instance_path);
+        instance_ids.remove(&full_instance_path.to_string_lossy().to_string());
+        instance_id
+    };
     if let Some(instance_id) = instance_id {
         watcher.content_changes.write().await.remove(&instance_id);
     }

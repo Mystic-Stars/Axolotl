@@ -106,12 +106,16 @@ pub(super) async fn materialize_yosbr_options_if_missing(
     metadata: &InstanceMetadata,
     state: &State,
 ) -> crate::Result<()> {
-    let path = options_path(metadata, state);
+    let path = options_path(metadata, state)?;
     if options_target_exists(&path).await? {
         return Ok(());
     }
     let template_path =
-        super::super::instance_dir(metadata, state).join(YOSBR_OPTIONS_PATH);
+        crate::state::instances::commands::instance_content_root(
+            &state.directories,
+            &metadata.instance,
+        )?
+        .join(YOSBR_OPTIONS_PATH);
     let Some((bytes, _, _)) =
         read_pack_options(&template_path, "YOSBR options.txt").await?
     else {
@@ -154,7 +158,7 @@ pub(in crate::api::instance) async fn prepare_instance_update_with_state(
     if sync_is_active_for_instance(metadata, state).await? {
         let _ = capture_instance_options(metadata, state, true).await?;
     }
-    let path = options_path(metadata, state);
+    let path = options_path(metadata, state)?;
     let (had_file, bytes, sha1) = if path.exists() {
         let file_metadata = tokio::fs::symlink_metadata(&path)
             .await
@@ -204,7 +208,7 @@ pub async fn capture_pack_base(
     let metadata = crate::state::get_instance(instance_id, &state.pool)
         .await?
         .ok_or_else(|| input_error("Unknown instance"))?;
-    let path = options_path(&metadata, &state);
+    let path = options_path(&metadata, &state)?;
     let feature = SyncedOption::GameOptions.as_str();
     sqlx::query!(
         "
@@ -240,7 +244,11 @@ pub async fn capture_pack_base(
     }
 
     let captured = if source.is_some_and(GameOptionsPackSource::is_yosbr) {
-        let template_path = super::super::instance_dir(&metadata, &state)
+        let template_path =
+            crate::state::instances::commands::instance_content_root(
+                &state.directories,
+                &metadata.instance,
+            )?
             .join(YOSBR_OPTIONS_PATH);
         let template = read_pack_options(&template_path, "YOSBR options.txt")
             .await?

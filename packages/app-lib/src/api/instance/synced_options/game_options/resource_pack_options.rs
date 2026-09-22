@@ -50,7 +50,7 @@ pub(in crate::api::instance) async fn read_resource_pack_entries(
     metadata: &InstanceMetadata,
     state: &State,
 ) -> crate::Result<Option<ResourcePackOptions>> {
-    let path = options_path(metadata, state);
+    let path = options_path(metadata, state)?;
     if !path.exists() {
         return Ok(None);
     }
@@ -77,7 +77,7 @@ pub(in crate::api::instance) async fn merge_resource_pack_entries(
     if sync_files_are_protected(metadata) {
         return Ok(ResourcePackOptionsUpdate::Deferred);
     }
-    let path = options_path(metadata, state);
+    let path = options_path(metadata, state)?;
     if !path.exists() {
         return Ok(ResourcePackOptionsUpdate::Deferred);
     }

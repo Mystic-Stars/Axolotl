@@ -46,7 +46,7 @@ pub(super) async fn load_participating_instances(
                 state,
             )
             .await?;
-        let path = options_path(&metadata, state);
+        let path = options_path(&metadata, state)?;
         let (document, inspection_error) = if path.exists() {
             match read_document(&path).await {
                 Ok((document, _)) => (Some(document), None),

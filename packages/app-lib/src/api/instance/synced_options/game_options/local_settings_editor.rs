@@ -98,7 +98,7 @@ async fn load_instance_document(
             "Game settings cannot be edited while this instance is installing or updating.",
         ));
     }
-    let path = options_path(&metadata, state);
+    let path = options_path(&metadata, state)?;
     if !path.exists() {
         return Err(input_error(
             "Launch this instance once so Minecraft can create options.txt.",
@@ -406,7 +406,7 @@ pub async fn save_changes(
     }
 
     if changed {
-        io::write(options_path(&metadata, &state), document.serialize()?)
+        io::write(options_path(&metadata, &state)?, document.serialize()?)
             .await?;
     }
     let refreshed = load_editor(instance_id, &state).await?;

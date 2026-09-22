@@ -1,6 +1,6 @@
 use super::super::DesyncServerMode;
 use super::super::synced_options::{
-    get_global_options, instance_dir, instance_is_running,
+    content_dir, get_global_options, instance_is_running,
     instance_option_enabled, option_can_apply_while_running,
     sync_files_are_protected,
 };
@@ -84,7 +84,7 @@ pub(super) async fn pack_from_item(
         .into());
     }
     let bytes = Bytes::from(
-        io::read(instance_dir(metadata, state).join(&item.file_path)).await?,
+        io::read(content_dir(metadata, state)?.join(&item.file_path)).await?,
     );
     let validation_bytes = bytes.clone();
     let project_type = item.project_type;

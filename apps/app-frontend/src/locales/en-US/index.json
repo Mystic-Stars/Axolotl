@@ -180,6 +180,9 @@
   "app.action-bar.no-instances-running": {
     "message": "No instances running"
   },
+  "app.action-bar.announcements": {
+    "message": "Announcements"
+  },
   "app.action-bar.notifications": {
     "message": "Notifications"
   },
@@ -953,24 +956,6 @@
   },
   "app.backup-exit.timeout": {
     "message": "Timed out while waiting for backup operations to stop."
-  },
-  "app.community-announcement.feedback-middle": {
-    "message": ", or share them with us through "
-  },
-  "app.community-announcement.feedback-prefix": {
-    "message": "If you have more ideas or suggestions, please join the player QQ group: "
-  },
-  "app.community-announcement.feedback-suffix": {
-    "message": ". We look forward to improving Axolotl Launcher together!"
-  },
-  "app.community-announcement.response": {
-    "message": "Since Axolotl Launcher was promoted on video platforms, we have received far more love and attention than we expected, along with many thoughtful suggestions and high-quality reports."
-  },
-  "app.community-announcement.thanks": {
-    "message": "I have done my best to personally reply to every comment on the videos. Thank you sincerely for all your support!"
-  },
-  "app.community-announcement.title": {
-    "message": "To all our users"
   },
   "app.content-favorites.add": {
     "message": "Add to favorites"
@@ -6711,6 +6696,12 @@
   "app.remote-announcements.preview-title": {
     "message": "Announcement style preview"
   },
+  "app.remote-announcements.center-title": {
+    "message": "Announcements"
+  },
+  "app.remote-announcements.empty": {
+    "message": "No announcements"
+  },
   "app.remote-announcements.read-all": {
     "message": "Mark all announcements as read"
   },
@@ -7619,12 +7610,6 @@
   },
   "app.settings.about.repository": {
     "message": "Source code"
-  },
-  "app.settings.about.survey": {
-    "message": "Community survey"
-  },
-  "app.settings.about.survey-description": {
-    "message": "Help us improve Axolotl Launcher"
   },
   "app.settings.about.test-error": {
     "message": "Trigger test error"
@@ -10187,21 +10172,6 @@
   },
   "app.splash.updating-app-directory": {
     "message": "Updating app directory..."
-  },
-  "app.survey-promotion.defer-hint": {
-    "message": "If you close this dialog, you can still find the survey later in Settings > About."
-  },
-  "app.survey-promotion.fill-survey": {
-    "message": "Fill out the survey"
-  },
-  "app.survey-promotion.intro": {
-    "message": "To help us improve Axolotl Launcher, we have prepared a short survey and would love to hear your feedback."
-  },
-  "app.survey-promotion.reward": {
-    "message": "Lucky participants will be drawn to win a genuine Minecraft account (redeemable for cash)."
-  },
-  "app.survey-promotion.title": {
-    "message": "Community survey"
   },
   "app.symlink-capability.unsupported": {
     "message": "This system does not support creating symbolic links."

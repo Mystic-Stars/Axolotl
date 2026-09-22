@@ -2,7 +2,7 @@ use super::super::synced_options::game_options::{
     ResourcePackOptionsUpdate, merge_resource_pack_entries,
     merge_resource_pack_order, read_resource_pack_entries,
 };
-use super::super::synced_options::{get_global_options, instance_dir};
+use super::super::synced_options::{content_dir, get_global_options};
 use super::reconciliation::participating;
 use super::selection_compatibility;
 use super::{PackLibrary, PackPlacement, SyncedPack};
@@ -75,7 +75,7 @@ fn local_file(
     sources: &BTreeMap<String, ContentSourceKind>,
 ) -> bool {
     !path.is_empty()
-        && instance_dir(metadata, state).join(path).exists()
+        && content_dir(metadata, state)?.join(path).exists()
         && sources
             .get(path)
             .is_none_or(|kind| *kind == ContentSourceKind::Local)
@@ -268,7 +268,7 @@ pub(super) async fn capture(
                 format
             };
             if !selection_compatibility::compatible(
-                &instance_dir(metadata, state).join(&placement.path),
+                &content_dir(metadata, state)?.join(&placement.path),
                 format,
             )
             .await
@@ -365,7 +365,7 @@ pub(super) async fn apply_removal(
     {
         return Ok(true);
     }
-    let directory = instance_dir(metadata, state);
+    let directory = content_dir(metadata, state)?;
     let mut managed = BTreeSet::new();
     for path in std::iter::once(&placement.path)
         .chain(placement.resource_pack_selection_path.iter())
@@ -404,7 +404,7 @@ pub(super) async fn apply(
     previous_placements: &BTreeMap<String, PackPlacement>,
     state: &State,
 ) -> crate::Result<bool> {
-    let directory = instance_dir(metadata, state);
+    let directory = content_dir(metadata, state)?;
     let global = get_global_options().await?;
     if !global.get(SyncedOption::ResourcePacks)
         || !metadata.synced_options.resource_packs

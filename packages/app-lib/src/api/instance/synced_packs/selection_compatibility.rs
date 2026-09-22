@@ -258,7 +258,7 @@ pub(super) async fn warm(
 ) -> crate::Result<()> {
     if game_format(metadata, state).await.ok().flatten().is_some() {
         let directory =
-            super::super::synced_options::instance_dir(metadata, state);
+            super::super::synced_options::content_dir(metadata, state)?;
         for item in items.iter().filter(|item| {
             item.project_type == crate::state::ProjectType::ResourcePack
         }) {

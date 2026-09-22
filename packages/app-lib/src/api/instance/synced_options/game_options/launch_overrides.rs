@@ -51,7 +51,7 @@ pub async fn apply_launcher_overrides(
     let metadata = crate::state::get_instance(instance_id, &state.pool)
         .await?
         .ok_or_else(|| input_error("Unknown instance"))?;
-    let path = options_path(&metadata, &state);
+    let path = options_path(&metadata, &state)?;
     let (mut document, input_bytes) = if path.exists() {
         read_document(&path).await?
     } else {

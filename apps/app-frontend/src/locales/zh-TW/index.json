@@ -752,24 +752,6 @@
   "app.close-launcher.tray": {
     "message": "隱藏至系統匣"
   },
-  "app.community-announcement.feedback-middle": {
-    "message": "，或於 "
-  },
-  "app.community-announcement.feedback-prefix": {
-    "message": "如果您有更多、更好的想法或建議，歡迎加入我們的 QQ 群組："
-  },
-  "app.community-announcement.feedback-suffix": {
-    "message": " 上向我們提出。期待與大家共同完善 Axolotl Launcher！"
-  },
-  "app.community-announcement.response": {
-    "message": "自從 Axolotl Launcher 在影片平台宣傳以來，我們收穫了遠超預期的喜愛與關注，同時也收到了許多高品質的回饋與提議。"
-  },
-  "app.community-announcement.thanks": {
-    "message": "對於影片評論區裡的留言，我都已盡可能地逐一回覆。承蒙各位厚愛，在此表達最誠摯的感謝！"
-  },
-  "app.community-announcement.title": {
-    "message": "致各位使用者"
-  },
   "app.content-favorites.add": {
     "message": "新增到收藏夾"
   },
@@ -6605,12 +6587,6 @@
   "app.settings.about.repository": {
     "message": "原始碼"
   },
-  "app.settings.about.survey": {
-    "message": "調查問卷"
-  },
-  "app.settings.about.survey-description": {
-    "message": "幫助我們改進 Axolotl Launcher"
-  },
   "app.settings.about.test-error": {
     "message": "觸發測試錯誤"
   },
@@ -7594,21 +7570,6 @@
   },
   "app.splash.updating-app-directory": {
     "message": "正在更新應用程式目錄……"
-  },
-  "app.survey-promotion.defer-hint": {
-    "message": "關閉此彈窗後，你仍可以隨時在「設定 → 關於」頁面中找到並填寫問卷。"
-  },
-  "app.survey-promotion.fill-survey": {
-    "message": "填寫問卷"
-  },
-  "app.survey-promotion.intro": {
-    "message": "為了更好地改進 Axolotl Launcher，我們準備了一份簡短的調查問卷，期待聽到你的回饋。"
-  },
-  "app.survey-promotion.reward": {
-    "message": "我們將從填寫問卷的使用者中抽取幸運使用者，贈送 Minecraft 正版帳號（可折現）。"
-  },
-  "app.survey-promotion.title": {
-    "message": "調查問卷"
   },
   "app.symlink-capability.unsupported": {
     "message": "系統不支持軟連結。"

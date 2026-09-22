@@ -67,6 +67,20 @@
 				</div>
 			</template>
 		</Dropdown>
+		<ButtonStyled type="transparent" circular>
+			<button
+				v-tooltip="formatMessage(messages.announcements)"
+				:aria-label="formatMessage(messages.announcements)"
+				class="relative"
+				@click="openAnnouncementCenter"
+			>
+				<NewspaperIcon />
+				<span
+					v-if="announcementUnreadCount"
+					class="absolute right-0 top-0 size-2 rounded-full bg-red ring-2 ring-bg-raised"
+				/>
+			</button>
+		</ButtonStyled>
 		<Dropdown
 			v-if="activeBackupOperations.length > 0"
 			placement="bottom-end"
@@ -235,6 +249,7 @@ import {
 	DatabaseBackupIcon,
 	DownloadIcon,
 	DropdownIcon,
+	NewspaperIcon,
 	OnlineIndicatorIcon,
 	StarIcon,
 	StopCircleIcon,
@@ -254,7 +269,7 @@ import {
 } from '@modrinth/ui'
 import { convertFileSrc } from '@tauri-apps/api/core'
 import { Dropdown } from 'floating-vue'
-import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import AppUpdateButton from '@/components/ui/app-update-button/index.vue'
@@ -270,6 +285,10 @@ import {
 	listenBackupProgress,
 } from '@/helpers/instance-backup'
 import { get_all as getRunningProcesses, kill as killProcess } from '@/helpers/process'
+import {
+	OPEN_REMOTE_ANNOUNCEMENT_CENTER_EVENT,
+	REMOTE_ANNOUNCEMENTS_UPDATED_EVENT,
+} from '@/helpers/remote-announcements'
 import type { LoadingBar } from '@/helpers/state'
 import { progress_bars_list } from '@/helpers/state'
 import type { GameInstance } from '@/helpers/types'
@@ -359,6 +378,23 @@ const isDownloadsPage = computed(
 
 const showInstances = ref(false)
 const notificationCenterShown = ref(false)
+const announcementUnreadCount = ref(0)
+
+function openAnnouncementCenter() {
+	window.dispatchEvent(new CustomEvent(OPEN_REMOTE_ANNOUNCEMENT_CENTER_EVENT))
+}
+
+function updateAnnouncementCount(event: Event) {
+	const detail = (event as CustomEvent<{ unreadKeys?: string[] }>).detail
+	announcementUnreadCount.value = detail?.unreadKeys?.length ?? 0
+}
+
+onMounted(() => {
+	window.addEventListener(REMOTE_ANNOUNCEMENTS_UPDATED_EVENT, updateAnnouncementCount)
+})
+onBeforeUnmount(() => {
+	window.removeEventListener(REMOTE_ANNOUNCEMENTS_UPDATED_EVENT, updateAnnouncementCount)
+})
 
 interface RunningProcess {
 	uuid: string
@@ -413,6 +449,10 @@ const messages = defineMessages({
 	notifications: {
 		id: 'app.action-bar.notifications',
 		defaultMessage: 'Notifications',
+	},
+	announcements: {
+		id: 'app.action-bar.announcements',
+		defaultMessage: 'Announcements',
 	},
 	clearNotifications: {
 		id: 'app.action-bar.notifications.clear',

@@ -180,6 +180,9 @@
   "app.action-bar.no-instances-running": {
     "message": "没有运行中的实例"
   },
+  "app.action-bar.announcements": {
+    "message": "公告"
+  },
   "app.action-bar.notifications": {
     "message": "通知"
   },
@@ -953,24 +956,6 @@
   },
   "app.backup-exit.timeout": {
     "message": "等待备份任务停止超时。"
-  },
-  "app.community-announcement.feedback-middle": {
-    "message": "，或在 "
-  },
-  "app.community-announcement.feedback-prefix": {
-    "message": "如果您还有更多、更好的想法与建议，欢迎加入玩家交流 QQ 群："
-  },
-  "app.community-announcement.feedback-suffix": {
-    "message": " 中向我们提出。期待与大家共同完善 Axolotl Launcher！"
-  },
-  "app.community-announcement.response": {
-    "message": "自 Axolotl Launcher 在视频平台宣传以来，我们收获了远超预期的喜爱与关注，同时也收到了许多高质量的反馈与建议。"
-  },
-  "app.community-announcement.thanks": {
-    "message": "对于视频评论区里的留言，我都已尽可能地逐一回复。承蒙各位厚爱，在此表达最诚挚的感谢！"
-  },
-  "app.community-announcement.title": {
-    "message": "致各位用户"
   },
   "app.content-favorites.add": {
     "message": "添加到收藏夹"
@@ -6711,6 +6696,12 @@
   "app.remote-announcements.preview-title": {
     "message": "公告样式预览"
   },
+  "app.remote-announcements.center-title": {
+    "message": "公告"
+  },
+  "app.remote-announcements.empty": {
+    "message": "暂无公告"
+  },
   "app.remote-announcements.read-all": {
     "message": "将所有公告标为已读"
   },
@@ -7619,12 +7610,6 @@
   },
   "app.settings.about.repository": {
     "message": "源代码"
-  },
-  "app.settings.about.survey": {
-    "message": "调查问卷"
-  },
-  "app.settings.about.survey-description": {
-    "message": "帮助我们改进 Axolotl Launcher"
   },
   "app.settings.about.test-error": {
     "message": "触发测试错误"
@@ -10202,21 +10187,6 @@
   },
   "app.splash.updating-app-directory": {
     "message": "正在更新应用目录……"
-  },
-  "app.survey-promotion.defer-hint": {
-    "message": "关闭此弹窗后，你仍可以随时在“设置 → 关于”页面中找到并填写问卷。"
-  },
-  "app.survey-promotion.fill-survey": {
-    "message": "填写问卷"
-  },
-  "app.survey-promotion.intro": {
-    "message": "为了更好地改进 Axolotl Launcher，我们准备了一份简短的调查问卷，期待听到你的反馈。"
-  },
-  "app.survey-promotion.reward": {
-    "message": "我们将从填写问卷的用户中抽取幸运用户，赠送 Minecraft 正版账号（可折现）。"
-  },
-  "app.survey-promotion.title": {
-    "message": "调查问卷"
   },
   "app.symlink-capability.unsupported": {
     "message": "系统不支持软链接。"

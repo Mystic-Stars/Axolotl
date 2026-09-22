@@ -163,10 +163,14 @@ pub(crate) async fn create_instance(
 
         config_sync::mark_dirty(&instance_id);
 
+        let content_root = crate::state::instances::commands::instance_content_root(
+            &state.directories,
+            &instance,
+        )?;
         crate::state::instances::watcher::watch_instance_folder(
             &instance.id,
             &instance.path,
-            &state.directories.instance_game_dir(&instance),
+            &content_root,
             &state.file_watcher,
         )
         .await;

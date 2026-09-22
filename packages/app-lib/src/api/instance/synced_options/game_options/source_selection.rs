@@ -21,7 +21,7 @@ pub(in crate::api::instance) async fn initialize_from_source_instance(
     metadata: &InstanceMetadata,
     state: &State,
 ) -> crate::Result<()> {
-    let path = options_path(metadata, state);
+    let path = options_path(metadata, state)?;
     if !path.exists() {
         return Err(input_error(
             "Launch the source instance once so Minecraft can create options.txt.",
@@ -269,16 +269,16 @@ pub(in crate::api::instance) async fn initialize_from_source_instance(
         )
         .execute(&mut *tx)
         .await?;
-        sqlx::query!(
+        sqlx::query(
             "
 			INSERT INTO synced_game_option_preferences
 				(option_id, enabled, source, revision)
-			VALUES (?, 1, 'discovery_default', ?)
+			VALUES (?, 0, 'discovery_default', ?)
 			ON CONFLICT(option_id) DO NOTHING
 			",
-            option_id,
-            option_revision,
         )
+        .bind(option_id)
+        .bind(option_revision)
         .execute(&mut *tx)
         .await?;
     }
@@ -323,7 +323,7 @@ pub async fn list_sync_sources()
     let instances = crate::state::list_instances(&state.pool).await?;
     let mut sources = Vec::with_capacity(instances.len());
     for metadata in instances {
-        let path = options_path(&metadata, &state);
+        let path = options_path(&metadata, &state)?;
         let version_supported = supported_settings_cover_game_version(
             &metadata.applied_content_set.game_version,
         );

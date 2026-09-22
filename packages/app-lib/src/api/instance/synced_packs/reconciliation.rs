@@ -17,7 +17,7 @@ use modrinth_content_management::ResolutionPreferences;
 use std::collections::BTreeMap;
 
 use super::super::synced_options::{
-    GlobalSyncedOptions, get_global_options, instance_dir, instance_is_running,
+    GlobalSyncedOptions, content_dir, get_global_options, instance_is_running,
     instance_option_enabled, sync_files_are_protected,
 };
 
@@ -106,7 +106,7 @@ async fn capture_items(
             placement.path = item.file_path.clone();
             placement.sha1 = item.id.clone();
             placement.enabled = item.enabled;
-        } else if !instance_dir(metadata, state).join(&placement.path).exists()
+        } else if !content_dir(metadata, state)?.join(&placement.path).exists()
         {
             placement.excluded = true;
         }
@@ -134,7 +134,7 @@ async fn owns_file(
     if placement.path.is_empty() {
         return Ok(false);
     }
-    let path = instance_dir(metadata, state).join(&placement.path);
+    let path = content_dir(metadata, state)?.join(&placement.path);
     if !path.exists() {
         return Ok(false);
     }
@@ -163,7 +163,7 @@ async fn toggle_pack(
         if enabled { "" } else { ".disabled" },
     );
     if path != item.file_path
-        && instance_dir(metadata, state).join(&path).exists()
+        && content_dir(metadata, state)?.join(&path).exists()
     {
         return Err(crate::ErrorKind::InputError(
             "Another pack already uses this file name in the instance."
@@ -547,7 +547,7 @@ async fn apply_pack(
     }
     let target_base = target_path.trim_end_matches(".disabled");
     for path in [target_base.to_string(), format!("{target_base}.disabled")] {
-        if instance_dir(metadata, state).join(&path).exists() {
+        if content_dir(metadata, state)?.join(&path).exists() {
             let owned = if let Some(previous) = &previous {
                 previous.path == path && prepared.owned_previous
             } else {
@@ -689,13 +689,19 @@ async fn apply_instance_inner(
     removed_pack_id: Option<&str>,
     preparation: &mut super::worker::Preparation<'_>,
 ) -> crate::Result<()> {
-    if super::super::synced_options::pending::contains(
+    let resource_pending = super::super::synced_options::pending::contains(
         &metadata.instance.id,
         SyncedOption::ResourcePacks,
         state,
     )
-    .await?
-    {
+    .await?;
+    let data_pending = super::super::synced_options::pending::contains(
+        &metadata.instance.id,
+        SyncedOption::DataPacks,
+        state,
+    )
+    .await?;
+    if resource_pending || data_pending {
         return Ok(());
     }
     if sync_files_are_protected(metadata)
@@ -768,7 +774,7 @@ async fn apply_instance_inner(
             && (pack.item.project_type != ProjectType::ResourcePack
                 || previous_placements.get(id).is_some_and(|placement| {
                     !placement.path.is_empty()
-                        && instance_dir(metadata, state)
+                        && content_dir(metadata, state)?
                             .join(&placement.path)
                             .exists()
                 })
@@ -910,9 +916,8 @@ async fn apply_instance_inner(
             .is_some_and(|option| {
                 global.get(option) && instance_option_enabled(metadata, option)
             });
-        if included
+        if (included || placement.suspended)
             && !placement.excluded
-            && !placement.suspended
             && preparation
                 .run(library, owns_file(metadata, &placement, state))
                 .await?
@@ -1188,6 +1193,10 @@ pub(in crate::api::instance) async fn detach(
     }
     if changed {
         write_library(&library, state).await?;
+        // Detaching only changes the library projection. Queue the worker so
+        // owned files are removed from the instance after the preference is
+        // disabled.
+        super::worker::queue_reconciliation(&metadata.instance.id);
     }
     Ok(())
 }

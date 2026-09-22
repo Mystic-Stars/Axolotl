@@ -3,7 +3,6 @@ import {
 	CheckIcon,
 	ChevronDownIcon,
 	CopyIcon,
-	EditIcon,
 	ExternalIcon,
 	GithubIcon,
 	GlobeIcon,
@@ -251,14 +250,6 @@ const messages = defineMessages({
 		id: 'app.settings.about.afdian-description',
 		defaultMessage: 'Help support continued development',
 	},
-	survey: {
-		id: 'app.settings.about.survey',
-		defaultMessage: 'Community survey',
-	},
-	surveyDescription: {
-		id: 'app.settings.about.survey-description',
-		defaultMessage: 'Help us improve Axolotl Launcher',
-	},
 	licenseAttribution: {
 		id: 'app.settings.about.license-attribution',
 		defaultMessage: 'License & attribution',
@@ -466,28 +457,6 @@ const projectLinks = [
 						</span>
 						<span class="block text-sm text-secondary">
 							{{ formatMessage(messages.afdianDescription) }}
-						</span>
-					</span>
-					<ExternalIcon class="size-5 shrink-0 text-secondary" />
-				</a>
-
-				<a
-					:href="AxolotlBrandConfig.surveyUrl"
-					target="_blank"
-					rel="noopener noreferrer"
-					class="flex min-w-0 items-center gap-3 rounded-xl bg-surface-4 p-4 transition-colors hover:bg-surface-5 sm:col-span-2"
-				>
-					<span
-						class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-surface-2 text-contrast"
-					>
-						<EditIcon class="size-6" />
-					</span>
-					<span class="min-w-0 flex-1">
-						<span class="block font-semibold text-contrast">
-							{{ formatMessage(messages.survey) }}
-						</span>
-						<span class="block text-sm text-secondary">
-							{{ formatMessage(messages.surveyDescription) }}
 						</span>
 					</span>
 					<ExternalIcon class="size-5 shrink-0 text-secondary" />

@@ -187,7 +187,7 @@ pub(super) async fn apply_shared_settings_to_instance(
         return Ok(SyncOutcome::Unchanged);
     }
 
-    let path = options_path(metadata, state);
+    let path = options_path(metadata, state)?;
     if !path.exists() {
         materialize_yosbr_options_if_missing(metadata, state).await?;
     }
@@ -268,7 +268,7 @@ pub(super) async fn capture_instance_options(
         return Ok(SyncOutcome::Unchanged);
     }
 
-    let path = options_path(metadata, state);
+    let path = options_path(metadata, state)?;
     if !path.exists() {
         return Ok(SyncOutcome::WaitingForFile);
     }

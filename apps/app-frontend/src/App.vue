@@ -88,14 +88,12 @@ import UnknownPackWarningModal from '@/components/ui/install_flow/UnknownPackWar
 import MinecraftAuthErrorModal from '@/components/ui/minecraft-auth-error-modal/MinecraftAuthErrorModal.vue'
 import MinecraftCrashModal from '@/components/ui/MinecraftCrashModal.vue'
 import AuthGrantFlowWaitModal from '@/components/ui/modal/AuthGrantFlowWaitModal.vue'
-import CommunityAnnouncementModal from '@/components/ui/modal/CommunityAnnouncementModal.vue'
 import CurseForgeManualDownloadsModal from '@/components/ui/modal/CurseForgeManualDownloadsModal.vue'
 import InstanceIconPickerModal from '@/components/ui/modal/InstanceIconPickerModal.vue'
 import JavaDownloadConfirmationModal from '@/components/ui/modal/JavaDownloadConfirmationModal.vue'
 import ModpackAlreadyInstalledModal from '@/components/ui/modal/ModpackAlreadyInstalledModal.vue'
 import ModpackInstallModal from '@/components/ui/modal/ModpackInstallModal.vue'
 import PrivacyConsentModal from '@/components/ui/modal/PrivacyConsentModal.vue'
-import SurveyAnnouncementModal from '@/components/ui/modal/SurveyAnnouncementModal.vue'
 import NavButton from '@/components/ui/NavButton.vue'
 import NavRail from '@/components/ui/NavRail.vue'
 import OnboardingOverlay from '@/components/ui/onboarding/OnboardingOverlay.vue'
@@ -398,8 +396,6 @@ watch(
 const stateInitialized = ref(false)
 const privacyConsentModal = ref<InstanceType<typeof PrivacyConsentModal>>()
 const privacyConsentPending = ref(false)
-const communityAnnouncementModal = ref()
-const surveyModal = ref()
 const updateAnnouncementModal = ref()
 const closeChoiceModal = ref<InstanceType<typeof NewModal>>()
 const backupExitModal = ref<InstanceType<typeof NewModal>>()
@@ -1617,9 +1613,6 @@ async function scheduleStartupDialogs() {
 		updateAnnouncementModal.value.show(pendingUpdateAnnouncementVersion.value)
 		return
 	}
-
-	communityAnnouncementModal.value?.showIfNeeded()
-	surveyModal.value?.showIfNeeded()
 }
 
 async function handlePrivacyConsentSaved(privacy: PrivacySettings) {
@@ -3075,7 +3068,6 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 	<MinecraftCrashModal ref="minecraftCrashModal" />
 	<JavaDownloadConfirmationModal ref="javaDownloadConfirmationModal" />
 	<PrivacyConsentModal ref="privacyConsentModal" @saved="handlePrivacyConsentSaved" />
-	<CommunityAnnouncementModal ref="communityAnnouncementModal" />
 	<RemoteAnnouncements
 		:ready="
 			stateInitialized && !privacyConsentPending && !showOnboarding && !updateAnnouncementShowing
@@ -3088,7 +3080,6 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 			stateInitialized && !privacyConsentPending && !showOnboarding && !updateAnnouncementShowing
 		"
 	/>
-	<SurveyAnnouncementModal ref="surveyModal" />
 	<UpdateAnnouncementModal ref="updateAnnouncementModal" @closed="handleUpdateAnnouncementClosed" />
 	<NewModal
 		ref="closeChoiceModal"
@@ -3736,26 +3727,6 @@ body.modrinth-console-fullscreen-active .app-sidebar {
 
 .sidebar-teleport-content:empty + .sidebar-default-content.sidebar-enabled {
 	display: contents;
-}
-
-.popup-survey-enter-active {
-	transition:
-		opacity 0.25s ease,
-		transform 0.25s cubic-bezier(0.51, 1.08, 0.35, 1.15);
-	transform-origin: top center;
-}
-
-.popup-survey-leave-active {
-	transition:
-		opacity 0.25s ease,
-		transform 0.25s cubic-bezier(0.68, -0.17, 0.23, 0.11);
-	transform-origin: top center;
-}
-
-.popup-survey-enter-from,
-.popup-survey-leave-to {
-	opacity: 0;
-	transform: translateY(10rem) scale(0.8) scaleY(1.6);
 }
 
 @media (prefers-reduced-motion: no-preference) {

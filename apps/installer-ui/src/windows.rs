@@ -44,6 +44,7 @@ struct Bootstrap {
     fresh_install: bool,
     language: Language,
     logo_data_url: String,
+    uninstall: bool,
 }
 
 #[derive(Clone, Copy, Debug, Serialize)]
@@ -68,6 +69,12 @@ struct InstallRequest {
     launch_after: bool,
 }
 
+#[derive(Clone, Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct UninstallRequest {
+    delete_app_data: bool,
+}
+
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 enum PathTarget {
@@ -83,6 +90,7 @@ enum UiCommand {
     Close,
     Browse { target: PathTarget, current: String },
     Install(InstallRequest),
+    Uninstall(UninstallRequest),
     Finish { launch: bool },
 }
 
@@ -93,6 +101,7 @@ enum UserEvent {
     Close,
     Browse { target: PathTarget, current: String },
     Install(InstallRequest),
+    Uninstall(UninstallRequest),
     Progress(u8),
     Finished(Result<(), InstallFailure>),
     Finish { launch: bool },
@@ -184,6 +193,7 @@ pub fn run() -> Result<(), String> {
                     UserEvent::Browse { target, current }
                 }
                 UiCommand::Install(request) => UserEvent::Install(request),
+                UiCommand::Uninstall(request) => UserEvent::Uninstall(request),
                 UiCommand::Finish { launch } => UserEvent::Finish { launch },
             };
             let _ = ipc_proxy.send_event(event);
@@ -286,6 +296,17 @@ pub fn run() -> Result<(), String> {
                     ),
                 }
             }
+            Event::UserEvent(UserEvent::Uninstall(request)) => {
+                if installing {
+                    return;
+                }
+                installing = true;
+                send_to_webview(
+                    webview.as_ref(),
+                    json!({ "type": "installStarted" }),
+                );
+                start_uninstall(installer.clone(), request, proxy.clone());
+            }
             Event::UserEvent(UserEvent::Progress(progress)) => {
                 send_to_webview(
                     webview.as_ref(),
@@ -354,6 +375,7 @@ fn parse_arguments() -> Result<Arguments, String> {
     let mut install_dir = None;
     let mut resource_dir = None;
     let mut fresh_install = true;
+    let mut uninstall = false;
     let mut language = Language::En;
 
     while let Some(argument) = args.next() {
@@ -362,6 +384,10 @@ fn parse_arguments() -> Result<Arguments, String> {
         })?;
         match argument.to_string_lossy().as_ref() {
             "--installer" => installer = Some(PathBuf::from(value)),
+            "--uninstaller" => {
+                installer = Some(PathBuf::from(value));
+                uninstall = true;
+            }
             "--version" => version = Some(value.to_string_lossy().into_owned()),
             "--install-dir" => {
                 install_dir = Some(value.to_string_lossy().into_owned())
@@ -390,17 +416,16 @@ fn parse_arguments() -> Result<Arguments, String> {
     Ok(Arguments {
         installer,
         bootstrap: Bootstrap {
-            version: version.ok_or_else(|| "missing --version".to_string())?,
-            install_dir: install_dir
-                .ok_or_else(|| "missing --install-dir".to_string())?,
-            resource_dir: resource_dir
-                .ok_or_else(|| "missing --resource-dir".to_string())?,
+            version: version.unwrap_or_default(),
+            install_dir: install_dir.unwrap_or_default(),
+            resource_dir: resource_dir.unwrap_or_default(),
             fresh_install,
             language,
             logo_data_url: format!(
                 "data:image/png;base64,{}",
                 BASE64.encode(LOGO)
             ),
+            uninstall,
         },
     })
 }
@@ -492,6 +517,58 @@ fn start_install(
         let _ = fs::remove_file(status_path);
         let _ = proxy.send_event(UserEvent::Finished(result));
     });
+}
+
+fn start_uninstall(
+    uninstaller: PathBuf,
+    request: UninstallRequest,
+    proxy: EventLoopProxy<UserEvent>,
+) {
+    thread::spawn(move || {
+        let result = spawn_uninstaller(&uninstaller, request)
+            .and_then(|mut process| wait_for_process(&mut process));
+        let _ = proxy.send_event(UserEvent::Finished(result));
+    });
+}
+
+fn spawn_uninstaller(
+    uninstaller: &Path,
+    request: UninstallRequest,
+) -> Result<InstallerProcess, InstallFailure> {
+    let mut args = vec!["/S".to_string(), "/UI_CHILD".to_string()];
+    if request.delete_app_data {
+        args.push("/DELETE_APP_DATA".to_string());
+    }
+    elevated_installer_process(uninstaller, &args)
+        .map(InstallerProcess::Elevated)
+        .map_err(|error| InstallFailure {
+            exit_code: None,
+            message: error.to_string(),
+        })
+}
+
+fn wait_for_process(
+    process: &mut InstallerProcess,
+) -> Result<(), InstallFailure> {
+    loop {
+        match process.try_wait() {
+            Ok(Some(0)) => return Ok(()),
+            Ok(Some(exit_code)) => {
+                return Err(InstallFailure {
+                    exit_code: Some(exit_code),
+                    message: "The NSIS uninstallation core returned an error"
+                        .to_string(),
+                });
+            }
+            Ok(None) => thread::sleep(Duration::from_millis(120)),
+            Err(error) => {
+                return Err(InstallFailure {
+                    exit_code: None,
+                    message: error.to_string(),
+                });
+            }
+        }
+    }
 }
 
 fn spawn_installer(

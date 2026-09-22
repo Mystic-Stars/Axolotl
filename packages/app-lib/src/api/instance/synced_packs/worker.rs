@@ -1,5 +1,5 @@
 use super::super::synced_options::{
-    get_global_options, instance_dir, instance_is_running, sha1_bytes,
+    content_dir, get_global_options, instance_is_running, sha1_bytes,
 };
 use super::PackLibrary;
 use super::storage::{read_library, write_library};
@@ -283,7 +283,7 @@ async fn fingerprint(
     .into_iter()
     .map(|file| (file.relative_path, file.hash_cache_key))
     .collect::<Vec<_>>();
-    let options = instance_dir(metadata, state).join("options.txt");
+    let options = content_dir(metadata, state)?.join("options.txt");
     match tokio::fs::read(options).await {
         Ok(bytes) => files.push(("options.txt".to_owned(), sha1_bytes(&bytes))),
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
@@ -297,16 +297,21 @@ async fn fingerprint(
         "running".to_owned(),
         instance_is_running(metadata, state).await?.to_string(),
     ));
-    files.push((
-        "pending".to_owned(),
-        super::super::synced_options::pending::contains(
-            &metadata.instance.id,
-            crate::state::SyncedOption::ResourcePacks,
-            state,
-        )
-        .await?
-        .to_string(),
-    ));
+    for option in [
+        crate::state::SyncedOption::ResourcePacks,
+        crate::state::SyncedOption::DataPacks,
+    ] {
+        files.push((
+            format!("pending:{}", option.as_str()),
+            super::super::synced_options::pending::contains(
+                &metadata.instance.id,
+                option,
+                state,
+            )
+            .await?
+            .to_string(),
+        ));
+    }
     for id in content_rows::get_locked_instance_file_ids(
         &metadata.instance.id,
         &state.pool,

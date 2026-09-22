@@ -315,6 +315,7 @@ pub(super) async fn discover_custom_settings(
             .saturating_add(1) as i64;
         let value = CanonicalValue::ExternalRaw(entry.value.clone());
         let value_json = serde_json::to_string(&value)?;
+
         sqlx::query!(
             "
 			INSERT INTO synced_game_option_values
@@ -342,16 +343,16 @@ pub(super) async fn discover_custom_settings(
         )
         .execute(&mut *tx)
         .await?;
-        sqlx::query!(
+        sqlx::query(
             "
 			INSERT INTO synced_game_option_preferences
 				(option_id, enabled, source, revision)
-			VALUES (?, 1, 'discovery_default', ?)
+            VALUES (?, 0, 'discovery_default', ?)
 			ON CONFLICT(option_id) DO NOTHING
 			",
-            option_id,
-            revision,
         )
+        .bind(&option_id)
+        .bind(revision)
         .execute(&mut *tx)
         .await?;
         discovered = true;

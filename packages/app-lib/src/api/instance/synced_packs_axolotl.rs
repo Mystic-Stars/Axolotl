@@ -16,7 +16,7 @@ use bytes::Bytes;
 use chrono::Utc;
 use serde::Serialize;
 use sqlx::Row;
-use std::collections::HashSet;
+use std::collections::{BTreeSet, HashSet};
 use std::path::{Component, Path, PathBuf};
 
 #[derive(Clone, Debug, Serialize)]
@@ -70,12 +70,33 @@ fn validate_type(project_type: ProjectType) -> crate::Result<()> {
     }
 }
 
+async fn globally_enabled(project_type: ProjectType) -> crate::Result<bool> {
+    let option = match project_type {
+        ProjectType::ResourcePack => crate::state::SyncedOption::ResourcePacks,
+        ProjectType::DataPack => crate::state::SyncedOption::DataPacks,
+        _ => return Ok(false),
+    };
+    Ok(crate::api::instance::synced_options::get_global_options()
+        .await?
+        .get(option))
+}
+
 fn cache_dir(state: &State) -> PathBuf {
     state.directories.synced_options_dir().join("packs/files")
 }
 
 fn cache_path(state: &State, sha1: &str) -> PathBuf {
     cache_dir(state).join(sha1)
+}
+
+fn content_root(
+    state: &State,
+    metadata: &crate::state::InstanceMetadata,
+) -> crate::Result<PathBuf> {
+    crate::state::instances::commands::instance_content_root(
+        &state.directories,
+        &metadata.instance,
+    )
 }
 
 fn logical_path(
@@ -93,6 +114,23 @@ fn logical_path(
 
 fn game_versions(row: &PackRow) -> Vec<String> {
     serde_json::from_str(&row.game_versions_json).unwrap_or_default()
+}
+
+fn resource_pack_option_entry(
+    metadata: &crate::state::InstanceMetadata,
+    entry: &str,
+) -> String {
+    let legacy = metadata
+        .applied_content_set
+        .game_version
+        .strip_prefix("1.")
+        .and_then(|version| version.split('.').next()?.parse::<u32>().ok())
+        .is_some_and(|minor| minor < 13);
+    if legacy {
+        entry.strip_prefix("file/").unwrap_or(entry).to_string()
+    } else {
+        entry.to_string()
+    }
 }
 
 fn version_compatible(
@@ -179,10 +217,7 @@ async fn cleanup_materialization(
         );
         return Ok(());
     };
-    let absolute = state
-        .directories
-        .instance_game_dir(&metadata.instance)
-        .join(&relative_path);
+    let absolute = content_root(state, metadata)?.join(&relative_path);
     if file_matches_sha1(&absolute, &row.sha1).await {
         match tokio::fs::remove_file(&absolute).await {
             Ok(()) => {}
@@ -320,14 +355,12 @@ async fn materialize(
             crate::ErrorKind::InputError("Unknown instance".to_string())
         })?;
     let project_type = parse_type(&row.project_type)?;
-    let root = state
-        .directories
-        .instances_dir()
-        .join(&metadata.instance.path);
+    let root = content_root(state, &metadata)?;
     let relative_path =
         logical_path(project_type, &row.file_name, row.enabled != 0);
     let destination = root.join(&relative_path);
     if excluded
+        || !globally_enabled(project_type).await?
         || !metadata.synced_options_for(project_type)
         || !version_compatible(row, &metadata)
     {
@@ -487,11 +520,8 @@ pub async fn get_pack_sync_preview(
             crate::ErrorKind::InputError("Invalid pack path".to_string())
         })?;
     validate_type(project_type)?;
-    let source = state
-        .directories
-        .instances_dir()
-        .join(&metadata.instance.path)
-        .join(project_path);
+    let global_enabled = globally_enabled(project_type).await?;
+    let source = content_root(&state, &metadata)?.join(project_path);
     let bytes = Bytes::from(tokio::fs::read(&source).await?);
     let sha1 = crate::util::fetch::sha1_async(bytes.clone()).await?;
     let row = sqlx::query_as::<_, PackRow>(
@@ -516,8 +546,8 @@ pub async fn get_pack_sync_preview(
         .await?
         .into_iter()
         .map(|item| {
-            let participating = item.synced_options_for(project_type)
-                || item.instance.id == instance_id;
+            let participating =
+                global_enabled && item.synced_options_for(project_type);
             let versions = game_versions(&preview_row);
             let compatible = versions.is_empty()
                 || versions.iter().any(|version| {
@@ -541,19 +571,28 @@ pub async fn sync_pack(
 ) -> crate::Result<()> {
     let state = State::get().await?;
     let preview = get_pack_sync_preview(instance_id, project_path).await?;
-    let source = state
-        .directories
-        .instances_dir()
-        .join(
-            crate::state::get_instance(instance_id, &state.pool)
-                .await?
-                .ok_or_else(|| {
-                    crate::ErrorKind::InputError("Unknown instance".to_string())
-                })?
-                .instance
-                .path,
+    if !globally_enabled(preview.pack.project_type).await? {
+        return Err(crate::ErrorKind::InputError(
+            "This sync option is globally disabled.".to_string(),
         )
-        .join(project_path);
+        .into());
+    }
+    if !preview
+        .instances
+        .iter()
+        .any(|target| target.instance_id == instance_id && target.participating)
+    {
+        return Err(crate::ErrorKind::InputError(
+            "This sync option is disabled for the source instance.".to_string(),
+        )
+        .into());
+    }
+    let source_metadata = crate::state::get_instance(instance_id, &state.pool)
+        .await?
+        .ok_or_else(|| {
+            crate::ErrorKind::InputError("Unknown instance".to_string())
+        })?;
+    let source = content_root(&state, &source_metadata)?.join(project_path);
     let bytes = Bytes::from(tokio::fs::read(source).await?);
     let sha1 = crate::util::fetch::sha1_async(bytes.clone()).await?;
     write_cache(&state, &bytes, &sha1).await?;
@@ -585,6 +624,12 @@ pub async fn upload_synced_pack(
 ) -> crate::Result<()> {
     validate_type(project_type)?;
     let state = State::get().await?;
+    if !globally_enabled(project_type).await? {
+        return Err(crate::ErrorKind::InputError(
+            "This sync option is globally disabled.".to_string(),
+        )
+        .into());
+    }
     let bytes = Bytes::from(tokio::fs::read(&path).await?);
     let sha1 = crate::util::fetch::sha1_async(bytes.clone()).await?;
     write_cache(&state, &bytes, &sha1).await?;
@@ -609,6 +654,12 @@ pub async fn set_synced_pack_enabled(
 ) -> crate::Result<()> {
     let state = State::get().await?;
     let mut row = load_row(pack_id, &state).await?;
+    if !globally_enabled(parse_type(&row.project_type)?).await? {
+        return Err(crate::ErrorKind::InputError(
+            "This sync option is globally disabled.".to_string(),
+        )
+        .into());
+    }
     sqlx::query("UPDATE synced_pack_catalog SET enabled = ?, modified_at = ? WHERE id = ?").bind(i64::from(enabled)).bind(Utc::now().timestamp()).bind(pack_id).execute(&state.pool).await?;
     row.enabled = i64::from(enabled);
     for target in sqlx::query("SELECT instance_id FROM synced_pack_instances WHERE pack_id = ? AND excluded = 0").bind(pack_id).fetch_all(&state.pool).await? { materialize(&state, &row, target.try_get("instance_id")?, false).await?; }
@@ -792,9 +843,90 @@ pub(crate) async fn reconcile(
 }
 
 pub(crate) async fn capture_resource_pack_selection_change(
-    _: &crate::state::InstanceMetadata,
-    _: &State,
+    metadata: &crate::state::InstanceMetadata,
+    state: &State,
 ) -> crate::Result<()> {
+    let Some(options) = crate::api::instance::synced_options::game_options::read_resource_pack_entries(metadata, state).await? else {
+        return Ok(());
+    };
+    let global_enabled = globally_enabled(ProjectType::ResourcePack).await?;
+    if !global_enabled || !metadata.synced_options.resource_packs {
+        return Ok(());
+    }
+    let rows = sqlx::query(
+        "SELECT id, file_name, selected FROM synced_pack_catalog
+         WHERE project_type = 'resourcepack'",
+    )
+    .fetch_all(&state.pool)
+    .await?;
+    let mut managed = BTreeSet::new();
+    let mut selected_names = BTreeSet::new();
+    let mut transaction = state.pool.begin().await?;
+    for (order, row) in rows.iter().enumerate() {
+        let id: String = row.try_get("id")?;
+        let file_name: String = row.try_get("file_name")?;
+        let entry = format!("file/{file_name}");
+        let legacy = file_name.clone();
+        let is_selected = options
+            .entries
+            .iter()
+            .any(|candidate| candidate == &entry || candidate == &legacy);
+        managed.insert(entry.clone());
+        managed.insert(legacy);
+        sqlx::query(
+            "UPDATE synced_pack_catalog
+             SET selected = ?, selection_order = ?
+             WHERE id = ?",
+        )
+        .bind(i64::from(is_selected))
+        .bind(
+            options
+                .entries
+                .iter()
+                .position(|candidate| {
+                    candidate == &entry || candidate == &file_name
+                })
+                .map(|value| value as i64)
+                .or(Some(order as i64)),
+        )
+        .bind(id)
+        .execute(&mut *transaction)
+        .await?;
+        if is_selected {
+            selected_names.insert(entry);
+        }
+    }
+    transaction.commit().await?;
+    let selected = options
+        .entries
+        .iter()
+        .filter(|entry| managed.contains(*entry))
+        .filter(|entry| {
+            selected_names.contains(*entry)
+                || selected_names
+                    .contains(entry.strip_prefix("file/").unwrap_or(entry))
+        })
+        .cloned()
+        .collect::<Vec<_>>();
+
+    for target in crate::state::list_instances(&state.pool).await? {
+        if target.instance.id == metadata.instance.id
+            || !target.synced_options.resource_packs
+        {
+            continue;
+        }
+        let target_selected = selected
+            .iter()
+            .map(|entry| resource_pack_option_entry(&target, entry))
+            .collect::<Vec<_>>();
+        let _ = crate::api::instance::synced_options::game_options::merge_resource_pack_entries(
+            &target,
+            &managed,
+            &target_selected,
+            state,
+        )
+        .await?;
+    }
     Ok(())
 }
 
@@ -808,7 +940,7 @@ pub(crate) async fn seed_from_instance(
         crate::state::SyncedOption::DataPacks => ProjectType::DataPack,
         _ => return Ok(()),
     };
-    let root = state.directories.instance_game_dir(&metadata.instance);
+    let root = content_root(state, metadata)?;
     let directory = root.join(project_type.get_folder());
     let mut entries = match tokio::fs::read_dir(&directory).await {
         Ok(entries) => entries,
@@ -933,13 +1065,8 @@ pub(crate) async fn seed_from_instance(
         else {
             continue;
         };
-        if tokio::fs::try_exists(
-            &state
-                .directories
-                .instance_game_dir(&metadata.instance)
-                .join(path),
-        )
-        .await?
+        if tokio::fs::try_exists(&content_root(&state, &metadata)?.join(path))
+            .await?
         {
             continue;
         }

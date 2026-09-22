@@ -1,6 +1,5 @@
 //! Reads and edits `options.txt` without changing unrelated lines or file formatting.
 
-use super::super as synced_options;
 use super::catalog::{LEGACY_DATA_VERSIONS, release_version};
 use super::{
     MAX_KEY_BYTES, MAX_OPTIONS_BYTES, MAX_OPTIONS_LINES, MAX_VALUE_BYTES,
@@ -331,8 +330,12 @@ pub(super) fn validate_raw_key_value(
 pub(super) fn options_path(
     metadata: &InstanceMetadata,
     state: &State,
-) -> PathBuf {
-    synced_options::instance_dir(metadata, state).join(OPTIONS_FILE)
+) -> crate::Result<PathBuf> {
+    Ok(crate::state::instances::commands::instance_content_root(
+        &state.directories,
+        &metadata.instance,
+    )?
+    .join(OPTIONS_FILE))
 }
 
 pub(super) fn sha1_bytes(bytes: &[u8]) -> String {

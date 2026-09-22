@@ -225,9 +225,14 @@ async fn index_installed_sources(state: &State) -> crate::Result<()> {
             );
             continue;
         }
-        let document = match read_document(&options_path(&metadata, state))
-            .await
-        {
+        let path = match options_path(&metadata, state) {
+            Ok(path) => path,
+            Err(error) => {
+                tracing::warn!(%error, instance_id = metadata.instance.id, "Game setting locales: options path resolution failed");
+                continue;
+            }
+        };
+        let document = match read_document(&path).await {
             Ok((document, _)) => document,
             Err(error) => {
                 tracing::warn!(%error, instance_id = metadata.instance.id, "Game setting locales: options file read failed");
