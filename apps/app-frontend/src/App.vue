@@ -1414,6 +1414,7 @@ async function setupApp() {
 	themeStore.transparentBackgroundOpacity = transparent_background_opacity
 	themeStore.transparentBackgroundBlur = transparent_background_blur
 	themeStore.setTransparentBackgroundClass()
+	themeStore.setCustomBackgroundClass()
 	await applyWindowFrame()
 	await applyWindowEffects()
 	themeStore.homeWidgetBackgroundOpacity = home_widget_background_opacity ?? 100
@@ -3385,7 +3386,10 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 	pointer-events: none;
 	// Opaque floor under the custom image: lowering "background visibility"
 	// dims the image against the app surface instead of revealing the desktop.
-	background-color: var(--color-raised-bg);
+	// It must read the *opaque* snapshot -- the translucent `--color-raised-bg`
+	// is what the components above use to show the image through, and using it
+	// here as well would let the desktop through along with the image.
+	background-color: var(--surface-3-opaque);
 }
 
 .launcher-background-image {
@@ -3414,13 +3418,9 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 .app-grid-layout.has-custom-background {
 	.app-grid-navbar,
 	.app-grid-statusbar {
-		// Driven by the "Component opacity" setting (#335). Default 100% keeps
-		// chrome fully opaque over the custom background image.
-		background-color: color-mix(
-			in srgb,
-			var(--color-raised-bg) var(--custom-bg-component-opacity, 100%),
-			transparent
-		) !important;
+		// `--color-raised-bg` already carries the "Component opacity" alpha in
+		// this mode (see `global.scss`), so this only paints the chrome.
+		background-color: var(--color-raised-bg) !important;
 
 		backdrop-filter: none;
 		-webkit-backdrop-filter: none;
@@ -3481,13 +3481,8 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 	}
 
 	&.has-custom-background {
-		// Content surface opacity follows the "Component opacity" setting so a
-		// custom background fades behind solid UI by default (#335).
-		background-color: color-mix(
-			in srgb,
-			var(--color-bg) var(--custom-bg-component-opacity, 100%),
-			transparent
-		);
+		// `--color-bg` already carries the "Component opacity" alpha here.
+		background-color: var(--color-bg);
 
 		.loading-indicator-container {
 			border-top-left-radius: 0;
@@ -3495,7 +3490,8 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 	}
 
 	&.has-transparent-background {
-		background-color: color-mix(in srgb, var(--color-bg) 76%, transparent);
+		// `--color-bg` already carries the transparent-window alpha.
+		background-color: var(--color-bg);
 	}
 }
 

@@ -882,6 +882,7 @@ watch(
 		themeStore.transparentBackgroundOpacity = transparentOpacity
 		themeStore.transparentBackgroundBlur = transparentBlur
 		themeStore.setTransparentBackgroundClass()
+		themeStore.setCustomBackgroundClass()
 		themeStore.homeWidgetBackgroundOpacity = homeWidgetBackgroundOpacity
 		themeStore.setHomeWidgetBackgroundOpacity()
 		themeStore.hiddenNavItems = hiddenNavItems

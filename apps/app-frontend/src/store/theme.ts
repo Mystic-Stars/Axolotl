@@ -324,6 +324,19 @@ export const useTheming = defineStore('themeStore', {
 				`${Math.min(Math.max(this.homeWidgetBackgroundOpacity, 0), 100)}%`,
 			)
 		},
+		/**
+		 * The translucent palette for the custom-background mode lives on `body`
+		 * in `global.scss`; this supplies the toggle and the alpha it derives
+		 * every surface from. The image and the transparent window are mutually
+		 * exclusive, so the class follows the same condition the shell uses.
+		 */
+		setCustomBackgroundClass() {
+			const html = document.documentElement
+			html.classList.toggle(
+				'has-custom-background',
+				!!this.customBackgroundPath && !this.transparentBackground,
+			)
+		},
 		setCustomBackgroundComponentOpacity() {
 			const html = document.documentElement
 			html.style.setProperty(
