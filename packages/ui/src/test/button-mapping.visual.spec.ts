@@ -9,13 +9,15 @@ import { mountThemed } from './visual-harness'
  * Pins the legacy → current button mapping, measured rather than assumed.
  *
  * The two systems are not pixel-identical, so this asserts the correspondences
- * that do hold exactly (`standard`→`md`, `large`→`xl`) and records the one that
- * does not (`small`, 24px, has no current equivalent — `xs` is 28px). Pinning
- * it means a future change to either system's geometry fails here instead of
- * silently changing how migrated buttons look.
+ * that do hold exactly (`standard`→`md`, `large`→`xl`, `small`→`2xs`). `2xs` is
+ * 24px, added specifically so the legacy `small` size keeps its height instead
+ * of growing into `xs` (28px). Pinning these means a future change to either
+ * system's geometry fails here instead of silently changing how migrated
+ * buttons look.
  */
 
 const SIZE_MAP: Record<string, ButtonSize> = {
+	small: '2xs',
 	standard: 'md',
 	large: 'xl',
 }
@@ -46,19 +48,20 @@ describe('button mapping', () => {
 		},
 	)
 
-	it('has no current equivalent for the legacy small size', async () => {
+	it('maps the legacy small size onto 2xs without changing its height', async () => {
 		const legacy = await measureLegacy({ size: 'small' })
-		const smallest = await measureCurrent({ size: 'xs' })
+		const current = await measureCurrent({ size: '2xs' })
 
-		// Recorded deliberately: `small` is 24px and `xs` is 28px, so a migrated
-		// `size="small"` grows. Anyone changing this should change the assertion
-		// consciously rather than discover it in the UI.
+		// `small` is 24px and `2xs` was added to match it. Before `2xs` existed
+		// the nearest size was `xs` (28px), so migrating `size="small"` grew
+		// every one of those buttons; this assertion is what prevents that
+		// regression from returning.
 		expect(legacy.height).toBe('24px')
-		expect(smallest.height).toBe('28px')
+		expect(current).toEqual(legacy)
 	})
 
 	it('keeps the current size ladder ordered', async () => {
-		const sizes: ButtonSize[] = ['xs', 'sm', 'md', 'lg', 'xl']
+		const sizes: ButtonSize[] = ['2xs', 'xs', 'sm', 'md', 'lg', 'xl']
 		const heights = await Promise.all(
 			sizes.map(async (size) => (await measureCurrent({ size })).height),
 		)

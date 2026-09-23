@@ -1,6 +1,6 @@
 export type ButtonType = 'base' | 'colored' | 'colored-text' | 'outlined' | 'quiet'
 
-export type ButtonSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl'
+export type ButtonSize = '2xs' | 'xs' | 'sm' | 'md' | 'lg' | 'xl'
 
 export type ButtonInteraction = 'surface' | 'filled' | 'none'
 

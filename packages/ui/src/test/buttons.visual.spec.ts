@@ -12,7 +12,7 @@ import { assertTokensLoaded, computedToken, mountThemed, THEMES } from './visual
  */
 
 const TYPES: ButtonType[] = ['base', 'outlined', 'colored', 'colored-text', 'quiet']
-const SIZES: ButtonSize[] = ['xs', 'sm', 'md', 'lg', 'xl']
+const SIZES: ButtonSize[] = ['2xs', 'xs', 'sm', 'md', 'lg', 'xl']
 const COLORS: ButtonColor[] = ['brand', 'red', 'orange', 'green', 'blue', 'purple']
 
 async function mountButton(props: Record<string, unknown>, theme = 'dark' as const) {
