@@ -571,10 +571,9 @@ const projectLinks = [
 
 .about-panel {
 	padding: 1.25rem;
-	border: 1px solid
-		var(--settings-card-border, color-mix(in srgb, var(--surface-4) 72%, transparent));
+	border: 1px solid var(--surface-4);
 	border-radius: var(--radius-md);
-	background: var(--surface-2);
+	background: var(--surface-3);
 }
 
 .about-panel-compact {
@@ -582,10 +581,9 @@ const projectLinks = [
 }
 
 .about-page :deep(.rounded-xl.bg-surface-4) {
-	border: 1px solid
-		var(--settings-card-border, color-mix(in srgb, var(--surface-4) 72%, transparent));
+	border: 1px solid var(--surface-4);
 	border-radius: var(--radius-md);
-	background: var(--surface-2);
+	background: var(--surface-3);
 }
 
 .about-page :deep(.rounded-xl.bg-surface-2) {

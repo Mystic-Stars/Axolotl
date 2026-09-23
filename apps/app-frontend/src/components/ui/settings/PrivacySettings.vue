@@ -6,6 +6,7 @@ import { getPrivacySettings, setDiscordRpcEnabled, setTelemetryEnabled } from '@
 
 import SettingsRow from './SettingsRow.vue'
 import SettingsSaveStatus from './SettingsSaveStatus.vue'
+import SettingsSection from './SettingsSection.vue'
 
 const { formatMessage } = useVIntl()
 const { handleError } = injectNotificationManager()
@@ -89,11 +90,11 @@ async function updateDiscordRpc(value: boolean) {
 </script>
 
 <template>
-	<div class="flex w-full flex-col gap-4">
-		<header class="settings-page-header">
-			<SettingsSaveStatus :status="saveStatus" :retry="retrySave" />
-		</header>
-		<div class="settings-page-card">
+	<div class="flex w-full flex-col gap-6">
+		<SettingsSection>
+			<template #header>
+				<SettingsSaveStatus :status="saveStatus" :retry="retrySave" />
+			</template>
 			<SettingsRow>
 				<template #label>
 					<span id="settings-target-privacy-telemetry" tabindex="-1">
@@ -126,27 +127,13 @@ async function updateDiscordRpc(value: boolean) {
 					/>
 				</template>
 			</SettingsRow>
-		</div>
+		</SettingsSection>
 
 		<p class="settings-page-note">{{ formatMessage(messages.dataHandling) }}</p>
 	</div>
 </template>
 
 <style scoped>
-.settings-page-card {
-	overflow: hidden;
-	border: 1px solid
-		var(--settings-card-border, color-mix(in srgb, var(--surface-4) 72%, transparent));
-	border-radius: var(--radius-md);
-	background: var(--surface-2);
-}
-
-.settings-page-header {
-	display: flex;
-	min-height: 0;
-	justify-content: flex-end;
-}
-
 .settings-page-note {
 	margin: 0;
 	color: var(--color-secondary);

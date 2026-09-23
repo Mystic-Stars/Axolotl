@@ -507,7 +507,7 @@ function formatDateTime(date: Date) {
 	padding: var(--gap-lg);
 	border: 1px solid var(--surface-4);
 	border-radius: var(--radius-md);
-	background: var(--surface-2);
+	background: var(--surface-3);
 	overflow: hidden;
 }
 

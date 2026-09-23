@@ -22,6 +22,7 @@ import i18n, {
 } from '@/i18n.config'
 
 import SettingsSaveStatus from './SettingsSaveStatus.vue'
+import SettingsSection from './SettingsSection.vue'
 
 const { formatMessage } = useVIntl()
 
@@ -144,93 +145,79 @@ function retrySave() {
 </script>
 
 <template>
-	<div class="flex flex-col gap-3">
-		<header class="settings-page-header">
-			<h2
-				id="settings-target-language"
-				tabindex="-1"
-				class="m-0 text-lg font-semibold text-contrast"
-			>
-				{{ formatMessage(commonSettingsMessages.language) }}
-			</h2>
-			<SettingsSaveStatus :status="saveStatus" :retry="retrySave" />
-		</header>
-		<div class="settings-page-card">
-			<Admonition type="warning">
-				{{ formatMessage(languageSelectorMessages.languageWarning, { platform }) }}
-			</Admonition>
-			<p class="settings-page-description">
-				<IntlFormatted
-					:message-id="languageSelectorMessages.languagesDescription"
-					:values="{ platform }"
+	<div class="flex flex-col gap-6">
+		<SettingsSection>
+			<template #header>
+				<h2
+					id="settings-target-language"
+					tabindex="-1"
+					class="m-0 text-lg font-semibold text-contrast"
 				>
-					<template #~crowdin-link="{ children }">
-						<AutoLink to="https://translate.modrinth.com">
-							<component :is="() => children" />
-						</AutoLink>
-					</template>
-				</IntlFormatted>
-			</p>
-			<div data-onboarding-id="settings-language-select" class="flex flex-col gap-1.5">
-				<label class="text-sm font-semibold text-contrast">
 					{{ formatMessage(commonSettingsMessages.language) }}
-				</label>
-				<div class="flex items-end gap-2">
-					<div class="min-w-0 flex-1">
-						<Combobox
-							:model-value="followSystem ? undefined : selectedLocale"
-							:display-value="followSystem ? formatMessage(messages.systemLanguage) : undefined"
-							:options="localeOptions"
-							:disabled="$isChanging"
-							searchable
-							:search-placeholder="formatMessage(languageSelectorMessages.searchFieldPlaceholder)"
-							trigger-class="w-full"
-							@open="unlockSystemLanguage"
-							@update:model-value="onLocaleChange"
-						/>
-					</div>
-					<button
-						v-tooltip="systemToggleTooltip"
-						type="button"
-						role="switch"
-						class="inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-xl border border-[var(--color-divider)] bg-[var(--color-button-bg)] px-2.5 py-2 text-[0.8125rem] font-semibold text-secondary whitespace-nowrap cursor-pointer transition-colors language-system-toggle"
-						:class="{ 'is-active': followSystem }"
-						:aria-checked="followSystem"
-						:aria-label="formatMessage(messages.systemLanguage)"
-						:disabled="$isChanging"
-						@click="toggleFollowSystem"
+				</h2>
+			</template>
+			<template #extra>
+				<SettingsSaveStatus :status="saveStatus" :retry="retrySave" />
+			</template>
+			<div class="flex flex-col gap-4 p-4">
+				<Admonition type="warning">
+					{{ formatMessage(languageSelectorMessages.languageWarning, { platform }) }}
+				</Admonition>
+				<p class="settings-page-description">
+					<IntlFormatted
+						:message-id="languageSelectorMessages.languagesDescription"
+						:values="{ platform }"
 					>
-						<MonitorIcon class="size-4 shrink-0" />
-						<span>{{ formatMessage(messages.systemLanguage) }}</span>
-					</button>
-				</div>
-				<p v-if="followSystem" class="m-0 text-xs text-secondary">
-					{{ systemLocaleMeta.name }} — {{ systemLocaleMeta.translatedName }}
+						<template #~crowdin-link="{ children }">
+							<AutoLink to="https://translate.modrinth.com">
+								<component :is="() => children" />
+							</AutoLink>
+						</template>
+					</IntlFormatted>
 				</p>
+				<div data-onboarding-id="settings-language-select" class="flex flex-col gap-1.5">
+					<label class="text-sm font-semibold text-contrast">
+						{{ formatMessage(commonSettingsMessages.language) }}
+					</label>
+					<div class="flex items-end gap-2">
+						<div class="min-w-0 flex-1">
+							<Combobox
+								:model-value="followSystem ? undefined : selectedLocale"
+								:display-value="followSystem ? formatMessage(messages.systemLanguage) : undefined"
+								:options="localeOptions"
+								:disabled="$isChanging"
+								searchable
+								:search-placeholder="formatMessage(languageSelectorMessages.searchFieldPlaceholder)"
+								trigger-class="w-full"
+								@open="unlockSystemLanguage"
+								@update:model-value="onLocaleChange"
+							/>
+						</div>
+						<button
+							v-tooltip="systemToggleTooltip"
+							type="button"
+							role="switch"
+							class="inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-xl border border-[var(--surface-5)] bg-[var(--surface-4)] px-2.5 py-2 text-[0.8125rem] font-semibold text-secondary whitespace-nowrap cursor-pointer transition-colors language-system-toggle"
+							:class="{ 'is-active': followSystem }"
+							:aria-checked="followSystem"
+							:aria-label="formatMessage(messages.systemLanguage)"
+							:disabled="$isChanging"
+							@click="toggleFollowSystem"
+						>
+							<MonitorIcon class="size-4 shrink-0" />
+							<span>{{ formatMessage(messages.systemLanguage) }}</span>
+						</button>
+					</div>
+					<p v-if="followSystem" class="m-0 text-xs text-secondary">
+						{{ systemLocaleMeta.name }} — {{ systemLocaleMeta.translatedName }}
+					</p>
+				</div>
 			</div>
-		</div>
+		</SettingsSection>
 	</div>
 </template>
 
 <style scoped>
-.settings-page-header {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: var(--gap-md);
-}
-
-.settings-page-card {
-	display: flex;
-	flex-direction: column;
-	gap: var(--gap-lg);
-	padding: var(--gap-lg);
-	border: 1px solid
-		var(--settings-card-border, color-mix(in srgb, var(--surface-4) 72%, transparent));
-	border-radius: var(--radius-md);
-	background: var(--surface-2);
-}
-
 .settings-page-description {
 	margin: 0;
 	color: var(--color-secondary);
@@ -239,7 +226,7 @@ function retrySave() {
 }
 
 .language-system-toggle:hover:not(:disabled) {
-	border-color: var(--color-button-bg-hover, var(--surface-5));
+	border-color: var(--surface-5);
 	color: var(--color-contrast);
 }
 

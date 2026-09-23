@@ -808,7 +808,7 @@ function onDatabaseOperationModalHide() {
 	padding: var(--gap-sm);
 	border: 1px solid var(--surface-4);
 	border-radius: var(--radius-sm);
-	background: var(--surface-2);
+	background: var(--surface-3);
 	color: var(--color-contrast);
 	text-align: center;
 }
@@ -876,7 +876,7 @@ function onDatabaseOperationModalHide() {
 
 .update-channel-card:hover {
 	border-color: color-mix(in srgb, var(--color-brand) 55%, var(--surface-4));
-	background: var(--surface-2);
+	background: var(--surface-3);
 }
 
 .update-channel-card:active {

@@ -519,8 +519,8 @@ const pageTitle: MessageDescriptor = settingsPageTitle
 											:key="row"
 											class="flex items-center gap-3 rounded-lg border border-solid p-4"
 											:style="{
-												borderColor: 'var(--settings-card-border)',
-												background: 'color-mix(in srgb, var(--surface-2) 35%, transparent)',
+												borderColor: 'var(--surface-4)',
+												background: 'color-mix(in srgb, var(--surface-3) 35%, transparent)',
 											}"
 										>
 											<div class="flex min-w-0 flex-1 flex-col gap-2">
@@ -567,7 +567,6 @@ const pageTitle: MessageDescriptor = settingsPageTitle
 <style scoped>
 .settings-layout {
 	--settings-divider: color-mix(in srgb, var(--surface-4) 55%, transparent);
-	--settings-card-border: color-mix(in srgb, var(--surface-4) 72%, transparent);
 	display: grid;
 	grid-template-columns: minmax(18rem, 20rem) minmax(0, 1fr);
 	gap: var(--gap-lg);
@@ -892,7 +891,10 @@ const pageTitle: MessageDescriptor = settingsPageTitle
 	inset: 0;
 	z-index: 2;
 	padding: 0 1.5rem 1.5rem;
-	background: var(--surface-1);
+	/* A full-cover overlay on the content panel, so it takes that panel's own
+	   rung. `--surface-1` here would paint the page colour over the panel and
+	   flash a darker sheet on every category switch. */
+	background: var(--surface-2);
 }
 
 .settings-content-skeleton-inner {
