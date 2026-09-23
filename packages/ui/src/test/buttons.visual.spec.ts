@@ -11,7 +11,16 @@ import { assertTokensLoaded, computedToken, mountThemed, THEMES } from './visual
  * colour tokens, so nothing else in the toolchain would catch it.
  */
 
-const TYPES: ButtonType[] = ['base', 'outlined', 'colored', 'colored-text', 'quiet']
+const TYPES: ButtonType[] = [
+	'base',
+	'outlined',
+	'colored',
+	'colored-text',
+	'quiet',
+	'chip',
+	'chip-text',
+	'highlight',
+]
 const SIZES: ButtonSize[] = ['2xs', 'xs', 'sm', 'md', 'lg', 'xl']
 const COLORS: ButtonColor[] = ['brand', 'red', 'orange', 'green', 'blue', 'purple']
 

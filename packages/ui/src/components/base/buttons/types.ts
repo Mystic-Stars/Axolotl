@@ -1,4 +1,5 @@
-export type ButtonType = 'base' | 'colored' | 'colored-text' | 'outlined' | 'quiet'
+export type ButtonType =
+	'base' | 'colored' | 'colored-text' | 'outlined' | 'quiet' | 'chip' | 'chip-text' | 'highlight'
 
 export type ButtonSize = '2xs' | 'xs' | 'sm' | 'md' | 'lg' | 'xl'
 

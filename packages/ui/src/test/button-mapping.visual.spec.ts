@@ -117,6 +117,13 @@ describe('button mapping', () => {
 		['large', { size: 'large' }, { size: 'xl' }],
 		['brand', { color: 'brand' }, { type: 'colored', color: 'brand' }],
 		['outlined red', { type: 'outlined', color: 'red' }, { type: 'outlined', color: 'red' }],
+		['chip', { type: 'chip', color: 'brand' }, { type: 'chip', color: 'brand' }],
+		[
+			'highlight-colored-text',
+			{ type: 'highlight-colored-text', color: 'brand' },
+			{ type: 'chip-text', color: 'brand' },
+		],
+		['highlight', { type: 'highlight', color: 'brand' }, { type: 'highlight', color: 'brand' }],
 	]
 
 	it.each(SHAPE_MAP)(
