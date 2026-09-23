@@ -402,6 +402,12 @@ async function runNotificationAction(item: NotificationHistoryItem) {
 }
 
 function clearNotificationHistory() {
+	const progressItems = buildDownloadItems()
+	if (progressItems.length > 0) {
+		dismissed.value = true
+		dismissedDownloadSignature.value = buildDownloadSignature(progressItems)
+	}
+	removeNotification(false)
 	notificationManager.clearAllNotifications()
 	popupNotificationManager.clearAllNotifications()
 }
@@ -829,6 +835,7 @@ const currentLoadingBars = ref<LoadingBar[]>([])
 const currentLoadingBarIconUrls = ref<Record<string, string | null>>({})
 const notificationId = ref<string | number | null>(null)
 const dismissed = ref(false)
+const dismissedDownloadSignature = ref<string | null>(null)
 
 function getLoadingBarKey(loadingBar: LoadingBar): string {
 	return `${loadingBar.loading_bar_uuid ?? loadingBar.id}`
@@ -872,9 +879,13 @@ function collapseNotification(): void {
 	popupNotificationManager.collapseNotification(notificationId.value)
 }
 
-function removeNotification(): void {
+function removeNotification(markDismissed = true): void {
 	if (!notificationId.value) {
 		return
+	}
+	if (markDismissed) {
+		dismissed.value = true
+		dismissedDownloadSignature.value = buildDownloadSignature(buildDownloadItems())
 	}
 	popupNotificationManager.removeNotification(notificationId.value)
 	notificationId.value = null
@@ -914,21 +925,39 @@ const hasDownloadNotificationItems = computed(
 	() => installJobNotifications.hasItems.value || currentLoadingBars.value.length > 0,
 )
 
+function buildDownloadSignature(items: PopupNotificationProgressItem[]): string {
+	return items
+		.map((item) => item.id)
+		.sort()
+		.join('|')
+}
+
 function updateNotification(resummon = false): void {
 	const shouldResummon = resummon && !isDownloadsPage.value
 	if (shouldResummon) {
 		dismissed.value = false
+		dismissedDownloadSignature.value = null
 	}
 
+	const progressItems = buildDownloadItems()
+	const signature = buildDownloadSignature(progressItems)
+
 	if (!hasDownloadNotificationItems.value) {
-		removeNotification()
+		removeNotification(false)
 		dismissed.value = false
+		dismissedDownloadSignature.value = null
 		return
+	}
+
+	if (dismissed.value && dismissedDownloadSignature.value !== signature) {
+		dismissed.value = false
+		dismissedDownloadSignature.value = null
 	}
 
 	if (notificationId.value && !getNotification()) {
 		notificationId.value = null
 		dismissed.value = true
+		dismissedDownloadSignature.value = signature
 	}
 
 	if (dismissed.value && !shouldResummon) {
@@ -939,8 +968,6 @@ function updateNotification(resummon = false): void {
 	if (notif?.collapsed && shouldResummon) {
 		notif.collapsed = false
 	}
-	const progressItems = buildDownloadItems()
-
 	if (notif) {
 		notif.title = installJobNotifications.hasItems.value
 			? installJobNotifications.title.value
@@ -1147,8 +1174,9 @@ onBeforeUnmount(() => {
 		clearTimeout(loadingNotificationTimer)
 		loadingNotificationTimer = null
 	}
-	removeNotification()
+	removeNotification(false)
 	dismissed.value = false
+	dismissedDownloadSignature.value = null
 	unlistenProcess()
 	unlistenLoading()
 	unlistenBackup()

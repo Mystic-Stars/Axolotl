@@ -5,19 +5,43 @@ import {
 } from '@modrinth/ui'
 import { type Ref, ref } from 'vue'
 
+import { loadNotificationDismissals } from './notification-dismissals.ts'
+
 export class AppNotificationManager extends AbstractWebNotificationManager {
 	private static readonly STORAGE_KEY = 'axolotl:active-web-notifications-v1'
+	private static readonly DISMISSED_STORAGE_KEY = 'axolotl:dismissed-web-notifications-v2'
+	private static readonly LEGACY_DISMISSED_STORAGE_KEY = 'axolotl:dismissed-web-notifications'
 	private static readonly MAX_NOTIFICATIONS = 100
 	private static readonly MAX_NOTIFICATION_AGE_MS = 30 * 24 * 60 * 60 * 1000
 	private static readonly MAX_SUPPORT_DATA_BYTES = 32 * 1024
 	private readonly state: Ref<WebNotification[]>
 	private readonly locationState: Ref<NotificationPanelLocation>
+	private readonly dismissedKeys: Set<string>
+	private dismissedBefore: number | null
 
 	public constructor() {
 		super()
-		this.state = ref<WebNotification[]>(this.loadActiveNotifications())
+		const dismissed = loadNotificationDismissals(
+			[
+				AppNotificationManager.DISMISSED_STORAGE_KEY,
+				AppNotificationManager.LEGACY_DISMISSED_STORAGE_KEY,
+			],
+			4,
+		)
+		this.dismissedKeys = dismissed.keys
+		this.dismissedBefore = dismissed.clearedAt
+		const restoredNotifications = this.loadActiveNotifications().filter(
+			(notification) =>
+				!this.dismissedKeys.has(this.key(notification)) &&
+				(this.dismissedBefore === null || (notification.createdAt ?? 0) > this.dismissedBefore),
+		)
+		// Persisted entries belong to the history panel after a restart. Only notifications
+		// created during the current session should enter the visible toast stack.
+		restoredNotifications.forEach((notification) => {
+			notification.collapsed = true
+		})
+		this.state = ref<WebNotification[]>(restoredNotifications)
 		this.locationState = ref<NotificationPanelLocation>('right')
-		this.state.value.forEach((notification) => this.restoreNotificationTimer(notification))
 		this.saveActiveNotifications()
 	}
 
@@ -34,6 +58,11 @@ export class AppNotificationManager extends AbstractWebNotificationManager {
 	}
 
 	protected addNotificationToStorage(notification: WebNotification): void {
+		if (
+			this.dismissedKeys.has(this.key(notification)) ||
+			(this.dismissedBefore !== null && (notification.createdAt ?? 0) <= this.dismissedBefore)
+		)
+			return
 		this.state.value.unshift(notification)
 		this.saveActiveNotifications()
 	}
@@ -52,8 +81,12 @@ export class AppNotificationManager extends AbstractWebNotificationManager {
 	}
 
 	protected clearAllNotificationsFromStorage(): void {
+		for (const notification of this.state.value) {
+			this.dismissedKeys.add(this.key(notification))
+		}
 		this.state.value.splice(0)
 		this.saveActiveNotifications()
+		this.saveDismissedKeys()
 	}
 
 	public override addNotification = (notification: Partial<WebNotification>): WebNotification => {
@@ -78,9 +111,43 @@ export class AppNotificationManager extends AbstractWebNotificationManager {
 	}
 
 	public override removeNotification = (id: string | number): WebNotification | undefined => {
+		const existing = this.state.value.find((notification) => notification.id === id)
 		const notification = super.removeNotification(id)
+		if (existing && notification) {
+			this.dismissedKeys.add(this.key(existing))
+			this.saveDismissedKeys()
+		}
 		this.saveActiveNotifications()
 		return notification
+	}
+
+	public override clearAllNotifications = (): void => {
+		this.dismissedBefore = Date.now()
+		super.clearAllNotifications()
+		this.saveDismissedKeys()
+	}
+
+	private key(notification: WebNotification): string {
+		return JSON.stringify([
+			notification.title ?? '',
+			notification.text ?? '',
+			notification.type ?? '',
+			notification.errorCode ?? '',
+		])
+	}
+
+	private saveDismissedKeys(): void {
+		try {
+			localStorage.setItem(
+				AppNotificationManager.DISMISSED_STORAGE_KEY,
+				JSON.stringify({
+					clearedAt: this.dismissedBefore,
+					keys: [...this.dismissedKeys].slice(-100),
+				}),
+			)
+		} catch {
+			// Notification history remains usable when storage is unavailable.
+		}
 	}
 
 	private loadActiveNotifications(): WebNotification[] {
@@ -133,17 +200,5 @@ export class AppNotificationManager extends AbstractWebNotificationManager {
 		} catch {
 			// Notification history remains usable when storage is unavailable.
 		}
-	}
-
-	private restoreNotificationTimer(notification: WebNotification): void {
-		if (notification.collapsed || notification.autoCloseMs === null) return
-		const elapsed = Date.now() - (notification.createdAt ?? Date.now())
-		const remaining = (notification.autoCloseMs ?? 30_000) - elapsed
-		if (remaining <= 0) {
-			notification.collapsed = true
-			return
-		}
-		notification.autoCloseMs = remaining
-		this.setNotificationTimer(notification)
 	}
 }

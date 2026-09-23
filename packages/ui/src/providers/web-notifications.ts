@@ -1,4 +1,4 @@
-import { createContext } from '.'
+import { createContext } from './create-context.ts'
 
 export interface WebNotification {
 	id: string | number
@@ -23,6 +23,19 @@ export abstract class AbstractWebNotificationManager {
 	protected readonly DEFAULT_AUTO_DISMISS_DELAY_MS = 30 * 1000
 	private lastGeneratedNotificationId = 0
 
+	constructor() {
+		this.addNotification = this.addNotification.bind(this)
+		this.handleError = this.handleError.bind(this)
+		this.removeNotification = this.removeNotification.bind(this)
+		this.removeNotificationByIndex = this.removeNotificationByIndex.bind(this)
+		this.clearAllNotifications = this.clearAllNotifications.bind(this)
+		this.setNotificationTimer = this.setNotificationTimer.bind(this)
+		this.collapseNotification = this.collapseNotification.bind(this)
+		this.expandNotification = this.expandNotification.bind(this)
+		this.markNotificationRead = this.markNotificationRead.bind(this)
+		this.stopNotificationTimer = this.stopNotificationTimer.bind(this)
+	}
+
 	abstract getNotifications(): WebNotification[]
 	abstract getNotificationLocation(): NotificationPanelLocation
 	abstract setNotificationLocation(location: NotificationPanelLocation): void
@@ -32,7 +45,7 @@ export abstract class AbstractWebNotificationManager {
 	protected abstract removeNotificationFromStorageByIndex(index: number): void
 	protected abstract clearAllNotificationsFromStorage(): void
 
-	addNotification = (notification: Partial<WebNotification>): WebNotification => {
+	addNotification(notification: Partial<WebNotification>): WebNotification {
 		const existingNotif = this.findExistingNotification(notification)
 
 		if (existingNotif) {
@@ -56,7 +69,7 @@ export abstract class AbstractWebNotificationManager {
 	/**
 	 * @deprecated You should use `addNotification` instead to provide a more human-readable error message to the user.
 	 */
-	handleError = (error: unknown): void => {
+	handleError(error: unknown): void {
 		this.addNotification({
 			title: '发生错误',
 			text:
@@ -69,7 +82,7 @@ export abstract class AbstractWebNotificationManager {
 		})
 	}
 
-	removeNotification = (id: string | number): WebNotification | undefined => {
+	removeNotification(id: string | number): WebNotification | undefined {
 		const notifications = this.getNotifications()
 		const notification = notifications.find((n) => n.id === id)
 
@@ -81,7 +94,7 @@ export abstract class AbstractWebNotificationManager {
 		return notification
 	}
 
-	removeNotificationByIndex = (index: number): WebNotification | null => {
+	removeNotificationByIndex(index: number): WebNotification | null {
 		const notifications = this.getNotifications()
 
 		if (index >= 0 && index < notifications.length) {
@@ -95,7 +108,7 @@ export abstract class AbstractWebNotificationManager {
 		return null
 	}
 
-	clearAllNotifications = (): void => {
+	clearAllNotifications(): void {
 		const notifications = this.getNotifications()
 		notifications.forEach((notification) => {
 			this.clearNotificationTimer(notification)
@@ -103,7 +116,7 @@ export abstract class AbstractWebNotificationManager {
 		this.clearAllNotificationsFromStorage()
 	}
 
-	setNotificationTimer = (notification: WebNotification): void => {
+	setNotificationTimer(notification: WebNotification): void {
 		if (!notification) return
 
 		this.clearNotificationTimer(notification)
@@ -117,7 +130,7 @@ export abstract class AbstractWebNotificationManager {
 		}, delay)
 	}
 
-	collapseNotification = (id: string | number): void => {
+	collapseNotification(id: string | number): void {
 		const notification = this.getNotifications().find((n) => n.id === id)
 		if (notification) {
 			this.clearNotificationTimer(notification)
@@ -125,7 +138,7 @@ export abstract class AbstractWebNotificationManager {
 		}
 	}
 
-	expandNotification = (id: string | number): void => {
+	expandNotification(id: string | number): void {
 		const notification = this.getNotifications().find((n) => n.id === id)
 		if (notification) {
 			notification.collapsed = false
@@ -133,12 +146,12 @@ export abstract class AbstractWebNotificationManager {
 		}
 	}
 
-	markNotificationRead = (id: string | number): void => {
+	markNotificationRead(id: string | number): void {
 		const notification = this.getNotifications().find((n) => n.id === id)
 		if (notification) notification.read = true
 	}
 
-	stopNotificationTimer = (notification: WebNotification): void => {
+	stopNotificationTimer(notification: WebNotification): void {
 		this.clearNotificationTimer(notification)
 	}
 

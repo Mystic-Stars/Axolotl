@@ -1047,7 +1047,8 @@ impl Serialize for Credentials {
             }
         };
 
-        let mut ser = serializer.serialize_struct("Credentials", 7)?;
+        let mut ser = serializer.serialize_struct("Credentials", 8)?;
+        ser.serialize_field("account_id", &self.account_id())?;
         ser.serialize_field("profile", &*profile)?;
         ser.serialize_field("account_type", &self.account_type)?;
         ser.serialize_field("access_token", &self.access_token)?;
@@ -1102,6 +1103,14 @@ mod offline_account_tests {
             )
             .is_err()
         );
+    }
+
+    #[test]
+    fn serializes_new_offline_account_id_for_frontend_selection() {
+        let credentials = Credentials::offline("OfflineUser").unwrap();
+        let serialized = serde_json::to_value(&credentials).unwrap();
+
+        assert_eq!(serialized["account_id"], credentials.account_id());
     }
 
     #[tokio::test]
