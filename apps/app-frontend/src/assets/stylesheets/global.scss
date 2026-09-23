@@ -131,6 +131,12 @@ html.transparent-window body {
 // panels -- patching individual elements only ever reached the few that were
 // patched, which is why "component opacity" appeared not to work.
 //
+// The page layer is deliberately excluded. `surface-1` (and the `--color-bg`
+// alias of it) is the surface the image shows *against*, and how strongly it
+// does so is "Background visibility", not "Component opacity" -- the two
+// settings are separate controls with separate jobs, and letting the component
+// slider also thin out the page would double up on the background's own slider.
+//
 // `has-custom-background` is toggled on `html` by the theme store, but the
 // palette belongs on `body`: modals and dropdowns teleport out of the shell into
 // `body`, so a token defined on the shell alone would not reach them.
@@ -138,19 +144,14 @@ html.has-custom-background body {
 	// Deeper surfaces interpolate toward opaque for the same reason as above --
 	// at a low setting, stacked panels would otherwise show through each other.
 	--custom-bg-alpha: var(--custom-bg-component-opacity, 100%);
-	--custom-bg-alpha-1-5: calc(var(--custom-bg-alpha) + (100% - var(--custom-bg-alpha)) * 0.16);
 	--custom-bg-alpha-2: calc(var(--custom-bg-alpha) + (100% - var(--custom-bg-alpha)) * 0.3);
 	--custom-bg-alpha-chrome: calc(var(--custom-bg-alpha) + (100% - var(--custom-bg-alpha)) * 0.38);
 	--custom-bg-alpha-3: calc(var(--custom-bg-alpha) + (100% - var(--custom-bg-alpha)) * 0.55);
 	--custom-bg-alpha-4: calc(var(--custom-bg-alpha) + (100% - var(--custom-bg-alpha)) * 0.6);
 	--custom-bg-alpha-5: calc(var(--custom-bg-alpha) + (100% - var(--custom-bg-alpha)) * 0.78);
 
-	--surface-1: color-mix(in srgb, var(--surface-1-opaque) var(--custom-bg-alpha), transparent);
-	--surface-1-5: color-mix(
-		in srgb,
-		var(--surface-1-5-opaque) var(--custom-bg-alpha-1-5),
-		transparent
-	);
+	// `surface-1` and `surface-1-5` stay opaque: they are the page, not a
+	// component. Only the layers that sit *on* the page move.
 	--surface-2: color-mix(in srgb, var(--surface-2-opaque) var(--custom-bg-alpha-2), transparent);
 	--surface-2-5: color-mix(
 		in srgb,
@@ -162,8 +163,8 @@ html.has-custom-background body {
 	--surface-5: color-mix(in srgb, var(--surface-5-opaque) var(--custom-bg-alpha-5), transparent);
 
 	// The semantic aliases resolve against the root surfaces at declaration time,
-	// so overriding the primitives above does not reach them.
-	--color-bg: color-mix(in srgb, var(--surface-1-opaque) var(--custom-bg-alpha), transparent);
+	// so overriding the primitives above does not reach them. `--color-bg` is
+	// the page and is left alone for the reason given above.
 	--color-raised-bg: color-mix(
 		in srgb,
 		var(--surface-3-opaque) var(--custom-bg-alpha-3),

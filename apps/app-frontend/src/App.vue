@@ -3481,17 +3481,11 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 	}
 
 	&.has-custom-background {
-		// `--color-bg` already carries the "Component opacity" alpha here.
-		background-color: var(--color-bg);
-
+		// The page already reads `--color-bg` from the base rule above; neither
+		// opacity setting applies to it (see `global.scss`).
 		.loading-indicator-container {
 			border-top-left-radius: 0;
 		}
-	}
-
-	&.has-transparent-background {
-		// `--color-bg` already carries the transparent-window alpha.
-		background-color: var(--color-bg);
 	}
 }
 
