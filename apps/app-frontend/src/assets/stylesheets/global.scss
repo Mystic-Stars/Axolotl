@@ -148,6 +148,14 @@ html.transparent-window body {
 // palette belongs on `body`: modals and dropdowns teleport out of the shell into
 // `body`, so a token defined on the shell alone would not reach them.
 html.has-custom-background body {
+	// Default to fully opaque so the palette still resolves if the store has not
+	// published the settings yet. Without a fallback the `color-mix()` arguments
+	// below would be invalid and every surface would collapse to nothing, which
+	// is a much worse failure than a momentarily opaque UI. The transparent
+	// window path above uses the same guard for the same reason.
+	--custom-bg-page-alpha: var(--custom-bg-page-alpha-setting, 100%);
+	--custom-bg-component-alpha: var(--custom-bg-component-alpha-setting, 100%);
+
 	// Deeper surfaces interpolate toward opaque so stacked panels keep their
 	// contrast instead of showing through each other.
 	--custom-bg-alpha-1-5: calc(

@@ -353,9 +353,12 @@ export const useTheming = defineStore('themeStore', {
 			const visibility = Math.min(Math.max(this.customBackgroundOpacity, 0), 100) / 100
 			const component = Math.min(Math.max(this.customBackgroundComponentOpacity, 0), 100) / 100
 
-			html.style.setProperty('--custom-bg-page-alpha', `${(1 - visibility) * 100}%`)
+			// The `-setting` suffix distinguishes the raw value from the
+			// `--custom-bg-*-alpha` the palette derives, which declares the
+			// fallback that keeps the palette resolvable before this runs.
+			html.style.setProperty('--custom-bg-page-alpha-setting', `${(1 - visibility) * 100}%`)
 			html.style.setProperty(
-				'--custom-bg-component-alpha',
+				'--custom-bg-component-alpha-setting',
 				`${(1 - visibility * (1 - component)) * 100}%`,
 			)
 		},
