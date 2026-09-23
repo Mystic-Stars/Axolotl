@@ -10,16 +10,12 @@
 				</template>
 				<template #cell-actions="{ row }">
 					<div class="flex items-center justify-end">
-						<ButtonStyled v-if="currentSelected.path === row.path">
-							<button class="!shadow-none" disabled>
-								<CheckIcon /> {{ formatMessage(commonMessages.selectedLabel) }}
-							</button>
-						</ButtonStyled>
-						<ButtonStyled v-else>
-							<button class="!shadow-none" @click="setJavaInstall(row)">
-								<PlusIcon /> {{ formatMessage(messages.select) }}
-							</button>
-						</ButtonStyled>
+						<Button v-if="currentSelected.path === row.path" class="!shadow-none" disabled
+							><CheckIcon /> {{ formatMessage(commonMessages.selectedLabel) }}
+						</Button>
+						<Button v-else class="!shadow-none" @click="setJavaInstall(row)"
+							><PlusIcon /> {{ formatMessage(messages.select) }}
+						</Button>
 					</div>
 				</template>
 				<template #empty-state>
@@ -45,6 +41,7 @@
 <script setup>
 import { CheckIcon, PlusIcon, XIcon } from '@modrinth/assets'
 import {
+	Button,
 	ButtonStyled,
 	commonMessages,
 	defineMessages,

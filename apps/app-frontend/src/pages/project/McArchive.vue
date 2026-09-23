@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { DownloadIcon, ExternalIcon, FileArchiveIcon, SpinnerIcon } from '@modrinth/assets'
 import {
+	Button,
 	ButtonStyled,
 	Card,
 	defineMessages,
@@ -269,12 +270,10 @@ void contentSelection
 						{{ formatMessage(messages.openSource) }}
 					</button>
 				</ButtonStyled>
-				<ButtonStyled>
-					<button :disabled="busyFileId !== null" @click="importDownloadedFile">
-						<FileArchiveIcon />
-						{{ formatMessage(messages.importFile) }}
-					</button>
-				</ButtonStyled>
+				<Button :disabled="busyFileId !== null" @click="importDownloadedFile"
+					><FileArchiveIcon />
+					{{ formatMessage(messages.importFile) }}
+				</Button>
 			</div>
 		</Card>
 

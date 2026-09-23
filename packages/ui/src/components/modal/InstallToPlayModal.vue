@@ -36,12 +36,10 @@
 
 		<template #actions>
 			<div class="flex justify-end gap-2">
-				<ButtonStyled>
-					<button @click="handleDecline">
-						<XIcon />
-						Decline
-					</button>
-				</ButtonStyled>
+				<Button @click="handleDecline"
+					><XIcon />
+					Decline
+				</Button>
 				<ButtonStyled color="brand">
 					<button @click="handleAccept">
 						<CheckIcon />
@@ -62,6 +60,7 @@ import { useVIntl } from '../../composables'
 import { formatLoader } from '../../utils'
 import Admonition from '../base/Admonition.vue'
 import Avatar from '../base/Avatar.vue'
+import Button from '../base/buttons/Button.vue'
 import ButtonStyled from '../base/ButtonStyled.vue'
 import NewModal from './NewModal.vue'
 

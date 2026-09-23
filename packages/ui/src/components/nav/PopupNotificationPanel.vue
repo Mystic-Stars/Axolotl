@@ -144,11 +144,12 @@
 						v-if="(item.type === 'error' && onErrorAction) || item.buttons?.length"
 						class="flex gap-1.5"
 					>
-						<ButtonStyled v-if="item.type === 'error' && onErrorAction">
-							<button :disabled="exporting[item.id]" @click="handleErrorAction(item)">
-								<DownloadIcon /> {{ errorActionLabel || formatMessage(messages.exportErrorLogs) }}
-							</button>
-						</ButtonStyled>
+						<Button
+							v-if="item.type === 'error' && onErrorAction"
+							:disabled="exporting[item.id]"
+							@click="handleErrorAction(item)"
+							><DownloadIcon /> {{ errorActionLabel || formatMessage(messages.exportErrorLogs) }}
+						</Button>
 						<ButtonStyled
 							v-for="(btn, idx) in item.buttons"
 							:key="idx"
@@ -186,6 +187,7 @@ import {
 	type PopupNotificationButton,
 	type PopupNotificationProgressItem,
 } from '../../providers'
+import Button from '../base/buttons/Button.vue'
 import ButtonStyled from '../base/ButtonStyled.vue'
 import ProgressBar from '../base/ProgressBar.vue'
 import NotificationToast from '../notifications/NotificationToast.vue'

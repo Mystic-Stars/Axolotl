@@ -15,12 +15,10 @@
 					{{ formatMessage(messages.leaveButton) }}
 				</button>
 			</ButtonStyled>
-			<ButtonStyled>
-				<button @click="unsavedModal?.hide()">
-					<XIcon />
-					{{ formatMessage(messages.stayButton) }}
-				</button>
-			</ButtonStyled>
+			<Button @click="unsavedModal?.hide()"
+				><XIcon />
+				{{ formatMessage(messages.stayButton) }}
+			</Button>
 		</div>
 	</NewModal>
 	<EmptyState
@@ -271,12 +269,10 @@
 						{{ formatMessage(commonMessages.saveChangesButton) }}
 					</button>
 				</ButtonStyled>
-				<ButtonStyled>
-					<button :disabled="saving" @click="discard">
-						<XIcon />
-						{{ formatMessage(messages.discardButton) }}
-					</button>
-				</ButtonStyled>
+				<Button :disabled="saving" @click="discard"
+					><XIcon />
+					{{ formatMessage(messages.discardButton) }}
+				</Button>
 			</div>
 		</div>
 	</div>
@@ -288,6 +284,7 @@ import {
 	Accordion,
 	Admonition,
 	Avatar,
+	Button,
 	ButtonStyled,
 	commonMessages,
 	defineMessages,

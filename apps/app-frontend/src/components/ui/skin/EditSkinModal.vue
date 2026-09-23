@@ -21,11 +21,9 @@
 			<div class="flex flex-col gap-4 w-full min-h-[20rem]">
 				<section v-if="mode === 'edit' && canEditTextureAndModel">
 					<h2 class="text-base font-semibold mb-2">{{ formatMessage(messages.textureSection) }}</h2>
-					<ButtonStyled>
-						<button class="!shadow-none" @click="openTextureFileBrowser">
-							<UploadIcon /> {{ formatMessage(messages.replaceTextureButton) }}
-						</button>
-					</ButtonStyled>
+					<Button class="!shadow-none" @click="openTextureFileBrowser"
+						><UploadIcon /> {{ formatMessage(messages.replaceTextureButton) }}
+					</Button>
 					<input
 						ref="textureFileInput"
 						type="file"
@@ -132,6 +130,7 @@
 <script setup lang="ts">
 import { CheckIcon, SaveIcon, SpinnerIcon, UploadIcon, XIcon } from '@modrinth/assets'
 import {
+	Button,
 	ButtonStyled,
 	CapeButton,
 	CapeLikeTextButton,

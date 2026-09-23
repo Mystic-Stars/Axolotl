@@ -2,6 +2,7 @@
 import { MailIcon, SearchIcon, SendIcon, UserIcon, UserPlusIcon, XIcon } from '@modrinth/assets'
 import {
 	Avatar,
+	Button,
 	ButtonStyled,
 	defineMessages,
 	injectNotificationManager,
@@ -258,20 +259,16 @@ const messages = defineMessages({
 									{{ formatMessage(messages.accept) }}
 								</button>
 							</ButtonStyled>
-							<ButtonStyled>
-								<button @click="removeFriend(friend)">
-									<XIcon />
-									{{ formatMessage(messages.ignore) }}
-								</button>
-							</ButtonStyled>
+							<Button @click="removeFriend(friend)"
+								><XIcon />
+								{{ formatMessage(messages.ignore) }}
+							</Button>
 						</template>
 						<template v-else>
-							<ButtonStyled>
-								<button @click="removeFriend(friend)">
-									<XIcon />
-									{{ formatMessage(messages.cancel) }}
-								</button>
-							</ButtonStyled>
+							<Button @click="removeFriend(friend)"
+								><XIcon />
+								{{ formatMessage(messages.cancel) }}
+							</Button>
 						</template>
 					</div>
 				</div>

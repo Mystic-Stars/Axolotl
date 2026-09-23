@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { PlayIcon, PlusIcon, XIcon } from '@modrinth/assets'
 import {
+	Button,
 	ButtonStyled,
 	commonMessages,
 	defineMessages,
@@ -107,12 +108,10 @@ defineExpose({ show, hide })
 						{{ formatMessage(commonMessages.cancelButton) }}
 					</button>
 				</ButtonStyled>
-				<ButtonStyled>
-					<button :disabled="!address" @click="addServer(false)">
-						<PlusIcon />
-						{{ formatMessage(messages.addServer) }}
-					</button>
-				</ButtonStyled>
+				<Button :disabled="!address" @click="addServer(false)"
+					><PlusIcon />
+					{{ formatMessage(messages.addServer) }}
+				</Button>
 				<ButtonStyled color="brand">
 					<button :disabled="!address" @click="addServer(true)">
 						<PlayIcon />

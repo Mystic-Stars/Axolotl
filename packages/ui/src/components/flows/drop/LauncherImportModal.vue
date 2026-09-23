@@ -84,12 +84,13 @@
 						{{ formatMessage(messages.cancel) }}
 					</button>
 				</ButtonStyled>
-				<ButtonStyled :disabled="selectedCount === 0">
-					<button class="flex items-center gap-2" @click="handleConfirm">
-						<DownloadIcon class="size-4" />
-						{{ formatMessage(messages.importAction, { n: selectedCount }) }}
-					</button>
-				</ButtonStyled>
+				<Button
+					:disabled="selectedCount === 0"
+					class="flex items-center gap-2"
+					@click="handleConfirm"
+					><DownloadIcon class="size-4" />
+					{{ formatMessage(messages.importAction, { n: selectedCount }) }}
+				</Button>
 			</div>
 		</template>
 	</NewModal>
@@ -99,6 +100,7 @@
 import { DownloadIcon } from '@modrinth/assets'
 import { computed, ref } from 'vue'
 
+import Button from '#ui/components/base/buttons/Button.vue'
 import ButtonStyled from '#ui/components/base/ButtonStyled.vue'
 import Checkbox from '#ui/components/base/Checkbox.vue'
 import InstanceRowCard from '#ui/components/base/InstanceRowCard.vue'

@@ -118,12 +118,10 @@
 							inst.name
 						}}</span>
 					</button>
-					<ButtonStyled v-if="inst.installed">
-						<button disabled>
-							<CheckIcon />
-							{{ formatMessage(messages.installedBadge) }}
-						</button>
-					</ButtonStyled>
+					<Button v-if="inst.installed" disabled
+						><CheckIcon />
+						{{ formatMessage(messages.installedBadge) }}
+					</Button>
 					<ButtonStyled
 						v-else
 						:type="inst.compatible ? 'standard' : 'outlined'"
@@ -275,6 +273,7 @@ import { computed, ref, watch } from 'vue'
 
 import AutoLink from '#ui/components/base/AutoLink.vue'
 import Avatar from '#ui/components/base/Avatar.vue'
+import Button from '#ui/components/base/buttons/Button.vue'
 import ButtonStyled from '#ui/components/base/ButtonStyled.vue'
 import Chips from '#ui/components/base/Chips.vue'
 import Combobox, { type ComboboxOption } from '#ui/components/base/Combobox.vue'

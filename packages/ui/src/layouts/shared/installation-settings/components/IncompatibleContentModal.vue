@@ -31,23 +31,19 @@
 
 		<template #actions>
 			<div class="flex justify-end gap-2">
-				<ButtonStyled>
-					<button :disabled="loading" @click="handleCancel">
-						<XIcon />
-						{{ formatMessage(commonMessages.cancelButton) }}
-					</button>
-				</ButtonStyled>
+				<Button :disabled="loading" @click="handleCancel"
+					><XIcon />
+					{{ formatMessage(commonMessages.cancelButton) }}
+				</Button>
 				<template v-if="variant === 'game-version-change'">
-					<ButtonStyled>
-						<button :disabled="loading" @click="handleDisableConflicts">
-							<SpinnerIcon
-								v-if="loading && loadingAction === 'disable-conflicts'"
-								class="size-5 animate-spin"
-							/>
-							<PowerOffIcon v-else class="size-5" />
-							{{ formatMessage(messages.disableConflictsButton) }}
-						</button>
-					</ButtonStyled>
+					<Button :disabled="loading" @click="handleDisableConflicts"
+						><SpinnerIcon
+							v-if="loading && loadingAction === 'disable-conflicts'"
+							class="size-5 animate-spin"
+						/>
+						<PowerOffIcon v-else class="size-5" />
+						{{ formatMessage(messages.disableConflictsButton) }}
+					</Button>
 					<ButtonStyled color="orange">
 						<button :disabled="loading" @click="handleAutoFix">
 							<SpinnerIcon
@@ -85,6 +81,7 @@ import {
 import { ref } from 'vue'
 
 import Admonition from '#ui/components/base/Admonition.vue'
+import Button from '#ui/components/base/buttons/Button.vue'
 import ButtonStyled from '#ui/components/base/ButtonStyled.vue'
 import NewModal from '#ui/components/modal/NewModal.vue'
 import { defineMessages, useVIntl } from '#ui/composables/i18n'

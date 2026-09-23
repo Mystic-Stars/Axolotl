@@ -11,6 +11,7 @@ import {
 	XIcon,
 } from '@modrinth/assets'
 import {
+	Button,
 	ButtonStyled,
 	Collapsible,
 	commonMessages,
@@ -484,16 +485,12 @@ async function exportLogs() {
 						<ChatIcon /> {{ formatMessage(messages.getSupport) }}
 					</a>
 				</ButtonStyled>
-				<ButtonStyled>
-					<button :disabled="exportingLogs" @click="exportLogs">
-						<DownloadIcon /> {{ formatMessage(messages.exportLogs) }}
-					</button>
-				</ButtonStyled>
-				<ButtonStyled v-if="closable">
-					<button @click="errorModal.hide()">
-						<XIcon /> {{ formatMessage(commonMessages.closeButton) }}
-					</button>
-				</ButtonStyled>
+				<Button :disabled="exportingLogs" @click="exportLogs"
+					><DownloadIcon /> {{ formatMessage(messages.exportLogs) }}
+				</Button>
+				<Button v-if="closable" @click="errorModal.hide()"
+					><XIcon /> {{ formatMessage(commonMessages.closeButton) }}
+				</Button>
 			</div>
 			<template v-if="hasDebugInfo">
 				<div class="flex flex-col gap-2">

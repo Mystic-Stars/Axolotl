@@ -2,7 +2,7 @@
 import { CheckIcon, PlusIcon, SearchIcon } from '@modrinth/assets'
 import {
 	Admonition,
-	ButtonStyled,
+	Button,
 	commonMessages,
 	defineMessages,
 	injectNotificationManager,
@@ -151,25 +151,21 @@ async function addServer(instance) {
 						/>
 						{{ instance.name }}
 					</router-link>
-					<ButtonStyled>
-						<button :disabled="instance.added || instance.adding" @click="addServer(instance)">
-							<PlusIcon v-if="!instance.added && !instance.adding" />
-							<CheckIcon v-else-if="instance.added" />
-							{{
-								instance.adding
-									? formatMessage(messages.adding)
-									: instance.added
-										? formatMessage(messages.added)
-										: formatMessage(messages.add)
-							}}
-						</button>
-					</ButtonStyled>
+					<Button :disabled="instance.added || instance.adding" @click="addServer(instance)"
+						><PlusIcon v-if="!instance.added && !instance.adding" />
+						<CheckIcon v-else-if="instance.added" />
+						{{
+							instance.adding
+								? formatMessage(messages.adding)
+								: instance.added
+									? formatMessage(messages.added)
+									: formatMessage(messages.add)
+						}}
+					</Button>
 				</div>
 			</div>
 			<div class="input-group push-right">
-				<ButtonStyled>
-					<button @click="modal.hide()">{{ formatMessage(commonMessages.cancelButton) }}</button>
-				</ButtonStyled>
+				<Button @click="modal.hide()">{{ formatMessage(commonMessages.cancelButton) }}</Button>
 			</div>
 		</div>
 	</NewModal>

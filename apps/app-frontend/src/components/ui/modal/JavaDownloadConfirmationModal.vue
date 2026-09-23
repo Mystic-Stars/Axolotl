@@ -24,13 +24,11 @@
 						{{ formatMessage(messages.setUpLater) }}
 					</button>
 				</ButtonStyled>
-				<ButtonStyled>
-					<button type="button" :disabled="responding" @click="confirmDownload">
-						<SpinnerIcon v-if="responding" class="animate-spin" aria-hidden="true" />
-						<DownloadIcon v-else aria-hidden="true" />
-						{{ formatMessage(messages.download) }}
-					</button>
-				</ButtonStyled>
+				<Button :disabled="responding" @click="confirmDownload"
+					><SpinnerIcon v-if="responding" class="animate-spin" aria-hidden="true" />
+					<DownloadIcon v-else aria-hidden="true" />
+					{{ formatMessage(messages.download) }}
+				</Button>
 			</div>
 		</template>
 	</NewModal>
@@ -39,6 +37,7 @@
 <script setup lang="ts">
 import { ClockIcon, DownloadIcon, SpinnerIcon } from '@modrinth/assets'
 import {
+	Button,
 	ButtonStyled,
 	defineMessages,
 	injectNotificationManager,

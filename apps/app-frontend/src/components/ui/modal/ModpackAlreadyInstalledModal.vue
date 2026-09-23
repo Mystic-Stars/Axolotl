@@ -22,12 +22,10 @@
 						{{ formatMessage(commonMessages.cancelButton) }}
 					</button>
 				</ButtonStyled>
-				<ButtonStyled>
-					<button @click="handleGoToInstance">
-						{{ formatMessage(messages.instance) }}
-						<RightArrowIcon />
-					</button>
-				</ButtonStyled>
+				<Button @click="handleGoToInstance"
+					>{{ formatMessage(messages.instance) }}
+					<RightArrowIcon />
+				</Button>
 				<ButtonStyled color="orange">
 					<button @click="handleCreateAnyway">
 						<PlusIcon />
@@ -42,6 +40,7 @@
 <script setup lang="ts">
 import { PlusIcon, RightArrowIcon, XIcon } from '@modrinth/assets'
 import {
+	Button,
 	ButtonStyled,
 	commonMessages,
 	defineMessages,

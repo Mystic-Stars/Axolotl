@@ -8,6 +8,7 @@ import {
 	RightArrowIcon,
 } from '@modrinth/assets'
 import {
+	Button,
 	ButtonStyled,
 	commonMessages,
 	commonProjectSettingsMessages,
@@ -287,13 +288,11 @@ onUnmounted(() => {
 					</div>
 				</div>
 				<div class="flex flex-wrap items-center gap-2">
-					<ButtonStyled>
-						<button @click="zoomedIn = !zoomedIn">
-							<ContractIcon v-if="zoomedIn" />
-							<ExpandIcon v-else />
-							{{ formatMessage(zoomedIn ? screenshotMessages.zoomOut : screenshotMessages.zoomIn) }}
-						</button>
-					</ButtonStyled>
+					<Button @click="zoomedIn = !zoomedIn"
+						><ContractIcon v-if="zoomedIn" />
+						<ExpandIcon v-else />
+						{{ formatMessage(zoomedIn ? screenshotMessages.zoomOut : screenshotMessages.zoomIn) }}
+					</Button>
 					<ButtonStyled>
 						<a
 							target="_blank"

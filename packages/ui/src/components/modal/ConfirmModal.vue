@@ -37,12 +37,10 @@
 				wrapper-class="max-w-[20rem]"
 			/>
 			<div class="flex gap-2 justify-end">
-				<ButtonStyled>
-					<button class="!shadow-none" @click="hide()">
-						<XIcon />
-						Cancel
-					</button>
-				</ButtonStyled>
+				<Button class="!shadow-none" @click="hide()"
+					><XIcon />
+					Cancel
+				</Button>
 				<ButtonStyled :color="danger ? 'red' : 'brand'">
 					<button :disabled="action_disabled" @click="proceed">
 						<component :is="proceedIcon" />
@@ -59,6 +57,7 @@ import { TrashIcon, XIcon } from '@modrinth/assets'
 import { renderString } from '@modrinth/utils'
 import { computed, ref } from 'vue'
 
+import Button from '../base/buttons/Button.vue'
 import ButtonStyled from '../base/ButtonStyled.vue'
 import StyledInput from '../base/StyledInput.vue'
 import NewModal from './NewModal.vue'

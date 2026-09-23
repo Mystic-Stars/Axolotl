@@ -359,11 +359,9 @@
 						<CircleAlertIcon />
 						{{ formatMessage(messages.custom) }}
 					</TagItem>
-					<ButtonStyled>
-						<button class="flex items-center gap-2" @click="handleConfirm">
-							{{ confirmLabel }}
-						</button>
-					</ButtonStyled>
+					<Button class="flex items-center gap-2" @click="handleConfirm"
+						>{{ confirmLabel }}
+					</Button>
 				</div>
 			</div>
 		</template>
@@ -375,6 +373,7 @@ import { CircleAlertIcon, CopyIcon, FolderOpenIcon, LinkIcon } from '@modrinth/a
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 
 import BigOptionButton from '#ui/components/base/BigOptionButton.vue'
+import Button from '#ui/components/base/buttons/Button.vue'
 import ButtonStyled from '#ui/components/base/ButtonStyled.vue'
 import Chips from '#ui/components/base/Chips.vue'
 import Combobox, { type ComboboxOption } from '#ui/components/base/Combobox.vue'

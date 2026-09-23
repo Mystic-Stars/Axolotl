@@ -22,6 +22,7 @@ import {
 	XIcon,
 } from '@modrinth/assets'
 import {
+	Button,
 	ButtonStyled,
 	commonMessages,
 	defineMessages,
@@ -819,12 +820,10 @@ async function handleInstanceDragEnd(event: {
 				clearable
 				wrapper-class="flex-1"
 			/>
-			<ButtonStyled>
-				<button @click="openNewGroupModal">
-					<PlusIcon />
-					{{ formatMessage(messages.newGroup) }}
-				</button>
-			</ButtonStyled>
+			<Button @click="openNewGroupModal"
+				><PlusIcon />
+				{{ formatMessage(messages.newGroup) }}
+			</Button>
 			<ButtonStyled color="brand">
 				<button @click="router.push('/create')">
 					<PlusIcon />

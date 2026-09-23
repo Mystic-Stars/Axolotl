@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ExternalIcon } from '@modrinth/assets'
-import { ButtonStyled, defineMessages, NewModal, useVIntl } from '@modrinth/ui'
+import { Button, defineMessages, NewModal, useVIntl } from '@modrinth/ui'
 import { openUrl } from '@tauri-apps/plugin-opener'
 import { computed, onUnmounted, ref } from 'vue'
 
@@ -142,11 +142,9 @@ defineExpose({ showDeviceLogin, hide })
 		<div class="flex min-w-[24rem] flex-col gap-4">
 			<template v-if="deviceFlow">
 				<p class="m-0 text-secondary">{{ formatMessage(messages.deviceDescription) }}</p>
-				<ButtonStyled>
-					<button @click="openDeviceVerification">
-						<ExternalIcon /> {{ formatMessage(messages.openVerification) }}
-					</button>
-				</ButtonStyled>
+				<Button @click="openDeviceVerification"
+					><ExternalIcon /> {{ formatMessage(messages.openVerification) }}
+				</Button>
 				<code
 					class="rounded-xl bg-surface-3 px-4 py-3 text-center text-xl font-bold tracking-[0.18em] text-contrast"
 				>

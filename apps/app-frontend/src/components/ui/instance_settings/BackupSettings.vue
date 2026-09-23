@@ -2,6 +2,7 @@
 import { FileArchiveIcon, SaveIcon, TrashIcon, UndoIcon, XIcon } from '@modrinth/assets'
 import {
 	Admonition,
+	Button,
 	ButtonStyled,
 	commonMessages,
 	defineMessages,
@@ -472,16 +473,10 @@ watch(
 					:disabled="action !== null"
 				/>
 				<div class="flex flex-wrap gap-2">
-					<ButtonStyled>
-						<button
-							type="button"
-							:disabled="action !== null"
-							@click="config.enabled ? saveExclusions() : enable()"
-						>
-							<SaveIcon />
-							{{ formatMessage(config.enabled ? messages.saveExclusions : messages.enable) }}
-						</button>
-					</ButtonStyled>
+					<Button :disabled="action !== null" @click="config.enabled ? saveExclusions() : enable()"
+						><SaveIcon />
+						{{ formatMessage(config.enabled ? messages.saveExclusions : messages.enable) }}
+					</Button>
 					<ButtonStyled v-if="config.enabled" type="outlined">
 						<button type="button" :disabled="action !== null" @click="editingExclusions = false">
 							<XIcon />
@@ -503,12 +498,10 @@ watch(
 						}}
 					</p>
 					<div class="flex flex-wrap gap-2">
-						<ButtonStyled>
-							<button type="button" :disabled="isRunning || action !== null" @click="start">
-								<FileArchiveIcon />
-								{{ formatMessage(messages.backupNow) }}
-							</button>
-						</ButtonStyled>
+						<Button :disabled="isRunning || action !== null" @click="start"
+							><FileArchiveIcon />
+							{{ formatMessage(messages.backupNow) }}
+						</Button>
 						<ButtonStyled v-if="canCancel" type="outlined">
 							<button type="button" :disabled="action !== null" @click="cancel">
 								<XIcon />
@@ -664,11 +657,9 @@ watch(
 							{{ formatMessage(commonMessages.cancelButton) }}
 						</button>
 					</ButtonStyled>
-					<ButtonStyled>
-						<button :disabled="action?.startsWith('restore:')" @click="restoreSnapshot">
-							<UndoIcon />{{ formatMessage(messages.restore) }}
-						</button>
-					</ButtonStyled>
+					<Button :disabled="action?.startsWith('restore:')" @click="restoreSnapshot"
+						><UndoIcon />{{ formatMessage(messages.restore) }}
+					</Button>
 				</div>
 			</template>
 		</NewModal>

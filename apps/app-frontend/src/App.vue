@@ -32,6 +32,7 @@ import {
 	bindingMatchesKeyboardEvent,
 	bindingMatchesMouseEvent,
 	bindingMatchesWheelEvent,
+	Button,
 	ButtonStyled,
 	Checkbox,
 	clientInstallableLoaders,
@@ -3100,15 +3101,11 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 					{{ formatMessage(messages.closeLauncherDirect) }}
 				</button>
 			</ButtonStyled>
-			<ButtonStyled>
-				<button
-					type="button"
-					:disabled="closeRequestInProgress"
-					@click="applyCloseChoice('lightweight', closeChoiceRemember)"
-				>
-					{{ formatMessage(messages.closeLauncherTray) }}
-				</button>
-			</ButtonStyled>
+			<Button
+				:disabled="closeRequestInProgress"
+				@click="applyCloseChoice('lightweight', closeChoiceRemember)"
+				>{{ formatMessage(messages.closeLauncherTray) }}
+			</Button>
 		</div>
 		<div class="mt-4">
 			<Checkbox
@@ -3138,16 +3135,15 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 						{{ formatMessage(messages.backupExitReturn) }}
 					</button>
 				</ButtonStyled>
-				<ButtonStyled>
-					<button type="button" :disabled="closeRequestInProgress" @click="hideDuringBackups">
-						{{ formatMessage(messages.backupExitTray) }}
-					</button>
-				</ButtonStyled>
-				<ButtonStyled v-if="activeBackupOperations.every((operation) => operation.cancellable)">
-					<button type="button" :disabled="closeRequestInProgress" @click="cancelBackupsAndExit">
-						{{ formatMessage(messages.backupExitCancel) }}
-					</button>
-				</ButtonStyled>
+				<Button :disabled="closeRequestInProgress" @click="hideDuringBackups"
+					>{{ formatMessage(messages.backupExitTray) }}
+				</Button>
+				<Button
+					v-if="activeBackupOperations.every((operation) => operation.cancellable)"
+					:disabled="closeRequestInProgress"
+					@click="cancelBackupsAndExit"
+					>{{ formatMessage(messages.backupExitCancel) }}
+				</Button>
 				<ButtonStyled v-if="!hasActiveRepositoryMove" color="red">
 					<button type="button" :disabled="closeRequestInProgress" @click="forceBackupExit">
 						{{ formatMessage(messages.backupExitForce) }}
@@ -3312,11 +3308,9 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 		</div>
 		<template #actions>
 			<div class="flex w-full items-center justify-end">
-				<ButtonStyled>
-					<button class="flex items-center gap-2" @click="handleCompatibleModeConfirm('cancel')">
-						{{ formatMessage(messages.dropCompatibleModeCancel) }}
-					</button>
-				</ButtonStyled>
+				<Button class="flex items-center gap-2" @click="handleCompatibleModeConfirm('cancel')"
+					>{{ formatMessage(messages.dropCompatibleModeCancel) }}
+				</Button>
 			</div>
 		</template>
 	</NewModal>

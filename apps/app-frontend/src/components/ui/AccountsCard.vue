@@ -5,13 +5,11 @@
 	>
 		<span class="font-semibold text-contrast">{{ formatMessage(messages.offlineMode) }}</span>
 		<span class="text-sm text-secondary">{{ formatMessage(messages.offlineModeDescription) }}</span>
-		<ButtonStyled>
-			<button class="mt-1" :disabled="refreshingNetwork" @click="refreshNetworkStatus()">
-				<SpinnerIcon v-if="refreshingNetwork" class="animate-spin" />
-				<RefreshCwIcon v-else />
-				{{ formatMessage(messages.refreshNetworkStatus) }}
-			</button>
-		</ButtonStyled>
+		<Button class="mt-1" :disabled="refreshingNetwork" @click="refreshNetworkStatus()"
+			><SpinnerIcon v-if="refreshingNetwork" class="animate-spin" />
+			<RefreshCwIcon v-else />
+			{{ formatMessage(messages.refreshNetworkStatus) }}
+		</Button>
 	</div>
 	<div
 		v-if="accounts.length === 0"
@@ -25,22 +23,17 @@
 				{{ formatMessage(messages.signInToMinecraft) }}
 			</button>
 		</ButtonStyled>
-		<ButtonStyled v-if="!offline">
-			<button :disabled="loginDisabled" @click="showYggdrasilAccountModal()">
-				<PlusIcon />
-				{{ formatMessage(messages.addThirdPartyAccount) }}
-			</button>
-		</ButtonStyled>
-		<ButtonStyled>
-			<button
-				data-onboarding-id="offline-account-entry"
-				:disabled="loginDisabled"
-				@click="showOfflineAccountModal()"
-			>
-				<PlusIcon />
-				{{ formatMessage(messages.addOfflineAccount) }}
-			</button>
-		</ButtonStyled>
+		<Button v-if="!offline" :disabled="loginDisabled" @click="showYggdrasilAccountModal()"
+			><PlusIcon />
+			{{ formatMessage(messages.addThirdPartyAccount) }}
+		</Button>
+		<Button
+			data-onboarding-id="offline-account-entry"
+			:disabled="loginDisabled"
+			@click="showOfflineAccountModal()"
+			><PlusIcon />
+			{{ formatMessage(messages.addOfflineAccount) }}
+		</Button>
 	</div>
 	<Accordion
 		v-else
@@ -146,28 +139,31 @@
 				</div>
 			</template>
 			<div class="flex flex-col gap-2 px-2 pt-2">
-				<ButtonStyled v-if="accounts.length > 0 && !offline" class="w-full">
-					<button :disabled="loginDisabled" @click="login()">
-						<PlusIcon />
-						{{ formatMessage(messages.addMicrosoftAccount) }}
-					</button>
-				</ButtonStyled>
-				<ButtonStyled v-if="accounts.length > 0 && !offline" class="w-full">
-					<button :disabled="loginDisabled" @click="showYggdrasilAccountModal()">
-						<PlusIcon />
-						{{ formatMessage(messages.addThirdPartyAccount) }}
-					</button>
-				</ButtonStyled>
-				<ButtonStyled v-if="accounts.length > 0" class="w-full">
-					<button
-						data-onboarding-id="offline-account-entry"
-						:disabled="loginDisabled"
-						@click="showOfflineAccountModal()"
-					>
-						<PlusIcon />
-						{{ formatMessage(messages.addOfflineAccount) }}
-					</button>
-				</ButtonStyled>
+				<Button
+					v-if="accounts.length > 0 && !offline"
+					class="w-full"
+					:disabled="loginDisabled"
+					@click="login()"
+					><PlusIcon />
+					{{ formatMessage(messages.addMicrosoftAccount) }}
+				</Button>
+				<Button
+					v-if="accounts.length > 0 && !offline"
+					class="w-full"
+					:disabled="loginDisabled"
+					@click="showYggdrasilAccountModal()"
+					><PlusIcon />
+					{{ formatMessage(messages.addThirdPartyAccount) }}
+				</Button>
+				<Button
+					v-if="accounts.length > 0"
+					class="w-full"
+					data-onboarding-id="offline-account-entry"
+					:disabled="loginDisabled"
+					@click="showOfflineAccountModal()"
+					><PlusIcon />
+					{{ formatMessage(messages.addOfflineAccount) }}
+				</Button>
 			</div>
 		</div>
 	</Accordion>
@@ -229,11 +225,9 @@
 				:body="formatMessage(messages.customUuidDuplicate)"
 			/>
 			<div class="input-group push-right">
-				<ButtonStyled>
-					<button :disabled="loginDisabled" @click="offlineAccountModal?.hide()">
-						{{ formatMessage(commonMessages.cancelButton) }}
-					</button>
-				</ButtonStyled>
+				<Button :disabled="loginDisabled" @click="offlineAccountModal?.hide()"
+					>{{ formatMessage(commonMessages.cancelButton) }}
+				</Button>
 				<ButtonStyled color="brand">
 					<button :disabled="loginDisabled || !offlineFormValid" @click="addOfflineAccount()">
 						<SpinnerIcon v-if="loginDisabled" class="animate-spin" />
@@ -273,11 +267,9 @@
 					</ButtonStyled>
 				</div>
 			</div>
-			<ButtonStyled class="w-full">
-				<button :disabled="loginDisabled" @click="useLittleSkinPreset()">
-					{{ formatMessage(messages.useLittleSkin) }}
-				</button>
-			</ButtonStyled>
+			<Button class="w-full" :disabled="loginDisabled" @click="useLittleSkinPreset()"
+				>{{ formatMessage(messages.useLittleSkin) }}
+			</Button>
 			<label class="flex flex-col gap-2 font-semibold">
 				{{ formatMessage(messages.apiRootLabel) }}
 				<StyledInput
@@ -314,11 +306,9 @@
 				:label="formatMessage(messages.rememberPassword)"
 			/>
 			<div class="input-group push-right">
-				<ButtonStyled>
-					<button :disabled="loginDisabled" @click="yggdrasilAccountModal?.hide()">
-						{{ formatMessage(commonMessages.cancelButton) }}
-					</button>
-				</ButtonStyled>
+				<Button :disabled="loginDisabled" @click="yggdrasilAccountModal?.hide()"
+					>{{ formatMessage(commonMessages.cancelButton) }}
+				</Button>
 				<ButtonStyled color="brand">
 					<button :disabled="loginDisabled || !yggdrasilFormValid" @click="addYggdrasilAccount()">
 						<SpinnerIcon v-if="loginDisabled" class="animate-spin" />
@@ -332,13 +322,16 @@
 	<NewModal ref="yggdrasilProfileModal" :header="formatMessage(messages.selectProfileTitle)">
 		<div class="flex min-w-[22rem] flex-col gap-2">
 			<p class="m-0 mb-2 text-secondary">{{ formatMessage(messages.selectProfileDescription) }}</p>
-			<ButtonStyled v-for="profile in pendingYggdrasilProfiles" :key="profile.id" class="w-full">
-				<button :disabled="loginDisabled" @click="selectYggdrasilProfile(profile.id)">
-					<SpinnerIcon v-if="loginDisabled" class="animate-spin" />
-					<RadioButtonIcon v-else />
-					{{ profile.name }}
-				</button>
-			</ButtonStyled>
+			<Button
+				v-for="profile in pendingYggdrasilProfiles"
+				:key="profile.id"
+				class="w-full"
+				:disabled="loginDisabled"
+				@click="selectYggdrasilProfile(profile.id)"
+				><SpinnerIcon v-if="loginDisabled" class="animate-spin" />
+				<RadioButtonIcon v-else />
+				{{ profile.name }}
+			</Button>
 		</div>
 	</NewModal>
 </template>
@@ -358,6 +351,7 @@ import {
 	Accordion,
 	Admonition,
 	Avatar,
+	Button,
 	ButtonStyled,
 	Checkbox,
 	commonMessages,

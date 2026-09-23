@@ -3,6 +3,7 @@ import type { Labrinth } from '@modrinth/api-client'
 import { ArrowUpDownIcon, EyeIcon, SearchIcon, SpinnerIcon } from '@modrinth/assets'
 import { computed, ref, toValue } from 'vue'
 
+import Button from '#ui/components/base/buttons/Button.vue'
 import ButtonStyled from '#ui/components/base/ButtonStyled.vue'
 import DropdownSelect from '#ui/components/base/DropdownSelect.vue'
 import EmptyState from '#ui/components/base/EmptyState.vue'
@@ -217,11 +218,9 @@ const skeletonCount = computed(() => {
 				</DropdownSelect>
 
 				<div v-if="ctx.filtersMenuOpen && !ctx.filtersMenuOpen.value" class="lg:hidden">
-					<ButtonStyled>
-						<button @click="ctx.filtersMenuOpen.value = true">
-							{{ formatMessage(messages.filterResults) }}
-						</button>
-					</ButtonStyled>
+					<Button @click="ctx.filtersMenuOpen.value = true"
+						>{{ formatMessage(messages.filterResults) }}
+					</Button>
 				</div>
 
 				<PopoutMenu
@@ -309,11 +308,7 @@ const skeletonCount = computed(() => {
 			<EmptyState type="offline" compact :heading="formatMessage(messages.offlineHeading)">
 				<template #description>{{ formatMessage(messages.offline) }}</template>
 				<template #actions>
-					<ButtonStyled>
-						<button type="button" @click="ctx.refreshSearch()">
-							{{ formatMessage(messages.retryLabel) }}
-						</button>
-					</ButtonStyled>
+					<Button @click="ctx.refreshSearch()">{{ formatMessage(messages.retryLabel) }} </Button>
 				</template>
 			</EmptyState>
 		</section>
@@ -332,11 +327,9 @@ const skeletonCount = computed(() => {
 				:description="formatMessage(messages.noResults)"
 			>
 				<template v-if="ctx.query.value" #actions>
-					<ButtonStyled>
-						<button type="button" @click="ctx.clearSearch()">
-							{{ formatMessage(messages.clearSearchLabel) }}
-						</button>
-					</ButtonStyled>
+					<Button @click="ctx.clearSearch()"
+						>{{ formatMessage(messages.clearSearchLabel) }}
+					</Button>
 				</template>
 			</EmptyState>
 		</section>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ButtonStyled, defineMessages, NewModal, useVIntl } from '@modrinth/ui'
+import { Button, ButtonStyled, defineMessages, NewModal, useVIntl } from '@modrinth/ui'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { computed, ref } from 'vue'
 
@@ -62,14 +62,11 @@ defineExpose({ show, hide })
 				class="flex items-center gap-3 border-b border-solid border-surface-4 py-2"
 			>
 				<span class="min-w-0 flex-1 truncate">{{ pack.file_name }}</span>
-				<ButtonStyled>
-					<button
-						:disabled="mutation.isPending.value"
-						@click="mutation.mutate({ id: pack.id, enabled: !pack.enabled })"
-					>
-						{{ formatMessage(pack.enabled ? messages.disable : messages.enable) }}
-					</button>
-				</ButtonStyled>
+				<Button
+					:disabled="mutation.isPending.value"
+					@click="mutation.mutate({ id: pack.id, enabled: !pack.enabled })"
+					>{{ formatMessage(pack.enabled ? messages.disable : messages.enable) }}
+				</Button>
 				<ButtonStyled color="red">
 					<button
 						:disabled="mutation.isPending.value"

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { FolderOpenIcon, UploadIcon } from '@modrinth/assets'
 import {
+	Button,
 	ButtonStyled,
 	Combobox,
 	defineMessages,
@@ -170,12 +171,10 @@ async function openLogsFolder() {
 								{{ formatMessage(messages.exportButton) }}
 							</button>
 						</ButtonStyled>
-						<ButtonStyled>
-							<button type="button" @click="openLogsFolder">
-								<FolderOpenIcon />
-								{{ formatMessage(messages.openFolder) }}
-							</button>
-						</ButtonStyled>
+						<Button @click="openLogsFolder"
+							><FolderOpenIcon />
+							{{ formatMessage(messages.openFolder) }}
+						</Button>
 					</div>
 				</template>
 			</SettingsRow>

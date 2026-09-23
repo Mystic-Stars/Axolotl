@@ -11,6 +11,7 @@ import {
 	TrashIcon,
 } from '@modrinth/assets'
 import {
+	Button,
 	ButtonStyled,
 	Checkbox,
 	defineMessages,
@@ -288,12 +289,10 @@ async function importModLoader() {
 <template>
 	<div class="flex flex-col gap-4">
 		<div class="flex flex-wrap gap-2">
-			<ButtonStyled>
-				<button :disabled="busy" @click="pick('jar_mod')">
-					<PlusIcon />
-					{{ formatMessage(messages.add) }}
-				</button>
-			</ButtonStyled>
+			<Button :disabled="busy" @click="pick('jar_mod')"
+				><PlusIcon />
+				{{ formatMessage(messages.add) }}
+			</Button>
 			<ButtonStyled type="outlined">
 				<button :disabled="busy" @click="pick('replacement_jar')">
 					<FileArchiveIcon />
@@ -327,12 +326,10 @@ async function importModLoader() {
 					{{ formatMessage(messages.openSource) }}
 				</button>
 			</ButtonStyled>
-			<ButtonStyled>
-				<button :disabled="busy" @click="importModLoader">
-					<FileArchiveIcon />
-					{{ formatMessage(messages.importModLoader) }}
-				</button>
-			</ButtonStyled>
+			<Button :disabled="busy" @click="importModLoader"
+				><FileArchiveIcon />
+				{{ formatMessage(messages.importModLoader) }}
+			</Button>
 		</div>
 
 		<div class="overflow-hidden rounded-lg border border-surface-4">

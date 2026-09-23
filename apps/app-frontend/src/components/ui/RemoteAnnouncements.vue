@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import {
+	Button,
 	ButtonStyled,
 	commonMessages,
 	defineMessages,
@@ -357,9 +358,11 @@ onUnmounted(() => {
 			<aside class="flex min-h-0 w-[32%] min-w-[14rem] flex-col border-r border-surface-5 pr-3">
 				<div class="mb-2 flex items-center justify-between">
 					<span class="font-semibold text-contrast">{{ formatMessage(messages.centerTitle) }}</span>
-					<ButtonStyled v-if="items.some((item) => !read.has(announcementKey(item)))">
-						<button @click="markAllRead">{{ formatMessage(messages.readAll) }}</button>
-					</ButtonStyled>
+					<Button
+						v-if="items.some((item) => !read.has(announcementKey(item)))"
+						@click="markAllRead"
+						>{{ formatMessage(messages.readAll) }}</Button
+					>
 				</div>
 				<div v-if="!items.length" class="py-8 text-center text-sm text-secondary">
 					{{ formatMessage(messages.empty) }}
