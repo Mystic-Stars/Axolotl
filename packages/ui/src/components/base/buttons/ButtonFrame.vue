@@ -13,7 +13,11 @@ import type {
 const baseClasses = [
 	// Base
 	'relative inline-flex min-w-0 shrink-0 items-center justify-center',
-	'whitespace-nowrap border-0 no-underline',
+	// The transparent border is load-bearing, not decorative: it participates in
+	// layout, so an auto-width button is 2px wider than it would be without it.
+	// The legacy `ButtonStyled` drew its ring with a border too, and dropping it
+	// here would silently narrow every migrated text button.
+	'whitespace-nowrap border border-solid border-transparent no-underline',
 	// Interactions
 	'touch-manipulation cursor-pointer select-none transition-[background-color,color,box-shadow,filter,opacity,transform] duration-150 ease-out',
 	'enabled:active:scale-[0.97]',
@@ -104,6 +108,9 @@ const classes = computed(() => [
 	props.circular ? '!rounded-full' : '',
 ])
 const style = computed((): CSSProperties | undefined => {
+	// `outlined` and `quiet` deliberately publish nothing without an explicit
+	// colour, so their own `var(--button-color, <default>)` fallbacks apply —
+	// that is what reproduces the legacy default ring and text colours.
 	if ((props.type === 'outlined' || props.type === 'quiet') && !props.color) return undefined
 	if (
 		props.type !== 'colored' &&
@@ -166,8 +173,11 @@ defineExpose({ element })
 	mask-composite: exclude;
 }
 
+/* The ring is a real border so it occupies layout exactly as the legacy
+ * `ButtonStyled` border did. Set here rather than as a utility because it has
+ * to beat the transparent border colour in `baseClasses`. */
 .button-frame--outlined {
-	box-shadow: inset 0 0 0 1px var(--button-color, var(--surface-5));
+	border-color: var(--button-color, var(--surface-5));
 }
 
 .button-frame--quiet {
