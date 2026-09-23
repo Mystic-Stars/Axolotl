@@ -253,12 +253,10 @@ const messages = defineMessages({
 					</div>
 					<div class="flex gap-2">
 						<template v-if="friend.id === userCredentials?.user_id">
-							<ButtonStyled color="brand">
-								<button @click="addFriend(friend)">
-									<UserPlusIcon />
-									{{ formatMessage(messages.accept) }}
-								</button>
-							</ButtonStyled>
+							<Button type="colored" color="brand" @click="addFriend(friend)"
+								><UserPlusIcon />
+								{{ formatMessage(messages.accept) }}
+							</Button>
 							<Button @click="removeFriend(friend)"
 								><XIcon />
 								{{ formatMessage(messages.ignore) }}
@@ -292,12 +290,14 @@ const messages = defineMessages({
 					wrapper-class="flex-1"
 					@keyup.enter="addFriendFromModal"
 				/>
-				<ButtonStyled color="brand">
-					<button :disabled="username.length === 0" @click="addFriendFromModal">
-						<SendIcon />
-						{{ formatMessage(messages.sendFriendRequest) }}
-					</button>
-				</ButtonStyled>
+				<Button
+					type="colored"
+					color="brand"
+					:disabled="username.length === 0"
+					@click="addFriendFromModal"
+					><SendIcon />
+					{{ formatMessage(messages.sendFriendRequest) }}
+				</Button>
 			</div>
 		</div>
 	</NewModal>

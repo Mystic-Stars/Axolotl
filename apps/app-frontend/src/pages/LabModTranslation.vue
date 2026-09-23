@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { FileArchiveIcon, PlayIcon, SpinnerIcon } from '@modrinth/assets'
-import { Admonition, ButtonStyled, injectNotificationManager, useVIntl } from '@modrinth/ui'
+import { Admonition, Button, injectNotificationManager, useVIntl } from '@modrinth/ui'
 import { revealItemInDir } from '@tauri-apps/plugin-opener'
 import { storeToRefs } from 'pinia'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
@@ -192,13 +192,15 @@ onMounted(() => {
 					<h2 class="panel-title">{{ formatMessage(messages.inputSection) }}</h2>
 					<ModTranslationFilePicker v-model:path="inputPath" />
 					<div class="flex items-center gap-2">
-						<ButtonStyled color="brand">
-							<button :disabled="!inputPath || analyzing" @click="runAnalyze">
-								<SpinnerIcon v-if="analyzing" class="animate-spin" />
-								<FileArchiveIcon v-else />
-								{{ formatMessage(analyzing ? messages.analyzing : messages.analyze) }}
-							</button>
-						</ButtonStyled>
+						<Button
+							type="colored"
+							color="brand"
+							:disabled="!inputPath || analyzing"
+							@click="runAnalyze"
+							><SpinnerIcon v-if="analyzing" class="animate-spin" />
+							<FileArchiveIcon v-else />
+							{{ formatMessage(analyzing ? messages.analyzing : messages.analyze) }}
+						</Button>
 						<span v-if="!inputPath" class="panel-hint">
 							{{ formatMessage(messages.selectFile) }}…
 						</span>
@@ -258,11 +260,14 @@ onMounted(() => {
 						v-model:model-id="modelId"
 					/>
 					<div class="flex flex-col gap-1.5">
-						<ButtonStyled color="brand">
-							<button class="start-button" :disabled="!canStart" @click="startTranslation">
-								<PlayIcon />{{ formatMessage(messages.start) }}
-							</button>
-						</ButtonStyled>
+						<Button
+							type="colored"
+							color="brand"
+							class="start-button"
+							:disabled="!canStart"
+							@click="startTranslation"
+							><PlayIcon />{{ formatMessage(messages.start) }}
+						</Button>
 						<span class="panel-hint">{{ startHint }}</span>
 					</div>
 				</section>

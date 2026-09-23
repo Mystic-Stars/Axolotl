@@ -156,18 +156,14 @@
 					}"
 				/>
 				<div class="flex flex-col gap-2">
-					<ButtonStyled type="outlined">
-						<button @click="selectIcon">
-							<UploadIcon />
-							{{ formatMessage(messages.selectIcon) }}
-						</button>
-					</ButtonStyled>
-					<ButtonStyled type="outlined">
-						<button :disabled="!iconPreviewUrl" @click="removeIcon">
-							<XIcon />
-							{{ formatMessage(messages.removeIcon) }}
-						</button>
-					</ButtonStyled>
+					<Button type="outlined" @click="selectIcon"
+						><UploadIcon />
+						{{ formatMessage(messages.selectIcon) }}
+					</Button>
+					<Button type="outlined" :disabled="!iconPreviewUrl" @click="removeIcon"
+						><XIcon />
+						{{ formatMessage(messages.removeIcon) }}
+					</Button>
 				</div>
 			</div>
 
@@ -231,27 +227,25 @@
 						{{ formatMessage(messages.compatibleCount, { count: compatibleCount }) }}
 					</span>
 				</div>
-				<ButtonStyled type="outlined">
-					<button @click="modal?.hide()">
-						<XIcon />
-						{{ formatMessage(commonMessages.cancelButton) }}
-					</button>
-				</ButtonStyled>
+				<Button type="outlined" @click="modal?.hide()"
+					><XIcon />
+					{{ formatMessage(commonMessages.cancelButton) }}
+				</Button>
 			</div>
 
 			<div v-else class="flex items-center justify-end gap-2">
-				<ButtonStyled type="outlined">
-					<button @click="modal?.hide()">
-						<XIcon />
-						{{ formatMessage(commonMessages.cancelButton) }}
-					</button>
-				</ButtonStyled>
-				<ButtonStyled color="brand">
-					<button :disabled="!instanceName" @click="handleCreateAndInstall">
-						<DownloadIcon />
-						{{ formatMessage(messages.installButton) }}
-					</button>
-				</ButtonStyled>
+				<Button type="outlined" @click="modal?.hide()"
+					><XIcon />
+					{{ formatMessage(commonMessages.cancelButton) }}
+				</Button>
+				<Button
+					type="colored"
+					color="brand"
+					:disabled="!instanceName"
+					@click="handleCreateAndInstall"
+					><DownloadIcon />
+					{{ formatMessage(messages.installButton) }}
+				</Button>
 			</div>
 		</template>
 	</NewModal>

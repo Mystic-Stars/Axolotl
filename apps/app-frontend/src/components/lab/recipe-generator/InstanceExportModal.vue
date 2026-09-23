@@ -9,6 +9,7 @@ import {
 } from '@modrinth/assets'
 import {
 	Avatar,
+	Button,
 	ButtonStyled,
 	defineMessages,
 	NewModal,
@@ -286,11 +287,9 @@ defineExpose({ show })
 
 		<template #actions>
 			<div v-if="showSaveAs" class="flex justify-end">
-				<ButtonStyled color="brand">
-					<button type="button" @click="saveAs">
-						<SaveIcon />{{ formatMessage(messages.saveAs) }}
-					</button>
-				</ButtonStyled>
+				<Button type="colored" color="brand" @click="saveAs"
+					><SaveIcon />{{ formatMessage(messages.saveAs) }}
+				</Button>
 			</div>
 		</template>
 	</NewModal>

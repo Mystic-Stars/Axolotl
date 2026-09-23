@@ -1,6 +1,12 @@
 <script setup lang="ts">
 import { FileIcon, FolderIcon, MinusIcon, PlusIcon } from '@modrinth/assets'
-import { ButtonStyled, defineMessages, injectNotificationManager, useVIntl } from '@modrinth/ui'
+import {
+	Button,
+	ButtonStyled,
+	defineMessages,
+	injectNotificationManager,
+	useVIntl,
+} from '@modrinth/ui'
 import { open } from '@tauri-apps/plugin-dialog'
 import { ref } from 'vue'
 
@@ -113,26 +119,17 @@ function removeExclusion(path: string) {
 			</div>
 		</div>
 		<div class="flex flex-wrap gap-2">
-			<ButtonStyled type="outlined">
-				<button
-					type="button"
-					:disabled="disabled || picking !== null"
-					@click="addExclusion('file')"
-				>
-					<PlusIcon />
-					{{ formatMessage(messages.addFile) }}
-				</button>
-			</ButtonStyled>
-			<ButtonStyled type="outlined">
-				<button
-					type="button"
-					:disabled="disabled || picking !== null"
-					@click="addExclusion('directory')"
-				>
-					<PlusIcon />
-					{{ formatMessage(messages.addFolder) }}
-				</button>
-			</ButtonStyled>
+			<Button type="outlined" :disabled="disabled || picking !== null" @click="addExclusion('file')"
+				><PlusIcon />
+				{{ formatMessage(messages.addFile) }}
+			</Button>
+			<Button
+				type="outlined"
+				:disabled="disabled || picking !== null"
+				@click="addExclusion('directory')"
+				><PlusIcon />
+				{{ formatMessage(messages.addFolder) }}
+			</Button>
 		</div>
 	</div>
 </template>

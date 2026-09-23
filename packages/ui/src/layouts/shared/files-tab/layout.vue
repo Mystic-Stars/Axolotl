@@ -166,15 +166,14 @@
 						<HistoryIcon /> {{ formatMessage(commonMessages.resetButton) }}
 					</button>
 				</ButtonStyled>
-				<ButtonStyled color="brand">
-					<button
-						v-tooltip="isBusy ? busyTooltip : undefined"
-						:disabled="isBusy"
-						@click="fileEditorRef?.saveFileContent(false)"
-					>
-						<SaveIcon /> {{ formatMessage(commonMessages.saveButton) }}
-					</button>
-				</ButtonStyled>
+				<Button
+					v-tooltip="isBusy ? busyTooltip : undefined"
+					type="colored"
+					color="brand"
+					:disabled="isBusy"
+					@click="fileEditorRef?.saveFileContent(false)"
+					><SaveIcon /> {{ formatMessage(commonMessages.saveButton) }}
+				</Button>
 			</div>
 		</FloatingActionBar>
 		<FloatingActionBar :shown="selectedItems.size > 0">
@@ -221,6 +220,7 @@ import {
 import type { Component } from 'vue'
 import { computed, onMounted, onUnmounted, ref, shallowRef, watch } from 'vue'
 
+import Button from '#ui/components/base/buttons/Button.vue'
 import ButtonStyled from '#ui/components/base/ButtonStyled.vue'
 import FloatingActionBar from '#ui/components/base/FloatingActionBar.vue'
 import { defineMessages, useVIntl } from '#ui/composables/i18n'

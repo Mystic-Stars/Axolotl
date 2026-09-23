@@ -3,6 +3,7 @@ import { ImageIcon, SaveIcon, SpinnerIcon, TrashIcon, XIcon } from '@modrinth/as
 import { requiredJavaMajorVersion } from '@modrinth/server'
 import {
 	Admonition,
+	Button,
 	ButtonStyled,
 	Card,
 	ConfirmModal,
@@ -365,19 +366,15 @@ async function confirmDelete() {
 				<div
 					class="flex items-center gap-2 rounded-xl border border-solid border-button-border bg-bg-raised px-3 py-2 shadow-lg"
 				>
-					<ButtonStyled type="outlined">
-						<button type="button" :disabled="isSaving" @click="cancel">
-							<XIcon />
-							{{ formatMessage(messages.cancel) }}
-						</button>
-					</ButtonStyled>
-					<ButtonStyled color="brand">
-						<button type="button" :disabled="isSaving || isRunning" @click="save">
-							<SpinnerIcon v-if="isSaving" class="animate-spin" />
-							<SaveIcon v-else />
-							{{ formatMessage(messages.save) }}
-						</button>
-					</ButtonStyled>
+					<Button type="outlined" :disabled="isSaving" @click="cancel"
+						><XIcon />
+						{{ formatMessage(messages.cancel) }}
+					</Button>
+					<Button type="colored" color="brand" :disabled="isSaving || isRunning" @click="save"
+						><SpinnerIcon v-if="isSaving" class="animate-spin" />
+						<SaveIcon v-else />
+						{{ formatMessage(messages.save) }}
+					</Button>
 				</div>
 			</div>
 		</div>

@@ -7,12 +7,10 @@
 
 		<template #actions>
 			<div class="flex gap-2 justify-end">
-				<ButtonStyled type="outlined">
-					<button @click="modal?.hide()">
-						<XIcon />
-						{{ formatMessage(commonMessages.cancelButton) }}
-					</button>
-				</ButtonStyled>
+				<Button type="outlined" @click="modal?.hide()"
+					><XIcon />
+					{{ formatMessage(commonMessages.cancelButton) }}
+				</Button>
 				<ButtonStyled :color="confirmColor">
 					<button
 						v-tooltip="confirmDisabled ? confirmDisabledTooltip : undefined"
@@ -34,6 +32,7 @@ import { ref } from 'vue'
 
 import { useVIntl } from '../../composables/i18n'
 import { commonMessages } from '../../utils/common-messages'
+import Button from '../base/buttons/Button.vue'
 import ButtonStyled from '../base/ButtonStyled.vue'
 import NewModal from './NewModal.vue'
 

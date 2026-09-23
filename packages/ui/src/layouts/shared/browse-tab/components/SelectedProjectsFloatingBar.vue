@@ -105,13 +105,11 @@
 		</div>
 
 		<div class="ml-auto shrink-0">
-			<ButtonStyled color="brand">
-				<button type="button" :disabled="isInstallingSelected" @click="installSelected">
-					<SpinnerIcon v-if="isInstallingSelected" class="animate-spin" />
-					<PlusIcon v-else />
-					{{ actionButtonText }}
-				</button>
-			</ButtonStyled>
+			<Button type="colored" color="brand" :disabled="isInstallingSelected" @click="installSelected"
+				><SpinnerIcon v-if="isInstallingSelected" class="animate-spin" />
+				<PlusIcon v-else />
+				{{ actionButtonText }}
+			</Button>
 		</div>
 	</FloatingActionBar>
 </template>
@@ -121,6 +119,7 @@ import { PlusIcon, SpinnerIcon } from '@modrinth/assets'
 import { computed, onUnmounted, ref, useId } from 'vue'
 
 import Avatar from '#ui/components/base/Avatar.vue'
+import Button from '#ui/components/base/buttons/Button.vue'
 import ButtonStyled from '#ui/components/base/ButtonStyled.vue'
 import FloatingActionBar from '#ui/components/base/FloatingActionBar.vue'
 import { defineMessages, useVIntl } from '#ui/composables/i18n'

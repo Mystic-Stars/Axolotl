@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ExternalIcon, ShieldIcon, SpinnerIcon } from '@modrinth/assets'
 import {
+	Button,
 	ButtonStyled,
 	defineMessages,
 	injectNotificationManager,
@@ -133,12 +134,10 @@ defineExpose({ show })
 						{{ formatMessage(messages.privacyPolicy) }}
 					</button>
 				</ButtonStyled>
-				<ButtonStyled color="brand">
-					<button type="button" :disabled="saving" @click="save">
-						<SpinnerIcon v-if="saving" class="animate-spin" />
-						{{ formatMessage(messages.continue) }}
-					</button>
-				</ButtonStyled>
+				<Button type="colored" color="brand" :disabled="saving" @click="save"
+					><SpinnerIcon v-if="saving" class="animate-spin" />
+					{{ formatMessage(messages.continue) }}
+				</Button>
 			</div>
 		</template>
 	</NewModal>

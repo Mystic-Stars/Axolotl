@@ -9,6 +9,7 @@ import {
 } from '@modrinth/assets'
 import {
 	Admonition,
+	Button,
 	ButtonStyled,
 	Collapsible,
 	defineMessages,
@@ -219,11 +220,14 @@ async function copyToClipboard(text: string) {
 						<MessagesSquareIcon /> {{ formatMessage(messages.contactSupport) }}
 					</a>
 				</ButtonStyled>
-				<ButtonStyled color="brand">
-					<button :disabled="loadingSignIn" class="!w-full" @click="signInAgain">
-						<LogInIcon /> {{ formatMessage(messages.signInAgain) }}
-					</button>
-				</ButtonStyled>
+				<Button
+					type="colored"
+					color="brand"
+					:disabled="loadingSignIn"
+					class="!w-full"
+					@click="signInAgain"
+					><LogInIcon /> {{ formatMessage(messages.signInAgain) }}
+				</Button>
 			</div>
 
 			<div class="flex flex-col gap-2">

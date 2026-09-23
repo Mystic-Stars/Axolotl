@@ -34,12 +34,13 @@
 					:items="localCrashItems"
 				/>
 				<div class="flex justify-end">
-					<ButtonStyled type="outlined">
-						<button :disabled="exportingCrashContext" @click="handleExportCrashContext">
-							<DownloadIcon />
-							{{ formatMessage(consoleMessages.exportCrashContext) }}
-						</button>
-					</ButtonStyled>
+					<Button
+						type="outlined"
+						:disabled="exportingCrashContext"
+						@click="handleExportCrashContext"
+						><DownloadIcon />
+						{{ formatMessage(consoleMessages.exportCrashContext) }}
+					</Button>
 				</div>
 			</div>
 			<CollapsibleAdmonition
@@ -170,12 +171,10 @@
 		</div>
 		<template #actions>
 			<div class="flex justify-end gap-2">
-				<ButtonStyled type="outlined">
-					<button @click="deleteModal?.hide()">
-						<XIcon />
-						{{ formatMessage(commonMessages.cancelButton) }}
-					</button>
-				</ButtonStyled>
+				<Button type="outlined" @click="deleteModal?.hide()"
+					><XIcon />
+					{{ formatMessage(commonMessages.cancelButton) }}
+				</Button>
 				<ButtonStyled color="red">
 					<button :disabled="isDeleting" @click="confirmDelete">
 						<TrashIcon />
@@ -199,6 +198,7 @@ import {
 import { computed, isRef, nextTick, onBeforeUnmount, ref } from 'vue'
 
 import Admonition from '#ui/components/base/Admonition.vue'
+import Button from '#ui/components/base/buttons/Button.vue'
 import ButtonStyled from '#ui/components/base/ButtonStyled.vue'
 import type { CollapsibleAdmonitionItem } from '#ui/components/base/CollapsibleAdmonition.vue'
 import CollapsibleAdmonition from '#ui/components/base/CollapsibleAdmonition.vue'

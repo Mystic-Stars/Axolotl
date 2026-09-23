@@ -25,15 +25,13 @@
 				</template>
 			</Table>
 			<div class="flex justify-end">
-				<ButtonStyled type="outlined">
-					<button
-						class="!shadow-none !border-surface-4 !border"
-						@click="$refs.detectJavaModal.hide()"
-					>
-						<XIcon />
-						{{ formatMessage(commonMessages.cancelButton) }}
-					</button>
-				</ButtonStyled>
+				<Button
+					type="outlined"
+					class="!shadow-none !border-surface-4 !border"
+					@click="$refs.detectJavaModal.hide()"
+					><XIcon />
+					{{ formatMessage(commonMessages.cancelButton) }}
+				</Button>
 			</div>
 		</div>
 	</NewModal>
@@ -42,7 +40,6 @@
 import { CheckIcon, PlusIcon, XIcon } from '@modrinth/assets'
 import {
 	Button,
-	ButtonStyled,
 	commonMessages,
 	defineMessages,
 	injectNotificationManager,

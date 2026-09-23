@@ -10,6 +10,7 @@ import {
 } from '@modrinth/assets'
 import {
 	AutoLink,
+	Button,
 	ButtonStyled,
 	Collapsible,
 	defineMessages,
@@ -324,12 +325,10 @@ onBeforeUnmount(() => {
 					@input="onInput"
 				/>
 			</div>
-			<ButtonStyled type="outlined" class="shrink-0">
-				<button type="button" :disabled="props.disabled" @click="showPresets">
-					<SparklesIcon aria-hidden="true" />
-					{{ formatMessage(messages.presetsButton) }}
-				</button>
-			</ButtonStyled>
+			<Button class="shrink-0" type="outlined" :disabled="props.disabled" @click="showPresets"
+				><SparklesIcon aria-hidden="true" />
+				{{ formatMessage(messages.presetsButton) }}
+			</Button>
 		</div>
 
 		<NewModal

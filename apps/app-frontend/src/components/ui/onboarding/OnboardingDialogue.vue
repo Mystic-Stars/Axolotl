@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { RightArrowIcon, XIcon } from '@modrinth/assets'
-import { ButtonStyled, useVIntl } from '@modrinth/ui'
+import { Button, ButtonStyled, useVIntl } from '@modrinth/ui'
 import { computed } from 'vue'
 
 import { onboardingMessages, type OnboardingStep } from './onboardingConfig'
@@ -46,12 +46,14 @@ const progressWidth = computed(() => `${Math.min(100, (props.current / props.tot
 				<p :id="`onboarding-description-${step.id}`">
 					{{ formatMessage(step.description) }}
 				</p>
-				<ButtonStyled v-if="step.interaction === 'manual'" color="brand">
-					<button @click="$emit('advance')">
-						{{ formatMessage(step.action) }}
-						<RightArrowIcon />
-					</button>
-				</ButtonStyled>
+				<Button
+					v-if="step.interaction === 'manual'"
+					type="colored"
+					color="brand"
+					@click="$emit('advance')"
+					>{{ formatMessage(step.action) }}
+					<RightArrowIcon />
+				</Button>
 				<p v-else class="onboarding-action-hint">
 					<RightArrowIcon aria-hidden="true" />
 					{{ formatMessage(step.action) }}

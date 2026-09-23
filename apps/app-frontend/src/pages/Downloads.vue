@@ -9,12 +9,10 @@
 					@tab-click="selectTab"
 				/>
 			</div>
-			<ButtonStyled color="brand">
-				<button @click="router.push('/create')">
-					<PlusIcon />
-					{{ formatMessage(messages.newDownload) }}
-				</button>
-			</ButtonStyled>
+			<Button type="colored" color="brand" @click="router.push('/create')"
+				><PlusIcon />
+				{{ formatMessage(messages.newDownload) }}
+			</Button>
 		</div>
 
 		<div class="flex flex-wrap items-center gap-2">
@@ -40,12 +38,14 @@
 				:options="historyStatusOptions"
 				:display-name="historyStatusLabel"
 			/>
-			<ButtonStyled v-if="tab === 'history' && historyJobs.length" class="ml-auto" type="outlined">
-				<button @click="clearHistoryModal?.show()">
-					<TrashIcon />
-					{{ formatMessage(messages.clearHistory) }}
-				</button>
-			</ButtonStyled>
+			<Button
+				v-if="tab === 'history' && historyJobs.length"
+				class="ml-auto"
+				type="outlined"
+				@click="clearHistoryModal?.show()"
+				><TrashIcon />
+				{{ formatMessage(messages.clearHistory) }}
+			</Button>
 		</div>
 
 		<div
@@ -443,6 +443,7 @@ import {
 	Admonition,
 	Badge,
 	BulletDivider,
+	Button,
 	ButtonStyled,
 	Card,
 	ConfirmModal,

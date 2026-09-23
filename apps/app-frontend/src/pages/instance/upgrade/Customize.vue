@@ -111,13 +111,11 @@
 						{{ formatMessage(messages.customChoicesDescription) }}
 					</p>
 				</div>
-				<ButtonStyled color="brand">
-					<button :disabled="!canApplyCustom" @click="applyCustomChoices">
-						<SpinnerIcon v-if="requestBusy" class="animate-spin" aria-hidden="true" />
-						<RefreshCwIcon v-else aria-hidden="true" />
-						{{ formatMessage(customWasResolved ? messages.recalculate : messages.applyCustom) }}
-					</button>
-				</ButtonStyled>
+				<Button type="colored" color="brand" :disabled="!canApplyCustom" @click="applyCustomChoices"
+					><SpinnerIcon v-if="requestBusy" class="animate-spin" aria-hidden="true" />
+					<RefreshCwIcon v-else aria-hidden="true" />
+					{{ formatMessage(customWasResolved ? messages.recalculate : messages.applyCustom) }}
+				</Button>
 			</div>
 
 			<Admonition
@@ -272,6 +270,7 @@ import {
 import {
 	Admonition,
 	Avatar,
+	Button,
 	ButtonStyled,
 	defineMessages,
 	DropdownSelect,

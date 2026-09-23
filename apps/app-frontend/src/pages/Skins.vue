@@ -9,7 +9,7 @@ import {
 	SpinnerIcon,
 } from '@modrinth/assets'
 import {
-	ButtonStyled,
+	Button,
 	commonMessages,
 	ConfirmModal,
 	defineMessages,
@@ -1126,12 +1126,10 @@ await loadSkins()
 						}
 					"
 				/>
-				<ButtonStyled color="brand">
-					<button @click="router.push('/lab/skin-editor')">
-						<PlusIcon />
-						{{ formatMessage(messages.createSkinButton) }}
-					</button>
-				</ButtonStyled>
+				<Button type="colored" color="brand" @click="router.push('/lab/skin-editor')"
+					><PlusIcon />
+					{{ formatMessage(messages.createSkinButton) }}
+				</Button>
 			</div>
 			<VirtualSkinSectionList
 				ref="skinSectionList"
@@ -1189,18 +1187,17 @@ await loadSkins()
 				<p class="text-lg m-0">
 					{{ formatMessage(messages.signInDescription) }}
 				</p>
-				<ButtonStyled
+				<Button
 					v-if="!offline"
 					v-show="accountsCard"
+					type="colored"
 					color="brand"
 					:disabled="accountsCard.loginDisabled"
-				>
-					<button :disabled="accountsCard.loginDisabled" @click="login">
-						<LogInIcon v-if="!accountsCard.loginDisabled" />
-						<SpinnerIcon v-else class="animate-spin" />
-						{{ formatMessage(messages.signInButton) }}
-					</button>
-				</ButtonStyled>
+					@click="login"
+					><LogInIcon v-if="!accountsCard.loginDisabled" />
+					<SpinnerIcon v-else class="animate-spin" />
+					{{ formatMessage(messages.signInButton) }}
+				</Button>
 			</div>
 		</div>
 	</div>

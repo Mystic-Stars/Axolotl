@@ -15,25 +15,24 @@
 			:dependency-link-creator="createDependencyLink"
 		>
 			<template #headerActions>
-				<ButtonStyled color="brand">
-					<button
-						:disabled="installing || (installed && installedVersion === version.id)"
-						@click="() => version && install(version.id)"
-					>
-						<DownloadIcon v-if="!installed" />
-						<SwapIcon v-else-if="installedVersion !== version.id" />
-						<CheckIcon v-else />
-						{{
-							installing
-								? formatMessage(messages.installing)
-								: installed && installedVersion === version.id
-									? formatMessage(commonMessages.installedLabel)
-									: installed
-										? formatMessage(commonMessages.switchToVersionButton)
-										: formatMessage(commonMessages.installButton)
-						}}
-					</button>
-				</ButtonStyled>
+				<Button
+					type="colored"
+					color="brand"
+					:disabled="installing || (installed && installedVersion === version.id)"
+					@click="() => version && install(version.id)"
+					><DownloadIcon v-if="!installed" />
+					<SwapIcon v-else-if="installedVersion !== version.id" />
+					<CheckIcon v-else />
+					{{
+						installing
+							? formatMessage(messages.installing)
+							: installed && installedVersion === version.id
+								? formatMessage(commonMessages.installedLabel)
+								: installed
+									? formatMessage(commonMessages.switchToVersionButton)
+									: formatMessage(commonMessages.installButton)
+					}}
+				</Button>
 				<ButtonStyled type="outlined" circular>
 					<OverflowMenu
 						v-tooltip="formatMessage(commonMessages.moreOptionsButton)"
@@ -87,6 +86,7 @@ import {
 	ReportIcon,
 } from '@modrinth/assets'
 import {
+	Button,
 	ButtonStyled,
 	commonMessages,
 	defineMessages,

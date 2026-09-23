@@ -18,12 +18,10 @@
 				<p class="m-0 text-center text-sm text-secondary">
 					{{ formatMessage(messages.description) }}
 				</p>
-				<ButtonStyled type="outlined">
-					<button :disabled="saving" @click="surpriseMe">
-						<RefreshCwIcon />
-						{{ formatMessage(messages.surpriseMe) }}
-					</button>
-				</ButtonStyled>
+				<Button type="outlined" :disabled="saving" @click="surpriseMe"
+					><RefreshCwIcon />
+					{{ formatMessage(messages.surpriseMe) }}
+				</Button>
 			</div>
 
 			<div class="flex min-w-0 flex-col gap-5">
@@ -83,19 +81,15 @@
 
 		<template #actions>
 			<div class="flex w-full items-center justify-between gap-2">
-				<ButtonStyled type="outlined">
-					<button :disabled="saving" @click="selectUploadedIcon">
-						<UploadIcon />
-						{{ formatMessage(messages.upload) }}
-					</button>
-				</ButtonStyled>
-				<ButtonStyled color="brand">
-					<button :disabled="saving" @click="saveGeneratedIcon">
-						<SpinnerIcon v-if="saving" class="animate-spin" />
-						<SaveIcon v-else />
-						{{ formatMessage(saving ? messages.saving : messages.useIcon) }}
-					</button>
-				</ButtonStyled>
+				<Button type="outlined" :disabled="saving" @click="selectUploadedIcon"
+					><UploadIcon />
+					{{ formatMessage(messages.upload) }}
+				</Button>
+				<Button type="colored" color="brand" :disabled="saving" @click="saveGeneratedIcon"
+					><SpinnerIcon v-if="saving" class="animate-spin" />
+					<SaveIcon v-else />
+					{{ formatMessage(saving ? messages.saving : messages.useIcon) }}
+				</Button>
 			</div>
 		</template>
 	</NewModal>
@@ -104,7 +98,7 @@
 <script setup lang="ts">
 import { RefreshCwIcon, SaveIcon, SpinnerIcon, UploadIcon } from '@modrinth/assets'
 import {
-	ButtonStyled,
+	Button,
 	defineMessage,
 	defineMessages,
 	injectNotificationManager,

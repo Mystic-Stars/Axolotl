@@ -399,9 +399,13 @@ onUnmounted(() => {
 					v-html="html"
 				/>
 				<div class="mt-4 flex justify-end">
-					<ButtonStyled v-if="selected.action_url && selected.action_label" color="brand">
-						<button @click="openLink(selected.action_url)">{{ selected.action_label }}</button>
-					</ButtonStyled>
+					<Button
+						v-if="selected.action_url && selected.action_label"
+						type="colored"
+						color="brand"
+						@click="openLink(selected.action_url)"
+						>{{ selected.action_label }}</Button
+					>
 				</div>
 			</section>
 			<div v-else class="flex flex-1 items-center justify-center text-sm text-secondary">

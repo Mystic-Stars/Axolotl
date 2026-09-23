@@ -263,12 +263,10 @@
 				{{ formatMessage(messages.unsavedChangesLabel) }}
 			</span>
 			<div class="ml-auto flex gap-2">
-				<ButtonStyled color="brand">
-					<button :disabled="!canSave" @click="save">
-						<SaveIcon />
-						{{ formatMessage(commonMessages.saveChangesButton) }}
-					</button>
-				</ButtonStyled>
+				<Button type="colored" color="brand" :disabled="!canSave" @click="save"
+					><SaveIcon />
+					{{ formatMessage(commonMessages.saveChangesButton) }}
+				</Button>
 				<Button :disabled="saving" @click="discard"
 					><XIcon />
 					{{ formatMessage(messages.discardButton) }}

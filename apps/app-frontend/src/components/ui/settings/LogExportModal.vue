@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { DownloadIcon, FolderOpenIcon, XIcon } from '@modrinth/assets'
 import {
-	ButtonStyled,
+	Button,
 	Checkbox,
 	Combobox,
 	commonMessages,
@@ -172,18 +172,14 @@ defineExpose({
 
 		<template #actions>
 			<div class="flex justify-end gap-2">
-				<ButtonStyled type="outlined">
-					<button type="button" :disabled="exporting" @click="modal?.hide()">
-						<XIcon />
-						{{ formatMessage(messages.cancel) }}
-					</button>
-				</ButtonStyled>
-				<ButtonStyled color="brand">
-					<button type="button" :disabled="exporting" @click="exportLogs">
-						<DownloadIcon />
-						{{ formatMessage(messages.confirm) }}
-					</button>
-				</ButtonStyled>
+				<Button type="outlined" :disabled="exporting" @click="modal?.hide()"
+					><XIcon />
+					{{ formatMessage(messages.cancel) }}
+				</Button>
+				<Button type="colored" color="brand" :disabled="exporting" @click="exportLogs"
+					><DownloadIcon />
+					{{ formatMessage(messages.confirm) }}
+				</Button>
 			</div>
 		</template>
 	</NewModal>

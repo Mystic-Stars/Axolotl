@@ -5,12 +5,10 @@
 		</p>
 		<template #actions>
 			<div class="flex justify-end gap-2">
-				<ButtonStyled type="outlined">
-					<button @click="handleCancel">
-						<XIcon />
-						{{ formatMessage(commonMessages.cancelButton) }}
-					</button>
-				</ButtonStyled>
+				<Button type="outlined" @click="handleCancel"
+					><XIcon />
+					{{ formatMessage(commonMessages.cancelButton) }}
+				</Button>
 				<ButtonStyled color="red">
 					<button @click="handleDiscard">
 						<TrashIcon />
@@ -32,6 +30,7 @@
 import { SaveIcon, TrashIcon, XIcon } from '@modrinth/assets'
 import { ref } from 'vue'
 
+import Button from '#ui/components/base/buttons/Button.vue'
 import ButtonStyled from '#ui/components/base/ButtonStyled.vue'
 import NewModal from '#ui/components/modal/NewModal.vue'
 import { defineMessages, useVIntl } from '#ui/composables/i18n'

@@ -13,6 +13,7 @@ import {
 	TrashIcon,
 } from '@modrinth/assets'
 import {
+	Button,
 	ButtonStyled,
 	commonMessages,
 	defineMessages,
@@ -831,11 +832,9 @@ onBeforeRouteLeave(() => {
 					<StyledInput v-model="createName" :input-attrs="{ autofocus: true }" />
 				</label>
 				<template #actions>
-					<ButtonStyled color="brand">
-						<button type="button" @click="createItem">
-							{{ formatMessage(messages.create) }}
-						</button>
-					</ButtonStyled>
+					<Button type="colored" color="brand" @click="createItem"
+						>{{ formatMessage(messages.create) }}
+					</Button>
 				</template>
 			</NewModal>
 			<aside
@@ -1002,11 +1001,9 @@ onBeforeRouteLeave(() => {
 							<p class="m-0 text-sm text-secondary">
 								{{ formatMessage(messages.nonTextFile) }}
 							</p>
-							<ButtonStyled type="outlined">
-								<button type="button" @click="openInSystem(activeDocument.path)">
-									{{ formatMessage(messages.openInSystem) }}
-								</button>
-							</ButtonStyled>
+							<Button type="outlined" @click="openInSystem(activeDocument.path)"
+								>{{ formatMessage(messages.openInSystem) }}
+							</Button>
 						</div>
 					</div>
 					<StudioEditor

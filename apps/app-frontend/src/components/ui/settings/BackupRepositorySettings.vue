@@ -2,7 +2,7 @@
 import { FolderIcon } from '@modrinth/assets'
 import {
 	Admonition,
-	ButtonStyled,
+	Button,
 	defineMessages,
 	injectFilePicker,
 	injectNotificationManager,
@@ -126,24 +126,22 @@ onUnmounted(() => unlisten?.())
 				<span class="mt-1 block">{{ formatMessage(messages.locationDescription) }}</span>
 			</template>
 			<template #control>
-				<ButtonStyled type="outlined">
-					<button type="button" :disabled="loading || moving" @click="changeLocation">
-						<FolderIcon />
-						{{
-							formatMessage(
-								moving && moveTotalBytes > 0
-									? messages.movingProgress
-									: moving
-										? messages.moving
-										: messages.change,
-								{
-									processed: formatBytes(movedBytes),
-									total: formatBytes(moveTotalBytes),
-								},
-							)
-						}}
-					</button>
-				</ButtonStyled>
+				<Button type="outlined" :disabled="loading || moving" @click="changeLocation"
+					><FolderIcon />
+					{{
+						formatMessage(
+							moving && moveTotalBytes > 0
+								? messages.movingProgress
+								: moving
+									? messages.moving
+									: messages.change,
+							{
+								processed: formatBytes(movedBytes),
+								total: formatBytes(moveTotalBytes),
+							},
+						)
+					}}
+				</Button>
 			</template>
 		</SettingsRow>
 		<SettingsRow v-if="status">

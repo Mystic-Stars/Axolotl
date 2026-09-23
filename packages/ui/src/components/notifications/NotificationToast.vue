@@ -64,12 +64,8 @@
 					</ButtonStyled>
 				</div>
 				<div class="flex items-center gap-2">
-					<ButtonStyled color="brand">
-						<button @click="$emit('accept')">Accept</button>
-					</ButtonStyled>
-					<ButtonStyled type="outlined">
-						<button @click="$emit('decline')">Decline</button>
-					</ButtonStyled>
+					<Button type="colored" color="brand" @click="$emit('accept')">Accept</Button>
+					<Button type="outlined" @click="$emit('decline')">Decline</Button>
 				</div>
 			</div>
 		</div>
@@ -128,12 +124,8 @@
 					class="col-start-1 col-end-3 row-start-3 mt-2 flex min-w-0 items-center justify-between gap-2"
 				>
 					<div class="flex min-w-0 items-center gap-2">
-						<ButtonStyled color="brand">
-							<button @click="$emit('launch')">Launch game</button>
-						</ButtonStyled>
-						<ButtonStyled type="outlined">
-							<button @click="$emit('open-instance')">Instance</button>
-						</ButtonStyled>
+						<Button type="colored" color="brand" @click="$emit('launch')">Launch game</Button>
+						<Button type="outlined" @click="$emit('open-instance')">Instance</Button>
 					</div>
 					<div
 						v-if="progressLabel"
@@ -187,6 +179,7 @@ import { useFormatBytes, useFormatNumber } from '../../composables'
 import type { PopupNotificationButton, PopupNotificationProgressType } from '../../providers'
 import { truncatedTooltip } from '../../utils/truncate'
 import Avatar from '../base/Avatar.vue'
+import Button from '../base/buttons/Button.vue'
 import ButtonStyled from '../base/ButtonStyled.vue'
 
 type NotificationToastType =

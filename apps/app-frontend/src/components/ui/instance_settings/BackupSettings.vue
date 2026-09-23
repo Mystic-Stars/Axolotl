@@ -477,12 +477,14 @@ watch(
 						><SaveIcon />
 						{{ formatMessage(config.enabled ? messages.saveExclusions : messages.enable) }}
 					</Button>
-					<ButtonStyled v-if="config.enabled" type="outlined">
-						<button type="button" :disabled="action !== null" @click="editingExclusions = false">
-							<XIcon />
-							{{ formatMessage(commonMessages.cancelButton) }}
-						</button>
-					</ButtonStyled>
+					<Button
+						v-if="config.enabled"
+						type="outlined"
+						:disabled="action !== null"
+						@click="editingExclusions = false"
+						><XIcon />
+						{{ formatMessage(commonMessages.cancelButton) }}
+					</Button>
 				</div>
 			</div>
 
@@ -502,21 +504,16 @@ watch(
 							><FileArchiveIcon />
 							{{ formatMessage(messages.backupNow) }}
 						</Button>
-						<ButtonStyled v-if="canCancel" type="outlined">
-							<button type="button" :disabled="action !== null" @click="cancel">
-								<XIcon />
-								{{ formatMessage(messages.cancelBackup) }}
-							</button>
-						</ButtonStyled>
-						<ButtonStyled type="outlined">
-							<button
-								type="button"
-								:disabled="isRunning || action !== null"
-								@click="beginEditingExclusions"
-							>
-								{{ formatMessage(messages.editExclusions) }}
-							</button>
-						</ButtonStyled>
+						<Button v-if="canCancel" type="outlined" :disabled="action !== null" @click="cancel"
+							><XIcon />
+							{{ formatMessage(messages.cancelBackup) }}
+						</Button>
+						<Button
+							type="outlined"
+							:disabled="isRunning || action !== null"
+							@click="beginEditingExclusions"
+							>{{ formatMessage(messages.editExclusions) }}
+						</Button>
 					</div>
 					<p v-if="isRunning" class="m-0 text-sm font-medium text-contrast">
 						{{ operationLabel }}
@@ -627,11 +624,12 @@ watch(
 			<Admonition type="critical">{{ formatMessage(messages.deleteBody) }}</Admonition>
 			<template #actions>
 				<div class="flex items-center justify-end gap-2">
-					<ButtonStyled type="outlined">
-						<button :disabled="action?.startsWith('delete:')" @click="deleteModal?.hide()">
-							{{ formatMessage(commonMessages.cancelButton) }}
-						</button>
-					</ButtonStyled>
+					<Button
+						type="outlined"
+						:disabled="action?.startsWith('delete:')"
+						@click="deleteModal?.hide()"
+						>{{ formatMessage(commonMessages.cancelButton) }}
+					</Button>
 					<ButtonStyled color="red">
 						<button :disabled="action?.startsWith('delete:')" @click="removeSnapshot">
 							<TrashIcon />{{ formatMessage(messages.delete) }}
@@ -652,11 +650,12 @@ watch(
 			</Admonition>
 			<template #actions>
 				<div class="flex items-center justify-end gap-2">
-					<ButtonStyled type="outlined">
-						<button :disabled="action?.startsWith('restore:')" @click="restoreModal?.hide()">
-							{{ formatMessage(commonMessages.cancelButton) }}
-						</button>
-					</ButtonStyled>
+					<Button
+						type="outlined"
+						:disabled="action?.startsWith('restore:')"
+						@click="restoreModal?.hide()"
+						>{{ formatMessage(commonMessages.cancelButton) }}
+					</Button>
 					<Button :disabled="action?.startsWith('restore:')" @click="restoreSnapshot"
 						><UndoIcon />{{ formatMessage(messages.restore) }}
 					</Button>

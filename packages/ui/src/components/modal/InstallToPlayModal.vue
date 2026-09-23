@@ -40,12 +40,10 @@
 					><XIcon />
 					Decline
 				</Button>
-				<ButtonStyled color="brand">
-					<button @click="handleAccept">
-						<CheckIcon />
-						Accept
-					</button>
-				</ButtonStyled>
+				<Button type="colored" color="brand" @click="handleAccept"
+					><CheckIcon />
+					Accept
+				</Button>
 			</div>
 		</template>
 	</NewModal>
@@ -61,7 +59,6 @@ import { formatLoader } from '../../utils'
 import Admonition from '../base/Admonition.vue'
 import Avatar from '../base/Avatar.vue'
 import Button from '../base/buttons/Button.vue'
-import ButtonStyled from '../base/ButtonStyled.vue'
 import NewModal from './NewModal.vue'
 
 const props = defineProps<{

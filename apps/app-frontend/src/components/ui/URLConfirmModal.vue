@@ -1,6 +1,6 @@
 <script setup>
 import {
-	ButtonStyled,
+	Button,
 	commonMessages,
 	defineMessages,
 	injectNotificationManager,
@@ -86,9 +86,9 @@ async function install() {
 					</p>
 				</div>
 				<div class="flex flex-row gap-2">
-					<ButtonStyled color="brand">
-						<button @click="install">{{ formatMessage(commonMessages.installButton) }}</button>
-					</ButtonStyled>
+					<Button type="colored" color="brand" @click="install">{{
+						formatMessage(commonMessages.installButton)
+					}}</Button>
 				</div>
 			</div>
 		</div>

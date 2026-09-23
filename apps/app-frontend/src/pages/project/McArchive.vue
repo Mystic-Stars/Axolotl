@@ -264,12 +264,13 @@ void contentSelection
 				</p>
 			</div>
 			<div class="flex flex-wrap gap-2">
-				<ButtonStyled v-if="manualDownload.pageUrl" type="outlined">
-					<button @click="openUrl(manualDownload!.pageUrl!)">
-						<ExternalIcon />
-						{{ formatMessage(messages.openSource) }}
-					</button>
-				</ButtonStyled>
+				<Button
+					v-if="manualDownload.pageUrl"
+					type="outlined"
+					@click="openUrl(manualDownload!.pageUrl!)"
+					><ExternalIcon />
+					{{ formatMessage(messages.openSource) }}
+				</Button>
 				<Button :disabled="busyFileId !== null" @click="importDownloadedFile"
 					><FileArchiveIcon />
 					{{ formatMessage(messages.importFile) }}

@@ -293,18 +293,14 @@ async function importModLoader() {
 				><PlusIcon />
 				{{ formatMessage(messages.add) }}
 			</Button>
-			<ButtonStyled type="outlined">
-				<button :disabled="busy" @click="pick('replacement_jar')">
-					<FileArchiveIcon />
-					{{ formatMessage(messages.replace) }}
-				</button>
-			</ButtonStyled>
-			<ButtonStyled v-if="canInstallModLoader" type="outlined">
-				<button :disabled="busy" @click="installModLoader">
-					<DownloadIcon />
-					{{ formatMessage(messages.modLoader) }}
-				</button>
-			</ButtonStyled>
+			<Button type="outlined" :disabled="busy" @click="pick('replacement_jar')"
+				><FileArchiveIcon />
+				{{ formatMessage(messages.replace) }}
+			</Button>
+			<Button v-if="canInstallModLoader" type="outlined" :disabled="busy" @click="installModLoader"
+				><DownloadIcon />
+				{{ formatMessage(messages.modLoader) }}
+			</Button>
 			<ButtonStyled type="transparent">
 				<button :disabled="busy" @click="preview">
 					<EyeIcon />
@@ -320,12 +316,13 @@ async function importModLoader() {
 			<p class="m-0 min-w-0 flex-1 text-sm text-secondary">
 				{{ formatMessage(messages.modLoaderManual, { fileName: manualModLoader.fileName }) }}
 			</p>
-			<ButtonStyled v-if="manualModLoader.pageUrl" type="outlined">
-				<button @click="openUrl(manualModLoader!.pageUrl!)">
-					<ExternalIcon />
-					{{ formatMessage(messages.openSource) }}
-				</button>
-			</ButtonStyled>
+			<Button
+				v-if="manualModLoader.pageUrl"
+				type="outlined"
+				@click="openUrl(manualModLoader!.pageUrl!)"
+				><ExternalIcon />
+				{{ formatMessage(messages.openSource) }}
+			</Button>
 			<Button :disabled="busy" @click="importModLoader"
 				><FileArchiveIcon />
 				{{ formatMessage(messages.importModLoader) }}

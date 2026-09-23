@@ -84,16 +84,12 @@
 
 		<template #actions>
 			<div class="flex flex-wrap justify-end gap-2">
-				<ButtonStyled type="outlined">
-					<button @click="hide">
-						{{ formatMessage(commonMessages.closeButton) }}
-					</button>
-				</ButtonStyled>
-				<ButtonStyled v-if="instanceId" type="outlined">
-					<button @click="goToInstance">
-						{{ formatMessage(messages.viewInstance) }}
-					</button>
-				</ButtonStyled>
+				<Button type="outlined" @click="hide"
+					>{{ formatMessage(commonMessages.closeButton) }}
+				</Button>
+				<Button v-if="instanceId" type="outlined" @click="goToInstance"
+					>{{ formatMessage(messages.viewInstance) }}
+				</Button>
 				<ButtonStyled v-if="remainingCount > 0" color="orange">
 					<button @click="openAll">
 						<ExternalIcon aria-hidden="true" />
@@ -115,6 +111,7 @@ import {
 } from '@modrinth/assets'
 import {
 	Admonition,
+	Button,
 	ButtonStyled,
 	commonMessages,
 	defineMessages,

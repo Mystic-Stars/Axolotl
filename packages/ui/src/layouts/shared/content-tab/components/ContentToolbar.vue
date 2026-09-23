@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { CompassIcon, GitGraphIcon, RefreshCwIcon, SearchIcon } from '@modrinth/assets'
 
-import ButtonStyled from '#ui/components/base/ButtonStyled.vue'
+import Button from '#ui/components/base/buttons/Button.vue'
 import StyledInput from '#ui/components/base/StyledInput.vue'
 import { defineMessages, useVIntl } from '#ui/composables/i18n'
 import { commonMessages, formatContentTypeSentence } from '#ui/utils/common-messages'
@@ -77,42 +77,38 @@ const emit = defineEmits<{
 		/>
 
 		<div class="flex items-center gap-2">
-			<ButtonStyled color="brand">
-				<button
-					v-tooltip="
-						props.busyTooltip ??
-						(props.disableAddContent ? props.disableAddContentTooltip : undefined)
-					"
-					:disabled="props.busy || props.disableAddContent"
-					class="!h-10 flex items-center gap-2"
-					@click="emit('browse')"
-				>
-					<CompassIcon class="size-5" />
-					<span>{{ formatMessage(messages.browseContent) }}</span>
-				</button>
-			</ButtonStyled>
-			<ButtonStyled v-if="props.viewDependencies" type="outlined">
-				<button
-					v-tooltip="formatMessage(messages.viewDependencies)"
-					:disabled="props.busy"
-					class="!h-10 flex items-center gap-2"
-					@click="emit('viewDependencies')"
-				>
-					<GitGraphIcon class="size-5" />
-					<span>{{ formatMessage(messages.viewDependencies) }}</span>
-				</button>
-			</ButtonStyled>
-			<ButtonStyled type="outlined">
-				<button
-					v-tooltip="props.busyTooltip"
-					:disabled="props.refreshing"
-					class="!h-10"
-					@click="emit('refresh')"
-				>
-					<RefreshCwIcon :class="['size-5', { 'animate-spin': props.refreshing }]" />
-					{{ formatMessage(commonMessages.refreshButton) }}
-				</button>
-			</ButtonStyled>
+			<Button
+				v-tooltip="
+					props.busyTooltip ??
+					(props.disableAddContent ? props.disableAddContentTooltip : undefined)
+				"
+				type="colored"
+				color="brand"
+				:disabled="props.busy || props.disableAddContent"
+				class="!h-10 flex items-center gap-2"
+				@click="emit('browse')"
+				><CompassIcon class="size-5" />
+				<span>{{ formatMessage(messages.browseContent) }}</span>
+			</Button>
+			<Button
+				v-if="props.viewDependencies"
+				v-tooltip="formatMessage(messages.viewDependencies)"
+				type="outlined"
+				:disabled="props.busy"
+				class="!h-10 flex items-center gap-2"
+				@click="emit('viewDependencies')"
+				><GitGraphIcon class="size-5" />
+				<span>{{ formatMessage(messages.viewDependencies) }}</span>
+			</Button>
+			<Button
+				v-tooltip="props.busyTooltip"
+				type="outlined"
+				:disabled="props.refreshing"
+				class="!h-10"
+				@click="emit('refresh')"
+				><RefreshCwIcon :class="['size-5', { 'animate-spin': props.refreshing }]" />
+				{{ formatMessage(commonMessages.refreshButton) }}
+			</Button>
 		</div>
 	</div>
 </template>

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import {
 	Admonition,
-	ButtonStyled,
+	Button,
 	defineMessages,
 	injectNotificationManager,
 	NewModal,
@@ -83,14 +83,12 @@ defineExpose({ show })
 		</div>
 		<template #actions>
 			<div class="flex flex-wrap justify-end gap-2">
-				<ButtonStyled v-if="output" type="outlined">
-					<button @click="copy">{{ formatMessage(messages.copy) }}</button>
-				</ButtonStyled>
-				<ButtonStyled color="brand">
-					<button :disabled="loading" @click="modal?.hide()">
-						{{ formatMessage(messages.close) }}
-					</button>
-				</ButtonStyled>
+				<Button v-if="output" type="outlined" @click="copy">{{
+					formatMessage(messages.copy)
+				}}</Button>
+				<Button type="colored" color="brand" :disabled="loading" @click="modal?.hide()"
+					>{{ formatMessage(messages.close) }}
+				</Button>
 			</div>
 		</template>
 	</NewModal>

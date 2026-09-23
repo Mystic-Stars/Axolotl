@@ -1,6 +1,14 @@
 <script setup lang="ts">
 import { ChevronDownIcon, XIcon } from '@modrinth/assets'
-import { Avatar, ButtonStyled, Checkbox, defineMessages, NewModal, useVIntl } from '@modrinth/ui'
+import {
+	Avatar,
+	Button,
+	ButtonStyled,
+	Checkbox,
+	defineMessages,
+	NewModal,
+	useVIntl,
+} from '@modrinth/ui'
 import { openUrl } from '@tauri-apps/plugin-opener'
 import { computed, ref } from 'vue'
 
@@ -664,11 +672,13 @@ defineExpose({ show, showBatch, showConflict })
 								<p v-else class="m-0 w-full min-w-0 text-sm text-secondary">
 									{{ formatMessage(messages.descriptionUnavailable) }}
 								</p>
-								<ButtonStyled v-if="dependency.projectUrl" class="self-start" type="outlined">
-									<button type="button" @click="openDependencyPage(dependency)">
-										{{ formatMessage(messages.openProjectPage) }}
-									</button>
-								</ButtonStyled>
+								<Button
+									v-if="dependency.projectUrl"
+									class="self-start"
+									type="outlined"
+									@click="openDependencyPage(dependency)"
+									>{{ formatMessage(messages.openProjectPage) }}
+								</Button>
 							</div>
 						</div>
 					</div>
@@ -693,23 +703,20 @@ defineExpose({ show, showBatch, showConflict })
 
 		<template #actions>
 			<div class="flex items-center justify-end gap-2">
-				<ButtonStyled type="outlined">
-					<button @click="hide">{{ formatMessage(messages.cancel) }}</button>
-				</ButtonStyled>
-				<ButtonStyled color="brand">
-					<button
-						:disabled="!conflictMode && (hasBlockingPrimary || visiblePrimaries.length === 0)"
-						@click="confirm"
-					>
-						{{
-							conflictMode
-								? formatMessage(messages.continueAnyway)
-								: hasUnresolvedDependencies
-									? formatMessage(messages.installResolved)
-									: formatMessage(messages.install)
-						}}
-					</button>
-				</ButtonStyled>
+				<Button type="outlined" @click="hide">{{ formatMessage(messages.cancel) }}</Button>
+				<Button
+					type="colored"
+					color="brand"
+					:disabled="!conflictMode && (hasBlockingPrimary || visiblePrimaries.length === 0)"
+					@click="confirm"
+					>{{
+						conflictMode
+							? formatMessage(messages.continueAnyway)
+							: hasUnresolvedDependencies
+								? formatMessage(messages.installResolved)
+								: formatMessage(messages.install)
+					}}
+				</Button>
 			</div>
 		</template>
 	</NewModal>

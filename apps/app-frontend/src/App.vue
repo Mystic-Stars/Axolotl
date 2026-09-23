@@ -3092,15 +3092,13 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 		max-width="30rem"
 	>
 		<div class="grid grid-cols-2 gap-3">
-			<ButtonStyled color="brand">
-				<button
-					type="button"
-					:disabled="closeRequestInProgress"
-					@click="applyCloseChoice('close', closeChoiceRemember)"
-				>
-					{{ formatMessage(messages.closeLauncherDirect) }}
-				</button>
-			</ButtonStyled>
+			<Button
+				type="colored"
+				color="brand"
+				:disabled="closeRequestInProgress"
+				@click="applyCloseChoice('close', closeChoiceRemember)"
+				>{{ formatMessage(messages.closeLauncherDirect) }}
+			</Button>
 			<Button
 				:disabled="closeRequestInProgress"
 				@click="applyCloseChoice('lightweight', closeChoiceRemember)"
@@ -3130,11 +3128,9 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 		</Admonition>
 		<template #actions>
 			<div class="flex flex-wrap items-center justify-end gap-2">
-				<ButtonStyled type="outlined">
-					<button type="button" :disabled="closeRequestInProgress" @click="returnFromBackupExit">
-						{{ formatMessage(messages.backupExitReturn) }}
-					</button>
-				</ButtonStyled>
+				<Button type="outlined" :disabled="closeRequestInProgress" @click="returnFromBackupExit"
+					>{{ formatMessage(messages.backupExitReturn) }}
+				</Button>
 				<Button :disabled="closeRequestInProgress" @click="hideDuringBackups"
 					>{{ formatMessage(messages.backupExitTray) }}
 				</Button>

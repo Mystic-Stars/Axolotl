@@ -8,6 +8,7 @@ import {
 	TrashIcon,
 } from '@modrinth/assets'
 import {
+	Button,
 	ButtonStyled,
 	Checkbox,
 	defineMessages,
@@ -1325,11 +1326,13 @@ function slotEditorSlots(type: RecipeType): RecipeSlot[] {
 					</div>
 				</div>
 				<div class="recipe-sidebar-footer">
-					<ButtonStyled color="brand">
-						<button class="recipe-export-datapack w-full" @click="exportDatapack">
-							<DownloadIcon />{{ formatMessage(messages.exportDatapack) }}
-						</button>
-					</ButtonStyled>
+					<Button
+						type="colored"
+						color="brand"
+						class="recipe-export-datapack w-full"
+						@click="exportDatapack"
+						><DownloadIcon />{{ formatMessage(messages.exportDatapack) }}
+					</Button>
 				</div>
 			</aside>
 

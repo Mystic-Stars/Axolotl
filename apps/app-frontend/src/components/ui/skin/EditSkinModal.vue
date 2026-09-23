@@ -109,19 +109,20 @@
 
 		<template #actions>
 			<div class="flex gap-2 justify-end">
-				<ButtonStyled type="outlined">
-					<button :disabled="isSaving" @click="hide">
-						<XIcon />{{ formatMessage(commonMessages.cancelButton) }}
-					</button>
-				</ButtonStyled>
-				<ButtonStyled color="brand">
-					<button v-tooltip="saveTooltip" :disabled="disableSave || isSaving" @click="save">
-						<SpinnerIcon v-if="isSaving" class="animate-spin" />
-						<CheckIcon v-else-if="mode === 'new'" />
-						<SaveIcon v-else />
-						{{ formatMessage(mode === 'new' ? messages.addSkinButton : messages.saveSkinButton) }}
-					</button>
-				</ButtonStyled>
+				<Button type="outlined" :disabled="isSaving" @click="hide"
+					><XIcon />{{ formatMessage(commonMessages.cancelButton) }}
+				</Button>
+				<Button
+					v-tooltip="saveTooltip"
+					type="colored"
+					color="brand"
+					:disabled="disableSave || isSaving"
+					@click="save"
+					><SpinnerIcon v-if="isSaving" class="animate-spin" />
+					<CheckIcon v-else-if="mode === 'new'" />
+					<SaveIcon v-else />
+					{{ formatMessage(mode === 'new' ? messages.addSkinButton : messages.saveSkinButton) }}
+				</Button>
 			</div>
 		</template>
 	</NewModal>
@@ -131,7 +132,6 @@
 import { CheckIcon, SaveIcon, SpinnerIcon, UploadIcon, XIcon } from '@modrinth/assets'
 import {
 	Button,
-	ButtonStyled,
 	CapeButton,
 	CapeLikeTextButton,
 	commonMessages,

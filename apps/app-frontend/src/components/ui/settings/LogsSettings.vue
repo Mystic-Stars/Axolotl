@@ -1,13 +1,6 @@
 <script setup lang="ts">
 import { FolderOpenIcon, UploadIcon } from '@modrinth/assets'
-import {
-	Button,
-	ButtonStyled,
-	Combobox,
-	defineMessages,
-	injectNotificationManager,
-	useVIntl,
-} from '@modrinth/ui'
+import { Button, Combobox, defineMessages, injectNotificationManager, useVIntl } from '@modrinth/ui'
 import { computed, ref, watch } from 'vue'
 
 import { get, getUpdateChannel, set } from '@/helpers/settings.ts'
@@ -165,12 +158,10 @@ async function openLogsFolder() {
 				<template #description>{{ formatMessage(messages.exportDescription) }}</template>
 				<template #control>
 					<div class="flex flex-wrap gap-2">
-						<ButtonStyled color="brand">
-							<button type="button" @click="exportModal?.show()">
-								<UploadIcon />
-								{{ formatMessage(messages.exportButton) }}
-							</button>
-						</ButtonStyled>
+						<Button type="colored" color="brand" @click="exportModal?.show()"
+							><UploadIcon />
+							{{ formatMessage(messages.exportButton) }}
+						</Button>
 						<Button @click="openLogsFolder"
 							><FolderOpenIcon />
 							{{ formatMessage(messages.openFolder) }}

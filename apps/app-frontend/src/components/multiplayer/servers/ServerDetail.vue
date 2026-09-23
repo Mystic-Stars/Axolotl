@@ -16,6 +16,7 @@ import {
 } from '@modrinth/assets'
 import {
 	Admonition,
+	Button,
 	ButtonStyled,
 	defineMessages,
 	injectFilePicker,
@@ -373,42 +374,41 @@ async function shareOnline() {
 							{{ formatMessage(messages.stop) }}
 						</button>
 					</ButtonStyled>
-					<ButtonStyled v-else-if="setupStatus === 'installing'" type="outlined">
-						<button type="button" disabled>
-							<LoaderCircleIcon class="animate-spin" />
-							{{ formatMessage(messages.downloading) }}
-						</button>
-					</ButtonStyled>
-					<ButtonStyled v-else-if="setupStatus === 'interrupted'" color="brand">
-						<button type="button" @click="resumeInstall(server)">
-							<DownloadIcon />
-							{{ formatMessage(messages.continueDownload) }}
-						</button>
-					</ButtonStyled>
-					<ButtonStyled v-else-if="setupStatus === 'failed'" color="brand">
-						<button type="button" @click="resumeInstall(server)">
-							<RefreshCwIcon />
-							{{ formatMessage(messages.retryDownload) }}
-						</button>
-					</ButtonStyled>
-					<ButtonStyled v-else-if="!portConflict" color="brand">
-						<button type="button" @click="toggleRunning">
-							<PlayIcon />
-							{{ formatMessage(messages.start) }}
-						</button>
-					</ButtonStyled>
-					<ButtonStyled v-if="server.status === 'running' && server.port" type="outlined">
-						<button type="button" @click="shareOnline">
-							<GlobeIcon />
-							{{ formatMessage(messages.share) }}
-						</button>
-					</ButtonStyled>
-					<ButtonStyled type="outlined">
-						<button type="button" @click="openPath(server.path)">
-							<FolderOpenIcon />
-							{{ formatMessage(messages.openFolder) }}
-						</button>
-					</ButtonStyled>
+					<Button v-else-if="setupStatus === 'installing'" type="outlined" disabled
+						><LoaderCircleIcon class="animate-spin" />
+						{{ formatMessage(messages.downloading) }}
+					</Button>
+					<Button
+						v-else-if="setupStatus === 'interrupted'"
+						type="colored"
+						color="brand"
+						@click="resumeInstall(server)"
+						><DownloadIcon />
+						{{ formatMessage(messages.continueDownload) }}
+					</Button>
+					<Button
+						v-else-if="setupStatus === 'failed'"
+						type="colored"
+						color="brand"
+						@click="resumeInstall(server)"
+						><RefreshCwIcon />
+						{{ formatMessage(messages.retryDownload) }}
+					</Button>
+					<Button v-else-if="!portConflict" type="colored" color="brand" @click="toggleRunning"
+						><PlayIcon />
+						{{ formatMessage(messages.start) }}
+					</Button>
+					<Button
+						v-if="server.status === 'running' && server.port"
+						type="outlined"
+						@click="shareOnline"
+						><GlobeIcon />
+						{{ formatMessage(messages.share) }}
+					</Button>
+					<Button type="outlined" @click="openPath(server.path)"
+						><FolderOpenIcon />
+						{{ formatMessage(messages.openFolder) }}
+					</Button>
 				</div>
 			</div>
 
@@ -424,12 +424,14 @@ async function shareOnline() {
 				}}
 				<template #actions>
 					<div class="flex flex-wrap items-center gap-2">
-						<ButtonStyled color="brand">
-							<button type="button" :disabled="killingPortProcess" @click="goToPortSetting">
-								<PencilIcon />
-								{{ formatMessage(messages.portChange) }}
-							</button>
-						</ButtonStyled>
+						<Button
+							type="colored"
+							color="brand"
+							:disabled="killingPortProcess"
+							@click="goToPortSetting"
+							><PencilIcon />
+							{{ formatMessage(messages.portChange) }}
+						</Button>
 						<ButtonStyled color="red">
 							<button type="button" :disabled="killingPortProcess" @click="forceQuitPortProcess">
 								<LoaderCircleIcon v-if="killingPortProcess" class="animate-spin" />

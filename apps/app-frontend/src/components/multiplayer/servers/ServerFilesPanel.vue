@@ -2,7 +2,7 @@
 import { CodeIcon } from '@modrinth/assets'
 import type { EditingFile, FileItem } from '@modrinth/ui'
 import {
-	ButtonStyled,
+	Button,
 	commonMessages,
 	defineMessages,
 	FilePageLayout,
@@ -240,25 +240,23 @@ provideFileManager({
 	<div class="min-h-0 w-full">
 		<FilePageLayout :show-refresh-button="true">
 			<template #before-refresh>
-				<ButtonStyled color="brand">
-					<button
-						v-tooltip="isBusy ? formatMessage(messages.busyTooltip) : undefined"
-						type="button"
-						class="!h-10"
-						:disabled="isBusy"
-						@click="router.push({ name: 'MultiplayerServerFileStudio', params: { id: server.id } })"
-					>
-						<CodeIcon class="size-5" />
-						<span class="inline-flex items-center gap-1">
-							{{ formatMessage(messages.openStudio) }}
-							<span
-								class="rounded bg-orange px-1.5 py-0.5 text-[10px] font-bold uppercase leading-none text-contrast"
-							>
-								Beta
-							</span>
+				<Button
+					v-tooltip="isBusy ? formatMessage(messages.busyTooltip) : undefined"
+					type="colored"
+					color="brand"
+					class="!h-10"
+					:disabled="isBusy"
+					@click="router.push({ name: 'MultiplayerServerFileStudio', params: { id: server.id } })"
+					><CodeIcon class="size-5" />
+					<span class="inline-flex items-center gap-1">
+						{{ formatMessage(messages.openStudio) }}
+						<span
+							class="rounded bg-orange px-1.5 py-0.5 text-[10px] font-bold uppercase leading-none text-contrast"
+						>
+							Beta
 						</span>
-					</button>
-				</ButtonStyled>
+					</span>
+				</Button>
 			</template>
 		</FilePageLayout>
 	</div>

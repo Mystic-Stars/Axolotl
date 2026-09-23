@@ -19,12 +19,10 @@
 			</div>
 			<Checkbox v-model="dontShowAgain" :label="formatMessage(messages.dontShowAgain)" />
 			<div class="flex gap-2 justify-end">
-				<ButtonStyled type="outlined">
-					<button @click="cancel">
-						<XIcon />
-						{{ formatMessage(commonMessages.cancelButton) }}
-					</button>
-				</ButtonStyled>
+				<Button type="outlined" @click="cancel"
+					><XIcon />
+					{{ formatMessage(commonMessages.cancelButton) }}
+				</Button>
 				<ButtonStyled color="orange">
 					<button :disabled="isProceeding" @click="proceed">
 						<SpinnerIcon v-if="isProceeding" class="animate-spin" />
@@ -41,6 +39,7 @@
 import { CircleArrowRightIcon, SpinnerIcon, XIcon } from '@modrinth/assets'
 import {
 	Admonition,
+	Button,
 	ButtonStyled,
 	Checkbox,
 	commonMessages,

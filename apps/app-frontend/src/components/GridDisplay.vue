@@ -824,12 +824,10 @@ async function handleInstanceDragEnd(event: {
 				><PlusIcon />
 				{{ formatMessage(messages.newGroup) }}
 			</Button>
-			<ButtonStyled color="brand">
-				<button @click="router.push('/create')">
-					<PlusIcon />
-					{{ formatMessage(messages.createInstance) }}
-				</button>
-			</ButtonStyled>
+			<Button type="colored" color="brand" @click="router.push('/create')"
+				><PlusIcon />
+				{{ formatMessage(messages.createInstance) }}
+			</Button>
 		</div>
 		<div class="flex flex-wrap items-center gap-2">
 			<DropdownSelect

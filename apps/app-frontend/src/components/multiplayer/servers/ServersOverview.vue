@@ -7,7 +7,14 @@ import {
 	ServerIcon,
 	SpinnerIcon,
 } from '@modrinth/assets'
-import { ButtonStyled, defineMessages, EmptyState, PopoutMenu, useVIntl } from '@modrinth/ui'
+import {
+	Button,
+	ButtonStyled,
+	defineMessages,
+	EmptyState,
+	PopoutMenu,
+	useVIntl,
+} from '@modrinth/ui'
 import { computed, onMounted, ref, useTemplateRef } from 'vue'
 import type { ComponentExposed } from 'vue-component-type-helpers'
 import { useRouter } from 'vue-router'
@@ -123,22 +130,18 @@ async function toggleRunning(server: ServerView) {
 						</div>
 					</template>
 				</PopoutMenu>
-				<ButtonStyled type="outlined">
-					<button type="button" :disabled="isRefreshing" @click="refresh()">
-						<RefreshCwIcon :class="{ 'animate-spin': isRefreshing }" />
-						{{ formatMessage(messages.refresh) }}
-					</button>
-				</ButtonStyled>
-				<ButtonStyled color="brand">
-					<button
-						type="button"
-						data-onboarding-id="create-server-button"
-						@click="createModal?.show()"
-					>
-						<PlusIcon />
-						{{ formatMessage(messages.create) }}
-					</button>
-				</ButtonStyled>
+				<Button type="outlined" :disabled="isRefreshing" @click="refresh()"
+					><RefreshCwIcon :class="{ 'animate-spin': isRefreshing }" />
+					{{ formatMessage(messages.refresh) }}
+				</Button>
+				<Button
+					type="colored"
+					color="brand"
+					data-onboarding-id="create-server-button"
+					@click="createModal?.show()"
+					><PlusIcon />
+					{{ formatMessage(messages.create) }}
+				</Button>
 			</div>
 		</div>
 

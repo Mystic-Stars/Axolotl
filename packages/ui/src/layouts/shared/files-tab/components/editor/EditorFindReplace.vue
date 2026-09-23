@@ -94,24 +94,20 @@
 						wrapper-class="w-44"
 					/>
 				</div>
-				<ButtonStyled type="outlined">
-					<button
-						class="!h-8 whitespace-nowrap px-2 text-sm disabled:opacity-50"
-						:disabled="props.readonly || findMatchCount === 0"
-						@click="emit('replace', replaceQuery)"
-					>
-						{{ formatMessage(messages.replace) }}
-					</button>
-				</ButtonStyled>
-				<ButtonStyled type="outlined">
-					<button
-						class="!h-8 whitespace-nowrap px-2 text-sm disabled:opacity-50"
-						:disabled="props.readonly || findMatchCount === 0"
-						@click="emit('replaceAll', replaceQuery)"
-					>
-						{{ formatMessage(messages.replaceAll) }}
-					</button>
-				</ButtonStyled>
+				<Button
+					type="outlined"
+					class="!h-8 whitespace-nowrap px-2 text-sm disabled:opacity-50"
+					:disabled="props.readonly || findMatchCount === 0"
+					@click="emit('replace', replaceQuery)"
+					>{{ formatMessage(messages.replace) }}
+				</Button>
+				<Button
+					type="outlined"
+					class="!h-8 whitespace-nowrap px-2 text-sm disabled:opacity-50"
+					:disabled="props.readonly || findMatchCount === 0"
+					@click="emit('replaceAll', replaceQuery)"
+					>{{ formatMessage(messages.replaceAll) }}
+				</Button>
 			</div>
 		</div>
 	</Transition>
@@ -121,6 +117,7 @@
 import { ChevronDownIcon, ChevronRightIcon, ChevronUpIcon, XIcon } from '@modrinth/assets'
 import { nextTick, ref, watch } from 'vue'
 
+import Button from '#ui/components/base/buttons/Button.vue'
 import ButtonStyled from '#ui/components/base/ButtonStyled.vue'
 import StyledInput from '#ui/components/base/StyledInput.vue'
 import { defineMessages, useVIntl } from '#ui/composables/i18n'

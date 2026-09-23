@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { CompassIcon, RefreshCwIcon } from '@modrinth/assets'
 
-import ButtonStyled from '#ui/components/base/ButtonStyled.vue'
+import Button from '#ui/components/base/buttons/Button.vue'
 import EmptyState from '#ui/components/base/EmptyState.vue'
 import { defineMessages, useVIntl } from '#ui/composables/i18n'
 import { commonMessages, formatContentTypeSentence } from '#ui/utils/common-messages'
@@ -65,31 +65,28 @@ const emit = defineEmits<{
 			}}
 		</template>
 		<template #actions>
-			<ButtonStyled type="outlined">
-				<button
-					v-tooltip="props.busyTooltip"
-					:disabled="props.refreshing"
-					class="!h-10"
-					@click="emit('refresh')"
-				>
-					<RefreshCwIcon :class="['size-5', { 'animate-spin': props.refreshing }]" />
-					{{ formatMessage(commonMessages.refreshButton) }}
-				</button>
-			</ButtonStyled>
-			<ButtonStyled color="brand">
-				<button
-					v-tooltip="
-						props.busyTooltip ??
-						(props.disableAddContent ? props.disableAddContentTooltip : undefined)
-					"
-					:disabled="props.busy || props.disableAddContent"
-					class="!h-10 flex items-center gap-2"
-					@click="emit('browse')"
-				>
-					<CompassIcon class="size-5" />
-					<span>{{ formatMessage(messages.browseContent) }}</span>
-				</button>
-			</ButtonStyled>
+			<Button
+				v-tooltip="props.busyTooltip"
+				type="outlined"
+				:disabled="props.refreshing"
+				class="!h-10"
+				@click="emit('refresh')"
+				><RefreshCwIcon :class="['size-5', { 'animate-spin': props.refreshing }]" />
+				{{ formatMessage(commonMessages.refreshButton) }}
+			</Button>
+			<Button
+				v-tooltip="
+					props.busyTooltip ??
+					(props.disableAddContent ? props.disableAddContentTooltip : undefined)
+				"
+				type="colored"
+				color="brand"
+				:disabled="props.busy || props.disableAddContent"
+				class="!h-10 flex items-center gap-2"
+				@click="emit('browse')"
+				><CompassIcon class="size-5" />
+				<span>{{ formatMessage(messages.browseContent) }}</span>
+			</Button>
 		</template>
 	</EmptyState>
 </template>

@@ -16,13 +16,11 @@
 		class="flex flex-col gap-3 bg-button-bg border border-solid border-surface-5 rounded-xl p-3 mt-2"
 	>
 		<span>{{ formatMessage(messages.notSignedIn) }}</span>
-		<ButtonStyled v-if="!offline" color="brand">
-			<button color="primary" :disabled="loginDisabled" @click="login()">
-				<LogInIcon v-if="!loginDisabled" />
-				<SpinnerIcon v-else class="animate-spin" />
-				{{ formatMessage(messages.signInToMinecraft) }}
-			</button>
-		</ButtonStyled>
+		<Button v-if="!offline" type="colored" color="brand" :disabled="loginDisabled" @click="login()"
+			><LogInIcon v-if="!loginDisabled" />
+			<SpinnerIcon v-else class="animate-spin" />
+			{{ formatMessage(messages.signInToMinecraft) }}
+		</Button>
 		<Button v-if="!offline" :disabled="loginDisabled" @click="showYggdrasilAccountModal()"
 			><PlusIcon />
 			{{ formatMessage(messages.addThirdPartyAccount) }}
@@ -228,13 +226,15 @@
 				<Button :disabled="loginDisabled" @click="offlineAccountModal?.hide()"
 					>{{ formatMessage(commonMessages.cancelButton) }}
 				</Button>
-				<ButtonStyled color="brand">
-					<button :disabled="loginDisabled || !offlineFormValid" @click="addOfflineAccount()">
-						<SpinnerIcon v-if="loginDisabled" class="animate-spin" />
-						<PlusIcon v-else />
-						{{ formatMessage(messages.createOfflineAccount) }}
-					</button>
-				</ButtonStyled>
+				<Button
+					type="colored"
+					color="brand"
+					:disabled="loginDisabled || !offlineFormValid"
+					@click="addOfflineAccount()"
+					><SpinnerIcon v-if="loginDisabled" class="animate-spin" />
+					<PlusIcon v-else />
+					{{ formatMessage(messages.createOfflineAccount) }}
+				</Button>
 			</div>
 		</div>
 	</NewModal>
@@ -309,13 +309,15 @@
 				<Button :disabled="loginDisabled" @click="yggdrasilAccountModal?.hide()"
 					>{{ formatMessage(commonMessages.cancelButton) }}
 				</Button>
-				<ButtonStyled color="brand">
-					<button :disabled="loginDisabled || !yggdrasilFormValid" @click="addYggdrasilAccount()">
-						<SpinnerIcon v-if="loginDisabled" class="animate-spin" />
-						<LogInIcon v-else />
-						{{ formatMessage(messages.signInButton) }}
-					</button>
-				</ButtonStyled>
+				<Button
+					type="colored"
+					color="brand"
+					:disabled="loginDisabled || !yggdrasilFormValid"
+					@click="addYggdrasilAccount()"
+					><SpinnerIcon v-if="loginDisabled" class="animate-spin" />
+					<LogInIcon v-else />
+					{{ formatMessage(messages.signInButton) }}
+				</Button>
 			</div>
 		</div>
 	</NewModal>

@@ -8,12 +8,10 @@
 
 		<template #actions>
 			<div class="flex justify-end gap-2">
-				<ButtonStyled type="outlined">
-					<button @click="cancel">
-						<XIcon />
-						{{ localizeIfPossible(stayLabel) }}
-					</button>
-				</ButtonStyled>
+				<Button type="outlined" @click="cancel"
+					><XIcon />
+					{{ localizeIfPossible(stayLabel) }}
+				</Button>
 				<ButtonStyled color="red">
 					<button @click="leave">
 						<RightArrowIcon />
@@ -30,6 +28,7 @@ import { RightArrowIcon, XIcon } from '@modrinth/assets'
 import { ref } from 'vue'
 
 import Admonition from '#ui/components/base/Admonition.vue'
+import Button from '#ui/components/base/buttons/Button.vue'
 import ButtonStyled from '#ui/components/base/ButtonStyled.vue'
 import { defineMessage, type MessageDescriptor, useVIntl } from '#ui/composables/i18n'
 

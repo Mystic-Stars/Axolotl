@@ -82,12 +82,10 @@
 						><XIcon />
 						{{ formatMessage(commonMessages.cancelButton) }}
 					</Button>
-					<ButtonStyled color="brand">
-						<button @click="handleConfirm">
-							<component :is="confirmIcon" v-if="confirmIcon" />
-							{{ confirmLabel || formatMessage(commonMessages.confirmButton) }}
-						</button>
-					</ButtonStyled>
+					<Button type="colored" color="brand" @click="handleConfirm"
+						><component :is="confirmIcon" v-if="confirmIcon" />
+						{{ confirmLabel || formatMessage(commonMessages.confirmButton) }}
+					</Button>
 				</div>
 			</div>
 		</template>

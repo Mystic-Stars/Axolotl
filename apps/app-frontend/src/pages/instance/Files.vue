@@ -2,7 +2,7 @@
 import { CodeIcon, FileArchiveIcon } from '@modrinth/assets'
 import type { EditingFile, FileContextMenuOption, FileItem } from '@modrinth/ui'
 import {
-	ButtonStyled,
+	Button,
 	commonMessages,
 	defineMessages,
 	FilePageLayout,
@@ -336,23 +336,21 @@ provideFileManager({
 		<div class="flex flex-col gap-4">
 			<FilePageLayout :show-refresh-button="true">
 				<template #before-refresh>
-					<ButtonStyled color="brand">
-						<button
-							type="button"
-							class="!h-10"
-							@click="router.push({ name: 'FileStudio', params: { id: instance.id } })"
-						>
-							<CodeIcon class="size-5" />
-							<span class="inline-flex items-center gap-1">
-								{{ formatMessage(messages.openStudio) }}
-								<span
-									class="rounded bg-orange px-1.5 py-0.5 text-[10px] font-bold uppercase leading-none text-contrast"
-								>
-									Beta
-								</span>
+					<Button
+						type="colored"
+						color="brand"
+						class="!h-10"
+						@click="router.push({ name: 'FileStudio', params: { id: instance.id } })"
+						><CodeIcon class="size-5" />
+						<span class="inline-flex items-center gap-1">
+							{{ formatMessage(messages.openStudio) }}
+							<span
+								class="rounded bg-orange px-1.5 py-0.5 text-[10px] font-bold uppercase leading-none text-contrast"
+							>
+								Beta
 							</span>
-						</button>
-					</ButtonStyled>
+						</span>
+					</Button>
 				</template>
 			</FilePageLayout>
 		</div>

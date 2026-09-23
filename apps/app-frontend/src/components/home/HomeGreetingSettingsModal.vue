@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { MessageIcon, SaveIcon, SparklesIcon, TextCursorInputIcon, XIcon } from '@modrinth/assets'
 import {
-	ButtonStyled,
+	Button,
 	Combobox,
 	commonMessages,
 	defineMessages,
@@ -231,18 +231,14 @@ defineExpose({ show })
 
 		<template #actions>
 			<div class="flex justify-end gap-2">
-				<ButtonStyled type="outlined">
-					<button @click="modal?.hide()">
-						<XIcon />
-						{{ formatMessage(commonMessages.cancelButton) }}
-					</button>
-				</ButtonStyled>
-				<ButtonStyled color="brand">
-					<button @click="save">
-						<SaveIcon />
-						{{ formatMessage(commonMessages.saveChangesButton) }}
-					</button>
-				</ButtonStyled>
+				<Button type="outlined" @click="modal?.hide()"
+					><XIcon />
+					{{ formatMessage(commonMessages.cancelButton) }}
+				</Button>
+				<Button type="colored" color="brand" @click="save"
+					><SaveIcon />
+					{{ formatMessage(commonMessages.saveChangesButton) }}
+				</Button>
 			</div>
 		</template>
 	</NewModal>

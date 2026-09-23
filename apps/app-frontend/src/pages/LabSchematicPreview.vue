@@ -38,6 +38,7 @@ import {
 	XIcon,
 } from '@modrinth/assets'
 import {
+	Button,
 	ButtonStyled,
 	defineMessages,
 	EmptyState,
@@ -1485,16 +1486,12 @@ onBeforeUnmount(() => {
 					:description="formatMessage(messages.emptyDescription)"
 				>
 					<template #actions>
-						<ButtonStyled color="brand">
-							<button type="button" @click="chooseLocalFile">
-								<FileArchiveIcon />{{ formatMessage(messages.openFile) }}
-							</button>
-						</ButtonStyled>
-						<ButtonStyled type="outlined">
-							<button type="button" @click="instancePicker?.show()">
-								<FolderSearchIcon />{{ formatMessage(messages.fromInstance) }}
-							</button>
-						</ButtonStyled>
+						<Button type="colored" color="brand" @click="chooseLocalFile"
+							><FileArchiveIcon />{{ formatMessage(messages.openFile) }}
+						</Button>
+						<Button type="outlined" @click="instancePicker?.show()"
+							><FolderSearchIcon />{{ formatMessage(messages.fromInstance) }}
+						</Button>
 					</template>
 				</EmptyState>
 				<p v-if="error" class="m-0 max-w-2xl text-center text-sm text-brand-red">{{ error }}</p>
@@ -1971,33 +1968,24 @@ onBeforeUnmount(() => {
 									{{ formatMessage(messages.boxSelectPending) }}
 								</p>
 								<div class="editor-action-grid">
-									<ButtonStyled type="outlined">
-										<button
-											type="button"
-											:disabled="!selectedBlock"
-											@click="expandSelectionByMaterial()"
-										>
-											<ListIcon />{{ formatMessage(messages.selectMaterial) }}
-										</button>
-									</ButtonStyled>
-									<ButtonStyled type="outlined">
-										<button
-											type="button"
-											:disabled="!selectedBlocks.length"
-											@click="expandSelectionByLayer"
-										>
-											<LayersIcon />{{ formatMessage(messages.selectLayer) }}
-										</button>
-									</ButtonStyled>
-									<ButtonStyled type="outlined">
-										<button
-											type="button"
-											:disabled="!selectedBlocks.length"
-											@click="expandConnectedSelection"
-										>
-											<BoxesIcon />{{ formatMessage(messages.selectConnected) }}
-										</button>
-									</ButtonStyled>
+									<Button
+										type="outlined"
+										:disabled="!selectedBlock"
+										@click="expandSelectionByMaterial()"
+										><ListIcon />{{ formatMessage(messages.selectMaterial) }}
+									</Button>
+									<Button
+										type="outlined"
+										:disabled="!selectedBlocks.length"
+										@click="expandSelectionByLayer"
+										><LayersIcon />{{ formatMessage(messages.selectLayer) }}
+									</Button>
+									<Button
+										type="outlined"
+										:disabled="!selectedBlocks.length"
+										@click="expandConnectedSelection"
+										><BoxesIcon />{{ formatMessage(messages.selectConnected) }}
+									</Button>
 									<ButtonStyled type="transparent">
 										<button
 											type="button"
@@ -2013,24 +2001,18 @@ onBeforeUnmount(() => {
 							<section class="inspector-section flex flex-col gap-2 border-t border-surface-5 pt-3">
 								<h2><EyeIcon />{{ formatMessage(messages.visibility) }}</h2>
 								<div class="editor-action-grid">
-									<ButtonStyled type="outlined">
-										<button
-											type="button"
-											:disabled="!selectedBlocks.length"
-											@click="hideSelectedBlocks"
-										>
-											<EyeOffIcon />{{ formatMessage(messages.hideSelection) }}
-										</button>
-									</ButtonStyled>
-									<ButtonStyled type="outlined">
-										<button
-											type="button"
-											:disabled="!selectedBlocks.length"
-											@click="showOnlySelectedBlocks"
-										>
-											<ScanEyeIcon />{{ formatMessage(messages.isolateSelection) }}
-										</button>
-									</ButtonStyled>
+									<Button
+										type="outlined"
+										:disabled="!selectedBlocks.length"
+										@click="hideSelectedBlocks"
+										><EyeOffIcon />{{ formatMessage(messages.hideSelection) }}
+									</Button>
+									<Button
+										type="outlined"
+										:disabled="!selectedBlocks.length"
+										@click="showOnlySelectedBlocks"
+										><ScanEyeIcon />{{ formatMessage(messages.isolateSelection) }}
+									</Button>
 									<ButtonStyled type="transparent">
 										<button
 											type="button"
@@ -2055,11 +2037,13 @@ onBeforeUnmount(() => {
 							<section class="inspector-section flex flex-col gap-2 border-t border-surface-5 pt-3">
 								<h2><EditIcon />{{ formatMessage(messages.edit) }}</h2>
 								<div class="editor-action-grid">
-									<ButtonStyled color="brand">
-										<button type="button" :disabled="!canEditSelection" @click="openBlockPicker">
-											<EditIcon />{{ formatMessage(messages.replaceSelected) }}
-										</button>
-									</ButtonStyled>
+									<Button
+										type="colored"
+										color="brand"
+										:disabled="!canEditSelection"
+										@click="openBlockPicker"
+										><EditIcon />{{ formatMessage(messages.replaceSelected) }}
+									</Button>
 									<ButtonStyled color="red" type="outlined">
 										<button
 											type="button"
@@ -2075,54 +2059,42 @@ onBeforeUnmount(() => {
 							<section class="inspector-section flex flex-col gap-2 border-t border-surface-5 pt-3">
 								<h2><RotateClockwiseIcon />{{ formatMessage(messages.transform) }}</h2>
 								<div class="editor-action-grid">
-									<ButtonStyled type="outlined">
-										<button
-											type="button"
-											:disabled="Boolean(loadingStage) || applyingEdit"
-											@click="
-												transformStructure(
-													'rotate_counter_clockwise',
-													formatMessage(messages.rotateCounterClockwise),
-												)
-											"
-										>
-											<RotateCounterClockwiseIcon />{{
-												formatMessage(messages.rotateCounterClockwise)
-											}}
-										</button>
-									</ButtonStyled>
-									<ButtonStyled type="outlined">
-										<button
-											type="button"
-											:disabled="Boolean(loadingStage) || applyingEdit"
-											@click="
-												transformStructure(
-													'rotate_clockwise',
-													formatMessage(messages.rotateClockwise),
-												)
-											"
-										>
-											<RotateClockwiseIcon />{{ formatMessage(messages.rotateClockwise) }}
-										</button>
-									</ButtonStyled>
-									<ButtonStyled type="outlined">
-										<button
-											type="button"
-											:disabled="Boolean(loadingStage) || applyingEdit"
-											@click="transformStructure('mirror_x', formatMessage(messages.mirrorX))"
-										>
-											<ArrowLeftRightIcon />{{ formatMessage(messages.mirrorX) }}
-										</button>
-									</ButtonStyled>
-									<ButtonStyled type="outlined">
-										<button
-											type="button"
-											:disabled="Boolean(loadingStage) || applyingEdit"
-											@click="transformStructure('mirror_z', formatMessage(messages.mirrorZ))"
-										>
-											<ArrowUpDownIcon />{{ formatMessage(messages.mirrorZ) }}
-										</button>
-									</ButtonStyled>
+									<Button
+										type="outlined"
+										:disabled="Boolean(loadingStage) || applyingEdit"
+										@click="
+											transformStructure(
+												'rotate_counter_clockwise',
+												formatMessage(messages.rotateCounterClockwise),
+											)
+										"
+										><RotateCounterClockwiseIcon />{{
+											formatMessage(messages.rotateCounterClockwise)
+										}}
+									</Button>
+									<Button
+										type="outlined"
+										:disabled="Boolean(loadingStage) || applyingEdit"
+										@click="
+											transformStructure(
+												'rotate_clockwise',
+												formatMessage(messages.rotateClockwise),
+											)
+										"
+										><RotateClockwiseIcon />{{ formatMessage(messages.rotateClockwise) }}
+									</Button>
+									<Button
+										type="outlined"
+										:disabled="Boolean(loadingStage) || applyingEdit"
+										@click="transformStructure('mirror_x', formatMessage(messages.mirrorX))"
+										><ArrowLeftRightIcon />{{ formatMessage(messages.mirrorX) }}
+									</Button>
+									<Button
+										type="outlined"
+										:disabled="Boolean(loadingStage) || applyingEdit"
+										@click="transformStructure('mirror_z', formatMessage(messages.mirrorZ))"
+										><ArrowUpDownIcon />{{ formatMessage(messages.mirrorZ) }}
+									</Button>
 								</div>
 							</section>
 						</div>

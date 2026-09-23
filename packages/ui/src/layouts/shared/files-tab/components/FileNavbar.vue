@@ -113,21 +113,19 @@
 
 				<slot name="before-refresh" />
 
-				<ButtonStyled v-if="showRefreshButton" type="outlined">
-					<button
-						type="button"
-						class="flex !h-10 items-center gap-2"
-						:disabled="refreshing"
-						@click="handleRefresh"
-					>
-						<RefreshCwIcon
-							aria-hidden="true"
-							class="h-5 w-5 transition-transform"
-							:class="refreshing ? 'animate-spin' : ''"
-						/>
-						{{ formatMessage(commonMessages.refreshButton) }}
-					</button>
-				</ButtonStyled>
+				<Button
+					v-if="showRefreshButton"
+					type="outlined"
+					class="flex !h-10 items-center gap-2"
+					:disabled="refreshing"
+					@click="handleRefresh"
+					><RefreshCwIcon
+						aria-hidden="true"
+						class="h-5 w-5 transition-transform"
+						:class="refreshing ? 'animate-spin' : ''"
+					/>
+					{{ formatMessage(commonMessages.refreshButton) }}
+				</Button>
 
 				<ButtonStyled type="outlined">
 					<OverflowMenu
@@ -223,6 +221,7 @@ import {
 } from '@modrinth/assets'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
+import Button from '#ui/components/base/buttons/Button.vue'
 import ButtonStyled from '#ui/components/base/ButtonStyled.vue'
 import OverflowMenu from '#ui/components/base/OverflowMenu.vue'
 import StyledInput from '#ui/components/base/StyledInput.vue'

@@ -103,14 +103,17 @@
 
 		<template #actions>
 			<div class="flex flex-wrap justify-end gap-2">
-				<ButtonStyled type="outlined">
-					<button @click="modal?.hide()">{{ formatMessage(commonMessages.closeButton) }}</button>
-				</ButtonStyled>
-				<ButtonStyled v-if="remaining > 0" color="brand">
-					<button :disabled="loading || busy.size > 0" @click="retryAll">
-						<RefreshCwIcon />{{ formatMessage(messages.retryAll) }}
-					</button>
-				</ButtonStyled>
+				<Button type="outlined" @click="modal?.hide()">{{
+					formatMessage(commonMessages.closeButton)
+				}}</Button>
+				<Button
+					v-if="remaining > 0"
+					type="colored"
+					color="brand"
+					:disabled="loading || busy.size > 0"
+					@click="retryAll"
+					><RefreshCwIcon />{{ formatMessage(messages.retryAll) }}
+				</Button>
 			</div>
 		</template>
 	</NewModal>
@@ -129,6 +132,7 @@ import {
 import {
 	Admonition,
 	Badge,
+	Button,
 	ButtonStyled,
 	commonMessages,
 	defineMessages,

@@ -941,35 +941,32 @@ const messages = defineMessages({
 						</div>
 
 						<div class="flex flex-wrap gap-2">
-							<ButtonStyled color="brand">
-								<button
-									v-tooltip="ctx.isBusy.value ? ctx.busyMessage?.value : undefined"
-									class="!shadow-none"
-									:disabled="
-										!form.isValid.value ||
-										!form.hasChanges.value ||
-										form.isSaving.value ||
-										ctx.isBusy.value
-									"
-									@click="handleSave"
-								>
-									<SpinnerIcon v-if="form.isSaving.value" class="animate-spin" />
-									<SaveIcon v-else />
-									{{
-										form.isVerifying.value
-											? formatMessage(messages.verifyingLabel)
-											: form.isSaving.value
-												? formatMessage(messages.savingLabel)
-												: formatMessage(commonMessages.saveButton)
-									}}
-								</button>
-							</ButtonStyled>
-							<ButtonStyled type="outlined">
-								<button @click="handleCancelEditing">
-									<XIcon />
-									{{ formatMessage(commonMessages.cancelButton) }}
-								</button>
-							</ButtonStyled>
+							<Button
+								v-tooltip="ctx.isBusy.value ? ctx.busyMessage?.value : undefined"
+								type="colored"
+								color="brand"
+								class="!shadow-none"
+								:disabled="
+									!form.isValid.value ||
+									!form.hasChanges.value ||
+									form.isSaving.value ||
+									ctx.isBusy.value
+								"
+								@click="handleSave"
+								><SpinnerIcon v-if="form.isSaving.value" class="animate-spin" />
+								<SaveIcon v-else />
+								{{
+									form.isVerifying.value
+										? formatMessage(messages.verifyingLabel)
+										: form.isSaving.value
+											? formatMessage(messages.savingLabel)
+											: formatMessage(commonMessages.saveButton)
+								}}
+							</Button>
+							<Button type="outlined" @click="handleCancelEditing"
+								><XIcon />
+								{{ formatMessage(commonMessages.cancelButton) }}
+							</Button>
 						</div>
 					</div>
 				</div>

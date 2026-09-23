@@ -28,6 +28,7 @@ import {
 } from '@modrinth/assets'
 import {
 	Admonition,
+	Button,
 	ButtonStyled,
 	Checkbox,
 	defineMessages,
@@ -2421,15 +2422,13 @@ function clampWorldCoordinate(value: number) {
 								</template>
 							</PopoutMenu>
 						</ButtonStyled>
-						<ButtonStyled type="outlined">
-							<button
-								v-tooltip="formatMessage(messages.importFromInstance)"
-								:aria-label="formatMessage(messages.importFromInstance)"
-								@click="worldImportModal?.show()"
-							>
-								<ImportIcon />{{ formatMessage(messages.importFromInstance) }}
-							</button>
-						</ButtonStyled>
+						<Button
+							v-tooltip="formatMessage(messages.importFromInstance)"
+							type="outlined"
+							:aria-label="formatMessage(messages.importFromInstance)"
+							@click="worldImportModal?.show()"
+							><ImportIcon />{{ formatMessage(messages.importFromInstance) }}
+						</Button>
 					</div>
 				</div>
 			</div>
@@ -2493,9 +2492,9 @@ function clampWorldCoordinate(value: number) {
 					</div>
 				</div>
 				<div class="share-button">
-					<ButtonStyled type="outlined">
-						<button @click="copyShareLink"><ShareIcon />{{ formatMessage(messages.share) }}</button>
-					</ButtonStyled>
+					<Button type="outlined" @click="copyShareLink"
+						><ShareIcon />{{ formatMessage(messages.share) }}</Button
+					>
 				</div>
 			</div>
 		</section>
