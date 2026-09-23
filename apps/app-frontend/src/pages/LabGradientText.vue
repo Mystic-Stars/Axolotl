@@ -871,21 +871,15 @@ function formatAdapterName(adapterId: GradientFormatId): string {
 							</div>
 						</div>
 						<div class="flex flex-wrap gap-2">
-							<ButtonStyled size="small" type="outlined"
-								><button @click="importPresets">
-									<UploadIcon />{{ formatMessage(messages.importPresets) }}
-								</button></ButtonStyled
-							>
-							<ButtonStyled size="small" type="outlined"
-								><button @click="exportPresets()">
-									<DownloadIcon />{{ formatMessage(messages.exportPresets) }}
-								</button></ButtonStyled
-							>
-							<ButtonStyled size="small" type="outlined"
-								><button @click="exportPresets(true)">
-									<DownloadIcon />{{ formatMessage(messages.downloadTemplate) }}
-								</button></ButtonStyled
-							>
+							<Button type="outlined" size="2xs" @click="importPresets"
+								><UploadIcon />{{ formatMessage(messages.importPresets) }}
+							</Button>
+							<Button type="outlined" size="2xs" @click="exportPresets()"
+								><DownloadIcon />{{ formatMessage(messages.exportPresets) }}
+							</Button>
+							<Button type="outlined" size="2xs" @click="exportPresets(true)"
+								><DownloadIcon />{{ formatMessage(messages.downloadTemplate) }}
+							</Button>
 						</div>
 					</div>
 				</Accordion>

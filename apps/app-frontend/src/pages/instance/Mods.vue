@@ -105,21 +105,19 @@
 								{{ item.expectedRelativePath }}
 							</code>
 						</span>
-						<ButtonStyled size="small" type="highlight-colored-text" color="orange">
-							<button
-								type="button"
-								:disabled="!item.memberId || isInstanceBusy || isRestoringMissingPackMember(item)"
-								@click="restoreMissingPackMember(item)"
-							>
-								<SpinnerIcon
-									v-if="isRestoringMissingPackMember(item)"
-									class="animate-spin"
-									aria-hidden="true"
-								/>
-								<UndoIcon v-else aria-hidden="true" />
-								{{ formatMessage(messages.restoreMissingFile) }}
-							</button>
-						</ButtonStyled>
+						<Button
+							color="orange"
+							size="2xs"
+							:disabled="!item.memberId || isInstanceBusy || isRestoringMissingPackMember(item)"
+							@click="restoreMissingPackMember(item)"
+							><SpinnerIcon
+								v-if="isRestoringMissingPackMember(item)"
+								class="animate-spin"
+								aria-hidden="true"
+							/>
+							<UndoIcon v-else aria-hidden="true" />
+							{{ formatMessage(messages.restoreMissingFile) }}
+						</Button>
 					</li>
 				</ul>
 			</div>
@@ -212,7 +210,6 @@ import {
 } from '@modrinth/assets'
 import {
 	Button,
-	ButtonStyled,
 	CollapsibleAdmonition,
 	commonMessages,
 	ConfirmModpackUpdateModal,

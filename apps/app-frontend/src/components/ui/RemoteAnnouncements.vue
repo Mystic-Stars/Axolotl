@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import {
 	Button,
-	ButtonStyled,
 	commonMessages,
 	defineMessages,
 	NewModal,
@@ -414,11 +413,7 @@ onUnmounted(() => {
 		</div>
 		<template #actions>
 			<div class="flex flex-wrap justify-end gap-2">
-				<ButtonStyled
-					><button @click="modal?.hide()">
-						{{ formatMessage(commonMessages.closeButton) }}
-					</button></ButtonStyled
-				>
+				<Button @click="modal?.hide()">{{ formatMessage(commonMessages.closeButton) }} </Button>
 			</div>
 		</template>
 	</NewModal>

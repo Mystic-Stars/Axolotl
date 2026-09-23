@@ -2469,11 +2469,9 @@ function clampWorldCoordinate(value: number) {
 							><span>Z</span
 							><StyledInput v-model="coordinateZ" type="number" @keydown.enter="goToCoordinates"
 						/></label>
-						<ButtonStyled color="brand"
-							><button class="coordinate-go h-10" @click="goToCoordinates">
-								<CompassIcon />{{ formatMessage(messages.go) }}
-							</button></ButtonStyled
-						>
+						<Button type="colored" color="brand" class="coordinate-go h-10" @click="goToCoordinates"
+							><CompassIcon />{{ formatMessage(messages.go) }}
+						</Button>
 					</div>
 				</div>
 				<div
@@ -2550,28 +2548,26 @@ function clampWorldCoordinate(value: number) {
 						</ButtonStyled>
 					</div>
 					<div class="flex items-center gap-1">
-						<ButtonStyled circular type="standard"
-							><button
-								v-tooltip="formatMessage(showLayerNames ? messages.hideNames : messages.showNames)"
-								:aria-label="
-									formatMessage(showLayerNames ? messages.hideNames : messages.showNames)
-								"
-								@click="showLayerNames = !showLayerNames"
-							>
-								<EyeOffIcon v-if="showLayerNames" /><EyeIcon v-else /></button
-						></ButtonStyled>
-						<ButtonStyled circular type="standard"
-							><button
-								v-tooltip="
-									formatMessage(layersExpanded ? messages.collapseLayers : messages.expandLayers)
-								"
-								:aria-label="
-									formatMessage(layersExpanded ? messages.collapseLayers : messages.expandLayers)
-								"
-								@click="layersExpanded = !layersExpanded"
-							>
-								<ChevronDownIcon :class="{ 'rotate-180': layersExpanded }" /></button
-						></ButtonStyled>
+						<Button
+							v-tooltip="formatMessage(showLayerNames ? messages.hideNames : messages.showNames)"
+							circular
+							icon-only
+							:aria-label="formatMessage(showLayerNames ? messages.hideNames : messages.showNames)"
+							@click="showLayerNames = !showLayerNames"
+							><EyeOffIcon v-if="showLayerNames" /><EyeIcon v-else
+						/></Button>
+						<Button
+							v-tooltip="
+								formatMessage(layersExpanded ? messages.collapseLayers : messages.expandLayers)
+							"
+							circular
+							icon-only
+							:aria-label="
+								formatMessage(layersExpanded ? messages.collapseLayers : messages.expandLayers)
+							"
+							@click="layersExpanded = !layersExpanded"
+							><ChevronDownIcon :class="{ 'rotate-180': layersExpanded }"
+						/></Button>
 					</div>
 				</div>
 				<div class="layer-options">
@@ -2650,29 +2646,26 @@ function clampWorldCoordinate(value: number) {
 				</div>
 				<div v-if="layersExpanded" class="layer-expanded-panel">
 					<div class="layer-bulk-actions">
-						<ButtonStyled size="small" type="outlined"
-							><button
-								@click="
-									workspace.displayMode === 'structures' ? selectAllFeatures() : selectAllOres()
-								"
-							>
-								{{ formatMessage(messages.selectAll) }}
-							</button></ButtonStyled
-						>
-						<ButtonStyled size="small" type="outlined"
-							><button
-								@click="workspace.displayMode === 'structures' ? clearFeatures() : clearOres()"
-							>
-								{{ formatMessage(messages.clear) }}
-							</button></ButtonStyled
-						>
-						<ButtonStyled size="small" type="outlined"
-							><button
-								@click="workspace.displayMode === 'structures' ? resetFeatures() : resetOres()"
-							>
-								{{ formatMessage(messages.reset) }}
-							</button></ButtonStyled
-						>
+						<Button
+							type="outlined"
+							size="2xs"
+							@click="
+								workspace.displayMode === 'structures' ? selectAllFeatures() : selectAllOres()
+							"
+							>{{ formatMessage(messages.selectAll) }}
+						</Button>
+						<Button
+							type="outlined"
+							size="2xs"
+							@click="workspace.displayMode === 'structures' ? clearFeatures() : clearOres()"
+							>{{ formatMessage(messages.clear) }}
+						</Button>
+						<Button
+							type="outlined"
+							size="2xs"
+							@click="workspace.displayMode === 'structures' ? resetFeatures() : resetOres()"
+							>{{ formatMessage(messages.reset) }}
+						</Button>
 					</div>
 					<div class="layer-checklist">
 						<template v-if="workspace.displayMode === 'structures'">
@@ -2783,48 +2776,46 @@ function clampWorldCoordinate(value: number) {
 				</div>
 
 				<div class="map-control-stack map-control-stack-left left-3">
-					<ButtonStyled circular type="standard"
-						><button
-							v-tooltip="formatMessage(messages.zoomIn)"
-							:aria-label="formatMessage(messages.zoomIn)"
-							:disabled="workspace.zoom <= SEED_MAP_MIN_ZOOM"
-							@click="zoomBy(-0.5)"
-						>
-							<PlusIcon /></button
-					></ButtonStyled>
-					<ButtonStyled circular type="standard"
-						><button
-							v-tooltip="formatMessage(messages.zoomOut)"
-							:aria-label="formatMessage(messages.zoomOut)"
-							:disabled="workspace.zoom >= SEED_MAP_SCALES.length - 1"
-							@click="zoomBy(0.5)"
-						>
-							<MinusIcon /></button
-					></ButtonStyled>
-					<ButtonStyled circular type="standard"
-						><button
-							v-tooltip="formatMessage(messages.centerSpawn)"
-							:aria-label="formatMessage(messages.centerSpawn)"
-							:disabled="!spawn"
-							@click="centerSpawn"
-						>
-							<CompassIcon /></button
-					></ButtonStyled>
+					<Button
+						v-tooltip="formatMessage(messages.zoomIn)"
+						circular
+						icon-only
+						:aria-label="formatMessage(messages.zoomIn)"
+						:disabled="workspace.zoom <= SEED_MAP_MIN_ZOOM"
+						@click="zoomBy(-0.5)"
+						><PlusIcon
+					/></Button>
+					<Button
+						v-tooltip="formatMessage(messages.zoomOut)"
+						circular
+						icon-only
+						:aria-label="formatMessage(messages.zoomOut)"
+						:disabled="workspace.zoom >= SEED_MAP_SCALES.length - 1"
+						@click="zoomBy(0.5)"
+						><MinusIcon
+					/></Button>
+					<Button
+						v-tooltip="formatMessage(messages.centerSpawn)"
+						circular
+						icon-only
+						:aria-label="formatMessage(messages.centerSpawn)"
+						:disabled="!spawn"
+						@click="centerSpawn"
+						><CompassIcon
+					/></Button>
 				</div>
 
 				<div class="map-control-stack map-control-stack-right right-3">
-					<ButtonStyled circular type="standard"
-						><button
-							v-tooltip="
-								formatMessage(isFullscreen ? messages.exitFullscreen : messages.fullscreen)
-							"
-							:aria-label="
-								formatMessage(isFullscreen ? messages.exitFullscreen : messages.fullscreen)
-							"
-							@click="toggleFullscreen"
-						>
-							<ContractIcon v-if="isFullscreen" /><ExpandIcon v-else /></button
-					></ButtonStyled>
+					<Button
+						v-tooltip="formatMessage(isFullscreen ? messages.exitFullscreen : messages.fullscreen)"
+						circular
+						icon-only
+						:aria-label="
+							formatMessage(isFullscreen ? messages.exitFullscreen : messages.fullscreen)
+						"
+						@click="toggleFullscreen"
+						><ContractIcon v-if="isFullscreen" /><ExpandIcon v-else
+					/></Button>
 					<ButtonStyled circular :type="rulerEnabled ? 'standard' : 'outlined'"
 						><button
 							v-tooltip="formatMessage(messages.ruler)"
@@ -2867,14 +2858,16 @@ function clampWorldCoordinate(value: number) {
 				<div v-if="rulerDistance !== null" class="map-status map-ruler-status">
 					<ScaleIcon class="size-3" />{{
 						formatMessage(messages.distance, { distance: rulerDistance })
-					}}<ButtonStyled circular size="small" type="transparent"
-						><button
-							v-tooltip="formatMessage(messages.clearRuler)"
-							:aria-label="formatMessage(messages.clearRuler)"
-							@click="rulerPoints = []"
-						>
-							<XIcon /></button
-					></ButtonStyled>
+					}}<Button
+						v-tooltip="formatMessage(messages.clearRuler)"
+						type="quiet"
+						size="2xs"
+						circular
+						icon-only
+						:aria-label="formatMessage(messages.clearRuler)"
+						@click="rulerPoints = []"
+						><XIcon
+					/></Button>
 				</div>
 
 				<div v-if="selection && selectionVisible" class="map-popup" :style="selectionStyle">
@@ -2908,10 +2901,15 @@ function clampWorldCoordinate(value: number) {
 								></span
 							>
 						</div>
-						<ButtonStyled circular size="small" type="transparent"
-							><button :aria-label="formatMessage(messages.closePanel)" @click="selection = null">
-								<XIcon /></button
-						></ButtonStyled>
+						<Button
+							type="quiet"
+							size="2xs"
+							circular
+							icon-only
+							:aria-label="formatMessage(messages.closePanel)"
+							@click="selection = null"
+							><XIcon
+						/></Button>
 					</div>
 					<div v-if="selection.ore" class="ore-hit-details">
 						<span :class="{ verified: selection.ore.verified }">
@@ -2939,21 +2937,24 @@ function clampWorldCoordinate(value: number) {
 						/>
 					</div>
 					<div class="mt-3 flex flex-wrap gap-2">
-						<ButtonStyled v-if="markerDraftOpen" size="small" color="brand"
-							><button @click="addMarker">
-								<PinIcon />{{ formatMessage(messages.addMarker) }}
-							</button></ButtonStyled
-						>
-						<ButtonStyled size="small" type="outlined"
-							><button @click="copyTeleport">
-								<ClipboardCopyIcon />{{ formatMessage(messages.copyTeleport) }}
-							</button></ButtonStyled
-						>
-						<ButtonStyled v-if="!markerDraftOpen && !selectedMarker" size="small" type="outlined"
-							><button @click="markerDraftOpen = true">
-								<PlusIcon />{{ formatMessage(messages.addMarker) }}
-							</button></ButtonStyled
-						>
+						<Button
+							v-if="markerDraftOpen"
+							type="colored"
+							color="brand"
+							size="2xs"
+							@click="addMarker"
+							><PinIcon />{{ formatMessage(messages.addMarker) }}
+						</Button>
+						<Button type="outlined" size="2xs" @click="copyTeleport"
+							><ClipboardCopyIcon />{{ formatMessage(messages.copyTeleport) }}
+						</Button>
+						<Button
+							v-if="!markerDraftOpen && !selectedMarker"
+							type="outlined"
+							size="2xs"
+							@click="markerDraftOpen = true"
+							><PlusIcon />{{ formatMessage(messages.addMarker) }}
+						</Button>
 						<Checkbox
 							v-if="selection.feature"
 							v-model="selectedFeatureCompleted"
@@ -2966,24 +2967,28 @@ function clampWorldCoordinate(value: number) {
 							class="feature-completed-checkbox"
 							:label="formatMessage(messages.mined)"
 						/>
-						<ButtonStyled v-if="selectedMarker" size="small" type="outlined"
-							><button @click="removeMarker(selectedMarker.id)">
-								<TrashIcon />{{ formatMessage(messages.removeMarker) }}
-							</button></ButtonStyled
-						>
+						<Button
+							v-if="selectedMarker"
+							type="outlined"
+							size="2xs"
+							@click="removeMarker(selectedMarker.id)"
+							><TrashIcon />{{ formatMessage(messages.removeMarker) }}
+						</Button>
 					</div>
 				</div>
 
 				<div v-if="advancedOpen" class="advanced-panel">
 					<div class="flex items-center justify-between gap-3">
 						<strong class="text-sm text-contrast">{{ formatMessage(messages.mapSettings) }}</strong
-						><ButtonStyled circular size="small" type="transparent"
-							><button
-								:aria-label="formatMessage(messages.closePanel)"
-								@click="advancedOpen = false"
-							>
-								<XIcon /></button
-						></ButtonStyled>
+						><Button
+							type="quiet"
+							size="2xs"
+							circular
+							icon-only
+							:aria-label="formatMessage(messages.closePanel)"
+							@click="advancedOpen = false"
+							><XIcon
+						/></Button>
 					</div>
 					<label
 						><span>{{ formatMessage(messages.chunkCoordinates) }}</span
@@ -3007,13 +3012,15 @@ function clampWorldCoordinate(value: number) {
 									<i :style="{ backgroundColor: marker.color }"></i><span>{{ marker.name }}</span
 									><small>{{ marker.x }}, {{ marker.z }}</small>
 								</button>
-								<ButtonStyled circular size="small" type="transparent"
-									><button
-										:aria-label="formatMessage(messages.removeMarker)"
-										@click="removeMarker(marker.id)"
-									>
-										<TrashIcon /></button
-								></ButtonStyled>
+								<Button
+									type="quiet"
+									size="2xs"
+									circular
+									icon-only
+									:aria-label="formatMessage(messages.removeMarker)"
+									@click="removeMarker(marker.id)"
+									><TrashIcon
+								/></Button>
 							</div>
 						</div>
 					</div>
@@ -3056,15 +3063,14 @@ function clampWorldCoordinate(value: number) {
 								<GridIcon />{{ formatMessage(messages.showGrid) }}
 							</button></ButtonStyled
 						>
-						<ButtonStyled v-if="workspace.displayMode === 'structures'" type="outlined"
-							><button
-								class="map-action"
-								:disabled="!displayedFeatures.length"
-								@click="focusNearestFeature"
-							>
-								<SearchIcon />{{ formatMessage(messages.searchNearby) }}
-							</button></ButtonStyled
-						>
+						<Button
+							v-if="workspace.displayMode === 'structures'"
+							type="outlined"
+							class="map-action"
+							:disabled="!displayedFeatures.length"
+							@click="focusNearestFeature"
+							><SearchIcon />{{ formatMessage(messages.searchNearby) }}
+						</Button>
 					</div>
 				</div>
 			</div>

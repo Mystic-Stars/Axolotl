@@ -1,12 +1,6 @@
 <script setup lang="ts">
 import { DownloadIcon, ExternalIcon, FileArchiveIcon, SpinnerIcon } from '@modrinth/assets'
-import {
-	ButtonStyled,
-	Card,
-	defineMessages,
-	injectNotificationManager,
-	useVIntl,
-} from '@modrinth/ui'
+import { Button, Card, defineMessages, injectNotificationManager, useVIntl } from '@modrinth/ui'
 import { open } from '@tauri-apps/plugin-dialog'
 import { openUrl } from '@tauri-apps/plugin-opener'
 import { computed, ref, watch } from 'vue'
@@ -182,18 +176,16 @@ void contentSelection
 				<h1 class="m-0 text-2xl font-bold text-contrast">{{ project.title }}</h1>
 				<p v-if="project.summary" class="mb-0 mt-2 text-secondary">{{ project.summary }}</p>
 			</div>
-			<ButtonStyled
-				><button class="flex items-center gap-2" @click="instanceSelector?.show()">
-					<InstanceIcon
-						v-if="selectedInstance"
-						size="1.25rem"
-						:icon-path="selectedInstance.icon_path"
-						:instance-id="selectedInstance.id"
-						:loader="selectedInstance.loader"
-					/>
-					{{ selectedInstance?.name ?? formatMessage(messages.chooseInstance) }}
-				</button></ButtonStyled
-			>
+			<Button class="flex items-center gap-2" @click="instanceSelector?.show()"
+				><InstanceIcon
+					v-if="selectedInstance"
+					size="1.25rem"
+					:icon-path="selectedInstance.icon_path"
+					:instance-id="selectedInstance.id"
+					:loader="selectedInstance.loader"
+				/>
+				{{ selectedInstance?.name ?? formatMessage(messages.chooseInstance) }}
+			</Button>
 		</section>
 		<Card v-if="manualDownload" class="flex flex-wrap items-center justify-between gap-3">
 			<div class="min-w-0">
@@ -209,16 +201,12 @@ void contentSelection
 				</p>
 			</div>
 			<div class="flex gap-2">
-				<ButtonStyled type="outlined"
-					><button @click="openUrl(manualDownload!.pageUrl)">
-						<ExternalIcon /> {{ formatMessage(messages.openSource) }}
-					</button></ButtonStyled
-				>
-				<ButtonStyled
-					><button :disabled="busyVersionId !== null" @click="importDownloadedFile">
-						<FileArchiveIcon /> {{ formatMessage(messages.importFile) }}
-					</button></ButtonStyled
-				>
+				<Button type="outlined" @click="openUrl(manualDownload!.pageUrl)"
+					><ExternalIcon /> {{ formatMessage(messages.openSource) }}
+				</Button>
+				<Button :disabled="busyVersionId !== null" @click="importDownloadedFile"
+					><FileArchiveIcon /> {{ formatMessage(messages.importFile) }}
+				</Button>
 			</div>
 		</Card>
 		<section class="flex flex-col gap-3">
@@ -234,14 +222,12 @@ void contentSelection
 					<div class="font-semibold text-contrast">{{ version.name }}</div>
 					<div class="text-sm text-secondary">{{ version.gameVersions.join(', ') }}</div>
 				</div>
-				<ButtonStyled
-					><button :disabled="busyVersionId !== null" @click="install(version)">
-						<SpinnerIcon v-if="busyVersionId === version.id" class="animate-spin" /><DownloadIcon
-							v-else
-						/>
-						{{ formatMessage(messages.install) }}
-					</button></ButtonStyled
-				>
+				<Button :disabled="busyVersionId !== null" @click="install(version)"
+					><SpinnerIcon v-if="busyVersionId === version.id" class="animate-spin" /><DownloadIcon
+						v-else
+					/>
+					{{ formatMessage(messages.install) }}
+				</Button>
 			</Card>
 		</section>
 	</div>

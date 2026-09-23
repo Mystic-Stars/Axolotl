@@ -1847,15 +1847,15 @@ onBeforeUnmount(() => {
 						{{ formatMessage(messages.walkSpeed, { speed: walkSpeed }) }}
 					</div>
 					<div v-if="viewMode === 'orbit'" class="schematic-canvas-controls">
-						<ButtonStyled circular size="small" type="standard"
-							><button
-								v-tooltip.top="formatMessage(messages.resetView)"
-								type="button"
-								:aria-label="formatMessage(messages.resetView)"
-								@click="scene?.fitView()"
-							>
-								<RotateCounterClockwiseIcon /></button
-						></ButtonStyled>
+						<Button
+							v-tooltip.top="formatMessage(messages.resetView)"
+							size="2xs"
+							circular
+							icon-only
+							:aria-label="formatMessage(messages.resetView)"
+							@click="scene?.fitView()"
+							><RotateCounterClockwiseIcon
+						/></Button>
 						<ButtonStyled
 							circular
 							size="small"

@@ -51,11 +51,9 @@
 
 		<Transition name="scroll-to-bottom-fade">
 			<div v-if="lines.length > 0 && !stickToBottom" class="absolute bottom-4 right-4 z-10">
-				<ButtonStyled circular type="highlight" size="large">
-					<button aria-label="Scroll to bottom" @click="scrollToBottom">
-						<ChevronDownIcon />
-					</button>
-				</ButtonStyled>
+				<Button size="xl" circular icon-only aria-label="Scroll to bottom" @click="scrollToBottom"
+					><ChevronDownIcon />
+				</Button>
 			</div>
 		</Transition>
 	</div>
@@ -68,7 +66,7 @@
 import { ChevronDownIcon } from '@modrinth/assets'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
-import ButtonStyled from '#ui/components/base/ButtonStyled.vue'
+import Button from '#ui/components/base/buttons/Button.vue'
 import EmptyState from '#ui/components/base/EmptyState.vue'
 import { useVIntl } from '#ui/composables/i18n'
 
