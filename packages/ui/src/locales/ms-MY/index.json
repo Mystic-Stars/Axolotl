@@ -302,9 +302,6 @@
   "content.filter.updates": {
     "defaultMessage": "Kemas kini"
   },
-  "content.filter.warnings": {
-    "defaultMessage": "Amaran"
-  },
   "content.page-layout.browse-content": {
     "defaultMessage": "Layari kandungan"
   },
@@ -944,18 +941,6 @@
   "header.category.resolutions": {
     "defaultMessage": "Resolusi"
   },
-  "icon-select.edit": {
-    "defaultMessage": "Sunting ikon"
-  },
-  "icon-select.remove": {
-    "defaultMessage": "Alih keluar ikon"
-  },
-  "icon-select.replace": {
-    "defaultMessage": "Ganti ikon"
-  },
-  "icon-select.select": {
-    "defaultMessage": "Pilih ikon"
-  },
   "input.search-version.placeholder": {
     "defaultMessage": "Cari versi..."
   },
@@ -1177,24 +1162,6 @@
   },
   "instances.content-install.select-icon": {
     "defaultMessage": "Pilih ikon"
-  },
-  "instances.modpack-content-modal.empty-description": {
-    "defaultMessage": "Pek mod ini tidak menyertakan sebarang kandungan tambahan."
-  },
-  "instances.modpack-content-modal.empty-title": {
-    "defaultMessage": "Tiada kandungan dijumpai"
-  },
-  "instances.modpack-content-modal.header": {
-    "defaultMessage": "Kandungan pek mod"
-  },
-  "instances.modpack-content-modal.loading": {
-    "defaultMessage": "Sedang memuat kandungan..."
-  },
-  "instances.modpack-content-modal.no-results": {
-    "defaultMessage": "Tiada projek yang sepadan dengan carian anda."
-  },
-  "instances.modpack-content-modal.search-placeholder": {
-    "defaultMessage": "Cari {count, number} {count, plural, other {projek}}"
   },
   "instances.updater-modal.badge.current": {
     "defaultMessage": "Semasa"
@@ -1601,129 +1568,6 @@
   "locale.zh-TW": {
     "defaultMessage": "Bahasa Cina (Tradisional)"
   },
-  "markdown-editor.error-label": {
-    "defaultMessage": "Ralat"
-  },
-  "markdown-editor.image-modal.description-field.placeholder": {
-    "defaultMessage": "Huraikan imej tersebut..."
-  },
-  "markdown-editor.image-modal.description-field.title": {
-    "defaultMessage": "Keterangan (teks alt)"
-  },
-  "markdown-editor.image-modal.header": {
-    "defaultMessage": "Masukkan imej"
-  },
-  "markdown-editor.image-modal.upload-mode.label": {
-    "defaultMessage": "Sumber imej"
-  },
-  "markdown-editor.image-modal.upload-mode.link": {
-    "defaultMessage": "Pautan"
-  },
-  "markdown-editor.image-modal.upload-mode.upload": {
-    "defaultMessage": "Muat naik"
-  },
-  "markdown-editor.image-modal.upload.prompt": {
-    "defaultMessage": "Seret dan lepas untuk muat naik atau klik untuk pilih fail"
-  },
-  "markdown-editor.image-modal.url-field.placeholder": {
-    "defaultMessage": "Masukkan URL imej..."
-  },
-  "markdown-editor.insert-button": {
-    "defaultMessage": "Masukkan"
-  },
-  "markdown-editor.link-modal.header": {
-    "defaultMessage": "Masukkan pautan"
-  },
-  "markdown-editor.link-modal.label-field.placeholder": {
-    "defaultMessage": "Masukkan label..."
-  },
-  "markdown-editor.link-modal.label-field.title": {
-    "defaultMessage": "Label"
-  },
-  "markdown-editor.link-modal.url-field.placeholder": {
-    "defaultMessage": "Masukkan URL pautan..."
-  },
-  "markdown-editor.max-length.label": {
-    "defaultMessage": "Panjang maksimum:"
-  },
-  "markdown-editor.max-length.unlimited": {
-    "defaultMessage": "Tidak terhad"
-  },
-  "markdown-editor.max-length.value": {
-    "defaultMessage": "{currentLength}/{maxLength}"
-  },
-  "markdown-editor.placeholder": {
-    "defaultMessage": "Tulis sesuatu..."
-  },
-  "markdown-editor.preview-label": {
-    "defaultMessage": "Pralihat"
-  },
-  "markdown-editor.preview-toggle.label": {
-    "defaultMessage": "Pralihat"
-  },
-  "markdown-editor.toolbar.bold": {
-    "defaultMessage": "Tebal"
-  },
-  "markdown-editor.toolbar.bulleted-list": {
-    "defaultMessage": "Senarai berbulet"
-  },
-  "markdown-editor.toolbar.code": {
-    "defaultMessage": "Kod"
-  },
-  "markdown-editor.toolbar.heading-1": {
-    "defaultMessage": "Pengepala 1"
-  },
-  "markdown-editor.toolbar.heading-2": {
-    "defaultMessage": "Pengepala 2"
-  },
-  "markdown-editor.toolbar.heading-3": {
-    "defaultMessage": "Pengepala 3"
-  },
-  "markdown-editor.toolbar.image": {
-    "defaultMessage": "Gambar"
-  },
-  "markdown-editor.toolbar.italic": {
-    "defaultMessage": "Condong"
-  },
-  "markdown-editor.toolbar.link": {
-    "defaultMessage": "Pautan"
-  },
-  "markdown-editor.toolbar.ordered-list": {
-    "defaultMessage": "Senarai tersusun"
-  },
-  "markdown-editor.toolbar.quote": {
-    "defaultMessage": "Petik"
-  },
-  "markdown-editor.toolbar.spoiler": {
-    "defaultMessage": "Spoiler"
-  },
-  "markdown-editor.toolbar.strikethrough": {
-    "defaultMessage": "Coret tengah"
-  },
-  "markdown-editor.toolbar.video": {
-    "defaultMessage": "Video"
-  },
-  "markdown-editor.upload-error.no-file": {
-    "defaultMessage": "Tiada fail disediakan"
-  },
-  "markdown-editor.url-label": {
-    "defaultMessage": "URL"
-  },
-  "markdown-editor.url-validation-error.malformed": {
-    "defaultMessage": "URL tidak sah. Pastikan URL dibentuk dengan baik."
-  },
-  "markdown-editor.video-embed.title": {
-    "defaultMessage": "Pemain video YouTube"
-  },
-  "markdown-editor.video-modal.header": {
-    "defaultMessage": "Masukkan video YouTube"
-  },
-  "markdown-editor.video-modal.url-field.placeholder": {
-    "defaultMessage": "Masukkan URL video YouTube"
-  },
-  "markdown-editor.video-modal.url-field.title": {
-    "defaultMessage": "URL video YouTube"
-  },
   "modal.open-in-app.benefit.install": {
     "defaultMessage": "Pasang kandungan yang diperlukan secara automatik"
   },
@@ -1813,24 +1657,6 @@
   },
   "omorphia.component.copy.action.copy": {
     "defaultMessage": "Salin kod ke papan keratan"
-  },
-  "omorphia.component.environment-indicator.label.client": {
-    "defaultMessage": "Pelanggan"
-  },
-  "omorphia.component.environment-indicator.label.client-and-server": {
-    "defaultMessage": "Pelanggan dan pelayan"
-  },
-  "omorphia.component.environment-indicator.label.client-or-server": {
-    "defaultMessage": "Pelanggan atau pelayan"
-  },
-  "omorphia.component.environment-indicator.label.server": {
-    "defaultMessage": "Pelayan"
-  },
-  "omorphia.component.environment-indicator.label.type": {
-    "defaultMessage": "Sebuah {type}"
-  },
-  "omorphia.component.environment-indicator.label.unsupported": {
-    "defaultMessage": "Tidak disokong"
   },
   "payment-method.amazon_pay": {
     "defaultMessage": "Amazon Pay"
@@ -2579,17 +2405,8 @@
   "search.server_content_type.vanilla": {
     "defaultMessage": "Vanila"
   },
-  "servers.notice.dismiss": {
-    "defaultMessage": "Ketepikan"
-  },
   "servers.notice.dismissable": {
     "defaultMessage": "Boleh diketepikan"
-  },
-  "servers.notice.heading.attention": {
-    "defaultMessage": "Perhatian"
-  },
-  "servers.notice.heading.info": {
-    "defaultMessage": "Maklumat"
   },
   "servers.notice.level.critical.name": {
     "defaultMessage": "Kritikal"
@@ -3137,69 +2954,6 @@
   "tag.loader.waterfall": {
     "defaultMessage": "Waterfall"
   },
-  "time-frame-picker.apply": {
-    "defaultMessage": "Terapkan"
-  },
-  "time-frame-picker.cancel": {
-    "defaultMessage": "Batal"
-  },
-  "time-frame-picker.clear-range": {
-    "defaultMessage": "Kosongkan"
-  },
-  "time-frame-picker.end-date": {
-    "defaultMessage": "Tarikh tamat"
-  },
-  "time-frame-picker.last-timeframe": {
-    "defaultMessage": "Dalam {amount} {unit, select, hours {{amount, plural, other {jam}}} days {{amount, plural, other {hari}}} weeks {{amount, plural, other {minggu}}} months {{amount, plural, other {bulan}}} other {hari}} terakhir"
-  },
-  "time-frame-picker.option.all-time": {
-    "defaultMessage": "Sepanjang masa"
-  },
-  "time-frame-picker.option.last-14-days": {
-    "defaultMessage": "14 hari terakhir"
-  },
-  "time-frame-picker.option.last-30-days": {
-    "defaultMessage": "30 hari terakhir"
-  },
-  "time-frame-picker.option.last-7-days": {
-    "defaultMessage": "7 hari terakhir"
-  },
-  "time-frame-picker.option.last-90-days": {
-    "defaultMessage": "90 hari terakhir"
-  },
-  "time-frame-picker.option.today": {
-    "defaultMessage": "Hari ini"
-  },
-  "time-frame-picker.option.year-to-date": {
-    "defaultMessage": "Tahun sehingga kini"
-  },
-  "time-frame-picker.option.yesterday": {
-    "defaultMessage": "Semalam"
-  },
-  "time-frame-picker.selected-range": {
-    "defaultMessage": "Dipilih"
-  },
-  "time-frame-picker.selecting-range": {
-    "defaultMessage": "Memilih"
-  },
-  "time-frame-picker.start-date": {
-    "defaultMessage": "Tarikh mula"
-  },
-  "time-frame-picker.unit.days": {
-    "defaultMessage": "hari"
-  },
-  "time-frame-picker.unit.hours": {
-    "defaultMessage": "jam"
-  },
-  "time-frame-picker.unit.months": {
-    "defaultMessage": "bulan"
-  },
-  "time-frame-picker.unit.weeks": {
-    "defaultMessage": "minggu"
-  },
-  "ui.component.unsaved-changes-popup.body": {
-    "defaultMessage": "Anda mempunyai perubahan yang belum disimpan."
-  },
   "ui.confirm-leave-modal.body": {
     "defaultMessage": "Anda mempunyai perubahan yang belum disimpan yang akan hilang jika anda meninggalkan laman ini."
   },
@@ -3214,11 +2968,5 @@
   },
   "ui.confirm-leave-modal.title": {
     "defaultMessage": "Tinggalkan laman?"
-  },
-  "ui.stacked-admonitions.alert-count": {
-    "defaultMessage": "{count, plural, other {# amaran}}"
-  },
-  "ui.stacked-admonitions.dismiss-all": {
-    "defaultMessage": "Ketepikan semua"
   }
 }

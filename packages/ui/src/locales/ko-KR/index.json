@@ -314,9 +314,6 @@
   "content.filter.updates": {
     "defaultMessage": "업데이트"
   },
-  "content.filter.warnings": {
-    "defaultMessage": "경고"
-  },
   "content.page-layout.browse-content": {
     "defaultMessage": "콘텐츠 탐색"
   },
@@ -977,18 +974,6 @@
   "header.category.resolutions": {
     "defaultMessage": "해상도"
   },
-  "icon-select.edit": {
-    "defaultMessage": "아이콘 설정"
-  },
-  "icon-select.remove": {
-    "defaultMessage": "아이콘 제거"
-  },
-  "icon-select.replace": {
-    "defaultMessage": "아이콘 대체"
-  },
-  "icon-select.select": {
-    "defaultMessage": "아이콘 선택"
-  },
   "input.search-version.placeholder": {
     "defaultMessage": "버전 검색..."
   },
@@ -1216,24 +1201,6 @@
   },
   "instances.content-install.select-icon": {
     "defaultMessage": "아이콘 선택"
-  },
-  "instances.modpack-content-modal.empty-description": {
-    "defaultMessage": "이 모드팩에는 추가 콘텐츠가 포함되어 있지 않습니다."
-  },
-  "instances.modpack-content-modal.empty-title": {
-    "defaultMessage": "콘텐츠를 찾을 수 없습니다"
-  },
-  "instances.modpack-content-modal.header": {
-    "defaultMessage": "모드팩 콘텐츠"
-  },
-  "instances.modpack-content-modal.loading": {
-    "defaultMessage": "콘텐츠 불러오는 중..."
-  },
-  "instances.modpack-content-modal.no-results": {
-    "defaultMessage": "검색 결과와 일치하는 프로젝트가 없습니다."
-  },
-  "instances.modpack-content-modal.search-placeholder": {
-    "defaultMessage": "{count, number}개의 프로젝트 검색"
   },
   "instances.updater-modal.badge.current": {
     "defaultMessage": "현재"
@@ -1652,150 +1619,6 @@
   "locale.zh-TW": {
     "defaultMessage": "중국어 (번체)"
   },
-  "markdown-editor.default-image-alt-text": {
-    "defaultMessage": "여기에 설명을 입력하세요"
-  },
-  "markdown-editor.error-label": {
-    "defaultMessage": "오류"
-  },
-  "markdown-editor.image-modal.description-field.description": {
-    "defaultMessage": "그림을 볼 수 없는 사람에게 설명하듯이, 그림을 자세히 묘사해 주세요."
-  },
-  "markdown-editor.image-modal.description-field.placeholder": {
-    "defaultMessage": "이미지 설명..."
-  },
-  "markdown-editor.image-modal.description-field.title": {
-    "defaultMessage": "설명 (대체 텍스트)"
-  },
-  "markdown-editor.image-modal.header": {
-    "defaultMessage": "이미지 삽입"
-  },
-  "markdown-editor.image-modal.upload-mode.label": {
-    "defaultMessage": "이미지 출처"
-  },
-  "markdown-editor.image-modal.upload-mode.link": {
-    "defaultMessage": "링크"
-  },
-  "markdown-editor.image-modal.upload-mode.upload": {
-    "defaultMessage": "업로드"
-  },
-  "markdown-editor.image-modal.upload.prompt": {
-    "defaultMessage": "파일을 끌어다 놓아 업로드하거나 클릭하여 파일 선택"
-  },
-  "markdown-editor.image-modal.url-field.placeholder": {
-    "defaultMessage": "이미지 URL 입력..."
-  },
-  "markdown-editor.insert-button": {
-    "defaultMessage": "삽입"
-  },
-  "markdown-editor.link-modal.header": {
-    "defaultMessage": "링크 삽입"
-  },
-  "markdown-editor.link-modal.label-field.placeholder": {
-    "defaultMessage": "라벨 입력..."
-  },
-  "markdown-editor.link-modal.label-field.title": {
-    "defaultMessage": "라벨"
-  },
-  "markdown-editor.link-modal.url-field.placeholder": {
-    "defaultMessage": "링크 URL 입력..."
-  },
-  "markdown-editor.markdown-formatting-support": {
-    "defaultMessage": "이 텍스트 에디터는 <markdown-link>마크다운 서식</markdown-link>을 지원합니다."
-  },
-  "markdown-editor.max-length.label": {
-    "defaultMessage": "최대 길이:"
-  },
-  "markdown-editor.max-length.unlimited": {
-    "defaultMessage": "제한 없음"
-  },
-  "markdown-editor.max-length.value": {
-    "defaultMessage": "{currentLength}/{maxLength}"
-  },
-  "markdown-editor.placeholder": {
-    "defaultMessage": "무언가 입력하세요..."
-  },
-  "markdown-editor.preview-label": {
-    "defaultMessage": "미리보기"
-  },
-  "markdown-editor.preview-toggle.label": {
-    "defaultMessage": "미리보기"
-  },
-  "markdown-editor.toolbar.bold": {
-    "defaultMessage": "굵게"
-  },
-  "markdown-editor.toolbar.bulleted-list": {
-    "defaultMessage": "기호 목록"
-  },
-  "markdown-editor.toolbar.code": {
-    "defaultMessage": "코드"
-  },
-  "markdown-editor.toolbar.heading-1": {
-    "defaultMessage": "제목 1"
-  },
-  "markdown-editor.toolbar.heading-2": {
-    "defaultMessage": "제목 2"
-  },
-  "markdown-editor.toolbar.heading-3": {
-    "defaultMessage": "제목 3"
-  },
-  "markdown-editor.toolbar.image": {
-    "defaultMessage": "이미지"
-  },
-  "markdown-editor.toolbar.italic": {
-    "defaultMessage": "기울이기"
-  },
-  "markdown-editor.toolbar.link": {
-    "defaultMessage": "링크"
-  },
-  "markdown-editor.toolbar.ordered-list": {
-    "defaultMessage": "숫자 목록"
-  },
-  "markdown-editor.toolbar.quote": {
-    "defaultMessage": "인용구"
-  },
-  "markdown-editor.toolbar.spoiler": {
-    "defaultMessage": "스포일러"
-  },
-  "markdown-editor.toolbar.strikethrough": {
-    "defaultMessage": "취소선"
-  },
-  "markdown-editor.toolbar.video": {
-    "defaultMessage": "동영상"
-  },
-  "markdown-editor.upload-error.no-file": {
-    "defaultMessage": "파일 없음"
-  },
-  "markdown-editor.upload-error.no-handler": {
-    "defaultMessage": "이미지 업로드 핸들러가 없음"
-  },
-  "markdown-editor.url-label": {
-    "defaultMessage": "URL"
-  },
-  "markdown-editor.url-validation-error.blocked-domain": {
-    "defaultMessage": "잘못된 URL입니다. 이 도메인은 허용되지 않습니다."
-  },
-  "markdown-editor.url-validation-error.malformed": {
-    "defaultMessage": "잘못된 URL입니다. URL 형식이 올바른지 확인하세요."
-  },
-  "markdown-editor.url-validation-error.unsupported-protocol": {
-    "defaultMessage": "지원되지 않는 프로토콜입니다. http 또는 https를 사용하세요."
-  },
-  "markdown-editor.video-embed.title": {
-    "defaultMessage": "YouTube 동영상 플레이어"
-  },
-  "markdown-editor.video-modal.header": {
-    "defaultMessage": "YouTube 동영상 삽입"
-  },
-  "markdown-editor.video-modal.url-field.description": {
-    "defaultMessage": "유효한 YouTube 동영상 링크를 입력하세요."
-  },
-  "markdown-editor.video-modal.url-field.placeholder": {
-    "defaultMessage": "YouTube 동영상 URL 입력"
-  },
-  "markdown-editor.video-modal.url-field.title": {
-    "defaultMessage": "YouTube 동영상 URL"
-  },
   "modal.open-in-app.benefit.install": {
     "defaultMessage": "필수 콘텐츠 자동 설치"
   },
@@ -1885,24 +1708,6 @@
   },
   "omorphia.component.copy.action.copy": {
     "defaultMessage": "클립보드에 코드 복사"
-  },
-  "omorphia.component.environment-indicator.label.client": {
-    "defaultMessage": "클라이언트"
-  },
-  "omorphia.component.environment-indicator.label.client-and-server": {
-    "defaultMessage": "클라이언트 및 서버"
-  },
-  "omorphia.component.environment-indicator.label.client-or-server": {
-    "defaultMessage": "클라이언트 또는 서버"
-  },
-  "omorphia.component.environment-indicator.label.server": {
-    "defaultMessage": "서버"
-  },
-  "omorphia.component.environment-indicator.label.type": {
-    "defaultMessage": "{type}"
-  },
-  "omorphia.component.environment-indicator.label.unsupported": {
-    "defaultMessage": "지원되지 않음"
   },
   "payment-method.amazon_pay": {
     "defaultMessage": "Amazon Pay"
@@ -2651,17 +2456,8 @@
   "search.server_content_type.vanilla": {
     "defaultMessage": "바닐라"
   },
-  "servers.notice.dismiss": {
-    "defaultMessage": "무시"
-  },
   "servers.notice.dismissable": {
     "defaultMessage": "무시 가능"
-  },
-  "servers.notice.heading.attention": {
-    "defaultMessage": "중요"
-  },
-  "servers.notice.heading.info": {
-    "defaultMessage": "정보"
   },
   "servers.notice.level.critical.name": {
     "defaultMessage": "중요"
@@ -3206,87 +3002,6 @@
   "tag.loader.waterfall": {
     "defaultMessage": "Waterfall"
   },
-  "time-frame-picker.custom-range": {
-    "defaultMessage": "사용자 지정 날짜 범위..."
-  },
-  "time-frame-picker.decrease-amount": {
-    "defaultMessage": "기간 단축"
-  },
-  "time-frame-picker.empty-range": {
-    "defaultMessage": "날짜 범위가 선택되지 않았습니다."
-  },
-  "time-frame-picker.end-date": {
-    "defaultMessage": "종료일"
-  },
-  "time-frame-picker.increase-amount": {
-    "defaultMessage": "기간 연장"
-  },
-  "time-frame-picker.last-timeframe": {
-    "defaultMessage": "최근 {amount} {unit, select, hours {{amount, plural, one {시간} other {시간}}} days {{amount, plural, one {일} other {일}}} weeks {{amount, plural, one {주} other {주}}} months {{amount, plural, one {개월} other {개월}}} other {일}}"
-  },
-  "time-frame-picker.last-timeframe-prefix": {
-    "defaultMessage": "최근"
-  },
-  "time-frame-picker.option.all-time": {
-    "defaultMessage": "전체 기간"
-  },
-  "time-frame-picker.option.last-14-days": {
-    "defaultMessage": "최근 14일"
-  },
-  "time-frame-picker.option.last-180-days": {
-    "defaultMessage": "최근 180일"
-  },
-  "time-frame-picker.option.last-30-days": {
-    "defaultMessage": "최근 30일"
-  },
-  "time-frame-picker.option.last-7-days": {
-    "defaultMessage": "최근 7일"
-  },
-  "time-frame-picker.option.last-90-days": {
-    "defaultMessage": "최근 90일"
-  },
-  "time-frame-picker.option.today": {
-    "defaultMessage": "오늘"
-  },
-  "time-frame-picker.option.year-to-date": {
-    "defaultMessage": "올해"
-  },
-  "time-frame-picker.option.yesterday": {
-    "defaultMessage": "어제"
-  },
-  "time-frame-picker.select-timeframe": {
-    "defaultMessage": "기간 선택"
-  },
-  "time-frame-picker.selected-range": {
-    "defaultMessage": "선택됨"
-  },
-  "time-frame-picker.selecting-range": {
-    "defaultMessage": "선택 날짜:"
-  },
-  "time-frame-picker.start-date": {
-    "defaultMessage": "시작일"
-  },
-  "time-frame-picker.timeframe-amount": {
-    "defaultMessage": "기간"
-  },
-  "time-frame-picker.timeframe-unit": {
-    "defaultMessage": "기간 단위"
-  },
-  "time-frame-picker.unit.days": {
-    "defaultMessage": "일"
-  },
-  "time-frame-picker.unit.hours": {
-    "defaultMessage": "시간"
-  },
-  "time-frame-picker.unit.months": {
-    "defaultMessage": "개월"
-  },
-  "time-frame-picker.unit.weeks": {
-    "defaultMessage": "주"
-  },
-  "ui.component.unsaved-changes-popup.body": {
-    "defaultMessage": "저장하지 않은 번경사항이 있습니다."
-  },
   "ui.confirm-leave-modal.body": {
     "defaultMessage": "저장하지 않은 변경 사항이 있습니다. 이 페이지를 떠나면 해당 내용이 사라집니다."
   },
@@ -3301,11 +3016,5 @@
   },
   "ui.confirm-leave-modal.title": {
     "defaultMessage": "페이지를 떠나겠습니까?"
-  },
-  "ui.stacked-admonitions.alert-count": {
-    "defaultMessage": "알림 {count}개"
-  },
-  "ui.stacked-admonitions.dismiss-all": {
-    "defaultMessage": "모두 닫기"
   }
 }

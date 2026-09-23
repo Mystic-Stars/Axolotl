@@ -155,12 +155,6 @@
   "ui.confirm-leave-modal.title": {
     "defaultMessage": "Napusti stranicu?"
   },
-  "ui.stacked-admonitions.alert-count": {
-    "defaultMessage": "{count, plural, one {# uzbuna} few {# uzbune} other {# uzbuna}}"
-  },
-  "ui.stacked-admonitions.dismiss-all": {
-    "defaultMessage": "Odbaci sve"
-  },
   "version.content.name": {
     "defaultMessage": "Ime"
   },

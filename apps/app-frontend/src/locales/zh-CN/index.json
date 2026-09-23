@@ -53,13 +53,27 @@
   "app.action-bar.backup-stage": {
     "message": "处理中：{stage}"
   },
-  "app.action-bar.backup-stage.queued": { "message": "排队中" },
-  "app.action-bar.backup-stage.scanning": { "message": "正在扫描文件" },
-  "app.action-bar.backup-stage.hashing": { "message": "正在计算哈希" },
-  "app.action-bar.backup-stage.saving": { "message": "正在保存备份" },
-  "app.action-bar.backup-stage.validating": { "message": "正在验证备份" },
-  "app.action-bar.backup-stage.materializing": { "message": "正在应用文件" },
-  "app.action-bar.backup-stage.applying": { "message": "正在应用文件" },
+  "app.action-bar.backup-stage.queued": {
+    "message": "排队中"
+  },
+  "app.action-bar.backup-stage.scanning": {
+    "message": "正在扫描文件"
+  },
+  "app.action-bar.backup-stage.hashing": {
+    "message": "正在计算哈希"
+  },
+  "app.action-bar.backup-stage.saving": {
+    "message": "正在保存备份"
+  },
+  "app.action-bar.backup-stage.validating": {
+    "message": "正在验证备份"
+  },
+  "app.action-bar.backup-stage.materializing": {
+    "message": "正在应用文件"
+  },
+  "app.action-bar.backup-stage.applying": {
+    "message": "正在应用文件"
+  },
   "app.action-bar.exporting-modpack": {
     "message": "正在导出整合包"
   },
@@ -3341,18 +3355,6 @@
   },
   "app.instances.add-content": {
     "message": "添加内容"
-  },
-  "app.instances.batch-edit-groups.apply": {
-    "message": "应用"
-  },
-  "app.instances.batch-edit-groups.create-group": {
-    "message": "创建新分组"
-  },
-  "app.instances.batch-edit-groups.description": {
-    "message": "为 {count} 个实例设置分组"
-  },
-  "app.instances.batch-edit-groups.enter-group-name": {
-    "message": "分组名称"
   },
   "app.instances.batch-edit-groups.header": {
     "message": "创建分组"
@@ -9950,9 +9952,6 @@
   },
   "app.settings.updates.security": {
     "message": "只有通过加密签名验证的更新才会被安装。"
-  },
-  "app.settings.updates.title": {
-    "message": "更新渠道"
   },
   "app.settings.updates.up-to-date": {
     "message": "Axolotl 已是最新版本。"

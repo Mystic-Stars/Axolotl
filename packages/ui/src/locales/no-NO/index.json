@@ -296,18 +296,6 @@
   "header.category.performance-impact": {
     "defaultMessage": "Ytelsespåvirkning"
   },
-  "icon-select.edit": {
-    "defaultMessage": "Rediger ikon"
-  },
-  "icon-select.remove": {
-    "defaultMessage": "Fjern ikon"
-  },
-  "icon-select.replace": {
-    "defaultMessage": "Erstatt ikon"
-  },
-  "icon-select.select": {
-    "defaultMessage": "Velg ikon"
-  },
   "input.search-version.placeholder": {
     "defaultMessage": "Søk opp versjon..."
   },
@@ -763,24 +751,6 @@
   },
   "omorphia.component.copy.action.copy": {
     "defaultMessage": "Kopier kode til utklippstavle"
-  },
-  "omorphia.component.environment-indicator.label.client": {
-    "defaultMessage": "Klient"
-  },
-  "omorphia.component.environment-indicator.label.client-and-server": {
-    "defaultMessage": "Klient og server"
-  },
-  "omorphia.component.environment-indicator.label.client-or-server": {
-    "defaultMessage": "Klient eller server"
-  },
-  "omorphia.component.environment-indicator.label.server": {
-    "defaultMessage": "Server"
-  },
-  "omorphia.component.environment-indicator.label.type": {
-    "defaultMessage": "En {type}"
-  },
-  "omorphia.component.environment-indicator.label.unsupported": {
-    "defaultMessage": "Ustøttet"
   },
   "payment-method.amazon_pay": {
     "defaultMessage": "Amazon Pay"
@@ -1361,17 +1331,8 @@
   "search.filter_type.shader_loader": {
     "defaultMessage": "Laster"
   },
-  "servers.notice.dismiss": {
-    "defaultMessage": "Avskjedige"
-  },
   "servers.notice.dismissable": {
     "defaultMessage": "Avviselig"
-  },
-  "servers.notice.heading.attention": {
-    "defaultMessage": "Oppmerksomhet"
-  },
-  "servers.notice.heading.info": {
-    "defaultMessage": "Info"
   },
   "servers.notice.level.critical.name": {
     "defaultMessage": "Kritisk"
@@ -1822,8 +1783,5 @@
   },
   "tag.loader.waterfall": {
     "defaultMessage": "Waterfall"
-  },
-  "ui.component.unsaved-changes-popup.body": {
-    "defaultMessage": "Du har ulagrede endringer."
   }
 }

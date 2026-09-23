@@ -152,11 +152,7 @@ fn write_to_disk(file: &InstanceGroupsFile) {
 }
 
 fn store() -> &'static RwLock<InstanceGroupsFile> {
-    STORE.get_or_init(|| {
-        RwLock::new(
-            read_from_disk().unwrap_or_else(InstanceGroupsFile::default),
-        )
-    })
+    STORE.get_or_init(|| RwLock::new(read_from_disk().unwrap_or_default()))
 }
 
 fn with_read<T>(f: impl FnOnce(&InstanceGroupsFile) -> T) -> T {

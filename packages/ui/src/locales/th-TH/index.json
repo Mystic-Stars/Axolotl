@@ -197,18 +197,6 @@
   "form.placeholder.state": {
     "defaultMessage": "กรอกรัฐหรือจังหวัด"
   },
-  "icon-select.edit": {
-    "defaultMessage": "แก้ไขไอคอน"
-  },
-  "icon-select.remove": {
-    "defaultMessage": "ลบไอคอน"
-  },
-  "icon-select.replace": {
-    "defaultMessage": "เปลี่ยนไอคอน"
-  },
-  "icon-select.select": {
-    "defaultMessage": "เลือกรูปไอคอน"
-  },
   "input.search.placeholder": {
     "defaultMessage": "ค้นหา..."
   },
@@ -268,15 +256,6 @@
   },
   "instances.content-install.select-icon": {
     "defaultMessage": "เลือกไอคอน"
-  },
-  "instances.modpack-content-modal.empty-title": {
-    "defaultMessage": "ไม่พบเนื้อหา"
-  },
-  "instances.modpack-content-modal.header": {
-    "defaultMessage": "เนื้อหาม็อดแพ็ค"
-  },
-  "instances.modpack-content-modal.loading": {
-    "defaultMessage": "กำลังโหลดเนื้อหา"
   },
   "label.available": {
     "defaultMessage": "ว่างอยู่ {amount}"
@@ -409,21 +388,6 @@
   },
   "omorphia.component.copy.action.copy": {
     "defaultMessage": "คัดลอกโค้ดไปยังคลิปบอร์ด"
-  },
-  "omorphia.component.environment-indicator.label.client": {
-    "defaultMessage": "ไคลเอ็นต์"
-  },
-  "omorphia.component.environment-indicator.label.client-and-server": {
-    "defaultMessage": "ไคลเอ็นต์และเซิร์ฟเวอร์"
-  },
-  "omorphia.component.environment-indicator.label.client-or-server": {
-    "defaultMessage": "ไคลเอ็นต์และเซิร์ฟเวอร์"
-  },
-  "omorphia.component.environment-indicator.label.server": {
-    "defaultMessage": "เซิร์ฟเวอร์"
-  },
-  "omorphia.component.environment-indicator.label.unsupported": {
-    "defaultMessage": "ไม่รองรับ"
   },
   "payment-method.venmo": {
     "defaultMessage": "Venmo"

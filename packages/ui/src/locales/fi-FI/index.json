@@ -173,18 +173,6 @@
   "header.category.resolutions": {
     "defaultMessage": "Resoluutio"
   },
-  "icon-select.edit": {
-    "defaultMessage": "Muokkaa kuvaketta"
-  },
-  "icon-select.remove": {
-    "defaultMessage": "Poista kuvake"
-  },
-  "icon-select.replace": {
-    "defaultMessage": "Korvaa kuvake"
-  },
-  "icon-select.select": {
-    "defaultMessage": "Valitse kuvake"
-  },
   "input.search.placeholder": {
     "defaultMessage": "Hae..."
   },
@@ -377,12 +365,6 @@
   "omorphia.component.copy.action.copy": {
     "defaultMessage": "Kopioi koodi leikepöydälle"
   },
-  "omorphia.component.environment-indicator.label.server": {
-    "defaultMessage": "Palvelin"
-  },
-  "omorphia.component.environment-indicator.label.unsupported": {
-    "defaultMessage": "Ei tuettu"
-  },
   "project-type.all": {
     "defaultMessage": "Kaikki"
   },
@@ -517,8 +499,5 @@
   },
   "settings.sessions.title": {
     "defaultMessage": "Istunnot"
-  },
-  "ui.component.unsaved-changes-popup.body": {
-    "defaultMessage": "Sinulla on tallentamattomia muutoksia."
   }
 }

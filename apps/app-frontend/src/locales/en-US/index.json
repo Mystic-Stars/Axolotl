@@ -2,6 +2,60 @@
   "app.account.signed-in-as": {
     "message": "Signed in as"
   },
+  "app.action-bar.active-backups": {
+    "message": "Active backups"
+  },
+  "app.action-bar.announcements": {
+    "message": "Announcements"
+  },
+  "app.action-bar.backup": {
+    "message": "Backing up"
+  },
+  "app.action-bar.backup-stage": {
+    "message": "{stage}"
+  },
+  "app.action-bar.backup-stage.applying": {
+    "message": "Applying files"
+  },
+  "app.action-bar.backup-stage.hashing": {
+    "message": "Calculating hashes"
+  },
+  "app.action-bar.backup-stage.materializing": {
+    "message": "Applying files"
+  },
+  "app.action-bar.backup-stage.queued": {
+    "message": "Queued"
+  },
+  "app.action-bar.backup-stage.saving": {
+    "message": "Saving backup"
+  },
+  "app.action-bar.backup-stage.scanning": {
+    "message": "Scanning files"
+  },
+  "app.action-bar.backup-stage.validating": {
+    "message": "Validating backup"
+  },
+  "app.action-bar.backup-task.backup": {
+    "message": "Backup"
+  },
+  "app.action-bar.backup-task.cancelled": {
+    "message": "{operation} cancelled"
+  },
+  "app.action-bar.backup-task.completed": {
+    "message": "{operation} completed"
+  },
+  "app.action-bar.backup-task.failed": {
+    "message": "{operation} failed"
+  },
+  "app.action-bar.backup-task.repository-move": {
+    "message": "Backup repository move"
+  },
+  "app.action-bar.backup-task.restore": {
+    "message": "Backup restore"
+  },
+  "app.action-bar.backup-task.restore-preview": {
+    "message": "Restore analysis"
+  },
   "app.action-bar.downloading-java": {
     "message": "Downloading Java {version}"
   },
@@ -11,55 +65,6 @@
   "app.action-bar.downloads": {
     "message": "Downloads"
   },
-  "app.action-bar.active-backups": {
-    "message": "Active backups"
-  },
-  "app.action-bar.backup": {
-    "message": "Backing up"
-  },
-  "app.action-bar.restore": {
-    "message": "Restoring backup"
-  },
-  "app.action-bar.restore-preview": {
-    "message": "Analyzing restore"
-  },
-  "app.action-bar.repository-move": {
-    "message": "Moving backup repository"
-  },
-  "app.action-bar.repository": {
-    "message": "Backup repository"
-  },
-  "app.action-bar.backup-task.completed": {
-    "message": "{operation} completed"
-  },
-  "app.action-bar.backup-task.backup": {
-    "message": "Backup"
-  },
-  "app.action-bar.backup-task.restore": {
-    "message": "Backup restore"
-  },
-  "app.action-bar.backup-task.restore-preview": {
-    "message": "Restore analysis"
-  },
-  "app.action-bar.backup-task.repository-move": {
-    "message": "Backup repository move"
-  },
-  "app.action-bar.backup-task.cancelled": {
-    "message": "{operation} cancelled"
-  },
-  "app.action-bar.backup-task.failed": {
-    "message": "{operation} failed"
-  },
-  "app.action-bar.backup-stage": {
-    "message": "{stage}"
-  },
-  "app.action-bar.backup-stage.queued": { "message": "Queued" },
-  "app.action-bar.backup-stage.scanning": { "message": "Scanning files" },
-  "app.action-bar.backup-stage.hashing": { "message": "Calculating hashes" },
-  "app.action-bar.backup-stage.saving": { "message": "Saving backup" },
-  "app.action-bar.backup-stage.validating": { "message": "Validating backup" },
-  "app.action-bar.backup-stage.materializing": { "message": "Applying files" },
-  "app.action-bar.backup-stage.applying": { "message": "Applying files" },
   "app.action-bar.exporting-modpack": {
     "message": "Exporting modpack"
   },
@@ -180,9 +185,6 @@
   "app.action-bar.no-instances-running": {
     "message": "No instances running"
   },
-  "app.action-bar.announcements": {
-    "message": "Announcements"
-  },
   "app.action-bar.notifications": {
     "message": "Notifications"
   },
@@ -203,6 +205,18 @@
   },
   "app.action-bar.reload-to-update": {
     "message": "Reload to update"
+  },
+  "app.action-bar.repository": {
+    "message": "Backup repository"
+  },
+  "app.action-bar.repository-move": {
+    "message": "Moving backup repository"
+  },
+  "app.action-bar.restore": {
+    "message": "Restoring backup"
+  },
+  "app.action-bar.restore-preview": {
+    "message": "Analyzing restore"
   },
   "app.action-bar.show-more-running-instances": {
     "message": "Show more running instances"
@@ -753,6 +767,30 @@
   "app.auth.sign-in-browser": {
     "message": "Please sign in in the browser window that just opened to continue."
   },
+  "app.backup-exit.body": {
+    "message": "{count, plural, one {# backup operation is} other {# backup operations are}} still running. Keep the launcher open or hide it to the tray to let them finish."
+  },
+  "app.backup-exit.cancel": {
+    "message": "Cancel tasks and exit"
+  },
+  "app.backup-exit.force": {
+    "message": "Force exit"
+  },
+  "app.backup-exit.repository-move-body": {
+    "message": "The backup repository is being moved. This task cannot be cancelled or force-stopped; keep the launcher open or hide it to the tray until it finishes."
+  },
+  "app.backup-exit.return": {
+    "message": "Return to launcher"
+  },
+  "app.backup-exit.timeout": {
+    "message": "Timed out while waiting for backup operations to stop."
+  },
+  "app.backup-exit.title": {
+    "message": "Backup operations are still running"
+  },
+  "app.backup-exit.tray": {
+    "message": "Hide to tray"
+  },
   "app.browse.add": {
     "message": "Add"
   },
@@ -932,30 +970,6 @@
   },
   "app.close-launcher.tray": {
     "message": "Hide to tray"
-  },
-  "app.backup-exit.title": {
-    "message": "Backup operations are still running"
-  },
-  "app.backup-exit.body": {
-    "message": "{count, plural, one {# backup operation is} other {# backup operations are}} still running. Keep the launcher open or hide it to the tray to let them finish."
-  },
-  "app.backup-exit.repository-move-body": {
-    "message": "The backup repository is being moved. This task cannot be cancelled or force-stopped; keep the launcher open or hide it to the tray until it finishes."
-  },
-  "app.backup-exit.return": {
-    "message": "Return to launcher"
-  },
-  "app.backup-exit.tray": {
-    "message": "Hide to tray"
-  },
-  "app.backup-exit.cancel": {
-    "message": "Cancel tasks and exit"
-  },
-  "app.backup-exit.force": {
-    "message": "Force exit"
-  },
-  "app.backup-exit.timeout": {
-    "message": "Timed out while waiting for backup operations to stop."
   },
   "app.content-favorites.add": {
     "message": "Add to favorites"
@@ -3342,20 +3356,38 @@
   "app.instances.add-content": {
     "message": "Add content"
   },
-  "app.instances.batch-edit-groups.apply": {
-    "message": "Apply"
+  "app.instances.batch-edit-groups.add": {
+    "message": "Add"
   },
-  "app.instances.batch-edit-groups.create-group": {
-    "message": "Create new group"
+  "app.instances.batch-edit-groups.add-to-group-title": {
+    "message": "Add instances to \"{groupName}\""
   },
-  "app.instances.batch-edit-groups.description": {
-    "message": "Select groups to apply to {count} instance(s)."
+  "app.instances.batch-edit-groups.added": {
+    "message": "Added"
   },
-  "app.instances.batch-edit-groups.enter-group-name": {
+  "app.instances.batch-edit-groups.cancel": {
+    "message": "Cancel"
+  },
+  "app.instances.batch-edit-groups.create": {
+    "message": "Create group"
+  },
+  "app.instances.batch-edit-groups.group-name": {
+    "message": "Group name"
+  },
+  "app.instances.batch-edit-groups.group-name-placeholder": {
     "message": "Enter group name"
   },
   "app.instances.batch-edit-groups.header": {
     "message": "Create group"
+  },
+  "app.instances.batch-edit-groups.no-instances-found": {
+    "message": "No instances found"
+  },
+  "app.instances.batch-edit-groups.save-changes": {
+    "message": "Save"
+  },
+  "app.instances.batch-edit-groups.search-instance": {
+    "message": "Search instances"
   },
   "app.instances.copy-path": {
     "message": "Copy path"
@@ -3372,6 +3404,27 @@
   "app.instances.group-by": {
     "message": "Group by"
   },
+  "app.instances.group.add-to-group": {
+    "message": "Add to group"
+  },
+  "app.instances.group.collapse": {
+    "message": "Collapse group"
+  },
+  "app.instances.group.delete-description": {
+    "message": "Instances in this group will be ungrouped."
+  },
+  "app.instances.group.delete-group": {
+    "message": "Delete group"
+  },
+  "app.instances.group.edit-name": {
+    "message": "Edit group name"
+  },
+  "app.instances.group.empty": {
+    "message": "Drag and drop to add instances."
+  },
+  "app.instances.group.expand": {
+    "message": "Expand group"
+  },
   "app.instances.group.game-version": {
     "message": "Game version"
   },
@@ -3381,47 +3434,11 @@
   "app.instances.group.loader": {
     "message": "Loader"
   },
-  "app.instances.group.none": {
-    "message": "No grouping"
-  },
-  "app.instances.group.ungrouped": {
-    "message": "No group"
-  },
-  "app.instances.group.pinned": {
-    "message": "Pinned"
-  },
-  "app.instances.group.empty": {
-    "message": "Drag and drop to add instances."
-  },
-  "app.instances.group.edit-name": {
-    "message": "Edit group name"
-  },
-  "app.instances.group.delete-group": {
-    "message": "Delete group"
-  },
-  "app.instances.group.delete-description": {
-    "message": "Instances in this group will be ungrouped."
-  },
-  "app.instances.group.move-up": {
-    "message": "Move group up"
-  },
   "app.instances.group.move-down": {
     "message": "Move group down"
   },
-  "app.instances.group.add-to-group": {
-    "message": "Add to group"
-  },
-  "app.instances.group.new-instance": {
-    "message": "New instance"
-  },
-  "app.instances.group.collapse": {
-    "message": "Collapse group"
-  },
-  "app.instances.group.expand": {
-    "message": "Expand group"
-  },
-  "app.instances.group.rename-group": {
-    "message": "Rename group"
+  "app.instances.group.move-up": {
+    "message": "Move group up"
   },
   "app.instances.group.name-empty": {
     "message": "Group names cannot be empty."
@@ -3429,53 +3446,20 @@
   "app.instances.group.name-too-long": {
     "message": "Group names cannot be longer than {maxLength} characters."
   },
-  "app.instances.batch-edit-groups.add-to-group-title": {
-    "message": "Add instances to \"{groupName}\""
+  "app.instances.group.new-instance": {
+    "message": "New instance"
   },
-  "app.instances.batch-edit-groups.group-name": {
-    "message": "Group name"
+  "app.instances.group.none": {
+    "message": "No grouping"
   },
-  "app.instances.batch-edit-groups.group-name-placeholder": {
-    "message": "Enter group name"
+  "app.instances.group.pinned": {
+    "message": "Pinned"
   },
-  "app.instances.batch-edit-groups.search-instance": {
-    "message": "Search instances"
+  "app.instances.group.rename-group": {
+    "message": "Rename group"
   },
-  "app.instances.batch-edit-groups.no-instances-found": {
-    "message": "No instances found"
-  },
-  "app.instances.batch-edit-groups.add": {
-    "message": "Add"
-  },
-  "app.instances.batch-edit-groups.added": {
-    "message": "Added"
-  },
-  "app.instances.batch-edit-groups.cancel": {
-    "message": "Cancel"
-  },
-  "app.instances.batch-edit-groups.create": {
-    "message": "Create group"
-  },
-  "app.instances.batch-edit-groups.save-changes": {
-    "message": "Save"
-  },
-  "app.library.group.new": {
-    "message": "New group"
-  },
-  "app.library.selection.new-group": {
-    "message": "New group"
-  },
-  "app.library.selection.remove-from-group": {
-    "message": "Remove from group"
-  },
-  "app.library.context-menu.pin-instance": {
-    "message": "Pin instance"
-  },
-  "app.library.context-menu.unpin-instance": {
-    "message": "Unpin instance"
-  },
-  "app.library.context-menu.remove-from-group": {
-    "message": "Remove from group"
+  "app.instances.group.ungrouped": {
+    "message": "No group"
   },
   "app.instances.pin-to-home": {
     "message": "Pin to Home"
@@ -5460,11 +5444,29 @@
   "app.lab.tool-count-plural": {
     "message": "{count} tools"
   },
+  "app.library.context-menu.pin-instance": {
+    "message": "Pin instance"
+  },
+  "app.library.context-menu.remove-from-group": {
+    "message": "Remove from group"
+  },
+  "app.library.context-menu.unpin-instance": {
+    "message": "Unpin instance"
+  },
   "app.library.create-instance": {
     "message": "Create new instance"
   },
+  "app.library.group.new": {
+    "message": "New group"
+  },
   "app.library.no-instances": {
     "message": "No instances found"
+  },
+  "app.library.selection.new-group": {
+    "message": "New group"
+  },
+  "app.library.selection.remove-from-group": {
+    "message": "Remove from group"
   },
   "app.library.tabs.all-instances": {
     "message": "All instances"
@@ -5517,18 +5519,6 @@
   "app.log-share.ai.queued-front": {
     "message": "Queued, waiting for a free slot"
   },
-  "app.log-share.ai.thinking": {
-    "message": "Thinking…"
-  },
-  "app.log-share.ai.tool": {
-    "message": "Using tool: {name}"
-  },
-  "app.log-share.ai.tool-result": {
-    "message": "Tool result received"
-  },
-  "app.log-share.ai.working": {
-    "message": "Analyzing with LogAgent…"
-  },
   "app.log-share.ai.root-cause": {
     "message": "Core root cause"
   },
@@ -5538,8 +5528,20 @@
   "app.log-share.ai.tab": {
     "message": "LogAgent detailed analysis"
   },
+  "app.log-share.ai.thinking": {
+    "message": "Thinking…"
+  },
+  "app.log-share.ai.tool": {
+    "message": "Using tool: {name}"
+  },
+  "app.log-share.ai.tool-result": {
+    "message": "Tool result received"
+  },
   "app.log-share.ai.unknown-tool": {
     "message": "tool"
+  },
+  "app.log-share.ai.working": {
+    "message": "Analyzing with LogAgent…"
   },
   "app.log-share.settings.ai-source": {
     "message": "AI analysis source"
@@ -5613,9 +5615,6 @@
   "app.log-share.shared-logs.truncated": {
     "message": "Truncated"
   },
-  "app.log-share.summary.loading": {
-    "message": "Loading structured summary..."
-  },
   "app.log-share.summary.empty": {
     "message": "LogShare did not return a structured summary for these logs."
   },
@@ -5624,6 +5623,9 @@
   },
   "app.log-share.summary.information": {
     "message": "Information"
+  },
+  "app.log-share.summary.loading": {
+    "message": "Loading structured summary..."
   },
   "app.log-share.summary.no-storage": {
     "message": "Structured summary is unavailable while no-storage mode is enabled."
@@ -6732,6 +6734,12 @@
   "app.project.versions.start-server": {
     "message": "Create server"
   },
+  "app.remote-announcements.center-title": {
+    "message": "Announcements"
+  },
+  "app.remote-announcements.empty": {
+    "message": "No announcements"
+  },
   "app.remote-announcements.preview-action": {
     "message": "Visit website"
   },
@@ -6743,12 +6751,6 @@
   },
   "app.remote-announcements.preview-title": {
     "message": "Announcement style preview"
-  },
-  "app.remote-announcements.center-title": {
-    "message": "Announcements"
-  },
-  "app.remote-announcements.empty": {
-    "message": "No announcements"
   },
   "app.remote-announcements.read-all": {
     "message": "Mark all announcements as read"
@@ -11115,23 +11117,17 @@
   "instance.backups.snapshots": {
     "message": "Snapshots"
   },
+  "instance.backups.stage.applying": {
+    "message": "Applying changed files"
+  },
   "instance.backups.stage.failed": {
     "message": "Backup failed"
-  },
-  "instance.backups.stage.interrupted": {
-    "message": "Backup operation was interrupted"
   },
   "instance.backups.stage.hashing": {
     "message": "Hashing files"
   },
-  "instance.backups.stage.queued": {
-    "message": "Waiting to start"
-  },
-  "instance.backups.stage.saving": {
-    "message": "Saving snapshot index"
-  },
-  "instance.backups.stage.validating": {
-    "message": "Validating restore"
+  "instance.backups.stage.interrupted": {
+    "message": "Backup operation was interrupted"
   },
   "instance.backups.stage.materializing": {
     "message": "Preparing changed files"
@@ -11139,11 +11135,17 @@
   "instance.backups.stage.preview": {
     "message": "Analyzing restore changes"
   },
-  "instance.backups.stage.applying": {
-    "message": "Applying changed files"
+  "instance.backups.stage.queued": {
+    "message": "Waiting to start"
+  },
+  "instance.backups.stage.saving": {
+    "message": "Saving snapshot index"
   },
   "instance.backups.stage.scanning": {
     "message": "Scanning files"
+  },
+  "instance.backups.stage.validating": {
+    "message": "Validating restore"
   },
   "instance.backups.title": {
     "message": "Instance backups"

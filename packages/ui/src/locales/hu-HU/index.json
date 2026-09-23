@@ -311,9 +311,6 @@
   "content.filter.updates": {
     "defaultMessage": "Frissítések"
   },
-  "content.filter.warnings": {
-    "defaultMessage": "Figyelmeztetések"
-  },
   "content.page-layout.browse-content": {
     "defaultMessage": "Tartalom böngészése"
   },
@@ -905,18 +902,6 @@
   "header.category.resolutions": {
     "defaultMessage": "Felbontás"
   },
-  "icon-select.edit": {
-    "defaultMessage": "Ikon szerkesztése"
-  },
-  "icon-select.remove": {
-    "defaultMessage": "Ikon eltávolítása"
-  },
-  "icon-select.replace": {
-    "defaultMessage": "Ikon kicserélése"
-  },
-  "icon-select.select": {
-    "defaultMessage": "Ikon kiválasztása"
-  },
   "input.search-version.placeholder": {
     "defaultMessage": "Verzió keresése..."
   },
@@ -1117,24 +1102,6 @@
   },
   "instances.content-install.select-icon": {
     "defaultMessage": "Ikon feltöltése"
-  },
-  "instances.modpack-content-modal.empty-description": {
-    "defaultMessage": "Ez a modcsomag nem tartalmaz további tartalmakat."
-  },
-  "instances.modpack-content-modal.empty-title": {
-    "defaultMessage": "Nincsen tartalom"
-  },
-  "instances.modpack-content-modal.header": {
-    "defaultMessage": "Modcsomag tartalma"
-  },
-  "instances.modpack-content-modal.loading": {
-    "defaultMessage": "Tartalmak betöltése..."
-  },
-  "instances.modpack-content-modal.no-results": {
-    "defaultMessage": "Nincsen olyan projekt ami keresnél."
-  },
-  "instances.modpack-content-modal.search-placeholder": {
-    "defaultMessage": "Keresés {count, number} projekt között"
   },
   "instances.updater-modal.badge.current": {
     "defaultMessage": "Jelenlegi"
@@ -1550,150 +1517,6 @@
   "locale.zh-TW": {
     "defaultMessage": "kínai (hagyományos)"
   },
-  "markdown-editor.default-image-alt-text": {
-    "defaultMessage": "Cseréld ki ezt egy leírásra"
-  },
-  "markdown-editor.error-label": {
-    "defaultMessage": "Hiba"
-  },
-  "markdown-editor.image-modal.description-field.description": {
-    "defaultMessage": "Írd le a képet olyan részletesen, mintha olyan valakinek mesélnéd, aki nem láthatja a képet."
-  },
-  "markdown-editor.image-modal.description-field.placeholder": {
-    "defaultMessage": "Írd le a képet..."
-  },
-  "markdown-editor.image-modal.description-field.title": {
-    "defaultMessage": "Leírás (alternatív szöveg)"
-  },
-  "markdown-editor.image-modal.header": {
-    "defaultMessage": "Kép beszúrása"
-  },
-  "markdown-editor.image-modal.upload-mode.label": {
-    "defaultMessage": "A kép forrása"
-  },
-  "markdown-editor.image-modal.upload-mode.link": {
-    "defaultMessage": "Hivatkozás"
-  },
-  "markdown-editor.image-modal.upload-mode.upload": {
-    "defaultMessage": "Feltöltés"
-  },
-  "markdown-editor.image-modal.upload.prompt": {
-    "defaultMessage": "Húzd ide a fájlt a feltöltéshez, vagy kattints a kiválasztásához"
-  },
-  "markdown-editor.image-modal.url-field.placeholder": {
-    "defaultMessage": "Írd be a kép linkjét..."
-  },
-  "markdown-editor.insert-button": {
-    "defaultMessage": "Beszúrás"
-  },
-  "markdown-editor.link-modal.header": {
-    "defaultMessage": "Hivatkozás beszúrása"
-  },
-  "markdown-editor.link-modal.label-field.placeholder": {
-    "defaultMessage": "Írd be a megjelenített szöveget..."
-  },
-  "markdown-editor.link-modal.label-field.title": {
-    "defaultMessage": "Megjelenített szöveg"
-  },
-  "markdown-editor.link-modal.url-field.placeholder": {
-    "defaultMessage": "Írd be a hivatkozás URL-jét..."
-  },
-  "markdown-editor.markdown-formatting-support": {
-    "defaultMessage": "Ez a szerkesztő támogatja a <markdown-link>Markdown formázást</markdown-link>."
-  },
-  "markdown-editor.max-length.label": {
-    "defaultMessage": "Maximális hosszúság:"
-  },
-  "markdown-editor.max-length.unlimited": {
-    "defaultMessage": "Korlátlan"
-  },
-  "markdown-editor.max-length.value": {
-    "defaultMessage": "{currentLength}/{maxLength}"
-  },
-  "markdown-editor.placeholder": {
-    "defaultMessage": "Írj valamit..."
-  },
-  "markdown-editor.preview-label": {
-    "defaultMessage": "Előnézet"
-  },
-  "markdown-editor.preview-toggle.label": {
-    "defaultMessage": "Előnézet"
-  },
-  "markdown-editor.toolbar.bold": {
-    "defaultMessage": "Félkövér"
-  },
-  "markdown-editor.toolbar.bulleted-list": {
-    "defaultMessage": "Pontozott lista"
-  },
-  "markdown-editor.toolbar.code": {
-    "defaultMessage": "Kód"
-  },
-  "markdown-editor.toolbar.heading-1": {
-    "defaultMessage": "1. címsor"
-  },
-  "markdown-editor.toolbar.heading-2": {
-    "defaultMessage": "2. címsor"
-  },
-  "markdown-editor.toolbar.heading-3": {
-    "defaultMessage": "3. címsor"
-  },
-  "markdown-editor.toolbar.image": {
-    "defaultMessage": "Kép"
-  },
-  "markdown-editor.toolbar.italic": {
-    "defaultMessage": "Dőlt"
-  },
-  "markdown-editor.toolbar.link": {
-    "defaultMessage": "Hivatkozás"
-  },
-  "markdown-editor.toolbar.ordered-list": {
-    "defaultMessage": "Számozott lista"
-  },
-  "markdown-editor.toolbar.quote": {
-    "defaultMessage": "Idézet"
-  },
-  "markdown-editor.toolbar.spoiler": {
-    "defaultMessage": "Lenyitható szöveg"
-  },
-  "markdown-editor.toolbar.strikethrough": {
-    "defaultMessage": "Áthúzott"
-  },
-  "markdown-editor.toolbar.video": {
-    "defaultMessage": "Videó"
-  },
-  "markdown-editor.upload-error.no-file": {
-    "defaultMessage": "Fájl nem került megadásra"
-  },
-  "markdown-editor.upload-error.no-handler": {
-    "defaultMessage": "Nincs megadva képfeltöltési kezelő"
-  },
-  "markdown-editor.url-label": {
-    "defaultMessage": "URL"
-  },
-  "markdown-editor.url-validation-error.blocked-domain": {
-    "defaultMessage": "Érvénytelen URL. Ez a domain nem engedélyezett."
-  },
-  "markdown-editor.url-validation-error.malformed": {
-    "defaultMessage": "Érvénytelen URL. Ellenőrizze, hogy az URL helyesen van-e megadva."
-  },
-  "markdown-editor.url-validation-error.unsupported-protocol": {
-    "defaultMessage": "A protokoll nem támogatott. Használj http-t vagy https-t."
-  },
-  "markdown-editor.video-embed.title": {
-    "defaultMessage": "YouTube-videolejátszó"
-  },
-  "markdown-editor.video-modal.header": {
-    "defaultMessage": "YouTube-videó beszúrása"
-  },
-  "markdown-editor.video-modal.url-field.description": {
-    "defaultMessage": "Írj be egy érvényes YouTube-videó linket."
-  },
-  "markdown-editor.video-modal.url-field.placeholder": {
-    "defaultMessage": "Írd be a YouTube-videó linkjét"
-  },
-  "markdown-editor.video-modal.url-field.title": {
-    "defaultMessage": "YouTube-videó hivatkozás"
-  },
   "modal.open-in-app.benefit.install": {
     "defaultMessage": "A szükséges tartalom automatikus telepítése"
   },
@@ -1780,24 +1603,6 @@
   },
   "omorphia.component.copy.action.copy": {
     "defaultMessage": "Kód másolása a vágólapra"
-  },
-  "omorphia.component.environment-indicator.label.client": {
-    "defaultMessage": "Kliens"
-  },
-  "omorphia.component.environment-indicator.label.client-and-server": {
-    "defaultMessage": "Kliens és szerver"
-  },
-  "omorphia.component.environment-indicator.label.client-or-server": {
-    "defaultMessage": "Kliens vagy szerver"
-  },
-  "omorphia.component.environment-indicator.label.server": {
-    "defaultMessage": "Szerver"
-  },
-  "omorphia.component.environment-indicator.label.type": {
-    "defaultMessage": "A {type}"
-  },
-  "omorphia.component.environment-indicator.label.unsupported": {
-    "defaultMessage": "Nem támogatott"
   },
   "payment-method.amazon_pay": {
     "defaultMessage": "Amazon Pay"
@@ -2546,17 +2351,8 @@
   "search.server_content_type.vanilla": {
     "defaultMessage": "Vanilla"
   },
-  "servers.notice.dismiss": {
-    "defaultMessage": "Elutasítás"
-  },
   "servers.notice.dismissable": {
     "defaultMessage": "Elutasítható"
-  },
-  "servers.notice.heading.attention": {
-    "defaultMessage": "Figyelem"
-  },
-  "servers.notice.heading.info": {
-    "defaultMessage": "Információ"
   },
   "servers.notice.level.critical.name": {
     "defaultMessage": "Kritikus"
@@ -3071,9 +2867,6 @@
   "tag.loader.waterfall": {
     "defaultMessage": "Waterfall"
   },
-  "ui.component.unsaved-changes-popup.body": {
-    "defaultMessage": "Vannak nem mentett módosítások."
-  },
   "ui.confirm-leave-modal.body": {
     "defaultMessage": "Vannak nem mentett módosításaid, amik elvesznek, ha elhagyod ezt az oldalt."
   },
@@ -3088,8 +2881,5 @@
   },
   "ui.confirm-leave-modal.title": {
     "defaultMessage": "Elhagyod az oldalt?"
-  },
-  "ui.stacked-admonitions.alert-count": {
-    "defaultMessage": "{count} figyelmeztetés"
   }
 }

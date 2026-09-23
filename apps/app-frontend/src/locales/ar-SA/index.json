@@ -197,42 +197,6 @@
   "app.instance.worlds.search-worlds-placeholder": {
     "message": "ابحث بين ال{count} عوالم..."
   },
-  "app.modal.install-to-play.content-required": {
-    "message": "المحتوى مطلوب"
-  },
-  "app.modal.install-to-play.header": {
-    "message": "نزل للعب"
-  },
-  "app.modal.install-to-play.install-button": {
-    "message": "تثبيت"
-  },
-  "app.modal.install-to-play.mod-count": {
-    "message": "{count, plural, one {# تعديل} other {# تعديلات}}"
-  },
-  "app.modal.install-to-play.required-modpack": {
-    "message": "حُزْمَة التعديل مطلوبة"
-  },
-  "app.modal.install-to-play.server-requires-mods": {
-    "message": "يتطلب هذا الخادم تعديلات للعب. انقر فوق \"تثبيت\" لإعداد الملفات المطلوبة من Modrinth، ثم قم بتشغيله مباشرة إلى الخادم."
-  },
-  "app.modal.install-to-play.shared-instance": {
-    "message": "النماذج المشتركة"
-  },
-  "app.modal.install-to-play.shared-server-instance": {
-    "message": "نماذج الخادم مشتركة"
-  },
-  "app.modal.install-to-play.view-contents": {
-    "message": "عرض المحتويات"
-  },
-  "app.modal.update-to-play.header": {
-    "message": "حدث للعب"
-  },
-  "app.modal.update-to-play.update-required": {
-    "message": "يلزم التحديث"
-  },
-  "app.modal.update-to-play.update-required-description": {
-    "message": "هناك تحديث مطلوب للعب بـ {name}. الرجاء التحديث إلى أحدث اصدار لتشغيل اللعبة."
-  },
   "app.project.install-context.back-to-browse": {
     "message": "العودة إلى الاستكشاف"
   },

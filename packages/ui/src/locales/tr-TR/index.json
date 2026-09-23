@@ -329,9 +329,6 @@
   "content.filter.updates": {
     "defaultMessage": "Güncellemeler"
   },
-  "content.filter.warnings": {
-    "defaultMessage": "Uyarı"
-  },
   "content.page-layout.browse-content": {
     "defaultMessage": "İçerik ara"
   },
@@ -992,18 +989,6 @@
   "header.category.resolutions": {
     "defaultMessage": "Çözünürlük"
   },
-  "icon-select.edit": {
-    "defaultMessage": "Simgeyi düzenle"
-  },
-  "icon-select.remove": {
-    "defaultMessage": "Simgeyi kaldır"
-  },
-  "icon-select.replace": {
-    "defaultMessage": "Simgeyi değiştir"
-  },
-  "icon-select.select": {
-    "defaultMessage": "Simge seç"
-  },
   "input.search-version.placeholder": {
     "defaultMessage": "Sürüm ara..."
   },
@@ -1231,24 +1216,6 @@
   },
   "instances.content-install.select-icon": {
     "defaultMessage": "Simge seç"
-  },
-  "instances.modpack-content-modal.empty-description": {
-    "defaultMessage": "Bu mod paketi başka hiç bir ekstra işerik içermez."
-  },
-  "instances.modpack-content-modal.empty-title": {
-    "defaultMessage": "İçerik bulunamadı"
-  },
-  "instances.modpack-content-modal.header": {
-    "defaultMessage": "Mod paketi içeriği"
-  },
-  "instances.modpack-content-modal.loading": {
-    "defaultMessage": "İçerik yükleniyor..."
-  },
-  "instances.modpack-content-modal.no-results": {
-    "defaultMessage": "Aramanızla eşleşen proje yok."
-  },
-  "instances.modpack-content-modal.search-placeholder": {
-    "defaultMessage": "Search {count, number} {count, plural, one {project} other {projects}}"
   },
   "instances.updater-modal.badge.current": {
     "defaultMessage": "Şu anki"
@@ -1667,150 +1634,6 @@
   "locale.zh-TW": {
     "defaultMessage": "Çince (Geleneksel)"
   },
-  "markdown-editor.default-image-alt-text": {
-    "defaultMessage": "Bunu bir açıklama ile değiştirin"
-  },
-  "markdown-editor.error-label": {
-    "defaultMessage": "Hata"
-  },
-  "markdown-editor.image-modal.description-field.description": {
-    "defaultMessage": "Görüntüyü tamamen, görüntüyü göremeyen birine anlatacağınız gibi anlatın."
-  },
-  "markdown-editor.image-modal.description-field.placeholder": {
-    "defaultMessage": "Görüntüyü tanımlayın..."
-  },
-  "markdown-editor.image-modal.description-field.title": {
-    "defaultMessage": "Açıklama (alt metin)"
-  },
-  "markdown-editor.image-modal.header": {
-    "defaultMessage": "Resim ekle"
-  },
-  "markdown-editor.image-modal.upload-mode.label": {
-    "defaultMessage": "Resim kaynağı"
-  },
-  "markdown-editor.image-modal.upload-mode.link": {
-    "defaultMessage": "Bağlantı"
-  },
-  "markdown-editor.image-modal.upload-mode.upload": {
-    "defaultMessage": "Yükle"
-  },
-  "markdown-editor.image-modal.upload.prompt": {
-    "defaultMessage": "Yüklemek için sürükle bırak veya dosya seçmek için tıkla"
-  },
-  "markdown-editor.image-modal.url-field.placeholder": {
-    "defaultMessage": "Resmin URL'sini girin..."
-  },
-  "markdown-editor.insert-button": {
-    "defaultMessage": "Ekle"
-  },
-  "markdown-editor.link-modal.header": {
-    "defaultMessage": "Bağlantı ekle"
-  },
-  "markdown-editor.link-modal.label-field.placeholder": {
-    "defaultMessage": "Etiketi girin..."
-  },
-  "markdown-editor.link-modal.label-field.title": {
-    "defaultMessage": "Etiket"
-  },
-  "markdown-editor.link-modal.url-field.placeholder": {
-    "defaultMessage": "Bağlantının URL'sini girin..."
-  },
-  "markdown-editor.markdown-formatting-support": {
-    "defaultMessage": "Bu düzenleyici <markdown-link>Markdown biçimlendirmesini</markdown-link> destekler."
-  },
-  "markdown-editor.max-length.label": {
-    "defaultMessage": "Maks uzunluk:"
-  },
-  "markdown-editor.max-length.unlimited": {
-    "defaultMessage": "Sınırsız"
-  },
-  "markdown-editor.max-length.value": {
-    "defaultMessage": "{currentLength}/{maxLength}"
-  },
-  "markdown-editor.placeholder": {
-    "defaultMessage": "Bir şeyler yazın..."
-  },
-  "markdown-editor.preview-label": {
-    "defaultMessage": "Önizleme"
-  },
-  "markdown-editor.preview-toggle.label": {
-    "defaultMessage": "Önizleme"
-  },
-  "markdown-editor.toolbar.bold": {
-    "defaultMessage": "Kalın"
-  },
-  "markdown-editor.toolbar.bulleted-list": {
-    "defaultMessage": "Madde işaretli liste"
-  },
-  "markdown-editor.toolbar.code": {
-    "defaultMessage": "Kod"
-  },
-  "markdown-editor.toolbar.heading-1": {
-    "defaultMessage": "Başlık 1"
-  },
-  "markdown-editor.toolbar.heading-2": {
-    "defaultMessage": "Başlık 2"
-  },
-  "markdown-editor.toolbar.heading-3": {
-    "defaultMessage": "Başlık 3"
-  },
-  "markdown-editor.toolbar.image": {
-    "defaultMessage": "Resim"
-  },
-  "markdown-editor.toolbar.italic": {
-    "defaultMessage": "İtalik"
-  },
-  "markdown-editor.toolbar.link": {
-    "defaultMessage": "Bağlantı"
-  },
-  "markdown-editor.toolbar.ordered-list": {
-    "defaultMessage": "Sıralı liste"
-  },
-  "markdown-editor.toolbar.quote": {
-    "defaultMessage": "Alıntı"
-  },
-  "markdown-editor.toolbar.spoiler": {
-    "defaultMessage": "Spoiler"
-  },
-  "markdown-editor.toolbar.strikethrough": {
-    "defaultMessage": "Üstü çizili"
-  },
-  "markdown-editor.toolbar.video": {
-    "defaultMessage": "Video"
-  },
-  "markdown-editor.upload-error.no-file": {
-    "defaultMessage": "Dosya sağlanmadı"
-  },
-  "markdown-editor.upload-error.no-handler": {
-    "defaultMessage": "Resim yükleme işleyicisi sağlanmadı"
-  },
-  "markdown-editor.url-label": {
-    "defaultMessage": "URL"
-  },
-  "markdown-editor.url-validation-error.blocked-domain": {
-    "defaultMessage": "Geçersiz URL. Bu alan adına izin verilmiyor."
-  },
-  "markdown-editor.url-validation-error.malformed": {
-    "defaultMessage": "Geçersiz URL. URL'nin iyi biçimlendirilmiş olduğundan emin olun."
-  },
-  "markdown-editor.url-validation-error.unsupported-protocol": {
-    "defaultMessage": "Desteklenmeyen protokol. http veya https kullanın."
-  },
-  "markdown-editor.video-embed.title": {
-    "defaultMessage": "YouTube video oynatıcı"
-  },
-  "markdown-editor.video-modal.header": {
-    "defaultMessage": "YouTube videosu ekle"
-  },
-  "markdown-editor.video-modal.url-field.description": {
-    "defaultMessage": "Bir YouTube videosu için geçerli bir bağlantı girin."
-  },
-  "markdown-editor.video-modal.url-field.placeholder": {
-    "defaultMessage": "YouTube video URL'sini girin"
-  },
-  "markdown-editor.video-modal.url-field.title": {
-    "defaultMessage": "YouTube video URL'si"
-  },
   "modal.open-in-app.benefit.install": {
     "defaultMessage": "Gerekli içerikleri otomatik olarak indir"
   },
@@ -1900,24 +1723,6 @@
   },
   "omorphia.component.copy.action.copy": {
     "defaultMessage": "Kodu panoya kopyala"
-  },
-  "omorphia.component.environment-indicator.label.client": {
-    "defaultMessage": "İstemci"
-  },
-  "omorphia.component.environment-indicator.label.client-and-server": {
-    "defaultMessage": "İstemci ve sunucu"
-  },
-  "omorphia.component.environment-indicator.label.client-or-server": {
-    "defaultMessage": "İstemci veya sunucu"
-  },
-  "omorphia.component.environment-indicator.label.server": {
-    "defaultMessage": "Sunucu"
-  },
-  "omorphia.component.environment-indicator.label.type": {
-    "defaultMessage": "Bir {type}"
-  },
-  "omorphia.component.environment-indicator.label.unsupported": {
-    "defaultMessage": "Desteklenmiyor"
   },
   "payment-method.amazon_pay": {
     "defaultMessage": "Amazon Pay"
@@ -2666,17 +2471,8 @@
   "search.server_content_type.vanilla": {
     "defaultMessage": "Vanilya"
   },
-  "servers.notice.dismiss": {
-    "defaultMessage": "Görmezden gel"
-  },
   "servers.notice.dismissable": {
     "defaultMessage": "Görmezden Gelinebilir"
-  },
-  "servers.notice.heading.attention": {
-    "defaultMessage": "Dikkat"
-  },
-  "servers.notice.heading.info": {
-    "defaultMessage": "Bilgi"
   },
   "servers.notice.level.critical.name": {
     "defaultMessage": "Kritik"
@@ -3224,93 +3020,6 @@
   "tag.loader.waterfall": {
     "defaultMessage": "Waterfall"
   },
-  "time-frame-picker.apply": {
-    "defaultMessage": "Başvuru yapın"
-  },
-  "time-frame-picker.cancel": {
-    "defaultMessage": "İptal et"
-  },
-  "time-frame-picker.clear-range": {
-    "defaultMessage": "Açık"
-  },
-  "time-frame-picker.custom-range": {
-    "defaultMessage": "Özel, belirli bir tarih aralığı..."
-  },
-  "time-frame-picker.decrease-amount": {
-    "defaultMessage": "Zaman aralığını azaltın"
-  },
-  "time-frame-picker.empty-range": {
-    "defaultMessage": "Hiçbir tarih aralığı seçilmedi."
-  },
-  "time-frame-picker.end-date": {
-    "defaultMessage": "Bitiş tarihi"
-  },
-  "time-frame-picker.increase-amount": {
-    "defaultMessage": "Zaman aralığını artırın"
-  },
-  "time-frame-picker.last-timeframe-prefix": {
-    "defaultMessage": "Sonunda"
-  },
-  "time-frame-picker.option.all-time": {
-    "defaultMessage": "Tüm zaman"
-  },
-  "time-frame-picker.option.last-14-days": {
-    "defaultMessage": "Son 14 gün"
-  },
-  "time-frame-picker.option.last-180-days": {
-    "defaultMessage": "Son 180 gün"
-  },
-  "time-frame-picker.option.last-30-days": {
-    "defaultMessage": "Son 30 gün"
-  },
-  "time-frame-picker.option.last-7-days": {
-    "defaultMessage": "Son 7 gün"
-  },
-  "time-frame-picker.option.last-90-days": {
-    "defaultMessage": "Son 90 gün"
-  },
-  "time-frame-picker.option.today": {
-    "defaultMessage": "Bugün"
-  },
-  "time-frame-picker.option.year-to-date": {
-    "defaultMessage": "Yılın başından bu yana"
-  },
-  "time-frame-picker.option.yesterday": {
-    "defaultMessage": "Dün"
-  },
-  "time-frame-picker.select-timeframe": {
-    "defaultMessage": "Zaman aralığını seçin"
-  },
-  "time-frame-picker.selected-range": {
-    "defaultMessage": "Seçilmiş"
-  },
-  "time-frame-picker.selecting-range": {
-    "defaultMessage": "Seçim yapma"
-  },
-  "time-frame-picker.start-date": {
-    "defaultMessage": "Başlangıç tarihi"
-  },
-  "time-frame-picker.timeframe-amount": {
-    "defaultMessage": "Zaman aralığı tutarı"
-  },
-  "time-frame-picker.timeframe-unit": {
-    "defaultMessage": "Zaman dilimi birimi"
-  },
-  "time-frame-picker.unit.days": {
-    "defaultMessage": "günler"
-  },
-  "time-frame-picker.unit.hours": {
-    "defaultMessage": "saatler"
-  },
-  "time-frame-picker.unit.months": {
-    "defaultMessage": "aylar"
-  },
-  "time-frame-picker.unit.weeks": {
-    "defaultMessage": "Haftalar"
-  },
-  "ui.component.unsaved-changes-popup.body": {
-    "defaultMessage": "Kaydedilmemiş değişikliklerin var."
-  },
   "ui.confirm-leave-modal.body": {
     "defaultMessage": "Sayfadan ayrılırsanız kaydedilmemiş değişiklikleriniz kaybolacaktır."
   },
@@ -3325,12 +3034,6 @@
   },
   "ui.confirm-leave-modal.title": {
     "defaultMessage": "Sayfadan ayrılsın mı?"
-  },
-  "ui.stacked-admonitions.alert-count": {
-    "defaultMessage": "{count, plural, one {# uyarı} other {# uyarı}}"
-  },
-  "ui.stacked-admonitions.dismiss-all": {
-    "defaultMessage": "Tümünü görmezden gel"
   },
   "version.content.name": {
     "defaultMessage": "İsim"

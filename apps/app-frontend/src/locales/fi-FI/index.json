@@ -353,42 +353,6 @@
   "app.instance.worlds.search-worlds-placeholder": {
     "message": "Hae {count} maailmasta..."
   },
-  "app.modal.install-to-play.content-required": {
-    "message": "Sisältö vaaditaan"
-  },
-  "app.modal.install-to-play.header": {
-    "message": "Asenna pelataksesi"
-  },
-  "app.modal.install-to-play.install-button": {
-    "message": "Asenna"
-  },
-  "app.modal.install-to-play.mod-count": {
-    "message": "{count, plural, one {# mod} other {# modia}}"
-  },
-  "app.modal.install-to-play.required-modpack": {
-    "message": "Vaadittu modipaketti"
-  },
-  "app.modal.install-to-play.server-requires-mods": {
-    "message": "Tämä palvelin vaatii modeja toimiakseen. Klikkaa Asenna ladataksesi vaaditut tiedostot Modrinthista, ja käynnistä peli suoraan palvelimelle."
-  },
-  "app.modal.install-to-play.shared-instance": {
-    "message": "Jaettu instanssi"
-  },
-  "app.modal.install-to-play.shared-server-instance": {
-    "message": "Jaettu palvelininstanssi"
-  },
-  "app.modal.install-to-play.view-contents": {
-    "message": "Tarkastele sisältöä"
-  },
-  "app.modal.update-to-play.header": {
-    "message": "Päivitä pelataksesi"
-  },
-  "app.modal.update-to-play.update-required": {
-    "message": "Päivitys vaaditaan"
-  },
-  "app.modal.update-to-play.update-required-description": {
-    "message": "Pävitys vaaditaan pelataksesi {name}. Päivitä viimeisimpään versioon pelataksesi."
-  },
   "app.project.install-button.already-installed": {
     "message": "Tämä projekti on jo asennettu"
   },

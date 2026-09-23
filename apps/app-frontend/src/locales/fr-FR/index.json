@@ -353,42 +353,6 @@
   "app.instance.worlds.search-worlds-placeholder": {
     "message": "Rechercher {count} mondes..."
   },
-  "app.modal.install-to-play.content-required": {
-    "message": "Contenu requis"
-  },
-  "app.modal.install-to-play.header": {
-    "message": "Installer pour jouer"
-  },
-  "app.modal.install-to-play.install-button": {
-    "message": "Installer"
-  },
-  "app.modal.install-to-play.mod-count": {
-    "message": "{count, plural, one {# mod} other {# mods}}"
-  },
-  "app.modal.install-to-play.required-modpack": {
-    "message": "Modpack requis"
-  },
-  "app.modal.install-to-play.server-requires-mods": {
-    "message": "Ce serveur a besoin de mods pour jouer. Cliquez sur Installer pour mettre en place les fichiers requis depuis Modrinth, puis lancez directement dans le serveur."
-  },
-  "app.modal.install-to-play.shared-instance": {
-    "message": "Instance partagée"
-  },
-  "app.modal.install-to-play.shared-server-instance": {
-    "message": "Instance serveur partagée"
-  },
-  "app.modal.install-to-play.view-contents": {
-    "message": "Voir le contenu"
-  },
-  "app.modal.update-to-play.header": {
-    "message": "Mettre à jour pour jouer"
-  },
-  "app.modal.update-to-play.update-required": {
-    "message": "Mise à jour requise"
-  },
-  "app.modal.update-to-play.update-required-description": {
-    "message": "Une mise à jour est requise pour jouer à {name}. Veuillez mettre à jour à la dernière version pour lancer le jeu."
-  },
   "app.project.install-button.already-installed": {
     "message": "Ce projet a déjà été installé"
   },

@@ -356,9 +356,6 @@
   "content.filter.updates": {
     "defaultMessage": "Cần cập nhật"
   },
-  "content.filter.warnings": {
-    "defaultMessage": "Cảnh báo"
-  },
   "content.page-layout.browse-content": {
     "defaultMessage": "Thêm mod"
   },
@@ -1019,18 +1016,6 @@
   "header.category.resolutions": {
     "defaultMessage": "Độ phân giải"
   },
-  "icon-select.edit": {
-    "defaultMessage": "Chỉnh sửa biểu tượng"
-  },
-  "icon-select.remove": {
-    "defaultMessage": "Xoá biểu tượng"
-  },
-  "icon-select.replace": {
-    "defaultMessage": "Thay thế biểu tượng"
-  },
-  "icon-select.select": {
-    "defaultMessage": "Chọn biểu tượng"
-  },
   "input.search-version.placeholder": {
     "defaultMessage": "Thay đổi phiên bản..."
   },
@@ -1258,24 +1243,6 @@
   },
   "instances.content-install.select-icon": {
     "defaultMessage": "Chọn biểu tượng"
-  },
-  "instances.modpack-content-modal.empty-description": {
-    "defaultMessage": "Gói modpack này không bao gồm các nội dung bổ sung nào."
-  },
-  "instances.modpack-content-modal.empty-title": {
-    "defaultMessage": "Không có nội dung nào được tìm thấy"
-  },
-  "instances.modpack-content-modal.header": {
-    "defaultMessage": "Nội dung modpack"
-  },
-  "instances.modpack-content-modal.loading": {
-    "defaultMessage": "Đang tải nội dung..."
-  },
-  "instances.modpack-content-modal.no-results": {
-    "defaultMessage": "Không có dự án nào phù hợp với kết quả tìm kiếm."
-  },
-  "instances.modpack-content-modal.search-placeholder": {
-    "defaultMessage": "Tìm {count, number} {count, plural, other {dự án}}"
   },
   "instances.updater-modal.badge.current": {
     "defaultMessage": "Hiện tại"
@@ -1694,150 +1661,6 @@
   "locale.zh-TW": {
     "defaultMessage": "Tiếng Trung (Phồn thể)"
   },
-  "markdown-editor.default-image-alt-text": {
-    "defaultMessage": "Đổi dòng này với dòng miêu tả"
-  },
-  "markdown-editor.error-label": {
-    "defaultMessage": "Lỗi"
-  },
-  "markdown-editor.image-modal.description-field.description": {
-    "defaultMessage": "Miêu tả hình ảnh này giống với khi bạn miêu tả cho những người không xem được ảnh."
-  },
-  "markdown-editor.image-modal.description-field.placeholder": {
-    "defaultMessage": "Miêu tả ảnh..."
-  },
-  "markdown-editor.image-modal.description-field.title": {
-    "defaultMessage": "Miêu tả (văn bản thay thế)"
-  },
-  "markdown-editor.image-modal.header": {
-    "defaultMessage": "Chèn ảnh"
-  },
-  "markdown-editor.image-modal.upload-mode.label": {
-    "defaultMessage": "Nguồn ảnh"
-  },
-  "markdown-editor.image-modal.upload-mode.link": {
-    "defaultMessage": "Liên kết"
-  },
-  "markdown-editor.image-modal.upload-mode.upload": {
-    "defaultMessage": "Tải lên"
-  },
-  "markdown-editor.image-modal.upload.prompt": {
-    "defaultMessage": "Kéo và thả tệp từ ngoài vào hoặc nhấp vào để chọn tệp"
-  },
-  "markdown-editor.image-modal.url-field.placeholder": {
-    "defaultMessage": "Nhập URL ảnh..."
-  },
-  "markdown-editor.insert-button": {
-    "defaultMessage": "Chèn"
-  },
-  "markdown-editor.link-modal.header": {
-    "defaultMessage": "Chèn liên kết"
-  },
-  "markdown-editor.link-modal.label-field.placeholder": {
-    "defaultMessage": "Nhập tên nhãn..."
-  },
-  "markdown-editor.link-modal.label-field.title": {
-    "defaultMessage": "Nhãn"
-  },
-  "markdown-editor.link-modal.url-field.placeholder": {
-    "defaultMessage": "Nhập URL của đường liên kết..."
-  },
-  "markdown-editor.markdown-formatting-support": {
-    "defaultMessage": "Trình chỉnh sửa này hỗ trợ <markdown-link>định dạng đánh dấu</markdown-link>."
-  },
-  "markdown-editor.max-length.label": {
-    "defaultMessage": "Giới hạn độ dài:"
-  },
-  "markdown-editor.max-length.unlimited": {
-    "defaultMessage": "Vô hạn"
-  },
-  "markdown-editor.max-length.value": {
-    "defaultMessage": "{currentLength}/{maxLength}"
-  },
-  "markdown-editor.placeholder": {
-    "defaultMessage": "Viết gì đi..."
-  },
-  "markdown-editor.preview-label": {
-    "defaultMessage": "Xem trước"
-  },
-  "markdown-editor.preview-toggle.label": {
-    "defaultMessage": "Xem trước"
-  },
-  "markdown-editor.toolbar.bold": {
-    "defaultMessage": "In đậm"
-  },
-  "markdown-editor.toolbar.bulleted-list": {
-    "defaultMessage": "Đánh dấu đầu dòng"
-  },
-  "markdown-editor.toolbar.code": {
-    "defaultMessage": "Mã"
-  },
-  "markdown-editor.toolbar.heading-1": {
-    "defaultMessage": "Tiêu đề 1"
-  },
-  "markdown-editor.toolbar.heading-2": {
-    "defaultMessage": "Tiêu đề 2"
-  },
-  "markdown-editor.toolbar.heading-3": {
-    "defaultMessage": "Tiêu đề 3"
-  },
-  "markdown-editor.toolbar.image": {
-    "defaultMessage": "Hình ảnh"
-  },
-  "markdown-editor.toolbar.italic": {
-    "defaultMessage": "Nghiêng"
-  },
-  "markdown-editor.toolbar.link": {
-    "defaultMessage": "Liên kết"
-  },
-  "markdown-editor.toolbar.ordered-list": {
-    "defaultMessage": "Thứ tự đầu dòng"
-  },
-  "markdown-editor.toolbar.quote": {
-    "defaultMessage": "Trích"
-  },
-  "markdown-editor.toolbar.spoiler": {
-    "defaultMessage": "Che nội dung"
-  },
-  "markdown-editor.toolbar.strikethrough": {
-    "defaultMessage": "Gạch ngang"
-  },
-  "markdown-editor.toolbar.video": {
-    "defaultMessage": "Video"
-  },
-  "markdown-editor.upload-error.no-file": {
-    "defaultMessage": "Không có tệp"
-  },
-  "markdown-editor.upload-error.no-handler": {
-    "defaultMessage": "Không trình xử lý tải ảnh nào được cung cấp"
-  },
-  "markdown-editor.url-label": {
-    "defaultMessage": "URL"
-  },
-  "markdown-editor.url-validation-error.blocked-domain": {
-    "defaultMessage": "URL không hợp lệ. Tên Miền không được cho phép."
-  },
-  "markdown-editor.url-validation-error.malformed": {
-    "defaultMessage": "URL không hợp lệ. Kiểm tra lại URL."
-  },
-  "markdown-editor.url-validation-error.unsupported-protocol": {
-    "defaultMessage": "Giao thức không được hỗ trợ. Sử dụng http hoặc https."
-  },
-  "markdown-editor.video-embed.title": {
-    "defaultMessage": "Trình phát video YouTube"
-  },
-  "markdown-editor.video-modal.header": {
-    "defaultMessage": "Chèn video YouTube"
-  },
-  "markdown-editor.video-modal.url-field.description": {
-    "defaultMessage": "Nhập vào đường liên kết video YouTube hợp lệ."
-  },
-  "markdown-editor.video-modal.url-field.placeholder": {
-    "defaultMessage": "Nhập URL video trên YouTube"
-  },
-  "markdown-editor.video-modal.url-field.title": {
-    "defaultMessage": "URL video Youtube"
-  },
   "modal.open-in-app.benefit.install": {
     "defaultMessage": "Tự động cài đặt các nội dung cần thiết"
   },
@@ -1927,24 +1750,6 @@
   },
   "omorphia.component.copy.action.copy": {
     "defaultMessage": "Sao chép mã vào bảng nhớ tạm"
-  },
-  "omorphia.component.environment-indicator.label.client": {
-    "defaultMessage": "Client"
-  },
-  "omorphia.component.environment-indicator.label.client-and-server": {
-    "defaultMessage": "Client và server"
-  },
-  "omorphia.component.environment-indicator.label.client-or-server": {
-    "defaultMessage": "Client hoặc server"
-  },
-  "omorphia.component.environment-indicator.label.server": {
-    "defaultMessage": "Máy chủ"
-  },
-  "omorphia.component.environment-indicator.label.type": {
-    "defaultMessage": "{type}"
-  },
-  "omorphia.component.environment-indicator.label.unsupported": {
-    "defaultMessage": "Không được hỗ trợ"
   },
   "payment-method.amazon_pay": {
     "defaultMessage": "Amazon Pay"
@@ -2693,17 +2498,8 @@
   "search.server_content_type.vanilla": {
     "defaultMessage": "Vanilla"
   },
-  "servers.notice.dismiss": {
-    "defaultMessage": "Bỏ qua"
-  },
   "servers.notice.dismissable": {
     "defaultMessage": "Có thể bỏ qua"
-  },
-  "servers.notice.heading.attention": {
-    "defaultMessage": "Lưu ý"
-  },
-  "servers.notice.heading.info": {
-    "defaultMessage": "Thông tin"
   },
   "servers.notice.level.critical.name": {
     "defaultMessage": "Nghiêm trọng"
@@ -3251,96 +3047,6 @@
   "tag.loader.waterfall": {
     "defaultMessage": "Waterfall"
   },
-  "time-frame-picker.apply": {
-    "defaultMessage": "Áp dụng"
-  },
-  "time-frame-picker.cancel": {
-    "defaultMessage": "Hủy"
-  },
-  "time-frame-picker.clear-range": {
-    "defaultMessage": "Xóa"
-  },
-  "time-frame-picker.custom-range": {
-    "defaultMessage": "Khoảng thời gian tùy chỉnh..."
-  },
-  "time-frame-picker.decrease-amount": {
-    "defaultMessage": "Giảm lượng thời gian"
-  },
-  "time-frame-picker.empty-range": {
-    "defaultMessage": "Khoảng thời gian chưa được chọn."
-  },
-  "time-frame-picker.end-date": {
-    "defaultMessage": "Tgian kết thúc"
-  },
-  "time-frame-picker.increase-amount": {
-    "defaultMessage": "Tăng lượng thời gian"
-  },
-  "time-frame-picker.last-timeframe": {
-    "defaultMessage": "Trong {amount} {unit, select, hours {{amount, plural, other {giờ}}} days {{amount, plural,  other {ngày}}} weeks {{amount, plural, other {tuần}}} months {{amount, plural, other {tháng}}} other {ngày}} vừa qua"
-  },
-  "time-frame-picker.last-timeframe-prefix": {
-    "defaultMessage": "Trong vòng"
-  },
-  "time-frame-picker.option.all-time": {
-    "defaultMessage": "Mọi khi"
-  },
-  "time-frame-picker.option.last-14-days": {
-    "defaultMessage": "14 ngày vừa qua"
-  },
-  "time-frame-picker.option.last-180-days": {
-    "defaultMessage": "180 ngày vừa qua"
-  },
-  "time-frame-picker.option.last-30-days": {
-    "defaultMessage": "30 ngày vừa qua"
-  },
-  "time-frame-picker.option.last-7-days": {
-    "defaultMessage": "7 ngày vừa qua"
-  },
-  "time-frame-picker.option.last-90-days": {
-    "defaultMessage": "90 ngày vừa qua"
-  },
-  "time-frame-picker.option.today": {
-    "defaultMessage": "Hôm nay"
-  },
-  "time-frame-picker.option.year-to-date": {
-    "defaultMessage": "Năm qua thời gian"
-  },
-  "time-frame-picker.option.yesterday": {
-    "defaultMessage": "Hôm qua"
-  },
-  "time-frame-picker.select-timeframe": {
-    "defaultMessage": "Chọn khung tgian"
-  },
-  "time-frame-picker.selected-range": {
-    "defaultMessage": "Đã chọn"
-  },
-  "time-frame-picker.selecting-range": {
-    "defaultMessage": "Đang chọn"
-  },
-  "time-frame-picker.start-date": {
-    "defaultMessage": "Tgian bắt đầu"
-  },
-  "time-frame-picker.timeframe-amount": {
-    "defaultMessage": "Số trong khung thời gian"
-  },
-  "time-frame-picker.timeframe-unit": {
-    "defaultMessage": "Đơn vị thời gian"
-  },
-  "time-frame-picker.unit.days": {
-    "defaultMessage": "ngày"
-  },
-  "time-frame-picker.unit.hours": {
-    "defaultMessage": "giờ"
-  },
-  "time-frame-picker.unit.months": {
-    "defaultMessage": "tháng"
-  },
-  "time-frame-picker.unit.weeks": {
-    "defaultMessage": "tuần"
-  },
-  "ui.component.unsaved-changes-popup.body": {
-    "defaultMessage": "Bạn có những thay đổi chưa được lưu"
-  },
   "ui.confirm-leave-modal.body": {
     "defaultMessage": "Bạn có một số thay đổi chưa được lưu, và những thay đổi này sẽ bị mất nếu bạn rời khỏi trang này."
   },
@@ -3355,11 +3061,5 @@
   },
   "ui.confirm-leave-modal.title": {
     "defaultMessage": "Rời khỏi trang nhé?"
-  },
-  "ui.stacked-admonitions.alert-count": {
-    "defaultMessage": "{count, plural, other {# thông báo}}"
-  },
-  "ui.stacked-admonitions.dismiss-all": {
-    "defaultMessage": "Tắt hết"
   }
 }
