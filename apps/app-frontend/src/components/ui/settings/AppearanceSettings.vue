@@ -877,7 +877,7 @@ watch(
 		themeStore.customBackgroundBlur = blur
 		themeStore.customBackgroundOpacity = opacity
 		themeStore.customBackgroundComponentOpacity = componentOpacity ?? 100
-		themeStore.setCustomBackgroundComponentOpacity()
+		themeStore.setCustomBackgroundOpacity()
 		themeStore.transparentBackground = transparent
 		themeStore.transparentBackgroundOpacity = transparentOpacity
 		themeStore.transparentBackgroundBlur = transparentBlur

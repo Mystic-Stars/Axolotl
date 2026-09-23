@@ -63,8 +63,12 @@ allow('runtime-set', [
 	],
 	['custom-accent-dark', 'apps/app-frontend/src/store/theme.ts setProperty `--custom-accent-dark`'],
 	[
-		'custom-bg-component-opacity',
-		'apps/app-frontend/src/store/theme.ts setProperty `--custom-bg-component-opacity`',
+		'custom-bg-page-alpha',
+		'apps/app-frontend/src/store/theme.ts setProperty `--custom-bg-page-alpha`',
+	],
+	[
+		'custom-bg-component-alpha',
+		'apps/app-frontend/src/store/theme.ts setProperty `--custom-bg-component-alpha`',
 	],
 	[
 		'floating-action-bar-left-offset',

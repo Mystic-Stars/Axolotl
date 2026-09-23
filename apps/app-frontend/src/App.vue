@@ -250,7 +250,10 @@ const customBackgroundStyle = computed(() => {
 	return {
 		backgroundImage: `url("${convertFileSrc(themeStore.customBackgroundPath)}")`,
 		filter: `blur(${themeStore.customBackgroundBlur}px)`,
-		opacity: themeStore.customBackgroundOpacity / 100,
+		// "Background visibility" is applied as the alpha of the page layer above
+		// this image (see `global.scss`), not as an opacity here. Dimming the
+		// image as well would apply the setting twice and wash the picture out
+		// against its own backing.
 	}
 })
 
@@ -1405,7 +1408,7 @@ async function setupApp() {
 	themeStore.customBackgroundBlur = custom_background_blur
 	themeStore.customBackgroundOpacity = custom_background_opacity
 	themeStore.customBackgroundComponentOpacity = custom_background_component_opacity ?? 100
-	themeStore.setCustomBackgroundComponentOpacity()
+	themeStore.setCustomBackgroundOpacity()
 	themeStore.uiFont = ui_font ?? null
 	themeStore.monoFont = mono_font ?? null
 	themeStore.setUiFont()
