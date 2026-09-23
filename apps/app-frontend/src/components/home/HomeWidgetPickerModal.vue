@@ -13,7 +13,7 @@ import {
 	ServerIcon,
 	UserIcon,
 } from '@modrinth/assets'
-import { ButtonStyled, defineMessages, NewModal, StyledInput, useVIntl } from '@modrinth/ui'
+import { Button, defineMessages, NewModal, StyledInput, useVIntl } from '@modrinth/ui'
 import { computed, nextTick, ref } from 'vue'
 
 import type { HomeWidgetKind, HomeWidgetPlacement } from '@/components/home/home-dashboard'
@@ -311,16 +311,16 @@ defineExpose({ show })
 	>
 		<div class="flex min-w-0 flex-col gap-4">
 			<div v-if="selectedKind" class="flex min-w-0 items-center gap-3">
-				<ButtonStyled circular size="small" type="transparent">
-					<button
-						v-tooltip="formatMessage(messages.back)"
-						type="button"
-						:aria-label="formatMessage(messages.back)"
-						@click="goBack"
-					>
-						<ChevronLeftIcon />
-					</button>
-				</ButtonStyled>
+				<Button
+					v-tooltip="formatMessage(messages.back)"
+					type="quiet"
+					size="2xs"
+					circular
+					icon-only
+					:aria-label="formatMessage(messages.back)"
+					@click="goBack"
+					><ChevronLeftIcon />
+				</Button>
 				<div v-if="selectedInstance" class="flex min-w-0 items-center gap-2">
 					<InstanceIcon
 						class="size-8 shrink-0"

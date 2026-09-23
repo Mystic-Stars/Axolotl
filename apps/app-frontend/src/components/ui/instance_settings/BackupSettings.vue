@@ -574,16 +574,16 @@ watch(
 									}}
 								</p>
 							</div>
-							<ButtonStyled circular size="small" type="transparent">
-								<button
-									type="button"
-									:disabled="action !== null || isRunning"
-									:aria-label="formatMessage(messages.restore)"
-									@click="confirmRestore(snapshot)"
-								>
-									<UndoIcon />
-								</button>
-							</ButtonStyled>
+							<Button
+								type="quiet"
+								size="2xs"
+								circular
+								icon-only
+								:disabled="action !== null || isRunning"
+								:aria-label="formatMessage(messages.restore)"
+								@click="confirmRestore(snapshot)"
+								><UndoIcon />
+							</Button>
 							<ButtonStyled circular color="red" size="small" type="transparent">
 								<button
 									type="button"

@@ -10,6 +10,7 @@ import {
 	RotateCounterClockwiseIcon,
 } from '@modrinth/assets'
 
+import Button from '#ui/components/base/buttons/Button.vue'
 import ButtonStyled from '#ui/components/base/ButtonStyled.vue'
 import PopoutMenu from '#ui/components/base/PopoutMenu.vue'
 
@@ -53,16 +54,14 @@ const emit = defineEmits<{
 <template>
 	<div class="flex items-center justify-end gap-2">
 		<PopoutMenu :tooltip="props.sortLabel" placement="bottom-end">
-			<ButtonStyled circular type="transparent">
-				<button :aria-label="props.sortLabel">
-					<ArrowUpZAIcon
-						v-if="props.sortMode === 'project-name-desc' || props.sortMode === 'file-name-desc'"
-					/>
-					<ClockArrowDownIcon v-else-if="props.sortMode === 'date-added-newest'" />
-					<ClockArrowUpIcon v-else-if="props.sortMode === 'date-added-oldest'" />
-					<ArrowDownAZIcon v-else />
-				</button>
-			</ButtonStyled>
+			<Button type="quiet" circular icon-only :aria-label="props.sortLabel"
+				><ArrowUpZAIcon
+					v-if="props.sortMode === 'project-name-desc' || props.sortMode === 'file-name-desc'"
+				/>
+				<ClockArrowDownIcon v-else-if="props.sortMode === 'date-added-newest'" />
+				<ClockArrowUpIcon v-else-if="props.sortMode === 'date-added-oldest'" />
+				<ArrowDownAZIcon v-else />
+			</Button>
 			<template #menu>
 				<div class="flex w-56 flex-col gap-1 p-1" role="menu" :aria-label="props.viewOptionsLabel">
 					<ButtonStyled

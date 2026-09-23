@@ -94,11 +94,9 @@
 									</div>
 								</template>
 							</div>
-							<ButtonStyled size="small" type="transparent" circular>
-								<button @click="dismiss(item.id)">
-									<XIcon />
-								</button>
-							</ButtonStyled>
+							<Button type="quiet" size="2xs" circular icon-only @click="dismiss(item.id)"
+								><XIcon />
+							</Button>
 						</div>
 						<span v-if="item.text" class="text-primary">
 							{{ item.text }}

@@ -848,16 +848,16 @@ onBeforeRouteLeave(() => {
 						{{ formatMessage(messages.title) }}
 					</h1>
 					<div class="ml-auto flex shrink-0 items-center gap-1">
-						<ButtonStyled size="small" type="transparent" circular>
-							<button
-								v-tooltip="formatMessage(messages.refresh)"
-								type="button"
-								:aria-label="formatMessage(messages.refresh)"
-								@click="refreshTree"
-							>
-								<RefreshCwIcon class="size-4" />
-							</button>
-						</ButtonStyled>
+						<Button
+							v-tooltip="formatMessage(messages.refresh)"
+							type="quiet"
+							size="2xs"
+							circular
+							icon-only
+							:aria-label="formatMessage(messages.refresh)"
+							@click="refreshTree"
+							><RefreshCwIcon class="size-4" />
+						</Button>
 						<ButtonStyled v-if="activeDocument" size="small" color="brand">
 							<button type="button" :disabled="activeDocument.saving" @click="saveActiveFile">
 								<SaveIcon class="size-4" />

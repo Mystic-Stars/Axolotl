@@ -52,16 +52,16 @@
 							</template>
 						</template>
 					</p>
-					<ButtonStyled size="small" type="transparent" circular>
-						<button
-							type="button"
-							class="notification-toast-dismiss"
-							aria-label="Dismiss notification"
-							@click="$emit('dismiss')"
-						>
-							<XIcon />
-						</button>
-					</ButtonStyled>
+					<Button
+						type="quiet"
+						size="2xs"
+						circular
+						icon-only
+						class="notification-toast-dismiss"
+						aria-label="Dismiss notification"
+						@click="$emit('dismiss')"
+						><XIcon />
+					</Button>
 				</div>
 				<div class="flex items-center gap-2">
 					<Button type="colored" color="brand" @click="$emit('accept')">Accept</Button>
@@ -90,16 +90,16 @@
 					{{ entityLabel }}
 				</p>
 				<div class="col-start-2 row-start-1 justify-self-end">
-					<ButtonStyled size="small" type="transparent" circular>
-						<button
-							type="button"
-							class="notification-toast-dismiss"
-							aria-label="Dismiss notification"
-							@click="$emit('dismiss')"
-						>
-							<XIcon />
-						</button>
-					</ButtonStyled>
+					<Button
+						type="quiet"
+						size="2xs"
+						circular
+						icon-only
+						class="notification-toast-dismiss"
+						aria-label="Dismiss notification"
+						@click="$emit('dismiss')"
+						><XIcon />
+					</Button>
 				</div>
 				<div
 					class="col-start-1 col-end-3 row-start-2 flex min-w-0 items-center justify-between gap-0.5"

@@ -7,19 +7,19 @@
 			:triggers="['click']"
 			:hide-triggers="['click']"
 		>
-			<ButtonStyled type="transparent" circular>
-				<button
-					v-tooltip="formatMessage(messages.notifications)"
-					:aria-label="formatMessage(messages.notifications)"
-					class="relative"
-				>
-					<BellIcon />
-					<span
-						v-if="hasUnreadNotifications"
-						class="absolute right-0 top-0 size-2 rounded-full bg-red ring-2 ring-bg-raised"
-					/>
-				</button>
-			</ButtonStyled>
+			<Button
+				v-tooltip="formatMessage(messages.notifications)"
+				type="quiet"
+				circular
+				icon-only
+				:aria-label="formatMessage(messages.notifications)"
+				class="relative"
+				><BellIcon />
+				<span
+					v-if="hasUnreadNotifications"
+					class="absolute right-0 top-0 size-2 rounded-full bg-red ring-2 ring-bg-raised"
+				/>
+			</Button>
 			<template #popper>
 				<div class="w-[22rem] max-w-[calc(100vw-2rem)] p-2">
 					<div class="mb-2 flex items-center justify-between px-2">
@@ -75,40 +75,40 @@
 				</div>
 			</template>
 		</Dropdown>
-		<ButtonStyled type="transparent" circular>
-			<button
-				v-tooltip="formatMessage(messages.announcements)"
-				:aria-label="formatMessage(messages.announcements)"
-				class="relative"
-				@click="openAnnouncementCenter"
-			>
-				<NewspaperIcon />
-				<span
-					v-if="announcementUnreadCount"
-					class="absolute right-0 top-0 size-2 rounded-full bg-red ring-2 ring-bg-raised"
-				/>
-			</button>
-		</ButtonStyled>
+		<Button
+			v-tooltip="formatMessage(messages.announcements)"
+			type="quiet"
+			circular
+			icon-only
+			:aria-label="formatMessage(messages.announcements)"
+			class="relative"
+			@click="openAnnouncementCenter"
+			><NewspaperIcon />
+			<span
+				v-if="announcementUnreadCount"
+				class="absolute right-0 top-0 size-2 rounded-full bg-red ring-2 ring-bg-raised"
+			/>
+		</Button>
 		<Dropdown
 			v-if="activeBackupOperations.length > 0"
 			placement="bottom-end"
 			:triggers="['click']"
 			:hide-triggers="['click']"
 		>
-			<ButtonStyled type="transparent" circular>
-				<button
-					v-tooltip="formatMessage(messages.activeBackups)"
-					:aria-label="formatMessage(messages.activeBackups)"
-					class="relative"
+			<Button
+				v-tooltip="formatMessage(messages.activeBackups)"
+				type="quiet"
+				circular
+				icon-only
+				:aria-label="formatMessage(messages.activeBackups)"
+				class="relative"
+				><DatabaseBackupIcon />
+				<span
+					class="absolute right-0 top-0 min-w-4 rounded-full bg-brand px-1 text-center text-[10px] font-bold leading-4 text-white"
 				>
-					<DatabaseBackupIcon />
-					<span
-						class="absolute right-0 top-0 min-w-4 rounded-full bg-brand px-1 text-center text-[10px] font-bold leading-4 text-white"
-					>
-						{{ Math.min(activeBackupOperations.length, 99) }}
-					</span>
-				</button>
-			</ButtonStyled>
+					{{ Math.min(activeBackupOperations.length, 99) }}
+				</span>
+			</Button>
 			<template #popper>
 				<div class="w-[22rem] max-w-[calc(100vw-2rem)] p-2">
 					<div class="mb-2 px-2 font-semibold text-contrast">
@@ -172,17 +172,18 @@
 						@show="showInstances = true"
 						@hide="showInstances = false"
 					>
-						<ButtonStyled type="transparent" circular size="small">
-							<button
-								v-tooltip="
-									showInstances
-										? formatMessage(messages.hideMoreRunningInstances)
-										: formatMessage(messages.showMoreRunningInstances)
-								"
-							>
-								<DropdownIcon :class="{ 'rotate-180': !!showInstances }" />
-							</button>
-						</ButtonStyled>
+						<Button
+							v-tooltip="
+								showInstances
+									? formatMessage(messages.hideMoreRunningInstances)
+									: formatMessage(messages.showMoreRunningInstances)
+							"
+							type="quiet"
+							size="2xs"
+							circular
+							icon-only
+							><DropdownIcon :class="{ 'rotate-180': !!showInstances }" />
+						</Button>
 						<template #popper>
 							<div class="flex w-[20rem] max-h-[24rem] flex-col gap-2 overflow-auto">
 								<div
@@ -266,6 +267,7 @@ import {
 	XIcon,
 } from '@modrinth/assets'
 import {
+	Button,
 	ButtonStyled,
 	defineMessages,
 	injectNotificationManager,

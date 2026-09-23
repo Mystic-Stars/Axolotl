@@ -22,6 +22,7 @@ import type { RouteLocationRaw } from 'vue-router'
 import AutoLink from '#ui/components/base/AutoLink.vue'
 import Avatar from '#ui/components/base/Avatar.vue'
 import BulletDivider from '#ui/components/base/BulletDivider.vue'
+import Button from '#ui/components/base/buttons/Button.vue'
 import ButtonStyled from '#ui/components/base/ButtonStyled.vue'
 import Checkbox from '#ui/components/base/Checkbox.vue'
 import MinecraftFormattedText from '#ui/components/base/MinecraftFormattedText.vue'
@@ -423,24 +424,25 @@ const deleteHovered = ref(false)
 						<DownloadIcon class="size-5" />
 					</button>
 				</ButtonStyled>
-				<ButtonStyled v-else-if="groupSwitchVersion" circular type="transparent">
-					<button
-						v-tooltip="formatMessage(commonMessages.switchVersionButton)"
-						@click.stop="groupSwitchVersion"
-					>
-						<ArrowLeftRightIcon class="size-5" />
-					</button>
-				</ButtonStyled>
+				<Button
+					v-else-if="groupSwitchVersion"
+					v-tooltip="formatMessage(commonMessages.switchVersionButton)"
+					type="quiet"
+					circular
+					icon-only
+					@click.stop="groupSwitchVersion"
+					><ArrowLeftRightIcon class="size-5" />
+				</Button>
 			</template>
-			<ButtonStyled circular type="transparent">
-				<button
-					class="flex items-center text-secondary hover:text-primary transition-colors"
-					@click.stop="emit('toggleExpand')"
-				>
-					<ChevronDownIcon v-if="groupExpanded" class="size-5" />
-					<ChevronRightIcon v-else class="size-5" />
-				</button>
-			</ButtonStyled>
+			<Button
+				type="quiet"
+				circular
+				icon-only
+				class="flex items-center text-secondary hover:text-primary transition-colors"
+				@click.stop="emit('toggleExpand')"
+				><ChevronDownIcon v-if="groupExpanded" class="size-5" />
+				<ChevronRightIcon v-else class="size-5" />
+			</Button>
 		</div>
 	</div>
 
@@ -661,16 +663,17 @@ const deleteHovered = ref(false)
 		>
 			<slot name="additionalButtonsLeft" />
 
-			<ButtonStyled v-if="hasRollbackListener && rollbackFileName" circular type="transparent">
-				<button
-					v-tooltip="formatMessage(messages.rollbackTooltip, { fileName: rollbackFileName })"
-					:aria-label="formatMessage(messages.rollbackTooltip, { fileName: rollbackFileName })"
-					:disabled="isDisabled"
-					@click="emit('rollback')"
-				>
-					<UndoIcon class="size-5" />
-				</button>
-			</ButtonStyled>
+			<Button
+				v-if="hasRollbackListener && rollbackFileName"
+				v-tooltip="formatMessage(messages.rollbackTooltip, { fileName: rollbackFileName })"
+				type="quiet"
+				circular
+				icon-only
+				:aria-label="formatMessage(messages.rollbackTooltip, { fileName: rollbackFileName })"
+				:disabled="isDisabled"
+				@click="emit('rollback')"
+				><UndoIcon class="size-5" />
+			</Button>
 
 			<!-- Fixed width container to reserve space for update/switch version button -->
 			<div
@@ -697,36 +700,33 @@ const deleteHovered = ref(false)
 						<DownloadIcon class="size-5" />
 					</button>
 				</ButtonStyled>
-				<ButtonStyled
+				<Button
 					v-else-if="hasSwitchVersionListener && version && !hideSwitchVersion"
+					v-tooltip="
+						isDisabled && disabledTooltip
+							? disabledTooltip
+							: formatMessage(commonMessages.switchVersionButton)
+					"
+					type="quiet"
 					circular
-					type="transparent"
-				>
-					<button
-						v-tooltip="
-							isDisabled && disabledTooltip
-								? disabledTooltip
-								: formatMessage(commonMessages.switchVersionButton)
-						"
-						:disabled="isDisabled"
-						@click="emit('switchVersion')"
-					>
-						<ArrowLeftRightIcon class="size-5" />
-					</button>
-				</ButtonStyled>
+					icon-only
+					:disabled="isDisabled"
+					@click="emit('switchVersion')"
+					><ArrowLeftRightIcon class="size-5" />
+				</Button>
 			</div>
 
 			<template v-for="action in inlineActions" :key="action.id">
-				<ButtonStyled circular type="transparent">
-					<button
-						v-tooltip="action.label"
-						:aria-label="action.label"
-						:disabled="isDisabled"
-						@click="action.action"
-					>
-						<component :is="action.icon" class="size-5" />
-					</button>
-				</ButtonStyled>
+				<Button
+					v-tooltip="action.label"
+					type="quiet"
+					circular
+					icon-only
+					:aria-label="action.label"
+					:disabled="isDisabled"
+					@click="action.action"
+					><component :is="action.icon" class="size-5" />
+				</Button>
 			</template>
 
 			<Toggle
@@ -743,34 +743,35 @@ const deleteHovered = ref(false)
 				@update:model-value="(val) => emit('update:enabled', val as boolean)"
 			/>
 
-			<ButtonStyled v-if="hasDeleteListener && !props.hideDelete" circular type="transparent">
-				<button
-					v-tooltip="
-						isDisabled && disabledTooltip
-							? disabledTooltip
-							: formatMessage(
-									shiftHeld && deleteHovered
-										? commonMessages.deleteImmediatelyLabel
-										: commonMessages.deleteLabel,
-								)
-					"
-					:disabled="isDisabled"
-					@click="emit('delete', $event)"
-					@mouseenter="deleteHovered = true"
-					@mouseleave="deleteHovered = false"
-				>
-					<span class="relative size-5">
-						<TrashIcon
-							class="absolute inset-0 size-5 text-secondary transition-opacity duration-200"
-							:class="shiftHeld && deleteHovered ? 'opacity-0' : 'opacity-100'"
-						/>
-						<TrashExclamationIcon
-							class="absolute inset-0 size-5 text-red transition-opacity duration-200"
-							:class="shiftHeld && deleteHovered ? 'opacity-100' : 'opacity-0'"
-						/>
-					</span>
-				</button>
-			</ButtonStyled>
+			<Button
+				v-if="hasDeleteListener && !props.hideDelete"
+				v-tooltip="
+					isDisabled && disabledTooltip
+						? disabledTooltip
+						: formatMessage(
+								shiftHeld && deleteHovered
+									? commonMessages.deleteImmediatelyLabel
+									: commonMessages.deleteLabel,
+							)
+				"
+				type="quiet"
+				circular
+				icon-only
+				:disabled="isDisabled"
+				@click="emit('delete', $event)"
+				@mouseenter="deleteHovered = true"
+				@mouseleave="deleteHovered = false"
+				><span class="relative size-5">
+					<TrashIcon
+						class="absolute inset-0 size-5 text-secondary transition-opacity duration-200"
+						:class="shiftHeld && deleteHovered ? 'opacity-0' : 'opacity-100'"
+					/>
+					<TrashExclamationIcon
+						class="absolute inset-0 size-5 text-red transition-opacity duration-200"
+						:class="shiftHeld && deleteHovered ? 'opacity-100' : 'opacity-0'"
+					/>
+				</span>
+			</Button>
 
 			<slot name="additionalButtonsRight" />
 

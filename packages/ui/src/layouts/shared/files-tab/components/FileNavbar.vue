@@ -176,15 +176,16 @@
 			</div>
 
 			<div v-else-if="!isEditingImage" class="flex gap-2">
-				<ButtonStyled v-if="isLogFile" type="transparent" circular>
-					<button
-						v-tooltip="formatMessage(messages.shareLog)"
-						:aria-label="formatMessage(messages.shareLog)"
-						@click="$emit('share')"
-					>
-						<ShareIcon />
-					</button>
-				</ButtonStyled>
+				<Button
+					v-if="isLogFile"
+					v-tooltip="formatMessage(messages.shareLog)"
+					type="quiet"
+					circular
+					icon-only
+					:aria-label="formatMessage(messages.shareLog)"
+					@click="$emit('share')"
+					><ShareIcon />
+				</Button>
 				<ButtonStyled
 					circular
 					:type="isEditorFindOpen ? 'standard' : 'transparent'"

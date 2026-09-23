@@ -1,12 +1,6 @@
 <script setup lang="ts">
 import { FileIcon, FolderIcon, MinusIcon, PlusIcon } from '@modrinth/assets'
-import {
-	Button,
-	ButtonStyled,
-	defineMessages,
-	injectNotificationManager,
-	useVIntl,
-} from '@modrinth/ui'
+import { Button, defineMessages, injectNotificationManager, useVIntl } from '@modrinth/ui'
 import { open } from '@tauri-apps/plugin-dialog'
 import { ref } from 'vue'
 
@@ -104,18 +98,18 @@ function removeExclusion(path: string) {
 				<code class="min-w-0 flex-1 truncate text-sm text-contrast">{{
 					formatBackupExclusionPath(exclusion)
 				}}</code>
-				<ButtonStyled circular size="small" type="transparent">
-					<button
-						type="button"
-						:disabled="disabled || picking !== null"
-						:aria-label="
-							formatMessage(messages.remove, { path: formatBackupExclusionPath(exclusion) })
-						"
-						@click="removeExclusion(exclusion.path)"
-					>
-						<MinusIcon />
-					</button>
-				</ButtonStyled>
+				<Button
+					type="quiet"
+					size="2xs"
+					circular
+					icon-only
+					:disabled="disabled || picking !== null"
+					:aria-label="
+						formatMessage(messages.remove, { path: formatBackupExclusionPath(exclusion) })
+					"
+					@click="removeExclusion(exclusion.path)"
+					><MinusIcon />
+				</Button>
 			</div>
 		</div>
 		<div class="flex flex-wrap gap-2">

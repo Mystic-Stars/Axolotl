@@ -12,6 +12,7 @@ import {
 } from '@modrinth/assets'
 import {
 	Avatar,
+	Button,
 	ButtonStyled,
 	type ContentItem,
 	defineMessages,
@@ -854,30 +855,36 @@ defineExpose({ show, hide, setItems })
 									data-dependency-control
 									class="absolute right-3 top-3 z-20 flex items-center gap-1 rounded-xl border border-solid border-surface-4 bg-surface-2 p-1 shadow-lg"
 								>
-									<ButtonStyled circular type="transparent" size="small">
-										<button
-											:aria-label="formatMessage(messages.zoomOut)"
-											@click="zoomTo(zoom - 0.1)"
-										>
-											<ZoomOutIcon />
-										</button>
-									</ButtonStyled>
+									<Button
+										type="quiet"
+										size="2xs"
+										circular
+										icon-only
+										:aria-label="formatMessage(messages.zoomOut)"
+										@click="zoomTo(zoom - 0.1)"
+										><ZoomOutIcon />
+									</Button>
 									<span class="min-w-10 text-center text-xs tabular-nums text-secondary">
 										{{ Math.round(zoom * 100) }}%
 									</span>
-									<ButtonStyled circular type="transparent" size="small">
-										<button
-											:aria-label="formatMessage(messages.zoomIn)"
-											@click="zoomTo(zoom + 0.1)"
-										>
-											<ZoomInIcon />
-										</button>
-									</ButtonStyled>
-									<ButtonStyled circular type="transparent" size="small">
-										<button :aria-label="formatMessage(messages.resetZoom)" @click="resetGraphView">
-											<RotateCounterClockwiseIcon />
-										</button>
-									</ButtonStyled>
+									<Button
+										type="quiet"
+										size="2xs"
+										circular
+										icon-only
+										:aria-label="formatMessage(messages.zoomIn)"
+										@click="zoomTo(zoom + 0.1)"
+										><ZoomInIcon />
+									</Button>
+									<Button
+										type="quiet"
+										size="2xs"
+										circular
+										icon-only
+										:aria-label="formatMessage(messages.resetZoom)"
+										@click="resetGraphView"
+										><RotateCounterClockwiseIcon />
+									</Button>
 								</div>
 
 								<div

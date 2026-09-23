@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ScanEyeIcon, TriangleAlertIcon } from '@modrinth/assets'
-import { ButtonStyled, Checkbox, defineMessages, NewModal, useVIntl } from '@modrinth/ui'
+import { Button, Checkbox, defineMessages, NewModal, useVIntl } from '@modrinth/ui'
 import { useTemplateRef } from 'vue'
 
 import type { SchematicPreviewManifest, SchematicRegion } from '@/lab/schematic-preview/backend'
@@ -87,16 +87,16 @@ defineExpose({ show: () => modal.value?.show() })
 						<span class="text-xs text-secondary">
 							{{ region.size.join(' x ') }} - {{ formatNumber(region.blockCount) }}
 						</span>
-						<ButtonStyled circular size="small" type="transparent">
-							<button
-								type="button"
-								:aria-label="formatMessage(messages.focusRegion)"
-								:title="formatMessage(messages.focusRegion)"
-								@click="emit('focusRegion', region)"
-							>
-								<ScanEyeIcon />
-							</button>
-						</ButtonStyled>
+						<Button
+							type="quiet"
+							size="2xs"
+							circular
+							icon-only
+							:aria-label="formatMessage(messages.focusRegion)"
+							:title="formatMessage(messages.focusRegion)"
+							@click="emit('focusRegion', region)"
+							><ScanEyeIcon />
+						</Button>
 					</div>
 				</div>
 			</section>

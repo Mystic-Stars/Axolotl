@@ -11,7 +11,6 @@ import {
 } from '@modrinth/assets'
 import {
 	Button,
-	ButtonStyled,
 	Checkbox,
 	commonMessages,
 	defineMessages,
@@ -403,11 +402,9 @@ function onStartLongPress(instanceId: string) {
 									emit('handleContextMenu', $event as MouseEvent, instance.id, props.sectionKey)
 								"
 							>
-								<ButtonStyled circular size="small" type="transparent">
-									<button type="button">
-										<slot name="moreIcon" />
-									</button>
-								</ButtonStyled>
+								<Button type="quiet" size="2xs" circular icon-only
+									><slot name="moreIcon" />
+								</Button>
 							</div>
 						</template>
 					</DraggableInstanceCard>
@@ -464,11 +461,7 @@ function onStartLongPress(instanceId: string) {
 								emit('handleContextMenu', $event as MouseEvent, instance.id, props.sectionKey)
 							"
 						>
-							<ButtonStyled circular size="small" type="transparent">
-								<button type="button">
-									<slot name="moreIcon" />
-								</button>
-							</ButtonStyled>
+							<Button type="quiet" size="2xs" circular icon-only><slot name="moreIcon" /> </Button>
 						</div>
 					</div>
 				</template>

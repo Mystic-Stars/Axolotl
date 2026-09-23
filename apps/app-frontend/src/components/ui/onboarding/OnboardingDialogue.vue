@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { RightArrowIcon, XIcon } from '@modrinth/assets'
-import { Button, ButtonStyled, useVIntl } from '@modrinth/ui'
+import { Button, useVIntl } from '@modrinth/ui'
 import { computed } from 'vue'
 
 import { onboardingMessages, type OnboardingStep } from './onboardingConfig'
@@ -36,11 +36,14 @@ const progressWidth = computed(() => `${Math.min(100, (props.current / props.tot
 					</p>
 					<h2 :id="`onboarding-title-${step.id}`">{{ formatMessage(step.title) }}</h2>
 				</div>
-				<ButtonStyled circular type="transparent">
-					<button :aria-label="formatMessage(onboardingMessages.skip)" @click.stop="$emit('skip')">
-						<XIcon />
-					</button>
-				</ButtonStyled>
+				<Button
+					type="quiet"
+					circular
+					icon-only
+					:aria-label="formatMessage(onboardingMessages.skip)"
+					@click.stop="$emit('skip')"
+					><XIcon />
+				</Button>
 			</div>
 			<div class="onboarding-dialogue-body">
 				<p :id="`onboarding-description-${step.id}`">

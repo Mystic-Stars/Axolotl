@@ -234,16 +234,18 @@
 								}}
 							</button>
 						</ButtonStyled>
-						<ButtonStyled v-if="tab === 'history'" circular type="transparent" size="small">
-							<button
-								v-tooltip="formatMessage(messages.deleteRecord)"
-								:aria-label="formatMessage(messages.deleteRecord)"
-								:disabled="busy.has(job.job_id)"
-								@click="remove(job)"
-							>
-								<TrashIcon />
-							</button>
-						</ButtonStyled>
+						<Button
+							v-if="tab === 'history'"
+							v-tooltip="formatMessage(messages.deleteRecord)"
+							type="quiet"
+							size="2xs"
+							circular
+							icon-only
+							:aria-label="formatMessage(messages.deleteRecord)"
+							:disabled="busy.has(job.job_id)"
+							@click="remove(job)"
+							><TrashIcon />
+						</Button>
 					</div>
 				</div>
 

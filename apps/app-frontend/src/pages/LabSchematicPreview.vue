@@ -1532,16 +1532,16 @@ onBeforeUnmount(() => {
 								}}
 							</span>
 						</button>
-						<ButtonStyled circular size="small" type="transparent">
-							<button
-								type="button"
-								:aria-label="formatMessage(messages.removeRecent)"
-								:title="formatMessage(messages.removeRecent)"
-								@click="recent = removeRecentSchematic(record.id)"
-							>
-								<XIcon />
-							</button>
-						</ButtonStyled>
+						<Button
+							type="quiet"
+							size="2xs"
+							circular
+							icon-only
+							:aria-label="formatMessage(messages.removeRecent)"
+							:title="formatMessage(messages.removeRecent)"
+							@click="recent = removeRecentSchematic(record.id)"
+							><XIcon />
+						</Button>
 					</li>
 				</ul>
 			</section>
@@ -1563,28 +1563,26 @@ onBeforeUnmount(() => {
 				</div>
 				<div class="schematic-toolbar-actions flex shrink-0 items-center gap-2">
 					<div class="schematic-command-group">
-						<ButtonStyled circular type="transparent">
-							<button
-								type="button"
-								:disabled="editHistory.length === 0 || Boolean(loadingStage) || applyingEdit"
-								:aria-label="formatMessage(messages.undo)"
-								:title="`${formatMessage(messages.undo)} (Ctrl+Z)`"
-								@click="undoEdit"
-							>
-								<UndoIcon />
-							</button>
-						</ButtonStyled>
-						<ButtonStyled circular type="transparent">
-							<button
-								type="button"
-								:disabled="redoHistory.length === 0 || Boolean(loadingStage) || applyingEdit"
-								:aria-label="formatMessage(messages.redo)"
-								:title="`${formatMessage(messages.redo)} (Ctrl+Y)`"
-								@click="redoEdit"
-							>
-								<RedoIcon />
-							</button>
-						</ButtonStyled>
+						<Button
+							type="quiet"
+							circular
+							icon-only
+							:disabled="editHistory.length === 0 || Boolean(loadingStage) || applyingEdit"
+							:aria-label="formatMessage(messages.undo)"
+							:title="`${formatMessage(messages.undo)} (Ctrl+Z)`"
+							@click="undoEdit"
+							><UndoIcon />
+						</Button>
+						<Button
+							type="quiet"
+							circular
+							icon-only
+							:disabled="redoHistory.length === 0 || Boolean(loadingStage) || applyingEdit"
+							:aria-label="formatMessage(messages.redo)"
+							:title="`${formatMessage(messages.redo)} (Ctrl+Y)`"
+							@click="redoEdit"
+							><RedoIcon />
+						</Button>
 					</div>
 					<ButtonStyled type="outlined">
 						<OverflowMenu
@@ -1766,16 +1764,16 @@ onBeforeUnmount(() => {
 								{{ measurement.size.join(' × ') }}
 							</div>
 						</div>
-						<ButtonStyled circular size="small" type="transparent">
-							<button
-								type="button"
-								:aria-label="formatMessage(messages.clearMeasurement)"
-								:title="formatMessage(messages.clearMeasurement)"
-								@click="clearMeasurement"
-							>
-								<XIcon />
-							</button>
-						</ButtonStyled>
+						<Button
+							type="quiet"
+							size="2xs"
+							circular
+							icon-only
+							:aria-label="formatMessage(messages.clearMeasurement)"
+							:title="formatMessage(messages.clearMeasurement)"
+							@click="clearMeasurement"
+							><XIcon />
+						</Button>
 					</div>
 					<div v-if="viewMode === 'orbit'" class="schematic-layer-control">
 						<span class="schematic-layer-heading">
@@ -1810,17 +1808,17 @@ onBeforeUnmount(() => {
 						<span class="schematic-layer-count">
 							{{ visibleLayerCount }}/{{ totalLayerCount }}
 						</span>
-						<ButtonStyled circular size="small" type="transparent">
-							<button
-								type="button"
-								:disabled="showingAllLayers"
-								:aria-label="formatMessage(messages.allLayers)"
-								:title="formatMessage(messages.allLayers)"
-								@click="showAllLayers"
-							>
-								<RefreshCwIcon />
-							</button>
-						</ButtonStyled>
+						<Button
+							type="quiet"
+							size="2xs"
+							circular
+							icon-only
+							:disabled="showingAllLayers"
+							:aria-label="formatMessage(messages.allLayers)"
+							:title="formatMessage(messages.allLayers)"
+							@click="showAllLayers"
+							><RefreshCwIcon />
+						</Button>
 					</div>
 					<div class="schematic-walk-control">
 						<ButtonStyled

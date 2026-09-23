@@ -1030,14 +1030,14 @@ useHead(() => ({
 									v-model="checkedMods[index]"
 									:aria-label="`${mod.name} ${formatMessage(messages.installedMods)}`"
 								/>
-								<ButtonStyled circular type="transparent">
-									<button
-										:aria-label="`${formatMessage(messages.actions)}: ${mod.name}`"
-										@click="removeMod(index)"
-									>
-										<TrashIcon />
-									</button>
-								</ButtonStyled>
+								<Button
+									type="quiet"
+									circular
+									icon-only
+									:aria-label="`${formatMessage(messages.actions)}: ${mod.name}`"
+									@click="removeMod(index)"
+									><TrashIcon />
+								</Button>
 							</div>
 						</div>
 					</TransitionGroup>

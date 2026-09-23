@@ -16,6 +16,7 @@ import {
 } from '@modrinth/assets'
 import {
 	Accordion,
+	Button,
 	ButtonStyled,
 	defineMessages,
 	DropdownSelect,
@@ -712,15 +713,16 @@ function formatAdapterName(adapterId: GradientFormatId): string {
 							</p>
 						</div>
 						<div class="flex items-center gap-1">
-							<ButtonStyled circular size="small" type="transparent">
-								<button
-									:title="formatMessage(messages.randomizeColors)"
-									:aria-label="formatMessage(messages.randomizeColors)"
-									@click="randomizeColors"
-								>
-									<RefreshCwIcon />
-								</button>
-							</ButtonStyled>
+							<Button
+								type="quiet"
+								size="2xs"
+								circular
+								icon-only
+								:title="formatMessage(messages.randomizeColors)"
+								:aria-label="formatMessage(messages.randomizeColors)"
+								@click="randomizeColors"
+								><RefreshCwIcon />
+							</Button>
 							<input
 								ref="newColorPicker"
 								type="color"
@@ -758,26 +760,28 @@ function formatAdapterName(adapterId: GradientFormatId): string {
 								@update:model-value="updateColor(index, String($event))"
 							/>
 							<div class="flex items-center gap-1">
-								<ButtonStyled circular size="small" type="transparent">
-									<button
-										:title="formatMessage(messages.moveColorUp)"
-										:aria-label="formatMessage(messages.moveColorUp)"
-										:disabled="index === 0"
-										@click="moveColor(index, -1)"
-									>
-										<ArrowUpIcon />
-									</button>
-								</ButtonStyled>
-								<ButtonStyled circular size="small" type="transparent">
-									<button
-										:title="formatMessage(messages.moveColorDown)"
-										:aria-label="formatMessage(messages.moveColorDown)"
-										:disabled="index === colors.length - 1"
-										@click="moveColor(index, 1)"
-									>
-										<ArrowDownIcon />
-									</button>
-								</ButtonStyled>
+								<Button
+									type="quiet"
+									size="2xs"
+									circular
+									icon-only
+									:title="formatMessage(messages.moveColorUp)"
+									:aria-label="formatMessage(messages.moveColorUp)"
+									:disabled="index === 0"
+									@click="moveColor(index, -1)"
+									><ArrowUpIcon />
+								</Button>
+								<Button
+									type="quiet"
+									size="2xs"
+									circular
+									icon-only
+									:title="formatMessage(messages.moveColorDown)"
+									:aria-label="formatMessage(messages.moveColorDown)"
+									:disabled="index === colors.length - 1"
+									@click="moveColor(index, 1)"
+									><ArrowDownIcon />
+								</Button>
 								<ButtonStyled circular size="small" type="transparent" color="red">
 									<button
 										:title="formatMessage(messages.removeColor)"

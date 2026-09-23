@@ -11,6 +11,7 @@ import {
 } from '@modrinth/assets'
 import {
 	Avatar,
+	Button,
 	ButtonStyled,
 	defineMessages,
 	injectNotificationManager,
@@ -245,34 +246,33 @@ async function unpinLocalServer(serverId: string) {
 						<div
 							class="ml-auto flex shrink-0 items-center gap-0.5 smart-clickable:allow-pointer-events"
 						>
-							<ButtonStyled
+							<Button
 								v-if="runningInstanceIds.includes(server.instance.id)"
+								v-tooltip="formatMessage(messages.stop)"
+								type="quiet"
+								size="2xs"
 								circular
-								size="small"
-								type="transparent"
-							>
-								<button
-									v-tooltip="formatMessage(messages.stop)"
-									class="!text-red"
-									@click="stopInstance(server.instance)"
-								>
-									<StopCircleIcon />
-								</button>
-							</ButtonStyled>
-							<ButtonStyled v-else circular size="small" type="transparent">
-								<button
-									v-tooltip="formatMessage(messages.join)"
-									class="!text-brand opacity-60 transition-opacity group-hover:opacity-100"
-									:disabled="startingServerKey === serverKey(server.world)"
-									@click="joinServer(server.world, server.instance)"
-								>
-									<SpinnerIcon
-										v-if="startingServerKey === serverKey(server.world)"
-										class="animate-spin"
-									/>
-									<PlayIcon v-else />
-								</button>
-							</ButtonStyled>
+								icon-only
+								class="!text-red"
+								@click="stopInstance(server.instance)"
+								><StopCircleIcon />
+							</Button>
+							<Button
+								v-else
+								v-tooltip="formatMessage(messages.join)"
+								type="quiet"
+								size="2xs"
+								circular
+								icon-only
+								class="!text-brand opacity-60 transition-opacity group-hover:opacity-100"
+								:disabled="startingServerKey === serverKey(server.world)"
+								@click="joinServer(server.world, server.instance)"
+								><SpinnerIcon
+									v-if="startingServerKey === serverKey(server.world)"
+									class="animate-spin"
+								/>
+								<PlayIcon v-else />
+							</Button>
 							<ButtonStyled circular size="small" type="transparent" class="home-server-menu">
 								<OverflowMenu
 									:options="[
@@ -334,16 +334,17 @@ async function unpinLocalServer(serverId: string) {
 						<div
 							class="ml-auto flex shrink-0 items-center gap-0.5 smart-clickable:allow-pointer-events"
 						>
-							<ButtonStyled circular size="small" type="transparent">
-								<button
-									v-tooltip="formatMessage(server.running ? messages.stop : messages.start)"
-									:class="server.running ? '!text-red' : '!text-brand'"
-									@click="server.running ? stopLocalServer(server.id) : startLocalServer(server.id)"
-								>
-									<StopCircleIcon v-if="server.running" />
-									<PlayIcon v-else />
-								</button>
-							</ButtonStyled>
+							<Button
+								v-tooltip="formatMessage(server.running ? messages.stop : messages.start)"
+								type="quiet"
+								size="2xs"
+								circular
+								icon-only
+								:class="server.running ? '!text-red' : '!text-brand'"
+								@click="server.running ? stopLocalServer(server.id) : startLocalServer(server.id)"
+								><StopCircleIcon v-if="server.running" />
+								<PlayIcon v-else />
+							</Button>
 							<ButtonStyled circular size="small" type="transparent" class="home-server-menu">
 								<OverflowMenu
 									:options="[{ id: 'unpin', action: () => unpinLocalServer(server.id) }]"

@@ -371,26 +371,28 @@ async function importModLoader() {
 					</div>
 				</div>
 				<div class="flex shrink-0 items-center gap-1">
-					<ButtonStyled circular size="small" type="transparent">
-						<button
-							v-tooltip="formatMessage(messages.moveUp)"
-							:aria-label="formatMessage(messages.moveUp)"
-							:disabled="busy || index === 0"
-							@click="run(() => move_core_component(instance.id, component.id, -1))"
-						>
-							<ArrowUpIcon />
-						</button>
-					</ButtonStyled>
-					<ButtonStyled circular size="small" type="transparent">
-						<button
-							v-tooltip="formatMessage(messages.moveDown)"
-							:aria-label="formatMessage(messages.moveDown)"
-							:disabled="busy || index === activeComponents.length - 1"
-							@click="run(() => move_core_component(instance.id, component.id, 1))"
-						>
-							<ArrowDownIcon />
-						</button>
-					</ButtonStyled>
+					<Button
+						v-tooltip="formatMessage(messages.moveUp)"
+						type="quiet"
+						size="2xs"
+						circular
+						icon-only
+						:aria-label="formatMessage(messages.moveUp)"
+						:disabled="busy || index === 0"
+						@click="run(() => move_core_component(instance.id, component.id, -1))"
+						><ArrowUpIcon />
+					</Button>
+					<Button
+						v-tooltip="formatMessage(messages.moveDown)"
+						type="quiet"
+						size="2xs"
+						circular
+						icon-only
+						:aria-label="formatMessage(messages.moveDown)"
+						:disabled="busy || index === activeComponents.length - 1"
+						@click="run(() => move_core_component(instance.id, component.id, 1))"
+						><ArrowDownIcon />
+					</Button>
 					<ButtonStyled circular color="red" size="small" type="transparent">
 						<button
 							v-tooltip="formatMessage(messages.remove)"
@@ -412,16 +414,17 @@ async function importModLoader() {
 				class="flex items-center gap-3 px-3 py-3"
 			>
 				<div class="min-w-0 flex-1 truncate text-secondary">{{ component.fileName }}</div>
-				<ButtonStyled circular size="small" type="transparent">
-					<button
-						v-tooltip="formatMessage(messages.restore)"
-						:aria-label="formatMessage(messages.restore)"
-						:disabled="busy"
-						@click="run(() => restore_core_component(instance.id, component.id))"
-					>
-						<RestoreIcon />
-					</button>
-				</ButtonStyled>
+				<Button
+					v-tooltip="formatMessage(messages.restore)"
+					type="quiet"
+					size="2xs"
+					circular
+					icon-only
+					:aria-label="formatMessage(messages.restore)"
+					:disabled="busy"
+					@click="run(() => restore_core_component(instance.id, component.id))"
+					><RestoreIcon />
+				</Button>
 			</div>
 		</div>
 	</div>

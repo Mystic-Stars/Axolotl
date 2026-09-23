@@ -4,17 +4,23 @@
 		class="flex items-center gap-2 mr-1.5"
 		data-tauri-drag-region-exclude
 	>
-		<ButtonStyled type="transparent" circular>
-			<button class="relative expanded-button" @click="() => getCurrentWindow().minimize()">
-				<MinimizeIcon />
-			</button>
-		</ButtonStyled>
-		<ButtonStyled type="transparent" circular>
-			<button class="relative expanded-button" @click="() => getCurrentWindow().toggleMaximize()">
-				<RestoreIcon v-if="isMaximized" />
-				<MaximizeIcon v-else />
-			</button>
-		</ButtonStyled>
+		<Button
+			type="quiet"
+			circular
+			icon-only
+			class="relative expanded-button"
+			@click="() => getCurrentWindow().minimize()"
+			><MinimizeIcon />
+		</Button>
+		<Button
+			type="quiet"
+			circular
+			icon-only
+			class="relative expanded-button"
+			@click="() => getCurrentWindow().toggleMaximize()"
+			><RestoreIcon v-if="isMaximized" />
+			<MaximizeIcon v-else />
+		</Button>
 		<ButtonStyled
 			type="transparent"
 			color="red"
@@ -31,7 +37,7 @@
 
 <script setup>
 import { MaximizeIcon, MinimizeIcon, RestoreIcon, XIcon } from '@modrinth/assets'
-import { ButtonStyled } from '@modrinth/ui'
+import { Button, ButtonStyled } from '@modrinth/ui'
 import { getCurrentWindow } from '@tauri-apps/api/window'
 import { saveWindowState, StateFlags } from '@tauri-apps/plugin-window-state'
 import { computed, onMounted, onUnmounted, ref } from 'vue'

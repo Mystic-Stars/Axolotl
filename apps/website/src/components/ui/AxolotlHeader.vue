@@ -108,26 +108,26 @@ function openSettings() {
 						{{ formatMessage(messages.download) }}
 					</a>
 				</ButtonStyled>
-				<ButtonStyled circular type="transparent">
-					<button :aria-label="formatMessage(messages.openSettings)" @click="openSettings">
-						<SettingsIcon aria-hidden="true" />
-					</button>
-				</ButtonStyled>
-				<ButtonStyled
+				<Button
+					type="quiet"
+					circular
+					icon-only
+					:aria-label="formatMessage(messages.openSettings)"
+					@click="openSettings"
+					><SettingsIcon aria-hidden="true" />
+				</Button>
+				<Button
 					ref="mobileMenuButtonRef"
 					class="hidden max-lg:flex"
+					type="quiet"
 					circular
-					type="transparent"
-				>
-					<button
-						:aria-label="formatMessage(mobileMenuOpen ? messages.closeMenu : messages.openMenu)"
-						:aria-expanded="mobileMenuOpen"
-						@click="mobileMenuOpen = !mobileMenuOpen"
-					>
-						<XIcon v-if="mobileMenuOpen" aria-hidden="true" />
-						<HamburgerIcon v-else aria-hidden="true" />
-					</button>
-				</ButtonStyled>
+					icon-only
+					:aria-label="formatMessage(mobileMenuOpen ? messages.closeMenu : messages.openMenu)"
+					:aria-expanded="mobileMenuOpen"
+					@click="mobileMenuOpen = !mobileMenuOpen"
+					><XIcon v-if="mobileMenuOpen" aria-hidden="true" />
+					<HamburgerIcon v-else aria-hidden="true" />
+				</Button>
 			</div>
 		</div>
 

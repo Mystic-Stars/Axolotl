@@ -479,15 +479,15 @@ defineExpose({ show, showBatch, showConflict })
 							{{ primaryError(primary) }}
 						</span>
 					</div>
-					<ButtonStyled v-if="primary.removable && primary.key" circular type="transparent">
-						<button
-							type="button"
-							:aria-label="formatMessage(messages.removeProject, { project: primary.title })"
-							@click="removePrimary(primary.key)"
-						>
-							<XIcon />
-						</button>
-					</ButtonStyled>
+					<Button
+						v-if="primary.removable && primary.key"
+						type="quiet"
+						circular
+						icon-only
+						:aria-label="formatMessage(messages.removeProject, { project: primary.title })"
+						@click="removePrimary(primary.key)"
+						><XIcon />
+					</Button>
 				</div>
 			</div>
 			<div

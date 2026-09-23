@@ -302,15 +302,14 @@ async function shareOnline() {
 		<template v-else-if="server">
 			<div class="flex min-w-0 shrink-0 flex-wrap items-center justify-between gap-3">
 				<div class="flex min-w-0 items-center gap-3">
-					<ButtonStyled type="transparent" circular>
-						<button
-							type="button"
-							:aria-label="formatMessage(messages.back)"
-							@click="router.push('/multiplayer/servers')"
-						>
-							<ArrowLeftIcon />
-						</button>
-					</ButtonStyled>
+					<Button
+						type="quiet"
+						circular
+						icon-only
+						:aria-label="formatMessage(messages.back)"
+						@click="router.push('/multiplayer/servers')"
+						><ArrowLeftIcon />
+					</Button>
 					<div class="group relative shrink-0">
 						<button
 							v-tooltip="formatMessage(messages.editIcon)"

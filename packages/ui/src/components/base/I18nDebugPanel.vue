@@ -11,7 +11,7 @@ import {
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 
 import { injectI18nDebug } from '../../composables/i18n-debug'
-import ButtonStyled from './ButtonStyled.vue'
+import Button from './buttons/Button.vue'
 import StyledInput from './StyledInput.vue'
 
 const debugContext = injectI18nDebug()
@@ -295,37 +295,41 @@ const listMaxHeight = computed(() => `${panelHeight.value - 120}px`)
 
 					<!-- Toolbar -->
 					<div class="ml-auto flex items-center gap-0.5">
-						<ButtonStyled circular type="transparent">
-							<button
-								v-tooltip="
-									debugContext?.keyReveal.value ? 'Hide keys inline' : 'Reveal keys inline'
-								"
-								@click="toggleKeyReveal"
-							>
-								<component :is="debugContext?.keyReveal.value ? EyeOffIcon : EyeIcon" />
-							</button>
-						</ButtonStyled>
-						<ButtonStyled circular type="transparent">
-							<button v-tooltip="'Toggle CSS debug overlay'" @click="toggleOverlay">
-								<ScanEyeIcon />
-							</button>
-						</ButtonStyled>
+						<Button
+							v-tooltip="debugContext?.keyReveal.value ? 'Hide keys inline' : 'Reveal keys inline'"
+							type="quiet"
+							circular
+							icon-only
+							@click="toggleKeyReveal"
+							><component :is="debugContext?.keyReveal.value ? EyeOffIcon : EyeIcon" />
+						</Button>
+						<Button
+							v-tooltip="'Toggle CSS debug overlay'"
+							type="quiet"
+							circular
+							icon-only
+							@click="toggleOverlay"
+							><ScanEyeIcon />
+						</Button>
 
 						<div class="mx-0.5 h-4 w-px bg-surface-5/60" />
 
-						<ButtonStyled circular type="transparent">
-							<button
-								v-tooltip="minimized ? 'Expand panel' : 'Minimize panel'"
-								@click="minimized = !minimized"
-							>
-								<component :is="minimized ? MaximizeIcon : MinusIcon" />
-							</button>
-						</ButtonStyled>
-						<ButtonStyled circular type="transparent">
-							<button v-tooltip="'Close inspector'" @click="closePanel">
-								<XIcon />
-							</button>
-						</ButtonStyled>
+						<Button
+							v-tooltip="minimized ? 'Expand panel' : 'Minimize panel'"
+							type="quiet"
+							circular
+							icon-only
+							@click="minimized = !minimized"
+							><component :is="minimized ? MaximizeIcon : MinusIcon" />
+						</Button>
+						<Button
+							v-tooltip="'Close inspector'"
+							type="quiet"
+							circular
+							icon-only
+							@click="closePanel"
+							><XIcon />
+						</Button>
 					</div>
 				</div>
 
