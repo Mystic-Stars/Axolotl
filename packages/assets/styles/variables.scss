@@ -244,13 +244,20 @@ html {
 .dark-mode,
 .dark,
 :root[data-theme='dark'] {
-	--surface-1: #16181c;
-	--surface-1-5: #1a1c20;
-	--surface-2: #1d1f23;
-	--surface-2-5: #222429;
-	--surface-3: #27292e;
-	--surface-4: #34363c;
-	--surface-5: #42444a;
+	// The dark ladder is wider than the light one on purpose. Shadows are
+	// invisible against a dark page (the shadow colour is itself near-black),
+	// so separation in this theme has to come from luminance alone. The
+	// previous steps differed by as little as 1.08:1, which reads as one flat
+	// surface -- that is what made cards, skeletons and empty-state artwork
+	// blend into the page. Each step is now at least ~1.12:1, and illustrations
+	// that outline themselves in `surface-4` gain enough edge to be visible.
+	--surface-1: #101215;
+	--surface-1-5: #15181c;
+	--surface-2: #1a1e24;
+	--surface-2-5: #20242b;
+	--surface-3: #262b34;
+	--surface-4: #333a46;
+	--surface-5: #424854;
 
 	--color-red-50: #fff0f1;
 	--color-red-100: #ffe2e6;
@@ -436,13 +443,16 @@ html {
 
 .oled-mode {
 	@extend .dark-mode;
+	// Same reasoning as `.dark` above: pure black makes the lower steps
+	// indistinguishable (the old `surface-1`/`surface-2` pair sat at 1.06:1),
+	// so the ladder opens up here too while `surface-1` stays true black.
 	--surface-1: #000000;
-	--surface-1-5: #050506;
-	--surface-2: #09090a;
-	--surface-2-5: #0c0d11;
-	--surface-3: #101013;
-	--surface-4: #1b1b20;
-	--surface-5: #25262b;
+	--surface-1-5: #070809;
+	--surface-2: #0c0e12;
+	--surface-2-5: #111419;
+	--surface-3: #171b21;
+	--surface-4: #242a33;
+	--surface-5: #333a45;
 
 	--color-ad: #0d1828;
 
