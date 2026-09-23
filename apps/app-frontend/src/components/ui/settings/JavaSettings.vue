@@ -33,6 +33,8 @@ import {
 } from '@/helpers/jre'
 import { get, set } from '@/helpers/settings.ts'
 
+import SettingsSection from './SettingsSection.vue'
+
 const { handleError } = injectNotificationManager()
 const { formatMessage } = useVIntl()
 
@@ -296,21 +298,28 @@ async function onJavaDownloaded(job) {
 	<InstalledJavaModal ref="installedJavaModal" @changed="reloadDefaults" />
 
 	<div class="settings-page flex flex-col gap-6">
-		<div
+		<SettingsSection
 			v-for="(javaVersion, index) in supportedJavaVersions"
 			:key="`java-${javaVersion}`"
-			class="flex flex-col gap-2.5"
 		>
-			<h2 class="m-0 text-lg font-semibold text-contrast" :class="{ 'mt-2': index !== 0 }">
-				{{ formatMessage(messages.javaLocation, { version: javaVersion }) }}
-			</h2>
-			<JavaSelector
-				:id="`java-selector-${javaVersion}`"
-				v-model="javaDefaults[javaVersion]"
-				:version="javaVersion"
-				@commit="saveDefault(javaVersion, $event)"
-			/>
-		</div>
+			<template #header>
+				<h2
+					:id="index === 0 ? 'settings-target-java-installations' : undefined"
+					:tabindex="index === 0 ? -1 : undefined"
+					class="m-0 text-lg font-semibold text-contrast"
+				>
+					{{ formatMessage(messages.javaLocation, { version: javaVersion }) }}
+				</h2>
+			</template>
+			<div class="p-4">
+				<JavaSelector
+					:id="`java-selector-${javaVersion}`"
+					v-model="javaDefaults[javaVersion]"
+					:version="javaVersion"
+					@commit="saveDefault(javaVersion, $event)"
+				/>
+			</div>
+		</SettingsSection>
 
 		<div class="flex flex-wrap gap-2 border-0 border-t border-solid border-button-border pt-5">
 			<Button
@@ -469,16 +478,12 @@ async function onJavaDownloaded(job) {
 </template>
 
 <style scoped>
+/* The action row at the end of the page is not a card; it only carries a
+   separator above it. Cards come from `SettingsSection` now, so there is no
+   positional rule turning every top-level child into one. */
 .settings-page > div {
-	padding: var(--gap-lg);
-	border: 1px solid var(--surface-4);
-	border-radius: var(--radius-md);
-	background: var(--surface-3);
-}
-
-.settings-page > div:has(.border-warning) {
-	padding: var(--gap-md);
-	background: var(--color-orange-bg);
+	border-top: 1px solid var(--surface-4);
+	padding-top: var(--gap-lg);
 }
 
 @media (max-width: 700px) {
