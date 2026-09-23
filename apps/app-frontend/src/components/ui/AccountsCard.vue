@@ -740,10 +740,7 @@ function getAccountAvatarUrl(account: MinecraftCredential) {
 	if (cachedHeadUrl) {
 		return cachedHeadUrl
 	}
-	if (
-		account.account_id === selectedAccount.value?.account_id &&
-		equippedSkin.value?.texture_key
-	) {
+	if (account.account_id === selectedAccount.value?.account_id && equippedSkin.value?.texture_key) {
 		const cachedUrl = headUrlCache.value.get(equippedSkin.value.texture_key)
 		if (cachedUrl) {
 			return cachedUrl
@@ -760,8 +757,18 @@ function persistDefaultUser(userId: string) {
 	return update
 }
 
+function getAccountId(account: MinecraftCredential): string {
+	if (account.account_id) return account.account_id
+
+	const profileId = account.profile.id
+	if (account.account_type === 'yggdrasil' && account.yggdrasil) {
+		return `${account.account_type}:${account.yggdrasil.api_root}:${profileId}`
+	}
+	return `${account.account_type}:${profileId}`
+}
+
 async function setAccount(account: MinecraftCredential) {
-	const userId = account.account_id
+	const userId = getAccountId(account)
 	refreshGeneration += 1
 	defaultUser.value = userId
 	equippedSkin.value = null
@@ -1017,7 +1024,7 @@ function isDuplicateUuidError(error: unknown) {
 }
 
 async function logout(account: MinecraftCredential) {
-	await remove_user(account.account_id).catch(handleError)
+	await remove_user(getAccountId(account)).catch(handleError)
 	await refreshValues()
 	if (!selectedAccount.value && accounts.value.length > 0) {
 		await setAccount(accounts.value[0])

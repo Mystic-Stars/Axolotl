@@ -1,6 +1,6 @@
 import type { Component } from 'vue'
 
-import { createContext } from '.'
+import { createContext } from './create-context.ts'
 
 export interface PopupNotificationButton {
 	label: string
@@ -79,15 +79,23 @@ export interface PopupNotification {
 export abstract class AbstractPopupNotificationManager {
 	protected readonly DEFAULT_AUTO_CLOSE_MS = 30 * 1000
 
+	constructor() {
+		this.addPopupNotification = this.addPopupNotification.bind(this)
+		this.removeNotification = this.removeNotification.bind(this)
+		this.clearAllNotifications = this.clearAllNotifications.bind(this)
+		this.setNotificationTimer = this.setNotificationTimer.bind(this)
+		this.collapseNotification = this.collapseNotification.bind(this)
+		this.expandNotification = this.expandNotification.bind(this)
+		this.stopNotificationTimer = this.stopNotificationTimer.bind(this)
+	}
+
 	abstract getNotifications(): PopupNotification[]
 
 	protected abstract addNotificationToStorage(notification: PopupNotification): void
 	protected abstract removeNotificationFromStorage(id: string | number): void
 	protected abstract clearAllNotificationsFromStorage(): void
 
-	addPopupNotification = (
-		notification: Omit<PopupNotification, 'id' | 'timer'>,
-	): PopupNotification => {
+	addPopupNotification(notification: Omit<PopupNotification, 'id' | 'timer'>): PopupNotification {
 		const newNotification: PopupNotification = {
 			...notification,
 			id: Date.now() + Math.random(),
@@ -99,7 +107,7 @@ export abstract class AbstractPopupNotificationManager {
 		return newNotification
 	}
 
-	removeNotification = (id: string | number): void => {
+	removeNotification(id: string | number): void {
 		const notifications = this.getNotifications()
 		const notification = notifications.find((n) => n.id === id)
 		if (notification) {
@@ -108,12 +116,12 @@ export abstract class AbstractPopupNotificationManager {
 		}
 	}
 
-	clearAllNotifications = (): void => {
+	clearAllNotifications(): void {
 		this.getNotifications().forEach((n) => this.clearNotificationTimer(n))
 		this.clearAllNotificationsFromStorage()
 	}
 
-	setNotificationTimer = (notification: PopupNotification): void => {
+	setNotificationTimer(notification: PopupNotification): void {
 		if (!notification) return
 		this.clearNotificationTimer(notification)
 
@@ -125,7 +133,7 @@ export abstract class AbstractPopupNotificationManager {
 		}, delay)
 	}
 
-	collapseNotification = (id: string | number): void => {
+	collapseNotification(id: string | number): void {
 		const notification = this.getNotifications().find((n) => n.id === id)
 		if (notification) {
 			this.clearNotificationTimer(notification)
@@ -133,7 +141,7 @@ export abstract class AbstractPopupNotificationManager {
 		}
 	}
 
-	expandNotification = (id: string | number): void => {
+	expandNotification(id: string | number): void {
 		const notification = this.getNotifications().find((n) => n.id === id)
 		if (notification) {
 			notification.collapsed = false
@@ -141,7 +149,7 @@ export abstract class AbstractPopupNotificationManager {
 		}
 	}
 
-	stopNotificationTimer = (notification: PopupNotification): void => {
+	stopNotificationTimer(notification: PopupNotification): void {
 		this.clearNotificationTimer(notification)
 	}
 

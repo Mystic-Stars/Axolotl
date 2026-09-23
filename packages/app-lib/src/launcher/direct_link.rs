@@ -388,6 +388,7 @@ fn resolve_content_game_dir(
         "shaderpacks",
         "datapacks",
         "schematics",
+        "screenshots",
     ] {
         let path = version_dir.join(name);
         if path.is_dir() {
@@ -2006,6 +2007,18 @@ mod tests {
         let root = tempfile::tempdir().unwrap();
         let version = root.path().join("versions/demo");
         std::fs::create_dir_all(version.join("mods")).unwrap();
+
+        assert_eq!(
+            resolve_content_game_dir(root.path(), &version).unwrap(),
+            version
+        );
+    }
+
+    #[test]
+    fn screenshots_folder_marks_version_as_isolated_game_dir() {
+        let root = tempfile::tempdir().unwrap();
+        let version = root.path().join("versions/demo");
+        std::fs::create_dir_all(version.join("screenshots")).unwrap();
 
         assert_eq!(
             resolve_content_game_dir(root.path(), &version).unwrap(),
