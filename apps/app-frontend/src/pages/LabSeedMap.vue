@@ -2816,24 +2816,26 @@ function clampWorldCoordinate(value: number) {
 						@click="toggleFullscreen"
 						><ContractIcon v-if="isFullscreen" /><ExpandIcon v-else
 					/></Button>
-					<ButtonStyled circular :type="rulerEnabled ? 'standard' : 'outlined'"
-						><button
-							v-tooltip="formatMessage(messages.ruler)"
-							:aria-label="formatMessage(messages.ruler)"
-							:aria-pressed="rulerEnabled"
-							@click="rulerEnabled = !rulerEnabled"
-						>
-							<ScaleIcon /></button
-					></ButtonStyled>
-					<ButtonStyled circular :type="advancedOpen ? 'standard' : 'outlined'"
-						><button
-							v-tooltip="formatMessage(messages.mapSettings)"
-							:aria-label="formatMessage(messages.mapSettings)"
-							:aria-pressed="advancedOpen"
-							@click="advancedOpen = !advancedOpen"
-						>
-							<SettingsIcon /></button
-					></ButtonStyled>
+					<Button
+						v-tooltip="formatMessage(messages.ruler)"
+						:type="rulerEnabled ? 'base' : 'outlined'"
+						circular
+						icon-only
+						:aria-label="formatMessage(messages.ruler)"
+						:aria-pressed="rulerEnabled"
+						@click="rulerEnabled = !rulerEnabled"
+						><ScaleIcon
+					/></Button>
+					<Button
+						v-tooltip="formatMessage(messages.mapSettings)"
+						:type="advancedOpen ? 'base' : 'outlined'"
+						circular
+						icon-only
+						:aria-label="formatMessage(messages.mapSettings)"
+						:aria-pressed="advancedOpen"
+						@click="advancedOpen = !advancedOpen"
+						><SettingsIcon
+					/></Button>
 				</div>
 
 				<div v-if="oreZoomLimited" class="map-status map-ore-status">

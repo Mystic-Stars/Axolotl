@@ -631,21 +631,16 @@ function submitJoin() {
 				</Button>
 				<template #menu>
 					<div class="flex w-44 flex-col gap-1 p-1">
-						<ButtonStyled
+						<Button
 							v-for="option in providerOptions"
 							:key="option.id"
-							:type="selectedProvider === option.id ? 'standard' : 'transparent'"
-						>
-							<button
-								type="button"
-								class="flex w-full items-center gap-2 !justify-start text-left"
-								:disabled="option.disabled"
-								@click="selectProvider(option.id)"
-							>
-								<img :src="option.image" class="size-4 shrink-0 object-contain" alt="" />
-								{{ formatMessage(option.label) }}
-							</button>
-						</ButtonStyled>
+							:type="selectedProvider === option.id ? 'base' : 'quiet'"
+							class="flex w-full items-center gap-2 !justify-start text-left"
+							:disabled="option.disabled"
+							@click="selectProvider(option.id)"
+							><img :src="option.image" class="size-4 shrink-0 object-contain" alt="" />
+							{{ formatMessage(option.label) }}
+						</Button>
 					</div>
 				</template>
 			</PopoutMenu>

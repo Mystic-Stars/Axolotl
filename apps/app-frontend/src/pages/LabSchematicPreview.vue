@@ -1856,58 +1856,60 @@ onBeforeUnmount(() => {
 							@click="scene?.fitView()"
 							><RotateCounterClockwiseIcon
 						/></Button>
-						<ButtonStyled
+						<Button
+							v-tooltip.top="formatMessage(messages.projection)"
+							:type="projection === 'orthographic' ? 'base' : 'outlined'"
+							size="2xs"
 							circular
-							size="small"
-							:type="projection === 'orthographic' ? 'standard' : 'outlined'"
-							><button
-								v-tooltip.top="formatMessage(messages.projection)"
-								type="button"
-								:aria-label="formatMessage(messages.projection)"
-								@click="toggleProjection"
-							>
-								<ScanEyeIcon /></button
-						></ButtonStyled>
-						<ButtonStyled circular size="small" :type="showGrid ? 'standard' : 'outlined'"
-							><button
-								v-tooltip.top="formatMessage(messages.grid)"
-								type="button"
-								:aria-label="formatMessage(messages.grid)"
-								@click="showGrid = !showGrid"
-							>
-								<GridIcon /></button
-						></ButtonStyled>
-						<ButtonStyled circular size="small" :type="showBounds ? 'standard' : 'outlined'"
-							><button
-								v-tooltip.top="formatMessage(messages.bounds)"
-								type="button"
-								:aria-label="formatMessage(messages.bounds)"
-								@click="showBounds = !showBounds"
-							>
-								<BoxIcon /></button
-						></ButtonStyled>
-						<ButtonStyled circular size="small" :type="showTranslucent ? 'standard' : 'outlined'"
-							><button
-								v-tooltip.top="formatMessage(messages.translucent)"
-								type="button"
-								:aria-label="formatMessage(messages.translucent)"
-								@click="showTranslucent = !showTranslucent"
-							>
-								<EyeIcon /></button
-						></ButtonStyled>
-						<ButtonStyled circular size="small" :type="isFullscreen ? 'standard' : 'outlined'"
-							><button
-								v-tooltip.top="
-									`${formatMessage(isFullscreen ? messages.exitFullscreen : messages.fullscreen)} (F11)`
-								"
-								type="button"
-								:aria-label="
-									formatMessage(isFullscreen ? messages.exitFullscreen : messages.fullscreen)
-								"
-								@click="toggleFullscreen"
-							>
-								<ContractIcon v-if="isFullscreen" /><MaximizeIcon v-else /></button
-						></ButtonStyled>
+							icon-only
+							:aria-label="formatMessage(messages.projection)"
+							@click="toggleProjection"
+							><ScanEyeIcon
+						/></Button>
+						<Button
+							v-tooltip.top="formatMessage(messages.grid)"
+							:type="showGrid ? 'base' : 'outlined'"
+							size="2xs"
+							circular
+							icon-only
+							:aria-label="formatMessage(messages.grid)"
+							@click="showGrid = !showGrid"
+							><GridIcon
+						/></Button>
+						<Button
+							v-tooltip.top="formatMessage(messages.bounds)"
+							:type="showBounds ? 'base' : 'outlined'"
+							size="2xs"
+							circular
+							icon-only
+							:aria-label="formatMessage(messages.bounds)"
+							@click="showBounds = !showBounds"
+							><BoxIcon
+						/></Button>
+						<Button
+							v-tooltip.top="formatMessage(messages.translucent)"
+							:type="showTranslucent ? 'base' : 'outlined'"
+							size="2xs"
+							circular
+							icon-only
+							:aria-label="formatMessage(messages.translucent)"
+							@click="showTranslucent = !showTranslucent"
+							><EyeIcon
+						/></Button>
+						<Button
+							v-tooltip.top="
+								`${formatMessage(isFullscreen ? messages.exitFullscreen : messages.fullscreen)} (F11)`
+							"
+							:type="isFullscreen ? 'base' : 'outlined'"
+							size="2xs"
+							circular
+							icon-only
+							:aria-label="
+								formatMessage(isFullscreen ? messages.exitFullscreen : messages.fullscreen)
+							"
+							@click="toggleFullscreen"
+							><ContractIcon v-if="isFullscreen" /><MaximizeIcon v-else
+						/></Button>
 					</div>
 					<div v-if="loadingStage" class="schematic-loading-status">
 						<SpinnerIcon class="size-4 animate-spin" />{{ loadingLabel

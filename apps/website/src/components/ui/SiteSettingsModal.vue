@@ -2,6 +2,7 @@
 import { DownloadIcon, LanguagesIcon, PaintbrushIcon } from '@modrinth/assets'
 import SettingsIcon from '@modrinth/assets/icons/settings.svg?component'
 import XIcon from '@modrinth/assets/icons/x.svg?component'
+import Button from '@modrinth/ui/src/components/base/buttons/Button.vue'
 import Combobox from '@modrinth/ui/src/components/base/Combobox.vue'
 import Toggle from '@modrinth/ui/src/components/base/Toggle.vue'
 import LanguageSelector from '@modrinth/ui/src/components/settings/LanguageSelector.vue'

@@ -11,7 +11,6 @@ import {
 import {
 	AutoLink,
 	Button,
-	ButtonStyled,
 	Collapsible,
 	defineMessages,
 	NewModal,
@@ -408,23 +407,17 @@ onBeforeUnmount(() => {
 											{{ getAutoVerifiedLabel(preset) }}
 										</p>
 									</div>
-									<ButtonStyled
-										:type="isPresetActive(preset) ? 'standard' : 'outlined'"
-										color="brand"
-									>
-										<button
-											type="button"
-											:disabled="isPresetActive(preset)"
-											@click="applyPreset(preset)"
-										>
-											<CheckIcon v-if="isPresetActive(preset)" aria-hidden="true" />
-											{{
-												formatMessage(
-													isPresetActive(preset) ? messages.presetApplied : messages.usePreset,
-												)
-											}}
-										</button>
-									</ButtonStyled>
+									<Button
+										:type="isPresetActive(preset) ? 'base' : 'outlined'"
+										:disabled="isPresetActive(preset)"
+										@click="applyPreset(preset)"
+										><CheckIcon v-if="isPresetActive(preset)" aria-hidden="true" />
+										{{
+											formatMessage(
+												isPresetActive(preset) ? messages.presetApplied : messages.usePreset,
+											)
+										}}
+									</Button>
 								</div>
 								<template v-if="preset.id !== 'gc-auto' || showAutoDetails">
 									<div class="flex items-center gap-2">

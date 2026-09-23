@@ -4,7 +4,6 @@ import {
 	Button,
 	defineMessages,
 	injectNotificationManager,
-	NewButton as Button,
 	NewModal,
 	Toggle,
 	useVIntl,
