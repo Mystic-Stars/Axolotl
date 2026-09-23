@@ -12,17 +12,18 @@
 	>
 		<template #title>
 			<div class="flex w-full min-w-0 items-center gap-3">
-				<ButtonStyled
+				<Button
 					v-if="backButtonVisible"
+					v-tooltip="backButtonLabel"
 					class="shrink-0"
 					type="outlined"
+					size="2xs"
 					circular
-					size="small"
-				>
-					<button v-tooltip="backButtonLabel" :aria-label="backButtonLabel" @click="prevStage()">
-						<ChevronLeftIcon />
-					</button>
-				</ButtonStyled>
+					icon-only
+					:aria-label="backButtonLabel"
+					@click="prevStage()"
+					><ChevronLeftIcon />
+				</Button>
 				<div
 					v-if="breadcrumbs && !resolveCtxFn(currentStage.nonProgressStage, context)"
 					class="relative min-w-0 flex-1"

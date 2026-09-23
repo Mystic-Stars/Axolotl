@@ -161,11 +161,9 @@
 				{{ formatMessage(messages.unsavedChanges) }}
 			</p>
 			<div class="ml-auto flex gap-2">
-				<ButtonStyled type="transparent">
-					<button @click="fileEditorRef?.revertChanges()">
-						<HistoryIcon /> {{ formatMessage(commonMessages.resetButton) }}
-					</button>
-				</ButtonStyled>
+				<Button type="quiet" @click="fileEditorRef?.revertChanges()"
+					><HistoryIcon /> {{ formatMessage(commonMessages.resetButton) }}
+				</Button>
 				<Button
 					v-tooltip="isBusy ? busyTooltip : undefined"
 					type="colored"
@@ -182,11 +180,9 @@
 					{{ formatMessage(messages.selectedCount, { count: selectedItems.size }) }}
 				</span>
 				<div class="mx-1 h-6 w-px bg-surface-5" />
-				<ButtonStyled type="transparent">
-					<button class="!text-primary" @click="deselectAll">
-						<span class="bar-label">{{ formatMessage(commonMessages.clearButton) }}</span>
-					</button>
-				</ButtonStyled>
+				<Button type="quiet" class="!text-primary" @click="deselectAll"
+					><span class="bar-label">{{ formatMessage(commonMessages.clearButton) }}</span>
+				</Button>
 			</div>
 			<div class="ml-auto flex items-center gap-0.5">
 				<div class="mx-1 h-6 w-px bg-surface-5" />

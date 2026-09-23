@@ -3,7 +3,7 @@ import { ChevronUpIcon } from '@modrinth/assets'
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 
 import { defineMessages, useVIntl } from '../../composables/i18n'
-import ButtonStyled from './ButtonStyled.vue'
+import Button from './buttons/Button.vue'
 
 const { formatMessage } = useVIntl()
 const messages = defineMessages({
@@ -40,17 +40,18 @@ onBeforeUnmount(() => {
 <template>
 	<Transition name="scroll-to-top">
 		<div v-if="visible" class="scroll-to-top-wrapper">
-			<ButtonStyled circular size="large" color="brand">
-				<button
-					v-tooltip="formatMessage(messages.tooltip)"
-					class="scroll-to-top-btn"
-					type="button"
-					:aria-label="formatMessage(messages.tooltip)"
-					@click="scrollToTop"
-				>
-					<ChevronUpIcon aria-hidden="true" />
-				</button>
-			</ButtonStyled>
+			<Button
+				v-tooltip="formatMessage(messages.tooltip)"
+				type="colored"
+				color="brand"
+				size="xl"
+				circular
+				icon-only
+				class="scroll-to-top-btn"
+				:aria-label="formatMessage(messages.tooltip)"
+				@click="scrollToTop"
+				><ChevronUpIcon aria-hidden="true" />
+			</Button>
 		</div>
 	</Transition>
 </template>

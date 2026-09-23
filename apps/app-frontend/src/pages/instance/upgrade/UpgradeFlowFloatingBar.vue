@@ -9,12 +9,15 @@
 			class="grid w-full min-w-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3"
 		>
 			<div class="justify-self-start">
-				<ButtonStyled v-if="!progress.complete && controls" type="outlined" size="small">
-					<button :disabled="!controls" @click="controls?.onBack()">
-						<ArrowLeftIcon aria-hidden="true" />
-						<span class="bar-label">{{ formatMessage(messages.back) }}</span>
-					</button>
-				</ButtonStyled>
+				<Button
+					v-if="!progress.complete && controls"
+					type="outlined"
+					size="2xs"
+					:disabled="!controls"
+					@click="controls?.onBack()"
+					><ArrowLeftIcon aria-hidden="true" />
+					<span class="bar-label">{{ formatMessage(messages.back) }}</span>
+				</Button>
 			</div>
 
 			<span
@@ -69,15 +72,17 @@
 
 			<div class="justify-self-end">
 				<span v-tooltip="blockerTooltip" tabindex="0" :aria-label="blockerTooltip">
-					<ButtonStyled v-if="!progress.complete && controls" color="brand" size="small">
-						<button :disabled="!controls || !canNext || busy" @click="controls?.onNext()">
-							<SpinnerIcon v-if="busy" class="animate-spin" aria-hidden="true" />
-							<CircleArrowRightIcon v-else aria-hidden="true" />
-							<span class="bar-label">{{
-								controls?.nextLabel ?? formatMessage(messages.next)
-							}}</span>
-						</button>
-					</ButtonStyled>
+					<Button
+						v-if="!progress.complete && controls"
+						type="colored"
+						color="brand"
+						size="2xs"
+						:disabled="!controls || !canNext || busy"
+						@click="controls?.onNext()"
+						><SpinnerIcon v-if="busy" class="animate-spin" aria-hidden="true" />
+						<CircleArrowRightIcon v-else aria-hidden="true" />
+						<span class="bar-label">{{ controls?.nextLabel ?? formatMessage(messages.next) }}</span>
+					</Button>
 				</span>
 			</div>
 		</div>
@@ -86,7 +91,7 @@
 
 <script setup lang="ts">
 import { ArrowLeftIcon, CheckCircleIcon, CircleArrowRightIcon, SpinnerIcon } from '@modrinth/assets'
-import { ButtonStyled, defineMessages, FloatingActionBar, useVIntl } from '@modrinth/ui'
+import { Button, defineMessages, FloatingActionBar, useVIntl } from '@modrinth/ui'
 import { computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
 

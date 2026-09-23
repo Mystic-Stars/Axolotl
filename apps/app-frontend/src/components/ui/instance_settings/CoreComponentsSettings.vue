@@ -10,14 +10,7 @@ import {
 	RestoreIcon,
 	TrashIcon,
 } from '@modrinth/assets'
-import {
-	Button,
-	ButtonStyled,
-	Checkbox,
-	defineMessages,
-	injectNotificationManager,
-	useVIntl,
-} from '@modrinth/ui'
+import { Button, Checkbox, defineMessages, injectNotificationManager, useVIntl } from '@modrinth/ui'
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import { open } from '@tauri-apps/plugin-dialog'
 import { openUrl } from '@tauri-apps/plugin-opener'
@@ -301,12 +294,10 @@ async function importModLoader() {
 				><DownloadIcon />
 				{{ formatMessage(messages.modLoader) }}
 			</Button>
-			<ButtonStyled type="transparent">
-				<button :disabled="busy" @click="preview">
-					<EyeIcon />
-					{{ formatMessage(messages.preview) }}
-				</button>
-			</ButtonStyled>
+			<Button type="quiet" :disabled="busy" @click="preview"
+				><EyeIcon />
+				{{ formatMessage(messages.preview) }}
+			</Button>
 		</div>
 
 		<div
@@ -393,16 +384,18 @@ async function importModLoader() {
 						@click="run(() => move_core_component(instance.id, component.id, 1))"
 						><ArrowDownIcon />
 					</Button>
-					<ButtonStyled circular color="red" size="small" type="transparent">
-						<button
-							v-tooltip="formatMessage(messages.remove)"
-							:aria-label="formatMessage(messages.remove)"
-							:disabled="busy"
-							@click="run(() => remove_core_component(instance.id, component.id))"
-						>
-							<TrashIcon />
-						</button>
-					</ButtonStyled>
+					<Button
+						v-tooltip="formatMessage(messages.remove)"
+						type="quiet"
+						color="red"
+						size="2xs"
+						circular
+						icon-only
+						:aria-label="formatMessage(messages.remove)"
+						:disabled="busy"
+						@click="run(() => remove_core_component(instance.id, component.id))"
+						><TrashIcon />
+					</Button>
 				</div>
 			</div>
 		</div>

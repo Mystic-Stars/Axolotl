@@ -136,16 +136,16 @@
 				</div>
 			</template>
 		</Dropdown>
-		<ButtonStyled
+		<Button
 			v-if="!isDownloadsPage && hasActiveDownloads && !hasVisibleActiveDownloadToasts"
+			v-tooltip="formatMessage(messages.viewActiveDownloads)"
+			type="quiet"
 			color="brand"
-			type="transparent"
 			circular
-		>
-			<button v-tooltip="formatMessage(messages.viewActiveDownloads)" @click="goToDownloads">
-				<DownloadIcon />
-			</button>
-		</ButtonStyled>
+			icon-only
+			@click="goToDownloads"
+			><DownloadIcon />
+		</Button>
 		<div v-if="offline" class="flex items-center gap-1">
 			<UnplugIcon class="text-secondary" />
 			<span class="text-sm text-contrast"> {{ formatMessage(messages.offline) }} </span>
@@ -268,7 +268,6 @@ import {
 } from '@modrinth/assets'
 import {
 	Button,
-	ButtonStyled,
 	defineMessages,
 	injectNotificationManager,
 	injectPopupNotificationManager,

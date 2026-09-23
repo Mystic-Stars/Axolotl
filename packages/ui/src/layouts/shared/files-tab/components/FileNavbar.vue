@@ -24,18 +24,16 @@
 			>
 				<ol class="m-0 flex min-w-0 flex-shrink list-none items-center p-0">
 					<li class="mr-4 flex-shrink-0">
-						<ButtonStyled circular>
-							<button
-								v-tooltip="formatMessage(messages.backToHome)"
-								type="button"
-								class="!size-10 bg-surface-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
-								@click="$emit('navigateHome')"
-								@mouseenter="$emit('prefetchHome')"
-							>
-								<HomeIcon />
-								<span class="sr-only">{{ formatMessage(messages.home) }}</span>
-							</button>
-						</ButtonStyled>
+						<Button
+							v-tooltip="formatMessage(messages.backToHome)"
+							circular
+							icon-only
+							class="!size-10 bg-surface-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+							@click="$emit('navigateHome')"
+							@mouseenter="$emit('prefetchHome')"
+							><HomeIcon />
+							<span class="sr-only">{{ formatMessage(messages.home) }}</span>
+						</Button>
 					</li>
 					<li class="m-0 -ml-2 min-w-0 flex-shrink p-0">
 						<ol
@@ -64,20 +62,18 @@
 									class="relative flex shrink-0 items-center text-sm"
 								>
 									<div class="flex shrink-0 items-center">
-										<ButtonStyled type="transparent">
-											<button
-												class="cursor-pointer whitespace-nowrap focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
-												:aria-current="
-													!isEditing && index === breadcrumbs.length - 1 ? 'location' : undefined
-												"
-												:class="{
-													'!text-contrast': !isEditing && index === breadcrumbs.length - 1,
-												}"
-												@click="$emit('navigate', index)"
-											>
-												{{ segment || '' }}
-											</button>
-										</ButtonStyled>
+										<Button
+											type="quiet"
+											class="cursor-pointer whitespace-nowrap focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+											:aria-current="
+												!isEditing && index === breadcrumbs.length - 1 ? 'location' : undefined
+											"
+											:class="{
+												'!text-contrast': !isEditing && index === breadcrumbs.length - 1,
+											}"
+											@click="$emit('navigate', index)"
+											>{{ segment || '' }}
+										</Button>
 										<ChevronRightIcon
 											v-if="index < breadcrumbs.length - 1 || isEditing"
 											class="size-4 flex-shrink-0 text-secondary"

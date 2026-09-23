@@ -23,13 +23,11 @@
 					><XIcon />
 					{{ formatMessage(commonMessages.cancelButton) }}
 				</Button>
-				<ButtonStyled color="orange">
-					<button :disabled="isProceeding" @click="proceed">
-						<SpinnerIcon v-if="isProceeding" class="animate-spin" />
-						<CircleArrowRightIcon v-else />
-						{{ formatMessage(messages.installAnyway) }}
-					</button>
-				</ButtonStyled>
+				<Button type="colored" color="orange" :disabled="isProceeding" @click="proceed"
+					><SpinnerIcon v-if="isProceeding" class="animate-spin" />
+					<CircleArrowRightIcon v-else />
+					{{ formatMessage(messages.installAnyway) }}
+				</Button>
 			</div>
 		</div>
 	</NewModal>
@@ -40,7 +38,6 @@ import { CircleArrowRightIcon, SpinnerIcon, XIcon } from '@modrinth/assets'
 import {
 	Admonition,
 	Button,
-	ButtonStyled,
 	Checkbox,
 	commonMessages,
 	defineMessages,

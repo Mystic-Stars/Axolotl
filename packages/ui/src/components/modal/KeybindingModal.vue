@@ -13,11 +13,9 @@
 					<KeybindingChips v-if="props.binding" :binding="props.binding" />
 					<span v-else class="text-sm text-secondary">{{ formatMessage(messages.unset) }}</span>
 				</div>
-				<ButtonStyled v-if="canRestoreDefault" size="small" type="outlined">
-					<button type="button" @click="restoreDefault">
-						{{ formatMessage(messages.restoreDefault) }}
-					</button>
-				</ButtonStyled>
+				<Button v-if="canRestoreDefault" type="outlined" size="2xs" @click="restoreDefault"
+					>{{ formatMessage(messages.restoreDefault) }}
+				</Button>
 			</div>
 
 			<button

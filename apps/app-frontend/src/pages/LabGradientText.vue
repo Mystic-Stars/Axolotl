@@ -642,16 +642,12 @@ function formatAdapterName(adapterId: GradientFormatId): string {
 						class="max-w-[21rem] max-[680px]:max-w-none"
 					/>
 				</div>
-				<ButtonStyled size="standard" type="outlined">
-					<button @click="copyOutput">
-						<ClipboardCopyIcon />{{ formatMessage(messages.copy) }}
-					</button>
-				</ButtonStyled>
-				<ButtonStyled size="standard" color="brand">
-					<button @click="exportOutput">
-						<DownloadIcon />{{ formatMessage(messages.export) }}
-					</button>
-				</ButtonStyled>
+				<Button type="outlined" size="md" @click="copyOutput"
+					><ClipboardCopyIcon />{{ formatMessage(messages.copy) }}
+				</Button>
+				<Button type="colored" color="brand" size="md" @click="exportOutput"
+					><DownloadIcon />{{ formatMessage(messages.export) }}
+				</Button>
 			</div>
 		</header>
 
@@ -731,11 +727,9 @@ function formatAdapterName(adapterId: GradientFormatId): string {
 								class="lab-new-color-picker"
 								@change="addPickedColor(($event.target as HTMLInputElement).value)"
 							/>
-							<ButtonStyled color="brand" size="small">
-								<button @click="openNewColorPicker">
-									<PlusIcon />{{ formatMessage(messages.addColor) }}
-								</button>
-							</ButtonStyled>
+							<Button type="colored" color="brand" size="2xs" @click="openNewColorPicker"
+								><PlusIcon />{{ formatMessage(messages.addColor) }}
+							</Button>
 						</div>
 					</div>
 					<div
@@ -782,16 +776,18 @@ function formatAdapterName(adapterId: GradientFormatId): string {
 									@click="moveColor(index, 1)"
 									><ArrowDownIcon />
 								</Button>
-								<ButtonStyled circular size="small" type="transparent" color="red">
-									<button
-										:title="formatMessage(messages.removeColor)"
-										:aria-label="formatMessage(messages.removeColor)"
-										:disabled="colors.length <= 1"
-										@click="removeColor(index)"
-									>
-										<TrashIcon />
-									</button>
-								</ButtonStyled>
+								<Button
+									type="quiet"
+									color="red"
+									size="2xs"
+									circular
+									icon-only
+									:title="formatMessage(messages.removeColor)"
+									:aria-label="formatMessage(messages.removeColor)"
+									:disabled="colors.length <= 1"
+									@click="removeColor(index)"
+									><TrashIcon />
+								</Button>
 							</div>
 						</div>
 					</div>
@@ -802,11 +798,9 @@ function formatAdapterName(adapterId: GradientFormatId): string {
 							wrapper-class="min-w-0 flex-1"
 							@keydown.enter.prevent="applyImportedColors"
 						/>
-						<ButtonStyled size="standard" type="outlined">
-							<button @click="applyImportedColors">
-								{{ formatMessage(messages.importColors) }}
-							</button>
-						</ButtonStyled>
+						<Button type="outlined" size="md" @click="applyImportedColors"
+							>{{ formatMessage(messages.importColors) }}
+						</Button>
 					</div>
 					<p v-if="importError" class="m-0 mt-2 text-sm text-red">{{ importError }}</p>
 				</section>
@@ -832,11 +826,14 @@ function formatAdapterName(adapterId: GradientFormatId): string {
 								wrapper-class="min-w-0 flex-1"
 								@keydown.enter.prevent="savePreset"
 							/>
-							<ButtonStyled size="small" color="brand">
-								<button :disabled="!presetName.trim()" @click="savePreset">
-									<PlusIcon />{{ formatMessage(messages.savePreset) }}
-								</button>
-							</ButtonStyled>
+							<Button
+								type="colored"
+								color="brand"
+								size="2xs"
+								:disabled="!presetName.trim()"
+								@click="savePreset"
+								><PlusIcon />{{ formatMessage(messages.savePreset) }}
+							</Button>
 						</div>
 						<div v-if="presets.length" class="flex flex-col gap-1.5">
 							<div
@@ -860,15 +857,17 @@ function formatAdapterName(adapterId: GradientFormatId): string {
 										></span>
 									</span>
 								</button>
-								<ButtonStyled circular size="small" type="transparent" color="red">
-									<button
-										:title="formatMessage(messages.deletePreset)"
-										:aria-label="formatMessage(messages.deletePreset)"
-										@click="deletePreset(preset.id)"
-									>
-										<TrashIcon />
-									</button>
-								</ButtonStyled>
+								<Button
+									type="quiet"
+									color="red"
+									size="2xs"
+									circular
+									icon-only
+									:title="formatMessage(messages.deletePreset)"
+									:aria-label="formatMessage(messages.deletePreset)"
+									@click="deletePreset(preset.id)"
+									><TrashIcon />
+								</Button>
 							</div>
 						</div>
 						<div class="flex flex-wrap gap-2">

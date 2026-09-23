@@ -12,12 +12,10 @@
 					><XIcon />
 					{{ localizeIfPossible(stayLabel) }}
 				</Button>
-				<ButtonStyled color="red">
-					<button @click="leave">
-						<RightArrowIcon />
-						{{ localizeIfPossible(leaveLabel) }}
-					</button>
-				</ButtonStyled>
+				<Button type="colored" color="red" @click="leave"
+					><RightArrowIcon />
+					{{ localizeIfPossible(leaveLabel) }}
+				</Button>
 			</div>
 		</template>
 	</NewModal>
@@ -29,7 +27,6 @@ import { ref } from 'vue'
 
 import Admonition from '#ui/components/base/Admonition.vue'
 import Button from '#ui/components/base/buttons/Button.vue'
-import ButtonStyled from '#ui/components/base/ButtonStyled.vue'
 import { defineMessage, type MessageDescriptor, useVIntl } from '#ui/composables/i18n'
 
 import NewModal from './NewModal.vue'

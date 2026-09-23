@@ -2,7 +2,6 @@
 import { ExternalIcon, ShieldIcon, SpinnerIcon } from '@modrinth/assets'
 import {
 	Button,
-	ButtonStyled,
 	defineMessages,
 	injectNotificationManager,
 	NewModal,
@@ -128,12 +127,10 @@ defineExpose({ show })
 
 		<template #actions>
 			<div class="flex items-center justify-between gap-4">
-				<ButtonStyled type="transparent">
-					<button type="button" :disabled="saving" @click="openUrl('https://axlmc.org/privacy')">
-						<ExternalIcon />
-						{{ formatMessage(messages.privacyPolicy) }}
-					</button>
-				</ButtonStyled>
+				<Button type="quiet" :disabled="saving" @click="openUrl('https://axlmc.org/privacy')"
+					><ExternalIcon />
+					{{ formatMessage(messages.privacyPolicy) }}
+				</Button>
 				<Button type="colored" color="brand" :disabled="saving" @click="save"
 					><SpinnerIcon v-if="saving" class="animate-spin" />
 					{{ formatMessage(messages.continue) }}

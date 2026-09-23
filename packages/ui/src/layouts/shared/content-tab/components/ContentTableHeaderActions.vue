@@ -83,15 +83,13 @@ const emit = defineEmits<{
 						</button>
 					</ButtonStyled>
 					<div class="my-1 h-px bg-surface-5" />
-					<ButtonStyled type="transparent">
-						<button
-							class="flex w-full items-center gap-2 !justify-start text-left"
-							@click="emit('resetView')"
-						>
-							<RotateCounterClockwiseIcon class="size-4" />
-							<span>{{ props.resetTooltip }}</span>
-						</button>
-					</ButtonStyled>
+					<Button
+						type="quiet"
+						class="flex w-full items-center gap-2 !justify-start text-left"
+						@click="emit('resetView')"
+						><RotateCounterClockwiseIcon class="size-4" />
+						<span>{{ props.resetTooltip }}</span>
+					</Button>
 				</div>
 			</template>
 		</PopoutMenu>

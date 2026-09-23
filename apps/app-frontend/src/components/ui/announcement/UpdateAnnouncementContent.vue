@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ExternalIcon } from '@modrinth/assets'
-import { Admonition, BulletDivider, ButtonStyled, defineMessages, useVIntl } from '@modrinth/ui'
+import { Admonition, BulletDivider, Button, defineMessages, useVIntl } from '@modrinth/ui'
 import { openUrl } from '@tauri-apps/plugin-opener'
 import { computed } from 'vue'
 
@@ -159,12 +159,15 @@ async function openChangelog() {
 			</p>
 		</div>
 
-		<ButtonStyled v-if="externalUrl" color="brand" type="outlined" class="self-start">
-			<button type="button" @click="openChangelog">
-				<ExternalIcon />
-				{{ formatMessage(messages.openChangelog) }}
-			</button>
-		</ButtonStyled>
+		<Button
+			v-if="externalUrl"
+			class="self-start"
+			type="outlined"
+			color="brand"
+			@click="openChangelog"
+			><ExternalIcon />
+			{{ formatMessage(messages.openChangelog) }}
+		</Button>
 	</div>
 </template>
 

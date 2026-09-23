@@ -17,7 +17,6 @@ import {
 import {
 	Admonition,
 	Button,
-	ButtonStyled,
 	defineMessages,
 	injectFilePicker,
 	injectNotificationManager,
@@ -367,12 +366,14 @@ async function shareOnline() {
 				</div>
 
 				<div class="flex flex-wrap gap-2">
-					<ButtonStyled v-if="server.status === 'running'" color="red" type="outlined">
-						<button type="button" @click="toggleRunning">
-							<StopCircleIcon />
-							{{ formatMessage(messages.stop) }}
-						</button>
-					</ButtonStyled>
+					<Button
+						v-if="server.status === 'running'"
+						type="outlined"
+						color="red"
+						@click="toggleRunning"
+						><StopCircleIcon />
+						{{ formatMessage(messages.stop) }}
+					</Button>
 					<Button v-else-if="setupStatus === 'installing'" type="outlined" disabled
 						><LoaderCircleIcon class="animate-spin" />
 						{{ formatMessage(messages.downloading) }}
@@ -431,20 +432,20 @@ async function shareOnline() {
 							><PencilIcon />
 							{{ formatMessage(messages.portChange) }}
 						</Button>
-						<ButtonStyled color="red">
-							<button type="button" :disabled="killingPortProcess" @click="forceQuitPortProcess">
-								<LoaderCircleIcon v-if="killingPortProcess" class="animate-spin" />
-								<ShieldIcon v-else />
-								{{ formatMessage(messages.portForceQuit) }}
-							</button>
-						</ButtonStyled>
-						<ButtonStyled type="transparent">
-							<button type="button" :disabled="checkingPort" @click="recheckPort">
-								<LoaderCircleIcon v-if="checkingPort" class="animate-spin" />
-								<RefreshCwIcon v-else />
-								{{ formatMessage(messages.portRecheck) }}
-							</button>
-						</ButtonStyled>
+						<Button
+							type="colored"
+							color="red"
+							:disabled="killingPortProcess"
+							@click="forceQuitPortProcess"
+							><LoaderCircleIcon v-if="killingPortProcess" class="animate-spin" />
+							<ShieldIcon v-else />
+							{{ formatMessage(messages.portForceQuit) }}
+						</Button>
+						<Button type="quiet" :disabled="checkingPort" @click="recheckPort"
+							><LoaderCircleIcon v-if="checkingPort" class="animate-spin" />
+							<RefreshCwIcon v-else />
+							{{ formatMessage(messages.portRecheck) }}
+						</Button>
 					</div>
 				</template>
 			</Admonition>

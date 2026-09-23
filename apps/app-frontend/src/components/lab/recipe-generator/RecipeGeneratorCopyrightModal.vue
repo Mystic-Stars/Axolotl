@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { CodeIcon, ExternalIcon, ImageIcon, InfoIcon } from '@modrinth/assets'
-import { ButtonStyled, defineMessages, NewModal, useVIntl } from '@modrinth/ui'
+import { Button, defineMessages, NewModal, useVIntl } from '@modrinth/ui'
 import { openUrl } from '@tauri-apps/plugin-opener'
 import { useTemplateRef } from 'vue'
 
@@ -64,12 +64,13 @@ defineExpose({
 				<div>
 					<h3>{{ formatMessage(messages.tagsHeading) }}</h3>
 					<p>{{ formatMessage(messages.tagsBody) }}</p>
-					<ButtonStyled size="small" type="outlined">
-						<button @click="openUrl('https://github.com/destruc7i0n/crafting')">
-							{{ formatMessage(messages.viewTags) }}
-							<ExternalIcon />
-						</button>
-					</ButtonStyled>
+					<Button
+						type="outlined"
+						size="2xs"
+						@click="openUrl('https://github.com/destruc7i0n/crafting')"
+						>{{ formatMessage(messages.viewTags) }}
+						<ExternalIcon />
+					</Button>
 				</div>
 			</section>
 
@@ -80,12 +81,13 @@ defineExpose({
 				<div>
 					<h3>{{ formatMessage(messages.texturesHeading) }}</h3>
 					<p>{{ formatMessage(messages.texturesBody) }}</p>
-					<ButtonStyled size="small" type="outlined">
-						<button @click="openUrl('https://github.com/destruc7i0n/minecraft-textures')">
-							{{ formatMessage(messages.viewTextures) }}
-							<ExternalIcon />
-						</button>
-					</ButtonStyled>
+					<Button
+						type="outlined"
+						size="2xs"
+						@click="openUrl('https://github.com/destruc7i0n/minecraft-textures')"
+						>{{ formatMessage(messages.viewTextures) }}
+						<ExternalIcon />
+					</Button>
 				</div>
 			</section>
 

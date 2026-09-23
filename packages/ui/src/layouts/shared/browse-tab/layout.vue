@@ -228,11 +228,9 @@ const skeletonCount = computed(() => {
 					:tooltip="ctx.displayModeTooltip?.value"
 					placement="bottom-end"
 				>
-					<ButtonStyled circular>
-						<button :aria-label="ctx.displayModeTooltip?.value">
-							<component :is="selectedDisplayMode?.icon" />
-						</button>
-					</ButtonStyled>
+					<Button circular icon-only :aria-label="ctx.displayModeTooltip?.value"
+						><component :is="selectedDisplayMode?.icon" />
+					</Button>
 					<template #menu>
 						<div class="flex w-44 flex-col gap-1 p-1">
 							<ButtonStyled

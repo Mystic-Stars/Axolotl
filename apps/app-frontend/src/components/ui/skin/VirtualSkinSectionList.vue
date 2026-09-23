@@ -3,7 +3,6 @@ import { DropdownIcon, EditIcon, PlusIcon, TrashIcon, UnknownIcon } from '@modri
 import {
 	Accordion,
 	Button,
-	ButtonStyled,
 	commonMessages,
 	defineMessages,
 	SkinButton,
@@ -496,16 +495,18 @@ defineExpose({ getAddSkinButtonElement })
 										@click.stop="(event: MouseEvent) => emit('edit', skin, event)"
 										><EditIcon /> {{ formatMessage(commonMessages.editButton) }}
 									</Button>
-									<ButtonStyled v-show="!skin.is_equipped" circular color="red">
-										<button
-											v-tooltip="formatMessage(messages.deleteSkinButton)"
-											:aria-label="formatMessage(messages.deleteSkinButton)"
-											class="!rounded-[100%] pointer-events-auto"
-											@click.stop="emit('delete', skin)"
-										>
-											<TrashIcon />
-										</button>
-									</ButtonStyled>
+									<Button
+										v-show="!skin.is_equipped"
+										v-tooltip="formatMessage(messages.deleteSkinButton)"
+										type="colored"
+										color="red"
+										circular
+										icon-only
+										:aria-label="formatMessage(messages.deleteSkinButton)"
+										class="!rounded-[100%] pointer-events-auto"
+										@click.stop="emit('delete', skin)"
+										><TrashIcon />
+									</Button>
 								</template>
 							</SkinButton>
 						</div>
@@ -535,16 +536,18 @@ defineExpose({ getAddSkinButtonElement })
 										@click.stop="(event: MouseEvent) => emit('edit', skin, event)"
 										><EditIcon /> {{ formatMessage(commonMessages.editButton) }}
 									</Button>
-									<ButtonStyled v-show="!skin.is_equipped" circular color="red">
-										<button
-											v-tooltip="formatMessage(messages.deleteSkinButton)"
-											:aria-label="formatMessage(messages.deleteSkinButton)"
-											class="!rounded-[100%] pointer-events-auto"
-											@click.stop="emit('delete', skin)"
-										>
-											<TrashIcon />
-										</button>
-									</ButtonStyled>
+									<Button
+										v-show="!skin.is_equipped"
+										v-tooltip="formatMessage(messages.deleteSkinButton)"
+										type="colored"
+										color="red"
+										circular
+										icon-only
+										:aria-label="formatMessage(messages.deleteSkinButton)"
+										class="!rounded-[100%] pointer-events-auto"
+										@click.stop="emit('delete', skin)"
+										><TrashIcon />
+									</Button>
 								</template>
 							</SkinButton>
 						</div>

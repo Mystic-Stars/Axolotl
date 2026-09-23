@@ -20,11 +20,9 @@
 			<div class="border-0 border-t border-solid border-brand-orange/60 bg-bg-orange p-4">
 				<p class="m-0">{{ formatMessage(messages.postUpgradeNoticeBody) }}</p>
 				<div class="mt-3 flex justify-end">
-					<ButtonStyled color="orange" size="small">
-						<button type="button" @click="dismissPostUpgradeNotice">
-							{{ formatMessage(messages.ignoreAllPostUpgradeWarnings) }}
-						</button>
-					</ButtonStyled>
+					<Button type="colored" color="orange" size="2xs" @click="dismissPostUpgradeNotice"
+						>{{ formatMessage(messages.ignoreAllPostUpgradeWarnings) }}
+					</Button>
 				</div>
 			</div>
 		</CollapsibleAdmonition>
@@ -67,12 +65,10 @@
 					}}
 				</p>
 				<div class="mt-3 flex justify-end">
-					<ButtonStyled color="orange" size="small">
-						<button @click="openManualCurseForgeResolver">
-							<FolderSearchIcon />
-							{{ formatMessage(messages.completeSkippedFiles) }}
-						</button>
-					</ButtonStyled>
+					<Button type="colored" color="orange" size="2xs" @click="openManualCurseForgeResolver"
+						><FolderSearchIcon />
+						{{ formatMessage(messages.completeSkippedFiles) }}
+					</Button>
 				</div>
 			</div>
 		</CollapsibleAdmonition>
@@ -215,6 +211,7 @@ import {
 	UndoIcon,
 } from '@modrinth/assets'
 import {
+	Button,
 	ButtonStyled,
 	CollapsibleAdmonition,
 	commonMessages,

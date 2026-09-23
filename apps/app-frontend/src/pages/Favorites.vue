@@ -15,6 +15,7 @@ import {
 import {
 	type BrowseInstallContext,
 	BrowseInstallHeader,
+	Button,
 	ButtonStyled,
 	commonMessages,
 	defineMessages,
@@ -757,37 +758,33 @@ onMounted(async () => {
 				wrapper-class="flex-1"
 				input-class="h-12"
 			/>
-			<ButtonStyled size="standard" type="standard">
-				<button class="flex min-w-0 items-center gap-2" @click="instanceSelector?.show()">
-					<InstanceIcon
-						v-if="contentSelection.targetInstance.value"
-						class="shrink-0"
-						size="1.25rem"
-						:icon-path="contentSelection.targetInstance.value.icon_path"
-						:instance-id="contentSelection.targetInstance.value.id"
-						:loader="contentSelection.targetInstance.value.loader"
-					/>
-					<PlusIcon v-else class="size-5 shrink-0" />
-					<span class="max-w-40 truncate font-medium">
-						{{
-							contentSelection.targetInstance.value?.name ?? formatMessage(messages.chooseInstance)
-						}}
-					</span>
-					<span
-						aria-hidden="true"
-						class="flex size-4 shrink-0 items-center justify-center text-secondary"
-					>
-						<ChevronDownIcon class="size-4" />
-					</span>
-				</button>
-			</ButtonStyled>
+			<Button size="md" class="flex min-w-0 items-center gap-2" @click="instanceSelector?.show()"
+				><InstanceIcon
+					v-if="contentSelection.targetInstance.value"
+					class="shrink-0"
+					size="1.25rem"
+					:icon-path="contentSelection.targetInstance.value.icon_path"
+					:instance-id="contentSelection.targetInstance.value.id"
+					:loader="contentSelection.targetInstance.value.loader"
+				/>
+				<PlusIcon v-else class="size-5 shrink-0" />
+				<span class="max-w-40 truncate font-medium">
+					{{
+						contentSelection.targetInstance.value?.name ?? formatMessage(messages.chooseInstance)
+					}}
+				</span>
+				<span
+					aria-hidden="true"
+					class="flex size-4 shrink-0 items-center justify-center text-secondary"
+				>
+					<ChevronDownIcon class="size-4" />
+				</span>
+			</Button>
 			<PopoutMenu placement="bottom-end">
-				<ButtonStyled size="standard" type="standard">
-					<button class="flex items-center gap-2">
-						<BookmarkIcon class="size-5" />
-						<span>{{ currentFavoriteTypeLabel }}</span>
-					</button>
-				</ButtonStyled>
+				<Button size="md" class="flex items-center gap-2"
+					><BookmarkIcon class="size-5" />
+					<span>{{ currentFavoriteTypeLabel }}</span>
+				</Button>
 				<template #menu>
 					<div class="flex w-48 flex-col gap-1 p-1">
 						<ButtonStyled
@@ -813,11 +810,9 @@ onMounted(async () => {
 				formatMessage(messages.recentlySaved)
 			}}</span>
 			<PopoutMenu :tooltip="formatMessage(messages.view)" placement="bottom-end" class="ml-auto">
-				<ButtonStyled circular>
-					<button :aria-label="formatMessage(messages.view)">
-						<component :is="currentDisplayMode?.icon" />
-					</button>
-				</ButtonStyled>
+				<Button circular icon-only :aria-label="formatMessage(messages.view)"
+					><component :is="currentDisplayMode?.icon" />
+				</Button>
 				<template #menu>
 					<div class="flex w-44 flex-col gap-1 p-1">
 						<ButtonStyled

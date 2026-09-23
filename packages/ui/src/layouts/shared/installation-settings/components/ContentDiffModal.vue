@@ -70,12 +70,10 @@
 		<template #actions>
 			<div class="flex justify-between gap-2 pt-4">
 				<div>
-					<ButtonStyled v-if="showReportButton" color="red" type="transparent">
-						<button @click="emit('report')">
-							<ReportIcon />
-							{{ formatMessage(commonMessages.reportButton) }}
-						</button>
-					</ButtonStyled>
+					<Button v-if="showReportButton" type="quiet" color="red" @click="emit('report')"
+						><ReportIcon />
+						{{ formatMessage(commonMessages.reportButton) }}
+					</Button>
 				</div>
 				<div class="flex gap-2">
 					<Button @click="handleCancel"
@@ -98,7 +96,6 @@ import { type Component, computed, ref } from 'vue'
 
 import Admonition from '#ui/components/base/Admonition.vue'
 import Button from '#ui/components/base/buttons/Button.vue'
-import ButtonStyled from '#ui/components/base/ButtonStyled.vue'
 import NewModal from '#ui/components/modal/NewModal.vue'
 import { defineMessages, useVIntl } from '#ui/composables/i18n'
 import { commonMessages } from '#ui/utils/common-messages'

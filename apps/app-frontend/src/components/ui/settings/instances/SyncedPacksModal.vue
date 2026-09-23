@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Button, ButtonStyled, defineMessages, NewModal, useVIntl } from '@modrinth/ui'
+import { Button, defineMessages, NewModal, useVIntl } from '@modrinth/ui'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { computed, ref } from 'vue'
 
@@ -67,14 +67,13 @@ defineExpose({ show, hide })
 					@click="mutation.mutate({ id: pack.id, enabled: !pack.enabled })"
 					>{{ formatMessage(pack.enabled ? messages.disable : messages.enable) }}
 				</Button>
-				<ButtonStyled color="red">
-					<button
-						:disabled="mutation.isPending.value"
-						@click="mutation.mutate({ id: pack.id, remove: true })"
-					>
-						{{ formatMessage(messages.remove) }}
-					</button>
-				</ButtonStyled>
+				<Button
+					type="colored"
+					color="red"
+					:disabled="mutation.isPending.value"
+					@click="mutation.mutate({ id: pack.id, remove: true })"
+					>{{ formatMessage(messages.remove) }}
+				</Button>
 			</div>
 		</div>
 		<p v-else class="m-0 text-secondary">{{ formatMessage(messages.empty) }}</p>

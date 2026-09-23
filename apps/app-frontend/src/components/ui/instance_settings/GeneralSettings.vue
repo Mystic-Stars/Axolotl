@@ -9,7 +9,6 @@ import {
 } from '@modrinth/assets'
 import {
 	Button,
-	ButtonStyled,
 	Chips,
 	defineMessages,
 	injectFilePicker,
@@ -593,22 +592,21 @@ const messages = defineMessages({
 			<h2 id="delete-instance-label" class="m-0 text-lg font-semibold text-contrast block">
 				{{ formatMessage(messages.deleteInstance) }}
 			</h2>
-			<ButtonStyled color="red">
-				<button
-					aria-labelledby="delete-instance-label"
-					:disabled="removing"
-					class="w-fit !shadow-none"
-					@click="deleteConfirmModal.show()"
-				>
-					<SpinnerIcon v-if="removing" class="animate-spin" />
-					<TrashIcon v-else />
-					{{
-						removing
-							? formatMessage(messages.deletingInstanceButton)
-							: formatMessage(messages.deleteInstanceButton)
-					}}
-				</button>
-			</ButtonStyled>
+			<Button
+				type="colored"
+				color="red"
+				aria-labelledby="delete-instance-label"
+				:disabled="removing"
+				class="w-fit !shadow-none"
+				@click="deleteConfirmModal.show()"
+				><SpinnerIcon v-if="removing" class="animate-spin" />
+				<TrashIcon v-else />
+				{{
+					removing
+						? formatMessage(messages.deletingInstanceButton)
+						: formatMessage(messages.deleteInstanceButton)
+				}}
+			</Button>
 			<p class="m-0">
 				{{ formatMessage(messages.deleteInstanceDescription) }}
 			</p>

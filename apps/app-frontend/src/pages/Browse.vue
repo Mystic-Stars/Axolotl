@@ -30,6 +30,7 @@ import type {
 import {
 	BrowsePageLayout,
 	BrowseSidebar,
+	Button,
 	ButtonStyled,
 	commonMessages,
 	CreationFlowModal,
@@ -3192,56 +3193,50 @@ provideBrowseManager({
 	<div data-onboarding-id="browse-content" class="flex flex-col gap-3 p-6">
 		<BrowsePageLayout v-if="!isWorldMapBrowse || curseForgeCapability.configured">
 			<template #nav-tabs-actions>
-				<ButtonStyled size="large" type="transparent">
-					<button :disabled="translationLoading" @click="toggleTranslation">
-						<SpinnerIcon v-if="translationLoading" class="animate-spin" />
-						<LanguagesIcon v-else />
-						{{
-							formatMessage(
-								translationLoading
-									? messages.translating
-									: translationActive
-										? messages.showOriginal
-										: messages.translateProject,
-							)
-						}}
-					</button>
-				</ButtonStyled>
+				<Button type="quiet" size="xl" :disabled="translationLoading" @click="toggleTranslation"
+					><SpinnerIcon v-if="translationLoading" class="animate-spin" />
+					<LanguagesIcon v-else />
+					{{
+						formatMessage(
+							translationLoading
+								? messages.translating
+								: translationActive
+									? messages.showOriginal
+									: messages.translateProject,
+						)
+					}}
+				</Button>
 			</template>
 			<template #search-bar-actions>
-				<ButtonStyled
+				<Button
 					v-if="!isServerContext && projectType !== 'server' && projectType !== 'modpack'"
-					size="standard"
-					type="standard"
-				>
-					<button class="flex min-w-0 items-center gap-2" @click="instanceSelector?.show()">
-						<InstanceIcon
-							v-if="activeInstance"
-							class="shrink-0"
-							size="1.25rem"
-							:icon-path="activeInstance.icon_path"
-							:instance-id="activeInstance.id"
-							:loader="activeInstance.loader"
-						/>
-						<PlusIcon v-else class="size-5 shrink-0" />
-						<span class="max-w-40 truncate font-medium">
-							{{ activeInstance?.name ?? formatMessage(messages.chooseInstance) }}
-						</span>
-						<span
-							aria-hidden="true"
-							class="flex size-4 shrink-0 items-center justify-center text-secondary"
-						>
-							<ChevronDownIcon class="size-4" />
-						</span>
-					</button>
-				</ButtonStyled>
+					size="md"
+					class="flex min-w-0 items-center gap-2"
+					@click="instanceSelector?.show()"
+					><InstanceIcon
+						v-if="activeInstance"
+						class="shrink-0"
+						size="1.25rem"
+						:icon-path="activeInstance.icon_path"
+						:instance-id="activeInstance.id"
+						:loader="activeInstance.loader"
+					/>
+					<PlusIcon v-else class="size-5 shrink-0" />
+					<span class="max-w-40 truncate font-medium">
+						{{ activeInstance?.name ?? formatMessage(messages.chooseInstance) }}
+					</span>
+					<span
+						aria-hidden="true"
+						class="flex size-4 shrink-0 items-center justify-center text-secondary"
+					>
+						<ChevronDownIcon class="size-4" />
+					</span>
+				</Button>
 				<PopoutMenu v-if="projectType !== 'server' && !isWorldMapBrowse" placement="bottom-end">
-					<ButtonStyled size="standard" type="standard">
-						<button class="flex items-center gap-2">
-							<component :is="sourceIcon" class="h-5 w-5" />
-							<span>{{ formatMessage(currentSourceLabel) }}</span>
-						</button>
-					</ButtonStyled>
+					<Button size="md" class="flex items-center gap-2"
+						><component :is="sourceIcon" class="h-5 w-5" />
+						<span>{{ formatMessage(currentSourceLabel) }}</span>
+					</Button>
 					<template #menu>
 						<div class="flex w-min flex-col gap-1 p-1">
 							<ButtonStyled

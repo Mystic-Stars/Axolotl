@@ -10,7 +10,6 @@ import {
 } from '@modrinth/assets'
 import {
 	Button,
-	ButtonStyled,
 	Card,
 	defineMessages,
 	injectModrinthClient,
@@ -1332,11 +1331,14 @@ defineExpose({
 					>
 						{{ shareUrl }}
 					</a>
-					<ButtonStyled circular type="outlined">
-						<button :aria-label="formatMessage(messages.copyLink)" @click="copyShareUrl">
-							<ClipboardCopyIcon aria-hidden="true" />
-						</button>
-					</ButtonStyled>
+					<Button
+						type="outlined"
+						circular
+						icon-only
+						:aria-label="formatMessage(messages.copyLink)"
+						@click="copyShareUrl"
+						><ClipboardCopyIcon aria-hidden="true" />
+					</Button>
 				</div>
 
 				<div class="mt-auto flex flex-wrap gap-2 pt-2">

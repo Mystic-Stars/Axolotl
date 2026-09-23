@@ -4,7 +4,6 @@ import { requiredJavaMajorVersion } from '@modrinth/server'
 import {
 	Admonition,
 	Button,
-	ButtonStyled,
 	Card,
 	ConfirmModal,
 	defineMessages,
@@ -248,22 +247,23 @@ async function confirmDelete() {
 						<div class="flex flex-col gap-1">
 							<span class="font-semibold text-contrast">{{ formatMessage(messages.icon) }}</span>
 							<div class="flex gap-2">
-								<ButtonStyled type="outlined" size="small">
-									<button type="button" @click="pickIcon">
-										<ImageIcon />
-										{{
-											iconPath
-												? formatMessage(messages.changeIcon)
-												: formatMessage(messages.selectIcon)
-										}}
-									</button>
-								</ButtonStyled>
-								<ButtonStyled v-if="iconPath" color="red" type="outlined" size="small">
-									<button type="button" @click="iconPath = null">
-										<TrashIcon />
-										{{ formatMessage(messages.removeIcon) }}
-									</button>
-								</ButtonStyled>
+								<Button type="outlined" size="2xs" @click="pickIcon"
+									><ImageIcon />
+									{{
+										iconPath
+											? formatMessage(messages.changeIcon)
+											: formatMessage(messages.selectIcon)
+									}}
+								</Button>
+								<Button
+									v-if="iconPath"
+									type="outlined"
+									color="red"
+									size="2xs"
+									@click="iconPath = null"
+									><TrashIcon />
+									{{ formatMessage(messages.removeIcon) }}
+								</Button>
 							</div>
 						</div>
 					</div>
@@ -344,12 +344,14 @@ async function confirmDelete() {
 							</p>
 						</div>
 					</div>
-					<ButtonStyled color="red" type="outlined">
-						<button type="button" :disabled="server.running" @click="deleteModal?.show()">
-							<TrashIcon />
-							{{ formatMessage(messages.deleteTitle) }}
-						</button>
-					</ButtonStyled>
+					<Button
+						type="outlined"
+						color="red"
+						:disabled="server.running"
+						@click="deleteModal?.show()"
+						><TrashIcon />
+						{{ formatMessage(messages.deleteTitle) }}
+					</Button>
 				</div>
 			</Card>
 		</div>

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { CheckIcon, EditIcon, SearchIcon } from '@modrinth/assets'
-import { Button, ButtonStyled, defineMessages, NewModal, StyledInput, useVIntl } from '@modrinth/ui'
+import { Button, defineMessages, NewModal, StyledInput, useVIntl } from '@modrinth/ui'
 import { computed, nextTick, ref, useTemplateRef } from 'vue'
 
 import type { SchematicBlockState } from '@/lab/schematic-preview/backend'
@@ -194,11 +194,7 @@ defineExpose({ show })
 
 		<template #actions>
 			<div class="flex items-center justify-end gap-2">
-				<ButtonStyled type="transparent">
-					<button type="button" @click="modal?.hide()">
-						{{ formatMessage(messages.cancel) }}
-					</button>
-				</ButtonStyled>
+				<Button type="quiet" @click="modal?.hide()">{{ formatMessage(messages.cancel) }} </Button>
 				<Button type="colored" color="brand" :disabled="!selectedBlock" @click="confirm"
 					><EditIcon />{{ formatMessage(messages.confirm, { count: selectedCount }) }}
 				</Button>

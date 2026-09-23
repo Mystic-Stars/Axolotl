@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { MonitorIcon, RightArrowIcon } from '@modrinth/assets'
-import { Button, ButtonStyled, defineMessages, LOCALES, useVIntl } from '@modrinth/ui'
+import { Button, defineMessages, LOCALES, useVIntl } from '@modrinth/ui'
 import { computed, onMounted, ref } from 'vue'
 
 import AxolotlLogo from '@/components/ui/AxolotlLogo.vue'
@@ -198,11 +198,9 @@ async function toggleFollowSystem() {
 					</Button>
 					<div class="onboarding-welcome-secondary-action">
 						<span>{{ formatMessage(onboardingMessages.welcomeFooter) }}</span>
-						<ButtonStyled type="transparent">
-							<button @click="$emit('skip')">
-								{{ formatMessage(onboardingMessages.skip) }}
-							</button>
-						</ButtonStyled>
+						<Button type="quiet" @click="$emit('skip')"
+							>{{ formatMessage(onboardingMessages.skip) }}
+						</Button>
 					</div>
 				</div>
 			</div>

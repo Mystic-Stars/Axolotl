@@ -8,7 +8,6 @@ import {
 } from '@modrinth/assets'
 import {
 	Button,
-	ButtonStyled,
 	defineMessages,
 	injectNotificationManager,
 	useFormatDateTime,
@@ -249,11 +248,14 @@ watch(instanceRevision, async () => {
 					@click="movePeriod(-1)"
 					><ChevronLeftIcon />
 				</Button>
-				<ButtonStyled type="transparent" size="small" class="home-calendar-period min-w-0">
-					<button v-tooltip="formatMessage(messages.thisMonth)" @click="goToThisMonth">
-						{{ periodLabel }}
-					</button>
-				</ButtonStyled>
+				<Button
+					v-tooltip="formatMessage(messages.thisMonth)"
+					class="home-calendar-period min-w-0"
+					type="quiet"
+					size="2xs"
+					@click="goToThisMonth"
+					>{{ periodLabel }}
+				</Button>
 				<Button
 					v-tooltip="formatMessage(messages.nextMonth)"
 					type="quiet"

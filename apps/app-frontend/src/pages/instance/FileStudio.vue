@@ -14,7 +14,6 @@ import {
 } from '@modrinth/assets'
 import {
 	Button,
-	ButtonStyled,
 	commonMessages,
 	defineMessages,
 	injectNotificationManager,
@@ -858,26 +857,26 @@ onBeforeRouteLeave(() => {
 							@click="refreshTree"
 							><RefreshCwIcon class="size-4" />
 						</Button>
-						<ButtonStyled v-if="activeDocument" size="small" color="brand">
-							<button type="button" :disabled="activeDocument.saving" @click="saveActiveFile">
-								<SaveIcon class="size-4" />
-								{{ formatMessage(commonMessages.saveButton) }}
-							</button>
-						</ButtonStyled>
-						<ButtonStyled
+						<Button
+							v-if="activeDocument"
+							type="colored"
+							color="brand"
+							size="2xs"
+							:disabled="activeDocument.saving"
+							@click="saveActiveFile"
+							><SaveIcon class="size-4" />
+							{{ formatMessage(commonMessages.saveButton) }}
+						</Button>
+						<Button
 							v-if="activeDocument?.kind === 'text' || activeDocument?.kind === 'nbt'"
-							size="small"
 							type="outlined"
-						>
-							<button type="button" @click="formatActiveDocument">
-								{{ formatMessage(messages.format) }}
-							</button>
-						</ButtonStyled>
-						<ButtonStyled size="small" type="outlined">
-							<button type="button" @click="exitStudio">
-								{{ formatMessage(messages.backToFiles) }}
-							</button>
-						</ButtonStyled>
+							size="2xs"
+							@click="formatActiveDocument"
+							>{{ formatMessage(messages.format) }}
+						</Button>
+						<Button type="outlined" size="2xs" @click="exitStudio"
+							>{{ formatMessage(messages.backToFiles) }}
+						</Button>
 					</div>
 				</header>
 				<div
@@ -958,11 +957,9 @@ onBeforeRouteLeave(() => {
 							</span>
 						</template>
 					</div>
-					<ButtonStyled size="small" type="transparent">
-						<button type="button" @click="revealInSystem(selectedFilePath)">
-							{{ formatMessage(messages.openPath) }}
-						</button>
-					</ButtonStyled>
+					<Button type="quiet" size="2xs" @click="revealInSystem(selectedFilePath)"
+						>{{ formatMessage(messages.openPath) }}
+					</Button>
 					<span
 						ref="breadcrumbMeasure"
 						class="pointer-events-none absolute whitespace-nowrap opacity-0"
@@ -1050,73 +1047,66 @@ onBeforeRouteLeave(() => {
 					role="menu"
 					@mousedown.stop
 				>
-					<ButtonStyled size="small" type="transparent">
-						<button
-							type="button"
-							class="w-full !justify-start"
-							role="menuitem"
-							@click="copyToClipboard('copy')"
-						>
-							<CopyIcon class="size-4" /> {{ formatMessage(messages.copy) }}
-						</button>
-					</ButtonStyled>
-					<ButtonStyled size="small" type="transparent">
-						<button
-							type="button"
-							class="w-full !justify-start"
-							role="menuitem"
-							@click="copyToClipboard('cut')"
-						>
-							<CopyIcon class="size-4" /> {{ formatMessage(messages.cut) }}
-						</button>
-					</ButtonStyled>
-					<ButtonStyled v-if="fileClipboard" size="small" type="transparent">
-						<button
-							type="button"
-							class="w-full !justify-start"
-							role="menuitem"
-							@click="pasteClipboard"
-						>
-							<CopyIcon class="size-4" /> {{ formatMessage(messages.paste) }}
-						</button>
-					</ButtonStyled>
+					<Button
+						type="quiet"
+						size="2xs"
+						class="w-full !justify-start"
+						role="menuitem"
+						@click="copyToClipboard('copy')"
+						><CopyIcon class="size-4" /> {{ formatMessage(messages.copy) }}
+					</Button>
+					<Button
+						type="quiet"
+						size="2xs"
+						class="w-full !justify-start"
+						role="menuitem"
+						@click="copyToClipboard('cut')"
+						><CopyIcon class="size-4" /> {{ formatMessage(messages.cut) }}
+					</Button>
+					<Button
+						v-if="fileClipboard"
+						type="quiet"
+						size="2xs"
+						class="w-full !justify-start"
+						role="menuitem"
+						@click="pasteClipboard"
+						><CopyIcon class="size-4" /> {{ formatMessage(messages.paste) }}
+					</Button>
 					<div class="my-1 h-px bg-surface-5" />
-					<ButtonStyled size="small" type="transparent">
-						<button
-							type="button"
-							class="w-full !justify-start"
-							role="menuitem"
-							@click="showCreateModal('file')"
-						>
-							<FilePlusIcon class="size-4" /> {{ formatMessage(messages.newFile) }}
-						</button>
-					</ButtonStyled>
-					<ButtonStyled size="small" type="transparent">
-						<button
-							type="button"
-							class="w-full !justify-start"
-							role="menuitem"
-							@click="showCreateModal('directory')"
-						>
-							<FolderOpenIcon class="size-4" /> {{ formatMessage(messages.newFolder) }}
-						</button>
-					</ButtonStyled>
+					<Button
+						type="quiet"
+						size="2xs"
+						class="w-full !justify-start"
+						role="menuitem"
+						@click="showCreateModal('file')"
+						><FilePlusIcon class="size-4" /> {{ formatMessage(messages.newFile) }}
+					</Button>
+					<Button
+						type="quiet"
+						size="2xs"
+						class="w-full !justify-start"
+						role="menuitem"
+						@click="showCreateModal('directory')"
+						><FolderOpenIcon class="size-4" /> {{ formatMessage(messages.newFolder) }}
+					</Button>
 					<div class="my-1 h-px bg-surface-5" />
-					<ButtonStyled size="small" type="transparent">
-						<button
-							type="button"
-							class="w-full !justify-start"
-							role="menuitem"
-							@click="revealContextMenuItem"
-						>
-							<FolderOpenIcon class="size-4" /> {{ formatMessage(messages.openPath) }}
-						</button>
-					</ButtonStyled>
-					<ButtonStyled size="small" color="red" type="transparent">
-						<button type="button" class="w-full !justify-start" role="menuitem" @click="deleteItem">
-							<TrashIcon class="size-4" /> {{ deleteLabel }}
-						</button>
-					</ButtonStyled>
+					<Button
+						type="quiet"
+						size="2xs"
+						class="w-full !justify-start"
+						role="menuitem"
+						@click="revealContextMenuItem"
+						><FolderOpenIcon class="size-4" /> {{ formatMessage(messages.openPath) }}
+					</Button>
+					<Button
+						type="quiet"
+						color="red"
+						size="2xs"
+						class="w-full !justify-start"
+						role="menuitem"
+						@click="deleteItem"
+						><TrashIcon class="size-4" /> {{ deleteLabel }}
+					</Button>
 				</div>
 			</Teleport>
 		</section>

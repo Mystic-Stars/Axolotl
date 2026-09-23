@@ -271,13 +271,11 @@
 					><SearchIcon class="size-4" />
 					{{ formatMessage(messages.searchCompatButton) }}
 				</Button>
-				<ButtonStyled color="orange">
-					<button :disabled="actionLoading" @click="handleUpdate">
-						<SpinnerIcon v-if="actionLoading" class="size-5 animate-spin" />
-						<DownloadIcon v-else />
-						{{ formatMessage(messages.installAnywayButton) }}
-					</button>
-				</ButtonStyled>
+				<Button type="colored" color="orange" :disabled="actionLoading" @click="handleUpdate"
+					><SpinnerIcon v-if="actionLoading" class="size-5 animate-spin" />
+					<DownloadIcon v-else />
+					{{ formatMessage(messages.installAnywayButton) }}
+				</Button>
 			</div>
 		</template>
 	</NewModal>

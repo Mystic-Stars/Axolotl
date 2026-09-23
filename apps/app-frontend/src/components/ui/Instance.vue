@@ -9,6 +9,7 @@ import {
 } from '@modrinth/assets'
 import {
 	Avatar,
+	Button,
 	ButtonStyled,
 	commonMessages,
 	defineMessages,
@@ -223,19 +224,25 @@ onUnmounted(() => unlisten())
 				<span class="line-clamp-2">{{ instance.name }}</span>
 			</div>
 			<div class="flex items-center">
-				<ButtonStyled v-if="isPlaying" color="red" circular @mousehover="checkProcess">
-					<button
-						v-tooltip="formatMessage(commonMessages.stopButton)"
-						@click="(e) => stop(e, 'InstanceCard')"
-					>
-						<StopCircleIcon />
-					</button>
-				</ButtonStyled>
-				<ButtonStyled v-else-if="modLoading" color="standard" circular>
-					<button v-tooltip="formatMessage(messages.loading)" disabled>
-						<SpinnerIcon class="animate-spin" />
-					</button>
-				</ButtonStyled>
+				<Button
+					v-if="isPlaying"
+					v-tooltip="formatMessage(commonMessages.stopButton)"
+					type="colored"
+					color="red"
+					circular
+					icon-only
+					@mousehover="checkProcess"
+					@click="(e) => stop(e, 'InstanceCard')"
+					><StopCircleIcon />
+				</Button>
+				<Button
+					v-else-if="modLoading"
+					v-tooltip="formatMessage(messages.loading)"
+					circular
+					icon-only
+					disabled
+					><SpinnerIcon class="animate-spin" />
+				</Button>
 				<ButtonStyled v-else :color="first ? 'brand' : 'standard'" circular>
 					<button
 						v-tooltip="
@@ -301,52 +308,56 @@ onUnmounted(() => unlisten())
 					/>
 				</div>
 				<div class="absolute bottom-1.5 right-1.5 flex size-12 items-center justify-center">
-					<ButtonStyled v-if="isPlaying" size="large" color="red" circular>
-						<button
-							v-tooltip="formatMessage(commonMessages.stopButton)"
-							@click="(e) => stop(e, 'InstanceCard')"
-							@mousehover="checkProcess"
-						>
-							<StopCircleIcon />
-						</button>
-					</ButtonStyled>
-					<ButtonStyled
-						v-else-if="!modLoading && !installing && !installed"
-						size="large"
-						color="brand"
+					<Button
+						v-if="isPlaying"
+						v-tooltip="formatMessage(commonMessages.stopButton)"
+						type="colored"
+						color="red"
+						size="xl"
 						circular
-					>
-						<button
-							v-tooltip="
-								offline
-									? formatMessage(messages.offlineInstalledOnly)
-									: formatMessage(commonMessages.repairButton)
-							"
-							:disabled="offline"
-							:class="{
-								'pointer-events-none scale-75 opacity-0': disabled,
-								'scale-75 opacity-0 transition-all group-hover:scale-100 group-hover:opacity-100':
-									!disabled,
-							}"
-							@click="(e) => repair(e)"
-						>
-							<DownloadIcon />
-						</button>
-					</ButtonStyled>
-					<ButtonStyled v-else-if="!modLoading && !installing" size="large" color="brand" circular>
-						<button
-							v-tooltip="formatMessage(commonMessages.playButton)"
-							:class="{
-								'pointer-events-none scale-75 opacity-0': disabled,
-								'scale-75 opacity-0 transition-all group-hover:scale-100 group-hover:opacity-100':
-									!disabled,
-							}"
-							@click="(e) => play(e, 'InstanceCard')"
-							@mousehover="checkProcess"
-						>
-							<PlayIcon class="translate-x-[1px]" />
-						</button>
-					</ButtonStyled>
+						icon-only
+						@click="(e) => stop(e, 'InstanceCard')"
+						@mousehover="checkProcess"
+						><StopCircleIcon />
+					</Button>
+					<Button
+						v-else-if="!modLoading && !installing && !installed"
+						v-tooltip="
+							offline
+								? formatMessage(messages.offlineInstalledOnly)
+								: formatMessage(commonMessages.repairButton)
+						"
+						type="colored"
+						color="brand"
+						size="xl"
+						circular
+						icon-only
+						:disabled="offline"
+						:class="{
+							'pointer-events-none scale-75 opacity-0': disabled,
+							'scale-75 opacity-0 transition-all group-hover:scale-100 group-hover:opacity-100':
+								!disabled,
+						}"
+						@click="(e) => repair(e)"
+						><DownloadIcon />
+					</Button>
+					<Button
+						v-else-if="!modLoading && !installing"
+						v-tooltip="formatMessage(commonMessages.playButton)"
+						type="colored"
+						color="brand"
+						size="xl"
+						circular
+						icon-only
+						:class="{
+							'pointer-events-none scale-75 opacity-0': disabled,
+							'scale-75 opacity-0 transition-all group-hover:scale-100 group-hover:opacity-100':
+								!disabled,
+						}"
+						@click="(e) => play(e, 'InstanceCard')"
+						@mousehover="checkProcess"
+						><PlayIcon class="translate-x-[1px]" />
+					</Button>
 				</div>
 			</div>
 			<div class="flex w-full min-w-0 flex-col items-start justify-center gap-1 px-0.5">
@@ -380,17 +391,20 @@ onUnmounted(() => unlisten())
 					:class="`transition-all ${modLoading || installing ? `brightness-[0.25] scale-[0.85]` : `group-hover:brightness-75`}`"
 				/>
 				<div class="absolute inset-0 flex items-center justify-center">
-					<ButtonStyled v-if="isPlaying" size="large" color="red" circular>
-						<button
-							v-tooltip="formatMessage(commonMessages.stopButton)"
-							:class="{ 'scale-100 opacity-100': isPlaying }"
-							class="transition-all origin-bottom opacity-0 card-shadow"
-							@click="(e) => stop(e, 'InstanceCard')"
-							@mousehover="checkProcess"
-						>
-							<StopCircleIcon />
-						</button>
-					</ButtonStyled>
+					<Button
+						v-if="isPlaying"
+						v-tooltip="formatMessage(commonMessages.stopButton)"
+						type="colored"
+						color="red"
+						size="xl"
+						circular
+						icon-only
+						:class="{ 'scale-100 opacity-100': isPlaying }"
+						class="transition-all origin-bottom opacity-0 card-shadow"
+						@click="(e) => stop(e, 'InstanceCard')"
+						@mousehover="checkProcess"
+						><StopCircleIcon />
+					</Button>
 					<SpinnerIcon
 						v-else-if="modLoading || installing"
 						v-tooltip="
@@ -401,30 +415,36 @@ onUnmounted(() => unlisten())
 						class="animate-spin w-8 h-8"
 						tabindex="-1"
 					/>
-					<ButtonStyled v-else-if="!installed" size="large" color="brand" circular>
-						<button
-							v-tooltip="
-								offline
-									? formatMessage(messages.offlineInstalledOnly)
-									: formatMessage(commonMessages.repairButton)
-							"
-							:disabled="offline"
-							:class="`transition-all scale-75 origin-bottom card-shadow ${disabled ? 'opacity-0 scale-75' : 'opacity-0 group-hover:scale-100 group-hover:opacity-100 group-focus-within:scale-100 group-focus-within:opacity-100'}`"
-							@click="(e) => repair(e)"
-						>
-							<DownloadIcon />
-						</button>
-					</ButtonStyled>
-					<ButtonStyled v-else size="large" color="brand" circular>
-						<button
-							v-tooltip="formatMessage(commonMessages.playButton)"
-							:class="`transition-all scale-75 origin-bottom card-shadow ${disabled ? 'opacity-0 scale-75' : 'opacity-0 group-hover:scale-100 group-hover:opacity-100 group-focus-within:scale-100 group-focus-within:opacity-100'}`"
-							@click="(e) => play(e, 'InstanceCard')"
-							@mousehover="checkProcess"
-						>
-							<PlayIcon class="translate-x-[2px]" />
-						</button>
-					</ButtonStyled>
+					<Button
+						v-else-if="!installed"
+						v-tooltip="
+							offline
+								? formatMessage(messages.offlineInstalledOnly)
+								: formatMessage(commonMessages.repairButton)
+						"
+						type="colored"
+						color="brand"
+						size="xl"
+						circular
+						icon-only
+						:disabled="offline"
+						:class="`transition-all scale-75 origin-bottom card-shadow ${disabled ? 'opacity-0 scale-75' : 'opacity-0 group-hover:scale-100 group-hover:opacity-100 group-focus-within:scale-100 group-focus-within:opacity-100'}`"
+						@click="(e) => repair(e)"
+						><DownloadIcon />
+					</Button>
+					<Button
+						v-else
+						v-tooltip="formatMessage(commonMessages.playButton)"
+						type="colored"
+						color="brand"
+						size="xl"
+						circular
+						icon-only
+						:class="`transition-all scale-75 origin-bottom card-shadow ${disabled ? 'opacity-0 scale-75' : 'opacity-0 group-hover:scale-100 group-hover:opacity-100 group-focus-within:scale-100 group-focus-within:opacity-100'}`"
+						@click="(e) => play(e, 'InstanceCard')"
+						@mousehover="checkProcess"
+						><PlayIcon class="translate-x-[2px]" />
+					</Button>
 				</div>
 			</div>
 			<div class="flex flex-col gap-1">

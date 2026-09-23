@@ -5,7 +5,7 @@ import { useRouter } from 'vue-router'
 
 import Admonition from '#ui/components/base/Admonition.vue'
 import Avatar from '#ui/components/base/Avatar.vue'
-import ButtonStyled from '#ui/components/base/ButtonStyled.vue'
+import Button from '#ui/components/base/buttons/Button.vue'
 import { useServerImage } from '#ui/composables/use-server-image'
 import { formatLoaderLabel } from '#ui/utils/loaders'
 
@@ -97,11 +97,14 @@ async function handleSelectedProjectsLeaveResult(
 		<div class="flex flex-col gap-2">
 			<div class="flex flex-wrap items-center justify-between gap-4">
 				<div class="flex min-w-0 items-center gap-4">
-					<ButtonStyled circular size="large">
-						<button :aria-label="installContext.backLabel" @click="handleBack">
-							<LeftArrowIcon />
-						</button>
-					</ButtonStyled>
+					<Button
+						size="xl"
+						circular
+						icon-only
+						:aria-label="installContext.backLabel"
+						@click="handleBack"
+						><LeftArrowIcon />
+					</Button>
 
 					<Avatar
 						v-if="iconSrc"

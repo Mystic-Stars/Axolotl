@@ -519,16 +519,15 @@ async function exportLogs() {
 								>
 									{{ debugInfo }}
 								</div>
-								<ButtonStyled circular>
-									<button
-										v-tooltip="formatMessage(messages.copyDebugInfo)"
-										:disabled="copied"
-										@click="copyToClipboard(debugInfo)"
-									>
-										<template v-if="copied"> <CheckIcon class="text-green" /> </template>
-										<template v-else> <CopyIcon /> </template>
-									</button>
-								</ButtonStyled>
+								<Button
+									v-tooltip="formatMessage(messages.copyDebugInfo)"
+									circular
+									icon-only
+									:disabled="copied"
+									@click="copyToClipboard(debugInfo)"
+									><template v-if="copied"> <CheckIcon class="text-green" /> </template>
+									<template v-else> <CopyIcon /> </template>
+								</Button>
 							</div>
 						</Collapsible>
 					</div>

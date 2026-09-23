@@ -220,11 +220,15 @@ defineExpose({
 						</a>
 					</ButtonStyled>
 					<div v-if="socialButtons" class="flex flex-row gap-1">
-						<ButtonStyled v-if="canShare" circular>
-							<button v-tooltip="'Share'" aria-label="Share" @click="share">
-								<ShareIcon aria-hidden="true" />
-							</button>
-						</ButtonStyled>
+						<Button
+							v-if="canShare"
+							v-tooltip="'Share'"
+							circular
+							icon-only
+							aria-label="Share"
+							@click="share"
+							><ShareIcon aria-hidden="true" />
+						</Button>
 						<ButtonStyled circular>
 							<a
 								v-tooltip="'Send as an email'"

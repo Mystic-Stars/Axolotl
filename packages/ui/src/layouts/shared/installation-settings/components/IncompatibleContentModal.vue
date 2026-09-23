@@ -18,12 +18,10 @@
 						}}
 					</span>
 					<div v-if="variant === 'loader-change'">
-						<ButtonStyled color="red">
-							<button :disabled="loading" @click="handleResetServer">
-								<TrashIcon class="size-5" />
-								{{ formatMessage(commonMessages.resetServerButton) }}
-							</button>
-						</ButtonStyled>
+						<Button type="colored" color="red" :disabled="loading" @click="handleResetServer"
+							><TrashIcon class="size-5" />
+							{{ formatMessage(commonMessages.resetServerButton) }}
+						</Button>
 					</div>
 				</div>
 			</Admonition>
@@ -44,25 +42,21 @@
 						<PowerOffIcon v-else class="size-5" />
 						{{ formatMessage(messages.disableConflictsButton) }}
 					</Button>
-					<ButtonStyled color="orange">
-						<button :disabled="loading" @click="handleAutoFix">
-							<SpinnerIcon
-								v-if="loading && loadingAction === 'auto-fix'"
-								class="size-5 animate-spin"
-							/>
-							<HammerIcon v-else class="size-5" />
-							{{ formatMessage(messages.autoFixButton) }}
-						</button>
-					</ButtonStyled>
+					<Button type="colored" color="orange" :disabled="loading" @click="handleAutoFix"
+						><SpinnerIcon
+							v-if="loading && loadingAction === 'auto-fix'"
+							class="size-5 animate-spin"
+						/>
+						<HammerIcon v-else class="size-5" />
+						{{ formatMessage(messages.autoFixButton) }}
+					</Button>
 				</template>
 				<template v-else>
-					<ButtonStyled color="red">
-						<button :disabled="loading" @click="handleConfirmLoaderChange">
-							<SpinnerIcon v-if="loading" class="size-5 animate-spin" />
-							<CircleAlertIcon v-else class="size-5" />
-							{{ formatMessage(messages.changeLoaderButton) }}
-						</button>
-					</ButtonStyled>
+					<Button type="colored" color="red" :disabled="loading" @click="handleConfirmLoaderChange"
+						><SpinnerIcon v-if="loading" class="size-5 animate-spin" />
+						<CircleAlertIcon v-else class="size-5" />
+						{{ formatMessage(messages.changeLoaderButton) }}
+					</Button>
 				</template>
 			</div>
 		</template>
@@ -82,7 +76,6 @@ import { ref } from 'vue'
 
 import Admonition from '#ui/components/base/Admonition.vue'
 import Button from '#ui/components/base/buttons/Button.vue'
-import ButtonStyled from '#ui/components/base/ButtonStyled.vue'
 import NewModal from '#ui/components/modal/NewModal.vue'
 import { defineMessages, useVIntl } from '#ui/composables/i18n'
 import { commonMessages } from '#ui/utils/common-messages'

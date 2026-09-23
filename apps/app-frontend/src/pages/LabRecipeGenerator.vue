@@ -9,7 +9,6 @@ import {
 } from '@modrinth/assets'
 import {
 	Button,
-	ButtonStyled,
 	Checkbox,
 	defineMessages,
 	DropdownSelect,
@@ -1261,11 +1260,9 @@ function slotEditorSlots(type: RecipeType): RecipeSlot[] {
 						class="recipe-version-dropdown"
 					/>
 				</div>
-				<ButtonStyled size="small" type="outlined">
-					<button @click="copyrightModal?.show()">
-						{{ formatMessage(messages.copyright) }}
-					</button>
-				</ButtonStyled>
+				<Button type="outlined" size="2xs" @click="copyrightModal?.show()"
+					>{{ formatMessage(messages.copyright) }}
+				</Button>
 			</div>
 		</header>
 
@@ -1282,9 +1279,9 @@ function slotEditorSlots(type: RecipeType): RecipeSlot[] {
 			<aside class="lab-panel recipe-sidebar">
 				<div class="recipe-sidebar-heading">
 					<h2>{{ formatMessage(messages.recipesTitle) }}</h2>
-					<ButtonStyled size="small" color="brand">
-						<button @click="newRecipe"><PlusIcon />{{ formatMessage(messages.newRecipe) }}</button>
-					</ButtonStyled>
+					<Button type="colored" color="brand" size="2xs" @click="newRecipe"
+						><PlusIcon />{{ formatMessage(messages.newRecipe) }}</Button
+					>
 				</div>
 				<div class="recipe-sidebar-list">
 					<div
@@ -1471,20 +1468,18 @@ function slotEditorSlots(type: RecipeType): RecipeSlot[] {
 					<div class="recipe-section-heading">
 						<h2>{{ formatMessage(messages.previewTitle) }}</h2>
 						<div class="recipe-preview-actions">
-							<ButtonStyled size="small" type="transparent">
-								<button class="recipe-clear-slots" @click="clearSlots">
-									{{ formatMessage(messages.clearSlots) }}
-								</button>
-							</ButtonStyled>
-							<ButtonStyled size="small" color="brand">
-								<button
-									class="recipe-copy-preview"
-									:disabled="!currentRecipe || !slotContext"
-									@click="copyPreviewImage"
-								>
-									<ClipboardCopyIcon />{{ formatMessage(messages.copyPreviewImage) }}
-								</button>
-							</ButtonStyled>
+							<Button type="quiet" size="2xs" class="recipe-clear-slots" @click="clearSlots"
+								>{{ formatMessage(messages.clearSlots) }}
+							</Button>
+							<Button
+								type="colored"
+								color="brand"
+								size="2xs"
+								class="recipe-copy-preview"
+								:disabled="!currentRecipe || !slotContext"
+								@click="copyPreviewImage"
+								><ClipboardCopyIcon />{{ formatMessage(messages.copyPreviewImage) }}
+							</Button>
 						</div>
 					</div>
 
@@ -1599,11 +1594,14 @@ function slotEditorSlots(type: RecipeType): RecipeSlot[] {
 					<div class="recipe-section-heading">
 						<h2>{{ formatMessage(messages.outputTitle) }}</h2>
 						<div class="recipe-output-actions">
-							<ButtonStyled size="small" color="brand">
-								<button :disabled="!jsonText" @click="saveCurrentJson">
-									<SaveIcon />{{ formatMessage(messages.saveJson) }}
-								</button>
-							</ButtonStyled>
+							<Button
+								type="colored"
+								color="brand"
+								size="2xs"
+								:disabled="!jsonText"
+								@click="saveCurrentJson"
+								><SaveIcon />{{ formatMessage(messages.saveJson) }}
+							</Button>
 						</div>
 					</div>
 					<textarea
@@ -1645,11 +1643,13 @@ function slotEditorSlots(type: RecipeType): RecipeSlot[] {
 							{{ formatMessage(messages.tagsTab) }}
 						</button>
 					</div>
-					<ButtonStyled v-if="rightTab === 'items'" size="small" type="outlined">
-						<button @click="openCustomItemModal()">
-							<PlusIcon />{{ formatMessage(messages.addCustomItem) }}
-						</button>
-					</ButtonStyled>
+					<Button
+						v-if="rightTab === 'items'"
+						type="outlined"
+						size="2xs"
+						@click="openCustomItemModal()"
+						><PlusIcon />{{ formatMessage(messages.addCustomItem) }}
+					</Button>
 				</div>
 
 				<ItemPalette
@@ -1732,12 +1732,12 @@ function slotEditorSlots(type: RecipeType): RecipeSlot[] {
 					/>
 				</label>
 				<div class="flex justify-end gap-2">
-					<ButtonStyled size="small" type="outlined">
-						<button @click="customItemModal?.hide()">{{ formatMessage(messages.cancel) }}</button>
-					</ButtonStyled>
-					<ButtonStyled size="small" color="brand">
-						<button @click="saveCustomItem">{{ formatMessage(messages.save) }}</button>
-					</ButtonStyled>
+					<Button type="outlined" size="2xs" @click="customItemModal?.hide()">{{
+						formatMessage(messages.cancel)
+					}}</Button>
+					<Button type="colored" color="brand" size="2xs" @click="saveCustomItem">{{
+						formatMessage(messages.save)
+					}}</Button>
 				</div>
 			</div>
 		</NewModal>

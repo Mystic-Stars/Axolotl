@@ -624,17 +624,11 @@ function submitJoin() {
 	<div class="flex min-h-0 w-full flex-1 flex-col gap-3">
 		<div class="flex min-w-0 flex-wrap items-center justify-end gap-3">
 			<PopoutMenu placement="bottom-end">
-				<ButtonStyled size="standard" type="standard">
-					<button class="flex min-w-36 items-center gap-2">
-						<img
-							:src="selectedProviderOption.image"
-							class="size-5 shrink-0 object-contain"
-							alt=""
-						/>
-						<span class="flex-1 text-left">{{ formatMessage(selectedProviderOption.label) }}</span>
-						<DropdownIcon class="size-4 shrink-0" />
-					</button>
-				</ButtonStyled>
+				<Button size="md" class="flex min-w-36 items-center gap-2"
+					><img :src="selectedProviderOption.image" class="size-5 shrink-0 object-contain" alt="" />
+					<span class="flex-1 text-left">{{ formatMessage(selectedProviderOption.label) }}</span>
+					<DropdownIcon class="size-4 shrink-0" />
+				</Button>
 				<template #menu>
 					<div class="flex w-44 flex-col gap-1 p-1">
 						<ButtonStyled
@@ -937,12 +931,10 @@ function submitJoin() {
 					</section>
 
 					<div class="flex flex-wrap gap-2">
-						<ButtonStyled color="red" type="outlined">
-							<button type="button" :disabled="isActionPending" @click="resetState">
-								<LogOutIcon />
-								{{ formatMessage(messages.disconnect) }}
-							</button>
-						</ButtonStyled>
+						<Button type="outlined" color="red" :disabled="isActionPending" @click="resetState"
+							><LogOutIcon />
+							{{ formatMessage(messages.disconnect) }}
+						</Button>
 					</div>
 				</div>
 			</Card>
@@ -970,16 +962,15 @@ function submitJoin() {
 					{{ state.error_message || formatMessage(messages.checkNetwork) }}
 					<template #actions>
 						<div class="flex flex-wrap gap-2">
-							<ButtonStyled v-if="isRecoverable" color="red" type="outlined">
-								<button
-									type="button"
-									:disabled="isActionPending || isExportingReport"
-									@click="resetState"
-								>
-									<RefreshCwIcon />
-									{{ formatMessage(messages.retry) }}
-								</button>
-							</ButtonStyled>
+							<Button
+								v-if="isRecoverable"
+								type="outlined"
+								color="red"
+								:disabled="isActionPending || isExportingReport"
+								@click="resetState"
+								><RefreshCwIcon />
+								{{ formatMessage(messages.retry) }}
+							</Button>
 							<Button
 								type="colored"
 								color="brand"
@@ -1145,12 +1136,14 @@ function submitJoin() {
 					>
 						{{ formatMessage(messages.portChanged) }}
 						<template #actions>
-							<ButtonStyled color="orange">
-								<button type="button" :disabled="isActionPending" @click="restartHongshiTunnel">
-									<RefreshCwIcon />
-									{{ formatMessage(messages.restartTunnel) }}
-								</button>
-							</ButtonStyled>
+							<Button
+								type="colored"
+								color="orange"
+								:disabled="isActionPending"
+								@click="restartHongshiTunnel"
+								><RefreshCwIcon />
+								{{ formatMessage(messages.restartTunnel) }}
+							</Button>
 						</template>
 					</Admonition>
 
@@ -1159,12 +1152,10 @@ function submitJoin() {
 					</Admonition>
 
 					<div class="flex flex-wrap gap-2">
-						<ButtonStyled color="red" type="outlined">
-							<button type="button" :disabled="isActionPending" @click="stopMultiplayer">
-								<LogOutIcon />
-								{{ formatMessage(messages.disconnect) }}
-							</button>
-						</ButtonStyled>
+						<Button type="outlined" color="red" :disabled="isActionPending" @click="stopMultiplayer"
+							><LogOutIcon />
+							{{ formatMessage(messages.disconnect) }}
+						</Button>
 						<Button type="outlined" :disabled="isActionPending" @click="openHongshiLogs"
 							><BinaryIcon />
 							{{ formatMessage(messages.openLogs) }}
@@ -1190,12 +1181,10 @@ function submitJoin() {
 						</h2>
 					</div>
 					<div class="flex flex-wrap gap-2">
-						<ButtonStyled color="red" type="outlined">
-							<button type="button" :disabled="isActionPending" @click="stopMultiplayer">
-								<LogOutIcon />
-								{{ formatMessage(messages.disconnect) }}
-							</button>
-						</ButtonStyled>
+						<Button type="outlined" color="red" :disabled="isActionPending" @click="stopMultiplayer"
+							><LogOutIcon />
+							{{ formatMessage(messages.disconnect) }}
+						</Button>
 					</div>
 				</div>
 			</Card>

@@ -27,18 +27,17 @@
 					><XIcon />
 					{{ formatMessage(commonMessages.cancelButton) }}
 				</Button>
-				<ButtonStyled color="orange">
-					<button
-						v-tooltip="props.actionDisabled ? props.actionDisabledTooltip : undefined"
-						:disabled="props.actionDisabled"
-						@click="handleConfirm"
-					>
-						<DownloadIcon />
-						{{
-							formatMessage(messages.confirmButton, { action: downgrade ? 'downgrade' : 'update' })
-						}}
-					</button>
-				</ButtonStyled>
+				<Button
+					v-tooltip="props.actionDisabled ? props.actionDisabledTooltip : undefined"
+					type="colored"
+					color="orange"
+					:disabled="props.actionDisabled"
+					@click="handleConfirm"
+					><DownloadIcon />
+					{{
+						formatMessage(messages.confirmButton, { action: downgrade ? 'downgrade' : 'update' })
+					}}
+				</Button>
 			</div>
 		</template>
 	</NewModal>
@@ -50,7 +49,6 @@ import { ref } from 'vue'
 
 import Admonition from '#ui/components/base/Admonition.vue'
 import Button from '#ui/components/base/buttons/Button.vue'
-import ButtonStyled from '#ui/components/base/ButtonStyled.vue'
 import NewModal from '#ui/components/modal/NewModal.vue'
 import { defineMessages, useVIntl } from '#ui/composables/i18n'
 import { commonMessages } from '#ui/utils/common-messages'

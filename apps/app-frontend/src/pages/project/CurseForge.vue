@@ -58,41 +58,43 @@
 				:translation-style="translationStyle"
 			>
 				<template #actions>
-					<ButtonStyled size="large" type="transparent">
-						<button :disabled="translationLoading" @click="toggleTranslation">
-							<SpinnerIcon v-if="translationLoading" class="animate-spin" />
-							<LanguagesIcon v-else />
-							{{
-								formatMessage(
-									translationLoading
-										? messages.translating
-										: translationActive
-											? messages.showOriginal
-											: messages.translateProject,
-								)
-							}}
-						</button>
-					</ButtonStyled>
-					<ButtonStyled v-if="managedProjectType || isWorldMap" size="large" color="brand">
-						<button :disabled="installing || cartProjectInstalling" @click="installSelected(null)">
-							<SpinnerIcon v-if="installing" class="animate-spin" />
-							<PlusIcon v-else-if="isWorldMap || cartProjectSelected" />
-							<DownloadIcon v-else />
-							{{
-								formatMessage(
-									installing || cartProjectInstalling
-										? commonMessages.installingLabel
-										: cartProjectSelected
-											? commonMessages.selectedLabel
-											: isWorldMap
-												? instanceId
-													? commonMessages.installButton
-													: messages.addToAnInstance
-												: commonMessages.installButton,
-								)
-							}}
-						</button>
-					</ButtonStyled>
+					<Button type="quiet" size="xl" :disabled="translationLoading" @click="toggleTranslation"
+						><SpinnerIcon v-if="translationLoading" class="animate-spin" />
+						<LanguagesIcon v-else />
+						{{
+							formatMessage(
+								translationLoading
+									? messages.translating
+									: translationActive
+										? messages.showOriginal
+										: messages.translateProject,
+							)
+						}}
+					</Button>
+					<Button
+						v-if="managedProjectType || isWorldMap"
+						type="colored"
+						color="brand"
+						size="xl"
+						:disabled="installing || cartProjectInstalling"
+						@click="installSelected(null)"
+						><SpinnerIcon v-if="installing" class="animate-spin" />
+						<PlusIcon v-else-if="isWorldMap || cartProjectSelected" />
+						<DownloadIcon v-else />
+						{{
+							formatMessage(
+								installing || cartProjectInstalling
+									? commonMessages.installingLabel
+									: cartProjectSelected
+										? commonMessages.selectedLabel
+										: isWorldMap
+											? instanceId
+												? commonMessages.installButton
+												: messages.addToAnInstance
+											: commonMessages.installButton,
+							)
+						}}
+					</Button>
 					<ButtonStyled
 						v-if="data.site_url || mcmodUrl || favoriteSupported"
 						size="large"
@@ -262,6 +264,7 @@ import {
 } from '@modrinth/assets'
 import {
 	BrowseInstallHeader,
+	Button,
 	ButtonStyled,
 	Card,
 	commonMessages,

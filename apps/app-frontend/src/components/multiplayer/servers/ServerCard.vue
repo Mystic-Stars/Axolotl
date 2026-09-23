@@ -6,7 +6,7 @@ import {
 	SpinnerIcon,
 	StopCircleIcon,
 } from '@modrinth/assets'
-import { ButtonStyled, defineMessages, TagItem, useVIntl } from '@modrinth/ui'
+import { Button, defineMessages, TagItem, useVIntl } from '@modrinth/ui'
 import { computed } from 'vue'
 
 import {
@@ -105,56 +105,54 @@ const setupTooltip = computed(() => {
 				>
 					<SpinnerIcon class="size-5 animate-spin text-orange" />
 				</div>
-				<ButtonStyled
+				<Button
 					v-else-if="setupStatus === 'interrupted'"
 					v-tooltip="setupTooltip"
+					type="colored"
 					color="brand"
-					size="large"
+					size="xl"
 					circular
-				>
-					<button
-						type="button"
-						class="scale-75 opacity-0 transition-all group-hover:scale-100 group-hover:opacity-100 group-focus-within:scale-100 group-focus-within:opacity-100"
-						@click="emit('resume')"
-					>
-						<DownloadIcon />
-					</button>
-				</ButtonStyled>
-				<ButtonStyled
+					icon-only
+					class="scale-75 opacity-0 transition-all group-hover:scale-100 group-hover:opacity-100 group-focus-within:scale-100 group-focus-within:opacity-100"
+					@click="emit('resume')"
+					><DownloadIcon />
+				</Button>
+				<Button
 					v-else-if="setupStatus === 'failed'"
 					v-tooltip="setupTooltip"
+					type="colored"
 					color="red"
-					size="large"
+					size="xl"
 					circular
-				>
-					<button
-						type="button"
-						class="scale-75 opacity-0 transition-all group-hover:scale-100 group-hover:opacity-100 group-focus-within:scale-100 group-focus-within:opacity-100"
-						@click="emit('resume')"
-					>
-						<RefreshCwIcon />
-					</button>
-				</ButtonStyled>
-				<ButtonStyled v-else-if="server.status !== 'running'" color="brand" size="large" circular>
-					<button
-						v-tooltip="formatMessage(messages.start)"
-						type="button"
-						class="scale-75 opacity-0 transition-all group-hover:scale-100 group-hover:opacity-100 group-focus-within:scale-100 group-focus-within:opacity-100"
-						@click="emit('start-stop')"
-					>
-						<PlayIcon class="translate-x-[1px]" />
-					</button>
-				</ButtonStyled>
-				<ButtonStyled v-else color="red" size="large" circular>
-					<button
-						v-tooltip="formatMessage(messages.stop)"
-						type="button"
-						class="scale-75 opacity-0 transition-all group-hover:scale-100 group-hover:opacity-100 group-focus-within:scale-100 group-focus-within:opacity-100"
-						@click="emit('start-stop')"
-					>
-						<StopCircleIcon />
-					</button>
-				</ButtonStyled>
+					icon-only
+					class="scale-75 opacity-0 transition-all group-hover:scale-100 group-hover:opacity-100 group-focus-within:scale-100 group-focus-within:opacity-100"
+					@click="emit('resume')"
+					><RefreshCwIcon />
+				</Button>
+				<Button
+					v-else-if="server.status !== 'running'"
+					v-tooltip="formatMessage(messages.start)"
+					type="colored"
+					color="brand"
+					size="xl"
+					circular
+					icon-only
+					class="scale-75 opacity-0 transition-all group-hover:scale-100 group-hover:opacity-100 group-focus-within:scale-100 group-focus-within:opacity-100"
+					@click="emit('start-stop')"
+					><PlayIcon class="translate-x-[1px]" />
+				</Button>
+				<Button
+					v-else
+					v-tooltip="formatMessage(messages.stop)"
+					type="colored"
+					color="red"
+					size="xl"
+					circular
+					icon-only
+					class="scale-75 opacity-0 transition-all group-hover:scale-100 group-hover:opacity-100 group-focus-within:scale-100 group-focus-within:opacity-100"
+					@click="emit('start-stop')"
+					><StopCircleIcon />
+				</Button>
 			</div>
 		</div>
 		<div class="flex w-full min-w-0 flex-col items-start justify-center gap-1 px-0.5">
@@ -192,56 +190,54 @@ const setupTooltip = computed(() => {
 				>
 					<SpinnerIcon class="size-4 animate-spin text-orange" />
 				</div>
-				<ButtonStyled
+				<Button
 					v-else-if="setupStatus === 'interrupted'"
 					v-tooltip="setupTooltip"
+					type="colored"
 					color="brand"
-					size="large"
+					size="xl"
 					circular
-				>
-					<button
-						type="button"
-						class="origin-bottom scale-75 opacity-0 transition-all group-hover:scale-100 group-hover:opacity-100 group-focus-within:scale-100 group-focus-within:opacity-100"
-						@click="emit('resume')"
-					>
-						<DownloadIcon />
-					</button>
-				</ButtonStyled>
-				<ButtonStyled
+					icon-only
+					class="origin-bottom scale-75 opacity-0 transition-all group-hover:scale-100 group-hover:opacity-100 group-focus-within:scale-100 group-focus-within:opacity-100"
+					@click="emit('resume')"
+					><DownloadIcon />
+				</Button>
+				<Button
 					v-else-if="setupStatus === 'failed'"
 					v-tooltip="setupTooltip"
+					type="colored"
 					color="red"
-					size="large"
+					size="xl"
 					circular
-				>
-					<button
-						type="button"
-						class="origin-bottom scale-75 opacity-0 transition-all group-hover:scale-100 group-hover:opacity-100 group-focus-within:scale-100 group-focus-within:opacity-100"
-						@click="emit('resume')"
-					>
-						<RefreshCwIcon />
-					</button>
-				</ButtonStyled>
-				<ButtonStyled v-else-if="server.status !== 'running'" color="brand" size="large" circular>
-					<button
-						v-tooltip="formatMessage(messages.start)"
-						type="button"
-						class="origin-bottom scale-75 opacity-0 transition-all group-hover:scale-100 group-hover:opacity-100 group-focus-within:scale-100 group-focus-within:opacity-100"
-						@click="emit('start-stop')"
-					>
-						<PlayIcon class="translate-x-[1px]" />
-					</button>
-				</ButtonStyled>
-				<ButtonStyled v-else color="red" size="large" circular>
-					<button
-						v-tooltip="formatMessage(messages.stop)"
-						type="button"
-						class="origin-bottom scale-75 opacity-0 transition-all group-hover:scale-100 group-hover:opacity-100 group-focus-within:scale-100 group-focus-within:opacity-100"
-						@click="emit('start-stop')"
-					>
-						<StopCircleIcon />
-					</button>
-				</ButtonStyled>
+					icon-only
+					class="origin-bottom scale-75 opacity-0 transition-all group-hover:scale-100 group-hover:opacity-100 group-focus-within:scale-100 group-focus-within:opacity-100"
+					@click="emit('resume')"
+					><RefreshCwIcon />
+				</Button>
+				<Button
+					v-else-if="server.status !== 'running'"
+					v-tooltip="formatMessage(messages.start)"
+					type="colored"
+					color="brand"
+					size="xl"
+					circular
+					icon-only
+					class="origin-bottom scale-75 opacity-0 transition-all group-hover:scale-100 group-hover:opacity-100 group-focus-within:scale-100 group-focus-within:opacity-100"
+					@click="emit('start-stop')"
+					><PlayIcon class="translate-x-[1px]" />
+				</Button>
+				<Button
+					v-else
+					v-tooltip="formatMessage(messages.stop)"
+					type="colored"
+					color="red"
+					size="xl"
+					circular
+					icon-only
+					class="origin-bottom scale-75 opacity-0 transition-all group-hover:scale-100 group-hover:opacity-100 group-focus-within:scale-100 group-focus-within:opacity-100"
+					@click="emit('start-stop')"
+					><StopCircleIcon />
+				</Button>
 			</div>
 		</div>
 		<div class="min-w-0 flex-1">

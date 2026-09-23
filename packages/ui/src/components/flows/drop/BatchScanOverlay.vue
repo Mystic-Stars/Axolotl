@@ -2,7 +2,7 @@
 import { SpinnerIcon } from '@modrinth/assets'
 import { computed } from 'vue'
 
-import ButtonStyled from '#ui/components/base/ButtonStyled.vue'
+import Button from '#ui/components/base/buttons/Button.vue'
 import ProgressBar from '#ui/components/base/ProgressBar.vue'
 import { defineMessages, useVIntl } from '#ui/composables/i18n'
 import type { BatchDropItem, BatchDropScanState } from '#ui/composables/use-batch-drop'
@@ -97,11 +97,9 @@ function statusClass(state: BatchDropScanState): string {
 						{{ formatMessage(messages.subtitle, { done: doneCount, total }) }}
 					</p>
 				</div>
-				<ButtonStyled type="transparent" size="small">
-					<button type="button" @click="emit('cancel')">
-						{{ formatMessage(messages.cancel) }}
-					</button>
-				</ButtonStyled>
+				<Button type="quiet" size="2xs" @click="emit('cancel')"
+					>{{ formatMessage(messages.cancel) }}
+				</Button>
 			</div>
 
 			<ProgressBar class="mt-3" :progress="doneCount" :max="total" full-width show-progress />

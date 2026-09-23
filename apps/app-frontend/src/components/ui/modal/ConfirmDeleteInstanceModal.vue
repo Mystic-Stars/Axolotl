@@ -37,16 +37,14 @@
 					><XIcon />
 					{{ formatMessage(commonMessages.cancelButton) }}
 				</Button>
-				<ButtonStyled color="red">
-					<button @click="confirm">
-						<TrashIcon />
-						{{
-							formatMessage(count > 1 ? messages.batchDeleteButton : messages.deleteButton, {
-								count,
-							})
-						}}
-					</button>
-				</ButtonStyled>
+				<Button type="colored" color="red" @click="confirm"
+					><TrashIcon />
+					{{
+						formatMessage(count > 1 ? messages.batchDeleteButton : messages.deleteButton, {
+							count,
+						})
+					}}
+				</Button>
 			</div>
 		</template>
 	</NewModal>
@@ -57,7 +55,6 @@ import { TrashIcon, XIcon } from '@modrinth/assets'
 import {
 	Admonition,
 	Button,
-	ButtonStyled,
 	commonMessages,
 	defineMessages,
 	NewModal,

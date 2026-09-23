@@ -2313,15 +2313,15 @@ function clampWorldCoordinate(value: number) {
 				<span class="map-scale-badge">{{
 					formatMessage(messages.mapScale, { scale: mapScaleLabel })
 				}}</span>
-				<ButtonStyled circular type="outlined">
-					<button
-						v-tooltip="formatMessage(messages.copyright)"
-						:aria-label="formatMessage(messages.copyright)"
-						@click="copyrightModal?.show($event)"
-					>
-						<CircleAlertIcon />
-					</button>
-				</ButtonStyled>
+				<Button
+					v-tooltip="formatMessage(messages.copyright)"
+					type="outlined"
+					circular
+					icon-only
+					:aria-label="formatMessage(messages.copyright)"
+					@click="copyrightModal?.show($event)"
+					><CircleAlertIcon />
+				</Button>
 			</div>
 		</header>
 
@@ -2357,15 +2357,15 @@ function clampWorldCoordinate(value: number) {
 							:placeholder="formatMessage(messages.seedPlaceholder)"
 							wrapper-class="seed-map-seed w-full"
 						/>
-						<ButtonStyled circular type="outlined">
-							<button
-								v-tooltip="formatMessage(messages.randomSeed)"
-								:aria-label="formatMessage(messages.randomSeed)"
-								@click="randomizeSeed"
-							>
-								<RefreshCwIcon />
-							</button>
-						</ButtonStyled>
+						<Button
+							v-tooltip="formatMessage(messages.randomSeed)"
+							type="outlined"
+							circular
+							icon-only
+							:aria-label="formatMessage(messages.randomSeed)"
+							@click="randomizeSeed"
+							><RefreshCwIcon />
+						</Button>
 						<ButtonStyled circular type="outlined">
 							<PopoutMenu
 								:aria-label="formatMessage(messages.history)"
@@ -2728,9 +2728,9 @@ function clampWorldCoordinate(value: number) {
 						<div class="ore-range-heading">
 							<strong>{{ formatMessage(messages.oreYRange) }}</strong>
 							<span>Y {{ oreYMinimum }} - {{ oreYMaximum }}</span>
-							<ButtonStyled size="small" type="transparent">
-								<button @click="resetOreYRange">{{ formatMessage(messages.resetYRange) }}</button>
-							</ButtonStyled>
+							<Button type="quiet" size="2xs" @click="resetOreYRange">{{
+								formatMessage(messages.resetYRange)
+							}}</Button>
 						</div>
 						<label>
 							<span>{{ formatMessage(messages.oreMinY) }}</span>

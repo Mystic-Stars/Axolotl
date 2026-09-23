@@ -40,29 +40,29 @@
 								</span>
 							</slot>
 						</div>
-						<ButtonStyled v-if="closable" circular>
-							<button
-								v-tooltip="closeLabel"
-								:aria-label="closeLabel"
-								:disabled="disableClose"
-								@click="hide"
-							>
-								<XIcon aria-hidden="true" />
-							</button>
-						</ButtonStyled>
-					</div>
-
-					<ButtonStyled v-if="props.mergeHeader && closable" circular>
-						<button
+						<Button
+							v-if="closable"
 							v-tooltip="closeLabel"
-							class="absolute top-4 right-4 z-10"
+							circular
+							icon-only
 							:aria-label="closeLabel"
 							:disabled="disableClose"
 							@click="hide"
-						>
-							<XIcon aria-hidden="true" />
-						</button>
-					</ButtonStyled>
+							><XIcon aria-hidden="true" />
+						</Button>
+					</div>
+
+					<Button
+						v-if="props.mergeHeader && closable"
+						v-tooltip="closeLabel"
+						circular
+						icon-only
+						class="absolute top-4 right-4 z-10"
+						:aria-label="closeLabel"
+						:disabled="disableClose"
+						@click="hide"
+						><XIcon aria-hidden="true" />
+					</Button>
 
 					<div v-if="scrollable" class="relative flex-1 min-h-0 flex flex-col">
 						<Transition
@@ -142,7 +142,7 @@ import { useModalStack } from '../../composables/modal-stack'
 import { useScrollIndicator } from '../../composables/scroll-indicator'
 import { injectModalBehavior } from '../../providers'
 import { commonMessages } from '../../utils/common-messages'
-import ButtonStyled from '../base/ButtonStyled.vue'
+import Button from '../base/buttons/Button.vue'
 
 const { formatMessage } = useVIntl()
 

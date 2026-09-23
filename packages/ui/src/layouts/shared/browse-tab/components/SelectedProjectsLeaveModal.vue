@@ -10,18 +10,14 @@
 					><XIcon />
 					{{ formatMessage(commonMessages.cancelButton) }}
 				</Button>
-				<ButtonStyled color="red">
-					<button :disabled="installing" @click="resolve('discard')">
-						<TrashIcon />
-						{{ formatMessage(messages.discardButton) }}
-					</button>
-				</ButtonStyled>
-				<ButtonStyled color="green">
-					<button :disabled="installing" @click="resolve('install')">
-						<PlusIcon />
-						{{ formatMessage(commonMessages.installButton) }}
-					</button>
-				</ButtonStyled>
+				<Button type="colored" color="red" :disabled="installing" @click="resolve('discard')"
+					><TrashIcon />
+					{{ formatMessage(messages.discardButton) }}
+				</Button>
+				<Button type="colored" color="green" :disabled="installing" @click="resolve('install')"
+					><PlusIcon />
+					{{ formatMessage(commonMessages.installButton) }}
+				</Button>
 			</div>
 		</template>
 	</NewModal>
@@ -32,7 +28,6 @@ import { PlusIcon, TrashIcon, XIcon } from '@modrinth/assets'
 import { ref } from 'vue'
 
 import Button from '#ui/components/base/buttons/Button.vue'
-import ButtonStyled from '#ui/components/base/ButtonStyled.vue'
 import NewModal from '#ui/components/modal/NewModal.vue'
 import { defineMessages, useVIntl } from '#ui/composables/i18n'
 import { commonMessages } from '#ui/utils/common-messages'

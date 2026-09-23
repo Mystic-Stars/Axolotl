@@ -166,16 +166,15 @@
 					><XIcon aria-hidden="true" />
 					{{ formatMessage(commonMessages.cancelButton) }}
 				</Button>
-				<ButtonStyled color="red">
-					<button
-						v-tooltip="props.actionDisabled ? props.actionDisabledTooltip : undefined"
-						:disabled="props.actionDisabled"
-						@click="confirm"
-					>
-						<TrashIcon aria-hidden="true" />
-						{{ deleteButtonLabel }}
-					</button>
-				</ButtonStyled>
+				<Button
+					v-tooltip="props.actionDisabled ? props.actionDisabledTooltip : undefined"
+					type="colored"
+					color="red"
+					:disabled="props.actionDisabled"
+					@click="confirm"
+					><TrashIcon aria-hidden="true" />
+					{{ deleteButtonLabel }}
+				</Button>
 			</div>
 		</template>
 	</NewModal>
@@ -188,7 +187,6 @@ import { computed, nextTick, ref } from 'vue'
 
 import Admonition from '#ui/components/base/Admonition.vue'
 import Button from '#ui/components/base/buttons/Button.vue'
-import ButtonStyled from '#ui/components/base/ButtonStyled.vue'
 import Checkbox from '#ui/components/base/Checkbox.vue'
 import IntlFormatted from '#ui/components/base/IntlFormatted.vue'
 import MinecraftFormattedText from '#ui/components/base/MinecraftFormattedText.vue'

@@ -13,7 +13,7 @@ import {
 } from '@modrinth/assets'
 import {
 	Avatar,
-	ButtonStyled,
+	Button,
 	commonMessages,
 	defineMessages,
 	GAME_MODES,
@@ -363,21 +363,30 @@ watch(
 				</router-link>
 
 				<div class="absolute bottom-3 right-3 z-[2]">
-					<ButtonStyled v-if="isRunning" circular size="small" color="red">
-						<button v-tooltip="formatMessage(commonMessages.stopButton)" @click="stopInstance">
-							<StopCircleIcon />
-						</button>
-					</ButtonStyled>
-					<ButtonStyled v-else circular size="small" color="brand">
-						<button
-							v-tooltip="playTooltip"
-							:disabled="starting || !supportsQuickPlay"
-							@click="playShortcut"
-						>
-							<SpinnerIcon v-if="starting" class="animate-spin" />
-							<PlayIcon v-else class="translate-x-px" />
-						</button>
-					</ButtonStyled>
+					<Button
+						v-if="isRunning"
+						v-tooltip="formatMessage(commonMessages.stopButton)"
+						type="colored"
+						color="red"
+						size="2xs"
+						circular
+						icon-only
+						@click="stopInstance"
+						><StopCircleIcon />
+					</Button>
+					<Button
+						v-else
+						v-tooltip="playTooltip"
+						type="colored"
+						color="brand"
+						size="2xs"
+						circular
+						icon-only
+						:disabled="starting || !supportsQuickPlay"
+						@click="playShortcut"
+						><SpinnerIcon v-if="starting" class="animate-spin" />
+						<PlayIcon v-else class="translate-x-px" />
+					</Button>
 				</div>
 			</div>
 		</div>

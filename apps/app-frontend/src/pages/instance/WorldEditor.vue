@@ -9,12 +9,10 @@
 			<p class="m-0">{{ formatMessage(messages.unsavedBody) }}</p>
 		</div>
 		<div class="flex gap-2 mt-4">
-			<ButtonStyled color="red">
-				<button @click="confirmLeave">
-					<TrashIcon />
-					{{ formatMessage(messages.leaveButton) }}
-				</button>
-			</ButtonStyled>
+			<Button type="colored" color="red" @click="confirmLeave"
+				><TrashIcon />
+				{{ formatMessage(messages.leaveButton) }}
+			</Button>
 			<Button @click="unsavedModal?.hide()"
 				><XIcon />
 				{{ formatMessage(messages.stayButton) }}

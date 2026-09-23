@@ -33,7 +33,6 @@ import {
 	bindingMatchesMouseEvent,
 	bindingMatchesWheelEvent,
 	Button,
-	ButtonStyled,
 	Checkbox,
 	clientInstallableLoaders,
 	commonMessages,
@@ -3140,11 +3139,14 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 					@click="cancelBackupsAndExit"
 					>{{ formatMessage(messages.backupExitCancel) }}
 				</Button>
-				<ButtonStyled v-if="!hasActiveRepositoryMove" color="red">
-					<button type="button" :disabled="closeRequestInProgress" @click="forceBackupExit">
-						{{ formatMessage(messages.backupExitForce) }}
-					</button>
-				</ButtonStyled>
+				<Button
+					v-if="!hasActiveRepositoryMove"
+					type="colored"
+					color="red"
+					:disabled="closeRequestInProgress"
+					@click="forceBackupExit"
+					>{{ formatMessage(messages.backupExitForce) }}
+				</Button>
 			</div>
 		</template>
 	</NewModal>

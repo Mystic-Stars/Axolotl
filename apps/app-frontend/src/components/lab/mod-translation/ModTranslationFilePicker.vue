@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { FileArchiveIcon } from '@modrinth/assets'
-import { ButtonStyled, defineMessages, useVIntl } from '@modrinth/ui'
+import { Button, defineMessages, useVIntl } from '@modrinth/ui'
 import { open } from '@tauri-apps/plugin-dialog'
 
 defineProps<{
@@ -32,12 +32,10 @@ async function pickFile() {
 
 <template>
 	<div class="file-picker">
-		<ButtonStyled color="brand" type="outlined">
-			<button class="file-pick-button" @click="pickFile">
-				<FileArchiveIcon />
-				<span>{{ formatMessage(messages.selectFile) }}</span>
-			</button>
-		</ButtonStyled>
+		<Button type="outlined" color="brand" class="file-pick-button" @click="pickFile"
+			><FileArchiveIcon />
+			<span>{{ formatMessage(messages.selectFile) }}</span>
+		</Button>
 		<span
 			v-if="path"
 			class="selected-path min-w-0 overflow-hidden flex-1 text-contrast text-[0.78rem] truncate"

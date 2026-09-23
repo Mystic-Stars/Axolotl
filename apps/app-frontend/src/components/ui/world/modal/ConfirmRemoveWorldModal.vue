@@ -3,7 +3,6 @@ import { TrashIcon, XIcon } from '@modrinth/assets'
 import {
 	Admonition,
 	Button,
-	ButtonStyled,
 	commonMessages,
 	defineMessages,
 	NewModal,
@@ -128,12 +127,10 @@ defineExpose({ show, hide })
 					><XIcon />
 					{{ formatMessage(commonMessages.cancelButton) }}
 				</Button>
-				<ButtonStyled color="red">
-					<button :disabled="!isServer && !isSingleplayer" @click="confirm">
-						<TrashIcon />
-						{{ formatMessage(actionMessage) }}
-					</button>
-				</ButtonStyled>
+				<Button type="colored" color="red" :disabled="!isServer && !isSingleplayer" @click="confirm"
+					><TrashIcon />
+					{{ formatMessage(actionMessage) }}
+				</Button>
 			</div>
 		</template>
 	</NewModal>

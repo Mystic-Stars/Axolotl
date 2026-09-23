@@ -92,16 +92,13 @@
 				{{ selectedCountText }}
 			</span>
 			<div class="mx-0.5 h-6 w-px bg-surface-5" />
-			<ButtonStyled type="transparent">
-				<button
-					type="button"
-					class="!text-primary"
-					:disabled="isInstallingSelected"
-					@click="clearSelected"
-				>
-					<span>{{ formatMessage(commonMessages.clearButton) }}</span>
-				</button>
-			</ButtonStyled>
+			<Button
+				type="quiet"
+				class="!text-primary"
+				:disabled="isInstallingSelected"
+				@click="clearSelected"
+				><span>{{ formatMessage(commonMessages.clearButton) }}</span>
+			</Button>
 		</div>
 
 		<div class="ml-auto shrink-0">
@@ -120,7 +117,6 @@ import { computed, onUnmounted, ref, useId } from 'vue'
 
 import Avatar from '#ui/components/base/Avatar.vue'
 import Button from '#ui/components/base/buttons/Button.vue'
-import ButtonStyled from '#ui/components/base/ButtonStyled.vue'
 import FloatingActionBar from '#ui/components/base/FloatingActionBar.vue'
 import { defineMessages, useVIntl } from '#ui/composables/i18n'
 import { commonMessages } from '#ui/utils/common-messages'

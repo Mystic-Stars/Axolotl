@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { CheckCircleIcon, FileArchiveIcon, FolderOpenIcon, XIcon } from '@modrinth/assets'
-import { ButtonStyled, defineMessages, useVIntl } from '@modrinth/ui'
+import { Button, defineMessages, useVIntl } from '@modrinth/ui'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
 import type { ModTranslationJob } from '@/lab/mod-translation/types.ts'
@@ -89,19 +89,31 @@ function formatDuration(seconds: number): string {
 			{{ formatMessage(job.status === 'completed' ? messages.done : messages.failed) }}
 		</span>
 		<div class="actions">
-			<ButtonStyled v-if="job.status === 'running'" color="red" type="outlined" size="small">
-				<button :disabled="cancelling" @click="cancel">
-					{{ formatMessage(cancelling ? messages.cancelling : messages.cancel) }}
-				</button>
-			</ButtonStyled>
-			<ButtonStyled v-else-if="job.status === 'completed'" color="brand" size="small">
-				<button @click="emit('openOutput', job)">
-					<FolderOpenIcon />{{ formatMessage(messages.openOutput) }}
-				</button>
-			</ButtonStyled>
-			<ButtonStyled v-if="job.status !== 'running'" type="outlined" size="small">
-				<button aria-label="Remove task" @click="emit('remove', job.taskId)"><XIcon /></button>
-			</ButtonStyled>
+			<Button
+				v-if="job.status === 'running'"
+				type="outlined"
+				color="red"
+				size="2xs"
+				:disabled="cancelling"
+				@click="cancel"
+				>{{ formatMessage(cancelling ? messages.cancelling : messages.cancel) }}
+			</Button>
+			<Button
+				v-else-if="job.status === 'completed'"
+				type="colored"
+				color="brand"
+				size="2xs"
+				@click="emit('openOutput', job)"
+				><FolderOpenIcon />{{ formatMessage(messages.openOutput) }}
+			</Button>
+			<Button
+				v-if="job.status !== 'running'"
+				type="outlined"
+				size="2xs"
+				aria-label="Remove task"
+				@click="emit('remove', job.taskId)"
+				><XIcon
+			/></Button>
 		</div>
 	</header>
 </template>

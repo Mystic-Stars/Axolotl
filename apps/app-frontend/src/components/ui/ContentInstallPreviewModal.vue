@@ -1,14 +1,6 @@
 <script setup lang="ts">
 import { ChevronDownIcon, XIcon } from '@modrinth/assets'
-import {
-	Avatar,
-	Button,
-	ButtonStyled,
-	Checkbox,
-	defineMessages,
-	NewModal,
-	useVIntl,
-} from '@modrinth/ui'
+import { Avatar, Button, Checkbox, defineMessages, NewModal, useVIntl } from '@modrinth/ui'
 import { openUrl } from '@tauri-apps/plugin-opener'
 import { computed, ref } from 'vue'
 
@@ -535,15 +527,17 @@ defineExpose({ show, showBatch, showConflict })
 							{{ formatMessage(messages.dependenciesCount, { count: visibleDependencies.length }) }}
 						</span>
 					</span>
-					<ButtonStyled v-if="installableDependencies.length > 1" size="small" type="transparent">
-						<button @click="toggleAll(selectedInstallableCount !== installableDependencies.length)">
-							{{
-								selectedInstallableCount === installableDependencies.length
-									? formatMessage(messages.clearAll)
-									: formatMessage(messages.selectAll)
-							}}
-						</button>
-					</ButtonStyled>
+					<Button
+						v-if="installableDependencies.length > 1"
+						type="quiet"
+						size="2xs"
+						@click="toggleAll(selectedInstallableCount !== installableDependencies.length)"
+						>{{
+							selectedInstallableCount === installableDependencies.length
+								? formatMessage(messages.clearAll)
+								: formatMessage(messages.selectAll)
+						}}
+					</Button>
 				</div>
 				<div
 					class="grid grid-cols-1 gap-3"

@@ -872,11 +872,9 @@ async function handleInstanceDragEnd(event: {
 				</div>
 			</DropdownSelect>
 			<PopoutMenu :tooltip="formatMessage(messages.view)" placement="bottom-end">
-				<ButtonStyled circular>
-					<button :aria-label="formatMessage(messages.view)">
-						<component :is="currentDisplayMode?.icon" />
-					</button>
-				</ButtonStyled>
+				<Button circular icon-only :aria-label="formatMessage(messages.view)"
+					><component :is="currentDisplayMode?.icon" />
+				</Button>
 				<template #menu>
 					<div class="flex w-44 flex-col gap-1 p-1">
 						<ButtonStyled
@@ -1022,36 +1020,40 @@ async function handleInstanceDragEnd(event: {
 					{{ formatMessage(messages.selectedCount, { count: selectedInstanceIds.size }) }}
 				</span>
 				<div class="mx-0.5 h-6 w-px bg-surface-5" />
-				<ButtonStyled type="transparent">
-					<button class="!text-primary" :disabled="busy" @click="clearLibraryInstanceSelection">
-						<XIcon class="hidden cq-show-icon" />
-						<span class="bar-label">{{ formatMessage(commonMessages.clearButton) }}</span>
-					</button>
-				</ButtonStyled>
+				<Button
+					type="quiet"
+					class="!text-primary"
+					:disabled="busy"
+					@click="clearLibraryInstanceSelection"
+					><XIcon class="hidden cq-show-icon" />
+					<span class="bar-label">{{ formatMessage(commonMessages.clearButton) }}</span>
+				</Button>
 			</div>
 			<div class="ml-auto flex items-center gap-0.5">
-				<ButtonStyled v-if="grouping === 'Group'" type="transparent">
-					<button :disabled="busy" @click="createGroupFromSelection">
-						<PlusIcon />
-						<span class="bar-label">{{ formatMessage(messages.newGroupFromSelection) }}</span>
-					</button>
-				</ButtonStyled>
-				<ButtonStyled v-if="selectedGroupedInstances.length > 0" type="transparent">
-					<button :disabled="busy" @click="removeSelectedInstancesFromGroups">
-						<MinusIcon />
-						<span class="bar-label">{{ formatMessage(messages.removeFromGroup) }}</span>
-					</button>
-				</ButtonStyled>
+				<Button
+					v-if="grouping === 'Group'"
+					type="quiet"
+					:disabled="busy"
+					@click="createGroupFromSelection"
+					><PlusIcon />
+					<span class="bar-label">{{ formatMessage(messages.newGroupFromSelection) }}</span>
+				</Button>
+				<Button
+					v-if="selectedGroupedInstances.length > 0"
+					type="quiet"
+					:disabled="busy"
+					@click="removeSelectedInstancesFromGroups"
+					><MinusIcon />
+					<span class="bar-label">{{ formatMessage(messages.removeFromGroup) }}</span>
+				</Button>
 				<div
 					v-if="grouping === 'Group' || selectedGroupedInstances.length > 0"
 					class="mx-1 h-6 w-px bg-surface-5"
 				/>
-				<ButtonStyled type="transparent" color="red">
-					<button :disabled="busy" @click="batchDeleteConfirmModal?.show()">
-						<TrashIcon />
-						<span class="bar-label">{{ formatMessage(commonMessages.deleteLabel) }}</span>
-					</button>
-				</ButtonStyled>
+				<Button type="quiet" color="red" :disabled="busy" @click="batchDeleteConfirmModal?.show()"
+					><TrashIcon />
+					<span class="bar-label">{{ formatMessage(commonMessages.deleteLabel) }}</span>
+				</Button>
 			</div>
 		</FloatingActionBar>
 		<InstanceGroupModal

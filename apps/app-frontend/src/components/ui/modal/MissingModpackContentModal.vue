@@ -79,23 +79,31 @@
 						<Badge :color="statusColor(file.status)" :type="statusLabel(file.status)" />
 					</div>
 					<div class="flex flex-wrap gap-2">
-						<ButtonStyled color="brand" size="small">
-							<button :disabled="isBusy(file.itemId)" @click="retryOne(file.itemId)">
-								<SpinnerIcon v-if="isBusy(file.itemId)" class="animate-spin" />
-								<RefreshCwIcon v-else />
-								{{ formatMessage(messages.retry) }}
-							</button>
-						</ButtonStyled>
-						<ButtonStyled v-if="file.browserUrls.length" type="outlined" size="small">
-							<button :disabled="isBusy(file.itemId)" @click="openBrowser(file.browserUrls[0])">
-								<ExternalIcon />{{ formatMessage(messages.browserDownload) }}
-							</button>
-						</ButtonStyled>
-						<ButtonStyled type="outlined" size="small">
-							<button :disabled="isBusy(file.itemId)" @click="selectLocal(file.itemId)">
-								<UploadIcon />{{ formatMessage(messages.chooseFile) }}
-							</button>
-						</ButtonStyled>
+						<Button
+							type="colored"
+							color="brand"
+							size="2xs"
+							:disabled="isBusy(file.itemId)"
+							@click="retryOne(file.itemId)"
+							><SpinnerIcon v-if="isBusy(file.itemId)" class="animate-spin" />
+							<RefreshCwIcon v-else />
+							{{ formatMessage(messages.retry) }}
+						</Button>
+						<Button
+							v-if="file.browserUrls.length"
+							type="outlined"
+							size="2xs"
+							:disabled="isBusy(file.itemId)"
+							@click="openBrowser(file.browserUrls[0])"
+							><ExternalIcon />{{ formatMessage(messages.browserDownload) }}
+						</Button>
+						<Button
+							type="outlined"
+							size="2xs"
+							:disabled="isBusy(file.itemId)"
+							@click="selectLocal(file.itemId)"
+							><UploadIcon />{{ formatMessage(messages.chooseFile) }}
+						</Button>
 					</div>
 				</div>
 			</div>
@@ -133,7 +141,6 @@ import {
 	Admonition,
 	Badge,
 	Button,
-	ButtonStyled,
 	commonMessages,
 	defineMessages,
 	injectNotificationManager,

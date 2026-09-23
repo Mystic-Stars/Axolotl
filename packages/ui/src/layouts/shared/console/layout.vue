@@ -175,12 +175,10 @@
 					><XIcon />
 					{{ formatMessage(commonMessages.cancelButton) }}
 				</Button>
-				<ButtonStyled color="red">
-					<button :disabled="isDeleting" @click="confirmDelete">
-						<TrashIcon />
-						{{ formatMessage(commonMessages.deleteLabel) }}
-					</button>
-				</ButtonStyled>
+				<Button type="colored" color="red" :disabled="isDeleting" @click="confirmDelete"
+					><TrashIcon />
+					{{ formatMessage(commonMessages.deleteLabel) }}
+				</Button>
 			</div>
 		</template>
 	</NewModal>

@@ -2,7 +2,7 @@
 import { ChevronLeftIcon, ChevronRightIcon, SpinnerIcon, WorldIcon } from '@modrinth/assets'
 import {
 	Avatar,
-	ButtonStyled,
+	Button,
 	defineMessages,
 	injectNotificationManager,
 	NewModal,
@@ -180,11 +180,9 @@ defineExpose({ show })
 
 			<div v-else class="seed-import-step">
 				<div class="seed-import-world-heading">
-					<ButtonStyled size="small" type="transparent">
-						<button @click="backToInstances">
-							<ChevronLeftIcon />{{ formatMessage(messages.back) }}
-						</button>
-					</ButtonStyled>
+					<Button type="quiet" size="2xs" @click="backToInstances"
+						><ChevronLeftIcon />{{ formatMessage(messages.back) }}
+					</Button>
 					<strong>{{ selectedInstance.name }}</strong>
 				</div>
 				<p class="seed-import-hint">{{ formatMessage(messages.chooseWorld) }}</p>

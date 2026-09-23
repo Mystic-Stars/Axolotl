@@ -24,12 +24,10 @@
 					>{{ formatMessage(messages.instance) }}
 					<RightArrowIcon />
 				</Button>
-				<ButtonStyled color="orange">
-					<button @click="handleCreateAnyway">
-						<PlusIcon />
-						{{ formatMessage(messages.create) }}
-					</button>
-				</ButtonStyled>
+				<Button type="colored" color="orange" @click="handleCreateAnyway"
+					><PlusIcon />
+					{{ formatMessage(messages.create) }}
+				</Button>
 			</div>
 		</template>
 	</NewModal>
@@ -39,7 +37,6 @@
 import { PlusIcon, RightArrowIcon, XIcon } from '@modrinth/assets'
 import {
 	Button,
-	ButtonStyled,
 	commonMessages,
 	defineMessages,
 	IntlFormatted,

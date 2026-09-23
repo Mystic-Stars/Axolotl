@@ -74,15 +74,15 @@
 					:placeholder="formatMessage(messages.searchPlaceholder)"
 					class="flex-1"
 				/>
-				<ButtonStyled type="outlined" circular>
-					<button
-						v-tooltip="`${hideUninstallable ? 'Show' : 'Hide'} unavailable`"
-						@click="hideUninstallable = !hideUninstallable"
-					>
-						<EyeOffIcon v-if="hideUninstallable" />
-						<EyeIcon v-else />
-					</button>
-				</ButtonStyled>
+				<Button
+					v-tooltip="`${hideUninstallable ? 'Show' : 'Hide'} unavailable`"
+					type="outlined"
+					circular
+					icon-only
+					@click="hideUninstallable = !hideUninstallable"
+					><EyeOffIcon v-if="hideUninstallable" />
+					<EyeIcon v-else />
+				</Button>
 			</div>
 
 			<div v-if="loading" class="flex items-center justify-center py-12">

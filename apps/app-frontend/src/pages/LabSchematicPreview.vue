@@ -1503,11 +1503,9 @@ onBeforeUnmount(() => {
 			>
 				<header class="flex items-center justify-between gap-3">
 					<h2 class="m-0 text-base text-contrast">{{ formatMessage(messages.recent) }}</h2>
-					<ButtonStyled size="small" type="transparent">
-						<button type="button" @click="recent = clearRecentSchematics()">
-							<TrashIcon />{{ formatMessage(messages.clearRecent) }}
-						</button>
-					</ButtonStyled>
+					<Button type="quiet" size="2xs" @click="recent = clearRecentSchematics()"
+						><TrashIcon />{{ formatMessage(messages.clearRecent) }}
+					</Button>
 				</header>
 				<ul class="schematic-recent-list m-0 list-none p-0">
 					<li
@@ -1984,15 +1982,12 @@ onBeforeUnmount(() => {
 										@click="expandConnectedSelection"
 										><BoxesIcon />{{ formatMessage(messages.selectConnected) }}
 									</Button>
-									<ButtonStyled type="transparent">
-										<button
-											type="button"
-											:disabled="!selectedBlocks.length"
-											@click="clearBlockSelection"
-										>
-											<XIcon />{{ formatMessage(messages.clearSelection) }}
-										</button>
-									</ButtonStyled>
+									<Button
+										type="quiet"
+										:disabled="!selectedBlocks.length"
+										@click="clearBlockSelection"
+										><XIcon />{{ formatMessage(messages.clearSelection) }}
+									</Button>
 								</div>
 							</section>
 
@@ -2011,24 +2006,18 @@ onBeforeUnmount(() => {
 										@click="showOnlySelectedBlocks"
 										><ScanEyeIcon />{{ formatMessage(messages.isolateSelection) }}
 									</Button>
-									<ButtonStyled type="transparent">
-										<button
-											type="button"
-											:disabled="hiddenBlocks.size === 0 && !isolateSelection"
-											@click="showAllBlocks"
-										>
-											<EyeIcon />{{ formatMessage(messages.showAll) }}
-										</button>
-									</ButtonStyled>
-									<ButtonStyled type="transparent">
-										<button
-											type="button"
-											:disabled="!selectedBlocks.length"
-											@click="copySelectedCoordinates"
-										>
-											<CopyIcon />{{ formatMessage(messages.coordinates) }}
-										</button>
-									</ButtonStyled>
+									<Button
+										type="quiet"
+										:disabled="hiddenBlocks.size === 0 && !isolateSelection"
+										@click="showAllBlocks"
+										><EyeIcon />{{ formatMessage(messages.showAll) }}
+									</Button>
+									<Button
+										type="quiet"
+										:disabled="!selectedBlocks.length"
+										@click="copySelectedCoordinates"
+										><CopyIcon />{{ formatMessage(messages.coordinates) }}
+									</Button>
 								</div>
 							</section>
 
@@ -2042,15 +2031,13 @@ onBeforeUnmount(() => {
 										@click="openBlockPicker"
 										><EditIcon />{{ formatMessage(messages.replaceSelected) }}
 									</Button>
-									<ButtonStyled color="red" type="outlined">
-										<button
-											type="button"
-											:disabled="!canEditSelection"
-											@click="commitSelectionEdit(0, formatMessage(messages.deleteSelected))"
-										>
-											<TrashIcon />{{ formatMessage(messages.deleteSelected) }}
-										</button>
-									</ButtonStyled>
+									<Button
+										type="outlined"
+										color="red"
+										:disabled="!canEditSelection"
+										@click="commitSelectionEdit(0, formatMessage(messages.deleteSelected))"
+										><TrashIcon />{{ formatMessage(messages.deleteSelected) }}
+									</Button>
 								</div>
 							</section>
 
@@ -2107,16 +2094,16 @@ onBeforeUnmount(() => {
 									:placeholder="formatMessage(messages.searchMaterials)"
 									clearable
 								/>
-								<ButtonStyled circular size="small" type="outlined">
-									<button
-										type="button"
-										:aria-label="formatMessage(messages.materialsJson)"
-										:title="formatMessage(messages.materialsJson)"
-										@click="exportMaterialsJson"
-									>
-										<DownloadIcon />
-									</button>
-								</ButtonStyled>
+								<Button
+									type="outlined"
+									size="2xs"
+									circular
+									icon-only
+									:aria-label="formatMessage(messages.materialsJson)"
+									:title="formatMessage(messages.materialsJson)"
+									@click="exportMaterialsJson"
+									><DownloadIcon />
+								</Button>
 							</div>
 							<p
 								v-if="visibleMaterials.length === 0"
@@ -2159,16 +2146,18 @@ onBeforeUnmount(() => {
 												.join(', ') || 'default'
 										}}</code>
 										<div v-if="viewMode === 'orbit'" class="flex flex-wrap gap-2 pt-1">
-											<ButtonStyled size="small" type="outlined">
-												<button type="button" @click="expandSelectionByMaterial(material.name)">
-													<BoxesIcon />{{ formatMessage(messages.selectAllMaterial) }}
-												</button>
-											</ButtonStyled>
-											<ButtonStyled size="small" type="transparent">
-												<button type="button" @click="useMaterialForReplacement(material.name)">
-													<EditIcon />{{ formatMessage(messages.useForReplace) }}
-												</button>
-											</ButtonStyled>
+											<Button
+												type="outlined"
+												size="2xs"
+												@click="expandSelectionByMaterial(material.name)"
+												><BoxesIcon />{{ formatMessage(messages.selectAllMaterial) }}
+											</Button>
+											<Button
+												type="quiet"
+												size="2xs"
+												@click="useMaterialForReplacement(material.name)"
+												><EditIcon />{{ formatMessage(messages.useForReplace) }}
+											</Button>
 										</div>
 									</div>
 								</li>

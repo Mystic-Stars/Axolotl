@@ -22,21 +22,20 @@
 					><XIcon />
 					{{ formatMessage(commonMessages.cancelButton) }}
 				</Button>
-				<ButtonStyled color="orange">
-					<button
-						v-tooltip="props.actionDisabled ? props.actionDisabledTooltip : undefined"
-						:disabled="props.actionDisabled"
-						@click="confirm"
-					>
-						<TrashIcon />
-						{{
-							formatMessage(messages.deleteButton, {
-								count: visibleCount,
-								itemType: formatContentTypeSentence(formatMessage, visibleItemType, visibleCount),
-							})
-						}}
-					</button>
-				</ButtonStyled>
+				<Button
+					v-tooltip="props.actionDisabled ? props.actionDisabledTooltip : undefined"
+					type="colored"
+					color="orange"
+					:disabled="props.actionDisabled"
+					@click="confirm"
+					><TrashIcon />
+					{{
+						formatMessage(messages.deleteButton, {
+							count: visibleCount,
+							itemType: formatContentTypeSentence(formatMessage, visibleItemType, visibleCount),
+						})
+					}}
+				</Button>
 			</div>
 		</template>
 	</NewModal>
@@ -48,7 +47,6 @@ import { nextTick, ref } from 'vue'
 
 import Admonition from '#ui/components/base/Admonition.vue'
 import Button from '#ui/components/base/buttons/Button.vue'
-import ButtonStyled from '#ui/components/base/ButtonStyled.vue'
 import NewModal from '#ui/components/modal/NewModal.vue'
 import { defineMessages, useVIntl } from '#ui/composables/i18n'
 import { commonMessages, formatContentTypeSentence } from '#ui/utils/common-messages'

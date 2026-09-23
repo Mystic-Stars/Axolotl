@@ -48,37 +48,38 @@
 							<div v-if="item.count && item.count > 1" class="text-xs font-bold text-contrast">
 								x{{ item.count }}
 							</div>
-							<ButtonStyled circular size="small">
-								<button
-									v-tooltip="
-										item.supportData
-											? formatMessage(messages.copySupport)
-											: formatMessage(messages.copy)
-									"
-									@click="copyToClipboard(item)"
-								>
-									<CheckIcon v-if="copied[getCopyKey(item)]" />
-									<CopyIcon v-else />
-								</button>
-							</ButtonStyled>
-							<ButtonStyled v-if="item.type === 'error' && onErrorAction" circular size="small">
-								<button
-									v-tooltip="errorActionLabel || formatMessage(messages.exportErrorLogs)"
-									:disabled="exporting[item.id]"
-									@click="handleErrorAction(item)"
-								>
-									<DownloadIcon />
-								</button>
-							</ButtonStyled>
-							<ButtonStyled circular size="small">
-								<button
-									v-tooltip="formatMessage(messages.dismiss)"
-									:aria-label="formatMessage(messages.dismiss)"
-									@click="dismissNotification(index)"
-								>
-									<XIcon />
-								</button>
-							</ButtonStyled>
+							<Button
+								v-tooltip="
+									item.supportData
+										? formatMessage(messages.copySupport)
+										: formatMessage(messages.copy)
+								"
+								size="2xs"
+								circular
+								icon-only
+								@click="copyToClipboard(item)"
+								><CheckIcon v-if="copied[getCopyKey(item)]" />
+								<CopyIcon v-else />
+							</Button>
+							<Button
+								v-if="item.type === 'error' && onErrorAction"
+								v-tooltip="errorActionLabel || formatMessage(messages.exportErrorLogs)"
+								size="2xs"
+								circular
+								icon-only
+								:disabled="exporting[item.id]"
+								@click="handleErrorAction(item)"
+								><DownloadIcon />
+							</Button>
+							<Button
+								v-tooltip="formatMessage(messages.dismiss)"
+								size="2xs"
+								circular
+								icon-only
+								:aria-label="formatMessage(messages.dismiss)"
+								@click="dismissNotification(index)"
+								><XIcon />
+							</Button>
 						</div>
 						<div></div>
 						<div
@@ -116,7 +117,7 @@ import { useModalStack } from '#ui/composables/modal-stack.ts'
 
 import { defineMessages, useVIntl } from '../../composables/i18n'
 import { injectNotificationManager, type WebNotification } from '../../providers'
-import ButtonStyled from '../base/ButtonStyled.vue'
+import Button from '../base/buttons/Button.vue'
 
 const notificationManager = injectNotificationManager()
 const { formatMessage } = useVIntl()

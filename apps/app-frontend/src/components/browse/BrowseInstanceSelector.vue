@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { CheckIcon, DownloadIcon, PlusIcon, TrashIcon } from '@modrinth/assets'
-import { Button, ButtonStyled, defineMessages, NewModal, useVIntl } from '@modrinth/ui'
+import { Button, defineMessages, NewModal, useVIntl } from '@modrinth/ui'
 import { nextTick, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
@@ -183,12 +183,10 @@ defineExpose({ show, requestSwitch })
 		</div>
 		<template #actions>
 			<div class="flex justify-start">
-				<ButtonStyled type="transparent">
-					<button type="button" @click="createInstance">
-						<PlusIcon />
-						{{ formatMessage(messages.create) }}
-					</button>
-				</ButtonStyled>
+				<Button type="quiet" @click="createInstance"
+					><PlusIcon />
+					{{ formatMessage(messages.create) }}
+				</Button>
 			</div>
 		</template>
 	</NewModal>
@@ -263,17 +261,15 @@ defineExpose({ show, requestSwitch })
 					@click="cancelSwitch"
 					>{{ formatMessage(messages.cancel) }}
 				</Button>
-				<ButtonStyled color="red" type="outlined">
-					<button
-						type="button"
-						class="w-full sm:w-auto"
-						:disabled="installingCurrent"
-						@click="clearAndSwitch"
-					>
-						<TrashIcon />
-						{{ formatMessage(messages.clearAndSwitch) }}
-					</button>
-				</ButtonStyled>
+				<Button
+					type="outlined"
+					color="red"
+					class="w-full sm:w-auto"
+					:disabled="installingCurrent"
+					@click="clearAndSwitch"
+					><TrashIcon />
+					{{ formatMessage(messages.clearAndSwitch) }}
+				</Button>
 				<Button
 					type="colored"
 					color="brand"

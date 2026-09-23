@@ -19,7 +19,6 @@ import { onBeforeRouteLeave } from 'vue-router'
 import AutoLink from '#ui/components/base/AutoLink.vue'
 import Avatar from '#ui/components/base/Avatar.vue'
 import Button from '#ui/components/base/buttons/Button.vue'
-import ButtonStyled from '#ui/components/base/ButtonStyled.vue'
 import Chips from '#ui/components/base/Chips.vue'
 import Combobox from '#ui/components/base/Combobox.vue'
 import PaperChannelBadge from '#ui/components/base/PaperChannelBadge.vue'
@@ -710,21 +709,20 @@ const messages = defineMessages({
 						}}
 					</span>
 					<div>
-						<ButtonStyled color="orange">
-							<button
-								v-tooltip="ctx.isBusy.value ? ctx.busyMessage?.value : undefined"
-								class="!shadow-none"
-								:disabled="ctx.isBusy.value"
-								@click="handleShowUnlinkModal"
-							>
-								<UnlinkIcon class="size-5" />
-								{{
-									formatMessage(
-										isLinkedModpack ? commonMessages.unlinkModpackButton : messages.unlinkButton,
-									)
-								}}
-							</button>
-						</ButtonStyled>
+						<Button
+							v-tooltip="ctx.isBusy.value ? ctx.busyMessage?.value : undefined"
+							type="colored"
+							color="orange"
+							class="!shadow-none"
+							:disabled="ctx.isBusy.value"
+							@click="handleShowUnlinkModal"
+							><UnlinkIcon class="size-5" />
+							{{
+								formatMessage(
+									isLinkedModpack ? commonMessages.unlinkModpackButton : messages.unlinkButton,
+								)
+							}}
+						</Button>
 					</div>
 					<span class="text-primary">
 						{{
@@ -744,22 +742,21 @@ const messages = defineMessages({
 						{{ formatMessage(messages.reinstallModpackTitle) }}
 					</span>
 					<div>
-						<ButtonStyled color="red">
-							<button
-								v-tooltip="ctx.isBusy.value ? ctx.busyMessage?.value : undefined"
-								class="!shadow-none"
-								:disabled="ctx.isBusy.value"
-								@click="handleShowReinstallModal"
-							>
-								<SpinnerIcon v-if="ctx.reinstalling?.value" class="animate-spin" />
-								<DownloadIcon v-else class="size-5" />
-								{{
-									ctx.reinstalling?.value
-										? formatMessage(messages.reinstallingModpackButton)
-										: formatMessage(commonMessages.reinstallModpackButton)
-								}}
-							</button>
-						</ButtonStyled>
+						<Button
+							v-tooltip="ctx.isBusy.value ? ctx.busyMessage?.value : undefined"
+							type="colored"
+							color="red"
+							class="!shadow-none"
+							:disabled="ctx.isBusy.value"
+							@click="handleShowReinstallModal"
+							><SpinnerIcon v-if="ctx.reinstalling?.value" class="animate-spin" />
+							<DownloadIcon v-else class="size-5" />
+							{{
+								ctx.reinstalling?.value
+									? formatMessage(messages.reinstallingModpackButton)
+									: formatMessage(commonMessages.reinstallModpackButton)
+							}}
+						</Button>
 					</div>
 					<span class="text-primary">
 						{{
@@ -987,17 +984,16 @@ const messages = defineMessages({
 						</div>
 					</div>
 					<div class="flex flex-wrap gap-2">
-						<ButtonStyled color="orange">
-							<button
-								v-tooltip="ctx.isBusy.value ? ctx.busyMessage?.value : undefined"
-								class="!shadow-none"
-								:disabled="ctx.isBusy.value"
-								@click="handleStartEditing"
-							>
-								<PencilIcon class="size-5" />
-								{{ formatMessage(commonMessages.editButton) }}
-							</button>
-						</ButtonStyled>
+						<Button
+							v-tooltip="ctx.isBusy.value ? ctx.busyMessage?.value : undefined"
+							type="colored"
+							color="orange"
+							class="!shadow-none"
+							:disabled="ctx.isBusy.value"
+							@click="handleStartEditing"
+							><PencilIcon class="size-5" />
+							{{ formatMessage(commonMessages.editButton) }}
+						</Button>
 						<slot name="unlinked-extra-buttons" />
 					</div>
 					<div class="flex items-start gap-2">

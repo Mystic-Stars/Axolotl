@@ -3,7 +3,6 @@ import { FileArchiveIcon, SaveIcon, TrashIcon, UndoIcon, XIcon } from '@modrinth
 import {
 	Admonition,
 	Button,
-	ButtonStyled,
 	commonMessages,
 	defineMessages,
 	injectNotificationManager,
@@ -584,30 +583,29 @@ watch(
 								@click="confirmRestore(snapshot)"
 								><UndoIcon />
 							</Button>
-							<ButtonStyled circular color="red" size="small" type="transparent">
-								<button
-									type="button"
-									:disabled="action !== null || isRunning"
-									:aria-label="formatMessage(messages.delete)"
-									@click="confirmDelete(snapshot)"
-								>
-									<TrashIcon />
-								</button>
-							</ButtonStyled>
+							<Button
+								type="quiet"
+								color="red"
+								size="2xs"
+								circular
+								icon-only
+								:disabled="action !== null || isRunning"
+								:aria-label="formatMessage(messages.delete)"
+								@click="confirmDelete(snapshot)"
+								><TrashIcon />
+							</Button>
 						</div>
 					</div>
 				</section>
 
 				<div class="flex flex-col items-start gap-2">
-					<ButtonStyled color="red" type="outlined">
-						<button
-							type="button"
-							:disabled="snapshots.length > 0 || action !== null || isRunning"
-							@click="disable"
-						>
-							{{ formatMessage(messages.disable) }}
-						</button>
-					</ButtonStyled>
+					<Button
+						type="outlined"
+						color="red"
+						:disabled="snapshots.length > 0 || action !== null || isRunning"
+						@click="disable"
+						>{{ formatMessage(messages.disable) }}
+					</Button>
 					<p v-if="snapshots.length > 0" class="m-0 text-sm text-secondary">
 						{{ formatMessage(messages.disableBlocked) }}
 					</p>
@@ -630,11 +628,13 @@ watch(
 						@click="deleteModal?.hide()"
 						>{{ formatMessage(commonMessages.cancelButton) }}
 					</Button>
-					<ButtonStyled color="red">
-						<button :disabled="action?.startsWith('delete:')" @click="removeSnapshot">
-							<TrashIcon />{{ formatMessage(messages.delete) }}
-						</button>
-					</ButtonStyled>
+					<Button
+						type="colored"
+						color="red"
+						:disabled="action?.startsWith('delete:')"
+						@click="removeSnapshot"
+						><TrashIcon />{{ formatMessage(messages.delete) }}
+					</Button>
 				</div>
 			</template>
 		</NewModal>

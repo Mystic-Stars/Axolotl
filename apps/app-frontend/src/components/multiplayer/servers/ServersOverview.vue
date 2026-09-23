@@ -105,11 +105,9 @@ async function toggleRunning(server: ServerView) {
 			</span>
 			<div class="flex gap-2">
 				<PopoutMenu :tooltip="formatMessage(messages.view)" placement="bottom-end">
-					<ButtonStyled circular>
-						<button type="button" :aria-label="formatMessage(messages.view)">
-							<component :is="currentDisplayMode?.icon" />
-						</button>
-					</ButtonStyled>
+					<Button circular icon-only :aria-label="formatMessage(messages.view)"
+						><component :is="currentDisplayMode?.icon" />
+					</Button>
 					<template #menu>
 						<div class="flex w-44 flex-col gap-1 p-1">
 							<ButtonStyled
@@ -151,12 +149,10 @@ async function toggleRunning(server: ServerView) {
 			:heading="formatMessage(messages.emptyHeading)"
 			:description="formatMessage(messages.emptyDescription)"
 		>
-			<ButtonStyled color="brand" size="large">
-				<button type="button" @click="createModal?.show()">
-					<ServerIcon />
-					{{ formatMessage(messages.create) }}
-				</button>
-			</ButtonStyled>
+			<Button type="colored" color="brand" size="xl" @click="createModal?.show()"
+				><ServerIcon />
+				{{ formatMessage(messages.create) }}
+			</Button>
 		</EmptyState>
 
 		<div

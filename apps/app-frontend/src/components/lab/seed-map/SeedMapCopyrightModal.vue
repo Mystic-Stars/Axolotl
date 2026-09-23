@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { CodeIcon, ExternalIcon, ImageIcon, InfoIcon } from '@modrinth/assets'
-import { ButtonStyled, defineMessages, NewModal, useVIntl } from '@modrinth/ui'
+import { Button, defineMessages, NewModal, useVIntl } from '@modrinth/ui'
 import { openUrl } from '@tauri-apps/plugin-opener'
 import { useTemplateRef } from 'vue'
 
@@ -64,12 +64,10 @@ defineExpose({
 				<div>
 					<h3>{{ formatMessage(messages.iconHeading) }}</h3>
 					<p>{{ formatMessage(messages.iconBody) }}</p>
-					<ButtonStyled size="small" type="outlined">
-						<button @click="openUrl('https://minecraftsearch.com')">
-							{{ formatMessage(messages.visitMinecraftSearch) }}
-							<ExternalIcon />
-						</button>
-					</ButtonStyled>
+					<Button type="outlined" size="2xs" @click="openUrl('https://minecraftsearch.com')"
+						>{{ formatMessage(messages.visitMinecraftSearch) }}
+						<ExternalIcon />
+					</Button>
 				</div>
 			</section>
 
@@ -80,12 +78,13 @@ defineExpose({
 				<div>
 					<h3>{{ formatMessage(messages.engineHeading) }}</h3>
 					<p>{{ formatMessage(messages.engineBody) }}</p>
-					<ButtonStyled size="small" type="outlined">
-						<button @click="openUrl('https://github.com/Cubitect/cubiomes')">
-							{{ formatMessage(messages.viewCubiomes) }}
-							<ExternalIcon />
-						</button>
-					</ButtonStyled>
+					<Button
+						type="outlined"
+						size="2xs"
+						@click="openUrl('https://github.com/Cubitect/cubiomes')"
+						>{{ formatMessage(messages.viewCubiomes) }}
+						<ExternalIcon />
+					</Button>
 				</div>
 			</section>
 
