@@ -570,11 +570,19 @@ const pageTitle: MessageDescriptor = settingsPageTitle
 	--settings-card-border: color-mix(in srgb, var(--surface-4) 72%, transparent);
 	display: grid;
 	grid-template-columns: minmax(18rem, 20rem) minmax(0, 1fr);
+	gap: var(--gap-lg);
 	min-height: 0;
 	overflow: hidden;
 }
 
 .settings-sidebar {
+	/* The shell paints its own surface so the page is a component layer rather
+	   than a window onto `.app-contents`. Without this the region resolved to
+	   `--color-bg`, which only follows "Background visibility", and the
+	   "Component opacity" slider could not reach it at all. */
+	background: var(--surface-2);
+	border: 1px solid var(--surface-4);
+	border-radius: var(--radius-lg);
 	display: flex;
 	height: 100%;
 	flex-direction: column;
@@ -849,6 +857,14 @@ const pageTitle: MessageDescriptor = settingsPageTitle
 }
 
 .settings-content {
+	/* Same reason as `.settings-sidebar`: this is the component layer the
+	   category content sits on, so it must follow "Component opacity" rather
+	   than exposing the page surface beneath it. The height chain that the
+	   `is-flush` category relies on resolves against this box, so padding and
+	   a radius are safe here but a margin would break it. */
+	background: var(--surface-2);
+	border: 1px solid var(--surface-4);
+	border-radius: var(--radius-lg);
 	display: flex;
 	min-width: 0;
 	flex-direction: column;
