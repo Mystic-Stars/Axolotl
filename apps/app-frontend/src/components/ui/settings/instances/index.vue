@@ -29,6 +29,8 @@ import {
 import { syncedPackKeys, syncedPackQueryOptions } from '@/helpers/synced-packs'
 import { instanceKeys, instanceListQueryOptions } from '@/pages/instance/query-options'
 
+import SettingsRow from '../SettingsRow.vue'
+import SettingsSection from '../SettingsSection.vue'
 import CommandHistoryModal from './command-history-modal.vue'
 import GameSettingsModal from './game-settings-modal/index.vue'
 import SyncedServersModal from './servers-modal.vue'
@@ -535,7 +537,7 @@ onScopeDispose(clearBaseSource)
 </script>
 
 <template>
-	<div>
+	<div class="flex flex-col gap-6">
 		<SyncedPacksModal ref="syncedPacksModal" />
 		<CommandHistoryModal ref="commandHistoryModal" />
 		<SyncedServersModal ref="syncedServersModal" />
@@ -555,53 +557,56 @@ onScopeDispose(clearBaseSource)
 			@retry="baseOption && chooseBaseInstance(baseOption)"
 		/>
 
-		<section class="border-0 border-b border-solid border-surface-4 pb-6">
-			<div class="flex flex-col gap-4">
-				<div
-					v-for="row in availableGlobalRows"
-					:key="row.option"
-					class="flex items-center justify-between gap-6"
+		<SettingsSection>
+			<template #header>
+				<h2
+					id="settings-target-instance-sync-options"
+					tabindex="-1"
+					class="m-0 text-lg font-semibold text-contrast"
 				>
-					<div class="flex min-w-0 flex-col gap-1">
-						<h2 class="m-0 text-lg font-semibold text-contrast">
-							{{ formatMessage(messages[row.title]) }}
-						</h2>
-						<p v-if="row.description" class="m-0 text-secondary">
-							{{ formatMessage(messages[row.description]) }}
-						</p>
-					</div>
-					<div class="flex shrink-0 items-center gap-2">
-						<span v-if="row.editable" v-tooltip="editGlobalOptionTooltip(row)" class="flex">
-							<IconButton
-								type="outlined"
-								circular
-								:disabled="
-									!canEditGlobalOption(row) ||
-									initializedOptionsQuery.isPending.value ||
-									globalOptionMutation.isPending.value
-								"
-								:label="
-									formatMessage(
-										row.editable === 'game-settings'
-											? messages.gameSettingsButton
-											: commonMessages.editButton,
-									)
-								"
-								@click="editGlobalOption(row)"
-							>
-								<EditIcon aria-hidden="true" />
-							</IconButton>
-						</span>
-						<Toggle
-							:id="`global-sync-${row.option}`"
-							:model-value="globalOptions[row.option]"
-							:disabled="!canToggleGlobalOptions"
-							:aria-label="formatMessage(messages[row.title])"
-							@update:model-value="(enabled) => toggleGlobalOption(row.option, enabled)"
-						/>
-					</div>
-				</div>
-			</div>
-		</section>
+					{{ formatMessage(messages.title) }}
+				</h2>
+			</template>
+			<SettingsRow v-for="row in availableGlobalRows" :key="row.option">
+				<template #label>
+					<span :id="`settings-target-instance-sync-${row.option}`" tabindex="-1">
+						{{ formatMessage(messages[row.title]) }}
+					</span>
+				</template>
+				<template v-if="row.description" #description>
+					{{ formatMessage(messages[row.description]) }}
+				</template>
+				<template #control>
+					<span v-if="row.editable" v-tooltip="editGlobalOptionTooltip(row)" class="flex">
+						<IconButton
+							type="outlined"
+							circular
+							:disabled="
+								!canEditGlobalOption(row) ||
+								initializedOptionsQuery.isPending.value ||
+								globalOptionMutation.isPending.value
+							"
+							:label="
+								formatMessage(
+									row.editable === 'game-settings'
+										? messages.gameSettingsButton
+										: commonMessages.editButton,
+								)
+							"
+							@click="editGlobalOption(row)"
+						>
+							<EditIcon aria-hidden="true" />
+						</IconButton>
+					</span>
+					<Toggle
+						:id="`global-sync-${row.option}`"
+						:model-value="globalOptions[row.option]"
+						:disabled="!canToggleGlobalOptions"
+						:aria-label="formatMessage(messages[row.title])"
+						@update:model-value="(enabled) => toggleGlobalOption(row.option, enabled)"
+					/>
+				</template>
+			</SettingsRow>
+		</SettingsSection>
 	</div>
 </template>
