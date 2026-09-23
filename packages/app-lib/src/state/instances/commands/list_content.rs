@@ -145,16 +145,7 @@ pub(crate) async fn get_installed_project_ids_for_instance(
         &state.pool,
     )
     .await?;
-    let projects =
-        get_content_projects(instance_id, content_set_id, None, state).await?;
-
-    let mut project_ids = projects
-        .into_iter()
-        .filter_map(|(_, file)| {
-            file.modrinth
-                .map(|metadata| metadata.project_id.to_string())
-        })
-        .collect::<HashSet<_>>();
+    let mut project_ids = HashSet::new();
     let provider_rows = sqlx::query(
         "SELECT DISTINCT ref.provider, ref.provider_project_id
          FROM instance_content_entries entry
@@ -2874,6 +2865,93 @@ mod tests {
             "vanilla",
             &[],
         ));
+    }
+
+    #[tokio::test]
+    async fn installed_ids_use_local_refs_without_hash_or_remote_metadata() {
+        let (_temp, state, resolved) = reconciliation_fixture().await;
+        for (id, enabled, missing, provider_ref) in [
+            (
+                "modrinth",
+                true,
+                false,
+                ContentProviderRef::Modrinth {
+                    project_id: crate::state::ModrinthProjectId::new(
+                        "projectA",
+                    )
+                    .unwrap(),
+                    version_id: Some(
+                        crate::state::ModrinthVersionId::new("versionA")
+                            .unwrap(),
+                    ),
+                },
+            ),
+            (
+                "disabled",
+                false,
+                false,
+                ContentProviderRef::CurseForge {
+                    project_id: crate::state::CurseForgeProjectId::new(123)
+                        .unwrap(),
+                    file_id: Some(
+                        crate::state::CurseForgeFileId::new(456).unwrap(),
+                    ),
+                },
+            ),
+            (
+                "missing",
+                true,
+                true,
+                ContentProviderRef::Modrinth {
+                    project_id: crate::state::ModrinthProjectId::new(
+                        "projectB",
+                    )
+                    .unwrap(),
+                    version_id: None,
+                },
+            ),
+        ] {
+            let file = insert_test_file(
+                &resolved,
+                &state,
+                id,
+                &format!("mods/{id}.jar"),
+                "hash",
+                enabled,
+            )
+            .await;
+            let entry =
+                insert_test_entry(&resolved, &state, &file, enabled).await;
+            let mut tx = state.pool.begin().await.unwrap();
+            sqlite::content_rows::upsert_content_provider_ref_in_transaction(
+                &entry.id,
+                &provider_ref,
+                true,
+                &mut tx,
+            )
+            .await
+            .unwrap();
+            sqlx::query("UPDATE instance_files SET missing = ? WHERE id = ?")
+                .bind(missing)
+                .bind(&file.id)
+                .execute(&mut *tx)
+                .await
+                .unwrap();
+            tx.commit().await.unwrap();
+        }
+        let mut ids = tokio::time::timeout(
+            std::time::Duration::from_secs(2),
+            get_installed_project_ids_for_instance(
+                &resolved.instance.id,
+                None,
+                &state,
+            ),
+        )
+        .await
+        .expect("installed IDs must not wait for remote metadata")
+        .unwrap();
+        ids.sort();
+        assert_eq!(ids, ["curseforge:123", "projectA"]);
     }
 
     #[test]

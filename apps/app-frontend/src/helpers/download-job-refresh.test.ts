@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
-import { mergeRefreshedDownloadJobs } from './download-job-refresh.ts'
+import {
+	isRegressiveActiveJobSnapshot,
+	mergeRefreshedDownloadJobs,
+} from './download-job-refresh.ts'
 
 const active = new Set(['queued', 'running', 'canceling', 'waiting_for_user'])
 const job = (job_id: string, status: string, progress: number) => ({
@@ -9,6 +12,19 @@ const job = (job_id: string, status: string, progress: number) => ({
 	status,
 	progress,
 	created: '2026-09-12T00:00:00Z',
+	modified: '2026-09-12T00:00:00Z',
+})
+
+test('does not regress an active job to a same-timestamp queued snapshot', () => {
+	const running = job('a', 'running', 20)
+	const queued = job('a', 'queued', 0)
+	assert.equal(isRegressiveActiveJobSnapshot(running, queued, active), true)
+})
+
+test('allows a queued snapshot when the job is not already active', () => {
+	const succeeded = job('a', 'succeeded', 100)
+	const queued = job('a', 'queued', 0)
+	assert.equal(isRegressiveActiveJobSnapshot(succeeded, queued, active), false)
 })
 
 test('preserves realtime progress received while an active refresh was in flight', () => {

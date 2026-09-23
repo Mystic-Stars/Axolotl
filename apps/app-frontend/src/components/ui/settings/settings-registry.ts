@@ -67,6 +67,10 @@ const categoryContent: Record<SettingsCategoryId, Pick<SettingsCategory, 'icon' 
 		icon: GameIcon,
 		content: defineAsyncComponent(() => import('./DefaultInstanceSettings.vue')),
 	},
+	'instance-sync': {
+		icon: RefreshCwIcon,
+		content: defineAsyncComponent(() => import('./instances/index.vue')),
+	},
 	'content-downloads': {
 		icon: GaugeIcon,
 		content: defineAsyncComponent(() => import('./ContentDownloadSettings.vue')),

@@ -1,20 +1,13 @@
 import type { Labrinth } from '@modrinth/api-client'
 import type { ContentInstallInstance, ContentInstallProjectInfo, ContentItem } from '@modrinth/ui'
-import {
-	createContext,
-	defineMessage,
-	useDebugLogger,
-	usesTargetGameVersion,
-	useVIntl,
-} from '@modrinth/ui'
+import { useDebugLogger, usesTargetGameVersion, useVIntl } from '@modrinth/ui'
 import { openUrl } from '@tauri-apps/plugin-opener'
 import dayjs from 'dayjs'
-import { nextTick, type Ref, ref } from 'vue'
+import { nextTick, ref } from 'vue'
 import type { Router } from 'vue-router'
 
 import type ContentInstallPreviewModal from '@/components/ui/ContentInstallPreviewModal.vue'
 import type { ContentInstallPreviewData } from '@/components/ui/ContentInstallPreviewModal.vue'
-import type { ModpackInstallModalData } from '@/components/ui/modal/ModpackInstallModal.vue'
 import { trackEvent } from '@/helpers/analytics'
 import {
 	get_organization,
@@ -67,470 +60,73 @@ import {
 import { getDisplayInstanceIcon } from '@/helpers/instance-icons'
 import { get_game_versions } from '@/helpers/tags'
 import type { GameInstance, InstanceLoader } from '@/helpers/types'
+import {
+	curseForgeLoaderType,
+	curseForgePageUrl,
+	findPreferredVersion,
+	getInstallTargets,
+	type InstallTargetInstance,
+	isVersionCompatible,
+	mapCurseForgeProject,
+	mapCurseForgeVersion,
+	projectPageUrl,
+	resolveContentType,
+	sortLoaders,
+	SUPPORTED_LOADERS,
+	VANILLA_COMPATIBLE_LOADERS,
+} from '@/providers/content-install-compat'
+import {
+	filterRemainingManualDownloads,
+	formatAutomaticDownloadsFailedNotification,
+	formatDependencyNotesNotification,
+	formatImportedManualDownloadsNotification,
+	formatManualDownloadsNotification,
+	mapInstallResultToManualItems,
+} from '@/providers/content-install-manual-downloads'
+import {
+	type ContentInstallCallback,
+	type ContentInstallContext,
+	type ContentInstallInstanceEvent,
+	type ContentInstallTargetMode,
+	type CurseForgeManualDownloadsModalRef,
+	injectContentInstall,
+	type InstallProvider,
+	type ModalRef,
+	type ModpackInstallModalRef,
+	provideContentInstall,
+} from '@/providers/content-install-types'
 import { useTheming } from '@/store/state'
-interface ModalRef {
-	show: (initialVersionId?: string) => void
-	hide: () => void
+
+import { createContentInstallDepNotifications } from './content-install-dep-notifications'
+import * as contentInstallMessages from './content-install-messages'
+import { createInstallingItemsRegistry } from './content-install-registry'
+import { createInstallSession } from './content-install-session'
+
+export {
+	type ContentInstallCallback,
+	type ContentInstallContext,
+	injectContentInstall,
+	provideContentInstall,
 }
 
-interface ModpackInstallModalRef {
-	show: (data: ModpackInstallModalData) => void
-}
-
-interface CurseForgeManualDownloadsModalRef {
-	show: (payload: {
-		items: CurseForgeManualDownloadItem[]
-		installed?: number
-		instanceId?: string | null
-	}) => void
-}
-
-export type ContentInstallCallback = (versionId?: string, installedProjectIds?: string[]) => void
-type ContentInstallInstanceEvent = {
-	event: string
-	instance_id: string
-	project_ids?: string[]
-	dependency_project_ids?: string[]
-	message?: string
-}
-
-const LOADER_ORDER = ['vanilla', 'fabric', 'quilt', 'neoforge', 'forge']
-const SUPPORTED_LOADERS: Set<string> = new Set(['vanilla', 'forge', 'fabric', 'quilt', 'neoforge'])
-const VANILLA_COMPATIBLE_LOADERS: Set<string> = new Set(['minecraft', 'datapack'])
-type InstallProvider = 'modrinth' | 'curseforge'
-type ContentInstallTargetMode = 'content' | 'world'
-const noCompatibleVersionsMessage = defineMessage({
-	id: 'app.content-install.no-compatible-versions',
-	defaultMessage:
-		'No available versions match {compatibilityLabel}. Select a version to install anyway. Matching dependencies will still be installed.',
-})
-const curseForgeWorldInvalidProjectMessage = defineMessage({
-	id: 'app.worlds.install-map.invalid-project',
-	defaultMessage: 'The selected project is not a CurseForge map.',
-})
-const curseForgeWorldUnavailableMessage = defineMessage({
-	id: 'app.browse.maps-no-installable-file',
-	defaultMessage: 'The selected CurseForge map does not have an installable file.',
-})
-const curseForgeWorldInstanceNotReadyMessage = defineMessage({
-	id: 'app.worlds.install-map.instance-not-ready',
-	defaultMessage: 'Wait for this instance to finish installing before adding a map.',
-})
-const curseForgeWorldUnknownInstanceMessage = defineMessage({
-	id: 'app.worlds.install-map.unknown-instance',
-	defaultMessage: 'The selected instance is no longer available.',
-})
-const manualDownloadsTitleMessage = defineMessage({
-	id: 'app.curseforge.manual-downloads.notification-title',
-	defaultMessage: 'Some CurseForge files need manual download',
-})
-const manualDownloadsPartialMessage = defineMessage({
-	id: 'app.curseforge.manual-downloads.notification-partial',
-	defaultMessage:
-		'Installed {installed, number} files automatically, but {manual, number} could not be downloaded ({list}). Open the download list to finish those files.',
-})
-const manualDownloadsFailedMessage = defineMessage({
-	id: 'app.curseforge.manual-downloads.notification-failed',
-	defaultMessage:
-		'{manual, number} CurseForge files could not be downloaded automatically ({list}). Open the download list to install them manually.',
-})
-const manualDownloadsListAndMoreMessage = defineMessage({
-	id: 'app.curseforge.manual-downloads.list-and-more',
-	defaultMessage: '{list}, and {count, number} more',
-})
-const manualDownloadsFilesCountMessage = defineMessage({
-	id: 'app.curseforge.manual-downloads.files-count',
-	defaultMessage: '{count, number} files',
-})
-const manualDownloadsImportedTitleMessage = defineMessage({
-	id: 'app.curseforge.manual-downloads.imported-title',
-	defaultMessage: 'CurseForge files imported',
-})
-const manualDownloadsImportedMessage = defineMessage({
-	id: 'app.curseforge.manual-downloads.imported',
-	defaultMessage: 'Imported {count, number} downloaded files into the instance.',
-})
-const automaticDownloadsFailedTitleMessage = defineMessage({
-	id: 'app.curseforge.automatic-downloads-failed.notification-title',
-	defaultMessage: 'Some CurseForge downloads failed',
-})
-const automaticDownloadsFailedMessage = defineMessage({
-	id: 'app.curseforge.automatic-downloads-failed.notification-body',
-	defaultMessage:
-		'{failed, number} files failed after retrying ({list}). See Downloads for the recorded errors.',
-})
-const dependencyNotesTitleMessage = defineMessage({
-	id: 'app.curseforge.dependency-notes.notification-title',
-	defaultMessage: 'CurseForge dependency notes',
-})
-const dependencyNotesMessage = defineMessage({
-	id: 'app.curseforge.dependency-notes.notification-body',
-	defaultMessage:
-		'{optional, plural, =0 {No optional dependencies were skipped.} one {# optional dependency was skipped.} other {# optional dependencies were skipped.}} {incompatible, plural, =0 {No incompatible dependencies were detected.} one {# incompatible dependency was detected.} other {# incompatible dependencies were detected.}} {skipped, plural, =0 {No other dependencies were skipped.} one {# dependency was skipped.} other {# dependencies were skipped.}}',
-})
-const dependenciesInstalledTitleMessage = defineMessage({
-	id: 'app.content-install.dependencies-installed.notification-title',
-	defaultMessage: 'Dependencies installed',
-})
-const dependenciesInstalledMessage = defineMessage({
-	id: 'app.content-install.dependencies-installed.notification-body',
-	defaultMessage:
-		'Installed {count, plural, one {# dependency} other {# dependencies}} automatically: {list}',
-})
-const dependenciesSkippedTitleMessage = defineMessage({
-	id: 'app.content-install.dependencies-skipped.notification-title',
-	defaultMessage: 'Some dependencies were skipped',
-})
-const dependenciesSkippedMessage = defineMessage({
-	id: 'app.content-install.dependencies-skipped.notification-body',
-	defaultMessage: 'The following dependencies were not installed: {list}',
-})
-const sha1VerifiedModrinthFallbackMessage = defineMessage({
-	id: 'app.content-install.preview.sha1-verified-modrinth-fallback',
-	defaultMessage: 'Modrinth fallback verified by SHA-1',
-})
-const unavailableCurseForgeProjectMessage = defineMessage({
-	id: 'app.content-install.preview.unavailable-curseforge-project',
-	defaultMessage: 'Unavailable CurseForge project',
-})
-const skippedReasonMessages = {
-	already_installed: defineMessage({
-		id: 'app.content-install.preview.skip.already-installed',
-		defaultMessage: 'Already installed',
-	}),
-	no_compatible_version: defineMessage({
-		id: 'app.content-install.preview.skip.no-compatible-version',
-		defaultMessage: 'No compatible version found',
-	}),
-	modrinth_lookup_failed: defineMessage({
-		id: 'app.content-install.preview.skip.modrinth-lookup-failed',
-		defaultMessage: 'Could not verify the Modrinth fallback',
-	}),
-	embedded: defineMessage({
-		id: 'app.content-install.preview.skip.embedded',
-		defaultMessage: 'Embedded in the project',
-	}),
-	tool: defineMessage({
-		id: 'app.content-install.preview.skip.tool',
-		defaultMessage: 'Development tool, not installed',
-	}),
-	unsupported_project_type: defineMessage({
-		id: 'app.content-install.preview.skip.unsupported-project-type',
-		defaultMessage: 'Unsupported project type',
-	}),
-	optional: defineMessage({
-		id: 'app.content-install.preview.skip.optional',
-		defaultMessage: 'Optional dependency',
-	}),
-	incompatible: defineMessage({
-		id: 'app.content-install.preview.skip.incompatible',
-		defaultMessage: 'Incompatible dependency',
-	}),
-	missing_version: defineMessage({
-		id: 'app.content-install.preview.skip.missing-version',
-		defaultMessage: 'Referenced version was not found',
-	}),
-	conflicting_dependency: defineMessage({
-		id: 'app.content-install.preview.skip.conflicting-dependency',
-		defaultMessage: 'Conflicting dependency version',
-	}),
-	duplicate_project: defineMessage({
-		id: 'app.content-install.preview.skip.duplicate-project',
-		defaultMessage: 'Already included',
-	}),
-	quilt_fabric_api: defineMessage({
-		id: 'app.content-install.preview.skip.quilt-fabric-api',
-		defaultMessage: 'Replaced for quilt',
-	}),
-	excluded_by_user: defineMessage({
-		id: 'app.content-install.preview.skip.excluded-by-user',
-		defaultMessage: 'Excluded by user',
-	}),
-	dependency_cycle: defineMessage({
-		id: 'app.content-install.preview.skip.dependency-cycle',
-		defaultMessage: 'Dependency cycle detected',
-	}),
-	dependency_depth_exceeded: defineMessage({
-		id: 'app.content-install.preview.skip.dependency-depth-exceeded',
-		defaultMessage: 'Dependency depth limit reached',
-	}),
-} as const
-const curseForgeNetworkFailureTitleMessage = defineMessage({
-	id: 'app.curseforge.network-download-failed.notification-title',
-	defaultMessage: 'Could not download from CurseForge',
-})
-const curseForgeNetworkFailureMessage = defineMessage({
-	id: 'app.curseforge.network-download-failed.notification-body',
-	defaultMessage:
-		'Could not connect to CurseForge to download this file. Your network or proxy may be blocking CurseForge. Turn off or change your VPN/proxy, try another network, then retry the download.',
-})
-const modpackInstalledTitleMessage = defineMessage({
-	id: 'app.curseforge.modpack-installed.title',
-	defaultMessage: 'CurseForge modpack installed',
-})
-const modpackInstalledBodyMessage = defineMessage({
-	id: 'app.curseforge.modpack-installed.body',
-	defaultMessage: 'Installed {count, number} content files from CurseForge.',
-})
-
-const RESOLVABLE_PROJECT_TYPES = new Set<Labrinth.Content.v3.ContentType>([
-	'mod',
-	'plugin',
-	'datapack',
-	'resourcepack',
-	'shader',
-	'modpack',
-])
-
-function resolveContentType(projectType?: Labrinth.Projects.v2.ProjectType) {
-	return projectType && RESOLVABLE_PROJECT_TYPES.has(projectType) ? projectType : 'mod'
-}
-
-function isVersionCompatible(
-	version: Labrinth.Versions.v2.Version,
-	project: Labrinth.Projects.v2.Project,
-	instance: GameInstance,
-) {
-	if (project.project_type === 'resourcepack') return true
-
-	return (
-		version.game_versions.includes(instance.game_version) &&
-		(project.project_type === 'mod'
-			? version.loaders.includes(instance.loader) || version.loaders.includes('datapack')
-			: true)
-	)
-}
-
-function findPreferredVersion(
-	versions: Labrinth.Versions.v2.Version[],
-	project: Labrinth.Projects.v2.Project,
-	instance: GameInstance,
-) {
-	const projectType = project.project_type ?? 'mod'
-	if (projectType === 'resourcepack') return versions[0]
-
-	return (
-		versions.find(
-			(v) =>
-				v.game_versions.includes(instance.game_version) &&
-				(projectType === 'mod' ? v.loaders.includes(instance.loader) : true),
-		) ?? versions.find((v) => isVersionCompatible(v, project, instance))
-	)
-}
-
-function sortLoaders(loaders: string[]): string[] {
-	return loaders.slice().sort((a, b) => {
-		const aIdx = LOADER_ORDER.indexOf(a)
-		const bIdx = LOADER_ORDER.indexOf(b)
-		if (aIdx === -1 && bIdx === -1) return a.localeCompare(b)
-		if (aIdx === -1) return 1
-		if (bIdx === -1) return -1
-		return aIdx - bIdx
-	})
-}
-
-function curseForgeProjectType(classId?: number): Labrinth.Projects.v2.ProjectType {
-	switch (classId) {
-		case 5:
-			return 'plugin'
-		case 12:
-			return 'resourcepack'
-		case 6945:
-			return 'datapack'
-		case 4471:
-			return 'modpack'
-		case 6552:
-			return 'shader'
-		default:
-			return 'mod'
-	}
-}
-
-function curseForgeLoader(value: string): string | null {
-	switch (value.toLowerCase().replaceAll(' ', '')) {
-		case 'forge':
-			return 'forge'
-		case 'fabric':
-		case 'fabricloader':
-			return 'fabric'
-		case 'quilt':
-			return 'quilt'
-		case 'neoforge':
-			return 'neoforge'
-		default:
-			return null
-	}
-}
-
-function curseForgeGameVersions(file: CurseForgeFile): string[] {
-	return file.gameVersions.filter(
-		(value) =>
-			!curseForgeLoader(value) &&
-			(/^(?:\d+\.\d+(?:\.\d+)?(?:-(?:pre|rc)\d+)?|\d{2}w\d{2}[a-z])$/i.test(value) ||
-				value.toLowerCase().includes('snapshot')),
-	)
-}
-
-function mapCurseForgeVersion(
-	file: CurseForgeFile,
-	projectId: number,
-	projectType: Labrinth.Projects.v2.ProjectType,
-): Labrinth.Versions.v2.Version {
-	const loaders = [...new Set(file.gameVersions.map(curseForgeLoader).filter(Boolean))] as string[]
-	return {
-		id: file.id.toString(),
-		project_id: `curseforge:${projectId}`,
-		name: file.displayName,
-		version_number: file.displayName,
-		game_versions: curseForgeGameVersions(file),
-		loaders:
-			loaders.length > 0 && (projectType === 'mod' || projectType === 'modpack')
-				? loaders
-				: ['minecraft'],
-		date_published: file.fileDate,
-		version_type: file.releaseType === 1 ? 'release' : file.releaseType === 2 ? 'beta' : 'alpha',
-		files: [
-			{
-				filename: file.fileName,
-				url: file.downloadUrl ?? '',
-				primary: true,
-				size: file.fileLength,
-				hashes: {},
-			},
-		],
-	} as unknown as Labrinth.Versions.v2.Version
-}
-
-function mapCurseForgeProject(
-	project: CurseForgeProject,
-	files: CurseForgeFile[],
-): Labrinth.Projects.v2.Project {
-	const projectType = curseForgeProjectType(project.classId)
-	const versions = files.map((file) => mapCurseForgeVersion(file, project.id, projectType))
-	return {
-		id: `curseforge:${project.id}`,
-		slug: project.slug,
-		title: project.name,
-		description: project.summary,
-		project_type: projectType,
-		icon_url: project.logo?.thumbnailUrl ?? project.logo?.url ?? null,
-		versions: versions.map((version) => version.id),
-		game_versions: [...new Set(versions.flatMap((version) => version.game_versions))],
-		loaders: [...new Set(versions.flatMap((version) => version.loaders))],
-		organization: null,
-		team: '',
-	} as unknown as Labrinth.Projects.v2.Project
-}
-
-function curseForgeLoaderType(loader: string): number | undefined {
-	switch (loader) {
-		case 'forge':
-			return 1
-		case 'fabric':
-			return 4
-		case 'quilt':
-			return 5
-		case 'neoforge':
-			return 6
-		default:
-			return undefined
-	}
-}
-
-function projectPageUrl(project: { project_type: string; slug: string }): string {
-	return `https://modrinth.com/${project.project_type}/${project.slug}`
-}
-
-function curseForgePageUrl(project: { slug: string; links?: { websiteUrl?: string } }): string {
-	if (project.links?.websiteUrl) return project.links.websiteUrl
-	return `https://www.curseforge.com/minecraft/mc-mods/${project.slug}`
-}
-
-type InstallTargetInstance = Pick<
-	GameInstance,
-	'id' | 'name' | 'icon_path' | 'game_version' | 'loader'
->
-
-export interface ContentInstallContext {
-	instances: Ref<ContentInstallInstance[]>
-	compatibleLoaders: Ref<string[]>
-	gameVersions: Ref<string[]>
-	loading: Ref<boolean>
-	defaultTab: Ref<'existing' | 'new'>
-	preferredLoader: Ref<string | null>
-	preferredGameVersion: Ref<string | null>
-	releaseGameVersions: Ref<Set<string>>
-	projectInfo: Ref<ContentInstallProjectInfo | null>
-	symlinkTarget: Ref<string | null | undefined>
-	handleInstallToInstance: (instance: ContentInstallInstance) => Promise<void>
-	handleCreateAndInstall: (data: {
-		name: string
-		iconPath: string | null
-		iconPreviewUrl: string | null
-		loader: string
-		gameVersion: string
-	}) => Promise<void>
-	handleNavigate: (instance: ContentInstallInstance) => void
-	handleCancel: () => void
-	setContentInstallModal: (ref: ModalRef) => void
-	setContentInstallPreviewModal: (
-		ref: InstanceType<typeof ContentInstallPreviewModal> | null,
-	) => void
-	setModpackInstallModal: (ref: ModpackInstallModalRef) => void
-	handleModpackInstall: (versionId: string, name: string) => Promise<void>
-	handleModpackInstallCancel: () => void
-	setCurseForgeManualDownloadsModal: (ref: CurseForgeManualDownloadsModalRef) => void
-	showCurseForgeManualDownloads: (instanceId: string, items: CurseForgeManualDownloadItem[]) => void
-	handleCurseForgeManualDownloadsImported: (
-		instanceId: string,
-		imported: CurseForgeManualDownloadImport[],
-	) => void
-	setIncompatibilityWarningModal: (ref: ModalRef) => void
-	incompatibilityWarningVersions: Ref<Labrinth.Versions.v2.Version[]>
-	incompatibilityWarningCurrentGameVersion: Ref<string>
-	incompatibilityWarningCurrentLoader: Ref<string>
-	incompatibilityWarningProjectType: Ref<string | undefined>
-	incompatibilityWarningProjectIconUrl: Ref<string | undefined>
-	incompatibilityWarningProjectName: Ref<string | undefined>
-	incompatibilityWarningMessage: Ref<string | undefined>
-	incompatibilityWarningInstalling: Ref<boolean>
-	handleIncompatibilityWarningInstall: (version: Labrinth.Versions.v2.Version) => Promise<void>
-	handleIncompatibilityWarningCancel: () => void
-	install: (
-		projectId: string,
-		versionId?: string | null,
-		instanceId?: string | null,
-		source?: string,
-		callback?: ContentInstallCallback,
-		createInstanceCallback?: (instanceId: string) => void,
-		hints?: { preferredLoader?: string; preferredGameVersion?: string; showProjectInfo?: boolean },
-	) => Promise<void>
-	installCurseForge: (
-		projectId: string,
-		versionId?: string | null,
-		instanceId?: string | null,
-		source?: string,
-		callback?: ContentInstallCallback,
-		createInstanceCallback?: (instanceId: string) => void,
-		hints?: { preferredLoader?: string; preferredGameVersion?: string; showProjectInfo?: boolean },
-	) => Promise<void>
-	installCurseForgeWorld: (
-		projectId: string | number,
-		fileId?: string | number | null,
-		instanceId?: string | null,
-		source?: string,
-		callback?: ContentInstallCallback,
-	) => Promise<void>
-	installingItems: Ref<Map<string, ContentItem[]>>
-	pendingManualDownloadsByInstance: Ref<Map<string, CurseForgeManualDownloadItem[]>>
-	installRevisionByInstance: Ref<Map<string, number>>
-	installFailureRevisionByInstance: Ref<Map<string, number>>
-}
-
-export const [injectContentInstall, provideContentInstall] = createContext<ContentInstallContext>(
-	'root',
-	'contentInstall',
-)
+const noCompatibleVersionsMessage = contentInstallMessages.noCompatibleVersionsMessage
+const curseForgeWorldInvalidProjectMessage =
+	contentInstallMessages.curseForgeWorldInvalidProjectMessage
+const curseForgeWorldUnavailableMessage = contentInstallMessages.curseForgeWorldUnavailableMessage
+const curseForgeWorldInstanceNotReadyMessage =
+	contentInstallMessages.curseForgeWorldInstanceNotReadyMessage
+const curseForgeWorldUnknownInstanceMessage =
+	contentInstallMessages.curseForgeWorldUnknownInstanceMessage
+const sha1VerifiedModrinthFallbackMessage =
+	contentInstallMessages.sha1VerifiedModrinthFallbackMessage
+const unavailableCurseForgeProjectMessage =
+	contentInstallMessages.unavailableCurseForgeProjectMessage
+const skippedReasonMessages = contentInstallMessages.skippedReasonMessages
+const curseForgeNetworkFailureTitleMessage =
+	contentInstallMessages.curseForgeNetworkFailureTitleMessage
+const curseForgeNetworkFailureMessage = contentInstallMessages.curseForgeNetworkFailureMessage
+const modpackInstalledTitleMessage = contentInstallMessages.modpackInstalledTitleMessage
+const modpackInstalledBodyMessage = contentInstallMessages.modpackInstalledBodyMessage
 
 export function createContentInstall(opts: {
 	router: Router
@@ -571,158 +167,16 @@ export function createContentInstall(opts: {
 	const incompatibilityWarningMessage = ref<string | undefined>(undefined)
 	const incompatibilityWarningInstalling = ref(false)
 
-	function addInstallingItem(
-		instanceId: string,
-		project: {
-			id: string
-			slug?: string | null
-			title: string
-			icon_url?: string | null
-			project_type?: string
-			organization?: string | null
-			team?: string
-		},
-		version?: Labrinth.Versions.v2.Version,
-	) {
-		const primaryFile = version?.files?.find((f) => f.primary) ?? version?.files?.[0]
-		const placeholder: ContentItem = {
-			id: `__installing_${project.id}`,
-			file_name: `__installing_${project.id}`,
-			project: {
-				id: project.id,
-				slug: project.slug ?? '',
-				title: project.title,
-				icon_url: project.icon_url ?? undefined,
-			},
-			version: version
-				? {
-						id: version.id,
-						version_number: version.version_number,
-						file_name: primaryFile?.filename ?? '',
-					}
-				: undefined,
-			project_type: project.project_type ?? 'mod',
-			provider_refs: [],
-			origin_provider: null,
-			update: null,
-			enabled: true,
-			installing: true,
-		}
-		const next = new Map(installingItems.value)
-		const items = next.get(instanceId) ?? []
-		if (items.some((i) => i.file_name === placeholder.file_name)) return
-		next.set(instanceId, [...items, placeholder])
-		installingItems.value = next
-		debugState('addInstallingItem', {
-			instanceId,
-			projectId: project.id,
-			fileName: placeholder.file_name,
+	const { addInstallingItem, removeInstallingItems } = createInstallingItemsRegistry(
+		installingItems,
+		debugState,
+	)
+
+	const { notifyInstalledDependencies, notifySkippedPlanDependencies } =
+		createContentInstallDepNotifications({
+			formatMessage,
+			addNotification: opts.addNotification,
 		})
-
-		if (project.organization) {
-			get_organization(project.organization)
-				.then((org: { id: string; slug: string; name: string; icon_url?: string }) => {
-					updateInstallingItem(instanceId, placeholder.file_name, {
-						owner: {
-							id: org.id,
-							name: org.name,
-							avatar_url: org.icon_url,
-							type: 'organization',
-						},
-					})
-				})
-				.catch(() => {})
-		} else if (project.team) {
-			get_team(project.team)
-				.then(
-					(
-						members: {
-							user: { id: string; username: string; avatar_url?: string }
-							is_owner: boolean
-						}[],
-					) => {
-						const owner = members.find((m) => m.is_owner)
-						if (owner) {
-							updateInstallingItem(instanceId, placeholder.file_name, {
-								owner: {
-									id: owner.user.id,
-									name: owner.user.username,
-									avatar_url: owner.user.avatar_url,
-									type: 'user',
-								},
-							})
-						}
-					},
-				)
-				.catch(() => {})
-		}
-	}
-
-	function updateInstallingItem(
-		instanceId: string,
-		fileName: string,
-		updates: Partial<ContentItem>,
-	) {
-		const next = new Map(installingItems.value)
-		const items = next.get(instanceId)
-		if (!items) return
-		const index = items.findIndex((i) => i.file_name === fileName)
-		if (index === -1) return
-		const updated = [...items]
-		updated[index] = { ...updated[index], ...updates }
-		next.set(instanceId, updated)
-		installingItems.value = next
-	}
-
-	function removeInstallingItems(instanceId: string, projectIds: string[]) {
-		const next = new Map(installingItems.value)
-		const items = next.get(instanceId)
-		debugState('removeInstallingItems call', {
-			instanceId,
-			projectIds,
-			hadItems: !!items,
-			count: items?.length,
-		})
-		if (items) {
-			const idsToRemove = new Set(projectIds.map((id) => `__installing_${id}`))
-			const filtered = items.filter((i) => !idsToRemove.has(i.file_name))
-			if (filtered.length > 0) {
-				next.set(instanceId, filtered)
-			} else {
-				next.delete(instanceId)
-			}
-			installingItems.value = next
-		}
-	}
-
-	async function notifyInstalledDependencies(instanceId: string, dependencyProjectIds: string[]) {
-		if (dependencyProjectIds.length === 0) return
-		const items = await get_content_items(instanceId).catch(() => [])
-		const names = dependencyProjectIds
-			.map((id) => {
-				const curseForge = id.startsWith('curseforge:')
-				const rawId = curseForge ? id.slice('curseforge:'.length) : id
-				const item = items.find((candidate) =>
-					candidate.provider_refs.some(
-						(reference) =>
-							reference.provider === (curseForge ? 'curseforge' : 'modrinth') &&
-							String(reference.project_id) === rawId,
-					),
-				)
-				return item?.project?.title ?? item?.file_name
-			})
-			.filter((name): name is string => !!name)
-		if (names.length === 0) return
-		const list = names.length > 5 ? `${names.slice(0, 5).join(', ')}, …` : names.join(', ')
-		opts.addNotification({
-			title: formatMessage(dependenciesInstalledTitleMessage),
-			text: formatMessage(dependenciesInstalledMessage, {
-				count: names.length,
-				list,
-			}),
-			type: 'success',
-		})
-	}
 
 	function markInstanceContentChanged(instanceId: string) {
 		const next = new Map(installRevisionByInstance.value)
@@ -766,9 +220,6 @@ export function createContentInstall(opts: {
 	let currentCurseForgeProject: CurseForgeProject | null = null
 	let currentCurseForgeFiles = new Map<string, CurseForgeFile>()
 	let currentWorldFileId: string | null = null
-	let currentCallback: ContentInstallCallback = () => {}
-	let currentSessionId = 0
-	let currentCallbackSettled = true
 	let contentInstallModalOpen = false
 	let instanceMap: Record<string, InstallTargetInstance> = {}
 	let incompatibilityWarningInstance: InstallTargetInstance | null = null
@@ -785,37 +236,32 @@ export function createContentInstall(opts: {
 		provider: InstallProvider
 	} | null = null
 
-	function beginInstallSession(callback: ContentInstallCallback) {
-		if (!currentCallbackSettled) currentCallback()
-		currentSessionId += 1
-		currentCallback = callback
-		currentCallbackSettled = false
-		return currentSessionId
-	}
+	const installSession = createInstallSession()
+	const {
+		beginInstallSession,
+		settleCurrentCallback,
+		settleInstallSession,
+		currentId: currentInstallSessionId,
+		setCallback: setCurrentInstallCallback,
+	} = installSession
 
-	function settleCurrentCallback(...args: Parameters<ContentInstallCallback>) {
-		if (currentCallbackSettled) return
-		currentCallbackSettled = true
-		currentCallback(...args)
-	}
-
-	function settleInstallSession(sessionId: number, ...args: Parameters<ContentInstallCallback>) {
-		if (sessionId !== currentSessionId) return
-		settleCurrentCallback(...args)
+	// Back-compat name used throughout this factory for the live session id.
+	function currentSessionId() {
+		return currentInstallSessionId()
 	}
 
 	async function guardInstallRequest<T>(
 		request: () => Promise<T>,
 		callback: ContentInstallCallback,
 	) {
-		const previousSessionId = currentSessionId
+		const previousSessionId = currentSessionId()
 		const promise = request()
-		const sessionId = currentSessionId !== previousSessionId ? currentSessionId : null
+		const sessionId = currentSessionId() !== previousSessionId ? currentSessionId() : null
 		try {
 			return await promise
 		} catch (error) {
 			if (sessionId !== null) {
-				if (sessionId === currentSessionId) {
+				if (sessionId === currentSessionId()) {
 					hideContentInstallModal()
 					settleInstallSession(sessionId)
 				}
@@ -894,12 +340,12 @@ export function createContentInstall(opts: {
 		hints?: { preferredLoader?: string; preferredGameVersion?: string; showProjectInfo?: boolean },
 		modalAlreadyOpen = false,
 	) {
-		const sessionId = currentSessionId
+		const sessionId = currentSessionId()
 		currentTargetMode = 'content'
 		currentWorldFileId = null
 		currentProject = project
 		currentVersions = versions
-		currentCallback = onInstall
+		setCurrentInstallCallback(onInstall)
 
 		instances.value = []
 		loading.value = true
@@ -994,7 +440,7 @@ export function createContentInstall(opts: {
 
 		if (!modalAlreadyOpen) {
 			await nextTick()
-			if (sessionId !== currentSessionId) return
+			if (sessionId !== currentSessionId()) return
 			contentInstallModalOpen = true
 			modalRef?.show()
 			trackEvent('ProjectInstallStart', { source: 'ProjectInstallModal' })
@@ -1002,7 +448,7 @@ export function createContentInstall(opts: {
 
 		get_game_versions()
 			.then((allGameVersions) => {
-				if (sessionId !== currentSessionId) return
+				if (sessionId !== currentSessionId()) return
 				const releases = new Set<string>()
 				const ordered: string[] = []
 				for (const gv of allGameVersions) {
@@ -1024,7 +470,7 @@ export function createContentInstall(opts: {
 				project.project_type,
 				getInstallTargets(versions),
 			)
-			if (sessionId !== currentSessionId) return
+			if (sessionId !== currentSessionId()) return
 			const newInstanceMap: Record<string, InstallTargetInstance> = {}
 			const newInstances: ContentInstallInstance[] = candidates.map((instance) => {
 				newInstanceMap[instance.id] = instance
@@ -1167,52 +613,9 @@ export function createContentInstall(opts: {
 			.filter((projectId) => !approved.has(projectId))
 	}
 
-	async function notifySkippedPlanDependencies(
-		skipped: Array<{ project_id: string; reason: string }>,
-	) {
-		if (skipped.length === 0) return
-		const projectIds = [...new Set(skipped.map((item) => item.project_id).filter((id) => !!id))]
-		const projects = await get_project_many(projectIds).catch(
-			() => [] as Labrinth.Projects.v2.Project[],
-		)
-		const projectsById = new Map(projects.map((candidate) => [candidate.id, candidate]))
-		const names = skipped.map((item) => {
-			const title = projectsById.get(item.project_id)?.title ?? item.project_id
-			const reason = formatMessage(
-				skippedReasonMessages[item.reason as keyof typeof skippedReasonMessages] ??
-					skippedReasonMessages.already_installed,
-			)
-			return `${title} (${reason})`
-		})
-		const list = names.slice(0, 5).join(', ') + (names.length > 5 ? ', …' : '')
-		opts.addNotification({
-			title: formatMessage(dependenciesSkippedTitleMessage),
-			text: formatMessage(dependenciesSkippedMessage, { list }),
-			type: 'info',
-		})
-	}
-
 	function hideContentInstallModal() {
 		contentInstallModalOpen = false
 		modalRef?.hide()
-	}
-
-	function getInstallTargets(versions: Labrinth.Versions.v2.Version[]) {
-		const targets: { game_version: string; loader: string }[] = []
-		const seen = new Set<string>()
-
-		for (const version of versions) {
-			for (const gameVersion of version.game_versions) {
-				for (const loader of version.loaders) {
-					const key = `${gameVersion}\0${loader}`
-					if (seen.has(key)) continue
-					seen.add(key)
-					targets.push({ game_version: gameVersion, loader })
-				}
-			}
-		}
-
-		return targets
 	}
 
 	async function removeInstalledCurseForgeProject(instanceId: string, projectId: number) {
@@ -1232,22 +635,7 @@ export function createContentInstall(opts: {
 		instanceId: string,
 		result: CurseForgeInstallResult,
 	): CurseForgeManualDownloadItem[] {
-		const manualItems: CurseForgeManualDownloadItem[] = (result.manualDownloads ?? []).map(
-			(item) => ({
-				projectId: item.projectId,
-				fileId: item.fileId,
-				fileName: item.fileName,
-				websiteUrl: item.websiteUrl,
-				projectType: item.projectType,
-				projectSlug: item.projectSlug,
-				targetFolder: item.targetFolder,
-				hashes: item.hashes,
-				fileLength: item.fileLength,
-				fileFingerprint: item.fileFingerprint,
-				ownershipKind: item.ownershipKind,
-				operationKind: item.operationKind,
-			}),
-		)
+		const manualItems = mapInstallResultToManualItems(result)
 		setCurseForgeManualDownloads(instanceId, manualItems)
 		const next = new Map(pendingManualDownloadsByInstance.value)
 		if (manualItems.length > 0) {
@@ -1269,9 +657,9 @@ export function createContentInstall(opts: {
 		imported: CurseForgeManualDownloadImport[],
 	) {
 		if (imported.length === 0) return
-		const importedKeys = new Set(imported.map((item) => `${item.projectId}:${item.fileId}`))
-		const remaining = (pendingManualDownloadsByInstance.value.get(instanceId) ?? []).filter(
-			(item) => !importedKeys.has(`${item.projectId}:${item.fileId}`),
+		const remaining = filterRemainingManualDownloads(
+			pendingManualDownloadsByInstance.value.get(instanceId) ?? [],
+			imported,
 		)
 		setCurseForgeManualDownloads(instanceId, remaining)
 		const next = new Map(pendingManualDownloadsByInstance.value)
@@ -1279,11 +667,7 @@ export function createContentInstall(opts: {
 		else next.delete(instanceId)
 		pendingManualDownloadsByInstance.value = next
 		markInstanceContentChanged(instanceId)
-		opts.addNotification({
-			title: formatMessage(manualDownloadsImportedTitleMessage),
-			text: formatMessage(manualDownloadsImportedMessage, { count: imported.length }),
-			type: 'success',
-		})
+		opts.addNotification(formatImportedManualDownloadsNotification(formatMessage, imported.length))
 	}
 
 	function showManualCurseForgeDownloads(instanceId: string, result: CurseForgeInstallResult) {
@@ -1291,35 +675,13 @@ export function createContentInstall(opts: {
 		const manualItems = rememberManualDownloads(instanceId, result)
 		if (manualItems.length === 0) return
 
-		const manualNames = manualItems
-			.slice(0, 5)
-			.map((item) => item.fileName)
-			.filter(Boolean)
-		const extra = summary.manual > manualNames.length ? summary.manual - manualNames.length : 0
-		const listText = manualNames.length
-			? extra > 0
-				? formatMessage(manualDownloadsListAndMoreMessage, {
-						list: manualNames.join(', '),
-						count: extra,
-					})
-				: manualNames.join(', ')
-			: formatMessage(manualDownloadsFilesCountMessage, { count: summary.manual })
-
-		opts.addNotification({
-			title: formatMessage(manualDownloadsTitleMessage),
-			text:
-				summary.installed > 0
-					? formatMessage(manualDownloadsPartialMessage, {
-							installed: summary.installed,
-							manual: summary.manual,
-							list: listText,
-						})
-					: formatMessage(manualDownloadsFailedMessage, {
-							manual: summary.manual,
-							list: listText,
-						}),
-			type: summary.installed > 0 ? 'warning' : 'error',
-		})
+		opts.addNotification(
+			formatManualDownloadsNotification(
+				formatMessage,
+				summary,
+				manualItems.map((item) => item.fileName),
+			),
+		)
 
 		curseForgeManualDownloadsModalRef?.show({
 			items: manualItems,
@@ -1332,39 +694,21 @@ export function createContentInstall(opts: {
 		const failedDownloads = result.failedDownloads ?? []
 		if (failedDownloads.length === 0) return
 
-		const names = failedDownloads
-			.slice(0, 5)
-			.map((item) => item.fileName)
-			.filter(Boolean)
-		const extra = failedDownloads.length - names.length
-		const listText =
-			extra > 0
-				? formatMessage(manualDownloadsListAndMoreMessage, {
-						list: names.join(', '),
-						count: extra,
-					})
-				: names.join(', ')
-		opts.addNotification({
-			title: formatMessage(automaticDownloadsFailedTitleMessage),
-			text: formatMessage(automaticDownloadsFailedMessage, {
-				failed: failedDownloads.length,
-				list: listText,
-			}),
-			type: 'error',
-		})
+		opts.addNotification(
+			formatAutomaticDownloadsFailedNotification(
+				formatMessage,
+				failedDownloads.map((item) => item.fileName),
+			),
+		)
 	}
 
 	function showCurseForgeDependencyNotes(result: CurseForgeInstallResult) {
-		const optional = result.optionalDependencies?.length ?? 0
-		const incompatible = result.incompatibleDependencies?.length ?? 0
-		const skipped = result.skippedDependencies?.length ?? 0
-		if (optional === 0 && incompatible === 0 && skipped === 0) return
-
-		opts.addNotification({
-			title: formatMessage(dependencyNotesTitleMessage),
-			text: formatMessage(dependencyNotesMessage, { optional, incompatible, skipped }),
-			type: 'info',
+		const notification = formatDependencyNotesNotification(formatMessage, {
+			optional: result.optionalDependencies?.length ?? 0,
+			incompatible: result.incompatibleDependencies?.length ?? 0,
+			skipped: result.skippedDependencies?.length ?? 0,
 		})
+		if (notification) opts.addNotification(notification)
 	}
 
 	function handleContentInstallError(error: unknown) {
@@ -2183,21 +1527,21 @@ export function createContentInstall(opts: {
 		currentCurseForgeFiles = new Map()
 		const shouldShowInstallTargetModal = !instanceId
 		const project: Labrinth.Projects.v2.Project = await get_project(projectId).catch((error) => {
-			if (modalSessionId === currentSessionId) {
+			if (modalSessionId === currentSessionId()) {
 				hideContentInstallModal()
 				settleCurrentCallback()
 			}
 			throw error
 		})
 		if (!project) {
-			if (modalSessionId === currentSessionId) {
+			if (modalSessionId === currentSessionId()) {
 				hideContentInstallModal()
 				settleCurrentCallback()
 			}
 			opts.handleError(`Project not found: '${projectId}'`)
 			return
 		}
-		if (modalSessionId !== null && modalSessionId !== currentSessionId) return
+		if (modalSessionId !== null && modalSessionId !== currentSessionId()) return
 		let requestCallback: ContentInstallCallback = callback
 
 		if (project.project_type === 'modpack') {
@@ -2333,13 +1677,13 @@ export function createContentInstall(opts: {
 			getCurseForgeProject(numericProjectId),
 			getCurseForgeFiles(numericProjectId, { index: 0, pageSize: 50 }),
 		]).catch((error) => {
-			if (modalSessionId === currentSessionId) {
+			if (modalSessionId === currentSessionId()) {
 				hideContentInstallModal()
 				settleCurrentCallback()
 			}
 			throw error
 		})
-		if (modalSessionId !== null && modalSessionId !== currentSessionId) return
+		if (modalSessionId !== null && modalSessionId !== currentSessionId()) return
 		let requestCallback: ContentInstallCallback = callback
 		const availableFiles = fileResponse.files.filter((file) => file.isAvailable)
 		const project = mapCurseForgeProject(curseForgeProject, availableFiles)
@@ -2440,7 +1784,7 @@ export function createContentInstall(opts: {
 		currentCurseForgeProject = curseForgeProject
 		currentCurseForgeFiles = new Map([[file.id.toString(), file]])
 		currentWorldFileId = file.id.toString()
-		currentCallback = callback
+		setCurrentInstallCallback(callback)
 	}
 
 	async function showCurseForgeWorldInstallModal(
@@ -2448,7 +1792,7 @@ export function createContentInstall(opts: {
 		file: CurseForgeFile,
 		callback: ContentInstallCallback,
 	) {
-		const sessionId = currentSessionId
+		const sessionId = currentSessionId()
 		setCurseForgeWorldInstallState(curseForgeProject, file, callback)
 		instances.value = []
 		compatibleLoaders.value = []
@@ -2461,7 +1805,7 @@ export function createContentInstall(opts: {
 		projectInfo.value = null
 
 		await nextTick()
-		if (sessionId !== currentSessionId) return
+		if (sessionId !== currentSessionId()) return
 		contentInstallModalOpen = true
 		modalRef?.show()
 		trackEvent('ProjectInstallStart', { source: 'ProjectInstallModal' })
@@ -2471,7 +1815,7 @@ export function createContentInstall(opts: {
 				(candidate) => candidate.install_stage === 'installed',
 			)
 			if (
-				sessionId !== currentSessionId ||
+				sessionId !== currentSessionId() ||
 				currentTargetMode !== 'world' ||
 				currentCurseForgeProject?.id !== curseForgeProject.id ||
 				currentWorldFileId !== file.id.toString()
@@ -2533,7 +1877,7 @@ export function createContentInstall(opts: {
 		if (!file?.isAvailable) {
 			throw new Error(formatMessage(curseForgeWorldUnavailableMessage))
 		}
-		if (modalSessionId !== null && modalSessionId !== currentSessionId) return
+		if (modalSessionId !== null && modalSessionId !== currentSessionId()) return
 
 		if (!instanceId) {
 			await showCurseForgeWorldInstallModal(curseForgeProject, file, callback)

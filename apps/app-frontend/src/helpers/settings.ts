@@ -4,6 +4,7 @@
  *  and deserialized into a usable JS object.
  */
 import { invoke } from '@tauri-apps/api/core'
+import { queryOptions } from '@tanstack/vue-query'
 
 import type { HomeDashboardConfig } from '@/components/home/home-dashboard'
 import type { Hooks, MemorySettings } from '@/helpers/types'
@@ -143,6 +144,7 @@ export type AppSettings = {
 	modrinth_source: DownloadSourceMode
 	curseforge_source: DownloadSourceMode
 	bypass_curseforge_download_restrictions: boolean
+	ignore_ssl_errors: boolean
 	mojang_auth_source: DownloadSourceMode
 
 	theme: ColorTheme
@@ -157,6 +159,9 @@ export type AppSettings = {
 	custom_background_path: string | null
 	custom_background_blur: number
 	custom_background_opacity: number
+	custom_background_component_opacity: number
+	ui_font: string | null
+	mono_font: string | null
 	transparent_background: boolean
 	transparent_background_opacity: number
 	transparent_background_blur: boolean
@@ -167,6 +172,10 @@ export type AppSettings = {
 	close_behavior: 'ask' | 'close' | 'lightweight'
 	log_level: 'error' | 'warn' | 'info' | 'debug' | 'trace'
 	home_widgets: HomeDashboardConfig | null
+	home_widget_background_opacity: number
+	hidden_nav_items: string[]
+	custom_window_title_enabled: boolean
+	default_window_title: string
 	terracotta_public_nodes: string[]
 
 	telemetry: boolean
@@ -193,6 +202,11 @@ export type AppSettings = {
 
 	developer_mode: boolean
 	feature_flags: Record<FeatureFlag, boolean>
+	sync_features_across_devices: boolean
+	show_files_tab_in_instances: boolean
+	show_worlds_tab_in_instances: boolean
+	show_screenshots_tab_in_instances: boolean
+	show_skin_selector_in_sidebar: boolean
 
 	skipped_update: string | null
 	pending_update_toast_for_version: string | null
@@ -240,9 +254,21 @@ function normalizeDownloadSettings(settings: AppSettings & LegacyMirrorSettings)
 	settings.curseforge_source ??=
 		usesLegacyDefaults || !hasLegacySettings ? 'auto' : legacySource(settings.use_curseforge_mirror)
 	settings.bypass_curseforge_download_restrictions ??= true
+	settings.ignore_ssl_errors ??= false
 	settings.mojang_auth_source ??= 'auto'
 	settings.terracotta_public_nodes ??= ['wss://center.node.1tmc.top']
+	settings.hidden_nav_items ??= []
+	settings.custom_window_title_enabled ??= false
+	settings.default_window_title ??= 'Minecraft'
+	settings.custom_background_component_opacity ??= 100
+	settings.ui_font ??= null
+	settings.mono_font ??= null
 	settings.feature_flags ??= { ...DEFAULT_FEATURE_FLAGS }
+	settings.sync_features_across_devices ??= false
+	settings.show_files_tab_in_instances ??= true
+	settings.show_worlds_tab_in_instances ??= true
+	settings.show_screenshots_tab_in_instances ??= false
+	settings.show_skin_selector_in_sidebar ??= true
 	for (const [key, value] of Object.entries(DEFAULT_FEATURE_FLAGS)) {
 		settings.feature_flags[key as FeatureFlag] ??= value
 	}
@@ -275,6 +301,35 @@ function syncLegacyMirrorSettings(settings: AppSettings & LegacyMirrorSettings) 
 			settings.use_curseforge_mirror,
 		)
 	}
+}
+
+export const appSettingsKeys = {
+	all: ['app-settings'] as const,
+	update: ['app-settings', 'update'] as const,
+}
+
+export function appSettingsQueryOptions() {
+	return queryOptions({
+		queryKey: appSettingsKeys.all,
+		queryFn: get,
+		staleTime: 0,
+	})
+}
+
+export function serializeEnvVars(vars: [string, string][] | undefined | null): string {
+	return (vars ?? []).map(([key, value]) => `${key}=${value}`).join(' ')
+}
+
+export function parseEnvVars(input: string | undefined | null): [string, string][] {
+	if (!input?.trim()) return []
+
+	const vars: [string, string][] = []
+	for (const entry of input.trim().split(/\s+/)) {
+		const separator = entry.indexOf('=')
+		if (separator <= 0) continue
+		vars.push([entry.slice(0, separator), entry.slice(separator + 1)])
+	}
+	return vars
 }
 
 // Get full settings object

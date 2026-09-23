@@ -1,40 +1,29 @@
 <template>
-	<NewModal ref="modal" :header="formatMessage(messages.header)" fade="danger" max-width="500px">
-		<div class="flex flex-col gap-6">
+	<ConfirmActionModal
+		ref="modal"
+		:header="formatMessage(messages.header)"
+		fade="danger"
+		confirm-color="red"
+		:confirm-icon="DownloadIcon"
+		:confirm-label="formatMessage(messages.reinstallButton)"
+		@confirm="emit('reinstall')"
+	>
+		<template #warning>
 			<SymlinkWarningAdmonition :symlink-target="symlinkTarget" />
 			<Admonition type="critical" :header="formatMessage(messages.admonitionHeader)">
 				{{ formatMessage(messages.admonitionBody) }}
 			</Admonition>
-		</div>
-
-		<template #actions>
-			<div class="flex gap-2 justify-end">
-				<ButtonStyled type="outlined">
-					<button @click="modal?.hide()">
-						<XIcon />
-						{{ formatMessage(commonMessages.cancelButton) }}
-					</button>
-				</ButtonStyled>
-				<ButtonStyled color="red">
-					<button @click="confirm">
-						<DownloadIcon />
-						{{ formatMessage(messages.reinstallButton) }}
-					</button>
-				</ButtonStyled>
-			</div>
 		</template>
-	</NewModal>
+	</ConfirmActionModal>
 </template>
 
 <script setup lang="ts">
-import { DownloadIcon, XIcon } from '@modrinth/assets'
-import { ref } from 'vue'
+import { DownloadIcon } from '@modrinth/assets'
+import { useTemplateRef } from 'vue'
 
 import Admonition from '#ui/components/base/Admonition.vue'
-import ButtonStyled from '#ui/components/base/ButtonStyled.vue'
-import NewModal from '#ui/components/modal/NewModal.vue'
+import ConfirmActionModal from '#ui/components/modal/ConfirmActionModal.vue'
 import { defineMessages, useVIntl } from '#ui/composables/i18n'
-import { commonMessages } from '#ui/utils/common-messages'
 
 import SymlinkWarningAdmonition from './SymlinkWarningAdmonition.vue'
 
@@ -70,18 +59,9 @@ const emit = defineEmits<{
 	(e: 'reinstall'): void
 }>()
 
-const modal = ref<InstanceType<typeof NewModal>>()
-
-function show() {
-	modal.value?.show()
-}
-
-function confirm() {
-	modal.value?.hide()
-	emit('reinstall')
-}
+const modal = useTemplateRef<InstanceType<typeof ConfirmActionModal>>('modal')
 
 defineExpose({
-	show,
+	show: () => modal.value?.show(),
 })
 </script>

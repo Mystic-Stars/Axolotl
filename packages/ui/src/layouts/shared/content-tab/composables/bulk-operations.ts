@@ -1,5 +1,4 @@
 import { onBeforeUnmount, ref, watch } from 'vue'
-import { onBeforeRouteLeave } from 'vue-router'
 
 export type BulkOperationType = 'enable' | 'disable' | 'delete' | 'update'
 
@@ -81,13 +80,6 @@ export function useBulkOperation() {
 
 		onBeforeUnmount(() => {
 			window.removeEventListener('beforeunload', handleBeforeUnload)
-		})
-
-		onBeforeRouteLeave(() => {
-			if (isBulkOperating.value) {
-				return window.confirm('A bulk operation is in progress. Are you sure you want to leave?')
-			}
-			return true
 		})
 	}
 

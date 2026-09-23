@@ -228,6 +228,10 @@ test('Fabric loader pending selection preserves valid exact values and maps targ
 test('shared upgrade detection uses established link or external target metadata', () => {
 	assert.equal(isSharedUpgradeInstance({ link: { type: 'shared_instance' } } as never), true)
 	assert.equal(isSharedUpgradeInstance({ symlink_target: 'D:/Minecraft' } as never), true)
+	assert.equal(
+		isSharedUpgradeInstance({ linked_dot_minecraft: 'D:/Minecraft/.minecraft' } as never),
+		true,
+	)
 	assert.equal(isSharedUpgradeInstance({ link: null, symlink_target: null } as never), false)
 })
 

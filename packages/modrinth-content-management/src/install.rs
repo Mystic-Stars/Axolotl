@@ -2,9 +2,9 @@ use std::cmp::Reverse;
 use std::collections::{HashMap, HashSet};
 
 use crate::model::{
-    ContentType, Dependency, DependencyType, Error, ResolutionPreferences,
-    ResolveContentPlan, ResolveContentRequest, ResolvedContent, SkippedContent,
-    SkippedReason, Version,
+    ContentMetadata, ContentType, Dependency, DependencyType, Error,
+    ResolutionPreferences, ResolveContentPlan, ResolveContentRequest,
+    ResolvedContent, SkippedContent, SkippedReason, Version,
 };
 use crate::provider::ContentMetadataProvider;
 
@@ -65,6 +65,7 @@ pub async fn resolve_content<P: ContentMetadataProvider>(
         version_id: primary_version.id.clone(),
         dependent_on_version_id: None,
         required: true,
+        metadata: Some(version_metadata(&primary_version)),
     };
     let mut resolver = InstallResolver::new(provider, &request);
     resolver
@@ -293,6 +294,7 @@ impl<'a, P: ContentMetadataProvider> InstallResolver<'a, P> {
                     version_id: dependency_version.id.clone(),
                     dependent_on_version_id: Some(version.id.clone()),
                     required,
+                    metadata: Some(version_metadata(&dependency_version)),
                 });
                 stack.push((dependency_version, depth + 1));
             }
@@ -365,6 +367,16 @@ fn dependency_metadata_corrections(version: &Version) -> Vec<Dependency> {
             })
         })
         .collect()
+}
+
+fn version_metadata(v: &Version) -> ContentMetadata {
+    ContentMetadata {
+        title: None,
+        version_number: v.version_number.clone(),
+        filename: v.filename.clone(),
+        sha1: v.sha1.clone(),
+        icon_url: None,
+    }
 }
 
 fn select_newest_matching_version(

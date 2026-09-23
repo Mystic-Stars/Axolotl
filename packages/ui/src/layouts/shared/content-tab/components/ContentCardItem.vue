@@ -692,7 +692,7 @@ const deleteHovered = ref(false)
 								: formatMessage(commonMessages.updateAvailableLabel)
 						"
 						:disabled="isDisabled"
-						@click="emit('update')"
+						@click.stop="emit('update')"
 					>
 						<DownloadIcon class="size-5" />
 					</button>

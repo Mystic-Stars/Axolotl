@@ -40,12 +40,6 @@ import BrowseInstanceSelector from '@/components/browse/BrowseInstanceSelector.v
 import InstanceIcon from '@/components/ui/InstanceIcon.vue'
 import { useContentFavorites } from '@/composables/useContentFavorites'
 import { createBrowseProjectTabs, getBrowseProjectTabOptions } from '@/helpers/browse-project-tabs'
-import {
-	completeBrowseReturnNavigation,
-	consumeBrowseReturnSnapshot,
-	isBrowseReturnSourcePath,
-	saveBrowseReturnSnapshot,
-} from '@/helpers/browse-return-state.ts'
 import { get_project, get_project_many, get_version_many } from '@/helpers/cache.js'
 import {
 	type ContentFavorite,
@@ -68,6 +62,7 @@ import {
 import type { GameInstance } from '@/helpers/types'
 import { injectContentSelection, makeContentSelectionKey } from '@/providers/content-selection'
 import { useBreadcrumbs } from '@/store/breadcrumbs'
+import { isBrowseReturnSourcePath, useNavigationReturnStore } from '@/store/navigation-return'
 
 type FavoriteFilter = 'all' | FavoriteContentType
 type FavoriteDisplayMode = 'list' | 'compact' | 'grid'
@@ -108,6 +103,7 @@ const curseForgeLoaderTypes: Record<string, number> = {
 const route = useRoute()
 const router = useRouter()
 const breadcrumbs = useBreadcrumbs()
+const navReturn = useNavigationReturnStore()
 const { formatMessage } = useVIntl()
 const { handleError } = injectNotificationManager()
 const contentSelection = injectContentSelection()
@@ -123,7 +119,9 @@ const loadingProjects = ref(false)
 const installingKeys = ref(new Set<string>())
 const displayMode = ref<FavoriteDisplayMode>(getLastBrowseContentDisplayMode())
 let projectRequestId = 0
-const browseReturnSnapshot = consumeBrowseReturnSnapshot<FavoritesReturnState>(route.fullPath)
+const browseReturnSnapshot = navReturn.consumeBrowseReturnSnapshot<FavoritesReturnState>(
+	route.fullPath,
+)
 if (browseReturnSnapshot) projects.value = browseReturnSnapshot.state.projects
 
 const messages = defineMessages({
@@ -687,7 +685,7 @@ function getProjectLink(project: FavoriteProject) {
 onBeforeRouteLeave((to) => {
 	if (isBrowseReturnSourcePath(to.path)) {
 		const viewport = document.querySelector<HTMLElement>('.app-viewport')
-		saveBrowseReturnSnapshot<FavoritesReturnState>({
+		navReturn.saveBrowseReturnSnapshot<FavoritesReturnState>({
 			url: route.fullPath,
 			scrollTop: viewport?.scrollTop ?? 0,
 			state: { projects: projects.value },
@@ -720,7 +718,7 @@ onMounted(async () => {
 						document.querySelector<HTMLElement>('.app-viewport')?.scrollTo({
 							top: browseReturnSnapshot.scrollTop,
 						})
-						completeBrowseReturnNavigation(route.fullPath)
+						navReturn.completeBrowseReturnNavigation(route.fullPath)
 						resolve()
 					})
 				}),

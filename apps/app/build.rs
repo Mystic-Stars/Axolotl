@@ -16,12 +16,83 @@ fn run_command(command: &mut Command, description: &str) {
     );
 }
 
+fn newest_mtime(path: &std::path::Path) -> Option<std::time::SystemTime> {
+    let mut newest: Option<std::time::SystemTime> = None;
+    if path.is_file() {
+        return path.metadata().and_then(|m| m.modified()).ok();
+    }
+    if path.is_dir() {
+        if let Ok(entries) = std::fs::read_dir(path) {
+            for entry in entries.flatten() {
+                if let Some(time) = newest_mtime(&entry.path()) {
+                    newest =
+                        Some(newest.map_or(time, |current| current.max(time)));
+                }
+            }
+        }
+    }
+    newest
+}
+
+fn blockbench_skin_is_fresh(
+    blockbench_dir: &std::path::Path,
+    synced_bundle: &std::path::Path,
+) -> bool {
+    let bundle = blockbench_dir.join("dist/skin.bundle.js");
+    let Ok(bundle_time) = bundle.metadata().and_then(|m| m.modified()) else {
+        return false;
+    };
+    let Ok(synced_time) = synced_bundle.metadata().and_then(|m| m.modified())
+    else {
+        return false;
+    };
+    if synced_time < bundle_time {
+        return false;
+    }
+
+    // Inputs that feed `npm run build-skin` or the resource sync. node_modules
+    // is intentionally excluded: it is huge and its mtimes churn independently
+    // of Blockbench sources.
+    let input_paths = [
+        blockbench_dir.join("package.json"),
+        blockbench_dir.join("package-lock.json"),
+        blockbench_dir.join("build.js"),
+        blockbench_dir.join("js"),
+        blockbench_dir.join("css"),
+        blockbench_dir.join("assets"),
+        blockbench_dir.join("font"),
+        blockbench_dir.join("index.html"),
+    ];
+    input_paths.iter().all(|input| {
+        newest_mtime(input)
+            .map(|input_time| input_time <= bundle_time)
+            .unwrap_or(true)
+    })
+}
+
 fn build_blockbench_skin_editor() {
+    if std::env::var_os("AXOLOTL_SKIP_BLOCKBENCH_BUILD").is_some_and(|value| {
+        !value.is_empty() && value != "0" && value != "false"
+    }) {
+        println!(
+            "cargo:warning=AXOLOTL_SKIP_BLOCKBENCH_BUILD set; skipping Blockbench skin editor build"
+        );
+        return;
+    }
+
     let blockbench_dir = std::path::Path::new("../../third-party/blockbench");
     assert!(
         blockbench_dir.join("package.json").is_file(),
         "Blockbench skin editor submodule is missing. Run git submodule update --init --recursive."
     );
+
+    let synced_bundle = std::path::Path::new(
+        "resources/blockbench-skin/dist/skin.bundle.js.gz",
+    );
+    if blockbench_skin_is_fresh(blockbench_dir, synced_bundle) {
+        return;
+    }
+
     if !blockbench_dir.join("node_modules").is_dir() {
         run_command(
             Command::new(NPM_COMMAND)
@@ -53,7 +124,20 @@ fn main() {
     println!("cargo:rerun-if-changed=tauri.linux.conf.json");
     println!("cargo:rerun-if-changed=tauri-modern.conf.json");
     println!("cargo:rerun-if-changed=tauri-release.conf.json");
-    println!("cargo:rerun-if-changed=../../third-party/blockbench");
+    // Watch Blockbench inputs only. Watching the whole submodule (including
+    // node_modules) made any npm install churn re-run the entire build script.
+    println!(
+        "cargo:rerun-if-changed=../../third-party/blockbench/package.json"
+    );
+    println!(
+        "cargo:rerun-if-changed=../../third-party/blockbench/package-lock.json"
+    );
+    println!("cargo:rerun-if-changed=../../third-party/blockbench/build.js");
+    println!("cargo:rerun-if-changed=../../third-party/blockbench/js");
+    println!("cargo:rerun-if-changed=../../third-party/blockbench/css");
+    println!("cargo:rerun-if-changed=../../third-party/blockbench/assets");
+    println!("cargo:rerun-if-changed=../../third-party/blockbench/font");
+    println!("cargo:rerun-if-changed=../../third-party/blockbench/index.html");
     // Tauri validates frontendDist during Cargo metadata/check builds. The
     // frontend build runs in parallel in CI, so create the directory before
     // tauri-build reads the configuration. A real frontend build overwrites
@@ -202,6 +286,7 @@ fn main() {
                         "curseforge_get_projects",
                         "curseforge_get_description",
                         "curseforge_get_files",
+                        "curseforge_get_files_page",
                         "curseforge_get_file",
                         "curseforge_get_files_many",
                         "curseforge_get_changelog",
@@ -428,6 +513,21 @@ fn main() {
                 InlinedPlugin::new()
                     .commands(&[
                         "instance_remove",
+                        "instance_get_backup_repository_status",
+                        "instance_move_backup_repository",
+                        "instance_get_backup_config",
+                        "instance_normalize_backup_exclusion",
+                        "instance_enable_backups",
+                        "instance_update_backup_exclusions",
+                        "instance_disable_backups",
+                        "instance_start_backup",
+                        "instance_cancel_backup",
+                        "instance_list_backup_operations",
+                        "instance_list_backups",
+                        "instance_delete_backup",
+                        "instance_get_backup_restore_preview",
+                        "instance_restore_backup",
+                        "instance_get_backup_delete_summary",
                         "instance_create_direct_link",
                         "instance_sync_direct_links",
                         "instance_get",
@@ -498,8 +598,7 @@ fn main() {
                         "instance_rollback_project",
                         "instance_remove_project",
                         "instance_remove_content_entry",
-                        "instance_update_content_entry",
-                        "instance_switch_content_entry_version",
+                        "instance_queue_content_change",
                         "instance_restore_pack_member_default",
                         "instance_update_managed_modrinth_version",
                         "instance_repair_managed_modrinth",
@@ -510,6 +609,53 @@ fn main() {
                         "instance_edit_icon",
                         "instance_export_mrpack",
                         "instance_get_pack_export_candidates",
+                        "instance_list_screenshots",
+                        "instance_list_all_screenshots",
+                        "instance_list_synced_screenshots",
+                        "instance_save_edited_screenshot",
+                        "instance_list_screenshot_groups",
+                        "instance_create_screenshot_group",
+                        "instance_rename_screenshot_group",
+                        "instance_delete_screenshot_group",
+                        "instance_set_screenshot_group_memberships",
+                        "instance_import_screenshot_groups",
+                        "instance_delete_screenshots",
+                        "instance_export_screenshots",
+                        "instance_move_screenshots",
+                        "instance_open_screenshot",
+                        "instance_get_synced_options",
+                        "instance_get_initialized_synced_options",
+                        "instance_get_synced_options_overview",
+                        "instance_get_synced_option_capabilities",
+                        "instance_get_synced_option_join_preview",
+                        "instance_set_synced_option",
+                        "instance_set_instance_synced_option",
+                        "instance_get_synced_command_history",
+                        "instance_set_synced_command_history",
+                        "instance_list_synced_servers",
+                        "instance_update_synced_server",
+                        "instance_remove_synced_server",
+                        "instance_get_synced_game_options_config",
+                        "instance_preview_synced_game_option_changes",
+                        "instance_save_synced_game_option_changes",
+                        "instance_list_game_options_sync_sources",
+                        "instance_get_game_setting_locale_labels",
+                        "instance_get_local_game_options_config",
+                        "instance_preview_local_game_option_changes",
+                        "instance_save_local_game_option_changes",
+                        "instance_get_pack_sync_preview",
+                        "instance_sync_pack",
+                        "instance_desync_pack",
+                        "instance_list_synced_packs",
+                        "instance_upload_synced_pack",
+                        "instance_set_synced_pack_enabled",
+                        "instance_remove_synced_pack",
+                        "instance_list_groups",
+                        "instance_create_group",
+                        "instance_rename_group",
+                        "instance_delete_group",
+                        "instance_set_group_order",
+                        "instance_set_group_memberships",
                     ])
                     .default_permission(
                         DefaultPermissionRule::AllowAllCommands,
@@ -683,6 +829,14 @@ fn main() {
                         "studio_watch_register",
                         "studio_watch_unregister",
                     ])
+                    .default_permission(
+                        DefaultPermissionRule::AllowAllCommands,
+                    ),
+            )
+            .plugin(
+                "fonts",
+                InlinedPlugin::new()
+                    .commands(&["fonts_get_system_fonts"])
                     .default_permission(
                         DefaultPermissionRule::AllowAllCommands,
                     ),

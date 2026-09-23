@@ -286,6 +286,15 @@ const messages = defineMessages({
 		id: 'app.settings.resources.download-engine-description',
 		defaultMessage: 'Choose which download engine the launcher uses.',
 	},
+	ignoreSslErrors: {
+		id: 'app.settings.resources.ignore-ssl-errors',
+		defaultMessage: 'Ignore SSL certificate errors',
+	},
+	ignoreSslErrorsDescription: {
+		id: 'app.settings.resources.ignore-ssl-errors-description',
+		defaultMessage:
+			'Allows downloads through proxies or network tools that replace HTTPS certificates. This disables certificate verification and can expose downloads to tampering. Enable it only when necessary.',
+	},
 	legacyEngine: {
 		id: 'app.settings.resources.download-engine.legacy',
 		defaultMessage: 'Native engine',
@@ -943,6 +952,17 @@ function validateMinecraftDirectory(value) {
 					<div class="w-full">
 						<Combobox v-model="downloadEngine" :options="downloadEngineOptions" />
 					</div>
+				</template>
+			</SettingsRow>
+			<SettingsRow>
+				<template #label>
+					<span id="settings-target-resources-ignore-ssl-errors" tabindex="-1">
+						{{ formatMessage(messages.ignoreSslErrors) }}
+					</span>
+				</template>
+				<template #description>{{ formatMessage(messages.ignoreSslErrorsDescription) }}</template>
+				<template #control>
+					<Toggle id="ignore-ssl-errors" v-model="settings.ignore_ssl_errors" />
 				</template>
 			</SettingsRow>
 			<SettingsRow stacked>

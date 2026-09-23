@@ -1,3 +1,4 @@
+export { default as ConfirmActionModal } from './ConfirmActionModal.vue'
 export { default as ConfirmLeaveModal } from './ConfirmLeaveModal.vue'
 export { default as ConfirmModal } from './ConfirmModal.vue'
 export { default as InstallToPlayModal } from './InstallToPlayModal.vue'

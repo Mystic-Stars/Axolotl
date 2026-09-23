@@ -17,6 +17,7 @@
 				:instance="instance"
 				:offline="offline"
 				@unlinked="fetchInstance"
+				@updated="instance = $event"
 			/>
 			<ContentPageHeader>
 				<template #icon>

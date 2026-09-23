@@ -29,7 +29,9 @@ use windows::{
     },
     core::PCWSTR,
 };
-use wry::{NewWindowResponse, WebView, WebViewBuilder, http::Request};
+use wry::{
+    NewWindowResponse, WebContext, WebView, WebViewBuilder, http::Request,
+};
 
 const HTML: &str = include_str!("installer.html");
 const LOGO: &[u8] = include_bytes!("../../app/icons/128x128.png");
@@ -44,6 +46,7 @@ struct Bootstrap {
     fresh_install: bool,
     language: Language,
     logo_data_url: String,
+    uninstall: bool,
 }
 
 #[derive(Clone, Copy, Debug, Serialize)]
@@ -68,6 +71,12 @@ struct InstallRequest {
     launch_after: bool,
 }
 
+#[derive(Clone, Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct UninstallRequest {
+    delete_app_data: bool,
+}
+
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 enum PathTarget {
@@ -83,6 +92,7 @@ enum UiCommand {
     Close,
     Browse { target: PathTarget, current: String },
     Install(InstallRequest),
+    Uninstall(UninstallRequest),
     Finish { launch: bool },
 }
 
@@ -93,6 +103,7 @@ enum UserEvent {
     Close,
     Browse { target: PathTarget, current: String },
     Install(InstallRequest),
+    Uninstall(UninstallRequest),
     Progress(u8),
     Finished(Result<(), InstallFailure>),
     Finish { launch: bool },
@@ -172,6 +183,8 @@ pub fn run() -> Result<(), String> {
         serde_json::to_string(&arguments.bootstrap).map_err(|error| {
             format!("serializing installer settings failed: {error}")
         })?;
+    let webview_data_directory = webview_data_directory()?;
+    let mut webview_context = WebContext::new(Some(webview_data_directory));
     let proxy = event_loop.create_proxy();
     let ipc_proxy = proxy.clone();
     let handler = move |request: Request<String>| {
@@ -184,6 +197,7 @@ pub fn run() -> Result<(), String> {
                     UserEvent::Browse { target, current }
                 }
                 UiCommand::Install(request) => UserEvent::Install(request),
+                UiCommand::Uninstall(request) => UserEvent::Uninstall(request),
                 UiCommand::Finish { launch } => UserEvent::Finish { launch },
             };
             let _ = ipc_proxy.send_event(event);
@@ -191,7 +205,7 @@ pub fn run() -> Result<(), String> {
     };
 
     let mut webview = Some(
-        WebViewBuilder::new()
+        WebViewBuilder::new_with_web_context(&mut webview_context)
             .with_html(HTML)
             .with_initialization_script(format!(
                 "window.__AXOLOTL_INSTALLER__ = {bootstrap};"
@@ -286,6 +300,17 @@ pub fn run() -> Result<(), String> {
                     ),
                 }
             }
+            Event::UserEvent(UserEvent::Uninstall(request)) => {
+                if installing {
+                    return;
+                }
+                installing = true;
+                send_to_webview(
+                    webview.as_ref(),
+                    json!({ "type": "installStarted" }),
+                );
+                start_uninstall(installer.clone(), request, proxy.clone());
+            }
             Event::UserEvent(UserEvent::Progress(progress)) => {
                 send_to_webview(
                     webview.as_ref(),
@@ -354,6 +379,7 @@ fn parse_arguments() -> Result<Arguments, String> {
     let mut install_dir = None;
     let mut resource_dir = None;
     let mut fresh_install = true;
+    let mut uninstall = false;
     let mut language = Language::En;
 
     while let Some(argument) = args.next() {
@@ -362,6 +388,10 @@ fn parse_arguments() -> Result<Arguments, String> {
         })?;
         match argument.to_string_lossy().as_ref() {
             "--installer" => installer = Some(PathBuf::from(value)),
+            "--uninstaller" => {
+                installer = Some(PathBuf::from(value));
+                uninstall = true;
+            }
             "--version" => version = Some(value.to_string_lossy().into_owned()),
             "--install-dir" => {
                 install_dir = Some(value.to_string_lossy().into_owned())
@@ -390,19 +420,37 @@ fn parse_arguments() -> Result<Arguments, String> {
     Ok(Arguments {
         installer,
         bootstrap: Bootstrap {
-            version: version.ok_or_else(|| "missing --version".to_string())?,
-            install_dir: install_dir
-                .ok_or_else(|| "missing --install-dir".to_string())?,
-            resource_dir: resource_dir
-                .ok_or_else(|| "missing --resource-dir".to_string())?,
+            version: version.unwrap_or_default(),
+            install_dir: install_dir.unwrap_or_default(),
+            resource_dir: resource_dir.unwrap_or_default(),
             fresh_install,
             language,
             logo_data_url: format!(
                 "data:image/png;base64,{}",
                 BASE64.encode(LOGO)
             ),
+            uninstall,
         },
     })
+}
+
+fn webview_data_directory() -> Result<PathBuf, String> {
+    let root = env::var_os("LOCALAPPDATA")
+        .map(PathBuf::from)
+        .unwrap_or_else(env::temp_dir);
+    let directory = root
+        .join("Axolotl")
+        .join("InstallerUI")
+        .join(format!("WebView2-{}", std::process::id()));
+
+    fs::create_dir_all(&directory).map_err(|error| {
+        format!(
+            "creating WebView2 data directory '{}' failed: {error}",
+            directory.display()
+        )
+    })?;
+
+    Ok(directory)
 }
 
 fn validate_request(
@@ -492,6 +540,58 @@ fn start_install(
         let _ = fs::remove_file(status_path);
         let _ = proxy.send_event(UserEvent::Finished(result));
     });
+}
+
+fn start_uninstall(
+    uninstaller: PathBuf,
+    request: UninstallRequest,
+    proxy: EventLoopProxy<UserEvent>,
+) {
+    thread::spawn(move || {
+        let result = spawn_uninstaller(&uninstaller, request)
+            .and_then(|mut process| wait_for_process(&mut process));
+        let _ = proxy.send_event(UserEvent::Finished(result));
+    });
+}
+
+fn spawn_uninstaller(
+    uninstaller: &Path,
+    request: UninstallRequest,
+) -> Result<InstallerProcess, InstallFailure> {
+    let mut args = vec!["/S".to_string(), "/UI_CHILD".to_string()];
+    if request.delete_app_data {
+        args.push("/DELETE_APP_DATA".to_string());
+    }
+    elevated_installer_process(uninstaller, &args)
+        .map(InstallerProcess::Elevated)
+        .map_err(|error| InstallFailure {
+            exit_code: None,
+            message: error.to_string(),
+        })
+}
+
+fn wait_for_process(
+    process: &mut InstallerProcess,
+) -> Result<(), InstallFailure> {
+    loop {
+        match process.try_wait() {
+            Ok(Some(0)) => return Ok(()),
+            Ok(Some(exit_code)) => {
+                return Err(InstallFailure {
+                    exit_code: Some(exit_code),
+                    message: "The NSIS uninstallation core returned an error"
+                        .to_string(),
+                });
+            }
+            Ok(None) => thread::sleep(Duration::from_millis(120)),
+            Err(error) => {
+                return Err(InstallFailure {
+                    exit_code: None,
+                    message: error.to_string(),
+                });
+            }
+        }
+    }
 }
 
 fn spawn_installer(
@@ -668,7 +768,8 @@ fn send_to_webview(webview: Option<&WebView>, payload: serde_json::Value) {
 mod tests {
     use super::{
         UiCommand, dialog_initial_location, install_dir_requires_elevation,
-        launch_main_process, nsis_value_option, wide_null,
+        launch_main_process, nsis_value_option, webview_data_directory,
+        wide_null,
     };
     use std::{
         fs,
@@ -765,5 +866,17 @@ mod tests {
         assert!(!missing.exists());
 
         assert!(launch_main_process(&missing).is_err());
+    }
+
+    #[test]
+    fn webview_data_directory_is_created_outside_the_installer_temp_directory()
+    {
+        let directory = webview_data_directory()
+            .expect("WebView2 data directory should be created");
+
+        assert!(directory.is_dir());
+        assert!(
+            directory.ends_with(format!("WebView2-{}", std::process::id()))
+        );
     }
 }

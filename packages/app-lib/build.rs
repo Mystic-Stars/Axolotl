@@ -1,4 +1,3 @@
-use std::ffi::OsString;
 use std::path::PathBuf;
 use std::process::{Command, exit};
 use std::{env, fs};
@@ -8,9 +7,30 @@ use std::{env, fs};
 /// name.
 const DATA_DIR_SUFFIX_VAR: &str = "AXOLOTL_DATA_DIR_SUFFIX";
 
+/// Public service defaults for downstream builds that have no `.env`.
+/// Private Modrinth services remain disabled by Axolotl capabilities at runtime.
+const MODRINTH_ENV_DEFAULTS: &[(&str, &str)] = &[
+    ("MODRINTH_API_BASE_URL", "https://api.modrinth.com"),
+    ("MODRINTH_API_URL", "https://api.modrinth.com/v2/"),
+    ("MODRINTH_API_URL_V3", "https://api.modrinth.com/v3/"),
+    (
+        "MODRINTH_LAUNCHER_META_URL",
+        "https://launcher-meta.modrinth.com/",
+    ),
+    ("MODRINTH_URL", "https://modrinth.com/"),
+    ("MODRINTH_SOCKET_URL", "wss://disabled.invalid/"),
+];
+
 fn main() {
-    println!("cargo::rerun-if-changed=.env");
+    // Only watch .env when it exists. A missing rerun-if-changed path keeps
+    // Cargo treating the crate as dirty on every invocation.
+    if PathBuf::from(".env").exists() {
+        println!("cargo::rerun-if-changed=.env");
+    }
     println!("cargo::rerun-if-env-changed=CURSEFORGE_API_KEY");
+    for (name, _) in MODRINTH_ENV_DEFAULTS {
+        println!("cargo::rerun-if-env-changed={name}");
+    }
     println!("cargo::rerun-if-changed=java/gradle");
     println!("cargo::rerun-if-changed=java/src");
     println!("cargo::rerun-if-changed=java/build.gradle.kts");
@@ -33,19 +53,40 @@ fn set_env() {
         .ok()
         .or_else(|| read_dotenv_literal("CURSEFORGE_API_KEY"));
 
-    for (var_name, var_value) in
-        dotenvy::dotenv_iter().into_iter().flatten().flatten()
-    {
+    let dotenv_values: Vec<(String, String)> = dotenvy::dotenv_iter()
+        .into_iter()
+        .flatten()
+        .flatten()
+        .collect();
+
+    for (var_name, var_value) in &dotenv_values {
         if var_name == "DATABASE_URL"
             || var_name == "CURSEFORGE_API_KEY"
             || var_name == DATA_DIR_SUFFIX_VAR
+            || MODRINTH_ENV_DEFAULTS
+                .iter()
+                .any(|(name, _)| name == var_name)
         {
-            // Handled explicitly below, where an empty value can be rejected
-            // instead of baked into the crate.
+            // Handled explicitly below, where values are resolved with a
+            // stable priority chain instead of being dumped as-is.
             continue;
         }
 
         println!("cargo::rustc-env={var_name}={var_value}");
+    }
+
+    // Single source of truth for env!() service URLs. Prefer local .env, then
+    // an explicit process-env export, then public defaults. Always emit
+    // rustc-env so Cargo does not mix process-env fingerprints with a
+    // different baked value (which marked theseus dirty on every rebuild).
+    for (name, default) in MODRINTH_ENV_DEFAULTS {
+        let value = dotenv_values
+            .iter()
+            .find(|(key, _)| key == name)
+            .map(|(_, value)| value.clone())
+            .or_else(|| env::var(name).ok().filter(|value| !value.is_empty()))
+            .unwrap_or_else(|| (*default).to_string());
+        println!("cargo::rustc-env={name}={value}");
     }
 
     if let Some(curseforge_api_key) = curseforge_api_key {
@@ -108,6 +149,52 @@ fn read_dotenv_literal(name: &str) -> Option<String> {
     })
 }
 
+fn newest_mtime(path: &PathBuf) -> Option<std::time::SystemTime> {
+    let mut newest: Option<std::time::SystemTime> = None;
+    if path.is_file() {
+        return path.metadata().and_then(|m| m.modified()).ok();
+    }
+    if path.is_dir() {
+        if let Ok(entries) = fs::read_dir(path) {
+            for entry in entries.flatten() {
+                if let Some(time) = newest_mtime(&entry.path().to_path_buf()) {
+                    newest =
+                        Some(newest.map_or(time, |current| current.max(time)));
+                }
+            }
+        }
+    }
+    newest
+}
+
+fn java_jars_are_fresh(out_dir: &PathBuf) -> bool {
+    let theseus_jar = out_dir.join("java/libs/theseus.jar");
+    let authlib_jar = out_dir.join("java/libs/authlib-injector.jar");
+    let Ok(theseus_time) = theseus_jar.metadata().and_then(|m| m.modified())
+    else {
+        return false;
+    };
+    let Ok(authlib_time) = authlib_jar.metadata().and_then(|m| m.modified())
+    else {
+        return false;
+    };
+
+    let input_paths = [
+        PathBuf::from("java/src"),
+        PathBuf::from("java/build.gradle.kts"),
+        PathBuf::from("java/settings.gradle.kts"),
+        PathBuf::from("java/gradle.properties"),
+        PathBuf::from("java/gradle"),
+    ];
+    input_paths.iter().all(|input| {
+        newest_mtime(input)
+            .map(|input_time| {
+                input_time <= theseus_time && input_time <= authlib_time
+            })
+            .unwrap_or(true)
+    })
+}
+
 fn build_java_jars() {
     let out_dir =
         dunce::canonicalize(PathBuf::from(env::var_os("OUT_DIR").unwrap()))
@@ -118,6 +205,10 @@ fn build_java_jars() {
         out_dir.join("java/libs").display()
     );
 
+    if java_jars_are_fresh(&out_dir) {
+        return;
+    }
+
     let gradle_path = fs::canonicalize(
         #[cfg(target_os = "windows")]
         "java\\gradlew.bat",
@@ -126,16 +217,24 @@ fn build_java_jars() {
     )
     .unwrap();
 
-    let mut build_dir_str = OsString::from("-Dorg.gradle.project.buildDir=");
-    build_dir_str.push(out_dir.join("java"));
-    let exit_status = Command::new(gradle_path)
-        .arg(build_dir_str)
+    let mut command = Command::new(gradle_path);
+    command
+        .arg(format!(
+            "-Dorg.gradle.project.buildDir={}",
+            out_dir.join("java").display()
+        ))
         .arg("build")
-        .arg("--no-daemon")
         .arg("--console=rich")
-        .current_dir(dunce::canonicalize("java").unwrap())
-        .status()
-        .expect("Failed to wait on Gradle build");
+        .current_dir(dunce::canonicalize("java").unwrap());
+
+    // A persistent Gradle daemon can inherit Cargo's build-script output pipe
+    // on Windows. Cargo then waits forever for EOF after Gradle has completed.
+    // CI runners are ephemeral and do not benefit from keeping a daemon.
+    if cfg!(windows) || env::var_os("CI").is_some() {
+        command.arg("--no-daemon");
+    }
+
+    let exit_status = command.status().expect("Failed to wait on Gradle build");
 
     if !exit_status.success() {
         println!("cargo::error=Gradle build failed with {exit_status}");

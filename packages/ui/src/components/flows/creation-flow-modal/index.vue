@@ -13,6 +13,7 @@
 import { computed, inject, useTemplateRef } from 'vue'
 import type { ComponentExposed } from 'vue-component-type-helpers'
 
+import { injectTags } from '../../../providers'
 import MultiStageModal from '../../base/MultiStageModal.vue'
 import {
 	createCreationFlowContext,
@@ -99,6 +100,8 @@ provideCreationFlowContext(ctx)
 const setCtx = inject('setCreationFlowCtx', null) as ((c: typeof ctx) => void) | null
 setCtx?.(ctx)
 
+const tags = injectTags(null)
+
 async function show(options?: {
 	skipSetupType?: boolean
 	initialMode?: 'custom' | 'import'
@@ -106,6 +109,8 @@ async function show(options?: {
 }) {
 	ctx.skipSetupType.value = options?.skipSetupType ?? false
 	ctx.onBack = options?.onBack ?? null
+	// Newly published snapshots must be selectable without restarting the app.
+	void tags?.refreshGameVersions?.()
 	await ctx.reset()
 	void ctx.prefetchLoaderMetadata()
 

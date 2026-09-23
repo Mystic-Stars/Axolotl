@@ -3,11 +3,14 @@ use std::path::Path;
 use url::Url;
 
 pub(super) const SHORTCUT_EXTENSION: &str = "desktop";
+pub(super) const SHORTCUT_ICON_EXTENSION: &str = "png";
 
 pub(super) async fn create_shortcut(
     profile_name: &str,
     launch_url: &Url,
     output_path: &Path,
+    icon_path: Option<&Path>,
+    _app_identifier: &str,
 ) -> Result<()> {
     let target_path = std::env::current_exe()?;
     tokio::fs::write(
@@ -17,12 +20,17 @@ pub(super) async fn create_shortcut(
 			Type=Application\n\
 			Name={}\n\
 			Exec={} {}\n\
-			Icon=AxolotlLauncher\n\
+			Icon={}\n\
 			Terminal=false\n\
 			Categories=Game;\n",
             escape_desktop_entry_value(&format!("Launch {profile_name}")),
             quote_desktop_exec_arg(&target_path.to_string_lossy()),
             quote_desktop_exec_arg(launch_url.as_str()),
+            escape_desktop_entry_value(
+                &icon_path
+                    .map(|path| path.to_string_lossy())
+                    .unwrap_or_else(|| "AxolotlLauncher".into()),
+            ),
         ),
     )
     .await?;

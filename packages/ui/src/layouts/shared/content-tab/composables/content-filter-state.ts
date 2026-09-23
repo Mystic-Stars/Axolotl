@@ -3,6 +3,25 @@ export interface ContentFilterSelections {
 	statusFilters: string[]
 }
 
+export const DUPLICATE_FILTER_EMPTY_GRACE_MS = 2000
+export const CONTENT_FILTER_PRUNE_DEBOUNCE_MS = 250
+
+/**
+ * Keep 'duplicates' selectable while the host supports tracking and the set is
+ * still settling, duplicates exist, or the set only just became empty. A
+ * follow-up prune runs when the grace window closes so a genuinely empty set
+ * can drop the selection (#542 transient vs stably-empty review).
+ */
+export function shouldKeepDuplicateFilterOption(input: {
+	supportsDuplicateFilter: boolean
+	ready: boolean
+	hasDuplicateItems: boolean
+	emptyGraceRemainingMs: number
+}): boolean {
+	if (!input.supportsDuplicateFilter) return false
+	return !input.ready || input.hasDuplicateItems || input.emptyGraceRemainingMs > 0
+}
+
 export interface MetadataFilterOptions {
 	key: string
 	options: Array<{ value: string }>

@@ -83,10 +83,15 @@ pub async fn update_instance_upgrade_resolution(
     plan_id: &str,
     resolution: InstanceUpgradeResolution,
 ) -> crate::Result<InstanceUpgradePlan> {
+    let started_at = std::time::Instant::now();
     let state = State::get().await?;
     let handle = stored_plan_handle(plan_id)?;
     let mut stored = handle.lock().await;
     let source = ensure_current_revision(&mut stored, &state).await?;
+    tracing::warn!(
+        elapsed_ms = started_at.elapsed().as_millis(),
+        "[upgrade-plan-bench] update-resolution source validation"
+    );
     let mut plan = stored.plan.clone();
     let item = plan
         .items
@@ -108,6 +113,10 @@ pub async fn update_instance_upgrade_resolution(
         &state,
     )
     .await?;
+    tracing::warn!(
+        elapsed_ms = started_at.elapsed().as_millis(),
+        "[upgrade-plan-bench] update-resolution complete"
+    );
     stored.plan = plan.clone();
     Ok(plan)
 }
@@ -458,20 +467,19 @@ pub async fn execute_instance_upgrade(
         )
         .into());
     }
+    let upgrade_target =
+        crate::launcher::instance_runtime::InstanceRuntimeAdapter::for_instance(
+            &metadata.instance,
+            &state.directories,
+        )?
+        .game_dir();
     ensure_upgrade_disk_space(
-        &metadata,
+        &upgrade_target,
         &stored.plan.source_files,
         create_full_backup,
         shared_upgrade_mode,
-        &state,
     )?;
-    ensure_upgrade_target_writable(
-        &state
-            .directories
-            .instances_dir()
-            .join(&metadata.instance.path),
-    )
-    .await?;
+    ensure_upgrade_target_writable(&upgrade_target).await?;
     crate::state::instances::commands::validate_instance_upgrade_plan_source(
         &stored.plan,
         &state,
@@ -560,17 +568,12 @@ pub async fn dismiss_instance_post_upgrade_notice(
 }
 
 fn ensure_upgrade_disk_space(
-    metadata: &crate::state::InstanceMetadata,
+    instance_path: &std::path::Path,
     source_files: &[crate::state::InstanceUpgradeSourceFile],
     create_full_backup: bool,
     shared_upgrade_mode: SharedUpgradeMode,
-    state: &State,
 ) -> crate::Result<()> {
-    let instance_path = state
-        .directories
-        .instances_dir()
-        .join(&metadata.instance.path);
-    let canonical = crate::util::io::canonicalize(&instance_path)?;
+    let canonical = crate::util::io::canonicalize(instance_path)?;
     let disks = sysinfo::Disks::new_with_refreshed_list();
     let available = disks
         .iter()

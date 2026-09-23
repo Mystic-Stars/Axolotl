@@ -165,13 +165,19 @@ export async function save_custom_skin(
 }
 
 export async function get_normalized_skin_texture(skin: Skin): Promise<string> {
-	const data = await normalize_skin_texture(skin.texture)
+	const data = await normalize_skin_texture(skin.texture, true)
 	const base64 = arrayBufferToBase64(data)
 	return `data:image/png;base64,${base64}`
 }
 
-export async function normalize_skin_texture(texture: Uint8Array | string): Promise<Uint8Array> {
-	return await invoke('plugin:minecraft-skins|normalize_skin_texture', { texture })
+export async function normalize_skin_texture(
+	texture: Uint8Array | string,
+	preserveInnerAlpha = false,
+): Promise<Uint8Array> {
+	return await invoke('plugin:minecraft-skins|normalize_skin_texture', {
+		texture,
+		preserveInnerAlpha,
+	})
 }
 
 export async function unequip_skin(): Promise<void> {

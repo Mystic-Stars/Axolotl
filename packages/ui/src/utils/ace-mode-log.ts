@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import ace from 'ace-builds'
+import * as ace from 'ace-builds'
 
 ace['define'](
 	'ace/mode/mclog_highlight_rules',

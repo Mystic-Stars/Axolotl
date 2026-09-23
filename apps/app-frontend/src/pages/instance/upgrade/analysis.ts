@@ -187,7 +187,11 @@ export function automaticFabricLoaderTargetAvailable(
 }
 
 export function isSharedUpgradeInstance(instance: GameInstance): boolean {
-	return instance.link?.type === 'shared_instance' || Boolean(instance.symlink_target)
+	return (
+		instance.link?.type === 'shared_instance' ||
+		Boolean(instance.symlink_target) ||
+		Boolean(instance.linked_dot_minecraft?.trim())
+	)
 }
 
 export function contentIdentityKeys(item: {

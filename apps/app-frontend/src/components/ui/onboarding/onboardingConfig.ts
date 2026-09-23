@@ -125,6 +125,15 @@ export const onboardingMessages = defineMessages({
 		defaultMessage:
 			'When you are ready, sign in, switch accounts, or open your profile here. No deadline.',
 	},
+	offlineAccountTitle: {
+		id: 'app.onboarding.offline-account.title',
+		defaultMessage: 'Play without signing in',
+	},
+	offlineAccountDescription: {
+		id: 'app.onboarding.offline-account.description',
+		defaultMessage:
+			'Prefer not to sign in yet? Open Playing as in the sidebar and add an offline Minecraft account with just a username.',
+	},
 	downloadsTitle: { id: 'app.onboarding.downloads.title', defaultMessage: 'Download control room' },
 	downloadsDescription: {
 		id: 'app.onboarding.downloads.description',
@@ -544,6 +553,12 @@ export const onboardingTours: Record<OnboardingMode, OnboardingStep[]> = {
 				onboardingMessages.continueArea,
 			),
 			control('account-entry'),
+		),
+		inspect(
+			'offline-account',
+			'offline-account-entry',
+			onboardingMessages.offlineAccountTitle,
+			onboardingMessages.offlineAccountDescription,
 		),
 		step(
 			'lab-navigation',

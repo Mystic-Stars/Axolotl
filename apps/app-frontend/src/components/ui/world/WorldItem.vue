@@ -645,6 +645,7 @@ const messages = defineMessages({
 		box-shadow: 0 0 8px 2px var(--color-brand);
 		border: 1.5px solid var(--color-brand);
 		opacity: 0;
+		pointer-events: none;
 	}
 }
 

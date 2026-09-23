@@ -2,7 +2,8 @@ import * as THREE from 'three'
 import type { GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 
-import { createSolidSkinLayerGeometry } from './solid-skin-layer'
+import { isArmorPreviewMesh } from './armor-preview-object.ts'
+import { createSolidSkinLayerGeometry, type SolidSkinLayerDefinition } from './solid-skin-layer.ts'
 
 export interface SkinRendererConfig {
 	textureColorSpace?: THREE.ColorSpace
@@ -11,9 +12,37 @@ export interface SkinRendererConfig {
 	textureMinFilter?: THREE.MinificationTextureFilter
 }
 
-const ENABLE_VOXEL_LAYER_GEOMETRY = true
 const MODEL_PIXEL_SIZE = 1 / 16
 const NON_LEG_VERTICAL_OFFSET = -MODEL_PIXEL_SIZE / 2
+const BASE_VOXEL_SCALE = 1.15
+const BODY_VOXEL_WIDTH_SCALE = 1.05
+const VOXEL_HEIGHT_SCALE = 1.035
+const HEAD_VOXEL_SCALE = 1.18
+const MOD_HEAD_ROTATION_OFFSET = 0.6
+const MOD_HEAD_SCALE_PIVOT = 0.25
+const MOD_HEAD_VERTICAL_OFFSET = -0.04
+const MOD_BODY_POSITION_Y = -0.2
+const MOD_ARM_POSITION_Y = -0.1
+const MOD_ARM_POSITION_X = 0.998
+const MOD_SLIM_ARM_POSITION_X = 0.499
+// Skin textures use 8-bit alpha. Keep every non-zero alpha value while still
+// discarding fully transparent fragments before they can write to the depth buffer.
+const SKIN_LAYER_ALPHA_TEST = 0.5 / 255
+
+export function configureSkinMaterial(
+	material: THREE.MeshStandardMaterial,
+	hasTranslucentPixels: boolean,
+): void {
+	material.transparent = hasTranslucentPixels
+	material.alphaTest = hasTranslucentPixels ? SKIN_LAYER_ALPHA_TEST : 0.1
+	// Treat the player as a textured surface, not a glass volume: the nearest
+	// face writes depth so hidden inner and back faces do not accumulate color.
+	material.depthWrite = true
+	// Three.js rewrites fragment alpha through smoothstep when alpha-to-coverage
+	// is enabled. Use it only for binary cutouts, never for translucent texels.
+	material.alphaToCoverage = !hasTranslucentPixels
+	material.needsUpdate = true
+}
 
 /** Aligns the torso, arms, head, and cape with the stationary legs. */
 function offsetNonLegModelParts(model: THREE.Object3D): void {
@@ -27,23 +56,93 @@ function offsetNonLegModelParts(model: THREE.Object3D): void {
 }
 
 /**
- * Rebuilds the outer layer as solid, textured voxels. This follows 3D Skin
- * Layers' SolidPixelWrapper: every non-transparent outer-layer pixel becomes
- * a real cube with six faces instead of a zero-thickness quad.
+ * Rebuilds the outer layer using 3D Skin Layers' fast-render structure: a
+ * correctly mapped surface box plus per-pixel side and back extrusion.
  */
-function getSkinLayerDefinition(name: string): {
-	width: number
-	height: number
-	depth: number
-	u: number
-	v: number
-} | null {
-	if (name === 'Hat_Layer') return { width: 8, height: 8, depth: 8, u: 32, v: 0 }
-	if (name === 'Body_Layer') return { width: 8, height: 12, depth: 4, u: 16, v: 32 }
-	if (name === 'Right_Leg_Layer') return { width: 4, height: 12, depth: 4, u: 0, v: 32 }
-	if (name === 'Left_Leg_Layer') return { width: 4, height: 12, depth: 4, u: 0, v: 48 }
-	if (name === 'Right_Arm_Layer') return { width: 4, height: 12, depth: 4, u: 40, v: 32 }
-	if (name === 'Left_Arm_Layer') return { width: 4, height: 12, depth: 4, u: 48, v: 48 }
+function minecraftAxisOffset(
+	voxelCenter: number,
+	meshPosition: number,
+	scale: number,
+	vanillaCenter: number,
+): number {
+	return -((voxelCenter + meshPosition) * scale - vanillaCenter) * MODEL_PIXEL_SIZE
+}
+
+function headCenterOffset(): number {
+	const voxelCenter = (-4 + MOD_HEAD_ROTATION_OFFSET) * MODEL_PIXEL_SIZE
+	const vanillaCenter = -4 * MODEL_PIXEL_SIZE
+	const transformedCenter =
+		-MOD_HEAD_SCALE_PIVOT +
+		HEAD_VOXEL_SCALE * (MOD_HEAD_SCALE_PIVOT + MOD_HEAD_VERTICAL_OFFSET + voxelCenter)
+	return -(transformedCenter - vanillaCenter)
+}
+
+function getSkinLayerDefinition(name: string, isSlimArm: boolean): SolidSkinLayerDefinition | null {
+	if (name === 'Hat_Layer') {
+		return {
+			width: 8,
+			height: 8,
+			depth: 8,
+			u: 32,
+			v: 0,
+			pixelScale: [HEAD_VOXEL_SCALE, HEAD_VOXEL_SCALE, HEAD_VOXEL_SCALE],
+			centerOffset: [0, headCenterOffset(), 0],
+		}
+	}
+	const bodyScale = [BODY_VOXEL_WIDTH_SCALE, VOXEL_HEIGHT_SCALE, BASE_VOXEL_SCALE] as const
+	const limbScale = [BASE_VOXEL_SCALE, VOXEL_HEIGHT_SCALE, BASE_VOXEL_SCALE] as const
+	const bodyCenterOffset = minecraftAxisOffset(6, MOD_BODY_POSITION_Y, VOXEL_HEIGHT_SCALE, 6)
+	if (name === 'Body_Layer') {
+		return {
+			width: 8,
+			height: 12,
+			depth: 4,
+			u: 16,
+			v: 32,
+			pixelScale: bodyScale,
+			centerOffset: [0, bodyCenterOffset, 0],
+		}
+	}
+	if (name === 'Right_Leg_Layer') {
+		return {
+			width: 4,
+			height: 12,
+			depth: 4,
+			u: 0,
+			v: 32,
+			pixelScale: limbScale,
+			centerOffset: [0, bodyCenterOffset, 0],
+		}
+	}
+	if (name === 'Left_Leg_Layer') {
+		return {
+			width: 4,
+			height: 12,
+			depth: 4,
+			u: 0,
+			v: 48,
+			pixelScale: limbScale,
+			centerOffset: [0, bodyCenterOffset, 0],
+		}
+	}
+	if (name === 'Right_Arm_Layer' || name === 'Left_Arm_Layer') {
+		const side = name === 'Right_Arm_Layer' ? -1 : 1
+		const armCenter = isSlimArm ? 0.5 : 1
+		const armPosition = isSlimArm ? MOD_SLIM_ARM_POSITION_X : MOD_ARM_POSITION_X
+		return {
+			width: isSlimArm ? 3 : 4,
+			height: 12,
+			depth: 4,
+			u: name === 'Right_Arm_Layer' ? 40 : 48,
+			v: name === 'Right_Arm_Layer' ? 32 : 48,
+			pixelScale: limbScale,
+			centerOffset: [
+				minecraftAxisOffset(0, side * armPosition, BASE_VOXEL_SCALE, side * armCenter),
+				minecraftAxisOffset(4, MOD_ARM_POSITION_Y, VOXEL_HEIGHT_SCALE, 4),
+				0,
+			],
+		}
+	}
 	return null
 }
 
@@ -65,77 +164,54 @@ function readSkinPixels(texture: THREE.Texture): Uint8ClampedArray | null {
 	}
 }
 
-function scaleLayerGeometry(geometry: THREE.BufferGeometry, name: string): void {
-	geometry.computeBoundingBox()
-	const bounds = geometry.boundingBox
-	if (!bounds) return
+function hasTranslucentSkinPixels(pixels: Uint8ClampedArray | null): boolean {
+	if (!pixels) return true
 
-	const isHead = name === 'Hat_Layer'
-	const isBody = name === 'Body_Layer'
-	// The authored GLTF outer shells already include most of the mod's offset.
-	// Apply only the remaining per-pixel correction; multiplying by the full
-	// config values would make the head pixels noticeably oversized.
-	const scaleX = isHead ? 1.05 : isBody ? 1 : 1.02
-	const scaleY = isHead ? 1.05 : 1
-	const scaleZ = isHead ? 1.05 : 1.02
-	const center = bounds.getCenter(new THREE.Vector3())
-	const position = geometry.getAttribute('position')
-	const vertex = new THREE.Vector3()
-
-	for (let i = 0; i < position.count; i++) {
-		vertex.fromBufferAttribute(position, i)
-		vertex.sub(center)
-		vertex.set(vertex.x * scaleX, vertex.y * scaleY, vertex.z * scaleZ)
-		vertex.add(center)
-		position.setXYZ(i, vertex.x, vertex.y, vertex.z)
+	for (let alphaIndex = 3; alphaIndex < pixels.length; alphaIndex += 4) {
+		const alpha = pixels[alphaIndex]
+		if (alpha > 0 && alpha < 255) return true
 	}
 
-	position.needsUpdate = true
-	geometry.computeBoundingBox()
-	geometry.computeBoundingSphere()
+	return false
 }
 
 export function applyThreeDSkinLayers(model: THREE.Object3D, texture?: THREE.Texture): void {
 	offsetNonLegModelParts(model)
 	const pixels = texture ? readSkinPixels(texture) : null
+	const hasTranslucentPixels = hasTranslucentSkinPixels(pixels)
 	if (!pixels || !texture) return
 	model.traverse((child) => {
 		const mesh = child as THREE.Mesh
-		if (
-			!mesh.isMesh ||
-			!mesh.name.endsWith('_Layer') ||
-			!mesh.geometry ||
-			mesh.userData.threeDSkinLayersApplied
-		)
-			return
+		if (!mesh.isMesh || !mesh.name.endsWith('_Layer') || !mesh.geometry) return
 
-		// GLTF clones share BufferGeometry objects. Clone before changing vertex data
-		// so one preview (or cached model) cannot affect another.
-		mesh.geometry = mesh.geometry.clone()
-		const definition = getSkinLayerDefinition(mesh.name)
-		if (ENABLE_VOXEL_LAYER_GEOMETRY && pixels && definition) {
-			const meshBounds = new THREE.Box3().setFromBufferAttribute(
-				mesh.geometry.getAttribute('position') as THREE.BufferAttribute,
-			)
-			const isSlimArm =
-				mesh.name.includes('Arm') && meshBounds.getSize(new THREE.Vector3()).x < 0.25
-			const voxelDefinition = isSlimArm ? { ...definition, width: 3 } : definition
-			const voxelGeometry = createSolidSkinLayerGeometry(mesh, texture!, pixels, voxelDefinition)
+		// Voxel occupancy depends on the current texture's alpha channel. Preserve an
+		// untouched source geometry and rebuild from it whenever the skin changes;
+		// otherwise a new texture is mapped onto the previous skin's voxel silhouette.
+		const sourceGeometry = mesh.userData.skinLayerSourceGeometry as THREE.BufferGeometry | undefined
+		if (sourceGeometry) {
+			mesh.geometry.dispose()
+			mesh.geometry = sourceGeometry.clone()
+		} else {
+			// GLTF clones share BufferGeometry objects. Keep both the renderer's working
+			// copy and a pristine source owned by this preview instance.
+			mesh.geometry = mesh.geometry.clone()
+			mesh.userData.skinLayerSourceGeometry = mesh.geometry.clone()
+		}
+		const meshBounds = new THREE.Box3().setFromBufferAttribute(
+			mesh.geometry.getAttribute('position') as THREE.BufferAttribute,
+		)
+		const isSlimArm = mesh.name.includes('Arm') && meshBounds.getSize(new THREE.Vector3()).x < 0.25
+		const definition = getSkinLayerDefinition(mesh.name, isSlimArm)
+		if (definition) {
+			const voxelGeometry = createSolidSkinLayerGeometry(mesh, pixels, definition)
 			if (voxelGeometry) {
-				scaleLayerGeometry(voxelGeometry, mesh.name)
 				const voxelMaterials = Array.isArray(mesh.material) ? mesh.material : [mesh.material]
 				voxelMaterials.forEach((material) => {
 					if (!(material instanceof THREE.MeshStandardMaterial)) return
-					// The mod renders these as alpha-tested cutouts. Keeping depth writes
-					// deterministic avoids transparent-surface sorting cracks between voxels.
-					material.transparent = false
-					material.alphaTest = 0.1
-					material.depthWrite = true
-					material.alphaToCoverage = true
+					configureSkinMaterial(material, hasTranslucentPixels)
 					material.polygonOffset = false
 					material.polygonOffsetFactor = 0
 					material.polygonOffsetUnits = 0
-					material.needsUpdate = true
 				})
 				mesh.geometry.dispose()
 				mesh.geometry = voxelGeometry
@@ -143,13 +219,6 @@ export function applyThreeDSkinLayers(model: THREE.Object3D, texture?: THREE.Tex
 				return
 			}
 		}
-		const geometry = mesh.geometry
-		geometry.computeBoundingBox()
-		const bounds = geometry.boundingBox
-		if (!bounds) return
-
-		scaleLayerGeometry(geometry, mesh.name)
-		mesh.userData.threeDSkinLayersApplied = true
 	})
 }
 
@@ -298,10 +367,13 @@ function setCommonMaterialProperties(mat: THREE.MeshStandardMaterial): void {
 }
 
 export function applyTexture(model: THREE.Object3D, texture: THREE.Texture): void {
+	const hasTranslucentPixels = hasTranslucentSkinPixels(readSkinPixels(texture))
 	model.traverse((child) => {
 		if ((child as THREE.Mesh).isMesh) {
 			const mesh = child as THREE.Mesh
+			if (isArmorPreviewMesh(mesh)) return
 			const isSkinLayer = mesh.name.endsWith('_Layer')
+			mesh.renderOrder = isSkinLayer ? 1 : 0
 			const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material]
 
 			materials.forEach((mat: THREE.Material) => {
@@ -309,18 +381,15 @@ export function applyTexture(model: THREE.Object3D, texture: THREE.Texture): voi
 					if (mat.name !== 'cape') {
 						const mapNeedsUpdate = applyMap(mat, texture)
 						const propertiesNeedUpdate = setShaderMaterialProperties(mat, {
-							alphaTest: 0.1,
+							alphaTest: hasTranslucentPixels ? SKIN_LAYER_ALPHA_TEST : 0.1,
 							flatShading: true,
 							side: THREE.FrontSide,
 							toneMapped: false,
-							transparent: isSkinLayer,
+							transparent: hasTranslucentPixels,
 						})
-						if (mat.alphaToCoverage !== isSkinLayer) {
-							mat.alphaToCoverage = isSkinLayer
-							mat.needsUpdate = true
-						}
 
 						setCommonMaterialProperties(mat)
+						configureSkinMaterial(mat, hasTranslucentPixels)
 
 						if (mapNeedsUpdate || propertiesNeedUpdate) {
 							mat.needsUpdate = true

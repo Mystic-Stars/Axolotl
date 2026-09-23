@@ -1,7 +1,7 @@
 import 'ace-builds/esm-resolver'
 
 import cssText from '@modrinth/assets/styles/ace.css?raw'
-import ace from 'ace-builds'
+import * as ace from 'ace-builds'
 
 ace['define'](
 	'ace/theme/modrinth',

@@ -301,13 +301,13 @@ import {
 	resolve_custom_instance_upgrade_solution,
 	select_instance_upgrade_solution,
 } from '@/helpers/instance-upgrade'
-import { parkUpgradeFlow, upgradeProjectPath } from '@/helpers/upgrade-return-state'
 import {
 	loadUpgradeVersionDisplayMetadata,
 	type UpgradeReleaseIdentity,
 	upgradeVersionCacheKey,
 	upgradeVersionDisplayLabel,
 } from '@/helpers/upgrade-version-metadata'
+import { parkUpgradeFlow, upgradeProjectPath } from '@/store/navigation-return'
 
 import {
 	availablePredefinedStrategies,

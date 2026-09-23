@@ -9,9 +9,20 @@ export type GridGroupingOption = 'Group' | 'Loader' | 'Game version' | 'None'
 export type GridSortOption =
 	'Name' | 'Last played' | 'Date created' | 'Date modified' | 'Game version'
 
+export type GridSortDirection = 'asc' | 'desc'
+
+export const defaultSortDirections: Record<GridSortOption, GridSortDirection> = {
+	Name: 'asc',
+	'Last played': 'desc',
+	'Date created': 'desc',
+	'Date modified': 'desc',
+	'Game version': 'asc',
+}
+
 export interface GridDisplayState {
 	group: GridGroupingOption
 	sortBy: GridSortOption
+	sortDirections: Partial<Record<GridSortOption, GridSortDirection>>
 	collapsedGroups: string[]
 }
 
@@ -34,6 +45,7 @@ export function useGridGrouping<T extends Record<string, unknown>>(
 		{
 			group: 'Group',
 			sortBy: 'Name',
+			sortDirections: {},
 			collapsedGroups: [],
 		},
 		localStorage,
@@ -62,7 +74,7 @@ export function useGridGrouping<T extends Record<string, unknown>>(
 		state.value.collapsedGroups = [...collapsedSections]
 	}
 
-	function sortInstances(instances: T[], sortBy: GridSortOption): T[] {
+	function sortInstances(instances: T[], sortBy: GridSortOption, ascending: boolean): T[] {
 		const sorted = [...instances]
 		const getGameVersion = options.getGameVersion ?? ((i: T) => i.game_version ?? '')
 		const getLastPlayed = options.getLastPlayed ?? ((i: T) => i.last_played ?? 0)
@@ -79,16 +91,19 @@ export function useGridGrouping<T extends Record<string, unknown>>(
 				)
 				break
 			case 'Last played':
-				sorted.sort((a, b) => dayjs(getLastPlayed(b)).diff(dayjs(getLastPlayed(a))))
+				sorted.sort((a, b) => dayjs(getLastPlayed(a)).diff(dayjs(getLastPlayed(b))))
 				break
 			case 'Date created':
-				sorted.sort((a, b) => dayjs(getDateCreated(b)).diff(dayjs(getDateCreated(a))))
+				sorted.sort((a, b) => dayjs(getDateCreated(a)).diff(dayjs(getDateCreated(b))))
 				break
 			case 'Date modified':
-				sorted.sort((a, b) => dayjs(getDateModified(b)).diff(dayjs(getDateModified(a))))
+				sorted.sort((a, b) => dayjs(getDateModified(a)).diff(dayjs(getDateModified(b))))
 				break
 		}
 
+		if (!ascending) {
+			sorted.reverse()
+		}
 		return sorted
 	}
 
@@ -144,8 +159,22 @@ export function useGridGrouping<T extends Record<string, unknown>>(
 	function sortSections(
 		instanceMap: Map<string, T[]>,
 		group: GridGroupingOption,
+		sortBy: GridSortOption,
 	): Map<string, T[]> {
 		if (group !== 'Group' && group !== 'Game version') {
+			return instanceMap
+		}
+
+		if (group === 'Group' && sortBy !== 'Name') {
+			if (instanceMap.has(UNGROUPED_GROUP_KEY) && instanceMap.size > 1) {
+				const ungroupedInstances = instanceMap.get(UNGROUPED_GROUP_KEY)!
+				instanceMap.delete(UNGROUPED_GROUP_KEY)
+				const newMap = new Map<string, T[]>([[UNGROUPED_GROUP_KEY, ungroupedInstances]])
+				for (const [key, instances] of instanceMap) {
+					newMap.set(key, instances)
+				}
+				return newMap
+			}
 			return instanceMap
 		}
 
@@ -162,12 +191,30 @@ export function useGridGrouping<T extends Record<string, unknown>>(
 		return instanceMap
 	}
 
+	const sortDirection = computed<GridSortDirection>(() => {
+		return (
+			state.value.sortDirections[state.value.sortBy] ?? defaultSortDirections[state.value.sortBy]
+		)
+	})
+
+	const isSortAscending = computed(() => sortDirection.value === 'asc')
+
+	const toggleSortDirection = () => {
+		const current = sortDirection.value
+		const next: GridSortDirection = current === 'asc' ? 'desc' : 'asc'
+		state.value.sortDirections = {
+			...state.value.sortDirections,
+			[state.value.sortBy]: next,
+		}
+	}
+
 	const filteredResults = computed(() => {
 		const { group = 'Group', sortBy = 'Name' } = state.value
+		const ascending = isSortAscending.value
 
-		const sorted = sortInstances(instances.value, sortBy)
+		const sorted = sortInstances(instances.value, sortBy, ascending)
 		const grouped = groupInstances(sorted, group)
-		return sortSections(grouped, group)
+		return sortSections(grouped, group, sortBy)
 	})
 
 	return {
@@ -176,6 +223,9 @@ export function useGridGrouping<T extends Record<string, unknown>>(
 		filteredResults,
 		isSectionCollapsed,
 		setSectionCollapsed,
+		sortDirection,
+		isSortAscending,
+		toggleSortDirection,
 		UNGROUPED_GROUP_KEY,
 	}
 }

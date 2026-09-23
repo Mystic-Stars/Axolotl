@@ -1,6 +1,9 @@
 import { invoke } from '@tauri-apps/api/core'
 
 import { install_job_listener } from './events'
+export { ACTIVE_INSTALL_JOB_STATUSES, isActiveInstallJobStatus } from './install-job-status.ts'
+export type { InstallJobStatus } from './install-job-status.ts'
+import type { InstallJobStatus } from './install-job-status.ts'
 import type { InstanceUpgradeResult } from './instance-upgrade'
 import type { InstanceLink, InstanceLoader, LoaderComponent } from './types'
 
@@ -47,16 +50,6 @@ export interface InstallPostInstallEdit {
 	iconPath?: string | null
 	link?: InstanceLink | null
 }
-
-export type InstallJobStatus =
-	| 'queued'
-	| 'running'
-	| 'canceling'
-	| 'waiting_for_user'
-	| 'succeeded'
-	| 'failed'
-	| 'interrupted'
-	| 'canceled'
 
 export type InstallPhaseId =
 	| 'preparing_instance'
@@ -151,6 +144,7 @@ export interface InstallJobSnapshot {
 		| 'install_existing_instance'
 		| 'install_pack_to_existing_instance'
 		| 'install_content'
+		| 'change_content'
 		| 'upgrade_unmanaged_instance'
 		| 'download_java'
 	status: InstallJobStatus
@@ -179,6 +173,34 @@ export interface InstallJobSnapshot {
 	rollback_error?: InstallErrorView | null
 	pause_reason?: InstallPauseReason | null
 	upgrade_result?: InstanceUpgradeResult | null
+	content_change?: {
+		intent:
+			| { type: 'update_one'; content_id: string; target_release_id?: string | null }
+			| {
+					type: 'update_selected'
+					targets: Array<{ content_id: string; target_release_id: string }>
+			  }
+			| { type: 'update_all_user_added' }
+			| { type: 'switch_version'; content_id: string; target_release_id: string }
+		content_ids: string[]
+		plan_version?: number | null
+		actions?: Array<{
+			content_id: string
+			operation: 'update' | 'switch_version'
+			target_release_id: string
+			final_relative_path?: string | null
+			status:
+				| 'pending'
+				| 'prepared'
+				| 'downloaded'
+				| 'waiting_for_user'
+				| 'applying'
+				| 'completed'
+				| 'skipped'
+				| 'failed'
+			error?: string | null
+		}>
+	} | null
 	created: string
 	modified: string
 	finished?: string | null

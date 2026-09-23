@@ -117,6 +117,8 @@ pub struct Settings {
     #[serde(default = "default_true")]
     pub bypass_curseforge_download_restrictions: bool,
     #[serde(default)]
+    pub ignore_ssl_errors: bool,
+    #[serde(default)]
     pub mojang_auth_source: DownloadSourceMode,
     #[serde(default, rename = "use_minecraft_mirror", skip_serializing)]
     legacy_use_minecraft_mirror: Option<bool>,
@@ -137,6 +139,12 @@ pub struct Settings {
     pub custom_background_path: Option<String>,
     pub custom_background_blur: u32,
     pub custom_background_opacity: u32,
+    #[serde(default = "default_custom_background_component_opacity")]
+    pub custom_background_component_opacity: u32,
+    #[serde(default)]
+    pub ui_font: Option<String>,
+    #[serde(default)]
+    pub mono_font: Option<String>,
     pub transparent_background: bool,
     pub transparent_background_opacity: u32,
     pub transparent_background_blur: bool,
@@ -153,6 +161,14 @@ pub struct Settings {
     pub minimal_home_instance_id: Option<String>,
     #[serde(default)]
     pub home_widgets: Option<serde_json::Value>,
+    #[serde(default = "default_home_widget_background_opacity")]
+    pub home_widget_background_opacity: u32,
+    #[serde(default)]
+    pub hidden_nav_items: Vec<String>,
+    #[serde(default)]
+    pub custom_window_title_enabled: bool,
+    #[serde(default = "default_window_title")]
+    pub default_window_title: String,
     #[serde(default = "default_terracotta_public_nodes")]
     pub terracotta_public_nodes: Vec<String>,
 
@@ -180,10 +196,22 @@ pub struct Settings {
 
     pub custom_dir: Option<String>,
     pub prev_custom_dir: Option<String>,
+    #[serde(default)]
+    pub backup_repository_path: Option<String>,
     pub migrated: bool,
 
     pub developer_mode: bool,
     pub feature_flags: HashMap<FeatureFlag, bool>,
+    #[serde(default)]
+    pub sync_features_across_devices: bool,
+    #[serde(default = "default_true")]
+    pub show_files_tab_in_instances: bool,
+    #[serde(default = "default_true")]
+    pub show_worlds_tab_in_instances: bool,
+    #[serde(default)]
+    pub show_screenshots_tab_in_instances: bool,
+    #[serde(default = "default_true")]
+    pub show_skin_selector_in_sidebar: bool,
 
     pub skipped_update: Option<String>,
     pub pending_update_toast_for_version: Option<String>,
@@ -201,6 +229,39 @@ pub struct PrivacySettings {
 
 fn default_true() -> bool {
     true
+}
+
+/// Fully opaque home widget cards; users can dial this down to reveal the
+/// custom/transparent window background behind them.
+fn default_home_widget_background_opacity() -> u32 {
+    100
+}
+
+/// Fully opaque launcher components over a custom background image. Lowering
+/// this lets the image show through chrome and the content surface (#335).
+fn default_custom_background_component_opacity() -> u32 {
+    100
+}
+
+fn default_window_title() -> String {
+    "Minecraft".to_string()
+}
+
+const MAX_FONT_FAMILY_LENGTH: usize = 128;
+
+/// Font family names are picked from the host's installed fonts, but the
+/// settings table is plain user data: store them trimmed and bounded, with an
+/// empty selection normalised to NULL (follow the launcher default).
+fn sanitize_font_family(family: Option<String>) -> Option<String> {
+    family
+        .map(|value| {
+            value
+                .trim()
+                .chars()
+                .take(MAX_FONT_FAMILY_LENGTH)
+                .collect::<String>()
+        })
+        .filter(|value| !value.is_empty())
 }
 
 /// Default log level, kept in sync with the `log_level` column default and
@@ -272,10 +333,70 @@ impl Settings {
         .fetch_one(exec)
         .await?;
 
+        let home_widget_background_opacity: i64 = sqlx::query_scalar(
+            "SELECT home_widget_background_opacity FROM settings WHERE id = 0",
+        )
+        .fetch_one(exec)
+        .await?;
+
+        let custom_background_component_opacity: i64 = sqlx::query_scalar(
+            "SELECT custom_background_component_opacity FROM settings WHERE id = 0",
+        )
+        .fetch_one(exec)
+        .await?;
+
+        let ui_font: Option<String> =
+            sqlx::query_scalar("SELECT ui_font FROM settings WHERE id = 0")
+                .fetch_one(exec)
+                .await?;
+
+        let mono_font: Option<String> =
+            sqlx::query_scalar("SELECT mono_font FROM settings WHERE id = 0")
+                .fetch_one(exec)
+                .await?;
+
+        let hidden_nav_items_json: String = sqlx::query_scalar(
+            "SELECT hidden_nav_items FROM settings WHERE id = 0",
+        )
+        .fetch_one(exec)
+        .await?;
+        let mut hidden_nav_items: Vec<String> =
+            serde_json::from_str(&hidden_nav_items_json).unwrap_or_default();
+        // Home and Library must stay reachable from the nav rail.
+        hidden_nav_items.retain(|id| id != "home" && id != "library");
+
+        let custom_window_title_enabled: bool = sqlx::query_scalar(
+            "SELECT custom_window_title_enabled FROM settings WHERE id = 0",
+        )
+        .fetch_one(exec)
+        .await?;
+        let default_window_title: String = sqlx::query_scalar(
+            "SELECT default_window_title FROM settings WHERE id = 0",
+        )
+        .fetch_one(exec)
+        .await?;
+        let backup_repository_path: Option<String> = sqlx::query_scalar(
+            "SELECT backup_repository_path FROM settings WHERE id = 0",
+        )
+        .fetch_one(exec)
+        .await?;
+
         let log_level: String =
             sqlx::query_scalar("SELECT log_level FROM settings WHERE id = 0")
                 .fetch_one(exec)
                 .await?;
+
+        let (
+            sync_features_across_devices,
+            show_files_tab_in_instances,
+            show_worlds_tab_in_instances,
+            show_screenshots_tab_in_instances,
+            show_skin_selector_in_sidebar,
+        ): (bool, bool, bool, bool, bool) = sqlx::query_as(
+            "SELECT sync_features_across_devices, show_files_tab_in_instances, show_worlds_tab_in_instances, show_screenshots_tab_in_instances, show_skin_selector_in_sidebar FROM settings WHERE id = 0",
+        )
+        .fetch_one(exec)
+        .await?;
 
         let engine_row =
             sqlx::query("SELECT download_engine FROM settings WHERE id = 0")
@@ -286,6 +407,11 @@ impl Settings {
         );
         let bypass_curseforge_download_restrictions: bool = sqlx::query_scalar(
             "SELECT bypass_curseforge_download_restrictions FROM settings WHERE id = 0",
+        )
+        .fetch_one(exec)
+        .await?;
+        let ignore_ssl_errors: bool = sqlx::query_scalar(
+            "SELECT ignore_ssl_errors FROM settings WHERE id = 0",
         )
         .fetch_one(exec)
         .await?;
@@ -307,6 +433,7 @@ impl Settings {
                 &res.curseforge_source,
             ),
             bypass_curseforge_download_restrictions,
+            ignore_ssl_errors,
             mojang_auth_source: DownloadSourceMode::from_string(
                 &res.mojang_auth_source,
             ),
@@ -325,6 +452,10 @@ impl Settings {
             custom_background_path: res.custom_background_path,
             custom_background_blur: res.custom_background_blur as u32,
             custom_background_opacity: res.custom_background_opacity as u32,
+            custom_background_component_opacity:
+                custom_background_component_opacity.clamp(0, 100) as u32,
+            ui_font: sanitize_font_family(ui_font),
+            mono_font: sanitize_font_family(mono_font),
             transparent_background: res.transparent_background == 1,
             transparent_background_opacity: res.transparent_background_opacity
                 as u32,
@@ -339,6 +470,12 @@ impl Settings {
                 .home_widgets
                 .as_ref()
                 .and_then(|value| serde_json::from_str(value).ok()),
+            home_widget_background_opacity: home_widget_background_opacity
+                .clamp(0, 100)
+                as u32,
+            hidden_nav_items,
+            custom_window_title_enabled,
+            default_window_title,
             terracotta_public_nodes: res
                 .terracotta_public_nodes
                 .as_ref()
@@ -393,12 +530,18 @@ impl Settings {
             },
             custom_dir: res.custom_dir,
             prev_custom_dir: res.prev_custom_dir,
+            backup_repository_path,
             migrated: res.migrated == 1,
             feature_flags: res
                 .feature_flags
                 .as_ref()
                 .and_then(|x| serde_json::from_str(x).ok())
                 .unwrap_or_default(),
+            sync_features_across_devices,
+            show_files_tab_in_instances,
+            show_worlds_tab_in_instances,
+            show_screenshots_tab_in_instances,
+            show_skin_selector_in_sidebar,
             skipped_update: res.skipped_update,
             pending_update_toast_for_version: res
                 .pending_update_toast_for_version,
@@ -609,6 +752,58 @@ impl Settings {
             .execute(exec)
             .await?;
 
+        sqlx::query(
+            "UPDATE settings SET home_widget_background_opacity = ? WHERE id = 0",
+        )
+        .bind(self.home_widget_background_opacity.clamp(0, 100) as i64)
+        .execute(exec)
+        .await?;
+
+        sqlx::query(
+            "UPDATE settings SET custom_background_component_opacity = ? WHERE id = 0",
+        )
+        .bind(self.custom_background_component_opacity.clamp(0, 100) as i64)
+        .execute(exec)
+        .await?;
+
+        sqlx::query(
+            "UPDATE settings SET ui_font = ?, mono_font = ? WHERE id = 0",
+        )
+        .bind(sanitize_font_family(self.ui_font.clone()))
+        .bind(sanitize_font_family(self.mono_font.clone()))
+        .execute(exec)
+        .await?;
+
+        let mut hidden_nav_items = self.hidden_nav_items.clone();
+        // Boundary guard: never persist core nav items as hidden.
+        hidden_nav_items.retain(|id| id != "home" && id != "library");
+
+        sqlx::query("UPDATE settings SET hidden_nav_items = ? WHERE id = 0")
+            .bind(serde_json::to_string(&hidden_nav_items)?)
+            .execute(exec)
+            .await?;
+
+        sqlx::query(
+            "UPDATE settings SET custom_window_title_enabled = ? WHERE id = 0",
+        )
+        .bind(self.custom_window_title_enabled)
+        .execute(exec)
+        .await?;
+
+        sqlx::query(
+            "UPDATE settings SET default_window_title = ? WHERE id = 0",
+        )
+        .bind(self.default_window_title.trim())
+        .execute(exec)
+        .await?;
+
+        sqlx::query(
+            "UPDATE settings SET backup_repository_path = ? WHERE id = 0",
+        )
+        .bind(self.backup_repository_path.as_deref())
+        .execute(exec)
+        .await?;
+
         sqlx::query("UPDATE settings SET download_engine = ? WHERE id = 0")
             .bind(self.download_engine.as_str())
             .execute(exec)
@@ -619,10 +814,24 @@ impl Settings {
         .bind(self.bypass_curseforge_download_restrictions)
         .execute(exec)
         .await?;
+        sqlx::query("UPDATE settings SET ignore_ssl_errors = ? WHERE id = 0")
+            .bind(self.ignore_ssl_errors)
+            .execute(exec)
+            .await?;
         sqlx::query("UPDATE settings SET mc_memory_optimize = ? WHERE id = 0")
             .bind(self.memory.optimize_before_launch)
             .execute(exec)
             .await?;
+        sqlx::query(
+            "UPDATE settings SET sync_features_across_devices = ?, show_files_tab_in_instances = ?, show_worlds_tab_in_instances = ?, show_screenshots_tab_in_instances = ?, show_skin_selector_in_sidebar = ? WHERE id = 0",
+        )
+        .bind(self.sync_features_across_devices)
+        .bind(self.show_files_tab_in_instances)
+        .bind(self.show_worlds_tab_in_instances)
+        .bind(self.show_screenshots_tab_in_instances)
+        .bind(self.show_skin_selector_in_sidebar)
+        .execute(exec)
+        .await?;
 
         Ok(())
     }
@@ -1126,6 +1335,25 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn ignore_ssl_errors_defaults_off_and_round_trips() {
+        let pool = sqlx::sqlite::SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect("sqlite::memory:")
+            .await
+            .unwrap();
+        sqlx::migrate!().run(&pool).await.unwrap();
+
+        let mut settings = Settings::get(&pool).await.unwrap();
+        assert!(!settings.ignore_ssl_errors);
+
+        settings.ignore_ssl_errors = true;
+        settings.update(&pool).await.unwrap();
+
+        let reloaded = Settings::get(&pool).await.unwrap();
+        assert!(reloaded.ignore_ssl_errors);
+    }
+
+    #[tokio::test]
     async fn memory_optimization_round_trips_in_a_fresh_database() {
         let pool = sqlx::sqlite::SqlitePoolOptions::new()
             .max_connections(1)
@@ -1230,6 +1458,76 @@ mod tests {
 
         let reloaded = Settings::get(&pool).await.unwrap();
         assert_eq!(reloaded.home_widgets, Some(expected));
+    }
+
+    #[tokio::test]
+    async fn font_columns_upgrade_an_existing_settings_database() {
+        let pool = sqlx::sqlite::SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect("sqlite::memory:")
+            .await
+            .unwrap();
+        sqlx::query(
+            "CREATE TABLE settings (id INTEGER PRIMARY KEY CHECK (id = 0))",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+        sqlx::query("INSERT INTO settings (id) VALUES (0)")
+            .execute(&pool)
+            .await
+            .unwrap();
+
+        sqlx::raw_sql(include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/migrations/20260919120000_custom-fonts.sql"
+        )))
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        let fonts: (Option<String>, Option<String>) = sqlx::query_as(
+            "SELECT ui_font, mono_font FROM settings WHERE id = 0",
+        )
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+        assert_eq!(fonts, (None, None));
+        assert!(
+            sqlx::query("PRAGMA foreign_key_check")
+                .fetch_all(&pool)
+                .await
+                .unwrap()
+                .is_empty()
+        );
+    }
+
+    #[tokio::test]
+    async fn fonts_default_to_none_and_round_trip_in_a_fresh_database() {
+        let pool = sqlx::sqlite::SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect("sqlite::memory:")
+            .await
+            .unwrap();
+        sqlx::migrate!().run(&pool).await.unwrap();
+
+        let mut settings = Settings::get(&pool).await.unwrap();
+        assert_eq!(settings.ui_font, None);
+        assert_eq!(settings.mono_font, None);
+
+        settings.ui_font = Some("  Microsoft YaHei  ".to_string());
+        settings.mono_font = Some("JetBrains Mono".to_string());
+        settings.update(&pool).await.unwrap();
+
+        let reloaded = Settings::get(&pool).await.unwrap();
+        assert_eq!(reloaded.ui_font.as_deref(), Some("Microsoft YaHei"));
+        assert_eq!(reloaded.mono_font.as_deref(), Some("JetBrains Mono"));
+
+        settings.mono_font = Some("   ".to_string());
+        settings.update(&pool).await.unwrap();
+
+        let cleared = Settings::get(&pool).await.unwrap();
+        assert_eq!(cleared.mono_font, None);
     }
 
     #[tokio::test]

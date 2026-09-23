@@ -4,7 +4,6 @@ use crate::util::mojang::{mojang_service_url, should_use_mojang_mirror};
 use base64::Engine;
 use base64::prelude::BASE64_URL_SAFE_NO_PAD;
 use chrono::{DateTime, Duration, TimeZone, Utc};
-use dashmap::DashMap;
 use futures::TryStreamExt;
 use heck::ToTitleCase;
 use p256::ecdsa::SigningKey;
@@ -279,6 +278,7 @@ async fn finish_microsoft_login(
     minecraft_entitlements(&minecraft_token.access_token).await?;
 
     let mut credentials = Credentials {
+        account_id: None,
         offline_profile: MinecraftProfile::default(),
         account_type: MinecraftAccountType::Microsoft,
         access_token: minecraft_token.access_token,
@@ -298,6 +298,10 @@ async fn finish_microsoft_login(
         name: online_profile.name.clone(),
         ..credentials.offline_profile
     };
+    credentials.account_id = Some(format!(
+        "microsoft:{}",
+        credentials.offline_profile.id.as_hyphenated()
+    ));
 
     credentials.upsert(exec).await?;
 
@@ -335,6 +339,7 @@ impl MinecraftAccountType {
 
 #[derive(sqlx::FromRow)]
 struct StoredCredentials {
+    account_id: String,
     uuid: String,
     active: i64,
     username: String,
@@ -350,6 +355,8 @@ struct StoredCredentials {
 
 #[derive(Deserialize, Debug)]
 pub struct Credentials {
+    #[serde(default)]
+    pub account_id: Option<String>,
     /// The offline profile of the user these credentials are for.
     ///
     /// Such a profile can only be relied upon to have a proper player UUID, which is
@@ -436,6 +443,24 @@ fn validate_offline_username(username: &str) -> crate::Result<String> {
 }
 
 impl Credentials {
+    pub fn account_id(&self) -> String {
+        self.account_id
+            .clone()
+            .unwrap_or_else(|| match &self.yggdrasil {
+                Some(account) => format!(
+                    "{}:{}:{}",
+                    self.account_type.as_database(),
+                    account.api_root,
+                    self.offline_profile.id.as_hyphenated()
+                ),
+                None => format!(
+                    "{}:{}",
+                    self.account_type.as_database(),
+                    self.offline_profile.id.as_hyphenated()
+                ),
+            })
+    }
+
     pub fn offline(username: &str) -> crate::Result<Self> {
         let username = validate_offline_username(username)?;
         let mut uuid_bytes =
@@ -453,6 +478,7 @@ impl Credentials {
         let username = validate_offline_username(username)?;
 
         Ok(Self {
+            account_id: Some(format!("offline:{}", uuid.as_hyphenated())),
             offline_profile: MinecraftProfile {
                 id: uuid,
                 name: username,
@@ -493,6 +519,7 @@ impl Credentials {
             });
 
         Self {
+            account_id: Some(stored.account_id),
             offline_profile: MinecraftProfile {
                 id: Uuid::parse_str(&stored.uuid).unwrap_or_default(),
                 name: stored.username,
@@ -809,7 +836,7 @@ impl Credentials {
         let res = sqlx::query_as::<_, StoredCredentials>(
             "
             SELECT
-                uuid, active, username, account_type, access_token,
+                account_id, uuid, active, username, account_type, access_token,
                 refresh_token, expires, yggdrasil_api_root,
                 yggdrasil_server_name, yggdrasil_login,
                 yggdrasil_client_token
@@ -834,24 +861,24 @@ impl Credentials {
 
     pub async fn get_all(
         exec: impl sqlx::Executor<'_, Database = sqlx::Sqlite> + Copy,
-    ) -> crate::Result<DashMap<Uuid, Self>> {
+    ) -> crate::Result<Vec<Self>> {
         Self::get_all_with_refresh(exec, true).await
     }
 
     pub async fn get_all_without_refresh(
         exec: impl sqlx::Executor<'_, Database = sqlx::Sqlite> + Copy,
-    ) -> crate::Result<DashMap<Uuid, Self>> {
+    ) -> crate::Result<Vec<Self>> {
         Self::get_all_with_refresh(exec, false).await
     }
 
     async fn get_all_with_refresh(
         exec: impl sqlx::Executor<'_, Database = sqlx::Sqlite> + Copy,
         refresh: bool,
-    ) -> crate::Result<DashMap<Uuid, Self>> {
+    ) -> crate::Result<Vec<Self>> {
         let res = sqlx::query_as::<_, StoredCredentials>(
             "
             SELECT
-                uuid, active, username, account_type, access_token,
+                account_id, uuid, active, username, account_type, access_token,
                 refresh_token, expires, yggdrasil_api_root,
                 yggdrasil_server_name, yggdrasil_login,
                 yggdrasil_client_token
@@ -859,15 +886,14 @@ impl Credentials {
             ",
         )
         .fetch(exec)
-        .try_fold(DashMap::new(), |acc, x| {
+        .try_fold(Vec::new(), |mut acc, x| {
             let mut credentials = Self::from_stored(x);
-            let uuid = credentials.offline_profile.id;
 
             async move {
                 if refresh {
                     credentials.refresh(exec).await.ok();
                 }
-                acc.insert(uuid, credentials);
+                acc.push(credentials);
 
                 Ok(acc)
             }
@@ -888,7 +914,6 @@ impl Credentials {
         let users = Self::get_all_without_refresh(exec).await?;
         Ok(users
             .into_iter()
-            .map(|(_, credentials)| credentials)
             .filter(Self::is_offline)
             .min_by(|left, right| {
                 left.offline_profile.name.cmp(&right.offline_profile.name)
@@ -903,6 +928,8 @@ impl Credentials {
         let expires = self.expires.timestamp();
         let uuid = profile.id.as_hyphenated().to_string();
         let account_type = self.account_type.as_database();
+        let account_id = self.account_id();
+
         let yggdrasil_api_root = self
             .yggdrasil
             .as_ref()
@@ -934,25 +961,27 @@ impl Credentials {
         sqlx::query(
             "
             INSERT INTO minecraft_users (
-                uuid, active, username, account_type, access_token,
+                account_id, uuid, active, username, account_type, access_token,
                 refresh_token, expires, yggdrasil_api_root,
                 yggdrasil_server_name, yggdrasil_login,
                 yggdrasil_client_token
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-            ON CONFLICT (uuid) DO UPDATE SET
-                active = $2,
-                username = $3,
-                account_type = $4,
-                access_token = $5,
-                refresh_token = $6,
-                expires = $7,
-                yggdrasil_api_root = $8,
-                yggdrasil_server_name = $9,
-                yggdrasil_login = $10,
-                yggdrasil_client_token = $11
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+            ON CONFLICT (account_id) DO UPDATE SET
+                uuid = $2,
+                active = $3,
+                username = $4,
+                account_type = $5,
+                access_token = $6,
+                refresh_token = $7,
+                expires = $8,
+                yggdrasil_api_root = $9,
+                yggdrasil_server_name = $10,
+                yggdrasil_login = $11,
+                yggdrasil_client_token = $12
             ",
         )
+        .bind(account_id)
         .bind(uuid)
         .bind(self.active)
         .bind(&profile.name)
@@ -971,19 +1000,13 @@ impl Credentials {
     }
 
     pub async fn remove(
-        uuid: Uuid,
+        account_id: &str,
         exec: impl sqlx::Executor<'_, Database = sqlx::Sqlite>,
     ) -> crate::Result<()> {
-        let uuid = uuid.as_hyphenated().to_string();
-
-        sqlx::query!(
-            "
-            DELETE FROM minecraft_users WHERE uuid = $1
-            ",
-            uuid,
-        )
-        .execute(exec)
-        .await?;
+        sqlx::query("DELETE FROM minecraft_users WHERE account_id = $1")
+            .bind(account_id)
+            .execute(exec)
+            .await?;
 
         Ok(())
     }
@@ -1121,6 +1144,46 @@ mod offline_account_tests {
     }
 
     #[tokio::test]
+    async fn preserves_accounts_with_the_same_uuid_across_account_types() {
+        let pool = sqlx::sqlite::SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect("sqlite::memory:")
+            .await
+            .unwrap();
+        sqlx::migrate!().run(&pool).await.unwrap();
+
+        let uuid = Uuid::new_v4();
+        sqlx::query(
+            "
+            INSERT INTO minecraft_users (
+                account_id, uuid, active, username, account_type, access_token,
+                refresh_token, expires
+            )
+            VALUES ($1, $2, TRUE, $3, 'yggdrasil', $4, $5, $6)
+            ",
+        )
+        .bind(format!("yggdrasil:https://example.invalid:{uuid}"))
+        .bind(uuid.as_hyphenated().to_string())
+        .bind("ThirdPartyUser")
+        .bind("third-party-token")
+        .bind("")
+        .bind(0_i64)
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        let offline =
+            Credentials::offline_with_uuid("OfflineUser", uuid).unwrap();
+        offline.upsert(&pool).await.unwrap();
+
+        let stored = Credentials::get_all_without_refresh(&pool).await.unwrap();
+        assert_eq!(stored.len(), 2);
+        assert!(stored.iter().any(Credentials::is_yggdrasil));
+        assert!(stored.iter().any(Credentials::is_offline));
+        assert_ne!(stored[0].account_id(), stored[1].account_id());
+    }
+
+    #[tokio::test]
     async fn selects_offline_account_when_online_account_is_active() {
         let pool = sqlx::sqlite::SqlitePoolOptions::new()
             .max_connections(1)
@@ -1136,12 +1199,13 @@ mod offline_account_tests {
         sqlx::query(
             "
             INSERT INTO minecraft_users (
-                uuid, active, username, account_type, access_token,
+                account_id, uuid, active, username, account_type, access_token,
                 refresh_token, expires
             )
-            VALUES ($1, TRUE, $2, 'microsoft', $3, $4, $5)
+            VALUES ($1, $2, TRUE, $3, 'microsoft', $4, $5, $6)
             ",
         )
+        .bind("microsoft:test-account")
         .bind(Uuid::new_v4().as_hyphenated().to_string())
         .bind("OnlineUser")
         .bind("expired-access-token")

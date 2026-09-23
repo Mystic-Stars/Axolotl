@@ -1,6 +1,5 @@
 <template>
-	<div class="flex flex-col gap-3">
-		<h2 class="text-lg font-semibold m-0">{{ formatMessage(messages.title) }}</h2>
+	<SidebarSection :title="formatMessage(messages.title)" title-class="font-semibold">
 		<div class="flex flex-col gap-3 font-semibold">
 			<template v-if="organization">
 				<AutoLink
@@ -42,7 +41,7 @@
 				</div>
 			</AutoLink>
 		</div>
-	</div>
+	</SidebarSection>
 </template>
 <script setup lang="ts">
 import { CrownIcon, ExternalIcon, OrganizationIcon } from '@modrinth/assets'
@@ -51,6 +50,7 @@ import { computed } from 'vue'
 import { defineMessages, useVIntl } from '../../composables/i18n'
 import AutoLink from '../base/AutoLink.vue'
 import Avatar from '../base/Avatar.vue'
+import SidebarSection from './SidebarSection.vue'
 
 const { formatMessage } = useVIntl()
 

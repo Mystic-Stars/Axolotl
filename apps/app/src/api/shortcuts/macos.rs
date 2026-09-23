@@ -6,11 +6,14 @@ use std::{
 use url::Url;
 
 pub(super) const SHORTCUT_EXTENSION: &str = "app";
+pub(super) const SHORTCUT_ICON_EXTENSION: &str = "icns";
 
 pub(super) async fn create_shortcut(
     profile_name: &str,
     launch_url: &Url,
     output_path: &Path,
+    icon_path: Option<&Path>,
+    _app_identifier: &str,
 ) -> Result<()> {
     let contents_dir = output_path.join("Contents");
     let macos_dir = contents_dir.join("MacOS");
@@ -28,11 +31,17 @@ pub(super) async fn create_shortcut(
     )
     .await?;
 
-    tokio::fs::write(
-        resources_dir.join("icon.icns"),
-        include_bytes!("../../../icons/icon.icns"),
-    )
-    .await?;
+    let bundled_icon_path = resources_dir.join("icon.icns");
+    if let Some(icon_path) = icon_path {
+        let _ = tokio::fs::remove_file(&bundled_icon_path).await;
+        std::os::unix::fs::symlink(icon_path, &bundled_icon_path)?;
+    } else {
+        tokio::fs::write(
+            &bundled_icon_path,
+            include_bytes!("../../../icons/icon.icns"),
+        )
+        .await?;
+    }
 
     tokio::fs::write(
         contents_dir.join("Info.plist"),

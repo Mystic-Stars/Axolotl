@@ -614,7 +614,13 @@ fn create_credentials(
     metadata: YggdrasilMetadata,
     login: &str,
 ) -> Credentials {
+    let account_id = format!(
+        "yggdrasil:{}:{}",
+        metadata.api_root,
+        profile.id.as_hyphenated()
+    );
     Credentials {
+        account_id: Some(account_id),
         offline_profile: MinecraftProfile {
             id: profile.id,
             name: profile.name,

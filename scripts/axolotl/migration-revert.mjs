@@ -1,4 +1,4 @@
-// Derive which columns a downgrade must drop, straight from the migration SQL.
+// Derive the schema a downgrade must undo, straight from the migration SQL.
 //
 // The hand-maintained REVERTIBLE_COLUMNS table used to live inside
 // downgrade-app-db.mjs. Renumbering a migration (to clear the immutable-
@@ -23,6 +23,11 @@ const ADD_COLUMN_RE =
 
 const CREATE_TABLE_RE =
 	/CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?["'`]?([A-Za-z_][A-Za-z0-9_]*)["'`]?/gi
+
+// SQLite has no DROP COLUMN RENAME counterpart, so a rename is found rather
+// than reversed: the table it left behind is the one worth dropping.
+const RENAME_TABLE_RE =
+	/ALTER\s+TABLE\s+(?:IF\s+EXISTS\s+)?["'`]?([A-Za-z_][A-Za-z0-9_]*)["'`]?\s+RENAME\s+TO\s+["'`]?([A-Za-z_][A-Za-z0-9_]*)["'`]?/gi
 
 // Remove line/block comments and string literals so DDL recognizers only see
 // executable SQL. A commented-out CREATE TABLE must not look like a real table.
@@ -70,31 +75,41 @@ export function stripSqlNoise(sql) {
 	return out
 }
 
-export function parseAddColumns(sql) {
+function collect(sql, pattern, apply) {
 	const source = stripSqlNoise(sql)
-	const columns = []
-	ADD_COLUMN_RE.lastIndex = 0
+	const found = []
+	pattern.lastIndex = 0
 	let match
-	while ((match = ADD_COLUMN_RE.exec(source)) !== null) {
-		const table = match[1]
-		const column = match[2]
-		if (!columns.some((entry) => entry.table === table && entry.column === column)) {
-			columns.push({ table, column })
-		}
+	while ((match = pattern.exec(source)) !== null) {
+		apply(match, found)
 	}
-	return columns
+	return found
+}
+
+function pushUnique(list, value) {
+	if (!list.includes(value)) list.push(value)
+}
+
+export function parseAddColumns(sql) {
+	return collect(sql, ADD_COLUMN_RE, (match, found) => {
+		const entry = { table: match[1], column: match[2] }
+		if (!found.some((other) => other.table === entry.table && other.column === entry.column)) {
+			found.push(entry)
+		}
+	})
 }
 
 export function parseCreatedTables(sql) {
-	const source = stripSqlNoise(sql)
-	const tables = []
-	CREATE_TABLE_RE.lastIndex = 0
-	let match
-	while ((match = CREATE_TABLE_RE.exec(source)) !== null) {
-		const table = match[1]
-		if (!tables.includes(table)) tables.push(table)
-	}
-	return tables
+	return collect(sql, CREATE_TABLE_RE, (match, found) => pushUnique(found, match[1]))
+}
+
+export function parseRenamedTables(sql) {
+	return collect(sql, RENAME_TABLE_RE, (match, found) => {
+		const entry = { from: match[1], to: match[2] }
+		if (!found.some((other) => other.from === entry.from && other.to === entry.to)) {
+			found.push(entry)
+		}
+	})
 }
 
 export function migrationVersionFromName(name) {
@@ -112,18 +127,53 @@ export function listMigrationFiles(dir = MIGRATIONS_DIR) {
 }
 
 /**
- * version -> { columns: [{table, column}], createdTables: [string] }
- * for every migration at or after OLDEST_REVERTIBLE_VERSION.
+ * Splits created tables into the ones the migration alone owns and the ones it
+ * rebuilt. A rebuild creates a scratch table, drops a pre-existing one and
+ * renames the scratch table onto its name, so the surviving table carries data
+ * that predates the migration. Dropping it would delete that data, so a rebuild
+ * is reported but never offered for dropping.
+ */
+function classifyTables(created, renames) {
+	const createdTables = []
+	const rebuiltTables = []
+
+	for (const table of created) {
+		let name = table
+		for (const { from, to } of renames) {
+			if (name === from) name = to
+		}
+
+		const renamed = name !== table
+		if (renamed) rebuiltTables.push(name)
+		else createdTables.push(name)
+	}
+
+	return { createdTables, rebuiltTables }
+}
+
+/**
+ * version -> { name, columns: [{table, column}], createdTables: [string],
+ * rebuiltTables: [string], renamedTables: [{from, to}] } for every migration at
+ * or after OLDEST_REVERTIBLE_VERSION.
+ *
+ * A created table means the downgrade cannot undo the migration on its own:
+ * SQLite has no DROP TABLE counterpart to leave behind safely, so the caller
+ * refuses unless a table is explicitly allowed. Rebuilt tables are a separate
+ * list because they hold data a drop would destroy.
  */
 export function loadRevertibleMigrations(dir = MIGRATIONS_DIR) {
 	const map = new Map()
 	for (const { name, version } of listMigrationFiles(dir)) {
 		if (version < OLDEST_REVERTIBLE_VERSION) continue
 		const sql = readFileSync(join(dir, name), 'utf8')
+		const renamedTables = parseRenamedTables(sql)
+		const { createdTables, rebuiltTables } = classifyTables(parseCreatedTables(sql), renamedTables)
 		map.set(version, {
 			name,
 			columns: parseAddColumns(sql),
-			createdTables: parseCreatedTables(sql),
+			createdTables,
+			rebuiltTables,
+			renamedTables,
 		})
 	}
 	return map

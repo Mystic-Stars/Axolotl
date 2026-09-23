@@ -30,6 +30,26 @@ const messages = defineMessages({
 		id: 'app.settings.defaults.maximize-window.unsupported',
 		defaultMessage: 'Not supported on this operating system.',
 	},
+	windowTitleEnabled: {
+		id: 'app.settings.defaults.window-title.enabled',
+		defaultMessage: 'Custom Minecraft window title',
+	},
+	windowTitleEnabledDescription: {
+		id: 'app.settings.defaults.window-title.enabled-description',
+		defaultMessage: 'Allow instances to customize the Minecraft window title.',
+	},
+	defaultWindowTitle: {
+		id: 'app.settings.defaults.window-title.default',
+		defaultMessage: 'Default window title',
+	},
+	defaultWindowTitleDescription: {
+		id: 'app.settings.defaults.window-title.default-description',
+		defaultMessage: 'Used when an instance does not provide its own title.',
+	},
+	defaultWindowTitlePlaceholder: {
+		id: 'app.settings.defaults.window-title.default-placeholder',
+		defaultMessage: 'Enter the default window title...',
+	},
 	width: { id: 'app.settings.defaults.width', defaultMessage: 'Width' },
 	widthDescription: {
 		id: 'app.settings.defaults.width-description',
@@ -201,6 +221,36 @@ watch(
 						autocomplete="off"
 						type="number"
 						:placeholder="formatMessage(messages.heightPlaceholder)"
+					/>
+				</template>
+			</SettingsRow>
+			<SettingsRow>
+				<template #label>
+					<span id="settings-target-defaults-window-title" tabindex="-1">
+						{{ formatMessage(messages.windowTitleEnabled) }}
+					</span>
+				</template>
+				<template #description>{{
+					formatMessage(messages.windowTitleEnabledDescription)
+				}}</template>
+				<template #control>
+					<Toggle id="custom-window-title-enabled" v-model="settings.custom_window_title_enabled" />
+				</template>
+			</SettingsRow>
+			<SettingsRow stacked>
+				<template #label>{{ formatMessage(messages.defaultWindowTitle) }}</template>
+				<template #description>{{
+					formatMessage(messages.defaultWindowTitleDescription)
+				}}</template>
+				<template #control>
+					<StyledInput
+						id="default-window-title"
+						v-model="settings.default_window_title"
+						:disabled="!settings.custom_window_title_enabled"
+						autocomplete="off"
+						type="text"
+						:placeholder="formatMessage(messages.defaultWindowTitlePlaceholder)"
+						wrapper-class="w-full"
 					/>
 				</template>
 			</SettingsRow>

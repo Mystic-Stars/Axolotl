@@ -106,7 +106,11 @@
 
 		<div v-if="flow.busy.value" class="flex items-center gap-2 text-secondary" role="status">
 			<SpinnerIcon class="size-5 animate-spin" aria-hidden="true" />
-			{{ formatMessage(messages.planningStatus, { count: snapshotItemCount }) }}
+			{{
+				formatMessage(messages.planningStatus, {
+					count: snapshotItemCount ?? '…',
+				})
+			}}
 		</div>
 	</section>
 </template>
@@ -299,7 +303,9 @@ const currentLoaderLabel = computed(() => {
 	const loader = formatLoaderLabel(instance.value.loader)
 	return instance.value.loader_version ? `${loader} ${instance.value.loader_version}` : loader
 })
-const snapshotItemCount = computed(() => contentDataQuery.data.value?.snapshot.items.length ?? 0)
+const snapshotItemCount = computed(() =>
+	contentDataQuery.isPending.value ? null : (contentDataQuery.data.value?.snapshot.items.length ?? 0),
+)
 const canPlan = computed(
 	() =>
 		selectedGameVersion.value !== null &&

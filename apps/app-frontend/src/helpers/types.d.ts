@@ -16,6 +16,16 @@ export type GameInstance = {
 	linked_version_id?: string | null
 	linked_version_json_path?: string | null
 	linked_game_dir_mode?: 'automatic' | 'isolated' | 'shared' | null
+	synced_options: Record<
+		| 'game_options'
+		| 'command_history'
+		| 'multiplayer_servers'
+		| 'creative_hotbars'
+		| 'screenshots'
+		| 'resource_packs'
+		| 'data_packs',
+		boolean
+	>
 
 	game_version: string
 	protocol_version?: number
@@ -44,6 +54,7 @@ export type GameInstance = {
 	force_fullscreen?: boolean
 	maximize_window?: boolean
 	game_resolution?: [number, number]
+	window_title?: string | null
 	launch_preparation_timeout?: number | null
 	hooks: Hooks
 }
@@ -202,6 +213,9 @@ type AppSettings = {
 	custom_background_path: string | null
 	custom_background_blur: number
 	custom_background_opacity: number
+	custom_background_component_opacity: number
+	ui_font: string | null
+	mono_font: string | null
 	transparent_background: boolean
 	transparent_background_opacity: number
 	transparent_background_blur: boolean
@@ -211,6 +225,10 @@ type AppSettings = {
 	minimal_home_instance_id: string | null
 	close_behavior: 'ask' | 'close' | 'lightweight'
 	home_widgets: import('@/components/home/home-dashboard').HomeDashboardConfig | null
+	home_widget_background_opacity: number
+	hidden_nav_items: string[]
+	custom_window_title_enabled: boolean
+	default_window_title: string
 
 	telemetry: boolean
 	discord_rpc: boolean

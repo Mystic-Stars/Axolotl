@@ -208,7 +208,6 @@ import type {
 	InstanceUpgradeSelection,
 	SharedUpgradeMode,
 } from '@/helpers/instance-upgrade'
-import { parkUpgradeFlow, upgradeProjectPath } from '@/helpers/upgrade-return-state'
 import {
 	loadUpgradeProjectDisplayMetadata,
 	loadUpgradeVersionDisplayMetadata,
@@ -217,6 +216,7 @@ import {
 	type UpgradeReleaseIdentity,
 	upgradeVersionDisplayLabel,
 } from '@/helpers/upgrade-version-metadata'
+import { parkUpgradeFlow, upgradeProjectPath } from '@/store/navigation-return'
 
 import {
 	confirmSelectionReleaseSlots,

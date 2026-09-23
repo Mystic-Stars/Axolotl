@@ -32,6 +32,13 @@ test('eligibility allows local/shared and excludes managed packs', () => {
 		true,
 	)
 	assert.equal(
+		isUnmanagedUpgradeEligible({
+			...instance(),
+			linked_dot_minecraft: String.raw`C:\Games\.minecraft`,
+		}),
+		true,
+	)
+	assert.equal(
 		isUnmanagedUpgradeEligible(
 			instance({ type: 'modrinth_modpack', project_id: 'p', version_id: 'v' }),
 		),

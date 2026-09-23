@@ -105,7 +105,8 @@ node scripts/axolotl/downgrade-app-db.mjs --suffix pr538 --to 20260903120000 --a
 
 - 只认识从迁移 SQL 自动推导出的结构（`scripts/axolotl/migration-revert.mjs`）。版本号早于 `OLDEST_REVERTIBLE_VERSION` 的迁移不在推导范围内，越过它们的降级会**拒绝执行**；确认无碍时用 `--allow-unmapped` 显式放行。
 - 若推导出的列在库里不存在，说明迁移与数据库不符（版本号被复用、列被改名等），脚本同样拒绝执行。
-- 新增迁移请用 `node scripts/axolotl/migration.mjs new <slug>`（自动选 max+1 版本）。`ADD COLUMN` 会被降级脚本自动识别，无需再手写映射表；`CREATE TABLE` 目前不会被 DROP，降级时会提示表会留下。
+- 新增迁移请用 `node scripts/axolotl/migration.mjs new <slug>`（自动选 max+1 版本）。`ADD COLUMN` 会被降级脚本自动识别，无需再手写映射表；`CREATE TABLE` 无法自动撤销，`--apply` 会**拒绝执行**，直到用 `AXOLOTL_DROP_CREATED_TABLES` 逐个点名要删除的表。
+- 重建已有表的迁移（建临时表 → DROP 旧表 → RENAME 顶替原名）无法降级：顶替后的表里装着迁移之前就存在的数据，DROP 掉就没了，所以脚本**一律拒绝**，即使点名也不放行。这种情况请用备份恢复到更早的版本，而不是改当前这个库。
 - 合并上游后若迁移版本撞车，用 `node scripts/axolotl/migration.mjs renumber <旧> <新>` 改名（只改文件名）。
 - 某个 PR 合并进 main 后，可运行 `node scripts/axolotl/sync-open-prs.mjs`（或 `--dry-run`）把其余在飞 PR 分支 merge 到最新 main。
 

@@ -10,7 +10,7 @@ import {
 import { getVersion } from '@tauri-apps/api/app'
 import { platform as getOsPlatform, version as getOsVersion } from '@tauri-apps/plugin-os'
 import { computed, nextTick, onUnmounted, ref, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 
 import {
 	getVisibleSettingsCategories,
@@ -40,6 +40,7 @@ interface SettingsSearchResult {
 
 const themeStore = useTheming()
 const route = useRoute()
+const router = useRouter()
 const { formatMessage } = useVIntl()
 const { progress, version: downloadingVersion } = injectAppUpdateDownloadProgress()
 
@@ -70,6 +71,8 @@ let categoryTransitionToken = 0
 
 const SEARCH_DEBOUNCE_MS = 120
 const CATEGORY_SKELETON_MIN_MS = 160
+/** Hard cap so a stuck async settings chunk cannot pin the skeleton forever (dev). */
+const CATEGORY_SKELETON_MAX_MS = 4000
 
 const isContentLoading = computed(() => showContentSkeleton.value || settingsContentPending.value)
 
@@ -94,12 +97,20 @@ watch(selectedCategoryId, () => {
 	const tick = () => {
 		if (token !== categoryTransitionToken) return
 
+		const elapsed = Date.now() - startedAt
+		if (elapsed >= CATEGORY_SKELETON_MAX_MS) {
+			// Soft timeout: drop the overlay only. Do not force Suspense out of
+			// pending — that desyncs the async child and can tear down the page.
+			showContentSkeleton.value = false
+			return
+		}
+
 		if (settingsContentPending.value) {
 			window.setTimeout(tick, 32)
 			return
 		}
 
-		const remaining = Math.max(0, CATEGORY_SKELETON_MIN_MS - (Date.now() - startedAt))
+		const remaining = Math.max(0, CATEGORY_SKELETON_MIN_MS - elapsed)
 		window.setTimeout(() => {
 			if (token !== categoryTransitionToken) return
 			if (!settingsContentPending.value) {
@@ -226,6 +237,11 @@ function selectCategory(categoryId: string) {
 	const category = visibleCategories.value.find((item) => item.id === categoryId)
 	if (category) expandedGroups.value[category.group] = true
 	contentContainer.value?.scrollTo({ top: 0 })
+	// Keep the URL hash in sync so a remount (error recovery, HMR) restores
+	// this tab instead of falling back to the default category.
+	if (route.hash !== `#${categoryId}`) {
+		void router.replace({ hash: `#${categoryId}` })
+	}
 }
 
 function toggleGroup(groupId: string) {
@@ -488,7 +504,10 @@ const pageTitle: MessageDescriptor = settingsPageTitle
 					class="settings-content-scroll min-h-0 flex-1"
 					:class="activeCategory?.flushContent ? 'overflow-hidden' : 'overflow-y-auto'"
 				>
-					<div class="settings-content-stage relative min-h-0">
+					<div
+						class="settings-content-stage relative min-h-0"
+						:class="activeCategory?.flushContent ? 'is-flush' : ''"
+					>
 						<Transition name="settings-content-skeleton">
 							<div v-if="isContentLoading" class="settings-content-skeleton" aria-hidden="true">
 								<div class="settings-content-skeleton-inner">
@@ -841,6 +860,17 @@ const pageTitle: MessageDescriptor = settingsPageTitle
 	min-height: 100%;
 }
 
+/* flushContent categories (AI features) manage their own inner scrolling.
+   The stage needs a definite height so percentage-height descendants
+   (.settings-content-body.h-full → .ai-provider-layout { height: 100% })
+   resolve against a real box; otherwise their overflow-y: auto never
+   activates. State class, not a utility alias: it overrides the base
+   min-height above at equal specificity. */
+.settings-content-stage.is-flush {
+	height: 100%;
+	min-height: 0;
+}
+
 .settings-content-skeleton {
 	position: absolute;
 	inset: 0;
@@ -861,6 +891,14 @@ const pageTitle: MessageDescriptor = settingsPageTitle
 	transition:
 		opacity 180ms ease,
 		transform 180ms ease;
+
+	/* Programmatic focus target after category changes. Clicking the panel
+	   focuses it; Tab/Shift/Esc then paint the UA ring as a full-panel black
+	   frame (issue #579). */
+	&:focus,
+	&:focus-visible {
+		outline: none;
+	}
 }
 
 .settings-content-body.is-loading {

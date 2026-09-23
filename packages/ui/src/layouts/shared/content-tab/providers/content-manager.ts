@@ -5,7 +5,6 @@ import type { Option as OverflowMenuOption } from '#ui/components/base/OverflowM
 import { createContext } from '#ui/providers/create-context'
 
 import type {
-	BulkOperationStatus,
 	ContentCardTableItem,
 	ContentItem,
 	ContentModpackCardCategory,
@@ -75,9 +74,11 @@ export interface ContentManagerContext {
 
 	// Update support (optional per-platform)
 	hasUpdateSupport: boolean
-	updateItem?: (id: string) => void
+	/** Submit an update for the exact row snapshot that produced the action. */
+	updateItem?: (item: ContentItem) => void | Promise<void>
 	rollbackItem?: (item: ContentItem) => Promise<void>
-	bulkUpdateAll?: (onProgress?: (status: BulkOperationStatus) => void) => Promise<void>
+	/** Submit a platform-owned update-all operation. Resolves once the operation is observable. */
+	bulkUpdateAll?: () => Promise<void>
 	bulkUpdateAllLabel?: string
 	bulkUpdateAllDescription?: string
 	bulkUpdateIncludesModpack?: boolean

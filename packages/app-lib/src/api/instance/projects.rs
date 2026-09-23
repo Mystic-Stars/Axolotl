@@ -534,45 +534,11 @@ pub async fn remove_content_entry(
 }
 
 #[tracing::instrument]
-pub async fn update_content_entry(
-    instance_id: &str,
-    content_id: &str,
-) -> crate::Result<String> {
-    let target = content_mutation_target(instance_id, content_id).await?;
-    let path = target.relative_path.ok_or_else(|| {
-        crate::ErrorKind::InputError(
-            "The selected content is not present on disk".to_string(),
-        )
-    })?;
-    match target.provider {
-        Some(ContentProvider::CurseForge) => {
-            let result = crate::api::curseforge::update_installed_file(
-                instance_id,
-                &path,
-            )
-            .await?;
-            let updated_path = result
-                .installed
-                .iter()
-                .find(|file| !file.dependency)
-                .map_or(path, |file| file.relative_path.clone());
-            emit_content_changed(instance_id).await?;
-            Ok(updated_path)
-        }
-        Some(ContentProvider::McArchive) => Err(crate::ErrorKind::InputError(
-            "MCArchive content updates require selecting a file manually"
-                .to_string(),
-        )
-        .into()),
-        _ => update_project(instance_id, &path, None).await,
-    }
-}
-
-#[tracing::instrument]
-pub async fn switch_content_entry_version(
+pub(crate) async fn switch_content_entry_version(
     instance_id: &str,
     content_id: &str,
     version_id: &str,
+    reporter: Option<crate::install::InstallProgressReporter>,
 ) -> crate::Result<String> {
     let target = content_mutation_target(instance_id, content_id).await?;
     let path = target.relative_path.ok_or_else(|| {
@@ -580,6 +546,7 @@ pub async fn switch_content_entry_version(
             "The selected content is not present on disk".to_string(),
         )
     })?;
+    let current_release_id = target.provider_release_id.clone();
     match target.provider {
         Some(ContentProvider::CurseForge) => {
             let file_id = version_id.parse::<u32>().map_err(|_| {
@@ -587,12 +554,14 @@ pub async fn switch_content_entry_version(
                     "The selected CurseForge file ID is invalid".to_string(),
                 )
             })?;
-            let result = crate::api::curseforge::switch_installed_file_version(
-                instance_id,
-                &path,
-                file_id,
-            )
-            .await?;
+            let result =
+                crate::api::curseforge::switch_installed_file_version(
+                    instance_id,
+                    &path,
+                    file_id,
+                    reporter,
+                )
+                .await?;
             let updated_path = result
                 .installed
                 .iter()
@@ -607,10 +576,14 @@ pub async fn switch_content_entry_version(
 		)
 		.into()),
         _ => {
-            switch_project_version_with_dependencies(
+            let state = State::get().await?;
+            crate::state::instances::commands::switch_project_version_with_dependencies_preserving_name(
                 instance_id,
                 &path,
+                current_release_id.as_deref(),
                 version_id,
+                reporter,
+                &state,
             )
             .await
         }
@@ -859,7 +832,7 @@ pub(crate) async fn emit_content_changed(
     .await
 }
 
-async fn content_mutation_target(
+pub(crate) async fn content_mutation_target(
     instance_id: &str,
     content_id: &str,
 ) -> crate::Result<content_rows::ContentMutationTarget> {

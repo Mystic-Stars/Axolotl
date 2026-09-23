@@ -215,7 +215,6 @@ import {
 	UndoIcon,
 } from '@modrinth/assets'
 import {
-	type BulkOperationStatus,
 	ButtonStyled,
 	CollapsibleAdmonition,
 	commonMessages,
@@ -254,6 +253,13 @@ import { useWorldDatapacks } from '@/composables/useWorldDatapacks'
 import { trackEvent } from '@/helpers/analytics'
 import { get_project_versions, get_version, get_version_many } from '@/helpers/cache.js'
 import { applyContentItemUpdates, matchesContentItem } from '@/helpers/content-item-state'
+import {
+	activeContentChangeJobs as selectActiveContentChangeJobs,
+	contentItemStableId,
+	hasActiveContentChange,
+	pendingContentChangeAffectsItem,
+} from '@/helpers/content-change-jobs'
+import { mergeContentItemMetadata } from '@/helpers/content-item-metadata'
 import { lookupContentWikiIds, translateContentItemTitles } from '@/helpers/content-search'
 import { type CurseForgeFile, getCurseForgeChangelog } from '@/helpers/curseforge'
 import {
@@ -275,10 +281,8 @@ import {
 	remove_content_entry,
 	restore_pack_member_default,
 	rollback_project,
-	switch_content_entry_version,
 	toggle_content_entries,
 	toggle_content_entry,
-	update_content_entry,
 } from '@/helpers/instance'
 import { readInstanceCache, writeInstanceCache } from '@/helpers/instance-cache'
 import {
@@ -292,6 +296,7 @@ import type { CacheBehaviour, GameInstance } from '@/helpers/types'
 import { highlightModInInstance } from '@/helpers/utils.js'
 import i18n from '@/i18n.config'
 import { injectContentInstall } from '@/providers/content-install'
+import { injectDownloadManager } from '@/providers/download-manager'
 import { useTheming } from '@/store/state'
 
 const messages = defineMessages({
@@ -456,6 +461,7 @@ const messages = defineMessages({
 const { formatMessage } = useVIntl()
 const debugState = useDebugLogger('Mods:state')
 const { handleError, addNotification } = injectNotificationManager()
+const downloadManager = injectDownloadManager()
 const {
 	installingItems,
 	installRevisionByInstance,
@@ -805,7 +811,8 @@ const mergedProjects = computed<ContentItem[]>(() => {
 						},
 					}
 				: project
-			return resolved.project?.id && pendingProjectIds.has(resolved.project.id)
+			return (resolved.project?.id && pendingProjectIds.has(resolved.project.id)) ||
+				hasGlobalContentChange(resolved)
 				? { ...resolved, installing: true }
 				: resolved
 		})
@@ -817,7 +824,9 @@ const mergedProjects = computed<ContentItem[]>(() => {
 })
 
 const displayedLinkedModpackContentItems = computed(() => [
-	...linkedModpackContentItems.value,
+	...linkedModpackContentItems.value.map((item) =>
+		hasGlobalContentChange(item) ? { ...item, installing: true } : item,
+	),
 	...manualPendingItems.value,
 ])
 
@@ -938,7 +947,16 @@ watch(
 )
 
 const isModpackUpdating = ref(false)
-const isBulkOperating = ref(false)
+const localBulkOperating = ref(false)
+const activeContentChangeJobs = computed(() =>
+	selectActiveContentChangeJobs(downloadManager.jobs.value, props.instance.id),
+)
+const pendingContentChanges = computed(() =>
+	downloadManager.pendingContentChanges.value.filter(
+		(pending) => pending.instanceId === props.instance.id,
+	),
+)
+const isBulkOperating = localBulkOperating
 const isInstanceBusy = computed(() => props.instance?.install_stage !== 'installed')
 let contentRequestGeneration = 0
 
@@ -1054,10 +1072,7 @@ function mergeVisibleMetadataItems(refreshedItems: ContentItem[]) {
 
 			if (!refreshed) return item
 
-			return {
-				...item,
-				...refreshed,
-			}
+			return mergeContentItemMetadata(item, refreshed)
 		})
 
 	projects.value = mergeItems(projects.value)
@@ -1140,7 +1155,14 @@ function handleVisibleItems(items: ContentItem[]) {
 }
 
 function getStableContentId(item: ContentItem) {
-	return item.instanceEntryId ?? item.instanceMemberId ?? item.instanceFileId ?? null
+	return contentItemStableId(item)
+}
+
+function hasGlobalContentChange(item: ContentItem) {
+	return (
+		pendingContentChanges.value.some((pending) => pendingContentChangeAffectsItem(pending, item)) ||
+		hasActiveContentChange(activeContentChangeJobs.value, item)
+	)
 }
 
 function getContentOperationKeys(item: ContentItem) {
@@ -1151,11 +1173,13 @@ function getContentOperationKeys(item: ContentItem) {
 
 function hasContentOperation(item: ContentItem) {
 	const keys = getContentOperationKeys(item)
-	return keys.some((key) => activeContentOperationKeys.value.has(key))
+	return (
+		keys.some((key) => activeContentOperationKeys.value.has(key)) || hasGlobalContentChange(item)
+	)
 }
 
 function canUpdateProject(item: ContentItem) {
-	return !!item.file_path && item.update != null && (item.instanceCapabilities?.canUpdate ?? true)
+	return item.update != null && (item.instanceCapabilities?.canUpdate ?? true)
 }
 
 function contentUpdateId(item: ContentItem): string | null {
@@ -1928,35 +1952,56 @@ async function getDeleteDependencyWarning(items: ContentItem[]) {
 	return dependents.length > 0 ? { items, dependents } : null
 }
 
-async function bulkUpdateAllProjects(onProgress?: (status: BulkOperationStatus) => void) {
+async function bulkUpdateAllProjects() {
+	if (pendingContentChanges.value.length > 0 || activeContentChangeJobs.value.length > 0) return
 	try {
-		if (onProgress) {
-			onProgress({
-				message: formatMessage(messages.bulkUpdateResolvingVersions),
-				waiting: true,
-			})
-		}
-		const plan = await plan_content_updates(props.instance.id, 'user_added')
-		await apply_content_update_plan(plan.id)
-
-		await refreshContentState('bypass')
+		await downloadManager.queueContentChange({
+			instanceId: props.instance.id,
+			intent: { type: 'update_all_user_added' },
+			displayTitle: formatMessage(messages.updateAddedContent),
+		})
 	} catch (err) {
 		handleError(err as Error)
 		throw err
-	} finally {
-		onProgress?.({ message: formatMessage(messages.bulkUpdateFinishing) })
+	}
+}
+
+async function bulkUpdateProjects(items: ContentItem[]) {
+	const targets = items.flatMap((item) => {
+		const contentId = getStableContentId(item)
+		const targetReleaseId = contentUpdateId(item)
+		return contentId && targetReleaseId
+			? [{ content_id: contentId, target_release_id: targetReleaseId }]
+			: []
+	})
+	if (targets.length === 0) return
+	if (items.some((item) => hasGlobalContentChange(item))) return
+	try {
+		await downloadManager.queueContentChange({
+			instanceId: props.instance.id,
+			intent: { type: 'update_selected', targets },
+			displayTitle: formatMessage(messages.updateAddedContent),
+		})
+	} catch (err) {
+		handleError(err as Error)
+		throw err
 	}
 }
 
 async function updateProject(mod: ContentItem) {
 	if (!canUpdateProject(mod)) return
 	const contentId = getStableContentId(mod)
-	if (!contentId) return
-	const operation = beginContentOperation(mod)
-	if (!operation) return
+	const targetReleaseId = contentUpdateId(mod)
+	if (!contentId || !targetReleaseId) return
+	if (hasGlobalContentChange(mod)) return
 
 	try {
-		await update_content_entry(props.instance.id, contentId)
+		await downloadManager.queueContentChange({
+			instanceId: props.instance.id,
+			intent: { type: 'update_one', content_id: contentId, target_release_id: targetReleaseId },
+			displayTitle: mod.project?.title ?? mod.file_name,
+			displayIcon: mod.project?.icon_url,
+		})
 
 		trackEvent('InstanceProjectUpdate', {
 			loader: props.instance.loader,
@@ -1968,20 +2013,21 @@ async function updateProject(mod: ContentItem) {
 	} catch (err) {
 		handleError(err as Error)
 		throw err
-	} finally {
-		await refreshContentState('bypass')
-		finishContentOperation(mod, operation)
 	}
 }
 
 async function switchProjectVersion(mod: ContentItem, version: Labrinth.Versions.v2.Version) {
 	const contentId = getStableContentId(mod)
 	if (!mod.file_path || !contentId || mod.instanceCapabilities?.canChangeVersion === false) return
-	const operation = beginContentOperation(mod)
-	if (!operation) return
+	if (hasGlobalContentChange(mod)) return
 
 	try {
-		await switch_content_entry_version(props.instance.id, contentId, version.id)
+		await downloadManager.queueContentChange({
+			instanceId: props.instance.id,
+			intent: { type: 'switch_version', content_id: contentId, target_release_id: version.id },
+			displayTitle: mod.project?.title ?? mod.file_name,
+			displayIcon: mod.project?.icon_url,
+		})
 
 		trackEvent('InstanceProjectUpdate', {
 			loader: props.instance.loader,
@@ -1992,9 +2038,6 @@ async function switchProjectVersion(mod: ContentItem, version: Labrinth.Versions
 		})
 	} catch (err) {
 		handleError(err as Error)
-	} finally {
-		await refreshContentState('bypass')
-		finishContentOperation(mod, operation)
 	}
 }
 
@@ -2020,121 +2063,9 @@ async function handleRollbackContent(mod: ContentItem) {
 	}
 }
 
-async function handleUpdate(id: string) {
-	const item =
-		projects.value.find((p) => getContentItemId(p) === id) ??
-		linkedModpackContentItems.value.find((p) => getContentItemId(p) === id)
-	if (!item || !canUpdateProject(item) || !item.project?.id || !item.version?.id) return
-	if (item.update?.provider === 'curseforge') {
-		await updateProject(item)
-		return
-	}
-
-	const requestId = beginUpdateRequest()
-	const itemId = getContentItemId(item)
-
-	debug('handleUpdate triggered', {
-		fileName: item.file_name,
-		projectType: item.project_type,
-		projectId: item.project.id,
-		projectTitle: item.project.title,
-		currentVersionId: item.version.id,
-		currentVersionNumber: item.version.version_number,
-		updateVersionId: contentUpdateId(item),
-		instanceGameVersion: props.instance.game_version,
-		instanceLoader: props.instance.loader,
-	})
-
-	updatingModpack.value = false
-	updatingProject.value = item
-	updatingProjectVersions.value = []
-	loadingVersions.value = true
-	loadingChangelog.value = false
-
-	await nextTick()
-
-	const initialVersionId = contentUpdateId(item) ?? undefined
-	debug('handleUpdate: opening content updater modal', {
-		type: 'content',
-		initialVersionId,
-		item: {
-			id: item.id,
-			fileName: item.file_name,
-			projectType: item.project_type,
-			projectId: item.project.id,
-			projectTitle: item.project.title,
-			currentVersionId: item.version.id,
-			currentVersionNumber: item.version.version_number,
-			updateVersionId: contentUpdateId(item),
-		},
-		instance: {
-			path: props.instance.id,
-			name: props.instance.name,
-			gameVersion: props.instance.game_version,
-			loader: props.instance.loader,
-			link: props.instance.link,
-		},
-		modalStateBeforeFetch: {
-			updatingModpack: updatingModpack.value,
-			updatingProjectId: updatingProject.value?.id,
-			updatingProjectVersions: updatingProjectVersions.value.map((version) => ({
-				id: version.id,
-				versionNumber: version.version_number,
-				gameVersions: version.game_versions,
-				loaders: version.loaders,
-				datePublished: version.date_published,
-			})),
-		},
-	})
-	contentUpdaterModal.value?.show(initialVersionId)
-
-	const versions = await getUpdaterProjectVersions(item.project.id, initialVersionId, item)
-
-	if (!isActiveUpdateRequest(requestId) || getContentItemId(updatingProject.value) !== itemId)
-		return
-
-	loadingVersions.value = false
-
-	if (versions.length === 0) {
-		debug('handleUpdate: no versions returned', { projectId: item.project.id })
-		return
-	}
-
-	debug('handleUpdate: fetched versions', {
-		projectId: item.project.id,
-		projectType: item.project_type,
-		totalVersions: versions.length,
-		versionSample: versions.slice(0, 5).map((v) => ({
-			id: v.id,
-			number: v.version_number,
-			loaders: v.loaders,
-			gameVersions: v.game_versions,
-		})),
-		currentVersionInList: versions.some((v) => v.id === item.version?.id),
-		updateVersionInList: versions.some((v) => v.id === contentUpdateId(item)),
-	})
-
-	const preselectedVersion =
-		versions.find((version) => version.id === initialVersionId) ?? versions[0] ?? null
-	debug('handleUpdate: resolved content updater preselection', {
-		type: 'content',
-		initialVersionId,
-		foundInitialVersion: versions.some((version) => version.id === initialVersionId),
-		preselectedVersion: preselectedVersion
-			? {
-					id: preselectedVersion.id,
-					versionNumber: preselectedVersion.version_number,
-					gameVersions: preselectedVersion.game_versions,
-					loaders: preselectedVersion.loaders,
-					datePublished: preselectedVersion.date_published,
-				}
-			: null,
-		versionCount: versions.length,
-		currentVersionId: item.version.id,
-		updateVersionId: contentUpdateId(item),
-	})
-
-	updatingProjectVersions.value = versions
+async function handleUpdate(item: ContentItem) {
+	if (!item || !canUpdateProject(item)) return
+	await updateProject(item)
 }
 
 async function handleSwitchVersion(item: ContentItem) {
@@ -2542,7 +2473,7 @@ function getOverflowOptions(item: ContentItem): OverflowMenuOption[] {
 
 function openSchematicInWorkshop(item: ContentItem) {
 	void router.push({
-		name: 'Schematic workshop',
+		name: 'SchematicWorkshop',
 		query: { instance: props.instance.id, path: item.file_path ?? item.file_name },
 	})
 }
@@ -2829,7 +2760,7 @@ provideContentManager({
 	bulkUpdateAllLabel: formatMessage(messages.updateAddedContent),
 	bulkUpdateAllDescription: formatMessage(messages.updateAddedContentDescription),
 	bulkUpdateIncludesModpack: false,
-	bulkUpdateItem: updateProject,
+	bulkUpdateItems: bulkUpdateProjects,
 	updateModpack: props.isServerInstance ? undefined : handleModpackUpdate,
 	viewDependencies: handleViewDependencies,
 	unlinkModpack: unpairInstance,

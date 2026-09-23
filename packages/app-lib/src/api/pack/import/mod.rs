@@ -565,7 +565,18 @@ async fn scan_instances_at(
         return instances;
     }
 
-    if instance_json::detect(path).is_some() {
+    // A folder that hosts a `versions` directory is a shared game directory
+    // (a container), not an instance: its loose JSON files (launcher configs,
+    // mod-manager metadata) must not shadow the real version folders as the
+    // detected instance. Only fall back to the folder itself when no version
+    // folder could be collected.
+    let versions_dir = path.join("versions");
+    let has_versions_dir = versions_dir.is_dir();
+    if has_versions_dir {
+        collect_child_instances(&mut instances, &versions_dir, prefix, true)
+            .await;
+    }
+    if instances.is_empty() && instance_json::detect(path).is_some() {
         let name = path
             .file_name()
             .map(|n| n.to_string_lossy().to_string())
@@ -578,11 +589,6 @@ async fn scan_instances_at(
             },
             path.to_path_buf(),
         ));
-    }
-    let versions_dir = path.join("versions");
-    if versions_dir.is_dir() {
-        collect_child_instances(&mut instances, &versions_dir, prefix, true)
-            .await;
     }
     tracing::debug!(
         "scan_instances_at: path={} prefix={:?} found={}",
@@ -1688,6 +1694,34 @@ mod generic_instance_scan_tests {
 
         assert_eq!(instances.len(), 1);
         assert_eq!(instances[0].name, "versions/1.20.1-fabric");
+        assert_eq!(instances[0].path, version_dir.to_string_lossy());
+    }
+
+    #[tokio::test]
+    async fn versions_children_shadow_loose_container_jsons() {
+        // A shared game directory whose loose JSON files happen to embed
+        // loader coordinates (launcher/manager metadata) is a container, not
+        // an instance: the `versions` child must be the only candidate, and
+        // the container's json must not be detected instead.
+        let folder = tempdir().unwrap();
+        let mc = folder.path().join(".minecraft");
+        let version_dir = mc.join("versions").join("1.12.2-Cleanroom");
+        std::fs::create_dir_all(&version_dir).unwrap();
+        std::fs::write(
+            mc.join("axolotl_config.json"),
+            r#"{"lastVersion":"net.minecraftforge:forge:1.12.2-14.23.5.2864"}"#,
+        )
+        .unwrap();
+        std::fs::write(
+            version_dir.join("1.12.2-Cleanroom.json"),
+            r#"{"id":"1.12.2-Cleanroom","libraries":[{"name":"net.minecraftforge:forge:1.12.2-14.23.5.2864"}]}"#,
+        )
+        .unwrap();
+
+        let instances = get_generic_instances(&mc).await.unwrap();
+
+        assert_eq!(instances.len(), 1);
+        assert_eq!(instances[0].name, "versions/1.12.2-Cleanroom");
         assert_eq!(instances[0].path, version_dir.to_string_lossy());
     }
 }

@@ -1,5 +1,11 @@
 import { defineStore } from 'pinia'
 
+import {
+	DEFAULT_MONO_FONT_STACK,
+	DEFAULT_UI_FONT_STACK,
+	resolveFontFamily,
+} from '../helpers/font-family.ts'
+
 /**
  * Mirrors `KeyBinding` from `@modrinth/ui`. Declared here so this module stays
  * loadable without the UI package, which the settings tests rely on.
@@ -130,9 +136,16 @@ export type ThemeStore = {
 	customBackgroundPath: string | null
 	customBackgroundBlur: number
 	customBackgroundOpacity: number
+	customBackgroundComponentOpacity: number
+	/** Installed family replacing the launcher's UI font; null follows the default. */
+	uiFont: string | null
+	/** Installed family replacing the monospace stack; null follows the default. */
+	monoFont: string | null
 	transparentBackground: boolean
 	transparentBackgroundOpacity: number
 	transparentBackgroundBlur: boolean
+	homeWidgetBackgroundOpacity: number
+	hiddenNavItems: string[]
 	sidebarInstanceCount: number
 	autoHideDownloadsButton: boolean
 	homeLayout: HomeLayout
@@ -177,9 +190,14 @@ export const DEFAULT_THEME_STORE: ThemeStore = {
 	customBackgroundPath: null,
 	customBackgroundBlur: 12,
 	customBackgroundOpacity: 65,
+	customBackgroundComponentOpacity: 100,
+	uiFont: null,
+	monoFont: null,
 	transparentBackground: false,
 	transparentBackgroundOpacity: 55,
 	transparentBackgroundBlur: false,
+	homeWidgetBackgroundOpacity: 100,
+	hiddenNavItems: [],
 	sidebarInstanceCount: 0,
 	autoHideDownloadsButton: false,
 	homeLayout: 'standard',
@@ -298,6 +316,50 @@ export const useTheming = defineStore('themeStore', {
 				'--transparent-window-alpha',
 				`${Math.min(Math.max(this.transparentBackgroundOpacity, 0), 100)}%`,
 			)
+		},
+		setHomeWidgetBackgroundOpacity() {
+			const html = document.documentElement
+			html.style.setProperty(
+				'--home-widget-bg-opacity',
+				`${Math.min(Math.max(this.homeWidgetBackgroundOpacity, 0), 100)}%`,
+			)
+		},
+		setCustomBackgroundComponentOpacity() {
+			const html = document.documentElement
+			html.style.setProperty(
+				'--custom-bg-component-opacity',
+				`${Math.min(Math.max(this.customBackgroundComponentOpacity, 0), 100)}%`,
+			)
+		},
+		/**
+		 * The font tokens are declared on `body` in the shared defaults, so the
+		 * overrides live on the body element; an `<html>` level value would be
+		 * shadowed by body's own declaration for the whole app.
+		 */
+		setUiFont() {
+			const body = document.body
+			if (this.uiFont) {
+				body.style.setProperty(
+					'--font-standard',
+					resolveFontFamily(this.uiFont, DEFAULT_UI_FONT_STACK),
+				)
+			} else {
+				body.style.removeProperty('--font-standard')
+			}
+		},
+		setMonoFont() {
+			const body = document.body
+			if (this.monoFont) {
+				body.style.setProperty(
+					'--mono-font',
+					resolveFontFamily(this.monoFont, DEFAULT_MONO_FONT_STACK),
+				)
+			} else {
+				body.style.removeProperty('--mono-font')
+			}
+		},
+		isNavItemHidden(id: string) {
+			return this.hiddenNavItems.includes(id)
 		},
 		getFeatureFlag(key: FeatureFlag) {
 			return this.featureFlags[key] ?? DEFAULT_FEATURE_FLAGS[key]

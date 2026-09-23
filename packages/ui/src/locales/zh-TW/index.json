@@ -51,7 +51,7 @@
     "defaultMessage": "你選取的專案尚未安裝"
   },
   "browse.view-prefix": {
-    "defaultMessage": "檢視模式："
+    "defaultMessage": "檢視模式"
   },
   "button.accept": {
     "defaultMessage": "接受"
@@ -1935,7 +1935,7 @@
     "defaultMessage": "單人遊戲"
   },
   "label.sort-by": {
-    "defaultMessage": "排序依據："
+    "defaultMessage": "排序依據"
   },
   "label.success": {
     "defaultMessage": "成功"
@@ -3991,6 +3991,144 @@
   },
   "project.versions.platform.modloader.short": {
     "message": "ModLoader"
+  },
+  "skin.preview.armor.equip-material": {
+    "message": "為{slot}裝備{material}"
+  },
+  "skin.preview.armor.material": {
+    "message": "盔甲材質"
+  },
+  "skin.preview.armor.material.chainmail": {
+    "message": "鎖鏈"
+  },
+  "skin.preview.armor.material.copper": {
+    "message": "銅"
+  },
+  "skin.preview.armor.material.diamond": {
+    "message": "鑽石"
+  },
+  "skin.preview.armor.material.gold": {
+    "message": "黃金"
+  },
+  "skin.preview.armor.material.iron": {
+    "message": "鐵"
+  },
+  "skin.preview.armor.material.leather": {
+    "message": "皮革"
+  },
+  "skin.preview.armor.material.netherite": {
+    "message": "獄髓"
+  },
+  "skin.preview.armor.material.turtle": {
+    "message": "海龜殼"
+  },
+  "skin.preview.armor.open": {
+    "message": "盔甲與紋飾"
+  },
+  "skin.preview.armor.piece": {
+    "message": "盔甲部位"
+  },
+  "skin.preview.armor.remove-piece": {
+    "message": "卸下{slot}"
+  },
+  "skin.preview.armor.remove-trim": {
+    "message": "無盔甲紋飾"
+  },
+  "skin.preview.armor.slot-state": {
+    "message": "{slot}：{state}"
+  },
+  "skin.preview.armor.slot.boots": {
+    "message": "靴子"
+  },
+  "skin.preview.armor.slot.chestplate": {
+    "message": "胸甲"
+  },
+  "skin.preview.armor.slot.helmet": {
+    "message": "頭盔"
+  },
+  "skin.preview.armor.slot.leggings": {
+    "message": "護腿"
+  },
+  "skin.preview.armor.trim-material": {
+    "message": "紋飾材料"
+  },
+  "skin.preview.armor.trim-material.amethyst": {
+    "message": "紫水晶"
+  },
+  "skin.preview.armor.trim-material.emerald": {
+    "message": "綠寶石"
+  },
+  "skin.preview.armor.trim-material.lapis": {
+    "message": "青金石"
+  },
+  "skin.preview.armor.trim-material.quartz": {
+    "message": "地獄石英"
+  },
+  "skin.preview.armor.trim-material.redstone": {
+    "message": "紅石"
+  },
+  "skin.preview.armor.trim-material.resin": {
+    "message": "樹脂磚"
+  },
+  "skin.preview.armor.trim-pattern": {
+    "message": "紋飾圖案"
+  },
+  "skin.preview.armor.trim.bolt": {
+    "message": "鑲鉚盔甲紋飾"
+  },
+  "skin.preview.armor.trim.coast": {
+    "message": "海岸盔甲紋飾"
+  },
+  "skin.preview.armor.trim.dune": {
+    "message": "沙丘盔甲紋飾"
+  },
+  "skin.preview.armor.trim.eye": {
+    "message": "眼眸盔甲紋飾"
+  },
+  "skin.preview.armor.trim.flow": {
+    "message": "旋風盔甲紋飾"
+  },
+  "skin.preview.armor.trim.host": {
+    "message": "牧民盔甲紋飾"
+  },
+  "skin.preview.armor.trim.raiser": {
+    "message": "舉起盔甲紋飾"
+  },
+  "skin.preview.armor.trim.rib": {
+    "message": "肋骨盔甲紋飾"
+  },
+  "skin.preview.armor.trim.sentry": {
+    "message": "哨兵盔甲紋飾"
+  },
+  "skin.preview.armor.trim.shaper": {
+    "message": "塑形盔甲紋飾"
+  },
+  "skin.preview.armor.trim.silence": {
+    "message": "幽靜盔甲紋飾"
+  },
+  "skin.preview.armor.trim.snout": {
+    "message": "豬鼻盔甲紋飾"
+  },
+  "skin.preview.armor.trim.spire": {
+    "message": "尖塔盔甲紋飾"
+  },
+  "skin.preview.armor.trim.tide": {
+    "message": "潮汐盔甲紋飾"
+  },
+  "skin.preview.armor.trim.vex": {
+    "message": "惱鬼盔甲紋飾"
+  },
+  "skin.preview.armor.trim.ward": {
+    "message": "監守盔甲紋飾"
+  },
+  "skin.preview.armor.trim.wayfinder": {
+    "message": "嚮導盔甲紋飾"
+  },
+  "skin.preview.armor.trim.wild": {
+    "message": "荒野盔甲紋飾"
+  },
+  "skin.preview.armor.unequipped": {
+    "message": "未裝備"
   },
   "skin.preview.drag-to-rotate": {
     "message": "Drag to rotate"

@@ -9,7 +9,7 @@ import {
 	type ContentItem,
 	type ContentOwner,
 } from '@modrinth/ui'
-import { invoke } from '@tauri-apps/api/core'
+import { convertFileSrc, invoke } from '@tauri-apps/api/core'
 
 import { isOfflineMode } from '@/composables/useNetworkStatus'
 import { buildGcCandidateChain, resolveAutoGcStrategy } from '@/helpers/gc/auto-selector'
@@ -103,6 +103,85 @@ export async function get(instanceId: string): Promise<GameInstance | null> {
 
 export async function get_many(instanceIds: string[]): Promise<GameInstance[]> {
 	return await invoke('plugin:instance|instance_get_many', { instanceIds })
+}
+
+export type SyncedOption =
+	| 'game_options'
+	| 'command_history'
+	| 'multiplayer_servers'
+	| 'creative_hotbars'
+	| 'screenshots'
+	| 'resource_packs'
+	| 'data_packs'
+export type GlobalSyncedOptions = Record<SyncedOption, boolean>
+export type SyncedOptionCapability = {
+	option: SyncedOption
+	supported: boolean
+	disabled_reason: string | null
+}
+export type SyncedOptionJoinPreview = { action: string }
+export type SyncedOptionsOverview = {
+	global_options: GlobalSyncedOptions
+	capabilities: SyncedOptionCapability[]
+}
+export async function get_global_synced_options(): Promise<GlobalSyncedOptions> {
+	return await invoke('plugin:instance|instance_get_synced_options')
+}
+export async function get_initialized_synced_options(): Promise<GlobalSyncedOptions> {
+	return await invoke('plugin:instance|instance_get_initialized_synced_options')
+}
+export function isSyncedOptionAvailable(option: SyncedOption): boolean {
+	return true
+}
+export async function set_global_synced_option(
+	option: SyncedOption,
+	enabled: boolean,
+	baseInstanceId?: string | null,
+): Promise<GlobalSyncedOptions> {
+	return await invoke('plugin:instance|instance_set_synced_option', {
+		option,
+		enabled,
+		baseInstanceId,
+	})
+}
+export async function set_instance_synced_option(
+	instanceId: string,
+	option: SyncedOption,
+	enabled: boolean,
+	resolution?: string | null,
+): Promise<GameInstance> {
+	return await invoke('plugin:instance|instance_set_instance_synced_option', {
+		instanceId,
+		option,
+		enabled,
+		resolution,
+	})
+}
+export async function get_synced_options_overview(
+	instanceId: string,
+): Promise<SyncedOptionsOverview> {
+	return await invoke('plugin:instance|instance_get_synced_options_overview', { instanceId })
+}
+export async function get_command_history(): Promise<string> {
+	return await invoke('plugin:instance|instance_get_synced_command_history')
+}
+export async function set_command_history(contents: string): Promise<string> {
+	return await invoke('plugin:instance|instance_set_synced_command_history', { contents })
+}
+export type SyncedServer = {
+	id: string
+	name: string
+	address: string
+	accept_textures: boolean | null
+}
+export async function list_synced_servers(): Promise<SyncedServer[]> {
+	return await invoke('plugin:instance|instance_list_synced_servers')
+}
+export async function update_synced_server(server: SyncedServer): Promise<void> {
+	await invoke('plugin:instance|instance_update_synced_server', { server })
+}
+export async function remove_synced_server(id: string): Promise<void> {
+	await invoke('plugin:instance|instance_remove_synced_server', { id })
 }
 
 export async function get_projects(
@@ -587,6 +666,20 @@ export async function get_dependencies_as_content_items(
 	return items
 }
 
+export function adaptContentItems(items: ContentItem[]): ContentItem[] {
+	return items.map((item) => {
+		const embeddedMetadata = item.embedded_metadata
+		if (!embeddedMetadata?.icon_path) return item
+		return {
+			...item,
+			embedded_metadata: {
+				...embeddedMetadata,
+				icon_url: convertFileSrc(embeddedMetadata.icon_path),
+			},
+		}
+	})
+}
+
 export async function get_full_path(instanceId: string): Promise<string> {
 	return await invoke('plugin:instance|instance_get_full_path', { instanceId })
 }
@@ -617,7 +710,7 @@ export type DailyPlaytime = {
 	top_instance_name?: string | null
 }
 
-export async function set_pinned(instanceId: string, pinned: boolean): Promise<GameInstance> {
+export async function set_pinned(instanceId: string, pinned: boolean): Promise<void> {
 	return await invoke('plugin:instance|instance_set_pinned', { instanceId, pinned })
 }
 
@@ -675,6 +768,15 @@ export interface ResolvedContent {
 	version_id: string
 	dependent_on_version_id?: string | null
 	required?: boolean
+	metadata?: ContentMetadata | null
+}
+
+export interface ContentMetadata {
+	title?: string | null
+	version_number?: string | null
+	icon_url?: string | null
+	filename?: string | null
+	sha1?: string | null
 }
 
 export interface ResolveContentPlan {
@@ -748,7 +850,15 @@ export async function queue_project_with_dependencies(
 }
 
 export type InstallContentBatchItem =
-	| { type: 'modrinth'; project_id: string; version_id?: string; content_type: Labrinth.Content.v3.ContentType; selected?: unknown; excluded_project_ids?: string[]; force_project_ids?: string[] }
+	| {
+			type: 'modrinth'
+			project_id: string
+			version_id?: string
+			content_type: Labrinth.Content.v3.ContentType
+			selected?: unknown
+			excluded_project_ids?: string[]
+			force_project_ids?: string[]
+	  }
 	| { type: 'curse_forge'; request: unknown }
 	| { type: 'curse_forge_world'; request: unknown }
 
@@ -758,7 +868,12 @@ export async function queue_content_batch(
 	display: { title: string; iconUrl?: string | null },
 ): Promise<InstallJobSnapshot> {
 	return await invoke('plugin:instance|instance_queue_content_batch', {
-		request: { instanceId, items, displayTitle: display.title, displayIcon: display.iconUrl ?? null },
+		request: {
+			instanceId,
+			items,
+			displayTitle: display.title,
+			displayIcon: display.iconUrl ?? null,
+		},
 	})
 }
 
@@ -878,19 +993,26 @@ export async function remove_content_entry(instanceId: string, contentId: string
 	return await invoke('plugin:instance|instance_remove_content_entry', { instanceId, contentId })
 }
 
-export async function update_content_entry(instanceId: string, contentId: string): Promise<string> {
-	return await invoke('plugin:instance|instance_update_content_entry', { instanceId, contentId })
-}
+export type ContentChangeIntent =
+	| { type: 'update_one'; content_id: string; target_release_id?: string | null }
+	| {
+			type: 'update_selected'
+			targets: Array<{ content_id: string; target_release_id: string }>
+	  }
+	| { type: 'update_all_user_added' }
+	| { type: 'switch_version'; content_id: string; target_release_id: string }
 
-export async function switch_content_entry_version(
+export async function queue_content_change(
 	instanceId: string,
-	contentId: string,
-	versionId: string,
-): Promise<string> {
-	return await invoke('plugin:instance|instance_switch_content_entry_version', {
+	intent: ContentChangeIntent,
+	displayTitle: string,
+	displayIcon?: string,
+): Promise<InstallJobSnapshot> {
+	return await invoke('plugin:instance|instance_queue_content_change', {
 		instanceId,
-		contentId,
-		versionId,
+		intent,
+		displayTitle,
+		displayIcon,
 	})
 }
 
@@ -1134,4 +1256,91 @@ export async function check_symlink_capability(): Promise<SymlinkCapability> {
 
 export async function allow_symlink_target(path: string): Promise<void> {
 	return await invoke('allow_symlink_target', { path })
+}
+
+export type ScreenshotKey = { instance_id: string; file_name: string }
+export type InstanceScreenshot = {
+	id: string
+	instance_id: string
+	instance_name: string
+	file_name: string
+	created_at: string
+	modified_at: number
+	group_id: string | null
+	path: string
+	url: string
+}
+export type ScreenshotGroup = { id: string; name: string }
+export type ScreenshotGroupImport = ScreenshotGroup & { screenshot_ids: string[] }
+export type ScreenshotGroupMembershipUpdate = { screenshot_id: string; group_id: string | null }
+
+export async function list_screenshots(instanceId: string): Promise<InstanceScreenshot[]> {
+	return await invoke('plugin:instance|instance_list_screenshots', { instanceId })
+}
+export async function list_all_screenshots(): Promise<InstanceScreenshot[]> {
+	return await invoke('plugin:instance|instance_list_all_screenshots')
+}
+export async function list_synced_screenshots(): Promise<InstanceScreenshot[]> {
+	return await invoke('plugin:instance|instance_list_synced_screenshots')
+}
+export async function list_screenshot_groups(): Promise<ScreenshotGroup[]> {
+	return await invoke('plugin:instance|instance_list_screenshot_groups')
+}
+export async function create_screenshot_group(
+	name: string,
+	screenshotIds: string[],
+): Promise<ScreenshotGroup> {
+	return await invoke('plugin:instance|instance_create_screenshot_group', {
+		name,
+		ids: screenshotIds,
+	})
+}
+export async function rename_screenshot_group(
+	id: string,
+	newName: string,
+): Promise<ScreenshotGroup> {
+	return await invoke('plugin:instance|instance_rename_screenshot_group', { id, newName })
+}
+export async function delete_screenshot_group(id: string): Promise<void> {
+	return await invoke('plugin:instance|instance_delete_screenshot_group', { id })
+}
+export async function set_screenshot_group_memberships(
+	updates: ScreenshotGroupMembershipUpdate[],
+): Promise<void> {
+	return await invoke('plugin:instance|instance_set_screenshot_group_memberships', { updates })
+}
+export async function import_screenshot_groups(groups: ScreenshotGroupImport[]): Promise<void> {
+	return await invoke('plugin:instance|instance_import_screenshot_groups', { groups })
+}
+export async function save_edited_screenshot(
+	key: ScreenshotKey,
+	pngBytes: Uint8Array,
+	mode: 'create_copy' | 'replace_edit',
+): Promise<InstanceScreenshot> {
+	return await invoke('plugin:instance|instance_save_edited_screenshot', {
+		key,
+		bytes: Array.from(pngBytes),
+		mode,
+	})
+}
+export async function delete_screenshots(keys: ScreenshotKey[]): Promise<void> {
+	return await invoke('plugin:instance|instance_delete_screenshots', { keys })
+}
+export async function export_screenshots(keys: ScreenshotKey[], path: string): Promise<void> {
+	return await invoke('plugin:instance|instance_export_screenshots', { keys, path })
+}
+export function getInstanceIconUrl(iconPath?: string | null): string | undefined {
+	return iconPath ? convertFileSrc(iconPath) : undefined
+}
+export async function open_screenshot(key: ScreenshotKey): Promise<void> {
+	return await invoke('plugin:instance|instance_open_screenshot', { key })
+}
+export async function move_screenshots(
+	keys: ScreenshotKey[],
+	targetInstanceId: string,
+): Promise<ScreenshotKey[]> {
+	return await invoke('plugin:instance|instance_move_screenshots', {
+		keys,
+		target: targetInstanceId,
+	})
 }

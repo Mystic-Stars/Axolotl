@@ -377,12 +377,12 @@ import {
 	update_instance_upgrade_resolution,
 	update_instance_upgrade_resolutions,
 } from '@/helpers/instance-upgrade'
-import { parkUpgradeFlow, upgradeProjectPath } from '@/helpers/upgrade-return-state'
 import {
 	loadUpgradeVersionDisplayMetadata,
 	type UpgradeReleaseIdentity,
 	upgradeVersionDisplayLabel,
 } from '@/helpers/upgrade-version-metadata'
+import { parkUpgradeFlow, upgradeProjectPath } from '@/store/navigation-return'
 
 import {
 	actionableWarningContentIds,

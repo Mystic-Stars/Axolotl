@@ -99,7 +99,7 @@
     "defaultMessage": "已验证游玩次数"
   },
   "browse.view-prefix": {
-    "defaultMessage": "查看："
+    "defaultMessage": "查看"
   },
   "button.accept": {
     "defaultMessage": "接受"
@@ -213,7 +213,7 @@
     "defaultMessage": "重新安装整合包"
   },
   "button.remove": {
-    "defaultMessage": "删除通行密钥"
+    "defaultMessage": "删除"
   },
   "button.remove-image": {
     "defaultMessage": "移除图片"
@@ -2316,7 +2316,7 @@
     "defaultMessage": "单人游戏"
   },
   "label.sort-by": {
-    "defaultMessage": "排序方式："
+    "defaultMessage": "排序方式"
   },
   "label.success": {
     "defaultMessage": "成功"
@@ -3701,6 +3701,144 @@
   "settings.sessions.title": {
     "defaultMessage": "会话"
   },
+  "skin.preview.armor.equip-material": {
+    "message": "为{slot}装备{material}"
+  },
+  "skin.preview.armor.material": {
+    "message": "盔甲材质"
+  },
+  "skin.preview.armor.material.chainmail": {
+    "message": "锁链"
+  },
+  "skin.preview.armor.material.copper": {
+    "message": "铜"
+  },
+  "skin.preview.armor.material.diamond": {
+    "message": "钻石"
+  },
+  "skin.preview.armor.material.gold": {
+    "message": "金"
+  },
+  "skin.preview.armor.material.iron": {
+    "message": "铁"
+  },
+  "skin.preview.armor.material.leather": {
+    "message": "皮革"
+  },
+  "skin.preview.armor.material.netherite": {
+    "message": "下界合金"
+  },
+  "skin.preview.armor.material.turtle": {
+    "message": "海龟壳"
+  },
+  "skin.preview.armor.open": {
+    "message": "盔甲与纹饰"
+  },
+  "skin.preview.armor.piece": {
+    "message": "盔甲部位"
+  },
+  "skin.preview.armor.remove-piece": {
+    "message": "脱下{slot}"
+  },
+  "skin.preview.armor.remove-trim": {
+    "message": "无盔甲纹饰"
+  },
+  "skin.preview.armor.slot-state": {
+    "message": "{slot}：{state}"
+  },
+  "skin.preview.armor.slot.boots": {
+    "message": "靴子"
+  },
+  "skin.preview.armor.slot.chestplate": {
+    "message": "胸甲"
+  },
+  "skin.preview.armor.slot.helmet": {
+    "message": "头盔"
+  },
+  "skin.preview.armor.slot.leggings": {
+    "message": "护腿"
+  },
+  "skin.preview.armor.trim-material": {
+    "message": "纹饰材料"
+  },
+  "skin.preview.armor.trim-material.amethyst": {
+    "message": "紫水晶"
+  },
+  "skin.preview.armor.trim-material.emerald": {
+    "message": "绿宝石"
+  },
+  "skin.preview.armor.trim-material.lapis": {
+    "message": "青金石"
+  },
+  "skin.preview.armor.trim-material.quartz": {
+    "message": "下界石英"
+  },
+  "skin.preview.armor.trim-material.redstone": {
+    "message": "红石"
+  },
+  "skin.preview.armor.trim-material.resin": {
+    "message": "树脂砖"
+  },
+  "skin.preview.armor.trim-pattern": {
+    "message": "纹饰图案"
+  },
+  "skin.preview.armor.trim.bolt": {
+    "message": "镶铆盔甲纹饰"
+  },
+  "skin.preview.armor.trim.coast": {
+    "message": "海岸盔甲纹饰"
+  },
+  "skin.preview.armor.trim.dune": {
+    "message": "沙丘盔甲纹饰"
+  },
+  "skin.preview.armor.trim.eye": {
+    "message": "眼眸盔甲纹饰"
+  },
+  "skin.preview.armor.trim.flow": {
+    "message": "旋风盔甲纹饰"
+  },
+  "skin.preview.armor.trim.host": {
+    "message": "牧民盔甲纹饰"
+  },
+  "skin.preview.armor.trim.raiser": {
+    "message": "举起盔甲纹饰"
+  },
+  "skin.preview.armor.trim.rib": {
+    "message": "肋骨盔甲纹饰"
+  },
+  "skin.preview.armor.trim.sentry": {
+    "message": "哨兵盔甲纹饰"
+  },
+  "skin.preview.armor.trim.shaper": {
+    "message": "塑形盔甲纹饰"
+  },
+  "skin.preview.armor.trim.silence": {
+    "message": "幽静盔甲纹饰"
+  },
+  "skin.preview.armor.trim.snout": {
+    "message": "猪鼻盔甲纹饰"
+  },
+  "skin.preview.armor.trim.spire": {
+    "message": "尖塔盔甲纹饰"
+  },
+  "skin.preview.armor.trim.tide": {
+    "message": "潮汐盔甲纹饰"
+  },
+  "skin.preview.armor.trim.vex": {
+    "message": "恼鬼盔甲纹饰"
+  },
+  "skin.preview.armor.trim.ward": {
+    "message": "监守盔甲纹饰"
+  },
+  "skin.preview.armor.trim.wayfinder": {
+    "message": "向导盔甲纹饰"
+  },
+  "skin.preview.armor.trim.wild": {
+    "message": "荒野盔甲纹饰"
+  },
+  "skin.preview.armor.unequipped": {
+    "message": "未装备"
+  },
   "skin.preview.drag-to-rotate": {
     "defaultMessage": "拖动以旋转"
   },
@@ -4774,5 +4912,107 @@
   },
   "drop.confirm.as-data-pack-desc": {
     "defaultMessage": "将数据包安装到存档"
+  },
+  "image-viewer.close": {
+    "message": "关闭"
+  },
+  "image-viewer.edit": {
+    "message": "编辑"
+  },
+  "image-viewer.editor.colour": {
+    "message": "颜色"
+  },
+  "image-viewer.editor.crop.dimensions": {
+    "message": "{width} × {height} 像素"
+  },
+  "image-viewer.editor.crop.reset": {
+    "message": "重置裁剪"
+  },
+  "image-viewer.editor.delete-selection": {
+    "message": "删除选中的标注"
+  },
+  "image-viewer.editor.eraser.area": {
+    "message": "区域"
+  },
+  "image-viewer.editor.eraser.element": {
+    "message": "元素"
+  },
+  "image-viewer.editor.eraser.mode": {
+    "message": "橡皮擦模式"
+  },
+  "image-viewer.editor.image-editing-tools": {
+    "message": "图片编辑工具"
+  },
+  "image-viewer.editor.more-save-options": {
+    "message": "更多保存选项"
+  },
+  "image-viewer.editor.overwrite": {
+    "message": "覆盖"
+  },
+  "image-viewer.editor.redo": {
+    "message": "重做"
+  },
+  "image-viewer.editor.save-as-new": {
+    "message": "保存副本"
+  },
+  "image-viewer.editor.save-image": {
+    "message": "保存图片"
+  },
+  "image-viewer.editor.size": {
+    "message": "大小"
+  },
+  "image-viewer.editor.tool.arrow": {
+    "message": "箭头"
+  },
+  "image-viewer.editor.tool.censor": {
+    "message": "遮挡"
+  },
+  "image-viewer.editor.tool.crop": {
+    "message": "裁剪"
+  },
+  "image-viewer.editor.tool.ellipse": {
+    "message": "椭圆"
+  },
+  "image-viewer.editor.tool.eraser": {
+    "message": "橡皮擦"
+  },
+  "image-viewer.editor.tool.highlight": {
+    "message": "高亮"
+  },
+  "image-viewer.editor.tool.pen": {
+    "message": "画笔"
+  },
+  "image-viewer.editor.tool.rectangle": {
+    "message": "矩形"
+  },
+  "image-viewer.editor.tool.select": {
+    "message": "选择"
+  },
+  "image-viewer.editor.tool.text": {
+    "message": "文本"
+  },
+  "image-viewer.editor.undo": {
+    "message": "撤销"
+  },
+  "image-viewer.editor.width": {
+    "message": "宽度"
+  },
+  "image-viewer.editor.zoom-fit": {
+    "message": "适应"
+  },
+  "image-viewer.editor.zoom-fit-workspace": {
+    "message": "适应工作区"
+  },
+  "image-viewer.editor.zoom-in": {
+    "message": "放大"
+  },
+  "image-viewer.editor.zoom-out": {
+    "message": "缩小"
+  },
+  "image-viewer.next": {
+    "message": "下一张图片"
+  },
+  "image-viewer.previous": {
+    "message": "上一张图片"
   }
 }

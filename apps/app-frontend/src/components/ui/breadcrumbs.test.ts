@@ -38,8 +38,24 @@ test('upgrade breadcrumb reuses localized Upgrade instance message at runtime', 
 	assert.equal(resolve(), '升級實例')
 })
 
+test('screenshots breadcrumb resolves through the active locale', () => {
+	let locale: 'en-US' | 'zh-CN' = 'en-US'
+	const labels = { Screenshots: 'app.navigation.screenshots' }
+	const resolve = () =>
+		resolveBreadcrumbLabel(
+			'Screenshots',
+			() => '',
+			labels,
+			(messageId) => localeMessages[locale][messageId].message,
+		)
+
+	assert.equal(resolve(), 'Screenshots')
+	locale = 'zh-CN'
+	assert.equal(resolve(), '截图中心')
+})
+
 test('upgrade route paths, internal names, and breadcrumb depth stay unchanged', () => {
-	const routes = readFileSync(new URL('../../routes.js', import.meta.url), 'utf8')
+	const routes = readFileSync(new URL('../../routes/instance.ts', import.meta.url), 'utf8')
 	assert.match(routes, /useRootContext: true,[\s\S]*?breadcrumb: \[\{ name: 'Upgrade' \}\]/)
 	assert.doesNotMatch(routes, /breadcrumb: \[\{ name: '\?Instance'[^\]]*\{ name: 'Upgrade' \}\]/)
 	for (const [path, name] of [
@@ -57,7 +73,9 @@ test('upgrade route paths, internal names, and breadcrumb depth stay unchanged',
 test('breadcrumb component resolves Upgrade through formatMessage on each render', () => {
 	const source = readFileSync(new URL('./Breadcrumbs.vue', import.meta.url), 'utf8')
 	assert.match(source, /Upgrade: messages\.upgradeInstance/)
+	assert.match(source, /Screenshots: messages\.screenshots/)
 	assert.match(source, /Upgrade: ArrowBigUpDashIcon/)
+	assert.match(source, /screenshots: \{ id: 'app\.navigation\.screenshots'/)
 	assert.match(source, /id: 'app\.instance\.upgrade-instance'/)
 	assert.match(source, /resolveBreadcrumbLabel\([\s\S]*?\(message\) => formatMessage\(message\)/)
 })

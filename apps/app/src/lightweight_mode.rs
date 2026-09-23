@@ -257,6 +257,19 @@ impl LightweightMode {
                         )
                         .await;
                     }
+                    if let Some(title) = payload
+                        .window_title
+                        .as_ref()
+                        .map(|value| value.trim())
+                        .filter(|value| !value.is_empty())
+                    {
+                        rename_minecraft_window(
+                            payload.pid,
+                            title,
+                            payload.launch_preparation_timeout,
+                        )
+                        .await;
+                    }
                     let settings = match theseus::settings::get().await {
                         Ok(settings) => settings,
                         Err(error) => {
@@ -336,6 +349,8 @@ struct ProcessEventPayload {
     pid: u32,
     #[serde(default)]
     maximize_window: bool,
+    #[serde(default)]
+    window_title: Option<String>,
     #[serde(default)]
     launch_preparation_timeout: Option<u64>,
     event: String,
@@ -451,6 +466,77 @@ async fn maximize_minecraft_window(
 #[cfg(not(target_os = "windows"))]
 async fn maximize_minecraft_window(
     _pid: u32,
+    _launch_preparation_timeout: Option<u64>,
+) {
+}
+
+#[cfg(target_os = "windows")]
+async fn rename_minecraft_window(
+    pid: u32,
+    title: &str,
+    launch_preparation_timeout: Option<u64>,
+) {
+    if pid == 0 || title.is_empty() {
+        return;
+    }
+
+    // PCL keeps re-applying the title: FML/Quilt and some mods reset it
+    // while the game boots, so a one-shot rename is not enough.
+    let timeout = std::time::Duration::from_secs(
+        launch_preparation_timeout.unwrap_or(60),
+    );
+    let deadline = tokio::time::Instant::now() + timeout;
+    let title = title.to_string();
+    let mut applied = false;
+    let mut hold_until: Option<tokio::time::Instant> = None;
+    loop {
+        let found = {
+            let _guard = MAXIMIZE_WINDOW_ENUMERATION.lock();
+            MAXIMIZE_PROCESS_ID.store(pid, Ordering::Relaxed);
+            MAXIMIZE_WINDOW_HANDLE.store(0, Ordering::Relaxed);
+            unsafe {
+                use windows::Win32::Foundation::LPARAM;
+                use windows::Win32::UI::WindowsAndMessaging::EnumWindows;
+                let _ =
+                    EnumWindows(Some(maximize_if_owned_by_process), LPARAM(0));
+            }
+            MAXIMIZE_WINDOW_HANDLE.load(Ordering::Relaxed)
+        };
+        if found != 0 {
+            let hwnd = windows::Win32::Foundation::HWND(found as *mut _);
+            let wide: Vec<u16> = title.encode_utf16().chain(Some(0)).collect();
+            unsafe {
+                use windows::Win32::UI::WindowsAndMessaging::SetWindowTextW;
+                let _ =
+                    SetWindowTextW(hwnd, windows::core::PCWSTR(wide.as_ptr()));
+            }
+            if !applied {
+                applied = true;
+                // Keep watching for a bit after the first success so loader
+                // splash windows cannot leave the default title behind.
+                hold_until = Some(
+                    tokio::time::Instant::now()
+                        + std::time::Duration::from_secs(45),
+                );
+            }
+        }
+        let now = tokio::time::Instant::now();
+        if let Some(hold) = hold_until
+            && now >= hold
+        {
+            return;
+        }
+        if hold_until.is_none() && now >= deadline {
+            return;
+        }
+        tokio::time::sleep(std::time::Duration::from_millis(400)).await;
+    }
+}
+
+#[cfg(not(target_os = "windows"))]
+async fn rename_minecraft_window(
+    _pid: u32,
+    _title: &str,
     _launch_preparation_timeout: Option<u64>,
 ) {
 }

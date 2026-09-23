@@ -32,7 +32,11 @@
 			</button>
 		</ButtonStyled>
 		<ButtonStyled>
-			<button :disabled="loginDisabled" @click="showOfflineAccountModal()">
+			<button
+				data-onboarding-id="offline-account-entry"
+				:disabled="loginDisabled"
+				@click="showOfflineAccountModal()"
+			>
 				<PlusIcon />
 				{{ formatMessage(messages.addOfflineAccount) }}
 			</button>
@@ -71,13 +75,13 @@
 		</template>
 		<div class="bg-button-bg pt-1 pb-2 border-0 border-t border-solid border-surface-5">
 			<template v-if="accounts.length > 0">
-				<div v-for="account in accounts" :key="account.profile.id" class="flex gap-1 items-center">
+				<div v-for="account in accounts" :key="account.account_id" class="flex gap-1 items-center">
 					<button
 						class="flex items-center flex-shrink flex-grow overflow-clip gap-2 p-2 border-0 bg-transparent cursor-pointer button-base min-w-0"
 						@click="setAccount(account)"
 					>
 						<RadioButtonCheckedIcon
-							v-if="selectedAccount && selectedAccount.profile.id === account.profile.id"
+							v-if="selectedAccount && selectedAccount.account_id === account.account_id"
 							class="w-5 h-5 text-brand shrink-0"
 						/>
 						<RadioButtonIcon v-else class="w-5 h-5 text-secondary shrink-0" />
@@ -91,7 +95,7 @@
 							<p
 								class="m-0 truncate text-left"
 								:class="
-									selectedAccount && selectedAccount.profile.id === account.profile.id
+									selectedAccount && selectedAccount.account_id === account.account_id
 										? 'text-contrast font-semibold'
 										: 'text-primary'
 								"
@@ -155,7 +159,11 @@
 					</button>
 				</ButtonStyled>
 				<ButtonStyled v-if="accounts.length > 0" class="w-full">
-					<button :disabled="loginDisabled" @click="showOfflineAccountModal()">
+					<button
+						data-onboarding-id="offline-account-entry"
+						:disabled="loginDisabled"
+						@click="showOfflineAccountModal()"
+					>
 						<PlusIcon />
 						{{ formatMessage(messages.addOfflineAccount) }}
 					</button>
@@ -421,6 +429,7 @@ const emit = defineEmits<{
 }>()
 
 type MinecraftCredential = {
+	account_id: string
 	account_type: 'microsoft' | 'offline' | 'yggdrasil'
 	profile: {
 		id: string
@@ -523,8 +532,8 @@ function hasResolvedAccountHead(account: MinecraftCredential) {
 	const skin = getAccountSkin(account)
 	return Boolean(
 		skin &&
-		accountHeadUrlCache.value.has(account.profile.id) &&
-		accountHeadTextureKeyCache.value.get(account.profile.id) === skin.texture_key,
+		accountHeadUrlCache.value.has(account.account_id) &&
+		accountHeadTextureKeyCache.value.get(account.account_id) === skin.texture_key,
 	)
 }
 
@@ -593,7 +602,7 @@ async function refreshValues(headRefreshAttempt = 0) {
 				)
 				if (selectedUser) {
 					const selectedAccountSkin = getAccountSkin(
-						accounts.value.find((account) => account.profile.id === selectedUser),
+						accounts.value.find((account) => account.account_id === selectedUser),
 					)
 					cacheAccountHead(selectedUser, selectedAccountSkin ?? equippedSkin.value, headUrl)
 				}
@@ -646,7 +655,7 @@ watch(offline, async () => {
 })
 
 const selectedAccount = computed(() =>
-	accounts.value.find((account) => account.profile.id === defaultUser.value),
+	accounts.value.find((account) => account.account_id === defaultUser.value),
 )
 
 function notifyAccountChange() {
@@ -704,9 +713,9 @@ async function renderAccountHeads(accountList: MinecraftCredential[], generation
 			try {
 				const headUrl = await getPlayerHeadUrl(skin)
 				if (generation !== refreshGeneration) return
-				cacheAccountHead(account.profile.id, skin, headUrl)
+				cacheAccountHead(account.account_id, skin, headUrl)
 			} catch (error) {
-				console.warn(`Failed to render head for account ${account.profile.id}:`, error)
+				console.warn(`Failed to render head for account ${account.account_id}:`, error)
 			}
 		}),
 	)
@@ -714,7 +723,7 @@ async function renderAccountHeads(accountList: MinecraftCredential[], generation
 
 const avatarUrl = computed(() => {
 	if (selectedAccount.value) {
-		const cachedHeadUrl = accountHeadUrlCache.value.get(selectedAccount.value.profile.id)
+		const cachedHeadUrl = accountHeadUrlCache.value.get(selectedAccount.value.account_id)
 		if (cachedHeadUrl) return cachedHeadUrl
 	}
 	if (equippedSkin.value?.texture_key) {
@@ -727,12 +736,12 @@ const avatarUrl = computed(() => {
 })
 
 function getAccountAvatarUrl(account: MinecraftCredential) {
-	const cachedHeadUrl = accountHeadUrlCache.value.get(account.profile.id)
+	const cachedHeadUrl = accountHeadUrlCache.value.get(account.account_id)
 	if (cachedHeadUrl) {
 		return cachedHeadUrl
 	}
 	if (
-		account.profile.id === selectedAccount.value?.profile?.id &&
+		account.account_id === selectedAccount.value?.account_id &&
 		equippedSkin.value?.texture_key
 	) {
 		const cachedUrl = headUrlCache.value.get(equippedSkin.value.texture_key)
@@ -752,7 +761,7 @@ function persistDefaultUser(userId: string) {
 }
 
 async function setAccount(account: MinecraftCredential) {
-	const userId = account.profile.id
+	const userId = account.account_id
 	refreshGeneration += 1
 	defaultUser.value = userId
 	equippedSkin.value = null
@@ -1008,7 +1017,7 @@ function isDuplicateUuidError(error: unknown) {
 }
 
 async function logout(account: MinecraftCredential) {
-	await remove_user(account.profile.id).catch(handleError)
+	await remove_user(account.account_id).catch(handleError)
 	await refreshValues()
 	if (!selectedAccount.value && accounts.value.length > 0) {
 		await setAccount(accounts.value[0])

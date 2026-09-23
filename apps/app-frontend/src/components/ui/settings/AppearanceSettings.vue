@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import {
 	CheckIcon,
+	ChevronDownIcon,
 	ImageIcon,
 	LayoutTemplateIcon,
 	MinimizeIcon,
@@ -26,8 +27,22 @@ import { open } from '@tauri-apps/plugin-dialog'
 import { exists, mkdir, readFile, remove, writeFile } from '@tauri-apps/plugin-fs'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 
+import HeadlessSelect from '@/components/ui/headless/HeadlessSelect.vue'
+import HeadlessTooltip from '@/components/ui/headless/HeadlessTooltip.vue'
+import {
+	buildFontFamilyOptions,
+	canonicalFontFamily,
+	DEFAULT_MONO_FONT_STACK,
+	DEFAULT_UI_FONT_STACK,
+	type FontFamilyOption,
+	type FontFamilyOptionOrDivider,
+	optionValueToFontSetting,
+	resolveFontFamily,
+	type SystemFontFamily,
+} from '@/helpers/font-family.ts'
 import { getShowScrollTop, setShowScrollTop } from '@/helpers/scroll-top-state'
 import { get, set } from '@/helpers/settings.ts'
+import { getSystemFontFamilies } from '@/helpers/system-fonts.ts'
 import { getOS } from '@/helpers/utils'
 import { useTheming } from '@/store/state'
 import {
@@ -183,6 +198,15 @@ const messages = defineMessages({
 		id: 'app.appearance-settings.custom-background.opacity-description',
 		defaultMessage: 'Control how strongly the image shows through the interface.',
 	},
+	customBackgroundComponentOpacity: {
+		id: 'app.appearance-settings.custom-background.component-opacity',
+		defaultMessage: 'Component opacity',
+	},
+	customBackgroundComponentOpacityDescription: {
+		id: 'app.appearance-settings.custom-background.component-opacity-description',
+		defaultMessage:
+			'How opaque launcher components and chrome stay over a custom background. At 100% components are fully opaque; lower it to let the image show through.',
+	},
 	transparentBackgroundTitle: {
 		id: 'app.appearance-settings.transparent-background.title',
 		defaultMessage: 'Transparent background',
@@ -311,6 +335,14 @@ const messages = defineMessages({
 		id: 'app.appearance-settings.home-layout.minimal',
 		defaultMessage: 'Minimal',
 	},
+	homeWidgetBackgroundOpacityTitle: {
+		id: 'app.appearance-settings.home-widget-background-opacity.title',
+		defaultMessage: 'Home widget background opacity',
+	},
+	homeWidgetBackgroundOpacityDescription: {
+		id: 'app.appearance-settings.home-widget-background-opacity.description',
+		defaultMessage: 'Lower this to let the launcher background show through home widgets.',
+	},
 	selectOption: {
 		id: 'app.appearance-settings.select-option',
 		defaultMessage: 'Select an option',
@@ -374,10 +406,181 @@ const messages = defineMessages({
 		defaultMessage:
 			'Hide the downloads button in the sidebar when there are no active download tasks.',
 	},
+	hiddenNavItemsTitle: {
+		id: 'app.appearance-settings.hidden-nav-items.title',
+		defaultMessage: 'Navigation items',
+	},
+	hiddenNavItemsDescription: {
+		id: 'app.appearance-settings.hidden-nav-items.description',
+		defaultMessage:
+			'Choose which fixed navigation buttons stay visible. Hidden pages remain reachable by URL or keyboard shortcuts.',
+	},
+	hiddenNavLockedCore: {
+		id: 'app.appearance-settings.hidden-nav-items.locked-core',
+		defaultMessage: 'Home and Library always stay visible so you can find your way back.',
+	},
+	hiddenNavLockedDefaultPage: {
+		id: 'app.appearance-settings.hidden-nav-items.locked-default-page',
+		defaultMessage: 'This item is your default landing page. Change that first to hide it.',
+	},
+	navGroupBrowse: {
+		id: 'app.appearance-settings.hidden-nav-items.group-browse',
+		defaultMessage: 'Browse',
+	},
+	navGroupPlay: {
+		id: 'app.appearance-settings.hidden-nav-items.group-play',
+		defaultMessage: 'Play',
+	},
+	navGroupTools: {
+		id: 'app.appearance-settings.hidden-nav-items.group-tools',
+		defaultMessage: 'Tools',
+	},
+	navHome: { id: 'app.navigation.home', defaultMessage: 'Home' },
+	navDiscover: {
+		id: 'app.navigation.discover-content',
+		defaultMessage: 'Discover content',
+	},
+	navScreenshots: { id: 'app.navigation.screenshots', defaultMessage: 'Screenshots' },
+	navLibrary: { id: 'app.navigation.library', defaultMessage: 'Library' },
+	navWorlds: { id: 'app.navigation.worlds', defaultMessage: 'Worlds' },
+	navMultiplayer: { id: 'app.navigation.multiplayer', defaultMessage: 'Multiplayer' },
+	navSkins: { id: 'app.navigation.skin-selector', defaultMessage: 'Skin selector' },
+	navLab: { id: 'app.navigation.lab', defaultMessage: 'Lab' },
+	navDownloads: { id: 'app.navigation.downloads', defaultMessage: 'Downloads' },
+	fontsTitle: { id: 'app.appearance-settings.fonts.title', defaultMessage: 'Fonts' },
+	fontsDescription: {
+		id: 'app.appearance-settings.fonts.description',
+		defaultMessage: 'Choose the fonts the launcher interface and its logs are rendered in.',
+	},
+	uiFontTitle: { id: 'app.appearance-settings.fonts.ui-font', defaultMessage: 'Interface font' },
+	uiFontDescription: {
+		id: 'app.appearance-settings.fonts.ui-font-description',
+		defaultMessage:
+			'Used across the launcher interface. Only fonts installed on this system are listed.',
+	},
+	monoFontTitle: {
+		id: 'app.appearance-settings.fonts.mono-font',
+		defaultMessage: 'Monospace font',
+	},
+	monoFontDescription: {
+		id: 'app.appearance-settings.fonts.mono-font-description',
+		defaultMessage: 'Used for logs, the server console, and other monospace content.',
+	},
+	fontDefault: {
+		id: 'app.appearance-settings.fonts.default',
+		defaultMessage: 'Launcher default',
+	},
+	fontMonospace: {
+		id: 'app.appearance-settings.fonts.monospace',
+		defaultMessage: 'Monospace',
+	},
+	fontMissing: {
+		id: 'app.appearance-settings.fonts.missing',
+		defaultMessage: 'Not installed',
+	},
+	fontSearchPlaceholder: {
+		id: 'app.appearance-settings.fonts.search-placeholder',
+		defaultMessage: 'Search installed fonts',
+	},
+	fontNoResults: {
+		id: 'app.appearance-settings.fonts.no-results',
+		defaultMessage: 'No matching fonts',
+	},
+	fontLoadFailed: {
+		id: 'app.appearance-settings.fonts.load-failed',
+		defaultMessage: "Couldn't read the list of installed fonts.",
+	},
+	fontRetry: { id: 'app.appearance-settings.fonts.retry', defaultMessage: 'Retry' },
+	fontReset: {
+		id: 'app.appearance-settings.fonts.reset',
+		defaultMessage: 'Reset to default',
+	},
+	fontPreviewLabel: { id: 'app.appearance-settings.fonts.preview', defaultMessage: 'Preview' },
+	fontUiPreviewSample: {
+		id: 'app.appearance-settings.fonts.ui-preview-sample',
+		defaultMessage: 'The quick brown fox jumps over the lazy dog. 0123456789',
+	},
+	fontMonoPreviewSample: {
+		id: 'app.appearance-settings.fonts.mono-preview-sample',
+		defaultMessage: '[12:34:56] [Server thread/INFO]: Preparing spawn area: 43%',
+	},
 })
 
 const os = ref(await getOS())
 const settings = ref(await get())
+
+/** Nav ids that must stay visible so the shell remains navigable. */
+const LOCKED_NAV_ITEM_IDS = new Set(['home', 'library'])
+
+/** Maps default_page values onto the nav rail item that serves them. */
+const DEFAULT_PAGE_NAV_ID: Record<string, string> = {
+	Home: 'home',
+	DiscoverContent: 'discover',
+	Library: 'library',
+}
+
+type NavTreeItem = {
+	id: string
+	label: MessageDescriptor
+	/** Parent ids nest under a group row; undefined is a root item. */
+	group?: 'browse' | 'play' | 'tools'
+}
+
+const NAV_TREE_ITEMS: NavTreeItem[] = [
+	{ id: 'home', label: messages.navHome, group: 'browse' },
+	{ id: 'discover', label: messages.navDiscover, group: 'browse' },
+	{ id: 'screenshots', label: messages.navScreenshots, group: 'browse' },
+	{ id: 'library', label: messages.navLibrary, group: 'play' },
+	{ id: 'worlds', label: messages.navWorlds, group: 'play' },
+	{ id: 'multiplayer', label: messages.navMultiplayer, group: 'play' },
+	{ id: 'skins', label: messages.navSkins, group: 'play' },
+	{ id: 'lab', label: messages.navLab, group: 'tools' },
+	{ id: 'downloads', label: messages.navDownloads, group: 'tools' },
+]
+
+const NAV_TREE_GROUPS = [
+	{ id: 'browse' as const, labelKey: messages.navGroupBrowse },
+	{ id: 'play' as const, labelKey: messages.navGroupPlay },
+	{ id: 'tools' as const, labelKey: messages.navGroupTools },
+]
+
+const expandedNavGroups = ref<Record<string, boolean>>({
+	browse: true,
+	play: true,
+	tools: true,
+})
+
+function navItemsInGroup(group: NavTreeItem['group']) {
+	return NAV_TREE_ITEMS.filter((item) => item.group === group)
+}
+
+function navItemLockReason(id: string): MessageDescriptor | null {
+	if (LOCKED_NAV_ITEM_IDS.has(id)) return messages.hiddenNavLockedCore
+	if (DEFAULT_PAGE_NAV_ID[settings.value.default_page] === id) {
+		return messages.hiddenNavLockedDefaultPage
+	}
+	return null
+}
+
+function isNavItemVisible(id: string) {
+	return !settings.value.hidden_nav_items.includes(id)
+}
+
+function setNavItemVisible(id: string, visible: boolean) {
+	if (navItemLockReason(id)) return
+
+	const hidden = new Set(settings.value.hidden_nav_items)
+	if (visible) {
+		hidden.delete(id)
+	} else {
+		hidden.add(id)
+	}
+	// Boundary guard: never persist core items as hidden.
+	for (const locked of LOCKED_NAV_ITEM_IDS) hidden.delete(locked)
+
+	settings.value.hidden_nav_items = [...hidden]
+	themeStore.hiddenNavItems = settings.value.hidden_nav_items
+}
 const customBackgroundPreview = computed(() =>
 	settings.value.custom_background_path
 		? convertFileSrc(settings.value.custom_background_path)
@@ -552,8 +755,85 @@ async function setupNativeBackgroundDrop() {
 	}
 }
 
+const systemFonts = ref<SystemFontFamily[]>([])
+const systemFontsLoading = ref(true)
+const systemFontsFailed = ref(false)
+
+async function loadSystemFonts() {
+	systemFontsLoading.value = true
+	systemFontsFailed.value = false
+
+	try {
+		systemFonts.value = await getSystemFontFamilies()
+	} catch (error) {
+		systemFontsFailed.value = true
+		console.warn('Failed to read the list of installed fonts', error)
+	} finally {
+		systemFontsLoading.value = false
+	}
+}
+
+function selectedOptionLabel(options: FontFamilyOptionOrDivider[], value: string): string {
+	const option = options.find(
+		(entry): entry is FontFamilyOption => 'value' in entry && entry.value === value,
+	)
+
+	return option?.label ?? ''
+}
+
+const uiFontOptions = computed<FontFamilyOptionOrDivider[]>(() =>
+	buildFontFamilyOptions(systemFonts.value, {
+		defaultLabel: formatMessage(messages.fontDefault),
+		missingLabel: formatMessage(messages.fontMissing),
+		selected: settings.value.ui_font,
+	}),
+)
+
+const monoFontOptions = computed<FontFamilyOptionOrDivider[]>(() =>
+	buildFontFamilyOptions(systemFonts.value, {
+		defaultLabel: formatMessage(messages.fontDefault),
+		missingLabel: formatMessage(messages.fontMissing),
+		monospaceLabel: formatMessage(messages.fontMonospace),
+		selected: settings.value.mono_font,
+		groupMonospaced: true,
+	}),
+)
+
+const uiFontSelection = computed({
+	get: () => canonicalFontFamily(systemFonts.value, settings.value.ui_font),
+	set: (value: string) => {
+		settings.value.ui_font = optionValueToFontSetting(value)
+	},
+})
+
+const monoFontSelection = computed({
+	get: () => canonicalFontFamily(systemFonts.value, settings.value.mono_font),
+	set: (value: string) => {
+		settings.value.mono_font = optionValueToFontSetting(value)
+	},
+})
+
+/** Restores the committed family after an abandoned search, instead of the typed text. */
+const uiFontSearchValue = computed(() =>
+	selectedOptionLabel(uiFontOptions.value, uiFontSelection.value),
+)
+const monoFontSearchValue = computed(() =>
+	selectedOptionLabel(monoFontOptions.value, monoFontSelection.value),
+)
+
+const uiFontPreview = computed(() =>
+	resolveFontFamily(settings.value.ui_font, DEFAULT_UI_FONT_STACK),
+)
+const monoFontPreview = computed(() =>
+	resolveFontFamily(settings.value.mono_font, DEFAULT_MONO_FONT_STACK),
+)
+
 onMounted(() => {
 	void setupNativeBackgroundDrop()
+
+	if (props.scope === 'interface') {
+		void loadSystemFonts()
+	}
 })
 
 onUnmounted(() => {
@@ -567,31 +847,50 @@ watch(
 			settings.value.custom_background_path,
 			settings.value.custom_background_blur,
 			settings.value.custom_background_opacity,
+			settings.value.custom_background_component_opacity,
 			settings.value.transparent_background,
 			settings.value.transparent_background_opacity,
 			settings.value.transparent_background_blur,
+			settings.value.home_widget_background_opacity,
+			settings.value.hidden_nav_items,
 			settings.value.sidebar_instance_count,
 			settings.value.close_behavior,
+			settings.value.ui_font,
+			settings.value.mono_font,
 		] as const,
 	([
 		path,
 		blur,
 		opacity,
+		componentOpacity,
 		transparent,
 		transparentOpacity,
 		transparentBlur,
+		homeWidgetBackgroundOpacity,
+		hiddenNavItems,
 		sidebarInstanceCount,
 		closeBehavior,
+		uiFont,
+		monoFont,
 	]) => {
 		themeStore.customBackgroundPath = path
 		themeStore.customBackgroundBlur = blur
 		themeStore.customBackgroundOpacity = opacity
+		themeStore.customBackgroundComponentOpacity = componentOpacity ?? 100
+		themeStore.setCustomBackgroundComponentOpacity()
 		themeStore.transparentBackground = transparent
 		themeStore.transparentBackgroundOpacity = transparentOpacity
 		themeStore.transparentBackgroundBlur = transparentBlur
 		themeStore.setTransparentBackgroundClass()
+		themeStore.homeWidgetBackgroundOpacity = homeWidgetBackgroundOpacity
+		themeStore.setHomeWidgetBackgroundOpacity()
+		themeStore.hiddenNavItems = hiddenNavItems
 		themeStore.sidebarInstanceCount = sidebarInstanceCount
 		themeStore.closeBehavior = closeBehavior as CloseBehavior
+		themeStore.uiFont = uiFont
+		themeStore.monoFont = monoFont
+		themeStore.setUiFont()
+		themeStore.setMonoFont()
 	},
 	{ immediate: true },
 )
@@ -884,10 +1183,15 @@ watch(
 							v-if="customBackgroundPreview && !isBackgroundDragActive"
 							class="absolute inset-x-0 bottom-0 flex items-center justify-center gap-2 bg-surface-1/80 p-3 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"
 						>
-							<Button type="base" native-type="button" @click.stop="chooseCustomBackground">
-								<UploadIcon />
-								{{ formatMessage(messages.customBackgroundReplace) }}
-							</Button>
+							<HeadlessTooltip side="top">
+								<Button type="base" native-type="button" @click.stop="chooseCustomBackground">
+									<UploadIcon />
+									{{ formatMessage(messages.customBackgroundReplace) }}
+								</Button>
+								<template #content>
+									{{ formatMessage(messages.customBackgroundChooseOrDrop) }}
+								</template>
+							</HeadlessTooltip>
 							<Button
 								type="outlined"
 								color="red"
@@ -932,6 +1236,22 @@ watch(
 						/>
 						<p class="m-0 text-sm text-secondary">
 							{{ formatMessage(messages.customBackgroundOpacityDescription) }}
+						</p>
+					</div>
+					<div class="flex flex-col gap-2">
+						<h3 class="m-0 font-semibold text-contrast">
+							{{ formatMessage(messages.customBackgroundComponentOpacity) }}
+						</h3>
+						<Slider
+							id="custom-background-component-opacity"
+							v-model="settings.custom_background_component_opacity"
+							:min="0"
+							:max="100"
+							:step="5"
+							unit="%"
+						/>
+						<p class="m-0 text-sm text-secondary">
+							{{ formatMessage(messages.customBackgroundComponentOpacityDescription) }}
 						</p>
 					</div>
 				</div>
@@ -989,6 +1309,118 @@ watch(
 			</SettingsRow>
 		</SettingsSection>
 
+		<SettingsSection v-if="props.scope === 'interface'">
+			<template #header>
+				<h2
+					id="settings-target-appearance-fonts"
+					tabindex="-1"
+					class="m-0 text-lg font-semibold text-contrast"
+				>
+					{{ formatMessage(messages.fontsTitle) }}
+				</h2>
+				<p class="m-0 mt-1 text-sm leading-relaxed text-secondary">
+					{{ formatMessage(messages.fontsDescription) }}
+				</p>
+			</template>
+			<SettingsRow stacked>
+				<template #label>
+					<span id="settings-target-appearance-ui-font" tabindex="-1">
+						{{ formatMessage(messages.uiFontTitle) }}
+					</span>
+				</template>
+				<template #description>{{ formatMessage(messages.uiFontDescription) }}</template>
+				<template #control>
+					<div class="flex w-full flex-col gap-3">
+						<div class="flex items-center gap-2">
+							<div class="min-w-0 flex-1">
+								<Combobox
+									v-model="uiFontSelection"
+									:options="uiFontOptions"
+									searchable
+									:search-value="uiFontSearchValue"
+									:search-placeholder="formatMessage(messages.fontSearchPlaceholder)"
+									:no-options-message="formatMessage(messages.fontNoResults)"
+									show-no-options-when-empty
+									:disabled="systemFontsLoading"
+								/>
+							</div>
+							<Button
+								type="quiet"
+								:disabled="settings.ui_font === null"
+								@click="settings.ui_font = null"
+							>
+								{{ formatMessage(messages.fontReset) }}
+							</Button>
+						</div>
+						<div class="flex flex-col gap-1">
+							<span class="text-xs text-secondary">
+								{{ formatMessage(messages.fontPreviewLabel) }}
+							</span>
+							<div
+								class="rounded-[var(--radius-md)] bg-surface-3 px-3 py-2 text-base text-primary"
+								:style="{ fontFamily: uiFontPreview }"
+							>
+								{{ formatMessage(messages.fontUiPreviewSample) }}
+							</div>
+						</div>
+					</div>
+				</template>
+			</SettingsRow>
+			<SettingsRow stacked>
+				<template #label>
+					<span id="settings-target-appearance-mono-font" tabindex="-1">
+						{{ formatMessage(messages.monoFontTitle) }}
+					</span>
+				</template>
+				<template #description>{{ formatMessage(messages.monoFontDescription) }}</template>
+				<template #control>
+					<div class="flex w-full flex-col gap-3">
+						<div class="flex items-center gap-2">
+							<div class="min-w-0 flex-1">
+								<Combobox
+									v-model="monoFontSelection"
+									:options="monoFontOptions"
+									searchable
+									:search-value="monoFontSearchValue"
+									:search-placeholder="formatMessage(messages.fontSearchPlaceholder)"
+									:no-options-message="formatMessage(messages.fontNoResults)"
+									show-no-options-when-empty
+									:disabled="systemFontsLoading"
+								/>
+							</div>
+							<Button
+								type="quiet"
+								:disabled="settings.mono_font === null"
+								@click="settings.mono_font = null"
+							>
+								{{ formatMessage(messages.fontReset) }}
+							</Button>
+						</div>
+						<div class="flex flex-col gap-1">
+							<span class="text-xs text-secondary">
+								{{ formatMessage(messages.fontPreviewLabel) }}
+							</span>
+							<div
+								class="rounded-[var(--radius-md)] bg-surface-3 px-3 py-2 text-xs text-primary"
+								:style="{ fontFamily: monoFontPreview }"
+							>
+								{{ formatMessage(messages.fontMonoPreviewSample) }}
+							</div>
+						</div>
+					</div>
+				</template>
+			</SettingsRow>
+			<div
+				v-if="systemFontsFailed"
+				class="flex items-center justify-between gap-3 px-4 pb-4 text-sm text-secondary"
+			>
+				<span>{{ formatMessage(messages.fontLoadFailed) }}</span>
+				<Button type="quiet" @click="loadSystemFonts">
+					{{ formatMessage(messages.fontRetry) }}
+				</Button>
+			</div>
+		</SettingsSection>
+
 		<SettingsSection v-if="props.scope === 'home-navigation'">
 			<SettingsRow>
 				<template #label>
@@ -1028,6 +1460,27 @@ watch(
 					</div>
 				</template>
 			</SettingsRow>
+			<SettingsRow stacked>
+				<template #label>
+					<span id="settings-target-appearance-home-widget-opacity" tabindex="-1">
+						{{ formatMessage(messages.homeWidgetBackgroundOpacityTitle) }}
+					</span>
+				</template>
+				<template #description>{{
+					formatMessage(messages.homeWidgetBackgroundOpacityDescription)
+				}}</template>
+				<template #control>
+					<div class="w-full">
+						<Slider
+							id="home-widget-background-opacity"
+							v-model="settings.home_widget_background_opacity"
+							:min="0"
+							:max="100"
+							:step="5"
+						/>
+					</div>
+				</template>
+			</SettingsRow>
 			<SettingsRow>
 				<template #label>
 					<span id="settings-target-appearance-default-landing-page" tabindex="-1">
@@ -1039,7 +1492,7 @@ watch(
 				}}</template>
 				<template #control>
 					<div class="w-full">
-						<Combobox
+						<HeadlessSelect
 							id="opening-page"
 							v-model="settings.default_page"
 							:name="formatMessage(messages.defaultLandingPageTitle)"
@@ -1080,6 +1533,68 @@ watch(
 							:max="50"
 							:step="1"
 						/>
+					</div>
+				</template>
+			</SettingsRow>
+			<SettingsRow stacked>
+				<template #label>
+					<span id="settings-target-appearance-hidden-nav-items" tabindex="-1">
+						{{ formatMessage(messages.hiddenNavItemsTitle) }}
+					</span>
+				</template>
+				<template #description>{{ formatMessage(messages.hiddenNavItemsDescription) }}</template>
+				<template #control>
+					<div class="flex w-full flex-col gap-2">
+						<div
+							v-for="group in NAV_TREE_GROUPS"
+							:key="group.id"
+							class="overflow-hidden rounded-lg border border-solid border-surface-4 bg-surface-3"
+						>
+							<button
+								type="button"
+								class="flex w-full items-center justify-between gap-2 border-0 bg-transparent px-3 py-2 text-left text-sm font-semibold text-contrast"
+								:aria-expanded="expandedNavGroups[group.id]"
+								@click="expandedNavGroups[group.id] = !expandedNavGroups[group.id]"
+							>
+								<span>{{ formatMessage(group.labelKey) }}</span>
+								<ChevronDownIcon
+									class="size-4 text-secondary transition-transform"
+									:class="expandedNavGroups[group.id] ? 'rotate-180' : ''"
+									aria-hidden="true"
+								/>
+							</button>
+							<div
+								v-show="expandedNavGroups[group.id]"
+								class="flex flex-col gap-px border-t border-solid border-surface-4"
+							>
+								<label
+									v-for="item in navItemsInGroup(group.id)"
+									:key="item.id"
+									class="flex items-center justify-between gap-3 px-3 py-2"
+									:class="navItemLockReason(item.id) ? 'opacity-60' : ''"
+								>
+									<span
+										class="text-sm"
+										:class="navItemLockReason(item.id) ? 'text-secondary' : 'text-contrast'"
+									>
+										{{ formatMessage(item.label) }}
+									</span>
+									<span
+										v-if="navItemLockReason(item.id)"
+										v-tooltip="formatMessage(navItemLockReason(item.id)!)"
+										class="inline-flex"
+									>
+										<Toggle :id="`nav-item-${item.id}`" :model-value="true" disabled />
+									</span>
+									<Toggle
+										v-else
+										:id="`nav-item-${item.id}`"
+										:model-value="isNavItemVisible(item.id)"
+										@update:model-value="(value) => setNavItemVisible(item.id, !!value)"
+									/>
+								</label>
+							</div>
+						</div>
 					</div>
 				</template>
 			</SettingsRow>

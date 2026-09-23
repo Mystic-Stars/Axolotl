@@ -123,7 +123,7 @@
     "defaultMessage": "Verified plays"
   },
   "browse.view-prefix": {
-    "defaultMessage": "View:"
+    "defaultMessage": "View"
   },
   "button.accept": {
     "defaultMessage": "Accept"
@@ -2072,6 +2072,108 @@
   "icon-select.select": {
     "defaultMessage": "Select icon"
   },
+  "image-viewer.close": {
+    "defaultMessage": "Close"
+  },
+  "image-viewer.edit": {
+    "defaultMessage": "Edit"
+  },
+  "image-viewer.editor.colour": {
+    "defaultMessage": "Colour"
+  },
+  "image-viewer.editor.crop.dimensions": {
+    "defaultMessage": "{width} × {height} px"
+  },
+  "image-viewer.editor.crop.reset": {
+    "defaultMessage": "Reset crop"
+  },
+  "image-viewer.editor.delete-selection": {
+    "defaultMessage": "Delete selected annotation"
+  },
+  "image-viewer.editor.eraser.area": {
+    "defaultMessage": "Area"
+  },
+  "image-viewer.editor.eraser.element": {
+    "defaultMessage": "Element"
+  },
+  "image-viewer.editor.eraser.mode": {
+    "defaultMessage": "Eraser mode"
+  },
+  "image-viewer.editor.image-editing-tools": {
+    "defaultMessage": "Image editing tools"
+  },
+  "image-viewer.editor.more-save-options": {
+    "defaultMessage": "More save options"
+  },
+  "image-viewer.editor.overwrite": {
+    "defaultMessage": "Overwrite"
+  },
+  "image-viewer.editor.redo": {
+    "defaultMessage": "Redo"
+  },
+  "image-viewer.editor.save-as-new": {
+    "defaultMessage": "Save copy"
+  },
+  "image-viewer.editor.save-image": {
+    "defaultMessage": "Save image"
+  },
+  "image-viewer.editor.size": {
+    "defaultMessage": "Size"
+  },
+  "image-viewer.editor.tool.arrow": {
+    "defaultMessage": "Arrow"
+  },
+  "image-viewer.editor.tool.censor": {
+    "defaultMessage": "Censor"
+  },
+  "image-viewer.editor.tool.crop": {
+    "defaultMessage": "Crop"
+  },
+  "image-viewer.editor.tool.ellipse": {
+    "defaultMessage": "Ellipse"
+  },
+  "image-viewer.editor.tool.eraser": {
+    "defaultMessage": "Eraser"
+  },
+  "image-viewer.editor.tool.highlight": {
+    "defaultMessage": "Highlight"
+  },
+  "image-viewer.editor.tool.pen": {
+    "defaultMessage": "Pen"
+  },
+  "image-viewer.editor.tool.rectangle": {
+    "defaultMessage": "Rectangle"
+  },
+  "image-viewer.editor.tool.select": {
+    "defaultMessage": "Select"
+  },
+  "image-viewer.editor.tool.text": {
+    "defaultMessage": "Text"
+  },
+  "image-viewer.editor.undo": {
+    "defaultMessage": "Undo"
+  },
+  "image-viewer.editor.width": {
+    "defaultMessage": "Width"
+  },
+  "image-viewer.editor.zoom-fit": {
+    "defaultMessage": "Fit"
+  },
+  "image-viewer.editor.zoom-fit-workspace": {
+    "defaultMessage": "Fit to workspace"
+  },
+  "image-viewer.editor.zoom-in": {
+    "defaultMessage": "Zoom in"
+  },
+  "image-viewer.editor.zoom-out": {
+    "defaultMessage": "Zoom out"
+  },
+  "image-viewer.next": {
+    "defaultMessage": "Next image"
+  },
+  "image-viewer.previous": {
+    "defaultMessage": "Previous image"
+  },
   "input.search-version.placeholder": {
     "defaultMessage": "Search version..."
   },
@@ -2607,7 +2709,7 @@
     "defaultMessage": "Singleplayer"
   },
   "label.sort-by": {
-    "defaultMessage": "Sort by: "
+    "defaultMessage": "Sort by"
   },
   "label.success": {
     "defaultMessage": "Success"
@@ -4012,6 +4114,144 @@
   },
   "settings.sessions.title": {
     "defaultMessage": "Sessions"
+  },
+  "skin.preview.armor.equip-material": {
+    "defaultMessage": "{material} {slot}"
+  },
+  "skin.preview.armor.material": {
+    "defaultMessage": "Armor material"
+  },
+  "skin.preview.armor.material.chainmail": {
+    "defaultMessage": "Chainmail"
+  },
+  "skin.preview.armor.material.copper": {
+    "defaultMessage": "Copper"
+  },
+  "skin.preview.armor.material.diamond": {
+    "defaultMessage": "Diamond"
+  },
+  "skin.preview.armor.material.gold": {
+    "defaultMessage": "Gold"
+  },
+  "skin.preview.armor.material.iron": {
+    "defaultMessage": "Iron"
+  },
+  "skin.preview.armor.material.leather": {
+    "defaultMessage": "Leather"
+  },
+  "skin.preview.armor.material.netherite": {
+    "defaultMessage": "Netherite"
+  },
+  "skin.preview.armor.material.turtle": {
+    "defaultMessage": "Turtle Shell"
+  },
+  "skin.preview.armor.open": {
+    "defaultMessage": "Armor and trims"
+  },
+  "skin.preview.armor.piece": {
+    "defaultMessage": "Armor piece"
+  },
+  "skin.preview.armor.remove-piece": {
+    "defaultMessage": "Remove {slot}"
+  },
+  "skin.preview.armor.remove-trim": {
+    "defaultMessage": "No armor trim"
+  },
+  "skin.preview.armor.slot-state": {
+    "defaultMessage": "{slot}: {state}"
+  },
+  "skin.preview.armor.slot.boots": {
+    "defaultMessage": "Boots"
+  },
+  "skin.preview.armor.slot.chestplate": {
+    "defaultMessage": "Chestplate"
+  },
+  "skin.preview.armor.slot.helmet": {
+    "defaultMessage": "Helmet"
+  },
+  "skin.preview.armor.slot.leggings": {
+    "defaultMessage": "Leggings"
+  },
+  "skin.preview.armor.trim-material": {
+    "defaultMessage": "Trim material"
+  },
+  "skin.preview.armor.trim-material.amethyst": {
+    "defaultMessage": "Amethyst"
+  },
+  "skin.preview.armor.trim-material.emerald": {
+    "defaultMessage": "Emerald"
+  },
+  "skin.preview.armor.trim-material.lapis": {
+    "defaultMessage": "Lapis Lazuli"
+  },
+  "skin.preview.armor.trim-material.quartz": {
+    "defaultMessage": "Quartz"
+  },
+  "skin.preview.armor.trim-material.redstone": {
+    "defaultMessage": "Redstone"
+  },
+  "skin.preview.armor.trim-material.resin": {
+    "defaultMessage": "Resin Brick"
+  },
+  "skin.preview.armor.trim-pattern": {
+    "defaultMessage": "Trim pattern"
+  },
+  "skin.preview.armor.trim.bolt": {
+    "defaultMessage": "Bolt Armor Trim"
+  },
+  "skin.preview.armor.trim.coast": {
+    "defaultMessage": "Coast Armor Trim"
+  },
+  "skin.preview.armor.trim.dune": {
+    "defaultMessage": "Dune Armor Trim"
+  },
+  "skin.preview.armor.trim.eye": {
+    "defaultMessage": "Eye Armor Trim"
+  },
+  "skin.preview.armor.trim.flow": {
+    "defaultMessage": "Flow Armor Trim"
+  },
+  "skin.preview.armor.trim.host": {
+    "defaultMessage": "Host Armor Trim"
+  },
+  "skin.preview.armor.trim.raiser": {
+    "defaultMessage": "Raiser Armor Trim"
+  },
+  "skin.preview.armor.trim.rib": {
+    "defaultMessage": "Rib Armor Trim"
+  },
+  "skin.preview.armor.trim.sentry": {
+    "defaultMessage": "Sentry Armor Trim"
+  },
+  "skin.preview.armor.trim.shaper": {
+    "defaultMessage": "Shaper Armor Trim"
+  },
+  "skin.preview.armor.trim.silence": {
+    "defaultMessage": "Silence Armor Trim"
+  },
+  "skin.preview.armor.trim.snout": {
+    "defaultMessage": "Snout Armor Trim"
+  },
+  "skin.preview.armor.trim.spire": {
+    "defaultMessage": "Spire Armor Trim"
+  },
+  "skin.preview.armor.trim.tide": {
+    "defaultMessage": "Tide Armor Trim"
+  },
+  "skin.preview.armor.trim.vex": {
+    "defaultMessage": "Vex Armor Trim"
+  },
+  "skin.preview.armor.trim.ward": {
+    "defaultMessage": "Ward Armor Trim"
+  },
+  "skin.preview.armor.trim.wayfinder": {
+    "defaultMessage": "Wayfinder Armor Trim"
+  },
+  "skin.preview.armor.trim.wild": {
+    "defaultMessage": "Wild Armor Trim"
+  },
+  "skin.preview.armor.unequipped": {
+    "defaultMessage": "Unequipped"
   },
   "skin.preview.drag-to-rotate": {
     "defaultMessage": "Drag to rotate"

@@ -103,6 +103,7 @@ pub async fn edit(
     patch: EditInstance,
 ) -> crate::Result<InstanceMetadata> {
     let state = State::get().await?;
+    super::ensure_backup_eligible_edit(instance_id, &patch).await?;
     crate::state::edit_instance(instance_id, patch, &state.pool).await?;
 
     let instance = crate::state::get_instance(instance_id, &state.pool)

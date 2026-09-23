@@ -116,6 +116,7 @@ Var InstallerTitleFont
 Var InstallerSmallFont
 Var StatusFile
 Var NoRunAfterInstall
+Var UninstallUiChild
 
 !macro AxlStyleControl CONTROL FOREGROUND BACKGROUND
   SetCtlColors ${CONTROL} ${FOREGROUND} ${BACKGROUND}
@@ -1263,6 +1264,18 @@ FunctionEnd
 Function un.onInit
   !insertmacro SetContext
 
+  StrCpy $UninstallUiChild 0
+  ${GetOptions} $CMDLINE "/UI_CHILD" $0
+  ${IfNot} ${Errors}
+    StrCpy $UninstallUiChild 1
+  ${EndIf}
+
+  StrCpy $DeleteAppDataCheckboxState 0
+  ${GetOptions} $CMDLINE "/DELETE_APP_DATA" $0
+  ${IfNot} ${Errors}
+    StrCpy $DeleteAppDataCheckboxState 1
+  ${EndIf}
+
   !if "${INSTALLMODE}" == "both"
     !insertmacro MULTIUSER_UNINIT
   !endif
@@ -1277,6 +1290,16 @@ Function un.onInit
   ${GetOptions} $CMDLINE "/UPDATE" $UpdateMode
   ${IfNot} ${Errors}
     StrCpy $UpdateMode 1
+  ${EndIf}
+
+  ${If} $UninstallUiChild <> 1
+  ${AndIf} $PassiveMode <> 1
+  ${AndIf} $UpdateMode <> 1
+    InitPluginsDir
+    SetOutPath "$PLUGINSDIR"
+    File "/oname=$PLUGINSDIR\AxolotlInstallerUI.exe" "${AXL_INSTALLER_UI_PATH}"
+    ExecWait '"$PLUGINSDIR\AxolotlInstallerUI.exe" --uninstaller "$EXEPATH" --version "${VERSION}" --language "$LANGUAGE"' $0
+    Quit
   ${EndIf}
 FunctionEnd
 

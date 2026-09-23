@@ -523,7 +523,7 @@ function mapToTableItem(item: ContentItem, group?: string): ContentCardTableItem
 			: (base.toggleDisabledTooltip ?? null),
 		installing: item.installing === true,
 		pendingManualDownload: item.pendingManualDownload === true,
-		hasUpdate: group ? false : item.update != null,
+		hasUpdate: !group && item.update != null && item.instanceCapabilities?.canUpdate !== false,
 		rollbackFileName: item.rollback?.file_name,
 		hideSwitchVersion: base.hideSwitchVersion ?? !base.versionLink,
 		overflowOptions: buildItemOverflowOptions(item),
@@ -921,7 +921,10 @@ function handleUpdateById(id: string) {
 		ctx.updateModpack?.()
 		return
 	}
-	ctx.updateItem?.(id)
+	const item = findContentItem(id)
+	if (item) {
+		void ctx.updateItem?.(item)
+	}
 }
 
 function handleSwitchVersionById(id: string) {
@@ -976,29 +979,15 @@ async function confirmBulkUpdate() {
 	if (items.length === 0 && !modpackHasUpdate) return
 	if (!hasBulkUpdateSupport.value) return
 
-	const setBulkStatus = (status: BulkOperationStatus) => {
-		bulkStatusMessage.value = status.message ?? null
-		bulkProgress.value = status.progress ?? bulkProgress.value
-		bulkTotal.value = status.total ?? bulkTotal.value
-		bulkWaiting.value = status.waiting ?? false
-	}
-
 	try {
 		if (pendingBulkUpdateAll.value && ctx.bulkUpdateAll) {
 			const totalCount = items.length + (modpackHasUpdate ? 1 : 0)
 			bulkItemCount.value = totalCount
-			await runBulkWithWaiting(
-				'update',
-				totalCount,
-				async () => {
-					await ctx.bulkUpdateAll(setBulkStatus)
-				},
-				() => {
-					clearSelection()
-					bulkItemCount.value = 0
-					bulkStatusMessage.value = null
-				},
-			)
+			await runBulkWithWaiting('update', totalCount, ctx.bulkUpdateAll, () => {
+				clearSelection()
+				bulkItemCount.value = 0
+				bulkStatusMessage.value = null
+			})
 		} else if (ctx.bulkUpdateItems) {
 			bulkItemCount.value = items.length
 			await runBulkWithWaiting(

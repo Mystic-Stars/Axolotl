@@ -15,17 +15,22 @@ import {
 	defineMessages,
 	injectNotificationManager,
 	OverflowMenu,
+	SmartClickable,
 	useVIntl,
 } from '@modrinth/ui'
 import { computed, ref } from 'vue'
 
 import type { HomeWidgetSize } from '@/components/home/home-dashboard'
 import { useHomeDashboardRuntime } from '@/components/home/home-dashboard-runtime'
+import ManagedServerIcon from '@/components/multiplayer/servers/ServerIcon.vue'
 import { useMinecraftLaunchError } from '@/composables/useMinecraftLaunchError'
+import { useServers } from '@/composables/useServers'
 import { trackEvent } from '@/helpers/analytics'
 import { kill } from '@/helpers/instance'
+import { servers as serversApi } from '@/helpers/servers'
 import type { GameInstance } from '@/helpers/types'
 import {
+	getWorldIdentifier,
 	type ServerWorld,
 	set_world_display_status,
 	start_join_server,
@@ -44,6 +49,7 @@ const { formatMessage } = useVIntl()
 const handleMinecraftLaunchError = useMinecraftLaunchError()
 const runtime = useHomeDashboardRuntime()
 const { favoriteWorlds, runningInstanceIds } = runtime
+const { startServer, stopServer } = useServers()
 
 const messages = defineMessages({
 	pinnedServers: {
@@ -78,6 +84,12 @@ const messages = defineMessages({
 		id: 'app.home.servers.more-options',
 		defaultMessage: 'More options',
 	},
+	localServer: {
+		id: 'app.home.servers.local',
+		defaultMessage: 'Local',
+	},
+	start: { id: 'app.servers.action.start', defaultMessage: 'Start' },
+	stop: { id: 'app.servers.action.stop', defaultMessage: 'Stop' },
 })
 
 const startingServerKey = ref<string | null>(null)
@@ -92,9 +104,11 @@ const servers = computed(() =>
 		return instance ? [{ instance, world: world as ServerWorld & WorldWithInstance }] : []
 	}),
 )
+const localServers = computed(() => runtime.pinnedLocalServers.value)
+const hasServers = computed(() => servers.value.length > 0 || localServers.value.length > 0)
 
 function serverKey(world: ServerWorld & WorldWithInstance): string {
-	return `${world.instance_id}:${world.address}`
+	return `${world.instance_id}:${world.index}:${world.address}`
 }
 
 function dataFor(world: ServerWorld & WorldWithInstance) {
@@ -138,6 +152,21 @@ async function unpinServer(world: ServerWorld & WorldWithInstance) {
 	)
 	await runtime.refreshFavorites()
 }
+
+async function startLocalServer(serverId: string) {
+	await startServer(serverId)
+	await runtime.refreshPinnedLocalServers()
+}
+
+async function stopLocalServer(serverId: string) {
+	await stopServer(serverId)
+	await runtime.refreshPinnedLocalServers()
+}
+
+async function unpinLocalServer(serverId: string) {
+	await serversApi.updateSettings(serverId, { homePinned: false }).catch(handleError)
+	await runtime.refreshPinnedLocalServers()
+}
 </script>
 
 <template>
@@ -149,113 +178,189 @@ async function unpinServer(world: ServerWorld & WorldWithInstance) {
 			<ServerIcon class="size-5 shrink-0 text-brand" aria-hidden="true" />
 			<h2>{{ formatMessage(messages.pinnedServers) }}</h2>
 		</div>
-		<div v-if="servers.length === 0" class="home-widget-empty">
+		<div v-if="!hasServers" class="home-widget-empty">
 			<ServerIcon aria-hidden="true" />
 			<span>{{ formatMessage(messages.emptyServers) }}</span>
 		</div>
 		<ul
 			v-else
-			class="home-server-list grid min-w-0 min-h-0 flex-1 grid-auto-rows-max gap-1 m-0 overflow-x-hidden overflow-y-auto pr-1 list-none"
+			class="home-server-list grid min-w-0 min-h-0 flex-1 grid-auto-rows-max content-start gap-1 m-0 list-none overflow-x-hidden overflow-y-auto p-0 pr-1"
 		>
-			<li
-				v-for="server in servers"
-				:key="serverKey(server.world)"
-				class="home-server-row group hover:bg-button-bg focus-within:bg-button-bg"
-			>
-				<div class="relative shrink-0">
-					<Avatar
-						:src="dataFor(server.world).status?.favicon ?? (server.world.icon || undefined)"
-						:tint-by="server.world.address"
-						size="36px"
-					/>
-					<span
-						class="absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full border-2 border-solid border-bg-raised"
-						:class="
-							dataFor(server.world).refreshing
-								? 'animate-pulse bg-secondary'
-								: dataFor(server.world).status
-									? 'bg-brand-green'
-									: 'bg-red'
-						"
-						aria-hidden="true"
-					/>
-				</div>
-				<div class="flex min-w-0 flex-1 flex-col gap-0.5">
-					<span class="truncate text-sm font-semibold text-contrast">
-						{{ server.world.name }}
-					</span>
-					<span
-						v-if="dataFor(server.world).status"
-						class="flex min-w-0 items-center gap-1 text-xs text-secondary"
-					>
-						<SignalIcon class="size-3 shrink-0" aria-hidden="true" />
-						<span class="truncate">
-							{{
-								formatMessage(messages.playersOnline, {
-									online: dataFor(server.world).status?.players?.online ?? 0,
-									max: dataFor(server.world).status?.players?.max ?? 0,
-								})
-							}}
-						</span>
-					</span>
-					<span
-						v-else-if="dataFor(server.world).refreshing"
-						class="truncate text-xs text-secondary"
-					>
-						{{ server.world.address }}
-					</span>
-					<span v-else class="flex min-w-0 items-center gap-1 text-xs text-secondary">
-						<NoSignalIcon class="size-3 shrink-0" aria-hidden="true" />
-						<span class="truncate">{{ formatMessage(messages.offline) }}</span>
-					</span>
-				</div>
-				<div class="ml-auto flex shrink-0 items-center gap-0.5">
-					<ButtonStyled
-						v-if="runningInstanceIds.includes(server.instance.id)"
-						circular
-						size="small"
-						type="transparent"
-					>
-						<button
-							v-tooltip="formatMessage(messages.stop)"
-							class="!text-red"
-							@click="stopInstance(server.instance)"
-						>
-							<StopCircleIcon />
-						</button>
-					</ButtonStyled>
-					<ButtonStyled v-else circular size="small" type="transparent">
-						<button
-							v-tooltip="formatMessage(messages.join)"
-							class="!text-brand opacity-60 transition-opacity group-hover:opacity-100"
-							:disabled="startingServerKey === serverKey(server.world)"
-							@click="joinServer(server.world, server.instance)"
-						>
-							<SpinnerIcon
-								v-if="startingServerKey === serverKey(server.world)"
-								class="animate-spin"
+			<li v-for="server in servers" :key="serverKey(server.world)">
+				<SmartClickable>
+					<template #clickable>
+						<router-link
+							:aria-label="server.world.name"
+							:to="`/instance/${encodeURIComponent(server.instance.id)}/worlds?highlight=${encodeURIComponent(getWorldIdentifier(server.world))}`"
+						/>
+					</template>
+					<div class="home-server-row group smart-clickable:highlight-on-hover">
+						<div class="relative shrink-0">
+							<Avatar
+								:src="dataFor(server.world).status?.favicon ?? (server.world.icon || undefined)"
+								:tint-by="server.world.address"
+								size="36px"
 							/>
-							<PlayIcon v-else />
-						</button>
-					</ButtonStyled>
-					<ButtonStyled circular size="small" type="transparent" class="home-server-menu">
-						<OverflowMenu
-							:options="[
-								{
-									id: 'unpin',
-									action: () => unpinServer(server.world),
-								},
-							]"
-							:tooltip="formatMessage(messages.moreOptions)"
+							<span
+								class="absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full border-2 border-solid border-bg-raised"
+								:class="
+									dataFor(server.world).refreshing
+										? 'animate-pulse bg-secondary'
+										: dataFor(server.world).status
+											? 'bg-brand-green'
+											: 'bg-red'
+								"
+								aria-hidden="true"
+							/>
+						</div>
+						<div class="flex min-w-0 flex-1 flex-col gap-0.5">
+							<span class="truncate text-sm font-semibold text-contrast">
+								{{ server.world.name }}
+							</span>
+							<span
+								v-if="dataFor(server.world).status"
+								class="flex min-w-0 items-center gap-1 text-xs text-secondary"
+							>
+								<SignalIcon class="size-3 shrink-0" aria-hidden="true" />
+								<span class="truncate">
+									{{
+										formatMessage(messages.playersOnline, {
+											online: dataFor(server.world).status?.players?.online ?? 0,
+											max: dataFor(server.world).status?.players?.max ?? 0,
+										})
+									}}
+								</span>
+							</span>
+							<span
+								v-else-if="dataFor(server.world).refreshing"
+								class="truncate text-xs text-secondary"
+							>
+								{{ server.world.address }}
+							</span>
+							<span v-else class="flex min-w-0 items-center gap-1 text-xs text-secondary">
+								<NoSignalIcon class="size-3 shrink-0" aria-hidden="true" />
+								<span class="truncate">{{ formatMessage(messages.offline) }}</span>
+							</span>
+						</div>
+						<div
+							class="ml-auto flex shrink-0 items-center gap-0.5 smart-clickable:allow-pointer-events"
 						>
-							<MoreVerticalIcon />
-							<template #unpin>
-								<PinIcon class="rotate-45" aria-hidden="true" />
-								{{ formatMessage(messages.unpin) }}
-							</template>
-						</OverflowMenu>
-					</ButtonStyled>
-				</div>
+							<ButtonStyled
+								v-if="runningInstanceIds.includes(server.instance.id)"
+								circular
+								size="small"
+								type="transparent"
+							>
+								<button
+									v-tooltip="formatMessage(messages.stop)"
+									class="!text-red"
+									@click="stopInstance(server.instance)"
+								>
+									<StopCircleIcon />
+								</button>
+							</ButtonStyled>
+							<ButtonStyled v-else circular size="small" type="transparent">
+								<button
+									v-tooltip="formatMessage(messages.join)"
+									class="!text-brand opacity-60 transition-opacity group-hover:opacity-100"
+									:disabled="startingServerKey === serverKey(server.world)"
+									@click="joinServer(server.world, server.instance)"
+								>
+									<SpinnerIcon
+										v-if="startingServerKey === serverKey(server.world)"
+										class="animate-spin"
+									/>
+									<PlayIcon v-else />
+								</button>
+							</ButtonStyled>
+							<ButtonStyled circular size="small" type="transparent" class="home-server-menu">
+								<OverflowMenu
+									:options="[
+										{
+											id: 'unpin',
+											action: () => unpinServer(server.world),
+										},
+									]"
+									:tooltip="formatMessage(messages.moreOptions)"
+								>
+									<MoreVerticalIcon />
+									<template #unpin>
+										<PinIcon class="rotate-45" aria-hidden="true" />
+										{{ formatMessage(messages.unpin) }}
+									</template>
+								</OverflowMenu>
+							</ButtonStyled>
+						</div>
+					</div>
+				</SmartClickable>
+			</li>
+			<li v-for="server in localServers" :key="'local-' + server.id">
+				<SmartClickable>
+					<template #clickable>
+						<router-link
+							:aria-label="server.name"
+							:to="`/multiplayer/servers/${encodeURIComponent(server.id)}`"
+						/>
+					</template>
+					<div class="home-server-row group smart-clickable:highlight-on-hover">
+						<div class="relative shrink-0">
+							<ManagedServerIcon
+								:icon-path="server.iconPath"
+								:server-type="server.serverType"
+								:server-id="server.id"
+								size="36px"
+							/>
+							<span
+								class="absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full border-2 border-solid border-bg-raised"
+								:class="server.running ? 'bg-brand-green' : 'bg-red'"
+								aria-hidden="true"
+							/>
+						</div>
+						<div class="flex min-w-0 flex-1 flex-col gap-0.5">
+							<span class="truncate text-sm font-semibold text-contrast">{{ server.name }}</span>
+							<span class="flex min-w-0 items-center gap-1 text-xs text-secondary">
+								<span
+									class="shrink-0 rounded bg-button-bg px-1 text-[10px] font-semibold"
+								>
+									{{ formatMessage(messages.localServer) }}
+								</span>
+								<span class="truncate">
+									{{
+										server.port
+											? `localhost:${server.port}`
+											: `${server.serverType} ${server.gameVersion}`
+									}}
+								</span>
+							</span>
+						</div>
+						<div
+							class="ml-auto flex shrink-0 items-center gap-0.5 smart-clickable:allow-pointer-events"
+						>
+							<ButtonStyled circular size="small" type="transparent">
+								<button
+									v-tooltip="formatMessage(server.running ? messages.stop : messages.start)"
+									:class="server.running ? '!text-red' : '!text-brand'"
+									@click="server.running ? stopLocalServer(server.id) : startLocalServer(server.id)"
+								>
+									<StopCircleIcon v-if="server.running" />
+									<PlayIcon v-else />
+								</button>
+							</ButtonStyled>
+							<ButtonStyled circular size="small" type="transparent" class="home-server-menu">
+								<OverflowMenu
+									:options="[{ id: 'unpin', action: () => unpinLocalServer(server.id) }]"
+									:tooltip="formatMessage(messages.moreOptions)"
+								>
+									<MoreVerticalIcon />
+									<template #unpin>
+										<PinIcon class="rotate-45" aria-hidden="true" />
+										{{ formatMessage(messages.unpin) }}
+									</template>
+								</OverflowMenu>
+							</ButtonStyled>
+						</div>
+					</div>
+				</SmartClickable>
 			</li>
 		</ul>
 	</section>

@@ -37,6 +37,7 @@ use std::path::PathBuf;
 use uuid::Uuid;
 
 mod adjunct;
+mod content_change;
 mod init;
 mod lifecycle;
 mod pack;
@@ -298,6 +299,80 @@ pub async fn install_content_batch(
     .await
 }
 
+pub async fn queue_content_change(
+    instance_id: String,
+    intent: crate::install::ContentChangeIntent,
+    display_title: String,
+    display_icon: Option<String>,
+) -> crate::Result<InstallJobSnapshot> {
+    let state = State::get().await?;
+    let _instance_lock = state.lock_instance_content(&instance_id).await;
+    let has_overlapping_change =
+        store::list(false, &state).await?.into_iter().any(|job| {
+            matches!(
+                job.status,
+                InstallJobStatus::Queued
+                    | InstallJobStatus::Running
+                    | InstallJobStatus::Canceling
+                    | InstallJobStatus::WaitingForUser
+            ) && matches!(
+                &job.state.request,
+                InstallRequest::ChangeContent {
+                    instance_id: active_instance_id,
+                    intent: active_intent,
+                    ..
+                } if active_instance_id == &instance_id
+                    && content_change_intents_overlap(active_intent, &intent)
+            )
+        });
+    if has_overlapping_change {
+        return Err(crate::ErrorKind::InputError(
+            "An overlapping content change is already active for this instance"
+                .to_string(),
+        )
+        .into());
+    }
+    start(InstallRequest::ChangeContent {
+        instance_id,
+        intent,
+        display_title,
+        display_icon,
+    })
+    .await
+}
+
+fn content_change_intents_overlap(
+    left: &crate::install::ContentChangeIntent,
+    right: &crate::install::ContentChangeIntent,
+) -> bool {
+    use crate::install::ContentChangeIntent;
+
+    if matches!(left, ContentChangeIntent::UpdateAllUserAdded)
+        || matches!(right, ContentChangeIntent::UpdateAllUserAdded)
+    {
+        return true;
+    }
+
+    fn ids(intent: &ContentChangeIntent) -> Vec<&str> {
+        match intent {
+            ContentChangeIntent::UpdateOne { content_id, .. }
+            | ContentChangeIntent::SwitchVersion { content_id, .. } => {
+                vec![content_id]
+            }
+            ContentChangeIntent::UpdateSelected { targets } => targets
+                .iter()
+                .map(|target| target.content_id.as_str())
+                .collect(),
+            ContentChangeIntent::UpdateAllUserAdded => Vec::new(),
+        }
+    }
+
+    let left = ids(left).into_iter().collect::<HashSet<_>>();
+    ids(right)
+        .into_iter()
+        .any(|content_id| left.contains(content_id))
+}
+
 pub async fn download_java(
     vendor: String,
     version: u32,
@@ -381,7 +456,9 @@ pub async fn retry_job(job_id: Uuid) -> crate::Result<InstallJobSnapshot> {
     job.state.error = None;
     job.state.rollback_error = None;
     job.state.pause_reason = None;
-    job.state.continuation = None;
+    if !matches!(job.state.request, InstallRequest::ChangeContent { .. }) {
+        job.state.continuation = None;
+    }
     job.state.context = None;
     job.state.progress.phase = initial_phase_for_request(&job.state.request);
     job.state.progress.progress = None;
@@ -643,6 +720,9 @@ pub async fn retry_job_as_new(
 
 pub async fn cancel_job(job_id: Uuid) -> crate::Result<InstallJobSnapshot> {
     let state = State::get().await?;
+    if let Some(token) = state.install_job_cancellations.get(&job_id) {
+        token.value().cancel();
+    }
     let mut job = loop {
         let mut job = store::get_required(job_id, &state).await?;
         match job.status {
@@ -676,7 +756,9 @@ pub async fn cancel_job(job_id: Uuid) -> crate::Result<InstallJobSnapshot> {
                 emit_install_job(&record.snapshot()).await?;
                 return Ok(record.snapshot());
             }
-            InstallJobStatus::Canceling => return Ok(job.snapshot()),
+            InstallJobStatus::Canceling | InstallJobStatus::Canceled => {
+                return Ok(job.snapshot());
+            }
             InstallJobStatus::Queued | InstallJobStatus::WaitingForUser => {
                 let expected = job.status;
                 begin_canceling_job(&mut job.state);

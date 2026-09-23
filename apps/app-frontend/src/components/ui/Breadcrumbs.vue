@@ -143,6 +143,7 @@ const messages = defineMessages({
 	files: { id: 'app.instance.tabs.files', defaultMessage: 'Files' },
 	studio: { id: 'instance.files.studio.title', defaultMessage: 'Studio' },
 	logs: { id: 'app.instance.tabs.logs', defaultMessage: 'Logs' },
+	screenshots: { id: 'app.navigation.screenshots', defaultMessage: 'Screenshots' },
 	editWorld: { id: 'app.navigation.edit-world', defaultMessage: 'Edit world' },
 	upgradeInstance: { id: 'app.instance.upgrade-instance', defaultMessage: 'Upgrade instance' },
 })
@@ -166,6 +167,7 @@ const staticLabels = {
 	Files: messages.files,
 	Studio: messages.studio,
 	Logs: messages.logs,
+	Screenshots: messages.screenshots,
 	'Edit world': messages.editWorld,
 	Upgrade: messages.upgradeInstance,
 }

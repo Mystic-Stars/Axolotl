@@ -159,6 +159,7 @@
 		"mcarchive:default",
 		"datapacks:default",
 		"files:default",
+		"fonts:default",
 		"settings:default",
 		"seed-map:default",
 		"schematic-preview:default",

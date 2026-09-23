@@ -35,6 +35,7 @@ import {
 	getWorldIdentifier,
 	hasServerQuickPlaySupport,
 	hasWorldQuickPlaySupport,
+	normalizeServerAddress,
 	start_join_server,
 	start_join_singleplayer_world,
 	type World,
@@ -56,6 +57,7 @@ const { gameVersions, runningInstanceIds } = runtime
 const world = ref<World | null>(null)
 const starting = ref(false)
 const loadingTarget = ref(false)
+let targetRequestId = 0
 
 const messages = defineMessages({
 	unavailable: {
@@ -179,25 +181,34 @@ const playTooltip = computed(() => {
 })
 
 async function refreshTarget(force = false) {
+	const requestId = ++targetRequestId
 	world.value = null
+	loadingTarget.value = false
 	const target = props.placement.target
-	if (!target || props.placement.kind === 'instance' || !instance.value) return
+	const kind = props.placement.kind
+	if (!target || kind === 'instance' || !instance.value) return
 
 	loadingTarget.value = true
 	try {
 		const available = await runtime.getInstanceWorlds(target.instanceId, force)
+		if (requestId !== targetRequestId) return
+
+		const normalizedTargetAddress = target.address
+			? normalizeServerAddress(target.address)
+			: undefined
 		world.value =
 			available.find((candidate) =>
 				candidate.type === 'server'
-					? props.placement.kind === 'server' && candidate.address === target.address
-					: props.placement.kind === 'world' && candidate.path === target.path,
+					? kind === 'server' &&
+						normalizeServerAddress(candidate.address) === normalizedTargetAddress
+					: kind === 'world' && candidate.path === target.path,
 			) ?? null
 
 		if (world.value?.type === 'server') {
 			await runtime.refreshServer(target.instanceId, world.value.address, force)
 		}
 	} finally {
-		loadingTarget.value = false
+		if (requestId === targetRequestId) loadingTarget.value = false
 	}
 }
 
@@ -258,8 +269,8 @@ async function stopInstance() {
 }
 
 watch(
-	() => [props.placement, props.instances] as const,
-	() => refreshTarget(),
+	() => [props.placement, props.instances, runtime.instanceRevision.value] as const,
+	(_, previous) => refreshTarget(previous !== undefined),
 	{
 		immediate: true,
 		deep: true,

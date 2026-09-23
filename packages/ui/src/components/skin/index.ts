@@ -1,3 +1,4 @@
+export { default as ArmorPreviewControls } from './ArmorPreviewControls.vue'
 export { default as CapeButton } from './CapeButton.vue'
 export { default as CapeLikeTextButton } from './CapeLikeTextButton.vue'
 export { default as SkinButton } from './SkinButton.vue'

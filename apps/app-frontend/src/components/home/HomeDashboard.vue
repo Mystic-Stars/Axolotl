@@ -757,7 +757,11 @@ defineExpose({ openWidgetPicker, setLayout })
 	box-sizing: border-box;
 	border: 1px solid transparent;
 	border-radius: var(--radius-lg);
-	background: var(--color-raised-bg);
+	background: color-mix(
+		in srgb,
+		var(--color-raised-bg) var(--home-widget-bg-opacity, 100%),
+		transparent
+	);
 	box-shadow: var(--shadow-card);
 	transition:
 		border-color 120ms ease,

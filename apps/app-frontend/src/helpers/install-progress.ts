@@ -5,8 +5,13 @@ export interface ProgressValue {
 }
 
 export interface ProgressSnapshot {
+	kind?: string
 	phase: string
 	progress?: ProgressValue | null
+	summary?: {
+		bytes_downloaded: number
+		bytes_total?: number | null
+	}
 	parallel?: {
 		phase: string
 		current: number
@@ -34,6 +39,17 @@ export function effectiveInstallProgress(
 	if (snapshot.phase === 'downloading_content' && snapshot.progress?.secondary) {
 		return snapshot.progress.secondary
 	}
+	if (
+		snapshot.phase === 'downloading_content' &&
+		snapshot.kind === 'change_content' &&
+		snapshot.summary?.bytes_total != null &&
+		snapshot.summary.bytes_total > 0
+	) {
+		return {
+			current: snapshot.summary.bytes_downloaded,
+			total: snapshot.summary.bytes_total,
+		}
+	}
 
 	return snapshot.progress
 }
@@ -46,6 +62,37 @@ export function effectiveParallelProgress(
 		current: snapshot.parallel.current,
 		total: snapshot.parallel.total,
 	}
+}
+
+export function preserveMonotonicProgress<T extends ProgressSnapshot & { status: string }>(
+	current: T,
+	next: T,
+): T {
+	if (current.phase !== next.phase || current.status !== next.status) return next
+	const before = effectiveInstallProgress(current)
+	const after = effectiveInstallProgress(next)
+	if (
+		!hasDeterminateInstallProgress(before) ||
+		!hasDeterminateInstallProgress(after) ||
+		before.total !== after.total ||
+		after.current >= before.current
+	)
+		return next
+
+	if (next.phase === 'downloading_content' && next.progress?.secondary) {
+		return { ...next, progress: { ...next.progress, secondary: before } }
+	}
+	if (
+		next.phase === 'downloading_content' &&
+		next.kind === 'change_content' &&
+		next.summary?.bytes_total
+	) {
+		return {
+			...next,
+			summary: { ...next.summary, bytes_downloaded: before.current },
+		}
+	}
+	return { ...next, progress: current.progress }
 }
 
 export function hasDeterminateInstallProgress(
@@ -83,7 +130,11 @@ export function installProgressTextSource(
 	if (hasDeterminateInstallProgress(progress)) {
 		if (isContentDownload) {
 			return {
-				type: snapshot.progress?.secondary ? 'bytes' : 'items',
+				type:
+					snapshot.progress?.secondary ||
+					(snapshot.kind === 'change_content' && snapshot.summary.bytes_total)
+						? 'bytes'
+						: 'items',
 				current: progress.current,
 				total: progress.total,
 			}

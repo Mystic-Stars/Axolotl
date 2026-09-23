@@ -1,46 +1,29 @@
 <template>
-	<NewModal
+	<ConfirmActionModal
 		ref="modal"
 		:header="
 			formatMessage(messages.header, {
 				type: formatMessage(server ? messages.serverLabel : messages.instanceLabel),
 			})
 		"
-		max-width="500px"
+		confirm-color="green"
+		:confirm-icon="HammerIcon"
+		:confirm-label="formatMessage(messages.repairButton)"
+		@confirm="emit('repair')"
 	>
 		<SymlinkWarningAdmonition :symlink-target="symlinkTarget" />
 		<span class="text-primary">
 			{{ formatMessage(server ? messages.serverBody : messages.instanceBody) }}
 		</span>
-
-		<template #actions>
-			<div class="flex gap-2 justify-end">
-				<ButtonStyled type="outlined">
-					<button @click="modal?.hide()">
-						<XIcon />
-						{{ formatMessage(commonMessages.cancelButton) }}
-					</button>
-				</ButtonStyled>
-				<ButtonStyled color="green">
-					<button @click="confirm">
-						<HammerIcon />
-						{{ formatMessage(messages.repairButton) }}
-					</button>
-				</ButtonStyled>
-			</div>
-		</template>
-	</NewModal>
+	</ConfirmActionModal>
 </template>
 
 <script setup lang="ts">
-import { HammerIcon, XIcon } from '@modrinth/assets'
-import { ref } from 'vue'
+import { HammerIcon } from '@modrinth/assets'
+import { useTemplateRef } from 'vue'
 
-import ButtonStyled from '#ui/components/base/ButtonStyled.vue'
-import NewModal from '#ui/components/modal/NewModal.vue'
-import { useDebugLogger } from '#ui/composables/debug-logger'
+import ConfirmActionModal from '#ui/components/modal/ConfirmActionModal.vue'
 import { defineMessages, useVIntl } from '#ui/composables/i18n'
-import { commonMessages } from '#ui/utils/common-messages'
 
 import SymlinkWarningAdmonition from './SymlinkWarningAdmonition.vue'
 
@@ -50,7 +33,6 @@ defineProps<{
 }>()
 
 const { formatMessage } = useVIntl()
-const debug = useDebugLogger('ConfirmRepairModal')
 
 const messages = defineMessages({
 	header: {
@@ -85,22 +67,9 @@ const emit = defineEmits<{
 	(e: 'repair'): void
 }>()
 
-const modal = ref<InstanceType<typeof NewModal>>()
-
-function show() {
-	debug('show: called', { hasModalRef: !!modal.value })
-	modal.value?.show()
-	debug('show: returned from modal.show', { hasModalRef: !!modal.value })
-}
-
-function confirm() {
-	debug('confirm: called', { hasModalRef: !!modal.value })
-	modal.value?.hide()
-	emit('repair')
-	debug('confirm: emitted repair')
-}
+const modal = useTemplateRef<InstanceType<typeof ConfirmActionModal>>('modal')
 
 defineExpose({
-	show,
+	show: () => modal.value?.show(),
 })
 </script>

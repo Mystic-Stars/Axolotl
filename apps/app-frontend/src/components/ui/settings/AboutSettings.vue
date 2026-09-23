@@ -3,7 +3,6 @@ import {
 	CheckIcon,
 	ChevronDownIcon,
 	CopyIcon,
-	EditIcon,
 	ExternalIcon,
 	GithubIcon,
 	GlobeIcon,
@@ -14,7 +13,16 @@ import {
 } from '@modrinth/assets'
 import { Avatar, defineMessages, NewButton as Button, useVIntl } from '@modrinth/ui'
 import { getVersion } from '@tauri-apps/api/app'
-import { inject, nextTick, onScopeDispose, ref, shallowRef } from 'vue'
+import {
+	defineAsyncComponent,
+	inject,
+	nextTick,
+	onErrorCaptured,
+	onMounted,
+	onScopeDispose,
+	ref,
+	shallowRef,
+} from 'vue'
 
 import AfdianIcon from '@/assets/external/afdian.png'
 import QqIcon from '@/assets/external/qq.svg?component'
@@ -23,12 +31,30 @@ import EasterEggGameModal from '@/components/ui/easteregg/EasterEggGameModal.vue
 import { AxolotlBrandConfig } from '@/config'
 import { contributors, type TeamMember, teamMembers } from '@/data/about'
 
-import AboutScene from '../AboutScene.vue'
 import { type AboutMemberExperience, getAboutMemberExperience } from './about-member-experiences'
 import QqChannelIcon from './QqChannelIcon.vue'
 
+// Lazy so three.js does not sit on the Suspense critical path for this settings
+// category (dev builds hang the skeleton while the chunk loads).
+// Policy: About must work in production builds; dev Vite hang is accepted
+// (see compose spec S3). Keep error isolation so a failed 3D scene cannot
+// tear down Settings in either environment.
+const AboutScene = defineAsyncComponent({
+	loader: () => import('../AboutScene.vue'),
+	onError(error, retry, fail) {
+		// one retry, then leave the scene slot empty instead of tearing down Settings
+		if ((error as { __aboutSceneRetried?: boolean }).__aboutSceneRetried) {
+			fail()
+			return
+		}
+		;(error as { __aboutSceneRetried?: boolean }).__aboutSceneRetried = true
+		retry()
+	},
+})
+const aboutSceneFailed = ref(false)
+
 const { formatMessage } = useVIntl()
-const version = await getVersion()
+const version = ref('')
 const copied = ref(false)
 const experienceHost = ref<HTMLElement>()
 const activeMemberExperience = shallowRef<AboutMemberExperience>()
@@ -41,6 +67,22 @@ const replayOnboarding = inject<(mode: 'main' | 'instance') => Promise<void>>('r
 const licenseUrl = `${AxolotlBrandConfig.repositoryUrl}/blob/main/LICENSE`
 const copyingUrl = `${AxolotlBrandConfig.repositoryUrl}/blob/main/COPYING.md`
 const thirdPartyLicensesUrl = `${AxolotlBrandConfig.repositoryUrl}/tree/main/third-party/licenses`
+
+onMounted(() => {
+	void getVersion()
+		.then((resolved) => {
+			version.value = resolved
+		})
+		.catch(() => {
+			// keep empty version string; do not fail the settings category
+		})
+})
+
+// Keep a failing 3D scene from bubbling into Settings Suspense / the shell.
+onErrorCaptured(() => {
+	aboutSceneFailed.value = true
+	return false
+})
 
 async function copyQqGroupNumber() {
 	await navigator.clipboard.writeText(AxolotlBrandConfig.qqGroupNumber)
@@ -208,14 +250,6 @@ const messages = defineMessages({
 		id: 'app.settings.about.afdian-description',
 		defaultMessage: 'Help support continued development',
 	},
-	survey: {
-		id: 'app.settings.about.survey',
-		defaultMessage: 'Community survey',
-	},
-	surveyDescription: {
-		id: 'app.settings.about.survey-description',
-		defaultMessage: 'Help us improve Axolotl Launcher',
-	},
 	licenseAttribution: {
 		id: 'app.settings.about.license-attribution',
 		defaultMessage: 'License & attribution',
@@ -291,7 +325,7 @@ const projectLinks = [
 						-webkit-mask-image: linear-gradient(to bottom, black 97%, transparent 100%);
 					"
 				>
-					<AboutScene />
+					<AboutScene v-if="!aboutSceneFailed" />
 					<component
 						:is="activeMemberExperience?.component"
 						v-if="activeMemberExperience"
@@ -423,28 +457,6 @@ const projectLinks = [
 						</span>
 						<span class="block text-sm text-secondary">
 							{{ formatMessage(messages.afdianDescription) }}
-						</span>
-					</span>
-					<ExternalIcon class="size-5 shrink-0 text-secondary" />
-				</a>
-
-				<a
-					:href="AxolotlBrandConfig.surveyUrl"
-					target="_blank"
-					rel="noopener noreferrer"
-					class="flex min-w-0 items-center gap-3 rounded-xl bg-surface-4 p-4 transition-colors hover:bg-surface-5 sm:col-span-2"
-				>
-					<span
-						class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-surface-2 text-contrast"
-					>
-						<EditIcon class="size-6" />
-					</span>
-					<span class="min-w-0 flex-1">
-						<span class="block font-semibold text-contrast">
-							{{ formatMessage(messages.survey) }}
-						</span>
-						<span class="block text-sm text-secondary">
-							{{ formatMessage(messages.surveyDescription) }}
 						</span>
 					</span>
 					<ExternalIcon class="size-5 shrink-0 text-secondary" />

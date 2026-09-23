@@ -1,13 +1,14 @@
 import vue from '@vitejs/plugin-vue'
 import { existsSync, readFileSync, statSync } from 'fs'
 import { extname, resolve, sep } from 'path'
+import { fileURLToPath } from 'url'
 import { defineConfig } from 'vite'
 import vueDevTools from 'vite-plugin-vue-devtools'
 import svgLoader from 'vite-svg-loader'
 
-import tauriConf from '../app/tauri.conf.json'
+import tauriConf from '../app/tauri.conf.json' with { type: 'json' }
 
-const projectRootDir = resolve(__dirname)
+const projectRootDir = resolve(fileURLToPath(new URL('.', import.meta.url)))
 const appLibEnvDir = resolve(projectRootDir, '../../packages/app-lib')
 const apiClientSource = resolve(projectRootDir, '../../packages/api-client/src/index.ts')
 const blockbenchRoot = resolve(projectRootDir, '../../third-party/blockbench')
@@ -68,7 +69,7 @@ if (existsSync(envFilePath)) {
 }
 
 // https://vitejs.dev/config/
-export default defineConfig({
+export default defineConfig(({ command }) => ({
 	css: {
 		preprocessorOptions: {
 			scss: {
@@ -91,7 +92,9 @@ export default defineConfig({
 	},
 	plugins: [
 		blockbenchSkinDevAssets(),
-		vueDevTools(),
+		// Vue DevTools injects transform/runtime work; keep it for `vite`/`tauri
+		// dev` only so production `vite build` stays lean.
+		...(command === 'serve' ? [vueDevTools()] : []),
 		vue(),
 		svgLoader({
 			svgoConfig: {
@@ -159,4 +162,4 @@ export default defineConfig({
 		// produce sourcemaps for debug builds
 		sourcemap: !!process.env.TAURI_ENV_DEBUG, // eslint-disable-line turbo/no-undeclared-env-vars
 	},
-})
+}))

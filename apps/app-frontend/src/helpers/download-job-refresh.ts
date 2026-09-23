@@ -2,6 +2,28 @@ export interface RefreshableDownloadJob {
 	job_id: string
 	status: string
 	created: string
+	modified?: string
+}
+
+/**
+ * A queued snapshot can be returned by the command that created a job after a
+ * realtime running snapshot has already arrived. The backend timestamps have
+ * second precision, so the two snapshots can have the same `modified` value.
+ * Never let that older lifecycle state move an already active job backwards.
+ */
+export function isRegressiveActiveJobSnapshot<T extends RefreshableDownloadJob>(
+	current: T,
+	next: T,
+	activeStatuses: ReadonlySet<string>,
+): boolean {
+	return (
+		current.modified !== undefined &&
+		current.modified === next.modified &&
+		activeStatuses.has(current.status) &&
+		activeStatuses.has(next.status) &&
+		current.status !== 'queued' &&
+		next.status === 'queued'
+	)
 }
 
 /**

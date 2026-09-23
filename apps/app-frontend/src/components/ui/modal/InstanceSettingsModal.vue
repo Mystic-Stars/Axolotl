@@ -20,11 +20,13 @@ import type { PlatformTag } from '@modrinth/utils'
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import { computed, nextTick, ref, watch } from 'vue'
 
+import BackupSettings from '@/components/ui/instance_settings/BackupSettings.vue'
 import CoreComponentsSettings from '@/components/ui/instance_settings/CoreComponentsSettings.vue'
 import GeneralSettings from '@/components/ui/instance_settings/GeneralSettings.vue'
 import HooksSettings from '@/components/ui/instance_settings/HooksSettings.vue'
 import InstallationSettings from '@/components/ui/instance_settings/InstallationSettings.vue'
 import JavaSettings from '@/components/ui/instance_settings/JavaSettings.vue'
+import SyncSettings from '@/components/ui/instance_settings/SyncSettings.vue'
 import WindowSettings from '@/components/ui/instance_settings/WindowSettings.vue'
 import InstanceIcon from '@/components/ui/InstanceIcon.vue'
 import { get_project_v3 } from '@/helpers/cache'
@@ -43,6 +45,7 @@ const props = defineProps<{
 }>()
 const emit = defineEmits<{
 	unlinked: []
+	updated: [instance: GameInstance]
 }>()
 
 const isMinecraftServer = ref(false)
@@ -61,6 +64,7 @@ provideInstanceSettings({
 	offline: props.offline,
 	isMinecraftServer,
 	onUnlinked: handleUnlinked,
+	onInstanceUpdated: (instance) => emit('updated', instance),
 	closeModal: hide,
 })
 
@@ -104,6 +108,22 @@ const tabs = computed<TabbedModalTab[]>(() => [
 		}),
 		icon: WrenchIcon,
 		content: InstallationSettings,
+	},
+	{
+		name: defineMessage({
+			id: 'instance.settings.tabs.sync',
+			defaultMessage: 'Synchronization',
+		}),
+		icon: WrenchIcon,
+		content: SyncSettings,
+	},
+	{
+		name: defineMessage({
+			id: 'instance.settings.tabs.backups',
+			defaultMessage: 'Backups',
+		}),
+		icon: FileArchiveIcon,
+		content: BackupSettings,
 	},
 	{
 		// Core component editing is instance-specific and advanced, so it is intentionally excluded from first-run onboarding.

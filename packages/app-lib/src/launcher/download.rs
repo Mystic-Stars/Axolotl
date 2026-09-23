@@ -1438,6 +1438,27 @@ fn normalize_version_info(
     }
 
     let mut changed = !removed.is_empty();
+    // Cleanroom's Foundation bootstrap needs Java 21+. New installers declare
+    // this themselves; older alphas ship no javaVersion at all and would
+    // otherwise inherit vanilla 1.12.2's Java 8 and fail to launch.
+    if loader == ModLoader::Cleanroom
+        && version_info
+            .java_version
+            .as_ref()
+            .is_none_or(|java| java.major_version < 21)
+    {
+        version_info.java_version = Some(d::minecraft::JavaVersion {
+            component: "java-runtime-delta".to_string(),
+            major_version: 21,
+        });
+        tracing::info!(
+            loader = loader.as_meta_str(),
+            game_version,
+            version_info_source,
+            "Raised Cleanroom version profile to Java 21"
+        );
+        changed = true;
+    }
     if version_info
         .libraries
         .iter()
@@ -2648,6 +2669,71 @@ mod tests {
 
     fn urls(values: &[&str]) -> Option<Vec<String>> {
         Some(values.iter().map(|value| (*value).to_string()).collect())
+    }
+
+    fn version_info_with_java(
+        java: Option<d::minecraft::JavaVersion>,
+    ) -> GameVersionInfo {
+        let mut info: GameVersionInfo = serde_json::from_value(serde_json::json!({
+            "assetIndex": {"id": "1.12", "sha1": "", "size": 0, "totalSize": 0, "url": ""},
+            "assets": "1.12",
+            "downloads": {},
+            "id": "1.12.2",
+            "libraries": [],
+            "mainClass": "net.minecraft.client.main.Main",
+            "minimumLauncherVersion": 21,
+            "releaseTime": "2026-01-01T00:00:00+00:00",
+            "time": "2026-01-01T00:00:00+00:00",
+            "type": "release"
+        }))
+        .unwrap();
+        info.java_version = java;
+        info
+    }
+
+    #[test]
+    fn cleanroom_without_java_version_is_raised_to_java_21() {
+        let mut info = version_info_with_java(None);
+        assert!(normalize_version_info(
+            ModLoader::Cleanroom,
+            "1.12.2",
+            &mut info,
+            "network",
+        ));
+        let java = info.java_version.expect("java version pinned");
+        assert_eq!(java.major_version, 21);
+        assert_eq!(java.component, "java-runtime-delta");
+    }
+
+    #[test]
+    fn cleanroom_installer_declared_java_is_preserved() {
+        let mut info =
+            version_info_with_java(Some(d::minecraft::JavaVersion {
+                component: "java-runtime-epsilon".to_string(),
+                major_version: 25,
+            }));
+        assert!(!normalize_version_info(
+            ModLoader::Cleanroom,
+            "1.12.2",
+            &mut info,
+            "network",
+        ));
+        assert_eq!(
+            info.java_version.as_ref().map(|java| java.major_version),
+            Some(25)
+        );
+    }
+
+    #[test]
+    fn vanilla_stays_on_inherited_java_runtime() {
+        let mut info = version_info_with_java(None);
+        assert!(!normalize_version_info(
+            ModLoader::Vanilla,
+            "1.12.2",
+            &mut info,
+            "network",
+        ));
+        assert!(info.java_version.is_none());
     }
 
     #[test]

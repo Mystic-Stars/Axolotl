@@ -120,9 +120,19 @@ pub async fn plan_content_updates(
     scope: ContentUpdateScope,
     target: Option<&str>,
 ) -> crate::Result<ContentUpdatePlan> {
+    plan_content_updates_with_refresh(instance_id, scope, target, true).await
+}
+
+async fn plan_content_updates_with_refresh(
+    instance_id: &str,
+    scope: ContentUpdateScope,
+    target: Option<&str>,
+    refresh_remote: bool,
+) -> crate::Result<ContentUpdatePlan> {
     let state = State::get().await?;
     let snapshot =
-        crate::state::get_content_snapshot(instance_id, true, &state).await?;
+        crate::state::get_content_snapshot(instance_id, refresh_remote, &state)
+            .await?;
     let mut actions = Vec::new();
 
     match scope {
@@ -306,6 +316,7 @@ pub async fn apply_content_update_plan(
                 &plan.instance_id,
                 &action.content_id,
                 &action.target_release_id,
+                None,
             )
             .await?;
         }
@@ -313,6 +324,206 @@ pub async fn apply_content_update_plan(
 
     CONTENT_UPDATE_PLANS.remove(plan_id);
     crate::state::get_content_snapshot(&plan.instance_id, false, &state).await
+}
+
+pub(crate) async fn resolve_content_change_actions(
+    instance_id: &str,
+    intent: &crate::install::ContentChangeIntent,
+) -> crate::Result<Vec<crate::install::ContentChangeAction>> {
+    use crate::install::{
+        ContentChangeIntent, ContentChangeOperation, ContentChangeTarget,
+    };
+
+    match intent {
+        ContentChangeIntent::UpdateOne {
+            content_id,
+            target_release_id: Some(target_release_id),
+        } => Ok(vec![
+            resolve_content_change_action(
+                instance_id,
+                &ContentChangeTarget {
+                    content_id: content_id.clone(),
+                    target_release_id: target_release_id.clone(),
+                },
+                ContentChangeOperation::Update,
+            )
+            .await?,
+        ]),
+        ContentChangeIntent::UpdateOne {
+            content_id,
+            target_release_id: None,
+        } => {
+            let mut plan = plan_content_updates_with_refresh(
+                instance_id,
+                ContentUpdateScope::Item,
+                Some(content_id),
+                false,
+            )
+            .await?;
+            if plan.actions.is_empty() {
+                CONTENT_UPDATE_PLANS.remove(&plan.id);
+                plan = plan_content_updates_with_refresh(
+                    instance_id,
+                    ContentUpdateScope::Item,
+                    Some(content_id),
+                    true,
+                )
+                .await?;
+            }
+            CONTENT_UPDATE_PLANS.remove(&plan.id);
+            let mut actions = Vec::with_capacity(plan.actions.len());
+            for action in plan.actions {
+                actions.push(
+                    resolve_content_change_action(
+                        instance_id,
+                        &ContentChangeTarget {
+                            content_id: action.content_id,
+                            target_release_id: action.target_release_id,
+                        },
+                        ContentChangeOperation::Update,
+                    )
+                    .await?,
+                );
+            }
+            if actions.is_empty() {
+                return Err(crate::ErrorKind::InputError(
+                    "The selected content has no available update".to_string(),
+                )
+                .into());
+            }
+            Ok(actions)
+        }
+        ContentChangeIntent::UpdateSelected { targets } => {
+            if targets.is_empty() {
+                return Err(crate::ErrorKind::InputError(
+                    "At least one content item must be selected".to_string(),
+                )
+                .into());
+            }
+            let mut seen = std::collections::HashSet::new();
+            let mut actions = Vec::with_capacity(targets.len());
+            for target in targets {
+                if !seen.insert(target.content_id.as_str()) {
+                    return Err(crate::ErrorKind::InputError(format!(
+                        "Content {} was selected more than once",
+                        target.content_id
+                    ))
+                    .into());
+                }
+                actions.push(
+                    resolve_content_change_action(
+                        instance_id,
+                        target,
+                        ContentChangeOperation::Update,
+                    )
+                    .await?,
+                );
+            }
+            Ok(actions)
+        }
+        ContentChangeIntent::UpdateAllUserAdded => {
+            let mut plan = plan_content_updates_with_refresh(
+                instance_id,
+                ContentUpdateScope::UserAdded,
+                None,
+                false,
+            )
+            .await?;
+            if plan.actions.is_empty() {
+                CONTENT_UPDATE_PLANS.remove(&plan.id);
+                plan = plan_content_updates_with_refresh(
+                    instance_id,
+                    ContentUpdateScope::UserAdded,
+                    None,
+                    true,
+                )
+                .await?;
+            }
+            CONTENT_UPDATE_PLANS.remove(&plan.id);
+            let mut actions = Vec::with_capacity(plan.actions.len());
+            for action in plan.actions {
+                actions.push(
+                    resolve_content_change_action(
+                        instance_id,
+                        &ContentChangeTarget {
+                            content_id: action.content_id,
+                            target_release_id: action.target_release_id,
+                        },
+                        ContentChangeOperation::Update,
+                    )
+                    .await?,
+                );
+            }
+            Ok(actions)
+        }
+        ContentChangeIntent::SwitchVersion {
+            content_id,
+            target_release_id,
+        } => Ok(vec![
+            resolve_content_change_action(
+                instance_id,
+                &ContentChangeTarget {
+                    content_id: content_id.clone(),
+                    target_release_id: target_release_id.clone(),
+                },
+                ContentChangeOperation::SwitchVersion,
+            )
+            .await?,
+        ]),
+    }
+}
+
+async fn resolve_content_change_action(
+    instance_id: &str,
+    target: &crate::install::ContentChangeTarget,
+    operation: crate::install::ContentChangeOperation,
+) -> crate::Result<crate::install::ContentChangeAction> {
+    let current = super::projects::content_mutation_target(
+        instance_id,
+        &target.content_id,
+    )
+    .await?;
+    let provider = current.provider.ok_or_else(|| {
+        crate::ErrorKind::InputError(format!(
+            "Content {} is not linked to a supported provider",
+            target.content_id
+        ))
+    })?;
+    if !matches!(
+        provider,
+        ContentProvider::Modrinth | ContentProvider::CurseForge
+    ) {
+        return Err(crate::ErrorKind::InputError(format!(
+            "Provider {} does not support content version changes",
+            provider.as_str()
+        ))
+        .into());
+    }
+    let project_id = current.provider_project_id.ok_or_else(|| {
+        crate::ErrorKind::InputError(format!(
+            "Content {} has no provider project ID",
+            target.content_id
+        ))
+    })?;
+
+    Ok(crate::install::ContentChangeAction {
+        content_id: target.content_id.clone(),
+        operation,
+        provider,
+        project_id: Some(project_id),
+        expected_release_id: current.provider_release_id,
+        target_release_id: target.target_release_id.clone(),
+        final_relative_path: current.relative_path.clone(),
+        relative_path: current.relative_path,
+        current_provider_file_name: None,
+        target_provider_file_name: None,
+        files: Vec::new(),
+        dependencies: Vec::new(),
+        modrinth_plan: None,
+        status: crate::install::ContentChangeActionStatus::Pending,
+        error: None,
+        completed: false,
+    })
 }
 
 fn update_action(

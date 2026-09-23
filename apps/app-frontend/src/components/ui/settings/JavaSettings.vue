@@ -145,7 +145,7 @@ const memory = ref(
 
 let shouldApplyDefaultAuto = (settings.value?.extra_launch_args?.length ?? 0) === 0
 
-const memorySlider = await useMemorySlider().catch(handleError)
+const memorySlider = useMemorySlider()
 const maxMemory = memorySlider?.maxMemory ?? 4096
 const snapPoints = memorySlider?.snapPoints ?? []
 

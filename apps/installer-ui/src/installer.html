@@ -955,8 +955,8 @@
 					<!-- Welcome Screen -->
 					<section class="screen active" data-screen="welcome">
 						<div class="screen-content-wrapper" style="align-items: center; text-align: center">
-							<h1 data-i18n="welcomeTitle">Your Minecraft worlds, in one place.</h1>
-							<p class="lead" data-i18n="welcomeCopy">
+							<h1 id="welcome-title" data-i18n="welcomeTitle">Your Minecraft worlds, in one place.</h1>
+							<p id="welcome-copy" class="lead" data-i18n="welcomeCopy">
 								Install Axolotl Launcher, a focused home for instances, content, saves, and Java
 								runtimes.
 							</p>
@@ -1061,6 +1061,11 @@
 											</svg>
 										</div>
 										<span data-i18n="desktopShortcut">Desktop shortcut</span>
+									</label>
+									<label class="checkbox-label hidden" id="delete-app-data-row">
+										<input id="delete-app-data" type="checkbox" />
+										<div class="checkbox-box"><svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l4 4L19 7" stroke-linecap="round" stroke-linejoin="round" /></svg></div>
+										<span data-i18n="deleteAppData">Delete application data</span>
 									</label>
 									<label class="checkbox-label">
 										<input id="launch-after" type="checkbox" checked />
@@ -1173,6 +1178,7 @@
 				installDir: 'C:\\Program Files\\Axolotl Launcher',
 				resourceDir: 'C:\\Users\\Admin\\AppData\\Roaming\\axolotl-launcher',
 				freshInstall: false,
+				uninstall: false,
 			}
 			window.ipc = window.ipc || { postMessage: (msg) => console.log('IPC Mock:', msg) }
 
@@ -1210,6 +1216,11 @@
 						'Your existing application directory will be preserved. You can change it later in Settings.',
 					desktopShortcut: 'Desktop shortcut',
 					launchAfter: 'Launch when complete',
+					deleteAppData: 'Delete application data',
+					uninstallTitle: 'Uninstall Axolotl Launcher',
+					uninstallCopy: 'Remove Axolotl Launcher from this computer. Your application data is kept unless you choose to delete it.',
+					uninstallCompleteTitle: 'Axolotl Launcher was removed',
+					uninstallCompleteCopy: 'Axolotl Launcher has been uninstalled successfully.',
 					installingEyebrow: 'Installation in progress',
 					progressPreparing: 'Preparing Axolotl Launcher',
 					progressRuntime: 'Checking WebView2 runtime',
@@ -1272,6 +1283,11 @@
 					existingNotice: '现有应用目录会被保留，之后仍可在启动器设置中修改。',
 					desktopShortcut: '创建桌面快捷方式',
 					launchAfter: '完成后启动',
+					deleteAppData: '删除应用数据',
+					uninstallTitle: '卸载 Axolotl Launcher',
+					uninstallCopy: '从此电脑移除 Axolotl Launcher。除非选择删除，否则会保留应用数据。',
+					uninstallCompleteTitle: 'Axolotl Launcher 已卸载',
+					uninstallCompleteCopy: 'Axolotl Launcher 已成功卸载。',
 					installingEyebrow: '正在安装',
 					progressPreparing: '正在准备 Axolotl Launcher',
 					progressRuntime: '正在检查 WebView2 运行时',
@@ -1307,6 +1323,7 @@
 			const language = boot.language === 'zhCn' ? 'zhCn' : 'en'
 			const t = copy[language]
 			const state = { screen: 'welcome', progress: 4, failed: false, launchFailed: false, launchAfter: true }
+			if (boot.uninstall) state.launchAfter = false
 			const screens = ['welcome', 'configure', 'installing', 'complete']
 			const $ = (selector) => document.querySelector(selector)
 			const post = (payload) => window.ipc.postMessage(JSON.stringify(payload))
@@ -1328,6 +1345,14 @@
 			if ($('#package-version')) $('#package-version').textContent = boot.version
 			$('#install-dir').value = boot.installDir
 			$('#resource-dir').value = boot.resourceDir
+			if (boot.uninstall) {
+				$('#welcome-title').textContent = t.uninstallTitle
+				$('#welcome-copy').textContent = t.uninstallCopy
+				$('#delete-app-data-row').classList.remove('hidden')
+				$('#desktop-shortcut').closest('label').classList.add('hidden')
+				$('#launch-after').closest('label').classList.add('hidden')
+				state.launchAfter = false
+			}
 
 			if (!boot.freshInstall) {
 				$('#resource-field').classList.add('hidden')
@@ -1379,7 +1404,7 @@
 					$('#footer-note').textContent = t.footerInstalling
 					$('#primary-label').textContent = state.failed ? t.retry : t.install
 					icon.classList.toggle('hidden', !state.failed)
-				} else {
+					} else {
 					$('#footer-note').textContent = state.launchFailed
 						? t.footerLaunchFailed
 						: t.footerComplete
@@ -1396,6 +1421,11 @@
 				$('#launch-error').classList.remove('visible')
 				state.failed = false
 				state.launchFailed = false
+				if (boot.uninstall) {
+					state.launchAfter = false
+					post({ command: 'uninstall', deleteAppData: $('#delete-app-data').checked })
+					return
+				}
 				state.launchAfter = $('#launch-after').checked
 				post({
 					command: 'install',
@@ -1451,7 +1481,7 @@
 			})
 
 			$('#primary-action').addEventListener('click', () => {
-				if (state.screen === 'welcome') setScreen('configure')
+				if (state.screen === 'welcome') boot.uninstall ? install() : setScreen('configure')
 				else if (state.screen === 'configure' || (state.screen === 'installing' && state.failed))
 					install()
 				else if (state.screen === 'complete')
@@ -1477,6 +1507,10 @@
 					} else if (message.type === 'progress') {
 						setProgress(message.value)
 					} else if (message.type === 'installFinished') {
+						if (boot.uninstall) {
+							$('[data-screen="complete"] h2').textContent = t.uninstallCompleteTitle
+							$('[data-screen="complete"] .lead').textContent = t.uninstallCompleteCopy
+						}
 						state.launchAfter = message.launchAfter ?? state.launchAfter
 						setProgress(100)
 						setScreen('complete')
@@ -1494,6 +1528,10 @@
 							`${t.installFailed}${suffix}. ${t.installFailedDetail}`
 						$('#install-error').classList.add('visible')
 						renderFooter()
+					}
+					if (boot.uninstall && screen === 'complete') {
+						$('[data-screen="complete"] h2').textContent = t.uninstallCompleteTitle
+						$('[data-screen="complete"] .lead').textContent = t.uninstallCompleteCopy
 					}
 				},
 			}

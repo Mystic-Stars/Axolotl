@@ -30,6 +30,22 @@ pub(crate) async fn get_content_snapshot(
     refresh_remote: bool,
     state: &State,
 ) -> crate::Result<InstanceContentSnapshot> {
+    get_content_snapshot_inner(instance_id, refresh_remote, true, state).await
+}
+
+pub(crate) async fn get_cached_content_snapshot(
+    instance_id: &str,
+    state: &State,
+) -> crate::Result<InstanceContentSnapshot> {
+    get_content_snapshot_inner(instance_id, false, false, state).await
+}
+
+async fn get_content_snapshot_inner(
+    instance_id: &str,
+    refresh_remote: bool,
+    sync_direct_instance: bool,
+    state: &State,
+) -> crate::Result<InstanceContentSnapshot> {
     let instance = instance_rows::get_instance_by_id(instance_id, &state.pool)
         .await?
         .ok_or_else(|| {
@@ -50,10 +66,16 @@ pub(crate) async fn get_content_snapshot(
     // snapshot, so their first content-page load must scan the external game
     // directory. Later loads reuse the populated rows unless explicitly
     // refreshed.
-    let files = if refresh_remote || instance.is_direct_linked() {
+    let cached_files =
+        content_rows::get_instance_files(&instance.id, &state.pool).await?;
+    let files = if refresh_remote
+        || (sync_direct_instance
+            && instance.is_direct_linked()
+            && cached_files.is_empty())
+    {
         sync_instance_content_files(&instance, state).await?
     } else {
-        content_rows::get_instance_files(&instance.id, &state.pool).await?
+        cached_files
     };
     let mut warnings = Vec::new();
     if refresh_remote

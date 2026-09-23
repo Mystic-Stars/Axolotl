@@ -1,7 +1,5 @@
 <template>
-	<div v-if="hasContent" class="flex flex-col gap-3">
-		<h2 class="text-lg m-0">{{ formatMessage(messages.title) }}</h2>
-
+	<SidebarSection :title="formatMessage(messages.title)" :visible="hasContent">
 		<div
 			v-if="ipAddress"
 			v-tooltip="formatMessage(messages.addressTooltip)"
@@ -76,7 +74,7 @@
 				</TagItem>
 			</div>
 		</section>
-	</div>
+	</SidebarSection>
 </template>
 <script setup lang="ts">
 import type { Labrinth } from '@modrinth/api-client'
@@ -92,6 +90,7 @@ import TagItem from '../base/TagItem.vue'
 import ServerModpackContentCard from './server/ServerModpackContentCard.vue'
 import ServerPing from './server/ServerPing.vue'
 import ServerRegion from './server/ServerRegion.vue'
+import SidebarSection from './SidebarSection.vue'
 
 interface RequiredContent {
 	name: string

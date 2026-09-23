@@ -1,10 +1,12 @@
 <template>
-	<!-- eslint-disable vue/no-undef-components -->
+	<!-- Tres* tags are resolved by the TresJS Vite plugin, not package exports. -->
+	<!-- eslint-disable-next-line vue/no-undef-components -->
 	<div
 		ref="skinPreviewContainer"
 		class="relative w-full h-full overflow-visible cursor-grab"
 		@click="onCanvasClick"
 	>
+		<ArmorPreviewControls v-if="armorPreview" v-model="armorConfig" />
 		<div
 			class="absolute left-0 right-0 z-10 flex items-center justify-center pointer-events-none"
 			:style="previewControlsPositionStyle"
@@ -116,12 +118,15 @@ import {
 
 import { defineMessages, useVIntl } from '#ui/composables/i18n'
 import type {
+	ArmorPreviewConfig,
 	SkinPreviewAnimationConfig,
 	SkinPreviewFitPadding,
 	SkinPreviewFraming,
 	SkinPreviewTuple,
 } from '#ui/composables/skin-rendering'
 import {
+	createDefaultArmorPreviewConfig,
+	useArmorPreview,
 	useSkinPreviewAnimation,
 	useSkinPreviewControls,
 	useSkinPreviewFit,
@@ -130,6 +135,7 @@ import {
 } from '#ui/composables/skin-rendering'
 
 import { useDynamicFontSize } from '../../composables'
+import ArmorPreviewControls from './ArmorPreviewControls.vue'
 import { createRadialSpotlightShader, syncDamageFlashShader } from './skin-preview-shader'
 
 const { formatMessage } = useVIntl()
@@ -157,6 +163,7 @@ const props = withDefaults(
 		fov?: number
 		initialRotation?: number
 		animationConfig?: SkinPreviewAnimationConfig
+		armorPreview?: boolean
 	}>(),
 	{
 		variant: 'CLASSIC',
@@ -173,6 +180,7 @@ const props = withDefaults(
 			randomAnimationInterval: 8000,
 			transitionDuration: 0.2,
 		}),
+		armorPreview: false,
 	},
 )
 
@@ -279,12 +287,22 @@ const {
 	},
 })
 
+const armorConfig = ref<ArmorPreviewConfig>(createDefaultArmorPreviewConfig())
+
 const { isModelLoaded, isTextureLoaded, modelCenter, modelSize, scene } = useSkinPreviewScene({
 	selectedModelSrc,
 	textureSrc: toRef(props, 'textureSrc'),
 	capeSrc: toRef(props, 'capeSrc'),
 	initializeAnimations,
 	cleanupAnimationState,
+})
+
+// Auto-fit is anchored to the load-time pose. Measuring again after an async
+// armor update could capture an arbitrary animation frame and jump on resize.
+useArmorPreview({
+	scene,
+	config: armorConfig,
+	enabled: toRef(props, 'armorPreview'),
 })
 
 function syncDamageFlashShaderMaterials() {

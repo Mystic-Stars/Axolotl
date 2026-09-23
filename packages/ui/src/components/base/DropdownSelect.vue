@@ -276,7 +276,6 @@ const isChildOfDropdown = (element) => {
 
 <style lang="scss" scoped>
 .animated-dropdown {
-	width: 20rem;
 	max-width: 100%;
 	height: 40px;
 	position: relative;

@@ -525,20 +525,18 @@ pub async fn add_offline_user(
 }
 
 #[tauri::command]
-pub async fn remove_user(user: uuid::Uuid) -> Result<()> {
-    Ok(minecraft_auth::remove_user(user).await?)
+pub async fn remove_user(user: String) -> Result<()> {
+    Ok(minecraft_auth::remove_user(&user).await?)
 }
 
 #[tauri::command]
-pub async fn get_default_user(
-    offline_mode: bool,
-) -> Result<Option<uuid::Uuid>> {
+pub async fn get_default_user(offline_mode: bool) -> Result<Option<String>> {
     Ok(minecraft_auth::get_default_user(offline_mode).await?)
 }
 
 #[tauri::command]
-pub async fn set_default_user(user: uuid::Uuid) -> Result<()> {
-    Ok(minecraft_auth::set_default_user(user).await?)
+pub async fn set_default_user(user: String) -> Result<()> {
+    Ok(minecraft_auth::set_default_user(&user).await?)
 }
 
 /// Get a copy of the list of all user credentials

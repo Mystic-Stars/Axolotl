@@ -22,6 +22,7 @@ pub fn init<R: tauri::Runtime>() -> tauri::plugin::TauriPlugin<R> {
             curseforge_get_projects,
             curseforge_get_description,
             curseforge_get_files,
+            curseforge_get_files_page,
             curseforge_get_file,
             curseforge_get_files_many,
             curseforge_get_changelog,
@@ -101,6 +102,14 @@ pub async fn curseforge_get_files(
     request: CurseForgeFilesRequest,
 ) -> Result<CurseForgeFilesResponse> {
     Ok(theseus::curseforge::get_files(project_id, request).await?)
+}
+
+#[tauri::command]
+pub async fn curseforge_get_files_page(
+    project_id: u32,
+    request: CurseForgeFilesRequest,
+) -> Result<CurseForgeFilesResponse> {
+    Ok(theseus::curseforge::get_files_page(project_id, request).await?)
 }
 
 #[tauri::command]
@@ -186,6 +195,7 @@ pub async fn curseforge_switch_installed_file_version(
         &instance_id,
         &relative_path,
         file_id,
+        None,
     )
     .await?)
 }

@@ -317,6 +317,16 @@
 					>
 						{{ job.rollback_error?.message ?? job.error?.message }}
 					</Admonition>
+					<div v-if="failedContentActions(job).length" class="mb-4 flex flex-col gap-2">
+						<Admonition
+							v-for="action in failedContentActions(job)"
+							:key="action.content_id"
+							type="critical"
+							:header="action.final_relative_path ?? action.content_id"
+						>
+							{{ action.error }}
+						</Admonition>
+					</div>
 					<Table
 						v-if="job.items.length"
 						:key="`${job.job_id}-details`"
@@ -534,6 +544,18 @@ const messages = defineMessages({
 	},
 	copyDiagnostics: { id: 'app.downloads.copy-diagnostics', defaultMessage: 'Copy diagnostics' },
 	upgrade: { id: 'app.downloads.operation.upgrade', defaultMessage: 'Upgrade' },
+	contentChange: {
+		id: 'app.downloads.operation.content-change',
+		defaultMessage: 'Content update',
+	},
+	contentUpdateAll: {
+		id: 'app.downloads.operation.content-update-all',
+		defaultMessage: 'Update all content',
+	},
+	contentSwitchVersion: {
+		id: 'app.downloads.operation.content-switch-version',
+		defaultMessage: 'Switch content version',
+	},
 	viewUpgradeResult: {
 		id: 'app.downloads.view-upgrade-result',
 		defaultMessage: 'View upgrade result',
@@ -812,13 +834,28 @@ function providerIcon(value: InstallJobSnapshot['provider']) {
 }
 
 function jobTypeLabel(job: InstallJobSnapshot) {
+	if (job.kind === 'change_content') {
+		return formatMessage(
+			job.content_change?.intent.type === 'update_all_user_added'
+				? messages.contentUpdateAll
+				: job.content_change?.intent.type === 'switch_version'
+					? messages.contentSwitchVersion
+					: messages.contentChange,
+		)
+	}
 	return job.kind === 'upgrade_unmanaged_instance'
 		? formatMessage(messages.upgrade)
 		: providerLabel(job.provider)
 }
 
+function failedContentActions(job: InstallJobSnapshot) {
+	return job.content_change?.actions?.filter((action) => action.status === 'failed') ?? []
+}
+
 function jobTypeIcon(job: InstallJobSnapshot) {
-	return job.kind === 'upgrade_unmanaged_instance' ? RefreshCwIcon : providerIcon(job.provider)
+	return job.kind === 'upgrade_unmanaged_instance' || job.kind === 'change_content'
+		? RefreshCwIcon
+		: providerIcon(job.provider)
 }
 
 function legacyProvider(bar: LoadingBar): InstallJobSnapshot['provider'] {

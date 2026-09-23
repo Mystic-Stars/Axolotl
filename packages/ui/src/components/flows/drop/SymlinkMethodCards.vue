@@ -693,7 +693,7 @@ const unsupported = computed(() => symlinkCapable.value === 'unsupported')
 const symlinkNote = computed(() =>
 	requiresAdmin.value ? formatMessage(messages.requiresAdmin) : undefined,
 )
-const loaderItems = ['vanilla', 'fabric', 'forge', 'neoforge', 'quilt']
+const loaderItems = ['vanilla', 'fabric', 'forge', 'neoforge', 'quilt', 'cleanroom']
 const formatLoader = (item: string) => formatLoaderLabel(item, formatMessage)
 const loaderApiName = computed(() => (loader.value === 'neoforge' ? 'neo' : loader.value))
 

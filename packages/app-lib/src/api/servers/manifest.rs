@@ -65,6 +65,10 @@ pub struct ServerManifest {
     pub install_error: Option<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub jvm_args: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pre_launch_hook: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub home_pinned_at: Option<DateTime<Utc>>,
     pub created_at: DateTime<Utc>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub last_started_at: Option<DateTime<Utc>>,
@@ -224,6 +228,8 @@ mod tests {
             install_state: None,
             install_error: None,
             jvm_args: Vec::new(),
+            pre_launch_hook: None,
+            home_pinned_at: None,
             created_at: Utc::now(),
             last_started_at: None,
             last_exit_crashed: false,
@@ -250,6 +256,8 @@ mod tests {
             install_state: None,
             install_error: None,
             jvm_args: Vec::new(),
+            pre_launch_hook: None,
+            home_pinned_at: None,
             created_at: Utc::now(),
             last_started_at: None,
             last_exit_crashed: false,

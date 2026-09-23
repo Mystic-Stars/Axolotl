@@ -138,6 +138,10 @@ function handleSort(column: ContentCardTableSortColumn) {
 
 	emit('sort', column, newDirection)
 }
+
+function handleItemUpdate(id: string) {
+	emit('update', id)
+}
 </script>
 
 <template>
@@ -302,7 +306,7 @@ function handleSort(column: ContentCardTableSortColumn) {
 					"
 					@update:enabled="(val) => emit('update:enabled', item.id, val)"
 					@delete="(e: MouseEvent) => emit('delete', item.id, e)"
-					@update="emit('update', item.id)"
+					@update="handleItemUpdate(item.id)"
 					@switch-version="emit('switchVersion', item.id)"
 					@rollback="emit('rollback', item.id)"
 					@toggle-expand="item.group ? emit('toggleExpand', item.group) : undefined"
@@ -383,7 +387,7 @@ function handleSort(column: ContentCardTableSortColumn) {
 				"
 				@update:enabled="(val) => emit('update:enabled', item.id, val)"
 				@delete="(e: MouseEvent) => emit('delete', item.id, e)"
-				@update="emit('update', item.id)"
+				@update="handleItemUpdate(item.id)"
 				@switch-version="emit('switchVersion', item.id)"
 				@rollback="emit('rollback', item.id)"
 				@toggle-expand="item.group ? emit('toggleExpand', item.group) : undefined"

@@ -36,24 +36,29 @@ const fullscreenSetting: Ref<boolean> = ref(
 	instance.value.force_fullscreen ?? globalSettings.force_fullscreen,
 )
 const maximizeWindowSetting = ref(instance.value.maximize_window ?? globalSettings.maximize_window)
+const windowTitle = ref(instance.value.window_title ?? '')
 
 const editInstanceObject = computed(() => {
+	const title = windowTitle.value.trim() ? windowTitle.value.trim() : null
 	if (!overrideWindowSettings.value) {
 		return {
 			force_fullscreen: null,
 			maximize_window: null,
 			game_resolution: null,
+			// The title is independent of the window-size override checkbox.
+			window_title: title,
 		}
 	}
 	return {
 		force_fullscreen: fullscreenSetting.value,
 		maximize_window: maximizeWindowSetting.value,
 		game_resolution: fullscreenSetting.value ? null : resolution.value,
+		window_title: title,
 	}
 })
 
 watch(
-	[overrideWindowSettings, resolution, fullscreenSetting, maximizeWindowSetting],
+	[overrideWindowSettings, resolution, fullscreenSetting, maximizeWindowSetting, windowTitle],
 	async () => {
 		await edit(instance.value.id, editInstanceObject.value)
 	},
@@ -108,6 +113,18 @@ const messages = defineMessages({
 	enterHeight: {
 		id: 'instance.settings.tabs.window.height.enter',
 		defaultMessage: 'Enter height...',
+	},
+	windowTitle: {
+		id: 'instance.settings.tabs.window.window-title',
+		defaultMessage: 'Window title',
+	},
+	windowTitleDescription: {
+		id: 'instance.settings.tabs.window.window-title.description',
+		defaultMessage: 'Customize the Minecraft window title. Leave empty to keep the default.',
+	},
+	enterWindowTitle: {
+		id: 'instance.settings.tabs.window.window-title.enter',
+		defaultMessage: 'Enter window title...',
 	},
 })
 </script>
@@ -198,6 +215,26 @@ const messages = defineMessages({
 				:disabled="!overrideWindowSettings || fullscreenSetting"
 				type="number"
 				:placeholder="formatMessage(messages.enterHeight)"
+			/>
+		</div>
+		<div
+			v-if="globalSettings.custom_window_title_enabled"
+			class="flex items-center gap-4 justify-between"
+		>
+			<div class="flex flex-col gap-1">
+				<h2 class="m-0 inline-flex items-center gap-2 text-lg font-semibold text-contrast">
+					{{ formatMessage(messages.windowTitle) }}
+				</h2>
+				<p class="m-0">
+					{{ formatMessage(messages.windowTitleDescription) }}
+				</p>
+			</div>
+			<StyledInput
+				id="window-title"
+				v-model="windowTitle"
+				autocomplete="off"
+				type="text"
+				:placeholder="formatMessage(messages.enterWindowTitle)"
 			/>
 		</div>
 	</div>

@@ -59,6 +59,7 @@ impl InstallJobRecord {
             rollback_error: self.state.rollback_error.clone(),
             pause_reason: self.state.pause_reason.clone(),
             upgrade_result: self.state.upgrade_result.clone(),
+            content_change: self.state.content_change(),
             created: self.created,
             modified: self.modified,
             finished: self.finished,
@@ -450,9 +451,11 @@ pub async fn complete_running_job(
     let json = serde_json::to_string(state)?;
     let id_value = id.to_string();
     let instance_id = instance_id(state);
+    let completes_instance_install_stage =
+        state.request.completes_instance_install_stage();
     let mut transaction = app_state.pool.begin().await?;
 
-    if state.request.completes_instance_install_stage()
+    if completes_instance_install_stage
         && let Some(instance_id) = instance_id.as_deref()
     {
         let result = sqlx::query(
@@ -526,6 +529,22 @@ pub async fn complete_running_job(
         .await?;
     }
     transaction.commit().await?;
+
+    if completes_instance_install_stage
+        && let Some(instance_id) = instance_id.as_deref()
+        && let Err(error) =
+            crate::api::instance::synced_options::reconcile_instance_after_pack_update_with_state(
+                instance_id,
+                app_state,
+            )
+            .await
+    {
+        tracing::warn!(
+            %instance_id,
+            %error,
+            "Instance installation completed, but its enabled synchronized options could not be applied"
+        );
+    }
 
     Ok(Some(get_required(id, app_state).await?))
 }

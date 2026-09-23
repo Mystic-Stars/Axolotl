@@ -139,7 +139,10 @@ pub async fn add_offline_user(
 
     if uuid.is_some() {
         let users = Credentials::get_all_without_refresh(&state.pool).await?;
-        if users.contains_key(&credentials.offline_profile.id) {
+        if users
+            .iter()
+            .any(|user| user.account_id() == credentials.account_id())
+        {
             return Err(crate::ErrorKind::InputError(
                 "An account with this UUID already exists".to_string(),
             )
@@ -178,26 +181,29 @@ pub fn normalize_yggdrasil_api_root(api_root: &str) -> crate::Result<String> {
 #[tracing::instrument]
 pub async fn get_default_user(
     offline_mode: bool,
-) -> crate::Result<Option<uuid::Uuid>> {
+) -> crate::Result<Option<String>> {
     let state = State::get().await?;
     let user = if offline_mode {
         Credentials::get_offline_credential(&state.pool).await?
     } else {
         Credentials::get_active(&state.pool).await?
     };
-    Ok(user.map(|user| user.offline_profile.id))
+    Ok(user.map(|user| user.account_id()))
 }
 
 #[tracing::instrument]
-pub async fn set_default_user(user: uuid::Uuid) -> crate::Result<()> {
+pub async fn set_default_user(account_id: &str) -> crate::Result<()> {
     let state = State::get().await?;
     let users = Credentials::get_all_without_refresh(&state.pool).await?;
-    let (_, mut user) = users.remove(&user).ok_or_else(|| {
-        crate::ErrorKind::OtherError(format!(
-            "Tried to get nonexistent user with ID {user}"
-        ))
-        .as_error()
-    })?;
+    let mut user = users
+        .into_iter()
+        .find(|user| user.account_id() == account_id)
+        .ok_or_else(|| {
+            crate::ErrorKind::OtherError(format!(
+                "Tried to get nonexistent user with ID {account_id}"
+            ))
+            .as_error()
+        })?;
 
     user.active = true;
     user.upsert(&state.pool).await?;
@@ -207,16 +213,20 @@ pub async fn set_default_user(user: uuid::Uuid) -> crate::Result<()> {
 
 /// Remove a user account from the database
 #[tracing::instrument]
-pub async fn remove_user(uuid: uuid::Uuid) -> crate::Result<()> {
+pub async fn remove_user(account_id: &str) -> crate::Result<()> {
     let state = State::get().await?;
 
-    let users = Credentials::get_all_without_refresh(&state.pool).await?;
+    let mut users = Credentials::get_all_without_refresh(&state.pool).await?;
 
-    if let Some((uuid, user)) = users.remove(&uuid) {
-        Credentials::remove(uuid, &state.pool).await?;
+    if let Some(index) = users
+        .iter()
+        .position(|user| user.account_id() == account_id)
+    {
+        let user = users.remove(index);
+        Credentials::remove(account_id, &state.pool).await?;
 
         if user.active
-            && let Some((_, mut user)) = users.into_iter().next()
+            && let Some(mut user) = users.into_iter().next()
         {
             user.active = true;
             user.upsert(&state.pool).await?;
@@ -228,6 +238,7 @@ pub async fn remove_user(uuid: uuid::Uuid) -> crate::Result<()> {
 
 #[derive(Serialize)]
 pub struct MinecraftUser {
+    pub account_id: String,
     pub profile: MinecraftProfile,
     pub account_type: MinecraftAccountType,
     pub access_token: String,
@@ -241,6 +252,7 @@ impl MinecraftUser {
     async fn from_credentials(credentials: Credentials) -> Self {
         let profile = (*credentials.maybe_online_profile().await).clone();
         Self {
+            account_id: credentials.account_id(),
             profile,
             account_type: credentials.account_type,
             access_token: credentials.access_token,
@@ -264,7 +276,6 @@ pub async fn users(offline_mode: bool) -> crate::Result<Vec<MinecraftUser>> {
     };
     let credentials = users
         .into_iter()
-        .map(|x| x.1)
         .filter(|credentials| !offline_mode || credentials.is_offline());
     let mut hydrated_users = Vec::new();
     for credentials in credentials {

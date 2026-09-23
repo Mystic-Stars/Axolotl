@@ -113,10 +113,19 @@ async fn run_job(job_id: Uuid) -> crate::Result<()> {
         Canceled,
     }
 
-    let result = tokio::select! {
-        biased;
-        _ = cancellation.cancelled() => RunResult::Canceled,
-        result = request::run_request(job_id, &mut job_state, &state) => RunResult::Completed(result),
+    let result = if matches!(
+        job_state.request,
+        InstallRequest::ChangeContent { .. }
+    ) {
+        RunResult::Completed(
+            request::run_request(job_id, &mut job_state, &state).await,
+        )
+    } else {
+        tokio::select! {
+            biased;
+            _ = cancellation.cancelled() => RunResult::Canceled,
+            result = request::run_request(job_id, &mut job_state, &state) => RunResult::Completed(result),
+        }
     };
     state.install_job_cancellations.remove(&job_id);
     let execution_state = job_state;
@@ -152,7 +161,12 @@ async fn run_job(job_id: Uuid) -> crate::Result<()> {
             job_state.error = None;
             job_state.rollback_error = None;
             job_state.pause_reason = None;
-            job_state.continuation = None;
+            if !matches!(
+                job_state.request,
+                InstallRequest::ChangeContent { .. }
+            ) {
+                job_state.continuation = None;
+            }
             job_state.missing_content = None;
             job_state.skipped_missing_content_paths.clear();
             job_state.context = None;
@@ -225,6 +239,10 @@ async fn run_job(job_id: Uuid) -> crate::Result<()> {
             finish_canceled_job(job_id, &mut job_state, &state).await?;
         }
         RunResult::Completed(Err(error)) => {
+            if cancellation.is_cancelled() {
+                finish_canceled_job(job_id, &mut job_state, &state).await?;
+                return Ok(());
+            }
             job_state.progress.phase = failure_phase;
             begin_failed_job_rollback(&mut job_state, &error);
             let cleanup_succeeded = match recovery::apply_cleanup(

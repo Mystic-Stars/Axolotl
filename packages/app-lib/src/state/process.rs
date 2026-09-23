@@ -255,6 +255,12 @@ impl ProcessManager {
         }
     }
 
+    pub fn has_instance_process(&self, instance_id: &str) -> bool {
+        self.processes
+            .iter()
+            .any(|entry| entry.value().metadata.instance_id == instance_id)
+    }
+
     #[allow(clippy::too_many_arguments)]
     pub async fn insert_new_process(
         &self,
@@ -264,6 +270,7 @@ impl ProcessManager {
         mut mc_command: Command,
         post_exit_command: Option<String>,
         maximize_window: bool,
+        window_title: Option<String>,
         launch_preparation_timeout: u64,
         game_dir: PathBuf,
         logs_folder: PathBuf,
@@ -289,6 +296,7 @@ impl ProcessManager {
                 uuid: Uuid::new_v4(),
                 pid: mc_proc.id().unwrap_or_default(),
                 maximize_window,
+                window_title,
                 start_time: Utc::now(),
                 instance_id: instance_id.to_string(),
                 instance_path: instance_path.to_string(),
@@ -455,6 +463,7 @@ impl ProcessManager {
             metadata.uuid,
             metadata.pid,
             metadata.maximize_window,
+            metadata.window_title.clone(),
             Some(launch_preparation_timeout),
             ProcessPayloadType::Launched,
             "Launched Minecraft",
@@ -526,6 +535,8 @@ pub struct ProcessMetadata {
     pub uuid: Uuid,
     pub pid: u32,
     pub maximize_window: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub window_title: Option<String>,
     pub instance_id: String,
     pub instance_path: String,
     pub instance_name: String,
@@ -1245,11 +1256,32 @@ impl Process {
             pid,
             false,
             None,
+            None,
             ProcessPayloadType::Finished,
             "Exited process",
             Some(!mc_exit_status.success() && !manually_killed),
         )
         .await?;
+
+        // File changes detected while Minecraft was running are intentionally
+        // deferred by synced-option reconciliation. Run one final pass after
+        // the process has exited so changes to servers.dat (and other synced
+        // files) are captured instead of being left pending indefinitely.
+        let reconcile_instance_id = instance_id.clone();
+        tokio::spawn(async move {
+            if let Err(error) =
+                crate::api::instance::synced_options::reconcile_instance(
+                    &reconcile_instance_id,
+                )
+                .await
+            {
+                tracing::warn!(
+                    instance = %reconcile_instance_id,
+                    %error,
+                    "Failed to reconcile synced options after Minecraft exited"
+                );
+            }
+        });
 
         let _ = state.discord_rpc.clear_to_default(true).await;
 
@@ -1267,17 +1299,19 @@ impl Process {
 
                 if let Some(command) = cmd.next() {
                     // The post-exit hook runs in the instance's game working
-                    // directory, which honours a per-instance override.
-                    let game_dir = crate::state::instances::adapters::sqlite::instance_rows::get_instance_path_and_game_dir_override_by_id(
+                    // directory, including external direct-link instances.
+                    let game_dir = crate::state::get_instance(
                         &instance_id,
                         &state.pool,
                     )
                     .await?
-                    .map(|(path, override_dir)| {
-                        state
-                            .directories
-                            .resolve_game_dir(&path, override_dir.as_deref())
+                    .map(|metadata| {
+                        crate::state::instances::commands::instance_content_root(
+                            &state.directories,
+                            &metadata.instance,
+                        )
                     })
+                    .transpose()?
                     .unwrap_or_else(|| {
                         state.directories.instances_dir().join(&instance_path)
                     });

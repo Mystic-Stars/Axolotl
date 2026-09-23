@@ -37,7 +37,10 @@ function run(args, { configDir = settingsDir, env = {} } = {}) {
 	return { status: result.status, output: `${result.stdout}${result.stderr}` }
 }
 
-function sampleDatabase(file, { withColumn = true, applied = [CLOSE_BEHAVIOR] } = {}) {
+function sampleDatabase(
+	file,
+	{ withColumn = true, applied = [CLOSE_BEHAVIOR], tables = [] } = {},
+) {
 	fs.mkdirSync(path.dirname(file), { recursive: true })
 	const database = new DatabaseSync(file)
 	database.exec('CREATE TABLE settings (id INTEGER PRIMARY KEY, max_memory REAL)')
@@ -45,6 +48,9 @@ function sampleDatabase(file, { withColumn = true, applied = [CLOSE_BEHAVIOR] } 
 		database.exec(
 			"ALTER TABLE settings ADD COLUMN close_behavior TEXT NOT NULL DEFAULT 'ask' CHECK (close_behavior IN ('ask', 'close', 'lightweight'))",
 		)
+	}
+	for (const table of tables) {
+		database.exec(`CREATE TABLE ${table} (id INTEGER PRIMARY KEY)`)
 	}
 	database.exec('INSERT INTO settings (id, max_memory) VALUES (1, 4096)')
 	database.exec(`CREATE TABLE _sqlx_migrations (
@@ -88,6 +94,16 @@ function backupsOf(file) {
 	return fs
 		.readdirSync(dir)
 		.filter((name) => name.startsWith(`${path.basename(file)}.before-downgrade-`))
+}
+
+function tables(file) {
+	const database = new DatabaseSync(file, { readOnly: true })
+	const names = database
+		.prepare("SELECT name FROM sqlite_master WHERE type = 'table'")
+		.all()
+		.map((row) => row.name)
+	database.close()
+	return names
 }
 
 function check(name, condition, detail) {
@@ -195,6 +211,81 @@ console.log('refusals')
 	check('says which table is missing', result.output.includes('_sqlx_migrations'))
 }
 
+// --- migrations that created tables ------------------------------------------
+//
+// A derived mapping cannot undo a CREATE TABLE, so the tables only go when the
+// operator names them. Leaving them behind is what makes a later reinstall of
+// the newer build fail on "table already exists".
+
+const CREATED_TABLE = 20260920160000
+const CREATED_TABLE_NAME = 'pending_backup_repository_cleanups'
+
+{
+	const created = path.join(settingsDir, 'beta', 'created.db')
+	sampleDatabase(created, {
+		withColumn: false,
+		applied: [CREATED_TABLE],
+		tables: [CREATED_TABLE_NAME],
+	})
+
+	const dry = run(['--db', created, '--to', String(CREATED_TABLE)])
+	check('a created table is reported', dry.output.includes(CREATED_TABLE_NAME))
+	check('and described as staying in place', dry.output.includes('stays in place'))
+
+	const refused = run(['--db', created, '--to', String(CREATED_TABLE), '--apply'])
+	check('refuses to apply without naming the table', refused.status === 1)
+	check('points at the variable', refused.output.includes('AXOLOTL_DROP_CREATED_TABLES'))
+	check('changed nothing', migrations(created).includes(CREATED_TABLE))
+	check('left the table alone', tables(created).includes(CREATED_TABLE_NAME))
+
+	const applied = run(['--db', created, '--to', String(CREATED_TABLE), '--apply'], {
+		env: { AXOLOTL_DROP_CREATED_TABLES: CREATED_TABLE_NAME },
+	})
+	check('proceeds once the table is named', applied.status === 0)
+	check('removes the record', !migrations(created).includes(CREATED_TABLE))
+	check('drops the table', !tables(created).includes(CREATED_TABLE_NAME))
+}
+
+{
+	// A migration that creates a table and renames it leaves the new name in the
+	// database, so that - not the name the CREATE TABLE used - is what has to be
+	// named and dropped.
+	const { loadRevertibleMigrations } = await import('./migration-revert.mjs')
+	const revertible = loadRevertibleMigrations(migrationsDir)
+
+	const renamed = revertible.get(20260916090000)
+	check(
+		'a rebuilt table is reported, not offered for dropping',
+		renamed?.createdTables.length === 0 && renamed?.rebuiltTables.join() === 'minecraft_users',
+		JSON.stringify({ c: renamed?.createdTables, r: renamed?.rebuiltTables }),
+	)
+
+	const intermediary = revertible.get(20260915090000)
+	check(
+		'the scratch table a rebuild renames is not treated as a plain create',
+		intermediary?.createdTables.length === 0 &&
+			intermediary?.rebuiltTables.join() === 'instance_servers',
+		JSON.stringify({ c: intermediary?.createdTables, r: intermediary?.rebuiltTables }),
+	)
+}
+
+{
+	// A rebuilt table replaced a table that existed before the migration, so it
+	// holds rows this script cannot restore. Dropping it would delete them, and
+	// naming it in the variable must not make that possible.
+	const REBUILD = 20260916090000
+	const rebuilt = path.join(settingsDir, 'beta', 'rebuilt.db')
+	sampleDatabase(rebuilt, { withColumn: false, applied: [REBUILD], tables: ['minecraft_users'] })
+
+	const refused = run(['--db', rebuilt, '--to', String(REBUILD), '--apply'], {
+		env: { AXOLOTL_DROP_CREATED_TABLES: 'minecraft_users' },
+	})
+	check('refuses a rebuilt table even when it is named', refused.status === 1)
+	check('explains the data would be lost', refused.output.includes('holds rows'))
+	check('keeps the table', tables(rebuilt).includes('minecraft_users'))
+	check('keeps the record', migrations(rebuilt).includes(REBUILD))
+}
+
 console.log('argument validation')
 {
 	for (const [args, expected] of [
@@ -273,8 +364,13 @@ console.log('resolving the settings directory')
 
 console.log('keeping the migration mapping honest')
 {
-	const { loadRevertibleMigrations, parseAddColumns, parseCreatedTables, OLDEST_REVERTIBLE_VERSION } =
-		await import('./migration-revert.mjs')
+	const {
+		loadRevertibleMigrations,
+		parseAddColumns,
+		parseCreatedTables,
+		parseRenamedTables,
+		OLDEST_REVERTIBLE_VERSION,
+	} = await import('./migration-revert.mjs')
 
 	const parsed = parseAddColumns(
 		'ALTER TABLE settings ADD COLUMN log_level TEXT NOT NULL DEFAULT \'trace\';',
@@ -302,6 +398,10 @@ console.log('keeping the migration mapping honest')
 	check(
 		'does not treat string contents as DDL',
 		parseCreatedTables("SELECT 'CREATE TABLE nope (id INTEGER);';").length === 0,
+	)
+	check(
+		'parses a table rename',
+		parseRenamedTables('ALTER TABLE old_name RENAME TO new_name;')[0]?.to === 'new_name',
 	)
 
 	const revertible = loadRevertibleMigrations(migrationsDir)

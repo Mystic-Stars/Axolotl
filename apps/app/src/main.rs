@@ -205,6 +205,9 @@ async fn initialize_state(app: tauri::AppHandle) -> api::Result<()> {
 
     tracing::info!("Initializing app state...");
     State::init(app.config().identifier.clone()).await?;
+    if let Err(error) = theseus::instance::maintain_backup_repository().await {
+        tracing::warn!(%error, "Failed to maintain the instance backup repository");
+    }
 
     // The logger starts before the database is available, so the stored level
     // is applied here once settings can be read. Beta keeps enough detail for
@@ -247,6 +250,8 @@ async fn initialize_state(app: tauri::AppHandle) -> api::Result<()> {
     }
 
     let state = State::get().await?;
+    theseus::state::instance_groups::ensure_imported(&state).await?;
+
     app.asset_protocol_scope()
         .allow_directory(state.directories.caches_dir(), true)?;
     app.asset_protocol_scope()
@@ -455,9 +460,9 @@ fn set_transparent_window_frame(
     #[cfg(windows)]
     {
         use windows::Win32::Graphics::Dwm::{
-            DWMWA_BORDER_COLOR, DWMWA_COLOR_DEFAULT, DWMWA_COLOR_NONE,
-            DWMWA_WINDOW_CORNER_PREFERENCE, DWMWCP_DEFAULT, DWMWCP_ROUND,
-            DwmSetWindowAttribute,
+            DWMWA_BORDER_COLOR, DWMWA_CAPTION_COLOR, DWMWA_COLOR_DEFAULT,
+            DWMWA_COLOR_NONE, DWMWA_TEXT_COLOR, DWMWA_WINDOW_CORNER_PREFERENCE,
+            DWMWCP_DEFAULT, DWMWCP_ROUND, DwmSetWindowAttribute,
         };
 
         window.set_shadow(true).map_err(|error| error.to_string())?;
@@ -473,6 +478,10 @@ fn set_transparent_window_frame(
         } else {
             DWMWA_COLOR_DEFAULT
         };
+        // Caption must match the border: leaving the default paints a white
+        // strip at the top of a transparent window (issue #444).
+        let caption_color = border_color;
+        let text_color = border_color;
 
         unsafe {
             DwmSetWindowAttribute(
@@ -487,6 +496,20 @@ fn set_transparent_window_frame(
                 DWMWA_BORDER_COLOR,
                 std::ptr::from_ref(&border_color).cast(),
                 std::mem::size_of_val(&border_color) as u32,
+            )
+            .map_err(|error| error.to_string())?;
+            DwmSetWindowAttribute(
+                hwnd,
+                DWMWA_CAPTION_COLOR,
+                std::ptr::from_ref(&caption_color).cast(),
+                std::mem::size_of_val(&caption_color) as u32,
+            )
+            .map_err(|error| error.to_string())?;
+            DwmSetWindowAttribute(
+                hwnd,
+                DWMWA_TEXT_COLOR,
+                std::ptr::from_ref(&text_color).cast(),
+                std::mem::size_of_val(&text_color) as u32,
             )
             .map_err(|error| error.to_string())?;
         }
@@ -526,13 +549,40 @@ async fn toggle_decorations(b: bool, window: tauri::Window) -> api::Result<()> {
 }
 
 #[tauri::command]
-fn restart_app(app: tauri::AppHandle) {
-    app.restart();
+async fn restart_app(app: tauri::AppHandle) -> api::Result<()> {
+    if theseus::State::initialized()
+        && theseus::instance::has_active_backup_operations().await?
+    {
+        return Err(theseus::Error::from(theseus::ErrorKind::InputError(
+            "Backup operations are still running".to_string(),
+        ))
+        .into());
+    }
+    app.restart()
 }
 
 #[tauri::command]
-fn exit_app(app: tauri::AppHandle) {
+async fn exit_app(app: tauri::AppHandle, force: bool) -> api::Result<()> {
+    if theseus::State::initialized()
+        && theseus::instance::has_active_backup_operations().await?
+    {
+        if !force {
+            return Err(theseus::Error::from(theseus::ErrorKind::InputError(
+                "Backup operations are still running".to_string(),
+            ))
+            .into());
+        }
+        if theseus::instance::has_active_backup_repository_move().await? {
+            return Err(theseus::Error::from(theseus::ErrorKind::InputError(
+                "The launcher cannot force exit while the backup repository is being moved"
+                    .to_string(),
+            ))
+            .into());
+        }
+        theseus::instance::interrupt_active_backup_operations().await?;
+    }
     app.exit(0);
+    Ok(())
 }
 
 #[tauri::command]
@@ -872,6 +922,7 @@ fn main() {
         .plugin(api::datapacks::init())
         .plugin(api::drop::init())
         .plugin(api::files::init())
+        .plugin(api::fonts::init())
         .plugin(api::friends::init())
         .plugin(api::worlds::init())
         .plugin(api::terracotta::init())

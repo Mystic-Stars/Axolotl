@@ -41,7 +41,7 @@ export interface ImportPlanRequest {
 	loaderVersion?: string | null
 }
 
-export const KNOWN_IMPORT_PLAN_LOADERS = ['fabric', 'forge', 'neoforge', 'quilt'] as const
+export const KNOWN_IMPORT_PLAN_LOADERS = ['fabric', 'forge', 'neoforge', 'quilt', 'cleanroom'] as const
 
 export function importPlanDefaultGameVersion(detected: string | null | undefined) {
 	return detected ?? ''

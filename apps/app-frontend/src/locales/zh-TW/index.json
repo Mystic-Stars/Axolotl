@@ -752,24 +752,6 @@
   "app.close-launcher.tray": {
     "message": "隱藏至系統匣"
   },
-  "app.community-announcement.feedback-middle": {
-    "message": "，或於 "
-  },
-  "app.community-announcement.feedback-prefix": {
-    "message": "如果您有更多、更好的想法或建議，歡迎加入我們的 QQ 群組："
-  },
-  "app.community-announcement.feedback-suffix": {
-    "message": " 上向我們提出。期待與大家共同完善 Axolotl Launcher！"
-  },
-  "app.community-announcement.response": {
-    "message": "自從 Axolotl Launcher 在影片平台宣傳以來，我們收穫了遠超預期的喜愛與關注，同時也收到了許多高品質的回饋與提議。"
-  },
-  "app.community-announcement.thanks": {
-    "message": "對於影片評論區裡的留言，我都已盡可能地逐一回覆。承蒙各位厚愛，在此表達最誠摯的感謝！"
-  },
-  "app.community-announcement.title": {
-    "message": "致各位使用者"
-  },
   "app.content-favorites.add": {
     "message": "新增到收藏夾"
   },
@@ -1354,6 +1336,15 @@
   },
   "app.downloads.open-instance": {
     "message": "開啟實例"
+  },
+  "app.downloads.operation.content-change": {
+    "message": "內容更新"
+  },
+  "app.downloads.operation.content-switch-version": {
+    "message": "切換內容版本"
+  },
+  "app.downloads.operation.content-update-all": {
+    "message": "更新所有內容"
   },
   "app.downloads.operation.upgrade": {
     "message": "升級"
@@ -2970,7 +2961,7 @@
     "message": "分組名稱"
   },
   "app.instances.batch-edit-groups.header": {
-    "message": "編輯分組"
+    "message": "建立分組"
   },
   "app.instances.copy-path": {
     "message": "複製路徑"
@@ -2985,7 +2976,7 @@
     "message": "編輯分組"
   },
   "app.instances.group-by": {
-    "message": "分組方式："
+    "message": "分組方式"
   },
   "app.instances.group.game-version": {
     "message": "遊戲版本"
@@ -3001,6 +2992,96 @@
   },
   "app.instances.group.ungrouped": {
     "message": "無分組"
+  },
+  "app.instances.group.pinned": {
+    "message": "已置頂"
+  },
+  "app.instances.group.empty": {
+    "message": "拖放實例到此處添加。"
+  },
+  "app.instances.group.edit-name": {
+    "message": "編輯分組名稱"
+  },
+  "app.instances.group.delete-group": {
+    "message": "刪除分組"
+  },
+  "app.instances.group.delete-description": {
+    "message": "此分組中的實例將被取消分組。"
+  },
+  "app.instances.group.move-up": {
+    "message": "上移分組"
+  },
+  "app.instances.group.move-down": {
+    "message": "下移分組"
+  },
+  "app.instances.group.add-to-group": {
+    "message": "新增到分組"
+  },
+  "app.instances.group.new-instance": {
+    "message": "新建實例"
+  },
+  "app.instances.group.collapse": {
+    "message": "折疊分組"
+  },
+  "app.instances.group.expand": {
+    "message": "展開分組"
+  },
+  "app.instances.group.rename-group": {
+    "message": "重新命名分組"
+  },
+  "app.instances.group.name-empty": {
+    "message": "分組名稱不能為空。"
+  },
+  "app.instances.group.name-too-long": {
+    "message": "分組名稱不能超過 {maxLength} 個字元。"
+  },
+  "app.instances.batch-edit-groups.add-to-group-title": {
+    "message": "新增實例到「{groupName}」"
+  },
+  "app.instances.batch-edit-groups.group-name": {
+    "message": "分組名稱"
+  },
+  "app.instances.batch-edit-groups.group-name-placeholder": {
+    "message": "輸入分組名稱"
+  },
+  "app.instances.batch-edit-groups.search-instance": {
+    "message": "搜尋實例"
+  },
+  "app.instances.batch-edit-groups.no-instances-found": {
+    "message": "未找到實例"
+  },
+  "app.instances.batch-edit-groups.add": {
+    "message": "新增"
+  },
+  "app.instances.batch-edit-groups.added": {
+    "message": "已新增"
+  },
+  "app.instances.batch-edit-groups.cancel": {
+    "message": "取消"
+  },
+  "app.instances.batch-edit-groups.create": {
+    "message": "建立分組"
+  },
+  "app.instances.batch-edit-groups.save-changes": {
+    "message": "儲存"
+  },
+  "app.library.group.new": {
+    "message": "新建分組"
+  },
+  "app.library.selection.new-group": {
+    "message": "新建分組"
+  },
+  "app.library.selection.remove-from-group": {
+    "message": "移出分組"
+  },
+  "app.library.context-menu.pin-instance": {
+    "message": "置頂實例"
+  },
+  "app.library.context-menu.unpin-instance": {
+    "message": "取消置頂"
+  },
+  "app.library.context-menu.remove-from-group": {
+    "message": "移出分組"
   },
   "app.instances.pin-to-home": {
     "message": "固定到首頁"
@@ -3028,6 +3109,33 @@
   },
   "app.instances.sort.name": {
     "message": "名稱"
+  },
+  "app.instances.sort-by": {
+    "message": "排序方式"
+  },
+  "app.instances.sort.direction.asc-alphabetical": {
+    "message": "A–Z 正序"
+  },
+  "app.instances.sort.direction.desc-alphabetical": {
+    "message": "Z–A 倒序"
+  },
+  "app.instances.sort.direction.asc-version": {
+    "message": "舊版本在前"
+  },
+  "app.instances.sort.direction.desc-version": {
+    "message": "新版本在前"
+  },
+  "app.instances.sort.direction.asc-recency": {
+    "message": "最早遊玩在前"
+  },
+  "app.instances.sort.direction.desc-recency": {
+    "message": "最近遊玩在前"
+  },
+  "app.instances.sort.direction.asc-date": {
+    "message": "最早的在前"
+  },
+  "app.instances.sort.direction.desc-date": {
+    "message": "最新的在前"
   },
   "app.instances.unpin-from-home": {
     "message": "取消固定"
@@ -6479,12 +6587,6 @@
   "app.settings.about.repository": {
     "message": "原始碼"
   },
-  "app.settings.about.survey": {
-    "message": "調查問卷"
-  },
-  "app.settings.about.survey-description": {
-    "message": "幫助我們改進 Axolotl Launcher"
-  },
   "app.settings.about.test-error": {
     "message": "觸發測試錯誤"
   },
@@ -7468,21 +7570,6 @@
   },
   "app.splash.updating-app-directory": {
     "message": "正在更新應用程式目錄……"
-  },
-  "app.survey-promotion.defer-hint": {
-    "message": "關閉此彈窗後，你仍可以隨時在「設定 → 關於」頁面中找到並填寫問卷。"
-  },
-  "app.survey-promotion.fill-survey": {
-    "message": "填寫問卷"
-  },
-  "app.survey-promotion.intro": {
-    "message": "為了更好地改進 Axolotl Launcher，我們準備了一份簡短的調查問卷，期待聽到你的回饋。"
-  },
-  "app.survey-promotion.reward": {
-    "message": "我們將從填寫問卷的使用者中抽取幸運使用者，贈送 Minecraft 正版帳號（可折現）。"
-  },
-  "app.survey-promotion.title": {
-    "message": "調查問卷"
   },
   "app.symlink-capability.unsupported": {
     "message": "系統不支持軟連結。"
@@ -8506,6 +8593,21 @@
   },
   "instance.settings.tabs.general.deleting.button": {
     "message": "刪除中..."
+  },
+  "instance.settings.tabs.general.desktop-shortcut": {
+    "message": "桌面捷徑"
+  },
+  "instance.settings.tabs.general.desktop-shortcut.create": {
+    "message": "建立桌面捷徑"
+  },
+  "instance.settings.tabs.general.desktop-shortcut.created": {
+    "message": "桌面捷徑已建立"
+  },
+  "instance.settings.tabs.general.desktop-shortcut.creating": {
+    "message": "正在建立捷徑……"
+  },
+  "instance.settings.tabs.general.desktop-shortcut.description": {
+    "message": "在桌面建立可直接啟動此實例的捷徑。"
   },
   "instance.settings.tabs.general.duplicate-button": {
     "message": "複製"

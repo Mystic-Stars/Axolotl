@@ -1,0 +1,600 @@
+//! Instance grouping backed by a standalone JSON file in the app's settings
+//! directory, next to `settings.json`.
+//!
+//! Groups used to live in SQLite (`instance_groups` /
+//! `instance_group_memberships`). That layout could not express membership for
+//! JSON-backed instances (`local:` ids, i.e. every `.minecraft` and
+//! multi-library instance) because they have no row in the `instances` table,
+//! and it duplicated membership into the per-instance sidecars. This module is
+//! the single source of truth instead; the SQL tables are left untouched but
+//! are no longer read or written (they are only read once, at import time).
+
+use crate::state::State;
+use serde::{Deserialize, Serialize};
+use std::collections::{HashMap, HashSet};
+use std::fs;
+use std::path::PathBuf;
+use std::sync::{OnceLock, RwLock};
+use tracing::{info, warn};
+
+pub const INSTANCE_GROUPS_FILE_NAME: &str = "instance_groups.json";
+
+/// Current `instance_groups.json` schema version.
+pub const INSTANCE_GROUPS_SCHEMA_VERSION: u32 = 1;
+
+pub const FAVORITES_GROUP_ID: &str = "group:favorites";
+const FAVORITES_GROUP_NAME: &str = "Pinned";
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct GroupDefinition {
+    pub id: String,
+    pub name: String,
+}
+
+/// On-disk shape. The order of `groups` *is* the display order, so no
+/// `display_order` field is needed: the public API only ever communicates
+/// ordering through the order of `list()` and `set_order()`.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct InstanceGroupsFile {
+    #[serde(default)]
+    pub schema_version: u32,
+    #[serde(default)]
+    pub groups: Vec<GroupDefinition>,
+    /// instance id -> group ids.
+    #[serde(default)]
+    pub memberships: HashMap<String, Vec<String>>,
+}
+
+impl Default for InstanceGroupsFile {
+    fn default() -> Self {
+        Self {
+            schema_version: INSTANCE_GROUPS_SCHEMA_VERSION,
+            groups: vec![GroupDefinition {
+                id: FAVORITES_GROUP_ID.to_string(),
+                name: FAVORITES_GROUP_NAME.to_string(),
+            }],
+            memberships: HashMap::new(),
+        }
+    }
+}
+
+impl InstanceGroupsFile {
+    fn has_group(&self, id: &str) -> bool {
+        self.groups.iter().any(|group| group.id == id)
+    }
+
+    /// Guarantees the favorites sentinel exists and sits first, drops
+    /// memberships pointing at groups that no longer exist, and drops instances
+    /// left with no groups at all.
+    fn normalize(&mut self) {
+        self.schema_version = INSTANCE_GROUPS_SCHEMA_VERSION;
+
+        match self.groups.iter().position(|g| g.id == FAVORITES_GROUP_ID) {
+            Some(0) => {}
+            Some(index) => {
+                let favorites = self.groups.remove(index);
+                self.groups.insert(0, favorites);
+            }
+            None => self.groups.insert(
+                0,
+                GroupDefinition {
+                    id: FAVORITES_GROUP_ID.to_string(),
+                    name: FAVORITES_GROUP_NAME.to_string(),
+                },
+            ),
+        }
+
+        let known = self
+            .groups
+            .iter()
+            .map(|group| group.id.clone())
+            .collect::<HashSet<_>>();
+
+        for group_ids in self.memberships.values_mut() {
+            let mut seen = HashSet::new();
+            group_ids
+                .retain(|id| known.contains(id) && seen.insert(id.clone()));
+        }
+        self.memberships
+            .retain(|_, group_ids| !group_ids.is_empty());
+    }
+}
+
+static STORE: OnceLock<RwLock<InstanceGroupsFile>> = OnceLock::new();
+
+fn file_path() -> Option<PathBuf> {
+    let state = State::get_if_initialized()?;
+    Some(
+        state
+            .directories
+            .settings_dir
+            .join(INSTANCE_GROUPS_FILE_NAME),
+    )
+}
+
+/// Reads the store from disk, or `None` when it has never been written.
+fn read_from_disk() -> Option<InstanceGroupsFile> {
+    let path = file_path()?;
+    if !path.exists() {
+        return None;
+    }
+    match fs::read_to_string(&path)
+        .map_err(|e| e.to_string())
+        .and_then(|content| {
+            serde_json::from_str::<InstanceGroupsFile>(&content)
+                .map_err(|e| e.to_string())
+        }) {
+        Ok(mut file) => {
+            file.normalize();
+            Some(file)
+        }
+        Err(error) => {
+            // A corrupt file must not wipe the user's groups silently on the
+            // next write, so bail out to an empty store without touching disk.
+            warn!("Failed to read {INSTANCE_GROUPS_FILE_NAME}: {error}");
+            None
+        }
+    }
+}
+
+fn write_to_disk(file: &InstanceGroupsFile) {
+    let Some(path) = file_path() else {
+        return;
+    };
+    let write = serde_json::to_string_pretty(file)
+        .map_err(|e| e.to_string())
+        .and_then(|content| {
+            fs::write(&path, content).map_err(|e| e.to_string())
+        });
+    if let Err(error) = write {
+        warn!("Failed to save {INSTANCE_GROUPS_FILE_NAME}: {error}");
+    }
+}
+
+fn store() -> &'static RwLock<InstanceGroupsFile> {
+    STORE.get_or_init(|| {
+        RwLock::new(
+            read_from_disk().unwrap_or_else(InstanceGroupsFile::default),
+        )
+    })
+}
+
+fn with_read<T>(f: impl FnOnce(&InstanceGroupsFile) -> T) -> T {
+    let guard = store().read().unwrap_or_else(|e| e.into_inner());
+    f(&guard)
+}
+
+/// Mutates the store and persists the whole file. `f` returns the instance ids
+/// whose membership changed, so callers can emit the change event.
+fn with_write<T>(f: impl FnOnce(&mut InstanceGroupsFile) -> T) -> T {
+    let mut guard = store().write().unwrap_or_else(|e| e.into_inner());
+    let result = f(&mut guard);
+    guard.normalize();
+    write_to_disk(&guard);
+    result
+}
+
+// ── Reads ───────────────────────────────────────────────────────────────────
+
+pub fn list() -> Vec<GroupDefinition> {
+    with_read(|file| file.groups.clone())
+}
+
+pub fn group_exists(id: &str) -> bool {
+    with_read(|file| file.has_group(id))
+}
+
+/// Group ids for one instance, in the order they were assigned. Synchronous so
+/// that `instance_metadata_from_instance` can call it.
+pub fn group_ids_for(instance_id: &str) -> Vec<String> {
+    with_read(|file| {
+        file.memberships
+            .get(instance_id)
+            .cloned()
+            .unwrap_or_default()
+    })
+}
+
+fn instances_in_group(
+    file: &InstanceGroupsFile,
+    group_id: &str,
+) -> Vec<String> {
+    file.memberships
+        .iter()
+        .filter(|(_, group_ids)| group_ids.iter().any(|id| id == group_id))
+        .map(|(instance_id, _)| instance_id.clone())
+        .collect()
+}
+
+// ── Writes ──────────────────────────────────────────────────────────────────
+
+/// Adds a group at the top of the list, matching the previous SQL behavior
+/// where new groups got the lowest `display_order`. Favorites stays first.
+pub fn create(id: &str, name: &str) {
+    with_write(|file| {
+        let definition = GroupDefinition {
+            id: id.to_string(),
+            name: name.to_string(),
+        };
+        // `normalize` moves favorites back to index 0 afterwards.
+        file.groups.insert(0, definition);
+    });
+}
+
+/// Renames a group, returning the affected instance ids, or `None` when the
+/// group does not exist.
+pub fn rename(id: &str, name: &str) -> Option<Vec<String>> {
+    with_write(|file| {
+        let group = file.groups.iter_mut().find(|group| group.id == id)?;
+        group.name = name.to_string();
+        Some(instances_in_group(file, id))
+    })
+}
+
+/// Deletes a group and strips it from every instance, returning the affected
+/// instance ids, or `None` when the group does not exist.
+pub fn delete(id: &str) -> Option<Vec<String>> {
+    with_write(|file| {
+        let index = file.groups.iter().position(|group| group.id == id)?;
+        let affected = instances_in_group(file, id);
+        file.groups.remove(index);
+        // `normalize` prunes the now-dangling ids out of `memberships`.
+        Some(affected)
+    })
+}
+
+/// Reorders groups to match `group_ids`. Groups missing from the argument keep
+/// their relative order at the end, so a stale frontend list can never drop a
+/// group. Favorites is pinned first regardless.
+pub fn set_order(group_ids: &[String]) {
+    with_write(|file| {
+        let mut remaining = std::mem::take(&mut file.groups);
+        let mut ordered = Vec::with_capacity(remaining.len());
+        for id in group_ids {
+            if id == FAVORITES_GROUP_ID {
+                continue;
+            }
+            if let Some(index) = remaining.iter().position(|g| &g.id == id) {
+                ordered.push(remaining.remove(index));
+            }
+        }
+        ordered.extend(remaining);
+        file.groups = ordered;
+    });
+}
+
+/// Replaces the group list of each given instance wholesale.
+pub fn set_memberships(updates: &[(String, Vec<String>)]) {
+    with_write(|file| {
+        for (instance_id, group_ids) in updates {
+            if group_ids.is_empty() {
+                file.memberships.remove(instance_id);
+            } else {
+                file.memberships
+                    .insert(instance_id.clone(), group_ids.clone());
+            }
+        }
+    });
+}
+
+/// Replaces the group list of a single instance.
+pub fn set_instance_groups(instance_id: &str, group_ids: &[String]) {
+    set_memberships(&[(instance_id.to_string(), group_ids.to_vec())]);
+}
+
+/// Looks a group up by name, creating it if absent, and returns its id.
+/// Used by the legacy launcher import, which only knows group names.
+pub fn find_or_create_by_name(name: &str) -> String {
+    with_write(|file| {
+        if let Some(group) = file.groups.iter().find(|group| group.name == name)
+        {
+            return group.id.clone();
+        }
+        let id = uuid::Uuid::new_v4().to_string();
+        file.groups.push(GroupDefinition {
+            id: id.clone(),
+            name: name.to_string(),
+        });
+        id
+    })
+}
+
+/// Adds one group to an instance, keeping its existing groups.
+pub fn add_instance_to_group(instance_id: &str, group_id: &str) {
+    with_write(|file| {
+        let entry =
+            file.memberships.entry(instance_id.to_string()).or_default();
+        if !entry.iter().any(|id| id == group_id) {
+            entry.push(group_id.to_string());
+        }
+    });
+}
+
+/// Drops an instance's membership entry, e.g. after the instance is deleted.
+pub fn forget_instance(instance_id: &str) {
+    with_write(|file| {
+        file.memberships.remove(instance_id);
+    });
+}
+
+/// Re-keys an instance's membership, e.g. when a `local:` id changes because the
+/// instance directory moved.
+pub fn rename_instance(old_id: &str, new_id: &str) {
+    if old_id == new_id {
+        return;
+    }
+    with_write(|file| {
+        if let Some(group_ids) = file.memberships.remove(old_id) {
+            file.memberships.insert(new_id.to_string(), group_ids);
+        }
+    });
+}
+
+// ── One-time import ─────────────────────────────────────────────────────────
+
+async fn import_sql_groups(
+    pool: &sqlx::SqlitePool,
+) -> crate::Result<InstanceGroupsFile> {
+    let columns: Vec<String> = sqlx::query_scalar(
+        "SELECT name FROM pragma_table_info('instance_groups')",
+    )
+    .fetch_all(pool)
+    .await?;
+    let has_column = |name: &str| columns.iter().any(|column| column == name);
+
+    let mut file = InstanceGroupsFile {
+        schema_version: INSTANCE_GROUPS_SCHEMA_VERSION,
+        groups: Vec::new(),
+        memberships: HashMap::new(),
+    };
+
+    if has_column("id") && has_column("name") {
+        let rows = sqlx::query_as::<_, (String, String)>(
+            "SELECT id, name FROM instance_groups ORDER BY display_order, name, id",
+        )
+        .fetch_all(pool)
+        .await?;
+        for (id, name) in rows {
+            file.groups.push(GroupDefinition { id, name });
+        }
+
+        let has_memberships: bool = sqlx::query_scalar(
+            "SELECT EXISTS(
+                SELECT 1 FROM sqlite_master
+                WHERE type = 'table' AND name = 'instance_group_memberships'
+            )",
+        )
+        .fetch_one(pool)
+        .await?;
+        if has_memberships {
+            let memberships = sqlx::query_as::<_, (String, String)>(
+                "SELECT instance_id, group_id FROM instance_group_memberships",
+            )
+            .fetch_all(pool)
+            .await?;
+            for (instance_id, group_id) in memberships {
+                file.memberships
+                    .entry(instance_id)
+                    .or_default()
+                    .push(group_id);
+            }
+        }
+    } else if has_column("instance_id") && has_column("group_name") {
+        let rows = sqlx::query_as::<_, (String, String)>(
+            "SELECT instance_id, group_name
+             FROM instance_groups
+             ORDER BY group_name, instance_id",
+        )
+        .fetch_all(pool)
+        .await?;
+        let mut group_ids = HashMap::<String, String>::new();
+        for (instance_id, group_name) in rows {
+            let group_id = group_ids
+                .entry(group_name.clone())
+                .or_insert_with(|| uuid::Uuid::new_v4().to_string())
+                .clone();
+            file.memberships
+                .entry(instance_id)
+                .or_default()
+                .push(group_id.clone());
+            if !file.groups.iter().any(|group| group.id == group_id) {
+                file.groups.push(GroupDefinition {
+                    id: group_id,
+                    name: group_name,
+                });
+            }
+        }
+    } else if !columns.is_empty() {
+        warn!(
+            columns = ?columns,
+            "Skipping instance group import from an unrecognized SQLite schema"
+        );
+    }
+
+    file.normalize();
+    Ok(file)
+}
+
+/// Creates `instance_groups.json` from the pre-existing SQLite tables and
+/// instance sidecars, the first time the app runs after this change.
+///
+/// The SQL access here is read-only and happens exactly once; afterwards the
+/// tables are never touched again (they are kept as-is so no DB migration is
+/// needed).
+pub async fn ensure_imported(state: &State) -> crate::Result<()> {
+    let Some(path) = file_path() else {
+        return Ok(());
+    };
+    if path.exists() {
+        // Populate the in-memory cache eagerly so the first synchronous read
+        // does not race with a write.
+        let _ = list();
+        return Ok(());
+    }
+
+    let file = import_sql_groups(&state.pool).await?;
+    let group_count = file.groups.len();
+    let instance_count = file.memberships.len();
+
+    // Seed the cache with the imported data instead of letting `store()` read
+    // the file we are about to write.
+    {
+        let lock = store();
+        let mut guard = lock.write().unwrap_or_else(|e| e.into_inner());
+        *guard = file;
+        write_to_disk(&guard);
+    }
+
+    info!(
+        "Imported {group_count} instance groups covering {instance_count} instances into {INSTANCE_GROUPS_FILE_NAME}"
+    );
+
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use sqlx::sqlite::SqlitePoolOptions;
+
+    fn file_with_groups(ids: &[&str]) -> InstanceGroupsFile {
+        InstanceGroupsFile {
+            schema_version: INSTANCE_GROUPS_SCHEMA_VERSION,
+            groups: ids
+                .iter()
+                .map(|id| GroupDefinition {
+                    id: id.to_string(),
+                    name: id.to_string(),
+                })
+                .collect(),
+            memberships: HashMap::new(),
+        }
+    }
+
+    #[test]
+    fn normalize_inserts_favorites_first() {
+        let mut file = file_with_groups(&["a", "b"]);
+        file.normalize();
+        assert_eq!(file.groups[0].id, FAVORITES_GROUP_ID);
+        assert_eq!(file.groups.len(), 3);
+    }
+
+    #[test]
+    fn normalize_moves_favorites_to_front() {
+        let mut file = file_with_groups(&["a", FAVORITES_GROUP_ID, "b"]);
+        file.normalize();
+        assert_eq!(file.groups[0].id, FAVORITES_GROUP_ID);
+        assert_eq!(file.groups[1].id, "a");
+        assert_eq!(file.groups[2].id, "b");
+    }
+
+    #[test]
+    fn normalize_drops_orphan_memberships() {
+        let mut file = file_with_groups(&["a"]);
+        file.memberships.insert(
+            "instance".to_string(),
+            vec!["a".to_string(), "nonexistent".to_string()],
+        );
+
+        file.normalize();
+        assert_eq!(file.memberships["instance"], &["a"]);
+    }
+
+    #[test]
+    fn normalize_drops_memberships_for_nonexistent_instances() {
+        let mut file = file_with_groups(&["a"]);
+        file.memberships.insert(
+            "instance".to_string(),
+            vec!["nonexistent1".to_string(), "nonexistent2".to_string()],
+        );
+        file.normalize();
+        assert!(!file.memberships.contains_key("instance"));
+    }
+
+    #[test]
+    fn set_order_unknown_ids_are_ignored() {
+        let mut file = file_with_groups(&["a", "b", "c"]);
+        let non_favorites: Vec<_> = file
+            .groups
+            .iter()
+            .filter(|g| g.id != FAVORITES_GROUP_ID)
+            .map(|g| g.id.clone())
+            .collect();
+        set_order(&[
+            "unknown".to_string(),
+            non_favorites[2].clone(),
+            non_favorites[0].clone(),
+        ]);
+    }
+
+    #[test]
+    fn set_order_retains_missing_groups_at_end() {
+        let mut file = file_with_groups(&["a", "b", "c"]);
+        file.groups.push(GroupDefinition {
+            id: "extra".to_string(),
+            name: "extra".to_string(),
+        });
+        set_order(&["b".to_string()]);
+        assert_eq!(file.groups[0].id, FAVORITES_GROUP_ID);
+        assert_eq!(file.groups[1].id, "b");
+        assert_eq!(file.groups[2].id, "a");
+        assert_eq!(file.groups[3].id, "c");
+        assert_eq!(file.groups[4].id, "extra");
+    }
+
+    #[test]
+    fn normalize_does_not_lose_favorites_membership() {
+        let mut file = file_with_groups(&[]);
+        file.memberships.insert(
+            "my_instance".to_string(),
+            vec![FAVORITES_GROUP_ID.to_string()],
+        );
+        file.normalize();
+        assert_eq!(file.memberships["my_instance"], &[FAVORITES_GROUP_ID]);
+    }
+
+    #[test]
+    fn normalize_deduplicates_group_ids() {
+        let mut file = file_with_groups(&["a", "b"]);
+        file.memberships.insert(
+            "instance".to_string(),
+            vec!["a".to_string(), "a".to_string(), "b".to_string()],
+        );
+        file.normalize();
+        assert_eq!(file.memberships["instance"].len(), 2);
+    }
+
+    #[tokio::test]
+    async fn imports_legacy_instance_group_schema() {
+        let pool = SqlitePoolOptions::new()
+            .connect("sqlite::memory:")
+            .await
+            .unwrap();
+        sqlx::query(
+            "CREATE TABLE instance_groups (
+                instance_id TEXT NOT NULL,
+                group_name TEXT NOT NULL,
+                PRIMARY KEY (instance_id, group_name)
+            )",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+        sqlx::query(
+            "INSERT INTO instance_groups (instance_id, group_name)
+             VALUES ('instance-1', 'Survival'), ('instance-2', 'Survival'),
+                    ('instance-1', 'Creative')",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        let file = import_sql_groups(&pool).await.unwrap();
+
+        assert_eq!(file.groups.len(), 3);
+        assert_eq!(file.groups[0].id, FAVORITES_GROUP_ID);
+        assert_eq!(file.memberships["instance-1"].len(), 2);
+        assert_eq!(file.memberships["instance-2"].len(), 1);
+        assert!(file.groups.iter().any(|group| group.name == "Survival"));
+    }
+}

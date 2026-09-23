@@ -171,6 +171,11 @@ fn display_from_request(state: &InstallJobState) -> Option<InstallJobDisplay> {
             display_title,
             display_icon,
             ..
+        }
+        | InstallRequest::ChangeContent {
+            display_title,
+            display_icon,
+            ..
         } => Some(InstallJobDisplay {
             title: display_title.clone(),
             icon: display_icon.clone(),

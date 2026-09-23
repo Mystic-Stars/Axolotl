@@ -34,11 +34,21 @@ const options = ref([])
 const left = ref('0px')
 const top = ref('0px')
 const shown = ref(false)
+let justOpened = false
+
+const CLOSE_ALL_EVENT = 'close-all-context-menus'
 
 defineExpose({
 	showMenu: (event, passedItem, passedOptions) => {
+		window.dispatchEvent(new CustomEvent(CLOSE_ALL_EVENT))
+
 		item.value = passedItem
 		options.value = passedOptions
+
+		justOpened = true
+		nextTick(() => {
+			justOpened = false
+		})
 
 		// show to get dimensions
 		shown.value = true
@@ -103,13 +113,21 @@ const handleClickOutside = (event) => {
 	}
 }
 
+const handleCloseOthers = () => {
+	if (!justOpened) {
+		hideContextMenu()
+	}
+}
+
 onMounted(() => {
 	window.addEventListener('click', handleClickOutside)
+	window.addEventListener(CLOSE_ALL_EVENT, handleCloseOthers)
 	document.body.addEventListener('keyup', onEscKeyRelease)
 })
 
 onBeforeUnmount(() => {
 	window.removeEventListener('click', handleClickOutside)
+	window.removeEventListener(CLOSE_ALL_EVENT, handleCloseOthers)
 	document.body.removeEventListener('keyup', onEscKeyRelease)
 })
 </script>

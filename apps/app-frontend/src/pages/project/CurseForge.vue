@@ -1,8 +1,10 @@
 <template>
-	<div v-if="loading" class="flex min-h-64 items-center justify-center gap-3 p-6 text-secondary">
-		<SpinnerIcon class="animate-spin" />
-		{{ formatMessage(messages.loading) }}
-	</div>
+	<template v-if="loading">
+		<Teleport to="#sidebar-teleport-target">
+			<ProjectPageSkeleton variant="sidebar" />
+		</Teleport>
+		<ProjectPageSkeleton />
+	</template>
 	<div v-else-if="data">
 		<UpgradeProjectReturnBar />
 		<Teleport to="#sidebar-teleport-target">
@@ -197,6 +199,10 @@
 				:translation-mode="translationMode"
 				:translation-style="translationStyle"
 			/>
+			<ProjectPageSkeleton
+				v-else-if="activeTab === 'versions' && versionsLoading"
+				variant="versions"
+			/>
 			<ProjectPageVersions
 				v-else-if="activeTab === 'versions'"
 				:loaders="allLoaders"
@@ -265,6 +271,7 @@ import {
 	OverflowMenu,
 	ProjectBackgroundGradient,
 	ProjectHeader,
+	ProjectPageSkeleton,
 	ProjectPageVersions,
 	ProjectSidebarCompatibility,
 	ProjectSidebarCreators,
@@ -288,6 +295,7 @@ import {
 	type CurseForgeProject,
 	getCurseForgeDescription,
 	getCurseForgeFiles,
+	getCurseForgeFilesPage,
 	getCurseForgeImageUrl,
 	getCurseForgeProject,
 } from '@/helpers/curseforge'
@@ -307,6 +315,7 @@ import {
 import i18n from '@/i18n.config'
 import { injectContentInstall } from '@/providers/content-install'
 import { injectContentSelection, makeContentSelectionKey } from '@/providers/content-selection'
+import { curseForgeLoaderType } from '@/providers/content-selection-types'
 import { useBreadcrumbs } from '@/store/breadcrumbs'
 import { useTheming } from '@/store/state.js'
 
@@ -326,10 +335,6 @@ const contentFavorites = useContentFavorites()
 void contentFavorites.load().catch(handleError)
 
 const messages = defineMessages({
-	loading: {
-		id: 'app.project.curseforge.loading',
-		defaultMessage: 'Loading CurseForge project…',
-	},
 	openInMcmod: {
 		id: 'app.project.open-in-mcmod',
 		defaultMessage: 'Open in MC Mod',
@@ -417,6 +422,8 @@ const messages = defineMessages({
 })
 
 const loading = ref(true)
+const versionsLoading = ref(false)
+const filesComplete = ref(false)
 const installing = ref(false)
 const browseInstanceSelector = ref()
 const project = shallowRef<CurseForgeProject | null>(null)
@@ -431,6 +438,7 @@ const translations = ref<Record<string, string>>({})
 const translationMode = ref<'bilingual' | 'translation-only'>('bilingual')
 const translationStyle = ref<TranslationStyle>('weakened')
 let projectRequestVersion = 0
+let filesRequestVersion = 0
 let translationRequestVersion = 0
 
 const projectType = computed(() => {
@@ -715,11 +723,14 @@ const projectGalleryHref = computed(() =>
 
 async function loadProject(projectId: number) {
 	const requestVersion = ++projectRequestVersion
+	filesRequestVersion++
 	translationRequestVersion++
 	translationActive.value = false
 	translationLoading.value = false
 	translations.value = {}
 	loading.value = true
+	versionsLoading.value = false
+	filesComplete.value = false
 	project.value = null
 	mcmodUrl.value = null
 	description.value = ''
@@ -728,44 +739,64 @@ async function loadProject(projectId: number) {
 	allGameVersions.value = []
 
 	try {
-		const supplementaryData = Promise.allSettled([
-			getCurseForgeDescription(projectId),
-			getCurseForgeFiles(projectId, { index: 0, pageSize: 50 }),
-			get_loaders(),
-			get_game_versions(),
-		])
-		const projectData = await getCurseForgeProject(projectId)
+		const [projectResult, projectDescription, projectFiles, loaders, gameVersions] =
+			await Promise.allSettled([
+				getCurseForgeProject(projectId),
+				getCurseForgeDescription(projectId),
+				getCurseForgeFilesPage(projectId, { index: 0, pageSize: 50 }),
+				get_loaders(),
+				get_game_versions(),
+			])
 		if (requestVersion !== projectRequestVersion) return
+		if (projectResult.status === 'rejected') throw projectResult.reason
+		if (projectDescription.status === 'rejected') throw projectDescription.reason
+
+		const projectData = projectResult.value
+		description.value = projectDescription.value
+		files.value = projectFiles.status === 'fulfilled' ? projectFiles.value.files : []
+		filesComplete.value =
+			projectFiles.status === 'fulfilled' &&
+			projectFiles.value.files.length >= projectFiles.value.pagination.totalCount
+		allLoaders.value = loaders.status === 'fulfilled' ? loaders.value : []
+		allGameVersions.value = gameVersions.status === 'fulfilled' ? gameVersions.value : []
 		project.value = projectData
 		breadcrumbs.setName('Project', projectData.name)
 		breadcrumbs.setNameIcon(
 			'Project',
 			projectData.logo?.thumbnailUrl ?? projectData.logo?.url ?? null,
 		)
-		loading.value = false
 		void resolveMcmodUrl(projectData.slug, 'curseforge').then((url) => {
 			if (requestVersion === projectRequestVersion) mcmodUrl.value = url
 		})
 
-		const [projectDescription, projectFiles, loaders, gameVersions] = await supplementaryData
-		if (requestVersion !== projectRequestVersion) return
-		if (projectDescription.status === 'fulfilled') {
-			description.value = projectDescription.value
-		} else {
-			handleError(projectDescription.reason)
-		}
-		if (projectFiles.status === 'fulfilled') {
-			files.value = projectFiles.value.files
-		} else {
-			handleError(projectFiles.reason)
-		}
-		if (loaders.status === 'fulfilled') allLoaders.value = loaders.value
-		if (gameVersions.status === 'fulfilled') allGameVersions.value = gameVersions.value
+		if (projectFiles.status === 'rejected') handleError(projectFiles.reason)
 		void maybeAutoTranslate()
 	} catch (error) {
 		if (requestVersion === projectRequestVersion) handleError(error)
 	} finally {
 		if (requestVersion === projectRequestVersion) loading.value = false
+	}
+}
+
+async function loadAllProjectFiles(projectId: number) {
+	if (versionsLoading.value) return
+	const projectVersion = projectRequestVersion
+	const requestVersion = ++filesRequestVersion
+	versionsLoading.value = true
+
+	try {
+		const response = await getCurseForgeFiles(projectId, { index: 0, pageSize: 50 })
+		if (projectVersion !== projectRequestVersion || requestVersion !== filesRequestVersion) return
+		files.value = response.files
+		filesComplete.value = true
+	} catch (error) {
+		if (projectVersion === projectRequestVersion && requestVersion === filesRequestVersion) {
+			handleError(error)
+		}
+	} finally {
+		if (projectVersion === projectRequestVersion && requestVersion === filesRequestVersion) {
+			versionsLoading.value = false
+		}
 	}
 }
 
@@ -776,6 +807,12 @@ watch(
 	},
 	{ immediate: true },
 )
+
+watch([activeTab, () => project.value?.id], ([tab, projectId]) => {
+	if (tab === 'versions' && projectId && !filesComplete.value) {
+		void loadAllProjectFiles(projectId)
+	}
+})
 
 watch(
 	[fromBrowse, fromInstanceContent, instanceId],
@@ -823,6 +860,16 @@ async function installSelected(fileId: string | null) {
 						(projectType.value !== 'mod' || getFilePlatforms(file).includes(target.loader)),
 				)?.id ??
 				null
+			if (!resolvedFileId) {
+				const compatibleFiles = await getCurseForgeFilesPage(project.value.id, {
+					gameVersion: target.game_version,
+					modLoaderType:
+						projectType.value === 'mod' ? curseForgeLoaderType(target.loader) : undefined,
+					index: 0,
+					pageSize: 50,
+				})
+				resolvedFileId = compatibleFiles.files.find((file) => file.isAvailable)?.id ?? null
+			}
 		}
 		if (!resolvedFileId) {
 			handleError(new Error(formatMessage(messages.noCompatibleVersion)))

@@ -2,7 +2,10 @@ import { createContext } from '@modrinth/ui'
 import { computed, type ComputedRef, type Ref, ref } from 'vue'
 
 import { setCurseForgeManualDownloads } from '@/helpers/curseforge-manual'
-import { mergeRefreshedDownloadJobs } from '@/helpers/download-job-refresh'
+import {
+	isRegressiveActiveJobSnapshot,
+	mergeRefreshedDownloadJobs,
+} from '@/helpers/download-job-refresh'
 import { download_request_listener, install_job_listener, loading_listener } from '@/helpers/events'
 import {
 	download_history_clear,
@@ -17,11 +20,12 @@ import {
 	installJobInstanceId,
 	type InstallJobSnapshot,
 } from '@/helpers/install'
-import { effectiveInstallProgress, hasDeterminateInstallProgress } from '@/helpers/install-progress'
+import { ACTIVE_INSTALL_JOB_STATUSES, isActiveInstallJobStatus } from '@/helpers/install-job-status'
+import { preserveMonotonicProgress } from '@/helpers/install-progress'
+import { queue_content_change, type ContentChangeIntent } from '@/helpers/instance'
 import type { LoadingBar } from '@/helpers/state'
 import { progress_bars_list } from '@/helpers/state'
 
-const activeStatuses = new Set(['queued', 'running', 'canceling', 'waiting_for_user'])
 export const downloadBarTypes = new Set([
 	'java_download',
 	'pack_file_download',
@@ -33,6 +37,7 @@ export const downloadBarTypes = new Set([
 
 export interface DownloadManager {
 	jobs: Ref<InstallJobSnapshot[]>
+	pendingContentChanges: Ref<PendingContentChange[]>
 	legacyDownloads: Ref<LoadingBar[]>
 	activeJobs: ComputedRef<InstallJobSnapshot[]>
 	historyJobs: ComputedRef<InstallJobSnapshot[]>
@@ -46,6 +51,8 @@ export interface DownloadManager {
 	skipMissingContent: (jobId: string) => Promise<void>
 	remove: (jobId: string) => Promise<void>
 	clearHistory: () => Promise<void>
+	trackJob: (job: InstallJobSnapshot) => void
+	queueContentChange: (request: QueueContentChangeRequest) => Promise<InstallJobSnapshot>
 	/**
 	 * Insert a synthetic job created on the frontend (e.g. a server download
 	 * that does not go through the backend install-pipeline). The job is kept
@@ -72,8 +79,24 @@ export interface DownloadManager {
 	dispose: () => void
 }
 
+export interface PendingContentChange {
+	id: string
+	instanceId: string
+	intent: ContentChangeIntent
+	contentIds: string[]
+	updateAll: boolean
+}
+
+export interface QueueContentChangeRequest {
+	instanceId: string
+	intent: ContentChangeIntent
+	displayTitle: string
+	displayIcon?: string
+}
+
 export function createDownloadManager(handleError: (error: unknown) => void): DownloadManager {
 	const jobs = ref<InstallJobSnapshot[]>([])
+	const pendingContentChanges = ref<PendingContentChange[]>([])
 	const legacyDownloads = ref<LoadingBar[]>([])
 	let started = false
 	let disposed = false
@@ -90,6 +113,7 @@ export function createDownloadManager(handleError: (error: unknown) => void): Do
 	const jobRevisions = new Map<string, number>()
 	let requestFlushTimer: ReturnType<typeof setTimeout> | null = null
 	let legacyRefreshTimer: ReturnType<typeof setTimeout> | null = null
+	let pendingContentChangeId = 0
 
 	function bumpJobRevision(jobId: string) {
 		jobRevisions.set(jobId, (jobRevisions.get(jobId) ?? 0) + 1)
@@ -114,8 +138,8 @@ export function createDownloadManager(handleError: (error: unknown) => void): Do
 		setCurseForgeManualDownloads(instanceId, manualItems)
 	}
 
-	function setJob(job: InstallJobSnapshot) {
-		if (initializing) {
+	function setJob(job: InstallJobSnapshot, force = false) {
+		if (initializing && !force) {
 			pendingInitialUpdates.push({ kind: 'job', job })
 			return
 		}
@@ -124,6 +148,9 @@ export function createDownloadManager(handleError: (error: unknown) => void): Do
 		// flush can regress a completed item back to downloading.
 		flushRequestUpdates()
 		const current = jobs.value.find((candidate) => candidate.job_id === job.job_id)
+		if (current && isRegressiveActiveJobSnapshot(current, job, ACTIVE_INSTALL_JOB_STATUSES)) {
+			return
+		}
 		if (current && current.modified.localeCompare(job.modified) > 0) return
 		const currentIndex = jobs.value.findIndex((candidate) => candidate.job_id === job.job_id)
 		if (currentIndex !== -1) {
@@ -146,6 +173,37 @@ export function createDownloadManager(handleError: (error: unknown) => void): Do
 			for (const update of pending) updateRequest(update)
 		}
 		persistManualDownloadsFromJob(job)
+	}
+
+	async function queueContentChange({
+		instanceId,
+		intent,
+		displayTitle,
+		displayIcon,
+	}: QueueContentChangeRequest) {
+		const contentIds =
+			intent.type === 'update_selected'
+				? intent.targets.map((target) => target.content_id)
+				: intent.type === 'update_all_user_added'
+					? []
+					: [intent.content_id]
+		const pending: PendingContentChange = {
+			id: `content-change:${++pendingContentChangeId}`,
+			instanceId,
+			intent,
+			contentIds,
+			updateAll: intent.type === 'update_all_user_added',
+		}
+		pendingContentChanges.value = [...pendingContentChanges.value, pending]
+		try {
+			const job = await queue_content_change(instanceId, intent, displayTitle, displayIcon)
+			setJob(job, true)
+			return job
+		} finally {
+			pendingContentChanges.value = pendingContentChanges.value.filter(
+				(candidate) => candidate.id !== pending.id,
+			)
+		}
 	}
 
 	function updateRequest(update: DownloadRequestUpdate) {
@@ -206,13 +264,14 @@ export function createDownloadManager(handleError: (error: unknown) => void): Do
 	}
 
 	function syncLiveByteProgress(job: InstallJobSnapshot) {
-		const total = job.summary.bytes_total
+		const itemTotal = job.items.reduce((sum, item) => sum + (item.bytes_total ?? 0), 0)
+		const total = Math.max(job.summary.bytes_total ?? 0, itemTotal) || null
 		const downloaded = job.items.reduce((sum, item) => sum + item.bytes_downloaded, 0)
 		const current = Math.max(
 			job.summary.bytes_downloaded,
 			total == null ? downloaded : Math.min(downloaded, total),
 		)
-		job.summary = { ...job.summary, bytes_downloaded: current }
+		job.summary = { ...job.summary, bytes_downloaded: current, bytes_total: total }
 		if (job.phase === 'downloading_content' && job.progress?.secondary) {
 			job.progress = {
 				...job.progress,
@@ -228,7 +287,14 @@ export function createDownloadManager(handleError: (error: unknown) => void): Do
 	}
 
 	function applyRequestUpdateToJob(update: DownloadRequestUpdate, job: InstallJobSnapshot) {
-		const itemIndex = job.items.findIndex((item) => item.id === update.id)
+		const normalizePath = (value: string) => value.replaceAll('\\', '/').replace(/^\/+/, '')
+		const updatePath = normalizePath(update.id)
+		let itemIndex = job.items.findIndex((item) => {
+			if (item.id === update.id) return true
+			const itemPath = normalizePath(item.id)
+			return updatePath.endsWith(`/${itemPath}`) || itemPath.endsWith(`/${updatePath}`)
+		})
+		if (itemIndex === -1 && job.kind === 'change_content' && job.items.length === 1) itemIndex = 0
 		const current = itemIndex === -1 ? null : job.items[itemIndex]
 		let item: InstallJobSnapshot['items'][number]
 
@@ -277,34 +343,6 @@ export function createDownloadManager(handleError: (error: unknown) => void): Do
 		else job.items[itemIndex] = item
 	}
 
-	function preserveMonotonicProgress(
-		current: InstallJobSnapshot,
-		next: InstallJobSnapshot,
-	): InstallJobSnapshot {
-		if (current.phase !== next.phase) return next
-		const currentProgress = effectiveInstallProgress(current)
-		const nextProgress = effectiveInstallProgress(next)
-		if (
-			!hasDeterminateInstallProgress(currentProgress) ||
-			!hasDeterminateInstallProgress(nextProgress)
-		) {
-			return next
-		}
-		if (currentProgress.total !== nextProgress.total) return next
-		if (nextProgress.current >= currentProgress.current) return next
-
-		if (next.phase === 'downloading_content' && next.progress?.secondary) {
-			return {
-				...next,
-				progress: {
-					...next.progress,
-					secondary: current.progress?.secondary ?? next.progress.secondary,
-				},
-			}
-		}
-		return { ...next, progress: current.progress }
-	}
-
 	async function refresh() {
 		// A list request can race with realtime install/download events. Record
 		// the local revision at dispatch so its older response cannot roll a job
@@ -321,7 +359,7 @@ export function createDownloadManager(handleError: (error: unknown) => void): Do
 				revisionsAtDispatch,
 				jobRevisions,
 				syntheticIds,
-				activeStatuses,
+				ACTIVE_INSTALL_JOB_STATUSES,
 			)
 			jobs.value = refreshedJobs.map((job) => {
 				const current = jobs.value.find((candidate) => candidate.job_id === job.job_id)
@@ -435,11 +473,15 @@ export function createDownloadManager(handleError: (error: unknown) => void): Do
 
 	async function clearHistory() {
 		await download_history_clear()
-		jobs.value = jobs.value.filter((job) => activeStatuses.has(job.status))
+		jobs.value = jobs.value.filter((job) => isActiveInstallJobStatus(job.status))
 	}
 
-	const activeJobs = computed(() => jobs.value.filter((job) => activeStatuses.has(job.status)))
-	const historyJobs = computed(() => jobs.value.filter((job) => !activeStatuses.has(job.status)))
+	const activeJobs = computed(() =>
+		jobs.value.filter((job) => isActiveInstallJobStatus(job.status)),
+	)
+	const historyJobs = computed(() =>
+		jobs.value.filter((job) => !isActiveInstallJobStatus(job.status)),
+	)
 
 	const syntheticIds = new Set<string>()
 	const syntheticCancelHandlers = new Map<string, () => void | Promise<void>>()
@@ -469,6 +511,7 @@ export function createDownloadManager(handleError: (error: unknown) => void): Do
 
 	return {
 		jobs,
+		pendingContentChanges,
 		legacyDownloads,
 		activeJobs,
 		historyJobs,
@@ -482,12 +525,15 @@ export function createDownloadManager(handleError: (error: unknown) => void): Do
 		skipMissingContent,
 		remove,
 		clearHistory,
+		trackJob: setJob,
+		queueContentChange,
 		addSyntheticJob,
 		setSyntheticJob,
 		onSyntheticCancel,
 		offSyntheticCancel,
 		dispose() {
 			disposed = true
+			pendingContentChanges.value = []
 			initializing = false
 			pendingInitialUpdates.length = 0
 			pendingRequestUpdatesByJob.clear()

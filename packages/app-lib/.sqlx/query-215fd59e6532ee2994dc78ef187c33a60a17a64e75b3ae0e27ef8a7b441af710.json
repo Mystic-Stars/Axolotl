@@ -52,16 +52,6 @@
         "name": "modified_at",
         "ordinal": 9,
         "type_info": "Integer"
-      },
-      {
-        "name": "local_mod_data",
-        "ordinal": 10,
-        "type_info": "Text"
-      },
-      {
-        "name": "icon_path",
-        "ordinal": 11,
-        "type_info": "Text"
       }
     ],
     "parameters": {
@@ -77,9 +67,7 @@
       false,
       false,
       false,
-      false,
-      true,
-      true
+      false
     ]
   },
   "hash": "215fd59e6532ee2994dc78ef187c33a60a17a64e75b3ae0e27ef8a7b441af710"

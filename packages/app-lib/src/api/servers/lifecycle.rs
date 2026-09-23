@@ -148,6 +148,10 @@ async fn start_inner(
         .or(manifest.memory_mb)
         .unwrap_or(DEFAULT_MEMORY_MB);
 
+    if let Some(hook) = manifest.pre_launch_hook.clone() {
+        run_pre_launch_hook(server_id, &dir, &hook).await?;
+    }
+
     // Ensure eula.txt exists (create with eula=false if missing)
     let eula_path = dir.join("eula.txt");
     let eula_created = !eula_path.exists();
@@ -340,6 +344,48 @@ async fn start_inner(
     emit_server(server_id, ServerPayloadType::Started)
         .await
         .ok();
+    Ok(())
+}
+
+/// Runs the manifest's pre-launch hook before the server JVM starts. The hook
+/// is a shell command executed with the server directory as its working
+/// directory; a non-zero exit aborts the start so callers can surface the
+/// failure.
+async fn run_pre_launch_hook(
+    server_id: &str,
+    dir: &Path,
+    hook: &str,
+) -> Result<()> {
+    let mut parts = shlex::split(hook).ok_or_else(|| {
+        ErrorKind::InputError("Invalid pre-launch hook".to_string()).as_error()
+    })?;
+    if parts.is_empty() {
+        return Ok(());
+    }
+    let program = parts.remove(0);
+    push_log_line(server_id, format!("[hook] Running pre-launch hook: {hook}"));
+    let status = Command::new(&program)
+        .args(&parts)
+        .current_dir(dir)
+        .status()
+        .await
+        .map_err(|e| {
+            ErrorKind::LauncherError(format!(
+                "Failed to run pre-launch hook: {e}"
+            ))
+            .as_error()
+        })?;
+    if !status.success() {
+        let code = status
+            .code()
+            .map(|code| code.to_string())
+            .unwrap_or_else(|| "terminated".to_string());
+        return Err(ErrorKind::LauncherError(format!(
+            "Pre-launch hook failed with exit code {code}"
+        ))
+        .as_error());
+    }
+    push_log_line(server_id, "[hook] Pre-launch hook finished".to_string());
     Ok(())
 }
 

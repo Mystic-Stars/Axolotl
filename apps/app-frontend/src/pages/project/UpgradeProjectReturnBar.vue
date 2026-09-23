@@ -20,7 +20,7 @@ import { ButtonStyled, defineMessages, FloatingActionBar, useVIntl } from '@modr
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 
-import { peekUpgradeFlow } from '@/helpers/upgrade-return-state'
+import { peekUpgradeFlow } from '@/store/navigation-return'
 
 const messages = defineMessages({
 	returnAction: { id: 'instance.upgrade.return', defaultMessage: 'Return to instance upgrade' },

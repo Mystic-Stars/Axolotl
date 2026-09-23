@@ -133,8 +133,18 @@ pub async fn flush_pending_skin_change_for_profile(
 ///
 /// See also: [minecraft_skins::normalize_skin_texture]
 #[tauri::command]
-pub async fn normalize_skin_texture(texture: UrlOrBlob) -> Result<Bytes> {
-    Ok(minecraft_skins::normalize_skin_texture(&texture).await?)
+pub async fn normalize_skin_texture(
+    texture: UrlOrBlob,
+    preserve_inner_alpha: Option<bool>,
+) -> Result<Bytes> {
+    if preserve_inner_alpha.unwrap_or(false) {
+        Ok(
+            minecraft_skins::normalize_skin_texture_for_preview(&texture)
+                .await?,
+        )
+    } else {
+        Ok(minecraft_skins::normalize_skin_texture(&texture).await?)
+    }
 }
 
 /// `invoke('plugin:minecraft-skins|get_dragged_skin_data', path)`

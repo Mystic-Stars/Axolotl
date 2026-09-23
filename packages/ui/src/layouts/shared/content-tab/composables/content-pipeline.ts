@@ -1,12 +1,18 @@
 import Fuse from 'fuse.js'
 import type { ComputedRef, Ref } from 'vue'
-import { computed, ref, shallowRef, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, shallowRef, watch } from 'vue'
 
 import { defineMessages, useVIntl } from '#ui/composables/i18n'
 import { commonProjectTypeCategoryMessages, normalizeProjectType } from '#ui/utils/common-messages'
 
 import type { ContentItem } from '../types'
-import { type ContentFilterSelections, pruneContentFilterSelections } from './content-filter-state'
+import {
+	CONTENT_FILTER_PRUNE_DEBOUNCE_MS,
+	type ContentFilterSelections,
+	DUPLICATE_FILTER_EMPTY_GRACE_MS,
+	pruneContentFilterSelections,
+	shouldKeepDuplicateFilterOption,
+} from './content-filter-state'
 import type { ContentFilterOption } from './content-filtering'
 import { isDisabledContentItem, isEnabledContentItem } from './content-filtering'
 
@@ -417,27 +423,94 @@ export function useContentPipeline(config: ContentPipelineConfig) {
 	const row2FilterOptions = computed(() => result.value.row2FilterOptions)
 	const totalCount = computed(() => result.value.totalCount)
 
-	// Clean up invalid selections when options change
+	const supportsDuplicateFilter = duplicateItems !== undefined
+	let pruneTimer: ReturnType<typeof setTimeout> | null = null
+	let duplicateEmptySince: number | null = null
+
 	watch(
-		[filterValidationOptions, () => filterOptionsReady?.value ?? true],
-		() => {
-			const pruned = pruneContentFilterSelections(
-				{
-					typeFilters: selectedTypeFilter.value,
-					statusFilters: selectedStatusFilters.value,
-				},
-				filterValidationOptions.value,
-				filterOptionsReady?.value ?? true,
-			)
-			if (pruned.typeFilters.length !== selectedTypeFilter.value.length) {
-				selectedTypeFilter.value = pruned.typeFilters
-			}
-			if (pruned.statusFilters.length !== selectedStatusFilters.value.length) {
-				selectedStatusFilters.value = pruned.statusFilters
-			}
+		() => duplicateItems?.value?.length ?? 0,
+		(count) => {
+			duplicateEmptySince = count === 0 ? Date.now() : null
 		},
 		{ immediate: true },
 	)
+
+	// Restart the empty-set grace whenever the content set finishes settling, so
+	// a slow refresh that ends empty still gets a full window before pruning.
+	watch(
+		() => filterOptionsReady?.value ?? true,
+		(ready) => {
+			if (ready && (duplicateItems?.value?.length ?? 0) === 0) {
+				duplicateEmptySince = Date.now()
+			}
+		},
+	)
+
+	function applyContentFilterPrune() {
+		if (pruneTimer) {
+			clearTimeout(pruneTimer)
+			pruneTimer = null
+		}
+
+		const options = filterValidationOptions.value
+		const ready = filterOptionsReady?.value ?? true
+		const hasDuplicateItems = (duplicateItems?.value?.length ?? 0) > 0
+		const emptyGraceRemainingMs =
+			duplicateEmptySince === null
+				? 0
+				: Math.max(0, DUPLICATE_FILTER_EMPTY_GRACE_MS - (Date.now() - duplicateEmptySince))
+		const keepDuplicatesOption = shouldKeepDuplicateFilterOption({
+			supportsDuplicateFilter,
+			ready,
+			hasDuplicateItems,
+			emptyGraceRemainingMs,
+		})
+
+		const typeOptions =
+			keepDuplicatesOption && !options.type.includes('duplicates')
+				? [...options.type, 'duplicates']
+				: options.type
+		const pruned = pruneContentFilterSelections(
+			{
+				typeFilters: selectedTypeFilter.value,
+				statusFilters: selectedStatusFilters.value,
+			},
+			{ type: typeOptions, status: options.status },
+			ready,
+		)
+		if (pruned.typeFilters.length !== selectedTypeFilter.value.length) {
+			selectedTypeFilter.value = pruned.typeFilters
+		}
+		if (pruned.statusFilters.length !== selectedStatusFilters.value.length) {
+			selectedStatusFilters.value = pruned.statusFilters
+		}
+
+		// Kept only because grace is open: re-run once it closes so a stably
+		// empty duplicate set can drop the selection instead of pinning it.
+		if (supportsDuplicateFilter && ready && !hasDuplicateItems && emptyGraceRemainingMs > 0) {
+			pruneTimer = setTimeout(
+				applyContentFilterPrune,
+				emptyGraceRemainingMs + CONTENT_FILTER_PRUNE_DEBOUNCE_MS,
+			)
+		}
+	}
+
+	watch(
+		[
+			filterValidationOptions,
+			() => filterOptionsReady?.value ?? true,
+			() => duplicateItems?.value?.length ?? 0,
+		],
+		() => {
+			if (pruneTimer) clearTimeout(pruneTimer)
+			pruneTimer = setTimeout(applyContentFilterPrune, CONTENT_FILTER_PRUNE_DEBOUNCE_MS)
+		},
+		{ immediate: true },
+	)
+
+	onBeforeUnmount(() => {
+		if (pruneTimer) clearTimeout(pruneTimer)
+	})
 
 	function toggleTypeFilter(filterId: string, event?: MouseEvent | KeyboardEvent) {
 		if (event?.ctrlKey || event?.metaKey) {

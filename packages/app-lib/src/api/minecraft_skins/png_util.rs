@@ -129,6 +129,22 @@ pub(super) fn to_legacy_client_texture(
 pub async fn normalize_skin_texture(
     texture: &UrlOrBlob,
 ) -> crate::Result<Bytes> {
+    normalize_skin_texture_with_options(texture, false).await
+}
+
+/// Normalizes a skin for rendering while preserving alpha on inner model
+/// parts. Minecraft itself forces those pixels opaque, but previews need the
+/// source alpha channel so translucent skins are represented faithfully.
+pub async fn normalize_skin_texture_for_preview(
+    texture: &UrlOrBlob,
+) -> crate::Result<Bytes> {
+    normalize_skin_texture_with_options(texture, true).await
+}
+
+async fn normalize_skin_texture_with_options(
+    texture: &UrlOrBlob,
+    preserve_inner_alpha: bool,
+) -> crate::Result<Bytes> {
     let mut texture_data = Vec::with_capacity(8192);
     Box::pin(
         match texture {
@@ -174,7 +190,9 @@ pub async fn normalize_skin_texture(
         convert_legacy_skin_texture(&mut texture_buf, png_reader.info());
         do_notch_transparency_hack(&mut texture_buf, png_reader.info());
     }
-    make_inner_parts_opaque(&mut texture_buf, png_reader.info());
+    if !preserve_inner_alpha {
+        make_inner_parts_opaque(&mut texture_buf, png_reader.info());
+    }
 
     let mut encoded_png = vec![];
 
@@ -469,6 +487,35 @@ async fn normalize_skin_texture_works() {
             "Pixel data doesn't match for {skin_name}"
         );
     }
+}
+
+#[cfg(test)]
+#[tokio::test]
+async fn preview_normalization_preserves_inner_and_outer_alpha() {
+    let mut source_pixels = vec![255; 64 * 64 * 4];
+    source_pixels[(8 * 64 + 8) * 4 + 3] = 83;
+    source_pixels[(8 * 64 + 40) * 4 + 3] = 64;
+
+    let mut source_png = Vec::new();
+    let mut encoder = png::Encoder::new(&mut source_png, 64, 64);
+    encoder.set_color(png::ColorType::Rgba);
+    encoder.set_depth(png::BitDepth::Eight);
+    let mut writer = encoder.write_header().unwrap();
+    writer.write_image_data(&source_pixels).unwrap();
+    writer.finish().unwrap();
+
+    let normalized =
+        normalize_skin_texture_for_preview(&UrlOrBlob::Blob(source_png.into()))
+            .await
+            .unwrap();
+    let mut reader = png::Decoder::new(Cursor::new(normalized))
+        .read_info()
+        .unwrap();
+    let mut normalized_pixels = vec![0; reader.output_buffer_size().unwrap()];
+    reader.next_frame(&mut normalized_pixels).unwrap();
+
+    assert_eq!(normalized_pixels[(8 * 64 + 8) * 4 + 3], 83);
+    assert_eq!(normalized_pixels[(8 * 64 + 40) * 4 + 3], 64);
 }
 
 #[cfg(test)]

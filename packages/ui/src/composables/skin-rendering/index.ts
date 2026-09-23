@@ -1,4 +1,6 @@
+export * from './armor-preview-types'
 export * from './types'
+export * from './use-armor-preview'
 export * from './use-skin-preview-animation'
 export * from './use-skin-preview-controls'
 export * from './use-skin-preview-fit'

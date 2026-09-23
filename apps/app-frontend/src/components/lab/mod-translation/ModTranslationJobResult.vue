@@ -165,7 +165,7 @@ const hasWarnings = computed(
 
 .path {
 	overflow: hidden;
-	font-family: var(--font-mono, monospace);
+	font-family: var(--mono-font, monospace);
 	font-size: 0.64rem;
 	text-overflow: ellipsis;
 	white-space: nowrap;

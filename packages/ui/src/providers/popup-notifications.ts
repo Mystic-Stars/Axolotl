@@ -72,6 +72,8 @@ export interface PopupNotification {
 	timer?: NodeJS.Timeout
 	/** Hidden from the toast stack but retained in notification history. */
 	collapsed?: boolean
+	/** Whether the user has opened this notification from the history. */
+	read?: boolean
 }
 
 export abstract class AbstractPopupNotificationManager {
@@ -90,6 +92,7 @@ export abstract class AbstractPopupNotificationManager {
 			...notification,
 			id: Date.now() + Math.random(),
 			createdAt: Date.now(),
+			read: false,
 		}
 		this.setNotificationTimer(newNotification)
 		this.addNotificationToStorage(newNotification)

@@ -245,13 +245,13 @@ import { computed, ref, watch } from 'vue'
 import { get_content_snapshot } from '@/helpers/instance'
 import type { InstanceUpgradeResult } from '@/helpers/instance-upgrade'
 import { shouldExpandUpgradeWarningsByDefault } from '@/helpers/post-upgrade-notice'
-import { upgradeProjectPath } from '@/helpers/upgrade-return-state'
 import {
 	loadUpgradeProjectDisplayMetadata,
 	loadUpgradeVersionDisplayMetadata,
 	upgradeProjectDisplayCacheKey,
 	upgradeVersionDisplayLabel,
 } from '@/helpers/upgrade-version-metadata'
+import { upgradeProjectPath } from '@/store/navigation-return'
 
 import {
 	filterUpgradeDetailItems,

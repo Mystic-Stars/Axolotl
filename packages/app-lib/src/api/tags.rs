@@ -1,5 +1,5 @@
 //! Theseus tag management interface
-use crate::state::CachedEntry;
+use crate::state::{CacheBehaviour, CachedEntry};
 pub use crate::{
     State,
     state::{Category, DonationPlatform, GameVersion, Loader},
@@ -50,13 +50,42 @@ pub async fn get_loader_tags() -> crate::Result<Vec<Loader>> {
 /// Get game version tags
 #[tracing::instrument]
 pub async fn get_game_version_tags() -> crate::Result<Vec<GameVersion>> {
+    match get_game_version_tags_with_cache(Some(CacheBehaviour::MustRevalidate))
+        .await
+    {
+        Ok(game_versions) => Ok(game_versions),
+        Err(refresh_error) => {
+            match get_game_version_tags_with_cache(Some(
+                CacheBehaviour::CacheOnly,
+            ))
+            .await
+            {
+                Ok(game_versions) => {
+                    tracing::warn!(
+                        error = %refresh_error,
+                        "Game version tags refresh failed; serving cached data"
+                    );
+                    Ok(game_versions)
+                }
+                Err(_) => Err(refresh_error),
+            }
+        }
+    }
+}
+
+async fn get_game_version_tags_with_cache(
+    cache_behaviour: Option<CacheBehaviour>,
+) -> crate::Result<Vec<GameVersion>> {
     let state = State::get().await?;
-    let game_versions =
-        CachedEntry::get_game_versions(None, &state.pool, &state.api_semaphore)
-            .await?
-            .ok_or_else(|| {
-                crate::ErrorKind::NoValueFor("game version tags".to_string())
-            })?;
+    let game_versions = CachedEntry::get_game_versions(
+        cache_behaviour,
+        &state.pool,
+        &state.api_semaphore,
+    )
+    .await?
+    .ok_or_else(|| {
+        crate::ErrorKind::NoValueFor("game version tags".to_string())
+    })?;
 
     Ok(game_versions)
 }

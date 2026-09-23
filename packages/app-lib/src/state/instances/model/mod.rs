@@ -45,6 +45,9 @@ pub use self::file::*;
 mod instance;
 pub use self::instance::*;
 
+mod game_options;
+pub use self::game_options::*;
+
 mod install_candidate;
 pub use self::install_candidate::*;
 

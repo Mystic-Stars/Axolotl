@@ -22,7 +22,6 @@ pub(crate) struct ScannedBackupFile {
     pub modified: i64,
 }
 
-#[cfg(test)]
 pub(crate) fn scan_content_files(
     instances_dir: &Path,
     instance_path: &str,

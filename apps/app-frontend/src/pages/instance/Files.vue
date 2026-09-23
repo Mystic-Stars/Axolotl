@@ -267,7 +267,7 @@ function getAdditionalMenuOptions(
 			icon: FileArchiveIcon,
 			action: () => {
 				void router.push({
-					name: 'Schematic workshop',
+					name: 'SchematicWorkshop',
 					query: { instance: props.instance.id, path: item.path },
 				})
 			},

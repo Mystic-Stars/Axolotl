@@ -1,6 +1,5 @@
 <template>
-	<div v-if="project.versions?.length > 0" class="flex flex-col gap-3">
-		<h2 class="text-lg m-0">{{ formatMessage(messages.title) }}</h2>
+	<SidebarSection :title="formatMessage(messages.title)" :visible="project.versions?.length > 0">
 		<section class="flex flex-col gap-2">
 			<h3 class="text-primary !font-normal text-base m-0">
 				{{ formatMessage(messages.minecraftJava) }}
@@ -92,7 +91,7 @@
 				</TagItem>
 			</div>
 		</section>
-	</div>
+	</SidebarSection>
 </template>
 <script setup lang="ts">
 import type { Labrinth } from '@modrinth/api-client'
@@ -110,6 +109,7 @@ import { computed } from 'vue'
 
 import { useVIntl } from '../../composables/i18n'
 import EnvironmentTags from './EnvironmentTags.vue'
+import SidebarSection from './SidebarSection.vue'
 
 const { formatMessage } = useVIntl()
 

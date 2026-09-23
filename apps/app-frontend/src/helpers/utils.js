@@ -114,7 +114,7 @@ export async function exportLauncherLogs({
 
 export async function createInstanceShortcut(instanceName, instanceId, options = {}) {
 	const outputPath = await save({
-		defaultPath: `Modrinth - ${instanceName}`,
+		defaultPath: `Axolotl - ${instanceName}`,
 	})
 
 	if (!outputPath) return null
@@ -125,6 +125,16 @@ export async function createInstanceShortcut(instanceName, instanceId, options =
 		outputPath,
 		server: options.server,
 		singleplayerWorld: options.singleplayerWorld,
+	})
+}
+
+export async function createInstanceShortcutOnDesktop(instanceName, instanceId) {
+	return await invoke('plugin:shortcuts|create_instance_shortcut', {
+		instanceName,
+		instanceId,
+		outputPath: null,
+		server: null,
+		singleplayerWorld: null,
 	})
 }
 

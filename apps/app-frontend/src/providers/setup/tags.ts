@@ -12,20 +12,27 @@ export function setupTagsProvider(
 
 	const gameVersions = ref([])
 	const loaders = ref([])
+
+	async function refreshGameVersions() {
+		try {
+			gameVersions.value = await get_game_versions()
+		} catch (error) {
+			handleError(error)
+		}
+	}
+
 	stateInitialization
-		.then(() => {
-			get_game_versions()
-				.then((v) => {
-					gameVersions.value = v
-				})
-				.catch(handleError)
-			get_loaders()
-				.then((v) => {
-					loaders.value = v
-				})
-				.catch(handleError)
+		.then(async () => {
+			await Promise.all([
+				refreshGameVersions(),
+				get_loaders()
+					.then((v) => {
+						loaders.value = v
+					})
+					.catch(handleError),
+			])
 		})
 		.catch(() => {})
 
-	provideTags({ gameVersions, loaders })
+	provideTags({ gameVersions, loaders, refreshGameVersions })
 }

@@ -147,7 +147,7 @@ const stopTimer = (n: WebNotification) => notificationManager.stopNotificationTi
 const setNotificationTimer = (n: WebNotification) => notificationManager.setNotificationTimer(n)
 const dismissNotification = (n: number) => {
 	const notification = notifications.value[n]
-	if (notification) notificationManager.collapseNotification(notification.id)
+	if (notification) notificationManager.removeNotification(notification.id)
 }
 
 function createNotifText(notif: WebNotification): string {

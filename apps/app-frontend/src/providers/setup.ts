@@ -3,6 +3,7 @@ import type { AbstractPopupNotificationManager, AbstractWebNotificationManager }
 import { setupCreationModal } from './setup/creation-modal'
 import { setupFileDropProvider } from './setup/file-drop'
 import { setupFilePickerProvider } from './setup/file-picker'
+import { setupImageViewerEditorProvider } from './setup/image-viewer-editor'
 import { setupInstanceImportProvider } from './setup/instance-import'
 import { setupTagsProvider } from './setup/tags'
 
@@ -14,6 +15,7 @@ export function setupProviders(
 	setupTagsProvider(notificationManager, stateInitialization)
 	const fileDrop = setupFileDropProvider()
 	const filePicker = setupFilePickerProvider()
+	setupImageViewerEditorProvider()
 	setupInstanceImportProvider(notificationManager)
 
 	return {

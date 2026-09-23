@@ -1,6 +1,5 @@
 <template>
-	<div v-if="allTags.length > 0" class="flex flex-col gap-3">
-		<h2 class="text-lg m-0">{{ formatMessage(messages.title) }}</h2>
+	<SidebarSection :title="formatMessage(messages.title)" :visible="allTags.length > 0">
 		<div class="flex flex-wrap gap-1">
 			<TagItem
 				v-for="tag in allTags"
@@ -10,7 +9,7 @@
 				<FormattedTag :tag="tag" />
 			</TagItem>
 		</div>
-	</div>
+	</SidebarSection>
 </template>
 <script setup lang="ts">
 import { computed } from 'vue'
@@ -18,6 +17,7 @@ import { computed } from 'vue'
 import { defineMessages, useVIntl } from '../../composables'
 import FormattedTag from '../base/FormattedTag.vue'
 import TagItem from '../base/TagItem.vue'
+import SidebarSection from './SidebarSection.vue'
 
 const props = defineProps<{
 	project: {

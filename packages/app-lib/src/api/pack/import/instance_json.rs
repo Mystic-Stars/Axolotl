@@ -149,12 +149,29 @@ pub fn detect(path: &Path) -> Option<InstanceInfo> {
         return None;
     }
     vanilla_name = normalize_version(&vanilla_name);
-    let loader = detect_loader(&content, &json).map(|(loader, version)| {
+    let mut loader = detect_loader(&content, &json).map(|(loader, version)| {
         let version = version.map(|version| {
             normalize_imported_loader_version(&loader, &vanilla_name, &version)
         });
         (loader, version)
     });
+    // HMCL-family launchers ship Cleanroom instances as a plain Forge version
+    // JSON that is named after Cleanroom and inject the
+    // `com.cleanroommc:cleanroom` library at launch time, so the JSON content
+    // alone looks exactly like Forge. Treat a Cleanroom marker in the version
+    // folder name or id as authoritative and install Cleanroom natively
+    // instead of Forge.
+    if loader.as_ref().is_some_and(|(loader, _)| loader == "forge")
+        && (name.to_ascii_lowercase().contains("cleanroom")
+            || json.get("id").and_then(Value::as_str).is_some_and(|id| {
+                id.to_ascii_lowercase().contains("cleanroom")
+            }))
+    {
+        debug!(
+            "instance_json: forge json carries a cleanroom version marker; treating as cleanroom"
+        );
+        loader = Some(("cleanroom".into(), None));
+    }
     let adjuncts = detect_adjuncts(
         &content,
         loader.as_ref().map(|(loader, _)| loader.as_str()),
@@ -777,6 +794,71 @@ mod tests {
             "cleanroom",
             Some("1.12.2-7.1.0"),
         );
+    }
+
+    #[test]
+    fn cleanroom_named_forge_version_detects_as_cleanroom() {
+        let root = std::env::temp_dir().join(format!(
+            "axolotl-instance-json-cleanroom-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .expect("clock")
+                .as_nanos()
+        ));
+        let version_dir = root.join("versions").join("1.12.2-Cleanroom");
+        std::fs::create_dir_all(&version_dir).expect("create version dir");
+        std::fs::write(
+            version_dir.join("1.12.2-Cleanroom.json"),
+            r#"{
+                "id": "1.12.2-Cleanroom",
+                "mainClass": "net.minecraft.launchwrapper.Launch",
+                "minecraftArguments": "--tweakClass net.minecraftforge.fml.common.launcher.FMLTweaker",
+                "libraries": [
+                    {"name": "net.minecraftforge:forge:1.12.2-14.23.5.2864"}
+                ]
+            }"#,
+        )
+        .expect("write version json");
+
+        let info = detect(&version_dir).expect("detects instance");
+        assert_eq!(info.vanilla_name, "1.12.2");
+        assert_eq!(info.loader.as_deref(), Some("cleanroom"));
+        // The forge version is meaningless for Cleanroom; the import resolves
+        // the Cleanroom version from metadata instead.
+        assert_eq!(info.loader_version, None);
+
+        std::fs::remove_dir_all(&root).ok();
+    }
+
+    #[test]
+    fn forge_version_without_cleanroom_marker_stays_forge() {
+        let root = std::env::temp_dir().join(format!(
+            "axolotl-instance-json-forge-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .expect("clock")
+                .as_nanos()
+        ));
+        let version_dir = root.join("versions").join("1.12.2-forge");
+        std::fs::create_dir_all(&version_dir).expect("create version dir");
+        std::fs::write(
+            version_dir.join("1.12.2-forge.json"),
+            r#"{
+                "id": "1.12.2-forge-14.23.5.2864",
+                "libraries": [
+                    {"name": "net.minecraftforge:forge:1.12.2-14.23.5.2864"}
+                ]
+            }"#,
+        )
+        .expect("write version json");
+
+        let info = detect(&version_dir).expect("detects instance");
+        assert_eq!(info.loader.as_deref(), Some("forge"));
+        assert_eq!(info.loader_version.as_deref(), Some("14.23.5.2864"));
+
+        std::fs::remove_dir_all(&root).ok();
     }
 
     #[test]

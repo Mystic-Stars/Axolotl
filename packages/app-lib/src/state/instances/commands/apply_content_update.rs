@@ -15,8 +15,9 @@ use super::apply_content_install::{
     DownloadedProjectVersion, add_downloaded_project_version,
     add_project_from_version, add_resolved_content, archive_project_file,
     content_ownership_for_path, download_project_version,
-    persist_resolved_plan_dependency_edges, remove_project,
-    resolve_content_scope, resolve_install_plan, toggle_disable_project,
+    finalize_updated_project_path, persist_resolved_plan_dependency_edges,
+    primary_version_file_name, remove_project, resolve_content_scope,
+    resolve_install_plan, toggle_disable_project,
 };
 use super::check_content_updates::{ContentUpdate, check_content_updates};
 
@@ -128,6 +129,16 @@ async fn apply_content_update(
                 ProjectType::get_from_loaders(version.loaders.clone())
                     .map(modrinth_content_management::ContentType::from)
                     .unwrap_or(modrinth_content_management::ContentType::Mod);
+            let new_provider_file_name = primary_version_file_name(&version)?;
+            let old_provider_file_name = CachedEntry::get_version(
+                current_version_id,
+                Some(CacheBehaviour::MustRevalidate),
+                &state.pool,
+                &state.api_semaphore,
+            )
+            .await?
+            .map(|version| primary_version_file_name(&version))
+            .transpose()?;
             let plan = resolve_install_plan(
                 instance_id,
                 super::apply_content_install::InstanceInstallProjectRequest {
@@ -176,7 +187,16 @@ async fn apply_content_update(
                 state,
             )
             .await?;
-            paths.remove(0)
+            let installed_path = paths.remove(0);
+            finalize_updated_project_path(
+                instance_id,
+                project_path,
+                &installed_path,
+                old_provider_file_name.as_deref(),
+                &new_provider_file_name,
+                state,
+            )
+            .await?
         }
         ContentUpdate::CurseForge { .. } => {
             let result = crate::api::curseforge::update_installed_file(
@@ -202,15 +222,6 @@ async fn apply_content_update(
         new_path =
             toggle_disable_project(instance_id, &new_path, Some(false), state)
                 .await?;
-    }
-
-    if new_path != project_path {
-        if archive_project_file(instance_id, project_path, &new_path, state)
-            .await?
-            .is_none()
-        {
-            remove_project(instance_id, project_path, state).await?;
-        }
     }
 
     Ok(new_path)

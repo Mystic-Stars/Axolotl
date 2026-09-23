@@ -48,6 +48,26 @@ export const settingsSearchEntries: SettingsSearchEntry[] = [
 		),
 	},
 	{
+		id: 'appearance-ui-font',
+		categoryId: 'interface',
+		targetId: 'settings-target-appearance-ui-font',
+		label: message('app.appearance-settings.fonts.ui-font', 'Interface font'),
+		description: message(
+			'app.appearance-settings.fonts.ui-font-description',
+			'Used across the launcher interface. Only fonts installed on this system are listed.',
+		),
+	},
+	{
+		id: 'appearance-mono-font',
+		categoryId: 'interface',
+		targetId: 'settings-target-appearance-mono-font',
+		label: message('app.appearance-settings.fonts.mono-font', 'Monospace font'),
+		description: message(
+			'app.appearance-settings.fonts.mono-font-description',
+			'Used for logs, the server console, and other monospace content.',
+		),
+	},
+	{
 		id: 'appearance-transparent-background',
 		categoryId: 'interface',
 		targetId: 'settings-target-appearance-transparent-background',
@@ -77,6 +97,12 @@ export const settingsSearchEntries: SettingsSearchEntry[] = [
 		label: message('app.appearance-settings.page-transitions.title', 'Page transition animations'),
 	},
 	{
+		id: 'appearance-hidden-nav-items',
+		categoryId: 'home-navigation',
+		targetId: 'settings-target-appearance-hidden-nav-items',
+		label: message('app.appearance-settings.hidden-nav-items.title', 'Navigation items'),
+	},
+	{
 		id: 'appearance-home-layout',
 		categoryId: 'home-navigation',
 		targetId: 'settings-target-appearance-home-layout',
@@ -104,6 +130,16 @@ export const settingsSearchEntries: SettingsSearchEntry[] = [
 		label: message(
 			'app.appearance-settings.auto-hide-downloads-button.title',
 			'Auto-hide downloads button',
+		),
+	},
+	{
+		id: 'defaults-window-title',
+		categoryId: 'launch-defaults',
+		targetId: 'settings-target-defaults-window-title',
+		label: message('app.settings.defaults.window-title.enabled', 'Custom Minecraft window title'),
+		description: message(
+			'app.settings.defaults.window-title.enabled-description',
+			'Allow instances to customize the Minecraft window title.',
 		),
 	},
 	{
@@ -460,6 +496,17 @@ export const settingsSearchEntries: SettingsSearchEntry[] = [
 		categoryId: 'content-downloads',
 		targetId: 'settings-target-resources-download-engine',
 		label: message('app.settings.resources.download-engine', 'Download engine'),
+	},
+	{
+		id: 'resources-ignore-ssl-errors',
+		categoryId: 'content-downloads',
+		targetId: 'settings-target-resources-ignore-ssl-errors',
+		label: message('app.settings.resources.ignore-ssl-errors', 'Ignore SSL certificate errors'),
+		description: message(
+			'app.settings.resources.ignore-ssl-errors-description',
+			'Allows downloads through proxies or network tools that replace HTTPS certificates. This disables certificate verification and can expose downloads to tampering. Enable it only when necessary.',
+		),
+		keywords: [message('app.settings.resources.proxy-settings', 'Proxy settings')],
 	},
 	{
 		id: 'resources-download-concurrency',

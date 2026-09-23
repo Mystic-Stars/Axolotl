@@ -7,6 +7,7 @@ export type SettingsCategoryId =
 	| 'shortcut-settings'
 	| 'ai'
 	| 'launch-defaults'
+	| 'instance-sync'
 	| 'java-performance'
 	| 'content-downloads'
 	| 'network-multiplayer'
@@ -91,6 +92,15 @@ export const settingsCategoryDefinitions: SettingsCategoryDefinition[] = [
 		}),
 		group: 'game',
 		onboardingId: 'settings-tab-launch-defaults',
+	},
+	{
+		id: 'instance-sync',
+		name: defineMessage({
+			id: 'app.settings.tabs.instance-sync',
+			defaultMessage: 'Instance synchronization',
+		}),
+		group: 'game',
+		onboardingId: 'settings-tab-instance-sync',
 	},
 	{
 		id: 'java-performance',

@@ -23,6 +23,7 @@ import type {
 	BrowseDisplayMode,
 	BrowseDisplayModeOption,
 	BrowseInstallContentType,
+	BrowseInstallPreferences,
 	CardAction,
 	ProjectType,
 	Tags,
@@ -70,12 +71,6 @@ import {
 } from '@/helpers/browse-filter-memory'
 import { mergeProviderResults } from '@/helpers/browse-merge'
 import { createBrowseProjectTabs, getBrowseProjectTabOptions } from '@/helpers/browse-project-tabs'
-import {
-	completeBrowseReturnNavigation,
-	consumeBrowseReturnSnapshot,
-	isBrowseReturnSourcePath,
-	saveBrowseReturnSnapshot,
-} from '@/helpers/browse-return-state.ts'
 import {
 	cancel_search_request,
 	get_project,
@@ -164,6 +159,7 @@ import {
 	provideServerInstallContent,
 } from '@/providers/setup/server-install-content'
 import { useBreadcrumbs } from '@/store/breadcrumbs'
+import { isBrowseReturnSourcePath, useNavigationReturnStore } from '@/store/navigation-return'
 import { useTheming } from '@/store/state'
 
 const { addNotification, handleError } = injectNotificationManager()
@@ -295,6 +291,7 @@ const initialCurseForgeCategoriesPromise =
 if (route.query.f || route.query.g) await initialCurseForgeCategoriesPromise
 
 const themeStore = useTheming()
+const navReturn = useNavigationReturnStore()
 const serverSetupModalRef = ref<InstanceType<typeof CreationFlowModal> | null>(null)
 const serverInstallContent = createServerInstallContent({ serverSetupModalRef })
 provideServerInstallContent(serverInstallContent)
@@ -1035,20 +1032,26 @@ if (instance.value) {
 }
 
 onBeforeRouteLeave((to) => {
-	if (isBrowseReturnSourcePath(to.path)) {
-		const viewport = document.querySelector<HTMLElement>('.app-viewport')
-		saveBrowseReturnSnapshot({
-			url: route.fullPath,
-			scrollTop: viewport?.scrollTop ?? 0,
-			state: { currentPage: searchState.currentPage.value },
-		})
-	}
+	try {
+		const currentPage = searchState.currentPage.value
+		if (isBrowseReturnSourcePath(to.path)) {
+			const viewport = document.querySelector<HTMLElement>('.app-viewport')
+			navReturn.saveBrowseReturnSnapshot({
+				url: route.fullPath,
+				scrollTop: viewport?.scrollTop ?? 0,
+				state: { currentPage },
+			})
+		}
 
-	breadcrumbs.setContext({
-		name: '?BrowseTitle',
-		link: `/browse/${projectType.value}`,
-		query: route.query,
-	})
+		breadcrumbs.setContext({
+			name: '?BrowseTitle',
+			link: `/browse/${projectType.value}`,
+			query: route.query,
+		})
+	} catch (error) {
+		// Never abort leave navigation because bookkeeping failed.
+		console.warn('[browse] onBeforeRouteLeave bookkeeping failed', error)
+	}
 })
 
 function resetInstanceContext() {
@@ -1194,7 +1197,7 @@ const installContext = computed(() => {
 					? formatMessage(messages.serverInstanceContentWarning)
 					: undefined,
 			selectedProjects: contentSelection.selectedProjects.value,
-			isInstallingSelected: processing,
+			isInstallingSelected: processing || resolvingVersions.value,
 			installProgress: contentSelection.progress.value,
 			installButtonLabel: formatMessage(messages.installSelected, {
 				count: contentSelection.selectedCount.value,
@@ -1204,13 +1207,22 @@ const installContext = computed(() => {
 				total: contentSelection.progress.value.total,
 			}),
 			clearSelected: contentSelection.clear,
-			installSelected: contentSelection.installSelected,
+			async installSelected() {
+				resolvingVersions.value = true
+				try {
+					await resolvePendingVersions()
+					return await contentSelection.installSelected()
+				} finally {
+					resolvingVersions.value = false
+				}
+			},
 		}
 	}
 	return null
 })
 
 const installingProjectIds = ref<Set<string>>(new Set())
+const resolvingVersions = ref(false)
 const CART_CONTENT_TYPES = new Set(['mod', 'resourcepack', 'datapack', 'shader', 'world'])
 
 function projectInstallingKey(projectId: string, instanceId?: string | null) {
@@ -1281,44 +1293,77 @@ async function toggleContentSelection(
 		return
 	}
 
-	setProjectInstalling(project.project_id, true, target.id)
-	try {
-		const preferences = getInstanceInstallTargetPreferences(contentType)
-		let versionId = project.latest_version || null
-		if (project.provider === 'modrinth') {
-			versionId =
-				getLatestMatchingInstallVersion(
-					await getInstallProjectVersions(project.project_id),
-					preferences,
-				)?.id ?? null
-		} else {
-			const files = await getCurseForgeFiles(Number(providerProjectId), {
-				gameVersion: usesTargetGameVersion(contentType) ? target.game_version : undefined,
-				modLoaderType: contentType === 'mod' ? curseForgeLoaderTypes[target.loader] : undefined,
+	const preferences = getInstanceInstallTargetPreferences(contentType)
+	const added = await contentSelection.add({
+		key,
+		provider: project.provider,
+		projectId: project.provider === 'modrinth' ? project.project_id : providerProjectId,
+		providerProjectId,
+		contentType: contentType as 'mod' | 'resourcepack' | 'datapack' | 'shader' | 'world',
+		title: project.title,
+		iconUrl: project.icon_url,
+		slug: project.slug,
+		preferences,
+	})
+
+	if (!added) return
+}
+
+async function resolvePendingVersions() {
+	const target = activeInstance.value
+	if (!target) return
+
+	const pending: Array<{
+		key: string
+		provider: string
+		projectId: string
+		providerProjectId: string
+		contentType: string
+	}> = []
+	for (const [key, item] of contentSelection.items.value) {
+		if (item.versionPending && item.provider === 'curseforge') {
+			pending.push({
+				key,
+				provider: item.provider,
+				projectId: item.projectId,
+				providerProjectId: item.providerProjectId,
+				contentType: item.contentType,
 			})
-			versionId = files.files.find((file) => file.isAvailable)?.id.toString() ?? null
 		}
-		if (!versionId) {
-			throw new Error(
-				contentType === WORLD_BROWSE_PROJECT_TYPE
-					? formatMessage(messages.mapsNoInstallableFile)
-					: formatMessage(messages.noCompatibleVersion),
-			)
-		}
-		await contentSelection.add({
-			key,
-			provider: project.provider,
-			projectId: project.provider === 'modrinth' ? project.project_id : providerProjectId,
-			providerProjectId,
-			versionId,
-			contentType: contentType as 'mod' | 'resourcepack' | 'datapack' | 'shader' | 'world',
-			title: project.title,
-			iconUrl: project.icon_url,
-			slug: project.slug,
-			preferences,
-		})
-	} finally {
-		setProjectInstalling(project.project_id, false, target.id)
+	}
+	if (pending.length === 0) return
+
+	const CONCURRENCY = 4
+	const errors: unknown[] = []
+	for (let i = 0; i < pending.length; i += CONCURRENCY) {
+		const batch = pending.slice(i, i + CONCURRENCY)
+		await Promise.allSettled(
+			batch.map(async ({ key, providerProjectId, contentType }) => {
+				try {
+					const files = await getCurseForgeFiles(Number(providerProjectId), {
+						gameVersion: usesTargetGameVersion(contentType) ? target.game_version : undefined,
+						modLoaderType: contentType === 'mod' ? curseForgeLoaderTypes[target.loader] : undefined,
+					})
+					const matched = files.files.find((file) => file.isAvailable)
+					const versionId = matched?.id.toString() ?? null
+					const sha1 = matched?.hashes?.find((hash) => hash.algo === 1)?.value
+					if (!versionId) {
+						throw new Error(
+							contentType === WORLD_BROWSE_PROJECT_TYPE
+								? formatMessage(messages.mapsNoInstallableFile)
+								: formatMessage(messages.noCompatibleVersion),
+						)
+					}
+					contentSelection.updateVersion(key, versionId, undefined, sha1)
+				} catch (err) {
+					contentSelection.remove(key)
+					errors.push(err)
+				}
+			}),
+		)
+	}
+	for (const err of errors) {
+		handleError(err)
 	}
 }
 
@@ -1550,8 +1595,6 @@ function getCardActions(
 				label: formatMessage(
 					isInstalled
 						? commonMessages.installedLabel
-						: isInstalling
-						? commonMessages.validatingLabel
 						: isSelected
 							? messages.selected
 							: activeInstance.value
@@ -1559,12 +1602,11 @@ function getCardActions(
 								: messages.chooseInstance,
 				),
 				compactLabel:
-					!isInstalled && !isInstalling && !isSelected && !activeInstance.value
+					!isInstalled && !isSelected && !activeInstance.value
 						? formatMessage(messages.add)
 						: undefined,
-				icon: isInstalling ? SpinnerIcon : isSelected || isInstalled ? CheckIcon : PlusIcon,
-				iconClass: isInstalling ? 'animate-spin' : undefined,
-				disabled: isInstalled || isInstalling,
+				icon: isSelected || isInstalled ? CheckIcon : PlusIcon,
+				disabled: isInstalled,
 				color: isSelected ? 'green' : 'brand',
 				type: 'outlined',
 				onClick: async () => {
@@ -2631,7 +2673,9 @@ type BrowseReturnState = {
 	currentPage: number
 }
 
-const browseReturnSnapshot = consumeBrowseReturnSnapshot<BrowseReturnState>(route.fullPath)
+const browseReturnSnapshot = navReturn.consumeBrowseReturnSnapshot<BrowseReturnState>(
+	route.fullPath,
+)
 
 const displayMode = ref<BrowseDisplayMode>(getLastBrowseContentDisplayMode())
 
@@ -2987,7 +3031,7 @@ async function restoreBrowseReturnScroll() {
 	document.querySelector<HTMLElement>('.app-viewport')?.scrollTo({
 		top: browseReturnSnapshot.scrollTop,
 	})
-	completeBrowseReturnNavigation(route.fullPath)
+	navReturn.completeBrowseReturnNavigation(route.fullPath)
 }
 
 watch(

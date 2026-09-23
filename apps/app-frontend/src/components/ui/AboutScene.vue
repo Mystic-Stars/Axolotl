@@ -188,10 +188,20 @@ function main() {
 	renderer.setPixelRatio(devicePixelRatio)
 	renderer.setSize(canvasSize.x, canvasSize.y)
 
-	const deltaClock = new THREE.Clock()
-	const elapseClock = new THREE.Clock()
-	deltaClock.start()
-	elapseClock.start()
+	// three@0.185 deprecates Clock; use a tiny elapsed-time helper instead.
+	const startedAt = performance.now()
+	const deltaAt = { last: startedAt }
+
+	function nextDelta() {
+		const now = performance.now()
+		const dt = (now - deltaAt.last) / 1000
+		deltaAt.last = now
+		return dt
+	}
+
+	function elapsedSeconds() {
+		return (performance.now() - startedAt) / 1000
+	}
 
 	const scene = new THREE.Scene()
 
@@ -296,8 +306,8 @@ function main() {
 		if (isUpdating === false) return
 		requestAnimationFrame(animate)
 
-		const deltaTime = deltaClock.getDelta()
-		const elapsedTime = elapseClock.getElapsedTime()
+		const deltaTime = nextDelta()
+		const elapsedTime = elapsedSeconds()
 
 		updateGLTF(deltaTime, elapsedTime)
 		waterMaterial.uniforms.time.value = elapsedTime
@@ -341,8 +351,6 @@ function main() {
 		isUpdating = false
 		removeEventListener('mousemove', onMouseMove)
 		resizeObserver.disconnect()
-		deltaClock.stop()
-		elapseClock.stop()
 		renderer.dispose()
 	})
 }

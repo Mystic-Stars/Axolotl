@@ -167,6 +167,7 @@ const props = withDefaults(
 		header?: string
 		hideHeader?: boolean
 		onHide?: () => void
+		beforeHide?: () => boolean
 		onShow?: () => void
 		mergeHeader?: boolean
 		scrollable?: boolean
@@ -194,6 +195,7 @@ const props = withDefaults(
 		header: undefined,
 		hideHeader: false,
 		onHide: () => {},
+		beforeHide: undefined,
 		onShow: () => {},
 		mergeHeader: false,
 		// TODO: migrate all modals to use scrollable and remove this prop
@@ -269,6 +271,9 @@ function show(event?: MouseEvent) {
 
 async function hide() {
 	if (props.disableClose) {
+		return
+	}
+	if (props.beforeHide?.() === false) {
 		return
 	}
 	props.onHide?.()

@@ -12,6 +12,8 @@ export interface WebNotification {
 	timer?: NodeJS.Timeout
 	/** Hidden from the toast stack but retained in notification history. */
 	collapsed?: boolean
+	/** Whether the user has opened this notification from the history. */
+	read?: boolean
 	supportData?: Record<string, unknown>
 }
 
@@ -36,6 +38,10 @@ export abstract class AbstractWebNotificationManager {
 		if (existingNotif) {
 			existingNotif.createdAt = Date.now()
 			existingNotif.collapsed = false
+			existingNotif.read = false
+			if (notification.errorCode !== undefined) existingNotif.errorCode = notification.errorCode
+			if (notification.supportData !== undefined)
+				existingNotif.supportData = notification.supportData
 			this.refreshNotificationTimer(existingNotif)
 			existingNotif.count = (existingNotif.count || 0) + 1
 			return existingNotif
@@ -127,6 +133,11 @@ export abstract class AbstractWebNotificationManager {
 		}
 	}
 
+	markNotificationRead = (id: string | number): void => {
+		const notification = this.getNotifications().find((n) => n.id === id)
+		if (notification) notification.read = true
+	}
+
 	stopNotificationTimer = (notification: WebNotification): void => {
 		this.clearNotificationTimer(notification)
 	}
@@ -149,7 +160,9 @@ export abstract class AbstractWebNotificationManager {
 			(existing) =>
 				existing.text === notification.text &&
 				existing.title === notification.title &&
-				existing.type === notification.type,
+				existing.type === notification.type &&
+				existing.errorCode === notification.errorCode &&
+				JSON.stringify(existing.supportData) === JSON.stringify(notification.supportData),
 		)
 	}
 
@@ -165,6 +178,7 @@ export abstract class AbstractWebNotificationManager {
 			id,
 			createdAt: Date.now(),
 			count: 1,
+			read: false,
 		} as WebNotification
 	}
 }

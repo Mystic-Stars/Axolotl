@@ -525,6 +525,7 @@ pub struct CurseForgeInstalledFile {
     pub dependency: bool,
 }
 
+#[derive(Clone)]
 pub(crate) struct StagedCurseForgeUpgrade {
     pub path: PathBuf,
     pub file: CurseForgeFile,
@@ -600,9 +601,34 @@ pub(crate) async fn apply_staged_curseforge_upgrade_file(
     relative_path: &str,
 ) -> crate::Result<String> {
     let state = State::get().await?;
-    let full_path = crate::api::instance::get_full_path(instance_id)
-        .await?
-        .join(relative_path);
+    apply_staged_curseforge_upgrade_file_with_state(
+        instance_id,
+        staged,
+        ownership_kind,
+        relative_path,
+        &state,
+    )
+    .await
+}
+
+pub(crate) async fn apply_staged_curseforge_upgrade_file_with_state(
+    instance_id: &str,
+    staged: StagedCurseForgeUpgrade,
+    ownership_kind: crate::state::instances::ContentOwnershipKind,
+    relative_path: &str,
+    state: &State,
+) -> crate::Result<String> {
+    let scope = crate::state::instances::commands::resolve_content_scope(
+        instance_id,
+        None,
+        state,
+    )
+    .await?;
+    let full_path = crate::state::instances::commands::instance_full_path(
+        state,
+        &scope.instance,
+    )
+    .join(relative_path);
     let _instance_lock = state.lock_instance_content(instance_id).await;
     let previous_path =
         crate::state::materialize_project_download(&staged.path, &full_path)
@@ -614,7 +640,7 @@ pub(crate) async fn apply_staged_curseforge_upgrade_file(
         &staged.file,
         staged.project_type,
         ownership_kind,
-        &state,
+        state,
     )
     .await;
     match record_result {
@@ -1244,6 +1270,45 @@ pub async fn get_description(project_id: u32) -> crate::Result<String> {
     Ok(response.data)
 }
 
+pub async fn get_files_page(
+    project_id: u32,
+    request: CurseForgeFilesRequest,
+) -> crate::Result<CurseForgeFilesResponse> {
+    let page_size = request.page_size.clamp(1, MAX_PAGE_SIZE);
+    let mut query = vec![
+        ("index".to_string(), request.index.to_string()),
+        ("pageSize".to_string(), page_size.to_string()),
+    ];
+    push_query(&mut query, "gameVersion", request.game_version);
+    push_query(&mut query, "modLoaderType", request.mod_loader_type);
+    push_query(
+        &mut query,
+        "gameVersionTypeId",
+        request.game_version_type_id,
+    );
+
+    let response: CurseForgeResponse<Vec<CurseForgeFile>> = request_json(
+        Method::GET,
+        &format!("/v1/mods/{project_id}/files"),
+        query,
+        None,
+        MirrorPolicy::MirrorFirst,
+    )
+    .await?;
+    let result_count = response.data.len() as u32;
+    let pagination = response.pagination.unwrap_or(CurseForgePagination {
+        index: request.index,
+        page_size,
+        result_count,
+        total_count: result_count,
+    });
+
+    Ok(CurseForgeFilesResponse {
+        files: response.data,
+        pagination,
+    })
+}
+
 /// Fetches every page of a CurseForge project's files and returns the complete
 /// file list, since the API caps each page at `MAX_PAGE_SIZE` entries.
 pub async fn get_files(
@@ -1255,33 +1320,17 @@ pub async fn get_files(
     let mut index = request.index;
 
     let total_count = loop {
-        let mut query = vec![
-            ("index".to_string(), index.to_string()),
-            ("pageSize".to_string(), page_size.to_string()),
-        ];
-        push_query(&mut query, "gameVersion", request.game_version.clone());
-        push_query(&mut query, "modLoaderType", request.mod_loader_type);
-        push_query(
-            &mut query,
-            "gameVersionTypeId",
-            request.game_version_type_id,
-        );
-
-        let response: CurseForgeResponse<Vec<CurseForgeFile>> = request_json(
-            Method::GET,
-            &format!("/v1/mods/{project_id}/files"),
-            query,
-            None,
-            MirrorPolicy::MirrorFirst,
+        let response = get_files_page(
+            project_id,
+            CurseForgeFilesRequest {
+                index,
+                page_size,
+                ..request.clone()
+            },
         )
         .await?;
-        let pagination = response.pagination.unwrap_or(CurseForgePagination {
-            index,
-            page_size,
-            result_count: response.data.len() as u32,
-            total_count: response.data.len() as u32,
-        });
-        files.extend(response.data);
+        let pagination = response.pagination;
+        files.extend(response.files);
 
         if files.len() as u32 >= pagination.total_count
             || pagination.result_count == 0
@@ -2450,6 +2499,7 @@ async fn install_fixed_modrinth_content(
             version_id: version_id.to_string(),
             dependent_on_version_id: None,
             required: true,
+            metadata: None,
         },
         state,
     )
@@ -5803,11 +5853,13 @@ pub async fn update_installed_file(
         instance_id,
         relative_path,
         project_id,
+        current_file_id,
         latest.id,
         project_type,
         ownership_kind,
         game_version,
         mod_loader_type,
+        None,
     )
     .await
 }
@@ -5816,6 +5868,7 @@ pub async fn switch_installed_file_version(
     instance_id: &str,
     relative_path: &str,
     file_id: u32,
+    reporter: Option<InstallProgressReporter>,
 ) -> crate::Result<CurseForgeInstallResult> {
     use sqlx::Row;
 
@@ -5877,26 +5930,267 @@ pub async fn switch_installed_file_version(
         instance_id,
         relative_path,
         project_id,
+        current_file_id,
         file_id,
         project_type,
         ownership_kind,
         game_version,
         mod_loader_type,
+        reporter,
     )
     .await
+}
+
+pub(crate) async fn prepare_curseforge_content_change_action(
+    instance_id: &str,
+    action: &mut crate::install::ContentChangeAction,
+) -> crate::Result<()> {
+    use sqlx::Row;
+
+    let state = State::get().await?;
+    let relative_path = action.relative_path.as_deref().ok_or_else(|| {
+        ErrorKind::InputError(format!(
+            "Content {} is not present on disk",
+            action.content_id
+        ))
+    })?;
+    let row = sqlx::query(
+        "SELECT entry.project_type, entry.ownership_kind,
+				content_set.game_version, content_set.loader
+		 FROM instance_files file
+		 INNER JOIN instance_content_entries entry ON entry.file_id = file.id
+		 INNER JOIN instances instance ON instance.id = entry.instance_id
+		 INNER JOIN instance_content_sets content_set
+			ON content_set.id = entry.content_set_id
+		 WHERE file.instance_id = ? AND file.relative_path = ?
+			AND entry.content_set_id = instance.applied_content_set_id
+		 ORDER BY entry.modified_at DESC
+		 LIMIT 1",
+    )
+    .bind(instance_id)
+    .bind(relative_path)
+    .fetch_optional(&state.pool)
+    .await?
+    .ok_or_else(|| {
+        ErrorKind::InputError(
+            "The selected file is not linked to the active content set"
+                .to_string(),
+        )
+    })?;
+    let project_id = action
+        .project_id
+        .as_deref()
+        .ok_or_else(|| {
+            ErrorKind::InputError("Missing CurseForge project ID".to_string())
+        })?
+        .parse::<u32>()
+        .map_err(|_| {
+            ErrorKind::InputError("Invalid CurseForge project ID".to_string())
+        })?;
+    let file_id = action.target_release_id.parse::<u32>().map_err(|_| {
+        ErrorKind::InputError("Invalid CurseForge file ID".to_string())
+    })?;
+    let project_type = row.try_get::<String, _>("project_type")?;
+    let ownership_kind =
+        crate::state::instances::ContentOwnershipKind::from_str(
+            &row.try_get::<String, _>("ownership_kind")?,
+        )?;
+    let loader = row.try_get::<String, _>("loader")?;
+    let mod_loader_type = match loader.as_str() {
+        "forge" => Some(1),
+        "fabric" => Some(4),
+        "quilt" => Some(5),
+        "neoforge" => Some(6),
+        _ => None,
+    };
+    let preview = preview_install_file(CurseForgeInstallRequest {
+        instance_id: instance_id.to_string(),
+        project_id,
+        file_id,
+        project_type,
+        ownership_kind,
+        manual_operation_kind:
+            crate::state::instances::ManualDownloadOperationKind::ContentUpdate,
+        game_version: Some(row.try_get::<String, _>("game_version")?),
+        mod_loader_type,
+        world_name: None,
+        install_dependencies: true,
+        excluded_dependency_project_ids: Vec::new(),
+        force_dependency_project_ids: Vec::new(),
+        dependency_plan_id: None,
+        defer_persistence: false,
+        verification_tx: None,
+        pre_resolved_relative_path: None,
+        expected_file_name: None,
+    })
+    .await?;
+    let old_provider_file_name = match action.expected_release_id.as_deref() {
+        Some(file_id) => Some(
+            get_file(
+                project_id,
+                file_id.parse::<u32>().map_err(|_| {
+                    ErrorKind::InputError(
+                        "Invalid stored CurseForge file ID".to_string(),
+                    )
+                })?,
+            )
+            .await?
+            .file_name,
+        ),
+        None => None,
+    };
+    action.final_relative_path = Some(
+        crate::state::instances::commands::preserved_update_relative_path(
+            relative_path,
+            old_provider_file_name.as_deref(),
+            &preview.primary.file_name,
+        )?,
+    );
+    action.current_provider_file_name = old_provider_file_name;
+    action.target_provider_file_name = Some(preview.primary.file_name.clone());
+    action.files.clear();
+    action.dependencies.clear();
+
+    for (index, item) in std::iter::once(&preview.primary)
+        .chain(preview.dependencies.iter())
+        .enumerate()
+    {
+        let file = get_file(item.project_id, item.file_id).await?;
+        let project = get_project(item.project_id).await?;
+        let url = resolve_curseforge_download_url(
+            item.project_id,
+            item.file_id,
+            &project,
+            &file,
+        )
+        .await?;
+        let cache_path = state
+            .directories
+            .caches_dir()
+            .join("content")
+            .join("curseforge")
+            .join(item.project_id.to_string())
+            .join(item.file_id.to_string())
+            .join(&item.file_name);
+        let id = format!("curseforge:{}:{}", item.project_id, item.file_id);
+        action.files.push(crate::install::ContentChangeFile {
+			id: id.clone(),
+			role: if index == 0 {
+				crate::install::ContentChangeFileRole::Primary
+			} else {
+				crate::install::ContentChangeFileRole::Dependency
+			},
+			provider: ContentProvider::CurseForge,
+			project_id: item.project_id.to_string(),
+			release_id: item.file_id.to_string(),
+			file_name: item.file_name.clone(),
+			target_relative_path: cache_path.display().to_string(),
+			urls: url.clone().into_iter().collect(),
+			manual_download_url: url.is_none().then(|| {
+				format!(
+					"https://www.curseforge.com/minecraft/mc-mods/{}/download/{}/file",
+					project.slug, item.file_id
+				)
+			}),
+			integrity: crate::install::ContentChangeFileIntegrity {
+				size: Some(item.size),
+				sha1: curseforge_file_sha1(&file),
+				sha512: None,
+				sha256: None,
+				md5: file
+					.hashes
+					.iter()
+					.find(|hash| hash.algo == 2)
+					.map(|hash| hash.value.clone()),
+			},
+		});
+        for parent in &item.required_by_project_ids {
+            action
+                .dependencies
+                .push(crate::install::ContentChangeDependency {
+                    parent_file_id: format!("curseforge:{parent}:unknown"),
+                    child_file_id: id.clone(),
+                    provider: ContentProvider::CurseForge,
+                    project_id: item.project_id.to_string(),
+                    release_id: item.file_id.to_string(),
+                    kind: Some(if item.required {
+                        crate::state::instances::ContentDependencyKind::Required
+                    } else {
+                        crate::state::instances::ContentDependencyKind::Include
+                    }),
+                });
+        }
+    }
+    for fallback in preview.modrinth_fallbacks {
+        action
+            .dependencies
+            .push(crate::install::ContentChangeDependency {
+                parent_file_id: format!(
+                    "curseforge:{}:unknown",
+                    fallback.parent_project_id
+                ),
+                child_file_id: format!("modrinth:{}", fallback.version_id),
+                provider: ContentProvider::Modrinth,
+                project_id: fallback.project_id.clone(),
+                release_id: fallback.version_id.clone(),
+                kind: Some(if fallback.required {
+                    crate::state::instances::ContentDependencyKind::Required
+                } else {
+                    crate::state::instances::ContentDependencyKind::Include
+                }),
+            });
+        let prepared =
+            crate::state::instances::commands::prepare_version_download(
+                instance_id,
+                &fallback.version_id,
+                crate::util::fetch::DownloadReason::Dependency,
+                None,
+                &state,
+            )
+            .await?;
+        action.files.push(crate::install::ContentChangeFile {
+            id: format!("modrinth:{}", fallback.version_id),
+            role: crate::install::ContentChangeFileRole::Dependency,
+            provider: ContentProvider::Modrinth,
+            project_id: fallback.project_id,
+            release_id: fallback.version_id,
+            file_name: prepared.file_name.clone(),
+            target_relative_path: prepared.path.display().to_string(),
+            urls: vec![prepared.url.clone()],
+            manual_download_url: None,
+            integrity: crate::install::ContentChangeFileIntegrity {
+                size: prepared.integrity.size,
+                sha1: prepared.integrity.sha1.clone(),
+                sha512: prepared.integrity.sha512.clone(),
+                sha256: None,
+                md5: None,
+            },
+        });
+    }
+    action.set_status(crate::install::ContentChangeActionStatus::Prepared);
+    Ok(())
 }
 
 async fn install_selected_file(
     instance_id: &str,
     relative_path: &str,
     project_id: u32,
+    current_file_id: Option<u32>,
     file_id: u32,
     project_type: String,
     ownership_kind: crate::state::instances::ContentOwnershipKind,
     game_version: String,
     mod_loader_type: Option<u32>,
+    reporter: Option<InstallProgressReporter>,
 ) -> crate::Result<CurseForgeInstallResult> {
-    let result = install_file(CurseForgeInstallRequest {
+    let old_provider_file_name = match current_file_id {
+        Some(current_file_id) => {
+            Some(get_file(project_id, current_file_id).await?.file_name)
+        }
+        None => None,
+    };
+    let new_provider_file_name = get_file(project_id, file_id).await?.file_name;
+    let request = CurseForgeInstallRequest {
         instance_id: instance_id.to_string(),
         project_id,
         file_id,
@@ -5915,8 +6209,11 @@ async fn install_selected_file(
         verification_tx: None,
         pre_resolved_relative_path: None,
         expected_file_name: None,
-    })
-    .await?;
+    };
+    let mut result = match reporter {
+        Some(reporter) => install_file_with_reporter(request, reporter).await?,
+        None => install_file(request).await?,
+    };
     if ownership_kind
         == crate::state::instances::ContentOwnershipKind::PackManaged
         && let Some(installed) = result
@@ -5930,29 +6227,25 @@ async fn install_selected_file(
         )
         .await?;
     }
-    if let Some(new_path) = result
-        .installed
-        .iter()
-        .find(|file| {
-            !file.dependency
-                && file.project_id == project_id
-                && file.relative_path != relative_path
-        })
-        .map(|file| file.relative_path.clone())
-    {
+    if let Some(primary_index) = result.installed.iter().position(|file| {
+        !file.dependency
+            && file.project_id == project_id
+            && file.relative_path != relative_path
+    }) {
         let state = State::get().await?;
-        if crate::state::instances::commands::archive_project_file(
-            instance_id,
-            relative_path,
-            &new_path,
-            &state,
-        )
-        .await?
-        .is_none()
-        {
-            crate::api::instance::remove_project(instance_id, relative_path)
-                .await?;
-        }
+        let installed_path =
+            result.installed[primary_index].relative_path.clone();
+        let final_path =
+            crate::state::instances::commands::finalize_updated_project_path(
+                instance_id,
+                relative_path,
+                &installed_path,
+                old_provider_file_name.as_deref(),
+                &new_provider_file_name,
+                &state,
+            )
+            .await?;
+        result.installed[primary_index].relative_path = final_path;
     }
     Ok(result)
 }
@@ -9501,7 +9794,8 @@ fn request_routes_with_mode(
         source: match route.source {
             DownloadRouteSource::Bmclapi
             | DownloadRouteSource::Mcim
-            | DownloadRouteSource::Tianpao => RequestRouteSource::Mirror,
+            | DownloadRouteSource::Tianpao
+            | DownloadRouteSource::Aliyun => RequestRouteSource::Mirror,
             DownloadRouteSource::Official | DownloadRouteSource::Alternate => {
                 RequestRouteSource::Official
             }

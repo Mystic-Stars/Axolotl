@@ -171,6 +171,7 @@ test('settings navigation groups preserve the intended Axolotl information archi
 	])
 	assert.deepEqual(categoriesForGroup('game'), [
 		'launch-defaults',
+		'instance-sync',
 		'java-performance',
 		'content-downloads',
 		'network-multiplayer',

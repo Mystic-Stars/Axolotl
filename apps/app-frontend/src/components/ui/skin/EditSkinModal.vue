@@ -410,7 +410,7 @@ async function onTextureFileInputChange(e: Event) {
 		const originalSkinTexUrl = `data:image/png;base64,${arrayBufferToBase64(
 			await file.arrayBuffer(),
 		)}`
-		const skinTextureNormalized = await normalize_skin_texture(originalSkinTexUrl)
+		const skinTextureNormalized = await normalize_skin_texture(originalSkinTexUrl, true)
 		await setUploadedTexture({
 			original: originalSkinTexUrl,
 			normalized: `data:image/png;base64,${arrayBufferToBase64(skinTextureNormalized)}`,

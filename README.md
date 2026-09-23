@@ -96,6 +96,74 @@ curl -fsSL https://ppa.axlmc.org/setup.sh | sudo bash
 sudo apt install axolotl-launcher
 ```
 
+**NixOS**：
+
+> 小提示：
+> 由于 Axolotl Launcher 的主分支代码更新较快，可以在下面用到的网址后面加上`/?`和参数来锁定，以免过于频繁地更新。
+> + 使用`ref=`指定分支（例如`experiment/linux-cef-runtime`分支）\
+>   `git+https://github.com/Mystic-Stars/Axolotl/?ref=experiment/linux-cef-runtime`
+> + 使用`ref=`指定版本标签（例如`v1.9.7-beta.2`）\
+>   `git+https://github.com/Mystic-Stars/Axolotl/?ref=refs/tags/v1.9.7-beta.2`
+> + 使用`rev=`指定提交（例如`10827ade74f49958cefaa6fda05961c7502741ef`）\
+>   `git+https://github.com/Mystic-Stars/Axolotl/?rev=10827ade74f49958cefaa6fda05961c7502741ef`
+
+```bash
+nix profile add 'git+https://github.com/Mystic-Stars/Axolotl'
+```
+
+**使用 Home-Manager 的 NixOS 或任意其他发行版**
+
+将此 Flake 加入你的 `flake.nix`
+```nix
+# flake.nix
+{
+  nixConfig = {
+    # 使用 Axolotl Launcher 的 cachix 缓存。对安全性有疑问可以审查：
+		# axololt-launcher-git.cachix.org 以及 github.com/Axolotl-Launcher/Axolotl-Cachix
+    extra-substituters = [
+      "https://axolotl-launcher-git.cachix.org"
+    ];
+    extra-trusted-public-keys = [
+      "axolotl-launcher-git.cachix.org-1:6OBznZ1/jC7SRgugQ2PNGcy4VFyF0tDeWBMs2BPRt5Q="
+    ];
+  };
+
+  inputs = {
+    # nixpkgs home-manager 等其他输入...
+    axolotl-launcher = {
+      url = "git+https://github.com/Mystic-Stars/Axolotl";
+    # inputs.nixpkgs.follows = "nixpkgs";
+    # ↑ 通常不建议跟随本地nixpkgs，因为nixpkgs版本不一致会难以命中缓存、从下载缓存回退成本地编译。
+    };
+  };
+  outputs = { axolotl-launcher, <其他输入>, ... }: {
+    homeConfigurations = {
+      <用户名> = home-manager.lib.homeManagerConfiguration {
+        modules = [
+          home.nix
+          axolotl-launcher.homeModules
+          # 其他模块
+        ];
+      };
+    };
+  };
+}
+```
+然后在 `home.nix` 中配置
+```nix
+# home.nix
+{
+  programs.axolotl-launcher = {
+    enable = true;
+  };
+}
+```
+可选属性
+| 键        | 类型    | 默认值  | 说明 |
+|-----------|---------|---------|--------------------------------------|
+| enable    | `bool`  | `false` | 设置为`true`以启用 Axolotl Launcher。 |
+| launchEnv | `attrs` | `{ }`   | Axolotl Launcher 启动时额外的环境变量。例如`{ HELLO = 1; world = "two"; }`能为 Axolotl Launcher 设置额外的环境变量`HELLO=1`和`world=two`。 |
+
 </details>
 
 ## 参与项目开发

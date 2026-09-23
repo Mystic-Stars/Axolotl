@@ -1,5 +1,33 @@
 use super::*;
 
+fn update_one(content_id: &str) -> crate::install::ContentChangeIntent {
+    crate::install::ContentChangeIntent::UpdateOne {
+        content_id: content_id.to_string(),
+        target_release_id: Some(format!("target-{content_id}")),
+    }
+}
+
+#[test]
+fn content_change_conflicts_only_for_overlapping_scopes() {
+    use crate::install::{ContentChangeIntent, ContentChangeTarget};
+
+    let first = update_one("first");
+    let second = update_one("second");
+    let selected = ContentChangeIntent::UpdateSelected {
+        targets: vec![ContentChangeTarget {
+            content_id: "first".to_string(),
+            target_release_id: "target-first".to_string(),
+        }],
+    };
+
+    assert!(!content_change_intents_overlap(&first, &second));
+    assert!(content_change_intents_overlap(&first, &selected));
+    assert!(content_change_intents_overlap(
+        &ContentChangeIntent::UpdateAllUserAdded,
+        &second
+    ));
+}
+
 fn physical_test_item(
     content_id: &str,
     relative_path: &str,

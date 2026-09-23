@@ -107,6 +107,14 @@ export function schematicBlockKey(location: SchematicBlockLocation) {
 	return `${location.regionId}\u0000${location.position.join(':')}`
 }
 
+export function schematicBlockStateKey(state: SchematicBlockState) {
+	const properties = Object.entries(state.properties)
+		.sort(([left], [right]) => left.localeCompare(right))
+		.map(([key, value]) => `${key}=${value}`)
+		.join(',')
+	return properties ? `${state.name}[${properties}]` : state.name
+}
+
 export function schematicBlockPaletteIndex(
 	chunks: ReadonlyMap<string, SchematicCachedChunk>,
 	location: SchematicBlockLocation,
@@ -198,6 +206,20 @@ export function selectSchematicMaterial(
 	name: string,
 ) {
 	return selectSchematicBlocks(chunks, (paletteIndex) => palette[paletteIndex]?.name === name)
+}
+
+export function selectSchematicBlockState(
+	chunks: ReadonlyMap<string, SchematicCachedChunk>,
+	palette: SchematicBlockState[],
+	state: SchematicBlockState,
+) {
+	const targetKey = schematicBlockStateKey(state)
+	return selectSchematicBlocks(
+		chunks,
+		(paletteIndex) =>
+			palette[paletteIndex] !== undefined &&
+			schematicBlockStateKey(palette[paletteIndex]) === targetKey,
+	)
 }
 
 export function selectSchematicLayer(chunks: ReadonlyMap<string, SchematicCachedChunk>, y: number) {

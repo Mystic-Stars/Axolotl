@@ -1,6 +1,7 @@
 <template>
 	<div class="flex gap-2 items-center">
 		<Dropdown
+			v-if="notificationHistory.length"
 			v-model:shown="notificationCenterShown"
 			placement="bottom-end"
 			:triggers="['click']"
@@ -56,6 +57,13 @@
 								</div>
 							</button>
 							<button
+								v-if="item.primaryAction"
+								class="shrink-0 rounded-md px-2 py-1 text-xs text-brand hover:bg-button-bg"
+								@click.stop="runNotificationAction(item)"
+							>
+								{{ item.primaryAction.label }}
+							</button>
+							<button
 								v-tooltip="formatMessage(messages.dismissNotification)"
 								class="shrink-0 text-secondary hover:text-contrast"
 								@click="dismissNotification(item)"
@@ -63,6 +71,67 @@
 								<XIcon class="size-4" />
 							</button>
 						</div>
+					</div>
+				</div>
+			</template>
+		</Dropdown>
+		<ButtonStyled type="transparent" circular>
+			<button
+				v-tooltip="formatMessage(messages.announcements)"
+				:aria-label="formatMessage(messages.announcements)"
+				class="relative"
+				@click="openAnnouncementCenter"
+			>
+				<NewspaperIcon />
+				<span
+					v-if="announcementUnreadCount"
+					class="absolute right-0 top-0 size-2 rounded-full bg-red ring-2 ring-bg-raised"
+				/>
+			</button>
+		</ButtonStyled>
+		<Dropdown
+			v-if="activeBackupOperations.length > 0"
+			placement="bottom-end"
+			:triggers="['click']"
+			:hide-triggers="['click']"
+		>
+			<ButtonStyled type="transparent" circular>
+				<button
+					v-tooltip="formatMessage(messages.activeBackups)"
+					:aria-label="formatMessage(messages.activeBackups)"
+					class="relative"
+				>
+					<DatabaseBackupIcon />
+					<span
+						class="absolute right-0 top-0 min-w-4 rounded-full bg-brand px-1 text-center text-[10px] font-bold leading-4 text-white"
+					>
+						{{ Math.min(activeBackupOperations.length, 99) }}
+					</span>
+				</button>
+			</ButtonStyled>
+			<template #popper>
+				<div class="w-[22rem] max-w-[calc(100vw-2rem)] p-2">
+					<div class="mb-2 px-2 font-semibold text-contrast">
+						{{ formatMessage(messages.activeBackups) }}
+					</div>
+					<div class="flex max-h-[22rem] flex-col gap-1 overflow-auto">
+						<button
+							v-for="operation in activeBackupOperations"
+							:key="operation.id"
+							class="flex min-w-0 flex-col gap-1 rounded-lg p-2 text-left hover:bg-button-bg"
+							@click="openBackupOperation(operation)"
+						>
+							<div class="flex items-center gap-2">
+								<span class="size-2 shrink-0 rounded-full bg-brand" />
+								<span class="truncate text-sm font-medium text-contrast">
+									{{ backupOperationTitle(operation) }}
+								</span>
+							</div>
+							<div class="flex items-center justify-between gap-2 text-xs text-secondary">
+								<span class="truncate">{{ backupInstanceName(operation.instance_id) }}</span>
+								<span class="shrink-0">{{ backupOperationProgress(operation) }}</span>
+							</div>
+						</button>
 					</div>
 				</div>
 			</template>
@@ -185,8 +254,10 @@
 <script setup lang="ts">
 import {
 	BellIcon,
+	DatabaseBackupIcon,
 	DownloadIcon,
 	DropdownIcon,
+	NewspaperIcon,
 	OnlineIndicatorIcon,
 	StarIcon,
 	StopCircleIcon,
@@ -206,7 +277,7 @@ import {
 } from '@modrinth/ui'
 import { convertFileSrc } from '@tauri-apps/api/core'
 import { Dropdown } from 'floating-vue'
-import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import AppUpdateButton from '@/components/ui/app-update-button/index.vue'
@@ -215,14 +286,24 @@ import { useNetworkStatus } from '@/composables/useNetworkStatus'
 import { trackEvent } from '@/helpers/analytics'
 import { loading_listener, process_listener } from '@/helpers/events'
 import { get_many as getInstances } from '@/helpers/instance'
+import {
+	listBackupOperations,
+	listenBackupProgress,
+	type BackupOperation,
+	type BackupProgressEvent,
+} from '@/helpers/instance-backup'
 import { get_all as getRunningProcesses, kill as killProcess } from '@/helpers/process'
 import type { LoadingBar } from '@/helpers/state'
 import { progress_bars_list } from '@/helpers/state'
 import type { GameInstance } from '@/helpers/types'
+import {
+	OPEN_REMOTE_ANNOUNCEMENT_CENTER_EVENT,
+	REMOTE_ANNOUNCEMENTS_UPDATED_EVENT,
+} from '@/helpers/remote-announcements'
 import { downloadBarTypes, injectDownloadManager } from '@/providers/download-manager'
 
 const notificationManager = injectNotificationManager()
-const { handleError } = notificationManager
+const { addNotification, handleError } = notificationManager
 const popupNotificationManager = injectPopupNotificationManager()
 const downloadManager = injectDownloadManager()
 const { formatMessage } = useVIntl()
@@ -234,6 +315,13 @@ type NotificationHistoryItem = {
 	text?: string
 	type?: 'error' | 'warning' | 'success' | 'info' | 'download'
 	collapsed?: boolean
+	read?: boolean
+	onClick?: () => void | Promise<void>
+	primaryAction?: {
+		label: string
+		action: () => void | Promise<void>
+	}
+	markRead: () => void
 	expand: () => void
 	dismiss: () => void
 }
@@ -247,6 +335,8 @@ const notificationHistory = computed<NotificationHistoryItem[]>(() =>
 			text: item.text,
 			type: item.type,
 			collapsed: item.collapsed,
+			read: item.read,
+			markRead: () => notificationManager.markNotificationRead(item.id),
 			expand: () => notificationManager.expandNotification(item.id),
 			dismiss: () => notificationManager.removeNotification(item.id),
 		})),
@@ -263,6 +353,12 @@ const notificationHistory = computed<NotificationHistoryItem[]>(() =>
 					undefined),
 			type: item.type,
 			collapsed: item.collapsed,
+			read: item.read,
+			markRead: () => {
+				item.read = true
+			},
+			onClick: item.onClick,
+			primaryAction: item.buttons?.[0],
 			expand: () => popupNotificationManager.expandNotification(item.id),
 			dismiss: () => popupNotificationManager.removeNotification(item.id),
 		})),
@@ -271,7 +367,7 @@ const notificationHistory = computed<NotificationHistoryItem[]>(() =>
 
 const hasUnreadNotifications = computed(() =>
 	notificationHistory.value.some(
-		(item) => !item.collapsed && ['error', 'warning'].includes(item.type ?? ''),
+		(item) => !item.read && ['error', 'warning'].includes(item.type ?? ''),
 	),
 )
 
@@ -288,7 +384,19 @@ function dismissNotification(item: NotificationHistoryItem) {
 }
 
 async function openNotification(item: NotificationHistoryItem) {
-	item.expand()
+	item.markRead()
+	if (item.onClick) {
+		await item.onClick()
+	} else {
+		item.expand()
+	}
+	notificationCenterShown.value = false
+}
+
+async function runNotificationAction(item: NotificationHistoryItem) {
+	if (!item.primaryAction) return
+	item.markRead()
+	await item.primaryAction.action()
 	notificationCenterShown.value = false
 }
 
@@ -305,6 +413,23 @@ const isDownloadsPage = computed(
 
 const showInstances = ref(false)
 const notificationCenterShown = ref(false)
+const announcementUnreadCount = ref(0)
+
+function openAnnouncementCenter() {
+	window.dispatchEvent(new CustomEvent(OPEN_REMOTE_ANNOUNCEMENT_CENTER_EVENT))
+}
+
+function updateAnnouncementCount(event: Event) {
+	const detail = (event as CustomEvent<{ unreadKeys?: string[] }>).detail
+	announcementUnreadCount.value = detail?.unreadKeys?.length ?? 0
+}
+
+onMounted(() => {
+	window.addEventListener(REMOTE_ANNOUNCEMENTS_UPDATED_EVENT, updateAnnouncementCount)
+})
+onBeforeUnmount(() => {
+	window.removeEventListener(REMOTE_ANNOUNCEMENTS_UPDATED_EVENT, updateAnnouncementCount)
+})
 
 interface RunningProcess {
 	uuid: string
@@ -360,6 +485,10 @@ const messages = defineMessages({
 		id: 'app.action-bar.notifications',
 		defaultMessage: 'Notifications',
 	},
+	announcements: {
+		id: 'app.action-bar.announcements',
+		defaultMessage: 'Announcements',
+	},
 	clearNotifications: {
 		id: 'app.action-bar.notifications.clear',
 		defaultMessage: 'Clear all',
@@ -388,6 +517,69 @@ const messages = defineMessages({
 		id: 'app.action-bar.view-active-downloads',
 		defaultMessage: 'View active downloads',
 	},
+	activeBackups: {
+		id: 'app.action-bar.active-backups',
+		defaultMessage: 'Active backups',
+	},
+	backup: {
+		id: 'app.action-bar.backup',
+		defaultMessage: 'Backing up',
+	},
+	restore: {
+		id: 'app.action-bar.restore',
+		defaultMessage: 'Restoring backup',
+	},
+	restorePreview: {
+		id: 'app.action-bar.restore-preview',
+		defaultMessage: 'Analyzing restore',
+	},
+	repositoryMove: {
+		id: 'app.action-bar.repository-move',
+		defaultMessage: 'Moving backup repository',
+	},
+	repository: {
+		id: 'app.action-bar.repository',
+		defaultMessage: 'Backup repository',
+	},
+	backupTask: { id: 'app.action-bar.backup-task.backup', defaultMessage: 'Backup' },
+	restoreTask: { id: 'app.action-bar.backup-task.restore', defaultMessage: 'Backup restore' },
+	restorePreviewTask: {
+		id: 'app.action-bar.backup-task.restore-preview',
+		defaultMessage: 'Restore analysis',
+	},
+	repositoryMoveTask: {
+		id: 'app.action-bar.backup-task.repository-move',
+		defaultMessage: 'Backup repository move',
+	},
+	taskCompleted: {
+		id: 'app.action-bar.backup-task.completed',
+		defaultMessage: '{operation} completed',
+	},
+	taskCancelled: {
+		id: 'app.action-bar.backup-task.cancelled',
+		defaultMessage: '{operation} cancelled',
+	},
+	taskFailed: {
+		id: 'app.action-bar.backup-task.failed',
+		defaultMessage: '{operation} failed',
+	},
+	backupStage: {
+		id: 'app.action-bar.backup-stage',
+		defaultMessage: '{stage}',
+	},
+	stageQueued: { id: 'app.action-bar.backup-stage.queued', defaultMessage: 'Queued' },
+	stageScanning: { id: 'app.action-bar.backup-stage.scanning', defaultMessage: 'Scanning files' },
+	stageHashing: { id: 'app.action-bar.backup-stage.hashing', defaultMessage: 'Calculating hashes' },
+	stageSaving: { id: 'app.action-bar.backup-stage.saving', defaultMessage: 'Saving backup' },
+	stageValidating: {
+		id: 'app.action-bar.backup-stage.validating',
+		defaultMessage: 'Validating backup',
+	},
+	stageMaterializing: {
+		id: 'app.action-bar.backup-stage.materializing',
+		defaultMessage: 'Applying files',
+	},
+	stageApplying: { id: 'app.action-bar.backup-stage.applying', defaultMessage: 'Applying files' },
 	exportingModpack: {
 		id: 'app.action-bar.exporting-modpack',
 		defaultMessage: 'Exporting modpack',
@@ -396,6 +588,180 @@ const messages = defineMessages({
 
 const currentProcesses = ref<RunningProcess[]>([])
 const selectedProcess = ref<RunningProcess | undefined>()
+const activeBackupOperations = ref<BackupOperation[]>([])
+const backupInstanceNames = ref<Record<string, string>>({})
+const notifiedBackupOperations = new Set<string>()
+const eventActiveBackupOperations = new Set<string>()
+let backupRefreshGeneration = 0
+
+function backupOperationMessage(operationType: BackupOperation['operation_type']) {
+	switch (operationType) {
+		case 'restore':
+			return messages.restore
+		case 'restore_preview':
+			return messages.restorePreview
+		case 'repository_move':
+			return messages.repositoryMove
+		default:
+			return messages.backup
+	}
+}
+
+function backupResultOperationMessage(operationType: BackupOperation['operation_type']) {
+	switch (operationType) {
+		case 'restore':
+			return messages.restoreTask
+		case 'restore_preview':
+			return messages.restorePreviewTask
+		case 'repository_move':
+			return messages.repositoryMoveTask
+		default:
+			return messages.backupTask
+	}
+}
+
+function backupInstanceName(instanceId: string): string {
+	if (instanceId === '__backup_repository__') return formatMessage(messages.repository)
+	return backupInstanceNames.value[instanceId] ?? instanceId
+}
+
+function backupOperationTitle(operation: BackupOperation): string {
+	return formatMessage(backupOperationMessage(operation.operation_type))
+}
+
+function backupOperationProgress(operation: BackupOperation): string {
+	if (!operation.total_bytes) {
+		const stageMessage =
+			{
+				queued: messages.stageQueued,
+				scanning: messages.stageScanning,
+				hashing: messages.stageHashing,
+				saving: messages.stageSaving,
+				validating: messages.stageValidating,
+				materializing: messages.stageMaterializing,
+				applying: messages.stageApplying,
+			}[operation.state] ?? messages.backupStage
+		return formatMessage(
+			stageMessage,
+			stageMessage === messages.backupStage ? { stage: operation.state } : undefined,
+		)
+	}
+	const percent = Math.round((operation.processed_bytes / operation.total_bytes) * 100)
+	return `${Math.min(100, Math.max(0, percent))}%`
+}
+
+function openBackupOperation(operation: BackupOperation) {
+	if (operation.operation_type === 'repository_move') {
+		router.push('/settings#storage-backups')
+		return
+	}
+	router.push(`/instance/${encodeURIComponent(operation.instance_id)}`)
+}
+
+async function refreshBackupOperations() {
+	const generation = ++backupRefreshGeneration
+	const operations = await listBackupOperations(undefined, true).catch((error) => {
+		handleError(error)
+		return []
+	})
+	if (generation !== backupRefreshGeneration) return
+	const listedOperations = operations.filter((operation) =>
+		['create', 'restore', 'restore_preview', 'repository_move'].includes(operation.operation_type),
+	)
+	const eventOperations = activeBackupOperations.value.filter(
+		(operation) =>
+			eventActiveBackupOperations.has(operation.id) &&
+			!listedOperations.some((listed) => listed.id === operation.id),
+	)
+	activeBackupOperations.value = [...listedOperations, ...eventOperations]
+	const instanceIds = Array.from(
+		new Set(
+			activeBackupOperations.value
+				.filter((operation) => operation.operation_type !== 'repository_move')
+				.map((operation) => operation.instance_id),
+		),
+	)
+	if (!instanceIds.length) {
+		backupInstanceNames.value = {}
+		return
+	}
+	const instances = await getInstances(instanceIds).catch((error) => {
+		handleError(error)
+		return []
+	})
+	if (generation !== backupRefreshGeneration) return
+	backupInstanceNames.value = Object.fromEntries(
+		instances.map((instance) => [instance.id, instance.name]),
+	)
+}
+
+async function notifyBackupResult(event: BackupProgressEvent) {
+	if (!event.finalState || notifiedBackupOperations.has(event.operationId)) return
+	notifiedBackupOperations.add(event.operationId)
+	let instanceName = event.instanceId ? backupInstanceNames.value[event.instanceId] : undefined
+	if (event.instanceId && !instanceName) {
+		const instances = await getInstances([event.instanceId]).catch(() => [])
+		instanceName = instances[0]?.name
+	}
+	const operation = formatMessage(backupResultOperationMessage(event.operationType))
+	const resultMessage =
+		event.finalState === 'completed'
+			? messages.taskCompleted
+			: event.finalState === 'cancelled'
+				? messages.taskCancelled
+				: messages.taskFailed
+	addNotification({
+		title: formatMessage(resultMessage, { operation }),
+		text: [instanceName, event.finalState === 'failed' ? event.message : undefined]
+			.filter(Boolean)
+			.join(': '),
+		type:
+			event.finalState === 'completed'
+				? 'success'
+				: event.finalState === 'cancelled'
+					? 'info'
+					: 'error',
+	})
+}
+
+function applyBackupProgress(event: BackupProgressEvent) {
+	if (!['create', 'restore', 'restore_preview', 'repository_move'].includes(event.operationType))
+		return
+	if (event.finalState || ['completed', 'cancelled', 'failed'].includes(event.stage)) {
+		eventActiveBackupOperations.delete(event.operationId)
+		activeBackupOperations.value = activeBackupOperations.value.filter(
+			(operation) => operation.id !== event.operationId,
+		)
+		void notifyBackupResult(event)
+		void refreshBackupOperations()
+		return
+	}
+	const state: BackupOperation['state'] =
+		event.stage === 'copying' || event.stage === 'restoring' ? 'materializing' : event.stage
+	eventActiveBackupOperations.add(event.operationId)
+	const existing = activeBackupOperations.value.find(
+		(operation) => operation.id === event.operationId,
+	)
+	if (existing) {
+		existing.state = state
+		existing.processed_bytes = event.processedBytes
+		existing.total_bytes = event.totalBytes
+	} else {
+		activeBackupOperations.value.push({
+			id: event.operationId,
+			operation_type: event.operationType,
+			instance_id: event.instanceId ?? '__backup_repository__',
+			snapshot_id: event.snapshotId,
+			state,
+			processed_bytes: event.processedBytes,
+			total_bytes: event.totalBytes,
+			cancellable: ['scanning', 'hashing'].includes(event.stage),
+			cancel_requested: false,
+			created_at: Date.now(),
+			updated_at: Date.now(),
+		})
+	}
+}
 
 const refresh = async () => {
 	const processes = ((await getRunningProcesses().catch((error) => {
@@ -425,7 +791,9 @@ const refresh = async () => {
 	}
 }
 
+const unlistenBackup = await listenBackupProgress(applyBackupProgress)
 await refresh()
+await refreshBackupOperations()
 
 const { offline } = useNetworkStatus()
 
@@ -782,6 +1150,7 @@ onBeforeUnmount(() => {
 	dismissed.value = false
 	unlistenProcess()
 	unlistenLoading()
+	unlistenBackup()
 	installJobNotifications.dispose()
 })
 </script>

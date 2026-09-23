@@ -11,10 +11,10 @@ use crate::instance::QuickPlayType;
 pub use crate::launcher::direct_link::ExternalGameDirMode;
 pub(crate) use crate::launcher::direct_link::{
     DirectLinkedLaunch, LinkedLauncherDialect, apply_hmcl_settings,
-    conservative_launch_facts, external_version_dir_for_game_override,
-    extract_linked_natives, hmcl_java_candidates, hmcl_with_global_fallback,
-    merged_to_version_info, normalize_merged_loader_libraries,
-    pcl_available_memory_gb, pcl_ram_profile,
+    conservative_launch_facts, extract_linked_natives, hmcl_java_candidates,
+    hmcl_with_global_fallback, merged_to_version_info,
+    normalize_merged_loader_libraries, pcl_available_memory_gb,
+    pcl_ram_profile,
 };
 use crate::launcher::download::{LocalRuntimeSource, download_log_config};
 use crate::launcher::instance_runtime::InstanceRuntimeAdapter;
@@ -46,6 +46,16 @@ use std::time::Instant;
 use tokio::io::AsyncReadExt;
 use tokio::process::Command;
 use tokio_util::sync::CancellationToken;
+
+pub(crate) struct GameVersionMetadata {
+    pub world_version: Option<u32>,
+}
+
+pub(crate) async fn read_game_version_metadata_from_jar(
+    _path: &Path,
+) -> crate::Result<Option<GameVersionMetadata>> {
+    Ok(None)
+}
 
 #[cfg(target_os = "windows")]
 use winreg::{RegKey, enums::HKEY_CURRENT_USER};
@@ -363,6 +373,86 @@ async fn processor_outputs_are_current(
     true
 }
 
+fn is_download_mojmaps_processor(processor: &d::modded::Processor) -> bool {
+    processor
+        .args
+        .windows(2)
+        .any(|args| args[0] == "--task" && args[1] == "DOWNLOAD_MOJMAPS")
+}
+
+async fn download_mojmaps_for_processor(
+    state: &State,
+    processor: &d::modded::Processor,
+    client_mappings: Option<&(String, String, u32)>,
+    libraries_dir: &Path,
+    data: &std::collections::HashMap<String, d::modded::SidedDataEntry>,
+) -> crate::Result<bool> {
+    if !is_download_mojmaps_processor(processor) {
+        return Ok(false);
+    }
+
+    let Some((download_url, download_sha1, download_size)) = client_mappings
+    else {
+        return Ok(false);
+    };
+    let arguments =
+        args::get_processor_arguments(libraries_dir, &processor.args, data)?;
+    let output = arguments
+        .windows(2)
+        .find(|args| args[0] == "--output")
+        .map(|args| PathBuf::from(&args[1]))
+        .ok_or_else(|| {
+            crate::ErrorKind::LauncherError(
+                "Forge DOWNLOAD_MOJMAPS processor did not declare an output path"
+                    .to_string(),
+            )
+        })?;
+    if !output.is_absolute() || !output.starts_with(libraries_dir) {
+        return Err(crate::ErrorKind::LauncherError(format!(
+            "Forge DOWNLOAD_MOJMAPS output is outside the libraries directory: {}",
+            output.display()
+        ))
+        .as_error());
+    }
+
+    if output.exists()
+        && let Ok((size, sha1)) =
+            crate::util::fetch::sha1_file_async(&output).await
+        && size == u64::from(*download_size)
+        && sha1.eq_ignore_ascii_case(download_sha1)
+    {
+        return Ok(true);
+    }
+
+    let bytes = crate::util::fetch::fetch_official(
+        download_url,
+        Some(download_sha1),
+        None,
+        None,
+        &state.download_semaphore,
+        &state.pool,
+    )
+    .await?;
+    if bytes.len() as u64 != u64::from(*download_size) {
+        return Err(crate::ErrorKind::LauncherError(format!(
+            "Minecraft client mappings size mismatch: expected {}, got {}",
+            download_size,
+            bytes.len()
+        ))
+        .as_error());
+    }
+    if let Some(parent) = output.parent() {
+        tokio::fs::create_dir_all(parent).await?;
+    }
+    io::write(&output, bytes).await?;
+    tracing::info!(
+        processor = %processor.jar,
+        output = %output.display(),
+        "Downloaded Mojang mappings through the launcher HTTP client"
+    );
+    Ok(true)
+}
+
 pub async fn get_java_version_from_launch_context(
     context: &InstanceLaunchContext,
     version_info: &VersionInfo,
@@ -404,6 +494,17 @@ fn version_uses_liteloader(version_info: &VersionInfo) -> bool {
         .libraries
         .iter()
         .any(|library| is_liteloader_library(&library.name))
+}
+
+fn has_client_processors(processors: Option<&[d::modded::Processor]>) -> bool {
+    processors.is_some_and(|processors| {
+        processors.iter().any(|processor| {
+            processor
+                .sides
+                .as_ref()
+                .is_none_or(|sides| sides.iter().any(|side| side == "client"))
+        })
+    })
 }
 
 fn is_liteloader_library(name: &str) -> bool {
@@ -637,16 +738,13 @@ async fn materialize_external_version(
     version_info: &VersionInfo,
     state: &State,
 ) -> crate::Result<()> {
-    let Some((version_dir, _)) =
-        external_version_dir_for_game_override(instance)
-    else {
+    let runtime =
+        InstanceRuntimeAdapter::for_instance(instance, &state.directories)?;
+    let Some(direct) = runtime.direct_link() else {
         return Ok(());
     };
-    let Some(version_name) =
-        version_dir.file_name().and_then(|name| name.to_str())
-    else {
-        return Ok(());
-    };
+    let version_dir = direct.version_dir();
+    let version_name = direct.version_id.as_str();
 
     io::create_dir_all(&version_dir).await?;
 
@@ -1001,11 +1099,10 @@ async fn install_minecraft_with_local_source(
     .await?;
     emit_instance(&instance.id, InstancePayloadType::Edited).await?;
 
-    let instance_path = get_instance_full_path(
-        &instance.path,
-        instance.game_dir_override.as_deref(),
-    )
-    .await?;
+    let instance_path = io::canonicalize(
+        InstanceRuntimeAdapter::for_instance(instance, &state.directories)?
+            .game_dir(),
+    )?;
     if let Some(reporter) = &reporter {
         reporter
             .update(
@@ -1223,6 +1320,13 @@ async fn install_minecraft_with_local_source(
         .join(format!("{version_jar}.jar"));
 
     let Some(java_version) = java_version else {
+        if has_client_processors(version_info.processors.as_deref()) {
+            return Err(crate::ErrorKind::LauncherError(format!(
+                "Java {key} is required to finish installing {}",
+                content_set.loader.as_str()
+            ))
+            .into());
+        }
         let protocol_version =
             read_protocol_version_from_jar(client_path).await?;
         run_install_database_write(
@@ -1269,6 +1373,11 @@ async fn install_minecraft_with_local_source(
         return Ok(());
     };
 
+    // Loader processors are separate JVMs. Pass the launcher's configured
+    // custom proxy explicitly because child Java processes do not inherit
+    // reqwest's proxy configuration.
+    let java_proxy_args = state.proxy_config().await?.java_args();
+
     if content_set.loader == ModLoader::OptiFine
         && let Some(loader_version) = &loader_version
     {
@@ -1293,6 +1402,12 @@ async fn install_minecraft_with_local_source(
 
     if let Some(processors) = &version_info.processors {
         let libraries_dir = state.directories.libraries_dir();
+        let client_mappings = version_info
+            .downloads
+            .get(&d::minecraft::DownloadType::ClientMappings)
+            .map(|download| {
+                (download.url.clone(), download.sha1.clone(), download.size)
+            });
 
         if let Some(ref mut data) = version_info.data {
             processor_rules! {
@@ -1357,6 +1472,39 @@ async fn install_minecraft_with_local_source(
                     }
                     continue;
                 }
+                if download_mojmaps_for_processor(
+                    &state,
+                    processor,
+                    client_mappings.as_ref(),
+                    &libraries_dir,
+                    data,
+                )
+                .await?
+                {
+                    if let Some(loading_bar) = &loading_bar {
+                        emit_loading(
+                            loading_bar,
+                            30.0 / total_length as f64,
+                            Some(&format!(
+                                "Running forge processor {index}/{total_length}"
+                            )),
+                        )?;
+                    }
+                    if let Some(reporter) = &reporter {
+                        reporter
+                            .update(
+                                InstallPhaseId::RunningLoaderProcessors,
+                                Some(InstallProgress {
+                                    current: (index + 1) as u64,
+                                    total: total_length as u64,
+                                    secondary: None,
+                                }),
+                                phase_details.clone(),
+                            )
+                            .await?;
+                    }
+                    continue;
+                }
                 if processor_outputs_are_current(
                     processor,
                     &libraries_dir,
@@ -1404,6 +1552,7 @@ async fn install_minecraft_with_local_source(
 
                 let mut command = Command::new(&java_version.path);
                 command
+                    .args(&java_proxy_args)
                     .arg("-cp")
                     .arg(args::get_class_paths_jar(
                         &libraries_dir,
@@ -1715,6 +1864,7 @@ pub async fn launch_minecraft(
     memory: &MemorySettings,
     resolution: &WindowSize,
     maximize_window: bool,
+    window_title: Option<String>,
     launch_preparation_timeout: u64,
     credentials: &Credentials,
     post_exit_hook: Option<String>,
@@ -2455,6 +2605,17 @@ pub async fn launch_minecraft(
             env!("CARGO_PKG_VERSION")
         ));
 
+    // PCL-style custom window title. Vanilla ignores this property, but
+    // loader/mod bridges that read it get the same value as the Win32
+    // rename pass applied after the window appears.
+    if let Some(title) = window_title
+        .as_ref()
+        .map(|value| value.trim())
+        .filter(|value| !value.is_empty())
+    {
+        command.arg(format!("-Dminecraft.window.title={title}"));
+    }
+
     // The java launcher requires access to java.lang.reflect in order to force access in to
     // whatever module the main class is in
     if java_version.parsed_version >= 9 {
@@ -2621,6 +2782,7 @@ pub async fn launch_minecraft(
             command,
             post_exit_hook,
             maximize_window,
+            window_title,
             launch_preparation_timeout,
             instance_path.clone(),
             logs_folder,
@@ -2894,6 +3056,45 @@ mod processor_output_tests {
                 },
             ),
         ])
+    }
+
+    #[test]
+    fn client_processor_detection_respects_sides() {
+        let mut processors = vec![d::modded::Processor {
+            jar: "example:processor:1.0".to_string(),
+            classpath: Vec::new(),
+            args: Vec::new(),
+            outputs: None,
+            sides: Some(vec!["server".to_string()]),
+        }];
+        assert!(!has_client_processors(Some(&processors)));
+
+        processors[0].sides = Some(vec!["client".to_string()]);
+        assert!(has_client_processors(Some(&processors)));
+
+        processors[0].sides = None;
+        assert!(has_client_processors(Some(&processors)));
+        assert!(!has_client_processors(None));
+    }
+
+    #[test]
+    fn detects_download_mojmaps_processor_by_task_argument() {
+        let mut processor = d::modded::Processor {
+            jar: "net.minecraftforge:installertools:1.4.1".to_string(),
+            classpath: Vec::new(),
+            args: vec![
+                "--task".to_string(),
+                "DOWNLOAD_MOJMAPS".to_string(),
+                "--output".to_string(),
+                "{MOJMAPS}".to_string(),
+            ],
+            outputs: None,
+            sides: None,
+        };
+        assert!(is_download_mojmaps_processor(&processor));
+
+        processor.args[1] = "MCP_DATA".to_string();
+        assert!(!is_download_mojmaps_processor(&processor));
     }
 
     #[tokio::test]

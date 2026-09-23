@@ -446,6 +446,7 @@ mod tests {
         launch_overrides.java_path = Some(r"C:\Java\bin\java.exe".to_string());
 
         InstanceMetadata {
+            synced_options: Default::default(),
             instance,
             applied_content_set: ContentSet {
                 id: "content-set:serialization".to_string(),

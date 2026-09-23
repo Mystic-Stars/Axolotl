@@ -34,7 +34,7 @@ import HomePlayInsights from '@/components/home/HomePlayInsights.vue'
 import { useNetworkStatus } from '@/composables/useNetworkStatus'
 import { get_default_user, users } from '@/helpers/auth'
 import { DIRECT_LINKS_SYNCED_EVENT } from '@/helpers/direct-link-sync'
-import { instance_listener } from '@/helpers/events'
+import { instance_listener, instance_groups_listener } from '@/helpers/events'
 import { list } from '@/helpers/instance'
 import { get as getSettings, set as setSettings } from '@/helpers/settings'
 import type { GameInstance } from '@/helpers/types'
@@ -252,9 +252,13 @@ window.addEventListener(DIRECT_LINKS_SYNCED_EVENT, fetchInstances)
 const unlistenInstance = await instance_listener(async () => {
 	await fetchInstances()
 })
+const unlistenInstanceGroups = await instance_groups_listener(async () => {
+	await fetchInstances()
+})
 
 onUnmounted(() => {
 	unlistenInstance()
+	unlistenInstanceGroups()
 	window.removeEventListener(DIRECT_LINKS_SYNCED_EVENT, fetchInstances)
 })
 </script>

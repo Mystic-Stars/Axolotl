@@ -8,6 +8,7 @@ export type HeatmapDay = {
 }
 
 export type MinecraftAccountLike = {
+	account_id?: string
 	account_type?: string
 	profile?: {
 		id?: string
@@ -105,7 +106,7 @@ export function getActivePlayerName(
 	if (!selectedUser) return null
 	const account = accounts.find(
 		(candidate) =>
-			candidate.profile?.id === selectedUser &&
+			candidate.account_id === selectedUser &&
 			(candidate.account_type === 'microsoft' || candidate.account_type === 'yggdrasil'),
 	)
 	return account?.profile?.name ?? null

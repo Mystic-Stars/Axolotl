@@ -691,7 +691,7 @@ function schedulePendingSkinRefresh() {
 		window.clearTimeout(pendingSkinRefreshTimeout)
 	}
 
-	const pendingProfileId = currentUserId.value
+	const pendingProfileId = currentUser.value?.profile?.id
 
 	pendingSkinRefreshTimeout = window.setTimeout(async () => {
 		pendingSkinRefreshTimeout = null
@@ -772,7 +772,7 @@ async function loadCurrentUser() {
 		currentUserId.value = defaultId
 
 		const allAccounts = await users(offline.value)
-		const selectedAccount = allAccounts.find((acc) => acc.profile.id === defaultId)
+		const selectedAccount = allAccounts.find((acc) => acc.account_id === defaultId)
 		currentAccountType.value = selectedAccount?.account_type
 		currentUser.value = selectedAccount
 	} catch (e) {
@@ -880,7 +880,7 @@ async function processSkinFileBuffer(buffer: Uint8Array | ArrayBuffer) {
 	const fakeEvent = new MouseEvent('click')
 	const originalSkinTexUrl = `data:image/png;base64,` + arrayBufferToBase64(buffer)
 	try {
-		const skinTextureNormalized = await normalize_skin_texture(originalSkinTexUrl)
+		const skinTextureNormalized = await normalize_skin_texture(originalSkinTexUrl, true)
 		const skinTexUrl: SkinTextureUrl = {
 			original: originalSkinTexUrl,
 			normalized: `data:image/png;base64,` + arrayBufferToBase64(skinTextureNormalized),
@@ -1062,6 +1062,7 @@ await loadSkins()
 				class="ml-5 mt-4 flex h-[calc(80vh-1rem)] items-center justify-center max-[700px]:h-[calc(50vh-1rem)]"
 			>
 				<SkinPreviewRenderer
+					armor-preview
 					:cape-src="capeTexture"
 					:texture-src="skinTexture || ''"
 					:variant="skinVariant"

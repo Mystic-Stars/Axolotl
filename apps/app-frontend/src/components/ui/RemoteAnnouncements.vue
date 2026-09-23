@@ -1,21 +1,15 @@
 <script setup lang="ts">
-import {
-	ButtonStyled,
-	commonMessages,
-	defineMessages,
-	injectPopupNotificationManager,
-	NewModal,
-	type PopupNotification,
-	useVIntl,
-} from '@modrinth/ui'
+import { ButtonStyled, commonMessages, defineMessages, NewModal, useVIntl } from '@modrinth/ui'
 import { useModalStack } from '@modrinth/ui/src/composables/modal-stack'
 import { renderString } from '@modrinth/utils'
 import { getVersion } from '@tauri-apps/api/app'
 import { openUrl } from '@tauri-apps/plugin-opener'
-import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 
 import {
 	announcementKey,
+	OPEN_REMOTE_ANNOUNCEMENT_CENTER_EVENT,
+	REMOTE_ANNOUNCEMENTS_UPDATED_EVENT,
 	isAnnouncementActive,
 	parseAnnouncements,
 	type RemoteAnnouncement,
@@ -24,7 +18,6 @@ import {
 import { getUpdateChannel } from '@/helpers/settings'
 
 const props = defineProps<{ ready: boolean; previewOnly?: boolean }>()
-const manager = injectPopupNotificationManager()
 const { formatMessage } = useVIntl()
 const { hasModal } = useModalStack()
 const messages = defineMessages({
@@ -34,6 +27,8 @@ const messages = defineMessages({
 		id: 'app.remote-announcements.read-all',
 		defaultMessage: 'Mark all announcements as read',
 	},
+	centerTitle: { id: 'app.remote-announcements.center-title', defaultMessage: 'Announcements' },
+	empty: { id: 'app.remote-announcements.empty', defaultMessage: 'No announcements' },
 	previewTitle: {
 		id: 'app.remote-announcements.preview-title',
 		defaultMessage: 'Announcement style preview',
@@ -53,12 +48,13 @@ const messages = defineMessages({
 const modal = ref<InstanceType<typeof NewModal>>()
 const selected = ref<RemoteAnnouncement | null>(null)
 const active = ref(false)
+const centerOpen = ref(false)
+const startupNotice = ref<RemoteAnnouncement | null>(null)
 const html = computed(() => renderString(selected.value?.content ?? ''))
 const stateKey = 'axolotl-remote-announcements-v2'
-const notices = new Map<string, PopupNotification>()
-const reminded = new Set<string>()
-const read = new Set<string>()
+const read = reactive(new Set<string>())
 const queuedThisSession = new Set<string>()
+const startupNotified = new Set<string>()
 let items: RemoteAnnouncement[] = []
 let pending: RemoteAnnouncement[] = []
 let cacheKey = ''
@@ -77,7 +73,6 @@ function persist() {
 		localStorage.setItem(
 			stateKey,
 			JSON.stringify({
-				reminded: [...reminded].slice(-1000),
 				read: [...read].slice(-1000),
 			}),
 		)
@@ -85,45 +80,60 @@ function persist() {
 		// localStorage may be unavailable (private mode / quota)
 	}
 }
-function updateNotice(item: RemoteAnnouncement, popup: PopupNotification) {
-	const unread = !read.has(announcementKey(item))
-	popup.title = unread ? formatMessage(messages.unread) + ' · ' + item.title : item.title
-	popup.text = item.summary || item.content.slice(0, 300)
-	popup.onClick = () => show(item)
-	popup.buttons = [
-		{ label: formatMessage(messages.view), action: () => show(item), keepOpen: true },
-	]
+function emitState() {
+	window.dispatchEvent(
+		new CustomEvent(REMOTE_ANNOUNCEMENTS_UPDATED_EVENT, {
+			detail: {
+				items,
+				unreadKeys: items.filter((item) => !read.has(announcementKey(item))).map(announcementKey),
+			},
+		}),
+	)
+}
+function openCenter(item?: RemoteAnnouncement) {
+	if (!props.ready || disposed) return
+	centerOpen.value = true
+	if (item) {
+		startupNotice.value = null
+		selectAnnouncement(item)
+	} else if (!selected.value && items.length) {
+		selectAnnouncement(items[0])
+	}
+	void nextTick(() => modal.value?.show())
+}
+function handleOpenCenter() {
+	if (props.previewOnly) return
+	openCenter()
 }
 async function show(item: RemoteAnnouncement) {
-	if (disposed || !props.ready || !isAnnouncementActive(item) || (hasModal.value && !active.value))
+	if (
+		disposed ||
+		!props.ready ||
+		!isAnnouncementActive(item) ||
+		(hasModal.value && !active.value && !centerOpen.value)
+	)
 		return
-	selected.value = item
+	centerOpen.value = true
 	active.value = true
-	const key = announcementKey(item)
-	read.add(key)
-	reminded.add(key)
-	persist()
-	const popup = notices.get(key)
-	if (popup) {
-		manager.collapseNotification(popup.id)
-		updateNotice(item, popup)
-	}
-	pending = pending.filter((entry) => announcementKey(entry) !== key)
+	selectAnnouncement(item)
 	await nextTick()
 	if (!disposed) modal.value?.show()
+}
+function selectAnnouncement(item: RemoteAnnouncement) {
+	selected.value = item
+	const key = announcementKey(item)
+	read.add(key)
+	pending = pending.filter((entry) => announcementKey(entry) !== key)
+	persist()
+	emitState()
 }
 function markAllRead() {
 	for (const item of items) {
 		read.add(announcementKey(item))
-		reminded.add(announcementKey(item))
-		const popup = notices.get(announcementKey(item))
-		if (popup) {
-			updateNotice(item, popup)
-			manager.collapseNotification(popup.id)
-		}
 	}
 	pending = []
 	persist()
+	emitState()
 }
 function advance() {
 	if (disposed || !props.ready || hasModal.value || active.value) return
@@ -134,45 +144,36 @@ function advance() {
 	}
 	for (const item of items) {
 		const key = announcementKey(item)
-		const popup = notices.get(key)
-		if (item.type === 'notification' && popup && !reminded.has(key) && isAnnouncementActive(item)) {
-			manager.expandNotification(popup.id)
-			reminded.add(key)
-			persist()
+		if (
+			item.type === 'notification' &&
+			!startupNotified.has(key) &&
+			!read.has(key) &&
+			isAnnouncementActive(item)
+		) {
+			startupNotice.value = item
+			startupNotified.add(key)
+			setTimeout(() => {
+				if (startupNotice.value === item) {
+					startupNotice.value = null
+					advance()
+				}
+			}, 8000)
 			break
 		}
 	}
 }
 function closed() {
 	active.value = false
+	centerOpen.value = false
 	if (advanceTimer) clearTimeout(advanceTimer)
 	advanceTimer = setTimeout(advance, 350)
 }
 function sync(next: RemoteAnnouncement[], fresh: boolean) {
 	items = next.filter((item) => isAnnouncementActive(item))
 	const keys = new Set(items.map(announcementKey))
-	for (const [key, popup] of notices) {
-		if (!keys.has(key)) {
-			manager.removeNotification(popup.id)
-			notices.delete(key)
-		}
-	}
 	pending = pending.filter((item) => keys.has(announcementKey(item)))
-	if (selected.value && !keys.has(announcementKey(selected.value))) modal.value?.hide()
-	for (const item of [...items].reverse()) {
-		const key = announcementKey(item)
-		let popup = notices.get(key)
-		if (!popup) {
-			popup = manager.addPopupNotification({
-				title: item.title,
-				type: 'info',
-				collapsed: true,
-				autoCloseMs: 15000,
-			})
-			notices.set(key, popup)
-		}
-		updateNotice(item, popup)
-	}
+	if (selected.value && !keys.has(announcementKey(selected.value))) selected.value = null
+	emitState()
 	if (fresh) {
 		for (const item of items) {
 			const key = announcementKey(item)
@@ -278,7 +279,6 @@ function preview(type: RemoteAnnouncement['type'], withAction = false) {
 		action_url: withAction ? 'https://axlmc.org' : null,
 	}
 	read.clear()
-	reminded.clear()
 	queuedThisSession.clear()
 	sync([item], true)
 }
@@ -287,13 +287,12 @@ onMounted(() => {
 	if (props.previewOnly) return
 	try {
 		const saved = JSON.parse(localStorage.getItem(stateKey) ?? 'null')
-		if (saved && Array.isArray(saved.reminded))
-			for (const key of saved.reminded) if (typeof key === 'string') reminded.add(key)
 		if (saved && Array.isArray(saved.read))
 			for (const key of saved.read) if (typeof key === 'string') read.add(key)
 	} catch {
 		// Ignore malformed local read-state
 	}
+	window.addEventListener(OPEN_REMOTE_ANNOUNCEMENT_CENTER_EVENT, handleOpenCenter)
 	const start = () => {
 		void refresh()
 		interval = setInterval(() => {
@@ -320,26 +319,88 @@ onUnmounted(() => {
 	if (interval) clearInterval(interval)
 	if (advanceTimer) clearTimeout(advanceTimer)
 	window.removeEventListener('online', reconnect)
-	for (const popup of notices.values()) manager.removeNotification(popup.id)
+	window.removeEventListener(OPEN_REMOTE_ANNOUNCEMENT_CENTER_EVENT, handleOpenCenter)
 })
 </script>
 
 <template>
-	<NewModal ref="modal" :header="selected?.title" :on-hide="closed" max-width="640px" scrollable>
-		<div
-			class="markdown-body break-words"
-			@click="contentClick"
-			@auxclick="contentClick"
-			v-html="html"
-		/>
+	<div
+		v-if="startupNotice"
+		class="fixed right-4 top-16 z-50 w-[22rem] max-w-[calc(100vw-2rem)] rounded-xl border border-surface-5 bg-surface-3 p-3 shadow-lg"
+	>
+		<button class="w-full text-left" @click="startupNotice && openCenter(startupNotice)">
+			<div class="mb-1 text-xs font-semibold uppercase text-brand">
+				{{ formatMessage(messages.unread) }}
+			</div>
+			<div class="font-semibold text-contrast">{{ startupNotice.title }}</div>
+			<div v-if="startupNotice.summary" class="mt-1 line-clamp-2 text-sm text-secondary">
+				{{ startupNotice.summary }}
+			</div>
+		</button>
+	</div>
+	<NewModal
+		ref="modal"
+		:header="formatMessage(messages.centerTitle)"
+		:on-hide="closed"
+		max-width="80vw"
+		width="80vw"
+		max-content-height="calc(80vh - 8rem)"
+		scrollable
+	>
+		<div class="flex h-[calc(80vh-8rem)] min-h-0 gap-3">
+			<aside class="flex min-h-0 w-[32%] min-w-[14rem] flex-col border-r border-surface-5 pr-3">
+				<div class="mb-2 flex items-center justify-between">
+					<span class="font-semibold text-contrast">{{ formatMessage(messages.centerTitle) }}</span>
+					<ButtonStyled v-if="items.some((item) => !read.has(announcementKey(item)))">
+						<button @click="markAllRead">{{ formatMessage(messages.readAll) }}</button>
+					</ButtonStyled>
+				</div>
+				<div v-if="!items.length" class="py-8 text-center text-sm text-secondary">
+					{{ formatMessage(messages.empty) }}
+				</div>
+				<div v-else class="flex min-h-0 flex-col gap-1 overflow-auto">
+					<button
+						v-for="item in items"
+						:key="announcementKey(item)"
+						class="flex items-start gap-2 rounded-lg p-2 text-left hover:bg-button-bg"
+						:class="{
+							'bg-button-bg': selected && announcementKey(selected) === announcementKey(item),
+						}"
+						@click="selectAnnouncement(item)"
+					>
+						<span
+							class="mt-1.5 size-2 shrink-0 rounded-full"
+							:class="read.has(announcementKey(item)) ? 'opacity-0' : 'bg-red'"
+						/>
+						<span class="min-w-0 flex-1">
+							<span class="block truncate font-medium text-contrast">{{ item.title }}</span>
+							<span class="block line-clamp-2 text-xs text-secondary">{{
+								item.summary || item.content
+							}}</span>
+						</span>
+					</button>
+				</div>
+			</aside>
+			<section v-if="selected" class="min-h-0 min-w-0 flex-1 overflow-auto px-1">
+				<h2 class="mb-4 text-xl font-semibold text-contrast">{{ selected.title }}</h2>
+				<div
+					class="markdown-body break-words"
+					@click="contentClick"
+					@auxclick="contentClick"
+					v-html="html"
+				/>
+				<div class="mt-4 flex justify-end">
+					<ButtonStyled v-if="selected.action_url && selected.action_label" color="brand">
+						<button @click="openLink(selected.action_url)">{{ selected.action_label }}</button>
+					</ButtonStyled>
+				</div>
+			</section>
+			<div v-else class="flex flex-1 items-center justify-center text-sm text-secondary">
+				{{ formatMessage(messages.empty) }}
+			</div>
+		</div>
 		<template #actions>
 			<div class="flex flex-wrap justify-end gap-2">
-				<ButtonStyled
-					><button @click="markAllRead">{{ formatMessage(messages.readAll) }}</button></ButtonStyled
-				>
-				<ButtonStyled v-if="selected?.action_url && selected.action_label" color="brand">
-					<button @click="openLink(selected.action_url)">{{ selected.action_label }}</button>
-				</ButtonStyled>
 				<ButtonStyled
 					><button @click="modal?.hide()">
 						{{ formatMessage(commonMessages.closeButton) }}

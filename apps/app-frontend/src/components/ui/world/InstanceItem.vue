@@ -71,15 +71,17 @@ const props = defineProps<{
 	dashboardDensity?: 'compact' | 'comfortable'
 }>()
 
-const loadingModpack = ref(!!props.instance.link)
+const loadingModpack = ref(!!props.instance.link?.project_id)
 
 const modpack = ref()
 
-if (props.instance.link) {
+if (props.instance.link?.project_id) {
 	nextTick().then(async () => {
-		modpack.value = await get_project(props.instance.link?.project_id, 'must_revalidate')
+		modpack.value = await get_project(props.instance.link.project_id, 'must_revalidate')
 		loadingModpack.value = false
 	})
+} else {
+	loadingModpack.value = false
 }
 
 const loader = computed(() => {

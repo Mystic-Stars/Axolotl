@@ -1137,6 +1137,15 @@ pub async fn normalize_skin_texture(
     png_util::normalize_skin_texture(texture).await
 }
 
+/// Normalizes a skin for previews without applying Minecraft's inner-layer
+/// opacity conversion.
+#[tracing::instrument]
+pub async fn normalize_skin_texture_for_preview(
+    texture: &UrlOrBlob,
+) -> crate::Result<Bytes> {
+    png_util::normalize_skin_texture_for_preview(texture).await
+}
+
 /// Sends any pending skin change immediately.
 ///
 /// This is used before launching Minecraft and before closing the app so the debounced

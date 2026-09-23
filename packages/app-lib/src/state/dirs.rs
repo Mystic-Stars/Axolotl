@@ -24,6 +24,9 @@ pub struct DirectoryInfo {
 }
 
 impl DirectoryInfo {
+    pub(crate) fn synced_options_dir(&self) -> std::path::PathBuf {
+        self.config_dir.join("synced-options")
+    }
     pub fn global_handle_if_ready() -> Option<&'static Self> {
         LAUNCHER_STATE.get().map(|x| &x.directories)
     }
@@ -366,6 +369,28 @@ impl DirectoryInfo {
 
                 if !is_dir_writable(&move_dir).await? {
                     return Err(crate::ErrorKind::DirectoryMoveError(format!("Cannot move directory to {}: directory is not writable", move_dir.display())).into());
+                }
+
+                if settings.backup_repository_path.is_none() {
+                    let old_repository =
+                        prev_dir.join("Backups").join("instances");
+                    let new_repository =
+                        move_dir.join("Backups").join("instances");
+                    if let Some(path) = crate::api::instance::move_default_repository_for_launcher_directory(
+                        &old_repository,
+                        &new_repository,
+                    )
+                    .await?
+                    {
+                        sqlx::query(
+                            "INSERT INTO pending_backup_repository_cleanups (path, created_at)
+                             VALUES (?, unixepoch('subsec') * 1000)
+                             ON CONFLICT(path) DO UPDATE SET created_at = excluded.created_at",
+                        )
+                        .bind(path.to_string_lossy().to_string())
+                        .execute(exec)
+                        .await?;
+                    }
                 }
 
                 const MOVE_DIRS: &[&str] = &[

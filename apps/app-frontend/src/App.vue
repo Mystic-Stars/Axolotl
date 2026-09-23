@@ -8,6 +8,7 @@ import {
 	FlaskConicalIcon,
 	FolderOpenIcon,
 	HomeIcon,
+	ImagesIcon,
 	LeftArrowIcon,
 	LibraryIcon,
 	LogInIcon,
@@ -87,14 +88,12 @@ import UnknownPackWarningModal from '@/components/ui/install_flow/UnknownPackWar
 import MinecraftAuthErrorModal from '@/components/ui/minecraft-auth-error-modal/MinecraftAuthErrorModal.vue'
 import MinecraftCrashModal from '@/components/ui/MinecraftCrashModal.vue'
 import AuthGrantFlowWaitModal from '@/components/ui/modal/AuthGrantFlowWaitModal.vue'
-import CommunityAnnouncementModal from '@/components/ui/modal/CommunityAnnouncementModal.vue'
 import CurseForgeManualDownloadsModal from '@/components/ui/modal/CurseForgeManualDownloadsModal.vue'
 import InstanceIconPickerModal from '@/components/ui/modal/InstanceIconPickerModal.vue'
 import JavaDownloadConfirmationModal from '@/components/ui/modal/JavaDownloadConfirmationModal.vue'
 import ModpackAlreadyInstalledModal from '@/components/ui/modal/ModpackAlreadyInstalledModal.vue'
 import ModpackInstallModal from '@/components/ui/modal/ModpackInstallModal.vue'
 import PrivacyConsentModal from '@/components/ui/modal/PrivacyConsentModal.vue'
-import SurveyAnnouncementModal from '@/components/ui/modal/SurveyAnnouncementModal.vue'
 import NavButton from '@/components/ui/NavButton.vue'
 import NavRail from '@/components/ui/NavRail.vue'
 import OnboardingOverlay from '@/components/ui/onboarding/OnboardingOverlay.vue'
@@ -122,6 +121,7 @@ import {
 } from '@/helpers/events.js'
 import { install_create_modpack_instance, install_get_modpack_preview } from '@/helpers/install'
 import { type DirectLinkSyncReport, get as getInstance, run } from '@/helpers/instance'
+import { type BackupOperation, cancelBackup, listBackupOperations } from '@/helpers/instance-backup'
 import { reconcileMojangAuthSourceAtStartup } from '@/helpers/mojang-auth'
 import { cancelLogin, get as getCreds, login, logout } from '@/helpers/mr_auth.ts'
 import { getNavShortcutEnabled } from '@/helpers/nav-shortcut-state'
@@ -234,8 +234,13 @@ const forceSidebar = computed(
 	() => route.path.startsWith('/browse') || route.path.startsWith('/project'),
 )
 const forceSidebarHidden = computed(() => route.path === '/settings')
+/** Console fullscreen collapses the account sidebar so its controls stay reachable. */
+const consoleFullscreenActive = ref(false)
 const sidebarVisible = computed(
-	() => !forceSidebarHidden.value && (sidebarToggled.value || forceSidebar.value),
+	() =>
+		!forceSidebarHidden.value &&
+		!consoleFullscreenActive.value &&
+		(sidebarToggled.value || forceSidebar.value),
 )
 const customBackgroundStyle = computed(() => {
 	// A custom image would sit between the desktop and the UI, defeating the
@@ -350,7 +355,9 @@ async function applyWindowFrame() {
 			enabled: themeStore.transparentBackground,
 		})
 	} catch (error) {
-		console.warn('Failed to update transparent window frame', error)
+		// Frame helpers can reject with invalid parameter on some window states;
+		// do not spam the console for a cosmetic desktop chrome tweak.
+		console.debug('Failed to update transparent window frame', error)
 	}
 }
 
@@ -389,10 +396,10 @@ watch(
 const stateInitialized = ref(false)
 const privacyConsentModal = ref<InstanceType<typeof PrivacyConsentModal>>()
 const privacyConsentPending = ref(false)
-const communityAnnouncementModal = ref()
-const surveyModal = ref()
 const updateAnnouncementModal = ref()
 const closeChoiceModal = ref<InstanceType<typeof NewModal>>()
+const backupExitModal = ref<InstanceType<typeof NewModal>>()
+const activeBackupOperations = ref<BackupOperation[]>([])
 const closeChoiceOpen = ref(false)
 const closeChoiceRemember = ref(false)
 const closeRequestInProgress = ref(false)
@@ -408,11 +415,12 @@ const pendingUpdateAnnouncementVersion = ref(null)
 const updateAnnouncementShowing = ref(false)
 
 const isMaximized = ref(false)
+const mojangAuthSourceReady = ref(false)
 
 const authUnreachableDebug = useDebugLogger('AuthReachableChecker')
 const authServerQuery = useQuery({
 	queryKey: ['authServerReachability'],
-	enabled: computed(() => !browserOffline.value),
+	enabled: computed(() => mojangAuthSourceReady.value && !browserOffline.value),
 	queryFn: async () => {
 		try {
 			await check_reachable()
@@ -713,6 +721,7 @@ onMounted(async () => {
 	document.querySelector('body').addEventListener('click', handleClick)
 	document.querySelector('body').addEventListener('auxclick', handleAuxClick)
 	window.addEventListener(DIRECT_LINKS_SYNCED_EVENT, handleDirectLinkSyncReport)
+	window.addEventListener('modrinth-console-fullscreen', handleConsoleFullscreen as EventListener)
 
 	// Background maintenance must not compete with first paint / route enter.
 	runWhenIdle(() => {
@@ -725,6 +734,10 @@ onMounted(async () => {
 let directLinkSync: (() => Promise<void>) | undefined
 let stopDirectLinkSync: (() => void) | undefined
 let directLinkSyncErrorSignature = ''
+
+function handleConsoleFullscreen(event: CustomEvent<boolean>) {
+	consoleFullscreenActive.value = Boolean(event.detail)
+}
 
 function handleDirectLinkSyncReport(event: Event) {
 	if (!(event instanceof CustomEvent)) return
@@ -802,6 +815,10 @@ onUnmounted(async () => {
 	document.querySelector('body').removeEventListener('click', handleClick)
 	document.querySelector('body').removeEventListener('auxclick', handleAuxClick)
 	window.removeEventListener(DIRECT_LINKS_SYNCED_EVENT, handleDirectLinkSyncReport)
+	window.removeEventListener(
+		'modrinth-console-fullscreen',
+		handleConsoleFullscreen as EventListener,
+	)
 	clearDelayedUpdatePopup()
 	stopDirectLinkSync?.()
 	await unlistenUpdateDownload?.()
@@ -946,6 +963,31 @@ const messages = defineMessages({
 		id: 'app.close-launcher.remember',
 		defaultMessage: 'Remember my choice',
 	},
+	backupExitTitle: {
+		id: 'app.backup-exit.title',
+		defaultMessage: 'Backup operations are still running',
+	},
+	backupExitBody: {
+		id: 'app.backup-exit.body',
+		defaultMessage:
+			'{count, plural, one {# backup operation is} other {# backup operations are}} still running. Keep the launcher open or hide it to the tray to let them finish.',
+	},
+	backupExitRepositoryMoveBody: {
+		id: 'app.backup-exit.repository-move-body',
+		defaultMessage:
+			'The backup repository is being moved. This task cannot be cancelled or force-stopped; keep the launcher open or hide it to the tray until it finishes.',
+	},
+	backupExitReturn: { id: 'app.backup-exit.return', defaultMessage: 'Return to launcher' },
+	backupExitTray: { id: 'app.backup-exit.tray', defaultMessage: 'Hide to tray' },
+	backupExitCancel: {
+		id: 'app.backup-exit.cancel',
+		defaultMessage: 'Cancel tasks and exit',
+	},
+	backupExitForce: { id: 'app.backup-exit.force', defaultMessage: 'Force exit' },
+	backupExitTimeout: {
+		id: 'app.backup-exit.timeout',
+		defaultMessage: 'Timed out while waiting for backup operations to stop.',
+	},
 	betaBuild: {
 		id: 'app.build.beta',
 		defaultMessage: 'Beta',
@@ -977,6 +1019,10 @@ const messages = defineMessages({
 	downloads: {
 		id: 'app.navigation.downloads',
 		defaultMessage: 'Downloads',
+	},
+	screenshots: {
+		id: 'app.navigation.screenshots',
+		defaultMessage: 'Screenshots',
 	},
 	lab: {
 		id: 'app.navigation.lab',
@@ -1273,6 +1319,14 @@ async function exportNotificationErrorLogs(notification) {
 }
 
 async function setupApp() {
+	try {
+		await reconcileMojangAuthSourceAtStartup()
+	} catch (error) {
+		handleError(error)
+	} finally {
+		mojangAuthSourceReady.value = true
+	}
+
 	const initialSettings = await getSettings()
 	await downloadManager.start()
 	const {
@@ -1292,9 +1346,14 @@ async function setupApp() {
 		custom_background_path,
 		custom_background_blur,
 		custom_background_opacity,
+		custom_background_component_opacity,
+		ui_font,
+		mono_font,
 		transparent_background,
 		transparent_background_opacity,
 		transparent_background_blur,
+		home_widget_background_opacity,
+		hidden_nav_items,
 		sidebar_instance_count,
 		auto_hide_downloads_button,
 		home_layout,
@@ -1345,12 +1404,21 @@ async function setupApp() {
 	themeStore.customBackgroundPath = custom_background_path
 	themeStore.customBackgroundBlur = custom_background_blur
 	themeStore.customBackgroundOpacity = custom_background_opacity
+	themeStore.customBackgroundComponentOpacity = custom_background_component_opacity ?? 100
+	themeStore.setCustomBackgroundComponentOpacity()
+	themeStore.uiFont = ui_font ?? null
+	themeStore.monoFont = mono_font ?? null
+	themeStore.setUiFont()
+	themeStore.setMonoFont()
 	themeStore.transparentBackground = transparent_background
 	themeStore.transparentBackgroundOpacity = transparent_background_opacity
 	themeStore.transparentBackgroundBlur = transparent_background_blur
 	themeStore.setTransparentBackgroundClass()
 	await applyWindowFrame()
 	await applyWindowEffects()
+	themeStore.homeWidgetBackgroundOpacity = home_widget_background_opacity ?? 100
+	themeStore.setHomeWidgetBackgroundOpacity()
+	themeStore.hiddenNavItems = hidden_nav_items ?? []
 	themeStore.sidebarInstanceCount = sidebar_instance_count
 	themeStore.autoHideDownloadsButton = auto_hide_downloads_button
 	themeStore.homeLayout = home_layout
@@ -1376,8 +1444,6 @@ async function setupApp() {
 	} else {
 		showOnboarding.value = !onboarded
 	}
-	void reconcileMojangAuthSourceAtStartup().catch(handleError)
-
 	isMaximized.value = await getCurrentWindow().isMaximized()
 
 	unlistenWindowResize = await getCurrentWindow().onResized(() => {
@@ -1395,21 +1461,16 @@ async function setupApp() {
 	})
 
 	if (!dev) {
-		document.addEventListener('contextmenu', (event) => {
-			// Keep the launcher's custom context-menu behavior for regular content,
-			// but let native editing controls and selected text expose copy/paste actions.
-			const target = event.target
-			const hasSelectedText = window.getSelection()?.toString().length > 0
-			if (
-				target instanceof HTMLInputElement ||
-				target instanceof HTMLTextAreaElement ||
-				(target instanceof HTMLElement && target.isContentEditable) ||
-				hasSelectedText
-			) {
-				return
-			}
-			event.preventDefault()
-		})
+		// Capture phase so WebView2 never shows its native edit menu (Shift+RMB
+		// on search/inputs included). Copy/paste stays available via keyboard
+		// shortcuts; launcher chrome uses our custom menus.
+		document.addEventListener(
+			'contextmenu',
+			(event) => {
+				event.preventDefault()
+			},
+			{ capture: true },
+		)
 	}
 
 	const osType = await getOsType()
@@ -1428,7 +1489,7 @@ async function setupApp() {
 		addNotification({
 			title: formatMessage(messages.warning),
 			text: e.message,
-			type: 'warn',
+			type: 'warning',
 		})
 	})
 	await java_download_confirmation_listener((request) => {
@@ -1552,9 +1613,6 @@ async function scheduleStartupDialogs() {
 		updateAnnouncementModal.value.show(pendingUpdateAnnouncementVersion.value)
 		return
 	}
-
-	communityAnnouncementModal.value?.showIfNeeded()
-	surveyModal.value?.showIfNeeded()
 }
 
 async function handlePrivacyConsentSaved(privacy: PrivacySettings) {
@@ -1641,7 +1699,7 @@ stateInitialization
  */
 async function forceExit() {
 	try {
-		await invoke('exit_app')
+		await invoke('exit_app', { force: true })
 	} catch (error) {
 		// Closing the window still reaches the exit path, one dialog later.
 		console.error('Failed to exit the launcher; closing the window', error)
@@ -1651,13 +1709,28 @@ async function forceExit() {
 	}
 }
 
+async function showBackupExitModalIfNeeded() {
+	activeBackupOperations.value = await listBackupOperations(undefined, true)
+	if (activeBackupOperations.value.length === 0) return false
+	allowWindowClose = false
+	closeRequestInProgress.value = false
+	closeChoiceModal.value?.hide()
+	backupExitModal.value?.show()
+	return true
+}
+
+async function exitLauncher(force = false) {
+	if (!force && (await showBackupExitModalIfNeeded())) return
+	allowWindowClose = true
+	await saveWindowState(StateFlags.ALL)
+	await invoke('exit_app', { force })
+}
+
 async function closeWindowImmediately() {
 	if (closeRequestInProgress.value) return
 	closeRequestInProgress.value = true
-	allowWindowClose = true
 	try {
-		await saveWindowState(StateFlags.ALL)
-		await invoke('exit_app')
+		await exitLauncher()
 	} catch (error) {
 		allowWindowClose = false
 		closeRequestInProgress.value = false
@@ -1691,9 +1764,7 @@ async function applyCloseChoice(choice: 'close' | 'lightweight', remember: boole
 			closeBehaviorPersisted = true
 		}
 		if (choice === 'close') {
-			allowWindowClose = true
-			await saveWindowState(StateFlags.ALL)
-			await invoke('exit_app')
+			await exitLauncher()
 		} else {
 			await enterLightweightModeOnClose()
 		}
@@ -1706,6 +1777,58 @@ async function applyCloseChoice(choice: 'close' | 'lightweight', remember: boole
 		closeChoiceOpen.value = true
 		handleError(error)
 	}
+}
+
+async function cancelBackupsAndExit() {
+	if (closeRequestInProgress.value) return
+	closeRequestInProgress.value = true
+	try {
+		await Promise.all(
+			activeBackupOperations.value
+				.filter((operation) => operation.cancellable)
+				.map((operation) => cancelBackup(operation.id)),
+		)
+		for (let attempt = 0; attempt < 300; attempt++) {
+			const remaining = await listBackupOperations(undefined, true)
+			if (remaining.length === 0) {
+				await exitLauncher()
+				return
+			}
+			await new Promise((resolve) => setTimeout(resolve, 100))
+		}
+		throw new Error(formatMessage(messages.backupExitTimeout))
+	} catch (error) {
+		closeRequestInProgress.value = false
+		handleError(error)
+	}
+}
+
+async function forceBackupExit() {
+	if (closeRequestInProgress.value) return
+	closeRequestInProgress.value = true
+	try {
+		await exitLauncher(true)
+	} catch (error) {
+		allowWindowClose = false
+		closeRequestInProgress.value = false
+		handleError(error)
+	}
+}
+
+const hasActiveRepositoryMove = computed(() =>
+	activeBackupOperations.value.some((operation) => operation.operation_type === 'repository_move'),
+)
+
+function returnFromBackupExit() {
+	backupExitModal.value?.hide()
+	activeBackupOperations.value = []
+	closeRequestInProgress.value = false
+}
+
+async function hideDuringBackups() {
+	backupExitModal.value?.hide()
+	closeRequestInProgress.value = false
+	await enterLightweightModeOnClose()
 }
 
 function onCloseChoiceModalHide() {
@@ -2121,6 +2244,10 @@ async function handleCommand(e) {
 		await router.push({ path: '/lab/seed-map', query })
 		return
 	}
+	if (e.event === 'OpenDiscovery') {
+		await router.push('/browse/mod')
+		return
+	}
 	if (offline.value && e.event !== 'LaunchInstance') {
 		await router.push('/library')
 		return
@@ -2502,13 +2629,20 @@ function handleClick(e) {
 	let target = e.target
 	while (target != null) {
 		if (target.matches('a')) {
+			// RouterLinks and same-origin SPA paths must keep default handling /
+			// vue-router click; only intercept true external protocol links.
+			const href = target.getAttribute('href') ?? ''
+			const isRouterLink = target.classList.contains('router-link-active') || href.startsWith('/')
+			const isLocalhost =
+				target.href.startsWith('http://localhost') ||
+				target.href.startsWith('https://tauri.localhost') ||
+				target.href.startsWith('http://tauri.localhost')
 			if (
+				!isRouterLink &&
 				target.href &&
 				['http://', 'https://', 'mailto:', 'tel:'].some((v) => target.href.startsWith(v)) &&
 				!target.classList.contains('router-link-active') &&
-				!target.href.startsWith('http://localhost') &&
-				!target.href.startsWith('https://tauri.localhost') &&
-				!target.href.startsWith('http://tauri.localhost')
+				!isLocalhost
 			) {
 				const parsed = parseModrinthLink(target.href)
 				if (target.target !== '_blank' && parsed) {
@@ -2516,8 +2650,8 @@ function handleClick(e) {
 				} else {
 					openUrl(target.href)
 				}
+				e.preventDefault()
 			}
-			e.preventDefault()
 			break
 		}
 		target = target.parentElement
@@ -2572,8 +2706,9 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 	<div
 		v-if="stateInitialized && themeStore.customBackgroundPath && !themeStore.transparentBackground"
 		class="launcher-background"
-		:style="customBackgroundStyle"
-	/>
+	>
+		<div class="launcher-background-image" :style="customBackgroundStyle" />
+	</div>
 	<div
 		v-if="stateInitialized"
 		class="app-grid-layout relative"
@@ -2622,17 +2757,31 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 			class="app-grid-navbar bg-bg-raised flex flex-col p-[0.5rem] pt-0 gap-[0.5rem] w-[--left-bar-width] overflow-hidden"
 		>
 			<NavRail>
-				<NavButton v-tooltip.right="formatMessage(messages.home)" to="/">
+				<NavButton
+					v-if="!themeStore.isNavItemHidden('home')"
+					v-tooltip.right="formatMessage(messages.home)"
+					to="/"
+				>
 					<HomeIcon />
 				</NavButton>
 				<NavButton
-					v-if="themeStore.featureFlags.worlds_tab"
+					v-if="!themeStore.isNavItemHidden('screenshots')"
+					v-tooltip.right="formatMessage(messages.screenshots)"
+					data-onboarding-id="nav-screenshots"
+					to="/screenshots"
+					:is-primary="(r) => r.path.startsWith('/screenshots')"
+				>
+					<ImagesIcon />
+				</NavButton>
+				<NavButton
+					v-if="themeStore.featureFlags.worlds_tab && !themeStore.isNavItemHidden('worlds')"
 					v-tooltip.right="formatMessage(messages.worlds)"
 					to="/worlds"
 				>
 					<WorldIcon />
 				</NavButton>
 				<NavButton
+					v-if="!themeStore.isNavItemHidden('discover')"
 					v-tooltip.right="formatMessage(messages.discoverContent)"
 					data-onboarding-id="nav-discover"
 					:to="discoverContentPath"
@@ -2643,6 +2792,7 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 					<CompassIcon />
 				</NavButton>
 				<NavButton
+					v-if="!themeStore.isNavItemHidden('skins')"
 					v-tooltip.right="formatMessage(messages.skinSelector)"
 					data-onboarding-id="nav-skins"
 					to="/skins"
@@ -2650,6 +2800,7 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 					<ChangeSkinIcon />
 				</NavButton>
 				<NavButton
+					v-if="!themeStore.isNavItemHidden('multiplayer')"
 					v-tooltip.right="formatMessage(messages.multiplayer)"
 					to="/multiplayer"
 					:is-primary="(r) => r.path.startsWith('/multiplayer')"
@@ -2657,6 +2808,7 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 					<UsersIcon />
 				</NavButton>
 				<NavButton
+					v-if="!themeStore.isNavItemHidden('library')"
 					v-tooltip.right="formatMessage(messages.library)"
 					data-onboarding-id="nav-library"
 					to="/library"
@@ -2671,6 +2823,7 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 					<LibraryIcon />
 				</NavButton>
 				<NavButton
+					v-if="!themeStore.isNavItemHidden('lab')"
 					v-tooltip.right="formatMessage(messages.lab)"
 					data-onboarding-id="nav-lab"
 					to="/lab"
@@ -2679,7 +2832,10 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 					<FlaskConicalIcon />
 				</NavButton>
 				<NavButton
-					v-if="!themeStore.autoHideDownloadsButton || downloadManager.activeCount.value > 0"
+					v-if="
+						!themeStore.isNavItemHidden('downloads') &&
+						(!themeStore.autoHideDownloadsButton || downloadManager.activeCount.value > 0)
+					"
 					v-tooltip.right="formatMessage(messages.downloads)"
 					data-onboarding-id="nav-downloads"
 					to="/downloads"
@@ -2909,10 +3065,9 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 		:on-error-action="exportNotificationErrorLogs"
 		:error-action-label="formatMessage(messages.exportErrorLogs)"
 	/>
-	<MinecraftCrashModal ref="minecraftCrashModal" @error="handleError" />
+	<MinecraftCrashModal ref="minecraftCrashModal" />
 	<JavaDownloadConfirmationModal ref="javaDownloadConfirmationModal" />
 	<PrivacyConsentModal ref="privacyConsentModal" @saved="handlePrivacyConsentSaved" />
-	<CommunityAnnouncementModal ref="communityAnnouncementModal" />
 	<RemoteAnnouncements
 		:ready="
 			stateInitialized && !privacyConsentPending && !showOnboarding && !updateAnnouncementShowing
@@ -2925,7 +3080,6 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 			stateInitialized && !privacyConsentPending && !showOnboarding && !updateAnnouncementShowing
 		"
 	/>
-	<SurveyAnnouncementModal ref="surveyModal" />
 	<UpdateAnnouncementModal ref="updateAnnouncementModal" @closed="handleUpdateAnnouncementClosed" />
 	<NewModal
 		ref="closeChoiceModal"
@@ -2963,6 +3117,44 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 				:label="formatMessage(messages.closeLauncherRemember)"
 			/>
 		</div>
+	</NewModal>
+	<NewModal
+		ref="backupExitModal"
+		:header="formatMessage(messages.backupExitTitle)"
+		:disable-close="closeRequestInProgress"
+		fade="danger"
+		max-width="32rem"
+	>
+		<Admonition type="warning">
+			{{ formatMessage(messages.backupExitBody, { count: activeBackupOperations.length }) }}
+		</Admonition>
+		<Admonition v-if="hasActiveRepositoryMove" type="warning" class="mt-3">
+			{{ formatMessage(messages.backupExitRepositoryMoveBody) }}
+		</Admonition>
+		<template #actions>
+			<div class="flex flex-wrap items-center justify-end gap-2">
+				<ButtonStyled type="outlined">
+					<button type="button" :disabled="closeRequestInProgress" @click="returnFromBackupExit">
+						{{ formatMessage(messages.backupExitReturn) }}
+					</button>
+				</ButtonStyled>
+				<ButtonStyled>
+					<button type="button" :disabled="closeRequestInProgress" @click="hideDuringBackups">
+						{{ formatMessage(messages.backupExitTray) }}
+					</button>
+				</ButtonStyled>
+				<ButtonStyled v-if="activeBackupOperations.every((operation) => operation.cancellable)">
+					<button type="button" :disabled="closeRequestInProgress" @click="cancelBackupsAndExit">
+						{{ formatMessage(messages.backupExitCancel) }}
+					</button>
+				</ButtonStyled>
+				<ButtonStyled v-if="!hasActiveRepositoryMove" color="red">
+					<button type="button" :disabled="closeRequestInProgress" @click="forceBackupExit">
+						{{ formatMessage(messages.backupExitForce) }}
+					</button>
+				</ButtonStyled>
+			</div>
+		</template>
 	</NewModal>
 	<ErrorModal ref="errorModal" />
 	<MinecraftAuthErrorModal ref="minecraftAuthErrorModal" />
@@ -3199,6 +3391,15 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 	inset: -3rem;
 	z-index: 0;
 	pointer-events: none;
+	// Opaque floor under the custom image: lowering "background visibility"
+	// dims the image against the app surface instead of revealing the desktop.
+	background-color: var(--color-raised-bg);
+}
+
+.launcher-background-image {
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
 	background-position: center;
 	background-size: cover;
 	background-repeat: no-repeat;
@@ -3221,7 +3422,13 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 .app-grid-layout.has-custom-background {
 	.app-grid-navbar,
 	.app-grid-statusbar {
-		background-color: color-mix(in srgb, var(--color-raised-bg) 82%, transparent) !important;
+		// Driven by the "Component opacity" setting (#335). Default 100% keeps
+		// chrome fully opaque over the custom background image.
+		background-color: color-mix(
+			in srgb,
+			var(--color-raised-bg) var(--custom-bg-component-opacity, 100%),
+			transparent
+		) !important;
 
 		backdrop-filter: none;
 		-webkit-backdrop-filter: none;
@@ -3273,7 +3480,6 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 
 	&.has-custom-background,
 	&.has-transparent-background {
-		background-color: color-mix(in srgb, var(--color-bg) 76%, transparent);
 		border-top-left-radius: 0;
 
 		&::before {
@@ -3283,9 +3489,21 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 	}
 
 	&.has-custom-background {
+		// Content surface opacity follows the "Component opacity" setting so a
+		// custom background fades behind solid UI by default (#335).
+		background-color: color-mix(
+			in srgb,
+			var(--color-bg) var(--custom-bg-component-opacity, 100%),
+			transparent
+		);
+
 		.loading-indicator-container {
 			border-top-left-radius: 0;
 		}
+	}
+
+	&.has-transparent-background {
+		background-color: color-mix(in srgb, var(--color-bg) 76%, transparent);
 	}
 }
 
@@ -3465,7 +3683,14 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 	overflow: auto;
 	overflow-x: hidden;
 	scrollbar-gutter: stable;
-	padding-bottom: var(--floating-action-bar-clearance, 0px);
+
+	// Programmatic focus target for route handoff and keyboard shortcuts.
+	// Clicking the pane focuses it; Tab/Shift/Esc then paint the UA ring as a
+	// full-pane black frame (issue #579).
+	&:focus,
+	&:focus-visible {
+		outline: none;
+	}
 }
 
 .app-contents::before {
@@ -3484,28 +3709,24 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 	pointer-events: none;
 }
 
+// Console fullscreen teleports above the content pane; the decorative edge
+// must not draw through that opaque overlay.
+body.modrinth-console-fullscreen-active .app-contents::before {
+	opacity: 0;
+}
+
+// The body class is the console's authoritative fullscreen state. Keep the
+// shell layout correct even if its companion event is delayed or missed.
+body.modrinth-console-fullscreen-active .app-contents {
+	--right-bar-width: 0px;
+}
+
+body.modrinth-console-fullscreen-active .app-sidebar {
+	display: none;
+}
+
 .sidebar-teleport-content:empty + .sidebar-default-content.sidebar-enabled {
 	display: contents;
-}
-
-.popup-survey-enter-active {
-	transition:
-		opacity 0.25s ease,
-		transform 0.25s cubic-bezier(0.51, 1.08, 0.35, 1.15);
-	transform-origin: top center;
-}
-
-.popup-survey-leave-active {
-	transition:
-		opacity 0.25s ease,
-		transform 0.25s cubic-bezier(0.68, -0.17, 0.23, 0.11);
-	transform-origin: top center;
-}
-
-.popup-survey-enter-from,
-.popup-survey-leave-to {
-	opacity: 0;
-	transform: translateY(10rem) scale(0.8) scaleY(1.6);
 }
 
 @media (prefers-reduced-motion: no-preference) {

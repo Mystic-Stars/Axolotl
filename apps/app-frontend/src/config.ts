@@ -9,7 +9,6 @@ export const AxolotlBrandConfig = Object.freeze({
 	qqGroupNumber: '737601250',
 	qqChannelUrl: 'https://pd.qq.com/s/9nfp5rlz0',
 	sponsorUrl: 'https://afdian.com/a/Mystic-Stars',
-	surveyUrl: 'https://gcnpznwdnhl4.feishu.cn/share/base/form/shrcndevRao1jpNw3cATAX4NbGh',
 	bundleIdentifier: 'red.ghs.axolotl',
 	deepLinkScheme: 'axolotl',
 	userAgent: (version: string, os: string) => `garbage-human-studio/axolotl/${version} (${os})`,

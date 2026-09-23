@@ -10,7 +10,7 @@ import { computed, nextTick, onMounted, toRef, watch } from 'vue'
 import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
 
 import type { GameInstance } from '@/helpers/types'
-import { parkUpgradeFlow, restoreUpgradeFlow } from '@/helpers/upgrade-return-state'
+import { parkUpgradeFlow, restoreUpgradeFlow } from '@/store/navigation-return'
 
 import {
 	attachUpgradeJobToFlow,

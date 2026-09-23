@@ -323,6 +323,13 @@ pub(super) async fn run_request(
                 Some(InstallContinuationState::InstallingPackToExistingInstance {
                     disabled_project_ids,
                 }) => disabled_project_ids.into_iter().collect(),
+                Some(_) => {
+                    return Err(crate::ErrorKind::InputError(
+                        "Install job continuation does not match its request"
+                            .to_string(),
+                    )
+                    .into());
+                }
                 None => {
                     let disabled_project_ids = remove_existing_pack_content(
                         job_id,
@@ -638,6 +645,15 @@ pub(super) async fn run_request(
             crate::api::instance::emit_content_changed(&instance_id).await?;
             Ok(InstallExecutionOutcome::Completed(Some(instance_id)))
         }
+        InstallRequest::ChangeContent {
+            instance_id,
+            intent,
+            ..
+        } => {
+            run_content_change(job_id, job_state, &instance_id, &intent)
+                .await?;
+            Ok(InstallExecutionOutcome::Completed(Some(instance_id)))
+        }
         InstallRequest::UpdateManagedCurseForgeModpack {
             instance_id,
             file_id,
@@ -704,4 +720,13 @@ pub(super) async fn run_request(
             Ok(InstallExecutionOutcome::Completed(None))
         }
     }
+}
+
+async fn run_content_change(
+    job_id: uuid::Uuid,
+    job_state: &mut InstallJobState,
+    instance_id: &str,
+    intent: &crate::install::ContentChangeIntent,
+) -> crate::Result<()> {
+    content_change::run(job_id, job_state, instance_id, intent).await
 }

@@ -90,6 +90,7 @@ import { ButtonStyled, defineMessages, FloatingActionBar, useVIntl } from '@modr
 import { computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
 
+import { isSharedUpgradeInstance } from './analysis'
 import { useInstanceUpgradeFlow } from './flow'
 import { upgradeControlEnabled, upgradeProgressModel } from './flow-controls'
 
@@ -139,8 +140,7 @@ const blockerTooltip = computed(() => {
 		route.path.endsWith('/upgrade/confirm') &&
 		flow.instance.value &&
 		flow.sharedUpgradeMode.value === null &&
-		(flow.instance.value.link?.type === 'shared_instance' ||
-			Boolean(flow.instance.value.symlink_target))
+		isSharedUpgradeInstance(flow.instance.value)
 	) {
 		return formatMessage(messages.chooseSharedMode)
 	}

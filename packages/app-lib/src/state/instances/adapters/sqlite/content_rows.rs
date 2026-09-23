@@ -476,16 +476,15 @@ pub(crate) async fn get_instance_files<'e, E>(
 where
     E: Executor<'e, Database = Sqlite>,
 {
-    let rows = sqlx::query_as!(
-        InstanceFileRow,
+    let rows = sqlx::query_as::<_, InstanceFileRow>(
         "
 		SELECT *
 		FROM instance_files
 		WHERE instance_id = ?
 		ORDER BY relative_path ASC
 		",
-        instance_id,
     )
+    .bind(instance_id)
     .fetch_all(exec)
     .await?;
 
@@ -642,16 +641,15 @@ pub(crate) async fn get_instance_file_by_relative_path(
     relative_path: &str,
     pool: &SqlitePool,
 ) -> crate::Result<Option<InstanceFile>> {
-    let row = sqlx::query_as!(
-        InstanceFileRow,
+    let row = sqlx::query_as::<_, InstanceFileRow>(
         "
 		SELECT *
 		FROM instance_files
 		WHERE instance_id = ? AND relative_path = ?
 		",
-        instance_id,
-        relative_path,
     )
+    .bind(instance_id)
+    .bind(relative_path)
     .fetch_optional(pool)
     .await?;
 

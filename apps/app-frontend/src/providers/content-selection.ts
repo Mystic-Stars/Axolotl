@@ -1,21 +1,9 @@
 import type { Labrinth } from '@modrinth/api-client'
-import {
-	type BrowseInstallPreferences,
-	type BrowseSelectedProject,
-	createContext,
-	defineMessages,
-	usesTargetGameVersion,
-	useVIntl,
-} from '@modrinth/ui'
-import { computed, type ComputedRef, type Ref, ref, watch } from 'vue'
+import { type BrowseSelectedProject, usesTargetGameVersion, useVIntl } from '@modrinth/ui'
+import { computed, ref, watch } from 'vue'
 
 import type ContentInstallPreviewModal from '@/components/ui/ContentInstallPreviewModal.vue'
-import type {
-	ContentInstallPreviewData,
-	ContentInstallPreviewDependency,
-	ContentInstallPreviewPrimary,
-	ContentInstallPreviewSkipped,
-} from '@/components/ui/ContentInstallPreviewModal.vue'
+import type { ContentInstallPreviewData } from '@/components/ui/ContentInstallPreviewModal.vue'
 import { get_project_many, get_version_many } from '@/helpers/cache.js'
 import {
 	compareContentIdentities,
@@ -26,7 +14,6 @@ import {
 	resolveContentIdentities,
 } from '@/helpers/content-identity'
 import {
-	type CurseForgeInstallPreview,
 	getCurseForgeFile,
 	getCurseForgeProjects,
 	previewCurseForgeFile,
@@ -40,128 +27,38 @@ import {
 	preview_project_with_dependencies,
 	queue_content_batch,
 	queue_project_with_dependencies,
-	type ResolveContentPlan,
 } from '@/helpers/instance'
 import { getBrowseDefaultInstanceId, setBrowseDefaultInstanceId } from '@/helpers/settings'
 import type { GameInstance } from '@/helpers/types'
 import { aggregateContentSelectionDependencies } from '@/providers/content-selection-logic'
-import type { DownloadManager } from '@/providers/download-manager'
+import {
+	type ContentSelectionContext,
+	type ContentSelectionItem,
+	contentSelectionMessages as messages,
+	type ContentSelectionProvider,
+	type ContentSelectionState,
+	type ContentSelectionType,
+	type CreateContentSelectionOptions,
+	curseForgeLoaderType,
+	injectContentSelection,
+	type PreparedSelection,
+	provideContentSelection,
+	toModrinthContentType,
+} from '@/providers/content-selection-types'
 import { useTheming } from '@/store/state'
 
-export type ContentSelectionProvider = 'modrinth' | 'curseforge'
-export type ContentSelectionType = 'mod' | 'resourcepack' | 'datapack' | 'shader' | 'world'
-export type ContentSelectionState = 'idle' | 'validating' | 'reviewing' | 'queueing' | 'error'
-
-export interface ContentSelectionItem {
-	key: string
-	provider: ContentSelectionProvider
-	projectId: string
-	providerProjectId: string
-	versionId: string
-	contentType: ContentSelectionType
-	title: string
-	iconUrl?: string | null
-	preferences?: BrowseInstallPreferences
-	targetInstanceId?: string
-	slug?: string | null
-	fileName?: string | null
-	sha1?: string | null
-	identity?: ContentIdentity
+export {
+	type ContentSelectionContext,
+	type ContentSelectionItem,
+	type ContentSelectionProvider,
+	type ContentSelectionState,
+	type ContentSelectionType,
+	type CreateContentSelectionOptions,
+	injectContentSelection,
+	provideContentSelection,
 }
 
-interface PreparedSelection {
-	item: ContentSelectionItem
-	primary: ContentInstallPreviewPrimary
-	dependencies: ContentInstallPreviewDependency[]
-	skipped: ContentInstallPreviewSkipped[]
-	modrinthPlan?: ResolveContentPlan
-	curseForgePreview?: CurseForgeInstallPreview
-}
-
-export interface ContentSelectionContext {
-	instances: Ref<GameInstance[]>
-	targetInstance: Ref<GameInstance | null>
-	items: Ref<Map<string, ContentSelectionItem>>
-	selectedProjects: ComputedRef<BrowseSelectedProject[]>
-	selectedCount: ComputedRef<number>
-	state: Ref<ContentSelectionState>
-	progress: Ref<{ completed: number; total: number }>
-	errorKeys: Ref<Set<string>>
-	refreshInstances: (preferredId?: string | null) => Promise<GameInstance | null>
-	refreshInstalledIdentities: () => Promise<void>
-	setTarget: (instance: GameInstance | null) => void
-	add: (item: ContentSelectionItem) => Promise<boolean>
-	remove: (key: string) => void
-	clear: () => void
-	isSelected: (key: string) => boolean
-	isInstalledIdentity: (
-		provider: ContentSelectionProvider,
-		projectId: string,
-		slug?: string | null,
-	) => boolean
-	isInstalling: (key: string) => boolean
-	installSelected: () => Promise<boolean>
-	setPreviewModal: (modal: InstanceType<typeof ContentInstallPreviewModal> | null) => void
-}
-
-export interface CreateContentSelectionOptions {
-	addNotification: (notification: { title: string; type: 'error' }) => void
-	handleError: (error: unknown) => void
-	downloadManager: DownloadManager
-}
-
-export const [injectContentSelection, provideContentSelection] =
-	createContext<ContentSelectionContext>('App', 'contentSelection')
-
-const messages = defineMessages({
-	previewFailed: {
-		id: 'app.content-selection.preview-failed',
-		defaultMessage: 'Some selected content could not be prepared. Remove it or try again.',
-	},
-	queueFailed: {
-		id: 'app.content-selection.queue-failed',
-		defaultMessage: 'Some content could not be added to the install queue. It remains selected.',
-	},
-	dependencyConflict: {
-		id: 'app.content-selection.dependency-conflict',
-		defaultMessage: '{dependency} resolves to conflicting versions in this selection.',
-	},
-	unknownDependency: {
-		id: 'app.content-selection.unknown-dependency',
-		defaultMessage: 'Dependency {id}',
-	},
-	unknownReason: {
-		id: 'app.content-selection.unknown-reason',
-		defaultMessage: 'Could not be resolved',
-	},
-	targetChanged: {
-		id: 'app.content-selection.target-changed',
-		defaultMessage:
-			'The selected content belongs to another instance. Switch back or clear it first.',
-	},
-	duplicateContent: {
-		id: 'app.content-selection.duplicate-content',
-		defaultMessage: '{project} is already installed or selected from another source.',
-	},
-	conflictUnavailable: {
-		id: 'app.content-selection.conflict-unavailable',
-		defaultMessage: 'Could not verify whether this content duplicates another source.',
-	},
-})
-
-const activeJobStatuses = new Set(['queued', 'running', 'canceling', 'waiting_for_user'])
-
-function curseForgeLoaderType(loader: string): number | undefined {
-	if (loader === 'forge') return 1
-	if (loader === 'fabric') return 4
-	if (loader === 'quilt') return 5
-	if (loader === 'neoforge') return 6
-	return undefined
-}
-
-function toModrinthContentType(contentType: ContentSelectionType): Labrinth.Content.v3.ContentType {
-	return contentType as Labrinth.Content.v3.ContentType
-}
+export const activeJobStatuses = new Set(['queued', 'running', 'canceling', 'waiting_for_user'])
 
 function dependencyKey(provider: ContentSelectionProvider, projectId: string, versionId: string) {
 	return `${provider}:${projectId}:${versionId}`
@@ -178,8 +75,9 @@ function installJobKey(instanceId: string, itemKey: string) {
 	return `${instanceId}\0${itemKey}`
 }
 
-function modrinthProjectUrl(project: Labrinth.Projects.v2.Project): string {
-	return `https://modrinth.com/${project.project_type}/${project.slug}`
+function modrinthProjectUrl(project: { slug?: string | null; project_type?: string | null; id: string }): string {
+	if (project.slug && project.project_type) return `https://modrinth.com/${project.project_type}/${project.slug}`
+	return `https://modrinth.com/mod/${project.id}`
 }
 
 function curseForgeProjectUrl(project: { slug: string; links?: { websiteUrl?: string } }): string {
@@ -355,7 +253,11 @@ export function createContentSelection({
 		await getInstalledIdentities(targetInstance.value)
 	}
 
-	async function findConflicts(item: ContentSelectionItem, instance: GameInstance) {
+	async function findConflicts(
+		item: ContentSelectionItem,
+		instance: GameInstance,
+		{ skipInstalled = false }: { skipInstalled?: boolean } = {},
+	) {
 		const candidate = item.identity ?? (await resolveSelectionIdentity(item))
 		const existing = [
 			...(await Promise.all(
@@ -366,7 +268,9 @@ export function createContentSelection({
 						identity: selected.identity ?? (await resolveSelectionIdentity(selected)),
 					})),
 			)),
-			...(await getInstalledIdentities(instance)).map((identity) => ({ item: null, identity })),
+			...(skipInstalled
+				? []
+				: (await getInstalledIdentities(instance)).map((identity) => ({ item: null, identity }))),
 		]
 		return existing.flatMap(({ item: existingItem, identity }) => {
 			const match = compareContentIdentities(candidate, identity)
@@ -374,9 +278,10 @@ export function createContentSelection({
 		})
 	}
 
-	async function validateSelectionConflicts(instance: GameInstance) {
+	async function validateSelectionConflicts(instance: GameInstance, preparedKeys?: Set<string>) {
 		const rejected = new Set<string>()
 		for (const item of items.value.values()) {
+			if (preparedKeys && !preparedKeys.has(item.key)) continue
 			const conflicts = await findConflicts(item, instance)
 			const hardConflict = conflicts.find((conflict) => conflict.match.source !== 'heuristic')
 			if (hardConflict) {
@@ -412,8 +317,22 @@ export function createContentSelection({
 
 	async function add(item: ContentSelectionItem) {
 		if (!targetInstance.value) throw new Error('No target instance selected')
-		const identity = item.identity ?? (await resolveSelectionIdentity(item))
-		const conflicts = await findConflicts({ ...item, identity }, targetInstance.value)
+		const versionPending = !item.versionId
+		const identity =
+			item.identity ??
+			(versionPending
+				? contentIdentityFromInput({
+						provider: item.provider,
+						projectId: item.providerProjectId,
+						contentType: item.contentType,
+						slug: item.slug,
+						title: item.title,
+						fileName: item.fileName,
+					})
+				: await resolveSelectionIdentity(item))
+		const conflicts = await findConflicts({ ...item, identity }, targetInstance.value, {
+			skipInstalled: versionPending,
+		})
 		const hardConflict = conflicts.find((conflict) => conflict.match.source !== 'heuristic')
 		if (hardConflict) {
 			addNotification({
@@ -462,6 +381,7 @@ export function createContentSelection({
 			identity,
 			sha1: identity.sha1,
 			targetInstanceId: targetInstance.value.id,
+			versionPending,
 		})
 		items.value = next
 		const nextErrors = new Set(errorKeys.value)
@@ -489,6 +409,32 @@ export function createContentSelection({
 		heuristicOverrides.clear()
 	}
 
+	const hasPendingVersions = computed(() =>
+		[...items.value.values()].some((item) => item.versionPending),
+	)
+
+	function updateVersion(
+		key: string,
+		versionId: string,
+		preferences?: BrowseInstallPreferences,
+		sha1?: string,
+	) {
+		const current = items.value.get(key)
+		if (!current) return
+		const next = new Map(items.value)
+		const updated: ContentSelectionItem = {
+			...current,
+			versionId,
+			versionPending: false,
+			preferences: preferences ?? current.preferences,
+		}
+		if (sha1) {
+			updated.sha1 = sha1
+		}
+		next.set(key, updated)
+		items.value = next
+	}
+
 	function isSelected(key: string) {
 		return items.value.has(key)
 	}
@@ -505,7 +451,7 @@ export function createContentSelection({
 	async function prepareModrinth(item: ContentSelectionItem, instance: GameInstance) {
 		const request = {
 			project_id: item.projectId,
-			version_id: item.versionId,
+			version_id: item.versionId || null,
 			content_type: toModrinthContentType(item.contentType),
 			selected: {
 				game_versions: item.preferences?.gameVersions ?? [],
@@ -513,42 +459,15 @@ export function createContentSelection({
 			},
 		}
 		const plan = await preview_project_with_dependencies(instance.id, request)
-		const projectIds = [
-			...new Set([
-				plan.primary.project_id,
-				...plan.dependencies.map((dependency) => dependency.project_id),
-				...plan.skipped.map((skipped) => skipped.project_id),
-			]),
-		]
-		const versionIds = [
-			...new Set(
-				[
-					plan.primary.version_id,
-					...plan.dependencies.map((dependency) => dependency.version_id),
-					...plan.skipped.map((skipped) => skipped.version_id),
-				].filter((id): id is string => !!id),
-			),
-		]
-		const [projects, versions] = await Promise.all([
-			get_project_many(projectIds)
-				.catch(() => [])
-				.then((projects) => (projects ?? []) as Labrinth.Projects.v2.Project[]),
-			get_version_many(versionIds)
-				.catch(() => [])
-				.then((versions) => (versions ?? []) as Labrinth.Versions.v2.Version[]),
-		])
-		const projectsById = new Map(projects.map((project) => [project.id, project]))
-		const versionsById = new Map(versions.map((version) => [version.id, version]))
-		const primaryVersion = versionsById.get(plan.primary.version_id)
+
+		// Rich metadata is attached by the backend - no extra HTTP requests needed
 		const titleByVersion = new Map(
 			[plan.primary, ...plan.dependencies, ...plan.skipped].flatMap((content) =>
 				content.version_id
-					? [
-							[
-								content.version_id,
-								projectsById.get(content.project_id)?.title ?? content.project_id,
-							],
-						]
+					? [[
+						content.version_id,
+						content.metadata?.title ?? content.project_id,
+					]]
 					: [],
 			),
 		)
@@ -559,15 +478,19 @@ export function createContentSelection({
 		)
 		const dependencies = plan.dependencies.map((dependency) => {
 			const included = selectedProjectIds.has(dependency.project_id)
-			const project = projectsById.get(dependency.project_id)
+			const meta = dependency.metadata
 			return {
 				id: dependencyKey('modrinth', dependency.project_id, dependency.version_id),
-				title: project?.title ?? dependency.project_id,
-				iconUrl: project?.icon_url,
-				versionNumber: versionsById.get(dependency.version_id)?.version_number,
-				fileName: versionsById.get(dependency.version_id)?.files[0]?.filename,
-				description: project?.description,
-				projectUrl: project ? modrinthProjectUrl(project) : undefined,
+				title: meta?.title ?? dependency.project_id,
+				iconUrl: meta?.icon_url,
+				versionNumber: meta?.version_number,
+				fileName: meta?.filename,
+				description: undefined,
+				projectUrl: modrinthProjectUrl({
+					id: dependency.project_id,
+					slug: undefined,
+					project_type: undefined,
+				}),
 				requiredBy: dependency.dependent_on_version_id
 					? [titleByVersion.get(dependency.dependent_on_version_id)].filter(
 							(title): title is string => !!title,
@@ -582,19 +505,18 @@ export function createContentSelection({
 		for (const skipped of plan.skipped) {
 			if (skipped.reason !== 'already_installed') continue
 			const versionId = skipped.version_id ?? `skipped-${skipped.project_id}`
-			const project = projectsById.get(skipped.project_id)
 			dependencies.push({
 				id: dependencyKey('modrinth', skipped.project_id, versionId),
-				title: project?.title ?? skipped.project_id,
-				iconUrl: project?.icon_url,
-				versionNumber: skipped.version_id
-					? versionsById.get(skipped.version_id)?.version_number
-					: undefined,
-				fileName: skipped.version_id
-					? versionsById.get(skipped.version_id)?.files[0]?.filename
-					: undefined,
-				description: project?.description,
-				projectUrl: project ? modrinthProjectUrl(project) : undefined,
+				title: skipped.project_id,
+				iconUrl: undefined,
+				versionNumber: undefined,
+				fileName: undefined,
+				description: undefined,
+				projectUrl: modrinthProjectUrl({
+					id: skipped.project_id,
+					slug: undefined,
+					project_type: undefined,
+				}),
 				requiredBy: skipped.dependent_on_version_id
 					? [titleByVersion.get(skipped.dependent_on_version_id)].filter(
 							(title): title is string => !!title,
@@ -607,13 +529,22 @@ export function createContentSelection({
 			})
 		}
 
+		if (!item.versionId) {
+			updateVersion(
+				item.key,
+				plan.primary.version_id,
+				item.preferences,
+				plan.primary.metadata?.sha1,
+			)
+		}
+
 		return {
 			item,
 			primary: {
 				key: item.key,
 				title: item.title,
 				iconUrl: item.iconUrl,
-				versionNumber: primaryVersion?.version_number,
+				versionNumber: plan.primary.metadata?.version_number,
 				provider: 'Modrinth',
 				contentType: item.contentType,
 				removable: true,
@@ -623,7 +554,7 @@ export function createContentSelection({
 				.filter((skipped) => skipped.reason !== 'already_installed')
 				.map((skipped) => ({
 					id: `${item.key}:skipped:${skipped.project_id}`,
-					title: projectsById.get(skipped.project_id)?.title ?? skipped.project_id,
+					title: skipped.project_id,
 					reason: skipped.reason.replaceAll('_', ' '),
 					requiredByKeys: [item.key],
 				})),
@@ -946,10 +877,25 @@ export function createContentSelection({
 		const preview = selection.curseForgePreview
 		if (!preview) throw new Error('Missing CurseForge install preview')
 		const excludedDependencyProjectIds = preview.dependencies
-			.filter((dependency) => !approvedIds.has(dependencyKey('curseforge', String(dependency.projectId), String(dependency.fileId))))
+			.filter(
+				(dependency) =>
+					!approvedIds.has(
+						dependencyKey('curseforge', String(dependency.projectId), String(dependency.fileId)),
+					),
+			)
 			.map((dependency) => dependency.projectId)
 		const forceDependencyProjectIds = preview.skipped
-			.filter((skipped) => skipped.reason === 'already_installed' && approvedIds.has(dependencyKey('curseforge', String(skipped.projectId), String(skipped.fileId ?? 'skipped'))))
+			.filter(
+				(skipped) =>
+					skipped.reason === 'already_installed' &&
+					approvedIds.has(
+						dependencyKey(
+							'curseforge',
+							String(skipped.projectId),
+							String(skipped.fileId ?? 'skipped'),
+						),
+					),
+			)
 			.map((skipped) => skipped.projectId)
 		for (const fallback of preview.modrinthFallbacks ?? []) {
 			if (!approvedIds.has(dependencyKey('modrinth', fallback.projectId, fallback.versionId))) {
@@ -963,7 +909,9 @@ export function createContentSelection({
 			projectType: selection.item.contentType,
 			ownershipKind: 'user_added',
 			manualOperationKind: 'content_install',
-			gameVersion: usesTargetGameVersion(selection.item.contentType) ? instance.game_version : undefined,
+			gameVersion: usesTargetGameVersion(selection.item.contentType)
+				? instance.game_version
+				: undefined,
 			modLoaderType: curseForgeLoaderType(instance.loader),
 			installDependencies: true,
 			excludedDependencyProjectIds: [...new Set(excludedDependencyProjectIds)],
@@ -978,45 +926,62 @@ export function createContentSelection({
 			addNotification({ title: formatMessage(messages.targetChanged), type: 'error' })
 			return false
 		}
-		// The instance may have changed after items were added to the cart.
-		// Force the final check to observe the current snapshot.
-		installedIdentityCache.delete(instance.id)
+		// Reset browse-page installed indicators so they reflect the post-install state.
+		// The identity cache itself is kept warm from the initial instance selection.
 		installedIdentityKeys.value = new Set()
 		installedIdentitySlugs.value = new Set()
-		const conflictKeys = await validateSelectionConflicts(instance)
-		if (conflictKeys.size) {
-			errorKeys.value = conflictKeys
-			state.value = 'error'
-			addNotification({
-				title: formatMessage(messages.duplicateContent, {
-					project:
-						[...items.value.values()].find((item) => conflictKeys.has(item.key))?.title ?? '',
-				}),
-				type: 'error',
-			})
-			return false
-		}
 		state.value = 'validating'
 		progress.value = { completed: 0, total: items.value.size }
 		const prepared: PreparedSelection[] = []
 		const failed = new Set<string>()
-		for (const item of items.value.values()) {
-			try {
-				prepared.push(
-					item.provider === 'modrinth'
-						? await prepareModrinth(item, instance)
-						: await prepareCurseForge(item, instance),
-				)
-			} catch (error) {
-				failed.add(item.key)
-				handleError(error)
+		const preparedKeys = new Set<string>()
+		const errors: unknown[] = []
+		const itemsArray = [...items.value.values()]
+		const PREPARE_CONCURRENCY = 4
+		for (let i = 0; i < itemsArray.length; i += PREPARE_CONCURRENCY) {
+			const batch = itemsArray.slice(i, i + PREPARE_CONCURRENCY)
+			const results = await Promise.allSettled(
+				batch.map(async (item) => {
+					try {
+						return item.provider === 'modrinth'
+							? await prepareModrinth(item, instance)
+							: await prepareCurseForge(item, instance)
+					} catch (error) {
+						failed.add(item.key)
+						errors.push(error)
+						return null
+					}
+				}),
+			)
+			for (const result of results) {
+				if (result.status === 'fulfilled' && result.value !== null) {
+					prepared.push(result.value)
+					preparedKeys.add(result.value.item.key)
+				}
 			}
+		}
+		for (const error of errors) {
+			handleError(error)
 		}
 		errorKeys.value = failed
 		if (prepared.length === 0) {
 			state.value = 'error'
 			addNotification({
 				title: formatMessage(messages.previewFailed),
+				type: 'error',
+			})
+			return false
+		}
+
+		const conflictKeys = await validateSelectionConflicts(instance, preparedKeys)
+		if (conflictKeys.size) {
+			errorKeys.value = new Set([...errorKeys.value, ...conflictKeys])
+			state.value = 'error'
+			addNotification({
+				title: formatMessage(messages.duplicateContent, {
+					project:
+						[...items.value.values()].find((item) => conflictKeys.has(item.key))?.title ?? '',
+				}),
 				type: 'error',
 			})
 			return false
@@ -1053,14 +1018,33 @@ export function createContentSelection({
 							loaders: selection.item.preferences?.loaders ?? [],
 						},
 						excluded_project_ids: plan.dependencies
-							.filter((dependency) => !approvedIds.has(dependencyKey('modrinth', dependency.project_id, dependency.version_id)))
+							.filter(
+								(dependency) =>
+									!approvedIds.has(
+										dependencyKey('modrinth', dependency.project_id, dependency.version_id),
+									),
+							)
 							.map((dependency) => dependency.project_id),
 						force_project_ids: plan.skipped
-							.filter((skipped) => skipped.reason === 'already_installed' && !!skipped.version_id && approvedIds.has(dependencyKey('modrinth', skipped.project_id, skipped.version_id)))
+							.filter(
+								(skipped) =>
+									skipped.reason === 'already_installed' &&
+									!!skipped.version_id &&
+									approvedIds.has(
+										dependencyKey('modrinth', skipped.project_id, skipped.version_id),
+									),
+							)
 							.map((skipped) => skipped.project_id),
 					})
 				} else if (selection.item.contentType === 'world') {
-					batchItems.push({ type: 'curse_forge_world', request: { instanceId: instance.id, projectId: Number(selection.item.providerProjectId), fileId: Number(selection.item.versionId) } })
+					batchItems.push({
+						type: 'curse_forge_world',
+						request: {
+							instanceId: instance.id,
+							projectId: Number(selection.item.providerProjectId),
+							fileId: Number(selection.item.versionId),
+						},
+					})
 				} else {
 					const request = await buildCurseForgeRequest(selection, instance, approvedIds)
 					batchItems.push({ type: 'curse_forge', request })
@@ -1132,6 +1116,8 @@ export function createContentSelection({
 			)
 		},
 		isInstalling,
+		hasPendingVersions,
+		updateVersion,
 		installSelected,
 		setPreviewModal(modal) {
 			previewModal = modal

@@ -129,10 +129,7 @@ const memory = ref({
 const effectiveMemory = computed(() =>
 	overrideMemorySettings.value ? memory.value : { ...defaultMemory, ...globalSettings?.memory },
 )
-const memData = await useMemorySlider().catch(() => ({
-	maxMemory: ref(4096),
-	snapPoints: computed(() => []),
-}))
+const memData = useMemorySlider()
 const maxMemory = memData.maxMemory
 const snapPoints = memData.snapPoints
 

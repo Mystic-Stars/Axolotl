@@ -1,6 +1,5 @@
 <template>
-	<div class="flex flex-col gap-3">
-		<h2 class="text-lg m-0">{{ formatMessage(commonMessages.detailsLabel) }}</h2>
+	<SidebarSection :title="formatMessage(commonMessages.detailsLabel)">
 		<div class="flex flex-col gap-3 font-semibold [&>div]:flex [&>div]:gap-2 [&>div]:items-center">
 			<div v-if="!hideLicense">
 				<BookTextIcon aria-hidden="true" />
@@ -76,7 +75,7 @@
 				</div>
 			</div>
 		</div>
-	</div>
+	</SidebarSection>
 </template>
 <script setup lang="ts">
 import type { Labrinth } from '@modrinth/api-client'
@@ -95,6 +94,7 @@ import { useFormatDateTime, useRelativeTime } from '../../composables'
 import { defineMessages, useVIntl } from '../../composables/i18n'
 import { commonMessages } from '../../utils/common-messages'
 import { IntlFormatted } from '../base'
+import SidebarSection from './SidebarSection.vue'
 
 const { formatMessage } = useVIntl()
 const formatRelativeTime = useRelativeTime()

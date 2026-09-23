@@ -6,22 +6,26 @@ use std::{
 use url::Url;
 use windows::{
     Win32::{
+        Storage::EnhancedStorage::PKEY_AppUserModel_ID,
         System::Com::{
             CLSCTX_INPROC_SERVER, COINIT_APARTMENTTHREADED,
             COINIT_DISABLE_OLE1DDE, CoCreateInstance, CoInitializeEx,
-            CoUninitialize, IPersistFile,
+            CoUninitialize, IPersistFile, StructuredStorage::PROPVARIANT,
         },
-        UI::Shell::{IShellLinkW, ShellLink},
+        UI::Shell::{IShellLinkW, PropertiesSystem::IPropertyStore, ShellLink},
     },
     core::{Interface, PCWSTR},
 };
 
 pub(super) const SHORTCUT_EXTENSION: &str = "lnk";
+pub(super) const SHORTCUT_ICON_EXTENSION: &str = "ico";
 
 pub(super) async fn create_shortcut(
     _profile_name: &str,
     launch_url: &Url,
     output_path: &Path,
+    icon_path: Option<&Path>,
+    app_identifier: &str,
 ) -> Result<()> {
     let target_path = std::env::current_exe()?;
     let working_dir = target_path
@@ -29,7 +33,9 @@ pub(super) async fn create_shortcut(
         .map(Path::to_path_buf)
         .unwrap_or_default();
     let output_path = output_path.to_path_buf();
+    let icon_path = icon_path.map(Path::to_path_buf);
     let launch_url = launch_url.to_string();
+    let app_identifier = app_identifier.to_string();
 
     tokio::task::spawn_blocking(move || {
         create_windows_shortcut(
@@ -37,6 +43,8 @@ pub(super) async fn create_shortcut(
             target_path,
             working_dir,
             launch_url,
+            icon_path,
+            app_identifier,
         )
     })
     .await
@@ -54,11 +62,17 @@ fn create_windows_shortcut(
     target_path: PathBuf,
     working_dir: PathBuf,
     launch_url: String,
+    icon_path: Option<PathBuf>,
+    app_identifier: String,
 ) -> std::io::Result<()> {
     let output_path = windows_wide_path(&output_path);
     let target_path = windows_wide_path(&target_path);
     let working_dir = windows_wide_path(&working_dir);
     let launch_url = windows_wide_string(&launch_url);
+    let icon_path = icon_path
+        .as_deref()
+        .map(windows_wide_path)
+        .unwrap_or_else(|| target_path.clone());
 
     // SAFETY:
     // - COM is initialized for this blocking thread before any COM object is created.
@@ -85,14 +99,39 @@ fn create_windows_shortcut(
             shortcut.SetWorkingDirectory(windows_pcwstr(&working_dir)),
         )?;
         windows_result(
-            shortcut.SetIconLocation(windows_pcwstr(&target_path), 0),
+            shortcut.SetIconLocation(windows_pcwstr(&icon_path), 0),
         )?;
+
+        let property_store: IPropertyStore = windows_result(shortcut.cast())?;
+        let app_identifier = PROPVARIANT::from(app_identifier.as_str());
+        windows_result(
+            property_store.SetValue(&PKEY_AppUserModel_ID, &app_identifier),
+        )?;
+        windows_result(property_store.Commit())?;
 
         let persist_file: IPersistFile = windows_result(shortcut.cast())?;
         windows_result(persist_file.Save(windows_pcwstr(&output_path), true))?;
     }
 
     Ok(())
+}
+
+pub(super) fn refresh_shortcut_icon_cache(icon_path: &Path) {
+    use windows::Win32::UI::Shell::{
+        SHCNE_ASSOCCHANGED, SHCNE_UPDATEITEM, SHCNF_IDLIST, SHCNF_PATHW,
+        SHChangeNotify,
+    };
+
+    let icon_path = windows_wide_path(icon_path);
+    unsafe {
+        SHChangeNotify(
+            SHCNE_UPDATEITEM,
+            SHCNF_PATHW,
+            Some(icon_path.as_ptr().cast()),
+            None,
+        );
+        SHChangeNotify(SHCNE_ASSOCCHANGED, SHCNF_IDLIST, None, None);
+    }
 }
 
 fn windows_result<T>(result: windows::core::Result<T>) -> std::io::Result<T> {

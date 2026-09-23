@@ -27,6 +27,8 @@ const props = withDefaults(
 		maxWidth?: string
 		width?: string
 		closable?: boolean
+		beforeTabChange?: (fromIndex: number, toIndex: number) => boolean
+		beforeHide?: () => boolean
 		onHide?: () => void
 		onShow?: () => void
 	}>(),
@@ -35,6 +37,8 @@ const props = withDefaults(
 		maxWidth: undefined,
 		width: undefined,
 		closable: true,
+		beforeTabChange: undefined,
+		beforeHide: undefined,
 		onHide: undefined,
 		onShow: undefined,
 	},
@@ -51,6 +55,7 @@ const { showTopFade, showBottomFade, checkScrollState, forceCheck } =
 const modal = ref<InstanceType<typeof NewModal> | null>(null)
 
 function setTab(index: number) {
+	if (index === selectedTab.value || props.beforeTabChange?.(selectedTab.value, index) === false) return
 	selectedTab.value = index
 	nextTick(() => forceCheck())
 }
@@ -73,6 +78,7 @@ defineExpose({ show, hide, selectedTab, setTab })
 		:width="width"
 		:closable="closable"
 		:on-hide="onHide"
+		:before-hide="beforeHide"
 		:on-show="onShow"
 		no-padding
 	>
@@ -132,7 +138,8 @@ defineExpose({ show, hide, selectedTab, setTab })
 					"
 					@scroll="checkScrollState"
 				>
-					<Suspense>
+					<slot v-if="$slots.content" name="content" />
+					<Suspense v-else>
 						<component
 							:is="visibleTabs[selectedTab]?.content"
 							v-if="visibleTabs[selectedTab]?.content"

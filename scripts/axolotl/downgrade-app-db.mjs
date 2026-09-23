@@ -28,6 +28,9 @@
 //
 // AXOLOTL_LAUNCHER_IMAGES=<name,...>  process names that count as the launcher
 //                     running; defaults to Axolotl Launcher.exe, theseus_gui.exe
+// AXOLOTL_DROP_CREATED_TABLES=<name,...>  tables a migration created that
+//                     --apply may drop. Empty by default, so a migration that
+//                     created a table refuses until its tables are named here.
 //
 // Resolving the default location needs Windows; pass --db anywhere else. The
 // launcher must be closed: a running instance keeps the database open and would
@@ -43,13 +46,23 @@ const SETTINGS_DIR_NAME = 'red.ghs.axolotl'
 const APP_DB = 'app.db'
 const CHANNELS = ['release', 'beta']
 
-// Columns a downgrade must drop are derived from the migration SQL
-// (see migration-revert.mjs). Migrations at or after
-// OLDEST_REVERTIBLE_VERSION are always known; ADD COLUMN statements become
-// DROP COLUMN on the way down. Data-only migrations map to an empty list.
-// Older migrations stay unmapped so a downgrade into them refuses rather
-// than guesses; --allow-unmapped accepts the risk explicitly.
+// Schema a downgrade must undo is derived from the migration SQL (see
+// migration-revert.mjs). Migrations at or after OLDEST_REVERTIBLE_VERSION are
+// always known; ADD COLUMN statements become DROP COLUMN on the way down and
+// data-only migrations map to an empty list. Older migrations stay unmapped so
+// a downgrade into them refuses rather than guesses.
+//
+// A derived mapping cannot make a created table reversible: SQLite has no
+// DROP TABLE counterpart that is safe to run blind, so those migrations refuse
+// unless AXOLOTL_DROP_CREATED_TABLES names the tables to drop.
 const REVERTIBLE_MIGRATIONS = loadRevertibleMigrations()
+
+// Tables a migration created that --apply is allowed to drop. Empty by default:
+// dropping needs the operator to name them, having read the dry run first.
+const DROP_CREATED_TABLES = (process.env.AXOLOTL_DROP_CREATED_TABLES || '')
+	.split(',')
+	.map((name) => name.trim())
+	.filter((name) => name !== '')
 
 function fail(message) {
 	console.error(`error: ${message}`)
@@ -126,6 +139,9 @@ function printUsage() {
 			'',
 			'Without --apply the script only reports what it would change.',
 			'Undo an accidental change with the backup it writes.',
+			'',
+			'AXOLOTL_DROP_CREATED_TABLES=<name,...> allows --apply to drop tables a',
+			'migration created. Without it those migrations are refused.',
 		].join('\n'),
 	)
 }
@@ -407,6 +423,7 @@ function planDowngrade(db, target) {
 			mapped: known !== undefined,
 			columns: columnsPresent(db, known?.columns ?? []),
 			createdTables: known?.createdTables ?? [],
+			rebuiltTables: known?.rebuiltTables ?? [],
 		}
 	})
 
@@ -415,12 +432,12 @@ function planDowngrade(db, target) {
 
 function reportPlan({ applied, failed, plan }) {
 	note(`migrations to remove: ${applied.join(', ')}`)
-	for (const { version, mapped, columns, createdTables } of plan) {
+	for (const { version, mapped, columns, createdTables, rebuiltTables } of plan) {
 		if (!mapped) {
 			note(`  ${version}: no known schema for this migration, removing its record only`)
 			continue
 		}
-		if (columns.length === 0 && createdTables.length === 0) {
+		if (columns.length === 0 && createdTables.length === 0 && rebuiltTables.length === 0) {
 			note(`  ${version}: no columns to drop`)
 			continue
 		}
@@ -431,10 +448,15 @@ function reportPlan({ applied, failed, plan }) {
 					: `  ${version}: ${table}.${column} is NOT in the database`,
 			)
 		}
-		if (createdTables.length > 0) {
+		for (const table of createdTables) {
 			note(
-				`  ${version}: created tables stay in place (${createdTables.join(', ')}) - this script only drops columns`,
+				DROP_CREATED_TABLES.includes(table)
+					? `  ${version}: drop table ${table}`
+					: `  ${version}: created table ${table} stays in place - set AXOLOTL_DROP_CREATED_TABLES to drop it`,
 			)
+		}
+		for (const table of rebuiltTables) {
+			note(`  ${version}: rebuilt table ${table} carries data from before this migration`)
 		}
 	}
 
@@ -475,18 +497,55 @@ function createdTableVersions(plan) {
 		.map(({ version, createdTables }) => ({ version, createdTables }))
 }
 
-function checkCreatedTables(plan) {
-	const risky = createdTableVersions(plan)
-	if (risky.length === 0) return
+function rebuiltTableEntries(plan) {
+	return plan.flatMap(({ version, rebuiltTables }) =>
+		rebuiltTables.map((table) => ({ version, table })),
+	)
+}
 
-	const details = risky
-		.map(({ version, createdTables }) => `${version} (${createdTables.join(', ')})`)
-		.join('; ')
+function tablesToDrop(plan) {
+	return plan.flatMap(({ createdTables }) =>
+		createdTables.filter((table) => DROP_CREATED_TABLES.includes(table)),
+	)
+}
+
+// A created table is the one piece of schema a derived mapping cannot undo on
+// its own, so it gates --apply the same way an unmapped migration does. Naming
+// the table is what makes the drop deliberate: the operator has read the dry
+// run and taken the backup path.
+//
+// A rebuilt table cannot be dropped at all - it replaced a table that existed
+// before the migration, so it holds that table's rows. Those migrations are
+// refused whatever is named.
+function checkCreatedTables(plan) {
+	const rebuilt = rebuiltTableEntries(plan)
+	if (rebuilt.length > 0) {
+		const details = rebuilt
+			.map(({ version, table }) => `  ${version} rebuilt ${table}`)
+			.join('\n')
+		fail(
+			`these migrations rebuilt a table that existed before them:\n${details}\n\n` +
+				'SQLite has no way to put the previous table back, and that table holds rows\n' +
+				'this script has no copy of. Dropping it would delete them. Downgrade to a\n' +
+				'version before these migrations with the database restored from a backup\n' +
+				'instead of editing this one.',
+		)
+	}
+
+	const named = tablesToDrop(plan)
+	const unnamed = createdTableVersions(plan)
+		.flatMap(({ version, createdTables }) => createdTables.map((table) => ({ version, table })))
+		.filter(({ table }) => !named.includes(table))
+
+	if (unnamed.length === 0) return
+
+	const details = unnamed.map(({ version, table }) => `  ${version} creates ${table}`).join('\n')
 	fail(
-		`${details} created tables this script will not drop. Removing only the migration\n` +
-			'record leaves objects behind, and reinstalling that build fails on\n' +
-			'"table already exists". Drop those objects by hand after inspecting the backup,\n' +
-			'or downgrade to a version before this migration instead.',
+		`these migrations created tables that --apply will not drop:\n${details}\n\n` +
+			'Removing only the migration record leaves the objects behind, and reinstalling\n' +
+			'that build then fails on "table already exists". List the tables you intend to\n' +
+			'drop in AXOLOTL_DROP_CREATED_TABLES (comma separated) after inspecting the backup,\n' +
+			'or downgrade to a version before these migrations instead.',
 	)
 }
 
@@ -559,7 +618,10 @@ function main() {
 		writable.exec('PRAGMA foreign_keys = OFF')
 		writable.exec('BEGIN')
 		try {
-			for (const { columns } of state.plan) {
+			for (const { columns, createdTables } of state.plan) {
+				for (const table of createdTables) {
+					if (DROP_CREATED_TABLES.includes(table)) writable.exec(`DROP TABLE ${table}`)
+				}
 				for (const { table, column, present } of columns) {
 					if (present) writable.exec(`ALTER TABLE ${table} DROP COLUMN ${column}`)
 				}

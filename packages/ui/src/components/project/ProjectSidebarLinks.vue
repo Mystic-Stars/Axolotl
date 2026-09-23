@@ -1,6 +1,7 @@
 <template>
-	<div
-		v-if="
+	<SidebarSection
+		:title="formatMessage(messages.title)"
+		:visible="
 			project.issues_url ||
 			project.source_url ||
 			project.wiki_url ||
@@ -10,9 +11,7 @@
 			projectV3?.link_urls.store?.url ||
 			project.donation_urls.length > 0
 		"
-		class="flex flex-col gap-3"
 	>
-		<h2 class="text-lg m-0">{{ formatMessage(messages.title) }}</h2>
 		<div
 			class="flex flex-col gap-3 font-semibold [&>a]:flex [&>a]:gap-2 [&>a]:items-center [&>a]:w-fit [&>a]:text-primary [&>a]:leading-[1.2] [&>a:hover]:underline"
 		>
@@ -120,7 +119,7 @@
 				<ExternalIcon aria-hidden="true" class="external-icon" />
 			</a>
 		</div>
-	</div>
+	</SidebarSection>
 </template>
 <script setup lang="ts">
 import type { Labrinth } from '@modrinth/api-client'
@@ -143,6 +142,7 @@ import {
 } from '@modrinth/assets'
 
 import { defineMessages, useVIntl } from '../../composables/i18n'
+import SidebarSection from './SidebarSection.vue'
 
 const { formatMessage } = useVIntl()
 

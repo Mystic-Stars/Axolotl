@@ -21,8 +21,9 @@ const app = createApp(App)
 installTelemetryHandlers()
 
 app.use(VueQueryPlugin)
-app.use(router)
+// Pinia must install before the router: route guards use useNavigationReturnStore().
 app.use(pinia)
+app.use(router)
 app.use(FloatingVue, {
 	themes: {
 		'ribbit-popout': {

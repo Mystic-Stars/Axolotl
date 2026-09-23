@@ -99,10 +99,12 @@ import {
 	schematicBlockKey,
 	type SchematicBlockLocation,
 	schematicBlockPaletteIndex,
+	schematicBlockStateKey,
 	type SchematicCachedChunk,
 	schematicChunkKey,
 	schematicSelectionBounds,
 	selectConnectedSchematicBlocks,
+	selectSchematicBlockState,
 	selectSchematicCuboid,
 	selectSchematicLayer,
 	selectSchematicMaterial,
@@ -515,10 +517,12 @@ const visibleMaterials = computed(() => {
 const replacementBlocks = computed(() => {
 	const blocks = new Map<string, SchematicBlockState>()
 	for (const state of resources.value?.availableBlockStates ?? []) {
-		if (!isSchematicAir(state.name)) blocks.set(state.name, state)
+		if (!isSchematicAir(state.name)) blocks.set(schematicBlockStateKey(state), state)
 	}
 	for (const state of manifest.value?.palette ?? []) {
-		if (!isSchematicAir(state.name) && !blocks.has(state.name)) blocks.set(state.name, state)
+		if (!isSchematicAir(state.name) && !blocks.has(schematicBlockStateKey(state))) {
+			blocks.set(schematicBlockStateKey(state), state)
+		}
 	}
 	return [...blocks.values()]
 })
@@ -967,8 +971,15 @@ function selectBlock(selection?: SchematicSceneSelection) {
 	setSelectedBlocks([selection])
 }
 
-function expandSelectionByMaterial(name = selectedBlock.value?.name) {
-	if (!manifest.value || !name) return
+function expandSelectionByMaterial(name?: string) {
+	if (!manifest.value) return
+	if (!name && selectedBlock.value) {
+		setSelectedBlocks(
+			selectSchematicBlockState(chunkCache, manifest.value.palette, selectedBlock.value),
+		)
+		return
+	}
+	if (!name) return
 	setSelectedBlocks(selectSchematicMaterial(chunkCache, manifest.value.palette, name))
 }
 
@@ -1012,23 +1023,15 @@ function showAllBlocks() {
 	rebuildMeshes()
 }
 
-function schematicStateKey(state: SchematicBlockState) {
-	const properties = Object.entries(state.properties)
-		.sort(([left], [right]) => left.localeCompare(right))
-		.map(([key, value]) => `${key}=${value}`)
-		.join(',')
-	return properties ? `${state.name}[${properties}]` : state.name
-}
-
 async function commitSelectionEdit(
 	paletteIndex: number,
 	label: string,
 	targetState?: SchematicBlockState,
 ) {
 	if (!manifest.value || !canEditSelection.value || (!targetState && paletteIndex < 0)) return
-	const targetKey = targetState ? schematicStateKey(targetState) : undefined
+	const targetKey = targetState ? schematicBlockStateKey(targetState) : undefined
 	const existingTargetIndex = targetKey
-		? manifest.value.palette.findIndex((state) => schematicStateKey(state) === targetKey)
+		? manifest.value.palette.findIndex((state) => schematicBlockStateKey(state) === targetKey)
 		: paletteIndex
 	const requestedPaletteIndex =
 		existingTargetIndex >= 0 ? existingTargetIndex : Math.max(0, paletteIndex)
@@ -1041,7 +1044,7 @@ async function commitSelectionEdit(
 		.filter((change) => {
 			if (!targetKey) return change.before !== requestedPaletteIndex
 			const before = manifest.value?.palette[change.before]
-			return !before || schematicStateKey(before) !== targetKey
+			return !before || schematicBlockStateKey(before) !== targetKey
 		})
 	if (!changes.length) return
 	applyingEdit.value = true
@@ -1051,20 +1054,18 @@ async function commitSelectionEdit(
 		)
 		const result = await applySchematicEdits(manifest.value.sessionId, changes, targetState)
 		manifest.value = result.manifest
-		const appliedPaletteIndex = targetKey
-			? result.manifest.palette.findIndex((state) => schematicStateKey(state) === targetKey)
-			: requestedPaletteIndex
-		const appliedChanges = changes.map((change) => ({
+		const appliedChanges = changes.map((change, index) => ({
 			...change,
-			paletteIndex: appliedPaletteIndex,
+			paletteIndex: result.appliedPaletteIndices[index] ?? requestedPaletteIndex,
 		}))
 		editHistory.value = [
 			...editHistory.value.slice(-49),
 			{ kind: 'blocks', label, changes: appliedChanges },
 		]
 		redoHistory.value = []
-		if (appliedPaletteIndex === 0) clearBlockSelection()
-		else selectedBlock.value = result.manifest.palette[appliedPaletteIndex]
+		const firstAppliedPaletteIndex = appliedChanges[0]?.paletteIndex ?? 0
+		if (firstAppliedPaletteIndex === 0) clearBlockSelection()
+		else selectedBlock.value = result.manifest.palette[firstAppliedPaletteIndex]
 		if (needsResourceReload) await applyResources()
 		else rebuildMeshes()
 	} catch (caught) {

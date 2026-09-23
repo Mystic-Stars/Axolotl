@@ -35,3 +35,11 @@ FO = "FO"
 Fo = "Fo"
 # Short variable name used by the bundled easter egg game.
 nd = "nd"
+# Vietnamese place name used in the native language label.
+Nam = "Nam"
+
+[default.extend-identifiers]
+# Minecraft locale identifiers containing the ISO 3166-1 code for Bosnia and
+# Herzegovina or the ISO 639-1 code for Bashkir.
+bs_ba = "bs_ba"
+ba_ru = "ba_ru"
