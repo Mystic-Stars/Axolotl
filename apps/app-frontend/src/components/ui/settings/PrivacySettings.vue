@@ -92,7 +92,7 @@ async function updateDiscordRpc(value: boolean) {
 <template>
 	<div class="flex w-full flex-col gap-6">
 		<SettingsSection>
-			<template #header>
+			<template #extra>
 				<SettingsSaveStatus :status="saveStatus" :retry="retrySave" />
 			</template>
 			<SettingsRow>

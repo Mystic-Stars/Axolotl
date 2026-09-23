@@ -5,10 +5,17 @@ withDefaults(
 	defineProps<{
 		title?: string
 		description?: string
+		/**
+		 * Anchor for the settings search. Sections are the scroll targets, so
+		 * the id belongs on the heading; passing it here keeps callers from
+		 * hand-writing a heading just to carry one.
+		 */
+		titleId?: string
 	}>(),
 	{
 		title: undefined,
 		description: undefined,
+		titleId: undefined,
 	},
 )
 </script>
@@ -16,11 +23,18 @@ withDefaults(
 <template>
 	<section class="flex min-w-0 flex-col gap-3">
 		<header
-			v-if="title || description || $slots.header"
+			v-if="title || description || $slots.header || $slots.extra"
 			class="settings-section-header flex items-start justify-between gap-4"
 		>
 			<div class="min-w-0">
-				<h2 v-if="title" class="m-0 text-base font-semibold text-contrast">{{ title }}</h2>
+				<h2
+					v-if="title"
+					:id="titleId"
+					:tabindex="titleId ? -1 : undefined"
+					class="m-0 text-lg font-semibold text-contrast"
+				>
+					{{ title }}
+				</h2>
 				<p v-if="description" class="m-0 mt-1 text-sm leading-relaxed text-secondary">
 					{{ description }}
 				</p>
