@@ -172,9 +172,22 @@ pub(crate) async fn create_direct_link_instance(
         .await?;
     tx.commit().await?;
 
-    // Deliberately no folder watcher: it would monitor a directory outside
-    // Axolotl's own instance root. The persisted sync defaults are still
-    // exposed to the instance and applied by the normal reconciliation path.
+    let content_root = super::sync_content_files::instance_content_root(
+        &state.directories,
+        &instance,
+    )?;
+    crate::state::instances::watcher::watch_instance_folder(
+        &instance.id,
+        &instance.path,
+        &content_root,
+        &state.file_watcher,
+    )
+    .await;
+    if let Err(error) =
+        crate::api::instance::reconcile_screenshots(&instance.id).await
+    {
+        tracing::debug!(%error, "Initial linked screenshot index reconciliation failed");
+    }
 
     Ok(instance)
 }

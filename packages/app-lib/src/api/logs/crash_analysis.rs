@@ -9,7 +9,7 @@ use sha2::{Digest, Sha256};
 #[cfg(windows)]
 use tokio::process::Command;
 
-use super::{CensoredString, resolve_instance_path};
+use super::{CensoredString, isolated_minecraft_root, resolve_instance_path};
 use crate::{State, prelude::Credentials, util::io::IOError};
 
 const MAX_AI_CONTEXT_CHARS: usize = 120_000;
@@ -110,6 +110,7 @@ pub struct CrashAnalysisMod {
 struct SourceCandidate {
     path: PathBuf,
     filename: String,
+    upload_name: String,
     source_type: &'static str,
     modified: SystemTime,
 }
@@ -117,9 +118,26 @@ struct SourceCandidate {
 #[derive(Debug)]
 struct SourceText {
     filename: String,
+    upload_name: String,
     source_type: &'static str,
     modified: SystemTime,
     content: String,
+}
+
+pub(super) struct CollectedCrashLog {
+    pub name: String,
+    pub content: CensoredString,
+}
+
+pub(super) struct CollectedCrashLogs {
+    pub combined_log: CensoredString,
+    pub sources: Vec<CollectedCrashLog>,
+}
+
+struct CrashContext {
+    instance_root: PathBuf,
+    sources: Vec<SourceText>,
+    credentials: Vec<Credentials>,
 }
 
 struct Rule {
@@ -617,16 +635,11 @@ const RULES: &[Rule] = &[
 ];
 
 pub async fn analyze_crash(instance_id: &str) -> crate::Result<CrashAnalysis> {
-    let state = State::get().await?;
-    let (instance_path, game_dir_override) =
-        resolve_instance_path(instance_id, &state).await?;
-    let instance_root = state
-        .directories
-        .resolve_game_dir(&instance_path, game_dir_override.as_deref());
-    let candidates =
-        collect_candidates(&instance_root, &state.directories).await?;
-    let selected = select_run_candidates(candidates);
-    let sources = read_sources(selected).await;
+    let CrashContext {
+        instance_root,
+        sources,
+        credentials,
+    } = collect_crash_context(instance_id).await?;
     let mut findings = analyze_sources(&sources);
     let crashed = sources.iter().any(|source| {
         matches!(source.source_type, "crash_report" | "jvm_crash")
@@ -648,10 +661,6 @@ pub async fn analyze_crash(instance_id: &str) -> crate::Result<CrashAnalysis> {
             .max(),
     )
     .await;
-    let credentials = Credentials::get_all(&state.pool)
-        .await?
-        .into_iter()
-        .collect::<Vec<_>>();
     for finding in &mut findings {
         for evidence in &mut finding.evidence {
             evidence.text = CensoredString::censor(
@@ -689,6 +698,53 @@ pub async fn analyze_crash(instance_id: &str) -> crate::Result<CrashAnalysis> {
         mod_changes,
         mod_change_counts,
         windows_events,
+    })
+}
+
+async fn collect_crash_context(
+    instance_id: &str,
+) -> crate::Result<CrashContext> {
+    let state = State::get().await?;
+    let (instance_path, game_dir_override) =
+        resolve_instance_path(instance_id, &state).await?;
+    let instance_root = state
+        .directories
+        .resolve_game_dir(&instance_path, game_dir_override.as_deref());
+    let candidates =
+        collect_candidates(&instance_root, &state.directories).await?;
+    let selected = select_run_candidates(candidates);
+    let sources = read_sources(selected).await;
+    let credentials = Credentials::get_all(&state.pool)
+        .await?
+        .into_iter()
+        .collect::<Vec<_>>();
+    Ok(CrashContext {
+        instance_root,
+        sources,
+        credentials,
+    })
+}
+
+pub(super) async fn collect_crash_logs(
+    instance_id: &str,
+) -> crate::Result<CollectedCrashLogs> {
+    let CrashContext {
+        sources,
+        credentials,
+        ..
+    } = collect_crash_context(instance_id).await?;
+    let combined_log =
+        CensoredString::censor(build_combined_log(&sources), &credentials);
+    let sources = sources
+        .into_iter()
+        .map(|source| CollectedCrashLog {
+            name: source.upload_name,
+            content: CensoredString::censor(source.content, &credentials),
+        })
+        .collect();
+    Ok(CollectedCrashLogs {
+        combined_log,
+        sources,
     })
 }
 
@@ -1202,20 +1258,25 @@ async fn collect_candidates(
 ) -> crate::Result<Vec<SourceCandidate>> {
     let mut candidates = Vec::new();
     let mut locations = vec![
-        (directories.game_logs_dir(instance_root), "minecraft_log"),
+        (
+            directories.game_logs_dir(instance_root),
+            "minecraft_log",
+            None,
+        ),
         (
             directories.game_crash_reports_dir(instance_root),
             "crash_report",
+            Some("crash-reports"),
         ),
-        (instance_root.to_path_buf(), "instance_log"),
+        (instance_root.to_path_buf(), "instance_log", None),
     ];
     if let Some(dot_minecraft) = isolated_minecraft_root(instance_root) {
         // PCL-CE also searches the shared `.minecraft` root for JVM crash
         // logs when a version-isolated instance is active.
-        locations.push((dot_minecraft, "minecraft_root_log"));
+        locations.push((dot_minecraft, "minecraft_root_log", None));
     }
 
-    for (directory, default_type) in locations {
+    for (directory, default_type, upload_prefix) in locations {
         if !tokio::fs::try_exists(&directory).await? {
             continue;
         }
@@ -1265,6 +1326,9 @@ async fn collect_candidates(
             };
             candidates.push(SourceCandidate {
                 path: entry.path(),
+                upload_name: upload_prefix
+                    .map(|prefix| format!("{prefix}/{filename}"))
+                    .unwrap_or_else(|| filename.clone()),
                 filename,
                 source_type,
                 modified: metadata.modified().unwrap_or(SystemTime::UNIX_EPOCH),
@@ -1272,18 +1336,6 @@ async fn collect_candidates(
         }
     }
     Ok(candidates)
-}
-
-fn isolated_minecraft_root(instance_root: &Path) -> Option<PathBuf> {
-    let versions_dir = instance_root.parent()?;
-    if versions_dir
-        .file_name()
-        .is_some_and(|name| name.eq_ignore_ascii_case("versions"))
-    {
-        versions_dir.parent().map(Path::to_path_buf)
-    } else {
-        None
-    }
 }
 
 fn select_run_candidates(
@@ -1337,6 +1389,7 @@ async fn read_sources(candidates: Vec<SourceCandidate>) -> Vec<SourceText> {
         };
         sources.push(SourceText {
             filename: candidate.filename,
+            upload_name: candidate.upload_name,
             source_type: candidate.source_type,
             modified: candidate.modified,
             content: String::from_utf8_lossy(bytes).into_owned(),
@@ -1796,6 +1849,7 @@ mod tests {
     fn source(filename: &str, content: &str) -> SourceText {
         SourceText {
             filename: filename.to_string(),
+            upload_name: filename.to_string(),
             source_type: "minecraft_log",
             modified: SystemTime::now(),
             content: content.to_string(),
@@ -1819,6 +1873,7 @@ mod tests {
         let candidates = vec![SourceCandidate {
             path: PathBuf::from("launcher_log.txt"),
             filename: "launcher_log.txt".to_string(),
+            upload_name: "launcher_log.txt".to_string(),
             source_type: "minecraft_log",
             modified: SystemTime::now() - Duration::from_secs(181),
         }];

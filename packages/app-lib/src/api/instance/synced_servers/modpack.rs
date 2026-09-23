@@ -1,4 +1,4 @@
-use super::super::synced_options::instance_dir;
+use super::super::synced_options::instance_game_dir;
 use super::SERVERS_FILE;
 use super::codec::{read_servers, servers_from_bytes};
 use super::operations::{compose_instance, effective};
@@ -18,7 +18,7 @@ pub async fn capture_modpack_servers(instance_id: &str) -> crate::Result<()> {
     let metadata = crate::state::get_instance(instance_id, &state.pool)
         .await?
         .ok_or_else(|| ErrorKind::InputError("Unknown instance".to_string()))?;
-    let path = instance_dir(&metadata, &state).join(SERVERS_FILE);
+    let path = instance_game_dir(&metadata, &state)?.join(SERVERS_FILE);
     let servers = read_servers(&path).await?;
     replace_modpack_servers(&metadata, servers, &state).await?;
     if effective(&metadata, &state).await? {

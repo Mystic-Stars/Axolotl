@@ -84,14 +84,21 @@ pub(super) async fn snapshot_instance(
     state: &State,
 ) -> crate::Result<String> {
     let version = &metadata.applied_content_set.game_version;
-    let instance_dir = state
-        .directories
-        .instances_dir()
-        .join(&metadata.instance.path);
+    let instance_dir =
+        crate::state::instances::commands::instance_content_root(
+            &state.directories,
+            &metadata.instance,
+        )?;
+    let direct_linked = metadata.instance.is_direct_linked();
+    let cache_key_path = if direct_linked {
+        instance_dir.to_string_lossy().into_owned()
+    } else {
+        metadata.instance.path.clone()
+    };
     let scanned =
-        crate::state::instances::adapters::filesystem::scan_content_files(
-            &state.directories.instances_dir(),
-            &metadata.instance.path,
+        crate::state::instances::adapters::filesystem::scan_content_files_from(
+            &instance_dir,
+            &cache_key_path,
         )?;
     let scanned: Vec<_> = scanned
         .into_iter()
@@ -111,7 +118,7 @@ pub(super) async fn snapshot_instance(
     let mut mods = Vec::new();
     for file in scanned {
         let path = instance_dir.join(&file.relative_path);
-        let key = format!("{}/{}", metadata.instance.path, file.relative_path);
+        let key = format!("{cache_key_path}/{}", file.relative_path);
         let hash = match by_path.get(&key) {
             Some(hash) => hash.clone(),
             None => fetch::sha1_file_async(&path).await?.1,

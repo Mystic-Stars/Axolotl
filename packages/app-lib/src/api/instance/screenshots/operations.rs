@@ -9,7 +9,7 @@ use zip::write::SimpleFileOptions;
 use zip::{CompressionMethod, ZipWriter};
 
 use super::reconciliation::{
-    list_indexed_source_screenshots, reconcile_source_screenshots,
+    list_source_screenshots, reconcile_source_screenshots,
     scan_source_screenshots,
 };
 use crate::State;
@@ -62,7 +62,7 @@ pub async fn list_screenshots(
                 crate::ErrorKind::InputError("Unknown instance".to_string())
             })?;
 
-    list_indexed_source_screenshots(&state, &source).await
+    list_source_screenshots(&state, source).await
 }
 
 pub async fn list_synced_screenshots() -> crate::Result<Vec<InstanceScreenshot>>
@@ -82,7 +82,7 @@ async fn list_source_screenshot_sets(
 ) -> crate::Result<Vec<InstanceScreenshot>> {
     let mut screenshots =
         stream::iter(sources.into_iter().map(|source| async move {
-            list_indexed_source_screenshots(state, &source).await
+            list_source_screenshots(state, source).await
         }))
         .buffer_unordered(SCREENSHOT_SCAN_CONCURRENCY)
         .try_collect::<Vec<Vec<InstanceScreenshot>>>()
@@ -479,7 +479,20 @@ pub(super) async fn source_screenshots_dir(
     state: &State,
     source: &InstanceScreenshotSource,
 ) -> crate::Result<PathBuf> {
-    let instance_dir = state.directories.instances_dir().join(&source.path);
+    // Directly associated instances keep their files in the external launcher's
+    // resolved game directory (which may be the shared `.minecraft` root or an
+    // isolated version directory). Use the same runtime resolver as launching
+    // and content browsing so screenshots are read from the directory the game
+    // actually uses.
+    let instance_dir =
+        match instance_rows::get_instance_by_id(&source.id, &state.pool).await?
+        {
+            Some(instance) => crate::launcher::linked_game_dir(&instance)
+                .unwrap_or_else(|| {
+                    state.directories.instances_dir().join(&source.path)
+                }),
+            None => state.directories.instances_dir().join(&source.path),
+        };
     let canonical_instance_dir =
         tokio::fs::canonicalize(&instance_dir)
             .await

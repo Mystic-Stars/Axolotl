@@ -90,6 +90,15 @@ async fn remove_instance_files_and_state(
     } else {
         managed_path
     };
+    let watched_path = crate::launcher::linked_game_dir(&instance)
+        .or_else(|| instance.linked_dot_minecraft.as_deref().map(PathBuf::from))
+        .unwrap_or_else(|| state.directories.instance_game_dir(&instance));
+    crate::state::instances::watcher::unwatch_instance_folder(
+        &instance.path,
+        &watched_path,
+        &state.file_watcher,
+    )
+    .await;
     crate::api::instance::remove_generated_instance_files(instance_id, state)
         .await?;
     io::remove_dir_all(&path).await?;

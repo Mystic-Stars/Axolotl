@@ -9,7 +9,7 @@ use crate::state::instances::adapters::sqlite::{
 };
 use crate::util::fetch::sha1_file_async;
 use crate::util::io::IOError;
-use chrono::{DateTime, TimeZone, Utc};
+use chrono::{DateTime, Utc};
 use futures::stream::{self, StreamExt, TryStreamExt};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -99,53 +99,10 @@ pub(crate) async fn reconcile_screenshots(
     Ok(())
 }
 
-/// Read the indexed view without scanning the filesystem. The watcher and the
-/// explicit reconciliation operation are responsible for keeping this view up
-/// to date.
-pub(super) async fn list_indexed_source_screenshots(
-    state: &State,
-    source: &InstanceScreenshotSource,
-) -> crate::Result<Vec<InstanceScreenshot>> {
-    let directory = source_screenshots_dir(state, source).await?;
-    let rows =
-        screenshot_rows::list_screenshots(&source.id, &state.pool).await?;
-    let mut screenshots = Vec::with_capacity(rows.len());
-    for row in rows {
-        let path = directory.join(&row.file_name);
-        if !tokio::fs::try_exists(&path).await.unwrap_or(false) {
-            continue;
-        }
-        let created_at = Utc
-            .timestamp_millis_opt(row.created_at)
-            .single()
-            .unwrap_or_else(Utc::now);
-        screenshots.push(InstanceScreenshot {
-            id: row.id,
-            instance_id: source.id.clone(),
-            instance_name: source.name.clone(),
-            file_name: row.file_name,
-            created_at,
-            modified_at: row.modified_at,
-            group_id: row.group_id,
-            path,
-        });
-    }
-    sort_screenshots(&mut screenshots);
-    Ok(screenshots)
-}
-
 pub(super) async fn scan_source_screenshots(
     state: &State,
     source: &InstanceScreenshotSource,
 ) -> crate::Result<Vec<ScannedScreenshot>> {
-    let instance_dir = state.directories.instances_dir().join(&source.path);
-    if !tokio::fs::try_exists(&instance_dir)
-        .await
-        .map_err(|error| IOError::with_path(error, &instance_dir))?
-    {
-        return Ok(Vec::new());
-    }
-
     let screenshots_dir = source_screenshots_dir(state, source).await?;
     tokio::task::spawn_blocking(move || scan_screenshots_dir(&screenshots_dir))
         .await?

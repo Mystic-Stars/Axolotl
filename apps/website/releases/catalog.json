@@ -1,6 +1,87 @@
 {
-	"updated_at": "2026-09-19T23:02:57.000Z",
+	"updated_at": "2026-09-22T23:09:18.000Z",
 	"announcements": [
+		{
+			"id": "launcher-1.9.7-beta.4",
+			"version": "1.9.7-beta.4",
+			"publishedAt": "2026-09-22",
+			"title": {
+				"en-US": "Axolotl Launcher 1.9.7-beta.4",
+				"zh-CN": "Axolotl Launcher 1.9.7-beta.4"
+			},
+			"changes": {
+				"added": [
+					{
+						"en-US": "Added instance groups with creation, deletion, drag-and-drop ordering, and batch management.",
+						"zh-CN": "新增实例分组，支持创建、删除、拖拽排序和批量管理。"
+					},
+					{
+						"en-US": "Added a modern announcement center and removed hard-coded announcement handling.",
+						"zh-CN": "新增现代化公告中心，并移除硬编码的公告处理逻辑。"
+					},
+					{
+						"en-US": "Added data pack synchronization for linked instances.",
+						"zh-CN": "新增关联实例的数据包同步功能。"
+					},
+					{
+						"en-US": "Added synchronization for linked instance options, resource-pack selections, hotbars, command history, server lists, locales, screenshots, and content files.",
+						"zh-CN": "新增关联实例的游戏选项、资源包选择、快捷栏、命令历史、服务器列表、语言、截图和内容文件同步。"
+					},
+					{
+						"en-US": "Added status properties to schematic block replacement operations.",
+						"zh-CN": "为投影替换方块操作新增状态属性。"
+					}
+				],
+				"changed": [
+					{
+						"en-US": "Improved content installation by combining project metadata lookup with dependency resolution to reduce redundant network requests.",
+						"zh-CN": "优化内容安装流程，将项目元数据查询合并至依赖解析步骤，减少冗余网络请求。"
+					},
+					{
+						"en-US": "Improved notification handling: empty notification centers are now hidden and notification updates are more efficient.",
+						"zh-CN": "优化通知处理：通知为空时自动隐藏通知中心，并提升通知更新效率。"
+					},
+					{
+						"en-US": "Improved synchronization of linked instances by resolving content roots, retaining shared roots, and serializing root registration.",
+						"zh-CN": "优化关联实例同步，通过解析内容根目录、保留共享根目录并串行化根目录注册来提升稳定性。"
+					},
+					{
+						"en-US": "Improved system proxy propagation to Java processes and corrected authentication reachability checks when a Mojang mirror is configured.",
+						"zh-CN": "改进系统代理参数向 Java 进程的传递，并修复配置 Mojang 镜像时认证可达性检测顺序错误的问题。"
+					}
+				],
+				"fixed": [
+					{
+						"en-US": "Fixed linked instances retaining stale direct-link state or references to missing roots.",
+						"zh-CN": "修复关联实例残留过期直连状态或指向已不存在根目录的问题。"
+					},
+					{
+						"en-US": "Fixed linked instance content, screenshots, backups, resource packs, options, server lists, hotbars, command history, and locales not being reconciled correctly.",
+						"zh-CN": "修复关联实例的内容、截图、备份、资源包、游戏选项、服务器列表、快捷栏、命令历史和语言未正确同步的问题。"
+					},
+					{
+						"en-US": "Fixed deleted instance backups and suspended pack files not being cleaned up.",
+						"zh-CN": "修复实例删除后的备份及暂停同步的整合包文件未被清理的问题。"
+					},
+					{
+						"en-US": "Fixed database backup retention and backup mapping behavior.",
+						"zh-CN": "修复数据库备份保留策略和备份映射行为。"
+					},
+					{
+						"en-US": "Fixed launching hooks using the wrong game directory for linked instances.",
+						"zh-CN": "修复关联实例启动钩子使用错误游戏目录的问题。"
+					},
+					{
+						"en-US": "Fixed the default indentation and row stretching of pinned servers on the Home page.",
+						"zh-CN": "修复主页固定服务器列表默认缩进和条目拉伸异常的问题。"
+					},
+					{
+						"en-US": "Fixed the Follow System Language button displaying with an incorrect size.",
+						"zh-CN": "修复跟随系统语言按钮尺寸异常的问题。"
+					}
+				]
+			}
+		},
 		{
 			"id": "launcher-1.9.7-beta.3",
 			"version": "1.9.7-beta.3",

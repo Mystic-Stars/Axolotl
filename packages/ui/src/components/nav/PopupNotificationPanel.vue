@@ -216,7 +216,7 @@ const dismissedProgressItems = ref<Record<string, string[]>>({})
 const stopTimer = (n: PopupNotification) => popupNotificationManager.stopNotificationTimer(n)
 const setNotificationTimer = (n: PopupNotification) =>
 	popupNotificationManager.setNotificationTimer(n)
-const dismiss = (id: string | number) => popupNotificationManager.collapseNotification(id)
+const dismiss = (id: string | number) => popupNotificationManager.removeNotification(id)
 
 function isDownloadNotification(item: PopupNotification) {
 	return (
@@ -265,7 +265,7 @@ async function handleProgressItemDismiss(
 	}
 
 	if (downloadToastItems(item).length === 0) {
-		dismiss(item.id)
+		popupNotificationManager.removeNotification(item.id)
 	}
 }
 

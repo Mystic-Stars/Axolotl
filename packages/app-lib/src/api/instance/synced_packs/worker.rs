@@ -274,10 +274,25 @@ async fn fingerprint(
     metadata: &InstanceMetadata,
     state: &State,
 ) -> crate::Result<Vec<(String, String)>> {
-    let directory = state.directories.instances_dir();
-    let instance_path = metadata.instance.path.clone();
+    let content_root = crate::state::instances::commands::instance_content_root(
+        &state.directories,
+        &metadata.instance,
+    )?;
+    let is_direct_linked = crate::launcher::linked_game_dir(&metadata.instance)
+        .is_some()
+        || metadata
+            .instance
+            .linked_dot_minecraft
+            .as_deref()
+            .map(str::trim)
+            .is_some_and(|linked| !linked.is_empty());
+    let cache_key_path = if is_direct_linked {
+        content_root.to_string_lossy().into_owned()
+    } else {
+        metadata.instance.path.clone()
+    };
     let mut files = tokio::task::spawn_blocking(move || {
-        filesystem::scan_content_files(&directory, &instance_path)
+        filesystem::scan_content_files_from(&content_root, &cache_key_path)
     })
     .await??
     .into_iter()

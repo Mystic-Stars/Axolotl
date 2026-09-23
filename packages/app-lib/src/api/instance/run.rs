@@ -201,12 +201,11 @@ async fn run_credentials(
             .into_iter();
 
         if let Some(command) = cmd.next() {
-            let full_path = crate::util::io::canonicalize(
-                state.directories.resolve_game_dir(
-                    &context.instance.path,
-                    context.instance.game_dir_override.as_deref(),
-                ),
-            )?;
+            let full_path =
+                crate::state::instances::commands::instance_content_root(
+                    &state.directories,
+                    &context.instance,
+                )?;
             let mut command = Command::new(command);
             command.args(cmd).current_dir(&full_path).kill_on_drop(true);
             let result = command
@@ -358,10 +357,11 @@ async fn run_credentials(
     }
 
     if memory.automatic {
-        let instance_path = state.directories.resolve_game_dir(
-            &context.instance.path,
-            context.instance.game_dir_override.as_deref(),
-        );
+        let instance_path =
+            crate::state::instances::commands::instance_content_root(
+                &state.directories,
+                &context.instance,
+            )?;
         memory.maximum = crate::api::jre::automatic_memory_max_mb_for_instance(
             &instance_path,
             matches!(

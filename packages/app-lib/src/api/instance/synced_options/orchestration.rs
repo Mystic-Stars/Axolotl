@@ -16,7 +16,7 @@ use super::command_history::{
     reconcile_command_history,
 };
 use super::files::{
-    begin_checkpoint, detach_link, instance_dir, instance_is_running,
+    begin_checkpoint, detach_link, instance_game_dir, instance_is_running,
     instance_option_enabled, option_can_apply_while_running, read_nbt_file,
     safe_instance_id, sync_files_are_protected,
 };
@@ -1276,6 +1276,9 @@ pub(crate) async fn remove_generated_instance_files(
         synced_options_path(state)
             .join("servers/generated")
             .join(&instance_id),
+        synced_options_path(state)
+            .join("backups")
+            .join(&instance_id),
     ] {
         if path.exists() {
             io::remove_dir_all(path).await?;
@@ -1303,7 +1306,7 @@ async fn backup_instance_option_file(
     option: SyncedOption,
     state: &State,
 ) -> crate::Result<()> {
-    let directory = instance_dir(metadata, state);
+    let directory = instance_game_dir(metadata, state)?;
     let path = match option {
         SyncedOption::GameOptions => directory.join("options.txt"),
         SyncedOption::CommandHistory => directory.join(COMMAND_HISTORY_FILE),
@@ -1354,7 +1357,7 @@ pub(super) async fn seed_from_instance(
     state: &State,
 ) -> crate::Result<()> {
     create_synced_directories(state).await?;
-    let instance_dir = instance_dir(metadata, state);
+    let instance_dir = instance_game_dir(metadata, state)?;
     match option {
         SyncedOption::GameOptions => {
             super::game_options::initialize_from_source_instance(
@@ -1441,7 +1444,7 @@ async fn detach_option(
     option: SyncedOption,
     state: &State,
 ) -> crate::Result<()> {
-    let instance_dir = instance_dir(metadata, state);
+    let instance_dir = instance_game_dir(metadata, state)?;
     match option {
         SyncedOption::GameOptions => {
             super::game_options::detach_instance(metadata, state).await

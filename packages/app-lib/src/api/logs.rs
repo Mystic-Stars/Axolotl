@@ -1,6 +1,6 @@
 use std::fmt::Write as _;
 use std::io::{BufRead, Read, SeekFrom};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::time::SystemTime;
 
 use futures::TryFutureExt;
@@ -48,6 +48,61 @@ pub struct Logs {
 pub enum LogType {
     InfoLog,
     CrashReport,
+    JvmCrash,
+    LauncherLog,
+}
+
+fn isolated_minecraft_root(instance_root: &Path) -> Option<PathBuf> {
+    let versions_dir = instance_root.parent()?;
+    if versions_dir
+        .file_name()
+        .is_some_and(|name| name.eq_ignore_ascii_case("versions"))
+    {
+        versions_dir.parent().map(Path::to_path_buf)
+    } else {
+        None
+    }
+}
+
+fn log_directories_for_type(
+    state: &State,
+    game_dir: &Path,
+    log_type: LogType,
+) -> Vec<PathBuf> {
+    match log_type {
+        LogType::InfoLog => vec![state.directories.game_logs_dir(game_dir)],
+        LogType::CrashReport => {
+            vec![state.directories.game_crash_reports_dir(game_dir)]
+        }
+        LogType::JvmCrash => {
+            let mut directories = vec![game_dir.to_path_buf()];
+            if let Some(root) = isolated_minecraft_root(game_dir) {
+                directories.push(root);
+            }
+            directories
+        }
+        LogType::LauncherLog => {
+            let mut directories = vec![game_dir.to_path_buf()];
+            if let Some(root) = isolated_minecraft_root(game_dir) {
+                directories.push(root);
+            }
+            directories
+        }
+    }
+}
+
+fn is_log_file_for_type(log_type: LogType, file_name: &str) -> bool {
+    match log_type {
+        LogType::JvmCrash => {
+            let lower = file_name.to_ascii_lowercase();
+            lower.starts_with("hs_err") && lower.ends_with(".log")
+        }
+        LogType::LauncherLog => matches!(
+            file_name.to_ascii_lowercase().as_str(),
+            "launcher_log.txt" | "latest_stdout.log"
+        ),
+        _ => true,
+    }
 }
 
 const LOG_COMPACTION_THRESHOLD: usize = 20;
@@ -445,14 +500,11 @@ pub async fn get_logs_from_type(
         .directories
         .resolve_game_dir(&instance_path, game_dir_override.as_deref());
 
-    let logs_folder = match log_type {
-        LogType::InfoLog => state.directories.game_logs_dir(&game_dir),
-        LogType::CrashReport => {
-            state.directories.game_crash_reports_dir(&game_dir)
+    let mut seen_files = std::collections::HashSet::new();
+    for logs_folder in log_directories_for_type(&state, &game_dir, log_type) {
+        if !logs_folder.exists() {
+            continue;
         }
-    };
-
-    if logs_folder.exists() {
         for entry in std::fs::read_dir(&logs_folder)
             .map_err(|e| IOError::with_path(e, &logs_folder))?
         {
@@ -468,6 +520,12 @@ pub async fn get_logs_from_type(
             }
             if let Some(file_name) = path.file_name() {
                 let file_name = file_name.to_string_lossy().to_string();
+                if !is_log_file_for_type(log_type, &file_name) {
+                    continue;
+                }
+                if !seen_files.insert(file_name.clone()) {
+                    continue;
+                }
                 logs.push(
                     Logs::build(
                         log_type,
@@ -504,6 +562,20 @@ pub async fn get_logs(
         &mut logs,
     )
     .await?;
+    get_logs_from_type(
+        instance_id,
+        LogType::JvmCrash,
+        clear_contents,
+        &mut logs,
+    )
+    .await?;
+    get_logs_from_type(
+        instance_id,
+        LogType::LauncherLog,
+        clear_contents,
+        &mut logs,
+    )
+    .await?;
 
     let mut logs = logs.into_iter().collect::<crate::Result<Vec<Logs>>>()?;
     logs.sort_by(|a, b| b.age.cmp(&a.age).then(b.filename.cmp(&a.filename)));
@@ -523,13 +595,15 @@ pub async fn get_logs_by_filename(
         .directories
         .resolve_game_dir(&instance_path, game_dir_override.as_deref());
 
-    let path = match log_type {
-        LogType::InfoLog => state.directories.game_logs_dir(&game_dir),
-        LogType::CrashReport => {
-            state.directories.game_crash_reports_dir(&game_dir)
-        }
-    }
-    .join(&filename);
+    let path = log_directories_for_type(&state, &game_dir, log_type)
+        .into_iter()
+        .map(|directory| directory.join(&filename))
+        .find(|path| path.is_file())
+        .ok_or_else(|| {
+            crate::ErrorKind::OtherError(format!(
+                "Log file not found: {filename}"
+            ))
+        })?;
 
     let metadata = std::fs::metadata(&path)?;
     let age = metadata.modified().unwrap_or(SystemTime::UNIX_EPOCH);
@@ -543,14 +617,15 @@ async fn get_output_by_filename_from_path(
     log_type: LogType,
     file_name: &str,
 ) -> crate::Result<CensoredString> {
-    let logs_folder = match log_type {
-        LogType::InfoLog => state.directories.game_logs_dir(game_dir),
-        LogType::CrashReport => {
-            state.directories.game_crash_reports_dir(game_dir)
-        }
-    };
-
-    let path = logs_folder.join(file_name);
+    let path = log_directories_for_type(state, game_dir, log_type)
+        .into_iter()
+        .map(|directory| directory.join(file_name))
+        .find(|path| path.is_file())
+        .ok_or_else(|| {
+            crate::ErrorKind::OtherError(format!(
+                "Log file not found: {file_name}"
+            ))
+        })?;
 
     let credentials = Credentials::get_all(&state.pool)
         .await?
@@ -646,14 +721,15 @@ pub async fn delete_logs_by_filename(
         .directories
         .resolve_game_dir(&instance_path, game_dir_override.as_deref());
 
-    let logs_folder = match log_type {
-        LogType::InfoLog => state.directories.game_logs_dir(&game_dir),
-        LogType::CrashReport => {
-            state.directories.game_crash_reports_dir(&game_dir)
-        }
-    };
-
-    let path = logs_folder.join(filename);
+    let path = log_directories_for_type(&state, &game_dir, log_type)
+        .into_iter()
+        .map(|directory| directory.join(filename))
+        .find(|path| path.is_file())
+        .ok_or_else(|| {
+            crate::ErrorKind::OtherError(format!(
+                "Log file not found: {filename}"
+            ))
+        })?;
     io::remove_file(&path).await?;
     Ok(())
 }
@@ -975,6 +1051,99 @@ mod tests {
                 .instances_dir()
                 .join(&metadata.instance.path)
                 .exists()
+        );
+    }
+
+    #[tokio::test]
+    async fn root_crash_logs_are_enumerated_and_read_from_linked_roots() {
+        let _state = global_state().await;
+        let (minecraft, metadata) =
+            create_direct_link_fixture("logs-jvm").await;
+        let version_dir = minecraft.path().join("versions").join("logs-jvm");
+        let local_name = "hs_err_pid100.log";
+        let shared_name = "hs_err_pid200.log";
+        std::fs::write(
+            version_dir.join(local_name),
+            b"local JVM crash details\n",
+        )
+        .unwrap();
+        std::fs::write(
+            minecraft.path().join(shared_name),
+            b"shared JVM crash details\n",
+        )
+        .unwrap();
+        std::fs::write(
+            version_dir.join("launcher_log.txt"),
+            b"launcher crash details\n",
+        )
+        .unwrap();
+
+        let logs = get_logs(&metadata.instance.id, Some(true)).await.unwrap();
+        assert!(logs.iter().any(|log| {
+            log.log_type == LogType::JvmCrash && log.filename == local_name
+        }));
+        assert!(logs.iter().any(|log| {
+            log.log_type == LogType::JvmCrash && log.filename == shared_name
+        }));
+        assert!(logs.iter().any(|log| {
+            log.log_type == LogType::LauncherLog
+                && log.filename == "launcher_log.txt"
+        }));
+
+        let output = get_output_by_filename(
+            &metadata.instance.id,
+            LogType::JvmCrash,
+            shared_name,
+        )
+        .await
+        .unwrap();
+        assert!(output.as_str().contains("shared JVM crash details"));
+    }
+
+    #[tokio::test]
+    async fn logshare_collection_uses_relative_paths_without_diagnostics() {
+        let _state = global_state().await;
+        let (minecraft, metadata) =
+            create_direct_link_fixture("logs-upload").await;
+        let version_dir = minecraft.path().join("versions").join("logs-upload");
+        std::fs::create_dir_all(version_dir.join("logs")).unwrap();
+        std::fs::write(
+            version_dir.join("logs").join("latest.log"),
+            b"latest log content\n",
+        )
+        .unwrap();
+        std::fs::create_dir_all(version_dir.join("crash-reports")).unwrap();
+        std::fs::write(
+            version_dir.join("crash-reports").join("crash-upload.txt"),
+            b"crash report content\n",
+        )
+        .unwrap();
+        std::fs::write(
+            version_dir.join("hs_err_pid300.log"),
+            b"JVM crash content\n",
+        )
+        .unwrap();
+
+        let collected =
+            crash_analysis::collect_crash_logs(&metadata.instance.id)
+                .await
+                .unwrap();
+        let names = collected
+            .sources
+            .iter()
+            .map(|source| source.name.as_str())
+            .collect::<Vec<_>>();
+        assert!(names.contains(&"latest.log"), "sources: {names:?}");
+        assert!(
+            names.contains(&"crash-reports/crash-upload.txt"),
+            "sources: {names:?}"
+        );
+        assert!(names.contains(&"hs_err_pid300.log"), "sources: {names:?}");
+        assert!(
+            collected
+                .combined_log
+                .as_str()
+                .contains("latest log content")
         );
     }
 

@@ -11,7 +11,7 @@ const HOTBAR_FILE: &str = "hotbar.nbt";
 pub use self::command_history::{get_command_history, set_command_history};
 pub(super) use self::files::{
     CheckpointStatus, begin_checkpoint, checkpoint, detach_link, ensure_link,
-    finish_checkpoint, finish_plain_checkpoint, instance_dir,
+    finish_checkpoint, finish_plain_checkpoint, instance_game_dir,
     instance_is_running, instance_option_enabled, nbt_from_bytes, nbt_to_bytes,
     option_can_apply_while_running, read_nbt_file, safe_instance_id,
     sha1_bytes, sha1_file, sync_files_are_protected,

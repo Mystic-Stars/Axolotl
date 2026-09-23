@@ -1,6 +1,7 @@
 <template>
 	<div class="flex gap-2 items-center">
 		<Dropdown
+			v-if="notificationHistory.length"
 			v-model:shown="notificationCenterShown"
 			placement="bottom-end"
 			:triggers="['click']"
@@ -54,6 +55,13 @@
 								<div v-if="item.text" class="line-clamp-2 text-xs text-secondary">
 									{{ item.text }}
 								</div>
+							</button>
+							<button
+								v-if="item.primaryAction"
+								class="shrink-0 rounded-md px-2 py-1 text-xs text-brand hover:bg-button-bg"
+								@click.stop="runNotificationAction(item)"
+							>
+								{{ item.primaryAction.label }}
 							</button>
 							<button
 								v-tooltip="formatMessage(messages.dismissNotification)"
@@ -307,6 +315,13 @@ type NotificationHistoryItem = {
 	text?: string
 	type?: 'error' | 'warning' | 'success' | 'info' | 'download'
 	collapsed?: boolean
+	read?: boolean
+	onClick?: () => void | Promise<void>
+	primaryAction?: {
+		label: string
+		action: () => void | Promise<void>
+	}
+	markRead: () => void
 	expand: () => void
 	dismiss: () => void
 }
@@ -320,6 +335,8 @@ const notificationHistory = computed<NotificationHistoryItem[]>(() =>
 			text: item.text,
 			type: item.type,
 			collapsed: item.collapsed,
+			read: item.read,
+			markRead: () => notificationManager.markNotificationRead(item.id),
 			expand: () => notificationManager.expandNotification(item.id),
 			dismiss: () => notificationManager.removeNotification(item.id),
 		})),
@@ -336,6 +353,12 @@ const notificationHistory = computed<NotificationHistoryItem[]>(() =>
 					undefined),
 			type: item.type,
 			collapsed: item.collapsed,
+			read: item.read,
+			markRead: () => {
+				item.read = true
+			},
+			onClick: item.onClick,
+			primaryAction: item.buttons?.[0],
 			expand: () => popupNotificationManager.expandNotification(item.id),
 			dismiss: () => popupNotificationManager.removeNotification(item.id),
 		})),
@@ -344,7 +367,7 @@ const notificationHistory = computed<NotificationHistoryItem[]>(() =>
 
 const hasUnreadNotifications = computed(() =>
 	notificationHistory.value.some(
-		(item) => !item.collapsed && ['error', 'warning'].includes(item.type ?? ''),
+		(item) => !item.read && ['error', 'warning'].includes(item.type ?? ''),
 	),
 )
 
@@ -361,7 +384,19 @@ function dismissNotification(item: NotificationHistoryItem) {
 }
 
 async function openNotification(item: NotificationHistoryItem) {
-	item.expand()
+	item.markRead()
+	if (item.onClick) {
+		await item.onClick()
+	} else {
+		item.expand()
+	}
+	notificationCenterShown.value = false
+}
+
+async function runNotificationAction(item: NotificationHistoryItem) {
+	if (!item.primaryAction) return
+	item.markRead()
+	await item.primaryAction.action()
 	notificationCenterShown.value = false
 }
 

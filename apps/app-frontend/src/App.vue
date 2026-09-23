@@ -1489,7 +1489,7 @@ async function setupApp() {
 		addNotification({
 			title: formatMessage(messages.warning),
 			text: e.message,
-			type: 'warn',
+			type: 'warning',
 		})
 	})
 	await java_download_confirmation_listener((request) => {

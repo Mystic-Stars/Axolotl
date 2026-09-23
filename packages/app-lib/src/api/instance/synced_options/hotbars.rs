@@ -1,7 +1,7 @@
 use super::HOTBAR_FILE;
 use super::files::{
     CheckpointStatus, begin_checkpoint, checkpoint, ensure_link,
-    finish_checkpoint, instance_dir, nbt_from_bytes, nbt_to_bytes,
+    finish_checkpoint, instance_game_dir, nbt_from_bytes, nbt_to_bytes,
     read_nbt_file, safe_instance_id, sha1_bytes, sha1_file,
 };
 use super::orchestration::{
@@ -123,7 +123,7 @@ pub(super) async fn reconcile_hotbar(
     {
         return Ok(());
     }
-    let local = instance_dir(metadata, state).join(HOTBAR_FILE);
+    let local = instance_game_dir(metadata, state)?.join(HOTBAR_FILE);
     if !local.exists() {
         return ensure_hotbar(metadata, state).await;
     }
@@ -202,7 +202,7 @@ pub(super) async fn instance_hotbars_differ_from_synced(
     metadata: &InstanceMetadata,
     state: &State,
 ) -> crate::Result<bool> {
-    let local_path = instance_dir(metadata, state).join(HOTBAR_FILE);
+    let local_path = instance_game_dir(metadata, state)?.join(HOTBAR_FILE);
     if !local_path.exists() {
         return Ok(false);
     }
@@ -454,7 +454,7 @@ async fn write_hotbar_projection(
         io::create_dir_all(parent).await?;
     }
     io::write(&generated, &bytes).await?;
-    let local = instance_dir(metadata, state).join(HOTBAR_FILE);
+    let local = instance_game_dir(metadata, state)?.join(HOTBAR_FILE);
     let mode = ensure_link(&generated, &local).await?;
     finish_checkpoint(
         &metadata.instance.id,

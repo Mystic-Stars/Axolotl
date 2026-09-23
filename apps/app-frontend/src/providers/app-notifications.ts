@@ -6,15 +6,19 @@ import {
 import { type Ref, ref } from 'vue'
 
 export class AppNotificationManager extends AbstractWebNotificationManager {
-	private static readonly STORAGE_KEY = 'axolotl:dismissed-web-notifications'
+	private static readonly STORAGE_KEY = 'axolotl:active-web-notifications-v1'
+	private static readonly MAX_NOTIFICATIONS = 100
+	private static readonly MAX_NOTIFICATION_AGE_MS = 30 * 24 * 60 * 60 * 1000
+	private static readonly MAX_SUPPORT_DATA_BYTES = 32 * 1024
 	private readonly state: Ref<WebNotification[]>
 	private readonly locationState: Ref<NotificationPanelLocation>
-	private readonly dismissed = this.loadDismissed()
 
 	public constructor() {
 		super()
-		this.state = ref<WebNotification[]>([])
+		this.state = ref<WebNotification[]>(this.loadActiveNotifications())
 		this.locationState = ref<NotificationPanelLocation>('right')
+		this.state.value.forEach((notification) => this.restoreNotificationTimer(notification))
+		this.saveActiveNotifications()
 	}
 
 	public getNotificationLocation(): NotificationPanelLocation {
@@ -30,73 +34,116 @@ export class AppNotificationManager extends AbstractWebNotificationManager {
 	}
 
 	protected addNotificationToStorage(notification: WebNotification): void {
-		if (this.isDismissed(notification)) return
 		this.state.value.unshift(notification)
+		this.saveActiveNotifications()
 	}
 
 	protected removeNotificationFromStorage(id: string | number): void {
 		const index = this.state.value.findIndex((n) => n.id === id)
 		if (index > -1) {
 			this.state.value.splice(index, 1)
+			this.saveActiveNotifications()
 		}
 	}
 
 	protected removeNotificationFromStorageByIndex(index: number): void {
 		this.state.value.splice(index, 1)
+		this.saveActiveNotifications()
 	}
 
 	protected clearAllNotificationsFromStorage(): void {
-		const keys = this.state.value.map((notification) => this.key(notification))
 		this.state.value.splice(0)
-		this.dismissed.clearedAt = Date.now()
-		this.dismissed.keys = [...new Set([...this.dismissed.keys, ...keys])]
-		this.saveDismissed()
+		this.saveActiveNotifications()
 	}
 
-	private loadDismissed(): { clearedAt: number; keys: string[] } {
-		try {
-			const value = JSON.parse(localStorage.getItem(AppNotificationManager.STORAGE_KEY) ?? '{}')
-			return {
-				clearedAt: typeof value.clearedAt === 'number' ? value.clearedAt : 0,
-				keys: Array.isArray(value.keys)
-					? value.keys.filter((key: unknown) => typeof key === 'string')
-					: [],
-			}
-		} catch {
-			return { clearedAt: 0, keys: [] }
-		}
+	public override addNotification = (notification: Partial<WebNotification>): WebNotification => {
+		const result = super.addNotification(notification)
+		this.saveActiveNotifications()
+		return result
 	}
 
-	private saveDismissed(): void {
-		try {
-			localStorage.setItem(AppNotificationManager.STORAGE_KEY, JSON.stringify(this.dismissed))
-		} catch {
-			// Notification history is still usable when storage is unavailable.
-		}
+	public override collapseNotification = (id: string | number): void => {
+		super.collapseNotification(id)
+		this.saveActiveNotifications()
 	}
 
-	private key(notification: WebNotification): string {
-		return JSON.stringify([
-			notification.title ?? '',
-			notification.text ?? '',
-			notification.type ?? '',
-			notification.errorCode ?? '',
-		])
+	public override expandNotification = (id: string | number): void => {
+		super.expandNotification(id)
+		this.saveActiveNotifications()
 	}
 
-	private isDismissed(notification: WebNotification): boolean {
-		return (
-			(notification.createdAt ?? Date.now()) <= this.dismissed.clearedAt ||
-			this.dismissed.keys.includes(this.key(notification))
-		)
+	public override markNotificationRead = (id: string | number): void => {
+		super.markNotificationRead(id)
+		this.saveActiveNotifications()
 	}
 
-	public override removeNotification(id: string | number): WebNotification | undefined {
+	public override removeNotification = (id: string | number): WebNotification | undefined => {
 		const notification = super.removeNotification(id)
-		if (notification) {
-			this.dismissed.keys = [...new Set([...this.dismissed.keys, this.key(notification)])]
-			this.saveDismissed()
-		}
+		this.saveActiveNotifications()
 		return notification
+	}
+
+	private loadActiveNotifications(): WebNotification[] {
+		try {
+			const parsed = JSON.parse(localStorage.getItem(AppNotificationManager.STORAGE_KEY) ?? '[]')
+			const value = Array.isArray(parsed) ? parsed : parsed?.notifications
+			if (!Array.isArray(value)) return []
+			const cutoff = Date.now() - AppNotificationManager.MAX_NOTIFICATION_AGE_MS
+			return value
+				.filter((notification): notification is WebNotification => {
+					return (
+						notification &&
+						(typeof notification.id === 'string' || typeof notification.id === 'number') &&
+						typeof notification.createdAt === 'number' &&
+						notification.createdAt >= cutoff &&
+						(notification.title === undefined || typeof notification.title === 'string')
+					)
+				})
+				.slice(0, AppNotificationManager.MAX_NOTIFICATIONS)
+		} catch {
+			return []
+		}
+	}
+
+	private saveActiveNotifications(): void {
+		try {
+			const cutoff = Date.now() - AppNotificationManager.MAX_NOTIFICATION_AGE_MS
+			const active = this.state.value.filter(
+				(notification) => (notification.createdAt ?? 0) >= cutoff,
+			)
+			if (active.length !== this.state.value.length)
+				this.state.value.splice(0, this.state.value.length, ...active)
+			if (this.state.value.length > AppNotificationManager.MAX_NOTIFICATIONS)
+				this.state.value.splice(AppNotificationManager.MAX_NOTIFICATIONS)
+			const persisted = active
+				.slice(0, AppNotificationManager.MAX_NOTIFICATIONS)
+				.map(({ timer: _timer, supportData, ...notification }) => {
+					if (supportData === undefined) return notification
+					try {
+						const serialized = JSON.stringify(supportData)
+						const size = new TextEncoder().encode(serialized).byteLength
+						return size <= AppNotificationManager.MAX_SUPPORT_DATA_BYTES
+							? { ...notification, supportData }
+							: notification
+					} catch {
+						return notification
+					}
+				})
+			localStorage.setItem(AppNotificationManager.STORAGE_KEY, JSON.stringify(persisted))
+		} catch {
+			// Notification history remains usable when storage is unavailable.
+		}
+	}
+
+	private restoreNotificationTimer(notification: WebNotification): void {
+		if (notification.collapsed || notification.autoCloseMs === null) return
+		const elapsed = Date.now() - (notification.createdAt ?? Date.now())
+		const remaining = (notification.autoCloseMs ?? 30_000) - elapsed
+		if (remaining <= 0) {
+			notification.collapsed = true
+			return
+		}
+		notification.autoCloseMs = remaining
+		this.setNotificationTimer(notification)
 	}
 }

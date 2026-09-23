@@ -5499,6 +5499,12 @@
   "app.log-share.ai.action": {
     "message": "Deep AI analysis"
   },
+  "app.log-share.ai.confidence": {
+    "message": "Diagnostic confidence"
+  },
+  "app.log-share.ai.evidence": {
+    "message": "Supporting evidence"
+  },
   "app.log-share.ai.failed": {
     "message": "LogAgent analysis failed: {message}"
   },
@@ -5522,6 +5528,18 @@
   },
   "app.log-share.ai.working": {
     "message": "Analyzing with LogAgent…"
+  },
+  "app.log-share.ai.root-cause": {
+    "message": "Core root cause"
+  },
+  "app.log-share.ai.steps": {
+    "message": "Recommended troubleshooting steps"
+  },
+  "app.log-share.ai.tab": {
+    "message": "LogAgent detailed analysis"
+  },
+  "app.log-share.ai.unknown-tool": {
+    "message": "tool"
   },
   "app.log-share.settings.ai-source": {
     "message": "AI analysis source"
@@ -5597,6 +5615,21 @@
   },
   "app.log-share.summary.loading": {
     "message": "Loading structured summary..."
+  },
+  "app.log-share.summary.empty": {
+    "message": "LogShare did not return a structured summary for these logs."
+  },
+  "app.log-share.summary.failed": {
+    "message": "Could not load the LogShare summary: {message}"
+  },
+  "app.log-share.summary.information": {
+    "message": "Information"
+  },
+  "app.log-share.summary.no-storage": {
+    "message": "Structured summary is unavailable while no-storage mode is enabled."
+  },
+  "app.log-share.summary.problems": {
+    "message": "Problems"
   },
   "app.log-share.summary.title": {
     "message": "LogShare analysis"
@@ -5677,7 +5710,7 @@
     "message": "Analyzing the logs from this launch..."
   },
   "app.minecraft-crash.body": {
-    "message": "Do not send a screenshot of this window when asking for help. Export the error report instead so the crash report, game logs, debug log, and JVM details can be checked together."
+    "message": "Export the error report or share the diagnostic link when asking for help. Do not send only a screenshot of this window."
   },
   "app.minecraft-crash.copy-link": {
     "message": "Copy link"
@@ -5772,6 +5805,21 @@
   "app.minecraft-crash.launch-failure-hint": {
     "message": "Open the Minecraft logs to view the captured Java output. When asking for help, export and send the complete Minecraft diagnostic package."
   },
+  "app.minecraft-crash.log-file.failed": {
+    "message": "Could not load this log file: {message}"
+  },
+  "app.minecraft-crash.log-file.loading": {
+    "message": "Loading log file..."
+  },
+  "app.minecraft-crash.logs.empty": {
+    "message": "No logs from this launch were found."
+  },
+  "app.minecraft-crash.logs.failed": {
+    "message": "Could not load the crash logs: {message}"
+  },
+  "app.minecraft-crash.logs.loading": {
+    "message": "Loading crash logs..."
+  },
   "app.minecraft-crash.mod-changes-action": {
     "message": "Review the changed Mod files and restore the previous setup manually if the crash started after those changes."
   },
@@ -5848,7 +5896,7 @@
     "message": "Minecraft stopped unexpectedly."
   },
   "app.minecraft-crash.support-hint": {
-    "message": "When asking for help, send the exported ZIP. Do not send only a screenshot of this window because it does not contain the diagnostic evidence."
+    "message": "Share the diagnostic link or exported package instead of only a screenshot."
   },
   "app.minecraft-crash.title": {
     "message": "{instanceName} crashed"

@@ -45,6 +45,7 @@ pub(crate) async fn sync_direct_link_instances(
 ) -> crate::Result<DirectLinkSyncReport> {
     let mut report = DirectLinkSyncReport::default();
     let mut canonical_roots = Vec::new();
+    let mut unavailable_roots = Vec::new();
     for root in &roots {
         match crate::util::io::canonicalize(&root.path) {
             Ok(path) if path.is_dir() => {
@@ -60,6 +61,8 @@ pub(crate) async fn sync_direct_link_instances(
             Err(error) => {
                 if error.kind() == std::io::ErrorKind::NotFound {
                     report.missing += 1;
+                } else {
+                    unavailable_roots.push(root.path.clone());
                 }
                 report
                     .errors
@@ -304,12 +307,13 @@ pub(crate) async fn sync_direct_link_instances(
         let Some(root) = version_isolated_root(game_dir_override) else {
             continue;
         };
-        if configured_root_matches(&root, &canonical_roots, &roots) {
+        if configured_root_matches(&root, &canonical_roots, &unavailable_roots)
+        {
             continue;
         }
-        instance_rows::delete_instance_by_id(
+        crate::state::remove_instance_preserving_external_files(
             &metadata.instance.id,
-            &state.pool,
+            state,
         )
         .await?;
         let _ =
@@ -331,12 +335,16 @@ pub(crate) async fn sync_direct_link_instances(
         else {
             continue;
         };
-        if !configured_root_matches(Path::new(root), &canonical_roots, &roots) {
+        if !configured_root_matches(
+            Path::new(root),
+            &canonical_roots,
+            &unavailable_roots,
+        ) {
             // Configured roots are authoritative. Removing a root from Settings
             // only drops Axolotl's association; the external files remain intact.
-            instance_rows::delete_instance_by_id(
+            crate::state::remove_instance_preserving_external_files(
                 &metadata.instance.id,
-                &state.pool,
+                state,
             )
             .await?;
             let _ = emit_instance(
@@ -353,9 +361,9 @@ pub(crate) async fn sync_direct_link_instances(
         {
             // External deletion is authoritative, but there is nothing left
             // to delete on disk. Only remove the stale Axolotl record.
-            instance_rows::delete_instance_by_id(
+            crate::state::remove_instance_preserving_external_files(
                 &metadata.instance.id,
-                &state.pool,
+                state,
             )
             .await?;
             let _ = emit_instance(
@@ -390,21 +398,19 @@ fn version_isolated_root(path: &str) -> Option<PathBuf> {
     version_dir.parent()?.parent().map(Path::to_path_buf)
 }
 
-/// A root that remains in Settings must retain its associated records even
-/// when it cannot currently be opened (for example, a disconnected drive or
-/// a transient permission failure). Only removing the root from Settings may
-/// drop all of its associations.
+/// A configured root with a transient access error retains its records, while
+/// a root that is confirmed missing is no longer authoritative.
 fn configured_root_matches(
     root: &Path,
     canonical_roots: &[(PathBuf, ExternalGameDirMode)],
-    configured_roots: &[ExternalMinecraftRoot],
+    unavailable_roots: &[PathBuf],
 ) -> bool {
     canonical_roots
         .iter()
         .any(|(candidate, _)| candidate == root)
-        || configured_roots
+        || unavailable_roots
             .iter()
-            .any(|candidate| paths_match(&candidate.path, root))
+            .any(|candidate| paths_match(candidate, root))
 }
 
 fn paths_match(left: &Path, right: &Path) -> bool {
@@ -427,29 +433,19 @@ mod tests {
     use super::*;
 
     #[test]
-    fn configured_but_unavailable_root_keeps_its_association() {
+    fn transiently_unavailable_root_keeps_its_association() {
         let root = PathBuf::from("minecraft-root");
         let equivalent = PathBuf::from("minecraft-root").join(".");
 
-        assert!(configured_root_matches(
-            &equivalent,
-            &[],
-            &[ExternalMinecraftRoot {
-                path: root,
-                mode: ExternalGameDirMode::Isolated,
-            }],
-        ));
+        assert!(configured_root_matches(&equivalent, &[], &[root],));
     }
 
     #[test]
-    fn removed_root_does_not_keep_its_association() {
+    fn missing_root_does_not_keep_its_association() {
         assert!(!configured_root_matches(
             Path::new("minecraft-root"),
             &[],
-            &[ExternalMinecraftRoot {
-                path: PathBuf::from("other-root"),
-                mode: ExternalGameDirMode::Isolated,
-            }],
+            &[],
         ));
     }
 

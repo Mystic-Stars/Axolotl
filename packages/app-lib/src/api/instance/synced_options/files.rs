@@ -54,14 +54,14 @@ pub(in crate::api::instance) fn safe_instance_id(instance_id: &str) -> String {
     instance_id.replace([':', '/', '\\'], "_")
 }
 
-pub(crate) fn instance_dir(
+pub(crate) fn instance_game_dir(
     metadata: &InstanceMetadata,
     state: &State,
-) -> PathBuf {
-    state
-        .directories
-        .instances_dir()
-        .join(&metadata.instance.path)
+) -> crate::Result<PathBuf> {
+    crate::state::instances::commands::instance_content_root(
+        &state.directories,
+        &metadata.instance,
+    )
 }
 
 pub(in crate::api::instance) fn sync_files_are_protected(

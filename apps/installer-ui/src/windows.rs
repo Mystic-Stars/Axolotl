@@ -29,7 +29,9 @@ use windows::{
     },
     core::PCWSTR,
 };
-use wry::{NewWindowResponse, WebView, WebViewBuilder, http::Request};
+use wry::{
+    NewWindowResponse, WebContext, WebView, WebViewBuilder, http::Request,
+};
 
 const HTML: &str = include_str!("installer.html");
 const LOGO: &[u8] = include_bytes!("../../app/icons/128x128.png");
@@ -181,6 +183,8 @@ pub fn run() -> Result<(), String> {
         serde_json::to_string(&arguments.bootstrap).map_err(|error| {
             format!("serializing installer settings failed: {error}")
         })?;
+    let webview_data_directory = webview_data_directory()?;
+    let mut webview_context = WebContext::new(Some(webview_data_directory));
     let proxy = event_loop.create_proxy();
     let ipc_proxy = proxy.clone();
     let handler = move |request: Request<String>| {
@@ -201,7 +205,7 @@ pub fn run() -> Result<(), String> {
     };
 
     let mut webview = Some(
-        WebViewBuilder::new()
+        WebViewBuilder::new_with_web_context(&mut webview_context)
             .with_html(HTML)
             .with_initialization_script(format!(
                 "window.__AXOLOTL_INSTALLER__ = {bootstrap};"
@@ -428,6 +432,25 @@ fn parse_arguments() -> Result<Arguments, String> {
             uninstall,
         },
     })
+}
+
+fn webview_data_directory() -> Result<PathBuf, String> {
+    let root = env::var_os("LOCALAPPDATA")
+        .map(PathBuf::from)
+        .unwrap_or_else(env::temp_dir);
+    let directory = root
+        .join("Axolotl")
+        .join("InstallerUI")
+        .join(format!("WebView2-{}", std::process::id()));
+
+    fs::create_dir_all(&directory).map_err(|error| {
+        format!(
+            "creating WebView2 data directory '{}' failed: {error}",
+            directory.display()
+        )
+    })?;
+
+    Ok(directory)
 }
 
 fn validate_request(
@@ -745,7 +768,8 @@ fn send_to_webview(webview: Option<&WebView>, payload: serde_json::Value) {
 mod tests {
     use super::{
         UiCommand, dialog_initial_location, install_dir_requires_elevation,
-        launch_main_process, nsis_value_option, wide_null,
+        launch_main_process, nsis_value_option, webview_data_directory,
+        wide_null,
     };
     use std::{
         fs,
@@ -842,5 +866,17 @@ mod tests {
         assert!(!missing.exists());
 
         assert!(launch_main_process(&missing).is_err());
+    }
+
+    #[test]
+    fn webview_data_directory_is_created_outside_the_installer_temp_directory()
+    {
+        let directory = webview_data_directory()
+            .expect("WebView2 data directory should be created");
+
+        assert!(directory.is_dir());
+        assert!(
+            directory.ends_with(format!("WebView2-{}", std::process::id()))
+        );
     }
 }

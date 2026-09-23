@@ -4,7 +4,7 @@ use futures::StreamExt;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 
-use super::analyze_crash;
+use super::crash_analysis::collect_crash_logs;
 use crate::State;
 use crate::emit_logshare_ai_event;
 
@@ -72,19 +72,10 @@ struct UploadFile {
 }
 
 #[derive(Serialize, Debug, Clone)]
-struct UploadMetadata {
-    key: String,
-    value: String,
-}
-
-#[derive(Serialize, Debug, Clone)]
-#[serde(rename_all = "lowercase")]
 struct UploadBody {
     content: String,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     files: Vec<UploadFile>,
-    #[serde(skip_serializing_if = "Vec::is_empty")]
-    metadata: Vec<UploadMetadata>,
     source: String,
 }
 
@@ -210,47 +201,23 @@ fn source_identifier() -> String {
 
 async fn prepare_upload(instance_id: &str) -> crate::Result<UploadBody> {
     let settings = get_log_share_settings().await?;
-    let analysis = analyze_crash(instance_id).await?;
+    let logs = collect_crash_logs(instance_id).await?;
 
-    let combined = analysis.combined_log.as_str().to_string();
+    let combined = logs.combined_log.as_str().to_string();
     let files = if settings.multi_file {
-        analysis
-            .sources
+        logs.sources
             .iter()
             .map(|source| UploadFile {
-                name: source.filename.clone(),
+                name: source.name.clone(),
                 content: source.content.as_str().to_string(),
             })
             .collect::<Vec<_>>()
     } else {
         Vec::new()
     };
-    let content = if files.is_empty() {
-        combined.clone()
-    } else {
-        String::new()
-    };
-
-    let metadata = vec![
-        UploadMetadata {
-            key: "launcher".to_string(),
-            value: "axolotl".to_string(),
-        },
-        UploadMetadata {
-            key: "matched_mods".to_string(),
-            value: analysis
-                .mods
-                .iter()
-                .map(|item| item.file_name.clone())
-                .collect::<Vec<_>>()
-                .join(", "),
-        },
-    ];
-
     Ok(UploadBody {
-        content,
+        content: combined,
         files,
-        metadata,
         source: source_identifier(),
     })
 }
@@ -273,7 +240,8 @@ pub async fn upload_crash(
     let body_value = serde_json::to_value(&prepared)?;
     let request = client
         .post(format!("{LOGSHARE_BASE_URL}/v1/log"))
-        .header("Accept", "application/json");
+        .header("Accept", "application/json")
+        .header("Accept-Encoding", "br, gzip");
 
     let response = request.json(&body_value).send().await?;
     let status = response.status();
@@ -330,6 +298,7 @@ pub async fn get_insights(id: &str) -> crate::Result<Value> {
     let response = client
         .get(format!("{LOGSHARE_BASE_URL}/v1/insights/{id}"))
         .header("Accept", "application/json")
+        .header("Accept-Encoding", "br, gzip")
         .send()
         .await?;
     let status = response.status();
@@ -355,6 +324,7 @@ pub async fn analyse_crash_direct(instance_id: &str) -> crate::Result<Value> {
     let response = client
         .post(format!("{LOGSHARE_BASE_URL}/v1/analyse"))
         .header("Accept", "application/json")
+        .header("Accept-Encoding", "br, gzip")
         .json(&prepared)
         .send()
         .await?;
@@ -384,6 +354,7 @@ pub async fn delete_log(
         .delete(format!("{LOGSHARE_BASE_URL}/v1/log/{id}"))
         .bearer_auth(token)
         .header("Accept", "application/json")
+        .header("Accept-Encoding", "br, gzip")
         .send()
         .await?;
     let status = response.status();
@@ -414,12 +385,7 @@ pub async fn ai_analyze_stored(
 pub async fn ai_analyze_direct(instance_id: &str) -> crate::Result<String> {
     let prepared = prepare_upload(instance_id).await?;
     let url = format!("{LOGSHARE_BASE_URL}/v1/ai/analyse");
-    let body = json!({
-        "content": prepared.content,
-        "files": prepared.files,
-        "metadata": prepared.metadata,
-        "source": prepared.source,
-    });
+    let body = serde_json::to_value(&prepared)?;
     stream_ai(instance_id, url, Some(body)).await
 }
 
@@ -440,7 +406,8 @@ async fn stream_ai(
             },
             url.as_str(),
         )
-        .header("Accept", "text/event-stream");
+        .header("Accept", "text/event-stream")
+        .header("Accept-Encoding", "br, gzip");
     if let Some(payload) = body {
         request = request.json(&payload);
     }

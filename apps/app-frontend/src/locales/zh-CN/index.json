@@ -5499,6 +5499,12 @@
   "app.log-share.ai.action": {
     "message": "AI 深度分析"
   },
+  "app.log-share.ai.confidence": {
+    "message": "诊断置信度"
+  },
+  "app.log-share.ai.evidence": {
+    "message": "支撑证据链"
+  },
   "app.log-share.ai.failed": {
     "message": "LogAgent 分析失败：{message}"
   },
@@ -5522,6 +5528,18 @@
   },
   "app.log-share.ai.working": {
     "message": "正在使用 LogAgent 分析…"
+  },
+  "app.log-share.ai.root-cause": {
+    "message": "核心根因"
+  },
+  "app.log-share.ai.steps": {
+    "message": "推荐排障步骤"
+  },
+  "app.log-share.ai.tab": {
+    "message": "LogAgent 深度分析"
+  },
+  "app.log-share.ai.unknown-tool": {
+    "message": "工具"
   },
   "app.log-share.settings.ai-source": {
     "message": "AI 分析来源"
@@ -5597,6 +5615,21 @@
   },
   "app.log-share.summary.loading": {
     "message": "正在加载结构化摘要…"
+  },
+  "app.log-share.summary.empty": {
+    "message": "LogShare 未返回这些日志的结构化摘要。"
+  },
+  "app.log-share.summary.failed": {
+    "message": "无法加载 LogShare 摘要：{message}"
+  },
+  "app.log-share.summary.information": {
+    "message": "信息"
+  },
+  "app.log-share.summary.no-storage": {
+    "message": "启用不落盘模式时无法获取结构化摘要。"
+  },
+  "app.log-share.summary.problems": {
+    "message": "问题"
   },
   "app.log-share.summary.title": {
     "message": "LogShare 分析"
@@ -5677,7 +5710,7 @@
     "message": "正在分析本次启动留下的日志……"
   },
   "app.minecraft-crash.body": {
-    "message": "寻求帮助时不要发送此窗口截图。请导出错误报告，这样对方才能同时检查崩溃报告、游戏日志、调试日志和 JVM 信息。"
+    "message": "寻求帮助时请导出错误报告或分享诊断链接，不要只发送此窗口截图。"
   },
   "app.minecraft-crash.copy-link": {
     "message": "复制链接"
@@ -5772,6 +5805,21 @@
   "app.minecraft-crash.launch-failure-hint": {
     "message": "打开 Minecraft 日志可以查看已捕获的 Java 输出。寻求帮助时，请导出并发送完整的 Minecraft 诊断包。"
   },
+  "app.minecraft-crash.log-file.failed": {
+    "message": "无法加载此日志文件：{message}"
+  },
+  "app.minecraft-crash.log-file.loading": {
+    "message": "正在加载日志文件…"
+  },
+  "app.minecraft-crash.logs.empty": {
+    "message": "未找到本次启动产生的日志。"
+  },
+  "app.minecraft-crash.logs.failed": {
+    "message": "无法加载崩溃日志：{message}"
+  },
+  "app.minecraft-crash.logs.loading": {
+    "message": "正在加载崩溃日志…"
+  },
   "app.minecraft-crash.mod-changes-action": {
     "message": "请检查发生变化的 Mod；如果崩溃从这些变化后开始，可手动恢复之前的配置。"
   },
@@ -5848,7 +5896,7 @@
     "message": "Minecraft 意外停止运行。"
   },
   "app.minecraft-crash.support-hint": {
-    "message": "这里显示的是可能原因，不一定准确。寻求帮助时请分享日志链接，不要只发送此窗口截图，因为截图中没有完整证据。"
+    "message": "请分享诊断链接或导出的诊断包，不要只发送截图。"
   },
   "app.minecraft-crash.title": {
     "message": "{instanceName} 已崩溃"

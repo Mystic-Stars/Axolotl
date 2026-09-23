@@ -347,7 +347,12 @@ const screenshotsError = computed(() => {
 	const error =
 		screenshotsQuery.error.value ||
 		(groupBy.value === 'custom' ? screenshotGroupsQuery.error.value : null)
-	return error instanceof Error ? error : error ? new Error(String(error)) : null
+	if (!error) return null
+	if (error instanceof Error) return error
+	if (typeof error === 'object' && error !== null && 'message' in error) {
+		return new Error(String(error.message))
+	}
+	return new Error(String(error))
 })
 const selectionActive = computed(() => selectedKeys.value.size > 0)
 const selectedScreenshots = computed(() =>

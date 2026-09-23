@@ -1,6 +1,6 @@
 use super::super::synced_options::{
     CheckpointStatus, checkpoint, detach_link, ensure_link, finish_checkpoint,
-    instance_dir, instance_is_running, instance_option_enabled,
+    instance_game_dir, instance_is_running, instance_option_enabled,
     instance_option_supported, sha1_bytes, sha1_file, sync_files_are_protected,
 };
 use crate::state::{InstanceMetadata, SyncedOption};
@@ -41,7 +41,8 @@ async fn sync_candidates(
 ) -> crate::Result<Vec<NbtCompound>> {
     let locals = load_local(&metadata.instance.id, state).await?;
     let mut servers =
-        read_servers(&instance_dir(metadata, state).join(SERVERS_FILE)).await?;
+        read_servers(&instance_game_dir(metadata, state)?.join(SERVERS_FILE))
+            .await?;
     for local in locals {
         let local_address = normalized_server_address(&local.data);
         let index = servers
@@ -177,7 +178,7 @@ pub(in crate::api::instance) async fn detach_servers(
     state: &State,
 ) -> crate::Result<()> {
     let generated = generated_path(state, &metadata.instance.id);
-    let local = instance_dir(metadata, state).join(SERVERS_FILE);
+    let local = instance_game_dir(metadata, state)?.join(SERVERS_FILE);
     detach_link(&generated, &local).await
 }
 
@@ -188,7 +189,7 @@ pub(in crate::api::instance) async fn reconcile_servers(
     if !effective(metadata, state).await? {
         return Ok(());
     }
-    let local_path = instance_dir(metadata, state).join(SERVERS_FILE);
+    let local_path = instance_game_dir(metadata, state)?.join(SERVERS_FILE);
     if !local_path.exists() {
         return compose_instance(metadata, state).await;
     }
@@ -417,7 +418,7 @@ async fn list_local_server_records(
     state: &State,
 ) -> crate::Result<Vec<ServerRecord>> {
     Ok(
-        read_servers(&instance_dir(metadata, state).join(SERVERS_FILE))
+        read_servers(&instance_game_dir(metadata, state)?.join(SERVERS_FILE))
             .await?
             .into_iter()
             .map(|data| ServerRecord {
@@ -436,7 +437,7 @@ pub(crate) async fn ensure_managed_server(
     state: &State,
 ) -> crate::Result<()> {
     let _guard = state.lock_synced_options().await;
-    let path = instance_dir(metadata, state).join(SERVERS_FILE);
+    let path = instance_game_dir(metadata, state)?.join(SERVERS_FILE);
     let syncing = participating(metadata, state).await?;
     let records = list_server_records_locked(metadata, state).await?;
     let address = normalized_server_address(&data);
@@ -538,7 +539,7 @@ pub(crate) async fn add_user_server(
         commit_server_state(Some(&canonical), None, state).await?;
         regenerate_servers(state).await?;
     } else {
-        let path = instance_dir(metadata, state).join(SERVERS_FILE);
+        let path = instance_game_dir(metadata, state)?.join(SERVERS_FILE);
         let mut servers = read_servers(&path).await?;
         let insert_index = servers
             .iter()
@@ -619,7 +620,7 @@ pub(crate) async fn update_server_by_index(
         update_server_data(&mut data, name, address, accept_textures);
         return update_server_locked(metadata, &record.id, data, state).await;
     }
-    let path = instance_dir(metadata, state).join(SERVERS_FILE);
+    let path = instance_game_dir(metadata, state)?.join(SERVERS_FILE);
     let mut servers = read_servers(&path).await?;
     let server = servers
         .get_mut(index)
@@ -681,7 +682,7 @@ pub(crate) async fn remove_server_by_index(
             })?;
         return remove_server_locked(metadata, &record.id, state).await;
     }
-    let path = instance_dir(metadata, state).join(SERVERS_FILE);
+    let path = instance_game_dir(metadata, state)?.join(SERVERS_FILE);
     let mut servers = read_servers(&path).await?;
     if servers.get(index).is_none_or(server_hidden) {
         return Err(ErrorKind::InputError(format!(
@@ -837,7 +838,7 @@ pub(super) async fn compose_instance(
         crate::util::io::create_dir_all(parent).await?;
     }
     crate::util::io::write(&generated, &bytes).await?;
-    let target = instance_dir(metadata, state).join(SERVERS_FILE);
+    let target = instance_game_dir(metadata, state)?.join(SERVERS_FILE);
     let mode = ensure_link(&generated, &target).await?;
     finish_checkpoint(
         &metadata.instance.id,

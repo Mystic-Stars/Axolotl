@@ -1,7 +1,7 @@
 use super::COMMAND_HISTORY_FILE;
 use super::files::{
     CheckpointStatus, begin_checkpoint, checkpoint, ensure_link,
-    finish_checkpoint, instance_dir, sha1_bytes, sha1_file,
+    finish_checkpoint, instance_game_dir, sha1_bytes, sha1_file,
 };
 use super::orchestration::{
     create_synced_directories, option_effective, synced_options_path,
@@ -40,7 +40,8 @@ pub(super) async fn ensure_command_history(
     create_synced_directories(state).await?;
     let canonical = command_history_path(state);
     if !canonical.exists() {
-        let local = instance_dir(metadata, state).join(COMMAND_HISTORY_FILE);
+        let local =
+            instance_game_dir(metadata, state)?.join(COMMAND_HISTORY_FILE);
         let contents = if local.exists() {
             String::from_utf8_lossy(&io::read(&local).await?).into_owned()
         } else {
@@ -48,7 +49,7 @@ pub(super) async fn ensure_command_history(
         };
         io::write(&canonical, normalize_command_history(&contents)).await?;
     }
-    let target = instance_dir(metadata, state).join(COMMAND_HISTORY_FILE);
+    let target = instance_game_dir(metadata, state)?.join(COMMAND_HISTORY_FILE);
     let canonical_bytes = io::read(&canonical).await?;
     let expected = sha1_bytes(&canonical_bytes);
     begin_checkpoint(
@@ -79,7 +80,7 @@ pub(super) async fn reconcile_command_history(
     if !option_effective(metadata, SyncedOption::CommandHistory, state).await? {
         return Ok(());
     }
-    let local = instance_dir(metadata, state).join(COMMAND_HISTORY_FILE);
+    let local = instance_game_dir(metadata, state)?.join(COMMAND_HISTORY_FILE);
     if !local.exists() {
         return ensure_command_history(metadata, state).await;
     }
@@ -149,7 +150,8 @@ pub(super) async fn merge_command_history_from_instance(
     } else {
         String::new()
     };
-    let local_path = instance_dir(metadata, state).join(COMMAND_HISTORY_FILE);
+    let local_path =
+        instance_game_dir(metadata, state)?.join(COMMAND_HISTORY_FILE);
     let local = if local_path.exists() {
         String::from_utf8_lossy(&io::read(&local_path).await?).into_owned()
     } else {

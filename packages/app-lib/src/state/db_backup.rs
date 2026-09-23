@@ -7,6 +7,7 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 const CURRENT_APP_VERSION: &str = env!("CARGO_PKG_VERSION");
 const REQUIRED_APP_DB_TABLES: &[&str] =
     &["_sqlx_migrations", "instances", "settings"];
+const MAX_APP_DB_BACKUPS: usize = 3;
 
 enum IntegrityStatus {
     Healthy,
@@ -407,6 +408,14 @@ pub(crate) async fn maybe_backup_existing_app_db(
         backup_path.display()
     );
 
+    if let Err(error) = prune_app_db_backups(&backup_dir).await {
+        tracing::warn!(
+            backup_dir = %backup_dir.display(),
+            %error,
+            "Failed to prune old app database backups"
+        );
+    }
+
     Ok(())
 }
 
@@ -427,19 +436,12 @@ pub(crate) async fn backup_app_db_for_update(
         .and_then(Path::file_name)
         .and_then(|name| name.to_str())
         .unwrap_or("release");
-    let settings_dir =
-        db_path.parent().and_then(Path::parent).ok_or_else(|| {
-            crate::ErrorKind::FSError(format!(
-                "App database path {} has no settings directory",
-                db_path.display()
-            ))
-        })?;
-    let backup_dir = settings_dir.join("Backups").join("app-db").join(channel);
+    let backup_dir = app_db_backup_dir_for(db_path)?;
     crate::util::io::create_dir_all(&backup_dir).await?;
     let timestamp = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap_or_default()
-        .as_secs();
+        .as_nanos();
     let backup_path = backup_dir.join(format!(
         "app-db-before-update-{}-{}-{timestamp}.db",
         sanitize_version_for_filename(channel),
@@ -467,6 +469,13 @@ pub(crate) async fn backup_app_db_for_update(
         target_version,
         "Created app database backup before update"
     );
+    if let Err(error) = prune_app_db_backups(&backup_dir).await {
+        tracing::warn!(
+            backup_dir = %backup_dir.display(),
+            %error,
+            "Failed to prune old app database backups"
+        );
+    }
     Ok(backup_path)
 }
 
@@ -504,18 +513,17 @@ pub fn app_db_backup_dir() -> crate::Result<PathBuf> {
 }
 
 fn app_db_backup_dir_for(db_path: &Path) -> crate::Result<PathBuf> {
-    if let Some(path) = std::env::var_os("THESEUS_DB_BACKUP_DIR") {
-        return Ok(PathBuf::from(path));
-    }
+    let settings_dir =
+        db_path.parent().and_then(Path::parent).ok_or_else(|| {
+            crate::ErrorKind::FSError(format!(
+                "App database path {} has no settings directory",
+                db_path.display()
+            ))
+        })?;
 
-    let base = db_path.parent().ok_or_else(|| {
-        crate::ErrorKind::FSError(format!(
-            "App database path {} has no parent directory",
-            db_path.display()
-        ))
-    })?;
-
-    let backup_dir = base.join("Backups").join("app-db");
+    let backup_dir = std::env::var_os("THESEUS_DB_BACKUP_DIR")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| settings_dir.join("Backups").join("app-db"));
     match db_path
         .parent()
         .and_then(Path::file_name)
@@ -529,6 +537,42 @@ fn app_db_backup_dir_for(db_path: &Path) -> crate::Result<PathBuf> {
         )),
         _ => Ok(backup_dir),
     }
+}
+
+async fn prune_app_db_backups(backup_dir: &Path) -> crate::Result<()> {
+    let mut candidates = Vec::new();
+    let mut entries = match tokio::fs::read_dir(backup_dir).await {
+        Ok(entries) => entries,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+            return Ok(());
+        }
+        Err(error) => return Err(error.into()),
+    };
+
+    while let Some(entry) = entries.next_entry().await? {
+        let path = entry.path();
+        let Some(name) = path.file_name().and_then(|name| name.to_str()) else {
+            continue;
+        };
+        if name.starts_with("app-db-before-")
+            && path.extension().and_then(|extension| extension.to_str())
+                == Some("db")
+        {
+            let modified =
+                entry.metadata().await?.modified().unwrap_or(UNIX_EPOCH);
+            candidates.push((modified, path));
+        }
+    }
+
+    candidates.sort_by(|left, right| right.0.cmp(&left.0));
+    for (_, path) in candidates.into_iter().skip(MAX_APP_DB_BACKUPS) {
+        if let Err(error) = tokio::fs::remove_file(&path).await
+            && error.kind() != std::io::ErrorKind::NotFound
+        {
+            return Err(error.into());
+        }
+    }
+    Ok(())
 }
 
 async fn has_user_tables(conn: &mut SqliteConnection) -> crate::Result<bool> {
@@ -765,10 +809,50 @@ mod tests {
             backup_app_db_for_update(&db_path, "1.10.0").await.unwrap();
 
         assert!(backup_path.exists());
+        assert_eq!(
+            backup_path.parent().unwrap(),
+            temp.path().join("Backups").join("app-db").join("release")
+        );
         assert_eq!(read_marker(&backup_path).await, "release");
         assert!(matches!(
             check_database_integrity(&backup_path).await.unwrap(),
             IntegrityStatus::Healthy
         ));
+    }
+
+    #[tokio::test]
+    async fn update_backup_prunes_old_snapshots_per_channel() {
+        let temp = tempfile::tempdir().unwrap();
+        let db_path = temp.path().join("release").join("app.db");
+        tokio::fs::create_dir_all(db_path.parent().unwrap())
+            .await
+            .unwrap();
+        create_test_app_db(&db_path, "release").await;
+
+        let backup_dir =
+            temp.path().join("Backups").join("app-db").join("release");
+        tokio::fs::create_dir_all(&backup_dir).await.unwrap();
+        for index in 0..3 {
+            create_test_app_db(
+                &backup_dir.join(format!("app-db-before-old-{index}.db")),
+                "old",
+            )
+            .await;
+        }
+
+        backup_app_db_for_update(&db_path, "1.10.0").await.unwrap();
+
+        let mut entries = tokio::fs::read_dir(&backup_dir).await.unwrap();
+        let mut snapshots = 0;
+        while let Some(entry) = entries.next_entry().await.unwrap() {
+            if entry
+                .file_name()
+                .to_str()
+                .is_some_and(|name| name.starts_with("app-db-before-"))
+            {
+                snapshots += 1;
+            }
+        }
+        assert_eq!(snapshots, MAX_APP_DB_BACKUPS);
     }
 }
