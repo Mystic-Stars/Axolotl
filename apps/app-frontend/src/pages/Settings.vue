@@ -340,7 +340,7 @@ const pageTitle: MessageDescriptor = settingsPageTitle
 </script>
 
 <template>
-	<div class="settings-fixed-render h-full min-h-0 pt-6 pl-6 pb-6">
+	<div class="settings-fixed-render h-full min-h-0 p-6">
 		<div class="settings-layout h-full min-h-0">
 			<aside class="settings-sidebar">
 				<div class="relative shrink-0">
@@ -656,6 +656,9 @@ const pageTitle: MessageDescriptor = settingsPageTitle
 }
 
 .settings-category-button.is-active {
+	/* A brand token on purpose, not a surface one: the active item should stay
+	   emphasised when the panels fade over a background image. Selection
+	   surfaces elsewhere follow the same pair. */
 	background: var(--color-button-bg-selected);
 	color: var(--color-button-text-selected);
 }

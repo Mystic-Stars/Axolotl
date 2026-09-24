@@ -369,9 +369,8 @@ function updateValue(value: string | number | boolean | undefined) {
 			class="flex justify-center"
 		>
 			<IconButton
-				:type="setting.sync_enabled ? 'outlined' : 'base'"
+				:type="setting.sync_enabled ? 'chip' : 'base'"
 				:color="setting.sync_enabled ? 'blue' : undefined"
-				:class="setting.sync_enabled ? '!bg-highlight-blue' : undefined"
 				:label="syncActionLabel"
 				:disabled="syncToggleDisabled"
 				:aria-pressed="setting.sync_enabled"
