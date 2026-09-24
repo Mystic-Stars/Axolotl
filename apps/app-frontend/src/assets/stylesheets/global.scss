@@ -449,3 +449,24 @@ textarea {
 		opacity: 0;
 	}
 }
+
+// The `v-tooltip` directive renders into `#teleports`, outside the component
+// tree, so its styles cannot be scoped to a component and live here instead.
+// These replace the `.v-popper__*` rules that came with floating-vue.
+.tooltip-popper {
+	/* Opaque on purpose: the translucency palette pins `--color-tooltip-bg` to
+	   the opaque surface snapshot so a tooltip stays readable over a custom
+	   background image. */
+	background: var(--color-tooltip-bg);
+	color: var(--color-tooltip-text);
+	padding: 0.625rem 0.75rem;
+	border: 1px solid var(--surface-5);
+	border-radius: var(--radius-sm);
+	filter: drop-shadow(2px 2px 0.4rem rgba(0, 0, 0, 0.5));
+	font-size: 0.9rem;
+	font-weight: 500;
+	line-height: 1;
+	pointer-events: none;
+	max-width: min(28rem, calc(100vw - 2rem));
+	overflow-wrap: anywhere;
+}
