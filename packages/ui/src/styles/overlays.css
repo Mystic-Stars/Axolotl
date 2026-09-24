@@ -1,11 +1,10 @@
 /**
- * Styles for the `v-tooltip` popper.
+ * Overlay styles shared by both consumers of this package.
  *
- * Shipped with the directive rather than in an app stylesheet, because the
- * directive is used by both the desktop app and the (Nuxt) website, and only
- * the app defines the full token set. Every token therefore carries a
- * fallback so the website renders a correct tooltip instead of an unstyled
- * box -- see the note on each.
+ * These ship with the components that use them rather than living in an app
+ * stylesheet, because the desktop app and the (Nuxt) website both render them.
+ * Only the app defines the full token set, so every token here carries a
+ * fallback -- without one the website would render an unstyled box.
  */
 
 .tooltip-popper {
@@ -36,4 +35,20 @@
 	pointer-events: none;
 	max-width: min(28rem, calc(100vw - 2rem));
 	overflow-wrap: anywhere;
+}
+
+/**
+ * The dropdown/popover surface, shared by every menu built on reka-ui.
+ *
+ * Reproduces what the floating-vue theme provided: the same tokens, radius and
+ * shadow, so switching engines does not change how a menu looks.
+ */
+.menu-surface {
+	z-index: 10000;
+	width: fit-content;
+	padding: var(--gap-sm);
+	border: 1px solid var(--surface-5);
+	border-radius: 12px;
+	background-color: var(--surface-3);
+	box-shadow: 3px 3px 0.8rem rgba(0, 0, 0, 0.3);
 }

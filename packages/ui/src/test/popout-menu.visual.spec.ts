@@ -1,0 +1,126 @@
+import { expect, it } from 'vitest'
+
+import PopoutMenu from '../components/base/PopoutMenu.vue'
+import { applyTheme, assertTokensLoaded, mountThemed, waitFor } from './visual-harness'
+
+/**
+ * `PopoutMenu` is the highest-fanout wrapper in the shared package -- it backs
+ * `OverflowMenu`, which is used across the app -- so its behaviour is pinned
+ * here rather than discovered in the app.
+ *
+ * The migration from floating-vue to reka-ui changed how the menu opens,
+ * positions and traps focus. None of that is visible in a diff, and all of it
+ * would still type-check and build.
+ */
+
+/** reka-ui's trigger responds to pointerdown, not a synthetic click. */
+function openMenu() {
+	const btn = document.querySelector('button[aria-haspopup="menu"]') as HTMLElement
+	btn?.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, button: 0 }))
+	btn?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+}
+
+const content = () => document.querySelector('.menu-surface') as HTMLElement | null
+
+async function mountPopout(props: Record<string, unknown> = {}) {
+	const wrapper = await mountThemed(PopoutMenu, { ...props }, 'dark', {
+		attachTo: document.body,
+		slots: {
+			default: '<span id="popout-trigger">Open</span>',
+			menu: '<button id="menu-item">Item</button>',
+		},
+	})
+	return wrapper
+}
+
+it('loads the token layer', () => {
+	assertTokensLoaded()
+})
+
+it('is closed until the trigger is activated', async () => {
+	const wrapper = await mountPopout()
+	applyTheme('dark')
+	await wrapper.vm.$nextTick()
+
+	expect(content(), 'the menu should not be in the DOM before opening').toBeNull()
+
+	wrapper.unmount()
+})
+
+it('opens on trigger click and renders its menu slot', async () => {
+	const wrapper = await mountPopout()
+	applyTheme('dark')
+	await wrapper.vm.$nextTick()
+
+	openMenu()
+	await waitFor(() => !!content(), { label: 'the menu to open' })
+
+	expect(content()?.textContent).toContain('Item')
+
+	wrapper.unmount()
+})
+
+it('paints the menu surface so it is not a transparent box', async () => {
+	const wrapper = await mountPopout()
+	applyTheme('dark')
+	await wrapper.vm.$nextTick()
+
+	openMenu()
+	await waitFor(() => !!content(), { label: 'the menu' })
+
+	// Reproduces what the floating-vue theme supplied: a raised surface with a
+	// stroke. Losing it would leave menu items floating over the page.
+	const el = content() as HTMLElement
+	const style = getComputedStyle(el)
+	expect(style.backgroundColor, 'the menu has a surface background').not.toBe('rgba(0, 0, 0, 0)')
+	expect(Number(style.zIndex), 'the menu stacks above app chrome').toBeGreaterThanOrEqual(1000)
+	expect(style.borderTopWidth, 'the menu has a stroke').toBe('1px')
+
+	wrapper.unmount()
+})
+
+it('closes on Escape', async () => {
+	const wrapper = await mountPopout()
+	applyTheme('dark')
+	await wrapper.vm.$nextTick()
+
+	openMenu()
+	await waitFor(() => !!content(), { label: 'the menu to open' })
+
+	document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+	await waitFor(() => !content(), { label: 'the menu to close on Escape' })
+
+	wrapper.unmount()
+})
+
+it('exposes show() and hide() for callers that drive it programmatically', async () => {
+	// `OverflowMenu` calls both through a template ref, so the exposed API is a
+	// real contract rather than a convenience.
+	const wrapper = await mountPopout()
+	applyTheme('dark')
+	await wrapper.vm.$nextTick()
+
+	const vm = wrapper.vm as unknown as { show: () => void; hide: () => void }
+	vm.show()
+	await waitFor(() => !!content(), { label: 'show() to open the menu' })
+
+	vm.hide()
+	await waitFor(() => !content(), { label: 'hide() to close the menu' })
+
+	wrapper.unmount()
+})
+
+it('accepts a dropdownClass on the content element', async () => {
+	const wrapper = await mountPopout({ dropdownClass: 'seed-map-biome-popout' })
+	applyTheme('dark')
+	await wrapper.vm.$nextTick()
+
+	openMenu()
+	await waitFor(() => !!content(), { label: 'the menu' })
+
+	// Four call sites restyle the menu through this prop; landing it on the
+	// wrong element would silently drop their CSS.
+	expect(content()?.classList.contains('seed-map-biome-popout')).toBe(true)
+
+	wrapper.unmount()
+})

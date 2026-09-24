@@ -70,3 +70,16 @@ export async function mountThemed<P extends Record<string, unknown>>(
 export function computedToken(element: Element, token: string): string {
 	return getComputedStyle(element).getPropertyValue(token).trim()
 }
+
+/** Waits for a condition to hold, polling frames, for effects that settle late. */
+export async function waitFor(
+	predicate: () => boolean,
+	{ timeoutMs = 2000, label = 'condition' } = {},
+): Promise<void> {
+	const deadline = performance.now() + timeoutMs
+	while (performance.now() < deadline) {
+		if (predicate()) return
+		await new Promise((resolve) => requestAnimationFrame(resolve))
+	}
+	throw new Error(`Timed out after ${timeoutMs}ms waiting for ${label}`)
+}

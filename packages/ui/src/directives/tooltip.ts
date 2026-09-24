@@ -1,4 +1,4 @@
-import '../styles/tooltip.css'
+import '../styles/overlays.css'
 
 import { autoUpdate, computePosition, flip, offset, type Placement, shift } from '@floating-ui/vue'
 import type { ObjectDirective } from 'vue'

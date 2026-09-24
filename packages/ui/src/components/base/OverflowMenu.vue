@@ -24,7 +24,6 @@
 					:hover-filled="option.hoverFilled"
 					:hover-filled-only="option.hoverFilledOnly"
 					transparent
-					:v-close-popper="!option.remainOnClick"
 					:action="
 						option.action
 							? (event: MouseEvent) => {
