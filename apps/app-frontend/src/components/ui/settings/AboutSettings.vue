@@ -33,6 +33,7 @@ import { contributors, type TeamMember, teamMembers } from '@/data/about'
 
 import { type AboutMemberExperience, getAboutMemberExperience } from './about-member-experiences'
 import QqChannelIcon from './QqChannelIcon.vue'
+import SettingsSection from './SettingsSection.vue'
 
 // Lazy so three.js does not sit on the Suspense critical path for this settings
 // category (dev builds hang the skeleton while the chunk loads).
@@ -315,6 +316,9 @@ const projectLinks = [
 
 <template>
 	<div class="about-page flex flex-col gap-6">
+		<!-- The hero carries the 3D experience host and has no heading, so it
+		     stays its own panel rather than a `SettingsSection` (which would
+		     render no anchor without a title). -->
 		<section id="settings-target-about-product" tabindex="-1" class="about-panel">
 			<div class="flex flex-col items-center gap-4">
 				<div
@@ -350,46 +354,52 @@ const projectLinks = [
 			</p>
 		</section>
 
-		<section>
-			<h3 class="m-0 mb-3 flex items-center gap-2 text-base font-semibold text-contrast">
-				<UsersIcon class="size-5 text-secondary" />
-				{{ formatMessage(messages.developmentTeam) }}
-			</h3>
-			<ul class="m-0 grid list-none grid-cols-2 gap-3 p-0 sm:grid-cols-3">
-				<li v-for="member in teamMembers" :key="member.name" class="min-w-0">
-					<component
-						:is="member.url ? 'a' : 'div'"
-						:href="member.url"
-						:target="member.url ? '_blank' : undefined"
-						:rel="member.url ? 'noopener noreferrer' : undefined"
-						class="flex min-w-0 select-none flex-col items-center gap-3 rounded-xl bg-surface-4 p-4"
-						:class="[
-							member.url ? 'transition-colors hover:bg-surface-5' : 'cursor-default',
-							pressingMemberName === member.name ? 'ring-4 ring-brand-shadow' : '',
-						]"
-						@pointerdown="startMemberLongPress(member, $event)"
-						@pointermove="moveMemberLongPress"
-						@pointerup="cancelMemberLongPress"
-						@pointercancel="cancelMemberLongPress"
-						@dragstart="cancelMemberLongPress"
-						@click="handleMemberClick"
-						@contextmenu="handleMemberContextMenu(member, $event)"
-					>
-						<Avatar :src="member.avatarUrl" :alt="member.name" size="4rem" circle no-shadow />
-						<span class="block truncate text-center font-semibold text-contrast">{{
-							member.name
-						}}</span>
-					</component>
-				</li>
-			</ul>
-		</section>
+		<SettingsSection>
+			<template #header>
+				<h3 class="m-0 flex items-center gap-2 text-base font-semibold text-contrast">
+					<UsersIcon class="size-5 text-secondary" />
+					{{ formatMessage(messages.developmentTeam) }}
+				</h3>
+			</template>
+			<div class="p-4">
+				<ul class="m-0 grid list-none grid-cols-2 gap-3 p-0 sm:grid-cols-3">
+					<li v-for="member in teamMembers" :key="member.name" class="min-w-0">
+						<component
+							:is="member.url ? 'a' : 'div'"
+							:href="member.url"
+							:target="member.url ? '_blank' : undefined"
+							:rel="member.url ? 'noopener noreferrer' : undefined"
+							class="flex min-w-0 select-none flex-col items-center gap-3 rounded-xl bg-surface-4 p-4"
+							:class="[
+								member.url ? 'transition-colors hover:bg-surface-5' : 'cursor-default',
+								pressingMemberName === member.name ? 'ring-4 ring-brand-shadow' : '',
+							]"
+							@pointerdown="startMemberLongPress(member, $event)"
+							@pointermove="moveMemberLongPress"
+							@pointerup="cancelMemberLongPress"
+							@pointercancel="cancelMemberLongPress"
+							@dragstart="cancelMemberLongPress"
+							@click="handleMemberClick"
+							@contextmenu="handleMemberContextMenu(member, $event)"
+						>
+							<Avatar :src="member.avatarUrl" :alt="member.name" size="4rem" circle no-shadow />
+							<span class="block truncate text-center font-semibold text-contrast">{{
+								member.name
+							}}</span>
+						</component>
+					</li>
+				</ul>
+			</div>
+		</SettingsSection>
 
-		<section>
-			<h3 class="m-0 mb-3 flex items-center gap-2 text-base font-semibold text-contrast">
-				<HeartHandshakeIcon class="size-5 text-secondary" />
-				{{ formatMessage(messages.communitySupport) }}
-			</h3>
-			<div class="grid gap-3 sm:grid-cols-2">
+		<SettingsSection>
+			<template #header>
+				<h3 class="m-0 flex items-center gap-2 text-base font-semibold text-contrast">
+					<HeartHandshakeIcon class="size-5 text-secondary" />
+					{{ formatMessage(messages.communitySupport) }}
+				</h3>
+			</template>
+			<div class="grid gap-3 p-4 sm:grid-cols-2">
 				<a
 					v-for="link in projectLinks"
 					:key="link.label"
@@ -462,60 +472,62 @@ const projectLinks = [
 					<ExternalIcon class="size-5 shrink-0 text-secondary" />
 				</a>
 			</div>
-		</section>
+		</SettingsSection>
 
-		<section>
-			<h3 class="m-0 mb-3 flex items-center gap-2 text-base font-semibold text-contrast">
-				<ScaleIcon class="size-5 text-secondary" />
-				{{ formatMessage(messages.licenseAttribution) }}
-			</h3>
-			<div class="about-panel about-panel-compact">
+		<SettingsSection>
+			<template #header>
+				<h3 class="m-0 flex items-center gap-2 text-base font-semibold text-contrast">
+					<ScaleIcon class="size-5 text-secondary" />
+					{{ formatMessage(messages.licenseAttribution) }}
+				</h3>
+			</template>
+			<div class="flex flex-col gap-3 p-4">
 				<p class="m-0 text-primary">
 					{{ formatMessage(messages.attribution) }}
 				</p>
 				<p class="m-0 mt-2 text-sm text-secondary">
 					{{ formatMessage(messages.notAffiliated) }}
 				</p>
+				<div class="mt-3 flex flex-wrap gap-2">
+					<a
+						:href="licenseUrl"
+						target="_blank"
+						rel="noopener noreferrer"
+						class="inline-flex items-center gap-2 rounded-lg bg-surface-4 px-3 py-2 text-sm font-semibold text-contrast transition-colors hover:bg-surface-5"
+					>
+						{{ formatMessage(messages.projectLicense) }}
+						<ExternalIcon class="size-4 text-secondary" />
+					</a>
+					<a
+						:href="copyingUrl"
+						target="_blank"
+						rel="noopener noreferrer"
+						class="inline-flex items-center gap-2 rounded-lg bg-surface-4 px-3 py-2 text-sm font-semibold text-contrast transition-colors hover:bg-surface-5"
+					>
+						{{ formatMessage(messages.copyingGuidelines) }}
+						<ExternalIcon class="size-4 text-secondary" />
+					</a>
+					<a
+						:href="thirdPartyLicensesUrl"
+						target="_blank"
+						rel="noopener noreferrer"
+						class="inline-flex items-center gap-2 rounded-lg bg-surface-4 px-3 py-2 text-sm font-semibold text-contrast transition-colors hover:bg-surface-5"
+					>
+						{{ formatMessage(messages.thirdPartyLicenses) }}
+						<ExternalIcon class="size-4 text-secondary" />
+					</a>
+					<a
+						href="https://github.com/modrinth/code"
+						target="_blank"
+						rel="noopener noreferrer"
+						class="inline-flex items-center gap-2 rounded-lg bg-surface-4 px-3 py-2 text-sm font-semibold text-contrast transition-colors hover:bg-surface-5"
+					>
+						{{ formatMessage(messages.originalSource) }}
+						<ExternalIcon class="size-4 text-secondary" />
+					</a>
+				</div>
 			</div>
-			<div class="mt-3 flex flex-wrap gap-2">
-				<a
-					:href="licenseUrl"
-					target="_blank"
-					rel="noopener noreferrer"
-					class="inline-flex items-center gap-2 rounded-lg bg-surface-4 px-3 py-2 text-sm font-semibold text-contrast transition-colors hover:bg-surface-5"
-				>
-					{{ formatMessage(messages.projectLicense) }}
-					<ExternalIcon class="size-4 text-secondary" />
-				</a>
-				<a
-					:href="copyingUrl"
-					target="_blank"
-					rel="noopener noreferrer"
-					class="inline-flex items-center gap-2 rounded-lg bg-surface-4 px-3 py-2 text-sm font-semibold text-contrast transition-colors hover:bg-surface-5"
-				>
-					{{ formatMessage(messages.copyingGuidelines) }}
-					<ExternalIcon class="size-4 text-secondary" />
-				</a>
-				<a
-					:href="thirdPartyLicensesUrl"
-					target="_blank"
-					rel="noopener noreferrer"
-					class="inline-flex items-center gap-2 rounded-lg bg-surface-4 px-3 py-2 text-sm font-semibold text-contrast transition-colors hover:bg-surface-5"
-				>
-					{{ formatMessage(messages.thirdPartyLicenses) }}
-					<ExternalIcon class="size-4 text-secondary" />
-				</a>
-				<a
-					href="https://github.com/modrinth/code"
-					target="_blank"
-					rel="noopener noreferrer"
-					class="inline-flex items-center gap-2 rounded-lg bg-surface-4 px-3 py-2 text-sm font-semibold text-contrast transition-colors hover:bg-surface-5"
-				>
-					{{ formatMessage(messages.originalSource) }}
-					<ExternalIcon class="size-4 text-secondary" />
-				</a>
-			</div>
-		</section>
+		</SettingsSection>
 
 		<details class="group pt-4 about-settings-details">
 			<summary
@@ -574,19 +586,5 @@ const projectLinks = [
 	border: 1px solid var(--surface-4);
 	border-radius: var(--radius-md);
 	background: var(--surface-3);
-}
-
-.about-panel-compact {
-	padding: var(--gap-lg);
-}
-
-.about-page :deep(.rounded-xl.bg-surface-4) {
-	border: 1px solid var(--surface-4);
-	border-radius: var(--radius-md);
-	background: var(--surface-3);
-}
-
-.about-page :deep(.rounded-xl.bg-surface-2) {
-	border-radius: var(--radius-sm);
 }
 </style>
