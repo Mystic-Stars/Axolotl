@@ -673,6 +673,9 @@ a:not(.no-click-animation),
 }
 
 .v-popper__popper.v-popper--theme-tooltip {
+	/* Tooltips stay opaque over a background image -- the palette pins
+	   `--color-tooltip-bg` to the opaque snapshot for readability -- so the
+	   arrow matches that rather than the surface behind it. */
 	--_popper-arrow-bg: var(--color-tooltip-bg);
 	--_popper-arrow-border: var(--surface-5);
 
@@ -696,8 +699,8 @@ a:not(.no-click-animation),
 }
 
 .v-popper__popper.v-popper--theme-dismissable-prompt {
-	--_popper-arrow-bg: var(--color-raised-bg);
-	--_popper-arrow-border: var(--color-button-border);
+	--_popper-arrow-bg: var(--surface-3);
+	--_popper-arrow-border: var(--surface-5);
 
 	z-index: 10;
 
