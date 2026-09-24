@@ -71,6 +71,8 @@ jobs:
         run: pnpm --filter @modrinth/ui test
       - name: Test desktop frontend
         run: pnpm --filter @modrinth/app-frontend test
+      - name: Test desktop frontend overlays
+        run: pnpm --filter @modrinth/app-frontend test:visual
 
   desktop:
     needs: guardrails
