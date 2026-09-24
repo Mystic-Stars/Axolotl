@@ -1,13 +1,13 @@
 import 'overlayscrollbars/overlayscrollbars.css'
 import '@/assets/stylesheets/global.css'
 
+import { tooltipDirective } from '@modrinth/ui/directives/tooltip.ts'
 import { VueQueryPlugin } from '@tanstack/vue-query'
 import { createPinia } from 'pinia'
 import { createApp } from 'vue'
 
 import App from '@/App.vue'
 import { overlayScrollbarsDirective } from '@/directives/overlayScrollbars'
-import { tooltipDirective } from '@/directives/tooltip'
 import { installTelemetryHandlers } from '@/helpers/telemetry'
 import i18nPlugin from '@/plugins/i18n'
 import i18nDebugPlugin from '@/plugins/i18n-debug'

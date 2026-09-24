@@ -16,7 +16,8 @@
 		},
 		"./locales.eager": "./src/locales.eager.ts",
 		"./styles/*": "./src/styles/*",
-		"./src/*": "./src/*"
+		"./src/*": "./src/*",
+		"./directives/*": "./src/directives/*"
 	},
 	"scripts": {
 		"lint": "eslint . && prettier --check .",
@@ -51,6 +52,7 @@
 		"@codemirror/language": "^6.12.4",
 		"@codemirror/state": "^6.7.4",
 		"@codemirror/view": "^6.43.11",
+		"@floating-ui/vue": "^1.1.11",
 		"@modrinth/api-client": "workspace:*",
 		"@modrinth/assets": "workspace:*",
 		"@modrinth/utils": "workspace:*",

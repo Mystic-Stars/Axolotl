@@ -1,0 +1,39 @@
+/**
+ * Styles for the `v-tooltip` popper.
+ *
+ * Shipped with the directive rather than in an app stylesheet, because the
+ * directive is used by both the desktop app and the (Nuxt) website, and only
+ * the app defines the full token set. Every token therefore carries a
+ * fallback so the website renders a correct tooltip instead of an unstyled
+ * box -- see the note on each.
+ */
+
+.tooltip-popper {
+	/* Fixed, not absolute: `computePosition` is called with `strategy: 'fixed'`
+	   and returns viewport coordinates, so the element has to be out of flow or
+	   its transform would be applied on top of its static position. */
+	position: fixed;
+	top: 0;
+	left: 0;
+	/* Above the app's own `z-50` / `z-[9999]` layers, so a tooltip is never
+	   painted under a panel that happens to have a stacking context. */
+	z-index: 10000;
+
+	/* Opaque on purpose: the translucency palette pins the tooltip tokens to
+	   the opaque surface snapshot so a tooltip stays readable over a custom
+	   background image. */
+	background: var(--color-tooltip-bg, var(--surface-3));
+	color: var(--color-tooltip-text, var(--color-contrast));
+	padding: 0.625rem 0.75rem;
+	border: 1px solid var(--surface-5);
+	border-radius: var(--radius-sm, 0.5rem);
+	filter: drop-shadow(2px 2px 0.4rem rgba(0, 0, 0, 0.5));
+	font-size: 0.9rem;
+	font-weight: 500;
+	line-height: 1;
+	/* A tooltip must never intercept the pointer: it would flicker as the
+	   pointer crosses it and steal hover from the element it describes. */
+	pointer-events: none;
+	max-width: min(28rem, calc(100vw - 2rem));
+	overflow-wrap: anywhere;
+}
