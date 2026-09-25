@@ -138,7 +138,6 @@ const props = withDefaults(
 	},
 )
 
-
 const searchUrl = computed(
 	() => `/discover/${isServerProject.value ? 'servers' : `${props.project.project_type}s`}`,
 )

@@ -29,9 +29,9 @@ import { RouterLink } from 'vue-router'
 
 import {
 	buildDependencyGraph,
-	dependencyGraphMetrics,
 	type DependencyDirection,
 	type DependencyGraph,
+	dependencyGraphMetrics,
 	type DependencyGraphNode,
 	getDependencyTreeRows,
 	getRelatedNodeIds,
@@ -101,7 +101,8 @@ const messages = defineMessages({
 	},
 	graphDirection: {
 		id: 'app.instance.dependencies.graph-direction',
-		defaultMessage: 'Stable relationship clusters. Arrows point from dependent content to the content it uses.',
+		defaultMessage:
+			'Stable relationship clusters. Arrows point from dependent content to the content it uses.',
 	},
 	graphHint: {
 		id: 'app.instance.dependencies.graph-hint',
@@ -482,11 +483,7 @@ function fitGraph() {
 	const availableWidth = Math.max(1, viewport.clientWidth - viewportPadding * 2)
 	const availableHeight = Math.max(1, viewport.clientHeight - viewportPadding * 2)
 	zoom.value = clamp(
-		Math.min(
-			1,
-			availableWidth / bounds.width,
-			availableHeight / bounds.height,
-		),
+		Math.min(1, availableWidth / bounds.width, availableHeight / bounds.height),
 		minZoom,
 		maxZoom,
 	)
@@ -1068,7 +1065,7 @@ defineExpose({ show, hide, setItems })
 										:class="[
 											nodeStatusClass(node),
 											selectedNodeId && selectedNodeId !== node.id ? 'opacity-35' : '',
-										zoom < 0.34 ? 'dependency-graph-node-compact' : '',
+											zoom < 0.34 ? 'dependency-graph-node-compact' : '',
 											draggedNodeId === node.id ? 'z-10 scale-[1.03] shadow-xl' : '',
 										]"
 										:style="{ left: `${node.x}px`, top: `${node.y}px` }"

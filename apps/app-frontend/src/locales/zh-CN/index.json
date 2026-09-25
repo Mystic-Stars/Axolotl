@@ -3119,6 +3119,9 @@
   "app.instance.mods.bulk-update.resolving-versions": {
     "message": "正在解析版本……"
   },
+  "app.instance.mods.content-operation-timeout": {
+    "message": "等待其他内容操作完成超时，请重试。"
+  },
   "app.instance.mods.content-refresh-warning.body": {
     "message": "本地内容仍然完整且可正常管理，名称、图标或更新信息可能暂时不可用。"
   },
@@ -7679,90 +7682,6 @@
   "app.settings.about.version": {
     "message": "版本 {version}"
   },
-  "app.settings.default-instance-options.environment-variables.description": {
-    "message": "启动实例时设置的环境变量。"
-  },
-  "app.settings.default-instance-options.environment-variables.placeholder": {
-    "message": "输入环境变量…"
-  },
-  "app.settings.default-instance-options.environment-variables.title": {
-    "message": "环境变量"
-  },
-  "app.settings.default-instance-options.fullscreen.description": {
-    "message": "通过更新实例的options.txt文件以全屏方式启动实例。"
-  },
-  "app.settings.default-instance-options.fullscreen.title": {
-    "message": "全屏"
-  },
-  "app.settings.default-instance-options.height.description": {
-    "message": "游戏窗口启动时的高度。"
-  },
-  "app.settings.default-instance-options.height.placeholder": {
-    "message": "输入高度…"
-  },
-  "app.settings.default-instance-options.height.title": {
-    "message": "高度"
-  },
-  "app.settings.default-instance-options.java-and-memory.title": {
-    "message": "Java 和内存"
-  },
-  "app.settings.default-instance-options.java-arguments.description": {
-    "message": "启动实例时传递给 Java 的参数。"
-  },
-  "app.settings.default-instance-options.java-arguments.placeholder": {
-    "message": "输入Java参数…"
-  },
-  "app.settings.default-instance-options.java-arguments.title": {
-    "message": "Java参数"
-  },
-  "app.settings.default-instance-options.launch-hooks.title": {
-    "message": "启动 hook"
-  },
-  "app.settings.default-instance-options.memory-allocation.description": {
-    "message": "每个实例的最大可用内存。"
-  },
-  "app.settings.default-instance-options.memory-allocation.title": {
-    "message": "内存分配"
-  },
-  "app.settings.default-instance-options.post-exit-hook.description": {
-    "message": "在游戏关闭后运行。"
-  },
-  "app.settings.default-instance-options.post-exit-hook.placeholder": {
-    "message": "输入退出后命令..."
-  },
-  "app.settings.default-instance-options.post-exit-hook.title": {
-    "message": "退出后执行命令"
-  },
-  "app.settings.default-instance-options.pre-launch-hook.description": {
-    "message": "在实例启动前运行。"
-  },
-  "app.settings.default-instance-options.pre-launch-hook.placeholder": {
-    "message": "输入启动前命令……"
-  },
-  "app.settings.default-instance-options.pre-launch-hook.title": {
-    "message": "启动前执行命令"
-  },
-  "app.settings.default-instance-options.width.description": {
-    "message": "游戏窗口启动时的宽度。"
-  },
-  "app.settings.default-instance-options.width.placeholder": {
-    "message": "输入宽度…"
-  },
-  "app.settings.default-instance-options.width.title": {
-    "message": "宽度"
-  },
-  "app.settings.default-instance-options.window.title": {
-    "message": "窗口设置"
-  },
-  "app.settings.default-instance-options.wrapper-hook.description": {
-    "message": "用来包装 Minecraft 启动过程的命令。"
-  },
-  "app.settings.default-instance-options.wrapper-hook.placeholder": {
-    "message": "输入包装器命令……"
-  },
-  "app.settings.default-instance-options.wrapper-hook.title": {
-    "message": "包装器命令"
-  },
   "app.settings.defaults.automatic-memory": {
     "message": "启动时自动分配内存"
   },
@@ -11572,27 +11491,6 @@
   },
   "instance.settings.tabs.hooks.title": {
     "message": "启动准备"
-  },
-  "instance.settings.tabs.hooks.variables.description": {
-    "message": "在此实例工作目录中的钩柄遵循以下这些变量："
-  },
-  "instance.settings.tabs.hooks.variables.inst-dir.description": {
-    "message": "$INST_DIR：实例文件夹的绝对路径"
-  },
-  "instance.settings.tabs.hooks.variables.inst-id.description": {
-    "message": "$INST_ID：实例文件夹名称"
-  },
-  "instance.settings.tabs.hooks.variables.inst-java-args.description": {
-    "message": "$INST_JAVA_ARGS：为游戏提供的JVM参数"
-  },
-  "instance.settings.tabs.hooks.variables.inst-java.description": {
-    "message": "$INST_JAVA：Java核心文件的绝对路径"
-  },
-  "instance.settings.tabs.hooks.variables.inst-mc-dir.description": {
-    "message": "$INST_MC_DIR：$INST_DIR的别名"
-  },
-  "instance.settings.tabs.hooks.variables.inst-name.description": {
-    "message": "$INST_NAME：实例名"
   },
   "instance.settings.tabs.hooks.wrapper": {
     "message": "包装器命令"

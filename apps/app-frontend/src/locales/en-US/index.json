@@ -2706,10 +2706,10 @@
     "message": "File {file}"
   },
   "app.instance.dependencies.graph-direction": {
-    "message": "Arrows point from dependent content to the content it uses."
+    "message": "Stable relationship clusters. Arrows point from dependent content to the content it uses."
   },
   "app.instance.dependencies.graph-hint": {
-    "message": "Drag the canvas to explore. Drag a card to arrange it."
+    "message": "Drag the canvas to explore. Cards stay where you place them."
   },
   "app.instance.dependencies.graph-view": {
     "message": "Relationship graph"
@@ -3118,6 +3118,9 @@
   },
   "app.instance.mods.bulk-update.resolving-versions": {
     "message": "Resolving versions..."
+  },
+  "app.instance.mods.content-operation-timeout": {
+    "message": "Timed out waiting for another content operation to finish. Try again."
   },
   "app.instance.mods.content-refresh-warning.body": {
     "message": "Local content is still complete and can be managed. Names, icons, or update information may be temporarily unavailable."
@@ -7679,90 +7682,6 @@
   "app.settings.about.version": {
     "message": "Version {version}"
   },
-  "app.settings.default-instance-options.environment-variables.description": {
-    "message": "Environment variables set when launching an instance."
-  },
-  "app.settings.default-instance-options.environment-variables.placeholder": {
-    "message": "Enter environment variables..."
-  },
-  "app.settings.default-instance-options.environment-variables.title": {
-    "message": "Environment variables"
-  },
-  "app.settings.default-instance-options.fullscreen.description": {
-    "message": "Start instances in fullscreen by updating their options.txt file."
-  },
-  "app.settings.default-instance-options.fullscreen.title": {
-    "message": "Fullscreen"
-  },
-  "app.settings.default-instance-options.height.description": {
-    "message": "The height of the game window when launched."
-  },
-  "app.settings.default-instance-options.height.placeholder": {
-    "message": "Enter height..."
-  },
-  "app.settings.default-instance-options.height.title": {
-    "message": "Height"
-  },
-  "app.settings.default-instance-options.java-and-memory.title": {
-    "message": "Java and memory"
-  },
-  "app.settings.default-instance-options.java-arguments.description": {
-    "message": "Arguments passed to Java when launching an instance."
-  },
-  "app.settings.default-instance-options.java-arguments.placeholder": {
-    "message": "Enter Java arguments..."
-  },
-  "app.settings.default-instance-options.java-arguments.title": {
-    "message": "Java arguments"
-  },
-  "app.settings.default-instance-options.launch-hooks.title": {
-    "message": "Launch hooks"
-  },
-  "app.settings.default-instance-options.memory-allocation.description": {
-    "message": "Maximum memory available to each instance."
-  },
-  "app.settings.default-instance-options.memory-allocation.title": {
-    "message": "Memory allocation"
-  },
-  "app.settings.default-instance-options.post-exit-hook.description": {
-    "message": "Runs after the game closes."
-  },
-  "app.settings.default-instance-options.post-exit-hook.placeholder": {
-    "message": "Enter post-exit command..."
-  },
-  "app.settings.default-instance-options.post-exit-hook.title": {
-    "message": "Post-exit hook"
-  },
-  "app.settings.default-instance-options.pre-launch-hook.description": {
-    "message": "Runs before the instance starts."
-  },
-  "app.settings.default-instance-options.pre-launch-hook.placeholder": {
-    "message": "Enter pre-launch command..."
-  },
-  "app.settings.default-instance-options.pre-launch-hook.title": {
-    "message": "Pre-launch hook"
-  },
-  "app.settings.default-instance-options.width.description": {
-    "message": "The width of the game window when launched."
-  },
-  "app.settings.default-instance-options.width.placeholder": {
-    "message": "Enter width..."
-  },
-  "app.settings.default-instance-options.width.title": {
-    "message": "Width"
-  },
-  "app.settings.default-instance-options.window.title": {
-    "message": "Window"
-  },
-  "app.settings.default-instance-options.wrapper-hook.description": {
-    "message": "Command used to wrap the Minecraft launch process."
-  },
-  "app.settings.default-instance-options.wrapper-hook.placeholder": {
-    "message": "Enter wrapper command..."
-  },
-  "app.settings.default-instance-options.wrapper-hook.title": {
-    "message": "Wrapper hook"
-  },
   "app.settings.defaults.automatic-memory": {
     "message": "Automatically allocate memory at launch"
   },
@@ -11560,27 +11479,6 @@
   },
   "instance.settings.tabs.hooks.title": {
     "message": "Launch preparation"
-  },
-  "instance.settings.tabs.hooks.variables.description": {
-    "message": "Hooks run in the working directory of the instance, with the following variables:"
-  },
-  "instance.settings.tabs.hooks.variables.inst-dir.description": {
-    "message": "$INST_DIR: The absolute path to the instance's folder"
-  },
-  "instance.settings.tabs.hooks.variables.inst-id.description": {
-    "message": "$INST_ID: The name of the instance's folder"
-  },
-  "instance.settings.tabs.hooks.variables.inst-java-args.description": {
-    "message": "$INST_JAVA_ARGS: The JVM Arguments provided to the game"
-  },
-  "instance.settings.tabs.hooks.variables.inst-java.description": {
-    "message": "$INST_JAVA: The absolute path to the java binary"
-  },
-  "instance.settings.tabs.hooks.variables.inst-mc-dir.description": {
-    "message": "$INST_MC_DIR: An alias for $INST_DIR"
-  },
-  "instance.settings.tabs.hooks.variables.inst-name.description": {
-    "message": "$INST_NAME: The name of the instance"
   },
   "instance.settings.tabs.hooks.wrapper": {
     "message": "Wrapper"

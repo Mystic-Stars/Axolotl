@@ -258,9 +258,9 @@ import { mergeContentItemMetadata } from '@/helpers/content-item-metadata'
 import { applyContentItemUpdates, matchesContentItem } from '@/helpers/content-item-state'
 import { lookupContentWikiIds, translateContentItemTitles } from '@/helpers/content-search'
 import {
+	type CurseForgeFile,
 	getCurseForgeChangelog,
 	getCurseForgeImageUrl,
-	type CurseForgeFile,
 } from '@/helpers/curseforge'
 import {
 	type CurseForgeManualDownloadItem,
