@@ -492,12 +492,10 @@ function invertBiomes() {
 	text-align: center;
 }
 
+/* The menu content itself carries `seed-map-biome-popout`, so one rule covers
+ * what the old floating-vue pair split between the popper and its inner panel. */
 :global(.seed-map-biome-popout) {
 	z-index: 10050 !important;
-	max-width: calc(100vw - 0.75rem);
-}
-
-:global(.seed-map-biome-popout) {
 	max-width: calc(100vw - 0.75rem);
 	max-height: calc(100dvh - 0.75rem);
 	overflow: hidden;

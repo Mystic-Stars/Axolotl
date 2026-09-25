@@ -52,6 +52,7 @@
 		<Transition name="scroll-to-bottom-fade">
 			<div v-if="lines.length > 0 && !stickToBottom" class="absolute bottom-4 right-4 z-10">
 				<Button
+					type="highlight"
 					size="xl"
 					circular
 					icon-only

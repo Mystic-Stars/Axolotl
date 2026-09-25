@@ -106,6 +106,7 @@
 							</code>
 						</span>
 						<Button
+							type="chip-text"
 							color="orange"
 							size="2xs"
 							:disabled="!item.memberId || isInstanceBusy || isRestoringMissingPackMember(item)"

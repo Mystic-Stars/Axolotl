@@ -9626,6 +9626,9 @@
   "app.settings.synced-options.resource-packs.none-synced-yet": {
     "message": "You haven't synced any resource packs yet"
   },
+  "app.settings.synced-options.title": {
+    "message": "Options synced across all instances"
+  },
   "app.settings.synced-packs.data-packs": {
     "message": "Data packs"
   },

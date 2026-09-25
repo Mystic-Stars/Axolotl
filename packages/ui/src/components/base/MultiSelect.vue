@@ -48,7 +48,7 @@
 						{{ tag.label }}
 						<XIcon class="size-3.5 shrink-0 text-secondary" />
 					</span>
-					<PopoverRoot v-if="overflowCount > 0" :modal="false">
+					<PopoverRoot v-if="overflowCount > 0" v-model:open="overflowPopoverOpen" :modal="false">
 						<PopoverTrigger as-child>
 							<!--
 								A button, so the overflow is reachable and openable from the
@@ -666,6 +666,8 @@ const overflowCount = computed(() => {
 	return Math.max(0, selectedOptions.value.length - visibleTagCount.value)
 })
 
+const overflowPopoverOpen = ref(false)
+
 const overflowTags = computed(() => {
 	return selectedOptions.value.slice(visibleTagCount.value)
 })
@@ -1184,6 +1186,9 @@ async function openDropdown() {
 function closeDropdown() {
 	if (!isOpen.value) return
 
+	// The overflow popover is anchored inside the trigger row, so it has to go
+	// with the listbox rather than linger over a hidden anchor.
+	overflowPopoverOpen.value = false
 	stopPositionTracking()
 	destroyOptionsOverlayScrollbars()
 	isOpen.value = false

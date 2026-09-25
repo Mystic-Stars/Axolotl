@@ -1,6 +1,10 @@
 <template>
 	<DropdownMenuRoot v-model:open="open" :modal="false">
-		<DropdownMenuTrigger as-child>
+		<DropdownMenuTrigger
+			as-child
+			@keydown="noteTriggerKeydown"
+			@pointerdown="noteTriggerPointerdown"
+		>
 			<slot name="trigger">
 				<button ref="trigger" v-bind="$attrs" v-tooltip="tooltip">
 					<slot></slot>
@@ -64,15 +68,34 @@ defineOptions({
 const open = defineModel<boolean>('open', { default: false })
 const trigger = ref<HTMLElement>()
 const content = ref<ComponentPublicInstance>()
+
+// A pointer open must not move focus: clicking a menu would otherwise pull the
+// caret out of whatever the user was editing and drop a focus ring on the first
+// item. Only a keyboard open needs focus moved into the menu, which is what
+// makes the items reachable with the arrow keys.
+let openedFromKeyboard = false
+
+function noteTriggerKeydown(event: KeyboardEvent) {
+	openedFromKeyboard = ['ArrowDown', 'ArrowUp', 'Enter', ' '].includes(event.key)
+}
+
+function noteTriggerPointerdown() {
+	openedFromKeyboard = false
+}
+
 function focusFirstContent(event: Event) {
+	if (!openedFromKeyboard) {
+		// Leave focus where the user left it; reka would otherwise focus the
+		// content itself on a pointer open.
+		event.preventDefault()
+		return
+	}
 	event.preventDefault()
 	const root = content.value?.$el as HTMLElement | undefined
 	root
 		?.querySelector<HTMLElement>('button:not(:disabled), a[href], [tabindex]:not([tabindex="-1"])')
 		?.focus()
 }
-
-/** The wrapper focuses the first available control, including non-menu buttons. */
 
 /**
  * Where the menu is portalled to.

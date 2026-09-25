@@ -408,7 +408,8 @@ onBeforeUnmount(() => {
 										</p>
 									</div>
 									<Button
-										:type="isPresetActive(preset) ? 'base' : 'outlined'"
+										:type="isPresetActive(preset) ? 'colored' : 'outlined'"
+										color="brand"
 										:disabled="isPresetActive(preset)"
 										@click="applyPreset(preset)"
 										><CheckIcon v-if="isPresetActive(preset)" aria-hidden="true" />

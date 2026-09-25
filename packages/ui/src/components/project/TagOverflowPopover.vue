@@ -30,7 +30,7 @@ const portalTarget = computed(() =>
 			<button
 				v-bind="$attrs"
 				type="button"
-				class="inline-flex cursor-pointer border-0 bg-transparent p-0 text-inherit focus-visible:outline-none"
+				class="inline-flex cursor-pointer rounded-full border-0 bg-transparent p-0 text-inherit focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
 				:class="props.wrapperClass"
 			>
 				<slot name="trigger">+{{ props.count }}</slot>

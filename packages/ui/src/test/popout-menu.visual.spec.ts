@@ -167,3 +167,28 @@ it('supports a controlled open model and a custom trigger slot', async () => {
 
 	wrapper.unmount()
 })
+
+it('does not move focus when opened with the pointer', async () => {
+	// The menu is a dropdown, not a modal: clicking its trigger must leave the
+	// caret where the user put it. Moving focus to the first item would pull it
+	// out of whatever field was being edited, which is what reka does by default.
+	const input = document.createElement('input')
+	input.id = 'popout-outside-input'
+	document.body.append(input)
+	input.focus()
+
+	const wrapper = await mountPopout()
+	applyTheme('dark')
+	await wrapper.vm.$nextTick()
+
+	openMenu()
+	await waitFor(() => !!content(), { label: 'the menu to open' })
+	await new Promise((resolve) => setTimeout(resolve, 80))
+
+	expect((document.activeElement as HTMLElement)?.id, 'a pointer open must not steal focus').toBe(
+		'popout-outside-input',
+	)
+
+	wrapper.unmount()
+	input.remove()
+})

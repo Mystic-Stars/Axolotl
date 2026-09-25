@@ -45,6 +45,10 @@ const commandHistoryModal = ref<InstanceType<typeof CommandHistoryModal>>()
 const syncedServersModal = ref<InstanceType<typeof SyncedServersModal>>()
 
 const messages = defineMessages({
+	globalOptionsTitle: {
+		id: 'app.settings.synced-options.title',
+		defaultMessage: 'Options synced across all instances',
+	},
 	resourcePacks: {
 		id: 'app.settings.synced-options.resource-packs',
 		defaultMessage: 'Sync resource packs',
@@ -564,7 +568,7 @@ onScopeDispose(clearBaseSource)
 					tabindex="-1"
 					class="m-0 text-lg font-semibold text-contrast"
 				>
-					{{ formatMessage(messages.title) }}
+					{{ formatMessage(messages.globalOptionsTitle) }}
 				</h2>
 			</template>
 			<SettingsRow v-for="row in availableGlobalRows" :key="row.option">

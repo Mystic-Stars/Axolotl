@@ -9626,6 +9626,9 @@
   "app.settings.synced-options.resource-packs.none-synced-yet": {
     "message": "尚未同步任何资源包"
   },
+  "app.settings.synced-options.title": {
+    "message": "跨所有实例同步的选项"
+  },
   "app.settings.synced-packs.data-packs": {
     "message": "数据包"
   },
