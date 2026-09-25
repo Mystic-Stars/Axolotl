@@ -28,6 +28,89 @@ export const ANNOUNCEMENT_CHANGE_TYPES: readonly AnnouncementChangeType[] = [
 
 export const launcherAnnouncements: readonly LauncherAnnouncement[] = [
 	{
+		id: 'launcher-1.9.7-beta.5',
+		version: '1.9.7-beta.5',
+		publishedAt: '2026-09-25',
+		title: {
+			'en-US': 'Axolotl Launcher 1.9.7-beta.5',
+			'zh-CN': 'Axolotl Launcher 1.9.7-beta.5',
+		},
+		changes: {
+			added: [
+				{
+					'en-US': 'Added structured LogAgent insights to the Minecraft crash dialog.',
+					'zh-CN': 'Minecraft 崩溃对话框新增结构化 LogAgent 分析结果。',
+				},
+				{
+					'en-US':
+						'Added split views for crash logs and LogAgent analysis, with selectable log files and direct log sharing.',
+					'zh-CN':
+						'崩溃对话框新增崩溃日志与 LogAgent 分析分栏视图，支持选择日志文件并直接分享日志。',
+				},
+				{
+					'en-US':
+						'Added screenshot preview metadata and restored screenshot preview and editing actions.',
+					'zh-CN': '新增截图预览元数据，并恢复截图预览和编辑操作。',
+				},
+				{
+					'en-US': 'Added local persistence for armor preview selections in the skin editor.',
+					'zh-CN': '新增皮肤编辑器中盔甲预览选择的本地持久化。',
+				},
+			],
+			changed: [
+				{
+					'en-US':
+						'Refactored the dependency graph with stable relationship clusters, canvas-rendered connections, improved layout bounds, and better large-graph performance.',
+					'zh-CN':
+						'重构依赖关系图，新增稳定的关系分组、画布连接线、更好的布局边界和大型关系图性能。',
+				},
+				{
+					'en-US':
+						'Crash diagnostics now load individual logs, reuse in-flight uploads, support structured remote analysis, and separate uploading from local analysis.',
+					'zh-CN':
+						'崩溃诊断现在支持单独加载日志、复用进行中的上传任务、结构化远程分析，并将日志上传与本地分析分离。',
+				},
+				{
+					'en-US':
+						'Improved notification state handling so dismissed notifications remain dismissed and notification updates are more reliable.',
+					'zh-CN': '改进通知状态处理，确保已关闭的通知不再重新出现，并提升通知更新可靠性。',
+				},
+			],
+			fixed: [
+				{
+					'en-US': 'Fixed a database deadlock in content management.',
+					'zh-CN': '修复内容管理中的数据库死锁问题。',
+				},
+				{
+					'en-US': 'Fixed CurseForge WebP project icons failing to load.',
+					'zh-CN': '修复 CurseForge 项目 WebP 图标无法加载的问题。',
+				},
+				{
+					'en-US':
+						'Fixed screenshot previews flashing, failing to restore actions, or resolving isolated screenshot directories incorrectly.',
+					'zh-CN': '修复截图预览闪烁、预览和编辑操作未恢复，以及隔离实例截图目录解析错误的问题。',
+				},
+				{
+					'en-US': 'Fixed newly added offline accounts not being selected immediately.',
+					'zh-CN': '修复新添加的离线账户不会立即被选中的问题。',
+				},
+				{
+					'en-US':
+						'Fixed completed crash analysis state not being cleared when opening a new crash dialog.',
+					'zh-CN': '修复打开新的崩溃对话框时未清除已完成分析状态的问题。',
+				},
+				{
+					'en-US': 'Fixed the installer using an unwritable WebView2 data directory.',
+					'zh-CN': '修复安装器使用不可写 WebView2 数据目录的问题。',
+				},
+				{
+					'en-US': 'Fixed notification toasts and notification-center dismissal behavior.',
+					'zh-CN': '修复通知提示和通知中心关闭行为异常的问题。',
+				},
+			],
+		},
+	},
+	{
 		id: 'launcher-1.9.7-beta.4',
 		version: '1.9.7-beta.4',
 		publishedAt: '2026-09-22',

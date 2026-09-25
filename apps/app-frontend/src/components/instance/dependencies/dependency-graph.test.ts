@@ -7,6 +7,7 @@ import {
 	buildDependencyGraph,
 	dependencyGraphMetrics,
 	getConnectedComponents,
+	getDependencyNodeDepths,
 	getDependencyTreeRows,
 	getRelatedNodeIds,
 	layoutDependencyGraph,
@@ -155,6 +156,25 @@ test('returns the complete relationship context for a filtered node', () => {
 	assert.deepEqual(related, new Set([nodeId('a'), nodeId('b'), nodeId('c')]))
 })
 
+test('uses deterministic directional columns with stable node ordering', () => {
+	const graph = buildDependencyGraph([
+		item('hub', '1', { requires: [ref('a'), ref('b'), ref('c')] }),
+		item('a', '1'),
+		item('b', '1'),
+		item('c', '1'),
+	])
+	const first = layoutDependencyGraph(graph)
+	const second = layoutDependencyGraph(graph)
+	assert.deepEqual(
+		first.nodes.map(({ id, x, y }) => ({ id, x, y })),
+		second.nodes.map(({ id, x, y }) => ({ id, x, y })),
+	)
+	const hub = first.nodes.find((node) => node.id === nodeId('hub'))!
+	const leaves = first.nodes.filter((node) => node.id !== nodeId('hub'))
+	assert.ok(leaves.every((node) => node.x > hub.x))
+	assert.equal(new Set(leaves.map((node) => `${node.x}:${node.y}`)).size, leaves.length)
+})
+
 test('connects each edge from a source output port to a target input port with an HTML connector', () => {
 	const graph = buildDependencyGraph([item('a', '1', { requires: [ref('b')] }), item('b', '1')])
 	const layout = layoutDependencyGraph(graph)
@@ -242,4 +262,29 @@ test('uses dragged final coordinates for connectors and canvas bounds', () => {
 		layout.height >=
 			target.y + dependencyGraphMetrics.nodeHeight + dependencyGraphMetrics.canvasPadding,
 	)
+})
+
+test('keeps directional depths and lays out a 500-node graph within the performance target', () => {
+	const items = Array.from({ length: 500 }, (_, index) => {
+		const requires = [1, 2, 3]
+			.map((offset) => index - offset)
+			.filter((dependencyIndex) => dependencyIndex >= 0)
+			.map((dependencyIndex) => ref(`mod-${dependencyIndex}`))
+		return item(`mod-${index}`, '1', { requires })
+	})
+	const graph = buildDependencyGraph(items)
+	const visibleIds = new Set(graph.edges.flatMap((edge) => [edge.source, edge.target]))
+	const started = performance.now()
+	const depths = getDependencyNodeDepths(graph, visibleIds)
+	const layout = layoutDependencyGraph(graph, visibleIds)
+	const elapsed = performance.now() - started
+
+	assert.equal(graph.nodes.length, 500)
+	assert.equal(graph.edges.length, 1494)
+	assert.equal(depths.get(nodeId('mod-499')), 0)
+	assert.equal(depths.get(nodeId('mod-0')), 499)
+	assert.equal(layout.nodes.length, 500)
+	assert.equal(layout.edges.length, 1494)
+	assert.ok(elapsed < 1000, `static graph preparation took ${elapsed.toFixed(1)}ms`)
+	assert.ok(layout.edges.every((edge) => edge.source && edge.target))
 })

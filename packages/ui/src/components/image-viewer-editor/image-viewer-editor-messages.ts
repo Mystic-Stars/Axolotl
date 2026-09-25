@@ -5,6 +5,10 @@ export const imageViewerEditorMessages = defineMessages({
 	previous: { id: 'image-viewer.previous', defaultMessage: 'Previous image' },
 	next: { id: 'image-viewer.next', defaultMessage: 'Next image' },
 	edit: { id: 'image-viewer.edit', defaultMessage: 'Edit' },
+	metadata: {
+		id: 'image-viewer.metadata',
+		defaultMessage: '{size} · {width} × {height} px',
+	},
 	saveAsCopy: { id: 'image-viewer.editor.save-as-new', defaultMessage: 'Save copy' },
 	overwrite: { id: 'image-viewer.editor.overwrite', defaultMessage: 'Overwrite' },
 	moreSaveOptions: {

@@ -1,6 +1,10 @@
 import type { Labrinth } from '@modrinth/api-client'
 
-import type { CurseForgeFile, CurseForgeProject } from '@/helpers/curseforge'
+import {
+	getCurseForgeImageUrl,
+	type CurseForgeFile,
+	type CurseForgeProject,
+} from '@/helpers/curseforge'
 import type { GameInstance } from '@/helpers/types'
 
 export const LOADER_ORDER = ['vanilla', 'fabric', 'quilt', 'neoforge', 'forge']
@@ -158,7 +162,7 @@ export function mapCurseForgeProject(
 		title: project.name,
 		description: project.summary,
 		project_type: projectType,
-		icon_url: project.logo?.thumbnailUrl ?? project.logo?.url ?? null,
+		icon_url: getCurseForgeImageUrl(project.logo?.thumbnailUrl ?? project.logo?.url) ?? null,
 		versions: versions.map((version) => version.id),
 		game_versions: [...new Set(versions.flatMap((version) => version.game_versions))],
 		loaders: [...new Set(versions.flatMap((version) => version.loaders))],

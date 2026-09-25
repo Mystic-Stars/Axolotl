@@ -1609,7 +1609,12 @@ pub(crate) async fn add_downloaded_project_version(
     ownership_kind: ContentOwnershipKind,
     state: &State,
 ) -> crate::Result<String> {
-    let _instance_lock = state.lock_instance_content(instance_id).await;
+    let _instance_lock = state
+        .lock_instance_content_with_timeout(
+            instance_id,
+            std::time::Duration::from_secs(20),
+        )
+        .await?;
 
     let DownloadedProjectVersion {
         file_name,
@@ -1687,7 +1692,12 @@ pub(crate) async fn apply_downloaded_project_version_at_path(
     ownership_kind: ContentOwnershipKind,
     state: &State,
 ) -> crate::Result<String> {
-    let _instance_lock = state.lock_instance_content(instance_id).await;
+    let _instance_lock = state
+        .lock_instance_content_with_timeout(
+            instance_id,
+            std::time::Duration::from_secs(20),
+        )
+        .await?;
     let DownloadedProjectVersion {
         path,
         sha1,
@@ -2685,6 +2695,15 @@ async fn record_project_files_atomic_with_pending_completion(
         return Ok(());
     }
     let _instance_lock = state.lock_instance_content(instance_id).await;
+    // Keep the lock order consistent with content-change publishing. Any
+    // caller that needs to register files acquires the per-instance lock
+    // before serializing the SQLite write.
+    let _database_permit =
+        state.install_db_semaphore.acquire().await.map_err(|_| {
+            crate::ErrorKind::OtherError(
+                "install database semaphore closed".to_string(),
+            )
+        })?;
 
     let scope = resolve_content_scope(instance_id, None, state).await?;
     let mut tx = begin_content_write(&state.pool).await?;
@@ -2952,7 +2971,12 @@ pub(crate) async fn toggle_content_entries(
         return Ok(Vec::new());
     }
 
-    let _instance_lock = state.lock_instance_content(instance_id).await;
+    let _instance_lock = state
+        .lock_instance_content_with_timeout(
+            instance_id,
+            std::time::Duration::from_secs(20),
+        )
+        .await?;
     let scope = resolve_content_scope(instance_id, None, state).await?;
     let base = instance_full_path(state, &scope.instance);
     let mut seen_ids = std::collections::HashSet::new();

@@ -306,7 +306,12 @@ pub async fn queue_content_change(
     display_icon: Option<String>,
 ) -> crate::Result<InstallJobSnapshot> {
     let state = State::get().await?;
-    let _instance_lock = state.lock_instance_content(&instance_id).await;
+    let _instance_lock = state
+        .lock_instance_content_with_timeout(
+            &instance_id,
+            std::time::Duration::from_secs(20),
+        )
+        .await?;
     let has_overlapping_change =
         store::list(false, &state).await?.into_iter().any(|job| {
             matches!(

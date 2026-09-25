@@ -481,6 +481,37 @@ function nodeDepths(graph: DependencyGraph, visibleIds: ReadonlySet<string>): Ma
 	return depths
 }
 
+export function getDependencyNodeDepths(
+	graph: DependencyGraph,
+	visibleIds: ReadonlySet<string>,
+): Map<string, number> {
+	const depths = new Map<string, number>()
+	const queue = graph.nodes
+		.filter(
+			(node) =>
+				visibleIds.has(node.id) &&
+				!(graph.edgesByTarget.get(node.id) ?? []).some((edge) => visibleIds.has(edge.source)),
+		)
+		.map((node) => node.id)
+	for (const id of queue) depths.set(id, 0)
+	while (queue.length) {
+		const id = queue.shift()!
+		const depth = depths.get(id) ?? 0
+		for (const edge of graph.edgesBySource.get(id) ?? []) {
+			if (!visibleIds.has(edge.target)) continue
+			const nextDepth = Math.max(depths.get(edge.target) ?? 0, depth + 1)
+			if (nextDepth !== depths.get(edge.target)) {
+				depths.set(edge.target, nextDepth)
+				queue.push(edge.target)
+			}
+		}
+	}
+	for (const id of visibleIds) {
+		if (!depths.has(id)) depths.set(id, 0)
+	}
+	return depths
+}
+
 function edgeGeometry(
 	source: NodePosition,
 	target: NodePosition,
@@ -510,28 +541,34 @@ function layoutComponent(
 	const visibleIds = new Set(nodeIds)
 	const nodesToLayout = graph.nodes.filter((node) => visibleIds.has(node.id))
 	const depths = nodeDepths(graph, visibleIds)
-	const groups = new Map<number, DependencyGraphNode[]>()
+	const columns = new Map<number, DependencyGraphNode[]>()
 	for (const node of nodesToLayout) {
-		const depth = depths.get(node.id) ?? 0
-		const group = groups.get(depth) ?? []
-		group.push(node)
-		groups.set(depth, group)
+		const column = columns.get(depths.get(node.id) ?? 0) ?? []
+		column.push(node)
+		columns.set(depths.get(node.id) ?? 0, column)
 	}
-
-	const ranks = new Map(
-		[...groups.keys()].sort((a, b) => a - b).map((depth, rank) => [depth, rank]),
-	)
 	const positions = new Map<string, NodePosition>()
-	for (const [depth, group] of groups) {
-		group.sort((left, right) => left.title.localeCompare(right.title))
-		const rank = ranks.get(depth) ?? 0
-		group.forEach((node, index) => {
-			const offset = nodeOffsets.get(node.id) ?? { x: 0, y: 0 }
+	const maxRowsPerColumn = 8
+	let columnX = 0
+	for (const [, column] of [...columns.entries()].sort(([left], [right]) => left - right)) {
+		column.sort(
+			(left, right) => left.title.localeCompare(right.title) || left.id.localeCompare(right.id),
+		)
+		const columnCount = Math.max(1, Math.ceil(column.length / maxRowsPerColumn))
+		column.forEach((node, index) => {
 			positions.set(node.id, {
-				x: offset.x + rank * (dependencyGraphMetrics.nodeWidth + dependencyGraphMetrics.layerGap),
-				y: offset.y + index * (dependencyGraphMetrics.nodeHeight + dependencyGraphMetrics.rowGap),
+				x:
+					columnX +
+					Math.floor(index / maxRowsPerColumn) *
+						(dependencyGraphMetrics.nodeWidth + dependencyGraphMetrics.rowGap),
+				y:
+					(index % maxRowsPerColumn) *
+					(dependencyGraphMetrics.nodeHeight + dependencyGraphMetrics.rowGap),
 			})
 		})
+		columnX +=
+			columnCount * (dependencyGraphMetrics.nodeWidth + dependencyGraphMetrics.rowGap) +
+			dependencyGraphMetrics.layerGap
 	}
 
 	const rawPositions = [...positions.values()]
@@ -539,7 +576,11 @@ function layoutComponent(
 	const minY = Math.min(...rawPositions.map((position) => position.y))
 	const normalizedPositions = new Map<string, NodePosition>()
 	for (const [id, position] of positions) {
-		normalizedPositions.set(id, { x: position.x - minX, y: position.y - minY })
+		const offset = nodeOffsets.get(id) ?? { x: 0, y: 0 }
+		normalizedPositions.set(id, {
+			x: position.x - minX + offset.x,
+			y: position.y - minY + offset.y,
+		})
 	}
 
 	const nodes = nodesToLayout.map((node) => ({ ...node, ...normalizedPositions.get(node.id)! }))

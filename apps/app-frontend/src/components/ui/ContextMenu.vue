@@ -9,14 +9,21 @@
 				top: top,
 			}"
 		>
-			<div v-for="(option, index) in options" :key="index" @click.stop="optionClicked(option.name)">
+			<div
+				v-for="(option, index) in options"
+				:key="option.name ?? option.id ?? index"
+				@click.stop="optionClicked(option)"
+			>
 				<hr v-if="option.type === 'divider'" class="divider" />
 				<div
-					v-else-if="!(isInstanceLink(item) && option.name === `add_content`)"
+					v-else-if="!(isInstanceLink(item) && optionName(option) === `add_content`)"
 					class="item clickable"
-					:class="[option.color ?? 'base']"
+					:class="[optionColor(option), { disabled: option.disabled }]"
 				>
-					<slot :name="option.name" />
+					<component :is="option.icon" v-if="option.icon" class="size-5" />
+					<slot :name="optionName(option)">
+						{{ option.label ?? optionName(option) }}
+					</slot>
 				</div>
 			</div>
 		</div>
@@ -38,46 +45,48 @@ let justOpened = false
 
 const CLOSE_ALL_EVENT = 'close-all-context-menus'
 
-defineExpose({
-	showMenu: (event, passedItem, passedOptions) => {
-		window.dispatchEvent(new CustomEvent(CLOSE_ALL_EVENT))
+const showMenu = (event, passedItem, passedOptions) => {
+	window.dispatchEvent(new CustomEvent(CLOSE_ALL_EVENT))
 
-		item.value = passedItem
-		options.value = passedOptions
+	item.value = passedItem
+	options.value = passedOptions
 
-		justOpened = true
-		nextTick(() => {
-			justOpened = false
-		})
+	justOpened = true
+	nextTick(() => {
+		justOpened = false
+	})
 
-		// show to get dimensions
-		shown.value = true
+	// show to get dimensions
+	shown.value = true
 
-		// then, adjust position if overflowing
-		nextTick(() => {
-			const menuWidth = contextMenu.value?.clientWidth || 200
-			const menuHeight = contextMenu.value?.clientHeight || 100
-			const minFromEdge = 10
+	// then, adjust position if overflowing
+	nextTick(() => {
+		const menuWidth = contextMenu.value?.clientWidth || 200
+		const menuHeight = contextMenu.value?.clientHeight || 100
+		const minFromEdge = 10
 
-			if (event.pageX + menuWidth + minFromEdge >= window.innerWidth) {
-				left.value = Math.max(minFromEdge, event.pageX - menuWidth - minFromEdge) + 'px'
-			} else {
-				left.value = event.pageX + minFromEdge + 'px'
-			}
+		if (event.pageX + menuWidth + minFromEdge >= window.innerWidth) {
+			left.value = Math.max(minFromEdge, event.pageX - menuWidth - minFromEdge) + 'px'
+		} else {
+			left.value = event.pageX + minFromEdge + 'px'
+		}
 
-			if (event.pageY + menuHeight + minFromEdge >= window.innerHeight) {
-				top.value = Math.max(minFromEdge, event.pageY - menuHeight - minFromEdge) + 'px'
-			} else {
-				top.value = event.pageY + minFromEdge + 'px'
-			}
-		})
-	},
-})
+		if (event.pageY + menuHeight + minFromEdge >= window.innerHeight) {
+			top.value = Math.max(minFromEdge, event.pageY - menuHeight - minFromEdge) + 'px'
+		} else {
+			top.value = event.pageY + minFromEdge + 'px'
+		}
+	})
+}
+
+const optionName = (option) => option.name ?? option.id
+
+const optionColor = (option) => option.color ?? (option.tone === 'red' ? 'danger' : 'base')
 
 const isInstanceLink = (item) => {
-	if (item.instance != undefined && item.instance.link) {
+	if (item?.instance != undefined && item.instance.link) {
 		return true
-	} else if (item != undefined && item.link) {
+	} else if (item?.link) {
 		return true
 	}
 	return false
@@ -89,12 +98,23 @@ const hideContextMenu = () => {
 }
 
 const optionClicked = (option) => {
-	emit('option-clicked', {
-		item: item.value,
-		option: option,
-	})
+	if (option.disabled) return
+	if (option.action) {
+		option.action()
+	} else {
+		emit('option-clicked', {
+			item: item.value,
+			option: optionName(option),
+		})
+	}
 	hideContextMenu()
 }
+
+defineExpose({
+	showMenu,
+	open: (event, passedOptions) => showMenu(event, null, passedOptions),
+	close: hideContextMenu,
+})
 
 const onEscKeyRelease = (event) => {
 	if (event.keyCode === 27) {
@@ -152,6 +172,11 @@ onBeforeUnmount(() => {
 		gap: var(--gap-sm);
 		padding: var(--gap-sm);
 		border-radius: var(--radius-sm);
+
+		&.disabled {
+			cursor: not-allowed;
+			opacity: 0.5;
+		}
 
 		&:hover,
 		&:active {

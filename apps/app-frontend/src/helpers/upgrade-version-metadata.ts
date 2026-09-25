@@ -1,5 +1,10 @@
 import { get_project_many, get_version_many } from './cache.js'
-import { getCurseForgeChangelog, getCurseForgeFile, getCurseForgeProjects } from './curseforge'
+import {
+	getCurseForgeChangelog,
+	getCurseForgeFile,
+	getCurseForgeImageUrl,
+	getCurseForgeProjects,
+} from './curseforge'
 import {
 	type UpgradeReleaseIdentity,
 	upgradeVersionCacheKey,
@@ -74,7 +79,7 @@ export async function loadUpgradeProjectDisplayMetadata(identities: UpgradeProje
 	for (const project of curseForgeProjects) {
 		projectDisplayCache.set(upgradeProjectDisplayCacheKey('curseforge', String(project.id)), {
 			title: project.name,
-			iconUrl: project.logo?.thumbnailUrl ?? project.logo?.url ?? null,
+			iconUrl: getCurseForgeImageUrl(project.logo?.thumbnailUrl ?? project.logo?.url) ?? null,
 		})
 	}
 	return new Map(

@@ -25,6 +25,7 @@
 					aria-modal="true"
 					:aria-labelledby="headerId"
 					class="modal-body flex flex-col bg-surface-3 rounded-2xl border border-solid border-surface-5"
+					:class="{ 'modal-body-fill': fillContent }"
 					v-bind="$attrs"
 					@keydown="handleKeyDown"
 				>
@@ -178,6 +179,8 @@ const props = withDefaults(
 		maxWidth?: string
 		/** Width for the modal body (e.g., '460px', '600px'). */
 		width?: string
+		/** Lets a workspace slot fill the modal body height. */
+		fillContent?: boolean
 		/** Disables all close actions (close button, ESC key, click outside). */
 		disableClose?: boolean
 		actionsDivider?: boolean
@@ -204,6 +207,7 @@ const props = withDefaults(
 		noPadding: false,
 		maxWidth: undefined,
 		width: undefined,
+		fillContent: false,
 		disableClose: false,
 		actionsDivider: false,
 	},
@@ -387,6 +391,24 @@ defineOptions({
 </script>
 
 <style lang="scss" scoped>
+.modal-body-fill {
+	> [data-tauri-drag-region] {
+		flex: 0 0 auto;
+	}
+
+	> [data-modal-content] {
+		display: flex;
+		min-height: 0;
+		flex: 1 1 0%;
+		flex-direction: column;
+		overflow: hidden;
+	}
+
+	> [data-modal-content] > * {
+		min-height: 0;
+	}
+}
+
 .tauri-overlay {
 	position: fixed;
 	visibility: hidden;

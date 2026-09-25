@@ -185,6 +185,8 @@
 					"
 					:loading="loadingVersions"
 					:loading-changelog="loadingChangelog"
+					:action-loading="contentUpdateSubmitting"
+					:hide-on-update="false"
 					@update="handleModalUpdate"
 					@cancel="resetUpdateState"
 					@version-select="handleVersionSelect"
@@ -255,7 +257,11 @@ import {
 import { mergeContentItemMetadata } from '@/helpers/content-item-metadata'
 import { applyContentItemUpdates, matchesContentItem } from '@/helpers/content-item-state'
 import { lookupContentWikiIds, translateContentItemTitles } from '@/helpers/content-search'
-import { type CurseForgeFile, getCurseForgeChangelog } from '@/helpers/curseforge'
+import {
+	getCurseForgeChangelog,
+	getCurseForgeImageUrl,
+	type CurseForgeFile,
+} from '@/helpers/curseforge'
 import {
 	type CurseForgeManualDownloadItem,
 	getCurseForgeManualDownloadUrl,
@@ -351,6 +357,10 @@ const messages = defineMessages({
 		id: 'app.instance.mods.update-added-content.description',
 		defaultMessage:
 			'Updates only content added after the modpack was installed. Modpack files are not changed.',
+	},
+	contentOperationTimedOut: {
+		id: 'app.instance.mods.content-operation-timeout',
+		defaultMessage: 'Timed out waiting for another content operation to finish. Try again.',
 	},
 	contentRefreshWarningTitle: {
 		id: 'app.instance.mods.content-refresh-warning.title',
@@ -789,6 +799,16 @@ const {
 	toggleWorldDatapackItem,
 } = useWorldDatapacks(() => props.instance.id)
 
+function displayContentIconUrl(item: Pick<ContentItem, 'project'>): string | undefined {
+	const iconUrl = item.project?.icon_url
+	if (!iconUrl) return undefined
+	if (item.project?.id.startsWith('curseforge:')) {
+		const resolved = getCurseForgeImageUrl(iconUrl) ?? iconUrl
+		return resolved
+	}
+	return localContentIconUrl(iconUrl)
+}
+
 const mergedProjects = computed<ContentItem[]>(() => {
 	const active = installingItems.value.get(props.instance.id)
 	const pending = active ?? installingBuffer.value
@@ -801,7 +821,7 @@ const mergedProjects = computed<ContentItem[]>(() => {
 						...project,
 						project: {
 							...project.project,
-							icon_url: localContentIconUrl(project.project.icon_url),
+							icon_url: displayContentIconUrl(project),
 						},
 					}
 				: project
@@ -926,7 +946,9 @@ const displayedModpackProject = computed(() => {
 	if (!project) return undefined
 	return {
 		...project,
-		icon_url: localContentIconUrl(project.icon_url || fallbackProject?.icon_url),
+		icon_url: project.id.startsWith('curseforge:')
+			? (getCurseForgeImageUrl(project.icon_url || fallbackProject?.icon_url) ?? project.icon_url)
+			: localContentIconUrl(project.icon_url || fallbackProject?.icon_url),
 	}
 })
 
@@ -1001,7 +1023,16 @@ function allDependencyGraphItems() {
 		const id = getContentItemId(item)
 		if (id) itemsById.set(id, item)
 	}
-	return [...itemsById.values()]
+	return [...itemsById.values()].map((item) => {
+		if (!item.project?.icon_url) return item
+		return {
+			...item,
+			project: {
+				...item.project,
+				icon_url: displayContentIconUrl(item),
+			},
+		}
+	})
 }
 
 function handleViewDependencies() {
@@ -1013,6 +1044,25 @@ const updatingProject = ref<ContentItem | null>(null)
 const updatingProjectVersions = ref<Labrinth.Versions.v2.Version[]>([])
 const loadingVersions = ref(false)
 const loadingChangelog = ref(false)
+const contentUpdateSubmitting = ref(false)
+const CONTENT_OPERATION_TIMEOUT_MS = 30_000
+
+async function withContentOperationTimeout<T>(operation: Promise<T>): Promise<T> {
+	let timeoutId: ReturnType<typeof setTimeout> | undefined
+	try {
+		return await Promise.race([
+			operation,
+			new Promise<T>((_, reject) => {
+				timeoutId = setTimeout(
+					() => reject(new Error(formatMessage(messages.contentOperationTimedOut))),
+					CONTENT_OPERATION_TIMEOUT_MS,
+				)
+			}),
+		])
+	} finally {
+		if (timeoutId) clearTimeout(timeoutId)
+	}
+}
 const updatingModpack = ref(false)
 const pendingModpackUpdateVersion = ref<Labrinth.Versions.v2.Version | null>(null)
 const isModpackUpdateDowngrade = ref(false)
@@ -1510,7 +1560,7 @@ async function promptToggleDependencies(
 		primaryTitle: targets[0]?.project?.title ?? targets[0]?.file_name ?? '',
 		related: related.map((item) => ({
 			title: item.project?.title ?? item.file_name,
-			iconUrl: item.project?.icon_url ?? null,
+			iconUrl: displayContentIconUrl(item) ?? null,
 			versionNumber: item.version?.version_number,
 		})),
 	})
@@ -2310,17 +2360,25 @@ async function handleModpackUpdateConfirm() {
 	const version = pendingModpackUpdateVersion.value
 	pendingModpackUpdateVersion.value = null
 
-	contentUpdaterModal.value?.hide()
 	isModpackUpdating.value = true
+	contentUpdateSubmitting.value = true
+	let succeeded = false
 	try {
-		const plan = await plan_content_updates(props.instance.id, 'pack', version.id)
-		await apply_content_update_plan(plan.id)
+		const plan = await withContentOperationTimeout(
+			plan_content_updates(props.instance.id, 'pack', version.id),
+		)
+		await withContentOperationTimeout(apply_content_update_plan(plan.id))
 		await initProjects()
+		succeeded = true
 	} catch (error) {
 		handleError(error as Error)
 	} finally {
 		isModpackUpdating.value = false
-		resetUpdateState()
+		contentUpdateSubmitting.value = false
+		if (succeeded) {
+			contentUpdaterModal.value?.hide()
+			resetUpdateState()
+		}
 	}
 }
 
@@ -2332,12 +2390,18 @@ async function handleModalUpdate(
 	selectedVersion: Labrinth.Versions.v2.Version,
 	event?: MouseEvent,
 ) {
+	contentUpdateSubmitting.value = true
+	let succeeded = false
 	if (updatingModpack.value) {
-		if (event?.shiftKey) {
-			pendingModpackUpdateVersion.value = selectedVersion
-			await handleModpackUpdateConfirm()
-		} else {
-			await handleModpackUpdateRequest(selectedVersion)
+		try {
+			if (event?.shiftKey) {
+				pendingModpackUpdateVersion.value = selectedVersion
+				await handleModpackUpdateConfirm()
+			} else {
+				await handleModpackUpdateRequest(selectedVersion)
+			}
+		} finally {
+			contentUpdateSubmitting.value = false
 		}
 	} else if (updatingProject.value) {
 		const mod = updatingProject.value
@@ -2348,9 +2412,17 @@ async function handleModalUpdate(
 			} else {
 				await switchProjectVersion(mod, selectedVersion)
 			}
+			succeeded = true
+		} catch {
+			// The operation function has already reported the error; keep the
+			// selected version available for retry.
 		} finally {
-			resetUpdateState()
+			contentUpdateSubmitting.value = false
 		}
+	}
+	if (succeeded) {
+		contentUpdaterModal.value?.hide()
+		resetUpdateState()
 	}
 }
 

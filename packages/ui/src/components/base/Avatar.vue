@@ -93,7 +93,6 @@ const LEGACY_PRESETS: Record<string, string> = {
 }
 
 const cssSize = computed(() => LEGACY_PRESETS[props.size] ?? props.size)
-
 watch(
 	() => props.src,
 	() => {
@@ -102,8 +101,7 @@ watch(
 	},
 )
 
-function onError(e) {
-	console.log('Avatar image failed to load:', props.src, e)
+function onError() {
 	failed.value = true
 }
 

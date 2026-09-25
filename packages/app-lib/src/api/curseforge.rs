@@ -629,7 +629,12 @@ pub(crate) async fn apply_staged_curseforge_upgrade_file_with_state(
         &scope.instance,
     )
     .join(relative_path);
-    let _instance_lock = state.lock_instance_content(instance_id).await;
+    let _instance_lock = state
+        .lock_instance_content_with_timeout(
+            instance_id,
+            std::time::Duration::from_secs(20),
+        )
+        .await?;
     let previous_path =
         crate::state::materialize_project_download(&staged.path, &full_path)
             .await?;
@@ -9038,25 +9043,13 @@ async fn persist_curseforge_database_batch(
         .into());
     }
     let state = State::get().await?;
-    let database_permit_result: crate::Result<_> = tokio::select! {
-        biased;
-        _ = context.cancellation.cancelled() => {
-            Err(ErrorKind::OtherError(
-                "CurseForge modpack database registration canceled".to_string(),
-            ).into())
-        }
-        permit = state.install_db_semaphore.acquire() => permit.map_err(|_| {
-            ErrorKind::OtherError("install database semaphore closed".to_string())
-                .into()
-        }),
-    };
-    let database_permit = match database_permit_result {
-        Ok(permit) => permit,
-        Err(error) => {
-            restore_curseforge_materializations(instance_id, batch).await;
-            return Err(error);
-        }
-    };
+    if context.cancellation.is_cancelled() {
+        restore_curseforge_materializations(instance_id, batch).await;
+        return Err(ErrorKind::OtherError(
+            "CurseForge modpack database registration canceled".to_string(),
+        )
+        .into());
+    }
     let records = batch
         .iter()
         .map(|task| task.record.clone())
@@ -9078,11 +9071,9 @@ async fn persist_curseforge_database_batch(
         )
         .await;
     if let Err(error) = write_result {
-        drop(database_permit);
         restore_curseforge_materializations(instance_id, batch).await;
         return Err(error);
     }
-    drop(database_permit);
     finalize_curseforge_materializations(batch).await;
 
     if context.cancellation.is_cancelled() {
@@ -9332,13 +9323,13 @@ async fn download_installed_file(
     }
     // Transfers remain concurrent; publishing into an instance is bounded so
     // SQLite writer transactions cannot stampede each other.
+    let _instance_lock = state.lock_instance_content(instance_id).await;
     let _publish_permit =
         state.install_db_semaphore.acquire().await.map_err(|_| {
             ErrorKind::OtherError(
                 "content publish semaphore closed".to_string(),
             )
         })?;
-    let _instance_lock = state.lock_instance_content(instance_id).await;
     let previous_path =
         crate::state::materialize_project_download(download_path, &full_path)
             .await?;
@@ -9683,7 +9674,7 @@ impl From<CurseForgeProject> for UnifiedSearchHit {
             categories,
             versions,
             downloads: project.download_count,
-            icon_url: project.logo.map(|logo| logo.thumbnail_url),
+            icon_url: project.logo.map(|logo| logo.url),
             date_created: project.date_created,
             date_modified: project.date_modified,
             latest_version: project

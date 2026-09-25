@@ -128,27 +128,8 @@ export function hasCompatibleCurseForgeFile(files: CurseForgeFile[], gameVersion
 	return files.some((file) => file.isAvailable && file.gameVersions.includes(gameVersion))
 }
 
-export function getCurseForgeImageUrl(source?: string | null, width = 256): string | undefined {
-	if (!source) return undefined
-
-	try {
-		const url = new URL(source)
-		if (url.protocol !== 'https:' || !url.hostname.endsWith('forgecdn.net')) return source
-
-		const proxy = new URL('https://images.weserv.nl/')
-		proxy.searchParams.set('url', source)
-		proxy.searchParams.set('w', String(width))
-		proxy.searchParams.set('fit', 'contain')
-		if (url.pathname.toLowerCase().endsWith('.gif')) {
-			proxy.searchParams.set('output', 'gif')
-			proxy.searchParams.set('n', '-1')
-		} else {
-			proxy.searchParams.set('output', 'webp')
-		}
-		return proxy.toString()
-	} catch {
-		return source
-	}
+export function getCurseForgeImageUrl(source?: string | null, _width = 256): string | undefined {
+	return source ?? undefined
 }
 
 export interface CurseForgeFilesResponse {

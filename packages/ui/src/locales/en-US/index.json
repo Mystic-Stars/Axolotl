@@ -2063,6 +2063,9 @@
   "image-viewer.edit": {
     "defaultMessage": "Edit"
   },
+  "image-viewer.metadata": {
+    "defaultMessage": "{size} · {width} × {height} px"
+  },
   "image-viewer.editor.colour": {
     "defaultMessage": "Colour"
   },

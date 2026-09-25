@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ShieldIcon } from '@modrinth/assets'
-import { onClickOutside } from '@vueuse/core'
-import { computed, ref, useTemplateRef } from 'vue'
+import { Dropdown } from 'floating-vue'
+import { computed, ref } from 'vue'
 
 import { defineMessages, useVIntl } from '#ui/composables/i18n'
 import {
@@ -82,14 +82,9 @@ const messages = defineMessages({
 
 const model = defineModel<ArmorPreviewConfig>({ required: true })
 const { formatMessage } = useVIntl()
-const root = useTemplateRef<HTMLElement>('root')
 const isOpen = ref(false)
 const selectedSlot = ref<ArmorSlot>('helmet')
 const selectedPiece = computed(() => model.value[selectedSlot.value])
-
-onClickOutside(root, () => {
-	isOpen.value = false
-})
 
 function slotLabel(slot: ArmorSlot): string {
 	return formatMessage(messages[slot])
@@ -142,151 +137,139 @@ function setTrimMaterial(trimMaterial: ArmorTrimMaterial): void {
 </script>
 
 <template>
-	<div
-		ref="root"
-		class="armor-preview-controls"
-		@pointerdown.stop
-		@pointermove.stop
-		@pointerup.stop
-		@click.stop
-	>
-		<button
-			v-tooltip="formatMessage(messages.armorPreview)"
-			class="armor-preview-trigger"
-			:class="{ 'armor-preview-trigger--active': isOpen }"
-			:aria-label="formatMessage(messages.armorPreview)"
-			:aria-expanded="isOpen"
-			@click="isOpen = !isOpen"
+	<div class="pointer-events-auto" @pointerdown.stop @pointermove.stop @pointerup.stop @click.stop>
+		<Dropdown
+			v-model:shown="isOpen"
+			placement="right-start"
+			:triggers="['click']"
+			:hide-triggers="['click']"
 		>
-			<ShieldIcon aria-hidden="true" />
-			<span>{{ formatMessage(messages.armorPreview) }}</span>
-		</button>
+			<button
+				class="flex h-10 min-w-0 cursor-pointer items-center justify-center gap-2 rounded-[14px] border-0 bg-surface-4 px-4 py-2.5 text-base font-semibold leading-5 shadow-md transition-[filter,transform] duration-200 hover:brightness-[--hover-brightness] focus-visible:brightness-[--hover-brightness] active:scale-95 [&>svg]:size-5 [&>svg]:shrink-0"
+				:aria-label="formatMessage(messages.armorPreview)"
+				:aria-expanded="isOpen"
+			>
+				<ShieldIcon aria-hidden="true" />
+				<span>{{ formatMessage(messages.armorPreview) }}</span>
+			</button>
+			<template #popper>
+				<div class="armor-preview-panel">
+					<section class="armor-preview-section">
+						<h3>{{ formatMessage(messages.armorPiece) }}</h3>
+						<div class="armor-preview-options armor-preview-options--four">
+							<button
+								v-for="slot in ARMOR_SLOTS"
+								:key="slot"
+								v-tooltip="slotTooltip(slot)"
+								class="armor-preview-option"
+								:class="{ 'armor-preview-option--selected': selectedSlot === slot }"
+								:aria-label="slotTooltip(slot)"
+								:aria-pressed="selectedSlot === slot"
+								@click="selectedSlot = slot"
+							>
+								<img
+									alt=""
+									:src="
+										model[slot].material
+											? getArmorItemIcon(model[slot].material, slot)
+											: getArmorSlotIcon(slot)
+									"
+								/>
+							</button>
+						</div>
+					</section>
 
-		<Transition name="armor-preview-panel">
-			<div v-if="isOpen" class="armor-preview-panel">
-				<section class="armor-preview-section">
-					<h3>{{ formatMessage(messages.armorPiece) }}</h3>
-					<div class="armor-preview-options armor-preview-options--four">
-						<button
-							v-for="slot in ARMOR_SLOTS"
-							:key="slot"
-							v-tooltip="slotTooltip(slot)"
-							class="armor-preview-option"
-							:class="{ 'armor-preview-option--selected': selectedSlot === slot }"
-							:aria-label="slotTooltip(slot)"
-							:aria-pressed="selectedSlot === slot"
-							@click="selectedSlot = slot"
-						>
-							<img
-								alt=""
-								:src="
-									model[slot].material
-										? getArmorItemIcon(model[slot].material, slot)
-										: getArmorSlotIcon(slot)
-								"
-							/>
-						</button>
-					</div>
-				</section>
+					<section class="armor-preview-section">
+						<h3>{{ formatMessage(messages.armorMaterial) }}</h3>
+						<div class="armor-preview-options">
+							<button
+								v-tooltip="formatMessage(messages.removePiece, { slot: slotLabel(selectedSlot) })"
+								class="armor-preview-option"
+								:class="{ 'armor-preview-option--selected': !selectedPiece.material }"
+								:aria-label="formatMessage(messages.removePiece, { slot: slotLabel(selectedSlot) })"
+								:aria-pressed="!selectedPiece.material"
+								@click="setMaterial(null)"
+							>
+								<img alt="" :src="getArmorSlotIcon(selectedSlot)" />
+							</button>
+							<button
+								v-for="material in armorMaterialsForSlot(selectedSlot)"
+								:key="material"
+								v-tooltip="materialTooltip(material)"
+								class="armor-preview-option"
+								:class="{ 'armor-preview-option--selected': selectedPiece.material === material }"
+								:aria-label="materialTooltip(material)"
+								:aria-pressed="selectedPiece.material === material"
+								@click="setMaterial(material)"
+							>
+								<img alt="" :src="getArmorItemIcon(material, selectedSlot)" />
+							</button>
+						</div>
+					</section>
 
-				<section class="armor-preview-section">
-					<h3>{{ formatMessage(messages.armorMaterial) }}</h3>
-					<div class="armor-preview-options">
-						<button
-							v-tooltip="formatMessage(messages.removePiece, { slot: slotLabel(selectedSlot) })"
-							class="armor-preview-option"
-							:class="{ 'armor-preview-option--selected': !selectedPiece.material }"
-							:aria-label="formatMessage(messages.removePiece, { slot: slotLabel(selectedSlot) })"
-							:aria-pressed="!selectedPiece.material"
-							@click="setMaterial(null)"
-						>
-							<img alt="" :src="getArmorSlotIcon(selectedSlot)" />
-						</button>
-						<button
-							v-for="material in armorMaterialsForSlot(selectedSlot)"
-							:key="material"
-							v-tooltip="materialTooltip(material)"
-							class="armor-preview-option"
-							:class="{ 'armor-preview-option--selected': selectedPiece.material === material }"
-							:aria-label="materialTooltip(material)"
-							:aria-pressed="selectedPiece.material === material"
-							@click="setMaterial(material)"
-						>
-							<img alt="" :src="getArmorItemIcon(material, selectedSlot)" />
-						</button>
-					</div>
-				</section>
+					<section v-if="selectedPiece.material" class="armor-preview-section">
+						<h3>{{ formatMessage(messages.trimPattern) }}</h3>
+						<div class="armor-preview-options">
+							<button
+								v-tooltip="formatMessage(messages.removeTrim)"
+								class="armor-preview-option"
+								:class="{ 'armor-preview-option--selected': !selectedPiece.trimPattern }"
+								:aria-label="formatMessage(messages.removeTrim)"
+								:aria-pressed="!selectedPiece.trimPattern"
+								@click="setTrimPattern(null)"
+							>
+								<img alt="" :src="getArmorSlotIcon(selectedSlot)" />
+							</button>
+							<button
+								v-for="pattern in ARMOR_TRIM_PATTERNS"
+								:key="pattern"
+								v-tooltip="patternLabel(pattern)"
+								class="armor-preview-option"
+								:class="{ 'armor-preview-option--selected': selectedPiece.trimPattern === pattern }"
+								:aria-label="patternLabel(pattern)"
+								:aria-pressed="selectedPiece.trimPattern === pattern"
+								@click="setTrimPattern(pattern)"
+							>
+								<img alt="" :src="getTrimPatternIcon(pattern)" />
+							</button>
+						</div>
+					</section>
 
-				<section v-if="selectedPiece.material" class="armor-preview-section">
-					<h3>{{ formatMessage(messages.trimPattern) }}</h3>
-					<div class="armor-preview-options">
-						<button
-							v-tooltip="formatMessage(messages.removeTrim)"
-							class="armor-preview-option"
-							:class="{ 'armor-preview-option--selected': !selectedPiece.trimPattern }"
-							:aria-label="formatMessage(messages.removeTrim)"
-							:aria-pressed="!selectedPiece.trimPattern"
-							@click="setTrimPattern(null)"
-						>
-							<img alt="" :src="getArmorSlotIcon(selectedSlot)" />
-						</button>
-						<button
-							v-for="pattern in ARMOR_TRIM_PATTERNS"
-							:key="pattern"
-							v-tooltip="patternLabel(pattern)"
-							class="armor-preview-option"
-							:class="{ 'armor-preview-option--selected': selectedPiece.trimPattern === pattern }"
-							:aria-label="patternLabel(pattern)"
-							:aria-pressed="selectedPiece.trimPattern === pattern"
-							@click="setTrimPattern(pattern)"
-						>
-							<img alt="" :src="getTrimPatternIcon(pattern)" />
-						</button>
-					</div>
-				</section>
-
-				<section
-					v-if="selectedPiece.material && selectedPiece.trimPattern"
-					class="armor-preview-section"
-				>
-					<h3>{{ formatMessage(messages.trimMaterial) }}</h3>
-					<div class="armor-preview-options">
-						<button
-							v-for="material in ARMOR_TRIM_MATERIALS"
-							:key="material"
-							v-tooltip="materialLabel(material)"
-							class="armor-preview-option"
-							:class="{ 'armor-preview-option--selected': selectedPiece.trimMaterial === material }"
-							:aria-label="materialLabel(material)"
-							:aria-pressed="selectedPiece.trimMaterial === material"
-							@click="setTrimMaterial(material)"
-						>
-							<img alt="" :src="getTrimMaterialIcon(material)" />
-						</button>
-					</div>
-				</section>
-			</div>
-		</Transition>
+					<section
+						v-if="selectedPiece.material && selectedPiece.trimPattern"
+						class="armor-preview-section"
+					>
+						<h3>{{ formatMessage(messages.trimMaterial) }}</h3>
+						<div class="armor-preview-options">
+							<button
+								v-for="material in ARMOR_TRIM_MATERIALS"
+								:key="material"
+								v-tooltip="materialLabel(material)"
+								class="armor-preview-option"
+								:class="{
+									'armor-preview-option--selected': selectedPiece.trimMaterial === material,
+								}"
+								:aria-label="materialLabel(material)"
+								:aria-pressed="selectedPiece.trimMaterial === material"
+								@click="setTrimMaterial(material)"
+							>
+								<img alt="" :src="getTrimMaterialIcon(material)" />
+							</button>
+						</div>
+					</section>
+				</div>
+			</template>
+		</Dropdown>
 	</div>
 </template>
 
 <style scoped lang="scss">
-.armor-preview-controls {
-	position: absolute;
-	top: 1rem;
-	right: 1rem;
-	z-index: 20;
-	display: flex;
-	align-items: flex-end;
-	flex-direction: column;
-	gap: 0.5rem;
-	pointer-events: auto;
-}
-
-.armor-preview-trigger,
 .armor-preview-option {
 	box-sizing: border-box;
 	height: 2.5rem;
+	width: 2.5rem;
+	display: grid;
+	place-items: center;
 	padding: 0.375rem;
 	cursor: pointer;
 	color: var(--color-base);
@@ -300,46 +283,25 @@ function setTrimMaterial(trimMaterial: ArmorTrimMaterial): void {
 		transform 120ms ease;
 }
 
-.armor-preview-trigger {
-	display: flex;
-	align-items: center;
-	gap: 0.375rem;
-	width: auto;
-	padding-inline: 0.625rem;
-	font-weight: 600;
-	white-space: nowrap;
-}
-
-.armor-preview-option {
-	display: grid;
-	place-items: center;
-	width: 2.5rem;
-}
-
-.armor-preview-trigger:hover,
 .armor-preview-option:hover {
 	background: var(--surface-4);
 	border-color: var(--color-brand);
 }
 
-.armor-preview-trigger:active,
 .armor-preview-option:active {
 	transform: scale(0.94);
 }
 
-.armor-preview-trigger:focus-visible,
 .armor-preview-option:focus-visible {
 	outline: 2px solid var(--color-brand);
 	outline-offset: 2px;
 }
 
-.armor-preview-trigger--active,
 .armor-preview-option--selected {
 	background: var(--color-brand-highlight);
 	border-color: var(--color-brand);
 }
 
-.armor-preview-trigger > svg,
 .armor-preview-option > svg {
 	flex-shrink: 0;
 	width: 1.35rem;
@@ -358,12 +320,7 @@ function setTrimMaterial(trimMaterial: ArmorTrimMaterial): void {
 	box-sizing: border-box;
 	width: min(19rem, calc(100vw - 2rem));
 	max-height: min(39rem, calc(100vh - 8rem));
-	padding: 0.75rem;
 	overflow-y: auto;
-	background: var(--surface-2);
-	border: 1px solid var(--surface-5);
-	border-radius: 6px;
-	box-shadow: 0 8px 24px rgb(0 0 0 / 28%);
 }
 
 .armor-preview-section + .armor-preview-section {
@@ -390,26 +347,7 @@ function setTrimMaterial(trimMaterial: ArmorTrimMaterial): void {
 	grid-template-columns: repeat(4, 2.5rem);
 }
 
-.armor-preview-panel-enter-active,
-.armor-preview-panel-leave-active {
-	transition:
-		opacity 120ms ease,
-		transform 120ms ease;
-	transform-origin: top right;
-}
-
-.armor-preview-panel-enter-from,
-.armor-preview-panel-leave-to {
-	opacity: 0;
-	transform: scale(0.97);
-}
-
 @media (max-width: 520px) {
-	.armor-preview-controls {
-		top: 0.5rem;
-		right: 0.5rem;
-	}
-
 	.armor-preview-panel {
 		max-height: calc(100vh - 6rem);
 	}

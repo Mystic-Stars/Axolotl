@@ -1,4 +1,12 @@
 export * from './console-state'
+export {
+	ARMOR_SLOTS,
+	ARMOR_TRIM_MATERIALS,
+	ARMOR_TRIM_PATTERNS,
+	armorMaterialsForSlot,
+	createDefaultArmorPreviewConfig,
+} from './skin-rendering/armor-preview-types'
+export type { ArmorPreviewConfig } from './skin-rendering/armor-preview-types'
 export * from './debug-logger'
 export * from './dynamic-font-size'
 export * from './format-bytes'

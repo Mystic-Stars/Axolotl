@@ -1547,6 +1547,8 @@ export function useImageEditor() {
 		zoom,
 		fitScale,
 		isFit,
+		originalWidth,
+		originalHeight,
 		canUndo,
 		canRedo,
 		canDelete,

@@ -1,13 +1,17 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
+import { useFormatBytes } from '#ui/composables/format-bytes'
+import { useVIntl } from '#ui/composables/i18n'
 import { injectImageViewerEditor } from '#ui/providers/image-viewer-editor'
 
 import Editor from './editor.vue'
+import { imageViewerEditorMessages as messages } from './image-viewer-editor-messages'
 import type { ImageViewerEditorMode } from './image-viewer-editor-types'
 import type {
 	ImageViewerEditorData,
 	ImageViewerEditorItem,
+	ImageViewerEditorMetadata,
 	ImageViewerEditorSavePayload,
 } from './types'
 
@@ -36,9 +40,12 @@ const activeId = ref<string | null>(null)
 const mode = ref<ImageViewerEditorMode>('view')
 const closeAfterEditing = ref(false)
 const editorComponent = ref<InstanceType<typeof Editor>>()
+const activeMetadata = ref<ImageViewerEditorMetadata | null>(null)
 const context = injectImageViewerEditor(null)
 const itemDataCache = new Map<string, Promise<ImageViewerEditorData>>()
 const itemImageCache = new Map<string, HTMLImageElement>()
+const formatBytes = useFormatBytes()
+const { formatMessage } = useVIntl()
 
 const activeIndex = computed(() => props.items.findIndex((item) => item.id === activeId.value))
 const activeItem = computed(() => props.items[activeIndex.value] ?? null)
@@ -49,7 +56,8 @@ const canEdit = computed(
 		Boolean(activeItem.value?.editorSource),
 )
 
-watch(activeItem, (item) => {
+watch(activeItem, (item, previousItem) => {
+	if (item?.id !== previousItem?.id || item?.src !== previousItem?.src) activeMetadata.value = null
 	if (!item && activeId.value !== null) hide()
 })
 
@@ -217,61 +225,96 @@ defineExpose({ show, edit, hide, next, previous, markSavedAndView })
 
 <template>
 	<Teleport to="body">
-		<div
-			v-if="activeItem"
-			class="fixed inset-0 z-[110] overflow-hidden bg-black/95 text-white"
-			role="dialog"
-			aria-modal="true"
-			:aria-label="activeItem.title || activeItem.alt"
-			@click.self="mode === 'view' && hide()"
-		>
-			<header
-				v-if="activeItem.title || activeItem.description"
-				class="absolute inset-x-6 top-[calc(var(--top-bar-height,3rem)_+_1.5rem)] z-10 min-w-0"
-				@click.stop
+		<Transition name="image-viewer">
+			<div
+				v-if="activeItem"
+				class="fixed inset-0 z-[110] overflow-hidden bg-black/95 text-white"
+				role="dialog"
+				aria-modal="true"
+				:aria-label="activeItem.title || activeItem.alt"
+				@click.self="mode === 'view' && hide()"
 			>
-				<div class="viewer-heading-text w-fit min-w-0 max-w-full">
-					<h2
-						v-if="activeItem.title"
-						class="m-0 max-w-[min(42rem,70vw)] truncate text-base font-semibold leading-snug text-contrast"
-					>
-						{{ activeItem.title }}
-					</h2>
-					<p
-						v-if="activeItem.description"
-						class="mb-0 mt-1 max-w-[min(42rem,70vw)] truncate text-xs leading-snug text-white"
-					>
-						{{ activeItem.description }}
-					</p>
-				</div>
-			</header>
+				<header
+					v-if="activeItem.title || activeItem.description || activeMetadata"
+					class="absolute inset-x-6 top-[calc(var(--top-bar-height,3rem)_+_1.5rem)] z-10 min-w-0"
+					@click.stop
+				>
+					<div class="viewer-heading-text w-fit min-w-0 max-w-full">
+						<h2
+							v-if="activeItem.title"
+							class="m-0 max-w-[min(42rem,70vw)] truncate text-base font-semibold leading-snug text-contrast"
+						>
+							{{ activeItem.title }}
+						</h2>
+						<p
+							v-if="activeItem.description"
+							class="mb-0 mt-1 max-w-[min(42rem,70vw)] truncate text-xs leading-snug text-white"
+						>
+							{{ activeItem.description }}
+						</p>
+						<p
+							v-if="activeMetadata"
+							class="mb-0 mt-1 max-w-[min(42rem,70vw)] truncate text-xs leading-snug text-white"
+						>
+							{{
+								formatMessage(messages.metadata, {
+									size: formatBytes(activeMetadata.size),
+									width: activeMetadata.width,
+									height: activeMetadata.height,
+								})
+							}}
+						</p>
+					</div>
+				</header>
 
-			<Editor
-				ref="editorComponent"
-				:item="activeItem"
-				:mode="mode"
-				:index="activeIndex"
-				:count="items.length"
-				:can-edit="canEdit"
-				:saving="saving"
-				:load-data="loadItemData"
-				@close="hide"
-				@edit="beginEditing"
-				@next="next"
-				@previous="previous"
-				@cancel="finishEditing"
-				@save="emit('save', $event)"
-			>
-				<template #actions>
-					<slot name="actions" :item="activeItem" :index="activeIndex" :hide="hide" />
-				</template>
-			</Editor>
-		</div>
+				<Editor
+					ref="editorComponent"
+					:item="activeItem"
+					:mode="mode"
+					:index="activeIndex"
+					:count="items.length"
+					:can-edit="canEdit"
+					:saving="saving"
+					:load-data="loadItemData"
+					@close="hide"
+					@edit="beginEditing"
+					@next="next"
+					@previous="previous"
+					@metadata="activeMetadata = $event"
+					@cancel="finishEditing"
+					@save="emit('save', $event)"
+				>
+					<template #actions>
+						<slot name="actions" :item="activeItem" :index="activeIndex" :hide="hide" />
+					</template>
+				</Editor>
+			</div>
+		</Transition>
 	</Teleport>
 </template>
 
 <style scoped>
+.image-viewer-enter-active {
+	transition: opacity 180ms ease-out;
+}
+
+.image-viewer-leave-active {
+	transition: opacity 120ms ease-in;
+}
+
+.image-viewer-enter-from,
+.image-viewer-leave-to {
+	opacity: 0;
+}
+
 .viewer-heading-text {
 	filter: drop-shadow(0 2px 3px rgb(0 0 0 / 90%));
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.image-viewer-enter-active,
+	.image-viewer-leave-active {
+		transition: none;
+	}
 }
 </style>

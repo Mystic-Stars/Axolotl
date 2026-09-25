@@ -605,7 +605,7 @@ const data = computed(() => {
 		project_type: projectType.value,
 		downloads: value.downloadCount,
 		followers: 0,
-		icon_url: getCurseForgeImageUrl(value.logo?.thumbnailUrl),
+		icon_url: getCurseForgeImageUrl(value.logo?.url ?? value.logo?.thumbnailUrl),
 		color: null,
 		status: 'approved',
 		categories: value.categories.map((category) => category.slug),
@@ -886,7 +886,7 @@ async function installSelected(fileId: string | null) {
 			versionId: resolvedFileId.toString(),
 			contentType: projectType.value as 'mod' | 'resourcepack' | 'datapack' | 'shader' | 'world',
 			title: project.value.name,
-			iconUrl: getCurseForgeImageUrl(project.value.logo?.thumbnailUrl),
+			iconUrl: getCurseForgeImageUrl(project.value.logo?.url ?? project.value.logo?.thumbnailUrl),
 			slug: project.value.slug,
 			preferences: {
 				gameVersions: usesTargetGameVersion(projectType.value) ? [target.game_version] : [],

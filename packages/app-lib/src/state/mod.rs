@@ -993,6 +993,23 @@ impl State {
         self.instance_locks.lock(instance_id).await
     }
 
+    /// Acquire the content lock without allowing a UI operation to wait forever.
+    pub(crate) async fn lock_instance_content_with_timeout(
+        &self,
+        instance_id: &str,
+        timeout: std::time::Duration,
+    ) -> crate::Result<InstanceLockGuard> {
+        tokio::time::timeout(timeout, self.lock_instance_content(instance_id))
+            .await
+            .map_err(|_| {
+                crate::ErrorKind::InputError(
+                    "Timed out waiting for another content operation to finish"
+                        .to_string(),
+                )
+                .into()
+            })
+    }
+
     pub(crate) async fn lock_instance_content_exclusive(
         &self,
         instance_id: &str,

@@ -245,22 +245,12 @@ async fn persist_modpack_record_batch(
         return Ok(());
     }
     let state = State::get().await?;
-    let _permit = tokio::select! {
-        biased;
-        _ = cancellation.cancelled() => {
-            return Err(crate::ErrorKind::OtherError(
-                "modpack database registration canceled".to_string(),
-            ).into());
-        }
-        permit = tokio::time::timeout(
-            FINALIZE_WAIT_TIMEOUT,
-            state.install_db_semaphore.acquire(),
-        ) => permit.map_err(|_| {
-            crate::ErrorKind::NetworkError(
-                "timed out waiting for modpack database".to_string(),
-            )
-        })??,
-    };
+    if cancellation.is_cancelled() {
+        return Err(crate::ErrorKind::OtherError(
+            "modpack database registration canceled".to_string(),
+        )
+        .into());
+    }
     let records = batch
         .iter()
         .map(|task| task.record.clone())
@@ -2077,15 +2067,12 @@ pub(crate) async fn install_zipped_mrpack_files_with_reporter(
             return Ok(());
         }
         let cancellation = reporter.cancellation_token();
-        let _permit = tokio::select! {
-            biased;
-            _ = cancellation.cancelled() => {
-                return Err(crate::ErrorKind::OtherError(
-                    "modpack override registration canceled".to_string(),
-                ).into());
-            }
-            permit = state.install_db_semaphore.acquire() => permit?,
-        };
+        if cancellation.is_cancelled() {
+            return Err(crate::ErrorKind::OtherError(
+                "modpack override registration canceled".to_string(),
+            )
+            .into());
+        }
         let record_context =
             InstallErrorContext::new("record modpack overrides")
                 .maybe_project_id(project_id.clone())
@@ -2104,7 +2091,6 @@ pub(crate) async fn install_zipped_mrpack_files_with_reporter(
                 state,
             )
             .await;
-        drop(_permit);
         reporter
             .preserve_failure_context(record_context, record_result)
             .await?;

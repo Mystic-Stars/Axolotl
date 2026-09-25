@@ -1875,6 +1875,7 @@ function mapCurseForgeHit(hit: UnifiedSearchHit) {
 		}
 		return localizeCurseForgeLabel(cat)
 	})
+	const iconUrl = getCurseForgeImageUrl(hit.icon_url)
 
 	return {
 		project_id: `curseforge:${hit.project_id}`,
@@ -1891,7 +1892,7 @@ function mapCurseForgeHit(hit: UnifiedSearchHit) {
 		versions: hit.versions,
 		downloads: hit.downloads,
 		follows: 0,
-		icon_url: getCurseForgeImageUrl(hit.icon_url),
+		icon_url: iconUrl,
 		date_created: hit.date_created,
 		date_modified: hit.date_modified,
 		latest_version: hit.latest_version ?? '',

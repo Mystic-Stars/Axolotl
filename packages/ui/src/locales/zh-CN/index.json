@@ -4619,6 +4619,9 @@
   "image-viewer.edit": {
     "message": "编辑"
   },
+  "image-viewer.metadata": {
+    "message": "{size} · {width} × {height} 像素"
+  },
   "image-viewer.editor.colour": {
     "message": "颜色"
   },

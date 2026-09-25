@@ -462,12 +462,19 @@ async fn publish_actions(
                 InstallPhaseDetails::Empty,
             )
             .await?;
-        let _instance_lock = state.lock_instance_content(instance_id).await;
-        let current = crate::api::instance::projects::content_mutation_target(
-            instance_id,
-            &actions[index].content_id,
-        )
-        .await;
+        let current = {
+            let _instance_lock = state
+                .lock_instance_content_with_timeout(
+                    instance_id,
+                    std::time::Duration::from_secs(20),
+                )
+                .await?;
+            crate::api::instance::projects::content_mutation_target(
+                instance_id,
+                &actions[index].content_id,
+            )
+            .await
+        };
         check_canceled(cancellation)?;
         let result = match current {
             Ok(current)
@@ -487,8 +494,17 @@ async fn publish_actions(
                 actions[index].set_status(
                     crate::install::ContentChangeActionStatus::Applying,
                 );
+                // Progress persistence uses the install database semaphore.
+                // The content lock was released above before awaiting it so
+                // this task cannot form a lock-order cycle with DB workers.
                 persist_actions(job_state, reporter, actions).await?;
                 check_canceled(cancellation)?;
+                let _instance_lock = state
+                    .lock_instance_content_with_timeout(
+                        instance_id,
+                        std::time::Duration::from_secs(20),
+                    )
+                    .await?;
                 publish_downloaded_action(
                     instance_id,
                     &actions[index],
@@ -520,6 +536,8 @@ async fn publish_actions(
                 actions[index].error = Some(error.to_string());
             }
         }
+        // The content lock is intentionally released before persisting the
+        // install-job checkpoint (see the Applying branch above).
         persist_actions(job_state, reporter, actions).await?;
     }
     Ok(())

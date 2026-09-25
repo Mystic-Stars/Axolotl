@@ -6,7 +6,6 @@
 		class="relative w-full h-full overflow-visible cursor-grab"
 		@click="onCanvasClick"
 	>
-		<ArmorPreviewControls v-if="armorPreview" v-model="armorConfig" />
 		<div
 			class="absolute left-0 right-0 z-10 flex items-center justify-center pointer-events-none"
 			:style="previewControlsPositionStyle"
@@ -19,12 +18,17 @@
 			</span>
 		</div>
 		<div
-			v-if="$slots.subtitle"
+			v-if="$slots.subtitle || armorPreview"
 			class="absolute left-0 right-0 z-10 flex items-center justify-center pointer-events-none"
 			:style="subtitlePositionStyle"
 		>
-			<div ref="subtitleElement" class="pointer-events-auto" @click="ignoreControlClick">
+			<div
+				ref="subtitleElement"
+				class="flex max-w-[calc(100vw-2rem)] flex-wrap items-center justify-center gap-2 pointer-events-auto"
+				@click="ignoreControlClick"
+			>
 				<slot name="subtitle" />
+				<ArmorPreviewControls v-if="armorPreview" v-model="armorConfig" />
 			</div>
 		</div>
 		<div
@@ -287,7 +291,9 @@ const {
 	},
 })
 
-const armorConfig = ref<ArmorPreviewConfig>(createDefaultArmorPreviewConfig())
+const armorConfig = defineModel<ArmorPreviewConfig>('armorConfig', {
+	default: createDefaultArmorPreviewConfig,
+})
 
 const { isModelLoaded, isTextureLoaded, modelCenter, modelSize, scene } = useSkinPreviewScene({
 	selectedModelSrc,
