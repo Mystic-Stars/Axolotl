@@ -40,7 +40,6 @@
 		"dayjs": "^1.11.23",
 		"deepslate": "^0.26.2",
 		"fflate": "^0.8.3",
-		"floating-vue": "^5.2.2",
 		"fuse.js": "^6.6.2",
 		"intl-messageformat": "^10.7.18",
 		"monaco-editor": "^0.56.0",

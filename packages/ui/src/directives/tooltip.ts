@@ -1,6 +1,14 @@
 import '../styles/overlays.css'
 
-import { autoUpdate, computePosition, flip, offset, type Placement, shift } from '@floating-ui/vue'
+import {
+	arrow,
+	autoUpdate,
+	computePosition,
+	flip,
+	offset,
+	type Placement,
+	shift,
+} from '@floating-ui/vue'
 import type { ObjectDirective } from 'vue'
 
 import { resolveTooltipContent, type TooltipValue } from './tooltip-value'
@@ -54,6 +62,9 @@ function createTooltip(trigger: HTMLElement, modifier: Placement | null): Toolti
 	// `aria-describedby` has to resolve to a real element, so the id is assigned
 	// once and reused for every show.
 	popper.id = `tooltip-${++tooltipCounter}`
+	const arrowElement = document.createElement('span')
+	arrowElement.className = 'tooltip-popper-arrow'
+	arrowElement.setAttribute('aria-hidden', 'true')
 
 	// The value is held here rather than captured from the binding passed to
 	// `mounted`: Vue swaps that binding object on every re-render, so a closure
@@ -79,6 +90,7 @@ function createTooltip(trigger: HTMLElement, modifier: Placement | null): Toolti
 			popper.textContent = resolved.text
 		}
 
+		popper.appendChild(arrowElement)
 		;(document.getElementById('teleports') ?? document.body).appendChild(popper)
 
 		const placement = modifier ?? resolved.options.placement ?? 'top'
@@ -90,14 +102,35 @@ function createTooltip(trigger: HTMLElement, modifier: Placement | null): Toolti
 	}
 
 	async function updatePosition(placement: Placement) {
-		const { x, y } = await computePosition(trigger, popper, {
+		const {
+			x,
+			y,
+			placement: finalPlacement,
+			middlewareData,
+		} = await computePosition(trigger, popper, {
 			placement,
 			// `fixed` so the returned coordinates are viewport-relative, matching
 			// the popper's `position: fixed`.
 			strategy: 'fixed',
-			middleware: [offset(DISTANCE_PX), flip(), shift({ padding: 8 })],
+			middleware: [
+				offset(DISTANCE_PX),
+				flip(),
+				shift({ padding: 8 }),
+				arrow({ element: arrowElement, padding: 7 }),
+			],
 		})
 		popper.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px)`
+		const side = finalPlacement.split('-')[0]
+		arrowElement.dataset.side = side
+		if (side === 'top' || side === 'bottom') {
+			arrowElement.style.left =
+				middlewareData.arrow?.x === undefined ? '' : `${middlewareData.arrow.x}px`
+			arrowElement.style.top = ''
+		} else {
+			arrowElement.style.left = ''
+			arrowElement.style.top =
+				middlewareData.arrow?.y === undefined ? '' : `${middlewareData.arrow.y}px`
+		}
 	}
 
 	function unmount() {

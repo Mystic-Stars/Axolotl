@@ -3281,19 +3281,17 @@ function clampWorldCoordinate(value: number) {
 	--_hover-icon: var(--color-red);
 }
 
-:global(.v-popper__popper.seed-map-history-popout) {
+:global(.seed-map-history-popout) {
 	--seed-history-panel-bg: var(--surface-2);
 	--seed-history-row-bg: var(--surface-4);
 	--seed-history-row-hover-bg: var(--surface-3);
 	--seed-history-border: var(--surface-5);
 	--seed-history-shadow: 0 18px 48px color-mix(in srgb, var(--surface-5) 55%, transparent);
-	--_popper-arrow-bg: var(--seed-history-panel-bg);
-	--_popper-arrow-border: var(--seed-history-border);
 	z-index: 10050 !important;
 }
 
-:global(html.dark-mode .v-popper__popper.seed-map-history-popout),
-:global(html.oled-mode .v-popper__popper.seed-map-history-popout) {
+:global(html.dark-mode .seed-map-history-popout),
+:global(html.oled-mode .seed-map-history-popout) {
 	--seed-history-panel-bg: color-mix(in srgb, var(--surface-4) 88%, var(--color-text-primary));
 	--seed-history-row-bg: color-mix(in srgb, var(--surface-5) 82%, var(--color-text-primary));
 	--seed-history-row-hover-bg: color-mix(in srgb, var(--surface-5) 70%, var(--color-text-primary));
@@ -3301,10 +3299,15 @@ function clampWorldCoordinate(value: number) {
 	--seed-history-shadow: 0 18px 48px color-mix(in srgb, var(--surface-5) 38%, transparent);
 }
 
-:global(.v-popper__popper.seed-map-history-popout .v-popper__inner) {
+:global(.seed-map-history-popout) {
 	border-color: var(--seed-history-border) !important;
 	background-color: var(--seed-history-panel-bg) !important;
 	box-shadow: var(--seed-history-shadow) !important;
+}
+
+:global(.seed-map-history-popout .menu-arrow) {
+	fill: var(--seed-history-panel-bg);
+	stroke: var(--seed-history-border);
 }
 
 .popup-biome-dot {

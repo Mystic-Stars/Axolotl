@@ -1,26 +1,26 @@
 <template>
 	<div class="flex gap-2 items-center">
-		<Dropdown
+		<PopoutMenu
 			v-if="notificationHistory.length"
-			v-model:shown="notificationCenterShown"
+			v-model:open="notificationCenterShown"
 			placement="bottom-end"
-			:triggers="['click']"
-			:hide-triggers="['click']"
 		>
-			<Button
-				v-tooltip="formatMessage(messages.notifications)"
-				type="quiet"
-				circular
-				icon-only
-				:aria-label="formatMessage(messages.notifications)"
-				class="relative"
-				><BellIcon />
-				<span
-					v-if="hasUnreadNotifications"
-					class="absolute right-0 top-0 size-2 rounded-full bg-red ring-2 ring-bg-raised"
-				/>
-			</Button>
-			<template #popper>
+			<template #trigger>
+				<Button
+					v-tooltip="formatMessage(messages.notifications)"
+					type="quiet"
+					circular
+					icon-only
+					:aria-label="formatMessage(messages.notifications)"
+					class="relative"
+					><BellIcon />
+					<span
+						v-if="hasUnreadNotifications"
+						class="absolute right-0 top-0 size-2 rounded-full bg-red ring-2 ring-bg-raised"
+					/>
+				</Button>
+			</template>
+			<template #menu="{ hide }">
 				<div class="w-[22rem] max-w-[calc(100vw-2rem)] p-2">
 					<div class="mb-2 flex items-center justify-between px-2">
 						<span class="font-semibold text-contrast">{{
@@ -29,7 +29,7 @@
 						<button
 							v-if="notificationHistory.length"
 							class="text-xs text-secondary hover:text-contrast"
-							@click="clearNotificationHistory"
+							@click="runPopoutAction(hide, clearNotificationHistory)"
 						>
 							{{ formatMessage(messages.clearNotifications) }}
 						</button>
@@ -74,7 +74,7 @@
 					</div>
 				</div>
 			</template>
-		</Dropdown>
+		</PopoutMenu>
 		<Button
 			v-tooltip="formatMessage(messages.announcements)"
 			type="quiet"
@@ -89,27 +89,24 @@
 				class="absolute right-0 top-0 size-2 rounded-full bg-red ring-2 ring-bg-raised"
 			/>
 		</Button>
-		<Dropdown
-			v-if="activeBackupOperations.length > 0"
-			placement="bottom-end"
-			:triggers="['click']"
-			:hide-triggers="['click']"
-		>
-			<Button
-				v-tooltip="formatMessage(messages.activeBackups)"
-				type="quiet"
-				circular
-				icon-only
-				:aria-label="formatMessage(messages.activeBackups)"
-				class="relative"
-				><DatabaseBackupIcon />
-				<span
-					class="absolute right-0 top-0 min-w-4 rounded-full bg-brand px-1 text-center text-[10px] font-bold leading-4 text-white"
-				>
-					{{ Math.min(activeBackupOperations.length, 99) }}
-				</span>
-			</Button>
-			<template #popper>
+		<PopoutMenu v-if="activeBackupOperations.length > 0" placement="bottom-end">
+			<template #trigger>
+				<Button
+					v-tooltip="formatMessage(messages.activeBackups)"
+					type="quiet"
+					circular
+					icon-only
+					:aria-label="formatMessage(messages.activeBackups)"
+					class="relative"
+					><DatabaseBackupIcon />
+					<span
+						class="absolute right-0 top-0 min-w-4 rounded-full bg-brand px-1 text-center text-[10px] font-bold leading-4 text-white"
+					>
+						{{ Math.min(activeBackupOperations.length, 99) }}
+					</span>
+				</Button>
+			</template>
+			<template #menu="{ hide }">
 				<div class="w-[22rem] max-w-[calc(100vw-2rem)] p-2">
 					<div class="mb-2 px-2 font-semibold text-contrast">
 						{{ formatMessage(messages.activeBackups) }}
@@ -119,7 +116,7 @@
 							v-for="operation in activeBackupOperations"
 							:key="operation.id"
 							class="flex min-w-0 flex-col gap-1 rounded-lg p-2 text-left hover:bg-button-bg"
-							@click="openBackupOperation(operation)"
+							@click="runPopoutAction(hide, () => openBackupOperation(operation))"
 						>
 							<div class="flex items-center gap-2">
 								<span class="size-2 shrink-0 rounded-full bg-brand" />
@@ -135,7 +132,7 @@
 					</div>
 				</div>
 			</template>
-		</Dropdown>
+		</PopoutMenu>
 		<Button
 			v-if="!isDownloadsPage && hasActiveDownloads && !hasVisibleActiveDownloadToasts"
 			v-tooltip="formatMessage(messages.viewActiveDownloads)"
@@ -164,27 +161,26 @@
 					>
 						{{ selectedProcess.instance.name }}
 					</router-link>
-					<Dropdown
+					<PopoutMenu
 						v-if="currentProcesses.length > 1"
+						v-model:open="showInstances"
 						placement="bottom"
-						:triggers="['click']"
-						:hide-triggers="['click']"
-						@show="showInstances = true"
-						@hide="showInstances = false"
 					>
-						<Button
-							v-tooltip="
-								showInstances
-									? formatMessage(messages.hideMoreRunningInstances)
-									: formatMessage(messages.showMoreRunningInstances)
-							"
-							type="quiet"
-							size="2xs"
-							circular
-							icon-only
-							><DropdownIcon :class="{ 'rotate-180': !!showInstances }" />
-						</Button>
-						<template #popper>
+						<template #trigger>
+							<Button
+								v-tooltip="
+									showInstances
+										? formatMessage(messages.hideMoreRunningInstances)
+										: formatMessage(messages.showMoreRunningInstances)
+								"
+								type="quiet"
+								size="2xs"
+								circular
+								icon-only
+								><DropdownIcon :class="{ 'rotate-180': !!showInstances }" />
+							</Button>
+						</template>
+						<template #menu="{ hide }">
 							<div class="flex w-[20rem] max-h-[24rem] flex-col gap-2 overflow-auto">
 								<div
 									v-for="process in currentProcesses"
@@ -202,7 +198,7 @@
 											'active:scale-95 transition-transform': process.uuid !== selectedProcess.uuid,
 										}"
 										:disabled="process.uuid === selectedProcess.uuid"
-										@click="selectProcess(process)"
+										@click="runPopoutAction(hide, () => selectProcess(process))"
 									>
 										<OnlineIndicatorIcon />
 										<span class="mr-auto text-contrast flex items-center gap-2">
@@ -213,21 +209,21 @@
 									<button
 										v-tooltip="formatMessage(messages.stopInstance)"
 										class="active:scale-95 flex"
-										@click.stop="stop(process)"
+										@click.stop="runPopoutAction(hide, () => stop(process))"
 									>
 										<StopCircleIcon class="text-red size-5" />
 									</button>
 									<button
 										v-tooltip="formatMessage(messages.viewLogs)"
 										class="active:scale-95 flex"
-										@click.stop="goToTerminal(process.instance.id)"
+										@click.stop="runPopoutAction(hide, () => goToTerminal(process.instance.id))"
 									>
 										<TerminalSquareIcon class="text-secondary size-5" />
 									</button>
 								</div>
 							</div>
 						</template>
-					</Dropdown>
+					</PopoutMenu>
 				</div>
 				<button
 					v-tooltip="formatMessage(messages.stopInstance)"
@@ -271,13 +267,13 @@ import {
 	defineMessages,
 	injectNotificationManager,
 	injectPopupNotificationManager,
+	PopoutMenu,
 	type PopupNotification,
 	type PopupNotificationProgressItem,
 	useVIntl,
 	type WebNotification,
 } from '@modrinth/ui'
 import { convertFileSrc } from '@tauri-apps/api/core'
-import { Dropdown } from 'floating-vue'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
@@ -1164,6 +1160,11 @@ watch(
 		updateNotification()
 	},
 )
+
+function runPopoutAction(hide: () => void, action: () => void) {
+	action()
+	hide()
+}
 
 function selectProcess(process: RunningProcess) {
 	selectedProcess.value = process

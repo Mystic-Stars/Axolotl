@@ -124,3 +124,46 @@ it('accepts a dropdownClass on the content element', async () => {
 
 	wrapper.unmount()
 })
+
+it('moves keyboard focus into the menu and restores it after closing', async () => {
+	const wrapper = await mountPopout()
+	applyTheme('dark')
+	await wrapper.vm.$nextTick()
+
+	const trigger = document.querySelector('button[aria-haspopup="menu"]') as HTMLElement
+	trigger.focus()
+	trigger.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }))
+	await waitFor(() => document.activeElement?.id === 'menu-item', {
+		label: 'focus to move to the first menu item',
+	})
+
+	document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+	await waitFor(() => document.activeElement === trigger, {
+		label: 'focus to return to the menu trigger',
+	})
+
+	wrapper.unmount()
+})
+
+it('supports a controlled open model and a custom trigger slot', async () => {
+	const wrapper = await mountThemed(PopoutMenu, { open: false }, 'dark', {
+		attachTo: document.body,
+		slots: {
+			trigger: '<button id="custom-popout-trigger">Open</button>',
+			menu: '<button id="custom-popout-item">Item</button>',
+		},
+	})
+	applyTheme('dark')
+	await wrapper.vm.$nextTick()
+
+	await wrapper.setProps({ open: true })
+	await waitFor(() => !!content(), { label: 'the controlled menu to open' })
+	expect(document.querySelector('#custom-popout-trigger')?.getAttribute('aria-expanded')).toBe(
+		'true',
+	)
+
+	await wrapper.setProps({ open: false })
+	await waitFor(() => !content(), { label: 'the controlled menu to close' })
+
+	wrapper.unmount()
+})

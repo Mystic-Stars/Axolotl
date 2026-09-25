@@ -731,7 +731,7 @@ function formatDateTime(date: Date) {
 }
 
 /* 存储页多行 tooltip：内容换行并限制宽度 */
-:global(.v-popper__popper.storage-tooltip .v-popper__inner) {
+:global(.tooltip-popper.storage-tooltip) {
 	white-space: pre-line;
 	max-width: 22rem;
 }

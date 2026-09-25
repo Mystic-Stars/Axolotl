@@ -1,22 +1,25 @@
 <template>
 	<DropdownMenuRoot v-model:open="open" :modal="false">
 		<DropdownMenuTrigger as-child>
-			<button ref="trigger" v-bind="$attrs" v-tooltip="tooltip">
-				<slot></slot>
-			</button>
+			<slot name="trigger">
+				<button ref="trigger" v-bind="$attrs" v-tooltip="tooltip">
+					<slot></slot>
+				</button>
+			</slot>
 		</DropdownMenuTrigger>
 
 		<DropdownMenuPortal :to="portalTarget">
 			<DropdownMenuContent
+				ref="content"
 				:side="side"
 				:align="align"
 				:side-offset="4"
 				:class="[dropdownClass, 'menu-surface']"
 				:aria-label="dropdownId || undefined"
-				@close-auto-focus.prevent
-				@open-auto-focus.prevent
+				@open-auto-focus="focusFirstContent"
 			>
 				<slot name="menu" :hide="hide"></slot>
+				<DropdownMenuArrow class="menu-arrow" :width="14" :height="7" />
 			</DropdownMenuContent>
 		</DropdownMenuPortal>
 	</DropdownMenuRoot>
@@ -29,12 +32,13 @@
 import '../../styles/overlays.css'
 
 import {
+	DropdownMenuArrow,
 	DropdownMenuContent,
 	DropdownMenuPortal,
 	DropdownMenuRoot,
 	DropdownMenuTrigger,
 } from 'reka-ui'
-import { computed, ref } from 'vue'
+import { type ComponentPublicInstance, computed, ref } from 'vue'
 
 const props = withDefaults(
 	defineProps<{
@@ -57,15 +61,18 @@ defineOptions({
 	inheritAttrs: false,
 })
 
-const open = ref(false)
+const open = defineModel<boolean>('open', { default: false })
 const trigger = ref<HTMLElement>()
+const content = ref<ComponentPublicInstance>()
+function focusFirstContent(event: Event) {
+	event.preventDefault()
+	const root = content.value?.$el as HTMLElement | undefined
+	root
+		?.querySelector<HTMLElement>('button:not(:disabled), a[href], [tabindex]:not([tabindex="-1"])')
+		?.focus()
+}
 
-/**
- * The menu is not modal and must not take focus when it opens: several callers
- * trigger it on hover, where moving focus would be hostile. Escape and
- * outside-click still close it, and focus returns to the trigger on close
- * (`@close-auto-focus` is left at its default rather than prevented).
- */
+/** The wrapper focuses the first available control, including non-menu buttons. */
 
 /**
  * Where the menu is portalled to.
@@ -76,6 +83,7 @@ const trigger = ref<HTMLElement>()
  * missing target renders nowhere at all, which is silent and confusing.
  */
 const portalTarget = computed(() => {
+	if (typeof document === 'undefined') return 'body'
 	const container = props.container
 	if (container instanceof HTMLElement) return container
 	if (typeof container === 'string' && container !== 'body') {

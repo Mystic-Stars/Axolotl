@@ -717,7 +717,7 @@ defineExpose({ show, showBatch, showConflict })
 </template>
 
 <style>
-.preview-dependency-tooltip.v-popper--theme-tooltip .v-popper__inner {
+.tooltip-popper.preview-dependency-tooltip {
 	max-width: 22rem;
 	white-space: normal;
 	overflow-wrap: anywhere;

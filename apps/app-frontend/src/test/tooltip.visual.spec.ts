@@ -84,6 +84,25 @@ it('renders the popper with working position and stacking', async () => {
 	unmount()
 })
 
+it('renders an outlined arrow for the settled tooltip placement', async () => {
+	const value = ref<unknown>('Arrow')
+	const { trigger, unmount } = mountTrigger(value)
+	applyTheme('dark')
+	await nextTick()
+
+	trigger.dispatchEvent(new MouseEvent('mouseenter'))
+	await waitFor(() => !!popper()?.querySelector('.tooltip-popper-arrow'), {
+		label: 'the tooltip arrow to render',
+	})
+
+	const arrow = popper()?.querySelector('.tooltip-popper-arrow') as HTMLElement
+	expect(arrow.getAttribute('aria-hidden')).toBe('true')
+	expect(arrow.dataset.side).toBe('top')
+	expect(getComputedStyle(arrow, '::before').borderTopWidth).toBe('7px')
+
+	unmount()
+})
+
 it('positions the popper adjacent to its trigger', async () => {
 	const value = ref<unknown>('Adjacent')
 	const { trigger, unmount } = mountTrigger(value)

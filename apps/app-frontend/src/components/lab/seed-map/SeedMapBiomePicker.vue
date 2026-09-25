@@ -492,12 +492,12 @@ function invertBiomes() {
 	text-align: center;
 }
 
-:global(.v-popper__popper.seed-map-biome-popout) {
+:global(.seed-map-biome-popout) {
 	z-index: 10050 !important;
 	max-width: calc(100vw - 0.75rem);
 }
 
-:global(.v-popper__popper.seed-map-biome-popout .v-popper__inner) {
+:global(.seed-map-biome-popout) {
 	max-width: calc(100vw - 0.75rem);
 	max-height: calc(100dvh - 0.75rem);
 	overflow: hidden;

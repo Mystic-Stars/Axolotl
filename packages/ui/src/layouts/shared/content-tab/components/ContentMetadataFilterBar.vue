@@ -1,6 +1,15 @@
 <script setup lang="ts">
+import '../../../../styles/overlays.css'
+
 import { FilterIcon } from '@modrinth/assets'
-import { Tooltip } from 'floating-vue'
+import {
+	TooltipArrow,
+	TooltipContent,
+	TooltipPortal,
+	TooltipProvider,
+	TooltipRoot,
+	TooltipTrigger,
+} from 'reka-ui'
 import { onBeforeUnmount, ref } from 'vue'
 
 import ButtonStyled from '#ui/components/base/ButtonStyled.vue'
@@ -143,57 +152,62 @@ function filterButtonLabel(): string {
 
 <template>
 	<div class="group relative flex min-w-0 flex-1 items-center gap-1.5">
-		<Tooltip
-			:delay="{ show: 0, hide: 0 }"
-			popper-class="filter-metadata-tooltip"
-			placement="bottom"
-			:distance="6"
+		<ButtonStyled
+			circular
+			:type="expanded || props.activeFilterCount > 0 ? 'chip' : 'transparent'"
+			:color="expanded || props.activeFilterCount > 0 ? 'brand' : 'standard'"
+			color-fill="text"
+			hover-color-fill="background"
 		>
-			<ButtonStyled
-				circular
-				:type="expanded || props.activeFilterCount > 0 ? 'chip' : 'transparent'"
-				:color="expanded || props.activeFilterCount > 0 ? 'brand' : 'standard'"
-				color-fill="text"
-				hover-color-fill="background"
-			>
-				<button
-					class="relative"
-					:aria-label="filterButtonLabel()"
-					:aria-expanded="expanded"
-					@click="handleToggleClick"
-					@pointerdown="startLongPress"
-					@pointerup="cancelLongPress"
-					@pointerleave="cancelLongPress"
-					@pointercancel="cancelLongPress"
-				>
-					<FilterIcon />
-					<span
-						v-if="props.activeFilterCount > 0"
-						aria-hidden="true"
-						class="absolute -right-2 -top-2 min-w-4 rounded-full bg-brand-highlight px-1 text-[0.625rem] font-semibold leading-4 text-brand"
-					>
-						{{ props.activeFilterCount }}
-					</span>
-				</button>
-			</ButtonStyled>
-
-			<template #popper>
-				<div class="flex flex-col items-center gap-1">
-					<span class="whitespace-nowrap text-xs font-semibold">
-						{{ filterButtonLabel() }}
-					</span>
-					<div
-						v-if="pressing"
-						class="long-press-bar h-1 w-full min-w-[5rem] overflow-hidden rounded-full bg-surface-5"
-					>
-						<div
-							class="long-press-bar-fill h-full rounded-full bg-brand"
-							:style="{ animationDuration: RING_FILL_MS + 'ms' }"
-						/>
-					</div>
-				</div>
-			</template>
-		</Tooltip>
+			<TooltipProvider>
+				<TooltipRoot :delay-duration="0">
+					<TooltipTrigger as-child>
+						<button
+							class="relative"
+							:aria-label="filterButtonLabel()"
+							:aria-expanded="expanded"
+							@click="handleToggleClick"
+							@pointerdown="startLongPress"
+							@pointerup="cancelLongPress"
+							@pointerleave="cancelLongPress"
+							@pointercancel="cancelLongPress"
+						>
+							<FilterIcon />
+							<span
+								v-if="props.activeFilterCount > 0"
+								aria-hidden="true"
+								class="absolute -right-2 -top-2 min-w-4 rounded-full bg-brand-highlight px-1 text-[0.625rem] font-semibold leading-4 text-brand"
+							>
+								{{ props.activeFilterCount }}
+							</span>
+						</button>
+					</TooltipTrigger>
+					<TooltipPortal>
+						<TooltipContent
+							side="bottom"
+							:side-offset="6"
+							class="tooltip-popper filter-metadata-tooltip"
+						>
+							<div class="flex flex-col items-center gap-1">
+								<span class="whitespace-nowrap text-xs font-semibold">
+									{{ filterButtonLabel() }}
+								</span>
+								<div
+									v-if="pressing"
+									class="long-press-bar h-1 w-full min-w-[5rem] overflow-hidden rounded-full bg-surface-5"
+								>
+									<div
+										class="long-press-bar-fill h-full rounded-full bg-brand"
+										:style="{ animationDuration: RING_FILL_MS + 'ms' }"
+									/>
+								</div>
+							</div>
+							<TooltipArrow class="tooltip-arrow" :width="14" :height="7" />
+						</TooltipContent>
+					</TooltipPortal>
+				</TooltipRoot>
+			</TooltipProvider>
+		</ButtonStyled>
 
 		<div
 			class="grid min-w-0 flex-1 transition-[grid-template-columns] duration-300 ease-in-out"

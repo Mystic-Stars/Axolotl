@@ -15,6 +15,8 @@ import './visual-styles.scss'
 import { mount, type MountingOptions } from '@vue/test-utils'
 import type { Component } from 'vue'
 
+import { tooltipDirective } from '../directives/tooltip'
+
 export const THEMES = ['light', 'dark', 'oled'] as const
 export type Theme = (typeof THEMES)[number]
 
@@ -57,6 +59,13 @@ export async function mountThemed<P extends Record<string, unknown>>(
 		props,
 		attachTo: document.body,
 		...options,
+		global: {
+			...options.global,
+			directives: {
+				...options.global?.directives,
+				tooltip: tooltipDirective,
+			},
+		},
 	})
 
 	// Vue applies classes asynchronously; wait for the render to settle before

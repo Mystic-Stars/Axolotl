@@ -124,31 +124,28 @@
 				>
 					<span class="min-w-0 truncate">{{ gameVersion }}</span>
 				</TagItem>
-				<Menu
+				<TagOverflowPopover
 					v-if="getDisplayGameVersions(version).length > MAX_GAME_VERSION_TAGS"
+					:count="getDisplayGameVersions(version).length - MAX_GAME_VERSION_TAGS"
 					data-no-row-click
-					:delay="{ hide: 50, show: 0 }"
-					no-auto-focus
-					class="w-full min-w-0 cursor-default"
+					wrapper-class="w-full min-w-0 cursor-default"
 				>
-					<TagItem class="w-fit max-w-full truncate" tabindex="0">
-						<span class="min-w-0 truncate">
-							+{{ getDisplayGameVersions(version).length - MAX_GAME_VERSION_TAGS }}
-						</span>
-					</TagItem>
-					<template #popper>
-						<div class="flex max-w-[20rem] flex-wrap gap-1">
-							<TagItem
-								v-for="gameVersion in getDisplayGameVersions(version).slice(MAX_GAME_VERSION_TAGS)"
-								:key="`overflow-version-tag-${gameVersion}`"
-								class="w-fit max-w-full truncate"
-								:action="() => versionFilters?.toggleFilters('gameVersion', version.game_versions)"
-							>
-								<span class="min-w-0 truncate">{{ gameVersion }}</span>
-							</TagItem>
-						</div>
+					<template #trigger>
+						<TagItem class="w-fit max-w-full truncate">
+							<span class="min-w-0 truncate">
+								+{{ getDisplayGameVersions(version).length - MAX_GAME_VERSION_TAGS }}
+							</span>
+						</TagItem>
 					</template>
-				</Menu>
+					<TagItem
+						v-for="gameVersion in getDisplayGameVersions(version).slice(MAX_GAME_VERSION_TAGS)"
+						:key="`overflow-version-tag-${gameVersion}`"
+						class="w-fit max-w-full truncate"
+						:action="() => versionFilters?.toggleFilters('gameVersion', version.game_versions)"
+					>
+						<span class="min-w-0 truncate">{{ gameVersion }}</span>
+					</TagItem>
+				</TagOverflowPopover>
 			</div>
 		</template>
 
@@ -172,34 +169,31 @@
 						<component :is="getLoaderIcon(platform)" v-if="getLoaderIcon(platform)" />
 						<span class="min-w-0 truncate">{{ getPlatformLabel(platform) }}</span>
 					</TagItem>
-					<Menu
+					<TagOverflowPopover
 						v-if="version.loaders.length > MAX_PLATFORM_TAGS"
+						:count="version.loaders.length - MAX_PLATFORM_TAGS"
 						data-no-row-click
-						:delay="{ hide: 50, show: 0 }"
-						no-auto-focus
-						class="w-full min-w-0 cursor-default"
+						wrapper-class="w-full min-w-0 cursor-default"
 					>
-						<TagItem class="w-fit max-w-full truncate" tabindex="0">
-							<span class="min-w-0 truncate">
-								+{{ version.loaders.length - MAX_PLATFORM_TAGS }}
-							</span>
-						</TagItem>
-						<template #popper>
-							<div class="flex max-w-[20rem] flex-wrap gap-1">
-								<TagItem
-									v-for="platform in version.loaders.slice(MAX_PLATFORM_TAGS)"
-									:key="`overflow-platform-tag-${platform}`"
-									v-tooltip="getPlatformTooltip(platform)"
-									class="w-fit max-w-full truncate"
-									:style="`--_color: var(--color-platform-${platform})`"
-									:action="() => versionFilters?.toggleFilter('platform', platform)"
-								>
-									<component :is="getLoaderIcon(platform)" v-if="getLoaderIcon(platform)" />
-									<span class="min-w-0 truncate">{{ getPlatformLabel(platform) }}</span>
-								</TagItem>
-							</div>
+						<template #trigger>
+							<TagItem class="w-fit max-w-full truncate">
+								<span class="min-w-0 truncate">
+									+{{ version.loaders.length - MAX_PLATFORM_TAGS }}
+								</span>
+							</TagItem>
 						</template>
-					</Menu>
+						<TagItem
+							v-for="platform in version.loaders.slice(MAX_PLATFORM_TAGS)"
+							:key="`overflow-platform-tag-${platform}`"
+							v-tooltip="getPlatformTooltip(platform)"
+							class="w-fit max-w-full truncate"
+							:style="`--_color: var(--color-platform-${platform})`"
+							:action="() => versionFilters?.toggleFilter('platform', platform)"
+						>
+							<component :is="getLoaderIcon(platform)" v-if="getLoaderIcon(platform)" />
+							<span class="min-w-0 truncate">{{ getPlatformLabel(platform) }}</span>
+						</TagItem>
+					</TagOverflowPopover>
 				</template>
 			</div>
 		</template>
@@ -322,31 +316,28 @@
 							>
 								{{ gameVersion }}
 							</TagItem>
-							<Menu
+							<TagOverflowPopover
 								v-if="getDisplayGameVersions(version).length > MAX_GAME_VERSION_TAGS"
-								:delay="{ hide: 50, show: 0 }"
-								no-auto-focus
-								class="cursor-default smart-clickable:allow-pointer-events"
+								:count="getDisplayGameVersions(version).length - MAX_GAME_VERSION_TAGS"
+								wrapper-class="cursor-default smart-clickable:allow-pointer-events"
 							>
-								<TagItem tabindex="0">
-									+{{ getDisplayGameVersions(version).length - MAX_GAME_VERSION_TAGS }}
-								</TagItem>
-								<template #popper>
-									<div class="flex max-w-[20rem] flex-wrap gap-1">
-										<TagItem
-											v-for="gameVersion in getDisplayGameVersions(version).slice(
-												MAX_GAME_VERSION_TAGS,
-											)"
-											:key="`overflow-version-tag-${gameVersion}`"
-											:action="
-												() => versionFilters?.toggleFilters('gameVersion', version.game_versions)
-											"
-										>
-											{{ gameVersion }}
-										</TagItem>
-									</div>
+								<template #trigger>
+									<TagItem>
+										+{{ getDisplayGameVersions(version).length - MAX_GAME_VERSION_TAGS }}
+									</TagItem>
 								</template>
-							</Menu>
+								<TagItem
+									v-for="gameVersion in getDisplayGameVersions(version).slice(
+										MAX_GAME_VERSION_TAGS,
+									)"
+									:key="`overflow-version-tag-${gameVersion}`"
+									:action="
+										() => versionFilters?.toggleFilters('gameVersion', version.game_versions)
+									"
+								>
+									{{ gameVersion }}
+								</TagItem>
+							</TagOverflowPopover>
 							<template v-if="version.noModLoader">
 								<TagItem class="border !border-solid border-surface-5"> No mod loader </TagItem>
 							</template>
@@ -362,30 +353,25 @@
 									<component :is="getLoaderIcon(platform)" v-if="getLoaderIcon(platform)" />
 									{{ getPlatformLabel(platform) }}
 								</TagItem>
-								<Menu
+								<TagOverflowPopover
 									v-if="version.loaders.length > MAX_PLATFORM_TAGS"
-									:delay="{ hide: 50, show: 0 }"
-									no-auto-focus
-									class="cursor-default smart-clickable:allow-pointer-events"
+									:count="version.loaders.length - MAX_PLATFORM_TAGS"
+									wrapper-class="cursor-default smart-clickable:allow-pointer-events"
 								>
-									<TagItem tabindex="0">
-										+{{ version.loaders.length - MAX_PLATFORM_TAGS }}
-									</TagItem>
-									<template #popper>
-										<div class="flex max-w-[20rem] flex-wrap gap-1">
-											<TagItem
-												v-for="platform in version.loaders.slice(MAX_PLATFORM_TAGS)"
-												:key="`overflow-platform-tag-${platform}`"
-												v-tooltip="getPlatformTooltip(platform)"
-												:style="`--_color: var(--color-platform-${platform})`"
-												:action="() => versionFilters?.toggleFilter('platform', platform)"
-											>
-												<component :is="getLoaderIcon(platform)" v-if="getLoaderIcon(platform)" />
-												{{ getPlatformLabel(platform) }}
-											</TagItem>
-										</div>
+									<template #trigger>
+										<TagItem> +{{ version.loaders.length - MAX_PLATFORM_TAGS }} </TagItem>
 									</template>
-								</Menu>
+									<TagItem
+										v-for="platform in version.loaders.slice(MAX_PLATFORM_TAGS)"
+										:key="`overflow-platform-tag-${platform}`"
+										v-tooltip="getPlatformTooltip(platform)"
+										:style="`--_color: var(--color-platform-${platform})`"
+										:action="() => versionFilters?.toggleFilter('platform', platform)"
+									>
+										<component :is="getLoaderIcon(platform)" v-if="getLoaderIcon(platform)" />
+										{{ getPlatformLabel(platform) }}
+									</TagItem>
+								</TagOverflowPopover>
 							</template>
 							<template v-if="showEnvironmentColumn">
 								<TagItem
@@ -458,7 +444,6 @@ import {
 	VersionFilterControl,
 } from '@modrinth/ui'
 import { formatVersionsForDisplay, type GameVersionTag, type Version } from '@modrinth/utils'
-import { Menu } from 'floating-vue'
 import { computed, type Ref, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
@@ -466,6 +451,7 @@ import { useRelativeTime } from '../../composables'
 import { defineMessages, useVIntl } from '../../composables/i18n'
 import { formatTag } from '../../utils/tag-messages'
 import { getEnvironmentTags } from './environments'
+import TagOverflowPopover from './TagOverflowPopover.vue'
 
 const { formatMessage } = useVIntl()
 const formatRelativeTime = useRelativeTime({ style: 'narrow' })

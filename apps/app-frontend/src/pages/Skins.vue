@@ -9,6 +9,7 @@ import {
 	SpinnerIcon,
 } from '@modrinth/assets'
 import {
+	type ArmorPreviewConfig,
 	Button,
 	commonMessages,
 	ConfirmModal,
@@ -16,7 +17,6 @@ import {
 	injectNotificationManager,
 	NavTabs,
 	SkinPreviewRenderer,
-	type ArmorPreviewConfig,
 	useVIntl,
 } from '@modrinth/ui'
 import { arrayBufferToBase64 } from '@modrinth/utils'
@@ -34,9 +34,9 @@ import EditSkinModal from '@/components/ui/skin/EditSkinModal.vue'
 import VirtualSkinSectionList from '@/components/ui/skin/VirtualSkinSectionList.vue'
 import { useNetworkStatus } from '@/composables/useNetworkStatus'
 import { check_reachable, get_default_user, users } from '@/helpers/auth'
-import { loadSkinArmorPreview, saveSkinArmorPreview } from '@/helpers/skin-armor-preview'
 import type { RenderResult } from '@/helpers/rendering/batch-skin-renderer.ts'
 import { skinBlobUrlMap } from '@/helpers/rendering/batch-skin-renderer.ts'
+import { loadSkinArmorPreview, saveSkinArmorPreview } from '@/helpers/skin-armor-preview'
 import type { Cape, Skin, SkinTextureUrl } from '@/helpers/skins.ts'
 import {
 	equip_skin,
@@ -1067,8 +1067,8 @@ await loadSkins()
 				class="ml-5 mt-4 flex h-[calc(80vh-1rem)] items-center justify-center max-[700px]:h-[calc(50vh-1rem)]"
 			>
 				<SkinPreviewRenderer
-					armor-preview
 					v-model:armor-config="armorPreviewConfig"
+					armor-preview
 					:cape-src="capeTexture"
 					:texture-src="skinTexture || ''"
 					:variant="skinVariant"

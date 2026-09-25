@@ -11,7 +11,6 @@ import {
 	useVIntl,
 } from '@modrinth/ui'
 import { useElementSize, useWindowSize } from '@vueuse/core'
-import { Tooltip } from 'floating-vue'
 import { computed, nextTick, onUnmounted, ref, useTemplateRef, watch } from 'vue'
 import Draggable from 'vuedraggable'
 
@@ -412,24 +411,17 @@ defineExpose({ getAddSkinButtonElement })
 					<span class="min-w-0 text-xl font-semibold leading-7 text-primary">
 						{{ section.title }}
 					</span>
-					<Tooltip
-						v-if="section.infoTooltip"
-						theme="dismissable-prompt"
-						placement="top"
-						:triggers="['hover', 'focus']"
+					<span
+						v-tooltip="{
+							content: section.infoTooltip,
+							placement: 'top',
+							popperClass: 'dismissable-prompt-tooltip',
+						}"
+						class="inline-flex size-6 shrink-0 items-center justify-center text-secondary transition-colors group-hover:text-primary"
+						@click.stop
 					>
-						<span
-							class="inline-flex size-6 shrink-0 items-center justify-center text-secondary transition-colors group-hover:text-primary"
-							@click.stop
-						>
-							<UnknownIcon class="size-5" />
-						</span>
-						<template #popper>
-							<p class="m-0 max-w-96 text-wrap text-sm font-medium leading-tight">
-								{{ section.infoTooltip }}
-							</p>
-						</template>
-					</Tooltip>
+						<UnknownIcon class="size-5" />
+					</span>
 				</template>
 
 				<Draggable
