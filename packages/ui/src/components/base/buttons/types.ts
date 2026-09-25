@@ -33,6 +33,18 @@ export type ButtonVisualProps = {
 			type: 'quiet'
 			color?: ButtonColor
 	  }
+	| {
+			type: 'chip'
+			color?: ButtonColor
+	  }
+	| {
+			type: 'chip-text'
+			color?: ButtonColor
+	  }
+	| {
+			type: 'highlight'
+			color?: ButtonColor
+	  }
 )
 
 export type ButtonNativeType = 'button' | 'submit' | 'reset'

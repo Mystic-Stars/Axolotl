@@ -21,13 +21,20 @@ const portalTarget = computed(() =>
 <template>
 	<PopoverRoot :modal="false">
 		<PopoverTrigger as-child>
-			<div
+			<!--
+				A real button, not the div this started as: the trigger has to be
+				reachable and openable from the keyboard, and a div is neither
+				focusable nor activatable. The class carries the tag styling so the
+				trigger keeps looking like the `+N` tag it replaces.
+			-->
+			<button
 				v-bind="$attrs"
-				class="inline-flex focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+				type="button"
+				class="inline-flex cursor-pointer border-0 bg-transparent p-0 text-inherit focus-visible:outline-none"
 				:class="props.wrapperClass"
 			>
 				<slot name="trigger">+{{ props.count }}</slot>
-			</div>
+			</button>
 		</PopoverTrigger>
 
 		<PopoverPortal :to="portalTarget">

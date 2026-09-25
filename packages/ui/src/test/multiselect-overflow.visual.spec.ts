@@ -1,4 +1,4 @@
-import { it } from 'vitest'
+import { expect, it } from 'vitest'
 import { ref } from 'vue'
 
 import MultiSelect from '../components/base/MultiSelect.vue'
@@ -63,6 +63,12 @@ it('keeps the multiselect open while removing a tag from its overflow popover', 
 	})
 
 	const overflowTrigger = document.querySelector('[aria-haspopup="dialog"]') as HTMLElement
+	// The trigger must be keyboard-reachable, not just clickable.
+	expect(overflowTrigger.tagName, 'the overflow trigger is a real button').toBe('BUTTON')
+	expect(overflowTrigger.tabIndex, 'the overflow trigger can take focus').toBeGreaterThanOrEqual(0)
+	overflowTrigger.focus()
+	expect(document.activeElement, 'focus lands on the overflow trigger').toBe(overflowTrigger)
+
 	activate(overflowTrigger)
 	await waitFor(() => !!document.querySelector('.multiselect-overflow-popover'), {
 		label: 'the selected-tag overflow popover to open',

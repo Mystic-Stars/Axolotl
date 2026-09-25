@@ -61,3 +61,28 @@ it('closes on Escape', async () => {
 
 	wrapper.unmount()
 })
+
+it('exposes a focusable button trigger that keyboard users can activate', async () => {
+	// The trigger was a plain div at one point, which is neither focusable nor
+	// activatable. A diff cannot show that, and every pointer test still passes,
+	// so the trigger element itself is asserted here.
+	const wrapper = await mountOverflow()
+	applyTheme('dark')
+	await wrapper.vm.$nextTick()
+
+	const trigger = document.querySelector('[aria-haspopup="dialog"]') as HTMLElement
+	expect(trigger, 'the trigger exists').toBeTruthy()
+	expect(trigger.tagName, 'the trigger is a real button').toBe('BUTTON')
+	expect(trigger.getAttribute('type')).toBe('button')
+	expect(trigger.tabIndex, 'the trigger can receive focus').toBeGreaterThanOrEqual(0)
+
+	// Reaching it by keyboard is the point: focus it, then press Enter.
+	trigger.focus()
+	expect(document.activeElement, 'focus actually lands on the trigger').toBe(trigger)
+
+	trigger.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+	trigger.click()
+	await waitFor(() => !!content(), { label: 'Enter to open the overflow popover' })
+
+	wrapper.unmount()
+})

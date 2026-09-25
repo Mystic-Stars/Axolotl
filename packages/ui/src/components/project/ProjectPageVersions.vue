@@ -131,7 +131,7 @@
 					wrapper-class="w-full min-w-0 cursor-default"
 				>
 					<template #trigger>
-						<TagItem class="w-fit max-w-full truncate">
+						<TagItem as="span" class="w-fit max-w-full truncate">
 							<span class="min-w-0 truncate">
 								+{{ getDisplayGameVersions(version).length - MAX_GAME_VERSION_TAGS }}
 							</span>
@@ -176,7 +176,7 @@
 						wrapper-class="w-full min-w-0 cursor-default"
 					>
 						<template #trigger>
-							<TagItem class="w-fit max-w-full truncate">
+							<TagItem as="span" class="w-fit max-w-full truncate">
 								<span class="min-w-0 truncate">
 									+{{ version.loaders.length - MAX_PLATFORM_TAGS }}
 								</span>
@@ -322,7 +322,7 @@
 								wrapper-class="cursor-default smart-clickable:allow-pointer-events"
 							>
 								<template #trigger>
-									<TagItem>
+									<TagItem as="span">
 										+{{ getDisplayGameVersions(version).length - MAX_GAME_VERSION_TAGS }}
 									</TagItem>
 								</template>
@@ -359,7 +359,7 @@
 									wrapper-class="cursor-default smart-clickable:allow-pointer-events"
 								>
 									<template #trigger>
-										<TagItem> +{{ version.loaders.length - MAX_PLATFORM_TAGS }} </TagItem>
+										<TagItem as="span"> +{{ version.loaders.length - MAX_PLATFORM_TAGS }} </TagItem>
 									</template>
 									<TagItem
 										v-for="platform in version.loaders.slice(MAX_PLATFORM_TAGS)"

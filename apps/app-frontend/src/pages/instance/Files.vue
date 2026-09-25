@@ -347,7 +347,7 @@ provideFileManager({
 							<span
 								class="rounded bg-orange px-1.5 py-0.5 text-[10px] font-bold uppercase leading-none text-contrast"
 							>
-								Beta
+								{{ formatMessage(commonMessages.beta) }}
 							</span>
 						</span>
 					</Button>

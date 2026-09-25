@@ -674,6 +674,9 @@
   "console.filter.warn": {
     "defaultMessage": "警告"
   },
+  "console.log-viewport.scroll-to-bottom": {
+    "defaultMessage": "滚动到底部"
+  },
   "console.notification.delete-failed": {
     "defaultMessage": "删除日志文件失败"
   },
@@ -2191,6 +2194,33 @@
   },
   "label.no-items": {
     "defaultMessage": "空"
+  },
+  "modal.confirm.confirmation-placeholder": {
+    "defaultMessage": "在此输入……"
+  },
+  "modal.confirm.confirmation-prompt": {
+    "defaultMessage": "要确认继续，请在下方输入 <confirmation-text>{confirmationText}</confirmation-text>："
+  },
+  "modal.confirm.no-title": {
+    "defaultMessage": "未定义标题"
+  },
+  "modal.confirm.proceed": {
+    "defaultMessage": "继续"
+  },
+  "modal.install-to-play.admonition-body": {
+    "defaultMessage": "此服务器需要模组内容才能游玩。接受后将安装来自 Modrinth 所需的文件。"
+  },
+  "modal.install-to-play.admonition-header": {
+    "defaultMessage": "共享服务器实例"
+  },
+  "modal.install-to-play.shared-by": {
+    "defaultMessage": "<name>{name}</name>今天与你共享了此实例。"
+  },
+  "modal.install-to-play.shared-instance-label": {
+    "defaultMessage": "共享实例"
+  },
+  "modal.install-to-play.title": {
+    "defaultMessage": "安装后游玩"
   },
   "notification.panel.copy": {
     "defaultMessage": "复制到剪贴板"
@@ -4291,6 +4321,9 @@
   },
   "version.section.supplementary-resources": {
     "defaultMessage": "附加的资源"
+  },
+  "version.summary.view-version": {
+    "defaultMessage": "查看版本"
   },
   "version.supplementary-resources.file": {
     "defaultMessage": "文件"

@@ -7,6 +7,10 @@ export const consoleMessages = defineMessages({
 	},
 	searchLogs: { id: 'console.search.placeholder', defaultMessage: 'Search logs' },
 	toggleWrap: { id: 'console.log.toggle-wrap', defaultMessage: 'Toggle line wrapping' },
+	scrollToBottom: {
+		id: 'console.log-viewport.scroll-to-bottom',
+		defaultMessage: 'Scroll to bottom',
+	},
 	wrapLabel: { id: 'console.log.wrap-label', defaultMessage: 'Wrap' },
 	emptyInstanceTitle: {
 		id: 'console.empty.instance-title',

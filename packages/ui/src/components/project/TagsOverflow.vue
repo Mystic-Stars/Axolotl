@@ -14,7 +14,7 @@ defineOptions({
 <template>
 	<TagOverflowPopover v-if="tags.length > 0" :count="tags.length" v-bind="$attrs">
 		<template #trigger>
-			<TagItem>+{{ tags.length }}</TagItem>
+			<TagItem as="span">+{{ tags.length }}</TagItem>
 		</template>
 		<TagTagItem v-for="tag in tags" :key="'overflow-tag-' + tag" hide-non-loader-icon :tag="tag" />
 	</TagOverflowPopover>

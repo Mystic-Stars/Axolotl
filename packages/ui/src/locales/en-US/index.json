@@ -710,6 +710,9 @@
   "console.filter.warn": {
     "defaultMessage": "Warn"
   },
+  "console.log-viewport.scroll-to-bottom": {
+    "defaultMessage": "Scroll to bottom"
+  },
   "console.log.toggle-wrap": {
     "defaultMessage": "Toggle line wrapping"
   },
@@ -2819,6 +2822,33 @@
   "locale.zh-TW": {
     "defaultMessage": "Chinese (Traditional)"
   },
+  "modal.confirm.confirmation-placeholder": {
+    "defaultMessage": "Type here..."
+  },
+  "modal.confirm.confirmation-prompt": {
+    "defaultMessage": "To confirm you want to proceed, type <confirmation-text>{confirmationText}</confirmation-text> below:"
+  },
+  "modal.confirm.no-title": {
+    "defaultMessage": "No title defined"
+  },
+  "modal.confirm.proceed": {
+    "defaultMessage": "Proceed"
+  },
+  "modal.install-to-play.admonition-body": {
+    "defaultMessage": "This server requires modded content to play. Accept to install the needed files from Modrinth."
+  },
+  "modal.install-to-play.admonition-header": {
+    "defaultMessage": "Shared server instance"
+  },
+  "modal.install-to-play.shared-by": {
+    "defaultMessage": "<name>{name}</name> shared this instance with you today."
+  },
+  "modal.install-to-play.shared-instance-label": {
+    "defaultMessage": "Shared instance"
+  },
+  "modal.install-to-play.title": {
+    "defaultMessage": "Install to play"
+  },
   "modal.open-in-app.benefit.install": {
     "defaultMessage": "Automatically install required content"
   },
@@ -4708,6 +4738,9 @@
   },
   "version.section.supplementary-resources": {
     "defaultMessage": "Supplementary resources"
+  },
+  "version.summary.view-version": {
+    "defaultMessage": "View version"
   },
   "version.supplementary-resources.file": {
     "defaultMessage": "File"
