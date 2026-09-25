@@ -5686,6 +5686,7 @@
 				"enabled": false
 			}
 		],
+		"requesty": [],
 		"sambanova": [
 			{
 				"id": "MiniMax-M2.7",

@@ -890,7 +890,7 @@ onMounted(async () => {
 							@click="selectProvider(definition.id)"
 						>
 							<span class="ai-provider-card-title">
-								<template v-if="definition.id === 'chatgpt'">
+								<template v-if="definition.id === 'chatgpt' || definition.id === 'requesty'">
 									<AIIcon kind="provider-avatar" :value="definition.id" :size="24" />
 									<strong>{{ definition.name }}</strong>
 								</template>
@@ -987,7 +987,7 @@ onMounted(async () => {
 							@click="selectProvider(definition.id)"
 						>
 							<span class="ai-provider-card-title">
-								<template v-if="definition.id === 'chatgpt'">
+								<template v-if="definition.id === 'chatgpt' || definition.id === 'requesty'">
 									<AIIcon kind="provider-avatar" :value="definition.id" :size="24" />
 									<strong>{{ definition.name }}</strong>
 								</template>

@@ -58,6 +58,7 @@
 	"qiniu.description": "Qiniu provides reliable, cost-effective real-time and batch AI inference services that are easy to use.",
 	"qwen.description": "Qwen is Alibaba Cloud's large-scale language model with strong understanding and generation, covering Q&A, writing, opinion expression, and code across many domains.",
 	"replicate.description": "Replicate runs open-source image models like FLUX and Stable Diffusion via a simple cloud API.",
+	"requesty.description": "Requesty is an LLM gateway that serves models from OpenAI, Anthropic, Google, and more through one OpenAI-compatible API, with routing, fallbacks, and cost tracking.",
 	"sambanova.description": "SambaNova Cloud lets developers use top open-source models with extremely fast inference.",
 	"search1api.description": "Search1API provides access to DeepSeek models with optional web connectivity, including standard and fast variants across multiple parameter sizes.",
 	"sensenova.description": "SenseNova delivers efficient, easy-to-use full-stack LLM services backed by SenseTime infrastructure.",

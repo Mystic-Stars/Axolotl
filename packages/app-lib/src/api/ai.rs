@@ -600,6 +600,14 @@ const PROVIDERS: &[AiProviderDefinition] = &[
         true
     ),
     provider!(
+        "requesty",
+        "Requesty",
+        Openai,
+        "https://router.requesty.ai/v1",
+        "openai/gpt-4o-mini",
+        true
+    ),
+    provider!(
         "sambanova",
         "SambaNova",
         Openai,
@@ -3617,7 +3625,7 @@ mod tests {
 
     #[test]
     fn catalog_matches_lobehub_text_provider_scope() {
-        assert_eq!(PROVIDERS.len(), 80);
+        assert_eq!(PROVIDERS.len(), 81);
         for excluded in ["bfl", "comfyui", "fal", "replicate", "lobehub"] {
             assert!(!PROVIDERS.iter().any(|provider| provider.id == excluded));
         }
