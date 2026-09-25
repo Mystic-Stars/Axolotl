@@ -152,6 +152,9 @@
   "button.close": {
     "defaultMessage": "Close"
   },
+  "button.confirm": {
+    "defaultMessage": "Confirm"
+  },
   "button.continue": {
     "defaultMessage": "Continue"
   },

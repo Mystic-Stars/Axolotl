@@ -128,6 +128,9 @@
   "button.close": {
     "defaultMessage": "关闭"
   },
+  "button.confirm": {
+    "defaultMessage": "确认"
+  },
   "button.continue": {
     "defaultMessage": "继续"
   },
