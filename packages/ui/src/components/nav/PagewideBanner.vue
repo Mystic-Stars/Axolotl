@@ -85,8 +85,4 @@ const iconClasses = {
 .banner-grid.slim {
 	@apply flex py-4 gap-2 items-center;
 }
-
-.banner-grid a {
-	@apply underline text-current;
-}
 </style>

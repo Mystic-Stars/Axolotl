@@ -1789,10 +1789,6 @@ useHead(() => ({
 			color: var(--landing-color-subheading);
 			margin: 0;
 		}
-
-		a {
-			text-decoration: underline;
-		}
 	}
 }
 
@@ -2043,13 +2039,6 @@ useHead(() => ({
 				font-weight: 700;
 				text-decoration: underline;
 				text-underline-offset: 0.15rem;
-			}
-
-			a + a::before {
-				content: '·';
-				margin-right: 1rem;
-				color: var(--color-secondary);
-				font-weight: 400;
 			}
 		}
 	}

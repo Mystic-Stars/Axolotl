@@ -3663,7 +3663,7 @@ function clampWorldCoordinate(value: number) {
 	font-weight: 700;
 }
 
-.map-status > button {
+.map-status > :deep(button) {
 	color: var(--color-text-secondary);
 }
 

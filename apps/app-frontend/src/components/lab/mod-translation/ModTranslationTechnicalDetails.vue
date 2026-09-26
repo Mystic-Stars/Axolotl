@@ -42,14 +42,6 @@ function copy() {
 </template>
 
 <style scoped>
-.head button:focus-visible {
-	outline: 2px solid var(--color-brand);
-	outline-offset: 2px;
-}
-.head :deep(svg) {
-	width: 0.75rem;
-	height: 0.75rem;
-}
 pre {
 	max-height: 18rem;
 	overflow: auto;
