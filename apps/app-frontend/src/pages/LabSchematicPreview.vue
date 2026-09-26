@@ -148,6 +148,7 @@ type MeshJob = {
 	jobId: string
 	regionId: string
 	position: [number, number, number]
+	isYCompletion: boolean
 }
 type WorkerSlot = {
 	worker: Worker
@@ -233,6 +234,7 @@ let activeOpenRequestId: string | undefined
 let completedMeshes = 0
 let totalMeshes = 0
 let unlistenNativeDrop: (() => void) | undefined
+let isYCompleted = false
 const chunkCache = new Map<string, SchematicCachedChunk>()
 const materialTextureCache = new Map<string, [number, number, number, number] | undefined>()
 
@@ -656,17 +658,20 @@ async function applyResources(epoch = requestEpoch) {
 	resources.value = loaded
 	materialTextureCache.clear()
 	scene?.setTexture(loaded.texture)
-	startMeshWorkers(opened, loaded, resourceRequest)
+	startMeshWorkers(opened, loaded, resourceRequest, isYCompleted)
 }
 
 function startMeshWorkers(
 	opened: SchematicPreviewManifest,
 	loaded: LoadedSchematicResources,
 	meshEpoch: number,
+	isYCompletion = false,
 ) {
 	terminateWorkers()
-	scene?.clearChunks()
-	chunkCache.clear()
+	if (!isYCompletion) {
+		scene?.clearChunks()
+		chunkCache.clear()
+	}
 	meshQueue = opened.regions
 		.flatMap((region) =>
 			region.chunks.map((chunk) => ({
@@ -674,6 +679,7 @@ function startMeshWorkers(
 				jobId: `${region.id}:${chunk.position.join(':')}`,
 				regionId: region.id,
 				position: chunk.position,
+				isYCompletion,
 			})),
 		)
 		.sort((left, right) => {
@@ -733,6 +739,7 @@ function handleWorkerMessage(slot: WorkerSlot, message: SchematicMeshWorkerRespo
 			chunk && palette
 				? filterSchematicAirGeometry(message.translucent, chunk, palette)
 				: message.translucent,
+			message.isYCompletion,
 		)
 		for (const name of message.missing) missingBlocks.add(name)
 	} else {
@@ -779,6 +786,7 @@ function pumpMeshQueue() {
 						chunkPosition: job.position,
 						blocks: renderBlocks.buffer,
 						neighborFaces: serializedNeighborFaces,
+						isYCompletion: job.isYCompletion,
 					} satisfies SchematicMeshWorkerRequest,
 					transferables,
 				)
@@ -995,7 +1003,15 @@ function expandConnectedSelection() {
 
 function rebuildMeshes() {
 	if (manifest.value && resources.value) {
-		startMeshWorkers(manifest.value, resources.value, ++resourceEpoch)
+		isYCompleted = false
+		startMeshWorkers(manifest.value, resources.value, ++resourceEpoch, false)
+	}
+}
+
+function completeYMeshes() {
+	if (manifest.value && resources.value && !isYCompleted) {
+		isYCompleted = true
+		startMeshWorkers(manifest.value, resources.value, ++resourceEpoch, true)
 	}
 }
 
@@ -1172,6 +1188,7 @@ function applyLayerRange() {
 	scene?.setLayerRange(
 		layerMaximum.value >= layerCeiling.value ? undefined : [layerFloor.value, layerMaximum.value],
 	)
+	completeYMeshes()
 }
 
 function showAllLayers() {
@@ -1184,6 +1201,7 @@ function applyLayerExplosion(value: number) {
 		clearBlockSelection()
 	}
 	scene?.setExplosion(value / 100)
+	completeYMeshes()
 }
 
 function materialColor(name: string) {
