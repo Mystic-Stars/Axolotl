@@ -35,7 +35,7 @@ defineExpose({
 <template>
 	<NewModal ref="modal" :header="formatMessage(messages.title)">
 		<div class="flex flex-col gap-4">
-			<p class="m-0 text-secondary">
+			<p class="m-0 text-[var(--color-text-tertiary)]">
 				{{ formatMessage(messages.description) }}
 			</p>
 		</div>

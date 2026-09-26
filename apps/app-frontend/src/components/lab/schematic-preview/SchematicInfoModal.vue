@@ -84,7 +84,7 @@ defineExpose({ show: () => modal.value?.show() })
 							:label="region.name"
 							@update:model-value="emit('regionVisibility', region.id, $event)"
 						/>
-						<span class="text-xs text-secondary">
+						<span class="text-xs text-[var(--color-text-tertiary)]">
 							{{ region.size.join(' x ') }} - {{ formatNumber(region.blockCount) }}
 						</span>
 						<Button
@@ -138,7 +138,7 @@ defineExpose({ show: () => modal.value?.show() })
 }
 
 .metadata-grid dt {
-	color: var(--color-text-secondary);
+	color: var(--color-text-tertiary);
 }
 
 .metadata-grid dd {

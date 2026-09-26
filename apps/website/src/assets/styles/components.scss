@@ -282,7 +282,7 @@
 	&:focus-visible:not(&:disabled),
 	&:hover:not(&:disabled),
 	&:active:not(&:disabled) {
-		background-color: var(--color-raised-bg);
+		background-color: var(--surface-3);
 	}
 
 	&.brand-button {
@@ -303,12 +303,12 @@ tr.button-transparent {
 	&:hover:not(&:disabled) > * {
 		cursor: pointer;
 		filter: brightness(0.85);
-		background-color: var(--color-raised-bg);
+		background-color: var(--surface-3);
 	}
 
 	&:active:not(&:disabled) > * {
 		filter: brightness(0.8);
-		background-color: var(--color-raised-bg);
+		background-color: var(--surface-3);
 	}
 
 	&:disabled > *,
@@ -323,7 +323,7 @@ tr.button-transparent {
 .button-color-base {
 	box-sizing: border-box;
 	--text-color: var(--color-button-text);
-	--background-color: var(--color-button-bg);
+	--background-color: var(--surface-4);
 
 	color: var(--text-color);
 	background-color: var(--background-color);
@@ -377,7 +377,7 @@ tr.button-transparent {
 	@extend .button-base;
 
 	--text-color: var(--color-button-text);
-	--background-color: var(--color-button-bg);
+	--background-color: var(--surface-4);
 
 	display: flex;
 	align-items: center;
@@ -402,7 +402,7 @@ tr.button-transparent {
 }
 
 .raised-button {
-	--background-color: var(--color-raised-bg);
+	--background-color: var(--surface-3);
 	box-shadow: var(--shadow-inset-sm), var(--shadow-raised);
 }
 
@@ -539,7 +539,7 @@ button {
 	display: flex;
 	flex-direction: row;
 	flex-wrap: nowrap;
-	background: var(--color-button-bg);
+	background: var(--surface-3);
 	width: fit-content;
 	border-radius: var(--size-rounded-sm);
 	box-shadow:
@@ -654,7 +654,7 @@ button {
 .backed-svg {
 	--size: 2.5rem;
 	border-radius: var(--size-rounded-sm);
-	background-color: var(--color-button-bg);
+	background-color: var(--surface-4);
 	width: var(--size);
 	height: var(--size);
 	display: inline-flex;
@@ -671,7 +671,7 @@ button {
 	}
 
 	&.raised {
-		background-color: var(--color-raised-bg);
+		background-color: var(--surface-3);
 	}
 }
 

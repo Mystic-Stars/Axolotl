@@ -1,7 +1,7 @@
 <template>
 	<div class="flex flex-col">
 		<button
-			class="flex w-full items-center gap-1 border-none bg-transparent px-2 py-1.5 text-left text-sm font-bold tracking-wide text-primary transition-colors cursor-pointer"
+			class="flex w-full items-center gap-1 border-none bg-transparent px-2 py-1.5 text-left text-sm font-bold tracking-wide text-[var(--color-text-default)] transition-colors cursor-pointer"
 			@click="open = !open"
 		>
 			<span>{{ groupName }}</span>

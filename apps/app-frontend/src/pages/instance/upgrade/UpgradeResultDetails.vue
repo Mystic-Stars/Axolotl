@@ -3,8 +3,10 @@
 		<header class="flex items-start gap-3">
 			<CheckCircleIcon class="mt-0.5 size-8 shrink-0 text-green" aria-hidden="true" />
 			<div>
-				<h2 class="m-0 text-xl font-semibold text-contrast">{{ formatMessage(messages.title) }}</h2>
-				<p class="mb-0 mt-1 text-secondary">
+				<h2 class="m-0 text-xl font-semibold text-[var(--color-text-primary)]">
+					{{ formatMessage(messages.title) }}
+				</h2>
+				<p class="mb-0 mt-1 text-[var(--color-text-tertiary)]">
 					{{
 						formatMessage(
 							mode === 'copy_and_upgrade' ? messages.copyDescription : messages.directDescription,
@@ -16,17 +18,21 @@
 
 		<div class="grid gap-3 md:grid-cols-2">
 			<Card class="!m-0 p-4">
-				<h3 class="m-0 text-base font-semibold text-contrast">
+				<h3 class="m-0 text-base font-semibold text-[var(--color-text-primary)]">
 					{{ formatMessage(messages.environment) }}
 				</h3>
 				<div class="mt-3 grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
-					<span class="text-secondary">{{ formatMessage(messages.minecraft) }}</span>
+					<span class="text-[var(--color-text-tertiary)]">{{
+						formatMessage(messages.minecraft)
+					}}</span>
 					<strong
 						>{{ sourceEnvironment?.gameVersion ?? formatMessage(messages.unknown) }}
 						<span aria-hidden="true">→</span>
 						{{ targetEnvironment?.gameVersion ?? formatMessage(messages.unknown) }}</strong
 					>
-					<span class="text-secondary">{{ formatMessage(messages.loader) }}</span>
+					<span class="text-[var(--color-text-tertiary)]">{{
+						formatMessage(messages.loader)
+					}}</span>
 					<strong
 						>{{ loaderLabel(sourceEnvironment) }} <span aria-hidden="true">→</span>
 						{{ loaderLabel(actualTargetEnvironment) }}</strong
@@ -34,13 +40,15 @@
 				</div>
 			</Card>
 			<Card class="!m-0 p-4">
-				<h3 class="m-0 text-base font-semibold text-contrast">
+				<h3 class="m-0 text-base font-semibold text-[var(--color-text-primary)]">
 					{{ formatMessage(messages.metrics) }}
 				</h3>
 				<div class="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
 					<div v-for="metric in metrics" :key="metric.label">
-						<div class="text-xl font-semibold text-contrast">{{ metric.value }}</div>
-						<div class="text-xs text-secondary">{{ metric.label }}</div>
+						<div class="text-xl font-semibold text-[var(--color-text-primary)]">
+							{{ metric.value }}
+						</div>
+						<div class="text-xs text-[var(--color-text-tertiary)]">{{ metric.label }}</div>
 					</div>
 				</div>
 			</Card>
@@ -68,10 +76,10 @@
 		</div>
 
 		<Card v-if="result.backupInstanceId" class="!m-0 p-4">
-			<h3 class="m-0 text-base font-semibold text-contrast">
+			<h3 class="m-0 text-base font-semibold text-[var(--color-text-primary)]">
 				{{ formatMessage(messages.backupTitle) }}
 			</h3>
-			<p class="mb-3 mt-1 text-sm text-secondary">
+			<p class="mb-3 mt-1 text-sm text-[var(--color-text-tertiary)]">
 				{{ formatMessage(messages.backupDescription) }}
 			</p>
 		</Card>

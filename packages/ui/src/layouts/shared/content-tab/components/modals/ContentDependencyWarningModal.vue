@@ -20,7 +20,9 @@
 			</Admonition>
 
 			<div v-if="visibleItems.length > 0" class="flex flex-col gap-2">
-				<span class="font-semibold text-contrast">{{ formatMessage(messages.deletingLabel) }}</span>
+				<span class="font-semibold text-[var(--color-text-primary)]">{{
+					formatMessage(messages.deletingLabel)
+				}}</span>
 				<div class="relative">
 					<Transition
 						enter-active-class="transition-all duration-200 ease-out"
@@ -69,7 +71,7 @@
 			</div>
 
 			<div v-if="visibleDependents.length > 0" class="flex flex-col gap-2">
-				<span class="font-semibold text-contrast">{{
+				<span class="font-semibold text-[var(--color-text-primary)]">{{
 					formatMessage(messages.affectedDependentsLabel, { count: visibleDependents.length })
 				}}</span>
 				<div class="relative">
@@ -112,7 +114,7 @@
 											:key="dependency.id"
 											v-tooltip="{ content: autoToHTML(dependency.project.title), html: true }"
 										>
-											<span class="mr-0.5 truncate text-xs text-secondary">
+											<span class="mr-0.5 truncate text-xs text-[var(--color-text-tertiary)]">
 												(<MinecraftFormattedText :text="dependency.project.title" />)
 											</span>
 										</span>
@@ -139,21 +141,21 @@
 
 			<div class="flex flex-col gap-4">
 				<div class="flex flex-col gap-2">
-					<span class="font-semibold text-contrast">{{
+					<span class="font-semibold text-[var(--color-text-primary)]">{{
 						formatMessage(messages.whatHappensLabel)
 					}}</span>
-					<ul class="m-0 list-disc pl-6 text-primary">
-						<li class="leading-6 marker:text-secondary">
+					<ul class="m-0 list-disc pl-6 text-[var(--color-text-default)]">
+						<li class="leading-6 marker:text-[var(--color-text-tertiary)]">
 							{{ formatMessage(messages.effectDependentContent) }}
 						</li>
-						<li class="leading-6 marker:text-secondary">
+						<li class="leading-6 marker:text-[var(--color-text-tertiary)]">
 							{{ formatMessage(messages.effectInstance, { context: contextLabel }) }}
 						</li>
 					</ul>
 					<Checkbox
 						v-model="disableDependentsAfterDeleting"
 						:label="formatMessage(messages.disableDependentsLabel)"
-						label-class="font-medium text-primary"
+						label-class="font-medium text-[var(--color-text-default)]"
 						class="mt-1"
 					/>
 				</div>

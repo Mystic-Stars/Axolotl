@@ -270,7 +270,7 @@ defineExpose({ formatDocument })
 	<div class="relative size-full min-h-0 min-w-0 bg-surface-2">
 		<div
 			v-if="loading"
-			class="absolute inset-0 z-[1] flex items-center justify-center text-sm text-secondary"
+			class="absolute inset-0 z-[1] flex items-center justify-center text-sm text-[var(--color-text-tertiary)]"
 		>
 			{{ formatMessage(messages.loading) }}
 		</div>

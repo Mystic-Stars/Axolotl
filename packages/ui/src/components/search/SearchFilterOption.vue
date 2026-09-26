@@ -1,7 +1,7 @@
 <template>
 	<div class="search-filter-option group flex gap-1 items-center">
 		<button
-			:class="`flex border-none cursor-pointer !w-full items-center gap-2 truncate rounded-xl px-2 py-2 [@media(hover:hover)]:py-1 text-sm font-semibold transition-all hover:text-contrast focus-visible:text-contrast active:scale-[0.98] ${included ? 'bg-brand-highlight text-contrast hover:brightness-125' : excluded ? 'bg-highlight-red text-contrast hover:brightness-125' : 'bg-transparent text-secondary hover:bg-button-bg focus-visible:bg-button-bg [&>svg.check-icon]:hover:text-brand [&>svg.check-icon]:focus-visible:text-brand'}`"
+			:class="`flex border-none cursor-pointer !w-full items-center gap-2 truncate rounded-xl px-2 py-2 [@media(hover:hover)]:py-1 text-sm font-semibold transition-all hover:text-[var(--color-text-primary)] focus-visible:text-[var(--color-text-primary)] active:scale-[0.98] ${included ? 'bg-brand-highlight text-[var(--color-text-primary)] hover:brightness-125' : excluded ? 'bg-highlight-red text-[var(--color-text-primary)] hover:brightness-125' : 'bg-transparent text-[var(--color-text-tertiary)] hover:bg-surface-4 focus-visible:bg-surface-4 [&>svg.check-icon]:hover:text-brand [&>svg.check-icon]:focus-visible:text-brand'}`"
 			@click="() => emit('toggle', option)"
 		>
 			<slot> </slot>
@@ -18,13 +18,13 @@
 		</button>
 		<div
 			v-if="supportsNegativeFilter && !excluded"
-			class="w-px h-[1.75rem] bg-button-bg [@media(hover:hover)]:contents"
+			class="w-px h-[1.75rem] bg-surface-4 [@media(hover:hover)]:contents"
 			:class="{ 'opacity-0': included }"
 		></div>
 		<button
 			v-if="supportsNegativeFilter && !excluded"
 			v-tooltip="formatMessage(messages.excludeTooltip)"
-			class="flex border-none cursor-pointer items-center justify-center gap-2 rounded-xl bg-transparent px-2 py-1 text-sm font-semibold text-secondary [@media(hover:hover)]:opacity-0 transition-all hover:bg-button-bg hover:text-red focus-visible:bg-button-bg focus-visible:text-red active:scale-[0.96]"
+			class="flex border-none cursor-pointer items-center justify-center gap-2 rounded-xl bg-transparent px-2 py-1 text-sm font-semibold text-[var(--color-text-tertiary)] [@media(hover:hover)]:opacity-0 transition-all hover:bg-surface-4 hover:text-red focus-visible:bg-surface-4 focus-visible:text-red active:scale-[0.96]"
 			@click="() => emit('toggleExclude', option)"
 		>
 			<BanIcon class="filter-action-icon h-4 w-4" aria-hidden="true" />

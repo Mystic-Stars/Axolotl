@@ -393,10 +393,10 @@ onBeforeUnmount(() => {
 									<h3>{{ formatMessage(messages.downloadsTitle) }}</h3>
 									<p>{{ formatMessage(messages.downloadsDescription) }}</p>
 									<div class="mt-6 max-w-[28rem]">
-										<h4 class="m-0 text-base font-semibold text-contrast">
+										<h4 class="m-0 text-base font-semibold text-[var(--color-text-primary)]">
 											{{ formatMessage(messages.downloadSourceTitle) }}
 										</h4>
-										<p class="m-0 mt-1 text-sm text-secondary">
+										<p class="m-0 mt-1 text-sm text-[var(--color-text-tertiary)]">
 											{{ formatMessage(messages.downloadSourceDescription) }}
 										</p>
 										<div class="mt-3">
@@ -407,7 +407,7 @@ onBeforeUnmount(() => {
 												:options="downloadSourceOptions"
 											/>
 										</div>
-										<p class="m-0 mt-3 text-sm text-secondary" role="status">
+										<p class="m-0 mt-3 text-sm text-[var(--color-text-tertiary)]" role="status">
 											{{
 												formatMessage(messages.currentDownloadSource, {
 													source: resolvedDownloadSourceLabel,
@@ -462,9 +462,9 @@ onBeforeUnmount(() => {
 	height: min(40rem, calc(100vh - 2rem));
 	height: min(40rem, calc(100dvh - 2rem));
 	overflow: hidden;
-	border: 1px solid var(--color-divider);
+	border: 1px solid var(--surface-5);
 	border-radius: 1.25rem;
-	background: var(--color-raised-bg);
+	background: var(--surface-2);
 	box-shadow: 0 2rem 6rem rgb(0 0 0 / 42%);
 }
 
@@ -475,8 +475,8 @@ onBeforeUnmount(() => {
 	justify-content: space-between;
 	min-height: 5.25rem;
 	padding: 0 1.5rem;
-	border-bottom: 1px solid var(--color-divider);
-	background: var(--color-raised-bg);
+	border-bottom: 1px solid var(--surface-4);
+	background: var(--surface-3);
 
 	h2 {
 		display: flex;
@@ -507,7 +507,7 @@ onBeforeUnmount(() => {
 	min-height: 0;
 	flex-direction: column;
 	padding: 0 1rem 0.75rem 0;
-	border-right: 1px solid var(--color-divider);
+	border-right: 1px solid var(--surface-4);
 
 	nav {
 		display: flex;
@@ -531,7 +531,7 @@ onBeforeUnmount(() => {
 		transition: 120ms ease;
 
 		&:hover {
-			background: var(--color-button-bg);
+			background: var(--surface-3);
 			color: var(--color-contrast);
 			cursor: pointer;
 		}
@@ -590,7 +590,7 @@ onBeforeUnmount(() => {
 	display: block;
 	height: 2.5rem;
 	margin-top: -2.5rem;
-	background: linear-gradient(transparent, var(--color-raised-bg));
+	background: linear-gradient(transparent, var(--surface-2));
 	content: '';
 	pointer-events: none;
 }

@@ -164,7 +164,7 @@ async function copyToClipboard(text: string) {
 						<h3 class="text-base font-bold m-0">
 							{{ formatMessage(messages.whatHappened) }}
 						</h3>
-						<p class="text-sm text-secondary m-0">
+						<p class="text-sm text-[var(--color-text-tertiary)] m-0">
 							{{ localizedMatchedError.whatHappened }}
 						</p>
 					</div>
@@ -197,10 +197,10 @@ async function copyToClipboard(text: string) {
 						<h3 class="text-base font-bold m-0">
 							{{ formatMessage(messages.unknownError) }}
 						</h3>
-						<p class="text-sm text-secondary m-0">
+						<p class="text-sm text-[var(--color-text-tertiary)] m-0">
 							{{ formatMessage(messages.unknownDescription) }}
 						</p>
-						<p class="text-sm text-secondary m-0">
+						<p class="text-sm text-[var(--color-text-tertiary)] m-0">
 							{{ formatMessage(messages.tryMinecraftLoginBefore) }}
 							<a
 								class="text-info font-medium underline hover:underline"
@@ -239,12 +239,14 @@ async function copyToClipboard(text: string) {
 						class="flex items-center justify-between w-full bg-transparent border-0 py-4 cursor-pointer"
 						@click="debugCollapsed = !debugCollapsed"
 					>
-						<span class="flex items-center gap-2 text-contrast font-extrabold m-0">
+						<span
+							class="flex items-center gap-2 text-[var(--color-text-primary)] font-extrabold m-0"
+						>
 							<WrenchIcon class="h-4 w-4" />
 							{{ formatMessage(messages.debugInformation) }}
 						</span>
 						<DropdownIcon
-							class="h-5 w-5 text-secondary transition-transform"
+							class="h-5 w-5 text-[var(--color-text-tertiary)] transition-transform"
 							:class="{ 'rotate-180': !debugCollapsed }"
 						/>
 					</button>

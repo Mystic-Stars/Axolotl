@@ -375,7 +375,7 @@ function formatDateTime(date: Date) {
 					</h2>
 
 					<div class="storage-total-value">
-						<span class="text-3xl font-bold leading-[1.1] text-contrast">{{
+						<span class="text-3xl font-bold leading-[1.1] text-[var(--color-text-primary)]">{{
 							formatBytes(tree.total.actual)
 						}}</span>
 						<span v-if="tree.total.symlink > 0" class="total-symlink">
@@ -439,9 +439,10 @@ function formatDateTime(date: Date) {
 							/>
 
 							<div class="legend-info">
-								<span class="whitespace-nowrap text-[0.8125rem] font-semibold text-contrast">{{
-									slice.label
-								}}</span>
+								<span
+									class="whitespace-nowrap text-[0.8125rem] font-semibold text-[var(--color-text-primary)]"
+									>{{ slice.label }}</span
+								>
 								<span class="legend-size">{{ slice.formattedSize }}</span>
 								<span class="legend-percent">{{ slice.percentText }}</span>
 							</div>

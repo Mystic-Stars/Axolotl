@@ -7,14 +7,14 @@
 		:on-hide="onHide"
 	>
 		<template #title>
-			<span class="text-contrast">{{
+			<span class="text-[var(--color-text-primary)]">{{
 				formatMessage(messages.title, { launcherName: primaryLauncherName })
 			}}</span>
 		</template>
 
 		<div class="flex flex-col gap-4">
 			<!-- Subtitle -->
-			<span class="text-secondary text-sm">
+			<span class="text-[var(--color-text-tertiary)] text-sm">
 				{{
 					formatMessage(messages.subtitle, {
 						basePath: primaryBasePath,
@@ -37,7 +37,7 @@
 				>
 					{{ formatMessage(messages.deselectAll) }}
 				</button>
-				<span class="text-secondary ml-auto">{{
+				<span class="text-[var(--color-text-tertiary)] ml-auto">{{
 					formatMessage(messages.selected, { n: selectedCount })
 				}}</span>
 			</div>
@@ -45,7 +45,9 @@
 			<!-- Instance list grouped by launcher -->
 			<div class="flex flex-col gap-3 max-h-[360px] overflow-y-auto">
 				<div v-for="group in internalResults" :key="group.launcherType" class="flex flex-col gap-1">
-					<span class="text-xs font-semibold text-secondary uppercase tracking-wide px-1">
+					<span
+						class="text-xs font-semibold text-[var(--color-text-tertiary)] uppercase tracking-wide px-1"
+					>
 						{{ group.launcherName }}
 					</span>
 					<div class="flex flex-col gap-1">
@@ -71,7 +73,7 @@
 
 			<div
 				v-if="allInstances.length === 0"
-				class="flex items-center justify-center py-8 text-secondary"
+				class="flex items-center justify-center py-8 text-[var(--color-text-tertiary)]"
 			>
 				<span class="text-sm">{{ formatMessage(messages.noInstances) }}</span>
 			</div>

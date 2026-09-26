@@ -3,22 +3,22 @@
 		<header
 			class="flex min-h-12 shrink-0 flex-wrap items-center gap-x-2 gap-y-1 border-0 border-b border-solid border-surface-5 bg-surface-2 px-3 py-1.5"
 		>
-			<h2 class="min-w-0 flex-1 truncate text-sm font-semibold text-contrast">
+			<h2 class="min-w-0 flex-1 truncate text-sm font-semibold text-[var(--color-text-primary)]">
 				{{ formatMessage(messages.title) }}
 			</h2>
 			<div class="flex flex-wrap items-center gap-1.5 text-xs">
 				<span
-					class="shrink-0 whitespace-nowrap rounded-full bg-surface-3 px-2 py-0.5 font-semibold tabular-nums text-contrast"
+					class="shrink-0 whitespace-nowrap rounded-full bg-surface-3 px-2 py-0.5 font-semibold tabular-nums text-[var(--color-text-primary)]"
 				>
 					{{ formatMessage(messages.score, { score }) }}
 				</span>
 				<span
-					class="shrink-0 whitespace-nowrap rounded-full bg-surface-3 px-2 py-0.5 tabular-nums text-secondary"
+					class="shrink-0 whitespace-nowrap rounded-full bg-surface-3 px-2 py-0.5 tabular-nums text-[var(--color-text-tertiary)]"
 				>
 					{{ formatMessage(messages.highestLevel, { level: highestLevel + 1 }) }}
 				</span>
 				<span
-					class="shrink-0 whitespace-nowrap rounded-full bg-surface-3 px-2 py-0.5 tabular-nums text-secondary"
+					class="shrink-0 whitespace-nowrap rounded-full bg-surface-3 px-2 py-0.5 tabular-nums text-[var(--color-text-tertiary)]"
 				>
 					{{ formatMessage(messages.best, { score: bestScore }) }}
 				</span>
@@ -46,12 +46,12 @@
 					class="pointer-events-none absolute inset-x-0 bottom-2 z-10 flex flex-col items-center gap-1"
 				>
 					<span
-						class="rounded-full border border-surface-5 bg-surface-2 px-3 py-1 text-xs text-secondary"
+						class="rounded-full border border-surface-5 bg-surface-2 px-3 py-1 text-xs text-[var(--color-text-tertiary)]"
 					>
 						{{ formatMessage(messages.tapToDrop) }}
 					</span>
 					<span
-						class="rounded-full border border-surface-5 bg-surface-2/80 px-3 py-1 text-xs text-secondary"
+						class="rounded-full border border-surface-5 bg-surface-2/80 px-3 py-1 text-xs text-[var(--color-text-tertiary)]"
 					>
 						{{ formatMessage(messages.tideHint) }}
 					</span>
@@ -80,7 +80,9 @@
 						<span class="glow-text text-sm font-extrabold tracking-wide">
 							{{ formatMessage(messages.overtime) }}
 						</span>
-						<span class="text-xs text-secondary">{{ formatMessage(messages.overtimeDetail) }}</span>
+						<span class="text-xs text-[var(--color-text-tertiary)]">{{
+							formatMessage(messages.overtimeDetail)
+						}}</span>
 					</div>
 				</div>
 			</Transition>
@@ -96,17 +98,21 @@
 					<div
 						class="m-auto flex max-h-full min-w-0 w-full max-w-64 flex-col items-center gap-1.5 overflow-y-auto rounded-2xl border border-surface-5 bg-surface-2 p-3 text-center shadow-xl"
 					>
-						<h3 class="m-0 text-sm font-bold text-contrast">
+						<h3 class="m-0 text-sm font-bold text-[var(--color-text-primary)]">
 							{{ formatMessage(endedManually ? messages.settleTitle : messages.gameOver) }}
 						</h3>
 						<p v-if="newRecord" class="glow-text m-0 text-[11px] font-extrabold tracking-wide">
 							{{ formatMessage(messages.newRecord) }}
 						</p>
 						<div class="flex items-baseline gap-1.5">
-							<span class="text-[10px] font-bold uppercase tracking-widest text-secondary">
+							<span
+								class="text-[10px] font-bold uppercase tracking-widest text-[var(--color-text-tertiary)]"
+							>
 								{{ formatMessage(messages.scoreLabel) }}
 							</span>
-							<span class="text-2xl font-extrabold leading-none tabular-nums text-contrast">
+							<span
+								class="text-2xl font-extrabold leading-none tabular-nums text-[var(--color-text-primary)]"
+							>
 								{{ score }}
 							</span>
 						</div>
@@ -122,24 +128,26 @@
 						</div>
 						<div class="grid w-full min-w-0 grid-cols-3 gap-1.5">
 							<div class="flex min-w-0 flex-col items-center rounded-lg bg-surface-3 px-1 py-1">
-								<span class="text-[9px] text-secondary">{{
+								<span class="text-[9px] text-[var(--color-text-tertiary)]">{{
 									formatMessage(messages.levelLabel)
 								}}</span>
-								<span class="text-sm font-bold tabular-nums text-contrast">{{
+								<span class="text-sm font-bold tabular-nums text-[var(--color-text-primary)]">{{
 									highestLevel + 1
 								}}</span>
 							</div>
 							<div class="flex min-w-0 flex-col items-center rounded-lg bg-surface-3 px-1 py-1">
-								<span class="text-[9px] text-secondary">{{
+								<span class="text-[9px] text-[var(--color-text-tertiary)]">{{
 									formatMessage(messages.bestLabel)
 								}}</span>
-								<span class="text-sm font-bold tabular-nums text-contrast">{{ bestScore }}</span>
+								<span class="text-sm font-bold tabular-nums text-[var(--color-text-primary)]">{{
+									bestScore
+								}}</span>
 							</div>
 							<div class="flex min-w-0 flex-col items-center rounded-lg bg-surface-3 px-1 py-1">
-								<span class="text-[9px] text-secondary">{{
+								<span class="text-[9px] text-[var(--color-text-tertiary)]">{{
 									formatMessage(messages.overtimesLabel)
 								}}</span>
-								<span class="text-sm font-bold tabular-nums text-contrast">{{
+								<span class="text-sm font-bold tabular-nums text-[var(--color-text-primary)]">{{
 									overtimeCount
 								}}</span>
 							</div>

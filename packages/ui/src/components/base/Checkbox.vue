@@ -1,7 +1,7 @@
 <template>
 	<button
 		type="button"
-		class="group bg-transparent border-none p-0 m-0 flex items-center text-left gap-3 checkbox-outer outline-offset-4 text-contrast"
+		class="group bg-transparent border-none p-0 m-0 flex items-center text-left gap-3 checkbox-outer outline-offset-4 text-[var(--color-text-primary)]"
 		:disabled="disabled"
 		:class="
 			disabled
@@ -17,7 +17,7 @@
 			class="w-5 h-5 aspect-square rounded-md flex shrink-0 items-center justify-center border-[1px] border-solid"
 			:class="{
 				'bg-brand border-button-border text-brand-inverted': modelValue,
-				'bg-surface-2 border-divider-dark text-primary': !modelValue,
+				'bg-surface-2 border-divider-dark text-[var(--color-text-default)]': !modelValue,
 				'checkbox-shadow group-active:scale-95': !disabled,
 			}"
 		>

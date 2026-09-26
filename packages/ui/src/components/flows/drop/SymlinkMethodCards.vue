@@ -10,8 +10,10 @@
 	>
 		<div class="flex flex-col gap-4 p-6">
 			<div class="flex flex-col gap-1">
-				<span class="text-lg font-semibold text-contrast">{{ formatMessage(messages.title) }}</span>
-				<span class="text-sm text-secondary">
+				<span class="text-lg font-semibold text-[var(--color-text-primary)]">{{
+					formatMessage(messages.title)
+				}}</span>
+				<span class="text-sm text-[var(--color-text-tertiary)]">
 					{{ formatMessage(messages.subtitle, { n: instances.length }) }}
 				</span>
 			</div>
@@ -32,7 +34,7 @@
 						class="flex flex-col gap-2"
 						:class="{ 'method-shake': methodShake }"
 					>
-						<span class="text-sm font-semibold text-contrast">{{
+						<span class="text-sm font-semibold text-[var(--color-text-primary)]">{{
 							formatMessage(messages.method)
 						}}</span>
 						<BigOptionButton
@@ -60,7 +62,7 @@
 
 					<div class="flex flex-col gap-2">
 						<div class="flex items-center gap-2">
-							<span class="text-sm font-semibold text-contrast">
+							<span class="text-sm font-semibold text-[var(--color-text-primary)]">
 								{{ formatMessage(messages.statsLabel) }}
 							</span>
 						</div>
@@ -73,13 +75,15 @@
 							>
 								<span
 									v-tooltip="row.tooltip"
-									class="shrink-0 whitespace-nowrap text-sm text-secondary"
+									class="shrink-0 whitespace-nowrap text-sm text-[var(--color-text-tertiary)]"
 								>
 									{{ row.label }}
 								</span>
 								<div class="flex flex-col items-end gap-0.5 whitespace-nowrap">
-									<span class="text-sm font-semibold text-contrast">{{ row.size }}</span>
-									<span class="text-xs text-secondary">{{ row.files }}</span>
+									<span class="text-sm font-semibold text-[var(--color-text-primary)]">{{
+										row.size
+									}}</span>
+									<span class="text-xs text-[var(--color-text-tertiary)]">{{ row.files }}</span>
 								</div>
 							</div>
 						</div>
@@ -96,7 +100,7 @@
 					>
 						<div class="flex flex-col gap-2">
 							<div class="relative flex items-center gap-2">
-								<span class="text-sm font-semibold text-contrast">
+								<span class="text-sm font-semibold text-[var(--color-text-primary)]">
 									{{ formatMessage(messages.loaderLabel) }}
 								</span>
 								<TagItem
@@ -135,7 +139,7 @@
 						<div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
 							<div class="flex flex-col gap-2">
 								<div class="relative flex items-center gap-2">
-									<span class="text-sm font-semibold text-contrast">
+									<span class="text-sm font-semibold text-[var(--color-text-primary)]">
 										{{ formatMessage(messages.gameVersionLabel) }}
 									</span>
 									<TagItem
@@ -173,7 +177,11 @@
 								<div class="relative flex items-center gap-2">
 									<span
 										class="text-sm font-semibold"
-										:class="loader === 'vanilla' ? 'text-secondary' : 'text-contrast'"
+										:class="
+											loader === 'vanilla'
+												? 'text-[var(--color-text-tertiary)]'
+												: 'text-[var(--color-text-primary)]'
+										"
 									>
 										{{ formatMessage(messages.loaderVersionLabel) }}
 									</span>
@@ -218,7 +226,7 @@
 							<div class="flex flex-col gap-2">
 								<span
 									v-tooltip="formatMessage(messages.importPathTooltip)"
-									class="text-sm font-semibold text-contrast"
+									class="text-sm font-semibold text-[var(--color-text-primary)]"
 								>
 									{{ formatMessage(messages.importPathLabel) }}
 								</span>
@@ -234,7 +242,7 @@
 										>
 											<button
 												type="button"
-												class="pointer-events-auto flex h-6 w-6 items-center justify-center rounded-md text-secondary hover:text-contrast disabled:opacity-50"
+												class="pointer-events-auto flex h-6 w-6 items-center justify-center rounded-md text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)] disabled:opacity-50"
 												:disabled="!activeInstance?.path"
 												@click="openVersionPath"
 											>
@@ -248,7 +256,7 @@
 							<div class="flex flex-col gap-2">
 								<span
 									v-tooltip="formatMessage(messages.runtimeRootTooltip)"
-									class="text-sm font-semibold text-contrast"
+									class="text-sm font-semibold text-[var(--color-text-primary)]"
 								>
 									{{ formatMessage(messages.runtimeRootLabel) }}
 								</span>
@@ -267,7 +275,7 @@
 										>
 											<button
 												type="button"
-												class="pointer-events-auto flex h-6 w-6 items-center justify-center rounded-md text-secondary hover:text-contrast disabled:opacity-50"
+												class="pointer-events-auto flex h-6 w-6 items-center justify-center rounded-md text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)] disabled:opacity-50"
 												:disabled="!activeSnapshot?.minecraftRoot"
 												@click="openRootInFileManager"
 											>
@@ -280,7 +288,7 @@
 						</div>
 
 						<div v-if="method === 'symlink'" class="flex flex-col gap-2">
-							<span class="text-sm font-semibold text-contrast">
+							<span class="text-sm font-semibold text-[var(--color-text-primary)]">
 								{{ formatMessage(messages.gameDirLabel) }}
 							</span>
 							<RadioButtons
@@ -292,7 +300,10 @@
 									{{ formatMessage(gameDirModeLabel(item)) }}
 								</template>
 							</RadioButtons>
-							<span v-if="gameDirOverride" class="text-sm text-secondary break-all">
+							<span
+								v-if="gameDirOverride"
+								class="text-sm text-[var(--color-text-tertiary)] break-all"
+							>
 								{{ gameDirOverride }}
 							</span>
 						</div>
@@ -318,7 +329,9 @@
 									index === activeIndex
 										? `h-2 w-8 ${instanceWarnings[index] ? 'bg-orange' : 'bg-brand'}`
 										: `size-2 ${
-												instanceWarnings[index] ? 'bg-orange' : 'bg-secondary hover:bg-surface-3'
+												instanceWarnings[index]
+													? 'bg-orange'
+													: 'bg-[var(--color-text-tertiary)] hover:bg-surface-3'
 											}`
 								"
 								:aria-pressed="index === activeIndex"

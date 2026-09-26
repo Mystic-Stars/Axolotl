@@ -74,7 +74,7 @@ const monogramStyles = computed<Record<string, string>>(() =>
 <template>
 	<div class="flex flex-col gap-5">
 		<div>
-			<h2 class="m-0 text-lg font-semibold text-contrast">
+			<h2 class="m-0 text-lg font-semibold text-[var(--color-text-primary)]">
 				{{ formatMessage(messages.heading) }}
 			</h2>
 		</div>
@@ -112,7 +112,7 @@ const monogramStyles = computed<Record<string, string>>(() =>
 				>
 					{{ SERVER_TYPE_META[type.id].monogram }}
 				</span>
-				<span class="min-w-0 truncate font-semibold text-contrast">{{
+				<span class="min-w-0 truncate font-semibold text-[var(--color-text-primary)]">{{
 					serverTypeLabel(type)
 				}}</span>
 			</button>
@@ -120,7 +120,7 @@ const monogramStyles = computed<Record<string, string>>(() =>
 
 		<div class="flex items-end justify-between gap-4">
 			<div class="flex min-w-0 flex-1 flex-col gap-2">
-				<span class="font-semibold text-contrast">
+				<span class="font-semibold text-[var(--color-text-primary)]">
 					{{ formatMessage(messages.gameVersion) }}
 				</span>
 				<Combobox
@@ -132,7 +132,7 @@ const monogramStyles = computed<Record<string, string>>(() =>
 			</div>
 
 			<div class="flex shrink-0 items-center gap-2 pb-2.5">
-				<span class="whitespace-nowrap text-sm text-secondary">
+				<span class="whitespace-nowrap text-sm text-[var(--color-text-tertiary)]">
 					{{ formatMessage(messages.showSnapshots) }}
 				</span>
 				<Toggle
@@ -150,7 +150,7 @@ const monogramStyles = computed<Record<string, string>>(() =>
 		</div>
 
 		<div v-if="ctx.needsLoaderVersion.value" class="flex min-w-0 flex-col gap-2">
-			<span class="font-semibold text-contrast">
+			<span class="font-semibold text-[var(--color-text-primary)]">
 				{{ formatMessage(messages.loaderVersion) }}
 			</span>
 			<Combobox

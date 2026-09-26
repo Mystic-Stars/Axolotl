@@ -2,20 +2,28 @@
 	<section class="flex flex-col gap-6 py-2">
 		<header class="flex flex-col gap-3">
 			<div>
-				<h2 class="m-0 text-xl font-semibold text-contrast">{{ formatMessage(messages.title) }}</h2>
-				<p class="mb-0 mt-1 text-secondary">{{ formatMessage(messages.description) }}</p>
+				<h2 class="m-0 text-xl font-semibold text-[var(--color-text-primary)]">
+					{{ formatMessage(messages.title) }}
+				</h2>
+				<p class="mb-0 mt-1 text-[var(--color-text-tertiary)]">
+					{{ formatMessage(messages.description) }}
+				</p>
 			</div>
 			<div class="flex flex-wrap gap-x-8 gap-y-2 text-sm">
 				<div>
-					<span class="text-secondary">{{ formatMessage(messages.minecraft) }}</span>
-					<strong class="ml-2 text-contrast">
+					<span class="text-[var(--color-text-tertiary)]">{{
+						formatMessage(messages.minecraft)
+					}}</span>
+					<strong class="ml-2 text-[var(--color-text-primary)]">
 						{{ plan.sourceEnvironment.gameVersion }} <span aria-hidden="true">→</span>
 						{{ plan.targetEnvironment.gameVersion }}
 					</strong>
 				</div>
 				<div>
-					<span class="text-secondary">{{ formatMessage(messages.loader) }}</span>
-					<strong class="ml-2 text-contrast">
+					<span class="text-[var(--color-text-tertiary)]">{{
+						formatMessage(messages.loader)
+					}}</span>
+					<strong class="ml-2 text-[var(--color-text-primary)]">
 						{{ formatLoaderLabel(plan.sourceEnvironment.modLoader) }}
 						<span aria-hidden="true">→</span> {{ targetLoaderLabel }}
 					</strong>
@@ -25,8 +33,10 @@
 
 		<div class="grid grid-cols-2 gap-px overflow-hidden rounded-lg bg-divider sm:grid-cols-5">
 			<div v-for="metric in summaryMetrics" :key="metric.label" class="bg-bg p-3">
-				<div class="text-2xl font-semibold text-contrast">{{ metric.value }}</div>
-				<div class="text-sm text-secondary">{{ metric.label }}</div>
+				<div class="text-2xl font-semibold text-[var(--color-text-primary)]">
+					{{ metric.value }}
+				</div>
+				<div class="text-sm text-[var(--color-text-tertiary)]">{{ metric.label }}</div>
 			</div>
 		</div>
 
@@ -35,15 +45,15 @@
 				:open-by-default="true"
 				:force-open="severity.key === 'blocking'"
 				:overflow-visible="true"
-				button-class="flex w-full items-center gap-2 border-0 bg-transparent p-0 text-left text-contrast"
+				button-class="flex w-full items-center gap-2 border-0 bg-transparent p-0 text-left text-[var(--color-text-primary)]"
 				content-class="pt-2"
 			>
 				<template #title>
 					<h3 class="m-0 text-lg font-semibold">{{ severity.title }}</h3>
-					<span class="text-sm text-secondary">{{ severity.items.length }}</span>
+					<span class="text-sm text-[var(--color-text-tertiary)]">{{ severity.items.length }}</span>
 					<span
 						v-if="severity.key === 'blocking' && initialBlockingCount"
-						class="text-sm text-secondary"
+						class="text-sm text-[var(--color-text-tertiary)]"
 					>
 						·
 						{{
@@ -54,10 +64,16 @@
 						}}
 					</span>
 				</template>
-				<p v-if="severity.key === 'blocking'" class="mb-2 mt-1 text-sm text-secondary">
+				<p
+					v-if="severity.key === 'blocking'"
+					class="mb-2 mt-1 text-sm text-[var(--color-text-tertiary)]"
+				>
 					{{ formatMessage(messages.blockingDescription) }}
 				</p>
-				<p v-else-if="severity.key === 'warnings'" class="mb-2 mt-1 text-sm text-secondary">
+				<p
+					v-else-if="severity.key === 'warnings'"
+					class="mb-2 mt-1 text-sm text-[var(--color-text-tertiary)]"
+				>
 					{{ formatMessage(messages.warningsDescription) }}
 				</p>
 
@@ -65,15 +81,15 @@
 					v-if="severity.key === 'warnings' && actionableWarningIds.length"
 					class="mb-2 flex flex-wrap items-center justify-between gap-2"
 				>
-					<span v-if="bulkAction" class="text-sm text-secondary" role="status">
+					<span v-if="bulkAction" class="text-sm text-[var(--color-text-tertiary)]" role="status">
 						{{ formatMessage(messages.bulkProgress, { current: bulkCompleted, total: bulkTotal }) }}
 					</span>
-					<span v-else class="text-sm text-secondary">
+					<span v-else class="text-sm text-[var(--color-text-tertiary)]">
 						{{ formatMessage(messages.bulkEligible, { count: actionableWarningIds.length }) }}
 					</span>
 					<div class="flex flex-wrap gap-2">
 						<template v-if="confirmDisableAll">
-							<span class="self-center text-sm text-secondary">
+							<span class="self-center text-sm text-[var(--color-text-tertiary)]">
 								{{
 									formatMessage(messages.confirmDisableAll, { count: actionableWarningIds.length })
 								}}
@@ -120,7 +136,10 @@
 				<p v-if="bulkWarning && severity.key === 'warnings'" class="mb-2 mt-0 text-sm text-orange">
 					{{ bulkWarning }}
 				</p>
-				<p v-if="bulkInfo && severity.key === 'warnings'" class="mb-2 mt-0 text-sm text-secondary">
+				<p
+					v-if="bulkInfo && severity.key === 'warnings'"
+					class="mb-2 mt-0 text-sm text-[var(--color-text-tertiary)]"
+				>
 					{{ bulkInfo }}
 				</p>
 
@@ -138,7 +157,9 @@
 					<TriangleAlertIcon v-else class="mt-0.5 size-4 shrink-0" aria-hidden="true" />
 					<div class="min-w-0">
 						<strong>{{ formatMessage(messages.globalIssue) }}</strong>
-						<span class="ml-2 break-words text-secondary">{{ issueDescription(issue) }}</span>
+						<span class="ml-2 break-words text-[var(--color-text-tertiary)]">{{
+							issueDescription(issue)
+						}}</span>
 					</div>
 				</div>
 
@@ -160,15 +181,15 @@
 									<RouterLink
 										v-if="projectPath(group.item)"
 										:to="projectPath(group.item)!"
-										class="inline-flex max-w-full items-center gap-1 font-semibold text-contrast hover:text-brand hover:underline focus-visible:underline"
+										class="inline-flex max-w-full items-center gap-1 font-semibold text-[var(--color-text-primary)] hover:text-brand hover:underline focus-visible:underline"
 										@click="parkProjectReturn"
 										><span class="truncate">{{ itemName(group.item) }}</span
 										><ExternalIcon class="size-3 shrink-0" aria-hidden="true"
 									/></RouterLink>
-									<div v-else class="truncate font-semibold text-contrast">
+									<div v-else class="truncate font-semibold text-[var(--color-text-primary)]">
 										{{ itemName(group.item) }}
 									</div>
-									<div class="flex flex-wrap gap-x-3 text-sm text-secondary">
+									<div class="flex flex-wrap gap-x-3 text-sm text-[var(--color-text-tertiary)]">
 										<span>{{ providerLabel(group.item.provider) }}</span>
 										<span class="flex min-w-0 flex-wrap items-center gap-1 break-words">
 											<UpgradeVersionChangelogPopout
@@ -260,7 +281,10 @@
 											v-if="isPrereleaseBlocker(group.item)"
 											class="flex max-w-xl flex-col gap-2"
 										>
-											<span v-if="group.item.candidateReleaseIds[0]" class="text-sm text-secondary">
+											<span
+												v-if="group.item.candidateReleaseIds[0]"
+												class="text-sm text-[var(--color-text-tertiary)]"
+											>
 												{{
 													formatMessage(messages.candidateRelease, {
 														version: releaseLabel(
@@ -320,7 +344,7 @@
 		</section>
 
 		<section v-if="visibleDependencyChanges.length" class="flex flex-col gap-2">
-			<h3 class="m-0 text-lg font-semibold text-contrast">
+			<h3 class="m-0 text-lg font-semibold text-[var(--color-text-primary)]">
 				{{ formatMessage(messages.dependenciesTitle) }}
 			</h3>
 			<div class="overflow-hidden rounded-lg border border-solid border-divider">
@@ -330,12 +354,14 @@
 					class="flex items-center justify-between gap-4 border-0 border-b border-solid border-divider p-3 last:border-b-0"
 				>
 					<div class="min-w-0">
-						<div class="truncate font-semibold text-contrast">{{ change.projectId }}</div>
-						<div class="text-sm text-secondary">
+						<div class="truncate font-semibold text-[var(--color-text-primary)]">
+							{{ change.projectId }}
+						</div>
+						<div class="text-sm text-[var(--color-text-tertiary)]">
 							{{ providerLabel(change.provider) }} · {{ dependencyVersionChange(change) }}
 						</div>
 					</div>
-					<strong class="shrink-0 text-sm text-contrast">{{
+					<strong class="shrink-0 text-sm text-[var(--color-text-primary)]">{{
 						dependencyActionLabel(change.kind)
 					}}</strong>
 				</div>

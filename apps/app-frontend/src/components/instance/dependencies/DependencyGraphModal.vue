@@ -774,12 +774,14 @@ defineExpose({ show, hide, setItems })
 				:tint-by="props.instanceName"
 			/>
 			<div class="flex min-w-0 flex-col">
-				<span class="truncate text-lg font-extrabold text-contrast">{{
+				<span class="truncate text-lg font-extrabold text-[var(--color-text-primary)]">{{
 					formatMessage(messages.header)
 				}}</span>
-				<span v-if="props.instanceName" class="truncate text-sm font-medium text-secondary">{{
-					props.instanceName
-				}}</span>
+				<span
+					v-if="props.instanceName"
+					class="truncate text-sm font-medium text-[var(--color-text-tertiary)]"
+					>{{ props.instanceName }}</span
+				>
 			</div>
 		</template>
 
@@ -835,24 +837,27 @@ defineExpose({ show, hide, setItems })
 					:display-name="statusFilterLabel"
 					auto-placement
 				/>
-				<div v-if="viewMode === 'tree'" class="flex items-center gap-2 text-sm text-secondary">
+				<div
+					v-if="viewMode === 'tree'"
+					class="flex items-center gap-2 text-sm text-[var(--color-text-tertiary)]"
+				>
 					<Toggle id="dependency-related-only" v-model="onlyRelated" small />
 					<span>{{ formatMessage(messages.onlyRelated) }}</span>
 				</div>
-				<span class="ml-auto text-sm text-secondary">{{ statsText }}</span>
+				<span class="ml-auto text-sm text-[var(--color-text-tertiary)]">{{ statsText }}</span>
 			</div>
 
 			<div class="flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row">
 				<div class="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
 					<div
 						v-if="items.length === 0"
-						class="flex h-full items-center justify-center p-8 text-secondary"
+						class="flex h-full items-center justify-center p-8 text-[var(--color-text-tertiary)]"
 					>
 						{{ formatMessage(messages.noContent) }}
 					</div>
 					<div
 						v-else-if="filteredNodeIds.size === 0"
-						class="flex h-full items-center justify-center p-8 text-secondary"
+						class="flex h-full items-center justify-center p-8 text-[var(--color-text-tertiary)]"
 					>
 						{{ formatMessage(messages.noMatches) }}
 					</div>
@@ -874,7 +879,7 @@ defineExpose({ show, hide, setItems })
 						</div>
 						<div
 							v-if="!treeHasRows"
-							class="rounded-xl border border-dashed border-surface-4 p-8 text-center text-secondary"
+							class="rounded-xl border border-dashed border-surface-4 p-8 text-center text-[var(--color-text-tertiary)]"
 						>
 							{{ formatMessage(messages.noDependencies) }}
 						</div>
@@ -889,8 +894,8 @@ defineExpose({ show, hide, setItems })
 									row.kind === 'cycle'
 										? 'text-red'
 										: row.kind === 'reference'
-											? 'text-secondary'
-											: 'text-primary'
+											? 'text-[var(--color-text-tertiary)]'
+											: 'text-[var(--color-text-default)]'
 								"
 								:style="{ paddingLeft: `${row.depth * 1.5 + 0.5}rem` }"
 								@click="row.nodeId && selectNode(row.nodeId)"
@@ -917,16 +922,19 @@ defineExpose({ show, hide, setItems })
 									<div class="min-w-0 flex-1">
 										<MinecraftFormattedText
 											:text="graph.nodeById.get(row.nodeId)?.title ?? ''"
-											class="block truncate font-semibold text-contrast"
+											class="block truncate font-semibold text-[var(--color-text-primary)]"
 										/>
-										<div class="mt-0.5 truncate text-xs text-secondary">
+										<div class="mt-0.5 truncate text-xs text-[var(--color-text-tertiary)]">
 											{{
 												graph.nodeById.get(row.nodeId)?.versionNumber ??
 												graph.nodeById.get(row.nodeId)?.fileName
 											}}
 										</div>
 									</div>
-									<span v-if="row.kind === 'reference'" class="shrink-0 text-xs text-secondary">
+									<span
+										v-if="row.kind === 'reference'"
+										class="shrink-0 text-xs text-[var(--color-text-tertiary)]"
+									>
 										{{ formatMessage(messages.reference) }}
 									</span>
 									<span v-else-if="row.kind === 'cycle'" class="shrink-0 text-xs text-red">
@@ -956,15 +964,17 @@ defineExpose({ show, hide, setItems })
 									>
 										<GitGraphIcon class="size-4" />
 									</span>
-									<span class="truncate text-sm text-secondary">{{
+									<span class="truncate text-sm text-[var(--color-text-tertiary)]">{{
 										formatMessage(messages.graphDirection)
 									}}</span>
 								</div>
 								<div class="flex items-center gap-3">
-									<span class="shrink-0 text-xs text-secondary">{{ graphStatsText }}</span>
+									<span class="shrink-0 text-xs text-[var(--color-text-tertiary)]">{{
+										graphStatsText
+									}}</span>
 									<div
 										v-if="isolatedNodes.length"
-										class="flex items-center gap-2 text-xs text-secondary"
+										class="flex items-center gap-2 text-xs text-[var(--color-text-tertiary)]"
 									>
 										<Toggle id="dependency-show-isolated" v-model="showIsolated" small />
 										<span>{{ formatMessage(messages.showIsolated) }}</span>
@@ -974,7 +984,7 @@ defineExpose({ show, hide, setItems })
 
 							<div
 								v-if="graphLayout.edges.length === 0"
-								class="flex min-h-0 flex-1 items-center justify-center p-8 text-center text-secondary"
+								class="flex min-h-0 flex-1 items-center justify-center p-8 text-center text-[var(--color-text-tertiary)]"
 							>
 								{{ formatMessage(messages.noGraphRelations) }}
 							</div>
@@ -1001,7 +1011,9 @@ defineExpose({ show, hide, setItems })
 										@click="zoomTo(zoom - 0.1)"
 										><ZoomOutIcon />
 									</Button>
-									<span class="min-w-10 text-center text-xs tabular-nums text-secondary">
+									<span
+										class="min-w-10 text-center text-xs tabular-nums text-[var(--color-text-tertiary)]"
+									>
 										{{ Math.round(zoom * 100) }}%
 									</span>
 									<Button
@@ -1025,7 +1037,7 @@ defineExpose({ show, hide, setItems })
 								</div>
 
 								<div
-									class="pointer-events-none absolute bottom-3 left-3 z-20 max-w-[min(28rem,calc(100%-6rem))] rounded-lg border border-solid border-surface-4 bg-surface-2 px-2.5 py-1.5 text-xs text-secondary shadow-sm"
+									class="pointer-events-none absolute bottom-3 left-3 z-20 max-w-[min(28rem,calc(100%-6rem))] rounded-lg border border-solid border-surface-4 bg-surface-2 px-2.5 py-1.5 text-xs text-[var(--color-text-tertiary)] shadow-sm"
 								>
 									{{ formatMessage(messages.graphHint) }}
 								</div>
@@ -1082,9 +1094,9 @@ defineExpose({ show, hide, setItems })
 										<div class="min-w-0 flex-1">
 											<MinecraftFormattedText
 												:text="node.title"
-												class="block truncate text-sm font-bold text-contrast"
+												class="block truncate text-sm font-bold text-[var(--color-text-primary)]"
 											/>
-											<div class="mt-0.5 truncate text-xs text-secondary">
+											<div class="mt-0.5 truncate text-xs text-[var(--color-text-tertiary)]">
 												{{ statusLabel(node) ?? sourceLabel(node) }}
 											</div>
 										</div>
@@ -1097,7 +1109,7 @@ defineExpose({ show, hide, setItems })
 								v-if="isolatedNodes.length"
 								class="shrink-0 border-0 border-t border-solid border-surface-4 bg-surface-2 px-4 py-3"
 							>
-								<p class="m-0 text-xs text-secondary">
+								<p class="m-0 text-xs text-[var(--color-text-tertiary)]">
 									{{ formatMessage(messages.isolatedSummary, { count: isolatedNodes.length }) }}
 								</p>
 								<div
@@ -1107,7 +1119,7 @@ defineExpose({ show, hide, setItems })
 									<button
 										v-for="node in isolatedNodes"
 										:key="node.id"
-										class="flex max-w-52 items-center gap-2 rounded-lg border border-solid border-surface-4 bg-surface-1 px-2 py-1.5 text-left text-xs text-secondary transition-colors hover:border-brand hover:text-contrast"
+										class="flex max-w-52 items-center gap-2 rounded-lg border border-solid border-surface-4 bg-surface-1 px-2 py-1.5 text-left text-xs text-[var(--color-text-tertiary)] transition-colors hover:border-brand hover:text-[var(--color-text-primary)]"
 										@click="selectNode(node.id)"
 									>
 										<Avatar
@@ -1139,16 +1151,18 @@ defineExpose({ show, hide, setItems })
 							<RouterLink
 								v-if="nodeLink(selectedNode)"
 								:to="{ path: nodeLink(selectedNode), query: nodeLinkQuery() }"
-								class="block truncate font-semibold text-contrast hover:underline"
+								class="block truncate font-semibold text-[var(--color-text-primary)] hover:underline"
 							>
 								<MinecraftFormattedText :text="selectedNode.title" />
 							</RouterLink>
 							<MinecraftFormattedText
 								v-else
 								:text="selectedNode.title"
-								class="block truncate font-semibold text-contrast"
+								class="block truncate font-semibold text-[var(--color-text-primary)]"
 							/>
-							<span class="text-sm text-secondary">{{ sourceLabel(selectedNode) }}</span>
+							<span class="text-sm text-[var(--color-text-tertiary)]">{{
+								sourceLabel(selectedNode)
+							}}</span>
 						</div>
 					</div>
 					<p v-if="!selectedNode.resolved" class="m-0 text-sm text-orange">
@@ -1167,7 +1181,7 @@ defineExpose({ show, hide, setItems })
 						</span>
 					</div>
 					<div class="flex flex-col gap-2">
-						<strong class="text-sm text-contrast">{{
+						<strong class="text-sm text-[var(--color-text-primary)]">{{
 							formatMessage(messages.directDependencies)
 						}}</strong>
 						<button
@@ -1180,13 +1194,13 @@ defineExpose({ show, hide, setItems })
 						</button>
 						<span
 							v-if="!graph.edgesBySource.get(selectedNode.id)?.length"
-							class="text-sm text-secondary"
+							class="text-sm text-[var(--color-text-tertiary)]"
 						>
 							-
 						</span>
 					</div>
 					<div class="flex flex-col gap-2">
-						<strong class="text-sm text-contrast">{{
+						<strong class="text-sm text-[var(--color-text-primary)]">{{
 							formatMessage(messages.directDependents)
 						}}</strong>
 						<button
@@ -1199,7 +1213,7 @@ defineExpose({ show, hide, setItems })
 						</button>
 						<span
 							v-if="!graph.edgesByTarget.get(selectedNode.id)?.length"
-							class="text-sm text-secondary"
+							class="text-sm text-[var(--color-text-tertiary)]"
 						>
 							-
 						</span>

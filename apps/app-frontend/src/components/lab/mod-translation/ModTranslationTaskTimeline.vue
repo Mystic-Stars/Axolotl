@@ -90,7 +90,7 @@ function copyDebug(value: unknown) {
 	border: 0;
 	background: transparent;
 	padding: 0;
-	color: var(--color-text-secondary);
+	color: var(--color-text-tertiary);
 	font-size: 0.68rem;
 	font-weight: 700;
 	text-align: left;
@@ -119,11 +119,11 @@ function copyDebug(value: unknown) {
 	overflow-y: auto;
 	border: 1px solid var(--color-divider);
 	border-radius: var(--radius-md);
-	background: var(--color-button-bg);
+	background: var(--surface-4);
 	padding: 0.65rem 0.7rem;
 }
 .empty {
-	color: var(--color-text-secondary);
+	color: var(--color-text-tertiary);
 	font-size: 0.72rem;
 }
 .group {
@@ -162,7 +162,7 @@ function copyDebug(value: unknown) {
 	font-size: 0.72rem;
 }
 .entry-body span {
-	color: var(--color-text-secondary);
+	color: var(--color-text-tertiary);
 }
 .issues {
 	font-family: monospace;
@@ -179,7 +179,7 @@ function copyDebug(value: unknown) {
 	border-radius: var(--radius-sm);
 	background: var(--surface-2);
 	padding: 0.2rem 0.4rem;
-	color: var(--color-text-secondary);
+	color: var(--color-text-tertiary);
 	font-size: 0.65rem;
 }
 .debug pre {

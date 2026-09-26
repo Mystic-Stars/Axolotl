@@ -38,13 +38,13 @@ async function pickFile() {
 		</Button>
 		<span
 			v-if="path"
-			class="selected-path min-w-0 overflow-hidden flex-1 text-contrast text-[0.78rem] truncate"
+			class="selected-path min-w-0 overflow-hidden flex-1 text-[var(--color-text-primary)] text-[0.78rem] truncate"
 			:title="path"
 			>{{ path }}</span
 		>
 		<span
 			v-else
-			class="selected-path empty min-w-0 overflow-hidden flex-1 text-secondary text-[0.78rem] truncate"
+			class="selected-path empty min-w-0 overflow-hidden flex-1 text-[var(--color-text-tertiary)] text-[0.78rem] truncate"
 			>{{ formatMessage(messages.selectFile) }}…</span
 		>
 	</div>

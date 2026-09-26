@@ -127,11 +127,11 @@
 							class="flex h-full w-full items-center justify-center rounded-b-[20px] bg-surface-2 p-20"
 						>
 							<div class="flex flex-col items-center gap-4 text-center">
-								<FolderOpenIcon class="h-16 w-16 text-secondary" />
-								<h3 class="m-0 text-2xl font-bold text-contrast">
+								<FolderOpenIcon class="h-16 w-16 text-[var(--color-text-tertiary)]" />
+								<h3 class="m-0 text-2xl font-bold text-[var(--color-text-primary)]">
 									{{ formatMessage(messages.emptyFolderTitle) }}
 								</h3>
-								<p class="m-0 text-sm text-secondary">
+								<p class="m-0 text-sm text-[var(--color-text-tertiary)]">
 									{{ formatMessage(messages.emptyFolderDescription) }}
 								</p>
 							</div>
@@ -176,11 +176,13 @@
 		</FloatingActionBar>
 		<FloatingActionBar :shown="selectedItems.size > 0">
 			<div class="flex items-center gap-0.5">
-				<span class="px-4 py-2.5 text-base font-semibold text-contrast tabular-nums">
+				<span
+					class="px-4 py-2.5 text-base font-semibold text-[var(--color-text-primary)] tabular-nums"
+				>
 					{{ formatMessage(messages.selectedCount, { count: selectedItems.size }) }}
 				</span>
 				<div class="mx-1 h-6 w-px bg-surface-5" />
-				<Button type="quiet" class="!text-primary" @click="deselectAll"
+				<Button type="quiet" class="!text-[var(--color-text-default)]" @click="deselectAll"
 					><span class="bar-label">{{ formatMessage(commonMessages.clearButton) }}</span>
 				</Button>
 			</div>

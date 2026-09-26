@@ -179,7 +179,7 @@ defineExpose({
 			isEditing
 				? [
 						'after:invisible after:block after:w-full after:whitespace-pre after:content-[attr(data-value)]',
-						isInvalid ? 'border-red' : 'border-contrast',
+						isInvalid ? 'border-red' : 'border-[var(--color-text-primary)]',
 					]
 				: 'border-transparent'
 		"
@@ -222,7 +222,7 @@ defineExpose({
 			>
 				<button
 					type="button"
-					class="ml-1 flex size-5 cursor-pointer items-center justify-center border-0 bg-transparent p-0 text-secondary transition-colors hover:text-brand focus-visible:text-contrast"
+					class="ml-1 flex size-5 cursor-pointer items-center justify-center border-0 bg-transparent p-0 text-[var(--color-text-tertiary)] transition-colors hover:text-brand focus-visible:text-[var(--color-text-primary)]"
 					:aria-label="`${editLabel}: ${displayValue}`"
 					@click.stop="startEditing"
 				>
@@ -233,7 +233,7 @@ defineExpose({
 		<button
 			v-else-if="activationMode === 'text'"
 			type="button"
-			class="flex w-full max-w-full items-center gap-2 truncate border-0 bg-transparent p-0 text-left text-inherit transition-colors hover:text-brand focus-visible:text-contrast [font:inherit]"
+			class="flex w-full max-w-full items-center gap-2 truncate border-0 bg-transparent p-0 text-left text-inherit transition-colors hover:text-brand focus-visible:text-[var(--color-text-primary)] [font:inherit]"
 			:class="buttonClass"
 			:aria-label="`${editLabel}: ${displayValue}`"
 			:title="model || displayValue"

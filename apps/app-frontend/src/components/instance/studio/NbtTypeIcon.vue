@@ -6,7 +6,7 @@ defineProps<{
 }>()
 
 const colors: Record<NbtType, string> = {
-	[NbtType.End]: 'text-secondary',
+	[NbtType.End]: 'text-[var(--color-text-tertiary)]',
 	[NbtType.Byte]: 'text-orange',
 	[NbtType.Short]: 'text-yellow',
 	[NbtType.Int]: 'text-green',
@@ -16,7 +16,7 @@ const colors: Record<NbtType, string> = {
 	[NbtType.ByteArray]: 'text-orange',
 	[NbtType.String]: 'text-brand',
 	[NbtType.List]: 'text-cyan',
-	[NbtType.Compound]: 'text-contrast',
+	[NbtType.Compound]: 'text-[var(--color-text-primary)]',
 	[NbtType.IntArray]: 'text-green',
 	[NbtType.LongArray]: 'text-blue',
 }

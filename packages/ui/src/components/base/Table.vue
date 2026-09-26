@@ -46,7 +46,7 @@
 								<span
 									v-if="column.label || column.enableSorting"
 									class="inline-flex min-w-0 max-w-full items-center gap-1 font-semibold"
-									:class="`${sortColumn === column.key ? 'text-contrast -mr-1' : ''}`"
+									:class="`${sortColumn === column.key ? 'text-[var(--color-text-primary)] -mr-1' : ''}`"
 								>
 									<span class="min-w-0 truncate">{{ column.label ?? '' }}</span>
 									<template v-if="column.enableSorting">
@@ -72,7 +72,9 @@
 					<tr v-if="data.length === 0" key="empty" class="bg-surface-2">
 						<td :colspan="columnSpan" class="border-solid border-0 border-t border-surface-4 p-0">
 							<slot name="empty-state">
-								<div class="text-secondary flex h-64 items-center justify-center">
+								<div
+									class="text-[var(--color-text-tertiary)] flex h-64 items-center justify-center"
+								>
 									No data available.
 								</div>
 							</slot>
@@ -102,7 +104,7 @@
 								<td
 									v-for="column in columns"
 									:key="column.key"
-									class="text-secondary h-14 overflow-hidden first:pl-4 last:pr-4 border-solid border-0 border-t border-surface-4"
+									class="text-[var(--color-text-tertiary)] h-14 overflow-hidden first:pl-4 last:pr-4 border-solid border-0 border-t border-surface-4"
 									:class="[`text-${column.align ?? 'left'}`, column.cellClass]"
 								>
 									<slot
@@ -132,7 +134,9 @@
 					<tr v-if="data.length === 0" class="bg-surface-2">
 						<td :colspan="columnSpan" class="border-solid border-0 border-t border-surface-4 p-0">
 							<slot name="empty-state">
-								<div class="text-secondary flex h-64 items-center justify-center">
+								<div
+									class="text-[var(--color-text-tertiary)] flex h-64 items-center justify-center"
+								>
 									No data available.
 								</div>
 							</slot>
@@ -169,7 +173,7 @@
 								<td
 									v-for="column in columns"
 									:key="column.key"
-									class="text-secondary h-14 overflow-hidden first:pl-4 last:pr-4 border-solid border-0 border-t border-surface-4"
+									class="text-[var(--color-text-tertiary)] h-14 overflow-hidden first:pl-4 last:pr-4 border-solid border-0 border-t border-surface-4"
 									:class="[`text-${column.align ?? 'left'}`, column.cellClass]"
 								>
 									<slot

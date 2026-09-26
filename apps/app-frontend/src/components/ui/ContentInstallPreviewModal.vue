@@ -410,17 +410,17 @@ defineExpose({ show, showBatch, showConflict })
 					no-shadow
 				/>
 				<div class="min-w-0 flex-1">
-					<span class="block truncate font-semibold text-contrast">{{
+					<span class="block truncate font-semibold text-[var(--color-text-primary)]">{{
 						conflictPrompt.candidate.title
 					}}</span>
-					<span class="block truncate text-sm text-secondary">
+					<span class="block truncate text-sm text-[var(--color-text-tertiary)]">
 						{{
 							[conflictPrompt.candidate.provider, conflictPrompt.candidate.contentType].join(' · ')
 						}}
 					</span>
 				</div>
 			</div>
-			<p class="m-0 text-primary">
+			<p class="m-0 text-[var(--color-text-default)]">
 				{{
 					formatMessage(messages.conflictDescription, {
 						candidate: conflictPrompt.candidate.title,
@@ -428,7 +428,7 @@ defineExpose({ show, showBatch, showConflict })
 				}}
 			</p>
 			<div class="flex flex-col gap-2">
-				<span class="font-semibold text-contrast">{{
+				<span class="font-semibold text-[var(--color-text-primary)]">{{
 					formatMessage(messages.existingContent)
 				}}</span>
 				<div
@@ -436,14 +436,18 @@ defineExpose({ show, showBatch, showConflict })
 					:key="`${item.provider}:${item.title}:${item.fileName ?? ''}`"
 					class="flex items-center justify-between gap-3 rounded-lg border border-solid border-surface-4 bg-surface-2 px-3 py-2"
 				>
-					<span class="min-w-0 truncate font-medium text-contrast">{{ item.title }}</span>
-					<span class="shrink-0 text-sm text-secondary">{{ item.provider }}</span>
+					<span class="min-w-0 truncate font-medium text-[var(--color-text-primary)]">{{
+						item.title
+					}}</span>
+					<span class="shrink-0 text-sm text-[var(--color-text-tertiary)]">{{
+						item.provider
+					}}</span>
 				</div>
 			</div>
 		</div>
 		<div v-else-if="data" class="flex min-w-0 flex-col gap-4">
 			<div v-if="batchMode" class="flex flex-col gap-2">
-				<span class="font-semibold text-contrast">{{
+				<span class="font-semibold text-[var(--color-text-primary)]">{{
 					formatMessage(messages.selectedContentHeader)
 				}}</span>
 				<div
@@ -459,8 +463,10 @@ defineExpose({ show, showBatch, showConflict })
 						no-shadow
 					/>
 					<div class="flex min-w-0 flex-1 flex-col gap-0.5">
-						<span class="truncate font-semibold text-contrast">{{ primary.title }}</span>
-						<span class="truncate text-sm text-secondary">
+						<span class="truncate font-semibold text-[var(--color-text-primary)]">{{
+							primary.title
+						}}</span>
+						<span class="truncate text-sm text-[var(--color-text-tertiary)]">
 							{{
 								[primary.versionNumber, primary.provider, primary.contentType]
 									.filter(Boolean)
@@ -494,14 +500,19 @@ defineExpose({ show, showBatch, showConflict })
 					no-shadow
 				/>
 				<div class="flex min-w-0 flex-col gap-0.5">
-					<span class="truncate font-semibold text-contrast">{{ visiblePrimaries[0].title }}</span>
-					<span v-if="visiblePrimaries[0].versionNumber" class="truncate text-sm text-secondary">
+					<span class="truncate font-semibold text-[var(--color-text-primary)]">{{
+						visiblePrimaries[0].title
+					}}</span>
+					<span
+						v-if="visiblePrimaries[0].versionNumber"
+						class="truncate text-sm text-[var(--color-text-tertiary)]"
+					>
 						{{ visiblePrimaries[0].versionNumber }}
 					</span>
 				</div>
 			</div>
 
-			<p class="m-0 text-primary">
+			<p class="m-0 text-[var(--color-text-default)]">
 				{{
 					batchMode
 						? formatMessage(messages.batchDescription, {
@@ -519,10 +530,10 @@ defineExpose({ show, showBatch, showConflict })
 
 			<div v-if="visibleDependencies.length > 0" class="flex flex-col gap-2">
 				<div class="flex items-center justify-between">
-					<span class="flex items-center gap-2 font-semibold text-contrast">
+					<span class="flex items-center gap-2 font-semibold text-[var(--color-text-primary)]">
 						{{ formatMessage(messages.dependenciesHeader) }}
 						<span
-							class="rounded-full bg-surface-4 px-2 py-0.5 text-xs font-medium tabular-nums text-secondary"
+							class="rounded-full bg-surface-4 px-2 py-0.5 text-xs font-medium tabular-nums text-[var(--color-text-tertiary)]"
 						>
 							{{ formatMessage(messages.dependenciesCount, { count: visibleDependencies.length }) }}
 						</span>
@@ -548,10 +559,10 @@ defineExpose({ show, showBatch, showConflict })
 						:key="group.id"
 						class="flex min-w-0 flex-col gap-2"
 					>
-						<span class="flex items-center gap-2 font-semibold text-contrast">
+						<span class="flex items-center gap-2 font-semibold text-[var(--color-text-primary)]">
 							{{ formatMessage(group.header) }}
 							<span
-								class="rounded-full bg-surface-4 px-2 py-0.5 text-xs font-medium tabular-nums text-secondary"
+								class="rounded-full bg-surface-4 px-2 py-0.5 text-xs font-medium tabular-nums text-[var(--color-text-tertiary)]"
 							>
 								{{ group.dependencies.length }}
 							</span>
@@ -594,30 +605,30 @@ defineExpose({ show, showBatch, showConflict })
 														}
 													: null
 											"
-											class="min-w-0 truncate font-semibold text-contrast group-hover:underline"
+											class="min-w-0 truncate font-semibold text-[var(--color-text-primary)] group-hover:underline"
 										>
 											{{ dependency.title }}
 										</span>
 										<ChevronDownIcon
 											aria-hidden="true"
-											class="shrink-0 text-secondary transition-transform duration-150"
+											class="shrink-0 text-[var(--color-text-tertiary)] transition-transform duration-150"
 											:class="{
 												'rotate-180': expandedDependencyIds.has(dependency.id),
 											}"
 										/>
 									</button>
-									<span v-else class="truncate font-semibold text-contrast">
+									<span v-else class="truncate font-semibold text-[var(--color-text-primary)]">
 										{{ dependency.title }}
 									</span>
 									<span
 										v-if="dependency.versionNumber"
-										class="min-w-0 truncate text-sm text-secondary"
+										class="min-w-0 truncate text-sm text-[var(--color-text-tertiary)]"
 									>
 										{{ dependency.versionNumber }}
 									</span>
 									<span
 										v-if="dependency.requiredBy.length > 0"
-										class="min-w-0 truncate text-sm text-secondary"
+										class="min-w-0 truncate text-sm text-[var(--color-text-tertiary)]"
 									>
 										{{
 											formatMessage(messages.requiredBy, {
@@ -634,13 +645,13 @@ defineExpose({ show, showBatch, showConflict })
 										</span>
 										<span
 											v-if="dependency.selectionReason"
-											class="rounded-full bg-surface-4 px-2 py-0.5 text-xs font-medium text-secondary"
+											class="rounded-full bg-surface-4 px-2 py-0.5 text-xs font-medium text-[var(--color-text-tertiary)]"
 										>
 											{{ dependency.selectionReason }}
 										</span>
 										<span
 											v-if="dependency.alreadyInstalled"
-											class="rounded-full bg-surface-4 px-2 py-0.5 text-xs font-medium text-secondary"
+											class="rounded-full bg-surface-4 px-2 py-0.5 text-xs font-medium text-[var(--color-text-tertiary)]"
 										>
 											{{
 												formatMessage(
@@ -659,11 +670,11 @@ defineExpose({ show, showBatch, showConflict })
 							>
 								<p
 									v-if="dependency.description"
-									class="m-0 w-full min-w-0 text-sm leading-relaxed text-secondary [overflow-wrap:anywhere]"
+									class="m-0 w-full min-w-0 text-sm leading-relaxed text-[var(--color-text-tertiary)] [overflow-wrap:anywhere]"
 								>
 									{{ dependency.description }}
 								</p>
-								<p v-else class="m-0 w-full min-w-0 text-sm text-secondary">
+								<p v-else class="m-0 w-full min-w-0 text-sm text-[var(--color-text-tertiary)]">
 									{{ formatMessage(messages.descriptionUnavailable) }}
 								</p>
 								<Button
@@ -677,20 +688,26 @@ defineExpose({ show, showBatch, showConflict })
 						</div>
 					</div>
 				</div>
-				<span class="text-sm text-secondary">{{ formatMessage(messages.onlyChecked) }}</span>
+				<span class="text-sm text-[var(--color-text-tertiary)]">{{
+					formatMessage(messages.onlyChecked)
+				}}</span>
 			</div>
 
 			<div v-if="visibleSkipped.length > 0" class="flex flex-col gap-2">
-				<span class="font-semibold text-contrast">{{ formatMessage(messages.skippedHeader) }}</span>
+				<span class="font-semibold text-[var(--color-text-primary)]">{{
+					formatMessage(messages.skippedHeader)
+				}}</span>
 				<div
 					v-for="skipped in visibleSkipped"
 					:key="skipped.id"
 					class="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg border border-solid border-surface-4 bg-surface-2 px-3 py-2"
 				>
-					<span class="min-w-0 flex-1 truncate font-medium text-contrast">
+					<span class="min-w-0 flex-1 truncate font-medium text-[var(--color-text-primary)]">
 						{{ skipped.title }}
 					</span>
-					<span class="shrink-0 text-sm text-secondary">{{ skipped.reason }}</span>
+					<span class="shrink-0 text-sm text-[var(--color-text-tertiary)]">{{
+						skipped.reason
+					}}</span>
 				</div>
 			</div>
 		</div>

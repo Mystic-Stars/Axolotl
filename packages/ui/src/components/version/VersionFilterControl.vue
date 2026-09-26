@@ -12,10 +12,10 @@
 			>
 				<template #input-content="{ isOpen, openDirection }">
 					<div class="flex items-center gap-2">
-						<FilterIcon class="h-5 w-5 text-secondary" />
-						<span class="font-semibold text-primary">Platforms</span>
+						<FilterIcon class="h-5 w-5 text-[var(--color-text-tertiary)]" />
+						<span class="font-semibold text-[var(--color-text-default)]">Platforms</span>
 						<ChevronLeftIcon
-							class="h-5 w-5 text-secondary transition-transform duration-150"
+							class="h-5 w-5 text-[var(--color-text-tertiary)] transition-transform duration-150"
 							:class="
 								isOpen ? (openDirection === 'down' ? 'rotate-90' : '-rotate-90') : '-rotate-90'
 							"
@@ -36,12 +36,12 @@
 			>
 				<template #input-content="{ isOpen, openDirection }">
 					<div class="flex items-center gap-2">
-						<FilterIcon class="h-5 w-5 text-secondary" />
-						<span class="font-semibold text-primary">{{
+						<FilterIcon class="h-5 w-5 text-[var(--color-text-tertiary)]" />
+						<span class="font-semibold text-[var(--color-text-default)]">{{
 							formatMessage(messages.gameVersions)
 						}}</span>
 						<ChevronLeftIcon
-							class="h-5 w-5 text-secondary transition-transform duration-150"
+							class="h-5 w-5 text-[var(--color-text-tertiary)] transition-transform duration-150"
 							:class="
 								isOpen ? (openDirection === 'down' ? 'rotate-90' : '-rotate-90') : '-rotate-90'
 							"
@@ -70,12 +70,12 @@
 			>
 				<template #input-content="{ isOpen, openDirection }">
 					<div class="flex items-center gap-2">
-						<FilterIcon class="h-5 w-5 text-secondary" />
-						<span class="font-semibold text-primary">{{
+						<FilterIcon class="h-5 w-5 text-[var(--color-text-tertiary)]" />
+						<span class="font-semibold text-[var(--color-text-default)]">{{
 							formatMessage(messages.projectChannels)
 						}}</span>
 						<ChevronLeftIcon
-							class="h-5 w-5 text-secondary transition-transform duration-150"
+							class="h-5 w-5 text-[var(--color-text-tertiary)] transition-transform duration-150"
 							:class="
 								isOpen ? (openDirection === 'down' ? 'rotate-90' : '-rotate-90') : '-rotate-90'
 							"

@@ -61,7 +61,7 @@ defineExpose({ reset, focus })
 		<li v-for="instance in visibleInstances" :key="instance.id" class="min-w-0">
 			<button
 				type="button"
-				class="flex min-h-16 w-full cursor-pointer items-center gap-3 rounded-lg border-0 bg-transparent px-3 py-2 text-left text-primary transition-colors hover:bg-button-bg focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand-shadow"
+				class="flex min-h-16 w-full cursor-pointer items-center gap-3 rounded-lg border-0 bg-transparent px-3 py-2 text-left text-[var(--color-text-default)] transition-colors hover:bg-surface-4 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand-shadow"
 				:aria-label="selectLabel(instance)"
 				@click="emit('select', instance)"
 			>
@@ -72,8 +72,10 @@ defineExpose({ reset, focus })
 					:loader="instance.loader"
 				/>
 				<span class="flex min-w-0 flex-1 flex-col gap-0.5">
-					<span class="truncate font-semibold text-contrast">{{ instance.name }}</span>
-					<span class="truncate text-sm capitalize text-secondary">
+					<span class="truncate font-semibold text-[var(--color-text-primary)]">{{
+						instance.name
+					}}</span>
+					<span class="truncate text-sm capitalize text-[var(--color-text-tertiary)]">
 						{{ instance.loader }} {{ instance.game_version }}
 					</span>
 				</span>

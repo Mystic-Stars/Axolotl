@@ -3228,7 +3228,7 @@ provideBrowseManager({
 					</span>
 					<span
 						aria-hidden="true"
-						class="flex size-4 shrink-0 items-center justify-center text-secondary"
+						class="flex size-4 shrink-0 items-center justify-center text-[var(--color-text-tertiary)]"
 					>
 						<ChevronDownIcon class="size-4" />
 					</span>
@@ -3274,11 +3274,11 @@ provideBrowseManager({
 					aria-live="polite"
 				>
 					<SparklesIcon class="size-3.5 shrink-0 text-brand" />
-					<p class="m-0 text-secondary">
+					<p class="m-0 text-[var(--color-text-tertiary)]">
 						{{ formatMessage(messages.fuzzySearchPrefix, searchNotice) }}
 						<button
 							type="button"
-							class="font-medium text-contrast underline-offset-2 hover:text-brand hover:underline"
+							class="font-medium text-[var(--color-text-primary)] underline-offset-2 hover:text-brand hover:underline"
 							@click="searchState.query.value = searchNotice.used"
 						>
 							{{ searchNotice.used }}

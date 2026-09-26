@@ -293,7 +293,7 @@ const isChildOfDropdown = (element) => {
 		align-items: center;
 		justify-content: space-between;
 		padding: var(--gap-sm) var(--gap-lg);
-		background-color: var(--color-button-bg);
+		background-color: var(--surface-4);
 		gap: var(--gap-md);
 		cursor: pointer;
 		user-select: none;
@@ -353,7 +353,7 @@ const isChildOfDropdown = (element) => {
 			0 0 0 0 transparent;
 
 		.option {
-			background-color: var(--color-button-bg);
+			background-color: var(--surface-4);
 			display: flex;
 			align-items: center;
 			padding: var(--gap-md);

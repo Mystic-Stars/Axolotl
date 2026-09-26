@@ -31,11 +31,14 @@ withDefaults(
 					v-if="title"
 					:id="titleId"
 					:tabindex="titleId ? -1 : undefined"
-					class="m-0 text-lg font-semibold text-contrast"
+					class="m-0 text-lg font-semibold text-[var(--color-text-primary)]"
 				>
 					{{ title }}
 				</h2>
-				<p v-if="description" class="m-0 mt-1 text-sm leading-relaxed text-secondary">
+				<p
+					v-if="description"
+					class="m-0 mt-1 text-sm leading-relaxed text-[var(--color-text-tertiary)]"
+				>
 					{{ description }}
 				</p>
 				<slot name="header" />

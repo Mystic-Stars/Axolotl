@@ -55,11 +55,11 @@ const messages = defineMessages({
 			<Avatar :src="context.project?.icon_url" alt="" size="48px" no-shadow />
 			<div class="flex flex-col gap-1">
 				<span
-					class="text-contrast font-medium"
+					class="text-[var(--color-text-primary)] font-medium"
 					:class="{ 'group-hover:underline': !!dependencyLink }"
 					>{{ context.project?.title ?? context.dependency.file_name }}</span
 				>
-				<span class="text-secondary flex items-center gap-1">
+				<span class="text-[var(--color-text-tertiary)] flex items-center gap-1">
 					<template v-if="!context.dependency.version_id">
 						{{
 							formatMessage(

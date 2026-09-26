@@ -261,7 +261,7 @@ function onStartLongPress(instanceId: string) {
 					@click.stop="emit('toggleCollapse', sectionKey)"
 				>
 					<DropdownIcon
-						class="size-5 shrink-0 text-secondary transition-transform duration-300"
+						class="size-5 shrink-0 text-[var(--color-text-tertiary)] transition-transform duration-300"
 						:class="{ 'rotate-180': !effectiveCollapsed }"
 					/>
 				</button>
@@ -270,13 +270,13 @@ function onStartLongPress(instanceId: string) {
 					ref="groupNameInput"
 					v-model="groupName"
 					activation-mode="manual"
-					class="text-base font-semibold !h-10 text-primary select-none"
+					class="text-base font-semibold !h-10 text-[var(--color-text-default)] select-none"
 					max-width="24rem"
 					:max-length="MAX_GROUP_NAME_LENGTH"
 					:on-change="updateGroupName"
 					:validate="validateGroupName"
 				/>
-				<span v-else class="text-base font-semibold text-primary select-none">
+				<span v-else class="text-base font-semibold text-[var(--color-text-default)] select-none">
 					{{ isFavorites ? formatMessage(messages.pinned) : formatMessage(messages.ungrouped) }}
 				</span>
 				<TagItem v-if="instances.length" class="shrink-0 border-surface-3 bg-surface-2">
@@ -467,7 +467,7 @@ function onStartLongPress(instanceId: string) {
 				</template>
 				<p
 					v-if="instances.length === 0"
-					class="col-span-full m-0 pt-1 pl-0.5 text-base font-base text-secondary opacity-80"
+					class="col-span-full m-0 pt-1 pl-0.5 text-base font-base text-[var(--color-text-tertiary)] opacity-80"
 				>
 					{{ formatMessage(messages.emptyGroup) }}
 				</p>
@@ -500,7 +500,7 @@ function onStartLongPress(instanceId: string) {
 		fade="danger"
 		width="500px"
 	>
-		<p class="m-0 text-base text-primary">
+		<p class="m-0 text-base text-[var(--color-text-default)]">
 			{{ formatMessage(messages.deleteGroupDescription) }}
 		</p>
 

@@ -80,7 +80,7 @@ defineExpose({ getRootElement })
 
 		<div
 			class="pointer-events-none relative z-10 flex h-full w-full flex-col items-center justify-center gap-4 px-3 text-center"
-			:class="dragActive ? 'text-brand' : 'text-contrast'"
+			:class="dragActive ? 'text-brand' : 'text-[var(--color-text-primary)]'"
 		>
 			<div v-if="$slots.icon" class="size-8">
 				<slot name="icon" />
@@ -89,7 +89,10 @@ defineExpose({ getRootElement })
 				<span class="text-base font-semibold leading-6">
 					<slot />
 				</span>
-				<span v-if="$slots.subtitle" class="text-sm font-medium leading-5 text-primary">
+				<span
+					v-if="$slots.subtitle"
+					class="text-sm font-medium leading-5 text-[var(--color-text-default)]"
+				>
 					<slot name="subtitle" />
 				</span>
 			</div>

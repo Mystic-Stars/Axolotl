@@ -405,10 +405,10 @@ defineExpose({ getAddSkinButtonElement })
 				</template>
 				<template #button="{ open }">
 					<DropdownIcon
-						class="size-6 shrink-0 text-primary transition-transform duration-300"
+						class="size-6 shrink-0 text-[var(--color-text-default)] transition-transform duration-300"
 						:class="{ 'rotate-180': open }"
 					/>
-					<span class="min-w-0 text-xl font-semibold leading-7 text-primary">
+					<span class="min-w-0 text-xl font-semibold leading-7 text-[var(--color-text-default)]">
 						{{ section.title }}
 					</span>
 					<span
@@ -417,7 +417,7 @@ defineExpose({ getAddSkinButtonElement })
 							placement: 'top',
 							popperClass: 'dismissable-prompt-tooltip',
 						}"
-						class="inline-flex size-6 shrink-0 items-center justify-center text-secondary transition-colors group-hover:text-primary"
+						class="inline-flex size-6 shrink-0 items-center justify-center text-[var(--color-text-tertiary)] transition-colors group-hover:text-[var(--color-text-default)]"
 						@click.stop
 					>
 						<UnknownIcon class="size-5" />

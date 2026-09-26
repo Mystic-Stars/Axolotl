@@ -2082,7 +2082,7 @@
     "message": "Close"
   },
   "app.headless-demo.dialog-description": {
-    "message": "This dialog content uses bg-surface-3, text-contrast, and border-surface-5. Overlay and focus ring stay readable in every theme."
+    "message": "This dialog content uses surface-3, primary text, and surface-5 borders. Overlay and focus ring stay readable in every theme."
   },
   "app.headless-demo.dialog-title": {
     "message": "Token-mapped dialog"
@@ -2121,7 +2121,7 @@
     "message": "Headless token demo"
   },
   "app.headless-demo.tooltip-content": {
-    "message": "Tooltip body mapped to surface-4 / text-contrast."
+    "message": "Tooltip body mapped to surface-4 / primary text."
   },
   "app.headless-demo.tooltip-trigger": {
     "message": "Hover tooltip"

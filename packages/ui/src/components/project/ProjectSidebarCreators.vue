@@ -3,7 +3,7 @@
 		<div class="flex flex-col gap-3 font-semibold">
 			<template v-if="organization">
 				<AutoLink
-					class="flex gap-2 items-center w-fit text-primary leading-[1.2] group"
+					class="flex gap-2 items-center w-fit text-[var(--color-text-default)] leading-[1.2] group"
 					:to="orgLink(organization.slug)"
 					:target="linkTarget ?? null"
 				>
@@ -12,7 +12,8 @@
 						<span class="group-hover:underline font-medium">
 							{{ organization.name }}
 						</span>
-						<span class="text-sm font-normal text-secondary flex items-center gap-1"
+						<span
+							class="text-sm font-normal text-[var(--color-text-tertiary)] flex items-center gap-1"
 							><OrganizationIcon /> {{ formatMessage(messages.organization) }}</span
 						>
 					</div>
@@ -22,7 +23,7 @@
 			<AutoLink
 				v-for="member in sortedMembers"
 				:key="`member-${member.id}`"
-				class="flex gap-2 items-center w-fit text-primary leading-[1.2] group"
+				class="flex gap-2 items-center w-fit text-[var(--color-text-default)] leading-[1.2] group"
 				:to="userLink(member.user.username)"
 				:target="linkTarget ?? null"
 			>
@@ -37,7 +38,9 @@
 						/>
 						<ExternalIcon v-if="linkTarget === '_blank'" />
 					</span>
-					<span class="text-sm font-normal text-secondary">{{ member.role }}</span>
+					<span class="text-sm font-normal text-[var(--color-text-tertiary)]">{{
+						member.role
+					}}</span>
 				</div>
 			</AutoLink>
 		</div>

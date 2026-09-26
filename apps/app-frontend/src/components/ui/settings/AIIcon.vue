@@ -83,7 +83,7 @@ const modelComponent = computed(() => {
 	)
 })
 const modelAvatarStyle = computed(() => ({
-	background: modelBackground.value ?? 'var(--color-button-bg)',
+	background: modelBackground.value ?? 'var(--surface-4)',
 	color: modelAvatar.value?.color ?? 'var(--color-text-tertiary)',
 	height: `${props.size}px`,
 	width: `${props.size}px`,
@@ -157,7 +157,7 @@ const avatarStyle = computed(() => ({
 
 	<span
 		v-else-if="kind === 'provider-combine'"
-		class="inline-flex min-w-0 flex-none items-center justify-start text-contrast"
+		class="inline-flex min-w-0 flex-none items-center justify-start text-[var(--color-text-primary)]"
 		:style="{ gap: `${combineSize / 3}px`, height: `${size * 1.5}px` }"
 		aria-hidden="true"
 	>

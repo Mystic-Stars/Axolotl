@@ -626,7 +626,7 @@ function formatAdapterName(adapterId: GradientFormatId): string {
 <template>
 	<main class="mx-auto flex w-full max-w-[90rem] flex-col gap-5 p-6">
 		<header class="flex min-w-0 flex-wrap items-center justify-between gap-4">
-			<h1 class="m-0 min-w-0 truncate text-2xl font-bold text-contrast">
+			<h1 class="m-0 min-w-0 truncate text-2xl font-bold text-[var(--color-text-primary)]">
 				{{ formatMessage(messages.title) }}
 			</h1>
 			<div
@@ -655,7 +655,7 @@ function formatAdapterName(adapterId: GradientFormatId): string {
 			<section class="lab-panel min-w-0">
 				<section class="lab-panel-section p-4">
 					<div class="mb-3 flex flex-wrap items-center justify-between gap-3">
-						<h2 class="m-0 text-base font-bold text-contrast">
+						<h2 class="m-0 text-base font-bold text-[var(--color-text-primary)]">
 							{{ formatMessage(messages.inputTitle) }}
 						</h2>
 						<div
@@ -689,7 +689,7 @@ function formatAdapterName(adapterId: GradientFormatId): string {
 						aria-multiline="true"
 						:aria-label="formatMessage(messages.inputTitle)"
 						:data-placeholder="formatMessage(messages.inputPlaceholder)"
-						class="lab-editor min-h-44 max-h-80 overflow-y-auto rounded-lg bg-surface-4 px-3 py-2.5 text-base leading-6 text-contrast outline-none transition-shadow focus:ring-4 focus:ring-brand-shadow"
+						class="lab-editor min-h-44 max-h-80 overflow-y-auto rounded-lg bg-surface-4 px-3 py-2.5 text-base leading-6 text-[var(--color-text-primary)] outline-none transition-shadow focus:ring-4 focus:ring-brand-shadow"
 						@input="onEditorInput"
 						@focus="syncTextFormatState"
 						@keyup="syncTextFormatState"
@@ -701,10 +701,10 @@ function formatAdapterName(adapterId: GradientFormatId): string {
 				<section class="lab-panel-section p-4 lab-colors-section">
 					<div class="mb-3 flex flex-wrap items-center justify-between gap-2">
 						<div>
-							<h2 class="m-0 text-base font-bold text-contrast">
+							<h2 class="m-0 text-base font-bold text-[var(--color-text-primary)]">
 								{{ formatMessage(messages.colorsTitle) }}
 							</h2>
-							<p class="m-0 mt-0.5 text-xs font-medium text-secondary">
+							<p class="m-0 mt-0.5 text-xs font-medium text-[var(--color-text-tertiary)]">
 								{{ formatMessage(messages.colorStops, { count: colors.length }) }}
 							</p>
 						</div>
@@ -811,12 +811,14 @@ function formatAdapterName(adapterId: GradientFormatId): string {
 					button-class="group flex w-full items-center gap-2 border-0 bg-transparent p-0 text-left"
 				>
 					<template #title>
-						<span class="text-base font-bold text-contrast">{{
+						<span class="text-base font-bold text-[var(--color-text-primary)]">{{
 							formatMessage(messages.presetsTitle)
 						}}</span>
-						<span v-if="presets.length" class="text-sm font-medium text-secondary">{{
-							formatMessage(messages.presetCount, { count: presets.length })
-						}}</span>
+						<span
+							v-if="presets.length"
+							class="text-sm font-medium text-[var(--color-text-tertiary)]"
+							>{{ formatMessage(messages.presetCount, { count: presets.length }) }}</span
+						>
 					</template>
 					<div class="flex flex-col gap-3">
 						<div class="flex gap-2">
@@ -845,9 +847,10 @@ function formatAdapterName(adapterId: GradientFormatId): string {
 									class="min-w-0 flex-1 cursor-pointer border-0 bg-transparent p-0 text-left"
 									@click="applyPreset(preset)"
 								>
-									<span class="block truncate text-sm font-semibold text-contrast">{{
-										preset.name
-									}}</span>
+									<span
+										class="block truncate text-sm font-semibold text-[var(--color-text-primary)]"
+										>{{ preset.name }}</span
+									>
 									<span class="mt-1.5 flex h-1.5 overflow-hidden rounded-full">
 										<span
 											v-for="(presetColor, colorIndex) in preset.colors"
@@ -891,7 +894,7 @@ function formatAdapterName(adapterId: GradientFormatId): string {
 					class="lab-panel-section p-4 flex flex-wrap items-center gap-x-5 gap-y-3"
 				>
 					<div v-if="currentAdapter.supportsVanillaCharacter" class="flex items-center gap-2">
-						<span class="text-sm font-semibold text-primary">{{
+						<span class="text-sm font-semibold text-[var(--color-text-default)]">{{
 							formatMessage(messages.vanillaCharacter)
 						}}</span>
 						<div
@@ -917,7 +920,7 @@ function formatAdapterName(adapterId: GradientFormatId): string {
 					</div>
 					<label
 						v-if="currentAdapter.supportsSimplify"
-						class="flex cursor-pointer items-center gap-2 text-sm font-semibold text-primary"
+						class="flex cursor-pointer items-center gap-2 text-sm font-semibold text-[var(--color-text-default)]"
 					>
 						<input
 							v-model="simplifyGradients"
@@ -930,10 +933,12 @@ function formatAdapterName(adapterId: GradientFormatId): string {
 
 				<section class="lab-panel-section p-4 lab-preview-section">
 					<div class="mb-3 flex items-center justify-between gap-3">
-						<h2 class="m-0 text-base font-bold text-contrast">
+						<h2 class="m-0 text-base font-bold text-[var(--color-text-primary)]">
 							{{ formatMessage(messages.previewTitle) }}
 						</h2>
-						<span class="font-mono text-xs text-secondary">{{ currentAdapter.sample }}</span>
+						<span class="font-mono text-xs text-[var(--color-text-tertiary)]">{{
+							currentAdapter.sample
+						}}</span>
 					</div>
 					<div
 						class="minecraft-preview-box"
@@ -969,17 +974,17 @@ function formatAdapterName(adapterId: GradientFormatId): string {
 
 				<section class="lab-panel-section p-4">
 					<div class="mb-3 flex items-center justify-between gap-3">
-						<h2 class="m-0 text-base font-bold text-contrast">
+						<h2 class="m-0 text-base font-bold text-[var(--color-text-primary)]">
 							{{ formatMessage(messages.outputTitle) }}
 						</h2>
-						<span class="text-sm font-medium text-secondary">{{
+						<span class="text-sm font-medium text-[var(--color-text-tertiary)]">{{
 							formatAdapterName(currentAdapter.id)
 						}}</span>
 					</div>
 					<textarea
 						readonly
 						:value="output"
-						class="min-h-52 w-full resize-y rounded-lg bg-surface-4 p-3 font-mono text-sm leading-6 text-contrast outline-none transition-shadow focus:ring-4 focus:ring-brand-shadow"
+						class="min-h-52 w-full resize-y rounded-lg bg-surface-4 p-3 font-mono text-sm leading-6 text-[var(--color-text-primary)] outline-none transition-shadow focus:ring-4 focus:ring-brand-shadow"
 						:aria-label="formatMessage(messages.outputTitle)"
 					></textarea>
 				</section>
@@ -1139,7 +1144,7 @@ function formatAdapterName(adapterId: GradientFormatId): string {
 
 .lab-segment:hover,
 .lab-segment.active {
-	background: var(--color-button-bg);
+	background: var(--surface-4);
 	color: var(--color-text-primary);
 }
 

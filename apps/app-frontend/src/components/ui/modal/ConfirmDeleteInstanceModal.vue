@@ -22,7 +22,7 @@
 		<Admonition v-else type="critical">
 			{{ formatMessage(messages.symlinkDeleteWarning, { path: symlinkTarget }) }}
 		</Admonition>
-		<p v-if="backupSummary?.snapshot_count" class="m-0 text-secondary">
+		<p v-if="backupSummary?.snapshot_count" class="m-0 text-[var(--color-text-tertiary)]">
 			{{
 				formatMessage(messages.backupCascadeWarning, {
 					count: backupSummary.snapshot_count,

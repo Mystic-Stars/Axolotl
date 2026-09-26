@@ -276,7 +276,7 @@ watch(instanceRevision, async () => {
 			@focusout="activeTooltip = null"
 		>
 			<div
-				class="mb-1 grid grid-cols-7 gap-[0.1875rem] text-center text-xs font-semibold text-secondary"
+				class="mb-1 grid grid-cols-7 gap-[0.1875rem] text-center text-xs font-semibold text-[var(--color-text-tertiary)]"
 				aria-hidden="true"
 			>
 				<span v-for="(weekday, index) in weekdayLabels" :key="index">{{ weekday }}</span>
@@ -292,8 +292,9 @@ watch(instanceRevision, async () => {
 					type="button"
 					class="home-calendar-cell h-[1.4rem] border border-solid rounded-[var(--radius-sm)] text-[0.6875rem] font-semibold outline-none p-0"
 					:class="{
-						'text-contrast': !(day.inPeriod && day.dateKey > todayKey),
-						'text-secondary opacity-50 cursor-default': day.inPeriod && day.dateKey > todayKey,
+						'text-[var(--color-text-primary)]': !(day.inPeriod && day.dateKey > todayKey),
+						'text-[var(--color-text-tertiary)] opacity-50 cursor-default':
+							day.inPeriod && day.dateKey > todayKey,
 						'cursor-default': !day.inPeriod,
 						'cursor-pointer': day.inPeriod && day.dateKey <= todayKey,
 						'border-transparent': !(day.inPeriod && day.dateKey === todayKey),
@@ -320,17 +321,17 @@ watch(instanceRevision, async () => {
 		<div
 			class="flex min-w-0 min-h-[3.75rem] flex-1 flex-col gap-1.5 overflow-y-auto border-t border-divider pt-2.5"
 		>
-			<h3 class="m-0 text-sm font-bold text-contrast">
+			<h3 class="m-0 text-sm font-bold text-[var(--color-text-primary)]">
 				{{ formatMessage(messages.playedOn, { date: selectedDateLabel }) }}
 			</h3>
-			<p v-if="dayDetails.length === 0" class="m-0 text-sm text-secondary">
+			<p v-if="dayDetails.length === 0" class="m-0 text-sm text-[var(--color-text-tertiary)]">
 				{{ formatMessage(messages.noActivity) }}
 			</p>
 			<ul v-else class="m-0 flex list-none flex-col p-0">
 				<li
 					v-for="row in detailRows"
 					:key="row.entry.instance_id"
-					class="group flex min-w-0 items-center gap-2.5 rounded-lg px-1.5 py-1.5 transition-colors hover:bg-button-bg"
+					class="group flex min-w-0 items-center gap-2.5 rounded-lg px-1.5 py-1.5 transition-colors hover:bg-surface-4"
 				>
 					<InstanceIcon
 						:icon-path="row.instance?.icon_path"
@@ -340,10 +341,10 @@ watch(instanceRevision, async () => {
 						class="shrink-0"
 					/>
 					<div class="flex min-w-0 flex-1 flex-col gap-0.5">
-						<span class="truncate text-sm font-semibold text-contrast">
+						<span class="truncate text-sm font-semibold text-[var(--color-text-primary)]">
 							{{ row.instance?.name ?? row.entry.instance_name }}
 						</span>
-						<span class="truncate text-xs text-secondary">
+						<span class="truncate text-xs text-[var(--color-text-tertiary)]">
 							{{ formatDuration(row.entry.played_seconds) }}
 						</span>
 					</div>

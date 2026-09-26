@@ -197,12 +197,12 @@ onUnmounted(() => window.clearInterval(timer))
 	>
 		<span
 			v-if="variant !== 'minimal' && dashboardSize"
-			class="text-xs font-bold leading-none tracking-normal text-secondary"
+			class="text-xs font-bold leading-none tracking-normal text-[var(--color-text-tertiary)]"
 		>
 			{{ dateLabel }}
 		</span>
 		<h1
-			class="m-0 max-w-full break-words font-extrabold text-contrast"
+			class="m-0 max-w-full break-words font-extrabold text-[var(--color-text-primary)]"
 			:class="dashboardSize ? 'home-greeting-heading' : 'text-2xl'"
 			:style="headingStyle"
 		>

@@ -17,8 +17,10 @@ defineEmits<{
 	>
 		<slot name="prepend" />
 		<div class="flex min-w-0 flex-1 flex-col">
-			<span class="truncate text-sm font-semibold text-contrast">{{ name }}</span>
-			<span v-if="version || loader" class="truncate text-xs text-secondary">
+			<span class="truncate text-sm font-semibold text-[var(--color-text-primary)]">{{
+				name
+			}}</span>
+			<span v-if="version || loader" class="truncate text-xs text-[var(--color-text-tertiary)]">
 				{{ version ?? '—' }}<template v-if="loader"> · {{ loader }}</template>
 			</span>
 		</div>

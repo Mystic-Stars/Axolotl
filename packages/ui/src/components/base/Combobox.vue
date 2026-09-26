@@ -9,7 +9,7 @@
 			-->
 			<div
 				v-if="searchSelectionOverlayVisible"
-				class="pointer-events-none absolute inset-y-0 left-0 right-0 z-0 flex min-w-0 items-center gap-2 font-medium text-primary"
+				class="pointer-events-none absolute inset-y-0 left-0 right-0 z-0 flex min-w-0 items-center gap-2 font-medium text-[var(--color-text-default)]"
 				:class="[showSearchIcon ? 'pl-10' : 'pl-3', showChevron ? 'pr-9' : 'pr-3']"
 				aria-hidden="true"
 			>
@@ -41,7 +41,7 @@
 			>
 				<template v-if="showChevron" #right>
 					<ChevronLeftIcon
-						class="pointer-events-none absolute right-3 top-1/2 size-5 -translate-y-1/2 text-secondary transition-transform duration-150"
+						class="pointer-events-none absolute right-3 top-1/2 size-5 -translate-y-1/2 text-[var(--color-text-tertiary)] transition-transform duration-150"
 						:class="isOpen ? (openDirection === 'down' ? 'rotate-90' : '-rotate-90') : '-rotate-90'"
 					/>
 				</template>
@@ -78,11 +78,14 @@
 				/>
 				<span
 					v-if="selectedOption"
-					class="min-w-0 truncate text-primary font-semibold leading-tight"
+					class="min-w-0 truncate text-[var(--color-text-default)] font-semibold leading-tight"
 				>
 					<slot name="selected" :label="selectedTriggerText">{{ selectedTriggerText }}</slot>
 				</span>
-				<span v-else class="min-w-0 truncate text-secondary opacity-70 font-medium leading-tight">
+				<span
+					v-else
+					class="min-w-0 truncate text-[var(--color-text-tertiary)] opacity-70 font-medium leading-tight"
+				>
 					{{ placeholderText }}
 				</span>
 			</div>
@@ -162,19 +165,31 @@
 														:is="item.icon"
 														v-if="item.icon"
 														class="h-5 w-5"
-														:class="item.value === modelValue ? 'text-brand' : 'text-primary'"
+														:class="
+															item.value === modelValue
+																? 'text-brand'
+																: 'text-[var(--color-text-default)]'
+														"
 													/>
 													<div class="flex flex-col gap-1.5">
 														<span
 															class="font-semibold leading-tight"
-															:class="item.value === modelValue ? 'text-brand' : 'text-primary'"
+															:class="
+																item.value === modelValue
+																	? 'text-brand'
+																	: 'text-[var(--color-text-default)]'
+															"
 														>
 															{{ item.label }}
 														</span>
 														<span
 															v-if="item.subLabel"
 															class="text-sm"
-															:class="item.value === modelValue ? 'text-brand' : 'text-secondary'"
+															:class="
+																item.value === modelValue
+																	? 'text-brand'
+																	: 'text-[var(--color-text-tertiary)]'
+															"
 														>
 															{{ item.subLabel }}
 														</span>
@@ -191,7 +206,7 @@
 
 					<div
 						v-else-if="searchQuery || showNoOptionsWhenEmpty"
-						class="p-4 text-center text-sm text-secondary"
+						class="p-4 text-center text-sm text-[var(--color-text-tertiary)]"
 					>
 						{{ noOptionsMessage }}
 					</div>
@@ -456,7 +471,8 @@ function getOptionClasses(item: ComboboxOption<T> & { key: string }, _index: num
 	return [
 		item.class,
 		{
-			'bg-surface-4 text-contrast hover:brightness-[115%] focus:brightness-[115%]': !isSelected,
+			'bg-surface-4 text-[var(--color-text-primary)] hover:brightness-[115%] focus:brightness-[115%]':
+				!isSelected,
 			'bg-brand-highlight text-brand hover:bg-brand-highlight focus:bg-brand-highlight': isSelected,
 			'cursor-not-allowed opacity-50 pointer-events-none': item.disabled,
 		},

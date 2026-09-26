@@ -22,13 +22,16 @@
 					<ProjectCardTitle :title="title" dense />
 					<ProjectStatusBadge v-if="status" :status="status" class="text-sm" />
 				</div>
-				<p v-if="summary" class="m-0 truncate text-[13px] leading-4 text-secondary">
+				<p
+					v-if="summary"
+					class="m-0 truncate text-[13px] leading-4 text-[var(--color-text-tertiary)]"
+				>
 					{{ summary }}
 				</p>
 			</div>
 			<span
 				v-if="provider"
-				class="project-card--compact__provider truncate text-[13px] font-medium leading-4 text-secondary"
+				class="project-card--compact__provider truncate text-[13px] font-medium leading-4 text-[var(--color-text-tertiary)]"
 			>
 				{{ providerLabel }}
 			</span>
@@ -114,7 +117,7 @@
 									<ProjectCardTitle :title="title" compact />
 									<span
 										v-if="provider"
-										class="rounded-full bg-surface-5 px-2 py-0.5 text-xs font-semibold text-secondary"
+										class="rounded-full bg-surface-5 px-2 py-0.5 text-xs font-semibold text-[var(--color-text-tertiary)]"
 									>
 										{{ providerLabel }}
 									</span>
@@ -171,7 +174,7 @@
 								:icon="serverModpackContent.icon"
 								:onclick="serverModpackContent.onclick"
 								:show-custom-modpack-tooltip="serverModpackContent.showCustomModpackTooltip"
-								class="text-primary"
+								class="text-[var(--color-text-default)]"
 							/>
 						</div>
 						<div v-if="downloads !== undefined" class="flex flex-col gap-1 w-fit">
@@ -210,7 +213,7 @@
 					<ProjectCardTitle :title="title" />
 					<span
 						v-if="provider"
-						class="rounded-full bg-surface-5 px-2 py-0.5 text-xs font-semibold text-secondary"
+						class="rounded-full bg-surface-5 px-2 py-0.5 text-xs font-semibold text-[var(--color-text-tertiary)]"
 					>
 						{{ providerLabel }}
 					</span>
@@ -280,7 +283,7 @@
 						:icon="serverModpackContent.icon"
 						:onclick="serverModpackContent.onclick"
 						:show-custom-modpack-tooltip="serverModpackContent.showCustomModpackTooltip"
-						class="text-primary"
+						class="text-[var(--color-text-default)]"
 					/>
 				</div>
 			</div>

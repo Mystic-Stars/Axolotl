@@ -13,7 +13,7 @@
 		"
 	>
 		<div
-			class="flex flex-col gap-3 font-semibold [&>a]:flex [&>a]:gap-2 [&>a]:items-center [&>a]:w-fit [&>a]:text-primary [&>a]:leading-[1.2] [&>a:hover]:underline"
+			class="flex flex-col gap-3 font-semibold [&>a]:flex [&>a]:gap-2 [&>a]:items-center [&>a]:w-fit [&>a]:text-[var(--color-text-default)] [&>a]:leading-[1.2] [&>a:hover]:underline"
 		>
 			<a
 				v-if="project.issues_url"

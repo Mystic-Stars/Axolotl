@@ -6,7 +6,7 @@
 				<div class="flex min-w-0 flex-col gap-2 justify-center">
 					<div class="flex flex-col gap-1.5 justify-center">
 						<div class="flex flex-wrap items-center gap-2">
-							<h1 class="m-0 text-2xl font-semibold leading-none text-contrast">
+							<h1 class="m-0 text-2xl font-semibold leading-none text-[var(--color-text-primary)]">
 								<slot name="title" />
 							</h1>
 							<slot name="title-suffix" />

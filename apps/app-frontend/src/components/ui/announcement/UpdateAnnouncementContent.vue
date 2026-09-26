@@ -116,10 +116,12 @@ async function openChangelog() {
 </script>
 
 <template>
-	<div class="flex min-w-0 flex-col gap-5 text-primary">
+	<div class="flex min-w-0 flex-col gap-5 text-[var(--color-text-default)]">
 		<header v-if="showHeader" class="flex min-w-0 flex-col gap-2">
-			<h2 class="m-0 break-words text-xl font-semibold text-contrast">{{ title }}</h2>
-			<div class="flex flex-wrap items-center gap-2 text-sm text-secondary">
+			<h2 class="m-0 break-words text-xl font-semibold text-[var(--color-text-primary)]">
+				{{ title }}
+			</h2>
+			<div class="flex flex-wrap items-center gap-2 text-sm text-[var(--color-text-tertiary)]">
 				<span>{{ versionLabel }}</span>
 				<BulletDivider v-if="announcement?.publishedAt" />
 				<time v-if="announcement?.publishedAt" :datetime="announcement.publishedAt">
@@ -135,7 +137,9 @@ async function openChangelog() {
 				class="announcement-category grid grid-cols-1 gap-2 py-4 sm:grid-cols-[7rem_minmax(0,1fr)] sm:gap-5"
 				:class="{ 'border-t-0 pt-0': index === 0 }"
 			>
-				<h3 class="m-0 flex items-center gap-2 text-sm font-semibold text-secondary">
+				<h3
+					class="m-0 flex items-center gap-2 text-sm font-semibold text-[var(--color-text-tertiary)]"
+				>
 					<span
 						class="size-2 shrink-0 rounded-full"
 						:class="category.className"
@@ -143,7 +147,9 @@ async function openChangelog() {
 					/>
 					{{ category.label }}
 				</h3>
-				<ul class="m-0 flex list-disc flex-col gap-2 pl-5 leading-relaxed text-primary">
+				<ul
+					class="m-0 flex list-disc flex-col gap-2 pl-5 leading-relaxed text-[var(--color-text-default)]"
+				>
 					<li v-for="change in category.changes" :key="change">{{ change }}</li>
 				</ul>
 			</section>
@@ -151,10 +157,10 @@ async function openChangelog() {
 		<Admonition v-else type="info" :body="formatMessage(messages.unknownBody)" />
 
 		<div v-if="announcement?.notes" class="announcement-notes">
-			<h3 class="m-0 mb-2 text-sm font-semibold text-secondary">
+			<h3 class="m-0 mb-2 text-sm font-semibold text-[var(--color-text-tertiary)]">
 				{{ formatMessage(messages.notes) }}
 			</h3>
-			<p class="m-0 leading-relaxed text-primary">
+			<p class="m-0 leading-relaxed text-[var(--color-text-default)]">
 				{{ getLocalizedAnnouncementText(announcement.notes, locale) }}
 			</p>
 		</div>

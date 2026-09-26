@@ -219,7 +219,7 @@ function openSettings() {
 	padding: 0.75rem;
 	border: 1px solid var(--color-divider);
 	border-radius: 1rem;
-	background: color-mix(in srgb, var(--color-raised-bg) 92%, transparent);
+	background: color-mix(in srgb, var(--surface-3) 92%, transparent);
 	box-shadow: 0 1.25rem 3rem rgb(0 0 0 / 22%);
 	backdrop-filter: blur(20px) saturate(150%);
 
@@ -234,7 +234,7 @@ function openSettings() {
 		text-decoration: none;
 
 		&:hover {
-			background: var(--color-button-bg);
+			background: var(--surface-3);
 		}
 	}
 

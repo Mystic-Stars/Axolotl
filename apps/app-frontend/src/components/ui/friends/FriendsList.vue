@@ -246,7 +246,7 @@ const messages = defineMessages({
 								{{ formatMessage(messages.outgoingRequest, { username: friend.username }) }}
 							</template>
 						</p>
-						<p class="m-0 text-sm text-secondary">
+						<p class="m-0 text-sm text-[var(--color-text-tertiary)]">
 							{{ formatRelativeTime(friend.created.toISOString()) }}
 						</p>
 					</div>
@@ -274,10 +274,10 @@ const messages = defineMessages({
 	</NewModal>
 	<NewModal ref="addFriendModal" :header="formatMessage(messages.addingAFriend)">
 		<div class="min-w-[30rem]">
-			<h2 class="m-0 text-base font-medium text-primary">
+			<h2 class="m-0 text-base font-medium text-[var(--color-text-default)]">
 				{{ formatMessage(messages.usernameTitle) }}
 			</h2>
-			<p class="m-0 mt-1 text-sm text-secondary leading-tight">
+			<p class="m-0 mt-1 text-sm text-[var(--color-text-tertiary)] leading-tight">
 				{{ formatMessage(messages.usernameDescription) }}
 			</p>
 			<div class="flex items-center gap-2 mt-4">
@@ -317,12 +317,12 @@ const messages = defineMessages({
 				type="text"
 				:placeholder="formatMessage(messages.searchFriends)"
 				clearable
-				input-class="!bg-transparent !border !border-solid !border-button-bg !text-primary !placeholder:text-primary"
-				wrapper-class="flex-1 [&>svg]:!text-primary [&>svg]:!opacity-100"
+				input-class="!bg-transparent !border !border-solid !border-button-bg !text-[var(--color-text-default)] !placeholder:text-[var(--color-text-default)]"
+				wrapper-class="flex-1 [&>svg]:!text-[var(--color-text-default)] [&>svg]:!opacity-100"
 				@keyup.esc="search = ''"
 			/>
 		</template>
-		<h3 v-else class="w-full text-base text-primary font-medium m-0">
+		<h3 v-else class="w-full text-base text-[var(--color-text-default)] font-medium m-0">
 			{{ formatMessage(messages.friends) }}
 		</h3>
 		<Button
@@ -345,15 +345,15 @@ const messages = defineMessages({
 		</Button>
 	</div>
 	<div class="flex flex-col gap-3">
-		<h3 v-if="loading" class="text-base text-primary font-medium m-0">
+		<h3 v-if="loading" class="text-base text-[var(--color-text-default)] font-medium m-0">
 			{{ formatMessage(messages.friends) }}
 		</h3>
 		<template v-if="loading">
 			<div v-for="n in 5" :key="n" class="flex gap-2 items-center animate-pulse">
-				<div class="min-w-9 min-h-9 bg-button-bg rounded-full"></div>
+				<div class="min-w-9 min-h-9 bg-surface-4 rounded-full"></div>
 				<div class="flex flex-col w-full">
-					<div class="h-3 bg-button-bg rounded-full w-1/2 mb-1"></div>
-					<div class="h-2.5 bg-button-bg rounded-full w-3/4"></div>
+					<div class="h-3 bg-surface-4 rounded-full w-1/2 mb-1"></div>
+					<div class="h-2.5 bg-surface-4 rounded-full w-3/4"></div>
 				</div>
 			</div>
 		</template>
@@ -411,7 +411,10 @@ const messages = defineMessages({
 				:heading="formatMessage(messages.pending)"
 				:remove-friend="removeFriend"
 			/>
-			<p v-if="filteredFriends.length === 0 && search" class="text-sm text-secondary my-1 mx-4">
+			<p
+				v-if="filteredFriends.length === 0 && search"
+				class="text-sm text-[var(--color-text-tertiary)] my-1 mx-4"
+			>
 				{{ formatMessage(messages.noFriendsMatch, { query: search }) }}
 			</p>
 		</template>

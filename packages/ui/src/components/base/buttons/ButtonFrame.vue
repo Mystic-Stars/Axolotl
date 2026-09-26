@@ -49,7 +49,7 @@ const iconOnlySizeClasses: Record<ButtonSize, string> = {
 }
 
 const typeClasses: Record<ButtonType, string> = {
-	base: 'button-frame--base bg-surface-4 text-contrast [&>svg]:text-primary',
+	base: 'button-frame--base bg-surface-4 text-[var(--color-text-primary)] [&>svg]:text-[var(--color-text-default)]',
 	colored:
 		'button-frame--colored bg-[--button-color] text-[var(--color-accent-contrast)] [&>svg]:text-inherit',
 	'colored-text':
@@ -65,7 +65,7 @@ const typeClasses: Record<ButtonType, string> = {
 	'chip-text':
 		'button-frame--chip-text bg-[--button-highlight,var(--surface-4)] text-[var(--button-color,var(--color-text-default))] [&>svg]:text-inherit',
 	highlight:
-		'button-frame--highlight bg-[--button-highlight,var(--surface-4)] text-contrast [&>svg]:text-inherit',
+		'button-frame--highlight bg-[--button-highlight,var(--surface-4)] text-[var(--color-text-primary)] [&>svg]:text-inherit',
 }
 
 const interactionClasses: Record<ButtonInteraction, string> = {
@@ -83,7 +83,7 @@ const colorVariables: Record<ButtonColor, string> = {
 	green: 'var(--color-green)',
 	blue: 'var(--color-blue)',
 	purple: 'var(--color-purple)',
-	medal_promotion: 'var(--medal-promotion-text-orange, var(--color-orange))',
+	'medal-promo': 'var(--color-medal-promo)',
 }
 
 // The 25%-opacity tint behind `chip`/`highlight`. Each accent has its own
@@ -95,7 +95,7 @@ const highlightVariables: Record<ButtonColor, string> = {
 	green: 'var(--color-green-highlight)',
 	blue: 'var(--color-blue-highlight)',
 	purple: 'var(--color-purple-highlight)',
-	medal_promotion: 'var(--color-orange-highlight)',
+	'medal-promo': 'var(--color-medal-promo-highlight)',
 }
 
 const props = withDefaults(

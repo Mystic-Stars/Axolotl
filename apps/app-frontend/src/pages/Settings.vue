@@ -345,20 +345,20 @@ const pageTitle: MessageDescriptor = settingsPageTitle
 			<aside class="settings-sidebar">
 				<div class="relative shrink-0">
 					<SearchIcon
-						class="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-secondary"
+						class="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[var(--color-text-tertiary)]"
 					/>
 					<input
 						v-model="searchQuery"
 						type="search"
 						:placeholder="formatMessage(messages.search)"
 						:aria-label="formatMessage(messages.search)"
-						class="w-full rounded-lg border border-surface-4 bg-surface-3 py-2 pl-9 pr-9 text-sm text-contrast outline-none transition-colors placeholder:text-secondary focus:border-surface-5"
+						class="w-full rounded-lg border border-surface-4 bg-surface-3 py-2 pl-9 pr-9 text-sm text-[var(--color-text-primary)] outline-none transition-colors placeholder:text-[var(--color-text-tertiary)] focus:border-surface-5"
 						@keydown.escape="searchQuery = ''"
 					/>
 					<button
 						v-if="searchQuery"
 						type="button"
-						class="absolute right-1.5 top-1/2 flex size-7 -translate-y-1/2 items-center justify-center rounded-md border-0 bg-transparent text-secondary transition-colors hover:bg-surface-4 hover:text-contrast"
+						class="absolute right-1.5 top-1/2 flex size-7 -translate-y-1/2 items-center justify-center rounded-md border-0 bg-transparent text-[var(--color-text-tertiary)] transition-colors hover:bg-surface-4 hover:text-[var(--color-text-primary)]"
 						:aria-label="formatMessage(messages.clearSearch)"
 						@click="searchQuery = ''"
 					>
@@ -425,7 +425,7 @@ const pageTitle: MessageDescriptor = settingsPageTitle
 					</TransitionGroup>
 					<p
 						v-if="!searchResultsPending && searchResults.length === 0"
-						class="m-0 px-3 py-4 text-sm text-secondary"
+						class="m-0 px-3 py-4 text-sm text-[var(--color-text-tertiary)]"
 					>
 						{{ formatMessage(messages.noResults) }}
 					</p>
@@ -435,7 +435,7 @@ const pageTitle: MessageDescriptor = settingsPageTitle
 					<section v-for="group in visibleGroups" :key="group.id" class="settings-nav-group">
 						<button
 							type="button"
-							class="settings-group-button hover:bg-surface-3 hover:text-contrast"
+							class="settings-group-button hover:bg-surface-3 hover:text-[var(--color-text-primary)]"
 							:aria-expanded="expandedGroups[group.id]"
 							@click="toggleGroup(group.id)"
 						>
@@ -452,7 +452,7 @@ const pageTitle: MessageDescriptor = settingsPageTitle
 								:key="category.id"
 								type="button"
 								:data-onboarding-id="category.onboardingId"
-								class="settings-category-button hover:bg-surface-3 hover:text-contrast"
+								class="settings-category-button hover:bg-surface-3 hover:text-[var(--color-text-primary)]"
 								:class="{ 'is-active': activeCategory?.id === category.id }"
 								@click="selectCategory(category.id)"
 							>
@@ -463,7 +463,7 @@ const pageTitle: MessageDescriptor = settingsPageTitle
 					</section>
 				</nav>
 
-				<footer class="mt-auto shrink-0 pt-4 text-sm text-secondary">
+				<footer class="mt-auto shrink-0 pt-4 text-sm text-[var(--color-text-tertiary)]">
 					<div v-if="progress > 0 && progress < 1" class="mb-4">
 						<p class="m-0 mb-2">
 							{{ formatMessage(messages.downloading, { version: downloadingVersion }) }}
@@ -477,7 +477,7 @@ const pageTitle: MessageDescriptor = settingsPageTitle
 						<button
 							type="button"
 							class="m-0 flex size-9 shrink-0 items-center justify-center rounded-lg border-0 bg-transparent p-0 transition-colors hover:bg-surface-3"
-							:class="themeStore.devMode ? 'text-brand' : 'text-secondary'"
+							:class="themeStore.devMode ? 'text-brand' : 'text-[var(--color-text-tertiary)]'"
 							@click="toggleDeveloperMode"
 						>
 							<img class="size-8 object-contain" src="@/assets/axolotl.png" alt="" />
@@ -493,8 +493,11 @@ const pageTitle: MessageDescriptor = settingsPageTitle
 			<section class="settings-content" :aria-label="formatMessage(pageTitle)">
 				<Transition name="settings-content-header" mode="out-in">
 					<header :key="activeCategory?.id ?? 'settings'" class="settings-content-header">
-						<component :is="activeCategory?.icon" class="size-5 text-secondary" />
-						<h1 class="m-0 text-xl font-semibold text-contrast">
+						<component
+							:is="activeCategory?.icon"
+							class="size-5 text-[var(--color-text-tertiary)]"
+						/>
+						<h1 class="m-0 text-xl font-semibold text-[var(--color-text-primary)]">
 							{{ activeCategory ? categoryName(activeCategory) : formatMessage(pageTitle) }}
 						</h1>
 					</header>

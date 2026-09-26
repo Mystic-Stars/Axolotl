@@ -8,7 +8,9 @@
 	>
 		<template #title>
 			<Avatar v-if="projectIconUrl" :src="projectIconUrl" size="3rem" :tint-by="projectName" />
-			<span class="text-lg font-extrabold text-contrast">{{ header ?? defaultHeader }}</span>
+			<span class="text-lg font-extrabold text-[var(--color-text-primary)]">{{
+				header ?? defaultHeader
+			}}</span>
 		</template>
 
 		<!-- Simplified warning when no version data is available (e.g. drag & drop) -->
@@ -36,8 +38,8 @@
 
 					<div class="flex-1 overflow-y-auto px-4" :class="isModpack ? 'pb-4' : 'pb-16'">
 						<div v-if="loading" class="flex flex-col items-center justify-center h-full gap-2">
-							<SpinnerIcon class="h-8 w-8 animate-spin text-secondary" />
-							<span class="text-sm text-secondary">{{
+							<SpinnerIcon class="h-8 w-8 animate-spin text-[var(--color-text-tertiary)]" />
+							<span class="text-sm text-[var(--color-text-tertiary)]">{{
 								formatMessage(messages.loadingVersions)
 							}}</span>
 						</div>
@@ -52,7 +54,7 @@
 									:class="[
 										selectedVersion?.id === version.id
 											? 'bg-brand-highlight'
-											: 'bg-transparent hover:bg-button-bg',
+											: 'bg-transparent hover:bg-surface-4',
 									]"
 									@mouseenter="handleVersionMouseEnter(version)"
 									@mouseleave="handleVersionMouseLeave"
@@ -68,7 +70,7 @@
 											/>
 											<span
 												v-tooltip="version.version_number"
-												class="font-semibold text-contrast truncate"
+												class="font-semibold text-[var(--color-text-primary)] truncate"
 											>
 												{{ version.version_number }}
 											</span>
@@ -93,7 +95,7 @@
 							</div>
 							<div
 								v-if="filteredVersions.length === 0"
-								class="p-4 text-center text-secondary text-sm"
+								class="p-4 text-center text-[var(--color-text-tertiary)] text-sm"
 							>
 								{{ formatMessage(messages.noVersionsFound) }}
 							</div>
@@ -136,7 +138,7 @@
 							<div class="flex flex-col gap-1.5">
 								<div class="flex items-center justify-between">
 									<div class="flex items-center gap-2">
-										<span class="font-semibold text-xl text-contrast">
+										<span class="font-semibold text-xl text-[var(--color-text-primary)]">
 											{{ selectedVersion.version_number }}
 										</span>
 										<span
@@ -146,19 +148,19 @@
 											{{ capitalizeString(selectedVersion.version_type) }}
 										</span>
 									</div>
-									<span class="font-medium text-primary">
+									<span class="font-medium text-[var(--color-text-default)]">
 										{{ formatLongDate(selectedVersion.date_published) }}
 									</span>
 								</div>
 								<div class="flex items-center gap-2">
 									<div class="flex items-center gap-2 rounded-xl">
-										<FileTextIcon class="h-6 w-6 text-primary" />
-										<span class="font-medium text-primary">{{
+										<FileTextIcon class="h-6 w-6 text-[var(--color-text-default)]" />
+										<span class="font-medium text-[var(--color-text-default)]">{{
 											formatMessage(commonMessages.changelogLabel)
 										}}</span>
 									</div>
 									<span class="w-1.5 h-1.5 rounded-full bg-divider" />
-									<span class="font-medium text-primary">
+									<span class="font-medium text-[var(--color-text-default)]">
 										{{ formatLoaderGameVersion(selectedVersion) }}
 									</span>
 								</div>
@@ -172,8 +174,8 @@
 								v-if="loadingChangelog"
 								class="flex flex-col items-center justify-center h-full gap-2"
 							>
-								<SpinnerIcon class="h-6 w-6 animate-spin text-secondary" />
-								<span class="text-sm text-secondary">{{
+								<SpinnerIcon class="h-6 w-6 animate-spin text-[var(--color-text-tertiary)]" />
+								<span class="text-sm text-[var(--color-text-tertiary)]">{{
 									formatMessage(messages.loadingChangelog)
 								}}</span>
 							</div>
@@ -182,7 +184,7 @@
 								class="markdown [&_img]:max-w-full [&_img]:h-auto"
 								v-html="renderHighlightedString(selectedVersion.changelog)"
 							/>
-							<div v-else class="text-secondary italic">
+							<div v-else class="text-[var(--color-text-tertiary)] italic">
 								{{ formatMessage(messages.noChangelog) }}
 							</div>
 						</div>
@@ -193,12 +195,15 @@
 					</div>
 					<div
 						v-else-if="loading || loadingChangelog || props.versions.length > 0"
-						class="flex-1 flex flex-col items-center justify-center h-full gap-2 text-secondary bg-bg"
+						class="flex-1 flex flex-col items-center justify-center h-full gap-2 text-[var(--color-text-tertiary)] bg-bg"
 					>
 						<SpinnerIcon class="h-6 w-6 animate-spin" />
 						<span class="text-sm">{{ formatMessage(messages.loadingChangelog) }}</span>
 					</div>
-					<div v-else class="flex-1 flex items-center justify-center text-secondary bg-bg">
+					<div
+						v-else
+						class="flex-1 flex items-center justify-center text-[var(--color-text-tertiary)] bg-bg"
+					>
 						{{ formatMessage(messages.selectVersionPrompt) }}
 					</div>
 				</div>
@@ -602,7 +607,7 @@ function getBadgeLabel(version: Labrinth.Versions.v2.Version): string {
 function getBadgeClasses(version: Labrinth.Versions.v2.Version): string {
 	// Current badge
 	if (version.id === props.currentVersionId) {
-		return 'bg-surface-4 border-surface-5 text-primary'
+		return 'bg-surface-4 border-surface-5 text-[var(--color-text-default)]'
 	}
 
 	if (shouldShowIncompatibleBadge(version)) {
@@ -618,7 +623,7 @@ function getBadgeClasses(version: Labrinth.Versions.v2.Version): string {
 		case 'alpha':
 			return 'bg-highlight-purple border-brand-purple text-brand-purple'
 		default:
-			return 'bg-surface-4 border-surface-5 text-primary'
+			return 'bg-surface-4 border-surface-5 text-[var(--color-text-default)]'
 	}
 }
 
@@ -631,7 +636,7 @@ function getVersionTypeBadgeClasses(version: Labrinth.Versions.v2.Version): stri
 		case 'alpha':
 			return 'bg-highlight-purple border-brand-purple text-brand-purple'
 		default:
-			return 'bg-surface-4 border-surface-5 text-primary'
+			return 'bg-surface-4 border-surface-5 text-[var(--color-text-default)]'
 	}
 }
 

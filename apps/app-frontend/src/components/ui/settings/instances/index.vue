@@ -566,7 +566,7 @@ onScopeDispose(clearBaseSource)
 				<h2
 					id="settings-target-instance-sync-options"
 					tabindex="-1"
-					class="m-0 text-lg font-semibold text-contrast"
+					class="m-0 text-lg font-semibold text-[var(--color-text-primary)]"
 				>
 					{{ formatMessage(messages.globalOptionsTitle) }}
 				</h2>

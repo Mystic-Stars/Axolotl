@@ -100,7 +100,7 @@ defineExpose({ show, hide, selectedTab, setTab })
 					:data-onboarding-id="tab.onboardingId"
 					:target="tab.href ? '_blank' : undefined"
 					:rel="tab.href ? 'noopener noreferrer' : undefined"
-					:class="`flex gap-2 items-center text-left rounded-xl px-4 py-2 border-none text-nowrap font-semibold cursor-pointer active:scale-[0.97] transition-all no-underline ${!tab.href && selectedTab === index ? 'bg-button-bgSelected text-button-textSelected' : 'bg-transparent text-button-text hover:bg-button-bg hover:text-contrast'}`"
+					:class="`flex gap-2 items-center text-left rounded-xl px-4 py-2 border-none text-nowrap font-semibold cursor-pointer active:scale-[0.97] transition-all no-underline ${!tab.href && selectedTab === index ? 'bg-button-bgSelected text-button-textSelected' : 'bg-transparent text-button-text hover:bg-surface-4 hover:text-[var(--color-text-primary)]'}`"
 					@click="!tab.href && setTab(index)"
 				>
 					<component :is="tab.icon" class="w-4 h-4 flex-shrink-0" />

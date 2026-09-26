@@ -143,7 +143,9 @@ defineExpose({
 			<p class="m-0">{{ formatMessage(messages.description) }}</p>
 
 			<div class="flex flex-col gap-2">
-				<span class="font-semibold text-contrast">{{ formatMessage(messages.rangeLabel) }}</span>
+				<span class="font-semibold text-[var(--color-text-primary)]">{{
+					formatMessage(messages.rangeLabel)
+				}}</span>
 				<Combobox
 					id="log-export-range"
 					v-model="selectedRange"
@@ -153,7 +155,9 @@ defineExpose({
 			</div>
 
 			<div class="flex flex-col gap-2">
-				<span class="font-semibold text-contrast">{{ formatMessage(messages.levelLabel) }}</span>
+				<span class="font-semibold text-[var(--color-text-primary)]">{{
+					formatMessage(messages.levelLabel)
+				}}</span>
 				<Combobox
 					id="log-export-level"
 					v-model="selectedLevel"
@@ -163,7 +167,9 @@ defineExpose({
 			</div>
 
 			<div class="flex flex-col gap-2">
-				<span class="font-semibold text-contrast">{{ formatMessage(messages.extrasLabel) }}</span>
+				<span class="font-semibold text-[var(--color-text-primary)]">{{
+					formatMessage(messages.extrasLabel)
+				}}</span>
 				<Checkbox v-model="includeSystemInfo" :label="formatMessage(messages.systemInfo)" />
 				<Checkbox v-model="includeInstanceLogs" :label="formatMessage(messages.instanceLogs)" />
 				<Checkbox v-model="includeCrashAnalysis" :label="formatMessage(messages.crashAnalysis)" />

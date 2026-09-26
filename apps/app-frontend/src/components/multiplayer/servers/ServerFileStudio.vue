@@ -42,7 +42,10 @@ onMounted(async () => {
 			{{ formatMessage(messages.runningDescription) }}
 		</Admonition>
 	</div>
-	<div v-else-if="isLoaded" class="flex size-full items-center justify-center text-secondary">
+	<div
+		v-else-if="isLoaded"
+		class="flex size-full items-center justify-center text-[var(--color-text-tertiary)]"
+	>
 		{{ formatMessage(messages.notFound) }}
 	</div>
 </template>

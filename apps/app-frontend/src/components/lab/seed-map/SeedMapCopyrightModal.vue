@@ -118,7 +118,7 @@ defineExpose({
 	width: 1.25rem;
 	height: 1.25rem;
 	margin-top: 0.1rem;
-	color: var(--color-text-secondary);
+	color: var(--color-text-tertiary);
 }
 
 .notice-section h3 {
@@ -129,7 +129,7 @@ defineExpose({
 
 .notice-section p {
 	margin: 0.35rem 0 0.75rem;
-	color: var(--color-text-secondary);
+	color: var(--color-text-tertiary);
 	font-size: 0.8rem;
 	line-height: 1.5;
 }

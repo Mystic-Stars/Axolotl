@@ -12,15 +12,15 @@
 					class="flex flex-1 flex-col gap-2 overflow-clip rounded-[20px] bg-surface-2 p-3"
 				>
 					<span
-						class="flex size-6 shrink-0 items-center justify-center rounded-full border border-solid border-surface-5 bg-surface-4 font-medium text-contrast"
+						class="flex size-6 shrink-0 items-center justify-center rounded-full border border-solid border-surface-5 bg-surface-4 font-medium text-[var(--color-text-primary)]"
 					>
 						{{ i + 1 }}
 					</span>
 					<div class="flex flex-col">
-						<div class="font-semibold leading-snug text-contrast">
+						<div class="font-semibold leading-snug text-[var(--color-text-primary)]">
 							{{ step.title }}
 						</div>
-						<div class="text-sm leading-relaxed text-secondary">
+						<div class="text-sm leading-relaxed text-[var(--color-text-tertiary)]">
 							{{ step.description }}
 						</div>
 					</div>
@@ -29,10 +29,10 @@
 
 			<!-- URL input -->
 			<div class="flex flex-col gap-2.5">
-				<label v-if="cf" class="text-base font-semibold text-contrast">{{
+				<label v-if="cf" class="text-base font-semibold text-[var(--color-text-primary)]">{{
 					formatMessage(messages.enterLink)
 				}}</label>
-				<div v-else class="text-sm text-secondary">
+				<div v-else class="text-sm text-[var(--color-text-tertiary)]">
 					{{ formatMessage(messages.zipDescription) }}
 				</div>
 				<StyledInput

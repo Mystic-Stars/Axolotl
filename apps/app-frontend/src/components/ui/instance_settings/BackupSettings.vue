@@ -454,17 +454,23 @@ watch(
 <template>
 	<div class="flex flex-col gap-5">
 		<header>
-			<h2 class="m-0 text-lg font-semibold text-contrast">{{ formatMessage(messages.title) }}</h2>
-			<p class="m-0 mt-1 text-secondary">{{ formatMessage(messages.description) }}</p>
+			<h2 class="m-0 text-lg font-semibold text-[var(--color-text-primary)]">
+				{{ formatMessage(messages.title) }}
+			</h2>
+			<p class="m-0 mt-1 text-[var(--color-text-tertiary)]">
+				{{ formatMessage(messages.description) }}
+			</p>
 		</header>
 
-		<p v-if="loading" class="m-0 text-secondary">{{ formatMessage(messages.loading) }}</p>
+		<p v-if="loading" class="m-0 text-[var(--color-text-tertiary)]">
+			{{ formatMessage(messages.loading) }}
+		</p>
 		<Admonition v-else-if="!eligible" type="warning" :header="formatMessage(messages.unavailable)">
 			{{ unavailableReason }}
 		</Admonition>
 		<template v-else-if="config">
 			<div v-if="!config.enabled || editingExclusions" class="flex flex-col gap-4">
-				<p class="m-0 text-secondary">{{ formatMessage(messages.choose) }}</p>
+				<p class="m-0 text-[var(--color-text-tertiary)]">{{ formatMessage(messages.choose) }}</p>
 				<BackupExclusionSelector
 					v-model="excludedPaths"
 					:instance-id="instance.id"
@@ -489,7 +495,7 @@ watch(
 
 			<template v-else>
 				<div class="flex flex-col gap-2 rounded-lg border border-solid border-surface-4 p-3">
-					<p class="m-0 text-sm text-secondary">
+					<p class="m-0 text-sm text-[var(--color-text-tertiary)]">
 						{{
 							config.excluded_paths.length === 0
 								? formatMessage(messages.allIncluded)
@@ -514,9 +520,12 @@ watch(
 							>{{ formatMessage(messages.editExclusions) }}
 						</Button>
 					</div>
-					<p v-if="isRunning" class="m-0 text-sm font-medium text-contrast">
+					<p v-if="isRunning" class="m-0 text-sm font-medium text-[var(--color-text-primary)]">
 						{{ operationLabel }}
-						<span v-if="(operation?.total_bytes ?? 0) > 0" class="ml-2 text-secondary">
+						<span
+							v-if="(operation?.total_bytes ?? 0) > 0"
+							class="ml-2 text-[var(--color-text-tertiary)]"
+						>
 							{{
 								formatMessage(messages.progressBytes, {
 									processed: formatBytes(operation?.processed_bytes ?? 0),
@@ -540,10 +549,10 @@ watch(
 				</div>
 
 				<section class="flex flex-col gap-3">
-					<h3 class="m-0 text-base font-semibold text-contrast">
+					<h3 class="m-0 text-base font-semibold text-[var(--color-text-primary)]">
 						{{ formatMessage(messages.snapshots) }}
 					</h3>
-					<p v-if="snapshots.length === 0" class="m-0 text-secondary">
+					<p v-if="snapshots.length === 0" class="m-0 text-[var(--color-text-tertiary)]">
 						{{ formatMessage(messages.empty) }}
 					</p>
 					<div
@@ -555,12 +564,12 @@ watch(
 							:key="snapshot.id"
 							class="flex items-center gap-3 px-3 py-3"
 						>
-							<FileArchiveIcon class="size-5 shrink-0 text-secondary" />
+							<FileArchiveIcon class="size-5 shrink-0 text-[var(--color-text-tertiary)]" />
 							<div class="min-w-0 flex-1">
-								<p class="m-0 font-semibold text-contrast">
+								<p class="m-0 font-semibold text-[var(--color-text-primary)]">
 									{{ formatDate(new Date(snapshot.created_at)) }}
 								</p>
-								<p class="m-0 text-sm text-secondary">
+								<p class="m-0 text-sm text-[var(--color-text-tertiary)]">
 									{{
 										formatMessage(messages.snapshotMeta, {
 											files: snapshot.file_count,
@@ -606,7 +615,7 @@ watch(
 						@click="disable"
 						>{{ formatMessage(messages.disable) }}
 					</Button>
-					<p v-if="snapshots.length > 0" class="m-0 text-sm text-secondary">
+					<p v-if="snapshots.length > 0" class="m-0 text-sm text-[var(--color-text-tertiary)]">
 						{{ formatMessage(messages.disableBlocked) }}
 					</p>
 				</div>

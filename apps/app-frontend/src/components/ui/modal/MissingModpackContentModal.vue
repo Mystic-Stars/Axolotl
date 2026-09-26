@@ -54,8 +54,10 @@
 				>
 					<div class="flex min-w-0 items-start justify-between gap-3">
 						<div class="min-w-0">
-							<div class="break-all font-medium text-contrast">{{ file.path }}</div>
-							<div class="mt-1 flex flex-wrap gap-2 text-sm text-secondary">
+							<div class="break-all font-medium text-[var(--color-text-primary)]">
+								{{ file.path }}
+							</div>
+							<div class="mt-1 flex flex-wrap gap-2 text-sm text-[var(--color-text-tertiary)]">
 								<span>{{
 									formatMessage(messages.expectedSize, { size: formatBytes(file.expectedSize) })
 								}}</span>
@@ -66,7 +68,10 @@
 									{{ formatMessage(messages.fallbacks, { count: file.browserUrls.length - 1 }) }}
 								</span>
 							</div>
-							<div v-if="file.browserUrls[0]" class="mt-1 truncate text-xs text-secondary">
+							<div
+								v-if="file.browserUrls[0]"
+								class="mt-1 truncate text-xs text-[var(--color-text-tertiary)]"
+							>
 								<code v-tooltip="file.browserUrls[0]">{{ file.browserUrls[0] }}</code>
 							</div>
 							<div v-if="file.lastError" class="mt-1 text-sm text-red">

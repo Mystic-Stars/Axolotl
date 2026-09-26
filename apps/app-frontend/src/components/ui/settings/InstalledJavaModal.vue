@@ -111,7 +111,10 @@ defineExpose({ show })
 		scrollable
 		actions-divider
 	>
-		<div v-if="loading" class="flex min-h-40 items-center justify-center gap-2 text-secondary">
+		<div
+			v-if="loading"
+			class="flex min-h-40 items-center justify-center gap-2 text-[var(--color-text-tertiary)]"
+		>
 			<SpinnerIcon class="size-4 animate-spin" aria-hidden="true" />
 			{{ formatMessage(messages.loading) }}
 		</div>
@@ -141,7 +144,7 @@ defineExpose({ show })
 				</IconButton>
 			</template>
 			<template #empty-state>
-				<div class="py-8 text-center text-sm text-secondary">
+				<div class="py-8 text-center text-sm text-[var(--color-text-tertiary)]">
 					{{ formatMessage(messages.empty) }}
 				</div>
 			</template>

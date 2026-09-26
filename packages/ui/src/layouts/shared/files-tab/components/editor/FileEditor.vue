@@ -35,16 +35,16 @@
 			:value="fileContent"
 			:readonly="isEditorReadOnly"
 			:placeholder="formatMessage(messages.editorUnavailablePlaceholder)"
-			class="w-full resize-none rounded-[var(--radius-xl)] bg-bg-raised p-3 font-mono text-sm text-primary outline-none"
+			class="w-full resize-none rounded-[var(--radius-xl)] bg-surface-3 p-3 font-mono text-sm text-[var(--color-text-default)] outline-none"
 			:style="{ height: editorHeight }"
 			@input="onFallbackInput"
 		/>
 		<div
 			v-else-if="isLoading"
-			class="flex items-center justify-center rounded-[var(--radius-xl)] bg-bg-raised"
+			class="flex items-center justify-center rounded-[var(--radius-xl)] bg-surface-3"
 			:style="{ height: editorHeight }"
 		>
-			<SpinnerIcon class="h-8 w-8 animate-spin text-secondary" />
+			<SpinnerIcon class="h-8 w-8 animate-spin text-[var(--color-text-tertiary)]" />
 		</div>
 	</div>
 </template>

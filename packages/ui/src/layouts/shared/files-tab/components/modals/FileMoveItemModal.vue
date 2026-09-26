@@ -10,13 +10,15 @@
 	>
 		<form class="space-y-6 md:min-w-[400px]" @submit.prevent="handleSubmit">
 			<div class="flex flex-col gap-1">
-				<span class="font-semibold text-contrast">{{
+				<span class="font-semibold text-[var(--color-text-primary)]">{{
 					formatMessage(messages.currentLocation)
 				}}</span>
-				<span class="text-secondary">{{ `${currentPath}/${item?.name}`.replace('//', '/') }}</span>
+				<span class="text-[var(--color-text-tertiary)]">{{
+					`${currentPath}/${item?.name}`.replace('//', '/')
+				}}</span>
 			</div>
 			<label class="flex flex-col gap-2">
-				<span class="font-semibold text-contrast">{{
+				<span class="font-semibold text-[var(--color-text-primary)]">{{
 					formatMessage(messages.destinationPath)
 				}}</span>
 				<StyledInput

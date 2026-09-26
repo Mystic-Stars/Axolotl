@@ -877,11 +877,11 @@ function validateMinecraftDirectory(value) {
 				<h2
 					id="settings-target-resources-download-mirrors"
 					tabindex="-1"
-					class="m-0 text-lg font-semibold text-contrast"
+					class="m-0 text-lg font-semibold text-[var(--color-text-primary)]"
 				>
 					{{ formatMessage(messages.downloadMirrors) }}
 				</h2>
-				<p class="m-0 mt-1 text-sm leading-relaxed text-secondary">
+				<p class="m-0 mt-1 text-sm leading-relaxed text-[var(--color-text-tertiary)]">
 					{{ formatMessage(messages.downloadMirrorsDescription) }}
 				</p>
 			</template>
@@ -1025,11 +1025,11 @@ function validateMinecraftDirectory(value) {
 				<h2
 					id="settings-target-resources-proxy"
 					tabindex="-1"
-					class="m-0 text-lg font-semibold text-contrast"
+					class="m-0 text-lg font-semibold text-[var(--color-text-primary)]"
 				>
 					{{ formatMessage(messages.proxySettings) }}
 				</h2>
-				<p class="m-0 mt-1 text-sm leading-relaxed text-secondary">
+				<p class="m-0 mt-1 text-sm leading-relaxed text-[var(--color-text-tertiary)]">
 					{{ formatMessage(messages.proxySettingsDescription) }}
 				</p>
 			</template>
@@ -1084,7 +1084,9 @@ function validateMinecraftDirectory(value) {
 				<template #label>{{ formatMessage(messages.proxyTest) }}</template>
 				<template #control>
 					<div class="flex flex-wrap items-center justify-end gap-3">
-						<span v-if="proxyTestResult" class="text-sm text-secondary">{{ proxyTestResult }}</span>
+						<span v-if="proxyTestResult" class="text-sm text-[var(--color-text-tertiary)]">{{
+							proxyTestResult
+						}}</span>
 						<button
 							:disabled="
 								proxyTesting ||

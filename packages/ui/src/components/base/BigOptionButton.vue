@@ -14,7 +14,7 @@
 		>
 			<component
 				:is="icon"
-				class="size-8 text-secondary"
+				class="size-8 text-[var(--color-text-tertiary)]"
 				:class="selected ? '!stroke-brand' : ''"
 				stroke-width="1.5"
 			/>
@@ -22,18 +22,20 @@
 		<div v-else class="flex size-12 shrink-0 items-center justify-center">
 			<component
 				:is="icon"
-				class="size-7 text-secondary"
+				class="size-7 text-[var(--color-text-tertiary)]"
 				:class="selected ? '!stroke-brand' : ''"
 				stroke-width="1.5"
 			/>
 		</div>
 		<div class="flex flex-1 flex-col gap-1">
-			<span class="text-base font-semibold text-contrast">{{ title }}</span>
-			<span class="text-left text-sm font-medium text-primary">{{ description }}</span>
+			<span class="text-base font-semibold text-[var(--color-text-primary)]">{{ title }}</span>
+			<span class="text-left text-sm font-medium text-[var(--color-text-default)]">{{
+				description
+			}}</span>
 			<span v-if="note" class="text-left text-xs text-tertiary">{{ note }}</span>
 		</div>
 		<ChevronRightIcon
-			class="size-5 shrink-0 text-secondary opacity-0 transition-opacity duration-100 group-hover:opacity-100"
+			class="size-5 shrink-0 text-[var(--color-text-tertiary)] opacity-0 transition-opacity duration-100 group-hover:opacity-100"
 		/>
 	</button>
 </template>

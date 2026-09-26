@@ -28,7 +28,7 @@
 					v-if="activeGapIndex === index"
 					ref="gapInput"
 					v-model="gapInputValue"
-					class="h-8 w-12 rounded-full border border-solid border-brand bg-surface-1 px-2 text-center text-sm text-contrast outline-none focus-visible:ring-4 focus-visible:ring-brand-shadow"
+					class="h-8 w-12 rounded-full border border-solid border-brand bg-surface-1 px-2 text-center text-sm text-[var(--color-text-primary)] outline-none focus-visible:ring-4 focus-visible:ring-brand-shadow"
 					type="number"
 					inputmode="numeric"
 					min="1"
@@ -42,7 +42,7 @@
 				<button
 					v-else
 					type="button"
-					class="grid h-8 w-8 place-content-center rounded-full text-secondary transition-colors hover:bg-surface-3 hover:text-contrast focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand-shadow"
+					class="grid h-8 w-8 place-content-center rounded-full text-[var(--color-text-tertiary)] transition-colors hover:bg-surface-3 hover:text-[var(--color-text-primary)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand-shadow"
 					:aria-label="formatMessage(messages.goToPage)"
 					aria-expanded="false"
 					:disabled="loading"
@@ -55,7 +55,7 @@
 			</template>
 			<template v-else-if="loading && page === item">
 				<span
-					class="grid size-8 place-content-center rounded-full bg-button-bg text-brand"
+					class="grid size-8 place-content-center rounded-full bg-surface-4 text-brand"
 					:aria-label="formatMessage(messages.loadingPage)"
 					role="status"
 				>

@@ -58,7 +58,7 @@ const toTransparent = computed(() => {
 
 <template>
 	<div
-		class="card-shadow bg-bg-raised rounded-xl overflow-clip cursor-pointer hover:brightness-90 transition-all"
+		class="card-shadow bg-surface-2 rounded-xl overflow-clip cursor-pointer hover:brightness-90 transition-all"
 		@click="router.push(`/project/${project.slug}`)"
 	>
 		<div
@@ -85,14 +85,18 @@ const toTransparent = computed(() => {
 		<div class="flex flex-col justify-center gap-2 px-4 py-3">
 			<div class="flex gap-2 items-center">
 				<Avatar size="48px" :src="project.icon_url" />
-				<div class="h-full flex items-center font-bold text-contrast leading-normal">
+				<div
+					class="h-full flex items-center font-bold text-[var(--color-text-primary)] leading-normal"
+				>
 					<span class="line-clamp-2">{{ project.title }}</span>
 				</div>
 			</div>
 			<p class="m-0 text-sm font-medium line-clamp-3 leading-tight h-[3.25rem]">
 				{{ project.description }}
 			</p>
-			<div class="flex items-center gap-2 text-sm text-secondary font-semibold mt-auto">
+			<div
+				class="flex items-center gap-2 text-sm text-[var(--color-text-tertiary)] font-semibold mt-auto"
+			>
 				<div
 					class="flex items-center gap-1 pr-2 border-0 border-r-[1px] border-solid border-button-border"
 				>

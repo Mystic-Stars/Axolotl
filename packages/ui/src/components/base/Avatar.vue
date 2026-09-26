@@ -143,7 +143,7 @@ function hash(str: string): number {
 	--_size: 2rem;
 
 	border: 1px solid var(--surface-5);
-	background-color: var(--color-button-bg);
+	background-color: var(--surface-4);
 	object-fit: contain;
 	border-radius: calc(16 / 96 * var(--_override-size, var(--_size)));
 	position: relative;
@@ -186,7 +186,7 @@ function hash(str: string): number {
 	}
 
 	&.tint {
-		background-color: color-mix(in oklch, var(--color-button-bg) 100%, var(--_tint) 5%);
+		background-color: color-mix(in oklch, var(--surface-4) 100%, var(--_tint) 5%);
 	}
 }
 </style>

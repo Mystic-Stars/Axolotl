@@ -97,11 +97,16 @@ function enabled(option: SyncedOption) {
 <template>
 	<div class="flex flex-col gap-4">
 		<div>
-			<h2 class="m-0 text-lg font-semibold text-contrast">{{ formatMessage(messages.title) }}</h2>
-			<p class="m-0 text-secondary">{{ formatMessage(messages.description) }}</p>
+			<h2 class="m-0 text-lg font-semibold text-[var(--color-text-primary)]">
+				{{ formatMessage(messages.title) }}
+			</h2>
+			<p class="m-0 text-[var(--color-text-tertiary)]">{{ formatMessage(messages.description) }}</p>
 		</div>
 		<template v-for="section in optionSections" :key="section.key">
-			<h3 v-if="section.key === 'unsupported'" class="m-0 text-sm font-semibold text-secondary">
+			<h3
+				v-if="section.key === 'unsupported'"
+				class="m-0 text-sm font-semibold text-[var(--color-text-tertiary)]"
+			>
 				{{ formatMessage(messages.unsupported) }}
 			</h3>
 			<div
@@ -109,7 +114,9 @@ function enabled(option: SyncedOption) {
 				:key="item.key"
 				class="flex items-center justify-between gap-4"
 			>
-				<span class="text-contrast">{{ formatMessage(messages[item.label]) }}</span>
+				<span class="text-[var(--color-text-primary)]">{{
+					formatMessage(messages[item.label])
+				}}</span>
 				<Toggle
 					:model-value="enabled(item.key)"
 					:disabled="section.disabled || mutation.isPending.value"

@@ -57,7 +57,7 @@ const messages = defineMessages({
 			>
 				<template #prefix>
 					<ArrowUpDownIcon
-						class="size-5 text-primary"
+						class="size-5 text-[var(--color-text-default)]"
 						:aria-label="formatMessage(messages.sortBy)"
 					/>
 				</template>
@@ -73,7 +73,10 @@ const messages = defineMessages({
 				dropdown-min-width="160px"
 			>
 				<template #prefix>
-					<GridIcon class="size-5 text-primary" :aria-label="formatMessage(messages.groupBy)" />
+					<GridIcon
+						class="size-5 text-[var(--color-text-default)]"
+						:aria-label="formatMessage(messages.groupBy)"
+					/>
 				</template>
 				<template #selected="{ label }">
 					<span>{{ label }}</span>

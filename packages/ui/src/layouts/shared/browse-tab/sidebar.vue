@@ -44,7 +44,7 @@ const filterClass = computed(() => {
 
 const buttonClass = computed(() => {
 	if (isApp.value) {
-		return 'button-animation flex flex-col gap-1 px-3 py-3 w-full bg-transparent cursor-pointer border-none hover:bg-button-bg'
+		return 'button-animation flex flex-col gap-1 px-3 py-3 w-full bg-transparent cursor-pointer border-none hover:bg-surface-4'
 	}
 	return 'button-animation flex flex-col gap-1 px-4 py-3 w-full bg-transparent cursor-pointer border-none'
 })
@@ -98,15 +98,17 @@ function getFilterOpenByDefault(filterId: string): boolean {
 		class="flex flex-col"
 		:class="{
 			'gap-3': !isApp,
-			'fixed inset-0 z-50 m-4 mb-0 overflow-auto rounded-t-3xl bg-bg-raised':
+			'fixed inset-0 z-50 m-4 mb-0 overflow-auto rounded-t-3xl bg-surface-3':
 				ctx.filtersMenuOpen?.value,
 		}"
 	>
 		<div
 			v-if="ctx.filtersMenuOpen?.value"
-			class="sticky top-0 z-10 mx-1 flex items-center justify-between gap-3 border-0 border-b-[1px] border-solid border-divider bg-bg-raised px-6 py-4"
+			class="sticky top-0 z-10 mx-1 flex items-center justify-between gap-3 border-0 border-b-[1px] border-solid border-divider bg-surface-3 px-6 py-4"
 		>
-			<h3 class="m-0 text-lg text-contrast">{{ formatMessage(commonMessages.filtersLabel) }}</h3>
+			<h3 class="m-0 text-lg text-[var(--color-text-primary)]">
+				{{ formatMessage(commonMessages.filtersLabel) }}
+			</h3>
 			<Button circular icon-only @click="closeFiltersMenu"><XIcon /> </Button>
 		</div>
 
@@ -117,12 +119,12 @@ function getFilterOpenByDefault(filterId: string): boolean {
 			:class="
 				isApp
 					? 'flex flex-col gap-3 border-0 border-b-[1px] p-4 last:border-b-0 border-[--brand-gradient-border] border-solid'
-					: 'card-shadow flex flex-col gap-3 rounded-2xl bg-bg-raised border-solid border-surface-4 border p-4'
+					: 'card-shadow flex flex-col gap-3 rounded-2xl bg-surface-3 border-solid border-surface-4 border p-4'
 			"
 		>
 			<label
 				v-if="ctx.showServerOnly?.value"
-				class="flex cursor-pointer items-center justify-between gap-3 text-contrast font-medium"
+				class="flex cursor-pointer items-center justify-between gap-3 text-[var(--color-text-primary)] font-medium"
 			>
 				{{ ctx.serverOnlyLabel?.value ?? formatMessage(commonMessages.serverOnlyLabel) }}
 				<Toggle
@@ -134,7 +136,7 @@ function getFilterOpenByDefault(filterId: string): boolean {
 			</label>
 			<label
 				v-if="ctx.showHideInstalled?.value"
-				class="flex cursor-pointer items-center justify-between gap-3 text-contrast font-medium"
+				class="flex cursor-pointer items-center justify-between gap-3 text-[var(--color-text-primary)] font-medium"
 			>
 				{{
 					ctx.hideInstalledLabel?.value ?? formatMessage(commonMessages.hideInstalledContentLabel)
@@ -148,7 +150,7 @@ function getFilterOpenByDefault(filterId: string): boolean {
 			</label>
 			<label
 				v-if="ctx.showHideSelected?.value"
-				class="flex cursor-pointer items-center justify-between gap-3 text-contrast font-medium"
+				class="flex cursor-pointer items-center justify-between gap-3 text-[var(--color-text-primary)] font-medium"
 			>
 				{{ ctx.hideSelectedLabel?.value ?? formatMessage(commonMessages.hideSelectedContentLabel) }}
 				<Toggle

@@ -76,6 +76,6 @@ defineExpose({ show, hide })
 				</Button>
 			</div>
 		</div>
-		<p v-else class="m-0 text-secondary">{{ formatMessage(messages.empty) }}</p>
+		<p v-else class="m-0 text-[var(--color-text-tertiary)]">{{ formatMessage(messages.empty) }}</p>
 	</NewModal>
 </template>

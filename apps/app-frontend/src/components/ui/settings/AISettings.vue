@@ -743,7 +743,7 @@ onMounted(async () => {
 
 <template>
 	<div v-if="loading" class="flex h-full min-h-48 items-center justify-center">
-		<SpinnerIcon class="size-6 animate-spin text-secondary" />
+		<SpinnerIcon class="size-6 animate-spin text-[var(--color-text-tertiary)]" />
 	</div>
 
 	<div v-else id="settings-target-ai-providers" tabindex="-1" class="ai-provider-layout">
@@ -773,7 +773,7 @@ onMounted(async () => {
 
 				<div v-if="enabledProviderItems.length" class="flex flex-none flex-col gap-1">
 					<p
-						class="m-0 flex items-center justify-between px-2 pb-1 pt-2 text-xs font-semibold text-secondary"
+						class="m-0 flex items-center justify-between px-2 pb-1 pt-2 text-xs font-semibold text-[var(--color-text-tertiary)]"
 					>
 						<span>{{ formatMessage(messages.enabledProviders) }}</span>
 						<span>{{ enabledProviderItems.length }}</span>
@@ -796,7 +796,7 @@ onMounted(async () => {
 
 				<div v-if="sponsoredProviderItems.length" class="flex flex-none flex-col gap-1">
 					<p
-						class="m-0 flex items-center justify-between px-2 pb-1 pt-2 text-xs font-semibold text-secondary"
+						class="m-0 flex items-center justify-between px-2 pb-1 pt-2 text-xs font-semibold text-[var(--color-text-tertiary)]"
 					>
 						<span>{{ formatMessage(messages.sponsoredProviders) }}</span>
 						<span>{{ sponsoredProviderItems.length }}</span>
@@ -819,7 +819,7 @@ onMounted(async () => {
 
 				<div v-if="disabledProviderItems.length" class="flex flex-none flex-col gap-1">
 					<p
-						class="m-0 flex items-center justify-between px-2 pb-1 pt-2 text-xs font-semibold text-secondary"
+						class="m-0 flex items-center justify-between px-2 pb-1 pt-2 text-xs font-semibold text-[var(--color-text-tertiary)]"
 					>
 						<span>{{ formatMessage(messages.disabledProviders) }}</span>
 						<span>{{ disabledProviderItems.length }}</span>
@@ -838,12 +838,18 @@ onMounted(async () => {
 						</span>
 					</button>
 				</div>
-				<p v-if="filteredProviderItems.length === 0" class="m-2 text-sm text-secondary">
+				<p
+					v-if="filteredProviderItems.length === 0"
+					class="m-2 text-sm text-[var(--color-text-tertiary)]"
+				>
 					{{ formatMessage(messages.noProviders) }}
 				</p>
 			</div>
 			<div class="ai-master-switch">
-				<label for="ai-master-switch" class="min-w-0 text-sm font-semibold text-contrast">
+				<label
+					for="ai-master-switch"
+					class="min-w-0 text-sm font-semibold text-[var(--color-text-primary)]"
+				>
 					{{ formatMessage(messages.masterSwitch) }}
 				</label>
 				<Toggle
@@ -859,10 +865,10 @@ onMounted(async () => {
 		<section v-if="selectedId === 'all'" class="ai-provider-overview">
 			<Admonition type="info">
 				<div class="flex flex-col gap-2">
-					<strong class="text-contrast">
+					<strong class="text-[var(--color-text-primary)]">
 						{{ formatMessage(messages.lookingForTranslation) }}
 					</strong>
-					<span class="text-sm text-secondary">
+					<span class="text-sm text-[var(--color-text-tertiary)]">
 						{{ formatMessage(messages.lookingForTranslationDescription) }}
 					</span>
 					<div>
@@ -901,7 +907,7 @@ onMounted(async () => {
 							</span>
 						</button>
 						<div
-							class="mt-auto flex min-h-11 items-center justify-between gap-3 bg-transparent px-4 text-xs font-semibold text-secondary"
+							class="mt-auto flex min-h-11 items-center justify-between gap-3 bg-transparent px-4 text-xs font-semibold text-[var(--color-text-tertiary)]"
 						>
 							<span>
 								<span class="capitalize">{{ definition.protocol }}</span>
@@ -951,7 +957,7 @@ onMounted(async () => {
 							</span>
 						</button>
 						<div
-							class="mt-auto flex min-h-11 items-center justify-between gap-3 bg-transparent px-4 text-xs font-semibold text-secondary"
+							class="mt-auto flex min-h-11 items-center justify-between gap-3 bg-transparent px-4 text-xs font-semibold text-[var(--color-text-tertiary)]"
 						>
 							<span>
 								<span class="capitalize">{{ definition.protocol }}</span>
@@ -998,7 +1004,7 @@ onMounted(async () => {
 							</span>
 						</button>
 						<div
-							class="mt-auto flex min-h-11 items-center justify-between gap-3 bg-transparent px-4 text-xs font-semibold text-secondary"
+							class="mt-auto flex min-h-11 items-center justify-between gap-3 bg-transparent px-4 text-xs font-semibold text-[var(--color-text-tertiary)]"
 						>
 							<span>
 								<span class="capitalize">{{ definition.protocol }}</span>
@@ -1023,15 +1029,17 @@ onMounted(async () => {
 				<div class="flex min-w-0 items-center gap-3">
 					<AIIcon kind="provider-avatar" :value="selectedDefinition.id" :size="40" />
 					<div class="min-w-0">
-						<h3 class="m-0 truncate text-base font-semibold text-contrast">
+						<h3 class="m-0 truncate text-base font-semibold text-[var(--color-text-primary)]">
 							{{ selectedDefinition.name }}
 						</h3>
-						<p class="m-0 mt-0.5 text-xs text-secondary">
+						<p class="m-0 mt-0.5 text-xs text-[var(--color-text-tertiary)]">
 							{{ selectedDefinition.protocol }} · {{ selectedDefinition.id }}
 						</p>
 					</div>
 				</div>
-				<div class="flex shrink-0 items-center gap-2 text-sm font-semibold text-secondary">
+				<div
+					class="flex shrink-0 items-center gap-2 text-sm font-semibold text-[var(--color-text-tertiary)]"
+				>
 					<Button v-if="selectedDefinition.sponsored" type="quiet" @click="openSponsoredWebsite">
 						<ExternalIcon />{{ formatMessage(messages.visitWebsite) }}
 					</Button>
@@ -1055,7 +1063,7 @@ onMounted(async () => {
 				>
 					<label
 						v-if="!['bedrock', 'vertexai'].includes(selectedDefinition.id)"
-						class="flex flex-col gap-1.5 text-sm font-semibold text-contrast lg:col-span-2"
+						class="flex flex-col gap-1.5 text-sm font-semibold text-[var(--color-text-primary)] lg:col-span-2"
 					>
 						{{ formatMessage(messages.providerEndpoint) }}
 						<StyledInput v-model="selectedConfig.endpoint" type="url" wrapper-class="w-full" />
@@ -1063,7 +1071,7 @@ onMounted(async () => {
 					<label
 						v-for="field in selectedDefinition.required_settings"
 						:key="field"
-						class="flex flex-col gap-1.5 text-sm font-semibold text-contrast"
+						class="flex flex-col gap-1.5 text-sm font-semibold text-[var(--color-text-primary)]"
 					>
 						{{ fieldName(field) }}
 						<StyledInput v-model="selectedConfig.settings[field]" wrapper-class="w-full" />
@@ -1080,12 +1088,16 @@ onMounted(async () => {
 					class="ai-provider-credentials"
 				>
 					<div v-if="selectedDefinition.id === 'bedrock'" class="flex flex-col gap-3">
-						<div class="flex flex-col gap-1.5 text-sm font-semibold text-contrast">
+						<div
+							class="flex flex-col gap-1.5 text-sm font-semibold text-[var(--color-text-primary)]"
+						>
 							{{ formatMessage(messages.bedrockAuthentication) }}
 							<Tabs v-model:value="bedrockAuthMode" :tabs="bedrockAuthTabs" />
 						</div>
 						<template v-if="bedrockAuthMode === 'api-key'">
-							<label class="flex flex-col gap-1.5 text-sm font-semibold text-contrast">
+							<label
+								class="flex flex-col gap-1.5 text-sm font-semibold text-[var(--color-text-primary)]"
+							>
 								{{ formatMessage(messages.apiKey) }}
 								<StyledInput
 									v-model="apiKey"
@@ -1095,7 +1107,10 @@ onMounted(async () => {
 									wrapper-class="w-full"
 								/>
 							</label>
-							<p v-if="selectedConfig.has_api_key" class="m-0 text-xs text-secondary">
+							<p
+								v-if="selectedConfig.has_api_key"
+								class="m-0 text-xs text-[var(--color-text-tertiary)]"
+							>
 								{{ formatMessage(messages.credentialConfigured) }}
 							</p>
 							<div class="flex flex-wrap gap-2">
@@ -1117,7 +1132,7 @@ onMounted(async () => {
 							<label
 								v-for="field in bedrockCredentialFields"
 								:key="field.name"
-								class="flex flex-col gap-1.5 text-sm font-semibold text-contrast"
+								class="flex flex-col gap-1.5 text-sm font-semibold text-[var(--color-text-primary)]"
 							>
 								{{ field.label }}
 								<StyledInput
@@ -1129,7 +1144,7 @@ onMounted(async () => {
 								/>
 								<span
 									v-if="credentialConfigured(field.name)"
-									class="font-normal text-xs text-secondary"
+									class="font-normal text-xs text-[var(--color-text-tertiary)]"
 								>
 									{{ formatMessage(messages.credentialConfigured) }}
 								</span>
@@ -1159,7 +1174,9 @@ onMounted(async () => {
 					</div>
 
 					<div v-else-if="selectedDefinition.id === 'vertexai'" class="flex flex-col gap-2">
-						<label class="flex flex-col gap-1.5 text-sm font-semibold text-contrast">
+						<label
+							class="flex flex-col gap-1.5 text-sm font-semibold text-[var(--color-text-primary)]"
+						>
 							{{ formatMessage(messages.vertexServiceAccount) }}
 							<StyledInput
 								v-model="credentialValues['vertex-service-account']"
@@ -1168,12 +1185,12 @@ onMounted(async () => {
 								autocomplete="off"
 								wrapper-class="w-full"
 							/>
-							<span class="font-normal text-xs text-secondary">
+							<span class="font-normal text-xs text-[var(--color-text-tertiary)]">
 								{{ formatMessage(messages.vertexServiceAccountDescription) }}
 							</span>
 							<span
 								v-if="credentialConfigured('vertex-service-account')"
-								class="font-normal text-xs text-secondary"
+								class="font-normal text-xs text-[var(--color-text-tertiary)]"
 							>
 								{{ formatMessage(messages.credentialConfigured) }}
 							</span>
@@ -1199,7 +1216,9 @@ onMounted(async () => {
 					</div>
 
 					<div v-else-if="selectedDefinition.auth_type === 'apiKey'" class="flex flex-col gap-2">
-						<label class="flex flex-col gap-1.5 text-sm font-semibold text-contrast">
+						<label
+							class="flex flex-col gap-1.5 text-sm font-semibold text-[var(--color-text-primary)]"
+						>
 							{{ formatMessage(messages.apiKey) }}
 							<StyledInput
 								v-model="apiKey"
@@ -1209,7 +1228,7 @@ onMounted(async () => {
 								wrapper-class="w-full"
 							/>
 						</label>
-						<p class="m-0 text-xs text-secondary">
+						<p class="m-0 text-xs text-[var(--color-text-tertiary)]">
 							{{
 								formatMessage(
 									selectedConfig.has_api_key ? messages.apiKeyConfigured : messages.apiKeyOptional,
@@ -1260,10 +1279,12 @@ onMounted(async () => {
 						</div>
 						<div v-if="oauthInfo" class="oauth-code-row">
 							<div class="min-w-0 flex-1">
-								<p class="m-0 text-xs font-semibold text-secondary">
+								<p class="m-0 text-xs font-semibold text-[var(--color-text-tertiary)]">
 									{{ formatMessage(messages.oauthCode) }}
 								</p>
-								<p class="m-0 mt-1 font-mono text-lg font-semibold text-contrast">
+								<p
+									class="m-0 mt-1 font-mono text-lg font-semibold text-[var(--color-text-primary)]"
+								>
 									{{ oauthInfo.user_code }}
 								</p>
 							</div>
@@ -1292,7 +1313,7 @@ onMounted(async () => {
 						</div>
 						<p
 							v-if="oauthStatus === 'pending' || oauthStatus === 'slow_down'"
-							class="m-0 text-sm text-secondary"
+							class="m-0 text-sm text-[var(--color-text-tertiary)]"
 						>
 							{{ formatMessage(messages.oauthPending) }}
 						</p>
@@ -1307,7 +1328,7 @@ onMounted(async () => {
 
 				<div class="ai-provider-models-section">
 					<div class="flex flex-wrap items-center justify-between gap-2">
-						<h4 class="m-0 text-sm font-semibold text-contrast">
+						<h4 class="m-0 text-sm font-semibold text-[var(--color-text-primary)]">
 							{{ formatMessage(messages.models) }}
 						</h4>
 						<div class="ai-model-actions">
@@ -1333,10 +1354,10 @@ onMounted(async () => {
 						<div v-for="model in filteredModels" :key="model.id" class="ai-model-row">
 							<AIIcon kind="model" :value="model.id" :size="32" />
 							<div class="min-w-0 flex-1">
-								<p class="m-0 truncate text-sm font-semibold text-contrast">
+								<p class="m-0 truncate text-sm font-semibold text-[var(--color-text-primary)]">
 									{{ model.name || model.id }}
 								</p>
-								<p class="m-0 mt-0.5 truncate text-xs text-secondary">
+								<p class="m-0 mt-0.5 truncate text-xs text-[var(--color-text-tertiary)]">
 									{{ model.id }} · {{ model.source }}
 								</p>
 							</div>
@@ -1357,7 +1378,7 @@ onMounted(async () => {
 							/>
 						</div>
 					</div>
-					<p v-else class="m-0 text-sm text-secondary">
+					<p v-else class="m-0 text-sm text-[var(--color-text-tertiary)]">
 						{{
 							formatMessage(
 								selectedConfig.models.length ? messages.noMatchingModels : messages.noModels,
@@ -1382,7 +1403,9 @@ onMounted(async () => {
 				</div>
 
 				<div class="ai-provider-actions">
-					<label class="flex min-w-48 flex-1 flex-col gap-1.5 text-sm font-semibold text-contrast">
+					<label
+						class="flex min-w-48 flex-1 flex-col gap-1.5 text-sm font-semibold text-[var(--color-text-primary)]"
+					>
 						{{ formatMessage(messages.testModel) }}
 						<Combobox v-model="selectedTestModel" :options="modelOptions" />
 					</label>
@@ -1398,7 +1421,7 @@ onMounted(async () => {
 						<PlugIcon />{{ formatMessage(busy ? messages.testing : messages.test) }}
 					</Button>
 				</div>
-				<p v-if="status" class="m-0 text-sm text-secondary">{{ status }}</p>
+				<p v-if="status" class="m-0 text-sm text-[var(--color-text-tertiary)]">{{ status }}</p>
 			</div>
 		</section>
 	</div>

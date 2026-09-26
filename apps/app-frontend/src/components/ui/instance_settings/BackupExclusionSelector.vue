@@ -81,7 +81,7 @@ function removeExclusion(path: string) {
 
 <template>
 	<div class="flex flex-col gap-3">
-		<p v-if="modelValue.length === 0" class="m-0 text-sm text-secondary">
+		<p v-if="modelValue.length === 0" class="m-0 text-sm text-[var(--color-text-tertiary)]">
 			{{ formatMessage(messages.empty) }}
 		</p>
 		<div
@@ -93,9 +93,12 @@ function removeExclusion(path: string) {
 				:key="exclusion.path"
 				class="flex min-h-11 items-center gap-3 px-3 py-2"
 			>
-				<FolderIcon v-if="exclusion.kind === 'directory'" class="size-5 shrink-0 text-secondary" />
-				<FileIcon v-else class="size-5 shrink-0 text-secondary" />
-				<code class="min-w-0 flex-1 truncate text-sm text-contrast">{{
+				<FolderIcon
+					v-if="exclusion.kind === 'directory'"
+					class="size-5 shrink-0 text-[var(--color-text-tertiary)]"
+				/>
+				<FileIcon v-else class="size-5 shrink-0 text-[var(--color-text-tertiary)]" />
+				<code class="min-w-0 flex-1 truncate text-sm text-[var(--color-text-primary)]">{{
 					formatBackupExclusionPath(exclusion)
 				}}</code>
 				<Button

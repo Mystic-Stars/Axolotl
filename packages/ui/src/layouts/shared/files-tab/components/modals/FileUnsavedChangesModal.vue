@@ -1,6 +1,6 @@
 <template>
 	<NewModal ref="modal" fade="warning" :header="formatMessage(messages.header)" max-width="500px">
-		<p class="m-0 text-secondary">
+		<p class="m-0 text-[var(--color-text-tertiary)]">
 			{{ formatMessage(messages.body) }}
 		</p>
 		<template #actions>

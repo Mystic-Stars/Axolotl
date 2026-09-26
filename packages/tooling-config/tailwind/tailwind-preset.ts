@@ -15,16 +15,6 @@ const config: Config = {
 					5: 'var(--surface-5)',
 				},
 
-				/// TODO: Clean up these aliases within codebase to use default, primary, tertiary.
-				// text-default
-				primary: 'var(--color-text-default)',
-
-				// text-primary
-				contrast: 'var(--color-text-primary)',
-
-				// text-tertiary
-				secondary: 'var(--color-text-tertiary)',
-
 				red: {
 					DEFAULT: 'var(--color-red)',
 					50: 'var(--color-red-50)',
@@ -124,7 +114,6 @@ const config: Config = {
 					green: 'var(--color-green-bg)',
 					blue: 'var(--color-blue-bg)',
 					purple: 'var(--color-purple-bg)',
-					raised: 'var(--surface-3)', // var(--color-raised-bg)
 				},
 				banners: {
 					error: {
@@ -168,7 +157,6 @@ const config: Config = {
 				},
 				tabUnderlineHovered: 'var(--tab-underline-hovered)',
 				button: {
-					bg: 'var(--color-button-bg)',
 					text: 'var(--color-button-text)',
 					bgHover: 'var(--color-button-bg-hover)',
 					textHover: 'var(--color-button-text-hover)',

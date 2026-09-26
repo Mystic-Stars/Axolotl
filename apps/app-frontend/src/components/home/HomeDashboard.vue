@@ -686,7 +686,7 @@ defineExpose({ openWidgetPicker, setLayout })
 				v-if="config.widgets.length === 0"
 				class="flex min-h-64 flex-col items-center justify-center gap-4 rounded-lg border border-dashed border-divider text-center"
 			>
-				<p class="m-0 text-secondary">{{ formatMessage(messages.empty) }}</p>
+				<p class="m-0 text-[var(--color-text-tertiary)]">{{ formatMessage(messages.empty) }}</p>
 				<Button @click="openWidgetPicker"><PlusIcon /> {{ formatMessage(messages.add) }}</Button>
 			</div>
 		</div>
@@ -756,11 +756,7 @@ defineExpose({ openWidgetPicker, setLayout })
 	box-sizing: border-box;
 	border: 1px solid transparent;
 	border-radius: var(--radius-lg);
-	background: color-mix(
-		in srgb,
-		var(--color-raised-bg) var(--home-widget-bg-opacity, 100%),
-		transparent
-	);
+	background: color-mix(in srgb, var(--surface-3) var(--home-widget-bg-opacity, 100%), transparent);
 	box-shadow: var(--shadow-card);
 	transition:
 		border-color 120ms ease,
@@ -796,7 +792,7 @@ defineExpose({ openWidgetPicker, setLayout })
 	padding: 0.125rem;
 	border: 1px solid var(--color-divider);
 	border-radius: var(--radius-lg);
-	background: var(--color-raised-bg);
+	background: var(--surface-3);
 	box-shadow: var(--shadow-button);
 	overflow: hidden;
 	opacity: 0.9;
@@ -873,7 +869,7 @@ defineExpose({ openWidgetPicker, setLayout })
 
 .home-widget-drag-handle:hover,
 .home-widget-drag-handle:focus-visible {
-	background: var(--color-button-bg);
+	background: var(--surface-4);
 	color: var(--color-text-primary);
 	outline: none;
 }

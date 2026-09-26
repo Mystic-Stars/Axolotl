@@ -50,13 +50,13 @@ const messages = defineMessages({
 	dialogDescription: {
 		id: 'app.headless-demo.dialog-description',
 		defaultMessage:
-			'This dialog content uses bg-surface-3, text-contrast, and border-surface-5. Overlay and focus ring stay readable in every theme.',
+			'This dialog content uses bg-surface-3, text-[var(--color-text-primary)], and border-surface-5. Overlay and focus ring stay readable in every theme.',
 	},
 	dialogClose: { id: 'app.headless-demo.dialog-close', defaultMessage: 'Close' },
 	tooltipTrigger: { id: 'app.headless-demo.tooltip-trigger', defaultMessage: 'Hover tooltip' },
 	tooltipContent: {
 		id: 'app.headless-demo.tooltip-content',
-		defaultMessage: 'Tooltip body mapped to surface-4 / text-contrast.',
+		defaultMessage: 'Tooltip body mapped to surface-4 / text-[var(--color-text-primary)].',
 	},
 	selectLabel: { id: 'app.headless-demo.select-label', defaultMessage: 'Loader' },
 	selectPlaceholder: {
@@ -79,13 +79,19 @@ const messages = defineMessages({
 <template>
 	<main class="flex w-full flex-col gap-6 p-6">
 		<header class="flex min-w-0 flex-col gap-1">
-			<h1 class="m-0 text-2xl font-bold text-contrast">{{ formatMessage(messages.title) }}</h1>
-			<p class="m-0 text-sm text-secondary">{{ formatMessage(messages.description) }}</p>
-			<p class="m-0 text-xs text-secondary">{{ formatMessage(messages.themeHint) }}</p>
+			<h1 class="m-0 text-2xl font-bold text-[var(--color-text-primary)]">
+				{{ formatMessage(messages.title) }}
+			</h1>
+			<p class="m-0 text-sm text-[var(--color-text-tertiary)]">
+				{{ formatMessage(messages.description) }}
+			</p>
+			<p class="m-0 text-xs text-[var(--color-text-tertiary)]">
+				{{ formatMessage(messages.themeHint) }}
+			</p>
 		</header>
 
 		<section class="flex flex-col gap-3" :aria-label="formatMessage(messages.surfacesHeading)">
-			<h2 class="m-0 text-base font-bold text-contrast">
+			<h2 class="m-0 text-base font-bold text-[var(--color-text-primary)]">
 				{{ formatMessage(messages.surfacesHeading) }}
 			</h2>
 			<div class="flex flex-wrap gap-2">
@@ -95,13 +101,15 @@ const messages = defineMessages({
 					class="flex h-16 min-w-24 flex-1 items-end rounded-[var(--radius-md)] border border-surface-5 p-2"
 					:class="surface.className"
 				>
-					<span class="font-mono text-xs text-primary">{{ surface.token }}</span>
+					<span class="font-mono text-xs text-[var(--color-text-default)]">{{
+						surface.token
+					}}</span>
 				</div>
 			</div>
 		</section>
 
 		<section class="flex flex-col gap-4" :aria-label="formatMessage(messages.controlsHeading)">
-			<h2 class="m-0 text-base font-bold text-contrast">
+			<h2 class="m-0 text-base font-bold text-[var(--color-text-primary)]">
 				{{ formatMessage(messages.controlsHeading) }}
 			</h2>
 
@@ -138,7 +146,7 @@ const messages = defineMessages({
 			</div>
 
 			<div class="flex flex-wrap items-end gap-4">
-				<label class="flex min-w-40 flex-col gap-1 text-sm text-secondary">
+				<label class="flex min-w-40 flex-col gap-1 text-sm text-[var(--color-text-tertiary)]">
 					<span>{{ formatMessage(messages.selectLabel) }}</span>
 					<HeadlessSelect
 						id="headless-demo-loader"
@@ -154,7 +162,9 @@ const messages = defineMessages({
 					/>
 				</label>
 
-				<label class="flex cursor-pointer items-center gap-2 text-sm text-contrast">
+				<label
+					class="flex cursor-pointer items-center gap-2 text-sm text-[var(--color-text-primary)]"
+				>
 					<CheckboxRoot v-model="acceptTerms" :class="headlessTokenClasses.checkboxRoot">
 						<CheckboxIndicator class="flex items-center justify-center">
 							<CheckIcon class="size-3.5" />

@@ -15,8 +15,12 @@
 					/>
 					<button
 						type="button"
-						class="flex min-w-0 appearance-none items-center gap-1.5 border-0 bg-transparent p-0 font-semibold hover:text-primary"
-						:class="sortField === 'name' ? 'text-contrast' : 'text-secondary'"
+						class="flex min-w-0 appearance-none items-center gap-1.5 border-0 bg-transparent p-0 font-semibold hover:text-[var(--color-text-default)]"
+						:class="
+							sortField === 'name'
+								? 'text-[var(--color-text-primary)]'
+								: 'text-[var(--color-text-tertiary)]'
+						"
 						@click="handleSort('name')"
 					>
 						<span class="min-w-0 truncate">{{ formatMessage(messages.name) }}</span>
@@ -35,8 +39,12 @@
 				<div class="ml-2 flex shrink-0 items-center gap-4">
 					<button
 						type="button"
-						class="hidden w-[92px] appearance-none items-center gap-1 border-0 bg-transparent p-0 text-left font-semibold hover:text-primary sm:flex"
-						:class="sortField === 'size' ? 'text-contrast' : 'text-secondary'"
+						class="hidden w-[92px] appearance-none items-center gap-1 border-0 bg-transparent p-0 text-left font-semibold hover:text-[var(--color-text-default)] sm:flex"
+						:class="
+							sortField === 'size'
+								? 'text-[var(--color-text-primary)]'
+								: 'text-[var(--color-text-tertiary)]'
+						"
 						@click="handleSort('size')"
 					>
 						<span>{{ formatMessage(messages.size) }}</span>
@@ -53,8 +61,12 @@
 					</button>
 					<button
 						type="button"
-						class="hidden w-[132px] appearance-none items-center gap-1 border-0 bg-transparent p-0 text-left font-semibold hover:text-primary sm:flex"
-						:class="sortField === 'modified' ? 'text-contrast' : 'text-secondary'"
+						class="hidden w-[132px] appearance-none items-center gap-1 border-0 bg-transparent p-0 text-left font-semibold hover:text-[var(--color-text-default)] sm:flex"
+						:class="
+							sortField === 'modified'
+								? 'text-[var(--color-text-primary)]'
+								: 'text-[var(--color-text-tertiary)]'
+						"
 						@click="handleSort('modified')"
 					>
 						<span>{{ formatMessage(messages.modified) }}</span>
@@ -81,23 +93,31 @@
 				@keydown="(event) => event.key === 'Enter' && navigateTo(parentPath)"
 			>
 				<span class="size-5 shrink-0" aria-hidden="true" />
-				<div class="flex size-4 shrink-0 items-center justify-center text-secondary">
-					<UndoIcon class="size-4 group-hover:text-contrast group-focus:text-contrast" />
+				<div
+					class="flex size-4 shrink-0 items-center justify-center text-[var(--color-text-tertiary)]"
+				>
+					<UndoIcon
+						class="size-4 group-hover:text-[var(--color-text-primary)] group-focus:text-[var(--color-text-primary)]"
+					/>
 				</div>
 				<span
-					class="min-w-0 flex-1 truncate text-sm font-medium text-primary group-hover:text-contrast group-focus:text-contrast"
+					class="min-w-0 flex-1 truncate text-sm font-medium text-[var(--color-text-default)] group-hover:text-[var(--color-text-primary)] group-focus:text-[var(--color-text-primary)]"
 				>
 					{{ formatMessage(messages.parentFolder) }}
 				</span>
 				<div class="ml-2 flex shrink-0 items-center gap-4">
-					<span class="hidden w-[92px] text-left text-sm text-secondary sm:block" />
-					<span class="hidden w-[132px] text-left text-sm text-secondary sm:block" />
+					<span
+						class="hidden w-[92px] text-left text-sm text-[var(--color-text-tertiary)] sm:block"
+					/>
+					<span
+						class="hidden w-[132px] text-left text-sm text-[var(--color-text-tertiary)] sm:block"
+					/>
 					<span class="size-4 shrink-0" aria-hidden="true" />
 				</div>
 			</div>
 			<div
 				v-if="entries.length === 0"
-				class="flex items-center gap-2 bg-surface-2 px-3 py-2 text-sm text-secondary"
+				class="flex items-center gap-2 bg-surface-2 px-3 py-2 text-sm text-[var(--color-text-tertiary)]"
 			>
 				<FileIcon class="size-4 shrink-0" />
 				<span>{{ formatMessage(messages.emptyFolderTitle) }}</span>
@@ -126,28 +146,34 @@
 					@click.stop
 					@update:model-value="toggleEntry(entry, $event)"
 				/>
-				<div class="flex size-4 shrink-0 items-center justify-center text-secondary">
+				<div
+					class="flex size-4 shrink-0 items-center justify-center text-[var(--color-text-tertiary)]"
+				>
 					<component
 						:is="entry.icon"
-						class="size-4 group-hover:text-contrast group-focus:text-contrast"
+						class="size-4 group-hover:text-[var(--color-text-primary)] group-focus:text-[var(--color-text-primary)]"
 					/>
 				</div>
 				<span
 					:ref="(element) => setEntryNameRef(entry.path, element)"
 					v-tooltip="truncatedTooltip(entryNameRefs[entry.path], entry.name)"
-					class="min-w-0 flex-1 truncate text-sm font-medium text-primary group-hover:text-contrast group-focus:text-contrast"
+					class="min-w-0 flex-1 truncate text-sm font-medium text-[var(--color-text-default)] group-hover:text-[var(--color-text-primary)] group-focus:text-[var(--color-text-primary)]"
 				>
 					{{ entry.name }}
 				</span>
 				<div class="ml-2 flex shrink-0 items-center gap-4">
-					<span class="hidden w-[92px] truncate text-left text-sm text-secondary sm:block">
+					<span
+						class="hidden w-[92px] truncate text-left text-sm text-[var(--color-text-tertiary)] sm:block"
+					>
 						{{ formatSize(entry) }}
 					</span>
-					<span class="hidden w-[132px] truncate text-left text-sm text-secondary sm:block">
+					<span
+						class="hidden w-[132px] truncate text-left text-sm text-[var(--color-text-tertiary)] sm:block"
+					>
 						{{ formatModified(entry) }}
 					</span>
 					<ChevronRightIcon
-						class="size-4 shrink-0 text-secondary group-hover:text-contrast group-focus:text-contrast"
+						class="size-4 shrink-0 text-[var(--color-text-tertiary)] group-hover:text-[var(--color-text-primary)] group-focus:text-[var(--color-text-primary)]"
 						:class="{ invisible: entry.type !== 'directory' }"
 						aria-hidden="true"
 					/>

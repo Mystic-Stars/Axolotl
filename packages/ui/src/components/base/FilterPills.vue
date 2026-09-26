@@ -1,6 +1,6 @@
 <template>
 	<div class="flex flex-wrap items-center gap-1.5">
-		<FilterIcon class="size-5 text-secondary" />
+		<FilterIcon class="size-5 text-[var(--color-text-tertiary)]" />
 		<button
 			:class="pillClass(modelValue.length === 0)"
 			:aria-pressed="modelValue.length === 0"
@@ -39,7 +39,7 @@ function pillClass(active: boolean) {
 		'cursor-pointer rounded-full border border-solid px-3 py-1.5 text-base font-semibold leading-5 transition-all duration-100 active:scale-[0.97]',
 		active
 			? 'border-brand bg-brand-highlight text-brand'
-			: 'border-surface-5 bg-surface-4 text-primary hover:bg-surface-5',
+			: 'border-surface-5 bg-surface-4 text-[var(--color-text-default)] hover:bg-surface-5',
 	]
 }
 

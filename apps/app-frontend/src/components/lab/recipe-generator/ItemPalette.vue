@@ -194,12 +194,15 @@ function startPointerDrag(event: PointerEvent, entry: PaletteEntry, startDrag: S
 				clearable
 				class="w-full shrink-0"
 			/>
-			<div v-if="loading" class="flex min-h-24 items-center justify-center text-sm text-secondary">
+			<div
+				v-if="loading"
+				class="flex min-h-24 items-center justify-center text-sm text-[var(--color-text-tertiary)]"
+			>
 				{{ formatMessage(messages.loading) }}
 			</div>
 			<div
 				v-else-if="!visibleEntries.length"
-				class="flex min-h-24 items-center justify-center px-4 text-sm text-secondary"
+				class="flex min-h-24 items-center justify-center px-4 text-sm text-[var(--color-text-tertiary)]"
 			>
 				{{ formatMessage(messages.empty) }}
 			</div>

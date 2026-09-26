@@ -235,8 +235,8 @@ defineExpose({ formatDocument })
 				class="rounded border-0 px-3 py-1 text-xs font-semibold capitalize"
 				:class="
 					mode === candidate
-						? 'bg-brand text-contrast'
-						: 'bg-transparent text-secondary hover:bg-surface-3'
+						? 'bg-brand text-[var(--color-text-primary)]'
+						: 'bg-transparent text-[var(--color-text-tertiary)] hover:bg-surface-3'
 				"
 				@click="setMode(candidate)"
 			>

@@ -11,7 +11,7 @@
 			:style="previewControlsPositionStyle"
 		>
 			<span
-				class="flex items-center justify-center gap-1.5 text-base font-medium leading-6 text-primary"
+				class="flex items-center justify-center gap-1.5 text-base font-medium leading-6 text-[var(--color-text-default)]"
 			>
 				<UnfoldHorizontalIcon class="size-5 shrink-0" />
 				{{ formatMessage(messages.dragToRotate) }}
@@ -99,7 +99,7 @@
 		</TresCanvas>
 
 		<div v-if="showLoading" class="absolute inset-0 flex items-center justify-center">
-			<div class="text-primary">Loading...</div>
+			<div class="text-[var(--color-text-default)]">Loading...</div>
 		</div>
 	</div>
 </template>

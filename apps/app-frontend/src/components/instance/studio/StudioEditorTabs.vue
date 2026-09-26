@@ -52,8 +52,8 @@ function handleMouseDown(event: MouseEvent, path: string) {
 			role="tab"
 			tabindex="0"
 			:aria-selected="document.path === activePath"
-			class="flex h-full max-w-[14rem] min-w-[8rem] shrink-0 select-none items-center gap-2 border-0 border-r border-solid border-surface-4 px-3 text-left text-sm text-secondary hover:bg-surface-2"
-			:class="{ 'bg-surface-2 !text-contrast': document.path === activePath }"
+			class="flex h-full max-w-[14rem] min-w-[8rem] shrink-0 select-none items-center gap-2 border-0 border-r border-solid border-surface-4 px-3 text-left text-sm text-[var(--color-text-tertiary)] hover:bg-surface-2"
+			:class="{ 'bg-surface-2 !text-[var(--color-text-primary)]': document.path === activePath }"
 			@click="emit('activate', document.path)"
 			@mousedown="handleMouseDown($event, document.path)"
 			@auxclick="handleAuxClick($event, document.path)"
@@ -61,7 +61,7 @@ function handleMouseDown(event: MouseEvent, path: string) {
 			@keydown.space.prevent="emit('activate', document.path)"
 		>
 			<XIcon v-if="document.kind === 'unsupported'" class="size-4 shrink-0 text-red" />
-			<FileCodeIcon v-else class="size-4 shrink-0 text-secondary" />
+			<FileCodeIcon v-else class="size-4 shrink-0 text-[var(--color-text-tertiary)]" />
 			<span class="min-w-0 flex-1 truncate">{{ document.name }}</span>
 			<span
 				v-if="document.content !== document.savedContent"
@@ -70,7 +70,7 @@ function handleMouseDown(event: MouseEvent, path: string) {
 			<button
 				type="button"
 				:aria-label="formatMessage(commonMessages.closeButton)"
-				class="flex size-5 shrink-0 cursor-pointer items-center justify-center rounded border-0 bg-transparent p-0 text-secondary hover:bg-surface-4 hover:text-contrast"
+				class="flex size-5 shrink-0 cursor-pointer items-center justify-center rounded border-0 bg-transparent p-0 text-[var(--color-text-tertiary)] hover:bg-surface-4 hover:text-[var(--color-text-primary)]"
 				@pointerdown.stop
 				@click.stop.prevent="emit('close', document.path)"
 			>

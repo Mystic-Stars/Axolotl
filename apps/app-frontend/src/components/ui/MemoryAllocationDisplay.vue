@@ -118,7 +118,7 @@ onBeforeUnmount(() => {
 
 <template>
 	<div class="mt-2 min-w-0">
-		<div v-if="!status" class="h-10 animate-pulse rounded-lg bg-button-bg" />
+		<div v-if="!status" class="h-10 animate-pulse rounded-lg bg-surface-4" />
 		<template v-else>
 			<div
 				class="flex h-2 w-full overflow-hidden rounded-full bg-bg-gray"
@@ -140,15 +140,19 @@ onBeforeUnmount(() => {
 			<div class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs">
 				<span class="flex min-w-0 items-center gap-1.5">
 					<span class="size-2 shrink-0 rounded-full bg-gray" />
-					<span class="text-secondary">{{ formatMessage(messages.used) }}</span>
-					<span class="whitespace-nowrap font-semibold tabular-nums text-contrast">
+					<span class="text-[var(--color-text-tertiary)]">{{ formatMessage(messages.used) }}</span>
+					<span
+						class="whitespace-nowrap font-semibold tabular-nums text-[var(--color-text-primary)]"
+					>
 						{{ formatGiB(usedGiB) }} / {{ formatGiB(totalGiB) }}
 					</span>
 				</span>
 				<span class="flex min-w-0 items-center gap-1.5">
 					<span class="size-2 shrink-0 rounded-full bg-brand" />
-					<span class="text-secondary">{{ formatMessage(messages.game) }}</span>
-					<span class="whitespace-nowrap font-semibold tabular-nums text-contrast">
+					<span class="text-[var(--color-text-tertiary)]">{{ formatMessage(messages.game) }}</span>
+					<span
+						class="whitespace-nowrap font-semibold tabular-nums text-[var(--color-text-primary)]"
+					>
 						{{ formatGiB(allocatedGiB) }}
 						<span v-if="allocationLimited"
 							>({{ formatMessage(messages.available, { memory: formatGiB(availableGiB) }) }})</span
@@ -157,8 +161,12 @@ onBeforeUnmount(() => {
 				</span>
 				<span class="flex min-w-0 items-center gap-1.5">
 					<span class="size-2 shrink-0 rounded-full bg-bg-gray ring-1 ring-inset ring-divider" />
-					<span class="text-secondary">{{ formatMessage(messages.remaining) }}</span>
-					<span class="whitespace-nowrap font-semibold tabular-nums text-contrast">
+					<span class="text-[var(--color-text-tertiary)]">{{
+						formatMessage(messages.remaining)
+					}}</span>
+					<span
+						class="whitespace-nowrap font-semibold tabular-nums text-[var(--color-text-primary)]"
+					>
 						{{ formatGiB(remainingGiB) }}
 					</span>
 				</span>
@@ -167,7 +175,7 @@ onBeforeUnmount(() => {
 				v-if="showOptimizeButton"
 				class="mt-3 flex flex-col items-start justify-between gap-3 border-t border-divider pt-3 sm:flex-row sm:items-center"
 			>
-				<p class="m-0 min-w-0 flex-1 text-xs leading-tight text-secondary">
+				<p class="m-0 min-w-0 flex-1 text-xs leading-tight text-[var(--color-text-tertiary)]">
 					{{
 						formatMessage(
 							optimizationSupported ? messages.optimizationDescription : messages.unsupported,

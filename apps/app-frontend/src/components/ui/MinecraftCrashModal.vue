@@ -1286,11 +1286,13 @@ defineExpose({
 		<div class="crash-modal-shell">
 			<section class="crash-modal-sidebar flex min-h-0 flex-col gap-4 overflow-y-auto p-6">
 				<div class="flex flex-col gap-2">
-					<h2 class="m-0 pr-8 text-xl font-semibold text-contrast">{{ title }}</h2>
+					<h2 class="m-0 pr-8 text-xl font-semibold text-[var(--color-text-primary)]">
+						{{ title }}
+					</h2>
 					<p class="m-0 font-semibold text-red">{{ summary }}</p>
-					<p class="m-0 text-sm text-secondary">{{ body }}</p>
-					<p class="m-0 text-sm text-secondary">{{ hint }}</p>
-					<p v-if="showSupportHint" class="m-0 text-sm text-secondary">
+					<p class="m-0 text-sm text-[var(--color-text-tertiary)]">{{ body }}</p>
+					<p class="m-0 text-sm text-[var(--color-text-tertiary)]">{{ hint }}</p>
+					<p v-if="showSupportHint" class="m-0 text-sm text-[var(--color-text-tertiary)]">
 						{{ formatMessage(messages.supportHint) }}
 					</p>
 				</div>
@@ -1299,10 +1301,13 @@ defineExpose({
 					v-if="isLogShareAutoAnalysis"
 					class="flex min-h-32 flex-col gap-2 rounded-lg bg-surface-2 p-3"
 				>
-					<span class="text-sm font-semibold text-contrast">
+					<span class="text-sm font-semibold text-[var(--color-text-primary)]">
 						{{ formatMessage(messages.logShareSummaryTitle) }}
 					</span>
-					<p v-if="logShareSummaryState === 'loading'" class="m-0 text-sm text-secondary">
+					<p
+						v-if="logShareSummaryState === 'loading'"
+						class="m-0 text-sm text-[var(--color-text-tertiary)]"
+					>
 						{{ formatMessage(messages.logShareSummaryLoading) }}
 					</p>
 					<div
@@ -1310,10 +1315,16 @@ defineExpose({
 						class="markdown-body text-sm"
 						v-html="renderedLogShareSummary"
 					/>
-					<p v-else-if="logShareSummaryState === 'empty'" class="m-0 text-sm text-secondary">
+					<p
+						v-else-if="logShareSummaryState === 'empty'"
+						class="m-0 text-sm text-[var(--color-text-tertiary)]"
+					>
 						{{ formatMessage(messages.logShareSummaryEmpty) }}
 					</p>
-					<p v-else-if="logShareSummaryState === 'unavailable'" class="m-0 text-sm text-secondary">
+					<p
+						v-else-if="logShareSummaryState === 'unavailable'"
+						class="m-0 text-sm text-[var(--color-text-tertiary)]"
+					>
 						{{ formatMessage(messages.logShareSummaryUnavailable) }}
 					</p>
 					<p v-else-if="logShareSummaryState === 'error'" class="m-0 text-sm text-red">
@@ -1322,12 +1333,15 @@ defineExpose({
 				</div>
 
 				<div v-if="shareUrl" class="flex items-center gap-2 rounded-lg bg-surface-2 p-3">
-					<ExternalIcon class="size-4 shrink-0 text-secondary" aria-hidden="true" />
+					<ExternalIcon
+						class="size-4 shrink-0 text-[var(--color-text-tertiary)]"
+						aria-hidden="true"
+					/>
 					<a
 						:href="shareUrl"
 						target="_blank"
 						rel="noopener noreferrer"
-						class="min-w-0 flex-1 truncate text-sm text-primary underline"
+						class="min-w-0 flex-1 truncate text-sm text-[var(--color-text-default)] underline"
 					>
 						{{ shareUrl }}
 					</a>
@@ -1396,20 +1410,22 @@ defineExpose({
 					v-if="activeTab === AI_TAB"
 					class="crash-modal-ai-output min-h-0 flex-1 overflow-y-auto p-5"
 				>
-					<p v-if="aiStatus" class="m-0 mb-3 text-sm text-secondary">{{ aiStatus }}</p>
+					<p v-if="aiStatus" class="m-0 mb-3 text-sm text-[var(--color-text-tertiary)]">
+						{{ aiStatus }}
+					</p>
 					<Card v-if="logAgentInsight.insight" class="flex flex-col gap-4 text-sm">
 						<section class="flex flex-col gap-2">
 							<div class="flex items-center justify-between gap-2 text-xs font-semibold uppercase">
-								<span class="flex items-center gap-1.5 text-secondary">
+								<span class="flex items-center gap-1.5 text-[var(--color-text-tertiary)]">
 									<ScanEyeIcon class="size-3.5" aria-hidden="true" />
 									{{ formatMessage(messages.logAgentRootCause) }}
 								</span>
 								<div
 									v-if="logAgentInsight.insight.confidence !== null"
-									class="flex shrink-0 items-center gap-2 font-mono text-xs text-secondary"
+									class="flex shrink-0 items-center gap-2 font-mono text-xs text-[var(--color-text-tertiary)]"
 								>
 									<span>{{ formatMessage(messages.logAgentConfidence) }}</span>
-									<span class="font-semibold text-contrast">
+									<span class="font-semibold text-[var(--color-text-primary)]">
 										{{
 											Math.round(
 												Math.max(0, Math.min(1, logAgentInsight.insight.confidence)) * 100,
@@ -1425,7 +1441,7 @@ defineExpose({
 									</span>
 								</div>
 							</div>
-							<p class="m-0 text-base font-medium leading-snug text-contrast">
+							<p class="m-0 text-base font-medium leading-snug text-[var(--color-text-primary)]">
 								{{ logAgentInsight.insight.rootCause }}
 							</p>
 						</section>
@@ -1434,11 +1450,13 @@ defineExpose({
 							v-if="logAgentInsight.insight.steps.length"
 							class="flex flex-col gap-2 rounded-xl border border-solid border-surface-4 bg-surface-2 p-3"
 						>
-							<h3 class="m-0 flex items-center gap-1.5 text-xs font-semibold text-secondary">
+							<h3
+								class="m-0 flex items-center gap-1.5 text-xs font-semibold text-[var(--color-text-tertiary)]"
+							>
 								<ListOrderedIcon class="size-3.5" aria-hidden="true" />
 								{{ formatMessage(messages.logAgentSteps) }}
 							</h3>
-							<ol class="m-0 list-decimal space-y-1.5 pl-5 text-secondary">
+							<ol class="m-0 list-decimal space-y-1.5 pl-5 text-[var(--color-text-tertiary)]">
 								<li
 									v-for="step in logAgentInsight.insight.steps"
 									:key="step"
@@ -1453,7 +1471,9 @@ defineExpose({
 							v-if="logAgentInsight.insight.evidence.length"
 							class="flex flex-col gap-2 rounded-xl border border-solid border-surface-4 bg-surface-2 p-3"
 						>
-							<h3 class="m-0 flex items-center gap-1.5 text-xs font-semibold text-secondary">
+							<h3
+								class="m-0 flex items-center gap-1.5 text-xs font-semibold text-[var(--color-text-tertiary)]"
+							>
 								<LinkIcon class="size-3.5" aria-hidden="true" />
 								{{ formatMessage(messages.logAgentEvidence) }}
 							</h3>
@@ -1461,7 +1481,7 @@ defineExpose({
 								<span
 									v-for="evidence in logAgentInsight.insight.evidence"
 									:key="evidence"
-									class="break-all rounded border border-surface-5 bg-surface-3 px-2 py-1 font-mono text-xs text-secondary"
+									class="break-all rounded border border-surface-5 bg-surface-3 px-2 py-1 font-mono text-xs text-[var(--color-text-tertiary)]"
 								>
 									{{ evidence }}
 								</span>
@@ -1476,7 +1496,7 @@ defineExpose({
 				</div>
 				<div
 					v-else-if="crashLogsLoading"
-					class="flex min-h-0 flex-1 items-start p-5 text-sm text-secondary"
+					class="flex min-h-0 flex-1 items-start p-5 text-sm text-[var(--color-text-tertiary)]"
 				>
 					{{ formatMessage(messages.logFilesLoading) }}
 				</div>
@@ -1488,13 +1508,13 @@ defineExpose({
 				</div>
 				<div
 					v-else-if="crashLogFiles.length === 0"
-					class="flex min-h-0 flex-1 items-start p-5 text-sm text-secondary"
+					class="flex min-h-0 flex-1 items-start p-5 text-sm text-[var(--color-text-tertiary)]"
 				>
 					{{ formatMessage(messages.logFilesEmpty) }}
 				</div>
 				<div
 					v-else-if="selectedLogLoading"
-					class="flex min-h-0 flex-1 items-start p-5 text-sm text-secondary"
+					class="flex min-h-0 flex-1 items-start p-5 text-sm text-[var(--color-text-tertiary)]"
 				>
 					{{ formatMessage(messages.logFileLoading) }}
 				</div>
@@ -1506,7 +1526,7 @@ defineExpose({
 				</div>
 				<div
 					v-else-if="!selectedLogContent"
-					class="flex min-h-0 flex-1 items-start p-5 text-sm text-secondary"
+					class="flex min-h-0 flex-1 items-start p-5 text-sm text-[var(--color-text-tertiary)]"
 				>
 					{{ formatMessage(messages.logFilesEmpty) }}
 				</div>
@@ -1545,7 +1565,7 @@ defineExpose({
 	border: 0;
 	border-bottom: 2px solid transparent;
 	background: transparent;
-	color: var(--color-text-secondary);
+	color: var(--color-text-tertiary);
 	font: inherit;
 	cursor: pointer;
 }

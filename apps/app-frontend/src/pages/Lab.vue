@@ -212,8 +212,10 @@ function favoriteFilterLabel(value: LabFavoriteFilter) {
 	<main class="flex w-full flex-col gap-6 p-6">
 		<header class="flex min-w-0 items-start justify-between gap-4">
 			<div class="min-w-0">
-				<h1 class="m-0 text-2xl font-bold text-contrast">{{ formatMessage(messages.title) }}</h1>
-				<p class="m-0 mt-1 text-sm text-secondary">
+				<h1 class="m-0 text-2xl font-bold text-[var(--color-text-primary)]">
+					{{ formatMessage(messages.title) }}
+				</h1>
+				<p class="m-0 mt-1 text-sm text-[var(--color-text-tertiary)]">
 					{{
 						formatMessage(labTools.length === 1 ? messages.toolCount : messages.toolCountPlural, {
 							count: labTools.length,
@@ -259,7 +261,7 @@ function favoriteFilterLabel(value: LabFavoriteFilter) {
 				class="!m-0 relative flex items-end gap-4 !p-4 transition-[border-color,filter] duration-200 hover:border-surface-5 hover:brightness-[1.05]"
 			>
 				<button
-					class="absolute right-4 top-4 z-20 flex size-8 items-center justify-center rounded-md text-secondary transition-colors hover:text-brand focus-visible:outline-none"
+					class="absolute right-4 top-4 z-20 flex size-8 items-center justify-center rounded-md text-[var(--color-text-tertiary)] transition-colors hover:text-brand focus-visible:outline-none"
 					:aria-label="
 						isFavorite(tool.id)
 							? formatMessage(messages.favoriteRemove)
@@ -270,7 +272,9 @@ function favoriteFilterLabel(value: LabFavoriteFilter) {
 				>
 					<StarIcon
 						class="size-5"
-						:class="isFavorite(tool.id) ? 'fill-brand text-brand' : 'text-secondary'"
+						:class="
+							isFavorite(tool.id) ? 'fill-brand text-brand' : 'text-[var(--color-text-tertiary)]'
+						"
 					/>
 				</button>
 
@@ -305,10 +309,12 @@ function favoriteFilterLabel(value: LabFavoriteFilter) {
 						:data-onboarding-id="toolOnboardingId(tool.id)"
 						class="min-w-0 rounded-[var(--radius-lg)] text-inherit no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
 					>
-						<h2 class="m-0 line-clamp-1 pr-10 text-lg font-bold leading-tight text-contrast">
+						<h2
+							class="m-0 line-clamp-1 pr-10 text-lg font-bold leading-tight text-[var(--color-text-primary)]"
+						>
 							{{ toolTitle(tool.id, tool.title) }}
 						</h2>
-						<p class="m-0 mt-1 line-clamp-2 text-sm leading-5 text-secondary">
+						<p class="m-0 mt-1 line-clamp-2 text-sm leading-5 text-[var(--color-text-tertiary)]">
 							{{ toolDescription(tool.id, tool.description) }}
 						</p>
 					</RouterLink>

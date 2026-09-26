@@ -88,13 +88,13 @@ async function savePublicNodes() {
 			<h2
 				id="terracotta-public-nodes-title"
 				tabindex="-1"
-				class="m-0 text-lg font-semibold text-contrast"
+				class="m-0 text-lg font-semibold text-[var(--color-text-primary)]"
 			>
 				{{ formatMessage(messages.publicNodes) }}
 			</h2>
 			<p
 				id="terracotta-public-nodes-description"
-				class="m-0 mt-1 text-sm leading-relaxed text-secondary"
+				class="m-0 mt-1 text-sm leading-relaxed text-[var(--color-text-tertiary)]"
 			>
 				{{ formatMessage(messages.publicNodesDescription) }}
 			</p>

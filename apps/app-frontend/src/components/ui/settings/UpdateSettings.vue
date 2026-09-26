@@ -458,7 +458,10 @@ function onDatabaseOperationModalHide() {
 	<div class="flex flex-col gap-6">
 		<SettingsSection :title="formatMessage(messages.title)">
 			<div class="update-channel-panel">
-				<p id="settings-target-updates-channel" class="m-0 text-sm leading-[1.45] text-secondary">
+				<p
+					id="settings-target-updates-channel"
+					class="m-0 text-sm leading-[1.45] text-[var(--color-text-tertiary)]"
+				>
 					{{ formatMessage(messages.description) }}
 				</p>
 				<div
@@ -520,10 +523,10 @@ function onDatabaseOperationModalHide() {
 			</div>
 			<div class="database-isolation">
 				<div class="database-isolation-copy">
-					<h3 class="m-0 text-base font-semibold text-contrast">
+					<h3 class="m-0 text-base font-semibold text-[var(--color-text-primary)]">
 						{{ formatMessage(messages.databaseIsolationTitle) }}
 					</h3>
-					<p class="m-0 text-sm text-secondary">
+					<p class="m-0 text-sm text-[var(--color-text-tertiary)]">
 						{{ formatMessage(messages.databaseIsolationDescription) }}
 					</p>
 					<div class="database-path">
@@ -608,10 +611,12 @@ function onDatabaseOperationModalHide() {
 		<SettingsSection :title="formatMessage(messages.checkTitle)">
 			<div class="update-check-panel">
 				<div class="update-check-heading">
-					<p class="m-0 text-sm text-secondary">
+					<p class="m-0 text-sm text-[var(--color-text-tertiary)]">
 						{{ formatMessage(messages.currentVersion, { version: currentVersion }) }}
 					</p>
-					<p class="m-0 text-sm text-secondary">{{ formatMessage(messages.security) }}</p>
+					<p class="m-0 text-sm text-[var(--color-text-tertiary)]">
+						{{ formatMessage(messages.security) }}
+					</p>
 				</div>
 				<div class="flex flex-wrap gap-2">
 					<Button type="colored" color="brand" :disabled="checking" @click="checkForUpdates">

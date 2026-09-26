@@ -345,7 +345,7 @@ provideFileManager({
 						<span class="inline-flex items-center gap-1">
 							{{ formatMessage(messages.openStudio) }}
 							<span
-								class="rounded bg-orange px-1.5 py-0.5 text-[10px] font-bold uppercase leading-none text-contrast"
+								class="rounded bg-orange px-1.5 py-0.5 text-[10px] font-bold uppercase leading-none text-[var(--color-text-primary)]"
 							>
 								{{ formatMessage(commonMessages.beta) }}
 							</span>

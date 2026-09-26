@@ -65,7 +65,7 @@
 			</div>
 			<div class="flex flex-wrap items-center justify-between gap-2">
 				<div class="flex flex-wrap items-center gap-1.5">
-					<FilterIcon class="size-5 text-secondary" />
+					<FilterIcon class="size-5 text-[var(--color-text-tertiary)]" />
 					<button
 						:class="filterPillClass(selectedFilters.length === 0)"
 						@click="selectedFilters = []"
@@ -316,7 +316,7 @@ function filterPillClass(isActive: boolean) {
 		'cursor-pointer rounded-full border border-solid px-3 py-1.5 text-base font-semibold leading-5 transition-all duration-100 active:scale-[0.97]',
 		isActive
 			? 'border-brand bg-brand-highlight text-brand'
-			: 'border-surface-5 bg-surface-4 text-primary hover:bg-surface-5',
+			: 'border-surface-5 bg-surface-4 text-[var(--color-text-default)] hover:bg-surface-5',
 	]
 }
 

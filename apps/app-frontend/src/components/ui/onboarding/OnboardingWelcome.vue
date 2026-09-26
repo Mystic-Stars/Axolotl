@@ -301,7 +301,7 @@ async function toggleFollowSystem() {
 	left: 0;
 	z-index: 3;
 	border-top: 1px solid var(--color-divider);
-	background: var(--color-raised-bg);
+	background: var(--surface-3);
 	opacity: 0;
 	transform: translateY(100%);
 	animation: onboarding-welcome-panel-enter 650ms 3200ms cubic-bezier(0.22, 1, 0.36, 1) both;
@@ -383,7 +383,7 @@ async function toggleFollowSystem() {
 	padding: 0.5rem 0.75rem;
 	border: 1px solid var(--color-divider);
 	border-radius: var(--radius-md);
-	background: var(--color-button-bg);
+	background: var(--surface-3);
 	color: var(--color-text-primary);
 	font: inherit;
 	font-size: 0.9375rem;
@@ -409,7 +409,7 @@ async function toggleFollowSystem() {
 	padding: 0 0.75rem;
 	border: 1px solid var(--color-divider);
 	border-radius: var(--radius-md);
-	background: var(--color-button-bg);
+	background: var(--surface-4);
 	color: var(--color-text-tertiary);
 	font: inherit;
 	font-size: 0.8125rem;

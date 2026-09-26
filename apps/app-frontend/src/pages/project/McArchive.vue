@@ -215,7 +215,10 @@ void contentSelection
 </script>
 
 <template>
-	<div v-if="loading" class="flex min-h-64 items-center justify-center gap-3 p-6 text-secondary">
+	<div
+		v-if="loading"
+		class="flex min-h-64 items-center justify-center gap-3 p-6 text-[var(--color-text-tertiary)]"
+	>
 		<SpinnerIcon class="animate-spin" />
 		{{ formatMessage(messages.loading) }}
 	</div>
@@ -223,8 +226,12 @@ void contentSelection
 		<section class="flex flex-col gap-3">
 			<div class="flex flex-wrap items-start justify-between gap-3">
 				<div class="min-w-0">
-					<h1 class="m-0 text-2xl font-bold text-contrast">{{ project.name }}</h1>
-					<p v-if="project.summary" class="mb-0 mt-2 text-secondary">{{ project.summary }}</p>
+					<h1 class="m-0 text-2xl font-bold text-[var(--color-text-primary)]">
+						{{ project.name }}
+					</h1>
+					<p v-if="project.summary" class="mb-0 mt-2 text-[var(--color-text-tertiary)]">
+						{{ project.summary }}
+					</p>
 				</div>
 				<Button size="md" class="flex min-w-0 items-center gap-2" @click="instanceSelector?.show()"
 					><InstanceIcon
@@ -240,17 +247,20 @@ void contentSelection
 					</span>
 				</Button>
 			</div>
-			<p v-if="project.description" class="m-0 whitespace-pre-wrap text-sm text-secondary">
+			<p
+				v-if="project.description"
+				class="m-0 whitespace-pre-wrap text-sm text-[var(--color-text-tertiary)]"
+			>
 				{{ project.description }}
 			</p>
 		</section>
 
 		<Card v-if="manualDownload" class="flex flex-col gap-3">
 			<div>
-				<h2 class="m-0 text-base font-semibold text-contrast">
+				<h2 class="m-0 text-base font-semibold text-[var(--color-text-primary)]">
 					{{ formatMessage(messages.manualTitle) }}
 				</h2>
-				<p class="mb-0 mt-1 text-sm text-secondary">
+				<p class="mb-0 mt-1 text-sm text-[var(--color-text-tertiary)]">
 					{{ formatMessage(messages.manualDescription, { fileName: manualDownload.fileName }) }}
 				</p>
 			</div>
@@ -270,13 +280,13 @@ void contentSelection
 		</Card>
 
 		<section class="flex flex-col gap-3">
-			<h2 class="m-0 text-lg font-semibold text-contrast">
+			<h2 class="m-0 text-lg font-semibold text-[var(--color-text-primary)]">
 				{{ formatMessage(messages.versions) }}
 			</h2>
 			<Card v-for="version in project.modVersions" :key="version.uuid" class="flex flex-col gap-3">
 				<div class="flex flex-wrap items-center justify-between gap-2">
-					<span class="font-semibold text-contrast">{{ version.name }}</span>
-					<span class="text-sm text-secondary">
+					<span class="font-semibold text-[var(--color-text-primary)]">{{ version.name }}</span>
+					<span class="text-sm text-[var(--color-text-tertiary)]">
 						{{ version.gameVersions.map((gameVersion) => gameVersion.name).join(', ') }}
 					</span>
 				</div>
@@ -290,8 +300,10 @@ void contentSelection
 						class="flex min-w-0 items-center gap-3 py-3"
 					>
 						<div class="min-w-0 flex-1">
-							<div class="truncate text-sm font-medium text-contrast">{{ file.name }}</div>
-							<div v-if="file.sha256" class="truncate text-xs text-secondary">
+							<div class="truncate text-sm font-medium text-[var(--color-text-primary)]">
+								{{ file.name }}
+							</div>
+							<div v-if="file.sha256" class="truncate text-xs text-[var(--color-text-tertiary)]">
 								{{ formatMessage(messages.sha256) }}: {{ file.sha256 }}
 							</div>
 						</div>
@@ -302,12 +314,14 @@ void contentSelection
 						</Button>
 					</div>
 				</div>
-				<p v-else class="m-0 text-sm text-secondary">{{ formatMessage(messages.noFiles) }}</p>
+				<p v-else class="m-0 text-sm text-[var(--color-text-tertiary)]">
+					{{ formatMessage(messages.noFiles) }}
+				</p>
 			</Card>
 		</section>
 	</div>
 	<div v-else class="p-6">
-		<Card class="text-secondary">{{ formatMessage(messages.loading) }}</Card>
+		<Card class="text-[var(--color-text-tertiary)]">{{ formatMessage(messages.loading) }}</Card>
 	</div>
 	<BrowseInstanceSelector
 		ref="instanceSelector"

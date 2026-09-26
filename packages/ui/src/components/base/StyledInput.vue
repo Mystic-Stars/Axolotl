@@ -13,7 +13,11 @@
 			:is="icon"
 			v-if="icon && variant === 'filled' && !multiline"
 			class="absolute left-3 h-5 w-5 z-[1] pointer-events-none transition-colors"
-			:class="[isFocused ? 'opacity-100 text-contrast' : 'opacity-60 text-secondary']"
+			:class="[
+				isFocused
+					? 'opacity-100 text-[var(--color-text-primary)]'
+					: 'opacity-60 text-[var(--color-text-tertiary)]',
+			]"
 			aria-hidden="true"
 		/>
 
@@ -34,7 +38,7 @@
 			:spellcheck="spellcheck"
 			:maxlength="maxlength"
 			:rows="rows"
-			class="w-full touch-manipulation text-primary placeholder:text-secondary focus:text-contrast font-medium transition-[shadow,color] appearance-none shadow-none focus:ring-4 focus:ring-brand-shadow bg-surface-4 border-none rounded-xl"
+			class="w-full touch-manipulation text-[var(--color-text-default)] placeholder:text-[var(--color-text-tertiary)] focus:text-[var(--color-text-primary)] font-medium transition-[shadow,color] appearance-none shadow-none focus:ring-4 focus:ring-brand-shadow bg-surface-4 border-none rounded-xl"
 			:class="[
 				inputClass,
 				'pl-3 pr-3 py-2 text-base',
@@ -68,7 +72,7 @@
 			:min="min"
 			:max="max"
 			:step="step"
-			class="min-w-0 w-full touch-manipulation text-primary placeholder:text-secondary focus:text-contrast font-medium transition-[shadow,color] appearance-none shadow-none focus:ring-4 focus:ring-brand-shadow"
+			class="min-w-0 w-full touch-manipulation text-[var(--color-text-default)] placeholder:text-[var(--color-text-tertiary)] focus:text-[var(--color-text-primary)] font-medium transition-[shadow,color] appearance-none shadow-none focus:ring-4 focus:ring-brand-shadow"
 			:class="[
 				inputClass,
 				!multiline && hasRightSlot ? 'flex-1' : '',
@@ -78,7 +82,7 @@
 				error ? 'outline outline-2 outline-red bg-warning-bg' : 'outline-none',
 				disabled ? 'cursor-not-allowed' : '',
 				variant === 'outlined'
-					? 'bg-transparent border border-solid border-button-bg rounded-l-xl border-r-0'
+					? 'bg-transparent border border-solid border-surface-4 rounded-l-xl border-r-0'
 					: 'bg-surface-4 border-none rounded-xl',
 			]"
 			@input="onInput"
@@ -90,7 +94,7 @@
 		<button
 			v-if="!multiline && clearable && model && !disabled && !readonly && variant === 'filled'"
 			type="button"
-			class="absolute right-0.5 z-[1] p-2 touch-manipulation bg-transparent border-none text-secondary hover:text-contrast transition-colors cursor-pointer select-none"
+			class="absolute right-0.5 z-[1] p-2 touch-manipulation bg-transparent border-none text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)] transition-colors cursor-pointer select-none"
 			aria-label="Clear input"
 			@click="clear"
 		>
@@ -101,7 +105,7 @@
 		<button
 			v-if="!multiline && variant === 'outlined'"
 			type="button"
-			class="flex touch-manipulation items-center justify-center px-2 bg-transparent border border-solid border-button-bg rounded-r-xl text-secondary hover:text-contrast transition-colors shrink-0"
+			class="flex touch-manipulation items-center justify-center px-2 bg-transparent border border-solid border-surface-4 rounded-r-xl text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)] transition-colors shrink-0"
 			:aria-label="clearable && model ? 'Clear input' : 'Search'"
 			:tabindex="clearable && model ? undefined : -1"
 			@click="clearable && model ? clear() : undefined"

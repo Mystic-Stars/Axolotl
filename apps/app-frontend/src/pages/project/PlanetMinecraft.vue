@@ -167,14 +167,19 @@ void contentSelection
 </script>
 
 <template>
-	<div v-if="loading" class="flex min-h-64 items-center justify-center gap-3 p-6 text-secondary">
+	<div
+		v-if="loading"
+		class="flex min-h-64 items-center justify-center gap-3 p-6 text-[var(--color-text-tertiary)]"
+	>
 		<SpinnerIcon class="animate-spin" /> {{ formatMessage(messages.loading) }}
 	</div>
 	<div v-else-if="project" class="mx-auto flex w-full max-w-5xl flex-col gap-5 p-6">
 		<section class="flex flex-wrap items-start justify-between gap-3">
 			<div class="min-w-0">
-				<h1 class="m-0 text-2xl font-bold text-contrast">{{ project.title }}</h1>
-				<p v-if="project.summary" class="mb-0 mt-2 text-secondary">{{ project.summary }}</p>
+				<h1 class="m-0 text-2xl font-bold text-[var(--color-text-primary)]">{{ project.title }}</h1>
+				<p v-if="project.summary" class="mb-0 mt-2 text-[var(--color-text-tertiary)]">
+					{{ project.summary }}
+				</p>
 			</div>
 			<Button class="flex items-center gap-2" @click="instanceSelector?.show()"
 				><InstanceIcon
@@ -189,10 +194,10 @@ void contentSelection
 		</section>
 		<Card v-if="manualDownload" class="flex flex-wrap items-center justify-between gap-3">
 			<div class="min-w-0">
-				<h2 class="m-0 text-base font-semibold text-contrast">
+				<h2 class="m-0 text-base font-semibold text-[var(--color-text-primary)]">
 					{{ formatMessage(messages.manualTitle) }}
 				</h2>
-				<p class="mb-0 mt-1 text-sm text-secondary">
+				<p class="mb-0 mt-1 text-sm text-[var(--color-text-tertiary)]">
 					{{
 						formatMessage(messages.manualDescription, {
 							fileName: manualDownload.fileName ?? formatMessage(messages.unknownFile),
@@ -210,7 +215,7 @@ void contentSelection
 			</div>
 		</Card>
 		<section class="flex flex-col gap-3">
-			<h2 class="m-0 text-lg font-semibold text-contrast">
+			<h2 class="m-0 text-lg font-semibold text-[var(--color-text-primary)]">
 				{{ formatMessage(messages.versions) }}
 			</h2>
 			<Card
@@ -219,8 +224,10 @@ void contentSelection
 				class="flex flex-wrap items-center justify-between gap-3"
 			>
 				<div class="min-w-0">
-					<div class="font-semibold text-contrast">{{ version.name }}</div>
-					<div class="text-sm text-secondary">{{ version.gameVersions.join(', ') }}</div>
+					<div class="font-semibold text-[var(--color-text-primary)]">{{ version.name }}</div>
+					<div class="text-sm text-[var(--color-text-tertiary)]">
+						{{ version.gameVersions.join(', ') }}
+					</div>
 				</div>
 				<Button :disabled="busyVersionId !== null" @click="install(version)"
 					><SpinnerIcon v-if="busyVersionId === version.id" class="animate-spin" /><DownloadIcon

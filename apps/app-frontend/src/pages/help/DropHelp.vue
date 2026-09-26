@@ -1,6 +1,6 @@
 <template>
 	<div class="flex flex-col gap-3 p-6">
-		<h1 class="text-lg font-bold text-contrast">
+		<h1 class="text-lg font-bold text-[var(--color-text-primary)]">
 			{{ formatMessage(messages.title) }}
 		</h1>
 

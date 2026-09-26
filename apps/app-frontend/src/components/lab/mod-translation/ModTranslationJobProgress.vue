@@ -109,8 +109,8 @@ function formatWeight(value: number): string {
 	flex: 0 0 auto;
 	place-items: center;
 	border-radius: 999px;
-	background: var(--color-button-bg);
-	color: var(--color-text-secondary);
+	background: var(--surface-4);
+	color: var(--color-text-tertiary);
 	transition:
 		background 0.25s ease,
 		color 0.25s ease;
@@ -122,18 +122,18 @@ function formatWeight(value: number): string {
 }
 
 .step--current {
-	background: color-mix(in srgb, var(--color-brand) 18%, var(--color-button-bg));
+	background: color-mix(in srgb, var(--color-brand) 18%, var(--surface-4));
 	color: var(--color-brand);
 	box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-brand) 10%, transparent);
 }
 
 .step--done {
-	background: color-mix(in srgb, var(--color-green) 16%, var(--color-button-bg));
+	background: color-mix(in srgb, var(--color-green) 16%, var(--surface-4));
 	color: var(--color-green);
 }
 
 .step--failed {
-	background: color-mix(in srgb, var(--color-red) 16%, var(--color-button-bg));
+	background: color-mix(in srgb, var(--color-red) 16%, var(--surface-4));
 	color: var(--color-red);
 }
 
@@ -153,7 +153,7 @@ function formatWeight(value: number): string {
 	height: 0.42rem;
 	overflow: hidden;
 	border-radius: 999px;
-	background: var(--color-button-bg);
+	background: var(--surface-4);
 }
 
 .fill {
@@ -192,17 +192,17 @@ function formatWeight(value: number): string {
 	align-items: center;
 	gap: 0.45rem;
 	border-radius: var(--radius-sm);
-	background: color-mix(in srgb, var(--color-brand) 8%, var(--color-button-bg));
+	background: color-mix(in srgb, var(--color-brand) 8%, var(--surface-4));
 	padding: 0.5rem 0.65rem;
 }
 
 .live--warn {
-	background: color-mix(in srgb, var(--color-orange) 9%, var(--color-button-bg));
+	background: color-mix(in srgb, var(--color-orange) 9%, var(--surface-4));
 }
 
 .live--error,
 .live--failed {
-	background: color-mix(in srgb, var(--color-red) 9%, var(--color-button-bg));
+	background: color-mix(in srgb, var(--color-red) 9%, var(--surface-4));
 }
 
 .live-dot {
@@ -228,7 +228,7 @@ function formatWeight(value: number): string {
 	flex: 0 0 auto;
 	font-size: 0.66rem;
 	font-variant-numeric: tabular-nums;
-	color: var(--color-text-secondary);
+	color: var(--color-text-tertiary);
 }
 
 .stats {
@@ -242,11 +242,11 @@ function formatWeight(value: number): string {
 	align-items: center;
 	gap: 0.3rem;
 	border-radius: 999px;
-	background: var(--color-button-bg);
+	background: var(--surface-4);
 	padding: 0.2rem 0.55rem;
 	font-size: 0.65rem;
 	font-weight: 700;
-	color: var(--color-text-secondary);
+	color: var(--color-text-tertiary);
 }
 
 .stat-pill :deep(svg),
@@ -261,7 +261,7 @@ function formatWeight(value: number): string {
 	gap: 0.35rem;
 	border: 1px solid color-mix(in srgb, var(--color-brand) 18%, var(--color-divider));
 	border-radius: var(--radius-md);
-	background: color-mix(in srgb, var(--color-brand) 5%, var(--color-button-bg));
+	background: color-mix(in srgb, var(--color-brand) 5%, var(--surface-4));
 	padding: 0.55rem 0.65rem;
 }
 

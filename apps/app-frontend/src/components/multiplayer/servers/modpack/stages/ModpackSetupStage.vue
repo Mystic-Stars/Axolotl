@@ -56,10 +56,10 @@ onMounted(() => {
 				class="shrink-0"
 			/>
 			<div class="min-w-0 flex-1">
-				<p class="m-0 truncate text-base font-bold leading-tight text-contrast">
+				<p class="m-0 truncate text-base font-bold leading-tight text-[var(--color-text-primary)]">
 					{{ ctx.modpackTitle.value }}
 				</p>
-				<p class="m-0 mt-0.5 truncate text-sm font-medium text-secondary">
+				<p class="m-0 mt-0.5 truncate text-sm font-medium text-[var(--color-text-tertiary)]">
 					{{ ctx.modpackVersionNumber.value }}
 				</p>
 				<div class="mt-1.5 flex flex-wrap items-center gap-1.5">
@@ -90,7 +90,9 @@ onMounted(() => {
 		</Admonition>
 
 		<label class="flex min-w-0 flex-col gap-2" for="modpack-server-name">
-			<span class="font-semibold text-contrast">{{ formatMessage(messages.name) }}</span>
+			<span class="font-semibold text-[var(--color-text-primary)]">{{
+				formatMessage(messages.name)
+			}}</span>
 			<StyledInput
 				id="modpack-server-name"
 				v-model="ctx.name.value"
@@ -100,7 +102,9 @@ onMounted(() => {
 		</label>
 
 		<div class="flex min-w-0 flex-col gap-2">
-			<span class="font-semibold text-contrast">{{ formatMessage(messages.java) }}</span>
+			<span class="font-semibold text-[var(--color-text-primary)]">{{
+				formatMessage(messages.java)
+			}}</span>
 			<JavaSelector
 				id="modpack-java-selector"
 				v-model="ctx.selectedJava.value"
@@ -111,9 +115,11 @@ onMounted(() => {
 
 		<div class="flex min-w-0 flex-col gap-2">
 			<div class="flex items-center justify-between gap-3">
-				<span class="font-semibold text-contrast">{{ formatMessage(messages.memory) }}</span>
+				<span class="font-semibold text-[var(--color-text-primary)]">{{
+					formatMessage(messages.memory)
+				}}</span>
 				<span
-					class="rounded-md border border-solid border-surface-5 bg-surface-3 px-2 py-1 text-xs font-semibold leading-none text-contrast"
+					class="rounded-md border border-solid border-surface-5 bg-surface-3 px-2 py-1 text-xs font-semibold leading-none text-[var(--color-text-primary)]"
 				>
 					{{ formatMessage(messages.memoryValue, { value: ctx.memoryMb.value }) }}
 				</span>

@@ -16,7 +16,7 @@
 	>
 		<CalendarIcon
 			v-if="showIcon && !calendarOnly"
-			class="pointer-events-none absolute left-3 z-[1] h-5 w-5 text-secondary opacity-60 transition-colors"
+			class="pointer-events-none absolute left-3 z-[1] h-5 w-5 text-[var(--color-text-tertiary)] opacity-60 transition-colors"
 			aria-hidden="true"
 		/>
 		<input
@@ -35,7 +35,7 @@
 		<button
 			v-if="hasClearButton"
 			type="button"
-			class="absolute right-0.5 top-px z-[1] touch-manipulation cursor-pointer select-none border-none bg-transparent p-2 text-secondary transition-colors hover:text-contrast"
+			class="absolute right-0.5 top-px z-[1] touch-manipulation cursor-pointer select-none border-none bg-transparent p-2 text-[var(--color-text-tertiary)] transition-colors hover:text-[var(--color-text-primary)]"
 			aria-label="Clear date"
 			@click.stop="clearValue"
 		>
@@ -1188,7 +1188,7 @@ const hasClearButton = computed(
 const inputClasses = computed(() => [
 	props.calendarOnly
 		? 'sr-only pointer-events-none absolute h-0 w-0 opacity-0'
-		: 'w-full touch-manipulation text-primary placeholder:text-secondary focus:text-contrast font-medium transition-[shadow,color] appearance-none shadow-none focus:ring-4 focus:ring-brand-shadow !outline-0',
+		: 'w-full touch-manipulation text-[var(--color-text-default)] placeholder:text-[var(--color-text-tertiary)] focus:text-[var(--color-text-primary)] font-medium transition-[shadow,color] appearance-none shadow-none focus:ring-4 focus:ring-brand-shadow !outline-0',
 	!props.calendarOnly && props.showIcon ? 'pl-10' : '',
 	!props.calendarOnly && !props.showIcon ? 'pl-3' : '',
 	!props.calendarOnly
@@ -1549,7 +1549,7 @@ defineExpose({
 }
 
 .modrinth-date-picker :deep(.flatpickr-calendar) {
-	@apply mt-2 touch-manipulation rounded-2xl border border-solid border-surface-5 bg-surface-3 shadow-none p-3 text-primary select-none;
+	@apply mt-2 touch-manipulation rounded-2xl border border-solid border-surface-5 bg-surface-3 shadow-none p-3 text-[var(--color-text-default)] select-none;
 	box-sizing: content-box;
 }
 
@@ -1622,7 +1622,7 @@ defineExpose({
 .modrinth-date-picker :deep(.flatpickr-current-month),
 .modrinth-date-picker :deep(.flatpickr-weekdays),
 .modrinth-date-picker :deep(.flatpickr-weekdaycontainer) {
-	@apply text-contrast shadow-none;
+	@apply text-[var(--color-text-primary)] shadow-none;
 }
 
 .modrinth-date-picker :deep(.flatpickr-current-month) {
@@ -1631,7 +1631,7 @@ defineExpose({
 
 .modrinth-date-picker :deep(.flatpickr-current-month input.cur-year),
 .modrinth-date-picker :deep(.flatpickr-current-month .flatpickr-monthDropdown-months) {
-	@apply touch-manipulation rounded-xl bg-surface-4 py-1 font-semibold text-contrast hover:bg-surface-5 min-h-10;
+	@apply touch-manipulation rounded-xl bg-surface-4 py-1 font-semibold text-[var(--color-text-primary)] hover:bg-surface-5 min-h-10;
 }
 
 .modrinth-date-picker :deep(.flatpickr-current-month .flatpickr-monthDropdown-months) {
@@ -1689,26 +1689,26 @@ defineExpose({
 }
 
 .modrinth-date-picker :deep(.numInputWrapper span.arrowUp::after) {
-	border-bottom-color: var(--color-text-secondary);
+	border-bottom-color: var(--color-text-tertiary);
 }
 
 .modrinth-date-picker :deep(.numInputWrapper span.arrowDown::after) {
-	border-top-color: var(--color-text-secondary);
+	border-top-color: var(--color-text-tertiary);
 }
 
 .modrinth-date-picker :deep(.flatpickr-prev-month),
 .modrinth-date-picker :deep(.flatpickr-next-month) {
-	@apply top-2.5 mx-3.5 flex h-10 w-10 touch-manipulation items-center justify-center rounded-full p-0 text-secondary hover:bg-surface-4 hover:text-contrast;
+	@apply top-2.5 mx-3.5 flex h-10 w-10 touch-manipulation items-center justify-center rounded-full p-0 text-[var(--color-text-tertiary)] hover:bg-surface-4 hover:text-[var(--color-text-primary)];
 }
 
 .modrinth-date-picker :deep(.flatpickr-prev-month.flatpickr-disabled),
 .modrinth-date-picker :deep(.flatpickr-next-month.flatpickr-disabled) {
-	@apply cursor-not-allowed opacity-40 hover:bg-transparent hover:text-secondary;
+	@apply cursor-not-allowed opacity-40 hover:bg-transparent hover:text-[var(--color-text-tertiary)];
 }
 
 .modrinth-date-picker :deep(.flatpickr-prev-month svg),
 .modrinth-date-picker :deep(.flatpickr-next-month svg) {
-	@apply h-5 w-5 stroke-current text-secondary;
+	@apply h-5 w-5 stroke-current text-[var(--color-text-tertiary)];
 	fill: none;
 	stroke-width: 3;
 }
@@ -1719,11 +1719,11 @@ defineExpose({
 }
 
 .modrinth-date-picker :deep(.flatpickr-weekday) {
-	@apply text-xs font-semibold text-secondary;
+	@apply text-xs font-semibold text-[var(--color-text-tertiary)];
 }
 
 .modrinth-date-picker :deep(.flatpickr-day) {
-	@apply relative z-0 m-0 max-w-none touch-manipulation rounded-full border border-solid border-transparent text-primary hover:bg-surface-4 hover:text-contrast font-semibold aspect-square h-auto;
+	@apply relative z-0 m-0 max-w-none touch-manipulation rounded-full border border-solid border-transparent text-[var(--color-text-default)] hover:bg-surface-4 hover:text-[var(--color-text-primary)] font-semibold aspect-square h-auto;
 }
 .modrinth-date-picker
 	:deep(
@@ -1731,11 +1731,11 @@ defineExpose({
 				.inRange
 			)
 	) {
-	@apply border-transparent bg-transparent text-primary outline-none;
+	@apply border-transparent bg-transparent text-[var(--color-text-default)] outline-none;
 }
 .modrinth-date-picker
 	:deep(.flatpickr-day:focus-visible:not(.selected):not(.startRange):not(.endRange):not(.inRange)) {
-	@apply border-transparent bg-surface-4 text-contrast outline-none;
+	@apply border-transparent bg-surface-4 text-[var(--color-text-primary)] outline-none;
 }
 .modrinth-date-picker :deep(.flatpickr-day.flatpickr-disabled) {
 	@apply hover:bg-transparent;
@@ -1897,7 +1897,7 @@ defineExpose({
 	:deep(.flatpickr-day:not(.selected):not(.startRange):not(.endRange):not(.inRange):hover),
 .modrinth-date-picker.is-dragging-range
 	:deep(.flatpickr-day:not(.selected):not(.startRange):not(.endRange):not(.inRange):focus) {
-	@apply border-transparent bg-transparent text-primary;
+	@apply border-transparent bg-transparent text-[var(--color-text-default)];
 }
 
 .modrinth-date-picker
@@ -1905,7 +1905,7 @@ defineExpose({
 .modrinth-date-picker
 	:deep(.flatpickr-day.nextMonthDay:not(.inRange):not(.startRange):not(.endRange)),
 .modrinth-date-picker :deep(.flatpickr-day.flatpickr-disabled) {
-	@apply text-secondary opacity-40;
+	@apply text-[var(--color-text-tertiary)] opacity-40;
 }
 
 .modrinth-date-picker :deep(.flatpickr-time) {
@@ -1918,11 +1918,11 @@ defineExpose({
 
 .modrinth-date-picker :deep(.flatpickr-time input),
 .modrinth-date-picker :deep(.flatpickr-time .flatpickr-am-pm) {
-	@apply h-full touch-manipulation rounded-xl bg-transparent px-2 text-center font-semibold text-primary hover:bg-surface-5 focus:bg-surface-5;
+	@apply h-full touch-manipulation rounded-xl bg-transparent px-2 text-center font-semibold text-[var(--color-text-default)] hover:bg-surface-5 focus:bg-surface-5;
 }
 
 .modrinth-date-picker :deep(.flatpickr-time .flatpickr-time-separator) {
-	@apply flex h-full items-center justify-center text-secondary text-center;
+	@apply flex h-full items-center justify-center text-[var(--color-text-tertiary)] text-center;
 }
 
 .modrinth-date-picker :deep(.flatpickr-time .flatpickr-am-pm) {

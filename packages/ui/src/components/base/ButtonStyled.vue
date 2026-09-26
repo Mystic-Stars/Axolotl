@@ -34,9 +34,10 @@ const highlightedColorVar = computed(() => {
 			return 'var(--color-orange-highlight)'
 		case 'green':
 			return 'var(--color-green-highlight)'
-		case 'medal-promo':
 		case 'blue':
 			return 'var(--color-blue-highlight)'
+		case 'medal-promo':
+			return 'var(--color-medal-promo-highlight)'
 		case 'purple':
 			return 'var(--color-purple-highlight)'
 		case 'standard':
@@ -60,7 +61,7 @@ const colorVar = computed(() => {
 		case 'purple':
 			return 'var(--color-purple)'
 		case 'medal-promo':
-			return 'var(--medal-promotion-text-orange)'
+			return 'var(--color-medal-promo)'
 		case 'standard':
 		default:
 			return null
@@ -174,7 +175,7 @@ const colorVariables = computed(() => {
 			bg:
 				props.highlightedStyle === 'main-nav-primary'
 					? 'var(--color-button-bg-selected)'
-					: 'var(--color-button-bg)',
+					: 'var(--surface-4)',
 			text:
 				props.highlightedStyle === 'main-nav-primary'
 					? 'var(--color-button-text-selected)'
@@ -193,7 +194,7 @@ const colorVariables = computed(() => {
 	}
 
 	let colors = {
-		bg: 'var(--color-button-bg)',
+		bg: 'var(--surface-4)',
 		text: 'var(--color-text-default)',
 	}
 	let hoverColors = JSON.parse(JSON.stringify(colors))

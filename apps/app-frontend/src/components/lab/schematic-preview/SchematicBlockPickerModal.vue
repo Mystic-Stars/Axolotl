@@ -125,7 +125,7 @@ defineExpose({ show })
 		max-content-height="min(44rem, 76vh)"
 	>
 		<div class="flex min-h-[28rem] min-w-0 flex-col gap-4">
-			<p class="m-0 text-sm text-secondary">
+			<p class="m-0 text-sm text-[var(--color-text-tertiary)]">
 				{{ formatMessage(messages.description, { count: selectedCount }) }}
 			</p>
 
@@ -139,14 +139,14 @@ defineExpose({ show })
 					:placeholder="formatMessage(messages.search)"
 					clearable
 				/>
-				<span class="shrink-0 text-xs tabular-nums text-secondary">
+				<span class="shrink-0 text-xs tabular-nums text-[var(--color-text-tertiary)]">
 					{{ formatMessage(messages.results, { count: visibleBlocks.length }) }}
 				</span>
 			</div>
 
 			<p
 				v-if="visibleBlocks.length === 0"
-				class="m-0 flex flex-1 items-center justify-center text-sm text-secondary"
+				class="m-0 flex flex-1 items-center justify-center text-sm text-[var(--color-text-tertiary)]"
 			>
 				{{ formatMessage(messages.empty) }}
 			</p>
@@ -229,7 +229,7 @@ defineExpose({ show })
 
 .block-picker-option:hover {
 	border-color: var(--surface-5);
-	background: var(--color-button-bg);
+	background: var(--surface-4);
 }
 
 .block-picker-option-selected {
@@ -264,7 +264,7 @@ defineExpose({ show })
 }
 
 .block-picker-copy small {
-	color: var(--color-text-secondary);
+	color: var(--color-text-tertiary);
 	font-size: 0.62rem;
 }
 

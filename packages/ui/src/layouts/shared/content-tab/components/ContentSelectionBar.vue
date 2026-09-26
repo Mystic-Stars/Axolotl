@@ -223,21 +223,21 @@ const bulkProgressMessage = computed(() => {
 				</div>
 				<div
 					v-if="overflowCount > 0"
-					class="absolute top-0 flex h-8 w-8 items-center justify-center rounded-lg border-[1.5px] border-solid border-surface-3 bg-surface-4 text-xs font-bold text-contrast"
+					class="absolute top-0 flex h-8 w-8 items-center justify-center rounded-lg border-[1.5px] border-solid border-surface-3 bg-surface-4 text-xs font-bold text-[var(--color-text-primary)]"
 					:style="{ left: `${visibleItems.length * iconStackOffset}px`, zIndex: 0 }"
 				>
 					+{{ overflowCount }}
 				</div>
 			</div>
 
-			<span class="px-3 py-2 text-base font-semibold text-contrast tabular-nums">
+			<span class="px-3 py-2 text-base font-semibold text-[var(--color-text-primary)] tabular-nums">
 				{{ selectedCountText }}
 			</span>
 			<div class="mx-0.5 h-6 w-px bg-surface-5" />
 			<Button
 				v-tooltip="formatMessage(commonMessages.clearButton)"
 				type="quiet"
-				class="!text-primary"
+				class="!text-[var(--color-text-default)]"
 				:disabled="isBulkOperating"
 				:class="{ 'opacity-60 pointer-events-none': isBulkOperating }"
 				@click="emit('clear')"
@@ -282,7 +282,9 @@ const bulkProgressMessage = computed(() => {
 		</div>
 
 		<div v-else class="ml-auto flex items-center" aria-live="polite">
-			<span class="px-4 py-2.5 text-base font-semibold text-secondary tabular-nums">
+			<span
+				class="px-4 py-2.5 text-base font-semibold text-[var(--color-text-tertiary)] tabular-nums"
+			>
 				{{ bulkProgressMessage }}
 			</span>
 		</div>
@@ -323,6 +325,6 @@ const bulkProgressMessage = computed(() => {
 }
 
 :deep(.selected-content-avatar) {
-	background-color: var(--color-button-bg);
+	background-color: var(--surface-4);
 }
 </style>

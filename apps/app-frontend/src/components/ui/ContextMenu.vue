@@ -154,7 +154,7 @@ onBeforeUnmount(() => {
 
 <style lang="scss" scoped>
 .context-menu {
-	background-color: var(--color-raised-bg);
+	background-color: var(--surface-3);
 	border-radius: var(--radius-md);
 	box-shadow: var(--shadow-floating);
 	border: 1px solid var(--color-divider);
@@ -181,7 +181,7 @@ onBeforeUnmount(() => {
 		&:hover,
 		&:active {
 			&.base {
-				background-color: var(--color-button-bg);
+				background-color: var(--surface-4);
 				color: var(--color-text-primary);
 			}
 

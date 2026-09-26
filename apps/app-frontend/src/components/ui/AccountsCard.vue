@@ -3,8 +3,12 @@
 		v-if="offline"
 		class="flex flex-col gap-1 bg-highlight-orange border border-solid border-orange rounded-xl p-3 mt-2"
 	>
-		<span class="font-semibold text-contrast">{{ formatMessage(messages.offlineMode) }}</span>
-		<span class="text-sm text-secondary">{{ formatMessage(messages.offlineModeDescription) }}</span>
+		<span class="font-semibold text-[var(--color-text-primary)]">{{
+			formatMessage(messages.offlineMode)
+		}}</span>
+		<span class="text-sm text-[var(--color-text-tertiary)]">{{
+			formatMessage(messages.offlineModeDescription)
+		}}</span>
 		<Button class="mt-1" :disabled="refreshingNetwork" @click="refreshNetworkStatus()"
 			><SpinnerIcon v-if="refreshingNetwork" class="animate-spin" />
 			<RefreshCwIcon v-else />
@@ -13,7 +17,7 @@
 	</div>
 	<div
 		v-if="accounts.length === 0"
-		class="flex flex-col gap-3 bg-button-bg border border-solid border-surface-5 rounded-xl p-3 mt-2"
+		class="flex flex-col gap-3 bg-surface-4 border border-solid border-surface-5 rounded-xl p-3 mt-2"
 	>
 		<span>{{ formatMessage(messages.notSignedIn) }}</span>
 		<Button v-if="!offline" type="colored" color="brand" :disabled="loginDisabled" @click="login()"
@@ -35,7 +39,7 @@
 	</div>
 	<Accordion
 		v-else
-		class="w-full mt-2 bg-button-bg border border-solid border-surface-5 rounded-xl overflow-clip"
+		class="w-full mt-2 bg-surface-4 border border-solid border-surface-5 rounded-xl overflow-clip"
 		button-class="button-base w-full bg-transparent px-3 py-2 border-0 cursor-pointer"
 		:open-by-default="false"
 	>
@@ -51,7 +55,7 @@
 					<span class="truncate w-full text-left">{{
 						selectedAccount ? selectedAccount.profile.name : formatMessage(messages.selectAccount)
 					}}</span>
-					<span class="text-secondary text-xs">
+					<span class="text-[var(--color-text-tertiary)] text-xs">
 						{{
 							selectedAccount?.account_type === 'offline'
 								? formatMessage(messages.offlineAccount)
@@ -64,7 +68,7 @@
 				</div>
 			</div>
 		</template>
-		<div class="bg-button-bg pt-1 pb-2 border-0 border-t border-solid border-surface-5">
+		<div class="bg-surface-4 pt-1 pb-2 border-0 border-t border-solid border-surface-5">
 			<template v-if="accounts.length > 0">
 				<div v-for="account in accounts" :key="account.account_id" class="flex gap-1 items-center">
 					<button
@@ -75,7 +79,7 @@
 							v-if="selectedAccount && selectedAccount.account_id === account.account_id"
 							class="w-5 h-5 text-brand shrink-0"
 						/>
-						<RadioButtonIcon v-else class="w-5 h-5 text-secondary shrink-0" />
+						<RadioButtonIcon v-else class="w-5 h-5 text-[var(--color-text-tertiary)] shrink-0" />
 						<Avatar
 							:src="getAccountAvatarUrl(account)"
 							size="24px"
@@ -87,31 +91,34 @@
 								class="m-0 truncate text-left"
 								:class="
 									selectedAccount && selectedAccount.account_id === account.account_id
-										? 'text-contrast font-semibold'
-										: 'text-primary'
+										? 'text-[var(--color-text-primary)] font-semibold'
+										: 'text-[var(--color-text-default)]'
 								"
 							>
 								{{ account.profile.name }}
 							</p>
 							<p
 								v-if="duplicateAccountNames.has(account.profile.name)"
-								class="m-0 truncate text-left text-xs text-secondary"
+								class="m-0 truncate text-left text-xs text-[var(--color-text-tertiary)]"
 							>
 								{{ account.profile.id }}
 							</p>
 						</div>
-						<span v-if="account.account_type === 'offline'" class="text-secondary text-xs shrink-0">
+						<span
+							v-if="account.account_type === 'offline'"
+							class="text-[var(--color-text-tertiary)] text-xs shrink-0"
+						>
 							{{ formatMessage(messages.offlineBadge) }}
 						</span>
 						<span
 							v-else-if="account.account_type === 'microsoft'"
-							class="text-secondary text-xs shrink-0"
+							class="text-[var(--color-text-tertiary)] text-xs shrink-0"
 						>
 							{{ formatMessage(messages.officialBadge) }}
 						</span>
 						<span
 							v-else-if="account.account_type === 'yggdrasil'"
-							class="text-secondary text-xs shrink-0"
+							class="text-[var(--color-text-tertiary)] text-xs shrink-0"
 						>
 							{{ account.yggdrasil?.server_name || formatMessage(messages.thirdPartyBadge) }}
 						</span>
@@ -120,7 +127,7 @@
 						<button
 							v-tooltip="formatMessage(messages.copyUuid)"
 							type="button"
-							class="button-base border-0 bg-transparent p-1.5 cursor-pointer text-secondary hover:text-brand"
+							class="button-base border-0 bg-transparent p-1.5 cursor-pointer text-[var(--color-text-tertiary)] hover:text-brand"
 							@click="copyAccountUuid(account)"
 						>
 							<CopyIcon />
@@ -128,7 +135,7 @@
 						<button
 							v-tooltip="formatMessage(messages.removeAccount)"
 							type="button"
-							class="button-base border-0 bg-transparent p-1.5 cursor-pointer text-secondary hover:text-red"
+							class="button-base border-0 bg-transparent p-1.5 cursor-pointer text-[var(--color-text-tertiary)] hover:text-red"
 							@click="logout(account)"
 						>
 							<TrashIcon />
@@ -168,7 +175,9 @@
 	<MinecraftLoginModal ref="minecraftLoginModal" @complete="onMicrosoftLogin" />
 	<NewModal ref="offlineAccountModal" :header="formatMessage(messages.offlineModalTitle)">
 		<div class="flex min-w-[22rem] flex-col gap-4">
-			<p class="m-0 text-secondary">{{ formatMessage(messages.offlineModalDescription) }}</p>
+			<p class="m-0 text-[var(--color-text-tertiary)]">
+				{{ formatMessage(messages.offlineModalDescription) }}
+			</p>
 			<label class="flex flex-col gap-2 font-semibold">
 				{{ formatMessage(messages.usernameLabel) }}
 				<StyledInput
@@ -185,7 +194,7 @@
 			</p>
 			<p
 				v-if="offlineUsernameContainsChinese"
-				class="m-0 rounded-lg border border-solid border-orange bg-highlight-orange p-3 text-sm text-contrast"
+				class="m-0 rounded-lg border border-solid border-orange bg-highlight-orange p-3 text-sm text-[var(--color-text-primary)]"
 			>
 				{{ formatMessage(messages.chineseUsernameWarning) }}
 			</p>
@@ -240,7 +249,9 @@
 	</NewModal>
 	<NewModal ref="yggdrasilAccountModal" :header="formatMessage(messages.thirdPartyModalTitle)">
 		<div class="flex min-w-[24rem] flex-col gap-4">
-			<p class="m-0 text-secondary">{{ formatMessage(messages.thirdPartyModalDescription) }}</p>
+			<p class="m-0 text-[var(--color-text-tertiary)]">
+				{{ formatMessage(messages.thirdPartyModalDescription) }}
+			</p>
 			<div v-if="savedYggdrasilLogins.length > 0" class="flex flex-col gap-2">
 				<span class="font-semibold">{{ formatMessage(messages.savedLogins) }}</span>
 				<div
@@ -253,8 +264,12 @@
 						:disabled="loginDisabled"
 						@click="selectSavedYggdrasilLogin(savedLogin)"
 					>
-						<span class="w-full truncate font-semibold text-primary">{{ savedLogin.login }}</span>
-						<span class="w-full truncate text-xs text-secondary">{{ savedLogin.api_root }}</span>
+						<span class="w-full truncate font-semibold text-[var(--color-text-default)]">{{
+							savedLogin.login
+						}}</span>
+						<span class="w-full truncate text-xs text-[var(--color-text-tertiary)]">{{
+							savedLogin.api_root
+						}}</span>
 					</button>
 					<ButtonStyled circular color="red" color-fill="none" hover-color-fill="background">
 						<button
@@ -323,7 +338,9 @@
 	</NewModal>
 	<NewModal ref="yggdrasilProfileModal" :header="formatMessage(messages.selectProfileTitle)">
 		<div class="flex min-w-[22rem] flex-col gap-2">
-			<p class="m-0 mb-2 text-secondary">{{ formatMessage(messages.selectProfileDescription) }}</p>
+			<p class="m-0 mb-2 text-[var(--color-text-tertiary)]">
+				{{ formatMessage(messages.selectProfileDescription) }}
+			</p>
 			<Button
 				v-for="profile in pendingYggdrasilProfiles"
 				:key="profile.id"

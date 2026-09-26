@@ -282,7 +282,7 @@ const messages = defineMessages({
 						dashboardDensity === 'compact',
 					'world-item-dashboard-comfortable p-2': dashboardDensity === 'comfortable',
 				},
-				flat ? 'px-2 py-2 hover:bg-button-bg' : 'card-shadow bg-bg-raised p-3',
+				flat ? 'px-2 py-2 hover:bg-surface-4' : 'card-shadow bg-surface-2 p-3',
 			]"
 		>
 			<Avatar
@@ -295,7 +295,9 @@ const messages = defineMessages({
 			/>
 			<div class="flex flex-col justify-between h-full">
 				<div class="flex items-center gap-2">
-					<div class="text-lg text-contrast font-bold truncate smart-clickable:underline-on-hover">
+					<div
+						class="text-lg text-[var(--color-text-primary)] font-bold truncate smart-clickable:underline-on-hover"
+					>
 						{{ world.name }}
 					</div>
 					<TagItem
@@ -308,18 +310,18 @@ const messages = defineMessages({
 					</TagItem>
 					<div
 						v-if="world.type === 'singleplayer'"
-						class="text-sm text-secondary flex items-center gap-1 font-semibold flex-nowrap whitespace-nowrap"
+						class="text-sm text-[var(--color-text-tertiary)] flex items-center gap-1 font-semibold flex-nowrap whitespace-nowrap"
 					>
 						<UserIcon
 							aria-hidden="true"
-							class="h-4 w-4 text-secondary shrink-0"
+							class="h-4 w-4 text-[var(--color-text-tertiary)] shrink-0"
 							stroke-width="3px"
 						/>
 						{{ formatMessage(commonMessages.singleplayerLabel) }}
 					</div>
 					<div
 						v-else-if="world.type === 'server'"
-						class="text-sm text-secondary flex items-center gap-1 font-semibold flex-nowrap whitespace-nowrap"
+						class="text-sm text-[var(--color-text-tertiary)] flex items-center gap-1 font-semibold flex-nowrap whitespace-nowrap"
 					>
 						<template v-if="refreshing">
 							<SpinnerIcon aria-hidden="true" class="animate-spin shrink-0" />
@@ -376,7 +378,7 @@ const messages = defineMessages({
 						</template>
 					</div>
 				</div>
-				<div class="flex items-center gap-2 text-sm text-secondary">
+				<div class="flex items-center gap-2 text-sm text-[var(--color-text-tertiary)]">
 					<div
 						v-tooltip="world.last_played ? formatDateTime(world.last_played) : null"
 						class="w-fit shrink-0"
@@ -396,7 +398,7 @@ const messages = defineMessages({
 					<template v-if="instanceId">
 						<span v-if="dashboardDensity !== 'compact'" aria-hidden="true">•</span>
 						<router-link
-							class="flex items-center gap-1 truncate hover:underline text-secondary smart-clickable:allow-pointer-events"
+							class="flex items-center gap-1 truncate hover:underline text-[var(--color-text-tertiary)] smart-clickable:allow-pointer-events"
 							:to="`/instance/${instanceId}`"
 						>
 							<InstanceIcon
@@ -413,7 +415,11 @@ const messages = defineMessages({
 			</div>
 			<div
 				class="font-semibold flex items-center gap-1 justify-center text-center"
-				:class="world.type === 'singleplayer' && world.hardcore ? `text-red` : 'text-secondary'"
+				:class="
+					world.type === 'singleplayer' && world.hardcore
+						? `text-red`
+						: 'text-[var(--color-text-tertiary)]'
+				"
 			>
 				<template v-if="world.type === 'server'">
 					<template v-if="refreshing">
@@ -422,13 +428,16 @@ const messages = defineMessages({
 					</template>
 					<div
 						v-else-if="renderedMotd"
-						class="motd-renderer font-normal font-minecraft line-clamp-2 text-secondary leading-5"
+						class="motd-renderer font-normal font-minecraft line-clamp-2 text-[var(--color-text-tertiary)] leading-5"
 						v-html="renderedMotd"
 					/>
 					<div v-else-if="!serverStatus" class="font-normal font-minecraft text-red leading-5">
 						{{ formatMessage(messages.cantConnect) }}
 					</div>
-					<div v-else class="font-normal font-minecraft text-secondary leading-5">
+					<div
+						v-else
+						class="font-normal font-minecraft text-[var(--color-text-tertiary)] leading-5"
+					>
 						{{ formatMessage(messages.aMinecraftServer) }}
 					</div>
 				</template>

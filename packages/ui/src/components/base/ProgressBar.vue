@@ -63,7 +63,10 @@ const percent = computed(() => props.progress / props.max)
 	<div class="flex w-full flex-col gap-2" :class="fullWidth ? '' : 'max-w-[15rem]'">
 		<div v-if="label || showProgress" class="flex items-center justify-between">
 			<span v-if="label" :class="labelClass">{{ label }}</span>
-			<div v-if="showProgress" class="flex items-center gap-1 text-sm text-secondary">
+			<div
+				v-if="showProgress"
+				class="flex items-center gap-1 text-sm text-[var(--color-text-tertiary)]"
+			>
 				<span>{{ Math.round(percent * 100) }}%</span>
 				<slot name="progress-icon">
 					<SpinnerIcon class="size-5 animate-spin" aria-hidden="true" />

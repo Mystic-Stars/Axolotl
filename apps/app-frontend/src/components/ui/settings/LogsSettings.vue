@@ -122,10 +122,10 @@ async function openLogsFolder() {
 		<!-- Informational only: no controls, so it reads as a note rather than an
 		     empty card. -->
 		<div class="flex flex-col gap-1">
-			<h2 class="m-0 text-lg font-semibold text-contrast">
+			<h2 class="m-0 text-lg font-semibold text-[var(--color-text-primary)]">
 				{{ formatMessage(messages.retentionTitle) }}
 			</h2>
-			<p class="m-0 text-sm leading-relaxed text-secondary">
+			<p class="m-0 text-sm leading-relaxed text-[var(--color-text-tertiary)]">
 				{{ formatMessage(messages.retentionDescription) }}
 			</p>
 		</div>

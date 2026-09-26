@@ -5,7 +5,10 @@
 				{{ formatMessage(messages.admonitionBody) }}
 			</Admonition>
 
-			<div v-if="sharedBy?.name" class="flex items-center gap-2 text-sm text-secondary">
+			<div
+				v-if="sharedBy?.name"
+				class="flex items-center gap-2 text-sm text-[var(--color-text-tertiary)]"
+			>
 				<Avatar
 					v-if="sharedBy?.icon_url"
 					:src="sharedBy.icon_url"
@@ -15,21 +18,23 @@
 				<span>
 					<IntlFormatted :message-id="messages.sharedBy" :values="{ name: sharedBy.name }">
 						<template #name="{ children }">
-							<span class="font-semibold text-contrast"><component :is="() => children" /></span>
+							<span class="font-semibold text-[var(--color-text-primary)]"
+								><component :is="() => children"
+							/></span>
 						</template>
 					</IntlFormatted>
 				</span>
 			</div>
 
 			<div class="flex flex-col gap-2">
-				<span class="text-sm font-semibold text-secondary">{{
+				<span class="text-sm font-semibold text-[var(--color-text-tertiary)]">{{
 					formatMessage(messages.sharedInstanceLabel)
 				}}</span>
 				<div class="flex items-center gap-3 rounded-xl bg-surface-4 p-3">
 					<Avatar :src="project.icon_url" :alt="project.title" size="48px" />
 					<div class="flex flex-col gap-0.5">
-						<span class="font-semibold text-contrast">{{ project.title }}</span>
-						<span class="text-sm text-secondary">
+						<span class="font-semibold text-[var(--color-text-primary)]">{{ project.title }}</span>
+						<span class="text-sm text-[var(--color-text-tertiary)]">
 							{{ loaderDisplay }} {{ project.game_versions?.[0] }}
 							<template v-if="modCount">
 								· {{ formatProjectTypeSentence(formatMessage, 'mod', modCount) }}

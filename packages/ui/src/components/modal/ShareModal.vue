@@ -197,10 +197,12 @@ defineExpose({
 						v-tooltip="'Copy Link'"
 						type="button"
 						aria-label="Copy Link"
-						class="flex h-10 w-full cursor-pointer items-center justify-between gap-2 rounded-xl border-none bg-button-bg px-3 pr-1.5 text-primary transition-all hover:bg-button-bg-hover hover:brightness-125 active:scale-95"
+						class="flex h-10 w-full cursor-pointer items-center justify-between gap-2 rounded-xl border-none bg-surface-4 px-3 pr-1.5 text-[var(--color-text-default)] transition-all hover:bg-button-bg-hover hover:brightness-125 active:scale-95"
 						@click="copyText"
 					>
-						<span class="min-w-0 cursor-pointer truncate text-left font-semibold text-primary">
+						<span
+							class="min-w-0 cursor-pointer truncate text-left font-semibold text-[var(--color-text-default)]"
+						>
 							{{ url }}
 						</span>
 						<div class="grid h-10 w-10 place-content-center">

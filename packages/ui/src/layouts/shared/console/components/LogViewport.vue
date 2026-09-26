@@ -37,7 +37,7 @@
 					:style="{ height: estimateHeight(item) + 'px' }"
 				>
 					<span
-						class="flex shrink-0 w-[52px] items-center justify-end leading-none text-right text-secondary bg-surface-3 border-r border-solid border-surface-3 select-none overflow-hidden"
+						class="flex shrink-0 w-[52px] items-center justify-end leading-none text-right text-[var(--color-text-tertiary)] bg-surface-3 border-r border-solid border-surface-3 select-none overflow-hidden"
 						>{{ item.originalIndex + 1 }}</span
 					>
 					<span
@@ -392,7 +392,7 @@ defineExpose({
 }
 
 .level-debug {
-	color: var(--color-text-secondary);
+	color: var(--color-text-tertiary);
 	background-color: color-mix(in srgb, var(--color-blue) 5%, transparent);
 }
 
@@ -437,7 +437,7 @@ defineExpose({
 }
 
 .level-stack-frame {
-	color: var(--color-text-secondary);
+	color: var(--color-text-tertiary);
 }
 
 .level-stack-class {
@@ -475,7 +475,7 @@ defineExpose({
 }
 
 .level-mod-name {
-	color: var(--color-text-secondary);
+	color: var(--color-text-tertiary);
 }
 
 .level-mod-status {

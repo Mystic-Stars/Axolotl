@@ -183,7 +183,7 @@ function formatDuration(seconds: number): string {
 	font-family: var(--mono-font, monospace);
 	font-size: 0.66rem;
 	font-variant-numeric: tabular-nums;
-	color: var(--color-text-secondary);
+	color: var(--color-text-tertiary);
 }
 
 .job-percent {

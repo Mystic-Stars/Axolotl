@@ -124,7 +124,7 @@ function getPreviewClass(option: T): string {
 			grid-area: icon;
 			width: 2rem;
 			height: 2rem;
-			background-color: var(--color-button-bg);
+			background-color: var(--surface-4);
 			border-radius: var(--radius-sm);
 			outline: 2px solid transparent;
 		}

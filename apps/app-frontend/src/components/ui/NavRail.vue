@@ -4,7 +4,7 @@
 		<div
 			class="nav-rail-slider pointer-events-none absolute rounded-full"
 			:class="[
-				subpageSelected ? 'bg-button-bg' : 'bg-button-bgSelected',
+				subpageSelected ? 'bg-surface-4' : 'bg-button-bgSelected',
 				transitionsEnabled ? 'nav-rail-slider-transition' : '',
 			]"
 			:style="sliderStyle"

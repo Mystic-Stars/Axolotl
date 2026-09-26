@@ -232,7 +232,7 @@ function getSelectionKey(screenshot: InstanceScreenshot) {
 					<p
 						v-if="screenshots.length === 0"
 						key="empty-group"
-						class="col-span-full m-0 pl-0.5 pt-1 text-base font-base text-secondary opacity-80"
+						class="col-span-full m-0 pl-0.5 pt-1 text-base font-base text-[var(--color-text-tertiary)] opacity-80"
 					>
 						{{ formatMessage(messages.emptyGroup) }}
 					</p>

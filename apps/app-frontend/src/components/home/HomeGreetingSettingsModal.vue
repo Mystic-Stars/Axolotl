@@ -150,7 +150,7 @@ defineExpose({ show })
 	<NewModal ref="modal" :header="formatMessage(messages.title)" width="560px" max-width="560px">
 		<div class="flex min-w-0 flex-col gap-5">
 			<section class="flex min-w-0 flex-col gap-2">
-				<h3 class="m-0 text-sm font-semibold text-contrast">
+				<h3 class="m-0 text-sm font-semibold text-[var(--color-text-primary)]">
 					{{ formatMessage(messages.modeLabel) }}
 				</h3>
 				<div class="grid grid-cols-3 overflow-hidden rounded-lg border border-solid border-divider">
@@ -158,25 +158,27 @@ defineExpose({ show })
 						v-for="option in modeOptions"
 						:key="option.id"
 						type="button"
-						class="flex min-h-28 cursor-pointer flex-col items-start gap-2 border-0 border-r border-solid border-divider bg-transparent p-3 text-left last:border-r-0 hover:bg-button-bg focus-visible:z-[1] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand-shadow"
-						:class="{ 'bg-button-bg': mode === option.id }"
+						class="flex min-h-28 cursor-pointer flex-col items-start gap-2 border-0 border-r border-solid border-divider bg-transparent p-3 text-left last:border-r-0 hover:bg-surface-4 focus-visible:z-[1] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand-shadow"
+						:class="{ 'bg-surface-4': mode === option.id }"
 						:aria-pressed="mode === option.id"
 						@click="selectMode(option.id)"
 					>
 						<component
 							:is="option.icon"
 							class="size-5"
-							:class="mode === option.id ? 'text-brand' : 'text-secondary'"
+							:class="mode === option.id ? 'text-brand' : 'text-[var(--color-text-tertiary)]'"
 							aria-hidden="true"
 						/>
-						<strong class="text-sm text-contrast">{{ option.label }}</strong>
-						<span class="text-xs leading-4 text-secondary">{{ option.description }}</span>
+						<strong class="text-sm text-[var(--color-text-primary)]">{{ option.label }}</strong>
+						<span class="text-xs leading-4 text-[var(--color-text-tertiary)]">{{
+							option.description
+						}}</span>
 					</button>
 				</div>
 			</section>
 
 			<label v-if="mode !== 'greeting'" class="flex min-w-0 flex-col gap-2">
-				<span class="text-sm font-semibold text-contrast">{{
+				<span class="text-sm font-semibold text-[var(--color-text-primary)]">{{
 					formatMessage(messages.textLabel)
 				}}</span>
 				<StyledInput
@@ -188,18 +190,20 @@ defineExpose({ show })
 					:placeholder="placeholder"
 					wrapper-class="w-full"
 				/>
-				<span class="text-xs text-secondary">{{ formatMessage(messages.textFallback) }}</span>
+				<span class="text-xs text-[var(--color-text-tertiary)]">{{
+					formatMessage(messages.textFallback)
+				}}</span>
 			</label>
 
 			<section class="grid min-w-0 grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] gap-5">
 				<label class="flex min-w-0 flex-col gap-2">
-					<span class="text-sm font-semibold text-contrast">{{
+					<span class="text-sm font-semibold text-[var(--color-text-primary)]">{{
 						formatMessage(messages.fontLabel)
 					}}</span>
 					<Combobox v-model="font" :options="fontOptions" />
 				</label>
 				<label class="flex min-w-0 flex-col gap-2">
-					<span class="text-sm font-semibold text-contrast">{{
+					<span class="text-sm font-semibold text-[var(--color-text-primary)]">{{
 						formatMessage(messages.fontSizeLabel)
 					}}</span>
 					<Slider
@@ -213,10 +217,10 @@ defineExpose({ show })
 			</section>
 
 			<section class="flex min-w-0 flex-col gap-2">
-				<h3 class="m-0 text-sm font-semibold text-contrast">
+				<h3 class="m-0 text-sm font-semibold text-[var(--color-text-primary)]">
 					{{ formatMessage(messages.preview) }}
 				</h3>
-				<div class="min-h-28 rounded-lg bg-button-bg px-4 py-3">
+				<div class="min-h-28 rounded-lg bg-surface-4 px-4 py-3">
 					<HomeGreeting
 						:player-name="playerName"
 						:greeting-mode="mode"

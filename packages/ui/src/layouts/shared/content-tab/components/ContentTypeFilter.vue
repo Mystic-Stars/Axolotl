@@ -27,7 +27,7 @@ const emit = defineEmits<{
 				:class="
 					selected.length === 0
 						? 'bg-brand-highlight text-brand'
-						: 'bg-surface-4 text-primary hover:bg-surface-5'
+						: 'bg-surface-4 text-[var(--color-text-default)] hover:bg-surface-5'
 				"
 				:aria-pressed="selected.length === 0"
 				@click="selected = []"
@@ -42,7 +42,7 @@ const emit = defineEmits<{
 				:class="
 					selected.includes(option.id)
 						? 'bg-brand-highlight text-brand'
-						: 'bg-surface-4 text-primary hover:bg-surface-5'
+						: 'bg-surface-4 text-[var(--color-text-default)] hover:bg-surface-5'
 				"
 				:aria-pressed="selected.includes(option.id)"
 				@click="(event) => emit('toggle', option.id, event)"

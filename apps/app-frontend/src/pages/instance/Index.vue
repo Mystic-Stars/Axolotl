@@ -96,7 +96,7 @@
 
 							<div
 								v-if="linkedProjectV3"
-								class="flex gap-1.5 items-center font-medium text-primary"
+								class="flex gap-1.5 items-center font-medium text-[var(--color-text-default)]"
 							>
 								{{ formatMessage(messages.linkedTo) }}
 								<Avatar
@@ -107,7 +107,7 @@
 								/>
 								<router-link
 									:to="`/project/${linkedProjectV3.slug ?? linkedProjectV3.id}`"
-									class="hover:underline text-primary truncate"
+									class="hover:underline text-[var(--color-text-default)] truncate"
 								>
 									{{ linkedProjectV3.name }}
 								</router-link>

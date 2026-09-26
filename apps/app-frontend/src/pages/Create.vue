@@ -77,10 +77,10 @@ function handleImportExisting() {
 	<div class="flex h-full w-full flex-col items-center justify-center p-6">
 		<div class="flex w-full max-w-2xl flex-col gap-6">
 			<div class="flex flex-col gap-2">
-				<h1 class="m-0 text-2xl font-bold text-contrast">
+				<h1 class="m-0 text-2xl font-bold text-[var(--color-text-primary)]">
 					{{ formatMessage(messages.title) }}
 				</h1>
-				<p class="m-0 text-sm text-secondary">
+				<p class="m-0 text-sm text-[var(--color-text-tertiary)]">
 					{{ formatMessage(messages.subtitle) }}
 				</p>
 			</div>
@@ -105,7 +105,7 @@ function handleImportExisting() {
 				/>
 			</div>
 
-			<p class="m-0 text-sm text-secondary">
+			<p class="m-0 text-sm text-[var(--color-text-tertiary)]">
 				{{ formatMessage(messages.pclHmclHint) }}
 				{{ ' ' }}
 				<RouterLink

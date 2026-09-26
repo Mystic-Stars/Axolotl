@@ -158,7 +158,7 @@ defineExpose({ show })
 					<button
 						v-for="instance in instances"
 						:key="instance.id"
-						class="seed-import-row flex items-center gap-[0.65rem] border border-surface-5 rounded-[var(--radius-md)] bg-surface-2 px-[0.65rem] py-2 text-contrast cursor-pointer text-left enabled:hover:bg-surface-4 disabled:cursor-default disabled:opacity-70"
+						class="seed-import-row flex items-center gap-[0.65rem] border border-surface-5 rounded-[var(--radius-md)] bg-surface-2 px-[0.65rem] py-2 text-[var(--color-text-primary)] cursor-pointer text-left enabled:hover:bg-surface-4 disabled:cursor-default disabled:opacity-70"
 						@click="openInstance(instance)"
 					>
 						<InstanceIcon
@@ -196,7 +196,7 @@ defineExpose({ show })
 					<button
 						v-for="world in worlds"
 						:key="world.path"
-						class="seed-import-row flex items-center gap-[0.65rem] border border-surface-5 rounded-[var(--radius-md)] bg-surface-2 px-[0.65rem] py-2 text-contrast cursor-pointer text-left enabled:hover:bg-surface-4 disabled:cursor-default disabled:opacity-70"
+						class="seed-import-row flex items-center gap-[0.65rem] border border-surface-5 rounded-[var(--radius-md)] bg-surface-2 px-[0.65rem] py-2 text-[var(--color-text-primary)] cursor-pointer text-left enabled:hover:bg-surface-4 disabled:cursor-default disabled:opacity-70"
 						:disabled="importingWorldPath !== null"
 						@click="importWorld(world)"
 					>
@@ -246,7 +246,7 @@ defineExpose({ show })
 
 .seed-import-hint {
 	margin: 0;
-	color: var(--color-text-secondary);
+	color: var(--color-text-tertiary);
 	font-size: 0.8rem;
 }
 
@@ -257,7 +257,7 @@ defineExpose({ show })
 	justify-content: center;
 	margin: 0;
 	padding: 2rem 0;
-	color: var(--color-text-secondary);
+	color: var(--color-text-tertiary);
 	font-size: 0.85rem;
 }
 
@@ -284,7 +284,7 @@ defineExpose({ show })
 	border: 1px solid var(--surface-5);
 	border-radius: var(--radius-md);
 	background: var(--surface-4);
-	color: var(--color-text-secondary);
+	color: var(--color-text-tertiary);
 }
 
 .seed-import-avatar-fallback svg {
@@ -310,7 +310,7 @@ defineExpose({ show })
 
 .seed-import-row-subtitle {
 	overflow: hidden;
-	color: var(--color-text-secondary);
+	color: var(--color-text-tertiary);
 	font-size: 0.72rem;
 	text-overflow: ellipsis;
 	white-space: nowrap;
@@ -320,7 +320,7 @@ defineExpose({ show })
 	width: 1rem;
 	height: 1rem;
 	flex: 0 0 auto;
-	color: var(--color-text-secondary);
+	color: var(--color-text-tertiary);
 }
 
 .seed-import-world-heading {

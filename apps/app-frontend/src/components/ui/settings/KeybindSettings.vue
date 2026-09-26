@@ -125,10 +125,10 @@ function toggleNavShortcut(action: ShortcutAction, value: unknown) {
 	<div class="flex flex-col gap-6">
 		<SettingsSection>
 			<template #header>
-				<h2 class="m-0 text-lg font-semibold text-contrast">
+				<h2 class="m-0 text-lg font-semibold text-[var(--color-text-primary)]">
 					{{ formatMessage(messages.scrollTitle) }}
 				</h2>
-				<p class="m-0 mt-1 text-sm leading-relaxed text-secondary">
+				<p class="m-0 mt-1 text-sm leading-relaxed text-[var(--color-text-tertiary)]">
 					{{ formatMessage(messages.scrollDescription) }}
 				</p>
 			</template>
@@ -169,11 +169,11 @@ function toggleNavShortcut(action: ShortcutAction, value: unknown) {
 				<h2
 					id="settings-target-shortcuts-nav"
 					tabindex="-1"
-					class="m-0 text-lg font-semibold text-contrast"
+					class="m-0 text-lg font-semibold text-[var(--color-text-primary)]"
 				>
 					{{ formatMessage(messages.navTitle) }}
 				</h2>
-				<p class="m-0 mt-1 text-sm leading-relaxed text-secondary">
+				<p class="m-0 mt-1 text-sm leading-relaxed text-[var(--color-text-tertiary)]">
 					{{ formatMessage(messages.navDescription) }}
 				</p>
 			</template>

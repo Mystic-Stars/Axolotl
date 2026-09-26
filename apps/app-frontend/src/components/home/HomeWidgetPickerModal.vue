@@ -328,7 +328,7 @@ defineExpose({ show })
 						:instance-id="selectedInstance.id"
 						:loader="selectedInstance.loader"
 					/>
-					<span class="truncate text-sm font-semibold text-contrast">{{
+					<span class="truncate text-sm font-semibold text-[var(--color-text-primary)]">{{
 						selectedInstance.name
 					}}</span>
 				</div>
@@ -336,30 +336,37 @@ defineExpose({ show })
 
 			<div v-if="!selectedKind" class="flex min-w-0 flex-col gap-5">
 				<section v-for="section in catalogSections" :key="section.id" class="min-w-0">
-					<h3 class="mb-2 mt-0 flex items-center gap-2 px-1 text-sm font-semibold text-secondary">
+					<h3
+						class="mb-2 mt-0 flex items-center gap-2 px-1 text-sm font-semibold text-[var(--color-text-tertiary)]"
+					>
 						<component :is="section.icon" class="size-4" aria-hidden="true" />
 						{{ section.label }}
 					</h3>
-					<div class="overflow-hidden rounded-lg border border-solid border-divider bg-bg-raised">
+					<div class="overflow-hidden rounded-lg border border-solid border-divider bg-surface-2">
 						<button
 							v-for="item in section.items"
 							:key="item.kind"
 							type="button"
-							class="group flex min-h-16 w-full cursor-pointer items-center gap-3 border-0 border-b border-solid border-divider bg-transparent px-3 py-2 text-left text-primary transition-colors last:border-b-0 hover:bg-button-bg focus-visible:z-[1] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand-shadow"
+							class="group flex min-h-16 w-full cursor-pointer items-center gap-3 border-0 border-b border-solid border-divider bg-transparent px-3 py-2 text-left text-[var(--color-text-default)] transition-colors last:border-b-0 hover:bg-surface-4 focus-visible:z-[1] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand-shadow"
 							@click="chooseKind(item.kind)"
 						>
 							<span
-								class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-button-bg text-secondary transition-colors group-hover:text-brand"
+								class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-surface-4 text-[var(--color-text-tertiary)] transition-colors group-hover:text-brand"
 							>
 								<component :is="item.icon" class="size-5" aria-hidden="true" />
 							</span>
 							<span class="flex min-w-0 flex-1 flex-col gap-0.5">
-								<strong class="truncate text-sm text-contrast">{{ item.label }}</strong>
-								<span class="line-clamp-2 text-xs leading-5 text-secondary">{{
+								<strong class="truncate text-sm text-[var(--color-text-primary)]">{{
+									item.label
+								}}</strong>
+								<span class="line-clamp-2 text-xs leading-5 text-[var(--color-text-tertiary)]">{{
 									item.description
 								}}</span>
 							</span>
-							<ChevronRightIcon class="size-5 shrink-0 text-secondary" aria-hidden="true" />
+							<ChevronRightIcon
+								class="size-5 shrink-0 text-[var(--color-text-tertiary)]"
+								aria-hidden="true"
+							/>
 						</button>
 					</div>
 				</section>
@@ -375,12 +382,15 @@ defineExpose({ show })
 					wrapper-class="w-full"
 					clearable
 				/>
-				<p v-if="loadingWorlds" class="m-0 py-8 text-center text-sm text-secondary">
+				<p
+					v-if="loadingWorlds"
+					class="m-0 py-8 text-center text-sm text-[var(--color-text-tertiary)]"
+				>
 					{{ formatMessage(messages.loading) }}
 				</p>
 				<ul
 					v-else
-					class="m-0 flex list-none flex-col overflow-hidden rounded-lg border border-solid border-divider bg-bg-raised p-0"
+					class="m-0 flex list-none flex-col overflow-hidden rounded-lg border border-solid border-divider bg-surface-2 p-0"
 				>
 					<li
 						v-for="item in selectedInstance ? filteredWorlds : filteredInstances"
@@ -389,7 +399,7 @@ defineExpose({ show })
 					>
 						<button
 							type="button"
-							class="flex min-h-16 w-full cursor-pointer items-center gap-3 border-0 bg-transparent px-3 py-2 text-left transition-colors hover:bg-button-bg focus-visible:z-[1] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand-shadow"
+							class="flex min-h-16 w-full cursor-pointer items-center gap-3 border-0 bg-transparent px-3 py-2 text-left transition-colors hover:bg-surface-4 focus-visible:z-[1] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand-shadow"
 							@click="
 								selectedInstance ? chooseWorld(item as World) : chooseInstance(item as GameInstance)
 							"
@@ -404,18 +414,29 @@ defineExpose({ show })
 							<ServerIcon v-else-if="item.type === 'server'" class="size-5 shrink-0" />
 							<GameIcon v-else class="size-5 shrink-0" />
 							<span class="flex min-w-0 flex-1 flex-col gap-0.5">
-								<strong class="truncate text-sm text-contrast">{{ item.name }}</strong>
-								<span v-if="'id' in item" class="truncate text-xs capitalize text-secondary">
+								<strong class="truncate text-sm text-[var(--color-text-primary)]">{{
+									item.name
+								}}</strong>
+								<span
+									v-if="'id' in item"
+									class="truncate text-xs capitalize text-[var(--color-text-tertiary)]"
+								>
 									{{ item.loader }} · {{ item.game_version }}
 								</span>
-								<span v-else-if="item.type === 'server'" class="truncate text-xs text-secondary">
+								<span
+									v-else-if="item.type === 'server'"
+									class="truncate text-xs text-[var(--color-text-tertiary)]"
+								>
 									{{ item.address }}
 								</span>
-								<span v-else class="truncate text-xs text-secondary">
+								<span v-else class="truncate text-xs text-[var(--color-text-tertiary)]">
 									{{ selectedInstance?.name }}
 								</span>
 							</span>
-							<ChevronRightIcon class="size-5 shrink-0 text-secondary" aria-hidden="true" />
+							<ChevronRightIcon
+								class="size-5 shrink-0 text-[var(--color-text-tertiary)]"
+								aria-hidden="true"
+							/>
 						</button>
 					</li>
 				</ul>
@@ -424,7 +445,7 @@ defineExpose({ show })
 						!loadingWorlds &&
 						(selectedInstance ? filteredWorlds.length === 0 : filteredInstances.length === 0)
 					"
-					class="m-0 py-8 text-center text-sm text-secondary"
+					class="m-0 py-8 text-center text-sm text-[var(--color-text-tertiary)]"
 				>
 					{{ formatMessage(messages.noResults) }}
 				</p>

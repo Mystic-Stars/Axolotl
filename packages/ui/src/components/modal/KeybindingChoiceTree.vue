@@ -19,8 +19,10 @@
 			class="flex cursor-pointer items-center gap-2 rounded-md py-2 pr-2 text-sm transition-colors duration-150"
 			:class="[
 				row.disabled ? 'cursor-not-allowed opacity-50' : 'hover:bg-surface-3',
-				row.selected ? 'bg-brand-highlight text-contrast' : 'text-primary',
-				row.kind === 'item' ? '' : 'font-semibold text-contrast',
+				row.selected
+					? 'bg-brand-highlight text-[var(--color-text-primary)]'
+					: 'text-[var(--color-text-default)]',
+				row.kind === 'item' ? '' : 'font-semibold text-[var(--color-text-primary)]',
 			]"
 			:style="{ paddingLeft: `${row.level * 1.25 + 0.5}rem` }"
 			@click="activateRow(row)"
@@ -28,13 +30,13 @@
 		>
 			<ChevronRightIcon
 				v-if="row.expandable"
-				class="h-4 w-4 shrink-0 text-secondary transition-transform duration-150"
+				class="h-4 w-4 shrink-0 text-[var(--color-text-tertiary)] transition-transform duration-150"
 				:class="{ 'rotate-90': row.expanded }"
 				aria-hidden="true"
 			/>
 			<span v-else class="w-4 shrink-0" aria-hidden="true" />
 			<span class="min-w-0 flex-1 truncate">{{ row.label }}</span>
-			<span v-if="row.disabledReason" class="shrink-0 text-xs text-secondary">
+			<span v-if="row.disabledReason" class="shrink-0 text-xs text-[var(--color-text-tertiary)]">
 				{{ row.disabledReason }}
 			</span>
 		</div>

@@ -71,8 +71,10 @@
 						<DownloadIcon />
 					</div>
 					<div class="min-w-0 flex-grow">
-						<div class="truncate font-semibold text-contrast">{{ bar.title || bar.message }}</div>
-						<div class="truncate text-sm text-secondary">{{ bar.message }}</div>
+						<div class="truncate font-semibold text-[var(--color-text-primary)]">
+							{{ bar.title || bar.message }}
+						</div>
+						<div class="truncate text-sm text-[var(--color-text-tertiary)]">{{ bar.message }}</div>
 					</div>
 					<TagItem>
 						<component :is="providerIcon(legacyProvider(bar))" />
@@ -111,7 +113,7 @@
 					</div>
 					<div class="min-w-48 flex-grow">
 						<div class="flex flex-wrap items-center gap-2">
-							<h2 class="m-0 truncate text-lg font-semibold text-contrast">
+							<h2 class="m-0 truncate text-lg font-semibold text-[var(--color-text-primary)]">
 								{{ jobTitle(job) }}
 							</h2>
 							<TagItem>
@@ -125,7 +127,9 @@
 								:type="formatMessage(messages.instanceDeleted)"
 							/>
 						</div>
-						<div class="mt-1 flex flex-wrap items-center gap-2 text-sm text-secondary">
+						<div
+							class="mt-1 flex flex-wrap items-center gap-2 text-sm text-[var(--color-text-tertiary)]"
+						>
 							<span>{{ jobPhaseLabel(job) }}</span>
 							<BulletDivider />
 							<span>{{ formatDate(job.finished ?? job.modified) }}</span>
@@ -138,7 +142,7 @@
 						</div>
 						<div
 							v-if="downloadTelemetry(job).length"
-							class="mt-1 flex flex-wrap items-center gap-2 text-sm text-secondary"
+							class="mt-1 flex flex-wrap items-center gap-2 text-sm text-[var(--color-text-tertiary)]"
 						>
 							<template
 								v-for="(metric, index) in downloadTelemetry(job)"
@@ -152,7 +156,7 @@
 							<div
 								v-for="item in activeRequestItems(job).slice(0, 3)"
 								:key="`${item.id}-${item.request_url}`"
-								class="flex min-w-0 items-center gap-2 text-xs text-secondary"
+								class="flex min-w-0 items-center gap-2 text-xs text-[var(--color-text-tertiary)]"
 							>
 								<GlobeIcon class="size-3.5 shrink-0" />
 								<span v-if="item.source" class="shrink-0">
@@ -162,7 +166,10 @@
 									item.request_url
 								}}</code>
 							</div>
-							<div v-if="activeRequestItems(job).length > 3" class="text-xs text-secondary">
+							<div
+								v-if="activeRequestItems(job).length > 3"
+								class="text-xs text-[var(--color-text-tertiary)]"
+							>
 								{{
 									formatMessage(messages.moreActiveRequests, {
 										count: activeRequestItems(job).length - 3,
@@ -350,10 +357,12 @@
 					>
 						<template #cell-name="{ row }">
 							<div class="min-w-0 py-2">
-								<div class="truncate font-medium text-contrast">{{ row.name }}</div>
+								<div class="truncate font-medium text-[var(--color-text-primary)]">
+									{{ row.name }}
+								</div>
 								<div
 									v-if="row.project_id && row.version_id"
-									class="truncate text-xs text-secondary"
+									class="truncate text-xs text-[var(--color-text-tertiary)]"
 								>
 									{{
 										formatMessage(messages.projectFile, {
@@ -367,7 +376,7 @@
 								</div>
 								<div
 									v-if="row.request_url"
-									class="flex min-w-0 items-center gap-1.5 text-xs text-secondary"
+									class="flex min-w-0 items-center gap-1.5 text-xs text-[var(--color-text-tertiary)]"
 								>
 									<GlobeIcon class="size-3 shrink-0" />
 									<span v-if="row.source" class="shrink-0">

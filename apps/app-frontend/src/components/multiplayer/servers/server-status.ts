@@ -16,7 +16,7 @@ export interface ServerStatusMeta {
 }
 
 export const SERVER_STATUS_META: Record<ServerStatus, ServerStatusMeta> = {
-	created: { label: serverStatusMessages.created, color: 'text-secondary' },
+	created: { label: serverStatusMessages.created, color: 'text-[var(--color-text-tertiary)]' },
 	eula_pending: { label: serverStatusMessages.eulaPending, color: 'text-orange' },
 	ready: { label: serverStatusMessages.ready, color: 'text-brand' },
 	starting: { label: serverStatusMessages.starting, color: 'text-orange' },

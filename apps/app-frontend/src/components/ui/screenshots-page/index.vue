@@ -1489,7 +1489,7 @@ onBeforeUnmount(() => {
 		:class="{ 'justify-center': screenshots.length === 0 && !groupIdPendingNameEdit }"
 	>
 		<template v-if="screenshots.length > 0 || groupIdPendingNameEdit">
-			<h1 v-if="showHeading" class="m-0 text-2xl font-bold text-contrast">
+			<h1 v-if="showHeading" class="m-0 text-2xl font-bold text-[var(--color-text-primary)]">
 				{{ formatMessage(messages.heading) }}
 			</h1>
 
@@ -1649,7 +1649,9 @@ onBeforeUnmount(() => {
 		hide-when-modal-open
 	>
 		<div class="flex items-center gap-0.5">
-			<span class="px-4 py-2.5 text-base font-semibold tabular-nums text-contrast">
+			<span
+				class="px-4 py-2.5 text-base font-semibold tabular-nums text-[var(--color-text-primary)]"
+			>
 				{{ formatMessage(messages.selectedCount, { count: selectedKeys.size }) }}
 			</span>
 			<div class="mx-1 h-6 w-px bg-surface-5" />

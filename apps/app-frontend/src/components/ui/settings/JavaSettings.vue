@@ -306,7 +306,7 @@ async function onJavaDownloaded(job) {
 				<h2
 					:id="index === 0 ? 'settings-target-java-installations' : undefined"
 					:tabindex="index === 0 ? -1 : undefined"
-					class="m-0 text-lg font-semibold text-contrast"
+					class="m-0 text-lg font-semibold text-[var(--color-text-primary)]"
 				>
 					{{ formatMessage(messages.javaLocation, { version: javaVersion }) }}
 				</h2>
@@ -402,10 +402,10 @@ async function onJavaDownloaded(job) {
 		>
 			<div class="flex items-center justify-between gap-4">
 				<div class="flex min-w-0 flex-col gap-1">
-					<span class="text-sm font-semibold text-contrast">
+					<span class="text-sm font-semibold text-[var(--color-text-primary)]">
 						{{ formatMessage(messages.autoHighPerformanceMode) }}
 					</span>
-					<span class="text-xs text-secondary">
+					<span class="text-xs text-[var(--color-text-tertiary)]">
 						{{ formatMessage(messages.autoHighPerformanceModeDescription) }}
 					</span>
 				</div>
@@ -418,7 +418,7 @@ async function onJavaDownloaded(job) {
 				<h2
 					id="settings-target-java-memory"
 					tabindex="-1"
-					class="m-0 text-lg font-semibold text-contrast"
+					class="m-0 text-lg font-semibold text-[var(--color-text-primary)]"
 				>
 					{{ formatMessage(messages.memory) }}
 				</h2>
@@ -429,7 +429,7 @@ async function onJavaDownloaded(job) {
 						v-model="memory.optimize_before_launch"
 						:label="formatMessage(messages.optimizeMemoryBeforeLaunch)"
 					/>
-					<p class="m-0 text-xs leading-tight text-secondary">
+					<p class="m-0 text-xs leading-tight text-[var(--color-text-tertiary)]">
 						{{ formatMessage(messages.optimizeMemoryBeforeLaunchDescription) }}
 					</p>
 				</div>
@@ -461,7 +461,7 @@ async function onJavaDownloaded(job) {
 				<h2
 					id="settings-target-java-arguments"
 					tabindex="-1"
-					class="m-0 text-lg font-semibold text-contrast"
+					class="m-0 text-lg font-semibold text-[var(--color-text-primary)]"
 				>
 					{{ formatMessage(messages.javaArguments) }}
 				</h2>

@@ -110,7 +110,7 @@ const { formatMessage } = useVIntl()
 	}
 	50% {
 		opacity: 0.5;
-		border-color: var(--color-button-bg);
+		border-color: var(--surface-4);
 	}
 	to {
 		opacity: 0.25;

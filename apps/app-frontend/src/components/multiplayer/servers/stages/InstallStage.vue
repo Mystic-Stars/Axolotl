@@ -70,7 +70,7 @@ const isBusy = computed(
 				v-else-if="ctx.installPhase.value === 'done'"
 				class="size-6 shrink-0 text-green"
 			/>
-			<span class="text-lg font-semibold text-contrast">{{ phaseText }}</span>
+			<span class="text-lg font-semibold text-[var(--color-text-primary)]">{{ phaseText }}</span>
 		</div>
 
 		<ProgressBar
@@ -85,7 +85,7 @@ const isBusy = computed(
 
 		<p
 			v-if="ctx.installPhase.value === 'downloading'"
-			class="m-0 text-xs font-medium text-secondary"
+			class="m-0 text-xs font-medium text-[var(--color-text-tertiary)]"
 		>
 			{{ formatMessage(messages.backgroundHint) }}
 		</p>
@@ -99,11 +99,11 @@ const isBusy = computed(
 		</Admonition>
 
 		<div v-if="ctx.installPhase.value === 'error'" class="flex flex-col gap-2">
-			<span class="text-sm font-semibold text-secondary">
+			<span class="text-sm font-semibold text-[var(--color-text-tertiary)]">
 				{{ formatMessage(messages.installLog) }}
 			</span>
 			<pre
-				class="max-h-56 overflow-y-auto whitespace-pre-wrap rounded-xl border border-solid border-surface-4 bg-surface-3 p-3 font-mono text-xs leading-relaxed text-primary"
+				class="max-h-56 overflow-y-auto whitespace-pre-wrap rounded-xl border border-solid border-surface-4 bg-surface-3 p-3 font-mono text-xs leading-relaxed text-[var(--color-text-default)]"
 				>{{ ctx.installLog.value.slice(-40).join('\n') }}</pre>
 		</div>
 	</div>

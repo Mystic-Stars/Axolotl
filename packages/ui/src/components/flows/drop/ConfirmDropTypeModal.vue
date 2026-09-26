@@ -7,11 +7,11 @@
 		:on-after-hide="() => emit('cancel')"
 	>
 		<template #title>
-			<span class="text-contrast">{{ formatMessage(messages.title) }}</span>
+			<span class="text-[var(--color-text-primary)]">{{ formatMessage(messages.title) }}</span>
 		</template>
 
 		<div class="flex flex-col gap-4">
-			<span class="text-secondary text-sm">{{ props.fileName }}</span>
+			<span class="text-[var(--color-text-tertiary)] text-sm">{{ props.fileName }}</span>
 
 			<div class="grid grid-cols-2 gap-3">
 				<BigOptionButton
@@ -33,11 +33,12 @@
 					@click="emit('help')"
 				>
 					<HelpCircleIcon
-						class="size-5 text-secondary transition-colors group-hover/help:text-contrast"
+						class="size-5 text-[var(--color-text-tertiary)] transition-colors group-hover/help:text-[var(--color-text-primary)]"
 					/>
-					<span class="text-sm text-secondary transition-colors group-hover/help:text-contrast">{{
-						formatMessage(messages.help)
-					}}</span>
+					<span
+						class="text-sm text-[var(--color-text-tertiary)] transition-colors group-hover/help:text-[var(--color-text-primary)]"
+						>{{ formatMessage(messages.help) }}</span
+					>
 				</button>
 				<Button class="flex items-center gap-2" @click="handleCancel"
 					>{{

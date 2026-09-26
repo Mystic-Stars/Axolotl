@@ -37,7 +37,7 @@ const highlighted = computed(() => props.selected ?? props.isEquipped)
 			:class="
 				highlighted
 					? `bg-brand highlighted-outer-glow`
-					: `bg-button-bg brightness-95 group-hover:brightness-100`
+					: `bg-surface-4 brightness-95 group-hover:brightness-100`
 			"
 			class="relative block p-[3px] rounded-lg border-0 group-active:scale-95 transition-all"
 		>
@@ -52,7 +52,7 @@ const highlighted = computed(() => props.selected ?? props.isEquipped)
 			</span>
 			<span
 				v-if="$slots.default || $slots.icon"
-				class="p-4 absolute inset-0 flex items-center justify-center text-primary font-medium"
+				class="p-4 absolute inset-0 flex items-center justify-center text-[var(--color-text-default)] font-medium"
 			>
 				<span class="mb-1">
 					<slot name="icon"></slot>

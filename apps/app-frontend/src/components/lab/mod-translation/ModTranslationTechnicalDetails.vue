@@ -25,13 +25,13 @@ function copy() {
 		<div class="flex justify-between gap-2">
 			<button
 				:aria-expanded="open"
-				class="inline-flex items-center gap-[0.3rem] border-0 bg-transparent p-[0.2rem] text-secondary text-[0.68rem]"
+				class="inline-flex items-center gap-[0.3rem] border-0 bg-transparent p-[0.2rem] text-[var(--color-text-tertiary)] text-[0.68rem]"
 				@click="open = !open"
 			>
 				技术详情 <ChevronUpIcon v-if="open" /><ChevronDownIcon v-else />
 			</button>
 			<button
-				class="inline-flex items-center gap-[0.3rem] border-0 bg-transparent p-[0.2rem] text-secondary text-[0.68rem]"
+				class="inline-flex items-center gap-[0.3rem] border-0 bg-transparent p-[0.2rem] text-[var(--color-text-tertiary)] text-[0.68rem]"
 				@click="copy"
 			>
 				复制诊断信息

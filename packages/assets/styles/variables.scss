@@ -58,6 +58,7 @@
 	--color-blue-900: #193861;
 	--color-blue-950: #112340;
 	--color-blue: var(--color-blue-600);
+	--color-medal-promo: var(--color-blue);
 
 	--color-purple-50: #faf5ff;
 	--color-purple-100: #f2e7ff;
@@ -105,10 +106,8 @@
 	// ===
 
 	--color-bg: var(--surface-1);
-	--color-raised-bg: var(--surface-3);
 	--color-super-raised-bg: var(--surface-4);
 
-	--color-button-bg: var(--surface-4);
 	--color-button-border: rgba(161, 161, 161, 0.35);
 	--color-scrollbar: #96a2b0;
 
@@ -117,7 +116,6 @@
 
 	--color-base: var(--color-text-default);
 	--color-secondary: var(--color-text-tertiary);
-	--color-text-secondary: var(--color-secondary);
 	--color-contrast: var(--color-text-primary);
 	--color-accent-contrast: #ffffff;
 
@@ -125,6 +123,7 @@
 	--color-orange-highlight: rgba(224, 131, 37, 0.25);
 	--color-green-highlight: rgba(0, 175, 92, 0.25);
 	--color-blue-highlight: rgba(31, 104, 192, 0.25);
+	--color-medal-promo-highlight: var(--color-blue-highlight);
 	--color-purple-highlight: rgba(142, 50, 243, 0.25);
 	--color-pink-highlight: rgba(219, 39, 119, 0.22);
 	--color-gray-highlight: rgba(89, 91, 97, 0.25);
@@ -309,6 +308,7 @@ html {
 	--color-blue-900: #1a378e;
 	--color-blue-950: #152356;
 	--color-blue: var(--color-blue-400);
+	--color-medal-promo: var(--color-blue);
 
 	--color-purple-50: #faf5ff;
 	--color-purple-100: #f4e7ff;
@@ -356,19 +356,16 @@ html {
 	// ===
 
 	--color-bg: var(--surface-1);
-	--color-raised-bg: var(--surface-3);
 	--color-super-raised-bg: var(--surface-4);
 
-	--color-button-bg: var(--surface-4);
 	--color-button-border: rgba(193, 190, 209, 0.12);
 	--color-scrollbar: var(--surface-5);
 
-	--color-divider: var(--color-button-bg);
+	--color-divider: var(--surface-5);
 	--color-divider-dark: #646c75;
 
 	--color-base: var(--color-text-default);
 	--color-secondary: var(--color-text-tertiary);
-	--color-text-secondary: var(--color-secondary);
 	--color-contrast: var(--color-text-primary);
 	--color-accent-contrast: #000000;
 
@@ -376,6 +373,7 @@ html {
 	--color-orange-highlight: rgba(255, 163, 71, 0.25);
 	--color-green-highlight: rgba(27, 217, 106, 0.25);
 	--color-blue-highlight: rgba(79, 156, 255, 0.25);
+	--color-medal-promo-highlight: var(--color-blue-highlight);
 	--color-purple-highlight: rgba(199, 138, 255, 0.25);
 	--color-pink-highlight: rgba(244, 114, 182, 0.25);
 	--color-gray-highlight: rgba(159, 164, 179, 0.25);

@@ -30,7 +30,7 @@
 				@blur="progressOpen = false"
 			>
 				<span
-					class="flex items-center justify-center gap-1.5 truncate text-center text-sm text-secondary"
+					class="flex items-center justify-center gap-1.5 truncate text-center text-sm text-[var(--color-text-tertiary)]"
 				>
 					<CheckCircleIcon
 						v-if="progress.complete"
@@ -155,6 +155,6 @@ const blockerTooltip = computed(() => {
 function stepClass(index: number) {
 	if (progress.value.complete || index < progress.value.currentIndex) return 'text-green'
 	if (index === progress.value.currentIndex) return 'font-semibold text-brand'
-	return 'text-secondary'
+	return 'text-[var(--color-text-tertiary)]'
 }
 </script>

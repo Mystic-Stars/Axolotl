@@ -124,7 +124,7 @@ function forwardAdd(path: (string | number)[], value: string) {
 		>
 			<button
 				type="button"
-				class="flex size-5 shrink-0 items-center justify-center border-0 bg-transparent p-0 text-secondary"
+				class="flex size-5 shrink-0 items-center justify-center border-0 bg-transparent p-0 text-[var(--color-text-tertiary)]"
 				:class="expandable ? 'cursor-pointer' : 'cursor-default'"
 				:aria-label="formatMessage(expanded ? messages.collapse : messages.expand)"
 				@click="expandable && (expanded = !expanded)"
@@ -136,26 +136,26 @@ function forwardAdd(path: (string | number)[], value: string) {
 				<input
 					v-if="renaming"
 					v-model="renameDraft"
-					class="min-w-0 flex-1 rounded border border-surface-5 bg-surface-1 px-1 text-sm text-contrast"
+					class="min-w-0 flex-1 rounded border border-surface-5 bg-surface-1 px-1 text-sm text-[var(--color-text-primary)]"
 					@blur="commitRename"
 					@keydown.enter.prevent="commitRename"
 				/>
 				<button
 					v-else
 					type="button"
-					class="shrink-0 border-0 bg-transparent p-0 text-secondary"
+					class="shrink-0 border-0 bg-transparent p-0 text-[var(--color-text-tertiary)]"
 					:class="{ 'cursor-text': !readOnly }"
 					@dblclick="!readOnly && (renaming = true)"
 				>
 					{{ name }}:
 				</button>
 			</template>
-			<span class="text-xs text-secondary">{{ typeName }}</span>
+			<span class="text-xs text-[var(--color-text-tertiary)]">{{ typeName }}</span>
 			<input
 				v-if="editing"
 				v-model="draft"
 				autofocus
-				class="min-w-0 flex-1 rounded border border-brand bg-surface-1 px-2 py-0.5 font-mono text-xs text-contrast"
+				class="min-w-0 flex-1 rounded border border-brand bg-surface-1 px-2 py-0.5 font-mono text-xs text-[var(--color-text-primary)]"
 				@blur="commitEdit"
 				@keydown.enter.prevent="commitEdit"
 				@keydown.escape="editing = false"
@@ -163,7 +163,7 @@ function forwardAdd(path: (string | number)[], value: string) {
 			<button
 				v-else
 				type="button"
-				class="min-w-0 truncate border-0 bg-transparent p-0 text-left font-mono text-xs text-primary"
+				class="min-w-0 truncate border-0 bg-transparent p-0 text-left font-mono text-xs text-[var(--color-text-default)]"
 				:class="{ 'cursor-text': !expandable && !readOnly }"
 				@dblclick="beginEdit"
 			>
@@ -172,7 +172,7 @@ function forwardAdd(path: (string | number)[], value: string) {
 			<button
 				v-if="!readOnly && expandable"
 				type="button"
-				class="ml-auto hidden rounded border-0 bg-transparent px-1 text-xs text-secondary group-hover:inline-flex hover:text-contrast"
+				class="ml-auto hidden rounded border-0 bg-transparent px-1 text-xs text-[var(--color-text-tertiary)] group-hover:inline-flex hover:text-[var(--color-text-primary)]"
 				:aria-label="formatMessage(messages.add)"
 				@click="adding = !adding"
 			>
@@ -181,7 +181,7 @@ function forwardAdd(path: (string | number)[], value: string) {
 			<button
 				v-if="!readOnly && path.length > 0"
 				type="button"
-				class="hidden rounded border-0 bg-transparent px-1 text-xs text-secondary group-hover:inline-flex hover:text-red"
+				class="hidden rounded border-0 bg-transparent px-1 text-xs text-[var(--color-text-tertiary)] group-hover:inline-flex hover:text-red"
 				:aria-label="formatMessage(messages.remove)"
 				@click="emit('remove', path)"
 			>
@@ -196,7 +196,7 @@ function forwardAdd(path: (string | number)[], value: string) {
 			<input
 				v-model="addDraft"
 				autofocus
-				class="min-w-0 flex-1 rounded border border-surface-5 bg-surface-1 px-2 py-1 font-mono text-xs text-contrast"
+				class="min-w-0 flex-1 rounded border border-surface-5 bg-surface-1 px-2 py-1 font-mono text-xs text-[var(--color-text-primary)]"
 				:placeholder="formatMessage(messages.addPlaceholder)"
 				@keydown.enter="commitAdd"
 				@blur="commitAdd"

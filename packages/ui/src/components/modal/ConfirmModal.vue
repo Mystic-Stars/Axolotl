@@ -8,7 +8,7 @@
 	>
 		<template #title>
 			<slot name="title">
-				<span class="font-extrabold text-contrast text-lg">{{
+				<span class="font-extrabold text-[var(--color-text-primary)] text-lg">{{
 					title || formatMessage(messages.noTitle)
 				}}</span>
 			</slot>

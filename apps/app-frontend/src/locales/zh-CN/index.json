@@ -2082,7 +2082,7 @@
     "message": "关闭"
   },
   "app.headless-demo.dialog-description": {
-    "message": "此对话框内容使用 bg-surface-3、text-contrast 与 border-surface-5。遮罩与焦点环在所有主题下保持可读。"
+    "message": "此对话框内容使用 surface-3、主文本与 surface-5 边框。遮罩与焦点环在所有主题下保持可读。"
   },
   "app.headless-demo.dialog-title": {
     "message": "令牌映射对话框"
@@ -2121,7 +2121,7 @@
     "message": "Headless 令牌演示"
   },
   "app.headless-demo.tooltip-content": {
-    "message": "提示内容映射到 surface-4 / text-contrast。"
+    "message": "提示内容映射到 surface-4 / 主文本。"
   },
   "app.headless-demo.tooltip-trigger": {
     "message": "悬停提示"

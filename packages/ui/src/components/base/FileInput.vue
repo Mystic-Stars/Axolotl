@@ -94,7 +94,7 @@ label {
 		justify-content: center;
 		align-items: center;
 		grid-gap: 0.5rem;
-		background-color: var(--color-button-bg);
+		background-color: var(--surface-4);
 		border-radius: var(--radius-sm);
 		border: dashed 2px var(--color-text-tertiary);
 		cursor: pointer;

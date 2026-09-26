@@ -3,7 +3,7 @@
 		<div class="flex flex-col gap-4">
 			<Table :columns="javaInstallColumns" :data="chosenInstallOptions" row-key="path">
 				<template #cell-version="{ value }">
-					<span class="font-semibold text-primary">{{ value }}</span>
+					<span class="font-semibold text-[var(--color-text-default)]">{{ value }}</span>
 				</template>
 				<template #cell-path="{ value }">
 					<span v-tooltip="value" class="block truncate font-mono text-xs">{{ value }}</span>
@@ -19,7 +19,7 @@
 					</div>
 				</template>
 				<template #empty-state>
-					<div class="p-4 text-secondary">
+					<div class="p-4 text-[var(--color-text-tertiary)]">
 						{{ formatMessage(messages.noneFound) }}
 					</div>
 				</template>

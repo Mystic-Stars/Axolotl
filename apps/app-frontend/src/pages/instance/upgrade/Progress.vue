@@ -1,5 +1,5 @@
 <template>
-	<p class="m-0 py-2 text-secondary">{{ formatMessage(messages.opening) }}</p>
+	<p class="m-0 py-2 text-[var(--color-text-tertiary)]">{{ formatMessage(messages.opening) }}</p>
 </template>
 
 <script setup lang="ts">

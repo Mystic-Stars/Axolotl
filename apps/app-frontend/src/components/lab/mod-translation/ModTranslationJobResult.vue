@@ -75,17 +75,17 @@ const hasWarnings = computed(
 
 .result--completed {
 	border-color: color-mix(in srgb, var(--color-green) 24%, var(--color-divider));
-	background: color-mix(in srgb, var(--color-green) 7%, var(--color-button-bg));
+	background: color-mix(in srgb, var(--color-green) 7%, var(--surface-4));
 }
 
 .result--failed {
 	border-color: color-mix(in srgb, var(--color-red) 24%, var(--color-divider));
-	background: color-mix(in srgb, var(--color-red) 7%, var(--color-button-bg));
+	background: color-mix(in srgb, var(--color-red) 7%, var(--surface-4));
 }
 
 .result--warning {
 	border-color: color-mix(in srgb, var(--color-orange) 30%, var(--color-divider));
-	background: color-mix(in srgb, var(--color-orange) 7%, var(--color-button-bg));
+	background: color-mix(in srgb, var(--color-orange) 7%, var(--surface-4));
 }
 
 .result--failed .result-head {
@@ -119,7 +119,7 @@ const hasWarnings = computed(
 	display: flex;
 	justify-content: space-between;
 	gap: 0.75rem;
-	color: var(--color-text-secondary);
+	color: var(--color-text-tertiary);
 }
 
 .result-row strong {
@@ -145,7 +145,7 @@ const hasWarnings = computed(
 .secondary,
 .path,
 .result p {
-	color: var(--color-text-secondary);
+	color: var(--color-text-tertiary);
 }
 
 .warnings {
@@ -184,7 +184,7 @@ const hasWarnings = computed(
 	border-radius: var(--radius-sm);
 	background: var(--surface-1);
 	padding: 0.55rem;
-	color: var(--color-text-secondary);
+	color: var(--color-text-tertiary);
 	font-size: 0.64rem;
 	white-space: pre-wrap;
 }

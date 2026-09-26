@@ -36,7 +36,11 @@
 					>
 						<div class="flex text-wrap break-words items-center gap-3 min-w-0">
 							<slot name="title">
-								<span v-if="header" :id="headerId" class="text-2xl font-semibold text-contrast">
+								<span
+									v-if="header"
+									:id="headerId"
+									class="text-2xl font-semibold text-[var(--color-text-primary)]"
+								>
 									{{ header }}
 								</span>
 							</slot>

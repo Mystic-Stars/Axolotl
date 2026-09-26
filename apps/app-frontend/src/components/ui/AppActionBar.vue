@@ -23,12 +23,12 @@
 			<template #menu="{ hide }">
 				<div class="w-[22rem] max-w-[calc(100vw-2rem)] p-2">
 					<div class="mb-2 flex items-center justify-between px-2">
-						<span class="font-semibold text-contrast">{{
+						<span class="font-semibold text-[var(--color-text-primary)]">{{
 							formatMessage(messages.notifications)
 						}}</span>
 						<button
 							v-if="notificationHistory.length"
-							class="text-xs text-secondary hover:text-contrast"
+							class="text-xs text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)]"
 							@click="runPopoutAction(hide, clearNotificationHistory)"
 						>
 							{{ formatMessage(messages.clearNotifications) }}
@@ -36,7 +36,7 @@
 					</div>
 					<div
 						v-if="!notificationHistory.length"
-						class="px-2 py-4 text-center text-sm text-secondary"
+						class="px-2 py-4 text-center text-sm text-[var(--color-text-tertiary)]"
 					>
 						{{ formatMessage(messages.noNotifications) }}
 					</div>
@@ -44,28 +44,33 @@
 						<div
 							v-for="item in notificationHistory"
 							:key="item.key"
-							class="flex items-start gap-2 rounded-lg p-2 hover:bg-button-bg"
+							class="flex items-start gap-2 rounded-lg p-2 hover:bg-surface-4"
 						>
 							<div
 								class="mt-1 size-2 shrink-0 rounded-full"
 								:class="notificationDotClass(item.type)"
 							/>
 							<button class="min-w-0 flex-1 text-left" @click="openNotification(item)">
-								<div class="truncate text-sm font-medium text-contrast">{{ item.title }}</div>
-								<div v-if="item.text" class="line-clamp-2 text-xs text-secondary">
+								<div class="truncate text-sm font-medium text-[var(--color-text-primary)]">
+									{{ item.title }}
+								</div>
+								<div
+									v-if="item.text"
+									class="line-clamp-2 text-xs text-[var(--color-text-tertiary)]"
+								>
 									{{ item.text }}
 								</div>
 							</button>
 							<button
 								v-if="item.primaryAction"
-								class="shrink-0 rounded-md px-2 py-1 text-xs text-brand hover:bg-button-bg"
+								class="shrink-0 rounded-md px-2 py-1 text-xs text-brand hover:bg-surface-4"
 								@click.stop="runNotificationAction(item)"
 							>
 								{{ item.primaryAction.label }}
 							</button>
 							<button
 								v-tooltip="formatMessage(messages.dismissNotification)"
-								class="shrink-0 text-secondary hover:text-contrast"
+								class="shrink-0 text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)]"
 								@click="dismissNotification(item)"
 							>
 								<XIcon class="size-4" />
@@ -108,23 +113,25 @@
 			</template>
 			<template #menu="{ hide }">
 				<div class="w-[22rem] max-w-[calc(100vw-2rem)] p-2">
-					<div class="mb-2 px-2 font-semibold text-contrast">
+					<div class="mb-2 px-2 font-semibold text-[var(--color-text-primary)]">
 						{{ formatMessage(messages.activeBackups) }}
 					</div>
 					<div class="flex max-h-[22rem] flex-col gap-1 overflow-auto">
 						<button
 							v-for="operation in activeBackupOperations"
 							:key="operation.id"
-							class="flex min-w-0 flex-col gap-1 rounded-lg p-2 text-left hover:bg-button-bg"
+							class="flex min-w-0 flex-col gap-1 rounded-lg p-2 text-left hover:bg-surface-4"
 							@click="runPopoutAction(hide, () => openBackupOperation(operation))"
 						>
 							<div class="flex items-center gap-2">
 								<span class="size-2 shrink-0 rounded-full bg-brand" />
-								<span class="truncate text-sm font-medium text-contrast">
+								<span class="truncate text-sm font-medium text-[var(--color-text-primary)]">
 									{{ backupOperationTitle(operation) }}
 								</span>
 							</div>
-							<div class="flex items-center justify-between gap-2 text-xs text-secondary">
+							<div
+								class="flex items-center justify-between gap-2 text-xs text-[var(--color-text-tertiary)]"
+							>
 								<span class="truncate">{{ backupInstanceName(operation.instance_id) }}</span>
 								<span class="shrink-0">{{ backupOperationProgress(operation) }}</span>
 							</div>
@@ -144,8 +151,10 @@
 			><DownloadIcon />
 		</Button>
 		<div v-if="offline" class="flex items-center gap-1">
-			<UnplugIcon class="text-secondary" />
-			<span class="text-sm text-contrast"> {{ formatMessage(messages.offline) }} </span>
+			<UnplugIcon class="text-[var(--color-text-tertiary)]" />
+			<span class="text-sm text-[var(--color-text-primary)]">
+				{{ formatMessage(messages.offline) }}
+			</span>
 		</div>
 		<AppUpdateButton />
 		<div
@@ -153,7 +162,7 @@
 		>
 			<template v-if="selectedProcess">
 				<OnlineIndicatorIcon />
-				<div class="text-contrast flex items-center gap-2">
+				<div class="text-[var(--color-text-primary)] flex items-center gap-2">
 					<router-link
 						v-tooltip="formatMessage(messages.viewInstance)"
 						:to="`/instance/${encodeURIComponent(selectedProcess.instance.id)}`"
@@ -201,7 +210,7 @@
 										@click="runPopoutAction(hide, () => selectProcess(process))"
 									>
 										<OnlineIndicatorIcon />
-										<span class="mr-auto text-contrast flex items-center gap-2">
+										<span class="mr-auto text-[var(--color-text-primary)] flex items-center gap-2">
 											{{ process.instance.name }}
 											<StarIcon v-if="process.uuid === selectedProcess.uuid" class="text-orange" />
 										</span>
@@ -218,7 +227,7 @@
 										class="active:scale-95 flex"
 										@click.stop="runPopoutAction(hide, () => goToTerminal(process.instance.id))"
 									>
-										<TerminalSquareIcon class="text-secondary size-5" />
+										<TerminalSquareIcon class="text-[var(--color-text-tertiary)] size-5" />
 									</button>
 								</div>
 							</div>
@@ -237,12 +246,14 @@
 					class="active:scale-95 flex"
 					@click="goToTerminal()"
 				>
-					<TerminalSquareIcon class="text-secondary size-5" />
+					<TerminalSquareIcon class="text-[var(--color-text-tertiary)] size-5" />
 				</button>
 			</template>
 			<template v-else>
 				<span class="size-2 rounded-full bg-secondary" />
-				<span class="text-secondary"> {{ formatMessage(messages.noInstancesRunning) }} </span>
+				<span class="text-[var(--color-text-tertiary)]">
+					{{ formatMessage(messages.noInstancesRunning) }}
+				</span>
 			</template>
 		</div>
 	</div>

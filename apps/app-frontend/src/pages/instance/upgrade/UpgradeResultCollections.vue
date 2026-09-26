@@ -16,17 +16,21 @@
 							<strong class="min-w-0">{{ formatMessage(messages.warningsTitle) }}</strong>
 							<Badge color="orange" :type="String(warnings.length)" />
 							<DropdownIcon
-								class="ml-auto size-5 shrink-0 text-secondary transition-transform duration-300 group-hover:text-primary"
+								class="ml-auto size-5 shrink-0 text-[var(--color-text-tertiary)] transition-transform duration-300 group-hover:text-[var(--color-text-default)]"
 								:class="{ 'rotate-180': open }"
 								aria-hidden="true"
 							/>
 						</div>
-						<div class="flex flex-wrap gap-x-4 gap-y-1 pl-7 text-xs text-secondary">
+						<div
+							class="flex flex-wrap gap-x-4 gap-y-1 pl-7 text-xs text-[var(--color-text-tertiary)]"
+						>
 							<span v-if="warningSummary.local">{{ summaryLabel('local') }}</span>
 							<span v-if="warningSummary.kept">{{ summaryLabel('kept') }}</span>
 							<span v-if="warningSummary.fallback">{{ summaryLabel('fallback') }}</span>
 						</div>
-						<p class="m-0 pl-7 text-xs text-secondary">{{ formatMessage(messages.reassurance) }}</p>
+						<p class="m-0 pl-7 text-xs text-[var(--color-text-tertiary)]">
+							{{ formatMessage(messages.reassurance) }}
+						</p>
 					</div>
 				</template>
 				<div v-if="warningsOpen" class="flex flex-col gap-3">
@@ -59,7 +63,9 @@
 							</button>
 						</ButtonStyled>
 					</div>
-					<span class="text-sm text-secondary">{{ warningPaginationLabel }}</span>
+					<span class="text-sm text-[var(--color-text-tertiary)]">{{
+						warningPaginationLabel
+					}}</span>
 					<div v-if="warningPage.items.length">
 						<ul class="m-0 flex list-none flex-col gap-2 p-0">
 							<li
@@ -68,13 +74,22 @@
 								data-upgrade-warning-row
 								class="rounded-md bg-surface-2 p-3"
 							>
-								<strong class="block text-sm text-contrast">{{ warningHeadline(warning) }}</strong>
-								<p class="mb-0 mt-1 text-sm text-secondary">{{ warningDescription(warning) }}</p>
-								<div class="mt-2 text-sm font-medium text-contrast">
+								<strong class="block text-sm text-[var(--color-text-primary)]">{{
+									warningHeadline(warning)
+								}}</strong>
+								<p class="mb-0 mt-1 text-sm text-[var(--color-text-tertiary)]">
+									{{ warningDescription(warning) }}
+								</p>
+								<div class="mt-2 text-sm font-medium text-[var(--color-text-primary)]">
 									{{ warningIdentity(warning) }}
 								</div>
-								<div class="text-xs text-secondary">{{ warningContext(warning) }}</div>
-								<details v-if="hasTechnicalDetails(warning)" class="mt-2 text-xs text-secondary">
+								<div class="text-xs text-[var(--color-text-tertiary)]">
+									{{ warningContext(warning) }}
+								</div>
+								<details
+									v-if="hasTechnicalDetails(warning)"
+									class="mt-2 text-xs text-[var(--color-text-tertiary)]"
+								>
 									<summary class="cursor-pointer">
 										{{ formatMessage(messages.technicalDetails) }}
 									</summary>
@@ -102,10 +117,15 @@
 							</li>
 						</ul>
 					</div>
-					<p v-else class="m-0 rounded-md bg-surface-2 p-4 text-center text-sm text-secondary">
+					<p
+						v-else
+						class="m-0 rounded-md bg-surface-2 p-4 text-center text-sm text-[var(--color-text-tertiary)]"
+					>
 						{{ formatMessage(messages.noWarningMatches) }}
 					</p>
-					<div class="flex flex-wrap items-center justify-between gap-3 text-sm text-secondary">
+					<div
+						class="flex flex-wrap items-center justify-between gap-3 text-sm text-[var(--color-text-tertiary)]"
+					>
 						<Button
 							type="outlined"
 							size="2xs"
@@ -175,14 +195,16 @@
 								<RouterLink
 									v-if="item.path"
 									:to="item.path"
-									class="block truncate font-medium text-contrast hover:text-brand hover:underline"
+									class="block truncate font-medium text-[var(--color-text-primary)] hover:text-brand hover:underline"
 									>{{ item.title }}
 									<ExternalIcon class="inline size-3" aria-hidden="true" /></RouterLink
-								><span v-else class="block truncate font-medium text-contrast">{{
+								><span v-else class="block truncate font-medium text-[var(--color-text-primary)]">{{
 									item.title
 								}}</span>
-								<div class="truncate text-xs text-secondary">{{ item.context }}</div>
-								<div class="flex flex-wrap items-center gap-x-2 text-secondary">
+								<div class="truncate text-xs text-[var(--color-text-tertiary)]">
+									{{ item.context }}
+								</div>
+								<div class="flex flex-wrap items-center gap-x-2 text-[var(--color-text-tertiary)]">
 									<UpgradeVersionChangelogPopout
 										v-if="item.currentReleaseId"
 										:label="item.current"
@@ -203,11 +225,16 @@
 							<Badge :color="item.badgeColor" :type="item.actionLabel" />
 						</div>
 					</div>
-					<p v-else class="m-0 rounded-md bg-surface-2 p-4 text-center text-sm text-secondary">
+					<p
+						v-else
+						class="m-0 rounded-md bg-surface-2 p-4 text-center text-sm text-[var(--color-text-tertiary)]"
+					>
 						{{ formatMessage(messages.noMatches) }}
 					</p>
 
-					<div class="flex flex-wrap items-center justify-between gap-3 text-sm text-secondary">
+					<div
+						class="flex flex-wrap items-center justify-between gap-3 text-sm text-[var(--color-text-tertiary)]"
+					>
 						<span>{{ paginationLabel }}</span>
 						<div class="flex items-center gap-2">
 							<Button type="outlined" size="2xs" :disabled="pageData.page <= 1" @click="page -= 1"

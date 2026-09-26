@@ -1,7 +1,7 @@
 <template>
 	<div
 		:class="[
-			'relative grid grid-cols-[1.5rem_minmax(0,1fr)_auto] items-start gap-x-2 rounded-2xl border border-solid p-4 text-contrast',
+			'relative grid grid-cols-[1.5rem_minmax(0,1fr)_auto] items-start gap-x-2 rounded-2xl border border-solid p-4 text-[var(--color-text-primary)]',
 			progress != null ? 'overflow-hidden pb-5' : '',
 			typeClasses[type],
 		]"
@@ -18,13 +18,15 @@
 				<span
 					v-if="normalizedTimestamp"
 					v-tooltip="timestampTooltip"
-					class="flex items-center gap-1.5 text-base font-medium leading-normal text-secondary"
+					class="flex items-center gap-1.5 text-base font-medium leading-normal text-[var(--color-text-tertiary)]"
 				>
 					<ClockIcon class="size-4" />
 					{{ relativeTimeLabel }}
 				</span>
 			</div>
-			<div class="font-normal text-contrast/85 leading-tight [overflow-wrap:anywhere]">
+			<div
+				class="font-normal text-[var(--color-text-primary)]/85 leading-tight [overflow-wrap:anywhere]"
+			>
 				<slot>{{ body }}</slot>
 			</div>
 			<div v-if="showActionsUnderneath || $slots.actions" class="mt-2">

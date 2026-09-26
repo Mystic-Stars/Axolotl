@@ -201,13 +201,13 @@ function getCategoryName(category: Category): string {
 
 		<div ref="$languagesList" class="flex flex-col gap-2.5">
 			<template v-for="[category, categoryLocales] in $displayCategories" :key="category">
-				<strong class="mt-4 font-semibold text-contrast">
+				<strong class="mt-4 font-semibold text-[var(--color-text-primary)]">
 					{{ getCategoryName(category) }}
 				</strong>
 
 				<div
 					v-if="category === 'searchResult' && categoryLocales.length === 0"
-					class="p-4 text-secondary"
+					class="p-4 text-[var(--color-text-tertiary)]"
 					tabindex="0"
 				>
 					{{ formatMessage(messages.noResults) }}

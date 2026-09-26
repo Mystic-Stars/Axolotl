@@ -17,11 +17,11 @@
 			class="relative min-h-9 overflow-hidden rounded-xl bg-surface-4 pl-10 pr-3 ring-brand-shadow focus-within:ring-4"
 		>
 			<TerminalSquareIcon
-				class="pointer-events-none absolute left-3 top-2 h-5 w-5 text-secondary"
+				class="pointer-events-none absolute left-3 top-2 h-5 w-5 text-[var(--color-text-tertiary)]"
 				aria-hidden="true"
 			/>
 			<div
-				class="pointer-events-none min-h-9 whitespace-pre-wrap break-all py-2 font-medium leading-5 text-primary"
+				class="pointer-events-none min-h-9 whitespace-pre-wrap break-all py-2 font-medium leading-5 text-[var(--color-text-default)]"
 				aria-hidden="true"
 			>
 				<span v-for="(segment, index) in styledInput" :key="index" :style="segment.style">{{
@@ -34,7 +34,7 @@
 				:placeholder="placeholder"
 				:disabled="disabled"
 				rows="1"
-				class="absolute inset-0 h-full min-h-9 w-full resize-none overflow-hidden border-0 bg-transparent py-2 pl-10 pr-3 font-mono font-medium leading-5 text-transparent caret-[var(--color-text-default)] outline-none placeholder:text-secondary"
+				class="absolute inset-0 h-full min-h-9 w-full resize-none overflow-hidden border-0 bg-transparent py-2 pl-10 pr-3 font-mono font-medium leading-5 text-transparent caret-[var(--color-text-default)] outline-none placeholder:text-[var(--color-text-tertiary)]"
 				autocomplete="off"
 				autocorrect="off"
 				autocapitalize="off"
@@ -84,8 +84,8 @@
 					class="min-h-9 min-w-0 shrink-0 rounded-md border-0 px-3 py-2 text-left font-mono text-sm transition-colors hover:bg-surface-4"
 					:class="
 						index === focusedCandidateIndex
-							? 'bg-surface-4 text-contrast'
-							: 'bg-transparent text-primary'
+							? 'bg-surface-4 text-[var(--color-text-primary)]'
+							: 'bg-transparent text-[var(--color-text-default)]'
 					"
 					:style="candidateStyleToCss(candidate, index === focusedCandidateIndex)"
 					@mouseenter="focusedCandidateIndex = index"
@@ -95,7 +95,7 @@
 					<span class="block truncate">{{ candidate.text }}</span>
 				</button>
 			</div>
-			<div v-else class="px-3 py-4 text-center font-sans text-sm text-secondary">
+			<div v-else class="px-3 py-4 text-center font-sans text-sm text-[var(--color-text-tertiary)]">
 				{{ formatMessage(messages.noCompletions) }}
 			</div>
 		</div>

@@ -247,7 +247,7 @@ function updateValue(value: string | number | boolean | undefined) {
 				<h3
 					ref="settingLabelRef"
 					v-tooltip="truncatedTooltip(settingLabelRef, settingLabel)"
-					class="m-0 truncate text-lg font-semibold text-contrast"
+					class="m-0 truncate text-lg font-semibold text-[var(--color-text-primary)]"
 				>
 					{{ settingLabel }}
 				</h3>
@@ -265,7 +265,7 @@ function updateValue(value: string | number | boolean | undefined) {
 				<a
 					:href="sourceNavigationDisabled ? undefined : href"
 					:aria-disabled="sourceNavigationDisabled || undefined"
-					class="mt-2 inline-flex max-w-full items-center gap-1.5 text-primary"
+					class="mt-2 inline-flex max-w-full items-center gap-1.5 text-[var(--color-text-default)]"
 					:class="sourceNavigationDisabled ? 'cursor-default' : 'hover:underline'"
 					@click.prevent="!sourceNavigationDisabled && emit('open-source', sourceLocation)"
 				>
@@ -280,7 +280,7 @@ function updateValue(value: string | number | boolean | undefined) {
 					}}</span>
 				</a>
 			</RouterLink>
-			<p v-else-if="settingDescription" class="m-0 mt-0.5 text-primary">
+			<p v-else-if="settingDescription" class="m-0 mt-0.5 text-[var(--color-text-default)]">
 				{{ settingDescription }}
 			</p>
 		</div>

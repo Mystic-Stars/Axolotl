@@ -187,7 +187,7 @@ a:not(.no-click-animation),
 	@extend .button-base;
 
 	--_text-color: var(--color-base);
-	--_background-color: var(--color-button-bg);
+	--_background-color: var(--surface-4);
 	--_accent-color: var(--color-base);
 	--_shadow: var(--shadow-inset-sm), 0 0 0 0 transparent;
 
@@ -213,7 +213,7 @@ a:not(.no-click-animation),
 
 		&:focus-visible:not(&:disabled),
 		&:hover:not(&:disabled) {
-			background-color: var(--color-button-bg);
+			background-color: var(--surface-4);
 
 			&.btn-hover-filled,
 			&.btn-hover-filled-only {
@@ -560,7 +560,7 @@ a:not(.no-click-animation),
 	blockquote {
 		padding: 0 1em;
 		color: var(--color-base);
-		border-left: 0.25em solid var(--color-button-bg);
+		border-left: 0.25em solid var(--surface-4);
 		margin-inline: 0;
 	}
 
@@ -604,7 +604,7 @@ a:not(.no-click-animation),
 		margin-top: 1rem;
 		padding: 14px;
 		border-radius: var(--radius-sm);
-		background-color: var(--color-button-bg);
+		background-color: var(--surface-4);
 		overflow-x: auto;
 
 		code {
@@ -618,13 +618,13 @@ a:not(.no-click-animation),
 		padding: 0.2em 0.4em;
 		font-size: 80%;
 		border-radius: var(--radius-sm);
-		background-color: var(--color-button-bg);
+		background-color: var(--surface-4);
 		color: var(--color-contrast);
 	}
 
 	hr {
 		margin: 20px 0;
-		color: var(--color-button-bg);
+		color: var(--surface-4);
 	}
 
 	table {
@@ -635,7 +635,7 @@ a:not(.no-click-animation),
 		border-collapse: separate;
 		border-spacing: 0;
 		line-height: 1.5;
-		border: 0.1rem solid var(--color-button-bg);
+		border: 0.1rem solid var(--surface-4);
 		border-radius: var(--radius-xl);
 
 		th {
@@ -658,17 +658,17 @@ a:not(.no-click-animation),
 
 		td:not(:last-of-type),
 		th:not(:last-of-type) {
-			border-right: 0.1rem solid var(--color-button-bg);
+			border-right: 0.1rem solid var(--surface-4);
 		}
 
 		tr:not(:last-of-type) td,
 		th {
-			border-bottom: 0.1rem solid var(--color-button-bg);
+			border-bottom: 0.1rem solid var(--surface-4);
 		}
 	}
 
 	details {
-		border: 0.15rem solid var(--color-button-bg);
+		border: 0.15rem solid var(--surface-4);
 		border-radius: var(--radius-sm);
 		padding: 0.5rem 0.5rem 0;
 
@@ -677,7 +677,7 @@ a:not(.no-click-animation),
 			margin: -0.5rem -0.5rem 0;
 			padding: 0.5rem 0.8rem;
 			cursor: pointer;
-			background-color: var(--color-button-bg);
+			background-color: var(--surface-4);
 			border-radius: var(--radius-xs);
 
 			&:hover {
@@ -761,7 +761,7 @@ select {
 	padding: 0;
 	overflow: hidden;
 	border: 1px solid var(--color-divider);
-	background-color: var(--color-button-bg);
+	background-color: var(--surface-4);
 	color: var(--color-base);
 	display: flex;
 	flex-direction: column;

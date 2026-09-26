@@ -172,8 +172,12 @@ onMounted(() => {
 	<main class="mod-translation-page flex min-h-0 flex-col gap-4 p-6">
 		<header class="flex min-w-0 items-start justify-between gap-4">
 			<div class="min-w-0">
-				<h1 class="m-0 text-2xl font-bold text-contrast">{{ formatMessage(messages.title) }}</h1>
-				<p class="m-0 mt-1 text-sm text-secondary">{{ formatMessage(messages.description) }}</p>
+				<h1 class="m-0 text-2xl font-bold text-[var(--color-text-primary)]">
+					{{ formatMessage(messages.title) }}
+				</h1>
+				<p class="m-0 mt-1 text-sm text-[var(--color-text-tertiary)]">
+					{{ formatMessage(messages.description) }}
+				</p>
 			</div>
 			<div
 				v-if="store.activeJobs.length"
@@ -234,7 +238,7 @@ onMounted(() => {
 						{{ warning }}
 					</Admonition>
 					<div v-if="analysis.languageSources.length" class="flex flex-col gap-1.5">
-						<h3 class="m-0 text-sm font-semibold text-contrast">
+						<h3 class="m-0 text-sm font-semibold text-[var(--color-text-primary)]">
 							{{ formatMessage(messages.languageSources) }}
 						</h3>
 						<div class="source-list">
@@ -319,12 +323,12 @@ onMounted(() => {
 	font-weight: 800;
 	letter-spacing: 0.04em;
 	text-transform: uppercase;
-	color: var(--color-text-secondary);
+	color: var(--color-text-tertiary);
 }
 
 .panel-hint {
 	font-size: 0.72rem;
-	color: var(--color-text-secondary);
+	color: var(--color-text-tertiary);
 }
 
 .analyze-timer {
@@ -353,7 +357,7 @@ onMounted(() => {
 	padding: 0.3rem 0.65rem;
 	font-size: 0.7rem;
 	font-weight: 700;
-	color: var(--color-text-secondary);
+	color: var(--color-text-tertiary);
 	white-space: nowrap;
 }
 
@@ -399,7 +403,7 @@ onMounted(() => {
 }
 
 .stat-label {
-	color: var(--color-text-secondary);
+	color: var(--color-text-tertiary);
 	font-size: 0.65rem;
 	font-weight: 700;
 }
@@ -414,7 +418,7 @@ onMounted(() => {
 }
 
 .stat-detail {
-	color: var(--color-text-secondary);
+	color: var(--color-text-tertiary);
 	font-size: 0.62rem;
 	font-variant-numeric: tabular-nums;
 }
@@ -472,6 +476,6 @@ onMounted(() => {
 	flex: 0 0 auto;
 	font-size: 0.7rem;
 	font-variant-numeric: tabular-nums;
-	color: var(--color-text-secondary);
+	color: var(--color-text-tertiary);
 }
 </style>

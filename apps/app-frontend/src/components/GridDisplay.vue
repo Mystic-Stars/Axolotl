@@ -841,14 +841,14 @@ async function handleInstanceDragEnd(event: {
 				:placeholder="formatMessage(messages.select)"
 			>
 				<div class="flex items-center gap-1">
-					<ArrowUpDownIcon class="size-5 shrink-0 text-primary" />
-					<span class="font-semibold text-secondary">{{ selected }}</span>
+					<ArrowUpDownIcon class="size-5 shrink-0 text-[var(--color-text-default)]" />
+					<span class="font-semibold text-[var(--color-text-tertiary)]">{{ selected }}</span>
 				</div>
 			</DropdownSelect>
 			<button
 				v-tooltip="{ content: sortDirectionLabel, triggers: ['hover'] }"
 				type="button"
-				class="flex h-[40px] w-[40px] shrink-0 cursor-pointer items-center justify-center rounded-xl border-none bg-button-bg p-0 text-button-text transition-all hover:bg-button-bg hover:text-contrast active:scale-[0.97]"
+				class="flex h-[40px] w-[40px] shrink-0 cursor-pointer items-center justify-center rounded-xl border-none bg-surface-4 p-0 text-button-text transition-all hover:bg-surface-4 hover:text-[var(--color-text-primary)] active:scale-[0.97]"
 				:aria-label="sortDirectionLabel"
 				:aria-pressed="isSortAscending"
 				@click="toggleSortDirection()"
@@ -867,8 +867,8 @@ async function handleInstanceDragEnd(event: {
 				:placeholder="formatMessage(messages.select)"
 			>
 				<div class="flex items-center gap-1">
-					<LayersIcon class="size-5 shrink-0 text-primary" />
-					<span class="font-semibold text-secondary">{{ selected }}</span>
+					<LayersIcon class="size-5 shrink-0 text-[var(--color-text-default)]" />
+					<span class="font-semibold text-[var(--color-text-tertiary)]">{{ selected }}</span>
 				</div>
 			</DropdownSelect>
 			<PopoutMenu :tooltip="formatMessage(messages.view)" placement="bottom-end">
@@ -1016,13 +1016,15 @@ async function handleInstanceDragEnd(event: {
 			hide-when-modal-open
 		>
 			<div class="flex items-center gap-0.5">
-				<span class="px-3 py-2 text-base font-semibold text-contrast tabular-nums">
+				<span
+					class="px-3 py-2 text-base font-semibold text-[var(--color-text-primary)] tabular-nums"
+				>
 					{{ formatMessage(messages.selectedCount, { count: selectedInstanceIds.size }) }}
 				</span>
 				<div class="mx-0.5 h-6 w-px bg-surface-5" />
 				<Button
 					type="quiet"
-					class="!text-primary"
+					class="!text-[var(--color-text-default)]"
 					:disabled="busy"
 					@click="clearLibraryInstanceSelection"
 					><XIcon class="hidden cq-show-icon" />

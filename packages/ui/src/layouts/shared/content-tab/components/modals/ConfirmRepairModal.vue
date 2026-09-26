@@ -12,7 +12,7 @@
 		@confirm="emit('repair')"
 	>
 		<SymlinkWarningAdmonition :symlink-target="symlinkTarget" />
-		<span class="text-primary">
+		<span class="text-[var(--color-text-default)]">
 			{{ formatMessage(server ? messages.serverBody : messages.instanceBody) }}
 		</span>
 	</ConfirmActionModal>

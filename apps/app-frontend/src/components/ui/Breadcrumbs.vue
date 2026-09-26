@@ -22,7 +22,7 @@
 						path: breadcrumb.link.replace('{id}', encodeURIComponent($route.params.id as string)),
 						query: breadcrumb.query,
 					}"
-					class="flex shrink-0 items-center gap-1 whitespace-nowrap text-primary"
+					class="flex shrink-0 items-center gap-1 whitespace-nowrap text-[var(--color-text-default)]"
 				>
 					<Avatar
 						v-if="resolveIconUrl(breadcrumb)"
@@ -36,7 +36,7 @@
 					<component
 						:is="resolveIcon(breadcrumb)"
 						v-else-if="resolveIcon(breadcrumb)"
-						class="size-5 shrink-0 text-primary"
+						class="size-5 shrink-0 text-[var(--color-text-default)]"
 						aria-hidden="true"
 					/>
 					{{ resolveLabel(breadcrumb.name) }}
@@ -44,7 +44,7 @@
 				<span
 					v-else
 					data-tauri-drag-region
-					class="flex shrink-0 items-center gap-1 whitespace-nowrap text-contrast font-semibold cursor-default select-none"
+					class="flex shrink-0 items-center gap-1 whitespace-nowrap text-[var(--color-text-primary)] font-semibold cursor-default select-none"
 				>
 					<Avatar
 						v-if="resolveIconUrl(breadcrumb)"
@@ -58,7 +58,7 @@
 					<component
 						:is="resolveIcon(breadcrumb)"
 						v-else-if="resolveIcon(breadcrumb)"
-						class="size-5 shrink-0 text-primary"
+						class="size-5 shrink-0 text-[var(--color-text-default)]"
 						aria-hidden="true"
 					/>
 					{{ resolveLabel(breadcrumb.name) }}
