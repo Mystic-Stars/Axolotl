@@ -421,6 +421,7 @@ const isMaximized = ref(false)
 const mojangAuthSourceReady = ref(false)
 
 const authUnreachableDebug = useDebugLogger('AuthReachableChecker')
+const authServerRefetchInterval = ref(5 * 60 * 1000)
 const authServerQuery = useQuery({
 	queryKey: ['authServerReachability'],
 	enabled: computed(() => mojangAuthSourceReady.value && !browserOffline.value),
@@ -428,15 +429,20 @@ const authServerQuery = useQuery({
 		try {
 			await check_reachable()
 			setNetworkReachable(true)
+			authServerRefetchInterval.value = 5 * 60 * 1000
 			authUnreachableDebug('Auth servers are reachable')
 			return true
 		} catch (error) {
 			setNetworkReachable(false)
+			// Keep probing while the temporary outage is active so the launcher
+			// can return online without requiring a restart or manual refresh.
+			authServerRefetchInterval.value = 15 * 1000
 			throw error
 		}
 	},
-	refetchInterval: 5 * 60 * 1000, // 5 minutes
-	retry: false,
+	refetchInterval: () => authServerRefetchInterval.value,
+	retry: 1,
+	retryDelay: 1000,
 	refetchOnWindowFocus: false,
 })
 
