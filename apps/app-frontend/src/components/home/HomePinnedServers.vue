@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import {
+	LinkIcon,
 	MoreVerticalIcon,
 	NoSignalIcon,
 	PinIcon,
@@ -8,6 +9,7 @@ import {
 	SignalIcon,
 	SpinnerIcon,
 	StopCircleIcon,
+	UnlinkIcon,
 } from '@modrinth/assets'
 import {
 	Avatar,
@@ -19,12 +21,15 @@ import {
 	SmartClickable,
 	useVIntl,
 } from '@modrinth/ui'
-import { computed, ref } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 
+import HomeLocalServerPickerModal from '@/components/home/HomeLocalServerPickerModal.vue'
+import OnlineModeWarningModal from '@/components/multiplayer/servers/OnlineModeWarningModal.vue'
 import type { HomeWidgetSize } from '@/components/home/home-dashboard'
 import { useHomeDashboardRuntime } from '@/components/home/home-dashboard-runtime'
 import ManagedServerIcon from '@/components/multiplayer/servers/ServerIcon.vue'
 import { useMinecraftLaunchError } from '@/composables/useMinecraftLaunchError'
+import { useOnlineModeWarning } from '@/composables/useOnlineModeWarning'
 import { useServers } from '@/composables/useServers'
 import { trackEvent } from '@/helpers/analytics'
 import { kill } from '@/helpers/instance'
@@ -45,11 +50,12 @@ const props = defineProps<{
 	dashboardSize?: HomeWidgetSize | null
 }>()
 
-const { handleError } = injectNotificationManager()
+const { addNotification, handleError } = injectNotificationManager()
 const { formatMessage } = useVIntl()
 const handleMinecraftLaunchError = useMinecraftLaunchError()
+const { onlineModeWarningModal, confirmOnlineModeLaunch } = useOnlineModeWarning()
 const runtime = useHomeDashboardRuntime()
-const { favoriteWorlds, runningInstanceIds } = runtime
+const { favoriteWorlds, localServers, runningInstanceIds } = runtime
 const { startServer, stopServer } = useServers()
 
 const messages = defineMessages({
@@ -89,6 +95,31 @@ const messages = defineMessages({
 		id: 'app.home.servers.local',
 		defaultMessage: 'Local',
 	},
+	linkLocalServer: {
+		id: 'app.home.servers.link-local-server',
+		defaultMessage: 'Link to a local server',
+	},
+	changeLocalServer: {
+		id: 'app.home.servers.change-local-server',
+		defaultMessage: 'Change linked local server',
+	},
+	unlinkLocalServer: {
+		id: 'app.home.servers.unlink-local-server',
+		defaultMessage: 'Unlink local server',
+	},
+	linkedToast: {
+		id: 'app.home.servers.linked-toast',
+		defaultMessage: 'Linked to the local server “{name}”',
+	},
+	unlinkedToast: {
+		id: 'app.home.servers.unlinked-toast',
+		defaultMessage: 'Unlinked the local server',
+	},
+	localServerNotReady: {
+		id: 'app.home.servers.local-server-not-ready',
+		defaultMessage:
+			'The linked local server did not start in time. Check its console and try again.',
+	},
 	start: { id: 'app.servers.action.start', defaultMessage: 'Start' },
 	stop: { id: 'app.servers.action.stop', defaultMessage: 'Stop' },
 })
@@ -105,8 +136,97 @@ const servers = computed(() =>
 		return instance ? [{ instance, world: world as ServerWorld & WorldWithInstance }] : []
 	}),
 )
-const localServers = computed(() => runtime.pinnedLocalServers.value)
-const hasServers = computed(() => servers.value.length > 0 || localServers.value.length > 0)
+const pinnedLocalServers = computed(() => runtime.pinnedLocalServers.value)
+const hasServers = computed(() => servers.value.length > 0 || pinnedLocalServers.value.length > 0)
+
+/** Whether each pinned address points back at this machine. */
+const localAddresses = reactive<Record<string, boolean>>({})
+const pinnedAddresses = computed(() => [
+	...new Set(servers.value.map((server) => server.world.address)),
+])
+
+watch(
+	pinnedAddresses,
+	async (addresses) => {
+		for (const address of addresses) {
+			if (address in localAddresses) continue
+			try {
+				localAddresses[address] = await serversApi.isLocalAddress(address)
+			} catch {
+				localAddresses[address] = false
+			}
+		}
+	},
+	{ immediate: true },
+)
+
+const linkingWorld = ref<(ServerWorld & WorldWithInstance) | null>(null)
+const localServerPicker = ref<InstanceType<typeof HomeLocalServerPickerModal>>()
+
+function isLocalEntry(world: ServerWorld & WorldWithInstance) {
+	return localAddresses[world.address] === true
+}
+
+/** The managed server linked to this entry, if any. */
+function linkedServer(world: ServerWorld & WorldWithInstance) {
+	return (
+		localServers.value.find(
+			(server) =>
+				server.linkedWorld?.instanceId === world.instance_id &&
+				server.linkedWorld?.address === world.address,
+		) ?? null
+	)
+}
+
+function serverMenuOptions(world: ServerWorld & WorldWithInstance) {
+	const options = [{ id: 'unpin', action: () => unpinServer(world) }]
+	if (!isLocalEntry(world)) return options
+
+	const linked = linkedServer(world)
+	if (linked) {
+		options.unshift({ id: 'change-local-server', action: () => openLocalServerPicker(world) })
+		options.push({ id: 'unlink-local-server', action: () => unlinkLocalServer(linked.id) })
+	} else {
+		options.unshift({ id: 'link-local-server', action: () => openLocalServerPicker(world) })
+	}
+	return options
+}
+
+function openLocalServerPicker(world: ServerWorld & WorldWithInstance) {
+	linkingWorld.value = world
+	localServerPicker.value?.show()
+}
+
+async function linkLocalServer(server: { id: string; name: string }) {
+	const world = linkingWorld.value
+	if (!world) return
+	try {
+		await serversApi.setLinkedWorld(server.id, {
+			instanceId: world.instance_id,
+			address: world.address,
+		})
+		addNotification({
+			type: 'success',
+			title: formatMessage(messages.linkedToast, { name: server.name }),
+		})
+	} catch (error) {
+		handleError(error)
+	} finally {
+		linkingWorld.value = null
+		await runtime.refreshPinnedLocalServers()
+	}
+}
+
+async function unlinkLocalServer(serverId: string) {
+	try {
+		await serversApi.setLinkedWorld(serverId, null)
+		addNotification({ type: 'success', title: formatMessage(messages.unlinkedToast) })
+	} catch (error) {
+		handleError(error)
+	} finally {
+		await runtime.refreshPinnedLocalServers()
+	}
+}
 
 function serverKey(world: ServerWorld & WorldWithInstance): string {
 	return `${world.instance_id}:${world.index}:${world.address}`
@@ -121,6 +241,20 @@ async function joinServer(world: ServerWorld & WorldWithInstance, instance: Game
 	startingServerKey.value = key
 
 	try {
+		const linked = linkedServer(world)
+		if (linked) {
+			if (!(await confirmOnlineModeLaunch(linked))) return
+			if (!linked.running) {
+				const started = await startServer(linked.id)
+				if (!started) return
+			}
+			const ready = await serversApi.waitUntilReady(linked.id)
+			await runtime.refreshPinnedLocalServers()
+			if (!ready) {
+				addNotification({ type: 'error', title: formatMessage(messages.localServerNotReady) })
+				return
+			}
+		}
 		await start_join_server(world.instance_id, world.address)
 		trackEvent('InstanceStart', {
 			loader: instance.loader,
@@ -275,15 +409,22 @@ async function unpinLocalServer(serverId: string) {
 							</Button>
 							<ButtonStyled circular size="small" type="transparent" class="home-server-menu">
 								<OverflowMenu
-									:options="[
-										{
-											id: 'unpin',
-											action: () => unpinServer(server.world),
-										},
-									]"
+									:options="serverMenuOptions(server.world)"
 									:tooltip="formatMessage(messages.moreOptions)"
 								>
 									<MoreVerticalIcon />
+									<template #link-local-server>
+										<LinkIcon aria-hidden="true" />
+										{{ formatMessage(messages.linkLocalServer) }}
+									</template>
+									<template #change-local-server>
+										<LinkIcon aria-hidden="true" />
+										{{ formatMessage(messages.changeLocalServer) }}
+									</template>
+									<template #unlink-local-server>
+										<UnlinkIcon aria-hidden="true" />
+										{{ formatMessage(messages.unlinkLocalServer) }}
+									</template>
 									<template #unpin>
 										<PinIcon class="rotate-45" aria-hidden="true" />
 										{{ formatMessage(messages.unpin) }}
@@ -294,7 +435,7 @@ async function unpinLocalServer(serverId: string) {
 					</div>
 				</SmartClickable>
 			</li>
-			<li v-for="server in localServers" :key="'local-' + server.id">
+			<li v-for="server in pinnedLocalServers" :key="'local-' + server.id">
 				<SmartClickable>
 					<template #clickable>
 						<router-link
@@ -362,6 +503,13 @@ async function unpinLocalServer(serverId: string) {
 				</SmartClickable>
 			</li>
 		</ul>
+		<HomeLocalServerPickerModal
+			ref="localServerPicker"
+			:servers="localServers"
+			:selected-server-id="linkingWorld ? (linkedServer(linkingWorld)?.id ?? null) : null"
+			@select="linkLocalServer"
+		/>
+		<OnlineModeWarningModal ref="onlineModeWarningModal" />
 	</section>
 </template>
 

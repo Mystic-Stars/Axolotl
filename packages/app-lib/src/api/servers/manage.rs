@@ -9,7 +9,7 @@ use crate::{ErrorKind, Result, State};
 
 use super::lifecycle::is_running;
 use super::manifest::{
-    ServerInfo, ServerManifest, build_server_info, read_manifest,
+    LinkedWorld, ServerInfo, ServerManifest, build_server_info, read_manifest,
     sanitize_folder_name, server_path, type_default_jar_name, write_manifest,
 };
 
@@ -91,6 +91,7 @@ pub async fn create(
         jvm_args: Vec::new(),
         pre_launch_hook: None,
         home_pinned_at: None,
+        linked_world: None,
         created_at: Utc::now(),
         last_started_at: None,
         last_exit_crashed: false,
@@ -107,6 +108,28 @@ pub async fn set_icon(
     let path = server_path(server_id).await?;
     let mut manifest = read_manifest(&path).await?;
     manifest.icon_path = icon_path;
+    write_manifest(&path, &manifest).await?;
+    Ok(manifest)
+}
+
+/// Sets or clears the multiplayer entry a server is linked to. `None` removes
+/// the link.
+pub async fn set_linked_world(
+    server_id: &str,
+    linked: Option<LinkedWorld>,
+) -> Result<ServerManifest> {
+    let path = server_path(server_id).await?;
+    let mut manifest = read_manifest(&path).await?;
+    manifest.linked_world = linked.and_then(|linked| {
+        let address = linked.address.trim().to_string();
+        let instance_id = linked.instance_id.trim().to_string();
+        (!address.is_empty() && !instance_id.is_empty()).then_some(
+            LinkedWorld {
+                instance_id,
+                address,
+            },
+        )
+    });
     write_manifest(&path, &manifest).await?;
     Ok(manifest)
 }

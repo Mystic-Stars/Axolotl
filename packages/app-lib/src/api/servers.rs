@@ -5,6 +5,7 @@
 mod files;
 mod forge;
 mod lifecycle;
+mod link;
 mod logs;
 mod manage;
 mod manifest;
@@ -16,8 +17,15 @@ pub use self::forge::install_forge;
 pub use self::lifecycle::{
     kill, resize_console, send_command, send_console_input, start, stop,
 };
+pub use self::link::{
+    DEFAULT_READY_TIMEOUT_MS, is_local_address, wait_until_ready,
+};
 pub use self::logs::{clear_log, get_log_buffer};
-pub use self::manage::{create, delete, get, list, set_icon, update_settings};
-pub use self::manifest::{ModpackInfo, ServerInfo, ServerManifest};
+pub use self::manage::{
+    create, delete, get, list, set_icon, set_linked_world, update_settings,
+};
+pub use self::manifest::{
+    LinkedWorld, ModpackInfo, ServerInfo, ServerManifest,
+};
 pub use self::modpack::install_modpack;
 pub use self::ports::{PortProcessInfo, kill_port_process, port_process};

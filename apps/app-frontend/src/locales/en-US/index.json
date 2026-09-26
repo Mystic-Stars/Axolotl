@@ -2375,14 +2375,38 @@
   "app.home.recent.title": {
     "message": "Start from your recent projects"
   },
+  "app.home.servers.change-local-server": {
+    "message": "Change linked local server"
+  },
   "app.home.servers.empty": {
     "message": "Favorite a server and it will be pinned here."
   },
   "app.home.servers.join": {
     "message": "Join server"
   },
+  "app.home.servers.link-local-server": {
+    "message": "Link to a local server"
+  },
+  "app.home.servers.link-picker.description": {
+    "message": "Launching this server from Home starts the chosen local server first and waits until it is ready."
+  },
+  "app.home.servers.link-picker.empty": {
+    "message": "No local servers yet. Create one first, then link it here."
+  },
+  "app.home.servers.link-picker.select": {
+    "message": "Link {name}"
+  },
+  "app.home.servers.link-picker.title": {
+    "message": "Link a local server"
+  },
+  "app.home.servers.linked-toast": {
+    "message": "Linked to the local server “{name}”"
+  },
   "app.home.servers.local": {
     "message": "Local"
+  },
+  "app.home.servers.local-server-not-ready": {
+    "message": "The linked local server did not start in time. Check its console and try again."
   },
   "app.home.servers.more-options": {
     "message": "More options"
@@ -2398,6 +2422,12 @@
   },
   "app.home.servers.stop": {
     "message": "Stop"
+  },
+  "app.home.servers.unlink-local-server": {
+    "message": "Unlink local server"
+  },
+  "app.home.servers.unlinked-toast": {
+    "message": "Unlinked the local server"
   },
   "app.home.servers.unpin": {
     "message": "Unpin from Home"
@@ -7042,6 +7072,18 @@
   },
   "app.servers.modpack.done": {
     "message": "Installation complete"
+  },
+  "app.servers.online-mode-warning.body": {
+    "message": "“{server}” has premium (online-mode) verification enabled, but the account you are using, “{account}”, is an offline account. The server will refuse that connection. Start anyway?"
+  },
+  "app.servers.online-mode-warning.cancel": {
+    "message": "Cancel"
+  },
+  "app.servers.online-mode-warning.confirm": {
+    "message": "Start anyway"
+  },
+  "app.servers.online-mode-warning.title": {
+    "message": "This server requires a premium account"
   },
   "app.servers.modpack.download-in-background": {
     "message": "Download in background"
