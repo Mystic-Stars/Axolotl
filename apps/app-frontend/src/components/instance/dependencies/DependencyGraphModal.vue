@@ -283,6 +283,12 @@ const graphLayout = computed(() =>
 	layoutDependencyGraph(graph.value, graphNodeIds.value, nodeOffsets.value),
 )
 
+const focusedGraphNodeIds = computed(() =>
+	selectedNodeId.value
+		? getRelatedNodeIds(graph.value, new Set([selectedNodeId.value]))
+		: graphNodeIds.value,
+)
+
 const visibleGraphNodes = computed(() => {
 	const viewport = graphViewport.value
 	if (!viewport || zoom.value < 0.58) return graphLayout.value.nodes
@@ -292,11 +298,7 @@ const visibleGraphNodes = computed(() => {
 	const right = (viewport.clientWidth - pan.value.x + overscan) / zoom.value
 	const bottom = (viewport.clientHeight - pan.value.y + overscan) / zoom.value
 	const related = selectedNodeId.value
-		? new Set(
-				graph.value.edges
-					.filter((edge) => edge.source === related || edge.target === related)
-					.flatMap((edge) => [edge.source, edge.target]),
-			)
+		? getRelatedNodeIds(graph.value, new Set([selectedNodeId.value]))
 		: new Set<string>()
 	return graphLayout.value.nodes.filter(
 		(node) =>
@@ -466,8 +468,8 @@ function constrainedPan(nextPan: Point, nextZoom = zoom.value): Point {
 	}
 }
 
-function graphContentBounds() {
-	const nodes = graphLayout.value.nodes
+function graphContentBounds(visibleIds = focusedGraphNodeIds.value) {
+	const nodes = graphLayout.value.nodes.filter((node) => visibleIds.has(node.id))
 	if (!nodes.length) return undefined
 	const minX = Math.min(...nodes.map((node) => node.x))
 	const minY = Math.min(...nodes.map((node) => node.y))
@@ -732,7 +734,10 @@ watch(graphStructureKey, () => {
 })
 
 watch(graphLayout, scheduleEdgeDraw)
-watch(selectedNodeId, scheduleEdgeDraw)
+watch(selectedNodeId, () => {
+	scheduleGraphFit()
+	scheduleEdgeDraw()
+})
 
 watch(graphViewport, (viewport) => {
 	viewportObserver?.disconnect()
