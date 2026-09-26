@@ -356,18 +356,16 @@ a:not(.no-click-animation),
 	}
 }
 
+// Legacy joined-button compatibility. Current buttons use the scoped
+// `ButtonGroup` component and its direct `[data-button]` contract instead of
+// teaching this global class about their internal root structure.
 .joined-buttons {
 	display: flex;
 	gap: 1px;
 
-	// The current button is the element itself and marks itself with
-	// `data-button`; the legacy one is a `.btn` inside a `display: contents`
-	// wrapper. Both generations have to lose the corner they share with their
-	// neighbour, otherwise the seam shows a round edge against a square one.
 	> :not(:first-child) {
 		&.btn,
-		> .btn,
-		&[data-button] {
+		> .btn {
 			border-top-left-radius: 0;
 			border-bottom-left-radius: 0;
 		}
@@ -375,8 +373,7 @@ a:not(.no-click-animation),
 
 	> :not(:last-child) {
 		&.btn,
-		> .btn,
-		&[data-button] {
+		> .btn {
 			border-top-right-radius: 0;
 			border-bottom-right-radius: 0;
 		}

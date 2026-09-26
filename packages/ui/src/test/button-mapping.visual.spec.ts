@@ -169,12 +169,9 @@ describe('button mapping', () => {
 		)
 		const currentStyle = getComputedStyle(currentWrapper.element as HTMLElement)
 
-		// `Button` does not declare `iconOnly`/`circular`; they reach
-		// `ButtonFrame` as fall-through attributes, which Vue matches against its
-		// camelCase props. Render the same size without them so this test proves
-		// they are what makes the button square instead of padded -- if the
-		// fall-through ever stops working, the assertions below fail rather than
-		// quietly measuring an icon-only button of the wrong shape.
+		// `Button` publicly declares and explicitly forwards `iconOnly`/`circular`.
+		// Render the same size without them so this test proves those public props
+		// make the button square instead of padded.
 		const paddedWrapper = await mountThemed(Button, { size: 'xl' }, 'dark', {
 			slots: { default: icon },
 		})
