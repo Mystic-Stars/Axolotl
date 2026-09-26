@@ -100,6 +100,23 @@ test('CurseForge file progress remains monotonic while byte samples change', () 
 	assert.equal(installProgressFraction(merged), 0.8)
 })
 
+test('CurseForge completion switches from byte progress to settled files', () => {
+	const before = {
+		...progressJob(),
+		provider: 'curse_forge',
+		phase: 'downloading_content',
+		progress: { current: 9, total: 10, secondary: { current: 999, total: 1000 } },
+	}
+	const completed = {
+		...before,
+		progress: { current: 10, total: 10, secondary: { current: 999, total: 1000 } },
+	}
+
+	const merged = preserveMonotonicProgress(before, completed)
+	assert.equal(merged.progress?.current, 10)
+	assert.equal(installProgressFraction(merged), 1)
+})
+
 test('clears completed content progress when the next phase has no progress', () => {
 	const completed = {
 		phase: 'downloading_content',

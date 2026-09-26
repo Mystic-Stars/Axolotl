@@ -156,6 +156,24 @@ test('returns the complete relationship context for a filtered node', () => {
 	assert.deepEqual(related, new Set([nodeId('a'), nodeId('b'), nodeId('c')]))
 })
 
+test('focus context includes all incoming and outgoing relationship closure', () => {
+	const graph = buildDependencyGraph([
+		item('root', '1', { requires: [ref('focus')] }),
+		item('focus', '1', { requires: [ref('child')] }),
+		item('child', '1', { requires: [ref('leaf')] }),
+		item('leaf', '1'),
+		item('unrelated', '1'),
+	])
+	const focused = getRelatedNodeIds(graph, new Set([nodeId('focus')]))
+	const layout = layoutDependencyGraph(graph, focused)
+
+	assert.deepEqual(focused, new Set([nodeId('root'), nodeId('focus'), nodeId('child'), nodeId('leaf')]))
+	assert.equal(layout.nodes.length, 4)
+	assert.ok(layout.nodes.every((node) => focused.has(node.id)))
+	assert.ok(layout.width >= dependencyGraphMetrics.nodeWidth)
+	assert.ok(layout.height >= dependencyGraphMetrics.nodeHeight)
+})
+
 test('uses deterministic directional columns with stable node ordering', () => {
 	const graph = buildDependencyGraph([
 		item('hub', '1', { requires: [ref('a'), ref('b'), ref('c')] }),
