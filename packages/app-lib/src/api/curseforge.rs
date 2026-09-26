@@ -9321,15 +9321,9 @@ async fn download_installed_file(
         }
         return Ok(DownloadedCurseForgeFile { relative_path });
     }
-    // Transfers remain concurrent; publishing into an instance is bounded so
-    // SQLite writer transactions cannot stampede each other.
+    // Transfers remain concurrent. The atomic record helper below owns the
+    // install database permit, so this path must not acquire it twice.
     let _instance_lock = state.lock_instance_content(instance_id).await;
-    let _publish_permit =
-        state.install_db_semaphore.acquire().await.map_err(|_| {
-            ErrorKind::OtherError(
-                "content publish semaphore closed".to_string(),
-            )
-        })?;
     let previous_path =
         crate::state::materialize_project_download(download_path, &full_path)
             .await?;

@@ -574,6 +574,11 @@ pub(super) async fn run_request(
             .await?;
             let reporter =
                 InstallProgressReporter::new(job_id, job_state.clone());
+            // Every item in this request targets the same instance. Keep the
+            // plan pipeline serial so a content materialization cannot hold
+            // the instance lock while another plan waits on the install DB
+            // writer (or vice versa). The download helper still uses the
+            // global transfer concurrency for individual files.
             let results = futures::stream::iter(items)
                 .map(|item| {
                     let reporter = reporter.clone();
@@ -630,7 +635,7 @@ pub(super) async fn run_request(
                         }
                     }
                 })
-                .buffer_unordered(32)
+                .buffer_unordered(1)
                 .collect::<Vec<_>>()
                 .await;
             let mut pause_reason = None;
