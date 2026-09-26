@@ -160,9 +160,6 @@ defineExpose({ element })
 </script>
 
 <template>
-	<!-- `data-button` marks the current button generation for shared stylesheets:
-	     the legacy generation is addressed as `.btn`, so rules that mean "a
-	     button" have to cover both. Do not remove it without updating those. -->
 	<component
 		:is="as"
 		ref="element"
