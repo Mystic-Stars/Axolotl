@@ -28,6 +28,9 @@
 //
 // AXOLOTL_LAUNCHER_IMAGES=<name,...>  process names that count as the launcher
 //                     running; defaults to Axolotl Launcher.exe, theseus_gui.exe
+// AXOLOTL_DROP_CREATED_TABLES=<name,...>  tables a migration created that
+//                     --apply may drop. Empty by default, so a migration that
+//                     created a table refuses until its tables are named here.
 //
 // Resolving the default location needs Windows; pass --db anywhere else. The
 // launcher must be closed: a running instance keeps the database open and would
@@ -37,132 +40,29 @@ import { spawnSync } from 'node:child_process'
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { join, basename, dirname } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
+import { loadRevertibleMigrations } from './migration-revert.mjs'
 
 const SETTINGS_DIR_NAME = 'red.ghs.axolotl'
 const APP_DB = 'app.db'
 const CHANNELS = ['release', 'beta']
 
-// Schema added by known migrations, used to undo it. Every migration a
-// downgrade is allowed to pass needs an entry here: added columns and tables
-// cannot be left behind, or the next install of a build carrying the migration
-// fails on duplicate schema. A migration that only moves data (DELETE, UPDATE)
-// gets an empty object; naming it keeps the downgrade from stopping on a
-// migration it can safely pass.
+// Schema a downgrade must undo is derived from the migration SQL (see
+// migration-revert.mjs). Migrations at or after OLDEST_REVERTIBLE_VERSION are
+// always known; ADD COLUMN statements become DROP COLUMN on the way down and
+// data-only migrations map to an empty list. Older migrations stay unmapped so
+// a downgrade into them refuses rather than guesses.
 //
-// Only recent migrations are listed. Dropping to a threshold before them is
-// refused rather than guessed at; --allow-unmapped accepts the risk explicitly.
-const REVERTIBLE_SCHEMA = {
-	// settings.close_behavior
-	20260903120000: { columns: [{ table: 'settings', column: 'close_behavior' }] },
-	// instances: the direct link columns
-	20260904120000: {
-		columns: [
-			{ table: 'instances', column: 'linked_launcher' },
-			{ table: 'instances', column: 'linked_launcher_root' },
-			{ table: 'instances', column: 'linked_dot_minecraft' },
-			{ table: 'instances', column: 'linked_version_id' },
-			{ table: 'instances', column: 'linked_version_json_path' },
-		],
-	},
-	// telemetry samples; the tables stay, so nothing to drop
-	20260905000000: {},
-	// settings.mc_maximize_window
-	20260908000000: { columns: [{ table: 'settings', column: 'mc_maximize_window' }] },
-	// instances.linked_game_dir_mode
-	20260908010000: { columns: [{ table: 'instances', column: 'linked_game_dir_mode' }] },
-	// crash_analysis_ai_settings.ai_source
-	20260911120000: {
-		columns: [{ table: 'crash_analysis_ai_settings', column: 'ai_source' }],
-	},
-	// settings.log_level
-	20260912120000: { columns: [{ table: 'settings', column: 'log_level' }] },
-	// log level default normalization; data only
-	20260913170000: {},
-	// instance synchronization and screenshot center
-	20260914090000: {
-		columns: [
-			{ table: 'settings', column: 'sync_features_across_devices' },
-			{ table: 'settings', column: 'show_files_tab_in_instances' },
-			{ table: 'settings', column: 'show_worlds_tab_in_instances' },
-			{ table: 'settings', column: 'show_screenshots_tab_in_instances' },
-			{ table: 'settings', column: 'show_skin_selector_in_sidebar' },
-		],
-		// Reverse creation order keeps dependent tables ahead of their parents.
-		tables: [
-			'synced_pack_instances',
-			'synced_pack_catalog',
-			'screenshot_group_memberships',
-			'screenshot_groups',
-			'screenshots',
-			'instance_server_pack_state',
-			'instance_server_projection_entries',
-			'instance_servers',
-			'synced_servers',
-			'synced_server_state',
-			'synced_hotbar_state',
-			'instance_sync_checkpoints',
-			'game_option_locale_origins',
-			'instance_game_option_update_state',
-			'instance_game_option_pack_bases',
-			'synced_game_option_preferences',
-			'synced_game_option_values',
-			'synced_game_option_state',
-			'instance_sync_preferences',
-			'sync_feature_settings',
-		],
-	},
-	// linked server project sync source; data only
-	20260915090000: {},
-	// minecraft_users_with_identity table; trigger drops are not reversible
-	20260916090000: {
-		tables: ['minecraft_users_with_identity'],
-	},
-	// settings.ignore_ssl_errors
-	20260917120000: {
-		columns: [{ table: 'settings', column: 'ignore_ssl_errors' }],
-	},
-	// settings.home_widget_background_opacity
-	20260917130000: {
-		columns: [{ table: 'settings', column: 'home_widget_background_opacity' }],
-	},
-	// settings.hidden_nav_items
-	20260917131000: {
-		columns: [{ table: 'settings', column: 'hidden_nav_items' }],
-	},
-	// settings.custom_window_title_enabled / default_window_title
-	20260917140000: {
-		columns: [
-			{ table: 'settings', column: 'custom_window_title_enabled' },
-			{ table: 'settings', column: 'default_window_title' },
-		],
-	},
-	// settings.custom_background_component_opacity
-	20260917150000: {
-		columns: [{ table: 'settings', column: 'custom_background_component_opacity' }],
-	},
-	// settings.backup_repository_path
-	20260920130000: {
-		columns: [{ table: 'settings', column: 'backup_repository_path' }],
-	},
-	// old backup repository paths awaiting cleanup
-	20260920160000: {
-		tables: ['pending_backup_repository_cleanups'],
-	},
-	// synced pack selection state
-	20260922110000: {
-		columns: [
-			{ table: 'synced_pack_catalog', column: 'selected' },
-			{ table: 'synced_pack_catalog', column: 'selection_order' },
-		],
-	},
-	// settings.ui_font / mono_font
-	20260919120000: {
-		columns: [
-			{ table: 'settings', column: 'ui_font' },
-			{ table: 'settings', column: 'mono_font' },
-		],
-	},
-}
+// A derived mapping cannot make a created table reversible: SQLite has no
+// DROP TABLE counterpart that is safe to run blind, so those migrations refuse
+// unless AXOLOTL_DROP_CREATED_TABLES names the tables to drop.
+const REVERTIBLE_MIGRATIONS = loadRevertibleMigrations()
+
+// Tables a migration created that --apply is allowed to drop. Empty by default:
+// dropping needs the operator to name them, having read the dry run first.
+const DROP_CREATED_TABLES = (process.env.AXOLOTL_DROP_CREATED_TABLES || '')
+	.split(',')
+	.map((name) => name.trim())
+	.filter((name) => name !== '')
 
 function fail(message) {
 	console.error(`error: ${message}`)
@@ -239,6 +139,9 @@ function printUsage() {
 			'',
 			'Without --apply the script only reports what it would change.',
 			'Undo an accidental change with the backup it writes.',
+			'',
+			'AXOLOTL_DROP_CREATED_TABLES=<name,...> allows --apply to drop tables a',
+			'migration created. Without it those migrations are refused.',
 		].join('\n'),
 	)
 }
@@ -424,21 +327,6 @@ function columnsPresent(db, columns) {
 	return present
 }
 
-function tablesPresent(db, tables) {
-	if (tables.length === 0) return []
-
-	const database = openReadOnly(db)
-	const present = tables.map((table) => ({
-		table,
-		present:
-			database
-				.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?")
-				.get(table) !== undefined,
-	}))
-	database.close()
-	return present
-}
-
 // Names a running launcher can appear under. Installed builds use the configured
 // main binary name and a `tauri dev` binary keeps the crate name; a fork may
 // rename it again, so AXOLOTL_LAUNCHER_IMAGES replaces the list.
@@ -528,21 +416,29 @@ function planDowngrade(db, target) {
 	const applied = rows.filter((row) => row.success).map((row) => Number(row.version))
 	const failed = rows.filter((row) => !row.success).map((row) => Number(row.version))
 
-	const plan = applied.map((version) => ({
-		version,
-		mapped: REVERTIBLE_SCHEMA[version] !== undefined,
-		columns: columnsPresent(db, REVERTIBLE_SCHEMA[version]?.columns ?? []),
-		tables: tablesPresent(db, REVERTIBLE_SCHEMA[version]?.tables ?? []),
-	}))
+	const plan = applied.map((version) => {
+		const known = REVERTIBLE_MIGRATIONS.get(version)
+		return {
+			version,
+			mapped: known !== undefined,
+			columns: columnsPresent(db, known?.columns ?? []),
+			createdTables: known?.createdTables ?? [],
+			rebuiltTables: known?.rebuiltTables ?? [],
+		}
+	})
 
 	return { applied, failed, plan }
 }
 
 function reportPlan({ applied, failed, plan }) {
 	note(`migrations to remove: ${applied.join(', ')}`)
-	for (const { version, mapped, columns, tables } of plan) {
+	for (const { version, mapped, columns, createdTables, rebuiltTables } of plan) {
 		if (!mapped) {
 			note(`  ${version}: no known schema for this migration, removing its record only`)
+			continue
+		}
+		if (columns.length === 0 && createdTables.length === 0 && rebuiltTables.length === 0) {
+			note(`  ${version}: no columns to drop`)
 			continue
 		}
 		for (const { table, column, present } of columns) {
@@ -552,18 +448,24 @@ function reportPlan({ applied, failed, plan }) {
 					: `  ${version}: ${table}.${column} is NOT in the database`,
 			)
 		}
-		for (const { table, present } of tables) {
+		for (const table of createdTables) {
 			note(
-				present ? `  ${version}: drop table ${table}` : `  ${version}: table ${table} is MISSING`,
+				DROP_CREATED_TABLES.includes(table)
+					? `  ${version}: drop table ${table}`
+					: `  ${version}: created table ${table} stays in place - set AXOLOTL_DROP_CREATED_TABLES to drop it`,
 			)
+		}
+		for (const table of rebuiltTables) {
+			note(`  ${version}: rebuilt table ${table} carries data from before this migration`)
 		}
 	}
 
 	if (failed.length > 0) {
 		note(
-			`\nwarning: ${failed.join(', ')} are recorded as FAILED migrations. Removing their\n` +
-				'records lets a build that carries them try again, but a half-applied migration\n' +
-				'may have left the schema in a state neither build expects.',
+			`\nwarning: ${failed.join(', ')} are recorded as FAILED migrations. Their records\n` +
+				'are removed together with the successful ones so a build that carries them can\n' +
+				'try again, but a half-applied migration may have left the schema in a state\n' +
+				'neither build expects.',
 		)
 	}
 }
@@ -575,22 +477,76 @@ function reportPlan({ applied, failed, plan }) {
 // to repair, so stop instead.
 function checkMappings(plan) {
 	const mismatched = plan
-		.filter(
-			({ mapped, columns, tables }) =>
-				mapped &&
-				(columns.some((column) => !column.present) || tables.some((table) => !table.present)),
-		)
+		.filter(({ mapped, columns }) => mapped && columns.some((column) => !column.present))
 		.map(({ version }) => version)
 
 	if (mismatched.length > 0) {
 		fail(
-			`the schema recorded here for ${mismatched.join(', ')} does not match this database.\nRefusing to remove the records: reinstalling that build would then fail on a duplicate\nschema object, and neither build could open the database. Check REVERTIBLE_SCHEMA against\npackages/app-lib/migrations, and use --list to inspect the database.`,
+			`the schema derived from the migration SQL for ${mismatched.join(', ')} does not match this database.\nRefusing to remove the records: reinstalling that build would then fail on a duplicate\ncolumn, and neither build could open the database. Check packages/app-lib/migrations against\nthe database, and use --list to inspect it.`,
 		)
 	}
 }
 
 function unmappedVersions(plan) {
 	return plan.filter(({ mapped }) => !mapped).map(({ version }) => version)
+}
+
+function createdTableVersions(plan) {
+	return plan
+		.filter(({ createdTables }) => createdTables.length > 0)
+		.map(({ version, createdTables }) => ({ version, createdTables }))
+}
+
+function rebuiltTableEntries(plan) {
+	return plan.flatMap(({ version, rebuiltTables }) =>
+		rebuiltTables.map((table) => ({ version, table })),
+	)
+}
+
+function tablesToDrop(plan) {
+	return plan.flatMap(({ createdTables }) =>
+		createdTables.filter((table) => DROP_CREATED_TABLES.includes(table)),
+	)
+}
+
+// A created table is the one piece of schema a derived mapping cannot undo on
+// its own, so it gates --apply the same way an unmapped migration does. Naming
+// the table is what makes the drop deliberate: the operator has read the dry
+// run and taken the backup path.
+//
+// A rebuilt table cannot be dropped at all - it replaced a table that existed
+// before the migration, so it holds that table's rows. Those migrations are
+// refused whatever is named.
+function checkCreatedTables(plan) {
+	const rebuilt = rebuiltTableEntries(plan)
+	if (rebuilt.length > 0) {
+		const details = rebuilt
+			.map(({ version, table }) => `  ${version} rebuilt ${table}`)
+			.join('\n')
+		fail(
+			`these migrations rebuilt a table that existed before them:\n${details}\n\n` +
+				'SQLite has no way to put the previous table back, and that table holds rows\n' +
+				'this script has no copy of. Dropping it would delete them. Downgrade to a\n' +
+				'version before these migrations with the database restored from a backup\n' +
+				'instead of editing this one.',
+		)
+	}
+
+	const named = tablesToDrop(plan)
+	const unnamed = createdTableVersions(plan)
+		.flatMap(({ version, createdTables }) => createdTables.map((table) => ({ version, table })))
+		.filter(({ table }) => !named.includes(table))
+
+	if (unnamed.length === 0) return
+
+	const details = unnamed.map(({ version, table }) => `  ${version} creates ${table}`).join('\n')
+	fail(
+		`these migrations created tables that --apply will not drop:\n${details}\n\n` +
+			'Removing only the migration record leaves the objects behind, and reinstalling\n' +
+			'that build then fails on "table already exists". List the tables you intend to\n' +
+			'drop in AXOLOTL_DROP_CREATED_TABLES (comma separated) after inspecting the backup,\n' +
+			'or downgrade to a version before these migrations instead.',
+	)
 }
 
 function main() {
@@ -633,9 +589,17 @@ function main() {
 	}
 
 	if (!args.apply) {
+		const risky = createdTableVersions(state.plan)
+		if (risky.length > 0) {
+			note(
+				'\nnote: --apply will refuse migrations that created tables this script will not drop.',
+			)
+		}
 		note('\ndry run: rerun with --apply to perform the downgrade')
 		return
 	}
+
+	checkCreatedTables(state.plan)
 
 	const running = runningLauncher()
 	if (running) {
@@ -654,17 +618,20 @@ function main() {
 		writable.exec('PRAGMA foreign_keys = OFF')
 		writable.exec('BEGIN')
 		try {
-			for (const { columns, tables } of state.plan) {
-				for (const { table, present } of tables) {
-					if (present) writable.exec(`DROP TABLE ${table}`)
+			for (const { columns, createdTables } of state.plan) {
+				for (const table of createdTables) {
+					if (DROP_CREATED_TABLES.includes(table)) writable.exec(`DROP TABLE ${table}`)
 				}
 				for (const { table, column, present } of columns) {
 					if (present) writable.exec(`ALTER TABLE ${table} DROP COLUMN ${column}`)
 				}
 			}
-			writable
-				.prepare(`DELETE FROM _sqlx_migrations WHERE version IN (${state.applied.join(', ')})`)
-				.run()
+			const versions = [...state.applied, ...state.failed]
+			if (versions.length > 0) {
+				writable
+					.prepare(`DELETE FROM _sqlx_migrations WHERE version IN (${versions.join(', ')})`)
+					.run()
+			}
 			writable.exec('COMMIT')
 		} catch (error) {
 			writable.exec('ROLLBACK')

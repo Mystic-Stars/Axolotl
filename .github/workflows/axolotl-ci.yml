@@ -40,6 +40,7 @@ jobs:
       - run: node scripts/axolotl/check-css-vars.mjs
       - run: node scripts/axolotl/check-orphan-components.mjs
       - run: node scripts/axolotl/downgrade-app-db.test.mjs
+      - run: node scripts/axolotl/migration.test.mjs
       - run: cargo fmt --all --check
 
   # The frontend lint and test suites were previously never run in CI, so
