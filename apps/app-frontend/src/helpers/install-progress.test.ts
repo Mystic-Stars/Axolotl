@@ -8,6 +8,7 @@ import {
 	installProgressFraction,
 	installProgressTextSource,
 	preserveMonotonicProgress,
+	type ProgressTextSnapshot,
 } from './install-progress.ts'
 
 function progressJob(overrides: Record<string, unknown> = {}) {
@@ -130,6 +131,38 @@ test('clears completed content progress when the next phase has no progress', ()
 	}
 	assert.equal(effectiveInstallProgress(nextPhase), null)
 	assert.equal(installProgressFraction(nextPhase), null)
+})
+
+test('CurseForge extraction does not inherit completed download bytes through the monotonic guard', () => {
+	const downloaded: ProgressTextSnapshot = {
+		...progressJob(),
+		provider: 'curse_forge',
+		phase: 'downloading_content',
+		progress: { current: 10, total: 10, secondary: { current: 1000, total: 1000 } },
+		summary: { files_completed: 10, files_total: 10, bytes_downloaded: 1000, bytes_total: 1000 },
+	}
+	for (const phase of ['extracting_overrides', 'finalizing']) {
+		const next = { ...downloaded, phase, progress: null }
+		const merged = preserveMonotonicProgress(downloaded, next)
+
+		assert.equal(merged, next)
+		assert.equal(installProgressFraction(merged), null)
+		assert.equal(hasDeterminateInstallProgress(effectiveInstallProgress(merged)), false)
+		assert.deepEqual(installProgressTextSource(merged), { type: 'phase' })
+	}
+})
+
+test('CurseForge phase changes can restart progress even with the same total', () => {
+	const before = {
+		...progressJob(),
+		provider: 'curse_forge',
+		phase: 'downloading_content',
+		progress: { current: 99, total: 100 },
+	}
+	for (const phase of ['extracting_overrides', 'downloading_minecraft']) {
+		const next = { ...before, phase, progress: { current: 1, total: 100 } }
+		assert.equal(installProgressFraction(preserveMonotonicProgress(before, next)), 0.01)
+	}
 })
 
 test('parallel track exposes its own progress', () => {

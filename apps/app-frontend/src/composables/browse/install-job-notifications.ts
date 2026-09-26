@@ -21,7 +21,11 @@ import {
 	type InstallPhaseId,
 	type InstallProgress,
 } from '@/helpers/install'
-import { effectiveInstallProgress, hasDeterminateInstallProgress } from '@/helpers/install-progress'
+import {
+	effectiveInstallProgress,
+	hasDeterminateInstallProgress,
+	installProgressTextSource,
+} from '@/helpers/install-progress'
 import { get_many as getInstances } from '@/helpers/instance'
 import type { DownloadManager } from '@/providers/download-manager'
 
@@ -457,7 +461,7 @@ export async function useInstallJobNotifications(opts: {
 			return 'bytes'
 		}
 		if (job.phase === 'downloading_content') {
-			return job.progress?.secondary ? 'bytes' : 'count'
+			return installProgressTextSource(job).type === 'bytes' ? 'bytes' : 'count'
 		}
 		if (
 			job.phase === 'downloading_pack_file' ||

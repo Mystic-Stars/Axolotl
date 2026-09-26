@@ -266,7 +266,7 @@
 						:color="progressColor(job)"
 						:label="progressText(job)"
 						:waiting="!isFinished(job) && (job.status === 'queued' || !hasDeterminateProgress(job))"
-						show-progress
+						:show-progress="isFinished(job) || hasDeterminateProgress(job)"
 					>
 						<template #progress-icon>
 							<CheckCircleIcon
@@ -492,6 +492,7 @@ import {
 	effectiveInstallProgress,
 	effectiveParallelProgress,
 	hasDeterminateInstallProgress,
+	installProgressFraction,
 	installProgressTextSource,
 } from '@/helpers/install-progress'
 import type { LoadingBar } from '@/helpers/state'
@@ -971,19 +972,13 @@ function jobPercent(job: InstallJobSnapshot) {
 		if (!total) return 0
 		return Math.min(99, (completedRequiredFiles(job) / total) * 100)
 	}
-	const progress = effectiveInstallProgress(job)
-	if (hasDeterminateInstallProgress(progress)) {
-		return Math.min(99, Math.max(0, (progress.current / progress.total) * 100))
-	}
-	if (job.summary.bytes_total && job.summary.bytes_total > 0) {
-		return Math.min(99, Math.max(0, (job.summary.bytes_downloaded / job.summary.bytes_total) * 100))
-	}
-	return 0
+	// Summary bytes describe downloads, not the current extraction or finalization phase.
+	return Math.min(99, (installProgressFraction(job) ?? 0) * 100)
 }
 
 function hasDeterminateProgress(job: InstallJobSnapshot) {
-	if (hasDeterminateInstallProgress(effectiveInstallProgress(job))) return true
-	return !!(job.summary.bytes_total && job.summary.bytes_total > 0)
+	if (job.status === 'waiting_for_user') return totalRequiredFiles(job) > 0
+	return installProgressFraction(job) !== null
 }
 
 function parallelPercent(job: InstallJobSnapshot) {
