@@ -192,13 +192,6 @@ const [loaders, gameVersions] = await Promise.all([
 	grid-template-columns: min-content 1fr 1fr 1.5fr;
 }
 
-.card-row {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	background-color: var(--color-raised-bg);
-}
-
 .select {
 	width: 100% !important;
 	max-width: 20rem;

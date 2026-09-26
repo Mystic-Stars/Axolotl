@@ -2219,79 +2219,6 @@ function slotEditorSlots(type: RecipeType): RecipeSlot[] {
 	font-size: var(--recipe-mono-size);
 }
 
-.recipe-crafting-editor {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	gap: 1.5rem;
-	padding-top: 0.25rem;
-}
-
-.recipe-crafting-grid {
-	display: grid;
-	grid-template-columns: repeat(3, 3.75rem);
-	grid-auto-rows: 3.75rem;
-	gap: 0.45rem;
-	border: 1px solid var(--color-surface-5);
-	border-radius: var(--radius-md);
-	background: var(--color-surface-1);
-	padding: 0.6rem;
-}
-
-.recipe-crafting-grid.is-two-by-two {
-	grid-template-columns: repeat(2, 3.75rem);
-	grid-auto-rows: 3.75rem;
-}
-
-.recipe-slot-row {
-	display: flex;
-	flex-wrap: wrap;
-	align-items: center;
-	justify-content: center;
-	gap: 0.75rem;
-	padding-top: 0.25rem;
-}
-
-.recipe-result-column {
-	display: flex;
-	align-items: center;
-	padding-left: 1.5rem;
-	border-left: 1px solid var(--color-surface-5);
-}
-
-.recipe-slot-button {
-	display: flex;
-	width: 3.25rem;
-	height: 3.25rem;
-	align-items: center;
-	justify-content: center;
-	border: 2px solid var(--color-surface-5);
-	border-radius: var(--radius-sm);
-	background: var(--color-surface-2);
-	padding: 2px;
-	box-shadow:
-		inset 1px 1px 0 rgb(0 0 0 / 20%),
-		inset -1px -1px 0 rgb(255 255 255 / 10%);
-	cursor: pointer;
-	transition:
-		border-color 0.15s ease,
-		background-color 0.15s ease;
-}
-
-.recipe-slot-button:hover {
-	border-color: var(--color-brand);
-	background: var(--color-surface-3);
-}
-
-.recipe-slot-button:focus-visible {
-	outline: 2px solid var(--color-brand);
-	outline-offset: 1px;
-}
-
-.recipe-result-button {
-	border-color: color-mix(in srgb, var(--color-brand) 55%, var(--color-surface-5));
-}
-
 .recipe-issues {
 	margin-top: 0.85rem;
 	border: 1px solid var(--color-red);
@@ -2509,26 +2436,6 @@ function slotEditorSlots(type: RecipeType): RecipeSlot[] {
 @media (max-width: 40rem) {
 	:deep(.recipe-palette-grid) {
 		grid-template-columns: repeat(2, minmax(0, 1fr));
-	}
-}
-
-@media (max-width: 32rem) {
-	.recipe-crafting-editor {
-		flex-direction: column;
-	}
-
-	.recipe-result-column {
-		padding-left: 0;
-		border-left: 0;
-	}
-
-	.recipe-slot-row {
-		gap: 0.5rem;
-	}
-
-	.recipe-slot-button {
-		width: 3rem;
-		height: 3rem;
 	}
 }
 </style>

@@ -242,8 +242,7 @@ html {
 }
 
 .dark-mode,
-.dark,
-:root[data-theme='dark'] {
+.dark {
 	// The dark ladder is wider than the light one on purpose. Shadows are
 	// invisible against a dark page (the shadow colour is itself near-black),
 	// so separation in this theme has to come from luminance alone. The
@@ -527,8 +526,7 @@ html {
 }
 
 .dark-mode.accent-custom,
-.dark.accent-custom,
-:root[data-theme='dark'].accent-custom {
+.dark.accent-custom {
 	--color-brand: var(--custom-accent-dark, var(--color-pink));
 }
 
