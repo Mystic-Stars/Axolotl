@@ -24,7 +24,7 @@
 		>
 			<div
 				ref="subtitleElement"
-				class="flex max-w-[calc(100vw-2rem)] flex-wrap items-center justify-center gap-2 pointer-events-auto"
+				class="flex max-w-full flex-wrap items-center justify-center gap-2 pointer-events-auto"
 				@click="ignoreControlClick"
 			>
 				<slot name="subtitle" />

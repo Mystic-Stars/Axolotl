@@ -1064,7 +1064,7 @@ await loadSkins()
 			</h1>
 			<div
 				ref="skinPreviewArea"
-				class="ml-5 mt-4 flex h-[calc(80vh-1rem)] items-center justify-center max-[700px]:h-[calc(50vh-1rem)]"
+				class="ml-5 mt-4 flex h-[calc(60vh-1rem)] items-center justify-center max-[700px]:h-[calc(50vh-1rem)]"
 			>
 				<SkinPreviewRenderer
 					v-model:armor-config="armorPreviewConfig"
@@ -1086,7 +1086,7 @@ await loadSkins()
 					<template #subtitle>
 						<div
 							v-if="hasPendingSkinChange"
-							class="flex max-w-[calc(100vw-2rem)] flex-wrap items-center justify-center gap-2 px-2"
+							class="flex max-w-full flex-wrap items-center justify-center gap-2 px-2"
 						>
 							<button
 								class="flex h-10 min-w-0 cursor-pointer items-center justify-center gap-2 rounded-[14px] border-0 bg-surface-4 px-4 py-2.5 text-base font-semibold leading-5 text-contrast shadow-md transition-[filter,transform] duration-200 enabled:hover:brightness-[--hover-brightness] enabled:focus-visible:brightness-[--hover-brightness] enabled:active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 [&>svg]:size-5 [&>svg]:shrink-0"
