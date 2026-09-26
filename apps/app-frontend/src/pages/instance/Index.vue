@@ -977,10 +977,6 @@ onUnmounted(() => {
 </script>
 
 <style scoped lang="scss">
-Button {
-	width: 100%;
-}
-
 .side-cards {
 	position: fixed;
 	width: 300px;
