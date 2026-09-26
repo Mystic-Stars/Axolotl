@@ -71,6 +71,35 @@ test('modpack secondary byte progress remains monotonic', () => {
 	assert.equal(merged.progress.current, 2)
 })
 
+test('CurseForge modpacks use settled file progress for completion', () => {
+	const job = {
+		...progressJob(),
+		provider: 'curse_forge',
+		phase: 'downloading_content',
+		progress: { current: 3, total: 3, secondary: { current: 900, total: 1000 } },
+	}
+
+	assert.equal(installProgressFraction(job), 1)
+	assert.deepEqual(installProgressTextSource(job), { type: 'items', current: 3, total: 3 })
+})
+
+test('CurseForge file progress remains monotonic while byte samples change', () => {
+	const before = {
+		...progressJob(),
+		provider: 'curse_forge',
+		phase: 'downloading_content',
+		progress: { current: 8, total: 10, secondary: { current: 1000, total: 1000 } },
+	}
+	const next = {
+		...before,
+		progress: { current: 7, total: 10, secondary: { current: 800, total: 1000 } },
+	}
+	const merged = preserveMonotonicProgress(before, next)
+
+	assert.equal(merged.progress?.current, 8)
+	assert.equal(installProgressFraction(merged), 0.8)
+})
+
 test('clears completed content progress when the next phase has no progress', () => {
 	const completed = {
 		phase: 'downloading_content',

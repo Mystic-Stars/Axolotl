@@ -6,6 +6,7 @@ export interface ProgressValue {
 
 export interface ProgressSnapshot {
 	kind?: string
+	provider?: string
 	phase: string
 	progress?: ProgressValue | null
 	summary?: {
@@ -36,6 +37,9 @@ export type InstallProgressTextSource =
 export function effectiveInstallProgress(
 	snapshot: ProgressSnapshot,
 ): ProgressValue | null | undefined {
+	if (snapshot.phase === 'downloading_content' && snapshot.provider === 'curse_forge') {
+		return snapshot.progress
+	}
 	if (snapshot.phase === 'downloading_content' && snapshot.progress?.secondary) {
 		return snapshot.progress.secondary
 	}
@@ -79,6 +83,9 @@ export function preserveMonotonicProgress<T extends ProgressSnapshot & { status:
 	)
 		return next
 
+	if (next.provider === 'curse_forge') {
+		return { ...next, progress: current.progress }
+	}
 	if (next.phase === 'downloading_content' && next.progress?.secondary) {
 		return { ...next, progress: { ...next.progress, secondary: before } }
 	}
@@ -129,12 +136,12 @@ export function installProgressTextSource(
 	const progress = effectiveInstallProgress(snapshot)
 	if (hasDeterminateInstallProgress(progress)) {
 		if (isContentDownload) {
+			const usesSecondaryProgress =
+				snapshot.provider !== 'curse_forge' &&
+				(snapshot.progress?.secondary != null ||
+					(snapshot.kind === 'change_content' && snapshot.summary.bytes_total))
 			return {
-				type:
-					snapshot.progress?.secondary ||
-					(snapshot.kind === 'change_content' && snapshot.summary.bytes_total)
-						? 'bytes'
-						: 'items',
+				type: usesSecondaryProgress ? 'bytes' : 'items',
 				current: progress.current,
 				total: progress.total,
 			}
