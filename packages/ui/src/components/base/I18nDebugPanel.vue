@@ -263,7 +263,7 @@ const listMaxHeight = computed(() => `${panelHeight.value - 120}px`)
 						width="10"
 						height="10"
 						viewBox="0 0 10 10"
-						class="absolute bottom-1 right-1 text-secondary/40"
+						class="absolute bottom-1 right-1 text-[var(--color-text-tertiary)]/40"
 					>
 						<circle cx="8.5" cy="8.5" r="1" fill="currentColor" />
 						<circle cx="5" cy="8.5" r="1" fill="currentColor" />
@@ -281,14 +281,14 @@ const listMaxHeight = computed(() => `${panelHeight.value - 120}px`)
 						<div class="flex h-6 w-6 items-center justify-center rounded-md bg-brand/10">
 							<ScanEyeIcon class="h-3.5 w-3.5 text-brand" />
 						</div>
-						<span class="text-[13px] font-semibold tracking-tight text-primary">
+						<span class="text-[13px] font-semibold tracking-tight text-[var(--color-text-default)]">
 							i18n Inspector
 						</span>
 					</div>
 
 					<!-- Key count badge -->
 					<div class="flex items-center gap-1 rounded-full bg-surface-5/50 px-2 py-0.5">
-						<span class="text-[11px] font-medium tabular-nums text-secondary">
+						<span class="text-[11px] font-medium tabular-nums text-[var(--color-text-tertiary)]">
 							{{ keyCount }} {{ keyCount === 1 ? 'key' : 'keys' }}
 						</span>
 					</div>
@@ -395,12 +395,12 @@ const listMaxHeight = computed(() => `${panelHeight.value - 120}px`)
 									<!-- Entry content -->
 									<div class="min-w-0 flex-1">
 										<div
-											class="font-mono text-[12px] leading-relaxed text-primary truncate"
+											class="font-mono text-[12px] leading-relaxed text-[var(--color-text-default)] truncate"
 											:title="entry.key"
 											v-html="highlightMatch(entry.key, searchQuery)"
 										/>
 										<div
-											class="mt-0.5 text-[11px] leading-relaxed text-secondary truncate"
+											class="mt-0.5 text-[11px] leading-relaxed text-[var(--color-text-tertiary)] truncate"
 											:title="entry.value"
 											v-html="highlightMatch(truncate(entry.value, 50), searchQuery)"
 										/>
@@ -437,7 +437,7 @@ const listMaxHeight = computed(() => `${panelHeight.value - 120}px`)
 										<!-- Copy hint (shown on hover when not copied) -->
 										<span
 											v-if="copiedKey !== entry.key"
-											class="text-[10px] text-secondary/0 transition-colors group-hover:text-secondary/60"
+											class="text-[10px] text-[var(--color-text-tertiary)]/0 transition-colors group-hover:text-[var(--color-text-tertiary)]/60"
 										>
 											click to copy
 										</span>
@@ -451,12 +451,12 @@ const listMaxHeight = computed(() => `${panelHeight.value - 120}px`)
 								class="flex flex-col items-center justify-center px-4 py-10"
 							>
 								<div class="flex h-10 w-10 items-center justify-center rounded-xl bg-surface-5/40">
-									<SearchIcon class="h-4 w-4 text-secondary/60" />
+									<SearchIcon class="h-4 w-4 text-[var(--color-text-tertiary)]/60" />
 								</div>
-								<p class="mt-3 text-[13px] font-medium text-primary">
+								<p class="mt-3 text-[13px] font-medium text-[var(--color-text-default)]">
 									{{ searchQuery ? 'No matches found' : 'No keys registered' }}
 								</p>
-								<p class="mt-1 text-[11px] text-secondary">
+								<p class="mt-1 text-[11px] text-[var(--color-text-tertiary)]">
 									{{
 										searchQuery
 											? 'Try a different search term'
@@ -470,10 +470,10 @@ const listMaxHeight = computed(() => `${panelHeight.value - 120}px`)
 						<div class="flex items-center justify-between border-t border-surface-5/50 px-3.5 py-2">
 							<div class="flex items-center gap-2">
 								<div class="h-1.5 w-1.5 rounded-full bg-green animate-pulse" />
-								<span class="text-[11px] text-secondary"> Watching </span>
+								<span class="text-[11px] text-[var(--color-text-tertiary)]"> Watching </span>
 							</div>
 							<div class="flex items-center gap-3">
-								<span class="text-[10px] text-secondary/60">
+								<span class="text-[10px] text-[var(--color-text-tertiary)]/60">
 									<kbd
 										class="rounded border border-surface-5/40 bg-surface-3/60 px-1 py-px text-[10px]"
 										>&uarr;</kbd
@@ -484,7 +484,7 @@ const listMaxHeight = computed(() => `${panelHeight.value - 120}px`)
 									>
 									navigate
 								</span>
-								<span class="text-[10px] text-secondary/60">
+								<span class="text-[10px] text-[var(--color-text-tertiary)]/60">
 									<kbd
 										class="rounded border border-surface-5/40 bg-surface-3/60 px-1 py-px text-[10px]"
 										>&crarr;</kbd

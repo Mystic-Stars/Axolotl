@@ -49,10 +49,10 @@ const historyAnnouncements = computed(() =>
 <template>
 	<section class="update-announcement-history">
 		<div class="flex min-w-0 flex-col gap-1">
-			<h2 class="m-0 text-lg font-semibold text-contrast">
+			<h2 class="m-0 text-lg font-semibold text-[var(--color-text-primary)]">
 				{{ formatMessage(messages.title) }}
 			</h2>
-			<p class="m-0 leading-relaxed text-secondary">
+			<p class="m-0 leading-relaxed text-[var(--color-text-tertiary)]">
 				{{ formatMessage(messages.description) }}
 			</p>
 		</div>
@@ -66,11 +66,16 @@ const historyAnnouncements = computed(() =>
 		</div>
 
 		<div class="flex min-w-0 flex-col gap-3">
-			<h3 class="m-0 flex items-center gap-2 text-base font-semibold text-contrast">
-				<HistoryIcon aria-hidden="true" class="size-4 text-secondary" />
+			<h3
+				class="m-0 flex items-center gap-2 text-base font-semibold text-[var(--color-text-primary)]"
+			>
+				<HistoryIcon aria-hidden="true" class="size-4 text-[var(--color-text-tertiary)]" />
 				{{ formatMessage(messages.history) }}
 			</h3>
-			<p v-if="historyAnnouncements.length === 0" class="m-0 text-sm text-secondary">
+			<p
+				v-if="historyAnnouncements.length === 0"
+				class="m-0 text-sm text-[var(--color-text-tertiary)]"
+			>
 				{{ formatMessage(messages.empty) }}
 			</p>
 			<div v-else class="flex min-w-0 flex-col gap-2">
@@ -84,11 +89,13 @@ const historyAnnouncements = computed(() =>
 						<div class="flex min-w-0 flex-1 items-center gap-3">
 							<div class="flex min-w-0 flex-1 flex-col gap-1">
 								<span
-									class="truncate font-semibold text-primary transition-colors group-hover:text-contrast"
+									class="truncate font-semibold text-[var(--color-text-default)] transition-colors group-hover:text-[var(--color-text-primary)]"
 								>
 									{{ getLocalizedAnnouncementText(announcement.title, locale) }}
 								</span>
-								<div class="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-secondary">
+								<div
+									class="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-[var(--color-text-tertiary)]"
+								>
 									<TagItem class="px-1.5 py-0.5 text-xs">v{{ announcement.version }}</TagItem>
 									<span class="flex items-center gap-1">
 										<CalendarIcon aria-hidden="true" class="size-3.5" />

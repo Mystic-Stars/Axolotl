@@ -136,7 +136,7 @@ async function addServer(instance) {
 				<div
 					v-for="instance in shownInstances"
 					:key="instance.id"
-					class="flex w-full items-center justify-between gap-2 bg-bg-raised text-icon shadow-none"
+					class="flex w-full items-center justify-between gap-2 bg-surface-4 text-icon shadow-none"
 				>
 					<router-link
 						class="btn btn-transparent p-2 text-left"

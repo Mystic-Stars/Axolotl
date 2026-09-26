@@ -110,9 +110,9 @@ function applyTheme() {
 		rules: [],
 		colors: {
 			'editor.background': cssVariable('--surface-2'),
-			'editor.foreground': cssVariable('--color-base'),
+			'editor.foreground': cssVariable('--color-text-default'),
 			'editorGutter.background': cssVariable('--surface-2'),
-			'editorLineNumber.foreground': cssVariable('--color-secondary'),
+			'editorLineNumber.foreground': cssVariable('--color-text-tertiary'),
 			'editor.lineHighlightBackground': cssVariable('--surface-3'),
 			'editorCursor.foreground': cssVariable('--color-brand'),
 		},
@@ -270,7 +270,7 @@ defineExpose({ formatDocument })
 	<div class="relative size-full min-h-0 min-w-0 bg-surface-2">
 		<div
 			v-if="loading"
-			class="absolute inset-0 z-[1] flex items-center justify-center text-sm text-secondary"
+			class="absolute inset-0 z-[1] flex items-center justify-center text-sm text-[var(--color-text-tertiary)]"
 		>
 			{{ formatMessage(messages.loading) }}
 		</div>

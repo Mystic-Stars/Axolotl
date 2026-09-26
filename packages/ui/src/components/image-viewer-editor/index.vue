@@ -242,7 +242,7 @@ defineExpose({ show, edit, hide, next, previous, markSavedAndView })
 					<div class="viewer-heading-text w-fit min-w-0 max-w-full">
 						<h2
 							v-if="activeItem.title"
-							class="m-0 max-w-[min(42rem,70vw)] truncate text-base font-semibold leading-snug text-contrast"
+							class="m-0 max-w-[min(42rem,70vw)] truncate text-base font-semibold leading-snug text-[var(--color-text-primary)]"
 						>
 							{{ activeItem.title }}
 						</h2>

@@ -17,10 +17,13 @@ withDefaults(
 		:class="{ 'settings-row-compact': compact, 'settings-row-stacked': stacked }"
 	>
 		<div class="flex min-w-0 flex-col gap-1">
-			<div v-if="$slots.label" class="text-contrast text-base font-semibold">
+			<div v-if="$slots.label" class="text-[var(--color-text-primary)] text-base font-semibold">
 				<slot name="label" />
 			</div>
-			<div v-if="$slots.description" class="text-secondary text-sm leading-[1.45]">
+			<div
+				v-if="$slots.description"
+				class="text-[var(--color-text-tertiary)] text-sm leading-[1.45]"
+			>
 				<slot name="description" />
 			</div>
 			<slot name="copy" />
@@ -63,6 +66,7 @@ withDefaults(
 }
 
 .settings-row-control :deep(.btn),
+.settings-row-control :deep([data-button]),
 .settings-row-control :deep(input),
 .settings-row-control :deep(select),
 .settings-row-control :deep(.combobox) {

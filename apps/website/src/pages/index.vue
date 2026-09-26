@@ -1178,7 +1178,8 @@ useHead(() => ({
 					<div class="title">
 						<LinuxLogo />
 						<div class="flex">
-							{{ formatMessage(messages.linux) }}<span class="text-sm text-secondary">*</span>
+							{{ formatMessage(messages.linux)
+							}}<span class="text-sm text-[var(--color-text-tertiary)]">*</span>
 						</div>
 					</div>
 					<div class="description apple">
@@ -1192,7 +1193,7 @@ useHead(() => ({
 						<Accordion
 							class="mt-2 flex flex-col items-center"
 							content-class="flex flex-col items-start gap-2 mt-2 text-sm"
-							button-class="text-sm text-secondary bg-transparent p-0 w-fit text-left m-0 active:scale-[0.98] transition-transform"
+							button-class="text-sm text-[var(--color-text-tertiary)] bg-transparent p-0 w-fit text-left m-0 active:scale-[0.98] transition-transform"
 						>
 							<template #title="{ open }">
 								{{ formatMessage(open ? messages.hideOtherPackages : messages.showOtherPackages) }}
@@ -1200,18 +1201,28 @@ useHead(() => ({
 							<span class="grid grid-cols-[auto_1fr] gap-2 text-left text-orange"
 								><IssuesIcon class="mt-1" /> {{ formatMessage(messages.notRecommended) }}</span
 							>
-							<a v-if="linuxLinks.deb" :href="linuxLinks.deb" download="" class="text-primary">
+							<a
+								v-if="linuxLinks.deb"
+								:href="linuxLinks.deb"
+								download=""
+								class="text-[var(--color-text-default)]"
+							>
 								<DownloadIcon />
 								<span>{{ formatMessage(messages.downloadTheDEB) }}</span>
 							</a>
-							<span v-else class="download-unavailable text-primary">
+							<span v-else class="download-unavailable text-[var(--color-text-default)]">
 								{{ linkUnavailableLabel }}
 							</span>
-							<a v-if="linuxLinks.rpm" :href="linuxLinks.rpm" download="" class="text-primary">
+							<a
+								v-if="linuxLinks.rpm"
+								:href="linuxLinks.rpm"
+								download=""
+								class="text-[var(--color-text-default)]"
+							>
 								<DownloadIcon />
 								<span>{{ formatMessage(messages.downloadTheRPM) }}</span>
 							</a>
-							<span v-else class="download-unavailable text-primary">
+							<span v-else class="download-unavailable text-[var(--color-text-default)]">
 								{{ linkUnavailableLabel }}
 							</span>
 						</Accordion>
@@ -1244,7 +1255,7 @@ useHead(() => ({
 					</template>
 				</IntlFormatted>
 			</p>
-			<p class="max-w-[50rem] text-xs text-secondary">
+			<p class="max-w-[50rem] text-xs text-[var(--color-text-tertiary)]">
 				*<IntlFormatted :message-id="messages.linuxDisclaimer">
 					<template #issues-link="{ children }">
 						<a
@@ -1789,10 +1800,6 @@ useHead(() => ({
 			color: var(--landing-color-subheading);
 			margin: 0;
 		}
-
-		a {
-			text-decoration: underline;
-		}
 	}
 }
 
@@ -2044,13 +2051,6 @@ useHead(() => ({
 				text-decoration: underline;
 				text-underline-offset: 0.15rem;
 			}
-
-			a + a::before {
-				content: '·';
-				margin-right: 1rem;
-				color: var(--color-secondary);
-				font-weight: 400;
-			}
 		}
 	}
 
@@ -2197,11 +2197,11 @@ useHead(() => ({
 	}
 
 	.search-bar {
-		background: var(--color-raised-bg) !important;
+		background: var(--surface-3) !important;
 		border: 2px solid var(--color-brand) !important;
 
 		.mini-input {
-			background: var(--color-raised-bg) !important;
+			background: var(--surface-3) !important;
 			border: 2px solid var(--color-bg);
 		}
 	}

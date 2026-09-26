@@ -274,7 +274,9 @@ function isExportCandidateDisabled(path) {
 		<div class="flex flex-col gap-4">
 			<div class="grid grid-cols-2 gap-4">
 				<div class="labeled_input w-full">
-					<p class="text-contrast font-semibold">{{ formatMessage(messages.modpackNameLabel) }}</p>
+					<p class="text-[var(--color-text-primary)] font-semibold">
+						{{ formatMessage(messages.modpackNameLabel) }}
+					</p>
 					<StyledInput
 						v-model="nameInput"
 						type="text"
@@ -284,7 +286,7 @@ function isExportCandidateDisabled(path) {
 					/>
 				</div>
 				<div class="labeled_input w-full">
-					<p class="text-contrast font-semibold">
+					<p class="text-[var(--color-text-primary)] font-semibold">
 						{{ formatMessage(messages.versionNumberLabel) }}
 					</p>
 					<StyledInput
@@ -297,7 +299,7 @@ function isExportCandidateDisabled(path) {
 				</div>
 			</div>
 			<div class="flex flex-col gap-2 min-w-0">
-				<p class="m-0 text-contrast font-semibold">
+				<p class="m-0 text-[var(--color-text-primary)] font-semibold">
 					{{ formatMessage(commonMessages.descriptionLabel) }}
 				</p>
 				<StyledInput

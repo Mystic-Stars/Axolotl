@@ -348,17 +348,6 @@ useHead({
 	animation: spin 700ms linear infinite;
 }
 
-.changelog-footer {
-	svg {
-		width: 1rem;
-		height: 1rem;
-	}
-
-	a {
-		color: inherit;
-	}
-}
-
 @keyframes spin {
 	to {
 		transform: rotate(1turn);

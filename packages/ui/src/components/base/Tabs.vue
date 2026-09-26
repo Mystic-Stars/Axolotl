@@ -13,7 +13,7 @@
 			:class="
 				tab.value === value
 					? 'border-brand bg-brand-highlight text-brand'
-					: 'border-transparent bg-transparent text-primary hover:bg-surface-4'
+					: 'border-transparent bg-transparent text-[var(--color-text-default)] hover:bg-surface-4'
 			"
 			role="tab"
 			:aria-selected="tab.value === value"
@@ -25,7 +25,7 @@
 				:is="tab.icon"
 				v-if="tab.icon"
 				class="size-5 shrink-0"
-				:class="tab.value === value ? 'text-brand' : 'text-secondary'"
+				:class="tab.value === value ? 'text-brand' : 'text-[var(--color-text-tertiary)]'"
 			/>
 			<span v-if="tab.label" class="text-nowrap">{{ tab.label }}</span>
 		</button>

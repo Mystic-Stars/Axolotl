@@ -27,15 +27,17 @@ withDefaults(
 		<span
 			:class="[
 				'relative block overflow-hidden rounded-lg border-0 p-[3px] shadow-[var(--shadow-button)] transition-[transform,background,color,filter] duration-200 group-active:scale-95 group-hover:brightness-[--hover-brightness] group-focus-visible:brightness-[--hover-brightness]',
-				highlighted ? 'bg-brand text-brand' : 'text-primary [background:var(--color-button-bg)]',
+				highlighted
+					? 'bg-brand text-brand'
+					: 'text-[var(--color-text-default)] [background:var(--surface-4)]',
 			]"
 		>
 			<span
 				:class="[
 					'relative z-10 block aspect-[10/16] min-h-[96px] w-[60px] overflow-hidden rounded-[5px]',
 					highlighted
-						? '[background:linear-gradient(var(--color-brand-highlight),var(--color-brand-highlight)),var(--color-button-bg)]'
-						: '[background:var(--color-button-bg)]',
+						? '[background:linear-gradient(var(--color-brand-highlight),var(--color-brand-highlight)),var(--surface-4)]'
+						: '[background:var(--surface-4)]',
 				]"
 			>
 				<span class="absolute inset-0 flex flex-col items-center justify-center text-center">

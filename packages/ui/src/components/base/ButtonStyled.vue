@@ -34,9 +34,10 @@ const highlightedColorVar = computed(() => {
 			return 'var(--color-orange-highlight)'
 		case 'green':
 			return 'var(--color-green-highlight)'
-		case 'medal-promo':
 		case 'blue':
 			return 'var(--color-blue-highlight)'
+		case 'medal-promo':
+			return 'var(--color-medal-promo-highlight)'
 		case 'purple':
 			return 'var(--color-purple-highlight)'
 		case 'standard':
@@ -60,7 +61,7 @@ const colorVar = computed(() => {
 		case 'purple':
 			return 'var(--color-purple)'
 		case 'medal-promo':
-			return 'var(--medal-promotion-text-orange)'
+			return 'var(--color-medal-promo)'
 		case 'standard':
 		default:
 			return null
@@ -148,7 +149,7 @@ function setColorFill(
 		if (fill === 'background') {
 			if (props.type === 'highlight' && highlightedColorVar.value) {
 				colors.bg = highlightedColorVar.value
-				colors.text = 'var(--color-contrast)'
+				colors.text = 'var(--color-text-primary)'
 			} else if (props.type === 'highlight-colored-text' && highlightedColorVar.value) {
 				colors.bg = highlightedColorVar.value
 				colors.text = colorVar.value
@@ -174,17 +175,17 @@ const colorVariables = computed(() => {
 			bg:
 				props.highlightedStyle === 'main-nav-primary'
 					? 'var(--color-button-bg-selected)'
-					: 'var(--color-button-bg)',
+					: 'var(--surface-4)',
 			text:
 				props.highlightedStyle === 'main-nav-primary'
 					? 'var(--color-button-text-selected)'
-					: 'var(--color-contrast)',
+					: 'var(--color-text-primary)',
 			icon:
 				props.type === 'chip'
-					? 'var(--color-contrast)'
+					? 'var(--color-text-primary)'
 					: props.highlightedStyle === 'main-nav-primary'
 						? 'var(--color-button-text-selected)'
-						: 'var(--color-contrast)',
+						: 'var(--color-text-primary)',
 		}
 		const hoverColors = JSON.parse(JSON.stringify(colors))
 		const boxShadow =
@@ -193,8 +194,8 @@ const colorVariables = computed(() => {
 	}
 
 	let colors = {
-		bg: 'var(--color-button-bg)',
-		text: 'var(--color-base)',
+		bg: 'var(--surface-4)',
+		text: 'var(--color-text-default)',
 	}
 	let hoverColors = JSON.parse(JSON.stringify(colors))
 

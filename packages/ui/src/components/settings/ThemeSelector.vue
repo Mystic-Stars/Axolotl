@@ -109,10 +109,6 @@ function getPreviewClass(option: T): string {
 		&.oled-mode {
 			@extend .oled-mode;
 		}
-
-		&.retro-mode {
-			@extend .retro-mode;
-		}
 	}
 
 	.preview .example-card {
@@ -128,7 +124,7 @@ function getPreviewClass(option: T): string {
 			grid-area: icon;
 			width: 2rem;
 			height: 2rem;
-			background-color: var(--color-button-bg);
+			background-color: var(--surface-4);
 			border-radius: var(--radius-sm);
 			outline: 2px solid transparent;
 		}
@@ -143,13 +139,13 @@ function getPreviewClass(option: T): string {
 		.example-text-1 {
 			grid-area: text1;
 			width: 100%;
-			background-color: var(--color-base);
+			background-color: var(--color-text-default);
 		}
 
 		.example-text-2 {
 			grid-area: text2;
 			width: 60%;
-			background-color: var(--color-secondary);
+			background-color: var(--color-text-tertiary);
 		}
 	}
 }

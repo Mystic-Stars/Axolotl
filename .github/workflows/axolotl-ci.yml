@@ -39,6 +39,7 @@ jobs:
       - run: node scripts/axolotl/i18n-check.mjs
       - run: node scripts/axolotl/check-css-vars.mjs
       - run: node scripts/axolotl/check-orphan-components.mjs
+      - run: node scripts/axolotl/check-scoped-styles.mjs
       - run: node scripts/axolotl/downgrade-app-db.test.mjs
       - run: cargo fmt --all --check
 

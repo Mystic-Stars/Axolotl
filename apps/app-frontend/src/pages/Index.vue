@@ -401,7 +401,7 @@ onUnmounted(() => {
 	box-sizing: border-box;
 	border: 1px solid var(--color-divider);
 	border-radius: 9999px;
-	background: var(--color-raised-bg);
+	background: var(--surface-3);
 	box-shadow:
 		var(--shadow-button),
 		0 0.25rem 0.75rem rgb(0 0 0 / 20%);
@@ -418,7 +418,7 @@ onUnmounted(() => {
 	border: 0;
 	border-radius: 9999px;
 	background: transparent;
-	color: var(--color-secondary);
+	color: var(--color-text-tertiary);
 	cursor: pointer;
 	transition:
 		background-color 120ms ease,
@@ -428,8 +428,8 @@ onUnmounted(() => {
 }
 
 .home-floating-action:hover {
-	background: var(--color-button-bg);
-	color: var(--color-contrast);
+	background: var(--surface-4);
+	color: var(--color-text-primary);
 }
 
 .home-floating-action:active {
@@ -470,7 +470,7 @@ onUnmounted(() => {
 	padding: 0;
 	border: 0;
 	border-radius: 9999px;
-	background: var(--color-button-bg);
+	background: var(--surface-4);
 	cursor: pointer;
 	isolation: isolate;
 	transition:
@@ -519,7 +519,7 @@ onUnmounted(() => {
 	height: 1.75rem;
 	align-items: center;
 	justify-content: center;
-	color: var(--color-secondary);
+	color: var(--color-text-tertiary);
 	transition: color 180ms ease;
 }
 

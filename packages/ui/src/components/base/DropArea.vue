@@ -129,7 +129,7 @@ onBeforeUnmount(() => {
 		width: calc(100% - (2 * var(--indent)));
 		height: calc(100% - (2 * var(--indent)));
 		border-radius: var(--radius-lg);
-		border: 0.25rem dashed var(--color-button-bg);
+		border: 0.25rem dashed var(--surface-4);
 	}
 
 	@media (prefers-reduced-motion) {

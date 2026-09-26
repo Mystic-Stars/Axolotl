@@ -8,7 +8,7 @@
 		class="group inline-flex shrink-0 touch-manipulation items-center rounded-full m-0 p-1 transition-all duration-200 cursor-pointer border-none"
 		:class="[
 			small ? 'h-5 !w-[40px]' : 'h-6 !w-[48px]',
-			modelValue ? 'bg-brand' : 'bg-button-bg',
+			modelValue ? 'bg-brand' : 'bg-surface-4',
 			disabled ? 'opacity-50 cursor-not-allowed' : '',
 		]"
 		@click="toggle"

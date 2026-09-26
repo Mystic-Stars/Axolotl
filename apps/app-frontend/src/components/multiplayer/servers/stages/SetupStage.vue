@@ -47,7 +47,9 @@ onMounted(() => {
 <template>
 	<div class="flex flex-col gap-5">
 		<label class="flex min-w-0 flex-col gap-2" for="wizard-server-name">
-			<span class="font-semibold text-contrast">{{ formatMessage(messages.name) }}</span>
+			<span class="font-semibold text-[var(--color-text-primary)]">{{
+				formatMessage(messages.name)
+			}}</span>
 			<StyledInput
 				id="wizard-server-name"
 				v-model="ctx.name.value"
@@ -57,7 +59,9 @@ onMounted(() => {
 		</label>
 
 		<div class="flex min-w-0 flex-col gap-2">
-			<span class="font-semibold text-contrast">{{ formatMessage(messages.java) }}</span>
+			<span class="font-semibold text-[var(--color-text-primary)]">{{
+				formatMessage(messages.java)
+			}}</span>
 			<JavaSelector
 				id="wizard-java-selector"
 				v-model="ctx.selectedJava.value"
@@ -68,9 +72,11 @@ onMounted(() => {
 
 		<div class="flex min-w-0 flex-col gap-2">
 			<div class="flex items-center justify-between gap-3">
-				<span class="font-semibold text-contrast">{{ formatMessage(messages.memory) }}</span>
+				<span class="font-semibold text-[var(--color-text-primary)]">{{
+					formatMessage(messages.memory)
+				}}</span>
 				<span
-					class="rounded-md border border-solid border-surface-5 bg-surface-3 px-2 py-1 text-xs font-semibold leading-none text-contrast"
+					class="rounded-md border border-solid border-surface-5 bg-surface-3 px-2 py-1 text-xs font-semibold leading-none text-[var(--color-text-primary)]"
 				>
 					{{ formatMessage(messages.memoryValue, { value: ctx.memoryMb.value }) }}
 				</span>

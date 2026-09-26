@@ -87,8 +87,8 @@ onMounted(refresh)
 		<SettingsRow stacked>
 			<template #control>
 				<div class="flex min-w-0 flex-col gap-2">
-					<p v-if="loading" class="m-0 p-2 text-sm text-secondary">…</p>
-					<p v-else-if="!logs.length" class="m-0 p-2 text-sm text-secondary">
+					<p v-if="loading" class="m-0 p-2 text-sm text-[var(--color-text-tertiary)]">…</p>
+					<p v-else-if="!logs.length" class="m-0 p-2 text-sm text-[var(--color-text-tertiary)]">
 						{{ formatMessage(messages.empty) }}
 					</p>
 					<ul v-else class="m-0 flex max-h-72 list-none flex-col gap-1 overflow-y-auto p-2">
@@ -101,11 +101,11 @@ onMounted(refresh)
 								:href="log.url || `https://logshare.cn/${log.id}`"
 								target="_blank"
 								rel="noopener noreferrer"
-								class="min-w-0 flex-1 truncate text-primary underline"
+								class="min-w-0 flex-1 truncate text-[var(--color-text-default)] underline"
 							>
 								{{ log.url || log.id }}
 							</a>
-							<span class="shrink-0 text-xs text-secondary">
+							<span class="shrink-0 text-xs text-[var(--color-text-tertiary)]">
 								{{ log.provider }}
 								<template v-if="log.truncated">
 									· {{ formatMessage(messages.truncated) }}

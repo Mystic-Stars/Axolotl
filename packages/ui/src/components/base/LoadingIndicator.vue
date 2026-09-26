@@ -24,7 +24,7 @@ const { formatMessage } = useVIntl()
 	position: absolute;
 	z-index: 1;
 	font-weight: bold;
-	color: var(--color-contrast);
+	color: var(--color-text-primary);
 
 	&::after {
 		content: '';
@@ -110,7 +110,7 @@ const { formatMessage } = useVIntl()
 	}
 	50% {
 		opacity: 0.5;
-		border-color: var(--color-button-bg);
+		border-color: var(--surface-4);
 	}
 	to {
 		opacity: 0.25;

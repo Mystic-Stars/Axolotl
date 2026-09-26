@@ -34,11 +34,13 @@
 					:alt="project.title"
 					class="size-6 shrink-0 rounded-md object-cover"
 				/>
-				<PackageIcon v-else class="size-6 shrink-0 text-secondary" />
-				<span class="min-w-0 flex-1 truncate font-medium text-contrast">{{ project.title }}</span>
+				<PackageIcon v-else class="size-6 shrink-0 text-[var(--color-text-tertiary)]" />
+				<span class="min-w-0 flex-1 truncate font-medium text-[var(--color-text-primary)]">{{
+					project.title
+				}}</span>
 				<button
 					type="button"
-					class="rounded border-0 bg-transparent p-1 text-secondary hover:text-red"
+					class="rounded border-0 bg-transparent p-1 text-[var(--color-text-tertiary)] hover:text-red"
 					:aria-label="formatMessage(messages.removeIncludedProjectTooltip)"
 					@click="removeIncludedProject(projectId)"
 				>
@@ -57,9 +59,9 @@
 				:alt="selectedProject.title"
 				class="size-12 shrink-0 rounded-xl object-cover"
 			/>
-			<PackageIcon v-else class="size-12 shrink-0 text-secondary" />
+			<PackageIcon v-else class="size-12 shrink-0 text-[var(--color-text-tertiary)]" />
 			<div class="min-w-0 flex-1">
-				<div class="truncate text-base font-bold text-contrast">
+				<div class="truncate text-base font-bold text-[var(--color-text-primary)]">
 					{{ selectedProject?.title ?? selectedProjectId }}
 				</div>
 				<MultiSelect
@@ -74,7 +76,7 @@
 			</div>
 			<button
 				type="button"
-				class="rounded border-0 bg-transparent p-1 text-secondary hover:text-contrast"
+				class="rounded border-0 bg-transparent p-1 text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)]"
 				@click="setSelectedProjectId(undefined)"
 			>
 				<XIcon class="size-5" />

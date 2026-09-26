@@ -10,7 +10,7 @@
 	>
 		<form class="space-y-6 md:min-w-[400px]" @submit.prevent="handleSubmit">
 			<label class="flex flex-col gap-2">
-				<span class="font-semibold text-contrast">{{
+				<span class="font-semibold text-[var(--color-text-primary)]">{{
 					formatMessage(fileValidationMessages.nameLabel)
 				}}</span>
 				<StyledInput

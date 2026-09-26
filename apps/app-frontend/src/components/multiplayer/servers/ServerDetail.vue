@@ -294,7 +294,7 @@ async function shareOnline() {
 
 <template>
 	<div class="multiplayer-fixed-render flex h-full min-h-0 w-full flex-col gap-3">
-		<div v-if="!server && isLoaded && !hasSeenServer" class="text-secondary">
+		<div v-if="!server && isLoaded && !hasSeenServer" class="text-[var(--color-text-tertiary)]">
 			{{ formatMessage(messages.notFound) }}
 		</div>
 
@@ -326,7 +326,7 @@ async function shareOnline() {
 						</button>
 						<OverflowMenu
 							v-if="server.iconPath"
-							class="absolute -right-1 -top-1 flex size-5 items-center justify-center rounded-full bg-surface-4 text-secondary shadow-md transition-colors hover:text-contrast"
+							class="absolute -right-1 -top-1 flex size-5 items-center justify-center rounded-full bg-surface-4 text-[var(--color-text-tertiary)] shadow-md transition-colors hover:text-[var(--color-text-primary)]"
 							:options="[
 								{
 									id: 'remove',
@@ -340,7 +340,7 @@ async function shareOnline() {
 					</div>
 					<div class="min-w-0">
 						<div class="flex min-w-0 items-center gap-2">
-							<h2 class="m-0 truncate text-xl font-semibold text-contrast">
+							<h2 class="m-0 truncate text-xl font-semibold text-[var(--color-text-primary)]">
 								{{ server.name }}
 							</h2>
 							<TagItem v-if="displayTag" class="shrink-0">
@@ -349,7 +349,9 @@ async function shareOnline() {
 								</span>
 							</TagItem>
 						</div>
-						<div class="mt-0.5 flex min-w-0 items-center gap-2 text-sm text-secondary">
+						<div
+							class="mt-0.5 flex min-w-0 items-center gap-2 text-sm text-[var(--color-text-tertiary)]"
+						>
 							<span class="truncate">
 								{{
 									formatMessage(messages.typeLabel, {

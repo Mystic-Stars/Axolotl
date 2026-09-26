@@ -122,7 +122,7 @@ watch(
 					@click.stop="toggle"
 				>
 					<DropdownIcon
-						class="size-5 shrink-0 text-secondary transition-all duration-300 group-hover/open-target:text-primary"
+						class="size-5 shrink-0 text-[var(--color-text-tertiary)] transition-all duration-300 group-hover/open-target:text-[var(--color-text-default)]"
 						:class="{ 'rotate-180': accordion?.isOpen }"
 					/>
 				</button>
@@ -131,7 +131,7 @@ watch(
 					ref="titleInput"
 					v-model="titleModel"
 					activation-mode="manual"
-					class="!h-10 select-none text-base font-semibold text-primary group-hover/open-target:text-contrast"
+					class="!h-10 select-none text-base font-semibold text-[var(--color-text-default)] group-hover/open-target:text-[var(--color-text-primary)]"
 					:edit-label="formatMessage(commonMessages.renameButton)"
 					max-width="24rem"
 					icon-text-class="select-none"
@@ -141,7 +141,7 @@ watch(
 				/>
 				<span
 					v-else
-					class="select-none truncate text-base font-semibold text-primary group-hover/open-target:text-contrast"
+					class="select-none truncate text-base font-semibold text-[var(--color-text-default)] group-hover/open-target:text-[var(--color-text-primary)]"
 				>
 					{{ title }}
 				</span>

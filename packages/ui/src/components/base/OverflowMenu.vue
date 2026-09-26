@@ -140,7 +140,7 @@ defineExpose({ open, close })
 	white-space: nowrap;
 	width: 100%;
 	box-shadow: none;
-	--text-color: var(--color-base);
+	--text-color: var(--color-text-default);
 	--background-color: transparent;
 	justify-content: flex-start;
 	padding: 0.55rem 0.625rem;

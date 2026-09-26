@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { SpinnerIcon } from '@modrinth/assets'
-import { defineMessages, NewButton as Button, useVIntl } from '@modrinth/ui'
+import { Button, defineMessages, useVIntl } from '@modrinth/ui'
 
 const props = withDefaults(
 	defineProps<{
@@ -31,20 +31,18 @@ const statusMessage = {
 <template>
 	<div
 		v-if="props.status !== 'idle'"
-		class="settings-save-status inline-flex items-center gap-1 text-xs text-secondary"
+		class="settings-save-status inline-flex items-center gap-1 text-xs text-[var(--color-text-tertiary)]"
 		role="status"
 	>
 		<SpinnerIcon v-if="props.status === 'saving'" class="size-3.5 animate-spin" />
 		<span>{{ props.status === 'idle' ? '' : formatMessage(statusMessage[props.status]) }}</span>
-		<Button v-if="props.status === 'error' && props.retry" type="quiet" @click="props.retry">
+		<Button
+			v-if="props.status === 'error' && props.retry"
+			type="quiet"
+			size="2xs"
+			@click="props.retry"
+		>
 			{{ formatMessage(messages.retry) }}
 		</Button>
 	</div>
 </template>
-
-<style scoped>
-.settings-save-status :deep(.btn) {
-	padding: 0.25rem 0.5rem;
-	font-size: 0.75rem;
-}
-</style>

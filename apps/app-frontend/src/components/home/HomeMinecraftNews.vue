@@ -71,7 +71,7 @@ async function openArticle(item: MinecraftNewsItem) {
 		class="flex min-w-0 flex-col gap-3 border-0 border-b-[1px] border-solid border-[--brand-gradient-border] p-4"
 	>
 		<div class="flex items-center gap-2">
-			<NewspaperIcon class="size-4 shrink-0 text-secondary" aria-hidden="true" />
+			<NewspaperIcon class="size-4 shrink-0 text-[var(--color-text-tertiary)]" aria-hidden="true" />
 			<h2 class="m-0 truncate text-lg">
 				{{ formatMessage(messages.news) }}
 			</h2>
@@ -82,10 +82,10 @@ async function openArticle(item: MinecraftNewsItem) {
 				:key="index"
 				class="flex animate-pulse items-center gap-2.5 px-1.5 py-1.5"
 			>
-				<div class="h-9 w-16 shrink-0 rounded-lg bg-button-bg" />
+				<div class="h-9 w-16 shrink-0 rounded-lg bg-surface-4" />
 				<div class="flex min-w-0 flex-1 flex-col gap-1.5">
-					<div class="h-3 w-full rounded bg-button-bg" />
-					<div class="h-3 w-1/2 rounded bg-button-bg" />
+					<div class="h-3 w-full rounded bg-surface-4" />
+					<div class="h-3 w-1/2 rounded bg-surface-4" />
 				</div>
 			</li>
 		</ul>
@@ -94,7 +94,7 @@ async function openArticle(item: MinecraftNewsItem) {
 				<button
 					v-tooltip="formatMessage(messages.openArticle)"
 					type="button"
-					class="flex w-full cursor-pointer items-center gap-2.5 rounded-lg border-0 bg-transparent px-1.5 py-1.5 text-left transition-colors hover:bg-button-bg"
+					class="flex w-full cursor-pointer items-center gap-2.5 rounded-lg border-0 bg-transparent px-1.5 py-1.5 text-left transition-colors hover:bg-surface-4"
 					@click="openArticle(item)"
 				>
 					<img
@@ -104,17 +104,22 @@ async function openArticle(item: MinecraftNewsItem) {
 						class="h-9 w-16 shrink-0 rounded-lg object-cover"
 						loading="lazy"
 					/>
-					<div v-else class="h-9 w-16 shrink-0 rounded-lg bg-button-bg" />
+					<div v-else class="h-9 w-16 shrink-0 rounded-lg bg-surface-4" />
 					<div class="flex min-w-0 flex-1 flex-col gap-0.5">
-						<span class="line-clamp-2 text-sm font-semibold leading-snug text-contrast">
+						<span
+							class="line-clamp-2 text-sm font-semibold leading-snug text-[var(--color-text-primary)]"
+						>
 							{{ item.title }}
 						</span>
-						<span v-if="newsDateLabel(item)" class="truncate text-xs text-secondary">
+						<span
+							v-if="newsDateLabel(item)"
+							class="truncate text-xs text-[var(--color-text-tertiary)]"
+						>
 							{{ newsDateLabel(item) }}
 						</span>
 					</div>
 					<ExternalIcon
-						class="size-3.5 shrink-0 text-secondary opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
+						class="size-3.5 shrink-0 text-[var(--color-text-tertiary)] opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
 						aria-hidden="true"
 					/>
 				</button>

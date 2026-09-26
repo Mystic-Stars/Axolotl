@@ -6,7 +6,7 @@
 	>
 		<div
 			v-if="displayIcon"
-			class="empty-state__icon grid size-12 place-content-center rounded-[var(--radius-lg)] border border-solid border-divider bg-surface-2 text-secondary"
+			class="empty-state__icon grid size-12 place-content-center rounded-[var(--radius-lg)] border border-solid border-divider bg-surface-2 text-[var(--color-text-tertiary)]"
 			:class="iconClass"
 			aria-hidden="true"
 		>
@@ -20,12 +20,14 @@
 		/>
 
 		<div class="flex flex-col items-center gap-[var(--gap-sm)]">
-			<h2 class="empty-state__title m-0 text-center text-2xl font-semibold text-contrast">
+			<h2
+				class="empty-state__title m-0 text-center text-2xl font-semibold text-[var(--color-text-primary)]"
+			>
 				<slot name="heading">{{ heading }}</slot>
 			</h2>
 			<p
 				v-if="$slots.description || description"
-				class="empty-state__description m-0 max-w-prose text-center text-sm leading-6 text-secondary"
+				class="empty-state__description m-0 max-w-prose text-center text-sm leading-6 text-[var(--color-text-tertiary)]"
 			>
 				<slot name="description">{{ description }}</slot>
 			</p>
@@ -129,7 +131,7 @@ const displayIcon = computed(() => {
 const iconClass = computed(() => {
 	const type = props.type
 	if (type === 'error' || type === 'warning') return 'text-brand-red'
-	if (type === 'offline' || type === 'no-connection') return 'text-secondary'
+	if (type === 'offline' || type === 'no-connection') return 'text-[var(--color-text-tertiary)]'
 	return ''
 })
 

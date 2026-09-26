@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { TriangleAlertIcon } from '@modrinth/assets'
-import { defineMessages, NewButton as Button, useVIntl } from '@modrinth/ui'
+import { Button, defineMessages, useVIntl } from '@modrinth/ui'
 import { computed, onBeforeUnmount, ref, useId, watch } from 'vue'
 
 import {

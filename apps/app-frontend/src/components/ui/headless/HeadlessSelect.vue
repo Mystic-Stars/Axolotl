@@ -9,7 +9,7 @@
 				<SelectValue :placeholder="placeholder">
 					{{ selectedLabel }}
 				</SelectValue>
-				<ChevronDownIcon class="size-4 shrink-0 text-secondary" />
+				<ChevronDownIcon class="size-4 shrink-0 text-[var(--color-text-tertiary)]" />
 			</SelectTrigger>
 			<SelectPortal>
 				<SelectContent

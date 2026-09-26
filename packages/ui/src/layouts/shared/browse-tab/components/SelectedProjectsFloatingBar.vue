@@ -50,7 +50,7 @@
 						</span>
 						<span
 							v-if="overflowCount > 0"
-							class="absolute top-0 flex h-8 w-8 items-center justify-center rounded-lg border-[1.5px] border-solid border-surface-3 bg-surface-4 text-xs font-bold text-contrast"
+							class="absolute top-0 flex h-8 w-8 items-center justify-center rounded-lg border-[1.5px] border-solid border-surface-3 bg-surface-4 text-xs font-bold text-[var(--color-text-primary)]"
 							:style="{ left: `${visibleProjects.length * iconStackOffset}px`, zIndex: 0 }"
 						>
 							+{{ overflowCount }}
@@ -80,7 +80,7 @@
 								size="2rem"
 								no-shadow
 							/>
-							<span class="min-w-0 truncate text-sm font-semibold text-contrast">
+							<span class="min-w-0 truncate text-sm font-semibold text-[var(--color-text-primary)]">
 								{{ project.name }}
 							</span>
 						</div>
@@ -88,13 +88,13 @@
 				</Transition>
 			</div>
 
-			<span class="px-3 py-2 text-base font-semibold text-contrast tabular-nums">
+			<span class="px-3 py-2 text-base font-semibold text-[var(--color-text-primary)] tabular-nums">
 				{{ selectedCountText }}
 			</span>
 			<div class="mx-0.5 h-6 w-px bg-surface-5" />
 			<Button
 				type="quiet"
-				class="!text-primary"
+				class="!text-[var(--color-text-default)]"
 				:disabled="isInstallingSelected"
 				@click="clearSelected"
 				><span>{{ formatMessage(commonMessages.clearButton) }}</span>
@@ -223,7 +223,7 @@ onUnmounted(closeProjectPreview)
 
 <style scoped>
 :deep(.selected-project-avatar) {
-	background-color: var(--color-button-bg);
+	background-color: var(--surface-4);
 }
 
 .selected-project-preview {

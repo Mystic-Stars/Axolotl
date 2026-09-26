@@ -22,7 +22,7 @@
 	   the opaque surface snapshot so a tooltip stays readable over a custom
 	   background image. */
 	background: var(--color-tooltip-bg, var(--surface-3));
-	color: var(--color-tooltip-text, var(--color-contrast));
+	color: var(--color-tooltip-text, var(--color-text-primary));
 	padding: 0.625rem 0.75rem;
 	border: 1px solid var(--surface-5);
 	border-radius: var(--radius-sm, 0.5rem);

@@ -7,6 +7,8 @@ import type { ButtonProps } from './types'
 const props = withDefaults(defineProps<ButtonProps>(), {
 	type: 'base',
 	size: 'md',
+	iconOnly: false,
+	circular: false,
 	nativeType: 'button',
 	disabled: false,
 	loading: false,
@@ -26,8 +28,11 @@ defineExpose({ element })
 		:color="props.color"
 		:size="props.size"
 		:interaction="props.interaction"
+		:icon-only="props.iconOnly"
+		:circular="props.circular"
 		:native-type="props.nativeType"
 		:disabled="props.disabled || props.loading"
+		:aria-label="props.iconOnly ? props.label : undefined"
 		:aria-busy="props.loading || undefined"
 	>
 		<slot />

@@ -196,7 +196,7 @@ watch(
 
 <template>
 	<div>
-		<h2 class="m-0 mb-2 block text-base font-extrabold text-contrast">
+		<h2 class="m-0 mb-2 block text-base font-extrabold text-[var(--color-text-primary)]">
 			{{ formatMessage(messages.javaInstallation) }}
 		</h2>
 		<Checkbox
@@ -212,7 +212,7 @@ watch(
 			select-all-versions
 		/>
 
-		<h2 class="mb-1 mt-4 block text-base font-extrabold text-contrast">
+		<h2 class="mb-1 mt-4 block text-base font-extrabold text-[var(--color-text-primary)]">
 			{{ formatMessage(messages.javaMemory) }}
 		</h2>
 		<Checkbox
@@ -234,7 +234,7 @@ watch(
 				v-model="memory.optimize_before_launch"
 				:label="formatMessage(messages.optimizeMemoryBeforeLaunch)"
 			/>
-			<p class="m-0 text-xs leading-tight text-secondary">
+			<p class="m-0 text-xs leading-tight text-[var(--color-text-tertiary)]">
 				{{ formatMessage(messages.optimizeMemoryBeforeLaunchDescription) }}
 			</p>
 		</div>
@@ -251,7 +251,7 @@ watch(
 		/>
 		<MemoryAllocationDisplay :instance-id="instance.id" :memory="effectiveMemory" />
 
-		<h2 class="mb-1 mt-4 block text-base font-extrabold text-contrast">
+		<h2 class="mb-1 mt-4 block text-base font-extrabold text-[var(--color-text-primary)]">
 			{{ formatMessage(messages.javaArguments) }}
 		</h2>
 		<Checkbox
@@ -268,7 +268,7 @@ watch(
 			:placeholder="formatMessage(messages.enterJavaArguments)"
 		/>
 
-		<h2 class="mb-1 mt-4 block text-base font-extrabold text-contrast">
+		<h2 class="mb-1 mt-4 block text-base font-extrabold text-[var(--color-text-primary)]">
 			{{ formatMessage(messages.javaEnvironmentVariables) }}
 		</h2>
 		<Checkbox

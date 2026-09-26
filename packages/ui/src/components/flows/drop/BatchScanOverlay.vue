@@ -79,7 +79,7 @@ function statusClass(state: BatchDropScanState): string {
 		case 'error':
 			return 'text-danger'
 		default:
-			return 'text-secondary'
+			return 'text-[var(--color-text-tertiary)]'
 	}
 }
 </script>
@@ -88,12 +88,12 @@ function statusClass(state: BatchDropScanState): string {
 	<div class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 p-6">
 		<div class="w-full max-w-lg rounded-2xl bg-surface-2 p-6 shadow-xl">
 			<div class="flex items-center gap-3">
-				<SpinnerIcon class="h-6 w-6 shrink-0 animate-spin text-contrast" />
+				<SpinnerIcon class="h-6 w-6 shrink-0 animate-spin text-[var(--color-text-primary)]" />
 				<div class="min-w-0 flex-1">
-					<p class="truncate text-sm font-semibold text-contrast">
+					<p class="truncate text-sm font-semibold text-[var(--color-text-primary)]">
 						{{ formatMessage(messages.title, { count: total }) }}
 					</p>
-					<p class="text-xs text-secondary">
+					<p class="text-xs text-[var(--color-text-tertiary)]">
 						{{ formatMessage(messages.subtitle, { done: doneCount, total }) }}
 					</p>
 				</div>
@@ -110,7 +110,9 @@ function statusClass(state: BatchDropScanState): string {
 					:key="item.id"
 					class="flex items-center justify-between gap-2 rounded-lg bg-surface-1 px-3 py-2"
 				>
-					<span class="min-w-0 truncate text-sm text-contrast">{{ item.name }}</span>
+					<span class="min-w-0 truncate text-sm text-[var(--color-text-primary)]">{{
+						item.name
+					}}</span>
 					<span class="shrink-0 text-xs" :class="statusClass(item.scanState)">
 						{{ statusLabel(item.scanState) }}
 					</span>

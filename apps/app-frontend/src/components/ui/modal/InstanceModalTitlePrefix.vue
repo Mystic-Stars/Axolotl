@@ -9,7 +9,7 @@ defineProps<{
 }>()
 </script>
 <template>
-	<span class="flex items-center gap-2 text-lg font-semibold text-primary">
+	<span class="flex items-center gap-2 text-lg font-semibold text-[var(--color-text-default)]">
 		<InstanceIcon
 			:icon-path="instance.icon_path"
 			:instance-id="instance.id"

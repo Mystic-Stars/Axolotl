@@ -112,7 +112,7 @@ const progressWidth = computed(() => `${Math.min(100, (props.current / props.tot
 
 .onboarding-dialogue-copy {
 	min-width: 0;
-	color: var(--color-contrast);
+	color: var(--color-text-primary);
 }
 
 .onboarding-dialogue-header {
@@ -129,7 +129,7 @@ const progressWidth = computed(() => `${Math.min(100, (props.current / props.tot
 }
 
 .onboarding-dialogue-heading h2 {
-	color: var(--color-contrast);
+	color: var(--color-text-primary);
 	font-size: 1.25rem;
 	font-weight: 700;
 	line-height: 1.25;
@@ -138,7 +138,7 @@ const progressWidth = computed(() => `${Math.min(100, (props.current / props.tot
 
 .onboarding-dialogue-body > p:not(.onboarding-action-hint) {
 	max-width: 46ch;
-	color: var(--color-contrast);
+	color: var(--color-text-primary);
 	font-size: 1rem;
 	line-height: 1.55;
 }
@@ -147,15 +147,9 @@ const progressWidth = computed(() => `${Math.min(100, (props.current / props.tot
 	max-width: 68ch;
 }
 
-.onboarding-progress,
 .onboarding-action-hint {
 	font-size: 0.8125rem;
 	font-weight: 700;
-}
-
-.onboarding-progress {
-	margin-bottom: 0.375rem;
-	color: var(--color-brand);
 }
 
 .onboarding-action-hint {
@@ -169,15 +163,6 @@ const progressWidth = computed(() => `${Math.min(100, (props.current / props.tot
 
 .onboarding-action-hint :deep(svg) {
 	flex: none;
-}
-
-.onboarding-dialogue-body :deep(.button-outer) {
-	margin-top: 1rem;
-}
-
-.onboarding-dialogue-header :deep(.button-outer) {
-	flex: none;
-	margin-top: 0;
 }
 
 .onboarding-dialogue-copy :deep(svg) {

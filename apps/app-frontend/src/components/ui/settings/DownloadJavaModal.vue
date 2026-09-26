@@ -1,10 +1,10 @@
 <script setup>
 import { ArrowLeftIcon, CoffeeIcon, SpinnerIcon, XIcon } from '@modrinth/assets'
 import {
+	Button,
 	commonMessages,
 	defineMessages,
 	injectNotificationManager,
-	NewButton as Button,
 	NewModal,
 	useVIntl,
 } from '@modrinth/ui'
@@ -142,10 +142,12 @@ async function downloadVersion(info) {
 	>
 		<div class="flex min-h-40 flex-col gap-4">
 			<template v-if="!selectedVendor">
-				<span class="font-semibold text-contrast">{{ formatMessage(messages.selectVendor) }}</span>
+				<span class="font-semibold text-[var(--color-text-primary)]">{{
+					formatMessage(messages.selectVendor)
+				}}</span>
 				<div
 					v-if="loading"
-					class="flex min-h-32 items-center justify-center gap-2 text-sm text-secondary"
+					class="flex min-h-32 items-center justify-center gap-2 text-sm text-[var(--color-text-tertiary)]"
 					role="status"
 				>
 					<SpinnerIcon class="size-4 animate-spin" aria-hidden="true" />
@@ -153,7 +155,7 @@ async function downloadVersion(info) {
 				</div>
 				<div
 					v-else-if="vendors.length === 0"
-					class="flex min-h-32 items-center justify-center text-sm text-secondary"
+					class="flex min-h-32 items-center justify-center text-sm text-[var(--color-text-tertiary)]"
 				>
 					{{ formatMessage(messages.noVendors) }}
 				</div>
@@ -175,15 +177,20 @@ async function downloadVersion(info) {
 								alt=""
 								class="size-full object-contain"
 							/>
-							<CoffeeIcon v-else class="size-5 text-secondary" aria-hidden="true" />
+							<CoffeeIcon
+								v-else
+								class="size-5 text-[var(--color-text-tertiary)]"
+								aria-hidden="true"
+							/>
 						</span>
 						<span class="flex min-w-0 flex-1 flex-col items-start text-left leading-tight">
-							<span class="w-full truncate text-left text-sm font-semibold text-contrast">{{
-								vendor
-							}}</span>
+							<span
+								class="w-full truncate text-left text-sm font-semibold text-[var(--color-text-primary)]"
+								>{{ vendor }}</span
+							>
 							<span
 								v-if="vendorBranding[vendor]"
-								class="w-full truncate text-left text-xs font-normal text-secondary"
+								class="w-full truncate text-left text-xs font-normal text-[var(--color-text-tertiary)]"
 							>
 								{{ vendorBranding[vendor].product }}
 							</span>
@@ -203,15 +210,19 @@ async function downloadVersion(info) {
 							alt=""
 							class="size-full object-contain"
 						/>
-						<CoffeeIcon v-else class="size-5 text-secondary" aria-hidden="true" />
+						<CoffeeIcon
+							v-else
+							class="size-5 text-[var(--color-text-tertiary)]"
+							aria-hidden="true"
+						/>
 					</span>
-					<span class="min-w-0 font-semibold text-contrast">
+					<span class="min-w-0 font-semibold text-[var(--color-text-primary)]">
 						{{ formatMessage(messages.selectVersion, { vendor: selectedVendor }) }}
 					</span>
 				</div>
 				<div
 					v-if="loading"
-					class="flex min-h-32 items-center justify-center gap-2 text-sm text-secondary"
+					class="flex min-h-32 items-center justify-center gap-2 text-sm text-[var(--color-text-tertiary)]"
 					role="status"
 				>
 					<SpinnerIcon class="size-4 animate-spin" aria-hidden="true" />
@@ -219,7 +230,7 @@ async function downloadVersion(info) {
 				</div>
 				<div
 					v-else-if="versions.length === 0"
-					class="flex min-h-32 items-center justify-center text-sm text-secondary"
+					class="flex min-h-32 items-center justify-center text-sm text-[var(--color-text-tertiary)]"
 				>
 					{{ formatMessage(messages.noVersions) }}
 				</div>

@@ -1,12 +1,6 @@
 <script setup lang="ts">
 import { WrenchIcon } from '@modrinth/assets'
-import {
-	defineMessages,
-	injectNotificationManager,
-	NewButton as Button,
-	Toggle,
-	useVIntl,
-} from '@modrinth/ui'
+import { Button, defineMessages, injectNotificationManager, Toggle, useVIntl } from '@modrinth/ui'
 import { inject, ref, watch } from 'vue'
 
 import { get as getSettings, set as setSettings } from '@/helpers/settings.ts'
@@ -137,12 +131,12 @@ watch(
 
 	<SettingsSection v-if="(themeStore.devMode || isDevEnvironment) && previewRemoteAnnouncement">
 		<template #header>
-			<h2 class="m-0 text-lg font-semibold text-contrast">
+			<h2 class="m-0 text-lg font-semibold text-[var(--color-text-primary)]">
 				{{ formatMessage(messages.announcementPreview) }}
 			</h2>
 		</template>
 		<div class="flex flex-col gap-4 p-4">
-			<p class="m-0 text-sm text-secondary">
+			<p class="m-0 text-sm text-[var(--color-text-tertiary)]">
 				{{ formatMessage(messages.announcementPreviewDescription) }}
 			</p>
 			<div class="flex items-center gap-2">
@@ -164,8 +158,10 @@ watch(
 
 	<SettingsSection v-if="isDevEnvironment">
 		<template #header>
-			<h2 class="m-0 flex items-center gap-2 text-lg font-semibold text-contrast">
-				<WrenchIcon class="size-5 text-secondary" />
+			<h2
+				class="m-0 flex items-center gap-2 text-lg font-semibold text-[var(--color-text-primary)]"
+			>
+				<WrenchIcon class="size-5 text-[var(--color-text-tertiary)]" />
 				{{ formatMessage(messages.developerTools) }}
 			</h2>
 		</template>

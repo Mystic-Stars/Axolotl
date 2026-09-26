@@ -57,7 +57,7 @@
 						"
 						class="flex items-center gap-2 font-semibold cursor-help"
 					>
-						<DownloadIcon class="h-6 w-6 text-secondary" />
+						<DownloadIcon class="h-6 w-6 text-[var(--color-text-tertiary)]" />
 						{{ formatCompactNumber(project.downloads) }}
 					</div>
 					<div
@@ -72,7 +72,7 @@
 						class="flex items-center gap-2 cursor-help"
 						:class="{ 'md:border-r': project.categories.length > 0 }"
 					>
-						<HeartIcon class="h-6 w-6 text-secondary" />
+						<HeartIcon class="h-6 w-6 text-[var(--color-text-tertiary)]" />
 						<span class="font-semibold">
 							{{ formatCompactNumber(project.followers) }}
 						</span>
@@ -150,11 +150,11 @@ const statusOnline = computed(() => !!javaServerPingData.value)
 const translationClass = computed(
 	() =>
 		({
-			default: 'text-primary',
-			weakened: 'text-secondary',
+			default: 'text-[var(--color-text-default)]',
+			weakened: 'text-[var(--color-text-tertiary)]',
 			brand: 'text-brand',
 			border: 'border-0 border-l-[3px] border-solid border-brand pl-2',
-			background: 'rounded-lg bg-button-bg px-2 py-1',
+			background: 'rounded-lg bg-surface-4 px-2 py-1',
 		})[props.translationStyle ?? 'default'],
 )
 </script>

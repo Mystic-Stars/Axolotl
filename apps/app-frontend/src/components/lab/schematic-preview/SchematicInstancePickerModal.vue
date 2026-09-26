@@ -260,7 +260,7 @@ defineExpose({ show })
 	>
 		<div class="flex min-h-[24rem] min-w-0 flex-col gap-4">
 			<template v-if="!selectedInstance">
-				<p class="m-0 text-sm text-secondary">
+				<p class="m-0 text-sm text-[var(--color-text-tertiary)]">
 					{{ formatMessage(messages.chooseInstance) }}
 				</p>
 				<StyledInput
@@ -273,7 +273,10 @@ defineExpose({ show })
 					clearable
 				/>
 
-				<div v-if="loadingInstances" class="flex flex-1 items-center justify-center text-secondary">
+				<div
+					v-if="loadingInstances"
+					class="flex flex-1 items-center justify-center text-[var(--color-text-tertiary)]"
+				>
 					<SpinnerIcon class="size-6 animate-spin" />
 				</div>
 				<p
@@ -284,13 +287,13 @@ defineExpose({ show })
 				</p>
 				<p
 					v-else-if="instances.length === 0"
-					class="m-0 flex flex-1 items-center justify-center text-center text-secondary"
+					class="m-0 flex flex-1 items-center justify-center text-center text-[var(--color-text-tertiary)]"
 				>
 					{{ formatMessage(messages.noInstances) }}
 				</p>
 				<p
 					v-else-if="visibleInstances.length === 0"
-					class="m-0 flex flex-1 items-center justify-center text-center text-secondary"
+					class="m-0 flex flex-1 items-center justify-center text-center text-[var(--color-text-tertiary)]"
 				>
 					{{ formatMessage(messages.noMatchingInstances) }}
 				</p>
@@ -298,7 +301,7 @@ defineExpose({ show })
 					<li v-for="instance in visibleInstances" :key="instance.id" class="min-w-0">
 						<button
 							type="button"
-							class="flex min-h-16 w-full cursor-pointer items-center gap-3 rounded-lg border-0 bg-transparent px-3 py-2 text-left text-primary transition-colors hover:bg-button-bg focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand-shadow"
+							class="flex min-h-16 w-full cursor-pointer items-center gap-3 rounded-lg border-0 bg-transparent px-3 py-2 text-left text-[var(--color-text-default)] transition-colors hover:bg-surface-4 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand-shadow"
 							:aria-label="formatMessage(messages.selectInstance, { name: instance.name })"
 							@click="selectInstance(instance)"
 						>
@@ -309,12 +312,17 @@ defineExpose({ show })
 								:loader="instance.loader"
 							/>
 							<span class="flex min-w-0 flex-1 flex-col gap-0.5">
-								<strong class="truncate text-contrast">{{ instance.name }}</strong>
-								<span class="truncate text-sm capitalize text-secondary">
+								<strong class="truncate text-[var(--color-text-primary)]">{{
+									instance.name
+								}}</strong>
+								<span class="truncate text-sm capitalize text-[var(--color-text-tertiary)]">
 									{{ instance.loader }} {{ instance.game_version }}
 								</span>
 							</span>
-							<ChevronRightIcon class="size-5 shrink-0 text-secondary" aria-hidden="true" />
+							<ChevronRightIcon
+								class="size-5 shrink-0 text-[var(--color-text-tertiary)]"
+								aria-hidden="true"
+							/>
 						</button>
 					</li>
 				</ul>
@@ -339,8 +347,10 @@ defineExpose({ show })
 						:loader="selectedInstance.loader"
 					/>
 					<div class="flex min-w-0 flex-1 flex-col">
-						<strong class="truncate text-contrast">{{ selectedInstance.name }}</strong>
-						<span class="truncate text-sm capitalize text-secondary">
+						<strong class="truncate text-[var(--color-text-primary)]">{{
+							selectedInstance.name
+						}}</strong>
+						<span class="truncate text-sm capitalize text-[var(--color-text-tertiary)]">
 							{{ selectedInstance.loader }} {{ selectedInstance.game_version }}
 						</span>
 					</div>
@@ -356,7 +366,10 @@ defineExpose({ show })
 					clearable
 				/>
 
-				<div v-if="loadingFiles" class="flex flex-1 items-center justify-center text-secondary">
+				<div
+					v-if="loadingFiles"
+					class="flex flex-1 items-center justify-center text-[var(--color-text-tertiary)]"
+				>
 					<SpinnerIcon class="size-6 animate-spin" />
 				</div>
 				<p
@@ -367,13 +380,13 @@ defineExpose({ show })
 				</p>
 				<p
 					v-else-if="files.length === 0"
-					class="m-0 flex flex-1 items-center justify-center text-center text-secondary"
+					class="m-0 flex flex-1 items-center justify-center text-center text-[var(--color-text-tertiary)]"
 				>
 					{{ formatMessage(messages.noSchematics) }}
 				</p>
 				<p
 					v-else-if="visibleRows.length === 0"
-					class="m-0 flex flex-1 items-center justify-center text-center text-secondary"
+					class="m-0 flex flex-1 items-center justify-center text-center text-[var(--color-text-tertiary)]"
 				>
 					{{ formatMessage(messages.noMatchingSchematics) }}
 				</p>
@@ -390,7 +403,7 @@ defineExpose({ show })
 									v-if="row.kind === 'folder'"
 									type="button"
 									role="listitem"
-									class="flex h-16 w-full cursor-pointer items-center gap-3 border-0 border-b border-solid border-surface-5 bg-transparent py-2 pr-3 text-left text-primary transition-colors last:border-b-0 hover:bg-button-bg focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand-shadow"
+									class="flex h-16 w-full cursor-pointer items-center gap-3 border-0 border-b border-solid border-surface-5 bg-transparent py-2 pr-3 text-left text-[var(--color-text-default)] transition-colors last:border-b-0 hover:bg-surface-4 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand-shadow"
 									:style="rowPadding(row.depth)"
 									:title="row.path"
 									:aria-expanded="row.expanded"
@@ -403,18 +416,23 @@ defineExpose({ show })
 								>
 									<ChevronDownIcon
 										v-if="row.expanded"
-										class="size-5 shrink-0 text-secondary"
+										class="size-5 shrink-0 text-[var(--color-text-tertiary)]"
 										aria-hidden="true"
 									/>
 									<ChevronRightIcon
 										v-else
-										class="size-5 shrink-0 text-secondary"
+										class="size-5 shrink-0 text-[var(--color-text-tertiary)]"
 										aria-hidden="true"
 									/>
-									<FolderIcon class="size-5 shrink-0 text-secondary" aria-hidden="true" />
+									<FolderIcon
+										class="size-5 shrink-0 text-[var(--color-text-tertiary)]"
+										aria-hidden="true"
+									/>
 									<span class="flex min-w-0 flex-1 items-baseline gap-1.5">
-										<strong class="truncate text-contrast">{{ row.name }}</strong>
-										<span class="shrink-0 text-sm font-medium text-secondary">
+										<strong class="truncate text-[var(--color-text-primary)]">{{
+											row.name
+										}}</strong>
+										<span class="shrink-0 text-sm font-medium text-[var(--color-text-tertiary)]">
 											({{ row.fileCount }})
 										</span>
 									</span>
@@ -423,7 +441,7 @@ defineExpose({ show })
 									v-else
 									type="button"
 									role="listitem"
-									class="flex h-16 w-full cursor-pointer items-center gap-3 border-0 border-b border-solid border-surface-5 bg-transparent py-2 pr-3 text-left text-primary transition-colors last:border-b-0 hover:bg-button-bg focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand-shadow"
+									class="flex h-16 w-full cursor-pointer items-center gap-3 border-0 border-b border-solid border-surface-5 bg-transparent py-2 pr-3 text-left text-[var(--color-text-default)] transition-colors last:border-b-0 hover:bg-surface-4 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand-shadow"
 									:style="rowPadding(row.depth)"
 									:title="row.file.relativePath"
 									:aria-label="
@@ -431,10 +449,12 @@ defineExpose({ show })
 									"
 									@click="openFile(row.file)"
 								>
-									<FileArchiveIcon class="size-5 shrink-0 text-secondary" />
+									<FileArchiveIcon class="size-5 shrink-0 text-[var(--color-text-tertiary)]" />
 									<span class="flex min-w-0 flex-1 flex-col gap-0.5">
-										<strong class="truncate text-contrast">{{ row.file.fileName }}</strong>
-										<span class="truncate text-xs uppercase text-secondary">
+										<strong class="truncate text-[var(--color-text-primary)]">{{
+											row.file.fileName
+										}}</strong>
+										<span class="truncate text-xs uppercase text-[var(--color-text-tertiary)]">
 											<span v-if="row.parentPath">{{ row.parentPath }} · </span
 											>{{ row.file.format }} · {{ formatBytes(row.file.size) }}
 											<span v-if="row.file.modifiedAt">
@@ -442,7 +462,10 @@ defineExpose({ show })
 											>
 										</span>
 									</span>
-									<ChevronRightIcon class="size-5 shrink-0 text-secondary" aria-hidden="true" />
+									<ChevronRightIcon
+										class="size-5 shrink-0 text-[var(--color-text-tertiary)]"
+										aria-hidden="true"
+									/>
 								</button>
 							</template>
 						</div>

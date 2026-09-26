@@ -221,7 +221,7 @@ function draftText(tag: CustomTag) {
 				/>
 				<div
 					v-if="!visibleVanillaTags.length"
-					class="flex min-h-24 items-center justify-center px-4 text-sm text-secondary"
+					class="flex min-h-24 items-center justify-center px-4 text-sm text-[var(--color-text-tertiary)]"
 				>
 					{{ formatMessage(messages.empty) }}
 				</div>
@@ -280,7 +280,7 @@ function draftText(tag: CustomTag) {
 				</div>
 				<div
 					v-if="!customTags.length"
-					class="flex min-h-24 items-center justify-center px-4 text-sm text-secondary"
+					class="flex min-h-24 items-center justify-center px-4 text-sm text-[var(--color-text-tertiary)]"
 				>
 					{{ formatMessage(messages.noCustomTags) }}
 				</div>
@@ -334,7 +334,7 @@ function draftText(tag: CustomTag) {
 							:value="valueDrafts[tag.uid] ?? draftText(tag)"
 							:placeholder="formatMessage(messages.tagValuesPlaceholder)"
 							rows="2"
-							class="recipe-tag-values w-full resize-y border border-surface-5 rounded-[var(--radius-sm)] bg-surface-2 p-[0.4rem] text-contrast font-mono text-xs leading-[1.4] outline-none"
+							class="recipe-tag-values w-full resize-y border border-surface-5 rounded-[var(--radius-sm)] bg-surface-2 p-[0.4rem] text-[var(--color-text-primary)] font-mono text-xs leading-[1.4] outline-none"
 							@input="valueDrafts[tag.uid] = ($event.target as HTMLTextAreaElement).value"
 							@blur="commitValues(tag)"
 						></textarea>
@@ -352,7 +352,7 @@ function draftText(tag: CustomTag) {
 	border-radius: calc(var(--radius-sm) - 1px);
 	background: transparent;
 	padding: 0.4rem 0.5rem;
-	color: var(--color-secondary);
+	color: var(--color-text-tertiary);
 	cursor: pointer;
 	font-size: 0.75rem;
 	font-weight: 700;
@@ -399,7 +399,7 @@ function draftText(tag: CustomTag) {
 	border-radius: var(--radius-sm);
 	background: var(--color-surface-4);
 	padding: 0.25rem 0.5rem;
-	color: var(--color-contrast);
+	color: var(--color-text-primary);
 	cursor: pointer;
 	text-align: left;
 	transition: border-color 0.15s ease;
@@ -472,7 +472,7 @@ function draftText(tag: CustomTag) {
 	border-radius: var(--radius-sm);
 	background: var(--color-surface-4);
 	padding: 0 0.6rem;
-	color: var(--color-contrast);
+	color: var(--color-text-primary);
 	cursor: pointer;
 	font-size: 0.75rem;
 	font-weight: 700;

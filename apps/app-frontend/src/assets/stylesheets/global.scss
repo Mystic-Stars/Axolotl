@@ -2,8 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-@import '@modrinth/ui/styles/tailwind-utilities.css';
-
 @font-face {
 	font-family: 'bundled-minecraft-font-mrapp';
 	font-style: normal;
@@ -45,14 +43,6 @@
 	color-scheme: dark;
 	--view-width: calc(100% - 5rem);
 	--expanded-view-width: calc(100% - 13rem);
-	--medal-promotion-bg: #000;
-	--medal-promotion-bg-orange: rgba(208, 246, 255, 0.25);
-	--medal-promotion-text-orange: #42abff;
-	--medal-promotion-bg-gradient: linear-gradient(
-		90deg,
-		rgba(66, 170, 255, 0.15),
-		rgba(0, 0, 0, 0) 100%
-	);
 }
 
 body {
@@ -110,11 +100,9 @@ html.transparent-window body {
 	--surface-4: color-mix(in srgb, var(--surface-4-opaque) var(--window-alpha-4), transparent);
 	--surface-5: color-mix(in srgb, var(--surface-5-opaque) var(--window-alpha-5), transparent);
 
-	// The semantic aliases resolve against the root surfaces at declaration
-	// time, so overriding the primitives above does not reach them.
+	// Compatibility aliases with remaining consumers still resolve against the
+	// body palette instead of the opaque root values.
 	--color-bg: color-mix(in srgb, var(--surface-1-opaque) var(--window-alpha), transparent);
-	--color-raised-bg: color-mix(in srgb, var(--surface-3-opaque) var(--window-alpha-3), transparent);
-	--color-button-bg: color-mix(in srgb, var(--surface-4-opaque) var(--window-alpha-4), transparent);
 	--color-divider: color-mix(in srgb, var(--surface-5-opaque) var(--window-alpha-5), transparent);
 	--color-divider-dark: color-mix(
 		in srgb,
@@ -195,19 +183,9 @@ html.has-custom-background body {
 	--surface-4: color-mix(in srgb, var(--surface-4-opaque) var(--custom-bg-alpha-4), transparent);
 	--surface-5: color-mix(in srgb, var(--surface-5-opaque) var(--custom-bg-alpha-5), transparent);
 
-	// The semantic aliases resolve against the root surfaces at declaration time,
-	// so overriding the primitives above does not reach them.
+	// Compatibility aliases with remaining consumers still resolve against the
+	// body palette instead of the opaque root values.
 	--color-bg: color-mix(in srgb, var(--surface-1-opaque) var(--custom-bg-page-alpha), transparent);
-	--color-raised-bg: color-mix(
-		in srgb,
-		var(--surface-3-opaque) var(--custom-bg-alpha-3),
-		transparent
-	);
-	--color-button-bg: color-mix(
-		in srgb,
-		var(--surface-4-opaque) var(--custom-bg-alpha-4),
-		transparent
-	);
 	--color-divider: color-mix(
 		in srgb,
 		var(--surface-5-opaque) var(--custom-bg-alpha-5),
@@ -250,7 +228,7 @@ a {
 
 	&.featured {
 		background-color: var(--color-brand-highlight);
-		color: var(--color-contrast);
+		color: var(--color-text-primary);
 	}
 }
 
@@ -307,11 +285,6 @@ a {
 	box-shadow: 0 0 1rem var(--color-brand) !important;
 }
 
-.gecko {
-	background-color: var(--color-raised-bg);
-	box-shadow: none !important;
-}
-
 img {
 	user-select: none;
 	-webkit-user-select: none;
@@ -359,8 +332,8 @@ pre {
 
 input,
 textarea {
-	background: var(--color-button-bg);
-	color: var(--color-base);
+	background: var(--surface-3);
+	color: var(--color-text-default);
 	padding: 0.5rem 1rem;
 	font-weight: var(--font-weight-medium);
 	border: none;

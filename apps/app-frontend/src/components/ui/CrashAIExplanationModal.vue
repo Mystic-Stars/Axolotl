@@ -71,8 +71,13 @@ defineExpose({ show })
 			<Admonition type="warning" :header="formatMessage(messages.title)">
 				{{ formatMessage(messages.disclaimer) }}
 			</Admonition>
-			<div v-if="loading" class="text-secondary">{{ formatMessage(messages.analyzing) }}</div>
-			<div v-else-if="errorMessage" class="rounded-lg bg-red-500/10 p-3 text-secondary">
+			<div v-if="loading" class="text-[var(--color-text-tertiary)]">
+				{{ formatMessage(messages.analyzing) }}
+			</div>
+			<div
+				v-else-if="errorMessage"
+				class="rounded-lg bg-red-500/10 p-3 text-[var(--color-text-tertiary)]"
+			>
 				{{ formatMessage(messages.error, { message: errorMessage }) }}
 			</div>
 			<div

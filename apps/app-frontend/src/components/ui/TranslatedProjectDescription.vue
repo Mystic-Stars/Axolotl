@@ -59,7 +59,7 @@ const translationOnlyClass = computed(() =>
 }
 
 :deep(.ax-translation-style-weakened) {
-	color: var(--color-secondary) !important;
+	color: var(--color-text-tertiary) !important;
 }
 
 :deep(.ax-translation-style-blur) {
@@ -102,7 +102,7 @@ const translationOnlyClass = computed(() =>
 }
 
 .ax-translation-only.ax-translation-style-weakened {
-	color: var(--color-secondary) !important;
+	color: var(--color-text-tertiary) !important;
 }
 
 .ax-translation-only.ax-translation-style-blur {

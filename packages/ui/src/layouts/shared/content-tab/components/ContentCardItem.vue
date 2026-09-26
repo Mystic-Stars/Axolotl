@@ -217,7 +217,7 @@ const deleteHovered = ref(false)
 			groupKind === 'world'
 				? selected
 					? 'card-shadow !bg-surface-2.5 rounded-lg p-3'
-					: 'card-shadow !bg-bg-raised rounded-lg p-3 hover:!bg-bg-raised'
+					: 'card-shadow !bg-surface-3 rounded-lg p-3 hover:!bg-surface-3'
 				: 'px-3 hover:bg-[hsl(230deg,6.98%,16.86%,60%)]',
 		]"
 		:style="
@@ -263,7 +263,7 @@ const deleteHovered = ref(false)
 									: undefined
 							"
 							:to="projectLink"
-							class="truncate text-contrast !decoration-contrast"
+							class="truncate text-[var(--color-text-primary)] !decoration-[var(--color-text-primary)]"
 							:class="[
 								groupKind === 'world' ? 'text-lg font-bold' : 'font-semibold leading-6',
 								{ 'hover:underline': projectLink },
@@ -273,24 +273,24 @@ const deleteHovered = ref(false)
 						</AutoLink>
 						<span
 							v-if="groupKind === 'world'"
-							class="flex items-center gap-1 whitespace-nowrap text-sm font-semibold text-secondary"
+							class="flex items-center gap-1 whitespace-nowrap text-sm font-semibold text-[var(--color-text-tertiary)]"
 						>
 							<UserIcon
 								aria-hidden="true"
-								class="h-4 w-4 shrink-0 text-secondary"
+								class="h-4 w-4 shrink-0 text-[var(--color-text-tertiary)]"
 								stroke-width="3px"
 							/>
 							{{ formatMessage(commonMessages.singleplayerLabel) }}
 						</span>
-						<span class="shrink-0 text-sm font-medium text-secondary">
+						<span class="shrink-0 text-sm font-medium text-[var(--color-text-tertiary)]">
 							({{ groupItemCount }})
 						</span>
 					</div>
 					<div class="flex min-w-0 items-center gap-1">
 						<template v-if="groupKind === 'world'">
 							<template v-if="groupMeta?.last_played">
-								<ClockIcon class="size-4 shrink-0 text-secondary" />
-								<span class="truncate text-sm leading-5 text-secondary">
+								<ClockIcon class="size-4 shrink-0 text-[var(--color-text-tertiary)]" />
+								<span class="truncate text-sm leading-5 text-[var(--color-text-tertiary)]">
 									{{
 										formatMessage(commonMessages.playedLabel, {
 											ago: formatTimeAgo(new Date(groupMeta.last_played)),
@@ -298,7 +298,7 @@ const deleteHovered = ref(false)
 									}}
 								</span>
 							</template>
-							<span v-else class="truncate text-sm leading-5 text-secondary">
+							<span v-else class="truncate text-sm leading-5 text-[var(--color-text-tertiary)]">
 								{{ formatMessage(messages.notPlayedYet) }}
 							</span>
 						</template>
@@ -311,7 +311,7 @@ const deleteHovered = ref(false)
 										: undefined
 								"
 								:to="owner.link"
-								class="flex shrink-0 items-center gap-1 !decoration-secondary"
+								class="flex shrink-0 items-center gap-1 !decoration-[var(--color-text-tertiary)]"
 								:class="{ 'hover:underline': owner.link }"
 							>
 								<Avatar
@@ -322,7 +322,9 @@ const deleteHovered = ref(false)
 									no-shadow
 									class="shrink-0"
 								/>
-								<span class="text-sm leading-5 text-secondary">{{ owner.name }}</span>
+								<span class="text-sm leading-5 text-[var(--color-text-tertiary)]">{{
+									owner.name
+								}}</span>
 							</AutoLink>
 							<template v-if="version">
 								<BulletDivider class="shrink-0 @[800px]:hidden" />
@@ -333,15 +335,19 @@ const deleteHovered = ref(false)
 											: undefined
 									"
 									:to="versionLink"
-									class="truncate text-sm leading-5 text-secondary !decoration-secondary @[800px]:hidden"
+									class="truncate text-sm leading-5 text-[var(--color-text-tertiary)] !decoration-[var(--color-text-tertiary)] @[800px]:hidden"
 									:class="{ 'hover:underline': versionLink }"
 								>
 									{{ version.version_number }}
 								</AutoLink>
 								<template v-if="version.date_published">
 									<BulletDivider class="shrink-0 @[800px]:hidden" />
-									<ClockIcon class="size-4 shrink-0 text-secondary @[800px]:hidden" />
-									<span class="shrink-0 text-sm leading-5 text-secondary @[800px]:hidden">
+									<ClockIcon
+										class="size-4 shrink-0 text-[var(--color-text-tertiary)] @[800px]:hidden"
+									/>
+									<span
+										class="shrink-0 text-sm leading-5 text-[var(--color-text-tertiary)] @[800px]:hidden"
+									>
 										{{ formatTimeAgo(new Date(version.date_published)) }}
 									</span>
 								</template>
@@ -357,18 +363,22 @@ const deleteHovered = ref(false)
 			:class="hideActions ? 'flex-1' : 'flex-1 min-w-0'"
 		>
 			<template v-if="groupKind === 'world'">
-				<div class="flex min-w-0 items-center gap-1.5 font-medium leading-6 text-contrast">
+				<div
+					class="flex min-w-0 items-center gap-1.5 font-medium leading-6 text-[var(--color-text-primary)]"
+				>
 					<template v-if="groupMeta?.hardcore">
 						<SkullIcon aria-hidden="true" class="h-4 w-4 shrink-0 text-red" />
 						<span class="text-red">{{ formatMessage(messages.hardcore) }}</span>
 					</template>
-					<span v-else-if="groupMeta?.game_mode" class="text-secondary">
+					<span v-else-if="groupMeta?.game_mode" class="text-[var(--color-text-tertiary)]">
 						{{ groupMeta.game_mode.charAt(0).toUpperCase() + groupMeta.game_mode.slice(1) }}
 					</span>
 				</div>
 			</template>
 			<template v-else-if="version">
-				<div class="flex min-w-0 items-center gap-1.5 font-medium leading-6 text-contrast">
+				<div
+					class="flex min-w-0 items-center gap-1.5 font-medium leading-6 text-[var(--color-text-primary)]"
+				>
 					<AutoLink
 						:target="
 							typeof versionLink === 'string' && versionLink.startsWith('http')
@@ -376,26 +386,31 @@ const deleteHovered = ref(false)
 								: undefined
 						"
 						:to="versionLink"
-						class="truncate self-start !decoration-contrast"
+						class="truncate self-start !decoration-[var(--color-text-primary)]"
 						:class="{ 'hover:underline': versionLink, 'cursor-pointer': versionLink }"
 					>
 						{{ version.version_number }}
 					</AutoLink>
 					<template v-if="version.date_published">
-						<ClockIcon class="hidden size-4 shrink-0 text-secondary @[600px]:inline" />
+						<ClockIcon
+							class="hidden size-4 shrink-0 text-[var(--color-text-tertiary)] @[600px]:inline"
+						/>
 						<span
-							class="hidden shrink-0 text-sm font-normal leading-6 text-secondary @[600px]:inline"
+							class="hidden shrink-0 text-sm font-normal leading-6 text-[var(--color-text-tertiary)] @[600px]:inline"
 						>
 							{{ formatTimeAgo(new Date(version.date_published)) }}
 						</span>
 					</template>
 				</div>
-				<span class="flex min-w-0 leading-6 text-secondary">
+				<span class="flex min-w-0 leading-6 text-[var(--color-text-tertiary)]">
 					<span class="truncate">{{ version.file_name }}</span>
 				</span>
 			</template>
 			<div v-if="downloads != null" class="flex flex-nowrap items-center gap-3 overflow-hidden">
-				<div v-if="downloads != null" class="flex items-center gap-2 text-secondary">
+				<div
+					v-if="downloads != null"
+					class="flex items-center gap-2 text-[var(--color-text-tertiary)]"
+				>
 					<DownloadIcon class="size-4" />
 					<span class="text-sm font-medium">{{ formatCompact(downloads) }}</span>
 				</div>
@@ -438,7 +453,7 @@ const deleteHovered = ref(false)
 				type="quiet"
 				circular
 				icon-only
-				class="flex items-center text-secondary hover:text-primary transition-colors"
+				class="flex items-center text-[var(--color-text-tertiary)] hover:text-[var(--color-text-default)] transition-colors"
 				@click.stop="emit('toggleExpand')"
 				><ChevronDownIcon v-if="groupExpanded" class="size-5" />
 				<ChevronRightIcon v-else class="size-5" />
@@ -520,7 +535,7 @@ const deleteHovered = ref(false)
 									: undefined
 							"
 							:to="projectLink"
-							class="truncate font-semibold leading-6 text-contrast !decoration-contrast"
+							class="truncate font-semibold leading-6 text-[var(--color-text-primary)] !decoration-[var(--color-text-primary)]"
 							:class="{ 'hover:underline': projectLink }"
 						>
 							<MinecraftFormattedText :text="project.title" />
@@ -544,7 +559,7 @@ const deleteHovered = ref(false)
 									? formatMessage(messages.orphanedDependencyBadge)
 									: formatMessage(messages.dependencyBadge)
 							"
-							class="shrink-0 rounded-md bg-surface-3 px-1.5 py-0.5 text-xs font-medium leading-4 text-secondary"
+							class="shrink-0 rounded-md bg-surface-3 px-1.5 py-0.5 text-xs font-medium leading-4 text-[var(--color-text-tertiary)]"
 						>
 							{{
 								dependencyBadge.orphaned
@@ -558,7 +573,7 @@ const deleteHovered = ref(false)
 					<div class="flex min-w-0 items-center gap-1">
 						<span
 							v-if="project.description"
-							class="truncate text-sm leading-5 text-secondary"
+							class="truncate text-sm leading-5 text-[var(--color-text-tertiary)]"
 							:title="project.description"
 						>
 							{{ project.description }}
@@ -571,7 +586,7 @@ const deleteHovered = ref(false)
 									: undefined
 							"
 							:to="owner.link"
-							class="flex shrink-0 items-center gap-1 !decoration-secondary"
+							class="flex shrink-0 items-center gap-1 !decoration-[var(--color-text-tertiary)]"
 							:class="{ 'hover:underline': owner.link }"
 						>
 							<Avatar
@@ -582,7 +597,9 @@ const deleteHovered = ref(false)
 								no-shadow
 								class="shrink-0"
 							/>
-							<span class="text-sm leading-5 text-secondary">{{ owner.name }}</span>
+							<span class="text-sm leading-5 text-[var(--color-text-tertiary)]">{{
+								owner.name
+							}}</span>
 						</AutoLink>
 						<template v-if="version && !project.description">
 							<BulletDivider class="shrink-0 @[800px]:hidden" />
@@ -593,7 +610,7 @@ const deleteHovered = ref(false)
 										: undefined
 								"
 								:to="versionLink"
-								class="truncate text-sm leading-5 text-secondary !decoration-secondary @[800px]:hidden"
+								class="truncate text-sm leading-5 text-[var(--color-text-tertiary)] !decoration-[var(--color-text-tertiary)] @[800px]:hidden"
 								:class="{ 'hover:underline': versionLink }"
 							>
 								{{ version.version_number }}
@@ -608,7 +625,7 @@ const deleteHovered = ref(false)
 										: undefined
 								"
 								:to="versionLink"
-								class="truncate text-sm leading-5 text-secondary !decoration-secondary @[800px]:hidden"
+								class="truncate text-sm leading-5 text-[var(--color-text-tertiary)] !decoration-[var(--color-text-tertiary)] @[800px]:hidden"
 								:class="{ 'hover:underline': versionLink }"
 							>
 								{{ version.version_number }}
@@ -633,7 +650,7 @@ const deleteHovered = ref(false)
 						typeof versionLink === 'string' && versionLink.startsWith('http') ? '_blank' : undefined
 					"
 					:to="versionLink"
-					class="inline-flex self-start font-medium leading-6 text-contrast !decoration-contrast"
+					class="inline-flex self-start font-medium leading-6 text-[var(--color-text-primary)] !decoration-[var(--color-text-primary)]"
 					:class="{ 'hover:underline': versionLink, 'cursor-pointer': versionLink }"
 				>
 					<span ref="versionNumberRef" class="truncate">{{
@@ -645,7 +662,7 @@ const deleteHovered = ref(false)
 				</AutoLink>
 				<span
 					v-tooltip="truncatedTooltip(fileNameRef, version.file_name)"
-					class="flex min-w-0 leading-6 text-secondary"
+					class="flex min-w-0 leading-6 text-[var(--color-text-tertiary)]"
 				>
 					<span ref="fileNameRef" class="truncate">{{
 						version.file_name.slice(0, Math.ceil(version.file_name.length / 2))
@@ -763,7 +780,7 @@ const deleteHovered = ref(false)
 				@mouseleave="deleteHovered = false"
 				><span class="relative size-5">
 					<TrashIcon
-						class="absolute inset-0 size-5 text-secondary transition-opacity duration-200"
+						class="absolute inset-0 size-5 text-[var(--color-text-tertiary)] transition-opacity duration-200"
 						:class="shiftHeld && deleteHovered ? 'opacity-0' : 'opacity-100'"
 					/>
 					<TrashExclamationIcon

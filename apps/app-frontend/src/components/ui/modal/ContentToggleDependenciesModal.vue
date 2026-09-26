@@ -101,7 +101,7 @@ defineExpose({ show })
 		:on-hide="() => finish('cancel')"
 	>
 		<div v-if="data" class="flex flex-col gap-4">
-			<p class="m-0 text-primary">
+			<p class="m-0 text-[var(--color-text-default)]">
 				<IntlFormatted
 					:message-id="data.bulk ? messages.bulkBody : messages.singleBody"
 					:values="{ count: data.related.length }"
@@ -113,7 +113,7 @@ defineExpose({ show })
 			</p>
 
 			<div v-if="data.related.length > 0" class="flex flex-col gap-2">
-				<span class="font-semibold text-contrast">
+				<span class="font-semibold text-[var(--color-text-primary)]">
 					{{ formatMessage(data.enabling ? messages.willEnable : messages.willDisable) }}
 				</span>
 				<div
@@ -131,16 +131,19 @@ defineExpose({ show })
 					<div class="flex min-w-0 flex-col gap-0.5">
 						<MinecraftFormattedText
 							:text="item.title"
-							class="truncate font-semibold text-contrast"
+							class="truncate font-semibold text-[var(--color-text-primary)]"
 						/>
-						<span v-if="item.versionNumber" class="truncate text-sm text-secondary">
+						<span
+							v-if="item.versionNumber"
+							class="truncate text-sm text-[var(--color-text-tertiary)]"
+						>
 							{{ item.versionNumber }}
 						</span>
 					</div>
 				</div>
 			</div>
 
-			<p class="m-0 text-secondary">{{ formatMessage(messages.warning) }}</p>
+			<p class="m-0 text-[var(--color-text-tertiary)]">{{ formatMessage(messages.warning) }}</p>
 		</div>
 
 		<template #actions>

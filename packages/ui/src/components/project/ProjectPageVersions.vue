@@ -76,7 +76,7 @@
 				>
 					<div class="flex min-w-0 items-center gap-2">
 						<div
-							class="overflow-hidden text-ellipsis font-medium text-contrast"
+							class="overflow-hidden text-ellipsis font-medium text-[var(--color-text-primary)]"
 							:class="versionLink ? 'version-row-name' : ''"
 						>
 							{{ version.version_number }}
@@ -104,7 +104,7 @@
 				<div
 					v-for="(file, fileIdx) in version.files"
 					:key="`file-tag-${fileIdx}`"
-					:class="`flex items-center gap-1 text-wrap rounded-full bg-button-bg px-2 py-0.5 text-xs font-medium ${file.primary || fileIdx === 0 ? 'text-contrast' : 'text-primary'}`"
+					:class="`flex items-center gap-1 text-wrap rounded-full bg-surface-4 px-2 py-0.5 text-xs font-medium ${file.primary || fileIdx === 0 ? 'text-[var(--color-text-primary)]' : 'text-[var(--color-text-default)]'}`"
 				>
 					<StarIcon v-if="file.primary || fileIdx === 0" class="shrink-0" />
 					{{ file.filename }} - {{ formatBytes(file.size) }}
@@ -245,7 +245,7 @@
 	<!-- MOBILE VERSIONS TABLE/LIST -->
 	<div
 		v-if="versions.length > 0"
-		class="flex flex-col gap-4 rounded-2xl bg-bg-raised p-5 sm:hidden"
+		class="flex flex-col gap-4 rounded-2xl bg-surface-3 p-5 sm:hidden"
 	>
 		<template v-for="(version, index) in currentVersions" :key="version.id ?? index">
 			<div
@@ -280,7 +280,9 @@
 								/>
 							</div>
 
-							<div class="overflow-hidden text-ellipsis font-medium text-base text-contrast">
+							<div
+								class="overflow-hidden text-ellipsis font-medium text-base text-[var(--color-text-primary)]"
+							>
 								{{ version.version_number }}
 							</div>
 							<div
@@ -399,7 +401,7 @@
 						<div
 							v-for="(file, fileIdx) in version.files"
 							:key="`file-tag-${fileIdx}`"
-							:class="`flex items-center gap-1 text-wrap rounded-full bg-button-bg px-2 py-0.5 text-xs font-medium ${file.primary || fileIdx === 0 ? 'bg-brand-highlight text-contrast' : 'text-primary'}`"
+							:class="`flex items-center gap-1 text-wrap rounded-full bg-surface-4 px-2 py-0.5 text-xs font-medium ${file.primary || fileIdx === 0 ? 'bg-brand-highlight text-[var(--color-text-primary)]' : 'text-[var(--color-text-default)]'}`"
 						>
 							<StarIcon v-if="file.primary || fileIdx === 0" class="shrink-0" />
 							{{ file.filename }} - {{ formatBytes(file.size) }}
@@ -522,7 +524,7 @@ const versionColumns = computed<TableColumn<VersionTableColumn>[]>(() => {
 		{
 			key: 'channel',
 			width: '4.5rem',
-			headerClass: 'text-secondary',
+			headerClass: 'text-[var(--color-text-tertiary)]',
 			cellClass: visibleCellClass,
 		},
 		{
@@ -566,7 +568,7 @@ const versionColumns = computed<TableColumn<VersionTableColumn>[]>(() => {
 		{
 			key: 'actions',
 			align: 'right',
-			headerClass: 'text-secondary',
+			headerClass: 'text-[var(--color-text-tertiary)]',
 			width: '1%',
 			cellClass: '!overflow-visible align-middle',
 		},

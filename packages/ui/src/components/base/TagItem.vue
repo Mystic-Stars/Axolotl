@@ -28,5 +28,5 @@ withDefaults(
 )
 
 const baseClass =
-	'bg-[--_bg-color,var(--color-button-bg)] text-nowrap border-[--_bg-color,var(--surface-5)] border-[1px] border-solid px-2 py-1 leading-none rounded-full font-normal text-sm inline-flex items-center gap-1 text-[--_color,var(--color-secondary)] [&>svg]:shrink-0 [&>svg]:h-4 [&>svg]:w-4'
+	'bg-[--_bg-color,var(--surface-4)] text-nowrap border-[--_bg-color,var(--surface-5)] border-[1px] border-solid px-2 py-1 leading-none rounded-full font-normal text-sm inline-flex items-center gap-1 text-[--_color,var(--color-text-tertiary)] [&>svg]:shrink-0 [&>svg]:h-4 [&>svg]:w-4'
 </script>

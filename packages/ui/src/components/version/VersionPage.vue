@@ -361,7 +361,7 @@ const authorLink = computed(() =>
 				</div>
 				<div
 					v-if="(author && authorLink) || loadingAuthor"
-					class="flex items-center gap-1 text-secondary"
+					class="flex items-center gap-1 text-[var(--color-text-tertiary)]"
 				>
 					Uploaded by
 					<AutoLink
@@ -462,7 +462,9 @@ const authorLink = computed(() =>
 					class="markdown-body"
 					v-html="renderHighlightedString(version.changelog)"
 				/>
-				<div v-else class="text-secondary">{{ formatMessage(messages.noChanges) }}</div>
+				<div v-else class="text-[var(--color-text-tertiary)]">
+					{{ formatMessage(messages.noChanges) }}
+				</div>
 			</div>
 		</section>
 		<section v-if="optionalContent.length > 0" id="optional-dependencies">
@@ -522,7 +524,7 @@ const authorLink = computed(() =>
 					<AutoLink v-else :to="row.link" tabindex="-1" class="flex" target="_blank">
 						<Avatar v-if="row.hasProject || row.icon_url" :src="row.icon_url" alt="" size="2rem" />
 						<div v-else class="size-[2rem] flex items-center justify-center">
-							<FileIcon class="size-5 text-secondary" />
+							<FileIcon class="size-5 text-[var(--color-text-tertiary)]" />
 						</div>
 					</AutoLink>
 				</template>
@@ -535,7 +537,7 @@ const authorLink = computed(() =>
 						v-else
 						:to="row.link"
 						class="flex w-fit"
-						link-class="hover:underline hover:text-contrast"
+						link-class="hover:underline hover:text-[var(--color-text-primary)]"
 						target="_blank"
 					>
 						{{ row.name }}
@@ -552,7 +554,7 @@ const authorLink = computed(() =>
 						:to="row.version ? row.link : undefined"
 						class="flex w-fit"
 						tabindex="-1"
-						link-class="hover:underline hover:text-contrast"
+						link-class="hover:underline hover:text-[var(--color-text-primary)]"
 						target="_blank"
 					>
 						{{ row.version ?? '—' }}

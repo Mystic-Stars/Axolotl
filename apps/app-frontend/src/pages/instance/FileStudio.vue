@@ -826,7 +826,7 @@ onBeforeRouteLeave(() => {
 			class="grid min-h-0 min-w-0 flex-1 grid-cols-[minmax(13rem,22rem)_minmax(0,1fr)] overflow-hidden rounded-[20px] border border-solid border-surface-4 bg-surface-1 shadow-sm"
 		>
 			<NewModal ref="createModal" :header="formatMessage(messages.createItem)" max-width="420px">
-				<label class="flex flex-col gap-2 text-sm font-semibold text-contrast">
+				<label class="flex flex-col gap-2 text-sm font-semibold text-[var(--color-text-primary)]">
 					{{ formatMessage(messages.itemName) }}
 					<StyledInput v-model="createName" :input-attrs="{ autofocus: true }" />
 				</label>
@@ -843,7 +843,7 @@ onBeforeRouteLeave(() => {
 					class="flex h-12 shrink-0 items-center gap-2 border-0 border-b border-solid border-surface-4 bg-surface-3 px-3"
 				>
 					<CodeIcon class="size-5 text-brand" />
-					<h1 class="m-0 min-w-0 truncate text-sm font-bold text-contrast">
+					<h1 class="m-0 min-w-0 truncate text-sm font-bold text-[var(--color-text-primary)]">
 						{{ formatMessage(messages.title) }}
 					</h1>
 					<div class="ml-auto flex shrink-0 items-center gap-1">
@@ -880,7 +880,7 @@ onBeforeRouteLeave(() => {
 					</div>
 				</header>
 				<div
-					class="flex h-9 shrink-0 items-center px-3 text-xs font-bold uppercase tracking-wide text-secondary"
+					class="flex h-9 shrink-0 items-center px-3 text-xs font-bold uppercase tracking-wide text-[var(--color-text-tertiary)]"
 				>
 					{{ formatMessage(messages.files) }}
 				</div>
@@ -890,7 +890,7 @@ onBeforeRouteLeave(() => {
 					:class="contextMenu ? 'overflow-y-hidden' : 'overflow-y-auto'"
 					role="tree"
 				>
-					<div v-if="treeLoading" class="px-4 py-3 text-sm text-secondary">
+					<div v-if="treeLoading" class="px-4 py-3 text-sm text-[var(--color-text-tertiary)]">
 						{{ formatMessage(messages.loadingFile) }}
 					</div>
 					<button
@@ -900,9 +900,10 @@ onBeforeRouteLeave(() => {
 						role="treeitem"
 						:data-studio-path="node.path"
 						:aria-expanded="node.type === 'directory' ? node.expanded : undefined"
-						class="flex h-8 w-full cursor-pointer items-center gap-1 border-0 bg-transparent pr-3 text-left text-sm text-primary hover:bg-surface-3"
+						class="flex h-8 w-full cursor-pointer items-center gap-1 border-0 bg-transparent pr-3 text-left text-sm text-[var(--color-text-default)] hover:bg-surface-3"
 						:class="{
-							'bg-brand-highlight !text-contrast': node.path === selectedFilePath,
+							'bg-brand-highlight !text-[var(--color-text-primary)]':
+								node.path === selectedFilePath,
 							'!bg-surface-3':
 								node.path === contextMenu?.node.path && node.path !== selectedFilePath,
 						}"
@@ -915,8 +916,11 @@ onBeforeRouteLeave(() => {
 							<ChevronRightIcon v-else class="size-4 shrink-0" />
 						</template>
 						<span v-else class="size-4 shrink-0" />
-						<FolderIcon v-if="node.type === 'directory'" class="size-4 shrink-0 text-secondary" />
-						<FileCodeIcon v-else class="size-4 shrink-0 text-secondary" />
+						<FolderIcon
+							v-if="node.type === 'directory'"
+							class="size-4 shrink-0 text-[var(--color-text-tertiary)]"
+						/>
+						<FileCodeIcon v-else class="size-4 shrink-0 text-[var(--color-text-tertiary)]" />
 						<span class="truncate">{{ node.name }}</span>
 					</button>
 				</div>
@@ -935,7 +939,7 @@ onBeforeRouteLeave(() => {
 				</header>
 				<nav
 					v-if="selectedFilePath"
-					class="flex h-8 shrink-0 items-center gap-2 border-0 border-b border-solid border-surface-4 bg-surface-2 px-3 text-xs text-secondary"
+					class="flex h-8 shrink-0 items-center gap-2 border-0 border-b border-solid border-surface-4 bg-surface-2 px-3 text-xs text-[var(--color-text-tertiary)]"
 					:aria-label="selectedFilePath"
 				>
 					<div ref="breadcrumbOuter" class="flex min-w-0 flex-1 items-center gap-1 overflow-hidden">
@@ -951,7 +955,10 @@ onBeforeRouteLeave(() => {
 							<FileCodeIcon v-else class="size-3.5 shrink-0" />
 							<span
 								class="min-w-0 truncate whitespace-nowrap"
-								:class="{ 'text-contrast': index === visibleBreadcrumbSegments.length - 1 }"
+								:class="{
+									'text-[var(--color-text-primary)]':
+										index === visibleBreadcrumbSegments.length - 1,
+								}"
 							>
 								{{ segment }}
 							</span>
@@ -970,7 +977,7 @@ onBeforeRouteLeave(() => {
 				<div class="relative min-h-0 min-w-0 flex-1">
 					<div
 						v-if="fileLoading"
-						class="absolute inset-0 z-[2] flex items-center justify-center bg-surface-2 text-sm text-secondary"
+						class="absolute inset-0 z-[2] flex items-center justify-center bg-surface-2 text-sm text-[var(--color-text-tertiary)]"
 					>
 						{{ formatMessage(messages.loadingFile) }}
 					</div>
@@ -995,7 +1002,7 @@ onBeforeRouteLeave(() => {
 						class="flex size-full items-center justify-center p-8 text-center"
 					>
 						<div class="flex flex-col items-center gap-3">
-							<p class="m-0 text-sm text-secondary">
+							<p class="m-0 text-sm text-[var(--color-text-tertiary)]">
 								{{ formatMessage(messages.nonTextFile) }}
 							</p>
 							<Button type="outlined" @click="openInSystem(activeDocument.path)"
@@ -1027,11 +1034,11 @@ onBeforeRouteLeave(() => {
 					/>
 					<div v-else class="flex size-full items-center justify-center p-8 text-center">
 						<div class="flex max-w-md flex-col items-center gap-3">
-							<CodeIcon class="size-14 text-secondary" />
-							<h2 class="m-0 text-xl font-bold text-contrast">
+							<CodeIcon class="size-14 text-[var(--color-text-tertiary)]" />
+							<h2 class="m-0 text-xl font-bold text-[var(--color-text-primary)]">
 								{{ formatMessage(messages.emptyTitle) }}
 							</h2>
-							<p class="m-0 text-sm leading-6 text-secondary">
+							<p class="m-0 text-sm leading-6 text-[var(--color-text-tertiary)]">
 								{{ formatMessage(messages.emptyDescription) }}
 							</p>
 						</div>

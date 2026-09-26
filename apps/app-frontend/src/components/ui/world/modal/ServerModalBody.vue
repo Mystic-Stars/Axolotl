@@ -64,7 +64,9 @@ defineExpose({ resourcePackOptions })
 <template>
 	<div class="space-y-4 w-full">
 		<label class="flex flex-col gap-2">
-			<span class="font-semibold text-contrast">{{ formatMessage(messages.name) }}</span>
+			<span class="font-semibold text-[var(--color-text-primary)]">{{
+				formatMessage(messages.name)
+			}}</span>
 			<StyledInput
 				v-model="name"
 				:placeholder="formatMessage(messages.placeholderName)"
@@ -73,7 +75,9 @@ defineExpose({ resourcePackOptions })
 			/>
 		</label>
 		<label class="flex flex-col gap-2">
-			<span class="font-semibold text-contrast">{{ formatMessage(messages.address) }}</span>
+			<span class="font-semibold text-[var(--color-text-primary)]">{{
+				formatMessage(messages.address)
+			}}</span>
 			<StyledInput
 				v-model="address"
 				:placeholder="formatMessage(messages.placeholderAddress)"
@@ -82,7 +86,9 @@ defineExpose({ resourcePackOptions })
 			/>
 		</label>
 		<label class="flex flex-col gap-2">
-			<span class="font-semibold text-contrast">{{ formatMessage(messages.resourcePack) }}</span>
+			<span class="font-semibold text-[var(--color-text-primary)]">{{
+				formatMessage(messages.resourcePack)
+			}}</span>
 			<Combobox
 				v-model="resourcePack"
 				:options="

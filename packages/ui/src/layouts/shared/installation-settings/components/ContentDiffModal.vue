@@ -53,13 +53,13 @@
 					}}</span>
 					<span
 						v-if="diff.projectName"
-						class="text-sm text-contrast font-medium whitespace-nowrap overflow-hidden text-ellipsis"
+						class="text-sm text-[var(--color-text-primary)] font-medium whitespace-nowrap overflow-hidden text-ellipsis"
 					>
 						{{ diff.projectName }}
 					</span>
 					<span
 						v-else-if="diff.fileName"
-						class="text-sm text-contrast font-medium whitespace-nowrap overflow-hidden text-ellipsis"
+						class="text-sm text-[var(--color-text-primary)] font-medium whitespace-nowrap overflow-hidden text-ellipsis"
 					>
 						{{ decodeURIComponent(diff.fileName) }}
 					</span>

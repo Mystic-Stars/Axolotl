@@ -43,7 +43,7 @@
 							<template #file-path="{ children }">
 								<span
 									v-tooltip="file"
-									class="min-w-0 text-contrast font-medium whitespace-nowrap overflow-hidden text-ellipsis"
+									class="min-w-0 text-[var(--color-text-primary)] font-medium whitespace-nowrap overflow-hidden text-ellipsis"
 								>
 									<component :is="() => children" />
 								</span>

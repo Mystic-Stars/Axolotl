@@ -94,7 +94,7 @@ async function toggleRunning(server: ServerView) {
 <template>
 	<div data-onboarding-id="servers-overview" class="flex min-h-0 w-full flex-1 flex-col gap-4">
 		<div class="flex items-center justify-between gap-3">
-			<span class="flex items-center gap-2 text-sm text-secondary">
+			<span class="flex items-center gap-2 text-sm text-[var(--color-text-tertiary)]">
 				<SpinnerIcon v-if="isRefreshing" class="size-4 animate-spin" />
 				<ServerIcon v-else class="size-4" />
 				{{

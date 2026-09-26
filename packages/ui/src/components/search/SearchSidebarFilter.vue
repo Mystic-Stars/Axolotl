@@ -8,12 +8,12 @@
 		:open-by-default="openByDefault !== undefined ? openByDefault : true"
 	>
 		<template #button="{ open }">
-			<div class="flex items-center gap-1 w-full text-contrast">
+			<div class="flex items-center gap-1 w-full text-[var(--color-text-primary)]">
 				<slot name="header" :filter="filterType">
 					<h2 class="text-base font-semibold text-red">{{ filterType.formatted_name }}</h2>
 				</slot>
 				<DropdownIcon
-					class="ml-auto size-5 transition-transform duration-300 shrink-0 text-primary group-hover:text-contrast"
+					class="ml-auto size-5 transition-transform duration-300 shrink-0 text-[var(--color-text-default)] group-hover:text-[var(--color-text-primary)]"
 					:class="{ 'rotate-180': open }"
 				/>
 			</div>
@@ -31,14 +31,14 @@
 				<div
 					v-for="option in selectedFilterOptions"
 					:key="`selected-filter-${filterType.id}-${option}`"
-					class="flex gap-1 text-xs bg-button-bg px-2 py-0.5 rounded-full font-bold text-secondary w-fit shrink-0 items-center"
+					class="flex gap-1 text-xs bg-surface-4 px-2 py-0.5 rounded-full font-bold text-[var(--color-text-tertiary)] w-fit shrink-0 items-center"
 				>
 					{{ option.formatted_name ?? option.id }}
 				</div>
 				<div
 					v-for="option in selectedNegativeFilterOptions"
 					:key="`excluded-filter-${filterType.id}-${option}`"
-					class="flex gap-1 text-xs bg-button-bg px-2 py-0.5 rounded-full font-bold text-secondary w-fit shrink-0 items-center"
+					class="flex gap-1 text-xs bg-surface-4 px-2 py-0.5 rounded-full font-bold text-[var(--color-text-tertiary)] w-fit shrink-0 items-center"
 				>
 					<BanIcon class="text-brand-red" /> {{ option.formatted_name ?? option.id }}
 				</div>
@@ -51,7 +51,7 @@
 						{{ formatMessage(messages.lockedTitle, { type: filterType.formatted_name }) }}
 					</slot>
 				</p>
-				<p class="m-0 text-secondary text-sm">
+				<p class="m-0 text-[var(--color-text-tertiary)] text-sm">
 					{{ formatMessage(messages.lockedDescription) }}
 				</p>
 				<Button
@@ -82,7 +82,7 @@
 				<label
 					v-for="option in filterType.options"
 					:key="`${filterType.id}-toggle-${option.id}`"
-					class="flex cursor-pointer items-center justify-between text-secondary gap-3 font-semibold"
+					class="flex cursor-pointer items-center justify-between text-[var(--color-text-tertiary)] gap-3 font-semibold"
 				>
 					<span class="text-sm">{{ option.formatted_name ?? option.id }}</span>
 					<Toggle
@@ -106,7 +106,7 @@
 					autocomplete="off"
 					clearable
 					size="small"
-					input-class="!bg-button-bg"
+					input-class="!bg-surface-4"
 					wrapper-class="mx-2 my-1 w-[calc(100%-1rem)]"
 				/>
 				<ScrollablePanel :class="{ 'h-[16rem]': scrollable }" :disable-scrolling="!scrollable">
@@ -165,7 +165,7 @@
 						</template>
 						<button
 							v-if="filterType.display === 'expandable'"
-							class="flex bg-transparent text-secondary border-none cursor-pointer !w-full items-center gap-2 truncate rounded-xl px-2 py-1 text-sm font-semibold transition-all hover:text-contrast focus-visible:text-contrast active:scale-[0.98]"
+							class="flex bg-transparent text-[var(--color-text-tertiary)] border-none cursor-pointer !w-full items-center gap-2 truncate rounded-xl px-2 py-1 text-sm font-semibold transition-all hover:text-[var(--color-text-primary)] focus-visible:text-[var(--color-text-primary)] active:scale-[0.98]"
 							@click="showMore = !showMore"
 						>
 							<DropdownIcon

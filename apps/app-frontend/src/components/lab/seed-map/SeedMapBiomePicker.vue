@@ -218,7 +218,7 @@ function invertBiomes() {
 						class="flex w-[min(30rem,calc(100vw-1.5rem))] max-h-[min(30rem,calc(100dvh-2rem))] min-h-0 flex-col gap-[0.65rem] overflow-hidden"
 					>
 						<div
-							class="biome-picker-heading flex items-center justify-between gap-3 p-[0.1rem_0.2rem] text-contrast max-sm:flex-col max-sm:items-start"
+							class="biome-picker-heading flex items-center justify-between gap-3 p-[0.1rem_0.2rem] text-[var(--color-text-primary)] max-sm:flex-col max-sm:items-start"
 						>
 							<div>
 								<strong>{{ formatMessage(messages.chooseBiome) }}</strong>
@@ -362,7 +362,7 @@ function invertBiomes() {
 }
 
 .biome-picker-heading small {
-	color: var(--color-text-secondary);
+	color: var(--color-text-tertiary);
 	font-size: 0.7rem;
 	font-variant-numeric: tabular-nums;
 }
@@ -426,7 +426,7 @@ function invertBiomes() {
 	border: 1px solid var(--surface-5);
 	border-radius: var(--radius-sm);
 	padding: 0.12rem 0.35rem;
-	color: var(--color-text-secondary);
+	color: var(--color-text-tertiary);
 	font-size: 0.65rem;
 	font-weight: 700;
 }
@@ -439,7 +439,7 @@ function invertBiomes() {
 
 .biome-picker-groups :deep(.biome-picker-group-trigger small) {
 	margin-left: auto;
-	color: var(--color-text-secondary);
+	color: var(--color-text-tertiary);
 	font-size: 0.7rem;
 	font-variant-numeric: tabular-nums;
 }
@@ -487,7 +487,7 @@ function invertBiomes() {
 .biome-picker-empty {
 	margin: 0;
 	padding: 1rem;
-	color: var(--color-text-secondary);
+	color: var(--color-text-tertiary);
 	font-size: 0.8rem;
 	text-align: center;
 }

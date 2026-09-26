@@ -62,8 +62,10 @@ defineExpose({ show })
 						no-shadow
 					/>
 					<span class="min-w-0">
-						<span class="block font-semibold text-contrast">{{ contributors[0].name }}</span>
-						<span class="block text-sm text-secondary">
+						<span class="block font-semibold text-[var(--color-text-primary)]">{{
+							contributors[0].name
+						}}</span>
+						<span class="block text-sm text-[var(--color-text-tertiary)]">
 							{{ formatMessage(messages.clickHint) }}
 						</span>
 					</span>

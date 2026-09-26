@@ -178,7 +178,7 @@ watch(
 			<SettingsRow>
 				<template #label>{{ formatMessage(messages.maximizeWindow) }}</template>
 				<template #description>
-					<span :class="{ 'text-secondary': !supportsMaximizeWindow }">
+					<span :class="{ 'text-[var(--color-text-tertiary)]': !supportsMaximizeWindow }">
 						{{
 							formatMessage(
 								supportsMaximizeWindow

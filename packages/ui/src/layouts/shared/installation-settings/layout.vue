@@ -595,13 +595,13 @@ const messages = defineMessages({
 	<div class="flex flex-col gap-6">
 		<!-- Loading state -->
 		<div v-if="ctx.loading.value" class="flex items-center justify-center py-12">
-			<SpinnerIcon class="size-8 animate-spin text-secondary" />
+			<SpinnerIcon class="size-8 animate-spin text-[var(--color-text-tertiary)]" />
 		</div>
 
 		<template v-else>
 			<!-- Installation Info (linked state) -->
 			<div v-if="ctx.isLinked.value" class="flex flex-col gap-2.5">
-				<span class="text-lg font-semibold text-contrast">
+				<span class="text-lg font-semibold text-[var(--color-text-primary)]">
 					{{ formatMessage(commonMessages.installationInfoTitle) }}
 				</span>
 				<div class="flex flex-col gap-2.5 rounded-[var(--radius-xl)] bg-surface-2 p-4">
@@ -610,8 +610,10 @@ const messages = defineMessages({
 						:key="row.label"
 						class="flex items-center justify-between"
 					>
-						<span class="text-primary">{{ row.label }}</span>
-						<span v-if="row.value" class="font-semibold text-contrast">{{ row.value }}</span>
+						<span class="text-[var(--color-text-default)]">{{ row.label }}</span>
+						<span v-if="row.value" class="font-semibold text-[var(--color-text-primary)]">{{
+							row.value
+						}}</span>
 						<span
 							v-else
 							class="inline-block h-3 w-16 animate-pulse rounded bg-button-border"
@@ -624,7 +626,7 @@ const messages = defineMessages({
 			<template v-if="ctx.isLinked.value">
 				<!-- Installed Modpack -->
 				<div class="flex flex-col gap-2.5">
-					<span class="text-lg font-semibold text-contrast">
+					<span class="text-lg font-semibold text-[var(--color-text-primary)]">
 						{{ formatMessage(commonMessages.installedModpackTitle) }}
 					</span>
 					<div
@@ -644,18 +646,21 @@ const messages = defineMessages({
 							<div class="flex min-w-0 flex-col">
 								<AutoLink
 									:to="ctx.modpack.value.link"
-									class="truncate font-semibold text-contrast"
+									class="truncate font-semibold text-[var(--color-text-primary)]"
 									:class="ctx.modpack.value.link ? 'hover:underline' : ''"
 								>
 									{{ ctx.modpack.value.title }}
 								</AutoLink>
-								<span v-if="ctx.modpack.value.filename" class="truncate text-sm text-secondary">
+								<span
+									v-if="ctx.modpack.value.filename"
+									class="truncate text-sm text-[var(--color-text-tertiary)]"
+								>
 									{{ ctx.modpack.value.filename }}
 								</span>
 							</div>
 							<div
 								v-if="ctx.modpack.value.owner || ctx.modpack.value.versionNumber"
-								class="flex items-center gap-2 text-sm text-secondary"
+								class="flex items-center gap-2 text-sm text-[var(--color-text-tertiary)]"
 							>
 								<AutoLink
 									v-if="ctx.modpack.value.owner"
@@ -699,7 +704,7 @@ const messages = defineMessages({
 
 				<!-- Unlink -->
 				<div class="flex flex-col gap-2.5">
-					<span class="text-lg font-semibold text-contrast">
+					<span class="text-lg font-semibold text-[var(--color-text-primary)]">
 						{{
 							formatMessage(messages.linkedInstanceTitle, {
 								projectType: formatMessage(
@@ -724,7 +729,7 @@ const messages = defineMessages({
 							}}
 						</Button>
 					</div>
-					<span class="text-primary">
+					<span class="text-[var(--color-text-default)]">
 						{{
 							formatMessage(messages.unlinkDescription, {
 								type: formatMessage(ctx.isServer ? messages.serverLabel : messages.instanceLabel),
@@ -738,7 +743,7 @@ const messages = defineMessages({
 
 				<!-- Reinstall -->
 				<div v-if="showModpackVersionActions || isLocalFile" class="flex flex-col gap-2.5">
-					<span class="text-lg font-semibold text-contrast">
+					<span class="text-lg font-semibold text-[var(--color-text-primary)]">
 						{{ formatMessage(messages.reinstallModpackTitle) }}
 					</span>
 					<div>
@@ -758,7 +763,7 @@ const messages = defineMessages({
 							}}
 						</Button>
 					</div>
-					<span class="text-primary">
+					<span class="text-[var(--color-text-default)]">
 						{{
 							formatMessage(messages.reinstallModpackDescription, {
 								type: formatMessage(
@@ -771,7 +776,7 @@ const messages = defineMessages({
 
 				<!-- Repair (hidden for local file modpacks — reinstall covers this) -->
 				<div v-if="!isLocalFile" class="flex flex-col gap-2.5">
-					<span class="text-lg font-semibold text-contrast">
+					<span class="text-lg font-semibold text-[var(--color-text-primary)]">
 						{{
 							formatMessage(
 								ctx.isServer ? messages.repairServerTitle : messages.repairInstanceTitle,
@@ -793,7 +798,7 @@ const messages = defineMessages({
 							}}
 						</Button>
 					</div>
-					<span class="text-primary">
+					<span class="text-[var(--color-text-default)]">
 						{{
 							formatMessage(
 								ctx.isServer
@@ -809,14 +814,14 @@ const messages = defineMessages({
 			<template v-else>
 				<!-- Edit form -->
 				<div v-if="form.isEditing.value" class="flex flex-col gap-2.5">
-					<span class="text-lg font-semibold text-contrast">
+					<span class="text-lg font-semibold text-[var(--color-text-primary)]">
 						{{ formatMessage(messages.editInstallationTitle) }}
 					</span>
 					<div
 						class="flex flex-col gap-3 rounded-[var(--radius-xl)] border border-solid border-surface-5 p-4"
 					>
 						<div class="flex flex-col gap-2.5">
-							<span class="font-semibold text-contrast">
+							<span class="font-semibold text-[var(--color-text-primary)]">
 								{{ formatMessage(commonMessages.platformLabel) }}
 							</span>
 							<Chips
@@ -831,7 +836,7 @@ const messages = defineMessages({
 						</div>
 
 						<div class="flex flex-col gap-2.5">
-							<span class="font-semibold text-contrast">
+							<span class="font-semibold text-[var(--color-text-primary)]">
 								{{ formatMessage(commonMessages.gameVersionLabel) }}
 							</span>
 							<Combobox
@@ -853,7 +858,7 @@ const messages = defineMessages({
 								<template v-if="form.hasSnapshots.value" #dropdown-footer>
 									<button
 										v-tooltip="ctx.isBusy.value ? ctx.busyMessage?.value : undefined"
-										class="flex w-full cursor-pointer items-center justify-center gap-1.5 border-0 border-t border-solid border-surface-5 bg-transparent py-3 text-center text-sm font-semibold text-secondary transition-colors hover:text-contrast"
+										class="flex w-full cursor-pointer items-center justify-center gap-1.5 border-0 border-t border-solid border-surface-5 bg-transparent py-3 text-center text-sm font-semibold text-[var(--color-text-tertiary)] transition-colors hover:text-[var(--color-text-primary)]"
 										:disabled="ctx.isBusy.value"
 										@mousedown.prevent
 										@click="form.showSnapshots.value = !form.showSnapshots.value"
@@ -874,7 +879,7 @@ const messages = defineMessages({
 							v-if="form.selectedPlatform.value !== 'vanilla' && !ctx.hideLoaderVersion"
 							class="flex flex-col gap-2.5"
 						>
-							<span class="font-semibold text-contrast">
+							<span class="font-semibold text-[var(--color-text-primary)]">
 								{{
 									formatMessage(messages.loaderVersionLabel, {
 										loader: form.formattedLoaderName.value,
@@ -917,7 +922,11 @@ const messages = defineMessages({
 										<div class="flex flex-wrap items-center gap-2">
 											<span
 												class="font-semibold leading-tight"
-												:class="isSelected ? 'text-contrast' : 'text-primary'"
+												:class="
+													isSelected
+														? 'text-[var(--color-text-primary)]'
+														: 'text-[var(--color-text-default)]'
+												"
 											>
 												{{ item.label }}
 											</span>
@@ -970,7 +979,7 @@ const messages = defineMessages({
 
 				<!-- Non-editing: installation info + warning + edit button -->
 				<div v-if="!form.isEditing.value" class="flex flex-col gap-2.5">
-					<span class="text-lg font-semibold text-contrast">
+					<span class="text-lg font-semibold text-[var(--color-text-primary)]">
 						{{ formatMessage(commonMessages.installationInfoTitle) }}
 					</span>
 					<div class="flex flex-col gap-2.5 rounded-[var(--radius-xl)] bg-surface-2 p-4">
@@ -979,8 +988,8 @@ const messages = defineMessages({
 							:key="row.label"
 							class="flex items-center justify-between"
 						>
-							<span class="text-primary">{{ row.label }}</span>
-							<span class="font-semibold text-contrast">{{ row.value }}</span>
+							<span class="text-[var(--color-text-default)]">{{ row.label }}</span>
+							<span class="font-semibold text-[var(--color-text-primary)]">{{ row.value }}</span>
 						</div>
 					</div>
 					<div class="flex flex-wrap gap-2">
@@ -998,7 +1007,7 @@ const messages = defineMessages({
 					</div>
 					<div class="flex items-start gap-2">
 						<CircleAlertIcon class="mt-0.5 size-5 shrink-0 text-orange" />
-						<span class="text-primary">
+						<span class="text-[var(--color-text-default)]">
 							{{
 								formatMessage(
 									ctx.isServer ? messages.editWarningServer : messages.editWarningInstance,
@@ -1010,7 +1019,7 @@ const messages = defineMessages({
 
 				<!-- Repair section -->
 				<div v-if="ctx.currentPlatform.value !== 'vanilla'" class="flex flex-col gap-2.5">
-					<span class="text-lg font-semibold text-contrast">
+					<span class="text-lg font-semibold text-[var(--color-text-primary)]">
 						{{
 							formatMessage(
 								ctx.isServer ? messages.repairServerTitle : messages.repairInstanceTitle,
@@ -1032,7 +1041,7 @@ const messages = defineMessages({
 							}}
 						</Button>
 					</div>
-					<span class="text-primary">
+					<span class="text-[var(--color-text-default)]">
 						{{
 							formatMessage(
 								ctx.isServer

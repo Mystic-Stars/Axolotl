@@ -1,7 +1,7 @@
 <template>
 	<NewModal ref="unsavedModal">
 		<template #title>
-			<span class="font-extrabold text-lg text-contrast">
+			<span class="font-extrabold text-lg text-[var(--color-text-primary)]">
 				{{ formatMessage(messages.unsavedTitle) }}
 			</span>
 		</template>
@@ -39,12 +39,14 @@
 				</button>
 			</div>
 			<div class="flex min-w-0 flex-col gap-1.5">
-				<h1 class="m-0 truncate text-2xl font-extrabold text-contrast">{{ data.name }}</h1>
-				<div class="flex flex-wrap items-center gap-2 text-sm text-secondary">
-					<span v-if="data.version_name" class="rounded-full bg-button-bg px-2 py-0.5 font-medium">
+				<h1 class="m-0 truncate text-2xl font-extrabold text-[var(--color-text-primary)]">
+					{{ data.name }}
+				</h1>
+				<div class="flex flex-wrap items-center gap-2 text-sm text-[var(--color-text-tertiary)]">
+					<span v-if="data.version_name" class="rounded-full bg-surface-4 px-2 py-0.5 font-medium">
 						{{ data.version_name }}
 					</span>
-					<span v-if="data.modded" class="rounded-full bg-button-bg px-2 py-0.5 font-medium">
+					<span v-if="data.modded" class="rounded-full bg-surface-4 px-2 py-0.5 font-medium">
 						{{ formatMessage(messages.moddedBadge) }}
 					</span>
 					<span
@@ -73,12 +75,12 @@
 		/>
 
 		<section class="flex flex-col gap-3">
-			<h2 class="m-0 text-lg font-extrabold text-contrast">
+			<h2 class="m-0 text-lg font-extrabold text-[var(--color-text-primary)]">
 				{{ formatMessage(messages.basicSection) }}
 			</h2>
 			<div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
 				<div class="flex flex-col gap-1.5">
-					<label class="font-semibold text-contrast" for="world-name">
+					<label class="font-semibold text-[var(--color-text-primary)]" for="world-name">
 						{{ formatMessage(messages.nameLabel) }}
 					</label>
 					<StyledInput
@@ -94,7 +96,7 @@
 					</span>
 				</div>
 				<div class="flex flex-col gap-1.5">
-					<span class="font-semibold text-contrast">
+					<span class="font-semibold text-[var(--color-text-primary)]">
 						{{ formatMessage(messages.gameModeLabel) }}
 					</span>
 					<DropdownSelect
@@ -106,9 +108,12 @@
 					/>
 				</div>
 				<div v-if="form.difficulty" class="flex flex-col gap-1.5">
-					<span class="font-semibold text-contrast">
+					<span class="font-semibold text-[var(--color-text-primary)]">
 						{{ formatMessage(messages.difficultyLabel) }}
-						<span v-if="data.difficulty_locked" class="font-normal text-secondary">
+						<span
+							v-if="data.difficulty_locked"
+							class="font-normal text-[var(--color-text-tertiary)]"
+						>
 							{{ formatMessage(messages.difficultyLockedHint) }}
 						</span>
 					</span>
@@ -121,7 +126,7 @@
 					/>
 				</div>
 				<div v-if="form.allowCommands !== undefined" class="flex flex-col gap-1.5">
-					<span class="font-semibold text-contrast">
+					<span class="font-semibold text-[var(--color-text-primary)]">
 						{{ formatMessage(messages.allowCommandsLabel) }}
 					</span>
 					<DropdownSelect
@@ -136,7 +141,7 @@
 		</section>
 
 		<section v-if="form.seed !== undefined" class="flex flex-col gap-3">
-			<h2 class="m-0 text-lg font-extrabold text-contrast">
+			<h2 class="m-0 text-lg font-extrabold text-[var(--color-text-primary)]">
 				{{ formatMessage(messages.seedSection) }}
 			</h2>
 			<Admonition type="warning" :header="formatMessage(messages.seedWarningHeading)">
@@ -158,7 +163,7 @@
 		</section>
 
 		<section v-if="data.game_rules.length > 0" class="flex flex-col gap-3">
-			<h2 class="m-0 text-lg font-extrabold text-contrast">
+			<h2 class="m-0 text-lg font-extrabold text-[var(--color-text-primary)]">
 				{{ formatMessage(messages.gameRulesSection) }}
 			</h2>
 			<StyledInput
@@ -173,18 +178,20 @@
 				"
 				wrapper-class="max-w-md"
 			/>
-			<div v-if="ruleGroups.length === 0" class="text-secondary">
+			<div v-if="ruleGroups.length === 0" class="text-[var(--color-text-tertiary)]">
 				{{ formatMessage(messages.noRulesFound) }}
 			</div>
 			<div v-for="group in ruleGroups" :key="group.category" class="flex flex-col gap-2">
 				<Accordion
 					:open-by-default="false"
 					:force-open="ruleSearchActive"
-					class="min-w-0 overflow-hidden rounded-xl border border-solid border-surface-4 bg-bg-raised"
+					class="min-w-0 overflow-hidden rounded-xl border border-solid border-surface-4 bg-surface-2"
 					button-class="group flex w-full cursor-pointer items-center gap-3 border-0 bg-transparent px-4 py-3 text-left"
 				>
 					<template #title>
-						<h3 class="m-0 text-base font-bold text-contrast">{{ group.label }}</h3>
+						<h3 class="m-0 text-base font-bold text-[var(--color-text-primary)]">
+							{{ group.label }}
+						</h3>
 					</template>
 					<div class="border-0 border-t border-solid border-surface-4">
 						<div
@@ -198,7 +205,10 @@
 									v-tooltip="formatMessage(messages.modifiedFromDefault)"
 									class="size-2 shrink-0 rounded-full bg-brand"
 								/>
-								<span class="truncate font-medium text-contrast" :title="rule.key">
+								<span
+									class="truncate font-medium text-[var(--color-text-primary)]"
+									:title="rule.key"
+								>
 									{{ rule.label }}
 								</span>
 							</div>
@@ -243,9 +253,9 @@
 
 		<div
 			v-if="dirty && !readonly"
-			class="sticky bottom-0 z-10 -mx-2 flex flex-wrap items-center gap-3 rounded-t-xl border border-b-0 border-solid border-button-border bg-bg-raised px-4 py-3 shadow-lg"
+			class="sticky bottom-0 z-10 -mx-2 flex flex-wrap items-center gap-3 rounded-t-xl border border-b-0 border-solid border-surface-4 bg-surface-3 px-4 py-3 shadow-lg"
 		>
-			<span class="font-semibold text-contrast">
+			<span class="font-semibold text-[var(--color-text-primary)]">
 				{{ formatMessage(messages.unsavedChangesLabel) }}
 			</span>
 			<div class="ml-auto flex gap-2">

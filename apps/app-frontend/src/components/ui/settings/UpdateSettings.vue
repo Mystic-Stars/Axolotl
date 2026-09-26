@@ -458,7 +458,10 @@ function onDatabaseOperationModalHide() {
 	<div class="flex flex-col gap-6">
 		<SettingsSection :title="formatMessage(messages.title)">
 			<div class="update-channel-panel">
-				<p id="settings-target-updates-channel" class="m-0 text-sm leading-[1.45] text-secondary">
+				<p
+					id="settings-target-updates-channel"
+					class="m-0 text-sm leading-[1.45] text-[var(--color-text-tertiary)]"
+				>
 					{{ formatMessage(messages.description) }}
 				</p>
 				<div
@@ -520,10 +523,10 @@ function onDatabaseOperationModalHide() {
 			</div>
 			<div class="database-isolation">
 				<div class="database-isolation-copy">
-					<h3 class="m-0 text-base font-semibold text-contrast">
+					<h3 class="m-0 text-base font-semibold text-[var(--color-text-primary)]">
 						{{ formatMessage(messages.databaseIsolationTitle) }}
 					</h3>
-					<p class="m-0 text-sm text-secondary">
+					<p class="m-0 text-sm text-[var(--color-text-tertiary)]">
 						{{ formatMessage(messages.databaseIsolationDescription) }}
 					</p>
 					<div class="database-path">
@@ -608,10 +611,12 @@ function onDatabaseOperationModalHide() {
 		<SettingsSection :title="formatMessage(messages.checkTitle)">
 			<div class="update-check-panel">
 				<div class="update-check-heading">
-					<p class="m-0 text-sm text-secondary">
+					<p class="m-0 text-sm text-[var(--color-text-tertiary)]">
 						{{ formatMessage(messages.currentVersion, { version: currentVersion }) }}
 					</p>
-					<p class="m-0 text-sm text-secondary">{{ formatMessage(messages.security) }}</p>
+					<p class="m-0 text-sm text-[var(--color-text-tertiary)]">
+						{{ formatMessage(messages.security) }}
+					</p>
 				</div>
 				<div class="flex flex-wrap gap-2">
 					<Button type="colored" color="brand" :disabled="checking" @click="checkForUpdates">
@@ -767,13 +772,13 @@ function onDatabaseOperationModalHide() {
 	min-width: 0;
 	flex-direction: column;
 	gap: var(--gap-xs);
-	color: var(--color-secondary);
+	color: var(--color-text-tertiary);
 	font-size: 0.9375rem;
 }
 
 .database-path code {
 	overflow-wrap: anywhere;
-	color: var(--color-contrast);
+	color: var(--color-text-primary);
 	font-family: var(--mono-font, monospace);
 }
 
@@ -781,7 +786,7 @@ function onDatabaseOperationModalHide() {
 	display: flex;
 	flex-direction: column;
 	gap: var(--gap-xs);
-	color: var(--color-secondary);
+	color: var(--color-text-tertiary);
 	font-size: 0.9375rem;
 }
 
@@ -809,7 +814,7 @@ function onDatabaseOperationModalHide() {
 	border: 1px solid var(--surface-4);
 	border-radius: var(--radius-sm);
 	background: var(--surface-3);
-	color: var(--color-contrast);
+	color: var(--color-text-primary);
 	text-align: center;
 }
 
@@ -864,7 +869,7 @@ function onDatabaseOperationModalHide() {
 	border: 1px solid var(--surface-4);
 	border-radius: var(--radius-md);
 	background: var(--surface-1);
-	color: var(--color-secondary);
+	color: var(--color-text-tertiary);
 	text-align: left;
 	cursor: pointer;
 	transition:
@@ -894,7 +899,7 @@ function onDatabaseOperationModalHide() {
 }
 
 .update-channel-card-title {
-	color: var(--color-contrast);
+	color: var(--color-text-primary);
 	font-weight: 600;
 }
 
@@ -907,7 +912,7 @@ function onDatabaseOperationModalHide() {
 	grid-column: 2;
 	grid-row: 1 / span 2;
 	align-self: center;
-	color: var(--color-secondary);
+	color: var(--color-text-tertiary);
 	font-size: 0.8125rem;
 	font-weight: 600;
 }
@@ -924,7 +929,7 @@ function onDatabaseOperationModalHide() {
 	border: 1px solid var(--surface-4);
 	border-radius: var(--radius-sm);
 	background: var(--surface-1);
-	color: var(--color-secondary);
+	color: var(--color-text-tertiary);
 	font-size: 0.875rem;
 	line-height: 1.4;
 }

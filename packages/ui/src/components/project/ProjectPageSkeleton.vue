@@ -62,7 +62,7 @@ withDefaults(
 		<div class="flex gap-6 border-0 border-b border-solid border-divider pb-2">
 			<div v-for="tab in 3" :key="tab" class="h-8 w-20 animate-pulse rounded bg-surface-2" />
 		</div>
-		<div class="rounded-lg bg-bg-raised p-5">
+		<div class="rounded-lg bg-surface-3 p-5">
 			<div class="mb-5 h-6 w-1/3 animate-pulse rounded bg-surface-3" />
 			<div class="flex flex-col gap-3">
 				<div

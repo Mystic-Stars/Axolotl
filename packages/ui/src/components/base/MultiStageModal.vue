@@ -44,9 +44,10 @@
 								class="flex w-max items-center"
 							>
 								<button
-									class="bg-transparent active:scale-95 font-bold text-secondary p-0 w-max py-3 px-1"
+									class="bg-transparent active:scale-95 font-bold text-[var(--color-text-tertiary)] p-0 w-max py-3 px-1"
 									:class="{
-										'!text-contrast font-bold': resolveCtxFn(currentStage.id, context) === stage.id,
+										'!text-[var(--color-text-primary)] font-bold':
+											resolveCtxFn(currentStage.id, context) === stage.id,
 										'font-bold': resolveCtxFn(currentStage.id, context) !== stage.id,
 										'opacity-50 cursor-not-allowed': cannotNavigateToStage(index),
 									}"
@@ -57,7 +58,7 @@
 								</button>
 								<ChevronRightIcon
 									v-if="index < breadcrumbStages.length - 1"
-									class="h-5 w-5 text-secondary"
+									class="h-5 w-5 text-[var(--color-text-tertiary)]"
 									stroke-width="3"
 								/>
 							</div>
@@ -68,9 +69,11 @@
 						:class="showRightShadow ? 'opacity-100' : 'opacity-0'"
 					/>
 				</div>
-				<span v-else class="min-w-0 flex-1 text-lg font-bold text-contrast sm:text-xl">{{
-					resolvedTitle
-				}}</span>
+				<span
+					v-else
+					class="min-w-0 flex-1 text-lg font-bold text-[var(--color-text-primary)] sm:text-xl"
+					>{{ resolvedTitle }}</span
+				>
 			</div>
 		</template>
 
@@ -444,11 +447,11 @@ progress::-webkit-progress-bar {
 }
 
 progress::-webkit-progress-value {
-	@apply bg-contrast;
+	@apply bg-[var(--color-text-primary)];
 }
 
 progress::-moz-progress-bar {
-	@apply bg-contrast;
+	@apply bg-[var(--color-text-primary)];
 }
 
 .scrollbar-hide {

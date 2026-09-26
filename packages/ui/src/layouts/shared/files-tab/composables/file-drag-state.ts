@@ -22,7 +22,7 @@ export const fileDragActive = dragStarted
 function createGhost(name: string): HTMLElement {
 	const el = document.createElement('div')
 	el.className =
-		'fixed z-[99999] flex items-center max-w-[500px] gap-3 rounded-lg bg-bg-raised p-3 shadow-lg pointer-events-none text-contrast font-bold truncate'
+		'fixed z-[99999] flex items-center max-w-[500px] gap-3 rounded-lg bg-surface-3 p-3 shadow-lg pointer-events-none text-[var(--color-text-primary)] font-bold truncate'
 	el.textContent = name
 	el.style.transform = 'translate(-50%, -100%)'
 	document.body.appendChild(el)

@@ -151,7 +151,7 @@ function retrySave() {
 				<h2
 					id="settings-target-language"
 					tabindex="-1"
-					class="m-0 text-lg font-semibold text-contrast"
+					class="m-0 text-lg font-semibold text-[var(--color-text-primary)]"
 				>
 					{{ formatMessage(commonSettingsMessages.language) }}
 				</h2>
@@ -176,7 +176,7 @@ function retrySave() {
 					</IntlFormatted>
 				</p>
 				<div data-onboarding-id="settings-language-select" class="flex flex-col gap-1.5">
-					<label class="text-sm font-semibold text-contrast">
+					<label class="text-sm font-semibold text-[var(--color-text-primary)]">
 						{{ formatMessage(commonSettingsMessages.language) }}
 					</label>
 					<div class="flex items-end gap-2">
@@ -197,7 +197,7 @@ function retrySave() {
 							v-tooltip="systemToggleTooltip"
 							type="button"
 							role="switch"
-							class="inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-xl border border-[var(--surface-5)] bg-[var(--surface-4)] px-2.5 py-2 text-[0.8125rem] font-semibold text-secondary whitespace-nowrap cursor-pointer transition-colors language-system-toggle"
+							class="inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-xl border border-[var(--surface-5)] bg-[var(--surface-4)] px-2.5 py-2 text-[0.8125rem] font-semibold text-[var(--color-text-tertiary)] whitespace-nowrap cursor-pointer transition-colors language-system-toggle"
 							:class="{ 'is-active': followSystem }"
 							:aria-checked="followSystem"
 							:aria-label="formatMessage(messages.systemLanguage)"
@@ -208,7 +208,7 @@ function retrySave() {
 							<span>{{ formatMessage(messages.systemLanguage) }}</span>
 						</button>
 					</div>
-					<p v-if="followSystem" class="m-0 text-xs text-secondary">
+					<p v-if="followSystem" class="m-0 text-xs text-[var(--color-text-tertiary)]">
 						{{ systemLocaleMeta.name }} — {{ systemLocaleMeta.translatedName }}
 					</p>
 				</div>
@@ -220,14 +220,14 @@ function retrySave() {
 <style scoped>
 .settings-page-description {
 	margin: 0;
-	color: var(--color-secondary);
+	color: var(--color-text-tertiary);
 	font-size: 0.875rem;
 	line-height: 1.5;
 }
 
 .language-system-toggle:hover:not(:disabled) {
 	border-color: var(--surface-5);
-	color: var(--color-contrast);
+	color: var(--color-text-primary);
 }
 
 .language-system-toggle:focus-visible {

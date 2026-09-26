@@ -8,7 +8,7 @@
 		scrollable
 	>
 		<div class="flex flex-col gap-4">
-			<p class="m-0 text-secondary">
+			<p class="m-0 text-[var(--color-text-tertiary)]">
 				{{
 					installed == null
 						? formatMessage(messages.existingBody, { manual: remainingCount })
@@ -34,7 +34,9 @@
 					/>
 					<FolderSearchIcon v-else class="size-5 shrink-0" aria-hidden="true" />
 				</template>
-				<span class="min-w-0 break-words text-secondary">{{ scannerStatus }}</span>
+				<span class="min-w-0 break-words text-[var(--color-text-tertiary)]">{{
+					scannerStatus
+				}}</span>
 			</Admonition>
 
 			<div class="max-h-72 overflow-y-auto rounded-lg border border-surface-5 bg-surface-2">
@@ -46,11 +48,17 @@
 					<div class="flex min-w-0 items-center gap-3">
 						<div class="flex size-8 shrink-0 items-center justify-center rounded-full bg-surface-4">
 							<CheckIcon v-if="isImported(item)" class="size-5 text-green" aria-hidden="true" />
-							<FolderSearchIcon v-else class="size-5 text-secondary" aria-hidden="true" />
+							<FolderSearchIcon
+								v-else
+								class="size-5 text-[var(--color-text-tertiary)]"
+								aria-hidden="true"
+							/>
 						</div>
 						<div class="min-w-0 flex flex-col gap-0.5">
-							<span class="truncate font-medium text-contrast">{{ item.fileName }}</span>
-							<span class="truncate text-sm text-secondary">
+							<span class="truncate font-medium text-[var(--color-text-primary)]">{{
+								item.fileName
+							}}</span>
+							<span class="truncate text-sm text-[var(--color-text-tertiary)]">
 								{{
 									formatMessage(messages.projectFile, {
 										projectId: item.projectId,
@@ -58,7 +66,10 @@
 									})
 								}}
 							</span>
-							<span class="text-sm" :class="isImported(item) ? 'text-green' : 'text-secondary'">
+							<span
+								class="text-sm"
+								:class="isImported(item) ? 'text-green' : 'text-[var(--color-text-tertiary)]'"
+							>
 								{{ itemStatus(item) }}
 							</span>
 						</div>

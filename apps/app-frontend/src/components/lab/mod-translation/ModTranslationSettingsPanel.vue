@@ -143,16 +143,16 @@ loadDefaults()
 
 <template>
 	<div class="flex flex-col gap-4">
-		<div v-if="loading" class="text-sm text-secondary">…</div>
+		<div v-if="loading" class="text-sm text-[var(--color-text-tertiary)]">…</div>
 		<template v-else>
-			<div v-if="aiLoadFailed" class="text-sm text-secondary">
+			<div v-if="aiLoadFailed" class="text-sm text-[var(--color-text-tertiary)]">
 				{{ formatMessage(messages.aiLoadError) }}
 			</div>
-			<div v-else-if="!aiAvailable" class="text-sm text-secondary">
+			<div v-else-if="!aiAvailable" class="text-sm text-[var(--color-text-tertiary)]">
 				{{ formatMessage(messages.aiNotConfigured) }}
 			</div>
 			<div v-else class="grid grid-cols-1 gap-4 md:grid-cols-2">
-				<label class="flex flex-col gap-2 font-semibold text-contrast">
+				<label class="flex flex-col gap-2 font-semibold text-[var(--color-text-primary)]">
 					{{ formatMessage(messages.provider) }}
 					<Combobox
 						:model-value="providerId"
@@ -170,7 +170,7 @@ loadDefaults()
 								<AIIcon kind="provider-avatar" :value="String(item.value)" :size="22" />
 								<span
 									class="truncate font-semibold leading-tight"
-									:class="isSelected ? 'text-brand' : 'text-primary'"
+									:class="isSelected ? 'text-brand' : 'text-[var(--color-text-default)]'"
 								>
 									{{ item.label }}
 								</span>
@@ -178,7 +178,7 @@ loadDefaults()
 						</template>
 					</Combobox>
 				</label>
-				<label class="flex flex-col gap-2 font-semibold text-contrast">
+				<label class="flex flex-col gap-2 font-semibold text-[var(--color-text-primary)]">
 					{{ formatMessage(messages.model) }}
 					<div class="model-combobox relative" :class="{ 'has-model-icon': modelId }">
 						<AIIcon
@@ -199,7 +199,7 @@ loadDefaults()
 									<AIIcon kind="model" :value="String(item.value)" :size="22" />
 									<span
 										class="truncate font-semibold leading-tight"
-										:class="isSelected ? 'text-brand' : 'text-primary'"
+										:class="isSelected ? 'text-brand' : 'text-[var(--color-text-default)]'"
 									>
 										{{ item.label }}
 									</span>
@@ -212,8 +212,12 @@ loadDefaults()
 		</template>
 
 		<div class="flex flex-col gap-3">
-			<h3 class="m-0 text-sm font-semibold text-contrast">{{ formatMessage(messages.options) }}</h3>
-			<label class="flex items-center justify-between gap-3 text-sm text-primary">
+			<h3 class="m-0 text-sm font-semibold text-[var(--color-text-primary)]">
+				{{ formatMessage(messages.options) }}
+			</h3>
+			<label
+				class="flex items-center justify-between gap-3 text-sm text-[var(--color-text-default)]"
+			>
 				<span>{{ formatMessage(messages.batchSize) }}</span>
 				<div class="w-36">
 					<Combobox
@@ -225,7 +229,9 @@ loadDefaults()
 					/>
 				</div>
 			</label>
-			<label class="flex items-center justify-between gap-3 text-sm text-primary">
+			<label
+				class="flex items-center justify-between gap-3 text-sm text-[var(--color-text-default)]"
+			>
 				<span>{{ formatMessage(messages.generateModName) }}</span>
 				<Toggle
 					:model-value="modelValue.generateModName"
@@ -234,7 +240,9 @@ loadDefaults()
 					"
 				/>
 			</label>
-			<label class="flex items-center justify-between gap-3 text-sm text-primary">
+			<label
+				class="flex items-center justify-between gap-3 text-sm text-[var(--color-text-default)]"
+			>
 				<span>{{ formatMessage(messages.repairEnabled) }}</span>
 				<Toggle
 					:model-value="modelValue.repairEnabled"
@@ -243,7 +251,9 @@ loadDefaults()
 					"
 				/>
 			</label>
-			<label class="flex items-center justify-between gap-3 text-sm text-primary">
+			<label
+				class="flex items-center justify-between gap-3 text-sm text-[var(--color-text-default)]"
+			>
 				<span>{{ formatMessage(messages.classTextEnabled) }}</span>
 				<Toggle
 					:model-value="modelValue.classTextEnabled"

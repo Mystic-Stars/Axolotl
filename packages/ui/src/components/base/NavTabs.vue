@@ -2,7 +2,7 @@
 	<nav
 		v-if="filteredLinks.length > 1"
 		ref="scrollContainer"
-		class="relative flex w-fit overflow-x-auto rounded-full bg-bg-raised p-1 text-sm font-bold"
+		class="relative flex w-fit overflow-x-auto rounded-full bg-surface-3 p-1 text-sm font-bold"
 		:class="{ 'shadow-xl border border-solid border-surface-4': mode === 'navigation' }"
 	>
 		<template v-if="mode === 'navigation'">
@@ -50,7 +50,7 @@
 			v-if="sliderReady && currentActiveIndex !== -1"
 			class="pointer-events-none absolute h-[calc(100%-0.5rem)] overflow-hidden rounded-full p-1"
 			:class="[
-				subpageSelected ? 'bg-button-bg' : 'bg-button-bgSelected',
+				subpageSelected ? 'bg-surface-4' : 'bg-button-bgSelected',
 				{ 'navtabs-transition': transitionsEnabled },
 			]"
 			:style="sliderStyle"
@@ -160,21 +160,21 @@ function getSSRFallbackClasses(index: number) {
 	return {
 		'rounded-full': true,
 		'bg-button-bgSelected': !subpageSelected.value,
-		'bg-button-bg': subpageSelected.value,
+		'bg-surface-4': subpageSelected.value,
 	}
 }
 
 function getIconClasses(index: number) {
 	return {
 		'text-button-textSelected': isActiveAndNotSubpage.value(index),
-		'text-secondary': !isActiveAndNotSubpage.value(index),
+		'text-[var(--color-text-tertiary)]': !isActiveAndNotSubpage.value(index),
 	}
 }
 
 function getLabelClasses(index: number) {
 	return {
 		'text-button-textSelected': isActiveAndNotSubpage.value(index),
-		'text-contrast': !isActiveAndNotSubpage.value(index),
+		'text-[var(--color-text-primary)]': !isActiveAndNotSubpage.value(index),
 	}
 }
 

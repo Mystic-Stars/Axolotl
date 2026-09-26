@@ -6,10 +6,12 @@
 		max-width="500px"
 		:on-hide="handleHide"
 	>
-		<p class="m-0 text-secondary">
+		<p class="m-0 text-[var(--color-text-tertiary)]">
 			<IntlFormatted :message-id="messages.body" :values="{ instanceName }">
 				<template #bold="{ children }">
-					<span class="font-medium text-contrast"><component :is="() => children" /></span>
+					<span class="font-medium text-[var(--color-text-primary)]"
+						><component :is="() => children"
+					/></span>
 				</template>
 			</IntlFormatted>
 		</p>

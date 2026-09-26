@@ -1,5 +1,3 @@
-@import '@modrinth/ui/src/styles/tailwind-utilities.css';
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

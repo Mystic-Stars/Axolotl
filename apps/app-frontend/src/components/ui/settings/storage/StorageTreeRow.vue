@@ -119,7 +119,7 @@ const openActionLabel = computed(() => formatMessage(storageMessages.openAction)
 			<!-- 展开/折叠 箭头（装饰性，由原生的 <summary> 负责展开） -->
 			<span
 				v-if="hasChildren"
-				class="chevron-icon inline-flex h-5 w-5 shrink-0 items-center justify-center p-0 text-secondary"
+				class="chevron-icon inline-flex h-5 w-5 shrink-0 items-center justify-center p-0 text-[var(--color-text-tertiary)]"
 				aria-hidden="true"
 			>
 				<ChevronRightIcon class="size-3.5" />
@@ -130,7 +130,7 @@ const openActionLabel = computed(() => formatMessage(storageMessages.openAction)
 			<button
 				v-tooltip="openActionLabel"
 				type="button"
-				class="node-type-btn mr-1.5 inline-flex cursor-pointer items-center justify-center rounded border-0 bg-transparent p-0 text-secondary hover:bg-surface-3 hover:text-contrast"
+				class="node-type-btn mr-1.5 inline-flex cursor-pointer items-center justify-center rounded border-0 bg-transparent p-0 text-[var(--color-text-tertiary)] hover:bg-surface-3 hover:text-[var(--color-text-primary)]"
 				:aria-label="`${displayLabel}: ${openActionLabel}`"
 				@click.stop="emit('action', node)"
 			>
@@ -153,10 +153,14 @@ const openActionLabel = computed(() => formatMessage(storageMessages.openAction)
 		<div class="ml-4 flex shrink-0 items-center gap-4">
 			<div class="storage-size">
 				{{ actualSizeText }}
-				<span v-if="node.size.symlink > 0" class="text-secondary"> + {{ symlinkSizeText }} </span>
+				<span v-if="node.size.symlink > 0" class="text-[var(--color-text-tertiary)]">
+					+ {{ symlinkSizeText }}
+				</span>
 			</div>
 
-			<div class="w-9 max-sm:hidden text-right text-xs tabular-nums text-secondary">
+			<div
+				class="w-9 max-sm:hidden text-right text-xs tabular-nums text-[var(--color-text-tertiary)]"
+			>
 				{{ percent }}%
 			</div>
 
@@ -252,7 +256,7 @@ const openActionLabel = computed(() => formatMessage(storageMessages.openAction)
 	overflow: hidden;
 	font-size: 0.8125rem;
 	font-weight: 400;
-	color: var(--color-contrast);
+	color: var(--color-text-primary);
 	text-overflow: ellipsis;
 	white-space: nowrap;
 }
@@ -263,7 +267,7 @@ const openActionLabel = computed(() => formatMessage(storageMessages.openAction)
 	height: 1rem;
 	border-radius: 0.25rem;
 	background: var(--surface-3);
-	color: var(--color-secondary);
+	color: var(--color-text-tertiary);
 	font-size: 0.6875rem;
 	line-height: 1rem;
 	font-variant-numeric: tabular-nums;

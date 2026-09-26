@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { PlugIcon, SpinnerIcon, TrashIcon } from '@modrinth/assets'
 import {
+	Button,
 	Combobox,
 	defineMessages,
 	injectNotificationManager,
 	LOCALES,
-	NewButton as Button,
 	StyledInput,
 	Toggle,
 	useVIntl,
@@ -549,7 +549,7 @@ async function clearCache() {
 
 <template>
 	<div v-if="loading" class="flex min-h-48 items-center justify-center">
-		<SpinnerIcon class="size-6 animate-spin text-secondary" />
+		<SpinnerIcon class="size-6 animate-spin text-[var(--color-text-tertiary)]" />
 	</div>
 	<div v-else class="flex flex-col gap-6">
 		<SettingsSection>
@@ -557,17 +557,19 @@ async function clearCache() {
 				<h2
 					id="settings-target-translation-service"
 					tabindex="-1"
-					class="m-0 text-lg font-semibold text-contrast"
+					class="m-0 text-lg font-semibold text-[var(--color-text-primary)]"
 				>
 					{{ formatMessage(messages.title) }}
 				</h2>
-				<p class="m-0 mt-1 text-sm leading-relaxed text-secondary">
+				<p class="m-0 mt-1 text-sm leading-relaxed text-[var(--color-text-tertiary)]">
 					{{ formatMessage(messages.description) }}
 				</p>
 			</template>
 			<template #extra>
 				<div class="flex flex-wrap items-center justify-end gap-2">
-					<span v-if="testStatus" class="text-sm text-secondary">{{ testStatus }}</span>
+					<span v-if="testStatus" class="text-sm text-[var(--color-text-tertiary)]">{{
+						testStatus
+					}}</span>
 					<Button type="base" :disabled="testing" @click="testProvider">
 						<PlugIcon />{{ formatMessage(testing ? messages.testing : messages.test) }}
 					</Button>
@@ -624,7 +626,7 @@ async function clearCache() {
 									<AIIcon kind="provider-avatar" :value="String(item.value)" :size="22" />
 									<span
 										class="truncate font-semibold leading-tight"
-										:class="isSelected ? 'text-brand' : 'text-primary'"
+										:class="isSelected ? 'text-brand' : 'text-[var(--color-text-default)]'"
 									>
 										{{ item.label }}
 									</span>
@@ -654,7 +656,7 @@ async function clearCache() {
 									<AIIcon kind="model" :value="String(item.value)" :size="22" />
 									<span
 										class="truncate font-semibold leading-tight"
-										:class="isSelected ? 'text-brand' : 'text-primary'"
+										:class="isSelected ? 'text-brand' : 'text-[var(--color-text-default)]'"
 									>
 										{{ item.label }}
 									</span>
@@ -733,7 +735,9 @@ async function clearCache() {
 				<template #description>{{ formatMessage(messages.cacheDescription) }}</template>
 				<template #control>
 					<div class="flex flex-wrap items-center justify-end gap-2">
-						<span v-if="cacheStatus" class="text-sm text-secondary">{{ cacheStatus }}</span>
+						<span v-if="cacheStatus" class="text-sm text-[var(--color-text-tertiary)]">{{
+							cacheStatus
+						}}</span>
 						<Button type="base" @click="clearCache">
 							<TrashIcon />{{ formatMessage(messages.clearCache) }}
 						</Button>
@@ -772,7 +776,7 @@ async function clearCache() {
 }
 
 .translation-style-preview-weakened {
-	color: var(--color-secondary) !important;
+	color: var(--color-text-tertiary) !important;
 }
 
 .translation-style-preview-blur {

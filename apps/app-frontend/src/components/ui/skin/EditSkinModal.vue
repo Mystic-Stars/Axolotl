@@ -1,7 +1,7 @@
 <template>
 	<NewModal ref="modal" :on-hide="handleModalHide">
 		<template #title>
-			<span class="text-lg font-extrabold text-contrast">
+			<span class="text-lg font-extrabold text-[var(--color-text-primary)]">
 				{{ formatMessage(mode === 'edit' ? messages.editSkinTitle : messages.addSkinTitle) }}
 			</span>
 		</template>

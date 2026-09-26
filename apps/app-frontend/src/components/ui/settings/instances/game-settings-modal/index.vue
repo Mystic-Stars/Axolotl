@@ -382,7 +382,7 @@ defineExpose({ show, hide })
 					v-if="!isLocalEditor && (loading || loadError || categorySettings.length > 0)"
 					class="mb-4 flex shrink-0 flex-wrap items-start justify-between gap-4 border-0 border-b border-solid border-surface-4 pb-4"
 				>
-					<p class="m-0 min-w-60 flex-1 text-primary">
+					<p class="m-0 min-w-60 flex-1 text-[var(--color-text-default)]">
 						{{ formatMessage(messages.syncedOptionsDescription) }}
 					</p>
 					<div class="ml-auto flex w-48 justify-end">
@@ -419,7 +419,7 @@ defineExpose({ show, hide })
 				</div>
 				<div
 					v-else-if="loadError"
-					class="flex min-h-40 flex-1 flex-col items-center justify-center gap-3 text-secondary"
+					class="flex min-h-40 flex-1 flex-col items-center justify-center gap-3 text-[var(--color-text-tertiary)]"
 				>
 					<p class="m-0">{{ formatMessage(messages.loadFailed) }}</p>
 					<Button @click="load">
@@ -430,7 +430,7 @@ defineExpose({ show, hide })
 				<div v-else class="min-h-0 flex-1">
 					<div
 						v-if="categorySettings.length === 0"
-						class="flex h-full min-h-40 items-center justify-center px-8 text-center text-secondary"
+						class="flex h-full min-h-40 items-center justify-center px-8 text-center text-[var(--color-text-tertiary)]"
 					>
 						{{
 							activeCategory?.is_custom && !search

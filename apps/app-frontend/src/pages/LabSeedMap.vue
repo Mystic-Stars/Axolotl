@@ -2301,10 +2301,10 @@ function clampWorldCoordinate(value: number) {
 	<main class="seed-map-page mx-auto flex h-full min-h-0 w-full max-w-[110rem] flex-col gap-3 p-4">
 		<header class="flex min-h-9 items-center justify-between gap-3">
 			<div class="min-w-0">
-				<h1 class="m-0 truncate text-xl font-bold text-contrast">
+				<h1 class="m-0 truncate text-xl font-bold text-[var(--color-text-primary)]">
 					{{ formatMessage(messages.title) }}
 				</h1>
-				<p class="m-0 truncate text-xs text-secondary">
+				<p class="m-0 truncate text-xs text-[var(--color-text-tertiary)]">
 					{{ editionLabel(workspace.edition) }} {{ workspace.gameVersion }} ·
 					{{ dimensionLabel(workspace.dimension) }}
 				</p>
@@ -2875,7 +2875,7 @@ function clampWorldCoordinate(value: number) {
 				<div v-if="selection && selectionVisible" class="map-popup" :style="selectionStyle">
 					<div class="flex items-start justify-between gap-3">
 						<div class="min-w-0">
-							<strong class="block truncate text-sm text-contrast">
+							<strong class="block truncate text-sm text-[var(--color-text-primary)]">
 								<i
 									v-if="selection.biome !== undefined && !selectedMarker"
 									class="popup-biome-dot"
@@ -2894,7 +2894,7 @@ function clampWorldCoordinate(value: number) {
 														: formatMessage(messages.location))
 								}}
 							</strong>
-							<span class="text-xs text-secondary"
+							<span class="text-xs text-[var(--color-text-tertiary)]"
 								>X {{ selection.x
 								}}<template v-if="selection.ore">, Y {{ selection.ore.y }}</template
 								>, Z {{ selection.z
@@ -2981,7 +2981,9 @@ function clampWorldCoordinate(value: number) {
 
 				<div v-if="advancedOpen" class="advanced-panel">
 					<div class="flex items-center justify-between gap-3">
-						<strong class="text-sm text-contrast">{{ formatMessage(messages.mapSettings) }}</strong
+						<strong class="text-sm text-[var(--color-text-primary)]">{{
+							formatMessage(messages.mapSettings)
+						}}</strong
 						><Button
 							type="quiet"
 							size="2xs"
@@ -3002,10 +3004,17 @@ function clampWorldCoordinate(value: number) {
 					/></label>
 					<div class="mt-3 border-t border-surface-5 pt-3">
 						<div class="mb-2 flex items-center justify-between">
-							<strong class="text-sm text-contrast">{{ formatMessage(messages.markers) }}</strong
-							><span class="text-xs text-secondary">{{ workspace.markers.length }}</span>
+							<strong class="text-sm text-[var(--color-text-primary)]">{{
+								formatMessage(messages.markers)
+							}}</strong
+							><span class="text-xs text-[var(--color-text-tertiary)]">{{
+								workspace.markers.length
+							}}</span>
 						</div>
-						<p v-if="!workspace.markers.length" class="m-0 text-xs text-secondary">
+						<p
+							v-if="!workspace.markers.length"
+							class="m-0 text-xs text-[var(--color-text-tertiary)]"
+						>
 							{{ formatMessage(messages.noMarkers) }}
 						</p>
 						<div v-else class="marker-list flex flex-col gap-1">
@@ -3091,7 +3100,7 @@ function clampWorldCoordinate(value: number) {
 	border-radius: var(--radius-sm);
 	background: var(--surface-2);
 	padding: 0.35rem 0.55rem;
-	color: var(--color-text-secondary);
+	color: var(--color-text-tertiary);
 	font-size: 0.7rem;
 	font-variant-numeric: tabular-nums;
 	font-weight: 700;
@@ -3138,7 +3147,7 @@ function clampWorldCoordinate(value: number) {
 }
 
 .control-label {
-	color: var(--color-text-secondary);
+	color: var(--color-text-tertiary);
 	font-size: 0.7rem;
 	font-weight: 700;
 	line-height: 1;
@@ -3180,7 +3189,7 @@ function clampWorldCoordinate(value: number) {
 .seed-history-empty {
 	margin: 0;
 	padding: 1.25rem 0.5rem;
-	color: var(--color-secondary);
+	color: var(--color-text-tertiary);
 	font-size: 0.78rem;
 	text-align: center;
 }
@@ -3245,7 +3254,7 @@ function clampWorldCoordinate(value: number) {
 
 .seed-history-seed {
 	overflow: hidden;
-	color: var(--color-contrast);
+	color: var(--color-text-primary);
 	font-size: 0.82rem;
 	font-variant-numeric: tabular-nums;
 	font-weight: 700;
@@ -3255,7 +3264,7 @@ function clampWorldCoordinate(value: number) {
 
 .seed-history-meta {
 	overflow: hidden;
-	color: var(--color-secondary);
+	color: var(--color-text-tertiary);
 	font-size: 0.68rem;
 	text-overflow: ellipsis;
 	white-space: nowrap;
@@ -3274,8 +3283,8 @@ function clampWorldCoordinate(value: number) {
 }
 
 .seed-history-remove {
-	--_text: var(--color-secondary);
-	--_icon: var(--color-secondary);
+	--_text: var(--color-text-tertiary);
+	--_icon: var(--color-text-tertiary);
 	--_hover-bg: var(--color-red-highlight);
 	--_hover-text: var(--color-red);
 	--_hover-icon: var(--color-red);
@@ -3349,7 +3358,7 @@ function clampWorldCoordinate(value: number) {
 	position: absolute;
 	z-index: 2;
 	left: 0.65rem;
-	color: var(--color-text-secondary);
+	color: var(--color-text-tertiary);
 	font-size: 0.7rem;
 	font-weight: 800;
 	pointer-events: none;
@@ -3434,7 +3443,7 @@ function clampWorldCoordinate(value: number) {
 	justify-content: space-between;
 	gap: 0.25rem;
 	padding-left: 0.25rem;
-	color: var(--color-text-secondary);
+	color: var(--color-text-tertiary);
 	font-size: 0.75rem;
 	font-weight: 800;
 	text-transform: uppercase;
@@ -3519,7 +3528,7 @@ function clampWorldCoordinate(value: number) {
 
 .layer-checklist-label small {
 	margin-left: auto;
-	color: var(--color-text-secondary);
+	color: var(--color-text-tertiary);
 	font-size: 0.68rem;
 	font-variant-numeric: tabular-nums;
 }
@@ -3528,7 +3537,7 @@ function clampWorldCoordinate(value: number) {
 	display: inline-flex;
 	align-items: center;
 	padding: 0.35rem 0.5rem;
-	color: var(--color-text-secondary);
+	color: var(--color-text-tertiary);
 	font-size: 0.75rem;
 }
 
@@ -3552,7 +3561,7 @@ function clampWorldCoordinate(value: number) {
 }
 
 .ore-range-heading span {
-	color: var(--color-text-secondary);
+	color: var(--color-text-tertiary);
 	font-variant-numeric: tabular-nums;
 }
 
@@ -3565,7 +3574,7 @@ function clampWorldCoordinate(value: number) {
 	min-width: 0;
 	flex-direction: column;
 	gap: 0.4rem;
-	color: var(--color-text-secondary);
+	color: var(--color-text-tertiary);
 	font-size: 0.7rem;
 	font-weight: 700;
 }
@@ -3658,21 +3667,13 @@ function clampWorldCoordinate(value: number) {
 	border-radius: var(--radius-md);
 	background: var(--surface-3);
 	padding: 0.35rem 0.55rem;
-	color: var(--color-text-secondary);
+	color: var(--color-text-tertiary);
 	font-size: 0.72rem;
 	font-weight: 700;
 }
 
-.map-status > button {
-	display: inline-flex;
-	width: 1.5rem;
-	height: 1.5rem;
-	align-items: center;
-	justify-content: center;
-	border: 0;
-	background: transparent;
-	padding: 0;
-	color: var(--color-text-secondary);
+.map-status > :deep(button) {
+	color: var(--color-text-tertiary);
 }
 
 .map-status > button svg {
@@ -3761,7 +3762,7 @@ function clampWorldCoordinate(value: number) {
 }
 
 .marker-jump small {
-	color: var(--color-text-secondary);
+	color: var(--color-text-tertiary);
 	font-size: 0.65rem;
 }
 
@@ -3785,7 +3786,7 @@ function clampWorldCoordinate(value: number) {
 	border-radius: var(--radius-sm);
 	background: var(--surface-4);
 	padding: 0.2rem 0.4rem;
-	color: var(--color-text-secondary);
+	color: var(--color-text-tertiary);
 	font-size: 0.68rem;
 	font-weight: 700;
 }
@@ -3821,22 +3822,6 @@ function clampWorldCoordinate(value: number) {
 .map-bottom-biomes {
 	min-width: min(20rem, 100%);
 	flex: 1 1 20rem;
-}
-
-.map-pill {
-	display: flex;
-	height: 2.5rem;
-	flex: 0 0 auto;
-	align-items: center;
-	gap: 0.5rem;
-	border: 1px solid var(--surface-5);
-	border-radius: var(--radius-md);
-	background: var(--surface-4);
-	padding: 0 0.6rem;
-	color: var(--color-text-primary);
-	font-size: 0.75rem;
-	font-weight: 700;
-	white-space: nowrap;
 }
 
 .map-bottom-actions {

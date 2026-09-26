@@ -95,17 +95,17 @@ defineExpose({ show })
 		<div class="flex flex-col gap-6">
 			<div class="flex items-start gap-3">
 				<ShieldIcon class="mt-0.5 size-6 shrink-0 text-brand" />
-				<p class="m-0 leading-relaxed text-primary">
+				<p class="m-0 leading-relaxed text-[var(--color-text-default)]">
 					{{ formatMessage(messages.intro) }}
 				</p>
 			</div>
 
 			<div class="flex items-center justify-between gap-5">
 				<div class="min-w-0">
-					<label for="consent-telemetry" class="font-semibold text-contrast">
+					<label for="consent-telemetry" class="font-semibold text-[var(--color-text-primary)]">
 						{{ formatMessage(messages.telemetry) }}
 					</label>
-					<p class="mb-0 mt-1 text-sm leading-relaxed text-secondary">
+					<p class="mb-0 mt-1 text-sm leading-relaxed text-[var(--color-text-tertiary)]">
 						{{ formatMessage(messages.telemetryDescription) }}
 					</p>
 				</div>
@@ -114,10 +114,10 @@ defineExpose({ show })
 
 			<div class="flex items-center justify-between gap-5">
 				<div class="min-w-0">
-					<label for="consent-discord-rpc" class="font-semibold text-contrast">
+					<label for="consent-discord-rpc" class="font-semibold text-[var(--color-text-primary)]">
 						{{ formatMessage(messages.discordRpc) }}
 					</label>
-					<p class="mb-0 mt-1 text-sm leading-relaxed text-secondary">
+					<p class="mb-0 mt-1 text-sm leading-relaxed text-[var(--color-text-tertiary)]">
 						{{ formatMessage(messages.discordRpcDescription) }}
 					</p>
 				</div>

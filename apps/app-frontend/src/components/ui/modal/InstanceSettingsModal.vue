@@ -211,7 +211,7 @@ defineExpose({ show, hide })
 		:width="'min(928px, calc(95vw - 10rem))'"
 	>
 		<template #title>
-			<span class="flex items-center gap-2 text-lg font-semibold text-primary">
+			<span class="flex items-center gap-2 text-lg font-semibold text-[var(--color-text-default)]">
 				<InstanceIcon
 					:icon-path="instance.icon_path"
 					:instance-id="props.instance.id"
@@ -219,7 +219,7 @@ defineExpose({ show, hide })
 					size="24px"
 				/>
 				{{ instance.name }} <ChevronRightIcon />
-				<span class="font-extrabold text-contrast">{{
+				<span class="font-extrabold text-[var(--color-text-primary)]">{{
 					formatMessage(commonMessages.settingsLabel)
 				}}</span>
 			</span>

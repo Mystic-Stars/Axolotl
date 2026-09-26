@@ -21,7 +21,9 @@
 			data-onboarding-id="creation-name"
 			class="flex flex-col gap-2"
 		>
-			<span class="font-semibold text-contrast">{{ formatMessage(messages.nameLabel) }}</span>
+			<span class="font-semibold text-[var(--color-text-primary)]">{{
+				formatMessage(messages.nameLabel)
+			}}</span>
 			<StyledInput
 				v-model="ctx.instanceName.value"
 				:placeholder="ctx.autoInstanceName.value || formatMessage(messages.instanceNamePlaceholder)"
@@ -34,7 +36,9 @@
 			data-onboarding-id="creation-game-dir"
 			class="flex flex-col gap-2"
 		>
-			<span class="font-semibold text-contrast">{{ formatMessage(messages.gameDirLabel) }}</span>
+			<span class="font-semibold text-[var(--color-text-primary)]">{{
+				formatMessage(messages.gameDirLabel)
+			}}</span>
 			<RadioButtons v-model="gameDirSelection" :items="gameDirOptions" force-selection>
 				<template #default="{ item }">
 					{{ item === BUILTIN_GAME_DIR ? formatMessage(messages.gameDirManaged) : item }}
@@ -44,7 +48,7 @@
 
 		<!-- Game version -->
 		<div data-onboarding-id="creation-game-version" class="flex flex-col gap-2">
-			<span class="font-semibold text-contrast">{{
+			<span class="font-semibold text-[var(--color-text-primary)]">{{
 				formatMessage(commonMessages.gameVersionLabel)
 			}}</span>
 			<div class="flex gap-2">
@@ -72,7 +76,7 @@
 
 		<!-- Loader chips -->
 		<div v-if="!hideLoaderChips" data-onboarding-id="creation-loader" class="flex flex-col gap-2">
-			<span class="font-semibold text-contrast">{{
+			<span class="font-semibold text-[var(--color-text-primary)]">{{
 				ctx.flowType === 'instance'
 					? formatMessage(messages.loaderLabel)
 					: formatMessage(messages.contentLoaderLabel)
@@ -91,19 +95,22 @@
 			<Collapsible :collapsed="!selectedLoader || !selectedGameVersion" overflow-visible>
 				<div class="flex flex-col gap-2">
 					<div class="flex items-center gap-2">
-						<span class="font-semibold text-contrast">{{
+						<span class="font-semibold text-[var(--color-text-primary)]">{{
 							isPaperLike
 								? formatMessage(messages.buildNumberLabel)
 								: formatMessage(messages.loaderVersionLabel)
 						}}</span>
-						<span v-if="loaderVersionSummary === 'loading'" class="text-sm text-secondary">
+						<span
+							v-if="loaderVersionSummary === 'loading'"
+							class="text-sm text-[var(--color-text-tertiary)]"
+						>
 							{{ formatMessage(commonMessages.loadingLabel) }}
 						</span>
 						<span
 							v-else-if="
 								!isPaperLike && loaderVersionType !== 'other' && loaderVersionSummary === 'selected'
 							"
-							class="text-sm text-secondary"
+							class="text-sm text-[var(--color-text-tertiary)]"
 						>
 							{{
 								formatMessage(messages.willInstallLoaderVersion, {
@@ -142,7 +149,11 @@
 									<div class="flex flex-wrap items-center gap-2">
 										<span
 											class="font-semibold leading-tight"
-											:class="isSelected ? 'text-contrast' : 'text-primary'"
+											:class="
+												isSelected
+													? 'text-[var(--color-text-primary)]'
+													: 'text-[var(--color-text-default)]'
+											"
 										>
 											{{ item.label }}
 										</span>
@@ -163,7 +174,9 @@
 		</template>
 
 		<div v-if="ctx.flowType === 'instance' && adjunctOptions.length" class="flex flex-col gap-2">
-			<span class="font-semibold text-contrast">{{ formatMessage(messages.adjunctLabel) }}</span>
+			<span class="font-semibold text-[var(--color-text-primary)]">{{
+				formatMessage(messages.adjunctLabel)
+			}}</span>
 			<div class="flex flex-wrap gap-x-6 gap-y-3">
 				<div
 					v-for="adjunct in adjunctOptions"
@@ -178,13 +191,15 @@
 					/>
 					<span
 						v-if="adjunctAvailability[adjunct].reason"
-						class="text-xs leading-normal text-secondary"
+						class="text-xs leading-normal text-[var(--color-text-tertiary)]"
 					>
 						{{ adjunctAvailability[adjunct].reason }}
 					</span>
 				</div>
 			</div>
-			<span class="text-sm text-secondary">{{ formatMessage(messages.adjunctHint) }}</span>
+			<span class="text-sm text-[var(--color-text-tertiary)]">{{
+				formatMessage(messages.adjunctHint)
+			}}</span>
 		</div>
 	</div>
 </template>

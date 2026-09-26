@@ -14,7 +14,7 @@
 				<div
 					v-if="filename"
 					v-tooltip="filename"
-					class="truncate text-sm text-secondary max-w-full"
+					class="truncate text-sm text-[var(--color-text-tertiary)] max-w-full"
 				>
 					{{ filename }}
 				</div>

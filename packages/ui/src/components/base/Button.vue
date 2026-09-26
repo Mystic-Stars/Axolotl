@@ -138,6 +138,6 @@ const classes = computed(() => {
 <style lang="scss" scoped>
 :where(button) {
 	background: none;
-	color: var(--color-base);
+	color: var(--color-text-default);
 }
 </style>

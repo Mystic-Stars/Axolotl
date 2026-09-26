@@ -4,7 +4,7 @@
 			v-for="(part, index) in parts"
 			:key="`${index}-${part}`"
 			aria-hidden="true"
-			class="rounded-md border border-solid border-surface-4 bg-surface-3 px-2 py-0.5 font-mono text-sm text-contrast"
+			class="rounded-md border border-solid border-surface-4 bg-surface-3 px-2 py-0.5 font-mono text-sm text-[var(--color-text-primary)]"
 		>
 			{{ part }}
 		</kbd>

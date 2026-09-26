@@ -231,17 +231,17 @@ watch(thumbnail, (url, previousUrl) => {
 		/>
 		<div
 			aria-hidden="true"
-			class="pointer-events-none absolute inset-0 bg-button-bg"
+			class="pointer-events-none absolute inset-0 bg-surface-4"
 			:class="{ 'animate-pulse': !imageReady }"
 		/>
 		<div
-			class="absolute inset-x-0 bottom-0 z-[2] flex items-end justify-between gap-2 bg-gradient-to-t from-surface-1 to-transparent p-3 pt-[120px] text-contrast opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100"
+			class="absolute inset-x-0 bottom-0 z-[2] flex items-end justify-between gap-2 bg-gradient-to-t from-surface-1 to-transparent p-3 pt-[120px] text-[var(--color-text-primary)] opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100"
 		>
 			<div class="min-w-0">
 				<div v-tooltip="screenshot.file_name" class="truncate text-sm font-semibold">
 					{{ screenshot.file_name }}
 				</div>
-				<div class="truncate text-xs text-secondary">
+				<div class="truncate text-xs text-[var(--color-text-tertiary)]">
 					{{ showInstanceName ? screenshot.instance_name : formatTime(screenshot.created_at) }}
 				</div>
 			</div>
@@ -254,7 +254,7 @@ watch(thumbnail, (url, previousUrl) => {
 					v-tooltip="formatMessage(messages.edit)"
 					:label="formatMessage(messages.edit)"
 					type="quiet"
-					class="bg-surface-2 text-contrast hover:bg-surface-3"
+					class="bg-surface-2 text-[var(--color-text-primary)] hover:bg-surface-3"
 					@click="emit('edit')"
 				>
 					<EditIcon />
@@ -263,7 +263,7 @@ watch(thumbnail, (url, previousUrl) => {
 					v-tooltip="formatMessage(copied ? messages.copied : messages.copy)"
 					:label="formatMessage(copied ? messages.copied : messages.copy)"
 					type="quiet"
-					class="bg-surface-2 text-contrast hover:bg-surface-3"
+					class="bg-surface-2 text-[var(--color-text-primary)] hover:bg-surface-3"
 					@click="emit('copy')"
 				>
 					<CheckIcon v-if="copied" class="text-green" />
@@ -273,7 +273,7 @@ watch(thumbnail, (url, previousUrl) => {
 					v-tooltip="formatMessage(messages.moreActions)"
 					:label="formatMessage(messages.moreActions)"
 					type="quiet"
-					class="bg-surface-2 text-contrast hover:bg-surface-3"
+					class="bg-surface-2 text-[var(--color-text-primary)] hover:bg-surface-3"
 					@click="emit('more', $event)"
 				>
 					<MoreHorizontalIcon />

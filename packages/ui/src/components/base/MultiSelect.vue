@@ -7,7 +7,7 @@
 			class="relative flex items-center overflow-hidden rounded-xl px-4 py-1 text-left transition-all duration-200"
 			:class="[
 				fitContent ? 'w-auto max-w-full' : 'w-full',
-				active ? 'bg-brand-highlight text-brand' : 'bg-surface-4 text-primary',
+				active ? 'bg-brand-highlight text-brand' : 'bg-surface-4 text-[var(--color-text-default)]',
 				triggerClass,
 				{
 					'z-[9999]': isOpen,
@@ -42,11 +42,11 @@
 					<span
 						v-for="tag in visibleTags"
 						:key="String(tag.value)"
-						class="inline-flex items-center gap-1 rounded-full border border-solid border-surface-5 bg-surface-4 px-2 py-1 text-sm font-medium text-primary transition-all hover:brightness-[115%]"
+						class="inline-flex items-center gap-1 rounded-full border border-solid border-surface-5 bg-surface-4 px-2 py-1 text-sm font-medium text-[var(--color-text-default)] transition-all hover:brightness-[115%]"
 						@click.stop="removeTag(tag.value)"
 					>
 						{{ tag.label }}
-						<XIcon class="size-3.5 shrink-0 text-secondary" />
+						<XIcon class="size-3.5 shrink-0 text-[var(--color-text-tertiary)]" />
 					</span>
 					<PopoverRoot v-if="overflowCount > 0" v-model:open="overflowPopoverOpen" :modal="false">
 						<PopoverTrigger as-child>
@@ -57,7 +57,7 @@
 							-->
 							<button
 								type="button"
-								class="inline-flex cursor-pointer select-none items-center rounded-full border border-solid border-surface-5 bg-surface-4 px-2 py-1 text-sm font-medium text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+								class="inline-flex cursor-pointer select-none items-center rounded-full border border-solid border-surface-5 bg-surface-4 px-2 py-1 text-sm font-medium text-[var(--color-text-tertiary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
 								@click.stop
 							>
 								+{{ overflowCount }}
@@ -69,11 +69,11 @@
 									<span
 										v-for="tag in overflowTags"
 										:key="String(tag.value)"
-										class="inline-flex cursor-pointer items-center gap-1 rounded-full border border-solid border-surface-5 bg-surface-4 px-2.5 py-1 text-sm font-medium text-primary hover:brightness-[115%]"
+										class="inline-flex cursor-pointer items-center gap-1 rounded-full border border-solid border-surface-5 bg-surface-4 px-2.5 py-1 text-sm font-medium text-[var(--color-text-default)] hover:brightness-[115%]"
 										@click.stop="removeTag(tag.value)"
 									>
 										{{ tag.label }}
-										<XIcon class="size-3.5 shrink-0 text-secondary" />
+										<XIcon class="size-3.5 shrink-0 text-[var(--color-text-tertiary)]" />
 									</span>
 								</div>
 								<PopoverArrow class="menu-arrow" :width="14" :height="7" />
@@ -82,7 +82,7 @@
 					</PopoverRoot>
 					<span
 						v-if="selectedOptions.length === 0"
-						class="text-primary opacity-50 text-base font-medium"
+						class="text-[var(--color-text-default)] opacity-50 text-base font-medium"
 					>
 						{{ placeholder }}
 					</span>
@@ -91,7 +91,7 @@
 					<button
 						v-if="clearable && modelValue.length > 0"
 						type="button"
-						class="flex cursor-pointer items-center justify-center rounded border-none bg-transparent p-0.5 text-secondary transition-all hover:text-contrast"
+						class="flex cursor-pointer items-center justify-center rounded border-none bg-transparent p-0.5 text-[var(--color-text-tertiary)] transition-all hover:text-[var(--color-text-primary)]"
 						aria-label="Clear all"
 						@click.stop="clearAll"
 					>
@@ -103,7 +103,7 @@
 					></div>
 					<ChevronLeftIcon
 						v-if="showChevron"
-						class="size-5 shrink-0 text-secondary transition-transform duration-150"
+						class="size-5 shrink-0 text-[var(--color-text-tertiary)] transition-transform duration-150"
 						:class="isOpen ? (openDirection === 'down' ? 'rotate-90' : '-rotate-90') : '-rotate-90'"
 					/>
 				</div>
@@ -169,7 +169,7 @@
 						>
 							<div v-if="shouldShowSelectAll" class="sticky top-0 z-10 bg-surface-4">
 								<span
-									class="flex w-full items-center gap-2.5 cursor-pointer px-4 py-3 text-left transition-all duration-150 text-contrast hover:brightness-[115%]"
+									class="flex w-full items-center gap-2.5 cursor-pointer px-4 py-3 text-left transition-all duration-150 text-[var(--color-text-primary)] hover:brightness-[115%]"
 									:class="{ 'brightness-[115%]': focusedIndex === -2 }"
 									data-option-index="-2"
 									:data-focused="focusedIndex === -2"
@@ -186,13 +186,15 @@
 											isAllSelected
 												? 'bg-brand border-button-border text-brand-inverted'
 												: 'bg-surface-2 border-surface-5',
-											isIndeterminate ? 'text-primary' : '',
+											isIndeterminate ? 'text-[var(--color-text-default)]' : '',
 										]"
 									>
 										<MinusIcon v-if="isIndeterminate" aria-hidden="true" stroke-width="3" />
 										<CheckIcon v-else-if="isAllSelected" aria-hidden="true" stroke-width="3" />
 									</span>
-									<span class="min-w-0 flex-1 font-semibold leading-tight text-primary">
+									<span
+										class="min-w-0 flex-1 font-semibold leading-tight text-[var(--color-text-default)]"
+									>
 										{{ selectAllLabel }}
 									</span>
 									<span
@@ -221,14 +223,16 @@
 							ref="selectionActionsRef"
 							class="flex items-center justify-between gap-3 border-0 border-b border-solid border-b-surface-5 bg-surface-4 px-4 py-2.5 text-sm"
 						>
-							<span class="font-semibold text-secondary">{{ selectionActionsLabel }}</span>
+							<span class="font-semibold text-[var(--color-text-tertiary)]">{{
+								selectionActionsLabel
+							}}</span>
 							<div class="flex items-center gap-3">
 								<button
 									type="button"
-									class="border-0 bg-transparent p-0 text-sm font-semibold text-secondary shadow-none transition-all"
+									class="border-0 bg-transparent p-0 text-sm font-semibold text-[var(--color-text-tertiary)] shadow-none transition-all"
 									:class="
 										canSelectAllOptions
-											? 'hover:bg-transparent hover:text-contrast'
+											? 'hover:bg-transparent hover:text-[var(--color-text-primary)]'
 											: 'cursor-not-allowed opacity-50'
 									"
 									:disabled="!canSelectAllOptions"
@@ -240,10 +244,10 @@
 								</button>
 								<button
 									type="button"
-									class="border-0 bg-transparent p-0 text-sm font-semibold text-secondary shadow-none transition-all"
+									class="border-0 bg-transparent p-0 text-sm font-semibold text-[var(--color-text-tertiary)] shadow-none transition-all"
 									:class="
 										hasSelectedOptions
-											? 'hover:bg-transparent hover:text-contrast'
+											? 'hover:bg-transparent hover:text-[var(--color-text-primary)]'
 											: 'cursor-not-allowed opacity-50'
 									"
 									:disabled="!hasSelectedOptions"
@@ -285,7 +289,7 @@
 									>
 										<div
 											v-if="isSectionHeader(item)"
-											class="flex items-center justify-between gap-3 text-sm font-semibold text-secondary border-t border-surface-5 border-solid border-0 group-first/option-container:border-t-0"
+											class="flex items-center justify-between gap-3 text-sm font-semibold text-[var(--color-text-tertiary)] border-t border-surface-5 border-solid border-0 group-first/option-container:border-t-0"
 											:class="[
 												item.class,
 												shouldVirtualizeOptions ? 'h-10 px-4' : 'h-10 px-4 pb-1 pt-2',
@@ -296,7 +300,7 @@
 											<button
 												v-if="hasSelectableSectionHeaderOptions(item)"
 												type="button"
-												class="shrink-0 border-0 bg-transparent p-0 text-sm font-semibold text-secondary shadow-none transition-all hover:bg-transparent hover:text-contrast"
+												class="shrink-0 border-0 bg-transparent p-0 text-sm font-semibold text-[var(--color-text-tertiary)] shadow-none transition-all hover:bg-transparent hover:text-[var(--color-text-primary)]"
 												@click.stop="toggleSectionHeaderOptions(item)"
 												@keydown.enter.stop
 												@keydown.space.stop
@@ -311,7 +315,7 @@
 											:aria-disabled="item.disabled || undefined"
 											:data-option-index="index"
 											:data-focused="focusedIndex === index"
-											class="flex w-full cursor-pointer items-center gap-2.5 px-4 py-3 outline-none focus-visible:outline-none text-left text-contrast transition-all duration-150 bg-surface-4 hover:brightness-[115%] focus-visible:brightness-[115%]"
+											class="flex w-full cursor-pointer items-center gap-2.5 px-4 py-3 outline-none focus-visible:outline-none text-left text-[var(--color-text-primary)] transition-all duration-150 bg-surface-4 hover:brightness-[115%] focus-visible:brightness-[115%]"
 											:class="[
 												item.class,
 												shouldVirtualizeOptions ? 'h-12' : undefined,
@@ -351,7 +355,11 @@
 															/>
 															<span
 																class="min-w-0 truncate font-semibold leading-tight"
-																:class="item.selected ? 'text-contrast' : 'text-primary'"
+																:class="
+																	item.selected
+																		? 'text-[var(--color-text-primary)]'
+																		: 'text-[var(--color-text-default)]'
+																"
 															>
 																{{ item.label }}
 															</span>
@@ -382,14 +390,16 @@
 							v-if="shouldShowSelectionActions"
 							class="flex items-center justify-between gap-3 border-0 border-b border-solid border-b-surface-5 px-4 py-2.5 text-sm"
 						>
-							<span class="font-semibold text-secondary">{{ selectionActionsLabel }}</span>
+							<span class="font-semibold text-[var(--color-text-tertiary)]">{{
+								selectionActionsLabel
+							}}</span>
 							<div class="flex items-center gap-3">
 								<button
 									type="button"
-									class="border-0 bg-transparent p-0 text-sm font-semibold text-secondary shadow-none transition-all"
+									class="border-0 bg-transparent p-0 text-sm font-semibold text-[var(--color-text-tertiary)] shadow-none transition-all"
 									:class="
 										canSelectAllOptions
-											? 'hover:bg-transparent hover:text-contrast'
+											? 'hover:bg-transparent hover:text-[var(--color-text-primary)]'
 											: 'cursor-not-allowed opacity-50'
 									"
 									:disabled="!canSelectAllOptions"
@@ -401,10 +411,10 @@
 								</button>
 								<button
 									type="button"
-									class="border-0 bg-transparent p-0 text-sm font-semibold text-secondary shadow-none transition-all"
+									class="border-0 bg-transparent p-0 text-sm font-semibold text-[var(--color-text-tertiary)] shadow-none transition-all"
 									:class="
 										hasSelectedOptions
-											? 'hover:bg-transparent hover:text-contrast'
+											? 'hover:bg-transparent hover:text-[var(--color-text-primary)]'
 											: 'cursor-not-allowed opacity-50'
 									"
 									:disabled="!hasSelectedOptions"
@@ -418,11 +428,14 @@
 						</div>
 						<div
 							v-if="isNoOptionsState && noOptionsMessage"
-							class="p-4 mb-2 text-center text-sm text-secondary"
+							class="p-4 mb-2 text-center text-sm text-[var(--color-text-tertiary)]"
 						>
 							{{ noOptionsMessage }}
 						</div>
-						<div v-else-if="searchQuery" class="p-4 mb-2 text-center text-sm text-secondary">
+						<div
+							v-else-if="searchQuery"
+							class="p-4 mb-2 text-center text-sm text-[var(--color-text-tertiary)]"
+						>
 							{{ noResultsMessage }}
 						</div>
 					</template>

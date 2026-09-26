@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { NewButton as Button } from '@modrinth/ui'
+import { Button } from '@modrinth/ui'
 
 defineProps<{
 	modelValue?: boolean
@@ -28,7 +28,7 @@ const emit = defineEmits<{
 			size="sm"
 			:interaction="modelValue === true ? 'none' : 'surface'"
 			class="boolean-control-on !rounded-[10px] !px-3 !font-medium disabled:!opacity-100"
-			:class="modelValue === true ? '!text-green' : '!text-contrast'"
+			:class="modelValue === true ? '!text-green' : '!text-[var(--color-text-primary)]'"
 			:aria-pressed="modelValue === true"
 			:disabled="disabled"
 			@click="emit('update:model-value', true)"
@@ -39,7 +39,7 @@ const emit = defineEmits<{
 			type="quiet"
 			size="sm"
 			:interaction="modelValue === false ? 'none' : 'surface'"
-			class="boolean-control-off !rounded-[10px] !px-3 !font-medium !text-contrast disabled:!opacity-100"
+			class="boolean-control-off !rounded-[10px] !px-3 !font-medium !text-[var(--color-text-primary)] disabled:!opacity-100"
 			:aria-pressed="modelValue === false"
 			:disabled="disabled"
 			@click="emit('update:model-value', false)"

@@ -142,13 +142,6 @@ const onHide = () => {
 </template>
 
 <style scoped lang="scss">
-.card-row {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	background-color: var(--color-raised-bg);
-}
-
 .mod-card {
 	display: flex;
 	flex-direction: column;

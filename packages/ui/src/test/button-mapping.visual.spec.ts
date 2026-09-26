@@ -62,7 +62,7 @@ async function measureShapeGeometry(
 	const legacy = await measureLegacy(legacyProps)
 	const current = await measureCurrent(currentProps)
 	// `textColor` is asserted separately: the migration deliberately moves the
-	// default label colour to `--color-contrast`.
+	// default label colour to `--color-text-primary`.
 	const { textColor: _l, ...legacyShape } = legacy
 	const { textColor: _c, ...currentShape } = current
 	return { legacyShape, currentShape }
@@ -141,10 +141,54 @@ describe('button mapping', () => {
 		const legacy = await measureLegacy({})
 		const current = await measureCurrent({})
 
-		// The one deliberate change: legacy labelled with `--color-base` (body
-		// text), the replacement with `--color-contrast` (heading).
+		// The one deliberate change: legacy labelled with `--color-text-default` (body
+		// text), the replacement with `--color-text-primary` (heading).
 		expect(current.textColor).not.toBe(legacy.textColor)
 		expect(current.width).toBe(legacy.width)
 		expect(current.height).toBe(legacy.height)
+	})
+
+	it('maps the legacy circular icon button onto a 1:1 icon-only button', async () => {
+		const icon = '<svg width="24" height="24"></svg>'
+
+		const legacyWrapper = await mountThemed(
+			ButtonStyled,
+			{ circular: true, size: 'large' },
+			'dark',
+			{ slots: { default: `<button class="btn">${icon}</button>` } },
+		)
+		const legacyStyle = getComputedStyle(
+			legacyWrapper.element.querySelector('button') as HTMLElement,
+		)
+
+		const currentWrapper = await mountThemed(
+			Button,
+			{ size: 'xl', circular: true, 'icon-only': true },
+			'dark',
+			{ slots: { default: icon } },
+		)
+		const currentStyle = getComputedStyle(currentWrapper.element as HTMLElement)
+
+		// `Button` publicly declares and explicitly forwards `iconOnly`/`circular`.
+		// Render the same size without them so this test proves those public props
+		// make the button square instead of padded.
+		const paddedWrapper = await mountThemed(Button, { size: 'xl' }, 'dark', {
+			slots: { default: icon },
+		})
+		const paddedStyle = getComputedStyle(paddedWrapper.element as HTMLElement)
+
+		// The icon-only button must stay a square. A `width` that comes from the
+		// surrounding layout rather than from the size ladder turns it into a
+		// rectangle, and because the frame does not shrink, the buttons after it
+		// are pushed out of the header entirely.
+		expect(legacyStyle.width).toBe('48px')
+		expect(currentStyle.width).toBe(legacyStyle.width)
+		expect(currentStyle.height).toBe(legacyStyle.height)
+		// `rounded-full` (9999px) and the legacy literal (99999px) are both fully
+		// round on a 48px box, so compare the effect rather than the number.
+		expect(Number.parseFloat(legacyStyle.borderRadius)).toBeGreaterThanOrEqual(24)
+		expect(Number.parseFloat(currentStyle.borderRadius)).toBeGreaterThanOrEqual(24)
+		expect(paddedStyle.width).toBe('54px')
+		expect(Number.parseFloat(paddedStyle.borderRadius)).toBeLessThan(24)
 	})
 })

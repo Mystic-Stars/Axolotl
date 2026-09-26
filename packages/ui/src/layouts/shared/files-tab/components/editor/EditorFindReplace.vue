@@ -35,7 +35,7 @@
 						@update:model-value="emit('update:findQuery', $event as string)"
 					/>
 				</div>
-				<span class="min-w-[6rem] px-1 text-sm text-secondary tabular-nums">
+				<span class="min-w-[6rem] px-1 text-sm text-[var(--color-text-tertiary)] tabular-nums">
 					{{
 						findMatchCount > 0
 							? formatMessage(messages.matchCount, {

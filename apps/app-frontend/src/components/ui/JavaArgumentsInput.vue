@@ -318,7 +318,7 @@ onBeforeUnmount(() => {
 					:value="rest"
 					:disabled="props.disabled"
 					:placeholder="props.placeholder"
-					class="h-9 min-w-0 flex-1 bg-transparent px-0 py-2 text-base font-medium text-primary placeholder:text-secondary focus:text-contrast focus:shadow-none focus:outline-none"
+					class="h-9 min-w-0 flex-1 bg-transparent px-0 py-2 text-base font-medium text-[var(--color-text-default)] placeholder:text-[var(--color-text-tertiary)] focus:text-[var(--color-text-primary)] focus:shadow-none focus:outline-none"
 					autocomplete="off"
 					type="text"
 					@input="onInput"
@@ -356,11 +356,11 @@ onBeforeUnmount(() => {
 						@keydown.enter="toggleGroupCollapsed(groupEntry.group)"
 						@keydown.space.prevent="toggleGroupCollapsed(groupEntry.group)"
 					>
-						<h3 class="m-0 text-lg font-semibold text-contrast">
+						<h3 class="m-0 text-lg font-semibold text-[var(--color-text-primary)]">
 							{{ formatMessage(groupEntry.title) }}
 						</h3>
 						<DropdownIcon
-							class="size-4 shrink-0 text-secondary transition-transform"
+							class="size-4 shrink-0 text-[var(--color-text-tertiary)] transition-transform"
 							:class="{ 'rotate-180': !isGroupCollapsed(groupEntry.group) }"
 							aria-hidden="true"
 						/>
@@ -374,16 +374,19 @@ onBeforeUnmount(() => {
 								class="flex flex-col gap-3 rounded-xl border border-solid border-surface-4 bg-surface-2 p-4"
 							>
 								<div class="flex items-start gap-3 text-left">
-									<GlobeIcon class="mt-0.5 size-6 shrink-0 text-secondary" aria-hidden="true" />
+									<GlobeIcon
+										class="mt-0.5 size-6 shrink-0 text-[var(--color-text-tertiary)]"
+										aria-hidden="true"
+									/>
 									<div class="min-w-0 flex-1">
-										<p class="m-0 text-base font-semibold text-contrast">
+										<p class="m-0 text-base font-semibold text-[var(--color-text-primary)]">
 											{{ formatMessage(preset.title) }}
 										</p>
 										<AutoLink
 											:to="preset.link"
 											target="_blank"
 											rel="noreferrer"
-											class="inline-flex items-start gap-1 text-sm text-secondary hover:text-brand hover:underline"
+											class="inline-flex items-start gap-1 text-sm text-[var(--color-text-tertiary)] hover:text-brand hover:underline"
 										>
 											<span class="min-w-0">{{ formatMessage(preset.description) }}</span>
 											<ExternalIcon class="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
@@ -396,7 +399,7 @@ onBeforeUnmount(() => {
 										</p>
 										<p
 											v-if="showAutoDetails && getAutoReasonChainText(preset)"
-											class="m-0 mt-1 text-xs text-secondary"
+											class="m-0 mt-1 text-xs text-[var(--color-text-tertiary)]"
 										>
 											{{ getAutoReasonChainText(preset) }}
 										</p>
@@ -427,7 +430,7 @@ onBeforeUnmount(() => {
 											v-tooltip="formatMessage(messages.presetArguments)"
 											type="button"
 											:aria-label="formatMessage(messages.presetArguments)"
-											class="flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-full border-none bg-transparent text-secondary transition-colors hover:bg-surface-5 hover:text-contrast"
+											class="flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-full border-none bg-transparent text-[var(--color-text-tertiary)] transition-colors hover:bg-surface-5 hover:text-[var(--color-text-primary)]"
 											@click="togglePresetCollapsed(preset)"
 										>
 											<DropdownIcon
@@ -440,14 +443,14 @@ onBeforeUnmount(() => {
 									<Collapsible :collapsed="isPresetCollapsed(preset)">
 										<div class="flex items-start gap-2">
 											<code
-												class="min-w-0 flex-1 overflow-x-auto whitespace-pre-wrap break-all text-left font-mono text-xs leading-relaxed text-primary"
+												class="min-w-0 flex-1 overflow-x-auto whitespace-pre-wrap break-all text-left font-mono text-xs leading-relaxed text-[var(--color-text-default)]"
 											>
 												{{ getDisplayArgs(preset) }}
 											</code>
 											<button
 												type="button"
 												:aria-label="formatMessage(messages.presetArguments)"
-												class="flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-full border-none bg-transparent text-secondary transition-colors hover:bg-surface-5 hover:text-contrast"
+												class="flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-full border-none bg-transparent text-[var(--color-text-tertiary)] transition-colors hover:bg-surface-5 hover:text-[var(--color-text-primary)]"
 												@click="copyPresetArgs(preset)"
 											>
 												<CheckIcon

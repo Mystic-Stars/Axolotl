@@ -448,7 +448,7 @@ const messages = defineMessages({
 	<div class="block">
 		<div class="float-end ml-10 relative group w-fit">
 			<div class="flex flex-col gap-1">
-				<span class="text-lg font-semibold text-contrast">
+				<span class="text-lg font-semibold text-[var(--color-text-primary)]">
 					{{ formatMessage(messages.icon) }}
 				</span>
 				<div class="group relative w-fit">
@@ -479,7 +479,7 @@ const messages = defineMessages({
 						<div
 							class="absolute top-0 h-full w-full flex items-center justify-center opacity-0 transition-all group-hover:opacity-100"
 						>
-							<EditIcon aria-hidden="true" class="h-10 w-10 text-primary" />
+							<EditIcon aria-hidden="true" class="h-10 w-10 text-[var(--color-text-default)]" />
 						</div>
 						<template #select>
 							<UploadIcon />
@@ -490,7 +490,10 @@ const messages = defineMessages({
 				</div>
 			</div>
 		</div>
-		<label for="instance-name" class="m-0 text-lg font-semibold text-contrast block">
+		<label
+			for="instance-name"
+			class="m-0 text-lg font-semibold text-[var(--color-text-primary)] block"
+		>
 			{{ formatMessage(messages.name) }}
 		</label>
 		<div class="flex">
@@ -504,7 +507,10 @@ const messages = defineMessages({
 		</div>
 		<template v-if="instance.install_stage == 'installed'">
 			<div class="flex flex-col gap-2.5 mt-6">
-				<h2 id="duplicate-instance-label" class="m-0 text-lg font-semibold text-contrast block">
+				<h2
+					id="duplicate-instance-label"
+					class="m-0 text-lg font-semibold text-[var(--color-text-primary)] block"
+				>
 					{{ formatMessage(messages.duplicateInstance) }}
 				</h2>
 				<Button
@@ -521,7 +527,10 @@ const messages = defineMessages({
 			</div>
 		</template>
 		<div class="flex flex-col gap-2.5 mt-6">
-			<h2 id="desktop-shortcut-label" class="m-0 text-lg font-semibold text-contrast block">
+			<h2
+				id="desktop-shortcut-label"
+				class="m-0 text-lg font-semibold text-[var(--color-text-primary)] block"
+			>
 				{{ formatMessage(messages.desktopShortcut) }}
 			</h2>
 			<Button
@@ -542,7 +551,7 @@ const messages = defineMessages({
 			</p>
 		</div>
 		<div class="flex flex-col gap-2.5 mt-6">
-			<h2 class="m-0 text-lg font-semibold text-contrast block">
+			<h2 class="m-0 text-lg font-semibold text-[var(--color-text-primary)] block">
 				{{ formatMessage(messages.gameDir) }}
 			</h2>
 			<p class="m-0">
@@ -556,23 +565,23 @@ const messages = defineMessages({
 						</template>
 					</RadioButtons>
 				</div>
-				<p v-if="externalGameDir" class="m-0 text-secondary break-all">
+				<p v-if="externalGameDir" class="m-0 text-[var(--color-text-tertiary)] break-all">
 					{{ formatMessage(messages.gameDirCurrent) }}:
 					<code>{{ externalGameDir }}</code>
 				</p>
-				<p v-if="!isDirectLinked" class="m-0 text-sm text-secondary">
+				<p v-if="!isDirectLinked" class="m-0 text-sm text-[var(--color-text-tertiary)]">
 					{{ formatMessage(messages.gameDirMoveNote) }}
 				</p>
-				<p v-else class="m-0 text-sm text-secondary">
+				<p v-else class="m-0 text-sm text-[var(--color-text-tertiary)]">
 					{{ formatMessage(messages.gameDirExternalNote) }}
 				</p>
 			</template>
-			<p v-else class="m-0 text-sm text-secondary">
+			<p v-else class="m-0 text-sm text-[var(--color-text-tertiary)]">
 				{{ formatMessage(messages.gameDirManagedNote) }}
 			</p>
 		</div>
 		<div class="flex flex-col gap-2.5 mt-6">
-			<h2 class="m-0 text-lg font-semibold text-contrast block">
+			<h2 class="m-0 text-lg font-semibold text-[var(--color-text-primary)] block">
 				{{ formatMessage(messages.updateChannel) }}
 			</h2>
 			<Chips
@@ -589,7 +598,10 @@ const messages = defineMessages({
 		</div>
 
 		<div class="flex flex-col gap-2.5 mt-6">
-			<h2 id="delete-instance-label" class="m-0 text-lg font-semibold text-contrast block">
+			<h2
+				id="delete-instance-label"
+				class="m-0 text-lg font-semibold text-[var(--color-text-primary)] block"
+			>
 				{{ formatMessage(messages.deleteInstance) }}
 			</h2>
 			<Button
@@ -613,8 +625,3 @@ const messages = defineMessages({
 		</div>
 	</div>
 </template>
-<style scoped lang="scss">
-.hovering-icon-shadow {
-	box-shadow: var(--shadow-inset-sm), var(--shadow-raised);
-}
-</style>

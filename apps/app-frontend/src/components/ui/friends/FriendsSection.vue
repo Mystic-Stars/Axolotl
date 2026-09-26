@@ -114,7 +114,7 @@ const messages = defineMessages({
 		"
 	>
 		<template #title>
-			<h3 class="text-base text-primary font-medium m-0">
+			<h3 class="text-base text-[var(--color-text-default)] font-medium m-0">
 				{{ formatMessage(messages.heading, { title: heading, count: friends.length }) }}
 			</h3>
 		</template>
@@ -123,7 +123,7 @@ const messages = defineMessages({
 				<div
 					v-for="friend in friends"
 					:key="friend.username"
-					class="group grid items-center grid-cols-[auto_1fr_auto] gap-2 hover:bg-button-bg transition-colors rounded-full mr-1"
+					class="group grid items-center grid-cols-[auto_1fr_auto] gap-2 hover:bg-surface-4 transition-colors rounded-full mr-1"
 					@contextmenu.prevent.stop="
 						(event) => friendOptions?.showMenu(event, friend, createContextMenuOptions(friend))
 					"
@@ -145,7 +145,11 @@ const messages = defineMessages({
 					<div class="flex flex-col">
 						<span
 							class="text-sm m-0"
-							:class="friend.online || !friend.accepted ? 'text-contrast' : 'text-primary'"
+							:class="
+								friend.online || !friend.accepted
+									? 'text-[var(--color-text-primary)]'
+									: 'text-[var(--color-text-default)]'
+							"
 						>
 							{{ friend.username }}
 						</span>

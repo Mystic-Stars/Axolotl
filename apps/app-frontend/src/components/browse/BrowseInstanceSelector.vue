@@ -206,7 +206,7 @@ defineExpose({ show, requestSwitch })
 				class="grid min-w-0 gap-3 sm:grid-cols-[minmax(0,1fr)_1px_minmax(0,1fr)] sm:items-stretch"
 			>
 				<div class="flex min-w-0 flex-col gap-2 px-1 py-1">
-					<span class="text-xs font-semibold text-secondary">
+					<span class="text-xs font-semibold text-[var(--color-text-tertiary)]">
 						{{ formatMessage(messages.currentTarget) }}
 					</span>
 					<div class="flex min-w-0 items-center gap-3">
@@ -217,8 +217,10 @@ defineExpose({ show, requestSwitch })
 							:loader="selectedInstance.loader"
 						/>
 						<span class="flex min-w-0 flex-1 flex-col gap-0.5">
-							<span class="truncate font-semibold text-contrast">{{ selectedInstance.name }}</span>
-							<span class="truncate text-sm capitalize text-secondary">
+							<span class="truncate font-semibold text-[var(--color-text-primary)]">{{
+								selectedInstance.name
+							}}</span>
+							<span class="truncate text-sm capitalize text-[var(--color-text-tertiary)]">
 								{{ selectedInstance.loader }} {{ selectedInstance.game_version }}
 							</span>
 						</span>
@@ -228,7 +230,7 @@ defineExpose({ show, requestSwitch })
 				<div aria-hidden="true" class="h-px w-full bg-surface-4 sm:h-auto sm:w-px" />
 
 				<div class="flex min-w-0 flex-col gap-2 px-1 py-1">
-					<span class="text-xs font-semibold text-secondary">
+					<span class="text-xs font-semibold text-[var(--color-text-tertiary)]">
 						{{ formatMessage(messages.newTarget) }}
 					</span>
 					<div class="flex min-w-0 items-center gap-3">
@@ -239,8 +241,10 @@ defineExpose({ show, requestSwitch })
 							:loader="pendingInstance.loader"
 						/>
 						<span class="flex min-w-0 flex-1 flex-col gap-0.5">
-							<span class="truncate font-semibold text-contrast">{{ pendingInstance.name }}</span>
-							<span class="truncate text-sm capitalize text-secondary">
+							<span class="truncate font-semibold text-[var(--color-text-primary)]">{{
+								pendingInstance.name
+							}}</span>
+							<span class="truncate text-sm capitalize text-[var(--color-text-tertiary)]">
 								{{ pendingInstance.loader }} {{ pendingInstance.game_version }}
 							</span>
 						</span>
@@ -248,7 +252,7 @@ defineExpose({ show, requestSwitch })
 				</div>
 			</div>
 
-			<p class="m-0 text-sm text-secondary">
+			<p class="m-0 text-sm text-[var(--color-text-tertiary)]">
 				{{ formatMessage(messages.switchDescription, { count: selectedCount }) }}
 			</p>
 		</div>

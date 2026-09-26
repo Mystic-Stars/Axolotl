@@ -34,7 +34,7 @@ defineExpose({ show, hide })
 <template>
 	<NewModal ref="modal" :on-hide="onFlowCancel">
 		<template #title>
-			<span class="items-center gap-2 text-lg font-extrabold text-contrast">
+			<span class="items-center gap-2 text-lg font-extrabold text-[var(--color-text-primary)]">
 				<LogInIcon /> {{ formatMessage(commonMessages.signInButton) }}
 			</span>
 		</template>
@@ -42,7 +42,7 @@ defineExpose({ show, hide })
 		<div class="flex justify-center gap-2">
 			<SpinnerIcon class="w-12 h-12 animate-spin" />
 		</div>
-		<p class="text-sm text-secondary">
+		<p class="text-sm text-[var(--color-text-tertiary)]">
 			{{ formatMessage(messages.signInBrowser) }}
 		</p>
 	</NewModal>

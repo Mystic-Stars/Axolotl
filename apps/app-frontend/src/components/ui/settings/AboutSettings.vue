@@ -11,7 +11,7 @@ import {
 	ScaleIcon,
 	UsersIcon,
 } from '@modrinth/assets'
-import { Avatar, defineMessages, NewButton as Button, useVIntl } from '@modrinth/ui'
+import { Avatar, Button, defineMessages, useVIntl } from '@modrinth/ui'
 import { getVersion } from '@tauri-apps/api/app'
 import {
 	defineAsyncComponent,
@@ -337,27 +337,29 @@ const projectLinks = [
 					/>
 				</div>
 				<div class="min-w-0 text-center">
-					<h2 class="m-0 text-xl font-semibold text-contrast">
+					<h2 class="m-0 text-xl font-semibold text-[var(--color-text-primary)]">
 						{{
 							formatMessage(messages.productTitle, {
 								productName: AxolotlBrandConfig.productName,
 							})
 						}}
 					</h2>
-					<p class="m-0 mt-1 text-secondary">
+					<p class="m-0 mt-1 text-[var(--color-text-tertiary)]">
 						{{ formatMessage(messages.version, { version }) }}
 					</p>
 				</div>
 			</div>
-			<p class="m-0 mt-3 text-center text-primary">
+			<p class="m-0 mt-3 text-center text-[var(--color-text-default)]">
 				{{ formatMessage(messages.productDescription) }}
 			</p>
 		</section>
 
 		<SettingsSection>
 			<template #header>
-				<h3 class="m-0 flex items-center gap-2 text-base font-semibold text-contrast">
-					<UsersIcon class="size-5 text-secondary" />
+				<h3
+					class="m-0 flex items-center gap-2 text-base font-semibold text-[var(--color-text-primary)]"
+				>
+					<UsersIcon class="size-5 text-[var(--color-text-tertiary)]" />
 					{{ formatMessage(messages.developmentTeam) }}
 				</h3>
 			</template>
@@ -383,9 +385,10 @@ const projectLinks = [
 							@contextmenu="handleMemberContextMenu(member, $event)"
 						>
 							<Avatar :src="member.avatarUrl" :alt="member.name" size="4rem" circle no-shadow />
-							<span class="block truncate text-center font-semibold text-contrast">{{
-								member.name
-							}}</span>
+							<span
+								class="block truncate text-center font-semibold text-[var(--color-text-primary)]"
+								>{{ member.name }}</span
+							>
 						</component>
 					</li>
 				</ul>
@@ -394,8 +397,10 @@ const projectLinks = [
 
 		<SettingsSection>
 			<template #header>
-				<h3 class="m-0 flex items-center gap-2 text-base font-semibold text-contrast">
-					<HeartHandshakeIcon class="size-5 text-secondary" />
+				<h3
+					class="m-0 flex items-center gap-2 text-base font-semibold text-[var(--color-text-primary)]"
+				>
+					<HeartHandshakeIcon class="size-5 text-[var(--color-text-tertiary)]" />
 					{{ formatMessage(messages.communitySupport) }}
 				</h3>
 			</template>
@@ -409,14 +414,14 @@ const projectLinks = [
 					class="flex min-w-0 items-center gap-3 rounded-xl bg-surface-4 p-4 transition-colors hover:bg-surface-5"
 				>
 					<span
-						class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-surface-2 text-contrast"
+						class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-surface-2 text-[var(--color-text-primary)]"
 					>
 						<component :is="link.icon" class="size-6" />
 					</span>
-					<span class="min-w-0 flex-1 font-semibold text-contrast">
+					<span class="min-w-0 flex-1 font-semibold text-[var(--color-text-primary)]">
 						{{ formatMessage(link.label) }}
 					</span>
-					<ExternalIcon class="size-5 shrink-0 text-secondary" />
+					<ExternalIcon class="size-5 shrink-0 text-[var(--color-text-tertiary)]" />
 				</a>
 
 				<button
@@ -429,21 +434,21 @@ const projectLinks = [
 					@click="copyQqGroupNumber"
 				>
 					<span
-						class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-surface-2 text-contrast"
+						class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-surface-2 text-[var(--color-text-primary)]"
 					>
 						<QqIcon class="size-6" />
 					</span>
 					<span class="min-w-0 flex-1">
-						<span class="block font-semibold text-contrast">
+						<span class="block font-semibold text-[var(--color-text-primary)]">
 							{{ formatMessage(messages.qqGroup) }}
 						</span>
-						<span class="block text-sm text-secondary">
+						<span class="block text-sm text-[var(--color-text-tertiary)]">
 							{{ AxolotlBrandConfig.qqGroupNumber }}
 						</span>
 					</span>
 					<span class="shrink-0" aria-live="polite">
 						<CheckIcon v-if="copied" class="size-5 text-green" />
-						<CopyIcon v-else class="size-5 text-secondary" />
+						<CopyIcon v-else class="size-5 text-[var(--color-text-tertiary)]" />
 						<span class="sr-only">
 							{{
 								copied ? formatMessage(messages.copiedQqGroup) : formatMessage(messages.copyQqGroup)
@@ -462,30 +467,32 @@ const projectLinks = [
 						<img :src="AfdianIcon" alt="" class="size-7 object-contain" />
 					</span>
 					<span class="min-w-0 flex-1">
-						<span class="block font-semibold text-contrast">
+						<span class="block font-semibold text-[var(--color-text-primary)]">
 							{{ formatMessage(messages.afdian) }}
 						</span>
-						<span class="block text-sm text-secondary">
+						<span class="block text-sm text-[var(--color-text-tertiary)]">
 							{{ formatMessage(messages.afdianDescription) }}
 						</span>
 					</span>
-					<ExternalIcon class="size-5 shrink-0 text-secondary" />
+					<ExternalIcon class="size-5 shrink-0 text-[var(--color-text-tertiary)]" />
 				</a>
 			</div>
 		</SettingsSection>
 
 		<SettingsSection>
 			<template #header>
-				<h3 class="m-0 flex items-center gap-2 text-base font-semibold text-contrast">
-					<ScaleIcon class="size-5 text-secondary" />
+				<h3
+					class="m-0 flex items-center gap-2 text-base font-semibold text-[var(--color-text-primary)]"
+				>
+					<ScaleIcon class="size-5 text-[var(--color-text-tertiary)]" />
 					{{ formatMessage(messages.licenseAttribution) }}
 				</h3>
 			</template>
 			<div class="flex flex-col gap-3 p-4">
-				<p class="m-0 text-primary">
+				<p class="m-0 text-[var(--color-text-default)]">
 					{{ formatMessage(messages.attribution) }}
 				</p>
-				<p class="m-0 mt-2 text-sm text-secondary">
+				<p class="m-0 mt-2 text-sm text-[var(--color-text-tertiary)]">
 					{{ formatMessage(messages.notAffiliated) }}
 				</p>
 				<div class="mt-3 flex flex-wrap gap-2">
@@ -493,37 +500,37 @@ const projectLinks = [
 						:href="licenseUrl"
 						target="_blank"
 						rel="noopener noreferrer"
-						class="inline-flex items-center gap-2 rounded-lg bg-surface-4 px-3 py-2 text-sm font-semibold text-contrast transition-colors hover:bg-surface-5"
+						class="inline-flex items-center gap-2 rounded-lg bg-surface-4 px-3 py-2 text-sm font-semibold text-[var(--color-text-primary)] transition-colors hover:bg-surface-5"
 					>
 						{{ formatMessage(messages.projectLicense) }}
-						<ExternalIcon class="size-4 text-secondary" />
+						<ExternalIcon class="size-4 text-[var(--color-text-tertiary)]" />
 					</a>
 					<a
 						:href="copyingUrl"
 						target="_blank"
 						rel="noopener noreferrer"
-						class="inline-flex items-center gap-2 rounded-lg bg-surface-4 px-3 py-2 text-sm font-semibold text-contrast transition-colors hover:bg-surface-5"
+						class="inline-flex items-center gap-2 rounded-lg bg-surface-4 px-3 py-2 text-sm font-semibold text-[var(--color-text-primary)] transition-colors hover:bg-surface-5"
 					>
 						{{ formatMessage(messages.copyingGuidelines) }}
-						<ExternalIcon class="size-4 text-secondary" />
+						<ExternalIcon class="size-4 text-[var(--color-text-tertiary)]" />
 					</a>
 					<a
 						:href="thirdPartyLicensesUrl"
 						target="_blank"
 						rel="noopener noreferrer"
-						class="inline-flex items-center gap-2 rounded-lg bg-surface-4 px-3 py-2 text-sm font-semibold text-contrast transition-colors hover:bg-surface-5"
+						class="inline-flex items-center gap-2 rounded-lg bg-surface-4 px-3 py-2 text-sm font-semibold text-[var(--color-text-primary)] transition-colors hover:bg-surface-5"
 					>
 						{{ formatMessage(messages.thirdPartyLicenses) }}
-						<ExternalIcon class="size-4 text-secondary" />
+						<ExternalIcon class="size-4 text-[var(--color-text-tertiary)]" />
 					</a>
 					<a
 						href="https://github.com/modrinth/code"
 						target="_blank"
 						rel="noopener noreferrer"
-						class="inline-flex items-center gap-2 rounded-lg bg-surface-4 px-3 py-2 text-sm font-semibold text-contrast transition-colors hover:bg-surface-5"
+						class="inline-flex items-center gap-2 rounded-lg bg-surface-4 px-3 py-2 text-sm font-semibold text-[var(--color-text-primary)] transition-colors hover:bg-surface-5"
 					>
 						{{ formatMessage(messages.originalSource) }}
-						<ExternalIcon class="size-4 text-secondary" />
+						<ExternalIcon class="size-4 text-[var(--color-text-tertiary)]" />
 					</a>
 				</div>
 			</div>
@@ -531,15 +538,17 @@ const projectLinks = [
 
 		<details class="group pt-4 about-settings-details">
 			<summary
-				class="flex cursor-pointer list-none items-center gap-2 text-base font-semibold text-contrast [&::-webkit-details-marker]:hidden"
+				class="flex cursor-pointer list-none items-center gap-2 text-base font-semibold text-[var(--color-text-primary)] [&::-webkit-details-marker]:hidden"
 			>
-				<UsersIcon class="size-5 text-secondary" />
+				<UsersIcon class="size-5 text-[var(--color-text-tertiary)]" />
 				<span>{{ formatMessage(messages.contributors) }}</span>
-				<span class="rounded-full bg-surface-4 px-2 py-0.5 text-xs text-secondary">
+				<span
+					class="rounded-full bg-surface-4 px-2 py-0.5 text-xs text-[var(--color-text-tertiary)]"
+				>
 					{{ formatMessage(messages.contributorsCount, { count: contributors.length }) }}
 				</span>
 				<ChevronDownIcon
-					class="ml-auto size-5 text-secondary transition-transform group-open:rotate-180"
+					class="ml-auto size-5 text-[var(--color-text-tertiary)] transition-transform group-open:rotate-180"
 				/>
 			</summary>
 			<div class="mt-3 flex flex-wrap gap-2">
@@ -559,7 +568,9 @@ const projectLinks = [
 						no-shadow
 						loading="lazy"
 					/>
-					<span class="truncate text-sm text-primary">{{ contributor.name }}</span>
+					<span class="truncate text-sm text-[var(--color-text-default)]">{{
+						contributor.name
+					}}</span>
 				</a>
 			</div>
 		</details>

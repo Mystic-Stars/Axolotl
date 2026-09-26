@@ -19,7 +19,7 @@
 			/>
 		</div>
 
-		<span class="text-sm text-secondary">
+		<span class="text-sm text-[var(--color-text-tertiary)]">
 			{{ formatMessage(messages.importPrompt) }}
 		</span>
 	</div>

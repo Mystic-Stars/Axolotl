@@ -13,8 +13,8 @@
 					<span :key="currentPhrase" class="text-md font-semibold">{{ currentPhrase }}</span>
 				</Transition>
 				<div class="flex flex-col items-end">
-					<span class="text-secondary">{{ Math.round(progress) }}%</span>
-					<span class="text-xs text-secondary"
+					<span class="text-[var(--color-text-tertiary)]">{{ Math.round(progress) }}%</span>
+					<span class="text-xs text-[var(--color-text-tertiary)]"
 						>{{ formatBytes(currentValue) }} / {{ formatBytes(maxValue) }}</span
 					>
 				</div>

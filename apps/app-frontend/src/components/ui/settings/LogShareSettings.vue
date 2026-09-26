@@ -298,7 +298,7 @@ onMounted(async () => {
 					</template>
 				</SettingsRow>
 			</template>
-			<p v-else class="m-0 p-4 text-sm text-secondary">
+			<p v-else class="m-0 p-4 text-sm text-[var(--color-text-tertiary)]">
 				{{ formatMessage(messages.noProviders) }}
 			</p>
 		</template>

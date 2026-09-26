@@ -14,24 +14,26 @@
 			/>
 			<div class="flex min-w-0 flex-1 flex-col gap-2.5">
 				<div class="flex w-full items-start gap-1">
-					<p class="m-0 min-w-0 flex-1 break-words text-lg font-normal leading-6 text-contrast/85">
+					<p
+						class="m-0 min-w-0 flex-1 break-words text-lg font-normal leading-6 text-[var(--color-text-primary)]/85"
+					>
 						<template v-if="type === 'friend-request'">
-							<span class="font-semibold text-contrast">{{ actorLabel }}</span>
+							<span class="font-semibold text-[var(--color-text-primary)]">{{ actorLabel }}</span>
 							<span> sent you a friend request.</span>
 						</template>
 						<template v-else>
 							<button
 								v-if="actorName"
 								type="button"
-								class="m-0 inline border-0 bg-transparent p-0 text-lg font-semibold leading-6 text-contrast hover:underline"
+								class="m-0 inline border-0 bg-transparent p-0 text-lg font-semibold leading-6 text-[var(--color-text-primary)] hover:underline"
 								@click="$emit('open-actor')"
 							>
 								{{ actorName }}
 							</button>
-							<span v-else class="font-semibold text-contrast">Someone</span>
+							<span v-else class="font-semibold text-[var(--color-text-primary)]">Someone</span>
 							<span class="mx-1">{{ inviteActionText }}</span>
 							<template v-if="type === 'server-invite'">
-								<span class="font-semibold text-contrast">{{ entityLabel }}</span
+								<span class="font-semibold text-[var(--color-text-primary)]">{{ entityLabel }}</span
 								>.
 							</template>
 							<template v-else>
@@ -45,7 +47,7 @@
 										:tint-by="entityLabel"
 										class="!rounded-[7px]"
 									/>
-									<span class="min-w-0 truncate font-semibold text-contrast">{{
+									<span class="min-w-0 truncate font-semibold text-[var(--color-text-primary)]">{{
 										entityLabel
 									}}</span> </span
 								>.
@@ -85,7 +87,7 @@
 				<p
 					ref="titleRef"
 					v-tooltip="truncatedTooltip(titleRef, entityLabel)"
-					class="col-start-1 col-end-3 row-start-1 m-0 min-w-0 truncate pr-9 text-lg font-semibold leading-6 text-contrast"
+					class="col-start-1 col-end-3 row-start-1 m-0 min-w-0 truncate pr-9 text-lg font-semibold leading-6 text-[var(--color-text-primary)]"
 				>
 					{{ entityLabel }}
 				</p>
@@ -107,14 +109,14 @@
 					<p
 						ref="statusRef"
 						v-tooltip="truncatedTooltip(statusRef, statusLine)"
-						class="m-0 min-w-0 flex-1 font-normal leading-tight text-contrast/85"
+						class="m-0 min-w-0 flex-1 font-normal leading-tight text-[var(--color-text-primary)]/85"
 						:class="wrapText ? 'whitespace-normal break-words' : 'truncate'"
 					>
 						{{ statusLine }}
 					</p>
 					<div
 						v-if="type === 'instance-download' && progressLabel"
-						class="flex-none text-xs text-secondary tabular-nums pointer-events-none text-right whitespace-nowrap"
+						class="flex-none text-xs text-[var(--color-text-tertiary)] tabular-nums pointer-events-none text-right whitespace-nowrap"
 					>
 						{{ progressLabel }}
 					</div>
@@ -129,7 +131,7 @@
 					</div>
 					<div
 						v-if="progressLabel"
-						class="flex-none text-secondary tabular-nums pointer-events-none text-right whitespace-nowrap"
+						class="flex-none text-[var(--color-text-tertiary)] tabular-nums pointer-events-none text-right whitespace-nowrap"
 					>
 						{{ progressLabel }}
 					</div>
@@ -322,9 +324,9 @@ const statusRef = ref<HTMLElement | null>(null)
 	--_padding-y: 0;
 	--_icon-size: 1.25rem;
 	--_box-shadow: none;
-	--_text: var(--color-base);
+	--_text: var(--color-text-default);
 	--_hover-bg: transparent;
-	--_hover-text: var(--color-contrast);
+	--_hover-text: var(--color-text-primary);
 }
 
 .notification-bottom-progress--waiting {

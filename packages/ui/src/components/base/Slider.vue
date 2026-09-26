@@ -15,7 +15,7 @@
 						:style="{
 							left: ((snapPoint - min) / (max - min)) * 100 + '%',
 							backgroundColor:
-								snapPoint <= currentValue ? 'var(--color-brand)' : 'var(--color-base)',
+								snapPoint <= currentValue ? 'var(--color-brand)' : 'var(--color-text-default)',
 						}"
 					></div>
 				</div>
@@ -139,11 +139,11 @@ const onInput = (value: string) => {
 				calc(
 					(var(--current-value) - var(--min-value)) / (var(--max-value) - var(--min-value)) * 100%
 				),
-			var(--color-base)
+			var(--color-text-default)
 				calc(
 					(var(--current-value) - var(--min-value)) / (var(--max-value) - var(--min-value)) * 100%
 				),
-			var(--color-base) 100%
+			var(--color-text-default) 100%
 		)
 		100% 100% no-repeat;
 

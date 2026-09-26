@@ -1789,7 +1789,7 @@ function slotEditorSlots(type: RecipeType): RecipeSlot[] {
 .recipe-generator-title {
 	margin: 0;
 	min-width: 0;
-	color: var(--color-contrast);
+	color: var(--color-text-primary);
 	font-size: var(--recipe-title-size);
 	font-weight: 700;
 	line-height: 1.25;
@@ -1809,7 +1809,7 @@ function slotEditorSlots(type: RecipeType): RecipeSlot[] {
 	min-width: 0;
 	flex-direction: column;
 	gap: 0.35rem;
-	color: var(--color-secondary);
+	color: var(--color-text-tertiary);
 	font-size: var(--recipe-label-size);
 	font-weight: 700;
 }
@@ -1848,7 +1848,7 @@ function slotEditorSlots(type: RecipeType): RecipeSlot[] {
 	border: 1px solid var(--color-surface-5);
 	border-radius: var(--radius-lg);
 	background: var(--color-surface-2);
-	color: var(--color-secondary);
+	color: var(--color-text-tertiary);
 	font-size: var(--recipe-body-size);
 	text-align: center;
 }
@@ -1907,7 +1907,7 @@ function slotEditorSlots(type: RecipeType): RecipeSlot[] {
 .recipe-sidebar-heading h2,
 .recipe-section-heading h2 {
 	margin: 0;
-	color: var(--color-contrast);
+	color: var(--color-text-primary);
 	font-size: var(--recipe-panel-title-size);
 	font-weight: 700;
 }
@@ -1947,7 +1947,7 @@ function slotEditorSlots(type: RecipeType): RecipeSlot[] {
 	border: 0;
 	background: transparent;
 	padding: 0.5rem 0.55rem;
-	color: var(--color-contrast);
+	color: var(--color-text-primary);
 	cursor: pointer;
 	text-align: left;
 }
@@ -1965,7 +1965,7 @@ function slotEditorSlots(type: RecipeType): RecipeSlot[] {
 
 .recipe-sidebar-select small {
 	overflow: hidden;
-	color: var(--color-secondary);
+	color: var(--color-text-tertiary);
 	font-family: monospace;
 	font-size: 0.7rem;
 	text-overflow: ellipsis;
@@ -1992,7 +1992,7 @@ function slotEditorSlots(type: RecipeType): RecipeSlot[] {
 	border-radius: var(--radius-sm);
 	background: transparent;
 	padding: 0;
-	color: var(--color-secondary);
+	color: var(--color-text-tertiary);
 	cursor: pointer;
 }
 
@@ -2013,33 +2013,6 @@ function slotEditorSlots(type: RecipeType): RecipeSlot[] {
 	padding: 0.85rem 1rem;
 }
 
-.recipe-editor :deep(.recipe-slot-row .recipe-slot-cell),
-.recipe-editor :deep(.recipe-crafting-editor .recipe-result-column .recipe-slot-cell) {
-	min-height: 7rem;
-}
-
-.recipe-editor :deep(.recipe-slot-row .recipe-slot-cell[data-recipe-slot='cooking.result']),
-.recipe-editor :deep(.recipe-slot-row .recipe-slot-cell[data-recipe-slot='stonecutter.result']),
-.recipe-editor :deep(.recipe-slot-row .recipe-slot-cell[data-recipe-slot='smithing.result']) {
-	position: relative;
-}
-
-.recipe-editor :deep(.recipe-slot-row .recipe-slot-cell[data-recipe-slot='cooking.result'])::before,
-.recipe-editor
-	:deep(.recipe-slot-row .recipe-slot-cell[data-recipe-slot='stonecutter.result'])::before,
-.recipe-editor
-	:deep(.recipe-slot-row .recipe-slot-cell[data-recipe-slot='smithing.result'])::before {
-	content: '→';
-	position: absolute;
-	left: -0.9rem;
-	top: 50%;
-	transform: translateY(-50%);
-	color: var(--color-secondary);
-	font-size: 1.1rem;
-	line-height: 1;
-	pointer-events: none;
-}
-
 .recipe-editor :deep(.recipe-crafting-editor .recipe-result-column) {
 	position: relative;
 	padding-left: 2rem;
@@ -2051,7 +2024,7 @@ function slotEditorSlots(type: RecipeType): RecipeSlot[] {
 	left: 0.5rem;
 	top: 50%;
 	transform: translateY(-50%);
-	color: var(--color-secondary);
+	color: var(--color-text-tertiary);
 	font-size: 1.1rem;
 	line-height: 1;
 	pointer-events: none;
@@ -2094,7 +2067,7 @@ function slotEditorSlots(type: RecipeType): RecipeSlot[] {
 	min-width: 0;
 	flex-direction: column;
 	gap: 0.3rem;
-	color: var(--color-secondary);
+	color: var(--color-text-tertiary);
 }
 
 .recipe-field-label {
@@ -2141,7 +2114,7 @@ function slotEditorSlots(type: RecipeType): RecipeSlot[] {
 	display: flex;
 	align-items: center;
 	gap: 0.5rem;
-	color: var(--color-contrast);
+	color: var(--color-text-primary);
 	font-size: var(--recipe-body-size);
 }
 
@@ -2174,11 +2147,6 @@ function slotEditorSlots(type: RecipeType): RecipeSlot[] {
 	pointer-events: none;
 }
 
-.recipe-layout-barrier-icon :deep(.recipe-item-icon) {
-	border: 1px solid transparent !important;
-	background: transparent !important;
-}
-
 .recipe-layout-icon {
 	position: absolute;
 	left: 50%;
@@ -2188,11 +2156,6 @@ function slotEditorSlots(type: RecipeType): RecipeSlot[] {
 	justify-content: center;
 	transform: translate(-50%, -50%);
 	pointer-events: none;
-}
-
-.recipe-layout-icon :deep(.recipe-item-icon) {
-	border: 1px solid transparent !important;
-	background: transparent !important;
 }
 
 .recipe-trim-pattern-selector {
@@ -2220,7 +2183,7 @@ function slotEditorSlots(type: RecipeType): RecipeSlot[] {
 	border-radius: var(--radius-sm);
 	background: var(--color-surface-4);
 	padding: 0.3rem 0.2rem;
-	color: var(--color-secondary);
+	color: var(--color-text-tertiary);
 	cursor: pointer;
 	transition:
 		background-color 0.15s ease,
@@ -2237,7 +2200,7 @@ function slotEditorSlots(type: RecipeType): RecipeSlot[] {
 .recipe-trim-pattern-option.active {
 	border-color: var(--color-brand);
 	background: var(--color-brand-highlight);
-	color: var(--color-contrast);
+	color: var(--color-text-primary);
 }
 
 .recipe-trim-pattern-option > span {
@@ -2249,97 +2212,11 @@ function slotEditorSlots(type: RecipeType): RecipeSlot[] {
 	white-space: nowrap;
 }
 
-.recipe-trim-pattern-option :deep(.recipe-item-icon) {
-	border: 1px solid transparent !important;
-	background: transparent !important;
-}
-
 .recipe-auto-name {
 	align-self: flex-start;
-	color: var(--color-secondary);
+	color: var(--color-text-tertiary);
 	font-family: monospace;
 	font-size: var(--recipe-mono-size);
-}
-
-.recipe-crafting-editor {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	gap: 1.5rem;
-	padding-top: 0.25rem;
-}
-
-.recipe-crafting-grid {
-	display: grid;
-	grid-template-columns: repeat(3, 3.75rem);
-	grid-auto-rows: 3.75rem;
-	gap: 0.45rem;
-	border: 1px solid var(--color-surface-5);
-	border-radius: var(--radius-md);
-	background: var(--color-surface-1);
-	padding: 0.6rem;
-}
-
-.recipe-crafting-grid.is-two-by-two {
-	grid-template-columns: repeat(2, 3.75rem);
-	grid-auto-rows: 3.75rem;
-}
-
-.recipe-slot-row {
-	display: flex;
-	flex-wrap: wrap;
-	align-items: center;
-	justify-content: center;
-	gap: 0.75rem;
-	padding-top: 0.25rem;
-}
-
-.recipe-result-column {
-	display: flex;
-	align-items: center;
-	padding-left: 1.5rem;
-	border-left: 1px solid var(--color-surface-5);
-}
-
-.recipe-slot-cell {
-	display: flex;
-	min-width: 0;
-	flex-direction: column;
-	align-items: center;
-	gap: 0.35rem;
-}
-
-.recipe-slot-button {
-	display: flex;
-	width: 3.25rem;
-	height: 3.25rem;
-	align-items: center;
-	justify-content: center;
-	border: 2px solid var(--color-surface-5);
-	border-radius: var(--radius-sm);
-	background: var(--color-surface-2);
-	padding: 2px;
-	box-shadow:
-		inset 1px 1px 0 rgb(0 0 0 / 20%),
-		inset -1px -1px 0 rgb(255 255 255 / 10%);
-	cursor: pointer;
-	transition:
-		border-color 0.15s ease,
-		background-color 0.15s ease;
-}
-
-.recipe-slot-button:hover {
-	border-color: var(--color-brand);
-	background: var(--color-surface-3);
-}
-
-.recipe-slot-button:focus-visible {
-	outline: 2px solid var(--color-brand);
-	outline-offset: 1px;
-}
-
-.recipe-result-button {
-	border-color: color-mix(in srgb, var(--color-brand) 55%, var(--color-surface-5));
 }
 
 .recipe-issues {
@@ -2373,7 +2250,7 @@ function slotEditorSlots(type: RecipeType): RecipeSlot[] {
 	border-radius: var(--radius-sm);
 	background: var(--color-surface-1);
 	padding: 0.7rem;
-	color: var(--color-contrast);
+	color: var(--color-text-primary);
 	font-family: monospace;
 	font-size: var(--recipe-mono-size);
 	line-height: 1.5;
@@ -2422,17 +2299,13 @@ function slotEditorSlots(type: RecipeType): RecipeSlot[] {
 :deep(.recipe-palette-name) {
 	width: 100%;
 	min-width: 0;
-	color: var(--color-contrast);
+	color: var(--color-text-primary);
 	font-size: 0.7rem;
 	line-height: 1.1;
 	text-align: center;
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
-}
-
-:deep(.recipe-palette-item .recipe-item-icon) {
-	border: 1px solid transparent !important;
 }
 
 .recipe-tag-tabs {
@@ -2451,7 +2324,7 @@ function slotEditorSlots(type: RecipeType): RecipeSlot[] {
 	border-radius: calc(var(--radius-sm) - 1px);
 	background: transparent;
 	padding: 0.4rem 0.55rem;
-	color: var(--color-secondary);
+	color: var(--color-text-tertiary);
 	cursor: pointer;
 	font-size: 0.75rem;
 	font-weight: 700;
@@ -2473,7 +2346,7 @@ function slotEditorSlots(type: RecipeType): RecipeSlot[] {
 
 .recipe-custom-item-list h3 {
 	margin: 0;
-	color: var(--color-secondary);
+	color: var(--color-text-tertiary);
 	font-size: var(--recipe-label-size);
 	text-transform: uppercase;
 }
@@ -2528,11 +2401,7 @@ function slotEditorSlots(type: RecipeType): RecipeSlot[] {
 		width: 100%;
 	}
 
-	.recipe-header-actions > :deep(.btn-wrapper) {
-		width: 100%;
-	}
-
-	.recipe-header-actions > :deep(.btn-wrapper button) {
+	.recipe-header-actions > :deep([data-button]) {
 		width: 100%;
 		justify-content: center;
 	}
@@ -2567,26 +2436,6 @@ function slotEditorSlots(type: RecipeType): RecipeSlot[] {
 @media (max-width: 40rem) {
 	:deep(.recipe-palette-grid) {
 		grid-template-columns: repeat(2, minmax(0, 1fr));
-	}
-}
-
-@media (max-width: 32rem) {
-	.recipe-crafting-editor {
-		flex-direction: column;
-	}
-
-	.recipe-result-column {
-		padding-left: 0;
-		border-left: 0;
-	}
-
-	.recipe-slot-row {
-		gap: 0.5rem;
-	}
-
-	.recipe-slot-button {
-		width: 3rem;
-		height: 3rem;
 	}
 }
 </style>

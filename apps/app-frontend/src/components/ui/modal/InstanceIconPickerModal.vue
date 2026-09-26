@@ -15,7 +15,7 @@
 				>
 					<img :src="selectedIcon.url" alt="" class="h-[72%] w-[72%] object-contain" />
 				</div>
-				<p class="m-0 text-center text-sm text-secondary">
+				<p class="m-0 text-center text-sm text-[var(--color-text-tertiary)]">
 					{{ formatMessage(messages.description) }}
 				</p>
 				<Button type="outlined" :disabled="saving" @click="surpriseMe"
@@ -26,7 +26,7 @@
 
 			<div class="flex min-w-0 flex-col gap-5">
 				<section class="flex flex-col gap-2.5">
-					<h2 class="m-0 text-base font-semibold text-contrast">
+					<h2 class="m-0 text-base font-semibold text-[var(--color-text-primary)]">
 						{{ formatMessage(messages.background) }}
 					</h2>
 					<div class="flex flex-wrap gap-2">
@@ -50,7 +50,7 @@
 				</section>
 
 				<section v-for="group in iconGroups" :key="group.id" class="flex min-w-0 flex-col gap-2.5">
-					<h2 class="m-0 text-base font-semibold text-contrast">
+					<h2 class="m-0 text-base font-semibold text-[var(--color-text-primary)]">
 						{{ formatMessage(group.name) }}
 					</h2>
 					<div class="grid grid-cols-4 gap-2 sm:grid-cols-6">
@@ -58,10 +58,10 @@
 							v-for="icon in group.icons"
 							:key="icon.id"
 							type="button"
-							class="group flex min-w-0 cursor-pointer flex-col items-center gap-1.5 rounded-xl border border-solid bg-surface-2 p-2 text-secondary transition-colors hover:border-brand hover:bg-brand-highlight hover:text-contrast focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-wait disabled:opacity-60"
+							class="group flex min-w-0 cursor-pointer flex-col items-center gap-1.5 rounded-xl border border-solid bg-surface-2 p-2 text-[var(--color-text-tertiary)] transition-colors hover:border-brand hover:bg-brand-highlight hover:text-[var(--color-text-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-wait disabled:opacity-60"
 							:class="
 								icon.id === selectedIconId
-									? 'border-brand bg-brand-highlight text-contrast'
+									? 'border-brand bg-brand-highlight text-[var(--color-text-primary)]'
 									: 'border-surface-5'
 							"
 							:aria-label="formatMessage(icon.name)"

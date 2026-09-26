@@ -166,7 +166,7 @@ onUnmounted(() => {
 		<div
 			class="grid grid-cols-[auto_minmax(0,3fr)_minmax(0,4fr)_auto] items-center gap-2 rounded-lg smart-clickable:highlight-on-hover"
 			:class="[
-				flat ? 'px-2 py-2 hover:bg-button-bg' : 'card-shadow bg-bg-raised p-3',
+				flat ? 'px-2 py-2 hover:bg-surface-4' : 'card-shadow bg-surface-2 p-3',
 				{
 					'instance-item-dashboard-compact grid grid-cols-[auto_minmax(0,1fr)_auto] gap-2 p-1.5':
 						dashboardDensity === 'compact',
@@ -182,11 +182,13 @@ onUnmounted(() => {
 			/>
 			<div class="flex flex-col col-span-2 justify-between h-full">
 				<div class="flex items-center gap-2">
-					<div class="text-lg text-contrast font-bold truncate smart-clickable:underline-on-hover">
+					<div
+						class="text-lg text-[var(--color-text-primary)] font-bold truncate smart-clickable:underline-on-hover"
+					>
 						{{ instance.name }}
 					</div>
 				</div>
-				<div class="flex items-center gap-2 text-sm text-secondary">
+				<div class="flex items-center gap-2 text-sm text-[var(--color-text-tertiary)]">
 					<div
 						v-tooltip="instance.lastPlayed ? formatDateTime(instance.lastPlayed) : null"
 						class="w-fit shrink-0"
@@ -202,9 +204,12 @@ onUnmounted(() => {
 						<template v-else> {{ formatMessage(messages.notPlayedYet) }} </template>
 					</div>
 					<span v-if="dashboardDensity !== 'compact'" aria-hidden="true">•</span>
-					<span v-if="modpack" class="flex items-center gap-1 truncate text-secondary">
+					<span
+						v-if="modpack"
+						class="flex items-center gap-1 truncate text-[var(--color-text-tertiary)]"
+					>
 						<router-link
-							class="inline-flex items-center gap-1 truncate hover:underline text-secondary smart-clickable:allow-pointer-events"
+							class="inline-flex items-center gap-1 truncate hover:underline text-[var(--color-text-tertiary)] smart-clickable:allow-pointer-events"
 							:to="`/project/${modpack.id}`"
 						>
 							<Avatar :src="modpack.icon_url" size="16px" class="shrink-0" />
@@ -212,11 +217,14 @@ onUnmounted(() => {
 						</router-link>
 						({{ loader }} {{ instance.game_version }})
 					</span>
-					<span v-else-if="loadingModpack" class="flex items-center gap-1 truncate text-secondary">
+					<span
+						v-else-if="loadingModpack"
+						class="flex items-center gap-1 truncate text-[var(--color-text-tertiary)]"
+					>
 						<SpinnerIcon class="animate-spin shrink-0" />
 						<span class="truncate">{{ formatMessage(messages.loadingModpack) }}</span>
 					</span>
-					<span v-else class="flex items-center gap-1 truncate text-secondary">
+					<span v-else class="flex items-center gap-1 truncate text-[var(--color-text-tertiary)]">
 						{{ loader }}
 						{{ instance.game_version }}
 					</span>

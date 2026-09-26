@@ -57,7 +57,10 @@
 						</button>
 					</li>
 				</ul>
-				<p v-if="hiddenSkippedManualDownloadCount > 0" class="mb-0 mt-2 text-secondary">
+				<p
+					v-if="hiddenSkippedManualDownloadCount > 0"
+					class="mb-0 mt-2 text-[var(--color-text-tertiary)]"
+				>
 					{{
 						formatMessage(messages.skippedFilesWarningMore, {
 							count: hiddenSkippedManualDownloadCount,
@@ -87,7 +90,7 @@
 				</span>
 			</template>
 			<div class="bg-bg-orange px-4 pb-4 pt-3">
-				<p class="m-0 text-sm leading-6 text-secondary">
+				<p class="m-0 text-sm leading-6 text-[var(--color-text-tertiary)]">
 					{{ formatMessage(messages.missingFilesWarningBody) }}
 				</p>
 				<ul class="m-0 mt-2 flex max-h-64 list-none flex-col gap-1 overflow-y-auto p-0">
@@ -98,10 +101,16 @@
 					>
 						<FileIcon class="size-5 shrink-0 text-brand-orange" aria-hidden="true" />
 						<span class="flex min-w-0 flex-1 flex-col gap-0.5">
-							<span class="truncate font-medium text-contrast" :title="item.expectedRelativePath">
+							<span
+								class="truncate font-medium text-[var(--color-text-primary)]"
+								:title="item.expectedRelativePath"
+							>
 								{{ fileNameFromPath(item.expectedRelativePath) }}
 							</span>
-							<code class="truncate text-xs text-secondary" :title="item.expectedRelativePath">
+							<code
+								class="truncate text-xs text-[var(--color-text-tertiary)]"
+								:title="item.expectedRelativePath"
+							>
 								{{ item.expectedRelativePath }}
 							</code>
 						</span>

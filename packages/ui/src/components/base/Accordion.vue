@@ -10,12 +10,12 @@
 			>
 				<slot name="button" :open="isOpen">
 					<div
-						class="flex items-center gap-1 whitespace-nowrap transition-colors text-primary group-hover:text-contrast"
+						class="flex items-center gap-1 whitespace-nowrap transition-colors text-[var(--color-text-default)] group-hover:text-[var(--color-text-primary)]"
 					>
 						<slot name="title" :open="isOpen" />
 						<DropdownIcon
 							v-if="!forceOpen"
-							class="size-5 transition-transform duration-300 shrink-0 text-secondary group-hover:text-primary"
+							class="size-5 transition-transform duration-300 shrink-0 text-[var(--color-text-tertiary)] group-hover:text-[var(--color-text-default)]"
 							:class="{ 'rotate-180': isOpen }"
 						/>
 					</div>
@@ -29,11 +29,11 @@
 			@click="() => (forceOpen ? undefined : toggledOpen ? close() : open())"
 		>
 			<slot name="button" :open="isOpen">
-				<div class="flex items-center gap-1 w-full text-contrast">
+				<div class="flex items-center gap-1 w-full text-[var(--color-text-primary)]">
 					<slot name="title" :open="isOpen" />
 					<DropdownIcon
 						v-if="!forceOpen"
-						class="ml-auto size-5 transition-transform duration-300 shrink-0 text-contrast"
+						class="ml-auto size-5 transition-transform duration-300 shrink-0 text-[var(--color-text-primary)]"
 						:class="{ 'rotate-180': isOpen }"
 					/>
 				</div>

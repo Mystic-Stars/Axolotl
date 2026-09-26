@@ -28,7 +28,7 @@ const serverId = computed(() => ctx.createdServer.value?.id ?? '')
 
 <template>
 	<div class="flex flex-col gap-4">
-		<p class="m-0 text-sm text-secondary">
+		<p class="m-0 text-sm text-[var(--color-text-tertiary)]">
 			{{ formatMessage(messages.heading) }}
 		</p>
 

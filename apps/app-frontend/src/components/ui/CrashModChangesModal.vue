@@ -105,19 +105,19 @@ defineExpose({ show })
 <template>
 	<NewModal ref="modal" :header="formatMessage(messages.title)" max-width="680px">
 		<div class="flex max-h-[65vh] flex-col gap-4 overflow-y-auto">
-			<p class="m-0 text-secondary">{{ formatMessage(messages.description) }}</p>
-			<p v-if="!analysis?.mod_changes.length" class="m-0 text-secondary">
+			<p class="m-0 text-[var(--color-text-tertiary)]">{{ formatMessage(messages.description) }}</p>
+			<p v-if="!analysis?.mod_changes.length" class="m-0 text-[var(--color-text-tertiary)]">
 				{{ formatMessage(messages.empty) }}
 			</p>
 			<section v-for="group in groups" v-else :key="group.kind" class="flex flex-col gap-2">
-				<h3 class="m-0 text-sm font-semibold text-contrast">
+				<h3 class="m-0 text-sm font-semibold text-[var(--color-text-primary)]">
 					{{ formatMessage(groupMessages[group.kind], { count: group.items.length }) }}
 				</h3>
 				<ul v-if="group.items.length" class="m-0 flex list-none flex-col gap-1 p-0">
 					<li
 						v-for="change in group.items"
 						:key="`${group.kind}:${change.filename}`"
-						class="rounded-md bg-surface-2 px-3 py-2 text-sm text-secondary"
+						class="rounded-md bg-surface-2 px-3 py-2 text-sm text-[var(--color-text-tertiary)]"
 					>
 						<div class="flex min-w-0 items-center gap-2">
 							<div class="size-8 shrink-0 overflow-hidden rounded bg-surface-3">
@@ -131,11 +131,11 @@ defineExpose({ show })
 							<div class="min-w-0">
 								<div
 									v-if="change.project_title && change.project_title !== change.filename"
-									class="truncate font-sans text-sm text-contrast"
+									class="truncate font-sans text-sm text-[var(--color-text-primary)]"
 								>
 									{{ change.project_title || change.filename }}
 								</div>
-								<div class="truncate text-xs text-secondary">
+								<div class="truncate text-xs text-[var(--color-text-tertiary)]">
 									{{ change.version_number ? `v${change.version_number} · ` : ''
 									}}{{ change.filename }}
 								</div>

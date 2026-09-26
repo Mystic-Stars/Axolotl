@@ -8,7 +8,7 @@
 			'router-link-active': isPrimary && isPrimary(route),
 			'subpage-active': isSubpage && isSubpage(route),
 		}"
-		class="w-12 h-12 text-primary rounded-full flex items-center justify-center text-2xl transition-all bg-transparent hover:bg-button-bg hover:text-contrast"
+		class="w-12 h-12 text-[var(--color-text-default)] rounded-full flex items-center justify-center text-2xl transition-all bg-transparent hover:bg-surface-4 hover:text-[var(--color-text-primary)]"
 	>
 		<slot />
 	</RouterLink>
@@ -22,7 +22,7 @@
 			'router-link-active': isPrimary && isPrimary(route),
 			'subpage-active': isSubpage && isSubpage(route),
 		}"
-		class="w-12 h-12 text-primary rounded-full flex items-center justify-center text-2xl transition-all bg-transparent hover:bg-button-bg hover:text-contrast"
+		class="w-12 h-12 text-[var(--color-text-default)] rounded-full flex items-center justify-center text-2xl transition-all bg-transparent hover:bg-surface-4 hover:text-[var(--color-text-primary)]"
 		@click.prevent
 		@keydown.enter.prevent
 		@keyup.enter.prevent
@@ -34,7 +34,7 @@
 	<button
 		v-else
 		v-bind="$attrs"
-		class="button-animation border-none text-primary cursor-pointer w-12 h-12 rounded-full flex items-center justify-center text-2xl transition-all bg-transparent hover:bg-button-bg hover:text-contrast"
+		class="button-animation border-none text-[var(--color-text-default)] cursor-pointer w-12 h-12 rounded-full flex items-center justify-center text-2xl transition-all bg-transparent hover:bg-surface-4 hover:text-[var(--color-text-primary)]"
 		:disabled="disabled"
 		@click="to"
 	>
@@ -83,6 +83,6 @@ defineOptions({
 }
 
 .subpage-active {
-	@apply text-contrast bg-button-bg;
+	@apply text-[var(--color-text-primary)] bg-surface-4;
 }
 </style>

@@ -37,7 +37,7 @@ const highlighted = computed(() => props.selected ?? props.isEquipped)
 			:class="
 				highlighted
 					? `bg-brand highlighted-outer-glow`
-					: `bg-button-bg brightness-95 group-hover:brightness-100`
+					: `bg-surface-4 brightness-95 group-hover:brightness-100`
 			"
 			class="relative block p-[3px] rounded-lg border-0 group-active:scale-95 transition-all"
 		>
@@ -52,7 +52,7 @@ const highlighted = computed(() => props.selected ?? props.isEquipped)
 			</span>
 			<span
 				v-if="$slots.default || $slots.icon"
-				class="p-4 absolute inset-0 flex items-center justify-center text-primary font-medium"
+				class="p-4 absolute inset-0 flex items-center justify-center text-[var(--color-text-default)] font-medium"
 			>
 				<span class="mb-1">
 					<slot name="icon"></slot>
@@ -98,11 +98,5 @@ const highlighted = computed(() => props.selected ?? props.isEquipped)
 	inset: 0;
 	box-shadow: inset 0 0 4px 4px rgba(0, 0, 0, 0.4);
 	z-index: 2;
-}
-
-@supports (background-color: color-mix(in srgb, transparent, transparent)) {
-	.highlighted-glow::before {
-		box-shadow: inset 0 0 2px 4px color-mix(in srgb, var(--color-brand), transparent 10%);
-	}
 }
 </style>

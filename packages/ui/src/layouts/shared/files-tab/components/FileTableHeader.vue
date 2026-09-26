@@ -15,8 +15,12 @@
 				@update:model-value="$emit('toggle-all')"
 			/>
 			<button
-				class="flex appearance-none items-center gap-1.5 border-0 bg-transparent p-0 font-semibold hover:text-primary"
-				:class="sortField === 'name' ? 'text-contrast' : 'text-secondary'"
+				class="flex appearance-none items-center gap-1.5 border-0 bg-transparent p-0 font-semibold hover:text-[var(--color-text-default)]"
+				:class="
+					sortField === 'name'
+						? 'text-[var(--color-text-primary)]'
+						: 'text-[var(--color-text-tertiary)]'
+				"
 				@click="$emit('sort', 'name')"
 			>
 				<span>{{ formatMessage(messages.name) }}</span>
@@ -34,8 +38,12 @@
 		</div>
 		<div class="flex shrink-0 items-center gap-4 @[800px]:gap-12">
 			<button
-				class="hidden w-[100px] appearance-none items-center justify-start gap-1 border-0 bg-transparent p-0 font-semibold hover:text-primary @[800px]:flex"
-				:class="sortField === 'size' ? 'text-contrast' : 'text-secondary'"
+				class="hidden w-[100px] appearance-none items-center justify-start gap-1 border-0 bg-transparent p-0 font-semibold hover:text-[var(--color-text-default)] @[800px]:flex"
+				:class="
+					sortField === 'size'
+						? 'text-[var(--color-text-primary)]'
+						: 'text-[var(--color-text-tertiary)]'
+				"
 				@click="$emit('sort', 'size')"
 			>
 				<span>{{ formatMessage(messages.size) }}</span>
@@ -51,8 +59,12 @@
 				/>
 			</button>
 			<button
-				class="hidden w-[160px] appearance-none items-center justify-start gap-1 border-0 bg-transparent p-0 font-semibold hover:text-primary @[800px]:flex"
-				:class="sortField === 'created' ? 'text-contrast' : 'text-secondary'"
+				class="hidden w-[160px] appearance-none items-center justify-start gap-1 border-0 bg-transparent p-0 font-semibold hover:text-[var(--color-text-default)] @[800px]:flex"
+				:class="
+					sortField === 'created'
+						? 'text-[var(--color-text-primary)]'
+						: 'text-[var(--color-text-tertiary)]'
+				"
 				@click="$emit('sort', 'created')"
 			>
 				<span>{{ formatMessage(messages.created) }}</span>
@@ -68,8 +80,12 @@
 				/>
 			</button>
 			<button
-				class="hidden w-[160px] appearance-none items-center justify-start gap-1 border-0 bg-transparent p-0 font-semibold hover:text-primary @[800px]:flex"
-				:class="sortField === 'modified' ? 'text-contrast' : 'text-secondary'"
+				class="hidden w-[160px] appearance-none items-center justify-start gap-1 border-0 bg-transparent p-0 font-semibold hover:text-[var(--color-text-default)] @[800px]:flex"
+				:class="
+					sortField === 'modified'
+						? 'text-[var(--color-text-primary)]'
+						: 'text-[var(--color-text-tertiary)]'
+				"
 				@click="$emit('sort', 'modified')"
 			>
 				<span>{{ formatMessage(messages.modified) }}</span>
@@ -84,9 +100,10 @@
 					aria-hidden="true"
 				/>
 			</button>
-			<span class="min-w-[51px] shrink-0 text-nowrap text-right font-semibold text-secondary">{{
-				formatMessage(commonMessages.actionsLabel)
-			}}</span>
+			<span
+				class="min-w-[51px] shrink-0 text-nowrap text-right font-semibold text-[var(--color-text-tertiary)]"
+				>{{ formatMessage(commonMessages.actionsLabel) }}</span
+			>
 		</div>
 	</div>
 </template>

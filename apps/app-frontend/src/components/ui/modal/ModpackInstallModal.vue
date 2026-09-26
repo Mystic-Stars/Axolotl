@@ -170,13 +170,15 @@ defineExpose({ show, hide })
 					:tint-by="data.project.title"
 					no-shadow
 				/>
-				<span class="min-w-0 truncate text-lg font-semibold text-contrast">{{
+				<span class="min-w-0 truncate text-lg font-semibold text-[var(--color-text-primary)]">{{
 					data.project.title
 				}}</span>
 			</div>
 
 			<label class="flex flex-col gap-2">
-				<span class="font-semibold text-contrast">{{ formatMessage(messages.version) }}</span>
+				<span class="font-semibold text-[var(--color-text-primary)]">{{
+					formatMessage(messages.version)
+				}}</span>
 				<Combobox
 					v-model="selectedVersionId"
 					:options="versionOptions"
@@ -187,7 +189,10 @@ defineExpose({ show, hide })
 				/>
 			</label>
 
-			<div v-if="selectedVersion" class="flex flex-wrap items-center gap-2 text-sm text-secondary">
+			<div
+				v-if="selectedVersion"
+				class="flex flex-wrap items-center gap-2 text-sm text-[var(--color-text-tertiary)]"
+			>
 				<Badge
 					:color="releaseColor(selectedVersion.version_type)"
 					:type="selectedVersion.version_type"
@@ -199,7 +204,9 @@ defineExpose({ show, hide })
 			</div>
 
 			<label class="flex flex-col gap-2">
-				<span class="font-semibold text-contrast">{{ formatMessage(messages.instanceName) }}</span>
+				<span class="font-semibold text-[var(--color-text-primary)]">{{
+					formatMessage(messages.instanceName)
+				}}</span>
 				<StyledInput
 					v-model="instanceName"
 					:placeholder="formatMessage(messages.instanceNamePlaceholder)"
@@ -208,7 +215,7 @@ defineExpose({ show, hide })
 				/>
 			</label>
 
-			<p v-if="folderName" class="m-0 text-sm text-secondary">
+			<p v-if="folderName" class="m-0 text-sm text-[var(--color-text-tertiary)]">
 				{{
 					formatMessage(hasFolderNameConflict ? messages.folderNameConflict : messages.folderName, {
 						name: folderName,
@@ -222,8 +229,10 @@ defineExpose({ show, hide })
 			>
 				<CheckIcon class="mt-0.5 shrink-0" />
 				<div class="min-w-0">
-					<p class="m-0 font-semibold text-contrast">{{ formatMessage(messages.installed) }}</p>
-					<p class="mt-1 mb-0 text-sm text-secondary">
+					<p class="m-0 font-semibold text-[var(--color-text-primary)]">
+						{{ formatMessage(messages.installed) }}
+					</p>
+					<p class="mt-1 mb-0 text-sm text-[var(--color-text-tertiary)]">
 						{{
 							formatMessage(messages.installedDescription, {
 								names: existingInstances.map((instance) => instance.name).join(', '),

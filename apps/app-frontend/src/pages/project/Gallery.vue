@@ -203,21 +203,24 @@ onUnmounted(() => {
 				>
 					<h3
 						v-if="galleryText(entry, 'title')"
-						class="m-0 break-words font-semibold text-contrast"
+						class="m-0 break-words font-semibold text-[var(--color-text-primary)]"
 					>
 						{{ galleryText(entry, 'title') }}
 					</h3>
 					<p v-if="showBilingualTranslation(entry, 'title')" :class="translationClass">
 						{{ translationFor(entry, 'title') }}
 					</p>
-					<p v-if="galleryText(entry, 'description')" class="mb-0 mt-1 break-words text-secondary">
+					<p
+						v-if="galleryText(entry, 'description')"
+						class="mb-0 mt-1 break-words text-[var(--color-text-tertiary)]"
+					>
 						{{ galleryText(entry, 'description') }}
 					</p>
 					<p v-if="showBilingualTranslation(entry, 'description')" :class="translationClass">
 						{{ translationFor(entry, 'description') }}
 					</p>
 				</div>
-				<div class="mt-auto flex items-center gap-2 text-sm text-secondary">
+				<div class="mt-auto flex items-center gap-2 text-sm text-[var(--color-text-tertiary)]">
 					<CalendarIcon class="size-4 shrink-0" aria-hidden="true" />
 					{{ formatDate(new Date(entry.image.created)) }}
 				</div>
@@ -272,7 +275,7 @@ onUnmounted(() => {
 		</div>
 		<template #actions>
 			<div v-if="selectedGalleryItem" class="flex flex-wrap items-center justify-between gap-2">
-				<div class="min-w-0 text-sm text-secondary">
+				<div class="min-w-0 text-sm text-[var(--color-text-tertiary)]">
 					<p v-if="galleryText(selectedGalleryItem, 'description')" class="m-0 break-words">
 						{{ galleryText(selectedGalleryItem, 'description') }}
 					</p>
@@ -316,7 +319,7 @@ onUnmounted(() => {
 }
 
 .gallery-translation--weakened {
-	color: var(--color-secondary);
+	color: var(--color-text-tertiary);
 }
 
 .gallery-translation--blur {

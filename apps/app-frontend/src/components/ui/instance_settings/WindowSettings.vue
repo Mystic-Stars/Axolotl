@@ -137,10 +137,10 @@ const messages = defineMessages({
 		/>
 		<div class="flex items-center gap-4 justify-between">
 			<div class="flex flex-col gap-1">
-				<h2 class="m-0 text-lg font-semibold text-contrast">
+				<h2 class="m-0 text-lg font-semibold text-[var(--color-text-primary)]">
 					{{ formatMessage(messages.fullscreen) }}
 				</h2>
-				<p class="m-0" :class="{ 'text-secondary': !supportsMaximizeWindow }">
+				<p class="m-0" :class="{ 'text-[var(--color-text-tertiary)]': !supportsMaximizeWindow }">
 					{{ formatMessage(messages.fullscreenDescription) }}
 				</p>
 			</div>
@@ -157,7 +157,7 @@ const messages = defineMessages({
 		</div>
 		<div class="flex items-center gap-4 justify-between">
 			<div class="flex flex-col gap-1">
-				<h2 class="m-0 text-lg font-semibold text-contrast">
+				<h2 class="m-0 text-lg font-semibold text-[var(--color-text-primary)]">
 					{{ formatMessage(messages.maximizeWindow) }}
 				</h2>
 				<p class="m-0">
@@ -182,7 +182,7 @@ const messages = defineMessages({
 
 		<div class="flex items-center gap-4 justify-between">
 			<div class="flex flex-col gap-1">
-				<h2 class="m-0 text-lg font-semibold text-contrast">
+				<h2 class="m-0 text-lg font-semibold text-[var(--color-text-primary)]">
 					{{ formatMessage(messages.width) }}
 				</h2>
 				<p class="m-0">
@@ -201,7 +201,7 @@ const messages = defineMessages({
 
 		<div class="flex items-center gap-4 justify-between">
 			<div class="flex flex-col gap-1">
-				<h2 class="m-0 text-lg font-semibold text-contrast">
+				<h2 class="m-0 text-lg font-semibold text-[var(--color-text-primary)]">
 					{{ formatMessage(messages.height) }}
 				</h2>
 				<p class="m-0">
@@ -222,7 +222,9 @@ const messages = defineMessages({
 			class="flex items-center gap-4 justify-between"
 		>
 			<div class="flex flex-col gap-1">
-				<h2 class="m-0 inline-flex items-center gap-2 text-lg font-semibold text-contrast">
+				<h2
+					class="m-0 inline-flex items-center gap-2 text-lg font-semibold text-[var(--color-text-primary)]"
+				>
 					{{ formatMessage(messages.windowTitle) }}
 				</h2>
 				<p class="m-0">

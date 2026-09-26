@@ -3,7 +3,7 @@
 		<FileIcon class="size-28" />
 		<div class="flex flex-col gap-2">
 			<h3 class="m-0 text-2xl font-bold text-red">{{ title }}</h3>
-			<p class="m-0 text-sm text-secondary">
+			<p class="m-0 text-sm text-[var(--color-text-tertiary)]">
 				{{ message }}
 			</p>
 			<div class="flex gap-2">

@@ -3,7 +3,7 @@
 		<div
 			v-if="!dismissed"
 			:data-type="type"
-			class="collapsible-admonition flex flex-col rounded-2xl border border-solid text-contrast overflow-hidden"
+			class="collapsible-admonition flex flex-col rounded-2xl border border-solid text-[var(--color-text-primary)] overflow-hidden"
 		>
 			<div
 				class="flex w-full cursor-pointer items-center gap-6 p-4"
@@ -12,7 +12,7 @@
 			>
 				<div class="flex flex-1 items-center gap-3">
 					<TriangleAlertIcon :class="['h-5 w-5 flex-none', iconClasses[type]]" />
-					<span class="text-base font-semibold text-contrast">
+					<span class="text-base font-semibold text-[var(--color-text-primary)]">
 						<slot name="header">{{ header }}</slot>
 					</span>
 				</div>
@@ -49,7 +49,7 @@
 							:key="index"
 							class="collapsible-admonition__item collapsible-admonition__item--bordered flex flex-col gap-1 p-4"
 						>
-							<p class="m-0 text-base font-semibold text-contrast">
+							<p class="m-0 text-base font-semibold text-[var(--color-text-primary)]">
 								{{ item.title }}
 							</p>
 							<div
@@ -58,7 +58,7 @@
 								class="flex items-start gap-1.5"
 							>
 								<LightBulbIcon :class="['mt-0.5 h-5 w-5 flex-none', iconClasses[type]]" />
-								<span class="text-base text-contrast/85">{{ desc }}</span>
+								<span class="text-base text-[var(--color-text-primary)]/85">{{ desc }}</span>
 							</div>
 						</div>
 					</slot>

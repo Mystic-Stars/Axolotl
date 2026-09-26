@@ -1,6 +1,6 @@
 <template>
 	<div class="flex flex-col gap-4">
-		<span class="font-semibold text-contrast">
+		<span class="font-semibold text-[var(--color-text-primary)]">
 			{{ setupTypeTitle }}
 		</span>
 
@@ -29,7 +29,7 @@
 					@click="ctx.setImportMode()"
 				/>
 			</div>
-			<span class="text-sm text-secondary">
+			<span class="text-sm text-[var(--color-text-tertiary)]">
 				{{ formatMessage(messages.instanceDescription) }}
 			</span>
 		</template>

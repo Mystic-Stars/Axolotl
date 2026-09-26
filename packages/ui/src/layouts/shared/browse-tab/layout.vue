@@ -197,8 +197,8 @@ const skeletonCount = computed(() => {
 					:display-name="(name: string) => formatSortTypeName(name)"
 				>
 					<div class="flex items-center gap-1">
-						<ArrowUpDownIcon class="size-5 shrink-0 text-primary" />
-						<span class="font-semibold text-secondary">{{ selected }}</span>
+						<ArrowUpDownIcon class="size-5 shrink-0 text-[var(--color-text-default)]" />
+						<span class="font-semibold text-[var(--color-text-tertiary)]">{{ selected }}</span>
 					</div>
 				</DropdownSelect>
 
@@ -212,8 +212,8 @@ const skeletonCount = computed(() => {
 					:display-name="(n: number) => String(n)"
 				>
 					<div class="flex items-center gap-1">
-						<EyeIcon class="size-5 shrink-0 text-primary" />
-						<span class="font-semibold text-secondary">{{ selected }}</span>
+						<EyeIcon class="size-5 shrink-0 text-[var(--color-text-default)]" />
+						<span class="font-semibold text-[var(--color-text-tertiary)]">{{ selected }}</span>
 					</div>
 				</DropdownSelect>
 
@@ -290,7 +290,9 @@ const skeletonCount = computed(() => {
 
 	<div class="search relative">
 		<section v-if="ctx.loading.value" class="py-1" aria-busy="true" aria-live="polite">
-			<div class="flex items-center justify-center gap-2 pb-3 text-sm font-medium text-secondary">
+			<div
+				class="flex items-center justify-center gap-2 pb-3 text-sm font-medium text-[var(--color-text-tertiary)]"
+			>
 				<SpinnerIcon class="size-4 animate-spin" />
 				{{ formatMessage(messages.loadingLabel) }}
 			</div>

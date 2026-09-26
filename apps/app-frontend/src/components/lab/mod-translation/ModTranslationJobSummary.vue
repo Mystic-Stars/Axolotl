@@ -176,14 +176,14 @@ function formatDuration(seconds: number): string {
 	font-weight: 800;
 	text-overflow: ellipsis;
 	white-space: nowrap;
-	color: var(--color-contrast);
+	color: var(--color-text-primary);
 }
 
 .job-title span {
 	font-family: var(--mono-font, monospace);
 	font-size: 0.66rem;
 	font-variant-numeric: tabular-nums;
-	color: var(--color-text-secondary);
+	color: var(--color-text-tertiary);
 }
 
 .job-percent {
@@ -202,12 +202,6 @@ function formatDuration(seconds: number): string {
 .actions {
 	display: flex;
 	flex: 0 0 auto;
-	align-items: center;
-	gap: 0.35rem;
-}
-
-.actions button {
-	display: inline-flex;
 	align-items: center;
 	gap: 0.35rem;
 }

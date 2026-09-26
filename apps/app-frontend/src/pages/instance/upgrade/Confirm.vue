@@ -1,8 +1,12 @@
 <template>
 	<section class="flex flex-col gap-6 py-2">
 		<header>
-			<h2 class="m-0 text-xl font-semibold text-contrast">{{ formatMessage(messages.title) }}</h2>
-			<p class="mb-0 mt-1 text-secondary">{{ formatMessage(messages.description) }}</p>
+			<h2 class="m-0 text-xl font-semibold text-[var(--color-text-primary)]">
+				{{ formatMessage(messages.title) }}
+			</h2>
+			<p class="mb-0 mt-1 text-[var(--color-text-tertiary)]">
+				{{ formatMessage(messages.description) }}
+			</p>
 		</header>
 
 		<Admonition v-if="executionError" type="critical" :header="formatMessage(messages.startError)">
@@ -18,21 +22,23 @@
 
 		<div class="grid gap-3 md:grid-cols-2">
 			<Card class="!m-0 p-4">
-				<h3 class="m-0 text-base font-semibold text-contrast">
+				<h3 class="m-0 text-base font-semibold text-[var(--color-text-primary)]">
 					{{ formatMessage(messages.environment) }}
 				</h3>
 				<div class="mt-3 grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
-					<span class="text-secondary">Minecraft</span>
+					<span class="text-[var(--color-text-tertiary)]">Minecraft</span>
 					<strong
 						>{{ plan.sourceEnvironment.gameVersion }} <span aria-hidden="true">→</span>
 						{{ plan.targetEnvironment.gameVersion }}</strong
 					>
-					<span class="text-secondary">{{ formatMessage(messages.loader) }}</span>
+					<span class="text-[var(--color-text-tertiary)]">{{
+						formatMessage(messages.loader)
+					}}</span>
 					<strong>{{ sourceLoader }} <span aria-hidden="true">→</span> {{ targetLoader }}</strong>
 				</div>
 			</Card>
 			<Card class="!m-0 p-4">
-				<h3 class="m-0 text-base font-semibold text-contrast">
+				<h3 class="m-0 text-base font-semibold text-[var(--color-text-primary)]">
 					{{ formatMessage(messages.strategy) }}
 				</h3>
 				<p class="mb-0 mt-3 text-lg font-semibold text-brand">{{ strategyLabel }}</p>
@@ -43,17 +49,17 @@
 			class="grid grid-cols-2 gap-px overflow-hidden rounded-md bg-divider sm:grid-cols-3 lg:grid-cols-6"
 		>
 			<div v-for="metric in metrics" :key="metric.label" class="bg-surface-2 p-3">
-				<div class="text-xl font-semibold text-contrast">{{ metric.value }}</div>
-				<div class="text-sm text-secondary">{{ metric.label }}</div>
+				<div class="text-xl font-semibold text-[var(--color-text-primary)]">{{ metric.value }}</div>
+				<div class="text-sm text-[var(--color-text-tertiary)]">{{ metric.label }}</div>
 			</div>
 		</div>
 
 		<section v-if="sharedInstance" class="order-first flex flex-col gap-3">
 			<div>
-				<h3 class="m-0 text-lg font-semibold text-contrast">
+				<h3 class="m-0 text-lg font-semibold text-[var(--color-text-primary)]">
 					{{ formatMessage(messages.sharedTitle) }}
 				</h3>
-				<p class="mb-0 mt-1 text-sm text-secondary">
+				<p class="mb-0 mt-1 text-sm text-[var(--color-text-tertiary)]">
 					{{ formatMessage(messages.sharedDescription) }}
 				</p>
 			</div>
@@ -64,8 +70,10 @@
 					:class="modeClass('direct')"
 					@click="selectMode('direct')"
 				>
-					<strong class="text-contrast">{{ formatMessage(messages.direct) }}</strong>
-					<p class="mb-0 mt-2 text-sm text-secondary">
+					<strong class="text-[var(--color-text-primary)]">{{
+						formatMessage(messages.direct)
+					}}</strong>
+					<p class="mb-0 mt-2 text-sm text-[var(--color-text-tertiary)]">
 						{{ formatMessage(messages.directDescription) }}
 					</p>
 				</button>
@@ -75,8 +83,10 @@
 					:class="modeClass('copy_and_upgrade')"
 					@click="selectMode('copy_and_upgrade')"
 				>
-					<strong class="text-contrast">{{ formatMessage(messages.copy) }}</strong>
-					<p class="mb-0 mt-2 text-sm text-secondary">
+					<strong class="text-[var(--color-text-primary)]">{{
+						formatMessage(messages.copy)
+					}}</strong>
+					<p class="mb-0 mt-2 text-sm text-[var(--color-text-tertiary)]">
 						{{ formatMessage(messages.copyDescription) }}
 					</p>
 				</button>
@@ -84,11 +94,13 @@
 		</section>
 
 		<section class="rounded-md border border-solid border-surface-4 bg-surface-2 p-4">
-			<h3 class="m-0 text-lg font-semibold text-contrast">
+			<h3 class="m-0 text-lg font-semibold text-[var(--color-text-primary)]">
 				{{ formatMessage(messages.backupTitle) }}
 			</h3>
 			<template v-if="effectiveMode === 'copy_and_upgrade'">
-				<p class="mb-0 mt-2 text-sm text-secondary">{{ formatMessage(messages.copyNoBackup) }}</p>
+				<p class="mb-0 mt-2 text-sm text-[var(--color-text-tertiary)]">
+					{{ formatMessage(messages.copyNoBackup) }}
+				</p>
 			</template>
 			<template v-else>
 				<Checkbox
@@ -97,7 +109,7 @@
 					:label="formatMessage(messages.backupToggle)"
 					@update:model-value="rememberBackupPreference"
 				/>
-				<p class="mb-0 mt-2 text-sm text-secondary">
+				<p class="mb-0 mt-2 text-sm text-[var(--color-text-tertiary)]">
 					{{ formatMessage(messages.backupDescription) }}
 				</p>
 				<Admonition
@@ -109,29 +121,37 @@
 					{{ formatMessage(messages.backupOffBody) }}
 				</Admonition>
 			</template>
-			<div class="mt-4 border-0 border-t border-solid border-divider pt-3 text-sm text-secondary">
-				<strong class="text-contrast">{{ formatMessage(messages.rollbackTitle) }}</strong>
+			<div
+				class="mt-4 border-0 border-t border-solid border-divider pt-3 text-sm text-[var(--color-text-tertiary)]"
+			>
+				<strong class="text-[var(--color-text-primary)]">{{
+					formatMessage(messages.rollbackTitle)
+				}}</strong>
 				<p class="mb-0 mt-1">{{ formatMessage(messages.rollbackDescription) }}</p>
 			</div>
 		</section>
 
 		<section>
-			<h3 class="m-0 text-lg font-semibold text-contrast">
+			<h3 class="m-0 text-lg font-semibold text-[var(--color-text-primary)]">
 				{{ formatMessage(messages.preservedTitle) }}
 			</h3>
-			<p class="mb-0 mt-2 text-sm text-secondary">{{ formatMessage(messages.preservedBody) }}</p>
+			<p class="mb-0 mt-2 text-sm text-[var(--color-text-tertiary)]">
+				{{ formatMessage(messages.preservedBody) }}
+			</p>
 		</section>
 		<section v-if="detailGroups.some((group) => group.items.length)" class="flex flex-col gap-2">
-			<h3 class="m-0 text-lg font-semibold text-contrast">{{ formatMessage(messages.details) }}</h3>
+			<h3 class="m-0 text-lg font-semibold text-[var(--color-text-primary)]">
+				{{ formatMessage(messages.details) }}
+			</h3>
 			<Accordion
 				v-for="group in detailGroups.filter((entry) => entry.items.length)"
 				:key="group.label"
-				button-class="flex w-full items-center gap-2 border-0 bg-transparent p-0 text-left text-contrast"
+				button-class="flex w-full items-center gap-2 border-0 bg-transparent p-0 text-left text-[var(--color-text-primary)]"
 				content-class="pt-2"
 			>
 				<template #title>
 					<strong>{{ group.label }}</strong>
-					<span class="text-sm text-secondary">{{ group.items.length }}</span>
+					<span class="text-sm text-[var(--color-text-tertiary)]">{{ group.items.length }}</span>
 				</template>
 				<div class="grid gap-2 sm:grid-cols-2">
 					<div
@@ -144,13 +164,17 @@
 							<RouterLink
 								v-if="item.projectPath"
 								:to="item.projectPath"
-								class="inline-flex max-w-full cursor-pointer items-center gap-1 font-semibold text-contrast hover:text-brand hover:underline focus-visible:underline"
+								class="inline-flex max-w-full cursor-pointer items-center gap-1 font-semibold text-[var(--color-text-primary)] hover:text-brand hover:underline focus-visible:underline"
 								@click="parkProjectReturn"
 								><span class="truncate">{{ item.title }}</span
 								><ExternalIcon class="size-3 shrink-0" aria-hidden="true"
 							/></RouterLink>
-							<div v-else class="truncate font-semibold text-contrast">{{ item.title }}</div>
-							<div class="flex min-w-0 flex-wrap items-center gap-x-2 text-sm text-secondary">
+							<div v-else class="truncate font-semibold text-[var(--color-text-primary)]">
+								{{ item.title }}
+							</div>
+							<div
+								class="flex min-w-0 flex-wrap items-center gap-x-2 text-sm text-[var(--color-text-tertiary)]"
+							>
 								<span>{{ item.providerLabel }}</span>
 								<UpgradeVersionChangelogPopout
 									v-if="item.projectPath && item.currentReleaseId && item.currentLabel"

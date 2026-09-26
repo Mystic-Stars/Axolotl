@@ -49,23 +49,23 @@ const iconOnlySizeClasses: Record<ButtonSize, string> = {
 }
 
 const typeClasses: Record<ButtonType, string> = {
-	base: 'button-frame--base bg-surface-4 text-contrast [&>svg]:text-primary',
+	base: 'button-frame--base bg-surface-4 text-[var(--color-text-primary)] [&>svg]:text-[var(--color-text-default)]',
 	colored:
 		'button-frame--colored bg-[--button-color] text-[var(--color-accent-contrast)] [&>svg]:text-inherit',
 	'colored-text':
 		'button-frame--colored-text bg-surface-4 text-[--button-color] [&>svg]:text-inherit',
 	outlined:
-		'button-frame--outlined bg-transparent text-[var(--button-color,var(--color-contrast))] [&>svg]:text-[var(--button-color,var(--color-base))]',
+		'button-frame--outlined bg-transparent text-[var(--button-color,var(--color-text-primary))] [&>svg]:text-[var(--button-color,var(--color-text-default))]',
 	quiet: 'button-frame--quiet bg-transparent [&>svg]:text-inherit',
 	// A 25% tint of the accent colour. All three read the same tint; they differ
 	// in label colour and whether they carry the raised shadow. Without a colour
 	// the tint variable is unset and the fill falls back to the raised surface,
 	// which is what the legacy uncoloured chip rendered as.
-	chip: 'button-frame--chip bg-[--button-highlight,var(--surface-4)] text-[var(--button-color,var(--color-base))] [&>svg]:text-inherit',
+	chip: 'button-frame--chip bg-[--button-highlight,var(--surface-4)] text-[var(--button-color,var(--color-text-default))] [&>svg]:text-inherit',
 	'chip-text':
-		'button-frame--chip-text bg-[--button-highlight,var(--surface-4)] text-[var(--button-color,var(--color-base))] [&>svg]:text-inherit',
+		'button-frame--chip-text bg-[--button-highlight,var(--surface-4)] text-[var(--button-color,var(--color-text-default))] [&>svg]:text-inherit',
 	highlight:
-		'button-frame--highlight bg-[--button-highlight,var(--surface-4)] text-contrast [&>svg]:text-inherit',
+		'button-frame--highlight bg-[--button-highlight,var(--surface-4)] text-[var(--color-text-primary)] [&>svg]:text-inherit',
 }
 
 const interactionClasses: Record<ButtonInteraction, string> = {
@@ -83,7 +83,7 @@ const colorVariables: Record<ButtonColor, string> = {
 	green: 'var(--color-green)',
 	blue: 'var(--color-blue)',
 	purple: 'var(--color-purple)',
-	medal_promotion: 'var(--medal-promotion-text-orange, var(--color-orange))',
+	'medal-promo': 'var(--color-medal-promo)',
 }
 
 // The 25%-opacity tint behind `chip`/`highlight`. Each accent has its own
@@ -95,7 +95,7 @@ const highlightVariables: Record<ButtonColor, string> = {
 	green: 'var(--color-green-highlight)',
 	blue: 'var(--color-blue-highlight)',
 	purple: 'var(--color-purple-highlight)',
-	medal_promotion: 'var(--color-orange-highlight)',
+	'medal-promo': 'var(--color-medal-promo-highlight)',
 }
 
 const props = withDefaults(
@@ -212,7 +212,7 @@ defineExpose({ element })
 }
 
 .button-frame--quiet {
-	color: var(--button-color, var(--color-base));
+	color: var(--button-color, var(--color-text-default));
 }
 
 /* `chip` and `highlight` are tinted fills rather than transparent ones, so they

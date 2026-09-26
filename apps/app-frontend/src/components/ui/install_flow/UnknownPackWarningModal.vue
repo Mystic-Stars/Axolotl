@@ -6,7 +6,10 @@
 				:header="formatMessage(messages.warningTitle)"
 				:body="formatMessage(messages.warningBody)"
 			/>
-			<div v-if="fileName" class="overflow-x-auto whitespace-nowrap text-sm text-secondary">
+			<div
+				v-if="fileName"
+				class="overflow-x-auto whitespace-nowrap text-sm text-[var(--color-text-tertiary)]"
+			>
 				{{ fileName }}
 			</div>
 			<div>

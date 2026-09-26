@@ -1,7 +1,7 @@
 <template>
 	<SidebarSection :title="formatMessage(messages.title)" :visible="project.versions?.length > 0">
 		<section class="flex flex-col gap-2">
-			<h3 class="text-primary !font-normal text-base m-0">
+			<h3 class="text-[var(--color-text-default)] !font-normal text-base m-0">
 				{{ formatMessage(messages.minecraftJava) }}
 			</h3>
 			<div class="flex flex-wrap gap-1">
@@ -14,7 +14,7 @@
 			</div>
 		</section>
 		<section v-if="project.project_type !== 'resourcepack'" class="flex flex-col gap-2">
-			<h3 class="text-primary !font-normal text-base m-0">
+			<h3 class="text-[var(--color-text-default)] !font-normal text-base m-0">
 				{{ formatMessage(messages.platforms) }}
 			</h3>
 			<div class="flex flex-wrap gap-1">
@@ -37,7 +37,7 @@
 			</div>
 		</section>
 		<section v-if="showEnvironments" class="flex flex-col gap-2">
-			<h3 class="text-primary !font-normal text-base m-0">
+			<h3 class="text-[var(--color-text-default)] !font-normal text-base m-0">
 				{{ formatMessage(messages.environments) }}
 			</h3>
 			<div class="flex flex-wrap gap-1">
@@ -52,7 +52,9 @@
 			"
 			class="flex flex-col gap-2"
 		>
-			<h3 class="text-primary text-base m-0">{{ formatMessage(messages.environments) }}</h3>
+			<h3 class="text-[var(--color-text-default)] text-base m-0">
+				{{ formatMessage(messages.environments) }}
+			</h3>
 			<div class="flex flex-wrap gap-1">
 				<TagItem
 					v-if="

@@ -186,7 +186,7 @@ function handleItemUpdate(id: string) {
 					:aria-sort="
 						sortBy === 'project' ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'
 					"
-					class="flex items-center gap-1.5 font-semibold text-secondary"
+					class="flex items-center gap-1.5 font-semibold text-[var(--color-text-tertiary)]"
 					@click="handleSort('project')"
 				>
 					{{ formatMessage(commonMessages.projectLabel) }}
@@ -196,7 +196,7 @@ function handleItemUpdate(id: string) {
 						class="size-4"
 					/>
 				</button>
-				<span v-else role="columnheader" class="font-semibold text-secondary">{{
+				<span v-else role="columnheader" class="font-semibold text-[var(--color-text-tertiary)]">{{
 					formatMessage(commonMessages.projectLabel)
 				}}</span>
 			</div>
@@ -208,7 +208,7 @@ function handleItemUpdate(id: string) {
 					:aria-sort="
 						sortBy === 'version' ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'
 					"
-					class="flex items-center gap-1.5 font-semibold text-secondary"
+					class="flex items-center gap-1.5 font-semibold text-[var(--color-text-tertiary)]"
 					@click="handleSort('version')"
 				>
 					<ChevronUpIcon v-if="sortBy === 'version' && sortDirection === 'asc'" class="size-4" />
@@ -217,7 +217,11 @@ function handleItemUpdate(id: string) {
 						class="size-4"
 					/>
 				</button>
-				<span v-else role="columnheader" class="font-semibold text-secondary"></span>
+				<span
+					v-else
+					role="columnheader"
+					class="font-semibold text-[var(--color-text-tertiary)]"
+				></span>
 			</div>
 
 			<div
@@ -407,7 +411,9 @@ function handleItemUpdate(id: string) {
 			:class="flat ? '' : 'rounded-b-[20px]'"
 		>
 			<slot name="empty">
-				<span class="text-secondary">{{ formatMessage(commonMessages.noItemsLabel) }}</span>
+				<span class="text-[var(--color-text-tertiary)]">{{
+					formatMessage(commonMessages.noItemsLabel)
+				}}</span>
 			</slot>
 		</div>
 	</div>

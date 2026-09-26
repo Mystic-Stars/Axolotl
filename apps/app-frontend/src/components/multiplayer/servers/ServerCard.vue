@@ -156,10 +156,14 @@ const setupTooltip = computed(() => {
 			</div>
 		</div>
 		<div class="flex w-full min-w-0 flex-col items-start justify-center gap-1 px-0.5">
-			<p class="m-0 w-full truncate text-base font-semibold leading-5 text-contrast">
+			<p
+				class="m-0 w-full truncate text-base font-semibold leading-5 text-[var(--color-text-primary)]"
+			>
 				{{ server.name }}
 			</p>
-			<p class="m-0 w-full truncate text-sm font-medium leading-[18px] text-primary">
+			<p
+				class="m-0 w-full truncate text-sm font-medium leading-[18px] text-[var(--color-text-default)]"
+			>
 				{{ server.serverType }} {{ server.gameVersion }}
 			</p>
 		</div>
@@ -242,7 +246,9 @@ const setupTooltip = computed(() => {
 		</div>
 		<div class="min-w-0 flex-1">
 			<div class="flex min-w-0 items-center gap-2">
-				<p class="m-0 min-w-0 truncate text-base font-bold leading-tight text-contrast">
+				<p
+					class="m-0 min-w-0 truncate text-base font-bold leading-tight text-[var(--color-text-primary)]"
+				>
 					{{ server.name }}
 				</p>
 				<TagItem v-if="displayTag" class="shrink-0">
@@ -251,7 +257,7 @@ const setupTooltip = computed(() => {
 					</span>
 				</TagItem>
 			</div>
-			<p class="m-0 mt-1 truncate text-sm font-semibold text-secondary">
+			<p class="m-0 mt-1 truncate text-sm font-semibold text-[var(--color-text-tertiary)]">
 				{{ server.serverType }} {{ server.gameVersion }}
 			</p>
 		</div>

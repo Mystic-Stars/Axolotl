@@ -20,16 +20,20 @@
 				@focusin="setOwnership('popupFocused', true)"
 				@focusout="setOwnership('popupFocused', false)"
 			>
-				<span v-if="loading" class="text-sm text-secondary">{{
+				<span v-if="loading" class="text-sm text-[var(--color-text-tertiary)]">{{
 					formatMessage(messages.loading)
 				}}</span>
 				<template v-else-if="metadata">
 					<div class="flex items-start justify-between gap-3">
 						<div class="min-w-0">
-							<strong class="block truncate text-sm text-contrast">{{ metadata.version }}</strong>
-							<span v-if="metadata.channel" class="mt-1 block text-xs uppercase text-secondary">{{
-								metadata.channel
-							}}</span>
+							<strong class="block truncate text-sm text-[var(--color-text-primary)]">{{
+								metadata.version
+							}}</strong>
+							<span
+								v-if="metadata.channel"
+								class="mt-1 block text-xs uppercase text-[var(--color-text-tertiary)]"
+								>{{ metadata.channel }}</span
+							>
 						</div>
 						<Button
 							v-if="metadata.changelog"
@@ -45,16 +49,18 @@
 					<!-- eslint-disable vue/no-v-html -->
 					<div
 						v-if="metadata.changelog"
-						class="markdown-body mt-2 min-h-0 overflow-y-auto text-sm text-secondary"
+						class="markdown-body mt-2 min-h-0 overflow-y-auto text-sm text-[var(--color-text-tertiary)]"
 						@click="openExternalLink"
 						v-html="renderedChangelog"
 					/>
 					<!-- eslint-enable vue/no-v-html -->
-					<span v-else class="mt-2 block text-sm text-secondary">{{
+					<span v-else class="mt-2 block text-sm text-[var(--color-text-tertiary)]">{{
 						formatMessage(messages.empty)
 					}}</span>
 				</template>
-				<span v-else class="text-sm text-secondary">{{ formatMessage(messages.unavailable) }}</span>
+				<span v-else class="text-sm text-[var(--color-text-tertiary)]">{{
+					formatMessage(messages.unavailable)
+				}}</span>
 			</div>
 		</Teleport>
 	</span>

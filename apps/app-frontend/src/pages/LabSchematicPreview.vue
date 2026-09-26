@@ -1502,7 +1502,9 @@ onBeforeUnmount(() => {
 				class="schematic-recent w-[min(52rem,calc(100%-3rem))] mx-auto mb-8"
 			>
 				<header class="flex items-center justify-between gap-3">
-					<h2 class="m-0 text-base text-contrast">{{ formatMessage(messages.recent) }}</h2>
+					<h2 class="m-0 text-base text-[var(--color-text-primary)]">
+						{{ formatMessage(messages.recent) }}
+					</h2>
 					<Button type="quiet" size="2xs" @click="recent = clearRecentSchematics()"
 						><TrashIcon />{{ formatMessage(messages.clearRecent) }}
 					</Button>
@@ -1513,15 +1515,21 @@ onBeforeUnmount(() => {
 						:key="record.id"
 						class="schematic-recent-row flex min-w-0 items-center gap-3 py-2"
 					>
-						<FileArchiveIcon class="size-5 shrink-0 text-secondary" />
+						<FileArchiveIcon class="size-5 shrink-0 text-[var(--color-text-tertiary)]" />
 						<button
 							class="min-w-0 flex-1 cursor-pointer border-0 bg-transparent p-0 text-left"
 							@click="openRecent(record)"
 						>
-							<strong class="block truncate text-primary">{{ record.fileName }}</strong>
+							<strong class="block truncate text-[var(--color-text-default)]">{{
+								record.fileName
+							}}</strong>
 							<span
 								class="block truncate text-xs"
-								:class="unavailableRecent.has(record.id) ? 'text-brand-red' : 'text-secondary'"
+								:class="
+									unavailableRecent.has(record.id)
+										? 'text-brand-red'
+										: 'text-[var(--color-text-tertiary)]'
+								"
 							>
 								{{
 									unavailableRecent.has(record.id)
@@ -1549,12 +1557,12 @@ onBeforeUnmount(() => {
 			<header class="schematic-toolbar">
 				<div class="min-w-0 flex-1">
 					<div class="flex min-w-0 items-center gap-2">
-						<h1 class="m-0 truncate text-base font-semibold text-contrast">
+						<h1 class="m-0 truncate text-base font-semibold text-[var(--color-text-primary)]">
 							{{ manifest.fileName }}
 						</h1>
 						<TagItem>{{ formatFormat(manifest) }}</TagItem>
 					</div>
-					<p class="m-0 mt-0.5 truncate text-xs text-secondary">
+					<p class="m-0 mt-0.5 truncate text-xs text-[var(--color-text-tertiary)]">
 						{{ manifest.size.join(' × ') }} · {{ formatNumber(manifest.blockCount) }}
 						{{ formatMessage(messages.blocks).toLocaleLowerCase(locale) }}
 					</p>
@@ -1746,13 +1754,13 @@ onBeforeUnmount(() => {
 						class="schematic-tool-context schematic-measurement-readout w-[min(42rem,calc(100%-1.5rem))]"
 					>
 						<div class="min-w-0 flex-1">
-							<div class="truncate text-xs text-secondary">
+							<div class="truncate text-xs text-[var(--color-text-tertiary)]">
 								{{ formatMessage(messages.measurementStart) }}
 								<strong>{{ measurementStart.position.join(', ') }}</strong>
 								· {{ formatMessage(messages.measurementEnd) }}
 								<strong>{{ measurementEnd?.position.join(', ') ?? '—' }}</strong>
 							</div>
-							<div v-if="measurement" class="truncate text-sm text-contrast">
+							<div v-if="measurement" class="truncate text-sm text-[var(--color-text-primary)]">
 								ΔX {{ formatNumber(measurement.delta[0]) }} · ΔY
 								{{ formatNumber(measurement.delta[1]) }} · ΔZ
 								{{ formatNumber(measurement.delta[2]) }} ·
@@ -1927,7 +1935,7 @@ onBeforeUnmount(() => {
 							{{ formatMessage(messages.selectedCount, { count: selectedBlocks.length }) }}
 						</span>
 						<span v-else-if="error" class="truncate text-brand-red">{{ error }}</span>
-						<span v-else class="truncate text-secondary"
+						<span v-else class="truncate text-[var(--color-text-tertiary)]"
 							>{{ manifest.min.join(', ') }} → {{ manifest.max.join(', ') }}</span
 						>
 					</footer>
@@ -1958,9 +1966,11 @@ onBeforeUnmount(() => {
 									<strong>{{
 										formatMessage(messages.selectedCount, { count: selectedBlocks.length })
 									}}</strong>
-									<span v-if="selectedBlock" class="truncate text-xs text-secondary">{{
-										blockDisplayName(selectedBlock.name)
-									}}</span>
+									<span
+										v-if="selectedBlock"
+										class="truncate text-xs text-[var(--color-text-tertiary)]"
+										>{{ blockDisplayName(selectedBlock.name) }}</span
+									>
 								</div>
 								<p v-if="workspaceTool === 'box' && selectionAnchor" class="m-0 text-xs text-brand">
 									{{ formatMessage(messages.boxSelectPending) }}
@@ -2109,7 +2119,7 @@ onBeforeUnmount(() => {
 							</div>
 							<p
 								v-if="visibleMaterials.length === 0"
-								class="m-0 py-8 text-center text-sm text-secondary"
+								class="m-0 py-8 text-center text-sm text-[var(--color-text-tertiary)]"
 							>
 								{{ formatMessage(messages.noMaterials) }}
 							</p>
@@ -2236,11 +2246,6 @@ onBeforeUnmount(() => {
 	background: var(--surface-2);
 }
 
-.schematic-canvas-controls :deep(.button-outer) {
-	width: 2.25rem;
-	height: 2.25rem;
-}
-
 .schematic-command-chevron {
 	width: 0.875rem !important;
 	height: 0.875rem !important;
@@ -2363,7 +2368,7 @@ onBeforeUnmount(() => {
 	flex: none;
 	align-items: center;
 	gap: 0.35rem;
-	color: var(--color-contrast);
+	color: var(--color-text-primary);
 	font-size: 0.78rem;
 	font-weight: 600;
 }
@@ -2485,7 +2490,7 @@ onBeforeUnmount(() => {
 	align-items: center;
 	gap: 0.2rem;
 	flex: none;
-	color: var(--color-text-secondary);
+	color: var(--color-text-tertiary);
 	font-size: 0.72rem;
 	font-weight: 700;
 }
@@ -2501,7 +2506,7 @@ onBeforeUnmount(() => {
 	height: 1.4em;
 	border-radius: 0.2rem;
 	padding: 0.2rem;
-	color: var(--color-contrast);
+	color: var(--color-text-primary);
 	font-size: 0.7rem;
 	font-weight: bold;
 	font-variant-numeric: tabular-nums;
@@ -2510,7 +2515,7 @@ onBeforeUnmount(() => {
 
 .schematic-layer-limit,
 .schematic-layer-count {
-	color: var(--color-text-secondary);
+	color: var(--color-text-tertiary);
 	font-size: 0.62rem;
 	font-variant-numeric: tabular-nums;
 }
@@ -2526,7 +2531,7 @@ onBeforeUnmount(() => {
 	border: 0;
 	border-radius: 999px;
 	padding: 0;
-	background: var(--color-base);
+	background: var(--color-text-default);
 	box-shadow: none;
 }
 
@@ -2544,7 +2549,6 @@ onBeforeUnmount(() => {
 	cursor: grabbing;
 }
 
-.schematic-layer-control :deep(.button-outer),
 .schematic-layer-control :deep(button) {
 	width: 2rem;
 	height: 2rem;
@@ -2562,7 +2566,7 @@ onBeforeUnmount(() => {
 	border-radius: var(--radius-md);
 	padding: 0.45rem 0.65rem;
 	background: color-mix(in srgb, var(--color-bg) 90%, transparent);
-	color: var(--color-text-secondary);
+	color: var(--color-text-tertiary);
 	font-size: 0.75rem;
 }
 
@@ -2602,7 +2606,7 @@ onBeforeUnmount(() => {
 	border-top: 1px solid var(--color-divider);
 	padding: 0 0.65rem;
 	background: color-mix(in srgb, var(--surface-2) 90%, transparent);
-	color: var(--color-contrast);
+	color: var(--color-text-primary);
 	font-size: 0.72rem;
 	backdrop-filter: blur(8px);
 }
@@ -2617,7 +2621,7 @@ onBeforeUnmount(() => {
 	border-radius: var(--radius-md);
 	padding: 0.65rem 0.75rem;
 	background: var(--surface-3);
-	color: var(--color-contrast);
+	color: var(--color-text-primary);
 }
 
 .editor-action-grid {
@@ -2626,7 +2630,6 @@ onBeforeUnmount(() => {
 	gap: 0.5rem;
 }
 
-.editor-action-grid :deep(.button-outer),
 .editor-action-grid :deep(button) {
 	width: 100%;
 	min-width: 0;
@@ -2667,7 +2670,7 @@ onBeforeUnmount(() => {
 	align-items: center;
 	gap: 0.4rem;
 	margin: 0;
-	color: var(--color-contrast);
+	color: var(--color-text-primary);
 	font-size: 0.82rem;
 }
 
@@ -2692,13 +2695,13 @@ onBeforeUnmount(() => {
 	border-radius: var(--radius-sm);
 	padding: 0.35rem 0.45rem;
 	background: transparent;
-	color: var(--color-contrast);
+	color: var(--color-text-primary);
 	font: inherit;
 	font-size: 0.72rem;
 }
 
 .material-row:hover {
-	background: var(--color-button-bg);
+	background: var(--surface-4);
 }
 
 .material-swatch {
@@ -2719,7 +2722,7 @@ onBeforeUnmount(() => {
 
 .material-states code {
 	overflow-wrap: anywhere;
-	color: var(--color-text-secondary);
+	color: var(--color-text-tertiary);
 	font-size: 0.65rem;
 }
 
@@ -2771,7 +2774,7 @@ onBeforeUnmount(() => {
 		border: 0;
 		padding: 0.75rem 1rem;
 		background: transparent;
-		color: var(--color-contrast);
+		color: var(--color-text-primary);
 	}
 
 	.schematic-inspector-toggle svg {

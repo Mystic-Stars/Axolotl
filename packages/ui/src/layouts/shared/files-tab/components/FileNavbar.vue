@@ -20,7 +20,7 @@
 		<div class="flex items-center justify-between gap-2">
 			<nav
 				:aria-label="formatMessage(messages.breadcrumbNavigation)"
-				class="m-0 flex min-w-0 flex-shrink items-center p-0 text-contrast"
+				class="m-0 flex min-w-0 flex-shrink items-center p-0 text-[var(--color-text-primary)]"
 			>
 				<ol class="m-0 flex min-w-0 flex-shrink list-none items-center p-0">
 					<li class="mr-4 flex-shrink-0">
@@ -69,21 +69,25 @@
 												!isEditing && index === breadcrumbs.length - 1 ? 'location' : undefined
 											"
 											:class="{
-												'!text-contrast': !isEditing && index === breadcrumbs.length - 1,
+												'!text-[var(--color-text-primary)]':
+													!isEditing && index === breadcrumbs.length - 1,
 											}"
 											@click="$emit('navigate', index)"
 											>{{ segment || '' }}
 										</Button>
 										<ChevronRightIcon
 											v-if="index < breadcrumbs.length - 1 || isEditing"
-											class="size-4 flex-shrink-0 text-secondary"
+											class="size-4 flex-shrink-0 text-[var(--color-text-tertiary)]"
 											aria-hidden="true"
 										/>
 									</div>
 								</li>
 							</TransitionGroup>
 							<li v-if="isEditing && editingFileName" class="flex items-center px-3 text-base">
-								<span class="font-semibold !text-contrast" aria-current="location">
+								<span
+									class="font-semibold !text-[var(--color-text-primary)]"
+									aria-current="location"
+								>
 									{{ editingFileName }}
 								</span>
 							</li>

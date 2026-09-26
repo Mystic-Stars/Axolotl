@@ -83,15 +83,15 @@ const modelComponent = computed(() => {
 	)
 })
 const modelAvatarStyle = computed(() => ({
-	background: modelBackground.value ?? 'var(--color-button-bg)',
-	color: modelAvatar.value?.color ?? 'var(--color-secondary)',
+	background: modelBackground.value ?? 'var(--surface-4)',
+	color: modelAvatar.value?.color ?? 'var(--color-text-tertiary)',
 	height: `${props.size}px`,
 	width: `${props.size}px`,
 }))
 const avatarStyle = computed(() => ({
 	background: avatarConfig.value?.background,
 	borderRadius: `${Math.floor(props.size * 0.1)}px`,
-	color: avatarConfig.value?.color ?? (isCodeFlow.value ? 'var(--color-contrast)' : undefined),
+	color: avatarConfig.value?.color ?? (isCodeFlow.value ? 'var(--color-text-primary)' : undefined),
 	height: `${props.size}px`,
 	width: `${props.size}px`,
 }))
@@ -157,7 +157,7 @@ const avatarStyle = computed(() => ({
 
 	<span
 		v-else-if="kind === 'provider-combine'"
-		class="inline-flex min-w-0 flex-none items-center justify-start text-contrast"
+		class="inline-flex min-w-0 flex-none items-center justify-start text-[var(--color-text-primary)]"
 		:style="{ gap: `${combineSize / 3}px`, height: `${size * 1.5}px` }"
 		aria-hidden="true"
 	>
@@ -252,7 +252,7 @@ const avatarStyle = computed(() => ({
 		v-else-if="kind === 'provider-wordmark'"
 		class="lobe-provider-wordmark"
 		:style="{
-			color: 'var(--color-contrast)',
+			color: 'var(--color-text-primary)',
 			gap: `${Math.max(4, Math.round(size * 0.214))}px`,
 		}"
 		aria-hidden="true"

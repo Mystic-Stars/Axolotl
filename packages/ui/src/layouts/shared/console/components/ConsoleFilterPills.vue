@@ -7,7 +7,7 @@
 			:class="
 				modelValue.has(option.id)
 					? 'bg-brand-highlight text-brand'
-					: 'bg-surface-4 text-primary hover:bg-surface-5'
+					: 'bg-surface-4 text-[var(--color-text-default)] hover:bg-surface-5'
 			"
 			:aria-pressed="modelValue.has(option.id)"
 			@click="handleToggle(option.id)"

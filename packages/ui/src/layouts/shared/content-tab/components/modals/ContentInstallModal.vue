@@ -1,7 +1,7 @@
 <template>
 	<NewModal ref="modal" no-padding scrollable max-width="560px" width="560px" :on-hide="handleHide">
 		<template #title>
-			<span class="text-2xl font-semibold text-contrast">
+			<span class="text-2xl font-semibold text-[var(--color-text-primary)]">
 				{{ formatMessage(messages.header) }}
 			</span>
 		</template>
@@ -25,10 +25,16 @@
 				</div>
 			</AutoLink>
 			<div class="flex flex-col gap-1">
-				<AutoLink :to="projectInfo.link" class="font-semibold text-contrast hover:underline">
+				<AutoLink
+					:to="projectInfo.link"
+					class="font-semibold text-[var(--color-text-primary)] hover:underline"
+				>
 					{{ projectInfo.title }}
 				</AutoLink>
-				<div v-if="projectInfo.owner" class="flex items-center gap-2 text-sm text-secondary">
+				<div
+					v-if="projectInfo.owner"
+					class="flex items-center gap-2 text-sm text-[var(--color-text-tertiary)]"
+				>
 					<AutoLink
 						:to="projectInfo.owner.link"
 						class="flex items-center gap-1.5 text-inherit no-underline hover:underline"
@@ -47,7 +53,7 @@
 		</div>
 
 		<div class="flex flex-col gap-2.5 p-6">
-			<span class="font-semibold text-contrast">
+			<span class="font-semibold text-[var(--color-text-primary)]">
 				{{ formatMessage(messages.instanceType) }}
 			</span>
 			<Chips
@@ -90,7 +96,7 @@
 			</div>
 			<div
 				v-else-if="filteredInstances.length === 0"
-				class="flex items-center justify-center py-12 text-secondary"
+				class="flex items-center justify-center py-12 text-[var(--color-text-tertiary)]"
 			>
 				{{ formatMessage(messages.noInstances) }}
 			</div>
@@ -114,7 +120,7 @@
 								'!border-0 !rounded-none !bg-transparent !shadow-none': inst.iconFrameless,
 							}"
 						/>
-						<span class="truncate font-semibold text-contrast hover:underline">{{
+						<span class="truncate font-semibold text-[var(--color-text-primary)] hover:underline">{{
 							inst.name
 						}}</span>
 					</button>
@@ -168,7 +174,7 @@
 			</div>
 
 			<div class="flex flex-col gap-2.5">
-				<span class="font-semibold text-contrast">
+				<span class="font-semibold text-[var(--color-text-primary)]">
 					{{ formatMessage(messages.nameLabel) }}
 				</span>
 				<StyledInput
@@ -178,7 +184,7 @@
 			</div>
 
 			<div class="flex flex-col gap-2.5">
-				<span class="font-semibold text-contrast">
+				<span class="font-semibold text-[var(--color-text-primary)]">
 					{{ formatMessage(messages.loaderLabel) }}
 				</span>
 				<Chips
@@ -190,7 +196,7 @@
 			</div>
 
 			<div class="flex flex-col gap-2.5">
-				<span class="font-semibold text-contrast">
+				<span class="font-semibold text-[var(--color-text-primary)]">
 					{{ formatMessage(commonMessages.gameVersionLabel) }}
 				</span>
 				<Combobox
@@ -202,7 +208,7 @@
 				>
 					<template v-if="hasReleaseData" #dropdown-footer>
 						<button
-							class="flex w-full cursor-pointer items-center justify-center gap-1.5 border-0 border-t border-solid border-surface-5 bg-transparent py-3 text-center text-sm font-semibold text-secondary transition-colors hover:text-contrast"
+							class="flex w-full cursor-pointer items-center justify-center gap-1.5 border-0 border-t border-solid border-surface-5 bg-transparent py-3 text-center text-sm font-semibold text-[var(--color-text-tertiary)] transition-colors hover:text-[var(--color-text-primary)]"
 							@mousedown.prevent
 							@click="showSnapshots = !showSnapshots"
 						>

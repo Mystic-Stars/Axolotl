@@ -338,8 +338,11 @@ onUnmounted(() => {
 			<div class="mb-1 text-xs font-semibold uppercase text-brand">
 				{{ formatMessage(messages.unread) }}
 			</div>
-			<div class="font-semibold text-contrast">{{ startupNotice.title }}</div>
-			<div v-if="startupNotice.summary" class="mt-1 line-clamp-2 text-sm text-secondary">
+			<div class="font-semibold text-[var(--color-text-primary)]">{{ startupNotice.title }}</div>
+			<div
+				v-if="startupNotice.summary"
+				class="mt-1 line-clamp-2 text-sm text-[var(--color-text-tertiary)]"
+			>
 				{{ startupNotice.summary }}
 			</div>
 		</button>
@@ -356,23 +359,28 @@ onUnmounted(() => {
 		<div class="flex h-[calc(80vh-8rem)] min-h-0 gap-3">
 			<aside class="flex min-h-0 w-[32%] min-w-[14rem] flex-col border-r border-surface-5 pr-3">
 				<div class="mb-2 flex items-center justify-between">
-					<span class="font-semibold text-contrast">{{ formatMessage(messages.centerTitle) }}</span>
+					<span class="font-semibold text-[var(--color-text-primary)]">{{
+						formatMessage(messages.centerTitle)
+					}}</span>
 					<Button
 						v-if="items.some((item) => !read.has(announcementKey(item)))"
 						@click="markAllRead"
 						>{{ formatMessage(messages.readAll) }}</Button
 					>
 				</div>
-				<div v-if="!items.length" class="py-8 text-center text-sm text-secondary">
+				<div
+					v-if="!items.length"
+					class="py-8 text-center text-sm text-[var(--color-text-tertiary)]"
+				>
 					{{ formatMessage(messages.empty) }}
 				</div>
 				<div v-else class="flex min-h-0 flex-col gap-1 overflow-auto">
 					<button
 						v-for="item in items"
 						:key="announcementKey(item)"
-						class="flex items-start gap-2 rounded-lg p-2 text-left hover:bg-button-bg"
+						class="flex items-start gap-2 rounded-lg p-2 text-left hover:bg-surface-4"
 						:class="{
-							'bg-button-bg': selected && announcementKey(selected) === announcementKey(item),
+							'bg-surface-4': selected && announcementKey(selected) === announcementKey(item),
 						}"
 						@click="selectAnnouncement(item)"
 					>
@@ -381,8 +389,10 @@ onUnmounted(() => {
 							:class="read.has(announcementKey(item)) ? 'opacity-0' : 'bg-red'"
 						/>
 						<span class="min-w-0 flex-1">
-							<span class="block truncate font-medium text-contrast">{{ item.title }}</span>
-							<span class="block line-clamp-2 text-xs text-secondary">{{
+							<span class="block truncate font-medium text-[var(--color-text-primary)]">{{
+								item.title
+							}}</span>
+							<span class="block line-clamp-2 text-xs text-[var(--color-text-tertiary)]">{{
 								item.summary || item.content
 							}}</span>
 						</span>
@@ -390,7 +400,9 @@ onUnmounted(() => {
 				</div>
 			</aside>
 			<section v-if="selected" class="min-h-0 min-w-0 flex-1 overflow-auto px-1">
-				<h2 class="mb-4 text-xl font-semibold text-contrast">{{ selected.title }}</h2>
+				<h2 class="mb-4 text-xl font-semibold text-[var(--color-text-primary)]">
+					{{ selected.title }}
+				</h2>
 				<div
 					class="markdown-body break-words"
 					@click="contentClick"
@@ -407,7 +419,10 @@ onUnmounted(() => {
 					>
 				</div>
 			</section>
-			<div v-else class="flex flex-1 items-center justify-center text-sm text-secondary">
+			<div
+				v-else
+				class="flex flex-1 items-center justify-center text-sm text-[var(--color-text-tertiary)]"
+			>
 				{{ formatMessage(messages.empty) }}
 			</div>
 		</div>

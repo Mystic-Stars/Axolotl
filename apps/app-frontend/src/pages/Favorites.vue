@@ -775,7 +775,7 @@ onMounted(async () => {
 				</span>
 				<span
 					aria-hidden="true"
-					class="flex size-4 shrink-0 items-center justify-center text-secondary"
+					class="flex size-4 shrink-0 items-center justify-center text-[var(--color-text-tertiary)]"
 				>
 					<ChevronDownIcon class="size-4" />
 				</span>
@@ -806,7 +806,7 @@ onMounted(async () => {
 		</div>
 
 		<div class="flex flex-wrap items-center gap-2">
-			<span class="text-sm font-medium text-secondary">{{
+			<span class="text-sm font-medium text-[var(--color-text-tertiary)]">{{
 				formatMessage(messages.recentlySaved)
 			}}</span>
 			<PopoutMenu :tooltip="formatMessage(messages.view)" placement="bottom-end" class="ml-auto">

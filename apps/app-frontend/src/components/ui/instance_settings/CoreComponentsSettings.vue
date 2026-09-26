@@ -304,7 +304,7 @@ async function importModLoader() {
 			v-if="manualModLoader"
 			class="flex flex-wrap items-center justify-between gap-3 border-y border-surface-4 py-3"
 		>
-			<p class="m-0 min-w-0 flex-1 text-sm text-secondary">
+			<p class="m-0 min-w-0 flex-1 text-sm text-[var(--color-text-tertiary)]">
 				{{ formatMessage(messages.modLoaderManual, { fileName: manualModLoader.fileName }) }}
 			</p>
 			<Button
@@ -334,8 +334,10 @@ async function importModLoader() {
 					"
 				/>
 				<div class="min-w-0 flex-1">
-					<div class="truncate font-medium text-contrast">{{ component.fileName }}</div>
-					<div class="text-xs text-secondary">
+					<div class="truncate font-medium text-[var(--color-text-primary)]">
+						{{ component.fileName }}
+					</div>
+					<div class="text-xs text-[var(--color-text-tertiary)]">
 						{{
 							formatMessage(
 								component.kind === 'replacement_jar' ? messages.replacement : messages.jarMod,
@@ -348,7 +350,10 @@ async function importModLoader() {
 							· {{ formatMessage(messages.source) }} {{ component.source.provider }}</span
 						>
 					</div>
-					<div v-if="component.sha256 || component.sha1" class="truncate text-xs text-secondary">
+					<div
+						v-if="component.sha256 || component.sha1"
+						class="truncate text-xs text-[var(--color-text-tertiary)]"
+					>
 						<span v-if="component.sha256"
 							>{{ formatMessage(messages.sha256) }} {{ component.sha256 }}</span
 						>
@@ -406,7 +411,9 @@ async function importModLoader() {
 				:key="component.id"
 				class="flex items-center gap-3 px-3 py-3"
 			>
-				<div class="min-w-0 flex-1 truncate text-secondary">{{ component.fileName }}</div>
+				<div class="min-w-0 flex-1 truncate text-[var(--color-text-tertiary)]">
+					{{ component.fileName }}
+				</div>
 				<Button
 					v-tooltip="formatMessage(messages.restore)"
 					type="quiet"

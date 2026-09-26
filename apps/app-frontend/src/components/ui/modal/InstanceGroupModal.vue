@@ -1,7 +1,7 @@
 <template>
 	<NewModal ref="modal" no-padding scrollable actions-divider max-width="560px" width="560px">
 		<template #title>
-			<span class="text-2xl font-semibold text-contrast">
+			<span class="text-2xl font-semibold text-[var(--color-text-primary)]">
 				{{
 					existingGroupName
 						? formatMessage(messages.addToGroupTitle, { groupName: existingGroupName })
@@ -12,7 +12,7 @@
 
 		<template v-if="!existingGroupName">
 			<div class="flex flex-col gap-2.5 p-6">
-				<label for="new-group-name" class="font-semibold text-contrast">
+				<label for="new-group-name" class="font-semibold text-[var(--color-text-primary)]">
 					{{ formatMessage(messages.groupName) }}
 				</label>
 				<StyledInput
@@ -40,7 +40,7 @@
 
 			<div
 				v-if="newGroupInstances.length === 0"
-				class="flex items-center justify-center py-12 text-secondary"
+				class="flex items-center justify-center py-12 text-[var(--color-text-tertiary)]"
 			>
 				{{ formatMessage(messages.noInstancesFound) }}
 			</div>
@@ -59,7 +59,9 @@
 							class="!size-[2rem] !rounded-md"
 						/>
 						<div class="flex min-w-0 items-center gap-2">
-							<span class="truncate font-semibold text-contrast">{{ instance.name }}</span>
+							<span class="truncate font-semibold text-[var(--color-text-primary)]">{{
+								instance.name
+							}}</span>
 							<TagItem v-if="instance.groups && instance.groups.length > 0" class="shrink-0">
 								{{ getGroupName(instance.groups[0]) }}
 							</TagItem>
@@ -104,14 +106,7 @@
 
 <script setup lang="ts">
 import { CheckIcon, PlusIcon, SearchIcon, SpinnerIcon, XIcon } from '@modrinth/assets'
-import {
-	defineMessages,
-	NewButton as Button,
-	NewModal,
-	StyledInput,
-	TagItem,
-	useVIntl,
-} from '@modrinth/ui'
+import { Button, defineMessages, NewModal, StyledInput, TagItem, useVIntl } from '@modrinth/ui'
 import { computed, ref } from 'vue'
 
 import InstanceIcon from '@/components/ui/InstanceIcon.vue'

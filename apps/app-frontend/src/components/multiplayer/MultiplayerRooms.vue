@@ -650,7 +650,7 @@ function submitJoin() {
 			<Card v-if="!state" class="!m-0">
 				<div class="flex items-center gap-3">
 					<SpinnerIcon class="size-8 animate-spin text-brand" />
-					<h2 class="m-0 text-lg font-semibold text-contrast">
+					<h2 class="m-0 text-lg font-semibold text-[var(--color-text-primary)]">
 						{{ formatMessage(messages.loading) }}
 					</h2>
 				</div>
@@ -665,10 +665,10 @@ function submitJoin() {
 							<BinaryIcon class="size-5" />
 						</div>
 						<div class="min-w-0">
-							<h2 class="m-0 text-lg font-semibold text-contrast">
+							<h2 class="m-0 text-lg font-semibold text-[var(--color-text-primary)]">
 								{{ formatMessage(messages.downloadTerracotta) }}
 							</h2>
-							<p class="mb-0 mt-1 text-secondary">
+							<p class="mb-0 mt-1 text-[var(--color-text-tertiary)]">
 								{{ formatMessage(messages.notRunning) }}
 							</p>
 						</div>
@@ -710,7 +710,9 @@ function submitJoin() {
 				<div class="flex flex-col gap-5">
 					<div class="flex items-center gap-3">
 						<SpinnerIcon class="size-6 shrink-0 animate-spin text-orange" />
-						<h2 class="m-0 text-lg font-semibold text-contrast">{{ statusText }}</h2>
+						<h2 class="m-0 text-lg font-semibold text-[var(--color-text-primary)]">
+							{{ statusText }}
+						</h2>
 					</div>
 					<ProgressBar
 						v-if="state.status === 'downloading'"
@@ -737,10 +739,10 @@ function submitJoin() {
 					/>
 
 					<div>
-						<h2 class="m-0 text-lg font-semibold text-contrast">
+						<h2 class="m-0 text-lg font-semibold text-[var(--color-text-primary)]">
 							{{ formatMessage(tabIndex === 0 ? messages.host : messages.join) }}
 						</h2>
-						<p class="mb-0 mt-1 text-secondary">
+						<p class="mb-0 mt-1 text-[var(--color-text-tertiary)]">
 							{{
 								formatMessage(tabIndex === 0 ? messages.hostDescription : messages.joinDescription)
 							}}
@@ -749,7 +751,7 @@ function submitJoin() {
 
 					<div class="grid gap-4 md:grid-cols-2">
 						<label class="flex min-w-0 flex-col gap-2" for="multiplayer-player-name">
-							<span class="font-semibold text-contrast">
+							<span class="font-semibold text-[var(--color-text-primary)]">
 								{{ formatMessage(messages.playerName) }}
 							</span>
 							<StyledInput
@@ -766,7 +768,7 @@ function submitJoin() {
 							class="flex min-w-0 flex-col gap-2"
 							for="multiplayer-room-code"
 						>
-							<span class="font-semibold text-contrast">
+							<span class="font-semibold text-[var(--color-text-primary)]">
 								{{ formatMessage(messages.roomCode) }}
 							</span>
 							<StyledInput
@@ -825,7 +827,9 @@ function submitJoin() {
 				<div class="flex flex-col gap-5">
 					<div class="flex items-center gap-3">
 						<SpinnerIcon class="size-6 shrink-0 animate-spin text-orange" />
-						<h2 class="m-0 text-lg font-semibold text-contrast">{{ statusText }}</h2>
+						<h2 class="m-0 text-lg font-semibold text-[var(--color-text-primary)]">
+							{{ statusText }}
+						</h2>
 					</div>
 					<Admonition type="info" :header="formatMessage(messages.host)">
 						{{ formatMessage(messages.lanHint) }}
@@ -845,8 +849,10 @@ function submitJoin() {
 						<div class="flex items-center gap-3">
 							<CheckCircleIcon class="size-7 shrink-0 text-green" />
 							<div>
-								<h2 class="m-0 text-lg font-semibold text-contrast">{{ statusText }}</h2>
-								<p class="mb-0 mt-1 text-sm text-secondary">
+								<h2 class="m-0 text-lg font-semibold text-[var(--color-text-primary)]">
+									{{ statusText }}
+								</h2>
+								<p class="mb-0 mt-1 text-sm text-[var(--color-text-tertiary)]">
 									{{ formatMessage(messages.playersInRoom, { count: playerCount }) }}
 								</p>
 							</div>
@@ -863,8 +869,10 @@ function submitJoin() {
 						class="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-surface-2 p-4"
 					>
 						<div class="min-w-0">
-							<div class="font-semibold text-contrast">{{ formatMessage(messages.roomCode) }}</div>
-							<div class="mt-1 text-sm text-secondary">
+							<div class="font-semibold text-[var(--color-text-primary)]">
+								{{ formatMessage(messages.roomCode) }}
+							</div>
+							<div class="mt-1 text-sm text-[var(--color-text-tertiary)]">
 								{{ formatMessage(messages.shareCode) }}
 							</div>
 						</div>
@@ -876,7 +884,7 @@ function submitJoin() {
 						class="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-surface-2 p-4"
 					>
 						<div class="min-w-0">
-							<div class="font-semibold text-contrast">
+							<div class="font-semibold text-[var(--color-text-primary)]">
 								{{ formatMessage(messages.serverAddress) }}
 							</div>
 						</div>
@@ -885,7 +893,7 @@ function submitJoin() {
 
 					<section class="flex flex-col gap-3">
 						<div class="flex items-center justify-between gap-3">
-							<h3 class="m-0 text-base font-semibold text-contrast">
+							<h3 class="m-0 text-base font-semibold text-[var(--color-text-primary)]">
 								{{ formatMessage(messages.players) }}
 							</h3>
 							<TagItem>
@@ -908,7 +916,7 @@ function submitJoin() {
 								>
 									<UserIcon class="size-4" />
 								</div>
-								<span class="min-w-0 flex-1 truncate font-medium text-contrast">
+								<span class="min-w-0 flex-1 truncate font-medium text-[var(--color-text-primary)]">
 									{{ player.name }}
 								</span>
 								<TagItem>
@@ -918,7 +926,7 @@ function submitJoin() {
 						</div>
 						<div
 							v-else
-							class="flex items-center gap-2 rounded-xl bg-surface-2 px-4 py-5 text-secondary"
+							class="flex items-center gap-2 rounded-xl bg-surface-2 px-4 py-5 text-[var(--color-text-tertiary)]"
 						>
 							<UsersIcon class="size-5" />
 							{{ formatMessage(messages.noPlayers) }}
@@ -941,7 +949,9 @@ function submitJoin() {
 				<div class="flex flex-col gap-5">
 					<div class="flex items-center gap-3">
 						<SpinnerIcon class="size-6 shrink-0 animate-spin text-orange" />
-						<h2 class="m-0 text-lg font-semibold text-contrast">{{ statusText }}</h2>
+						<h2 class="m-0 text-lg font-semibold text-[var(--color-text-primary)]">
+							{{ statusText }}
+						</h2>
 					</div>
 					<div class="flex flex-wrap gap-2">
 						<Button type="outlined" :disabled="isActionPending" @click="resetState"
@@ -1010,10 +1020,10 @@ function submitJoin() {
 							<UsersIcon class="size-5" />
 						</div>
 						<div class="min-w-0">
-							<h2 class="m-0 text-lg font-semibold text-contrast">
+							<h2 class="m-0 text-lg font-semibold text-[var(--color-text-primary)]">
 								{{ formatMessage(messages.notRunningTitle) }}
 							</h2>
-							<p class="mb-0 mt-1 text-secondary">
+							<p class="mb-0 mt-1 text-[var(--color-text-tertiary)]">
 								{{ formatMessage(messages.notRunning) }}
 							</p>
 						</div>
@@ -1031,7 +1041,7 @@ function submitJoin() {
 				</div>
 			</Card>
 
-			<div class="mt-auto pt-6 text-center text-xs text-secondary">
+			<div class="mt-auto pt-6 text-center text-xs text-[var(--color-text-tertiary)]">
 				{{ formatMessage(messages.poweredByTerracotta) }}
 			</div>
 		</template>
@@ -1040,7 +1050,7 @@ function submitJoin() {
 			<Card v-if="!hongshiState" class="!m-0">
 				<div class="flex items-center gap-3">
 					<SpinnerIcon class="size-8 animate-spin text-brand" />
-					<h2 class="m-0 text-lg font-semibold text-contrast">
+					<h2 class="m-0 text-lg font-semibold text-[var(--color-text-primary)]">
 						{{ formatMessage(messages.loading) }}
 					</h2>
 				</div>
@@ -1055,10 +1065,10 @@ function submitJoin() {
 							<BinaryIcon class="size-5" />
 						</div>
 						<div class="min-w-0">
-							<h2 class="m-0 text-lg font-semibold text-contrast">
+							<h2 class="m-0 text-lg font-semibold text-[var(--color-text-primary)]">
 								{{ formatMessage(messages.downloadHongshi) }}
 							</h2>
-							<p class="mb-0 mt-1 text-secondary">
+							<p class="mb-0 mt-1 text-[var(--color-text-tertiary)]">
 								{{ formatMessage(messages.hongshiBinaryMissing) }}
 							</p>
 						</div>
@@ -1095,10 +1105,10 @@ function submitJoin() {
 						<div class="flex items-center gap-3">
 							<CheckCircleIcon class="size-7 shrink-0 text-green" />
 							<div>
-								<h2 class="m-0 text-lg font-semibold text-contrast">
+								<h2 class="m-0 text-lg font-semibold text-[var(--color-text-primary)]">
 									{{ formatMessage(messages.statusHostReady) }}
 								</h2>
-								<p class="mb-0 mt-1 text-sm text-secondary">
+								<p class="mb-0 mt-1 text-sm text-[var(--color-text-tertiary)]">
 									{{ formatMessage(messages.publicAddressHint) }}
 								</p>
 							</div>
@@ -1114,10 +1124,10 @@ function submitJoin() {
 						class="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-surface-2 p-4"
 					>
 						<div class="min-w-0">
-							<div class="font-semibold text-contrast">
+							<div class="font-semibold text-[var(--color-text-primary)]">
 								{{ formatMessage(messages.publicAddress) }}
 							</div>
-							<div class="mt-1 text-sm text-secondary">
+							<div class="mt-1 text-sm text-[var(--color-text-tertiary)]">
 								{{ hongshiState.node?.name }} · 127.0.0.1:{{ hongshiState.local_port }}
 							</div>
 						</div>
@@ -1163,7 +1173,7 @@ function submitJoin() {
 				<div class="flex flex-col gap-5">
 					<div class="flex items-center gap-3">
 						<SpinnerIcon class="size-6 shrink-0 animate-spin text-orange" />
-						<h2 class="m-0 text-lg font-semibold text-contrast">
+						<h2 class="m-0 text-lg font-semibold text-[var(--color-text-primary)]">
 							{{
 								formatMessage(
 									hongshiState.status === 'selecting_node'
@@ -1209,17 +1219,17 @@ function submitJoin() {
 					</Admonition>
 
 					<div>
-						<h2 class="m-0 text-lg font-semibold text-contrast">
+						<h2 class="m-0 text-lg font-semibold text-[var(--color-text-primary)]">
 							{{ formatMessage(messages.hongshiProvider) }}
 						</h2>
-						<p class="mb-0 mt-1 text-secondary">
+						<p class="mb-0 mt-1 text-[var(--color-text-tertiary)]">
 							{{ formatMessage(messages.portHint) }}
 						</p>
 					</div>
 
 					<div class="grid gap-4 md:grid-cols-2">
 						<div class="flex min-w-0 flex-col gap-2">
-							<span class="font-semibold text-contrast">{{
+							<span class="font-semibold text-[var(--color-text-primary)]">{{
 								formatMessage(messages.localPort)
 							}}</span>
 							<DropdownSelect
@@ -1232,7 +1242,9 @@ function submitJoin() {
 						</div>
 
 						<div class="flex min-w-0 flex-col gap-2">
-							<span class="font-semibold text-contrast">{{ formatMessage(messages.node) }}</span>
+							<span class="font-semibold text-[var(--color-text-primary)]">{{
+								formatMessage(messages.node)
+							}}</span>
 							<DropdownSelect
 								v-model="selectedNodeName"
 								class="!w-full"
@@ -1247,7 +1259,7 @@ function submitJoin() {
 							class="flex min-w-0 flex-col gap-2"
 							for="hongshi-local-port"
 						>
-							<span class="font-semibold text-contrast">{{
+							<span class="font-semibold text-[var(--color-text-primary)]">{{
 								formatMessage(messages.manualPort)
 							}}</span>
 							<StyledInput
@@ -1287,7 +1299,7 @@ function submitJoin() {
 				</div>
 			</Card>
 
-			<div class="mt-auto pt-6 text-center text-xs text-secondary">
+			<div class="mt-auto pt-6 text-center text-xs text-[var(--color-text-tertiary)]">
 				{{ formatMessage(messages.hongshiProvider) }}
 			</div>
 		</template>

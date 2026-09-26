@@ -6,7 +6,9 @@
 	>
 		<form class="space-y-6 md:min-w-[400px]" @submit.prevent="handleSubmit">
 			<label class="flex flex-col gap-2">
-				<span class="font-semibold text-contrast">{{ formatMessage(messages.newNameLabel) }}</span>
+				<span class="font-semibold text-[var(--color-text-primary)]">{{
+					formatMessage(messages.newNameLabel)
+				}}</span>
 				<StyledInput ref="renameInput" v-model="itemName" wrapper-class="w-full" />
 				<div v-if="submitted && error" class="text-sm text-red">{{ error }}</div>
 			</label>

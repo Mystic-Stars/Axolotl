@@ -288,22 +288,29 @@ watch(
 			v-if="loadingTarget"
 			class="flex min-w-0 min-h-0 h-full flex-col items-center justify-center gap-2 p-4 box-border text-center"
 		>
-			<SpinnerIcon class="size-6 animate-spin text-secondary" aria-hidden="true" />
-			<span class="text-sm text-secondary">{{ formatMessage(commonMessages.loadingLabel) }}</span>
+			<SpinnerIcon
+				class="size-6 animate-spin text-[var(--color-text-tertiary)]"
+				aria-hidden="true"
+			/>
+			<span class="text-sm text-[var(--color-text-tertiary)]">{{
+				formatMessage(commonMessages.loadingLabel)
+			}}</span>
 		</div>
 		<div
 			v-else-if="missing"
 			class="flex min-w-0 min-h-0 h-full flex-col items-center justify-center gap-2 p-4 box-border text-center"
 		>
-			<IssuesIcon class="size-6 text-secondary" aria-hidden="true" />
-			<strong class="max-w-full truncate text-contrast">{{
+			<IssuesIcon class="size-6 text-[var(--color-text-tertiary)]" aria-hidden="true" />
+			<strong class="max-w-full truncate text-[var(--color-text-primary)]">{{
 				placement.target?.fallbackLabel
 			}}</strong>
-			<span class="text-sm text-secondary">{{ formatMessage(messages.unavailable) }}</span>
+			<span class="text-sm text-[var(--color-text-tertiary)]">{{
+				formatMessage(messages.unavailable)
+			}}</span>
 		</div>
 		<div v-else class="home-shortcut-card grid min-w-0 min-h-0 h-full overflow-hidden">
 			<router-link
-				class="home-shortcut-visual relative flex min-w-0 min-h-0 items-center justify-center overflow-hidden bg-button-bg text-secondary no-underline"
+				class="home-shortcut-visual relative flex min-w-0 min-h-0 items-center justify-center overflow-hidden bg-surface-4 text-[var(--color-text-tertiary)] no-underline"
 				:to="shortcutRoute"
 				tabindex="-1"
 			>
@@ -334,16 +341,17 @@ watch(
 					:to="shortcutRoute"
 				>
 					<span
-						class="home-shortcut-kind flex min-w-0 items-center gap-[0.3rem] text-secondary text-[0.6875rem] font-bold leading-none"
+						class="home-shortcut-kind flex min-w-0 items-center gap-[0.3rem] text-[var(--color-text-tertiary)] text-[0.6875rem] font-bold leading-none"
 					>
 						<component :is="kindIcon" aria-hidden="true" />
 						{{ kindLabel }}
 					</span>
-					<strong class="home-shortcut-title min-w-0 truncate text-contrast font-[750]">{{
-						shortcutTitle
-					}}</strong>
+					<strong
+						class="home-shortcut-title min-w-0 truncate text-[var(--color-text-primary)] font-[750]"
+						>{{ shortcutTitle }}</strong
+					>
 					<span
-						class="home-shortcut-meta home-shortcut-primary flex min-w-0 items-center gap-[0.35rem] truncate text-xs font-semibold leading-[1.2] text-secondary"
+						class="home-shortcut-meta home-shortcut-primary flex min-w-0 items-center gap-[0.35rem] truncate text-xs font-semibold leading-[1.2] text-[var(--color-text-tertiary)]"
 					>
 						<SpinnerIcon
 							v-if="world?.type === 'server' && serverData?.refreshing"
@@ -354,7 +362,7 @@ watch(
 						{{ primaryLabel }}
 					</span>
 					<span
-						class="home-shortcut-meta home-shortcut-secondary flex min-w-0 items-center gap-[0.35rem] truncate text-xs font-semibold leading-[1.2] text-secondary"
+						class="home-shortcut-meta home-shortcut-secondary flex min-w-0 items-center gap-[0.35rem] truncate text-xs font-semibold leading-[1.2] text-[var(--color-text-tertiary)]"
 					>
 						<TimerIcon v-if="world?.type !== 'server'" aria-hidden="true" />
 						<ServerIcon v-else aria-hidden="true" />

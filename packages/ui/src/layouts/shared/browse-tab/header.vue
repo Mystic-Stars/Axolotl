@@ -117,12 +117,14 @@ async function handleSelectedProjectsLeaveResult(
 					/>
 
 					<div class="flex min-w-0 flex-col justify-center gap-1">
-						<h1 class="m-0 truncate text-2xl font-semibold leading-8 text-contrast">
+						<h1
+							class="m-0 truncate text-2xl font-semibold leading-8 text-[var(--color-text-primary)]"
+						>
 							{{ installContext.name }}
 						</h1>
 						<div
 							v-if="installContext.heading || installContext.gameVersion || installContext.loader"
-							class="flex flex-wrap items-center gap-2 text-base font-medium leading-6 text-primary"
+							class="flex flex-wrap items-center gap-2 text-base font-medium leading-6 text-[var(--color-text-default)]"
 						>
 							<span v-if="installContext.heading">{{ installContext.heading }}</span>
 

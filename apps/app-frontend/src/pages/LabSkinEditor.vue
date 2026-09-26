@@ -169,7 +169,7 @@ onUnmounted(() => {
 		<h1 class="sr-only">{{ formatMessage(messages.title) }}</h1>
 		<div
 			v-if="editorState === 'loading'"
-			class="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-surface-1 text-secondary"
+			class="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-surface-1 text-[var(--color-text-tertiary)]"
 			role="status"
 			aria-live="polite"
 		>
@@ -181,10 +181,12 @@ onUnmounted(() => {
 			class="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-surface-1 p-6 text-center"
 			role="alert"
 		>
-			<h2 class="m-0 text-lg font-semibold text-contrast">
+			<h2 class="m-0 text-lg font-semibold text-[var(--color-text-primary)]">
 				{{ formatMessage(messages.loadErrorTitle) }}
 			</h2>
-			<p class="m-0 max-w-md text-secondary">{{ formatMessage(messages.loadErrorDescription) }}</p>
+			<p class="m-0 max-w-md text-[var(--color-text-tertiary)]">
+				{{ formatMessage(messages.loadErrorDescription) }}
+			</p>
 			<ButtonStyled color="brand" @click="reloadEditor">
 				{{ formatMessage(messages.retry) }}
 			</ButtonStyled>

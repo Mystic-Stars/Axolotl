@@ -50,10 +50,6 @@ allow('runtime-set', [
 		'button-color',
 		'packages/ui/src/components/base/buttons/ButtonFrame.vue :style `--button-color`',
 	],
-	[
-		'connector-length',
-		'apps/app-frontend/src/components/instance/dependencies/DependencyGraphModal.vue :style `--connector-length`',
-	],
 	['current-value', 'packages/ui/src/components/base/Slider.vue :style `--current-value`'],
 	['min-value', 'packages/ui/src/components/base/Slider.vue :style `--min-value`'],
 	['max-value', 'packages/ui/src/components/base/Slider.vue :style `--max-value`'],
@@ -142,10 +138,6 @@ allow('declared-outside-scan-roots', [
 	[
 		'size-mobile-navbar-height',
 		'apps/website/src/assets/styles/global.scss declares `--size-mobile-navbar-height`',
-	],
-	[
-		'size-mobile-navbar-height-expanded',
-		'apps/website/src/assets/styles/global.scss declares `--size-mobile-navbar-height-expanded`',
 	],
 ])
 

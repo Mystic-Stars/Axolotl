@@ -4,7 +4,7 @@
 	>
 		<div v-if="state.hasError" class="flex flex-col items-center justify-center gap-4">
 			<TriangleAlertIcon class="size-8 text-red" />
-			<p class="m-0 text-secondary">
+			<p class="m-0 text-[var(--color-text-tertiary)]">
 				{{ state.errorMessage || formatMessage(messages.invalidImage) }}
 			</p>
 		</div>

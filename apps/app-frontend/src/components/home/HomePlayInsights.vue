@@ -158,25 +158,34 @@ onUnmounted(() => {
 		class="flex min-w-0 flex-col gap-3 border-0 border-b-[1px] border-solid border-[--brand-gradient-border] p-4"
 	>
 		<div class="flex items-center gap-2">
-			<ChartIcon class="size-4 shrink-0 text-secondary" aria-hidden="true" />
+			<ChartIcon class="size-4 shrink-0 text-[var(--color-text-tertiary)]" aria-hidden="true" />
 			<h2 class="m-0 truncate text-lg">
 				{{ formatMessage(messages.insights) }}
 			</h2>
 		</div>
-		<p v-if="!hasAnyPlaytime" class="m-0 text-sm text-secondary">
+		<p v-if="!hasAnyPlaytime" class="m-0 text-sm text-[var(--color-text-tertiary)]">
 			{{ formatMessage(messages.empty) }}
 		</p>
 		<ul v-else class="m-0 flex list-none flex-col gap-2 p-0">
-			<li class="flex min-w-0 items-center gap-2 text-sm text-primary">
-				<ClockIcon class="size-4 shrink-0 text-secondary" aria-hidden="true" />
+			<li class="flex min-w-0 items-center gap-2 text-sm text-[var(--color-text-default)]">
+				<ClockIcon class="size-4 shrink-0 text-[var(--color-text-tertiary)]" aria-hidden="true" />
 				<span class="min-w-0">{{ thisWeekLine }}</span>
 			</li>
-			<li v-if="streakDays > 0" class="flex min-w-0 items-center gap-2 text-sm text-primary">
-				<TrendingUpIcon class="size-4 shrink-0 text-secondary" aria-hidden="true" />
+			<li
+				v-if="streakDays > 0"
+				class="flex min-w-0 items-center gap-2 text-sm text-[var(--color-text-default)]"
+			>
+				<TrendingUpIcon
+					class="size-4 shrink-0 text-[var(--color-text-tertiary)]"
+					aria-hidden="true"
+				/>
 				<span class="min-w-0">{{ formatMessage(messages.streak, { days: streakDays }) }}</span>
 			</li>
-			<li v-if="weekTopInstance" class="flex min-w-0 items-center gap-2 text-sm text-primary">
-				<GameIcon class="size-4 shrink-0 text-secondary" aria-hidden="true" />
+			<li
+				v-if="weekTopInstance"
+				class="flex min-w-0 items-center gap-2 text-sm text-[var(--color-text-default)]"
+			>
+				<GameIcon class="size-4 shrink-0 text-[var(--color-text-tertiary)]" aria-hidden="true" />
 				<span class="min-w-0 truncate">
 					{{ formatMessage(messages.weekTop, { name: weekTopInstance }) }}
 				</span>

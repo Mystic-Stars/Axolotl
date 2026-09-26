@@ -26,10 +26,12 @@
 								stroke-linecap="round"
 							/>
 						</svg>
-						<span class="text-5xl font-bold text-contrast z-[1]">{{ countdown }}</span>
+						<span class="text-5xl font-bold text-[var(--color-text-primary)] z-[1]">{{
+							countdown
+						}}</span>
 					</div>
 
-					<h2 class="m-0 text-3xl font-bold text-contrast text-center">
+					<h2 class="m-0 text-3xl font-bold text-[var(--color-text-primary)] text-center">
 						{{ formatMessage(messages.openingApp) }}
 					</h2>
 
@@ -39,8 +41,10 @@
 						<div class="flex items-center gap-3 rounded-xl bg-surface-2 p-3 w-full">
 							<Avatar :src="serverProject.icon" :alt="serverProject.name" size="48px" />
 							<div class="flex flex-col gap-1">
-								<span class="font-semibold text-contrast">{{ serverProject.name }}</span>
-								<div class="flex items-center gap-2 text-secondary">
+								<span class="font-semibold text-[var(--color-text-primary)]">{{
+									serverProject.name
+								}}</span>
+								<div class="flex items-center gap-2 text-[var(--color-text-tertiary)]">
 									<ServerOnlinePlayers
 										:online="serverProject.numPlayers ?? 0"
 										:status-online="serverProject.statusOnline"
@@ -50,7 +54,7 @@
 							</div>
 						</div>
 						<div class="flex flex-col text-left gap-3">
-							<span class="font-semibold text-contrast">{{
+							<span class="font-semibold text-[var(--color-text-primary)]">{{
 								formatMessage(messages.whyUseApp)
 							}}</span>
 
@@ -84,7 +88,7 @@
 					</div>
 				</div>
 
-				<span v-if="countdown > 0" class="text-secondary">{{
+				<span v-if="countdown > 0" class="text-[var(--color-text-tertiary)]">{{
 					formatMessage(messages.openingAutomatically)
 				}}</span>
 				<div v-else class="grid grid-cols-2 gap-2 w-full">

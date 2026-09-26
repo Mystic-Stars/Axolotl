@@ -9,11 +9,11 @@ import {
 	UploadIcon,
 } from '@modrinth/assets'
 import {
+	Button,
 	Combobox,
 	defineMessages,
 	injectNotificationManager,
 	type MessageDescriptor,
-	NewButton as Button,
 	Slider,
 	ThemeSelector,
 	Toggle,
@@ -911,11 +911,11 @@ watch(
 				<h2
 					id="settings-target-appearance-color-theme"
 					tabindex="-1"
-					class="m-0 text-lg font-semibold text-contrast"
+					class="m-0 text-lg font-semibold text-[var(--color-text-primary)]"
 				>
 					{{ formatMessage(messages.colorThemeTitle) }}
 				</h2>
-				<p class="m-0 mt-1 text-sm leading-relaxed text-secondary">
+				<p class="m-0 mt-1 text-sm leading-relaxed text-[var(--color-text-tertiary)]">
 					{{ formatMessage(messages.colorThemeDescription) }}
 				</p>
 			</template>
@@ -939,11 +939,11 @@ watch(
 				<h2
 					id="settings-target-appearance-accent-color"
 					tabindex="-1"
-					class="m-0 text-lg font-semibold text-contrast"
+					class="m-0 text-lg font-semibold text-[var(--color-text-primary)]"
 				>
 					{{ formatMessage(messages.accentColorTitle) }}
 				</h2>
-				<p class="m-0 mt-1 text-sm leading-relaxed text-secondary">
+				<p class="m-0 mt-1 text-sm leading-relaxed text-[var(--color-text-tertiary)]">
 					{{ formatMessage(messages.accentColorDescription) }}
 				</p>
 			</template>
@@ -964,7 +964,7 @@ watch(
 						:class="
 							settings.accent_color === accentColor.value
 								? 'border-brand bg-brand-highlight text-brand'
-								: 'border-surface-4 bg-surface-3 text-secondary hover:border-surface-5 hover:text-contrast'
+								: 'border-surface-4 bg-surface-3 text-[var(--color-text-tertiary)] hover:border-surface-5 hover:text-[var(--color-text-primary)]'
 						"
 						@click="
 							() => {
@@ -1000,10 +1000,10 @@ watch(
 						class="relative flex min-w-0 flex-1 basis-[8.25rem] items-center justify-center gap-2 overflow-hidden rounded-lg border border-solid px-2 py-2.5 @xl:pe-5 @4xl:ps-3 font-semibold transition-all enabled:active:scale-[0.97]"
 						:class="
 							themeStore.systemAccentSupported !== true
-								? 'cursor-not-allowed border-surface-4 bg-surface-2 text-secondary opacity-60'
+								? 'cursor-not-allowed border-surface-4 bg-surface-2 text-[var(--color-text-tertiary)] opacity-60'
 								: isSystemAccent
 									? 'border-brand bg-brand-highlight text-brand'
-									: 'border-surface-4 bg-surface-3 text-secondary hover:border-surface-5 hover:text-contrast'
+									: 'border-surface-4 bg-surface-3 text-[var(--color-text-tertiary)] hover:border-surface-5 hover:text-[var(--color-text-primary)]'
 						"
 						@click="
 							() => {
@@ -1040,7 +1040,7 @@ watch(
 						:class="
 							isCustomAccent
 								? 'border-brand bg-brand-highlight text-brand'
-								: 'border-surface-4 bg-surface-3 text-secondary hover:border-surface-5 hover:text-contrast'
+								: 'border-surface-4 bg-surface-3 text-[var(--color-text-tertiary)] hover:border-surface-5 hover:text-[var(--color-text-primary)]'
 						"
 						@click="applyCustomAccent(customAccentHex)"
 					>
@@ -1067,7 +1067,7 @@ watch(
 					class="rounded-lg border border-solid border-surface-4 bg-surface-3 p-4"
 				>
 					<label class="block">
-						<span class="text-sm font-semibold text-contrast">
+						<span class="text-sm font-semibold text-[var(--color-text-primary)]">
 							{{ formatMessage(messages.accentColorCustomHue) }}
 						</span>
 						<input
@@ -1084,7 +1084,7 @@ watch(
 
 					<div class="mt-4 flex flex-wrap items-center gap-x-6 gap-y-3">
 						<label class="flex items-center gap-2">
-							<span class="text-sm font-semibold text-contrast">
+							<span class="text-sm font-semibold text-[var(--color-text-primary)]">
 								{{ formatMessage(messages.accentColorCustomHex) }}
 							</span>
 							<input
@@ -1102,7 +1102,7 @@ watch(
 								class="size-6 shrink-0 rounded-full ring-2 ring-white/20"
 								:style="{ backgroundColor: customAccentPreview.light }"
 							/>
-							<span class="text-sm text-secondary">
+							<span class="text-sm text-[var(--color-text-tertiary)]">
 								{{ formatMessage(messages.accentColorCustomPreviewLight) }}
 							</span>
 						</div>
@@ -1111,7 +1111,7 @@ watch(
 								class="size-6 shrink-0 rounded-full ring-2 ring-white/20"
 								:style="{ backgroundColor: customAccentPreview.dark }"
 							/>
-							<span class="text-sm text-secondary">
+							<span class="text-sm text-[var(--color-text-tertiary)]">
 								{{ formatMessage(messages.accentColorCustomPreviewDark) }}
 							</span>
 						</div>
@@ -1125,11 +1125,11 @@ watch(
 				<h2
 					id="settings-target-appearance-launcher-background"
 					tabindex="-1"
-					class="m-0 text-lg font-semibold text-contrast"
+					class="m-0 text-lg font-semibold text-[var(--color-text-primary)]"
 				>
 					{{ formatMessage(messages.customBackgroundTitle) }}
 				</h2>
-				<p class="m-0 mt-1 text-sm leading-relaxed text-secondary">
+				<p class="m-0 mt-1 text-sm leading-relaxed text-[var(--color-text-tertiary)]">
 					{{ formatMessage(messages.customBackgroundDescription) }}
 				</p>
 			</template>
@@ -1160,7 +1160,7 @@ watch(
 					<div class="relative flex h-full items-center justify-center">
 						<div
 							v-if="!customBackgroundPreview"
-							class="flex flex-col items-center gap-2 text-secondary"
+							class="flex flex-col items-center gap-2 text-[var(--color-text-tertiary)]"
 						>
 							<ImageIcon class="size-8" />
 							<span class="font-semibold">{{
@@ -1176,7 +1176,7 @@ watch(
 							v-else-if="isBackgroundDragActive"
 							class="absolute inset-0 flex items-center justify-center bg-surface-1/70"
 						>
-							<span class="font-semibold text-contrast">
+							<span class="font-semibold text-[var(--color-text-primary)]">
 								{{ formatMessage(messages.customBackgroundDropHint) }}
 							</span>
 						</div>
@@ -1208,7 +1208,7 @@ watch(
 
 				<div v-if="customBackgroundPreview" class="grid gap-5 lg:grid-cols-2">
 					<div class="flex flex-col gap-2">
-						<h3 class="m-0 font-semibold text-contrast">
+						<h3 class="m-0 font-semibold text-[var(--color-text-primary)]">
 							{{ formatMessage(messages.customBackgroundBlur) }}
 						</h3>
 						<Slider
@@ -1219,12 +1219,12 @@ watch(
 							:step="1"
 							unit="px"
 						/>
-						<p class="m-0 text-sm text-secondary">
+						<p class="m-0 text-sm text-[var(--color-text-tertiary)]">
 							{{ formatMessage(messages.customBackgroundBlurDescription) }}
 						</p>
 					</div>
 					<div class="flex flex-col gap-2">
-						<h3 class="m-0 font-semibold text-contrast">
+						<h3 class="m-0 font-semibold text-[var(--color-text-primary)]">
 							{{ formatMessage(messages.customBackgroundOpacity) }}
 						</h3>
 						<Slider
@@ -1235,12 +1235,12 @@ watch(
 							:step="5"
 							unit="%"
 						/>
-						<p class="m-0 text-sm text-secondary">
+						<p class="m-0 text-sm text-[var(--color-text-tertiary)]">
 							{{ formatMessage(messages.customBackgroundOpacityDescription) }}
 						</p>
 					</div>
 					<div class="flex flex-col gap-2">
-						<h3 class="m-0 font-semibold text-contrast">
+						<h3 class="m-0 font-semibold text-[var(--color-text-primary)]">
 							{{ formatMessage(messages.customBackgroundComponentOpacity) }}
 						</h3>
 						<Slider
@@ -1251,7 +1251,7 @@ watch(
 							:step="5"
 							unit="%"
 						/>
-						<p class="m-0 text-sm text-secondary">
+						<p class="m-0 text-sm text-[var(--color-text-tertiary)]">
 							{{ formatMessage(messages.customBackgroundComponentOpacityDescription) }}
 						</p>
 					</div>
@@ -1315,11 +1315,11 @@ watch(
 				<h2
 					id="settings-target-appearance-fonts"
 					tabindex="-1"
-					class="m-0 text-lg font-semibold text-contrast"
+					class="m-0 text-lg font-semibold text-[var(--color-text-primary)]"
 				>
 					{{ formatMessage(messages.fontsTitle) }}
 				</h2>
-				<p class="m-0 mt-1 text-sm leading-relaxed text-secondary">
+				<p class="m-0 mt-1 text-sm leading-relaxed text-[var(--color-text-tertiary)]">
 					{{ formatMessage(messages.fontsDescription) }}
 				</p>
 			</template>
@@ -1354,11 +1354,11 @@ watch(
 							</Button>
 						</div>
 						<div class="flex flex-col gap-1">
-							<span class="text-xs text-secondary">
+							<span class="text-xs text-[var(--color-text-tertiary)]">
 								{{ formatMessage(messages.fontPreviewLabel) }}
 							</span>
 							<div
-								class="rounded-[var(--radius-md)] bg-surface-3 px-3 py-2 text-base text-primary"
+								class="rounded-[var(--radius-md)] bg-surface-3 px-3 py-2 text-base text-[var(--color-text-default)]"
 								:style="{ fontFamily: uiFontPreview }"
 							>
 								{{ formatMessage(messages.fontUiPreviewSample) }}
@@ -1398,11 +1398,11 @@ watch(
 							</Button>
 						</div>
 						<div class="flex flex-col gap-1">
-							<span class="text-xs text-secondary">
+							<span class="text-xs text-[var(--color-text-tertiary)]">
 								{{ formatMessage(messages.fontPreviewLabel) }}
 							</span>
 							<div
-								class="rounded-[var(--radius-md)] bg-surface-3 px-3 py-2 text-xs text-primary"
+								class="rounded-[var(--radius-md)] bg-surface-3 px-3 py-2 text-xs text-[var(--color-text-default)]"
 								:style="{ fontFamily: monoFontPreview }"
 							>
 								{{ formatMessage(messages.fontMonoPreviewSample) }}
@@ -1413,7 +1413,7 @@ watch(
 			</SettingsRow>
 			<div
 				v-if="systemFontsFailed"
-				class="flex items-center justify-between gap-3 px-4 pb-4 text-sm text-secondary"
+				class="flex items-center justify-between gap-3 px-4 pb-4 text-sm text-[var(--color-text-tertiary)]"
 			>
 				<span>{{ formatMessage(messages.fontLoadFailed) }}</span>
 				<Button type="quiet" @click="loadSystemFonts">
@@ -1553,13 +1553,13 @@ watch(
 						>
 							<button
 								type="button"
-								class="flex w-full items-center justify-between gap-2 border-0 bg-transparent px-3 py-2 text-left text-sm font-semibold text-contrast"
+								class="flex w-full items-center justify-between gap-2 border-0 bg-transparent px-3 py-2 text-left text-sm font-semibold text-[var(--color-text-primary)]"
 								:aria-expanded="expandedNavGroups[group.id]"
 								@click="expandedNavGroups[group.id] = !expandedNavGroups[group.id]"
 							>
 								<span>{{ formatMessage(group.labelKey) }}</span>
 								<ChevronDownIcon
-									class="size-4 text-secondary transition-transform"
+									class="size-4 text-[var(--color-text-tertiary)] transition-transform"
 									:class="expandedNavGroups[group.id] ? 'rotate-180' : ''"
 									aria-hidden="true"
 								/>
@@ -1576,7 +1576,11 @@ watch(
 								>
 									<span
 										class="text-sm"
-										:class="navItemLockReason(item.id) ? 'text-secondary' : 'text-contrast'"
+										:class="
+											navItemLockReason(item.id)
+												? 'text-[var(--color-text-tertiary)]'
+												: 'text-[var(--color-text-primary)]'
+										"
 									>
 										{{ formatMessage(item.label) }}
 									</span>

@@ -136,7 +136,7 @@ async function updateDiscordRpc(value: boolean) {
 <style scoped>
 .settings-page-note {
 	margin: 0;
-	color: var(--color-secondary);
+	color: var(--color-text-tertiary);
 	font-size: 0.8125rem;
 	line-height: 1.5;
 }

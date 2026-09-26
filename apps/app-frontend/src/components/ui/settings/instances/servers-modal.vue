@@ -345,13 +345,13 @@ defineExpose({ show })
 			<div class="flex min-h-0 flex-1 flex-col overflow-hidden">
 				<div
 					v-if="syncedServers.length === 0"
-					class="flex flex-1 items-center justify-center p-8 text-center text-secondary"
+					class="flex flex-1 items-center justify-center p-8 text-center text-[var(--color-text-tertiary)]"
 				>
 					{{ formatMessage(messages.noSyncedServers) }}
 				</div>
 				<div
 					v-else-if="filteredSyncedServerRows.length === 0"
-					class="flex flex-1 items-center justify-center p-8 text-center text-secondary"
+					class="flex flex-1 items-center justify-center p-8 text-center text-[var(--color-text-tertiary)]"
 				>
 					{{ formatMessage(messages.noMatchingServers) }}
 				</div>
@@ -374,8 +374,12 @@ defineExpose({ show })
 									class="shrink-0 !rounded-lg"
 								/>
 								<div class="flex min-w-0 flex-col">
-									<span class="truncate font-semibold text-contrast">{{ row.name }}</span>
-									<span class="truncate text-sm text-secondary">{{ row.address }}</span>
+									<span class="truncate font-semibold text-[var(--color-text-primary)]">{{
+										row.name
+									}}</span>
+									<span class="truncate text-sm text-[var(--color-text-tertiary)]">{{
+										row.address
+									}}</span>
 								</div>
 							</div>
 						</template>
@@ -426,7 +430,7 @@ defineExpose({ show })
 			<div
 				class="flex shrink-0 items-center border-0 border-t border-solid border-surface-4 px-6 py-4"
 			>
-				<span class="font-medium text-primary">
+				<span class="font-medium text-[var(--color-text-default)]">
 					{{ formatMessage(messages.serverCount, { count: syncedServers.length }) }}
 				</span>
 			</div>
@@ -441,11 +445,11 @@ defineExpose({ show })
 		width="500px"
 	>
 		<div v-if="editedServer" class="flex flex-col gap-4">
-			<label class="flex flex-col gap-2 font-semibold text-contrast">
+			<label class="flex flex-col gap-2 font-semibold text-[var(--color-text-primary)]">
 				{{ formatMessage(messages.serverName) }}
 				<Input v-model="editedServer.name" autocomplete="off" wrapper-class="w-full" />
 			</label>
-			<label class="flex flex-col gap-2 font-semibold text-contrast">
+			<label class="flex flex-col gap-2 font-semibold text-[var(--color-text-primary)]">
 				{{ formatMessage(messages.serverAddress) }}
 				<Input v-model="editedServer.address" autocomplete="off" wrapper-class="w-full" />
 			</label>

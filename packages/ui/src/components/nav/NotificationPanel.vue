@@ -16,7 +16,7 @@
 				@mouseenter="stopTimer(item)"
 				@mouseleave="setNotificationTimer(item)"
 			>
-				<div class="flex w-full gap-2 overflow-hidden rounded-lg bg-bg-raised shadow-xl">
+				<div class="flex w-full gap-2 overflow-hidden rounded-lg bg-surface-3 shadow-xl">
 					<div
 						class="w-2"
 						:class="{
@@ -43,9 +43,14 @@
 							<XCircleIcon v-else-if="item.type === 'error'" class="h-6 w-6" />
 							<InfoIcon v-else class="h-6 w-6" />
 						</div>
-						<div class="m-0 text-wrap font-bold text-contrast">{{ item.title }}</div>
+						<div class="m-0 text-wrap font-bold text-[var(--color-text-primary)]">
+							{{ item.title }}
+						</div>
 						<div class="flex items-center gap-1">
-							<div v-if="item.count && item.count > 1" class="text-xs font-bold text-contrast">
+							<div
+								v-if="item.count && item.count > 1"
+								class="text-xs font-bold text-[var(--color-text-primary)]"
+							>
 								x{{ item.count }}
 							</div>
 							<Button
@@ -83,13 +88,13 @@
 						</div>
 						<div></div>
 						<div
-							class="col-span-2 whitespace-pre-line break-words text-sm leading-5 text-primary line-clamp-5"
+							class="col-span-2 whitespace-pre-line break-words text-sm leading-5 text-[var(--color-text-default)] line-clamp-5"
 						>
 							{{ item.text }}
 						</div>
 						<template v-if="item.errorCode">
 							<div></div>
-							<div class="m-0 text-wrap text-xs font-medium text-secondary">
+							<div class="m-0 text-wrap text-xs font-medium text-[var(--color-text-tertiary)]">
 								{{ item.errorCode }}
 							</div>
 						</template>
@@ -274,10 +279,6 @@ const {
 	@media screen and (max-width: 750px) {
 		transition: bottom 0.25s ease-in-out;
 		bottom: calc(var(--size-mobile-navbar-height) + 10px) !important;
-
-		&.browse-menu-open {
-			bottom: calc(var(--size-mobile-navbar-height-expanded) + 10px) !important;
-		}
 	}
 }
 

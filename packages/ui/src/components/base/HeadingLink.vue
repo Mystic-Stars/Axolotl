@@ -1,7 +1,7 @@
 <template>
 	<AutoLink
 		:to="to"
-		class="flex mb-3 leading-none items-center gap-1 text-primary text-lg font-bold hover:underline group w-fit"
+		class="flex mb-3 leading-none items-center gap-1 text-[var(--color-text-default)] text-lg font-bold hover:underline group w-fit"
 	>
 		<slot />
 		<ChevronRightIcon

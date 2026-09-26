@@ -98,7 +98,7 @@ async function install() {
 <style scoped lang="scss">
 .project-card {
 	:deep(.badge) {
-		border: 1px solid var(--color-raised-bg);
+		border: 1px solid var(--surface-5);
 		background-color: var(--color-accent-contrast);
 	}
 }

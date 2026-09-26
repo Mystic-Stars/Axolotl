@@ -8,10 +8,10 @@
 		max-width="520px"
 	>
 		<div class="flex flex-col gap-3">
-			<p class="m-0 leading-relaxed text-contrast">
+			<p class="m-0 leading-relaxed text-[var(--color-text-primary)]">
 				{{ formatMessage(messages.body, { version }) }}
 			</p>
-			<p class="m-0 leading-relaxed text-secondary">
+			<p class="m-0 leading-relaxed text-[var(--color-text-tertiary)]">
 				{{ formatMessage(messages.laterDescription, { version }) }}
 			</p>
 		</div>

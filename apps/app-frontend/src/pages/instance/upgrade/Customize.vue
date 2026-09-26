@@ -1,8 +1,12 @@
 <template>
 	<section class="flex flex-col gap-6 py-2">
 		<header>
-			<h2 class="m-0 text-xl font-semibold text-contrast">{{ formatMessage(messages.title) }}</h2>
-			<p class="mb-0 mt-1 max-w-2xl text-secondary">{{ formatMessage(messages.description) }}</p>
+			<h2 class="m-0 text-xl font-semibold text-[var(--color-text-primary)]">
+				{{ formatMessage(messages.title) }}
+			</h2>
+			<p class="mb-0 mt-1 max-w-2xl text-[var(--color-text-tertiary)]">
+				{{ formatMessage(messages.description) }}
+			</p>
 		</header>
 
 		<div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -14,7 +18,7 @@
 				:disabled="requestBusy"
 				@click="chooseStrategy('newest')"
 			>
-				<div class="flex items-center gap-2 font-semibold text-contrast">
+				<div class="flex items-center gap-2 font-semibold text-[var(--color-text-primary)]">
 					<SparklesIcon aria-hidden="true" />
 					{{ formatMessage(messages.newestTitle) }}
 					<CheckIcon
@@ -23,8 +27,12 @@
 						aria-hidden="true"
 					/>
 				</div>
-				<p class="m-0 text-sm text-secondary">{{ formatMessage(messages.newestDescription) }}</p>
-				<span class="mt-auto text-sm text-secondary">{{ summaryText(plan.newestSolution) }}</span>
+				<p class="m-0 text-sm text-[var(--color-text-tertiary)]">
+					{{ formatMessage(messages.newestDescription) }}
+				</p>
+				<span class="mt-auto text-sm text-[var(--color-text-tertiary)]">{{
+					summaryText(plan.newestSolution)
+				}}</span>
 			</button>
 
 			<button
@@ -35,7 +43,7 @@
 				:disabled="requestBusy"
 				@click="chooseStrategy('minimal_change')"
 			>
-				<div class="flex items-center gap-2 font-semibold text-contrast">
+				<div class="flex items-center gap-2 font-semibold text-[var(--color-text-primary)]">
 					<MinimizeIcon aria-hidden="true" />
 					{{ formatMessage(messages.minimalTitle) }}
 					<CheckIcon
@@ -44,8 +52,10 @@
 						aria-hidden="true"
 					/>
 				</div>
-				<p class="m-0 text-sm text-secondary">{{ formatMessage(messages.minimalDescription) }}</p>
-				<span class="mt-auto text-sm text-secondary">{{
+				<p class="m-0 text-sm text-[var(--color-text-tertiary)]">
+					{{ formatMessage(messages.minimalDescription) }}
+				</p>
+				<span class="mt-auto text-sm text-[var(--color-text-tertiary)]">{{
 					summaryText(plan.minimalChangeSolution)
 				}}</span>
 			</button>
@@ -57,7 +67,7 @@
 				:disabled="requestBusy"
 				@click="chooseStrategy('custom')"
 			>
-				<div class="flex items-center gap-2 font-semibold text-contrast">
+				<div class="flex items-center gap-2 font-semibold text-[var(--color-text-primary)]">
 					<SettingsIcon aria-hidden="true" />
 					{{ formatMessage(messages.customTitle) }}
 					<CheckIcon
@@ -66,8 +76,10 @@
 						aria-hidden="true"
 					/>
 				</div>
-				<p class="m-0 text-sm text-secondary">{{ formatMessage(messages.customDescription) }}</p>
-				<span class="mt-auto text-sm text-secondary">
+				<p class="m-0 text-sm text-[var(--color-text-tertiary)]">
+					{{ formatMessage(messages.customDescription) }}
+				</p>
+				<span class="mt-auto text-sm text-[var(--color-text-tertiary)]">
 					{{ formatMessage(messages.customConstraintCount, { count: draftConstraints.length }) }}
 				</span>
 			</button>
@@ -102,10 +114,10 @@
 		<section v-if="activeStrategy === 'custom'" class="flex flex-col gap-3">
 			<div class="flex flex-wrap items-end justify-between gap-3">
 				<div>
-					<h3 class="m-0 text-lg font-semibold text-contrast">
+					<h3 class="m-0 text-lg font-semibold text-[var(--color-text-primary)]">
 						{{ formatMessage(messages.customChoices) }}
 					</h3>
-					<p class="mb-0 mt-1 text-sm text-secondary">
+					<p class="mb-0 mt-1 text-sm text-[var(--color-text-tertiary)]">
 						{{ formatMessage(messages.customChoicesDescription) }}
 					</p>
 				</div>
@@ -136,13 +148,15 @@
 							<RouterLink
 								v-if="projectPath(item)"
 								:to="projectPath(item)!"
-								class="inline-flex max-w-full items-center gap-1 font-semibold text-contrast hover:text-brand hover:underline focus-visible:underline"
+								class="inline-flex max-w-full items-center gap-1 font-semibold text-[var(--color-text-primary)] hover:text-brand hover:underline focus-visible:underline"
 								@click="parkProjectReturn"
 								><span class="truncate">{{ itemName(item) }}</span
 								><ExternalIcon class="size-3 shrink-0" aria-hidden="true"
 							/></RouterLink>
-							<div v-else class="truncate font-semibold text-contrast">{{ itemName(item) }}</div>
-							<div class="flex flex-wrap gap-x-3 text-sm text-secondary">
+							<div v-else class="truncate font-semibold text-[var(--color-text-primary)]">
+								{{ itemName(item) }}
+							</div>
+							<div class="flex flex-wrap gap-x-3 text-sm text-[var(--color-text-tertiary)]">
 								<span>{{ providerLabel(item.provider) }}</span>
 								<span>
 									<UpgradeVersionChangelogPopout
@@ -158,7 +172,7 @@
 									formatMessage(messages.currentlyDisabled)
 								}}</span>
 							</div>
-							<div class="mt-1 text-sm text-secondary">
+							<div class="mt-1 text-sm text-[var(--color-text-tertiary)]">
 								<span>{{ formatMessage(messages.effectiveTargetPrefix) }}</span>
 								<UpgradeVersionChangelogPopout
 									v-if="effectiveTargetRelease(item)"
@@ -173,7 +187,7 @@
 					</div>
 					<div class="min-w-0 w-full shrink-0 sm:w-72 sm:max-w-[45%]">
 						<label
-							class="mb-1 block text-sm font-medium text-contrast"
+							class="mb-1 block text-sm font-medium text-[var(--color-text-primary)]"
 							:for="`custom-${item.contentId}`"
 						>
 							{{ formatMessage(messages.choice) }}
@@ -193,7 +207,7 @@
 		</section>
 
 		<section v-if="customIssues.length" class="flex flex-col gap-2">
-			<h3 class="m-0 text-lg font-semibold text-contrast">
+			<h3 class="m-0 text-lg font-semibold text-[var(--color-text-primary)]">
 				{{ formatMessage(messages.customIssues) }}
 			</h3>
 			<Admonition
@@ -208,10 +222,10 @@
 
 		<section v-if="effectiveSolution" class="flex flex-col gap-3">
 			<div>
-				<h3 class="m-0 text-lg font-semibold text-contrast">
+				<h3 class="m-0 text-lg font-semibold text-[var(--color-text-primary)]">
 					{{ formatMessage(messages.effectiveChanges) }}
 				</h3>
-				<p class="mb-0 mt-1 text-sm text-secondary">
+				<p class="mb-0 mt-1 text-sm text-[var(--color-text-tertiary)]">
 					{{
 						activeStrategy === 'custom' && !customWasResolved
 							? formatMessage(messages.baselineHint)
@@ -224,13 +238,15 @@
 				class="grid grid-cols-2 gap-px overflow-hidden rounded-lg bg-surface-4 sm:grid-cols-3 lg:grid-cols-6"
 			>
 				<div v-for="metric in effectiveMetrics" :key="metric.label" class="bg-surface-2 p-3">
-					<div class="text-xl font-semibold text-contrast">{{ metric.value }}</div>
-					<div class="text-sm text-secondary">{{ metric.label }}</div>
+					<div class="text-xl font-semibold text-[var(--color-text-primary)]">
+						{{ metric.value }}
+					</div>
+					<div class="text-sm text-[var(--color-text-tertiary)]">{{ metric.label }}</div>
 				</div>
 			</div>
 
 			<div v-if="effectiveDependencyChanges.length" class="flex flex-col gap-2">
-				<h4 class="m-0 text-base font-semibold text-contrast">
+				<h4 class="m-0 text-base font-semibold text-[var(--color-text-primary)]">
 					{{ formatMessage(messages.dependenciesTitle) }}
 				</h4>
 				<div class="overflow-hidden rounded-lg border border-solid border-surface-4">
@@ -240,12 +256,14 @@
 						class="flex items-center justify-between gap-4 border-0 border-b border-solid border-surface-4 bg-surface-2 p-3 last:border-b-0"
 					>
 						<div class="min-w-0">
-							<div class="truncate font-semibold text-contrast">{{ change.projectId }}</div>
-							<div class="text-sm text-secondary">
+							<div class="truncate font-semibold text-[var(--color-text-primary)]">
+								{{ change.projectId }}
+							</div>
+							<div class="text-sm text-[var(--color-text-tertiary)]">
 								{{ dependencyChangeDescription(change) }}
 							</div>
 						</div>
-						<strong class="shrink-0 text-sm text-contrast">{{
+						<strong class="shrink-0 text-sm text-[var(--color-text-primary)]">{{
 							dependencyActionLabel(change.kind)
 						}}</strong>
 					</div>

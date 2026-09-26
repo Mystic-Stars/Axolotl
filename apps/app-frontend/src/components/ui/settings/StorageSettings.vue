@@ -60,7 +60,7 @@ const categoryColors: Record<StorageNodeType, { actual: string; symlink: string 
 	cache: { actual: 'var(--color-orange)', symlink: '#eab308' }, // 琥珀黄 / 明黄
 	meta: { actual: 'var(--color-purple)', symlink: '#ec4899' }, // 靛紫 / 靓粉
 	database: { actual: 'var(--color-blue)', symlink: '#6366f1' }, // 靛蓝 / 靛青
-	other: { actual: 'var(--color-secondary)', symlink: '#9ca3af' }, // 中灰 / 浅灰
+	other: { actual: 'var(--color-text-tertiary)', symlink: '#9ca3af' }, // 中灰 / 浅灰
 }
 
 const hoveredId = ref<string | null>(null)
@@ -375,7 +375,7 @@ function formatDateTime(date: Date) {
 					</h2>
 
 					<div class="storage-total-value">
-						<span class="text-3xl font-bold leading-[1.1] text-contrast">{{
+						<span class="text-3xl font-bold leading-[1.1] text-[var(--color-text-primary)]">{{
 							formatBytes(tree.total.actual)
 						}}</span>
 						<span v-if="tree.total.symlink > 0" class="total-symlink">
@@ -439,9 +439,10 @@ function formatDateTime(date: Date) {
 							/>
 
 							<div class="legend-info">
-								<span class="whitespace-nowrap text-[0.8125rem] font-semibold text-contrast">{{
-									slice.label
-								}}</span>
+								<span
+									class="whitespace-nowrap text-[0.8125rem] font-semibold text-[var(--color-text-primary)]"
+									>{{ slice.label }}</span
+								>
 								<span class="legend-size">{{ slice.formattedSize }}</span>
 								<span class="legend-percent">{{ slice.percentText }}</span>
 							</div>
@@ -488,7 +489,7 @@ function formatDateTime(date: Date) {
 	display: flex;
 	flex-direction: column;
 	width: 100%;
-	color: var(--color-contrast);
+	color: var(--color-text-primary);
 }
 
 .storage-loading {
@@ -497,7 +498,7 @@ function formatDateTime(date: Date) {
 	justify-content: center;
 	gap: 0.75rem;
 	padding: 3rem 0;
-	color: var(--color-secondary);
+	color: var(--color-text-tertiary);
 }
 
 /* 顶栏卡片布局 */
@@ -525,7 +526,7 @@ function formatDateTime(date: Date) {
 	margin: 0;
 	font-size: 0.875rem;
 	font-weight: 500;
-	color: var(--color-secondary);
+	color: var(--color-text-tertiary);
 }
 
 .storage-total-value {
@@ -538,7 +539,7 @@ function formatDateTime(date: Date) {
 .total-symlink {
 	font-size: 0.8125rem;
 	font-weight: 500;
-	color: var(--color-secondary);
+	color: var(--color-text-tertiary);
 }
 
 .storage-actions {
@@ -553,7 +554,7 @@ function formatDateTime(date: Date) {
 	display: flex;
 	flex-direction: column;
 	font-size: 0.75rem;
-	color: var(--color-secondary);
+	color: var(--color-text-tertiary);
 }
 
 /* 右侧核心区域：强制向右对齐 */
@@ -646,7 +647,7 @@ function formatDateTime(date: Date) {
 .legend-size {
 	font-size: 0.75rem;
 	font-variant-numeric: tabular-nums;
-	color: var(--color-secondary);
+	color: var(--color-text-tertiary);
 	white-space: nowrap;
 }
 
@@ -656,7 +657,7 @@ function formatDateTime(date: Date) {
 	font-size: 0.71875rem;
 	font-weight: 500;
 	font-variant-numeric: tabular-nums;
-	color: var(--color-secondary);
+	color: var(--color-text-tertiary);
 	opacity: 0.8;
 }
 
@@ -672,13 +673,13 @@ function formatDateTime(date: Date) {
 	font-size: 0.9375rem;
 	font-weight: 600;
 	line-height: 1.375rem;
-	color: var(--color-contrast);
+	color: var(--color-text-primary);
 }
 
 .storage-section-size {
 	font-size: 0.8125rem;
 	font-variant-numeric: tabular-nums;
-	color: var(--color-secondary);
+	color: var(--color-text-tertiary);
 }
 
 .instance-help {
@@ -688,7 +689,7 @@ function formatDateTime(date: Date) {
 	margin-bottom: 0.375rem;
 	font-size: 0.75rem;
 	line-height: 1.25rem;
-	color: var(--color-secondary);
+	color: var(--color-text-tertiary);
 	cursor: help;
 }
 

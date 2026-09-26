@@ -128,7 +128,7 @@ function normalizeLaunchPreparationTimeout() {
 
 <template>
 	<div>
-		<h2 class="m-0 m-0 text-lg font-semibold text-contrast">
+		<h2 class="m-0 m-0 text-lg font-semibold text-[var(--color-text-primary)]">
 			{{ formatMessage(messages.hooks) }}
 		</h2>
 		<Checkbox v-model="overrideHooks" :label="formatMessage(messages.customHooks)" class="my-2.5" />
@@ -136,7 +136,7 @@ function normalizeLaunchPreparationTimeout() {
 			{{ formatMessage(messages.hooksDescription) }}
 		</p>
 
-		<h2 class="mt-6 m-0 text-lg font-semibold text-contrast">
+		<h2 class="mt-6 m-0 text-lg font-semibold text-[var(--color-text-primary)]">
 			{{ formatMessage(messages.launchPreparationTimeout) }}
 		</h2>
 		<Checkbox
@@ -160,7 +160,7 @@ function normalizeLaunchPreparationTimeout() {
 			{{ formatMessage(messages.launchPreparationTimeoutDescription) }}
 		</p>
 
-		<h2 class="mt-6 m-0 text-lg font-semibold text-contrast">
+		<h2 class="mt-6 m-0 text-lg font-semibold text-[var(--color-text-primary)]">
 			{{ formatMessage(messages.preLaunch) }}
 		</h2>
 		<StyledInput
@@ -175,7 +175,7 @@ function normalizeLaunchPreparationTimeout() {
 			{{ formatMessage(messages.preLaunchDescription) }}
 		</p>
 
-		<h2 class="mt-6 m-0 text-lg font-semibold text-contrast">
+		<h2 class="mt-6 m-0 text-lg font-semibold text-[var(--color-text-primary)]">
 			{{ formatMessage(messages.wrapper) }}
 		</h2>
 		<StyledInput
@@ -190,7 +190,7 @@ function normalizeLaunchPreparationTimeout() {
 			{{ formatMessage(messages.wrapperDescription) }}
 		</p>
 
-		<h2 class="mt-6 m-0 text-lg font-semibold text-contrast">
+		<h2 class="mt-6 m-0 text-lg font-semibold text-[var(--color-text-primary)]">
 			{{ formatMessage(messages.postExit) }}
 		</h2>
 		<StyledInput

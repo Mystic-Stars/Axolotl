@@ -62,52 +62,6 @@
 		max-width: 100%;
 	}
 
-	:where(.adjacent-input, &.adjacent-input) {
-		display: flex;
-		flex-direction: row;
-		align-items: center;
-		flex-wrap: wrap;
-		gap: var(--gap-sm);
-		margin-bottom: calc(var(--gap-sm) + var(--gap-md));
-
-		.btn,
-		.input-group {
-			flex-shrink: 0;
-		}
-
-		input {
-			flex-shrink: 1;
-		}
-
-		> :first-child {
-			flex-shrink: 2;
-			flex-grow: 1;
-			flex-basis: min-content;
-		}
-
-		label,
-		.label {
-			.label__title {
-				margin-block: 0;
-			}
-
-			.label__description {
-				margin-block-end: 0;
-			}
-
-			.label__description:not(:first-child) {
-				margin-top: var(--gap-sm);
-			}
-		}
-
-		@media screen and (max-width: 750px) {
-			&:not(&.small) {
-				flex-direction: column;
-				align-items: start;
-			}
-		}
-	}
-
 	h1 {
 		display: flex;
 		align-items: center;
@@ -220,51 +174,12 @@ a:not(.no-click-animation),
 		filter: brightness(0.8);
 	}
 
-	&:disabled.quiet-disabled {
-		cursor: unset;
-	}
-
-	&:disabled:not(.quiet-disabled),
-	&[disabled]:not(.quiet-disabled) {
+	&:disabled,
+	&[disabled] {
 		cursor: not-allowed;
 		filter: grayscale(50%);
 		opacity: 0.5;
 		box-shadow: none;
-	}
-}
-
-.button-within {
-	transition:
-		opacity 0.5s ease-in-out,
-		filter 0.2s ease-in-out,
-		transform 0.05s ease-in-out,
-		outline 0.2s ease-in-out;
-
-	&:focus-visible:not(&.disabled),
-	&:hover:not(&.disabled) {
-		filter: brightness(0.85);
-	}
-
-	&:active:not(&.disabled) {
-		filter: brightness(0.8);
-	}
-
-	// For some reason this within the above block makes it universal and not only applied to children. SCSS bug maybe?
-	&:active:not(&.disabled) button:not(&:disabled) {
-		transform: scale(0.95);
-	}
-
-	&.disabled {
-		cursor: not-allowed;
-		filter: grayscale(50%);
-		opacity: 0.5;
-		box-shadow: none;
-
-		&disabled,
-		&[disabled] {
-			cursor: not-allowed;
-			box-shadow: none;
-		}
 	}
 }
 
@@ -272,7 +187,7 @@ a:not(.no-click-animation),
 	@extend .button-base;
 
 	--_text-color: var(--color-base);
-	--_background-color: var(--color-button-bg);
+	--_background-color: var(--surface-4);
 	--_accent-color: var(--color-base);
 	--_shadow: var(--shadow-inset-sm), 0 0 0 0 transparent;
 
@@ -298,7 +213,7 @@ a:not(.no-click-animation),
 
 		&:focus-visible:not(&:disabled),
 		&:hover:not(&:disabled) {
-			background-color: var(--color-button-bg);
+			background-color: var(--surface-4);
 
 			&.btn-hover-filled,
 			&.btn-hover-filled-only {
@@ -439,13 +354,11 @@ a:not(.no-click-animation),
 			height: 1.5rem;
 		}
 	}
-
-	&.btn-large-round {
-		padding: 0.75rem;
-		border-radius: 50%;
-	}
 }
 
+// Legacy joined-button compatibility. Current buttons use the scoped
+// `ButtonGroup` component and its direct `[data-button]` contract instead of
+// teaching this global class about their internal root structure.
 .joined-buttons {
 	display: flex;
 	gap: 1px;
@@ -560,11 +473,6 @@ a:not(.no-click-animation),
 		}
 	}
 
-	.entire-row {
-		grid-template-columns: 1fr !important;
-		align-items: center;
-	}
-
 	.table-head {
 		.table-cell {
 			background-color: var(--color-accent-contrast);
@@ -649,7 +557,7 @@ a:not(.no-click-animation),
 	blockquote {
 		padding: 0 1em;
 		color: var(--color-base);
-		border-left: 0.25em solid var(--color-button-bg);
+		border-left: 0.25em solid var(--surface-4);
 		margin-inline: 0;
 	}
 
@@ -693,7 +601,7 @@ a:not(.no-click-animation),
 		margin-top: 1rem;
 		padding: 14px;
 		border-radius: var(--radius-sm);
-		background-color: var(--color-button-bg);
+		background-color: var(--surface-4);
 		overflow-x: auto;
 
 		code {
@@ -707,13 +615,13 @@ a:not(.no-click-animation),
 		padding: 0.2em 0.4em;
 		font-size: 80%;
 		border-radius: var(--radius-sm);
-		background-color: var(--color-button-bg);
+		background-color: var(--surface-4);
 		color: var(--color-contrast);
 	}
 
 	hr {
 		margin: 20px 0;
-		color: var(--color-button-bg);
+		color: var(--surface-4);
 	}
 
 	table {
@@ -724,7 +632,7 @@ a:not(.no-click-animation),
 		border-collapse: separate;
 		border-spacing: 0;
 		line-height: 1.5;
-		border: 0.1rem solid var(--color-button-bg);
+		border: 0.1rem solid var(--surface-4);
 		border-radius: var(--radius-xl);
 
 		th {
@@ -747,17 +655,17 @@ a:not(.no-click-animation),
 
 		td:not(:last-of-type),
 		th:not(:last-of-type) {
-			border-right: 0.1rem solid var(--color-button-bg);
+			border-right: 0.1rem solid var(--surface-4);
 		}
 
 		tr:not(:last-of-type) td,
 		th {
-			border-bottom: 0.1rem solid var(--color-button-bg);
+			border-bottom: 0.1rem solid var(--surface-4);
 		}
 	}
 
 	details {
-		border: 0.15rem solid var(--color-button-bg);
+		border: 0.15rem solid var(--surface-4);
 		border-radius: var(--radius-sm);
 		padding: 0.5rem 0.5rem 0;
 
@@ -766,7 +674,7 @@ a:not(.no-click-animation),
 			margin: -0.5rem -0.5rem 0;
 			padding: 0.5rem 0.8rem;
 			cursor: pointer;
-			background-color: var(--color-button-bg);
+			background-color: var(--surface-4);
 			border-radius: var(--radius-xs);
 
 			&:hover {
@@ -850,7 +758,7 @@ select {
 	padding: 0;
 	overflow: hidden;
 	border: 1px solid var(--color-divider);
-	background-color: var(--color-button-bg);
+	background-color: var(--surface-4);
 	color: var(--color-base);
 	display: flex;
 	flex-direction: column;

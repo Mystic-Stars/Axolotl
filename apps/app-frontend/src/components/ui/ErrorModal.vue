@@ -501,12 +501,14 @@ async function exportLogs() {
 							class="flex items-center justify-between w-full bg-transparent border-0 py-4 cursor-pointer"
 							@click="errorCollapsed = !errorCollapsed"
 						>
-							<span class="flex items-center gap-2 text-contrast font-extrabold m-0">
+							<span
+								class="flex items-center gap-2 text-[var(--color-text-primary)] font-extrabold m-0"
+							>
 								<WrenchIcon class="h-4 w-4" />
 								{{ formatMessage(messages.debugInformation) }}
 							</span>
 							<DropdownIcon
-								class="h-5 w-5 text-secondary transition-transform"
+								class="h-5 w-5 text-[var(--color-text-tertiary)] transition-transform"
 								:class="{ 'rotate-180': !errorCollapsed }"
 							/>
 						</button>

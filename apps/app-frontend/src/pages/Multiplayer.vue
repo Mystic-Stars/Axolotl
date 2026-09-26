@@ -43,7 +43,7 @@ function handleTabClick(index: number) {
 		"
 	>
 		<template v-if="!isStudioMode">
-			<h1 class="m-0 shrink-0 text-2xl font-semibold text-contrast">
+			<h1 class="m-0 shrink-0 text-2xl font-semibold text-[var(--color-text-primary)]">
 				{{ formatMessage(messages.title) }}
 			</h1>
 			<NavTabs

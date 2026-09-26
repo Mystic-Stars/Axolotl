@@ -291,10 +291,6 @@ onUnmounted(() => {
 	.floating-action-bar.bottom-0 {
 		bottom: var(--size-mobile-navbar-height);
 	}
-
-	.expanded-mobile-nav .floating-action-bar.bottom-0 {
-		bottom: var(--size-mobile-navbar-height-expanded);
-	}
 }
 </style>
 

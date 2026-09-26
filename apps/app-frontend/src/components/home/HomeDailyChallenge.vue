@@ -62,7 +62,7 @@ function shuffleChallenge() {
 		class="flex min-w-0 flex-col gap-3 border-0 border-b-[1px] border-solid border-[--brand-gradient-border] p-4"
 	>
 		<div class="flex items-center gap-2">
-			<SparklesIcon class="size-4 shrink-0 text-secondary" aria-hidden="true" />
+			<SparklesIcon class="size-4 shrink-0 text-[var(--color-text-tertiary)]" aria-hidden="true" />
 			<h2 class="m-0 truncate text-lg">
 				{{ formatMessage(messages.dailyChallenge) }}
 			</h2>
@@ -77,8 +77,8 @@ function shuffleChallenge() {
 				><UpdatedIcon />
 			</Button>
 		</div>
-		<p class="m-0 text-sm leading-relaxed text-primary">{{ challengeText }}</p>
-		<div class="flex items-center gap-1.5 text-xs text-secondary">
+		<p class="m-0 text-sm leading-relaxed text-[var(--color-text-default)]">{{ challengeText }}</p>
+		<div class="flex items-center gap-1.5 text-xs text-[var(--color-text-tertiary)]">
 			<span
 				class="size-2 rounded-full"
 				:class="difficultyDotClass[challenge.difficulty]"

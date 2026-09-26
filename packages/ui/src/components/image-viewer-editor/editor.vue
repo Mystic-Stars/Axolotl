@@ -477,10 +477,10 @@ defineExpose({ markSaved })
 				<LeftArrowIcon aria-hidden="true" />
 			</IconButton>
 			<span
-				class="flex min-w-14 justify-center gap-1 text-base font-semibold leading-5 tabular-nums text-secondary"
+				class="flex min-w-14 justify-center gap-1 text-base font-semibold leading-5 tabular-nums text-[var(--color-text-tertiary)]"
 				aria-live="polite"
 			>
-				<strong class="font-semibold text-contrast">{{ index + 1 }}</strong>
+				<strong class="font-semibold text-[var(--color-text-primary)]">{{ index + 1 }}</strong>
 				<span>/ {{ count }}</span>
 			</span>
 			<IconButton :label="formatMessage(messages.next)" type="quiet" @click="emit('next')">
@@ -501,7 +501,7 @@ defineExpose({ markSaved })
 			<Button
 				v-tooltip="formatMessage(messages.fitToWorkspace)"
 				type="quiet"
-				class="w-16 px-2 tabular-nums text-secondary"
+				class="w-16 px-2 tabular-nums text-[var(--color-text-tertiary)]"
 				@click="resetView"
 			>
 				{{ viewZoomPercent }}%

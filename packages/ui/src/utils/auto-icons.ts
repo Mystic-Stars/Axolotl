@@ -161,7 +161,7 @@ export function getCurrencyIcon(currency: string): Component | null {
 export function getCurrencyColor(currency: string): string {
 	const lower = currency.toLowerCase()
 	const key = Object.keys(CURRENCY_CONFIG).find((k) => lower.includes(k))
-	return key ? CURRENCY_CONFIG[key].color : 'text-contrast'
+	return key ? CURRENCY_CONFIG[key].color : 'text-[var(--color-text-primary)]'
 }
 
 export function getBlockchainIcon(blockchain: string): Component | null {
@@ -173,5 +173,5 @@ export function getBlockchainIcon(blockchain: string): Component | null {
 export function getBlockchainColor(blockchain: string): string {
 	const lower = blockchain.toLowerCase()
 	const key = Object.keys(BLOCKCHAIN_CONFIG).find((k) => lower.includes(k))
-	return key ? BLOCKCHAIN_CONFIG[key].color : 'text-contrast'
+	return key ? BLOCKCHAIN_CONFIG[key].color : 'text-[var(--color-text-primary)]'
 }

@@ -233,7 +233,7 @@ async function confirmDelete() {
 
 			<Card data-onboarding-id="server-settings" class="!m-0">
 				<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-					<h3 class="m-0 col-span-full text-base font-semibold text-contrast">
+					<h3 class="m-0 col-span-full text-base font-semibold text-[var(--color-text-primary)]">
 						{{ formatMessage(messages.general) }}
 					</h3>
 
@@ -245,7 +245,9 @@ async function confirmDelete() {
 							size="48px"
 						/>
 						<div class="flex flex-col gap-1">
-							<span class="font-semibold text-contrast">{{ formatMessage(messages.icon) }}</span>
+							<span class="font-semibold text-[var(--color-text-primary)]">{{
+								formatMessage(messages.icon)
+							}}</span>
 							<div class="flex gap-2">
 								<Button type="outlined" size="2xs" @click="pickIcon"
 									><ImageIcon />
@@ -269,12 +271,16 @@ async function confirmDelete() {
 					</div>
 
 					<label class="flex min-w-0 flex-col gap-2" for="server-settings-name">
-						<span class="font-semibold text-contrast">{{ formatMessage(messages.name) }}</span>
+						<span class="font-semibold text-[var(--color-text-primary)]">{{
+							formatMessage(messages.name)
+						}}</span>
 						<StyledInput id="server-settings-name" v-model="name" />
 					</label>
 
 					<label class="flex min-w-0 flex-col gap-2" for="server-settings-memory">
-						<span class="font-semibold text-contrast">{{ formatMessage(messages.memory) }}</span>
+						<span class="font-semibold text-[var(--color-text-primary)]">{{
+							formatMessage(messages.memory)
+						}}</span>
 						<StyledInput
 							id="server-settings-memory"
 							v-model="memoryMb"
@@ -284,7 +290,9 @@ async function confirmDelete() {
 					</label>
 
 					<div class="flex min-w-0 flex-col gap-2 sm:col-span-2 xl:col-span-2">
-						<span class="font-semibold text-contrast">{{ formatMessage(messages.java) }}</span>
+						<span class="font-semibold text-[var(--color-text-primary)]">{{
+							formatMessage(messages.java)
+						}}</span>
 						<JavaSelector
 							id="server-settings-java"
 							v-model="javaSelection"
@@ -297,27 +305,33 @@ async function confirmDelete() {
 						class="flex min-w-0 flex-col gap-2 sm:col-span-2 xl:col-span-4"
 						for="server-settings-jvm"
 					>
-						<span class="font-semibold text-contrast">{{ formatMessage(messages.jvmArgs) }}</span>
+						<span class="font-semibold text-[var(--color-text-primary)]">{{
+							formatMessage(messages.jvmArgs)
+						}}</span>
 						<StyledInput id="server-settings-jvm" v-model="jvmArgsText" />
-						<span class="text-xs text-secondary">{{ formatMessage(messages.jvmArgsHint) }}</span>
+						<span class="text-xs text-[var(--color-text-tertiary)]">{{
+							formatMessage(messages.jvmArgsHint)
+						}}</span>
 					</label>
 
 					<label
 						class="flex min-w-0 flex-col gap-2 sm:col-span-2 xl:col-span-4"
 						for="server-settings-pre-launch-hook"
 					>
-						<span class="font-semibold text-contrast">{{
+						<span class="font-semibold text-[var(--color-text-primary)]">{{
 							formatMessage(messages.preLaunchHook)
 						}}</span>
 						<StyledInput id="server-settings-pre-launch-hook" v-model="preLaunchHookText" />
-						<span class="text-xs text-secondary">{{
+						<span class="text-xs text-[var(--color-text-tertiary)]">{{
 							formatMessage(messages.preLaunchHookHint)
 						}}</span>
 					</label>
 					<div
 						class="flex min-w-0 items-center justify-between gap-3 rounded-xl border border-solid border-surface-5 bg-surface-4 p-3 sm:col-span-2 xl:col-span-4"
 					>
-						<span class="font-semibold text-contrast">{{ formatMessage(messages.pinHome) }}</span>
+						<span class="font-semibold text-[var(--color-text-primary)]">{{
+							formatMessage(messages.pinHome)
+						}}</span>
 						<Toggle id="server-settings-pin-home" v-model="pinnedToHome" />
 					</div>
 				</div>
@@ -336,10 +350,10 @@ async function confirmDelete() {
 							<TrashIcon class="size-4" />
 						</div>
 						<div class="min-w-0">
-							<h3 class="m-0 text-base font-semibold text-contrast">
+							<h3 class="m-0 text-base font-semibold text-[var(--color-text-primary)]">
 								{{ formatMessage(messages.deleteTitle) }}
 							</h3>
-							<p class="mb-0 mt-1 text-sm text-secondary">
+							<p class="mb-0 mt-1 text-sm text-[var(--color-text-tertiary)]">
 								{{ formatMessage(messages.deleteHint) }}
 							</p>
 						</div>
@@ -366,7 +380,7 @@ async function confirmDelete() {
 		>
 			<div class="flex w-full items-center justify-end">
 				<div
-					class="flex items-center gap-2 rounded-xl border border-solid border-button-border bg-bg-raised px-3 py-2 shadow-lg"
+					class="flex items-center gap-2 rounded-xl border border-solid border-surface-4 bg-surface-3 px-3 py-2 shadow-lg"
 				>
 					<Button type="outlined" :disabled="isSaving" @click="cancel"
 						><XIcon />

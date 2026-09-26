@@ -1018,7 +1018,7 @@ const confirmUnlinkModal = ref<InstanceType<typeof ConfirmUnlinkModal>>()
 			>
 				<div class="universal-card flex flex-col items-center gap-4 p-6">
 					<h2 class="m-0 text-xl font-bold">{{ formatMessage(messages.failedToLoad) }}</h2>
-					<p class="text-secondary">{{ ctx.error.value.message }}</p>
+					<p class="text-[var(--color-text-tertiary)]">{{ ctx.error.value.message }}</p>
 					<Button type="colored" color="brand" @click="handleRefresh">{{
 						formatMessage(commonMessages.retryButton)
 					}}</Button>
@@ -1072,7 +1072,7 @@ const confirmUnlinkModal = ref<InstanceType<typeof ConfirmUnlinkModal>>()
 									:class="
 										selectedStatusFilters.length === 0
 											? 'text-brand'
-											: 'text-secondary hover:text-primary'
+											: 'text-[var(--color-text-tertiary)] hover:text-[var(--color-text-default)]'
 									"
 									:aria-pressed="selectedStatusFilters.length === 0"
 									@click="selectedStatusFilters = []"
@@ -1090,7 +1090,7 @@ const confirmUnlinkModal = ref<InstanceType<typeof ConfirmUnlinkModal>>()
 									:class="
 										selectedStatusFilters.includes(option.id)
 											? 'text-brand'
-											: 'text-secondary hover:text-primary'
+											: 'text-[var(--color-text-tertiary)] hover:text-[var(--color-text-default)]'
 									"
 									:aria-pressed="selectedStatusFilters.includes(option.id)"
 									@click="toggleStatusFilter(option.id)"

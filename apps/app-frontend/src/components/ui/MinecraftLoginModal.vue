@@ -141,19 +141,23 @@ defineExpose({ showDeviceLogin, hide })
 	<NewModal ref="modal" :header="formatMessage(messages.title)" :on-hide="resetDeviceLogin">
 		<div class="flex min-w-[24rem] flex-col gap-4">
 			<template v-if="deviceFlow">
-				<p class="m-0 text-secondary">{{ formatMessage(messages.deviceDescription) }}</p>
+				<p class="m-0 text-[var(--color-text-tertiary)]">
+					{{ formatMessage(messages.deviceDescription) }}
+				</p>
 				<Button @click="openDeviceVerification"
 					><ExternalIcon /> {{ formatMessage(messages.openVerification) }}
 				</Button>
 				<code
-					class="rounded-xl bg-surface-3 px-4 py-3 text-center text-xl font-bold tracking-[0.18em] text-contrast"
+					class="rounded-xl bg-surface-3 px-4 py-3 text-center text-xl font-bold tracking-[0.18em] text-[var(--color-text-primary)]"
 				>
 					{{ deviceFlow.user_code }}
 				</code>
 				<p v-if="deviceError" class="m-0 text-sm text-red">{{ deviceError }}</p>
 			</template>
 			<template v-else>
-				<p v-if="busy" class="m-0 text-secondary">{{ formatMessage(messages.deviceStarting) }}</p>
+				<p v-if="busy" class="m-0 text-[var(--color-text-tertiary)]">
+					{{ formatMessage(messages.deviceStarting) }}
+				</p>
 				<p v-if="deviceError" class="m-0 text-sm text-red">{{ deviceError }}</p>
 			</template>
 		</div>
