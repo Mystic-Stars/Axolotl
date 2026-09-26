@@ -63,6 +63,7 @@ withDefaults(
 }
 
 .settings-row-control :deep(.btn),
+.settings-row-control :deep([data-button]),
 .settings-row-control :deep(input),
 .settings-row-control :deep(select),
 .settings-row-control :deep(.combobox) {

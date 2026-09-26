@@ -2528,11 +2528,7 @@ function slotEditorSlots(type: RecipeType): RecipeSlot[] {
 		width: 100%;
 	}
 
-	.recipe-header-actions > :deep(.btn-wrapper) {
-		width: 100%;
-	}
-
-	.recipe-header-actions > :deep(.btn-wrapper button) {
+	.recipe-header-actions > :deep([data-button]) {
 		width: 100%;
 		justify-content: center;
 	}

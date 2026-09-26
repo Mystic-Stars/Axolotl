@@ -3663,15 +3663,9 @@ function clampWorldCoordinate(value: number) {
 	font-weight: 700;
 }
 
+// The frame owns the box here (`quiet` icon-only at `2xs` is already 1.5rem and
+// padding-free); only the colour is this view's own.
 .map-status > button {
-	display: inline-flex;
-	width: 1.5rem;
-	height: 1.5rem;
-	align-items: center;
-	justify-content: center;
-	border: 0;
-	background: transparent;
-	padding: 0;
 	color: var(--color-text-secondary);
 }
 

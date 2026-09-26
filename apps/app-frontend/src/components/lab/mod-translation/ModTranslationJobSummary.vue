@@ -206,12 +206,6 @@ function formatDuration(seconds: number): string {
 	gap: 0.35rem;
 }
 
-.actions button {
-	display: inline-flex;
-	align-items: center;
-	gap: 0.35rem;
-}
-
 @media (max-width: 44rem) {
 	.actions :deep(button) {
 		font-size: 0;
