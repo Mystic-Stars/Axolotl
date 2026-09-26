@@ -250,14 +250,11 @@ async fn initialize_state(app: tauri::AppHandle) -> api::Result<()> {
     }
 
     let state = State::get().await?;
-    // A failure here costs the one-time group import, not the session: the
-    // legacy tables are read-only during it and the JSON store is the source of
-    // truth afterwards, so an error must not keep the launcher from starting.
-    if let Err(error) =
-        theseus::state::instance_groups::ensure_imported(&state).await
-    {
-        tracing::warn!(%error, "Failed to import legacy instance groups");
-    }
+    // Do not start accepting group writes until the legacy import succeeds.
+    // The JSON store becomes authoritative after the first write; swallowing
+    // this error would let a fallback Favorites-only store overwrite groups
+    // that still exist in SQLite.
+    theseus::state::instance_groups::ensure_imported(&state).await?;
 
     app.asset_protocol_scope()
         .allow_directory(state.directories.caches_dir(), true)?;

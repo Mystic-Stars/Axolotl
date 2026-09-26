@@ -216,6 +216,40 @@ it('applies a popperClass to the popper', async () => {
 	unmount()
 })
 
+it('honours a hover-only trigger configuration', async () => {
+	const value = ref<unknown>({ content: 'Hover only', triggers: ['hover'] })
+	const { trigger, unmount } = mountTrigger(value)
+	applyTheme('dark')
+	await nextTick()
+
+	trigger.focus()
+	await new Promise((resolve) => setTimeout(resolve, 250))
+	expect(popper(), 'focus must not activate a hover-only tooltip').toBeNull()
+
+	trigger.dispatchEvent(new MouseEvent('mouseenter'))
+	await waitFor(() => !!popper(), { label: 'the hover-only tooltip' })
+
+	unmount()
+})
+
+it('keeps a tooltip open while another enabled trigger remains active', async () => {
+	const value = ref<unknown>('Persistent while focused')
+	const { trigger, unmount } = mountTrigger(value)
+	applyTheme('dark')
+	await nextTick()
+
+	trigger.focus()
+	await waitFor(() => !!popper(), { label: 'the focused tooltip' })
+	trigger.dispatchEvent(new MouseEvent('mouseenter'))
+	trigger.dispatchEvent(new MouseEvent('mouseleave'))
+	await new Promise((resolve) => setTimeout(resolve, 50))
+	expect(popper(), 'hover ending must not hide a focused tooltip').not.toBeNull()
+
+	trigger.blur()
+	await waitFor(() => !popper(), { label: 'the tooltip to hide after focus leaves' })
+	unmount()
+})
+
 it('re-reads its content when the value changes', async () => {
 	// The value is deliberately not captured from the binding object passed to
 	// `mounted`: Vue replaces that object on re-render, so a captured one would

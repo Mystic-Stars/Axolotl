@@ -14,12 +14,12 @@
 
 		<DropdownMenuPortal :to="portalTarget">
 			<DropdownMenuContent
+				:id="dropdownId || undefined"
 				ref="content"
 				:side="side"
 				:align="align"
 				:side-offset="4"
 				:class="[dropdownClass, 'menu-surface']"
-				:aria-label="dropdownId || undefined"
 				@open-auto-focus="focusFirstContent"
 			>
 				<slot name="menu" :hide="hide"></slot>

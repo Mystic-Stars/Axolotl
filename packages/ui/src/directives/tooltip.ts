@@ -72,6 +72,17 @@ function createTooltip(trigger: HTMLElement, modifier: Placement | null): Toolti
 	let value: TooltipValue
 	let stopAutoUpdate: (() => void) | null = null
 	let showTimer: ReturnType<typeof setTimeout> | null = null
+	let hovered = false
+	let focused = false
+
+	function triggerEnabled(name: 'hover' | 'focus') {
+		const triggers = resolveTooltipContent(value)?.options.triggers
+		return triggers === undefined || triggers.includes(name)
+	}
+
+	function hasActiveTrigger() {
+		return (hovered && triggerEnabled('hover')) || (focused && triggerEnabled('focus'))
+	}
 
 	function mount() {
 		const resolved = resolveTooltipContent(value)
@@ -158,6 +169,8 @@ function createTooltip(trigger: HTMLElement, modifier: Placement | null): Toolti
 	}
 
 	function onEnter() {
+		hovered = true
+		if (!triggerEnabled('hover')) return
 		cancelPendingShow()
 		showTimer = setTimeout(() => {
 			showTimer = null
@@ -165,27 +178,43 @@ function createTooltip(trigger: HTMLElement, modifier: Placement | null): Toolti
 		}, SHOW_DELAY_MS)
 	}
 
-	const onLeave = () => hide()
+	function onLeave() {
+		hovered = false
+		if (!triggerEnabled('hover')) return
+		if (!hasActiveTrigger()) hide()
+	}
+
+	function onFocusIn() {
+		focused = true
+		if (triggerEnabled('focus')) show()
+	}
+
+	function onFocusOut(event: FocusEvent) {
+		if (event.relatedTarget instanceof Node && trigger.contains(event.relatedTarget)) return
+		focused = false
+		if (triggerEnabled('focus') && !hasActiveTrigger()) hide()
+	}
 
 	trigger.addEventListener('mouseenter', onEnter)
 	trigger.addEventListener('mouseleave', onLeave)
-	trigger.addEventListener('focusin', show)
-	trigger.addEventListener('focusout', onLeave)
+	trigger.addEventListener('focusin', onFocusIn)
+	trigger.addEventListener('focusout', onFocusOut)
 
 	return {
 		setValue(next) {
 			value = next
 			// Only re-render when something is actually on screen, so an update to
 			// a closed tooltip costs nothing.
-			if (popper.isConnected) show()
+			if (hasActiveTrigger()) show()
+			else if (popper.isConnected) hide()
 		},
 		destroy() {
 			cancelPendingShow()
 			unmount()
 			trigger.removeEventListener('mouseenter', onEnter)
 			trigger.removeEventListener('mouseleave', onLeave)
-			trigger.removeEventListener('focusin', show)
-			trigger.removeEventListener('focusout', onLeave)
+			trigger.removeEventListener('focusin', onFocusIn)
+			trigger.removeEventListener('focusout', onFocusOut)
 		},
 	}
 }

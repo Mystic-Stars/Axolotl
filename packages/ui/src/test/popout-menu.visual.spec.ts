@@ -125,6 +125,20 @@ it('accepts a dropdownClass on the content element', async () => {
 	wrapper.unmount()
 })
 
+it('uses dropdownId as the menu element id', async () => {
+	const wrapper = await mountPopout({ dropdownId: 'create-new-files' })
+	applyTheme('dark')
+	await wrapper.vm.$nextTick()
+
+	openMenu()
+	await waitFor(() => !!content(), { label: 'the menu' })
+
+	expect(content()?.id).toBe('create-new-files')
+	expect(content()?.getAttribute('aria-label')).toBeNull()
+
+	wrapper.unmount()
+})
+
 it('moves keyboard focus into the menu and restores it after closing', async () => {
 	const wrapper = await mountPopout()
 	applyTheme('dark')
