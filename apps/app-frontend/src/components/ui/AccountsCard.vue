@@ -393,6 +393,7 @@ import { process_listener } from '@/helpers/events'
 import { getPlayerHeadUrl } from '@/helpers/rendering/batch-skin-renderer.ts'
 import type { Skin } from '@/helpers/skins'
 import { get_available_skins } from '@/helpers/skins'
+import { preferredOnlineAccountId } from '@/helpers/account-selection'
 import { handleSevereError } from '@/store/error.js'
 
 const { formatMessage } = useVIntl()
@@ -578,10 +579,7 @@ async function refreshValues(headRefreshAttempt = 0, preferOnlineAccount = false
 	accounts.value.sort(compareMinecraftAccounts)
 	let resolvedSelectedUser = selectedUser
 	if (preferOnlineAccount && selectedUser) {
-		const selectedAccount = accounts.value.find((account) => account.account_id === selectedUser)
-		if (selectedAccount?.account_type === 'offline') {
-			resolvedSelectedUser = accounts.value.find((account) => account.account_type !== 'offline')?.account_id
-		}
+		resolvedSelectedUser = preferredOnlineAccountId(selectedUser, accounts.value)
 	}
 	defaultUser.value = resolvedSelectedUser
 	if (resolvedSelectedUser && resolvedSelectedUser !== selectedUser) {
