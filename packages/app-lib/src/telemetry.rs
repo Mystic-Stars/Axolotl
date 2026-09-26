@@ -51,6 +51,7 @@ pub(crate) fn start(state: Arc<State>) {
 }
 
 pub async fn set_enabled(state: &State, enabled: bool) -> crate::Result<()> {
+    let _database_permit = state.acquire_install_db_permit().await?;
     sqlx::query("DELETE FROM telemetry_outbox")
         .execute(&state.pool)
         .await?;
@@ -72,20 +73,26 @@ async fn run_cycle(
     client: &reqwest::Client,
 ) -> crate::Result<()> {
     if !is_enabled(state).await? {
+        let _database_permit = state.acquire_install_db_permit().await?;
         sqlx::query("DELETE FROM telemetry_outbox")
             .execute(&state.pool)
             .await?;
         return Ok(());
     }
 
-    ensure_identity(&state.pool).await?;
-    // Error events were supported by older clients. Drop any that remain in
-    // the local queue before selecting uploadable events.
-    sqlx::query("DELETE FROM telemetry_outbox WHERE event_type <> 'heartbeat'")
+    {
+        let _database_permit = state.acquire_install_db_permit().await?;
+        ensure_identity(&state.pool).await?;
+        // Error events were supported by older clients. Drop any that remain
+        // in the local queue before selecting uploadable events.
+        sqlx::query(
+            "DELETE FROM telemetry_outbox WHERE event_type <> 'heartbeat'",
+        )
         .execute(&state.pool)
         .await?;
-    enqueue_heartbeat(state).await?;
-    cleanup_outbox(state).await?;
+        enqueue_heartbeat(state).await?;
+        cleanup_outbox(state).await?;
+    }
     upload_next_batch(state, client).await?;
     Ok(())
 }
@@ -259,7 +266,10 @@ async fn upload_next_batch(
         event_ids.push(row.get::<String, _>("event_id"));
     }
 
-    let installation_id = ensure_identity(&state.pool).await?;
+    let installation_id = {
+        let _database_permit = state.acquire_install_db_permit().await?;
+        ensure_identity(&state.pool).await?
+    };
     let batch_id = stable_batch_id(&event_ids);
     let body = json!({
         "schema_version": 1,
@@ -295,6 +305,7 @@ async fn delete_events(
     state: &State,
     event_ids: &[String],
 ) -> crate::Result<()> {
+    let _database_permit = state.acquire_install_db_permit().await?;
     for event_id in event_ids {
         sqlx::query("DELETE FROM telemetry_outbox WHERE event_id = ?")
             .bind(event_id)
@@ -308,6 +319,7 @@ async fn schedule_retry(
     state: &State,
     event_ids: &[String],
 ) -> crate::Result<()> {
+    let _database_permit = state.acquire_install_db_permit().await?;
     for event_id in event_ids {
         let row = sqlx::query(
             "SELECT attempts FROM telemetry_outbox WHERE event_id = ?",

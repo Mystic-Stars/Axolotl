@@ -1609,6 +1609,24 @@ pub(crate) async fn set_content_entry_auto_dependency(
     Ok(())
 }
 
+pub(crate) async fn set_content_entry_auto_dependency_in_transaction(
+    content_entry_id: &str,
+    auto_dependency: bool,
+    tx: &mut Transaction<'_, Sqlite>,
+) -> crate::Result<()> {
+    sqlx::query(
+        "UPDATE instance_content_entries
+         SET auto_dependency = ?, modified_at = ?
+         WHERE id = ?",
+    )
+    .bind(i64::from(auto_dependency))
+    .bind(Utc::now().timestamp())
+    .bind(content_entry_id)
+    .execute(&mut **tx)
+    .await?;
+    Ok(())
+}
+
 pub(crate) async fn get_dependency_backfilled_entry_ids(
     content_set_id: &str,
     pool: &SqlitePool,

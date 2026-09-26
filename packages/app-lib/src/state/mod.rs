@@ -1010,6 +1010,29 @@ impl State {
             })
     }
 
+    /// Acquire the single writer permit without allowing a content operation
+    /// to wait forever behind a stale install checkpoint.
+    pub(crate) async fn acquire_install_db_permit(
+        &self,
+    ) -> crate::Result<tokio::sync::SemaphorePermit<'_>> {
+        let permit = tokio::time::timeout(
+            Duration::from_secs(20),
+            self.install_db_semaphore.acquire(),
+        )
+        .await
+        .map_err(|_| {
+            crate::ErrorKind::InputError(
+                "Timed out waiting for the install database writer".to_string(),
+            )
+        })?
+        .map_err(|_| {
+            crate::ErrorKind::OtherError(
+                "install database semaphore closed".to_string(),
+            )
+        })?;
+        Ok(permit)
+    }
+
     pub(crate) async fn lock_instance_content_exclusive(
         &self,
         instance_id: &str,

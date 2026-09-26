@@ -259,9 +259,20 @@ async fn persist_modpack_record_batch(
     // but an atomic write that has started must be driven to a definitive
     // result. Dropping the SQL future while COMMIT is in flight makes it
     // impossible to know whether the files should be finalized or restored.
-    crate::state::instances::commands::record_project_files_atomic(
+    let database_permit = tokio::select! {
+        biased;
+        _ = cancellation.cancelled() => {
+            return Err(crate::ErrorKind::OtherError(
+                "modpack database registration canceled".to_string(),
+            ).into());
+        }
+        permit = state.acquire_install_db_permit() => permit?,
+    };
+    crate::state::instances::commands::record_project_files_atomic_with_permit(
         instance_id,
         &records,
+        &[],
+        Some(database_permit),
         &state,
     )
     .await
@@ -2084,10 +2095,21 @@ pub(crate) async fn install_zipped_mrpack_files_with_reporter(
         // outcome must be observed. Release the permit before persisting a
         // failure context because the install-job store uses the same
         // semaphore and would otherwise deadlock on an error.
+        let database_permit = tokio::select! {
+            biased;
+            _ = cancellation.cancelled() => {
+                return Err(crate::ErrorKind::OtherError(
+                    "modpack override registration canceled".to_string(),
+                ).into());
+            }
+            permit = state.acquire_install_db_permit() => permit?,
+        };
         let record_result =
-            crate::state::instances::commands::record_project_files_atomic(
+            crate::state::instances::commands::record_project_files_atomic_with_permit(
                 &instance_id,
                 &override_records,
+                &[],
+                Some(database_permit),
                 state,
             )
             .await;

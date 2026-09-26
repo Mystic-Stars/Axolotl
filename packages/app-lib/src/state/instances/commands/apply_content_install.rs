@@ -1609,6 +1609,7 @@ pub(crate) async fn add_downloaded_project_version(
     ownership_kind: ContentOwnershipKind,
     state: &State,
 ) -> crate::Result<String> {
+    let database_permit = Some(state.acquire_install_db_permit().await?);
     let _instance_lock = state
         .lock_instance_content_with_timeout(
             instance_id,
@@ -1651,20 +1652,22 @@ pub(crate) async fn add_downloaded_project_version(
         project_id: ModrinthProjectId::new(project_id.clone())?,
         version_id: Some(ModrinthVersionId::new(version_id.clone())?),
     };
-    let record_result = record_project_file_atomic(
+    let record_result = record_project_files_atomic_with_permit(
         instance_id,
-        &relative_path,
-        &sha1,
-        size,
-        project_type,
-        source_kind,
-        ownership_kind,
-        Some(&provider_ref),
-        true,
-        Some(KnownModrinthFile {
-            project_id: &project_id,
-            version_id: &version_id,
-        }),
+        &[ProjectFileRecord {
+            relative_path: relative_path.clone(),
+            sha1: sha1.clone(),
+            size,
+            project_type,
+            source_kind,
+            ownership_kind,
+            provider_ref: Some(provider_ref),
+            origin: true,
+            known_modrinth_project_id: Some(project_id.clone()),
+            known_modrinth_version_id: Some(version_id.clone()),
+        }],
+        &[],
+        database_permit,
         state,
     )
     .await;
@@ -1692,6 +1695,7 @@ pub(crate) async fn apply_downloaded_project_version_at_path(
     ownership_kind: ContentOwnershipKind,
     state: &State,
 ) -> crate::Result<String> {
+    let database_permit = Some(state.acquire_install_db_permit().await?);
     let _instance_lock = state
         .lock_instance_content_with_timeout(
             instance_id,
@@ -1717,20 +1721,22 @@ pub(crate) async fn apply_downloaded_project_version_at_path(
         project_id: ModrinthProjectId::new(project_id.clone())?,
         version_id: Some(ModrinthVersionId::new(version_id.clone())?),
     };
-    let record_result = record_project_file_atomic(
+    let record_result = record_project_files_atomic_with_permit(
         instance_id,
-        relative_path,
-        &sha1,
-        size,
-        project_type,
-        source_kind,
-        ownership_kind,
-        Some(&provider_ref),
-        true,
-        Some(KnownModrinthFile {
-            project_id: &project_id,
-            version_id: &version_id,
-        }),
+        &[ProjectFileRecord {
+            relative_path: relative_path.to_string(),
+            sha1: sha1.clone(),
+            size,
+            project_type,
+            source_kind,
+            ownership_kind,
+            provider_ref: Some(provider_ref),
+            origin: true,
+            known_modrinth_project_id: Some(project_id.clone()),
+            known_modrinth_version_id: Some(version_id.clone()),
+        }],
+        &[],
+        database_permit,
         state,
     )
     .await;
@@ -2611,6 +2617,7 @@ pub(crate) async fn record_project_file_atomic(
         instance_id,
         std::slice::from_ref(&record),
         &[],
+        None,
         state,
     )
     .await
@@ -2650,6 +2657,7 @@ pub(crate) async fn record_verified_curseforge_project_file_atomic(
         instance_id,
         std::slice::from_ref(&record),
         &verified_pending,
+        None,
         state,
     )
     .await
@@ -2664,6 +2672,7 @@ pub(crate) async fn record_project_files_atomic(
         instance_id,
         records,
         &[],
+        None,
         state,
     )
     .await
@@ -2679,6 +2688,24 @@ pub(crate) async fn record_project_files_with_verified_curseforge_atomic(
         instance_id,
         records,
         verified_pending,
+        None,
+        state,
+    )
+    .await
+}
+
+pub(crate) async fn record_project_files_atomic_with_permit(
+    instance_id: &str,
+    records: &[ProjectFileRecord],
+    verified_pending: &[(CurseForgeProjectId, CurseForgeFileId)],
+    database_permit: Option<tokio::sync::SemaphorePermit<'_>>,
+    state: &State,
+) -> crate::Result<()> {
+    record_project_files_atomic_with_pending_completion(
+        instance_id,
+        records,
+        verified_pending,
+        database_permit,
         state,
     )
     .await
@@ -2689,21 +2716,20 @@ async fn record_project_files_atomic_with_pending_completion(
     instance_id: &str,
     records: &[ProjectFileRecord],
     verified_pending: &[(CurseForgeProjectId, CurseForgeFileId)],
+    database_permit: Option<tokio::sync::SemaphorePermit<'_>>,
     state: &State,
 ) -> crate::Result<()> {
     if records.is_empty() {
         return Ok(());
     }
+    // Always acquire the global writer before the per-instance lock. This
+    // avoids holding an instance lock while waiting for a progress checkpoint
+    // or another install to release the database writer.
+    let _database_permit = match database_permit {
+        Some(permit) => permit,
+        None => state.acquire_install_db_permit().await?,
+    };
     let _instance_lock = state.lock_instance_content(instance_id).await;
-    // Keep the lock order consistent with content-change publishing. Any
-    // caller that needs to register files acquires the per-instance lock
-    // before serializing the SQLite write.
-    let _database_permit =
-        state.install_db_semaphore.acquire().await.map_err(|_| {
-            crate::ErrorKind::OtherError(
-                "install database semaphore closed".to_string(),
-            )
-        })?;
 
     let scope = resolve_content_scope(instance_id, None, state).await?;
     let mut tx = begin_content_write(&state.pool).await?;
