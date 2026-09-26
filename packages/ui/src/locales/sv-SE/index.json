@@ -344,9 +344,6 @@
   "content.filter.updates": {
     "defaultMessage": "Uppdateringar"
   },
-  "content.filter.warnings": {
-    "defaultMessage": "Varningar"
-  },
   "content.page-layout.browse-content": {
     "defaultMessage": "Utforska innehåll"
   },
@@ -872,18 +869,6 @@
   "header.category.resolutions": {
     "defaultMessage": "Kvalitet"
   },
-  "icon-select.edit": {
-    "defaultMessage": "Redigera-ikon"
-  },
-  "icon-select.remove": {
-    "defaultMessage": "Ta bort ikon"
-  },
-  "icon-select.replace": {
-    "defaultMessage": "Ersätt ikon"
-  },
-  "icon-select.select": {
-    "defaultMessage": "Välj ikon"
-  },
   "input.search-version.placeholder": {
     "defaultMessage": "Sök efter version..."
   },
@@ -1060,24 +1045,6 @@
   },
   "instances.content-install.select-icon": {
     "defaultMessage": "Välj ikon"
-  },
-  "instances.modpack-content-modal.empty-description": {
-    "defaultMessage": "Modpaketet innehåller inget ytterligare innehåll."
-  },
-  "instances.modpack-content-modal.empty-title": {
-    "defaultMessage": "Inget innehåll hittades"
-  },
-  "instances.modpack-content-modal.header": {
-    "defaultMessage": "Modpaketets innehåll"
-  },
-  "instances.modpack-content-modal.loading": {
-    "defaultMessage": "Laddar innehåll..."
-  },
-  "instances.modpack-content-modal.no-results": {
-    "defaultMessage": "Inga projekt matchar din sökning."
-  },
-  "instances.modpack-content-modal.search-placeholder": {
-    "defaultMessage": "Sök genom {count, number} projekt"
   },
   "instances.updater-modal.badge.current": {
     "defaultMessage": "Nuvarande"
@@ -1445,102 +1412,6 @@
   "locale.zh-TW": {
     "defaultMessage": "Kinesiska (Traditionell)"
   },
-  "markdown-editor.error-label": {
-    "defaultMessage": "Fel"
-  },
-  "markdown-editor.image-modal.description-field.placeholder": {
-    "defaultMessage": "Beskriv bilden..."
-  },
-  "markdown-editor.image-modal.description-field.title": {
-    "defaultMessage": "Beskrivning (alternativ text)"
-  },
-  "markdown-editor.image-modal.upload-mode.link": {
-    "defaultMessage": "Länk"
-  },
-  "markdown-editor.image-modal.upload-mode.upload": {
-    "defaultMessage": "Ladda upp"
-  },
-  "markdown-editor.image-modal.upload.prompt": {
-    "defaultMessage": "Dra och släpp för att ladda upp eller klicka för att välja fil"
-  },
-  "markdown-editor.link-modal.label-field.title": {
-    "defaultMessage": "Etikett"
-  },
-  "markdown-editor.max-length.unlimited": {
-    "defaultMessage": "Obegränsad"
-  },
-  "markdown-editor.max-length.value": {
-    "defaultMessage": "{currentLength}/{maxLength}"
-  },
-  "markdown-editor.placeholder": {
-    "defaultMessage": "Skriv något..."
-  },
-  "markdown-editor.preview-label": {
-    "defaultMessage": "Förhandsvisa"
-  },
-  "markdown-editor.preview-toggle.label": {
-    "defaultMessage": "Förhandsvisa"
-  },
-  "markdown-editor.toolbar.bold": {
-    "defaultMessage": "Fetstil"
-  },
-  "markdown-editor.toolbar.bulleted-list": {
-    "defaultMessage": "Punktlista"
-  },
-  "markdown-editor.toolbar.code": {
-    "defaultMessage": "Kod"
-  },
-  "markdown-editor.toolbar.heading-1": {
-    "defaultMessage": "Rubrik 1"
-  },
-  "markdown-editor.toolbar.heading-2": {
-    "defaultMessage": "Rubrik 2"
-  },
-  "markdown-editor.toolbar.heading-3": {
-    "defaultMessage": "Rubrik 3"
-  },
-  "markdown-editor.toolbar.image": {
-    "defaultMessage": "Bild"
-  },
-  "markdown-editor.toolbar.italic": {
-    "defaultMessage": "Kursiv"
-  },
-  "markdown-editor.toolbar.link": {
-    "defaultMessage": "Länk"
-  },
-  "markdown-editor.toolbar.ordered-list": {
-    "defaultMessage": "Ordnad lista"
-  },
-  "markdown-editor.toolbar.quote": {
-    "defaultMessage": "Citat"
-  },
-  "markdown-editor.toolbar.spoiler": {
-    "defaultMessage": "Spoiler"
-  },
-  "markdown-editor.toolbar.strikethrough": {
-    "defaultMessage": "Genomstruken"
-  },
-  "markdown-editor.toolbar.video": {
-    "defaultMessage": "Video"
-  },
-  "markdown-editor.upload-error.no-file": {
-    "defaultMessage": "Ingen fil försågs"
-  },
-  "markdown-editor.url-label": {
-    "defaultMessage": "URL"
-  },
-  "markdown-editor.url-validation-error.blocked-domain": {
-    "defaultMessage": "Ogiltig URL. Denna domän är inte tillåten."
-  },
-  "markdown-editor.url-validation-error.malformed": {
-    "defaultMessage": "Ogiltig URL. Se till att URL:en är rätt formaterad."
-  },
-  "markdown-editor.url-validation-error.unsupported-protocol": {
-    "defaultMessage": "Ej stött protokoll. Använd HTTP eller HTTPS."
-  },
-  "markdown-editor.video-embed.title": {
-    "defaultMessage": "YouTube videospelare"
-  },
   "modal.open-in-app.benefit.install": {
     "defaultMessage": "Installera krävt innehåll automatiskt"
   },
@@ -1624,24 +1495,6 @@
   },
   "omorphia.component.copy.action.copy": {
     "defaultMessage": "Kopiera kod till urklipp"
-  },
-  "omorphia.component.environment-indicator.label.client": {
-    "defaultMessage": "Klient"
-  },
-  "omorphia.component.environment-indicator.label.client-and-server": {
-    "defaultMessage": "Klient och server"
-  },
-  "omorphia.component.environment-indicator.label.client-or-server": {
-    "defaultMessage": "Klient eller server"
-  },
-  "omorphia.component.environment-indicator.label.server": {
-    "defaultMessage": "Server"
-  },
-  "omorphia.component.environment-indicator.label.type": {
-    "defaultMessage": "En {type}"
-  },
-  "omorphia.component.environment-indicator.label.unsupported": {
-    "defaultMessage": "Ostöttad"
   },
   "payment-method.amazon_pay": {
     "defaultMessage": "Amazon Pay"
@@ -2378,17 +2231,8 @@
   "search.server_content_type.vanilla": {
     "defaultMessage": "Vanilla"
   },
-  "servers.notice.dismiss": {
-    "defaultMessage": "Avvisa"
-  },
   "servers.notice.dismissable": {
     "defaultMessage": "Kan avvisas"
-  },
-  "servers.notice.heading.attention": {
-    "defaultMessage": "Uppmärksamhet"
-  },
-  "servers.notice.heading.info": {
-    "defaultMessage": "Info"
   },
   "servers.notice.level.critical.name": {
     "defaultMessage": "Kritisk"
@@ -2890,8 +2734,5 @@
   },
   "tag.loader.waterfall": {
     "defaultMessage": "Waterfall"
-  },
-  "ui.component.unsaved-changes-popup.body": {
-    "defaultMessage": "Du har osparade ändringar."
   }
 }

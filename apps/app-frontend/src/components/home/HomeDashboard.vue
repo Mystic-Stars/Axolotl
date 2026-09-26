@@ -12,6 +12,7 @@ import {
 	TrashIcon,
 } from '@modrinth/assets'
 import {
+	Button,
 	ButtonStyled,
 	defineMessages,
 	injectNotificationManager,
@@ -686,9 +687,7 @@ defineExpose({ openWidgetPicker, setLayout })
 				class="flex min-h-64 flex-col items-center justify-center gap-4 rounded-lg border border-dashed border-divider text-center"
 			>
 				<p class="m-0 text-secondary">{{ formatMessage(messages.empty) }}</p>
-				<ButtonStyled>
-					<button @click="openWidgetPicker"><PlusIcon /> {{ formatMessage(messages.add) }}</button>
-				</ButtonStyled>
+				<Button @click="openWidgetPicker"><PlusIcon /> {{ formatMessage(messages.add) }}</Button>
 			</div>
 		</div>
 	</section>

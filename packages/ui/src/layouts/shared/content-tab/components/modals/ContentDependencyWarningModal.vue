@@ -162,22 +162,19 @@
 
 		<template #actions>
 			<div class="flex justify-end gap-2">
-				<ButtonStyled type="outlined">
-					<button class="!border !border-surface-5" @click="hide">
-						<XIcon aria-hidden="true" />
-						{{ formatMessage(commonMessages.cancelButton) }}
-					</button>
-				</ButtonStyled>
-				<ButtonStyled color="red">
-					<button
-						v-tooltip="props.actionDisabled ? props.actionDisabledTooltip : undefined"
-						:disabled="props.actionDisabled"
-						@click="confirm"
-					>
-						<TrashIcon aria-hidden="true" />
-						{{ deleteButtonLabel }}
-					</button>
-				</ButtonStyled>
+				<Button type="outlined" class="!border !border-surface-5" @click="hide"
+					><XIcon aria-hidden="true" />
+					{{ formatMessage(commonMessages.cancelButton) }}
+				</Button>
+				<Button
+					v-tooltip="props.actionDisabled ? props.actionDisabledTooltip : undefined"
+					type="colored"
+					color="red"
+					:disabled="props.actionDisabled"
+					@click="confirm"
+					><TrashIcon aria-hidden="true" />
+					{{ deleteButtonLabel }}
+				</Button>
 			</div>
 		</template>
 	</NewModal>
@@ -189,7 +186,7 @@ import { autoToHTML } from '@sfirew/minecraft-motd-parser'
 import { computed, nextTick, ref } from 'vue'
 
 import Admonition from '#ui/components/base/Admonition.vue'
-import ButtonStyled from '#ui/components/base/ButtonStyled.vue'
+import Button from '#ui/components/base/buttons/Button.vue'
 import Checkbox from '#ui/components/base/Checkbox.vue'
 import IntlFormatted from '#ui/components/base/IntlFormatted.vue'
 import MinecraftFormattedText from '#ui/components/base/MinecraftFormattedText.vue'

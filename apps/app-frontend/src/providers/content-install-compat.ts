@@ -1,9 +1,9 @@
 import type { Labrinth } from '@modrinth/api-client'
 
 import {
-	getCurseForgeImageUrl,
 	type CurseForgeFile,
 	type CurseForgeProject,
+	getCurseForgeImageUrl,
 } from '@/helpers/curseforge'
 import type { GameInstance } from '@/helpers/types'
 

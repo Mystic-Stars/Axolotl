@@ -12,6 +12,7 @@ import {
 } from '@modrinth/assets'
 import {
 	Avatar,
+	Button,
 	ButtonStyled,
 	type ContentItem,
 	defineMessages,
@@ -28,9 +29,9 @@ import { RouterLink } from 'vue-router'
 
 import {
 	buildDependencyGraph,
-	dependencyGraphMetrics,
 	type DependencyDirection,
 	type DependencyGraph,
+	dependencyGraphMetrics,
 	type DependencyGraphNode,
 	getDependencyTreeRows,
 	getRelatedNodeIds,
@@ -100,7 +101,8 @@ const messages = defineMessages({
 	},
 	graphDirection: {
 		id: 'app.instance.dependencies.graph-direction',
-		defaultMessage: 'Stable relationship clusters. Arrows point from dependent content to the content it uses.',
+		defaultMessage:
+			'Stable relationship clusters. Arrows point from dependent content to the content it uses.',
 	},
 	graphHint: {
 		id: 'app.instance.dependencies.graph-hint',
@@ -481,11 +483,7 @@ function fitGraph() {
 	const availableWidth = Math.max(1, viewport.clientWidth - viewportPadding * 2)
 	const availableHeight = Math.max(1, viewport.clientHeight - viewportPadding * 2)
 	zoom.value = clamp(
-		Math.min(
-			1,
-			availableWidth / bounds.width,
-			availableHeight / bounds.height,
-		),
+		Math.min(1, availableWidth / bounds.width, availableHeight / bounds.height),
 		minZoom,
 		maxZoom,
 	)
@@ -994,30 +992,36 @@ defineExpose({ show, hide, setItems })
 									data-dependency-control
 									class="absolute right-3 top-3 z-20 flex items-center gap-1 rounded-xl border border-solid border-surface-4 bg-surface-2 p-1 shadow-lg"
 								>
-									<ButtonStyled circular type="transparent" size="small">
-										<button
-											:aria-label="formatMessage(messages.zoomOut)"
-											@click="zoomTo(zoom - 0.1)"
-										>
-											<ZoomOutIcon />
-										</button>
-									</ButtonStyled>
+									<Button
+										type="quiet"
+										size="2xs"
+										circular
+										icon-only
+										:aria-label="formatMessage(messages.zoomOut)"
+										@click="zoomTo(zoom - 0.1)"
+										><ZoomOutIcon />
+									</Button>
 									<span class="min-w-10 text-center text-xs tabular-nums text-secondary">
 										{{ Math.round(zoom * 100) }}%
 									</span>
-									<ButtonStyled circular type="transparent" size="small">
-										<button
-											:aria-label="formatMessage(messages.zoomIn)"
-											@click="zoomTo(zoom + 0.1)"
-										>
-											<ZoomInIcon />
-										</button>
-									</ButtonStyled>
-									<ButtonStyled circular type="transparent" size="small">
-										<button :aria-label="formatMessage(messages.resetZoom)" @click="resetGraphView">
-											<RotateCounterClockwiseIcon />
-										</button>
-									</ButtonStyled>
+									<Button
+										type="quiet"
+										size="2xs"
+										circular
+										icon-only
+										:aria-label="formatMessage(messages.zoomIn)"
+										@click="zoomTo(zoom + 0.1)"
+										><ZoomInIcon />
+									</Button>
+									<Button
+										type="quiet"
+										size="2xs"
+										circular
+										icon-only
+										:aria-label="formatMessage(messages.resetZoom)"
+										@click="resetGraphView"
+										><RotateCounterClockwiseIcon />
+									</Button>
 								</div>
 
 								<div
@@ -1061,7 +1065,7 @@ defineExpose({ show, hide, setItems })
 										:class="[
 											nodeStatusClass(node),
 											selectedNodeId && selectedNodeId !== node.id ? 'opacity-35' : '',
-										zoom < 0.34 ? 'dependency-graph-node-compact' : '',
+											zoom < 0.34 ? 'dependency-graph-node-compact' : '',
 											draggedNodeId === node.id ? 'z-10 scale-[1.03] shadow-xl' : '',
 										]"
 										:style="{ left: `${node.x}px`, top: `${node.y}px` }"

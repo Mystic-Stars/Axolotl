@@ -48,6 +48,17 @@ export function setupFilePickerProvider() {
 			if (!path) return null
 			return { path }
 		},
+		async pickFile(options) {
+			const result = await open({
+				multiple: false,
+				...(options?.extensions?.length
+					? { filters: [{ name: options.name ?? 'File', extensions: options.extensions }] }
+					: {}),
+			})
+			const path = getDialogPath(result)
+			if (!path) return null
+			return { path }
+		},
 		pickImage,
 		pickInstanceIcon: () => instanceIconPickerModal.value?.show() ?? Promise.resolve(null),
 		getLoaderInstanceIconUrl: (loader) => getLoaderInstanceIcon(loader)?.url ?? null,

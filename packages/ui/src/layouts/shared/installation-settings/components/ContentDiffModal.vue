@@ -70,26 +70,20 @@
 		<template #actions>
 			<div class="flex justify-between gap-2 pt-4">
 				<div>
-					<ButtonStyled v-if="showReportButton" color="red" type="transparent">
-						<button @click="emit('report')">
-							<ReportIcon />
-							{{ formatMessage(commonMessages.reportButton) }}
-						</button>
-					</ButtonStyled>
+					<Button v-if="showReportButton" type="quiet" color="red" @click="emit('report')"
+						><ReportIcon />
+						{{ formatMessage(commonMessages.reportButton) }}
+					</Button>
 				</div>
 				<div class="flex gap-2">
-					<ButtonStyled>
-						<button @click="handleCancel">
-							<XIcon />
-							{{ formatMessage(commonMessages.cancelButton) }}
-						</button>
-					</ButtonStyled>
-					<ButtonStyled color="brand">
-						<button @click="handleConfirm">
-							<component :is="confirmIcon" v-if="confirmIcon" />
-							{{ confirmLabel || formatMessage(commonMessages.confirmButton) }}
-						</button>
-					</ButtonStyled>
+					<Button @click="handleCancel"
+						><XIcon />
+						{{ formatMessage(commonMessages.cancelButton) }}
+					</Button>
+					<Button type="colored" color="brand" @click="handleConfirm"
+						><component :is="confirmIcon" v-if="confirmIcon" />
+						{{ confirmLabel || formatMessage(commonMessages.confirmButton) }}
+					</Button>
 				</div>
 			</div>
 		</template>
@@ -101,7 +95,7 @@ import { MinusIcon, PlusIcon, RefreshCwIcon, ReportIcon, XIcon } from '@modrinth
 import { type Component, computed, ref } from 'vue'
 
 import Admonition from '#ui/components/base/Admonition.vue'
-import ButtonStyled from '#ui/components/base/ButtonStyled.vue'
+import Button from '#ui/components/base/buttons/Button.vue'
 import NewModal from '#ui/components/modal/NewModal.vue'
 import { defineMessages, useVIntl } from '#ui/composables/i18n'
 import { commonMessages } from '#ui/utils/common-messages'

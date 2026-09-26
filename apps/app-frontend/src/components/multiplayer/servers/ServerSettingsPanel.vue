@@ -3,7 +3,7 @@ import { ImageIcon, SaveIcon, SpinnerIcon, TrashIcon, XIcon } from '@modrinth/as
 import { requiredJavaMajorVersion } from '@modrinth/server'
 import {
 	Admonition,
-	ButtonStyled,
+	Button,
 	Card,
 	ConfirmModal,
 	defineMessages,
@@ -52,7 +52,8 @@ const messages = defineMessages({
 	},
 	preLaunchHookHint: {
 		id: 'app.servers.settings.pre-launch-hook-hint',
-		defaultMessage: 'Runs in the server directory before the server starts. A non-zero exit code cancels the start.',
+		defaultMessage:
+			'Runs in the server directory before the server starts. A non-zero exit code cancels the start.',
 	},
 	save: { id: 'app.servers.settings.save', defaultMessage: 'Save changes' },
 	saved: { id: 'app.servers.settings.saved', defaultMessage: 'Server settings saved' },
@@ -246,22 +247,23 @@ async function confirmDelete() {
 						<div class="flex flex-col gap-1">
 							<span class="font-semibold text-contrast">{{ formatMessage(messages.icon) }}</span>
 							<div class="flex gap-2">
-								<ButtonStyled type="outlined" size="small">
-									<button type="button" @click="pickIcon">
-										<ImageIcon />
-										{{
-											iconPath
-												? formatMessage(messages.changeIcon)
-												: formatMessage(messages.selectIcon)
-										}}
-									</button>
-								</ButtonStyled>
-								<ButtonStyled v-if="iconPath" color="red" type="outlined" size="small">
-									<button type="button" @click="iconPath = null">
-										<TrashIcon />
-										{{ formatMessage(messages.removeIcon) }}
-									</button>
-								</ButtonStyled>
+								<Button type="outlined" size="2xs" @click="pickIcon"
+									><ImageIcon />
+									{{
+										iconPath
+											? formatMessage(messages.changeIcon)
+											: formatMessage(messages.selectIcon)
+									}}
+								</Button>
+								<Button
+									v-if="iconPath"
+									type="outlined"
+									color="red"
+									size="2xs"
+									@click="iconPath = null"
+									><TrashIcon />
+									{{ formatMessage(messages.removeIcon) }}
+								</Button>
 							</div>
 						</div>
 					</div>
@@ -307,10 +309,7 @@ async function confirmDelete() {
 						<span class="font-semibold text-contrast">{{
 							formatMessage(messages.preLaunchHook)
 						}}</span>
-						<StyledInput
-							id="server-settings-pre-launch-hook"
-							v-model="preLaunchHookText"
-						/>
+						<StyledInput id="server-settings-pre-launch-hook" v-model="preLaunchHookText" />
 						<span class="text-xs text-secondary">{{
 							formatMessage(messages.preLaunchHookHint)
 						}}</span>
@@ -345,12 +344,14 @@ async function confirmDelete() {
 							</p>
 						</div>
 					</div>
-					<ButtonStyled color="red" type="outlined">
-						<button type="button" :disabled="server.running" @click="deleteModal?.show()">
-							<TrashIcon />
-							{{ formatMessage(messages.deleteTitle) }}
-						</button>
-					</ButtonStyled>
+					<Button
+						type="outlined"
+						color="red"
+						:disabled="server.running"
+						@click="deleteModal?.show()"
+						><TrashIcon />
+						{{ formatMessage(messages.deleteTitle) }}
+					</Button>
 				</div>
 			</Card>
 		</div>
@@ -367,19 +368,15 @@ async function confirmDelete() {
 				<div
 					class="flex items-center gap-2 rounded-xl border border-solid border-button-border bg-bg-raised px-3 py-2 shadow-lg"
 				>
-					<ButtonStyled type="outlined">
-						<button type="button" :disabled="isSaving" @click="cancel">
-							<XIcon />
-							{{ formatMessage(messages.cancel) }}
-						</button>
-					</ButtonStyled>
-					<ButtonStyled color="brand">
-						<button type="button" :disabled="isSaving || isRunning" @click="save">
-							<SpinnerIcon v-if="isSaving" class="animate-spin" />
-							<SaveIcon v-else />
-							{{ formatMessage(messages.save) }}
-						</button>
-					</ButtonStyled>
+					<Button type="outlined" :disabled="isSaving" @click="cancel"
+						><XIcon />
+						{{ formatMessage(messages.cancel) }}
+					</Button>
+					<Button type="colored" color="brand" :disabled="isSaving || isRunning" @click="save"
+						><SpinnerIcon v-if="isSaving" class="animate-spin" />
+						<SaveIcon v-else />
+						{{ formatMessage(messages.save) }}
+					</Button>
 				</div>
 			</div>
 		</div>

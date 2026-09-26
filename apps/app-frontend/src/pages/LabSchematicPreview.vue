@@ -38,6 +38,7 @@ import {
 	XIcon,
 } from '@modrinth/assets'
 import {
+	Button,
 	ButtonStyled,
 	defineMessages,
 	EmptyState,
@@ -1485,16 +1486,12 @@ onBeforeUnmount(() => {
 					:description="formatMessage(messages.emptyDescription)"
 				>
 					<template #actions>
-						<ButtonStyled color="brand">
-							<button type="button" @click="chooseLocalFile">
-								<FileArchiveIcon />{{ formatMessage(messages.openFile) }}
-							</button>
-						</ButtonStyled>
-						<ButtonStyled type="outlined">
-							<button type="button" @click="instancePicker?.show()">
-								<FolderSearchIcon />{{ formatMessage(messages.fromInstance) }}
-							</button>
-						</ButtonStyled>
+						<Button type="colored" color="brand" @click="chooseLocalFile"
+							><FileArchiveIcon />{{ formatMessage(messages.openFile) }}
+						</Button>
+						<Button type="outlined" @click="instancePicker?.show()"
+							><FolderSearchIcon />{{ formatMessage(messages.fromInstance) }}
+						</Button>
 					</template>
 				</EmptyState>
 				<p v-if="error" class="m-0 max-w-2xl text-center text-sm text-brand-red">{{ error }}</p>
@@ -1506,11 +1503,9 @@ onBeforeUnmount(() => {
 			>
 				<header class="flex items-center justify-between gap-3">
 					<h2 class="m-0 text-base text-contrast">{{ formatMessage(messages.recent) }}</h2>
-					<ButtonStyled size="small" type="transparent">
-						<button type="button" @click="recent = clearRecentSchematics()">
-							<TrashIcon />{{ formatMessage(messages.clearRecent) }}
-						</button>
-					</ButtonStyled>
+					<Button type="quiet" size="2xs" @click="recent = clearRecentSchematics()"
+						><TrashIcon />{{ formatMessage(messages.clearRecent) }}
+					</Button>
 				</header>
 				<ul class="schematic-recent-list m-0 list-none p-0">
 					<li
@@ -1535,16 +1530,16 @@ onBeforeUnmount(() => {
 								}}
 							</span>
 						</button>
-						<ButtonStyled circular size="small" type="transparent">
-							<button
-								type="button"
-								:aria-label="formatMessage(messages.removeRecent)"
-								:title="formatMessage(messages.removeRecent)"
-								@click="recent = removeRecentSchematic(record.id)"
-							>
-								<XIcon />
-							</button>
-						</ButtonStyled>
+						<Button
+							type="quiet"
+							size="2xs"
+							circular
+							icon-only
+							:aria-label="formatMessage(messages.removeRecent)"
+							:title="formatMessage(messages.removeRecent)"
+							@click="recent = removeRecentSchematic(record.id)"
+							><XIcon />
+						</Button>
 					</li>
 				</ul>
 			</section>
@@ -1566,28 +1561,26 @@ onBeforeUnmount(() => {
 				</div>
 				<div class="schematic-toolbar-actions flex shrink-0 items-center gap-2">
 					<div class="schematic-command-group">
-						<ButtonStyled circular type="transparent">
-							<button
-								type="button"
-								:disabled="editHistory.length === 0 || Boolean(loadingStage) || applyingEdit"
-								:aria-label="formatMessage(messages.undo)"
-								:title="`${formatMessage(messages.undo)} (Ctrl+Z)`"
-								@click="undoEdit"
-							>
-								<UndoIcon />
-							</button>
-						</ButtonStyled>
-						<ButtonStyled circular type="transparent">
-							<button
-								type="button"
-								:disabled="redoHistory.length === 0 || Boolean(loadingStage) || applyingEdit"
-								:aria-label="formatMessage(messages.redo)"
-								:title="`${formatMessage(messages.redo)} (Ctrl+Y)`"
-								@click="redoEdit"
-							>
-								<RedoIcon />
-							</button>
-						</ButtonStyled>
+						<Button
+							type="quiet"
+							circular
+							icon-only
+							:disabled="editHistory.length === 0 || Boolean(loadingStage) || applyingEdit"
+							:aria-label="formatMessage(messages.undo)"
+							:title="`${formatMessage(messages.undo)} (Ctrl+Z)`"
+							@click="undoEdit"
+							><UndoIcon />
+						</Button>
+						<Button
+							type="quiet"
+							circular
+							icon-only
+							:disabled="redoHistory.length === 0 || Boolean(loadingStage) || applyingEdit"
+							:aria-label="formatMessage(messages.redo)"
+							:title="`${formatMessage(messages.redo)} (Ctrl+Y)`"
+							@click="redoEdit"
+							><RedoIcon />
+						</Button>
 					</div>
 					<ButtonStyled type="outlined">
 						<OverflowMenu
@@ -1769,16 +1762,16 @@ onBeforeUnmount(() => {
 								{{ measurement.size.join(' × ') }}
 							</div>
 						</div>
-						<ButtonStyled circular size="small" type="transparent">
-							<button
-								type="button"
-								:aria-label="formatMessage(messages.clearMeasurement)"
-								:title="formatMessage(messages.clearMeasurement)"
-								@click="clearMeasurement"
-							>
-								<XIcon />
-							</button>
-						</ButtonStyled>
+						<Button
+							type="quiet"
+							size="2xs"
+							circular
+							icon-only
+							:aria-label="formatMessage(messages.clearMeasurement)"
+							:title="formatMessage(messages.clearMeasurement)"
+							@click="clearMeasurement"
+							><XIcon />
+						</Button>
 					</div>
 					<div v-if="viewMode === 'orbit'" class="schematic-layer-control">
 						<span class="schematic-layer-heading">
@@ -1813,17 +1806,17 @@ onBeforeUnmount(() => {
 						<span class="schematic-layer-count">
 							{{ visibleLayerCount }}/{{ totalLayerCount }}
 						</span>
-						<ButtonStyled circular size="small" type="transparent">
-							<button
-								type="button"
-								:disabled="showingAllLayers"
-								:aria-label="formatMessage(messages.allLayers)"
-								:title="formatMessage(messages.allLayers)"
-								@click="showAllLayers"
-							>
-								<RefreshCwIcon />
-							</button>
-						</ButtonStyled>
+						<Button
+							type="quiet"
+							size="2xs"
+							circular
+							icon-only
+							:disabled="showingAllLayers"
+							:aria-label="formatMessage(messages.allLayers)"
+							:title="formatMessage(messages.allLayers)"
+							@click="showAllLayers"
+							><RefreshCwIcon />
+						</Button>
 					</div>
 					<div class="schematic-walk-control">
 						<ButtonStyled
@@ -1854,67 +1847,69 @@ onBeforeUnmount(() => {
 						{{ formatMessage(messages.walkSpeed, { speed: walkSpeed }) }}
 					</div>
 					<div v-if="viewMode === 'orbit'" class="schematic-canvas-controls">
-						<ButtonStyled circular size="small" type="standard"
-							><button
-								v-tooltip.top="formatMessage(messages.resetView)"
-								type="button"
-								:aria-label="formatMessage(messages.resetView)"
-								@click="scene?.fitView()"
-							>
-								<RotateCounterClockwiseIcon /></button
-						></ButtonStyled>
-						<ButtonStyled
+						<Button
+							v-tooltip.top="formatMessage(messages.resetView)"
+							size="2xs"
 							circular
-							size="small"
-							:type="projection === 'orthographic' ? 'standard' : 'outlined'"
-							><button
-								v-tooltip.top="formatMessage(messages.projection)"
-								type="button"
-								:aria-label="formatMessage(messages.projection)"
-								@click="toggleProjection"
-							>
-								<ScanEyeIcon /></button
-						></ButtonStyled>
-						<ButtonStyled circular size="small" :type="showGrid ? 'standard' : 'outlined'"
-							><button
-								v-tooltip.top="formatMessage(messages.grid)"
-								type="button"
-								:aria-label="formatMessage(messages.grid)"
-								@click="showGrid = !showGrid"
-							>
-								<GridIcon /></button
-						></ButtonStyled>
-						<ButtonStyled circular size="small" :type="showBounds ? 'standard' : 'outlined'"
-							><button
-								v-tooltip.top="formatMessage(messages.bounds)"
-								type="button"
-								:aria-label="formatMessage(messages.bounds)"
-								@click="showBounds = !showBounds"
-							>
-								<BoxIcon /></button
-						></ButtonStyled>
-						<ButtonStyled circular size="small" :type="showTranslucent ? 'standard' : 'outlined'"
-							><button
-								v-tooltip.top="formatMessage(messages.translucent)"
-								type="button"
-								:aria-label="formatMessage(messages.translucent)"
-								@click="showTranslucent = !showTranslucent"
-							>
-								<EyeIcon /></button
-						></ButtonStyled>
-						<ButtonStyled circular size="small" :type="isFullscreen ? 'standard' : 'outlined'"
-							><button
-								v-tooltip.top="
-									`${formatMessage(isFullscreen ? messages.exitFullscreen : messages.fullscreen)} (F11)`
-								"
-								type="button"
-								:aria-label="
-									formatMessage(isFullscreen ? messages.exitFullscreen : messages.fullscreen)
-								"
-								@click="toggleFullscreen"
-							>
-								<ContractIcon v-if="isFullscreen" /><MaximizeIcon v-else /></button
-						></ButtonStyled>
+							icon-only
+							:aria-label="formatMessage(messages.resetView)"
+							@click="scene?.fitView()"
+							><RotateCounterClockwiseIcon
+						/></Button>
+						<Button
+							v-tooltip.top="formatMessage(messages.projection)"
+							:type="projection === 'orthographic' ? 'base' : 'outlined'"
+							size="2xs"
+							circular
+							icon-only
+							:aria-label="formatMessage(messages.projection)"
+							@click="toggleProjection"
+							><ScanEyeIcon
+						/></Button>
+						<Button
+							v-tooltip.top="formatMessage(messages.grid)"
+							:type="showGrid ? 'base' : 'outlined'"
+							size="2xs"
+							circular
+							icon-only
+							:aria-label="formatMessage(messages.grid)"
+							@click="showGrid = !showGrid"
+							><GridIcon
+						/></Button>
+						<Button
+							v-tooltip.top="formatMessage(messages.bounds)"
+							:type="showBounds ? 'base' : 'outlined'"
+							size="2xs"
+							circular
+							icon-only
+							:aria-label="formatMessage(messages.bounds)"
+							@click="showBounds = !showBounds"
+							><BoxIcon
+						/></Button>
+						<Button
+							v-tooltip.top="formatMessage(messages.translucent)"
+							:type="showTranslucent ? 'base' : 'outlined'"
+							size="2xs"
+							circular
+							icon-only
+							:aria-label="formatMessage(messages.translucent)"
+							@click="showTranslucent = !showTranslucent"
+							><EyeIcon
+						/></Button>
+						<Button
+							v-tooltip.top="
+								`${formatMessage(isFullscreen ? messages.exitFullscreen : messages.fullscreen)} (F11)`
+							"
+							:type="isFullscreen ? 'base' : 'outlined'"
+							size="2xs"
+							circular
+							icon-only
+							:aria-label="
+								formatMessage(isFullscreen ? messages.exitFullscreen : messages.fullscreen)
+							"
+							@click="toggleFullscreen"
+							><ContractIcon v-if="isFullscreen" /><MaximizeIcon v-else
+						/></Button>
 					</div>
 					<div v-if="loadingStage" class="schematic-loading-status">
 						<SpinnerIcon class="size-4 animate-spin" />{{ loadingLabel
@@ -1971,158 +1966,122 @@ onBeforeUnmount(() => {
 									{{ formatMessage(messages.boxSelectPending) }}
 								</p>
 								<div class="editor-action-grid">
-									<ButtonStyled type="outlined">
-										<button
-											type="button"
-											:disabled="!selectedBlock"
-											@click="expandSelectionByMaterial()"
-										>
-											<ListIcon />{{ formatMessage(messages.selectMaterial) }}
-										</button>
-									</ButtonStyled>
-									<ButtonStyled type="outlined">
-										<button
-											type="button"
-											:disabled="!selectedBlocks.length"
-											@click="expandSelectionByLayer"
-										>
-											<LayersIcon />{{ formatMessage(messages.selectLayer) }}
-										</button>
-									</ButtonStyled>
-									<ButtonStyled type="outlined">
-										<button
-											type="button"
-											:disabled="!selectedBlocks.length"
-											@click="expandConnectedSelection"
-										>
-											<BoxesIcon />{{ formatMessage(messages.selectConnected) }}
-										</button>
-									</ButtonStyled>
-									<ButtonStyled type="transparent">
-										<button
-											type="button"
-											:disabled="!selectedBlocks.length"
-											@click="clearBlockSelection"
-										>
-											<XIcon />{{ formatMessage(messages.clearSelection) }}
-										</button>
-									</ButtonStyled>
+									<Button
+										type="outlined"
+										:disabled="!selectedBlock"
+										@click="expandSelectionByMaterial()"
+										><ListIcon />{{ formatMessage(messages.selectMaterial) }}
+									</Button>
+									<Button
+										type="outlined"
+										:disabled="!selectedBlocks.length"
+										@click="expandSelectionByLayer"
+										><LayersIcon />{{ formatMessage(messages.selectLayer) }}
+									</Button>
+									<Button
+										type="outlined"
+										:disabled="!selectedBlocks.length"
+										@click="expandConnectedSelection"
+										><BoxesIcon />{{ formatMessage(messages.selectConnected) }}
+									</Button>
+									<Button
+										type="quiet"
+										:disabled="!selectedBlocks.length"
+										@click="clearBlockSelection"
+										><XIcon />{{ formatMessage(messages.clearSelection) }}
+									</Button>
 								</div>
 							</section>
 
 							<section class="inspector-section flex flex-col gap-2 border-t border-surface-5 pt-3">
 								<h2><EyeIcon />{{ formatMessage(messages.visibility) }}</h2>
 								<div class="editor-action-grid">
-									<ButtonStyled type="outlined">
-										<button
-											type="button"
-											:disabled="!selectedBlocks.length"
-											@click="hideSelectedBlocks"
-										>
-											<EyeOffIcon />{{ formatMessage(messages.hideSelection) }}
-										</button>
-									</ButtonStyled>
-									<ButtonStyled type="outlined">
-										<button
-											type="button"
-											:disabled="!selectedBlocks.length"
-											@click="showOnlySelectedBlocks"
-										>
-											<ScanEyeIcon />{{ formatMessage(messages.isolateSelection) }}
-										</button>
-									</ButtonStyled>
-									<ButtonStyled type="transparent">
-										<button
-											type="button"
-											:disabled="hiddenBlocks.size === 0 && !isolateSelection"
-											@click="showAllBlocks"
-										>
-											<EyeIcon />{{ formatMessage(messages.showAll) }}
-										</button>
-									</ButtonStyled>
-									<ButtonStyled type="transparent">
-										<button
-											type="button"
-											:disabled="!selectedBlocks.length"
-											@click="copySelectedCoordinates"
-										>
-											<CopyIcon />{{ formatMessage(messages.coordinates) }}
-										</button>
-									</ButtonStyled>
+									<Button
+										type="outlined"
+										:disabled="!selectedBlocks.length"
+										@click="hideSelectedBlocks"
+										><EyeOffIcon />{{ formatMessage(messages.hideSelection) }}
+									</Button>
+									<Button
+										type="outlined"
+										:disabled="!selectedBlocks.length"
+										@click="showOnlySelectedBlocks"
+										><ScanEyeIcon />{{ formatMessage(messages.isolateSelection) }}
+									</Button>
+									<Button
+										type="quiet"
+										:disabled="hiddenBlocks.size === 0 && !isolateSelection"
+										@click="showAllBlocks"
+										><EyeIcon />{{ formatMessage(messages.showAll) }}
+									</Button>
+									<Button
+										type="quiet"
+										:disabled="!selectedBlocks.length"
+										@click="copySelectedCoordinates"
+										><CopyIcon />{{ formatMessage(messages.coordinates) }}
+									</Button>
 								</div>
 							</section>
 
 							<section class="inspector-section flex flex-col gap-2 border-t border-surface-5 pt-3">
 								<h2><EditIcon />{{ formatMessage(messages.edit) }}</h2>
 								<div class="editor-action-grid">
-									<ButtonStyled color="brand">
-										<button type="button" :disabled="!canEditSelection" @click="openBlockPicker">
-											<EditIcon />{{ formatMessage(messages.replaceSelected) }}
-										</button>
-									</ButtonStyled>
-									<ButtonStyled color="red" type="outlined">
-										<button
-											type="button"
-											:disabled="!canEditSelection"
-											@click="commitSelectionEdit(0, formatMessage(messages.deleteSelected))"
-										>
-											<TrashIcon />{{ formatMessage(messages.deleteSelected) }}
-										</button>
-									</ButtonStyled>
+									<Button
+										type="colored"
+										color="brand"
+										:disabled="!canEditSelection"
+										@click="openBlockPicker"
+										><EditIcon />{{ formatMessage(messages.replaceSelected) }}
+									</Button>
+									<Button
+										type="outlined"
+										color="red"
+										:disabled="!canEditSelection"
+										@click="commitSelectionEdit(0, formatMessage(messages.deleteSelected))"
+										><TrashIcon />{{ formatMessage(messages.deleteSelected) }}
+									</Button>
 								</div>
 							</section>
 
 							<section class="inspector-section flex flex-col gap-2 border-t border-surface-5 pt-3">
 								<h2><RotateClockwiseIcon />{{ formatMessage(messages.transform) }}</h2>
 								<div class="editor-action-grid">
-									<ButtonStyled type="outlined">
-										<button
-											type="button"
-											:disabled="Boolean(loadingStage) || applyingEdit"
-											@click="
-												transformStructure(
-													'rotate_counter_clockwise',
-													formatMessage(messages.rotateCounterClockwise),
-												)
-											"
-										>
-											<RotateCounterClockwiseIcon />{{
-												formatMessage(messages.rotateCounterClockwise)
-											}}
-										</button>
-									</ButtonStyled>
-									<ButtonStyled type="outlined">
-										<button
-											type="button"
-											:disabled="Boolean(loadingStage) || applyingEdit"
-											@click="
-												transformStructure(
-													'rotate_clockwise',
-													formatMessage(messages.rotateClockwise),
-												)
-											"
-										>
-											<RotateClockwiseIcon />{{ formatMessage(messages.rotateClockwise) }}
-										</button>
-									</ButtonStyled>
-									<ButtonStyled type="outlined">
-										<button
-											type="button"
-											:disabled="Boolean(loadingStage) || applyingEdit"
-											@click="transformStructure('mirror_x', formatMessage(messages.mirrorX))"
-										>
-											<ArrowLeftRightIcon />{{ formatMessage(messages.mirrorX) }}
-										</button>
-									</ButtonStyled>
-									<ButtonStyled type="outlined">
-										<button
-											type="button"
-											:disabled="Boolean(loadingStage) || applyingEdit"
-											@click="transformStructure('mirror_z', formatMessage(messages.mirrorZ))"
-										>
-											<ArrowUpDownIcon />{{ formatMessage(messages.mirrorZ) }}
-										</button>
-									</ButtonStyled>
+									<Button
+										type="outlined"
+										:disabled="Boolean(loadingStage) || applyingEdit"
+										@click="
+											transformStructure(
+												'rotate_counter_clockwise',
+												formatMessage(messages.rotateCounterClockwise),
+											)
+										"
+										><RotateCounterClockwiseIcon />{{
+											formatMessage(messages.rotateCounterClockwise)
+										}}
+									</Button>
+									<Button
+										type="outlined"
+										:disabled="Boolean(loadingStage) || applyingEdit"
+										@click="
+											transformStructure(
+												'rotate_clockwise',
+												formatMessage(messages.rotateClockwise),
+											)
+										"
+										><RotateClockwiseIcon />{{ formatMessage(messages.rotateClockwise) }}
+									</Button>
+									<Button
+										type="outlined"
+										:disabled="Boolean(loadingStage) || applyingEdit"
+										@click="transformStructure('mirror_x', formatMessage(messages.mirrorX))"
+										><ArrowLeftRightIcon />{{ formatMessage(messages.mirrorX) }}
+									</Button>
+									<Button
+										type="outlined"
+										:disabled="Boolean(loadingStage) || applyingEdit"
+										@click="transformStructure('mirror_z', formatMessage(messages.mirrorZ))"
+										><ArrowUpDownIcon />{{ formatMessage(messages.mirrorZ) }}
+									</Button>
 								</div>
 							</section>
 						</div>
@@ -2137,16 +2096,16 @@ onBeforeUnmount(() => {
 									:placeholder="formatMessage(messages.searchMaterials)"
 									clearable
 								/>
-								<ButtonStyled circular size="small" type="outlined">
-									<button
-										type="button"
-										:aria-label="formatMessage(messages.materialsJson)"
-										:title="formatMessage(messages.materialsJson)"
-										@click="exportMaterialsJson"
-									>
-										<DownloadIcon />
-									</button>
-								</ButtonStyled>
+								<Button
+									type="outlined"
+									size="2xs"
+									circular
+									icon-only
+									:aria-label="formatMessage(messages.materialsJson)"
+									:title="formatMessage(messages.materialsJson)"
+									@click="exportMaterialsJson"
+									><DownloadIcon />
+								</Button>
 							</div>
 							<p
 								v-if="visibleMaterials.length === 0"
@@ -2189,16 +2148,18 @@ onBeforeUnmount(() => {
 												.join(', ') || 'default'
 										}}</code>
 										<div v-if="viewMode === 'orbit'" class="flex flex-wrap gap-2 pt-1">
-											<ButtonStyled size="small" type="outlined">
-												<button type="button" @click="expandSelectionByMaterial(material.name)">
-													<BoxesIcon />{{ formatMessage(messages.selectAllMaterial) }}
-												</button>
-											</ButtonStyled>
-											<ButtonStyled size="small" type="transparent">
-												<button type="button" @click="useMaterialForReplacement(material.name)">
-													<EditIcon />{{ formatMessage(messages.useForReplace) }}
-												</button>
-											</ButtonStyled>
+											<Button
+												type="outlined"
+												size="2xs"
+												@click="expandSelectionByMaterial(material.name)"
+												><BoxesIcon />{{ formatMessage(messages.selectAllMaterial) }}
+											</Button>
+											<Button
+												type="quiet"
+												size="2xs"
+												@click="useMaterialForReplacement(material.name)"
+												><EditIcon />{{ formatMessage(messages.useForReplace) }}
+											</Button>
 										</div>
 									</div>
 								</li>
@@ -2402,7 +2363,7 @@ onBeforeUnmount(() => {
 	flex: none;
 	align-items: center;
 	gap: 0.35rem;
-	color: var(--color-text-dark);
+	color: var(--color-contrast);
 	font-size: 0.78rem;
 	font-weight: 600;
 }
@@ -2540,7 +2501,7 @@ onBeforeUnmount(() => {
 	height: 1.4em;
 	border-radius: 0.2rem;
 	padding: 0.2rem;
-	color: var(--color-text-dark);
+	color: var(--color-contrast);
 	font-size: 0.7rem;
 	font-weight: bold;
 	font-variant-numeric: tabular-nums;
@@ -2656,7 +2617,7 @@ onBeforeUnmount(() => {
 	border-radius: var(--radius-md);
 	padding: 0.65rem 0.75rem;
 	background: var(--surface-3);
-	color: var(--color-text-dark);
+	color: var(--color-contrast);
 }
 
 .editor-action-grid {
@@ -2706,7 +2667,7 @@ onBeforeUnmount(() => {
 	align-items: center;
 	gap: 0.4rem;
 	margin: 0;
-	color: var(--color-text-dark);
+	color: var(--color-contrast);
 	font-size: 0.82rem;
 }
 
@@ -2731,7 +2692,7 @@ onBeforeUnmount(() => {
 	border-radius: var(--radius-sm);
 	padding: 0.35rem 0.45rem;
 	background: transparent;
-	color: var(--color-text-dark);
+	color: var(--color-contrast);
 	font: inherit;
 	font-size: 0.72rem;
 }
@@ -2810,7 +2771,7 @@ onBeforeUnmount(() => {
 		border: 0;
 		padding: 0.75rem 1rem;
 		background: transparent;
-		color: var(--color-text-dark);
+		color: var(--color-contrast);
 	}
 
 	.schematic-inspector-toggle svg {

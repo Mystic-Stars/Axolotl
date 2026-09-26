@@ -10,14 +10,13 @@ import {
 	XIcon,
 } from '@modrinth/assets'
 import {
-	ButtonStyled,
+	Button,
 	Checkbox,
+	commonMessages,
 	defineMessages,
 	IconButton,
 	InlineEditableText,
 	NewModal,
-	commonMessages,
-	Button,
 	TagItem,
 	useVIntl,
 } from '@modrinth/ui'
@@ -107,19 +106,15 @@ const props = defineProps<{
 	groupPendingNameEdit?: string | null
 }>()
 
+// Events are grouped only where the payload shapes genuinely match; the
+// per-event names are documentation, not part of the type.
 const emit = defineEmits<{
-	(e: 'toggleCollapse', sectionKey: string): void
+	(e: 'toggleCollapse' | 'deleteGroup' | 'addToGroup' | 'startLongPress', id: string): void
+	(e: 'handleCheckboxClick' | 'handleCardClick', instanceId: string, event: MouseEvent): void
 	(e: 'handleContextMenu', event: MouseEvent, instanceId: string, sectionKey: string): void
-	(e: 'deleteGroup', groupKey: string): void
 	(e: 'renameGroup', oldKey: string, newKey: string): void
-	(e: 'handleCheckboxClick', instanceId: string): void
-	(e: 'handleCardClick', instanceId: string, event: MouseEvent): void
-	(e: 'startLongPress', instanceId: string): void
-	(e: 'cancelLongPress'): void
+	(e: 'cancelLongPress' | 'newInstance' | 'renameComplete'): void
 	(e: 'moveGroup', groupKey: string, direction: -1 | 1): void
-	(e: 'addToGroup', groupKey: string): void
-	(e: 'newInstance'): void
-	(e: 'renameComplete'): void
 }>()
 
 const groupOptions = ref<InstanceType<typeof ContextMenu>>()
@@ -365,6 +360,10 @@ function onStartLongPress(instanceId: string) {
 					>
 						<template #default="{ isDragging }">
 							<div
+								:class="{
+									'pointer-events-none': selectMode,
+									'relative cursor-pointer select-none rounded-lg transition-all hover:brightness-90 active:scale-[0.98]': true,
+								}"
 								@click.capture="
 									(event: MouseEvent) => {
 										if (event.shiftKey && !selectMode) {
@@ -373,10 +372,6 @@ function onStartLongPress(instanceId: string) {
 										}
 									}
 								"
-								:class="{
-									'pointer-events-none': selectMode,
-									'relative cursor-pointer select-none rounded-lg transition-all hover:brightness-90 active:scale-[0.98]': true,
-								}"
 							>
 								<Instance
 									:instance="instance"
@@ -407,11 +402,9 @@ function onStartLongPress(instanceId: string) {
 									emit('handleContextMenu', $event as MouseEvent, instance.id, props.sectionKey)
 								"
 							>
-								<ButtonStyled circular size="small" type="transparent">
-									<button type="button">
-										<slot name="moreIcon" />
-									</button>
-								</ButtonStyled>
+								<Button type="quiet" size="2xs" circular icon-only
+									><slot name="moreIcon" />
+								</Button>
 							</div>
 						</template>
 					</DraggableInstanceCard>
@@ -468,11 +461,7 @@ function onStartLongPress(instanceId: string) {
 								emit('handleContextMenu', $event as MouseEvent, instance.id, props.sectionKey)
 							"
 						>
-							<ButtonStyled circular size="small" type="transparent">
-								<button type="button">
-									<slot name="moreIcon" />
-								</button>
-							</ButtonStyled>
+							<Button type="quiet" size="2xs" circular icon-only><slot name="moreIcon" /> </Button>
 						</div>
 					</div>
 				</template>

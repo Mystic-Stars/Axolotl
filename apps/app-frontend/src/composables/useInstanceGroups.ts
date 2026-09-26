@@ -141,7 +141,14 @@ export function useInstanceGroups(instances: Ref<{ id: string; groups: string[] 
 		reorderingGroups.value = true
 		try {
 			await set_group_order(groupIds)
-			orderedLibraryGroupIds.value = groupIds
+			// Favorites is rendered separately from draggable sections. Keep it in
+			// the local order after a drag even though the backend accepts only the
+			// reorderable group ids; otherwise it appears again as an ordinary
+			// section until the next full group refresh.
+			orderedLibraryGroupIds.value = [
+				FAVORITES_GROUP_ID,
+				...groupIds.filter((id) => id !== FAVORITES_GROUP_ID),
+			]
 			return true
 		} finally {
 			reorderingGroups.value = false

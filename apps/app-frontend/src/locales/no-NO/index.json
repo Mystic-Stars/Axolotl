@@ -5,30 +5,6 @@
   "app.auth-servers.unreachable.header": {
     "message": "Kan ikke nå autentiseringsservere"
   },
-  "app.modal.install-to-play.header": {
-    "message": "Installer for å spille"
-  },
-  "app.modal.install-to-play.install-button": {
-    "message": "Installer"
-  },
-  "app.modal.install-to-play.mod-count": {
-    "message": "{count, plural, one {#mod} other {# mods}}"
-  },
-  "app.modal.install-to-play.shared-instance": {
-    "message": "Delt instans"
-  },
-  "app.modal.install-to-play.shared-server-instance": {
-    "message": "Delt serverinstans"
-  },
-  "app.modal.update-to-play.header": {
-    "message": "Oppdater for å spille"
-  },
-  "app.modal.update-to-play.update-required": {
-    "message": "Krever oppdatering"
-  },
-  "app.modal.update-to-play.update-required-description": {
-    "message": "Ei oppdatering er påkrevd for å spille {name}. Vær så snill å oppdater til den siste versjonen av spillet for å spille det."
-  },
   "app.settings.developer-mode-enabled": {
     "message": "Utviklermodus aktivert."
   },

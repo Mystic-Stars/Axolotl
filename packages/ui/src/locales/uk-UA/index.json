@@ -314,9 +314,6 @@
   "content.filter.updates": {
     "defaultMessage": "Оновлює"
   },
-  "content.filter.warnings": {
-    "defaultMessage": "Попереджає"
-  },
   "content.page-layout.browse-content": {
     "defaultMessage": "Шукати вміст"
   },
@@ -947,18 +944,6 @@
   "header.category.resolutions": {
     "defaultMessage": "Роздільність"
   },
-  "icon-select.edit": {
-    "defaultMessage": "Редагувати значок"
-  },
-  "icon-select.remove": {
-    "defaultMessage": "Прибрати значок"
-  },
-  "icon-select.replace": {
-    "defaultMessage": "Замінити значок"
-  },
-  "icon-select.select": {
-    "defaultMessage": "Вибрати значок"
-  },
   "input.search-version.placeholder": {
     "defaultMessage": "Знайти версію…"
   },
@@ -1186,24 +1171,6 @@
   },
   "instances.content-install.select-icon": {
     "defaultMessage": "Вибрати значок"
-  },
-  "instances.modpack-content-modal.empty-description": {
-    "defaultMessage": "Збірка не включає додатковий уміст."
-  },
-  "instances.modpack-content-modal.empty-title": {
-    "defaultMessage": "Умісту не знайдено"
-  },
-  "instances.modpack-content-modal.header": {
-    "defaultMessage": "Уміст збірки"
-  },
-  "instances.modpack-content-modal.loading": {
-    "defaultMessage": "Завантаження вмісту…"
-  },
-  "instances.modpack-content-modal.no-results": {
-    "defaultMessage": "За вашим запитом не знайдено жодного проєкту."
-  },
-  "instances.modpack-content-modal.search-placeholder": {
-    "defaultMessage": "Пошук {count, number} {count, plural, one {проєкту} other {проєктів}}"
   },
   "instances.updater-modal.badge.current": {
     "defaultMessage": "Поточна"
@@ -1622,150 +1589,6 @@
   "locale.zh-TW": {
     "defaultMessage": "Китайська (традиційна)"
   },
-  "markdown-editor.default-image-alt-text": {
-    "defaultMessage": "Замініть це описом"
-  },
-  "markdown-editor.error-label": {
-    "defaultMessage": "Помилка"
-  },
-  "markdown-editor.image-modal.description-field.description": {
-    "defaultMessage": "Опишіть зображення повністю так, як ви це зробили б для людини, яка не бачить його."
-  },
-  "markdown-editor.image-modal.description-field.placeholder": {
-    "defaultMessage": "Опишіть зображення…"
-  },
-  "markdown-editor.image-modal.description-field.title": {
-    "defaultMessage": "Опис (тобто текст)"
-  },
-  "markdown-editor.image-modal.header": {
-    "defaultMessage": "Уставлення зображення"
-  },
-  "markdown-editor.image-modal.upload-mode.label": {
-    "defaultMessage": "Джерело зображення"
-  },
-  "markdown-editor.image-modal.upload-mode.link": {
-    "defaultMessage": "Посилання"
-  },
-  "markdown-editor.image-modal.upload-mode.upload": {
-    "defaultMessage": "Вивантажити"
-  },
-  "markdown-editor.image-modal.upload.prompt": {
-    "defaultMessage": "Перетягніть, щоб вивантажити, або натисніть, щоб вибрати файл"
-  },
-  "markdown-editor.image-modal.url-field.placeholder": {
-    "defaultMessage": "Уведіть посилання на зображення…"
-  },
-  "markdown-editor.insert-button": {
-    "defaultMessage": "Уставити"
-  },
-  "markdown-editor.link-modal.header": {
-    "defaultMessage": "Уставлення посилання"
-  },
-  "markdown-editor.link-modal.label-field.placeholder": {
-    "defaultMessage": "Уведіть заголовок…"
-  },
-  "markdown-editor.link-modal.label-field.title": {
-    "defaultMessage": "Заголовок"
-  },
-  "markdown-editor.link-modal.url-field.placeholder": {
-    "defaultMessage": "Уведіть посилання…"
-  },
-  "markdown-editor.markdown-formatting-support": {
-    "defaultMessage": "Цей редактор підтримує <markdown-link>форматування Markdown</markdown-link>."
-  },
-  "markdown-editor.max-length.label": {
-    "defaultMessage": "Максимальна довжина:"
-  },
-  "markdown-editor.max-length.unlimited": {
-    "defaultMessage": "Безмежна"
-  },
-  "markdown-editor.max-length.value": {
-    "defaultMessage": "{currentLength}/{maxLength}"
-  },
-  "markdown-editor.placeholder": {
-    "defaultMessage": "Напишіть щось…"
-  },
-  "markdown-editor.preview-label": {
-    "defaultMessage": "Попередній перегляд"
-  },
-  "markdown-editor.preview-toggle.label": {
-    "defaultMessage": "Попередній перегляд"
-  },
-  "markdown-editor.toolbar.bold": {
-    "defaultMessage": "Жирний"
-  },
-  "markdown-editor.toolbar.bulleted-list": {
-    "defaultMessage": "Маркований список"
-  },
-  "markdown-editor.toolbar.code": {
-    "defaultMessage": "Код"
-  },
-  "markdown-editor.toolbar.heading-1": {
-    "defaultMessage": "Заголовок 1"
-  },
-  "markdown-editor.toolbar.heading-2": {
-    "defaultMessage": "Заголовок 2"
-  },
-  "markdown-editor.toolbar.heading-3": {
-    "defaultMessage": "Заголовок 3"
-  },
-  "markdown-editor.toolbar.image": {
-    "defaultMessage": "Зображення"
-  },
-  "markdown-editor.toolbar.italic": {
-    "defaultMessage": "Курсив"
-  },
-  "markdown-editor.toolbar.link": {
-    "defaultMessage": "Посилання"
-  },
-  "markdown-editor.toolbar.ordered-list": {
-    "defaultMessage": "Упорядкований список"
-  },
-  "markdown-editor.toolbar.quote": {
-    "defaultMessage": "Цитата"
-  },
-  "markdown-editor.toolbar.spoiler": {
-    "defaultMessage": "Спойлер"
-  },
-  "markdown-editor.toolbar.strikethrough": {
-    "defaultMessage": "Закреслений"
-  },
-  "markdown-editor.toolbar.video": {
-    "defaultMessage": "Відео"
-  },
-  "markdown-editor.upload-error.no-file": {
-    "defaultMessage": "Файл не надано"
-  },
-  "markdown-editor.upload-error.no-handler": {
-    "defaultMessage": "Не передбачено обробника вивантаження зображення"
-  },
-  "markdown-editor.url-label": {
-    "defaultMessage": "Посилання"
-  },
-  "markdown-editor.url-validation-error.blocked-domain": {
-    "defaultMessage": "Хибне посилання. Цей домен не дозволено."
-  },
-  "markdown-editor.url-validation-error.malformed": {
-    "defaultMessage": "Хибне посилання. Переконайтеся, що воно правильно сформоване."
-  },
-  "markdown-editor.url-validation-error.unsupported-protocol": {
-    "defaultMessage": "Непідтримуваний протокол. Використовуйте http або https."
-  },
-  "markdown-editor.video-embed.title": {
-    "defaultMessage": "Програвач відео YouTube"
-  },
-  "markdown-editor.video-modal.header": {
-    "defaultMessage": "Уставлення відео YouTube"
-  },
-  "markdown-editor.video-modal.url-field.description": {
-    "defaultMessage": "Уведіть дійсне посилання на відео YouTube."
-  },
-  "markdown-editor.video-modal.url-field.placeholder": {
-    "defaultMessage": "Уведіть посилання на відео YouTube"
-  },
-  "markdown-editor.video-modal.url-field.title": {
-    "defaultMessage": "Посилання на відео YouTube"
-  },
   "modal.open-in-app.benefit.install": {
     "defaultMessage": "Автоматично встановлюється потрібний уміст"
   },
@@ -1855,24 +1678,6 @@
   },
   "omorphia.component.copy.action.copy": {
     "defaultMessage": "Скопіювати код у буфер обміну"
-  },
-  "omorphia.component.environment-indicator.label.client": {
-    "defaultMessage": "Клієнт"
-  },
-  "omorphia.component.environment-indicator.label.client-and-server": {
-    "defaultMessage": "Клієнт та сервер"
-  },
-  "omorphia.component.environment-indicator.label.client-or-server": {
-    "defaultMessage": "Клієнт чи сервер"
-  },
-  "omorphia.component.environment-indicator.label.server": {
-    "defaultMessage": "Сервер"
-  },
-  "omorphia.component.environment-indicator.label.type": {
-    "defaultMessage": "{type}"
-  },
-  "omorphia.component.environment-indicator.label.unsupported": {
-    "defaultMessage": "Не підтримується"
   },
   "payment-method.amazon_pay": {
     "defaultMessage": "Amazon Pay"
@@ -2621,17 +2426,8 @@
   "search.server_content_type.vanilla": {
     "defaultMessage": "Ванільний"
   },
-  "servers.notice.dismiss": {
-    "defaultMessage": "Відхилити"
-  },
   "servers.notice.dismissable": {
     "defaultMessage": "Можна відхилити"
-  },
-  "servers.notice.heading.attention": {
-    "defaultMessage": "Увага"
-  },
-  "servers.notice.heading.info": {
-    "defaultMessage": "Інформація"
   },
   "servers.notice.level.critical.name": {
     "defaultMessage": "Критичний"
@@ -3179,96 +2975,6 @@
   "tag.loader.waterfall": {
     "defaultMessage": "Waterfall"
   },
-  "time-frame-picker.apply": {
-    "defaultMessage": "Застосувати"
-  },
-  "time-frame-picker.cancel": {
-    "defaultMessage": "Скасувати"
-  },
-  "time-frame-picker.clear-range": {
-    "defaultMessage": "Очистити"
-  },
-  "time-frame-picker.custom-range": {
-    "defaultMessage": "Користувацький проміжок часу…"
-  },
-  "time-frame-picker.decrease-amount": {
-    "defaultMessage": "Зменшити проміжок дат"
-  },
-  "time-frame-picker.empty-range": {
-    "defaultMessage": "Проміжок дат не обрано."
-  },
-  "time-frame-picker.end-date": {
-    "defaultMessage": "Кінець"
-  },
-  "time-frame-picker.increase-amount": {
-    "defaultMessage": "Збільшити проміжок дат"
-  },
-  "time-frame-picker.last-timeframe": {
-    "defaultMessage": "За {unit, select, hours {{amount, plural, one {останню {amount} годину} few {останні {amount} години} many {останні {amount} години} other {останні {amount} години}}} days {{amount, plural, one {останній {amount} день} few {останні {amount} дні} many {останні {amount} днів} other {останні {amount} дня}}} weeks {{amount, plural, one {останній {amount} тиждень} few {останні {amount} тижні} many {останні {amount} тижнів} other {останні {amount} тижня}}} months {{amount, plural, one {останній {amount} місяць} few {останні {amount} місяці} many {останні {amount} місяців} other {останні {amount} місяця}}} other {{amount} днів}}"
-  },
-  "time-frame-picker.last-timeframe-prefix": {
-    "defaultMessage": "За останні"
-  },
-  "time-frame-picker.option.all-time": {
-    "defaultMessage": "Увесь час"
-  },
-  "time-frame-picker.option.last-14-days": {
-    "defaultMessage": "Останні 14 днів"
-  },
-  "time-frame-picker.option.last-180-days": {
-    "defaultMessage": "Останні 180 днів"
-  },
-  "time-frame-picker.option.last-30-days": {
-    "defaultMessage": "Останні 30 днів"
-  },
-  "time-frame-picker.option.last-7-days": {
-    "defaultMessage": "Останні 7 днів"
-  },
-  "time-frame-picker.option.last-90-days": {
-    "defaultMessage": "Останні 90 днів"
-  },
-  "time-frame-picker.option.today": {
-    "defaultMessage": "Сьогодні"
-  },
-  "time-frame-picker.option.year-to-date": {
-    "defaultMessage": "Цей рік"
-  },
-  "time-frame-picker.option.yesterday": {
-    "defaultMessage": "Учора"
-  },
-  "time-frame-picker.select-timeframe": {
-    "defaultMessage": "Обрати проміжок дат"
-  },
-  "time-frame-picker.selected-range": {
-    "defaultMessage": "Обрано"
-  },
-  "time-frame-picker.selecting-range": {
-    "defaultMessage": "Обирається"
-  },
-  "time-frame-picker.start-date": {
-    "defaultMessage": "Початок"
-  },
-  "time-frame-picker.timeframe-amount": {
-    "defaultMessage": "Проміжок"
-  },
-  "time-frame-picker.timeframe-unit": {
-    "defaultMessage": "Одиниця проміжку"
-  },
-  "time-frame-picker.unit.days": {
-    "defaultMessage": "днів"
-  },
-  "time-frame-picker.unit.hours": {
-    "defaultMessage": "годин"
-  },
-  "time-frame-picker.unit.months": {
-    "defaultMessage": "місяців"
-  },
-  "time-frame-picker.unit.weeks": {
-    "defaultMessage": "тижнів"
-  },
-  "ui.component.unsaved-changes-popup.body": {
-    "defaultMessage": "У вас є незбережені зміни."
-  },
   "ui.confirm-leave-modal.body": {
     "defaultMessage": "У вас є незбережені зміни, які буде втрачено, якщо ви закриєте цю сторінку."
   },
@@ -3283,11 +2989,5 @@
   },
   "ui.confirm-leave-modal.title": {
     "defaultMessage": "Покинути сторінку?"
-  },
-  "ui.stacked-admonitions.alert-count": {
-    "defaultMessage": "{count, plural, one {# оповіщення} few {# оповіщення} many {# оповіщень} other {# оповіщень}}"
-  },
-  "ui.stacked-admonitions.dismiss-all": {
-    "defaultMessage": "Відхилити все"
   }
 }

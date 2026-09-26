@@ -12,7 +12,8 @@
 		"fix": "eslint . --fix && prettier --write .",
 		"intl:extract": "formatjs extract \"src/**/*.{vue,ts,tsx,js,jsx,mts,cts,mjs,cjs}\" --ignore \"**/*.d.ts\" --ignore node_modules --out-file src/locales/en-US/index.json --format crowdin --preserve-whitespace",
 		"intl:prune-local": "pnpm -w scripts i18n-icu-contract prune-local --scope apps/app-frontend",
-		"test": "vue-tsc --noEmit && node --test \"src/**/*.test.ts\""
+		"test": "vue-tsc --noEmit && node --test \"src/**/*.test.ts\"",
+		"test:visual": "vitest run --config vitest.config.ts"
 	},
 	"dependencies": {
 		"@dnd-kit/core": "6.3.1",
@@ -39,7 +40,6 @@
 		"dayjs": "^1.11.23",
 		"deepslate": "^0.26.2",
 		"fflate": "^0.8.3",
-		"floating-vue": "^5.2.2",
 		"fuse.js": "^6.6.2",
 		"intl-messageformat": "^10.7.18",
 		"monaco-editor": "^0.56.0",
@@ -60,9 +60,12 @@
 		"@modrinth/tooling-config": "workspace:*",
 		"@nuxt/eslint-config": "^0.5.7",
 		"@vitejs/plugin-vue": "^6.0.8",
+		"@vitest/browser-playwright": "^4.1.11",
+		"@vue/test-utils": "^2.4.11",
 		"autoprefixer": "^10.5.5",
 		"eslint": "^9.39.5",
 		"eslint-plugin-turbo": "^2.10.12",
+		"playwright": "^1.63.0",
 		"postcss": "^8.5.28",
 		"prettier": "^3.9.6",
 		"sass": "^1.104.0",
@@ -70,6 +73,7 @@
 		"typescript": "^5.9.3",
 		"vite": "^8.2.2",
 		"vite-plugin-vue-devtools": "^8.2.1",
+		"vitest": "^4.1.11",
 		"vue-component-type-helpers": "^3.3.11",
 		"vue-tsc": "^2.2.12"
 	},

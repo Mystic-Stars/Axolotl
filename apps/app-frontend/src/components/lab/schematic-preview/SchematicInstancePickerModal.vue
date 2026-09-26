@@ -9,7 +9,7 @@ import {
 	SpinnerIcon,
 } from '@modrinth/assets'
 import {
-	ButtonStyled,
+	Button,
 	defineMessages,
 	NewModal,
 	StyledInput,
@@ -322,16 +322,16 @@ defineExpose({ show })
 
 			<template v-else>
 				<div class="flex min-w-0 items-center gap-3">
-					<ButtonStyled circular size="small" type="transparent">
-						<button
-							type="button"
-							:aria-label="formatMessage(messages.back)"
-							:title="formatMessage(messages.back)"
-							@click="backToInstances"
-						>
-							<ChevronLeftIcon />
-						</button>
-					</ButtonStyled>
+					<Button
+						type="quiet"
+						size="2xs"
+						circular
+						icon-only
+						:aria-label="formatMessage(messages.back)"
+						:title="formatMessage(messages.back)"
+						@click="backToInstances"
+						><ChevronLeftIcon />
+					</Button>
 					<InstanceIcon
 						class="size-10 shrink-0"
 						:icon-path="selectedInstance.icon_path"

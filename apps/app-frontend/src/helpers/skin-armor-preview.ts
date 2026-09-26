@@ -3,9 +3,9 @@ import {
 	ARMOR_TRIM_MATERIALS,
 	ARMOR_TRIM_PATTERNS,
 	armorMaterialsForSlot,
-	createDefaultArmorPreviewConfig,
 	type ArmorPreviewConfig,
-} from '@modrinth/ui/src/composables/skin-rendering/armor-preview-types.ts'
+	createDefaultArmorPreviewConfig,
+} from '@modrinth/ui'
 
 const STORAGE_KEY = 'axolotl:skin-armor-preview'
 

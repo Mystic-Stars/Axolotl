@@ -20,131 +20,136 @@
 				class="pointer-events-auto absolute inset-x-0 top-0 h-12"
 				aria-hidden="true"
 			/>
-		<div
-			v-if="
-				(ctx.localCrashAnalysis?.value?.findings.length ||
-					ctx.localCrashAnalysis?.value?.mod_changes.length) &&
-				!isFullscreen
-			"
-			class="flex flex-col gap-2"
-		>
-			<CollapsibleAdmonition type="critical" :header="localCrashHeader" :items="localCrashItems" />
-			<div class="flex justify-end">
-				<ButtonStyled type="outlined">
-					<button :disabled="exportingCrashContext" @click="handleExportCrashContext">
-						<DownloadIcon />
-						{{ formatMessage(consoleMessages.exportCrashContext) }}
-					</button>
-				</ButtonStyled>
-			</div>
-		</div>
-		<CollapsibleAdmonition
-			v-if="ctx.crashAnalysis?.value && !isFullscreen"
-			type="critical"
-			:header="crashHeader"
-			:items="crashItems"
-			dismissible
-			@dismiss="ctx.onDismissCrash?.()"
-		/>
-
-		<div class="flex items-center gap-2">
-			<StyledInput
-				v-model="searchQuery"
-				:icon="SearchIcon"
-				:placeholder="formatMessage(consoleMessages.searchLogs)"
-				wrapper-class="flex-1"
-				input-class="!h-10"
-				clearable
-			/>
-			<div v-if="ctx.logSources?.value && ctx.activeLogSourceIndex" class="w-[220px]">
-				<Combobox
-					:model-value="ctx.activeLogSourceIndex.value"
-					:options="logSourceOptions"
-					@update:model-value="(v) => (ctx.activeLogSourceIndex!.value = v)"
+			<div
+				v-if="
+					(ctx.localCrashAnalysis?.value?.findings.length ||
+						ctx.localCrashAnalysis?.value?.mod_changes.length) &&
+					!isFullscreen
+				"
+				class="flex flex-col gap-2"
+			>
+				<CollapsibleAdmonition
+					type="critical"
+					:header="localCrashHeader"
+					:items="localCrashItems"
 				/>
+				<div class="flex justify-end">
+					<Button
+						type="outlined"
+						:disabled="exportingCrashContext"
+						@click="handleExportCrashContext"
+						><DownloadIcon />
+						{{ formatMessage(consoleMessages.exportCrashContext) }}
+					</Button>
+				</div>
 			</div>
-		</div>
+			<CollapsibleAdmonition
+				v-if="ctx.crashAnalysis?.value && !isFullscreen"
+				type="critical"
+				:header="crashHeader"
+				:items="crashItems"
+				dismissible
+				@dismiss="ctx.onDismissCrash?.()"
+			/>
 
-		<div class="flex items-center gap-2">
-			<ConsoleFilterPills v-model="activeFilters" @toggle="handleFilterToggle" />
-			<div class="ml-auto flex items-center gap-2">
-				<ButtonStyled type="transparent" :highlighted="wrapLines">
-					<button
-						:aria-pressed="wrapLines"
-						:title="formatMessage(consoleMessages.toggleWrap)"
-						@click="wrapLines = !wrapLines"
-					>
-						<WrapTextIcon />
-						{{ formatMessage(consoleMessages.wrapLabel) }}
-					</button>
-				</ButtonStyled>
-				<div class="w-28">
+			<div class="flex items-center gap-2">
+				<StyledInput
+					v-model="searchQuery"
+					:icon="SearchIcon"
+					:placeholder="formatMessage(consoleMessages.searchLogs)"
+					wrapper-class="flex-1"
+					input-class="!h-10"
+					clearable
+				/>
+				<div v-if="ctx.logSources?.value && ctx.activeLogSourceIndex" class="w-[220px]">
 					<Combobox
-						:model-value="logFontSize"
-						:options="fontSizeOptions"
-						@update:model-value="(v) => (logFontSize = v)"
+						:model-value="ctx.activeLogSourceIndex.value"
+						:options="logSourceOptions"
+						@update:model-value="(v) => (ctx.activeLogSourceIndex!.value = v)"
 					/>
 				</div>
-				<ConsoleActionButtons
-					:show-clear="isLiveSource"
-					:has-logs="hasLogs"
-					:share-disabled="resolvedShareDisabled"
-					:sharing="isSharing"
-					:fullscreen="isFullscreen"
-					:clear-disabled="resolvedClearDisabled"
-					:clear-disabled-tooltip="resolvedClearDisabledTooltip"
-					:show-delete="showDelete"
-					:delete-disabled="resolvedDeleteDisabled"
-					:delete-disabled-tooltip="resolvedDeleteDisabledTooltip"
-					@clear="handleClear"
-					@share="handleShare"
-					@toggle-fullscreen="toggleFullscreen"
-					@delete="handleDelete"
-				/>
 			</div>
-		</div>
 
-		<div class="relative min-h-0 flex-1 overflow-hidden rounded-[var(--radius-xl)]">
-			<LogViewport
-				ref="viewportRef"
-				class="h-full"
-				:lines="filteredLines"
-				:search-query="searchQuery"
-				:wrap="wrapLines"
-				:font-size="logFontSize"
-				:empty-state-type="ctx.emptyStateType"
-			/>
-			<Transition name="terminal-loading-fade">
-				<div
-					v-if="resolvedLoading"
-					class="pointer-events-none absolute inset-0 z-20 flex items-center justify-center bg-surface-3/80 px-8"
-					aria-hidden="true"
-				>
-					<LoadingIndicator />
+			<div class="flex items-center gap-2">
+				<ConsoleFilterPills v-model="activeFilters" @toggle="handleFilterToggle" />
+				<div class="ml-auto flex items-center gap-2">
+					<ButtonStyled type="transparent" :highlighted="wrapLines">
+						<button
+							:aria-pressed="wrapLines"
+							:title="formatMessage(consoleMessages.toggleWrap)"
+							@click="wrapLines = !wrapLines"
+						>
+							<WrapTextIcon />
+							{{ formatMessage(consoleMessages.wrapLabel) }}
+						</button>
+					</ButtonStyled>
+					<div class="w-28">
+						<Combobox
+							:model-value="logFontSize"
+							:options="fontSizeOptions"
+							@update:model-value="(v) => (logFontSize = v)"
+						/>
+					</div>
+					<ConsoleActionButtons
+						:show-clear="isLiveSource"
+						:has-logs="hasLogs"
+						:share-disabled="resolvedShareDisabled"
+						:sharing="isSharing"
+						:fullscreen="isFullscreen"
+						:clear-disabled="resolvedClearDisabled"
+						:clear-disabled-tooltip="resolvedClearDisabledTooltip"
+						:show-delete="showDelete"
+						:delete-disabled="resolvedDeleteDisabled"
+						:delete-disabled-tooltip="resolvedDeleteDisabledTooltip"
+						@clear="handleClear"
+						@share="handleShare"
+						@toggle-fullscreen="toggleFullscreen"
+						@delete="handleDelete"
+					/>
 				</div>
-			</Transition>
-		</div>
+			</div>
 
-		<slot
-			v-if="showCommandInput && customCommandInput"
-			name="command-input"
-			:disabled="commandDisabled"
-			:placeholder="commandPlaceholder"
-			:submit-command="submitProvidedCommand"
-		/>
-		<StyledInput
-			v-else-if="showCommandInput"
-			v-model="commandInput"
-			v-tooltip="commandDisabled ? commandDisabledTooltip : undefined"
-			:icon="TerminalSquareIcon"
-			:placeholder="commandPlaceholder"
-			:disabled="commandDisabled"
-			wrapper-class="w-full"
-			input-class="!h-9"
-			autocomplete="off"
-			:spellcheck="false"
-			@keydown.enter="submitCommand"
-		/>
+			<div class="relative min-h-0 flex-1 overflow-hidden rounded-[var(--radius-xl)]">
+				<LogViewport
+					ref="viewportRef"
+					class="h-full"
+					:lines="filteredLines"
+					:search-query="searchQuery"
+					:wrap="wrapLines"
+					:font-size="logFontSize"
+					:empty-state-type="ctx.emptyStateType"
+				/>
+				<Transition name="terminal-loading-fade">
+					<div
+						v-if="resolvedLoading"
+						class="pointer-events-none absolute inset-0 z-20 flex items-center justify-center bg-surface-3/80 px-8"
+						aria-hidden="true"
+					>
+						<LoadingIndicator />
+					</div>
+				</Transition>
+			</div>
+
+			<slot
+				v-if="showCommandInput && customCommandInput"
+				name="command-input"
+				:disabled="commandDisabled"
+				:placeholder="commandPlaceholder"
+				:submit-command="submitProvidedCommand"
+			/>
+			<StyledInput
+				v-else-if="showCommandInput"
+				v-model="commandInput"
+				v-tooltip="commandDisabled ? commandDisabledTooltip : undefined"
+				:icon="TerminalSquareIcon"
+				:placeholder="commandPlaceholder"
+				:disabled="commandDisabled"
+				wrapper-class="w-full"
+				input-class="!h-9"
+				autocomplete="off"
+				:spellcheck="false"
+				@keydown.enter="submitCommand"
+			/>
 		</div>
 	</Teleport>
 	<ShareModal
@@ -166,18 +171,14 @@
 		</div>
 		<template #actions>
 			<div class="flex justify-end gap-2">
-				<ButtonStyled type="outlined">
-					<button @click="deleteModal?.hide()">
-						<XIcon />
-						{{ formatMessage(commonMessages.cancelButton) }}
-					</button>
-				</ButtonStyled>
-				<ButtonStyled color="red">
-					<button :disabled="isDeleting" @click="confirmDelete">
-						<TrashIcon />
-						{{ formatMessage(commonMessages.deleteLabel) }}
-					</button>
-				</ButtonStyled>
+				<Button type="outlined" @click="deleteModal?.hide()"
+					><XIcon />
+					{{ formatMessage(commonMessages.cancelButton) }}
+				</Button>
+				<Button type="colored" color="red" :disabled="isDeleting" @click="confirmDelete"
+					><TrashIcon />
+					{{ formatMessage(commonMessages.deleteLabel) }}
+				</Button>
 			</div>
 		</template>
 	</NewModal>
@@ -195,6 +196,7 @@ import {
 import { computed, isRef, nextTick, onBeforeUnmount, ref } from 'vue'
 
 import Admonition from '#ui/components/base/Admonition.vue'
+import Button from '#ui/components/base/buttons/Button.vue'
 import ButtonStyled from '#ui/components/base/ButtonStyled.vue'
 import type { CollapsibleAdmonitionItem } from '#ui/components/base/CollapsibleAdmonition.vue'
 import CollapsibleAdmonition from '#ui/components/base/CollapsibleAdmonition.vue'

@@ -3,14 +3,15 @@ import test from 'node:test'
 
 import type { ContentItem } from '@modrinth/ui'
 
-import type { InstallJobSnapshot } from './install.ts'
 import type { PendingContentChange } from '@/providers/download-manager.ts'
+
 import {
 	activeContentChangeJobs,
 	contentChangeAffectsItem,
 	hasActiveContentChange,
 	pendingContentChangeAffectsItem,
 } from './content-change-jobs.ts'
+import type { InstallJobSnapshot } from './install.ts'
 
 function job(
 	status: InstallJobSnapshot['status'],

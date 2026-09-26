@@ -34,6 +34,7 @@ const settingsComponentFiles = {
 	'network-multiplayer': ['./ResourceManagementSettings.vue', './MultiplayerSettings.vue'],
 	'storage-backups': ['./ResourceManagementSettings.vue', './StorageSettings.vue'],
 	'privacy-data': ['./PrivacySettings.vue'],
+	'instance-sync': ['./instances/index.vue'],
 	updates: ['./UpdateSettings.vue'],
 	logs: ['./LogsSettings.vue'],
 	about: ['./AboutSettings.vue'],
@@ -206,6 +207,27 @@ test('every settings search result resolves to a category and a scroll target', 
 		const template = settingsComponentFiles[entry.categoryId]
 			.map((file) => readFileSync(new URL(file, import.meta.url), 'utf8'))
 			.join('\n')
-		assert.equal(template.includes(`id="${targetId}"`), true)
+		// Some rows build their anchors from a table rather than naming them
+		// literally, which a text scan cannot resolve. Accept the known
+		// interpolations, each tied to the prefix it produces, so the check
+		// still fails for an anchor that is missing outright.
+		const interpolations = [
+			// Shortcut rows: `:id="`settings-target-${action.id}`"`
+			{ prefix: 'settings-target-', pattern: ':id="`settings-target-${action.id}`"' },
+			// Instance-sync rows: `:id="`settings-target-instance-sync-${row.option}`"`
+			{
+				prefix: 'settings-target-instance-sync-',
+				pattern: ':id="`settings-target-instance-sync-${row.option}`"',
+			},
+		]
+		const literal = template.includes(`id="${targetId}"`)
+		const interpolated = interpolations.some(
+			({ prefix, pattern }) => targetId.startsWith(prefix) && template.includes(pattern),
+		)
+		assert.equal(
+			literal || interpolated,
+			true,
+			`${entry.id}: no anchor for ${targetId} in ${entry.categoryId}`,
+		)
 	}
 })

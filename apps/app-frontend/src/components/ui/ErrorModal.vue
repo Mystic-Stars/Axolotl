@@ -11,17 +11,18 @@ import {
 	XIcon,
 } from '@modrinth/assets'
 import {
+	Button,
 	ButtonStyled,
 	Collapsible,
 	commonMessages,
 	defineMessages,
 	injectNotificationManager,
+	NewModal,
 	useVIntl,
 } from '@modrinth/ui'
 import { computed, ref } from 'vue'
 
 import { ChatIcon } from '@/assets/icons'
-import ModalWrapper from '@/components/ui/modal/ModalWrapper.vue'
 import { AxolotlBrandConfig } from '@/config'
 import { trackEvent } from '@/helpers/analytics'
 import { login as login_flow, set_default_user } from '@/helpers/auth.js'
@@ -354,7 +355,7 @@ async function exportLogs() {
 </script>
 
 <template>
-	<ModalWrapper ref="errorModal" :header="title" :closable="closable">
+	<NewModal ref="errorModal" :header="title" :closable="closable">
 		<div class="modal-body flex flex-col gap-3 max-w-[550px]">
 			<div class="markdown-body">
 				<template v-if="errorType === 'minecraft_auth'">
@@ -484,16 +485,12 @@ async function exportLogs() {
 						<ChatIcon /> {{ formatMessage(messages.getSupport) }}
 					</a>
 				</ButtonStyled>
-				<ButtonStyled>
-					<button :disabled="exportingLogs" @click="exportLogs">
-						<DownloadIcon /> {{ formatMessage(messages.exportLogs) }}
-					</button>
-				</ButtonStyled>
-				<ButtonStyled v-if="closable">
-					<button @click="errorModal.hide()">
-						<XIcon /> {{ formatMessage(commonMessages.closeButton) }}
-					</button>
-				</ButtonStyled>
+				<Button :disabled="exportingLogs" @click="exportLogs"
+					><DownloadIcon /> {{ formatMessage(messages.exportLogs) }}
+				</Button>
+				<Button v-if="closable" @click="errorModal.hide()"
+					><XIcon /> {{ formatMessage(commonMessages.closeButton) }}
+				</Button>
 			</div>
 			<template v-if="hasDebugInfo">
 				<div class="flex flex-col gap-2">
@@ -522,23 +519,22 @@ async function exportLogs() {
 								>
 									{{ debugInfo }}
 								</div>
-								<ButtonStyled circular>
-									<button
-										v-tooltip="formatMessage(messages.copyDebugInfo)"
-										:disabled="copied"
-										@click="copyToClipboard(debugInfo)"
-									>
-										<template v-if="copied"> <CheckIcon class="text-green" /> </template>
-										<template v-else> <CopyIcon /> </template>
-									</button>
-								</ButtonStyled>
+								<Button
+									v-tooltip="formatMessage(messages.copyDebugInfo)"
+									circular
+									icon-only
+									:disabled="copied"
+									@click="copyToClipboard(debugInfo)"
+									><template v-if="copied"> <CheckIcon class="text-green" /> </template>
+									<template v-else> <CopyIcon /> </template>
+								</Button>
 							</div>
 						</Collapsible>
 					</div>
 				</div>
 			</template>
 		</div>
-	</ModalWrapper>
+	</NewModal>
 </template>
 
 <style>

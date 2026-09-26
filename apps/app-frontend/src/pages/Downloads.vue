@@ -9,12 +9,10 @@
 					@tab-click="selectTab"
 				/>
 			</div>
-			<ButtonStyled color="brand">
-				<button @click="router.push('/create')">
-					<PlusIcon />
-					{{ formatMessage(messages.newDownload) }}
-				</button>
-			</ButtonStyled>
+			<Button type="colored" color="brand" @click="router.push('/create')"
+				><PlusIcon />
+				{{ formatMessage(messages.newDownload) }}
+			</Button>
 		</div>
 
 		<div class="flex flex-wrap items-center gap-2">
@@ -40,12 +38,14 @@
 				:options="historyStatusOptions"
 				:display-name="historyStatusLabel"
 			/>
-			<ButtonStyled v-if="tab === 'history' && historyJobs.length" class="ml-auto" type="outlined">
-				<button @click="clearHistoryModal?.show()">
-					<TrashIcon />
-					{{ formatMessage(messages.clearHistory) }}
-				</button>
-			</ButtonStyled>
+			<Button
+				v-if="tab === 'history' && historyJobs.length"
+				class="ml-auto"
+				type="outlined"
+				@click="clearHistoryModal?.show()"
+				><TrashIcon />
+				{{ formatMessage(messages.clearHistory) }}
+			</Button>
 		</div>
 
 		<div
@@ -172,78 +172,89 @@
 						</div>
 					</div>
 					<div class="flex flex-wrap items-center gap-2">
-						<ButtonStyled v-if="canCancel(job)" color="red" type="outlined" size="small">
-							<button :disabled="busy.has(job.job_id)" @click="cancel(job)">
-								<XIcon />{{ formatMessage(messages.cancel) }}
-							</button>
-						</ButtonStyled>
-						<ButtonStyled v-if="canRetry(job)" color="brand" size="small">
-							<button :disabled="busy.has(job.job_id)" @click="retry(job)">
-								<RefreshCwIcon />{{ formatMessage(messages.retry) }}
-							</button>
-						</ButtonStyled>
-						<ButtonStyled
-							v-if="canSkipMissingContent(job)"
-							color="orange"
+						<Button
+							v-if="canCancel(job)"
 							type="outlined"
-							size="small"
-						>
-							<button :disabled="busy.has(job.job_id)" @click="skipMissingContent(job)">
-								<ArrowBigRightDashIcon />{{ formatMessage(messages.skipMissingFiles) }}
-							</button>
-						</ButtonStyled>
-						<ButtonStyled v-if="job.status === 'waiting_for_user'" color="brand" size="small">
-							<button :disabled="busy.has(job.job_id)" @click="resolveMissing(job)">
-								<DownloadIcon />{{ formatMessage(messages.completeMissingFiles) }}
-							</button>
-						</ButtonStyled>
-						<ButtonStyled v-if="job.error" type="outlined" size="small">
-							<button :disabled="busy.has(job.job_id)" @click="copyDiagnostics(job)">
-								<ClipboardCopyIcon />{{ formatMessage(messages.copyDiagnostics) }}
-							</button>
-						</ButtonStyled>
-						<ButtonStyled
-							v-if="tab === 'history' && isSuccessfulUpgradeJob(job)"
+							color="red"
+							size="2xs"
+							:disabled="busy.has(job.job_id)"
+							@click="cancel(job)"
+							><XIcon />{{ formatMessage(messages.cancel) }}
+						</Button>
+						<Button
+							v-if="canRetry(job)"
+							type="colored"
 							color="brand"
-							size="small"
-						>
-							<button @click="router.push(upgradeResultLocation(job))">
-								<CheckCircleIcon />{{ formatMessage(messages.viewUpgradeResult) }}
-							</button>
-						</ButtonStyled>
-						<ButtonStyled
+							size="2xs"
+							:disabled="busy.has(job.job_id)"
+							@click="retry(job)"
+							><RefreshCwIcon />{{ formatMessage(messages.retry) }}
+						</Button>
+						<Button
+							v-if="canSkipMissingContent(job)"
+							type="outlined"
+							color="orange"
+							size="2xs"
+							:disabled="busy.has(job.job_id)"
+							@click="skipMissingContent(job)"
+							><ArrowBigRightDashIcon />{{ formatMessage(messages.skipMissingFiles) }}
+						</Button>
+						<Button
+							v-if="job.status === 'waiting_for_user'"
+							type="colored"
+							color="brand"
+							size="2xs"
+							:disabled="busy.has(job.job_id)"
+							@click="resolveMissing(job)"
+							><DownloadIcon />{{ formatMessage(messages.completeMissingFiles) }}
+						</Button>
+						<Button
+							v-if="job.error"
+							type="outlined"
+							size="2xs"
+							:disabled="busy.has(job.job_id)"
+							@click="copyDiagnostics(job)"
+							><ClipboardCopyIcon />{{ formatMessage(messages.copyDiagnostics) }}
+						</Button>
+						<Button
+							v-if="tab === 'history' && isSuccessfulUpgradeJob(job)"
+							type="colored"
+							color="brand"
+							size="2xs"
+							@click="router.push(upgradeResultLocation(job))"
+							><CheckCircleIcon />{{ formatMessage(messages.viewUpgradeResult) }}
+						</Button>
+						<Button
 							v-if="job.instance_id && !job.instance_deleted && job.status !== 'waiting_for_user'"
 							type="outlined"
-							size="small"
-						>
-							<button @click="router.push(`/instance/${encodeURIComponent(job.instance_id!)}`)">
-								<ExternalIcon />{{ formatMessage(messages.openInstance) }}
-							</button>
-						</ButtonStyled>
-						<ButtonStyled
+							size="2xs"
+							@click="router.push(`/instance/${encodeURIComponent(job.instance_id!)}`)"
+							><ExternalIcon />{{ formatMessage(messages.openInstance) }}
+						</Button>
+						<Button
 							v-if="job.items.length > 0 || job.error || job.rollback_error"
-							type="transparent"
-							size="small"
-						>
-							<button @click="toggleExpanded(job.job_id)">
-								<ChevronDownIcon :class="expanded.has(job.job_id) ? 'rotate-180' : ''" />
-								{{
-									expanded.has(job.job_id)
-										? formatMessage(messages.hideDetails)
-										: formatMessage(messages.details)
-								}}
-							</button>
-						</ButtonStyled>
-						<ButtonStyled v-if="tab === 'history'" circular type="transparent" size="small">
-							<button
-								v-tooltip="formatMessage(messages.deleteRecord)"
-								:aria-label="formatMessage(messages.deleteRecord)"
-								:disabled="busy.has(job.job_id)"
-								@click="remove(job)"
-							>
-								<TrashIcon />
-							</button>
-						</ButtonStyled>
+							type="quiet"
+							size="2xs"
+							@click="toggleExpanded(job.job_id)"
+							><ChevronDownIcon :class="expanded.has(job.job_id) ? 'rotate-180' : ''" />
+							{{
+								expanded.has(job.job_id)
+									? formatMessage(messages.hideDetails)
+									: formatMessage(messages.details)
+							}}
+						</Button>
+						<Button
+							v-if="tab === 'history'"
+							v-tooltip="formatMessage(messages.deleteRecord)"
+							type="quiet"
+							size="2xs"
+							circular
+							icon-only
+							:aria-label="formatMessage(messages.deleteRecord)"
+							:disabled="busy.has(job.job_id)"
+							@click="remove(job)"
+							><TrashIcon />
+						</Button>
 					</div>
 				</div>
 
@@ -366,11 +377,14 @@
 										row.request_url
 									}}</code>
 								</div>
-								<ButtonStyled v-if="row.manual_url" type="transparent" size="small">
-									<button class="!px-0" @click.stop="openManualDownload(row)">
-										<ExternalIcon />{{ formatMessage(messages.manualDownload) }}
-									</button>
-								</ButtonStyled>
+								<Button
+									v-if="row.manual_url"
+									type="quiet"
+									size="2xs"
+									class="!px-0"
+									@click.stop="openManualDownload(row)"
+									><ExternalIcon />{{ formatMessage(messages.manualDownload) }}
+								</Button>
 							</div>
 						</template>
 						<template #cell-status="{ row }">
@@ -443,7 +457,7 @@ import {
 	Admonition,
 	Badge,
 	BulletDivider,
-	ButtonStyled,
+	Button,
 	Card,
 	ConfirmModal,
 	defineMessages,

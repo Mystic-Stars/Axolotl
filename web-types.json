@@ -8,8 +8,7 @@
 			"vue-directives": [
 				{
 					"name": "tooltip",
-					"description": "Floating Vue tooltip directive",
-					"doc-url": "https://floating-vue.starpad.dev/guide/directive#directive",
+					"description": "Project tooltip directive",
 					"argument": "tooltip"
 				}
 			]

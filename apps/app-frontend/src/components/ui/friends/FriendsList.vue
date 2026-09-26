@@ -2,10 +2,11 @@
 import { MailIcon, SearchIcon, SendIcon, UserIcon, UserPlusIcon, XIcon } from '@modrinth/assets'
 import {
 	Avatar,
-	ButtonStyled,
+	Button,
 	defineMessages,
 	injectNotificationManager,
 	IntlFormatted,
+	NewModal,
 	StyledInput,
 	useRelativeTime,
 	useVIntl,
@@ -13,7 +14,6 @@ import {
 import { computed, onUnmounted, ref, watch } from 'vue'
 
 import FriendsSection from '@/components/ui/friends/FriendsSection.vue'
-import ModalWrapper from '@/components/ui/modal/ModalWrapper.vue'
 import { friend_listener } from '@/helpers/events'
 import {
 	add_friend,
@@ -231,7 +231,7 @@ const messages = defineMessages({
 </script>
 
 <template>
-	<ModalWrapper ref="friendInvitesModal" :header="formatMessage(messages.viewRequests)">
+	<NewModal ref="friendInvitesModal" :header="formatMessage(messages.viewRequests)">
 		<p v-if="incomingRequests.length === 0">{{ formatMessage(messages.noPendingRequests) }}</p>
 		<div v-else class="flex flex-col gap-4 min-w-[40rem]">
 			<div v-for="friend in incomingRequests" :key="friend.username" class="flex gap-2">
@@ -252,33 +252,27 @@ const messages = defineMessages({
 					</div>
 					<div class="flex gap-2">
 						<template v-if="friend.id === userCredentials?.user_id">
-							<ButtonStyled color="brand">
-								<button @click="addFriend(friend)">
-									<UserPlusIcon />
-									{{ formatMessage(messages.accept) }}
-								</button>
-							</ButtonStyled>
-							<ButtonStyled>
-								<button @click="removeFriend(friend)">
-									<XIcon />
-									{{ formatMessage(messages.ignore) }}
-								</button>
-							</ButtonStyled>
+							<Button type="colored" color="brand" @click="addFriend(friend)"
+								><UserPlusIcon />
+								{{ formatMessage(messages.accept) }}
+							</Button>
+							<Button @click="removeFriend(friend)"
+								><XIcon />
+								{{ formatMessage(messages.ignore) }}
+							</Button>
 						</template>
 						<template v-else>
-							<ButtonStyled>
-								<button @click="removeFriend(friend)">
-									<XIcon />
-									{{ formatMessage(messages.cancel) }}
-								</button>
-							</ButtonStyled>
+							<Button @click="removeFriend(friend)"
+								><XIcon />
+								{{ formatMessage(messages.cancel) }}
+							</Button>
 						</template>
 					</div>
 				</div>
 			</div>
 		</div>
-	</ModalWrapper>
-	<ModalWrapper ref="addFriendModal" :header="formatMessage(messages.addingAFriend)">
+	</NewModal>
+	<NewModal ref="addFriendModal" :header="formatMessage(messages.addingAFriend)">
 		<div class="min-w-[30rem]">
 			<h2 class="m-0 text-base font-medium text-primary">
 				{{ formatMessage(messages.usernameTitle) }}
@@ -295,26 +289,28 @@ const messages = defineMessages({
 					wrapper-class="flex-1"
 					@keyup.enter="addFriendFromModal"
 				/>
-				<ButtonStyled color="brand">
-					<button :disabled="username.length === 0" @click="addFriendFromModal">
-						<SendIcon />
-						{{ formatMessage(messages.sendFriendRequest) }}
-					</button>
-				</ButtonStyled>
+				<Button
+					type="colored"
+					color="brand"
+					:disabled="username.length === 0"
+					@click="addFriendFromModal"
+					><SendIcon />
+					{{ formatMessage(messages.sendFriendRequest) }}
+				</Button>
 			</div>
 		</div>
-	</ModalWrapper>
+	</NewModal>
 	<div v-if="userCredentials && !loading" class="flex gap-1 items-center mb-3 -ml-1">
 		<template v-if="sortedFriends.length > 0">
-			<ButtonStyled circular type="transparent">
-				<button
-					v-tooltip="formatMessage(messages.addFriend)"
-					:aria-label="formatMessage(messages.addFriend)"
-					@click="addFriendModal.show"
-				>
-					<UserPlusIcon />
-				</button>
-			</ButtonStyled>
+			<Button
+				v-tooltip="formatMessage(messages.addFriend)"
+				type="quiet"
+				circular
+				icon-only
+				:aria-label="formatMessage(messages.addFriend)"
+				@click="addFriendModal.show"
+				><UserPlusIcon />
+			</Button>
 			<StyledInput
 				v-model="search"
 				:icon="SearchIcon"
@@ -329,23 +325,24 @@ const messages = defineMessages({
 		<h3 v-else class="w-full text-base text-primary font-medium m-0">
 			{{ formatMessage(messages.friends) }}
 		</h3>
-		<ButtonStyled v-if="incomingRequests.length > 0" circular type="transparent">
-			<button
-				v-tooltip="formatMessage(messages.viewFriendRequests, { count: incomingRequests.length })"
-				class="relative"
-				:aria-label="formatMessage(messages.viewFriendRequests, { count: incomingRequests.length })"
-				@click="friendInvitesModal.show"
+		<Button
+			v-if="incomingRequests.length > 0"
+			v-tooltip="formatMessage(messages.viewFriendRequests, { count: incomingRequests.length })"
+			type="quiet"
+			circular
+			icon-only
+			class="relative"
+			:aria-label="formatMessage(messages.viewFriendRequests, { count: incomingRequests.length })"
+			@click="friendInvitesModal.show"
+			><MailIcon />
+			<span
+				v-if="incomingRequests.length > 0"
+				aria-hidden="true"
+				class="absolute bg-brand text-brand-inverted text-[8px] top-0.5 px-1 right-0.5 min-w-3 h-3 rounded-full flex items-center justify-center font-bold"
 			>
-				<MailIcon />
-				<span
-					v-if="incomingRequests.length > 0"
-					aria-hidden="true"
-					class="absolute bg-brand text-brand-inverted text-[8px] top-0.5 px-1 right-0.5 min-w-3 h-3 rounded-full flex items-center justify-center font-bold"
-				>
-					{{ incomingRequests.length }}
-				</span>
-			</button>
-		</ButtonStyled>
+				{{ incomingRequests.length }}
+			</span>
+		</Button>
 	</div>
 	<div class="flex flex-col gap-3">
 		<h3 v-if="loading" class="text-base text-primary font-medium m-0">

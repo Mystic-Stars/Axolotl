@@ -10,13 +10,7 @@ import {
 	RestoreIcon,
 	TrashIcon,
 } from '@modrinth/assets'
-import {
-	ButtonStyled,
-	Checkbox,
-	defineMessages,
-	injectNotificationManager,
-	useVIntl,
-} from '@modrinth/ui'
+import { Button, Checkbox, defineMessages, injectNotificationManager, useVIntl } from '@modrinth/ui'
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import { open } from '@tauri-apps/plugin-dialog'
 import { openUrl } from '@tauri-apps/plugin-opener'
@@ -288,30 +282,22 @@ async function importModLoader() {
 <template>
 	<div class="flex flex-col gap-4">
 		<div class="flex flex-wrap gap-2">
-			<ButtonStyled>
-				<button :disabled="busy" @click="pick('jar_mod')">
-					<PlusIcon />
-					{{ formatMessage(messages.add) }}
-				</button>
-			</ButtonStyled>
-			<ButtonStyled type="outlined">
-				<button :disabled="busy" @click="pick('replacement_jar')">
-					<FileArchiveIcon />
-					{{ formatMessage(messages.replace) }}
-				</button>
-			</ButtonStyled>
-			<ButtonStyled v-if="canInstallModLoader" type="outlined">
-				<button :disabled="busy" @click="installModLoader">
-					<DownloadIcon />
-					{{ formatMessage(messages.modLoader) }}
-				</button>
-			</ButtonStyled>
-			<ButtonStyled type="transparent">
-				<button :disabled="busy" @click="preview">
-					<EyeIcon />
-					{{ formatMessage(messages.preview) }}
-				</button>
-			</ButtonStyled>
+			<Button :disabled="busy" @click="pick('jar_mod')"
+				><PlusIcon />
+				{{ formatMessage(messages.add) }}
+			</Button>
+			<Button type="outlined" :disabled="busy" @click="pick('replacement_jar')"
+				><FileArchiveIcon />
+				{{ formatMessage(messages.replace) }}
+			</Button>
+			<Button v-if="canInstallModLoader" type="outlined" :disabled="busy" @click="installModLoader"
+				><DownloadIcon />
+				{{ formatMessage(messages.modLoader) }}
+			</Button>
+			<Button type="quiet" :disabled="busy" @click="preview"
+				><EyeIcon />
+				{{ formatMessage(messages.preview) }}
+			</Button>
 		</div>
 
 		<div
@@ -321,18 +307,17 @@ async function importModLoader() {
 			<p class="m-0 min-w-0 flex-1 text-sm text-secondary">
 				{{ formatMessage(messages.modLoaderManual, { fileName: manualModLoader.fileName }) }}
 			</p>
-			<ButtonStyled v-if="manualModLoader.pageUrl" type="outlined">
-				<button @click="openUrl(manualModLoader!.pageUrl!)">
-					<ExternalIcon />
-					{{ formatMessage(messages.openSource) }}
-				</button>
-			</ButtonStyled>
-			<ButtonStyled>
-				<button :disabled="busy" @click="importModLoader">
-					<FileArchiveIcon />
-					{{ formatMessage(messages.importModLoader) }}
-				</button>
-			</ButtonStyled>
+			<Button
+				v-if="manualModLoader.pageUrl"
+				type="outlined"
+				@click="openUrl(manualModLoader!.pageUrl!)"
+				><ExternalIcon />
+				{{ formatMessage(messages.openSource) }}
+			</Button>
+			<Button :disabled="busy" @click="importModLoader"
+				><FileArchiveIcon />
+				{{ formatMessage(messages.importModLoader) }}
+			</Button>
 		</div>
 
 		<div class="overflow-hidden rounded-lg border border-surface-4">
@@ -377,36 +362,40 @@ async function importModLoader() {
 					</div>
 				</div>
 				<div class="flex shrink-0 items-center gap-1">
-					<ButtonStyled circular size="small" type="transparent">
-						<button
-							v-tooltip="formatMessage(messages.moveUp)"
-							:aria-label="formatMessage(messages.moveUp)"
-							:disabled="busy || index === 0"
-							@click="run(() => move_core_component(instance.id, component.id, -1))"
-						>
-							<ArrowUpIcon />
-						</button>
-					</ButtonStyled>
-					<ButtonStyled circular size="small" type="transparent">
-						<button
-							v-tooltip="formatMessage(messages.moveDown)"
-							:aria-label="formatMessage(messages.moveDown)"
-							:disabled="busy || index === activeComponents.length - 1"
-							@click="run(() => move_core_component(instance.id, component.id, 1))"
-						>
-							<ArrowDownIcon />
-						</button>
-					</ButtonStyled>
-					<ButtonStyled circular color="red" size="small" type="transparent">
-						<button
-							v-tooltip="formatMessage(messages.remove)"
-							:aria-label="formatMessage(messages.remove)"
-							:disabled="busy"
-							@click="run(() => remove_core_component(instance.id, component.id))"
-						>
-							<TrashIcon />
-						</button>
-					</ButtonStyled>
+					<Button
+						v-tooltip="formatMessage(messages.moveUp)"
+						type="quiet"
+						size="2xs"
+						circular
+						icon-only
+						:aria-label="formatMessage(messages.moveUp)"
+						:disabled="busy || index === 0"
+						@click="run(() => move_core_component(instance.id, component.id, -1))"
+						><ArrowUpIcon />
+					</Button>
+					<Button
+						v-tooltip="formatMessage(messages.moveDown)"
+						type="quiet"
+						size="2xs"
+						circular
+						icon-only
+						:aria-label="formatMessage(messages.moveDown)"
+						:disabled="busy || index === activeComponents.length - 1"
+						@click="run(() => move_core_component(instance.id, component.id, 1))"
+						><ArrowDownIcon />
+					</Button>
+					<Button
+						v-tooltip="formatMessage(messages.remove)"
+						type="quiet"
+						color="red"
+						size="2xs"
+						circular
+						icon-only
+						:aria-label="formatMessage(messages.remove)"
+						:disabled="busy"
+						@click="run(() => remove_core_component(instance.id, component.id))"
+						><TrashIcon />
+					</Button>
 				</div>
 			</div>
 		</div>
@@ -418,16 +407,17 @@ async function importModLoader() {
 				class="flex items-center gap-3 px-3 py-3"
 			>
 				<div class="min-w-0 flex-1 truncate text-secondary">{{ component.fileName }}</div>
-				<ButtonStyled circular size="small" type="transparent">
-					<button
-						v-tooltip="formatMessage(messages.restore)"
-						:aria-label="formatMessage(messages.restore)"
-						:disabled="busy"
-						@click="run(() => restore_core_component(instance.id, component.id))"
-					>
-						<RestoreIcon />
-					</button>
-				</ButtonStyled>
+				<Button
+					v-tooltip="formatMessage(messages.restore)"
+					type="quiet"
+					size="2xs"
+					circular
+					icon-only
+					:aria-label="formatMessage(messages.restore)"
+					:disabled="busy"
+					@click="run(() => restore_core_component(instance.id, component.id))"
+					><RestoreIcon />
+				</Button>
 			</div>
 		</div>
 	</div>

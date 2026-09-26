@@ -1,15 +1,14 @@
 <template>
 	<div class="flex items-center gap-1">
-		<ButtonStyled v-if="showClear && hasLogs" type="transparent">
-			<button
-				v-tooltip="clearDisabled ? clearDisabledTooltip : undefined"
-				:disabled="clearDisabled"
-				@click="emit('clear')"
-			>
-				<XIcon />
-				{{ formatMessage(commonMessages.clearButton) }}
-			</button>
-		</ButtonStyled>
+		<Button
+			v-if="showClear && hasLogs"
+			v-tooltip="clearDisabled ? clearDisabledTooltip : undefined"
+			type="quiet"
+			:disabled="clearDisabled"
+			@click="emit('clear')"
+			><XIcon />
+			{{ formatMessage(commonMessages.clearButton) }}
+		</Button>
 		<ButtonStyled v-if="showDelete" type="transparent" hover-color-fill="background" color="red">
 			<button
 				v-tooltip="deleteDisabled ? deleteDisabledTooltip : undefined"
@@ -20,24 +19,21 @@
 				{{ formatMessage(commonMessages.deleteLabel) }}
 			</button>
 		</ButtonStyled>
-		<ButtonStyled v-if="hasLogs" type="transparent">
-			<button
-				v-tooltip="shareDisabled ? shareDisabledTooltip : undefined"
-				:disabled="shareDisabled || sharing"
-				@click="emit('share')"
-			>
-				<SpinnerIcon v-if="sharing" class="animate-spin" />
-				<ShareIcon v-else />
-				{{ formatMessage(messages.share) }}
-			</button>
-		</ButtonStyled>
-		<ButtonStyled type="transparent">
-			<button @click="emit('toggle-fullscreen')">
-				<ContractIcon v-if="fullscreen" />
-				<ExpandIcon v-else />
-				{{ formatMessage(fullscreen ? messages.collapse : messages.expand) }}
-			</button>
-		</ButtonStyled>
+		<Button
+			v-if="hasLogs"
+			v-tooltip="shareDisabled ? shareDisabledTooltip : undefined"
+			type="quiet"
+			:disabled="shareDisabled || sharing"
+			@click="emit('share')"
+			><SpinnerIcon v-if="sharing" class="animate-spin" />
+			<ShareIcon v-else />
+			{{ formatMessage(messages.share) }}
+		</Button>
+		<Button type="quiet" @click="emit('toggle-fullscreen')"
+			><ContractIcon v-if="fullscreen" />
+			<ExpandIcon v-else />
+			{{ formatMessage(fullscreen ? messages.collapse : messages.expand) }}
+		</Button>
 	</div>
 </template>
 
@@ -51,6 +47,7 @@ import {
 	XIcon,
 } from '@modrinth/assets'
 
+import Button from '#ui/components/base/buttons/Button.vue'
 import ButtonStyled from '#ui/components/base/ButtonStyled.vue'
 import { defineMessages, useVIntl } from '#ui/composables/i18n'
 import { commonMessages } from '#ui/utils/common-messages'

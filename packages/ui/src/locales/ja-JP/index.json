@@ -311,9 +311,6 @@
   "content.filter.updates": {
     "defaultMessage": "更新"
   },
-  "content.filter.warnings": {
-    "defaultMessage": "警告"
-  },
   "content.page-layout.browse-content": {
     "defaultMessage": "コンテンツを探す"
   },
@@ -956,18 +953,6 @@
   "header.category.resolutions": {
     "defaultMessage": "解像度"
   },
-  "icon-select.edit": {
-    "defaultMessage": "アイコンを編集"
-  },
-  "icon-select.remove": {
-    "defaultMessage": "アイコンを削除"
-  },
-  "icon-select.replace": {
-    "defaultMessage": "アイコンを置き換え"
-  },
-  "icon-select.select": {
-    "defaultMessage": "アイコンを選択"
-  },
   "input.search-version.placeholder": {
     "defaultMessage": "バージョンを検索…"
   },
@@ -1165,24 +1150,6 @@
   },
   "instances.content-install.select-icon": {
     "defaultMessage": "アイコンを選択"
-  },
-  "instances.modpack-content-modal.empty-description": {
-    "defaultMessage": "このModパックに追加コンテンツは一切含まれていません。"
-  },
-  "instances.modpack-content-modal.empty-title": {
-    "defaultMessage": "コンテンツが見つかりません"
-  },
-  "instances.modpack-content-modal.header": {
-    "defaultMessage": "Modpackコンテンツ"
-  },
-  "instances.modpack-content-modal.loading": {
-    "defaultMessage": "コンテンツを読み込み中…"
-  },
-  "instances.modpack-content-modal.no-results": {
-    "defaultMessage": "該当するプロジェクトがありません。"
-  },
-  "instances.modpack-content-modal.search-placeholder": {
-    "defaultMessage": "{count, number}件のプロジェクトを検索"
   },
   "instances.updater-modal.badge.current": {
     "defaultMessage": "現在"
@@ -1571,108 +1538,6 @@
   "locale.zh-TW": {
     "defaultMessage": "中国語 (繁体字)"
   },
-  "markdown-editor.image-modal.description-field.description": {
-    "defaultMessage": "画像を見ることができない人にも理解できるよう説明してください。"
-  },
-  "markdown-editor.image-modal.description-field.placeholder": {
-    "defaultMessage": "画像の説明..."
-  },
-  "markdown-editor.image-modal.description-field.title": {
-    "defaultMessage": "説明 (Altテキスト)"
-  },
-  "markdown-editor.image-modal.header": {
-    "defaultMessage": "画像の追加"
-  },
-  "markdown-editor.image-modal.upload-mode.label": {
-    "defaultMessage": "画像のソース"
-  },
-  "markdown-editor.image-modal.upload-mode.link": {
-    "defaultMessage": "リンク"
-  },
-  "markdown-editor.image-modal.upload-mode.upload": {
-    "defaultMessage": "アップロード"
-  },
-  "markdown-editor.image-modal.upload.prompt": {
-    "defaultMessage": "ドラッグ&ドロップまたはクリックでファイルをアップロード"
-  },
-  "markdown-editor.image-modal.url-field.placeholder": {
-    "defaultMessage": "画像のURLを入力..."
-  },
-  "markdown-editor.insert-button": {
-    "defaultMessage": "追加"
-  },
-  "markdown-editor.link-modal.header": {
-    "defaultMessage": "リンクの追加"
-  },
-  "markdown-editor.link-modal.label-field.placeholder": {
-    "defaultMessage": "ラベルを入力..."
-  },
-  "markdown-editor.link-modal.label-field.title": {
-    "defaultMessage": "ラベル"
-  },
-  "markdown-editor.link-modal.url-field.placeholder": {
-    "defaultMessage": "リンクのURLを入力..."
-  },
-  "markdown-editor.preview-label": {
-    "defaultMessage": "出力"
-  },
-  "markdown-editor.preview-toggle.label": {
-    "defaultMessage": "表示の切り替え"
-  },
-  "markdown-editor.toolbar.bold": {
-    "defaultMessage": "太字"
-  },
-  "markdown-editor.toolbar.bulleted-list": {
-    "defaultMessage": "番号無しリスト"
-  },
-  "markdown-editor.toolbar.code": {
-    "defaultMessage": "コード"
-  },
-  "markdown-editor.toolbar.heading-1": {
-    "defaultMessage": "見出し 1"
-  },
-  "markdown-editor.toolbar.heading-2": {
-    "defaultMessage": "見出し 2"
-  },
-  "markdown-editor.toolbar.heading-3": {
-    "defaultMessage": "見出し 3"
-  },
-  "markdown-editor.toolbar.image": {
-    "defaultMessage": "画像"
-  },
-  "markdown-editor.toolbar.italic": {
-    "defaultMessage": "斜体"
-  },
-  "markdown-editor.toolbar.link": {
-    "defaultMessage": "リンク"
-  },
-  "markdown-editor.toolbar.ordered-list": {
-    "defaultMessage": "番号付きリスト"
-  },
-  "markdown-editor.toolbar.quote": {
-    "defaultMessage": "引用"
-  },
-  "markdown-editor.toolbar.spoiler": {
-    "defaultMessage": "ネタバレ"
-  },
-  "markdown-editor.toolbar.video": {
-    "defaultMessage": "動画"
-  },
-  "markdown-editor.url-label": {
-    "defaultMessage": "URL"
-  },
-  "markdown-editor.video-modal.header": {
-    "defaultMessage": "Youtube動画の追加"
-  },
-  "markdown-editor.video-modal.url-field.description": {
-    "defaultMessage": "Youtube動画への有効なリンクを入力してください。"
-  },
-  "markdown-editor.video-modal.url-field.placeholder": {
-    "defaultMessage": "Youtube動画のURLを入力..."
-  },
-  "markdown-editor.video-modal.url-field.title": {
-    "defaultMessage": "Youtube動画のURL"
-  },
   "modal.open-in-app.benefit.install": {
     "defaultMessage": "必要なコンテンツを自動でインストールする"
   },
@@ -1756,24 +1621,6 @@
   },
   "omorphia.component.copy.action.copy": {
     "defaultMessage": "クリップボードにコードをコピー"
-  },
-  "omorphia.component.environment-indicator.label.client": {
-    "defaultMessage": "クライアント"
-  },
-  "omorphia.component.environment-indicator.label.client-and-server": {
-    "defaultMessage": "クライアントとサーバー"
-  },
-  "omorphia.component.environment-indicator.label.client-or-server": {
-    "defaultMessage": "クライアントまたはサーバー"
-  },
-  "omorphia.component.environment-indicator.label.server": {
-    "defaultMessage": "サーバー"
-  },
-  "omorphia.component.environment-indicator.label.type": {
-    "defaultMessage": "{type}"
-  },
-  "omorphia.component.environment-indicator.label.unsupported": {
-    "defaultMessage": "対応していません"
   },
   "payment-method.amazon_pay": {
     "defaultMessage": "Amazon Pay"
@@ -2504,17 +2351,8 @@
   "search.server_content_type.vanilla": {
     "defaultMessage": "バニラ(Mod非導入)"
   },
-  "servers.notice.dismiss": {
-    "defaultMessage": "閉じる"
-  },
   "servers.notice.dismissable": {
     "defaultMessage": "閉じられる"
-  },
-  "servers.notice.heading.attention": {
-    "defaultMessage": "注意"
-  },
-  "servers.notice.heading.info": {
-    "defaultMessage": "情報"
   },
   "servers.notice.level.critical.name": {
     "defaultMessage": "クリティカル"
@@ -3049,14 +2887,5 @@
   },
   "tag.loader.waterfall": {
     "defaultMessage": "Waterfall"
-  },
-  "time-frame-picker.option.today": {
-    "defaultMessage": "今日"
-  },
-  "time-frame-picker.option.yesterday": {
-    "defaultMessage": "昨日"
-  },
-  "ui.component.unsaved-changes-popup.body": {
-    "defaultMessage": "保存されていない変更があります。"
   }
 }

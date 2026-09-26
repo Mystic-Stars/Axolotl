@@ -2,9 +2,10 @@
 import { ChevronLeftIcon, ChevronRightIcon, SpinnerIcon, WorldIcon } from '@modrinth/assets'
 import {
 	Avatar,
-	ButtonStyled,
+	Button,
 	defineMessages,
 	injectNotificationManager,
+	NewModal,
 	useRelativeTime,
 	useVIntl,
 } from '@modrinth/ui'
@@ -12,7 +13,6 @@ import dayjs from 'dayjs'
 import { ref } from 'vue'
 
 import InstanceIcon from '@/components/ui/InstanceIcon.vue'
-import ModalWrapper from '@/components/ui/modal/ModalWrapper.vue'
 import { get_full_path, list } from '@/helpers/instance'
 import type { GameInstance } from '@/helpers/types'
 import {
@@ -144,7 +144,7 @@ defineExpose({ show })
 </script>
 
 <template>
-	<ModalWrapper ref="modal" :header="formatMessage(messages.title)">
+	<NewModal ref="modal" :header="formatMessage(messages.title)">
 		<div class="seed-import-body">
 			<div v-if="!selectedInstance" class="seed-import-step">
 				<p class="seed-import-hint">{{ formatMessage(messages.chooseInstance) }}</p>
@@ -180,11 +180,9 @@ defineExpose({ show })
 
 			<div v-else class="seed-import-step">
 				<div class="seed-import-world-heading">
-					<ButtonStyled size="small" type="transparent">
-						<button @click="backToInstances">
-							<ChevronLeftIcon />{{ formatMessage(messages.back) }}
-						</button>
-					</ButtonStyled>
+					<Button type="quiet" size="2xs" @click="backToInstances"
+						><ChevronLeftIcon />{{ formatMessage(messages.back) }}
+					</Button>
 					<strong>{{ selectedInstance.name }}</strong>
 				</div>
 				<p class="seed-import-hint">{{ formatMessage(messages.chooseWorld) }}</p>
@@ -227,7 +225,7 @@ defineExpose({ show })
 				</div>
 			</div>
 		</div>
-	</ModalWrapper>
+	</NewModal>
 </template>
 
 <style scoped>

@@ -82,10 +82,7 @@ export type GameSettingCategory = {
 }
 
 export type GameOptionValidationError =
-	| 'missing_value'
-	| 'no_compatible_instances'
-	| 'invalid_value'
-	| 'changed_since_opened'
+	'missing_value' | 'no_compatible_instances' | 'invalid_value' | 'changed_since_opened'
 
 export type EditableGameSetting = {
 	option_id: string

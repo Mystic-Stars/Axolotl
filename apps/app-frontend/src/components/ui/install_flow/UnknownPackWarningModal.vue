@@ -19,19 +19,15 @@
 			</div>
 			<Checkbox v-model="dontShowAgain" :label="formatMessage(messages.dontShowAgain)" />
 			<div class="flex gap-2 justify-end">
-				<ButtonStyled type="outlined">
-					<button @click="cancel">
-						<XIcon />
-						{{ formatMessage(commonMessages.cancelButton) }}
-					</button>
-				</ButtonStyled>
-				<ButtonStyled color="orange">
-					<button :disabled="isProceeding" @click="proceed">
-						<SpinnerIcon v-if="isProceeding" class="animate-spin" />
-						<CircleArrowRightIcon v-else />
-						{{ formatMessage(messages.installAnyway) }}
-					</button>
-				</ButtonStyled>
+				<Button type="outlined" @click="cancel"
+					><XIcon />
+					{{ formatMessage(commonMessages.cancelButton) }}
+				</Button>
+				<Button type="colored" color="orange" :disabled="isProceeding" @click="proceed"
+					><SpinnerIcon v-if="isProceeding" class="animate-spin" />
+					<CircleArrowRightIcon v-else />
+					{{ formatMessage(messages.installAnyway) }}
+				</Button>
 			</div>
 		</div>
 	</NewModal>
@@ -41,7 +37,7 @@
 import { CircleArrowRightIcon, SpinnerIcon, XIcon } from '@modrinth/assets'
 import {
 	Admonition,
-	ButtonStyled,
+	Button,
 	Checkbox,
 	commonMessages,
 	defineMessages,

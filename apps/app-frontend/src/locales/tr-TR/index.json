@@ -353,42 +353,6 @@
   "app.instance.worlds.search-worlds-placeholder": {
     "message": "{count} dünya ara..."
   },
-  "app.modal.install-to-play.content-required": {
-    "message": "İçerik gerekli"
-  },
-  "app.modal.install-to-play.header": {
-    "message": "Oynamak için yükleyin"
-  },
-  "app.modal.install-to-play.install-button": {
-    "message": "Yükle"
-  },
-  "app.modal.install-to-play.mod-count": {
-    "message": "{count, plural, one {#mod} other {#mods}}"
-  },
-  "app.modal.install-to-play.required-modpack": {
-    "message": "Gerekli mod paketi"
-  },
-  "app.modal.install-to-play.server-requires-mods": {
-    "message": "Bu sunucuya girebilmek için modlar gereklidir. Gerekli dosyaları Modrinth üzerinden kurmak için Yükle butonuna tıkla, ardından doğrudan sunucuya başlat."
-  },
-  "app.modal.install-to-play.shared-instance": {
-    "message": "Paylaşılan Kurulum"
-  },
-  "app.modal.install-to-play.shared-server-instance": {
-    "message": "Paylaşılan Sunucu Kurulumu"
-  },
-  "app.modal.install-to-play.view-contents": {
-    "message": "İçeriği görüntüle"
-  },
-  "app.modal.update-to-play.header": {
-    "message": "Oynamak için güncelle"
-  },
-  "app.modal.update-to-play.update-required": {
-    "message": "Güncelleme gerekli"
-  },
-  "app.modal.update-to-play.update-required-description": {
-    "message": "{name} oyununu oynamak için güncelleme gereklidir. Oyunu başlatmak için lütfen en son sürüme güncelleyin."
-  },
   "app.project.install-button.already-installed": {
     "message": "Bu proje zaten kurulu"
   },

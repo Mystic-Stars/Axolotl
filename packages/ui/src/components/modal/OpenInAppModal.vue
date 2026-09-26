@@ -88,12 +88,10 @@
 					formatMessage(messages.openingAutomatically)
 				}}</span>
 				<div v-else class="grid grid-cols-2 gap-2 w-full">
-					<ButtonStyled>
-						<button class="flex-1" @click="hide">
-							<XIcon />
-							{{ formatMessage(commonMessages.closeButton) }}
-						</button>
-					</ButtonStyled>
+					<Button class="flex-1" @click="hide"
+						><XIcon />
+						{{ formatMessage(commonMessages.closeButton) }}
+					</Button>
 					<ButtonStyled color="brand">
 						<a
 							class="flex-1"
@@ -115,6 +113,8 @@
 import { CheckIcon, DownloadIcon, XIcon } from '@modrinth/assets'
 import { commonMessages } from '@modrinth/ui'
 import { computed, nextTick, onUnmounted, ref } from 'vue'
+
+import Button from '#ui/components/base/buttons/Button.vue'
 
 import { defineMessages, useVIntl } from '../../composables/i18n'
 import { Avatar, ButtonStyled } from '../base'

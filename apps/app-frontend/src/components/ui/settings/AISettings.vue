@@ -1480,6 +1480,10 @@ onMounted(async () => {
 }
 
 .ai-provider-item.selected {
+	/* The same pair the settings sidebar uses for its active category, so the
+	   two selection surfaces agree. Deliberately a brand token rather than a
+	   surface: a selected item should stay emphasised over the background
+	   image instead of fading with the panel behind it. */
 	background: var(--color-button-bg-selected);
 	color: var(--color-button-text-selected);
 }
@@ -1546,10 +1550,12 @@ onMounted(async () => {
 	min-width: 0;
 	flex-direction: column;
 	overflow: hidden;
-	border: 1px solid
-		var(--settings-card-border, color-mix(in srgb, var(--surface-4) 72%, transparent));
+	border: 1px solid var(--surface-4);
 	border-radius: var(--radius-md);
-	background: var(--surface-2);
+	/* One rung above the settings content panel this sits on, matching
+	   `SettingsSection`; at `surface-2` the card would match the panel exactly
+	   and disappear. */
+	background: var(--surface-3);
 	transition:
 		border-color 150ms ease,
 		background-color 150ms ease;
@@ -1557,7 +1563,7 @@ onMounted(async () => {
 
 .ai-provider-card:hover {
 	border-color: var(--surface-5);
-	background: var(--surface-3);
+	background: var(--surface-4);
 }
 
 .ai-provider-card-main {
@@ -1696,10 +1702,9 @@ onMounted(async () => {
 	align-items: center;
 	gap: 0.5rem;
 	padding: 0.75rem;
-	border: 1px solid
-		var(--settings-card-border, color-mix(in srgb, var(--surface-4) 72%, transparent));
+	border: 1px solid var(--surface-4);
 	border-radius: var(--radius-sm);
-	background: var(--surface-2);
+	background: var(--surface-3);
 }
 
 @media (max-width: 760px) {

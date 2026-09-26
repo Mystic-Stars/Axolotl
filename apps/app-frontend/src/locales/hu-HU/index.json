@@ -254,42 +254,6 @@
   "app.instance.worlds.search-worlds-placeholder": {
     "message": "Keresés {count} világ között..."
   },
-  "app.modal.install-to-play.content-required": {
-    "message": "Szükséges tartalom"
-  },
-  "app.modal.install-to-play.header": {
-    "message": "Telepítés a játékhoz"
-  },
-  "app.modal.install-to-play.install-button": {
-    "message": "Telepítés"
-  },
-  "app.modal.install-to-play.mod-count": {
-    "message": "{count} mod"
-  },
-  "app.modal.install-to-play.required-modpack": {
-    "message": "Szükséges modcsomag"
-  },
-  "app.modal.install-to-play.server-requires-mods": {
-    "message": "Ehhez a szerverhez modok szükségesek a játékhoz. Kattints a Telepítés gombra, hogy telepítsd a szükséges fájlokat a Modrinth-ról, majd indítsd el közvetlenül a szervert."
-  },
-  "app.modal.install-to-play.shared-instance": {
-    "message": "Megosztott profil"
-  },
-  "app.modal.install-to-play.shared-server-instance": {
-    "message": "Megosztott szerverprofil"
-  },
-  "app.modal.install-to-play.view-contents": {
-    "message": "Tartalom megtekintése"
-  },
-  "app.modal.update-to-play.header": {
-    "message": "Frissítsd a játékhoz"
-  },
-  "app.modal.update-to-play.update-required": {
-    "message": "Frissítés szükséges"
-  },
-  "app.modal.update-to-play.update-required-description": {
-    "message": "Frissítés szükséges ehhez: {name}. Kérlek, frissíts a legújabb verzióra a játék elindításához."
-  },
   "app.project.install-button.already-installed": {
     "message": "Ez a projekt már telepítve van"
   },

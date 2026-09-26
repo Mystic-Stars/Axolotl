@@ -1,19 +1,13 @@
 <script setup lang="ts">
 import { PlusIcon } from '@modrinth/assets'
-import {
-	ButtonStyled,
-	defineMessages,
-	injectNotificationManager,
-	NavTabs,
-	useVIntl,
-} from '@modrinth/ui'
+import { Button, defineMessages, injectNotificationManager, NavTabs, useVIntl } from '@modrinth/ui'
 import { onUnmounted, shallowRef } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import { NewInstanceImage } from '@/assets/icons'
 import { useNetworkStatus } from '@/composables/useNetworkStatus'
 import { DIRECT_LINKS_SYNCED_EVENT } from '@/helpers/direct-link-sync'
-import { instance_listener, instance_groups_listener } from '@/helpers/events.js'
+import { instance_groups_listener, instance_listener } from '@/helpers/events.js'
 import { list } from '@/helpers/instance'
 import { useBreadcrumbs } from '@/store/breadcrumbs.js'
 
@@ -84,16 +78,15 @@ onUnmounted(() => {
 				<NewInstanceImage />
 			</div>
 			<h3>{{ formatMessage(messages.noInstances) }}</h3>
-			<ButtonStyled color="brand">
-				<button
-					data-onboarding-id="create-instance"
-					:disabled="offline"
-					@click="router.push('/create')"
-				>
-					<PlusIcon />
-					{{ formatMessage(messages.createInstance) }}
-				</button>
-			</ButtonStyled>
+			<Button
+				type="colored"
+				color="brand"
+				data-onboarding-id="create-instance"
+				:disabled="offline"
+				@click="router.push('/create')"
+				><PlusIcon />
+				{{ formatMessage(messages.createInstance) }}
+			</Button>
 		</div>
 	</div>
 </template>

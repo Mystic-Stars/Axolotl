@@ -51,44 +51,36 @@
 			</ButtonStyled>
 		</div>
 		<span class="flex items-center gap-2 m-0">
-			<ButtonStyled v-if="props.version">
-				<button
-					v-tooltip="recommendedInstalled ? formatMessage(messages.alreadyInstalled) : undefined"
-					class="!shadow-none"
-					:aria-label="formatMessage(messages.installRecommended)"
-					:disabled="props.disabled || installingJava || recommendedInstalled"
-					@click="reinstallJava"
-				>
-					<DownloadIcon />
-					{{
-						installingJava
-							? formatMessage(commonMessages.installingLabel)
-							: formatMessage(messages.installRecommended)
-					}}
-				</button>
-			</ButtonStyled>
-			<ButtonStyled>
-				<button
-					class="!shadow-none"
-					:aria-label="formatMessage(props.selectAllVersions ? messages.select : messages.detect)"
-					:disabled="props.disabled"
-					@click="autoDetect"
-				>
-					<SearchIcon />
-					{{ formatMessage(props.selectAllVersions ? messages.select : messages.detect) }}
-				</button>
-			</ButtonStyled>
-			<ButtonStyled>
-				<button
-					class="!shadow-none"
-					:aria-label="formatMessage(messages.browseForExecutable)"
-					:disabled="props.disabled"
-					@click="handleJavaFileInput()"
-				>
-					<FolderSearchIcon />
-					{{ formatMessage(messages.browse) }}
-				</button>
-			</ButtonStyled>
+			<Button
+				v-if="props.version"
+				v-tooltip="recommendedInstalled ? formatMessage(messages.alreadyInstalled) : undefined"
+				class="!shadow-none"
+				:aria-label="formatMessage(messages.installRecommended)"
+				:disabled="props.disabled || installingJava || recommendedInstalled"
+				@click="reinstallJava"
+				><DownloadIcon />
+				{{
+					installingJava
+						? formatMessage(commonMessages.installingLabel)
+						: formatMessage(messages.installRecommended)
+				}}
+			</Button>
+			<Button
+				class="!shadow-none"
+				:aria-label="formatMessage(props.selectAllVersions ? messages.select : messages.detect)"
+				:disabled="props.disabled"
+				@click="autoDetect"
+				><SearchIcon />
+				{{ formatMessage(props.selectAllVersions ? messages.select : messages.detect) }}
+			</Button>
+			<Button
+				class="!shadow-none"
+				:aria-label="formatMessage(messages.browseForExecutable)"
+				:disabled="props.disabled"
+				@click="handleJavaFileInput()"
+				><FolderSearchIcon />
+				{{ formatMessage(messages.browse) }}
+			</Button>
 		</span>
 	</div>
 </template>
@@ -104,6 +96,7 @@ import {
 	XCircleIcon,
 } from '@modrinth/assets'
 import {
+	Button,
 	ButtonStyled,
 	commonMessages,
 	defineMessages,

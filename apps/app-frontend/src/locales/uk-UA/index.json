@@ -245,42 +245,6 @@
   "app.instance.worlds.search-worlds-placeholder": {
     "message": "Пошук {count} світів…"
   },
-  "app.modal.install-to-play.content-required": {
-    "message": "Потрібний уміст"
-  },
-  "app.modal.install-to-play.header": {
-    "message": "Установлення для гри"
-  },
-  "app.modal.install-to-play.install-button": {
-    "message": "Установити"
-  },
-  "app.modal.install-to-play.mod-count": {
-    "message": "{count, plural, one {# мод} few {# мода} other {# модів}}"
-  },
-  "app.modal.install-to-play.required-modpack": {
-    "message": "Потрібна збірка"
-  },
-  "app.modal.install-to-play.server-requires-mods": {
-    "message": "Для гри на цьому сервері потрібні моди. Натисніть «Установити», щоб налаштувати необхідні файли з Modrinth, а потім запустіть безпосередньо на сервері."
-  },
-  "app.modal.install-to-play.shared-instance": {
-    "message": "Профіль"
-  },
-  "app.modal.install-to-play.shared-server-instance": {
-    "message": "Серверний профіль"
-  },
-  "app.modal.install-to-play.view-contents": {
-    "message": "Дивитися вміст"
-  },
-  "app.modal.update-to-play.header": {
-    "message": "Оновлення для гри"
-  },
-  "app.modal.update-to-play.update-required": {
-    "message": "Необхідне оновлення"
-  },
-  "app.modal.update-to-play.update-required-description": {
-    "message": "«{name}» потребує оновлення, щоб грати. Будь ласка, оновіть до останньої версії, щоб запустити гру."
-  },
   "app.project.install-button.already-installed": {
     "message": "Проєкт уже встановлено"
   },

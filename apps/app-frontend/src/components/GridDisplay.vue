@@ -22,6 +22,7 @@ import {
 	XIcon,
 } from '@modrinth/assets'
 import {
+	Button,
 	ButtonStyled,
 	commonMessages,
 	defineMessages,
@@ -39,18 +40,13 @@ import Draggable from 'vuedraggable'
 
 import ContextMenu from '@/components/ui/ContextMenu.vue'
 import InstanceGroup from '@/components/ui/library/InstanceGroup.vue'
-import InstanceGroupModal from '@/components/ui/modal/InstanceGroupModal.vue'
 import ConfirmDeleteInstanceModal from '@/components/ui/modal/ConfirmDeleteInstanceModal.vue'
+import InstanceGroupModal from '@/components/ui/modal/InstanceGroupModal.vue'
 import { UNGROUPED_GROUP_KEY, useGridGrouping } from '@/composables/useGridGrouping'
-import {
-	MAX_INSTANCE_GROUP_NAME_LENGTH,
-	FAVORITES_GROUP_ID,
-	UNGROUPED_GROUP_ID,
-	useInstanceGroups,
-} from '@/composables/useInstanceGroups'
+import { FAVORITES_GROUP_ID, useInstanceGroups } from '@/composables/useInstanceGroups'
 import { trackEvent } from '@/helpers/analytics'
 import { install_duplicate_instance } from '@/helpers/install'
-import { edit, kill, remove, run, set_pinned } from '@/helpers/instance'
+import { kill, remove, run, set_pinned } from '@/helpers/instance'
 import { create_group as createGroup } from '@/helpers/instance-groups'
 import {
 	getLastLibraryDisplayMode,
@@ -145,7 +141,7 @@ const messages = defineMessages({
 		id: 'app.library.context-menu.unpin-instance',
 		defaultMessage: 'Unpin instance',
 	},
-	removeFromGroup: {
+	removeFromContextMenu: {
 		id: 'app.library.context-menu.remove-from-group',
 		defaultMessage: 'Remove from group',
 	},
@@ -173,18 +169,16 @@ const optionMessages = {
 const formatOption = (option) =>
 	optionMessages[option] ? formatMessage(optionMessages[option]) : option
 
-const props = defineProps({
-	instances: {
-		type: Array,
-		default() {
-			return []
-		},
+const props = withDefaults(
+	defineProps<{
+		instances?: GameInstance[]
+		label?: string
+	}>(),
+	{
+		instances: () => [],
+		label: '',
 	},
-	label: {
-		type: String,
-		default: '',
-	},
-})
+)
 
 const instanceOptions = ref(null)
 const backgroundContextMenu = ref(null)
@@ -363,7 +357,7 @@ const {
 	deleteGroupById,
 	reorderGroups,
 	setMemberships,
-} = useInstanceGroups(filteredInstances as any)
+} = useInstanceGroups(filteredInstances)
 
 const groupPendingNameEdit = ref<string | null>(null)
 
@@ -826,18 +820,14 @@ async function handleInstanceDragEnd(event: {
 				clearable
 				wrapper-class="flex-1"
 			/>
-			<ButtonStyled>
-				<button @click="openNewGroupModal">
-					<PlusIcon />
-					{{ formatMessage(messages.newGroup) }}
-				</button>
-			</ButtonStyled>
-			<ButtonStyled color="brand">
-				<button @click="router.push('/create')">
-					<PlusIcon />
-					{{ formatMessage(messages.createInstance) }}
-				</button>
-			</ButtonStyled>
+			<Button @click="openNewGroupModal"
+				><PlusIcon />
+				{{ formatMessage(messages.newGroup) }}
+			</Button>
+			<Button type="colored" color="brand" @click="router.push('/create')"
+				><PlusIcon />
+				{{ formatMessage(messages.createInstance) }}
+			</Button>
 		</div>
 		<div class="flex flex-wrap items-center gap-2">
 			<DropdownSelect
@@ -882,11 +872,9 @@ async function handleInstanceDragEnd(event: {
 				</div>
 			</DropdownSelect>
 			<PopoutMenu :tooltip="formatMessage(messages.view)" placement="bottom-end">
-				<ButtonStyled circular>
-					<button :aria-label="formatMessage(messages.view)">
-						<component :is="currentDisplayMode?.icon" />
-					</button>
-				</ButtonStyled>
+				<Button circular icon-only :aria-label="formatMessage(messages.view)"
+					><component :is="currentDisplayMode?.icon" />
+				</Button>
 				<template #menu>
 					<div class="flex w-44 flex-col gap-1 p-1">
 						<ButtonStyled
@@ -1032,36 +1020,40 @@ async function handleInstanceDragEnd(event: {
 					{{ formatMessage(messages.selectedCount, { count: selectedInstanceIds.size }) }}
 				</span>
 				<div class="mx-0.5 h-6 w-px bg-surface-5" />
-				<ButtonStyled type="transparent">
-					<button class="!text-primary" :disabled="busy" @click="clearLibraryInstanceSelection">
-						<XIcon class="hidden cq-show-icon" />
-						<span class="bar-label">{{ formatMessage(commonMessages.clearButton) }}</span>
-					</button>
-				</ButtonStyled>
+				<Button
+					type="quiet"
+					class="!text-primary"
+					:disabled="busy"
+					@click="clearLibraryInstanceSelection"
+					><XIcon class="hidden cq-show-icon" />
+					<span class="bar-label">{{ formatMessage(commonMessages.clearButton) }}</span>
+				</Button>
 			</div>
 			<div class="ml-auto flex items-center gap-0.5">
-				<ButtonStyled v-if="grouping === 'Group'" type="transparent">
-					<button :disabled="busy" @click="createGroupFromSelection">
-						<PlusIcon />
-						<span class="bar-label">{{ formatMessage(messages.newGroupFromSelection) }}</span>
-					</button>
-				</ButtonStyled>
-				<ButtonStyled v-if="selectedGroupedInstances.length > 0" type="transparent">
-					<button :disabled="busy" @click="removeSelectedInstancesFromGroups">
-						<MinusIcon />
-						<span class="bar-label">{{ formatMessage(messages.removeFromGroup) }}</span>
-					</button>
-				</ButtonStyled>
+				<Button
+					v-if="grouping === 'Group'"
+					type="quiet"
+					:disabled="busy"
+					@click="createGroupFromSelection"
+					><PlusIcon />
+					<span class="bar-label">{{ formatMessage(messages.newGroupFromSelection) }}</span>
+				</Button>
+				<Button
+					v-if="selectedGroupedInstances.length > 0"
+					type="quiet"
+					:disabled="busy"
+					@click="removeSelectedInstancesFromGroups"
+					><MinusIcon />
+					<span class="bar-label">{{ formatMessage(messages.removeFromGroup) }}</span>
+				</Button>
 				<div
 					v-if="grouping === 'Group' || selectedGroupedInstances.length > 0"
 					class="mx-1 h-6 w-px bg-surface-5"
 				/>
-				<ButtonStyled type="transparent" color="red">
-					<button :disabled="busy" @click="batchDeleteConfirmModal?.show()">
-						<TrashIcon />
-						<span class="bar-label">{{ formatMessage(commonMessages.deleteLabel) }}</span>
-					</button>
-				</ButtonStyled>
+				<Button type="quiet" color="red" :disabled="busy" @click="batchDeleteConfirmModal?.show()"
+					><TrashIcon />
+					<span class="bar-label">{{ formatMessage(commonMessages.deleteLabel) }}</span>
+				</Button>
 			</div>
 		</FloatingActionBar>
 		<InstanceGroupModal
@@ -1095,7 +1087,7 @@ async function handleInstanceDragEnd(event: {
 			</template>
 			<template #remove_from_group>
 				<MinusIcon />
-				{{ formatMessage(messages.removeFromGroup) }}
+				{{ formatMessage(messages.removeFromContextMenu) }}
 			</template>
 		</ContextMenu>
 		<ContextMenu ref="backgroundContextMenu" @option-clicked="handleBackgroundOption">

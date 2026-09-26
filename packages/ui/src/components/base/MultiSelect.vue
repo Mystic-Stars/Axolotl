@@ -48,33 +48,38 @@
 						{{ tag.label }}
 						<XIcon class="size-3.5 shrink-0 text-secondary" />
 					</span>
-					<Menu
-						v-show="overflowCount > 0"
-						:delay="{ hide: 50, show: 0 }"
-						no-auto-focus
-						:auto-hide="false"
-						@apply-show="popperOverflowTags = [...overflowTags]"
-					>
-						<span
-							class="inline-flex cursor-default select-none items-center rounded-full border border-solid border-surface-5 bg-surface-4 px-2 py-1 text-sm font-medium text-secondary"
-							@click.stop
-						>
-							+{{ overflowCount }}
-						</span>
-						<template #popper>
-							<div class="flex max-w-[20rem] flex-wrap gap-1" @mousedown.prevent>
-								<span
-									v-for="tag in overflowTags"
-									:key="String(tag.value)"
-									class="inline-flex cursor-pointer items-center gap-1 rounded-full border border-solid border-surface-5 bg-surface-4 px-2.5 py-1 text-sm font-medium text-primary hover:brightness-[115%]"
-									@click.stop="removeTag(tag.value)"
-								>
-									{{ tag.label }}
-									<XIcon class="size-3.5 shrink-0 text-secondary" />
-								</span>
-							</div>
-						</template>
-					</Menu>
+					<PopoverRoot v-if="overflowCount > 0" v-model:open="overflowPopoverOpen" :modal="false">
+						<PopoverTrigger as-child>
+							<!--
+								A button, so the overflow is reachable and openable from the
+								keyboard. It reads as a tag rather than a control, hence the
+								transparent reset below.
+							-->
+							<button
+								type="button"
+								class="inline-flex cursor-pointer select-none items-center rounded-full border border-solid border-surface-5 bg-surface-4 px-2 py-1 text-sm font-medium text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+								@click.stop
+							>
+								+{{ overflowCount }}
+							</button>
+						</PopoverTrigger>
+						<PopoverPortal :to="portalTarget">
+							<PopoverContent class="menu-surface multiselect-overflow-popover" :side-offset="4">
+								<div class="flex max-w-[20rem] flex-wrap gap-1" @mousedown.prevent>
+									<span
+										v-for="tag in overflowTags"
+										:key="String(tag.value)"
+										class="inline-flex cursor-pointer items-center gap-1 rounded-full border border-solid border-surface-5 bg-surface-4 px-2.5 py-1 text-sm font-medium text-primary hover:brightness-[115%]"
+										@click.stop="removeTag(tag.value)"
+									>
+										{{ tag.label }}
+										<XIcon class="size-3.5 shrink-0 text-secondary" />
+									</span>
+								</div>
+								<PopoverArrow class="menu-arrow" :width="14" :height="7" />
+							</PopoverContent>
+						</PopoverPortal>
+					</PopoverRoot>
 					<span
 						v-if="selectedOptions.length === 0"
 						class="text-primary opacity-50 text-base font-medium"
@@ -435,12 +440,13 @@
 
 <script setup lang="ts" generic="T">
 import 'overlayscrollbars/overlayscrollbars.css'
+import '../../styles/overlays.css'
 
 import { CheckIcon, ChevronLeftIcon, MinusIcon, SearchIcon, XIcon } from '@modrinth/assets'
 import { onClickOutside } from '@vueuse/core'
-import { Menu } from 'floating-vue'
 import Fuse from 'fuse.js'
 import { OverlayScrollbars, type PartialOptions } from 'overlayscrollbars'
+import { PopoverArrow, PopoverContent, PopoverPortal, PopoverRoot, PopoverTrigger } from 'reka-ui'
 import {
 	type Component,
 	computed,
@@ -660,11 +666,15 @@ const overflowCount = computed(() => {
 	return Math.max(0, selectedOptions.value.length - visibleTagCount.value)
 })
 
+const overflowPopoverOpen = ref(false)
+
 const overflowTags = computed(() => {
 	return selectedOptions.value.slice(visibleTagCount.value)
 })
 
-const popperOverflowTags = shallowRef<MultiSelectOption<T>[]>([])
+const portalTarget = computed(() =>
+	typeof document !== 'undefined' && document.getElementById('teleports') ? '#teleports' : 'body',
+)
 
 const lastClickedValue = shallowRef<{ value: T } | null>(null)
 
@@ -1176,6 +1186,9 @@ async function openDropdown() {
 function closeDropdown() {
 	if (!isOpen.value) return
 
+	// The overflow popover is anchored inside the trigger row, so it has to go
+	// with the listbox rather than linger over a hidden anchor.
+	overflowPopoverOpen.value = false
 	stopPositionTracking()
 	destroyOptionsOverlayScrollbars()
 	isOpen.value = false
@@ -1475,7 +1488,7 @@ onClickOutside(
 	() => {
 		closeDropdown()
 	},
-	{ ignore: [triggerRef, containerRef, '.v-popper__popper'] },
+	{ ignore: [triggerRef, containerRef, '.multiselect-overflow-popover'] },
 )
 
 onMounted(() => {

@@ -75,8 +75,13 @@ function installJobKey(instanceId: string, itemKey: string) {
 	return `${instanceId}\0${itemKey}`
 }
 
-function modrinthProjectUrl(project: { slug?: string | null; project_type?: string | null; id: string }): string {
-	if (project.slug && project.project_type) return `https://modrinth.com/${project.project_type}/${project.slug}`
+function modrinthProjectUrl(project: {
+	slug?: string | null
+	project_type?: string | null
+	id: string
+}): string {
+	if (project.slug && project.project_type)
+		return `https://modrinth.com/${project.project_type}/${project.slug}`
 	return `https://modrinth.com/mod/${project.id}`
 }
 
@@ -464,10 +469,7 @@ export function createContentSelection({
 		const titleByVersion = new Map(
 			[plan.primary, ...plan.dependencies, ...plan.skipped].flatMap((content) =>
 				content.version_id
-					? [[
-						content.version_id,
-						content.metadata?.title ?? content.project_id,
-					]]
+					? [[content.version_id, content.metadata?.title ?? content.project_id]]
 					: [],
 			),
 		)

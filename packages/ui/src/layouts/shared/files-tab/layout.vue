@@ -161,20 +161,17 @@
 				{{ formatMessage(messages.unsavedChanges) }}
 			</p>
 			<div class="ml-auto flex gap-2">
-				<ButtonStyled type="transparent">
-					<button @click="fileEditorRef?.revertChanges()">
-						<HistoryIcon /> {{ formatMessage(commonMessages.resetButton) }}
-					</button>
-				</ButtonStyled>
-				<ButtonStyled color="brand">
-					<button
-						v-tooltip="isBusy ? busyTooltip : undefined"
-						:disabled="isBusy"
-						@click="fileEditorRef?.saveFileContent(false)"
-					>
-						<SaveIcon /> {{ formatMessage(commonMessages.saveButton) }}
-					</button>
-				</ButtonStyled>
+				<Button type="quiet" @click="fileEditorRef?.revertChanges()"
+					><HistoryIcon /> {{ formatMessage(commonMessages.resetButton) }}
+				</Button>
+				<Button
+					v-tooltip="isBusy ? busyTooltip : undefined"
+					type="colored"
+					color="brand"
+					:disabled="isBusy"
+					@click="fileEditorRef?.saveFileContent(false)"
+					><SaveIcon /> {{ formatMessage(commonMessages.saveButton) }}
+				</Button>
 			</div>
 		</FloatingActionBar>
 		<FloatingActionBar :shown="selectedItems.size > 0">
@@ -183,11 +180,9 @@
 					{{ formatMessage(messages.selectedCount, { count: selectedItems.size }) }}
 				</span>
 				<div class="mx-1 h-6 w-px bg-surface-5" />
-				<ButtonStyled type="transparent">
-					<button class="!text-primary" @click="deselectAll">
-						<span class="bar-label">{{ formatMessage(commonMessages.clearButton) }}</span>
-					</button>
-				</ButtonStyled>
+				<Button type="quiet" class="!text-primary" @click="deselectAll"
+					><span class="bar-label">{{ formatMessage(commonMessages.clearButton) }}</span>
+				</Button>
 			</div>
 			<div class="ml-auto flex items-center gap-0.5">
 				<div class="mx-1 h-6 w-px bg-surface-5" />
@@ -221,6 +216,7 @@ import {
 import type { Component } from 'vue'
 import { computed, onMounted, onUnmounted, ref, shallowRef, watch } from 'vue'
 
+import Button from '#ui/components/base/buttons/Button.vue'
 import ButtonStyled from '#ui/components/base/ButtonStyled.vue'
 import FloatingActionBar from '#ui/components/base/FloatingActionBar.vue'
 import { defineMessages, useVIntl } from '#ui/composables/i18n'

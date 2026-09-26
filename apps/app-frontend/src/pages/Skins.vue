@@ -9,16 +9,16 @@ import {
 	SpinnerIcon,
 } from '@modrinth/assets'
 import {
-	ButtonStyled,
+	type ArmorPreviewConfig,
+	Button,
 	commonMessages,
 	ConfirmModal,
 	defineMessages,
 	injectNotificationManager,
 	NavTabs,
+	SkinPreviewRenderer,
 	useVIntl,
 } from '@modrinth/ui'
-import SkinPreviewRenderer from '@modrinth/ui/src/components/skin/SkinPreviewRenderer.vue'
-import type { ArmorPreviewConfig } from '@modrinth/ui/src/composables/skin-rendering/armor-preview-types.ts'
 import { arrayBufferToBase64 } from '@modrinth/utils'
 import { useQuery } from '@tanstack/vue-query'
 import { invoke } from '@tauri-apps/api/core'
@@ -34,9 +34,9 @@ import EditSkinModal from '@/components/ui/skin/EditSkinModal.vue'
 import VirtualSkinSectionList from '@/components/ui/skin/VirtualSkinSectionList.vue'
 import { useNetworkStatus } from '@/composables/useNetworkStatus'
 import { check_reachable, get_default_user, users } from '@/helpers/auth'
-import { loadSkinArmorPreview, saveSkinArmorPreview } from '@/helpers/skin-armor-preview'
 import type { RenderResult } from '@/helpers/rendering/batch-skin-renderer.ts'
 import { skinBlobUrlMap } from '@/helpers/rendering/batch-skin-renderer.ts'
+import { loadSkinArmorPreview, saveSkinArmorPreview } from '@/helpers/skin-armor-preview'
 import type { Cape, Skin, SkinTextureUrl } from '@/helpers/skins.ts'
 import {
 	equip_skin,
@@ -1067,8 +1067,8 @@ await loadSkins()
 				class="ml-5 mt-4 flex h-[calc(80vh-1rem)] items-center justify-center max-[700px]:h-[calc(50vh-1rem)]"
 			>
 				<SkinPreviewRenderer
-					armor-preview
 					v-model:armor-config="armorPreviewConfig"
+					armor-preview
 					:cape-src="capeTexture"
 					:texture-src="skinTexture || ''"
 					:variant="skinVariant"
@@ -1132,12 +1132,10 @@ await loadSkins()
 						}
 					"
 				/>
-				<ButtonStyled color="brand">
-					<button @click="router.push('/lab/skin-editor')">
-						<PlusIcon />
-						{{ formatMessage(messages.createSkinButton) }}
-					</button>
-				</ButtonStyled>
+				<Button type="colored" color="brand" @click="router.push('/lab/skin-editor')"
+					><PlusIcon />
+					{{ formatMessage(messages.createSkinButton) }}
+				</Button>
 			</div>
 			<VirtualSkinSectionList
 				ref="skinSectionList"
@@ -1195,18 +1193,17 @@ await loadSkins()
 				<p class="text-lg m-0">
 					{{ formatMessage(messages.signInDescription) }}
 				</p>
-				<ButtonStyled
+				<Button
 					v-if="!offline"
 					v-show="accountsCard"
+					type="colored"
 					color="brand"
 					:disabled="accountsCard.loginDisabled"
-				>
-					<button :disabled="accountsCard.loginDisabled" @click="login">
-						<LogInIcon v-if="!accountsCard.loginDisabled" />
-						<SpinnerIcon v-else class="animate-spin" />
-						{{ formatMessage(messages.signInButton) }}
-					</button>
-				</ButtonStyled>
+					@click="login"
+					><LogInIcon v-if="!accountsCard.loginDisabled" />
+					<SpinnerIcon v-else class="animate-spin" />
+					{{ formatMessage(messages.signInButton) }}
+				</Button>
 			</div>
 		</div>
 	</div>

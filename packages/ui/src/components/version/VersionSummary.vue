@@ -18,20 +18,20 @@
 				class="min-w-0"
 				@click="emit('onDownload')"
 			>
-				<DownloadIcon aria-hidden="true" /> Download
+				<DownloadIcon aria-hidden="true" />
+				{{ formatMessage(commonMessages.downloadButton) }}
 			</a>
 		</ButtonStyled>
-		<ButtonStyled circular>
-			<button
-				class="min-w-0"
-				aria-label="View version"
-				@click="
-					emit('onNavigate', `/project/${props.version.project_id}/version/${props.version.id}`)
-				"
-			>
-				<ExternalIcon aria-hidden="true" />
-			</button>
-		</ButtonStyled>
+		<Button
+			circular
+			icon-only
+			class="min-w-0"
+			:aria-label="formatMessage(messages.viewVersion)"
+			@click="
+				emit('onNavigate', `/project/${props.version.project_id}/version/${props.version.id}`)
+			"
+			><ExternalIcon aria-hidden="true" />
+		</Button>
 	</div>
 </template>
 
@@ -40,7 +40,20 @@ import { DownloadIcon, ExternalIcon } from '@modrinth/assets'
 import type { Version, VersionFile } from '@modrinth/utils'
 import { computed } from 'vue'
 
+import Button from '#ui/components/base/buttons/Button.vue'
+import { commonMessages } from '#ui/utils/common-messages'
+
+import { defineMessages, useVIntl } from '../../composables/i18n'
 import { ButtonStyled, VersionChannelIndicator } from '../index'
+
+const { formatMessage } = useVIntl()
+
+const messages = defineMessages({
+	viewVersion: {
+		id: 'version.summary.view-version',
+		defaultMessage: 'View version',
+	},
+})
 
 const props = defineProps<{
 	version: Version

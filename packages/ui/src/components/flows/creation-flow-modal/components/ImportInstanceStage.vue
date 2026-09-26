@@ -29,9 +29,12 @@
 import { FileIcon, FolderIcon } from '@modrinth/assets'
 import { BigOptionButton, defineMessages, useVIntl } from '@modrinth/ui'
 
+import { injectFilePicker } from '#ui/providers/file-picker'
+
 import { injectCreationFlowContext } from '../creation-flow-context'
 
 const ctx = injectCreationFlowContext()
+const filePicker = injectFilePicker(null)
 const { formatMessage } = useVIntl()
 
 const messages = defineMessages({
@@ -58,65 +61,43 @@ const messages = defineMessages({
 	},
 })
 
-// ── Native file picker ──
+// ── Native pickers (routed through the platform file-picker contract) ──
+function applyPickedPath(filePath: string) {
+	if (ctx.onImportFileReceived) {
+		ctx.onImportFileReceived({
+			file: null,
+			filePath,
+			source: 'file-picker',
+		})
+		return
+	}
+
+	// Fallback: set path directly on context
+	ctx.modpackFile.value = null
+	ctx.modpackFilePath.value = filePath
+	if (ctx.finishDisabled.value) return
+	if (ctx.flowType === 'instance') {
+		ctx.finish()
+	} else {
+		ctx.modal.value?.setStage('final-config')
+	}
+}
+
 async function handleOpenFilePicker() {
 	try {
-		const { open } = await import('@tauri-apps/plugin-dialog')
-		const result = await open({
-			multiple: false,
-		})
-		const filePath = typeof result === 'string' ? result : (result?.path ?? null)
-		if (!filePath) return
-
-		if (ctx.onImportFileReceived) {
-			ctx.onImportFileReceived({
-				file: null,
-				filePath,
-				source: 'file-picker',
-			})
-			return
-		}
-
-		// Fallback: set path directly on context
-		ctx.modpackFile.value = null
-		ctx.modpackFilePath.value = filePath
-		if (ctx.finishDisabled.value) return
-		if (ctx.flowType === 'instance') {
-			ctx.finish()
-		} else {
-			ctx.modal.value?.setStage('final-config')
-		}
+		const picked = await filePicker?.pickFile?.()
+		if (!picked?.path) return
+		applyPickedPath(picked.path)
 	} catch {
 		// do nothing
 	}
 }
 
-// ── Native folder picker ──
 async function handleOpenFolderPicker() {
 	try {
-		const { open } = await import('@tauri-apps/plugin-dialog')
-		const result = await open({ multiple: false, directory: true })
-		const filePath = typeof result === 'string' ? result : (result?.path ?? null)
-		if (!filePath) return
-
-		if (ctx.onImportFileReceived) {
-			ctx.onImportFileReceived({
-				file: null,
-				filePath,
-				source: 'file-picker',
-			})
-			return
-		}
-
-		// Fallback: set path directly on context
-		ctx.modpackFile.value = null
-		ctx.modpackFilePath.value = filePath
-		if (ctx.finishDisabled.value) return
-		if (ctx.flowType === 'instance') {
-			ctx.finish()
-		} else {
-			ctx.modal.value?.setStage('final-config')
-		}
+		const picked = await filePicker?.pickFolder?.()
+		if (!picked?.path) return
+		applyPickedPath(picked.path)
 	} catch {
 		// do nothing
 	}

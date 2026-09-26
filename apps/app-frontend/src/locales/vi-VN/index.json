@@ -245,42 +245,6 @@
   "app.instance.worlds.search-worlds-placeholder": {
     "message": "Tìm kiếm {count} world..."
   },
-  "app.modal.install-to-play.content-required": {
-    "message": "Nội dung bắt buộc"
-  },
-  "app.modal.install-to-play.header": {
-    "message": "Tải xuống để chơi"
-  },
-  "app.modal.install-to-play.install-button": {
-    "message": "Tải xuống"
-  },
-  "app.modal.install-to-play.mod-count": {
-    "message": "{count, plural, other {# mod}}"
-  },
-  "app.modal.install-to-play.required-modpack": {
-    "message": "Yêu cầu modpack"
-  },
-  "app.modal.install-to-play.server-requires-mods": {
-    "message": "Máy chủ này yêu cầu mod để có thể chơi. Vui lòng ấn vào tải xuống và tải các tệp bắt buộc từ Modrinth và khởi chạy trực tiếp để tham gia máy chủ."
-  },
-  "app.modal.install-to-play.shared-instance": {
-    "message": "Chia sẻ hồ sơ"
-  },
-  "app.modal.install-to-play.shared-server-instance": {
-    "message": "Chia sẻ hồ sơ máy chủ"
-  },
-  "app.modal.install-to-play.view-contents": {
-    "message": "Xem nội dung"
-  },
-  "app.modal.update-to-play.header": {
-    "message": "Cập nhật và bắt đầu chơi"
-  },
-  "app.modal.update-to-play.update-required": {
-    "message": "Yêu cầu cập nhật"
-  },
-  "app.modal.update-to-play.update-required-description": {
-    "message": "Bạn cần cập nhật {name} để có thể chơi. Vui lòng cập nhật lên bản mới nhất để khởi chạy trò chơi."
-  },
   "app.project.install-button.already-installed": {
     "message": "Dự án này đã được cài đặt"
   },

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { DropdownIcon, FolderOpenIcon, PlusIcon } from '@modrinth/assets'
 import {
+	Button,
 	ButtonStyled,
 	defineMessages,
 	injectNotificationManager,
@@ -47,12 +48,10 @@ const handleSearchContent = async () => {
 
 <template>
 	<div class="joined-buttons">
-		<ButtonStyled>
-			<button @click="handleSearchContent">
-				<PlusIcon />
-				{{ formatMessage(messages.installContent) }}
-			</button>
-		</ButtonStyled>
+		<Button @click="handleSearchContent"
+			><PlusIcon />
+			{{ formatMessage(messages.installContent) }}
+		</Button>
 		<ButtonStyled>
 			<OverflowMenu
 				:options="[

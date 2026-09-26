@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { CheckIcon, DownloadIcon, PlusIcon, TrashIcon } from '@modrinth/assets'
-import { ButtonStyled, defineMessages, NewModal, useVIntl } from '@modrinth/ui'
+import { Button, defineMessages, NewModal, useVIntl } from '@modrinth/ui'
 import { nextTick, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
@@ -183,12 +183,10 @@ defineExpose({ show, requestSwitch })
 		</div>
 		<template #actions>
 			<div class="flex justify-start">
-				<ButtonStyled type="transparent">
-					<button type="button" @click="createInstance">
-						<PlusIcon />
-						{{ formatMessage(messages.create) }}
-					</button>
-				</ButtonStyled>
+				<Button type="quiet" @click="createInstance"
+					><PlusIcon />
+					{{ formatMessage(messages.create) }}
+				</Button>
 			</div>
 		</template>
 	</NewModal>
@@ -256,42 +254,33 @@ defineExpose({ show, requestSwitch })
 		</div>
 		<template #actions>
 			<div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
-				<ButtonStyled type="outlined">
-					<button
-						type="button"
-						class="w-full sm:w-auto"
-						:disabled="installingCurrent"
-						@click="cancelSwitch"
-					>
-						{{ formatMessage(messages.cancel) }}
-					</button>
-				</ButtonStyled>
-				<ButtonStyled color="red" type="outlined">
-					<button
-						type="button"
-						class="w-full sm:w-auto"
-						:disabled="installingCurrent"
-						@click="clearAndSwitch"
-					>
-						<TrashIcon />
-						{{ formatMessage(messages.clearAndSwitch) }}
-					</button>
-				</ButtonStyled>
-				<ButtonStyled color="brand">
-					<button
-						type="button"
-						class="w-full sm:w-auto"
-						:disabled="installingCurrent"
-						@click="installAndSwitch"
-					>
-						<DownloadIcon />
-						{{
-							formatMessage(
-								installingCurrent ? messages.installingCurrent : messages.installCurrent,
-							)
-						}}
-					</button>
-				</ButtonStyled>
+				<Button
+					type="outlined"
+					class="w-full sm:w-auto"
+					:disabled="installingCurrent"
+					@click="cancelSwitch"
+					>{{ formatMessage(messages.cancel) }}
+				</Button>
+				<Button
+					type="outlined"
+					color="red"
+					class="w-full sm:w-auto"
+					:disabled="installingCurrent"
+					@click="clearAndSwitch"
+					><TrashIcon />
+					{{ formatMessage(messages.clearAndSwitch) }}
+				</Button>
+				<Button
+					type="colored"
+					color="brand"
+					class="w-full sm:w-auto"
+					:disabled="installingCurrent"
+					@click="installAndSwitch"
+					><DownloadIcon />
+					{{
+						formatMessage(installingCurrent ? messages.installingCurrent : messages.installCurrent)
+					}}
+				</Button>
 			</div>
 		</template>
 	</NewModal>

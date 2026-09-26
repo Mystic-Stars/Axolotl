@@ -117,6 +117,7 @@
 
 	--color-base: var(--color-text-default);
 	--color-secondary: var(--color-text-tertiary);
+	--color-text-secondary: var(--color-secondary);
 	--color-contrast: var(--color-text-primary);
 	--color-accent-contrast: #ffffff;
 
@@ -138,11 +139,13 @@
 	--color-brand: var(--color-green);
 	--color-brand-highlight: var(--color-green-highlight);
 	--color-brand-shadow: rgba(0, 175, 92, 0.7);
+	--color-yellow: var(--color-orange);
 
 	--shadow-inset-lg: inset 0px -2px 2px hsla(221, 39%, 91%, 0.1);
 	--shadow-inset: inset 0px -2px 2px hsla(221, 39%, 91%, 0.05);
 	--shadow-inset-sm: inset 0px -1px 2px hsla(221, 39%, 91%, 0.15);
 
+	--shadow-color: 221 39% 11%;
 	--shadow-raised-lg: 0px 2px 4px hsla(221, 39%, 11%, 0.2);
 	--shadow-raised:
 		0.3px 0.5px 0.6px hsl(var(--shadow-color) / 0.15),
@@ -170,6 +173,8 @@
 
 	--color-button-bg-selected: var(--color-brand);
 	--color-button-text-selected: var(--color-accent-contrast);
+	--color-button-text: var(--color-base);
+	--color-button-text-active: var(--color-contrast);
 
 	--color-gradient-button-bg: linear-gradient(180deg, #f8f9fa 0%, #dce0e6 100%);
 
@@ -239,13 +244,20 @@ html {
 .dark-mode,
 .dark,
 :root[data-theme='dark'] {
-	--surface-1: #16181c;
-	--surface-1-5: #1a1c20;
-	--surface-2: #1d1f23;
-	--surface-2-5: #222429;
-	--surface-3: #27292e;
-	--surface-4: #34363c;
-	--surface-5: #42444a;
+	// The dark ladder is wider than the light one on purpose. Shadows are
+	// invisible against a dark page (the shadow colour is itself near-black),
+	// so separation in this theme has to come from luminance alone. The
+	// previous steps differed by as little as 1.08:1, which reads as one flat
+	// surface -- that is what made cards, skeletons and empty-state artwork
+	// blend into the page. Each step is now at least ~1.12:1, and illustrations
+	// that outline themselves in `surface-4` gain enough edge to be visible.
+	--surface-1: #101215;
+	--surface-1-5: #15181c;
+	--surface-2: #1a1e24;
+	--surface-2-5: #20242b;
+	--surface-3: #262b34;
+	--surface-4: #333a46;
+	--surface-5: #424854;
 
 	--color-red-50: #fff0f1;
 	--color-red-100: #ffe2e6;
@@ -357,6 +369,7 @@ html {
 
 	--color-base: var(--color-text-default);
 	--color-secondary: var(--color-text-tertiary);
+	--color-text-secondary: var(--color-secondary);
 	--color-contrast: var(--color-text-primary);
 	--color-accent-contrast: #000000;
 
@@ -378,6 +391,7 @@ html {
 	--color-brand: var(--color-green);
 	--color-brand-highlight: rgba(27, 217, 106, 0.25);
 	--color-brand-shadow: rgba(27, 217, 106, 0.7);
+	--color-yellow: var(--color-orange);
 
 	--shadow-inset-lg: inset 0px -2px 2px hsla(221, 39%, 11%, 0.1);
 	--shadow-inset: inset 0px -2px 2px hsla(221, 39%, 11%, 0.05);
@@ -399,6 +413,8 @@ html {
 
 	--color-button-bg-selected: var(--color-brand-highlight);
 	--color-button-text-selected: var(--color-brand);
+	--color-button-text: var(--color-base);
+	--color-button-text-active: var(--color-contrast);
 
 	--color-gradient-button-bg: linear-gradient(180deg, #3a3d47 0%, #33363d 100%);
 
@@ -427,13 +443,16 @@ html {
 
 .oled-mode {
 	@extend .dark-mode;
+	// Same reasoning as `.dark` above: pure black makes the lower steps
+	// indistinguishable (the old `surface-1`/`surface-2` pair sat at 1.06:1),
+	// so the ladder opens up here too while `surface-1` stays true black.
 	--surface-1: #000000;
-	--surface-1-5: #050506;
-	--surface-2: #09090a;
-	--surface-2-5: #0c0d11;
-	--surface-3: #101013;
-	--surface-4: #1b1b20;
-	--surface-5: #25262b;
+	--surface-1-5: #070809;
+	--surface-2: #0c0e12;
+	--surface-2-5: #111419;
+	--surface-3: #171b21;
+	--surface-4: #242a33;
+	--surface-5: #333a45;
 
 	--color-ad: #0d1828;
 

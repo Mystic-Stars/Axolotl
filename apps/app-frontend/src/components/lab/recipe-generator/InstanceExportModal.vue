@@ -7,14 +7,7 @@ import {
 	SpinnerIcon,
 	WorldIcon,
 } from '@modrinth/assets'
-import {
-	Avatar,
-	ButtonStyled,
-	defineMessages,
-	NewModal,
-	useRelativeTime,
-	useVIntl,
-} from '@modrinth/ui'
+import { Avatar, Button, defineMessages, NewModal, useRelativeTime, useVIntl } from '@modrinth/ui'
 import dayjs from 'dayjs'
 import { ref, useTemplateRef } from 'vue'
 
@@ -222,11 +215,9 @@ defineExpose({ show })
 
 			<template v-else>
 				<div class="flex min-w-0 items-center gap-2">
-					<ButtonStyled size="small" type="transparent">
-						<button type="button" @click="backToInstances">
-							<ChevronLeftIcon />{{ formatMessage(messages.back) }}
-						</button>
-					</ButtonStyled>
+					<Button type="quiet" size="2xs" @click="backToInstances"
+						><ChevronLeftIcon />{{ formatMessage(messages.back) }}
+					</Button>
 					<strong class="min-w-0 truncate text-contrast">{{ selectedInstance.name }}</strong>
 				</div>
 				<p class="m-0 text-sm text-secondary">{{ formatMessage(messages.chooseWorld) }}</p>
@@ -286,11 +277,9 @@ defineExpose({ show })
 
 		<template #actions>
 			<div v-if="showSaveAs" class="flex justify-end">
-				<ButtonStyled color="brand">
-					<button type="button" @click="saveAs">
-						<SaveIcon />{{ formatMessage(messages.saveAs) }}
-					</button>
-				</ButtonStyled>
+				<Button type="colored" color="brand" @click="saveAs"
+					><SaveIcon />{{ formatMessage(messages.saveAs) }}
+				</Button>
 			</div>
 		</template>
 	</NewModal>

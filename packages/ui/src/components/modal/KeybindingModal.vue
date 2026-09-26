@@ -13,11 +13,9 @@
 					<KeybindingChips v-if="props.binding" :binding="props.binding" />
 					<span v-else class="text-sm text-secondary">{{ formatMessage(messages.unset) }}</span>
 				</div>
-				<ButtonStyled v-if="canRestoreDefault" size="small" type="outlined">
-					<button type="button" @click="restoreDefault">
-						{{ formatMessage(messages.restoreDefault) }}
-					</button>
-				</ButtonStyled>
+				<Button v-if="canRestoreDefault" type="outlined" size="2xs" @click="restoreDefault"
+					>{{ formatMessage(messages.restoreDefault) }}
+				</Button>
 			</div>
 
 			<button
@@ -118,16 +116,12 @@
 			</div>
 
 			<div class="flex flex-wrap items-center gap-2">
-				<ButtonStyled v-if="phase === 'tree'" type="outlined">
-					<button type="button" @click="leaveTree">
-						{{ formatMessage(messages.useCapture) }}
-					</button>
-				</ButtonStyled>
-				<ButtonStyled v-else type="outlined">
-					<button type="button" @click="enterTree">
-						{{ formatMessage(messages.useSpecial) }}
-					</button>
-				</ButtonStyled>
+				<Button v-if="phase === 'tree'" type="outlined" @click="leaveTree"
+					>{{ formatMessage(messages.useCapture) }}
+				</Button>
+				<Button v-else type="outlined" @click="enterTree"
+					>{{ formatMessage(messages.useSpecial) }}
+				</Button>
 				<span v-if="phase === 'tree'" class="text-xs text-secondary">
 					{{ formatMessage(messages.specialHint) }}
 				</span>
@@ -136,14 +130,10 @@
 
 		<template #actions>
 			<div class="flex justify-end gap-2">
-				<ButtonStyled type="outlined">
-					<button type="button" @click="cancel">{{ formatMessage(messages.cancel) }}</button>
-				</ButtonStyled>
-				<ButtonStyled color="brand">
-					<button type="button" :disabled="!canSave" @click="save">
-						{{ formatMessage(messages.save) }}
-					</button>
-				</ButtonStyled>
+				<Button type="outlined" @click="cancel">{{ formatMessage(messages.cancel) }}</Button>
+				<Button type="colored" color="brand" :disabled="!canSave" @click="save"
+					>{{ formatMessage(messages.save) }}
+				</Button>
 			</div>
 		</template>
 	</NewModal>
@@ -164,6 +154,7 @@ import {
 	validateBinding,
 } from '../../utils/keybinding'
 import { KEYBINDING_CATALOG } from '../../utils/keybinding-catalog'
+import Button from '../base/buttons/Button.vue'
 import ButtonStyled from '../base/ButtonStyled.vue'
 import KeybindingChips from '../base/KeybindingChips.vue'
 import KeybindingChoiceTree from './KeybindingChoiceTree.vue'

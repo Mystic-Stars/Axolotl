@@ -1,12 +1,13 @@
 <template>
 	<TooltipProvider>
-		<TooltipRoot :delay-duration="delayMs">
+		<TooltipRoot :delay-duration="delayMs" :disabled="disabled">
 			<TooltipTrigger as-child>
 				<slot />
 			</TooltipTrigger>
 			<TooltipPortal>
-				<TooltipContent :side="side" :class="headlessTokenClasses.tooltipContent">
+				<TooltipContent :side="side" :class="contentClass ?? headlessTokenClasses.tooltipContent">
 					<slot name="content" />
+					<TooltipArrow :width="14" :height="7" :class="arrowClass ?? 'headless-tooltip-arrow'" />
 				</TooltipContent>
 			</TooltipPortal>
 		</TooltipRoot>
@@ -14,7 +15,10 @@
 </template>
 
 <script setup lang="ts">
+import '@modrinth/ui/styles/overlays.css'
+
 import {
+	TooltipArrow,
 	TooltipContent,
 	TooltipPortal,
 	TooltipProvider,
@@ -28,10 +32,14 @@ withDefaults(
 	defineProps<{
 		side?: 'top' | 'right' | 'bottom' | 'left'
 		delayMs?: number
+		disabled?: boolean
+		contentClass?: string
+		arrowClass?: string
 	}>(),
 	{
 		side: 'top',
 		delayMs: 400,
+		disabled: false,
 	},
 )
 </script>

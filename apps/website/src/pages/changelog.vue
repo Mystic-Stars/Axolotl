@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { CalendarIcon, HistoryIcon } from '@modrinth/assets'
 import Accordion from '@modrinth/ui/src/components/base/Accordion.vue'
-import ButtonStyled from '@modrinth/ui/src/components/base/ButtonStyled.vue'
+import Button from '@modrinth/ui/src/components/base/buttons/Button.vue'
 import TagItem from '@modrinth/ui/src/components/base/TagItem.vue'
 import { defineMessages, useVIntl } from '@modrinth/ui/src/composables/i18n.ts'
 
@@ -164,9 +164,9 @@ useHead({
 				<h2>{{ formatMessage(messages.errorTitle) }}</h2>
 				<p>{{ formatMessage(messages.errorDescription) }}</p>
 			</div>
-			<ButtonStyled color="brand" type="outlined">
-				<button type="button" @click="refresh()">{{ formatMessage(messages.retry) }}</button>
-			</ButtonStyled>
+			<Button type="outlined" color="brand" @click="refresh()">{{
+				formatMessage(messages.retry)
+			}}</Button>
 		</div>
 
 		<p

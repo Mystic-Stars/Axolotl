@@ -1,11 +1,5 @@
 <script setup lang="ts">
-import {
-	ButtonStyled,
-	defineMessages,
-	injectNotificationManager,
-	NewModal,
-	useVIntl,
-} from '@modrinth/ui'
+import { Button, defineMessages, injectNotificationManager, NewModal, useVIntl } from '@modrinth/ui'
 import { computed, ref } from 'vue'
 
 import type { CrashAnalysisResult } from '@/composables/useCrashAnalysis'
@@ -146,11 +140,13 @@ defineExpose({ show })
 									}}{{ change.filename }}
 								</div>
 							</div>
-							<ButtonStyled v-if="change.kind === 'added'" type="outlined">
-								<button :disabled="busy === change.filename" @click="undo(change)">
-									{{ formatMessage(messages.undo) }}
-								</button>
-							</ButtonStyled>
+							<Button
+								v-if="change.kind === 'added'"
+								type="outlined"
+								:disabled="busy === change.filename"
+								@click="undo(change)"
+								>{{ formatMessage(messages.undo) }}
+							</Button>
 						</div>
 					</li>
 				</ul>
@@ -158,9 +154,9 @@ defineExpose({ show })
 		</div>
 		<template #actions>
 			<div class="flex justify-end">
-				<ButtonStyled color="brand">
-					<button @click="modal?.hide()">{{ formatMessage(messages.close) }}</button>
-				</ButtonStyled>
+				<Button type="colored" color="brand" @click="modal?.hide()">{{
+					formatMessage(messages.close)
+				}}</Button>
 			</div>
 		</template>
 	</NewModal>

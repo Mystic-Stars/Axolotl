@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import {
 	Avatar,
-	ButtonStyled,
+	Button,
 	commonMessages,
 	defineMessages,
 	IntlFormatted,
@@ -145,17 +145,15 @@ defineExpose({ show })
 
 		<template #actions>
 			<div class="flex items-center justify-end gap-2">
-				<ButtonStyled type="outlined">
-					<button @click="finish('cancel')">
-						{{ formatMessage(commonMessages.cancelButton) }}
-					</button>
-				</ButtonStyled>
-				<ButtonStyled type="outlined">
-					<button @click="finish('apply')">{{ formatMessage(messages.apply) }}</button>
-				</ButtonStyled>
-				<ButtonStyled color="brand">
-					<button @click="finish('selected')">{{ formatMessage(messages.selectedOnly) }}</button>
-				</ButtonStyled>
+				<Button type="outlined" @click="finish('cancel')"
+					>{{ formatMessage(commonMessages.cancelButton) }}
+				</Button>
+				<Button type="outlined" @click="finish('apply')">{{
+					formatMessage(messages.apply)
+				}}</Button>
+				<Button type="colored" color="brand" @click="finish('selected')">{{
+					formatMessage(messages.selectedOnly)
+				}}</Button>
 			</div>
 		</template>
 	</NewModal>

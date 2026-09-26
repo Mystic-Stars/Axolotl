@@ -8,7 +8,7 @@ import {
 	UploadIcon,
 } from '@modrinth/assets'
 import {
-	ButtonStyled,
+	Button,
 	Chips,
 	defineMessages,
 	injectFilePicker,
@@ -507,17 +507,14 @@ const messages = defineMessages({
 				<h2 id="duplicate-instance-label" class="m-0 text-lg font-semibold text-contrast block">
 					{{ formatMessage(messages.duplicateInstance) }}
 				</h2>
-				<ButtonStyled>
-					<button
-						v-tooltip="installing ? formatMessage(messages.duplicateButtonTooltipInstalling) : null"
-						aria-labelledby="duplicate-instance-label"
-						:disabled="installing"
-						class="w-max !shadow-none"
-						@click="duplicateInstance"
-					>
-						<CopyIcon /> {{ formatMessage(messages.duplicateButton) }}
-					</button>
-				</ButtonStyled>
+				<Button
+					v-tooltip="installing ? formatMessage(messages.duplicateButtonTooltipInstalling) : null"
+					aria-labelledby="duplicate-instance-label"
+					:disabled="installing"
+					class="w-max !shadow-none"
+					@click="duplicateInstance"
+					><CopyIcon /> {{ formatMessage(messages.duplicateButton) }}
+				</Button>
 				<p class="m-0">
 					{{ formatMessage(messages.duplicateInstanceDescription) }}
 				</p>
@@ -527,22 +524,19 @@ const messages = defineMessages({
 			<h2 id="desktop-shortcut-label" class="m-0 text-lg font-semibold text-contrast block">
 				{{ formatMessage(messages.desktopShortcut) }}
 			</h2>
-			<ButtonStyled>
-				<button
-					aria-labelledby="desktop-shortcut-label"
-					:disabled="creatingDesktopShortcut"
-					class="w-max !shadow-none"
-					@click="createDesktopShortcut"
-				>
-					<SpinnerIcon v-if="creatingDesktopShortcut" class="animate-spin" />
-					<MonitorIcon v-else aria-hidden="true" />
-					{{
-						creatingDesktopShortcut
-							? formatMessage(messages.creatingDesktopShortcut)
-							: formatMessage(messages.createDesktopShortcut)
-					}}
-				</button>
-			</ButtonStyled>
+			<Button
+				aria-labelledby="desktop-shortcut-label"
+				:disabled="creatingDesktopShortcut"
+				class="w-max !shadow-none"
+				@click="createDesktopShortcut"
+				><SpinnerIcon v-if="creatingDesktopShortcut" class="animate-spin" />
+				<MonitorIcon v-else aria-hidden="true" />
+				{{
+					creatingDesktopShortcut
+						? formatMessage(messages.creatingDesktopShortcut)
+						: formatMessage(messages.createDesktopShortcut)
+				}}
+			</Button>
 			<p class="m-0">
 				{{ formatMessage(messages.desktopShortcutDescription) }}
 			</p>
@@ -598,22 +592,21 @@ const messages = defineMessages({
 			<h2 id="delete-instance-label" class="m-0 text-lg font-semibold text-contrast block">
 				{{ formatMessage(messages.deleteInstance) }}
 			</h2>
-			<ButtonStyled color="red">
-				<button
-					aria-labelledby="delete-instance-label"
-					:disabled="removing"
-					class="w-fit !shadow-none"
-					@click="deleteConfirmModal.show()"
-				>
-					<SpinnerIcon v-if="removing" class="animate-spin" />
-					<TrashIcon v-else />
-					{{
-						removing
-							? formatMessage(messages.deletingInstanceButton)
-							: formatMessage(messages.deleteInstanceButton)
-					}}
-				</button>
-			</ButtonStyled>
+			<Button
+				type="colored"
+				color="red"
+				aria-labelledby="delete-instance-label"
+				:disabled="removing"
+				class="w-fit !shadow-none"
+				@click="deleteConfirmModal.show()"
+				><SpinnerIcon v-if="removing" class="animate-spin" />
+				<TrashIcon v-else />
+				{{
+					removing
+						? formatMessage(messages.deletingInstanceButton)
+						: formatMessage(messages.deleteInstanceButton)
+				}}
+			</Button>
 			<p class="m-0">
 				{{ formatMessage(messages.deleteInstanceDescription) }}
 			</p>

@@ -35,11 +35,11 @@ import {
 } from '@modrinth/ui'
 import { getPingLevel } from '@modrinth/utils'
 import dayjs from 'dayjs'
-import { Tooltip } from 'floating-vue'
 import type { Component } from 'vue'
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 
+import HeadlessTooltip from '@/components/ui/headless/HeadlessTooltip.vue'
 import InstanceIcon from '@/components/ui/InstanceIcon.vue'
 import { copyToClipboard, createInstanceShortcut } from '@/helpers/utils'
 import type {
@@ -348,7 +348,12 @@ const messages = defineMessages({
 									}"
 								/>
 							</template>
-							<Tooltip :disabled="!hasPlayersTooltip">
+							<HeadlessTooltip
+								:disabled="!hasPlayersTooltip"
+								:delay-ms="200"
+								content-class="tooltip-popper"
+								arrow-class="tooltip-arrow"
+							>
 								<span :class="{ 'cursor-help': hasPlayersTooltip }">
 									{{
 										formatMessage(messages.playersOnline, {
@@ -356,14 +361,14 @@ const messages = defineMessages({
 										})
 									}}
 								</span>
-								<template #popper>
+								<template #content>
 									<div class="flex flex-col gap-1">
 										<span v-for="player in serverStatus.players?.sample" :key="player.name">
 											{{ player.name }}
 										</span>
 									</div>
 								</template>
-							</Tooltip>
+							</HeadlessTooltip>
 						</template>
 						<template v-else>
 							<NoSignalIcon aria-hidden="true" stroke-width="3px" class="shrink-0" />

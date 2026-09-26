@@ -18,12 +18,10 @@
 						}}
 					</span>
 					<div v-if="variant === 'loader-change'">
-						<ButtonStyled color="red">
-							<button :disabled="loading" @click="handleResetServer">
-								<TrashIcon class="size-5" />
-								{{ formatMessage(commonMessages.resetServerButton) }}
-							</button>
-						</ButtonStyled>
+						<Button type="colored" color="red" :disabled="loading" @click="handleResetServer"
+							><TrashIcon class="size-5" />
+							{{ formatMessage(commonMessages.resetServerButton) }}
+						</Button>
 					</div>
 				</div>
 			</Admonition>
@@ -31,42 +29,34 @@
 
 		<template #actions>
 			<div class="flex justify-end gap-2">
-				<ButtonStyled>
-					<button :disabled="loading" @click="handleCancel">
-						<XIcon />
-						{{ formatMessage(commonMessages.cancelButton) }}
-					</button>
-				</ButtonStyled>
+				<Button :disabled="loading" @click="handleCancel"
+					><XIcon />
+					{{ formatMessage(commonMessages.cancelButton) }}
+				</Button>
 				<template v-if="variant === 'game-version-change'">
-					<ButtonStyled>
-						<button :disabled="loading" @click="handleDisableConflicts">
-							<SpinnerIcon
-								v-if="loading && loadingAction === 'disable-conflicts'"
-								class="size-5 animate-spin"
-							/>
-							<PowerOffIcon v-else class="size-5" />
-							{{ formatMessage(messages.disableConflictsButton) }}
-						</button>
-					</ButtonStyled>
-					<ButtonStyled color="orange">
-						<button :disabled="loading" @click="handleAutoFix">
-							<SpinnerIcon
-								v-if="loading && loadingAction === 'auto-fix'"
-								class="size-5 animate-spin"
-							/>
-							<HammerIcon v-else class="size-5" />
-							{{ formatMessage(messages.autoFixButton) }}
-						</button>
-					</ButtonStyled>
+					<Button :disabled="loading" @click="handleDisableConflicts"
+						><SpinnerIcon
+							v-if="loading && loadingAction === 'disable-conflicts'"
+							class="size-5 animate-spin"
+						/>
+						<PowerOffIcon v-else class="size-5" />
+						{{ formatMessage(messages.disableConflictsButton) }}
+					</Button>
+					<Button type="colored" color="orange" :disabled="loading" @click="handleAutoFix"
+						><SpinnerIcon
+							v-if="loading && loadingAction === 'auto-fix'"
+							class="size-5 animate-spin"
+						/>
+						<HammerIcon v-else class="size-5" />
+						{{ formatMessage(messages.autoFixButton) }}
+					</Button>
 				</template>
 				<template v-else>
-					<ButtonStyled color="red">
-						<button :disabled="loading" @click="handleConfirmLoaderChange">
-							<SpinnerIcon v-if="loading" class="size-5 animate-spin" />
-							<CircleAlertIcon v-else class="size-5" />
-							{{ formatMessage(messages.changeLoaderButton) }}
-						</button>
-					</ButtonStyled>
+					<Button type="colored" color="red" :disabled="loading" @click="handleConfirmLoaderChange"
+						><SpinnerIcon v-if="loading" class="size-5 animate-spin" />
+						<CircleAlertIcon v-else class="size-5" />
+						{{ formatMessage(messages.changeLoaderButton) }}
+					</Button>
 				</template>
 			</div>
 		</template>
@@ -85,7 +75,7 @@ import {
 import { ref } from 'vue'
 
 import Admonition from '#ui/components/base/Admonition.vue'
-import ButtonStyled from '#ui/components/base/ButtonStyled.vue'
+import Button from '#ui/components/base/buttons/Button.vue'
 import NewModal from '#ui/components/modal/NewModal.vue'
 import { defineMessages, useVIntl } from '#ui/composables/i18n'
 import { commonMessages } from '#ui/utils/common-messages'

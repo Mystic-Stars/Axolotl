@@ -1,13 +1,11 @@
 <script setup lang="ts">
 import { CodeIcon, ExternalIcon, ImageIcon, InfoIcon } from '@modrinth/assets'
-import { ButtonStyled, defineMessages, useVIntl } from '@modrinth/ui'
+import { Button, defineMessages, NewModal, useVIntl } from '@modrinth/ui'
 import { openUrl } from '@tauri-apps/plugin-opener'
 import { useTemplateRef } from 'vue'
 
-import ModalWrapper from '@/components/ui/modal/ModalWrapper.vue'
-
 const { formatMessage } = useVIntl()
-const modal = useTemplateRef<InstanceType<typeof ModalWrapper>>('modal')
+const modal = useTemplateRef<InstanceType<typeof NewModal>>('modal')
 
 const messages = defineMessages({
 	title: {
@@ -57,7 +55,7 @@ defineExpose({
 </script>
 
 <template>
-	<ModalWrapper ref="modal" :header="formatMessage(messages.title)">
+	<NewModal ref="modal" :header="formatMessage(messages.title)">
 		<div class="copyright-notice">
 			<section
 				class="notice-section grid grid-cols-[1.5rem_minmax(0,1fr)] gap-3 border-b border-surface-5 pb-4"
@@ -66,12 +64,13 @@ defineExpose({
 				<div>
 					<h3>{{ formatMessage(messages.tagsHeading) }}</h3>
 					<p>{{ formatMessage(messages.tagsBody) }}</p>
-					<ButtonStyled size="small" type="outlined">
-						<button @click="openUrl('https://github.com/destruc7i0n/crafting')">
-							{{ formatMessage(messages.viewTags) }}
-							<ExternalIcon />
-						</button>
-					</ButtonStyled>
+					<Button
+						type="outlined"
+						size="2xs"
+						@click="openUrl('https://github.com/destruc7i0n/crafting')"
+						>{{ formatMessage(messages.viewTags) }}
+						<ExternalIcon />
+					</Button>
 				</div>
 			</section>
 
@@ -82,12 +81,13 @@ defineExpose({
 				<div>
 					<h3>{{ formatMessage(messages.texturesHeading) }}</h3>
 					<p>{{ formatMessage(messages.texturesBody) }}</p>
-					<ButtonStyled size="small" type="outlined">
-						<button @click="openUrl('https://github.com/destruc7i0n/minecraft-textures')">
-							{{ formatMessage(messages.viewTextures) }}
-							<ExternalIcon />
-						</button>
-					</ButtonStyled>
+					<Button
+						type="outlined"
+						size="2xs"
+						@click="openUrl('https://github.com/destruc7i0n/minecraft-textures')"
+						>{{ formatMessage(messages.viewTextures) }}
+						<ExternalIcon />
+					</Button>
 				</div>
 			</section>
 
@@ -101,7 +101,7 @@ defineExpose({
 				</div>
 			</section>
 		</div>
-	</ModalWrapper>
+	</NewModal>
 </template>
 
 <style scoped>

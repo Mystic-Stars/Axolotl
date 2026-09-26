@@ -30,8 +30,20 @@ export interface FilePickerProvider {
 	getLoaderInstanceIconUrl?: (loader: string) => string | null
 	/** Pick a folder (directory) — returns path only, no file content */
 	pickFolder?: () => Promise<{ path: string } | null>
+	/**
+	 * Pick any file — returns path only, no file content. Used by import flows
+	 * that stream from the native path.
+	 */
+	pickFile?: (options?: PickFileOptions) => Promise<{ path: string } | null>
 	/** Pick a .mrpack modpack file */
 	pickModpackFile: (options?: PickModpackFileOptions) => Promise<PickedModpackFile | null>
+}
+
+export interface PickFileOptions {
+	/** Dialog filter name, e.g. "Modpack" */
+	name?: string
+	/** Allowed extensions, without the leading dot */
+	extensions?: string[]
 }
 
 export const [injectFilePicker, provideFilePicker] = createContext<FilePickerProvider>('FilePicker')

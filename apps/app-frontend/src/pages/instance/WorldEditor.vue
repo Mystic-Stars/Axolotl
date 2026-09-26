@@ -1,5 +1,5 @@
 <template>
-	<ModalWrapper ref="unsavedModal">
+	<NewModal ref="unsavedModal">
 		<template #title>
 			<span class="font-extrabold text-lg text-contrast">
 				{{ formatMessage(messages.unsavedTitle) }}
@@ -9,20 +9,16 @@
 			<p class="m-0">{{ formatMessage(messages.unsavedBody) }}</p>
 		</div>
 		<div class="flex gap-2 mt-4">
-			<ButtonStyled color="red">
-				<button @click="confirmLeave">
-					<TrashIcon />
-					{{ formatMessage(messages.leaveButton) }}
-				</button>
-			</ButtonStyled>
-			<ButtonStyled>
-				<button @click="unsavedModal?.hide()">
-					<XIcon />
-					{{ formatMessage(messages.stayButton) }}
-				</button>
-			</ButtonStyled>
+			<Button type="colored" color="red" @click="confirmLeave"
+				><TrashIcon />
+				{{ formatMessage(messages.leaveButton) }}
+			</Button>
+			<Button @click="unsavedModal?.hide()"
+				><XIcon />
+				{{ formatMessage(messages.stayButton) }}
+			</Button>
 		</div>
-	</ModalWrapper>
+	</NewModal>
 	<EmptyState
 		v-if="loadError"
 		type="error"
@@ -33,18 +29,14 @@
 		<div class="flex items-center gap-4">
 			<div class="group relative">
 				<Avatar :src="form.removeIcon ? undefined : data.icon" size="64px" />
-				<Tooltip>
-					<button
-						v-if="data.icon && !form.removeIcon && !readonly"
-						class="absolute inset-0 hidden cursor-pointer items-center justify-center rounded-xl border-none bg-black/60 text-white group-hover:flex"
-						@click="form.removeIcon = true"
-					>
-						<UndoIcon class="size-5" />
-					</button>
-					<template #popper>
-						<span>{{ formatMessage(messages.resetIcon) }}</span>
-					</template>
-				</Tooltip>
+				<button
+					v-if="data.icon && !form.removeIcon && !readonly"
+					v-tooltip="formatMessage(messages.resetIcon)"
+					class="absolute inset-0 hidden cursor-pointer items-center justify-center rounded-xl border-none bg-black/60 text-white group-hover:flex"
+					@click="form.removeIcon = true"
+				>
+					<UndoIcon class="size-5" />
+				</button>
 			</div>
 			<div class="flex min-w-0 flex-col gap-1.5">
 				<h1 class="m-0 truncate text-2xl font-extrabold text-contrast">{{ data.name }}</h1>
@@ -201,32 +193,24 @@
 							class="flex flex-wrap items-center justify-between gap-2 border-b border-solid border-surface-4 px-4 py-2.5 last:border-b-0"
 						>
 							<div class="flex min-w-0 items-center gap-2">
-								<Tooltip>
-									<span
-										v-if="rule.modifiedFromDefault"
-										class="size-2 shrink-0 rounded-full bg-brand"
-									/>
-									<template #popper>
-										<span>{{ formatMessage(messages.modifiedFromDefault) }}</span>
-									</template>
-								</Tooltip>
+								<span
+									v-if="rule.modifiedFromDefault"
+									v-tooltip="formatMessage(messages.modifiedFromDefault)"
+									class="size-2 shrink-0 rounded-full bg-brand"
+								/>
 								<span class="truncate font-medium text-contrast" :title="rule.key">
 									{{ rule.label }}
 								</span>
 							</div>
 							<div class="flex items-center gap-1.5">
 								<ButtonStyled v-if="rule.canResetToDefault" type="transparent" size="small">
-									<Tooltip>
-										<button
-											:disabled="readonly"
-											@click="resetRuleToDefault(rule.key, rule.defaultValue)"
-										>
-											<UndoIcon />
-										</button>
-										<template #popper>
-											<span>{{ formatMessage(messages.resetRuleToDefault) }}</span>
-										</template>
-									</Tooltip>
+									<button
+										v-tooltip="formatMessage(messages.resetRuleToDefault)"
+										:disabled="readonly"
+										@click="resetRuleToDefault(rule.key, rule.defaultValue)"
+									>
+										<UndoIcon />
+									</button>
 								</ButtonStyled>
 								<DropdownSelect
 									v-if="rule.widget === 'boolean'"
@@ -265,18 +249,14 @@
 				{{ formatMessage(messages.unsavedChangesLabel) }}
 			</span>
 			<div class="ml-auto flex gap-2">
-				<ButtonStyled color="brand">
-					<button :disabled="!canSave" @click="save">
-						<SaveIcon />
-						{{ formatMessage(commonMessages.saveChangesButton) }}
-					</button>
-				</ButtonStyled>
-				<ButtonStyled>
-					<button :disabled="saving" @click="discard">
-						<XIcon />
-						{{ formatMessage(messages.discardButton) }}
-					</button>
-				</ButtonStyled>
+				<Button type="colored" color="brand" :disabled="!canSave" @click="save"
+					><SaveIcon />
+					{{ formatMessage(commonMessages.saveChangesButton) }}
+				</Button>
+				<Button :disabled="saving" @click="discard"
+					><XIcon />
+					{{ formatMessage(messages.discardButton) }}
+				</Button>
 			</div>
 		</div>
 	</div>
@@ -288,6 +268,7 @@ import {
 	Accordion,
 	Admonition,
 	Avatar,
+	Button,
 	ButtonStyled,
 	commonMessages,
 	defineMessages,
@@ -295,17 +276,16 @@ import {
 	EmptyState,
 	GAME_MODES,
 	injectNotificationManager,
+	NewModal,
 	StyledInput,
 	useRelativeTime,
 	useVIntl,
 } from '@modrinth/ui'
 import { useQueryClient } from '@tanstack/vue-query'
 import dayjs from 'dayjs'
-import { Tooltip } from 'floating-vue'
 import { computed, ref, watch } from 'vue'
 import { onBeforeRouteLeave, type RouteLocationNormalized, useRoute, useRouter } from 'vue-router'
 
-import ModalWrapper from '@/components/ui/modal/ModalWrapper.vue'
 import SymlinkInstanceWarning from '@/components/ui/SymlinkInstanceWarning.vue'
 import {
 	gameRuleCategoryMessages,
@@ -595,7 +575,7 @@ function resetRuleToDefault(key: string, defaultValue?: string) {
 	}
 }
 
-const unsavedModal = ref<InstanceType<typeof ModalWrapper>>()
+const unsavedModal = ref<InstanceType<typeof NewModal>>()
 let allowLeave = false
 let pendingNavigation: RouteLocationNormalized | null = null
 

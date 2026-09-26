@@ -305,9 +305,6 @@
   "content.filter.updates": {
     "defaultMessage": "Actualizări"
   },
-  "content.filter.warnings": {
-    "defaultMessage": "Avertismente"
-  },
   "content.page-layout.share.label": {
     "defaultMessage": "Distribuie"
   },
@@ -710,18 +707,6 @@
   "header.category.resolutions": {
     "defaultMessage": "Rezoluție"
   },
-  "icon-select.edit": {
-    "defaultMessage": "Editează pictograma"
-  },
-  "icon-select.remove": {
-    "defaultMessage": "Șterge pictograma"
-  },
-  "icon-select.replace": {
-    "defaultMessage": "Înlocuiește pictograma"
-  },
-  "icon-select.select": {
-    "defaultMessage": "Selectează pictograma"
-  },
   "input.search.placeholder": {
     "defaultMessage": "Caută..."
   },
@@ -826,24 +811,6 @@
   },
   "instances.content-install.select-icon": {
     "defaultMessage": "Selectează iconița"
-  },
-  "instances.modpack-content-modal.empty-description": {
-    "defaultMessage": "Acest modpack nu include niciun conținut suplimentar."
-  },
-  "instances.modpack-content-modal.empty-title": {
-    "defaultMessage": "Nu a fost găsit niciun conținut"
-  },
-  "instances.modpack-content-modal.header": {
-    "defaultMessage": "Conținutul Modpack"
-  },
-  "instances.modpack-content-modal.loading": {
-    "defaultMessage": "Se încarcă materialul..."
-  },
-  "instances.modpack-content-modal.no-results": {
-    "defaultMessage": "Niciun proiect nu corespunde căutării dvs."
-  },
-  "instances.modpack-content-modal.search-placeholder": {
-    "defaultMessage": "Căutare {count, number}{count, plural,one {proiect}other {proiecte}}"
   },
   "instances.updater-modal.badge.current": {
     "defaultMessage": "Curent"
@@ -1262,135 +1229,6 @@
   "locale.zh-TW": {
     "defaultMessage": "Chineză(Tradițională)"
   },
-  "markdown-editor.default-image-alt-text": {
-    "defaultMessage": "Înlocuiește asta cu o descriere"
-  },
-  "markdown-editor.error-label": {
-    "defaultMessage": "Eroare"
-  },
-  "markdown-editor.image-modal.description-field.description": {
-    "defaultMessage": "Descrie imaginea la fel cum ai descri-o cuiva care nu poate vedea imaginea."
-  },
-  "markdown-editor.image-modal.description-field.placeholder": {
-    "defaultMessage": "Descrie imaginea..."
-  },
-  "markdown-editor.image-modal.description-field.title": {
-    "defaultMessage": "Descriere (text alternativ)"
-  },
-  "markdown-editor.image-modal.header": {
-    "defaultMessage": "Inserează imagine"
-  },
-  "markdown-editor.image-modal.upload-mode.label": {
-    "defaultMessage": "Sursă imagine"
-  },
-  "markdown-editor.image-modal.upload-mode.link": {
-    "defaultMessage": "Link"
-  },
-  "markdown-editor.image-modal.upload-mode.upload": {
-    "defaultMessage": "Încarcă"
-  },
-  "markdown-editor.image-modal.upload.prompt": {
-    "defaultMessage": "Trage și plasează pentru a încărca sau apasă pentru a selecta fișierul"
-  },
-  "markdown-editor.image-modal.url-field.placeholder": {
-    "defaultMessage": "Introduce URL pentru imagine..."
-  },
-  "markdown-editor.insert-button": {
-    "defaultMessage": "Inserează"
-  },
-  "markdown-editor.link-modal.header": {
-    "defaultMessage": "Inserează link"
-  },
-  "markdown-editor.link-modal.label-field.placeholder": {
-    "defaultMessage": "Inserează etichetă..."
-  },
-  "markdown-editor.link-modal.label-field.title": {
-    "defaultMessage": "Etichetă"
-  },
-  "markdown-editor.link-modal.url-field.placeholder": {
-    "defaultMessage": "Introduce URL pentru link..."
-  },
-  "markdown-editor.markdown-formatting-support": {
-    "defaultMessage": "Acest editor suportă <markdown-link>formatare Markdown</markdown-link>."
-  },
-  "markdown-editor.max-length.label": {
-    "defaultMessage": "Lungime maximă:"
-  },
-  "markdown-editor.max-length.unlimited": {
-    "defaultMessage": "Nelimitat"
-  },
-  "markdown-editor.max-length.value": {
-    "defaultMessage": "{currentLength}/{maxLength}"
-  },
-  "markdown-editor.placeholder": {
-    "defaultMessage": "Scrie ceva..."
-  },
-  "markdown-editor.preview-label": {
-    "defaultMessage": "Previzualizare"
-  },
-  "markdown-editor.preview-toggle.label": {
-    "defaultMessage": "Previzualizare"
-  },
-  "markdown-editor.toolbar.bold": {
-    "defaultMessage": "Îngroșat"
-  },
-  "markdown-editor.toolbar.bulleted-list": {
-    "defaultMessage": "Listă punctată"
-  },
-  "markdown-editor.toolbar.code": {
-    "defaultMessage": "Cod"
-  },
-  "markdown-editor.toolbar.image": {
-    "defaultMessage": "Imagine"
-  },
-  "markdown-editor.toolbar.link": {
-    "defaultMessage": "Link"
-  },
-  "markdown-editor.toolbar.ordered-list": {
-    "defaultMessage": "Listă ordonată"
-  },
-  "markdown-editor.toolbar.spoiler": {
-    "defaultMessage": "Spoiler"
-  },
-  "markdown-editor.toolbar.strikethrough": {
-    "defaultMessage": "Tăiat"
-  },
-  "markdown-editor.toolbar.video": {
-    "defaultMessage": "Video"
-  },
-  "markdown-editor.upload-error.no-file": {
-    "defaultMessage": "Niciun fișier provenit"
-  },
-  "markdown-editor.upload-error.no-handler": {
-    "defaultMessage": "Niciun Handler provenit pentru postarea imaginii"
-  },
-  "markdown-editor.url-label": {
-    "defaultMessage": "URL"
-  },
-  "markdown-editor.url-validation-error.blocked-domain": {
-    "defaultMessage": "URL invalid. Acest domeniu nu este permis."
-  },
-  "markdown-editor.url-validation-error.malformed": {
-    "defaultMessage": "URL invalid. Asigură-te că acest URL este scris corect."
-  },
-  "markdown-editor.url-validation-error.unsupported-protocol": {
-    "defaultMessage": "Protocol nesuportat. Folosește http sau https."
-  },
-  "markdown-editor.video-embed.title": {
-    "defaultMessage": "Player video YouTube"
-  },
-  "markdown-editor.video-modal.header": {
-    "defaultMessage": "Inserează un video de pe YouTube"
-  },
-  "markdown-editor.video-modal.url-field.description": {
-    "defaultMessage": "Introduce un link valid către video-ul de pe YouTube."
-  },
-  "markdown-editor.video-modal.url-field.placeholder": {
-    "defaultMessage": "Introduce un URL pentru video de pe YouTube"
-  },
-  "markdown-editor.video-modal.url-field.title": {
-    "defaultMessage": "Video YouTube URL"
-  },
   "modal.open-in-app.benefit.install": {
     "defaultMessage": "Instalați automat conținutul necesar"
   },
@@ -1480,24 +1318,6 @@
   },
   "omorphia.component.copy.action.copy": {
     "defaultMessage": "Copiați codul în clipboard"
-  },
-  "omorphia.component.environment-indicator.label.client": {
-    "defaultMessage": "Client"
-  },
-  "omorphia.component.environment-indicator.label.client-and-server": {
-    "defaultMessage": "Client și server"
-  },
-  "omorphia.component.environment-indicator.label.client-or-server": {
-    "defaultMessage": "Client sau server"
-  },
-  "omorphia.component.environment-indicator.label.server": {
-    "defaultMessage": "Server"
-  },
-  "omorphia.component.environment-indicator.label.type": {
-    "defaultMessage": "Un {type}"
-  },
-  "omorphia.component.environment-indicator.label.unsupported": {
-    "defaultMessage": "Nesuportat"
   },
   "payment-method.amazon_pay": {
     "defaultMessage": "Amazon Plată"
@@ -2099,17 +1919,8 @@
   "search.server_content_type.vanilla": {
     "defaultMessage": "Vanilie"
   },
-  "servers.notice.dismiss": {
-    "defaultMessage": "Ignoră"
-  },
   "servers.notice.dismissable": {
     "defaultMessage": "Ignorabil"
-  },
-  "servers.notice.heading.attention": {
-    "defaultMessage": "Atenție"
-  },
-  "servers.notice.heading.info": {
-    "defaultMessage": "Informație"
   },
   "servers.notice.level.critical.name": {
     "defaultMessage": "Critic"
@@ -2623,8 +2434,5 @@
   },
   "tag.loader.waterfall": {
     "defaultMessage": "Cascadă"
-  },
-  "ui.component.unsaved-changes-popup.body": {
-    "defaultMessage": "Ai schimbări nesalvate."
   }
 }

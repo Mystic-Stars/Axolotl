@@ -340,7 +340,7 @@ const pageTitle: MessageDescriptor = settingsPageTitle
 </script>
 
 <template>
-	<div class="settings-fixed-render h-full min-h-0 pt-6 pl-6 pb-6">
+	<div class="settings-fixed-render h-full min-h-0 p-6">
 		<div class="settings-layout h-full min-h-0">
 			<aside class="settings-sidebar">
 				<div class="relative shrink-0">
@@ -519,8 +519,8 @@ const pageTitle: MessageDescriptor = settingsPageTitle
 											:key="row"
 											class="flex items-center gap-3 rounded-lg border border-solid p-4"
 											:style="{
-												borderColor: 'var(--settings-card-border)',
-												background: 'color-mix(in srgb, var(--surface-2) 35%, transparent)',
+												borderColor: 'var(--surface-4)',
+												background: 'color-mix(in srgb, var(--surface-3) 35%, transparent)',
 											}"
 										>
 											<div class="flex min-w-0 flex-1 flex-col gap-2">
@@ -567,14 +567,21 @@ const pageTitle: MessageDescriptor = settingsPageTitle
 <style scoped>
 .settings-layout {
 	--settings-divider: color-mix(in srgb, var(--surface-4) 55%, transparent);
-	--settings-card-border: color-mix(in srgb, var(--surface-4) 72%, transparent);
 	display: grid;
 	grid-template-columns: minmax(18rem, 20rem) minmax(0, 1fr);
+	gap: var(--gap-lg);
 	min-height: 0;
 	overflow: hidden;
 }
 
 .settings-sidebar {
+	/* The shell paints its own surface so the page is a component layer rather
+	   than a window onto `.app-contents`. Without this the region resolved to
+	   `--color-bg`, which only follows "Background visibility", and the
+	   "Component opacity" slider could not reach it at all. */
+	background: var(--surface-2);
+	border: 1px solid var(--surface-4);
+	border-radius: var(--radius-lg);
 	display: flex;
 	height: 100%;
 	flex-direction: column;
@@ -649,6 +656,9 @@ const pageTitle: MessageDescriptor = settingsPageTitle
 }
 
 .settings-category-button.is-active {
+	/* A brand token on purpose, not a surface one: the active item should stay
+	   emphasised when the panels fade over a background image. Selection
+	   surfaces elsewhere follow the same pair. */
 	background: var(--color-button-bg-selected);
 	color: var(--color-button-text-selected);
 }
@@ -849,6 +859,14 @@ const pageTitle: MessageDescriptor = settingsPageTitle
 }
 
 .settings-content {
+	/* Same reason as `.settings-sidebar`: this is the component layer the
+	   category content sits on, so it must follow "Component opacity" rather
+	   than exposing the page surface beneath it. The height chain that the
+	   `is-flush` category relies on resolves against this box, so padding and
+	   a radius are safe here but a margin would break it. */
+	background: var(--surface-2);
+	border: 1px solid var(--surface-4);
+	border-radius: var(--radius-lg);
 	display: flex;
 	min-width: 0;
 	flex-direction: column;
@@ -876,7 +894,10 @@ const pageTitle: MessageDescriptor = settingsPageTitle
 	inset: 0;
 	z-index: 2;
 	padding: 0 1.5rem 1.5rem;
-	background: var(--surface-1);
+	/* A full-cover overlay on the content panel, so it takes that panel's own
+	   rung. `--surface-1` here would paint the page colour over the panel and
+	   flash a darker sheet on every category switch. */
+	background: var(--surface-2);
 }
 
 .settings-content-skeleton-inner {

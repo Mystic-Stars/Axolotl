@@ -3,6 +3,7 @@ import { MoreVerticalIcon, TrashIcon, UserIcon, XIcon } from '@modrinth/assets'
 import {
 	Accordion,
 	Avatar,
+	Button,
 	ButtonStyled,
 	defineMessages,
 	OverflowMenu,
@@ -179,11 +180,15 @@ const messages = defineMessages({
 							</template>
 						</OverflowMenu>
 					</ButtonStyled>
-					<ButtonStyled v-else type="transparent" circular>
-						<button v-tooltip="formatMessage(messages.cancelRequest)" @click="removeFriend(friend)">
-							<XIcon />
-						</button>
-					</ButtonStyled>
+					<Button
+						v-else
+						v-tooltip="formatMessage(messages.cancelRequest)"
+						type="quiet"
+						circular
+						icon-only
+						@click="removeFriend(friend)"
+						><XIcon />
+					</Button>
 				</div>
 			</div>
 		</template>

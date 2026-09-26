@@ -441,6 +441,45 @@ export const settingsSearchEntries: SettingsSearchEntry[] = [
 		targetId: 'settings-target-privacy-discord-rpc',
 		label: message('app.settings.privacy.discord-rpc', 'Discord rich presence'),
 	},
+	// The instance-sync category had no entries at all, so none of its rows
+	// could be found by search even though the category is registered.
+	{
+		id: 'instance-sync-game-options',
+		categoryId: 'instance-sync',
+		targetId: 'settings-target-instance-sync-game_options',
+		label: message('app.settings.synced-options.game-settings', 'Sync game options'),
+		keywords: [message('app.settings.tabs.instance-sync', 'Instance sync')],
+	},
+	{
+		id: 'instance-sync-multiplayer-servers',
+		categoryId: 'instance-sync',
+		targetId: 'settings-target-instance-sync-multiplayer_servers',
+		label: message('app.settings.synced-options.multiplayer-servers', 'Sync multiplayer servers'),
+	},
+	{
+		id: 'instance-sync-resource-packs',
+		categoryId: 'instance-sync',
+		targetId: 'settings-target-instance-sync-resource_packs',
+		label: message('app.settings.synced-options.resource-packs', 'Sync resource packs'),
+	},
+	{
+		id: 'instance-sync-data-packs',
+		categoryId: 'instance-sync',
+		targetId: 'settings-target-instance-sync-data_packs',
+		label: message('app.settings.synced-options.data-packs', 'Sync data packs'),
+	},
+	{
+		id: 'instance-sync-command-history',
+		categoryId: 'instance-sync',
+		targetId: 'settings-target-instance-sync-command_history',
+		label: message('app.settings.synced-options.command-history', 'Sync command history'),
+	},
+	{
+		id: 'instance-sync-creative-hotbars',
+		categoryId: 'instance-sync',
+		targetId: 'settings-target-instance-sync-creative_hotbars',
+		label: message('app.settings.synced-options.creative-hotbars', 'Sync saved creative hotbars'),
+	},
 	{
 		id: 'java-installations',
 		categoryId: 'java-performance',
@@ -576,12 +615,6 @@ export const settingsSearchEntries: SettingsSearchEntry[] = [
 		categoryId: 'storage-backups',
 		targetId: 'settings-target-storage-overview',
 		label: message('app.settings.storage.total', 'Storage usage'),
-	},
-	{
-		id: 'updates-source',
-		categoryId: 'updates',
-		targetId: 'settings-target-updates-source',
-		label: message('app.settings.updates.title', 'Update source'),
 	},
 	{
 		id: 'updates-history',

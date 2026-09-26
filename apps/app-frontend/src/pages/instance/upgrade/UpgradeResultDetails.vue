@@ -47,21 +47,24 @@
 		</div>
 
 		<div class="flex flex-wrap gap-2">
-			<ButtonStyled color="brand"
-				><button @click="router.push(`/instance/${encodeURIComponent(result.targetInstanceId)}`)">
-					<ExternalIcon />{{ formatMessage(messages.openUpgraded) }}
-				</button></ButtonStyled
-			>
-			<ButtonStyled v-if="mode === 'copy_and_upgrade'" type="outlined"
-				><button @click="router.push(`/instance/${encodeURIComponent(result.sourceInstanceId)}`)">
-					<ExternalIcon />{{ formatMessage(messages.openOriginal) }}
-				</button></ButtonStyled
-			>
-			<ButtonStyled v-if="result.backupInstanceId" type="outlined"
-				><button @click="router.push(`/instance/${encodeURIComponent(result.backupInstanceId!)}`)">
-					<FolderOpenIcon />{{ formatMessage(messages.openBackup) }}
-				</button></ButtonStyled
-			>
+			<Button
+				type="colored"
+				color="brand"
+				@click="router.push(`/instance/${encodeURIComponent(result.targetInstanceId)}`)"
+				><ExternalIcon />{{ formatMessage(messages.openUpgraded) }}
+			</Button>
+			<Button
+				v-if="mode === 'copy_and_upgrade'"
+				type="outlined"
+				@click="router.push(`/instance/${encodeURIComponent(result.sourceInstanceId)}`)"
+				><ExternalIcon />{{ formatMessage(messages.openOriginal) }}
+			</Button>
+			<Button
+				v-if="result.backupInstanceId"
+				type="outlined"
+				@click="router.push(`/instance/${encodeURIComponent(result.backupInstanceId!)}`)"
+				><FolderOpenIcon />{{ formatMessage(messages.openBackup) }}
+			</Button>
 		</div>
 
 		<Card v-if="result.backupInstanceId" class="!m-0 p-4">
@@ -112,14 +115,7 @@
 
 <script setup lang="ts">
 import { CheckCircleIcon, ExternalIcon, FolderOpenIcon } from '@modrinth/assets'
-import {
-	Admonition,
-	ButtonStyled,
-	Card,
-	defineMessages,
-	formatLoaderLabel,
-	useVIntl,
-} from '@modrinth/ui'
+import { Admonition, Button, Card, defineMessages, formatLoaderLabel, useVIntl } from '@modrinth/ui'
 import { useQuery } from '@tanstack/vue-query'
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'

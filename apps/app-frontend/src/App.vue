@@ -27,20 +27,24 @@ import {
 import {
 	Admonition,
 	Avatar,
+	BatchScanOverlay,
 	BigOptionButton,
 	bindingMatchesKeyboardEvent,
 	bindingMatchesMouseEvent,
 	bindingMatchesWheelEvent,
-	ButtonStyled,
+	Button,
 	Checkbox,
 	clientInstallableLoaders,
 	commonMessages,
+	ConfirmDropTypeModal,
 	ContentInstallModal,
 	ContentUpdaterModal,
 	CreationFlowModal,
 	defineMessages,
+	GenericContentInstallModal,
 	I18nDebugPanel,
 	type KeyBinding,
+	LauncherImportModal,
 	LoadingBar,
 	NewModal,
 	NotificationPanel,
@@ -52,16 +56,12 @@ import {
 	providePageContext,
 	providePopupNotificationManager,
 	ScrollToTopButton,
+	SymlinkMethodCards,
 	useDebugLogger,
 	useFormatBytes,
 	useModalStack,
 	useVIntl,
 } from '@modrinth/ui'
-import BatchScanOverlay from '@modrinth/ui/src/components/flows/drop/BatchScanOverlay.vue'
-import ConfirmDropTypeModal from '@modrinth/ui/src/components/flows/drop/ConfirmDropTypeModal.vue'
-import GenericContentInstallModal from '@modrinth/ui/src/components/flows/drop/GenericContentInstallModal.vue'
-import LauncherImportModal from '@modrinth/ui/src/components/flows/drop/LauncherImportModal.vue'
-import SymlinkMethodCards from '@modrinth/ui/src/components/flows/drop/SymlinkMethodCards.vue'
 import { useQuery } from '@tanstack/vue-query'
 import { getVersion } from '@tauri-apps/api/app'
 import { convertFileSrc, invoke } from '@tauri-apps/api/core'
@@ -250,7 +250,10 @@ const customBackgroundStyle = computed(() => {
 	return {
 		backgroundImage: `url("${convertFileSrc(themeStore.customBackgroundPath)}")`,
 		filter: `blur(${themeStore.customBackgroundBlur}px)`,
-		opacity: themeStore.customBackgroundOpacity / 100,
+		// "Background visibility" is applied as the alpha of the page layer above
+		// this image (see `global.scss`), not as an opacity here. Dimming the
+		// image as well would apply the setting twice and wash the picture out
+		// against its own backing.
 	}
 })
 
@@ -1405,7 +1408,7 @@ async function setupApp() {
 	themeStore.customBackgroundBlur = custom_background_blur
 	themeStore.customBackgroundOpacity = custom_background_opacity
 	themeStore.customBackgroundComponentOpacity = custom_background_component_opacity ?? 100
-	themeStore.setCustomBackgroundComponentOpacity()
+	themeStore.setCustomBackgroundOpacity()
 	themeStore.uiFont = ui_font ?? null
 	themeStore.monoFont = mono_font ?? null
 	themeStore.setUiFont()
@@ -1414,6 +1417,7 @@ async function setupApp() {
 	themeStore.transparentBackgroundOpacity = transparent_background_opacity
 	themeStore.transparentBackgroundBlur = transparent_background_blur
 	themeStore.setTransparentBackgroundClass()
+	themeStore.setCustomBackgroundClass()
 	await applyWindowFrame()
 	await applyWindowEffects()
 	themeStore.homeWidgetBackgroundOpacity = home_widget_background_opacity ?? 100
@@ -3091,24 +3095,18 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 		max-width="30rem"
 	>
 		<div class="grid grid-cols-2 gap-3">
-			<ButtonStyled color="brand">
-				<button
-					type="button"
-					:disabled="closeRequestInProgress"
-					@click="applyCloseChoice('close', closeChoiceRemember)"
-				>
-					{{ formatMessage(messages.closeLauncherDirect) }}
-				</button>
-			</ButtonStyled>
-			<ButtonStyled>
-				<button
-					type="button"
-					:disabled="closeRequestInProgress"
-					@click="applyCloseChoice('lightweight', closeChoiceRemember)"
-				>
-					{{ formatMessage(messages.closeLauncherTray) }}
-				</button>
-			</ButtonStyled>
+			<Button
+				type="colored"
+				color="brand"
+				:disabled="closeRequestInProgress"
+				@click="applyCloseChoice('close', closeChoiceRemember)"
+				>{{ formatMessage(messages.closeLauncherDirect) }}
+			</Button>
+			<Button
+				:disabled="closeRequestInProgress"
+				@click="applyCloseChoice('lightweight', closeChoiceRemember)"
+				>{{ formatMessage(messages.closeLauncherTray) }}
+			</Button>
 		</div>
 		<div class="mt-4">
 			<Checkbox
@@ -3133,26 +3131,26 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 		</Admonition>
 		<template #actions>
 			<div class="flex flex-wrap items-center justify-end gap-2">
-				<ButtonStyled type="outlined">
-					<button type="button" :disabled="closeRequestInProgress" @click="returnFromBackupExit">
-						{{ formatMessage(messages.backupExitReturn) }}
-					</button>
-				</ButtonStyled>
-				<ButtonStyled>
-					<button type="button" :disabled="closeRequestInProgress" @click="hideDuringBackups">
-						{{ formatMessage(messages.backupExitTray) }}
-					</button>
-				</ButtonStyled>
-				<ButtonStyled v-if="activeBackupOperations.every((operation) => operation.cancellable)">
-					<button type="button" :disabled="closeRequestInProgress" @click="cancelBackupsAndExit">
-						{{ formatMessage(messages.backupExitCancel) }}
-					</button>
-				</ButtonStyled>
-				<ButtonStyled v-if="!hasActiveRepositoryMove" color="red">
-					<button type="button" :disabled="closeRequestInProgress" @click="forceBackupExit">
-						{{ formatMessage(messages.backupExitForce) }}
-					</button>
-				</ButtonStyled>
+				<Button type="outlined" :disabled="closeRequestInProgress" @click="returnFromBackupExit"
+					>{{ formatMessage(messages.backupExitReturn) }}
+				</Button>
+				<Button :disabled="closeRequestInProgress" @click="hideDuringBackups"
+					>{{ formatMessage(messages.backupExitTray) }}
+				</Button>
+				<Button
+					v-if="activeBackupOperations.every((operation) => operation.cancellable)"
+					:disabled="closeRequestInProgress"
+					@click="cancelBackupsAndExit"
+					>{{ formatMessage(messages.backupExitCancel) }}
+				</Button>
+				<Button
+					v-if="!hasActiveRepositoryMove"
+					type="colored"
+					color="red"
+					:disabled="closeRequestInProgress"
+					@click="forceBackupExit"
+					>{{ formatMessage(messages.backupExitForce) }}
+				</Button>
 			</div>
 		</template>
 	</NewModal>
@@ -3312,11 +3310,9 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 		</div>
 		<template #actions>
 			<div class="flex w-full items-center justify-end">
-				<ButtonStyled>
-					<button class="flex items-center gap-2" @click="handleCompatibleModeConfirm('cancel')">
-						{{ formatMessage(messages.dropCompatibleModeCancel) }}
-					</button>
-				</ButtonStyled>
+				<Button class="flex items-center gap-2" @click="handleCompatibleModeConfirm('cancel')"
+					>{{ formatMessage(messages.dropCompatibleModeCancel) }}
+				</Button>
 			</div>
 		</template>
 	</NewModal>
@@ -3393,7 +3389,10 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 	pointer-events: none;
 	// Opaque floor under the custom image: lowering "background visibility"
 	// dims the image against the app surface instead of revealing the desktop.
-	background-color: var(--color-raised-bg);
+	// It must read the *opaque* snapshot -- the translucent `--color-raised-bg`
+	// is what the components above use to show the image through, and using it
+	// here as well would let the desktop through along with the image.
+	background-color: var(--surface-3-opaque);
 }
 
 .launcher-background-image {
@@ -3422,13 +3421,9 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 .app-grid-layout.has-custom-background {
 	.app-grid-navbar,
 	.app-grid-statusbar {
-		// Driven by the "Component opacity" setting (#335). Default 100% keeps
-		// chrome fully opaque over the custom background image.
-		background-color: color-mix(
-			in srgb,
-			var(--color-raised-bg) var(--custom-bg-component-opacity, 100%),
-			transparent
-		) !important;
+		// `--color-raised-bg` already carries the "Component opacity" alpha in
+		// this mode (see `global.scss`), so this only paints the chrome.
+		background-color: var(--color-raised-bg) !important;
 
 		backdrop-filter: none;
 		-webkit-backdrop-filter: none;
@@ -3489,21 +3484,11 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 	}
 
 	&.has-custom-background {
-		// Content surface opacity follows the "Component opacity" setting so a
-		// custom background fades behind solid UI by default (#335).
-		background-color: color-mix(
-			in srgb,
-			var(--color-bg) var(--custom-bg-component-opacity, 100%),
-			transparent
-		);
-
+		// The page already reads `--color-bg` from the base rule above; neither
+		// opacity setting applies to it (see `global.scss`).
 		.loading-indicator-container {
 			border-top-left-radius: 0;
 		}
-	}
-
-	&.has-transparent-background {
-		background-color: color-mix(in srgb, var(--color-bg) 76%, transparent);
 	}
 }
 

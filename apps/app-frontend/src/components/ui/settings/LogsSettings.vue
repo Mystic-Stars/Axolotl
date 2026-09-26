@@ -1,12 +1,6 @@
 <script setup lang="ts">
 import { FolderOpenIcon, UploadIcon } from '@modrinth/assets'
-import {
-	ButtonStyled,
-	Combobox,
-	defineMessages,
-	injectNotificationManager,
-	useVIntl,
-} from '@modrinth/ui'
+import { Button, Combobox, defineMessages, injectNotificationManager, useVIntl } from '@modrinth/ui'
 import { computed, ref, watch } from 'vue'
 
 import { get, getUpdateChannel, set } from '@/helpers/settings.ts'
@@ -102,19 +96,11 @@ async function openLogsFolder() {
 
 <template>
 	<div class="flex flex-col gap-6">
-		<SettingsSection>
-			<template #header>
-				<h2
-					id="settings-target-logs-level"
-					tabindex="-1"
-					class="m-0 text-lg font-semibold text-contrast"
-				>
-					{{ formatMessage(messages.levelTitle) }}
-				</h2>
-				<p class="m-0 mt-1 text-sm leading-relaxed text-secondary">
-					{{ formatMessage(messages.levelDescription) }}
-				</p>
-			</template>
+		<SettingsSection
+			:title="formatMessage(messages.levelTitle)"
+			:description="formatMessage(messages.levelDescription)"
+			title-id="settings-target-logs-level"
+		>
 			<SettingsRow stacked>
 				<template #label>
 					<span>{{ formatMessage(messages.levelTitle) }}</span>
@@ -133,30 +119,22 @@ async function openLogsFolder() {
 			</SettingsRow>
 		</SettingsSection>
 
-		<SettingsSection>
-			<template #header>
-				<h2 class="m-0 text-lg font-semibold text-contrast">
-					{{ formatMessage(messages.retentionTitle) }}
-				</h2>
-				<p class="m-0 mt-1 text-sm leading-relaxed text-secondary">
-					{{ formatMessage(messages.retentionDescription) }}
-				</p>
-			</template>
-		</SettingsSection>
+		<!-- Informational only: no controls, so it reads as a note rather than an
+		     empty card. -->
+		<div class="flex flex-col gap-1">
+			<h2 class="m-0 text-lg font-semibold text-contrast">
+				{{ formatMessage(messages.retentionTitle) }}
+			</h2>
+			<p class="m-0 text-sm leading-relaxed text-secondary">
+				{{ formatMessage(messages.retentionDescription) }}
+			</p>
+		</div>
 
-		<SettingsSection>
-			<template #header>
-				<h2
-					id="settings-target-logs-export"
-					tabindex="-1"
-					class="m-0 text-lg font-semibold text-contrast"
-				>
-					{{ formatMessage(messages.exportTitle) }}
-				</h2>
-				<p class="m-0 mt-1 text-sm leading-relaxed text-secondary">
-					{{ formatMessage(messages.exportDescription) }}
-				</p>
-			</template>
+		<SettingsSection
+			:title="formatMessage(messages.exportTitle)"
+			:description="formatMessage(messages.exportDescription)"
+			title-id="settings-target-logs-export"
+		>
 			<SettingsRow stacked>
 				<template #label>
 					<span>{{ formatMessage(messages.exportTitle) }}</span>
@@ -164,18 +142,14 @@ async function openLogsFolder() {
 				<template #description>{{ formatMessage(messages.exportDescription) }}</template>
 				<template #control>
 					<div class="flex flex-wrap gap-2">
-						<ButtonStyled color="brand">
-							<button type="button" @click="exportModal?.show()">
-								<UploadIcon />
-								{{ formatMessage(messages.exportButton) }}
-							</button>
-						</ButtonStyled>
-						<ButtonStyled>
-							<button type="button" @click="openLogsFolder">
-								<FolderOpenIcon />
-								{{ formatMessage(messages.openFolder) }}
-							</button>
-						</ButtonStyled>
+						<Button type="colored" color="brand" @click="exportModal?.show()"
+							><UploadIcon />
+							{{ formatMessage(messages.exportButton) }}
+						</Button>
+						<Button @click="openLogsFolder"
+							><FolderOpenIcon />
+							{{ formatMessage(messages.openFolder) }}
+						</Button>
 					</div>
 				</template>
 			</SettingsRow>

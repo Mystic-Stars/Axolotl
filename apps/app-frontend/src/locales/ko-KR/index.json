@@ -239,42 +239,6 @@
   "app.instance.worlds.search-worlds-placeholder": {
     "message": "{count}개의 세계 검색..."
   },
-  "app.modal.install-to-play.content-required": {
-    "message": "콘텐츠 설치 필요"
-  },
-  "app.modal.install-to-play.header": {
-    "message": "설치하고 플레이"
-  },
-  "app.modal.install-to-play.install-button": {
-    "message": "설치"
-  },
-  "app.modal.install-to-play.mod-count": {
-    "message": "{count, plural, one {모드 #개} other {모드 #개}}"
-  },
-  "app.modal.install-to-play.required-modpack": {
-    "message": "필요한 모드팩"
-  },
-  "app.modal.install-to-play.server-requires-mods": {
-    "message": "이 서버를 플레이하려면 모드가 필요합니다. '설치'를 클릭하여 Modrinth에서 필수 파일을 내려받은 후, 서버에 바로 접속하세요."
-  },
-  "app.modal.install-to-play.shared-instance": {
-    "message": "인스턴스 공유됨"
-  },
-  "app.modal.install-to-play.shared-server-instance": {
-    "message": "서버 인스턴스 공유됨"
-  },
-  "app.modal.install-to-play.view-contents": {
-    "message": "구성 요소 보기"
-  },
-  "app.modal.update-to-play.header": {
-    "message": "업데이트하고 플레이"
-  },
-  "app.modal.update-to-play.update-required": {
-    "message": "업데이트 필요"
-  },
-  "app.modal.update-to-play.update-required-description": {
-    "message": "{name}을(를) 플레이하려면 업데이트가 필요합니다. 게임을 실행하려면 최신 버전으로 업데이트해 주세요."
-  },
   "app.project.install-button.already-installed": {
     "message": "이미 설치되어 있음"
   },

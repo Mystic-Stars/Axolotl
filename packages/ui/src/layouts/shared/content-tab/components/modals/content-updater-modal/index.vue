@@ -224,12 +224,10 @@
 					}}</span>
 				</div>
 				<div class="flex flex-row gap-2 shrink-0 ml-auto">
-					<ButtonStyled type="outlined">
-						<button @click="handleCancel">
-							<XIcon />
-							{{ formatMessage(commonMessages.cancelButton) }}
-						</button>
-					</ButtonStyled>
+					<Button type="outlined" @click="handleCancel"
+						><XIcon />
+						{{ formatMessage(commonMessages.cancelButton) }}
+					</Button>
 					<ButtonStyled :color="incompatibilityWarningMode ? 'orange' : 'brand'">
 						<button
 							v-tooltip="props.actionDisabled ? props.actionDisabledTooltip : undefined"
@@ -268,24 +266,16 @@
 		<!-- Simplified warning mode actions -->
 		<template v-if="showSimplifiedWarning" #actions>
 			<div class="flex gap-3 w-full">
-				<ButtonStyled>
-					<button @click="handleCancel">
-						{{ formatMessage(commonMessages.cancelButton) }}
-					</button>
-				</ButtonStyled>
-				<ButtonStyled color="brand">
-					<button @click="handleSearchCompat">
-						<SearchIcon class="size-4" />
-						{{ formatMessage(messages.searchCompatButton) }}
-					</button>
-				</ButtonStyled>
-				<ButtonStyled color="orange">
-					<button :disabled="actionLoading" @click="handleUpdate">
-						<SpinnerIcon v-if="actionLoading" class="size-5 animate-spin" />
-						<DownloadIcon v-else />
-						{{ formatMessage(messages.installAnywayButton) }}
-					</button>
-				</ButtonStyled>
+				<Button @click="handleCancel">{{ formatMessage(commonMessages.cancelButton) }} </Button>
+				<Button type="colored" color="brand" @click="handleSearchCompat"
+					><SearchIcon class="size-4" />
+					{{ formatMessage(messages.searchCompatButton) }}
+				</Button>
+				<Button type="colored" color="orange" :disabled="actionLoading" @click="handleUpdate"
+					><SpinnerIcon v-if="actionLoading" class="size-5 animate-spin" />
+					<DownloadIcon v-else />
+					{{ formatMessage(messages.installAnywayButton) }}
+				</Button>
 			</div>
 		</template>
 	</NewModal>
@@ -330,6 +320,7 @@ import { computed, ref, toRef } from 'vue'
 
 import Admonition from '#ui/components/base/Admonition.vue'
 import Avatar from '#ui/components/base/Avatar.vue'
+import Button from '#ui/components/base/buttons/Button.vue'
 import ButtonStyled from '#ui/components/base/ButtonStyled.vue'
 import StyledInput from '#ui/components/base/StyledInput.vue'
 import ConfirmModal from '#ui/components/modal/ConfirmModal.vue'

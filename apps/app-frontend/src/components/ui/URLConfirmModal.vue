@@ -1,15 +1,15 @@
 <script setup>
 import {
-	ButtonStyled,
+	Button,
 	commonMessages,
 	defineMessages,
 	injectNotificationManager,
+	NewModal,
 	ProjectCard,
 	useVIntl,
 } from '@modrinth/ui'
 import { ref } from 'vue'
 
-import ModalWrapper from '@/components/ui/modal/ModalWrapper.vue'
 import { get_project_v3, get_version } from '@/helpers/cache.js'
 import { injectContentInstall } from '@/providers/content-install'
 
@@ -60,7 +60,7 @@ async function install() {
 </script>
 
 <template>
-	<ModalWrapper
+	<NewModal
 		ref="confirmModal"
 		:header="formatMessage(messages.installProject, { project: project?.name })"
 	>
@@ -86,13 +86,13 @@ async function install() {
 					</p>
 				</div>
 				<div class="flex flex-row gap-2">
-					<ButtonStyled color="brand">
-						<button @click="install">{{ formatMessage(commonMessages.installButton) }}</button>
-					</ButtonStyled>
+					<Button type="colored" color="brand" @click="install">{{
+						formatMessage(commonMessages.installButton)
+					}}</Button>
 				</div>
 			</div>
 		</div>
-	</ModalWrapper>
+	</NewModal>
 </template>
 
 <style scoped lang="scss">

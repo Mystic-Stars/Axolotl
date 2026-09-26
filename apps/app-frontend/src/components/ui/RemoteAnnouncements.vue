@@ -1,6 +1,12 @@
 <script setup lang="ts">
-import { ButtonStyled, commonMessages, defineMessages, NewModal, useVIntl } from '@modrinth/ui'
-import { useModalStack } from '@modrinth/ui/src/composables/modal-stack'
+import {
+	Button,
+	commonMessages,
+	defineMessages,
+	NewModal,
+	useModalStack,
+	useVIntl,
+} from '@modrinth/ui'
 import { renderString } from '@modrinth/utils'
 import { getVersion } from '@tauri-apps/api/app'
 import { openUrl } from '@tauri-apps/plugin-opener'
@@ -8,10 +14,10 @@ import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from
 
 import {
 	announcementKey,
-	OPEN_REMOTE_ANNOUNCEMENT_CENTER_EVENT,
-	REMOTE_ANNOUNCEMENTS_UPDATED_EVENT,
 	isAnnouncementActive,
+	OPEN_REMOTE_ANNOUNCEMENT_CENTER_EVENT,
 	parseAnnouncements,
+	REMOTE_ANNOUNCEMENTS_UPDATED_EVENT,
 	type RemoteAnnouncement,
 	safeAnnouncementUrl,
 } from '@/helpers/remote-announcements'
@@ -351,9 +357,11 @@ onUnmounted(() => {
 			<aside class="flex min-h-0 w-[32%] min-w-[14rem] flex-col border-r border-surface-5 pr-3">
 				<div class="mb-2 flex items-center justify-between">
 					<span class="font-semibold text-contrast">{{ formatMessage(messages.centerTitle) }}</span>
-					<ButtonStyled v-if="items.some((item) => !read.has(announcementKey(item)))">
-						<button @click="markAllRead">{{ formatMessage(messages.readAll) }}</button>
-					</ButtonStyled>
+					<Button
+						v-if="items.some((item) => !read.has(announcementKey(item)))"
+						@click="markAllRead"
+						>{{ formatMessage(messages.readAll) }}</Button
+					>
 				</div>
 				<div v-if="!items.length" class="py-8 text-center text-sm text-secondary">
 					{{ formatMessage(messages.empty) }}
@@ -390,9 +398,13 @@ onUnmounted(() => {
 					v-html="html"
 				/>
 				<div class="mt-4 flex justify-end">
-					<ButtonStyled v-if="selected.action_url && selected.action_label" color="brand">
-						<button @click="openLink(selected.action_url)">{{ selected.action_label }}</button>
-					</ButtonStyled>
+					<Button
+						v-if="selected.action_url && selected.action_label"
+						type="colored"
+						color="brand"
+						@click="openLink(selected.action_url)"
+						>{{ selected.action_label }}</Button
+					>
 				</div>
 			</section>
 			<div v-else class="flex flex-1 items-center justify-center text-sm text-secondary">
@@ -401,11 +413,7 @@ onUnmounted(() => {
 		</div>
 		<template #actions>
 			<div class="flex flex-wrap justify-end gap-2">
-				<ButtonStyled
-					><button @click="modal?.hide()">
-						{{ formatMessage(commonMessages.closeButton) }}
-					</button></ButtonStyled
-				>
+				<Button @click="modal?.hide()">{{ formatMessage(commonMessages.closeButton) }} </Button>
 			</div>
 		</template>
 	</NewModal>

@@ -29,11 +29,15 @@
 				</div>
 			</div>
 		</div>
-		<ButtonStyled v-if="onclickDownload" circular type="transparent">
-			<button v-tooltip="formatMessage(messages.downloadModpack)" @click="onclickDownload">
-				<DownloadIcon />
-			</button>
-		</ButtonStyled>
+		<Button
+			v-if="onclickDownload"
+			v-tooltip="formatMessage(messages.downloadModpack)"
+			type="quiet"
+			circular
+			icon-only
+			@click="onclickDownload"
+			><DownloadIcon />
+		</Button>
 	</div>
 </template>
 
@@ -42,7 +46,7 @@ import { DownloadIcon } from '@modrinth/assets/generated-icons'
 
 import { defineMessages, useVIntl } from '../../../composables'
 import Avatar from '../../base/Avatar.vue'
-import ButtonStyled from '../../base/ButtonStyled.vue'
+import Button from '../../base/buttons/Button.vue'
 
 defineProps<{
 	name: string

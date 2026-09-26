@@ -4,7 +4,7 @@ import { CheckIcon, DownloadIcon, XIcon } from '@modrinth/assets'
 import {
 	Avatar,
 	Badge,
-	ButtonStyled,
+	Button,
 	Combobox,
 	commonMessages,
 	defineMessages,
@@ -236,18 +236,14 @@ defineExpose({ show, hide })
 
 		<template #actions>
 			<div class="flex justify-end gap-2">
-				<ButtonStyled type="outlined">
-					<button :disabled="submitting" @click="hide">
-						<XIcon />
-						{{ formatMessage(commonMessages.cancelButton) }}
-					</button>
-				</ButtonStyled>
-				<ButtonStyled color="brand">
-					<button :disabled="!canInstall" @click="submit">
-						<DownloadIcon />
-						{{ formatMessage(messages.install) }}
-					</button>
-				</ButtonStyled>
+				<Button type="outlined" :disabled="submitting" @click="hide"
+					><XIcon />
+					{{ formatMessage(commonMessages.cancelButton) }}
+				</Button>
+				<Button type="colored" color="brand" :disabled="!canInstall" @click="submit"
+					><DownloadIcon />
+					{{ formatMessage(messages.install) }}
+				</Button>
 			</div>
 		</template>
 	</NewModal>

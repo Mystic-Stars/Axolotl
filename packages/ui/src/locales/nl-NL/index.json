@@ -761,18 +761,6 @@
   "header.category.resolutions": {
     "defaultMessage": "Resolutie"
   },
-  "icon-select.edit": {
-    "defaultMessage": "Wijzig icoon"
-  },
-  "icon-select.remove": {
-    "defaultMessage": "Verwijder icoon"
-  },
-  "icon-select.replace": {
-    "defaultMessage": "Vervang icoon"
-  },
-  "icon-select.select": {
-    "defaultMessage": "Selecteer icoon"
-  },
   "input.search-version.placeholder": {
     "defaultMessage": "Zoek de versie..."
   },
@@ -955,24 +943,6 @@
   },
   "instances.content-install.select-icon": {
     "defaultMessage": "Selecteer pictogram"
-  },
-  "instances.modpack-content-modal.empty-description": {
-    "defaultMessage": "Deze modpack bevat geen extra inhoud."
-  },
-  "instances.modpack-content-modal.empty-title": {
-    "defaultMessage": "Geen inhoud gevonden"
-  },
-  "instances.modpack-content-modal.header": {
-    "defaultMessage": "Modpack inhoud"
-  },
-  "instances.modpack-content-modal.loading": {
-    "defaultMessage": "Inhoud aan het laden..."
-  },
-  "instances.modpack-content-modal.no-results": {
-    "defaultMessage": "Geen projecten komen overeen met je zoekopdracht."
-  },
-  "instances.modpack-content-modal.search-placeholder": {
-    "defaultMessage": "Zoek {count, number} {count, plural, one {project} other {projecten}}"
   },
   "instances.updater-modal.badge.current": {
     "defaultMessage": "Huidige"
@@ -1423,24 +1393,6 @@
   },
   "omorphia.component.copy.action.copy": {
     "defaultMessage": "Kopieer code naar klembord"
-  },
-  "omorphia.component.environment-indicator.label.client": {
-    "defaultMessage": "Client"
-  },
-  "omorphia.component.environment-indicator.label.client-and-server": {
-    "defaultMessage": "Client en server"
-  },
-  "omorphia.component.environment-indicator.label.client-or-server": {
-    "defaultMessage": "Client of server"
-  },
-  "omorphia.component.environment-indicator.label.server": {
-    "defaultMessage": "Server"
-  },
-  "omorphia.component.environment-indicator.label.type": {
-    "defaultMessage": "Een {type}"
-  },
-  "omorphia.component.environment-indicator.label.unsupported": {
-    "defaultMessage": "Niet ondersteund"
   },
   "payment-method.amazon_pay": {
     "defaultMessage": "Amazon Pay"
@@ -2171,17 +2123,8 @@
   "search.server_content_type.vanilla": {
     "defaultMessage": "Standaard"
   },
-  "servers.notice.dismiss": {
-    "defaultMessage": "Negeer"
-  },
   "servers.notice.dismissable": {
     "defaultMessage": "Negeerbaar"
-  },
-  "servers.notice.heading.attention": {
-    "defaultMessage": "Aandacht"
-  },
-  "servers.notice.heading.info": {
-    "defaultMessage": "Info"
   },
   "servers.notice.level.critical.name": {
     "defaultMessage": "Kritisch"
@@ -2716,9 +2659,6 @@
   },
   "tag.loader.waterfall": {
     "defaultMessage": "Waterfall"
-  },
-  "ui.component.unsaved-changes-popup.body": {
-    "defaultMessage": "Sommigen wijzigingen zijn nog niet opgeslagen."
   },
   "ui.confirm-leave-modal.body": {
     "defaultMessage": "Er zijn wijzigingen die nog niet zijn opgeslagen. Deze gaan verloren als u deze pagina verlaat."

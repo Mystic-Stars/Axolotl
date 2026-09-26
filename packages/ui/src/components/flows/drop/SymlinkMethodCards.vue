@@ -336,16 +336,10 @@
 		<template #actions>
 			<div class="flex w-full items-center justify-between p-4 pt-0">
 				<div class="flex items-center gap-2">
-					<ButtonStyled type="transparent">
-						<button @click="handleCancel">
-							{{ formatMessage(messages.cancel) }}
-						</button>
-					</ButtonStyled>
-					<ButtonStyled type="transparent" :disabled="!canReset">
-						<button :disabled="!canReset" @click="resetChanges">
-							{{ formatMessage(messages.resetChanges) }}
-						</button>
-					</ButtonStyled>
+					<Button type="quiet" @click="handleCancel">{{ formatMessage(messages.cancel) }} </Button>
+					<Button type="quiet" :disabled="!canReset" @click="resetChanges"
+						>{{ formatMessage(messages.resetChanges) }}
+					</Button>
 				</div>
 				<div class="flex items-center gap-2">
 					<TagItem
@@ -359,11 +353,9 @@
 						<CircleAlertIcon />
 						{{ formatMessage(messages.custom) }}
 					</TagItem>
-					<ButtonStyled>
-						<button class="flex items-center gap-2" @click="handleConfirm">
-							{{ confirmLabel }}
-						</button>
-					</ButtonStyled>
+					<Button class="flex items-center gap-2" @click="handleConfirm"
+						>{{ confirmLabel }}
+					</Button>
 				</div>
 			</div>
 		</template>
@@ -375,7 +367,7 @@ import { CircleAlertIcon, CopyIcon, FolderOpenIcon, LinkIcon } from '@modrinth/a
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 
 import BigOptionButton from '#ui/components/base/BigOptionButton.vue'
-import ButtonStyled from '#ui/components/base/ButtonStyled.vue'
+import Button from '#ui/components/base/buttons/Button.vue'
 import Chips from '#ui/components/base/Chips.vue'
 import Combobox, { type ComboboxOption } from '#ui/components/base/Combobox.vue'
 import HorizontalRule from '#ui/components/base/HorizontalRule.vue'

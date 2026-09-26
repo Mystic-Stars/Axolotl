@@ -250,6 +250,10 @@ async fn initialize_state(app: tauri::AppHandle) -> api::Result<()> {
     }
 
     let state = State::get().await?;
+    // Do not start accepting group writes until the legacy import succeeds.
+    // The JSON store becomes authoritative after the first write; swallowing
+    // this error would let a fallback Favorites-only store overwrite groups
+    // that still exist in SQLite.
     theseus::state::instance_groups::ensure_imported(&state).await?;
 
     app.asset_protocol_scope()

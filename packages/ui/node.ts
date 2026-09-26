@@ -21,3 +21,12 @@ const messageProxy = new Proxy(
 export const commonMessages = messageProxy
 export const formFieldLabels = messageProxy
 export const formFieldPlaceholders = messageProxy
+
+export type { ArmorPreviewConfig } from './src/composables/skin-rendering/armor-preview-types.ts'
+export {
+	ARMOR_SLOTS,
+	ARMOR_TRIM_MATERIALS,
+	ARMOR_TRIM_PATTERNS,
+	armorMaterialsForSlot,
+	createDefaultArmorPreviewConfig,
+} from './src/composables/skin-rendering/armor-preview-types.ts'

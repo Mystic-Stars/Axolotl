@@ -480,5 +480,4 @@ defineExpose({ show, hide })
 			</FloatingActionBar>
 		</template>
 	</TabbedModal>
-
 </template>

@@ -12,6 +12,7 @@ import {
 } from '@modrinth/assets'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
+import Button from '#ui/components/base/buttons/Button.vue'
 import ButtonStyled from '#ui/components/base/ButtonStyled.vue'
 import OverflowMenu, {
 	type Option as OverflowMenuOption,
@@ -49,12 +50,7 @@ import {
 	useContentSelection,
 } from './composables'
 import { injectContentManager } from './providers/content-manager'
-import type {
-	BulkOperationStatus,
-	ContentCardTableItem,
-	ContentItem,
-	ContentWorldGroupMeta,
-} from './types'
+import type { ContentCardTableItem, ContentItem, ContentWorldGroupMeta } from './types'
 
 const { formatMessage, locale } = useVIntl()
 
@@ -258,7 +254,6 @@ const {
 	getItemId,
 	showTypeFilters: true,
 	showUpdateFilter: ctx.hasUpdateSupport,
-	isPackLocked: ctx.isPackLocked,
 	memoryKey: ctx.instanceId,
 	initialFilters: initialPinnedView ?? undefined,
 	filterOptionsReady,
@@ -1024,9 +1019,9 @@ const confirmUnlinkModal = ref<InstanceType<typeof ConfirmUnlinkModal>>()
 				<div class="universal-card flex flex-col items-center gap-4 p-6">
 					<h2 class="m-0 text-xl font-bold">{{ formatMessage(messages.failedToLoad) }}</h2>
 					<p class="text-secondary">{{ ctx.error.value.message }}</p>
-					<ButtonStyled color="brand">
-						<button @click="handleRefresh">{{ formatMessage(commonMessages.retryButton) }}</button>
-					</ButtonStyled>
+					<Button type="colored" color="brand" @click="handleRefresh">{{
+						formatMessage(commonMessages.retryButton)
+					}}</Button>
 				</div>
 			</div>
 

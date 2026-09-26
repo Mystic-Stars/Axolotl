@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-@import '@modrinth/ui/src/styles/tailwind-utilities.css';
+@import '@modrinth/ui/styles/tailwind-utilities.css';
 
 @font-face {
 	font-family: 'bundled-minecraft-font-mrapp';
@@ -119,6 +119,103 @@ html.transparent-window body {
 	--color-divider-dark: color-mix(
 		in srgb,
 		var(--surface-5-opaque) var(--window-alpha-5),
+		transparent
+	);
+	--color-tooltip-bg: var(--surface-3-opaque);
+}
+
+// The custom-background path needs the same treatment as the transparent window
+// above, and for the same reason: `surface-*` are declared opaquely on the root,
+// so a component that reads one paints a solid block that hides the image behind
+// it. Redefining the tokens here is what lets the image show *through* the
+// interface -- patching individual elements only ever reached the few that were
+// patched, which is why "component opacity" appeared not to work.
+//
+// Two settings drive this, and the second compounds on the first:
+//
+//   * "Background visibility" decides how much of the image comes through the
+//     *page* layer (`--custom-bg-page-alpha`).
+//   * "Component opacity" decides how much comes through the components stacked
+//     on it (`--custom-bg-component-alpha`), and cannot reveal more than the
+//     page already lets through. At 100% a component is fully opaque; at 0% it
+//     is as transparent as the page itself, so lowering it reveals more of the
+//     same image rather than a different amount of it.
+//
+// The theme store turns the two settings into those alphas, so a layer here only
+// has to read the right one.
+//
+// `has-custom-background` is toggled on `html` by the theme store, but the
+// palette belongs on `body`: modals and dropdowns teleport out of the shell into
+// `body`, so a token defined on the shell alone would not reach them.
+html.has-custom-background body {
+	// Default to fully opaque so the palette still resolves if the store has not
+	// published the settings yet. Without a fallback the `color-mix()` arguments
+	// below would be invalid and every surface would collapse to nothing, which
+	// is a much worse failure than a momentarily opaque UI. The transparent
+	// window path above uses the same guard for the same reason.
+	--custom-bg-page-alpha: var(--custom-bg-page-alpha-setting, 100%);
+	--custom-bg-component-alpha: var(--custom-bg-component-alpha-setting, 100%);
+
+	// Deeper surfaces interpolate toward opaque so stacked panels keep their
+	// contrast instead of showing through each other.
+	--custom-bg-alpha-1-5: calc(
+		var(--custom-bg-page-alpha) + (100% - var(--custom-bg-page-alpha)) * 0.16
+	);
+	--custom-bg-alpha-2: calc(
+		var(--custom-bg-component-alpha) + (100% - var(--custom-bg-component-alpha)) * 0.3
+	);
+	--custom-bg-alpha-chrome: calc(
+		var(--custom-bg-component-alpha) + (100% - var(--custom-bg-component-alpha)) * 0.38
+	);
+	--custom-bg-alpha-3: calc(
+		var(--custom-bg-component-alpha) + (100% - var(--custom-bg-component-alpha)) * 0.55
+	);
+	--custom-bg-alpha-4: calc(
+		var(--custom-bg-component-alpha) + (100% - var(--custom-bg-component-alpha)) * 0.6
+	);
+	--custom-bg-alpha-5: calc(
+		var(--custom-bg-component-alpha) + (100% - var(--custom-bg-component-alpha)) * 0.78
+	);
+
+	// The page layer follows "Background visibility"; everything above it
+	// follows "Component opacity".
+	--surface-1: color-mix(in srgb, var(--surface-1-opaque) var(--custom-bg-page-alpha), transparent);
+	--surface-1-5: color-mix(
+		in srgb,
+		var(--surface-1-5-opaque) var(--custom-bg-alpha-1-5),
+		transparent
+	);
+	--surface-2: color-mix(in srgb, var(--surface-2-opaque) var(--custom-bg-alpha-2), transparent);
+	--surface-2-5: color-mix(
+		in srgb,
+		var(--surface-2-5-opaque) var(--custom-bg-alpha-chrome),
+		transparent
+	);
+	--surface-3: color-mix(in srgb, var(--surface-3-opaque) var(--custom-bg-alpha-3), transparent);
+	--surface-4: color-mix(in srgb, var(--surface-4-opaque) var(--custom-bg-alpha-4), transparent);
+	--surface-5: color-mix(in srgb, var(--surface-5-opaque) var(--custom-bg-alpha-5), transparent);
+
+	// The semantic aliases resolve against the root surfaces at declaration time,
+	// so overriding the primitives above does not reach them.
+	--color-bg: color-mix(in srgb, var(--surface-1-opaque) var(--custom-bg-page-alpha), transparent);
+	--color-raised-bg: color-mix(
+		in srgb,
+		var(--surface-3-opaque) var(--custom-bg-alpha-3),
+		transparent
+	);
+	--color-button-bg: color-mix(
+		in srgb,
+		var(--surface-4-opaque) var(--custom-bg-alpha-4),
+		transparent
+	);
+	--color-divider: color-mix(
+		in srgb,
+		var(--surface-5-opaque) var(--custom-bg-alpha-5),
+		transparent
+	);
+	--color-divider-dark: color-mix(
+		in srgb,
+		var(--surface-5-opaque) var(--custom-bg-alpha-5),
 		transparent
 	);
 	--color-tooltip-bg: var(--surface-3-opaque);
@@ -248,7 +345,7 @@ img {
 @import '@modrinth/assets/omorphia.scss';
 
 input {
-	border-radius: var(--size-rounded-sm);
+	border-radius: var(--radius-md);
 	box-sizing: border-box;
 	border: 2px solid transparent;
 	// safari iOS rounds inputs by default
@@ -263,7 +360,7 @@ pre {
 input,
 textarea {
 	background: var(--color-button-bg);
-	color: var(--color-text);
+	color: var(--color-base);
 	padding: 0.5rem 1rem;
 	font-weight: var(--font-weight-medium);
 	border: none;

@@ -5,18 +5,16 @@
 		aria-label="Return to instance upgrade"
 		hide-when-modal-open
 	>
-		<ButtonStyled color="brand" size="large">
-			<button @click="returnToUpgrade">
-				<ArrowLeftIcon aria-hidden="true" />
-				{{ formatMessage(messages.returnAction) }}
-			</button>
-		</ButtonStyled>
+		<Button type="colored" color="brand" size="xl" @click="returnToUpgrade"
+			><ArrowLeftIcon aria-hidden="true" />
+			{{ formatMessage(messages.returnAction) }}
+		</Button>
 	</FloatingActionBar>
 </template>
 
 <script setup lang="ts">
 import { ArrowLeftIcon } from '@modrinth/assets'
-import { ButtonStyled, defineMessages, FloatingActionBar, useVIntl } from '@modrinth/ui'
+import { Button, defineMessages, FloatingActionBar, useVIntl } from '@modrinth/ui'
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ButtonStyled, defineMessages, injectNotificationManager, useVIntl } from '@modrinth/ui'
+import { Button, defineMessages, injectNotificationManager, useVIntl } from '@modrinth/ui'
 import { onMounted, ref } from 'vue'
 
 import { delete_shared_log, list_shared_logs } from '@/helpers/logs'
@@ -113,15 +113,13 @@ onMounted(refresh)
 								<template v-if="log.instance_name"> · {{ log.instance_name }} </template>
 								· {{ formatDate(log.created_at) }}
 							</span>
-							<ButtonStyled type="outlined">
-								<button :disabled="deletingId === log.id" @click="remove(log)">
-									{{
-										deletingId === log.id
-											? formatMessage(messages.deleting)
-											: formatMessage(messages.delete)
-									}}
-								</button>
-							</ButtonStyled>
+							<Button type="outlined" :disabled="deletingId === log.id" @click="remove(log)"
+								>{{
+									deletingId === log.id
+										? formatMessage(messages.deleting)
+										: formatMessage(messages.delete)
+								}}
+							</Button>
 						</li>
 					</ul>
 				</div>

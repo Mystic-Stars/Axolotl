@@ -329,9 +329,6 @@
   "content.filter.updates": {
     "defaultMessage": "Pembaruan"
   },
-  "content.filter.warnings": {
-    "defaultMessage": "Peringatan"
-  },
   "content.page-layout.browse-content": {
     "defaultMessage": "Jelajahi konten"
   },
@@ -809,18 +806,6 @@
   "header.category.resolutions": {
     "defaultMessage": "Resolusi"
   },
-  "icon-select.edit": {
-    "defaultMessage": "Sunting ikon"
-  },
-  "icon-select.remove": {
-    "defaultMessage": "Hapus ikon"
-  },
-  "icon-select.replace": {
-    "defaultMessage": "Ganti ikon"
-  },
-  "icon-select.select": {
-    "defaultMessage": "Pilih ikon"
-  },
   "input.search.placeholder": {
     "defaultMessage": "Cari..."
   },
@@ -847,24 +832,6 @@
   },
   "instance.worlds.game_mode.unknown": {
     "defaultMessage": "Mode permainan tak dikenal"
-  },
-  "instances.modpack-content-modal.empty-description": {
-    "defaultMessage": "Paket mod ini tidak termasuk konten tambahan."
-  },
-  "instances.modpack-content-modal.empty-title": {
-    "defaultMessage": "Konten tidak ditemukan"
-  },
-  "instances.modpack-content-modal.header": {
-    "defaultMessage": "Konten paket mod"
-  },
-  "instances.modpack-content-modal.loading": {
-    "defaultMessage": "Sedang memuat konten..."
-  },
-  "instances.modpack-content-modal.no-results": {
-    "defaultMessage": "Tidak ada proyek yang cocok dengan pencarian Anda."
-  },
-  "instances.modpack-content-modal.search-placeholder": {
-    "defaultMessage": "Cari {count, number} {count, plural, other {proyek}}"
   },
   "instances.updater-modal.badge.current": {
     "defaultMessage": "Saat ini"
@@ -1210,24 +1177,6 @@
   },
   "omorphia.component.copy.action.copy": {
     "defaultMessage": "Salin kode ke papan klip"
-  },
-  "omorphia.component.environment-indicator.label.client": {
-    "defaultMessage": "Klien"
-  },
-  "omorphia.component.environment-indicator.label.client-and-server": {
-    "defaultMessage": "Klien dan server"
-  },
-  "omorphia.component.environment-indicator.label.client-or-server": {
-    "defaultMessage": "Klien atau server"
-  },
-  "omorphia.component.environment-indicator.label.server": {
-    "defaultMessage": "Server"
-  },
-  "omorphia.component.environment-indicator.label.type": {
-    "defaultMessage": "{type}"
-  },
-  "omorphia.component.environment-indicator.label.unsupported": {
-    "defaultMessage": "Tidak didukung"
   },
   "payment-method.amazon_pay": {
     "defaultMessage": "Amazon Pay"
@@ -1904,17 +1853,8 @@
   "search.filter_type.shader_loader": {
     "defaultMessage": "Pemuat"
   },
-  "servers.notice.dismiss": {
-    "defaultMessage": "Abaikan"
-  },
   "servers.notice.dismissable": {
     "defaultMessage": "Dapat diabaikan"
-  },
-  "servers.notice.heading.attention": {
-    "defaultMessage": "Perhatian"
-  },
-  "servers.notice.heading.info": {
-    "defaultMessage": "Info"
   },
   "servers.notice.level.critical.name": {
     "defaultMessage": "Kritis"
@@ -2440,8 +2380,5 @@
   },
   "tag.loader.waterfall": {
     "defaultMessage": "Waterfall"
-  },
-  "ui.component.unsaved-changes-popup.body": {
-    "defaultMessage": "Anda memiliki perubahan yang belum tersimpan."
   }
 }

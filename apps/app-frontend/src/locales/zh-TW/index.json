@@ -2798,51 +2798,6 @@
   "app.instance.post-upgrade-status": {
     "message": "已升級至 {version}"
   },
-  "app.instance.screenshots.action-failed": {
-    "message": "螢幕截圖操作失敗"
-  },
-  "app.instance.screenshots.copied": {
-    "message": "已複製螢幕截圖"
-  },
-  "app.instance.screenshots.copy": {
-    "message": "複製螢幕截圖"
-  },
-  "app.instance.screenshots.copy-failed": {
-    "message": "無法複製螢幕截圖"
-  },
-  "app.instance.screenshots.delete": {
-    "message": "刪除螢幕截圖"
-  },
-  "app.instance.screenshots.delete-description": {
-    "message": "確定要永久刪除 {name} 嗎？"
-  },
-  "app.instance.screenshots.delete-failed": {
-    "message": "無法刪除螢幕截圖"
-  },
-  "app.instance.screenshots.empty-description": {
-    "message": "在 Minecraft 中拍攝的螢幕截圖會自動顯示在這裡。"
-  },
-  "app.instance.screenshots.empty-title": {
-    "message": "目前沒有螢幕截圖"
-  },
-  "app.instance.screenshots.loading-failed": {
-    "message": "無法載入螢幕截圖"
-  },
-  "app.instance.screenshots.no-search-results": {
-    "message": "找不到符合搜尋條件的螢幕截圖。"
-  },
-  "app.instance.screenshots.open-folder": {
-    "message": "開啟螢幕截圖資料夾"
-  },
-  "app.instance.screenshots.save-as": {
-    "message": "另存新檔..."
-  },
-  "app.instance.screenshots.search-placeholder": {
-    "message": "搜尋 {count} 張螢幕截圖..."
-  },
-  "app.instance.screenshots.view": {
-    "message": "查看螢幕截圖"
-  },
   "app.instance.screenshots.zoom-in": {
     "message": "查看原始大小"
   },
@@ -2947,18 +2902,6 @@
   },
   "app.instances.add-content": {
     "message": "新增內容"
-  },
-  "app.instances.batch-edit-groups.apply": {
-    "message": "套用"
-  },
-  "app.instances.batch-edit-groups.create-group": {
-    "message": "建立新分組"
-  },
-  "app.instances.batch-edit-groups.description": {
-    "message": "為 {count} 個實例設定分組"
-  },
-  "app.instances.batch-edit-groups.enter-group-name": {
-    "message": "分組名稱"
   },
   "app.instances.batch-edit-groups.header": {
     "message": "建立分組"
@@ -5120,42 +5063,6 @@
   "app.minecraft.playing-as": {
     "message": "當前遊玩帳號："
   },
-  "app.modal.install-to-play.content-required": {
-    "message": "所需內容"
-  },
-  "app.modal.install-to-play.header": {
-    "message": "安裝以遊玩"
-  },
-  "app.modal.install-to-play.install-button": {
-    "message": "安裝"
-  },
-  "app.modal.install-to-play.mod-count": {
-    "message": "{count, plural, other {# 個模組}}"
-  },
-  "app.modal.install-to-play.required-modpack": {
-    "message": "所需模組包"
-  },
-  "app.modal.install-to-play.server-requires-mods": {
-    "message": "這個伺服器需要模組才能遊玩。請點選「安裝」以從 Modrinth 設定所需的檔案，完成後即可直接加入伺服器。"
-  },
-  "app.modal.install-to-play.shared-instance": {
-    "message": "共用實例"
-  },
-  "app.modal.install-to-play.shared-server-instance": {
-    "message": "共用伺服器實例"
-  },
-  "app.modal.install-to-play.view-contents": {
-    "message": "檢視內容"
-  },
-  "app.modal.update-to-play.header": {
-    "message": "更新以遊玩"
-  },
-  "app.modal.update-to-play.update-required": {
-    "message": "需要更新"
-  },
-  "app.modal.update-to-play.update-required-description": {
-    "message": "需要更新才能遊玩「{name}」。請更新至最新版本以啟動遊戲。"
-  },
   "app.modpack.change-version": {
     "message": "變更模組包版本"
   },
@@ -5794,9 +5701,6 @@
   },
   "app.privacy-consent.title": {
     "message": "隱私與安全"
-  },
-  "app.project.curseforge.loading": {
-    "message": "正在載入 CurseForge 專案..."
   },
   "app.project.curseforge.unavailable-description": {
     "message": "這個 CurseForge 專案未傳回任何資料。"
@@ -7390,9 +7294,6 @@
   },
   "app.settings.updates.security": {
     "message": "只有透過加密簽章驗證的更新才會被安裝。"
-  },
-  "app.settings.updates.title": {
-    "message": "更新管道"
   },
   "app.settings.updates.up-to-date": {
     "message": "Axolotl 已是最新版本。"

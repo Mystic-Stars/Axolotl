@@ -127,7 +127,7 @@
 				</template>
 				<template #actions>
 					<div data-onboarding-id="instance-actions" class="flex gap-2">
-						<ButtonStyled
+						<Button
 							v-if="
 								[
 									'installing',
@@ -137,55 +137,54 @@
 									'minecraft_installing',
 								].includes(instance.install_stage)
 							"
+							type="colored"
 							color="brand"
-							size="large"
+							size="xl"
+							disabled
+							>{{ formatMessage(commonMessages.installingLabel) }}</Button
 						>
-							<button disabled>{{ formatMessage(commonMessages.installingLabel) }}</button>
-						</ButtonStyled>
-						<ButtonStyled
+						<Button
 							v-else-if="instance.install_stage !== 'installed'"
+							v-tooltip="offline ? formatMessage(messages.offlineInstalledOnly) : undefined"
+							type="colored"
 							color="brand"
-							size="large"
-						>
-							<button
-								v-tooltip="offline ? formatMessage(messages.offlineInstalledOnly) : undefined"
-								:disabled="offline"
-								@click="repairInstance()"
-							>
-								<DownloadIcon />
-								{{ formatMessage(commonMessages.repairButton) }}
-							</button>
-						</ButtonStyled>
-						<ButtonStyled v-else-if="playing === true" color="red" size="large">
-							<button :disabled="stopping" @click="stopInstance('InstancePage')">
-								<StopCircleIcon />
-								{{
-									stopping
-										? formatMessage(messages.stopping)
-										: formatMessage(commonMessages.stopButton)
-								}}
-							</button>
-						</ButtonStyled>
-						<ButtonStyled
+							size="xl"
+							:disabled="offline"
+							@click="repairInstance()"
+							><DownloadIcon />
+							{{ formatMessage(commonMessages.repairButton) }}
+						</Button>
+						<Button
+							v-else-if="playing === true"
+							type="colored"
+							color="red"
+							size="xl"
+							:disabled="stopping"
+							@click="stopInstance('InstancePage')"
+							><StopCircleIcon />
+							{{
+								stopping
+									? formatMessage(messages.stopping)
+									: formatMessage(commonMessages.stopButton)
+							}}
+						</Button>
+						<Button
 							v-else-if="playing === false && loading === false && !isServerInstance"
+							type="colored"
 							color="brand"
-							size="large"
-						>
-							<button @click="startInstance('InstancePage')">
-								<PlayIcon />
-								{{ formatMessage(commonMessages.playButton) }}
-							</button>
-						</ButtonStyled>
+							size="xl"
+							@click="startInstance('InstancePage')"
+							><PlayIcon />
+							{{ formatMessage(commonMessages.playButton) }}
+						</Button>
 						<div
 							v-else-if="playing === false && loading === false && isServerInstance"
 							class="joined-buttons"
 						>
-							<ButtonStyled color="brand" size="large">
-								<button @click="handlePlayServer()">
-									<PlayIcon />
-									{{ formatMessage(commonMessages.playButton) }}
-								</button>
-							</ButtonStyled>
+							<Button type="colored" color="brand" size="xl" @click="handlePlayServer()"
+								><PlayIcon />
+								{{ formatMessage(commonMessages.playButton) }}
+							</Button>
 							<ButtonStyled color="brand" size="large">
 								<OverflowMenu
 									:options="[
@@ -214,24 +213,23 @@
 								</OverflowMenu>
 							</ButtonStyled>
 						</div>
-						<ButtonStyled
+						<Button
 							v-else-if="loading === true && playing === false"
+							type="colored"
 							color="brand"
-							size="large"
-						>
-							<button disabled>
-								<SpinnerIcon class="animate-spin" />
-								{{ formatMessage(messages.starting, { seconds: launchElapsedSeconds }) }}
-							</button>
-						</ButtonStyled>
-						<ButtonStyled circular size="large">
-							<button
-								v-tooltip="formatMessage(messages.instanceSettings)"
-								@click="settingsModal?.show()"
-							>
-								<SettingsIcon />
-							</button>
-						</ButtonStyled>
+							size="xl"
+							disabled
+							><SpinnerIcon class="animate-spin" />
+							{{ formatMessage(messages.starting, { seconds: launchElapsedSeconds }) }}
+						</Button>
+						<Button
+							v-tooltip="formatMessage(messages.instanceSettings)"
+							size="xl"
+							circular
+							icon-only
+							@click="settingsModal?.show()"
+							><SettingsIcon />
+						</Button>
 						<ButtonStyled type="transparent" circular size="large">
 							<OverflowMenu
 								:options="[
@@ -383,6 +381,7 @@ import {
 import {
 	Avatar,
 	Badge,
+	Button,
 	ButtonStyled,
 	commonMessages,
 	ContentPageHeader,
@@ -1047,7 +1046,7 @@ Button {
 		background: inherit;
 		transition: all ease-in-out 0.1s;
 		width: 100%;
-		color: var(--color-primary);
+		color: var(--color-text-default);
 		box-shadow: none;
 
 		&.router-link-exact-active {

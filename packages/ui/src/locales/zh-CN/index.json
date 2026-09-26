@@ -128,6 +128,9 @@
   "button.close": {
     "defaultMessage": "关闭"
   },
+  "button.confirm": {
+    "defaultMessage": "确认"
+  },
   "button.continue": {
     "defaultMessage": "继续"
   },
@@ -674,6 +677,9 @@
   "console.filter.warn": {
     "defaultMessage": "警告"
   },
+  "console.log-viewport.scroll-to-bottom": {
+    "defaultMessage": "滚动到底部"
+  },
   "console.notification.delete-failed": {
     "defaultMessage": "删除日志文件失败"
   },
@@ -862,9 +868,6 @@
   },
   "content.filter.updates": {
     "defaultMessage": "可更新"
-  },
-  "content.filter.warnings": {
-    "defaultMessage": "警告"
   },
   "content.metadata-filter.author": {
     "defaultMessage": "作者"
@@ -1760,18 +1763,6 @@
   "header.category.resolutions": {
     "defaultMessage": "分辨率"
   },
-  "icon-select.edit": {
-    "defaultMessage": "编辑图标"
-  },
-  "icon-select.remove": {
-    "defaultMessage": "移除图标"
-  },
-  "icon-select.replace": {
-    "defaultMessage": "替换图标"
-  },
-  "icon-select.select": {
-    "defaultMessage": "选择图标"
-  },
   "input.search-version.placeholder": {
     "defaultMessage": "查找版本……"
   },
@@ -2006,24 +1997,6 @@
   "instances.content-install.select-icon": {
     "defaultMessage": "选择图标"
   },
-  "instances.modpack-content-modal.empty-description": {
-    "defaultMessage": "这个整合包不包含任何额外内容。"
-  },
-  "instances.modpack-content-modal.empty-title": {
-    "defaultMessage": "未找到内容"
-  },
-  "instances.modpack-content-modal.header": {
-    "defaultMessage": "整合包内容"
-  },
-  "instances.modpack-content-modal.loading": {
-    "defaultMessage": "加载内容……"
-  },
-  "instances.modpack-content-modal.no-results": {
-    "defaultMessage": "没有符合搜索条件的项目。"
-  },
-  "instances.modpack-content-modal.search-placeholder": {
-    "defaultMessage": "搜索 {count, number} {count, plural, other {个项目}}"
-  },
   "instances.updater-modal.badge.current": {
     "defaultMessage": "当前"
   },
@@ -2224,6 +2197,33 @@
   },
   "label.no-items": {
     "defaultMessage": "空"
+  },
+  "modal.confirm.confirmation-placeholder": {
+    "defaultMessage": "在此输入……"
+  },
+  "modal.confirm.confirmation-prompt": {
+    "defaultMessage": "要确认继续，请在下方输入 <confirmation-text>{confirmationText}</confirmation-text>："
+  },
+  "modal.confirm.no-title": {
+    "defaultMessage": "未定义标题"
+  },
+  "modal.confirm.proceed": {
+    "defaultMessage": "继续"
+  },
+  "modal.install-to-play.admonition-body": {
+    "defaultMessage": "此服务器需要模组内容才能游玩。接受后将安装来自 Modrinth 所需的文件。"
+  },
+  "modal.install-to-play.admonition-header": {
+    "defaultMessage": "共享服务器实例"
+  },
+  "modal.install-to-play.shared-by": {
+    "defaultMessage": "<name>{name}</name>今天与你共享了此实例。"
+  },
+  "modal.install-to-play.shared-instance-label": {
+    "defaultMessage": "共享实例"
+  },
+  "modal.install-to-play.title": {
+    "defaultMessage": "安装后游玩"
   },
   "notification.panel.copy": {
     "defaultMessage": "复制到剪贴板"
@@ -2456,150 +2456,6 @@
   "locale.zh-TW": {
     "defaultMessage": "中文（繁体）"
   },
-  "markdown-editor.default-image-alt-text": {
-    "defaultMessage": "用文字描述替代"
-  },
-  "markdown-editor.error-label": {
-    "defaultMessage": "出错"
-  },
-  "markdown-editor.image-modal.description-field.description": {
-    "defaultMessage": "尽可能地描述这张图片，以此关照不能加载图片的人。"
-  },
-  "markdown-editor.image-modal.description-field.placeholder": {
-    "defaultMessage": "描述此图片…"
-  },
-  "markdown-editor.image-modal.description-field.title": {
-    "defaultMessage": "描述（替代文本）"
-  },
-  "markdown-editor.image-modal.header": {
-    "defaultMessage": "插入图片"
-  },
-  "markdown-editor.image-modal.upload-mode.label": {
-    "defaultMessage": "图片来源"
-  },
-  "markdown-editor.image-modal.upload-mode.link": {
-    "defaultMessage": "链接"
-  },
-  "markdown-editor.image-modal.upload-mode.upload": {
-    "defaultMessage": "上传"
-  },
-  "markdown-editor.image-modal.upload.prompt": {
-    "defaultMessage": "拖放上传或单击选择文件"
-  },
-  "markdown-editor.image-modal.url-field.placeholder": {
-    "defaultMessage": "输入图片URL…"
-  },
-  "markdown-editor.insert-button": {
-    "defaultMessage": "插入"
-  },
-  "markdown-editor.link-modal.header": {
-    "defaultMessage": "插入链接"
-  },
-  "markdown-editor.link-modal.label-field.placeholder": {
-    "defaultMessage": "输入标签……"
-  },
-  "markdown-editor.link-modal.label-field.title": {
-    "defaultMessage": "标签"
-  },
-  "markdown-editor.link-modal.url-field.placeholder": {
-    "defaultMessage": "输入链接URL…"
-  },
-  "markdown-editor.markdown-formatting-support": {
-    "defaultMessage": "此编辑器支持 <markdown-link>Markdown 格式</markdown-link>。"
-  },
-  "markdown-editor.max-length.label": {
-    "defaultMessage": "长度限制："
-  },
-  "markdown-editor.max-length.unlimited": {
-    "defaultMessage": "无限制"
-  },
-  "markdown-editor.max-length.value": {
-    "defaultMessage": "{currentLength}/{maxLength}"
-  },
-  "markdown-editor.placeholder": {
-    "defaultMessage": "写点什么……"
-  },
-  "markdown-editor.preview-label": {
-    "defaultMessage": "预览"
-  },
-  "markdown-editor.preview-toggle.label": {
-    "defaultMessage": "预览"
-  },
-  "markdown-editor.toolbar.bold": {
-    "defaultMessage": "加粗"
-  },
-  "markdown-editor.toolbar.bulleted-list": {
-    "defaultMessage": "项目清单"
-  },
-  "markdown-editor.toolbar.code": {
-    "defaultMessage": "代码"
-  },
-  "markdown-editor.toolbar.heading-1": {
-    "defaultMessage": "一级标题"
-  },
-  "markdown-editor.toolbar.heading-2": {
-    "defaultMessage": "二级标题"
-  },
-  "markdown-editor.toolbar.heading-3": {
-    "defaultMessage": "三级标题"
-  },
-  "markdown-editor.toolbar.image": {
-    "defaultMessage": "图片"
-  },
-  "markdown-editor.toolbar.italic": {
-    "defaultMessage": "斜体"
-  },
-  "markdown-editor.toolbar.link": {
-    "defaultMessage": "链接"
-  },
-  "markdown-editor.toolbar.ordered-list": {
-    "defaultMessage": "已排序列表"
-  },
-  "markdown-editor.toolbar.quote": {
-    "defaultMessage": "引用"
-  },
-  "markdown-editor.toolbar.spoiler": {
-    "defaultMessage": "折叠内容"
-  },
-  "markdown-editor.toolbar.strikethrough": {
-    "defaultMessage": "删除线"
-  },
-  "markdown-editor.toolbar.video": {
-    "defaultMessage": "视频"
-  },
-  "markdown-editor.upload-error.no-file": {
-    "defaultMessage": "没有提供文件"
-  },
-  "markdown-editor.upload-error.no-handler": {
-    "defaultMessage": "未提供图像上传处理程序"
-  },
-  "markdown-editor.url-label": {
-    "defaultMessage": "URL链接"
-  },
-  "markdown-editor.url-validation-error.blocked-domain": {
-    "defaultMessage": "无效的URL。此域名不被允许使用。"
-  },
-  "markdown-editor.url-validation-error.malformed": {
-    "defaultMessage": "无效的URL。请确保URL格式正确。"
-  },
-  "markdown-editor.url-validation-error.unsupported-protocol": {
-    "defaultMessage": "不支持的协议。请使用 http 或 https。"
-  },
-  "markdown-editor.video-embed.title": {
-    "defaultMessage": "YouTube 视频播放器"
-  },
-  "markdown-editor.video-modal.header": {
-    "defaultMessage": "插入 YouTube 视频"
-  },
-  "markdown-editor.video-modal.url-field.description": {
-    "defaultMessage": "输入一个有效的 YouTube 视频链接。"
-  },
-  "markdown-editor.video-modal.url-field.placeholder": {
-    "defaultMessage": "输入 YouTube 视频 URL"
-  },
-  "markdown-editor.video-modal.url-field.title": {
-    "defaultMessage": "YouTube视频URL"
-  },
   "modal.open-in-app.benefit.install": {
     "defaultMessage": "自动安装所需要的内容"
   },
@@ -2692,24 +2548,6 @@
   },
   "omorphia.component.copy.action.copy": {
     "defaultMessage": "将代码复制到剪贴板"
-  },
-  "omorphia.component.environment-indicator.label.client": {
-    "defaultMessage": "客户端"
-  },
-  "omorphia.component.environment-indicator.label.client-and-server": {
-    "defaultMessage": "客户端和服务端"
-  },
-  "omorphia.component.environment-indicator.label.client-or-server": {
-    "defaultMessage": "客户端或服务端"
-  },
-  "omorphia.component.environment-indicator.label.server": {
-    "defaultMessage": "服务端"
-  },
-  "omorphia.component.environment-indicator.label.type": {
-    "defaultMessage": "{type}"
-  },
-  "omorphia.component.environment-indicator.label.unsupported": {
-    "defaultMessage": "不支持"
   },
   "omorphia.component.loading-indicator.label": {
     "defaultMessage": "加载中"
@@ -3566,17 +3404,8 @@
   "search.server_content_type.vanilla": {
     "defaultMessage": "原版"
   },
-  "servers.notice.dismiss": {
-    "defaultMessage": "隐藏"
-  },
   "servers.notice.dismissable": {
     "defaultMessage": "可隐藏"
-  },
-  "servers.notice.heading.attention": {
-    "defaultMessage": "注意"
-  },
-  "servers.notice.heading.info": {
-    "defaultMessage": "信息"
   },
   "servers.notice.level.critical.name": {
     "defaultMessage": "关键重要信息"
@@ -4265,96 +4094,6 @@
   "tag.loader.waterfall": {
     "defaultMessage": "Waterfall"
   },
-  "time-frame-picker.apply": {
-    "defaultMessage": "应用"
-  },
-  "time-frame-picker.cancel": {
-    "defaultMessage": "取消"
-  },
-  "time-frame-picker.clear-range": {
-    "defaultMessage": "清除"
-  },
-  "time-frame-picker.custom-range": {
-    "defaultMessage": "自定义固定日期范围……"
-  },
-  "time-frame-picker.decrease-amount": {
-    "defaultMessage": "减少计费周期时长"
-  },
-  "time-frame-picker.empty-range": {
-    "defaultMessage": "未选择时间范围。"
-  },
-  "time-frame-picker.end-date": {
-    "defaultMessage": "结束日期"
-  },
-  "time-frame-picker.increase-amount": {
-    "defaultMessage": "增加计费周期时长"
-  },
-  "time-frame-picker.last-timeframe": {
-    "defaultMessage": "在最后的{amount} {unit, select, hours {{amount, plural, one {小时} other {小时}}} days {{amount, plural, one {天} other {天}}} weeks {{amount, plural, one {周} other {周}}} months {{amount, plural, one {月} other {月}}} other {天}}"
-  },
-  "time-frame-picker.last-timeframe-prefix": {
-    "defaultMessage": "最后的时间"
-  },
-  "time-frame-picker.option.all-time": {
-    "defaultMessage": "所有时间"
-  },
-  "time-frame-picker.option.last-14-days": {
-    "defaultMessage": "过去14天"
-  },
-  "time-frame-picker.option.last-180-days": {
-    "defaultMessage": "过去180天"
-  },
-  "time-frame-picker.option.last-30-days": {
-    "defaultMessage": "过去30天"
-  },
-  "time-frame-picker.option.last-7-days": {
-    "defaultMessage": "过去7天"
-  },
-  "time-frame-picker.option.last-90-days": {
-    "defaultMessage": "过去90天"
-  },
-  "time-frame-picker.option.today": {
-    "defaultMessage": "今天"
-  },
-  "time-frame-picker.option.year-to-date": {
-    "defaultMessage": "年初至今"
-  },
-  "time-frame-picker.option.yesterday": {
-    "defaultMessage": "昨天"
-  },
-  "time-frame-picker.select-timeframe": {
-    "defaultMessage": "选择时间段"
-  },
-  "time-frame-picker.selected-range": {
-    "defaultMessage": "已选择"
-  },
-  "time-frame-picker.selecting-range": {
-    "defaultMessage": "正在选择"
-  },
-  "time-frame-picker.start-date": {
-    "defaultMessage": "开始日期"
-  },
-  "time-frame-picker.timeframe-amount": {
-    "defaultMessage": "周期数值"
-  },
-  "time-frame-picker.timeframe-unit": {
-    "defaultMessage": "周期单位"
-  },
-  "time-frame-picker.unit.days": {
-    "defaultMessage": "日"
-  },
-  "time-frame-picker.unit.hours": {
-    "defaultMessage": "小时"
-  },
-  "time-frame-picker.unit.months": {
-    "defaultMessage": "月"
-  },
-  "time-frame-picker.unit.weeks": {
-    "defaultMessage": "周"
-  },
-  "ui.component.unsaved-changes-popup.body": {
-    "defaultMessage": "你有未保存的修改。"
-  },
   "ui.confirm-leave-modal.body": {
     "defaultMessage": "你有未保存的更改，离开此页面将会丢失这些更改。"
   },
@@ -4505,12 +4244,6 @@
   "ui.scroll-to-top.tooltip": {
     "defaultMessage": "返回顶部"
   },
-  "ui.stacked-admonitions.alert-count": {
-    "defaultMessage": "{count} 个警报"
-  },
-  "ui.stacked-admonitions.dismiss-all": {
-    "defaultMessage": "全部忽略"
-  },
   "version.content.name": {
     "defaultMessage": "名称"
   },
@@ -4591,6 +4324,9 @@
   },
   "version.section.supplementary-resources": {
     "defaultMessage": "附加的资源"
+  },
+  "version.summary.view-version": {
+    "defaultMessage": "查看版本"
   },
   "version.supplementary-resources.file": {
     "defaultMessage": "文件"

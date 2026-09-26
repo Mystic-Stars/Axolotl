@@ -17,6 +17,7 @@ import {
 } from '@modrinth/assets'
 import {
 	Admonition,
+	Button,
 	ButtonStyled,
 	Card,
 	CopyCode,
@@ -623,34 +624,23 @@ function submitJoin() {
 	<div class="flex min-h-0 w-full flex-1 flex-col gap-3">
 		<div class="flex min-w-0 flex-wrap items-center justify-end gap-3">
 			<PopoutMenu placement="bottom-end">
-				<ButtonStyled size="standard" type="standard">
-					<button class="flex min-w-36 items-center gap-2">
-						<img
-							:src="selectedProviderOption.image"
-							class="size-5 shrink-0 object-contain"
-							alt=""
-						/>
-						<span class="flex-1 text-left">{{ formatMessage(selectedProviderOption.label) }}</span>
-						<DropdownIcon class="size-4 shrink-0" />
-					</button>
-				</ButtonStyled>
+				<Button size="md" class="flex min-w-36 items-center gap-2"
+					><img :src="selectedProviderOption.image" class="size-5 shrink-0 object-contain" alt="" />
+					<span class="flex-1 text-left">{{ formatMessage(selectedProviderOption.label) }}</span>
+					<DropdownIcon class="size-4 shrink-0" />
+				</Button>
 				<template #menu>
 					<div class="flex w-44 flex-col gap-1 p-1">
-						<ButtonStyled
+						<Button
 							v-for="option in providerOptions"
 							:key="option.id"
-							:type="selectedProvider === option.id ? 'standard' : 'transparent'"
-						>
-							<button
-								type="button"
-								class="flex w-full items-center gap-2 !justify-start text-left"
-								:disabled="option.disabled"
-								@click="selectProvider(option.id)"
-							>
-								<img :src="option.image" class="size-4 shrink-0 object-contain" alt="" />
-								{{ formatMessage(option.label) }}
-							</button>
-						</ButtonStyled>
+							:type="selectedProvider === option.id ? 'base' : 'quiet'"
+							class="flex w-full items-center gap-2 !justify-start text-left"
+							:disabled="option.disabled"
+							@click="selectProvider(option.id)"
+							><img :src="option.image" class="size-4 shrink-0 object-contain" alt="" />
+							{{ formatMessage(option.label) }}
+						</Button>
 					</div>
 				</template>
 			</PopoutMenu>
@@ -704,12 +694,14 @@ function submitJoin() {
 					/>
 
 					<div v-else class="flex flex-wrap gap-2">
-						<ButtonStyled color="brand">
-							<button type="button" :disabled="isActionPending" @click="downloadTerracotta">
-								<DownloadIcon />
-								{{ formatMessage(messages.downloadTerracotta) }}
-							</button>
-						</ButtonStyled>
+						<Button
+							type="colored"
+							color="brand"
+							:disabled="isActionPending"
+							@click="downloadTerracotta"
+							><DownloadIcon />
+							{{ formatMessage(messages.downloadTerracotta) }}
+						</Button>
 					</div>
 				</div>
 			</Card>
@@ -839,12 +831,10 @@ function submitJoin() {
 						{{ formatMessage(messages.lanHint) }}
 					</Admonition>
 					<div class="flex flex-wrap gap-2">
-						<ButtonStyled type="outlined">
-							<button type="button" :disabled="isActionPending" @click="resetState">
-								<ArrowLeftIcon />
-								{{ formatMessage(messages.back) }}
-							</button>
-						</ButtonStyled>
+						<Button type="outlined" :disabled="isActionPending" @click="resetState"
+							><ArrowLeftIcon />
+							{{ formatMessage(messages.back) }}
+						</Button>
 					</div>
 				</div>
 			</Card>
@@ -936,12 +926,10 @@ function submitJoin() {
 					</section>
 
 					<div class="flex flex-wrap gap-2">
-						<ButtonStyled color="red" type="outlined">
-							<button type="button" :disabled="isActionPending" @click="resetState">
-								<LogOutIcon />
-								{{ formatMessage(messages.disconnect) }}
-							</button>
-						</ButtonStyled>
+						<Button type="outlined" color="red" :disabled="isActionPending" @click="resetState"
+							><LogOutIcon />
+							{{ formatMessage(messages.disconnect) }}
+						</Button>
 					</div>
 				</div>
 			</Card>
@@ -956,12 +944,10 @@ function submitJoin() {
 						<h2 class="m-0 text-lg font-semibold text-contrast">{{ statusText }}</h2>
 					</div>
 					<div class="flex flex-wrap gap-2">
-						<ButtonStyled type="outlined">
-							<button type="button" :disabled="isActionPending" @click="resetState">
-								<ArrowLeftIcon />
-								{{ formatMessage(messages.back) }}
-							</button>
-						</ButtonStyled>
+						<Button type="outlined" :disabled="isActionPending" @click="resetState"
+							><ArrowLeftIcon />
+							{{ formatMessage(messages.back) }}
+						</Button>
 					</div>
 				</div>
 			</Card>
@@ -971,27 +957,24 @@ function submitJoin() {
 					{{ state.error_message || formatMessage(messages.checkNetwork) }}
 					<template #actions>
 						<div class="flex flex-wrap gap-2">
-							<ButtonStyled v-if="isRecoverable" color="red" type="outlined">
-								<button
-									type="button"
-									:disabled="isActionPending || isExportingReport"
-									@click="resetState"
-								>
-									<RefreshCwIcon />
-									{{ formatMessage(messages.retry) }}
-								</button>
-							</ButtonStyled>
-							<ButtonStyled color="brand">
-								<button
-									type="button"
-									:disabled="isActionPending || isExportingReport"
-									@click="exportTerracottaReport"
-								>
-									<SpinnerIcon v-if="isExportingReport" class="animate-spin" />
-									<DownloadIcon v-else />
-									{{ formatMessage(messages.exportErrorReport) }}
-								</button>
-							</ButtonStyled>
+							<Button
+								v-if="isRecoverable"
+								type="outlined"
+								color="red"
+								:disabled="isActionPending || isExportingReport"
+								@click="resetState"
+								><RefreshCwIcon />
+								{{ formatMessage(messages.retry) }}
+							</Button>
+							<Button
+								type="colored"
+								color="brand"
+								:disabled="isActionPending || isExportingReport"
+								@click="exportTerracottaReport"
+								><SpinnerIcon v-if="isExportingReport" class="animate-spin" />
+								<DownloadIcon v-else />
+								{{ formatMessage(messages.exportErrorReport) }}
+							</Button>
 						</div>
 					</template>
 				</Admonition>
@@ -1009,12 +992,14 @@ function submitJoin() {
 						"
 					>
 						<template #actions>
-							<ButtonStyled color="brand">
-								<button type="button" :disabled="isActionPending" @click="updateTerracotta">
-									<DownloadIcon />
-									{{ formatMessage(messages.updateTerracotta) }}
-								</button>
-							</ButtonStyled>
+							<Button
+								type="colored"
+								color="brand"
+								:disabled="isActionPending"
+								@click="updateTerracotta"
+								><DownloadIcon />
+								{{ formatMessage(messages.updateTerracotta) }}
+							</Button>
 						</template>
 					</Admonition>
 
@@ -1034,12 +1019,14 @@ function submitJoin() {
 						</div>
 					</div>
 					<div class="flex flex-wrap gap-2">
-						<ButtonStyled color="brand">
-							<button type="button" :disabled="isActionPending" @click="startTerracotta">
-								<PlayIcon />
-								{{ formatMessage(messages.startTerracotta) }}
-							</button>
-						</ButtonStyled>
+						<Button
+							type="colored"
+							color="brand"
+							:disabled="isActionPending"
+							@click="startTerracotta"
+							><PlayIcon />
+							{{ formatMessage(messages.startTerracotta) }}
+						</Button>
 					</div>
 				</div>
 			</Card>
@@ -1090,12 +1077,14 @@ function submitJoin() {
 					/>
 
 					<div v-else class="flex flex-wrap gap-2">
-						<ButtonStyled color="brand">
-							<button type="button" :disabled="isActionPending" @click="downloadHongshi">
-								<DownloadIcon />
-								{{ formatMessage(messages.downloadHongshi) }}
-							</button>
-						</ButtonStyled>
+						<Button
+							type="colored"
+							color="brand"
+							:disabled="isActionPending"
+							@click="downloadHongshi"
+							><DownloadIcon />
+							{{ formatMessage(messages.downloadHongshi) }}
+						</Button>
 					</div>
 				</div>
 			</Card>
@@ -1142,12 +1131,14 @@ function submitJoin() {
 					>
 						{{ formatMessage(messages.portChanged) }}
 						<template #actions>
-							<ButtonStyled color="orange">
-								<button type="button" :disabled="isActionPending" @click="restartHongshiTunnel">
-									<RefreshCwIcon />
-									{{ formatMessage(messages.restartTunnel) }}
-								</button>
-							</ButtonStyled>
+							<Button
+								type="colored"
+								color="orange"
+								:disabled="isActionPending"
+								@click="restartHongshiTunnel"
+								><RefreshCwIcon />
+								{{ formatMessage(messages.restartTunnel) }}
+							</Button>
 						</template>
 					</Admonition>
 
@@ -1156,18 +1147,14 @@ function submitJoin() {
 					</Admonition>
 
 					<div class="flex flex-wrap gap-2">
-						<ButtonStyled color="red" type="outlined">
-							<button type="button" :disabled="isActionPending" @click="stopMultiplayer">
-								<LogOutIcon />
-								{{ formatMessage(messages.disconnect) }}
-							</button>
-						</ButtonStyled>
-						<ButtonStyled type="outlined">
-							<button type="button" :disabled="isActionPending" @click="openHongshiLogs">
-								<BinaryIcon />
-								{{ formatMessage(messages.openLogs) }}
-							</button>
-						</ButtonStyled>
+						<Button type="outlined" color="red" :disabled="isActionPending" @click="stopMultiplayer"
+							><LogOutIcon />
+							{{ formatMessage(messages.disconnect) }}
+						</Button>
+						<Button type="outlined" :disabled="isActionPending" @click="openHongshiLogs"
+							><BinaryIcon />
+							{{ formatMessage(messages.openLogs) }}
+						</Button>
 					</div>
 				</div>
 			</Card>
@@ -1189,12 +1176,10 @@ function submitJoin() {
 						</h2>
 					</div>
 					<div class="flex flex-wrap gap-2">
-						<ButtonStyled color="red" type="outlined">
-							<button type="button" :disabled="isActionPending" @click="stopMultiplayer">
-								<LogOutIcon />
-								{{ formatMessage(messages.disconnect) }}
-							</button>
-						</ButtonStyled>
+						<Button type="outlined" color="red" :disabled="isActionPending" @click="stopMultiplayer"
+							><LogOutIcon />
+							{{ formatMessage(messages.disconnect) }}
+						</Button>
 					</div>
 				</div>
 			</Card>
@@ -1208,12 +1193,10 @@ function submitJoin() {
 					>
 						{{ hongshiState.error_message || formatMessage(messages.checkNetwork) }}
 						<template #actions>
-							<ButtonStyled type="outlined">
-								<button type="button" @click="openHongshiLogs">
-									<BinaryIcon />
-									{{ formatMessage(messages.openLogs) }}
-								</button>
-							</ButtonStyled>
+							<Button type="outlined" @click="openHongshiLogs"
+								><BinaryIcon />
+								{{ formatMessage(messages.openLogs) }}
+							</Button>
 						</template>
 					</Admonition>
 
@@ -1282,28 +1265,24 @@ function submitJoin() {
 					</Admonition>
 
 					<div class="flex flex-wrap gap-2">
-						<ButtonStyled color="brand">
-							<button
-								type="button"
-								:disabled="
-									!effectiveLocalPort ||
-									nodes.length === 0 ||
-									isActionPending ||
-									isNodesLoading ||
-									!!(selectedNode && !selectedNode.reachable)
-								"
-								@click="startHongshiTunnel"
-							>
-								<GlobeIcon />
-								{{ formatMessage(messages.createTunnel) }}
-							</button>
-						</ButtonStyled>
-						<ButtonStyled type="outlined">
-							<button type="button" :disabled="isNodesLoading" @click="refreshNodes(true)">
-								<RefreshCwIcon :class="{ 'animate-spin': isNodesLoading }" />
-								{{ formatMessage(messages.refreshNodes) }}
-							</button>
-						</ButtonStyled>
+						<Button
+							type="colored"
+							color="brand"
+							:disabled="
+								!effectiveLocalPort ||
+								nodes.length === 0 ||
+								isActionPending ||
+								isNodesLoading ||
+								!!(selectedNode && !selectedNode.reachable)
+							"
+							@click="startHongshiTunnel"
+							><GlobeIcon />
+							{{ formatMessage(messages.createTunnel) }}
+						</Button>
+						<Button type="outlined" :disabled="isNodesLoading" @click="refreshNodes(true)"
+							><RefreshCwIcon :class="{ 'animate-spin': isNodesLoading }" />
+							{{ formatMessage(messages.refreshNodes) }}
+						</Button>
 					</div>
 				</div>
 			</Card>

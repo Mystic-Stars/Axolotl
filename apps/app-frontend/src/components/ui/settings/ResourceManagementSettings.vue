@@ -2,6 +2,7 @@
 import { BoxIcon, FolderOpenIcon, FolderSearchIcon, PlusIcon, TrashIcon } from '@modrinth/assets'
 import {
 	Combobox,
+	ConfirmModal,
 	defineMessages,
 	IconButton,
 	injectNotificationManager,
@@ -14,7 +15,6 @@ import { invoke } from '@tauri-apps/api/core'
 import { open } from '@tauri-apps/plugin-dialog'
 import { computed, ref, watch } from 'vue'
 
-import ConfirmModalWrapper from '@/components/ui/modal/ConfirmModalWrapper.vue'
 import { purge_cache_types } from '@/helpers/cache.js'
 import { configureCurseForgeManualDownloadWatcher } from '@/helpers/curseforge'
 import { syncConfiguredDirectLinks } from '@/helpers/direct-link-sync'
@@ -756,13 +756,12 @@ function validateMinecraftDirectory(value) {
 
 <template>
 	<div class="flex flex-col gap-6">
-		<ConfirmModalWrapper
+		<ConfirmModal
 			ref="purgeCacheConfirmModal"
 			:title="formatMessage(messages.purgeConfirmTitle)"
 			:description="formatMessage(messages.purgeConfirmDescription)"
 			:has-to-type="false"
 			:proceed-label="formatMessage(messages.purgeCache)"
-			:show-ad-on-close="false"
 			@proceed="purgeCache"
 		/>
 

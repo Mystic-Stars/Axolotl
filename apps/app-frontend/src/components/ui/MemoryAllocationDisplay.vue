@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { SparklesIcon, SpinnerIcon } from '@modrinth/assets'
-import { ButtonStyled, defineMessages, injectNotificationManager, useVIntl } from '@modrinth/ui'
+import { Button, defineMessages, injectNotificationManager, useVIntl } from '@modrinth/ui'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
 import { get_memory_status, optimize_memory } from '@/helpers/jre.js'
@@ -174,17 +174,11 @@ onBeforeUnmount(() => {
 						)
 					}}
 				</p>
-				<ButtonStyled>
-					<button
-						type="button"
-						:disabled="optimizing || !optimizationSupported"
-						@click="handleOptimize"
-					>
-						<SpinnerIcon v-if="optimizing" class="animate-spin" />
-						<SparklesIcon v-else />
-						{{ formatMessage(optimizing ? messages.optimizing : messages.optimize) }}
-					</button>
-				</ButtonStyled>
+				<Button :disabled="optimizing || !optimizationSupported" @click="handleOptimize"
+					><SpinnerIcon v-if="optimizing" class="animate-spin" />
+					<SparklesIcon v-else />
+					{{ formatMessage(optimizing ? messages.optimizing : messages.optimize) }}
+				</Button>
 			</div>
 		</template>
 	</div>

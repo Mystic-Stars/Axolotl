@@ -4,6 +4,7 @@ import DownloadIcon from '@modrinth/assets/icons/download.svg?component'
 import HamburgerIcon from '@modrinth/assets/icons/hamburger.svg?component'
 import SettingsIcon from '@modrinth/assets/icons/settings.svg?component'
 import XIcon from '@modrinth/assets/icons/x.svg?component'
+import Button from '@modrinth/ui/src/components/base/buttons/Button.vue'
 import ButtonStyled from '@modrinth/ui/src/components/base/ButtonStyled.vue'
 import { defineMessages, useVIntl } from '@modrinth/ui/src/composables/i18n.ts'
 import type { ComponentPublicInstance } from 'vue'
@@ -108,26 +109,26 @@ function openSettings() {
 						{{ formatMessage(messages.download) }}
 					</a>
 				</ButtonStyled>
-				<ButtonStyled circular type="transparent">
-					<button :aria-label="formatMessage(messages.openSettings)" @click="openSettings">
-						<SettingsIcon aria-hidden="true" />
-					</button>
-				</ButtonStyled>
-				<ButtonStyled
+				<Button
+					type="quiet"
+					circular
+					icon-only
+					:aria-label="formatMessage(messages.openSettings)"
+					@click="openSettings"
+					><SettingsIcon aria-hidden="true" />
+				</Button>
+				<Button
 					ref="mobileMenuButtonRef"
 					class="hidden max-lg:flex"
+					type="quiet"
 					circular
-					type="transparent"
-				>
-					<button
-						:aria-label="formatMessage(mobileMenuOpen ? messages.closeMenu : messages.openMenu)"
-						:aria-expanded="mobileMenuOpen"
-						@click="mobileMenuOpen = !mobileMenuOpen"
-					>
-						<XIcon v-if="mobileMenuOpen" aria-hidden="true" />
-						<HamburgerIcon v-else aria-hidden="true" />
-					</button>
-				</ButtonStyled>
+					icon-only
+					:aria-label="formatMessage(mobileMenuOpen ? messages.closeMenu : messages.openMenu)"
+					:aria-expanded="mobileMenuOpen"
+					@click="mobileMenuOpen = !mobileMenuOpen"
+					><XIcon v-if="mobileMenuOpen" aria-hidden="true" />
+					<HamburgerIcon v-else aria-hidden="true" />
+				</Button>
 			</div>
 		</div>
 

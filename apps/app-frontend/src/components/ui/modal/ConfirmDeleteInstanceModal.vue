@@ -33,22 +33,18 @@
 
 		<template #actions>
 			<div class="flex gap-2 justify-end">
-				<ButtonStyled type="outlined">
-					<button @click="modal?.hide()">
-						<XIcon />
-						{{ formatMessage(commonMessages.cancelButton) }}
-					</button>
-				</ButtonStyled>
-				<ButtonStyled color="red">
-					<button @click="confirm">
-						<TrashIcon />
-						{{
-							formatMessage(count > 1 ? messages.batchDeleteButton : messages.deleteButton, {
-								count,
-							})
-						}}
-					</button>
-				</ButtonStyled>
+				<Button type="outlined" @click="modal?.hide()"
+					><XIcon />
+					{{ formatMessage(commonMessages.cancelButton) }}
+				</Button>
+				<Button type="colored" color="red" @click="confirm"
+					><TrashIcon />
+					{{
+						formatMessage(count > 1 ? messages.batchDeleteButton : messages.deleteButton, {
+							count,
+						})
+					}}
+				</Button>
 			</div>
 		</template>
 	</NewModal>
@@ -58,7 +54,7 @@
 import { TrashIcon, XIcon } from '@modrinth/assets'
 import {
 	Admonition,
-	ButtonStyled,
+	Button,
 	commonMessages,
 	defineMessages,
 	NewModal,

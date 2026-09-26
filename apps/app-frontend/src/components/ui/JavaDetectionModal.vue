@@ -1,9 +1,5 @@
 <template>
-	<ModalWrapper
-		ref="detectJavaModal"
-		:header="formatMessage(messages.selectJavaVersion)"
-		:show-ad-on-close="false"
-	>
+	<NewModal ref="detectJavaModal" :header="formatMessage(messages.selectJavaVersion)">
 		<div class="flex flex-col gap-4">
 			<Table :columns="javaInstallColumns" :data="chosenInstallOptions" row-key="path">
 				<template #cell-version="{ value }">
@@ -14,16 +10,12 @@
 				</template>
 				<template #cell-actions="{ row }">
 					<div class="flex items-center justify-end">
-						<ButtonStyled v-if="currentSelected.path === row.path">
-							<button class="!shadow-none" disabled>
-								<CheckIcon /> {{ formatMessage(commonMessages.selectedLabel) }}
-							</button>
-						</ButtonStyled>
-						<ButtonStyled v-else>
-							<button class="!shadow-none" @click="setJavaInstall(row)">
-								<PlusIcon /> {{ formatMessage(messages.select) }}
-							</button>
-						</ButtonStyled>
+						<Button v-if="currentSelected.path === row.path" class="!shadow-none" disabled
+							><CheckIcon /> {{ formatMessage(commonMessages.selectedLabel) }}
+						</Button>
+						<Button v-else class="!shadow-none" @click="setJavaInstall(row)"
+							><PlusIcon /> {{ formatMessage(messages.select) }}
+						</Button>
 					</div>
 				</template>
 				<template #empty-state>
@@ -33,32 +25,30 @@
 				</template>
 			</Table>
 			<div class="flex justify-end">
-				<ButtonStyled type="outlined">
-					<button
-						class="!shadow-none !border-surface-4 !border"
-						@click="$refs.detectJavaModal.hide()"
-					>
-						<XIcon />
-						{{ formatMessage(commonMessages.cancelButton) }}
-					</button>
-				</ButtonStyled>
+				<Button
+					type="outlined"
+					class="!shadow-none !border-surface-4 !border"
+					@click="$refs.detectJavaModal.hide()"
+					><XIcon />
+					{{ formatMessage(commonMessages.cancelButton) }}
+				</Button>
 			</div>
 		</div>
-	</ModalWrapper>
+	</NewModal>
 </template>
 <script setup>
 import { CheckIcon, PlusIcon, XIcon } from '@modrinth/assets'
 import {
-	ButtonStyled,
+	Button,
 	commonMessages,
 	defineMessages,
 	injectNotificationManager,
+	NewModal,
 	Table,
 	useVIntl,
 } from '@modrinth/ui'
 import { onUnmounted, ref } from 'vue'
 
-import ModalWrapper from '@/components/ui/modal/ModalWrapper.vue'
 import { trackEvent } from '@/helpers/analytics'
 import { java_discovery_listener } from '@/helpers/events'
 import { find_filtered_jres } from '@/helpers/jre.js'

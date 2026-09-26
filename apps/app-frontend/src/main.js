@@ -1,9 +1,8 @@
-import 'floating-vue/dist/style.css'
 import 'overlayscrollbars/overlayscrollbars.css'
 import '@/assets/stylesheets/global.css'
 
+import { tooltipDirective } from '@modrinth/ui/directives/tooltip.ts'
 import { VueQueryPlugin } from '@tanstack/vue-query'
-import FloatingVue from 'floating-vue'
 import { createPinia } from 'pinia'
 import { createApp } from 'vue'
 
@@ -24,22 +23,9 @@ app.use(VueQueryPlugin)
 // Pinia must install before the router: route guards use useNavigationReturnStore().
 app.use(pinia)
 app.use(router)
-app.use(FloatingVue, {
-	themes: {
-		'ribbit-popout': {
-			$extend: 'dropdown',
-			placement: 'bottom-end',
-			instantMove: true,
-			distance: 8,
-		},
-		'dismissable-prompt': {
-			$extend: 'dropdown',
-			placement: 'bottom-start',
-		},
-	},
-})
 app.use(i18nPlugin)
 app.use(i18nDebugPlugin)
 app.directive('overlay-scrollbars', overlayScrollbarsDirective)
+app.directive('tooltip', tooltipDirective)
 
 app.mount('#app')

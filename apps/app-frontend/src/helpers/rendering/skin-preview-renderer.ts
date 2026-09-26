@@ -4,7 +4,7 @@ import {
 	createTransparentTexture,
 	disposeCaches,
 	setupSkinModel,
-} from '@modrinth/ui/src/utils/webgl/skin-rendering'
+} from '@modrinth/ui'
 import * as THREE from 'three'
 
 import type { Cape, Skin } from '../skins'

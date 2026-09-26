@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ButtonStyled, commonMessages, defineMessages, NewModal, useVIntl } from '@modrinth/ui'
+import { Button, commonMessages, defineMessages, NewModal, useVIntl } from '@modrinth/ui'
 import { computed, ref } from 'vue'
 
 import { getAnnouncementByVersion } from '@/announcements/catalog'
@@ -57,11 +57,9 @@ defineExpose({ show, close })
 
 		<template #actions>
 			<div class="flex justify-end">
-				<ButtonStyled color="brand">
-					<button type="button" @click="close">
-						{{ formatMessage(commonMessages.closeButton) }}
-					</button>
-				</ButtonStyled>
+				<Button type="colored" color="brand" @click="close"
+					>{{ formatMessage(commonMessages.closeButton) }}
+				</Button>
 			</div>
 		</template>
 	</NewModal>

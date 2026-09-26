@@ -5,42 +5,33 @@
 	>
 		<span class="font-semibold text-contrast">{{ formatMessage(messages.offlineMode) }}</span>
 		<span class="text-sm text-secondary">{{ formatMessage(messages.offlineModeDescription) }}</span>
-		<ButtonStyled>
-			<button class="mt-1" :disabled="refreshingNetwork" @click="refreshNetworkStatus()">
-				<SpinnerIcon v-if="refreshingNetwork" class="animate-spin" />
-				<RefreshCwIcon v-else />
-				{{ formatMessage(messages.refreshNetworkStatus) }}
-			</button>
-		</ButtonStyled>
+		<Button class="mt-1" :disabled="refreshingNetwork" @click="refreshNetworkStatus()"
+			><SpinnerIcon v-if="refreshingNetwork" class="animate-spin" />
+			<RefreshCwIcon v-else />
+			{{ formatMessage(messages.refreshNetworkStatus) }}
+		</Button>
 	</div>
 	<div
 		v-if="accounts.length === 0"
 		class="flex flex-col gap-3 bg-button-bg border border-solid border-surface-5 rounded-xl p-3 mt-2"
 	>
 		<span>{{ formatMessage(messages.notSignedIn) }}</span>
-		<ButtonStyled v-if="!offline" color="brand">
-			<button color="primary" :disabled="loginDisabled" @click="login()">
-				<LogInIcon v-if="!loginDisabled" />
-				<SpinnerIcon v-else class="animate-spin" />
-				{{ formatMessage(messages.signInToMinecraft) }}
-			</button>
-		</ButtonStyled>
-		<ButtonStyled v-if="!offline">
-			<button :disabled="loginDisabled" @click="showYggdrasilAccountModal()">
-				<PlusIcon />
-				{{ formatMessage(messages.addThirdPartyAccount) }}
-			</button>
-		</ButtonStyled>
-		<ButtonStyled>
-			<button
-				data-onboarding-id="offline-account-entry"
-				:disabled="loginDisabled"
-				@click="showOfflineAccountModal()"
-			>
-				<PlusIcon />
-				{{ formatMessage(messages.addOfflineAccount) }}
-			</button>
-		</ButtonStyled>
+		<Button v-if="!offline" type="colored" color="brand" :disabled="loginDisabled" @click="login()"
+			><LogInIcon v-if="!loginDisabled" />
+			<SpinnerIcon v-else class="animate-spin" />
+			{{ formatMessage(messages.signInToMinecraft) }}
+		</Button>
+		<Button v-if="!offline" :disabled="loginDisabled" @click="showYggdrasilAccountModal()"
+			><PlusIcon />
+			{{ formatMessage(messages.addThirdPartyAccount) }}
+		</Button>
+		<Button
+			data-onboarding-id="offline-account-entry"
+			:disabled="loginDisabled"
+			@click="showOfflineAccountModal()"
+			><PlusIcon />
+			{{ formatMessage(messages.addOfflineAccount) }}
+		</Button>
 	</div>
 	<Accordion
 		v-else
@@ -146,33 +137,36 @@
 				</div>
 			</template>
 			<div class="flex flex-col gap-2 px-2 pt-2">
-				<ButtonStyled v-if="accounts.length > 0 && !offline" class="w-full">
-					<button :disabled="loginDisabled" @click="login()">
-						<PlusIcon />
-						{{ formatMessage(messages.addMicrosoftAccount) }}
-					</button>
-				</ButtonStyled>
-				<ButtonStyled v-if="accounts.length > 0 && !offline" class="w-full">
-					<button :disabled="loginDisabled" @click="showYggdrasilAccountModal()">
-						<PlusIcon />
-						{{ formatMessage(messages.addThirdPartyAccount) }}
-					</button>
-				</ButtonStyled>
-				<ButtonStyled v-if="accounts.length > 0" class="w-full">
-					<button
-						data-onboarding-id="offline-account-entry"
-						:disabled="loginDisabled"
-						@click="showOfflineAccountModal()"
-					>
-						<PlusIcon />
-						{{ formatMessage(messages.addOfflineAccount) }}
-					</button>
-				</ButtonStyled>
+				<Button
+					v-if="accounts.length > 0 && !offline"
+					class="w-full"
+					:disabled="loginDisabled"
+					@click="login()"
+					><PlusIcon />
+					{{ formatMessage(messages.addMicrosoftAccount) }}
+				</Button>
+				<Button
+					v-if="accounts.length > 0 && !offline"
+					class="w-full"
+					:disabled="loginDisabled"
+					@click="showYggdrasilAccountModal()"
+					><PlusIcon />
+					{{ formatMessage(messages.addThirdPartyAccount) }}
+				</Button>
+				<Button
+					v-if="accounts.length > 0"
+					class="w-full"
+					data-onboarding-id="offline-account-entry"
+					:disabled="loginDisabled"
+					@click="showOfflineAccountModal()"
+					><PlusIcon />
+					{{ formatMessage(messages.addOfflineAccount) }}
+				</Button>
 			</div>
 		</div>
 	</Accordion>
 	<MinecraftLoginModal ref="minecraftLoginModal" @complete="onMicrosoftLogin" />
-	<ModalWrapper ref="offlineAccountModal" :header="formatMessage(messages.offlineModalTitle)">
+	<NewModal ref="offlineAccountModal" :header="formatMessage(messages.offlineModalTitle)">
 		<div class="flex min-w-[22rem] flex-col gap-4">
 			<p class="m-0 text-secondary">{{ formatMessage(messages.offlineModalDescription) }}</p>
 			<label class="flex flex-col gap-2 font-semibold">
@@ -229,22 +223,22 @@
 				:body="formatMessage(messages.customUuidDuplicate)"
 			/>
 			<div class="input-group push-right">
-				<ButtonStyled>
-					<button :disabled="loginDisabled" @click="offlineAccountModal?.hide()">
-						{{ formatMessage(commonMessages.cancelButton) }}
-					</button>
-				</ButtonStyled>
-				<ButtonStyled color="brand">
-					<button :disabled="loginDisabled || !offlineFormValid" @click="addOfflineAccount()">
-						<SpinnerIcon v-if="loginDisabled" class="animate-spin" />
-						<PlusIcon v-else />
-						{{ formatMessage(messages.createOfflineAccount) }}
-					</button>
-				</ButtonStyled>
+				<Button :disabled="loginDisabled" @click="offlineAccountModal?.hide()"
+					>{{ formatMessage(commonMessages.cancelButton) }}
+				</Button>
+				<Button
+					type="colored"
+					color="brand"
+					:disabled="loginDisabled || !offlineFormValid"
+					@click="addOfflineAccount()"
+					><SpinnerIcon v-if="loginDisabled" class="animate-spin" />
+					<PlusIcon v-else />
+					{{ formatMessage(messages.createOfflineAccount) }}
+				</Button>
 			</div>
 		</div>
-	</ModalWrapper>
-	<ModalWrapper ref="yggdrasilAccountModal" :header="formatMessage(messages.thirdPartyModalTitle)">
+	</NewModal>
+	<NewModal ref="yggdrasilAccountModal" :header="formatMessage(messages.thirdPartyModalTitle)">
 		<div class="flex min-w-[24rem] flex-col gap-4">
 			<p class="m-0 text-secondary">{{ formatMessage(messages.thirdPartyModalDescription) }}</p>
 			<div v-if="savedYggdrasilLogins.length > 0" class="flex flex-col gap-2">
@@ -273,11 +267,9 @@
 					</ButtonStyled>
 				</div>
 			</div>
-			<ButtonStyled class="w-full">
-				<button :disabled="loginDisabled" @click="useLittleSkinPreset()">
-					{{ formatMessage(messages.useLittleSkin) }}
-				</button>
-			</ButtonStyled>
+			<Button class="w-full" :disabled="loginDisabled" @click="useLittleSkinPreset()"
+				>{{ formatMessage(messages.useLittleSkin) }}
+			</Button>
 			<label class="flex flex-col gap-2 font-semibold">
 				{{ formatMessage(messages.apiRootLabel) }}
 				<StyledInput
@@ -314,33 +306,36 @@
 				:label="formatMessage(messages.rememberPassword)"
 			/>
 			<div class="input-group push-right">
-				<ButtonStyled>
-					<button :disabled="loginDisabled" @click="yggdrasilAccountModal?.hide()">
-						{{ formatMessage(commonMessages.cancelButton) }}
-					</button>
-				</ButtonStyled>
-				<ButtonStyled color="brand">
-					<button :disabled="loginDisabled || !yggdrasilFormValid" @click="addYggdrasilAccount()">
-						<SpinnerIcon v-if="loginDisabled" class="animate-spin" />
-						<LogInIcon v-else />
-						{{ formatMessage(messages.signInButton) }}
-					</button>
-				</ButtonStyled>
+				<Button :disabled="loginDisabled" @click="yggdrasilAccountModal?.hide()"
+					>{{ formatMessage(commonMessages.cancelButton) }}
+				</Button>
+				<Button
+					type="colored"
+					color="brand"
+					:disabled="loginDisabled || !yggdrasilFormValid"
+					@click="addYggdrasilAccount()"
+					><SpinnerIcon v-if="loginDisabled" class="animate-spin" />
+					<LogInIcon v-else />
+					{{ formatMessage(messages.signInButton) }}
+				</Button>
 			</div>
 		</div>
-	</ModalWrapper>
-	<ModalWrapper ref="yggdrasilProfileModal" :header="formatMessage(messages.selectProfileTitle)">
+	</NewModal>
+	<NewModal ref="yggdrasilProfileModal" :header="formatMessage(messages.selectProfileTitle)">
 		<div class="flex min-w-[22rem] flex-col gap-2">
 			<p class="m-0 mb-2 text-secondary">{{ formatMessage(messages.selectProfileDescription) }}</p>
-			<ButtonStyled v-for="profile in pendingYggdrasilProfiles" :key="profile.id" class="w-full">
-				<button :disabled="loginDisabled" @click="selectYggdrasilProfile(profile.id)">
-					<SpinnerIcon v-if="loginDisabled" class="animate-spin" />
-					<RadioButtonIcon v-else />
-					{{ profile.name }}
-				</button>
-			</ButtonStyled>
+			<Button
+				v-for="profile in pendingYggdrasilProfiles"
+				:key="profile.id"
+				class="w-full"
+				:disabled="loginDisabled"
+				@click="selectYggdrasilProfile(profile.id)"
+				><SpinnerIcon v-if="loginDisabled" class="animate-spin" />
+				<RadioButtonIcon v-else />
+				{{ profile.name }}
+			</Button>
 		</div>
-	</ModalWrapper>
+	</NewModal>
 </template>
 
 <script setup lang="ts">
@@ -358,11 +353,13 @@ import {
 	Accordion,
 	Admonition,
 	Avatar,
+	Button,
 	ButtonStyled,
 	Checkbox,
 	commonMessages,
 	defineMessages,
 	injectNotificationManager,
+	NewModal,
 	StyledInput,
 	useVIntl,
 } from '@modrinth/ui'
@@ -375,7 +372,6 @@ import { useRoute } from 'vue-router'
 import axolotlLogo from '@/assets/axolotl.png'
 import steveSkinTexture from '@/assets/skins/steve.png?inline'
 import MinecraftLoginModal from '@/components/ui/MinecraftLoginModal.vue'
-import ModalWrapper from '@/components/ui/modal/ModalWrapper.vue'
 import { useNetworkStatus } from '@/composables/useNetworkStatus'
 import { compareMinecraftAccounts } from '@/helpers/accounts'
 import { trackEvent } from '@/helpers/analytics'
@@ -476,7 +472,7 @@ let refreshGeneration = 0
 let headRefreshTimer: ReturnType<typeof setTimeout> | undefined
 let defaultUserUpdateQueue = Promise.resolve()
 const minecraftLoginModal = ref<InstanceType<typeof MinecraftLoginModal> | null>(null)
-const offlineAccountModal = ref<InstanceType<typeof ModalWrapper> | null>(null)
+const offlineAccountModal = ref<InstanceType<typeof NewModal> | null>(null)
 const offlineUsername = ref('')
 const offlineCustomUuid = ref(false)
 const offlineUuid = ref('')
@@ -496,8 +492,8 @@ watch([offlineUuid, offlineCustomUuid], () => {
 const offlineUsernameContainsChinese = computed(() =>
 	/\p{Script=Han}/u.test(offlineUsername.value.trim()),
 )
-const yggdrasilAccountModal = ref<InstanceType<typeof ModalWrapper> | null>(null)
-const yggdrasilProfileModal = ref<InstanceType<typeof ModalWrapper> | null>(null)
+const yggdrasilAccountModal = ref<InstanceType<typeof NewModal> | null>(null)
+const yggdrasilProfileModal = ref<InstanceType<typeof NewModal> | null>(null)
 const yggdrasilApiRoot = ref(LITTLE_SKIN_API_ROOT)
 const yggdrasilLogin = ref('')
 const yggdrasilPassword = ref('')

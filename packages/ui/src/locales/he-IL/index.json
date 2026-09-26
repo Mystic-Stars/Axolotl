@@ -305,18 +305,6 @@
   "header.category.performance-impact": {
     "defaultMessage": "השפעה על הביצועים"
   },
-  "icon-select.edit": {
-    "defaultMessage": "ערוך אייקון"
-  },
-  "icon-select.remove": {
-    "defaultMessage": "מחק אייקון"
-  },
-  "icon-select.replace": {
-    "defaultMessage": "החלף אייקון"
-  },
-  "icon-select.select": {
-    "defaultMessage": "בחר אייקון"
-  },
   "input.search.placeholder": {
     "defaultMessage": "חפש..."
   },
@@ -550,24 +538,6 @@
   },
   "omorphia.component.copy.action.copy": {
     "defaultMessage": "העתק קוד אל הלוח"
-  },
-  "omorphia.component.environment-indicator.label.client": {
-    "defaultMessage": "לקוח"
-  },
-  "omorphia.component.environment-indicator.label.client-and-server": {
-    "defaultMessage": "לקוח ושרת"
-  },
-  "omorphia.component.environment-indicator.label.client-or-server": {
-    "defaultMessage": "לקוח או שרת"
-  },
-  "omorphia.component.environment-indicator.label.server": {
-    "defaultMessage": "שרת"
-  },
-  "omorphia.component.environment-indicator.label.type": {
-    "defaultMessage": "של {type}"
-  },
-  "omorphia.component.environment-indicator.label.unsupported": {
-    "defaultMessage": "לא נתמך"
   },
   "payment-method.amazon_pay": {
     "defaultMessage": "Amazon Pay"
@@ -869,17 +839,8 @@
   "search.filter_type.shader_loader": {
     "defaultMessage": "מנהל שיידרים"
   },
-  "servers.notice.dismiss": {
-    "defaultMessage": "סגור"
-  },
   "servers.notice.dismissable": {
     "defaultMessage": "ניתן לסגירה"
-  },
-  "servers.notice.heading.attention": {
-    "defaultMessage": "חשוב"
-  },
-  "servers.notice.heading.info": {
-    "defaultMessage": "מידע"
   },
   "servers.notice.level.critical.name": {
     "defaultMessage": "קריטי"
@@ -1060,8 +1021,5 @@
   },
   "tag.loader.waterfall": {
     "defaultMessage": "Waterfall"
-  },
-  "ui.component.unsaved-changes-popup.body": {
-    "defaultMessage": "יש לך שינויים שלא נשמרו."
   }
 }

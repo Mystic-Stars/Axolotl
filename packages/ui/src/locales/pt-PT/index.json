@@ -539,18 +539,6 @@
   "header.category.resolutions": {
     "defaultMessage": "Resolução"
   },
-  "icon-select.edit": {
-    "defaultMessage": "Editar ícone"
-  },
-  "icon-select.remove": {
-    "defaultMessage": "Remover ícone"
-  },
-  "icon-select.replace": {
-    "defaultMessage": "Substituir ícone"
-  },
-  "icon-select.select": {
-    "defaultMessage": "Selecionar ícone"
-  },
   "input.search.placeholder": {
     "defaultMessage": "Pesquisar..."
   },
@@ -577,21 +565,6 @@
   },
   "instance.worlds.game_mode.unknown": {
     "defaultMessage": "Modo de jogo desconhecido"
-  },
-  "instances.modpack-content-modal.empty-description": {
-    "defaultMessage": "Este modpack não inclui nenhum conteúdo adicional."
-  },
-  "instances.modpack-content-modal.empty-title": {
-    "defaultMessage": "Nenhum conteúdo encontrado"
-  },
-  "instances.modpack-content-modal.header": {
-    "defaultMessage": "Conteúdo do modpack"
-  },
-  "instances.modpack-content-modal.loading": {
-    "defaultMessage": "A carregar conteúdo..."
-  },
-  "instances.modpack-content-modal.no-results": {
-    "defaultMessage": "Nenhum projeto corresponde à tua pesquisa."
   },
   "instances.updater-modal.badge.current": {
     "defaultMessage": "Atual"
@@ -943,24 +916,6 @@
   },
   "omorphia.component.copy.action.copy": {
     "defaultMessage": "Copiar código para a área de transferência"
-  },
-  "omorphia.component.environment-indicator.label.client": {
-    "defaultMessage": "Cliente"
-  },
-  "omorphia.component.environment-indicator.label.client-and-server": {
-    "defaultMessage": "Cliente e servidor"
-  },
-  "omorphia.component.environment-indicator.label.client-or-server": {
-    "defaultMessage": "Cliente ou servidor"
-  },
-  "omorphia.component.environment-indicator.label.server": {
-    "defaultMessage": "Servidor"
-  },
-  "omorphia.component.environment-indicator.label.type": {
-    "defaultMessage": "Um {type}"
-  },
-  "omorphia.component.environment-indicator.label.unsupported": {
-    "defaultMessage": "Incompatível"
   },
   "payment-method.amazon_pay": {
     "defaultMessage": "Amazon Pay"
@@ -1643,17 +1598,8 @@
   "search.server_content_type.vanilla": {
     "defaultMessage": "Vanilla"
   },
-  "servers.notice.dismiss": {
-    "defaultMessage": "Ignorar"
-  },
   "servers.notice.dismissable": {
     "defaultMessage": "Ignorável"
-  },
-  "servers.notice.heading.attention": {
-    "defaultMessage": "Atenção"
-  },
-  "servers.notice.heading.info": {
-    "defaultMessage": "Informação"
   },
   "servers.notice.level.critical.name": {
     "defaultMessage": "Crítico"
@@ -2149,8 +2095,5 @@
   },
   "tag.loader.waterfall": {
     "defaultMessage": "Waterfall"
-  },
-  "ui.component.unsaved-changes-popup.body": {
-    "defaultMessage": "Tens alterações por guardar."
   }
 }

@@ -152,11 +152,7 @@ fn write_to_disk(file: &InstanceGroupsFile) {
 }
 
 fn store() -> &'static RwLock<InstanceGroupsFile> {
-    STORE.get_or_init(|| {
-        RwLock::new(
-            read_from_disk().unwrap_or_else(InstanceGroupsFile::default),
-        )
-    })
+    STORE.get_or_init(|| RwLock::new(read_from_disk().unwrap_or_default()))
 }
 
 fn with_read<T>(f: impl FnOnce(&InstanceGroupsFile) -> T) -> T {
@@ -247,20 +243,27 @@ pub fn delete(id: &str) -> Option<Vec<String>> {
 /// their relative order at the end, so a stale frontend list can never drop a
 /// group. Favorites is pinned first regardless.
 pub fn set_order(group_ids: &[String]) {
-    with_write(|file| {
-        let mut remaining = std::mem::take(&mut file.groups);
-        let mut ordered = Vec::with_capacity(remaining.len());
-        for id in group_ids {
-            if id == FAVORITES_GROUP_ID {
-                continue;
-            }
-            if let Some(index) = remaining.iter().position(|g| &g.id == id) {
-                ordered.push(remaining.remove(index));
-            }
+    with_write(|file| reorder_groups(&mut file.groups, group_ids));
+}
+
+/// Reorders `groups` to match `group_ids`. Groups the argument omits keep their
+/// relative order after the listed ones, so a stale frontend list can never drop
+/// a group. Pure so the ordering rules can be tested without the process-wide
+/// store, which tests would otherwise race over.
+fn reorder_groups(groups: &mut Vec<GroupDefinition>, group_ids: &[String]) {
+    let mut remaining = std::mem::take(groups);
+    let mut ordered = Vec::with_capacity(remaining.len());
+    for id in group_ids {
+        if id == FAVORITES_GROUP_ID {
+            continue;
         }
-        ordered.extend(remaining);
-        file.groups = ordered;
-    });
+        if let Some(index) = remaining.iter().position(|group| &group.id == id)
+        {
+            ordered.push(remaining.remove(index));
+        }
+    }
+    ordered.extend(remaining);
+    *groups = ordered;
 }
 
 /// Replaces the group list of each given instance wholesale.
@@ -511,35 +514,45 @@ mod tests {
         assert!(!file.memberships.contains_key("instance"));
     }
 
+    fn group_ids(groups: &[GroupDefinition]) -> Vec<String> {
+        groups.iter().map(|group| group.id.clone()).collect()
+    }
+
     #[test]
-    fn set_order_unknown_ids_are_ignored() {
-        let mut file = file_with_groups(&["a", "b", "c"]);
-        let non_favorites: Vec<_> = file
-            .groups
-            .iter()
-            .filter(|g| g.id != FAVORITES_GROUP_ID)
-            .map(|g| g.id.clone())
-            .collect();
-        set_order(&[
-            "unknown".to_string(),
-            non_favorites[2].clone(),
-            non_favorites[0].clone(),
-        ]);
+    fn set_order_ignores_unknown_ids() {
+        let mut groups = file_with_groups(&["a", "b", "c"]).groups;
+
+        reorder_groups(&mut groups, &["unknown".to_string(), "c".to_string()]);
+
+        // The unknown id matches nothing and simply contributes no group.
+        assert_eq!(group_ids(&groups), vec!["c", "a", "b"]);
     }
 
     #[test]
     fn set_order_retains_missing_groups_at_end() {
-        let mut file = file_with_groups(&["a", "b", "c"]);
-        file.groups.push(GroupDefinition {
+        let mut groups = file_with_groups(&["a", "b", "c"]).groups;
+        groups.push(GroupDefinition {
             id: "extra".to_string(),
             name: "extra".to_string(),
         });
-        set_order(&["b".to_string()]);
-        assert_eq!(file.groups[0].id, FAVORITES_GROUP_ID);
-        assert_eq!(file.groups[1].id, "b");
-        assert_eq!(file.groups[2].id, "a");
-        assert_eq!(file.groups[3].id, "c");
-        assert_eq!(file.groups[4].id, "extra");
+
+        reorder_groups(&mut groups, &["b".to_string()]);
+
+        // `b` moves to the front and every group the argument omitted survives
+        // after it, so a stale list can never drop a group. Favorites is pinned
+        // by `normalize`, which the store applies around this call.
+        assert_eq!(group_ids(&groups), vec!["b", "a", "c", "extra"]);
+    }
+
+    #[test]
+    fn set_order_keeps_favorites_out_of_the_reorder() {
+        let mut groups = file_with_groups(&["a", FAVORITES_GROUP_ID]).groups;
+
+        reorder_groups(&mut groups, &[FAVORITES_GROUP_ID.to_string()]);
+
+        // Favorites is skipped explicitly and survives at its previous position;
+        // `normalize` moves it to the front afterwards.
+        assert_eq!(group_ids(&groups), vec!["a", FAVORITES_GROUP_ID]);
     }
 
     #[test]

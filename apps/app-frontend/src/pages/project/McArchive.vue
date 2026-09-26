@@ -1,12 +1,6 @@
 <script setup lang="ts">
 import { DownloadIcon, ExternalIcon, FileArchiveIcon, SpinnerIcon } from '@modrinth/assets'
-import {
-	ButtonStyled,
-	Card,
-	defineMessages,
-	injectNotificationManager,
-	useVIntl,
-} from '@modrinth/ui'
+import { Button, Card, defineMessages, injectNotificationManager, useVIntl } from '@modrinth/ui'
 import { open } from '@tauri-apps/plugin-dialog'
 import { openUrl } from '@tauri-apps/plugin-opener'
 import { computed, ref, watch } from 'vue'
@@ -232,21 +226,19 @@ void contentSelection
 					<h1 class="m-0 text-2xl font-bold text-contrast">{{ project.name }}</h1>
 					<p v-if="project.summary" class="mb-0 mt-2 text-secondary">{{ project.summary }}</p>
 				</div>
-				<ButtonStyled size="standard" type="standard">
-					<button class="flex min-w-0 items-center gap-2" @click="instanceSelector?.show()">
-						<InstanceIcon
-							v-if="selectedInstance"
-							class="shrink-0"
-							size="1.25rem"
-							:icon-path="selectedInstance.icon_path"
-							:instance-id="selectedInstance.id"
-							:loader="selectedInstance.loader"
-						/>
-						<span class="max-w-48 truncate font-medium">
-							{{ selectedInstance?.name ?? formatMessage(messages.chooseInstance) }}
-						</span>
-					</button>
-				</ButtonStyled>
+				<Button size="md" class="flex min-w-0 items-center gap-2" @click="instanceSelector?.show()"
+					><InstanceIcon
+						v-if="selectedInstance"
+						class="shrink-0"
+						size="1.25rem"
+						:icon-path="selectedInstance.icon_path"
+						:instance-id="selectedInstance.id"
+						:loader="selectedInstance.loader"
+					/>
+					<span class="max-w-48 truncate font-medium">
+						{{ selectedInstance?.name ?? formatMessage(messages.chooseInstance) }}
+					</span>
+				</Button>
 			</div>
 			<p v-if="project.description" class="m-0 whitespace-pre-wrap text-sm text-secondary">
 				{{ project.description }}
@@ -263,18 +255,17 @@ void contentSelection
 				</p>
 			</div>
 			<div class="flex flex-wrap gap-2">
-				<ButtonStyled v-if="manualDownload.pageUrl" type="outlined">
-					<button @click="openUrl(manualDownload!.pageUrl!)">
-						<ExternalIcon />
-						{{ formatMessage(messages.openSource) }}
-					</button>
-				</ButtonStyled>
-				<ButtonStyled>
-					<button :disabled="busyFileId !== null" @click="importDownloadedFile">
-						<FileArchiveIcon />
-						{{ formatMessage(messages.importFile) }}
-					</button>
-				</ButtonStyled>
+				<Button
+					v-if="manualDownload.pageUrl"
+					type="outlined"
+					@click="openUrl(manualDownload!.pageUrl!)"
+					><ExternalIcon />
+					{{ formatMessage(messages.openSource) }}
+				</Button>
+				<Button :disabled="busyFileId !== null" @click="importDownloadedFile"
+					><FileArchiveIcon />
+					{{ formatMessage(messages.importFile) }}
+				</Button>
 			</div>
 		</Card>
 
@@ -304,13 +295,11 @@ void contentSelection
 								{{ formatMessage(messages.sha256) }}: {{ file.sha256 }}
 							</div>
 						</div>
-						<ButtonStyled size="standard">
-							<button :disabled="busyFileId !== null" @click="install(version, file)">
-								<SpinnerIcon v-if="busyFileId === file.uuid" class="animate-spin" />
-								<DownloadIcon v-else />
-								{{ formatMessage(messages.install) }}
-							</button>
-						</ButtonStyled>
+						<Button size="md" :disabled="busyFileId !== null" @click="install(version, file)"
+							><SpinnerIcon v-if="busyFileId === file.uuid" class="animate-spin" />
+							<DownloadIcon v-else />
+							{{ formatMessage(messages.install) }}
+						</Button>
 					</div>
 				</div>
 				<p v-else class="m-0 text-sm text-secondary">{{ formatMessage(messages.noFiles) }}</p>

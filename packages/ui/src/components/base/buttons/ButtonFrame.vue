@@ -13,7 +13,11 @@ import type {
 const baseClasses = [
 	// Base
 	'relative inline-flex min-w-0 shrink-0 items-center justify-center',
-	'whitespace-nowrap border-0 no-underline',
+	// The transparent border is load-bearing, not decorative: it participates in
+	// layout, so an auto-width button is 2px wider than it would be without it.
+	// The legacy `ButtonStyled` drew its ring with a border too, and dropping it
+	// here would silently narrow every migrated text button.
+	'whitespace-nowrap border border-solid border-transparent no-underline',
 	// Interactions
 	'touch-manipulation cursor-pointer select-none transition-[background-color,color,box-shadow,filter,opacity,transform] duration-150 ease-out',
 	'enabled:active:scale-[0.97]',
@@ -26,6 +30,8 @@ const baseClasses = [
 ].join(' ')
 
 const sizeClasses: Record<ButtonSize, string> = {
+	'2xs':
+		'h-6 gap-1 rounded-lg px-1.5 text-sm font-semibold leading-5 [&>svg]:size-4 [&>svg]:min-h-4 [&>svg]:min-w-4 [&>svg]:shrink-0',
 	xs: 'h-7 gap-1 rounded-lg px-1.5 text-sm font-semibold leading-5 [&>svg]:size-4 [&>svg]:min-h-4 [&>svg]:min-w-4 [&>svg]:shrink-0',
 	sm: 'h-8 gap-1 rounded-[10px] px-1.5 text-sm font-semibold leading-5 [&>svg]:size-4 [&>svg]:min-h-4 [&>svg]:min-w-4 [&>svg]:shrink-0',
 	md: 'h-9 gap-1.5 rounded-xl px-2.5 text-base font-semibold leading-5 [&>svg]:size-5 [&>svg]:min-h-5 [&>svg]:min-w-5 [&>svg]:shrink-0',
@@ -34,6 +40,7 @@ const sizeClasses: Record<ButtonSize, string> = {
 }
 
 const iconOnlySizeClasses: Record<ButtonSize, string> = {
+	'2xs': 'min-w-6 w-6 !px-0',
 	xs: 'min-w-7 w-7 !px-0',
 	sm: 'min-w-8 w-8 !px-0',
 	md: 'min-w-9 w-9 !px-0',
@@ -50,6 +57,15 @@ const typeClasses: Record<ButtonType, string> = {
 	outlined:
 		'button-frame--outlined bg-transparent text-[var(--button-color,var(--color-contrast))] [&>svg]:text-[var(--button-color,var(--color-base))]',
 	quiet: 'button-frame--quiet bg-transparent [&>svg]:text-inherit',
+	// A 25% tint of the accent colour. All three read the same tint; they differ
+	// in label colour and whether they carry the raised shadow. Without a colour
+	// the tint variable is unset and the fill falls back to the raised surface,
+	// which is what the legacy uncoloured chip rendered as.
+	chip: 'button-frame--chip bg-[--button-highlight,var(--surface-4)] text-[var(--button-color,var(--color-base))] [&>svg]:text-inherit',
+	'chip-text':
+		'button-frame--chip-text bg-[--button-highlight,var(--surface-4)] text-[var(--button-color,var(--color-base))] [&>svg]:text-inherit',
+	highlight:
+		'button-frame--highlight bg-[--button-highlight,var(--surface-4)] text-contrast [&>svg]:text-inherit',
 }
 
 const interactionClasses: Record<ButtonInteraction, string> = {
@@ -68,6 +84,18 @@ const colorVariables: Record<ButtonColor, string> = {
 	blue: 'var(--color-blue)',
 	purple: 'var(--color-purple)',
 	medal_promotion: 'var(--medal-promotion-text-orange, var(--color-orange))',
+}
+
+// The 25%-opacity tint behind `chip`/`highlight`. Each accent has its own
+// token, so the tint must be looked up rather than derived.
+const highlightVariables: Record<ButtonColor, string> = {
+	brand: 'var(--color-brand-highlight)',
+	red: 'var(--color-red-highlight)',
+	orange: 'var(--color-orange-highlight)',
+	green: 'var(--color-green-highlight)',
+	blue: 'var(--color-blue-highlight)',
+	purple: 'var(--color-purple-highlight)',
+	medal_promotion: 'var(--color-orange-highlight)',
 }
 
 const props = withDefaults(
@@ -101,7 +129,20 @@ const classes = computed(() => [
 	props.circular ? '!rounded-full' : '',
 ])
 const style = computed((): CSSProperties | undefined => {
+	// `outlined` and `quiet` deliberately publish nothing without an explicit
+	// colour, so their own `var(--button-color, <default>)` fallbacks apply —
+	// that is what reproduces the legacy default ring and text colours.
 	if ((props.type === 'outlined' || props.type === 'quiet') && !props.color) return undefined
+	if (props.type === 'chip' || props.type === 'chip-text' || props.type === 'highlight') {
+		// Without an accent these fall back to the page surface and the default
+		// label, matching the legacy behaviour for an uncoloured chip.
+		const accent = props.color
+		if (!accent) return undefined
+		return {
+			'--button-color': colorVariables[accent],
+			'--button-highlight': highlightVariables[accent],
+		} as CSSProperties
+	}
 	if (
 		props.type !== 'colored' &&
 		props.type !== 'colored-text' &&
@@ -163,11 +204,24 @@ defineExpose({ element })
 	mask-composite: exclude;
 }
 
+/* The ring is a real border so it occupies layout exactly as the legacy
+ * `ButtonStyled` border did. Set here rather than as a utility because it has
+ * to beat the transparent border colour in `baseClasses`. */
 .button-frame--outlined {
-	box-shadow: inset 0 0 0 1px var(--button-color, var(--surface-5));
+	border-color: var(--button-color, var(--surface-5));
 }
 
 .button-frame--quiet {
 	color: var(--button-color, var(--color-base));
+}
+
+/* `chip` and `highlight` are tinted fills rather than transparent ones, so they
+ * keep the raised-button shadow. `chip-text` is the same tint without it --
+ * the legacy `highlight-colored-text`, which never had a shadow. */
+.button-frame--chip,
+.button-frame--highlight {
+	box-shadow:
+		inset 0 0 0 1px var(--surface-5),
+		0 1px 1px rgba(0, 0, 0, 0.12);
 }
 </style>

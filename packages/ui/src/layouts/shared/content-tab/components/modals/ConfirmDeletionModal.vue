@@ -18,27 +18,24 @@
 
 		<template #actions>
 			<div class="flex gap-2 justify-end">
-				<ButtonStyled type="outlined">
-					<button @click="modal?.hide()">
-						<XIcon />
-						{{ formatMessage(commonMessages.cancelButton) }}
-					</button>
-				</ButtonStyled>
-				<ButtonStyled color="orange">
-					<button
-						v-tooltip="props.actionDisabled ? props.actionDisabledTooltip : undefined"
-						:disabled="props.actionDisabled"
-						@click="confirm"
-					>
-						<TrashIcon />
-						{{
-							formatMessage(messages.deleteButton, {
-								count: visibleCount,
-								itemType: formatContentTypeSentence(formatMessage, visibleItemType, visibleCount),
-							})
-						}}
-					</button>
-				</ButtonStyled>
+				<Button type="outlined" @click="modal?.hide()"
+					><XIcon />
+					{{ formatMessage(commonMessages.cancelButton) }}
+				</Button>
+				<Button
+					v-tooltip="props.actionDisabled ? props.actionDisabledTooltip : undefined"
+					type="colored"
+					color="orange"
+					:disabled="props.actionDisabled"
+					@click="confirm"
+					><TrashIcon />
+					{{
+						formatMessage(messages.deleteButton, {
+							count: visibleCount,
+							itemType: formatContentTypeSentence(formatMessage, visibleItemType, visibleCount),
+						})
+					}}
+				</Button>
 			</div>
 		</template>
 	</NewModal>
@@ -49,7 +46,7 @@ import { TrashIcon, XIcon } from '@modrinth/assets'
 import { nextTick, ref } from 'vue'
 
 import Admonition from '#ui/components/base/Admonition.vue'
-import ButtonStyled from '#ui/components/base/ButtonStyled.vue'
+import Button from '#ui/components/base/buttons/Button.vue'
 import NewModal from '#ui/components/modal/NewModal.vue'
 import { defineMessages, useVIntl } from '#ui/composables/i18n'
 import { commonMessages, formatContentTypeSentence } from '#ui/utils/common-messages'

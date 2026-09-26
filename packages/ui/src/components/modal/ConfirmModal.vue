@@ -8,7 +8,9 @@
 	>
 		<template #title>
 			<slot name="title">
-				<span class="font-extrabold text-contrast text-lg">{{ title }}</span>
+				<span class="font-extrabold text-contrast text-lg">{{
+					title || formatMessage(messages.noTitle)
+				}}</span>
 			</slot>
 		</template>
 		<div class="flex flex-col gap-4">
@@ -25,28 +27,29 @@
 			<slot />
 			<label v-if="hasToType" for="confirmation">
 				<span>
-					To confirm you want to proceed, type
-					<span class="italic font-bold">{{ confirmationText }}</span> below:
+					<IntlFormatted :message-id="messages.confirmationPrompt" :values="{ confirmationText }">
+						<template #confirmation-text="{ children }">
+							<span class="italic font-bold"><component :is="() => children" /></span>
+						</template>
+					</IntlFormatted>
 				</span>
 			</label>
 			<StyledInput
 				v-if="hasToType"
 				id="confirmation"
 				v-model="confirmation_typed"
-				placeholder="Type here..."
+				:placeholder="formatMessage(messages.confirmationPlaceholder)"
 				wrapper-class="max-w-[20rem]"
 			/>
 			<div class="flex gap-2 justify-end">
-				<ButtonStyled>
-					<button class="!shadow-none" @click="hide()">
-						<XIcon />
-						Cancel
-					</button>
-				</ButtonStyled>
+				<Button class="!shadow-none" @click="hide()"
+					><XIcon />
+					{{ formatMessage(commonMessages.cancelButton) }}
+				</Button>
 				<ButtonStyled :color="danger ? 'red' : 'brand'">
 					<button :disabled="action_disabled" @click="proceed">
 						<component :is="proceedIcon" />
-						{{ proceedLabel }}
+						{{ proceedLabel || formatMessage(messages.proceed) }}
 					</button>
 				</ButtonStyled>
 			</div>
@@ -59,9 +62,29 @@ import { TrashIcon, XIcon } from '@modrinth/assets'
 import { renderString } from '@modrinth/utils'
 import { computed, ref } from 'vue'
 
+import { defineMessages, useVIntl } from '../../composables/i18n'
+import { commonMessages } from '../../utils/common-messages'
+import Button from '../base/buttons/Button.vue'
 import ButtonStyled from '../base/ButtonStyled.vue'
+import IntlFormatted from '../base/IntlFormatted.vue'
 import StyledInput from '../base/StyledInput.vue'
 import NewModal from './NewModal.vue'
+
+const { formatMessage } = useVIntl()
+
+const messages = defineMessages({
+	confirmationPrompt: {
+		id: 'modal.confirm.confirmation-prompt',
+		defaultMessage:
+			'To confirm you want to proceed, type <confirmation-text>{confirmationText}</confirmation-text> below:',
+	},
+	confirmationPlaceholder: {
+		id: 'modal.confirm.confirmation-placeholder',
+		defaultMessage: 'Type here...',
+	},
+	noTitle: { id: 'modal.confirm.no-title', defaultMessage: 'No title defined' },
+	proceed: { id: 'modal.confirm.proceed', defaultMessage: 'Proceed' },
+})
 
 const props = defineProps({
 	confirmationText: {
@@ -74,7 +97,7 @@ const props = defineProps({
 	},
 	title: {
 		type: String,
-		default: 'No title defined',
+		default: undefined,
 		required: true,
 	},
 	description: {
@@ -88,7 +111,7 @@ const props = defineProps({
 	},
 	proceedLabel: {
 		type: String,
-		default: 'Proceed',
+		default: undefined,
 	},
 	noblur: {
 		type: Boolean,

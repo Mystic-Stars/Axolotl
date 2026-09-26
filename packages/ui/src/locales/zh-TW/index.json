@@ -698,9 +698,6 @@
   "content.filter.updates": {
     "defaultMessage": "更新"
   },
-  "content.filter.warnings": {
-    "defaultMessage": "警告"
-  },
   "content.page-layout.browse-content": {
     "defaultMessage": "瀏覽內容"
   },
@@ -1400,18 +1397,6 @@
   "header.category.resolutions": {
     "defaultMessage": "解析度"
   },
-  "icon-select.edit": {
-    "defaultMessage": "編輯圖示"
-  },
-  "icon-select.remove": {
-    "defaultMessage": "移除圖示"
-  },
-  "icon-select.replace": {
-    "defaultMessage": "取代圖示"
-  },
-  "icon-select.select": {
-    "defaultMessage": "選擇圖示"
-  },
   "input.search-version.placeholder": {
     "defaultMessage": "搜尋版本..."
   },
@@ -1639,24 +1624,6 @@
   },
   "instances.content-install.select-icon": {
     "defaultMessage": "選擇圖示"
-  },
-  "instances.modpack-content-modal.empty-description": {
-    "defaultMessage": "這個模組包不包含任何額外內容。"
-  },
-  "instances.modpack-content-modal.empty-title": {
-    "defaultMessage": "找不到內容"
-  },
-  "instances.modpack-content-modal.header": {
-    "defaultMessage": "模組包內容"
-  },
-  "instances.modpack-content-modal.loading": {
-    "defaultMessage": "正在載入內容..."
-  },
-  "instances.modpack-content-modal.no-results": {
-    "defaultMessage": "沒有專案符合你的搜尋字詞。"
-  },
-  "instances.modpack-content-modal.search-placeholder": {
-    "defaultMessage": "搜尋 {count, number} {count, plural, other {個專案}}"
   },
   "instances.updater-modal.badge.current": {
     "defaultMessage": "目前"
@@ -2075,150 +2042,6 @@
   "locale.zh-TW": {
     "defaultMessage": "正體中文"
   },
-  "markdown-editor.default-image-alt-text": {
-    "defaultMessage": "請將此內容替換為描述"
-  },
-  "markdown-editor.error-label": {
-    "defaultMessage": "錯誤"
-  },
-  "markdown-editor.image-modal.description-field.description": {
-    "defaultMessage": "請盡可能詳細描述這張圖片，如同對一位看不見這張圖片的人說明一般。"
-  },
-  "markdown-editor.image-modal.description-field.placeholder": {
-    "defaultMessage": "描述這張圖片..."
-  },
-  "markdown-editor.image-modal.description-field.title": {
-    "defaultMessage": "描述（替代文字）"
-  },
-  "markdown-editor.image-modal.header": {
-    "defaultMessage": "插入圖片"
-  },
-  "markdown-editor.image-modal.upload-mode.label": {
-    "defaultMessage": "圖片來源"
-  },
-  "markdown-editor.image-modal.upload-mode.link": {
-    "defaultMessage": "連結"
-  },
-  "markdown-editor.image-modal.upload-mode.upload": {
-    "defaultMessage": "上傳"
-  },
-  "markdown-editor.image-modal.upload.prompt": {
-    "defaultMessage": "拖曳檔案以上傳或點擊選擇檔案"
-  },
-  "markdown-editor.image-modal.url-field.placeholder": {
-    "defaultMessage": "輸入圖片網址..."
-  },
-  "markdown-editor.insert-button": {
-    "defaultMessage": "插入"
-  },
-  "markdown-editor.link-modal.header": {
-    "defaultMessage": "插入連結"
-  },
-  "markdown-editor.link-modal.label-field.placeholder": {
-    "defaultMessage": "輸入標籤..."
-  },
-  "markdown-editor.link-modal.label-field.title": {
-    "defaultMessage": "標籤"
-  },
-  "markdown-editor.link-modal.url-field.placeholder": {
-    "defaultMessage": "輸入連結網址..."
-  },
-  "markdown-editor.markdown-formatting-support": {
-    "defaultMessage": "這個編輯器支援 <markdown-link>Markdown 格式</markdown-link>。"
-  },
-  "markdown-editor.max-length.label": {
-    "defaultMessage": "長度限制："
-  },
-  "markdown-editor.max-length.unlimited": {
-    "defaultMessage": "無限制"
-  },
-  "markdown-editor.max-length.value": {
-    "defaultMessage": "{currentLength}/{maxLength}"
-  },
-  "markdown-editor.placeholder": {
-    "defaultMessage": "寫點什麼..."
-  },
-  "markdown-editor.preview-label": {
-    "defaultMessage": "預覽"
-  },
-  "markdown-editor.preview-toggle.label": {
-    "defaultMessage": "預覽"
-  },
-  "markdown-editor.toolbar.bold": {
-    "defaultMessage": "粗體"
-  },
-  "markdown-editor.toolbar.bulleted-list": {
-    "defaultMessage": "項目符號清單"
-  },
-  "markdown-editor.toolbar.code": {
-    "defaultMessage": "程式碼"
-  },
-  "markdown-editor.toolbar.heading-1": {
-    "defaultMessage": "標題 1"
-  },
-  "markdown-editor.toolbar.heading-2": {
-    "defaultMessage": "標題 2"
-  },
-  "markdown-editor.toolbar.heading-3": {
-    "defaultMessage": "標題 3"
-  },
-  "markdown-editor.toolbar.image": {
-    "defaultMessage": "圖片"
-  },
-  "markdown-editor.toolbar.italic": {
-    "defaultMessage": "斜體"
-  },
-  "markdown-editor.toolbar.link": {
-    "defaultMessage": "連結"
-  },
-  "markdown-editor.toolbar.ordered-list": {
-    "defaultMessage": "排序清單"
-  },
-  "markdown-editor.toolbar.quote": {
-    "defaultMessage": "引用"
-  },
-  "markdown-editor.toolbar.spoiler": {
-    "defaultMessage": "暴雷內容"
-  },
-  "markdown-editor.toolbar.strikethrough": {
-    "defaultMessage": "刪除線"
-  },
-  "markdown-editor.toolbar.video": {
-    "defaultMessage": "影片"
-  },
-  "markdown-editor.upload-error.no-file": {
-    "defaultMessage": "未提供檔案"
-  },
-  "markdown-editor.upload-error.no-handler": {
-    "defaultMessage": "未提供圖片上傳處理常式"
-  },
-  "markdown-editor.url-label": {
-    "defaultMessage": "網址"
-  },
-  "markdown-editor.url-validation-error.blocked-domain": {
-    "defaultMessage": "無效的網址。不允許這個網域。"
-  },
-  "markdown-editor.url-validation-error.malformed": {
-    "defaultMessage": "無效的網址。請確保網址格式正確。"
-  },
-  "markdown-editor.url-validation-error.unsupported-protocol": {
-    "defaultMessage": "不支援的協定。請使用 http 或 https。"
-  },
-  "markdown-editor.video-embed.title": {
-    "defaultMessage": "YouTube 影片播放器"
-  },
-  "markdown-editor.video-modal.header": {
-    "defaultMessage": "插入 YouTube 影片"
-  },
-  "markdown-editor.video-modal.url-field.description": {
-    "defaultMessage": "請輸入有效的 YouTube 影片連結。"
-  },
-  "markdown-editor.video-modal.url-field.placeholder": {
-    "defaultMessage": "輸入 YouTube 影片網址"
-  },
-  "markdown-editor.video-modal.url-field.title": {
-    "defaultMessage": "YouTube 影片網址"
-  },
   "modal.open-in-app.benefit.install": {
     "defaultMessage": "自動安裝所需內容"
   },
@@ -2308,24 +2131,6 @@
   },
   "omorphia.component.copy.action.copy": {
     "defaultMessage": "將程式碼複製到剪貼簿"
-  },
-  "omorphia.component.environment-indicator.label.client": {
-    "defaultMessage": "用戶端"
-  },
-  "omorphia.component.environment-indicator.label.client-and-server": {
-    "defaultMessage": "用戶端與伺服器端"
-  },
-  "omorphia.component.environment-indicator.label.client-or-server": {
-    "defaultMessage": "用戶端或伺服器端"
-  },
-  "omorphia.component.environment-indicator.label.server": {
-    "defaultMessage": "伺服器端"
-  },
-  "omorphia.component.environment-indicator.label.type": {
-    "defaultMessage": "{type}"
-  },
-  "omorphia.component.environment-indicator.label.unsupported": {
-    "defaultMessage": "不支援"
   },
   "payment-method.amazon_pay": {
     "defaultMessage": "Amazon Pay"
@@ -3086,17 +2891,8 @@
   "search.server_content_type.vanilla": {
     "defaultMessage": "原版"
   },
-  "servers.notice.dismiss": {
-    "defaultMessage": "撤銷"
-  },
   "servers.notice.dismissable": {
     "defaultMessage": "可撤銷"
-  },
-  "servers.notice.heading.attention": {
-    "defaultMessage": "注意"
-  },
-  "servers.notice.heading.info": {
-    "defaultMessage": "資訊"
   },
   "servers.notice.level.critical.name": {
     "defaultMessage": "重要"
@@ -3644,96 +3440,6 @@
   "tag.loader.waterfall": {
     "defaultMessage": "Waterfall"
   },
-  "time-frame-picker.apply": {
-    "defaultMessage": "套用"
-  },
-  "time-frame-picker.cancel": {
-    "defaultMessage": "取消"
-  },
-  "time-frame-picker.clear-range": {
-    "defaultMessage": "清除"
-  },
-  "time-frame-picker.custom-range": {
-    "defaultMessage": "自訂日期範圍..."
-  },
-  "time-frame-picker.decrease-amount": {
-    "defaultMessage": "減少時間範圍時長"
-  },
-  "time-frame-picker.empty-range": {
-    "defaultMessage": "未選取日期範圍。"
-  },
-  "time-frame-picker.end-date": {
-    "defaultMessage": "結束日期"
-  },
-  "time-frame-picker.increase-amount": {
-    "defaultMessage": "增加時間範圍時長"
-  },
-  "time-frame-picker.last-timeframe": {
-    "defaultMessage": "在過去 {amount} {unit, select, hours {{amount, plural, other {小時}}} days {{amount, plural, other {天}}} weeks {{amount, plural, other {週}}} months {{amount, plural, other {月}}} other {天}}"
-  },
-  "time-frame-picker.last-timeframe-prefix": {
-    "defaultMessage": "在過去"
-  },
-  "time-frame-picker.option.all-time": {
-    "defaultMessage": "所有時間"
-  },
-  "time-frame-picker.option.last-14-days": {
-    "defaultMessage": "過去 14 天"
-  },
-  "time-frame-picker.option.last-180-days": {
-    "defaultMessage": "過去 180 天"
-  },
-  "time-frame-picker.option.last-30-days": {
-    "defaultMessage": "過去 30 天"
-  },
-  "time-frame-picker.option.last-7-days": {
-    "defaultMessage": "過去 7 天"
-  },
-  "time-frame-picker.option.last-90-days": {
-    "defaultMessage": "過去 90 天"
-  },
-  "time-frame-picker.option.today": {
-    "defaultMessage": "今天"
-  },
-  "time-frame-picker.option.year-to-date": {
-    "defaultMessage": "今年迄今"
-  },
-  "time-frame-picker.option.yesterday": {
-    "defaultMessage": "昨天"
-  },
-  "time-frame-picker.select-timeframe": {
-    "defaultMessage": "選取時間範圍"
-  },
-  "time-frame-picker.selected-range": {
-    "defaultMessage": "選取範圍"
-  },
-  "time-frame-picker.selecting-range": {
-    "defaultMessage": "選取中"
-  },
-  "time-frame-picker.start-date": {
-    "defaultMessage": "開始日期"
-  },
-  "time-frame-picker.timeframe-amount": {
-    "defaultMessage": "時間範圍時長"
-  },
-  "time-frame-picker.timeframe-unit": {
-    "defaultMessage": "時間範圍單位"
-  },
-  "time-frame-picker.unit.days": {
-    "defaultMessage": "天"
-  },
-  "time-frame-picker.unit.hours": {
-    "defaultMessage": "小時"
-  },
-  "time-frame-picker.unit.months": {
-    "defaultMessage": "月"
-  },
-  "time-frame-picker.unit.weeks": {
-    "defaultMessage": "週"
-  },
-  "ui.component.unsaved-changes-popup.body": {
-    "defaultMessage": "你的變更尚未儲存。"
-  },
   "ui.confirm-leave-modal.body": {
     "defaultMessage": "您有未儲存的變更，如果離開此頁面將會遺失"
   },
@@ -3748,12 +3454,6 @@
   },
   "ui.confirm-leave-modal.title": {
     "defaultMessage": "離開頁面？"
-  },
-  "ui.stacked-admonitions.alert-count": {
-    "defaultMessage": "{count, plural, other {# 個警示}}"
-  },
-  "ui.stacked-admonitions.dismiss-all": {
-    "defaultMessage": "忽略全部"
   },
   "version.content.name": {
     "defaultMessage": "名稱"

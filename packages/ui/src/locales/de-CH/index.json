@@ -362,9 +362,6 @@
   "content.filter.updates": {
     "defaultMessage": "Updates"
   },
-  "content.filter.warnings": {
-    "defaultMessage": "Warnungen"
-  },
   "content.page-layout.browse-content": {
     "defaultMessage": "Inhalte durchsuchen"
   },
@@ -1037,18 +1034,6 @@
   "header.category.resolutions": {
     "defaultMessage": "Auflösung"
   },
-  "icon-select.edit": {
-    "defaultMessage": "Icon bearbeiten"
-  },
-  "icon-select.remove": {
-    "defaultMessage": "Icon entfernen"
-  },
-  "icon-select.replace": {
-    "defaultMessage": "Icon ersetzen"
-  },
-  "icon-select.select": {
-    "defaultMessage": "Icon wählen"
-  },
   "input.search-version.placeholder": {
     "defaultMessage": "Version suchen..."
   },
@@ -1276,24 +1261,6 @@
   },
   "instances.content-install.select-icon": {
     "defaultMessage": "Icon auswählen"
-  },
-  "instances.modpack-content-modal.empty-description": {
-    "defaultMessage": "Dieses Modpack enthält keine zusätzlichen inhalte."
-  },
-  "instances.modpack-content-modal.empty-title": {
-    "defaultMessage": "Keine Inhalte gefunden"
-  },
-  "instances.modpack-content-modal.header": {
-    "defaultMessage": "Modpack Inhalt"
-  },
-  "instances.modpack-content-modal.loading": {
-    "defaultMessage": "Lade Inhalte..."
-  },
-  "instances.modpack-content-modal.no-results": {
-    "defaultMessage": "Keine Projekte entsprechen deiner Suche."
-  },
-  "instances.modpack-content-modal.search-placeholder": {
-    "defaultMessage": "Durchsuche {count, number} {count, plural, one {Projekt} other {Projekte}}"
   },
   "instances.updater-modal.badge.current": {
     "defaultMessage": "Aktuell"
@@ -1712,150 +1679,6 @@
   "locale.zh-TW": {
     "defaultMessage": "Chinesisch (Traditionell)"
   },
-  "markdown-editor.default-image-alt-text": {
-    "defaultMessage": "Ersetze dies durch eine Beschreibung"
-  },
-  "markdown-editor.error-label": {
-    "defaultMessage": "Fehler"
-  },
-  "markdown-editor.image-modal.description-field.description": {
-    "defaultMessage": "Beschreibe das Bild vollständig, so wie du es für jemanden tun würdest, der es nicht sehen kann."
-  },
-  "markdown-editor.image-modal.description-field.placeholder": {
-    "defaultMessage": "Beschreibe das Bild..."
-  },
-  "markdown-editor.image-modal.description-field.title": {
-    "defaultMessage": "Beschreibung (Alternativtext)"
-  },
-  "markdown-editor.image-modal.header": {
-    "defaultMessage": "Bild einfügen"
-  },
-  "markdown-editor.image-modal.upload-mode.label": {
-    "defaultMessage": "Bildquelle"
-  },
-  "markdown-editor.image-modal.upload-mode.link": {
-    "defaultMessage": "Link"
-  },
-  "markdown-editor.image-modal.upload-mode.upload": {
-    "defaultMessage": "Hochladen"
-  },
-  "markdown-editor.image-modal.upload.prompt": {
-    "defaultMessage": "Drag-and-Drop um hochzuladen oder klicke Datei Hochladen"
-  },
-  "markdown-editor.image-modal.url-field.placeholder": {
-    "defaultMessage": "Gib die Bild-URL ein..."
-  },
-  "markdown-editor.insert-button": {
-    "defaultMessage": "Einfügen"
-  },
-  "markdown-editor.link-modal.header": {
-    "defaultMessage": "Link einfügen"
-  },
-  "markdown-editor.link-modal.label-field.placeholder": {
-    "defaultMessage": "Label einfügen..."
-  },
-  "markdown-editor.link-modal.label-field.title": {
-    "defaultMessage": "Label"
-  },
-  "markdown-editor.link-modal.url-field.placeholder": {
-    "defaultMessage": "Gib die URL des Links ein..."
-  },
-  "markdown-editor.markdown-formatting-support": {
-    "defaultMessage": "Dieser Editor unterstützt <markdown-link>Markdown-Formatierung</markdown-link>."
-  },
-  "markdown-editor.max-length.label": {
-    "defaultMessage": "Maximale Länge:"
-  },
-  "markdown-editor.max-length.unlimited": {
-    "defaultMessage": "Unbegrenzt"
-  },
-  "markdown-editor.max-length.value": {
-    "defaultMessage": "{currentLength}/{maxLength}"
-  },
-  "markdown-editor.placeholder": {
-    "defaultMessage": "Schreib etwas..."
-  },
-  "markdown-editor.preview-label": {
-    "defaultMessage": "Vorschau"
-  },
-  "markdown-editor.preview-toggle.label": {
-    "defaultMessage": "Vorschau"
-  },
-  "markdown-editor.toolbar.bold": {
-    "defaultMessage": "Fett"
-  },
-  "markdown-editor.toolbar.bulleted-list": {
-    "defaultMessage": "Aufzählung"
-  },
-  "markdown-editor.toolbar.code": {
-    "defaultMessage": "Code"
-  },
-  "markdown-editor.toolbar.heading-1": {
-    "defaultMessage": "Überschrift 1"
-  },
-  "markdown-editor.toolbar.heading-2": {
-    "defaultMessage": "Überschrift 2"
-  },
-  "markdown-editor.toolbar.heading-3": {
-    "defaultMessage": "Überschrift 3"
-  },
-  "markdown-editor.toolbar.image": {
-    "defaultMessage": "Bild"
-  },
-  "markdown-editor.toolbar.italic": {
-    "defaultMessage": "Kursiv"
-  },
-  "markdown-editor.toolbar.link": {
-    "defaultMessage": "Link"
-  },
-  "markdown-editor.toolbar.ordered-list": {
-    "defaultMessage": "Geordnete Liste"
-  },
-  "markdown-editor.toolbar.quote": {
-    "defaultMessage": "Zitat"
-  },
-  "markdown-editor.toolbar.spoiler": {
-    "defaultMessage": "Spoiler"
-  },
-  "markdown-editor.toolbar.strikethrough": {
-    "defaultMessage": "Durchgestrichen"
-  },
-  "markdown-editor.toolbar.video": {
-    "defaultMessage": "Video"
-  },
-  "markdown-editor.upload-error.no-file": {
-    "defaultMessage": "Keine Datei gegeben"
-  },
-  "markdown-editor.upload-error.no-handler": {
-    "defaultMessage": "Kein Bild-Upload-Handler vorhanden"
-  },
-  "markdown-editor.url-label": {
-    "defaultMessage": "URL"
-  },
-  "markdown-editor.url-validation-error.blocked-domain": {
-    "defaultMessage": "Ungültige URL. Diese Domain ist nicht erlaubt."
-  },
-  "markdown-editor.url-validation-error.malformed": {
-    "defaultMessage": "Ungültige URL. Stelle sicher, dass die URL richtig geschrieben wurde."
-  },
-  "markdown-editor.url-validation-error.unsupported-protocol": {
-    "defaultMessage": "Ungültiges Protokoll. Bitte benutze http oder https."
-  },
-  "markdown-editor.video-embed.title": {
-    "defaultMessage": "YouTube Videoplayer"
-  },
-  "markdown-editor.video-modal.header": {
-    "defaultMessage": "YouTube Video einfügen"
-  },
-  "markdown-editor.video-modal.url-field.description": {
-    "defaultMessage": "Gib einen gültigen YouTube-Link ein."
-  },
-  "markdown-editor.video-modal.url-field.placeholder": {
-    "defaultMessage": "Gib eine YouTube-Video-URL ein"
-  },
-  "markdown-editor.video-modal.url-field.title": {
-    "defaultMessage": "YouTube-Video URL"
-  },
   "modal.open-in-app.benefit.install": {
     "defaultMessage": "Installiere automatisch benötigte Inhalte"
   },
@@ -1945,24 +1768,6 @@
   },
   "omorphia.component.copy.action.copy": {
     "defaultMessage": "Code in Zwischenablage kopieren"
-  },
-  "omorphia.component.environment-indicator.label.client": {
-    "defaultMessage": "Client"
-  },
-  "omorphia.component.environment-indicator.label.client-and-server": {
-    "defaultMessage": "Client und Server"
-  },
-  "omorphia.component.environment-indicator.label.client-or-server": {
-    "defaultMessage": "Client oder Server"
-  },
-  "omorphia.component.environment-indicator.label.server": {
-    "defaultMessage": "Server"
-  },
-  "omorphia.component.environment-indicator.label.type": {
-    "defaultMessage": "Ein {type}"
-  },
-  "omorphia.component.environment-indicator.label.unsupported": {
-    "defaultMessage": "Nicht unterstützt"
   },
   "payment-method.amazon_pay": {
     "defaultMessage": "Amazon Pay"
@@ -2723,17 +2528,8 @@
   "search.server_content_type.vanilla": {
     "defaultMessage": "Vanilla"
   },
-  "servers.notice.dismiss": {
-    "defaultMessage": "Ausblenden"
-  },
   "servers.notice.dismissable": {
     "defaultMessage": "Entfernbar"
-  },
-  "servers.notice.heading.attention": {
-    "defaultMessage": "Achtung"
-  },
-  "servers.notice.heading.info": {
-    "defaultMessage": "Info"
   },
   "servers.notice.level.critical.name": {
     "defaultMessage": "Kritisch"
@@ -3281,96 +3077,6 @@
   "tag.loader.waterfall": {
     "defaultMessage": "Waterfall"
   },
-  "time-frame-picker.apply": {
-    "defaultMessage": "Anwenden"
-  },
-  "time-frame-picker.cancel": {
-    "defaultMessage": "Abbrechen"
-  },
-  "time-frame-picker.clear-range": {
-    "defaultMessage": "Löschen"
-  },
-  "time-frame-picker.custom-range": {
-    "defaultMessage": "Benutzerdefiniertes festes Zeitfenster..."
-  },
-  "time-frame-picker.decrease-amount": {
-    "defaultMessage": "Zeitraum verkürzen"
-  },
-  "time-frame-picker.empty-range": {
-    "defaultMessage": "Kein Datumsbereich ausgewählt."
-  },
-  "time-frame-picker.end-date": {
-    "defaultMessage": "Enddatum"
-  },
-  "time-frame-picker.increase-amount": {
-    "defaultMessage": "Zeitraum verlängern"
-  },
-  "time-frame-picker.last-timeframe": {
-    "defaultMessage": "{unit, select, hours {{amount, plural, one {In der letzten Stunde} other {In den letzten # Stunden} }} days {{amount, plural, one {Am letzten Tag} other {In den letzten # Tagen} }} weeks {{amount, plural, one {In der letzten Woche} other {In den letzten # Wochen} }} months {{amount, plural, one {Im letzten Monat} other {In den letzten # Monaten} }} other {In den letzten # Tagen}}"
-  },
-  "time-frame-picker.last-timeframe-prefix": {
-    "defaultMessage": "In der letzten"
-  },
-  "time-frame-picker.option.all-time": {
-    "defaultMessage": "Gesamte Zeit"
-  },
-  "time-frame-picker.option.last-14-days": {
-    "defaultMessage": "Letzte 14 Tage"
-  },
-  "time-frame-picker.option.last-180-days": {
-    "defaultMessage": "Letzte 180 Tage"
-  },
-  "time-frame-picker.option.last-30-days": {
-    "defaultMessage": "Letzte 30 Tage"
-  },
-  "time-frame-picker.option.last-7-days": {
-    "defaultMessage": "Letzte 7 Tage"
-  },
-  "time-frame-picker.option.last-90-days": {
-    "defaultMessage": "Letzte 90 Tage"
-  },
-  "time-frame-picker.option.today": {
-    "defaultMessage": "Heute"
-  },
-  "time-frame-picker.option.year-to-date": {
-    "defaultMessage": "Jahr bis heute"
-  },
-  "time-frame-picker.option.yesterday": {
-    "defaultMessage": "Gestern"
-  },
-  "time-frame-picker.select-timeframe": {
-    "defaultMessage": "Zeitraum auswählen"
-  },
-  "time-frame-picker.selected-range": {
-    "defaultMessage": "Ausgewählt"
-  },
-  "time-frame-picker.selecting-range": {
-    "defaultMessage": "Wird ausgewählt"
-  },
-  "time-frame-picker.start-date": {
-    "defaultMessage": "Startdatum"
-  },
-  "time-frame-picker.timeframe-amount": {
-    "defaultMessage": "Menge des Zeitraums"
-  },
-  "time-frame-picker.timeframe-unit": {
-    "defaultMessage": "Einheit des Zeitraums"
-  },
-  "time-frame-picker.unit.days": {
-    "defaultMessage": "Tage"
-  },
-  "time-frame-picker.unit.hours": {
-    "defaultMessage": "Stunden"
-  },
-  "time-frame-picker.unit.months": {
-    "defaultMessage": "Monate"
-  },
-  "time-frame-picker.unit.weeks": {
-    "defaultMessage": "Wochen"
-  },
-  "ui.component.unsaved-changes-popup.body": {
-    "defaultMessage": "Du hast ungespeicherte Änderungen."
-  },
   "ui.confirm-leave-modal.body": {
     "defaultMessage": "Du hast ungespeicherte Änderungen, die verloren gehen, wenn du diese Seite verlässt."
   },
@@ -3385,12 +3091,6 @@
   },
   "ui.confirm-leave-modal.title": {
     "defaultMessage": "Seite verlassen?"
-  },
-  "ui.stacked-admonitions.alert-count": {
-    "defaultMessage": "{count, plural, one {# Mitteilung} other {# Mitteilungen}}"
-  },
-  "ui.stacked-admonitions.dismiss-all": {
-    "defaultMessage": "Alle ausblenden"
   },
   "version.content.name": {
     "defaultMessage": "Name"

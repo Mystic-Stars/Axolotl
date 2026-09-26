@@ -341,42 +341,6 @@
   "app.instance.worlds.search-worlds-placeholder": {
     "message": "Sök {count} världar..."
   },
-  "app.modal.install-to-play.content-required": {
-    "message": "Innehåll krävs"
-  },
-  "app.modal.install-to-play.header": {
-    "message": "Installera för att spela"
-  },
-  "app.modal.install-to-play.install-button": {
-    "message": "Installera"
-  },
-  "app.modal.install-to-play.mod-count": {
-    "message": "{count, plural, one {# mod} other {# moddar}}"
-  },
-  "app.modal.install-to-play.required-modpack": {
-    "message": "Modpaket som krävs"
-  },
-  "app.modal.install-to-play.server-requires-mods": {
-    "message": "Servern kräver moddar för att du ska kunna spela. Klicka på Installera för att sätta upp dem nödvändiga filerna från Modrinth, och starta sedan på servern direkt."
-  },
-  "app.modal.install-to-play.shared-instance": {
-    "message": "Delad instans"
-  },
-  "app.modal.install-to-play.shared-server-instance": {
-    "message": "Delad serverinstans"
-  },
-  "app.modal.install-to-play.view-contents": {
-    "message": "Visa innehåll"
-  },
-  "app.modal.update-to-play.header": {
-    "message": "Uppdatera för att spela"
-  },
-  "app.modal.update-to-play.update-required": {
-    "message": "Uppdatering krävs"
-  },
-  "app.modal.update-to-play.update-required-description": {
-    "message": "En uppdatering krävs för att spela {name}. Vänligen uppdatera till senaste version för att starta spelet."
-  },
   "app.project.install-button.already-installed": {
     "message": "Detta projekt är redan installerat"
   },

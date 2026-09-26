@@ -304,7 +304,9 @@ const currentLoaderLabel = computed(() => {
 	return instance.value.loader_version ? `${loader} ${instance.value.loader_version}` : loader
 })
 const snapshotItemCount = computed(() =>
-	contentDataQuery.isPending.value ? null : (contentDataQuery.data.value?.snapshot.items.length ?? 0),
+	contentDataQuery.isPending.value
+		? null
+		: (contentDataQuery.data.value?.snapshot.items.length ?? 0),
 )
 const canPlan = computed(
 	() =>

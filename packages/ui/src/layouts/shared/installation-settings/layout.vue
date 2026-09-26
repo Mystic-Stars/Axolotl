@@ -18,7 +18,7 @@ import { onBeforeRouteLeave } from 'vue-router'
 
 import AutoLink from '#ui/components/base/AutoLink.vue'
 import Avatar from '#ui/components/base/Avatar.vue'
-import ButtonStyled from '#ui/components/base/ButtonStyled.vue'
+import Button from '#ui/components/base/buttons/Button.vue'
 import Chips from '#ui/components/base/Chips.vue'
 import Combobox from '#ui/components/base/Combobox.vue'
 import PaperChannelBadge from '#ui/components/base/PaperChannelBadge.vue'
@@ -685,17 +685,15 @@ const messages = defineMessages({
 						</div>
 					</div>
 					<div class="flex flex-wrap gap-2">
-						<ButtonStyled v-if="showModpackVersionActions || isLocalFile">
-							<button
-								v-tooltip="ctx.isBusy.value ? ctx.busyMessage?.value : undefined"
-								class="!shadow-none"
-								:disabled="ctx.isBusy.value"
-								@click="handleModpackPrimaryAction"
-							>
-								<ArrowLeftRightIcon class="size-5" />
-								{{ formatMessage(commonMessages.changeVersionButton) }}
-							</button>
-						</ButtonStyled>
+						<Button
+							v-if="showModpackVersionActions || isLocalFile"
+							v-tooltip="ctx.isBusy.value ? ctx.busyMessage?.value : undefined"
+							class="!shadow-none"
+							:disabled="ctx.isBusy.value"
+							@click="handleModpackPrimaryAction"
+							><ArrowLeftRightIcon class="size-5" />
+							{{ formatMessage(commonMessages.changeVersionButton) }}
+						</Button>
 					</div>
 				</div>
 
@@ -711,21 +709,20 @@ const messages = defineMessages({
 						}}
 					</span>
 					<div>
-						<ButtonStyled color="orange">
-							<button
-								v-tooltip="ctx.isBusy.value ? ctx.busyMessage?.value : undefined"
-								class="!shadow-none"
-								:disabled="ctx.isBusy.value"
-								@click="handleShowUnlinkModal"
-							>
-								<UnlinkIcon class="size-5" />
-								{{
-									formatMessage(
-										isLinkedModpack ? commonMessages.unlinkModpackButton : messages.unlinkButton,
-									)
-								}}
-							</button>
-						</ButtonStyled>
+						<Button
+							v-tooltip="ctx.isBusy.value ? ctx.busyMessage?.value : undefined"
+							type="colored"
+							color="orange"
+							class="!shadow-none"
+							:disabled="ctx.isBusy.value"
+							@click="handleShowUnlinkModal"
+							><UnlinkIcon class="size-5" />
+							{{
+								formatMessage(
+									isLinkedModpack ? commonMessages.unlinkModpackButton : messages.unlinkButton,
+								)
+							}}
+						</Button>
 					</div>
 					<span class="text-primary">
 						{{
@@ -745,22 +742,21 @@ const messages = defineMessages({
 						{{ formatMessage(messages.reinstallModpackTitle) }}
 					</span>
 					<div>
-						<ButtonStyled color="red">
-							<button
-								v-tooltip="ctx.isBusy.value ? ctx.busyMessage?.value : undefined"
-								class="!shadow-none"
-								:disabled="ctx.isBusy.value"
-								@click="handleShowReinstallModal"
-							>
-								<SpinnerIcon v-if="ctx.reinstalling?.value" class="animate-spin" />
-								<DownloadIcon v-else class="size-5" />
-								{{
-									ctx.reinstalling?.value
-										? formatMessage(messages.reinstallingModpackButton)
-										: formatMessage(commonMessages.reinstallModpackButton)
-								}}
-							</button>
-						</ButtonStyled>
+						<Button
+							v-tooltip="ctx.isBusy.value ? ctx.busyMessage?.value : undefined"
+							type="colored"
+							color="red"
+							class="!shadow-none"
+							:disabled="ctx.isBusy.value"
+							@click="handleShowReinstallModal"
+							><SpinnerIcon v-if="ctx.reinstalling?.value" class="animate-spin" />
+							<DownloadIcon v-else class="size-5" />
+							{{
+								ctx.reinstalling?.value
+									? formatMessage(messages.reinstallingModpackButton)
+									: formatMessage(commonMessages.reinstallModpackButton)
+							}}
+						</Button>
 					</div>
 					<span class="text-primary">
 						{{
@@ -783,22 +779,19 @@ const messages = defineMessages({
 						}}
 					</span>
 					<div>
-						<ButtonStyled>
-							<button
-								v-tooltip="ctx.isBusy.value ? ctx.busyMessage?.value : undefined"
-								class="!shadow-none"
-								:disabled="ctx.isBusy.value"
-								@click="handleShowRepairModal"
-							>
-								<SpinnerIcon v-if="ctx.repairing?.value" class="animate-spin" />
-								<HammerIcon v-else class="size-5" />
-								{{
-									ctx.repairing?.value
-										? formatMessage(commonMessages.repairingButton)
-										: formatMessage(commonMessages.repairButton)
-								}}
-							</button>
-						</ButtonStyled>
+						<Button
+							v-tooltip="ctx.isBusy.value ? ctx.busyMessage?.value : undefined"
+							class="!shadow-none"
+							:disabled="ctx.isBusy.value"
+							@click="handleShowRepairModal"
+							><SpinnerIcon v-if="ctx.repairing?.value" class="animate-spin" />
+							<HammerIcon v-else class="size-5" />
+							{{
+								ctx.repairing?.value
+									? formatMessage(commonMessages.repairingButton)
+									: formatMessage(commonMessages.repairButton)
+							}}
+						</Button>
 					</div>
 					<span class="text-primary">
 						{{
@@ -945,35 +938,32 @@ const messages = defineMessages({
 						</div>
 
 						<div class="flex flex-wrap gap-2">
-							<ButtonStyled color="brand">
-								<button
-									v-tooltip="ctx.isBusy.value ? ctx.busyMessage?.value : undefined"
-									class="!shadow-none"
-									:disabled="
-										!form.isValid.value ||
-										!form.hasChanges.value ||
-										form.isSaving.value ||
-										ctx.isBusy.value
-									"
-									@click="handleSave"
-								>
-									<SpinnerIcon v-if="form.isSaving.value" class="animate-spin" />
-									<SaveIcon v-else />
-									{{
-										form.isVerifying.value
-											? formatMessage(messages.verifyingLabel)
-											: form.isSaving.value
-												? formatMessage(messages.savingLabel)
-												: formatMessage(commonMessages.saveButton)
-									}}
-								</button>
-							</ButtonStyled>
-							<ButtonStyled type="outlined">
-								<button @click="handleCancelEditing">
-									<XIcon />
-									{{ formatMessage(commonMessages.cancelButton) }}
-								</button>
-							</ButtonStyled>
+							<Button
+								v-tooltip="ctx.isBusy.value ? ctx.busyMessage?.value : undefined"
+								type="colored"
+								color="brand"
+								class="!shadow-none"
+								:disabled="
+									!form.isValid.value ||
+									!form.hasChanges.value ||
+									form.isSaving.value ||
+									ctx.isBusy.value
+								"
+								@click="handleSave"
+								><SpinnerIcon v-if="form.isSaving.value" class="animate-spin" />
+								<SaveIcon v-else />
+								{{
+									form.isVerifying.value
+										? formatMessage(messages.verifyingLabel)
+										: form.isSaving.value
+											? formatMessage(messages.savingLabel)
+											: formatMessage(commonMessages.saveButton)
+								}}
+							</Button>
+							<Button type="outlined" @click="handleCancelEditing"
+								><XIcon />
+								{{ formatMessage(commonMessages.cancelButton) }}
+							</Button>
 						</div>
 					</div>
 				</div>
@@ -994,17 +984,16 @@ const messages = defineMessages({
 						</div>
 					</div>
 					<div class="flex flex-wrap gap-2">
-						<ButtonStyled color="orange">
-							<button
-								v-tooltip="ctx.isBusy.value ? ctx.busyMessage?.value : undefined"
-								class="!shadow-none"
-								:disabled="ctx.isBusy.value"
-								@click="handleStartEditing"
-							>
-								<PencilIcon class="size-5" />
-								{{ formatMessage(commonMessages.editButton) }}
-							</button>
-						</ButtonStyled>
+						<Button
+							v-tooltip="ctx.isBusy.value ? ctx.busyMessage?.value : undefined"
+							type="colored"
+							color="orange"
+							class="!shadow-none"
+							:disabled="ctx.isBusy.value"
+							@click="handleStartEditing"
+							><PencilIcon class="size-5" />
+							{{ formatMessage(commonMessages.editButton) }}
+						</Button>
 						<slot name="unlinked-extra-buttons" />
 					</div>
 					<div class="flex items-start gap-2">
@@ -1029,22 +1018,19 @@ const messages = defineMessages({
 						}}
 					</span>
 					<div>
-						<ButtonStyled>
-							<button
-								v-tooltip="ctx.isBusy.value ? ctx.busyMessage?.value : undefined"
-								class="!shadow-none"
-								:disabled="ctx.isBusy.value"
-								@click="handleShowRepairModal"
-							>
-								<SpinnerIcon v-if="ctx.repairing?.value" class="animate-spin" />
-								<HammerIcon v-else class="size-5" />
-								{{
-									ctx.repairing?.value
-										? formatMessage(commonMessages.repairingButton)
-										: formatMessage(commonMessages.repairButton)
-								}}
-							</button>
-						</ButtonStyled>
+						<Button
+							v-tooltip="ctx.isBusy.value ? ctx.busyMessage?.value : undefined"
+							class="!shadow-none"
+							:disabled="ctx.isBusy.value"
+							@click="handleShowRepairModal"
+							><SpinnerIcon v-if="ctx.repairing?.value" class="animate-spin" />
+							<HammerIcon v-else class="size-5" />
+							{{
+								ctx.repairing?.value
+									? formatMessage(commonMessages.repairingButton)
+									: formatMessage(commonMessages.repairButton)
+							}}
+						</Button>
 					</div>
 					<span class="text-primary">
 						{{

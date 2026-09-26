@@ -64,19 +64,23 @@
 						</div>
 					</div>
 					<div v-if="!isImported(item)" class="flex shrink-0 flex-wrap justify-end gap-2">
-						<ButtonStyled type="outlined" size="small">
-							<button :disabled="busyKeys.has(itemKey(item))" @click="openOne(item)">
-								<ExternalIcon aria-hidden="true" />
-								{{ formatMessage(messages.open) }}
-							</button>
-						</ButtonStyled>
-						<ButtonStyled type="outlined" size="small">
-							<button :disabled="busyKeys.has(itemKey(item))" @click="chooseLocalFile(item)">
-								<SpinnerIcon v-if="busyKeys.has(itemKey(item))" class="animate-spin" />
-								<UploadIcon v-else aria-hidden="true" />
-								{{ formatMessage(messages.chooseFile) }}
-							</button>
-						</ButtonStyled>
+						<Button
+							type="outlined"
+							size="2xs"
+							:disabled="busyKeys.has(itemKey(item))"
+							@click="openOne(item)"
+							><ExternalIcon aria-hidden="true" />
+							{{ formatMessage(messages.open) }}
+						</Button>
+						<Button
+							type="outlined"
+							size="2xs"
+							:disabled="busyKeys.has(itemKey(item))"
+							@click="chooseLocalFile(item)"
+							><SpinnerIcon v-if="busyKeys.has(itemKey(item))" class="animate-spin" />
+							<UploadIcon v-else aria-hidden="true" />
+							{{ formatMessage(messages.chooseFile) }}
+						</Button>
 					</div>
 				</div>
 			</div>
@@ -84,22 +88,16 @@
 
 		<template #actions>
 			<div class="flex flex-wrap justify-end gap-2">
-				<ButtonStyled type="outlined">
-					<button @click="hide">
-						{{ formatMessage(commonMessages.closeButton) }}
-					</button>
-				</ButtonStyled>
-				<ButtonStyled v-if="instanceId" type="outlined">
-					<button @click="goToInstance">
-						{{ formatMessage(messages.viewInstance) }}
-					</button>
-				</ButtonStyled>
-				<ButtonStyled v-if="remainingCount > 0" color="orange">
-					<button @click="openAll">
-						<ExternalIcon aria-hidden="true" />
-						{{ formatMessage(messages.openAll) }}
-					</button>
-				</ButtonStyled>
+				<Button type="outlined" @click="hide"
+					>{{ formatMessage(commonMessages.closeButton) }}
+				</Button>
+				<Button v-if="instanceId" type="outlined" @click="goToInstance"
+					>{{ formatMessage(messages.viewInstance) }}
+				</Button>
+				<Button v-if="remainingCount > 0" type="colored" color="orange" @click="openAll"
+					><ExternalIcon aria-hidden="true" />
+					{{ formatMessage(messages.openAll) }}
+				</Button>
 			</div>
 		</template>
 	</NewModal>
@@ -115,7 +113,7 @@ import {
 } from '@modrinth/assets'
 import {
 	Admonition,
-	ButtonStyled,
+	Button,
 	commonMessages,
 	defineMessages,
 	injectNotificationManager,

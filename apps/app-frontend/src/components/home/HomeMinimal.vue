@@ -10,6 +10,7 @@ import {
 	TimerIcon,
 } from '@modrinth/assets'
 import {
+	Button,
 	ButtonStyled,
 	Card,
 	commonMessages,
@@ -248,49 +249,57 @@ onUnmounted(() => {
 						</router-link>
 
 						<div class="flex min-h-11 shrink-0 items-center justify-end gap-2">
-							<ButtonStyled v-if="running" color="red" size="large">
-								<button class="w-36 justify-center" @click="stopInstance">
-									<StopCircleIcon aria-hidden="true" />
-									<span class="truncate">{{ formatMessage(commonMessages.stopButton) }}</span>
-								</button>
-							</ButtonStyled>
-							<ButtonStyled v-else-if="busy" size="large">
-								<button class="w-36 justify-center" disabled>
-									<SpinnerIcon class="animate-spin" aria-hidden="true" />
-									<span class="truncate">
-										{{
-											formatMessage(installing ? commonMessages.installingLabel : messages.loading)
-										}}
-									</span>
-								</button>
-							</ButtonStyled>
-							<ButtonStyled v-else-if="installed" color="brand" size="large">
-								<button class="w-36 justify-center" @click="playInstance">
-									<PlayIcon class="translate-x-px" aria-hidden="true" />
-									<span class="truncate">{{ formatMessage(commonMessages.playButton) }}</span>
-								</button>
-							</ButtonStyled>
-							<ButtonStyled v-else color="brand" size="large">
-								<button
-									v-tooltip="offline ? formatMessage(messages.offlineInstalledOnly) : undefined"
-									class="w-36 justify-center"
-									:disabled="offline"
-									@click="installInstance"
-								>
-									<DownloadIcon aria-hidden="true" />
-									<span class="truncate">{{ formatMessage(commonMessages.installButton) }}</span>
-								</button>
-							</ButtonStyled>
+							<Button
+								v-if="running"
+								type="colored"
+								color="red"
+								size="xl"
+								class="w-36 justify-center"
+								@click="stopInstance"
+								><StopCircleIcon aria-hidden="true" />
+								<span class="truncate">{{ formatMessage(commonMessages.stopButton) }}</span>
+							</Button>
+							<Button v-else-if="busy" size="xl" class="w-36 justify-center" disabled
+								><SpinnerIcon class="animate-spin" aria-hidden="true" />
+								<span class="truncate">
+									{{
+										formatMessage(installing ? commonMessages.installingLabel : messages.loading)
+									}}
+								</span>
+							</Button>
+							<Button
+								v-else-if="installed"
+								type="colored"
+								color="brand"
+								size="xl"
+								class="w-36 justify-center"
+								@click="playInstance"
+								><PlayIcon class="translate-x-px" aria-hidden="true" />
+								<span class="truncate">{{ formatMessage(commonMessages.playButton) }}</span>
+							</Button>
+							<Button
+								v-else
+								v-tooltip="offline ? formatMessage(messages.offlineInstalledOnly) : undefined"
+								type="colored"
+								color="brand"
+								size="xl"
+								class="w-36 justify-center"
+								:disabled="offline"
+								@click="installInstance"
+								><DownloadIcon aria-hidden="true" />
+								<span class="truncate">{{ formatMessage(commonMessages.installButton) }}</span>
+							</Button>
 
-							<ButtonStyled circular size="large" type="transparent">
-								<button
-									v-tooltip="formatMessage(messages.changeInstance)"
-									:aria-label="formatMessage(messages.changeInstance)"
-									@click="emit('choose')"
-								>
-									<ListIcon aria-hidden="true" />
-								</button>
-							</ButtonStyled>
+							<Button
+								v-tooltip="formatMessage(messages.changeInstance)"
+								type="quiet"
+								size="xl"
+								circular
+								icon-only
+								:aria-label="formatMessage(messages.changeInstance)"
+								@click="emit('choose')"
+								><ListIcon aria-hidden="true" />
+							</Button>
 						</div>
 					</div>
 				</Card>

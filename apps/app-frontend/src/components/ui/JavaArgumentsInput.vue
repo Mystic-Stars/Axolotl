@@ -10,7 +10,7 @@ import {
 } from '@modrinth/assets'
 import {
 	AutoLink,
-	ButtonStyled,
+	Button,
 	Collapsible,
 	defineMessages,
 	NewModal,
@@ -324,12 +324,10 @@ onBeforeUnmount(() => {
 					@input="onInput"
 				/>
 			</div>
-			<ButtonStyled type="outlined" class="shrink-0">
-				<button type="button" :disabled="props.disabled" @click="showPresets">
-					<SparklesIcon aria-hidden="true" />
-					{{ formatMessage(messages.presetsButton) }}
-				</button>
-			</ButtonStyled>
+			<Button class="shrink-0" type="outlined" :disabled="props.disabled" @click="showPresets"
+				><SparklesIcon aria-hidden="true" />
+				{{ formatMessage(messages.presetsButton) }}
+			</Button>
 		</div>
 
 		<NewModal
@@ -409,23 +407,18 @@ onBeforeUnmount(() => {
 											{{ getAutoVerifiedLabel(preset) }}
 										</p>
 									</div>
-									<ButtonStyled
-										:type="isPresetActive(preset) ? 'standard' : 'outlined'"
+									<Button
+										:type="isPresetActive(preset) ? 'colored' : 'outlined'"
 										color="brand"
-									>
-										<button
-											type="button"
-											:disabled="isPresetActive(preset)"
-											@click="applyPreset(preset)"
-										>
-											<CheckIcon v-if="isPresetActive(preset)" aria-hidden="true" />
-											{{
-												formatMessage(
-													isPresetActive(preset) ? messages.presetApplied : messages.usePreset,
-												)
-											}}
-										</button>
-									</ButtonStyled>
+										:disabled="isPresetActive(preset)"
+										@click="applyPreset(preset)"
+										><CheckIcon v-if="isPresetActive(preset)" aria-hidden="true" />
+										{{
+											formatMessage(
+												isPresetActive(preset) ? messages.presetApplied : messages.usePreset,
+											)
+										}}
+									</Button>
 								</div>
 								<template v-if="preset.id !== 'gc-auto' || showAutoDetails">
 									<div class="flex items-center gap-2">

@@ -407,18 +407,6 @@
   "header.category.resolutions": {
     "defaultMessage": "Resolusyon"
   },
-  "icon-select.edit": {
-    "defaultMessage": "Baguhin ang ikono"
-  },
-  "icon-select.remove": {
-    "defaultMessage": "Tanggalin ang ikono"
-  },
-  "icon-select.replace": {
-    "defaultMessage": "Palitan ang ikono"
-  },
-  "icon-select.select": {
-    "defaultMessage": "Pumili ng ikono"
-  },
   "input.search.placeholder": {
     "defaultMessage": "Maghanap..."
   },
@@ -499,24 +487,6 @@
   },
   "instances.content-install.no-instances": {
     "defaultMessage": "Walang mahanap na magkatugmang instansiya"
-  },
-  "instances.modpack-content-modal.empty-description": {
-    "defaultMessage": "Hindi naglalaman ng karagdagang kontento ang modpack na ito."
-  },
-  "instances.modpack-content-modal.empty-title": {
-    "defaultMessage": "Walang mahanap na kontento"
-  },
-  "instances.modpack-content-modal.header": {
-    "defaultMessage": "Kontentong modpack"
-  },
-  "instances.modpack-content-modal.loading": {
-    "defaultMessage": "Inihahanda ang kontento..."
-  },
-  "instances.modpack-content-modal.no-results": {
-    "defaultMessage": "Walang proyektong tumugma sa iyong paghanap."
-  },
-  "instances.modpack-content-modal.search-placeholder": {
-    "defaultMessage": "Maghanap sa {count, number} {count, plural, one {proyekto} other {na proyekto}}"
   },
   "instances.updater-modal.badge.current": {
     "defaultMessage": "Kasalukuyan"
@@ -824,60 +794,6 @@
   "locale.zh-TW": {
     "defaultMessage": "Tsino (Tradisyonal)"
   },
-  "markdown-editor.error-label": {
-    "defaultMessage": "Error"
-  },
-  "markdown-editor.image-modal.upload-mode.link": {
-    "defaultMessage": "Link"
-  },
-  "markdown-editor.link-modal.label-field.title": {
-    "defaultMessage": "Label"
-  },
-  "markdown-editor.toolbar.bold": {
-    "defaultMessage": "Bold"
-  },
-  "markdown-editor.toolbar.bulleted-list": {
-    "defaultMessage": "Naka-bullet na listahan"
-  },
-  "markdown-editor.toolbar.code": {
-    "defaultMessage": "Kodigo"
-  },
-  "markdown-editor.toolbar.heading-1": {
-    "defaultMessage": "Heading 1"
-  },
-  "markdown-editor.toolbar.heading-2": {
-    "defaultMessage": "Heading 2"
-  },
-  "markdown-editor.toolbar.heading-3": {
-    "defaultMessage": "Heading 3"
-  },
-  "markdown-editor.toolbar.image": {
-    "defaultMessage": "Larawan"
-  },
-  "markdown-editor.toolbar.italic": {
-    "defaultMessage": "Italic"
-  },
-  "markdown-editor.toolbar.link": {
-    "defaultMessage": "Link"
-  },
-  "markdown-editor.toolbar.ordered-list": {
-    "defaultMessage": "Pagkasunod-sunod na listahan"
-  },
-  "markdown-editor.toolbar.quote": {
-    "defaultMessage": "Sipi"
-  },
-  "markdown-editor.toolbar.spoiler": {
-    "defaultMessage": "Spoiler"
-  },
-  "markdown-editor.toolbar.strikethrough": {
-    "defaultMessage": "Strikethrough"
-  },
-  "markdown-editor.toolbar.video": {
-    "defaultMessage": "Video"
-  },
-  "markdown-editor.url-label": {
-    "defaultMessage": "URL"
-  },
   "modal.open-in-app.benefit.install": {
     "defaultMessage": "Kusang ma-install ang kinailangang kontento"
   },
@@ -961,24 +877,6 @@
   },
   "omorphia.component.copy.action.copy": {
     "defaultMessage": "Kopyahin ang code sa clipboard"
-  },
-  "omorphia.component.environment-indicator.label.client": {
-    "defaultMessage": "Client"
-  },
-  "omorphia.component.environment-indicator.label.client-and-server": {
-    "defaultMessage": "Client and server"
-  },
-  "omorphia.component.environment-indicator.label.client-or-server": {
-    "defaultMessage": "Client o server"
-  },
-  "omorphia.component.environment-indicator.label.server": {
-    "defaultMessage": "Server"
-  },
-  "omorphia.component.environment-indicator.label.type": {
-    "defaultMessage": "Isang {type}"
-  },
-  "omorphia.component.environment-indicator.label.unsupported": {
-    "defaultMessage": "Hindi sinusuportahan"
   },
   "payment-method.amazon_pay": {
     "defaultMessage": "Amazon Pay"
@@ -1691,17 +1589,8 @@
   "search.server_content_type.vanilla": {
     "defaultMessage": "Vanilla"
   },
-  "servers.notice.dismiss": {
-    "defaultMessage": "Alisin"
-  },
   "servers.notice.dismissable": {
     "defaultMessage": "Maaaring maalis"
-  },
-  "servers.notice.heading.attention": {
-    "defaultMessage": "Makinig"
-  },
-  "servers.notice.heading.info": {
-    "defaultMessage": "Impormasyon"
   },
   "servers.notice.level.critical.name": {
     "defaultMessage": "Kritikal"
@@ -2230,29 +2119,5 @@
   },
   "tag.loader.waterfall": {
     "defaultMessage": "Waterfall"
-  },
-  "time-frame-picker.apply": {
-    "defaultMessage": "Ìlapat"
-  },
-  "time-frame-picker.clear-range": {
-    "defaultMessage": "Burahin"
-  },
-  "time-frame-picker.option.today": {
-    "defaultMessage": "Ngayon"
-  },
-  "time-frame-picker.unit.days": {
-    "defaultMessage": "araw"
-  },
-  "time-frame-picker.unit.hours": {
-    "defaultMessage": "oras"
-  },
-  "time-frame-picker.unit.months": {
-    "defaultMessage": "buwan"
-  },
-  "time-frame-picker.unit.weeks": {
-    "defaultMessage": "linggo"
-  },
-  "ui.component.unsaved-changes-popup.body": {
-    "defaultMessage": "Mayroon kang hindi na-save na pagbabago."
   }
 }

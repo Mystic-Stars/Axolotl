@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { CheckIcon, EditIcon, SearchIcon } from '@modrinth/assets'
-import { ButtonStyled, defineMessages, NewModal, StyledInput, useVIntl } from '@modrinth/ui'
+import { Button, defineMessages, NewModal, StyledInput, useVIntl } from '@modrinth/ui'
 import { computed, nextTick, ref, useTemplateRef } from 'vue'
 
 import type { SchematicBlockState } from '@/lab/schematic-preview/backend'
@@ -194,16 +194,10 @@ defineExpose({ show })
 
 		<template #actions>
 			<div class="flex items-center justify-end gap-2">
-				<ButtonStyled type="transparent">
-					<button type="button" @click="modal?.hide()">
-						{{ formatMessage(messages.cancel) }}
-					</button>
-				</ButtonStyled>
-				<ButtonStyled color="brand">
-					<button type="button" :disabled="!selectedBlock" @click="confirm">
-						<EditIcon />{{ formatMessage(messages.confirm, { count: selectedCount }) }}
-					</button>
-				</ButtonStyled>
+				<Button type="quiet" @click="modal?.hide()">{{ formatMessage(messages.cancel) }} </Button>
+				<Button type="colored" color="brand" :disabled="!selectedBlock" @click="confirm"
+					><EditIcon />{{ formatMessage(messages.confirm, { count: selectedCount }) }}
+				</Button>
 			</div>
 		</template>
 	</NewModal>
@@ -223,7 +217,7 @@ defineExpose({ show })
 	border-radius: var(--radius-md);
 	padding: 0.625rem;
 	background: var(--surface-2);
-	color: var(--color-text-dark);
+	color: var(--color-contrast);
 	font: inherit;
 	text-align: left;
 	transition:
@@ -284,7 +278,7 @@ defineExpose({ show })
 	place-items: center;
 	border-radius: 50%;
 	background: var(--color-brand);
-	color: var(--color-brand-inverted);
+	color: var(--color-accent-contrast);
 }
 
 .block-picker-check svg {

@@ -79,17 +79,14 @@
 
 		<template #actions>
 			<div class="flex w-full items-center justify-between">
-				<ButtonStyled type="transparent">
-					<button type="button" @click="emit('cancel')">
-						{{ formatMessage(messages.cancel) }}
-					</button>
-				</ButtonStyled>
-				<ButtonStyled :disabled="selectedCount === 0">
-					<button class="flex items-center gap-2" @click="handleConfirm">
-						<DownloadIcon class="size-4" />
-						{{ formatMessage(messages.importAction, { n: selectedCount }) }}
-					</button>
-				</ButtonStyled>
+				<Button type="quiet" @click="emit('cancel')">{{ formatMessage(messages.cancel) }} </Button>
+				<Button
+					:disabled="selectedCount === 0"
+					class="flex items-center gap-2"
+					@click="handleConfirm"
+					><DownloadIcon class="size-4" />
+					{{ formatMessage(messages.importAction, { n: selectedCount }) }}
+				</Button>
 			</div>
 		</template>
 	</NewModal>
@@ -99,7 +96,7 @@
 import { DownloadIcon } from '@modrinth/assets'
 import { computed, ref } from 'vue'
 
-import ButtonStyled from '#ui/components/base/ButtonStyled.vue'
+import Button from '#ui/components/base/buttons/Button.vue'
 import Checkbox from '#ui/components/base/Checkbox.vue'
 import InstanceRowCard from '#ui/components/base/InstanceRowCard.vue'
 import NewModal from '#ui/components/modal/NewModal.vue'

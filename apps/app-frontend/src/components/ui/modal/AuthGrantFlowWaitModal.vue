@@ -1,9 +1,7 @@
 <script setup lang="ts">
 import { LogInIcon, SpinnerIcon } from '@modrinth/assets'
-import { commonMessages, defineMessages, useVIntl } from '@modrinth/ui'
+import { commonMessages, defineMessages, NewModal, useVIntl } from '@modrinth/ui'
 import { ref } from 'vue'
-
-import ModalWrapper from '@/components/ui/modal/ModalWrapper.vue'
 
 defineProps({
 	onFlowCancel: {
@@ -34,7 +32,7 @@ function hide() {
 defineExpose({ show, hide })
 </script>
 <template>
-	<ModalWrapper ref="modal" @hide="onFlowCancel">
+	<NewModal ref="modal" :on-hide="onFlowCancel">
 		<template #title>
 			<span class="items-center gap-2 text-lg font-extrabold text-contrast">
 				<LogInIcon /> {{ formatMessage(commonMessages.signInButton) }}
@@ -47,5 +45,5 @@ defineExpose({ show, hide })
 		<p class="text-sm text-secondary">
 			{{ formatMessage(messages.signInBrowser) }}
 		</p>
-	</ModalWrapper>
+	</NewModal>
 </template>

@@ -338,9 +338,6 @@
   "content.filter.updates": {
     "defaultMessage": "Обновления"
   },
-  "content.filter.warnings": {
-    "defaultMessage": "Предупреждения"
-  },
   "content.page-layout.browse-content": {
     "defaultMessage": "Найти проекты"
   },
@@ -965,18 +962,6 @@
   "header.category.resolutions": {
     "defaultMessage": "Разрешение"
   },
-  "icon-select.edit": {
-    "defaultMessage": "Изменить иконку"
-  },
-  "icon-select.remove": {
-    "defaultMessage": "Удалить иконку"
-  },
-  "icon-select.replace": {
-    "defaultMessage": "Заменить иконку"
-  },
-  "icon-select.select": {
-    "defaultMessage": "Выбрать иконку"
-  },
   "input.search-version.placeholder": {
     "defaultMessage": "Поиск версии..."
   },
@@ -1204,24 +1189,6 @@
   },
   "instances.content-install.select-icon": {
     "defaultMessage": "Выбрать иконку"
-  },
-  "instances.modpack-content-modal.empty-description": {
-    "defaultMessage": "В сборке нет дополнительного контента."
-  },
-  "instances.modpack-content-modal.empty-title": {
-    "defaultMessage": "Сборка пуста"
-  },
-  "instances.modpack-content-modal.header": {
-    "defaultMessage": "Содержимое сборки"
-  },
-  "instances.modpack-content-modal.loading": {
-    "defaultMessage": "Загрузка содержимого..."
-  },
-  "instances.modpack-content-modal.no-results": {
-    "defaultMessage": "Не найдены проекты, соответствующие запросу."
-  },
-  "instances.modpack-content-modal.search-placeholder": {
-    "defaultMessage": "Поиск по {count, number} {count, plural, one {проекту} other {проектам}}"
   },
   "instances.updater-modal.badge.current": {
     "defaultMessage": "Текущая"
@@ -1640,147 +1607,6 @@
   "locale.zh-TW": {
     "defaultMessage": "Китайский (традиционный)"
   },
-  "markdown-editor.default-image-alt-text": {
-    "defaultMessage": "Подставьте сюда описание"
-  },
-  "markdown-editor.error-label": {
-    "defaultMessage": "Ошибка"
-  },
-  "markdown-editor.image-modal.description-field.description": {
-    "defaultMessage": "Опишите изображение так, будто его не видно."
-  },
-  "markdown-editor.image-modal.description-field.placeholder": {
-    "defaultMessage": "Опишите изображение..."
-  },
-  "markdown-editor.image-modal.description-field.title": {
-    "defaultMessage": "Описание (альтернативный текст)"
-  },
-  "markdown-editor.image-modal.header": {
-    "defaultMessage": "Вставка изображения"
-  },
-  "markdown-editor.image-modal.upload-mode.label": {
-    "defaultMessage": "Источник изображения"
-  },
-  "markdown-editor.image-modal.upload-mode.link": {
-    "defaultMessage": "Ссылка"
-  },
-  "markdown-editor.image-modal.upload-mode.upload": {
-    "defaultMessage": "Файл"
-  },
-  "markdown-editor.image-modal.upload.prompt": {
-    "defaultMessage": "Перетащите файл или нажмите, чтобы выбрать"
-  },
-  "markdown-editor.image-modal.url-field.placeholder": {
-    "defaultMessage": "Введите адрес изображения..."
-  },
-  "markdown-editor.insert-button": {
-    "defaultMessage": "Вставить"
-  },
-  "markdown-editor.link-modal.header": {
-    "defaultMessage": "Вставка ссылки"
-  },
-  "markdown-editor.link-modal.label-field.placeholder": {
-    "defaultMessage": "Введите текст ссылки..."
-  },
-  "markdown-editor.link-modal.label-field.title": {
-    "defaultMessage": "Текст"
-  },
-  "markdown-editor.link-modal.url-field.placeholder": {
-    "defaultMessage": "Введите адрес ссылки..."
-  },
-  "markdown-editor.markdown-formatting-support": {
-    "defaultMessage": "Этот редактор поддерживает <markdown-link>форматирование Markdown</markdown-link>."
-  },
-  "markdown-editor.max-length.label": {
-    "defaultMessage": "Символов:"
-  },
-  "markdown-editor.max-length.unlimited": {
-    "defaultMessage": "без ограничений"
-  },
-  "markdown-editor.placeholder": {
-    "defaultMessage": "Напишите что‑нибудь..."
-  },
-  "markdown-editor.preview-label": {
-    "defaultMessage": "Предпросмотр"
-  },
-  "markdown-editor.preview-toggle.label": {
-    "defaultMessage": "Предпросмотр"
-  },
-  "markdown-editor.toolbar.bold": {
-    "defaultMessage": "Полужирный"
-  },
-  "markdown-editor.toolbar.bulleted-list": {
-    "defaultMessage": "Маркированный список"
-  },
-  "markdown-editor.toolbar.code": {
-    "defaultMessage": "Код"
-  },
-  "markdown-editor.toolbar.heading-1": {
-    "defaultMessage": "Заголовок 1"
-  },
-  "markdown-editor.toolbar.heading-2": {
-    "defaultMessage": "Заголовок 2"
-  },
-  "markdown-editor.toolbar.heading-3": {
-    "defaultMessage": "Заголовок 3"
-  },
-  "markdown-editor.toolbar.image": {
-    "defaultMessage": "Изображение"
-  },
-  "markdown-editor.toolbar.italic": {
-    "defaultMessage": "Курсив"
-  },
-  "markdown-editor.toolbar.link": {
-    "defaultMessage": "Ссылка"
-  },
-  "markdown-editor.toolbar.ordered-list": {
-    "defaultMessage": "Нумерованный список"
-  },
-  "markdown-editor.toolbar.quote": {
-    "defaultMessage": "Цитата"
-  },
-  "markdown-editor.toolbar.spoiler": {
-    "defaultMessage": "Спойлер"
-  },
-  "markdown-editor.toolbar.strikethrough": {
-    "defaultMessage": "Зачёркнутый"
-  },
-  "markdown-editor.toolbar.video": {
-    "defaultMessage": "Видео"
-  },
-  "markdown-editor.upload-error.no-file": {
-    "defaultMessage": "Файл не предоставлен"
-  },
-  "markdown-editor.upload-error.no-handler": {
-    "defaultMessage": "Обработчик загрузки изображений не задан"
-  },
-  "markdown-editor.url-label": {
-    "defaultMessage": "Адрес"
-  },
-  "markdown-editor.url-validation-error.blocked-domain": {
-    "defaultMessage": "Неверный адрес. Указанный домен не поддерживается."
-  },
-  "markdown-editor.url-validation-error.malformed": {
-    "defaultMessage": "Неверный адрес. Проверьте формат ссылки."
-  },
-  "markdown-editor.url-validation-error.unsupported-protocol": {
-    "defaultMessage": "Неподдерживаемый протокол. Используйте http или https."
-  },
-  "markdown-editor.video-embed.title": {
-    "defaultMessage": "Проигрыватель YouTube"
-  },
-  "markdown-editor.video-modal.header": {
-    "defaultMessage": "Вставка видео с YouTube"
-  },
-  "markdown-editor.video-modal.url-field.description": {
-    "defaultMessage": "Введите корректную ссылку на видео с YouTube."
-  },
-  "markdown-editor.video-modal.url-field.placeholder": {
-    "defaultMessage": "Введите адрес видео с YouTube"
-  },
-  "markdown-editor.video-modal.url-field.title": {
-    "defaultMessage": "Адрес видео с YouTube"
-  },
   "modal.open-in-app.benefit.install": {
     "defaultMessage": "Автоустановка необходимого контента"
   },
@@ -1870,24 +1696,6 @@
   },
   "omorphia.component.copy.action.copy": {
     "defaultMessage": "Копировать код"
-  },
-  "omorphia.component.environment-indicator.label.client": {
-    "defaultMessage": "Клиент"
-  },
-  "omorphia.component.environment-indicator.label.client-and-server": {
-    "defaultMessage": "Клиент и сервер"
-  },
-  "omorphia.component.environment-indicator.label.client-or-server": {
-    "defaultMessage": "Клиент или сервер"
-  },
-  "omorphia.component.environment-indicator.label.server": {
-    "defaultMessage": "Сервер"
-  },
-  "omorphia.component.environment-indicator.label.type": {
-    "defaultMessage": "Тип: {type}"
-  },
-  "omorphia.component.environment-indicator.label.unsupported": {
-    "defaultMessage": "Не поддерживается"
   },
   "payment-method.amazon_pay": {
     "defaultMessage": "Amazon Pay"
@@ -2648,17 +2456,8 @@
   "search.server_content_type.vanilla": {
     "defaultMessage": "Ванильные"
   },
-  "servers.notice.dismiss": {
-    "defaultMessage": "Закрыть"
-  },
   "servers.notice.dismissable": {
     "defaultMessage": "Закрываемое"
-  },
-  "servers.notice.heading.attention": {
-    "defaultMessage": "Внимание"
-  },
-  "servers.notice.heading.info": {
-    "defaultMessage": "Информация"
   },
   "servers.notice.level.critical.name": {
     "defaultMessage": "Важно"
@@ -3206,96 +3005,6 @@
   "tag.loader.waterfall": {
     "defaultMessage": "Waterfall"
   },
-  "time-frame-picker.apply": {
-    "defaultMessage": "Применить"
-  },
-  "time-frame-picker.cancel": {
-    "defaultMessage": "Отмена"
-  },
-  "time-frame-picker.clear-range": {
-    "defaultMessage": "Очистить"
-  },
-  "time-frame-picker.custom-range": {
-    "defaultMessage": "Выбрать фиксированный период..."
-  },
-  "time-frame-picker.decrease-amount": {
-    "defaultMessage": "Уменьшить период"
-  },
-  "time-frame-picker.empty-range": {
-    "defaultMessage": "Диапазон дат не выбран."
-  },
-  "time-frame-picker.end-date": {
-    "defaultMessage": "Дата окончания"
-  },
-  "time-frame-picker.increase-amount": {
-    "defaultMessage": "Увеличить период"
-  },
-  "time-frame-picker.last-timeframe": {
-    "defaultMessage": "{unit, select,\n  hours {{amount, plural, =1 {Последний час} one {Последний # час} few {Последние # часа} other {Последние # часов}}}\n  days {{amount, plural, =1 {Последний день} one {Последний # день} few {Последние # дня} other {Последние # дней}}}\n  weeks {{amount, plural, =1 {Последняя неделя} one {Последняя # неделя} few {Последние # недели} other {Последние # недель}}}\n  months {{amount, plural, =1 {Последний месяц} one {Последний # месяц} few {Последние # месяца} other {Последние # месяцев}}}\n  other {Последнее время}\n}"
-  },
-  "time-frame-picker.last-timeframe-prefix": {
-    "defaultMessage": "Последние"
-  },
-  "time-frame-picker.option.all-time": {
-    "defaultMessage": "Всё время"
-  },
-  "time-frame-picker.option.last-14-days": {
-    "defaultMessage": "Последние 14 дней"
-  },
-  "time-frame-picker.option.last-180-days": {
-    "defaultMessage": "Последние 180 дней"
-  },
-  "time-frame-picker.option.last-30-days": {
-    "defaultMessage": "Последние 30 дней"
-  },
-  "time-frame-picker.option.last-7-days": {
-    "defaultMessage": "Последние 7 дней"
-  },
-  "time-frame-picker.option.last-90-days": {
-    "defaultMessage": "Последние 90 дней"
-  },
-  "time-frame-picker.option.today": {
-    "defaultMessage": "Сегодня"
-  },
-  "time-frame-picker.option.year-to-date": {
-    "defaultMessage": "С начала года"
-  },
-  "time-frame-picker.option.yesterday": {
-    "defaultMessage": "Вчера"
-  },
-  "time-frame-picker.select-timeframe": {
-    "defaultMessage": "Выберите период"
-  },
-  "time-frame-picker.selected-range": {
-    "defaultMessage": "Выбор"
-  },
-  "time-frame-picker.selecting-range": {
-    "defaultMessage": "Выбор"
-  },
-  "time-frame-picker.start-date": {
-    "defaultMessage": "Дата начала"
-  },
-  "time-frame-picker.timeframe-amount": {
-    "defaultMessage": "Количество периодов"
-  },
-  "time-frame-picker.timeframe-unit": {
-    "defaultMessage": "Единица времени"
-  },
-  "time-frame-picker.unit.days": {
-    "defaultMessage": "дней"
-  },
-  "time-frame-picker.unit.hours": {
-    "defaultMessage": "часов"
-  },
-  "time-frame-picker.unit.months": {
-    "defaultMessage": "месяцев"
-  },
-  "time-frame-picker.unit.weeks": {
-    "defaultMessage": "недель"
-  },
-  "ui.component.unsaved-changes-popup.body": {
-    "defaultMessage": "Имеются несохранённые изменения."
-  },
   "ui.confirm-leave-modal.body": {
     "defaultMessage": "Если уйти со страницы, несохранённые изменения будут потеряны."
   },
@@ -3310,12 +3019,6 @@
   },
   "ui.confirm-leave-modal.title": {
     "defaultMessage": "Уйти со страницы?"
-  },
-  "ui.stacked-admonitions.alert-count": {
-    "defaultMessage": "{count, plural, one {# уведомление} few {# уведомления} other {# уведомлений}}"
-  },
-  "ui.stacked-admonitions.dismiss-all": {
-    "defaultMessage": "Закрыть всё"
   },
   "version.content.name": {
     "defaultMessage": "Название"

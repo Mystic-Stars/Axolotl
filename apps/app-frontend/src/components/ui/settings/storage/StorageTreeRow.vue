@@ -273,7 +273,7 @@ const openActionLabel = computed(() => formatMessage(storageMessages.openAction)
 .storage-size {
 	font-size: 0.8125rem;
 	font-variant-numeric: tabular-nums;
-	color: var(--color-primary);
+	color: var(--color-text-default);
 	white-space: nowrap;
 	text-align: right;
 	min-width: 5rem;
@@ -302,7 +302,7 @@ const openActionLabel = computed(() => formatMessage(storageMessages.openAction)
 }
 
 /* 存储页多行 tooltip：内容换行并限制宽度 */
-:global(.v-popper__popper.storage-tooltip .v-popper__inner) {
+:global(.tooltip-popper.storage-tooltip) {
 	white-space: pre-line;
 	max-width: 22rem;
 }

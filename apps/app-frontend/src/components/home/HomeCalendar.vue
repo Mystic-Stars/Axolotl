@@ -7,7 +7,7 @@ import {
 	StopCircleIcon,
 } from '@modrinth/assets'
 import {
-	ButtonStyled,
+	Button,
 	defineMessages,
 	injectNotificationManager,
 	useFormatDateTime,
@@ -239,25 +239,33 @@ watch(instanceRevision, async () => {
 				<h2>{{ formatMessage(messages.calendar) }}</h2>
 			</div>
 			<div class="ml-auto flex min-w-0 items-center gap-0.5">
-				<ButtonStyled circular size="small" type="transparent">
-					<button v-tooltip="formatMessage(messages.previousMonth)" @click="movePeriod(-1)">
-						<ChevronLeftIcon />
-					</button>
-				</ButtonStyled>
-				<ButtonStyled type="transparent" size="small" class="home-calendar-period min-w-0">
-					<button v-tooltip="formatMessage(messages.thisMonth)" @click="goToThisMonth">
-						{{ periodLabel }}
-					</button>
-				</ButtonStyled>
-				<ButtonStyled circular size="small" type="transparent">
-					<button
-						v-tooltip="formatMessage(messages.nextMonth)"
-						:disabled="!canGoForward"
-						@click="movePeriod(1)"
-					>
-						<ChevronRightIcon />
-					</button>
-				</ButtonStyled>
+				<Button
+					v-tooltip="formatMessage(messages.previousMonth)"
+					type="quiet"
+					size="2xs"
+					circular
+					icon-only
+					@click="movePeriod(-1)"
+					><ChevronLeftIcon />
+				</Button>
+				<Button
+					v-tooltip="formatMessage(messages.thisMonth)"
+					class="home-calendar-period min-w-0"
+					type="quiet"
+					size="2xs"
+					@click="goToThisMonth"
+					>{{ periodLabel }}
+				</Button>
+				<Button
+					v-tooltip="formatMessage(messages.nextMonth)"
+					type="quiet"
+					size="2xs"
+					circular
+					icon-only
+					:disabled="!canGoForward"
+					@click="movePeriod(1)"
+					><ChevronRightIcon />
+				</Button>
 			</div>
 		</header>
 		<div
@@ -340,29 +348,28 @@ watch(instanceRevision, async () => {
 						</span>
 					</div>
 					<div v-if="row.instance" class="ml-auto shrink-0">
-						<ButtonStyled
+						<Button
 							v-if="runningInstanceIds.includes(row.instance.id)"
+							v-tooltip="formatMessage(messages.stopInstance)"
+							type="quiet"
+							size="2xs"
 							circular
-							size="small"
-							type="transparent"
-						>
-							<button
-								v-tooltip="formatMessage(messages.stopInstance)"
-								class="!text-red"
-								@click="stopInstance(row.instance)"
-							>
-								<StopCircleIcon />
-							</button>
-						</ButtonStyled>
-						<ButtonStyled v-else circular size="small" type="transparent">
-							<button
-								v-tooltip="formatMessage(messages.playInstance)"
-								class="!text-brand opacity-60 transition-opacity group-hover:opacity-100"
-								@click="playInstance(row.instance)"
-							>
-								<PlayIcon />
-							</button>
-						</ButtonStyled>
+							icon-only
+							class="!text-red"
+							@click="stopInstance(row.instance)"
+							><StopCircleIcon />
+						</Button>
+						<Button
+							v-else
+							v-tooltip="formatMessage(messages.playInstance)"
+							type="quiet"
+							size="2xs"
+							circular
+							icon-only
+							class="!text-brand opacity-60 transition-opacity group-hover:opacity-100"
+							@click="playInstance(row.instance)"
+							><PlayIcon />
+						</Button>
 					</div>
 				</li>
 			</ul>

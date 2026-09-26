@@ -84,48 +84,50 @@
 					@contextmenu.prevent.stop="handleRightClick"
 				>
 					<template v-if="isServerProject" #actions>
-						<ButtonStyled size="large" type="transparent">
-							<button :disabled="translationLoading" @click="toggleTranslation">
-								<SpinnerIcon v-if="translationLoading" class="animate-spin" />
-								<LanguagesIcon v-else />
-								{{
-									formatMessage(
-										translationLoading
-											? messages.translating
-											: translationActive
-												? messages.showOriginal
-												: messages.translateProject,
-									)
-								}}
-							</button>
-						</ButtonStyled>
-						<ButtonStyled v-if="serverPlaying" size="large" color="red">
-							<button @click="handleStopServer">
-								<StopCircleIcon />
-								{{ formatMessage(commonMessages.stopButton) }}
-							</button>
-						</ButtonStyled>
-						<ButtonStyled v-else size="large" color="brand">
-							<button
-								:disabled="data && installingServerProjects.includes(data.id)"
-								@click="handleClickPlay"
-							>
-								<PlayIcon />
-								{{
-									data && installingServerProjects.includes(data.id)
-										? formatMessage(commonMessages.installingLabel)
-										: formatMessage(commonMessages.playButton)
-								}}
-							</button>
-						</ButtonStyled>
-						<ButtonStyled size="large" circular>
-							<button
-								v-tooltip="formatMessage(commonMessages.addServerToInstanceButton)"
-								@click="handleAddServerToInstance"
-							>
-								<PlusIcon />
-							</button>
-						</ButtonStyled>
+						<Button type="quiet" size="xl" :disabled="translationLoading" @click="toggleTranslation"
+							><SpinnerIcon v-if="translationLoading" class="animate-spin" />
+							<LanguagesIcon v-else />
+							{{
+								formatMessage(
+									translationLoading
+										? messages.translating
+										: translationActive
+											? messages.showOriginal
+											: messages.translateProject,
+								)
+							}}
+						</Button>
+						<Button
+							v-if="serverPlaying"
+							type="colored"
+							color="red"
+							size="xl"
+							@click="handleStopServer"
+							><StopCircleIcon />
+							{{ formatMessage(commonMessages.stopButton) }}
+						</Button>
+						<Button
+							v-else
+							type="colored"
+							color="brand"
+							size="xl"
+							:disabled="data && installingServerProjects.includes(data.id)"
+							@click="handleClickPlay"
+							><PlayIcon />
+							{{
+								data && installingServerProjects.includes(data.id)
+									? formatMessage(commonMessages.installingLabel)
+									: formatMessage(commonMessages.playButton)
+							}}
+						</Button>
+						<Button
+							v-tooltip="formatMessage(commonMessages.addServerToInstanceButton)"
+							size="xl"
+							circular
+							icon-only
+							@click="handleAddServerToInstance"
+							><PlusIcon />
+						</Button>
 						<ButtonStyled size="large" circular type="transparent">
 							<OverflowMenu
 								:tooltip="formatMessage(commonMessages.moreOptionsButton)"
@@ -170,52 +172,51 @@
 						</ButtonStyled>
 					</template>
 					<template v-else #actions>
-						<ButtonStyled size="large" type="transparent">
-							<button :disabled="translationLoading" @click="toggleTranslation">
-								<SpinnerIcon v-if="translationLoading" class="animate-spin" />
-								<LanguagesIcon v-else />
-								{{
-									formatMessage(
-										translationLoading
-											? messages.translating
-											: translationActive
-												? messages.showOriginal
-												: messages.translateProject,
-									)
-								}}
-							</button>
-						</ButtonStyled>
-						<ButtonStyled v-if="showSwitchVersion && onVersionsPage" size="large">
-							<button v-tooltip="installButtonTooltip" disabled>
-								<CheckIcon />
-								{{ formatMessage(commonMessages.installedLabel) }}
-							</button>
-						</ButtonStyled>
-						<ButtonStyled v-else-if="showSwitchVersion" size="large">
-							<button @click="goToVersions">
-								<SwapIcon />
-								{{ formatMessage(messages.switchVersion) }}
-							</button>
-						</ButtonStyled>
-						<ButtonStyled v-else size="large" color="brand">
-							<button
-								v-tooltip="installButtonTooltip"
-								:disabled="installButtonDisabled"
-								@click="install(null)"
-							>
-								<SpinnerIcon
-									v-if="installButtonLoading && !installButtonInstalled"
-									class="animate-spin"
-								/>
-								<DownloadIcon
-									v-else-if="
-										!installButtonInstalled && !serverProjectSelected && !cartProjectSelected
-									"
-								/>
-								<CheckIcon v-else />
-								{{ installButtonLabel }}
-							</button>
-						</ButtonStyled>
+						<Button type="quiet" size="xl" :disabled="translationLoading" @click="toggleTranslation"
+							><SpinnerIcon v-if="translationLoading" class="animate-spin" />
+							<LanguagesIcon v-else />
+							{{
+								formatMessage(
+									translationLoading
+										? messages.translating
+										: translationActive
+											? messages.showOriginal
+											: messages.translateProject,
+								)
+							}}
+						</Button>
+						<Button
+							v-if="showSwitchVersion && onVersionsPage"
+							v-tooltip="installButtonTooltip"
+							size="xl"
+							disabled
+							><CheckIcon />
+							{{ formatMessage(commonMessages.installedLabel) }}
+						</Button>
+						<Button v-else-if="showSwitchVersion" size="xl" @click="goToVersions"
+							><SwapIcon />
+							{{ formatMessage(messages.switchVersion) }}
+						</Button>
+						<Button
+							v-else
+							v-tooltip="installButtonTooltip"
+							type="colored"
+							color="brand"
+							size="xl"
+							:disabled="installButtonDisabled"
+							@click="install(null)"
+							><SpinnerIcon
+								v-if="installButtonLoading && !installButtonInstalled"
+								class="animate-spin"
+							/>
+							<DownloadIcon
+								v-else-if="
+									!installButtonInstalled && !serverProjectSelected && !cartProjectSelected
+								"
+							/>
+							<CheckIcon v-else />
+							{{ installButtonLabel }}
+						</Button>
 						<!-- 开服功能暂有问题，隐藏该按钮
 						<Transition name="start-server">
 							<ButtonStyled
@@ -421,6 +422,7 @@ import {
 } from '@modrinth/assets'
 import {
 	BrowseInstallHeader,
+	Button,
 	ButtonStyled,
 	commonMessages,
 	commonProjectSettingsMessages,
@@ -1530,7 +1532,7 @@ const handleOptionsClick = (args) => {
 		display: flex;
 		flex-direction: row;
 		align-items: center;
-		border-radius: var(--border-radius);
+		border-radius: var(--radius-sm);
 		cursor: pointer;
 		transition: background-color 0.2s ease-in-out;
 
@@ -1549,7 +1551,7 @@ const handleOptionsClick = (args) => {
 		display: inline-flex;
 		align-items: center;
 		border-radius: 1rem;
-		color: var(--color-text);
+		color: var(--color-base);
 
 		svg,
 		img {
@@ -1568,7 +1570,7 @@ const handleOptionsClick = (args) => {
 			svg,
 			img,
 			span {
-				color: var(--color-heading);
+				color: var(--color-contrast);
 			}
 		}
 
@@ -1576,7 +1578,7 @@ const handleOptionsClick = (args) => {
 			svg,
 			img,
 			span {
-				color: var(--color-text-dark);
+				color: var(--color-contrast);
 			}
 		}
 

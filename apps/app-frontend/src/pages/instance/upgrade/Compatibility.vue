@@ -78,30 +78,39 @@
 									formatMessage(messages.confirmDisableAll, { count: actionableWarningIds.length })
 								}}
 							</span>
-							<ButtonStyled type="outlined" size="small">
-								<button :disabled="bulkAction !== null" @click="confirmDisableAll = false">
-									{{ formatMessage(messages.cancel) }}
-								</button>
-							</ButtonStyled>
-							<ButtonStyled color="orange" size="small">
-								<button :disabled="bulkAction !== null" @click="runBulkAction('disable')">
-									{{ formatMessage(messages.confirm) }}
-								</button>
-							</ButtonStyled>
+							<Button
+								type="outlined"
+								size="2xs"
+								:disabled="bulkAction !== null"
+								@click="confirmDisableAll = false"
+								>{{ formatMessage(messages.cancel) }}
+							</Button>
+							<Button
+								type="colored"
+								color="orange"
+								size="2xs"
+								:disabled="bulkAction !== null"
+								@click="runBulkAction('disable')"
+								>{{ formatMessage(messages.confirm) }}
+							</Button>
 						</template>
 						<template v-else>
-							<ButtonStyled type="outlined" size="small">
-								<button :disabled="bulkControlsDisabled" @click="runBulkAction('keep')">
-									<CheckIcon v-if="allWarningsAction === 'keep'" aria-hidden="true" />
-									{{ formatMessage(messages.keepAll) }}
-								</button>
-							</ButtonStyled>
-							<ButtonStyled type="outlined" size="small">
-								<button :disabled="bulkControlsDisabled" @click="confirmDisableAll = true">
-									<CheckIcon v-if="allWarningsAction === 'disable'" aria-hidden="true" />
-									{{ formatMessage(messages.disableAll) }}
-								</button>
-							</ButtonStyled>
+							<Button
+								type="outlined"
+								size="2xs"
+								:disabled="bulkControlsDisabled"
+								@click="runBulkAction('keep')"
+								><CheckIcon v-if="allWarningsAction === 'keep'" aria-hidden="true" />
+								{{ formatMessage(messages.keepAll) }}
+							</Button>
+							<Button
+								type="outlined"
+								size="2xs"
+								:disabled="bulkControlsDisabled"
+								@click="confirmDisableAll = true"
+								><CheckIcon v-if="allWarningsAction === 'disable'" aria-hidden="true" />
+								{{ formatMessage(messages.disableAll) }}
+							</Button>
 						</template>
 					</div>
 				</div>
@@ -212,44 +221,40 @@
 											"
 											class="flex flex-wrap gap-2"
 										>
-											<ButtonStyled type="outlined" size="small">
-												<button
-													:disabled="itemControlsDisabled(group.item)"
-													:class="{ 'text-green': group.item.resolution.action === 'keep' }"
-													@click="updateAction(group.item, 'keep')"
-												>
-													<SpinnerIcon
-														v-if="pendingAction[group.item.contentId] === 'keep'"
-														class="animate-spin"
-														aria-hidden="true"
-													/>
-													<CheckIcon
-														v-else-if="twoOptionPresentation(group.item).selectedAction === 'keep'"
-														aria-hidden="true"
-													/>
-													{{ formatMessage(messages.keepCurrent) }}
-												</button>
-											</ButtonStyled>
-											<ButtonStyled type="outlined" size="small">
-												<button
-													:disabled="itemControlsDisabled(group.item)"
-													:class="{ 'text-green': group.item.resolution.action === 'disable' }"
-													@click="updateAction(group.item, 'disable')"
-												>
-													<SpinnerIcon
-														v-if="pendingAction[group.item.contentId] === 'disable'"
-														class="animate-spin"
-														aria-hidden="true"
-													/>
-													<CheckIcon
-														v-else-if="
-															twoOptionPresentation(group.item).selectedAction === 'disable'
-														"
-														aria-hidden="true"
-													/>
-													{{ formatMessage(messages.disableCurrent) }}
-												</button>
-											</ButtonStyled>
+											<Button
+												type="outlined"
+												size="2xs"
+												:disabled="itemControlsDisabled(group.item)"
+												:class="{ 'text-green': group.item.resolution.action === 'keep' }"
+												@click="updateAction(group.item, 'keep')"
+												><SpinnerIcon
+													v-if="pendingAction[group.item.contentId] === 'keep'"
+													class="animate-spin"
+													aria-hidden="true"
+												/>
+												<CheckIcon
+													v-else-if="twoOptionPresentation(group.item).selectedAction === 'keep'"
+													aria-hidden="true"
+												/>
+												{{ formatMessage(messages.keepCurrent) }}
+											</Button>
+											<Button
+												type="outlined"
+												size="2xs"
+												:disabled="itemControlsDisabled(group.item)"
+												:class="{ 'text-green': group.item.resolution.action === 'disable' }"
+												@click="updateAction(group.item, 'disable')"
+												><SpinnerIcon
+													v-if="pendingAction[group.item.contentId] === 'disable'"
+													class="animate-spin"
+													aria-hidden="true"
+												/>
+												<CheckIcon
+													v-else-if="twoOptionPresentation(group.item).selectedAction === 'disable'"
+													aria-hidden="true"
+												/>
+												{{ formatMessage(messages.disableCurrent) }}
+											</Button>
 										</div>
 										<div
 											v-if="isPrereleaseBlocker(group.item)"
@@ -267,41 +272,36 @@
 												}}
 											</span>
 											<div class="flex flex-wrap gap-2">
-												<ButtonStyled type="outlined" size="small">
-													<button
-														:disabled="itemControlsDisabled(group.item)"
-														:class="{
-															'text-green':
-																prereleasePresentation(group.item).selectedAction === 'upgrade',
-														}"
-														@click="allowPrerelease(group.item)"
-													>
-														<SpinnerIcon
-															v-if="resolutionBusy.has(group.item.contentId)"
-															class="animate-spin"
-															aria-hidden="true"
-														/>
-														<CheckIcon
-															v-else-if="
-																prereleasePresentation(group.item).selectedAction === 'upgrade'
-															"
-															aria-hidden="true"
-														/>
-														{{ formatMessage(messages.allowPrerelease) }}
-													</button>
-												</ButtonStyled>
-												<ButtonStyled
+												<Button
+													type="outlined"
+													size="2xs"
+													:disabled="itemControlsDisabled(group.item)"
+													:class="{
+														'text-green':
+															prereleasePresentation(group.item).selectedAction === 'upgrade',
+													}"
+													@click="allowPrerelease(group.item)"
+													><SpinnerIcon
+														v-if="resolutionBusy.has(group.item.contentId)"
+														class="animate-spin"
+														aria-hidden="true"
+													/>
+													<CheckIcon
+														v-else-if="
+															prereleasePresentation(group.item).selectedAction === 'upgrade'
+														"
+														aria-hidden="true"
+													/>
+													{{ formatMessage(messages.allowPrerelease) }}
+												</Button>
+												<Button
 													v-if="prereleasePresentation(group.item).showUndo"
-													type="transparent"
-													size="small"
-												>
-													<button
-														:disabled="itemControlsDisabled(group.item)"
-														@click="resetAction(group.item)"
-													>
-														{{ formatMessage(messages.undo) }}
-													</button>
-												</ButtonStyled>
+													type="quiet"
+													size="2xs"
+													:disabled="itemControlsDisabled(group.item)"
+													@click="resetAction(group.item)"
+													>{{ formatMessage(messages.undo) }}
+												</Button>
 											</div>
 										</div>
 										<p
@@ -349,7 +349,7 @@ import { CheckIcon, ExternalIcon, SpinnerIcon, TriangleAlertIcon, XIcon } from '
 import {
 	Accordion,
 	Avatar,
-	ButtonStyled,
+	Button,
 	defineMessages,
 	formatLoaderLabel,
 	useVIntl,

@@ -106,20 +106,21 @@
 						{{ formatMessage(messages.noWarningMatches) }}
 					</p>
 					<div class="flex flex-wrap items-center justify-between gap-3 text-sm text-secondary">
-						<ButtonStyled type="outlined" size="small">
-							<button :disabled="warningPage.page <= 1" @click="warningPageNumber -= 1">
-								{{ formatMessage(messages.previous) }}
-							</button>
-						</ButtonStyled>
+						<Button
+							type="outlined"
+							size="2xs"
+							:disabled="warningPage.page <= 1"
+							@click="warningPageNumber -= 1"
+							>{{ formatMessage(messages.previous) }}
+						</Button>
 						<span>{{ warningPage.page }} / {{ warningPage.pageCount }}</span>
-						<ButtonStyled type="outlined" size="small">
-							<button
-								:disabled="warningPage.page >= warningPage.pageCount"
-								@click="warningPageNumber += 1"
-							>
-								{{ formatMessage(messages.next) }}
-							</button>
-						</ButtonStyled>
+						<Button
+							type="outlined"
+							size="2xs"
+							:disabled="warningPage.page >= warningPage.pageCount"
+							@click="warningPageNumber += 1"
+							>{{ formatMessage(messages.next) }}
+						</Button>
 					</div>
 				</div>
 			</Accordion>
@@ -209,17 +210,17 @@
 					<div class="flex flex-wrap items-center justify-between gap-3 text-sm text-secondary">
 						<span>{{ paginationLabel }}</span>
 						<div class="flex items-center gap-2">
-							<ButtonStyled type="outlined" size="small">
-								<button :disabled="pageData.page <= 1" @click="page -= 1">
-									{{ formatMessage(messages.previous) }}
-								</button>
-							</ButtonStyled>
+							<Button type="outlined" size="2xs" :disabled="pageData.page <= 1" @click="page -= 1"
+								>{{ formatMessage(messages.previous) }}
+							</Button>
 							<span>{{ pageData.page }} / {{ pageData.pageCount }}</span>
-							<ButtonStyled type="outlined" size="small">
-								<button :disabled="pageData.page >= pageData.pageCount" @click="page += 1">
-									{{ formatMessage(messages.next) }}
-								</button>
-							</ButtonStyled>
+							<Button
+								type="outlined"
+								size="2xs"
+								:disabled="pageData.page >= pageData.pageCount"
+								@click="page += 1"
+								>{{ formatMessage(messages.next) }}
+							</Button>
 						</div>
 					</div>
 				</div>
@@ -233,6 +234,7 @@ import { DropdownIcon, ExternalIcon, SearchIcon, TriangleAlertIcon } from '@modr
 import {
 	Accordion,
 	Badge,
+	Button,
 	ButtonStyled,
 	Card,
 	defineMessages,

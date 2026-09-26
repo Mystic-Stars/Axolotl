@@ -39,15 +39,13 @@
 						formatMessage(messages.help)
 					}}</span>
 				</button>
-				<ButtonStyled>
-					<button class="flex items-center gap-2" @click="handleCancel">
-						{{
-							showNotThisType
-								? formatMessage(messages.notThisType, { type: detectedTypeName })
-								: formatMessage(messages.cancel)
-						}}
-					</button>
-				</ButtonStyled>
+				<Button class="flex items-center gap-2" @click="handleCancel"
+					>{{
+						showNotThisType
+							? formatMessage(messages.notThisType, { type: detectedTypeName })
+							: formatMessage(messages.cancel)
+					}}
+				</Button>
 			</div>
 		</template>
 	</NewModal>
@@ -69,7 +67,7 @@ import type { Component } from 'vue'
 import { computed, ref } from 'vue'
 
 import BigOptionButton from '#ui/components/base/BigOptionButton.vue'
-import ButtonStyled from '#ui/components/base/ButtonStyled.vue'
+import Button from '#ui/components/base/buttons/Button.vue'
 import NewModal from '#ui/components/modal/NewModal.vue'
 import { useDebugLogger } from '#ui/composables/debug-logger'
 import { defineMessages, useVIntl } from '#ui/composables/i18n'

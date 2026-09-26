@@ -324,11 +324,42 @@ export const useTheming = defineStore('themeStore', {
 				`${Math.min(Math.max(this.homeWidgetBackgroundOpacity, 0), 100)}%`,
 			)
 		},
-		setCustomBackgroundComponentOpacity() {
+		/**
+		 * The translucent palette for the custom-background mode lives on `body`
+		 * in `global.scss`; this supplies the toggle and the alpha it derives
+		 * every surface from. The image and the transparent window are mutually
+		 * exclusive, so the class follows the same condition the shell uses.
+		 */
+		setCustomBackgroundClass() {
 			const html = document.documentElement
+			html.classList.toggle(
+				'has-custom-background',
+				!!this.customBackgroundPath && !this.transparentBackground,
+			)
+		},
+		/**
+		 * Publishes the two opacity settings for the custom-background palette in
+		 * `global.scss`, as the alpha each layer should paint with.
+		 *
+		 * "Background visibility" is how much of the image comes through the page
+		 * layer. "Component opacity" is how much comes through the components
+		 * stacked on top of it, and it *compounds* with the page rather than
+		 * replacing it: the share of the image that reaches the eye through a
+		 * component is `visibility x component`. At 100% a component is fully
+		 * opaque; at 0% it is exactly as transparent as the page beneath it.
+		 */
+		setCustomBackgroundOpacity() {
+			const html = document.documentElement
+			const visibility = Math.min(Math.max(this.customBackgroundOpacity, 0), 100) / 100
+			const component = Math.min(Math.max(this.customBackgroundComponentOpacity, 0), 100) / 100
+
+			// The `-setting` suffix distinguishes the raw value from the
+			// `--custom-bg-*-alpha` the palette derives, which declares the
+			// fallback that keeps the palette resolvable before this runs.
+			html.style.setProperty('--custom-bg-page-alpha-setting', `${(1 - visibility) * 100}%`)
 			html.style.setProperty(
-				'--custom-bg-component-opacity',
-				`${Math.min(Math.max(this.customBackgroundComponentOpacity, 0), 100)}%`,
+				'--custom-bg-component-alpha-setting',
+				`${(1 - visibility * (1 - component)) * 100}%`,
 			)
 		},
 		/**

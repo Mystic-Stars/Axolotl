@@ -12,17 +12,18 @@
 	>
 		<template #title>
 			<div class="flex w-full min-w-0 items-center gap-3">
-				<ButtonStyled
+				<Button
 					v-if="backButtonVisible"
+					v-tooltip="backButtonLabel"
 					class="shrink-0"
 					type="outlined"
+					size="2xs"
 					circular
-					size="small"
-				>
-					<button v-tooltip="backButtonLabel" :aria-label="backButtonLabel" @click="prevStage()">
-						<ChevronLeftIcon />
-					</button>
-				</ButtonStyled>
+					icon-only
+					:aria-label="backButtonLabel"
+					@click="prevStage()"
+					><ChevronLeftIcon />
+				</Button>
 				<div
 					v-if="breadcrumbs && !resolveCtxFn(currentStage.nonProgressStage, context)"
 					class="relative min-w-0 flex-1"
@@ -87,22 +88,23 @@
 				class="flex flex-col justify-end gap-2 sm:flex-row"
 				:class="leftButtonConfig || rightButtonConfig || cancelButton ? 'mt-4' : ''"
 			>
-				<ButtonStyled v-if="leftButtonConfig" type="outlined">
-					<button
-						v-tooltip="leftButtonConfig.tooltip"
-						:class="leftButtonConfig.buttonClass"
-						:disabled="leftButtonConfig.disabled"
-						@click="leftButtonConfig.onClick"
-					>
-						<component :is="leftButtonConfig.icon" />
-						{{ leftButtonConfig.label }}
-					</button>
-				</ButtonStyled>
-				<ButtonStyled v-if="cancelButton" type="outlined">
-					<button :disabled="cancelButton.disabled" @click="cancelButton.onClick">
-						{{ cancelButton.label }}
-					</button>
-				</ButtonStyled>
+				<Button
+					v-if="leftButtonConfig"
+					v-tooltip="leftButtonConfig.tooltip"
+					type="outlined"
+					:class="leftButtonConfig.buttonClass"
+					:disabled="leftButtonConfig.disabled"
+					@click="leftButtonConfig.onClick"
+					><component :is="leftButtonConfig.icon" />
+					{{ leftButtonConfig.label }}
+				</Button>
+				<Button
+					v-if="cancelButton"
+					type="outlined"
+					:disabled="cancelButton.disabled"
+					@click="cancelButton.onClick"
+					>{{ cancelButton.label }}
+				</Button>
 				<ButtonStyled v-if="rightButtonConfig" :color="rightButtonConfig.color">
 					<button
 						v-tooltip="rightButtonConfig.tooltip"
@@ -143,6 +145,8 @@ import { ChevronLeftIcon, ChevronRightIcon, SpinnerIcon } from '@modrinth/assets
 import { ButtonStyled, commonMessages, NewModal, useVIntl } from '@modrinth/ui'
 import type { Component } from 'vue'
 import { computed, nextTick, ref, useTemplateRef, watch } from 'vue'
+
+import Button from '#ui/components/base/buttons/Button.vue'
 
 export interface StageButtonConfig {
 	label?: string

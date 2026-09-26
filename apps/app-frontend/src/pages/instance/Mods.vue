@@ -20,11 +20,9 @@
 			<div class="border-0 border-t border-solid border-brand-orange/60 bg-bg-orange p-4">
 				<p class="m-0">{{ formatMessage(messages.postUpgradeNoticeBody) }}</p>
 				<div class="mt-3 flex justify-end">
-					<ButtonStyled color="orange" size="small">
-						<button type="button" @click="dismissPostUpgradeNotice">
-							{{ formatMessage(messages.ignoreAllPostUpgradeWarnings) }}
-						</button>
-					</ButtonStyled>
+					<Button type="colored" color="orange" size="2xs" @click="dismissPostUpgradeNotice"
+						>{{ formatMessage(messages.ignoreAllPostUpgradeWarnings) }}
+					</Button>
 				</div>
 			</div>
 		</CollapsibleAdmonition>
@@ -67,12 +65,10 @@
 					}}
 				</p>
 				<div class="mt-3 flex justify-end">
-					<ButtonStyled color="orange" size="small">
-						<button @click="openManualCurseForgeResolver">
-							<FolderSearchIcon />
-							{{ formatMessage(messages.completeSkippedFiles) }}
-						</button>
-					</ButtonStyled>
+					<Button type="colored" color="orange" size="2xs" @click="openManualCurseForgeResolver"
+						><FolderSearchIcon />
+						{{ formatMessage(messages.completeSkippedFiles) }}
+					</Button>
 				</div>
 			</div>
 		</CollapsibleAdmonition>
@@ -109,21 +105,20 @@
 								{{ item.expectedRelativePath }}
 							</code>
 						</span>
-						<ButtonStyled size="small" type="highlight-colored-text" color="orange">
-							<button
-								type="button"
-								:disabled="!item.memberId || isInstanceBusy || isRestoringMissingPackMember(item)"
-								@click="restoreMissingPackMember(item)"
-							>
-								<SpinnerIcon
-									v-if="isRestoringMissingPackMember(item)"
-									class="animate-spin"
-									aria-hidden="true"
-								/>
-								<UndoIcon v-else aria-hidden="true" />
-								{{ formatMessage(messages.restoreMissingFile) }}
-							</button>
-						</ButtonStyled>
+						<Button
+							type="chip-text"
+							color="orange"
+							size="2xs"
+							:disabled="!item.memberId || isInstanceBusy || isRestoringMissingPackMember(item)"
+							@click="restoreMissingPackMember(item)"
+							><SpinnerIcon
+								v-if="isRestoringMissingPackMember(item)"
+								class="animate-spin"
+								aria-hidden="true"
+							/>
+							<UndoIcon v-else aria-hidden="true" />
+							{{ formatMessage(messages.restoreMissingFile) }}
+						</Button>
 					</li>
 				</ul>
 			</div>
@@ -149,7 +144,7 @@
 					:instance-icon-url="localContentIconUrl(props.instance.icon_path)"
 				/>
 
-				<ShareModalWrapper
+				<ShareModal
 					ref="shareModal"
 					:share-title="formatMessage(messages.shareTitle)"
 					:share-text="formatMessage(messages.shareText)"
@@ -217,7 +212,7 @@ import {
 	UndoIcon,
 } from '@modrinth/assets'
 import {
-	ButtonStyled,
+	Button,
 	CollapsibleAdmonition,
 	commonMessages,
 	ConfirmModpackUpdateModal,
@@ -235,6 +230,7 @@ import {
 	provideAppBackup,
 	provideContentManager,
 	ReadyTransition,
+	ShareModal,
 	useDebugLogger,
 	useVIntl,
 	versionChangesGameVersion,
@@ -249,12 +245,10 @@ import { useRouter } from 'vue-router'
 import DependencyGraphModal from '@/components/instance/dependencies/DependencyGraphModal.vue'
 import ExportModal from '@/components/ui/ExportModal.vue'
 import ContentToggleDependenciesModal from '@/components/ui/modal/ContentToggleDependenciesModal.vue'
-import ShareModalWrapper from '@/components/ui/modal/ShareModalWrapper.vue'
 import { postUpgradeNoticeQueryKey, usePostUpgradeNotice } from '@/composables/usePostUpgradeNotice'
 import { useWorldDatapacks } from '@/composables/useWorldDatapacks'
 import { trackEvent } from '@/helpers/analytics'
 import { get_project_versions, get_version, get_version_many } from '@/helpers/cache.js'
-import { applyContentItemUpdates, matchesContentItem } from '@/helpers/content-item-state'
 import {
 	activeContentChangeJobs as selectActiveContentChangeJobs,
 	contentItemStableId,
@@ -262,11 +256,12 @@ import {
 	pendingContentChangeAffectsItem,
 } from '@/helpers/content-change-jobs'
 import { mergeContentItemMetadata } from '@/helpers/content-item-metadata'
+import { applyContentItemUpdates, matchesContentItem } from '@/helpers/content-item-state'
 import { lookupContentWikiIds, translateContentItemTitles } from '@/helpers/content-search'
 import {
+	type CurseForgeFile,
 	getCurseForgeChangelog,
 	getCurseForgeImageUrl,
-	type CurseForgeFile,
 } from '@/helpers/curseforge'
 import {
 	type CurseForgeManualDownloadItem,
@@ -1017,7 +1012,7 @@ const isCurseForgeLinkedModpack = computed(
 	() => props.instance?.link?.type === 'curseforge_modpack',
 )
 
-const shareModal = ref<InstanceType<typeof ShareModalWrapper> | null>()
+const shareModal = ref<InstanceType<typeof ShareModal> | null>()
 const exportModal = ref(null)
 const contentUpdaterModal = ref<InstanceType<typeof ContentUpdaterModal> | null>()
 const dependencyGraphModal = ref<InstanceType<typeof DependencyGraphModal> | null>()
@@ -2793,7 +2788,6 @@ provideContentManager({
 
 		return null
 	}),
-	isPackLocked,
 	isBusy: isInstanceBusy,
 	isBulkOperating,
 	skipNonEssentialWarnings,
@@ -2961,7 +2955,7 @@ provideContentManager({
 
 type UnlistenFn = () => void
 
-const initialContentReady = loadInitialContent()
+void loadInitialContent()
 
 function getInstallRevision() {
 	return installRevisionByInstance.value.get(props.instance.id) ?? 0

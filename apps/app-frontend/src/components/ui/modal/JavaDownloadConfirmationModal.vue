@@ -18,19 +18,15 @@
 
 		<template #actions>
 			<div class="flex flex-wrap justify-end gap-2">
-				<ButtonStyled type="outlined">
-					<button type="button" :disabled="responding" @click="modal?.hide()">
-						<ClockIcon aria-hidden="true" />
-						{{ formatMessage(messages.setUpLater) }}
-					</button>
-				</ButtonStyled>
-				<ButtonStyled>
-					<button type="button" :disabled="responding" @click="confirmDownload">
-						<SpinnerIcon v-if="responding" class="animate-spin" aria-hidden="true" />
-						<DownloadIcon v-else aria-hidden="true" />
-						{{ formatMessage(messages.download) }}
-					</button>
-				</ButtonStyled>
+				<Button type="outlined" :disabled="responding" @click="modal?.hide()"
+					><ClockIcon aria-hidden="true" />
+					{{ formatMessage(messages.setUpLater) }}
+				</Button>
+				<Button :disabled="responding" @click="confirmDownload"
+					><SpinnerIcon v-if="responding" class="animate-spin" aria-hidden="true" />
+					<DownloadIcon v-else aria-hidden="true" />
+					{{ formatMessage(messages.download) }}
+				</Button>
 			</div>
 		</template>
 	</NewModal>
@@ -38,13 +34,7 @@
 
 <script setup lang="ts">
 import { ClockIcon, DownloadIcon, SpinnerIcon } from '@modrinth/assets'
-import {
-	ButtonStyled,
-	defineMessages,
-	injectNotificationManager,
-	NewModal,
-	useVIntl,
-} from '@modrinth/ui'
+import { Button, defineMessages, injectNotificationManager, NewModal, useVIntl } from '@modrinth/ui'
 import { onUnmounted, ref, useTemplateRef } from 'vue'
 import { useRouter } from 'vue-router'
 

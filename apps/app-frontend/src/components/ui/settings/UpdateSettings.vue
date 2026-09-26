@@ -1,10 +1,9 @@
 <script setup lang="ts">
 import { DatabaseIcon, EyeIcon, RefreshCwIcon, XIcon } from '@modrinth/assets'
 import {
-	ButtonStyled,
+	Button,
 	defineMessages,
 	injectNotificationManager,
-	NewButton as Button,
 	NewModal,
 	Toggle,
 	useVIntl,
@@ -534,26 +533,20 @@ function onDatabaseOperationModalHide() {
 					<div class="database-operation">
 						<span>{{ formatMessage(messages.databaseOperation) }}</span>
 						<div class="database-operation-buttons">
-							<ButtonStyled type="outlined" :disabled="activeChannel === 'beta'">
-								<button
-									type="button"
-									:disabled="activeChannel === 'beta'"
-									@click="selectDatabaseOperation('release-to-beta')"
-								>
-									<DatabaseIcon />
-									{{ formatMessage(messages.releaseToBeta) }}
-								</button>
-							</ButtonStyled>
-							<ButtonStyled type="outlined" :disabled="activeChannel === 'release'">
-								<button
-									type="button"
-									:disabled="activeChannel === 'release'"
-									@click="selectDatabaseOperation('beta-to-release')"
-								>
-									<DatabaseIcon />
-									{{ formatMessage(messages.betaToRelease) }}
-								</button>
-							</ButtonStyled>
+							<Button
+								type="outlined"
+								:disabled="activeChannel === 'beta'"
+								@click="selectDatabaseOperation('release-to-beta')"
+								><DatabaseIcon />
+								{{ formatMessage(messages.releaseToBeta) }}
+							</Button>
+							<Button
+								type="outlined"
+								:disabled="activeChannel === 'release'"
+								@click="selectDatabaseOperation('beta-to-release')"
+								><DatabaseIcon />
+								{{ formatMessage(messages.betaToRelease) }}
+							</Button>
 						</div>
 					</div>
 				</div>
@@ -664,18 +657,18 @@ function onDatabaseOperationModalHide() {
 		</p>
 		<template #actions>
 			<div class="flex justify-end gap-2">
-				<ButtonStyled type="outlined">
-					<button type="button" @click="restartModal?.hide()">
-						<XIcon />
-						{{ formatMessage(messages.restartLater) }}
-					</button>
-				</ButtonStyled>
-				<ButtonStyled v-if="!isDevEnvironment" color="brand">
-					<button type="button" @click="restartForChannelChange">
-						<RefreshCwIcon />
-						{{ formatMessage(messages.restartNow) }}
-					</button>
-				</ButtonStyled>
+				<Button type="outlined" @click="restartModal?.hide()"
+					><XIcon />
+					{{ formatMessage(messages.restartLater) }}
+				</Button>
+				<Button
+					v-if="!isDevEnvironment"
+					type="colored"
+					color="brand"
+					@click="restartForChannelChange"
+					><RefreshCwIcon />
+					{{ formatMessage(messages.restartNow) }}
+				</Button>
 			</div>
 		</template>
 	</NewModal>
@@ -690,18 +683,14 @@ function onDatabaseOperationModalHide() {
 		<p class="m-0">{{ formatMessage(messages.copyDatabaseDescription) }}</p>
 		<template #actions>
 			<div class="flex justify-end gap-2">
-				<ButtonStyled type="outlined">
-					<button type="button" @click="chooseBetaDatabase(false)">
-						<XIcon />
-						{{ formatMessage(messages.startEmpty) }}
-					</button>
-				</ButtonStyled>
-				<ButtonStyled color="brand">
-					<button type="button" @click="chooseBetaDatabase(true)">
-						<RefreshCwIcon />
-						{{ formatMessage(messages.copyDatabase) }}
-					</button>
-				</ButtonStyled>
+				<Button type="outlined" @click="chooseBetaDatabase(false)"
+					><XIcon />
+					{{ formatMessage(messages.startEmpty) }}
+				</Button>
+				<Button type="colored" color="brand" @click="chooseBetaDatabase(true)"
+					><RefreshCwIcon />
+					{{ formatMessage(messages.copyDatabase) }}
+				</Button>
 			</div>
 		</template>
 	</NewModal>
@@ -729,18 +718,18 @@ function onDatabaseOperationModalHide() {
 		</p>
 		<template #actions>
 			<div class="flex justify-end gap-2">
-				<ButtonStyled type="outlined">
-					<button type="button" :disabled="databaseOperationBusy" @click="cancelDatabaseOperation">
-						<XIcon />
-						{{ formatMessage(messages.cancel) }}
-					</button>
-				</ButtonStyled>
-				<ButtonStyled color="brand">
-					<button type="button" :disabled="databaseOperationBusy" @click="confirmDatabaseOperation">
-						<RefreshCwIcon :class="{ 'animate-spin': databaseOperationBusy }" />
-						{{ formatMessage(messages.databaseOperationConfirm) }}
-					</button>
-				</ButtonStyled>
+				<Button type="outlined" :disabled="databaseOperationBusy" @click="cancelDatabaseOperation"
+					><XIcon />
+					{{ formatMessage(messages.cancel) }}
+				</Button>
+				<Button
+					type="colored"
+					color="brand"
+					:disabled="databaseOperationBusy"
+					@click="confirmDatabaseOperation"
+					><RefreshCwIcon :class="{ 'animate-spin': databaseOperationBusy }" />
+					{{ formatMessage(messages.databaseOperationConfirm) }}
+				</Button>
 			</div>
 		</template>
 	</NewModal>
@@ -819,7 +808,7 @@ function onDatabaseOperationModalHide() {
 	padding: var(--gap-sm);
 	border: 1px solid var(--surface-4);
 	border-radius: var(--radius-sm);
-	background: var(--surface-2);
+	background: var(--surface-3);
 	color: var(--color-contrast);
 	text-align: center;
 }
@@ -887,7 +876,7 @@ function onDatabaseOperationModalHide() {
 
 .update-channel-card:hover {
 	border-color: color-mix(in srgb, var(--color-brand) 55%, var(--surface-4));
-	background: var(--surface-2);
+	background: var(--surface-3);
 }
 
 .update-channel-card:active {

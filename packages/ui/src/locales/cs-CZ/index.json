@@ -356,9 +356,6 @@
   "content.filter.updates": {
     "defaultMessage": "Aktualizace"
   },
-  "content.filter.warnings": {
-    "defaultMessage": "Varování"
-  },
   "content.page-layout.browse-content": {
     "defaultMessage": "Prozkoumat"
   },
@@ -992,18 +989,6 @@
   "header.category.resolutions": {
     "defaultMessage": "Rozlišení"
   },
-  "icon-select.edit": {
-    "defaultMessage": "Upravit ikonu"
-  },
-  "icon-select.remove": {
-    "defaultMessage": "Odstranit ikonu"
-  },
-  "icon-select.replace": {
-    "defaultMessage": "Změnit ikonu"
-  },
-  "icon-select.select": {
-    "defaultMessage": "Vybrat ikonu"
-  },
   "input.search-version.placeholder": {
     "defaultMessage": "Hledat verzi..."
   },
@@ -1186,18 +1171,6 @@
   },
   "instances.content-install.select-icon": {
     "defaultMessage": "Vybrat ikonu"
-  },
-  "instances.modpack-content-modal.empty-title": {
-    "defaultMessage": "Nebyl nalezen obsah"
-  },
-  "instances.modpack-content-modal.header": {
-    "defaultMessage": "Obsah modpacku"
-  },
-  "instances.modpack-content-modal.loading": {
-    "defaultMessage": "Načítání obsahu..."
-  },
-  "instances.modpack-content-modal.no-results": {
-    "defaultMessage": "Žádné projekty neodpovídají tvému vyhledávání."
   },
   "instances.updater-modal.badge.current": {
     "defaultMessage": "Mometálně"
@@ -1592,78 +1565,6 @@
   "locale.zh-TW": {
     "defaultMessage": "Čínština (tradiční)"
   },
-  "markdown-editor.default-image-alt-text": {
-    "defaultMessage": "Nahraďte tento text popisem"
-  },
-  "markdown-editor.error-label": {
-    "defaultMessage": "Chyba"
-  },
-  "markdown-editor.image-modal.description-field.title": {
-    "defaultMessage": "Popisek (alt text)"
-  },
-  "markdown-editor.image-modal.header": {
-    "defaultMessage": "Vložit obrázek"
-  },
-  "markdown-editor.image-modal.upload-mode.label": {
-    "defaultMessage": "Zdroj obrázku"
-  },
-  "markdown-editor.image-modal.upload-mode.link": {
-    "defaultMessage": "Odkaz"
-  },
-  "markdown-editor.image-modal.upload-mode.upload": {
-    "defaultMessage": "Nahrát"
-  },
-  "markdown-editor.image-modal.upload.prompt": {
-    "defaultMessage": "Přetažením nahrajte nebo kliknutím vyberte soubor"
-  },
-  "markdown-editor.image-modal.url-field.placeholder": {
-    "defaultMessage": "Vložte URL adresu obrázku..."
-  },
-  "markdown-editor.insert-button": {
-    "defaultMessage": "Vložit"
-  },
-  "markdown-editor.link-modal.header": {
-    "defaultMessage": "Vložit odkaz"
-  },
-  "markdown-editor.link-modal.label-field.placeholder": {
-    "defaultMessage": "Zadejte štítek..."
-  },
-  "markdown-editor.link-modal.label-field.title": {
-    "defaultMessage": "Štítek"
-  },
-  "markdown-editor.link-modal.url-field.placeholder": {
-    "defaultMessage": "Zadejte URL odkazu..."
-  },
-  "markdown-editor.markdown-formatting-support": {
-    "defaultMessage": "Tento editor podporuje <markdown-link>formátování Markdown</markdown-link>."
-  },
-  "markdown-editor.max-length.label": {
-    "defaultMessage": "Maximální délka:"
-  },
-  "markdown-editor.max-length.value": {
-    "defaultMessage": "{currentLength}/{maxLength}"
-  },
-  "markdown-editor.toolbar.code": {
-    "defaultMessage": "Kód"
-  },
-  "markdown-editor.toolbar.image": {
-    "defaultMessage": "Obrázek"
-  },
-  "markdown-editor.toolbar.link": {
-    "defaultMessage": "Odkaz"
-  },
-  "markdown-editor.toolbar.video": {
-    "defaultMessage": "Video"
-  },
-  "markdown-editor.url-label": {
-    "defaultMessage": "URL"
-  },
-  "markdown-editor.video-embed.title": {
-    "defaultMessage": "YouTube video přehrávač"
-  },
-  "markdown-editor.video-modal.header": {
-    "defaultMessage": "Vložit YouTube video"
-  },
   "modal.open-in-app.get-app": {
     "defaultMessage": "Získat Modrinth App"
   },
@@ -1744,24 +1645,6 @@
   },
   "omorphia.component.copy.action.copy": {
     "defaultMessage": "Zkopírovat kód do schránky"
-  },
-  "omorphia.component.environment-indicator.label.client": {
-    "defaultMessage": "Klient"
-  },
-  "omorphia.component.environment-indicator.label.client-and-server": {
-    "defaultMessage": "Klient a server"
-  },
-  "omorphia.component.environment-indicator.label.client-or-server": {
-    "defaultMessage": "Klient nebo server"
-  },
-  "omorphia.component.environment-indicator.label.server": {
-    "defaultMessage": "Server"
-  },
-  "omorphia.component.environment-indicator.label.type": {
-    "defaultMessage": "{type}"
-  },
-  "omorphia.component.environment-indicator.label.unsupported": {
-    "defaultMessage": "Nepodporováno"
   },
   "payment-method.amazon_pay": {
     "defaultMessage": "Amazon Pay"
@@ -2456,17 +2339,8 @@
   "search.server_content_type.vanilla": {
     "defaultMessage": "Vanilla"
   },
-  "servers.notice.dismiss": {
-    "defaultMessage": "Zavřít"
-  },
   "servers.notice.dismissable": {
     "defaultMessage": "Zavíratelné"
-  },
-  "servers.notice.heading.attention": {
-    "defaultMessage": "Pozor"
-  },
-  "servers.notice.heading.info": {
-    "defaultMessage": "Info"
   },
   "servers.notice.level.critical.name": {
     "defaultMessage": "Kritické"
@@ -2932,9 +2806,6 @@
   },
   "tag.loader.waterfall": {
     "defaultMessage": "Waterfall"
-  },
-  "ui.component.unsaved-changes-popup.body": {
-    "defaultMessage": "Máš neuložené změny."
   },
   "ui.confirm-leave-modal.header": {
     "defaultMessage": "Máte neuložené změny"

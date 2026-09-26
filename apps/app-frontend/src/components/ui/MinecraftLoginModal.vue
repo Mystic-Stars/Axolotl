@@ -1,10 +1,9 @@
 <script setup lang="ts">
 import { ExternalIcon } from '@modrinth/assets'
-import { ButtonStyled, defineMessages, useVIntl } from '@modrinth/ui'
+import { Button, defineMessages, NewModal, useVIntl } from '@modrinth/ui'
 import { openUrl } from '@tauri-apps/plugin-opener'
 import { computed, onUnmounted, ref } from 'vue'
 
-import ModalWrapper from '@/components/ui/modal/ModalWrapper.vue'
 import { begin_device_login, poll_device_login } from '@/helpers/auth'
 
 type MinecraftCredential = {
@@ -32,7 +31,7 @@ const emit = defineEmits<{
 }>()
 
 const { formatMessage } = useVIntl()
-const modal = ref<InstanceType<typeof ModalWrapper> | null>(null)
+const modal = ref<InstanceType<typeof NewModal> | null>(null)
 const busy = ref(false)
 const deviceFlow = ref<DeviceLoginFlow | null>(null)
 const deviceError = ref<string | null>(null)
@@ -139,15 +138,13 @@ defineExpose({ showDeviceLogin, hide })
 </script>
 
 <template>
-	<ModalWrapper ref="modal" :header="formatMessage(messages.title)" :on-hide="resetDeviceLogin">
+	<NewModal ref="modal" :header="formatMessage(messages.title)" :on-hide="resetDeviceLogin">
 		<div class="flex min-w-[24rem] flex-col gap-4">
 			<template v-if="deviceFlow">
 				<p class="m-0 text-secondary">{{ formatMessage(messages.deviceDescription) }}</p>
-				<ButtonStyled>
-					<button @click="openDeviceVerification">
-						<ExternalIcon /> {{ formatMessage(messages.openVerification) }}
-					</button>
-				</ButtonStyled>
+				<Button @click="openDeviceVerification"
+					><ExternalIcon /> {{ formatMessage(messages.openVerification) }}
+				</Button>
 				<code
 					class="rounded-xl bg-surface-3 px-4 py-3 text-center text-xl font-bold tracking-[0.18em] text-contrast"
 				>
@@ -160,5 +157,5 @@ defineExpose({ showDeviceLogin, hide })
 				<p v-if="deviceError" class="m-0 text-sm text-red">{{ deviceError }}</p>
 			</template>
 		</div>
-	</ModalWrapper>
+	</NewModal>
 </template>

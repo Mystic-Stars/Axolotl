@@ -9,7 +9,7 @@ import {
 	SparklesIcon,
 } from '@modrinth/assets'
 import {
-	ButtonStyled,
+	Button,
 	Card,
 	defineMessages,
 	injectModrinthClient,
@@ -1331,42 +1331,41 @@ defineExpose({
 					>
 						{{ shareUrl }}
 					</a>
-					<ButtonStyled circular type="outlined">
-						<button :aria-label="formatMessage(messages.copyLink)" @click="copyShareUrl">
-							<ClipboardCopyIcon aria-hidden="true" />
-						</button>
-					</ButtonStyled>
+					<Button
+						type="outlined"
+						circular
+						icon-only
+						:aria-label="formatMessage(messages.copyLink)"
+						@click="copyShareUrl"
+						><ClipboardCopyIcon aria-hidden="true" />
+					</Button>
 				</div>
 
 				<div class="mt-auto flex flex-wrap gap-2 pt-2">
-					<ButtonStyled type="outlined">
-						<button :disabled="sharing" @click="shareDiagnostic">
-							<ShareIcon aria-hidden="true" />
-							{{
-								sharing
-									? formatMessage(messages.sharingDiagnostic)
-									: formatMessage(messages.shareDiagnostic)
-							}}
-						</button>
-					</ButtonStyled>
-					<ButtonStyled v-if="aiAvailable" color="brand">
-						<button
-							:disabled="aiLoading || (useLogShareAi() && aiRequested)"
-							@click="openAIAnalysis"
-						>
-							<SparklesIcon aria-hidden="true" />
-							{{
-								useLogShareAi()
-									? formatMessage(messages.aiAnalyzeLogShare)
-									: formatMessage(messages.aiAnalyze)
-							}}
-						</button>
-					</ButtonStyled>
-					<ButtonStyled v-if="modChangesAvailable" type="outlined">
-						<button @click="openModChanges">
-							{{ formatMessage(messages.viewModChanges) }}
-						</button>
-					</ButtonStyled>
+					<Button type="outlined" :disabled="sharing" @click="shareDiagnostic"
+						><ShareIcon aria-hidden="true" />
+						{{
+							sharing
+								? formatMessage(messages.sharingDiagnostic)
+								: formatMessage(messages.shareDiagnostic)
+						}}
+					</Button>
+					<Button
+						v-if="aiAvailable"
+						type="colored"
+						color="brand"
+						:disabled="aiLoading || (useLogShareAi() && aiRequested)"
+						@click="openAIAnalysis"
+						><SparklesIcon aria-hidden="true" />
+						{{
+							useLogShareAi()
+								? formatMessage(messages.aiAnalyzeLogShare)
+								: formatMessage(messages.aiAnalyze)
+						}}
+					</Button>
+					<Button v-if="modChangesAvailable" type="outlined" @click="openModChanges"
+						>{{ formatMessage(messages.viewModChanges) }}
+					</Button>
 				</div>
 			</section>
 

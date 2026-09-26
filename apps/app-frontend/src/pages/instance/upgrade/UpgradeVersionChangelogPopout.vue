@@ -31,12 +31,15 @@
 								metadata.channel
 							}}</span>
 						</div>
-						<ButtonStyled v-if="metadata.changelog" type="transparent" size="small">
-							<button :disabled="translationLoading" @click="toggleTranslation">
-								<SpinnerIcon v-if="translationLoading" class="animate-spin" aria-hidden="true" />
-								{{ formatMessage(showTranslation ? messages.showOriginal : messages.translate) }}
-							</button>
-						</ButtonStyled>
+						<Button
+							v-if="metadata.changelog"
+							type="quiet"
+							size="2xs"
+							:disabled="translationLoading"
+							@click="toggleTranslation"
+							><SpinnerIcon v-if="translationLoading" class="animate-spin" aria-hidden="true" />
+							{{ formatMessage(showTranslation ? messages.showOriginal : messages.translate) }}
+						</Button>
 					</div>
 					<p v-if="translationError" class="mb-0 mt-2 text-sm text-red">{{ translationError }}</p>
 					<!-- eslint-disable vue/no-v-html -->
@@ -59,7 +62,7 @@
 
 <script setup lang="ts">
 import { SpinnerIcon } from '@modrinth/assets'
-import { ButtonStyled, defineMessages, useVIntl } from '@modrinth/ui'
+import { Button, defineMessages, useVIntl } from '@modrinth/ui'
 import { renderHighlightedString } from '@modrinth/utils'
 import { openUrl } from '@tauri-apps/plugin-opener'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'

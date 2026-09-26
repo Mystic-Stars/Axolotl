@@ -12,7 +12,7 @@ import SearchIcon from '@modrinth/assets/icons/search.svg?component'
 import TrashIcon from '@modrinth/assets/icons/trash.svg?component'
 import Accordion from '@modrinth/ui/src/components/base/Accordion.vue'
 import Avatar from '@modrinth/ui/src/components/base/Avatar.vue'
-import ButtonStyled from '@modrinth/ui/src/components/base/ButtonStyled.vue'
+import Button from '@modrinth/ui/src/components/base/buttons/Button.vue'
 import Checkbox from '@modrinth/ui/src/components/base/Checkbox.vue'
 import DropdownSelect from '@modrinth/ui/src/components/base/DropdownSelect.vue'
 import IntlFormatted from '@modrinth/ui/src/components/base/IntlFormatted.vue'
@@ -863,28 +863,27 @@ useHead(() => ({
 					{{ formatMessage(messages.description) }}
 				</p>
 				<div class="button-group mt-3 flex flex-wrap justify-end gap-2">
-					<ButtonStyled v-if="os" color="brand" size="large">
-						<button
-							class="hero-download-button"
-							:disabled="downloadState === 'loading'"
-							@click="handleDownload"
-						>
-							<LinuxIcon v-if="os === 'Linux'" />
-							<WindowsIcon v-else-if="os === 'Windows'" />
-							<AppleIcon v-else-if="os === 'Mac'" />
-							{{
-								downloadState === 'loading'
-									? formatMessage(messages.fetchingDownloadLinks)
-									: formatMessage(messages.downloadAxolotlButton)
-							}}
-						</button>
-					</ButtonStyled>
-					<ButtonStyled type="outlined" size="large">
-						<button @click="scrollToSection">
-							<ArrowDownIcon />
-							{{ formatMessage(messages.moreDownloadOptions) }}
-						</button>
-					</ButtonStyled>
+					<Button
+						v-if="os"
+						type="colored"
+						color="brand"
+						size="xl"
+						class="hero-download-button"
+						:disabled="downloadState === 'loading'"
+						@click="handleDownload"
+						><LinuxIcon v-if="os === 'Linux'" />
+						<WindowsIcon v-else-if="os === 'Windows'" />
+						<AppleIcon v-else-if="os === 'Mac'" />
+						{{
+							downloadState === 'loading'
+								? formatMessage(messages.fetchingDownloadLinks)
+								: formatMessage(messages.downloadAxolotlButton)
+						}}
+					</Button>
+					<Button type="outlined" size="xl" @click="scrollToSection"
+						><ArrowDownIcon />
+						{{ formatMessage(messages.moreDownloadOptions) }}
+					</Button>
 				</div>
 			</div>
 			<div class="hero-product">
@@ -1030,14 +1029,14 @@ useHead(() => ({
 									v-model="checkedMods[index]"
 									:aria-label="`${mod.name} ${formatMessage(messages.installedMods)}`"
 								/>
-								<ButtonStyled circular type="transparent">
-									<button
-										:aria-label="`${formatMessage(messages.actions)}: ${mod.name}`"
-										@click="removeMod(index)"
-									>
-										<TrashIcon />
-									</button>
-								</ButtonStyled>
+								<Button
+									type="quiet"
+									circular
+									icon-only
+									:aria-label="`${formatMessage(messages.actions)}: ${mod.name}`"
+									@click="removeMod(index)"
+									><TrashIcon />
+								</Button>
 							</div>
 						</div>
 					</TransitionGroup>

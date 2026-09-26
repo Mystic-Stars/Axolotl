@@ -35,37 +35,32 @@
 					"
 				/>
 				<div class="flex gap-2">
-					<ButtonStyled type="outlined">
-						<button class="!h-10" @click="addServerModal?.show()">
-							<PlusIcon class="size-5" />
-							{{ formatMessage(messages.addServer) }}
-						</button>
-					</ButtonStyled>
-					<ButtonStyled color="brand">
-						<button
-							class="!h-10 flex items-center gap-2"
-							@click="
-								router.push({ path: '/browse/server', query: { i: instance.id, from: 'worlds' } })
-							"
-						>
-							<CompassIcon class="size-5" />
-							<span>{{ formatMessage(messages.browseServers) }}</span>
-						</button>
-					</ButtonStyled>
-					<ButtonStyled type="outlined">
-						<button
-							class="!h-10 flex items-center gap-2"
-							@click="
-								router.push({
-									path: '/browse/world',
-									query: { i: instance.id, from: 'world-maps' },
-								})
-							"
-						>
-							<WorldIcon class="size-5" />
-							<span>{{ formatMessage(messages.browseMaps) }}</span>
-						</button>
-					</ButtonStyled>
+					<Button type="outlined" class="!h-10" @click="addServerModal?.show()"
+						><PlusIcon class="size-5" />
+						{{ formatMessage(messages.addServer) }}
+					</Button>
+					<Button
+						type="colored"
+						color="brand"
+						class="!h-10 flex items-center gap-2"
+						@click="
+							router.push({ path: '/browse/server', query: { i: instance.id, from: 'worlds' } })
+						"
+						><CompassIcon class="size-5" />
+						<span>{{ formatMessage(messages.browseServers) }}</span>
+					</Button>
+					<Button
+						type="outlined"
+						class="!h-10 flex items-center gap-2"
+						@click="
+							router.push({
+								path: '/browse/world',
+								query: { i: instance.id, from: 'world-maps' },
+							})
+						"
+						><WorldIcon class="size-5" />
+						<span>{{ formatMessage(messages.browseMaps) }}</span>
+					</Button>
 				</div>
 			</div>
 			<div class="flex flex-wrap items-center justify-between gap-2">
@@ -139,34 +134,29 @@
 			:description="formatMessage(messages.noWorldsDescription)"
 		>
 			<template #actions>
-				<ButtonStyled type="outlined">
-					<button class="!h-10" @click="addServerModal?.show()">
-						<PlusIcon class="size-5" />
-						{{ formatMessage(messages.addServer) }}
-					</button>
-				</ButtonStyled>
-				<ButtonStyled color="brand">
-					<button
-						class="!h-10 flex items-center gap-2"
-						@click="
-							router.push({ path: '/browse/server', query: { i: instance.id, from: 'worlds' } })
-						"
-					>
-						<CompassIcon class="size-5" />
-						<span>{{ formatMessage(messages.browseServers) }}</span>
-					</button>
-				</ButtonStyled>
-				<ButtonStyled type="outlined">
-					<button
-						class="!h-10 flex items-center gap-2"
-						@click="
-							router.push({ path: '/browse/world', query: { i: instance.id, from: 'world-maps' } })
-						"
-					>
-						<WorldIcon class="size-5" />
-						<span>{{ formatMessage(messages.browseMaps) }}</span>
-					</button>
-				</ButtonStyled>
+				<Button type="outlined" class="!h-10" @click="addServerModal?.show()"
+					><PlusIcon class="size-5" />
+					{{ formatMessage(messages.addServer) }}
+				</Button>
+				<Button
+					type="colored"
+					color="brand"
+					class="!h-10 flex items-center gap-2"
+					@click="
+						router.push({ path: '/browse/server', query: { i: instance.id, from: 'worlds' } })
+					"
+					><CompassIcon class="size-5" />
+					<span>{{ formatMessage(messages.browseServers) }}</span>
+				</Button>
+				<Button
+					type="outlined"
+					class="!h-10 flex items-center gap-2"
+					@click="
+						router.push({ path: '/browse/world', query: { i: instance.id, from: 'world-maps' } })
+					"
+					><WorldIcon class="size-5" />
+					<span>{{ formatMessage(messages.browseMaps) }}</span>
+				</Button>
 			</template>
 		</EmptyState>
 	</ReadyTransition>
@@ -181,6 +171,7 @@ import {
 	WorldIcon,
 } from '@modrinth/assets'
 import {
+	Button,
 	ButtonStyled,
 	commonMessages,
 	defineMessages,

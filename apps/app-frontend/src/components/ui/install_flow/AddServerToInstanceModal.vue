@@ -2,10 +2,11 @@
 import { CheckIcon, PlusIcon, SearchIcon } from '@modrinth/assets'
 import {
 	Admonition,
-	ButtonStyled,
+	Button,
 	commonMessages,
 	defineMessages,
 	injectNotificationManager,
+	NewModal,
 	StyledInput,
 	useVIntl,
 } from '@modrinth/ui'
@@ -13,7 +14,6 @@ import { useQueryClient } from '@tanstack/vue-query'
 import { computed, ref } from 'vue'
 
 import InstanceIcon from '@/components/ui/InstanceIcon.vue'
-import ModalWrapper from '@/components/ui/modal/ModalWrapper.vue'
 import { trackEvent } from '@/helpers/analytics'
 import { list } from '@/helpers/instance'
 import { add_server_to_instance, get_instance_worlds } from '@/helpers/worlds.ts'
@@ -115,7 +115,7 @@ async function addServer(instance) {
 </script>
 
 <template>
-	<ModalWrapper ref="modal" :header="formatMessage(messages.addServer)">
+	<NewModal ref="modal" :header="formatMessage(messages.addServer)">
 		<div class="flex flex-col gap-4 min-w-[350px]">
 			<Admonition
 				v-if="symlinkTarget"
@@ -151,26 +151,22 @@ async function addServer(instance) {
 						/>
 						{{ instance.name }}
 					</router-link>
-					<ButtonStyled>
-						<button :disabled="instance.added || instance.adding" @click="addServer(instance)">
-							<PlusIcon v-if="!instance.added && !instance.adding" />
-							<CheckIcon v-else-if="instance.added" />
-							{{
-								instance.adding
-									? formatMessage(messages.adding)
-									: instance.added
-										? formatMessage(messages.added)
-										: formatMessage(messages.add)
-							}}
-						</button>
-					</ButtonStyled>
+					<Button :disabled="instance.added || instance.adding" @click="addServer(instance)"
+						><PlusIcon v-if="!instance.added && !instance.adding" />
+						<CheckIcon v-else-if="instance.added" />
+						{{
+							instance.adding
+								? formatMessage(messages.adding)
+								: instance.added
+									? formatMessage(messages.added)
+									: formatMessage(messages.add)
+						}}
+					</Button>
 				</div>
 			</div>
 			<div class="input-group push-right">
-				<ButtonStyled>
-					<button @click="modal.hide()">{{ formatMessage(commonMessages.cancelButton) }}</button>
-				</ButtonStyled>
+				<Button @click="modal.hide()">{{ formatMessage(commonMessages.cancelButton) }}</Button>
 			</div>
 		</div>
-	</ModalWrapper>
+	</NewModal>
 </template>

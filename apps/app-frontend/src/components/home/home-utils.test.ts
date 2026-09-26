@@ -50,9 +50,17 @@ test('maps playtime thresholds and missing days deterministically', () => {
 
 test('uses only active online accounts for player greetings', () => {
 	const accounts = [
-		{ account_id: 'offline', account_type: 'offline', profile: { id: 'shared', name: 'Local player' } },
+		{
+			account_id: 'offline',
+			account_type: 'offline',
+			profile: { id: 'shared', name: 'Local player' },
+		},
 		{ account_id: 'microsoft', account_type: 'microsoft', profile: { id: 'shared', name: 'Alex' } },
-		{ account_id: 'yggdrasil', account_type: 'yggdrasil', profile: { id: 'shared', name: 'Steve' } },
+		{
+			account_id: 'yggdrasil',
+			account_type: 'yggdrasil',
+			profile: { id: 'shared', name: 'Steve' },
+		},
 	]
 	assert.equal(getActivePlayerName('microsoft', accounts), 'Alex')
 	assert.equal(getActivePlayerName('yggdrasil', accounts), 'Steve')

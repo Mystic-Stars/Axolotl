@@ -2,7 +2,7 @@
 import { DownloadIcon, LanguagesIcon, PaintbrushIcon } from '@modrinth/assets'
 import SettingsIcon from '@modrinth/assets/icons/settings.svg?component'
 import XIcon from '@modrinth/assets/icons/x.svg?component'
-import ButtonStyled from '@modrinth/ui/src/components/base/ButtonStyled.vue'
+import Button from '@modrinth/ui/src/components/base/buttons/Button.vue'
 import Combobox from '@modrinth/ui/src/components/base/Combobox.vue'
 import Toggle from '@modrinth/ui/src/components/base/Toggle.vue'
 import LanguageSelector from '@modrinth/ui/src/components/settings/LanguageSelector.vue'
@@ -299,11 +299,14 @@ onBeforeUnmount(() => {
 							<SettingsIcon aria-hidden="true" />
 							{{ formatMessage(messages.title) }}
 						</h2>
-						<ButtonStyled circular type="transparent">
-							<button :aria-label="formatMessage(messages.close)" @click="open = false">
-								<XIcon aria-hidden="true" />
-							</button>
-						</ButtonStyled>
+						<Button
+							type="quiet"
+							circular
+							icon-only
+							:aria-label="formatMessage(messages.close)"
+							@click="open = false"
+							><XIcon aria-hidden="true" />
+						</Button>
 					</header>
 
 					<div class="settings-body">

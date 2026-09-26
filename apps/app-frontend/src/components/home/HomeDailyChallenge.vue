@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { SparklesIcon, UpdatedIcon } from '@modrinth/assets'
-import { ButtonStyled, defineMessages, useVIntl } from '@modrinth/ui'
+import { Button, defineMessages, useVIntl } from '@modrinth/ui'
 import { computed, ref } from 'vue'
 
 import { type ChallengeDifficulty, dailyChallenges } from '@/data/daily-challenges'
@@ -66,11 +66,16 @@ function shuffleChallenge() {
 			<h2 class="m-0 truncate text-lg">
 				{{ formatMessage(messages.dailyChallenge) }}
 			</h2>
-			<ButtonStyled circular size="small" type="transparent" class="ml-auto">
-				<button v-tooltip="formatMessage(messages.shuffle)" @click="shuffleChallenge">
-					<UpdatedIcon />
-				</button>
-			</ButtonStyled>
+			<Button
+				v-tooltip="formatMessage(messages.shuffle)"
+				class="ml-auto"
+				type="quiet"
+				size="2xs"
+				circular
+				icon-only
+				@click="shuffleChallenge"
+				><UpdatedIcon />
+			</Button>
 		</div>
 		<p class="m-0 text-sm leading-relaxed text-primary">{{ challengeText }}</p>
 		<div class="flex items-center gap-1.5 text-xs text-secondary">

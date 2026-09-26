@@ -130,7 +130,12 @@ export async function get_global_synced_options(): Promise<GlobalSyncedOptions> 
 export async function get_initialized_synced_options(): Promise<GlobalSyncedOptions> {
 	return await invoke('plugin:instance|instance_get_initialized_synced_options')
 }
-export function isSyncedOptionAvailable(option: SyncedOption): boolean {
+/**
+ * Every synced option is currently available on every instance. The parameter
+ * stays so callers keep passing the option they are asking about, which is what
+ * a real implementation will need.
+ */
+export function isSyncedOptionAvailable(_option: SyncedOption): boolean {
 	return true
 }
 export async function set_global_synced_option(

@@ -81,14 +81,12 @@
 			<div class="flex flex-col gap-3">
 				<span>{{ formatMessage(messages.unsavedBody) }}</span>
 				<div class="flex flex-wrap gap-2">
-					<ButtonStyled type="outlined" size="small">
-						<button @click="pendingStrategy = null">{{ formatMessage(messages.cancel) }}</button>
-					</ButtonStyled>
-					<ButtonStyled color="orange" size="small">
-						<button @click="discardAndSwitch">
-							{{ formatMessage(messages.discardAndSwitch) }}
-						</button>
-					</ButtonStyled>
+					<Button type="outlined" size="2xs" @click="pendingStrategy = null">{{
+						formatMessage(messages.cancel)
+					}}</Button>
+					<Button type="colored" color="orange" size="2xs" @click="discardAndSwitch"
+						>{{ formatMessage(messages.discardAndSwitch) }}
+					</Button>
 				</div>
 			</div>
 		</Admonition>
@@ -111,13 +109,11 @@
 						{{ formatMessage(messages.customChoicesDescription) }}
 					</p>
 				</div>
-				<ButtonStyled color="brand">
-					<button :disabled="!canApplyCustom" @click="applyCustomChoices">
-						<SpinnerIcon v-if="requestBusy" class="animate-spin" aria-hidden="true" />
-						<RefreshCwIcon v-else aria-hidden="true" />
-						{{ formatMessage(customWasResolved ? messages.recalculate : messages.applyCustom) }}
-					</button>
-				</ButtonStyled>
+				<Button type="colored" color="brand" :disabled="!canApplyCustom" @click="applyCustomChoices"
+					><SpinnerIcon v-if="requestBusy" class="animate-spin" aria-hidden="true" />
+					<RefreshCwIcon v-else aria-hidden="true" />
+					{{ formatMessage(customWasResolved ? messages.recalculate : messages.applyCustom) }}
+				</Button>
 			</div>
 
 			<Admonition
@@ -269,14 +265,7 @@ import {
 	SparklesIcon,
 	SpinnerIcon,
 } from '@modrinth/assets'
-import {
-	Admonition,
-	Avatar,
-	ButtonStyled,
-	defineMessages,
-	DropdownSelect,
-	useVIntl,
-} from '@modrinth/ui'
+import { Admonition, Avatar, Button, defineMessages, DropdownSelect, useVIntl } from '@modrinth/ui'
 import { useQuery } from '@tanstack/vue-query'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'

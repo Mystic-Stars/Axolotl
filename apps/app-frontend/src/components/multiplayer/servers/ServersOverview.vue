@@ -7,7 +7,14 @@ import {
 	ServerIcon,
 	SpinnerIcon,
 } from '@modrinth/assets'
-import { ButtonStyled, defineMessages, EmptyState, PopoutMenu, useVIntl } from '@modrinth/ui'
+import {
+	Button,
+	ButtonStyled,
+	defineMessages,
+	EmptyState,
+	PopoutMenu,
+	useVIntl,
+} from '@modrinth/ui'
 import { computed, onMounted, ref, useTemplateRef } from 'vue'
 import type { ComponentExposed } from 'vue-component-type-helpers'
 import { useRouter } from 'vue-router'
@@ -98,11 +105,9 @@ async function toggleRunning(server: ServerView) {
 			</span>
 			<div class="flex gap-2">
 				<PopoutMenu :tooltip="formatMessage(messages.view)" placement="bottom-end">
-					<ButtonStyled circular>
-						<button type="button" :aria-label="formatMessage(messages.view)">
-							<component :is="currentDisplayMode?.icon" />
-						</button>
-					</ButtonStyled>
+					<Button circular icon-only :aria-label="formatMessage(messages.view)"
+						><component :is="currentDisplayMode?.icon" />
+					</Button>
 					<template #menu>
 						<div class="flex w-44 flex-col gap-1 p-1">
 							<ButtonStyled
@@ -123,22 +128,18 @@ async function toggleRunning(server: ServerView) {
 						</div>
 					</template>
 				</PopoutMenu>
-				<ButtonStyled type="outlined">
-					<button type="button" :disabled="isRefreshing" @click="refresh()">
-						<RefreshCwIcon :class="{ 'animate-spin': isRefreshing }" />
-						{{ formatMessage(messages.refresh) }}
-					</button>
-				</ButtonStyled>
-				<ButtonStyled color="brand">
-					<button
-						type="button"
-						data-onboarding-id="create-server-button"
-						@click="createModal?.show()"
-					>
-						<PlusIcon />
-						{{ formatMessage(messages.create) }}
-					</button>
-				</ButtonStyled>
+				<Button type="outlined" :disabled="isRefreshing" @click="refresh()"
+					><RefreshCwIcon :class="{ 'animate-spin': isRefreshing }" />
+					{{ formatMessage(messages.refresh) }}
+				</Button>
+				<Button
+					type="colored"
+					color="brand"
+					data-onboarding-id="create-server-button"
+					@click="createModal?.show()"
+					><PlusIcon />
+					{{ formatMessage(messages.create) }}
+				</Button>
 			</div>
 		</div>
 
@@ -148,12 +149,10 @@ async function toggleRunning(server: ServerView) {
 			:heading="formatMessage(messages.emptyHeading)"
 			:description="formatMessage(messages.emptyDescription)"
 		>
-			<ButtonStyled color="brand" size="large">
-				<button type="button" @click="createModal?.show()">
-					<ServerIcon />
-					{{ formatMessage(messages.create) }}
-				</button>
-			</ButtonStyled>
+			<Button type="colored" color="brand" size="xl" @click="createModal?.show()"
+				><ServerIcon />
+				{{ formatMessage(messages.create) }}
+			</Button>
 		</EmptyState>
 
 		<div

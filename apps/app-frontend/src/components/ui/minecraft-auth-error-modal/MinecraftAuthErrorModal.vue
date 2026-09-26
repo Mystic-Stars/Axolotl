@@ -9,6 +9,7 @@ import {
 } from '@modrinth/assets'
 import {
 	Admonition,
+	Button,
 	ButtonStyled,
 	Collapsible,
 	defineMessages,
@@ -219,11 +220,14 @@ async function copyToClipboard(text: string) {
 						<MessagesSquareIcon /> {{ formatMessage(messages.contactSupport) }}
 					</a>
 				</ButtonStyled>
-				<ButtonStyled color="brand">
-					<button :disabled="loadingSignIn" class="!w-full" @click="signInAgain">
-						<LogInIcon /> {{ formatMessage(messages.signInAgain) }}
-					</button>
-				</ButtonStyled>
+				<Button
+					type="colored"
+					color="brand"
+					:disabled="loadingSignIn"
+					class="!w-full"
+					@click="signInAgain"
+					><LogInIcon /> {{ formatMessage(messages.signInAgain) }}
+				</Button>
 			</div>
 
 			<div class="flex flex-col gap-2">
@@ -253,16 +257,15 @@ async function copyToClipboard(text: string) {
 							>
 								{{ debugInfo }}
 							</div>
-							<ButtonStyled circular>
-								<button
-									v-tooltip="formatMessage(messages.copyDebugInfo)"
-									:disabled="copied"
-									@click="copyToClipboard(debugInfo)"
-								>
-									<template v-if="copied"> <CheckIcon class="text-green" /> </template>
-									<template v-else> <CopyIcon /> </template>
-								</button>
-							</ButtonStyled>
+							<Button
+								v-tooltip="formatMessage(messages.copyDebugInfo)"
+								circular
+								icon-only
+								:disabled="copied"
+								@click="copyToClipboard(debugInfo)"
+								><template v-if="copied"> <CheckIcon class="text-green" /> </template>
+								<template v-else> <CopyIcon /> </template>
+							</Button>
 						</div>
 					</Collapsible>
 				</div>

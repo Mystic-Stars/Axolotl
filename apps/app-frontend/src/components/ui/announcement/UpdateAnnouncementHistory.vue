@@ -118,8 +118,7 @@ const historyAnnouncements = computed(() =>
 	flex-direction: column;
 	gap: var(--gap-xl);
 	padding: var(--gap-xl);
-	border: 1px solid
-		var(--settings-card-border, color-mix(in srgb, var(--surface-4) 72%, transparent));
+	border: 1px solid var(--surface-4);
 	border-radius: var(--radius-md);
 	background: var(--surface-2);
 }
@@ -127,8 +126,7 @@ const historyAnnouncements = computed(() =>
 .update-announcement-history-item {
 	min-width: 0;
 	overflow: hidden;
-	border: 1px solid
-		var(--settings-card-border, color-mix(in srgb, var(--surface-4) 72%, transparent));
+	border: 1px solid var(--surface-4);
 	border-radius: var(--radius-sm);
 	background: var(--surface-3);
 	transition: border-color 120ms ease;

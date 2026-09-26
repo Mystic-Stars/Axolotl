@@ -12,6 +12,7 @@ import {
 	type StorageScanEvent,
 } from '@/helpers/storage'
 
+import SettingsSection from './SettingsSection.vue'
 import type { StorageNode, StorageNodeType, StorageSize, StorageTree } from './storage/storageData'
 import { sortStorageChildren } from './storage/storageData'
 import { storageMessages } from './storage/storageMessages'
@@ -450,33 +451,34 @@ function formatDateTime(date: Date) {
 			</section>
 
 			<!-- 实例树节点列表 -->
-			<section v-if="instancesCategory" class="mt-7">
-				<div v-tooltip="symlinkHelpTooltipOptions" class="instance-help">
-					<HelpCircleIcon class="instance-help-icon" aria-hidden="true" />
-					<span>{{ formatMessage(storageMessages.symlinkHelp) }}</span>
+			<SettingsSection v-if="instancesCategory" class="mt-7">
+				<template #header>
+					<div class="instance-heading">
+						<span class="storage-section-title">
+							{{ formatMessage(storageMessages.instanceData) }}
+						</span>
+						<span class="storage-section-size">
+							{{ formatSize(instancesCategory.size) }}
+						</span>
+					</div>
+				</template>
+				<div class="p-4">
+					<div v-tooltip="symlinkHelpTooltipOptions" class="instance-help">
+						<HelpCircleIcon class="instance-help-icon" aria-hidden="true" />
+						<span>{{ formatMessage(storageMessages.symlinkHelp) }}</span>
+					</div>
+					<div class="storage-tree">
+						<StorageTreeNode
+							v-for="child in sortStorageChildren(instancesCategory.children)"
+							:key="child.id"
+							:node="child"
+							:depth="0"
+							:parent-total="sizeTotal(instancesCategory.size)"
+							@action="handleAction"
+						/>
+					</div>
 				</div>
-
-				<div class="instance-heading">
-					<span class="storage-section-title">
-						{{ formatMessage(storageMessages.instanceData) }}
-					</span>
-
-					<span class="storage-section-size">
-						{{ formatSize(instancesCategory.size) }}
-					</span>
-				</div>
-
-				<div class="storage-tree">
-					<StorageTreeNode
-						v-for="child in sortStorageChildren(instancesCategory.children)"
-						:key="child.id"
-						:node="child"
-						:depth="0"
-						:parent-total="sizeTotal(instancesCategory.size)"
-						@action="handleAction"
-					/>
-				</div>
-			</section>
+			</SettingsSection>
 		</template>
 	</div>
 </template>
@@ -507,7 +509,7 @@ function formatDateTime(date: Date) {
 	padding: var(--gap-lg);
 	border: 1px solid var(--surface-4);
 	border-radius: var(--radius-md);
-	background: var(--surface-2);
+	background: var(--surface-3);
 	overflow: hidden;
 }
 
@@ -729,7 +731,7 @@ function formatDateTime(date: Date) {
 }
 
 /* 存储页多行 tooltip：内容换行并限制宽度 */
-:global(.v-popper__popper.storage-tooltip .v-popper__inner) {
+:global(.tooltip-popper.storage-tooltip) {
 	white-space: pre-line;
 	max-width: 22rem;
 }
