@@ -2236,11 +2236,6 @@ onBeforeUnmount(() => {
 	background: var(--surface-2);
 }
 
-.schematic-canvas-controls :deep(.button-outer) {
-	width: 2.25rem;
-	height: 2.25rem;
-}
-
 .schematic-command-chevron {
 	width: 0.875rem !important;
 	height: 0.875rem !important;
@@ -2544,7 +2539,6 @@ onBeforeUnmount(() => {
 	cursor: grabbing;
 }
 
-.schematic-layer-control :deep(.button-outer),
 .schematic-layer-control :deep(button) {
 	width: 2rem;
 	height: 2rem;
@@ -2626,7 +2620,6 @@ onBeforeUnmount(() => {
 	gap: 0.5rem;
 }
 
-.editor-action-grid :deep(.button-outer),
 .editor-action-grid :deep(button) {
 	width: 100%;
 	min-width: 0;

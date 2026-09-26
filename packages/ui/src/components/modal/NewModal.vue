@@ -474,12 +474,6 @@ defineOptions({
 	}
 }
 
-.modrinth-parent__no-modal-blurs {
-	.modal-overlay {
-		backdrop-filter: none;
-	}
-}
-
 .modal-container {
 	position: fixed;
 	top: 0;

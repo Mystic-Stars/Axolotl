@@ -456,7 +456,6 @@ async function toggleFollowSystem() {
 	min-width: 15rem;
 }
 
-.onboarding-welcome-actions :deep(.button-outer),
 .onboarding-welcome-actions :deep(button) {
 	width: 100%;
 	justify-content: center;
@@ -472,7 +471,6 @@ async function toggleFollowSystem() {
 	font-size: 0.8125rem;
 }
 
-.onboarding-welcome-secondary-action :deep(.button-outer),
 .onboarding-welcome-secondary-action :deep(button) {
 	width: auto;
 }

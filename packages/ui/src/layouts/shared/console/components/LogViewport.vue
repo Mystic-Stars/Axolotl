@@ -382,9 +382,7 @@ defineExpose({
 	overflow-wrap: anywhere;
 }
 
-.level-error,
-.level-critical,
-.level-emergency {
+.level-error {
 	color: var(--color-red);
 	font-weight: 600;
 }
@@ -393,24 +391,9 @@ defineExpose({
 	color: var(--color-orange);
 }
 
-.level-fatal {
-	color: var(--color-red);
-	font-weight: 700;
-	background-color: color-mix(in srgb, var(--color-red) 8%, transparent);
-}
-
-[data-theme='dark'] .level-fatal {
-	background-color: color-mix(in srgb, var(--color-red) 15%, transparent);
-}
-
-.level-debug,
-.level-notice {
+.level-debug {
 	color: var(--color-text-secondary);
 	background-color: color-mix(in srgb, var(--color-blue) 5%, transparent);
-}
-
-.level-notice {
-	background-color: color-mix(in srgb, var(--color-blue) 10%, transparent);
 }
 
 .level-timestamp {

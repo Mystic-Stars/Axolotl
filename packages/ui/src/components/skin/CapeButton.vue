@@ -99,10 +99,4 @@ const highlighted = computed(() => props.selected ?? props.isEquipped)
 	box-shadow: inset 0 0 4px 4px rgba(0, 0, 0, 0.4);
 	z-index: 2;
 }
-
-@supports (background-color: color-mix(in srgb, transparent, transparent)) {
-	.highlighted-glow::before {
-		box-shadow: inset 0 0 2px 4px color-mix(in srgb, var(--color-brand), transparent 10%);
-	}
-}
 </style>

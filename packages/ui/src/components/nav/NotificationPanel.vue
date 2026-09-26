@@ -274,10 +274,6 @@ const {
 	@media screen and (max-width: 750px) {
 		transition: bottom 0.25s ease-in-out;
 		bottom: calc(var(--size-mobile-navbar-height) + 10px) !important;
-
-		&.browse-menu-open {
-			bottom: calc(var(--size-mobile-navbar-height-expanded) + 10px) !important;
-		}
 	}
 }
 

@@ -3784,10 +3784,6 @@ body.modrinth-console-fullscreen-active .app-sidebar {
 }
 
 .windows {
-	.fake-appbar {
-		height: 2.5rem !important;
-	}
-
 	.info-card {
 		right: 22rem;
 	}

@@ -3817,22 +3817,6 @@ function clampWorldCoordinate(value: number) {
 	flex: 1 1 20rem;
 }
 
-.map-pill {
-	display: flex;
-	height: 2.5rem;
-	flex: 0 0 auto;
-	align-items: center;
-	gap: 0.5rem;
-	border: 1px solid var(--surface-5);
-	border-radius: var(--radius-md);
-	background: var(--surface-4);
-	padding: 0 0.6rem;
-	color: var(--color-text-primary);
-	font-size: 0.75rem;
-	font-weight: 700;
-	white-space: nowrap;
-}
-
 .map-bottom-actions {
 	display: flex;
 	flex: 0 0 auto;

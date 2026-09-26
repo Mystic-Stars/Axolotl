@@ -613,8 +613,3 @@ const messages = defineMessages({
 		</div>
 	</div>
 </template>
-<style scoped lang="scss">
-.hovering-icon-shadow {
-	box-shadow: var(--shadow-inset-sm), var(--shadow-raised);
-}
-</style>

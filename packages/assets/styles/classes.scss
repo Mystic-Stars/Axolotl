@@ -220,51 +220,12 @@ a:not(.no-click-animation),
 		filter: brightness(0.8);
 	}
 
-	&:disabled.quiet-disabled {
-		cursor: unset;
-	}
-
-	&:disabled:not(.quiet-disabled),
-	&[disabled]:not(.quiet-disabled) {
+	&:disabled,
+	&[disabled] {
 		cursor: not-allowed;
 		filter: grayscale(50%);
 		opacity: 0.5;
 		box-shadow: none;
-	}
-}
-
-.button-within {
-	transition:
-		opacity 0.5s ease-in-out,
-		filter 0.2s ease-in-out,
-		transform 0.05s ease-in-out,
-		outline 0.2s ease-in-out;
-
-	&:focus-visible:not(&.disabled),
-	&:hover:not(&.disabled) {
-		filter: brightness(0.85);
-	}
-
-	&:active:not(&.disabled) {
-		filter: brightness(0.8);
-	}
-
-	// For some reason this within the above block makes it universal and not only applied to children. SCSS bug maybe?
-	&:active:not(&.disabled) button:not(&:disabled) {
-		transform: scale(0.95);
-	}
-
-	&.disabled {
-		cursor: not-allowed;
-		filter: grayscale(50%);
-		opacity: 0.5;
-		box-shadow: none;
-
-		&disabled,
-		&[disabled] {
-			cursor: not-allowed;
-			box-shadow: none;
-		}
 	}
 }
 
@@ -439,11 +400,6 @@ a:not(.no-click-animation),
 			height: 1.5rem;
 		}
 	}
-
-	&.btn-large-round {
-		padding: 0.75rem;
-		border-radius: 50%;
-	}
 }
 
 .joined-buttons {
@@ -564,11 +520,6 @@ a:not(.no-click-animation),
 			filter: brightness(0.8);
 			scale: 0.99;
 		}
-	}
-
-	.entire-row {
-		grid-template-columns: 1fr !important;
-		align-items: center;
 	}
 
 	.table-head {

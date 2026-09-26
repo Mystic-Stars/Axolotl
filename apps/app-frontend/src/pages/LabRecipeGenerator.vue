@@ -2013,33 +2013,6 @@ function slotEditorSlots(type: RecipeType): RecipeSlot[] {
 	padding: 0.85rem 1rem;
 }
 
-.recipe-editor :deep(.recipe-slot-row .recipe-slot-cell),
-.recipe-editor :deep(.recipe-crafting-editor .recipe-result-column .recipe-slot-cell) {
-	min-height: 7rem;
-}
-
-.recipe-editor :deep(.recipe-slot-row .recipe-slot-cell[data-recipe-slot='cooking.result']),
-.recipe-editor :deep(.recipe-slot-row .recipe-slot-cell[data-recipe-slot='stonecutter.result']),
-.recipe-editor :deep(.recipe-slot-row .recipe-slot-cell[data-recipe-slot='smithing.result']) {
-	position: relative;
-}
-
-.recipe-editor :deep(.recipe-slot-row .recipe-slot-cell[data-recipe-slot='cooking.result'])::before,
-.recipe-editor
-	:deep(.recipe-slot-row .recipe-slot-cell[data-recipe-slot='stonecutter.result'])::before,
-.recipe-editor
-	:deep(.recipe-slot-row .recipe-slot-cell[data-recipe-slot='smithing.result'])::before {
-	content: '→';
-	position: absolute;
-	left: -0.9rem;
-	top: 50%;
-	transform: translateY(-50%);
-	color: var(--color-secondary);
-	font-size: 1.1rem;
-	line-height: 1;
-	pointer-events: none;
-}
-
 .recipe-editor :deep(.recipe-crafting-editor .recipe-result-column) {
 	position: relative;
 	padding-left: 2rem;
@@ -2174,11 +2147,6 @@ function slotEditorSlots(type: RecipeType): RecipeSlot[] {
 	pointer-events: none;
 }
 
-.recipe-layout-barrier-icon :deep(.recipe-item-icon) {
-	border: 1px solid transparent !important;
-	background: transparent !important;
-}
-
 .recipe-layout-icon {
 	position: absolute;
 	left: 50%;
@@ -2188,11 +2156,6 @@ function slotEditorSlots(type: RecipeType): RecipeSlot[] {
 	justify-content: center;
 	transform: translate(-50%, -50%);
 	pointer-events: none;
-}
-
-.recipe-layout-icon :deep(.recipe-item-icon) {
-	border: 1px solid transparent !important;
-	background: transparent !important;
 }
 
 .recipe-trim-pattern-selector {
@@ -2249,11 +2212,6 @@ function slotEditorSlots(type: RecipeType): RecipeSlot[] {
 	white-space: nowrap;
 }
 
-.recipe-trim-pattern-option :deep(.recipe-item-icon) {
-	border: 1px solid transparent !important;
-	background: transparent !important;
-}
-
 .recipe-auto-name {
 	align-self: flex-start;
 	color: var(--color-secondary);
@@ -2299,14 +2257,6 @@ function slotEditorSlots(type: RecipeType): RecipeSlot[] {
 	align-items: center;
 	padding-left: 1.5rem;
 	border-left: 1px solid var(--color-surface-5);
-}
-
-.recipe-slot-cell {
-	display: flex;
-	min-width: 0;
-	flex-direction: column;
-	align-items: center;
-	gap: 0.35rem;
 }
 
 .recipe-slot-button {
@@ -2429,10 +2379,6 @@ function slotEditorSlots(type: RecipeType): RecipeSlot[] {
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
-}
-
-:deep(.recipe-palette-item .recipe-item-icon) {
-	border: 1px solid transparent !important;
 }
 
 .recipe-tag-tabs {

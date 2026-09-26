@@ -147,15 +147,9 @@ const progressWidth = computed(() => `${Math.min(100, (props.current / props.tot
 	max-width: 68ch;
 }
 
-.onboarding-progress,
 .onboarding-action-hint {
 	font-size: 0.8125rem;
 	font-weight: 700;
-}
-
-.onboarding-progress {
-	margin-bottom: 0.375rem;
-	color: var(--color-brand);
 }
 
 .onboarding-action-hint {
@@ -169,15 +163,6 @@ const progressWidth = computed(() => `${Math.min(100, (props.current / props.tot
 
 .onboarding-action-hint :deep(svg) {
 	flex: none;
-}
-
-.onboarding-dialogue-body :deep(.button-outer) {
-	margin-top: 1rem;
-}
-
-.onboarding-dialogue-header :deep(.button-outer) {
-	flex: none;
-	margin-top: 0;
 }
 
 .onboarding-dialogue-copy :deep(svg) {
