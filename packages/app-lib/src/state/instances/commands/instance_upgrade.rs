@@ -1404,6 +1404,54 @@ async fn load_upgrade_catalog(
     Ok(catalog)
 }
 
+/// Loads a project's version list for upgrade planning.
+///
+/// The planner decides which releases can be installed, so it must not plan
+/// against a list that is older than the cache TTL: serving stale rows here
+/// hides releases published since the list was cached (issue #594). When the
+/// refresh fails (offline, API error) the cached copy is used instead, so
+/// planning still works without a network connection. A failure to read that
+/// cached copy is propagated instead of being reported as an empty version
+/// list, which would silently look like "no compatible release".
+async fn load_planner_project_versions(
+    project_id: &ModrinthProjectId,
+    state: &State,
+) -> crate::Result<Vec<Version>> {
+    let refresh_result = CachedEntry::get_project_versions(
+        project_id,
+        Some(CacheBehaviour::MustRevalidate),
+        &state.pool,
+        &state.api_semaphore,
+    )
+    .await;
+
+    match refresh_result {
+        Ok(Some(versions)) => return Ok(versions),
+        Ok(None) => {
+            tracing::warn!(
+                project_id = %project_id,
+                "Project versions refresh returned no data for upgrade planning; using cached versions"
+            );
+        }
+        Err(error) => {
+            tracing::warn!(
+                project_id = %project_id,
+                error = %error,
+                "Failed to refresh project versions for upgrade planning; using cached versions"
+            );
+        }
+    }
+
+    Ok(CachedEntry::get_project_versions(
+        project_id,
+        Some(CacheBehaviour::CacheOnly),
+        &state.pool,
+        &state.api_semaphore,
+    )
+    .await?
+    .unwrap_or_default())
+}
+
 async fn load_modrinth_candidates(
     key: &NodeKey,
     project_type: ProjectType,
@@ -1414,14 +1462,8 @@ async fn load_modrinth_candidates(
     state: &State,
 ) -> crate::Result<CandidatePool> {
     let project_id = ModrinthProjectId::new(key.project_id.clone())?;
-    let mut versions = CachedEntry::get_project_versions(
-        &project_id,
-        Some(CacheBehaviour::StaleWhileRevalidateSkipOffline),
-        &state.pool,
-        &state.api_semaphore,
-    )
-    .await?
-    .unwrap_or_default();
+    let mut versions =
+        load_planner_project_versions(&project_id, state).await?;
     let has_target_game_version_release = versions.iter().any(|version| {
         version
             .game_versions
