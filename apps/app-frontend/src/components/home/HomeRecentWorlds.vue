@@ -244,7 +244,7 @@ async function stopInstance(instance: GameInstance) {
 	min-width: 0;
 	overflow: hidden;
 	margin: 0;
-	color: var(--color-contrast);
+	color: var(--color-text-primary);
 	font-size: 1rem;
 	font-weight: 700;
 	letter-spacing: 0;
@@ -263,7 +263,7 @@ async function stopInstance(instance: GameInstance) {
 	flex-direction: column;
 	align-items: center;
 	gap: 0.5rem;
-	color: var(--color-secondary);
+	color: var(--color-text-tertiary);
 	font-size: 0.8125rem;
 	line-height: 1.4;
 	text-align: center;

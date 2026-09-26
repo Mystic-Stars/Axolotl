@@ -316,7 +316,7 @@ onUnmounted(() => {
 }
 
 .gallery-translation--weakened {
-	color: var(--color-secondary);
+	color: var(--color-text-tertiary);
 }
 
 .gallery-translation--blur {

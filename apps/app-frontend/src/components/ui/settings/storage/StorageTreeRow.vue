@@ -252,7 +252,7 @@ const openActionLabel = computed(() => formatMessage(storageMessages.openAction)
 	overflow: hidden;
 	font-size: 0.8125rem;
 	font-weight: 400;
-	color: var(--color-contrast);
+	color: var(--color-text-primary);
 	text-overflow: ellipsis;
 	white-space: nowrap;
 }
@@ -263,7 +263,7 @@ const openActionLabel = computed(() => formatMessage(storageMessages.openAction)
 	height: 1rem;
 	border-radius: 0.25rem;
 	background: var(--surface-3);
-	color: var(--color-secondary);
+	color: var(--color-text-tertiary);
 	font-size: 0.6875rem;
 	line-height: 1rem;
 	font-variant-numeric: tabular-nums;

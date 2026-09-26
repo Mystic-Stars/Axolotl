@@ -96,9 +96,9 @@ label {
 		grid-gap: 0.5rem;
 		background-color: var(--color-button-bg);
 		border-radius: var(--radius-sm);
-		border: dashed 2px var(--color-secondary);
+		border: dashed 2px var(--color-text-tertiary);
 		cursor: pointer;
-		color: var(--color-contrast);
+		color: var(--color-text-primary);
 	}
 }
 </style>

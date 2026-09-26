@@ -395,7 +395,7 @@ watch(instanceRevision, async () => {
 .home-calendar-title h2 {
 	overflow: hidden;
 	margin: 0;
-	color: var(--color-contrast);
+	color: var(--color-text-primary);
 	font-size: 1rem;
 	font-weight: 700;
 	letter-spacing: 0;

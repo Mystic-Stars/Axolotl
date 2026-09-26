@@ -220,14 +220,14 @@ function retrySave() {
 <style scoped>
 .settings-page-description {
 	margin: 0;
-	color: var(--color-secondary);
+	color: var(--color-text-tertiary);
 	font-size: 0.875rem;
 	line-height: 1.5;
 }
 
 .language-system-toggle:hover:not(:disabled) {
 	border-color: var(--surface-5);
-	color: var(--color-contrast);
+	color: var(--color-text-primary);
 }
 
 .language-system-toggle:focus-visible {

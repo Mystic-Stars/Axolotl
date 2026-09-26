@@ -55,15 +55,15 @@ const typeClasses: Record<ButtonType, string> = {
 	'colored-text':
 		'button-frame--colored-text bg-surface-4 text-[--button-color] [&>svg]:text-inherit',
 	outlined:
-		'button-frame--outlined bg-transparent text-[var(--button-color,var(--color-contrast))] [&>svg]:text-[var(--button-color,var(--color-base))]',
+		'button-frame--outlined bg-transparent text-[var(--button-color,var(--color-text-primary))] [&>svg]:text-[var(--button-color,var(--color-text-default))]',
 	quiet: 'button-frame--quiet bg-transparent [&>svg]:text-inherit',
 	// A 25% tint of the accent colour. All three read the same tint; they differ
 	// in label colour and whether they carry the raised shadow. Without a colour
 	// the tint variable is unset and the fill falls back to the raised surface,
 	// which is what the legacy uncoloured chip rendered as.
-	chip: 'button-frame--chip bg-[--button-highlight,var(--surface-4)] text-[var(--button-color,var(--color-base))] [&>svg]:text-inherit',
+	chip: 'button-frame--chip bg-[--button-highlight,var(--surface-4)] text-[var(--button-color,var(--color-text-default))] [&>svg]:text-inherit',
 	'chip-text':
-		'button-frame--chip-text bg-[--button-highlight,var(--surface-4)] text-[var(--button-color,var(--color-base))] [&>svg]:text-inherit',
+		'button-frame--chip-text bg-[--button-highlight,var(--surface-4)] text-[var(--button-color,var(--color-text-default))] [&>svg]:text-inherit',
 	highlight:
 		'button-frame--highlight bg-[--button-highlight,var(--surface-4)] text-contrast [&>svg]:text-inherit',
 }
@@ -212,7 +212,7 @@ defineExpose({ element })
 }
 
 .button-frame--quiet {
-	color: var(--button-color, var(--color-base));
+	color: var(--button-color, var(--color-text-default));
 }
 
 /* `chip` and `highlight` are tinted fills rather than transparent ones, so they

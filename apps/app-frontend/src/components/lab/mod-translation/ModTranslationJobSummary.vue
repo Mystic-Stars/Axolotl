@@ -176,7 +176,7 @@ function formatDuration(seconds: number): string {
 	font-weight: 800;
 	text-overflow: ellipsis;
 	white-space: nowrap;
-	color: var(--color-contrast);
+	color: var(--color-text-primary);
 }
 
 .job-title span {

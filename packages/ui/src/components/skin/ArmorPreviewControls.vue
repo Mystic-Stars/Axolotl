@@ -290,7 +290,7 @@ function setTrimMaterial(trimMaterial: ArmorTrimMaterial): void {
 	place-items: center;
 	padding: 0.375rem;
 	cursor: pointer;
-	color: var(--color-base);
+	color: var(--color-text-default);
 	background: var(--surface-3);
 	border: 1px solid var(--surface-5);
 	border-radius: 6px;
@@ -352,7 +352,7 @@ function setTrimMaterial(trimMaterial: ArmorTrimMaterial): void {
 	font-size: 0.75rem;
 	font-weight: 600;
 	line-height: 1rem;
-	color: var(--color-secondary);
+	color: var(--color-text-tertiary);
 }
 
 .armor-preview-options {

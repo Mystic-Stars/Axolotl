@@ -3627,7 +3627,7 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 	border-radius: 12px 0 0 12px;
 
 	background-color: var(--handle-bg);
-	color: var(--color-contrast);
+	color: var(--color-text-primary);
 	cursor: pointer;
 
 	box-shadow: -4px 0 10px rgba(0, 0, 0, 0.08);

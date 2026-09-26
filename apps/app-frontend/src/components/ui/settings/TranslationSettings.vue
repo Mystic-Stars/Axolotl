@@ -772,7 +772,7 @@ async function clearCache() {
 }
 
 .translation-style-preview-weakened {
-	color: var(--color-secondary) !important;
+	color: var(--color-text-tertiary) !important;
 }
 
 .translation-style-preview-blur {

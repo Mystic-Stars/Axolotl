@@ -166,7 +166,7 @@ onBeforeUnmount(() => {
 
 	.item {
 		align-items: center;
-		color: var(--color-base);
+		color: var(--color-text-default);
 		cursor: pointer;
 		display: flex;
 		gap: var(--gap-sm);
@@ -182,7 +182,7 @@ onBeforeUnmount(() => {
 		&:active {
 			&.base {
 				background-color: var(--color-button-bg);
-				color: var(--color-contrast);
+				color: var(--color-text-primary);
 			}
 
 			&.primary {

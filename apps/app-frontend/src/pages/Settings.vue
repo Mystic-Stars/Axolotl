@@ -624,7 +624,7 @@ const pageTitle: MessageDescriptor = settingsPageTitle
 	border: 0;
 	border-radius: var(--radius-sm);
 	background: transparent;
-	color: var(--color-secondary);
+	color: var(--color-text-tertiary);
 	font-size: 0.75rem;
 	font-weight: 600;
 	text-align: left;
@@ -689,7 +689,7 @@ const pageTitle: MessageDescriptor = settingsPageTitle
 
 .settings-search-result:hover {
 	background: var(--surface-3);
-	color: var(--color-contrast);
+	color: var(--color-text-primary);
 }
 
 .settings-search-result:active {
@@ -711,12 +711,12 @@ const pageTitle: MessageDescriptor = settingsPageTitle
 	height: 1rem;
 	flex-shrink: 0;
 	margin-top: 0.15rem;
-	color: var(--color-secondary);
+	color: var(--color-text-tertiary);
 	transition: color 140ms ease;
 }
 
 .settings-search-result.is-category .settings-search-result-icon {
-	color: var(--color-contrast);
+	color: var(--color-text-primary);
 }
 
 .settings-search-result:hover .settings-search-result-icon {
@@ -747,7 +747,7 @@ const pageTitle: MessageDescriptor = settingsPageTitle
 
 .settings-search-result-breadcrumb {
 	overflow: hidden;
-	color: var(--color-secondary);
+	color: var(--color-text-tertiary);
 	font-size: 0.75rem;
 	line-height: 1.3;
 	text-overflow: ellipsis;
@@ -759,7 +759,7 @@ const pageTitle: MessageDescriptor = settingsPageTitle
 	height: 0.875rem;
 	flex-shrink: 0;
 	margin-top: 0.2rem;
-	color: var(--color-secondary);
+	color: var(--color-text-tertiary);
 	opacity: 0.7;
 	transition:
 		color 140ms ease,

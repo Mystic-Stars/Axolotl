@@ -322,9 +322,9 @@ const statusRef = ref<HTMLElement | null>(null)
 	--_padding-y: 0;
 	--_icon-size: 1.25rem;
 	--_box-shadow: none;
-	--_text: var(--color-base);
+	--_text: var(--color-text-default);
 	--_hover-bg: transparent;
-	--_hover-text: var(--color-contrast);
+	--_hover-text: var(--color-text-primary);
 }
 
 .notification-bottom-progress--waiting {

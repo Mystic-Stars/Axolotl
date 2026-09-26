@@ -221,7 +221,7 @@ function formatWeight(value: number): string {
 	font-size: 0.73rem;
 	text-overflow: ellipsis;
 	white-space: nowrap;
-	color: var(--color-contrast);
+	color: var(--color-text-primary);
 }
 
 .verification {
@@ -291,7 +291,7 @@ function formatWeight(value: number): string {
 }
 
 .sample-row strong {
-	color: var(--color-contrast);
+	color: var(--color-text-primary);
 }
 
 .sample-arrow {

@@ -1467,7 +1467,7 @@ onMounted(async () => {
 	border: 0;
 	border-radius: var(--radius-sm);
 	background: transparent;
-	color: var(--color-secondary);
+	color: var(--color-text-tertiary);
 	cursor: pointer;
 	transition:
 		background-color 120ms ease,
@@ -1476,7 +1476,7 @@ onMounted(async () => {
 
 .ai-provider-item:hover {
 	background: var(--surface-3);
-	color: var(--color-contrast);
+	color: var(--color-text-primary);
 }
 
 .ai-provider-item.selected {
@@ -1525,7 +1525,7 @@ onMounted(async () => {
 
 .ai-overview-heading h2 {
 	margin: 0;
-	color: var(--color-contrast);
+	color: var(--color-text-primary);
 	font-size: 1rem;
 	font-weight: 700;
 }
@@ -1540,7 +1540,7 @@ onMounted(async () => {
 	padding: 0 0.4rem;
 	border-radius: var(--radius-sm);
 	background: var(--surface-3);
-	color: var(--color-secondary);
+	color: var(--color-text-tertiary);
 	font-size: 0.75rem;
 	font-weight: 700;
 }
@@ -1596,7 +1596,7 @@ onMounted(async () => {
 }
 
 .ai-provider-card-title strong {
-	color: var(--color-contrast);
+	color: var(--color-text-primary);
 	font-size: 1rem;
 	font-weight: 700;
 }
@@ -1606,7 +1606,7 @@ onMounted(async () => {
 	overflow: hidden;
 	-webkit-box-orient: vertical;
 	-webkit-line-clamp: 3;
-	color: var(--color-secondary);
+	color: var(--color-text-tertiary);
 	font-size: 0.8125rem;
 	line-height: 1.45;
 	text-align: left;

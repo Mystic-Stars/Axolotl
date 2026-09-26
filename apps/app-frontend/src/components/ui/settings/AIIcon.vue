@@ -84,14 +84,14 @@ const modelComponent = computed(() => {
 })
 const modelAvatarStyle = computed(() => ({
 	background: modelBackground.value ?? 'var(--color-button-bg)',
-	color: modelAvatar.value?.color ?? 'var(--color-secondary)',
+	color: modelAvatar.value?.color ?? 'var(--color-text-tertiary)',
 	height: `${props.size}px`,
 	width: `${props.size}px`,
 }))
 const avatarStyle = computed(() => ({
 	background: avatarConfig.value?.background,
 	borderRadius: `${Math.floor(props.size * 0.1)}px`,
-	color: avatarConfig.value?.color ?? (isCodeFlow.value ? 'var(--color-contrast)' : undefined),
+	color: avatarConfig.value?.color ?? (isCodeFlow.value ? 'var(--color-text-primary)' : undefined),
 	height: `${props.size}px`,
 	width: `${props.size}px`,
 }))
@@ -252,7 +252,7 @@ const avatarStyle = computed(() => ({
 		v-else-if="kind === 'provider-wordmark'"
 		class="lobe-provider-wordmark"
 		:style="{
-			color: 'var(--color-contrast)',
+			color: 'var(--color-text-primary)',
 			gap: `${Math.max(4, Math.round(size * 0.214))}px`,
 		}"
 		aria-hidden="true"

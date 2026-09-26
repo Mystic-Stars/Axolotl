@@ -352,7 +352,7 @@ function draftText(tag: CustomTag) {
 	border-radius: calc(var(--radius-sm) - 1px);
 	background: transparent;
 	padding: 0.4rem 0.5rem;
-	color: var(--color-secondary);
+	color: var(--color-text-tertiary);
 	cursor: pointer;
 	font-size: 0.75rem;
 	font-weight: 700;
@@ -399,7 +399,7 @@ function draftText(tag: CustomTag) {
 	border-radius: var(--radius-sm);
 	background: var(--color-surface-4);
 	padding: 0.25rem 0.5rem;
-	color: var(--color-contrast);
+	color: var(--color-text-primary);
 	cursor: pointer;
 	text-align: left;
 	transition: border-color 0.15s ease;
@@ -472,7 +472,7 @@ function draftText(tag: CustomTag) {
 	border-radius: var(--radius-sm);
 	background: var(--color-surface-4);
 	padding: 0 0.6rem;
-	color: var(--color-contrast);
+	color: var(--color-text-primary);
 	cursor: pointer;
 	font-size: 0.75rem;
 	font-weight: 700;

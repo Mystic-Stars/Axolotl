@@ -217,7 +217,7 @@ defineExpose({ show })
 	border-radius: var(--radius-md);
 	padding: 0.625rem;
 	background: var(--surface-2);
-	color: var(--color-contrast);
+	color: var(--color-text-primary);
 	font: inherit;
 	text-align: left;
 	transition:

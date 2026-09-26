@@ -123,7 +123,7 @@ const hasWarnings = computed(
 }
 
 .result-row strong {
-	color: var(--color-contrast);
+	color: var(--color-text-primary);
 }
 
 .result-stats {
@@ -160,7 +160,7 @@ const hasWarnings = computed(
 
 .result-stats strong {
 	font-size: 0.82rem;
-	color: var(--color-contrast);
+	color: var(--color-text-primary);
 }
 
 .path {

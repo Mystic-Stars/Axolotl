@@ -3180,7 +3180,7 @@ function clampWorldCoordinate(value: number) {
 .seed-history-empty {
 	margin: 0;
 	padding: 1.25rem 0.5rem;
-	color: var(--color-secondary);
+	color: var(--color-text-tertiary);
 	font-size: 0.78rem;
 	text-align: center;
 }
@@ -3245,7 +3245,7 @@ function clampWorldCoordinate(value: number) {
 
 .seed-history-seed {
 	overflow: hidden;
-	color: var(--color-contrast);
+	color: var(--color-text-primary);
 	font-size: 0.82rem;
 	font-variant-numeric: tabular-nums;
 	font-weight: 700;
@@ -3255,7 +3255,7 @@ function clampWorldCoordinate(value: number) {
 
 .seed-history-meta {
 	overflow: hidden;
-	color: var(--color-secondary);
+	color: var(--color-text-tertiary);
 	font-size: 0.68rem;
 	text-overflow: ellipsis;
 	white-space: nowrap;
@@ -3274,8 +3274,8 @@ function clampWorldCoordinate(value: number) {
 }
 
 .seed-history-remove {
-	--_text: var(--color-secondary);
-	--_icon: var(--color-secondary);
+	--_text: var(--color-text-tertiary);
+	--_icon: var(--color-text-tertiary);
 	--_hover-bg: var(--color-red-highlight);
 	--_hover-text: var(--color-red);
 	--_hover-icon: var(--color-red);

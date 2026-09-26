@@ -253,7 +253,7 @@ async function toggleFollowSystem() {
 	gap: 0.35em;
 	max-width: 0;
 	overflow: hidden;
-	color: var(--color-contrast);
+	color: var(--color-text-primary);
 	font-size: 4.5rem;
 	font-weight: 800;
 	line-height: 1;
@@ -270,7 +270,7 @@ async function toggleFollowSystem() {
 }
 
 .onboarding-welcome-wordmark-core {
-	background-image: linear-gradient(90deg, var(--color-contrast), var(--color-base));
+	background-image: linear-gradient(90deg, var(--color-text-primary), var(--color-text-default));
 	background-clip: text;
 	-webkit-background-clip: text;
 	color: transparent;
@@ -278,7 +278,7 @@ async function toggleFollowSystem() {
 }
 
 .onboarding-welcome-wordmark-suffix {
-	color: var(--color-secondary);
+	color: var(--color-text-tertiary);
 	font-weight: 650;
 }
 
@@ -339,7 +339,7 @@ async function toggleFollowSystem() {
 }
 
 .onboarding-welcome-copy h1 {
-	color: var(--color-contrast);
+	color: var(--color-text-primary);
 	font-size: 2.25rem;
 	font-weight: 750;
 	line-height: 1.15;
@@ -350,7 +350,7 @@ async function toggleFollowSystem() {
 .onboarding-welcome-copy p {
 	max-width: 46rem;
 	margin-top: 0.75rem;
-	color: var(--color-secondary);
+	color: var(--color-text-tertiary);
 	font-size: 1rem;
 	line-height: 1.55;
 	text-wrap: pretty;
@@ -365,7 +365,7 @@ async function toggleFollowSystem() {
 }
 
 .onboarding-welcome-language-label {
-	color: var(--color-secondary);
+	color: var(--color-text-tertiary);
 	font-size: 0.8125rem;
 	font-weight: 600;
 }
@@ -384,7 +384,7 @@ async function toggleFollowSystem() {
 	border: 1px solid var(--color-divider);
 	border-radius: var(--radius-md);
 	background: var(--color-button-bg);
-	color: var(--color-contrast);
+	color: var(--color-text-primary);
 	font: inherit;
 	font-size: 0.9375rem;
 	box-sizing: border-box;
@@ -410,7 +410,7 @@ async function toggleFollowSystem() {
 	border: 1px solid var(--color-divider);
 	border-radius: var(--radius-md);
 	background: var(--color-button-bg);
-	color: var(--color-secondary);
+	color: var(--color-text-tertiary);
 	font: inherit;
 	font-size: 0.8125rem;
 	font-weight: 600;
@@ -423,7 +423,7 @@ async function toggleFollowSystem() {
 }
 
 .onboarding-welcome-language-system:hover:not(:disabled) {
-	color: var(--color-contrast);
+	color: var(--color-text-primary);
 }
 
 .onboarding-welcome-language-system:focus-visible {
@@ -444,7 +444,7 @@ async function toggleFollowSystem() {
 
 .onboarding-welcome-language-system-meta {
 	margin: 0.35rem 0 0;
-	color: var(--color-secondary);
+	color: var(--color-text-tertiary);
 	font-size: 0.75rem;
 }
 
@@ -467,7 +467,7 @@ async function toggleFollowSystem() {
 	align-items: center;
 	justify-content: flex-end;
 	gap: 0.5rem;
-	color: var(--color-secondary);
+	color: var(--color-text-tertiary);
 	font-size: 0.8125rem;
 }
 

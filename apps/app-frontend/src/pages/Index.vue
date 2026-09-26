@@ -418,7 +418,7 @@ onUnmounted(() => {
 	border: 0;
 	border-radius: 9999px;
 	background: transparent;
-	color: var(--color-secondary);
+	color: var(--color-text-tertiary);
 	cursor: pointer;
 	transition:
 		background-color 120ms ease,
@@ -429,7 +429,7 @@ onUnmounted(() => {
 
 .home-floating-action:hover {
 	background: var(--color-button-bg);
-	color: var(--color-contrast);
+	color: var(--color-text-primary);
 }
 
 .home-floating-action:active {
@@ -519,7 +519,7 @@ onUnmounted(() => {
 	height: 1.75rem;
 	align-items: center;
 	justify-content: center;
-	color: var(--color-secondary);
+	color: var(--color-text-tertiary);
 	transition: color 180ms ease;
 }
 

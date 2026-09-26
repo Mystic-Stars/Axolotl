@@ -110,9 +110,9 @@ function applyTheme() {
 		rules: [],
 		colors: {
 			'editor.background': cssVariable('--surface-2'),
-			'editor.foreground': cssVariable('--color-base'),
+			'editor.foreground': cssVariable('--color-text-default'),
 			'editorGutter.background': cssVariable('--surface-2'),
-			'editorLineNumber.foreground': cssVariable('--color-secondary'),
+			'editorLineNumber.foreground': cssVariable('--color-text-tertiary'),
 			'editor.lineHighlightBackground': cssVariable('--surface-3'),
 			'editorCursor.foreground': cssVariable('--color-brand'),
 		},

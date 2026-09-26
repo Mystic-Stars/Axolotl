@@ -767,13 +767,13 @@ function onDatabaseOperationModalHide() {
 	min-width: 0;
 	flex-direction: column;
 	gap: var(--gap-xs);
-	color: var(--color-secondary);
+	color: var(--color-text-tertiary);
 	font-size: 0.9375rem;
 }
 
 .database-path code {
 	overflow-wrap: anywhere;
-	color: var(--color-contrast);
+	color: var(--color-text-primary);
 	font-family: var(--mono-font, monospace);
 }
 
@@ -781,7 +781,7 @@ function onDatabaseOperationModalHide() {
 	display: flex;
 	flex-direction: column;
 	gap: var(--gap-xs);
-	color: var(--color-secondary);
+	color: var(--color-text-tertiary);
 	font-size: 0.9375rem;
 }
 
@@ -809,7 +809,7 @@ function onDatabaseOperationModalHide() {
 	border: 1px solid var(--surface-4);
 	border-radius: var(--radius-sm);
 	background: var(--surface-3);
-	color: var(--color-contrast);
+	color: var(--color-text-primary);
 	text-align: center;
 }
 
@@ -864,7 +864,7 @@ function onDatabaseOperationModalHide() {
 	border: 1px solid var(--surface-4);
 	border-radius: var(--radius-md);
 	background: var(--surface-1);
-	color: var(--color-secondary);
+	color: var(--color-text-tertiary);
 	text-align: left;
 	cursor: pointer;
 	transition:
@@ -894,7 +894,7 @@ function onDatabaseOperationModalHide() {
 }
 
 .update-channel-card-title {
-	color: var(--color-contrast);
+	color: var(--color-text-primary);
 	font-weight: 600;
 }
 
@@ -907,7 +907,7 @@ function onDatabaseOperationModalHide() {
 	grid-column: 2;
 	grid-row: 1 / span 2;
 	align-self: center;
-	color: var(--color-secondary);
+	color: var(--color-text-tertiary);
 	font-size: 0.8125rem;
 	font-weight: 600;
 }
@@ -924,7 +924,7 @@ function onDatabaseOperationModalHide() {
 	border: 1px solid var(--surface-4);
 	border-radius: var(--radius-sm);
 	background: var(--surface-1);
-	color: var(--color-secondary);
+	color: var(--color-text-tertiary);
 	font-size: 0.875rem;
 	line-height: 1.4;
 }

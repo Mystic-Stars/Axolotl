@@ -24,7 +24,7 @@ const { formatMessage } = useVIntl()
 	position: absolute;
 	z-index: 1;
 	font-weight: bold;
-	color: var(--color-contrast);
+	color: var(--color-text-primary);
 
 	&::after {
 		content: '';

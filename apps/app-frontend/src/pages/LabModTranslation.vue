@@ -406,7 +406,7 @@ onMounted(() => {
 
 .stat-value {
 	overflow: hidden;
-	color: var(--color-contrast);
+	color: var(--color-text-primary);
 	font-size: 0.9rem;
 	font-weight: 800;
 	text-overflow: ellipsis;

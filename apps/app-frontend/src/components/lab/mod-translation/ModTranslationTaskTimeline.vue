@@ -97,7 +97,7 @@ function copyDebug(value: unknown) {
 	cursor: pointer;
 }
 .toggle:hover {
-	color: var(--color-contrast);
+	color: var(--color-text-primary);
 }
 .toggle:focus-visible,
 .debug button:focus-visible {

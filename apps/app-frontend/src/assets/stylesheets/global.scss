@@ -248,7 +248,7 @@ a {
 
 	&.featured {
 		background-color: var(--color-brand-highlight);
-		color: var(--color-contrast);
+		color: var(--color-text-primary);
 	}
 }
 
@@ -353,7 +353,7 @@ pre {
 input,
 textarea {
 	background: var(--color-button-bg);
-	color: var(--color-base);
+	color: var(--color-text-default);
 	padding: 0.5rem 1rem;
 	font-weight: var(--font-weight-medium);
 	border: none;

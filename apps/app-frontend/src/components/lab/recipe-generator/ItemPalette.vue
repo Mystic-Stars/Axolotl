@@ -274,7 +274,7 @@ function startPointerDrag(event: PointerEvent, entry: PaletteEntry, startDrag: S
 	border-radius: var(--radius-sm);
 	background: var(--color-surface-4);
 	padding: 0.2rem 0.1rem;
-	color: var(--color-contrast);
+	color: var(--color-text-primary);
 	cursor: grab;
 	transition:
 		background-color 0.15s ease,
@@ -302,7 +302,7 @@ function startPointerDrag(event: PointerEvent, entry: PaletteEntry, startDrag: S
 .recipe-palette-name {
 	width: 100%;
 	overflow: hidden;
-	color: var(--color-secondary);
+	color: var(--color-text-tertiary);
 	font-size: 0.55rem;
 	line-height: 1.15;
 	text-align: center;

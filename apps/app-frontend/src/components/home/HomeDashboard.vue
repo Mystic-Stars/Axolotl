@@ -815,7 +815,7 @@ defineExpose({ openWidgetPicker, setLayout })
 	border: 0;
 	border-radius: 6px;
 	background: transparent;
-	color: var(--color-secondary);
+	color: var(--color-text-tertiary);
 	cursor: grab;
 	touch-action: none;
 	transition:
@@ -826,7 +826,7 @@ defineExpose({ openWidgetPicker, setLayout })
 .home-widget-size-label {
 	width: 0;
 	overflow: hidden;
-	color: var(--color-secondary);
+	color: var(--color-text-tertiary);
 	font-size: 0.75rem;
 	font-weight: 600;
 	line-height: 1;
@@ -874,7 +874,7 @@ defineExpose({ openWidgetPicker, setLayout })
 .home-widget-drag-handle:hover,
 .home-widget-drag-handle:focus-visible {
 	background: var(--color-button-bg);
-	color: var(--color-contrast);
+	color: var(--color-text-primary);
 	outline: none;
 }
 

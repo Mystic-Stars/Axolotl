@@ -62,7 +62,7 @@ async function measureShapeGeometry(
 	const legacy = await measureLegacy(legacyProps)
 	const current = await measureCurrent(currentProps)
 	// `textColor` is asserted separately: the migration deliberately moves the
-	// default label colour to `--color-contrast`.
+	// default label colour to `--color-text-primary`.
 	const { textColor: _l, ...legacyShape } = legacy
 	const { textColor: _c, ...currentShape } = current
 	return { legacyShape, currentShape }
@@ -141,8 +141,8 @@ describe('button mapping', () => {
 		const legacy = await measureLegacy({})
 		const current = await measureCurrent({})
 
-		// The one deliberate change: legacy labelled with `--color-base` (body
-		// text), the replacement with `--color-contrast` (heading).
+		// The one deliberate change: legacy labelled with `--color-text-default` (body
+		// text), the replacement with `--color-text-primary` (heading).
 		expect(current.textColor).not.toBe(legacy.textColor)
 		expect(current.width).toBe(legacy.width)
 		expect(current.height).toBe(legacy.height)

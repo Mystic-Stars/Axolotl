@@ -1015,7 +1015,7 @@ function formatAdapterName(adapterId: GradientFormatId): string {
 }
 
 .lab-editor:empty::before {
-	color: var(--color-secondary);
+	color: var(--color-text-tertiary);
 	content: attr(data-placeholder);
 	pointer-events: none;
 }
@@ -1131,7 +1131,7 @@ function formatAdapterName(adapterId: GradientFormatId): string {
 	border: 0;
 	border-radius: 0.25rem;
 	background: transparent;
-	color: var(--color-secondary);
+	color: var(--color-text-tertiary);
 	cursor: pointer;
 	font-family: monospace;
 	font-weight: 700;
@@ -1140,7 +1140,7 @@ function formatAdapterName(adapterId: GradientFormatId): string {
 .lab-segment:hover,
 .lab-segment.active {
 	background: var(--color-button-bg);
-	color: var(--color-contrast);
+	color: var(--color-text-primary);
 }
 
 .lab-segment:focus-visible {
