@@ -22,15 +22,15 @@
 				>
 					{{ formatMessage(messages.best, { score: bestScore }) }}
 				</span>
-				<NewButton type="base" size="sm" class="shrink-0" @click="settleGame">
+				<Button type="base" size="sm" class="shrink-0" @click="settleGame">
 					{{ formatMessage(messages.settle) }}
-				</NewButton>
-				<NewButton type="base" size="sm" class="shrink-0" @click="resetGame">
+				</Button>
+				<Button type="base" size="sm" class="shrink-0" @click="resetGame">
 					{{ formatMessage(messages.restart) }}
-				</NewButton>
-				<NewButton type="base" size="sm" class="shrink-0" @click.stop="emit('exit')">
+				</Button>
+				<Button type="base" size="sm" class="shrink-0" @click.stop="emit('exit')">
 					{{ formatMessage(messages.exit) }}
-				</NewButton>
+				</Button>
 			</div>
 		</header>
 		<div class="relative min-h-0 flex-1">
@@ -145,12 +145,12 @@
 							</div>
 						</div>
 						<div class="flex flex-wrap justify-center gap-2">
-							<NewButton type="colored" color="brand" size="sm" @click.stop="resetGame">
+							<Button type="colored" color="brand" size="sm" @click.stop="resetGame">
 								{{ formatMessage(messages.restart) }}
-							</NewButton>
-							<NewButton type="base" size="sm" @click.stop="emit('exit')">
+							</Button>
+							<Button type="base" size="sm" @click.stop="emit('exit')">
 								{{ formatMessage(messages.exit) }}
-							</NewButton>
+							</Button>
 						</div>
 					</div>
 				</div>
@@ -160,7 +160,7 @@
 </template>
 
 <script setup lang="ts">
-import { defineMessages, NewButton, useVIntl } from '@modrinth/ui'
+import { Button, defineMessages, useVIntl } from '@modrinth/ui'
 import { nextTick, onMounted, onScopeDispose, ref } from 'vue'
 
 import blueBall from '@/assets/axolotl-balls/blueball.png'

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { SpinnerIcon } from '@modrinth/assets'
-import { defineMessages, NewButton as Button, useVIntl } from '@modrinth/ui'
+import { Button, defineMessages, useVIntl } from '@modrinth/ui'
 
 const props = withDefaults(
 	defineProps<{

@@ -1,12 +1,6 @@
 <script setup lang="ts">
 import { WrenchIcon } from '@modrinth/assets'
-import {
-	defineMessages,
-	injectNotificationManager,
-	NewButton as Button,
-	Toggle,
-	useVIntl,
-} from '@modrinth/ui'
+import { Button, defineMessages, injectNotificationManager, Toggle, useVIntl } from '@modrinth/ui'
 import { inject, ref, watch } from 'vue'
 
 import { get as getSettings, set as setSettings } from '@/helpers/settings.ts'

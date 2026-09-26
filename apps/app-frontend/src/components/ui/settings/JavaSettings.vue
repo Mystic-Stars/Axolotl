@@ -1,10 +1,10 @@
 <script setup>
 import { DownloadIcon, FolderSearchIcon, ListIcon, ScanEyeIcon, SearchIcon } from '@modrinth/assets'
 import {
+	Button,
 	Checkbox,
 	defineMessages,
 	injectNotificationManager,
-	NewButton as Button,
 	Slider,
 	Toggle,
 	useVIntl,

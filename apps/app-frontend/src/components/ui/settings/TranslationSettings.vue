@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { PlugIcon, SpinnerIcon, TrashIcon } from '@modrinth/assets'
 import {
+	Button,
 	Combobox,
 	defineMessages,
 	injectNotificationManager,
 	LOCALES,
-	NewButton as Button,
 	StyledInput,
 	Toggle,
 	useVIntl,

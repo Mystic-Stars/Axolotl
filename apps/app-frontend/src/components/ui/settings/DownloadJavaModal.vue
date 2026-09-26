@@ -1,10 +1,10 @@
 <script setup>
 import { ArrowLeftIcon, CoffeeIcon, SpinnerIcon, XIcon } from '@modrinth/assets'
 import {
+	Button,
 	commonMessages,
 	defineMessages,
 	injectNotificationManager,
-	NewButton as Button,
 	NewModal,
 	useVIntl,
 } from '@modrinth/ui'

@@ -11,7 +11,6 @@ export { default as BulletDivider } from './BulletDivider.vue'
 // silently resolve to the generation that ignores `type`/`size`/`interaction`.
 export { default as LegacyButton } from './Button.vue'
 export { default as Button } from './buttons/Button.vue'
-export { default as NewButton } from './buttons/Button.vue'
 export { default as CheckCircleButton } from './buttons/CheckCircleButton.vue'
 export { default as IconButton } from './buttons/IconButton.vue'
 export type {

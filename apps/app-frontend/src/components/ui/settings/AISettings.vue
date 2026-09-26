@@ -15,10 +15,10 @@ import {
 } from '@modrinth/assets'
 import {
 	Admonition,
+	Button,
 	Combobox,
 	defineMessages,
 	injectNotificationManager,
-	NewButton as Button,
 	StyledInput,
 	Tabs,
 	Toggle,

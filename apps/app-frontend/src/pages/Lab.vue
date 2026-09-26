@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { ChevronRightIcon, SearchIcon, StarIcon } from '@modrinth/assets'
 import {
+	Button,
 	Card,
 	defineMessages,
 	DropdownSelect,
 	EmptyState,
-	NewButton,
 	StyledInput,
 	TagItem,
 	useVIntl,
@@ -314,7 +314,7 @@ function favoriteFilterLabel(value: LabFavoriteFilter) {
 					</RouterLink>
 					<div class="mt-auto flex items-center justify-between gap-3 pt-4">
 						<TagItem>{{ categoryLabel(tool.category) }}</TagItem>
-						<NewButton
+						<Button
 							type="colored"
 							color="brand"
 							size="sm"
@@ -323,7 +323,7 @@ function favoriteFilterLabel(value: LabFavoriteFilter) {
 						>
 							<ChevronRightIcon />
 							{{ formatMessage(messages.enter) }}
-						</NewButton>
+						</Button>
 					</div>
 				</div>
 			</Card>

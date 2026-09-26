@@ -104,14 +104,7 @@
 
 <script setup lang="ts">
 import { CheckIcon, PlusIcon, SearchIcon, SpinnerIcon, XIcon } from '@modrinth/assets'
-import {
-	defineMessages,
-	NewButton as Button,
-	NewModal,
-	StyledInput,
-	TagItem,
-	useVIntl,
-} from '@modrinth/ui'
+import { Button, defineMessages, NewModal, StyledInput, TagItem, useVIntl } from '@modrinth/ui'
 import { computed, ref } from 'vue'
 
 import InstanceIcon from '@/components/ui/InstanceIcon.vue'

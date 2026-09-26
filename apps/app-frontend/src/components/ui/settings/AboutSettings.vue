@@ -11,7 +11,7 @@ import {
 	ScaleIcon,
 	UsersIcon,
 } from '@modrinth/assets'
-import { Avatar, defineMessages, NewButton as Button, useVIntl } from '@modrinth/ui'
+import { Avatar, Button, defineMessages, useVIntl } from '@modrinth/ui'
 import { getVersion } from '@tauri-apps/api/app'
 import {
 	defineAsyncComponent,

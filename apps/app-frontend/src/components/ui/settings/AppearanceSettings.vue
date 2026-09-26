@@ -9,11 +9,11 @@ import {
 	UploadIcon,
 } from '@modrinth/assets'
 import {
+	Button,
 	Combobox,
 	defineMessages,
 	injectNotificationManager,
 	type MessageDescriptor,
-	NewButton as Button,
 	Slider,
 	ThemeSelector,
 	Toggle,

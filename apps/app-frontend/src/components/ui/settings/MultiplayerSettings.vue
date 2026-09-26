@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { SaveIcon, SpinnerIcon } from '@modrinth/assets'
 import {
+	Button,
 	defineMessages,
 	injectNotificationManager,
-	NewButton as Button,
 	StyledInput,
 	useVIntl,
 } from '@modrinth/ui'

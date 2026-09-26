@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { NewButton as Button } from '@modrinth/ui'
+import { Button } from '@modrinth/ui'
 
 defineProps<{
 	modelValue?: boolean

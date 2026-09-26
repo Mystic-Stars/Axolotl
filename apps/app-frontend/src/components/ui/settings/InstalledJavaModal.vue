@@ -1,11 +1,11 @@
 <script setup>
 import { SpinnerIcon, TrashIcon } from '@modrinth/assets'
 import {
+	Button,
 	commonMessages,
 	defineMessages,
 	IconButton,
 	injectNotificationManager,
-	NewButton as Button,
 	NewModal,
 	Table,
 	useVIntl,
