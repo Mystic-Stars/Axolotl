@@ -776,6 +776,16 @@ export async function useInstallJobNotifications(opts: {
 
 	const buttons = computed<PopupNotificationButton[] | undefined>(() => undefined)
 
+	// Same ids with a different status or phase mean the job moved on, so the UI
+	// has to treat it as new information (for example after a dismissed
+	// download notification was remembered across restarts).
+	const stateSignature = computed(() =>
+		jobs.value
+			.map((job) => `${job.job_id}:${job.status}:${job.phase}`)
+			.sort()
+			.join('|'),
+	)
+
 	async function refreshMetadata(notify = true) {
 		const request = ++metadataRequest
 		const sourceJobs = jobs.value.filter((job) => !job.instance_deleted)
@@ -880,6 +890,7 @@ export async function useInstallJobNotifications(opts: {
 		hasItems: computed(() => jobs.value.length > 0),
 		title: computed(() => formatMessage(messages.installs)),
 		progressItems,
+		stateSignature,
 		buttons,
 		refresh,
 		dispose: () => {

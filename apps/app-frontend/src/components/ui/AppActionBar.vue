@@ -399,9 +399,14 @@ async function runNotificationAction(item: NotificationHistoryItem) {
 
 function clearNotificationHistory() {
 	const progressItems = buildDownloadItems()
+	// Clearing the history has to drop the remembered dismissal as well, even
+	// when there is currently nothing on the list.
+	persistDismissedDownloadSignature(null)
+	dismissedDownloadSignature.value = null
 	if (progressItems.length > 0) {
 		dismissed.value = true
 		dismissedDownloadSignature.value = buildDownloadSignature(progressItems)
+		persistDismissedDownloadSignature(dismissedDownloadSignature.value)
 	}
 	removeNotification(false)
 	notificationManager.clearAllNotifications()
@@ -830,8 +835,35 @@ function goToTerminal(instanceId?: string) {
 const currentLoadingBars = ref<LoadingBar[]>([])
 const currentLoadingBarIconUrls = ref<Record<string, string | null>>({})
 const notificationId = ref<string | number | null>(null)
-const dismissed = ref(false)
-const dismissedDownloadSignature = ref<string | null>(null)
+
+// Dismissing the download notification has to survive a restart: the jobs it
+// describes (such as an install interrupted by closing the launcher) are still
+// stored, so the notification would otherwise be rebuilt on every launch.
+const DISMISSED_DOWNLOAD_NOTIFICATION_KEY = 'axolotl:dismissed-download-notification-v1'
+
+function loadDismissedDownloadSignature(): string | null {
+	try {
+		const value = localStorage.getItem(DISMISSED_DOWNLOAD_NOTIFICATION_KEY)
+		return value && value.length > 0 ? value : null
+	} catch {
+		return null
+	}
+}
+
+function persistDismissedDownloadSignature(signature: string | null): void {
+	try {
+		if (signature === null) {
+			localStorage.removeItem(DISMISSED_DOWNLOAD_NOTIFICATION_KEY)
+		} else {
+			localStorage.setItem(DISMISSED_DOWNLOAD_NOTIFICATION_KEY, signature)
+		}
+	} catch {
+		// Dismissal stays session-only when storage is unavailable.
+	}
+}
+
+const dismissedDownloadSignature = ref<string | null>(loadDismissedDownloadSignature())
+const dismissed = ref(dismissedDownloadSignature.value !== null)
 
 function getLoadingBarKey(loadingBar: LoadingBar): string {
 	return `${loadingBar.loading_bar_uuid ?? loadingBar.id}`
@@ -882,6 +914,7 @@ function removeNotification(markDismissed = true): void {
 	if (markDismissed) {
 		dismissed.value = true
 		dismissedDownloadSignature.value = buildDownloadSignature(buildDownloadItems())
+		persistDismissedDownloadSignature(dismissedDownloadSignature.value)
 	}
 	popupNotificationManager.removeNotification(notificationId.value)
 	notificationId.value = null
@@ -922,10 +955,15 @@ const hasDownloadNotificationItems = computed(
 )
 
 function buildDownloadSignature(items: PopupNotificationProgressItem[]): string {
-	return items
+	const itemSignature = items
 		.map((item) => item.id)
 		.sort()
 		.join('|')
+	// Job state is part of the signature so that a job which keeps its id but
+	// changes status or phase is treated as new information instead of matching
+	// a dismissal that was remembered from an earlier launch.
+	const stateSignature = installJobNotifications.stateSignature.value
+	return stateSignature ? `${itemSignature}|state:${stateSignature}` : itemSignature
 }
 
 function updateNotification(resummon = false): void {
@@ -933,6 +971,7 @@ function updateNotification(resummon = false): void {
 	if (shouldResummon) {
 		dismissed.value = false
 		dismissedDownloadSignature.value = null
+		persistDismissedDownloadSignature(null)
 	}
 
 	const progressItems = buildDownloadItems()
@@ -942,18 +981,21 @@ function updateNotification(resummon = false): void {
 		removeNotification(false)
 		dismissed.value = false
 		dismissedDownloadSignature.value = null
+		persistDismissedDownloadSignature(null)
 		return
 	}
 
 	if (dismissed.value && dismissedDownloadSignature.value !== signature) {
 		dismissed.value = false
 		dismissedDownloadSignature.value = null
+		persistDismissedDownloadSignature(null)
 	}
 
 	if (notificationId.value && !getNotification()) {
 		notificationId.value = null
 		dismissed.value = true
 		dismissedDownloadSignature.value = signature
+		persistDismissedDownloadSignature(signature)
 	}
 
 	if (dismissed.value && !shouldResummon) {
