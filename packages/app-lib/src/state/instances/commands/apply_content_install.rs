@@ -994,6 +994,7 @@ async fn add_resolved_content_with_progress(
         )
         .await?
         {
+            let _database_permit = state.acquire_install_db_permit().await?;
             content_rows::set_content_entry_auto_dependency(
                 &entry.id,
                 true,
@@ -1033,6 +1034,7 @@ pub(crate) async fn persist_resolved_plan_dependency_edges(
     if plan.dependencies.is_empty() {
         return Ok(());
     }
+    let database_permit = state.acquire_install_db_permit().await?;
     let _instance_lock = state.lock_instance_content(instance_id).await;
     let scope = resolve_content_scope(instance_id, None, state).await?;
     let planned = std::iter::once(&plan.primary)
@@ -1173,6 +1175,7 @@ pub(crate) async fn persist_resolved_plan_dependency_edges(
         .await?;
     }
     tx.commit().await?;
+    drop(database_permit);
     Ok(())
 }
 
