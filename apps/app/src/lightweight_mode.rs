@@ -115,6 +115,7 @@ impl LightweightMode {
                     .to_string(),
             );
         }
+        let idle = state.running_processes == 0;
         drop(state);
         create_lightweight_host_window(app)?;
         let mut state = self.0.lock().map_err(|error| error.to_string())?;
@@ -134,6 +135,10 @@ impl LightweightMode {
             destroy_lightweight_host_window(app);
             return Err(error);
         }
+        if let Some(state) = theseus::State::get_if_initialized() {
+            state.pause_background_services();
+        }
+        schedule_lightweight_maintenance(idle);
         schedule_tray_menu_update(app);
         Ok(())
     }
@@ -159,6 +164,9 @@ impl LightweightMode {
         destroy_lightweight_host_window(app);
         if let Ok(mut state) = self.0.lock() {
             state.active = false;
+        }
+        if let Some(state) = theseus::State::get_if_initialized() {
+            state.resume_background_services();
         }
         schedule_tray_menu_update(app);
         Ok(())
@@ -233,16 +241,27 @@ impl LightweightMode {
                     } else {
                         show_main_window(&app)
                     };
-                    if let Err(error) = result {
-                        if was_lightweight
-                            && let Ok(mut state) =
-                                app.state::<LightweightMode>().0.lock()
-                        {
-                            state.restoring = false;
+                    match result {
+                        Ok(()) => {
+                            if was_lightweight
+                                && let Some(state) =
+                                    theseus::State::get_if_initialized()
+                            {
+                                state.resume_background_services();
+                            }
                         }
-                        tracing::error!(
-                            "Failed to restore launcher after Minecraft exited: {error}"
-                        );
+                        Err(error) => {
+                            if was_lightweight {
+                                if let Ok(mut state) =
+                                    app.state::<LightweightMode>().0.lock()
+                                {
+                                    state.restoring = false;
+                                }
+                            }
+                            tracing::error!(
+                                "Failed to restore launcher after Minecraft exited: {error}"
+                            );
+                        }
                     }
                 });
             }
@@ -338,6 +357,29 @@ impl LightweightMode {
     fn is_restoring(&self) -> bool {
         self.0.lock().map(|state| state.restoring).unwrap_or(false)
     }
+}
+
+/// Runs the post-enter maintenance work off the caller's thread: stop idle
+/// multiplayer tunnels, then trim the launcher's working set once the
+/// destroyed webview's processes had a moment to exit.
+fn schedule_lightweight_maintenance(idle: bool) {
+    tauri::async_runtime::spawn(async move {
+        if idle && let Err(error) = theseus::multiplayer::stop().await {
+            tracing::debug!(
+                "Failed to stop multiplayer tunnels entering lightweight mode: {error}"
+            );
+        }
+        tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+        if let Some((before, after)) =
+            theseus::memory::trim_launcher_working_set().await
+        {
+            tracing::info!(
+                before_bytes = before,
+                after_bytes = after,
+                "Trimmed the launcher working set for lightweight mode"
+            );
+        }
+    });
 }
 
 #[derive(serde::Deserialize)]
