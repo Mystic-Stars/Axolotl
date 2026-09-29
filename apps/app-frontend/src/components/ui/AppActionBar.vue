@@ -250,7 +250,7 @@
 				</button>
 			</template>
 			<template v-else>
-				<span class="size-2 rounded-full bg-secondary" />
+				<span class="size-2 rounded-full bg-[var(--color-text-tertiary)]" />
 				<span class="text-[var(--color-text-tertiary)]">
 					{{ formatMessage(messages.noInstancesRunning) }}
 				</span>
