@@ -238,6 +238,13 @@ pub fn remove_log_buffer(instance_id: &str) {
     LOG_BUFFERS.remove(instance_id);
 }
 
+/// Drops buffered logs for every instance that no longer has a running
+/// process.
+pub(crate) fn remove_inactive_log_buffers(active_instance_ids: &[String]) {
+    LOG_BUFFERS
+        .retain(|instance_id, _| active_instance_ids.contains(instance_id));
+}
+
 pub struct ProcessManager {
     processes: DashMap<Uuid, Process>,
 }

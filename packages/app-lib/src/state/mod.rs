@@ -1,7 +1,7 @@
 //! Theseus state management system
 use crate::util::fetch::{FetchSemaphore, IoSemaphore};
 use dashmap::DashMap;
-use parking_lot::RwLock;
+use parking_lot::{Mutex, RwLock};
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use std::sync::atomic::{
@@ -9,7 +9,7 @@ use std::sync::atomic::{
 };
 use std::time::{Duration, Instant};
 use tokio::sync::Mutex as AsyncMutex;
-use tokio::sync::{OnceCell, Semaphore};
+use tokio::sync::{OnceCell, Semaphore, watch};
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
@@ -98,6 +98,42 @@ const AUTO_DOWNLOAD_CONCURRENCY_STEP: usize = 8;
 const AUTO_DOWNLOAD_PRESSURE_WINDOWS: usize = 2;
 const AUTO_DOWNLOAD_SAMPLE_INTERVAL: Duration = Duration::from_secs(3);
 const AUTO_DOWNLOAD_PROBE_COOLDOWN: Duration = Duration::from_secs(30);
+
+/// Pauses maintenance loops that only serve the launcher UI while the main
+/// window is destroyed in lightweight mode.
+pub(crate) struct MaintenanceGate {
+    paused: watch::Sender<bool>,
+}
+
+impl MaintenanceGate {
+    fn new() -> Self {
+        let (paused, _) = watch::channel(false);
+        Self { paused }
+    }
+
+    pub(crate) fn set_paused(&self, paused: bool) {
+        let _ = self.paused.send_replace(paused);
+    }
+
+    pub(crate) fn is_paused(&self) -> bool {
+        *self.paused.borrow()
+    }
+
+    /// Waits while the gate is paused. Returns whether this call observed a
+    /// pause, so callers can catch up on work skipped in the meantime.
+    pub(crate) async fn wait_until_resumed(&self) -> bool {
+        let mut receiver = self.paused.subscribe();
+        let mut was_paused = false;
+        while *receiver.borrow_and_update() {
+            was_paused = true;
+            if receiver.changed().await.is_err() {
+                break;
+            }
+        }
+        was_paused
+    }
+}
+
 pub struct State {
     /// Information on the location of files used in the launcher
     pub directories: DirectoryInfo,
@@ -141,6 +177,11 @@ pub struct State {
 
     /// Process manager
     pub process_manager: ProcessManager,
+
+    /// Gate pausing maintenance loops that only serve the launcher UI.
+    pub(crate) maintenance_gate: MaintenanceGate,
+    /// Handles for the long-running maintenance loops, aborted on shutdown.
+    pub(crate) background_tasks: Mutex<Vec<tokio::task::JoinHandle<()>>>,
 
     // NOTE: we explicitly must NOT store the app identifier in the state object,
     // because creating the state object is fallible (e.g. database missing),
@@ -540,48 +581,59 @@ impl State {
             );
         }
 
-        let config_sync_state = Arc::clone(state);
-        tokio::task::spawn(async move {
-            instances::config_sync::run(config_sync_state).await;
+        let config_sync_task = tokio::task::spawn({
+            let state = Arc::clone(state);
+            async move {
+                instances::config_sync::run(state).await;
+            }
         });
+        state.background_tasks.lock().push(config_sync_task);
 
-        let concurrency_state = Arc::clone(state);
-        tokio::spawn(async move {
-            concurrency_state.run_auto_concurrency_controller().await;
+        let concurrency_task = tokio::spawn({
+            let state = Arc::clone(state);
+            async move {
+                state.run_auto_concurrency_controller().await;
+            }
         });
+        state.background_tasks.lock().push(concurrency_task);
 
         crate::telemetry::start(Arc::clone(state));
 
-        tokio::task::spawn(async move {
+        let preload_task = tokio::spawn(async move {
             crate::google_ip::preload().await;
         });
+        state.background_tasks.lock().push(preload_task);
 
-        tokio::task::spawn(async move {
-            crate::util::fetch::cleanup_stale_partial_downloads(vec![
-                state.directories.metadata_dir(),
-                state.directories.caches_dir(),
-            ]);
+        let maintenance_task = tokio::spawn({
+            let state = Arc::clone(state);
+            async move {
+                crate::util::fetch::cleanup_stale_partial_downloads(vec![
+                    state.directories.metadata_dir(),
+                    state.directories.caches_dir(),
+                ]);
 
-            instances::watcher::watch_instances_init(
-                &state.file_watcher,
-                &state.directories,
-                &state.pool,
-            )
-            .await;
+                instances::watcher::watch_instances_init(
+                    &state.file_watcher,
+                    &state.directories,
+                    &state.pool,
+                )
+                .await;
 
-            let res = tokio::try_join!(
-                state.discord_rpc.clear_to_default(true),
-                instances::refresh_all_instances(),
-                Settings::migrate(&state.pool),
-                ModrinthCredentials::refresh_all(),
-            );
+                let res = tokio::try_join!(
+                    state.discord_rpc.clear_to_default(true),
+                    instances::refresh_all_instances(),
+                    Settings::migrate(&state.pool),
+                    ModrinthCredentials::refresh_all(),
+                );
 
-            if let Err(e) = res {
-                tracing::error!("Error running discord RPC: {e}");
+                if let Err(e) = res {
+                    tracing::error!("Error running discord RPC: {e}");
+                }
+
+                // Axolotl does not connect to Modrinth's private friends socket.
             }
-
-            // Axolotl does not connect to Modrinth's private friends socket.
         });
+        state.background_tasks.lock().push(maintenance_task);
 
         Ok(())
     }
@@ -789,10 +841,16 @@ impl State {
 
     async fn run_auto_concurrency_controller(self: Arc<Self>) {
         let mut interval = tokio::time::interval(AUTO_DOWNLOAD_SAMPLE_INTERVAL);
+        interval
+            .set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
         interval.tick().await;
         let mut controller = AutoConcurrencyController::default();
         loop {
             interval.tick().await;
+            if self.maintenance_gate.is_paused() && self.download_work_is_idle()
+            {
+                self.maintenance_gate.wait_until_resumed().await;
+            }
             crate::util::download::local_resources::sample_cpu().await;
             if !self.auto_concurrent_downloads.load(Ordering::Acquire) {
                 controller = AutoConcurrencyController::default();
@@ -841,6 +899,11 @@ impl State {
                 self.resize_download_concurrency(target);
             }
         }
+    }
+
+    fn download_work_is_idle(&self) -> bool {
+        self.download_active_connections.load(Ordering::Acquire) == 0
+            && self.install_job_cancellations.is_empty()
     }
 
     fn resize_download_concurrency(self: &Arc<Self>, target: usize) {
@@ -899,6 +962,37 @@ impl State {
                 .await;
             });
         }
+    }
+
+    /// Pauses maintenance loops that only feed the launcher UI and drops
+    /// caches that are stale while the main window is destroyed.
+    pub fn pause_background_services(&self) {
+        self.maintenance_gate.set_paused(true);
+        self.trim_idle_caches();
+    }
+
+    pub fn resume_background_services(&self) {
+        self.maintenance_gate.set_paused(false);
+    }
+
+    /// Aborts the maintenance loops and closes the Discord IPC connection;
+    /// intended for the app-exit path.
+    pub async fn shutdown(&self) {
+        for task in self.background_tasks.lock().drain(..) {
+            task.abort();
+        }
+        self.discord_rpc.disconnect().await;
+        self.trim_idle_caches();
+    }
+
+    fn trim_idle_caches(&self) {
+        let active_instances: Vec<String> = self
+            .process_manager
+            .get_all()
+            .into_iter()
+            .map(|metadata| metadata.instance_id)
+            .collect();
+        process::remove_inactive_log_buffers(&active_instances);
     }
 
     pub fn get_if_initialized() -> Option<Arc<Self>> {
@@ -1009,6 +1103,8 @@ impl State {
             install_job_operation_locks: DashMap::new(),
             discord_rpc,
             process_manager,
+            maintenance_gate: MaintenanceGate::new(),
+            background_tasks: Mutex::new(Vec::new()),
             friends_socket,
             restart_after_pending_update: AtomicBool::new(false),
             instance_locks: Arc::new(InstanceLockManager::default()),
@@ -1124,6 +1220,8 @@ pub(crate) async fn test_state(
         install_job_operation_locks: DashMap::new(),
         discord_rpc: DiscordGuard::init()?,
         process_manager: ProcessManager::new(),
+        maintenance_gate: MaintenanceGate::new(),
+        background_tasks: Mutex::new(Vec::new()),
         friends_socket: FriendsSocket::new(),
         restart_after_pending_update: AtomicBool::new(false),
         instance_locks: Arc::new(InstanceLockManager::default()),
