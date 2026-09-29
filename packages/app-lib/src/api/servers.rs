@@ -13,6 +13,7 @@ mod ports;
 
 pub use self::files::{download_file, read_file, write_file};
 pub use self::forge::install_forge;
+pub(crate) use self::lifecycle::running_server_ids;
 pub use self::lifecycle::{
     kill, resize_console, send_command, send_console_input, shutdown_all,
     start, stop,
