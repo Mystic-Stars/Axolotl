@@ -14,7 +14,8 @@ mod ports;
 pub use self::files::{download_file, read_file, write_file};
 pub use self::forge::install_forge;
 pub use self::lifecycle::{
-    kill, resize_console, send_command, send_console_input, start, stop,
+    kill, resize_console, send_command, send_console_input, shutdown_all,
+    start, stop,
 };
 pub use self::logs::{clear_log, get_log_buffer};
 pub use self::manage::{create, delete, get, list, set_icon, update_settings};

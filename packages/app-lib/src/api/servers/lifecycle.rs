@@ -526,6 +526,51 @@ pub async fn kill(server_id: &str) -> Result<()> {
     Ok(())
 }
 
+/// Gracefully stops every running dedicated server and kills whatever is
+/// still alive when the shutdown budget expires. Returns how many processes
+/// had to be killed.
+pub async fn shutdown_all() -> usize {
+    const SHUTDOWN_BUDGET: std::time::Duration =
+        std::time::Duration::from_secs(5);
+
+    let server_ids: Vec<String> = SERVER_PROCESSES
+        .iter()
+        .map(|entry| entry.key().clone())
+        .collect();
+    for server_id in &server_ids {
+        let Some(process) = SERVER_PROCESSES
+            .get(server_id)
+            .map(|entry| entry.value().clone())
+        else {
+            continue;
+        };
+        process.stop_requested.store(true, Ordering::SeqCst);
+        let mut input = process.input.lock().await;
+        let _ = input.write_all(b"stop\n").await;
+    }
+
+    let deadline = tokio::time::Instant::now() + SHUTDOWN_BUDGET;
+    while !SERVER_PROCESSES.is_empty() {
+        if tokio::time::Instant::now() >= deadline {
+            break;
+        }
+        tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+    }
+
+    let remaining: Vec<Arc<ServerProcess>> = SERVER_PROCESSES
+        .iter()
+        .map(|entry| entry.value().clone())
+        .collect();
+    let mut killed = 0;
+    for process in remaining {
+        process.stop_requested.store(true, Ordering::SeqCst);
+        if process.child.lock().await.kill().await.is_ok() {
+            killed += 1;
+        }
+    }
+    killed
+}
+
 async fn monitor_server_process(
     server_id: String,
     dir: PathBuf,
