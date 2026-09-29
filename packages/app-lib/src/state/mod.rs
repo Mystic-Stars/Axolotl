@@ -971,6 +971,7 @@ impl State {
         self.trim_idle_caches();
     }
 
+    /// Resumes the maintenance loops paused for lightweight mode.
     pub fn resume_background_services(&self) {
         self.maintenance_gate.set_paused(false);
     }
@@ -986,13 +987,14 @@ impl State {
     }
 
     fn trim_idle_caches(&self) {
-        let active_instances: Vec<String> = self
+        let mut active_log_ids: Vec<String> = self
             .process_manager
             .get_all()
             .into_iter()
             .map(|metadata| metadata.instance_id)
             .collect();
-        process::remove_inactive_log_buffers(&active_instances);
+        active_log_ids.extend(crate::api::servers::running_server_ids());
+        process::remove_inactive_log_buffers(&active_log_ids);
     }
 
     pub fn get_if_initialized() -> Option<Arc<Self>> {
@@ -1233,6 +1235,55 @@ pub(crate) async fn test_state(
         synced_options_lock: Arc::new(AsyncMutex::new(())),
         game_locale_indexer: Default::default(),
     }))
+}
+
+#[cfg(test)]
+mod maintenance_gate_tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn gate_resolves_immediately_when_not_paused() {
+        let gate = MaintenanceGate::new();
+        assert!(!gate.wait_until_resumed().await);
+    }
+
+    #[tokio::test]
+    async fn gate_waits_while_paused_and_reports_the_pause() {
+        let gate = MaintenanceGate::new();
+        gate.set_paused(true);
+        assert!(gate.is_paused());
+
+        assert!(
+            tokio::time::timeout(
+                Duration::from_millis(50),
+                gate.wait_until_resumed()
+            )
+            .await
+            .is_err(),
+            "the waiter must stay pending while the gate is paused"
+        );
+
+        let (was_paused, ()) = tokio::join!(gate.wait_until_resumed(), async {
+            tokio::time::sleep(Duration::from_millis(50)).await;
+            gate.set_paused(false);
+        });
+        assert!(was_paused);
+        assert!(!gate.is_paused());
+    }
+
+    #[tokio::test]
+    async fn repeated_pauses_resolve_with_a_single_resume() {
+        let gate = MaintenanceGate::new();
+        gate.set_paused(true);
+        gate.set_paused(true);
+
+        let (was_paused, ()) = tokio::join!(gate.wait_until_resumed(), async {
+            tokio::time::sleep(Duration::from_millis(50)).await;
+            gate.set_paused(false);
+        });
+        assert!(was_paused);
+        assert!(!gate.is_paused());
+    }
 }
 
 #[cfg(test)]

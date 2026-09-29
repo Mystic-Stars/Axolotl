@@ -127,16 +127,19 @@ impl LightweightMode {
 
         state.active = true;
         state.frontend_ready = false;
+        if let Some(theseus_state) = theseus::State::get_if_initialized() {
+            theseus_state.pause_background_services();
+        }
         drop(state);
         if let Err(error) = destroy_main_window(app) {
             if let Ok(mut state) = self.0.lock() {
                 state.active = false;
             }
+            if let Some(theseus_state) = theseus::State::get_if_initialized() {
+                theseus_state.resume_background_services();
+            }
             destroy_lightweight_host_window(app);
             return Err(error);
-        }
-        if let Some(state) = theseus::State::get_if_initialized() {
-            state.pause_background_services();
         }
         schedule_lightweight_maintenance(idle);
         schedule_tray_menu_update(app);
@@ -164,9 +167,9 @@ impl LightweightMode {
         destroy_lightweight_host_window(app);
         if let Ok(mut state) = self.0.lock() {
             state.active = false;
-        }
-        if let Some(state) = theseus::State::get_if_initialized() {
-            state.resume_background_services();
+            if let Some(theseus_state) = theseus::State::get_if_initialized() {
+                theseus_state.resume_background_services();
+            }
         }
         schedule_tray_menu_update(app);
         Ok(())
@@ -252,9 +255,13 @@ impl LightweightMode {
                         }
                         Err(error) => {
                             if was_lightweight {
+                                // Keep the lightweight-mode invariant so the
+                                // tray can retry; the gate must stay paused to
+                                // match `active`.
                                 if let Ok(mut state) =
                                     app.state::<LightweightMode>().0.lock()
                                 {
+                                    state.active = true;
                                     state.restoring = false;
                                 }
                             }

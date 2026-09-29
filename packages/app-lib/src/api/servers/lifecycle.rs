@@ -100,6 +100,16 @@ pub(super) fn is_server_running(server_id: &str) -> bool {
     SERVER_PROCESSES.contains_key(server_id)
 }
 
+/// Ids of every dedicated server that is starting or running; their console
+/// buffers must survive maintenance cleanups.
+pub(crate) fn running_server_ids() -> Vec<String> {
+    SERVER_PROCESSES
+        .iter()
+        .map(|entry| entry.key().clone())
+        .chain(SERVER_STARTING.iter().map(|entry| entry.key().clone()))
+        .collect()
+}
+
 pub async fn start(
     server_id: &str,
     java_path: Option<String>,
@@ -564,7 +574,12 @@ pub async fn shutdown_all() -> usize {
     let mut killed = 0;
     for process in remaining {
         process.stop_requested.store(true, Ordering::SeqCst);
-        if process.child.lock().await.kill().await.is_ok() {
+        let mut child = process.child.lock().await;
+        let was_running = child
+            .try_wait()
+            .map(|status| status.is_none())
+            .unwrap_or(true);
+        if was_running && child.kill().await.is_ok() {
             killed += 1;
         }
     }
@@ -735,5 +750,17 @@ mod tests {
             ServerInput::Pty(Box::new(SharedWriter(captured.clone())));
         input.write_all(b"\x1b[D\t\x7f").await.unwrap();
         assert_eq!(*captured.lock().unwrap(), b"\x1b[D\t\x7f");
+    }
+
+    #[tokio::test]
+    async fn shutdown_all_returns_directly_without_running_servers() {
+        let killed = tokio::time::timeout(
+            std::time::Duration::from_millis(500),
+            shutdown_all(),
+        )
+        .await
+        .expect("shutdown_all must not wait when no servers are tracked");
+
+        assert_eq!(killed, 0);
     }
 }
