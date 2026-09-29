@@ -211,7 +211,7 @@ watch(thumbnail, (url, previousUrl) => {
 				:class="
 					selected
 						? 'border-0 !opacity-100'
-						: 'border-2 border-solid border-[var(--color-text-default)] bg-transparent'
+						: 'border-2 border-solid border-surface-5 bg-transparent'
 				"
 			>
 				<span v-if="selected" class="absolute inset-0 rounded-full bg-brand" />
