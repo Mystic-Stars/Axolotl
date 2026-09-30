@@ -54,6 +54,11 @@ function handleTabClick(index: number) {
 			/>
 		</template>
 
-		<RouterView />
+		<RouterView
+			:role="isStudioMode ? undefined : 'tabpanel'"
+			:aria-labelledby="
+				isStudioMode ? undefined : 'nav-tab-' + tabLinks[activeTab === 'rooms' ? 1 : 0].href
+			"
+		/>
 	</div>
 </template>
