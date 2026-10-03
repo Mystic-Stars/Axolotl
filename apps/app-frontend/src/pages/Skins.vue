@@ -1246,7 +1246,12 @@ await loadSkins()
 				</Button>
 			</div>
 			<Transition name="armor-tab" mode="out-in">
-				<div v-if="skinListTab !== 'armor'" key="list">
+				<div
+					v-if="skinListTab !== 'armor'"
+					key="list"
+					role="tabpanel"
+					:aria-labelledby="'nav-tab-' + lastSkinListTab"
+				>
 					<SkinListSkeleton v-if="isSkinListBuffering" />
 					<VirtualSkinSectionList
 						v-show="!isSkinListBuffering"

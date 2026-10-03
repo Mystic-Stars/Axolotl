@@ -123,7 +123,12 @@ defineExpose({ show })
 				@tab-click="(index) => (activeTab = index)"
 			/>
 
-			<label v-if="activeTab === 0" class="flex min-w-0 flex-col gap-2">
+			<label
+				v-if="activeTab === 0"
+				role="tabpanel"
+				aria-labelledby="nav-tab-nickname"
+				class="flex min-w-0 flex-col gap-2"
+			>
 				<span class="text-sm font-semibold text-[var(--color-text-primary)]">{{
 					formatMessage(messages.nicknameLabel)
 				}}</span>
@@ -140,7 +145,12 @@ defineExpose({ show })
 				<Admonition v-if="!canEditNickname" type="info" :body="formatMessage(messages.noAccount)" />
 			</label>
 
-			<label v-else class="flex min-w-0 flex-col gap-2">
+			<label
+				v-else
+				role="tabpanel"
+				aria-labelledby="nav-tab-title"
+				class="flex min-w-0 flex-col gap-2"
+			>
 				<span class="text-sm font-semibold text-[var(--color-text-primary)]">{{
 					formatMessage(messages.titleLabel)
 				}}</span>
