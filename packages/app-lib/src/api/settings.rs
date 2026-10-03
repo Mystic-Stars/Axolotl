@@ -113,8 +113,12 @@ pub async fn set_discord_rpc(enabled: bool) -> crate::Result<PrivacySettings> {
         .bind(enabled)
         .execute(&state.pool)
         .await?;
-    if let Err(error) = state.discord_rpc.clear_to_default(true).await {
-        tracing::debug!(target: "theseus::telemetry", %error, "Failed to apply Discord RPC state");
+    if enabled {
+        if let Err(error) = state.discord_rpc.clear_to_default(true).await {
+            tracing::debug!(target: "theseus::telemetry", %error, "Failed to apply Discord RPC state");
+        }
+    } else {
+        state.discord_rpc.disconnect().await;
     }
     get_privacy().await
 }
