@@ -220,7 +220,10 @@ if (isCli()) {
 	for (const entry of unused) console.warn(`  unused allowlist entry: ${entry}`)
 
 	if (scanned === 0) {
-		console.error('Axolotl dead-colour check scanned no files: every root is missing.')
+		console.error(
+			'Axolotl dead-colour check scanned no files: every root is missing or unreadable.' +
+				' Run it from the repository root, like the sibling guards.',
+		)
 		process.exit(1)
 	}
 
