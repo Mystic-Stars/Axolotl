@@ -73,10 +73,49 @@ const REMOVED = new Map([
 	['contrast', 'var(--color-text-primary)'],
 ])
 
+/** The variant chain (`hover:`, `md:`) and an important marker belong to the token. */
+const VARIANT = '(?:[\\w-]+:)*!?'
 const CANDIDATE = new RegExp(
-	`(?<![\\w-])((?:${PREFIXES})${DIRECTIONS})-(primary|secondary|contrast)(?![\\w-])`,
+	`(?<![\\w-])${VARIANT}((?:${PREFIXES})${DIRECTIONS})-(primary|secondary|contrast)(?![\\w-])!?`,
 	'g',
 )
+
+/**
+ * The matcher is the whole check, so it is proven against a fixed contract on
+ * every run: the positive table must match (and report the full token, variant
+ * included) and the negative table must stay silent, because those are the
+ * spellings the migration converged on and the ones that only look like a key.
+ * A weakened boundary fails here before it can pass the scan.
+ */
+const MATCHER_CONTRACT = [
+	['hover:text-secondary', ['hover:text-secondary']],
+	['!border-contrast', ['!border-contrast']],
+	['text-secondary!', ['text-secondary!']],
+	['md:text-contrast', ['md:text-contrast']],
+	['bg-secondary/50', ['bg-secondary']],
+	['@apply text-primary;', ['text-primary']],
+	['border-t-secondary', ['border-t-secondary']],
+	['from-primary', ['from-primary']],
+	['text-primary', ['text-primary']],
+	['--color-text-primary: #ffffff;', []],
+	['text-[var(--color-text-primary)]', []],
+	['bg-primary-500', []],
+	['text-primaryForeground', []],
+	['bg-secondaryish', []],
+	['some-secondary', []],
+]
+
+const matchesOf = (line) => [...readdirMatches(line)].map((match) => match[0])
+
+for (const [line, expected] of MATCHER_CONTRACT) {
+	const actual = matchesOf(line)
+	if (JSON.stringify(actual) !== JSON.stringify(expected)) {
+		console.error('Axolotl dead-colour check self-test failed:')
+		console.error(`  ${line}`)
+		console.error(`  expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`)
+		process.exit(1)
+	}
+}
 
 const files = []
 const collect = (directory) => {
