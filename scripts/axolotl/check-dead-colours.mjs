@@ -28,9 +28,13 @@
  * config that backs each surviving utility.
  *
  * Usage: node scripts/axolotl/check-dead-colours.mjs
+ * `scan(roots)` is exported so `check-dead-colours.test.mjs` can cover the walk,
+ * the allowlist and the reporting against fixtures; the matcher itself is proven
+ * by the contract below on every run, import included.
  */
 import { readFileSync, readdirSync, statSync } from 'node:fs'
-import { join, relative, sep } from 'node:path'
+import { join } from 'node:path'
+import { pathToFileURL } from 'node:url'
 
 const ROOTS = ['apps/app-frontend/src', 'packages/ui/src', 'apps/website/src']
 const EXTENSIONS = ['.vue', '.ts', '.tsx', '.mjs', '.js', '.scss', '.css']
@@ -117,81 +121,100 @@ for (const [line, expected] of MATCHER_CONTRACT) {
 	}
 }
 
-const files = []
-const collect = (directory) => {
+function* readdirMatches(line) {
+	for (const match of line.matchAll(CANDIDATE)) yield match
+}
+
+function collectFiles(directory, files = []) {
 	for (const entry of readdirSync(directory, { withFileTypes: true })) {
 		if (IGNORED_DIRECTORIES.has(entry.name) || entry.name.startsWith('.')) continue
 
 		const path = join(directory, entry.name)
 		if (entry.isDirectory()) {
-			collect(path)
+			collectFiles(path, files)
 			continue
 		}
 		if (IGNORED_FILE.test(entry.name)) continue
 		if (EXTENSIONS.some((extension) => entry.name.endsWith(extension))) files.push(path)
 	}
+	return files
 }
 
-for (const root of ROOTS) {
-	try {
-		if (statSync(root).isDirectory()) {
-			collect(root)
-			continue
-		}
-	} catch {
-		// The website is optional in some checkouts.
-	}
-	console.warn(`  note: scanned root is not in this checkout: ${root}`)
-}
+/**
+ * Scans the given roots and returns what the caller should act on: the
+ * violations, the allowlist entries that no longer match anything, and the
+ * roots that are not in this checkout (the website is optional in some).
+ */
+export function scan(roots = ROOTS) {
+	const files = []
+	const missing = []
 
-const seen = new Set()
-const violations = []
-
-for (const file of files) {
-	const source = readFileSync(file, 'utf8')
-	const lines = source.split('\n')
-
-	for (const [index, line] of lines.entries()) {
-		CANDIDATE.lastIndex = 0
-		for (const match of readdirMatches(line)) {
-			const utility = match[0]
-			const entry = `${file}|${utility}`
-
-			if (ALLOWED.has(entry)) {
-				seen.add(entry)
+	for (const root of roots) {
+		try {
+			if (statSync(root).isDirectory()) {
+				collectFiles(root, files)
 				continue
 			}
+		} catch {
+			// Not in this checkout; reported below rather than silently skipped.
+		}
+		missing.push(root)
+	}
 
-			violations.push({
-				file,
-				line: index + 1,
-				utility,
-				reason: `use ${match[1]}-[${REMOVED.get(match[2])}]`,
-			})
+	const seen = new Set()
+	const violations = []
+
+	for (const file of files) {
+		const source = readFileSync(file, 'utf8')
+		const lines = source.split('\n')
+
+		for (const [index, line] of lines.entries()) {
+			CANDIDATE.lastIndex = 0
+			for (const match of readdirMatches(line)) {
+				const utility = match[0]
+				const entry = `${file}|${utility}`
+
+				if (ALLOWED.has(entry)) {
+					seen.add(entry)
+					continue
+				}
+
+				violations.push({
+					file,
+					line: index + 1,
+					utility,
+					reason: `use ${match[1]}-[${REMOVED.get(match[2])}]`,
+				})
+			}
 		}
 	}
-}
 
-function* readdirMatches(line) {
-	for (const match of line.matchAll(CANDIDATE)) yield match
-}
-
-for (const entry of ALLOWED.keys()) {
-	if (!seen.has(entry)) console.warn(`  unused allowlist entry: ${entry}`)
-}
-
-if (violations.length > 0) {
-	console.error(`Axolotl dead-colour check failed: ${violations.length} class(es) emit no CSS\n`)
-	for (const violation of violations) {
-		console.error(
-			`  ${violation.file}:${violation.line}  ${violation.utility}  — ${violation.reason}`,
-		)
+	return {
+		violations,
+		unused: [...ALLOWED.keys()].filter((entry) => !seen.has(entry)),
+		missing,
 	}
-	console.error(
-		'\nReplace them with the converged token, or add an entry to ALLOWED' +
-			' naming the file, the utility and the reason it may stay.',
-	)
-	process.exit(1)
 }
 
-console.log(`Axolotl dead-colour check passed (${ALLOWED.size} allowlisted).`)
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+	const { violations, unused, missing } = scan()
+
+	for (const root of missing) console.warn(`  note: scanned root is not in this checkout: ${root}`)
+	for (const entry of unused) console.warn(`  unused allowlist entry: ${entry}`)
+
+	if (violations.length > 0) {
+		console.error(`Axolotl dead-colour check failed: ${violations.length} class(es) emit no CSS\n`)
+		for (const violation of violations) {
+			console.error(
+				`  ${violation.file}:${violation.line}  ${violation.utility}  — ${violation.reason}`,
+			)
+		}
+		console.error(
+			'\nReplace them with the converged token, or add an entry to ALLOWED' +
+				' naming the file, the utility and the reason it may stay.',
+		)
+		process.exit(1)
+	}
+
+	console.log(`Axolotl dead-colour check passed (${ALLOWED.size} allowlisted).`)
+}
