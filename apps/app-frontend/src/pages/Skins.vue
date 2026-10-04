@@ -1235,7 +1235,7 @@ await loadSkins()
 		<div class="pt-2">
 			<div class="mb-4 flex flex-wrap items-center justify-between gap-3">
 				<NavTabs
-					:active-index="lastSkinListTab === 'saved' ? 0 : 1"
+					:active-index="skinListTab === 'armor' ? -1 : lastSkinListTab === 'saved' ? 0 : 1"
 					:links="skinListTabLinks"
 					mode="local"
 					@tab-click="selectSkinListTab"
