@@ -28,6 +28,8 @@ test('reports the full token and leaves the converged spellings alone', () => {
 	const root = fixture({
 		'src/a.vue': '<i class="hover:!text-secondary text-[var(--color-text-primary)]" />',
 		'src/skip.test.ts': 'const className = "text-secondary"',
+		'src/other.test.mjs': 'export const name = "text-primary"',
+		'src/more.spec.mjs': 'export const name = "text-contrast"',
 	})
 
 	const { violations } = scan([root])
@@ -70,9 +72,10 @@ test('names a root that is not in the checkout instead of skipping it silently',
 	const absent = join(tmpdir(), 'dead-colours-absent-root')
 	const present = fixture({ 'src/a.vue': '<i class="text-primary" />' })
 
-	const { missing, violations } = scan([absent, present])
+	const { missing, unreadable, violations } = scan([absent, present])
 
 	assert.deepEqual(missing, [absent])
+	assert.deepEqual(unreadable, [])
 	assert.deepEqual(
 		violations.map((violation) => violation.utility),
 		['text-primary'],

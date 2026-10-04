@@ -39,7 +39,7 @@ import { fileURLToPath } from 'node:url'
 const ROOTS = ['apps/app-frontend/src', 'packages/ui/src', 'apps/website/src']
 const EXTENSIONS = ['.vue', '.ts', '.tsx', '.mjs', '.js', '.scss', '.css']
 const IGNORED_DIRECTORIES = new Set(['node_modules', 'dist', '__screenshots__'])
-const IGNORED_FILE = /\.(test|spec)\.[jt]sx?$/
+const IGNORED_FILE = /\.(test|spec)\.(?:[cm]?js|[jt]sx?)$/
 
 /** `${file}|${utility}` entries that may stay, mapped to the reason why. */
 const ALLOWED = new Map([
@@ -125,13 +125,23 @@ function* readdirMatches(line) {
 	for (const match of line.matchAll(CANDIDATE)) yield match
 }
 
-function collectFiles(directory, files = []) {
-	for (const entry of readdirSync(directory, { withFileTypes: true })) {
+function collectFiles(directory, files = [], unreadable = []) {
+	let entries
+	try {
+		entries = readdirSync(directory, { withFileTypes: true })
+	} catch {
+		// A directory that cannot be read is recorded and skipped: when it is a
+		// root, the caller diagnoses it; when it is nested, the subtree is left out.
+		unreadable.push(directory)
+		return files
+	}
+
+	for (const entry of entries) {
 		if (IGNORED_DIRECTORIES.has(entry.name) || entry.name.startsWith('.')) continue
 
 		const path = join(directory, entry.name)
 		if (entry.isDirectory()) {
-			collectFiles(path, files)
+			collectFiles(path, files, unreadable)
 			continue
 		}
 		if (IGNORED_FILE.test(entry.name)) continue
@@ -148,11 +158,12 @@ function collectFiles(directory, files = []) {
 export function scan(roots = ROOTS) {
 	const files = []
 	const missing = []
+	const unreadable = []
 
 	for (const root of roots) {
 		try {
 			if (statSync(root).isDirectory()) {
-				collectFiles(root, files)
+				collectFiles(root, files, unreadable)
 				continue
 			}
 		} catch {
@@ -193,6 +204,7 @@ export function scan(roots = ROOTS) {
 		violations,
 		unused: [...ALLOWED.keys()].filter((entry) => !seen.has(entry)),
 		missing,
+		unreadable,
 		scanned: files.length,
 	}
 }
@@ -214,9 +226,12 @@ const isCli = () => {
 }
 
 if (isCli()) {
-	const { violations, unused, missing, scanned } = scan()
+	const { violations, unused, missing, unreadable, scanned } = scan()
 
 	for (const root of missing) console.warn(`  note: scanned root is not in this checkout: ${root}`)
+	for (const directory of unreadable) {
+		console.warn(`  note: could not read a scanned directory: ${directory}`)
+	}
 	for (const entry of unused) console.warn(`  unused allowlist entry: ${entry}`)
 
 	if (scanned === 0) {
