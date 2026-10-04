@@ -38,7 +38,7 @@ import { fileURLToPath } from 'node:url'
 
 const ROOTS = ['apps/app-frontend/src', 'packages/ui/src', 'apps/website/src']
 const EXTENSIONS = ['.vue', '.ts', '.tsx', '.mjs', '.js', '.scss', '.css']
-const IGNORED_DIRECTORIES = new Set(['node_modules', 'dist', '.output', '__screenshots__'])
+const IGNORED_DIRECTORIES = new Set(['node_modules', 'dist', '__screenshots__'])
 const IGNORED_FILE = /\.(test|spec)\.[jt]sx?$/
 
 /** `${file}|${utility}` entries that may stay, mapped to the reason why. */
@@ -193,6 +193,7 @@ export function scan(roots = ROOTS) {
 		violations,
 		unused: [...ALLOWED.keys()].filter((entry) => !seen.has(entry)),
 		missing,
+		scanned: files.length,
 	}
 }
 
@@ -207,15 +208,21 @@ const isCli = () => {
 	try {
 		return realpathSync(fileURLToPath(import.meta.url)) === realpathSync(process.argv[1])
 	} catch {
+		console.warn(`  note: could not resolve ${process.argv[1]}, so nothing was scanned`)
 		return false
 	}
 }
 
 if (isCli()) {
-	const { violations, unused, missing } = scan()
+	const { violations, unused, missing, scanned } = scan()
 
 	for (const root of missing) console.warn(`  note: scanned root is not in this checkout: ${root}`)
 	for (const entry of unused) console.warn(`  unused allowlist entry: ${entry}`)
+
+	if (scanned === 0) {
+		console.error('Axolotl dead-colour check scanned no files: every root is missing.')
+		process.exit(1)
+	}
 
 	if (violations.length > 0) {
 		console.error(`Axolotl dead-colour check failed: ${violations.length} class(es) emit no CSS\n`)

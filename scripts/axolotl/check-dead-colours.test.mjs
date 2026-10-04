@@ -5,10 +5,12 @@
  * is written inside a scanned root.
  */
 import assert from 'node:assert/strict'
+import { execFileSync } from 'node:child_process'
 import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import test from 'node:test'
+import { fileURLToPath } from 'node:url'
 
 import { scan } from './check-dead-colours.mjs'
 
@@ -52,6 +54,7 @@ test('skips the directories the scan is not meant to read', () => {
 	const root = fixture({
 		'node_modules/pkg/c.vue': '<i class="text-primary" />',
 		'dist/assets/d.css': '.text-primary { color: red }',
+		'__screenshots__/f.vue': '<i class="text-secondary" />',
 		'src/nested/e.vue': '<i class="text-contrast" />',
 	})
 
@@ -73,5 +76,15 @@ test('names a root that is not in the checkout instead of skipping it silently',
 	assert.deepEqual(
 		violations.map((violation) => violation.utility),
 		['text-primary'],
+	)
+})
+
+test('fails from the command line when no root can be read', () => {
+	const cwd = mkdtempSync(join(tmpdir(), 'dead-colours-empty-'))
+	const guard = fileURLToPath(new URL('./check-dead-colours.mjs', import.meta.url))
+
+	assert.throws(
+		() => execFileSync(process.execPath, [guard], { cwd, stdio: 'pipe' }),
+		/scanned no files/,
 	)
 })

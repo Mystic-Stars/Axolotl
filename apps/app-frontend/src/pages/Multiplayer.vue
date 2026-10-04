@@ -47,10 +47,11 @@ function handleTabClick(index: number) {
 				{{ formatMessage(messages.title) }}
 			</h1>
 			<!--
-				This bar drives routes rather than panels, so it deliberately has no
-				tabpanel: the outlet below renders child routes that own their own
-				tablists. Making it a real tablist would mean one panel here and no
-				tablists in the children, which is a different product decision.
+				This bar drives routes rather than panels, so it has no tabpanel of
+				its own: the outlet below renders child routes, and the detail and
+				rooms views own their own tablists. Navigation mode would fit the
+				routes but renders links rather than buttons, which normalise
+				underlines, so the switch waits on a visual review.
 			-->
 			<NavTabs
 				mode="local"
