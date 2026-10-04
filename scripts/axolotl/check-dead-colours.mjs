@@ -176,7 +176,15 @@ export function scan(roots = ROOTS) {
 	const violations = []
 
 	for (const file of files) {
-		const source = readFileSync(file, 'utf8')
+		let source
+		try {
+			source = readFileSync(file, 'utf8')
+		} catch {
+			// A file that vanished or cannot be read is skipped for the same reason
+			// a directory is: the walk reports, it does not throw.
+			unreadable.push(file)
+			continue
+		}
 		const lines = source.split('\n')
 
 		for (const [index, line] of lines.entries()) {
@@ -230,7 +238,7 @@ if (isCli()) {
 
 	for (const root of missing) console.warn(`  note: scanned root is not in this checkout: ${root}`)
 	for (const directory of unreadable) {
-		console.warn(`  note: could not read a scanned directory: ${directory}`)
+		console.warn(`  note: could not read a scanned path: ${directory}`)
 	}
 	for (const entry of unused) console.warn(`  unused allowlist entry: ${entry}`)
 
