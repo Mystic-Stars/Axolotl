@@ -67,12 +67,14 @@ pub(crate) async fn run(state: Arc<State>) {
     reconcile_tick.tick().await;
 
     loop {
-        if state.maintenance_gate.wait_until_resumed().await
-            && let Err(error) = reconcile_all(&state).await
-        {
-            tracing::warn!(
-                "Failed to reconcile instance config files: {error}"
-            );
+        if state.maintenance_gate.wait_until_resumed().await {
+            // One catch-up reconcile per observed pause; the periodic branch
+            // below keeps the normal reconcile cadence.
+            if let Err(error) = reconcile_all(&state).await {
+                tracing::warn!(
+                    "Failed to reconcile instance config files: {error}"
+                );
+            }
         }
         tokio::select! {
             _ = dirty_tick.tick() => {

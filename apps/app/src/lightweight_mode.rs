@@ -247,10 +247,20 @@ impl LightweightMode {
                     match result {
                         Ok(()) => {
                             if was_lightweight
-                                && let Some(state) =
-                                    theseus::State::get_if_initialized()
+                                && let Ok(state) =
+                                    app.state::<LightweightMode>().0.lock()
                             {
-                                state.resume_background_services();
+                                // A concurrent enter may have re-activated
+                                // lightweight mode; only resume the gate when
+                                // it still matches a non-lightweight state.
+                                if !state.active {
+                                    if let Some(theseus_state) =
+                                        theseus::State::get_if_initialized()
+                                    {
+                                        theseus_state
+                                            .resume_background_services();
+                                    }
+                                }
                             }
                         }
                         Err(error) => {
