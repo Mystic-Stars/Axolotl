@@ -32,9 +32,9 @@
  * the allowlist and the reporting against fixtures; the matcher itself is proven
  * by the contract below on every run, import included.
  */
-import { readFileSync, readdirSync, statSync } from 'node:fs'
+import { readFileSync, readdirSync, realpathSync, statSync } from 'node:fs'
 import { join } from 'node:path'
-import { pathToFileURL } from 'node:url'
+import { fileURLToPath } from 'node:url'
 
 const ROOTS = ['apps/app-frontend/src', 'packages/ui/src', 'apps/website/src']
 const EXTENSIONS = ['.vue', '.ts', '.tsx', '.mjs', '.js', '.scss', '.css']
@@ -196,7 +196,22 @@ export function scan(roots = ROOTS) {
 	}
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+/**
+ * True when this module is the process entry point. Both sides are resolved
+ * through realpath so a package-manager shim or a symlinked checkout still runs
+ * the scan instead of exiting 0 having done nothing.
+ */
+const isCli = () => {
+	if (!process.argv[1]) return false
+
+	try {
+		return realpathSync(fileURLToPath(import.meta.url)) === realpathSync(process.argv[1])
+	} catch {
+		return false
+	}
+}
+
+if (isCli()) {
 	const { violations, unused, missing } = scan()
 
 	for (const root of missing) console.warn(`  note: scanned root is not in this checkout: ${root}`)

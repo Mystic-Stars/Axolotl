@@ -64,8 +64,14 @@ test('skips the directories the scan is not meant to read', () => {
 })
 
 test('names a root that is not in the checkout instead of skipping it silently', () => {
-	const { missing, violations } = scan([join(tmpdir(), 'dead-colours-absent-root')])
+	const absent = join(tmpdir(), 'dead-colours-absent-root')
+	const present = fixture({ 'src/a.vue': '<i class="text-primary" />' })
 
-	assert.equal(missing.length, 1)
-	assert.equal(violations.length, 0)
+	const { missing, violations } = scan([absent, present])
+
+	assert.deepEqual(missing, [absent])
+	assert.deepEqual(
+		violations.map((violation) => violation.utility),
+		['text-primary'],
+	)
 })

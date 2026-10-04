@@ -277,10 +277,10 @@ function closeArmorTab() {
 }
 
 /**
- * The tab bar keeps the last list tab highlighted while the armour tab shows, so
- * picking one of them leaves the armour tab. That transition has to drop the
- * draft exactly like the toggle and Escape paths do, or it lingers on the model
- * while the panel is gone.
+ * While the armour tab shows, no list tab is selected, so picking one of them
+ * leaves the armour surface. That transition has to drop the draft exactly like
+ * the toggle and Escape paths do, or it lingers on the model while the panel is
+ * gone.
  */
 function selectSkinListTab(index: number) {
 	if (skinListTab.value === 'armor') resetArmorPreviewToSaved()

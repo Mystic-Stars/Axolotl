@@ -46,6 +46,12 @@ function handleTabClick(index: number) {
 			<h1 class="m-0 shrink-0 text-2xl font-semibold text-[var(--color-text-primary)]">
 				{{ formatMessage(messages.title) }}
 			</h1>
+			<!--
+				This bar drives routes rather than panels, so it deliberately has no
+				tabpanel: the outlet below renders child routes that own their own
+				tablists. Making it a real tablist would mean one panel here and no
+				tablists in the children, which is a different product decision.
+			-->
 			<NavTabs
 				mode="local"
 				:active-index="activeTab === 'rooms' ? 1 : 0"
