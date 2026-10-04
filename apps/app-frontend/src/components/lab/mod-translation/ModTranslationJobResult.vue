@@ -1,13 +1,44 @@
 <script setup lang="ts">
 import { CheckCircleIcon, XIcon } from '@modrinth/assets'
+import { defineMessages, useVIntl } from '@modrinth/ui'
 import { computed } from 'vue'
 
+import { modTranslationMessages } from '@/lab/mod-translation/i18n'
 import type { ModTranslationJob } from '@/lab/mod-translation/types.ts'
 
 const props = defineProps<{ job: ModTranslationJob }>()
+const { formatMessage, locale } = useVIntl()
+
+const messages = defineMessages({
+	completedWarnings: {
+		id: 'app.lab.mod-translation.result.completed-warnings',
+		defaultMessage: 'Generated, but some text is still uncovered',
+	},
+	completed: {
+		id: 'app.lab.mod-translation.result.completed',
+		defaultMessage: 'Translation complete',
+	},
+	modLabel: {
+		id: 'app.lab.mod-translation.result.mod-label',
+		defaultMessage: 'Mod',
+	},
+	classText: {
+		id: 'app.lab.mod-translation.result.class-text',
+		defaultMessage: 'Class text',
+	},
+	changedFiles: {
+		id: 'app.lab.mod-translation.result.changed-files',
+		defaultMessage: 'Changed files: {files}',
+	},
+})
+
 const hasWarnings = computed(
 	() => props.job.status === 'completed' && Boolean(props.job.report?.warnings?.length),
 )
+
+function joinPaths(paths: readonly string[]): string {
+	return paths.join(locale.value.startsWith('zh') ? '、' : ', ')
+}
 </script>
 
 <template>
@@ -24,18 +55,19 @@ const hasWarnings = computed(
 			<strong>{{
 				job.status === 'completed'
 					? hasWarnings
-						? '已生成，但仍有未覆盖文本'
-						: '翻译完成'
+						? formatMessage(messages.completedWarnings)
+						: formatMessage(messages.completed)
 					: job.error?.code || 'UNKNOWN_ERROR'
 			}}</strong>
 		</div>
 		<template v-if="job.status === 'completed'">
 			<div v-if="job.report?.modName?.name" class="result-row">
-				<span>模组</span><strong>{{ job.report.modName.name }}</strong>
+				<span>{{ formatMessage(messages.modLabel) }}</span
+				><strong>{{ job.report.modName.name }}</strong>
 			</div>
 			<div class="result-stats">
 				<div>
-					<span>语言条目</span
+					<span>{{ formatMessage(modTranslationMessages.languageEntries) }}</span
 					><strong
 						>{{ job.report?.languageAccepted ?? 0 }}/{{
 							job.report?.languageAttempted ?? 0
@@ -43,13 +75,13 @@ const hasWarnings = computed(
 					>
 				</div>
 				<div v-if="job.report?.classTotal">
-					<span>Class 文本</span
+					<span>{{ formatMessage(messages.classText) }}</span
 					><strong>{{ job.report.classResolved }}/{{ job.report.classTotal }}</strong>
 				</div>
 			</div>
-			<span v-if="job.report?.classChangedFiles?.length" class="secondary"
-				>改动文件：{{ job.report.classChangedFiles.join('、') }}</span
-			>
+			<span v-if="job.report?.classChangedFiles?.length" class="secondary">{{
+				formatMessage(messages.changedFiles, { files: joinPaths(job.report.classChangedFiles) })
+			}}</span>
 			<ul v-if="job.report?.warnings?.length" class="warnings">
 				<li v-for="warning in job.report.warnings" :key="warning">{{ warning }}</li>
 			</ul>

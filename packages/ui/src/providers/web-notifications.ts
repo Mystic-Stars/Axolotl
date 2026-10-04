@@ -66,12 +66,13 @@ export abstract class AbstractWebNotificationManager {
 		return newNotification
 	}
 
+	public errorTitleProvider?: () => string
 	/**
 	 * @deprecated You should use `addNotification` instead to provide a more human-readable error message to the user.
 	 */
 	handleError(error: unknown): void {
 		this.addNotification({
-			title: '发生错误',
+			title: this.errorTitleProvider?.() ?? 'An error occurred',
 			text:
 				error instanceof Error
 					? error.message

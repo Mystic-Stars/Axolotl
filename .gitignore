@@ -120,3 +120,6 @@ apps/app/resources/blockbench-skin/
 
 # Vitest visual-regression screenshots
 **/__screenshots__/
+
+#local development script
+start-dev.ps1

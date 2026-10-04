@@ -277,6 +277,7 @@ impl ProcessManager {
         xml_logging: bool,
         main_class_keep_alive: TempDir,
         rpc_server: RpcServer,
+        offline_account: bool,
         post_process_init: impl AsyncFnOnce(
             &ProcessMetadata,
             &RpcServer,
@@ -286,7 +287,13 @@ impl ProcessManager {
         mc_command.stderr(std::process::Stdio::piped());
         mc_command.stdin(std::process::Stdio::piped());
 
+        let eligibility = if offline_account {
+            Some(crate::anti_piracy::offline_action_guard().await?)
+        } else {
+            None
+        };
         let mut mc_proc = mc_command.spawn().map_err(IOError::from)?;
+        drop(eligibility);
 
         let stdout = mc_proc.stdout.take();
         let stderr = mc_proc.stderr.take();

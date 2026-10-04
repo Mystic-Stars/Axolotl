@@ -1,0 +1,1 @@
+ALTER TABLE settings ADD COLUMN allow_privileged_scheme INTEGER NOT NULL DEFAULT FALSE;

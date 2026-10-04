@@ -38,15 +38,16 @@
 	}
 }
 
+// This is a default: explicit width utilities must win regardless of import order.
+:where(.universal-body) :where(button, .button, .btn) {
+	width: fit-content;
+}
+
 .universal-body {
 	@extend .universal-labels;
 
 	> :where(input + *, .input-group + *, .chips + *, .input-div + *) {
 		margin-block-start: var(--gap-md);
-	}
-
-	:where(button, .button, .btn) {
-		width: fit-content;
 	}
 
 	.input-group {

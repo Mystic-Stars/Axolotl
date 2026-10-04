@@ -242,7 +242,10 @@ function getAutoResolvedLabel(preset: JavaArgumentPreset): string | null {
 
 function getAutoReasonChainText(preset: JavaArgumentPreset): string | null {
 	if (preset.id !== 'gc-auto' || !preset.autoReasonChain) return null
-	return formatMessage(messages.autoReasonChain, { chain: preset.autoReasonChain.join(' → ') })
+	const chain = preset.autoReasonChain
+		.map((entry) => (typeof entry === 'string' ? entry : formatMessage(entry, entry.values)))
+		.join(' → ')
+	return formatMessage(messages.autoReasonChain, { chain })
 }
 
 function getAutoVerifiedLabel(preset: JavaArgumentPreset): string | null {

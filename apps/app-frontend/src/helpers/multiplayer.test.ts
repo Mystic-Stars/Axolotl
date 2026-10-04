@@ -4,6 +4,7 @@ import test from 'node:test'
 import {
 	type DetectedLanPort,
 	type HongshiNode,
+	multiplayerErrorText,
 	selectedDetectedInstance,
 	selectedNodePreference,
 	storedMultiplayerProvider,
@@ -52,4 +53,12 @@ test('auto-selects exactly one detected instance and preserves valid choices', (
 test('falls back to automatic node selection when a cached preference disappears', () => {
 	assert.equal(selectedNodePreference('Nanjing', [node('Nanjing')]), 'Nanjing')
 	assert.equal(selectedNodePreference('Missing', [node('Nanjing')]), 'auto')
+})
+
+test('reads cancellation messages from serialized Tauri errors', () => {
+	assert.equal(
+		multiplayerErrorText({ field_name: 'Theseus', message: 'RedStone operation cancelled' }),
+		'RedStone operation cancelled',
+	)
+	assert.equal(multiplayerErrorText('RedStone operation cancelled'), 'RedStone operation cancelled')
 })

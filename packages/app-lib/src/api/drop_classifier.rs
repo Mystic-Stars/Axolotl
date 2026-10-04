@@ -4,6 +4,7 @@
 //! supporting launcher directories, mod JARs, resource packs, world saves,
 //! litematic files, shader packs, and more.
 
+use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
@@ -12,10 +13,23 @@ use crate::api::pack::detect::LocalPackFormat;
 use crate::api::pack::import::ImportLauncherType;
 use crate::mod_metadata::manifest::read_jar_manifest;
 use crate::state::{ModrinthProjectId, ModrinthVersionId};
+use tokio_util::sync::CancellationToken;
 
 /// Maximum number of items allowed in a ZIP before we classify it as "ZIP
 /// with many items" rather than "single file/folder wrapped in ZIP".
 const ZIP_TOP_LEVEL_LIMIT: usize = 200;
+const MAX_ZIP_EXTRACTION_ENTRIES: usize = 100_000;
+const MAX_ZIP_EXTRACTION_BYTES: u64 = 32 * 1024 * 1024 * 1024;
+
+fn is_cancelled(cancellation: Option<&CancellationToken>) -> bool {
+    cancellation.is_some_and(CancellationToken::is_cancelled)
+}
+
+fn cancelled_result() -> DroppedItemType {
+    DroppedItemType::Unknown {
+        reason: "Operation cancelled".to_string(),
+    }
+}
 
 /// Entry-name segments that are never descended into during classification.
 /// They are operating-system noise, not Minecraft content.
@@ -91,7 +105,18 @@ pub struct DroppedCandidate {
 /// ZIP / EXE / JAR detection, then directory and file fallbacks.
 /// Returns `Unknown` instead of panicking on any error.
 pub fn classify_dropped_item(path: &Path) -> DroppedItemType {
-    classify_dropped_item_inner(path, 0, true)
+    classify_dropped_item_inner(path, 0, true, None)
+}
+
+/// Classify a dropped item while cooperating with a caller-controlled
+/// cancellation token. The synchronous implementation checks the token
+/// between filesystem and archive operations so a timed-out blocking worker
+/// can finish before its caller reports failure or cleans up its inputs.
+pub fn classify_dropped_item_cancellable(
+    path: &Path,
+    cancellation: &CancellationToken,
+) -> DroppedItemType {
+    classify_dropped_item_inner(path, 0, true, Some(cancellation))
 }
 
 /// Like [`classify_dropped_item`] but never unpacks nested archives: when a
@@ -101,7 +126,7 @@ pub fn classify_dropped_item(path: &Path) -> DroppedItemType {
 pub fn classify_dropped_item_without_nested_unpack(
     path: &Path,
 ) -> DroppedItemType {
-    classify_dropped_item_inner(path, 0, false)
+    classify_dropped_item_inner(path, 0, false, None)
 }
 
 /// Maximum number of shortcut hops followed before giving up. Guards against
@@ -113,7 +138,11 @@ fn classify_dropped_item_inner(
     path: &Path,
     shortcut_depth: u32,
     allow_nested_unpack: bool,
+    cancellation: Option<&CancellationToken>,
 ) -> DroppedItemType {
+    if is_cancelled(cancellation) {
+        return cancelled_result();
+    }
     if !path.exists() {
         let reason = "Path does not exist".to_string();
         tracing::warn!(
@@ -132,6 +161,7 @@ fn classify_dropped_item_inner(
             &resolved,
             shortcut_depth + 1,
             allow_nested_unpack,
+            cancellation,
         );
         return DroppedItemType::ShortcutResolved {
             original: path.to_path_buf(),
@@ -140,7 +170,7 @@ fn classify_dropped_item_inner(
     }
 
     if is_zip_path(path) {
-        return classify_zip_path(path, allow_nested_unpack);
+        return classify_zip_path(path, allow_nested_unpack, cancellation);
     }
 
     if let Some(ext) = path.extension()
@@ -152,7 +182,7 @@ fn classify_dropped_item_inner(
     if let Some(ext) = path.extension()
         && ext.eq_ignore_ascii_case("disabled")
     {
-        return classify_disabled(path, allow_nested_unpack);
+        return classify_disabled(path, allow_nested_unpack, cancellation);
     }
 
     if let Some(ext) = path.extension()
@@ -163,7 +193,7 @@ fn classify_dropped_item_inner(
 
     // Step 5: Directory.
     if path.is_dir() {
-        let result = classify_folder(path, allow_nested_unpack);
+        let result = classify_folder(path, allow_nested_unpack, cancellation);
         tracing::debug!(
             "classify_dropped_item: directory path={} result={:?}",
             path.display(),
@@ -197,6 +227,7 @@ fn is_zip_path(path: &Path) -> bool {
 fn classify_disabled(
     path: &Path,
     allow_nested_unpack: bool,
+    cancellation: Option<&CancellationToken>,
 ) -> DroppedItemType {
     let Some(stem) = path.file_stem() else {
         return classify_file(path);
@@ -217,7 +248,7 @@ fn classify_disabled(
     {
         // The file content is still a valid archive, so the ZIP pipeline runs
         // on the original path.
-        return classify_zip_path(path, allow_nested_unpack);
+        return classify_zip_path(path, allow_nested_unpack, cancellation);
     }
 
     // Other .disabled extensions fall through to file classification.
@@ -249,8 +280,9 @@ struct ZipEntrySet {
 }
 
 impl ZipEntrySet {
-    fn from_archive<R: std::io::Read + std::io::Seek>(
+    fn from_archive_with_cancellation<R: std::io::Read + std::io::Seek>(
         archive: &mut zip::ZipArchive<R>,
+        cancellation: Option<&CancellationToken>,
     ) -> Result<ZipEntrySet, String> {
         let mut set = ZipEntrySet {
             names: Vec::new(),
@@ -259,9 +291,17 @@ impl ZipEntrySet {
             has_encrypted: false,
         };
         for i in 0..archive.len() {
+            if is_cancelled(cancellation) {
+                return Err("Operation cancelled".to_string());
+            }
             let Ok(entry) = archive.by_index_raw(i) else {
                 continue;
             };
+            if i >= MAX_ZIP_EXTRACTION_ENTRIES {
+                return Err(format!(
+                    "ZIP contains more than {MAX_ZIP_EXTRACTION_ENTRIES} entries"
+                ));
+            }
             if entry.encrypted() {
                 set.has_encrypted = true;
             }
@@ -440,22 +480,24 @@ impl ZipEntrySet {
         let mut children: Vec<String> = Vec::new();
         let mut seen: std::collections::HashSet<&str> =
             std::collections::HashSet::new();
-        for dir in &self.dirs {
-            if let Some(rest) = dir.strip_prefix(base)
-                && let Some((first, _)) = rest.split_once('/')
-                && !first.is_empty()
-                && !is_noise_entry(first)
-                && seen.insert(first)
+        for path in &self.dirs {
+            let Some(rest) = path.strip_prefix(base) else {
+                continue;
+            };
+            let first = rest.split('/').next().unwrap_or_default();
+            if !first.is_empty() && !is_noise_entry(first) && seen.insert(first)
             {
                 children.push(first.to_string());
             }
         }
         for path in &self.files {
-            if let Some(rest) = path.strip_prefix(base)
-                && let Some((first, _)) = rest.split_once('/')
-                && !first.is_empty()
-                && !is_noise_entry(first)
-                && seen.insert(first)
+            let Some(rest) = path.strip_prefix(base) else {
+                continue;
+            };
+            let Some((first, _)) = rest.split_once('/') else {
+                continue;
+            };
+            if !first.is_empty() && !is_noise_entry(first) && seen.insert(first)
             {
                 children.push(first.to_string());
             }
@@ -573,13 +615,18 @@ fn temp_dir_has_space(dir: &Path, required: u64) -> bool {
 fn classify_zip_path(
     path: &Path,
     allow_nested_unpack: bool,
+    cancellation: Option<&CancellationToken>,
 ) -> DroppedItemType {
+    if is_cancelled(cancellation) {
+        return cancelled_result();
+    }
     let mut nested_unpack_bytes: u64 = 0;
     classify_zip_file_at_depth(
         path,
         0,
         allow_nested_unpack,
         &mut nested_unpack_bytes,
+        cancellation,
     )
 }
 
@@ -588,7 +635,11 @@ fn classify_zip_file_at_depth(
     depth: u32,
     allow_nested_unpack: bool,
     nested_unpack_bytes: &mut u64,
+    cancellation: Option<&CancellationToken>,
 ) -> DroppedItemType {
+    if is_cancelled(cancellation) {
+        return cancelled_result();
+    }
     let Ok(file) = std::fs::File::open(path) else {
         return DroppedItemType::Unknown {
             reason: "Cannot open ZIP file".to_string(),
@@ -599,7 +650,10 @@ fn classify_zip_file_at_depth(
             reason: "File is not a valid ZIP archive".to_string(),
         };
     };
-    let entry_set = match ZipEntrySet::from_archive(&mut archive) {
+    let entry_set = match ZipEntrySet::from_archive_with_cancellation(
+        &mut archive,
+        cancellation,
+    ) {
         Ok(set) => set,
         Err(reason) => return DroppedItemType::Unknown { reason },
     };
@@ -611,6 +665,7 @@ fn classify_zip_file_at_depth(
         "",
         allow_nested_unpack,
         nested_unpack_bytes,
+        cancellation,
     )
 }
 
@@ -623,7 +678,11 @@ fn classify_zip_entries<R: std::io::Read + std::io::Seek>(
     base: &str,
     allow_nested_unpack: bool,
     nested_unpack_bytes: &mut u64,
+    cancellation: Option<&CancellationToken>,
 ) -> DroppedItemType {
+    if is_cancelled(cancellation) {
+        return cancelled_result();
+    }
     // 1. Modpack manifests. Checked first because a modpack can carry
     //    overrides that look like resource packs, shader packs or worlds.
     match crate::api::pack::detect::detect_at_base(
@@ -749,6 +808,9 @@ fn classify_zip_entries<R: std::io::Read + std::io::Seek>(
     // 6. Recurse into nested folders and nested ZIP files.
     if depth < MAX_ZIP_NESTING_DEPTH {
         for child in entries.child_folders(base) {
+            if is_cancelled(cancellation) {
+                return cancelled_result();
+            }
             if child == "__MACOSX" {
                 continue;
             }
@@ -761,12 +823,16 @@ fn classify_zip_entries<R: std::io::Read + std::io::Seek>(
                 &child_base,
                 allow_nested_unpack,
                 nested_unpack_bytes,
+                cancellation,
             );
             if !matches!(result, DroppedItemType::Unknown { .. }) {
                 return result;
             }
         }
         for nested in entries.nested_zip_files(base) {
+            if is_cancelled(cancellation) {
+                return cancelled_result();
+            }
             if !allow_nested_unpack {
                 // First pass: report the nested archive instead of unpacking
                 // it; the caller confirms with the user before staging.
@@ -784,6 +850,7 @@ fn classify_zip_entries<R: std::io::Read + std::io::Seek>(
                 depth + 1,
                 &format!("{base}{nested}"),
                 allow_nested_unpack,
+                cancellation,
             );
             if !matches!(result, DroppedItemType::Unknown { .. }) {
                 return result;
@@ -835,7 +902,11 @@ fn classify_nested_zip<R: std::io::Read + std::io::Seek>(
     depth: u32,
     entry_path: &str,
     allow_nested_unpack: bool,
+    cancellation: Option<&CancellationToken>,
 ) -> DroppedItemType {
+    if is_cancelled(cancellation) {
+        return cancelled_result();
+    }
     let Some(index) =
         crate::api::pack::detect::find_entry_index(archive, entry_path)
             .ok()
@@ -868,14 +939,47 @@ fn classify_nested_zip<R: std::io::Read + std::io::Seek>(
         };
     }
     let nested_path = temp_dir.path().join("nested.zip");
-    if let Err(error) = std::fs::File::create(&nested_path)
-        .and_then(|mut output| std::io::copy(&mut entry, &mut output))
-    {
-        return DroppedItemType::Unknown {
-            reason: format!(
-                "Failed to stage nested archive {entry_path}: {error}"
-            ),
+    let mut output = match std::fs::File::create(&nested_path) {
+        Ok(output) => output,
+        Err(error) => {
+            return DroppedItemType::Unknown {
+                reason: format!(
+                    "Failed to stage nested archive {entry_path}: {error}"
+                ),
+            };
+        }
+    };
+    let mut buffer = [0u8; 64 * 1024];
+    loop {
+        if is_cancelled(cancellation) {
+            return cancelled_result();
+        }
+        let read = match std::io::Read::read(&mut entry, &mut buffer) {
+            Ok(read) => read,
+            Err(error) => {
+                return DroppedItemType::Unknown {
+                    reason: format!(
+                        "Failed to stage nested archive {entry_path}: {error}"
+                    ),
+                };
+            }
         };
+        if read == 0 {
+            break;
+        }
+        if let Err(error) =
+            std::io::Write::write_all(&mut output, &buffer[..read])
+        {
+            return DroppedItemType::Unknown {
+                reason: format!(
+                    "Failed to stage nested archive {entry_path}: {error}"
+                ),
+            };
+        }
+    }
+
+    if is_cancelled(cancellation) {
+        return cancelled_result();
     }
 
     let mut nested_unpack_bytes: u64 = 0;
@@ -884,6 +988,7 @@ fn classify_nested_zip<R: std::io::Read + std::io::Seek>(
         depth,
         allow_nested_unpack,
         &mut nested_unpack_bytes,
+        cancellation,
     );
     let remap_inner = |inner_base: Option<String>| -> Option<String> {
         let combined = match inner_base {
@@ -952,6 +1057,25 @@ fn nested_zip_uncompressed_size<R: std::io::Read + std::io::Seek>(
 /// This is a potentially **long-running** operation — the caller MUST first
 /// confirm with the user before calling this function.
 pub fn classify_zip_with_extraction(path: &Path) -> DroppedItemType {
+    classify_zip_with_extraction_inner(path, None)
+}
+
+/// Extract and classify a ZIP while cooperating with a caller-controlled
+/// cancellation token.
+pub fn classify_zip_with_extraction_cancellable(
+    path: &Path,
+    cancellation: &CancellationToken,
+) -> DroppedItemType {
+    classify_zip_with_extraction_inner(path, Some(cancellation))
+}
+
+fn classify_zip_with_extraction_inner(
+    path: &Path,
+    cancellation: Option<&CancellationToken>,
+) -> DroppedItemType {
+    if is_cancelled(cancellation) {
+        return cancelled_result();
+    }
     let Ok(file) = std::fs::File::open(path) else {
         return DroppedItemType::Unknown {
             reason: "Cannot open ZIP file".to_string(),
@@ -962,7 +1086,10 @@ pub fn classify_zip_with_extraction(path: &Path) -> DroppedItemType {
             reason: "File is not a valid ZIP archive".to_string(),
         };
     };
-    let entry_set = match ZipEntrySet::from_archive(&mut archive) {
+    let entry_set = match ZipEntrySet::from_archive_with_cancellation(
+        &mut archive,
+        cancellation,
+    ) {
         Ok(set) => set,
         Err(reason) => return DroppedItemType::Unknown { reason },
     };
@@ -997,7 +1124,15 @@ pub fn classify_zip_with_extraction(path: &Path) -> DroppedItemType {
     };
 
     // Extract everything.
-    extract_all(&mut archive, temp_dir.path());
+    if let Err(reason) = extract_all_with_cancellation(
+        &mut archive,
+        temp_dir.path(),
+        cancellation,
+    ) {
+        return DroppedItemType::Unknown {
+            reason: format!("ZIP extraction failed: {reason}"),
+        };
+    }
 
     tracing::debug!(
         "classify_zip_with_extraction: extracted {} top-level items for {}",
@@ -1007,17 +1142,87 @@ pub fn classify_zip_with_extraction(path: &Path) -> DroppedItemType {
 
     // Classify the extracted contents: a single top-level item is classified
     // directly, otherwise the extraction root is treated as a folder.
+    if is_cancelled(cancellation) {
+        return cancelled_result();
+    }
     if child_folders.len() == 1 && root_files.is_empty() {
-        classify_dropped_item(&temp_dir.path().join(&child_folders[0]))
+        classify_dropped_item_inner(
+            &temp_dir.path().join(&child_folders[0]),
+            0,
+            true,
+            cancellation,
+        )
     } else if root_files.len() == 1 && child_folders.is_empty() {
-        classify_dropped_item(&temp_dir.path().join(root_files[0]))
+        classify_dropped_item_inner(
+            &temp_dir.path().join(root_files[0]),
+            0,
+            true,
+            cancellation,
+        )
     } else {
-        classify_folder_content(temp_dir.path(), true)
+        classify_folder_content_with_cancellation(
+            temp_dir.path(),
+            true,
+            cancellation,
+        )
     }
     // temp_dir is dropped here, cleaning up the extracted files automatically.
 }
 
-fn extract_all(archive: &mut zip::ZipArchive<std::fs::File>, base_dir: &Path) {
+fn validate_zip_extraction_budget<R: std::io::Read + std::io::Seek>(
+    archive: &mut zip::ZipArchive<R>,
+) -> Result<u64, String> {
+    let mut total_bytes = 0u64;
+    let mut entries = 0usize;
+    for index in 0..archive.len() {
+        let entry = archive.by_index_raw(index).map_err(|error| {
+            format!("Cannot inspect ZIP entry {index}: {error}")
+        })?;
+        if entry.name().is_empty() {
+            continue;
+        }
+        entries += 1;
+        if entries > MAX_ZIP_EXTRACTION_ENTRIES {
+            return Err(format!(
+                "ZIP contains more than {MAX_ZIP_EXTRACTION_ENTRIES} entries"
+            ));
+        }
+        total_bytes =
+            total_bytes.checked_add(entry.size()).ok_or_else(|| {
+                "ZIP uncompressed size exceeds supported limits".to_string()
+            })?;
+        if total_bytes > MAX_ZIP_EXTRACTION_BYTES {
+            return Err(format!(
+                "ZIP uncompressed size exceeds {} GiB",
+                MAX_ZIP_EXTRACTION_BYTES / (1024 * 1024 * 1024)
+            ));
+        }
+    }
+    Ok(total_bytes)
+}
+
+fn extract_all(
+    archive: &mut zip::ZipArchive<std::fs::File>,
+    base_dir: &Path,
+) -> Result<(), String> {
+    extract_all_with_cancellation(archive, base_dir, None)
+}
+
+fn extract_all_with_cancellation(
+    archive: &mut zip::ZipArchive<std::fs::File>,
+    base_dir: &Path,
+    cancellation: Option<&CancellationToken>,
+) -> Result<(), String> {
+    if is_cancelled(cancellation) {
+        return Err("Operation cancelled".to_string());
+    }
+    let total_bytes = validate_zip_extraction_budget(archive)?;
+    if !temp_dir_has_space(base_dir, total_bytes) {
+        return Err(format!(
+            "Not enough free disk space to extract ZIP (requires {total_bytes} bytes)"
+        ));
+    }
+
     // First pass: collect entry metadata while the archive is mutable-borrowed.
     let entries: Vec<(usize, String, bool)> = (0..archive.len())
         .filter_map(|i| {
@@ -1034,15 +1239,17 @@ fn extract_all(archive: &mut zip::ZipArchive<std::fs::File>, base_dir: &Path) {
     // Second pass: extract. The collect() above has released the mutable
     // borrow, so we can call by_index() here.
     for (index, name, is_dir) in &entries {
+        if is_cancelled(cancellation) {
+            return Err("Operation cancelled".to_string());
+        }
         if archive
             .by_index_raw(*index)
             .ok()
             .is_some_and(|e| e.encrypted())
         {
-            tracing::warn!(
-                "extract_all: skipping encrypted ZIP entry '{name}'"
-            );
-            continue;
+            return Err(format!(
+                "Encrypted ZIP entry cannot be extracted: {name}"
+            ));
         }
         // Reject entries that would escape the extraction directory.
         let Some(safe_name) = sanitize_zip_entry_name(name) else {
@@ -1054,16 +1261,38 @@ fn extract_all(archive: &mut zip::ZipArchive<std::fs::File>, base_dir: &Path) {
         };
         let out_path = base_dir.join(&safe_name);
         if *is_dir {
-            let _ = std::fs::create_dir_all(&out_path);
+            std::fs::create_dir_all(&out_path).map_err(|error| {
+                format!("Failed to create ZIP directory '{name}': {error}")
+            })?;
         } else if let Some(parent) = out_path.parent() {
-            let _ = std::fs::create_dir_all(parent);
-            if let Ok(mut reader) = archive.by_index(*index)
-                && let Ok(mut writer) = std::fs::File::create(&out_path)
-            {
-                let _ = std::io::copy(&mut reader, &mut writer);
+            std::fs::create_dir_all(parent).map_err(|error| {
+                format!("Failed to create ZIP parent for '{name}': {error}")
+            })?;
+            let mut reader = archive.by_index(*index).map_err(|error| {
+                format!("Failed to read ZIP entry '{name}': {error}")
+            })?;
+            let mut writer =
+                std::fs::File::create(&out_path).map_err(|error| {
+                    format!("Failed to create extracted file '{name}': {error}")
+                })?;
+            let mut buffer = [0u8; 64 * 1024];
+            loop {
+                if is_cancelled(cancellation) {
+                    return Err("Operation cancelled".to_string());
+                }
+                let read = reader.read(&mut buffer).map_err(|error| {
+                    format!("Failed to extract ZIP entry '{name}': {error}")
+                })?;
+                if read == 0 {
+                    break;
+                }
+                writer.write_all(&buffer[..read]).map_err(|error| {
+                    format!("Failed to extract ZIP entry '{name}': {error}")
+                })?;
             }
         }
     }
+    Ok(())
 }
 
 /// Extract a ZIP archive into `dest_dir`, skipping unsafe entries (path
@@ -1076,38 +1305,77 @@ pub fn extract_zip_to_dir(
     zip_path: &Path,
     dest_dir: &Path,
 ) -> Result<(), String> {
+    extract_zip_to_dir_with_cancellation(zip_path, dest_dir, None)
+}
+
+/// Extract a ZIP into a directory while cooperating with cancellation.
+pub fn extract_zip_to_dir_cancellable(
+    zip_path: &Path,
+    dest_dir: &Path,
+    cancellation: &CancellationToken,
+) -> Result<(), String> {
+    extract_zip_to_dir_with_cancellation(zip_path, dest_dir, Some(cancellation))
+}
+
+fn extract_zip_to_dir_with_cancellation(
+    zip_path: &Path,
+    dest_dir: &Path,
+    cancellation: Option<&CancellationToken>,
+) -> Result<(), String> {
+    if is_cancelled(cancellation) {
+        return Err("Operation cancelled".to_string());
+    }
     let file = std::fs::File::open(zip_path).map_err(|e| {
         format!("Cannot open ZIP file '{}': {e}", zip_path.display())
     })?;
     let mut archive = zip::ZipArchive::new(file).map_err(|e| {
         format!("Invalid ZIP archive '{}': {e}", zip_path.display())
     })?;
+    let total_bytes = validate_zip_extraction_budget(&mut archive)?;
+    if !temp_dir_has_space(dest_dir, total_bytes) {
+        return Err(format!(
+            "Not enough free disk space to extract ZIP (requires {total_bytes} bytes)"
+        ));
+    }
 
     let entries: Vec<(usize, String, bool)> = (0..archive.len())
-        .filter_map(|i| {
-            let entry = archive.by_index_raw(i).ok()?;
+        .map(|i| {
+            let entry = archive.by_index_raw(i).map_err(|error| {
+                format!("Cannot inspect ZIP entry {i}: {error}")
+            })?;
             let name = crate::api::pack::detect::decode_zip_entry_name(
                 entry.name_raw(),
             )
             .replace('\\', "/");
             if name.is_empty() || name.starts_with("__MACOSX") {
-                return None;
+                return Ok(None);
             }
-            Some((i, name.clone(), name.ends_with('/')))
+            Ok(Some((i, name.clone(), name.ends_with('/'))))
         })
+        .collect::<Result<Vec<_>, String>>()?
+        .into_iter()
+        .flatten()
         .collect();
 
     let mut skipped = 0usize;
+    let mut extracted_entries = 0usize;
+    let mut failed_entries = Vec::new();
     for (index, name, is_dir) in entries {
-        if archive
+        if is_cancelled(cancellation) {
+            return Err("Operation cancelled".to_string());
+        }
+        let encrypted = archive
             .by_index_raw(index)
-            .ok()
-            .is_some_and(|e| e.encrypted())
-        {
+            .map_err(|error| {
+                format!("Cannot inspect ZIP entry '{name}': {error}")
+            })?
+            .encrypted();
+        if encrypted {
             tracing::warn!(
-                "extract_zip_to_dir: skipping encrypted ZIP entry '{name}'"
+                "extract_zip_to_dir: cannot extract encrypted ZIP entry '{name}'"
             );
             skipped += 1;
+            failed_entries.push(name);
             continue;
         }
         let Some(safe_name) = sanitize_zip_entry_name(&name) else {
@@ -1122,9 +1390,6 @@ pub fn extract_zip_to_dir(
             continue;
         }
         let out_path = dest_dir.join(&safe_name);
-        // A single unreadable, locked or oddly-named entry must not abort the
-        // whole import; skip it and keep going so the rest of the launcher
-        // folder still lands on disk.
         let result = if is_dir {
             std::fs::create_dir_all(&out_path).map(|_| ())
         } else if let Some(parent) = out_path.parent() {
@@ -1132,7 +1397,21 @@ pub fn extract_zip_to_dir(
                 let mut reader =
                     archive.by_index(index).map_err(std::io::Error::other)?;
                 let mut writer = std::fs::File::create(&out_path)?;
-                std::io::copy(&mut reader, &mut writer).map(|_| ())
+                let mut buffer = [0u8; 64 * 1024];
+                loop {
+                    if is_cancelled(cancellation) {
+                        return Err(std::io::Error::new(
+                            std::io::ErrorKind::Interrupted,
+                            "operation cancelled",
+                        ));
+                    }
+                    let read = reader.read(&mut buffer)?;
+                    if read == 0 {
+                        break;
+                    }
+                    writer.write_all(&buffer[..read])?;
+                }
+                Ok(())
             })
         } else {
             Ok(())
@@ -1142,6 +1421,9 @@ pub fn extract_zip_to_dir(
                 "extract_zip_to_dir: skipping unextractable entry '{name}': {error}"
             );
             skipped += 1;
+            failed_entries.push(name);
+        } else {
+            extracted_entries += 1;
         }
     }
     if skipped > 0 {
@@ -1150,9 +1432,21 @@ pub fn extract_zip_to_dir(
             archive.len()
         );
     }
-    if skipped == archive.len() && !archive.is_empty() {
+    if !failed_entries.is_empty() {
         return Err(format!(
-            "No ZIP entries could be extracted ({skipped} failed)"
+            "ZIP extraction failed for {} entr{}: {}",
+            failed_entries.len(),
+            if failed_entries.len() == 1 {
+                "y"
+            } else {
+                "ies"
+            },
+            failed_entries.join(", ")
+        ));
+    }
+    if archive.len() > 0 && extracted_entries == 0 {
+        return Err(format!(
+            "No ZIP entries could be extracted ({skipped} skipped)"
         ));
     }
     Ok(())
@@ -1275,8 +1569,16 @@ fn classify_jar(path: &Path) -> DroppedItemType {
 
 // ─── Step 5: Folder classification ─────────────────────────────────────────
 
-fn classify_folder(path: &Path, allow_nested_unpack: bool) -> DroppedItemType {
-    classify_folder_content(path, allow_nested_unpack)
+fn classify_folder(
+    path: &Path,
+    allow_nested_unpack: bool,
+    cancellation: Option<&CancellationToken>,
+) -> DroppedItemType {
+    classify_folder_content_with_cancellation(
+        path,
+        allow_nested_unpack,
+        cancellation,
+    )
 }
 
 // ─── Step 6: File classification (non-JAR, non-EXE, non-ZIP) ───────────────
@@ -1304,12 +1606,21 @@ pub(crate) fn classify_folder_content(
     path: &Path,
     allow_nested_unpack: bool,
 ) -> DroppedItemType {
+    classify_folder_content_with_cancellation(path, allow_nested_unpack, None)
+}
+
+fn classify_folder_content_with_cancellation(
+    path: &Path,
+    allow_nested_unpack: bool,
+    cancellation: Option<&CancellationToken>,
+) -> DroppedItemType {
     let mut nested_unpack_bytes: u64 = 0;
     classify_folder_content_inner(
         path,
         allow_nested_unpack,
         0,
         &mut nested_unpack_bytes,
+        cancellation,
     )
 }
 
@@ -1318,7 +1629,11 @@ fn classify_folder_content_inner(
     allow_nested_unpack: bool,
     depth: u32,
     nested_unpack_bytes: &mut u64,
+    cancellation: Option<&CancellationToken>,
 ) -> DroppedItemType {
+    if is_cancelled(cancellation) {
+        return cancelled_result();
+    }
     // Check launcher signatures in priority order.
     if is_axolotl_folder(path) {
         return DroppedItemType::Launcher {
@@ -1404,12 +1719,16 @@ fn classify_folder_content_inner(
     let children = sorted_folder_children(path);
 
     for child in children {
+        if is_cancelled(cancellation) {
+            return cancelled_result();
+        }
         let result = if child.is_dir() {
             classify_folder_content_inner(
                 &child,
                 allow_nested_unpack,
                 depth + 1,
                 nested_unpack_bytes,
+                cancellation,
             )
         } else {
             classify_zip_file_at_depth(
@@ -1417,6 +1736,7 @@ fn classify_folder_content_inner(
                 depth + 1,
                 allow_nested_unpack,
                 nested_unpack_bytes,
+                cancellation,
             )
         };
         if !matches!(result, DroppedItemType::Unknown { .. }) {
@@ -1504,7 +1824,30 @@ pub fn classify_dropped_item_with_candidates(
     path: &Path,
     allow_nested_unpack: bool,
 ) -> DroppedItemType {
-    let primary = classify_dropped_item_inner(path, 0, allow_nested_unpack);
+    classify_dropped_item_with_candidates_inner(path, allow_nested_unpack, None)
+}
+
+/// Classify an input and collect alternative content candidates while
+/// cooperating with cancellation.
+pub fn classify_dropped_item_with_candidates_cancellable(
+    path: &Path,
+    allow_nested_unpack: bool,
+    cancellation: &CancellationToken,
+) -> DroppedItemType {
+    classify_dropped_item_with_candidates_inner(
+        path,
+        allow_nested_unpack,
+        Some(cancellation),
+    )
+}
+
+fn classify_dropped_item_with_candidates_inner(
+    path: &Path,
+    allow_nested_unpack: bool,
+    cancellation: Option<&CancellationToken>,
+) -> DroppedItemType {
+    let primary =
+        classify_dropped_item_inner(path, 0, allow_nested_unpack, cancellation);
     if matches!(
         primary,
         DroppedItemType::Launcher { .. } | DroppedItemType::HmclLauncher { .. }
@@ -1512,7 +1855,7 @@ pub fn classify_dropped_item_with_candidates(
         return primary;
     }
     let mut alternatives =
-        collect_content_candidates(path, allow_nested_unpack);
+        collect_content_candidates(path, allow_nested_unpack, cancellation);
     if matches!(primary, DroppedItemType::Unknown { .. })
         && alternatives.is_empty()
     {
@@ -1582,6 +1925,7 @@ fn primary_path_of(item: &DroppedItemType) -> PathBuf {
 fn collect_content_candidates(
     path: &Path,
     allow_nested_unpack: bool,
+    cancellation: Option<&CancellationToken>,
 ) -> Vec<DroppedCandidate> {
     if path.is_dir() {
         let mut candidates = Vec::new();
@@ -1591,10 +1935,11 @@ fn collect_content_candidates(
             path,
             0,
             &mut candidates,
+            cancellation,
         );
         candidates
     } else if is_zip_path(path) {
-        collect_zip_candidates(path, allow_nested_unpack)
+        collect_zip_candidates(path, allow_nested_unpack, cancellation)
     } else {
         Vec::new()
     }
@@ -1606,8 +1951,9 @@ fn collect_folder_candidates(
     root: &Path,
     depth: u32,
     out: &mut Vec<DroppedCandidate>,
+    cancellation: Option<&CancellationToken>,
 ) {
-    if depth >= MAX_ZIP_NESTING_DEPTH {
+    if depth >= MAX_ZIP_NESTING_DEPTH || is_cancelled(cancellation) {
         return;
     }
 
@@ -1632,9 +1978,11 @@ fn collect_folder_candidates(
                 root,
                 depth + 1,
                 out,
+                cancellation,
             );
         } else {
-            let result = classify_zip_path(&child, allow_nested_unpack);
+            let result =
+                classify_zip_path(&child, allow_nested_unpack, cancellation);
             let child_base = relative_to(root, &child);
             push_candidate(out, candidate_from_result(&result, child_base));
         }
@@ -1644,14 +1992,20 @@ fn collect_folder_candidates(
 fn collect_zip_candidates(
     path: &Path,
     allow_nested_unpack: bool,
+    cancellation: Option<&CancellationToken>,
 ) -> Vec<DroppedCandidate> {
+    if is_cancelled(cancellation) {
+        return Vec::new();
+    }
     let Ok(file) = std::fs::File::open(path) else {
         return Vec::new();
     };
     let Ok(mut archive) = zip::ZipArchive::new(file) else {
         return Vec::new();
     };
-    let Ok(entries) = ZipEntrySet::from_archive(&mut archive) else {
+    let Ok(entries) =
+        ZipEntrySet::from_archive_with_cancellation(&mut archive, cancellation)
+    else {
         return Vec::new();
     };
 
@@ -1664,6 +2018,7 @@ fn collect_zip_candidates(
         0,
         allow_nested_unpack,
         &mut candidates,
+        cancellation,
     );
     candidates
 }
@@ -1676,8 +2031,9 @@ fn collect_zip_candidates_at<R: std::io::Read + std::io::Seek>(
     depth: u32,
     allow_nested_unpack: bool,
     out: &mut Vec<DroppedCandidate>,
+    cancellation: Option<&CancellationToken>,
 ) {
-    if depth >= MAX_ZIP_NESTING_DEPTH {
+    if depth >= MAX_ZIP_NESTING_DEPTH || is_cancelled(cancellation) {
         return;
     }
 
@@ -1720,6 +2076,9 @@ fn collect_zip_candidates_at<R: std::io::Read + std::io::Seek>(
     }
 
     for child in entries.child_folders(base) {
+        if is_cancelled(cancellation) {
+            return;
+        }
         if is_noise_entry(&child) {
             continue;
         }
@@ -1731,17 +2090,22 @@ fn collect_zip_candidates_at<R: std::io::Read + std::io::Seek>(
             depth + 1,
             allow_nested_unpack,
             out,
+            cancellation,
         );
     }
 
     if allow_nested_unpack {
         for nested in entries.nested_zip_files(base) {
+            if is_cancelled(cancellation) {
+                return;
+            }
             let result = classify_nested_zip(
                 result_path,
                 archive,
                 depth + 1,
                 &format!("{base}{nested}"),
                 true,
+                cancellation,
             );
             push_candidate(out, candidate_from_result(&result, None));
         }
@@ -2167,6 +2531,35 @@ mod tests {
             matches!(result, DroppedItemType::Unknown { .. }),
             "nonexistent path should be Unknown"
         );
+    }
+
+    #[test]
+    fn cancelled_classification_stops_before_touching_input() {
+        let cancellation = CancellationToken::new();
+        cancellation.cancel();
+
+        let result = classify_dropped_item_with_candidates_cancellable(
+            Path::new("/nonexistent/path"),
+            false,
+            &cancellation,
+        );
+        assert!(matches!(
+            result,
+            DroppedItemType::Unknown { reason }
+                if reason == "Operation cancelled"
+        ));
+    }
+
+    #[test]
+    fn cancelled_zip_extraction_stops_before_opening_archive() {
+        let cancellation = CancellationToken::new();
+        cancellation.cancel();
+        let result = extract_zip_to_dir_cancellable(
+            Path::new("/nonexistent/archive.zip"),
+            Path::new("/nonexistent/output"),
+            &cancellation,
+        );
+        assert_eq!(result, Err("Operation cancelled".to_string()));
     }
 
     #[test]
@@ -2603,7 +2996,8 @@ mod tests {
         ) else {
             panic!("zip should open");
         };
-        extract_all(&mut archive, out_dir.path());
+        extract_all(&mut archive, out_dir.path())
+            .expect("safe ZIP should extract");
 
         assert!(
             !out_dir.path().join("evil.txt").exists()
@@ -3503,7 +3897,7 @@ mod tests {
     }
 
     #[test]
-    fn extract_zip_to_dir_skips_unsafe_and_encrypted_entries() {
+    fn extract_zip_to_dir_skips_unsafe_entries_and_rejects_encrypted_entries() {
         let dir = tempdir().expect("temp dir");
         let zip_path = dir.path().join("mixed.zip");
         let file = std::fs::File::create(&zip_path).expect("create zip");
@@ -3529,8 +3923,9 @@ mod tests {
         let enc_path = enc_dir.path().join("enc.zip");
         write_encrypted_entry_zip(&enc_path);
         let enc_out = tempdir().expect("temp out dir");
-        extract_zip_to_dir(&enc_path, enc_out.path())
-            .expect("extract encrypted zip");
+        let error = extract_zip_to_dir(&enc_path, enc_out.path())
+            .expect_err("encrypted entries must fail extraction");
+        assert!(error.contains("secret.bin"));
         assert!(
             enc_out.path().join("level.dat").exists(),
             "plain entries survive"
@@ -3539,6 +3934,27 @@ mod tests {
             !enc_out.path().join("secret.bin").exists(),
             "encrypted entries are skipped"
         );
+    }
+
+    #[test]
+    fn extract_zip_to_dir_rejects_archive_with_only_unsafe_entries() {
+        let dir = tempdir().expect("temp dir");
+        let zip_path = dir.path().join("unsafe-only.zip");
+        let file = std::fs::File::create(&zip_path).expect("create zip");
+        let mut zip = zip::ZipWriter::new(file);
+        zip.start_file(
+            "../../evil.txt",
+            zip::write::FileOptions::<()>::default(),
+        )
+        .expect("start entry");
+        zip.write_all(b"e").expect("write");
+        zip.finish().expect("finish");
+
+        let out_dir = tempdir().expect("temp out dir");
+        let error = extract_zip_to_dir(&zip_path, out_dir.path())
+            .expect_err("an archive with no safe entries must fail");
+        assert!(error.contains("No ZIP entries could be extracted"));
+        assert!(!out_dir.path().join("evil.txt").exists());
     }
 
     #[test]

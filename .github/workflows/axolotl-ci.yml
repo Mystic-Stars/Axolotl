@@ -121,6 +121,12 @@ jobs:
       - name: Test version metadata writes
         run: cargo test --package theseus writing_version_info_creates_missing_parent_directory
       - run: cargo check --package theseus_gui --features updater
+      - name: Test Windows installer UI and core
+        if: runner.os == 'Windows'
+        run: |
+          cargo test --package axolotl-installer-ui
+          pnpm --filter @modrinth/app-frontend exec playwright install chromium
+          node --test apps/installer-ui/tests/installer-ui.test.cjs
       - name: Build modern Windows installer
         if: runner.os == 'Windows'
         run: pnpm --filter @modrinth/app tauri build --config tauri-release.conf.json --config tauri-modern.conf.json
@@ -133,6 +139,15 @@ jobs:
             throw "Expected one modern NSIS installer, found $($installers.Count)"
           }
           Write-Output "Built modern installer: $($installers[0].Name)"
+      - name: Test actual Windows uninstallation
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          npm install --prefix target/uninstall-verification --no-save --no-audit --no-fund handlebars@4.7.8
+          if ($LASTEXITCODE -ne 0) { throw "Failed to prepare NSIS fixture dependencies" }
+          node apps/installer-ui/tests/compile-fixture.cjs --tauri-nsis target/release/nsis/x64
+          if ($LASTEXITCODE -ne 0) { throw "Failed to compile NSIS uninstall fixture" }
+          & apps/installer-ui/tests/uninstall-smoke.ps1
       - name: Build native NSIS Windows installer
         if: runner.os == 'Windows'
         run: pnpm --filter @modrinth/app tauri build

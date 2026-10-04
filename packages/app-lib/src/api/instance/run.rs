@@ -120,6 +120,10 @@ async fn run_with_extra_launch_args_inner(
             .ok_or_else(|| crate::ErrorKind::NoCredentialsError.as_error())?
     };
 
+    if default_account.is_offline() {
+        crate::anti_piracy::ensure_offline_allowed().await?;
+    }
+
     tokio::time::timeout(
         Duration::from_secs(launch_preparation_timeout),
         run_credentials(
@@ -383,6 +387,9 @@ async fn run_credentials(
     }
 
     let mut gc_report: Option<GcLaunchReport> = None;
+    if credentials.is_offline() {
+        crate::anti_piracy::ensure_offline_allowed().await?;
+    }
     let process = crate::launcher::launch_minecraft(
         &java_args,
         &env_args,

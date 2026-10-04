@@ -169,7 +169,7 @@
 
 <script setup lang="ts">
 import { Button, defineMessages, useVIntl } from '@modrinth/ui'
-import { nextTick, onMounted, onScopeDispose, ref } from 'vue'
+import { nextTick, onMounted, onScopeDispose, ref, watch } from 'vue'
 
 import blueBall from '@/assets/axolotl-balls/blueball.png'
 import cyanBall from '@/assets/axolotl-balls/cyanball.png'
@@ -230,7 +230,7 @@ interface Ring {
 	phase: number
 }
 
-const emit = defineEmits<{ exit: [] }>()
+const emit = defineEmits<{ exit: []; settled: [value: boolean] }>()
 const { formatMessage } = useVIntl()
 const canvas = ref<HTMLCanvasElement>()
 const score = ref(0)
@@ -243,6 +243,9 @@ const bestScore = ref(0)
 const newRecord = ref(false)
 const endedManually = ref(false)
 const overtimeCount = ref(0)
+
+// Reports when the run is finished so the host may replace it with another game.
+watch(gameOver, (value) => emit('settled', value), { immediate: true })
 const messages = defineMessages({
 	title: { id: 'app.settings.about.game.title', defaultMessage: 'Axolotl merge' },
 	score: { id: 'app.settings.about.game.score', defaultMessage: 'Score: {score}' },

@@ -6,7 +6,6 @@ export type MultiplayerProvider = 'terracotta' | 'hongshi'
 export type HongshiStatus =
 	| 'unsupported'
 	| 'idle'
-	| 'waiting_for_port'
 	| 'downloading'
 	| 'selecting_node'
 	| 'starting'
@@ -16,13 +15,14 @@ export type HongshiStatus =
 
 export type HongshiErrorType =
 	| 'unsupported'
+	| 'build_unavailable'
 	| 'node_list'
 	| 'node_unavailable'
 	| 'invalid_port'
 	| 'install'
 	| 'kernel_start'
 	| 'kernel_exit'
-	| 'status_file'
+	| 'kernel_output'
 	| 'unknown'
 
 export interface HongshiNode {
@@ -92,6 +92,18 @@ export function selectedDetectedInstance(current: string, ports: DetectedLanPort
 
 export function selectedNodePreference(current: string, nodes: HongshiNode[]): string {
 	return current === 'auto' || nodes.some((node) => node.name === current) ? current : 'auto'
+}
+
+export function multiplayerErrorText(error: unknown): string {
+	if (
+		error &&
+		typeof error === 'object' &&
+		'message' in error &&
+		typeof error.message === 'string'
+	) {
+		return error.message
+	}
+	return String(error)
 }
 
 const command = (name: string) => `plugin:multiplayer|${name}`

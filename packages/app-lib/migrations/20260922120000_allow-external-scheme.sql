@@ -1,0 +1,1 @@
+ALTER TABLE settings ADD COLUMN allow_external_scheme INTEGER NOT NULL DEFAULT TRUE;

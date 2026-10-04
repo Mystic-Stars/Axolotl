@@ -2118,6 +2118,9 @@ pub(crate) async fn get_content_mutation_target(
     target_id: &str,
     pool: &SqlitePool,
 ) -> crate::Result<Option<ContentMutationTarget>> {
+    // Hash identification creates non-origin refs, including for unpacked mods
+    // after disconnecting a pack. Match the update check's Modrinth fallback:
+    // use those refs only when no origin/member or other provider takes priority.
     let row = sqlx::query(
         "SELECT entry.id AS entry_id,
 			member.id AS member_id,
@@ -2133,10 +2136,10 @@ pub(crate) async fn get_content_mutation_target(
 				NULLIF(entry.project_type, ''),
 				NULLIF(member.project_type, '')
 			) AS project_type,
-			COALESCE(origin.provider, member.provider) AS provider,
-			COALESCE(origin.provider_project_id, member.provider_project_id)
+			COALESCE(origin.provider, member.provider, identified.provider) AS provider,
+			COALESCE(origin.provider_project_id, member.provider_project_id, identified.provider_project_id)
 				AS provider_project_id,
-			COALESCE(origin.provider_release_id, member.provider_release_id)
+			COALESCE(origin.provider_release_id, member.provider_release_id, identified.provider_release_id)
 				AS provider_release_id
 		 FROM instance_content_sets content_set
 		 INNER JOIN instances instance
@@ -2151,6 +2154,19 @@ pub(crate) async fn get_content_mutation_target(
 			AND (file.id = ? OR file.id = entry.file_id)
 		 LEFT JOIN instance_content_provider_refs origin
 			ON origin.content_entry_id = entry.id AND origin.is_origin = 1
+		 LEFT JOIN instance_content_provider_refs identified
+			ON origin.provider IS NULL AND member.provider IS NULL
+			AND identified.rowid = (
+				SELECT ref.rowid FROM instance_content_provider_refs ref
+				WHERE ref.content_entry_id = entry.id AND ref.provider = 'modrinth'
+					AND NOT EXISTS (
+						SELECT 1 FROM instance_content_provider_refs other
+						WHERE other.content_entry_id = entry.id AND other.provider != 'modrinth'
+					)
+				ORDER BY ref.provider_project_id, ref.provider_release_id IS NULL,
+					ref.provider_release_id
+				LIMIT 1
+			)
 		 WHERE instance.id = ?
 			AND (entry.id = ? OR member.id = ? OR file.id = ?)
 		 LIMIT 1",
@@ -2718,8 +2734,7 @@ mod tests {
             .expect("existing instance passes inside a transaction");
     }
 
-    #[tokio::test]
-    async fn mutation_target_supports_untracked_instance_files() {
+    async fn mutation_target_pool() -> SqlitePool {
         let pool = test_pool().await;
         sqlx::query(
             "ALTER TABLE instances ADD COLUMN applied_content_set_id TEXT NULL",
@@ -2780,6 +2795,13 @@ mod tests {
         .await
         .expect("insert untracked file");
 
+        pool
+    }
+
+    #[tokio::test]
+    async fn mutation_target_supports_untracked_instance_files() {
+        let pool = mutation_target_pool().await;
+
         let target = get_content_mutation_target("instance", "file", &pool)
             .await
             .expect("resolve mutation target")
@@ -2790,6 +2812,59 @@ mod tests {
         assert_eq!(target.relative_path.as_deref(), Some("mods/example.jar"));
         assert_eq!(target.ownership_kind, ContentOwnershipKind::UserAdded);
         assert_eq!(target.project_type, ProjectType::Mod);
+    }
+
+    #[tokio::test]
+    async fn mutation_target_resolves_identified_mod_after_pack_disconnect() {
+        let pool = mutation_target_pool().await;
+        sqlx::raw_sql(
+            "INSERT INTO instance_content_entries VALUES
+                ('entry', 'set', 'file', 'user_added', 'mod');
+             INSERT INTO instance_content_provider_refs VALUES
+                ('entry', 'modrinth', 'AANobbMI', '7pwil2dy', 0);",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        let target = get_content_mutation_target("instance", "entry", &pool)
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(target.provider, Some(ContentProvider::Modrinth));
+        assert_eq!(target.provider_project_id.as_deref(), Some("AANobbMI"));
+        assert_eq!(target.provider_release_id.as_deref(), Some("7pwil2dy"));
+        assert_eq!(target.relative_path.as_deref(), Some("mods/example.jar"));
+        assert_eq!(target.ownership_kind, ContentOwnershipKind::UserAdded);
+
+        // A different provider ref must prevent an implicit provider switch.
+        sqlx::query(
+            "INSERT INTO instance_content_provider_refs VALUES
+            ('entry', 'curseforge', '123', '456', 0)",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+        let target = get_content_mutation_target("instance", "entry", &pool)
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(target.provider, None);
+
+        sqlx::query(
+            "UPDATE instance_content_provider_refs SET is_origin = 1
+            WHERE provider = 'curseforge'",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+        let target = get_content_mutation_target("instance", "entry", &pool)
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(target.provider, Some(ContentProvider::CurseForge));
+        assert_eq!(target.provider_project_id.as_deref(), Some("123"));
+        assert_eq!(target.provider_release_id.as_deref(), Some("456"));
     }
 
     #[tokio::test]

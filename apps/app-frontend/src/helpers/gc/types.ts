@@ -15,9 +15,13 @@ export interface GcContext {
 	loader: InstanceLoader
 }
 
+export interface GcReason extends MessageDescriptor {
+	values?: Record<string, unknown>
+}
+
 export interface GcResolution {
 	resolvedStrategy: ResolvedGcStrategyId
-	reasonChain: string[]
+	reasonChain: (string | GcReason)[]
 }
 
 export interface GcStrategyDefinition {
@@ -37,5 +41,5 @@ export interface JavaArgumentPreset {
 	resolveArgs?: (context?: GcContext) => string
 	detect?: (currentArgs: string) => boolean
 	autoResolvedName?: string
-	autoReasonChain?: string[]
+	autoReasonChain?: (string | GcReason)[]
 }

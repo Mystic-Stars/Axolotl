@@ -117,6 +117,13 @@ Var InstallerSmallFont
 Var StatusFile
 Var NoRunAfterInstall
 Var UninstallUiChild
+Var UninstallFailure
+
+!macro AxlUninstallFile PATH
+  Delete "${PATH}"
+  Push "${PATH}"
+  Call un.CheckPathRemoved
+!macroend
 
 !macro AxlStyleControl CONTROL FOREGROUND BACKGROUND
   SetCtlColors ${CONTROL} ${FOREGROUND} ${BACKGROUND}
@@ -1264,6 +1271,12 @@ FunctionEnd
 Function un.onInit
   !insertmacro SetContext
 
+  StrCpy $UninstallFailure ""
+  ${GetOptions} $CMDLINE "/STATUS_FILE=" $StatusFile
+  ${If} ${Errors}
+    StrCpy $StatusFile ""
+  ${EndIf}
+
   StrCpy $UninstallUiChild 0
   ${GetOptions} $CMDLINE "/UI_CHILD" $0
   ${IfNot} ${Errors}
@@ -1295,36 +1308,104 @@ Function un.onInit
   ${If} $UninstallUiChild <> 1
   ${AndIf} $PassiveMode <> 1
   ${AndIf} $UpdateMode <> 1
+  ${AndIfNot} ${Silent}
     InitPluginsDir
     SetOutPath "$PLUGINSDIR"
     File "/oname=$PLUGINSDIR\AxolotlInstallerUI.exe" "${AXL_INSTALLER_UI_PATH}"
-    ExecWait '"$PLUGINSDIR\AxolotlInstallerUI.exe" --uninstaller "$EXEPATH" --version "${VERSION}" --language "$LANGUAGE"' $0
+    ExecWait '"$PLUGINSDIR\AxolotlInstallerUI.exe" --uninstaller "$EXEPATH" --install-dir "$INSTDIR" --version "${VERSION}" --language "$LANGUAGE"' $0
+    SetErrorLevel $0
     Quit
   ${EndIf}
 FunctionEnd
 
+Function un.ReportInstallerProgress
+  Exch $0
+  Push $1
+  ${If} $StatusFile != ""
+    ClearErrors
+    FileOpen $1 "$StatusFile" w
+    ${IfNot} ${Errors}
+      FileWriteUTF16LE /BOM $1 "$0"
+      FileClose $1
+    ${EndIf}
+  ${EndIf}
+  Pop $1
+  Pop $0
+FunctionEnd
+
+Function un.CheckPathRemoved
+  Exch $0
+  Push $1
+  Push $2
+  System::Call 'kernel32::GetFileAttributes(t r0)i.r1 ?e'
+  Pop $2
+  ${If} $1 != -1
+    StrCpy $UninstallFailure "Could not remove: $0"
+  ${ElseIf} $2 != 2
+  ${AndIf} $2 != 3
+    StrCpy $UninstallFailure "Could not verify removal: $0 (Windows error $2)"
+  ${EndIf}
+  Pop $2
+  Pop $1
+  Pop $0
+  ${If} $UninstallFailure != ""
+    SetErrorLevel 2
+    Abort
+  ${EndIf}
+FunctionEnd
+
+Function un.onUninstFailed
+  ${If} $UninstallFailure == ""
+    StrCpy $UninstallFailure "Uninstallation stopped. Close Axolotl Launcher and retry."
+  ${EndIf}
+  Push "error:$UninstallFailure"
+  Call un.ReportInstallerProgress
+  SetErrorLevel 2
+FunctionEnd
+
+Function un.onUninstSuccess
+  Push 100
+  Call un.ReportInstallerProgress
+  SetErrorLevel 0
+FunctionEnd
+
 Section Uninstall
+
+  Push 4
+  Call un.ReportInstallerProgress
+  !insertmacro CheckIfAppIsRunning "${MAINBINARYNAME}.exe" "${PRODUCTNAME}"
 
   !ifmacrodef NSIS_HOOK_PREUNINSTALL
     !insertmacro NSIS_HOOK_PREUNINSTALL
   !endif
 
-  !insertmacro CheckIfAppIsRunning "${MAINBINARYNAME}.exe" "${PRODUCTNAME}"
-
-  ; Delete the app directory and its content from disk
-  ; Copy main executable
-  Delete "$INSTDIR\${MAINBINARYNAME}.exe"
+  Push 26
+  Call un.ReportInstallerProgress
+  !insertmacro AxlUninstallFile "$INSTDIR\${MAINBINARYNAME}.exe"
 
   ; Delete resources
   {{#each resources}}
-    Delete "$INSTDIR\\{{this.[1]}}"
+    !insertmacro AxlUninstallFile "$INSTDIR\\{{this.[1]}}"
   {{/each}}
 
   ; Delete external binaries
   {{#each binaries}}
-    Delete "$INSTDIR\\{{this}}"
+    !insertmacro AxlUninstallFile "$INSTDIR\\{{this}}"
   {{/each}}
 
+  ; Keep the uninstaller and registration available if optional data removal fails.
+  ${If} $DeleteAppDataCheckboxState = 1
+  ${AndIf} $UpdateMode <> 1
+    RmDir /r "$APPDATA\${BUNDLEID}"
+    Push "$APPDATA\${BUNDLEID}"
+    Call un.CheckPathRemoved
+    RmDir /r "$LOCALAPPDATA\${BUNDLEID}"
+    Push "$LOCALAPPDATA\${BUNDLEID}"
+    Call un.CheckPathRemoved
+  ${EndIf}
+
+  Push 66
+  Call un.ReportInstallerProgress
   ; Delete app associations
   {{#each file_associations as |association| ~}}
     {{#each association.ext as |ext| ~}}
@@ -1341,13 +1422,9 @@ Section Uninstall
   {{/each}}
 
 
-  ; Delete uninstaller
-  Delete "$INSTDIR\uninstall.exe"
-
   {{#each resources_ancestors}}
-  RMDir /REBOOTOK "$INSTDIR\\{{this}}"
+  RMDir "$INSTDIR\\{{this}}"
   {{/each}}
-  RMDir "$INSTDIR"
 
   ; Remove shortcuts if not updating
   ${If} $UpdateMode <> 1
@@ -1359,14 +1436,14 @@ Section Uninstall
     Pop $0
     ${If} $0 = 1
       !insertmacro UnpinShortcut "$SMPROGRAMS\$AppStartMenuFolder\${PRODUCTNAME}.lnk"
-      Delete "$SMPROGRAMS\$AppStartMenuFolder\${PRODUCTNAME}.lnk"
+      !insertmacro AxlUninstallFile "$SMPROGRAMS\$AppStartMenuFolder\${PRODUCTNAME}.lnk"
       RMDir "$SMPROGRAMS\$AppStartMenuFolder"
     ${EndIf}
     !insertmacro IsShortcutTarget "$SMPROGRAMS\${PRODUCTNAME}.lnk" "$INSTDIR\${MAINBINARYNAME}.exe"
     Pop $0
     ${If} $0 = 1
       !insertmacro UnpinShortcut "$SMPROGRAMS\${PRODUCTNAME}.lnk"
-      Delete "$SMPROGRAMS\${PRODUCTNAME}.lnk"
+      !insertmacro AxlUninstallFile "$SMPROGRAMS\${PRODUCTNAME}.lnk"
     ${EndIf}
 
     ; Remove desktop shortcuts
@@ -1374,18 +1451,9 @@ Section Uninstall
     Pop $0
     ${If} $0 = 1
       !insertmacro UnpinShortcut "$DESKTOP\${PRODUCTNAME}.lnk"
-      Delete "$DESKTOP\${PRODUCTNAME}.lnk"
+      !insertmacro AxlUninstallFile "$DESKTOP\${PRODUCTNAME}.lnk"
     ${EndIf}
   ${EndIf}
-
-  ; Remove registry information for add/remove programs
-  !if "${INSTALLMODE}" == "both"
-    DeleteRegKey SHCTX "${UNINSTKEY}"
-  !else if "${INSTALLMODE}" == "perMachine"
-    DeleteRegKey HKLM "${UNINSTKEY}"
-  !else
-    DeleteRegKey HKCU "${UNINSTKEY}"
-  !endif
 
   ; Removes the Autostart entry for ${PRODUCTNAME} from the HKCU Run key if it exists.
   ; This ensures the program does not launch automatically after uninstallation if it exists.
@@ -1408,14 +1476,32 @@ Section Uninstall
     DeleteRegKey /ifempty HKCU "${MANUPRODUCTKEY}"
     DeleteRegKey /ifempty HKCU "${MANUKEY}"
 
-    SetShellVarContext current
-    RmDir /r "$APPDATA\${BUNDLEID}"
-    RmDir /r "$LOCALAPPDATA\${BUNDLEID}"
   ${EndIf}
 
   !ifmacrodef NSIS_HOOK_POSTUNINSTALL
     !insertmacro NSIS_HOOK_POSTUNINSTALL
   !endif
+
+  Push 82
+  Call un.ReportInstallerProgress
+
+  ; Legacy installers execute this file in place with _?=; allow deferred
+  ; self-deletion there. The Webview child runs the already-created temp copy.
+  ${If} $EXEPATH == "$INSTDIR\uninstall.exe"
+    Delete /REBOOTOK "$INSTDIR\uninstall.exe"
+  ${Else}
+    !insertmacro AxlUninstallFile "$INSTDIR\uninstall.exe"
+  ${EndIf}
+
+  ClearErrors
+  DeleteRegKey SHCTX "${UNINSTKEY}"
+  ReadRegStr $0 SHCTX "${UNINSTKEY}" "UninstallString"
+  ${IfNot} ${Errors}
+    StrCpy $UninstallFailure "Could not remove the Windows uninstall registration"
+    SetErrorLevel 2
+    Abort
+  ${EndIf}
+  RMDir "$INSTDIR"
 
   ; Auto close if passive mode or updating
   ${If} $PassiveMode = 1

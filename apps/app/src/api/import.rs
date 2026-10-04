@@ -1,9 +1,13 @@
 use std::path::PathBuf;
+use std::time::Duration;
 
 use crate::api::Result;
 use theseus::pack::import::{ImportLauncherType, ImportableInstance};
 
 use theseus::pack::import;
+
+const IMPORT_SCAN_TIMEOUT: Duration = Duration::from_secs(5 * 60);
+const IMPORT_VALIDATION_TIMEOUT: Duration = Duration::from_secs(2 * 60);
 
 pub fn init<R: tauri::Runtime>() -> tauri::plugin::TauriPlugin<R> {
     tauri::plugin::Builder::new("import")
@@ -22,7 +26,17 @@ pub async fn get_importable_instances(
     launcher_type: ImportLauncherType,
     base_path: PathBuf,
 ) -> Result<Vec<ImportableInstance>> {
-    Ok(import::get_importable_instances(launcher_type, base_path).await?)
+    Ok(tokio::time::timeout(
+        IMPORT_SCAN_TIMEOUT,
+        import::get_importable_instances(launcher_type, base_path),
+    )
+    .await
+    .map_err(|_| {
+        theseus::Error::from(theseus::ErrorKind::InputError(format!(
+            "Launcher instance scan timed out after {} minutes",
+            IMPORT_SCAN_TIMEOUT.as_secs() / 60
+        )))
+    })??)
 }
 
 /// Checks if this instance is valid for importing, given a certain launcher type
@@ -32,10 +46,17 @@ pub async fn is_valid_importable_instance(
     instance_folder: PathBuf,
     launcher_type: ImportLauncherType,
 ) -> Result<bool> {
-    Ok(
-        import::is_valid_importable_instance(instance_folder, launcher_type)
-            .await,
+    Ok(tokio::time::timeout(
+        IMPORT_VALIDATION_TIMEOUT,
+        import::is_valid_importable_instance(instance_folder, launcher_type),
     )
+    .await
+    .map_err(|_| {
+        theseus::Error::from(theseus::ErrorKind::InputError(format!(
+            "Launcher instance validation timed out after {} minutes",
+            IMPORT_VALIDATION_TIMEOUT.as_secs() / 60
+        )))
+    })?)
 }
 
 /// Returns the default path for the given launcher type

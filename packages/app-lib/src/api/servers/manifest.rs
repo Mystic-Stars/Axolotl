@@ -69,11 +69,24 @@ pub struct ServerManifest {
     pub pre_launch_hook: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub home_pinned_at: Option<DateTime<Utc>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub linked_world: Option<LinkedWorld>,
     pub created_at: DateTime<Utc>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub last_started_at: Option<DateTime<Utc>>,
     #[serde(default)]
     pub last_exit_crashed: bool,
+}
+
+/// Links a managed server to a saved multiplayer entry (an instance's server
+/// list entry) whose address points back at this machine. When set, launching
+/// that entry from the home pinned-servers widget first starts this server and
+/// waits until it accepts connections.
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct LinkedWorld {
+    pub instance_id: String,
+    pub address: String,
 }
 
 /// Tracks whether a modpack server has finished materializing. `Incomplete`
@@ -109,6 +122,10 @@ pub struct ServerInfo {
     pub eula_exists: bool,
     pub eula_accepted: bool,
     pub port: Option<u16>,
+    /// `online-mode` from `server.properties`. `None` when the file does not
+    /// set it, which means the vanilla default of `true`.
+    #[serde(rename = "onlineMode")]
+    pub online_mode: Option<bool>,
 }
 
 pub(super) async fn server_path(server_id: &str) -> Result<PathBuf> {
@@ -181,16 +198,8 @@ pub(super) async fn build_server_info(
         .find_map(|line| line.split_once('='))
         .filter(|(key, _)| key.trim() == "eula")
         .is_some_and(|(_, value)| value.trim().eq_ignore_ascii_case("true"));
-    let port = tokio::fs::read_to_string(path.join("server.properties"))
-        .await
-        .ok()
-        .and_then(|text| {
-            text.lines().find_map(|line| {
-                let (key, value) = line.split_once('=')?;
-                (key.trim() == "server-port")
-                    .then(|| value.trim().parse::<u16>().ok())?
-            })
-        });
+    let port = read_server_port(path).await;
+    let online_mode = read_online_mode(path).await;
     ServerInfo {
         manifest: manifest.clone(),
         path: path.to_string_lossy().into_owned(),
@@ -198,7 +207,42 @@ pub(super) async fn build_server_info(
         eula_exists,
         eula_accepted,
         port,
+        online_mode,
     }
+}
+
+/// Reads `server-port` from the server's `server.properties`, if present.
+pub(super) async fn read_server_port(path: &Path) -> Option<u16> {
+    read_server_property_value(path, "server-port")
+        .await
+        .and_then(|value| value.parse::<u16>().ok())
+}
+
+/// Reads `online-mode`. `None` means the file does not set it.
+pub(super) async fn read_online_mode(path: &Path) -> Option<bool> {
+    read_server_property_value(path, "online-mode")
+        .await
+        .map(|value| value.eq_ignore_ascii_case("true"))
+}
+
+/// Reads `server-ip`, the address the server binds to. Empty values mean the
+/// server listens on every interface.
+pub(super) async fn read_server_ip(path: &Path) -> Option<String> {
+    read_server_property_value(path, "server-ip")
+        .await
+        .filter(|value| !value.trim().is_empty())
+}
+
+async fn read_server_property_value(path: &Path, key: &str) -> Option<String> {
+    tokio::fs::read_to_string(path.join("server.properties"))
+        .await
+        .ok()
+        .and_then(|text| {
+            text.lines().find_map(|line| {
+                let (name, value) = line.split_once('=')?;
+                (name.trim() == key).then(|| value.trim().to_string())
+            })
+        })
 }
 
 #[cfg(test)]
@@ -230,6 +274,7 @@ mod tests {
             jvm_args: Vec::new(),
             pre_launch_hook: None,
             home_pinned_at: None,
+            linked_world: None,
             created_at: Utc::now(),
             last_started_at: None,
             last_exit_crashed: false,
@@ -258,6 +303,7 @@ mod tests {
             jvm_args: Vec::new(),
             pre_launch_hook: None,
             home_pinned_at: None,
+            linked_world: None,
             created_at: Utc::now(),
             last_started_at: None,
             last_exit_crashed: false,

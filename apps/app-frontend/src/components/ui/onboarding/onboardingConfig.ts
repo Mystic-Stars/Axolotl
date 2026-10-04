@@ -127,12 +127,12 @@ export const onboardingMessages = defineMessages({
 	},
 	offlineAccountTitle: {
 		id: 'app.onboarding.offline-account.title',
-		defaultMessage: 'Play without signing in',
+		defaultMessage: 'Offline accounts',
 	},
 	offlineAccountDescription: {
 		id: 'app.onboarding.offline-account.description',
 		defaultMessage:
-			'Prefer not to sign in yet? Open Playing as in the sidebar and add an offline Minecraft account with just a username.',
+			'Open Playing as in the sidebar to add an offline Minecraft account. You may need to sign in with an official Minecraft account on this device first.',
 	},
 	downloadsTitle: { id: 'app.onboarding.downloads.title', defaultMessage: 'Download control room' },
 	downloadsDescription: {

@@ -60,6 +60,10 @@ export default defineConfig({
 			},
 		}),
 	],
+	optimizeDeps: {
+		// UI mock factories load this dependency after Vite's initial scan.
+		include: ['@modrinth/ui > qrcode.vue'],
+	},
 	test: {
 		include: ['src/**/*.visual.spec.ts'],
 		browser: {

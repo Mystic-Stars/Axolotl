@@ -592,6 +592,12 @@ const handleRightClick = (event, instanceId, sectionKey) => {
 }
 
 const handleBackgroundContextMenu = (event: MouseEvent) => {
+	if (
+		event.target instanceof HTMLElement &&
+		(event.target.isContentEditable || event.target.matches('input, textarea, select'))
+	)
+		return
+	event.preventDefault()
 	backgroundContextMenu.value?.showMenu(event, null, [{ name: 'create_instance' }])
 }
 
@@ -809,7 +815,7 @@ async function handleInstanceDragEnd(event: {
 }
 </script>
 <template>
-	<div class="flex flex-col gap-4 pb-16" @contextmenu.prevent="handleBackgroundContextMenu">
+	<div class="flex flex-col gap-4 pb-16" @contextmenu="handleBackgroundContextMenu">
 		<div class="flex gap-2">
 			<StyledInput
 				v-model="search"

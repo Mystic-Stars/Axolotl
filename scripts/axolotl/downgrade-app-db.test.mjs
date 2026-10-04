@@ -19,6 +19,7 @@ const migrationsDir = fileURLToPath(new URL('../../packages/app-lib/migrations',
 const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'axolotl-downgrade-'))
 
 const CLOSE_BEHAVIOR = 20260903120000
+const OFFICIAL_LOGIN_PROOF = 20261002120000
 const UNMAPPED = 20260101000000
 
 // THESEUS_CONFIG_DIR takes priority over the platform directories, so the tests
@@ -37,7 +38,10 @@ function run(args, { configDir = settingsDir, env = {} } = {}) {
 	return { status: result.status, output: `${result.stdout}${result.stderr}` }
 }
 
-function sampleDatabase(file, { withColumn = true, applied = [CLOSE_BEHAVIOR] } = {}) {
+function sampleDatabase(
+	file,
+	{ withColumn = true, withProof = false, applied = [CLOSE_BEHAVIOR] } = {},
+) {
 	fs.mkdirSync(path.dirname(file), { recursive: true })
 	const database = new DatabaseSync(file)
 	database.exec('CREATE TABLE settings (id INTEGER PRIMARY KEY, max_memory REAL)')
@@ -45,6 +49,12 @@ function sampleDatabase(file, { withColumn = true, applied = [CLOSE_BEHAVIOR] } 
 		database.exec(
 			"ALTER TABLE settings ADD COLUMN close_behavior TEXT NOT NULL DEFAULT 'ask' CHECK (close_behavior IN ('ask', 'close', 'lightweight'))",
 		)
+	}
+	if (withProof) {
+		database.exec(
+			'CREATE TABLE official_login_proof (id INTEGER PRIMARY KEY, verified INTEGER NOT NULL, version INTEGER NOT NULL, mac TEXT NOT NULL)',
+		)
+		database.exec("INSERT INTO official_login_proof VALUES (0, 1, 1, 'test')")
 	}
 	database.exec('INSERT INTO settings (id, max_memory) VALUES (1, 4096)')
 	database.exec(`CREATE TABLE _sqlx_migrations (
@@ -152,6 +162,24 @@ console.log('apply again')
 	check('reports success', result.status === 0)
 	check('changes nothing', migrations(database).join() === before.join())
 	check('writes no second backup', backupsOf(database).length === 1)
+}
+
+console.log('official login proof downgrade')
+{
+	const proofDb = path.join(settingsDir, 'beta', 'proof.db')
+	sampleDatabase(proofDb, { withColumn: false, withProof: true, applied: [OFFICIAL_LOGIN_PROOF] })
+	const result = run(['--db', proofDb, '--to', String(OFFICIAL_LOGIN_PROOF), '--apply'])
+	check(
+		'removes the proof migration',
+		result.status === 0 && !migrations(proofDb).includes(OFFICIAL_LOGIN_PROOF),
+	)
+	check('drops the proof table', columns(proofDb, 'official_login_proof').length === 0)
+	const [backup] = backupsOf(proofDb)
+	check(
+		'preserves the proof table in backup',
+		!!backup &&
+			columns(path.join(path.dirname(proofDb), backup), 'official_login_proof').includes('mac'),
+	)
 }
 
 // --- refusals -----------------------------------------------------------------

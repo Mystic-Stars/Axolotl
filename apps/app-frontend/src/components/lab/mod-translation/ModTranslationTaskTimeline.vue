@@ -1,11 +1,25 @@
 <script setup lang="ts">
 import { ChevronDownIcon, ChevronUpIcon, HistoryIcon } from '@modrinth/assets'
+import { defineMessages, useVIntl } from '@modrinth/ui'
 import { computed, nextTick, ref, watch } from 'vue'
 
+import { modTranslationMessages } from '@/lab/mod-translation/i18n'
 import { groupTimelineByRepairPass } from '@/lab/mod-translation/timeline'
 import type { ModTranslationTimelineEntry } from '@/lab/mod-translation/types.ts'
 
 const props = defineProps<{ entries: ModTranslationTimelineEntry[] }>()
+const { formatMessage } = useVIntl()
+
+const messages = defineMessages({
+	timelineTitle: {
+		id: 'app.lab.mod-translation.timeline.title',
+		defaultMessage: 'Processing timeline ({count})',
+	},
+	timelineEmpty: {
+		id: 'app.lab.mod-translation.timeline.empty',
+		defaultMessage: 'Waiting for processing events…',
+	},
+})
 const open = ref(false)
 const scrollEl = ref<HTMLElement | null>(null)
 const stayAtBottom = ref(true)
@@ -42,12 +56,13 @@ function copyDebug(value: unknown) {
 <template>
 	<section class="flex flex-col gap-[0.35rem] border-t border-divider pt-[0.55rem]">
 		<button type="button" class="toggle" :aria-expanded="open" @click="open = !open">
-			<HistoryIcon />处理时间线 ({{ entries.length }}) <ChevronUpIcon v-if="open" /><ChevronDownIcon
-				v-else
-			/>
+			<HistoryIcon />{{ formatMessage(messages.timelineTitle, { count: entries.length }) }}
+			<ChevronUpIcon v-if="open" /><ChevronDownIcon v-else />
 		</button>
 		<div v-show="open" ref="scrollEl" class="timeline" @scroll="onScroll">
-			<div v-if="!groups.length" class="empty">等待处理事件…</div>
+			<div v-if="!groups.length" class="empty">
+				{{ formatMessage(messages.timelineEmpty) }}
+			</div>
 			<section v-for="group in groups" :key="group.id" class="group">
 				<h4 v-if="group.pass">Repair Pass {{ group.pass }}</h4>
 				<div
@@ -69,9 +84,11 @@ function copyDebug(value: unknown) {
 								:aria-expanded="debugOpen.has(entry.id)"
 								@click="toggleDebug(entry.id)"
 							>
-								技术详情
+								{{ formatMessage(modTranslationMessages.technicalDetails) }}
 							</button>
-							<button type="button" @click="copyDebug(entry.debug)">复制诊断</button>
+							<button type="button" @click="copyDebug(entry.debug)">
+								{{ formatMessage(modTranslationMessages.copyDiagnostics) }}
+							</button>
 							<pre v-if="debugOpen.has(entry.id)">{{ JSON.stringify(entry.debug, null, 2) }}</pre>
 						</div>
 					</div>

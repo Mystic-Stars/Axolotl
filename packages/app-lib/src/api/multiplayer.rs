@@ -14,6 +14,10 @@ static MULTIPLAYER_OPERATION: LazyLock<Mutex<()>> =
     LazyLock::new(|| Mutex::new(()));
 static SHUTTING_DOWN: AtomicBool = AtomicBool::new(false);
 
+#[cfg(test)]
+pub(super) static SESSION_TEST: LazyLock<Mutex<()>> =
+    LazyLock::new(|| Mutex::new(()));
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum MultiplayerProvider {
@@ -70,11 +74,11 @@ pub struct MultiplayerJoinRequest {
 }
 
 pub async fn claim_provider(provider: MultiplayerProvider) -> eyre::Result<()> {
+    let mut active = ACTIVE_PROVIDER.lock().await;
     if SHUTTING_DOWN.load(Ordering::Relaxed) {
         bail!("the launcher is shutting down");
     }
 
-    let mut active = ACTIVE_PROVIDER.lock().await;
     if let Some(current) = *active
         && current != provider
     {
@@ -176,12 +180,12 @@ pub async fn reset_terracotta_compat() -> eyre::Result<()> {
 }
 
 pub async fn host(request: MultiplayerHostRequest) -> eyre::Result<()> {
-    let _operation = MULTIPLAYER_OPERATION.lock().await;
     match request {
         MultiplayerHostRequest::Terracotta {
             player_name,
             room_code,
         } => {
+            let _operation = MULTIPLAYER_OPERATION.lock().await;
             let already_running =
                 terracotta::get_state().await.http_port.is_some();
             claim_provider(MultiplayerProvider::Terracotta).await?;
@@ -201,7 +205,13 @@ pub async fn host(request: MultiplayerHostRequest) -> eyre::Result<()> {
             local_port,
             node_name,
             instance_id,
-        } => hongshi::start(local_port, node_name, instance_id).await,
+        } => {
+            let pending = {
+                let _operation = MULTIPLAYER_OPERATION.lock().await;
+                hongshi::begin_start(local_port, node_name, instance_id).await?
+            };
+            pending.wait().await
+        }
     }
 }
 
@@ -278,6 +288,7 @@ mod tests {
 
     #[tokio::test]
     async fn active_provider_snapshot_does_not_hold_the_mutex() {
+        let _serial = SESSION_TEST.lock().await;
         *ACTIVE_PROVIDER.lock().await = Some(MultiplayerProvider::Hongshi);
         let provider = { *ACTIVE_PROVIDER.lock().await };
         let mut active = tokio::time::timeout(
@@ -288,5 +299,24 @@ mod tests {
         .expect("provider mutex should be released before stopping");
         assert_eq!(provider, Some(MultiplayerProvider::Hongshi));
         *active = None;
+    }
+
+    #[tokio::test]
+    async fn queued_provider_claim_is_rejected_after_shutdown_begins() {
+        let _serial = SESSION_TEST.lock().await;
+        let active = ACTIVE_PROVIDER.lock().await;
+        let (started, entered) = tokio::sync::oneshot::channel();
+        let claim = tokio::spawn(async move {
+            let _ = started.send(());
+            claim_provider(MultiplayerProvider::Hongshi).await
+        });
+        entered.await.unwrap();
+        assert!(!claim.is_finished());
+        SHUTTING_DOWN.store(true, Ordering::Relaxed);
+        drop(active);
+        let result = claim.await.unwrap();
+        SHUTTING_DOWN.store(false, Ordering::Relaxed);
+        assert!(result.unwrap_err().to_string().contains("shutting down"));
+        assert!(ACTIVE_PROVIDER.lock().await.is_none());
     }
 }

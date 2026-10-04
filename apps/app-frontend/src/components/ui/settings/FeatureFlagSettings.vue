@@ -3,6 +3,7 @@ import { WrenchIcon } from '@modrinth/assets'
 import { Button, defineMessages, injectNotificationManager, Toggle, useVIntl } from '@modrinth/ui'
 import { inject, ref, watch } from 'vue'
 
+import { useAntiPiracyStatus } from '@/composables/useAntiPiracyStatus'
 import { get as getSettings, set as setSettings } from '@/helpers/settings.ts'
 import { isDev } from '@/helpers/utils'
 import { handleSevereError } from '@/store/error.js'
@@ -22,6 +23,8 @@ const previewRemoteAnnouncement = inject<
 	(type: 'modal' | 'notification', withAction: boolean) => void
 >('previewRemoteAnnouncement')
 const previewWithAction = ref(false)
+const { clear: clearOfficialLoginMarker } = useAntiPiracyStatus()
+const clearingOfficialLoginMarker = ref(false)
 const messages = defineMessages({
 	featureFlagsSectionTitle: {
 		id: 'app.settings.developer.feature-flags-section-title',
@@ -134,6 +137,23 @@ const messages = defineMessages({
 		id: 'app.settings.about.preview-privacy-consent-modal',
 		defaultMessage: 'Preview privacy & security modal',
 	},
+	officialLoginSection: {
+		id: 'app.settings.developer.official-login-section',
+		defaultMessage: 'Official Minecraft login record',
+	},
+	officialLoginDescription: {
+		id: 'app.settings.developer.official-login-description',
+		defaultMessage:
+			'Clear the official Minecraft sign-in record. You may need to sign in again before creating or using offline accounts.',
+	},
+	clearOfficialLoginMarker: {
+		id: 'app.settings.developer.clear-official-login-marker',
+		defaultMessage: 'Clear login record',
+	},
+	officialLoginMarkerCleared: {
+		id: 'app.settings.developer.official-login-marker-cleared',
+		defaultMessage: 'Official Minecraft login record cleared',
+	},
 })
 
 const settings = ref(await getSettings())
@@ -173,6 +193,22 @@ function triggerTestNotificationError() {
 	})
 }
 
+async function clearLoginMarker() {
+	if (clearingOfficialLoginMarker.value) return
+	clearingOfficialLoginMarker.value = true
+	try {
+		await clearOfficialLoginMarker()
+		addNotification({
+			title: formatMessage(messages.officialLoginMarkerCleared),
+			type: 'success',
+		})
+	} catch (error) {
+		handleSevereError(error)
+	} finally {
+		clearingOfficialLoginMarker.value = false
+	}
+}
+
 watch(
 	settings,
 	async () => {
@@ -205,6 +241,17 @@ watch(
 				</div>
 			</template>
 		</SettingsRow>
+	</SettingsSection>
+
+	<SettingsSection :title="formatMessage(messages.officialLoginSection)">
+		<div class="flex flex-wrap items-center justify-between gap-3 p-4">
+			<p class="m-0 max-w-xl text-sm text-[var(--color-text-tertiary)]">
+				{{ formatMessage(messages.officialLoginDescription) }}
+			</p>
+			<Button type="base" :disabled="clearingOfficialLoginMarker" @click="clearLoginMarker">
+				{{ formatMessage(messages.clearOfficialLoginMarker) }}
+			</Button>
+		</div>
 	</SettingsSection>
 
 	<SettingsSection v-if="(themeStore.devMode || isDevEnvironment) && previewRemoteAnnouncement">

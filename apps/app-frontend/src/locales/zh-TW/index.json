@@ -5121,13 +5121,13 @@
     "message": "訪客"
   },
   "app.multiplayer.hongshi.binary-missing": {
-    "message": "建立房間前，請先下載適用於當前裝置的紅石聯機核心。"
+    "message": "首次建立房間時將自動安裝紅石聯機 2 核心。"
   },
   "app.multiplayer.hongshi.cached": {
     "message": "（快取）"
   },
   "app.multiplayer.hongshi.closed": {
-    "message": "紅石房間已關閉。重新建立後會獲得新的聯機地址。"
+    "message": "紅石聯機 2 房間已關閉。重新建立後會獲得新的聯機地址。"
   },
   "app.multiplayer.hongshi.create": {
     "message": "建立公網房間"
@@ -5138,11 +5138,38 @@
   "app.multiplayer.hongshi.detected-port": {
     "message": "{instance} — 埠 {port}"
   },
-  "app.multiplayer.hongshi.download": {
-    "message": "下載紅石聯機"
+  "app.multiplayer.hongshi.cancel": {
+    "message": "取消"
   },
-  "app.multiplayer.hongshi.limits": {
-    "message": "隧道無玩家 10 分鐘或執行滿 6 小時後自動關閉；最多 10 名玩家，共享 10Mbps 頻寬。"
+  "app.multiplayer.hongshi.no-nodes": {
+    "message": "目前沒有已發布的中轉節點，請重新整理列表後重試。"
+  },
+  "app.multiplayer.hongshi.error.build-unavailable": {
+    "message": "適用於當前裝置的紅石聯機 2 核心暫未發布，請稍後重試。"
+  },
+  "app.multiplayer.hongshi.error.node-list": {
+    "message": "無法取得中轉節點，請檢查網路並重新整理列表。"
+  },
+  "app.multiplayer.hongshi.error.node-unavailable": {
+    "message": "中轉節點未能建立房間，請重新整理節點列表或選擇其他節點。"
+  },
+  "app.multiplayer.hongshi.error.invalid-port": {
+    "message": "請輸入 1 到 65535 之間的本地埠。"
+  },
+  "app.multiplayer.hongshi.error.install": {
+    "message": "無法安裝紅石聯機 2 核心，請檢查網路後重試。"
+  },
+  "app.multiplayer.hongshi.error.kernel-start": {
+    "message": "紅石聯機 2 核心未能建立房間，請重試或開啟日誌。"
+  },
+  "app.multiplayer.hongshi.error.kernel-exit": {
+    "message": "紅石聯機 2 核心意外退出，請重新建立房間或開啟日誌。"
+  },
+  "app.multiplayer.hongshi.error.kernel-output": {
+    "message": "紅石聯機 2 核心回傳了無效地址或輸出，請開啟日誌查看詳情。"
+  },
+  "app.multiplayer.hongshi.error.unknown": {
+    "message": "無法建立紅石聯機 2 房間，請重試或開啟日誌。"
   },
   "app.multiplayer.hongshi.local-port": {
     "message": "本地 Minecraft 埠"
@@ -5160,7 +5187,7 @@
     "message": "{name} — {latency} 毫秒{cached}"
   },
   "app.multiplayer.hongshi.open-logs": {
-    "message": "開啟紅石日誌"
+    "message": "開啟紅石聯機 2 日誌"
   },
   "app.multiplayer.hongshi.port-changed": {
     "message": "Minecraft 已開放新的區域網埠，請重啟隧道後再分享地址。"
@@ -5172,7 +5199,7 @@
     "message": "公網地址"
   },
   "app.multiplayer.hongshi.public-address-hint": {
-    "message": "好友可直接在 Minecraft 中輸入此地址，無需執行紅石核心。"
+    "message": "好友可直接在 Minecraft 中輸入此地址，無需執行紅石聯機 2 核心。"
   },
   "app.multiplayer.hongshi.refresh-nodes": {
     "message": "重新整理節點"
@@ -5187,7 +5214,7 @@
     "message": "不可用"
   },
   "app.multiplayer.hongshi.unsupported": {
-    "message": "紅石聯機暫不支援當前作業系統或處理器架構。"
+    "message": "紅石聯機 2 暫不支援當前作業系統或處理器架構。"
   },
   "app.multiplayer.host": {
     "message": "創建房間"
@@ -5241,7 +5268,7 @@
     "message": "由 Terracotta | 陶瓦聯機 強力驅動"
   },
   "app.multiplayer.provider.hongshi": {
-    "message": "紅石聯機"
+    "message": "紅石聯機 2"
   },
   "app.multiplayer.provider.terracotta": {
     "message": "陶瓦聯機"

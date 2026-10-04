@@ -10,6 +10,10 @@ const memberExperiences: Record<string, AboutMemberExperience> = {
 		component: defineAsyncComponent(() => import('../AboutMergeGame.vue')),
 		longPressDuration: 800,
 	},
+	'axolotl-run': {
+		component: defineAsyncComponent(() => import('../AboutAxolotlRun.vue')),
+		longPressDuration: 800,
+	},
 }
 
 export function getAboutMemberExperience(experience: unknown): AboutMemberExperience | undefined {

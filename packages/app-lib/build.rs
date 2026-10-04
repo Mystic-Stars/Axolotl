@@ -154,13 +154,12 @@ fn newest_mtime(path: &PathBuf) -> Option<std::time::SystemTime> {
     if path.is_file() {
         return path.metadata().and_then(|m| m.modified()).ok();
     }
-    if path.is_dir() {
-        if let Ok(entries) = fs::read_dir(path) {
-            for entry in entries.flatten() {
-                if let Some(time) = newest_mtime(&entry.path().to_path_buf()) {
-                    newest =
-                        Some(newest.map_or(time, |current| current.max(time)));
-                }
+    if path.is_dir()
+        && let Ok(entries) = fs::read_dir(path)
+    {
+        for entry in entries.flatten() {
+            if let Some(time) = newest_mtime(&entry.path().to_path_buf()) {
+                newest = Some(newest.map_or(time, |current| current.max(time)));
             }
         }
     }

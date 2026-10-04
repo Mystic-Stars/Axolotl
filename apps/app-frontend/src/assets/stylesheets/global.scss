@@ -570,10 +570,10 @@ a {
 	scrollbar-color: var(--color-scrollbar) var(--color-bg);
 }
 
-// Text stays selectable by default so users can copy content anywhere. The
-// browser default (`auto`) already covers editable controls, so only surfaces
-// that conflict with native window behaviour opt out: drag regions and
-// explicit `.no-select` / `select-none` controls.
+// Text uses browser-default selection. Buttons, window drag regions and
+// explicit `select-none` surfaces opt out to avoid accidental selection.
+button,
+[role='button'],
 [data-tauri-drag-region],
 [data-tauri-drag-region] * {
 	-webkit-user-select: none;
@@ -589,6 +589,14 @@ a {
 	-moz-user-select: text;
 	-ms-user-select: text;
 	user-select: text;
+}
+
+input:placeholder-shown,
+textarea:placeholder-shown {
+	-webkit-user-select: none;
+	-moz-user-select: none;
+	-ms-user-select: none;
+	user-select: none;
 }
 
 /* Chrome, Edge, and Safari */

@@ -11,7 +11,7 @@ const { formatMessage } = useVIntl()
 const messages = defineMessages({
 	title: {
 		id: 'app.settings.about.easteregg.contributors-title',
-		defaultMessage: '贡献者彩蛋',
+		defaultMessage: 'Contributor Easter Egg',
 	},
 	clickHint: {
 		id: 'app.settings.about.easteregg.click-hint',

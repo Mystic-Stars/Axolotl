@@ -96,12 +96,14 @@ import ModpackInstallModal from '@/components/ui/modal/ModpackInstallModal.vue'
 import PrivacyConsentModal from '@/components/ui/modal/PrivacyConsentModal.vue'
 import NavButton from '@/components/ui/NavButton.vue'
 import NavRail from '@/components/ui/NavRail.vue'
+import OfflineAccountRestrictionModal from '@/components/ui/OfflineAccountRestrictionModal.vue'
 import OnboardingOverlay from '@/components/ui/onboarding/OnboardingOverlay.vue'
 import QuickInstanceSwitcher from '@/components/ui/QuickInstanceSwitcher.vue'
 import RemoteAnnouncements from '@/components/ui/RemoteAnnouncements.vue'
 import SplashScreen from '@/components/ui/SplashScreen.vue'
 import WindowControls from '@/components/ui/WindowControls.vue'
 import { useCheckDisableMouseover } from '@/composables/macCssFix.js'
+import { isOfflineAccountRestrictedError } from '@/composables/useAntiPiracyStatus'
 import { useDropImport } from '@/composables/useDropImport'
 import { minecraftLaunchErrorKey } from '@/composables/useMinecraftLaunchError'
 import { useNetworkStatus } from '@/composables/useNetworkStatus'
@@ -110,6 +112,8 @@ import { trackEvent } from '@/helpers/analytics'
 import { check_reachable } from '@/helpers/auth.js'
 import { get_user, get_version } from '@/helpers/cache.js'
 import { configureCurseForgeManualDownloadWatcher } from '@/helpers/curseforge'
+import { applySettingChanges } from '@/helpers/deep-link-settings.ts'
+import { resolveOpenRoute, resolveSettingsRoute } from '@/helpers/deep-links.ts'
 import { DIRECT_LINKS_SYNCED_EVENT, syncConfiguredDirectLinks } from '@/helpers/direct-link-sync'
 import { getMissingContentScannerSettings } from '@/helpers/downloads-scanner'
 import { classifyDroppedItem } from '@/helpers/drop'
@@ -129,6 +133,7 @@ import {
 import { cancelLogin, get as getCreds, login, logout } from '@/helpers/mr_auth.ts'
 import { getNavShortcutEnabled } from '@/helpers/nav-shortcut-state'
 import { runWhenIdle } from '@/helpers/page-transition'
+import { get_by_instance_id, kill as killProcess } from '@/helpers/process.js'
 import { mergeUrlQuery, parseModrinthLink } from '@/helpers/project-links.ts'
 import { getQuickScrollEnabled, getShowScrollTop } from '@/helpers/scroll-top-state'
 import {
@@ -204,6 +209,23 @@ const isSchematicFile = (path: string) => /\.(litematic|schematic|schem)$/i.test
 const APP_LEFT_NAV_WIDTH = '4rem'
 
 const discoverContentPath = computed(() => discoverContentTarget(route))
+
+const pagePathCopied = ref(false)
+let pagePathCopiedTimer: ReturnType<typeof window.setTimeout> | undefined
+
+async function copyPagePath() {
+	try {
+		await navigator.clipboard.writeText(route.fullPath)
+	} catch {
+		return
+	}
+
+	pagePathCopied.value = true
+	if (pagePathCopiedTimer) window.clearTimeout(pagePathCopiedTimer)
+	pagePathCopiedTimer = window.setTimeout(() => {
+		pagePathCopied.value = false
+	}, 2000)
+}
 
 function getPageTransitionKey(route: RouteLocationNormalizedLoaded) {
 	const transitionGroup = route.meta.pageTransitionGroup
@@ -1079,6 +1101,14 @@ const messages = defineMessages({
 		id: 'app.notification.export-error-logs',
 		defaultMessage: 'Export error logs',
 	},
+	copyPagePath: {
+		id: 'app.page-path.copy',
+		defaultMessage: 'Copy page path',
+	},
+	pagePathCopied: {
+		id: 'app.page-path.copied',
+		defaultMessage: 'Copied',
+	},
 
 	// ── Drop / import notification messages ──
 	dropOverlayTitle: {
@@ -1323,7 +1353,13 @@ const messages = defineMessages({
 		id: 'app.drop.compatible-mode-cancel',
 		defaultMessage: 'Cancel',
 	},
+	errorOccurred: {
+		id: 'app.notification.error-occurred',
+		defaultMessage: 'An error occurred',
+	},
 })
+
+notificationManager.errorTitleProvider = () => formatMessage(messages.errorOccurred)
 
 function getErrorNotificationDetails(notification) {
 	const details = [notification.title, notification.text, notification.errorCode].filter(Boolean)
@@ -1339,6 +1375,31 @@ async function exportNotificationErrorLogs(notification) {
 	} catch (error) {
 		handleError(error)
 	}
+}
+
+// 把设置同步到界面（主题/外观）；深链改完设置后复用同一套应用逻辑
+async function applyThemeFromSettings(s: Awaited<ReturnType<typeof getSettings>>) {
+	themeStore.setThemeState(s.theme)
+	await initializeSystemAccentColor()
+	themeStore.setAccentColor(s.accent_color)
+	themeStore.collapsedNavigation = s.collapsed_navigation
+	themeStore.advancedRendering = s.advanced_rendering
+	themeStore.hideNametagSkinsPage = s.hide_nametag_skins_page
+	themeStore.toggleSidebar = s.toggle_sidebar
+	themeStore.customBackgroundPath = s.custom_background_path
+	themeStore.customBackgroundBlur = s.custom_background_blur
+	themeStore.customBackgroundOpacity = s.custom_background_opacity
+	themeStore.customBackgroundComponentOpacity = s.custom_background_component_opacity ?? 100
+	themeStore.setCustomBackgroundOpacity()
+	themeStore.uiFont = s.ui_font ?? null
+	themeStore.monoFont = s.mono_font ?? null
+	themeStore.setUiFont()
+	themeStore.setMonoFont()
+	themeStore.transparentBackground = s.transparent_background
+	themeStore.transparentBackgroundOpacity = s.transparent_background_opacity
+	themeStore.transparentBackgroundBlur = s.transparent_background_blur
+	themeStore.setTransparentBackgroundClass()
+	themeStore.setCustomBackgroundClass()
 }
 
 async function setupApp() {
@@ -1485,13 +1546,12 @@ async function setupApp() {
 	})
 
 	if (!dev) {
-		// Capture phase so WebView2 never shows its native edit menu (Shift+RMB
-		// on search/inputs included). Copy/paste stays available via keyboard
-		// shortcuts; launcher chrome uses our custom menus.
+		// Keep the native edit menu on inputs while suppressing the WebView menu
+		// elsewhere in the launcher.
 		document.addEventListener(
 			'contextmenu',
 			(event) => {
-				event.preventDefault()
+				if (!isEditableTarget(event.target)) event.preventDefault()
 			},
 			{ capture: true },
 		)
@@ -1675,11 +1735,13 @@ async function previewPrivacyConsentModal() {
 }
 
 provide('replayOnboarding', replayOnboarding)
-provide(
-	minecraftLaunchErrorKey,
-	async (launchError, payload) =>
-		(await minecraftCrashModal.value?.handleLaunchError(launchError, payload)) ?? false,
-)
+provide(minecraftLaunchErrorKey, async (launchError, payload) => {
+	if (isOfflineAccountRestrictedError(launchError)) {
+		useError().showAntiPiracyNotice()
+		return true
+	}
+	return (await minecraftCrashModal.value?.handleLaunchError(launchError, payload)) ?? false
+})
 provide('previewMinecraftCrashModal', () => minecraftCrashModal.value?.showPreview())
 const remoteAnnouncementPreview = ref<InstanceType<typeof RemoteAnnouncements>>()
 provide('previewRemoteAnnouncement', (type: 'modal' | 'notification', withAction = false) => {
@@ -2013,6 +2075,7 @@ error.setMinecraftLaunchErrorHandler((launchError, context) => {
 	return true
 })
 const errorModal = ref()
+const antiPiracyNoticeModal = ref<InstanceType<typeof OfflineAccountRestrictionModal>>()
 const minecraftAuthErrorModal = ref()
 
 const contentInstall = createContentInstall({ router, handleError, addNotification })
@@ -2221,6 +2284,7 @@ onMounted(() => {
 	invoke('show_window')
 
 	error.setErrorModal(errorModal.value)
+	error.setAntiPiracyNoticeModal(antiPiracyNoticeModal.value)
 	error.setMinecraftAuthErrorModal(minecraftAuthErrorModal.value)
 
 	setContentIncompatibilityWarningModal(incompatibilityWarningModal.value)
@@ -2256,20 +2320,46 @@ onMounted(() => {
 	})()
 })
 
-const accounts = ref(null)
+const accounts = ref<InstanceType<typeof AccountsCard> | null>(null)
 provide('accountsCard', accounts)
 
 command_listener(handleCommand)
 
 async function handleCommand(e) {
 	if (!e) return
-	if (e.event === 'OpenSeedMap') {
-		const query = Object.fromEntries(new URLSearchParams(e.query ?? ''))
-		await router.push({ path: '/lab/seed-map', query })
+	if (e.event === 'OpenRoute') {
+		const target = resolveOpenRoute(e.path ?? '', e.query ?? null)
+		if (!target) {
+			addNotification({
+				title: formatMessage(messages.warning),
+				text: `Unsupported link: ${e.path ?? ''}`,
+				type: 'warning',
+			})
+			return
+		}
+		if (
+			offline.value &&
+			(target.path.startsWith('/browse') || target.path.startsWith('/project'))
+		) {
+			await router.push('/library')
+			return
+		}
+		await router.push(target)
 		return
 	}
-	if (e.event === 'OpenDiscovery') {
-		await router.push('/browse/mod')
+	if (e.event === 'OpenSettings') {
+		const target = resolveSettingsRoute(e.tab ?? null, e.entry ?? null)
+		await router.push({ path: target.path, hash: target.hash })
+		if (target.entry) {
+			await nextTick()
+			const el = document.getElementById(target.entry)
+			el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+		}
+		return
+	}
+	// 特权动作：离线也允许，但必须过确认弹窗
+	if (e.event === 'UpdateSettings' || e.event === 'StopInstance') {
+		await handlePrivilegedCommand(e)
 		return
 	}
 	if (offline.value && e.event !== 'LaunchInstance') {
@@ -2300,6 +2390,10 @@ async function handleCommand(e) {
 	} else if (e.event === 'LaunchInstance') {
 		const instance = await getInstance(e.id).catch(() => null)
 		const handleLaunchCommandError = async (launchError) => {
+			if (isOfflineAccountRestrictedError(launchError)) {
+				error.showAntiPiracyNotice()
+				return
+			}
 			const handled =
 				(await minecraftCrashModal.value?.handleLaunchError(launchError, {
 					instance_id: e.id,
@@ -2330,6 +2424,51 @@ async function handleCommand(e) {
 			.install(e.id, null, null, 'URLConfirmModal', undefined, undefined, { showProjectInfo: true })
 			.catch(handleError)
 	}
+}
+
+const privilegedMessages = defineMessages({
+	applied: {
+		id: 'app.privileged-modal.applied',
+		defaultMessage: 'Privileged link applied',
+	},
+	stopped: {
+		id: 'app.privileged-modal.stopped',
+		defaultMessage: 'Stop request sent',
+	},
+	noProcesses: {
+		id: 'app.privileged-modal.no-processes',
+		defaultMessage: 'No running game processes for this instance',
+	},
+})
+
+// 启用开关时已强制阅读确认，执行不再逐次确认
+async function handlePrivilegedCommand(e) {
+	if (e.event === 'UpdateSettings') {
+		const latest = await getSettings().catch(handleError)
+		if (!latest || !applySettingChanges(latest, e.changes ?? [])) return
+		await setSettings(latest).catch(handleError)
+		await applyThemeFromSettings(latest)
+		setFollowSystemLocale(!latest.locale || latest.locale === 'system')
+		applyLocalePreference(latest.locale)
+		addNotification({
+			title: formatMessage(privilegedMessages.applied),
+			type: 'success',
+		})
+		return
+	}
+	const processes = await get_by_instance_id(e.instance_id).catch(() => [])
+	if (!processes.length) {
+		addNotification({
+			title: formatMessage(privilegedMessages.noProcesses),
+			type: 'warning',
+		})
+		return
+	}
+	for (const process of processes) await killProcess(process.uuid).catch(handleError)
+	addNotification({
+		title: formatMessage(privilegedMessages.stopped),
+		type: 'success',
+	})
 }
 
 const updatePopupMessages = defineMessages({
@@ -2997,12 +3136,15 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 			>
 				<LoadingBar position="absolute" />
 			</div>
-			<div
+			<button
 				v-if="themeStore.featureFlags.page_path"
-				class="absolute bottom-0 left-0 m-2 bg-tooltip-bg text-tooltip-text font-semibold rounded-full px-2 py-1 text-xs z-50"
+				v-tooltip="formatMessage(pagePathCopied ? messages.pagePathCopied : messages.copyPagePath)"
+				type="button"
+				class="absolute bottom-0 left-0 m-2 bg-tooltip-bg text-tooltip-text font-semibold rounded-full px-2 py-1 text-xs z-50 cursor-pointer border-0 text-left"
+				@click="copyPagePath"
 			>
 				{{ route.fullPath }}
-			</div>
+			</button>
 			<div
 				id="background-teleport-target"
 				class="absolute h-full -z-10 rounded-tl-[--radius-xl] overflow-hidden"
@@ -3184,6 +3326,7 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 		</template>
 	</NewModal>
 	<ErrorModal ref="errorModal" />
+	<OfflineAccountRestrictionModal ref="antiPiracyNoticeModal" @sign-in="accounts?.login()" />
 	<MinecraftAuthErrorModal ref="minecraftAuthErrorModal" />
 	<ContentInstallModal
 		ref="modInstallModal"

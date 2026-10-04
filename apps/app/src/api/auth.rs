@@ -32,6 +32,8 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             get_default_user,
             set_default_user,
             get_users,
+            get_anti_piracy_status,
+            clear_official_login_marker,
         ])
         .build()
 }
@@ -81,6 +83,13 @@ pub struct MinecraftLoginTroubleLinks {
 enum MinecraftLoginAlternative {
     Browser,
     DeviceCode,
+}
+
+async fn notify_anti_piracy_status<R: Runtime>(app: &tauri::AppHandle<R>) {
+    let status = theseus::anti_piracy::status().await;
+    if let Err(error) = app.emit("anti-piracy-status-changed", status) {
+        tracing::warn!(%error, "Could not notify frontend of official Minecraft login");
+    }
 }
 
 #[tauri::command]
@@ -221,6 +230,8 @@ pub async fn login<R: Runtime>(
             window.close()?;
             let val = minecraft_auth::finish_login(&code, &state, flow).await?;
 
+            notify_anti_piracy_status(&app).await;
+
             return Ok(Some(val));
         }
     }
@@ -283,6 +294,7 @@ pub async fn browser_login<R: Runtime>(
     })?;
     let credentials =
         minecraft_auth::finish_login(&reply.code, &state, flow).await?;
+    notify_anti_piracy_status(&app).await;
     if let Some(main_window) = app.get_webview_window("main") {
         main_window.set_focus().ok();
     }
@@ -297,10 +309,18 @@ pub async fn begin_device_login()
 }
 
 #[tauri::command]
-pub async fn poll_device_login(
+pub async fn poll_device_login<R: Runtime>(
+    app: tauri::AppHandle<R>,
     device_code: String,
 ) -> Result<minecraft_auth::MinecraftDeviceLoginPoll> {
-    Ok(minecraft_auth::poll_device_login(&device_code).await?)
+    let result = minecraft_auth::poll_device_login(&device_code).await?;
+    if matches!(
+        result,
+        minecraft_auth::MinecraftDeviceLoginPoll::Complete { .. }
+    ) {
+        notify_anti_piracy_status(&app).await;
+    }
+    Ok(result)
 }
 
 #[tauri::command]
@@ -553,6 +573,23 @@ pub async fn get_users(
     offline_mode: bool,
 ) -> Result<Vec<minecraft_auth::MinecraftUser>> {
     Ok(minecraft_auth::users(offline_mode).await?)
+}
+
+#[tauri::command]
+pub async fn get_anti_piracy_status() -> theseus::anti_piracy::Status {
+    theseus::anti_piracy::status().await
+}
+
+#[tauri::command]
+pub async fn clear_official_login_marker<R: Runtime>(
+    app: tauri::AppHandle<R>,
+) -> Result<theseus::anti_piracy::Status> {
+    theseus::anti_piracy::clear_official_login().await?;
+    let status = theseus::anti_piracy::status().await;
+    if let Err(error) = app.emit("anti-piracy-status-changed", status) {
+        tracing::warn!(%error, "Could not notify frontend of cleared official Minecraft login");
+    }
+    Ok(status)
 }
 
 #[cfg(test)]

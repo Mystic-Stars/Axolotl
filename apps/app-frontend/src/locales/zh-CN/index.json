@@ -2405,17 +2405,41 @@
   "app.home.recent.title": {
     "message": "从最近的项目开始"
   },
+  "app.home.servers.change-local-server": {
+    "message": "更改关联的本地服务器"
+  },
   "app.home.servers.empty": {
     "message": "将服务器标记为收藏后，就会固定在这里。"
   },
   "app.home.servers.join": {
     "message": "加入服务器"
   },
+  "app.home.servers.link-local-server": {
+    "message": "关联到本地服务器"
+  },
+  "app.home.servers.link-picker.description": {
+    "message": "从主页启动这台服务器时，会先启动所选本地服务器，等它就绪后再启动游戏。"
+  },
+  "app.home.servers.link-picker.empty": {
+    "message": "还没有本地服务器，请先创建一个再回来关联。"
+  },
+  "app.home.servers.link-picker.select": {
+    "message": "关联 {name}"
+  },
+  "app.home.servers.link-picker.title": {
+    "message": "选择要关联的本地服务器"
+  },
+  "app.home.servers.linked-toast": {
+    "message": "已关联到本地服务器“{name}”"
+  },
   "app.home.servers.more-options": {
     "message": "更多选项"
   },
   "app.home.servers.local": {
     "message": "本地"
+  },
+  "app.home.servers.local-server-not-ready": {
+    "message": "关联的本地服务器未能在超时前启动，请查看它的控制台日志后重试。"
   },
   "app.home.servers.offline": {
     "message": "离线"
@@ -2428,6 +2452,12 @@
   },
   "app.home.servers.stop": {
     "message": "停止"
+  },
+  "app.home.servers.unlink-local-server": {
+    "message": "取消关联本地服务器"
+  },
+  "app.home.servers.unlinked-toast": {
+    "message": "已取消关联本地服务器"
   },
   "app.home.servers.unpin": {
     "message": "取消固定"
@@ -2446,6 +2476,15 @@
   },
   "app.home.shortcut.server.players-online": {
     "message": "{count} 人在线"
+  },
+  "app.home.widgets.size": {
+    "message": "尺寸 {size}"
+  },
+  "app.home.widgets.source-settings": {
+    "message": "小组件设置"
+  },
+  "app.home.widgets.unavailable": {
+    "message": "内容已不可用"
   },
   "app.home.widgets.add": {
     "message": "添加小组件"
@@ -2575,12 +2614,6 @@
   },
   "app.home.widgets.server-description": {
     "message": "选择一个服务器，创建独立的快速加入入口。"
-  },
-  "app.home.widgets.size": {
-    "message": "尺寸 {size}"
-  },
-  "app.home.widgets.unavailable": {
-    "message": "内容已不可用"
   },
   "app.home.widgets.world": {
     "message": "单个世界入口"
@@ -3956,6 +3989,12 @@
   "app.lab.mod-translation.completed-count": {
     "message": "{count} 个已完成"
   },
+  "app.lab.mod-translation.copy-diagnostics": {
+    "message": "复制诊断"
+  },
+  "app.lab.mod-translation.copy-diagnostics-info": {
+    "message": "复制诊断信息"
+  },
   "app.lab.mod-translation.description": {
     "message": "把任意 Minecraft 模组 JAR 翻译成简体中文。"
   },
@@ -4043,11 +4082,38 @@
   "app.lab.mod-translation.preparing": {
     "message": "准备中…"
   },
+  "app.lab.mod-translation.progress.current-batch": {
+    "message": "当前批次 {completed} / {total}"
+  },
+  "app.lab.mod-translation.progress.recently-written": {
+    "message": "最近写入"
+  },
+  "app.lab.mod-translation.progress.verified-weights": {
+    "message": "当前复验通过 {verified} / {total}"
+  },
+  "app.lab.mod-translation.progress.workload-measuring": {
+    "message": "正在建立可验证工作量…"
+  },
   "app.lab.mod-translation.provider": {
     "message": "AI 提供商"
   },
   "app.lab.mod-translation.repair-enabled": {
     "message": "复验后批量修复疑难翻译"
+  },
+  "app.lab.mod-translation.result.changed-files": {
+    "message": "改动文件：{files}"
+  },
+  "app.lab.mod-translation.result.class-text": {
+    "message": "Class 文本"
+  },
+  "app.lab.mod-translation.result.completed": {
+    "message": "翻译完成"
+  },
+  "app.lab.mod-translation.result.completed-warnings": {
+    "message": "已生成，但仍有未覆盖文本"
+  },
+  "app.lab.mod-translation.result.mod-label": {
+    "message": "模组"
   },
   "app.lab.mod-translation.select-file": {
     "message": "选择模组 JAR"
@@ -4060,6 +4126,15 @@
   },
   "app.lab.mod-translation.start-hint": {
     "message": "先选择 JAR 和 AI 模型再开始。"
+  },
+  "app.lab.mod-translation.technical-details": {
+    "message": "技术详情"
+  },
+  "app.lab.mod-translation.timeline.empty": {
+    "message": "等待处理事件…"
+  },
+  "app.lab.mod-translation.timeline.title": {
+    "message": "处理时间线 ({count})"
   },
   "app.lab.mod-translation.title": {
     "message": "模组翻译"
@@ -6030,13 +6105,13 @@
     "message": "访客"
   },
   "app.multiplayer.hongshi.binary-missing": {
-    "message": "创建房间前，请先下载适用于当前设备的红石联机内核。"
+    "message": "首次创建房间时将自动安装红石联机 2 内核。"
   },
   "app.multiplayer.hongshi.cached": {
     "message": "（缓存）"
   },
   "app.multiplayer.hongshi.closed": {
-    "message": "红石房间已关闭。重新创建后会获得新的联机地址。"
+    "message": "红石联机 2 房间已关闭。重新创建后会获得新的联机地址。"
   },
   "app.multiplayer.hongshi.create": {
     "message": "创建公网房间"
@@ -6047,11 +6122,38 @@
   "app.multiplayer.hongshi.detected-port": {
     "message": "{instance} — 端口 {port}"
   },
-  "app.multiplayer.hongshi.download": {
-    "message": "下载红石联机"
+  "app.multiplayer.hongshi.cancel": {
+    "message": "取消"
   },
-  "app.multiplayer.hongshi.limits": {
-    "message": "隧道无玩家 10 分钟或运行满 6 小时后自动关闭；最多 10 名玩家，共享 10Mbps 带宽。"
+  "app.multiplayer.hongshi.no-nodes": {
+    "message": "当前没有已发布的中转节点，请刷新列表后重试。"
+  },
+  "app.multiplayer.hongshi.error.build-unavailable": {
+    "message": "适用于当前设备的红石联机 2 内核暂未发布，请稍后重试。"
+  },
+  "app.multiplayer.hongshi.error.node-list": {
+    "message": "无法获取中转节点，请检查网络并刷新列表。"
+  },
+  "app.multiplayer.hongshi.error.node-unavailable": {
+    "message": "中转节点未能创建房间，请刷新节点列表或选择其他节点。"
+  },
+  "app.multiplayer.hongshi.error.invalid-port": {
+    "message": "请输入 1 到 65535 之间的本地端口。"
+  },
+  "app.multiplayer.hongshi.error.install": {
+    "message": "无法安装红石联机 2 内核，请检查网络后重试。"
+  },
+  "app.multiplayer.hongshi.error.kernel-start": {
+    "message": "红石联机 2 内核未能创建房间，请重试或打开日志。"
+  },
+  "app.multiplayer.hongshi.error.kernel-exit": {
+    "message": "红石联机 2 内核意外退出，请重新创建房间或打开日志。"
+  },
+  "app.multiplayer.hongshi.error.kernel-output": {
+    "message": "红石联机 2 内核返回了无效地址或输出，请打开日志查看详情。"
+  },
+  "app.multiplayer.hongshi.error.unknown": {
+    "message": "无法创建红石联机 2 房间，请重试或打开日志。"
   },
   "app.multiplayer.hongshi.local-port": {
     "message": "本地 Minecraft 端口"
@@ -6069,7 +6171,7 @@
     "message": "{name} — {latency} 毫秒{cached}"
   },
   "app.multiplayer.hongshi.open-logs": {
-    "message": "打开红石日志"
+    "message": "打开红石联机 2 日志"
   },
   "app.multiplayer.hongshi.port-changed": {
     "message": "Minecraft 已开放新的局域网端口，请重启隧道后再分享地址。"
@@ -6081,7 +6183,7 @@
     "message": "公网地址"
   },
   "app.multiplayer.hongshi.public-address-hint": {
-    "message": "好友可直接在 Minecraft 中输入此地址，无需运行红石内核。"
+    "message": "好友可直接在 Minecraft 中输入此地址，无需运行红石联机 2 内核。"
   },
   "app.multiplayer.hongshi.refresh-nodes": {
     "message": "刷新节点"
@@ -6096,7 +6198,7 @@
     "message": "不可用"
   },
   "app.multiplayer.hongshi.unsupported": {
-    "message": "红石联机暂不支持当前操作系统或处理器架构。"
+    "message": "红石联机 2 暂不支持当前操作系统或处理器架构。"
   },
   "app.multiplayer.host": {
     "message": "创建房间"
@@ -6150,7 +6252,7 @@
     "message": "由 Terracotta | 陶瓦联机 强力驱动"
   },
   "app.multiplayer.provider.hongshi": {
-    "message": "红石联机"
+    "message": "红石联机 2"
   },
   "app.multiplayer.provider.terracotta": {
     "message": "陶瓦联机"
@@ -6540,10 +6642,10 @@
     "message": "引导吉祥物"
   },
   "app.onboarding.offline-account.description": {
-    "message": "暂时不想登录？在侧栏「当前游玩账号」中添加离线 Minecraft 账号，只需一个用户名即可。"
+    "message": "在侧栏「当前游玩账号」中添加离线 Minecraft 账号。你可能需要先在此设备上登录一次正版 Minecraft 账号。"
   },
   "app.onboarding.offline-account.title": {
-    "message": "不登录也能玩"
+    "message": "离线账号"
   },
   "app.onboarding.privacy.description": {
     "message": "匿名遥测、Discord 活动状态与 Minecraft 日志分析服务都可以在这里调整。"
@@ -6599,6 +6701,12 @@
   "app.onboarding.welcome.title": {
     "message": "一切就绪"
   },
+  "app.page-path.copied": {
+    "message": "已复制"
+  },
+  "app.page-path.copy": {
+    "message": "复制页面路径"
+  },
   "app.privacy-consent.continue": {
     "message": "保存并继续"
   },
@@ -6622,6 +6730,30 @@
   },
   "app.privacy-consent.title": {
     "message": "隐私与安全"
+  },
+  "app.privileged-consent.acknowledge": {
+    "message": "我了解风险，仍要启用敏感scheme操作"
+  },
+  "app.privileged-consent.confirm": {
+    "message": "启用"
+  },
+  "app.privileged-consent.danger": {
+    "message": "外部链接将可以修改设置（主题、启动命令、目录、网络选项等）并停止正在运行的游戏。每次执行前仍会要求确认。"
+  },
+  "app.privileged-consent.title": {
+    "message": "启用特权链接操作？"
+  },
+  "app.privileged-consent.warning": {
+    "message": "这类操作会修改安全敏感设置并停止游戏"
+  },
+  "app.privileged-modal.applied": {
+    "message": "scheme操作已执行"
+  },
+  "app.privileged-modal.no-processes": {
+    "message": "该实例没有正在运行的游戏进程"
+  },
+  "app.privileged-modal.stopped": {
+    "message": "已发送停止请求"
   },
   "app.project.curseforge.unavailable-description": {
     "message": "该 CurseForge 项目没有返回任何数据。"
@@ -7075,6 +7207,18 @@
   },
   "app.servers.modpack.download-in-background": {
     "message": "后台下载"
+  },
+  "app.servers.online-mode-warning.body": {
+    "message": "服务器“{server}”开启了正版验证（online-mode=true），而你当前使用的账号“{account}”是离线账号，进入该服务器时会被拒绝。是否仍要继续启动？"
+  },
+  "app.servers.online-mode-warning.cancel": {
+    "message": "取消"
+  },
+  "app.servers.online-mode-warning.confirm": {
+    "message": "仍要继续"
+  },
+  "app.servers.online-mode-warning.title": {
+    "message": "该服务器启用了正版验证"
   },
   "app.servers.modpack.downloading": {
     "message": "正在下载整合包文件..."
@@ -7693,6 +7837,93 @@
   },
   "app.settings.about.repository": {
     "message": "源代码"
+  },
+  "app.settings.about.run.apex": {
+    "message": "极限高度 +{score}"
+  },
+  "app.settings.about.run.best": {
+    "message": "最佳：{score}"
+  },
+  "app.settings.about.run.best-label": {
+    "message": "最佳"
+  },
+  "app.settings.about.run.chain": {
+    "message": "连锁！"
+  },
+  "app.settings.about.run.chain-jump": {
+    "message": "连跳 +{score}"
+  },
+  "app.settings.about.run.combo": {
+    "message": "连击 {count}"
+  },
+  "app.settings.about.run.conduit": {
+    "message": "潮涌核心"
+  },
+  "app.settings.about.run.diamond": {
+    "message": "钻石"
+  },
+  "app.settings.about.run.dolphin": {
+    "message": "海豚的恩惠"
+  },
+  "app.settings.about.run.exit": {
+    "message": "退出游戏"
+  },
+  "app.settings.about.run.game-over": {
+    "message": "游戏结束"
+  },
+  "app.settings.about.run.hold-to-jump": {
+    "message": "轻点为小跳，按住可高跳"
+  },
+  "app.settings.about.run.last-stand": {
+    "message": "残血通关 +{score}"
+  },
+  "app.settings.about.run.milk": {
+    "message": "牛奶"
+  },
+  "app.settings.about.run.new-record": {
+    "message": "新纪录！"
+  },
+  "app.settings.about.run.poison": {
+    "message": "中毒"
+  },
+  "app.settings.about.run.restart": {
+    "message": "重新开始"
+  },
+  "app.settings.about.run.score": {
+    "message": "得分：{score}"
+  },
+  "app.settings.about.run.score-label": {
+    "message": "得分"
+  },
+  "app.settings.about.run.shield": {
+    "message": "护盾"
+  },
+  "app.settings.about.run.slow": {
+    "message": "迟缓"
+  },
+  "app.settings.about.run.slow-fall": {
+    "message": "缓降"
+  },
+  "app.settings.about.run.stew": {
+    "message": "迷之炖菜"
+  },
+  "app.settings.about.run.streak": {
+    "message": "无伤 x{count}"
+  },
+  "app.settings.about.run.swift": {
+    "message": "迅捷"
+  },
+  "app.settings.about.run.tap-to-start": {
+    "message": "按空格或点击开始"
+  },
+  "app.settings.about.run.tnt": {
+    "message": "TNT"
+  },
+  "app.settings.about.run.title": {
+    "message": "美西螈快跑"
+  },
+  "app.settings.about.run.totem": {
+    "message": "不死图腾"
   },
   "app.settings.about.test-error": {
     "message": "触发测试错误"
@@ -13027,5 +13258,92 @@
   },
   "app.settings.feature-flags.auto-install-dependencies": {
     "message": "自动安装依赖项"
+  },
+  "minecraft-account.restriction.title": {
+    "message": "离线账号暂不可用"
+  },
+  "minecraft-account.restriction.description": {
+    "message": "请先在此设备上登录一次正版 Minecraft 账号，再创建或使用离线账号。如果你尚未拥有 Minecraft，可以前往官方网站购买。"
+  },
+  "minecraft-account.restriction.sign-in": {
+    "message": "登录正版 Minecraft"
+  },
+  "minecraft-account.restriction.open-failed": {
+    "message": "无法打开 Minecraft 商店"
+  },
+  "minecraft-account.restriction.open-failed-description": {
+    "message": "请重试，或在浏览器中手动访问 https://www.minecraft.net 购买 Minecraft。"
+  },
+  "minecraft-account.restriction.buy": {
+    "message": "购买 Minecraft"
+  },
+  "app.settings.developer.official-login-section": {
+    "message": "正版 Minecraft 登录记录"
+  },
+  "app.settings.developer.official-login-description": {
+    "message": "清除此设备曾登录正版 Minecraft 的记录。清除后，你可能需要重新登录正版账号，才能创建或使用离线账号。"
+  },
+  "app.settings.developer.clear-official-login-marker": {
+    "message": "清除登录记录"
+  },
+  "app.settings.developer.official-login-marker-cleared": {
+    "message": "已清除正版 Minecraft 登录记录"
+  },
+  "app.settings.privacy.external-scheme-description": {
+    "message": "响应来自浏览器及其他应用的 axolotl:// 链接。关闭后，外部的启动、安装与页面跳转将被阻止。"
+  },
+  "app.settings.privacy.external-scheme": {
+    "message": "接受外部 Scheme URL"
+  },
+  "app.settings.privacy.privileged-scheme-description": {
+    "message": "允许 axolotl:// 链接修改设置与停止游戏进程。开启时需阅读风险警告，每次执行仍需你确认。"
+  },
+  "app.settings.privacy.privileged-scheme": {
+    "message": "允许敏感scheme操作"
+  },
+  "app.notification.error-occurred": {
+    "message": "发生错误"
+  },
+  "app.java-arguments.gc.reason.zgc-non-generational": {
+    "message": "Java < 21，ZGC 非分代模式性能不佳"
+  },
+  "app.java-arguments.gc.reason.medium-resources": {
+    "message": "资源中 ({memory}GB, {cores}核)"
+  },
+  "app.java-arguments.gc.reason.low-resources": {
+    "message": "资源低 ({memory}GB, {cores}核)"
+  },
+  "app.java-arguments.gc.reason.lightweight-instance": {
+    "message": "轻量实例 ({loader}, {mods} mods)"
+  },
+  "app.java-arguments.gc.reason.large-modpack-low-memory": {
+    "message": "大型 ModPack ({mods} mods) 但资源不足 ({allocated}GB < 8GB)"
+  },
+  "app.java-arguments.gc.reason.java-version-unknown": {
+    "message": "Java 版本未知"
+  },
+  "app.java-arguments.gc.reason.java-too-old": {
+    "message": "Java 太旧，Shenandoah/ZGC 不可靠"
+  },
+  "app.java-arguments.gc.reason.insufficient-memory": {
+    "message": "内存不足 ({allocated}GB < 4GB)"
+  },
+  "app.java-arguments.gc.reason.insufficient-cpu": {
+    "message": "CPU 资源不足 ({cores}核/{threads}线程)"
+  },
+  "app.java-arguments.gc.reason.high-resources": {
+    "message": "资源高 ({memory}GB, {cores}核)"
+  },
+  "app.java-arguments.gc.reason.heavy-instance": {
+    "message": "重型实例 ({loader}, {mods} mods)"
+  },
+  "app.java-arguments.gc.reason.below-zgc-recommendation": {
+    "message": "资源未达到 ZGC 推荐配置"
+  },
+  "app.java-arguments.gc.reason.ample-memory-high-cores": {
+    "message": "内存充足且 CPU 核心数高"
+  },
+  "app.settings.privacy.security-title": {
+    "message": "安全"
   }
 }

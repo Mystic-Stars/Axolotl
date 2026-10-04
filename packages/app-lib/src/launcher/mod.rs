@@ -2794,6 +2794,7 @@ pub async fn launch_minecraft(
             version_info.logging.is_some(),
             main_class_keep_alive,
             rpc_server,
+            credentials.is_offline(),
             async |process: &ProcessMetadata, rpc_server| {
                 let process_start_time = process.start_time.to_rfc3339();
                 let instance_created_time = instance.created.to_rfc3339();

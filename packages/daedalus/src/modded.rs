@@ -204,8 +204,7 @@ pub fn normalize_loader_libraries(
             && has_version
             && (matches!(
                 (group, artifact),
-                (Some("org.lwjgl.lwjgl"), Some("lwjgl"))
-                    | (Some("org.lwjgl.lwjgl"), Some("lwjgl-platform"))
+                (Some("org.lwjgl.lwjgl"), Some("lwjgl" | "lwjgl-platform"))
                     | (Some("net.java.dev.jna"), Some("platform"))
                     | (Some("com.ibm.icu"), Some("icu4j-core-mojang"))
             ) || (group == Some("org.lwjgl.lwjgl")

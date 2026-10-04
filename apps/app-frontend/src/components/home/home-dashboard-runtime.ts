@@ -24,6 +24,8 @@ export type HomeDashboardRuntime = {
 	favoriteWorlds: Ref<WorldWithInstance[]>
 	recentWorlds: Ref<WorldWithInstance[]>
 	runningInstanceIds: Ref<string[]>
+	/** Every managed local server, including the ones not pinned to Home. */
+	localServers: Ref<ServerInfoData[]>
 	pinnedLocalServers: Ref<ServerInfoData[]>
 	gameVersions: Ref<GameVersion[]>
 	instanceRevision: Ref<number>
@@ -47,6 +49,7 @@ export function provideHomeDashboardRuntime(handleError: ErrorHandler): HomeDash
 	const favoriteWorlds = ref<WorldWithInstance[]>([])
 	const recentWorlds = ref<WorldWithInstance[]>([])
 	const runningInstanceIds = ref<string[]>([])
+	const localServers = ref<ServerInfoData[]>([])
 	const pinnedLocalServers = ref<ServerInfoData[]>([])
 	const gameVersions = ref<GameVersion[]>([])
 	const instanceRevision = ref(0)
@@ -137,10 +140,12 @@ export function provideHomeDashboardRuntime(handleError: ErrorHandler): HomeDash
 		try {
 			const all = await serversApi.list()
 			if (generation !== pinnedLocalServersGeneration) return
+			localServers.value = all
 			pinnedLocalServers.value = all.filter((server) => Boolean(server.homePinnedAt))
 		} catch (error) {
 			if (generation !== pinnedLocalServersGeneration) return
 			handleError(error)
+			localServers.value = []
 			pinnedLocalServers.value = []
 		}
 	}
@@ -214,6 +219,7 @@ export function provideHomeDashboardRuntime(handleError: ErrorHandler): HomeDash
 		favoriteWorlds,
 		recentWorlds,
 		runningInstanceIds,
+		localServers,
 		pinnedLocalServers,
 		gameVersions,
 		instanceRevision,

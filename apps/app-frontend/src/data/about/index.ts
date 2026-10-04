@@ -4,6 +4,7 @@ import teamData from './team.json'
 export interface TeamMember {
 	name: string
 	avatar: string
+	avatarRemote?: string
 	url?: string
 	experience?: string
 }

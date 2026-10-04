@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 
 import { resolveAutoGcStrategy } from './auto-selector.ts'
-import type { GcContext } from './types.ts'
+import type { GcContext, GcReason } from './types.ts'
 
 function createContext(overrides: Partial<GcContext> = {}): GcContext {
 	return {
@@ -16,25 +16,29 @@ function createContext(overrides: Partial<GcContext> = {}): GcContext {
 	}
 }
 
+function reasonIds(result: { reasonChain: (string | GcReason)[] }): string[] {
+	return result.reasonChain.flatMap((entry) => (typeof entry === 'string' ? [] : [entry.id]))
+}
+
 test('hard fallback: unknown Java version falls back to G1GC', () => {
 	const context = createContext({ javaMajorVersion: null })
 	const result = resolveAutoGcStrategy(context)
 	assert.equal(result.resolvedStrategy, 'g1gc-mojang')
-	assert.ok(result.reasonChain.includes('Java 版本未知'))
+	assert.ok(reasonIds(result).includes('app.java-arguments.gc.reason.java-version-unknown'))
 })
 
 test('hard fallback: Java < 15 falls back to G1GC', () => {
 	const context = createContext({ javaMajorVersion: 11 })
 	const result = resolveAutoGcStrategy(context)
 	assert.equal(result.resolvedStrategy, 'g1gc-mojang')
-	assert.ok(result.reasonChain.includes('Java 太旧，Shenandoah/ZGC 不可靠'))
+	assert.ok(reasonIds(result).includes('app.java-arguments.gc.reason.java-too-old'))
 })
 
 test('hard fallback: memory < 4GB falls back to G1GC', () => {
 	const context = createContext({ allocatedMemoryMb: 2048 })
 	const result = resolveAutoGcStrategy(context)
 	assert.equal(result.resolvedStrategy, 'g1gc-mojang')
-	assert.ok(result.reasonChain.some((r) => r.includes('内存不足')))
+	assert.ok(reasonIds(result).includes('app.java-arguments.gc.reason.insufficient-memory'))
 })
 
 test('hard fallback: insufficient CPU resources falls back to G1GC', () => {
@@ -44,7 +48,7 @@ test('hard fallback: insufficient CPU resources falls back to G1GC', () => {
 	})
 	const result = resolveAutoGcStrategy(context)
 	assert.equal(result.resolvedStrategy, 'g1gc-mojang')
-	assert.ok(result.reasonChain.some((r) => r.includes('CPU 资源不足')))
+	assert.ok(reasonIds(result).includes('app.java-arguments.gc.reason.insufficient-cpu'))
 })
 
 test('hard fallback: large modpack with insufficient resources falls back to G1GC', () => {
@@ -54,7 +58,7 @@ test('hard fallback: large modpack with insufficient resources falls back to G1G
 	})
 	const result = resolveAutoGcStrategy(context)
 	assert.equal(result.resolvedStrategy, 'g1gc-mojang')
-	assert.ok(result.reasonChain.some((r) => r.includes('大型 ModPack')))
+	assert.ok(reasonIds(result).includes('app.java-arguments.gc.reason.large-modpack-low-memory'))
 })
 
 test('lightweight vanilla instance selects G1GC', () => {
@@ -64,7 +68,7 @@ test('lightweight vanilla instance selects G1GC', () => {
 	})
 	const result = resolveAutoGcStrategy(context)
 	assert.equal(result.resolvedStrategy, 'g1gc-mojang')
-	assert.ok(result.reasonChain.some((r) => r.includes('轻量实例')))
+	assert.ok(reasonIds(result).includes('app.java-arguments.gc.reason.lightweight-instance'))
 })
 
 test('lightweight fabric instance selects G1GC', () => {
@@ -74,7 +78,7 @@ test('lightweight fabric instance selects G1GC', () => {
 	})
 	const result = resolveAutoGcStrategy(context)
 	assert.equal(result.resolvedStrategy, 'g1gc-mojang')
-	assert.ok(result.reasonChain.some((r) => r.includes('轻量实例')))
+	assert.ok(reasonIds(result).includes('app.java-arguments.gc.reason.lightweight-instance'))
 })
 
 test('low resources selects G1GC', () => {
@@ -84,7 +88,7 @@ test('low resources selects G1GC', () => {
 	})
 	const result = resolveAutoGcStrategy(context)
 	assert.equal(result.resolvedStrategy, 'g1gc-mojang')
-	assert.ok(result.reasonChain.some((r) => r.includes('资源低')))
+	assert.ok(reasonIds(result).includes('app.java-arguments.gc.reason.low-resources'))
 })
 
 test('medium resources selects Shenandoah', () => {
@@ -94,7 +98,7 @@ test('medium resources selects Shenandoah', () => {
 	})
 	const result = resolveAutoGcStrategy(context)
 	assert.equal(result.resolvedStrategy, 'shenandoah')
-	assert.ok(result.reasonChain.some((r) => r.includes('资源中')))
+	assert.ok(reasonIds(result).includes('app.java-arguments.gc.reason.medium-resources'))
 })
 
 test('high resources with Java < 21 selects Shenandoah', () => {
@@ -105,7 +109,7 @@ test('high resources with Java < 21 selects Shenandoah', () => {
 	})
 	const result = resolveAutoGcStrategy(context)
 	assert.equal(result.resolvedStrategy, 'shenandoah')
-	assert.ok(result.reasonChain.some((r) => r.includes('Java < 21')))
+	assert.ok(reasonIds(result).includes('app.java-arguments.gc.reason.zgc-non-generational'))
 })
 
 test('high resources with Java >= 21 selects ZGC', () => {
@@ -116,7 +120,7 @@ test('high resources with Java >= 21 selects ZGC', () => {
 	})
 	const result = resolveAutoGcStrategy(context)
 	assert.equal(result.resolvedStrategy, 'zgc')
-	assert.ok(result.reasonChain.some((r) => r.includes('内存充足且 CPU 核心数高')))
+	assert.ok(reasonIds(result).includes('app.java-arguments.gc.reason.ample-memory-high-cores'))
 })
 
 test('Java 21 with insufficient resources for ZGC selects Shenandoah', () => {
@@ -127,7 +131,7 @@ test('Java 21 with insufficient resources for ZGC selects Shenandoah', () => {
 	})
 	const result = resolveAutoGcStrategy(context)
 	assert.equal(result.resolvedStrategy, 'shenandoah')
-	assert.ok(result.reasonChain.some((r) => r.includes('资源未达到 ZGC 推荐配置')))
+	assert.ok(reasonIds(result).includes('app.java-arguments.gc.reason.below-zgc-recommendation'))
 })
 
 test('reason chain contains all decision nodes', () => {

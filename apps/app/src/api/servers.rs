@@ -10,6 +10,9 @@ pub fn init<R: tauri::Runtime>() -> tauri::plugin::TauriPlugin<R> {
             servers_create,
             servers_update_settings,
             servers_set_icon,
+            servers_set_linked_world,
+            servers_is_local_address,
+            servers_wait_until_ready,
             servers_delete,
             servers_read_file,
             servers_write_file,
@@ -88,6 +91,36 @@ pub async fn servers_set_icon(
     icon_path: Option<String>,
 ) -> Result<servers::ServerManifest> {
     Ok(servers::set_icon(server_id, icon_path).await?)
+}
+
+/// Links a server to the saved multiplayer entry its address points at, or
+/// clears the link when `linked` is `None`.
+#[tauri::command]
+pub async fn servers_set_linked_world(
+    server_id: &str,
+    linked: Option<servers::LinkedWorld>,
+) -> Result<servers::ServerManifest> {
+    Ok(servers::set_linked_world(server_id, linked).await?)
+}
+
+/// Whether a server address points at this machine (localhost, loopback, or a
+/// local interface address).
+#[tauri::command]
+pub async fn servers_is_local_address(address: &str) -> Result<bool> {
+    Ok(servers::is_local_address(address))
+}
+
+/// Waits until a running server accepts connections on its port.
+#[tauri::command]
+pub async fn servers_wait_until_ready(
+    server_id: &str,
+    timeout_ms: Option<u64>,
+) -> Result<bool> {
+    Ok(servers::wait_until_ready(
+        server_id,
+        timeout_ms.unwrap_or(servers::DEFAULT_READY_TIMEOUT_MS),
+    )
+    .await?)
 }
 
 #[tauri::command]

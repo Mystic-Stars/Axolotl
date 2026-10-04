@@ -75,6 +75,10 @@ const messages = defineMessages({
 	downloadFailed: { id: 'app.servers.status.download-failed', defaultMessage: 'Download failed' },
 	openFolder: { id: 'app.servers.action.open-folder', defaultMessage: 'Open folder' },
 	share: { id: 'app.servers.action.share', defaultMessage: 'Share online' },
+	switchWarning: {
+		id: 'app.multiplayer.switch-warning',
+		defaultMessage: 'Switching services will disconnect the current multiplayer session. Continue?',
+	},
 	notFound: {
 		id: 'app.servers.detail.not-found',
 		defaultMessage: 'This server no longer exists.',
@@ -286,9 +290,23 @@ async function resetServerIcon() {
 }
 
 async function shareOnline() {
-	if (!server.value?.port) return
-	await router.push({ path: '/multiplayer/rooms' })
-	void multiplayerSession.hostHongshi(server.value.port, null, null)
+	const port = server.value?.port
+	if (!port || multiplayerSession.isActionPending.value || multiplayerSession.isStopping.value)
+		return
+	if (
+		multiplayerSession.activeProvider.value &&
+		multiplayerSession.activeProvider.value !== 'hongshi'
+	) {
+		if (!window.confirm(formatMessage(messages.switchWarning))) return
+		if (!(await multiplayerSession.switchProvider('hongshi'))) return
+	}
+	localStorage.setItem('axolotl-multiplayer-provider', 'hongshi')
+	const pending = multiplayerSession.hostHongshi(port, null, null)
+	await router.push({
+		path: '/multiplayer/rooms',
+		query: { provider: 'hongshi', port: String(port) },
+	})
+	await pending
 }
 </script>
 
@@ -403,6 +421,9 @@ async function shareOnline() {
 					<Button
 						v-if="server.status === 'running' && server.port"
 						type="outlined"
+						:disabled="
+							multiplayerSession.isActionPending.value || multiplayerSession.isStopping.value
+						"
 						@click="shareOnline"
 						><GlobeIcon />
 						{{ formatMessage(messages.share) }}

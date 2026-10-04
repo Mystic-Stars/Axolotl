@@ -2,16 +2,20 @@
 	<SidebarSection :title="formatMessage(messages.title)" :visible="hasContent">
 		<div
 			v-if="ipAddress"
-			v-tooltip="formatMessage(messages.addressTooltip)"
-			class="bg-surface-4 flex gap-2 justify-between rounded-2xl items-center px-3 pr-1.5 h-12 cursor-pointer hover:bg-button-bg-hover hover:brightness-125 transition-all active:scale-95"
-			@click="handleCopyIP"
+			class="bg-surface-4 flex gap-2 justify-between rounded-2xl items-center px-3 pr-1.5 h-12"
 		>
 			<div class="font-semibold truncate">
 				{{ ipAddress }}
 			</div>
-			<div class="w-9 h-9 grid place-content-center">
+			<Button
+				v-tooltip="formatMessage(messages.addressTooltip)"
+				icon-only
+				type="quiet"
+				:aria-label="formatMessage(messages.addressTooltip)"
+				@click="handleCopyIP"
+			>
 				<CopyIcon class="shrink-0" />
-			</div>
+			</Button>
 		</div>
 
 		<section v-if="requiredContent" class="flex flex-col gap-2">
@@ -93,6 +97,7 @@ import { computed } from 'vue'
 
 import { defineMessages, useVIntl } from '../../composables'
 import { injectNotificationManager } from '../../providers'
+import Button from '../base/buttons/Button.vue'
 import FormattedTag from '../base/FormattedTag.vue'
 import TagItem from '../base/TagItem.vue'
 import ServerModpackContentCard from './server/ServerModpackContentCard.vue'

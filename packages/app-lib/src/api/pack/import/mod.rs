@@ -6,6 +6,7 @@ use std::{
 use futures::stream::{FuturesUnordered, StreamExt};
 use io::IOError;
 use serde::{Deserialize, Serialize};
+use tempfile::Builder as TempFileBuilder;
 
 use crate::{
     install::{
@@ -1127,6 +1128,93 @@ async fn collect_dotminecraft_files(
     Ok(collected)
 }
 
+async fn copy_import_file_atomically(
+    src: &Path,
+    dest: &Path,
+    io_semaphore: &IoSemaphore,
+) -> crate::Result<()> {
+    let _permit = io_semaphore.0.acquire().await?;
+    let parent = dest.parent().ok_or_else(|| {
+        crate::ErrorKind::InputError(format!(
+            "Import destination has no parent directory: {}",
+            dest.display()
+        ))
+    })?;
+    io::create_dir_all(parent).await?;
+
+    let temporary = create_import_temp_path(parent, ".axolotl-import-").await?;
+    io::copy(src, &temporary).await?;
+
+    let backup = if tokio::fs::try_exists(dest).await? {
+        let backup =
+            create_import_temp_path(parent, ".axolotl-import-backup-").await?;
+        tokio::fs::remove_file(&backup).await?;
+        tokio::fs::rename(dest, &backup).await.map_err(|error| {
+            crate::ErrorKind::IOError(IOError::with_path(error, dest))
+        })?;
+        Some(backup)
+    } else {
+        None
+    };
+
+    if let Err(error) = tokio::fs::rename(&temporary, dest).await {
+        if let Some(backup) = backup {
+            let backup_path = backup.to_path_buf();
+            if let Err(recovery_error) = tokio::fs::rename(&backup, dest).await
+            {
+                let retained_path = match backup.keep() {
+                    Ok(path) => path,
+                    Err(keep_error) => {
+                        return Err(crate::ErrorKind::FSError(format!(
+                            "Failed to replace '{}' ({error}) and restore the original file ({recovery_error}); preserving backup '{}' also failed ({keep_error})",
+                            dest.display(),
+                            backup_path.display(),
+                        ))
+                        .into());
+                    }
+                };
+                return Err(crate::ErrorKind::FSError(format!(
+                    "Failed to replace '{}' ({error}) and restore the original file ({recovery_error}); backup retained at '{}'",
+                    dest.display(),
+                    retained_path.display(),
+                ))
+                .into());
+            }
+        }
+        return Err(
+            crate::ErrorKind::IOError(IOError::with_path(error, dest)).into()
+        );
+    }
+
+    if let Some(backup) = backup {
+        let _ = tokio::fs::remove_file(backup).await;
+    }
+    Ok(())
+}
+
+async fn create_import_temp_path(
+    parent: &Path,
+    prefix: &str,
+) -> crate::Result<tempfile::TempPath> {
+    let parent = parent.to_path_buf();
+    let prefix = prefix.to_string();
+    Ok(tokio::task::spawn_blocking(move || {
+        TempFileBuilder::new()
+            .prefix(&prefix)
+            .tempfile_in(&parent)
+            .map(|file| file.into_temp_path())
+            .map_err(|error| {
+                crate::ErrorKind::IOError(IOError::with_path(error, &parent))
+            })
+    })
+    .await
+    .map_err(|error| {
+        crate::ErrorKind::FSError(format!(
+            "Import temp-file task failed: {error}"
+        ))
+    })??)
+}
+
 /// Copies the collected files into the instance profile concurrently, bounded
 /// by the I/O semaphore, reporting progress after every completed file.
 async fn copy_files_with_progress(
@@ -1147,43 +1235,48 @@ async fn copy_files_with_progress(
         })
         .map(|(src, dst)| {
             async move {
-                // Skip copying if destination file exists and is identical
-                if tokio::fs::metadata(&dst).await.is_ok()
-                    && let (Ok(src_meta), Ok(dst_meta)) = (
-                        tokio::fs::metadata(&src).await,
-                        tokio::fs::metadata(&dst).await,
-                    )
-                {
-                    // If files have identical size and modification time, skip copying
-                    if src_meta.len() == dst_meta.len()
-                        && src_meta.modified().ok() == dst_meta.modified().ok()
-                    {
-                        return Ok::<_, crate::Error>(());
-                    }
-                }
-
-                // Proceed with copy
-                fetch::copy(&src, &dst, io_semaphore).await?;
-                Ok(())
+                // Always copy the source file. Size and modification time are not
+                // a content identity, and the temporary-file swap prevents a
+                // failed copy from leaving a partial destination behind.
+                copy_import_file_atomically(&src, &dst, io_semaphore).await?;
+                Ok::<(), crate::Error>(())
             }
         })
         .collect();
 
     let mut completed: u64 = 0;
+    let mut first_error = None;
     while let Some(result) = copy_tasks.next().await {
-        result?;
-        completed += 1;
-        reporter
-            .update(
-                InstallPhaseId::PreparingInstance,
-                Some(InstallProgress {
-                    current: completed,
-                    total,
-                    secondary: None,
-                }),
-                details.clone(),
-            )
-            .await?;
+        match result {
+            Ok(()) => {
+                completed += 1;
+                if first_error.is_none() {
+                    if let Err(error) = reporter
+                        .update(
+                            InstallPhaseId::PreparingInstance,
+                            Some(InstallProgress {
+                                current: completed,
+                                total,
+                                secondary: None,
+                            }),
+                            details.clone(),
+                        )
+                        .await
+                    {
+                        first_error = Some(error);
+                    }
+                }
+            }
+            Err(error) => {
+                if first_error.is_none() {
+                    first_error = Some(error);
+                }
+            }
+        }
+    }
+
+    if let Some(error) = first_error {
+        return Err(error);
     }
 
     // Final 100% report (ensures the bar fills even if reporter throttles the last update)
@@ -1200,6 +1293,42 @@ async fn copy_files_with_progress(
         .await?;
 
     Ok(())
+}
+
+#[cfg(test)]
+mod import_copy_tests {
+    use super::{IoSemaphore, copy_import_file_atomically};
+    use std::fs;
+    use tempfile::tempdir;
+    use tokio::sync::Semaphore;
+
+    #[tokio::test]
+    async fn replaces_existing_file_without_leaving_staging_files() {
+        let root = tempdir().unwrap();
+        let source = root.path().join("source.bin");
+        let destination = root.path().join("instance").join("config.bin");
+        fs::write(&source, b"new contents").unwrap();
+        fs::create_dir_all(destination.parent().unwrap()).unwrap();
+        fs::write(&destination, b"stale contents").unwrap();
+
+        copy_import_file_atomically(
+            &source,
+            &destination,
+            &IoSemaphore(Semaphore::new(1)),
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(fs::read(&destination).unwrap(), b"new contents");
+        let leftovers: Vec<_> = fs::read_dir(destination.parent().unwrap())
+            .unwrap()
+            .map(|entry| entry.unwrap().file_name())
+            .filter(|name| {
+                name.to_string_lossy().starts_with(".axolotl-import-")
+            })
+            .collect();
+        assert!(leftovers.is_empty(), "staging files remain: {leftovers:?}");
+    }
 }
 
 /// Determines the real game working directory for an import whose source is a

@@ -3,7 +3,7 @@
 		v-if="filteredLinks.length > 1"
 		ref="scrollContainer"
 		:role="mode === 'local' ? 'tablist' : undefined"
-		class="relative flex w-fit overflow-x-auto rounded-full bg-surface-3 p-1 text-sm font-bold"
+		class="relative flex w-fit select-none overflow-x-auto rounded-full bg-surface-3 p-1 text-sm font-bold"
 		:class="{ 'shadow-xl border border-solid border-surface-4': mode === 'navigation' }"
 	>
 		<template v-if="mode === 'navigation'">

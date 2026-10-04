@@ -698,6 +698,15 @@
   "app.appearance-settings.page-transitions.title": {
     "message": "Page transition animations"
   },
+  "app.appearance-settings.sections.advanced-interface": {
+    "message": "Advanced interface"
+  },
+  "app.appearance-settings.sections.content-behavior": {
+    "message": "Content behavior"
+  },
+  "app.appearance-settings.sections.home-navigation": {
+    "message": "Home & navigation"
+  },
   "app.appearance-settings.select-option": {
     "message": "Select an option"
   },
@@ -2405,14 +2414,38 @@
   "app.home.recent.title": {
     "message": "Start from your recent projects"
   },
+  "app.home.servers.change-local-server": {
+    "message": "Change linked local server"
+  },
   "app.home.servers.empty": {
     "message": "Favorite a server and it will be pinned here."
   },
   "app.home.servers.join": {
     "message": "Join server"
   },
+  "app.home.servers.link-local-server": {
+    "message": "Link to a local server"
+  },
+  "app.home.servers.link-picker.description": {
+    "message": "Launching this server from Home will start the chosen local server first and wait until it is ready."
+  },
+  "app.home.servers.link-picker.empty": {
+    "message": "No local servers yet. Create one first, then link it here."
+  },
+  "app.home.servers.link-picker.select": {
+    "message": "Link {name}"
+  },
+  "app.home.servers.link-picker.title": {
+    "message": "Link a local server"
+  },
+  "app.home.servers.linked-toast": {
+    "message": "Linked to the local server “{name}”"
+  },
   "app.home.servers.local": {
     "message": "Local"
+  },
+  "app.home.servers.local-server-not-ready": {
+    "message": "The linked local server did not start in time. Check its console and try again."
   },
   "app.home.servers.more-options": {
     "message": "More options"
@@ -2428,6 +2461,12 @@
   },
   "app.home.servers.stop": {
     "message": "Stop"
+  },
+  "app.home.servers.unlink-local-server": {
+    "message": "Unlink local server"
+  },
+  "app.home.servers.unlinked-toast": {
+    "message": "Unlinked the local server"
   },
   "app.home.servers.unpin": {
     "message": "Unpin from Home"
@@ -6030,13 +6069,16 @@
     "message": "Guest"
   },
   "app.multiplayer.hongshi.binary-missing": {
-    "message": "Download the RedStone kernel for this device before creating a room."
+    "message": "The RedStone Online 2 kernel will be installed when you create your first room."
   },
   "app.multiplayer.hongshi.cached": {
     "message": " (cached)"
   },
+  "app.multiplayer.hongshi.cancel": {
+    "message": "Cancel"
+  },
   "app.multiplayer.hongshi.closed": {
-    "message": "The RedStone room has closed. Create a new room to receive a new address."
+    "message": "The RedStone Online 2 room has closed. Create a new room to receive a new address."
   },
   "app.multiplayer.hongshi.create": {
     "message": "Create public room"
@@ -6047,17 +6089,41 @@
   "app.multiplayer.hongshi.detected-port": {
     "message": "{instance} — port {port}"
   },
-  "app.multiplayer.hongshi.download": {
-    "message": "Download RedStone"
+  "app.multiplayer.hongshi.error.build-unavailable": {
+    "message": "The RedStone Online 2 build for this device has not been published yet. Try again later."
   },
-  "app.multiplayer.hongshi.limits": {
-    "message": "Tunnels close after 10 minutes without players or 6 hours total. Maximum 10 players and 10 Mbps shared bandwidth."
+  "app.multiplayer.hongshi.error.install": {
+    "message": "Could not install the RedStone Online 2 kernel. Check your connection and try again."
+  },
+  "app.multiplayer.hongshi.error.invalid-port": {
+    "message": "Enter a local port between 1 and 65535."
+  },
+  "app.multiplayer.hongshi.error.kernel-exit": {
+    "message": "The RedStone Online 2 kernel stopped unexpectedly. Create a new room or open the logs."
+  },
+  "app.multiplayer.hongshi.error.kernel-output": {
+    "message": "The RedStone Online 2 kernel returned an invalid address or output. Open the logs for details."
+  },
+  "app.multiplayer.hongshi.error.kernel-start": {
+    "message": "The RedStone Online 2 kernel could not start a room. Try again or open the logs."
+  },
+  "app.multiplayer.hongshi.error.node-list": {
+    "message": "Could not load relay nodes. Check your connection and refresh the list."
+  },
+  "app.multiplayer.hongshi.error.node-unavailable": {
+    "message": "No relay could create a room. Refresh the nodes or choose another relay."
+  },
+  "app.multiplayer.hongshi.error.unknown": {
+    "message": "Could not create the RedStone Online 2 room. Try again or open the logs."
   },
   "app.multiplayer.hongshi.local-port": {
     "message": "Local Minecraft port"
   },
   "app.multiplayer.hongshi.manual-port": {
     "message": "Enter port manually"
+  },
+  "app.multiplayer.hongshi.no-nodes": {
+    "message": "No relay nodes are listed right now. Refresh the list to try again."
   },
   "app.multiplayer.hongshi.node": {
     "message": "Relay node"
@@ -6069,7 +6135,7 @@
     "message": "{name} — {latency} ms{cached}"
   },
   "app.multiplayer.hongshi.open-logs": {
-    "message": "Open RedStone logs"
+    "message": "Open RedStone Online 2 logs"
   },
   "app.multiplayer.hongshi.port-changed": {
     "message": "Minecraft opened a different LAN port. Restart the tunnel before sharing it."
@@ -6081,7 +6147,7 @@
     "message": "Public address"
   },
   "app.multiplayer.hongshi.public-address-hint": {
-    "message": "Friends can enter this address directly in Minecraft. They do not need RedStone."
+    "message": "Friends can enter this address directly in Minecraft. They do not need RedStone Online 2."
   },
   "app.multiplayer.hongshi.refresh-nodes": {
     "message": "Refresh nodes"
@@ -6096,7 +6162,7 @@
     "message": "unreachable"
   },
   "app.multiplayer.hongshi.unsupported": {
-    "message": "RedStone is not available for this operating system or architecture."
+    "message": "RedStone Online 2 is not available for this operating system or architecture."
   },
   "app.multiplayer.host": {
     "message": "Host"
@@ -6150,7 +6216,7 @@
     "message": "Powered by Terracotta"
   },
   "app.multiplayer.provider.hongshi": {
-    "message": "RedStone"
+    "message": "RedStone Online 2"
   },
   "app.multiplayer.provider.terracotta": {
     "message": "Terracotta"
@@ -6540,10 +6606,10 @@
     "message": "Axolotl guide"
   },
   "app.onboarding.offline-account.description": {
-    "message": "Prefer not to sign in yet? Open Playing as in the sidebar and add an offline Minecraft account with just a username."
+    "message": "Open Playing as in the sidebar to add an offline Minecraft account. You may need to sign in with an official Minecraft account on this device first."
   },
   "app.onboarding.offline-account.title": {
-    "message": "Play without signing in"
+    "message": "Offline accounts"
   },
   "app.onboarding.privacy.description": {
     "message": "Manage anonymous telemetry, Discord Rich Presence, and the Minecraft log analysis service whenever you need to."
@@ -7091,6 +7157,18 @@
   "app.servers.modpack.unsupported-loader-title": {
     "message": "{loader} servers are not supported yet"
   },
+  "app.servers.online-mode-warning.body": {
+    "message": "“{server}” has online-mode enabled, but the account you are using (“{account}”) is an offline account. The server will refuse the connection. Start anyway?"
+  },
+  "app.servers.online-mode-warning.cancel": {
+    "message": "Cancel"
+  },
+  "app.servers.online-mode-warning.confirm": {
+    "message": "Start anyway"
+  },
+  "app.servers.online-mode-warning.title": {
+    "message": "This server requires a premium account"
+  },
   "app.servers.port.change": {
     "message": "Change port"
   },
@@ -7593,7 +7671,7 @@
     "message": "Click to open a hidden Mini Game"
   },
   "app.settings.about.easteregg.contributors-title": {
-    "message": "贡献者彩蛋"
+    "message": "Contributor Easter Egg"
   },
   "app.settings.about.easteregg.game-title": {
     "message": "Mini Game"
@@ -7694,6 +7772,93 @@
   "app.settings.about.repository": {
     "message": "Source code"
   },
+  "app.settings.about.run.apex": {
+    "message": "Apex clear +{score}"
+  },
+  "app.settings.about.run.best": {
+    "message": "Best: {score}"
+  },
+  "app.settings.about.run.best-label": {
+    "message": "Best"
+  },
+  "app.settings.about.run.chain": {
+    "message": "Chain!"
+  },
+  "app.settings.about.run.chain-jump": {
+    "message": "Chain jump +{score}"
+  },
+  "app.settings.about.run.combo": {
+    "message": "Combo {count}"
+  },
+  "app.settings.about.run.conduit": {
+    "message": "Conduit power"
+  },
+  "app.settings.about.run.diamond": {
+    "message": "Diamond"
+  },
+  "app.settings.about.run.dolphin": {
+    "message": "Dolphin’s Grace"
+  },
+  "app.settings.about.run.exit": {
+    "message": "Exit game"
+  },
+  "app.settings.about.run.game-over": {
+    "message": "Game over"
+  },
+  "app.settings.about.run.hold-to-jump": {
+    "message": "Short tap for a small hop, hold for a high jump"
+  },
+  "app.settings.about.run.last-stand": {
+    "message": "Last stand +{score}"
+  },
+  "app.settings.about.run.milk": {
+    "message": "Milk"
+  },
+  "app.settings.about.run.new-record": {
+    "message": "New record!"
+  },
+  "app.settings.about.run.poison": {
+    "message": "Poison"
+  },
+  "app.settings.about.run.restart": {
+    "message": "Restart"
+  },
+  "app.settings.about.run.score": {
+    "message": "Score: {score}"
+  },
+  "app.settings.about.run.score-label": {
+    "message": "Score"
+  },
+  "app.settings.about.run.shield": {
+    "message": "Shield"
+  },
+  "app.settings.about.run.slow": {
+    "message": "Slowness"
+  },
+  "app.settings.about.run.slow-fall": {
+    "message": "Slow Falling"
+  },
+  "app.settings.about.run.stew": {
+    "message": "Suspicious Stew"
+  },
+  "app.settings.about.run.streak": {
+    "message": "No damage x{count}"
+  },
+  "app.settings.about.run.swift": {
+    "message": "Swiftness"
+  },
+  "app.settings.about.run.tap-to-start": {
+    "message": "Press Space or click to start"
+  },
+  "app.settings.about.run.tnt": {
+    "message": "TNT"
+  },
+  "app.settings.about.run.title": {
+    "message": "Axolotl run"
+  },
+  "app.settings.about.run.totem": {
+    "message": "Totem of Undying"
+  },
   "app.settings.about.test-error": {
     "message": "Trigger test error"
   },
@@ -7784,6 +7949,18 @@
   "app.settings.defaults.pre-launch-placeholder": {
     "message": "Enter pre-launch command..."
   },
+  "app.settings.defaults.sections.after-launch": {
+    "message": "After launch behavior"
+  },
+  "app.settings.defaults.sections.environment": {
+    "message": "Environment variables"
+  },
+  "app.settings.defaults.sections.launch-hooks": {
+    "message": "Launch hooks"
+  },
+  "app.settings.defaults.sections.window-behavior": {
+    "message": "Window behavior"
+  },
   "app.settings.defaults.width": {
     "message": "Width"
   },
@@ -7826,6 +8003,21 @@
   "app.settings.developer.announcement-preview-description": {
     "message": "Preview the real announcement components using local sample content, without fetching or marking real announcements as read."
   },
+  "app.settings.developer.clear-official-login-marker": {
+    "message": "Clear login record"
+  },
+  "app.settings.developer.feature-flags-section-title": {
+    "message": "Feature flags"
+  },
+  "app.settings.developer.official-login-description": {
+    "message": "Clear the official Minecraft sign-in record. You may need to sign in again before creating or using offline accounts."
+  },
+  "app.settings.developer.official-login-marker-cleared": {
+    "message": "Official Minecraft login record cleared"
+  },
+  "app.settings.developer.official-login-section": {
+    "message": "Official Minecraft login record"
+  },
   "app.settings.developer.preview-announcement-modal": {
     "message": "Preview startup modal"
   },
@@ -7838,8 +8030,53 @@
   "app.settings.downloading": {
     "message": "Downloading v{version}"
   },
+  "app.settings.feature-flags.advanced-filters-collapsed": {
+    "message": "Collapse advanced filters by default"
+  },
+  "app.settings.feature-flags.always-show-app-controls": {
+    "message": "Always show app controls"
+  },
+  "app.settings.feature-flags.auto-install-dependencies": {
+    "message": "Automatically install dependencies"
+  },
+  "app.settings.feature-flags.i18n-debug": {
+    "message": "Translation debugging"
+  },
+  "app.settings.feature-flags.page-path": {
+    "message": "Page path"
+  },
+  "app.settings.feature-flags.page-transitions": {
+    "message": "Page transitions"
+  },
+  "app.settings.feature-flags.project-background": {
+    "message": "Project backgrounds"
+  },
   "app.settings.feature-flags.reset-to-default": {
     "message": "Reset to default"
+  },
+  "app.settings.feature-flags.server-project-qa": {
+    "message": "Server project QA"
+  },
+  "app.settings.feature-flags.server-ram-as-bytes-always-on": {
+    "message": "Always show server RAM as bytes"
+  },
+  "app.settings.feature-flags.show-instance-play-time": {
+    "message": "Show instance play time"
+  },
+  "app.settings.feature-flags.show-version-environment-column": {
+    "message": "Show version environment column"
+  },
+  "app.settings.feature-flags.skip-non-essential-warnings": {
+    "message": "Skip non-essential warnings"
+  },
+  "app.settings.feature-flags.skip-unknown-pack-warning": {
+    "message": "Skip unknown pack warnings"
+  },
+  "app.settings.feature-flags.worlds-in-home": {
+    "message": "Worlds on home page"
+  },
+  "app.settings.feature-flags.worlds-tab": {
+    "message": "Worlds tab"
   },
   "app.settings.game-options.category.accessibility.description": {
     "message": "Accessibility preferences"
@@ -9068,6 +9305,9 @@
   "app.settings.privacy.discord-rpc-description": {
     "message": "Show your current launcher or game activity in Discord."
   },
+  "app.settings.privacy.section-title": {
+    "message": "Privacy & data sharing"
+  },
   "app.settings.privacy.telemetry": {
     "message": "Allow telemetry"
   },
@@ -9277,6 +9517,18 @@
   },
   "app.settings.resources.reset-import-directory": {
     "message": "Use system Downloads folder"
+  },
+  "app.settings.resources.sections.data-storage": {
+    "message": "Data directories & cache"
+  },
+  "app.settings.resources.sections.download-behavior": {
+    "message": "Download behavior"
+  },
+  "app.settings.resources.sections.missing-content": {
+    "message": "Missing content"
+  },
+  "app.settings.resources.sections.network-authentication": {
+    "message": "Network authentication"
   },
   "app.settings.resources.select-directory": {
     "message": "Select a new app directory"
@@ -10276,6 +10528,9 @@
   },
   "app.translation-settings.display-mode.translation-only": {
     "message": "Translation only"
+  },
+  "app.translation-settings.display-section-title": {
+    "message": "Translation display"
   },
   "app.translation-settings.google-ip-pool": {
     "message": "IP pool {count}"
@@ -12755,6 +13010,24 @@
   "minecraft-account.remove-account": {
     "message": "Remove account"
   },
+  "minecraft-account.restriction.buy": {
+    "message": "Buy Minecraft"
+  },
+  "minecraft-account.restriction.description": {
+    "message": "Sign in with an official Minecraft account on this device before creating or using offline accounts. If you do not own Minecraft yet, you can purchase it from the official website."
+  },
+  "minecraft-account.restriction.open-failed": {
+    "message": "Could not open the Minecraft store"
+  },
+  "minecraft-account.restriction.open-failed-description": {
+    "message": "Try again, or open https://www.minecraft.net in your browser to purchase Minecraft."
+  },
+  "minecraft-account.restriction.sign-in": {
+    "message": "Sign in with Minecraft"
+  },
+  "minecraft-account.restriction.title": {
+    "message": "Offline accounts are unavailable"
+  },
   "minecraft-account.select-account": {
     "message": "Select account"
   },
@@ -12929,91 +13202,136 @@
   "unknown-pack-warning-modal.warning.title": {
     "message": "Unknown file warning"
   },
-  "app.appearance-settings.sections.advanced-interface": {
-    "message": "Advanced interface"
+  "app.settings.privacy.security-title": {
+    "message": "Security"
   },
-  "app.appearance-settings.sections.content-behavior": {
-    "message": "Content behavior"
+  "app.settings.privacy.privileged-scheme-description": {
+    "message": "Let axolotl:// links change settings and stop game processes. Turning this on requires reading a risk warning; every action still asks for your confirmation."
   },
-  "app.appearance-settings.sections.home-navigation": {
-    "message": "Home & navigation"
+  "app.settings.privacy.privileged-scheme": {
+    "message": "Allow privileged link actions"
   },
-  "app.settings.defaults.sections.after-launch": {
-    "message": "After launch behavior"
+  "app.settings.privacy.external-scheme-description": {
+    "message": "Respond to axolotl:// links from browsers and other apps. Turning this off blocks launches, installs and page jumps from outside."
   },
-  "app.settings.defaults.sections.environment": {
-    "message": "Environment variables"
+  "app.settings.privacy.external-scheme": {
+    "message": "Allow external links"
   },
-  "app.settings.defaults.sections.launch-hooks": {
-    "message": "Launch hooks"
+  "app.privileged-modal.stopped": {
+    "message": "Stop request sent"
   },
-  "app.settings.defaults.sections.window-behavior": {
-    "message": "Window behavior"
+  "app.privileged-modal.no-processes": {
+    "message": "No running game processes for this instance"
   },
-  "app.settings.developer.feature-flags-section-title": {
-    "message": "Feature flags"
+  "app.privileged-modal.applied": {
+    "message": "Privileged link applied"
   },
-  "app.settings.privacy.section-title": {
-    "message": "Privacy & data sharing"
+  "app.privileged-consent.warning": {
+    "message": "These actions can change security-sensitive settings and stop games"
   },
-  "app.settings.resources.sections.data-storage": {
-    "message": "Data directories & cache"
+  "app.privileged-consent.title": {
+    "message": "Enable privileged link actions?"
   },
-  "app.settings.resources.sections.download-behavior": {
-    "message": "Download behavior"
+  "app.privileged-consent.danger": {
+    "message": "External links will be able to change settings (theme, launch commands, directories, network options, etc.) and stop running games. You will still confirm each action before it executes."
   },
-  "app.settings.resources.sections.missing-content": {
-    "message": "Missing content"
+  "app.privileged-consent.confirm": {
+    "message": "Enable"
   },
-  "app.settings.resources.sections.network-authentication": {
-    "message": "Network authentication"
+  "app.privileged-consent.acknowledge": {
+    "message": "I understand the risks and want to enable privileged link actions"
   },
-  "app.translation-settings.display-section-title": {
-    "message": "Translation display"
+  "app.page-path.copy": {
+    "message": "Copy page path"
   },
-  "app.settings.feature-flags.project-background": {
-    "message": "Project backgrounds"
+  "app.page-path.copied": {
+    "message": "Copied"
   },
-  "app.settings.feature-flags.page-path": {
-    "message": "Page path"
+  "app.notification.error-occurred": {
+    "message": "An error occurred"
   },
-  "app.settings.feature-flags.worlds-tab": {
-    "message": "Worlds tab"
+  "app.lab.mod-translation.timeline.title": {
+    "message": "Processing timeline ({count})"
   },
-  "app.settings.feature-flags.worlds-in-home": {
-    "message": "Worlds on home page"
+  "app.lab.mod-translation.timeline.empty": {
+    "message": "Waiting for processing events…"
   },
-  "app.settings.feature-flags.server-project-qa": {
-    "message": "Server project QA"
+  "app.lab.mod-translation.technical-details": {
+    "message": "Technical details"
   },
-  "app.settings.feature-flags.show-version-environment-column": {
-    "message": "Show version environment column"
+  "app.lab.mod-translation.result.mod-label": {
+    "message": "Mod"
   },
-  "app.settings.feature-flags.server-ram-as-bytes-always-on": {
-    "message": "Always show server RAM as bytes"
+  "app.lab.mod-translation.result.completed-warnings": {
+    "message": "Generated, but some text is still uncovered"
   },
-  "app.settings.feature-flags.always-show-app-controls": {
-    "message": "Always show app controls"
+  "app.lab.mod-translation.result.completed": {
+    "message": "Translation complete"
   },
-  "app.settings.feature-flags.skip-non-essential-warnings": {
-    "message": "Skip non-essential warnings"
+  "app.lab.mod-translation.result.class-text": {
+    "message": "Class text"
   },
-  "app.settings.feature-flags.skip-unknown-pack-warning": {
-    "message": "Skip unknown pack warnings"
+  "app.lab.mod-translation.result.changed-files": {
+    "message": "Changed files: {files}"
   },
-  "app.settings.feature-flags.i18n-debug": {
-    "message": "Translation debugging"
+  "app.lab.mod-translation.progress.workload-measuring": {
+    "message": "Establishing a verifiable workload…"
   },
-  "app.settings.feature-flags.show-instance-play-time": {
-    "message": "Show instance play time"
+  "app.lab.mod-translation.progress.verified-weights": {
+    "message": "Verified {verified} / {total}"
   },
-  "app.settings.feature-flags.page-transitions": {
-    "message": "Page transitions"
+  "app.lab.mod-translation.progress.recently-written": {
+    "message": "Recently written"
   },
-  "app.settings.feature-flags.advanced-filters-collapsed": {
-    "message": "Collapse advanced filters by default"
+  "app.lab.mod-translation.progress.current-batch": {
+    "message": "Batch {completed} / {total}"
   },
-  "app.settings.feature-flags.auto-install-dependencies": {
-    "message": "Automatically install dependencies"
+  "app.lab.mod-translation.copy-diagnostics-info": {
+    "message": "Copy diagnostic information"
+  },
+  "app.lab.mod-translation.copy-diagnostics": {
+    "message": "Copy diagnostics"
+  },
+  "app.java-arguments.gc.reason.zgc-non-generational": {
+    "message": "Java < 21; non-generational ZGC performs poorly"
+  },
+  "app.java-arguments.gc.reason.medium-resources": {
+    "message": "Medium resources ({memory}GB, {cores} cores)"
+  },
+  "app.java-arguments.gc.reason.low-resources": {
+    "message": "Low resources ({memory}GB, {cores} cores)"
+  },
+  "app.java-arguments.gc.reason.lightweight-instance": {
+    "message": "Lightweight instance ({loader}, {mods} mods)"
+  },
+  "app.java-arguments.gc.reason.large-modpack-low-memory": {
+    "message": "Large modpack ({mods} mods) but insufficient memory ({allocated}GB < 8GB)"
+  },
+  "app.java-arguments.gc.reason.java-version-unknown": {
+    "message": "Java version unknown"
+  },
+  "app.java-arguments.gc.reason.java-too-old": {
+    "message": "Java too old; Shenandoah/ZGC unreliable"
+  },
+  "app.java-arguments.gc.reason.insufficient-memory": {
+    "message": "Insufficient memory ({allocated}GB < 4GB)"
+  },
+  "app.java-arguments.gc.reason.insufficient-cpu": {
+    "message": "Insufficient CPU ({cores} cores / {threads} threads)"
+  },
+  "app.java-arguments.gc.reason.high-resources": {
+    "message": "High resources ({memory}GB, {cores} cores)"
+  },
+  "app.java-arguments.gc.reason.heavy-instance": {
+    "message": "Heavy instance ({loader}, {mods} mods)"
+  },
+  "app.java-arguments.gc.reason.below-zgc-recommendation": {
+    "message": "Resources below ZGC recommendation"
+  },
+  "app.java-arguments.gc.reason.ample-memory-high-cores": {
+    "message": "Ample memory and high CPU core count"
+  },
+  "app.home.widgets.source-settings": {
+    "message": "Widget settings"
   }
 }

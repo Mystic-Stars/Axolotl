@@ -34,6 +34,7 @@ import { contributors, type TeamMember, teamMembers } from '@/data/about'
 import { type AboutMemberExperience, getAboutMemberExperience } from './about-member-experiences'
 import QqChannelIcon from './QqChannelIcon.vue'
 import SettingsSection from './SettingsSection.vue'
+import TeamMemberAvatar from './TeamMemberAvatar.vue'
 
 // Load the scene independently so the About content can render immediately.
 const AboutScene = defineAsyncComponent({
@@ -56,6 +57,8 @@ const version = ref('')
 const copied = ref(false)
 const experienceHost = ref<HTMLElement>()
 const activeMemberExperience = shallowRef<AboutMemberExperience>()
+// A finished experience may be replaced by another one; a running one may not.
+const activeExperienceSettled = ref(false)
 const pressingMemberName = ref<string>()
 let longPressTimer: ReturnType<typeof window.setTimeout> | undefined
 let pressStart = { x: 0, y: 0 }
@@ -99,11 +102,21 @@ function cancelMemberLongPress() {
 function startMemberLongPress(member: TeamMember, event: PointerEvent) {
 	const experience = getAboutMemberExperience(member.experience)
 	if (!experience || event.button !== 0) return
+	// Only one member experience owns the host at a time. A game that is still
+	// being played must not be replaced; one sitting on its result screen may be.
+	if (activeMemberExperience.value && !activeExperienceSettled.value) return
 
 	cancelMemberLongPress()
 	pressStart = { x: event.clientX, y: event.clientY }
 	pressingMemberName.value = member.name
 	longPressTimer = window.setTimeout(async () => {
+		activeExperienceSettled.value = false
+		// Re-picking the same game must still restart it, so unmount the finished
+		// instance first instead of assigning an identical component definition.
+		if (activeMemberExperience.value === experience) {
+			activeMemberExperience.value = undefined
+			await nextTick()
+		}
 		activeMemberExperience.value = experience
 		suppressNextMemberClick = true
 		cancelMemberLongPress()
@@ -132,6 +145,7 @@ function handleMemberContextMenu(member: TeamMember, event: MouseEvent) {
 
 function closeMemberExperience() {
 	activeMemberExperience.value = undefined
+	activeExperienceSettled.value = false
 }
 
 const gameModal = ref<InstanceType<typeof EasterEggGameModal> | null>(null)
@@ -331,6 +345,7 @@ const projectLinks = [
 						:is="activeMemberExperience?.component"
 						v-if="activeMemberExperience"
 						@exit="closeMemberExperience"
+						@settled="activeExperienceSettled = $event"
 					/>
 				</div>
 				<div class="min-w-0 text-center">
@@ -381,7 +396,11 @@ const projectLinks = [
 							@click="handleMemberClick"
 							@contextmenu="handleMemberContextMenu(member, $event)"
 						>
-							<Avatar :src="member.avatarUrl" :alt="member.name" size="4rem" circle no-shadow />
+							<TeamMemberAvatar
+								:name="member.name"
+								:src="member.avatarUrl"
+								:remote="member.avatarRemote"
+							/>
 							<span
 								class="block truncate text-center font-semibold text-[var(--color-text-primary)]"
 								>{{ member.name }}</span
@@ -427,7 +446,7 @@ const projectLinks = [
 					:aria-label="
 						copied ? formatMessage(messages.copiedQqGroup) : formatMessage(messages.copyQqGroup)
 					"
-					class="flex min-w-0 items-center gap-3 rounded-xl bg-surface-4 p-4 text-left transition-colors hover:bg-surface-5 disabled:cursor-default"
+					class="flex w-full min-w-0 items-center gap-3 rounded-xl bg-surface-4 p-4 text-left transition-colors hover:bg-surface-5 disabled:cursor-default"
 					@click="copyQqGroupNumber"
 				>
 					<span

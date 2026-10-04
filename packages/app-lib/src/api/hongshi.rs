@@ -1,5 +1,5 @@
 use eyre::{Context, bail};
-use futures::future::join_all;
+use futures::{FutureExt, StreamExt, future::join_all};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, HashMap};
@@ -8,33 +8,42 @@ use std::path::{Path, PathBuf};
 use std::process::Stdio;
 use std::sync::{Arc, LazyLock};
 use std::time::{Duration, Instant, SystemTime};
+use tokio::io::{AsyncRead, AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpStream, lookup_host};
 use tokio::process::{Child, Command};
-use tokio::sync::Mutex;
+use tokio::sync::{Mutex, mpsc, oneshot, watch};
 use tokio::task::JoinHandle;
+use tokio_util::codec::{FramedRead, LinesCodec};
+use tokio_util::sync::CancellationToken;
 use tracing::{info, warn};
 
 use super::multiplayer::{self, MultiplayerProvider};
 
 const API_BASE: &str = "https://hongshi.site";
-const NODE_ENDPOINT: &str = "https://hongshi.site/newserver.json";
-const CONTROL_PORT: u16 = 7000;
+const NODE_ENDPOINT: &str = "https://hongshi.site/api/server/list";
+const CONTROL_PORT: u16 = 8080;
+const DATA_PORT: u16 = 8000;
 const NODE_PROBE_TIMEOUT: Duration = Duration::from_millis(1500);
 const START_TIMEOUT: Duration = Duration::from_secs(20);
 const MAX_BINARY_SIZE: u64 = 256 * 1024 * 1024;
-const DOWNLOAD_URL_CACHE_TTL: Duration = Duration::from_secs(28 * 60);
-const DOWNLOAD_RATE_LIMIT_RETRY_DELAY: Duration = Duration::from_secs(61);
+const MAX_OUTPUT_LINE: usize = 64 * 1024;
+const NODE_CACHE_TTL: Duration = Duration::from_secs(60);
+const RATE_LIMIT_RETRY_DELAY: Duration = Duration::from_secs(61);
 
 static HONGSHI_STATE: LazyLock<Mutex<HongshiState>> =
     LazyLock::new(|| Mutex::new(HongshiState::default()));
 static HONGSHI_RUNTIME: LazyLock<Mutex<HongshiRuntime>> =
     LazyLock::new(|| Mutex::new(HongshiRuntime::default()));
-static HONGSHI_OPERATION: LazyLock<Mutex<()>> =
-    LazyLock::new(|| Mutex::new(()));
-static HONGSHI_DOWNLOAD_URL: LazyLock<Mutex<Option<CachedDownloadUrl>>> =
+static BINARY_CHECK: LazyLock<Mutex<Option<BinaryCheck>>> =
     LazyLock::new(|| Mutex::new(None));
+static NODE_CACHE: LazyLock<Mutex<NodeCache>> =
+    LazyLock::new(|| Mutex::new(NodeCache::default()));
 static DETECTED_PORTS: LazyLock<Mutex<HashMap<String, DetectedLanPort>>> =
     LazyLock::new(|| Mutex::new(HashMap::new()));
+static ANSI_PATTERN: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"\x1b(?:\[[0-?]*[ -/]*[@-~]|\][^\x07\x1b]*(?:\x07|\x1b\\))")
+        .expect("valid ANSI pattern")
+});
 static LAN_PORT_PATTERNS: LazyLock<Vec<Regex>> = LazyLock::new(|| {
     [
         r"(?i)local game hosted on port\s+(\d{1,5})",
@@ -42,7 +51,7 @@ static LAN_PORT_PATTERNS: LazyLock<Vec<Regex>> = LazyLock::new(|| {
         r"(?i)successfully opened port\s+(\d{1,5})",
     ]
     .into_iter()
-    .map(|pattern| Regex::new(pattern).expect("LAN port regex should compile"))
+    .map(|pattern| Regex::new(pattern).expect("valid LAN port pattern"))
     .collect()
 });
 
@@ -54,7 +63,6 @@ pub enum HongshiStatus {
     Unsupported,
     #[default]
     Idle,
-    WaitingForPort,
     Downloading,
     SelectingNode,
     Starting,
@@ -67,13 +75,14 @@ pub enum HongshiStatus {
 #[serde(rename_all = "snake_case")]
 pub enum HongshiErrorType {
     Unsupported,
+    BuildUnavailable,
     NodeList,
     NodeUnavailable,
     InvalidPort,
     Install,
     KernelStart,
     KernelExit,
-    StatusFile,
+    KernelOutput,
     Unknown,
 }
 
@@ -114,10 +123,9 @@ pub struct HongshiState {
 
 impl Default for HongshiState {
     fn default() -> Self {
-        let supported = is_supported();
         Self {
-            supported,
-            status: if supported {
+            supported: is_supported(),
+            status: if is_supported() {
                 HongshiStatus::Idle
             } else {
                 HongshiStatus::Unsupported
@@ -131,7 +139,7 @@ impl Default for HongshiState {
             error_message: None,
             bound_instance_id: None,
             port_changed: false,
-            binary_installed: binary_installed(),
+            binary_installed: false,
             download_progress: None,
         }
     }
@@ -139,23 +147,57 @@ impl Default for HongshiState {
 
 #[derive(Default)]
 struct HongshiRuntime {
-    child: Option<Arc<Mutex<Child>>>,
-    job: Option<JobGuard>,
-    monitor: Option<JoinHandle<()>>,
-    status_file: Option<PathBuf>,
-    stopping: bool,
+    generation: u64,
+    session: Option<Session>,
+}
+
+struct Session {
+    id: u64,
+    cancellation: CancellationToken,
+    done: watch::Receiver<bool>,
+}
+
+pub struct PendingStart(oneshot::Receiver<eyre::Result<()>>);
+
+impl PendingStart {
+    pub async fn wait(self) -> eyre::Result<()> {
+        self.0
+            .await
+            .wrap_err("RedStone session task stopped unexpectedly")?
+    }
 }
 
 #[derive(Debug)]
-struct TunnelStatusFile {
-    status: String,
-    server: String,
-    port: i32,
-    created: Option<String>,
+struct Failure {
+    kind: HongshiErrorType,
+    message: String,
+}
+
+impl std::fmt::Display for Failure {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter.write_str(&self.message)
+    }
+}
+
+impl std::error::Error for Failure {}
+
+fn failure(kind: HongshiErrorType, message: impl Into<String>) -> eyre::Report {
+    eyre::Report::new(Failure {
+        kind,
+        message: message.into(),
+    })
+}
+
+fn classify(
+    error: &eyre::Report,
+    default: HongshiErrorType,
+) -> HongshiErrorType {
+    error
+        .downcast_ref::<Failure>()
+        .map_or(default, |failure| failure.kind)
 }
 
 #[cfg(target_os = "windows")]
-#[derive(Debug)]
 struct JobGuard(windows::Win32::Foundation::HANDLE);
 
 #[cfg(target_os = "windows")]
@@ -171,7 +213,6 @@ impl Drop for JobGuard {
 }
 
 #[cfg(not(target_os = "windows"))]
-#[derive(Debug)]
 struct JobGuard;
 
 #[cfg(target_os = "windows")]
@@ -185,7 +226,6 @@ fn attach_kill_on_close_job(process_id: u32) -> eyre::Result<JobGuard> {
     use windows::Win32::System::Threading::{
         OpenProcess, PROCESS_SET_QUOTA, PROCESS_TERMINATE,
     };
-
     unsafe {
         let job = CreateJobObjectW(None, windows::core::PCWSTR::null())
             .wrap_err("failed to create RedStone job object")?;
@@ -205,7 +245,7 @@ fn attach_kill_on_close_job(process_id: u32) -> eyre::Result<JobGuard> {
             false,
             process_id,
         )
-        .wrap_err("failed to open RedStone process for job assignment")?;
+        .wrap_err("failed to open RedStone process")?;
         let assignment = AssignProcessToJobObject(job, process);
         let _ = windows::Win32::Foundation::CloseHandle(process);
         assignment
@@ -217,6 +257,14 @@ fn attach_kill_on_close_job(process_id: u32) -> eyre::Result<JobGuard> {
 #[cfg(not(target_os = "windows"))]
 fn attach_kill_on_close_job(_process_id: u32) -> eyre::Result<JobGuard> {
     Ok(JobGuard)
+}
+
+fn hidden_command(path: &Path) -> Command {
+    let mut command = Command::new(path);
+    command.kill_on_drop(true).stdin(Stdio::null());
+    #[cfg(target_os = "windows")]
+    command.creation_flags(0x0800_0000);
+    command
 }
 
 pub fn is_supported() -> bool {
@@ -234,7 +282,7 @@ pub fn is_supported() -> bool {
 }
 
 fn hongshi_root() -> PathBuf {
-    let base_dir = crate::state::DirectoryInfo::global_handle_if_ready()
+    let base = crate::state::DirectoryInfo::global_handle_if_ready()
         .map(|directories| directories.config_dir.clone())
         .or_else(|| {
             crate::state::DirectoryInfo::initial_settings_dir_path(
@@ -242,53 +290,36 @@ fn hongshi_root() -> PathBuf {
             )
         })
         .unwrap_or_else(|| PathBuf::from("."));
-    base_dir.join("hongshi")
+    base.join("hongshi")
 }
 
 pub fn logs_dir() -> PathBuf {
     hongshi_root().join("logs")
 }
-
-fn binary_path() -> PathBuf {
-    hongshi_root().join(binary_name())
-}
-
-fn binary_installed() -> bool {
-    std::fs::read(binary_path()).is_ok_and(|bytes| valid_binary(&bytes))
-}
-
 fn binary_name() -> &'static str {
     if cfg!(target_os = "windows") {
-        "hongshi.exe"
+        "hongshic.exe"
     } else {
-        "hongshi"
+        "hongshic"
     }
 }
-
-fn status_file_path() -> PathBuf {
-    std::env::temp_dir()
-        .join("axolotl-hongshi")
-        .join(format!("tunnel-{}.ini", std::process::id()))
+fn binary_path() -> PathBuf {
+    hongshi_root().join("v2").join(binary_name())
 }
-
 fn node_cache_path() -> PathBuf {
-    hongshi_root().join("nodes.json")
-}
-
-fn valid_pe(bytes: &[u8]) -> bool {
-    if bytes.len() < 0x40 || bytes[0..2] != [b'M', b'Z'] {
-        return false;
-    }
-    let pe_offset =
-        u32::from_le_bytes(bytes[0x3c..0x40].try_into().unwrap()) as usize;
-    pe_offset.checked_add(4).is_some_and(|end| {
-        end <= bytes.len() && bytes[pe_offset..end] == *b"PE\0\0"
-    })
+    hongshi_root().join("v2").join("nodes.json")
 }
 
 fn valid_binary(bytes: &[u8]) -> bool {
     if cfg!(target_os = "windows") {
-        valid_pe(bytes)
+        if bytes.len() < 0x40 || !bytes.starts_with(b"MZ") {
+            return false;
+        }
+        let offset =
+            u32::from_le_bytes(bytes[0x3c..0x40].try_into().unwrap()) as usize;
+        offset.checked_add(4).is_some_and(|end| {
+            end <= bytes.len() && bytes[offset..end] == *b"PE\0\0"
+        })
     } else if cfg!(target_os = "linux") {
         bytes.starts_with(b"\x7fELF")
     } else if cfg!(target_os = "macos") {
@@ -306,42 +337,118 @@ fn valid_binary(bytes: &[u8]) -> bool {
     }
 }
 
-#[derive(Debug, Deserialize)]
-struct HongshiDownloadResponse {
-    url: String,
+struct BinaryCheck {
+    path: PathBuf,
+    modified: Option<SystemTime>,
+    length: u64,
+    permissions: std::fs::Permissions,
+    compatible: bool,
 }
 
-#[derive(Debug, Deserialize)]
-struct HongshiApiError {
-    detail: String,
+async fn compatible_help(
+    path: &Path,
+    cancellation: &CancellationToken,
+) -> eyre::Result<bool> {
+    if cancellation.is_cancelled() {
+        bail!("RedStone operation cancelled");
+    }
+    let mut child = hidden_command(path)
+        .arg("--print-help")
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()?;
+    let stdout = child
+        .stdout
+        .take()
+        .ok_or_else(|| eyre::eyre!("missing help output"))?;
+    let stderr = child
+        .stderr
+        .take()
+        .ok_or_else(|| eyre::eyre!("missing help errors"))?;
+    let read = async {
+        let mut output = Vec::new();
+        let mut errors = Vec::new();
+        let mut stdout = stdout.take((MAX_OUTPUT_LINE + 1) as u64);
+        let mut stderr = stderr.take((MAX_OUTPUT_LINE + 1) as u64);
+        let (status, _, _) = tokio::try_join!(
+            child.wait(),
+            stdout.read_to_end(&mut output),
+            stderr.read_to_end(&mut errors)
+        )?;
+        let help = String::from_utf8_lossy(&output);
+        Ok::<_, eyre::Report>(
+            status.success()
+                && output.len() <= MAX_OUTPUT_LINE
+                && errors.len() <= MAX_OUTPUT_LINE
+                && [
+                    "--to",
+                    "--game-port",
+                    "--game-host",
+                    "--control-port",
+                    "--data-port",
+                ]
+                .iter()
+                .all(|flag| help.contains(flag)),
+        )
+    };
+    let result = tokio::select! {
+        biased;
+        _ = cancellation.cancelled() => Err(eyre::eyre!("RedStone operation cancelled")),
+        result = tokio::time::timeout(Duration::from_secs(5), read) => result.wrap_err("RedStone help check timed out").and_then(|result| result),
+    };
+    if result.is_err() {
+        let _ = child.kill().await;
+    }
+    result
 }
 
-#[derive(Debug)]
-struct CachedDownloadUrl {
-    url: reqwest::Url,
-    expires_at: Instant,
+async fn compatible_binary(path: &Path) -> bool {
+    compatible_binary_cancellable(path, &CancellationToken::new()).await
 }
 
-#[derive(Debug, Deserialize)]
-#[serde(untagged)]
-enum HongshiNodeResponse {
-    Map(BTreeMap<String, String>),
-    List(Vec<HongshiNodeEntry>),
-}
-
-#[derive(Debug, Deserialize)]
-struct HongshiNodeEntry {
-    host: String,
-    #[serde(default)]
-    name: Option<String>,
-    #[serde(default)]
-    region: Option<String>,
+async fn compatible_binary_cancellable(
+    path: &Path,
+    cancellation: &CancellationToken,
+) -> bool {
+    let mut cached = tokio::select! {
+        biased;
+        _ = cancellation.cancelled() => return false,
+        cached = BINARY_CHECK.lock() => cached,
+    };
+    let Ok(metadata) = tokio::fs::metadata(path).await else {
+        *cached = None;
+        return false;
+    };
+    if let Some(check) = cached.as_ref()
+        && check.path == path
+        && check.modified == metadata.modified().ok()
+        && check.length == metadata.len()
+        && check.permissions == metadata.permissions()
+    {
+        return check.compatible;
+    }
+    let compatible = metadata.len() <= MAX_BINARY_SIZE
+        && tokio::fs::read(path)
+            .await
+            .is_ok_and(|data| valid_binary(&data))
+        && compatible_help(path, cancellation).await.unwrap_or(false);
+    if cancellation.is_cancelled() {
+        return false;
+    }
+    *cached = Some(BinaryCheck {
+        path: path.to_path_buf(),
+        modified: metadata.modified().ok(),
+        length: metadata.len(),
+        permissions: metadata.permissions(),
+        compatible,
+    });
+    compatible
 }
 
 fn download_endpoint_for(os: &str, architecture: &str) -> eyre::Result<String> {
     let platform = match os {
         "windows" => "windows",
-        "macos" => "darwin",
+        "macos" => "macos",
         "linux" => "linux",
         other => bail!("RedStone is not available on {other}"),
     };
@@ -350,24 +457,9 @@ fn download_endpoint_for(os: &str, architecture: &str) -> eyre::Result<String> {
         "aarch64" => "arm64",
         other => bail!("RedStone is not available on {other} architecture"),
     };
-    Ok(if platform == "windows" {
-        format!("{API_BASE}/api/download/windows")
-    } else {
-        format!("{API_BASE}/api/download/{platform}?arch={arch}")
-    })
-}
-
-fn download_endpoint() -> eyre::Result<String> {
-    download_endpoint_for(std::env::consts::OS, std::env::consts::ARCH)
-}
-
-fn is_daily_download_limit(detail: &str) -> bool {
-    let detail = detail.to_ascii_lowercase();
-    detail.contains("daily")
-        || detail.contains("today")
-        || detail.contains("每日")
-        || detail.contains("今日")
-        || detail.contains("当天")
+    Ok(format!(
+        "{API_BASE}/api/download/client?platform={platform}&arch={arch}"
+    ))
 }
 
 fn retry_after_delay(response: &reqwest::Response) -> Duration {
@@ -377,21 +469,26 @@ fn retry_after_delay(response: &reqwest::Response) -> Duration {
         .and_then(|value| value.to_str().ok())
         .and_then(|value| value.parse::<u64>().ok())
         .map(Duration::from_secs)
-        .unwrap_or(DOWNLOAD_RATE_LIMIT_RETRY_DELAY)
+        .unwrap_or(RATE_LIMIT_RETRY_DELAY)
 }
 
-async fn parse_api_error(response: reqwest::Response) -> String {
-    let status = response.status();
-    let body = response.text().await.unwrap_or_default();
-    serde_json::from_str::<HongshiApiError>(&body)
-        .map(|error| error.detail)
-        .unwrap_or_else(|_| {
-            if body.trim().is_empty() {
-                status.to_string()
-            } else {
-                body
-            }
+fn api_error_message(status: reqwest::StatusCode, body: &str) -> String {
+    let json = serde_json::from_str::<serde_json::Value>(body).ok();
+    let detail = json.as_ref().and_then(|json| json.get("detail"));
+    let message = detail
+        .and_then(|value| {
+            value.as_str().or_else(|| {
+                value.get("message").and_then(|value| value.as_str())
+            })
         })
+        .unwrap_or(status.as_str());
+    let expected = detail
+        .and_then(|value| value.get("expected_file"))
+        .and_then(|value| value.as_str());
+    expected.map_or_else(
+        || message.to_string(),
+        |file| format!("{message} ({file})"),
+    )
 }
 
 async fn download_client() -> eyre::Result<reqwest::Client> {
@@ -400,153 +497,191 @@ async fn download_client() -> eyre::Result<reqwest::Client> {
         .map_err(|error| eyre::eyre!(error.to_string()))
 }
 
-async fn request_download_url(endpoint: &str) -> eyre::Result<reqwest::Url> {
+async fn cancellable<T>(
+    cancellation: &CancellationToken,
+    future: impl Future<Output = eyre::Result<T>>,
+) -> eyre::Result<T> {
+    tokio::select! {
+        biased;
+        _ = cancellation.cancelled() => bail!("RedStone operation cancelled"),
+        result = future => result,
+    }
+}
+
+async fn update_state(id: u64, update: impl FnOnce(&mut HongshiState)) {
+    let runtime = HONGSHI_RUNTIME.lock().await;
+    if runtime
+        .session
+        .as_ref()
+        .is_some_and(|session| session.id == id)
     {
-        let mut cached = HONGSHI_DOWNLOAD_URL.lock().await;
-        if let Some(entry) = cached.as_ref()
-            && entry.expires_at > Instant::now()
-        {
-            return Ok(entry.url.clone());
-        }
-        *cached = None;
+        update(&mut *HONGSHI_STATE.lock().await);
     }
+}
 
-    let client = download_client().await?;
-    let mut response = client
-        .get(endpoint)
-        .send()
-        .await
-        .wrap_err("failed to request RedStone download URL")?;
-    if response.status() == reqwest::StatusCode::TOO_MANY_REQUESTS {
-        let delay = retry_after_delay(&response);
-        let detail = parse_api_error(response).await;
-        if is_daily_download_limit(&detail) {
-            bail!("RedStone daily download limit reached: {detail}")
-        }
-        warn!(
-            retry_after_seconds = delay.as_secs(),
-            "RedStone download URL request was rate limited; retrying once"
-        );
-        tokio::time::sleep(delay).await;
-        response = client
-            .get(endpoint)
-            .send()
-            .await
-            .wrap_err("failed to retry RedStone download URL request")?;
-        if response.status() == reqwest::StatusCode::TOO_MANY_REQUESTS {
-            let detail = parse_api_error(response).await;
-            bail!(
-                "RedStone download API is still rate limited after waiting; the daily limit may have been reached: {detail}"
-            )
-        }
-    }
-
-    let response = response
-        .error_for_status()
-        .wrap_err("RedStone download URL request failed")?
-        .json::<HongshiDownloadResponse>()
-        .await
-        .wrap_err("invalid RedStone download response")?;
-    let download_url = reqwest::Url::parse(&response.url)
-        .wrap_err("invalid RedStone kernel download URL")?;
-    if download_url.scheme() != "https" {
-        bail!("RedStone kernel download URL must use HTTPS")
-    }
-    *HONGSHI_DOWNLOAD_URL.lock().await = Some(CachedDownloadUrl {
-        url: download_url.clone(),
-        expires_at: Instant::now() + DOWNLOAD_URL_CACHE_TTL,
+async fn install_from(
+    client: &reqwest::Client,
+    endpoint: &str,
+    path: &Path,
+    id: u64,
+    cancellation: &CancellationToken,
+) -> eyre::Result<()> {
+    let temporary = path.with_file_name(if cfg!(target_os = "windows") {
+        "hongshic.download.exe"
+    } else {
+        "hongshic.download"
     });
-    Ok(download_url)
-}
-
-async fn download_inner() -> eyre::Result<()> {
-    let _operation = HONGSHI_OPERATION.lock().await;
-    if !is_supported() {
-        bail!("RedStone is not supported on this platform")
-    }
-    if HONGSHI_RUNTIME.lock().await.child.is_some() {
-        bail!(
-            "cannot replace RedStone while the multiplayer service is running"
+    let download = async {
+        let mut response = client
+            .get(endpoint)
+            .header(reqwest::header::ACCEPT, "application/json")
+            .send()
+            .await?;
+        if response.status() == reqwest::StatusCode::TOO_MANY_REQUESTS {
+            let delay = retry_after_delay(&response);
+            warn!(
+                retry_after_seconds = delay.as_secs(),
+                "RedStone download was rate limited"
+            );
+            tokio::time::sleep(delay).await;
+            response = client
+                .get(endpoint)
+                .header(reqwest::header::ACCEPT, "application/json")
+                .send()
+                .await?;
+        }
+        let status = response.status();
+        if !status.is_success() {
+            let body = response.text().await.unwrap_or_default();
+            return Err(failure(
+                if status == reqwest::StatusCode::NOT_FOUND {
+                    HongshiErrorType::BuildUnavailable
+                } else {
+                    HongshiErrorType::Install
+                },
+                api_error_message(status, &body),
+            ));
+        }
+        let total = response.content_length().unwrap_or(0);
+        if total > MAX_BINARY_SIZE {
+            bail!("RedStone kernel download is too large");
+        }
+        let mut data = Vec::with_capacity(total.min(MAX_BINARY_SIZE) as usize);
+        let mut stream = response.bytes_stream();
+        while let Some(chunk) = stream.next().await {
+            let chunk = chunk?;
+            if data.len() as u64 + chunk.len() as u64 > MAX_BINARY_SIZE {
+                bail!("RedStone kernel download is too large");
+            }
+            data.extend_from_slice(&chunk);
+            if total > 0 {
+                update_state(id, |state| {
+                    state.download_progress =
+                        Some(((data.len() as u64 * 100 / total).min(100)) as u8)
+                })
+                .await;
+            }
+        }
+        if !valid_binary(&data) {
+            bail!("downloaded RedStone kernel failed executable validation");
+        }
+        tokio::fs::create_dir_all(
+            path.parent()
+                .ok_or_else(|| eyre::eyre!("invalid kernel path"))?,
         )
-    }
-
-    let endpoint = download_endpoint()?;
-    {
-        let mut state = HONGSHI_STATE.lock().await;
-        state.status = HongshiStatus::Downloading;
-        state.download_progress = Some(0);
-        state.error_type = None;
-        state.error_message = None;
-    }
-    let download_url = request_download_url(&endpoint).await?;
-    let client = download_client().await?;
-    let response = client
-        .get(download_url)
-        .send()
-        .await
-        .wrap_err("failed to download RedStone kernel")?
-        .error_for_status()
-        .wrap_err("RedStone kernel download failed")?;
-    let total = response.content_length().unwrap_or(0);
-    if total > MAX_BINARY_SIZE {
-        bail!("RedStone kernel download is too large")
-    }
-    let mut downloaded = 0_u64;
-    let mut data = Vec::with_capacity(total.min(MAX_BINARY_SIZE) as usize);
-    let mut stream = response.bytes_stream();
-    while let Some(chunk) = futures::StreamExt::next(&mut stream).await {
-        let chunk = chunk.wrap_err("failed to read RedStone kernel")?;
-        downloaded += chunk.len() as u64;
-        if downloaded > MAX_BINARY_SIZE {
-            bail!("RedStone kernel download is too large")
+        .await?;
+        tokio::fs::write(&temporary, &data).await?;
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            tokio::fs::set_permissions(
+                &temporary,
+                std::fs::Permissions::from_mode(0o755),
+            )
+            .await?;
         }
-        data.extend_from_slice(&chunk);
-        if total > 0 {
-            HONGSHI_STATE.lock().await.download_progress =
-                Some(((downloaded * 100 / total).min(100)) as u8);
+        Ok::<_, eyre::Report>(())
+    };
+    let install = async {
+        cancellable(cancellation, download).await?;
+        if !compatible_help(&temporary, cancellation).await? {
+            bail!(
+                "downloaded RedStone kernel does not support the RedStone Online 2 arguments"
+            );
         }
-    }
-    if data.len() as u64 > MAX_BINARY_SIZE || !valid_binary(&data) {
-        bail!("downloaded RedStone kernel failed executable validation")
-    }
-    let path = binary_path();
-    let parent = path
-        .parent()
-        .ok_or_else(|| eyre::eyre!("invalid RedStone kernel path"))?;
-    tokio::fs::create_dir_all(parent)
-        .await
-        .wrap_err("failed to create RedStone directory")?;
-    let temporary = path.with_extension("download");
-    tokio::fs::write(&temporary, &data)
-        .await
-        .wrap_err("failed to stage RedStone kernel")?;
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        let mut permissions = std::fs::metadata(&temporary)?.permissions();
-        permissions.set_mode(0o755);
-        std::fs::set_permissions(&temporary, permissions)?;
-    }
-    atomic_replace(&temporary, &path)
-        .await
-        .wrap_err("failed to install RedStone kernel")?;
-    let mut state = HONGSHI_STATE.lock().await;
-    state.binary_installed = true;
-    state.status = HongshiStatus::Idle;
-    state.download_progress = None;
-    Ok(())
-}
-
-pub async fn download() -> eyre::Result<()> {
-    let result = download_inner().await;
-    if let Err(error) = &result {
-        let mut state = HONGSHI_STATE.lock().await;
-        state.status = HongshiStatus::Error;
-        state.download_progress = None;
-        state.error_type = Some(HongshiErrorType::Install);
-        state.error_message = Some(format!("{error:#}"));
+        if cancellation.is_cancelled() {
+            bail!("RedStone operation cancelled");
+        }
+        atomic_replace(&temporary, path).await?;
+        *BINARY_CHECK.lock().await = None;
+        Ok(())
+    };
+    let result = install.await;
+    if result.is_err() {
+        let _ = tokio::fs::remove_file(&temporary).await;
     }
     result
+}
+
+async fn prepare_binary(
+    id: u64,
+    cancellation: &CancellationToken,
+    force: bool,
+) -> eyre::Result<PathBuf> {
+    prepare_binary_in(&hongshi_root(), id, cancellation, force).await
+}
+
+async fn prepare_binary_in(
+    root: &Path,
+    id: u64,
+    cancellation: &CancellationToken,
+    force: bool,
+) -> eyre::Result<PathBuf> {
+    let path = root.join("v2").join(binary_name());
+    let compatible = compatible_binary_cancellable(&path, cancellation).await;
+    if cancellation.is_cancelled() {
+        bail!("RedStone operation cancelled");
+    }
+    update_state(id, |state| state.binary_installed = compatible).await;
+    if compatible && !force {
+        return Ok(path);
+    }
+    update_state(id, |state| {
+        state.status = HongshiStatus::Downloading;
+        state.download_progress = Some(0);
+    })
+    .await;
+    let client = cancellable(cancellation, download_client()).await?;
+    let endpoint =
+        download_endpoint_for(std::env::consts::OS, std::env::consts::ARCH)?;
+    let result =
+        install_from(&client, &endpoint, &path, id, cancellation).await;
+    if let Err(error) = result {
+        return Err(failure(
+            classify(&error, HongshiErrorType::Install),
+            format!("{error:#}"),
+        ));
+    }
+    for legacy in [
+        root.join(if cfg!(target_os = "windows") {
+            "hongshi.exe"
+        } else {
+            "hongshi"
+        }),
+        root.join("nodes.json"),
+    ] {
+        if let Err(error) = tokio::fs::remove_file(&legacy).await
+            && error.kind() != std::io::ErrorKind::NotFound
+        {
+            warn!(%error, path = %legacy.display(), "failed to remove legacy RedStone file");
+        }
+    }
+    update_state(id, |state| {
+        state.binary_installed = true;
+        state.download_progress = None;
+    })
+    .await;
+    Ok(path)
 }
 
 #[cfg(target_os = "windows")]
@@ -557,7 +692,6 @@ async fn atomic_replace(source: &Path, destination: &Path) -> eyre::Result<()> {
         MoveFileExW,
     };
     use windows::core::PCWSTR;
-
     let source = source
         .as_os_str()
         .encode_wide()
@@ -587,14 +721,17 @@ async fn atomic_replace(source: &Path, destination: &Path) -> eyre::Result<()> {
     Ok(())
 }
 
-async fn ensure_binary() -> eyre::Result<PathBuf> {
-    let path = binary_path();
-    if let Ok(existing) = tokio::fs::read(&path).await
-        && valid_binary(&existing)
-    {
-        return Ok(path);
+fn unsafe_node_ip(ip: IpAddr) -> bool {
+    match ip {
+        IpAddr::V4(ip) => {
+            ip.is_loopback() || ip.is_link_local() || ip.is_unspecified()
+        }
+        IpAddr::V6(ip) => {
+            ip.is_loopback()
+                || ip.is_unicast_link_local()
+                || ip.is_unspecified()
+        }
     }
-    bail!("RedStone kernel is not installed; download it first")
 }
 
 fn validate_host(host: &str) -> eyre::Result<String> {
@@ -606,7 +743,6 @@ fn validate_host(host: &str) -> eyre::Result<String> {
     {
         bail!("invalid RedStone node address: {host}");
     }
-
     if let Ok(ip) = host.parse::<IpAddr>() {
         if unsafe_node_ip(ip) {
             bail!("unsafe RedStone node address: {host}");
@@ -622,95 +758,107 @@ fn validate_host(host: &str) -> eyre::Result<String> {
     }) {
         bail!("invalid RedStone node hostname: {host}");
     }
-
     Ok(host.to_string())
 }
 
-fn unsafe_node_ip(ip: IpAddr) -> bool {
-    match ip {
-        IpAddr::V4(ip) => {
-            ip.is_loopback() || ip.is_link_local() || ip.is_unspecified()
-        }
-        IpAddr::V6(ip) => {
-            ip.is_loopback()
-                || ip.is_unicast_link_local()
-                || ip.is_unspecified()
-        }
-    }
-}
-
 fn parse_node_map(bytes: &[u8]) -> eyre::Result<BTreeMap<String, String>> {
-    let raw: HongshiNodeResponse = serde_json::from_slice(bytes)
+    let raw: BTreeMap<String, String> = serde_json::from_slice(bytes)
         .wrap_err("failed to parse RedStone node list")?;
-    let raw = match raw {
-        HongshiNodeResponse::Map(nodes) => nodes,
-        HongshiNodeResponse::List(nodes) => nodes
-            .into_iter()
-            .enumerate()
-            .map(|(index, node)| {
-                let name = node
-                    .name
-                    .or(node.region)
-                    .filter(|value| !value.trim().is_empty())
-                    .unwrap_or_else(|| format!("Node {}", index + 1));
-                (name, node.host)
-            })
-            .collect(),
-    };
-    if raw.is_empty() {
-        bail!("RedStone node list is empty");
-    }
-
-    let mut nodes = BTreeMap::new();
-    for (name, address) in raw {
-        let name = name.trim();
-        if name.is_empty() || name.len() > 64 {
-            bail!("invalid RedStone node name");
-        }
-        nodes.insert(name.to_string(), validate_host(&address)?);
-    }
-    Ok(nodes)
+    raw.into_iter()
+        .map(|(name, address)| {
+            let name = name.trim();
+            if name.is_empty() || name.len() > 64 {
+                bail!("invalid RedStone node name");
+            }
+            Ok((name.to_string(), validate_host(&address)?))
+        })
+        .collect()
 }
 
-async fn write_node_cache(
-    nodes: &BTreeMap<String, String>,
-) -> eyre::Result<()> {
-    let path = node_cache_path();
-    let parent = path
-        .parent()
-        .ok_or_else(|| eyre::eyre!("invalid RedStone node cache path"))?;
-    tokio::fs::create_dir_all(parent).await?;
-    let temporary = path.with_extension("json.new");
-    tokio::fs::write(&temporary, serde_json::to_vec(nodes)?).await?;
-    atomic_replace(&temporary, &path).await?;
-    Ok(())
+#[derive(Default)]
+struct NodeCache {
+    map: Option<(BTreeMap<String, String>, Instant, bool)>,
+    retry_until: Option<Instant>,
 }
 
-async fn load_node_map(
-    _force_refresh: bool,
+async fn cached_nodes(
+    path: &Path,
 ) -> eyre::Result<(BTreeMap<String, String>, bool)> {
-    let client = download_client().await?;
-    match client.get(NODE_ENDPOINT).send().await {
-        Ok(response) => match response.error_for_status() {
-            Ok(response) => {
-                let bytes = response.bytes().await?;
-                let nodes = parse_node_map(&bytes)?;
-                if let Err(error) = write_node_cache(&nodes).await {
-                    warn!("failed to cache RedStone node list: {error:#}");
-                }
-                return Ok((nodes, false));
-            }
-            Err(error) => {
-                warn!("RedStone node endpoint returned an error: {error}")
-            }
-        },
-        Err(error) => warn!("failed to fetch RedStone nodes: {error}"),
-    }
+    Ok((
+        parse_node_map(&tokio::fs::read(path).await.wrap_err(
+            "failed to fetch RedStone nodes and no cache is available",
+        )?)?,
+        true,
+    ))
+}
 
-    let cached = tokio::fs::read(node_cache_path())
+async fn load_node_map_from(
+    client: &reqwest::Client,
+    endpoint: &str,
+    path: &Path,
+    cache: &Mutex<NodeCache>,
+    force: bool,
+) -> eyre::Result<(BTreeMap<String, String>, bool)> {
+    let mut cache = cache.lock().await;
+    let cooling_down = cache
+        .retry_until
+        .is_some_and(|deadline| deadline > Instant::now());
+    if let Some((map, fetched, cached)) = &cache.map
+        && (cooling_down || (!force && fetched.elapsed() < NODE_CACHE_TTL))
+    {
+        return Ok((map.clone(), *cached));
+    }
+    if cooling_down {
+        return cached_nodes(path).await;
+    }
+    match client
+        .get(endpoint)
+        .header(reqwest::header::ACCEPT, "application/json")
+        .send()
         .await
-        .wrap_err("failed to fetch RedStone nodes and no cache is available")?;
-    Ok((parse_node_map(&cached)?, true))
+    {
+        Ok(response) if response.status().is_success() => {
+            match response.bytes().await {
+                Ok(bytes) => {
+                    let map = parse_node_map(&bytes)?;
+                    let temporary = path.with_extension("json.new");
+                    let write = async {
+                        if let Some(parent) = path.parent() {
+                            tokio::fs::create_dir_all(parent).await?;
+                        }
+                        tokio::fs::write(&temporary, serde_json::to_vec(&map)?)
+                            .await?;
+                        atomic_replace(&temporary, path).await
+                    };
+                    if let Err(error) = write.await {
+                        warn!(%error, "failed to cache RedStone node list");
+                        let _ = tokio::fs::remove_file(&temporary).await;
+                    }
+                    cache.map = Some((map.clone(), Instant::now(), false));
+                    cache.retry_until = None;
+                    return Ok((map, false));
+                }
+                Err(error) => {
+                    warn!(%error, "failed to read RedStone node list")
+                }
+            }
+        }
+        Ok(response) => {
+            if response.status() == reqwest::StatusCode::TOO_MANY_REQUESTS {
+                cache.retry_until =
+                    Instant::now().checked_add(retry_after_delay(&response));
+            }
+            warn!(status = %response.status(), "RedStone node list request failed");
+        }
+        Err(error) => warn!(%error, "failed to fetch RedStone nodes"),
+    }
+    let (map, cached) = if let Some((map, _, _)) = &cache.map {
+        (map.clone(), true)
+    } else {
+        cached_nodes(path).await?
+    };
+    cache.map = Some((map.clone(), Instant::now(), cached));
+    Ok((map, cached))
 }
 
 async fn probe_node(
@@ -719,19 +867,17 @@ async fn probe_node(
     cached: bool,
 ) -> HongshiNode {
     let started = Instant::now();
-    let socket = lookup_host((address.as_str(), CONTROL_PORT))
-        .await
-        .ok()
-        .and_then(|mut addresses| {
-            addresses.find(|socket| !unsafe_node_ip(socket.ip()))
-        });
-    let reachable = if let Some(socket) = socket {
-        tokio::time::timeout(NODE_PROBE_TIMEOUT, TcpStream::connect(socket))
-            .await
-            .is_ok_and(|result| result.is_ok())
-    } else {
-        false
-    };
+    let reachable = tokio::time::timeout(NODE_PROBE_TIMEOUT, async {
+        let addresses = lookup_host((address.as_str(), CONTROL_PORT)).await?;
+        for socket in addresses.filter(|socket| !unsafe_node_ip(socket.ip())) {
+            if TcpStream::connect(socket).await.is_ok() {
+                return Ok::<_, std::io::Error>(true);
+            }
+        }
+        Ok(false)
+    })
+    .await
+    .is_ok_and(|result| result.unwrap_or(false));
     HongshiNode {
         name,
         address,
@@ -742,18 +888,21 @@ async fn probe_node(
 }
 
 pub async fn get_nodes(force_refresh: bool) -> eyre::Result<Vec<HongshiNode>> {
-    let (nodes, cached) = load_node_map(force_refresh).await?;
+    let client = download_client().await?;
+    let (nodes, cached) = load_node_map_from(
+        &client,
+        NODE_ENDPOINT,
+        &node_cache_path(),
+        &NODE_CACHE,
+        force_refresh,
+    )
+    .await?;
     let mut nodes = join_all(
         nodes
             .into_iter()
             .map(|(name, address)| probe_node(name, address, cached)),
     )
     .await;
-    sort_nodes(&mut nodes);
-    Ok(nodes)
-}
-
-fn sort_nodes(nodes: &mut [HongshiNode]) {
     nodes.sort_by_key(|node| {
         (
             !node.reachable,
@@ -761,6 +910,7 @@ fn sort_nodes(nodes: &mut [HongshiNode]) {
             node.name.clone(),
         )
     });
+    Ok(nodes)
 }
 
 pub async fn get_detected_ports() -> Vec<DetectedLanPort> {
@@ -775,426 +925,534 @@ pub async fn get_detected_ports() -> Vec<DetectedLanPort> {
 }
 
 pub async fn get_state() -> HongshiState {
-    let mut state = HONGSHI_STATE.lock().await;
-    if !matches!(
-        state.status,
-        HongshiStatus::Downloading
-            | HongshiStatus::SelectingNode
-            | HongshiStatus::Starting
-            | HongshiStatus::Open
-    ) {
-        state.binary_installed = binary_installed();
+    if HONGSHI_RUNTIME.lock().await.session.is_none() {
+        let installed = compatible_binary(&binary_path()).await;
+        let runtime = HONGSHI_RUNTIME.lock().await;
+        if runtime.session.is_none() {
+            HONGSHI_STATE.lock().await.binary_installed = installed;
+        }
     }
-    state.clone()
+    HONGSHI_STATE.lock().await.clone()
 }
 
-fn parse_tunnel_status(contents: &str) -> eyre::Result<TunnelStatusFile> {
-    let mut in_tunnel = false;
-    let mut values = HashMap::new();
-    for raw_line in contents.lines() {
-        let line = raw_line.trim();
-        if line.is_empty() || line.starts_with([';', '#']) {
-            continue;
-        }
-        if line.starts_with('[') && line.ends_with(']') {
-            in_tunnel = &line[1..line.len() - 1] == "tunnel";
-            continue;
-        }
-        if in_tunnel && let Some((key, value)) = line.split_once('=') {
-            values.insert(
-                key.trim().to_string(),
-                value.split(';').next().unwrap_or("").trim().to_string(),
-            );
-        }
-    }
-
-    let status = values.remove("status").unwrap_or_default();
-    if status != "open" && status != "closed" {
-        bail!("invalid RedStone tunnel status");
-    }
-    let server = validate_host(&values.remove("server").unwrap_or_default())?;
-    let port = values
-        .remove("port")
-        .unwrap_or_default()
-        .parse::<i32>()
-        .wrap_err("invalid RedStone tunnel port")?;
-    if (status == "open" && !(1..=65535).contains(&port))
-        || (status == "closed" && port != -1)
-    {
-        bail!("invalid RedStone tunnel port for status {status}");
-    }
-    Ok(TunnelStatusFile {
-        status,
-        server,
-        port,
-        created: values.remove("created"),
-    })
-}
-
-async fn read_fresh_status(
-    path: &Path,
-    started_at: SystemTime,
-) -> eyre::Result<Option<TunnelStatusFile>> {
-    let metadata = match tokio::fs::metadata(path).await {
-        Ok(metadata) => metadata,
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
-            return Ok(None);
-        }
-        Err(error) => return Err(error.into()),
-    };
-    if metadata.modified().unwrap_or(SystemTime::UNIX_EPOCH) < started_at {
+fn parse_endpoint(line: &str) -> eyre::Result<Option<String>> {
+    let cleaned = ANSI_PATTERN.replace_all(line, "");
+    let Some(endpoint) = cleaned
+        .split_whitespace()
+        .find_map(|field| field.strip_prefix("endpoint="))
+    else {
         return Ok(None);
+    };
+    let parsed = reqwest::Url::parse(&format!("tcp://{endpoint}"))
+        .wrap_err("invalid RedStone endpoint")?;
+    if !parsed.username().is_empty()
+        || parsed.password().is_some()
+        || parsed.query().is_some()
+        || parsed.fragment().is_some()
+        || parsed.path() != ""
+        || parsed.port().is_none_or(|port| port == 0)
+    {
+        bail!("invalid RedStone endpoint");
     }
-    let contents = tokio::fs::read_to_string(path).await?;
-    parse_tunnel_status(&contents).map(Some)
+    let host = parsed
+        .host_str()
+        .ok_or_else(|| eyre::eyre!("missing RedStone endpoint host"))?;
+    validate_host(host)?;
+    Ok(Some(endpoint.to_string()))
 }
 
-async fn process_exit_code(
-    child: &Arc<Mutex<Child>>,
-) -> eyre::Result<Option<i32>> {
-    let mut child = child.lock().await;
-    Ok(child.try_wait()?.map(|status| status.code().unwrap_or(-1)))
+enum OutputEvent {
+    Endpoint(String),
+    Error(String),
 }
 
-async fn set_start_error(
-    error_type: HongshiErrorType,
-    message: String,
-    exit_code: Option<i32>,
+async fn read_output<R: AsyncRead + Unpin>(
+    reader: R,
+    stdout: bool,
+    log: Arc<Mutex<tokio::fs::File>>,
+    sender: mpsc::Sender<OutputEvent>,
 ) {
-    let mut state = HONGSHI_STATE.lock().await;
-    state.status = HongshiStatus::Error;
-    state.public_address = None;
-    state.error_type = Some(error_type);
-    state.error_message = Some(message);
-    state.last_exit_code = exit_code;
-}
-
-fn classify_start_error(message: &str) -> HongshiErrorType {
-    if message.contains("install RedStone kernel") {
-        HongshiErrorType::Install
-    } else if message.contains("node")
-        || message.contains("fetch RedStone nodes")
-    {
-        HongshiErrorType::NodeList
-    } else if message.contains("status") || message.contains("tunnel creation")
-    {
-        HongshiErrorType::StatusFile
-    } else {
-        HongshiErrorType::KernelStart
+    let mut lines = FramedRead::new(
+        reader,
+        LinesCodec::new_with_max_length(MAX_OUTPUT_LINE),
+    );
+    while let Some(line) = lines.next().await {
+        match line {
+            Ok(line) => {
+                let cleaned = ANSI_PATTERN.replace_all(&line, "");
+                if let Err(error) = log
+                    .lock()
+                    .await
+                    .write_all(
+                        format!(
+                            "{} {cleaned}\n",
+                            if stdout { "stdout" } else { "stderr" }
+                        )
+                        .as_bytes(),
+                    )
+                    .await
+                {
+                    warn!(%error, "failed to write RedStone log");
+                }
+                if stdout {
+                    match parse_endpoint(&line) {
+                        Ok(Some(endpoint)) => {
+                            if sender
+                                .send(OutputEvent::Endpoint(endpoint))
+                                .await
+                                .is_err()
+                            {
+                                break;
+                            }
+                        }
+                        Ok(None) => {}
+                        Err(error) => {
+                            let _ = sender
+                                .send(OutputEvent::Error(error.to_string()))
+                                .await;
+                            break;
+                        }
+                    }
+                }
+            }
+            Err(error) => {
+                let _ =
+                    sender.send(OutputEvent::Error(error.to_string())).await;
+                break;
+            }
+        }
     }
 }
 
-fn error_type_for_exit(exit_code: i32) -> HongshiErrorType {
-    match exit_code {
-        1 => HongshiErrorType::NodeUnavailable,
-        2 => HongshiErrorType::KernelStart,
-        _ => HongshiErrorType::KernelExit,
-    }
+struct Kernel {
+    child: Child,
+    _job: JobGuard,
+    readers: Vec<JoinHandle<()>>,
+    output: mpsc::Receiver<OutputEvent>,
 }
 
-fn should_try_next_node(automatic: bool, exit_code: i32) -> bool {
-    automatic && exit_code == 1
+impl Drop for Kernel {
+    fn drop(&mut self) {
+        for reader in &self.readers {
+            reader.abort();
+        }
+    }
 }
 
 async fn spawn_kernel(
     binary: &Path,
     node: &HongshiNode,
-    local_port: u16,
-    status_file: &Path,
-) -> eyre::Result<(Arc<Mutex<Child>>, JobGuard, SystemTime)> {
-    let root = hongshi_root();
-    tokio::fs::create_dir_all(&root).await?;
-    if let Some(parent) = status_file.parent() {
-        tokio::fs::create_dir_all(parent).await?;
-    }
-    let _ = tokio::fs::remove_file(status_file).await;
-    let started_at = SystemTime::now();
-    let mut child = Command::new(binary)
-        .arg("-server")
-        .arg(&node.address)
-        .arg("-port")
-        .arg(local_port.to_string())
-        .arg("-status-file")
-        .arg(status_file)
-        .current_dir(&root)
-        .stdin(Stdio::null())
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .kill_on_drop(true)
+    port: u16,
+    id: u64,
+) -> eyre::Result<Kernel> {
+    tokio::fs::create_dir_all(logs_dir()).await?;
+    let filename = format!(
+        "session-{}-{id}-{}.log",
+        std::process::id(),
+        chrono::Utc::now().timestamp_millis()
+    );
+    let log = Arc::new(Mutex::new(
+        tokio::fs::File::create(logs_dir().join(filename)).await?,
+    ));
+    let mut child = hidden_command(binary)
+        .args([
+            "-t",
+            &node.address,
+            "-p",
+            &port.to_string(),
+            "--game-host",
+            "127.0.0.1",
+            "--control-port",
+            &CONTROL_PORT.to_string(),
+            "--data-port",
+            &DATA_PORT.to_string(),
+        ])
+        .env("RUST_LOG", "info")
+        .env("NO_COLOR", "1")
+        .current_dir(
+            binary
+                .parent()
+                .ok_or_else(|| eyre::eyre!("invalid kernel path"))?,
+        )
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
         .spawn()
         .wrap_err("failed to start RedStone kernel")?;
     let process_id = child
         .id()
-        .ok_or_else(|| eyre::eyre!("RedStone process has no process id"))?;
-    let job = match attach_kill_on_close_job(process_id) {
-        Ok(job) => job,
-        Err(error) => {
-            let _ = child.start_kill();
-            return Err(error);
-        }
-    };
-    info!("started RedStone kernel with pid {process_id}");
-    Ok((Arc::new(Mutex::new(child)), job, started_at))
+        .ok_or_else(|| eyre::eyre!("RedStone process has no id"))?;
+    let job = attach_kill_on_close_job(process_id)?;
+    let stdout = child
+        .stdout
+        .take()
+        .ok_or_else(|| eyre::eyre!("missing RedStone stdout"))?;
+    let stderr = child
+        .stderr
+        .take()
+        .ok_or_else(|| eyre::eyre!("missing RedStone stderr"))?;
+    let (sender, output) = mpsc::channel(16);
+    let readers = vec![
+        tokio::spawn(read_output(stdout, true, log.clone(), sender.clone())),
+        tokio::spawn(read_output(stderr, false, log, sender)),
+    ];
+    info!(
+        process_id,
+        session_id = id,
+        "started RedStone Online 2 kernel"
+    );
+    Ok(Kernel {
+        child,
+        _job: job,
+        readers,
+        output,
+    })
 }
 
-async fn wait_until_open(
-    child: &Arc<Mutex<Child>>,
-    status_file: &Path,
-    started_at: SystemTime,
-) -> eyre::Result<Result<TunnelStatusFile, i32>> {
-    let deadline = Instant::now() + START_TIMEOUT;
+enum Attempt {
+    Exited(i32, bool),
+    TimedOut,
+    Cancelled,
+    OutputError(String),
+}
+
+async fn supervise_kernel(
+    kernel: &mut Kernel,
+    id: u64,
+    cancellation: &CancellationToken,
+    ready: &mut Option<oneshot::Sender<eyre::Result<()>>>,
+    timeout: Duration,
+) -> eyre::Result<Attempt> {
+    let deadline = tokio::time::sleep(timeout);
+    tokio::pin!(deadline);
+    let mut opened = false;
+    let mut output_closed = false;
     loop {
-        if let Some(exit_code) = process_exit_code(child).await? {
-            return Ok(Err(exit_code));
-        }
-        if let Some(status) = read_fresh_status(status_file, started_at).await?
-        {
-            if status.status == "open" {
-                if let Some(exit_code) = process_exit_code(child).await? {
-                    return Ok(Err(exit_code));
+        tokio::select! {
+            biased;
+            _ = cancellation.cancelled() => return Ok(Attempt::Cancelled),
+            status = kernel.child.wait() => return Ok(Attempt::Exited(status?.code().unwrap_or(-1), opened)),
+            _ = &mut deadline, if !opened => return Ok(Attempt::TimedOut),
+            event = kernel.output.recv(), if !output_closed => match event {
+                Some(OutputEvent::Endpoint(endpoint)) if !opened => {
+                    if let Some(status) = kernel.child.try_wait()? { return Ok(Attempt::Exited(status.code().unwrap_or(-1), false)); }
+                    update_state(id, |state| { state.status = HongshiStatus::Open; state.public_address = Some(endpoint); state.created_at = Some(chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string()); }).await;
+                    opened = true;
+                    if let Some(sender) = ready.take() { let _ = sender.send(Ok(())); }
                 }
-                return Ok(Ok(status));
-            }
-            return Ok(Err(0));
+                Some(OutputEvent::Endpoint(_)) => {}
+                Some(OutputEvent::Error(error)) => return Ok(Attempt::OutputError(error)),
+                None => output_closed = true,
+            },
         }
-        if Instant::now() >= deadline {
-            let mut child = child.lock().await;
-            let _ = child.start_kill();
-            bail!("timed out waiting for RedStone tunnel creation");
-        }
-        tokio::time::sleep(Duration::from_millis(250)).await;
     }
 }
 
-async fn monitor_kernel(
-    child: Arc<Mutex<Child>>,
-    status_file: PathBuf,
-    started_at: SystemTime,
-) {
-    loop {
-        match process_exit_code(&child).await {
-            Ok(Some(exit_code)) => {
-                let stopping = HONGSHI_RUNTIME.lock().await.stopping;
-                if stopping {
-                    let mut state = HONGSHI_STATE.lock().await;
-                    *state = HongshiState::default();
-                } else if exit_code == 0 {
-                    let mut state = HONGSHI_STATE.lock().await;
-                    state.status = HongshiStatus::Closed;
-                    state.public_address = None;
-                    state.last_exit_code = Some(exit_code);
-                } else {
-                    set_start_error(
-                        HongshiErrorType::KernelExit,
-                        format!("RedStone kernel exited with code {exit_code}"),
-                        Some(exit_code),
-                    )
-                    .await;
-                }
-                break;
-            }
-            Ok(None) => {}
-            Err(error) => {
-                set_start_error(
-                    HongshiErrorType::KernelExit,
-                    error.to_string(),
-                    None,
-                )
+async fn finish_kernel(kernel: &mut Kernel) {
+    if kernel.child.try_wait().ok().flatten().is_none() {
+        let _ = kernel.child.start_kill();
+        let _ =
+            tokio::time::timeout(Duration::from_secs(3), kernel.child.wait())
                 .await;
-                break;
-            }
-        }
-
-        match read_fresh_status(&status_file, started_at).await {
-            Ok(Some(status)) if status.status == "closed" => {
-                let mut state = HONGSHI_STATE.lock().await;
-                state.status = HongshiStatus::Closed;
-                state.public_address = None;
-                state.created_at = status.created;
-            }
-            Ok(_) => {}
-            Err(error) => {
-                warn!("failed to read RedStone status file: {error:#}")
-            }
-        }
-        tokio::time::sleep(Duration::from_millis(250)).await;
     }
-
-    {
-        let mut runtime = HONGSHI_RUNTIME.lock().await;
-        runtime.child = None;
-        runtime.job = None;
-        runtime.status_file = None;
-        runtime.stopping = false;
+    for reader in &mut kernel.readers {
+        if tokio::time::timeout(Duration::from_secs(1), &mut *reader)
+            .await
+            .is_err()
+        {
+            reader.abort();
+            let _ = reader.await;
+        }
     }
-    multiplayer::release_provider(MultiplayerProvider::Hongshi).await;
 }
 
-pub async fn start(
+async fn host_session(
+    id: u64,
+    port: u16,
+    node_name: Option<String>,
+    cancellation: &CancellationToken,
+    ready: &mut Option<oneshot::Sender<eyre::Result<()>>>,
+) -> eyre::Result<()> {
+    let binary = prepare_binary(id, cancellation, false).await?;
+    update_state(id, |state| state.status = HongshiStatus::SelectingNode).await;
+    let nodes =
+        cancellable(cancellation, get_nodes(true))
+            .await
+            .map_err(|error| {
+                failure(HongshiErrorType::NodeList, format!("{error:#}"))
+            })?;
+    host_kernels(id, port, node_name, &binary, nodes, cancellation, ready).await
+}
+
+async fn host_kernels(
+    id: u64,
+    port: u16,
+    node_name: Option<String>,
+    binary: &Path,
+    mut nodes: Vec<HongshiNode>,
+    cancellation: &CancellationToken,
+    ready: &mut Option<oneshot::Sender<eyre::Result<()>>>,
+) -> eyre::Result<()> {
+    if let Some(name) = node_name.as_deref() {
+        nodes.retain(|node| node.name == name);
+    } else {
+        nodes.retain(|node| node.reachable);
+    }
+    if nodes.is_empty() {
+        return Err(failure(
+            HongshiErrorType::NodeUnavailable,
+            "no selected or reachable RedStone node is available",
+        ));
+    }
+    for node in nodes {
+        if cancellation.is_cancelled() {
+            bail!("RedStone operation cancelled");
+        }
+        update_state(id, |state| {
+            state.status = HongshiStatus::Starting;
+            state.node = Some(node.clone());
+            state.last_exit_code = None;
+        })
+        .await;
+        let mut kernel =
+            cancellable(cancellation, spawn_kernel(binary, &node, port, id))
+                .await
+                .map_err(|error| {
+                    failure(HongshiErrorType::KernelStart, format!("{error:#}"))
+                })?;
+        let attempt = supervise_kernel(
+            &mut kernel,
+            id,
+            cancellation,
+            ready,
+            START_TIMEOUT,
+        )
+        .await;
+        finish_kernel(&mut kernel).await;
+        match attempt? {
+            Attempt::Cancelled => bail!("RedStone operation cancelled"),
+            Attempt::Exited(code, opened) => {
+                update_state(id, |state| state.last_exit_code = Some(code))
+                    .await;
+                if code == 0 {
+                    update_state(id, |state| {
+                        state.status = HongshiStatus::Closed;
+                        state.public_address = None;
+                    })
+                    .await;
+                    if let Some(sender) = ready.take() {
+                        let _ = sender.send(Err(failure(
+                            HongshiErrorType::KernelStart,
+                            "RedStone room closed before returning an address",
+                        )));
+                    }
+                    return Ok(());
+                }
+                if !opened && code == 1 && node_name.is_none() {
+                    continue;
+                }
+                return Err(failure(
+                    if !opened && code == 1 {
+                        HongshiErrorType::NodeUnavailable
+                    } else {
+                        HongshiErrorType::KernelExit
+                    },
+                    format!("RedStone kernel exited with code {code}"),
+                ));
+            }
+            Attempt::TimedOut if node_name.is_none() => continue,
+            Attempt::TimedOut => {
+                return Err(failure(
+                    HongshiErrorType::KernelStart,
+                    "timed out waiting for RedStone tunnel creation",
+                ));
+            }
+            Attempt::OutputError(error) => {
+                return Err(failure(HongshiErrorType::KernelOutput, error));
+            }
+        }
+    }
+    Err(failure(
+        HongshiErrorType::NodeUnavailable,
+        "all RedStone nodes failed to create a tunnel",
+    ))
+}
+
+async fn reserve_session(
+    port: Option<u16>,
+    instance_id: Option<String>,
+) -> eyre::Result<(u64, CancellationToken, watch::Sender<bool>)> {
+    let mut runtime = HONGSHI_RUNTIME.lock().await;
+    if !is_supported() {
+        return Err(failure(
+            HongshiErrorType::Unsupported,
+            "RedStone is not supported on this platform",
+        ));
+    }
+    if runtime.session.is_some() {
+        bail!("RedStone is already running");
+    }
+    multiplayer::claim_provider(MultiplayerProvider::Hongshi).await?;
+    runtime.generation += 1;
+    let id = runtime.generation;
+    let cancellation = CancellationToken::new();
+    let (done, receiver) = watch::channel(false);
+    runtime.session = Some(Session {
+        id,
+        cancellation: cancellation.clone(),
+        done: receiver,
+    });
+    let installed = HONGSHI_STATE.lock().await.binary_installed;
+    *HONGSHI_STATE.lock().await = HongshiState {
+        local_port: port,
+        bound_instance_id: instance_id,
+        binary_installed: installed,
+        status: if port.is_some() {
+            HongshiStatus::Starting
+        } else {
+            HongshiStatus::Downloading
+        },
+        ..HongshiState::default()
+    };
+    Ok((id, cancellation, done))
+}
+
+async fn finish_session(
+    id: u64,
+    cancellation: &CancellationToken,
+    result: eyre::Result<()>,
+    ready: &mut Option<oneshot::Sender<eyre::Result<()>>>,
+    done: watch::Sender<bool>,
+) {
+    if cancellation.is_cancelled() {
+        update_state(id, |state| {
+            let installed = state.binary_installed;
+            *state = HongshiState {
+                binary_installed: installed,
+                ..HongshiState::default()
+            };
+        })
+        .await;
+    } else if let Err(error) = &result {
+        update_state(id, |state| {
+            state.status = HongshiStatus::Error;
+            state.public_address = None;
+            state.download_progress = None;
+            state.error_type = Some(classify(error, HongshiErrorType::Unknown));
+            state.error_message = Some(format!("{error:#}"));
+        })
+        .await;
+    }
+    let mut runtime = HONGSHI_RUNTIME.lock().await;
+    if runtime
+        .session
+        .as_ref()
+        .is_some_and(|session| session.id == id)
+    {
+        runtime.session = None;
+        multiplayer::release_provider(MultiplayerProvider::Hongshi).await;
+    }
+    if let Some(sender) = ready.take() {
+        let _ = sender.send(result);
+    }
+    let _ = done.send(true);
+}
+
+pub async fn begin_start(
     local_port: u16,
     node_name: Option<String>,
     instance_id: Option<String>,
-) -> eyre::Result<()> {
-    let _operation = HONGSHI_OPERATION.lock().await;
-    if !is_supported() {
-        set_start_error(
-            HongshiErrorType::Unsupported,
-            "RedStone is not supported on this platform".to_string(),
-            None,
-        )
-        .await;
-        bail!("RedStone is not supported on this platform");
-    }
+) -> eyre::Result<PendingStart> {
     if local_port == 0 {
-        set_start_error(
+        return Err(failure(
             HongshiErrorType::InvalidPort,
-            "invalid local port".to_string(),
-            None,
-        )
-        .await;
-        bail!("invalid local port");
+            "invalid local port",
+        ));
     }
-    if HONGSHI_RUNTIME.lock().await.child.is_some() {
-        bail!("RedStone is already running");
-    }
+    let ports = DETECTED_PORTS.lock().await;
     if let Some(instance_id) = instance_id.as_deref() {
-        let ports = DETECTED_PORTS.lock().await;
-        let detected = ports.get(instance_id).ok_or_else(|| {
+        let port = ports.get(instance_id).ok_or_else(|| {
             eyre::eyre!("selected Minecraft instance is no longer running")
         })?;
-        if detected.port != local_port {
+        if port.port != local_port {
             bail!("selected Minecraft instance opened a different LAN port");
         }
     }
-    multiplayer::claim_provider(MultiplayerProvider::Hongshi).await?;
+    let (id, cancellation, done) =
+        reserve_session(Some(local_port), instance_id).await?;
+    drop(ports);
+    let (sender, receiver) = oneshot::channel();
+    tokio::spawn(async move {
+        let mut ready = Some(sender);
+        let result = std::panic::AssertUnwindSafe(host_session(
+            id,
+            local_port,
+            node_name,
+            &cancellation,
+            &mut ready,
+        ))
+        .catch_unwind()
+        .await
+        .unwrap_or_else(|_| {
+            Err(failure(
+                HongshiErrorType::KernelExit,
+                "RedStone session task panicked",
+            ))
+        });
+        finish_session(id, &cancellation, result, &mut ready, done).await;
+    });
+    Ok(PendingStart(receiver))
+}
 
-    let result = async {
-		{
-			let mut state = HONGSHI_STATE.lock().await;
-			state.status = HongshiStatus::SelectingNode;
-			state.local_port = Some(local_port);
-			state.node = None;
-			state.public_address = None;
-			state.created_at = None;
-			state.last_exit_code = None;
-			state.error_type = None;
-			state.error_message = None;
-			state.bound_instance_id = instance_id.clone();
-			state.port_changed = false;
-		}
-        let binary = ensure_binary().await?;
-
-		let mut nodes = get_nodes(false).await?;
-		if let Some(name) = node_name.as_deref() {
-			nodes.retain(|node| node.name == name);
-			if nodes.is_empty() {
-				bail!("selected RedStone node no longer exists");
-			}
-		} else {
-			nodes.retain(|node| node.reachable);
-		}
-		if nodes.is_empty() {
-			bail!("no reachable RedStone node is available");
-		}
-
-		let status_file = status_file_path();
-		let automatic = node_name.is_none();
-		let mut last_error = None;
-		for node in nodes {
-			{
-				let mut state = HONGSHI_STATE.lock().await;
-				state.status = HongshiStatus::Starting;
-				state.node = Some(node.clone());
-			}
-			let (child, job, started_at) = spawn_kernel(&binary, &node, local_port, &status_file).await?;
-			match wait_until_open(&child, &status_file, started_at).await? {
-				Ok(tunnel) => {
-					if tunnel.server != node.address {
-						let mut child = child.lock().await;
-						let _ = child.start_kill();
-						bail!("RedStone status file returned an unexpected server");
-					}
-					let public_address = format!("{}:{}", tunnel.server, tunnel.port);
-					{
-						let mut state = HONGSHI_STATE.lock().await;
-						state.status = HongshiStatus::Open;
-						state.public_address = Some(public_address);
-						state.created_at = tunnel.created;
-						state.last_exit_code = None;
-					}
-					let monitor = tokio::spawn(monitor_kernel(
-						child.clone(),
-						status_file.clone(),
-						started_at,
-					));
-					let mut runtime = HONGSHI_RUNTIME.lock().await;
-					runtime.child = Some(child);
-					runtime.job = Some(job);
-					runtime.monitor = Some(monitor);
-					runtime.status_file = Some(status_file);
-					return Ok(());
-				}
-				Err(exit_code) => {
-					last_error = Some(exit_code);
-                    if !should_try_next_node(automatic, exit_code) {
-						break;
-					}
-				}
-			}
-		}
-
-		let exit_code = last_error.unwrap_or(-1);
-        let error_type = error_type_for_exit(exit_code);
-		let message =
-			format!("RedStone failed to create a tunnel (exit code {exit_code}, type {error_type:?})");
-		set_start_error(error_type, message.clone(), Some(exit_code)).await;
-		bail!(message)
-	}
-	.await;
-
-    if let Err(error) = result {
-        if HONGSHI_STATE.lock().await.status != HongshiStatus::Error {
-            let message = error.to_string();
-            set_start_error(classify_start_error(&message), message, None)
-                .await;
+pub async fn download() -> eyre::Result<()> {
+    let (id, cancellation, done) = reserve_session(None, None).await?;
+    let (sender, receiver) = oneshot::channel();
+    tokio::spawn(async move {
+        let mut ready = Some(sender);
+        let result = std::panic::AssertUnwindSafe(prepare_binary(
+            id,
+            &cancellation,
+            true,
+        ))
+        .catch_unwind()
+        .await
+        .unwrap_or_else(|_| {
+            Err(failure(
+                HongshiErrorType::Install,
+                "RedStone installation task panicked",
+            ))
+        })
+        .map(|_| ());
+        if result.is_ok() {
+            update_state(id, |state| state.status = HongshiStatus::Idle).await;
         }
-        multiplayer::release_provider(MultiplayerProvider::Hongshi).await;
-        return Err(error);
-    }
-    Ok(())
+        finish_session(id, &cancellation, result, &mut ready, done).await;
+    });
+    PendingStart(receiver).wait().await
 }
 
 pub async fn stop() -> eyre::Result<()> {
-    let _operation = HONGSHI_OPERATION.lock().await;
-    let (child, job, monitor, status_file) = {
-        let mut runtime = HONGSHI_RUNTIME.lock().await;
-        runtime.stopping = true;
-        (
-            runtime.child.take(),
-            runtime.job.take(),
-            runtime.monitor.take(),
-            runtime.status_file.take(),
-        )
+    let session = {
+        let runtime = HONGSHI_RUNTIME.lock().await;
+        runtime.session.as_ref().map(|session| {
+            session.cancellation.cancel();
+            (session.id, session.done.clone())
+        })
     };
-    if let Some(child) = child {
-        let mut child = child.lock().await;
-        let _ = child.start_kill();
-        let _ =
-            tokio::time::timeout(Duration::from_secs(3), child.wait()).await;
+    if let Some((id, mut done)) = session {
+        while !*done.borrow() {
+            done.changed()
+                .await
+                .wrap_err("RedStone cleanup task stopped unexpectedly")?;
+        }
+        let runtime = HONGSHI_RUNTIME.lock().await;
+        if runtime.generation == id && runtime.session.is_none() {
+            let installed = HONGSHI_STATE.lock().await.binary_installed;
+            *HONGSHI_STATE.lock().await = HongshiState {
+                binary_installed: installed,
+                ..HongshiState::default()
+            };
+        }
     }
-    if let Some(monitor) = monitor {
-        monitor.abort();
-    }
-    drop(job);
-    if let Some(path) = status_file {
-        let _ = tokio::fs::remove_file(path).await;
-    }
-    {
-        let mut runtime = HONGSHI_RUNTIME.lock().await;
-        runtime.stopping = false;
-    }
-    *HONGSHI_STATE.lock().await = HongshiState::default();
-    multiplayer::release_provider(MultiplayerProvider::Hongshi).await;
     Ok(())
 }
 
@@ -1214,7 +1472,6 @@ pub async fn observe_minecraft_log(
     let Some(port) = port else {
         return;
     };
-
     DETECTED_PORTS.lock().await.insert(
         instance_id.to_string(),
         DetectedLanPort {
@@ -1227,7 +1484,6 @@ pub async fn observe_minecraft_log(
                 .to_string(),
         },
     );
-
     let mut state = HONGSHI_STATE.lock().await;
     if state.bound_instance_id.as_deref() == Some(instance_id)
         && state.local_port.is_some_and(|current| current != port)
@@ -1238,160 +1494,12 @@ pub async fn observe_minecraft_log(
 
 pub async fn minecraft_process_finished(instance_id: &str) {
     DETECTED_PORTS.lock().await.remove(instance_id);
-    let should_stop = {
-        let state = HONGSHI_STATE.lock().await;
-        state.bound_instance_id.as_deref() == Some(instance_id)
-            && matches!(
-                state.status,
-                HongshiStatus::Starting | HongshiStatus::Open
-            )
-    };
+    let should_stop = HONGSHI_STATE.lock().await.bound_instance_id.as_deref()
+        == Some(instance_id);
     if should_stop && let Err(error) = stop().await {
-        warn!("failed to stop RedStone after Minecraft exited: {error:#}");
+        warn!(%error, "failed to stop RedStone after Minecraft exited");
     }
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn parses_node_map_and_rejects_unsafe_hosts() {
-        let nodes =
-            parse_node_map(r#"{"南京":"119.45.52.17"}"#.as_bytes()).unwrap();
-        assert_eq!(nodes.get("南京").map(String::as_str), Some("119.45.52.17"));
-        assert!(parse_node_map(br#"{"local":"127.0.0.1"}"#).is_err());
-        assert!(parse_node_map(br#"{"bad":"https://example.com"}"#).is_err());
-        let nodes = parse_node_map(
-            br#"[{"host":"relay.example.com","region":"cn-east"}]"#,
-        )
-        .unwrap();
-        assert_eq!(
-            nodes.get("cn-east").map(String::as_str),
-            Some("relay.example.com")
-        );
-    }
-
-    #[test]
-    fn validates_supported_executable_formats() {
-        if cfg!(target_os = "windows") {
-            let mut binary = vec![0; 0x44];
-            binary[0..2].copy_from_slice(b"MZ");
-            binary[0x3c..0x40].copy_from_slice(&0x40_u32.to_le_bytes());
-            binary[0x40..0x44].copy_from_slice(b"PE\0\0");
-            assert!(valid_binary(&binary));
-        } else if cfg!(target_os = "linux") {
-            assert!(valid_binary(b"\x7fELFtest"));
-        } else if cfg!(target_os = "macos") {
-            assert!(valid_binary(&[0xcf, 0xfa, 0xed, 0xfe]));
-        }
-        assert!(!valid_binary(b"not an executable"));
-    }
-
-    #[test]
-    fn maps_supported_platforms_to_download_endpoints() {
-        assert_eq!(
-            download_endpoint_for("windows", "x86_64").unwrap(),
-            "https://hongshi.site/api/download/windows"
-        );
-        assert_eq!(
-            download_endpoint_for("macos", "aarch64").unwrap(),
-            "https://hongshi.site/api/download/darwin?arch=arm64"
-        );
-        assert_eq!(
-            download_endpoint_for("linux", "x86_64").unwrap(),
-            "https://hongshi.site/api/download/linux?arch=amd64"
-        );
-        assert!(download_endpoint_for("linux", "riscv64").is_err());
-    }
-
-    #[test]
-    fn distinguishes_daily_download_limits_from_short_rate_limits() {
-        assert!(is_daily_download_limit("今日下载次数已达上限"));
-        assert!(is_daily_download_limit("Daily download limit reached"));
-        assert!(!is_daily_download_limit("60 秒内请勿重复请求"));
-        assert!(!is_daily_download_limit("Too many requests"));
-    }
-
-    #[test]
-    fn parses_open_and_closed_status_files() {
-        let open = parse_tunnel_status(
-			"[tunnel]\nstatus=open\nserver=1.2.3.4\nport=41862\ncreated=2026-08-09 22:42:40\n",
-		)
-		.unwrap();
-        assert_eq!(open.port, 41862);
-        assert_eq!(open.server, "1.2.3.4");
-        assert!(
-            parse_tunnel_status(
-                "[tunnel]\nstatus=closed\nserver=1.2.3.4\nport=-1\n"
-            )
-            .is_ok()
-        );
-        assert!(
-            parse_tunnel_status(
-                "[tunnel]\nstatus=open\nserver=1.2.3.4\nport=-1\n"
-            )
-            .is_err()
-        );
-    }
-
-    #[tokio::test]
-    async fn detects_minecraft_lan_ports() {
-        observe_minecraft_log(
-            "instance-a",
-            "Test Instance",
-            "process-a",
-            "Local game hosted on port 54321",
-        )
-        .await;
-        let ports = get_detected_ports().await;
-        assert!(ports.iter().any(|entry| {
-            entry.instance_id == "instance-a"
-                && entry.instance_name == "Test Instance"
-                && entry.process_id == "process-a"
-                && entry.port == 54321
-        }));
-        minecraft_process_finished("instance-a").await;
-    }
-
-    #[test]
-    fn sorts_reachable_nodes_by_latency() {
-        let mut nodes = vec![
-            HongshiNode {
-                name: "slow".to_string(),
-                address: "203.0.113.1".to_string(),
-                latency_ms: Some(80),
-                reachable: true,
-                cached: false,
-            },
-            HongshiNode {
-                name: "offline".to_string(),
-                address: "203.0.113.2".to_string(),
-                latency_ms: None,
-                reachable: false,
-                cached: false,
-            },
-            HongshiNode {
-                name: "fast".to_string(),
-                address: "203.0.113.3".to_string(),
-                latency_ms: Some(20),
-                reachable: true,
-                cached: false,
-            },
-        ];
-        sort_nodes(&mut nodes);
-        assert_eq!(nodes[0].name, "fast");
-        assert_eq!(nodes[1].name, "slow");
-        assert_eq!(nodes[2].name, "offline");
-    }
-
-    #[test]
-    fn maps_exit_codes_and_only_fails_over_automatic_nodes() {
-        assert_eq!(error_type_for_exit(1), HongshiErrorType::NodeUnavailable);
-        assert_eq!(error_type_for_exit(2), HongshiErrorType::KernelStart);
-        assert_eq!(error_type_for_exit(3), HongshiErrorType::KernelExit);
-        assert!(should_try_next_node(true, 1));
-        assert!(!should_try_next_node(false, 1));
-        assert!(!should_try_next_node(true, 2));
-    }
-}
+mod tests;

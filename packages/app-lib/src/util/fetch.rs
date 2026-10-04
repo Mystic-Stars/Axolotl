@@ -1101,6 +1101,7 @@ fn http1_file_reqwest_client_builder() -> reqwest::ClientBuilder {
 pub static INSECURE_REQWEST_CLIENT: LazyLock<reqwest::Client> =
     LazyLock::new(|| {
         reqwest_client_builder()
+            .no_proxy()
             .build()
             .expect("client configuration should be valid")
     });

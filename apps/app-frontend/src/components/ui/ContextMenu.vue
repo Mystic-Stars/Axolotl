@@ -1,6 +1,6 @@
 <template>
 	<transition name="fade">
-		<div v-show="shown" ref="contextMenu" class="context-menu" :style="menuStyle">
+		<div v-show="shown" ref="contextMenu" class="context-menu select-none" :style="menuStyle">
 			<div
 				v-for="(option, index) in options"
 				:key="option.name ?? option.id ?? index"

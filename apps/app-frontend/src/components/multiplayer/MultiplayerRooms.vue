@@ -30,10 +30,12 @@ import {
 	useVIntl,
 } from '@modrinth/ui'
 import { computed, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
 
 import hongshiIcon from '@/assets/multiplayer/hongshi.png'
 import terracottaIcon from '@/assets/multiplayer/terracotta.png'
 import { useMultiplayerSession } from '@/composables/useMultiplayerSession'
+import { hongshiErrorMessage } from '@/helpers/hongshi-messages'
 import {
 	type MultiplayerProvider,
 	selectedDetectedInstance,
@@ -282,19 +284,16 @@ const messages = defineMessages({
 	},
 	hongshiProvider: {
 		id: 'app.multiplayer.provider.hongshi',
-		defaultMessage: 'RedStone',
+		defaultMessage: 'RedStone Online 2',
 	},
 	hongshiUnsupported: {
 		id: 'app.multiplayer.hongshi.unsupported',
-		defaultMessage: 'RedStone is not available for this operating system or architecture.',
-	},
-	downloadHongshi: {
-		id: 'app.multiplayer.hongshi.download',
-		defaultMessage: 'Download RedStone',
+		defaultMessage: 'RedStone Online 2 is not available for this operating system or architecture.',
 	},
 	hongshiBinaryMissing: {
 		id: 'app.multiplayer.hongshi.binary-missing',
-		defaultMessage: 'Download the RedStone kernel for this device before creating a room.',
+		defaultMessage:
+			'The RedStone Online 2 kernel will be installed when you create your first room.',
 	},
 	switchWarning: {
 		id: 'app.multiplayer.switch-warning',
@@ -326,22 +325,29 @@ const messages = defineMessages({
 	publicAddressHint: {
 		id: 'app.multiplayer.hongshi.public-address-hint',
 		defaultMessage:
-			'Friends can enter this address directly in Minecraft. They do not need RedStone.',
+			'Friends can enter this address directly in Minecraft. They do not need RedStone Online 2.',
 	},
-	hongshiLimits: {
-		id: 'app.multiplayer.hongshi.limits',
-		defaultMessage:
-			'Tunnels close after 10 minutes without players or 6 hours total. Maximum 10 players and 10 Mbps shared bandwidth.',
+	noNodes: {
+		id: 'app.multiplayer.hongshi.no-nodes',
+		defaultMessage: 'No relay nodes are listed right now. Refresh the list to try again.',
+	},
+	cancel: {
+		id: 'app.multiplayer.hongshi.cancel',
+		defaultMessage: 'Cancel',
 	},
 	portChanged: {
 		id: 'app.multiplayer.hongshi.port-changed',
 		defaultMessage: 'Minecraft opened a different LAN port. Restart the tunnel before sharing it.',
 	},
 	restartTunnel: { id: 'app.multiplayer.hongshi.restart', defaultMessage: 'Restart tunnel' },
-	openLogs: { id: 'app.multiplayer.hongshi.open-logs', defaultMessage: 'Open RedStone logs' },
+	openLogs: {
+		id: 'app.multiplayer.hongshi.open-logs',
+		defaultMessage: 'Open RedStone Online 2 logs',
+	},
 	closedTunnel: {
 		id: 'app.multiplayer.hongshi.closed',
-		defaultMessage: 'The RedStone room has closed. Create a new room to receive a new address.',
+		defaultMessage:
+			'The RedStone Online 2 room has closed. Create a new room to receive a new address.',
 	},
 	selectingNode: {
 		id: 'app.multiplayer.hongshi.selecting-node',
@@ -354,14 +360,16 @@ const roomCodeTouched = ref(false)
 const {
 	activeProvider,
 	detectedPorts,
-	downloadHongshi,
 	downloadTerracotta,
 	exportTerracottaReport,
 	hongshiState,
 	hostHongshi,
 	hostTerracotta: hostGame,
 	isActionPending,
+	isStopping,
 	isNodesLoading,
+	nodesLoaded,
+	nodesError,
 	isExportingReport,
 	joinTerracotta: joinGame,
 	nodes,
@@ -381,11 +389,20 @@ const {
 
 const providerStorageKey = 'axolotl-multiplayer-provider'
 const nodeStorageKey = 'axolotl-hongshi-node'
-const storedProvider = localStorage.getItem(providerStorageKey)
+const route = useRoute()
+const storedProvider =
+	typeof route.query.provider === 'string'
+		? route.query.provider
+		: localStorage.getItem(providerStorageKey)
 const selectedProvider = ref<MultiplayerProvider>(storedMultiplayerProvider(storedProvider))
 const selectedNodeName = ref(localStorage.getItem(nodeStorageKey) ?? 'auto')
 const selectedInstanceId = ref('manual')
-const manualPort = ref('25565')
+const initialPort = typeof route.query.port === 'string' ? route.query.port : ''
+const manualPort = ref(validLocalPort(initialPort) ? initialPort : '25565')
+const portSelectionTouched = ref(!!validLocalPort(initialPort))
+const hongshiFailure = computed(() =>
+	formatMessage(hongshiErrorMessage(hongshiState.value?.error_type)),
+)
 
 const hongshiSupported = computed(() => hongshiState.value?.supported ?? false)
 const detectedPortOptions = computed(() => [
@@ -432,6 +449,7 @@ const selectedProviderOption = computed(
 watch(
 	detectedPorts,
 	(ports) => {
+		if (portSelectionTouched.value && selectedInstanceId.value === 'manual') return
 		selectedInstanceId.value = selectedDetectedInstance(selectedInstanceId.value, ports)
 	},
 	{ immediate: true },
@@ -1056,49 +1074,6 @@ function submitJoin() {
 				</div>
 			</Card>
 
-			<Card v-else-if="!hongshiState.binary_installed" class="!m-0">
-				<div class="flex flex-col gap-5">
-					<div class="flex items-start gap-3">
-						<div
-							class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-highlight-orange text-orange"
-						>
-							<BinaryIcon class="size-5" />
-						</div>
-						<div class="min-w-0">
-							<h2 class="m-0 text-lg font-semibold text-[var(--color-text-primary)]">
-								{{ formatMessage(messages.downloadHongshi) }}
-							</h2>
-							<p class="mb-0 mt-1 text-[var(--color-text-tertiary)]">
-								{{ formatMessage(messages.hongshiBinaryMissing) }}
-							</p>
-						</div>
-					</div>
-
-					<ProgressBar
-						v-if="hongshiState.status === 'downloading'"
-						full-width
-						:progress="hongshiState.download_progress ?? 0"
-						:max="100"
-						:waiting="
-							hongshiState.download_progress === null || hongshiState.download_progress === 0
-						"
-						:label="formatMessage(messages.statusDownloading)"
-						show-progress
-					/>
-
-					<div v-else class="flex flex-wrap gap-2">
-						<Button
-							type="colored"
-							color="brand"
-							:disabled="isActionPending"
-							@click="downloadHongshi"
-							><DownloadIcon />
-							{{ formatMessage(messages.downloadHongshi) }}
-						</Button>
-					</div>
-				</div>
-			</Card>
-
 			<Card v-else-if="hongshiState.status === 'open'" class="!m-0">
 				<div class="flex flex-col gap-5">
 					<div class="flex flex-wrap items-start justify-between gap-3">
@@ -1152,12 +1127,8 @@ function submitJoin() {
 						</template>
 					</Admonition>
 
-					<Admonition type="info" :header="formatMessage(messages.hongshiProvider)">
-						{{ formatMessage(messages.hongshiLimits) }}
-					</Admonition>
-
 					<div class="flex flex-wrap gap-2">
-						<Button type="outlined" color="red" :disabled="isActionPending" @click="stopMultiplayer"
+						<Button type="outlined" color="red" :disabled="isStopping" @click="stopMultiplayer"
 							><LogOutIcon />
 							{{ formatMessage(messages.disconnect) }}
 						</Button>
@@ -1172,7 +1143,6 @@ function submitJoin() {
 			<Card v-else-if="isHongshiBusy" class="!m-0">
 				<div class="flex flex-col gap-5">
 					<div class="flex items-center gap-3">
-						<SpinnerIcon class="size-6 shrink-0 animate-spin text-orange" />
 						<h2 class="m-0 text-lg font-semibold text-[var(--color-text-primary)]">
 							{{
 								formatMessage(
@@ -1185,10 +1155,19 @@ function submitJoin() {
 							}}
 						</h2>
 					</div>
+					<ProgressBar
+						v-if="hongshiState.status === 'downloading'"
+						full-width
+						:progress="hongshiState.download_progress ?? 0"
+						:max="100"
+						:waiting="!hongshiState.download_progress"
+						:label="formatMessage(messages.statusDownloading)"
+						show-progress
+					/>
 					<div class="flex flex-wrap gap-2">
-						<Button type="outlined" color="red" :disabled="isActionPending" @click="stopMultiplayer"
+						<Button type="outlined" color="red" :disabled="isStopping" @click="stopMultiplayer"
 							><LogOutIcon />
-							{{ formatMessage(messages.disconnect) }}
+							{{ formatMessage(messages.cancel) }}
 						</Button>
 					</div>
 				</div>
@@ -1199,9 +1178,9 @@ function submitJoin() {
 					<Admonition
 						v-if="hongshiState.status === 'error'"
 						type="critical"
-						:header="formatMessage(messages.errorNetwork)"
+						:header="formatMessage(messages.hongshiProvider)"
 					>
-						{{ hongshiState.error_message || formatMessage(messages.checkNetwork) }}
+						{{ hongshiFailure }}
 						<template #actions>
 							<Button type="outlined" @click="openHongshiLogs"
 								><BinaryIcon />
@@ -1238,6 +1217,7 @@ function submitJoin() {
 								:options="
 									detectedPortOptions.map((value) => ({ value, label: detectedPortLabel(value) }))
 								"
+								@update:model-value="portSelectionTouched = true"
 							/>
 						</div>
 
@@ -1270,8 +1250,23 @@ function submitJoin() {
 						</label>
 					</div>
 
-					<Admonition type="info" :header="formatMessage(messages.hongshiProvider)">
-						{{ formatMessage(messages.hongshiLimits) }}
+					<Admonition
+						v-if="!hongshiState.binary_installed"
+						type="info"
+						:header="formatMessage(messages.hongshiProvider)"
+					>
+						{{ formatMessage(messages.hongshiBinaryMissing) }}
+					</Admonition>
+					<Admonition
+						v-if="nodesError || (nodesLoaded && nodes.length === 0)"
+						type="warning"
+						:header="formatMessage(messages.node)"
+					>
+						{{
+							nodesError
+								? formatMessage(hongshiErrorMessage('node_list'))
+								: formatMessage(messages.noNodes)
+						}}
 					</Admonition>
 
 					<div class="flex flex-wrap gap-2">
@@ -1280,8 +1275,8 @@ function submitJoin() {
 							color="brand"
 							:disabled="
 								!effectiveLocalPort ||
-								nodes.length === 0 ||
 								isActionPending ||
+								isStopping ||
 								isNodesLoading ||
 								!!(selectedNode && !selectedNode.reachable)
 							"

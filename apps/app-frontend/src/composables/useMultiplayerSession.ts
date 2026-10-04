@@ -1,10 +1,12 @@
-import { injectNotificationManager } from '@modrinth/ui'
+import { injectNotificationManager, useVIntl } from '@modrinth/ui'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 
+import { hongshiErrorMessage } from '@/helpers/hongshi-messages'
 import {
 	type DetectedLanPort,
 	type HongshiNode,
 	multiplayer,
+	multiplayerErrorText,
 	type MultiplayerProvider,
 	type MultiplayerState,
 } from '@/helpers/multiplayer'
@@ -16,6 +18,7 @@ const IDLE_POLL_INTERVAL = 2000
 
 export function useMultiplayerSession() {
 	const { handleError } = injectNotificationManager()
+	const { formatMessage } = useVIntl()
 	const multiplayerState = ref<MultiplayerState | null>(null)
 	const nodes = ref<HongshiNode[]>([])
 	const detectedPorts = ref<DetectedLanPort[]>([])
@@ -23,7 +26,10 @@ export function useMultiplayerSession() {
 	const roomCodeInput = ref('')
 	const platformKey = ref('unknown')
 	const isActionPending = ref(false)
+	const isStopping = ref(false)
 	const isNodesLoading = ref(false)
+	const nodesLoaded = ref(false)
+	const nodesError = ref(false)
 	const isExportingReport = ref(false)
 	const terracottaUpdate = ref<TerracottaUpdate | null>(null)
 
@@ -37,7 +43,9 @@ export function useMultiplayerSession() {
 
 	function pollInterval() {
 		const status = hongshiState.value?.status
-		return activeProvider.value || ['selecting_node', 'starting', 'open'].includes(status ?? '')
+		return isActionPending.value ||
+			activeProvider.value ||
+			['selecting_node', 'starting', 'open'].includes(status ?? '')
 			? ACTIVE_POLL_INTERVAL
 			: IDLE_POLL_INTERVAL
 	}
@@ -67,14 +75,19 @@ export function useMultiplayerSession() {
 		return pollPromise
 	}
 
-	async function runAction(action: () => Promise<void>) {
-		if (isActionPending.value) return false
+	async function runAction(action: () => Promise<void>, hongshi = false) {
+		if (isActionPending.value || isStopping.value) return false
 		isActionPending.value = true
+		schedulePoll()
 		try {
 			await action()
 			return true
 		} catch (error: unknown) {
-			handleError(error)
+			if (hongshi) {
+				if (multiplayerErrorText(error).includes('RedStone operation cancelled')) return false
+				const snapshot = await multiplayer.getState().catch(() => null)
+				handleError(formatMessage(hongshiErrorMessage(snapshot?.hongshi.error_type)))
+			} else handleError(error)
 			return false
 		} finally {
 			isActionPending.value = false
@@ -87,29 +100,46 @@ export function useMultiplayerSession() {
 		isNodesLoading.value = true
 		try {
 			nodes.value = await multiplayer.getNodes(forceRefresh)
-		} catch (error: unknown) {
-			handleError(error)
+			nodesLoaded.value = true
+			nodesError.value = false
+		} catch {
+			nodesError.value = true
+			handleError(formatMessage(hongshiErrorMessage('node_list')))
 		} finally {
 			isNodesLoading.value = false
 		}
 	}
 
+	async function runControlAction(action: () => Promise<void>) {
+		if (isStopping.value) return false
+		isStopping.value = true
+		try {
+			await action()
+			return true
+		} catch (error: unknown) {
+			handleError(error)
+			return false
+		} finally {
+			isStopping.value = false
+			await pollState()
+		}
+	}
 	const switchProvider = (provider: MultiplayerProvider) =>
-		runAction(() => multiplayer.switchProvider(provider))
+		runControlAction(() => multiplayer.switchProvider(provider))
 	const startTerracotta = () => runAction(multiplayer.prepareTerracotta)
 	const hostTerracotta = () => runAction(() => multiplayer.hostTerracotta(playerName.value))
 	const joinTerracotta = () =>
 		runAction(() => multiplayer.joinTerracotta(playerName.value, roomCodeInput.value))
 	const hostHongshi = (localPort: number, nodeName: string | null, instanceId: string | null) =>
-		runAction(() => multiplayer.hostHongshi(localPort, nodeName, instanceId))
-	const stop = () => runAction(multiplayer.stop)
-	const reset = () => runAction(multiplayer.reset)
+		runAction(() => multiplayer.hostHongshi(localPort, nodeName, instanceId), true)
+	const stop = () => runControlAction(multiplayer.stop)
+	const reset = () => runControlAction(multiplayer.reset)
 	const downloadTerracotta = () => runAction(terracotta.download)
 	const updateTerracotta = () =>
 		runAction(async () => {
 			terracottaUpdate.value = await terracotta.update()
 		})
-	const downloadHongshi = () => runAction(multiplayer.downloadHongshi)
+	const downloadHongshi = () => runAction(multiplayer.downloadHongshi, true)
 	async function exportTerracottaReport() {
 		if (isExportingReport.value) return
 		isExportingReport.value = true
@@ -162,7 +192,10 @@ export function useMultiplayerSession() {
 		hostHongshi,
 		hostTerracotta,
 		isActionPending,
+		isStopping,
 		isNodesLoading,
+		nodesLoaded,
+		nodesError,
 		isExportingReport,
 		joinTerracotta,
 		multiplayerState,

@@ -74,6 +74,12 @@ export interface ManagedServerManifest {
 	memoryMb?: number
 	jvmArgs?: string[]
 	lastStartedAt?: string
+	/** Multiplayer entry this server is linked to, when it is the backend of a
+	 * saved local address. */
+	linkedWorld?: {
+		instanceId: string
+		address: string
+	}
 }
 
 export interface ManagedServer extends ManagedServerManifest {

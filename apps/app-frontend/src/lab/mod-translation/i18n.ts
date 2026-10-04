@@ -190,6 +190,18 @@ export const modTranslationMessages = defineMessages({
 		id: 'app.lab.mod-translation.background-running',
 		defaultMessage: 'Running in background',
 	},
+	technicalDetails: {
+		id: 'app.lab.mod-translation.technical-details',
+		defaultMessage: 'Technical details',
+	},
+	copyDiagnostics: {
+		id: 'app.lab.mod-translation.copy-diagnostics',
+		defaultMessage: 'Copy diagnostics',
+	},
+	copyDiagnosticsInfo: {
+		id: 'app.lab.mod-translation.copy-diagnostics-info',
+		defaultMessage: 'Copy diagnostic information',
+	},
 })
 
 export const modTranslationPhaseSteps: readonly {

@@ -6855,7 +6855,7 @@ dependencies = [
 
 [[package]]
 name = "theseus"
-version = "1.9.7-beta.6"
+version = "1.9.7"
 dependencies = [
  "ariadne",
  "async-minecraft-ping",
@@ -6894,6 +6894,7 @@ dependencies = [
  "hickory-resolver 0.25.2",
  "hmac",
  "http",
+ "iana-time-zone",
  "indicatif",
  "itertools",
  "jsonwebtoken",
@@ -6960,7 +6961,7 @@ dependencies = [
 
 [[package]]
 name = "theseus_gui"
-version = "1.9.7-beta.6"
+version = "1.9.7"
 dependencies = [
  "ashpd",
  "async_zip",

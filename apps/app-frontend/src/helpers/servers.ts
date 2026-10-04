@@ -9,6 +9,12 @@ export interface ModpackInfoData {
 	iconUrl?: string
 }
 
+/** A saved multiplayer entry that a managed server is the backend of. */
+export interface LinkedWorldData {
+	instanceId: string
+	address: string
+}
+
 export interface ServerManifestData {
 	id: string
 	name: string
@@ -25,6 +31,7 @@ export interface ServerManifestData {
 	jvmArgs: string[]
 	preLaunchHook?: string
 	homePinnedAt?: string
+	linkedWorld?: LinkedWorldData | null
 	createdAt: string
 	lastStartedAt?: string
 	lastExitCrashed: boolean
@@ -36,6 +43,8 @@ export interface ServerInfoData extends ServerManifestData {
 	eulaExists: boolean
 	eulaAccepted: boolean
 	port: number | null
+	/** `online-mode` from server.properties; null when unset (defaults to on). */
+	onlineMode: boolean | null
 }
 
 export type ServerExitReason = 'eula'
@@ -91,6 +100,12 @@ export const servers = {
 	) => invoke<ServerManifestData>(command('servers_update_settings'), { serverId, ...options }),
 	setIcon: (serverId: string, iconPath: string | null) =>
 		invoke<ServerManifestData>(command('servers_set_icon'), { serverId, iconPath }),
+	setLinkedWorld: (serverId: string, linked: LinkedWorldData | null) =>
+		invoke<ServerManifestData>(command('servers_set_linked_world'), { serverId, linked }),
+	isLocalAddress: (address: string) =>
+		invoke<boolean>(command('servers_is_local_address'), { address }),
+	waitUntilReady: (serverId: string, timeoutMs?: number) =>
+		invoke<boolean>(command('servers_wait_until_ready'), { serverId, timeoutMs }),
 	delete: (serverId: string) => invoke<void>(command('servers_delete'), { serverId }),
 	readFile: (serverId: string, file: string) =>
 		invoke<string>(command('servers_read_file'), { serverId, file }),

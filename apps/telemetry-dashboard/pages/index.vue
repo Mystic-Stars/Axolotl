@@ -1,12 +1,5 @@
 <script setup lang="ts">
-import {
-	Activity,
-	CalendarDays,
-	Clock3,
-	Database,
-	PackagePlus,
-	Users,
-} from 'lucide-vue-next'
+import { Activity, CalendarDays, Clock3, Database, PackagePlus, Users } from 'lucide-vue-next'
 
 import AppState from '~/components/AppState.vue'
 import DistributionChart from '~/components/charts/DistributionChart.vue'
@@ -89,10 +82,7 @@ const distributionCharts = computed(() => [
 
 <template>
 	<div>
-		<PageHeader
-			title="数据总览"
-			description="查看匿名启动器遥测的活跃度、增长和运行环境分布。"
-		>
+		<PageHeader title="数据总览" description="查看匿名启动器遥测的活跃度、增长和运行环境分布。">
 			<Badge v-if="data" variant="secondary" class="gap-1.5 px-2.5 py-1">
 				<Clock3 class="size-3.5" />更新于 {{ formatUtcTimestamp(data.overview.generatedAt) }}
 			</Badge>

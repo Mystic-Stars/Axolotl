@@ -216,6 +216,10 @@ pub struct Settings {
     pub skipped_update: Option<String>,
     pub pending_update_toast_for_version: Option<String>,
     pub auto_download_updates: Option<bool>,
+    #[serde(default = "default_true")]
+    pub allow_external_scheme: bool,
+    #[serde(default)]
+    pub allow_privileged_scheme: bool,
 
     pub version: usize,
 }
@@ -546,6 +550,18 @@ impl Settings {
             pending_update_toast_for_version: res
                 .pending_update_toast_for_version,
             auto_download_updates: res.auto_download_updates.map(|x| x == 1),
+            allow_external_scheme: sqlx::query_scalar(
+                "SELECT allow_external_scheme FROM settings WHERE id = 0",
+            )
+            .fetch_one(exec)
+            .await
+            .unwrap_or(true),
+            allow_privileged_scheme: sqlx::query_scalar(
+                "SELECT allow_privileged_scheme FROM settings WHERE id = 0",
+            )
+            .fetch_one(exec)
+            .await
+            .unwrap_or(false),
             version: res.version as usize,
         };
         crate::util::download::set_active_engine(settings.download_engine);
@@ -832,6 +848,14 @@ impl Settings {
         .bind(self.show_skin_selector_in_sidebar)
         .execute(exec)
         .await?;
+        sqlx::query("UPDATE settings SET allow_external_scheme = ? WHERE id = 0")
+            .bind(self.allow_external_scheme)
+            .execute(exec)
+            .await?;
+        sqlx::query("UPDATE settings SET allow_privileged_scheme = ? WHERE id = 0")
+            .bind(self.allow_privileged_scheme)
+            .execute(exec)
+            .await?;
 
         Ok(())
     }

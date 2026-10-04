@@ -552,18 +552,67 @@ function settleInstallJob(job: InstallJobSnapshot) {
 	throw new Error(job.error?.message ?? `Install job ${job.job_id} ${job.status}`)
 }
 
+const INSTALL_JOB_POLL_INTERVAL_MS = 1000
+const INSTALL_JOB_QUERY_TIMEOUT_MS = 10 * 1000
+const INSTALL_JOB_TIMEOUT_MS = 30 * 60 * 1000
+
+function errorMessage(error: unknown) {
+	return error instanceof Error ? error.message : typeof error === 'string' ? error : String(error)
+}
+
+function isTransientInstallJobQueryError(error: unknown) {
+	return /timed out|timeout|temporary|busy|connection|network|fetch|database is locked|try again/i.test(
+		errorMessage(error),
+	)
+}
+
+async function queryInstallJob(jobId: string) {
+	return await new Promise<InstallJobSnapshot>((resolve, reject) => {
+		const timeout = setTimeout(() => {
+			reject(
+				new Error(
+					`Install job ${jobId} query timed out after ${INSTALL_JOB_QUERY_TIMEOUT_MS / 1000} seconds`,
+				),
+			)
+		}, INSTALL_JOB_QUERY_TIMEOUT_MS)
+		install_job_get(jobId).then(
+			(job) => {
+				clearTimeout(timeout)
+				resolve(job)
+			},
+			(error) => {
+				clearTimeout(timeout)
+				reject(error)
+			},
+		)
+	})
+}
+
 export async function wait_for_install_job(jobId: string) {
-	const current = await install_job_get(jobId)
+	const current = await queryInstallJob(jobId)
 	if (isInstallJobFinished(current.status)) return settleInstallJob(current)
 
 	return await new Promise<InstallJobSnapshot>((resolve, reject) => {
 		let finished = false
 		let unlisten: (() => void) | null = null
+		let pollTimer: ReturnType<typeof setInterval> | null = null
+		let timeoutTimer: ReturnType<typeof setTimeout> | null = null
+		let pollInFlight = false
+		let cancellationRequested = false
+		let cancellationInFlight = false
 
 		const cleanup = () => {
 			if (unlisten) {
 				unlisten()
 				unlisten = null
+			}
+			if (pollTimer) {
+				clearInterval(pollTimer)
+				pollTimer = null
+			}
+			if (timeoutTimer) {
+				clearTimeout(timeoutTimer)
+				timeoutTimer = null
 			}
 		}
 
@@ -587,6 +636,44 @@ export async function wait_for_install_job(jobId: string) {
 			reject(err)
 		}
 
+		const poll = () => {
+			if (finished || pollInFlight) return
+			pollInFlight = true
+			queryInstallJob(jobId)
+				.then((job) => {
+					resolveJob(job)
+				})
+				.catch((error) => {
+					// A job that is already being canceled must still be observed
+					// until a terminal snapshot is available; otherwise callers may
+					// clean up files that the backend is still reading.
+					if (cancellationRequested || isTransientInstallJobQueryError(error)) return
+					rejectWait(error)
+				})
+				.finally(() => {
+					pollInFlight = false
+				})
+		}
+
+		const requestCancellation = async () => {
+			if (finished || cancellationRequested || cancellationInFlight) return
+			cancellationRequested = true
+			cancellationInFlight = true
+			try {
+				resolveJob(await install_job_cancel(jobId))
+			} catch {
+				// Polling remains active and will observe the terminal state even
+				// if the cancellation request races with job completion.
+			} finally {
+				cancellationInFlight = false
+			}
+		}
+
+		pollTimer = setInterval(poll, INSTALL_JOB_POLL_INTERVAL_MS)
+		timeoutTimer = setTimeout(() => {
+			void requestCancellation()
+		}, INSTALL_JOB_TIMEOUT_MS)
+
 		install_job_listener(resolveJob)
 			.then((listener) => {
 				if (finished) {
@@ -595,7 +682,7 @@ export async function wait_for_install_job(jobId: string) {
 				}
 
 				unlisten = listener
-				install_job_get(jobId).then(resolveJob).catch(rejectWait)
+				poll()
 			})
 			.catch(rejectWait)
 	})

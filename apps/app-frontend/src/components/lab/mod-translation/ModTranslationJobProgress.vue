@@ -1,23 +1,49 @@
 <script setup lang="ts">
 import { CheckCircleIcon, SparklesIcon } from '@modrinth/assets'
-import { useVIntl } from '@modrinth/ui'
+import { defineMessages, useVIntl } from '@modrinth/ui'
 import { computed } from 'vue'
 
-import { modTranslationPhaseSteps } from '@/lab/mod-translation/i18n'
+import { modTranslationMessages, modTranslationPhaseSteps } from '@/lab/mod-translation/i18n'
 import { phaseIndex } from '@/lab/mod-translation/job-state'
 import type { ModTranslationJob, ModTranslationPhase } from '@/lab/mod-translation/types.ts'
 
 const props = defineProps<{ job: ModTranslationJob }>()
 const { formatMessage } = useVIntl()
+
+const messages = defineMessages({
+	workloadMeasuring: {
+		id: 'app.lab.mod-translation.progress.workload-measuring',
+		defaultMessage: 'Establishing a verifiable workload…',
+	},
+	verifiedWeights: {
+		id: 'app.lab.mod-translation.progress.verified-weights',
+		defaultMessage: 'Verified {verified} / {total}',
+	},
+	currentBatch: {
+		id: 'app.lab.mod-translation.progress.current-batch',
+		defaultMessage: 'Batch {completed} / {total}',
+	},
+	recentlyWritten: {
+		id: 'app.lab.mod-translation.progress.recently-written',
+		defaultMessage: 'Recently written',
+	},
+})
+
 const activeIndex = computed(() => phaseIndex(props.job.phase))
 const measurable = computed(() => props.job.weightTotal > 0)
 const verificationLabel = computed(() => {
-	if (!measurable.value) return '正在建立可验证工作量…'
-	return `当前复验通过 ${formatWeight(props.job.weightVerified)} / ${formatWeight(props.job.weightTotal)}`
+	if (!measurable.value) return formatMessage(messages.workloadMeasuring)
+	return formatMessage(messages.verifiedWeights, {
+		verified: formatWeight(props.job.weightVerified),
+		total: formatWeight(props.job.weightTotal),
+	})
 })
 const itemLabel = computed(() => {
 	if (props.job.total <= 0) return undefined
-	return `当前批次 ${props.job.completed.toLocaleString()} / ${props.job.total.toLocaleString()}`
+	return formatMessage(messages.currentBatch, {
+		completed: props.job.completed.toLocaleString(),
+		total: props.job.total.toLocaleString(),
+	})
 })
 
 function stepState(step: ModTranslationPhase): 'done' | 'current' | 'failed' | 'pending' {
@@ -71,7 +97,7 @@ function formatWeight(value: number): string {
 
 		<div class="live" :class="[`live--${job.level}`, { 'live--failed': job.status === 'failed' }]">
 			<span v-if="job.status === 'running'" class="live-dot" />
-			<strong>{{ job.message || '正在准备…' }}</strong>
+			<strong>{{ job.message || formatMessage(modTranslationMessages.preparing) }}</strong>
 			<span class="verification max-sm:hidden">{{ verificationLabel }}</span>
 		</div>
 
@@ -80,7 +106,9 @@ function formatWeight(value: number): string {
 		</div>
 
 		<div v-if="job.sample" class="sample">
-			<span class="sample-label"><SparklesIcon />最近写入</span>
+			<span class="sample-label"
+				><SparklesIcon />{{ formatMessage(messages.recentlyWritten) }}</span
+			>
 			<div class="sample-row">
 				<span :title="job.sample.source">{{ job.sample.source }}</span>
 				<span class="sample-arrow">→</span>

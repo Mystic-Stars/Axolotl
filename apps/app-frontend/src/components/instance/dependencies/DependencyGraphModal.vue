@@ -1077,7 +1077,7 @@ defineExpose({ show, hide, setItems })
 										v-for="node in visibleGraphNodes"
 										:key="node.id"
 										data-dependency-node
-										class="dependency-graph-node absolute flex h-[76px] w-[228px] cursor-grab items-center gap-3 rounded-2xl border-2 px-3 shadow-lg transition-[box-shadow,opacity,transform] active:cursor-grabbing"
+										class="dependency-graph-node absolute flex h-[76px] w-[228px] cursor-grab select-none items-center gap-3 rounded-2xl border-2 px-3 shadow-lg transition-[box-shadow,opacity,transform] active:cursor-grabbing"
 										:class="[
 											nodeStatusClass(node),
 											selectedNodeId && selectedNodeId !== node.id ? 'opacity-35' : '',

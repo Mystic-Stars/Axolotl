@@ -329,6 +329,7 @@
 			}
 
 			.screen-stack {
+				min-height: 0;
 				position: relative;
 				flex: 1;
 				overflow: hidden;
@@ -340,8 +341,8 @@
 				display: flex;
 				flex-direction: column;
 				align-items: center;
-				justify-content: center;
-				padding: 0 48px;
+				padding: 24px 48px;
+				overflow-y: auto;
 				opacity: 0;
 				transform: translateY(20px) scale(0.98);
 				pointer-events: none;
@@ -357,8 +358,15 @@
 			.screen-content-wrapper {
 				width: 100%;
 				max-width: 540px;
+				min-width: 0;
+				margin-block: auto;
+				flex-shrink: 0;
 				display: flex;
 				flex-direction: column;
+			}
+
+			.screen[data-screen='welcome'] .screen-content-wrapper {
+				max-width: none;
 			}
 
 			h1,
@@ -424,7 +432,9 @@
 				animation: random-spotlight 16s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 				-webkit-background-clip: text;
 				-webkit-text-fill-color: transparent;
-				white-space: nowrap;
+				max-width: 100%;
+				white-space: normal;
+				overflow-wrap: anywhere;
 				filter: drop-shadow(0 16px 32px rgba(244, 114, 182, 0.2));
 			}
 
@@ -441,10 +451,49 @@
 				line-height: 1.5;
 				font-weight: 500;
 				color: var(--text-secondary);
-				max-width: none;
-				white-space: nowrap;
+				max-width: 100%;
+				white-space: normal;
 				margin-left: auto;
 				margin-right: auto;
+			}
+
+			.task-copy {
+				margin-top: 12px;
+				font-size: 14px;
+				line-height: 1.6;
+				color: var(--text-secondary);
+				white-space: normal;
+				overflow-wrap: anywhere;
+			}
+
+			.screen[data-screen='uninstall'] .install-facts {
+				margin-top: 24px;
+			}
+
+			.screen[data-screen='uninstall'] .toggles {
+				margin-top: 24px;
+			}
+
+			.checkbox-box {
+				flex-shrink: 0;
+			}
+
+			body.is-uninstalling .fact-value {
+				white-space: normal;
+				overflow-wrap: anywhere;
+			}
+
+			.error-panel {
+				overflow-wrap: anywhere;
+			}
+
+			body.is-failed .spinner {
+				display: none;
+			}
+
+			body.is-failed .progress-fill {
+				background: var(--red);
+				box-shadow: none;
 			}
 
 			.section-copy {
@@ -955,7 +1004,9 @@
 					<!-- Welcome Screen -->
 					<section class="screen active" data-screen="welcome">
 						<div class="screen-content-wrapper" style="align-items: center; text-align: center">
-							<h1 id="welcome-title" data-i18n="welcomeTitle">Your Minecraft worlds, in one place.</h1>
+							<h1 id="welcome-title" data-i18n="welcomeTitle">
+								Your Minecraft worlds, in one place.
+							</h1>
 							<p id="welcome-copy" class="lead" data-i18n="welcomeCopy">
 								Install Axolotl Launcher, a focused home for instances, content, saves, and Java
 								runtimes.
@@ -963,6 +1014,38 @@
 
 							<!-- Version tag for sidebar parity -->
 							<div style="display: none" id="version"></div>
+						</div>
+					</section>
+
+					<!-- Uninstall confirmation -->
+					<section class="screen" data-screen="uninstall">
+						<div class="screen-content-wrapper">
+							<h2 data-i18n="uninstallTitle">Uninstall Axolotl Launcher</h2>
+							<p class="task-copy" data-i18n="uninstallCopy"></p>
+							<div class="install-facts">
+								<div class="install-fact">
+									<span class="fact-label" data-i18n="programLocation">Program location</span>
+									<span class="fact-value" id="uninstall-directory"></span>
+								</div>
+							</div>
+							<div class="toggles">
+								<label class="checkbox-label" id="delete-app-data-row">
+									<input id="delete-app-data" type="checkbox" />
+									<div class="checkbox-box">
+										<svg
+											class="check-icon"
+											viewBox="0 0 24 24"
+											fill="none"
+											stroke="currentColor"
+											stroke-width="3"
+										>
+											<path d="M5 12l4 4L19 7" stroke-linecap="round" stroke-linejoin="round" />
+										</svg>
+									</div>
+									<span data-i18n="deleteAppData">Delete application data</span>
+								</label>
+							</div>
+							<p class="task-copy" data-i18n="uninstallDataScope"></p>
 						</div>
 					</section>
 
@@ -1062,11 +1145,7 @@
 										</div>
 										<span data-i18n="desktopShortcut">Desktop shortcut</span>
 									</label>
-									<label class="checkbox-label hidden" id="delete-app-data-row">
-										<input id="delete-app-data" type="checkbox" />
-										<div class="checkbox-box"><svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l4 4L19 7" stroke-linecap="round" stroke-linejoin="round" /></svg></div>
-										<span data-i18n="deleteAppData">Delete application data</span>
-									</label>
+
 									<label class="checkbox-label">
 										<input id="launch-after" type="checkbox" checked />
 										<div class="checkbox-box">
@@ -1216,9 +1295,25 @@
 						'Your existing application directory will be preserved. You can change it later in Settings.',
 					desktopShortcut: 'Desktop shortcut',
 					launchAfter: 'Launch when complete',
-					deleteAppData: 'Delete application data',
+					deleteAppData: 'Delete configuration and caches',
 					uninstallTitle: 'Uninstall Axolotl Launcher',
-					uninstallCopy: 'Remove Axolotl Launcher from this computer. Your application data is kept unless you choose to delete it.',
+					uninstallCopy:
+						'Remove Axolotl Launcher and its Windows shortcuts from this computer. Application data is kept by default.',
+					uninstallDataScope:
+						'The optional cleanup removes Axolotl data in AppData. Instances, saves, Java and resources in a custom application directory are kept.',
+					uninstall: 'Uninstall',
+					uninstalling: 'Uninstalling',
+					cancel: 'Cancel',
+					uninstallPreparing: 'Preparing to uninstall Axolotl Launcher',
+					uninstallFiles: 'Removing launcher files',
+					uninstallIntegrations: 'Removing Windows shortcuts and integrations',
+					uninstallFinalizing: 'Finishing uninstallation',
+					uninstallWait: 'Keep this window open while uninstallation completes.',
+					uninstallFailed: 'Uninstallation failed',
+					uninstallFailedDetail:
+						'Close Axolotl Launcher and check access to the installation directory, then retry.',
+					uninstallFooter: 'Custom application directories are kept.',
+					uninstallCompleteFooter: 'You can now close this uninstaller.',
 					uninstallCompleteTitle: 'Axolotl Launcher was removed',
 					uninstallCompleteCopy: 'Axolotl Launcher has been uninstalled successfully.',
 					installingEyebrow: 'Installation in progress',
@@ -1283,9 +1378,23 @@
 					existingNotice: '现有应用目录会被保留，之后仍可在启动器设置中修改。',
 					desktopShortcut: '创建桌面快捷方式',
 					launchAfter: '完成后启动',
-					deleteAppData: '删除应用数据',
+					deleteAppData: '删除配置与缓存',
 					uninstallTitle: '卸载 Axolotl Launcher',
-					uninstallCopy: '从此电脑移除 Axolotl Launcher。除非选择删除，否则会保留应用数据。',
+					uninstallCopy: '从此电脑移除 Axolotl Launcher 及其 Windows 快捷方式。默认保留应用数据。',
+					uninstallDataScope:
+						'可选清理仅移除 AppData 中的 Axolotl 数据。自定义应用目录中的实例、存档、Java 和资源会保留。',
+					uninstall: '卸载',
+					uninstalling: '正在卸载',
+					cancel: '取消',
+					uninstallPreparing: '正在准备卸载 Axolotl Launcher',
+					uninstallFiles: '正在移除启动器文件',
+					uninstallIntegrations: '正在移除 Windows 快捷方式与集成',
+					uninstallFinalizing: '正在完成卸载',
+					uninstallWait: '卸载完成前请保持此窗口打开。',
+					uninstallFailed: '卸载失败',
+					uninstallFailedDetail: '请关闭 Axolotl Launcher，检查安装目录的访问权限，然后重试。',
+					uninstallFooter: '自定义应用目录会保留。',
+					uninstallCompleteFooter: '现在可以关闭卸载程序。',
 					uninstallCompleteTitle: 'Axolotl Launcher 已卸载',
 					uninstallCompleteCopy: 'Axolotl Launcher 已成功卸载。',
 					installingEyebrow: '正在安装',
@@ -1322,8 +1431,13 @@
 
 			const language = boot.language === 'zhCn' ? 'zhCn' : 'en'
 			const t = copy[language]
-			const state = { screen: 'welcome', progress: 4, failed: false, launchFailed: false, launchAfter: true }
-			if (boot.uninstall) state.launchAfter = false
+			const state = {
+				screen: boot.uninstall ? 'uninstall' : 'welcome',
+				progress: 4,
+				failed: false,
+				launchFailed: false,
+				launchAfter: !boot.uninstall,
+			}
 			const screens = ['welcome', 'configure', 'installing', 'complete']
 			const $ = (selector) => document.querySelector(selector)
 			const post = (payload) => window.ipc.postMessage(JSON.stringify(payload))
@@ -1346,12 +1460,12 @@
 			$('#install-dir').value = boot.installDir
 			$('#resource-dir').value = boot.resourceDir
 			if (boot.uninstall) {
-				$('#welcome-title').textContent = t.uninstallTitle
-				$('#welcome-copy').textContent = t.uninstallCopy
-				$('#delete-app-data-row').classList.remove('hidden')
-				$('#desktop-shortcut').closest('label').classList.add('hidden')
-				$('#launch-after').closest('label').classList.add('hidden')
-				state.launchAfter = false
+				document.body.classList.add('is-uninstalling')
+				$('#uninstall-directory').textContent = boot.installDir
+				$('[data-screen="complete"] h2').textContent = t.uninstallCompleteTitle
+				$('[data-screen="complete"] .lead').textContent = t.uninstallCompleteCopy
+				$('[data-screen="complete"] .lead').classList.replace('lead', 'task-copy')
+				$('#progress-detail').textContent = t.uninstallWait
 			}
 
 			if (!boot.freshInstall) {
@@ -1363,7 +1477,8 @@
 
 			function setScreen(screen) {
 				state.screen = screen
-				document.body.classList.toggle('is-installing', screen === 'installing')
+				document.body.classList.toggle('is-installing', screen === 'installing' && !state.failed)
+				document.body.classList.toggle('is-failed', state.failed)
 				document
 					.querySelectorAll('[data-screen]')
 					.forEach((element) =>
@@ -1392,7 +1507,12 @@
 				secondary.classList.add('hidden')
 				icon.classList.remove('hidden')
 
-				if (state.screen === 'welcome') {
+				if (state.screen === 'uninstall') {
+					$('#footer-note').textContent = t.uninstallFooter
+					$('#primary-label').textContent = t.uninstall
+					secondary.textContent = t.cancel
+					secondary.classList.remove('hidden')
+				} else if (state.screen === 'welcome') {
 					$('#footer-note').textContent = t.footerWelcome
 					$('#primary-label').textContent = t.continue
 				} else if (state.screen === 'configure') {
@@ -1401,14 +1521,28 @@
 					secondary.textContent = t.back
 					secondary.classList.remove('hidden')
 				} else if (state.screen === 'installing') {
-					$('#footer-note').textContent = t.footerInstalling
-					$('#primary-label').textContent = state.failed ? t.retry : t.install
+					$('#footer-note').textContent = boot.uninstall ? t.uninstallWait : t.footerInstalling
+					$('#primary-label').textContent = state.failed
+						? t.retry
+						: boot.uninstall
+							? t.uninstalling
+							: t.install
+					if (boot.uninstall && state.failed) {
+						secondary.textContent = t.close
+						secondary.classList.remove('hidden')
+					}
 					icon.classList.toggle('hidden', !state.failed)
-					} else {
+				} else {
 					$('#footer-note').textContent = state.launchFailed
 						? t.footerLaunchFailed
-						: t.footerComplete
-					$('#primary-label').textContent = state.launchAfter ? t.launch : t.finish
+						: boot.uninstall
+							? t.uninstallCompleteFooter
+							: t.footerComplete
+					$('#primary-label').textContent = boot.uninstall
+						? t.close
+						: state.launchAfter
+							? t.launch
+							: t.finish
 					icon.innerHTML = state.launchAfter
 						? '<path d="M5 12h14m-6-6 6 6-6 6"/>'
 						: '<path d="m5 12 4 4L19 6"/>'
@@ -1422,6 +1556,7 @@
 				state.failed = false
 				state.launchFailed = false
 				if (boot.uninstall) {
+					window.axolotlInstaller.receive({ type: 'installStarted' })
 					state.launchAfter = false
 					post({ command: 'uninstall', deleteAppData: $('#delete-app-data').checked })
 					return
@@ -1457,7 +1592,16 @@
 				$('#progress-fill').style.width = `${state.progress}%`
 				$('.progress-track').setAttribute('aria-valuenow', String(state.progress))
 				let key = 'progressPreparing'
-				if (state.progress >= 82) key = 'progressFinalizing'
+				if (boot.uninstall) {
+					key =
+						state.progress >= 82
+							? 'uninstallFinalizing'
+							: state.progress >= 66
+								? 'uninstallIntegrations'
+								: state.progress >= 26
+									? 'uninstallFiles'
+									: 'uninstallPreparing'
+				} else if (state.progress >= 82) key = 'progressFinalizing'
 				else if (state.progress >= 66) key = 'progressIntegrations'
 				else if (state.progress >= 26) key = 'progressFiles'
 				else if (state.progress >= 10) key = 'progressRuntime'
@@ -1481,13 +1625,15 @@
 			})
 
 			$('#primary-action').addEventListener('click', () => {
-				if (state.screen === 'welcome') boot.uninstall ? install() : setScreen('configure')
+				if (state.screen === 'uninstall') install()
+				else if (state.screen === 'welcome') setScreen('configure')
 				else if (state.screen === 'configure' || (state.screen === 'installing' && state.failed))
 					install()
-				else if (state.screen === 'complete')
-					post({ command: 'finish', launch: state.launchAfter })
+				else if (state.screen === 'complete') post({ command: 'finish', launch: state.launchAfter })
 			})
-			$('#secondary-action').addEventListener('click', () => setScreen('welcome'))
+			$('#secondary-action').addEventListener('click', () =>
+				boot.uninstall ? post({ command: 'close' }) : setScreen('welcome'),
+			)
 
 			window.axolotlInstaller = {
 				receive(message) {
@@ -1498,20 +1644,20 @@
 						$('#field-error').textContent = t[message.code] || t.absolutePath
 						$(`#${message.field}-dir`).focus()
 					} else if (message.type === 'installStarted') {
+						$('#progress-detail').textContent = boot.uninstall ? t.uninstallWait : t.progressWait
 						$('#install-summary').textContent = $('#install-dir').value
 						$('#resource-summary').textContent = $('#resource-dir').value
-						$('#resource-summary-row').classList.toggle('hidden', !boot.freshInstall)
+						$('#resource-summary-row').classList.toggle(
+							'hidden',
+							boot.uninstall || !boot.freshInstall,
+						)
 						state.progress = 0
 						setProgress(4)
 						setScreen('installing')
 					} else if (message.type === 'progress') {
 						setProgress(message.value)
 					} else if (message.type === 'installFinished') {
-						if (boot.uninstall) {
-							$('[data-screen="complete"] h2').textContent = t.uninstallCompleteTitle
-							$('[data-screen="complete"] .lead').textContent = t.uninstallCompleteCopy
-						}
-						state.launchAfter = message.launchAfter ?? state.launchAfter
+						state.launchAfter = !boot.uninstall && (message.launchAfter ?? state.launchAfter)
 						setProgress(100)
 						setScreen('complete')
 					} else if (message.type === 'launchFailed') {
@@ -1525,18 +1671,16 @@
 						state.failed = true
 						const suffix = message.exitCode == null ? '' : ` (${message.exitCode})`
 						$('#install-error').textContent =
-							`${t.installFailed}${suffix}. ${t.installFailedDetail}`
+							`${boot.uninstall ? t.uninstallFailed : t.installFailed}${suffix}. ${boot.uninstall ? t.uninstallFailedDetail : t.installFailedDetail}${boot.uninstall && message.message ? ` ${message.message}` : ''}`
 						$('#install-error').classList.add('visible')
-						renderFooter()
-					}
-					if (boot.uninstall && screen === 'complete') {
-						$('[data-screen="complete"] h2').textContent = t.uninstallCompleteTitle
-						$('[data-screen="complete"] .lead').textContent = t.uninstallCompleteCopy
+						$('#progress-title').textContent = boot.uninstall ? t.uninstallFailed : t.installFailed
+						$('#progress-detail').textContent = t.retry
+						setScreen('installing')
 					}
 				},
 			}
 
-			renderFooter()
+			setScreen(state.screen)
 		</script>
 	</body>
 </html>

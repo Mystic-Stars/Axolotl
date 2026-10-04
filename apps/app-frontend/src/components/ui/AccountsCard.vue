@@ -32,6 +32,8 @@
 		<Button
 			data-onboarding-id="offline-account-entry"
 			:disabled="loginDisabled"
+			:aria-disabled="antiPiracyStatus.restricted"
+			:class="{ 'opacity-50': antiPiracyStatus.restricted }"
 			@click="showOfflineAccountModal()"
 			><PlusIcon />
 			{{ formatMessage(messages.addOfflineAccount) }}
@@ -73,6 +75,10 @@
 				<div v-for="account in accounts" :key="account.account_id" class="flex gap-1 items-center">
 					<button
 						class="flex items-center flex-shrink flex-grow overflow-clip gap-2 p-2 border-0 bg-transparent cursor-pointer button-base min-w-0"
+						:aria-disabled="account.account_type === 'offline' && antiPiracyStatus.restricted"
+						:class="{
+							'opacity-50': account.account_type === 'offline' && antiPiracyStatus.restricted,
+						}"
 						@click="setAccount(account)"
 					>
 						<RadioButtonCheckedIcon
@@ -165,6 +171,8 @@
 					class="w-full"
 					data-onboarding-id="offline-account-entry"
 					:disabled="loginDisabled"
+					:aria-disabled="antiPiracyStatus.restricted"
+					:class="{ 'opacity-50': antiPiracyStatus.restricted }"
 					@click="showOfflineAccountModal()"
 					><PlusIcon />
 					{{ formatMessage(messages.addOfflineAccount) }}
@@ -391,6 +399,10 @@ import { useRoute } from 'vue-router'
 import axolotlLogo from '@/assets/axolotl.png'
 import steveSkinTexture from '@/assets/skins/steve.png?inline'
 import MinecraftLoginModal from '@/components/ui/MinecraftLoginModal.vue'
+import {
+	isOfflineAccountRestrictedError,
+	useAntiPiracyStatus,
+} from '@/composables/useAntiPiracyStatus'
 import { useNetworkStatus } from '@/composables/useNetworkStatus'
 import { preferredOnlineAccountId } from '@/helpers/account-selection'
 import { compareMinecraftAccounts } from '@/helpers/accounts'
@@ -413,13 +425,15 @@ import { process_listener } from '@/helpers/events'
 import { getPlayerHeadUrl } from '@/helpers/rendering/batch-skin-renderer.ts'
 import type { Skin } from '@/helpers/skins'
 import { get_available_skins } from '@/helpers/skins'
-import { handleSevereError } from '@/store/error.js'
+import { handleSevereError, useError } from '@/store/error.js'
 
 const { formatMessage } = useVIntl()
 const { handleError } = injectNotificationManager()
 const { offline, refreshBrowserOffline } = useNetworkStatus()
 const queryClient = useQueryClient()
 const route = useRoute()
+const { status: antiPiracyStatus, refresh: refreshAntiPiracyStatus } = useAntiPiracyStatus()
+const errorStore = useError()
 const refreshingNetwork = ref(false)
 
 /**
@@ -771,7 +785,7 @@ function getAccountAvatarUrl(account: MinecraftCredential) {
 
 function persistDefaultUser(userId: string) {
 	const update = defaultUserUpdateQueue.then(async () => {
-		await set_default_user(userId).catch(handleError)
+		await set_default_user(userId)
 	})
 	defaultUserUpdateQueue = update.catch(() => {})
 	return update
@@ -788,12 +802,22 @@ function getAccountId(account: MinecraftCredential): string {
 }
 
 async function setAccount(account: MinecraftCredential) {
+	if (account.account_type === 'offline' && antiPiracyStatus.value.restricted) {
+		errorStore.showAntiPiracyNotice()
+		return
+	}
 	const userId = getAccountId(account)
+	try {
+		await persistDefaultUser(userId)
+	} catch (error) {
+		if (isOfflineAccountRestrictedError(error)) errorStore.showAntiPiracyNotice()
+		else handleError(error as Error)
+		return
+	}
 	refreshGeneration += 1
 	defaultUser.value = userId
 	equippedSkin.value = null
 
-	await persistDefaultUser(userId)
 	if (defaultUser.value !== userId) return
 	await refreshValues()
 	if (defaultUser.value === userId) notifyAccountChange()
@@ -819,6 +843,7 @@ async function login() {
 async function onMicrosoftLogin(account: MinecraftCredential) {
 	loginDisabled.value = true
 	try {
+		await refreshAntiPiracyStatus()
 		await setAccount(account)
 		trackEvent('AccountLogIn')
 	} catch (error) {
@@ -829,6 +854,10 @@ async function onMicrosoftLogin(account: MinecraftCredential) {
 }
 
 function showOfflineAccountModal() {
+	if (antiPiracyStatus.value.restricted) {
+		errorStore.showAntiPiracyNotice()
+		return
+	}
 	offlineUsername.value = ''
 	offlineCustomUuid.value = false
 	offlineUuid.value = ''
@@ -1014,6 +1043,10 @@ async function selectYggdrasilProfile(profileId: string) {
 
 async function addOfflineAccount() {
 	if (!offlineFormValid.value || loginDisabled.value) return
+	if (antiPiracyStatus.value.restricted) {
+		errorStore.showAntiPiracyNotice()
+		return
+	}
 
 	loginDisabled.value = true
 	offlineUuidDuplicate.value = false
@@ -1027,7 +1060,8 @@ async function addOfflineAccount() {
 		trackEvent('OfflineAccountAdd')
 	} catch (error) {
 		offlineUuidDuplicate.value = isDuplicateUuidError(error)
-		if (!offlineUuidDuplicate.value) handleError(error as Error)
+		if (isOfflineAccountRestrictedError(error)) errorStore.showAntiPiracyNotice()
+		else if (!offlineUuidDuplicate.value) handleError(error as Error)
 	} finally {
 		loginDisabled.value = false
 	}

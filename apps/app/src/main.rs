@@ -13,7 +13,7 @@ use std::{
     path::{Component, Path, PathBuf},
 };
 use tauri::{
-    Listener, Manager,
+    Emitter, Listener, Manager,
     http::{Response, StatusCode, header},
 };
 use tauri_plugin_fs::FsExt;
@@ -205,6 +205,15 @@ async fn initialize_state(app: tauri::AppHandle) -> api::Result<()> {
 
     tracing::info!("Initializing app state...");
     State::init(app.config().identifier.clone()).await?;
+    let anti_piracy_app = app.clone();
+    tauri::async_runtime::spawn(async move {
+        let status = theseus::anti_piracy::check_region().await;
+        if let Err(error) =
+            anti_piracy_app.emit("anti-piracy-status-changed", status)
+        {
+            tracing::warn!(%error, "Could not notify frontend of offline account eligibility");
+        }
+    });
     if let Err(error) = theseus::instance::maintain_backup_repository().await {
         tracing::warn!(%error, "Failed to maintain the instance backup repository");
     }

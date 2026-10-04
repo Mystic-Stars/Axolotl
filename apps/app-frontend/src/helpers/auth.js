@@ -97,6 +97,14 @@ export async function add_offline_user(username, uuid) {
 	})
 }
 
+export async function get_anti_piracy_status() {
+	return await invoke('plugin:auth|get_anti_piracy_status')
+}
+
+export async function clear_official_login_marker() {
+	return await invoke('plugin:auth|clear_official_login_marker')
+}
+
 /**
  * Retrieves the default user
  * @return {Promise<UUID | undefined>}

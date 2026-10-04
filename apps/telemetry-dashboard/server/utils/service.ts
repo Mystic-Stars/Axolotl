@@ -4,10 +4,7 @@ import type { AdminSessionDto } from '../../shared/types/telemetry'
 import type { TelemetryAdminApi } from './admin-api'
 import { mockScenario } from './auth'
 import { dashboardBindings } from './bindings'
-import {
-	D1TelemetryAdminApi,
-	type TelemetryDatabase,
-} from './d1-admin-api'
+import { D1TelemetryAdminApi, type TelemetryDatabase } from './d1-admin-api'
 import { unavailable } from './errors'
 import { MockTelemetryAdminApi } from './mock-admin-api'
 import { remoteTelemetryDataSource } from './vercel-data-source'

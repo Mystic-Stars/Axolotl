@@ -28,6 +28,332 @@ export const ANNOUNCEMENT_CHANGE_TYPES: readonly AnnouncementChangeType[] = [
 
 export const launcherAnnouncements: readonly LauncherAnnouncement[] = [
 	{
+		id: 'launcher-1.9.8-beta.1',
+		version: '1.9.8-beta.1',
+		publishedAt: '2026-10-01',
+		title: {
+			'en-US': 'Axolotl Launcher 1.9.8-beta.1',
+			'zh-CN': 'Axolotl Launcher 1.9.8-beta.1',
+		},
+		changes: {
+			fixed: [
+				{
+					'en-US':
+						'Fixed right-click Copy and Paste menus in the Discover and Library search fields.',
+					'zh-CN': '修复发现页和库页面搜索框无法通过右键菜单复制、粘贴的问题。',
+				},
+			],
+		},
+	},
+	{
+		id: 'launcher-1.9.7',
+		version: '1.9.7',
+		publishedAt: '2026-09-30',
+		title: {
+			'en-US': 'Axolotl Launcher 1.9.7',
+			'zh-CN': 'Axolotl Launcher 1.9.7',
+		},
+		changes: {
+			added: [
+				{
+					'en-US':
+						'Added Screenshot Center for browsing, previewing, editing, and organizing screenshots across instances.',
+					'zh-CN': '新增截图中心，支持跨实例浏览、预览、编辑和管理截图。',
+				},
+				{
+					'en-US':
+						'Added screenshot preview metadata and restored screenshot preview and editing actions.',
+					'zh-CN': '新增截图预览元数据，并恢复截图预览和编辑操作。',
+				},
+				{
+					'en-US':
+						'Added cross-instance synchronization for game options, resource-pack selections, hotbars, command history, server lists, locales, screenshots, and content files.',
+					'zh-CN':
+						'新增游戏选项、资源包选择、快捷栏、命令历史、服务器列表、语言、截图和内容文件的跨实例同步。',
+				},
+				{
+					'en-US': 'Added data-pack synchronization for linked instances.',
+					'zh-CN': '新增关联实例的数据包同步。',
+				},
+				{
+					'en-US':
+						'Added instance backup management with configurable repositories, exclusions, restore previews, and background operations.',
+					'zh-CN': '新增实例备份管理，支持配置备份仓库、排除规则、恢复预览和后台操作。',
+				},
+				{
+					'en-US': 'Added recovery of interrupted backup tasks after restarting the launcher.',
+					'zh-CN': '新增启动器重启后恢复中断备份任务的功能。',
+				},
+				{
+					'en-US':
+						'Added instance groups with creation, renaming, deletion, collapsing, drag-and-drop ordering, and batch management.',
+					'zh-CN': '新增实例分组，支持创建、重命名、删除、折叠、拖拽排序和批量管理。',
+				},
+				{
+					'en-US':
+						'Added Cleanroom loader support, including external-instance recognition and mrpack export.',
+					'zh-CN': '新增 Cleanroom 加载器支持，包括外部实例识别和 mrpack 导出。',
+				},
+				{
+					'en-US':
+						'Added custom interface and monospace font selection from installed system fonts.',
+					'zh-CN': '新增界面字体和等宽字体自定义选择，支持读取系统已安装字体。',
+				},
+				{
+					'en-US': 'Added armor and armor-trim rendering to the skin preview.',
+					'zh-CN': '新增皮肤预览中的盔甲和盔甲纹饰渲染。',
+				},
+				{
+					'en-US': 'Added local persistence for armor preview selections in the skin editor.',
+					'zh-CN': '新增皮肤编辑器盔甲预览选择的本地持久化。',
+				},
+				{
+					'en-US':
+						'Added structured crash-log analysis with selectable files, LogAgent insights, and separate log and analysis views.',
+					'zh-CN':
+						'新增结构化崩溃日志分析，支持选择日志文件、查看 LogAgent 结果以及分离的日志和分析视图。',
+				},
+				{
+					'en-US':
+						'Added a modern announcement center with categorized announcements and release history.',
+					'zh-CN': '新增现代化公告中心、公告分类和版本更新历史。',
+				},
+				{
+					'en-US': 'Added support for pinning local servers to the Home page.',
+					'zh-CN': '新增将本地服务器固定到主页的功能。',
+				},
+				{
+					'en-US':
+						'Added custom Minecraft window titles, launcher shortcut icons, desktop shortcut export, server pre-launch hooks, and additional URL scheme commands.',
+					'zh-CN':
+						'新增自定义 Minecraft 窗口标题、启动快捷方式图标、桌面快捷方式导出、服务器启动前钩子和更多 URL Scheme 命令。',
+				},
+				{
+					'en-US': 'Added an Experimental Features settings page with staged rollout controls.',
+					'zh-CN': '新增实验性功能设置页面和灰度发布控制。',
+				},
+				{
+					'en-US': 'Added an option to ignore SSL certificate errors when required.',
+					'zh-CN': '新增在必要时忽略 SSL 证书错误的选项。',
+				},
+				{
+					'en-US':
+						'Added Nix Flake, NixOS, and Home Manager support for building and installing the launcher.',
+					'zh-CN': '新增 Nix Flake、NixOS 和 Home Manager 构建及安装支持。',
+				},
+				{
+					'en-US': 'Added an Aliyun mirror for Maven Central libraries.',
+					'zh-CN': '新增 Maven Central 库文件的阿里云镜像。',
+				},
+			],
+			removed: [
+				{
+					'en-US': 'Removed hard-coded announcement handling in favor of the announcement catalog.',
+					'zh-CN': '移除硬编码公告处理逻辑，统一使用公告目录。',
+				},
+				{
+					'en-US': 'Removed the remaining floating-vue integration and unused overlay styles.',
+					'zh-CN': '移除剩余的 floating-vue 集成和无用弹层样式。',
+				},
+				{
+					'en-US': 'Removed deprecated modal wrapper compatibility layers.',
+					'zh-CN': '移除已弃用的弹窗包装器兼容层。',
+				},
+				{
+					'en-US': 'Removed the obsolete terminal stack, Timeline, and related dependencies.',
+					'zh-CN': '移除废弃的终端栈、Timeline 及相关依赖。',
+				},
+				{
+					'en-US': 'Removed unused frontend components and legacy component aliases.',
+					'zh-CN': '移除未使用的前端组件和旧组件别名。',
+				},
+				{
+					'en-US': 'Removed the deprecated Input export alias and legacy button aliases.',
+					'zh-CN': '移除已弃用的 Input 导出别名和旧按钮别名。',
+				},
+				{
+					'en-US':
+						'Removed inactive pack synchronization helpers and obsolete installation message aliases.',
+					'zh-CN': '移除停用的整合包同步辅助逻辑和过时的安装消息别名。',
+				},
+				{
+					'en-US': 'Removed unnecessary Vue DevTools loading from production builds.',
+					'zh-CN': '移除生产构建中不必要的 Vue DevTools 加载。',
+				},
+			],
+			changed: [
+				{
+					'en-US':
+						'Improved dependency-graph navigation, relationship clusters, selection, and performance for large graphs.',
+					'zh-CN': '改进依赖关系图的导航、关系分组、选择交互和大型关系图性能。',
+				},
+				{
+					'en-US':
+						'Improved content installation and updates by reducing redundant metadata requests and serializing database writes.',
+					'zh-CN': '改进内容安装和更新流程，减少重复元数据请求并串行化数据库写入。',
+				},
+				{
+					'en-US':
+						'Improved background content-change tasks with clearer progress, cancellation, and recovery behavior.',
+					'zh-CN': '改进内容变更后台任务的进度、取消和恢复行为。',
+				},
+				{
+					'en-US':
+						'Improved external-instance support across screenshots, assets, launch context, content roots, and CurseForge updates.',
+					'zh-CN': '改进外部实例在截图、资源、启动上下文、内容根目录和 CurseForge 更新中的支持。',
+				},
+				{
+					'en-US':
+						'Improved backup, restore, and repository-move operations so they run in the background and survive launcher restarts.',
+					'zh-CN': '改进备份、恢复和备份仓库迁移，使其在后台运行并支持启动器重启后恢复。',
+				},
+				{
+					'en-US':
+						'Improved notification handling so dismissed notifications remain dismissed and empty centers stay hidden.',
+					'zh-CN': '改进通知处理，确保已关闭通知不再出现，并在通知为空时隐藏通知中心。',
+				},
+				{
+					'en-US':
+						'Refined settings pages with clearer subtitles, controls, dialogs, and navigation behavior.',
+					'zh-CN': '优化设置页面的副标题、控件、弹窗和导航行为。',
+				},
+				{
+					'en-US':
+						'Improved overlay, tooltip, popup-menu, and shared UI primitive behavior and styling.',
+					'zh-CN': '改进弹层、工具提示、弹出菜单和共享 UI 基础组件的行为与样式。',
+				},
+				{
+					'en-US':
+						'Improved skin-preview layouts and kept controls within bounds on small windows.',
+					'zh-CN': '改进皮肤预览布局，确保小窗口中的控件保持在预览范围内。',
+				},
+				{
+					'en-US':
+						'Improved crash diagnostics by reusing in-flight uploads, separating local analysis from log sharing, and exposing launcher crash logs.',
+					'zh-CN':
+						'改进崩溃诊断，复用进行中的上传任务，分离本地分析与日志分享，并显示启动器崩溃日志。',
+				},
+				{
+					'en-US':
+						'Improved Home page widgets, pinned-server layout, account greetings, and route-state retention.',
+					'zh-CN': '改进主页组件、固定服务器布局、账户问候语和路由状态保留。',
+				},
+				{
+					'en-US':
+						'Improved proxy propagation to Java and authentication reachability checks when a Mojang mirror is configured.',
+					'zh-CN': '改进系统代理向 Java 的传递，以及配置 Mojang 镜像时的认证可达性检测。',
+				},
+				{
+					'en-US':
+						'Improved release builds, Nix caching, frontend loading, and production asset loading performance.',
+					'zh-CN': '改进发布构建、Nix 缓存、前端加载和生产资源加载性能。',
+				},
+			],
+			fixed: [
+				{
+					'en-US':
+						'Fixed external-instance screenshots failing to open or preview in Screenshot Center.',
+					'zh-CN': '修复外部实例截图无法在截图中心打开或预览的问题。',
+				},
+				{
+					'en-US':
+						'Fixed screenshot-directory resolution, missing screenshot IDs, preview flashing, and context-menu behavior.',
+					'zh-CN': '修复截图目录解析、截图 ID 缺失、预览闪烁和右键菜单行为问题。',
+				},
+				{
+					'en-US': 'Fixed linked instances retaining stale links or references to missing roots.',
+					'zh-CN': '修复关联实例残留过期链接或指向不存在根目录的问题。',
+				},
+				{
+					'en-US':
+						'Fixed synchronization of content, screenshots, backups, resource packs, options, server lists, hotbars, command history, and locales.',
+					'zh-CN':
+						'修复内容、截图、备份、资源包、游戏选项、服务器列表、快捷栏、命令历史和语言设置同步问题。',
+				},
+				{
+					'en-US': 'Fixed deleted-instance backups and suspended pack files not being cleaned up.',
+					'zh-CN': '修复删除实例后的备份和暂停同步的整合包文件未被清理的问题。',
+				},
+				{
+					'en-US':
+						'Fixed database deadlocks, recursive permit waits, dependency-edge races, and incorrect backup retention.',
+					'zh-CN': '修复数据库死锁、递归许可等待、依赖边竞争和备份保留策略错误。',
+				},
+				{
+					'en-US':
+						'Fixed content updates becoming stuck, failing to submit, reporting incorrect progress, or ignoring cancellation.',
+					'zh-CN': '修复内容更新卡住、无法提交、进度错误或无法取消的问题。',
+				},
+				{
+					'en-US':
+						'Fixed CurseForge updates losing resolved metadata or loader versions and misreading loader labels as game versions.',
+					'zh-CN':
+						'修复 CurseForge 更新丢失已解析元数据或加载器版本，以及错误识别加载器标签的问题。',
+				},
+				{
+					'en-US':
+						'Fixed install progress not including external assets and extraction progress not resetting correctly.',
+					'zh-CN': '修复安装进度未包含外部资源，以及进入解压阶段时进度未正确重置的问题。',
+				},
+				{
+					'en-US':
+						'Fixed repeated infinite loading while searching on the Discover and Browse pages.',
+					'zh-CN': '修复在发现页和浏览页搜索时反复无限加载的问题。',
+				},
+				{
+					'en-US':
+						'Fixed navigation becoming unavailable after entering Favorites, Discover, or Browse pages.',
+					'zh-CN': '修复进入收藏夹、发现页或浏览页后无法继续导航的问题。',
+				},
+				{
+					'en-US':
+						'Fixed online-account selection not being restored after network interruptions and new offline accounts not being selected immediately.',
+					'zh-CN': '修复网络中断后在线账户选择未恢复，以及新离线账户未立即选中的问题。',
+				},
+				{
+					'en-US':
+						'Fixed the launcher using an instance icon in the taskbar and using the wrong game directory for launch hooks.',
+					'zh-CN': '修复任务栏使用实例图标，以及启动钩子使用错误游戏目录的问题。',
+				},
+				{
+					'en-US':
+						'Fixed small-window skin controls overflowing the preview bounds and armor-tab focus remaining after navigation.',
+					'zh-CN': '修复小窗口皮肤控件溢出预览范围，以及切换盔甲标签页后焦点残留的问题。',
+				},
+				{
+					'en-US':
+						'Fixed armor-trim UVs, leggings mirroring, left-arm armor, armor corners, and transparent-skin rendering.',
+					'zh-CN': '修复盔甲纹饰 UV、盔甲护腿镜像、左臂盔甲、盔甲边角和透明皮肤渲染问题。',
+				},
+				{
+					'en-US':
+						'Fixed popup menus opening in the wrong direction and multiple overlay placement regressions.',
+					'zh-CN': '修复弹出菜单打开方向错误和多个弹层定位回归问题。',
+				},
+				{
+					'en-US':
+						'Fixed crash-modal spacing, close-button placement, completed-analysis state, and log-panel layout issues.',
+					'zh-CN': '修复崩溃窗口间距、关闭按钮位置、分析完成状态和日志面板布局问题。',
+				},
+				{
+					'en-US':
+						'Fixed dismissed notifications returning and legacy notification states being handled incorrectly.',
+					'zh-CN': '修复已关闭通知重新出现以及旧版通知状态处理错误的问题。',
+				},
+				{
+					'en-US':
+						'Fixed the Home page pinned-server indentation, row stretching, persistence, and stale-response issues.',
+					'zh-CN': '修复主页固定服务器缩进、条目拉伸、保存和过期响应问题。',
+				},
+				{
+					'en-US':
+						'Fixed the Follow System Language button size, font-picker casing behavior, duplicate announcement entries, and screenshot-center color settings.',
+					'zh-CN': '修复跟随系统语言按钮尺寸、字体选择大小写、公告重复条目和截图中心主色设置问题。',
+				},
+			],
+		},
+	},
+	{
 		id: 'launcher-1.9.7-beta.6',
 		version: '1.9.7-beta.6',
 		publishedAt: '2026-09-27',

@@ -205,6 +205,8 @@ fn main() {
                         "get_default_user",
                         "set_default_user",
                         "get_users",
+                        "get_anti_piracy_status",
+                        "clear_official_login_marker",
                     ])
                     .default_permission(
                         DefaultPermissionRule::AllowAllCommands,
@@ -938,6 +940,9 @@ fn main() {
                         "servers_create",
                         "servers_update_settings",
                         "servers_set_icon",
+                        "servers_set_linked_world",
+                        "servers_is_local_address",
+                        "servers_wait_until_ready",
                         "servers_delete",
                         "servers_read_file",
                         "servers_write_file",

@@ -318,11 +318,29 @@ pub enum CommandPayload {
         // run or install .mrpack
         path: PathBuf,
     },
-    OpenSeedMap {
-        // URL query string describing the shared seed-map state
-        query: String,
+    OpenRoute {
+        path: String,
+        query: Option<String>,
     },
-    OpenDiscovery,
+    OpenSettings {
+        tab: Option<String>,
+        entry: Option<String>,
+    },
+    // 特权动作：仅生成载荷，执行须前端确认弹窗
+    UpdateSettings {
+        changes: Vec<SettingChange>,
+        source: String,
+    },
+    StopInstance {
+        instance_id: String,
+        source: String,
+    },
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct SettingChange {
+    pub key: String,
+    pub value: String,
 }
 
 #[derive(Serialize, Clone)]

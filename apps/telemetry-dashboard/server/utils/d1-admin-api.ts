@@ -311,7 +311,20 @@ export class D1TelemetryAdminApi implements TelemetryAdminApi {
 							+ (SELECT COUNT(*) FROM error_daily WHERE day = ?) AS distinct_groups,
 						(SELECT COALESCE(object_count, 0) FROM error_context_budget WHERE day = ?) AS r2_today`,
 				)
-				.bind(today, today, today, today, today, today, start, yesterday, today, ...groupCountBindings, today, today)
+				.bind(
+					today,
+					today,
+					today,
+					today,
+					today,
+					today,
+					start,
+					yesterday,
+					today,
+					...groupCountBindings,
+					today,
+					today,
+				)
 				.first<OverviewRow>()
 			if (!row) throw unavailable()
 			const metric = (value: number, label: string) => ({ value: Number(value), label })
@@ -362,15 +375,15 @@ export class D1TelemetryAdminApi implements TelemetryAdminApi {
 			const start = startDay(range, this.now())
 			const today = utcDay(this.now())
 			const query = async (
-					field: 'app_version' | 'platform' | 'arch',
-				): Promise<DistributionItemDto[]> => {
-					const result = await this.db
-						.prepare(
-							`SELECT ${field} AS label, COUNT(DISTINCT installation_hash) AS value
+				field: 'app_version' | 'platform' | 'arch',
+			): Promise<DistributionItemDto[]> => {
+				const result = await this.db
+					.prepare(
+						`SELECT ${field} AS label, COUNT(DISTINCT installation_hash) AS value
 							FROM daily_active WHERE day >= ? AND day <= ?
 							GROUP BY ${field} ORDER BY value DESC, label ASC LIMIT 12`,
-						)
-						.bind(start, today)
+					)
+					.bind(start, today)
 					.all<DistributionRow>()
 				return result.results.map((row) => ({ label: row.label, value: Number(row.value) }))
 			}
