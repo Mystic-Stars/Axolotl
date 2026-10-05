@@ -2932,15 +2932,12 @@ async fn finalize_download_once(
     part_path: &Path,
     destination: &Path,
 ) -> std::io::Result<()> {
-    if let Err(error) = io::fsync_file(part_path).await {
-        if error.kind() == std::io::ErrorKind::NotFound {
-            return Err(error);
-        }
-        tracing::warn!(
-            part = %part_path.display(),
-            "Could not flush the downloaded file before committing it: {error}"
-        );
-    }
+    // Starting with the flush is what makes the commit meaningful: replacing
+    // the destination without it could publish contents that a crash then
+    // loses. A flush that fails for any reason therefore aborts the commit and
+    // leaves the previous destination in place; the partial file stays for the
+    // caller's retry, and a partial file that never existed reports `NotFound`.
+    io::fsync_file(part_path).await?;
     io::atomically_replace_file(part_path, destination)
 }
 
@@ -7090,6 +7087,29 @@ mod tests {
             tokio::fs::read(&destination).await.unwrap(),
             b"previous",
             "a failed commit must not remove the existing destination"
+        );
+    }
+
+    #[tokio::test]
+    async fn finalize_download_aborts_when_the_flush_fails() {
+        let directory = tempfile::tempdir().unwrap();
+        let destination = directory.path().join("file.bin");
+        tokio::fs::write(&destination, b"previous").await.unwrap();
+        // A directory cannot be opened for writing, so the flush fails for a
+        // reason other than a missing file.
+        let part = directory.path().join("unflushable.part");
+        tokio::fs::create_dir(&part).await.unwrap();
+
+        let error = finalize_download(&part, &destination).await.unwrap_err();
+
+        assert!(
+            !format!("{error}").is_empty(),
+            "a failed flush must surface an error"
+        );
+        assert_eq!(
+            tokio::fs::read(&destination).await.unwrap(),
+            b"previous",
+            "a failed flush must not replace the destination"
         );
     }
 

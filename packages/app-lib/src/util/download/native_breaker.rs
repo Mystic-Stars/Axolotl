@@ -97,12 +97,16 @@ pub(crate) fn should_skip(
     is_open(route)
 }
 
+/// Clears the cooldown for a route after a transfer succeeded. A server-provided
+/// cooldown stays in place: `429` and `503` ask the client to slow down for a
+/// specific period, and an unrelated success on the same route is not evidence
+/// that the pause has expired.
 pub(crate) fn record_success(route: &DownloadRoute) {
     let Some(key) = key(route) else {
         return;
     };
     if let Some(entry) = BREAKERS.lock().get_mut(&key) {
-        entry.causes.clear();
+        entry.causes.remove(&BreakerCause::Transfer);
     }
 }
 
@@ -209,6 +213,49 @@ mod tests {
         assert!(should_skip(&route, true));
         assert!(!should_skip(&route, false));
         record_success(&route);
+    }
+
+    #[test]
+    fn a_success_does_not_release_a_server_provided_cooldown() {
+        let route = route("server-cooldown-breaker.example");
+        for _ in 0..FAILURE_THRESHOLD {
+            assert!(record_response_status_failure(
+                &route,
+                429,
+                Some(Duration::from_secs(30))
+            ));
+        }
+        assert!(is_open(&route));
+
+        record_success(&route);
+
+        assert!(
+            is_open(&route),
+            "a rate-limit cooldown must survive an unrelated success"
+        );
+        assert!(
+            breakers_open_for(&route, BreakerCause::RateLimited)
+                > Duration::from_secs(20),
+            "the server-provided pause is still running"
+        );
+        record_success(&route);
+        record_success(&route);
+    }
+
+    #[test]
+    fn a_success_clears_the_transfer_cooldown() {
+        let route = route("transfer-cooldown-breaker.example");
+        for _ in 0..FAILURE_THRESHOLD {
+            record_failure(&route);
+        }
+        assert!(is_open(&route));
+
+        record_success(&route);
+
+        assert!(
+            !is_open(&route),
+            "a completed transfer clears the transfer cooldown"
+        );
     }
 
     #[test]

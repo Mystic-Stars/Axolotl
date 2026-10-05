@@ -301,14 +301,12 @@ pub struct Processor {
     pub sides: Option<Vec<String>>,
 }
 
-/// Identifies one library artifact. Two entries that repeat the same artifact
-/// share a key even when one of them carries a classifier, because that is
-/// exactly how a loader profile repeats a vanilla library with a reduced
-/// description. Entries that differ in version, classifier or extension are
-/// different artifacts: their download URLs and hashes are not
-/// interchangeable. The classifier matters because 1.19 and newer declare
+/// Identifies one library artifact. Entries that differ in version, classifier
+/// or extension are different artifacts: their download URLs and hashes are
+/// not interchangeable. The classifier matters because 1.19 and newer declare
 /// natives as separate `group:artifact:version:natives-<platform>` entries,
-/// each with its own artifact URL and operating-system rules.
+/// each with its own artifact URL and operating-system rules, so those entries
+/// must never be merged into one another.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 struct ArtifactKey<'a> {
     group: &'a str,
