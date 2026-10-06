@@ -107,6 +107,11 @@ const REASSIGNABLE_FIRST_BYTE_TIMEOUT: time::Duration =
 pub(crate) const MAX_DOWNLOAD_ATTEMPT_HISTORY: usize = 12;
 pub(crate) const MAX_DOWNLOAD_DIAGNOSTIC_BYTES: usize = 8 * 1024;
 const MAX_FAILURE_COOLDOWN: time::Duration = time::Duration::from_secs(1);
+/// Upper bound applied to a server-provided `Retry-After`. It is deliberately
+/// separate from [`MAX_FAILURE_COOLDOWN`]: the HTTP/1.1 fallback window stays
+/// short, while a server that explicitly asks for a longer pause is honoured
+/// instead of being retried after a second.
+const RETRY_AFTER_CAP: time::Duration = time::Duration::from_secs(60);
 const H2_FALLBACK_TTL: time::Duration = MAX_FAILURE_COOLDOWN;
 const TASK_PROBE_MAX_ROUTES: usize = 3;
 const MAX_TASK_PROBE_STATES: usize = 64;
@@ -1199,7 +1204,7 @@ fn retry_after(response: &reqwest::Response) -> Option<time::Duration> {
 }
 
 fn clamp_failure_cooldown(cooldown: time::Duration) -> time::Duration {
-    cooldown.min(MAX_FAILURE_COOLDOWN)
+    cooldown.min(RETRY_AFTER_CAP)
 }
 
 pub(crate) fn is_sensitive_header(name: &str) -> bool {
@@ -1338,12 +1343,33 @@ fn record_native_transfer_failure(
     {
         return;
     }
-    if let Some(cooldown) = cooldown {
+    crate::util::download::native_breaker::record_failure_with_cooldown(
+        route, cooldown,
+    );
+}
+
+/// Records an HTTP status that asks the client to slow down. `429` and `503`
+/// cool down their own bucket, so their pause is not reset by unrelated
+/// connection failures on the same route.
+fn record_native_status_failure(
+    route: &DownloadRoute,
+    status: reqwest::StatusCode,
+    retry_after: Option<time::Duration>,
+) {
+    if crate::util::download::active_engine()
+        == crate::util::download::DownloadEngine::XmclCompat
+    {
+        return;
+    }
+    if !crate::util::download::native_breaker::record_response_status_failure(
+        route,
+        status.as_u16(),
+        retry_after,
+    ) {
         crate::util::download::native_breaker::record_failure_with_cooldown(
-            route, cooldown,
+            route,
+            retry_after,
         );
-    } else {
-        crate::util::download::native_breaker::record_failure(route);
     }
 }
 
@@ -2877,22 +2903,19 @@ async fn response_status_error(
     }
 }
 
+/// Commits a fully downloaded `.part` file to `destination` without ever
+/// leaving the destination missing: the part file is flushed first, then
+/// replaced in a single step. A destination that already exists is only
+/// replaced once the new file is complete, so a failure here keeps the
+/// previous contents instead of deleting them.
 pub(crate) async fn finalize_download(
     part_path: &Path,
     destination: &Path,
 ) -> crate::Result<()> {
-    if io::retry_windows_sharing_violation(destination, "checking", || {
-        tokio::fs::try_exists(destination)
-    })
-    .await
-    .map_err(|error| io::io_error_with_lock_info(error, destination))?
-    {
-        remove_if_exists(destination).await?;
-    }
     io::retry_windows_sharing_violation(
         destination,
         "finalizing download",
-        || tokio::fs::rename(part_path, destination),
+        || finalize_download_once(part_path, destination),
     )
     .await
     .map_err(|error| {
@@ -2903,6 +2926,19 @@ pub(crate) async fn finalize_download(
         )
     })?;
     Ok(())
+}
+
+async fn finalize_download_once(
+    part_path: &Path,
+    destination: &Path,
+) -> std::io::Result<()> {
+    // Starting with the flush is what makes the commit meaningful: replacing
+    // the destination without it could publish contents that a crash then
+    // loses. A flush that fails for any reason therefore aborts the commit and
+    // leaves the previous destination in place; the partial file stays for the
+    // caller's retry, and a partial file that never existed reports `NotFound`.
+    io::fsync_file(part_path).await?;
+    io::atomically_replace_file(part_path, destination)
 }
 
 pub(crate) fn same_origin(left: &Url, right: &Url) -> bool {
@@ -6999,10 +7035,81 @@ mod tests {
     }
 
     #[test]
-    fn retry_after_is_limited_to_one_second() {
+    fn retry_after_is_allowed_up_to_its_own_cap() {
         assert_eq!(
-            clamp_failure_cooldown(Duration::from_secs(60)),
-            MAX_FAILURE_COOLDOWN,
+            clamp_failure_cooldown(Duration::from_secs(30)),
+            Duration::from_secs(30),
+        );
+        assert_eq!(
+            clamp_failure_cooldown(Duration::from_secs(3600)),
+            RETRY_AFTER_CAP
+        );
+    }
+
+    #[tokio::test]
+    async fn finalize_download_moves_a_part_file_into_a_new_destination() {
+        let directory = tempfile::tempdir().unwrap();
+        let part = directory.path().join("file.part");
+        let destination = directory.path().join("file.bin");
+        tokio::fs::write(&part, b"downloaded").await.unwrap();
+
+        finalize_download(&part, &destination).await.unwrap();
+
+        assert_eq!(tokio::fs::read(&destination).await.unwrap(), b"downloaded");
+        assert!(!part.exists(), "the part file should be consumed");
+    }
+
+    #[tokio::test]
+    async fn finalize_download_replaces_an_existing_destination() {
+        let directory = tempfile::tempdir().unwrap();
+        let part = directory.path().join("file.part");
+        let destination = directory.path().join("file.bin");
+        tokio::fs::write(&part, b"complete").await.unwrap();
+        tokio::fs::write(&destination, b"partial").await.unwrap();
+
+        finalize_download(&part, &destination).await.unwrap();
+
+        assert_eq!(tokio::fs::read(&destination).await.unwrap(), b"complete");
+        assert!(!part.exists(), "the part file should be consumed");
+    }
+
+    #[tokio::test]
+    async fn finalize_download_keeps_the_destination_when_the_part_file_is_missing()
+     {
+        let directory = tempfile::tempdir().unwrap();
+        let part = directory.path().join("missing.part");
+        let destination = directory.path().join("file.bin");
+        tokio::fs::write(&destination, b"previous").await.unwrap();
+
+        finalize_download(&part, &destination).await.unwrap_err();
+
+        assert_eq!(
+            tokio::fs::read(&destination).await.unwrap(),
+            b"previous",
+            "a failed commit must not remove the existing destination"
+        );
+    }
+
+    #[tokio::test]
+    async fn finalize_download_aborts_when_the_flush_fails() {
+        let directory = tempfile::tempdir().unwrap();
+        let destination = directory.path().join("file.bin");
+        tokio::fs::write(&destination, b"previous").await.unwrap();
+        // A directory cannot be opened for writing, so the flush fails for a
+        // reason other than a missing file.
+        let part = directory.path().join("unflushable.part");
+        tokio::fs::create_dir(&part).await.unwrap();
+
+        let error = finalize_download(&part, &destination).await.unwrap_err();
+
+        assert!(
+            !format!("{error}").is_empty(),
+            "a failed flush must surface an error"
+        );
+        assert_eq!(
+            tokio::fs::read(&destination).await.unwrap(),
+            b"previous",
+            "a failed flush must not replace the destination"
         );
     }
 
@@ -8699,7 +8806,13 @@ async fn run_native_route_attempts(
                 if status == StatusCode::TOO_MANY_REQUESTS
                     || status.is_server_error()
                 {
-                    record_native_transfer_failure(route, response_retry_after);
+                    // A server that sends Retry-After is asking for that pause
+                    // whether it answered 429 or 503, so keep it for both.
+                    record_native_status_failure(
+                        route,
+                        status,
+                        response_retry_after,
+                    );
                 }
             }
             let error =

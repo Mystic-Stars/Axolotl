@@ -1512,6 +1512,61 @@ pub fn ensure_local_log_config(
     Ok(())
 }
 
+/// Reports whether an existing client JAR may be reused. `Ok(None)` means the
+/// version metadata carries no hash, so only its presence could be confirmed.
+async fn client_jar_is_intact(
+    path: &Path,
+    expected_sha1: Option<&str>,
+) -> crate::Result<Option<bool>> {
+    let Some(expected_sha1) = expected_sha1 else {
+        return Ok(None);
+    };
+    if expected_sha1.is_empty() {
+        return Ok(None);
+    }
+    let (_, actual_sha1) = sha1_file_async(path).await?;
+    Ok(Some(actual_sha1.eq_ignore_ascii_case(expected_sha1)))
+}
+
+/// Moves a client JAR that failed verification next to itself instead of
+/// deleting it, so the broken file stays available for diagnosis. The moved
+/// file cannot block the replacement download because the downloader commits
+/// atomically.
+async fn move_corrupt_client(path: &Path) -> Option<PathBuf> {
+    static CORRUPT_SEQUENCE: AtomicU64 = AtomicU64::new(0);
+    let file_name = path.file_name()?.to_string_lossy().to_string();
+    let directory = path
+        .parent()
+        .unwrap_or_else(|| Path::new("."))
+        .join(".corrupt");
+    if let Err(error) = io::create_dir_all(&directory).await {
+        tracing::warn!(
+            directory = %directory.display(),
+            error = %error,
+            "Could not create the corrupt-client directory"
+        );
+        return None;
+    }
+    let stamp = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|elapsed| elapsed.as_millis())
+        .unwrap_or_default();
+    let sequence = CORRUPT_SEQUENCE.fetch_add(1, Ordering::Relaxed);
+    let quarantine =
+        directory.join(format!("{file_name}.{stamp:x}-{sequence}.corrupt"));
+    match tokio::fs::rename(path, &quarantine).await {
+        Ok(()) => Some(quarantine),
+        Err(error) => {
+            tracing::warn!(
+                path = %path.display(),
+                error = %error,
+                "Could not move the corrupt client JAR aside"
+            );
+            None
+        }
+    }
+}
+
 #[tracing::instrument(skip_all)]
 
 pub async fn download_client(
@@ -1538,6 +1593,52 @@ pub async fn download_client(
         .directories
         .version_dir(version)
         .join(format!("{version}.jar"));
+
+    // A client JAR that exists is not proof that it is complete: an
+    // interrupted transfer can leave a file of the right length with the wrong
+    // contents, and the client is what the game starts from. Verify the
+    // metadata hash before reusing it.
+    if !force && path.exists() {
+        let reusable = match client_jar_is_intact(
+            &path,
+            Some(&client_download.sha1),
+        )
+        .await
+        {
+            Ok(Some(true)) => true,
+            Ok(Some(false)) => {
+                let quarantine = move_corrupt_client(&path).await;
+                tracing::warn!(
+                    path = %path.display(),
+                    quarantined_to = ?quarantine,
+                    "Cached client JAR failed its SHA-1 check; downloading a replacement"
+                );
+                false
+            }
+            Ok(None) => {
+                tracing::warn!(
+                    path = %path.display(),
+                    "Client JAR has no checksum metadata; reusing the cached file without strong validation"
+                );
+                true
+            }
+            Err(error) => {
+                tracing::warn!(
+                    path = %path.display(),
+                    error = %error,
+                    "Could not verify the cached client JAR; downloading a replacement"
+                );
+                false
+            }
+        };
+        if reusable {
+            tracing::debug!("Reusing verified client for version {version}");
+            if let Some(loading_bar) = loading_bar {
+                emit_loading(loading_bar, 9.0, None)?;
+            }
+            return Ok(());
+        }
+    }
 
     if !path.exists() || force {
         let context = InstallErrorContext::new("download Minecraft client")
@@ -2662,6 +2763,65 @@ pub async fn download_log_config(
 mod tests {
     use super::*;
     use crate::launcher::natives::prepare_native_libraries as prepare_test_natives;
+
+    async fn client_sha1(bytes: &[u8]) -> String {
+        sha1_async(bytes.to_vec().into()).await.expect("hash")
+    }
+
+    #[tokio::test]
+    async fn an_existing_client_jar_with_the_wrong_contents_is_rejected() {
+        let directory = tempfile::tempdir().unwrap();
+        let path = directory.path().join("1.20.1.jar");
+        let good = b"a complete client jar".as_slice();
+        let truncated = b"a complete client".as_slice();
+        tokio::fs::write(&path, truncated).await.unwrap();
+
+        assert_eq!(
+            client_jar_is_intact(&path, Some(&client_sha1(good).await))
+                .await
+                .unwrap(),
+            Some(false),
+            "a wrong-content cache entry must not be reused"
+        );
+        assert_eq!(
+            client_jar_is_intact(&path, Some(&client_sha1(truncated).await))
+                .await
+                .unwrap(),
+            Some(true),
+            "an intact cache entry is reusable"
+        );
+    }
+
+    #[tokio::test]
+    async fn a_client_jar_without_metadata_hash_is_not_strongly_verified() {
+        let directory = tempfile::tempdir().unwrap();
+        let path = directory.path().join("1.20.1.jar");
+        tokio::fs::write(&path, b"client").await.unwrap();
+
+        assert_eq!(client_jar_is_intact(&path, None).await.unwrap(), None);
+        assert_eq!(
+            client_jar_is_intact(&path, Some("")).await.unwrap(),
+            None,
+            "an empty hash must not be reported as a verified file"
+        );
+    }
+
+    #[tokio::test]
+    async fn a_corrupt_client_jar_is_moved_aside_instead_of_deleted() {
+        let directory = tempfile::tempdir().unwrap();
+        let path = directory.path().join("1.20.1.jar");
+        tokio::fs::write(&path, b"broken").await.unwrap();
+
+        let quarantine =
+            move_corrupt_client(&path).await.expect("quarantine file");
+
+        assert!(!path.exists(), "the broken file leaves its original path");
+        assert_eq!(tokio::fs::read(&quarantine).await.unwrap(), b"broken");
+        assert!(
+            quarantine.starts_with(directory.path().join(".corrupt")),
+            "the file stays beside its version directory"
+        );
+    }
 
     fn urls(values: &[&str]) -> Option<Vec<String>> {
         Some(values.iter().map(|value| (*value).to_string()).collect())
