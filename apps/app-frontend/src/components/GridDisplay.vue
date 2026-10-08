@@ -33,7 +33,7 @@ import {
     StyledInput,
     useVIntl,
 } from '@modrinth/ui'
-import { computed, ref, shallowRef, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, shallowRef, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import Draggable from 'vuedraggable'
 
@@ -44,13 +44,16 @@ import InstanceGroupModal from '@/components/ui/modal/InstanceGroupModal.vue'
 import { UNGROUPED_GROUP_KEY, useGridGrouping } from '@/composables/useGridGrouping'
 import { FAVORITES_GROUP_ID, useInstanceGroups } from '@/composables/useInstanceGroups'
 import { trackEvent } from '@/helpers/analytics'
+import { process_listener } from '@/helpers/events'
 import { install_duplicate_instance } from '@/helpers/install'
 import { kill, remove, run, set_pinned } from '@/helpers/instance'
 import { create_group as createGroup } from '@/helpers/instance-groups'
+import { updateRunningInstanceIds } from '@/helpers/instance-running-state'
 import {
     getLastLibraryDisplayMode,
     setLastLibraryDisplayMode,
 } from '@/helpers/library-display-mode'
+import { get_all, get_by_instance_id } from '@/helpers/process'
 import type { GameInstance } from '@/helpers/types'
 import { showInstanceInFolder } from '@/helpers/utils.js'
 
@@ -186,6 +189,33 @@ const currentContextSectionKey = ref('')
 const confirmModal = ref(null)
 const search = ref('')
 const displayMode = ref(getLastLibraryDisplayMode())
+const runningInstanceIds = ref(new Set<string>())
+const startingInstanceIds = ref(new Set<string>())
+let unlistenProcesses: (() => void) | undefined
+
+async function refreshRunningInstances() {
+    const processes = await get_all().catch(handleError)
+    if (processes)
+        runningInstanceIds.value = new Set(processes.map((process) => process.instance_id))
+}
+
+function setInstanceRunning(instanceId: string, running: boolean) {
+    runningInstanceIds.value = updateRunningInstanceIds(runningInstanceIds.value, {
+        instance_id: instanceId,
+        event: running ? 'launched' : 'finished',
+    })
+}
+
+onMounted(async () => {
+    await refreshRunningInstances()
+    unlistenProcesses = await process_listener((event: { instance_id: string; event: string }) => {
+        if (event.event === 'launched' || event.event === 'finished') {
+            runningInstanceIds.value = updateRunningInstanceIds(runningInstanceIds.value, event)
+        }
+    })
+})
+
+onUnmounted(() => unlistenProcesses?.())
 
 function removeGroup(groupKey: string) {
     if (groupKey === FAVORITES_GROUP_ID) return
@@ -513,23 +543,40 @@ function getInstanceProxy(instanceId) {
     if (!instanceData) return null
     return {
         instance: instanceData,
-        playing: undefined,
-        play: (_e, context) =>
-            run(instanceId).finally(() => {
+        playing:
+            runningInstanceIds.value.has(instanceId) || startingInstanceIds.value.has(instanceId),
+        play: async (_e, context) => {
+            if (
+                runningInstanceIds.value.has(instanceId) ||
+                startingInstanceIds.value.has(instanceId)
+            )
+                return
+            startingInstanceIds.value = new Set(startingInstanceIds.value).add(instanceId)
+            try {
+                await run(instanceId)
+                setInstanceRunning(instanceId, true)
+            } finally {
+                const next = new Set(startingInstanceIds.value)
+                next.delete(instanceId)
+                startingInstanceIds.value = next
                 trackEvent('InstanceStart', {
                     loader: instanceData.loader,
                     game_version: instanceData.game_version,
                     source: context,
                 })
-            }),
-        stop: (_e, context) =>
-            kill(instanceId).finally(() => {
+            }
+        },
+        stop: async (_e, context) => {
+            if (!runningInstanceIds.value.has(instanceId)) return
+            await kill(instanceId).finally(() => {
+                setInstanceRunning(instanceId, false)
                 trackEvent('InstanceStop', {
                     loader: instanceData.loader,
                     game_version: instanceData.game_version,
                     source: context,
                 })
-            }),
+            })
+        },
         seeInstance: () => router.push(`/instance/${encodeURIComponent(instanceId)}`),
         openFolder: () => showInstanceInFolder(instanceId),
         addContent: () =>
@@ -610,9 +657,11 @@ const handleBackgroundOption = ({ option }: { option: string }) => {
 const handleOptionsClick = async (args) => {
     switch (args.option) {
         case 'play':
+            if ((await get_by_instance_id(args.item.instance.id).catch(handleError))?.length) break
             args.item.play(null, 'InstanceGridContextMenu')
             break
         case 'stop':
+            if (!(await get_by_instance_id(args.item.instance.id).catch(handleError))?.length) break
             args.item.stop(null, 'InstanceGridContextMenu')
             break
         case 'add_content':
