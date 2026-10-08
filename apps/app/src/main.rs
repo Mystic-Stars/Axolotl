@@ -1008,6 +1008,20 @@ fn main() {
                     );
                 }
 
+                if matches!(&event, tauri::RunEvent::ExitRequested { .. }) {
+                    tauri::async_runtime::block_on(async {
+                        let killed = theseus::servers::shutdown_all().await;
+                        if killed > 0 {
+                            tracing::info!(
+                                "Killed {killed} dedicated server process(es) after the shutdown budget"
+                            );
+                        }
+                        if let Some(state) = State::get_if_initialized() {
+                            state.shutdown().await;
+                        }
+                    });
+                }
+
                 #[cfg(feature = "updater")]
                 if matches!(&event, tauri::RunEvent::Exit) {
                     let update_data = app.state::<PendingUpdateData>().inner();
