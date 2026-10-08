@@ -6,6 +6,7 @@ import type { ContentItem } from '@modrinth/ui'
 import {
     buildDependencyGraph,
     dependencyGraphMetrics,
+    dependencyGraphNodeGeometry,
     getConnectedComponents,
     getDependencyNodeDepths,
     getDependencyTreeRows,
@@ -73,6 +74,11 @@ test('builds dependency edges, roots, shared nodes, and relationship layout', ()
     assert.equal(graph.rootIds.length, 2)
     assert.equal(graph.nodeById.get(nodeId('b'))?.shared, true)
     assert.equal(layoutDependencyGraph(graph).edges.length, 2)
+})
+
+test('uses one geometry model for regular and compact graph nodes', () => {
+    assert.deepEqual(dependencyGraphNodeGeometry(false), { nodeWidth: 228, nodeHeight: 76 })
+    assert.deepEqual(dependencyGraphNodeGeometry(true), { nodeWidth: 48, nodeHeight: 48 })
 })
 
 test('keeps unresolved dependency targets visible', () => {

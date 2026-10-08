@@ -14,6 +14,20 @@ export const dependencyGraphMetrics = {
     rowGap: 30,
 } as const
 
+export type DependencyGraphNodeGeometry = Pick<
+    typeof dependencyGraphMetrics,
+    'nodeWidth' | 'nodeHeight'
+>
+
+export function dependencyGraphNodeGeometry(compact: boolean): DependencyGraphNodeGeometry {
+    return compact
+        ? { nodeWidth: 48, nodeHeight: 48 }
+        : {
+              nodeWidth: dependencyGraphMetrics.nodeWidth,
+              nodeHeight: dependencyGraphMetrics.nodeHeight,
+          }
+}
+
 export type DependencyGraphNode = {
     id: string
     title: string

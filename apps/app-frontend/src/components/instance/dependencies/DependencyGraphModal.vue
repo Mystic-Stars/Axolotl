@@ -32,6 +32,7 @@ import {
     type DependencyGraph,
     dependencyGraphMetrics,
     type DependencyGraphNode,
+    dependencyGraphNodeGeometry,
     getDependencyTreeRows,
     getRelatedNodeIds,
     layoutDependencyGraph,
@@ -410,6 +411,7 @@ function drawGraphEdges() {
     const mutedColor = styles.getPropertyValue('--surface-5').trim() || '#697384'
     const orangeColor = styles.getPropertyValue('--color-orange').trim() || '#f2a65a'
     const positions = new Map(graphLayout.value.nodes.map((node) => [node.id, node]))
+    const geometry = dependencyGraphNodeGeometry(zoom.value < 0.34)
     for (const edge of graphLayout.value.edges) {
         const source = positions.get(edge.source)
         const target = positions.get(edge.target)
@@ -423,10 +425,10 @@ function drawGraphEdges() {
         context.strokeStyle = color
         context.fillStyle = color
         context.lineWidth = active ? 2 : 1
-        const startX = source.x + dependencyGraphMetrics.nodeWidth
-        const startY = source.y + dependencyGraphMetrics.nodeHeight / 2
+        const startX = source.x + geometry.nodeWidth
+        const startY = source.y + geometry.nodeHeight / 2
         const endX = target.x
-        const endY = target.y + dependencyGraphMetrics.nodeHeight / 2
+        const endY = target.y + geometry.nodeHeight / 2
         const curve = Math.max(48, Math.abs(endX - startX) * 0.36)
         context.beginPath()
         context.moveTo(startX, startY)
@@ -479,13 +481,14 @@ function constrainedPan(nextPan: Point, nextZoom = zoom.value): Point {
     }
 }
 
-function graphContentBounds(visibleIds = focusedGraphNodeIds.value) {
+function graphContentBounds(compact = zoom.value < 0.34, visibleIds = focusedGraphNodeIds.value) {
     const nodes = graphLayout.value.nodes.filter((node) => visibleIds.has(node.id))
     if (!nodes.length) return undefined
+    const geometry = dependencyGraphNodeGeometry(compact)
     const minX = Math.min(...nodes.map((node) => node.x))
     const minY = Math.min(...nodes.map((node) => node.y))
-    const maxX = Math.max(...nodes.map((node) => node.x + dependencyGraphMetrics.nodeWidth))
-    const maxY = Math.max(...nodes.map((node) => node.y + dependencyGraphMetrics.nodeHeight))
+    const maxX = Math.max(...nodes.map((node) => node.x + geometry.nodeWidth))
+    const maxY = Math.max(...nodes.map((node) => node.y + geometry.nodeHeight))
     return { minX, minY, width: maxX - minX, height: maxY - minY }
 }
 
