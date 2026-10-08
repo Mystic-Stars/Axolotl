@@ -278,9 +278,9 @@ pub fn detect_metadata(directory: &Path) -> Metadata {
     let neo_path = directory.join("META-INF/neoforge.mods.toml");
     let forge_path = directory.join("META-INF/mods.toml");
     let metadata_path = if neo_path.is_file() {
-        Some((neo_path.clone(), Loader::NeoForge))
+        Some((neo_path, Loader::NeoForge))
     } else if forge_path.is_file() {
-        Some((forge_path.clone(), Loader::Forge))
+        Some((forge_path, Loader::Forge))
     } else {
         None
     };
@@ -393,17 +393,15 @@ fn flatten_structured_text(
     out: &mut BTreeMap<String, String>,
 ) {
     match value {
-        serde_json::Value::String(text) => {
-            if looks_like_player_text(text) {
-                out.insert(
-                    if pointer.is_empty() {
-                        "/".to_string()
-                    } else {
-                        pointer.to_string()
-                    },
-                    text.clone(),
-                );
-            }
+        serde_json::Value::String(text) if looks_like_player_text(text) => {
+            out.insert(
+                if pointer.is_empty() {
+                    "/".to_string()
+                } else {
+                    pointer.to_string()
+                },
+                text.clone(),
+            );
         }
         serde_json::Value::Array(items) => {
             for (index, item) in items.iter().enumerate() {
@@ -549,13 +547,13 @@ pub fn discover_structured_sources(
         target_segments[locale_index] = "zh_cn";
         let target_path = target_segments.join("/");
         let mut existing_target = BTreeMap::new();
-        if directory.join(&target_path).is_file() {
-            if let Ok(existing) = serde_json::from_str::<serde_json::Value>(
+        if directory.join(&target_path).is_file()
+            && let Ok(existing) = serde_json::from_str::<serde_json::Value>(
                 &std::fs::read_to_string(directory.join(&target_path))
                     .unwrap_or_default(),
-            ) {
-                flatten_structured_text(&existing, "", &mut existing_target);
-            }
+            )
+        {
+            flatten_structured_text(&existing, "", &mut existing_target);
         }
         let namespace = if segments
             .first()
@@ -779,14 +777,13 @@ pub fn build_resource_coverage(
             });
             let mut candidate =
                 localized_region && looks_like_player_text(&sample);
-            if extension == "json" {
-                if let Ok(value) =
+            if extension == "json"
+                && let Ok(value) =
                     serde_json::from_str::<serde_json::Value>(&sample)
-                {
-                    let mut flat = BTreeMap::new();
-                    flatten_structured_text(&value, "", &mut flat);
-                    candidate = localized_region && !flat.is_empty();
-                }
+            {
+                let mut flat = BTreeMap::new();
+                flatten_structured_text(&value, "", &mut flat);
+                candidate = localized_region && !flat.is_empty();
             }
             coverage.push(ResourceCoverage {
                 path: relative,
@@ -1579,12 +1576,12 @@ pub fn reload_structured_templates(
     sources: &mut [LanguageSource],
 ) {
     for source in sources {
-        if source.is_structured_json() && source.structured_template.is_none() {
-            if let Ok(raw) =
+        if source.is_structured_json()
+            && source.structured_template.is_none()
+            && let Ok(raw) =
                 std::fs::read_to_string(workspace.join(&source.source_path))
-            {
-                source.structured_template = Some(raw);
-            }
+        {
+            source.structured_template = Some(raw);
         }
     }
 }

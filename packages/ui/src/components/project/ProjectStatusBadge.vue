@@ -1,5 +1,5 @@
 <template>
-	<StatusLabel :icon="metadata.icon" :label="metadata.formattedName" />
+    <StatusLabel :icon="metadata.icon" :label="metadata.formattedName" />
 </template>
 
 <script setup lang="ts">
@@ -11,80 +11,80 @@ import { PROJECT_STATUS_ICONS } from '../../utils'
 import StatusLabel from '../base/StatusLabel.vue'
 
 const props = defineProps<{
-	status: ProjectStatus
+    status: ProjectStatus
 }>()
 
 const { formatMessage } = useVIntl()
 
 const metadata = computed(() => {
-	const status = statusMetadata[props.status] ?? statusMetadata.unknown
+    const status = statusMetadata[props.status] ?? statusMetadata.unknown
 
-	return {
-		icon: PROJECT_STATUS_ICONS[props.status] ?? PROJECT_STATUS_ICONS.unknown,
-		formattedName: formatMessage(status.message),
-	}
+    return {
+        icon: PROJECT_STATUS_ICONS[props.status] ?? PROJECT_STATUS_ICONS.unknown,
+        formattedName: formatMessage(status.message),
+    }
 })
 
 const statusMetadata: Record<ProjectStatus, { message: MessageDescriptor }> = {
-	approved: {
-		message: defineMessage({
-			id: 'project.visibility.public',
-			defaultMessage: 'Public',
-		}),
-	},
-	unlisted: {
-		message: defineMessage({
-			id: 'project.visibility.unlisted',
-			defaultMessage: 'Unlisted',
-		}),
-	},
-	withheld: {
-		message: defineMessage({
-			id: 'project.visibility.unlisted-by-staff',
-			defaultMessage: 'Unlisted by staff',
-		}),
-	},
-	private: {
-		message: defineMessage({
-			id: 'project.visibility.private',
-			defaultMessage: 'Private',
-		}),
-	},
-	scheduled: {
-		message: defineMessage({
-			id: 'project.visibility.scheduled',
-			defaultMessage: 'Scheduled',
-		}),
-	},
-	draft: {
-		message: defineMessage({
-			id: 'project.visibility.draft',
-			defaultMessage: 'Draft',
-		}),
-	},
-	archived: {
-		message: defineMessage({
-			id: 'project.visibility.archived',
-			defaultMessage: 'Archived',
-		}),
-	},
-	rejected: {
-		message: defineMessage({
-			id: 'project.visibility.rejected',
-			defaultMessage: 'Rejected',
-		}),
-	},
-	processing: {
-		message: defineMessage({
-			id: 'project.visibility.under-review',
-			defaultMessage: 'Under review',
-		}),
-	},
-	unknown: {
-		message: defineMessage({
-			id: 'project.visibility.unknown',
-			defaultMessage: 'Unknown',
-		}),
-	},
+    approved: {
+        message: defineMessage({
+            id: 'project.visibility.public',
+            defaultMessage: 'Public',
+        }),
+    },
+    unlisted: {
+        message: defineMessage({
+            id: 'project.visibility.unlisted',
+            defaultMessage: 'Unlisted',
+        }),
+    },
+    withheld: {
+        message: defineMessage({
+            id: 'project.visibility.unlisted-by-staff',
+            defaultMessage: 'Unlisted by staff',
+        }),
+    },
+    private: {
+        message: defineMessage({
+            id: 'project.visibility.private',
+            defaultMessage: 'Private',
+        }),
+    },
+    scheduled: {
+        message: defineMessage({
+            id: 'project.visibility.scheduled',
+            defaultMessage: 'Scheduled',
+        }),
+    },
+    draft: {
+        message: defineMessage({
+            id: 'project.visibility.draft',
+            defaultMessage: 'Draft',
+        }),
+    },
+    archived: {
+        message: defineMessage({
+            id: 'project.visibility.archived',
+            defaultMessage: 'Archived',
+        }),
+    },
+    rejected: {
+        message: defineMessage({
+            id: 'project.visibility.rejected',
+            defaultMessage: 'Rejected',
+        }),
+    },
+    processing: {
+        message: defineMessage({
+            id: 'project.visibility.under-review',
+            defaultMessage: 'Under review',
+        }),
+    },
+    unknown: {
+        message: defineMessage({
+            id: 'project.visibility.unknown',
+            defaultMessage: 'Unknown',
+        }),
+    },
 }
 </script>

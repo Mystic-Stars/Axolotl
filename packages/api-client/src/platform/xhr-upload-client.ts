@@ -2,10 +2,10 @@ import { AbstractModrinthClient } from '../core/abstract-client'
 import { ModrinthApiError } from '../core/errors'
 import type { RequestContext } from '../types/request'
 import type {
-	UploadHandle,
-	UploadMetadata,
-	UploadProgress,
-	UploadRequestOptions,
+    UploadHandle,
+    UploadMetadata,
+    UploadProgress,
+    UploadRequestOptions,
 } from '../types/upload'
 
 /**
@@ -15,153 +15,153 @@ import type {
  * to inherit the XHR upload implementation.
  */
 export abstract class XHRUploadClient extends AbstractModrinthClient {
-	upload<T = void>(path: string, options: UploadRequestOptions): UploadHandle<T> {
-		let baseUrl: string
-		if (options.api === 'labrinth') {
-			baseUrl = this.resolveBaseUrl(this.config.labrinthBaseUrl!)
-		} else if (options.api === 'archon') {
-			baseUrl = this.resolveBaseUrl(this.config.archonBaseUrl!)
-		} else {
-			baseUrl = options.api
-		}
+    upload<T = void>(path: string, options: UploadRequestOptions): UploadHandle<T> {
+        let baseUrl: string
+        if (options.api === 'labrinth') {
+            baseUrl = this.resolveBaseUrl(this.config.labrinthBaseUrl!)
+        } else if (options.api === 'archon') {
+            baseUrl = this.resolveBaseUrl(this.config.archonBaseUrl!)
+        } else {
+            baseUrl = options.api
+        }
 
-		const url = this.buildUrl(path, baseUrl, options.version)
+        const url = this.buildUrl(path, baseUrl, options.version)
 
-		const progressCallbacks: Array<(p: UploadProgress) => void> = []
-		if (options.onProgress) {
-			progressCallbacks.push(options.onProgress)
-		}
-		const abortController = new AbortController()
+        const progressCallbacks: Array<(p: UploadProgress) => void> = []
+        if (options.onProgress) {
+            progressCallbacks.push(options.onProgress)
+        }
+        const abortController = new AbortController()
 
-		if (options.signal) {
-			options.signal.addEventListener('abort', () => abortController.abort())
-		}
+        if (options.signal) {
+            options.signal.addEventListener('abort', () => abortController.abort())
+        }
 
-		let context: RequestContext | undefined
-		const handle: UploadHandle<T> = {
-			promise: (async () => {
-				const isFormData = 'formData' in options && options.formData instanceof FormData
-				const baseHeaders = await this.buildDefaultHeaders()
-				if (isFormData) {
-					delete baseHeaders['Content-Type']
-				} else {
-					baseHeaders['Content-Type'] = 'application/octet-stream'
-				}
+        let context: RequestContext | undefined
+        const handle: UploadHandle<T> = {
+            promise: (async () => {
+                const isFormData = 'formData' in options && options.formData instanceof FormData
+                const baseHeaders = await this.buildDefaultHeaders()
+                if (isFormData) {
+                    delete baseHeaders['Content-Type']
+                } else {
+                    baseHeaders['Content-Type'] = 'application/octet-stream'
+                }
 
-				const mergedOptions: UploadRequestOptions = {
-					retry: false,
-					...options,
-					headers: {
-						...baseHeaders,
-						...options.headers,
-					},
-				}
-				this.attachArchonSentryCaptureHeader(mergedOptions)
+                const mergedOptions: UploadRequestOptions = {
+                    retry: false,
+                    ...options,
+                    headers: {
+                        ...baseHeaders,
+                        ...options.headers,
+                    },
+                }
+                this.attachArchonSentryCaptureHeader(mergedOptions)
 
-				const uploadContext = this.buildUploadContext(url, path, mergedOptions)
-				context = uploadContext
-				if (abortController.signal.aborted) {
-					throw new ModrinthApiError('Upload cancelled')
-				}
+                const uploadContext = this.buildUploadContext(url, path, mergedOptions)
+                context = uploadContext
+                if (abortController.signal.aborted) {
+                    throw new ModrinthApiError('Upload cancelled')
+                }
 
-				const result = await this.executeUploadFeatureChain<T>(
-					uploadContext,
-					progressCallbacks,
-					abortController,
-				)
-				await this.config.hooks?.onResponse?.(result, uploadContext)
-				return result
-			})().catch(async (error) => {
-				const apiError = this.normalizeError(error, context)
-				if (context) {
-					await this.config.hooks?.onError?.(apiError, context)
-				}
-				throw apiError
-			}),
-			onProgress: (callback) => {
-				progressCallbacks.push(callback)
-				return handle
-			},
-			cancel: () => abortController.abort(),
-		}
+                const result = await this.executeUploadFeatureChain<T>(
+                    uploadContext,
+                    progressCallbacks,
+                    abortController,
+                )
+                await this.config.hooks?.onResponse?.(result, uploadContext)
+                return result
+            })().catch(async (error) => {
+                const apiError = this.normalizeError(error, context)
+                if (context) {
+                    await this.config.hooks?.onError?.(apiError, context)
+                }
+                throw apiError
+            }),
+            onProgress: (callback) => {
+                progressCallbacks.push(callback)
+                return handle
+            },
+            cancel: () => abortController.abort(),
+        }
 
-		return handle
-	}
+        return handle
+    }
 
-	protected executeXHRUpload<T>(
-		context: RequestContext,
-		progressCallbacks: Array<(p: UploadProgress) => void>,
-		abortController: AbortController,
-	): Promise<T> {
-		return new Promise<T>((resolve, reject) => {
-			const xhr = new XMLHttpRequest()
-			const metadata = context.metadata as UploadMetadata
+    protected executeXHRUpload<T>(
+        context: RequestContext,
+        progressCallbacks: Array<(p: UploadProgress) => void>,
+        abortController: AbortController,
+    ): Promise<T> {
+        return new Promise<T>((resolve, reject) => {
+            const xhr = new XMLHttpRequest()
+            const metadata = context.metadata as UploadMetadata
 
-			xhr.upload.addEventListener('progress', (e) => {
-				if (e.lengthComputable) {
-					const progress: UploadProgress = {
-						loaded: e.loaded,
-						total: e.total,
-						progress: e.loaded / e.total,
-					}
-					progressCallbacks.forEach((cb) => cb(progress))
-				}
-			})
+            xhr.upload.addEventListener('progress', (e) => {
+                if (e.lengthComputable) {
+                    const progress: UploadProgress = {
+                        loaded: e.loaded,
+                        total: e.total,
+                        progress: e.loaded / e.total,
+                    }
+                    progressCallbacks.forEach((cb) => cb(progress))
+                }
+            })
 
-			xhr.addEventListener('load', () => {
-				if (xhr.status >= 200 && xhr.status < 300) {
-					try {
-						resolve(xhr.response ? JSON.parse(xhr.response) : (undefined as T))
-					} catch {
-						resolve(undefined as T)
-					}
-				} else {
-					reject(this.createUploadError(xhr))
-				}
-			})
+            xhr.addEventListener('load', () => {
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    try {
+                        resolve(xhr.response ? JSON.parse(xhr.response) : (undefined as T))
+                    } catch {
+                        resolve(undefined as T)
+                    }
+                } else {
+                    reject(this.createUploadError(xhr))
+                }
+            })
 
-			xhr.addEventListener('error', () => reject(new ModrinthApiError('Upload failed')))
-			xhr.addEventListener('abort', () => reject(new ModrinthApiError('Upload cancelled')))
-			xhr.addEventListener('timeout', () => reject(new ModrinthApiError('Upload timed out')))
+            xhr.addEventListener('error', () => reject(new ModrinthApiError('Upload failed')))
+            xhr.addEventListener('abort', () => reject(new ModrinthApiError('Upload cancelled')))
+            xhr.addEventListener('timeout', () => reject(new ModrinthApiError('Upload timed out')))
 
-			if (context.options.timeout !== undefined) {
-				xhr.timeout = context.options.timeout
-			}
+            if (context.options.timeout !== undefined) {
+                xhr.timeout = context.options.timeout
+            }
 
-			// build URL with params (unlike $fetch, XHR doesn't handle params automatically)
-			let url = context.url
-			if (context.options.params) {
-				const queryString = new URLSearchParams(
-					Object.entries(context.options.params).map(([k, v]) => [k, String(v)]),
-				).toString()
-				url += (url.includes('?') ? '&' : '?') + queryString
-			}
+            // build URL with params (unlike $fetch, XHR doesn't handle params automatically)
+            let url = context.url
+            if (context.options.params) {
+                const queryString = new URLSearchParams(
+                    Object.entries(context.options.params).map(([k, v]) => [k, String(v)]),
+                ).toString()
+                url += (url.includes('?') ? '&' : '?') + queryString
+            }
 
-			xhr.open('POST', url)
+            xhr.open('POST', url)
 
-			// apply headers from context (features may have modified them)
-			for (const [key, value] of Object.entries(context.options.headers ?? {})) {
-				xhr.setRequestHeader(key, value)
-			}
+            // apply headers from context (features may have modified them)
+            for (const [key, value] of Object.entries(context.options.headers ?? {})) {
+                xhr.setRequestHeader(key, value)
+            }
 
-			// Send either FormData or file depending on what was provided
-			const data = 'formData' in metadata ? metadata.formData : metadata.file
-			xhr.send(data)
-			abortController.signal.addEventListener('abort', () => xhr.abort())
-		})
-	}
+            // Send either FormData or file depending on what was provided
+            const data = 'formData' in metadata ? metadata.formData : metadata.file
+            xhr.send(data)
+            abortController.signal.addEventListener('abort', () => xhr.abort())
+        })
+    }
 
-	protected createUploadError(xhr: XMLHttpRequest): ModrinthApiError {
-		let responseData: unknown
-		try {
-			responseData = xhr.response ? JSON.parse(xhr.response) : undefined
-		} catch {
-			responseData = xhr.responseText
-		}
-		return this.createNormalizedError(
-			new Error(`Upload failed with status ${xhr.status}`),
-			xhr.status,
-			responseData,
-		)
-	}
+    protected createUploadError(xhr: XMLHttpRequest): ModrinthApiError {
+        let responseData: unknown
+        try {
+            responseData = xhr.response ? JSON.parse(xhr.response) : undefined
+        } catch {
+            responseData = xhr.responseText
+        }
+        return this.createNormalizedError(
+            new Error(`Upload failed with status ${xhr.status}`),
+            xhr.status,
+            responseData,
+        )
+    }
 }

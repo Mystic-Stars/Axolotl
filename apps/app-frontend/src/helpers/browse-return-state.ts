@@ -4,12 +4,12 @@
  */
 export type { BrowseReturnSnapshot } from '../store/navigation-return.ts'
 export {
-	clearBrowseReturnSnapshot,
-	completeBrowseReturnNavigation,
-	consumeBrowseReturnSnapshot,
-	hasBrowseReturnSnapshot,
-	isBrowseReturnNavigation,
-	isBrowseReturnSourcePath,
-	prepareBrowseReturnNavigation,
-	saveBrowseReturnSnapshot,
+    clearBrowseReturnSnapshot,
+    completeBrowseReturnNavigation,
+    consumeBrowseReturnSnapshot,
+    hasBrowseReturnSnapshot,
+    isBrowseReturnNavigation,
+    isBrowseReturnSourcePath,
+    prepareBrowseReturnNavigation,
+    saveBrowseReturnSnapshot,
 } from '../store/navigation-return.ts'

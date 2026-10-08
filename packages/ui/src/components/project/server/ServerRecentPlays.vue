@@ -9,28 +9,28 @@ const { formatMessage } = useVIntl()
 const { formatCompactNumber, formatCompactNumberPlural } = useCompactNumber()
 
 defineProps<{
-	recentPlays: number
-	hideLabel?: boolean
+    recentPlays: number
+    hideLabel?: boolean
 }>()
 </script>
 <template>
-	<StatItem
-		v-tooltip="
-			formatMessage(commonMessages.projectRecentPlaysTooltip, {
-				count: formatCompactNumber(recentPlays),
-				countPlural: formatCompactNumberPlural(recentPlays),
-			})
-		"
-		class="smart-clickable:allow-pointer-events w-max"
-	>
-		<PlayIcon />
-		{{
-			hideLabel
-				? formatCompactNumber(recentPlays)
-				: formatMessage(commonMessages.projectRecentPlays, {
-						count: formatCompactNumber(recentPlays),
-						countPlural: formatCompactNumberPlural(recentPlays),
-					})
-		}}
-	</StatItem>
+    <StatItem
+        v-tooltip="
+            formatMessage(commonMessages.projectRecentPlaysTooltip, {
+                count: formatCompactNumber(recentPlays),
+                countPlural: formatCompactNumberPlural(recentPlays),
+            })
+        "
+        class="smart-clickable:allow-pointer-events w-max"
+    >
+        <PlayIcon />
+        {{
+            hideLabel
+                ? formatCompactNumber(recentPlays)
+                : formatMessage(commonMessages.projectRecentPlays, {
+                      count: formatCompactNumber(recentPlays),
+                      countPlural: formatCompactNumberPlural(recentPlays),
+                  })
+        }}
+    </StatItem>
 </template>

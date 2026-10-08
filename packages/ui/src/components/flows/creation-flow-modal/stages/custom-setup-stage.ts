@@ -6,79 +6,79 @@ import { commonMessages } from '#ui/utils/common-messages'
 import type { StageConfigInput } from '../../../base'
 import CustomSetupStage from '../components/CustomSetupStage.vue'
 import {
-	type CreationFlowContextValue,
-	creationFlowMessages,
-	flowTypeHeadingMessages,
+    type CreationFlowContextValue,
+    creationFlowMessages,
+    flowTypeHeadingMessages,
 } from '../creation-flow-context'
 
 function isForwardBlocked(ctx: CreationFlowContextValue): boolean {
-	if (!ctx.selectedGameVersion.value) return true
-	if (!ctx.hideLoaderChips.value && !ctx.selectedLoader.value) return true
-	if (!ctx.hideLoaderVersion.value && !ctx.selectedLoaderVersion.value) return true
-	return false
+    if (!ctx.selectedGameVersion.value) return true
+    if (!ctx.hideLoaderChips.value && !ctx.selectedLoader.value) return true
+    if (!ctx.hideLoaderVersion.value && !ctx.selectedLoaderVersion.value) return true
+    return false
 }
 
 export const stageConfig: StageConfigInput<CreationFlowContextValue> = {
-	id: 'custom-setup',
-	title: (ctx) => ctx.formatMessage(flowTypeHeadingMessages[ctx.flowType]),
-	stageContent: markRaw(CustomSetupStage),
-	skip: (ctx) =>
-		ctx.setupType.value === 'modpack' ||
-		ctx.setupType.value === 'vanilla' ||
-		ctx.isImportMode.value,
-	cannotNavigateForward: isForwardBlocked,
-	leftButtonConfig: (ctx) => ({
-		label: ctx.formatMessage(commonMessages.backButton),
-		icon: LeftArrowIcon,
-		onClick: () => {
-			if (ctx.skipSetupType.value) {
-				ctx.modal.value?.hide()
-				ctx.onBack?.()
-			} else {
-				ctx.modal.value?.setStage('setup-type')
-			}
-		},
-	}),
-	rightButtonConfig: (ctx) => {
-		const isInstance = ctx.flowType === 'instance'
-		const goesToNextStage =
-			ctx.flowType === 'world' ||
-			ctx.flowType === 'server-onboarding' ||
-			ctx.flowType === 'reset-server'
-		const disabled = isForwardBlocked(ctx)
+    id: 'custom-setup',
+    title: (ctx) => ctx.formatMessage(flowTypeHeadingMessages[ctx.flowType]),
+    stageContent: markRaw(CustomSetupStage),
+    skip: (ctx) =>
+        ctx.setupType.value === 'modpack' ||
+        ctx.setupType.value === 'vanilla' ||
+        ctx.isImportMode.value,
+    cannotNavigateForward: isForwardBlocked,
+    leftButtonConfig: (ctx) => ({
+        label: ctx.formatMessage(commonMessages.backButton),
+        icon: LeftArrowIcon,
+        onClick: () => {
+            if (ctx.skipSetupType.value) {
+                ctx.modal.value?.hide()
+                ctx.onBack?.()
+            } else {
+                ctx.modal.value?.setStage('setup-type')
+            }
+        },
+    }),
+    rightButtonConfig: (ctx) => {
+        const isInstance = ctx.flowType === 'instance'
+        const goesToNextStage =
+            ctx.flowType === 'world' ||
+            ctx.flowType === 'server-onboarding' ||
+            ctx.flowType === 'reset-server'
+        const disabled = isForwardBlocked(ctx)
 
-		if (isInstance) {
-			return {
-				label: ctx.formatMessage(creationFlowMessages.createInstanceButton),
-				icon: PlusIcon,
-				iconPosition: 'before' as const,
-				color: 'brand' as const,
-				onboardingId: 'creation-confirm',
-				disabled: disabled || ctx.finishDisabled.value,
-				loading: ctx.loading.value,
-				tooltip: ctx.finishDisabled.value ? ctx.finishDisabledTooltip.value : undefined,
-				onClick: () => ctx.finish(),
-			}
-		}
+        if (isInstance) {
+            return {
+                label: ctx.formatMessage(creationFlowMessages.createInstanceButton),
+                icon: PlusIcon,
+                iconPosition: 'before' as const,
+                color: 'brand' as const,
+                onboardingId: 'creation-confirm',
+                disabled: disabled || ctx.finishDisabled.value,
+                loading: ctx.loading.value,
+                tooltip: ctx.finishDisabled.value ? ctx.finishDisabledTooltip.value : undefined,
+                onClick: () => ctx.finish(),
+            }
+        }
 
-		const finishDisabled = !goesToNextStage && ctx.finishDisabled.value
-		return {
-			label: ctx.formatMessage(
-				goesToNextStage ? commonMessages.continueButton : creationFlowMessages.finishButton,
-			),
-			icon: goesToNextStage ? RightArrowIcon : null,
-			iconPosition: 'after' as const,
-			color: goesToNextStage ? undefined : ('brand' as const),
-			disabled: disabled || finishDisabled,
-			tooltip: finishDisabled ? ctx.finishDisabledTooltip.value : undefined,
-			onClick: () => {
-				if (goesToNextStage) {
-					ctx.modal.value?.nextStage()
-				} else {
-					ctx.finish()
-				}
-			},
-		}
-	},
-	maxWidth: '550px',
+        const finishDisabled = !goesToNextStage && ctx.finishDisabled.value
+        return {
+            label: ctx.formatMessage(
+                goesToNextStage ? commonMessages.continueButton : creationFlowMessages.finishButton,
+            ),
+            icon: goesToNextStage ? RightArrowIcon : null,
+            iconPosition: 'after' as const,
+            color: goesToNextStage ? undefined : ('brand' as const),
+            disabled: disabled || finishDisabled,
+            tooltip: finishDisabled ? ctx.finishDisabledTooltip.value : undefined,
+            onClick: () => {
+                if (goesToNextStage) {
+                    ctx.modal.value?.nextStage()
+                } else {
+                    ctx.finish()
+                }
+            },
+        }
+    },
+    maxWidth: '550px',
 }

@@ -24,58 +24,58 @@ import svgLoader from 'vite-svg-loader'
 const projectRootDir = resolve(fileURLToPath(new URL('.', import.meta.url)))
 
 export default defineConfig({
-	// Matches `vite.config.ts`: the shared stylesheet chain uses Sass `@import`.
-	css: {
-		preprocessorOptions: {
-			scss: {
-				silenceDeprecations: ['import'],
-			},
-		},
-	},
-	resolve: {
-		alias: [
-			{
-				find: '@',
-				replacement: resolve(projectRootDir, 'src'),
-			},
-		],
-	},
-	plugins: [
-		vue(),
-		svgLoader({
-			svgoConfig: {
-				plugins: [
-					{
-						name: 'preset-default',
-						params: {
-							overrides: {
-								removeViewBox: false,
-								cleanupIds: {
-									minify: false,
-								},
-							},
-						},
-					},
-				],
-			},
-		}),
-	],
-	optimizeDeps: {
-		// UI mock factories load this dependency after Vite's initial scan.
-		include: ['@modrinth/ui > qrcode.vue'],
-	},
-	test: {
-		include: ['src/**/*.visual.spec.ts'],
-		browser: {
-			enabled: true,
-			provider: playwright(),
-			instances: [{ browser: 'chromium' }],
-			headless: true,
-			// Vitest's default (63315) can land inside a Windows Hyper-V/WSL
-			// reserved port range, where binding fails with EACCES rather than
-			// the port merely being busy, so the run cannot start. Offset from
-			// the shared package's 51234 so both suites can run at once.
-			api: 51235,
-		},
-	},
+    // Matches `vite.config.ts`: the shared stylesheet chain uses Sass `@import`.
+    css: {
+        preprocessorOptions: {
+            scss: {
+                silenceDeprecations: ['import'],
+            },
+        },
+    },
+    resolve: {
+        alias: [
+            {
+                find: '@',
+                replacement: resolve(projectRootDir, 'src'),
+            },
+        ],
+    },
+    plugins: [
+        vue(),
+        svgLoader({
+            svgoConfig: {
+                plugins: [
+                    {
+                        name: 'preset-default',
+                        params: {
+                            overrides: {
+                                removeViewBox: false,
+                                cleanupIds: {
+                                    minify: false,
+                                },
+                            },
+                        },
+                    },
+                ],
+            },
+        }),
+    ],
+    optimizeDeps: {
+        // UI mock factories load this dependency after Vite's initial scan.
+        include: ['@modrinth/ui > qrcode.vue'],
+    },
+    test: {
+        include: ['src/**/*.visual.spec.ts'],
+        browser: {
+            enabled: true,
+            provider: playwright(),
+            instances: [{ browser: 'chromium' }],
+            headless: true,
+            // Vitest's default (63315) can land inside a Windows Hyper-V/WSL
+            // reserved port range, where binding fails with EACCES rather than
+            // the port merely being busy, so the run cannot start. Offset from
+            // the shared package's 51234 so both suites can run at once.
+            api: 51235,
+        },
+    },
 })

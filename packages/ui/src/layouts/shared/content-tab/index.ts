@@ -10,9 +10,9 @@ export { default as ConfirmUnlinkModal } from './components/modals/ConfirmUnlink
 export { default as ContentUpdaterModal } from './components/modals/content-updater-modal/index.vue'
 export { default as ContentDependencyWarningModal } from './components/modals/ContentDependencyWarningModal.vue'
 export type {
-	ContentInstallInstance,
-	ContentInstallProjectInfo,
-	ContentInstallProjectOwner,
+    ContentInstallInstance,
+    ContentInstallProjectInfo,
+    ContentInstallProjectOwner,
 } from './components/modals/ContentInstallModal.vue'
 export { default as ContentInstallModal } from './components/modals/ContentInstallModal.vue'
 export { clearPinnedContentViewPreferences } from './composables/content-view-state'

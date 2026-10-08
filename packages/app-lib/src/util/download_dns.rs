@@ -1,3 +1,8 @@
+use futures::stream::{FuturesUnordered, StreamExt};
+use hickory_resolver::proto::{
+    op::{Message, MessageType, Query, ResponseCode},
+    rr::{Name as DnsName, RData, RecordType},
+};
 use parking_lot::Mutex;
 use reqwest::dns::{Addrs, Name, Resolve, Resolving};
 use std::collections::HashMap;
@@ -5,11 +10,29 @@ use std::net::{IpAddr, SocketAddr};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
+pub const BUILTIN_DOH_SERVERS: [&str; 3] = [
+    "https://doh.pub/dns-query",
+    "https://doh.pysio.online/dns-query",
+    "https://cloudflare-dns.com/dns-query",
+];
+
 /// `lookup_host` does not expose the authoritative record TTL. Keep entries
 /// long enough to retain the connection-reuse benefit, but short enough that
 /// a changed CDN, VPN, or network is not pinned until the application exits.
 const CACHE_TTL: Duration = Duration::from_secs(5 * 60);
+const SUCCESSFUL_ADDRESS_CACHE_TTL: Duration = Duration::from_secs(10 * 60);
 const CONNECTION_FAILURES_BEFORE_REFRESH: u8 = 2;
+const DNS_LOOKUP_TIMEOUT: Duration = Duration::from_secs(6);
+const DOH_REQUEST_TIMEOUT: Duration = Duration::from_secs(5);
+const FAILURE_CACHE_TTL: Duration = Duration::from_secs(2);
+const MAX_DNS_MESSAGE_BYTES: usize = 65535;
+
+#[derive(Clone)]
+struct CachedFailure {
+    kind: std::io::ErrorKind,
+    message: String,
+    failed_at: Instant,
+}
 
 #[derive(Clone)]
 struct CachedAddresses {
@@ -27,33 +50,107 @@ impl CachedAddresses {
 #[derive(Clone)]
 pub struct DownloadDnsResolver {
     reliability: Arc<Mutex<HashMap<IpAddr, f64>>>,
+    successful_addresses: Arc<Mutex<HashMap<String, HashMap<IpAddr, Instant>>>>,
     last_resolved: Arc<Mutex<HashMap<String, CachedAddresses>>>,
+    last_failed: Arc<Mutex<HashMap<String, CachedFailure>>>,
     /// Locks only a single hostname's lookup. The map is held just long
     /// enough to obtain the per-host lock, never while DNS is awaited.
     resolving_hosts: Arc<Mutex<HashMap<String, Arc<tokio::sync::Mutex<()>>>>>,
     host_overrides: Arc<Mutex<HashMap<String, String>>>,
+    doh_enabled: bool,
+    doh_endpoints: Arc<Vec<Arc<str>>>,
+    doh_clients: Arc<Vec<reqwest::Client>>,
+    doh_provider_weights: Arc<Mutex<HashMap<String, u8>>>,
     #[cfg(test)]
     test_addresses: Arc<Mutex<HashMap<String, Vec<SocketAddr>>>>,
     #[cfg(test)]
     test_lookup_delays: Arc<Mutex<HashMap<String, Duration>>>,
+    #[cfg(test)]
+    test_lookup_errors: Arc<Mutex<HashMap<String, std::io::ErrorKind>>>,
+    #[cfg(test)]
+    test_lookup_counts: Arc<Mutex<HashMap<String, usize>>>,
 }
 
 impl Default for DownloadDnsResolver {
     fn default() -> Self {
         Self {
             reliability: Arc::default(),
+            successful_addresses: Arc::default(),
             last_resolved: Arc::default(),
+            last_failed: Arc::default(),
             resolving_hosts: Arc::default(),
             host_overrides: Arc::default(),
+            doh_enabled: false,
+            doh_endpoints: Arc::new(vec![Arc::from(BUILTIN_DOH_SERVERS[0])]),
+            doh_clients: Arc::new(vec![
+                reqwest::Client::builder()
+                    .no_proxy()
+                    .timeout(DOH_REQUEST_TIMEOUT)
+                    .connect_timeout(Duration::from_secs(3))
+                    .build()
+                    .expect(
+                        "DNS bootstrap client configuration should be valid",
+                    ),
+            ]),
+            doh_provider_weights: Arc::default(),
             #[cfg(test)]
             test_addresses: Arc::default(),
             #[cfg(test)]
             test_lookup_delays: Arc::default(),
+            #[cfg(test)]
+            test_lookup_errors: Arc::default(),
+            #[cfg(test)]
+            test_lookup_counts: Arc::default(),
         }
     }
 }
 
 impl DownloadDnsResolver {
+    pub fn with_doh(enabled: bool) -> crate::Result<Self> {
+        Self::with_doh_and_proxy(enabled, None)
+    }
+
+    pub fn with_doh_and_proxy(
+        enabled: bool,
+        proxy: Option<&crate::util::proxy::ProxyConfig>,
+    ) -> crate::Result<Self> {
+        let endpoints = if enabled {
+            BUILTIN_DOH_SERVERS
+                .iter()
+                .map(|endpoint| Arc::from(*endpoint))
+                .collect::<Vec<_>>()
+        } else {
+            Vec::new()
+        };
+        let mut doh_clients = Vec::with_capacity(endpoints.len());
+        for _ in &endpoints {
+            let builder = match proxy {
+                Some(proxy) => proxy.apply(reqwest::Client::builder())?,
+                None => reqwest::Client::builder().no_proxy(),
+            };
+            doh_clients.push(
+                builder
+                    .timeout(DOH_REQUEST_TIMEOUT)
+                    .connect_timeout(Duration::from_secs(3))
+                    .read_timeout(DOH_REQUEST_TIMEOUT)
+                    .redirect(reqwest::redirect::Policy::none())
+                    .build()
+                    .map_err(crate::Error::from)?,
+            );
+        }
+        Ok(Self {
+            doh_enabled: enabled,
+            doh_endpoints: Arc::new(endpoints),
+            doh_clients: Arc::new(doh_clients),
+            doh_provider_weights: Arc::default(),
+            ..Self::default()
+        })
+    }
+
+    pub fn doh_enabled(&self) -> bool {
+        self.doh_enabled
+    }
+
     /// Resolves `host` through `resolver_host` while preserving the original
     /// URL host for HTTP Host headers and TLS SNI.
     #[allow(dead_code)]
@@ -72,6 +169,7 @@ impl DownloadDnsResolver {
         }
         drop(overrides);
         self.last_resolved.lock().remove(&host);
+        self.last_failed.lock().remove(&host);
         Ok(())
     }
 
@@ -80,6 +178,7 @@ impl DownloadDnsResolver {
         let host = normalize_host(host)?;
         self.host_overrides.lock().remove(&host);
         self.last_resolved.lock().remove(&host);
+        self.last_failed.lock().remove(&host);
         Ok(())
     }
 
@@ -108,6 +207,12 @@ impl DownloadDnsResolver {
             entry.consecutive_connection_failures = 0;
             drop(cached);
             self.record_result(address, 0.5);
+            let mut successful = self.successful_addresses.lock();
+            let addresses = successful.entry(host.to_string()).or_default();
+            addresses.retain(|_, timestamp| {
+                timestamp.elapsed() < SUCCESSFUL_ADDRESS_CACHE_TTL
+            });
+            addresses.insert(address, Instant::now());
         }
     }
 
@@ -169,10 +274,23 @@ impl DownloadDnsResolver {
     ) -> std::io::Result<Vec<SocketAddr>> {
         #[cfg(test)]
         {
+            *self
+                .test_lookup_counts
+                .lock()
+                .entry(resolution_host.to_string())
+                .or_default() += 1;
             let delay =
                 self.test_lookup_delays.lock().get(resolution_host).copied();
             if let Some(delay) = delay {
                 tokio::time::sleep(delay).await;
+            }
+            if let Some(kind) =
+                self.test_lookup_errors.lock().get(resolution_host).copied()
+            {
+                return Err(std::io::Error::new(
+                    kind,
+                    "test DNS lookup failed",
+                ));
             }
             if let Some(addresses) =
                 self.test_addresses.lock().get(resolution_host).cloned()
@@ -180,16 +298,143 @@ impl DownloadDnsResolver {
                 return Ok(addresses);
             }
         }
+        if self.doh_enabled {
+            return self.lookup_doh(resolution_host).await;
+        }
         tokio::net::lookup_host((resolution_host, 0))
             .await
             .map(|addresses| addresses.collect())
     }
 
+    async fn lookup_doh(&self, host: &str) -> std::io::Result<Vec<SocketAddr>> {
+        resolve_families(
+            self.lookup_doh_family(host, RecordType::A),
+            self.lookup_doh_family(host, RecordType::AAAA),
+        )
+        .await
+    }
+
+    fn doh_provider_candidates(&self) -> Vec<(Arc<str>, reqwest::Client)> {
+        let mut indices = (0..self.doh_endpoints.len()).collect::<Vec<_>>();
+        let weights = self.doh_provider_weights.lock();
+        indices.sort_by(|left, right| {
+            weights
+                .get(self.doh_endpoints[*right].as_ref())
+                .copied()
+                .unwrap_or_default()
+                .cmp(
+                    &weights
+                        .get(self.doh_endpoints[*left].as_ref())
+                        .copied()
+                        .unwrap_or_default(),
+                )
+                .then_with(|| left.cmp(right))
+        });
+        indices
+            .into_iter()
+            .take(2)
+            .map(|index| {
+                (
+                    Arc::clone(&self.doh_endpoints[index]),
+                    self.doh_clients[index].clone(),
+                )
+            })
+            .collect()
+    }
+
+    fn record_doh_provider_success(&self, endpoint: &str) {
+        let mut weights = self.doh_provider_weights.lock();
+        let weight = weights.entry(endpoint.to_string()).or_default();
+        *weight = weight.saturating_add(1);
+    }
+
+    async fn lookup_doh_family(
+        &self,
+        host: &str,
+        record_type: RecordType,
+    ) -> std::io::Result<Vec<SocketAddr>> {
+        let providers = self.doh_provider_candidates();
+        let mut requests = FuturesUnordered::new();
+        for (endpoint, client) in providers {
+            let query = doh_query(host, record_type)?;
+            requests.push(async move {
+                let result =
+                    Self::lookup_doh_provider(&client, &endpoint, &query).await;
+                (endpoint, result)
+            });
+        }
+        let mut last_error = None;
+        while let Some((endpoint, result)) = requests.next().await {
+            match result {
+                Ok(addresses) => {
+                    self.record_doh_provider_success(&endpoint);
+                    return Ok(addresses);
+                }
+                Err(error) => last_error = Some(error),
+            }
+        }
+        Err(last_error.unwrap_or_else(|| {
+            std::io::Error::other("No DoH providers available")
+        }))
+    }
+
+    async fn lookup_doh_provider(
+        client: &reqwest::Client,
+        endpoint: &str,
+        query: &Message,
+    ) -> std::io::Result<Vec<SocketAddr>> {
+        let body = query.to_vec().map_err(std::io::Error::other)?;
+        let mut response = client
+            .post(endpoint)
+            .header(reqwest::header::CONTENT_TYPE, "application/dns-message")
+            .header(reqwest::header::ACCEPT, "application/dns-message")
+            .body(body)
+            .send()
+            .await
+            .map_err(std::io::Error::other)?
+            .error_for_status()
+            .map_err(std::io::Error::other)?;
+        let mut bytes = Vec::new();
+        while let Some(chunk) =
+            response.chunk().await.map_err(std::io::Error::other)?
+        {
+            if bytes.len() + chunk.len() > MAX_DNS_MESSAGE_BYTES {
+                return Err(std::io::Error::other("DoH response is too large"));
+            }
+            bytes.extend_from_slice(&chunk);
+        }
+        parse_doh_response(&bytes, query)
+    }
+
+    fn cached_failure(&self, host: &str) -> Option<std::io::Error> {
+        self.last_failed
+            .lock()
+            .get(host)
+            .filter(|failure| failure.failed_at.elapsed() < FAILURE_CACHE_TTL)
+            .map(|failure| {
+                std::io::Error::new(failure.kind, failure.message.clone())
+            })
+    }
+
     async fn refresh(&self, host: &str) -> std::io::Result<Vec<IpAddr>> {
+        tokio::time::timeout(DNS_LOOKUP_TIMEOUT, self.refresh_inner(host))
+            .await
+            .map_err(|_| {
+                std::io::Error::new(
+                    std::io::ErrorKind::TimedOut,
+                    format!("DNS lookup for {host} timed out"),
+                )
+            })?
+    }
+
+    async fn refresh_inner(&self, host: &str) -> std::io::Result<Vec<IpAddr>> {
         let host = normalize_host(host).map_err(std::io::Error::other)?;
         let cached = self.resolved_addresses(&host);
         if !cached.is_empty() {
             return Ok(cached);
+        }
+        if let Some(error) = self.cached_failure(&host) {
+            return Err(error);
         }
         let host_lock = self.resolving_lock(&host);
         let _guard = host_lock.lock().await;
@@ -197,11 +442,44 @@ impl DownloadDnsResolver {
         if !cached.is_empty() {
             return Ok(cached);
         }
-        let resolution_host = self.resolution_host(&host);
-        let mut addresses = self.lookup_addresses(&resolution_host).await?;
-        if addresses.is_empty() {
-            return Ok(Vec::new());
+        if let Some(error) = self.cached_failure(&host) {
+            return Err(error);
         }
+        let resolution_host = self.resolution_host(&host);
+        let lookup = tokio::time::timeout(
+            DOH_REQUEST_TIMEOUT + Duration::from_millis(250),
+            self.lookup_addresses(&resolution_host),
+        )
+        .await
+        .unwrap_or_else(|_| {
+            Err(std::io::Error::new(
+                std::io::ErrorKind::TimedOut,
+                format!("DNS lookup for {host} timed out"),
+            ))
+        })
+        .and_then(|addresses| {
+            if addresses.is_empty() {
+                Err(std::io::Error::other(
+                    "DNS response contained no addresses",
+                ))
+            } else {
+                Ok(addresses)
+            }
+        });
+        let mut addresses = match lookup {
+            Ok(addresses) => addresses,
+            Err(error) => {
+                self.last_failed.lock().insert(
+                    host,
+                    CachedFailure {
+                        kind: error.kind(),
+                        message: error.to_string(),
+                        failed_at: Instant::now(),
+                    },
+                );
+                return Err(error);
+            }
+        };
         addresses = self.order_addresses(&host, addresses);
         let resolved = addresses.iter().map(|address| address.ip()).collect();
         self.cache_addresses(host, addresses);
@@ -209,11 +487,17 @@ impl DownloadDnsResolver {
     }
 
     /// Resolves a host ahead of the first request so batch downloads can
-    /// share a single ordered address list. Idempotent and non-fatal: a
-    /// failed lookup leaves the resolver untouched and requests will resolve
-    /// on demand later.
+    /// share a single ordered address list. Failed lookups are briefly cached
+    /// so a batch shares the failure instead of repeating the same request.
     pub async fn pre_resolve(&self, host: &str) {
         let _ = self.refresh(host).await;
+    }
+
+    pub(crate) async fn resolve_host(
+        &self,
+        host: &str,
+    ) -> std::io::Result<Vec<IpAddr>> {
+        self.refresh(host).await
     }
 
     #[cfg(test)]
@@ -250,32 +534,157 @@ impl DownloadDnsResolver {
         host: &str,
         mut addresses: Vec<SocketAddr>,
     ) -> Vec<SocketAddr> {
-        addresses.sort_unstable_by_key(|address| address.ip());
-        addresses.dedup_by_key(|address| address.ip());
+        let mut seen = std::collections::HashSet::new();
+        addresses.retain(|address| seen.insert(address.ip()));
 
-        let best_v4 = addresses
+        let successful = self
+            .successful_addresses
+            .lock()
+            .get(host)
+            .cloned()
+            .unwrap_or_default();
+        let mut cached = addresses
             .iter()
-            .filter(|address| address.is_ipv4())
-            .map(|address| self.score(address.ip()))
-            .max_by(f64::total_cmp);
-        let mut best_v6 = addresses
-            .iter()
-            .filter(|address| address.is_ipv6())
-            .map(|address| self.score(address.ip()))
-            .max_by(f64::total_cmp);
-        if host == "api.modrinth.com" {
-            best_v6 = best_v6.map(|score| score - 0.1);
-        }
-        addresses.sort_unstable_by(|left, right| {
-            let preferred_v4 =
-                best_v4.unwrap_or_default() >= best_v6.unwrap_or_default();
-            let left_family = left.is_ipv4() == preferred_v4;
-            let right_family = right.is_ipv4() == preferred_v4;
-            right_family.cmp(&left_family).then_with(|| {
-                self.score(right.ip()).total_cmp(&self.score(left.ip()))
+            .filter(|address| {
+                successful.get(&address.ip()).is_some_and(|timestamp| {
+                    timestamp.elapsed() < SUCCESSFUL_ADDRESS_CACHE_TTL
+                })
             })
+            .copied()
+            .collect::<Vec<_>>();
+        cached.sort_by_key(|address| {
+            std::cmp::Reverse(successful.get(&address.ip()).copied())
         });
-        addresses
+        let uncached = addresses
+            .into_iter()
+            .filter(|address| {
+                successful.get(&address.ip()).is_none_or(|timestamp| {
+                    timestamp.elapsed() >= SUCCESSFUL_ADDRESS_CACHE_TTL
+                })
+            })
+            .collect::<Vec<_>>();
+        let v6 = uncached
+            .iter()
+            .copied()
+            .filter(|address| address.is_ipv6())
+            .collect::<Vec<_>>();
+        let v4 = uncached
+            .iter()
+            .copied()
+            .filter(|address| address.is_ipv4())
+            .collect::<Vec<_>>();
+        let mut ordered = cached;
+        let mut v6_index = 0;
+        let mut v4_index = 0;
+        while v6_index < v6.len() || v4_index < v4.len() {
+            if v6_index < v6.len() {
+                ordered.push(v6[v6_index]);
+                v6_index += 1;
+            }
+            if v4_index < v4.len() {
+                ordered.push(v4[v4_index]);
+                v4_index += 1;
+            }
+        }
+        ordered
+    }
+}
+
+fn doh_query(host: &str, record_type: RecordType) -> std::io::Result<Message> {
+    let mut name = DnsName::from_ascii(host).map_err(std::io::Error::other)?;
+    name.set_fqdn(true);
+    let mut message = Message::new();
+    message
+        .set_id(rand::random())
+        .set_recursion_desired(true)
+        .add_query(Query::query(name, record_type));
+    Ok(message)
+}
+
+fn parse_doh_response(
+    bytes: &[u8],
+    query: &Message,
+) -> std::io::Result<Vec<SocketAddr>> {
+    let response = Message::from_vec(bytes).map_err(std::io::Error::other)?;
+    if response.id() != query.id()
+        || response.message_type() != MessageType::Response
+        || response.queries() != query.queries()
+        || response.truncated()
+        || response.response_code() != ResponseCode::NoError
+    {
+        return Err(std::io::Error::other(
+            "Invalid or unsuccessful DoH DNS response",
+        ));
+    }
+    let question = query
+        .query()
+        .ok_or_else(|| std::io::Error::other("Missing DNS question"))?;
+    let mut names = std::collections::HashSet::from([question.name().clone()]);
+    for _ in 0..response.answers().len() {
+        let mut changed = false;
+        for answer in response.answers() {
+            if names.contains(answer.name())
+                && let RData::CNAME(alias) = answer.data()
+            {
+                changed |= names.insert(alias.0.clone());
+            }
+        }
+        if !changed {
+            break;
+        }
+    }
+    let addresses = response
+        .answers()
+        .iter()
+        .filter(|record| {
+            names.contains(record.name())
+                && record.record_type() == question.query_type()
+                && record.dns_class() == question.query_class()
+        })
+        .filter_map(|record| match record.data() {
+            RData::A(address) => {
+                Some(SocketAddr::new(IpAddr::V4(address.0), 0))
+            }
+            RData::AAAA(address) => {
+                Some(SocketAddr::new(IpAddr::V6(address.0), 0))
+            }
+            _ => None,
+        })
+        .collect::<Vec<_>>();
+    if addresses.is_empty() {
+        return Err(std::io::Error::other(
+            "DoH response contained no addresses",
+        ));
+    }
+    Ok(addresses)
+}
+
+async fn resolve_families(
+    ipv4: impl std::future::Future<Output = std::io::Result<Vec<SocketAddr>>>,
+    ipv6: impl std::future::Future<Output = std::io::Result<Vec<SocketAddr>>>,
+) -> std::io::Result<Vec<SocketAddr>> {
+    let (ipv4, ipv6) = tokio::join!(
+        tokio::time::timeout(DOH_REQUEST_TIMEOUT, ipv4),
+        tokio::time::timeout(DOH_REQUEST_TIMEOUT, ipv6)
+    );
+    let flatten = |result: Result<
+        std::io::Result<Vec<SocketAddr>>,
+        tokio::time::error::Elapsed,
+    >| {
+        result.unwrap_or_else(|_| {
+            Err(std::io::Error::new(
+                std::io::ErrorKind::TimedOut,
+                "DoH address family timed out",
+            ))
+        })
+    };
+    match (flatten(ipv4), flatten(ipv6)) {
+        (Ok(mut addresses), Ok(other)) => {
+            addresses.extend(other);
+            Ok(addresses)
+        }
+        (Ok(addresses), _) | (Err(_), Ok(addresses)) => Ok(addresses),
+        (Err(error), _) => Err(error),
     }
 }
 
@@ -300,6 +709,7 @@ impl Resolve for DownloadDnsResolver {
                 .await?
                 .into_iter()
                 .map(|address| SocketAddr::new(address, 0))
+                .take(2)
                 .collect::<Vec<_>>();
             Ok(Box::new(addresses.into_iter()) as Addrs)
         })
@@ -312,6 +722,154 @@ mod tests {
     use std::net::{Ipv4Addr, Ipv6Addr};
     use std::time::Duration;
     use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+    #[test]
+    fn doh_configuration_uses_the_builtin_provider_pool() {
+        let resolver = DownloadDnsResolver::with_doh(true).unwrap();
+        assert!(resolver.doh_enabled());
+        assert_eq!(resolver.doh_endpoints.len(), BUILTIN_DOH_SERVERS.len());
+        assert_eq!(resolver.doh_endpoints[0].as_ref(), BUILTIN_DOH_SERVERS[0]);
+    }
+
+    #[test]
+    fn disabled_doh_accepts_an_invalid_draft_endpoint() {
+        let resolver = DownloadDnsResolver::with_doh(false).unwrap();
+        assert!(!resolver.doh_enabled());
+    }
+
+    #[test]
+    fn wire_queries_and_answers_round_trip_and_validate_the_question() {
+        use hickory_resolver::proto::rr::{
+            Record,
+            rdata::{A, AAAA, CNAME},
+        };
+        for record_type in [RecordType::A, RecordType::AAAA] {
+            let query = doh_query("cdn.example", record_type).unwrap();
+            let decoded = Message::from_vec(&query.to_vec().unwrap()).unwrap();
+            assert_eq!(decoded.queries(), query.queries());
+            assert!(decoded.recursion_desired());
+            let alias = DnsName::from_ascii("edge.example").unwrap();
+            let ip = if record_type == RecordType::A {
+                IpAddr::V4(Ipv4Addr::new(192, 0, 2, 1))
+            } else {
+                IpAddr::V6(Ipv6Addr::LOCALHOST)
+            };
+            let data = match ip {
+                IpAddr::V4(ip) => RData::A(A(ip)),
+                IpAddr::V6(ip) => RData::AAAA(AAAA(ip)),
+            };
+            let mut response = query.clone();
+            response
+                .set_message_type(MessageType::Response)
+                .add_answer(Record::from_rdata(
+                    query.query().unwrap().name().clone(),
+                    60,
+                    RData::CNAME(CNAME(alias.clone())),
+                ))
+                .add_answer(Record::from_rdata(alias, 60, data));
+            assert_eq!(
+                parse_doh_response(&response.to_vec().unwrap(), &query)
+                    .unwrap(),
+                vec![SocketAddr::new(ip, 0)]
+            );
+            response.set_id(query.id().wrapping_add(1));
+            assert!(
+                parse_doh_response(&response.to_vec().unwrap(), &query)
+                    .is_err()
+            );
+        }
+        assert!(
+            parse_doh_response(
+                b"{\"Answer\":[]}",
+                &doh_query("cdn.example", RecordType::A).unwrap()
+            )
+            .is_err()
+        );
+    }
+
+    #[tokio::test]
+    async fn usable_family_survives_a_failed_or_stalled_other_family() {
+        let address = SocketAddr::from((Ipv4Addr::new(192, 0, 2, 1), 0));
+        let failed = async { Err(std::io::Error::other("AAAA failed")) };
+        assert_eq!(
+            resolve_families(async { Ok(vec![address]) }, failed)
+                .await
+                .unwrap(),
+            vec![address]
+        );
+        let addresses = tokio::time::timeout(
+            DOH_REQUEST_TIMEOUT + Duration::from_secs(1),
+            resolve_families(
+                async { Ok(vec![address]) },
+                std::future::pending(),
+            ),
+        )
+        .await
+        .unwrap()
+        .unwrap();
+        assert_eq!(addresses, vec![address]);
+    }
+
+    #[tokio::test]
+    async fn late_ipv4_addresses_are_kept_when_ipv6_arrives_first() {
+        let ipv4 = SocketAddr::from((Ipv4Addr::new(192, 0, 2, 1), 0));
+        let ipv6 = SocketAddr::from((Ipv6Addr::LOCALHOST, 0));
+        let addresses = resolve_families(
+            async {
+                tokio::time::sleep(Duration::from_millis(400)).await;
+                Ok(vec![ipv4])
+            },
+            async { Ok(vec![ipv6]) },
+        )
+        .await
+        .unwrap();
+        assert!(addresses.contains(&ipv4));
+        assert!(addresses.contains(&ipv6));
+    }
+
+    #[tokio::test]
+    async fn failed_lookup_is_shared_across_a_batch_and_expires() {
+        let resolver = DownloadDnsResolver::default();
+        let host = "failed-batch.test";
+        resolver
+            .test_lookup_errors
+            .lock()
+            .insert(host.into(), std::io::ErrorKind::TimedOut);
+        resolver.set_test_lookup_delay(host, Duration::from_millis(20));
+        let results =
+            futures::future::join_all((0..45).map(|_| resolver.refresh(host)))
+                .await;
+        assert!(results.iter().all(Result::is_err));
+        assert_eq!(resolver.test_lookup_counts.lock().get(host), Some(&1));
+        resolver.last_failed.lock().get_mut(host).unwrap().failed_at -=
+            FAILURE_CACHE_TTL;
+        resolver.test_lookup_errors.lock().remove(host);
+        resolver.set_test_addresses(
+            host,
+            vec![SocketAddr::from((Ipv4Addr::LOCALHOST, 0))],
+        );
+        assert!(resolver.refresh(host).await.is_ok());
+        assert_eq!(resolver.test_lookup_counts.lock().get(host), Some(&2));
+    }
+
+    #[tokio::test]
+    async fn lookup_and_host_lock_waits_have_deadlines() {
+        let resolver = DownloadDnsResolver::default();
+        let host = "deadline.test";
+        resolver.set_test_addresses(
+            host,
+            vec![SocketAddr::from((Ipv4Addr::LOCALHOST, 0))],
+        );
+        resolver.set_test_lookup_delay(host, DNS_LOOKUP_TIMEOUT * 2);
+        let error = resolver.refresh(host).await.unwrap_err();
+        assert_eq!(error.kind(), std::io::ErrorKind::TimedOut);
+        let lock = resolver.resolving_lock("locked.test");
+        let _guard = lock.lock().await;
+        assert_eq!(
+            resolver.refresh("locked.test").await.unwrap_err().kind(),
+            std::io::ErrorKind::TimedOut
+        );
+    }
 
     async fn spawn_ipv4_server() -> (u16, tokio::task::JoinHandle<()>) {
         let listener =
@@ -356,11 +914,9 @@ mod tests {
         let resolver = DownloadDnsResolver::default();
         let ipv4 = SocketAddr::from((Ipv4Addr::new(203, 0, 113, 10), 0));
         let ipv6 = SocketAddr::from((Ipv6Addr::LOCALHOST, 0));
-        resolver.record_result(ipv6.ip(), -0.7);
-
         assert_eq!(
             resolver.order_addresses("api.modrinth.com", vec![ipv6, ipv4]),
-            vec![ipv4, ipv6]
+            vec![ipv6, ipv4]
         );
     }
 
@@ -369,7 +925,11 @@ mod tests {
         let resolver = DownloadDnsResolver::default();
         let slower = SocketAddr::from((Ipv4Addr::new(203, 0, 113, 10), 0));
         let faster = SocketAddr::from((Ipv4Addr::new(203, 0, 113, 11), 0));
-        resolver.record_result(faster.ip(), 0.5);
+        resolver.cache_addresses(
+            "cdn.example.com".to_string(),
+            vec![slower, faster],
+        );
+        resolver.record_host_success("cdn.example.com", faster.ip());
 
         assert_eq!(
             resolver.order_addresses("cdn.example.com", vec![slower, faster]),

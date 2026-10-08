@@ -193,39 +193,36 @@ pub async fn apply_cleanup(
 ) -> crate::Result<()> {
     match job_state.cleanup.clone() {
         InstallCleanup::DeleteNewInstance { instance_id } => {
-            if let Some(instance_id) = instance_id {
-                if !job_state.instance_deleted() {
-                    let preserve_external_files = matches!(
-                        &job_state.request,
-                        InstallRequest::ImportInstance { symlink: true, .. }
-                    );
-                    if preserve_external_files {
-                        crate::state::remove_instance_preserving_external_files(
-                            &instance_id,
-                            state,
-                        )
-                        .await?;
-                    } else {
-                        crate::state::remove_instance(&instance_id, state)
-                            .await?;
-                    }
-                    job_state.record_event(
-                        InstallJobEventKind::TargetInstanceDeleted {
-                            instance_id: instance_id.clone(),
-                        },
-                    );
-                    if let Err(error) = emit_instance(
+            if let Some(instance_id) = instance_id
+                && !job_state.instance_deleted()
+            {
+                let preserve_external_files = matches!(
+                    &job_state.request,
+                    InstallRequest::ImportInstance { symlink: true, .. }
+                );
+                if preserve_external_files {
+                    crate::state::remove_instance_preserving_external_files(
                         &instance_id,
-                        InstancePayloadType::Removed,
+                        state,
                     )
-                    .await
-                    {
-                        tracing::warn!(
-                            instance_id,
-                            error = %error,
-                            "Install cleanup deleted a new instance, but its removal event could not be emitted"
-                        );
-                    }
+                    .await?;
+                } else {
+                    crate::state::remove_instance(&instance_id, state).await?;
+                }
+                job_state.record_event(
+                    InstallJobEventKind::TargetInstanceDeleted {
+                        instance_id: instance_id.clone(),
+                    },
+                );
+                if let Err(error) =
+                    emit_instance(&instance_id, InstancePayloadType::Removed)
+                        .await
+                {
+                    tracing::warn!(
+                        instance_id,
+                        error = %error,
+                        "Install cleanup deleted a new instance, but its removal event could not be emitted"
+                    );
                 }
             }
         }

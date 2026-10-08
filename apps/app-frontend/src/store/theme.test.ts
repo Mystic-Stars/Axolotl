@@ -4,17 +4,17 @@ import test from 'node:test'
 import { applySystemAccentHue, DEFAULT_CUSTOM_ACCENT_COLOR, hexToHsl } from './theme.ts'
 
 test('applies the system hue with the custom accent saturation and lightness', () => {
-	const system = hexToHsl('#0078d4')
-	const custom = hexToHsl(DEFAULT_CUSTOM_ACCENT_COLOR)
-	const result = hexToHsl(applySystemAccentHue('#0078d4'))
+    const system = hexToHsl('#0078d4')
+    const custom = hexToHsl(DEFAULT_CUSTOM_ACCENT_COLOR)
+    const result = hexToHsl(applySystemAccentHue('#0078d4'))
 
-	assert.ok(Math.abs(result.h - system.h) < 1)
-	assert.ok(Math.abs(result.s - custom.s) < 1)
-	assert.ok(Math.abs(result.l - custom.l) < 1)
+    assert.ok(Math.abs(result.h - system.h) < 1)
+    assert.ok(Math.abs(result.s - custom.s) < 1)
+    assert.ok(Math.abs(result.l - custom.l) < 1)
 })
 
 test('preserves hue values at the red boundary', () => {
-	const result = hexToHsl(applySystemAccentHue('#ff0000'))
+    const result = hexToHsl(applySystemAccentHue('#ff0000'))
 
-	assert.ok(result.h < 1 || result.h > 359)
+    assert.ok(result.h < 1 || result.h > 359)
 })

@@ -1,25 +1,25 @@
 {
-	"name": "@axolotl/telemetry-worker",
-	"private": true,
-	"type": "module",
-	"scripts": {
-		"configure:rate-limit": "node scripts/configure-rate-limit.mjs",
-		"dev": "wrangler dev",
-		"deploy": "wrangler deploy",
-		"lint": "prettier --check . && tsc --noEmit",
-		"fix": "prettier --write .",
-		"test": "vitest run"
-	},
-	"dependencies": {
-		"hono": "^4.9.2",
-		"zod": "^3.25.76"
-	},
-	"devDependencies": {
-		"@cloudflare/vitest-pool-workers": "^0.8.69",
-		"@cloudflare/workers-types": "^5.20260801.1",
-		"@types/node": "^24",
-		"typescript": "^5.9.2",
-		"vitest": "^3.2.4",
-		"wrangler": "^4.28.1"
-	}
+  "name": "@axolotl/telemetry-worker",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "configure:rate-limit": "node scripts/configure-rate-limit.mjs",
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "lint": "prettier --check . && tsc --noEmit",
+    "fix": "prettier --write .",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "hono": "^4.9.2",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "^0.8.69",
+    "@cloudflare/workers-types": "^5.20260801.1",
+    "@types/node": "^24",
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.4",
+    "wrangler": "^4.28.1"
+  }
 }

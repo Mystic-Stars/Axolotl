@@ -1,29 +1,29 @@
 export type ImageViewerEditorSource = {
-	id: string
-	path: string
+    id: string
+    path: string
 }
 
 export type ImageViewerEditorItem = {
-	id: string
-	src: string
-	alt: string
-	title?: string
-	description?: string
-	editorSource?: ImageViewerEditorSource
+    id: string
+    src: string
+    alt: string
+    title?: string
+    description?: string
+    editorSource?: ImageViewerEditorSource
 }
 
 export type ImageViewerEditorData = {
-	source: Blob
+    source: Blob
 }
 
 export type ImageViewerEditorMetadata = {
-	size: number
-	width: number
-	height: number
+    size: number
+    width: number
+    height: number
 }
 
 export type ImageViewerEditorSavePayload = {
-	item: ImageViewerEditorItem
-	pngBytes: Uint8Array
-	mode: 'create_copy' | 'replace_edit'
+    item: ImageViewerEditorItem
+    pngBytes: Uint8Array
+    mode: 'create_copy' | 'replace_edit'
 }

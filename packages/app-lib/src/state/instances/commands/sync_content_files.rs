@@ -506,9 +506,11 @@ pub(crate) fn modrinth_update_enabled(
 ) -> bool {
     match origin_provider {
         Some(ContentProvider::Modrinth) => true,
-        Some(ContentProvider::CurseForge)
-        | Some(ContentProvider::McArchive)
-        | Some(ContentProvider::Local) => false,
+        Some(
+            ContentProvider::CurseForge
+            | ContentProvider::McArchive
+            | ContentProvider::Local,
+        ) => false,
         None => provider_refs.iter().all(|reference| {
             matches!(reference, ContentProviderRef::Modrinth { .. })
         }),

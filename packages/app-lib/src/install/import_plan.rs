@@ -720,55 +720,54 @@ fn library_artifacts(
         }
 
         // Native library artifact for this platform, if any.
-        if is_native_library(library) {
-            if let Some(classifier) =
+        if is_native_library(library)
+            && let Some(classifier) =
                 library_native_classifier(library, java_arch)
-            {
-                let native = library
+        {
+            let native = library
+                .downloads
+                .as_ref()
+                .and_then(|downloads| downloads.classifiers.as_ref())
+                .and_then(|classifiers| classifiers.get(&classifier));
+            if let Some(native) = native {
+                natives.push(RequiredArtifact {
+                    relative_path: local_native_library_path(
+                        library,
+                        native,
+                        &classifier,
+                    )?,
+                    destination: state
+                        .directories
+                        .caches_dir()
+                        .join("minecraft-natives")
+                        .join(format!("{}.jar", native.sha1)),
+                    expected_sha1: Some(native.sha1.clone()),
+                    expected_size: Some(native.size as u64),
+                });
+            } else if library_classifier_coordinate_is_native(library) {
+                // Forge and newer manifests may represent a native as a
+                // four-part coordinate (group:artifact:version:natives-*),
+                // with its metadata in downloads.artifact rather than the
+                // legacy downloads.classifiers map. Keep that artifact in
+                // libraries/ so native preparation can consume it directly.
+                if let Some(artifact) = library
                     .downloads
                     .as_ref()
-                    .and_then(|downloads| downloads.classifiers.as_ref())
-                    .and_then(|classifiers| classifiers.get(&classifier));
-                if let Some(native) = native {
+                    .and_then(|downloads| downloads.artifact.as_ref())
+                    .filter(|artifact| !artifact.url.is_empty())
+                {
+                    let artifact_path =
+                        native_library_artifact_path(library, &classifier)?;
                     natives.push(RequiredArtifact {
-                        relative_path: local_native_library_path(
-                            library,
-                            native,
-                            &classifier,
-                        )?,
+                        relative_path: Path::new("libraries")
+                            .join(&artifact_path),
                         destination: state
                             .directories
-                            .caches_dir()
-                            .join("minecraft-natives")
-                            .join(format!("{}.jar", native.sha1)),
-                        expected_sha1: Some(native.sha1.clone()),
-                        expected_size: Some(native.size as u64),
+                            .libraries_dir()
+                            .join(&artifact_path),
+                        expected_sha1: Some(artifact.sha1.clone()),
+                        expected_size: Some(artifact.size as u64),
                     });
-                } else if library_classifier_coordinate_is_native(library) {
-                    // Forge and newer manifests may represent a native as a
-                    // four-part coordinate (group:artifact:version:natives-*),
-                    // with its metadata in downloads.artifact rather than the
-                    // legacy downloads.classifiers map. Keep that artifact in
-                    // libraries/ so native preparation can consume it directly.
-                    if let Some(artifact) = library
-                        .downloads
-                        .as_ref()
-                        .and_then(|downloads| downloads.artifact.as_ref())
-                        .filter(|artifact| !artifact.url.is_empty())
-                    {
-                        let artifact_path =
-                            native_library_artifact_path(library, &classifier)?;
-                        natives.push(RequiredArtifact {
-                            relative_path: Path::new("libraries")
-                                .join(&artifact_path),
-                            destination: state
-                                .directories
-                                .libraries_dir()
-                                .join(&artifact_path),
-                            expected_sha1: Some(artifact.sha1.clone()),
-                            expected_size: Some(artifact.size as u64),
-                        });
-                    }
                 }
             }
         }

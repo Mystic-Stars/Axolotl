@@ -14,6 +14,7 @@ pub(crate) async fn compute_file_integrity(
     path: &Path,
     integrity: &Integrity,
 ) -> crate::Result<ComputedIntegrity> {
+    let started = std::time::Instant::now();
     let _permit = acquire_native_validation_permit().await?;
     let mut file = File::open(path)
         .await
@@ -32,6 +33,7 @@ pub(crate) async fn compute_file_integrity(
         hashers.update(&buffer[..read]);
         size += read as u64;
     }
+    tracing::debug!(path = %path.display(), bytes = size, verification_ms = started.elapsed().as_millis(), cpu_percent = super::local_resources::pressure(path).cpu_percent, "Completed download hash verification");
     Ok(hashers.finish(size))
 }
 
@@ -95,7 +97,9 @@ pub(crate) async fn validate_file_content(
     if validation == ContentValidation::None {
         return Ok(());
     }
+    let started = std::time::Instant::now();
     let _permit = acquire_native_validation_permit().await?;
+    let log_path = path.to_path_buf();
     let path = path.to_path_buf();
     tokio::task::spawn_blocking(move || -> crate::Result<()> {
         let file = std::fs::File::open(&path)
@@ -117,6 +121,7 @@ pub(crate) async fn validate_file_content(
         Ok(())
     })
     .await??;
+    tracing::debug!(path = %log_path.display(), validation_ms = started.elapsed().as_millis(), "Completed download content validation");
     Ok(())
 }
 

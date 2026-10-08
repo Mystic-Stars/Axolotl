@@ -12,7 +12,6 @@ pub fn init<R: tauri::Runtime>() -> tauri::plugin::TauriPlugin<R> {
             privacy_set,
             telemetry_set,
             discord_rpc_set,
-            download_engine_set,
             cancel_directory_change,
             proxy_get,
             proxy_set,
@@ -94,14 +93,6 @@ pub async fn telemetry_set(enabled: bool) -> Result<PrivacySettings> {
 #[tauri::command]
 pub async fn discord_rpc_set(enabled: bool) -> Result<PrivacySettings> {
     Ok(settings::set_discord_rpc(enabled).await?)
-}
-
-#[tauri::command]
-pub async fn download_engine_set(
-    engine: settings::DownloadEngine,
-) -> Result<()> {
-    settings::set_download_engine(engine).await?;
-    Ok(())
 }
 
 #[tauri::command]

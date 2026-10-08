@@ -16,8 +16,8 @@ export type TauriClientConfig = ClientConfig
  * Extended error type with HTTP response metadata
  */
 interface HttpError extends Error {
-	statusCode?: number
-	responseData?: unknown
+    statusCode?: number
+    responseData?: unknown
 }
 
 /**
@@ -40,137 +40,139 @@ interface HttpError extends Error {
  * ```
  */
 export class TauriModrinthClient extends XHRUploadClient {
-	declare protected config: TauriClientConfig
+    declare protected config: TauriClientConfig
 
-	constructor(config: TauriClientConfig) {
-		super(config)
+    constructor(config: TauriClientConfig) {
+        super(config)
 
-		Object.defineProperty(this.archon, 'sockets', {
-			value: new GenericWebSocketClient(this),
-			writable: false,
-			enumerable: true,
-			configurable: false,
-		})
-		Object.defineProperty(this.archon, 'sync', {
-			value: new GenericSyncClient(this),
-			writable: false,
-			enumerable: true,
-			configurable: false,
-		})
-	}
+        Object.defineProperty(this.archon, 'sockets', {
+            value: new GenericWebSocketClient(this),
+            writable: false,
+            enumerable: true,
+            configurable: false,
+        })
+        Object.defineProperty(this.archon, 'sync', {
+            value: new GenericSyncClient(this),
+            writable: false,
+            enumerable: true,
+            configurable: false,
+        })
+    }
 
-	protected async executeRequest<T>(url: string, options: RequestOptions): Promise<T> {
-		try {
-			// Dynamically import Tauri HTTP plugin
-			// This allows the package to be used in non-Tauri environments
-			const { fetch: tauriFetch } = await import('@tauri-apps/plugin-http')
+    protected async executeRequest<T>(url: string, options: RequestOptions): Promise<T> {
+        try {
+            // Dynamically import Tauri HTTP plugin
+            // This allows the package to be used in non-Tauri environments
+            const { fetch: tauriFetch } = await import('@tauri-apps/plugin-http')
 
-			const body = toFetchBody(options.body)
-			const fullUrl = appendRequestParams(url, options.params)
+            const body = toFetchBody(options.body)
+            const fullUrl = appendRequestParams(url, options.params)
 
-			const response = await tauriFetch(fullUrl, {
-				method: options.method ?? 'GET',
-				headers: options.headers,
-				body,
-			})
+            const response = await tauriFetch(fullUrl, {
+                method: options.method ?? 'GET',
+                headers: options.headers,
+                body,
+            })
 
-			if (!response.ok) {
-				let responseData: unknown
-				try {
-					responseData = await response.json()
-				} catch {
-					responseData = undefined
-				}
+            if (!response.ok) {
+                let responseData: unknown
+                try {
+                    responseData = await response.json()
+                } catch {
+                    responseData = undefined
+                }
 
-				const error = new Error(`HTTP ${response.status}: ${response.statusText}`) as HttpError
+                const error = new Error(
+                    `HTTP ${response.status}: ${response.statusText}`,
+                ) as HttpError
 
-				error.statusCode = response.status
-				error.responseData = responseData
+                error.statusCode = response.status
+                error.responseData = responseData
 
-				throw error
-			}
+                throw error
+            }
 
-			// Handle binary downloads (e.g. kyros fs files) before JSON parsing.
-			const contentType = response.headers.get('content-type')?.toLowerCase() ?? ''
-			if (fullUrl.includes('/fs/download')) {
-				return (await response.blob()) as T
-			}
-			if (
-				contentType.startsWith('image/') ||
-				contentType.startsWith('audio/') ||
-				contentType.startsWith('video/') ||
-				contentType.includes('application/octet-stream')
-			) {
-				return (await response.blob()) as T
-			}
+            // Handle binary downloads (e.g. kyros fs files) before JSON parsing.
+            const contentType = response.headers.get('content-type')?.toLowerCase() ?? ''
+            if (fullUrl.includes('/fs/download')) {
+                return (await response.blob()) as T
+            }
+            if (
+                contentType.startsWith('image/') ||
+                contentType.startsWith('audio/') ||
+                contentType.startsWith('video/') ||
+                contentType.includes('application/octet-stream')
+            ) {
+                return (await response.blob()) as T
+            }
 
-			if (response.status === 204 || response.status === 205) {
-				return undefined as T
-			}
+            if (response.status === 204 || response.status === 205) {
+                return undefined as T
+            }
 
-			if (contentType.includes('application/json') || contentType.includes('+json')) {
-				return (await response.json()) as T
-			}
+            if (contentType.includes('application/json') || contentType.includes('+json')) {
+                return (await response.json()) as T
+            }
 
-			const text = await response.text()
-			if (!text) {
-				return undefined as T
-			}
+            const text = await response.text()
+            if (!text) {
+                return undefined as T
+            }
 
-			try {
-				return JSON.parse(text) as T
-			} catch {
-				return text as T
-			}
-		} catch (error) {
-			throw this.normalizeError(error)
-		}
-	}
+            try {
+                return JSON.parse(text) as T
+            } catch {
+                return text as T
+            }
+        } catch (error) {
+            throw this.normalizeError(error)
+        }
+    }
 
-	protected async executeStreamRequest(
-		url: string,
-		options: RequestOptions,
-	): Promise<ReadableStream<Uint8Array>> {
-		try {
-			const { fetch: tauriFetch } = await import('@tauri-apps/plugin-http')
-			const response = await tauriFetch(appendRequestParams(url, options.params), {
-				method: options.method ?? 'GET',
-				headers: options.headers,
-				body: toFetchBody(options.body),
-				signal: options.signal,
-			})
+    protected async executeStreamRequest(
+        url: string,
+        options: RequestOptions,
+    ): Promise<ReadableStream<Uint8Array>> {
+        try {
+            const { fetch: tauriFetch } = await import('@tauri-apps/plugin-http')
+            const response = await tauriFetch(appendRequestParams(url, options.params), {
+                method: options.method ?? 'GET',
+                headers: options.headers,
+                body: toFetchBody(options.body),
+                signal: options.signal,
+            })
 
-			if (!response.ok) {
-				throw this.createNormalizedError(
-					new Error(`HTTP ${response.status}: ${response.statusText}`),
-					response.status,
-					await parseResponseErrorData(response),
-				)
-			}
+            if (!response.ok) {
+                throw this.createNormalizedError(
+                    new Error(`HTTP ${response.status}: ${response.statusText}`),
+                    response.status,
+                    await parseResponseErrorData(response),
+                )
+            }
 
-			if (!response.body) {
-				throw this.createNormalizedError(
-					new Error('Streaming response has no readable body'),
-					response.status,
-					undefined,
-				)
-			}
+            if (!response.body) {
+                throw this.createNormalizedError(
+                    new Error('Streaming response has no readable body'),
+                    response.status,
+                    undefined,
+                )
+            }
 
-			return response.body
-		} catch (error) {
-			throw this.normalizeError(error)
-		}
-	}
+            return response.body
+        } catch (error) {
+            throw this.normalizeError(error)
+        }
+    }
 
-	protected normalizeError(error: unknown): ModrinthApiError {
-		if (error instanceof Error) {
-			const httpError = error as HttpError
-			const statusCode = httpError.statusCode
-			const responseData = httpError.responseData
+    protected normalizeError(error: unknown): ModrinthApiError {
+        if (error instanceof Error) {
+            const httpError = error as HttpError
+            const statusCode = httpError.statusCode
+            const responseData = httpError.responseData
 
-			return this.createNormalizedError(error, statusCode, responseData)
-		}
+            return this.createNormalizedError(error, statusCode, responseData)
+        }
 
-		return super.normalizeError(error)
-	}
+        return super.normalizeError(error)
+    }
 }

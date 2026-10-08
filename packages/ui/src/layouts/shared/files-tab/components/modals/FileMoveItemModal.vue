@@ -1,47 +1,47 @@
 <template>
-	<NewModal
-		ref="modal"
-		:header="
-			formatMessage(messages.header, {
-				type: formatFileItemType(formatMessage, item?.type),
-			})
-		"
-		max-width="500px"
-	>
-		<form class="space-y-6 md:min-w-[400px]" @submit.prevent="handleSubmit">
-			<div class="flex flex-col gap-1">
-				<span class="font-semibold text-[var(--color-text-primary)]">{{
-					formatMessage(messages.currentLocation)
-				}}</span>
-				<span class="text-[var(--color-text-tertiary)]">{{
-					`${currentPath}/${item?.name}`.replace('//', '/')
-				}}</span>
-			</div>
-			<label class="flex flex-col gap-2">
-				<span class="font-semibold text-[var(--color-text-primary)]">{{
-					formatMessage(messages.destinationPath)
-				}}</span>
-				<StyledInput
-					ref="destinationInput"
-					v-model="destination"
-					:placeholder="formatMessage(messages.destinationPlaceholder)"
-					wrapper-class="w-full"
-				/>
-			</label>
-		</form>
-		<template #actions>
-			<div class="flex gap-2 justify-end">
-				<Button type="outlined" @click="hide"
-					><XIcon class="h-5 w-5" />
-					{{ formatMessage(commonMessages.cancelButton) }}
-				</Button>
-				<Button type="colored" color="brand" @click="handleSubmit"
-					><RightArrowIcon class="h-5 w-5" />
-					{{ formatMessage(commonMessages.moveButton) }}
-				</Button>
-			</div>
-		</template>
-	</NewModal>
+    <NewModal
+        ref="modal"
+        :header="
+            formatMessage(messages.header, {
+                type: formatFileItemType(formatMessage, item?.type),
+            })
+        "
+        max-width="500px"
+    >
+        <form class="space-y-6 md:min-w-[400px]" @submit.prevent="handleSubmit">
+            <div class="flex flex-col gap-1">
+                <span class="font-semibold text-[var(--color-text-primary)]">{{
+                    formatMessage(messages.currentLocation)
+                }}</span>
+                <span class="text-[var(--color-text-tertiary)]">{{
+                    `${currentPath}/${item?.name}`.replace('//', '/')
+                }}</span>
+            </div>
+            <label class="flex flex-col gap-2">
+                <span class="font-semibold text-[var(--color-text-primary)]">{{
+                    formatMessage(messages.destinationPath)
+                }}</span>
+                <StyledInput
+                    ref="destinationInput"
+                    v-model="destination"
+                    :placeholder="formatMessage(messages.destinationPlaceholder)"
+                    wrapper-class="w-full"
+                />
+            </label>
+        </form>
+        <template #actions>
+            <div class="flex gap-2 justify-end">
+                <Button type="outlined" @click="hide"
+                    ><XIcon class="h-5 w-5" />
+                    {{ formatMessage(commonMessages.cancelButton) }}
+                </Button>
+                <Button type="colored" color="brand" @click="handleSubmit"
+                    ><RightArrowIcon class="h-5 w-5" />
+                    {{ formatMessage(commonMessages.moveButton) }}
+                </Button>
+            </div>
+        </template>
+    </NewModal>
 </template>
 
 <script setup lang="ts">
@@ -59,57 +59,57 @@ import type { FileItem } from '../../types'
 const { formatMessage } = useVIntl()
 
 const messages = defineMessages({
-	header: {
-		id: 'files.move-modal.header',
-		defaultMessage: 'Move {type}',
-	},
-	currentLocation: {
-		id: 'files.move-modal.current-location',
-		defaultMessage: 'Current location',
-	},
-	destinationPath: {
-		id: 'files.move-modal.destination-path',
-		defaultMessage: 'Destination path',
-	},
-	destinationPlaceholder: {
-		id: 'files.move-modal.destination-placeholder',
-		defaultMessage: 'e.g. /my-folder',
-	},
+    header: {
+        id: 'files.move-modal.header',
+        defaultMessage: 'Move {type}',
+    },
+    currentLocation: {
+        id: 'files.move-modal.current-location',
+        defaultMessage: 'Current location',
+    },
+    destinationPath: {
+        id: 'files.move-modal.destination-path',
+        defaultMessage: 'Destination path',
+    },
+    destinationPlaceholder: {
+        id: 'files.move-modal.destination-placeholder',
+        defaultMessage: 'e.g. /my-folder',
+    },
 })
 
 const destinationInput = ref<HTMLInputElement | null>(null)
 
 defineProps<{
-	item: Pick<FileItem, 'name' | 'type'> | null
-	currentPath: string
+    item: Pick<FileItem, 'name' | 'type'> | null
+    currentPath: string
 }>()
 
 const emit = defineEmits<{
-	move: [destination: string]
+    move: [destination: string]
 }>()
 
 const modal = ref<InstanceType<typeof NewModal>>()
 const destination = ref('')
 
 const handleSubmit = () => {
-	const path = destination.value.replace('//', '/')
-	const normalized = path.startsWith('/') ? path : `/${path}`
-	emit('move', normalized)
-	hide()
+    const path = destination.value.replace('//', '/')
+    const normalized = path.startsWith('/') ? path : `/${path}`
+    emit('move', normalized)
+    hide()
 }
 
 const show = () => {
-	destination.value = ''
-	modal.value?.show()
-	nextTick(() => {
-		setTimeout(() => {
-			destinationInput.value?.focus()
-		}, 100)
-	})
+    destination.value = ''
+    modal.value?.show()
+    nextTick(() => {
+        setTimeout(() => {
+            destinationInput.value?.focus()
+        }, 100)
+    })
 }
 
 const hide = () => {
-	modal.value?.hide()
+    modal.value?.hide()
 }
 
 defineExpose({ show, hide })

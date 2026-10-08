@@ -9,99 +9,99 @@ export type ServerTypeId = 'vanilla' | 'fabric' | 'paper' | 'forge' | 'neoforge'
 export type ServerInstallMode = 'direct' | 'installer' | 'todo'
 
 export interface ServerTypeDefinition {
-	id: ServerTypeId
-	label: string
-	installMode: ServerInstallMode
-	needsLoaderVersion: boolean
-	/**
-	 * Whether the launcher can actually create and boot this server type today.
-	 * `installer` types flip this on as their installer run step lands; types
-	 * still in planning stay `false` so the UI hides them until they work.
-	 */
-	implemented: boolean
+    id: ServerTypeId
+    label: string
+    installMode: ServerInstallMode
+    needsLoaderVersion: boolean
+    /**
+     * Whether the launcher can actually create and boot this server type today.
+     * `installer` types flip this on as their installer run step lands; types
+     * still in planning stay `false` so the UI hides them until they work.
+     */
+    implemented: boolean
 }
 
 export interface ServerJarDownload {
-	url: string
-	filename: string
-	sha1?: string
-	size?: number
+    url: string
+    filename: string
+    sha1?: string
+    size?: number
 }
 
 export interface VanillaVersionInfoDownload {
-	sha1: string
-	size: number
-	url: string
+    sha1: string
+    size: number
+    url: string
 }
 
 export interface VanillaVersionInfo {
-	downloads: { server?: VanillaVersionInfoDownload }
+    downloads: { server?: VanillaVersionInfoDownload }
 }
 
 export interface PaperBuildDownload {
-	name: string
-	url: string
-	checksums?: { sha256?: string }
-	size?: number
+    name: string
+    url: string
+    checksums?: { sha256?: string }
+    size?: number
 }
 
 /** A build from the PaperMC Fill v3 downloads service. */
 export interface PaperBuild {
-	id: number
-	channel: string
-	downloads: { 'server:default'?: PaperBuildDownload }
+    id: number
+    channel: string
+    downloads: { 'server:default'?: PaperBuildDownload }
 }
 
 export interface ResolveServerJarInput {
-	gameVersion: string
-	loaderVersion?: string
-	installerVersion?: string
-	vanillaVersionInfo?: VanillaVersionInfo
-	paperBuild?: PaperBuild
+    gameVersion: string
+    loaderVersion?: string
+    installerVersion?: string
+    vanillaVersionInfo?: VanillaVersionInfo
+    paperBuild?: PaperBuild
 }
 
 export type ServerStatus = 'created' | 'eula_pending' | 'ready' | 'starting' | 'running' | 'crashed'
 
 /** Persisted server manifest, stored as `axolotl-server.json` in the server directory. */
 export interface ManagedServerManifest {
-	id: string
-	name: string
-	serverType: ServerTypeId
-	gameVersion: string
-	loaderVersion?: string
-	createdAt: string
-	javaPath?: string
-	memoryMb?: number
-	jvmArgs?: string[]
-	lastStartedAt?: string
-	/** Multiplayer entry this server is linked to, when it is the backend of a
-	 * saved local address. */
-	linkedWorld?: {
-		instanceId: string
-		address: string
-	}
+    id: string
+    name: string
+    serverType: ServerTypeId
+    gameVersion: string
+    loaderVersion?: string
+    createdAt: string
+    javaPath?: string
+    memoryMb?: number
+    jvmArgs?: string[]
+    lastStartedAt?: string
+    /** Multiplayer entry this server is linked to, when it is the backend of a
+     * saved local address. */
+    linkedWorld?: {
+        instanceId: string
+        address: string
+    }
 }
 
 export interface ManagedServer extends ManagedServerManifest {
-	path: string
-	status: ServerStatus
-	port?: number
-	eulaAccepted: boolean
+    path: string
+    status: ServerStatus
+    port?: number
+    eulaAccepted: boolean
 }
 
 export interface ServerStatusInput {
-	manifest: Pick<ManagedServerManifest, 'id'>
-	isRunning: boolean
-	isStarting: boolean
-	lastExitWasCrash: boolean
-	eulaAccepted: boolean
-	eulaFileExists: boolean
+    manifest: Pick<ManagedServerManifest, 'id'>
+    isRunning: boolean
+    isStarting: boolean
+    lastExitWasCrash: boolean
+    eulaAccepted: boolean
+    eulaFileExists: boolean
 }
 
 export interface ServerLaunchOptions {
-	javaPath: string
-	memoryMb: number
-	jvmArgs?: string[]
+    javaPath: string
+    memoryMb: number
+    jvmArgs?: string[]
 }
 
 export const DEFAULT_SERVER_PORT = 25565

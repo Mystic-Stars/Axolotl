@@ -5,10 +5,10 @@ const NAV_SHORTCUT_STORAGE_PREFIX = 'axolotl-shortcut-nav-'
  * each one is turned on individually from the Shortcut settings page.
  */
 export function getNavShortcutEnabled(id: string): boolean {
-	const value = localStorage.getItem(NAV_SHORTCUT_STORAGE_PREFIX + id)
-	return value === 'true'
+    const value = localStorage.getItem(NAV_SHORTCUT_STORAGE_PREFIX + id)
+    return value === 'true'
 }
 
 export function setNavShortcutEnabled(id: string, enabled: boolean) {
-	localStorage.setItem(NAV_SHORTCUT_STORAGE_PREFIX + id, String(enabled))
+    localStorage.setItem(NAV_SHORTCUT_STORAGE_PREFIX + id, String(enabled))
 }

@@ -1,130 +1,130 @@
 <template>
-	<div class="w-full flex items-center justify-center flex-col gap-2">
-		<div class="title">{{ formatMessage(messages.loadingLabel) }}</div>
-		<div class="placeholder"></div>
-		<div class="placeholder"></div>
-		<div class="placeholder"></div>
-	</div>
+    <div class="w-full flex items-center justify-center flex-col gap-2">
+        <div class="title">{{ formatMessage(messages.loadingLabel) }}</div>
+        <div class="placeholder"></div>
+        <div class="placeholder"></div>
+        <div class="placeholder"></div>
+    </div>
 </template>
 
 <script setup>
 import { defineMessages, useVIntl } from '#ui/composables/i18n'
 
 const messages = defineMessages({
-	loadingLabel: {
-		id: 'omorphia.component.loading-indicator.label',
-		defaultMessage: 'Loading',
-	},
+    loadingLabel: {
+        id: 'omorphia.component.loading-indicator.label',
+        defaultMessage: 'Loading',
+    },
 })
 
 const { formatMessage } = useVIntl()
 </script>
 <style scoped>
 .title {
-	position: absolute;
-	z-index: 1;
-	font-weight: bold;
-	color: var(--color-text-primary);
+    position: absolute;
+    z-index: 1;
+    font-weight: bold;
+    color: var(--color-text-primary);
 
-	&::after {
-		content: '';
-		animation: dots 2s infinite;
-	}
+    &::after {
+        content: '';
+        animation: dots 2s infinite;
+    }
 }
 
 @keyframes dots {
-	0%,
-	24.99% {
-		content: '';
-	}
+    0%,
+    24.99% {
+        content: '';
+    }
 
-	25%,
-	49.99% {
-		content: '.';
-	}
+    25%,
+    49.99% {
+        content: '.';
+    }
 
-	50%,
-	74.99% {
-		content: '..';
-	}
+    50%,
+    74.99% {
+        content: '..';
+    }
 
-	75%,
-	100% {
-		content: '...';
-	}
+    75%,
+    100% {
+        content: '...';
+    }
 }
 
 .placeholder {
-	border-radius: var(--radius-lg);
-	width: 100%;
-	height: 4rem;
-	opacity: 0.25;
-	position: relative;
-	overflow: hidden;
-	background-color: var(--surface-2);
-	animation: pop 4s ease-in-out infinite;
-	border: 1px solid transparent;
+    border-radius: var(--radius-lg);
+    width: 100%;
+    height: 4rem;
+    opacity: 0.25;
+    position: relative;
+    overflow: hidden;
+    background-color: var(--surface-2);
+    animation: pop 4s ease-in-out infinite;
+    border: 1px solid transparent;
 
-	&::before {
-		content: '';
-		position: absolute;
-		inset: 0;
-		background-image: linear-gradient(
-			-45deg,
-			transparent 30%,
-			rgba(196, 217, 237, 0.075) 50%,
-			transparent 70%
-		);
-		animation: shimmer 4s ease-in-out infinite;
-	}
+    &::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background-image: linear-gradient(
+            -45deg,
+            transparent 30%,
+            rgba(196, 217, 237, 0.075) 50%,
+            transparent 70%
+        );
+        animation: shimmer 4s ease-in-out infinite;
+    }
 
-	&:nth-child(2)::before {
-		animation-delay: 0s;
-	}
+    &:nth-child(2)::before {
+        animation-delay: 0s;
+    }
 
-	&:nth-child(3)::before {
-		animation-delay: 0.3s;
-	}
+    &:nth-child(3)::before {
+        animation-delay: 0.3s;
+    }
 
-	&:nth-child(4)::before {
-		animation-delay: 0.6s;
-	}
+    &:nth-child(4)::before {
+        animation-delay: 0.6s;
+    }
 
-	&:nth-child(2) {
-		animation-delay: 0s;
-	}
+    &:nth-child(2) {
+        animation-delay: 0s;
+    }
 
-	&:nth-child(3) {
-		animation-delay: 0.3s;
-	}
+    &:nth-child(3) {
+        animation-delay: 0.3s;
+    }
 
-	&:nth-child(4) {
-		animation-delay: 0.6s;
-	}
+    &:nth-child(4) {
+        animation-delay: 0.6s;
+    }
 }
 
 @keyframes pop {
-	from {
-		opacity: 0.25;
-		border-color: transparent;
-	}
-	50% {
-		opacity: 0.5;
-		border-color: var(--surface-4);
-	}
-	to {
-		opacity: 0.25;
-		border-color: transparent;
-	}
+    from {
+        opacity: 0.25;
+        border-color: transparent;
+    }
+    50% {
+        opacity: 0.5;
+        border-color: var(--surface-4);
+    }
+    to {
+        opacity: 0.25;
+        border-color: transparent;
+    }
 }
 
 @keyframes shimmer {
-	from {
-		transform: translateX(-80%);
-	}
-	50%,
-	to {
-		transform: translateX(80%);
-	}
+    from {
+        transform: translateX(-80%);
+    }
+    50%,
+    to {
+        transform: translateX(80%);
+    }
 }
 </style>

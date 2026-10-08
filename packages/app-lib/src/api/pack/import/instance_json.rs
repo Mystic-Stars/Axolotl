@@ -614,6 +614,37 @@ fn try_extract_version_from_needle(
 mod tests {
     use super::*;
 
+    #[test]
+    fn exported_vanilla_with_custom_name_preserves_exact_client_version() {
+        let directory = tempfile::tempdir().unwrap();
+        let version_dir = directory.path().join("versions/Survival");
+        std::fs::create_dir_all(&version_dir).unwrap();
+        for version in ["1.21.1", "24w14a", "b1.7.3", "rd-132211", "c0.30_01c"]
+        {
+            let info: daedalus::minecraft::VersionInfo = serde_json::from_value(serde_json::json!({
+                "id": version, "assets": "legacy",
+                "assetIndex": {"id": "legacy", "sha1": "", "size": 0, "totalSize": 0, "url": ""},
+                "downloads": {}, "libraries": [], "mainClass": "net.minecraft.client.main.Main",
+                "minimumLauncherVersion": 0,
+                "releaseTime": "2017-09-18T08:39:46Z", "time": "2021-12-15T15:04:05Z",
+                "type": "release"
+            })).unwrap();
+            let portable = crate::launcher::external_version::project_manifest(
+                &info, "Survival", version,
+            )
+            .unwrap();
+            std::fs::write(
+                version_dir.join("Survival.json"),
+                serde_json::to_vec(&portable.document).unwrap(),
+            )
+            .unwrap();
+            let detected =
+                detect(&version_dir).expect("custom version is rediscovered");
+            assert_eq!(detected.vanilla_name, version);
+            assert_eq!(detected.loader, None);
+        }
+    }
+
     fn detect_from_json(content: &str) -> Option<(String, Option<String>)> {
         let json: Value = serde_json::from_str(content).expect("test JSON");
         detect_loader(content, &json)

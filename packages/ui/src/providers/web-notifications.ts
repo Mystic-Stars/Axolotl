@@ -1,201 +1,202 @@
 import { createContext } from './create-context.ts'
 
 export interface WebNotification {
-	id: string | number
-	createdAt?: number
-	title?: string
-	text?: string
-	type?: 'error' | 'warning' | 'success' | 'info'
-	errorCode?: string
-	count?: number
-	autoCloseMs?: number | null // null means do not dismiss automatically
-	timer?: NodeJS.Timeout
-	/** Hidden from the toast stack but retained in notification history. */
-	collapsed?: boolean
-	/** Whether the user has opened this notification from the history. */
-	read?: boolean
-	supportData?: Record<string, unknown>
+    id: string | number
+    createdAt?: number
+    title?: string
+    text?: string
+    type?: 'error' | 'warning' | 'success' | 'info'
+    errorCode?: string
+    count?: number
+    autoCloseMs?: number | null // null means do not dismiss automatically
+    timer?: NodeJS.Timeout
+    /** Hidden from the toast stack but retained in notification history. */
+    collapsed?: boolean
+    /** Whether the user has opened this notification from the history. */
+    read?: boolean
+    supportData?: Record<string, unknown>
 }
 
 export type NotificationPanelLocation = 'left' | 'right'
 
 export abstract class AbstractWebNotificationManager {
-	protected readonly DEFAULT_AUTO_DISMISS_DELAY_MS = 30 * 1000
-	private lastGeneratedNotificationId = 0
+    protected readonly DEFAULT_AUTO_DISMISS_DELAY_MS = 30 * 1000
+    private lastGeneratedNotificationId = 0
 
-	constructor() {
-		this.addNotification = this.addNotification.bind(this)
-		this.handleError = this.handleError.bind(this)
-		this.removeNotification = this.removeNotification.bind(this)
-		this.removeNotificationByIndex = this.removeNotificationByIndex.bind(this)
-		this.clearAllNotifications = this.clearAllNotifications.bind(this)
-		this.setNotificationTimer = this.setNotificationTimer.bind(this)
-		this.collapseNotification = this.collapseNotification.bind(this)
-		this.expandNotification = this.expandNotification.bind(this)
-		this.markNotificationRead = this.markNotificationRead.bind(this)
-		this.stopNotificationTimer = this.stopNotificationTimer.bind(this)
-	}
+    constructor() {
+        this.addNotification = this.addNotification.bind(this)
+        this.handleError = this.handleError.bind(this)
+        this.removeNotification = this.removeNotification.bind(this)
+        this.removeNotificationByIndex = this.removeNotificationByIndex.bind(this)
+        this.clearAllNotifications = this.clearAllNotifications.bind(this)
+        this.setNotificationTimer = this.setNotificationTimer.bind(this)
+        this.collapseNotification = this.collapseNotification.bind(this)
+        this.expandNotification = this.expandNotification.bind(this)
+        this.markNotificationRead = this.markNotificationRead.bind(this)
+        this.stopNotificationTimer = this.stopNotificationTimer.bind(this)
+    }
 
-	abstract getNotifications(): WebNotification[]
-	abstract getNotificationLocation(): NotificationPanelLocation
-	abstract setNotificationLocation(location: NotificationPanelLocation): void
+    abstract getNotifications(): WebNotification[]
+    abstract getNotificationLocation(): NotificationPanelLocation
+    abstract setNotificationLocation(location: NotificationPanelLocation): void
 
-	protected abstract addNotificationToStorage(notification: WebNotification): void
-	protected abstract removeNotificationFromStorage(id: string | number): void
-	protected abstract removeNotificationFromStorageByIndex(index: number): void
-	protected abstract clearAllNotificationsFromStorage(): void
+    protected abstract addNotificationToStorage(notification: WebNotification): void
+    protected abstract removeNotificationFromStorage(id: string | number): void
+    protected abstract removeNotificationFromStorageByIndex(index: number): void
+    protected abstract clearAllNotificationsFromStorage(): void
 
-	addNotification(notification: Partial<WebNotification>): WebNotification {
-		const existingNotif = this.findExistingNotification(notification)
+    addNotification(notification: Partial<WebNotification>): WebNotification {
+        const existingNotif = this.findExistingNotification(notification)
 
-		if (existingNotif) {
-			existingNotif.createdAt = Date.now()
-			existingNotif.collapsed = false
-			existingNotif.read = false
-			if (notification.errorCode !== undefined) existingNotif.errorCode = notification.errorCode
-			if (notification.supportData !== undefined)
-				existingNotif.supportData = notification.supportData
-			this.refreshNotificationTimer(existingNotif)
-			existingNotif.count = (existingNotif.count || 0) + 1
-			return existingNotif
-		}
+        if (existingNotif) {
+            existingNotif.createdAt = Date.now()
+            existingNotif.collapsed = false
+            existingNotif.read = false
+            if (notification.errorCode !== undefined)
+                existingNotif.errorCode = notification.errorCode
+            if (notification.supportData !== undefined)
+                existingNotif.supportData = notification.supportData
+            this.refreshNotificationTimer(existingNotif)
+            existingNotif.count = (existingNotif.count || 0) + 1
+            return existingNotif
+        }
 
-		const newNotification = this.createNotification(notification)
-		this.setNotificationTimer(newNotification)
-		this.addNotificationToStorage(newNotification)
-		return newNotification
-	}
+        const newNotification = this.createNotification(notification)
+        this.setNotificationTimer(newNotification)
+        this.addNotificationToStorage(newNotification)
+        return newNotification
+    }
 
-	public errorTitleProvider?: () => string
-	/**
-	 * @deprecated You should use `addNotification` instead to provide a more human-readable error message to the user.
-	 */
-	handleError(error: unknown): void {
-		this.addNotification({
-			title: this.errorTitleProvider?.() ?? 'An error occurred',
-			text:
-				error instanceof Error
-					? error.message
-					: typeof error === 'string'
-						? error
-						: JSON.stringify(error),
-			type: 'error',
-		})
-	}
+    public errorTitleProvider?: () => string
+    /**
+     * @deprecated You should use `addNotification` instead to provide a more human-readable error message to the user.
+     */
+    handleError(error: unknown): void {
+        this.addNotification({
+            title: this.errorTitleProvider?.() ?? 'An error occurred',
+            text:
+                error instanceof Error
+                    ? error.message
+                    : typeof error === 'string'
+                      ? error
+                      : JSON.stringify(error),
+            type: 'error',
+        })
+    }
 
-	removeNotification(id: string | number): WebNotification | undefined {
-		const notifications = this.getNotifications()
-		const notification = notifications.find((n) => n.id === id)
+    removeNotification(id: string | number): WebNotification | undefined {
+        const notifications = this.getNotifications()
+        const notification = notifications.find((n) => n.id === id)
 
-		if (notification) {
-			this.clearNotificationTimer(notification)
-			this.removeNotificationFromStorage(id)
-		}
+        if (notification) {
+            this.clearNotificationTimer(notification)
+            this.removeNotificationFromStorage(id)
+        }
 
-		return notification
-	}
+        return notification
+    }
 
-	removeNotificationByIndex(index: number): WebNotification | null {
-		const notifications = this.getNotifications()
+    removeNotificationByIndex(index: number): WebNotification | null {
+        const notifications = this.getNotifications()
 
-		if (index >= 0 && index < notifications.length) {
-			const notification = notifications[index]
-			this.clearNotificationTimer(notification)
-			this.removeNotificationFromStorageByIndex(index)
+        if (index >= 0 && index < notifications.length) {
+            const notification = notifications[index]
+            this.clearNotificationTimer(notification)
+            this.removeNotificationFromStorageByIndex(index)
 
-			return notification
-		}
+            return notification
+        }
 
-		return null
-	}
+        return null
+    }
 
-	clearAllNotifications(): void {
-		const notifications = this.getNotifications()
-		notifications.forEach((notification) => {
-			this.clearNotificationTimer(notification)
-		})
-		this.clearAllNotificationsFromStorage()
-	}
+    clearAllNotifications(): void {
+        const notifications = this.getNotifications()
+        notifications.forEach((notification) => {
+            this.clearNotificationTimer(notification)
+        })
+        this.clearAllNotificationsFromStorage()
+    }
 
-	setNotificationTimer(notification: WebNotification): void {
-		if (!notification) return
+    setNotificationTimer(notification: WebNotification): void {
+        if (!notification) return
 
-		this.clearNotificationTimer(notification)
+        this.clearNotificationTimer(notification)
 
-		if (notification.autoCloseMs === null) return
+        if (notification.autoCloseMs === null) return
 
-		const delay = notification.autoCloseMs ?? this.DEFAULT_AUTO_DISMISS_DELAY_MS
+        const delay = notification.autoCloseMs ?? this.DEFAULT_AUTO_DISMISS_DELAY_MS
 
-		notification.timer = setTimeout(() => {
-			this.collapseNotification(notification.id)
-		}, delay)
-	}
+        notification.timer = setTimeout(() => {
+            this.collapseNotification(notification.id)
+        }, delay)
+    }
 
-	collapseNotification(id: string | number): void {
-		const notification = this.getNotifications().find((n) => n.id === id)
-		if (notification) {
-			this.clearNotificationTimer(notification)
-			notification.collapsed = true
-		}
-	}
+    collapseNotification(id: string | number): void {
+        const notification = this.getNotifications().find((n) => n.id === id)
+        if (notification) {
+            this.clearNotificationTimer(notification)
+            notification.collapsed = true
+        }
+    }
 
-	expandNotification(id: string | number): void {
-		const notification = this.getNotifications().find((n) => n.id === id)
-		if (notification) {
-			notification.collapsed = false
-			this.setNotificationTimer(notification)
-		}
-	}
+    expandNotification(id: string | number): void {
+        const notification = this.getNotifications().find((n) => n.id === id)
+        if (notification) {
+            notification.collapsed = false
+            this.setNotificationTimer(notification)
+        }
+    }
 
-	markNotificationRead(id: string | number): void {
-		const notification = this.getNotifications().find((n) => n.id === id)
-		if (notification) notification.read = true
-	}
+    markNotificationRead(id: string | number): void {
+        const notification = this.getNotifications().find((n) => n.id === id)
+        if (notification) notification.read = true
+    }
 
-	stopNotificationTimer(notification: WebNotification): void {
-		this.clearNotificationTimer(notification)
-	}
+    stopNotificationTimer(notification: WebNotification): void {
+        this.clearNotificationTimer(notification)
+    }
 
-	private refreshNotificationTimer(notification: WebNotification): void {
-		this.setNotificationTimer(notification)
-	}
+    private refreshNotificationTimer(notification: WebNotification): void {
+        this.setNotificationTimer(notification)
+    }
 
-	private clearNotificationTimer(notification: WebNotification): void {
-		if (notification.timer) {
-			clearTimeout(notification.timer)
-			notification.timer = undefined
-		}
-	}
+    private clearNotificationTimer(notification: WebNotification): void {
+        if (notification.timer) {
+            clearTimeout(notification.timer)
+            notification.timer = undefined
+        }
+    }
 
-	private findExistingNotification(
-		notification: Partial<WebNotification>,
-	): WebNotification | undefined {
-		return this.getNotifications().find(
-			(existing) =>
-				existing.text === notification.text &&
-				existing.title === notification.title &&
-				existing.type === notification.type &&
-				existing.errorCode === notification.errorCode &&
-				JSON.stringify(existing.supportData) === JSON.stringify(notification.supportData),
-		)
-	}
+    private findExistingNotification(
+        notification: Partial<WebNotification>,
+    ): WebNotification | undefined {
+        return this.getNotifications().find(
+            (existing) =>
+                existing.text === notification.text &&
+                existing.title === notification.title &&
+                existing.type === notification.type &&
+                existing.errorCode === notification.errorCode &&
+                JSON.stringify(existing.supportData) === JSON.stringify(notification.supportData),
+        )
+    }
 
-	private createNotification(notification: Partial<WebNotification>): WebNotification {
-		// Notifications can be created in the same millisecond. Keep generated
-		// ids unique so dismissing one item never targets its siblings.
-		const now = Date.now()
-		const id = Math.max(now, this.lastGeneratedNotificationId + 1)
-		this.lastGeneratedNotificationId = id
+    private createNotification(notification: Partial<WebNotification>): WebNotification {
+        // Notifications can be created in the same millisecond. Keep generated
+        // ids unique so dismissing one item never targets its siblings.
+        const now = Date.now()
+        const id = Math.max(now, this.lastGeneratedNotificationId + 1)
+        this.lastGeneratedNotificationId = id
 
-		return {
-			...notification,
-			id,
-			createdAt: Date.now(),
-			count: 1,
-			read: false,
-		} as WebNotification
-	}
+        return {
+            ...notification,
+            id,
+            createdAt: Date.now(),
+            count: 1,
+            read: false,
+        } as WebNotification
+    }
 }
 
 export const [injectNotificationManager, provideNotificationManager] =
-	createContext<AbstractWebNotificationManager>('root', 'notificationManager')
+    createContext<AbstractWebNotificationManager>('root', 'notificationManager')

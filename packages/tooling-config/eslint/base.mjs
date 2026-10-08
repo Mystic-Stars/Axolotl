@@ -4,17 +4,17 @@ import tseslint from 'typescript-eslint'
 import common from './common.mjs'
 
 export default tseslint.config(
-	eslint.configs.recommended,
-	prettierEslint,
-	...common,
-	{
-		languageOptions: {
-			parserOptions: {
-				warnOnUnsupportedTypeScriptVersion: false,
-			},
-		},
-	},
-	{
-		ignores: ['node_modules/', 'dist/', 'build/'],
-	},
+    eslint.configs.recommended,
+    prettierEslint,
+    ...common,
+    {
+        languageOptions: {
+            parserOptions: {
+                warnOnUnsupportedTypeScriptVersion: false,
+            },
+        },
+    },
+    {
+        ignores: ['node_modules/', 'dist/', 'build/'],
+    },
 )

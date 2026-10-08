@@ -10,23 +10,23 @@
  */
 
 export interface SearchQueryExpansion {
-	/** Trimmed, diacritics-stripped, lowercased query. */
-	normalized: string
-	/** True when the query contains no whitespace or separator characters. */
-	compact: boolean
-	/**
-	 * Ordered Modrinth query candidates, primary first. Each candidate is a
-	 * normalized, deduplicated, non-empty string.
-	 */
-	modrinthVariants: string[]
-	/** Ordered CurseForge query candidates, primary (slug form) first. */
-	curseforgeVariants: string[]
+    /** Trimmed, diacritics-stripped, lowercased query. */
+    normalized: string
+    /** True when the query contains no whitespace or separator characters. */
+    compact: boolean
+    /**
+     * Ordered Modrinth query candidates, primary first. Each candidate is a
+     * normalized, deduplicated, non-empty string.
+     */
+    modrinthVariants: string[]
+    /** Ordered CurseForge query candidates, primary (slug form) first. */
+    curseforgeVariants: string[]
 }
 
 const SEPARATOR_PATTERN = /[-_.+~,;:'"()[\]{}]+/gu
 
 function dedupe(values: string[]): string[] {
-	return [...new Set(values.filter((value) => value.length > 0))]
+    return [...new Set(values.filter((value) => value.length > 0))]
 }
 
 /**
@@ -34,12 +34,12 @@ function dedupe(values: string[]): string[] {
  * (diacritics) and lowercases. Punctuation is preserved.
  */
 export function normalizeSearchText(value: string): string {
-	return value
-		.trim()
-		.normalize('NFD')
-		.replace(/\p{M}/gu, '')
-		.toLocaleLowerCase()
-		.replace(/\s+/g, ' ')
+    return value
+        .trim()
+        .normalize('NFD')
+        .replace(/\p{M}/gu, '')
+        .toLocaleLowerCase()
+        .replace(/\s+/g, ' ')
 }
 
 /**
@@ -47,14 +47,14 @@ export function normalizeSearchText(value: string): string {
  * producing the compact form of a query (`example mod` → `examplemod`).
  */
 export function compactSearchText(value: string): string {
-	return compactSearchTextPreservingCase(value).toLocaleLowerCase()
+    return compactSearchTextPreservingCase(value).toLocaleLowerCase()
 }
 
 function compactSearchTextPreservingCase(value: string): string {
-	return value
-		.normalize('NFD')
-		.replace(/\p{M}/gu, '')
-		.replace(/[^\p{L}\p{N}]+/gu, '')
+    return value
+        .normalize('NFD')
+        .replace(/\p{M}/gu, '')
+        .replace(/[^\p{L}\p{N}]+/gu, '')
 }
 
 /**
@@ -63,11 +63,11 @@ function compactSearchTextPreservingCase(value: string): string {
  * where spaces and punctuation do not work.
  */
 export function slugifySearchText(value: string): string {
-	return normalizeSearchText(value)
-		.replace(SEPARATOR_PATTERN, ' ')
-		.replace(/[^\p{L}\p{N}]+/gu, '-')
-		.replace(/-{2,}/g, '-')
-		.replace(/^-+|-+$/g, '')
+    return normalizeSearchText(value)
+        .replace(SEPARATOR_PATTERN, ' ')
+        .replace(/[^\p{L}\p{N}]+/gu, '-')
+        .replace(/-{2,}/g, '-')
+        .replace(/^-+|-+$/g, '')
 }
 
 /**
@@ -76,9 +76,9 @@ export function slugifySearchText(value: string): string {
  * normalize it as needed.
  */
 export function splitCamelCaseSearchText(value: string): string {
-	return value
-		.replace(/([\p{Ll}\p{N}])(\p{Lu})/gu, '$1 $2')
-		.replace(/(\p{Lu})(\p{Lu}\p{Ll})/gu, '$1 $2')
+    return value
+        .replace(/([\p{Ll}\p{N}])(\p{Lu})/gu, '$1 $2')
+        .replace(/(\p{Lu})(\p{Lu}\p{Ll})/gu, '$1 $2')
 }
 
 /**
@@ -88,13 +88,13 @@ export function splitCamelCaseSearchText(value: string): string {
  * differently. At most three candidates are returned.
  */
 export function modrinthQueryVariants(base: string): string[] {
-	const normalized = normalizeSearchText(base)
-	if (!normalized) return []
-	const compact = compactSearchText(base)
-	const compactCased = compactSearchTextPreservingCase(base)
-	const spaced = normalized.replace(SEPARATOR_PATTERN, ' ').replace(/\s+/g, ' ')
-	const camelCaseSplit = splitCamelCaseSearchText(compactCased).toLocaleLowerCase().trim()
-	return dedupe([normalized, spaced, camelCaseSplit, compact]).slice(0, 3)
+    const normalized = normalizeSearchText(base)
+    if (!normalized) return []
+    const compact = compactSearchText(base)
+    const compactCased = compactSearchTextPreservingCase(base)
+    const spaced = normalized.replace(SEPARATOR_PATTERN, ' ').replace(/\s+/g, ' ')
+    const camelCaseSplit = splitCamelCaseSearchText(compactCased).toLocaleLowerCase().trim()
+    return dedupe([normalized, spaced, camelCaseSplit, compact]).slice(0, 3)
 }
 
 /**
@@ -103,14 +103,14 @@ export function modrinthQueryVariants(base: string): string[] {
  * the other variants cover cases where CurseForge accepts plain text.
  */
 export function curseForgeQueryVariants(base: string): string[] {
-	const normalized = normalizeSearchText(base)
-	if (!normalized) return []
-	const slug = slugifySearchText(normalized)
-	const camelCaseSlug = slugifySearchText(
-		splitCamelCaseSearchText(compactSearchTextPreservingCase(base)).toLocaleLowerCase(),
-	)
-	const compact = compactSearchText(base)
-	return dedupe([slug, normalized, camelCaseSlug, compact]).slice(0, 3)
+    const normalized = normalizeSearchText(base)
+    if (!normalized) return []
+    const slug = slugifySearchText(normalized)
+    const camelCaseSlug = slugifySearchText(
+        splitCamelCaseSearchText(compactSearchTextPreservingCase(base)).toLocaleLowerCase(),
+    )
+    const compact = compactSearchText(base)
+    return dedupe([slug, normalized, camelCaseSlug, compact]).slice(0, 3)
 }
 
 /**
@@ -119,14 +119,14 @@ export function curseForgeQueryVariants(base: string): string[] {
  * unfiltered).
  */
 export function expandSearchQuery(raw: string): SearchQueryExpansion | null {
-	const normalized = normalizeSearchText(raw)
-	if (!normalized) return null
-	const compact = compactSearchText(raw)
-	const isCompact = !/\s/u.test(normalized) && normalized === compact
-	return {
-		normalized,
-		compact: isCompact,
-		modrinthVariants: modrinthQueryVariants(normalized),
-		curseforgeVariants: curseForgeQueryVariants(normalized),
-	}
+    const normalized = normalizeSearchText(raw)
+    if (!normalized) return null
+    const compact = compactSearchText(raw)
+    const isCompact = !/\s/u.test(normalized) && normalized === compact
+    return {
+        normalized,
+        compact: isCompact,
+        modrinthVariants: modrinthQueryVariants(normalized),
+        curseforgeVariants: curseForgeQueryVariants(normalized),
+    }
 }

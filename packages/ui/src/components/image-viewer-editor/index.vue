@@ -9,31 +9,31 @@ import Editor from './editor.vue'
 import { imageViewerEditorMessages as messages } from './image-viewer-editor-messages'
 import type { ImageViewerEditorMode } from './image-viewer-editor-types'
 import type {
-	ImageViewerEditorData,
-	ImageViewerEditorItem,
-	ImageViewerEditorMetadata,
-	ImageViewerEditorSavePayload,
+    ImageViewerEditorData,
+    ImageViewerEditorItem,
+    ImageViewerEditorMetadata,
+    ImageViewerEditorSavePayload,
 } from './types'
 
 const MAX_CACHED_ITEMS = 5
 
 const props = withDefaults(
-	defineProps<{
-		items: ImageViewerEditorItem[]
-		editor?: 'enabled' | 'disabled'
-		saving?: boolean
-	}>(),
-	{
-		editor: 'disabled',
-		saving: false,
-	},
+    defineProps<{
+        items: ImageViewerEditorItem[]
+        editor?: 'enabled' | 'disabled'
+        saving?: boolean
+    }>(),
+    {
+        editor: 'disabled',
+        saving: false,
+    },
 )
 
 const emit = defineEmits<{
-	show: [item: ImageViewerEditorItem, index: number]
-	hide: []
-	navigate: [item: ImageViewerEditorItem, index: number, direction: 'next' | 'previous']
-	save: [payload: ImageViewerEditorSavePayload]
+    show: [item: ImageViewerEditorItem, index: number]
+    hide: []
+    navigate: [item: ImageViewerEditorItem, index: number, direction: 'next' | 'previous']
+    save: [payload: ImageViewerEditorSavePayload]
 }>()
 
 const activeId = ref<string | null>(null)
@@ -50,271 +50,272 @@ const { formatMessage } = useVIntl()
 const activeIndex = computed(() => props.items.findIndex((item) => item.id === activeId.value))
 const activeItem = computed(() => props.items[activeIndex.value] ?? null)
 const canEdit = computed(
-	() =>
-		props.editor === 'enabled' &&
-		Boolean(context?.loadEditorData) &&
-		Boolean(activeItem.value?.editorSource),
+    () =>
+        props.editor === 'enabled' &&
+        Boolean(context?.loadEditorData) &&
+        Boolean(activeItem.value?.editorSource),
 )
 
 watch(activeItem, (item, previousItem) => {
-	if (item?.id !== previousItem?.id || item?.src !== previousItem?.src) activeMetadata.value = null
-	if (!item && activeId.value !== null) hide()
+    if (item?.id !== previousItem?.id || item?.src !== previousItem?.src)
+        activeMetadata.value = null
+    if (!item && activeId.value !== null) hide()
 })
 
 function getItemCacheKey(item: ImageViewerEditorItem) {
-	return [item.id, item.src, item.editorSource?.id, item.editorSource?.path].join('\0')
+    return [item.id, item.src, item.editorSource?.id, item.editorSource?.path].join('\0')
 }
 
 function loadItemData(item: ImageViewerEditorItem): Promise<ImageViewerEditorData> {
-	const key = getItemCacheKey(item)
-	const cached = itemDataCache.get(key)
-	if (cached) {
-		itemDataCache.delete(key)
-		itemDataCache.set(key, cached)
-		return cached
-	}
+    const key = getItemCacheKey(item)
+    const cached = itemDataCache.get(key)
+    if (cached) {
+        itemDataCache.delete(key)
+        itemDataCache.set(key, cached)
+        return cached
+    }
 
-	const promise = (async () => {
-		if (item.editorSource && context) return await context.loadEditorData(item.editorSource)
-		const response = await fetch(item.src)
-		if (!response.ok) throw new Error(`Could not load image: ${response.statusText}`)
-		return { source: await response.blob() }
-	})()
+    const promise = (async () => {
+        if (item.editorSource && context) return await context.loadEditorData(item.editorSource)
+        const response = await fetch(item.src)
+        if (!response.ok) throw new Error(`Could not load image: ${response.statusText}`)
+        return { source: await response.blob() }
+    })()
 
-	itemDataCache.set(key, promise)
-	while (itemDataCache.size > MAX_CACHED_ITEMS) {
-		const oldestKey = itemDataCache.keys().next().value
-		if (oldestKey === undefined) break
-		itemDataCache.delete(oldestKey)
-	}
-	void promise.catch(() => {
-		if (itemDataCache.get(key) === promise) itemDataCache.delete(key)
-	})
-	return promise
+    itemDataCache.set(key, promise)
+    while (itemDataCache.size > MAX_CACHED_ITEMS) {
+        const oldestKey = itemDataCache.keys().next().value
+        if (oldestKey === undefined) break
+        itemDataCache.delete(oldestKey)
+    }
+    void promise.catch(() => {
+        if (itemDataCache.get(key) === promise) itemDataCache.delete(key)
+    })
+    return promise
 }
 
 function preloadItemImage(item: ImageViewerEditorItem) {
-	const key = getItemCacheKey(item)
-	const cached = itemImageCache.get(key)
-	if (cached) {
-		itemImageCache.delete(key)
-		itemImageCache.set(key, cached)
-		return
-	}
+    const key = getItemCacheKey(item)
+    const cached = itemImageCache.get(key)
+    if (cached) {
+        itemImageCache.delete(key)
+        itemImageCache.set(key, cached)
+        return
+    }
 
-	const image = new Image()
-	image.src = item.src
-	itemImageCache.set(key, image)
-	while (itemImageCache.size > MAX_CACHED_ITEMS) {
-		const oldestKey = itemImageCache.keys().next().value
-		if (oldestKey === undefined) break
-		itemImageCache.delete(oldestKey)
-	}
-	void image.decode().catch(() => undefined)
+    const image = new Image()
+    image.src = item.src
+    itemImageCache.set(key, image)
+    while (itemImageCache.size > MAX_CACHED_ITEMS) {
+        const oldestKey = itemImageCache.keys().next().value
+        if (oldestKey === undefined) break
+        itemImageCache.delete(oldestKey)
+    }
+    void image.decode().catch(() => undefined)
 }
 
 function preloadItemsAround(index: number) {
-	if (!props.items.length) return
-	const indexes = new Set([
-		index,
-		(index - 1 + props.items.length) % props.items.length,
-		(index + 1) % props.items.length,
-	])
-	for (const itemIndex of indexes) {
-		const item = props.items[itemIndex]
-		if (item) {
-			preloadItemImage(item)
-			void loadItemData(item).catch(() => undefined)
-		}
-	}
+    if (!props.items.length) return
+    const indexes = new Set([
+        index,
+        (index - 1 + props.items.length) % props.items.length,
+        (index + 1) % props.items.length,
+    ])
+    for (const itemIndex of indexes) {
+        const item = props.items[itemIndex]
+        if (item) {
+            preloadItemImage(item)
+            void loadItemData(item).catch(() => undefined)
+        }
+    }
 }
 
 function show(index: number) {
-	const item = props.items[index]
-	if (!item) return
-	preloadItemsAround(index)
-	if (activeId.value === null) {
-		context?.onShow?.()
-	}
-	activeId.value = item.id
-	mode.value = 'view'
-	closeAfterEditing.value = false
-	emit('show', item, index)
+    const item = props.items[index]
+    if (!item) return
+    preloadItemsAround(index)
+    if (activeId.value === null) {
+        context?.onShow?.()
+    }
+    activeId.value = item.id
+    mode.value = 'view'
+    closeAfterEditing.value = false
+    emit('show', item, index)
 }
 
 async function edit(index: number) {
-	show(index)
-	await beginEditing(true)
+    show(index)
+    await beginEditing(true)
 }
 
 async function beginEditing(closeOnCancel = false) {
-	if (!canEdit.value || props.saving) return
-	closeAfterEditing.value = closeOnCancel
-	mode.value = 'edit'
-	await nextTick()
+    if (!canEdit.value || props.saving) return
+    closeAfterEditing.value = closeOnCancel
+    mode.value = 'edit'
+    await nextTick()
 }
 
 function finishEditing() {
-	if (props.saving) return
-	if (closeAfterEditing.value) {
-		hide()
-	} else {
-		mode.value = 'view'
-	}
+    if (props.saving) return
+    if (closeAfterEditing.value) {
+        hide()
+    } else {
+        mode.value = 'view'
+    }
 }
 
 function hide() {
-	if (activeId.value === null || props.saving) return
-	activeId.value = null
-	mode.value = 'view'
-	closeAfterEditing.value = false
-	itemDataCache.clear()
-	itemImageCache.clear()
-	context?.onHide?.()
-	emit('hide')
+    if (activeId.value === null || props.saving) return
+    activeId.value = null
+    mode.value = 'view'
+    closeAfterEditing.value = false
+    itemDataCache.clear()
+    itemImageCache.clear()
+    context?.onHide?.()
+    emit('hide')
 }
 
 function navigate(offset: number, direction: 'next' | 'previous') {
-	if (mode.value !== 'view' || props.items.length < 2) return
-	const index = (activeIndex.value + offset + props.items.length) % props.items.length
-	preloadItemsAround(index)
-	activeId.value = props.items[index].id
-	emit('navigate', props.items[index], index, direction)
+    if (mode.value !== 'view' || props.items.length < 2) return
+    const index = (activeIndex.value + offset + props.items.length) % props.items.length
+    preloadItemsAround(index)
+    activeId.value = props.items[index].id
+    emit('navigate', props.items[index], index, direction)
 }
 
 function next() {
-	navigate(1, 'next')
+    navigate(1, 'next')
 }
 
 function previous() {
-	navigate(-1, 'previous')
+    navigate(-1, 'previous')
 }
 
 async function markSavedAndView(itemId?: string) {
-	editorComponent.value?.markSaved()
-	mode.value = 'view'
-	closeAfterEditing.value = false
-	await nextTick()
-	if (itemId && props.items.some((item) => item.id === itemId)) activeId.value = itemId
+    editorComponent.value?.markSaved()
+    mode.value = 'view'
+    closeAfterEditing.value = false
+    await nextTick()
+    if (itemId && props.items.some((item) => item.id === itemId)) activeId.value = itemId
 }
 
 function handleKeydown(event: KeyboardEvent) {
-	if (!activeItem.value || mode.value === 'edit' || document.querySelector('.modal-root')) return
-	if (event.key === 'Escape') {
-		event.preventDefault()
-		hide()
-	} else if (event.key === 'ArrowLeft') {
-		event.preventDefault()
-		previous()
-	} else if (event.key === 'ArrowRight') {
-		event.preventDefault()
-		next()
-	}
+    if (!activeItem.value || mode.value === 'edit' || document.querySelector('.modal-root')) return
+    if (event.key === 'Escape') {
+        event.preventDefault()
+        hide()
+    } else if (event.key === 'ArrowLeft') {
+        event.preventDefault()
+        previous()
+    } else if (event.key === 'ArrowRight') {
+        event.preventDefault()
+        next()
+    }
 }
 
 onMounted(() => document.addEventListener('keydown', handleKeydown))
 onBeforeUnmount(() => {
-	document.removeEventListener('keydown', handleKeydown)
-	itemDataCache.clear()
-	itemImageCache.clear()
-	if (activeId.value !== null) context?.onHide?.()
+    document.removeEventListener('keydown', handleKeydown)
+    itemDataCache.clear()
+    itemImageCache.clear()
+    if (activeId.value !== null) context?.onHide?.()
 })
 
 defineExpose({ show, edit, hide, next, previous, markSavedAndView })
 </script>
 
 <template>
-	<Teleport to="body">
-		<Transition name="image-viewer">
-			<div
-				v-if="activeItem"
-				class="fixed inset-0 z-[110] overflow-hidden bg-black/95 text-white"
-				role="dialog"
-				aria-modal="true"
-				:aria-label="activeItem.title || activeItem.alt"
-				@click.self="mode === 'view' && hide()"
-			>
-				<header
-					v-if="activeItem.title || activeItem.description || activeMetadata"
-					class="absolute inset-x-6 top-[calc(var(--top-bar-height,3rem)_+_1.5rem)] z-10 min-w-0"
-					@click.stop
-				>
-					<div class="viewer-heading-text w-fit min-w-0 max-w-full">
-						<h2
-							v-if="activeItem.title"
-							class="m-0 max-w-[min(42rem,70vw)] truncate text-base font-semibold leading-snug text-[var(--color-text-primary)]"
-						>
-							{{ activeItem.title }}
-						</h2>
-						<p
-							v-if="activeItem.description"
-							class="mb-0 mt-1 max-w-[min(42rem,70vw)] truncate text-xs leading-snug text-white"
-						>
-							{{ activeItem.description }}
-						</p>
-						<p
-							v-if="activeMetadata"
-							class="mb-0 mt-1 max-w-[min(42rem,70vw)] truncate text-xs leading-snug text-white"
-						>
-							{{
-								formatMessage(messages.metadata, {
-									size: formatBytes(activeMetadata.size),
-									width: activeMetadata.width,
-									height: activeMetadata.height,
-								})
-							}}
-						</p>
-					</div>
-				</header>
+    <Teleport to="body">
+        <Transition name="image-viewer">
+            <div
+                v-if="activeItem"
+                class="fixed inset-0 z-[110] overflow-hidden bg-black/95 text-white"
+                role="dialog"
+                aria-modal="true"
+                :aria-label="activeItem.title || activeItem.alt"
+                @click.self="mode === 'view' && hide()"
+            >
+                <header
+                    v-if="activeItem.title || activeItem.description || activeMetadata"
+                    class="absolute inset-x-6 top-[calc(var(--top-bar-height,3rem)_+_1.5rem)] z-10 min-w-0"
+                    @click.stop
+                >
+                    <div class="viewer-heading-text w-fit min-w-0 max-w-full">
+                        <h2
+                            v-if="activeItem.title"
+                            class="m-0 max-w-[min(42rem,70vw)] truncate text-base font-semibold leading-snug text-[var(--color-text-primary)]"
+                        >
+                            {{ activeItem.title }}
+                        </h2>
+                        <p
+                            v-if="activeItem.description"
+                            class="mb-0 mt-1 max-w-[min(42rem,70vw)] truncate text-xs leading-snug text-white"
+                        >
+                            {{ activeItem.description }}
+                        </p>
+                        <p
+                            v-if="activeMetadata"
+                            class="mb-0 mt-1 max-w-[min(42rem,70vw)] truncate text-xs leading-snug text-white"
+                        >
+                            {{
+                                formatMessage(messages.metadata, {
+                                    size: formatBytes(activeMetadata.size),
+                                    width: activeMetadata.width,
+                                    height: activeMetadata.height,
+                                })
+                            }}
+                        </p>
+                    </div>
+                </header>
 
-				<Editor
-					ref="editorComponent"
-					:item="activeItem"
-					:mode="mode"
-					:index="activeIndex"
-					:count="items.length"
-					:can-edit="canEdit"
-					:saving="saving"
-					:load-data="loadItemData"
-					@close="hide"
-					@edit="beginEditing"
-					@next="next"
-					@previous="previous"
-					@metadata="activeMetadata = $event"
-					@cancel="finishEditing"
-					@save="emit('save', $event)"
-				>
-					<template #actions>
-						<slot name="actions" :item="activeItem" :index="activeIndex" :hide="hide" />
-					</template>
-				</Editor>
-			</div>
-		</Transition>
-	</Teleport>
+                <Editor
+                    ref="editorComponent"
+                    :item="activeItem"
+                    :mode="mode"
+                    :index="activeIndex"
+                    :count="items.length"
+                    :can-edit="canEdit"
+                    :saving="saving"
+                    :load-data="loadItemData"
+                    @close="hide"
+                    @edit="beginEditing"
+                    @next="next"
+                    @previous="previous"
+                    @metadata="activeMetadata = $event"
+                    @cancel="finishEditing"
+                    @save="emit('save', $event)"
+                >
+                    <template #actions>
+                        <slot name="actions" :item="activeItem" :index="activeIndex" :hide="hide" />
+                    </template>
+                </Editor>
+            </div>
+        </Transition>
+    </Teleport>
 </template>
 
 <style scoped>
 .image-viewer-enter-active {
-	transition: opacity 180ms ease-out;
+    transition: opacity 180ms ease-out;
 }
 
 .image-viewer-leave-active {
-	transition: opacity 120ms ease-in;
+    transition: opacity 120ms ease-in;
 }
 
 .image-viewer-enter-from,
 .image-viewer-leave-to {
-	opacity: 0;
+    opacity: 0;
 }
 
 .viewer-heading-text {
-	filter: drop-shadow(0 2px 3px rgb(0 0 0 / 90%));
+    filter: drop-shadow(0 2px 3px rgb(0 0 0 / 90%));
 }
 
 @media (prefers-reduced-motion: reduce) {
-	.image-viewer-enter-active,
-	.image-viewer-leave-active {
-		transition: none;
-	}
+    .image-viewer-enter-active,
+    .image-viewer-leave-active {
+        transition: none;
+    }
 }
 </style>

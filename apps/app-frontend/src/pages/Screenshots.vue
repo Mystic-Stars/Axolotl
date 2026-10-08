@@ -5,7 +5,7 @@ defineOptions({ name: 'ScreenshotsPage' })
 </script>
 
 <template>
-	<div class="box-border h-full p-6">
-		<ScreenshotsPage show-heading />
-	</div>
+    <div class="box-border h-full p-6">
+        <ScreenshotsPage show-heading />
+    </div>
 </template>

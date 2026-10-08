@@ -1,46 +1,50 @@
 <template>
-	<NewModal
-		ref="modal"
-		:header="formatMessage(messages.header, { action: downgrade ? 'downgrade' : 'update' })"
-		fade="warning"
-		max-width="500px"
-	>
-		<div class="flex flex-col gap-6">
-			<SymlinkWarningAdmonition :symlink-target="symlinkTarget" />
-			<Admonition
-				type="warning"
-				:header="
-					formatMessage(messages.admonitionHeader, { action: downgrade ? 'downgrade' : 'update' })
-				"
-			>
-				{{
-					formatMessage(messages.admonitionBody, {
-						action: downgrade ? 'downgrade' : 'update',
-					})
-				}}
-			</Admonition>
-		</div>
+    <NewModal
+        ref="modal"
+        :header="formatMessage(messages.header, { action: downgrade ? 'downgrade' : 'update' })"
+        fade="warning"
+        max-width="500px"
+    >
+        <div class="flex flex-col gap-6">
+            <SymlinkWarningAdmonition :symlink-target="symlinkTarget" />
+            <Admonition
+                type="warning"
+                :header="
+                    formatMessage(messages.admonitionHeader, {
+                        action: downgrade ? 'downgrade' : 'update',
+                    })
+                "
+            >
+                {{
+                    formatMessage(messages.admonitionBody, {
+                        action: downgrade ? 'downgrade' : 'update',
+                    })
+                }}
+            </Admonition>
+        </div>
 
-		<template #actions>
-			<div class="flex gap-2 justify-end">
-				<Button type="outlined" @click="handleCancel"
-					><XIcon />
-					{{ formatMessage(commonMessages.cancelButton) }}
-				</Button>
-				<Button
-					v-tooltip="props.actionDisabled ? props.actionDisabledTooltip : undefined"
-					type="colored"
-					color="orange"
-					:disabled="props.actionDisabled"
-					@click="handleConfirm"
-					><DownloadIcon />
-					{{
-						formatMessage(messages.confirmButton, { action: downgrade ? 'downgrade' : 'update' })
-					}}
-				</Button>
-			</div>
-		</template>
-	</NewModal>
+        <template #actions>
+            <div class="flex gap-2 justify-end">
+                <Button type="outlined" @click="handleCancel"
+                    ><XIcon />
+                    {{ formatMessage(commonMessages.cancelButton) }}
+                </Button>
+                <Button
+                    v-tooltip="props.actionDisabled ? props.actionDisabledTooltip : undefined"
+                    type="colored"
+                    color="orange"
+                    :disabled="props.actionDisabled"
+                    @click="handleConfirm"
+                    ><DownloadIcon />
+                    {{
+                        formatMessage(messages.confirmButton, {
+                            action: downgrade ? 'downgrade' : 'update',
+                        })
+                    }}
+                </Button>
+            </div>
+        </template>
+    </NewModal>
 </template>
 
 <script setup lang="ts">
@@ -56,57 +60,57 @@ import { commonMessages } from '#ui/utils/common-messages'
 import SymlinkWarningAdmonition from './SymlinkWarningAdmonition.vue'
 
 const props = defineProps<{
-	downgrade?: boolean
-	backupTip?: string
-	actionDisabled?: boolean
-	actionDisabledTooltip?: string
-	symlinkTarget?: string
+    downgrade?: boolean
+    backupTip?: string
+    actionDisabled?: boolean
+    actionDisabledTooltip?: string
+    symlinkTarget?: string
 }>()
 
 const { formatMessage } = useVIntl()
 
 const messages = defineMessages({
-	header: {
-		id: 'content.confirm-modpack-update.header',
-		defaultMessage: '{action, select, downgrade {Downgrade} other {Update}} modpack',
-	},
-	admonitionHeader: {
-		id: 'content.confirm-modpack-update.admonition-header',
-		defaultMessage: '{action, select, downgrade {Downgrade} other {Update}} warning',
-	},
-	admonitionBody: {
-		id: 'content.confirm-modpack-update.admonition-body',
-		defaultMessage:
-			'{action, select, downgrade {Downgrading} other {Updating}} may cause compatibility issues. Mods or content you added on top of the modpack will be kept, but may not be compatible with the new version.',
-	},
-	confirmButton: {
-		id: 'content.confirm-modpack-update.confirm-button',
-		defaultMessage: '{action, select, downgrade {Downgrade} other {Update}} modpack',
-	},
+    header: {
+        id: 'content.confirm-modpack-update.header',
+        defaultMessage: '{action, select, downgrade {Downgrade} other {Update}} modpack',
+    },
+    admonitionHeader: {
+        id: 'content.confirm-modpack-update.admonition-header',
+        defaultMessage: '{action, select, downgrade {Downgrade} other {Update}} warning',
+    },
+    admonitionBody: {
+        id: 'content.confirm-modpack-update.admonition-body',
+        defaultMessage:
+            '{action, select, downgrade {Downgrading} other {Updating}} may cause compatibility issues. Mods or content you added on top of the modpack will be kept, but may not be compatible with the new version.',
+    },
+    confirmButton: {
+        id: 'content.confirm-modpack-update.confirm-button',
+        defaultMessage: '{action, select, downgrade {Downgrade} other {Update}} modpack',
+    },
 })
 
 const emit = defineEmits<{
-	(e: 'confirm' | 'cancel'): void
+    (e: 'confirm' | 'cancel'): void
 }>()
 
 const modal = ref<InstanceType<typeof NewModal>>()
 
 function show() {
-	modal.value?.show()
+    modal.value?.show()
 }
 
 function handleConfirm() {
-	if (props.actionDisabled) return
-	modal.value?.hide()
-	emit('confirm')
+    if (props.actionDisabled) return
+    modal.value?.hide()
+    emit('confirm')
 }
 
 function handleCancel() {
-	modal.value?.hide()
-	emit('cancel')
+    modal.value?.hide()
+    emit('cancel')
 }
 
 defineExpose({
-	show,
+    show,
 })
 </script>

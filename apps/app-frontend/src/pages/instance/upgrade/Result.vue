@@ -1,15 +1,15 @@
 <template>
-	<div class="py-2">
-		<LoadingIndicator v-if="loading" class="pt-8" />
-		<Admonition
-			v-else-if="errorMessage"
-			type="critical"
-			:header="formatMessage(messages.unavailable)"
-		>
-			{{ errorMessage }}
-		</Admonition>
-		<UpgradeResultDetails v-else-if="job?.upgrade_result" :result="job.upgrade_result" />
-	</div>
+    <div class="py-2">
+        <LoadingIndicator v-if="loading" class="pt-8" />
+        <Admonition
+            v-else-if="errorMessage"
+            type="critical"
+            :header="formatMessage(messages.unavailable)"
+        >
+            {{ errorMessage }}
+        </Admonition>
+        <UpgradeResultDetails v-else-if="job?.upgrade_result" :result="job.upgrade_result" />
+    </div>
 </template>
 
 <script setup lang="ts">
@@ -29,37 +29,39 @@ const loading = ref(true)
 const errorMessage = ref<string | null>(null)
 const job = ref<InstallJobSnapshot | null>(null)
 const messages = defineMessages({
-	unavailable: {
-		id: 'instance.upgrade.result.unavailable',
-		defaultMessage: 'Upgrade result unavailable',
-	},
-	missing: {
-		id: 'instance.upgrade.result.missing',
-		defaultMessage: 'This persisted upgrade result could not be loaded.',
-	},
+    unavailable: {
+        id: 'instance.upgrade.result.unavailable',
+        defaultMessage: 'Upgrade result unavailable',
+    },
+    missing: {
+        id: 'instance.upgrade.result.missing',
+        defaultMessage: 'This persisted upgrade result could not be loaded.',
+    },
 })
 
 onMounted(async () => {
-	const jobId = typeof route.query.job === 'string' ? route.query.job : null
-	if (!jobId) {
-		await router.replace('/downloads')
-		return
-	}
-	try {
-		const persisted = await install_job_get(jobId)
-		const routeInstanceId = Array.isArray(route.params.id) ? route.params.id[0] : route.params.id
-		if (
-			!isSuccessfulUpgradeJob(persisted) ||
-			persisted.upgrade_result?.sourceInstanceId !== routeInstanceId
-		) {
-			errorMessage.value = formatMessage(messages.missing)
-			return
-		}
-		job.value = persisted
-	} catch {
-		errorMessage.value = formatMessage(messages.missing)
-	} finally {
-		loading.value = false
-	}
+    const jobId = typeof route.query.job === 'string' ? route.query.job : null
+    if (!jobId) {
+        await router.replace('/downloads')
+        return
+    }
+    try {
+        const persisted = await install_job_get(jobId)
+        const routeInstanceId = Array.isArray(route.params.id)
+            ? route.params.id[0]
+            : route.params.id
+        if (
+            !isSuccessfulUpgradeJob(persisted) ||
+            persisted.upgrade_result?.sourceInstanceId !== routeInstanceId
+        ) {
+            errorMessage.value = formatMessage(messages.missing)
+            return
+        }
+        job.value = persisted
+    } catch {
+        errorMessage.value = formatMessage(messages.missing)
+    } finally {
+        loading.value = false
+    }
 })
 </script>

@@ -11,15 +11,15 @@ import Skins from './Skins.vue'
 import Worlds from './Worlds.vue'
 
 export {
-	Browse,
-	Downloads,
-	Index,
-	Lab,
-	LabGradientText,
-	LabRecipeGenerator,
-	LabSchematicPreview,
-	LabSeedMap,
-	Multiplayer,
-	Skins,
-	Worlds,
+    Browse,
+    Downloads,
+    Index,
+    Lab,
+    LabGradientText,
+    LabRecipeGenerator,
+    LabSchematicPreview,
+    LabSeedMap,
+    Multiplayer,
+    Skins,
+    Worlds,
 }

@@ -125,7 +125,7 @@ impl JsonValue {
                     {
                         if last {
                             entries[position].1 =
-                                JsonValue::String(translation.clone());
+                                JsonValue::String(translation);
                             return Ok(());
                         }
                         &mut entries[position].1
@@ -154,8 +154,7 @@ impl JsonValue {
                         ));
                     }
                     if last {
-                        items[position] =
-                            JsonValue::String(translation.clone());
+                        items[position] = JsonValue::String(translation);
                         return Ok(());
                     }
                     &mut items[position]

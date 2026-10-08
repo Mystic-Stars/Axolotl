@@ -10,29 +10,29 @@ import { computed, onBeforeUnmount, ref, toRef, watch } from 'vue'
 import { injectLoadingState } from '#ui/providers/loading-state'
 
 defineOptions({
-	inheritAttrs: false,
+    inheritAttrs: false,
 })
 
 const props = withDefaults(
-	defineProps<{
-		/** True while wrapped content loads. The optional pending slot renders and loading bar runs. */
-		pending: boolean | Ref<boolean>
-		/** Fade duration applied to the slot when content reveals. */
-		duration?: number
-		/** When true, do NOT register a token with the global loading bar — only fade locally. */
-		silent?: boolean
-	}>(),
-	{
-		duration: 200,
-		silent: false,
-	},
+    defineProps<{
+        /** True while wrapped content loads. The optional pending slot renders and loading bar runs. */
+        pending: boolean | Ref<boolean>
+        /** Fade duration applied to the slot when content reveals. */
+        duration?: number
+        /** When true, do NOT register a token with the global loading bar — only fade locally. */
+        silent?: boolean
+    }>(),
+    {
+        duration: 200,
+        silent: false,
+    },
 )
 
 const pendingRef = toRef(props, 'pending') as Ref<boolean | Ref<boolean>>
 const resolvedPending = computed(() => {
-	const v = pendingRef.value
-	if (typeof v === 'boolean') return v
-	return Boolean((v as Ref<boolean>).value)
+    const v = pendingRef.value
+    if (typeof v === 'boolean') return v
+    return Boolean((v as Ref<boolean>).value)
 })
 
 const hasBeenPending = ref(false)
@@ -42,54 +42,54 @@ const loadingState = injectLoadingState(null)
 let token: symbol | null = null
 
 function release() {
-	if (token && loadingState) {
-		loadingState.end(token)
-	}
-	token = null
+    if (token && loadingState) {
+        loadingState.end(token)
+    }
+    token = null
 }
 
 watch(
-	resolvedPending,
-	(now) => {
-		if (now) {
-			hasBeenPending.value = true
-		}
-		if (loadingState && !props.silent && typeof window !== 'undefined') {
-			if (now) {
-				if (!token) token = loadingState.begin()
-			} else {
-				release()
-			}
-		}
-	},
-	{ immediate: true },
+    resolvedPending,
+    (now) => {
+        if (now) {
+            hasBeenPending.value = true
+        }
+        if (loadingState && !props.silent && typeof window !== 'undefined') {
+            if (now) {
+                if (!token) token = loadingState.begin()
+            } else {
+                release()
+            }
+        }
+    },
+    { immediate: true },
 )
 
 onBeforeUnmount(release)
 </script>
 
 <template>
-	<template v-if="useShell">
-		<Transition name="ready-fade" mode="out-in" :duration="props.duration">
-			<div v-if="!resolvedPending" key="content" class="w-full">
-				<slot />
-			</div>
-			<div v-else key="pending" class="w-full h-full">
-				<slot name="pending" />
-			</div>
-		</Transition>
-	</template>
-	<slot v-else />
+    <template v-if="useShell">
+        <Transition name="ready-fade" mode="out-in" :duration="props.duration">
+            <div v-if="!resolvedPending" key="content" class="w-full">
+                <slot />
+            </div>
+            <div v-else key="pending" class="w-full h-full">
+                <slot name="pending" />
+            </div>
+        </Transition>
+    </template>
+    <slot v-else />
 </template>
 
 <style scoped>
 .ready-fade-enter-active,
 .ready-fade-leave-active {
-	transition: opacity v-bind('`${props.duration}ms`') ease-in-out;
+    transition: opacity v-bind('`${props.duration}ms`') ease-in-out;
 }
 
 .ready-fade-enter-from,
 .ready-fade-leave-to {
-	opacity: 0;
+    opacity: 0;
 }
 </style>

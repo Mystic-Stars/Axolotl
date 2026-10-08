@@ -1,270 +1,287 @@
 <template>
-	<NewModal ref="modal" no-padding scrollable max-width="560px" width="560px" :on-hide="handleHide">
-		<template #title>
-			<span class="text-2xl font-semibold text-[var(--color-text-primary)]">
-				{{ formatMessage(messages.header) }}
-			</span>
-		</template>
+    <NewModal
+        ref="modal"
+        no-padding
+        scrollable
+        max-width="560px"
+        width="560px"
+        :on-hide="handleHide"
+    >
+        <template #title>
+            <span class="text-2xl font-semibold text-[var(--color-text-primary)]">
+                {{ formatMessage(messages.header) }}
+            </span>
+        </template>
 
-		<SymlinkWarningAdmonition :symlink-target="symlinkTarget" class="mx-6 mt-6" />
-		<div
-			v-if="projectInfo"
-			class="flex items-center gap-2.5 rounded-[20px] bg-surface-2 mx-6 mt-6 p-3"
-		>
-			<AutoLink :to="projectInfo.link" class="shrink-0">
-				<div
-					class="size-14 shrink-0 overflow-hidden rounded-2xl border border-solid border-surface-5"
-				>
-					<Avatar
-						v-if="projectInfo.iconUrl"
-						:src="projectInfo.iconUrl"
-						:alt="projectInfo.title"
-						size="100%"
-						no-shadow
-					/>
-				</div>
-			</AutoLink>
-			<div class="flex flex-col gap-1">
-				<AutoLink
-					:to="projectInfo.link"
-					class="font-semibold text-[var(--color-text-primary)] hover:underline"
-				>
-					{{ projectInfo.title }}
-				</AutoLink>
-				<div
-					v-if="projectInfo.owner"
-					class="flex items-center gap-2 text-sm text-[var(--color-text-tertiary)]"
-				>
-					<AutoLink
-						:to="projectInfo.owner.link"
-						class="flex items-center gap-1.5 text-inherit no-underline hover:underline"
-					>
-						<Avatar
-							:src="projectInfo.owner.iconUrl"
-							:alt="projectInfo.owner.name"
-							size="1.25rem"
-							:circle="projectInfo.owner.circle"
-							no-shadow
-						/>
-						<span class="font-medium">{{ projectInfo.owner.name }}</span>
-					</AutoLink>
-				</div>
-			</div>
-		</div>
+        <SymlinkWarningAdmonition :symlink-target="symlinkTarget" class="mx-6 mt-6" />
+        <div
+            v-if="projectInfo"
+            class="flex items-center gap-2.5 rounded-[20px] bg-surface-2 mx-6 mt-6 p-3"
+        >
+            <AutoLink :to="projectInfo.link" class="shrink-0">
+                <div
+                    class="size-14 shrink-0 overflow-hidden rounded-2xl border border-solid border-surface-5"
+                >
+                    <Avatar
+                        v-if="projectInfo.iconUrl"
+                        :src="projectInfo.iconUrl"
+                        :alt="projectInfo.title"
+                        size="100%"
+                        no-shadow
+                    />
+                </div>
+            </AutoLink>
+            <div class="flex flex-col gap-1">
+                <AutoLink
+                    :to="projectInfo.link"
+                    class="font-semibold text-[var(--color-text-primary)] hover:underline"
+                >
+                    {{ projectInfo.title }}
+                </AutoLink>
+                <div
+                    v-if="projectInfo.owner"
+                    class="flex items-center gap-2 text-sm text-[var(--color-text-tertiary)]"
+                >
+                    <AutoLink
+                        :to="projectInfo.owner.link"
+                        class="flex items-center gap-1.5 text-inherit no-underline hover:underline"
+                    >
+                        <Avatar
+                            :src="projectInfo.owner.iconUrl"
+                            :alt="projectInfo.owner.name"
+                            size="1.25rem"
+                            :circle="projectInfo.owner.circle"
+                            no-shadow
+                        />
+                        <span class="font-medium">{{ projectInfo.owner.name }}</span>
+                    </AutoLink>
+                </div>
+            </div>
+        </div>
 
-		<div class="flex flex-col gap-2.5 p-6">
-			<span class="font-semibold text-[var(--color-text-primary)]">
-				{{ formatMessage(messages.instanceType) }}
-			</span>
-			<Chips
-				v-model="tab"
-				:items="tabs"
-				:format-label="formatTabLabel"
-				:never-empty="true"
-				:capitalize="false"
-			/>
-		</div>
+        <div class="flex flex-col gap-2.5 p-6">
+            <span class="font-semibold text-[var(--color-text-primary)]">
+                {{ formatMessage(messages.instanceType) }}
+            </span>
+            <Chips
+                v-model="tab"
+                :items="tabs"
+                :format-label="formatTabLabel"
+                :never-empty="true"
+                :capitalize="false"
+            />
+        </div>
 
-		<div class="h-px bg-divider" />
+        <div class="h-px bg-divider" />
 
-		<!-- Existing instance tab -->
-		<div
-			v-if="tab === 'existing'"
-			class="flex flex-col gap-3 bg-surface-2 py-4"
-			style="height: 400px; overflow-y: auto"
-		>
-			<div class="flex items-start gap-3 px-6">
-				<StyledInput
-					v-model="searchFilter"
-					:icon="SearchIcon"
-					:placeholder="formatMessage(messages.searchPlaceholder)"
-					class="flex-1"
-				/>
-				<Button
-					v-tooltip="`${hideUninstallable ? 'Show' : 'Hide'} unavailable`"
-					type="outlined"
-					circular
-					icon-only
-					@click="hideUninstallable = !hideUninstallable"
-					><EyeOffIcon v-if="hideUninstallable" />
-					<EyeIcon v-else />
-				</Button>
-			</div>
+        <!-- Existing instance tab -->
+        <div
+            v-if="tab === 'existing'"
+            class="flex flex-col gap-3 bg-surface-2 py-4"
+            style="height: 400px; overflow-y: auto"
+        >
+            <div class="flex items-start gap-3 px-6">
+                <StyledInput
+                    v-model="searchFilter"
+                    :icon="SearchIcon"
+                    :placeholder="formatMessage(messages.searchPlaceholder)"
+                    class="flex-1"
+                />
+                <Button
+                    v-tooltip="`${hideUninstallable ? 'Show' : 'Hide'} unavailable`"
+                    type="outlined"
+                    circular
+                    icon-only
+                    @click="hideUninstallable = !hideUninstallable"
+                    ><EyeOffIcon v-if="hideUninstallable" />
+                    <EyeIcon v-else />
+                </Button>
+            </div>
 
-			<div v-if="loading" class="flex items-center justify-center py-12">
-				<LoadingIndicator />
-			</div>
-			<div
-				v-else-if="filteredInstances.length === 0"
-				class="flex items-center justify-center py-12 text-[var(--color-text-tertiary)]"
-			>
-				{{ formatMessage(messages.noInstances) }}
-			</div>
-			<div v-else class="flex flex-col gap-1">
-				<div
-					v-for="inst in filteredInstances"
-					:key="inst.id"
-					class="flex items-center justify-between px-6 py-1.5"
-					:class="inst.installed ? 'opacity-60' : 'hover:bg-surface-3'"
-				>
-					<button
-						v-tooltip="!inst.compatible ? formatMessage(messages.incompatibleTooltip) : undefined"
-						class="flex min-w-0 cursor-pointer items-center gap-2.5 overflow-hidden border-0 bg-transparent p-0 text-left"
-						@click="emit('navigate', inst)"
-					>
-						<Avatar
-							:src="inst.iconUrl ?? undefined"
-							size="2rem"
-							rounded="md"
-							:class="{
-								'!border-0 !rounded-none !bg-transparent !shadow-none': inst.iconFrameless,
-							}"
-						/>
-						<span class="truncate font-semibold text-[var(--color-text-primary)] hover:underline">{{
-							inst.name
-						}}</span>
-					</button>
-					<Button v-if="inst.installed" disabled
-						><CheckIcon />
-						{{ formatMessage(messages.installedBadge) }}
-					</Button>
-					<Button
-						v-else
-						v-tooltip="!inst.compatible ? formatMessage(messages.incompatibleTooltip) : undefined"
-						:type="inst.compatible ? 'base' : 'outlined'"
-						:color="inst.compatible ? undefined : 'orange'"
-						:disabled="inst.installing"
-						@click="emit('install', inst)"
-					>
-						<TriangleAlertIcon v-if="!inst.compatible" />
-						{{
-							inst.installing
-								? formatMessage(commonMessages.installingLabel)
-								: formatMessage(messages.installButton)
-						}}
-					</Button>
-				</div>
-			</div>
-		</div>
+            <div v-if="loading" class="flex items-center justify-center py-12">
+                <LoadingIndicator />
+            </div>
+            <div
+                v-else-if="filteredInstances.length === 0"
+                class="flex items-center justify-center py-12 text-[var(--color-text-tertiary)]"
+            >
+                {{ formatMessage(messages.noInstances) }}
+            </div>
+            <div v-else class="flex flex-col gap-1">
+                <div
+                    v-for="inst in filteredInstances"
+                    :key="inst.id"
+                    class="flex items-center justify-between px-6 py-1.5"
+                    :class="inst.installed ? 'opacity-60' : 'hover:bg-surface-3'"
+                >
+                    <button
+                        v-tooltip="
+                            !inst.compatible
+                                ? formatMessage(messages.incompatibleTooltip)
+                                : undefined
+                        "
+                        class="flex min-w-0 cursor-pointer items-center gap-2.5 overflow-hidden border-0 bg-transparent p-0 text-left"
+                        @click="emit('navigate', inst)"
+                    >
+                        <Avatar
+                            :src="inst.iconUrl ?? undefined"
+                            size="2rem"
+                            rounded="md"
+                            :class="{
+                                '!border-0 !rounded-none !bg-transparent !shadow-none':
+                                    inst.iconFrameless,
+                            }"
+                        />
+                        <span
+                            class="truncate font-semibold text-[var(--color-text-primary)] hover:underline"
+                            >{{ inst.name }}</span
+                        >
+                    </button>
+                    <Button v-if="inst.installed" disabled
+                        ><CheckIcon />
+                        {{ formatMessage(messages.installedBadge) }}
+                    </Button>
+                    <Button
+                        v-else
+                        v-tooltip="
+                            !inst.compatible
+                                ? formatMessage(messages.incompatibleTooltip)
+                                : undefined
+                        "
+                        :type="inst.compatible ? 'base' : 'outlined'"
+                        :color="inst.compatible ? undefined : 'orange'"
+                        :disabled="inst.installing"
+                        @click="emit('install', inst)"
+                    >
+                        <TriangleAlertIcon v-if="!inst.compatible" />
+                        {{
+                            inst.installing
+                                ? formatMessage(commonMessages.installingLabel)
+                                : formatMessage(messages.installButton)
+                        }}
+                    </Button>
+                </div>
+            </div>
+        </div>
 
-		<!-- New instance tab -->
-		<div v-else class="flex flex-col gap-6 p-6">
-			<div class="flex items-center gap-4">
-				<Avatar
-					:src="iconPreviewUrl ?? undefined"
-					size="5rem"
-					rounded="2xl"
-					:class="{
-						'!border-0 !rounded-none !bg-transparent !shadow-none': iconFrameless,
-					}"
-				/>
-				<div class="flex flex-col gap-2">
-					<Button type="outlined" @click="selectIcon"
-						><UploadIcon />
-						{{ formatMessage(messages.selectIcon) }}
-					</Button>
-					<Button type="outlined" :disabled="!iconPreviewUrl" @click="removeIcon"
-						><XIcon />
-						{{ formatMessage(messages.removeIcon) }}
-					</Button>
-				</div>
-			</div>
+        <!-- New instance tab -->
+        <div v-else class="flex flex-col gap-6 p-6">
+            <div class="flex items-center gap-4">
+                <Avatar
+                    :src="iconPreviewUrl ?? undefined"
+                    size="5rem"
+                    rounded="2xl"
+                    :class="{
+                        '!border-0 !rounded-none !bg-transparent !shadow-none': iconFrameless,
+                    }"
+                />
+                <div class="flex flex-col gap-2">
+                    <Button type="outlined" @click="selectIcon"
+                        ><UploadIcon />
+                        {{ formatMessage(messages.selectIcon) }}
+                    </Button>
+                    <Button type="outlined" :disabled="!iconPreviewUrl" @click="removeIcon"
+                        ><XIcon />
+                        {{ formatMessage(messages.removeIcon) }}
+                    </Button>
+                </div>
+            </div>
 
-			<div class="flex flex-col gap-2.5">
-				<span class="font-semibold text-[var(--color-text-primary)]">
-					{{ formatMessage(messages.nameLabel) }}
-				</span>
-				<StyledInput
-					v-model="instanceName"
-					:placeholder="formatMessage(messages.namePlaceholder)"
-				/>
-			</div>
+            <div class="flex flex-col gap-2.5">
+                <span class="font-semibold text-[var(--color-text-primary)]">
+                    {{ formatMessage(messages.nameLabel) }}
+                </span>
+                <StyledInput
+                    v-model="instanceName"
+                    :placeholder="formatMessage(messages.namePlaceholder)"
+                />
+            </div>
 
-			<div class="flex flex-col gap-2.5">
-				<span class="font-semibold text-[var(--color-text-primary)]">
-					{{ formatMessage(messages.loaderLabel) }}
-				</span>
-				<Chips
-					v-model="selectedLoader"
-					:items="compatibleLoaders"
-					:format-label="formatLoaderLabel"
-					:never-empty="true"
-				/>
-			</div>
+            <div class="flex flex-col gap-2.5">
+                <span class="font-semibold text-[var(--color-text-primary)]">
+                    {{ formatMessage(messages.loaderLabel) }}
+                </span>
+                <Chips
+                    v-model="selectedLoader"
+                    :items="compatibleLoaders"
+                    :format-label="formatLoaderLabel"
+                    :never-empty="true"
+                />
+            </div>
 
-			<div class="flex flex-col gap-2.5">
-				<span class="font-semibold text-[var(--color-text-primary)]">
-					{{ formatMessage(commonMessages.gameVersionLabel) }}
-				</span>
-				<Combobox
-					v-model="selectedGameVersion"
-					:options="gameVersionOptions"
-					searchable
-					sync-with-selection
-					:placeholder="formatMessage(messages.gameVersionPlaceholder)"
-				>
-					<template v-if="hasReleaseData" #dropdown-footer>
-						<button
-							class="flex w-full cursor-pointer items-center justify-center gap-1.5 border-0 border-t border-solid border-surface-5 bg-transparent py-3 text-center text-sm font-semibold text-[var(--color-text-tertiary)] transition-colors hover:text-[var(--color-text-primary)]"
-							@mousedown.prevent
-							@click="showSnapshots = !showSnapshots"
-						>
-							<EyeOffIcon v-if="showSnapshots" class="size-4" />
-							<EyeIcon v-else class="size-4" />
-							{{
-								showSnapshots
-									? formatMessage(commonMessages.hideSnapshotsButton)
-									: formatMessage(commonMessages.showAllVersionsButton)
-							}}
-						</button>
-					</template>
-				</Combobox>
-			</div>
-		</div>
+            <div class="flex flex-col gap-2.5">
+                <span class="font-semibold text-[var(--color-text-primary)]">
+                    {{ formatMessage(commonMessages.gameVersionLabel) }}
+                </span>
+                <Combobox
+                    v-model="selectedGameVersion"
+                    :options="gameVersionOptions"
+                    searchable
+                    sync-with-selection
+                    :placeholder="formatMessage(messages.gameVersionPlaceholder)"
+                >
+                    <template v-if="hasReleaseData" #dropdown-footer>
+                        <button
+                            class="flex w-full cursor-pointer items-center justify-center gap-1.5 border-0 border-t border-solid border-surface-5 bg-transparent py-3 text-center text-sm font-semibold text-[var(--color-text-tertiary)] transition-colors hover:text-[var(--color-text-primary)]"
+                            @mousedown.prevent
+                            @click="showSnapshots = !showSnapshots"
+                        >
+                            <EyeOffIcon v-if="showSnapshots" class="size-4" />
+                            <EyeIcon v-else class="size-4" />
+                            {{
+                                showSnapshots
+                                    ? formatMessage(commonMessages.hideSnapshotsButton)
+                                    : formatMessage(commonMessages.showAllVersionsButton)
+                            }}
+                        </button>
+                    </template>
+                </Combobox>
+            </div>
+        </div>
 
-		<template #actions>
-			<div v-if="tab === 'existing'" class="flex items-center justify-between pt-5 pb-1 px-4">
-				<div class="flex items-center gap-1.5">
-					<BoxIcon class="size-5" />
-					<span>
-						{{ formatMessage(messages.compatibleCount, { count: compatibleCount }) }}
-					</span>
-				</div>
-				<Button type="outlined" @click="modal?.hide()"
-					><XIcon />
-					{{ formatMessage(commonMessages.cancelButton) }}
-				</Button>
-			</div>
+        <template #actions>
+            <div v-if="tab === 'existing'" class="flex items-center justify-between pt-5 pb-1 px-4">
+                <div class="flex items-center gap-1.5">
+                    <BoxIcon class="size-5" />
+                    <span>
+                        {{ formatMessage(messages.compatibleCount, { count: compatibleCount }) }}
+                    </span>
+                </div>
+                <Button type="outlined" @click="modal?.hide()"
+                    ><XIcon />
+                    {{ formatMessage(commonMessages.cancelButton) }}
+                </Button>
+            </div>
 
-			<div v-else class="flex items-center justify-end gap-2">
-				<Button type="outlined" @click="modal?.hide()"
-					><XIcon />
-					{{ formatMessage(commonMessages.cancelButton) }}
-				</Button>
-				<Button
-					type="colored"
-					color="brand"
-					:disabled="!instanceName"
-					@click="handleCreateAndInstall"
-					><DownloadIcon />
-					{{ formatMessage(messages.installButton) }}
-				</Button>
-			</div>
-		</template>
-	</NewModal>
+            <div v-else class="flex items-center justify-end gap-2">
+                <Button type="outlined" @click="modal?.hide()"
+                    ><XIcon />
+                    {{ formatMessage(commonMessages.cancelButton) }}
+                </Button>
+                <Button
+                    type="colored"
+                    color="brand"
+                    :disabled="!instanceName"
+                    @click="handleCreateAndInstall"
+                    ><DownloadIcon />
+                    {{ formatMessage(messages.installButton) }}
+                </Button>
+            </div>
+        </template>
+    </NewModal>
 </template>
 
 <script setup lang="ts">
 import {
-	BoxIcon,
-	CheckIcon,
-	DownloadIcon,
-	EyeIcon,
-	EyeOffIcon,
-	SearchIcon,
-	TriangleAlertIcon,
-	UploadIcon,
-	XIcon,
+    BoxIcon,
+    CheckIcon,
+    DownloadIcon,
+    EyeIcon,
+    EyeOffIcon,
+    SearchIcon,
+    TriangleAlertIcon,
+    UploadIcon,
+    XIcon,
 } from '@modrinth/assets'
 import { computed, ref, watch } from 'vue'
 
@@ -286,136 +303,136 @@ import SymlinkWarningAdmonition from './SymlinkWarningAdmonition.vue'
 const { formatMessage } = useVIntl()
 
 const messages = defineMessages({
-	header: {
-		id: 'instances.content-install.header',
-		defaultMessage: 'Install project',
-	},
-	instanceType: {
-		id: 'instances.content-install.instance-type',
-		defaultMessage: 'Instance type',
-	},
-	existingTab: {
-		id: 'instances.content-install.existing-tab',
-		defaultMessage: 'Existing instance',
-	},
-	newTab: {
-		id: 'instances.content-install.new-tab',
-		defaultMessage: 'New instance',
-	},
-	searchPlaceholder: {
-		id: 'instances.content-install.search-placeholder',
-		defaultMessage: 'Search instance',
-	},
-	installedBadge: {
-		id: 'instances.content-install.installed-badge',
-		defaultMessage: 'Installed',
-	},
-	installButton: {
-		id: 'instances.content-install.install-button',
-		defaultMessage: 'Install',
-	},
-	incompatibleTooltip: {
-		id: 'instances.content-install.incompatible-tooltip',
-		defaultMessage:
-			'This instance uses a different loader or game version than this project supports.',
-	},
-	selectIcon: {
-		id: 'instances.content-install.select-icon',
-		defaultMessage: 'Select icon',
-	},
-	removeIcon: {
-		id: 'instances.content-install.remove-icon',
-		defaultMessage: 'Remove icon',
-	},
-	nameLabel: {
-		id: 'instances.content-install.name-label',
-		defaultMessage: 'Name',
-	},
-	namePlaceholder: {
-		id: 'instances.content-install.name-placeholder',
-		defaultMessage: 'Enter instance name',
-	},
-	loaderLabel: {
-		id: 'instances.content-install.loader-label',
-		defaultMessage: 'Loader',
-	},
-	gameVersionPlaceholder: {
-		id: 'instances.content-install.game-version-placeholder',
-		defaultMessage: 'Select game version',
-	},
-	compatibleCount: {
-		id: 'instances.content-install.compatible-count',
-		defaultMessage: '{count} compatible {count, plural, one {instance} other {instances}}',
-	},
-	noInstances: {
-		id: 'instances.content-install.no-instances',
-		defaultMessage: 'No compatible instances found',
-	},
+    header: {
+        id: 'instances.content-install.header',
+        defaultMessage: 'Install project',
+    },
+    instanceType: {
+        id: 'instances.content-install.instance-type',
+        defaultMessage: 'Instance type',
+    },
+    existingTab: {
+        id: 'instances.content-install.existing-tab',
+        defaultMessage: 'Existing instance',
+    },
+    newTab: {
+        id: 'instances.content-install.new-tab',
+        defaultMessage: 'New instance',
+    },
+    searchPlaceholder: {
+        id: 'instances.content-install.search-placeholder',
+        defaultMessage: 'Search instance',
+    },
+    installedBadge: {
+        id: 'instances.content-install.installed-badge',
+        defaultMessage: 'Installed',
+    },
+    installButton: {
+        id: 'instances.content-install.install-button',
+        defaultMessage: 'Install',
+    },
+    incompatibleTooltip: {
+        id: 'instances.content-install.incompatible-tooltip',
+        defaultMessage:
+            'This instance uses a different loader or game version than this project supports.',
+    },
+    selectIcon: {
+        id: 'instances.content-install.select-icon',
+        defaultMessage: 'Select icon',
+    },
+    removeIcon: {
+        id: 'instances.content-install.remove-icon',
+        defaultMessage: 'Remove icon',
+    },
+    nameLabel: {
+        id: 'instances.content-install.name-label',
+        defaultMessage: 'Name',
+    },
+    namePlaceholder: {
+        id: 'instances.content-install.name-placeholder',
+        defaultMessage: 'Enter instance name',
+    },
+    loaderLabel: {
+        id: 'instances.content-install.loader-label',
+        defaultMessage: 'Loader',
+    },
+    gameVersionPlaceholder: {
+        id: 'instances.content-install.game-version-placeholder',
+        defaultMessage: 'Select game version',
+    },
+    compatibleCount: {
+        id: 'instances.content-install.compatible-count',
+        defaultMessage: '{count} compatible {count, plural, one {instance} other {instances}}',
+    },
+    noInstances: {
+        id: 'instances.content-install.no-instances',
+        defaultMessage: 'No compatible instances found',
+    },
 })
 
 export interface ContentInstallInstance {
-	id: string
-	name: string
-	iconUrl?: string | null
-	iconFrameless?: boolean
-	installed: boolean
-	compatible: boolean
-	installing?: boolean
+    id: string
+    name: string
+    iconUrl?: string | null
+    iconFrameless?: boolean
+    installed: boolean
+    compatible: boolean
+    installing?: boolean
 }
 
 export interface ContentInstallProjectOwner {
-	name: string
-	iconUrl?: string
-	circle?: boolean
-	link: string | (() => void)
+    name: string
+    iconUrl?: string
+    circle?: boolean
+    link: string | (() => void)
 }
 
 export interface ContentInstallProjectInfo {
-	title: string
-	iconUrl?: string | null
-	link: string
-	owner?: ContentInstallProjectOwner | null
+    title: string
+    iconUrl?: string | null
+    link: string
+    owner?: ContentInstallProjectOwner | null
 }
 
 const props = defineProps<{
-	instances: ContentInstallInstance[]
-	compatibleLoaders: string[]
-	gameVersions: string[]
-	releaseGameVersions?: Set<string>
-	loading?: boolean
-	defaultTab?: 'existing' | 'new'
-	preferredLoader?: string | null
-	preferredGameVersion?: string | null
-	projectInfo?: ContentInstallProjectInfo | null
-	symlinkTarget?: string
+    instances: ContentInstallInstance[]
+    compatibleLoaders: string[]
+    gameVersions: string[]
+    releaseGameVersions?: Set<string>
+    loading?: boolean
+    defaultTab?: 'existing' | 'new'
+    preferredLoader?: string | null
+    preferredGameVersion?: string | null
+    projectInfo?: ContentInstallProjectInfo | null
+    symlinkTarget?: string
 }>()
 
 const emit = defineEmits<{
-	install: [instance: ContentInstallInstance]
-	'create-and-install': [
-		data: {
-			name: string
-			iconPath: string | null
-			iconPreviewUrl: string | null
-			loader: string
-			gameVersion: string
-		},
-	]
-	navigate: [instance: ContentInstallInstance]
-	cancel: []
+    install: [instance: ContentInstallInstance]
+    'create-and-install': [
+        data: {
+            name: string
+            iconPath: string | null
+            iconPreviewUrl: string | null
+            loader: string
+            gameVersion: string
+        },
+    ]
+    navigate: [instance: ContentInstallInstance]
+    cancel: []
 }>()
 
 const modal = ref<InstanceType<typeof NewModal>>()
 
 type Tab = 'existing' | 'new'
 const tabs = computed<Tab[]>(() =>
-	props.compatibleLoaders.length > 0 ? ['existing', 'new'] : ['existing'],
+    props.compatibleLoaders.length > 0 ? ['existing', 'new'] : ['existing'],
 )
 const tab = ref<Tab>('existing')
 
 const tabLabels: Record<Tab, () => string> = {
-	existing: () => formatMessage(messages.existingTab),
-	new: () => formatMessage(messages.newTab),
+    existing: () => formatMessage(messages.existingTab),
+    new: () => formatMessage(messages.newTab),
 }
 const formatTabLabel = (item: Tab) => tabLabels[item]()
 
@@ -423,18 +440,18 @@ const searchFilter = ref('')
 const hideUninstallable = ref(true)
 
 const filteredInstances = computed(() => {
-	let list = props.instances
-	if (hideUninstallable.value) list = list.filter((i) => i.compatible && !i.installed)
-	if (searchFilter.value) {
-		const query = searchFilter.value.toLowerCase()
-		list = list.filter((i) => i.name.toLowerCase().includes(query))
-	}
-	const score = (i: ContentInstallInstance) => (!i.compatible ? 2 : i.installed ? 1 : 0)
-	return list.slice().sort((a, b) => {
-		const diff = score(a) - score(b)
-		if (diff !== 0) return diff
-		return a.name.localeCompare(b.name)
-	})
+    let list = props.instances
+    if (hideUninstallable.value) list = list.filter((i) => i.compatible && !i.installed)
+    if (searchFilter.value) {
+        const query = searchFilter.value.toLowerCase()
+        list = list.filter((i) => i.name.toLowerCase().includes(query))
+    }
+    const score = (i: ContentInstallInstance) => (!i.compatible ? 2 : i.installed ? 1 : 0)
+    return list.slice().sort((a, b) => {
+        const diff = score(a) - score(b)
+        if (diff !== 0) return diff
+        return a.name.localeCompare(b.name)
+    })
 })
 
 const compatibleCount = computed(() => props.instances.filter((i) => i.compatible).length)
@@ -448,89 +465,90 @@ const iconFrameless = ref(false)
 const showSnapshots = ref(false)
 
 const hasReleaseData = computed(
-	() => props.releaseGameVersions && props.releaseGameVersions.size > 0,
+    () => props.releaseGameVersions && props.releaseGameVersions.size > 0,
 )
 
 const gameVersionOptions = computed<ComboboxOption<string>[]>(() => {
-	const versions =
-		showSnapshots.value || !hasReleaseData.value
-			? props.gameVersions
-			: props.gameVersions.filter((v) => props.releaseGameVersions!.has(v))
-	return versions.map((v) => ({ value: v, label: v }))
+    const versions =
+        showSnapshots.value || !hasReleaseData.value
+            ? props.gameVersions
+            : props.gameVersions.filter((v) => props.releaseGameVersions!.has(v))
+    return versions.map((v) => ({ value: v, label: v }))
 })
 
 const filePicker = injectFilePicker(null)
 
 async function selectIcon() {
-	if (!filePicker) return
-	const picked = await (filePicker.pickInstanceIcon?.() ?? filePicker.pickImage())
-	if (picked) {
-		iconPath.value = picked.path ?? null
-		iconPreviewUrl.value = picked.previewUrl
-		iconFrameless.value = picked.frameless ?? false
-	}
+    if (!filePicker) return
+    const picked = await (filePicker.pickInstanceIcon?.() ?? filePicker.pickImage())
+    if (picked) {
+        iconPath.value = picked.path ?? null
+        iconPreviewUrl.value = picked.previewUrl
+        iconFrameless.value = picked.frameless ?? false
+    }
 }
 
 function removeIcon() {
-	iconPath.value = null
-	iconPreviewUrl.value = null
-	iconFrameless.value = false
+    iconPath.value = null
+    iconPreviewUrl.value = null
+    iconFrameless.value = false
 }
 
 function resetState() {
-	tab.value = props.defaultTab ?? 'existing'
-	searchFilter.value = ''
-	hideUninstallable.value = false
-	instanceName.value = `New instance (${props.instances.length + 1})`
-	iconPath.value = null
-	iconPreviewUrl.value = null
-	iconFrameless.value = false
-	selectedLoader.value = props.preferredLoader ?? props.compatibleLoaders[0] ?? null
+    tab.value = props.defaultTab ?? 'existing'
+    searchFilter.value = ''
+    hideUninstallable.value = false
+    instanceName.value = `New instance (${props.instances.length + 1})`
+    iconPath.value = null
+    iconPreviewUrl.value = null
+    iconFrameless.value = false
+    selectedLoader.value = props.preferredLoader ?? props.compatibleLoaders[0] ?? null
 
-	const preferred = props.preferredGameVersion
-	const isSnapshot = preferred && hasReleaseData.value && !props.releaseGameVersions!.has(preferred)
-	showSnapshots.value = !!isSnapshot
+    const preferred = props.preferredGameVersion
+    const isSnapshot =
+        preferred && hasReleaseData.value && !props.releaseGameVersions!.has(preferred)
+    showSnapshots.value = !!isSnapshot
 
-	const defaultVersion = hasReleaseData.value
-		? (props.gameVersions.find((v) => props.releaseGameVersions!.has(v)) ??
-			props.gameVersions[0] ??
-			null)
-		: (props.gameVersions[0] ?? null)
-	selectedGameVersion.value = preferred ?? defaultVersion
+    const defaultVersion = hasReleaseData.value
+        ? (props.gameVersions.find((v) => props.releaseGameVersions!.has(v)) ??
+          props.gameVersions[0] ??
+          null)
+        : (props.gameVersions[0] ?? null)
+    selectedGameVersion.value = preferred ?? defaultVersion
 }
 
 watch(
-	() => props.loading,
-	(loading, wasLoading) => {
-		if (wasLoading && !loading) {
-			tab.value = props.defaultTab ?? 'existing'
-		}
-	},
+    () => props.loading,
+    (loading, wasLoading) => {
+        if (wasLoading && !loading) {
+            tab.value = props.defaultTab ?? 'existing'
+        }
+    },
 )
 
 function handleHide() {
-	emit('cancel')
+    emit('cancel')
 }
 
 function show() {
-	resetState()
-	modal.value?.show()
+    resetState()
+    modal.value?.show()
 }
 
 function hide() {
-	modal.value?.hide()
+    modal.value?.hide()
 }
 
 function handleCreateAndInstall() {
-	if (!instanceName.value || !selectedLoader.value || !selectedGameVersion.value) return
-	emit('create-and-install', {
-		name: instanceName.value,
-		iconPath: iconPath.value,
-		iconPreviewUrl: iconPreviewUrl.value,
-		loader: selectedLoader.value,
-		gameVersion: selectedGameVersion.value,
-	})
-	hide()
+    if (!instanceName.value || !selectedLoader.value || !selectedGameVersion.value) return
+    emit('create-and-install', {
+        name: instanceName.value,
+        iconPath: iconPath.value,
+        iconPreviewUrl: iconPreviewUrl.value,
+        loader: selectedLoader.value,
+        gameVersion: selectedGameVersion.value,
+    })
+    hide()
 }
 
 defineExpose({ show, hide })

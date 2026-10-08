@@ -113,20 +113,22 @@ async fn run_job(job_id: Uuid) -> crate::Result<()> {
         Canceled,
     }
 
-    let result = if matches!(
-        job_state.request,
-        InstallRequest::ChangeContent { .. }
-    ) {
-        RunResult::Completed(
-            request::run_request(job_id, &mut job_state, &state).await,
-        )
-    } else {
-        tokio::select! {
-            biased;
-            _ = cancellation.cancelled() => RunResult::Canceled,
-            result = request::run_request(job_id, &mut job_state, &state) => RunResult::Completed(result),
-        }
-    };
+    let result =
+        if matches!(job_state.request, InstallRequest::ChangeContent { .. }) {
+            RunResult::Completed(
+                request::run_request(job_id, &mut job_state, &state).await,
+            )
+        } else {
+            match crate::install::critical_section::run_cancelable(
+                &cancellation,
+                request::run_request(job_id, &mut job_state, &state),
+            )
+            .await
+            {
+                Some(result) => RunResult::Completed(result),
+                None => RunResult::Canceled,
+            }
+        };
     state.install_job_cancellations.remove(&job_id);
     let execution_state = job_state;
     let reporter_state = live_reporter.current_state().await?;

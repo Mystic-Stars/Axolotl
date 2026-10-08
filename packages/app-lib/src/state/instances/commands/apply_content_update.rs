@@ -7,7 +7,7 @@ use crate::state::{
     DependencyType, ModrinthVersionId, ProjectType, State, Version,
 };
 use crate::util::fetch::DownloadReason;
-use futures::stream::{FuturesUnordered, StreamExt};
+use futures::stream::StreamExt;
 use std::cmp::Reverse;
 use std::collections::{HashMap, HashSet};
 
@@ -121,8 +121,7 @@ async fn apply_content_update(
             .await?
             .ok_or_else(|| {
                 crate::ErrorKind::InputError(format!(
-                    "Unable to install version id {}. Not found.",
-                    update_version_id
+                    "Unable to install version id {update_version_id}. Not found."
                 ))
             })?;
             let content_type =
@@ -276,8 +275,8 @@ pub(crate) async fn update_all_projects(
                     .await?;
                 }
 
-                if new_path != update.relative_path {
-                    if archive_project_file(
+                if new_path != update.relative_path
+                    && archive_project_file(
                         instance_id,
                         &update.relative_path,
                         &new_path,
@@ -285,14 +284,9 @@ pub(crate) async fn update_all_projects(
                     )
                     .await?
                     .is_none()
-                    {
-                        remove_project(
-                            instance_id,
-                            &update.relative_path,
-                            state,
-                        )
+                {
+                    remove_project(instance_id, &update.relative_path, state)
                         .await?;
-                    }
                 }
 
                 applied.push(AppliedBulkItem {
@@ -445,52 +439,53 @@ async fn download_planned_projects(
     )
     .await?;
 
-    let mut downloads = plan
-        .project_updates
-        .iter()
-        .cloned()
-        .map(PlannedDownload::ProjectUpdate)
-        .chain(
-            plan.dependency_additions
-                .iter()
-                .cloned()
-                .map(PlannedDownload::DependencyAddition),
-        )
-        .map(|download| async move {
-            match download {
-                PlannedDownload::ProjectUpdate(update) => {
-                    let downloaded = download_project_version(
-                        instance_id,
-                        &update.update_version_id,
-                        DownloadReason::Update,
-                        Some(update.current_version_id.clone()),
-                        state,
-                    )
-                    .await?;
+    let mut downloads = futures::stream::iter(
+        plan.project_updates
+            .iter()
+            .cloned()
+            .map(PlannedDownload::ProjectUpdate)
+            .chain(
+                plan.dependency_additions
+                    .iter()
+                    .cloned()
+                    .map(PlannedDownload::DependencyAddition),
+            ),
+    )
+    .map(|download| async move {
+        match download {
+            PlannedDownload::ProjectUpdate(update) => {
+                let downloaded = download_project_version(
+                    instance_id,
+                    &update.update_version_id,
+                    DownloadReason::Update,
+                    Some(update.current_version_id.clone()),
+                    state,
+                )
+                .await?;
 
-                    Ok::<_, crate::Error>(DownloadedBulkProject::ProjectUpdate(
-                        update, downloaded,
-                    ))
-                }
-                PlannedDownload::DependencyAddition(dependency) => {
-                    let downloaded = download_project_version(
-                        instance_id,
-                        &dependency.version_id,
-                        DownloadReason::Dependency,
-                        Some(dependency.parent_version_id.clone()),
-                        state,
-                    )
-                    .await?;
-
-                    Ok::<_, crate::Error>(
-                        DownloadedBulkProject::DependencyAddition(
-                            dependency, downloaded,
-                        ),
-                    )
-                }
+                Ok::<_, crate::Error>(DownloadedBulkProject::ProjectUpdate(
+                    update, downloaded,
+                ))
             }
-        })
-        .collect::<FuturesUnordered<_>>();
+            PlannedDownload::DependencyAddition(dependency) => {
+                let downloaded = download_project_version(
+                    instance_id,
+                    &dependency.version_id,
+                    DownloadReason::Dependency,
+                    Some(dependency.parent_version_id.clone()),
+                    state,
+                )
+                .await?;
+
+                Ok::<_, crate::Error>(
+                    DownloadedBulkProject::DependencyAddition(
+                        dependency, downloaded,
+                    ),
+                )
+            }
+        }
+    })
+    .buffer_unordered(state.download_concurrency().clamp(1, 4));
     let mut completed = 0;
     let mut output = Vec::with_capacity(total);
 

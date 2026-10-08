@@ -31,6 +31,7 @@ pub mod atlauncher;
 mod axolotl;
 pub mod curseforge;
 pub(crate) mod direct_link;
+pub mod gamedir_resolve;
 pub mod gdlauncher;
 pub(crate) mod generic;
 pub mod hmcl;
@@ -400,10 +401,10 @@ async fn get_unknown_launcher_instances(
     }
 
     // Also check for a .minecraft folder next to the launcher executable.
-    if pe_info::folder_has_product(base_path, "Plain Craft Launcher") {
-        if let Some(entry) = pcl::get_local_dotminecraft(base_path) {
-            collect_launcher_instances(&mut collector, vec![entry]).await;
-        }
+    if pe_info::folder_has_product(base_path, "Plain Craft Launcher")
+        && let Some(entry) = pcl::get_local_dotminecraft(base_path)
+    {
+        collect_launcher_instances(&mut collector, vec![entry]).await;
     }
 
     // HMCL
@@ -1250,8 +1251,8 @@ async fn copy_files_with_progress(
         match result {
             Ok(()) => {
                 completed += 1;
-                if first_error.is_none() {
-                    if let Err(error) = reporter
+                if first_error.is_none()
+                    && let Err(error) = reporter
                         .update(
                             InstallPhaseId::PreparingInstance,
                             Some(InstallProgress {
@@ -1262,9 +1263,8 @@ async fn copy_files_with_progress(
                             details.clone(),
                         )
                         .await
-                    {
-                        first_error = Some(error);
-                    }
+                {
+                    first_error = Some(error);
                 }
             }
             Err(error) => {

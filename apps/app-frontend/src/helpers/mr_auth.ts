@@ -6,24 +6,24 @@
 import { invoke } from '@tauri-apps/api/core'
 
 export type ModrinthCredentials = {
-	session: string
-	expires: string
-	user_id: string
-	active: boolean
+    session: string
+    expires: string
+    user_id: string
+    active: boolean
 }
 
 export async function login(): Promise<ModrinthCredentials> {
-	return await invoke('plugin:mr-auth|modrinth_login')
+    return await invoke('plugin:mr-auth|modrinth_login')
 }
 
 export async function logout(): Promise<void> {
-	return await invoke('plugin:mr-auth|logout')
+    return await invoke('plugin:mr-auth|logout')
 }
 
 export async function get(): Promise<ModrinthCredentials | null> {
-	return await invoke('plugin:mr-auth|get')
+    return await invoke('plugin:mr-auth|get')
 }
 
 export async function cancelLogin(): Promise<void> {
-	return await invoke('plugin:mr-auth|cancel_modrinth_login')
+    return await invoke('plugin:mr-auth|cancel_modrinth_login')
 }

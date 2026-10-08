@@ -38,73 +38,73 @@
 // palettes redeclare it next to their own baselines.
 
 @mixin opacity-scale {
-	--opacity-ratio-1-5: calc(
-		var(--opacity-baseline-page, 100%) + (100% - var(--opacity-baseline-page, 100%)) * 0.16
-	);
-	--opacity-ratio-2: calc(
-		var(--opacity-baseline, 100%) + (100% - var(--opacity-baseline, 100%)) * 0.3
-	);
-	--opacity-ratio-chrome: calc(
-		var(--opacity-baseline, 100%) + (100% - var(--opacity-baseline, 100%)) * 0.38
-	);
-	--opacity-ratio-3: calc(
-		var(--opacity-baseline, 100%) + (100% - var(--opacity-baseline, 100%)) * 0.55
-	);
-	--opacity-ratio-4: calc(
-		var(--opacity-baseline, 100%) + (100% - var(--opacity-baseline, 100%)) * 0.6
-	);
-	--opacity-ratio-5: calc(
-		var(--opacity-baseline, 100%) + (100% - var(--opacity-baseline, 100%)) * 0.78
-	);
-	// Ratio 0: the card sits on the page, so it takes the baseline as it is.
-	--opacity-ratio-card: var(--opacity-baseline, 100%);
+    --opacity-ratio-1-5: calc(
+        var(--opacity-baseline-page, 100%) + (100% - var(--opacity-baseline-page, 100%)) * 0.16
+    );
+    --opacity-ratio-2: calc(
+        var(--opacity-baseline, 100%) + (100% - var(--opacity-baseline, 100%)) * 0.3
+    );
+    --opacity-ratio-chrome: calc(
+        var(--opacity-baseline, 100%) + (100% - var(--opacity-baseline, 100%)) * 0.38
+    );
+    --opacity-ratio-3: calc(
+        var(--opacity-baseline, 100%) + (100% - var(--opacity-baseline, 100%)) * 0.55
+    );
+    --opacity-ratio-4: calc(
+        var(--opacity-baseline, 100%) + (100% - var(--opacity-baseline, 100%)) * 0.6
+    );
+    --opacity-ratio-5: calc(
+        var(--opacity-baseline, 100%) + (100% - var(--opacity-baseline, 100%)) * 0.78
+    );
+    // Ratio 0: the card sits on the page, so it takes the baseline as it is.
+    --opacity-ratio-card: var(--opacity-baseline, 100%);
 
-	// Below the baseline a rung keeps a share of it, so it is named by that
-	// share: `keep-60` is `b * 0.60`. Migrating a fixed `color-mix(… 60%,
-	// transparent)` to `keep-60` renders identically at a 100% baseline and
-	// follows the setting everywhere else. Rungs are added as sites migrate.
-	--opacity-ratio-keep-90: calc(var(--opacity-baseline, 100%) * 0.9);
-	--opacity-ratio-keep-82: calc(var(--opacity-baseline, 100%) * 0.82);
-	--opacity-ratio-keep-80: calc(var(--opacity-baseline, 100%) * 0.8);
-	--opacity-ratio-keep-70: calc(var(--opacity-baseline, 100%) * 0.7);
-	--opacity-ratio-keep-68: calc(var(--opacity-baseline, 100%) * 0.68);
-	--opacity-ratio-keep-60: calc(var(--opacity-baseline, 100%) * 0.6);
-	--opacity-ratio-keep-55: calc(var(--opacity-baseline, 100%) * 0.55);
-	--opacity-ratio-keep-50: calc(var(--opacity-baseline, 100%) * 0.5);
-	--opacity-ratio-keep-45: calc(var(--opacity-baseline, 100%) * 0.45);
-	--opacity-ratio-keep-40: calc(var(--opacity-baseline, 100%) * 0.4);
-	--opacity-ratio-keep-35: calc(var(--opacity-baseline, 100%) * 0.35);
-	--opacity-ratio-keep-30: calc(var(--opacity-baseline, 100%) * 0.3);
-	--opacity-ratio-keep-25: calc(var(--opacity-baseline, 100%) * 0.25);
-	--opacity-ratio-keep-22: calc(var(--opacity-baseline, 100%) * 0.22);
-	--opacity-ratio-keep-20: calc(var(--opacity-baseline, 100%) * 0.2);
-	--opacity-ratio-keep-18: calc(var(--opacity-baseline, 100%) * 0.18);
-	--opacity-ratio-keep-15: calc(var(--opacity-baseline, 100%) * 0.15);
-	--opacity-ratio-keep-12: calc(var(--opacity-baseline, 100%) * 0.12);
-	--opacity-ratio-keep-10: calc(var(--opacity-baseline, 100%) * 0.1);
-	--opacity-ratio-keep-8: calc(var(--opacity-baseline, 100%) * 0.08);
-	--opacity-ratio-keep-5: calc(var(--opacity-baseline, 100%) * 0.05);
-	--opacity-ratio-keep-2: calc(var(--opacity-baseline, 100%) * 0.02);
+    // Below the baseline a rung keeps a share of it, so it is named by that
+    // share: `keep-60` is `b * 0.60`. Migrating a fixed `color-mix(… 60%,
+    // transparent)` to `keep-60` renders identically at a 100% baseline and
+    // follows the setting everywhere else. Rungs are added as sites migrate.
+    --opacity-ratio-keep-90: calc(var(--opacity-baseline, 100%) * 0.9);
+    --opacity-ratio-keep-82: calc(var(--opacity-baseline, 100%) * 0.82);
+    --opacity-ratio-keep-80: calc(var(--opacity-baseline, 100%) * 0.8);
+    --opacity-ratio-keep-70: calc(var(--opacity-baseline, 100%) * 0.7);
+    --opacity-ratio-keep-68: calc(var(--opacity-baseline, 100%) * 0.68);
+    --opacity-ratio-keep-60: calc(var(--opacity-baseline, 100%) * 0.6);
+    --opacity-ratio-keep-55: calc(var(--opacity-baseline, 100%) * 0.55);
+    --opacity-ratio-keep-50: calc(var(--opacity-baseline, 100%) * 0.5);
+    --opacity-ratio-keep-45: calc(var(--opacity-baseline, 100%) * 0.45);
+    --opacity-ratio-keep-40: calc(var(--opacity-baseline, 100%) * 0.4);
+    --opacity-ratio-keep-35: calc(var(--opacity-baseline, 100%) * 0.35);
+    --opacity-ratio-keep-30: calc(var(--opacity-baseline, 100%) * 0.3);
+    --opacity-ratio-keep-25: calc(var(--opacity-baseline, 100%) * 0.25);
+    --opacity-ratio-keep-22: calc(var(--opacity-baseline, 100%) * 0.22);
+    --opacity-ratio-keep-20: calc(var(--opacity-baseline, 100%) * 0.2);
+    --opacity-ratio-keep-18: calc(var(--opacity-baseline, 100%) * 0.18);
+    --opacity-ratio-keep-15: calc(var(--opacity-baseline, 100%) * 0.15);
+    --opacity-ratio-keep-12: calc(var(--opacity-baseline, 100%) * 0.12);
+    --opacity-ratio-keep-10: calc(var(--opacity-baseline, 100%) * 0.1);
+    --opacity-ratio-keep-8: calc(var(--opacity-baseline, 100%) * 0.08);
+    --opacity-ratio-keep-5: calc(var(--opacity-baseline, 100%) * 0.05);
+    --opacity-ratio-keep-2: calc(var(--opacity-baseline, 100%) * 0.02);
 
-	// The content stack's own rungs: the surface ladder 15 percentage points
-	// lighter, so the sheets sit on each other instead of reading as slabs. Kept
-	// apart from the shared rungs above so tuning the stack cannot move a panel.
-	--opacity-ratio-content: calc(
-		var(--opacity-baseline, 100%) + (100% - var(--opacity-baseline, 100%)) * 0.58
-	);
-	--opacity-ratio-content-selected: calc(
-		var(--opacity-baseline, 100%) + (100% - var(--opacity-baseline, 100%)) * 0.4
-	);
-	--opacity-ratio-content-muted: calc(
-		var(--opacity-baseline, 100%) + (100% - var(--opacity-baseline, 100%)) * 0.35
-	);
-	--opacity-ratio-content-alt: calc(
-		var(--opacity-baseline, 100%) + (100% - var(--opacity-baseline, 100%)) * 0.18
-	);
+    // The content stack's own rungs: the surface ladder 15 percentage points
+    // lighter, so the sheets sit on each other instead of reading as slabs. Kept
+    // apart from the shared rungs above so tuning the stack cannot move a panel.
+    --opacity-ratio-content: calc(
+        var(--opacity-baseline, 100%) + (100% - var(--opacity-baseline, 100%)) * 0.58
+    );
+    --opacity-ratio-content-selected: calc(
+        var(--opacity-baseline, 100%) + (100% - var(--opacity-baseline, 100%)) * 0.4
+    );
+    --opacity-ratio-content-muted: calc(
+        var(--opacity-baseline, 100%) + (100% - var(--opacity-baseline, 100%)) * 0.35
+    );
+    --opacity-ratio-content-alt: calc(
+        var(--opacity-baseline, 100%) + (100% - var(--opacity-baseline, 100%)) * 0.18
+    );
 
-	// The two bars: the same surface-3 base as the panels, forty points lighter
-	// so the app chrome sits well under the content it frames.
-	--opacity-ratio-bar: calc(
-		var(--opacity-baseline, 100%) + (100% - var(--opacity-baseline, 100%)) * 0.15
-	);
+    // The two bars: the same surface-3 base as the panels, forty points lighter
+    // so the app chrome sits well under the content it frames.
+    --opacity-ratio-bar: calc(
+        var(--opacity-baseline, 100%) + (100% - var(--opacity-baseline, 100%)) * 0.15
+    );
 }

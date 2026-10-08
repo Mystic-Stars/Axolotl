@@ -1065,7 +1065,7 @@ pub(crate) async fn seed_from_instance(
         else {
             continue;
         };
-        if tokio::fs::try_exists(&content_root(&state, &metadata)?.join(path))
+        if tokio::fs::try_exists(&content_root(state, metadata)?.join(path))
             .await?
         {
             continue;

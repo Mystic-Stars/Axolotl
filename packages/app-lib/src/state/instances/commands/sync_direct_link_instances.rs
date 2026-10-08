@@ -21,8 +21,7 @@ pub struct ExternalMinecraftRoot {
 }
 
 fn default_external_root_mode() -> ExternalGameDirMode {
-    // Existing string-only Settings entries used version isolation exclusively.
-    ExternalGameDirMode::Isolated
+    ExternalGameDirMode::Automatic
 }
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
@@ -43,6 +42,7 @@ pub(crate) async fn sync_direct_link_instances(
     roots: Vec<ExternalMinecraftRoot>,
     state: &State,
 ) -> crate::Result<DirectLinkSyncReport> {
+    tracing::debug!(roots = ?roots, "starting direct-link game directory sync");
     let mut report = DirectLinkSyncReport::default();
     let mut canonical_roots = Vec::new();
     let mut unavailable_roots = Vec::new();
@@ -111,6 +111,7 @@ pub(crate) async fn sync_direct_link_instances(
             if !has_minecraft_version_manifest(&folder) {
                 continue;
             }
+            tracing::debug!(root = %root.display(), version_dir = %folder.display(), mode = %mode.key(), "attempting direct-link instance sync");
             let folder_name = entry.file_name().to_string_lossy().to_string();
             let instance_folder = Path::new("versions").join(&folder_name);
             let source = detect_direct_link_source(root, &folder);
@@ -375,6 +376,7 @@ pub(crate) async fn sync_direct_link_instances(
         }
     }
 
+    tracing::debug!(report = ?report, "direct-link game directory sync finished");
     Ok(report)
 }
 

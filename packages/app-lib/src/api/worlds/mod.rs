@@ -317,10 +317,10 @@ async fn resolve_instance_data_dir(
     if let Some(metadata) =
         crate::state::get_instance(instance_id, &state.pool).await?
     {
-        return Ok(crate::state::instances::instance_content_root(
+        return crate::state::instances::instance_content_root(
             &state.directories,
             &metadata.instance,
-        )?);
+        );
     }
     Ok(state
         .directories
@@ -401,7 +401,7 @@ pub async fn get_singleplayer_world(
     )
     .await?;
     let mut world =
-        read_singleplayer_world(get_world_dir(&instance_dir, world)).await?;
+        read_singleplayer_world(get_world_dir(&instance_dir, world)?).await?;
 
     if let Some(data) = AttachedWorldData::get_for_world(
         &instance_id,
@@ -624,7 +624,7 @@ pub async fn rename_world(
     world: &str,
     new_name: &str,
 ) -> Result<()> {
-    let world = get_world_dir(instance, world);
+    let world = get_world_dir(instance, world)?;
     let level_dat_path = world.join("level.dat");
     if !level_dat_path.exists() {
         return Ok(());
@@ -655,7 +655,7 @@ pub async fn rename_world(
 }
 
 pub async fn reset_world_icon(instance: &Path, world: &str) -> Result<()> {
-    let world = get_world_dir(instance, world);
+    let world = get_world_dir(instance, world)?;
     let icon = world.join("icon.png");
     if let Some(_lock) = try_get_world_session_lock(&world).await? {
         let _ = io::remove_file(icon).await;
@@ -664,7 +664,7 @@ pub async fn reset_world_icon(instance: &Path, world: &str) -> Result<()> {
 }
 
 pub async fn backup_world(instance: &Path, world: &str) -> Result<u64> {
-    let world_dir = get_world_dir(instance, world);
+    let world_dir = get_world_dir(instance, world)?;
     let _lock = get_world_session_lock(&world_dir).await?;
     let backups_dir = instance.join("backups");
 
@@ -718,6 +718,17 @@ pub async fn backup_world(instance: &Path, world: &str) -> Result<u64> {
     Ok(io::metadata(output_path).await?.len())
 }
 
+fn truncate_to_char_boundary(value: &mut String, max_bytes: usize) {
+    if value.len() <= max_bytes {
+        return;
+    }
+    let mut cut = max_bytes;
+    while !value.is_char_boundary(cut) {
+        cut -= 1;
+    }
+    value.truncate(cut);
+}
+
 fn find_available_name(dir: &Path, file_name: &str, extension: &str) -> String {
     static RESERVED_WINDOWS_FILENAMES: LazyLock<Regex> = LazyLock::new(|| {
         RegexBuilder::new(r#"^.*\.|(?:COM|CLOCK\$|CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])(?:\..*)?$"#)
@@ -759,7 +770,7 @@ fn find_available_name(dir: &Path, file_name: &str, extension: &str) -> String {
     }
 
     if file_name.len() > 255 - extension.len() {
-        file_name.truncate(255 - extension.len());
+        truncate_to_char_boundary(&mut file_name, 255 - extension.len());
     }
 
     let mut current_attempt = file_name.clone();
@@ -767,7 +778,10 @@ fn find_available_name(dir: &Path, file_name: &str, extension: &str) -> String {
         if count != 0 {
             let with_count = format!(" ({count})");
             if file_name.len() > 255 - with_count.len() {
-                current_attempt.truncate(255 - with_count.len());
+                truncate_to_char_boundary(
+                    &mut current_attempt,
+                    255 - with_count.len(),
+                );
             }
             current_attempt.push_str(&with_count);
         }
@@ -785,7 +799,7 @@ fn find_available_name(dir: &Path, file_name: &str, extension: &str) -> String {
 }
 
 pub async fn delete_world(instance: &Path, world: &str) -> Result<()> {
-    let world = get_world_dir(instance, world);
+    let world = get_world_dir(instance, world)?;
     let lock = get_world_session_lock(&world).await?;
     let lock_path = world.join("session.lock");
 
@@ -808,8 +822,14 @@ pub async fn delete_world(instance: &Path, world: &str) -> Result<()> {
     Ok(())
 }
 
-fn get_world_dir(instance: &Path, world: &str) -> PathBuf {
-    instance.join("saves").join(world)
+fn get_world_dir(instance: &Path, world: &str) -> Result<PathBuf> {
+    if !matches!(
+        Path::new(world).components().collect::<Vec<_>>().as_slice(),
+        [std::path::Component::Normal(_)]
+    ) {
+        return Err(ErrorKind::InputError("Invalid world name".into()).into());
+    }
+    Ok(instance.join("saves").join(world))
 }
 
 async fn get_world_session_lock(world: &Path) -> Result<tokio::fs::File> {
@@ -953,7 +973,7 @@ pub async fn remove_server_from_instance(
     let (_, instance_path, game_dir_override) =
         resolve_instance_identity(instance_id, &state).await?;
     let instance_dir = resolve_instance_data_dir(
-        &instance_id,
+        instance_id,
         &instance_path,
         game_dir_override.as_deref(),
         &state,

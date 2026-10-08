@@ -9,5 +9,5 @@ import type { GcLaunchReport } from '@/helpers/instance'
 export const lastGcLaunchReport = ref<GcLaunchReport | null>(null)
 
 export function setLastGcLaunchReport(report: GcLaunchReport | null) {
-	lastGcLaunchReport.value = report
+    lastGcLaunchReport.value = report
 }

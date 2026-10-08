@@ -1,57 +1,60 @@
 <template>
-	<div v-bind="$attrs">
-		<div v-if="divider && (!!slots.title || !!slots.button)" class="flex items-center gap-4 mb-4">
-			<button
-				:class="
-					buttonClass ??
-					'group flex items-center gap-1 bg-transparent m-0 p-0 border-none cursor-pointer'
-				"
-				@click="() => (forceOpen ? undefined : toggledOpen ? close() : open())"
-			>
-				<slot name="button" :open="isOpen">
-					<div
-						class="flex items-center gap-1 whitespace-nowrap transition-colors text-[var(--color-text-default)] group-hover:text-[var(--color-text-primary)]"
-					>
-						<slot name="title" :open="isOpen" />
-						<DropdownIcon
-							v-if="!forceOpen"
-							class="size-5 transition-transform duration-300 shrink-0 text-[var(--color-text-tertiary)] group-hover:text-[var(--color-text-default)]"
-							:class="{ 'rotate-180': isOpen }"
-						/>
-					</div>
-				</slot>
-			</button>
-			<hr class="h-px w-full border-none bg-divider" aria-hidden="true" />
-		</div>
-		<button
-			v-else-if="!!slots.title || !!slots.button"
-			:class="buttonClass ?? 'flex flex-col gap-2 bg-transparent m-0 p-0 border-none'"
-			@click="() => (forceOpen ? undefined : toggledOpen ? close() : open())"
-		>
-			<slot name="button" :open="isOpen">
-				<div class="flex items-center gap-1 w-full text-[var(--color-text-primary)]">
-					<slot name="title" :open="isOpen" />
-					<DropdownIcon
-						v-if="!forceOpen"
-						class="ml-auto size-5 transition-transform duration-300 shrink-0 text-[var(--color-text-primary)]"
-						:class="{ 'rotate-180': isOpen }"
-					/>
-				</div>
-			</slot>
-			<slot name="summary" />
-		</button>
-		<div
-			class="accordion-content"
-			:class="{ open: isOpen, 'overflow-visible': overflowVisible && showOverflow }"
-			@transitionend="onTransitionEnd"
-		>
-			<div>
-				<div :class="contentClass ? contentClass : ''" :inert="!isOpen">
-					<slot />
-				</div>
-			</div>
-		</div>
-	</div>
+    <div v-bind="$attrs">
+        <div
+            v-if="divider && (!!slots.title || !!slots.button)"
+            class="flex items-center gap-4 mb-4"
+        >
+            <button
+                :class="
+                    buttonClass ??
+                    'group flex items-center gap-1 bg-transparent m-0 p-0 border-none cursor-pointer'
+                "
+                @click="() => (forceOpen ? undefined : toggledOpen ? close() : open())"
+            >
+                <slot name="button" :open="isOpen">
+                    <div
+                        class="flex items-center gap-1 whitespace-nowrap transition-colors text-[var(--color-text-default)] group-hover:text-[var(--color-text-primary)]"
+                    >
+                        <slot name="title" :open="isOpen" />
+                        <DropdownIcon
+                            v-if="!forceOpen"
+                            class="size-5 transition-transform duration-300 shrink-0 text-[var(--color-text-tertiary)] group-hover:text-[var(--color-text-default)]"
+                            :class="{ 'rotate-180': isOpen }"
+                        />
+                    </div>
+                </slot>
+            </button>
+            <hr class="h-px w-full border-none bg-divider" aria-hidden="true" />
+        </div>
+        <button
+            v-else-if="!!slots.title || !!slots.button"
+            :class="buttonClass ?? 'flex flex-col gap-2 bg-transparent m-0 p-0 border-none'"
+            @click="() => (forceOpen ? undefined : toggledOpen ? close() : open())"
+        >
+            <slot name="button" :open="isOpen">
+                <div class="flex items-center gap-1 w-full text-[var(--color-text-primary)]">
+                    <slot name="title" :open="isOpen" />
+                    <DropdownIcon
+                        v-if="!forceOpen"
+                        class="ml-auto size-5 transition-transform duration-300 shrink-0 text-[var(--color-text-primary)]"
+                        :class="{ 'rotate-180': isOpen }"
+                    />
+                </div>
+            </slot>
+            <slot name="summary" />
+        </button>
+        <div
+            class="accordion-content"
+            :class="{ open: isOpen, 'overflow-visible': overflowVisible && showOverflow }"
+            @transitionend="onTransitionEnd"
+        >
+            <div>
+                <div :class="contentClass ? contentClass : ''" :inert="!isOpen">
+                    <slot />
+                </div>
+            </div>
+        </div>
+    </div>
 </template>
 
 <script setup lang="ts">
@@ -59,26 +62,26 @@ import { DropdownIcon } from '@modrinth/assets'
 import { computed, ref, useSlots, watch } from 'vue'
 
 const props = withDefaults(
-	defineProps<{
-		openByDefault?: boolean
-		type?: 'standard' | 'outlined' | 'transparent'
-		buttonClass?: string
-		contentClass?: string
-		titleWrapperClass?: string
-		forceOpen?: boolean
-		overflowVisible?: boolean
-		divider?: boolean
-	}>(),
-	{
-		type: 'standard',
-		openByDefault: false,
-		buttonClass: null,
-		contentClass: null,
-		titleWrapperClass: null,
-		forceOpen: false,
-		overflowVisible: false,
-		divider: false,
-	},
+    defineProps<{
+        openByDefault?: boolean
+        type?: 'standard' | 'outlined' | 'transparent'
+        buttonClass?: string
+        contentClass?: string
+        titleWrapperClass?: string
+        forceOpen?: boolean
+        overflowVisible?: boolean
+        divider?: boolean
+    }>(),
+    {
+        type: 'standard',
+        openByDefault: false,
+        buttonClass: null,
+        contentClass: null,
+        titleWrapperClass: null,
+        forceOpen: false,
+        overflowVisible: false,
+        divider: false,
+    },
 )
 
 const toggledOpen = ref(props.openByDefault)
@@ -89,62 +92,62 @@ const emit = defineEmits(['onOpen', 'onClose'])
 const slots = useSlots()
 
 watch(
-	() => props.openByDefault,
-	(newValue) => {
-		if (newValue !== toggledOpen.value) {
-			toggledOpen.value = newValue
-		}
-	},
-	{ immediate: true },
+    () => props.openByDefault,
+    (newValue) => {
+        if (newValue !== toggledOpen.value) {
+            toggledOpen.value = newValue
+        }
+    },
+    { immediate: true },
 )
 
 function open() {
-	toggledOpen.value = true
-	emit('onOpen')
+    toggledOpen.value = true
+    emit('onOpen')
 }
 function close() {
-	showOverflow.value = false
-	toggledOpen.value = false
-	emit('onClose')
+    showOverflow.value = false
+    toggledOpen.value = false
+    emit('onClose')
 }
 function onTransitionEnd() {
-	if (isOpen.value) {
-		showOverflow.value = true
-	}
+    if (isOpen.value) {
+        showOverflow.value = true
+    }
 }
 
 defineExpose({
-	open,
-	close,
-	isOpen: toggledOpen,
+    open,
+    close,
+    isOpen: toggledOpen,
 })
 
 defineOptions({
-	inheritAttrs: false,
+    inheritAttrs: false,
 })
 </script>
 <style scoped>
 .accordion-content {
-	display: grid;
-	grid-template-rows: 0fr;
-	transition: grid-template-rows 0.3s cubic-bezier(0, 0.6, 0.3, 1);
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 0.3s cubic-bezier(0, 0.6, 0.3, 1);
 }
 
 @media (prefers-reduced-motion) {
-	.accordion-content {
-		transition: none !important;
-	}
+    .accordion-content {
+        transition: none !important;
+    }
 }
 
 .accordion-content.open {
-	grid-template-rows: 1fr;
+    grid-template-rows: 1fr;
 }
 
 .accordion-content > div {
-	overflow: hidden;
+    overflow: hidden;
 }
 
 .accordion-content.overflow-visible > div {
-	overflow: visible;
+    overflow: visible;
 }
 </style>

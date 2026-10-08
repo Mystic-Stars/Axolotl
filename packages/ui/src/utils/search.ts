@@ -6,1053 +6,1073 @@ import { type LocationQueryRaw, type LocationQueryValue, useRoute } from 'vue-ro
 
 import { defineMessage, useVIntl } from '../composables/i18n'
 import {
-	DEFAULT_MOD_LOADERS,
-	DEFAULT_PLUGIN_LOADERS,
-	DEFAULT_SHADER_LOADERS,
-	formatCategory,
-	formatCategoryHeader,
-	formatLoader,
+    DEFAULT_MOD_LOADERS,
+    DEFAULT_PLUGIN_LOADERS,
+    DEFAULT_SHADER_LOADERS,
+    formatCategory,
+    formatCategoryHeader,
+    formatLoader,
 } from './tag-messages.ts'
 
 type BaseOption = {
-	id: string
-	formatted_name?: string
-	toggle_group?: string
-	icon?: string | Component
-	icon_url?: string
-	query_value?: string
-	group?: string
+    id: string
+    formatted_name?: string
+    toggle_group?: string
+    icon?: string | Component
+    icon_url?: string
+    query_value?: string
+    group?: string
 }
 
 export type FilterOption = BaseOption &
-	(
-		| { method: 'or' | 'and'; value: string }
-		| { method: 'environment'; environment: 'client' | 'server' }
-	)
+    (
+        | { method: 'or' | 'and'; value: string }
+        | { method: 'environment'; environment: 'client' | 'server' }
+    )
 
 export type FilterType = {
-	id: string
-	formatted_name: string
-	options: FilterOption[]
-	supported_project_types: ProjectType[]
-	query_param: string
-	supports_negative_filter: boolean
-	toggle_groups?: {
-		id: string
-		formatted_name: string
-		query_param?: string
-	}[]
-	searchable: boolean
-	allows_custom_options?: 'and' | 'or'
-	custom_option_field?: string
-	ordering?: number
+    id: string
+    formatted_name: string
+    options: FilterOption[]
+    supported_project_types: ProjectType[]
+    query_param: string
+    supports_negative_filter: boolean
+    toggle_groups?: {
+        id: string
+        formatted_name: string
+        query_param?: string
+    }[]
+    searchable: boolean
+    allows_custom_options?: 'and' | 'or'
+    custom_option_field?: string
+    ordering?: number
 } & (
-	| {
-			display: 'all' | 'scrollable' | 'none' | 'toggle' | 'depends-on-project'
-	  }
-	| {
-			display: 'expandable'
-			default_values: string[]
-	  }
+    | {
+          display: 'all' | 'scrollable' | 'none' | 'toggle' | 'depends-on-project'
+      }
+    | {
+          display: 'expandable'
+          default_values: string[]
+      }
 )
 
 export type FilterValue = {
-	type: string
-	option: string
-	negative?: boolean
+    type: string
+    option: string
+    negative?: boolean
 }
 
 export type DependencyType = 'required' | 'optional' | 'embedded'
 
 const DEPENDENCY_TYPE_FIELDS: Record<DependencyType, string> = {
-	required: 'required_dependency_project_ids',
-	optional: 'optional_dependency_project_ids',
-	embedded: 'embedded_dependency_project_ids',
+    required: 'required_dependency_project_ids',
+    optional: 'optional_dependency_project_ids',
+    embedded: 'embedded_dependency_project_ids',
 }
 
 const DEPENDENCY_TYPES = Object.keys(DEPENDENCY_TYPE_FIELDS) as DependencyType[]
 
 export function formatDependencyProjectFilterOption(
-	projectId: string,
-	dependencyTypes: readonly DependencyType[],
+    projectId: string,
+    dependencyTypes: readonly DependencyType[],
 ): string {
-	return `${dependencyTypes.join(',')}:${projectId}`
+    return `${dependencyTypes.join(',')}:${projectId}`
 }
 
 export function parseDependencyProjectFilterOption(option: string): {
-	projectId: string
-	dependencyTypes: DependencyType[]
+    projectId: string
+    dependencyTypes: DependencyType[]
 } {
-	const separatorIndex = option.indexOf(':')
-	if (separatorIndex === -1) return { projectId: option, dependencyTypes: ['required'] }
+    const separatorIndex = option.indexOf(':')
+    if (separatorIndex === -1) return { projectId: option, dependencyTypes: ['required'] }
 
-	const dependencyTypes = option
-		.slice(0, separatorIndex)
-		.split(',')
-		.filter((type): type is DependencyType => DEPENDENCY_TYPES.includes(type as DependencyType))
-	const projectId = option.slice(separatorIndex + 1)
+    const dependencyTypes = option
+        .slice(0, separatorIndex)
+        .split(',')
+        .filter((type): type is DependencyType => DEPENDENCY_TYPES.includes(type as DependencyType))
+    const projectId = option.slice(separatorIndex + 1)
 
-	if (dependencyTypes.length === 0 || !projectId) {
-		return { projectId: option, dependencyTypes: ['required'] }
-	}
+    if (dependencyTypes.length === 0 || !projectId) {
+        return { projectId: option, dependencyTypes: ['required'] }
+    }
 
-	return { projectId, dependencyTypes }
+    return { projectId, dependencyTypes }
 }
 
 export type EnvironmentSearchOverride =
-	{ mode: 'include'; values: string[] } | { mode: 'exclude'; values: string[] }
+    { mode: 'include'; values: string[] } | { mode: 'exclude'; values: string[] }
 
 export const LOADER_FILTER_TYPES = [
-	'mod_loader',
-	'plugin_loader',
-	'modpack_loader',
-	'shader_loader',
-	'plugin_platform',
+    'mod_loader',
+    'plugin_loader',
+    'modpack_loader',
+    'shader_loader',
+    'plugin_platform',
 ] as const
 
 export interface GameVersion {
-	version: string
-	version_type: 'release' | 'snapshot' | 'alpha' | 'beta'
-	date: string
-	major: boolean
+    version: string
+    version_type: 'release' | 'snapshot' | 'alpha' | 'beta'
+    date: string
+    major: boolean
 }
 
 export type ProjectType =
-	'mod' | 'modpack' | 'resourcepack' | 'shader' | 'datapack' | 'plugin' | 'server' | 'project'
+    'mod' | 'modpack' | 'resourcepack' | 'shader' | 'datapack' | 'plugin' | 'server' | 'project'
 
 const ALL_PROJECT_TYPES: ProjectType[] = [
-	'mod',
-	'modpack',
-	'resourcepack',
-	'shader',
-	'datapack',
-	'plugin',
-	'server',
+    'mod',
+    'modpack',
+    'resourcepack',
+    'shader',
+    'datapack',
+    'plugin',
+    'server',
 ]
 
 export interface Tags {
-	gameVersions: Labrinth.Tags.v2.GameVersion[]
-	loaders: Labrinth.Tags.v2.Loader[]
-	categories: Array<
-		Labrinth.Tags.v2.Category & {
-			display_name?: string
-			header_display_name?: string
-			icon_url?: string
-			display_index?: number
-		}
-	>
+    gameVersions: Labrinth.Tags.v2.GameVersion[]
+    loaders: Labrinth.Tags.v2.Loader[]
+    categories: Array<
+        Labrinth.Tags.v2.Category & {
+            display_name?: string
+            header_display_name?: string
+            icon_url?: string
+            display_index?: number
+        }
+    >
 }
 
 export interface SortType {
-	display: string
-	name: string
+    display: string
+    name: string
 }
 
 const PLUGIN_PLATFORMS = ['bungeecord', 'waterfall', 'velocity', 'geyser']
 
 const PROJECT_TYPE_EXCLUSION_FILTERS: Partial<Record<ProjectType, ProjectType[]>> = {
-	mod: ['plugin', 'datapack'],
-	plugin: ['mod', 'datapack'],
-	datapack: ['mod', 'plugin'],
+    mod: ['plugin', 'datapack'],
+    plugin: ['mod', 'datapack'],
+    datapack: ['mod', 'plugin'],
 }
 
 export function useSearch(
-	projectTypes: Ref<ProjectType[]>,
-	tags: Ref<Tags>,
-	providedFilters: Ref<FilterValue[]>,
-	environmentOverride: Ref<EnvironmentSearchOverride | undefined> = ref(undefined),
+    projectTypes: Ref<ProjectType[]>,
+    tags: Ref<Tags>,
+    providedFilters: Ref<FilterValue[]>,
+    environmentOverride: Ref<EnvironmentSearchOverride | undefined> = ref(undefined),
 ) {
-	const query = ref('')
-	const maxResults = ref(20)
+    const query = ref('')
+    const maxResults = ref(20)
 
-	const sortTypes: readonly SortType[] = readonly([
-		{ display: 'Relevance', name: 'relevance' },
-		{ display: 'Downloads', name: 'downloads' },
-		{ display: 'Followers', name: 'follows' },
-		{ display: 'Date published', name: 'newest' },
-		{ display: 'Date updated', name: 'updated' },
-	])
+    const sortTypes: readonly SortType[] = readonly([
+        { display: 'Relevance', name: 'relevance' },
+        { display: 'Downloads', name: 'downloads' },
+        { display: 'Followers', name: 'follows' },
+        { display: 'Date published', name: 'newest' },
+        { display: 'Date updated', name: 'updated' },
+    ])
 
-	const currentSortType: Ref<SortType> = ref(sortTypes[0])
+    const currentSortType: Ref<SortType> = ref(sortTypes[0])
 
-	const route = useRoute()
-	const currentPage = ref(1)
+    const route = useRoute()
+    const currentPage = ref(1)
 
-	const currentFilters: Ref<FilterValue[]> = ref<FilterValue[]>([])
-	const toggledGroups = ref<string[]>([])
-	const overriddenProvidedFilterTypes = ref<string[]>([])
+    const currentFilters: Ref<FilterValue[]> = ref<FilterValue[]>([])
+    const toggledGroups = ref<string[]>([])
+    const overriddenProvidedFilterTypes = ref<string[]>([])
 
-	const { formatMessage, locale } = useVIntl()
-	const dependsOnFilterName = defineMessage({
-		id: 'search.filter_type.compatible_dependency_project_ids',
-		defaultMessage: 'Depends on',
-	})
-	const includedContentFilterName = defineMessage({
-		id: 'search.filter_type.included_content',
-		defaultMessage: 'Included content',
-	})
-	const formatCategoryName = (categoryName: string) => {
-		return formatCategory(formatMessage, categoryName)
-	}
+    const { formatMessage, locale } = useVIntl()
+    const dependsOnFilterName = defineMessage({
+        id: 'search.filter_type.compatible_dependency_project_ids',
+        defaultMessage: 'Depends on',
+    })
+    const includedContentFilterName = defineMessage({
+        id: 'search.filter_type.included_content',
+        defaultMessage: 'Included content',
+    })
+    const formatCategoryName = (categoryName: string) => {
+        return formatCategory(formatMessage, categoryName)
+    }
 
-	const formatExcludeProjectTypeLabel = (projectType: ProjectType): string => {
-		switch (projectType) {
-			case 'mod':
-				return formatMessage(
-					defineMessage({
-						id: 'search.filter_type.advanced.exclude_mod',
-						defaultMessage: 'Exclude mods',
-					}),
-				)
-			case 'plugin':
-				return formatMessage(
-					defineMessage({
-						id: 'search.filter_type.advanced.exclude_plugin',
-						defaultMessage: 'Exclude plugins',
-					}),
-				)
-			case 'datapack':
-				return formatMessage(
-					defineMessage({
-						id: 'search.filter_type.advanced.exclude_datapack',
-						defaultMessage: 'Exclude data packs',
-					}),
-				)
-			default:
-				return projectType
-		}
-	}
+    const formatExcludeProjectTypeLabel = (projectType: ProjectType): string => {
+        switch (projectType) {
+            case 'mod':
+                return formatMessage(
+                    defineMessage({
+                        id: 'search.filter_type.advanced.exclude_mod',
+                        defaultMessage: 'Exclude mods',
+                    }),
+                )
+            case 'plugin':
+                return formatMessage(
+                    defineMessage({
+                        id: 'search.filter_type.advanced.exclude_plugin',
+                        defaultMessage: 'Exclude plugins',
+                    }),
+                )
+            case 'datapack':
+                return formatMessage(
+                    defineMessage({
+                        id: 'search.filter_type.advanced.exclude_datapack',
+                        defaultMessage: 'Exclude data packs',
+                    }),
+                )
+            default:
+                return projectType
+        }
+    }
 
-	const filters = computed(() => {
-		const categoryFilters: Record<string, FilterType> = {}
-		const categories = sortedCategories(tags.value, formatCategoryName, locale.value).sort(
-			(a, b) => {
-				if (
-					a.header === b.header &&
-					a.display_index !== undefined &&
-					b.display_index !== undefined &&
-					a.display_index !== b.display_index
-				) {
-					return a.display_index - b.display_index
-				}
-				return 0
-			},
-		)
-		for (const category of categories) {
-			const filterTypeId = `category_${category.project_type}_${category.header}`
-			if (!categoryFilters[filterTypeId]) {
-				categoryFilters[filterTypeId] = {
-					id: filterTypeId,
-					formatted_name:
-						category.header_display_name ?? formatCategoryHeader(formatMessage, category.header),
-					supported_project_types:
-						category.project_type === 'mod'
-							? ['mod', 'plugin', 'datapack']
-							: ([category.project_type] as ProjectType[]),
-					display: 'all',
-					query_param: category.header === 'resolutions' ? 'g' : 'f',
-					supports_negative_filter: true,
-					searchable: false,
-					options: [],
-				}
-			}
-			categoryFilters[filterTypeId].options.push({
-				id: category.name,
-				formatted_name: category.display_name ?? formatCategory(formatMessage, category.name),
-				icon: getCategoryIcon(category.name),
-				icon_url: category.icon_url,
-				value: `categories:${category.name}`,
-				method: category.header === 'resolutions' ? 'or' : 'and',
-			})
-		}
+    const filters = computed(() => {
+        const categoryFilters: Record<string, FilterType> = {}
+        const categories = sortedCategories(tags.value, formatCategoryName, locale.value).sort(
+            (a, b) => {
+                if (
+                    a.header === b.header &&
+                    a.display_index !== undefined &&
+                    b.display_index !== undefined &&
+                    a.display_index !== b.display_index
+                ) {
+                    return a.display_index - b.display_index
+                }
+                return 0
+            },
+        )
+        for (const category of categories) {
+            const filterTypeId = `category_${category.project_type}_${category.header}`
+            if (!categoryFilters[filterTypeId]) {
+                categoryFilters[filterTypeId] = {
+                    id: filterTypeId,
+                    formatted_name:
+                        category.header_display_name ??
+                        formatCategoryHeader(formatMessage, category.header),
+                    supported_project_types:
+                        category.project_type === 'mod'
+                            ? ['mod', 'plugin', 'datapack']
+                            : ([category.project_type] as ProjectType[]),
+                    display: 'all',
+                    query_param: category.header === 'resolutions' ? 'g' : 'f',
+                    supports_negative_filter: true,
+                    searchable: false,
+                    options: [],
+                }
+            }
+            categoryFilters[filterTypeId].options.push({
+                id: category.name,
+                formatted_name:
+                    category.display_name ?? formatCategory(formatMessage, category.name),
+                icon: getCategoryIcon(category.name),
+                icon_url: category.icon_url,
+                value: `categories:${category.name}`,
+                method: category.header === 'resolutions' ? 'or' : 'and',
+            })
+        }
 
-		const excludeableProjectTypes: ProjectType[] = []
-		for (const projectType of projectTypes.value) {
-			for (const target of PROJECT_TYPE_EXCLUSION_FILTERS[projectType] ?? []) {
-				if (!excludeableProjectTypes.includes(target)) {
-					excludeableProjectTypes.push(target)
-				}
-			}
-		}
+        const excludeableProjectTypes: ProjectType[] = []
+        for (const projectType of projectTypes.value) {
+            for (const target of PROJECT_TYPE_EXCLUSION_FILTERS[projectType] ?? []) {
+                if (!excludeableProjectTypes.includes(target)) {
+                    excludeableProjectTypes.push(target)
+                }
+            }
+        }
 
-		const filterTypes: FilterType[] = [
-			...Object.values(categoryFilters),
-			{
-				id: 'compatible_dependency_project_ids',
-				formatted_name: formatMessage(
-					projectTypes.value.includes('modpack') ? includedContentFilterName : dependsOnFilterName,
-				),
-				supported_project_types: ALL_PROJECT_TYPES,
-				query_param: 'dep',
-				supports_negative_filter: true,
-				display: 'depends-on-project',
-				searchable: false,
-				options: [],
-				allows_custom_options: 'and',
-				custom_option_field: 'compatible_dependency_project_ids',
-				ordering: projectTypes.value.includes('modpack') ? undefined : -999,
-			},
-			{
-				id: 'environment',
-				formatted_name: formatMessage(
-					defineMessage({
-						id: 'search.filter_type.environment',
-						defaultMessage: 'Environment',
-					}),
-				),
-				supported_project_types: ['mod', 'modpack'],
-				display: 'all',
-				query_param: 'e',
-				supports_negative_filter: false,
-				searchable: false,
-				options: [
-					{
-						id: 'client',
-						formatted_name: formatMessage(
-							defineMessage({
-								id: 'search.filter_type.environment.client',
-								defaultMessage: 'Client',
-							}),
-						),
-						icon: ClientIcon,
-						method: 'environment',
-						environment: 'client',
-					},
-					{
-						id: 'server',
-						formatted_name: formatMessage(
-							defineMessage({
-								id: 'search.filter_type.environment.server',
-								defaultMessage: 'Server',
-							}),
-						),
-						icon: ServerIcon,
-						method: 'environment',
-						environment: 'server',
-					},
-				],
-			},
-			{
-				id: 'game_version',
-				formatted_name: formatMessage(
-					defineMessage({
-						id: 'search.filter_type.game_version',
-						defaultMessage: 'Game version',
-					}),
-				),
-				supported_project_types: ALL_PROJECT_TYPES,
-				display: 'scrollable',
-				query_param: 'v',
-				supports_negative_filter: false,
-				toggle_groups: [
-					{
-						id: 'all_versions',
-						formatted_name: formatMessage(
-							defineMessage({
-								id: 'search.filter_type.game_version.all_versions',
-								defaultMessage: 'Show all versions',
-							}),
-						),
-						query_param: 'h',
-					},
-				],
-				searchable: true,
-				options: tags.value.gameVersions.map((gameVersion) => ({
-					id: gameVersion.version,
-					toggle_group: gameVersion.version_type !== 'release' ? 'all_versions' : undefined,
-					value: `game_versions:${gameVersion.version}`,
-					query_value: gameVersion.version,
-					method: 'or',
-				})),
-				ordering: projectTypes.value.includes('mod')
-					? 2
-					: projectTypes.value.includes('shader')
-						? -1
-						: undefined,
-			},
-			{
-				id: 'mod_loader',
-				formatted_name: formatMessage(
-					defineMessage({
-						id: 'search.filter_type.mod_loader',
-						defaultMessage: 'Loader',
-					}),
-				),
-				supported_project_types: ['mod'],
-				display: 'expandable',
-				query_param: 'g',
-				supports_negative_filter: true,
-				default_values: DEFAULT_MOD_LOADERS,
-				searchable: false,
-				options: tags.value.loaders
-					.filter(
-						(loader) =>
-							loader.supported_project_types.includes('mod') &&
-							!loader.supported_project_types.includes('plugin') &&
-							!loader.supported_project_types.includes('datapack'),
-					)
-					.map((loader) => {
-						return {
-							id: loader.name,
-							formatted_name: formatLoader(formatMessage, loader.name),
-							icon: getLoaderIcon(loader.name),
-							method: 'or',
-							value: `categories:${loader.name}`,
-						}
-					}),
-				ordering: projectTypes.value.includes('mod') ? 1 : undefined,
-			},
-			{
-				id: 'modpack_loader',
-				formatted_name: formatMessage(
-					defineMessage({
-						id: 'search.filter_type.modpack_loader',
-						defaultMessage: 'Loader',
-					}),
-				),
-				supported_project_types: ['modpack'],
-				display: 'all',
-				query_param: 'g',
-				supports_negative_filter: true,
-				searchable: false,
-				options: tags.value.loaders
-					.filter((loader) => loader.supported_project_types.includes('modpack'))
-					.map((loader) => {
-						return {
-							id: loader.name,
-							formatted_name: formatLoader(formatMessage, loader.name),
-							icon: getLoaderIcon(loader.name),
-							method: 'or',
-							value: `categories:${loader.name}`,
-						}
-					}),
-			},
-			{
-				id: 'plugin_loader',
-				formatted_name: formatMessage(
-					defineMessage({
-						id: 'search.filter_type.plugin_loader',
-						defaultMessage: 'Loader',
-					}),
-				),
-				supported_project_types: ['plugin'],
-				display: 'expandable',
-				default_values: DEFAULT_PLUGIN_LOADERS,
-				query_param: 'g',
-				supports_negative_filter: true,
-				searchable: false,
-				options: tags.value.loaders
-					.filter(
-						(loader) =>
-							loader.supported_project_types.includes('plugin') &&
-							!PLUGIN_PLATFORMS.includes(loader.name),
-					)
-					.map((loader) => {
-						return {
-							id: loader.name,
-							formatted_name: formatLoader(formatMessage, loader.name),
-							icon: getLoaderIcon(loader.name),
-							method: 'or',
-							value: `categories:${loader.name}`,
-						}
-					}),
-			},
-			{
-				id: 'plugin_platform',
-				formatted_name: formatMessage(
-					defineMessage({
-						id: 'search.filter_type.plugin_platform',
-						defaultMessage: 'Platform',
-					}),
-				),
-				supported_project_types: ['plugin'],
-				display: 'all',
-				query_param: 'g',
-				supports_negative_filter: true,
-				searchable: false,
-				options: tags.value.loaders
-					.filter((loader) => PLUGIN_PLATFORMS.includes(loader.name))
-					.map((loader) => {
-						return {
-							id: loader.name,
-							formatted_name: formatLoader(formatMessage, loader.name),
-							icon: getLoaderIcon(loader.name),
-							method: 'or',
-							value: `categories:${loader.name}`,
-						}
-					}),
-			},
-			{
-				id: 'shader_loader',
-				formatted_name: formatMessage(
-					defineMessage({
-						id: 'search.filter_type.shader_loader',
-						defaultMessage: 'Loader',
-					}),
-				),
-				supported_project_types: ['shader'],
-				query_param: 'g',
-				supports_negative_filter: true,
-				searchable: false,
-				display: 'expandable',
-				default_values: DEFAULT_SHADER_LOADERS,
-				options: tags.value.loaders
-					.filter((loader) => loader.supported_project_types.includes('shader'))
-					.map((loader) => {
-						return {
-							id: loader.name,
-							formatted_name: formatLoader(formatMessage, loader.name),
-							icon: getLoaderIcon(loader.name),
-							method: 'or',
-							value: `categories:${loader.name}`,
-						}
-					}),
-			},
-			{
-				id: 'license',
-				formatted_name: formatMessage(
-					defineMessage({ id: 'search.filter_type.license', defaultMessage: 'License' }),
-				),
-				supported_project_types: ['mod', 'modpack', 'resourcepack', 'shader', 'plugin', 'datapack'],
-				query_param: 'l',
-				supports_negative_filter: true,
-				display: 'all',
-				searchable: false,
-				options: [
-					{
-						id: 'open_source',
-						formatted_name: formatMessage(
-							defineMessage({
-								id: 'search.filter_type.license.open_source',
-								defaultMessage: 'Open source',
-							}),
-						),
-						method: 'and',
-						value: 'open_source:true',
-					},
-				],
-			},
-			{
-				id: 'project_id',
-				formatted_name: formatMessage(
-					defineMessage({
-						id: 'search.filter_type.project_id',
-						defaultMessage: 'Project ID',
-					}),
-				),
-				supported_project_types: ALL_PROJECT_TYPES,
-				query_param: 'pid',
-				supports_negative_filter: true,
-				display: 'none',
-				searchable: false,
-				options: [],
-				allows_custom_options: 'and',
-			},
-			{
-				id: 'advanced',
-				formatted_name: formatMessage(
-					defineMessage({
-						id: 'search.filter_type.advanced',
-						defaultMessage: 'Advanced',
-					}),
-				),
-				supported_project_types: ['mod', 'plugin', 'datapack'],
-				display: 'toggle',
-				query_param: 'a',
-				searchable: false,
-				ordering: -1000,
-				options: excludeableProjectTypes.map((target) => ({
-					id: target,
-					formatted_name: formatExcludeProjectTypeLabel(target),
-					method: 'and',
-					value: `all_project_types:${mapProjectTypeToSearch(target)}`,
-				})),
-			},
-		]
+        const filterTypes: FilterType[] = [
+            ...Object.values(categoryFilters),
+            {
+                id: 'compatible_dependency_project_ids',
+                formatted_name: formatMessage(
+                    projectTypes.value.includes('modpack')
+                        ? includedContentFilterName
+                        : dependsOnFilterName,
+                ),
+                supported_project_types: ALL_PROJECT_TYPES,
+                query_param: 'dep',
+                supports_negative_filter: true,
+                display: 'depends-on-project',
+                searchable: false,
+                options: [],
+                allows_custom_options: 'and',
+                custom_option_field: 'compatible_dependency_project_ids',
+                ordering: projectTypes.value.includes('modpack') ? undefined : -999,
+            },
+            {
+                id: 'environment',
+                formatted_name: formatMessage(
+                    defineMessage({
+                        id: 'search.filter_type.environment',
+                        defaultMessage: 'Environment',
+                    }),
+                ),
+                supported_project_types: ['mod', 'modpack'],
+                display: 'all',
+                query_param: 'e',
+                supports_negative_filter: false,
+                searchable: false,
+                options: [
+                    {
+                        id: 'client',
+                        formatted_name: formatMessage(
+                            defineMessage({
+                                id: 'search.filter_type.environment.client',
+                                defaultMessage: 'Client',
+                            }),
+                        ),
+                        icon: ClientIcon,
+                        method: 'environment',
+                        environment: 'client',
+                    },
+                    {
+                        id: 'server',
+                        formatted_name: formatMessage(
+                            defineMessage({
+                                id: 'search.filter_type.environment.server',
+                                defaultMessage: 'Server',
+                            }),
+                        ),
+                        icon: ServerIcon,
+                        method: 'environment',
+                        environment: 'server',
+                    },
+                ],
+            },
+            {
+                id: 'game_version',
+                formatted_name: formatMessage(
+                    defineMessage({
+                        id: 'search.filter_type.game_version',
+                        defaultMessage: 'Game version',
+                    }),
+                ),
+                supported_project_types: ALL_PROJECT_TYPES,
+                display: 'scrollable',
+                query_param: 'v',
+                supports_negative_filter: false,
+                toggle_groups: [
+                    {
+                        id: 'all_versions',
+                        formatted_name: formatMessage(
+                            defineMessage({
+                                id: 'search.filter_type.game_version.all_versions',
+                                defaultMessage: 'Show all versions',
+                            }),
+                        ),
+                        query_param: 'h',
+                    },
+                ],
+                searchable: true,
+                options: tags.value.gameVersions.map((gameVersion) => ({
+                    id: gameVersion.version,
+                    toggle_group:
+                        gameVersion.version_type !== 'release' ? 'all_versions' : undefined,
+                    value: `game_versions:${gameVersion.version}`,
+                    query_value: gameVersion.version,
+                    method: 'or',
+                })),
+                ordering: projectTypes.value.includes('mod')
+                    ? 2
+                    : projectTypes.value.includes('shader')
+                      ? -1
+                      : undefined,
+            },
+            {
+                id: 'mod_loader',
+                formatted_name: formatMessage(
+                    defineMessage({
+                        id: 'search.filter_type.mod_loader',
+                        defaultMessage: 'Loader',
+                    }),
+                ),
+                supported_project_types: ['mod'],
+                display: 'expandable',
+                query_param: 'g',
+                supports_negative_filter: true,
+                default_values: DEFAULT_MOD_LOADERS,
+                searchable: false,
+                options: tags.value.loaders
+                    .filter(
+                        (loader) =>
+                            loader.supported_project_types.includes('mod') &&
+                            !loader.supported_project_types.includes('plugin') &&
+                            !loader.supported_project_types.includes('datapack'),
+                    )
+                    .map((loader) => {
+                        return {
+                            id: loader.name,
+                            formatted_name: formatLoader(formatMessage, loader.name),
+                            icon: getLoaderIcon(loader.name),
+                            method: 'or',
+                            value: `categories:${loader.name}`,
+                        }
+                    }),
+                ordering: projectTypes.value.includes('mod') ? 1 : undefined,
+            },
+            {
+                id: 'modpack_loader',
+                formatted_name: formatMessage(
+                    defineMessage({
+                        id: 'search.filter_type.modpack_loader',
+                        defaultMessage: 'Loader',
+                    }),
+                ),
+                supported_project_types: ['modpack'],
+                display: 'all',
+                query_param: 'g',
+                supports_negative_filter: true,
+                searchable: false,
+                options: tags.value.loaders
+                    .filter((loader) => loader.supported_project_types.includes('modpack'))
+                    .map((loader) => {
+                        return {
+                            id: loader.name,
+                            formatted_name: formatLoader(formatMessage, loader.name),
+                            icon: getLoaderIcon(loader.name),
+                            method: 'or',
+                            value: `categories:${loader.name}`,
+                        }
+                    }),
+            },
+            {
+                id: 'plugin_loader',
+                formatted_name: formatMessage(
+                    defineMessage({
+                        id: 'search.filter_type.plugin_loader',
+                        defaultMessage: 'Loader',
+                    }),
+                ),
+                supported_project_types: ['plugin'],
+                display: 'expandable',
+                default_values: DEFAULT_PLUGIN_LOADERS,
+                query_param: 'g',
+                supports_negative_filter: true,
+                searchable: false,
+                options: tags.value.loaders
+                    .filter(
+                        (loader) =>
+                            loader.supported_project_types.includes('plugin') &&
+                            !PLUGIN_PLATFORMS.includes(loader.name),
+                    )
+                    .map((loader) => {
+                        return {
+                            id: loader.name,
+                            formatted_name: formatLoader(formatMessage, loader.name),
+                            icon: getLoaderIcon(loader.name),
+                            method: 'or',
+                            value: `categories:${loader.name}`,
+                        }
+                    }),
+            },
+            {
+                id: 'plugin_platform',
+                formatted_name: formatMessage(
+                    defineMessage({
+                        id: 'search.filter_type.plugin_platform',
+                        defaultMessage: 'Platform',
+                    }),
+                ),
+                supported_project_types: ['plugin'],
+                display: 'all',
+                query_param: 'g',
+                supports_negative_filter: true,
+                searchable: false,
+                options: tags.value.loaders
+                    .filter((loader) => PLUGIN_PLATFORMS.includes(loader.name))
+                    .map((loader) => {
+                        return {
+                            id: loader.name,
+                            formatted_name: formatLoader(formatMessage, loader.name),
+                            icon: getLoaderIcon(loader.name),
+                            method: 'or',
+                            value: `categories:${loader.name}`,
+                        }
+                    }),
+            },
+            {
+                id: 'shader_loader',
+                formatted_name: formatMessage(
+                    defineMessage({
+                        id: 'search.filter_type.shader_loader',
+                        defaultMessage: 'Loader',
+                    }),
+                ),
+                supported_project_types: ['shader'],
+                query_param: 'g',
+                supports_negative_filter: true,
+                searchable: false,
+                display: 'expandable',
+                default_values: DEFAULT_SHADER_LOADERS,
+                options: tags.value.loaders
+                    .filter((loader) => loader.supported_project_types.includes('shader'))
+                    .map((loader) => {
+                        return {
+                            id: loader.name,
+                            formatted_name: formatLoader(formatMessage, loader.name),
+                            icon: getLoaderIcon(loader.name),
+                            method: 'or',
+                            value: `categories:${loader.name}`,
+                        }
+                    }),
+            },
+            {
+                id: 'license',
+                formatted_name: formatMessage(
+                    defineMessage({ id: 'search.filter_type.license', defaultMessage: 'License' }),
+                ),
+                supported_project_types: [
+                    'mod',
+                    'modpack',
+                    'resourcepack',
+                    'shader',
+                    'plugin',
+                    'datapack',
+                ],
+                query_param: 'l',
+                supports_negative_filter: true,
+                display: 'all',
+                searchable: false,
+                options: [
+                    {
+                        id: 'open_source',
+                        formatted_name: formatMessage(
+                            defineMessage({
+                                id: 'search.filter_type.license.open_source',
+                                defaultMessage: 'Open source',
+                            }),
+                        ),
+                        method: 'and',
+                        value: 'open_source:true',
+                    },
+                ],
+            },
+            {
+                id: 'project_id',
+                formatted_name: formatMessage(
+                    defineMessage({
+                        id: 'search.filter_type.project_id',
+                        defaultMessage: 'Project ID',
+                    }),
+                ),
+                supported_project_types: ALL_PROJECT_TYPES,
+                query_param: 'pid',
+                supports_negative_filter: true,
+                display: 'none',
+                searchable: false,
+                options: [],
+                allows_custom_options: 'and',
+            },
+            {
+                id: 'advanced',
+                formatted_name: formatMessage(
+                    defineMessage({
+                        id: 'search.filter_type.advanced',
+                        defaultMessage: 'Advanced',
+                    }),
+                ),
+                supported_project_types: ['mod', 'plugin', 'datapack'],
+                display: 'toggle',
+                query_param: 'a',
+                searchable: false,
+                ordering: -1000,
+                options: excludeableProjectTypes.map((target) => ({
+                    id: target,
+                    formatted_name: formatExcludeProjectTypeLabel(target),
+                    method: 'and',
+                    value: `all_project_types:${mapProjectTypeToSearch(target)}`,
+                })),
+            },
+        ]
 
-		return filterTypes
-			.filter((filterType) =>
-				filterType.supported_project_types.some((projectType) =>
-					projectTypes.value.includes(projectType),
-				),
-			)
-			.sort((a, b) => (b.ordering ?? 0) - (a.ordering ?? 0))
-	})
+        return filterTypes
+            .filter((filterType) =>
+                filterType.supported_project_types.some((projectType) =>
+                    projectTypes.value.includes(projectType),
+                ),
+            )
+            .sort((a, b) => (b.ordering ?? 0) - (a.ordering ?? 0))
+    })
 
-	const newFilters = computed(() => {
-		const validProvidedFilters = providedFilters.value.filter(
-			(providedFilter) => !overriddenProvidedFilterTypes.value.includes(providedFilter.type),
-		)
-		const filteredFilters = currentFilters.value.filter(
-			(userFilter) =>
-				!validProvidedFilters.some((providedFilter) => providedFilter.type === userFilter.type),
-		)
-		const filterValues = [...filteredFilters, ...validProvidedFilters]
+    const newFilters = computed(() => {
+        const validProvidedFilters = providedFilters.value.filter(
+            (providedFilter) => !overriddenProvidedFilterTypes.value.includes(providedFilter.type),
+        )
+        const filteredFilters = currentFilters.value.filter(
+            (userFilter) =>
+                !validProvidedFilters.some(
+                    (providedFilter) => providedFilter.type === userFilter.type,
+                ),
+        )
+        const filterValues = [...filteredFilters, ...validProvidedFilters]
 
-		const parts: string[] = []
-		const orGroups: Record<string, string[]> = {}
-		const negativeByType: Record<string, string[]> = {}
+        const parts: string[] = []
+        const orGroups: Record<string, string[]> = {}
+        const negativeByType: Record<string, string[]> = {}
 
-		for (const filterValue of filterValues) {
-			if (filterValue.type === 'compatible_dependency_project_ids') {
-				const { projectId, dependencyTypes } = parseDependencyProjectFilterOption(
-					filterValue.option,
-				)
-				const fields = projectTypes.value.includes('modpack')
-					? ['compatible_dependency_project_ids']
-					: dependencyTypes.map((type) => DEPENDENCY_TYPE_FIELDS[type])
-				const operator = filterValue.negative ? '!=' : '='
-				const conditions = fields.map(
-					(field) => `${field} ${operator} ${formatSearchFilterValue(projectId)}`,
-				)
-				parts.push(
-					conditions.length === 1
-						? conditions[0]
-						: `(${conditions.join(filterValue.negative ? ' AND ' : ' OR ')})`,
-				)
-				continue
-			}
+        for (const filterValue of filterValues) {
+            if (filterValue.type === 'compatible_dependency_project_ids') {
+                const { projectId, dependencyTypes } = parseDependencyProjectFilterOption(
+                    filterValue.option,
+                )
+                const fields = projectTypes.value.includes('modpack')
+                    ? ['compatible_dependency_project_ids']
+                    : dependencyTypes.map((type) => DEPENDENCY_TYPE_FIELDS[type])
+                const operator = filterValue.negative ? '!=' : '='
+                const conditions = fields.map(
+                    (field) => `${field} ${operator} ${formatSearchFilterValue(projectId)}`,
+                )
+                parts.push(
+                    conditions.length === 1
+                        ? conditions[0]
+                        : `(${conditions.join(filterValue.negative ? ' AND ' : ' OR ')})`,
+                )
+                continue
+            }
 
-			const type = filters.value.find((type) => type.id === filterValue.type)
-			if (!type) {
-				console.error(`Filter type ${filterValue.type} not found`)
-				continue
-			}
-			if (type.id === 'advanced') {
-				continue
-			}
-			let option = type?.options.find((option) => option.id === filterValue.option)
-			if (!option && type.allows_custom_options) {
-				option = {
-					id: filterValue.option,
-					formatted_name: filterValue.option,
-					icon: undefined,
-					method: type.allows_custom_options,
-					value: type.custom_option_field
-						? `${type.custom_option_field}:${filterValue.option}`
-						: filterValue.option,
-				}
-			} else if (!option) {
-				console.error(`Filter option ${filterValue.option} not found`)
-				continue
-			}
+            const type = filters.value.find((type) => type.id === filterValue.type)
+            if (!type) {
+                console.error(`Filter type ${filterValue.type} not found`)
+                continue
+            }
+            if (type.id === 'advanced') {
+                continue
+            }
+            let option = type?.options.find((option) => option.id === filterValue.option)
+            if (!option && type.allows_custom_options) {
+                option = {
+                    id: filterValue.option,
+                    formatted_name: filterValue.option,
+                    icon: undefined,
+                    method: type.allows_custom_options,
+                    value: type.custom_option_field
+                        ? `${type.custom_option_field}:${filterValue.option}`
+                        : filterValue.option,
+                }
+            } else if (!option) {
+                console.error(`Filter option ${filterValue.option} not found`)
+                continue
+            }
 
-			if (option.method === 'or' || option.method === 'and') {
-				const [field, val] = option.value.split(':')
-				if (!field || !val) continue
+            if (option.method === 'or' || option.method === 'and') {
+                const [field, val] = option.value.split(':')
+                if (!field || !val) continue
 
-				if (filterValue.negative) {
-					if (!negativeByType[field]) {
-						negativeByType[field] = []
-					}
-					negativeByType[field].push(val)
-				} else if (option.method === 'or') {
-					if (!orGroups[field]) {
-						orGroups[field] = []
-					}
-					orGroups[field].push(val)
-				} else {
-					parts.push(`${field} = ${formatSearchFilterValue(val)}`)
-				}
-			}
-		}
+                if (filterValue.negative) {
+                    if (!negativeByType[field]) {
+                        negativeByType[field] = []
+                    }
+                    negativeByType[field].push(val)
+                } else if (option.method === 'or') {
+                    if (!orGroups[field]) {
+                        orGroups[field] = []
+                    }
+                    orGroups[field].push(val)
+                } else {
+                    parts.push(`${field} = ${formatSearchFilterValue(val)}`)
+                }
+            }
+        }
 
-		for (const [field, values] of Object.entries(orGroups)) {
-			if (values.length === 1) {
-				const val = values[0]
-				parts.push(`${field} = ${formatSearchFilterValue(val)}`)
-			} else {
-				const quoted = values.map(formatSearchFilterValue).join(', ')
-				parts.push(`${field} IN [${quoted}]`)
-			}
-		}
+        for (const [field, values] of Object.entries(orGroups)) {
+            if (values.length === 1) {
+                const val = values[0]
+                parts.push(`${field} = ${formatSearchFilterValue(val)}`)
+            } else {
+                const quoted = values.map(formatSearchFilterValue).join(', ')
+                parts.push(`${field} IN [${quoted}]`)
+            }
+        }
 
-		for (const [field, values] of Object.entries(negativeByType)) {
-			const quoted = values.map(formatSearchFilterValue).join(', ')
-			parts.push(`${field} NOT IN [${quoted}]`)
-		}
+        for (const [field, values] of Object.entries(negativeByType)) {
+            const quoted = values.map(formatSearchFilterValue).join(', ')
+            parts.push(`${field} NOT IN [${quoted}]`)
+        }
 
-		// Environment facets
-		const override = environmentOverride.value
-		if (override) {
-			if (override.values.length === 1) {
-				const operator = override.mode === 'include' ? '=' : '!='
-				parts.push(`environment ${operator} ${formatSearchFilterValue(override.values[0])}`)
-			} else if (override.values.length > 1) {
-				const operator = override.mode === 'include' ? 'IN' : 'NOT IN'
-				const quoted = override.values.map(formatSearchFilterValue).join(', ')
-				parts.push(`environment ${operator} [${quoted}]`)
-			}
-		} else {
-			const client = filterValues.some(
-				(filter) => filter.type === 'environment' && filter.option === 'client',
-			)
-			const server = filterValues.some(
-				(filter) => filter.type === 'environment' && filter.option === 'server',
-			)
-			for (const envGroup of getEnvironmentFilterGroups(client, server)) {
-				if (envGroup.length === 1) {
-					const [field, val] = envGroup[0].split(':')
-					parts.push(`${field} = ${formatSearchFilterValue(val)}`)
-				} else if (envGroup.length > 1) {
-					const conditions = envGroup.map((f) => {
-						const [field, val] = f.split(':')
-						return `${field} = ${formatSearchFilterValue(val)}`
-					})
-					parts.push(`(${conditions.join(' OR ')})`)
-				}
-			}
-		}
+        // Environment facets
+        const override = environmentOverride.value
+        if (override) {
+            if (override.values.length === 1) {
+                const operator = override.mode === 'include' ? '=' : '!='
+                parts.push(`environment ${operator} ${formatSearchFilterValue(override.values[0])}`)
+            } else if (override.values.length > 1) {
+                const operator = override.mode === 'include' ? 'IN' : 'NOT IN'
+                const quoted = override.values.map(formatSearchFilterValue).join(', ')
+                parts.push(`environment ${operator} [${quoted}]`)
+            }
+        } else {
+            const client = filterValues.some(
+                (filter) => filter.type === 'environment' && filter.option === 'client',
+            )
+            const server = filterValues.some(
+                (filter) => filter.type === 'environment' && filter.option === 'server',
+            )
+            for (const envGroup of getEnvironmentFilterGroups(client, server)) {
+                if (envGroup.length === 1) {
+                    const [field, val] = envGroup[0].split(':')
+                    parts.push(`${field} = ${formatSearchFilterValue(val)}`)
+                } else if (envGroup.length > 1) {
+                    const conditions = envGroup.map((f) => {
+                        const [field, val] = f.split(':')
+                        return `${field} = ${formatSearchFilterValue(val)}`
+                    })
+                    parts.push(`(${conditions.join(' OR ')})`)
+                }
+            }
+        }
 
-		// Project types
-		const mappedProjectTypes = projectTypes.value.map(mapProjectTypeToSearch)
-		if (mappedProjectTypes.length === 1) {
-			parts.push(`project_types = ${formatSearchFilterValue(mappedProjectTypes[0])}`)
-		} else if (mappedProjectTypes.length > 1) {
-			const quoted = mappedProjectTypes.map(formatSearchFilterValue).join(', ')
-			parts.push(`project_types IN [${quoted}]`)
-		}
+        // Project types
+        const mappedProjectTypes = projectTypes.value.map(mapProjectTypeToSearch)
+        if (mappedProjectTypes.length === 1) {
+            parts.push(`project_types = ${formatSearchFilterValue(mappedProjectTypes[0])}`)
+        } else if (mappedProjectTypes.length > 1) {
+            const quoted = mappedProjectTypes.map(formatSearchFilterValue).join(', ')
+            parts.push(`project_types IN [${quoted}]`)
+        }
 
-		const excludedProjectTypes = filterValues
-			.filter((filterValue) => filterValue.type === 'advanced')
-			.map((filterValue) =>
-				formatSearchFilterValue(mapProjectTypeToSearch(filterValue.option as ProjectType)),
-			)
-		if (excludedProjectTypes.length > 0) {
-			parts.push(`all_project_types NOT IN [${excludedProjectTypes.join(', ')}]`)
-		}
+        const excludedProjectTypes = filterValues
+            .filter((filterValue) => filterValue.type === 'advanced')
+            .map((filterValue) =>
+                formatSearchFilterValue(mapProjectTypeToSearch(filterValue.option as ProjectType)),
+            )
+        if (excludedProjectTypes.length > 0) {
+            parts.push(`all_project_types NOT IN [${excludedProjectTypes.join(', ')}]`)
+        }
 
-		return parts.join(' AND ')
-	})
+        return parts.join(' AND ')
+    })
 
-	const requestParams: Ref<string> = computed(() => {
-		const params = [`limit=${maxResults.value}`, `index=${currentSortType.value.name}`]
+    const requestParams: Ref<string> = computed(() => {
+        const params = [`limit=${maxResults.value}`, `index=${currentSortType.value.name}`]
 
-		if (query.value.length > 0) {
-			params.push(`query=${encodeURIComponent(query.value)}`)
-		}
+        if (query.value.length > 0) {
+            params.push(`query=${encodeURIComponent(query.value)}`)
+        }
 
-		if (newFilters.value) {
-			params.push(`new_filters=${encodeURIComponent(newFilters.value)}`)
-		}
+        if (newFilters.value) {
+            params.push(`new_filters=${encodeURIComponent(newFilters.value)}`)
+        }
 
-		const offset = (currentPage.value - 1) * maxResults.value
-		if (currentPage.value !== 1) {
-			params.push(`offset=${offset}`)
-		}
+        const offset = (currentPage.value - 1) * maxResults.value
+        if (currentPage.value !== 1) {
+            params.push(`offset=${offset}`)
+        }
 
-		return `?${params.join('&')}`
-	})
+        return `?${params.join('&')}`
+    })
 
-	readQueryParams()
+    readQueryParams()
 
-	function readQueryParams() {
-		const readParams = new Set<string>()
+    function readQueryParams() {
+        const readParams = new Set<string>()
 
-		// Load legacy params
-		loadQueryParam(['l'], (openSource) => {
-			if (
-				openSource === 'true' &&
-				!currentFilters.value.some(
-					(filter) => filter.type === 'license' && filter.option === 'open_source',
-				)
-			) {
-				currentFilters.value.push({
-					type: 'license',
-					option: 'open_source',
-					negative: false,
-				})
-				readParams.add('l')
-			}
-		})
-		loadQueryParam(['nf'], (filter) => {
-			const set = typeof filter === 'string' ? new Set([filter]) : new Set(filter)
+        // Load legacy params
+        loadQueryParam(['l'], (openSource) => {
+            if (
+                openSource === 'true' &&
+                !currentFilters.value.some(
+                    (filter) => filter.type === 'license' && filter.option === 'open_source',
+                )
+            ) {
+                currentFilters.value.push({
+                    type: 'license',
+                    option: 'open_source',
+                    negative: false,
+                })
+                readParams.add('l')
+            }
+        })
+        loadQueryParam(['nf'], (filter) => {
+            const set = typeof filter === 'string' ? new Set([filter]) : new Set(filter)
 
-			typesLoop: for (const type of filters.value) {
-				for (const option of type.options) {
-					const value = getOptionValue(option, false)
-					if (
-						set.has(value) &&
-						!currentFilters.value.some(
-							(filter) => filter.type === type.id && filter.option === option.id,
-						)
-					) {
-						currentFilters.value.push({
-							type: type.id,
-							option: option.id,
-							negative: true,
-						})
-						readParams.add(type.query_param)
+            typesLoop: for (const type of filters.value) {
+                for (const option of type.options) {
+                    const value = getOptionValue(option, false)
+                    if (
+                        set.has(value) &&
+                        !currentFilters.value.some(
+                            (filter) => filter.type === type.id && filter.option === option.id,
+                        )
+                    ) {
+                        currentFilters.value.push({
+                            type: type.id,
+                            option: option.id,
+                            negative: true,
+                        })
+                        readParams.add(type.query_param)
 
-						set.delete(value)
+                        set.delete(value)
 
-						if (set.size === 0) {
-							break typesLoop
-						}
-					}
-				}
-			}
-		})
-		loadQueryParam(['s'], (sort) => {
-			currentSortType.value = sortTypes.find((sortType) => sortType.name === sort) ?? sortTypes[0]
-			readParams.add('s')
-		})
-		loadQueryParam(['m'], (count) => {
-			maxResults.value = Number(count)
-			readParams.add('m')
-		})
-		loadQueryParam(['o'], (offset) => {
-			currentPage.value = Math.ceil(Number(offset) / maxResults.value) + 1
-			readParams.add('o')
-		})
-		loadQueryParam(['page'], (page) => {
-			currentPage.value = Number(page)
-			readParams.add('page')
-		})
-		loadQueryParam(['q'], (queryVal) => {
-			query.value = String(queryVal)
-			readParams.add('q')
-		})
+                        if (set.size === 0) {
+                            break typesLoop
+                        }
+                    }
+                }
+            }
+        })
+        loadQueryParam(['s'], (sort) => {
+            currentSortType.value =
+                sortTypes.find((sortType) => sortType.name === sort) ?? sortTypes[0]
+            readParams.add('s')
+        })
+        loadQueryParam(['m'], (count) => {
+            maxResults.value = Number(count)
+            readParams.add('m')
+        })
+        loadQueryParam(['o'], (offset) => {
+            currentPage.value = Math.ceil(Number(offset) / maxResults.value) + 1
+            readParams.add('o')
+        })
+        loadQueryParam(['page'], (page) => {
+            currentPage.value = Number(page)
+            readParams.add('page')
+        })
+        loadQueryParam(['q'], (queryVal) => {
+            query.value = String(queryVal)
+            readParams.add('q')
+        })
 
-		for (const key of Object.keys(route.query).filter((key) => !readParams.has(key))) {
-			const types = filters.value.filter((type) => type.query_param === key)
-			if (types.length === 0) {
-				console.error(`Unknown filter type: ${key}`)
-				continue
-			}
+        for (const key of Object.keys(route.query).filter((key) => !readParams.has(key))) {
+            const types = filters.value.filter((type) => type.query_param === key)
+            if (types.length === 0) {
+                console.error(`Unknown filter type: ${key}`)
+                continue
+            }
 
-			const values = getParamValuesAsArray(route.query[key])
+            const values = getParamValuesAsArray(route.query[key])
 
-			for (const value of values) {
-				const negative = value.startsWith('!=') || (!value.includes(':') && value.includes('!='))
-				let matched = false
+            for (const value of values) {
+                const negative =
+                    value.startsWith('!=') || (!value.includes(':') && value.includes('!='))
+                let matched = false
 
-				for (const type of types) {
-					const option = type.options.find((option) => getOptionValue(option, negative) === value)
-					if (!option) {
-						continue
-					}
+                for (const type of types) {
+                    const option = type.options.find(
+                        (option) => getOptionValue(option, negative) === value,
+                    )
+                    if (!option) {
+                        continue
+                    }
 
-					currentFilters.value.push({
-						type: type.id,
-						option: option.id,
-						negative: negative,
-					})
-					matched = true
-					break
-				}
+                    currentFilters.value.push({
+                        type: type.id,
+                        option: option.id,
+                        negative: negative,
+                    })
+                    matched = true
+                    break
+                }
 
-				if (!matched) {
-					const customType = types.find((type) => type.allows_custom_options)
-					if (customType) {
-						currentFilters.value.push({
-							type: customType.id,
-							option: value.startsWith('!=') ? value.slice(2) : value.replace('!=', ':'),
-							negative: negative,
-						})
-					} else {
-						console.error(`Unknown filter option for ${key}: ${value}`)
-					}
-				}
-			}
-		}
-	}
+                if (!matched) {
+                    const customType = types.find((type) => type.allows_custom_options)
+                    if (customType) {
+                        currentFilters.value.push({
+                            type: customType.id,
+                            option: value.startsWith('!=')
+                                ? value.slice(2)
+                                : value.replace('!=', ':'),
+                            negative: negative,
+                        })
+                    } else {
+                        console.error(`Unknown filter option for ${key}: ${value}`)
+                    }
+                }
+            }
+        }
+    }
 
-	function createPageParams(): LocationQueryRaw {
-		const items: Record<string, string[]> = {}
+    function createPageParams(): LocationQueryRaw {
+        const items: Record<string, string[]> = {}
 
-		if (query.value) {
-			items.q = [query.value]
-		}
+        if (query.value) {
+            items.q = [query.value]
+        }
 
-		currentFilters.value.forEach((filterValue) => {
-			const type = filters.value.find((type) => type.id === filterValue.type)
-			const option = type?.options.find((option) => option.id === filterValue.option)
-			if (type && (option || type.allows_custom_options)) {
-				const value = option
-					? getOptionValue(option, filterValue.negative)
-					: filterValue.negative
-						? `!=${filterValue.option}`
-						: filterValue.option
-				if (items[type.query_param]) {
-					items[type.query_param].push(value)
-				} else {
-					items[type.query_param] = [value]
-				}
-			}
-		})
+        currentFilters.value.forEach((filterValue) => {
+            const type = filters.value.find((type) => type.id === filterValue.type)
+            const option = type?.options.find((option) => option.id === filterValue.option)
+            if (type && (option || type.allows_custom_options)) {
+                const value = option
+                    ? getOptionValue(option, filterValue.negative)
+                    : filterValue.negative
+                      ? `!=${filterValue.option}`
+                      : filterValue.option
+                if (items[type.query_param]) {
+                    items[type.query_param].push(value)
+                } else {
+                    items[type.query_param] = [value]
+                }
+            }
+        })
 
-		toggledGroups.value.forEach((groupId) => {
-			const group = filters.value
-				.flatMap((filter) => filter.toggle_groups)
-				.find((group) => group && group.id === groupId)
+        toggledGroups.value.forEach((groupId) => {
+            const group = filters.value
+                .flatMap((filter) => filter.toggle_groups)
+                .find((group) => group && group.id === groupId)
 
-			if (group && 'query_param' in group && group.query_param) {
-				items[group.query_param] = [String(true)]
-			}
-		})
+            if (group && 'query_param' in group && group.query_param) {
+                items[group.query_param] = [String(true)]
+            }
+        })
 
-		if (currentSortType.value.name !== 'relevance') {
-			items.s = [currentSortType.value.name]
-		}
-		if (maxResults.value !== 20) {
-			items.m = [String(maxResults.value)]
-		}
-		if (currentPage.value > 1) {
-			items.page = [String(currentPage.value)]
-		}
+        if (currentSortType.value.name !== 'relevance') {
+            items.s = [currentSortType.value.name]
+        }
+        if (maxResults.value !== 20) {
+            items.m = [String(maxResults.value)]
+        }
+        if (currentPage.value > 1) {
+            items.page = [String(currentPage.value)]
+        }
 
-		return items
-	}
+        return items
+    }
 
-	function createPageParamsString(
-		pageParams: Record<string, string | string[] | boolean | number>,
-	) {
-		let url = ``
+    function createPageParamsString(
+        pageParams: Record<string, string | string[] | boolean | number>,
+    ) {
+        let url = ``
 
-		Object.entries(pageParams).forEach(([key, value]) => {
-			if (Array.isArray(value)) {
-				value.forEach((value) => {
-					url = addQueryParam(url, key, value)
-				})
-			} else {
-				url = addQueryParam(url, key, value)
-			}
-		})
+        Object.entries(pageParams).forEach(([key, value]) => {
+            if (Array.isArray(value)) {
+                value.forEach((value) => {
+                    url = addQueryParam(url, key, value)
+                })
+            } else {
+                url = addQueryParam(url, key, value)
+            }
+        })
 
-		return url
-	}
+        return url
+    }
 
-	function loadQueryParam(
-		params: string[],
-		provider: (param: LocationQueryValue | LocationQueryValue[]) => void,
-	) {
-		for (const param of params) {
-			if (param in route.query) {
-				provider(route.query[param])
-				return
-			}
-		}
-	}
+    function loadQueryParam(
+        params: string[],
+        provider: (param: LocationQueryValue | LocationQueryValue[]) => void,
+    ) {
+        for (const param of params) {
+            if (param in route.query) {
+                provider(route.query[param])
+                return
+            }
+        }
+    }
 
-	return {
-		// Selections
-		query,
-		currentSortType,
-		currentFilters,
-		toggledGroups,
-		currentPage,
-		maxResults,
-		overriddenProvidedFilterTypes,
+    return {
+        // Selections
+        query,
+        currentSortType,
+        currentFilters,
+        toggledGroups,
+        currentPage,
+        maxResults,
+        overriddenProvidedFilterTypes,
 
-		// Lists
-		sortTypes,
-		filters,
+        // Lists
+        sortTypes,
+        filters,
 
-		// Computed
-		newFilters,
-		requestParams,
+        // Computed
+        newFilters,
+        requestParams,
 
-		// Functions
-		createPageParams,
-		createPageParamsString,
-	}
+        // Functions
+        createPageParams,
+        createPageParamsString,
+    }
 }
 
 const PROJECT_TYPE_SEARCH_MAP: Partial<Record<ProjectType, string>> = {
-	server: 'minecraft_java_server',
+    server: 'minecraft_java_server',
 }
 
 function mapProjectTypeToSearch(projectType: ProjectType): string {
-	return PROJECT_TYPE_SEARCH_MAP[projectType] ?? projectType
+    return PROJECT_TYPE_SEARCH_MAP[projectType] ?? projectType
 }
 
 function getEnvironmentFilterGroups(client: boolean, server: boolean): string[][] {
-	const groups: string[][] = []
-	if (client && server) {
-		groups.push([
-			'environment:client_only_server_optional',
-			'environment:server_only_client_optional',
-			'environment:client_and_server',
-			'environment:client_or_server',
-			'environment:client_or_server_prefers_both',
-		])
-	} else if (client) {
-		groups.push([
-			'environment:client_only',
-			'environment:client_only_server_optional',
-			'environment:client_or_server_prefers_both',
-			'environment:client_or_server',
-		])
-	} else if (server) {
-		groups.push([
-			'environment:server_only',
-			'environment:dedicated_server_only',
-			'environment:server_only_client_optional',
-			'environment:client_or_server_prefers_both',
-			'environment:client_or_server',
-		])
-	}
-	return groups
+    const groups: string[][] = []
+    if (client && server) {
+        groups.push([
+            'environment:client_only_server_optional',
+            'environment:server_only_client_optional',
+            'environment:client_and_server',
+            'environment:client_or_server',
+            'environment:client_or_server_prefers_both',
+        ])
+    } else if (client) {
+        groups.push([
+            'environment:client_only',
+            'environment:client_only_server_optional',
+            'environment:client_or_server_prefers_both',
+            'environment:client_or_server',
+        ])
+    } else if (server) {
+        groups.push([
+            'environment:server_only',
+            'environment:dedicated_server_only',
+            'environment:server_only_client_optional',
+            'environment:client_or_server_prefers_both',
+            'environment:client_or_server',
+        ])
+    }
+    return groups
 }
 
 export function formatSearchFilterValue(value: string): string {
-	if (value === 'true' || value === 'false') {
-		return value
-	}
-	return `\`${value}\``
+    if (value === 'true' || value === 'false') {
+        return value
+    }
+    return `\`${value}\``
 }
 
 function getOptionValue(option: FilterOption, negative?: boolean): string {
-	let value = option.method === 'or' || option.method === 'and' ? option.value : option.id
-	if (negative === true) {
-		value = value.replace(':', '!=')
-	}
-	if (option.query_value) {
-		value = option.query_value
-	}
-	return value
+    let value = option.method === 'or' || option.method === 'and' ? option.value : option.id
+    if (negative === true) {
+        value = value.replace(':', '!=')
+    }
+    if (option.query_value) {
+        value = option.query_value
+    }
+    return value
 }
 
 function addQueryParam(existing: string, key: string, value: string | number | boolean) {
-	return existing + `${!existing ? '?' : '&'}${key}=${encodeURIComponent(value)}`
+    return existing + `${!existing ? '?' : '&'}${key}=${encodeURIComponent(value)}`
 }
 
 function getParamValuesAsArray(x: LocationQueryValue | LocationQueryValue[]): string[] {
-	if (x === null) {
-		return []
-	} else if (typeof x === 'string') {
-		return [x]
-	} else {
-		return x.filter((x) => x !== null)
-	}
+    if (x === null) {
+        return []
+    } else if (typeof x === 'string') {
+        return [x]
+    } else {
+        return x.filter((x) => x !== null)
+    }
 }
 
 export function buildDependentsSearchFilters(
-	projectTypes: readonly ProjectType[],
-	dependencyProjectIds: readonly string[],
+    projectTypes: readonly ProjectType[],
+    dependencyProjectIds: readonly string[],
 ): string {
-	const parts: string[] = []
-	const mappedProjectTypes = projectTypes.map(mapProjectTypeToSearch)
+    const parts: string[] = []
+    const mappedProjectTypes = projectTypes.map(mapProjectTypeToSearch)
 
-	if (mappedProjectTypes.length === 1) {
-		parts.push(`project_types = ${formatSearchFilterValue(mappedProjectTypes[0])}`)
-	} else if (mappedProjectTypes.length > 1) {
-		const quoted = mappedProjectTypes.map(formatSearchFilterValue).join(', ')
-		parts.push(`project_types IN [${quoted}]`)
-	}
+    if (mappedProjectTypes.length === 1) {
+        parts.push(`project_types = ${formatSearchFilterValue(mappedProjectTypes[0])}`)
+    } else if (mappedProjectTypes.length > 1) {
+        const quoted = mappedProjectTypes.map(formatSearchFilterValue).join(', ')
+        parts.push(`project_types IN [${quoted}]`)
+    }
 
-	const normalizedProjectIds = Array.from(
-		new Set(dependencyProjectIds.map((projectId) => projectId.trim()).filter(Boolean)),
-	)
-	if (normalizedProjectIds.length === 1) {
-		parts.push(
-			`compatible_dependency_project_ids = ${formatSearchFilterValue(normalizedProjectIds[0])}`,
-		)
-	} else if (normalizedProjectIds.length > 1) {
-		const quoted = normalizedProjectIds.map(formatSearchFilterValue).join(', ')
-		parts.push(`compatible_dependency_project_ids IN [${quoted}]`)
-	}
+    const normalizedProjectIds = Array.from(
+        new Set(dependencyProjectIds.map((projectId) => projectId.trim()).filter(Boolean)),
+    )
+    if (normalizedProjectIds.length === 1) {
+        parts.push(
+            `compatible_dependency_project_ids = ${formatSearchFilterValue(normalizedProjectIds[0])}`,
+        )
+    } else if (normalizedProjectIds.length > 1) {
+        const quoted = normalizedProjectIds.map(formatSearchFilterValue).join(', ')
+        parts.push(`compatible_dependency_project_ids IN [${quoted}]`)
+    }
 
-	return parts.join(' AND ')
+    return parts.join(' AND ')
 }

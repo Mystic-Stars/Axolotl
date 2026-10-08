@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { SaveIcon, XIcon } from '@modrinth/assets'
 import {
-	Button,
-	commonMessages,
-	defineMessage,
-	injectNotificationManager,
-	NewModal,
-	useVIntl,
+    Button,
+    commonMessages,
+    defineMessage,
+    injectNotificationManager,
+    NewModal,
+    useVIntl,
 } from '@modrinth/ui'
 import { ref } from 'vue'
 
@@ -14,21 +14,21 @@ import SymlinkInstanceWarning from '@/components/ui/SymlinkInstanceWarning.vue'
 import ServerModalBody from '@/components/ui/world/modal/ServerModalBody.vue'
 import type { GameInstance } from '@/helpers/types'
 import {
-	type DisplayStatus,
-	edit_server_in_instance,
-	type ServerPackStatus,
-	type ServerWorld,
+    type DisplayStatus,
+    edit_server_in_instance,
+    type ServerPackStatus,
+    type ServerWorld,
 } from '@/helpers/worlds.ts'
 
 const { handleError } = injectNotificationManager()
 const { formatMessage } = useVIntl()
 
 const emit = defineEmits<{
-	submit: [server: ServerWorld]
+    submit: [server: ServerWorld]
 }>()
 
 const props = defineProps<{
-	instance: GameInstance
+    instance: GameInstance
 }>()
 
 const modal = ref<InstanceType<typeof NewModal>>()
@@ -39,69 +39,69 @@ const resourcePack = ref<ServerPackStatus>('enabled')
 const index = ref<number>(0)
 const displayStatus = ref<DisplayStatus>('normal')
 async function saveServer() {
-	const serverName = name.value ? name.value : address.value
-	const resourcePackStatus = resourcePack.value
-	await edit_server_in_instance(
-		props.instance.id,
-		index.value,
-		serverName,
-		address.value,
-		resourcePackStatus,
-	).catch(handleError)
+    const serverName = name.value ? name.value : address.value
+    const resourcePackStatus = resourcePack.value
+    await edit_server_in_instance(
+        props.instance.id,
+        index.value,
+        serverName,
+        address.value,
+        resourcePackStatus,
+    ).catch(handleError)
 
-	emit('submit', {
-		name: serverName,
-		type: 'server',
-		index: index.value,
-		address: address.value,
-		pack_status: resourcePackStatus,
-		display_status: displayStatus.value,
-	})
-	hide()
+    emit('submit', {
+        name: serverName,
+        type: 'server',
+        index: index.value,
+        address: address.value,
+        pack_status: resourcePackStatus,
+        display_status: displayStatus.value,
+    })
+    hide()
 }
 
 function show(server: ServerWorld) {
-	name.value = server.name
-	address.value = server.address
-	resourcePack.value = server.pack_status
-	index.value = server.index
-	displayStatus.value = server.display_status
-	modal.value?.show()
+    name.value = server.name
+    address.value = server.address
+    resourcePack.value = server.pack_status
+    index.value = server.index
+    displayStatus.value = server.display_status
+    modal.value?.show()
 }
 
 function hide() {
-	modal.value?.hide()
+    modal.value?.hide()
 }
 
 defineExpose({ show })
 
 const titleMessage = defineMessage({
-	id: 'instance.edit-server.title',
-	defaultMessage: 'Edit server',
+    id: 'instance.edit-server.title',
+    defaultMessage: 'Edit server',
 })
 </script>
 <template>
-	<NewModal ref="modal" :header="formatMessage(titleMessage)" width="500px" max-width="500px">
-		<SymlinkInstanceWarning
-			v-if="props.instance?.symlink_target"
-			:symlink-target="props.instance.symlink_target"
-		/>
-		<ServerModalBody
-			v-model:name="name"
-			v-model:address="address"
-			v-model:resource-pack="resourcePack"
-		/>
-		<template #actions>
-			<div class="flex gap-2 justify-end">
-				<Button type="outlined" @click="hide()"
-					><XIcon />
-					{{ formatMessage(commonMessages.cancelButton) }}
-				</Button>
-				<Button type="colored" color="brand" :disabled="!address" @click="saveServer"
-					><SaveIcon />
-					{{ formatMessage(commonMessages.saveChangesButton) }}
-				</Button>
-			</div>
-		</template>
-	</NewModal>
+    <NewModal ref="modal" :header="formatMessage(titleMessage)" width="500px" max-width="500px">
+        <SymlinkInstanceWarning
+            v-if="props.instance?.symlink_target"
+            :symlink-target="props.instance.symlink_target"
+        />
+        <ServerModalBody
+            v-model:name="name"
+            v-model:address="address"
+            v-model:resource-pack="resourcePack"
+        />
+        <template #actions>
+            <div class="flex gap-2 justify-end">
+                <Button type="outlined" @click="hide()"
+                    ><XIcon />
+                    {{ formatMessage(commonMessages.cancelButton) }}
+                </Button>
+                <Button type="colored" color="brand" :disabled="!address" @click="saveServer"
+                    ><SaveIcon />
+                    {{ formatMessage(commonMessages.saveChangesButton) }}
+                </Button>
+            </div>
+        </template>
+    </NewModal>
 </template>

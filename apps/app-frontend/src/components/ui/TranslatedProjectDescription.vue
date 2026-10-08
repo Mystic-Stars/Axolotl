@@ -3,163 +3,163 @@ import { configuredXss, renderHighlightedString } from '@modrinth/utils'
 import { computed } from 'vue'
 
 import {
-	prepareDescription,
-	renderTranslatedDescription,
-	type TranslationMode,
-	type TranslationStyle,
+    prepareDescription,
+    renderTranslatedDescription,
+    type TranslationMode,
+    type TranslationStyle,
 } from '@/helpers/translation'
 
 const props = defineProps<{
-	description: string
-	active: boolean
-	translations: Record<string, string>
-	mode: TranslationMode
-	style: TranslationStyle
-	format?: 'markdown' | 'html'
+    description: string
+    active: boolean
+    translations: Record<string, string>
+    mode: TranslationMode
+    style: TranslationStyle
+    format?: 'markdown' | 'html'
 }>()
 
 const renderedDescription = computed(() => {
-	if (!props.active) {
-		return props.format === 'html'
-			? configuredXss.process(props.description ?? '')
-			: renderHighlightedString(props.description ?? '')
-	}
-	return renderTranslatedDescription(
-		prepareDescription(props.description, props.format),
-		props.translations,
-		props.mode,
-		props.style,
-	)
+    if (!props.active) {
+        return props.format === 'html'
+            ? configuredXss.process(props.description ?? '')
+            : renderHighlightedString(props.description ?? '')
+    }
+    return renderTranslatedDescription(
+        prepareDescription(props.description, props.format),
+        props.translations,
+        props.mode,
+        props.style,
+    )
 })
 
 const translationOnlyClass = computed(() =>
-	props.active && props.mode === 'translation-only'
-		? ['ax-translation-only', `ax-translation-style-${props.style}`]
-		: [],
+    props.active && props.mode === 'translation-only'
+        ? ['ax-translation-only', `ax-translation-style-${props.style}`]
+        : [],
 )
 </script>
 
 <template>
-	<!-- eslint-disable-next-line vue/no-v-html -->
-	<div class="markdown-body" :class="translationOnlyClass" v-html="renderedDescription" />
+    <!-- eslint-disable-next-line vue/no-v-html -->
+    <div class="markdown-body" :class="translationOnlyClass" v-html="renderedDescription" />
 </template>
 
 <style scoped>
 :deep(.ax-translation-block) {
-	margin-block: 0.5rem 1rem;
-	animation: translation-float-in 0.5s ease-out both;
+    margin-block: 0.5rem 1rem;
+    animation: translation-float-in 0.5s ease-out both;
 }
 
 :deep(.ax-translation-block > :first-child) {
-	margin-top: 0;
+    margin-top: 0;
 }
 
 :deep(.ax-translation-block > :last-child) {
-	margin-bottom: 0;
+    margin-bottom: 0;
 }
 
 :deep(.ax-translation-style-weakened) {
-	color: var(--color-text-tertiary) !important;
+    color: var(--color-text-tertiary) !important;
 }
 
 :deep(.ax-translation-style-blur) {
-	filter: blur(4px);
-	opacity: 0.75;
-	transition:
-		filter 0.1s ease-in-out,
-		opacity 0.1s ease-in-out;
+    filter: blur(4px);
+    opacity: 0.75;
+    transition:
+        filter 0.1s ease-in-out,
+        opacity 0.1s ease-in-out;
 }
 
 :deep(.ax-translation-style-blur:hover) {
-	filter: blur(0);
-	opacity: 1;
+    filter: blur(0);
+    opacity: 1;
 }
 
 :deep(.ax-translation-style-blockquote) {
-	padding: 4px 0 4px 8px;
-	border-left: 4px solid var(--color-brand);
+    padding: 4px 0 4px 8px;
+    border-left: 4px solid var(--color-brand);
 }
 
 :deep(.ax-translation-style-dashed-line) {
-	text-decoration: underline dashed var(--color-brand) !important;
-	text-underline-offset: 5px;
+    text-decoration: underline dashed var(--color-brand) !important;
+    text-underline-offset: 5px;
 }
 
 :deep(.ax-translation-style-border) {
-	padding: 2px 4px;
-	border: 1px solid var(--color-brand);
-	border-radius: 4px;
+    padding: 2px 4px;
+    border: 1px solid var(--color-brand);
+    border-radius: 4px;
 }
 
 :deep(.ax-translation-style-text-color) {
-	color: oklch(0.693 0.17 162.48) !important;
+    color: oklch(0.693 0.17 162.48) !important;
 }
 
 :deep(.ax-translation-style-background) {
-	padding: 2px 4px;
-	border-radius: 4px;
-	background-color: color-mix(
-		in srgb,
-		var(--color-brand) var(--opacity-ratio-keep-15),
-		transparent
-	);
+    padding: 2px 4px;
+    border-radius: 4px;
+    background-color: color-mix(
+        in srgb,
+        var(--color-brand) var(--opacity-ratio-keep-15),
+        transparent
+    );
 }
 
 .ax-translation-only.ax-translation-style-weakened {
-	color: var(--color-text-tertiary) !important;
+    color: var(--color-text-tertiary) !important;
 }
 
 .ax-translation-only.ax-translation-style-blur {
-	filter: blur(4px);
-	opacity: 0.75;
-	transition:
-		filter 0.1s ease-in-out,
-		opacity 0.1s ease-in-out;
+    filter: blur(4px);
+    opacity: 0.75;
+    transition:
+        filter 0.1s ease-in-out,
+        opacity 0.1s ease-in-out;
 }
 
 .ax-translation-only.ax-translation-style-blur:hover {
-	filter: blur(0);
-	opacity: 1;
+    filter: blur(0);
+    opacity: 1;
 }
 
 .ax-translation-only.ax-translation-style-blockquote {
-	padding: 4px 0 4px 8px;
-	border-left: 4px solid var(--color-brand);
+    padding: 4px 0 4px 8px;
+    border-left: 4px solid var(--color-brand);
 }
 
 .ax-translation-only.ax-translation-style-dashed-line {
-	text-decoration: underline dashed var(--color-brand) !important;
-	text-underline-offset: 5px;
+    text-decoration: underline dashed var(--color-brand) !important;
+    text-underline-offset: 5px;
 }
 
 .ax-translation-only.ax-translation-style-border {
-	padding: 2px 4px;
-	border: 1px solid var(--color-brand);
-	border-radius: 4px;
+    padding: 2px 4px;
+    border: 1px solid var(--color-brand);
+    border-radius: 4px;
 }
 
 .ax-translation-only.ax-translation-style-text-color {
-	color: oklch(0.693 0.17 162.48) !important;
+    color: oklch(0.693 0.17 162.48) !important;
 }
 
 .ax-translation-only.ax-translation-style-background {
-	padding: 2px 4px;
-	border-radius: 4px;
-	background-color: color-mix(
-		in srgb,
-		var(--color-brand) var(--opacity-ratio-keep-15),
-		transparent
-	);
+    padding: 2px 4px;
+    border-radius: 4px;
+    background-color: color-mix(
+        in srgb,
+        var(--color-brand) var(--opacity-ratio-keep-15),
+        transparent
+    );
 }
 
 @keyframes translation-float-in {
-	from {
-		opacity: 0;
-		transform: translateY(12px);
-	}
-	to {
-		opacity: 1;
-		transform: translateY(0);
-	}
+    from {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 </style>

@@ -234,12 +234,11 @@ impl LightweightMode {
                         show_main_window(&app)
                     };
                     if let Err(error) = result {
-                        if was_lightweight {
-                            if let Ok(mut state) =
+                        if was_lightweight
+                            && let Ok(mut state) =
                                 app.state::<LightweightMode>().0.lock()
-                            {
-                                state.restoring = false;
-                            }
+                        {
+                            state.restoring = false;
                         }
                         tracing::error!(
                             "Failed to restore launcher after Minecraft exited: {error}"
@@ -302,10 +301,10 @@ impl LightweightMode {
     }
 
     fn set_route(&self, route: String) {
-        if route.starts_with('/') {
-            if let Ok(mut state) = self.0.lock() {
-                state.route = route;
-            }
+        if route.starts_with('/')
+            && let Ok(mut state) = self.0.lock()
+        {
+            state.route = route;
         }
     }
 
@@ -409,7 +408,7 @@ unsafe extern "system" fn maximize_if_owned_by_process(
     }
 
     let mut window_pid = 0;
-    unsafe { GetWindowThreadProcessId(hwnd, Some(&mut window_pid)) };
+    unsafe { GetWindowThreadProcessId(hwnd, Some(&raw mut window_pid)) };
     if window_pid == MAXIMIZE_PROCESS_ID.load(Ordering::Relaxed)
         && unsafe { IsWindowVisible(hwnd).as_bool() }
     {
@@ -616,8 +615,6 @@ fn destroy_lightweight_host_window(app: &AppHandle) {
 
 fn create_main_window(app: &AppHandle, route: &str) -> Result<(), String> {
     if app.get_webview_window(MAIN_WINDOW_LABEL).is_none() {
-        // Only reassigned on non-macOS platforms to strip window decorations.
-        #[cfg_attr(target_os = "macos", allow(unused_mut))]
         let mut builder = WebviewWindowBuilder::new(
             app,
             MAIN_WINDOW_LABEL,
@@ -633,6 +630,15 @@ fn create_main_window(app: &AppHandle, route: &str) -> Result<(), String> {
         #[cfg(not(target_os = "macos"))]
         {
             builder = builder.decorations(false);
+        }
+        #[cfg(target_os = "macos")]
+        {
+            builder = builder
+                .title_bar_style(tauri::TitleBarStyle::Overlay)
+                .hidden_title(true)
+                .traffic_light_position(tauri::LogicalPosition::new(
+                    15.0, 22.0,
+                ));
         }
         builder.build().map_err(|error| error.to_string())?;
     }

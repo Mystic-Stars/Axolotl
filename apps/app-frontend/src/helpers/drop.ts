@@ -11,10 +11,10 @@ import { invoke } from '@tauri-apps/api/core'
  * Information about a process that has a file handle open.
  */
 export interface LockingProcess {
-	pid: number
-	name: string
-	path: string
-	start_time: string | null
+    pid: number
+    name: string
+    path: string
+    start_time: string | null
 }
 
 /**
@@ -24,10 +24,10 @@ export interface LockingProcess {
  * @returns Classification result indicating what kind of content it is
  */
 export function classifyDroppedItem(
-	path: string,
-	allowNestedExtraction = false,
+    path: string,
+    allowNestedExtraction = false,
 ): Promise<ClassificationResult> {
-	return invoke('plugin:drop|drop_classify', { path, allowNestedExtraction })
+    return invoke('plugin:drop|drop_classify', { path, allowNestedExtraction })
 }
 
 /**
@@ -44,7 +44,7 @@ export function classifyDroppedItem(
  * @returns Classification result after extraction and analysis
  */
 export function classifyDroppedItemWithExtraction(path: string): Promise<ClassificationResult> {
-	return invoke('plugin:drop|drop_classify_extract', { path })
+    return invoke('plugin:drop|drop_classify_extract', { path })
 }
 
 /**
@@ -58,7 +58,7 @@ export function classifyDroppedItemWithExtraction(path: string): Promise<Classif
  * @returns Absolute path of the extraction directory
  */
 export function extractZipToTemp(zipPath: string): Promise<string> {
-	return invoke('plugin:drop|drop_extract_zip_to_temp', { zipPath })
+    return invoke('plugin:drop|drop_extract_zip_to_temp', { zipPath })
 }
 
 /**
@@ -67,33 +67,33 @@ export function extractZipToTemp(zipPath: string): Promise<string> {
  * @param path Absolute path of the extraction directory
  */
 export function removeTempDir(path: string): Promise<void> {
-	return invoke('plugin:drop|drop_remove_temp_dir', { path })
+    return invoke('plugin:drop|drop_remove_temp_dir', { path })
 }
 
 /**
  * Metadata about a single importable instance within a launcher.
  */
 export interface ScanInstance {
-	name: string
-	/** Resolved filesystem path (informational — the backend resolves it) */
-	path: string
-	/** Minecraft version, if known (empty string otherwise) */
-	version: string
-	/** Mod loader, if known (e.g. "fabric", "forge"; empty string otherwise) */
-	loader: string
-	/** Whether this instance qualifies for compatible mode import */
-	compatibleMode?: boolean
-	/** For compatible mode: path to the version subfolder containing the JSON */
-	versionPath?: string
+    name: string
+    /** Resolved filesystem path (informational — the backend resolves it) */
+    path: string
+    /** Minecraft version, if known (empty string otherwise) */
+    version: string
+    /** Mod loader, if known (e.g. "fabric", "forge"; empty string otherwise) */
+    loader: string
+    /** Whether this instance qualifies for compatible mode import */
+    compatibleMode?: boolean
+    /** For compatible mode: path to the version subfolder containing the JSON */
+    versionPath?: string
 }
 
 /**
  * Result of scanning a single launcher type for importable instances.
  */
 export interface ScanResult {
-	launcherName: string
-	launcherType: string
-	instances: ScanInstance[]
+    launcherName: string
+    launcherType: string
+    instances: ScanInstance[]
 }
 
 /**
@@ -104,33 +104,45 @@ export interface ScanResult {
  * @returns List of scan results (one entry per launcher type)
  */
 export async function scanLauncherInstances(
-	launcherType: string,
-	basePath: string,
+    launcherType: string,
+    basePath: string,
 ): Promise<ScanResult[]> {
-	const instances: {
-		name: string
-		path: string
-		compatibleMode?: boolean
-		versionPath?: string
-	}[] = await invoke('plugin:drop|drop_scan_launcher_instances', {
-		launcherType,
-		basePath,
-	})
+    const instances: {
+        name: string
+        path: string
+        compatibleMode?: boolean
+        versionPath?: string
+    }[] = await invoke('plugin:drop|drop_scan_launcher_instances', {
+        launcherType,
+        basePath,
+    })
 
-	return [
-		{
-			launcherName: launcherType,
-			launcherType,
-			instances: instances.map((inst) => ({
-				name: inst.name,
-				path: inst.path,
-				version: '',
-				loader: '',
-				compatibleMode: inst.compatibleMode,
-				versionPath: inst.versionPath,
-			})),
-		},
-	]
+    return [
+        {
+            launcherName: launcherType,
+            launcherType,
+            instances: instances.map((inst) => ({
+                name: inst.name,
+                path: inst.path,
+                version: '',
+                loader: '',
+                compatibleMode: inst.compatibleMode,
+                versionPath: inst.versionPath,
+            })),
+        },
+    ]
+}
+
+export interface ResolvedGamedir {
+    path: string
+    dialect: string
+}
+
+export function resolveGamedirs(
+    launcherType: string,
+    basePath: string,
+): Promise<ResolvedGamedir[]> {
+    return invoke('plugin:drop|drop_resolve_gamedirs', { launcherType, basePath })
 }
 
 /**
@@ -140,7 +152,7 @@ export async function scanLauncherInstances(
  * @returns List of locking processes (empty if unavailable or none found)
  */
 export function detectFileLock(path: string): Promise<LockingProcess[]> {
-	return invoke('plugin:drop|drop_detect_file_lock', { path })
+    return invoke('plugin:drop|drop_detect_file_lock', { path })
 }
 
 /**
@@ -150,36 +162,36 @@ export function detectFileLock(path: string): Promise<LockingProcess[]> {
  * @returns JSON string of LocalModMetadata, or null if no metadata found
  */
 export function extractModMetadata(path: string): Promise<string | null> {
-	return invoke('plugin:drop|drop_extract_mod_metadata', { path })
+    return invoke('plugin:drop|drop_extract_mod_metadata', { path })
 }
 
 /**
  * Metadata extracted from a mod JAR file.
  */
 export interface LocalModMetadata {
-	mod_id: string
-	name?: string
-	version?: string
-	authors?: string[]
-	description?: string
-	url?: string
-	icon_path?: string
-	minecraft_version?: string
-	loader_version?: string
-	loader?: string
+    mod_id: string
+    name?: string
+    version?: string
+    authors?: string[]
+    description?: string
+    url?: string
+    icon_path?: string
+    minecraft_version?: string
+    loader_version?: string
+    loader?: string
 }
 
 export interface ModrinthLookupResult {
-	hash: string
-	project_id: string
-	version_id: string
-	project_name?: string
-	project_slug?: string
-	version_number?: string
-	game_versions: string[]
-	loaders: string[]
+    hash: string
+    project_id: string
+    version_id: string
+    project_name?: string
+    project_slug?: string
+    version_number?: string
+    game_versions: string[]
+    loaders: string[]
 }
 
 export async function lookupModHash(path: string): Promise<ModrinthLookupResult | null> {
-	return invoke('plugin:drop|drop_lookup_mod_hash', { path })
+    return invoke('plugin:drop|drop_lookup_mod_hash', { path })
 }

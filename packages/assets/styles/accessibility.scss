@@ -2,5 +2,5 @@ button:focus-visible:not(.custom-focus-indicator),
 a:focus-visible:not(.custom-focus-indicator),
 [tabindex='0']:focus-visible:not(.custom-focus-indicator),
 [type='button']:focus-visible:not(.custom-focus-indicator) {
-	outline: 0.25rem solid var(--color-focus-ring);
+    outline: 0.25rem solid var(--color-focus-ring);
 }

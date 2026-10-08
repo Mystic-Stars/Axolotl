@@ -7,69 +7,69 @@ import type { FileOperation } from '#ui/layouts/shared/files-tab/types'
 import { createContext } from '.'
 
 export interface BusyReason {
-	reason: MessageDescriptor
+    reason: MessageDescriptor
 }
 
 export interface FilesystemAuth {
-	url: string
-	token: string
+    url: string
+    token: string
 }
 
 export type CancelUploadHandler = () => void | Promise<void>
 
 export interface ServerStatsSample {
-	cpu_percent: number
-	ram_usage_bytes: number
-	ram_total_bytes: number
-	storage_usage_bytes: number
-	storage_total_bytes: number
+    cpu_percent: number
+    ram_usage_bytes: number
+    ram_total_bytes: number
+    storage_usage_bytes: number
+    storage_total_bytes: number
 }
 
 export interface ServerStats {
-	current: ServerStatsSample
-	past: ServerStatsSample
-	graph: {
-		cpu: number[]
-		ram: number[]
-	}
+    current: ServerStatsSample
+    past: ServerStatsSample
+    graph: {
+        cpu: number[]
+        ram: number[]
+    }
 }
 
 export interface ModrinthServerContext {
-	readonly serverId: string
-	readonly worldId: Ref<string | null>
-	readonly server: Ref<Archon.Servers.v0.Server>
-	readonly serverFull: ComputedRef<Archon.Servers.v1.ServerFull | null>
-	readonly currentUserPermissions: ComputedRef<Archon.Servers.v0.UserScope>
+    readonly serverId: string
+    readonly worldId: Ref<string | null>
+    readonly server: Ref<Archon.Servers.v0.Server>
+    readonly serverFull: ComputedRef<Archon.Servers.v1.ServerFull | null>
+    readonly currentUserPermissions: ComputedRef<Archon.Servers.v0.UserScope>
 
-	// Websocket state
-	readonly isConnected: Ref<boolean>
-	readonly isWsAuthIncorrect: Ref<boolean>
-	readonly powerState: Ref<Archon.Websocket.v0.PowerState>
-	readonly powerStateDetails: Ref<{ oom_killed?: boolean; exit_code?: number } | undefined>
-	readonly isServerRunning: ComputedRef<boolean>
-	readonly stats: Ref<ServerStats>
-	readonly uptimeSeconds: Ref<number>
+    // Websocket state
+    readonly isConnected: Ref<boolean>
+    readonly isWsAuthIncorrect: Ref<boolean>
+    readonly powerState: Ref<Archon.Websocket.v0.PowerState>
+    readonly powerStateDetails: Ref<{ oom_killed?: boolean; exit_code?: number } | undefined>
+    readonly isServerRunning: ComputedRef<boolean>
+    readonly stats: Ref<ServerStats>
+    readonly uptimeSeconds: Ref<number>
 
-	// Content sync state
-	readonly isSyncingContent: Ref<boolean>
+    // Content sync state
+    readonly isSyncingContent: Ref<boolean>
 
-	// Busy state — when non-empty, all write operations should be disabled
-	readonly busyReasons: ComputedRef<BusyReason[]>
+    // Busy state — when non-empty, all write operations should be disabled
+    readonly busyReasons: ComputedRef<BusyReason[]>
 
-	// Filesystem state
-	readonly fsAuth: Ref<FilesystemAuth | null>
-	readonly fsOps: Ref<Archon.Websocket.v0.FilesystemOperation[]>
-	readonly fsQueuedOps: Ref<Archon.Websocket.v0.QueuedFilesystemOp[]>
-	refreshFsAuth: () => Promise<void>
+    // Filesystem state
+    readonly fsAuth: Ref<FilesystemAuth | null>
+    readonly fsOps: Ref<Archon.Websocket.v0.FilesystemOperation[]>
+    readonly fsQueuedOps: Ref<Archon.Websocket.v0.QueuedFilesystemOp[]>
+    refreshFsAuth: () => Promise<void>
 
-	// File upload state
-	readonly uploadState: Ref<UploadState>
-	readonly cancelUpload: Ref<CancelUploadHandler | null>
+    // File upload state
+    readonly uploadState: Ref<UploadState>
+    readonly cancelUpload: Ref<CancelUploadHandler | null>
 
-	// File operations (extract, move, etc.)
-	readonly activeOperations: ComputedRef<FileOperation[]>
-	dismissOperation: (opId: string, action: 'dismiss' | 'cancel') => Promise<void>
+    // File operations (extract, move, etc.)
+    readonly activeOperations: ComputedRef<FileOperation[]>
+    dismissOperation: (opId: string, action: 'dismiss' | 'cancel') => Promise<void>
 }
 
 export const [injectModrinthServerContext, provideModrinthServerContext] =
-	createContext<ModrinthServerContext>('[id].vue', 'modrinthServerContext')
+    createContext<ModrinthServerContext>('[id].vue', 'modrinthServerContext')

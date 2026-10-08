@@ -2,11 +2,11 @@ import { describe, expect, it } from 'vitest'
 
 import ProgressBar from '../components/base/ProgressBar.vue'
 import {
-	assertTokensLoaded,
-	computedToken,
-	mountThemed,
-	type Theme,
-	THEMES,
+    assertTokensLoaded,
+    computedToken,
+    mountThemed,
+    type Theme,
+    THEMES,
 } from './visual-harness'
 
 /**
@@ -25,283 +25,302 @@ const COLORS = ['brand', 'green', 'red', 'orange', 'blue', 'purple', 'gray'] as 
 
 /** The same visual state expressed as ratios, percentage pairs, and natural units. */
 const SAME_VISUAL_STATE = [
-	{
-		ratio: 0,
-		spellings: [
-			{ progress: 0, max: 1 },
-			{ progress: 0, max: 100 },
-		],
-	},
-	{
-		ratio: 0.25,
-		spellings: [
-			{ progress: 0.25, max: 1 },
-			{ progress: 25, max: 100 },
-			{ progress: 1, max: 4 },
-		],
-	},
-	{
-		ratio: 0.5,
-		spellings: [
-			{ progress: 0.5, max: 1 },
-			{ progress: 50, max: 100 },
-			{ progress: 256, max: 512 },
-		],
-	},
-	{
-		ratio: 0.75,
-		spellings: [
-			{ progress: 0.75, max: 1 },
-			{ progress: 75, max: 100 },
-			{ progress: 3, max: 4 },
-		],
-	},
-	{
-		ratio: 1,
-		spellings: [
-			{ progress: 1, max: 1 },
-			{ progress: 100, max: 100 },
-		],
-	},
+    {
+        ratio: 0,
+        spellings: [
+            { progress: 0, max: 1 },
+            { progress: 0, max: 100 },
+        ],
+    },
+    {
+        ratio: 0.25,
+        spellings: [
+            { progress: 0.25, max: 1 },
+            { progress: 25, max: 100 },
+            { progress: 1, max: 4 },
+        ],
+    },
+    {
+        ratio: 0.5,
+        spellings: [
+            { progress: 0.5, max: 1 },
+            { progress: 50, max: 100 },
+            { progress: 256, max: 512 },
+        ],
+    },
+    {
+        ratio: 0.75,
+        spellings: [
+            { progress: 0.75, max: 1 },
+            { progress: 75, max: 100 },
+            { progress: 3, max: 4 },
+        ],
+    },
+    {
+        ratio: 1,
+        spellings: [
+            { progress: 1, max: 1 },
+            { progress: 100, max: 100 },
+        ],
+    },
 ]
 
 /** The shared component's stable track height. */
 const TRACK_HEIGHT_PX = 8
 
 async function settle(): Promise<void> {
-	await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))
 }
 
 async function measure(props: Record<string, unknown>, theme: Theme = 'dark') {
-	const wrapper = await mountThemed(ProgressBar, props, theme)
-	await settle()
+    const wrapper = await mountThemed(ProgressBar, props, theme)
+    await settle()
 
-	const track = wrapper.element.querySelector('[role="progressbar"]') as HTMLElement
-	const fill = track.firstElementChild as HTMLElement
-	const trackBox = track.getBoundingClientRect()
-	const fillBox = fill.getBoundingClientRect()
+    const track = wrapper.element.querySelector('[role="progressbar"]') as HTMLElement
+    const fill = track.firstElementChild as HTMLElement
+    const trackBox = track.getBoundingClientRect()
+    const fillBox = fill.getBoundingClientRect()
 
-	const measured = {
-		trackWidth: trackBox.width,
-		trackHeight: trackBox.height,
-		fillWidth: fillBox.width,
-		// Reading the proportion from layout means a component that ignores or
-		// unsafely normalizes `progress` fails here.
-		ratio: trackBox.width === 0 ? 0 : fillBox.width / trackBox.width,
-		fillColor: getComputedStyle(fill).backgroundColor,
-		ariaValueNow: track.getAttribute('aria-valuenow'),
-	}
+    const measured = {
+        trackWidth: trackBox.width,
+        trackHeight: trackBox.height,
+        fillWidth: fillBox.width,
+        // Reading the proportion from layout means a component that ignores or
+        // unsafely normalizes `progress` fails here.
+        ratio: trackBox.width === 0 ? 0 : fillBox.width / trackBox.width,
+        fillColor: getComputedStyle(fill).backgroundColor,
+        ariaValueNow: track.getAttribute('aria-valuenow'),
+    }
 
-	wrapper.unmount()
-	return measured
+    wrapper.unmount()
+    return measured
 }
 
 describe('progress bar mapping', () => {
-	it('loads the token layer', () => {
-		assertTokensLoaded()
-	})
+    it('loads the token layer', () => {
+        assertTokensLoaded()
+    })
 
-	describe('rendered geometry', () => {
-		it('renders an empty bar at zero progress', async () => {
-			const bar = await measure({ progress: 0, max: 1 })
+    describe('rendered geometry', () => {
+        it('renders an empty bar at zero progress', async () => {
+            const bar = await measure({ progress: 0, max: 1 })
 
-			expect(bar.trackWidth).toBeGreaterThan(0)
-			expect(bar.fillWidth).toBe(0)
-			expect(bar.ratio).toBe(0)
-		})
+            expect(bar.trackWidth).toBeGreaterThan(0)
+            expect(bar.fillWidth).toBe(0)
+            expect(bar.ratio).toBe(0)
+        })
 
-		it('renders a full bar when progress equals max', async () => {
-			const bar = await measure({ progress: 1, max: 1 })
+        it('renders a full bar when progress equals max', async () => {
+            const bar = await measure({ progress: 1, max: 1 })
 
-			expect(bar.trackWidth).toBeGreaterThan(0)
-			expect(bar.fillWidth).toBe(bar.trackWidth)
-			expect(bar.ratio).toBe(1)
-		})
+            expect(bar.trackWidth).toBeGreaterThan(0)
+            expect(bar.fillWidth).toBe(bar.trackWidth)
+            expect(bar.ratio).toBe(1)
+        })
 
-		it('renders the track at the height both components share', async () => {
-			const bar = await measure({ progress: 0.5, max: 1 })
+        it('renders the track at the height both components share', async () => {
+            const bar = await measure({ progress: 0.5, max: 1 })
 
-			expect(bar.trackHeight).toBe(TRACK_HEIGHT_PX)
-		})
+            expect(bar.trackHeight).toBe(TRACK_HEIGHT_PX)
+        })
 
-		it('fills the track in proportion to progress over max', async () => {
-			for (const { progress, max } of [
-				{ progress: 0.25, max: 1 },
-				{ progress: 0.5, max: 1 },
-				{ progress: 0.75, max: 1 },
-				{ progress: 50, max: 100 },
-				{ progress: 1, max: 3 },
-			]) {
-				const bar = await measure({ progress, max })
+        it('fills the track in proportion to progress over max', async () => {
+            for (const { progress, max } of [
+                { progress: 0.25, max: 1 },
+                { progress: 0.5, max: 1 },
+                { progress: 0.75, max: 1 },
+                { progress: 50, max: 100 },
+                { progress: 1, max: 3 },
+            ]) {
+                const bar = await measure({ progress, max })
 
-				expect(bar.ratio, `${progress}/${max} should fill ${progress / max}`).toBeCloseTo(
-					progress / max,
-					3,
-				)
-			}
-		})
+                expect(bar.ratio, `${progress}/${max} should fill ${progress / max}`).toBeCloseTo(
+                    progress / max,
+                    3,
+                )
+            }
+        })
 
-		it('increases monotonically as progress rises', async () => {
-			const values = [0, 0.1, 0.25, 0.5, 0.75, 0.9, 1]
-			const ratios: number[] = []
+        it('increases monotonically as progress rises', async () => {
+            const values = [0, 0.1, 0.25, 0.5, 0.75, 0.9, 1]
+            const ratios: number[] = []
 
-			for (const progress of values) {
-				ratios.push((await measure({ progress, max: 1 })).ratio)
-			}
+            for (const progress of values) {
+                ratios.push((await measure({ progress, max: 1 })).ratio)
+            }
 
-			expect(ratios[0]).toBe(0)
-			expect(ratios.at(-1)).toBe(1)
-			for (let index = 1; index < ratios.length; index += 1) {
-				expect(
-					ratios[index],
-					`${values[index]} should fill more than ${values[index - 1]}`,
-				).toBeGreaterThan(ratios[index - 1])
-			}
-		})
+            expect(ratios[0]).toBe(0)
+            expect(ratios.at(-1)).toBe(1)
+            for (let index = 1; index < ratios.length; index += 1) {
+                expect(
+                    ratios[index],
+                    `${values[index]} should fill more than ${values[index - 1]}`,
+                ).toBeGreaterThan(ratios[index - 1])
+            }
+        })
 
-		it('renders every spelling of the same fraction identically', async () => {
-			for (const { ratio, spellings } of SAME_VISUAL_STATE) {
-				const rendered = []
-				for (const spelling of spellings) {
-					rendered.push(await measure(spelling))
-				}
+        it('renders every spelling of the same fraction identically', async () => {
+            for (const { ratio, spellings } of SAME_VISUAL_STATE) {
+                const rendered = []
+                for (const spelling of spellings) {
+                    rendered.push(await measure(spelling))
+                }
 
-				for (const [index, bar] of rendered.entries()) {
-					const { progress, max } = spellings[index]
-					const label = `${progress}/${max}`
+                for (const [index, bar] of rendered.entries()) {
+                    const { progress, max } = spellings[index]
+                    const label = `${progress}/${max}`
 
-					expect(bar.ratio, `${label} should render as ${ratio} of the track`).toBeCloseTo(ratio, 3)
-					expect(bar.fillColor, `${label} should use the same fill colour`).toBe(
-						rendered[0].fillColor,
-					)
-				}
-			}
-		})
+                    expect(
+                        bar.ratio,
+                        `${label} should render as ${ratio} of the track`,
+                    ).toBeCloseTo(ratio, 3)
+                    expect(bar.fillColor, `${label} should use the same fill colour`).toBe(
+                        rendered[0].fillColor,
+                    )
+                }
+            }
+        })
 
-		it('reports the normalized proportion as a 0-100 ARIA value', async () => {
-			for (const { progress, max } of [
-				{ progress: 0.5, max: 1 },
-				{ progress: 50, max: 100 },
-				{ progress: 0.4, max: 1 },
-				{ progress: 1, max: 3 },
-			]) {
-				const bar = await measure({ progress, max })
+        it('reports the normalized proportion as a 0-100 ARIA value', async () => {
+            for (const { progress, max } of [
+                { progress: 0.5, max: 1 },
+                { progress: 50, max: 100 },
+                { progress: 0.4, max: 1 },
+                { progress: 1, max: 3 },
+            ]) {
+                const bar = await measure({ progress, max })
 
-				expect(bar.ariaValueNow).toBe(String(Math.round((progress / max) * 100)))
-			}
-		})
+                expect(bar.ariaValueNow).toBe(String(Math.round((progress / max) * 100)))
+            }
+        })
 
-		it('shows the same percentage in the optional display', async () => {
-			const wrapper = await mountThemed(
-				ProgressBar,
-				{ progress: 0.4, max: 1, showProgress: true },
-				'dark',
-			)
-			await settle()
+        it('shows the same percentage in the optional display', async () => {
+            const wrapper = await mountThemed(
+                ProgressBar,
+                { progress: 0.4, max: 1, showProgress: true },
+                'dark',
+            )
+            await settle()
 
-			expect((wrapper.element as HTMLElement).textContent?.trim()).toBe('40%')
-			wrapper.unmount()
-		})
+            expect((wrapper.element as HTMLElement).textContent?.trim()).toBe('40%')
+            wrapper.unmount()
+        })
 
-		it('clamps invalid and out-of-range values before rendering CSS or ARIA', async () => {
-			for (const { progress, max, expectedRatio, expectedAria } of [
-				{ progress: -25, max: 100, expectedRatio: 0, expectedAria: '0' },
-				{ progress: 125, max: 100, expectedRatio: 1, expectedAria: '100' },
-				{ progress: 1, max: 0, expectedRatio: 0, expectedAria: '0' },
-				{ progress: Number.NaN, max: 100, expectedRatio: 0, expectedAria: '0' },
-				{ progress: Number.POSITIVE_INFINITY, max: 100, expectedRatio: 0, expectedAria: '0' },
-				{ progress: 50, max: Number.NaN, expectedRatio: 0, expectedAria: '0' },
-				{ progress: 50, max: Number.POSITIVE_INFINITY, expectedRatio: 0, expectedAria: '0' },
-			]) {
-				const bar = await measure({ progress, max })
+        it('clamps invalid and out-of-range values before rendering CSS or ARIA', async () => {
+            for (const { progress, max, expectedRatio, expectedAria } of [
+                { progress: -25, max: 100, expectedRatio: 0, expectedAria: '0' },
+                { progress: 125, max: 100, expectedRatio: 1, expectedAria: '100' },
+                { progress: 1, max: 0, expectedRatio: 0, expectedAria: '0' },
+                { progress: Number.NaN, max: 100, expectedRatio: 0, expectedAria: '0' },
+                {
+                    progress: Number.POSITIVE_INFINITY,
+                    max: 100,
+                    expectedRatio: 0,
+                    expectedAria: '0',
+                },
+                { progress: 50, max: Number.NaN, expectedRatio: 0, expectedAria: '0' },
+                {
+                    progress: 50,
+                    max: Number.POSITIVE_INFINITY,
+                    expectedRatio: 0,
+                    expectedAria: '0',
+                },
+            ]) {
+                const bar = await measure({ progress, max })
 
-				expect(bar.ratio).toBe(expectedRatio)
-				expect(bar.ariaValueNow).toBe(expectedAria)
-			}
-		})
+                expect(bar.ratio).toBe(expectedRatio)
+                expect(bar.ariaValueNow).toBe(expectedAria)
+            }
+        })
 
-		it('keeps waiting progress indeterminate and suppresses numeric display', async () => {
-			const wrapper = await mountThemed(
-				ProgressBar,
-				{
-					progress: 75,
-					max: 100,
-					waiting: true,
-					showProgress: true,
-					label: 'Preparing files',
-					ariaLabel: 'Installation progress',
-				},
-				'dark',
-			)
-			await settle()
+        it('keeps waiting progress indeterminate and suppresses numeric display', async () => {
+            const wrapper = await mountThemed(
+                ProgressBar,
+                {
+                    progress: 75,
+                    max: 100,
+                    waiting: true,
+                    showProgress: true,
+                    label: 'Preparing files',
+                    ariaLabel: 'Installation progress',
+                },
+                'dark',
+            )
+            await settle()
 
-			const track = wrapper.element.querySelector('[role="progressbar"]') as HTMLElement
-			expect(track.hasAttribute('aria-valuenow')).toBe(false)
-			expect(track.getAttribute('aria-label')).toBe('Installation progress')
-			expect((wrapper.element as HTMLElement).textContent).toContain('Preparing files')
-			expect((wrapper.element as HTMLElement).textContent).not.toContain('75%')
-			wrapper.unmount()
-		})
-	})
+            const track = wrapper.element.querySelector('[role="progressbar"]') as HTMLElement
+            expect(track.hasAttribute('aria-valuenow')).toBe(false)
+            expect(track.getAttribute('aria-label')).toBe('Installation progress')
+            expect((wrapper.element as HTMLElement).textContent).toContain('Preparing files')
+            expect((wrapper.element as HTMLElement).textContent).not.toContain('75%')
+            wrapper.unmount()
+        })
+    })
 
-	describe('colour', () => {
-		it('resolves each fill from its own theme token', async () => {
-			for (const theme of THEMES) {
-				for (const color of COLORS) {
-					const wrapper = await mountThemed(ProgressBar, { progress: 0.5, max: 1, color }, theme)
-					await settle()
+    describe('colour', () => {
+        it('resolves each fill from its own theme token', async () => {
+            for (const theme of THEMES) {
+                for (const color of COLORS) {
+                    const wrapper = await mountThemed(
+                        ProgressBar,
+                        { progress: 0.5, max: 1, color },
+                        theme,
+                    )
+                    await settle()
 
-					const track = wrapper.element.querySelector('[role="progressbar"]') as HTMLElement
-					const fill = track.firstElementChild as HTMLElement
-					const expected = resolveToken(`--color-${color}`)
+                    const track = wrapper.element.querySelector(
+                        '[role="progressbar"]',
+                    ) as HTMLElement
+                    const fill = track.firstElementChild as HTMLElement
+                    const expected = resolveToken(`--color-${color}`)
 
-					expect(
-						getComputedStyle(fill).backgroundColor,
-						`${color} should fill from --color-${color} in ${theme}`,
-					).toBe(expected)
+                    expect(
+                        getComputedStyle(fill).backgroundColor,
+                        `${color} should fill from --color-${color} in ${theme}`,
+                    ).toBe(expected)
 
-					wrapper.unmount()
-				}
-			}
-		})
+                    wrapper.unmount()
+                }
+            }
+        })
 
-		it('renders a distinct fill per hue', async () => {
-			const fills = new Map<string, string>()
+        it('renders a distinct fill per hue', async () => {
+            const fills = new Map<string, string>()
 
-			for (const color of COLORS) {
-				fills.set(color, (await measure({ progress: 0.5, max: 1, color })).fillColor)
-			}
+            for (const color of COLORS) {
+                fills.set(color, (await measure({ progress: 0.5, max: 1, color })).fillColor)
+            }
 
-			// `--color-brand` aliases `--color-green`, so the two are deliberately
-			// identical; every other hue must be its own colour rather than
-			// collapsing to the default.
-			expect(fills.get('brand')).toBe(fills.get('green'))
-			const distinct = new Set(
-				COLORS.filter((color) => color !== 'brand').map((color) => fills.get(color)),
-			)
-			expect(distinct.size).toBe(COLORS.length - 1)
-		})
+            // `--color-brand` aliases `--color-green`, so the two are deliberately
+            // identical; every other hue must be its own colour rather than
+            // collapsing to the default.
+            expect(fills.get('brand')).toBe(fills.get('green'))
+            const distinct = new Set(
+                COLORS.filter((color) => color !== 'brand').map((color) => fills.get(color)),
+            )
+            expect(distinct.size).toBe(COLORS.length - 1)
+        })
 
-		it('follows the theme rather than a literal colour', async () => {
-			const perTheme = new Map<string, string>()
+        it('follows the theme rather than a literal colour', async () => {
+            const perTheme = new Map<string, string>()
 
-			for (const theme of THEMES) {
-				perTheme.set(theme, (await measure({ progress: 0.5, max: 1 }, theme)).fillColor)
-			}
+            for (const theme of THEMES) {
+                perTheme.set(theme, (await measure({ progress: 0.5, max: 1 }, theme)).fillColor)
+            }
 
-			// A genuinely token-driven fill changes between the lightest and
-			// darkest theme; a hard-coded brand colour would not.
-			expect(perTheme.get('light')).not.toBe(perTheme.get('oled'))
-		})
-	})
+            // A genuinely token-driven fill changes between the lightest and
+            // darkest theme; a hard-coded brand colour would not.
+            expect(perTheme.get('light')).not.toBe(perTheme.get('oled'))
+        })
+    })
 })
 
 /** Resolves a token to the concrete colour the browser paints, for comparison. */
 function resolveToken(token: string): string {
-	const probe = document.createElement('span')
-	probe.style.color = computedToken(document.documentElement, token)
-	document.body.append(probe)
-	const resolved = getComputedStyle(probe).color
-	probe.remove()
-	return resolved
+    const probe = document.createElement('span')
+    probe.style.color = computedToken(document.documentElement, token)
+    document.body.append(probe)
+    const resolved = getComputedStyle(probe).color
+    probe.remove()
+    return resolved
 }

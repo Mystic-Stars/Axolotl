@@ -1,14 +1,14 @@
 CREATE TABLE ingestion_daily (
-	day TEXT NOT NULL,
-	installation_hash TEXT NOT NULL,
-	accepted_batches INTEGER NOT NULL DEFAULT 0,
-	PRIMARY KEY (day, installation_hash)
+    day TEXT NOT NULL,
+    installation_hash TEXT NOT NULL,
+    accepted_batches INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (day, installation_hash)
 )
 WITHOUT ROWID;
 
 CREATE TABLE ingestion_global_daily (
-	day TEXT PRIMARY KEY,
-	accepted_batches INTEGER NOT NULL DEFAULT 0
+    day TEXT PRIMARY KEY,
+    accepted_batches INTEGER NOT NULL DEFAULT 0
 )
 WITHOUT ROWID;
 

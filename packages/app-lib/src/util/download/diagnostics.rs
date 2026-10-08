@@ -2,9 +2,9 @@
 
 use crate::ErrorKind;
 use crate::util::fetch::{
-    DOWNLOAD_DNS_RESOLVER, DownloadRoute, DownloadRouteSource,
-    MAX_DOWNLOAD_ATTEMPT_HISTORY, MAX_DOWNLOAD_DIAGNOSTIC_BYTES, ProxyPolicy,
-    route_host, sanitize_url_for_log,
+    DownloadRoute, DownloadRouteSource, MAX_DOWNLOAD_ATTEMPT_HISTORY,
+    MAX_DOWNLOAD_DIAGNOSTIC_BYTES, ProxyPolicy, route_host,
+    sanitize_url_for_log,
 };
 use reqwest::StatusCode;
 use std::collections::VecDeque;
@@ -128,7 +128,10 @@ pub(crate) fn push_download_attempt_diagnostic(
         history.pop_front();
     }
     let dns_candidates = route_host(route)
-        .map(|host| DOWNLOAD_DNS_RESOLVER.resolved_addresses(&host))
+        .map(|host| {
+            super::proxy_context::resolver(route.proxy)
+                .resolved_addresses(&host)
+        })
         .unwrap_or_default()
         .into_iter()
         .take(8)

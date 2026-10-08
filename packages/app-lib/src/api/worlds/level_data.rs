@@ -475,7 +475,7 @@ pub async fn get_world_level_data(
         &state,
     )
     .await?;
-    let world_dir = get_world_dir(&instance_dir, world);
+    let world_dir = get_world_dir(&instance_dir, world)?;
 
     let locked = try_get_world_session_lock(&world_dir).await?.is_none();
 
@@ -605,7 +605,7 @@ pub async fn update_world_settings(
     world: &str,
     patch: WorldSettingsPatch,
 ) -> Result<()> {
-    let world_dir = get_world_dir(instance, world);
+    let world_dir = get_world_dir(instance, world)?;
     let level_dat_path = world_dir.join("level.dat");
     if !level_dat_path.exists() {
         return Err(ErrorKind::InputError(

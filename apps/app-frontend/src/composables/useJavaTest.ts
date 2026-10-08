@@ -4,53 +4,53 @@ import { trackEvent } from '@/helpers/analytics'
 import { get_jre, test_jre } from '@/helpers/jre.js'
 
 export default function useJavaTest() {
-	const testingJava = ref(false)
-	const javaTestResult = ref<boolean | null>(null)
-	let testDebounceTimer: ReturnType<typeof setTimeout> | null = null
+    const testingJava = ref(false)
+    const javaTestResult = ref<boolean | null>(null)
+    let testDebounceTimer: ReturnType<typeof setTimeout> | null = null
 
-	async function runJavaTest(path: string, version: number | null, track = true) {
-		if (testDebounceTimer) {
-			clearTimeout(testDebounceTimer)
-			testDebounceTimer = null
-		}
-		if (!path) {
-			javaTestResult.value = null
-			return
-		}
-		testingJava.value = true
-		try {
-			if (version == null) {
-				javaTestResult.value = !!(await get_jre(path))
-			} else {
-				javaTestResult.value = await test_jre(path, version)
-			}
-		} catch {
-			javaTestResult.value = false
-		}
-		testingJava.value = false
+    async function runJavaTest(path: string, version: number | null, track = true) {
+        if (testDebounceTimer) {
+            clearTimeout(testDebounceTimer)
+            testDebounceTimer = null
+        }
+        if (!path) {
+            javaTestResult.value = null
+            return
+        }
+        testingJava.value = true
+        try {
+            if (version == null) {
+                javaTestResult.value = !!(await get_jre(path))
+            } else {
+                javaTestResult.value = await test_jre(path, version)
+            }
+        } catch {
+            javaTestResult.value = false
+        }
+        testingJava.value = false
 
-		if (track) {
-			trackEvent('JavaTest', { path, success: javaTestResult.value })
-		}
-	}
+        if (track) {
+            trackEvent('JavaTest', { path, success: javaTestResult.value })
+        }
+    }
 
-	function testJavaInstallationDebounced(path: string, version: number | null, delay = 600) {
-		if (testDebounceTimer) clearTimeout(testDebounceTimer)
-		if (!path) {
-			javaTestResult.value = null
-			return
-		}
-		testDebounceTimer = setTimeout(() => runJavaTest(path, version, false), delay)
-	}
+    function testJavaInstallationDebounced(path: string, version: number | null, delay = 600) {
+        if (testDebounceTimer) clearTimeout(testDebounceTimer)
+        if (!path) {
+            javaTestResult.value = null
+            return
+        }
+        testDebounceTimer = setTimeout(() => runJavaTest(path, version, false), delay)
+    }
 
-	async function testJavaInstallation(path: string, version: number | null, track = false) {
-		await runJavaTest(path, version, track)
-	}
+    async function testJavaInstallation(path: string, version: number | null, track = false) {
+        await runJavaTest(path, version, track)
+    }
 
-	return {
-		testingJava,
-		javaTestResult,
-		testJavaInstallationDebounced,
-		testJavaInstallation,
-	}
+    return {
+        testingJava,
+        javaTestResult,
+        testJavaInstallationDebounced,
+        testJavaInstallation,
+    }
 }

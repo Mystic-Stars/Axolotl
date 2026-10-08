@@ -1,30 +1,30 @@
 <script setup lang="ts">
 import {
-	EyeIcon,
-	LanguagesIcon,
-	LinkIcon,
-	MessageIcon,
-	MonitorIcon,
-	RefreshCwIcon,
-	SaveIcon,
-	SearchIcon,
-	SettingsIcon,
-	ShirtIcon,
-	TagCategoryAudioIcon,
-	TagCategoryGamepad2Icon,
-	UnlinkIcon,
-	WrenchIcon,
-	XIcon,
+    EyeIcon,
+    LanguagesIcon,
+    LinkIcon,
+    MessageIcon,
+    MonitorIcon,
+    RefreshCwIcon,
+    SaveIcon,
+    SearchIcon,
+    SettingsIcon,
+    ShirtIcon,
+    TagCategoryAudioIcon,
+    TagCategoryGamepad2Icon,
+    UnlinkIcon,
+    WrenchIcon,
+    XIcon,
 } from '@modrinth/assets'
 import {
-	Button,
-	commonMessages,
-	defineMessages,
-	FloatingActionBar,
-	StyledInput,
-	TabbedModal,
-	type TabbedModalTab,
-	useVIntl,
+    Button,
+    commonMessages,
+    defineMessages,
+    FloatingActionBar,
+    StyledInput,
+    TabbedModal,
+    type TabbedModalTab,
+    useVIntl,
 } from '@modrinth/ui'
 import type { Component } from 'vue'
 import { computed, inject, ref, watch } from 'vue'
@@ -35,27 +35,27 @@ import { injectInstanceSettings } from '@/pages/instance/components/settings-mod
 import { appSettingsModalContextKey } from '@/providers/app-settings-modal'
 
 import {
-	canonicalValueText,
-	isKeybindSetting,
-	settingCanBeEnabled,
-	settingSearchText,
+    canonicalValueText,
+    isKeybindSetting,
+    settingCanBeEnabled,
+    settingSearchText,
 } from './editors'
 import { minecraftKeybindConflictKey } from './keybinds'
 import {
-	formatGameSettingDescription,
-	formatGameSettingLabel,
-	gameSettingCategoryMessage,
+    formatGameSettingDescription,
+    formatGameSettingLabel,
+    gameSettingCategoryMessage,
 } from './messages'
 import GameSettingRow from './row.vue'
 import { useGameSettingsEditor } from './use-editor'
 import { useGameSettingLabels } from './use-labels'
 
 const props = defineProps<{
-	instanceId?: string
+    instanceId?: string
 }>()
 
 const emit = defineEmits<{
-	saved: []
+    saved: []
 }>()
 
 const { formatMessage } = useVIntl()
@@ -64,60 +64,60 @@ const appSettingsModal = inject(appSettingsModalContextKey, null)
 const instanceSettings = injectInstanceSettings(null)
 
 const messages = defineMessages({
-	title: {
-		id: 'app.settings.synced-options.game-settings.title',
-		defaultMessage: 'Game settings',
-	},
-	syncTitle: {
-		id: 'app.settings.synced-options.game-settings.sync-title',
-		defaultMessage: 'Sync game settings',
-	},
-	syncedOptionsDescription: {
-		id: 'app.settings.synced-options.game-settings.sync-description',
-		defaultMessage:
-			'Synced options are applied to every instance and override the values included with a modpack.',
-	},
-	search: {
-		id: 'app.settings.synced-options.game-settings.search',
-		defaultMessage: 'Search settings...',
-	},
-	enableAll: {
-		id: 'app.settings.synced-options.game-settings.enable-all',
-		defaultMessage: 'Sync all',
-	},
-	disableAll: {
-		id: 'app.settings.synced-options.game-settings.disable-all',
-		defaultMessage: 'Unsync all',
-	},
-	customEmpty: {
-		id: 'app.settings.synced-options.game-settings.custom-empty',
-		defaultMessage:
-			'Settings added by mods will appear here after Modrinth finds them in one of your instances.',
-	},
-	empty: {
-		id: 'app.settings.synced-options.game-settings.empty',
-		defaultMessage: 'No settings match your search or filter.',
-	},
-	loading: {
-		id: 'app.settings.synced-options.game-settings.loading',
-		defaultMessage: 'Loading settings...',
-	},
-	loadFailed: {
-		id: 'app.settings.synced-options.game-settings.load-failed',
-		defaultMessage: 'We couldn’t load your game settings.',
-	},
-	retry: {
-		id: 'app.settings.synced-options.game-settings.retry',
-		defaultMessage: 'Retry',
-	},
-	saveSettings: {
-		id: 'app.settings.synced-options.game-settings.save',
-		defaultMessage: 'Save settings',
-	},
-	unsavedChanges: {
-		id: 'app.settings.synced-options.game-settings.unsaved-changes',
-		defaultMessage: 'You have unsaved changes.',
-	},
+    title: {
+        id: 'app.settings.synced-options.game-settings.title',
+        defaultMessage: 'Game settings',
+    },
+    syncTitle: {
+        id: 'app.settings.synced-options.game-settings.sync-title',
+        defaultMessage: 'Sync game settings',
+    },
+    syncedOptionsDescription: {
+        id: 'app.settings.synced-options.game-settings.sync-description',
+        defaultMessage:
+            'Synced options are applied to every instance and override the values included with a modpack.',
+    },
+    search: {
+        id: 'app.settings.synced-options.game-settings.search',
+        defaultMessage: 'Search settings...',
+    },
+    enableAll: {
+        id: 'app.settings.synced-options.game-settings.enable-all',
+        defaultMessage: 'Sync all',
+    },
+    disableAll: {
+        id: 'app.settings.synced-options.game-settings.disable-all',
+        defaultMessage: 'Unsync all',
+    },
+    customEmpty: {
+        id: 'app.settings.synced-options.game-settings.custom-empty',
+        defaultMessage:
+            'Settings added by mods will appear here after Modrinth finds them in one of your instances.',
+    },
+    empty: {
+        id: 'app.settings.synced-options.game-settings.empty',
+        defaultMessage: 'No settings match your search or filter.',
+    },
+    loading: {
+        id: 'app.settings.synced-options.game-settings.loading',
+        defaultMessage: 'Loading settings...',
+    },
+    loadFailed: {
+        id: 'app.settings.synced-options.game-settings.load-failed',
+        defaultMessage: 'We couldn’t load your game settings.',
+    },
+    retry: {
+        id: 'app.settings.synced-options.game-settings.retry',
+        defaultMessage: 'Retry',
+    },
+    saveSettings: {
+        id: 'app.settings.synced-options.game-settings.save',
+        defaultMessage: 'Save settings',
+    },
+    unsavedChanges: {
+        id: 'app.settings.synced-options.game-settings.unsaved-changes',
+        defaultMessage: 'You have unsaved changes.',
+    },
 })
 
 const modal = ref<InstanceType<typeof TabbedModal> | null>(null)
@@ -127,357 +127,366 @@ const opened = ref(false)
 let allowClose = false
 
 const {
-	draftState,
-	isLocalEditor,
-	isDirty,
-	hasBlockingDraft,
-	loading,
-	loadError,
-	saving,
-	load,
-	reset: resetEditor,
-	cancelChanges,
-	setSyncEnabled,
-	setCanonicalValue,
-	save,
-	saveAndWait,
+    draftState,
+    isLocalEditor,
+    isDirty,
+    hasBlockingDraft,
+    loading,
+    loadError,
+    saving,
+    load,
+    reset: resetEditor,
+    cancelChanges,
+    setSyncEnabled,
+    setCanonicalValue,
+    save,
+    saveAndWait,
 } = useGameSettingsEditor(
-	() => props.instanceId,
-	() => emit('saved'),
+    () => props.instanceId,
+    () => emit('saved'),
 )
 
 const categoryIcons: Record<string, Component> = {
-	skin_customization: ShirtIcon,
-	video: MonitorIcon,
-	video_settings: MonitorIcon,
-	language: LanguagesIcon,
-	music_and_sound: TagCategoryAudioIcon,
-	controls: TagCategoryGamepad2Icon,
-	chat: MessageIcon,
-	chat_settings: MessageIcon,
-	accessibility: EyeIcon,
-	custom: WrenchIcon,
-	custom_settings: WrenchIcon,
+    skin_customization: ShirtIcon,
+    video: MonitorIcon,
+    video_settings: MonitorIcon,
+    language: LanguagesIcon,
+    music_and_sound: TagCategoryAudioIcon,
+    controls: TagCategoryGamepad2Icon,
+    chat: MessageIcon,
+    chat_settings: MessageIcon,
+    accessibility: EyeIcon,
+    custom: WrenchIcon,
+    custom_settings: WrenchIcon,
 }
 
 const localeLabels = useGameSettingLabels(
-	opened,
-	() => props.instanceId,
-	() => draftState.value?.settings ?? [],
+    opened,
+    () => props.instanceId,
+    () => draftState.value?.settings ?? [],
 )
 
 function settingLabel(setting: EditableGameSetting) {
-	if (setting.kind === 'external') {
-		return (
-			localeLabels.value[setting.option_id]?.label ?? formatGameSettingLabel(formatMessage, setting)
-		)
-	}
-	return formatGameSettingLabel(formatMessage, setting)
+    if (setting.kind === 'external') {
+        return (
+            localeLabels.value[setting.option_id]?.label ??
+            formatGameSettingLabel(formatMessage, setting)
+        )
+    }
+    return formatGameSettingLabel(formatMessage, setting)
 }
 
 const categories = computed<GameSettingCategory[]>(() => {
-	if (!draftState.value) return []
+    if (!draftState.value) return []
 
-	const settings = draftState.value.settings
-	const visible = draftState.value.categories.filter(
-		(category) =>
-			category.is_custom || settings.some((setting) => setting.category_id === category.id),
-	)
-	if (!visible.some((category) => category.is_custom || category.id === 'custom_settings')) {
-		visible.push({
-			id: 'custom_settings',
-			is_custom: true,
-		})
-	}
-	return visible
+    const settings = draftState.value.settings
+    const visible = draftState.value.categories.filter(
+        (category) =>
+            category.is_custom || settings.some((setting) => setting.category_id === category.id),
+    )
+    if (!visible.some((category) => category.is_custom || category.id === 'custom_settings')) {
+        visible.push({
+            id: 'custom_settings',
+            is_custom: true,
+        })
+    }
+    return visible
 })
 
 const categoryTabs = computed<TabbedModalTab[]>(() =>
-	categories.value.map((category) => ({
-		name: gameSettingCategoryMessage(category),
-		icon: categoryIcon(category),
-	})),
+    categories.value.map((category) => ({
+        name: gameSettingCategoryMessage(category),
+        icon: categoryIcon(category),
+    })),
 )
 
 const activeCategory = computed(() =>
-	categories.value.find((category) => category.id === activeCategoryId.value),
+    categories.value.find((category) => category.id === activeCategoryId.value),
 )
 
 const categorySettings = computed(() => {
-	if (!draftState.value) return []
+    if (!draftState.value) return []
 
-	const query = search.value.trim().toLocaleLowerCase()
-	return draftState.value.settings.filter((setting) => {
-		if (!query && setting.category_id !== activeCategoryId.value) return false
-		if (
-			query &&
-			!settingSearchText(
-				setting,
-				settingLabel(setting),
-				setting.kind === 'external'
-					? (localeLabels.value[setting.option_id]?.source?.project?.title ??
-							localeLabels.value[setting.option_id]?.source?.file_name ??
-							'')
-					: formatGameSettingDescription(formatMessage, setting),
-			).includes(query)
-		)
-			return false
-		return true
-	})
+    const query = search.value.trim().toLocaleLowerCase()
+    return draftState.value.settings.filter((setting) => {
+        if (!query && setting.category_id !== activeCategoryId.value) return false
+        if (
+            query &&
+            !settingSearchText(
+                setting,
+                settingLabel(setting),
+                setting.kind === 'external'
+                    ? (localeLabels.value[setting.option_id]?.source?.project?.title ??
+                          localeLabels.value[setting.option_id]?.source?.file_name ??
+                          '')
+                    : formatGameSettingDescription(formatMessage, setting),
+            ).includes(query)
+        )
+            return false
+        return true
+    })
 })
 
 const keybindConflicts = computed(() => {
-	if (!draftState.value) return new Map<string, string[]>()
+    if (!draftState.value) return new Map<string, string[]>()
 
-	const bindings = new Map<string, EditableGameSetting[]>()
-	for (const setting of draftState.value.settings) {
-		if (!isKeybindSetting(setting)) continue
-		const key = minecraftKeybindConflictKey(setting.option_id, canonicalValueText(setting))
-		if (!key) continue
-		bindings.set(key, [...(bindings.get(key) ?? []), setting])
-	}
+    const bindings = new Map<string, EditableGameSetting[]>()
+    for (const setting of draftState.value.settings) {
+        if (!isKeybindSetting(setting)) continue
+        const key = minecraftKeybindConflictKey(setting.option_id, canonicalValueText(setting))
+        if (!key) continue
+        bindings.set(key, [...(bindings.get(key) ?? []), setting])
+    }
 
-	const conflicts = new Map<string, string[]>()
-	for (const settings of bindings.values()) {
-		if (settings.length < 2) continue
-		for (const setting of settings) {
-			conflicts.set(
-				setting.option_id,
-				settings
-					.filter((candidate) => candidate.option_id !== setting.option_id)
-					.map((candidate) => settingLabel(candidate)),
-			)
-		}
-	}
-	return conflicts
+    const conflicts = new Map<string, string[]>()
+    for (const settings of bindings.values()) {
+        if (settings.length < 2) continue
+        for (const setting of settings) {
+            conflicts.set(
+                setting.option_id,
+                settings
+                    .filter((candidate) => candidate.option_id !== setting.option_id)
+                    .map((candidate) => settingLabel(candidate)),
+            )
+        }
+    }
+    return conflicts
 })
 
 const enableCandidates = computed(() =>
-	categorySettings.value.filter((setting) => !setting.sync_enabled && settingCanBeEnabled(setting)),
+    categorySettings.value.filter(
+        (setting) => !setting.sync_enabled && settingCanBeEnabled(setting),
+    ),
 )
 const disableCandidates = computed(() =>
-	categorySettings.value.filter((setting) => setting.sync_enabled && !setting.controlled),
+    categorySettings.value.filter((setting) => setting.sync_enabled && !setting.controlled),
 )
 const toggleableCategorySettings = computed(() =>
-	categorySettings.value.filter((setting) => !setting.controlled),
+    categorySettings.value.filter((setting) => !setting.controlled),
 )
 const allCategorySettingsSynced = computed(
-	() =>
-		toggleableCategorySettings.value.length > 0 &&
-		toggleableCategorySettings.value.every((setting) => setting.sync_enabled),
+    () =>
+        toggleableCategorySettings.value.length > 0 &&
+        toggleableCategorySettings.value.every((setting) => setting.sync_enabled),
 )
 const modalTitle = computed(() =>
-	formatMessage(isLocalEditor.value ? messages.title : messages.syncTitle),
+    formatMessage(isLocalEditor.value ? messages.title : messages.syncTitle),
 )
 
 function categoryIcon(category: GameSettingCategory): Component {
-	return categoryIcons[category.id] ?? SettingsIcon
+    return categoryIcons[category.id] ?? SettingsIcon
 }
 
 function changeCategory(_fromIndex: number, toIndex: number): boolean {
-	const category = categories.value[toIndex]
-	if (!category) return false
-	activeCategoryId.value = category.id
-	search.value = ''
-	return true
+    const category = categories.value[toIndex]
+    if (!category) return false
+    activeCategoryId.value = category.id
+    search.value = ''
+    return true
 }
 
 watch(
-	categories,
-	() => {
-		if (!categories.value.some((category) => category.id === activeCategoryId.value)) {
-			activeCategoryId.value = categories.value[0]?.id ?? 'custom_settings'
-		}
-		const index = categories.value.findIndex((category) => category.id === activeCategoryId.value)
-		if (index >= 0) modal.value?.setTab(index)
-	},
-	{ flush: 'sync' },
+    categories,
+    () => {
+        if (!categories.value.some((category) => category.id === activeCategoryId.value)) {
+            activeCategoryId.value = categories.value[0]?.id ?? 'custom_settings'
+        }
+        const index = categories.value.findIndex(
+            (category) => category.id === activeCategoryId.value,
+        )
+        if (index >= 0) modal.value?.setTab(index)
+    },
+    { flush: 'sync' },
 )
 
 function show() {
-	opened.value = true
-	allowClose = false
-	search.value = ''
-	void load()
-	modal.value?.show()
+    opened.value = true
+    allowClose = false
+    search.value = ''
+    void load()
+    modal.value?.show()
 }
 
 function hide() {
-	modal.value?.hide()
+    modal.value?.hide()
 }
 
 function reset() {
-	opened.value = false
-	resetEditor()
-	allowClose = false
+    opened.value = false
+    resetEditor()
+    allowClose = false
 }
 
 function beforeHide(): boolean {
-	if (allowClose || !isDirty.value) return true
-	void saveBeforeClose()
-	return false
+    if (allowClose || !isDirty.value) return true
+    void saveBeforeClose()
+    return false
 }
 
 async function saveBeforeClose() {
-	const saved = await saveAndWait()
-	if (!saved) return
-	allowClose = true
-	modal.value?.hide()
+    const saved = await saveAndWait()
+    if (!saved) return
+    allowClose = true
+    modal.value?.hide()
 }
 
 async function openSource(location: RouteLocationRaw) {
-	if (isDirty.value || saving.value) return
-	if (appSettingsModal && !appSettingsModal.close()) return
-	allowClose = true
-	modal.value?.hide()
-	if (instanceSettings?.closeModal) {
-		instanceSettings.closeModal(() => void router.push(location))
-	} else {
-		await router.push(location)
-	}
+    if (isDirty.value || saving.value) return
+    if (appSettingsModal && !appSettingsModal.close()) return
+    allowClose = true
+    modal.value?.hide()
+    if (instanceSettings?.closeModal) {
+        instanceSettings.closeModal(() => void router.push(location))
+    } else {
+        await router.push(location)
+    }
 }
 
 function toggleVisibleSync() {
-	const enabled = !allCategorySettingsSynced.value
-	const candidates = enabled ? enableCandidates.value : disableCandidates.value
-	setSyncEnabled(
-		candidates.map((setting) => setting.option_id),
-		enabled,
-	)
+    const enabled = !allCategorySettingsSynced.value
+    const candidates = enabled ? enableCandidates.value : disableCandidates.value
+    setSyncEnabled(
+        candidates.map((setting) => setting.option_id),
+        enabled,
+    )
 }
 
 defineExpose({ show, hide })
 </script>
 
 <template>
-	<TabbedModal
-		ref="modal"
-		:tabs="categoryTabs"
-		:header="modalTitle"
-		:before-hide="beforeHide"
-		:before-tab-change="changeCategory"
-		:hide-tab-selection="search.trim().length > 0"
-		:on-after-hide="reset"
-		:floating-action-bar-shown="isDirty"
-		max-width="min(1080px, calc(95vw - 2rem))"
-		width="min(1080px, calc(95vw - 2rem))"
-	>
-		<template #sidebar-header>
-			<div class="pb-4">
-				<StyledInput
-					v-model="search"
-					:icon="SearchIcon"
-					type="search"
-					autocomplete="off"
-					:placeholder="formatMessage(messages.search)"
-					:aria-label="formatMessage(messages.search)"
-					wrapper-class="w-full shrink-0"
-				/>
-			</div>
-		</template>
+    <TabbedModal
+        ref="modal"
+        :tabs="categoryTabs"
+        :header="modalTitle"
+        :before-hide="beforeHide"
+        :before-tab-change="changeCategory"
+        :hide-tab-selection="search.trim().length > 0"
+        :on-after-hide="reset"
+        :floating-action-bar-shown="isDirty"
+        max-width="min(1080px, calc(95vw - 2rem))"
+        width="min(1080px, calc(95vw - 2rem))"
+    >
+        <template #sidebar-header>
+            <div class="pb-4">
+                <StyledInput
+                    v-model="search"
+                    :icon="SearchIcon"
+                    type="search"
+                    autocomplete="off"
+                    :placeholder="formatMessage(messages.search)"
+                    :aria-label="formatMessage(messages.search)"
+                    wrapper-class="w-full shrink-0"
+                />
+            </div>
+        </template>
 
-		<template #content>
-			<div class="flex min-h-full min-w-0 flex-col">
-				<div
-					v-if="!isLocalEditor && (loading || loadError || categorySettings.length > 0)"
-					class="mb-4 flex shrink-0 flex-wrap items-start justify-between gap-4 border-0 border-b border-solid border-surface-4 pb-4"
-				>
-					<p class="m-0 min-w-60 flex-1 text-[var(--color-text-default)]">
-						{{ formatMessage(messages.syncedOptionsDescription) }}
-					</p>
-					<div class="ml-auto flex w-48 justify-end">
-						<Button
-							size="lg"
-							:disabled="
-								allCategorySettingsSynced
-									? disableCandidates.length === 0
-									: enableCandidates.length === 0
-							"
-							@click="toggleVisibleSync"
-						>
-							<LinkIcon v-if="allCategorySettingsSynced" aria-hidden="true" />
-							<UnlinkIcon v-else aria-hidden="true" />
-							{{
-								formatMessage(allCategorySettingsSynced ? messages.disableAll : messages.enableAll)
-							}}
-						</Button>
-					</div>
-				</div>
+        <template #content>
+            <div class="flex min-h-full min-w-0 flex-col">
+                <div
+                    v-if="!isLocalEditor && (loading || loadError || categorySettings.length > 0)"
+                    class="mb-4 flex shrink-0 flex-wrap items-start justify-between gap-4 border-0 border-b border-solid border-surface-4 pb-4"
+                >
+                    <p class="m-0 min-w-60 flex-1 text-[var(--color-text-default)]">
+                        {{ formatMessage(messages.syncedOptionsDescription) }}
+                    </p>
+                    <div class="ml-auto flex w-48 justify-end">
+                        <Button
+                            size="lg"
+                            :disabled="
+                                allCategorySettingsSynced
+                                    ? disableCandidates.length === 0
+                                    : enableCandidates.length === 0
+                            "
+                            @click="toggleVisibleSync"
+                        >
+                            <LinkIcon v-if="allCategorySettingsSynced" aria-hidden="true" />
+                            <UnlinkIcon v-else aria-hidden="true" />
+                            {{
+                                formatMessage(
+                                    allCategorySettingsSynced
+                                        ? messages.disableAll
+                                        : messages.enableAll,
+                                )
+                            }}
+                        </Button>
+                    </div>
+                </div>
 
-				<div
-					v-if="loading"
-					role="status"
-					:aria-label="formatMessage(messages.loading)"
-					class="flex flex-1 flex-col gap-4"
-				>
-					<div
-						v-for="row in 5"
-						:key="row"
-						class="h-20 animate-pulse rounded-xl bg-surface-3"
-						aria-hidden="true"
-					/>
-				</div>
-				<div
-					v-else-if="loadError"
-					class="flex min-h-40 flex-1 flex-col items-center justify-center gap-3 text-[var(--color-text-tertiary)]"
-				>
-					<p class="m-0">{{ formatMessage(messages.loadFailed) }}</p>
-					<Button @click="load">
-						<RefreshCwIcon aria-hidden="true" />
-						{{ formatMessage(messages.retry) }}
-					</Button>
-				</div>
-				<div v-else class="min-h-0 flex-1">
-					<div
-						v-if="categorySettings.length === 0"
-						class="flex h-full min-h-40 items-center justify-center px-8 text-center text-[var(--color-text-tertiary)]"
-					>
-						{{
-							activeCategory?.is_custom && !search
-								? formatMessage(messages.customEmpty)
-								: formatMessage(messages.empty)
-						}}
-					</div>
-					<div v-else class="flex flex-col gap-4">
-						<GameSettingRow
-							v-for="setting in categorySettings"
-							:key="setting.option_id"
-							:setting="setting"
-							:locale-label="localeLabels[setting.option_id]"
-							:keybind-conflicts="keybindConflicts.get(setting.option_id)"
-							:show-sync-toggle="!isLocalEditor"
-							:source-navigation-disabled="isDirty || saving"
-							@open-source="openSource"
-							@update:sync-enabled="setSyncEnabled([setting.option_id], $event)"
-							@update:canonical-value="setCanonicalValue(setting.option_id, $event)"
-						/>
-					</div>
-				</div>
-			</div>
-		</template>
+                <div
+                    v-if="loading"
+                    role="status"
+                    :aria-label="formatMessage(messages.loading)"
+                    class="flex flex-1 flex-col gap-4"
+                >
+                    <div
+                        v-for="row in 5"
+                        :key="row"
+                        class="h-20 animate-pulse rounded-xl bg-surface-3"
+                        aria-hidden="true"
+                    />
+                </div>
+                <div
+                    v-else-if="loadError"
+                    class="flex min-h-40 flex-1 flex-col items-center justify-center gap-3 text-[var(--color-text-tertiary)]"
+                >
+                    <p class="m-0">{{ formatMessage(messages.loadFailed) }}</p>
+                    <Button @click="load">
+                        <RefreshCwIcon aria-hidden="true" />
+                        {{ formatMessage(messages.retry) }}
+                    </Button>
+                </div>
+                <div v-else class="min-h-0 flex-1">
+                    <div
+                        v-if="categorySettings.length === 0"
+                        class="flex h-full min-h-40 items-center justify-center px-8 text-center text-[var(--color-text-tertiary)]"
+                    >
+                        {{
+                            activeCategory?.is_custom && !search
+                                ? formatMessage(messages.customEmpty)
+                                : formatMessage(messages.empty)
+                        }}
+                    </div>
+                    <div v-else class="flex flex-col gap-4">
+                        <GameSettingRow
+                            v-for="setting in categorySettings"
+                            :key="setting.option_id"
+                            :setting="setting"
+                            :locale-label="localeLabels[setting.option_id]"
+                            :keybind-conflicts="keybindConflicts.get(setting.option_id)"
+                            :show-sync-toggle="!isLocalEditor"
+                            :source-navigation-disabled="isDirty || saving"
+                            @open-source="openSource"
+                            @update:sync-enabled="setSyncEnabled([setting.option_id], $event)"
+                            @update:canonical-value="setCanonicalValue(setting.option_id, $event)"
+                        />
+                    </div>
+                </div>
+            </div>
+        </template>
 
-		<template #floating-action-bar>
-			<FloatingActionBar v-if="isDirty" shown inline :aria-label="modalTitle">
-				<p class="m-0 text-sm font-semibold md:text-base">
-					{{ formatMessage(messages.unsavedChanges) }}
-				</p>
-				<div class="ml-auto flex gap-2">
-					<Button type="outlined" @click="cancelChanges">
-						<XIcon aria-hidden="true" />
-						{{ formatMessage(commonMessages.cancelButton) }}
-					</Button>
-					<Button
-						type="colored"
-						color="brand"
-						:disabled="!isDirty || loading || saving || hasBlockingDraft"
-						:loading="saving"
-						@click="save"
-					>
-						<SaveIcon aria-hidden="true" />
-						{{ formatMessage(messages.saveSettings) }}
-					</Button>
-				</div>
-			</FloatingActionBar>
-		</template>
-	</TabbedModal>
+        <template #floating-action-bar>
+            <FloatingActionBar v-if="isDirty" shown inline :aria-label="modalTitle">
+                <p class="m-0 text-sm font-semibold md:text-base">
+                    {{ formatMessage(messages.unsavedChanges) }}
+                </p>
+                <div class="ml-auto flex gap-2">
+                    <Button type="outlined" @click="cancelChanges">
+                        <XIcon aria-hidden="true" />
+                        {{ formatMessage(commonMessages.cancelButton) }}
+                    </Button>
+                    <Button
+                        type="colored"
+                        color="brand"
+                        :disabled="!isDirty || loading || saving || hasBlockingDraft"
+                        :loading="saving"
+                        @click="save"
+                    >
+                        <SaveIcon aria-hidden="true" />
+                        {{ formatMessage(messages.saveSettings) }}
+                    </Button>
+                </div>
+            </FloatingActionBar>
+        </template>
+    </TabbedModal>
 </template>

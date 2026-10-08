@@ -33,6 +33,7 @@ impl ResourceFamily {
 pub(crate) struct RouteHealthKey {
     pub(crate) family: ResourceFamily,
     pub(crate) authority: String,
+    pub(crate) scope: String,
 }
 #[derive(Clone, Debug, Default)]
 pub(crate) struct RouteHealth {
@@ -63,15 +64,14 @@ impl Drop for TaskProbeGuard {
             return;
         }
         let mut families = self.state.families.lock();
-        if let Some(entry) = families.get_mut(&self.family) {
-            if entry
+        if let Some(entry) = families.get_mut(&self.family)
+            && entry
                 .in_flight
                 .as_ref()
                 .is_some_and(|v| Arc::ptr_eq(v, &self.notify))
-            {
-                entry.in_flight = None;
-                entry.last_probed = None;
-            }
+        {
+            entry.in_flight = None;
+            entry.last_probed = None;
         }
     }
 }
@@ -133,6 +133,7 @@ pub(crate) fn route_health_key(
     Some(RouteHealthKey {
         family: resource_family(route, resource),
         authority: crate::util::fetch::range_splitting_authority(route)?,
+        scope: super::proxy_context::scope(route.proxy),
     })
 }
 pub(crate) fn persisted_route_health(
@@ -159,7 +160,10 @@ pub(crate) fn effective_route_authority(
     let authority = crate::util::fetch::url_authority(&route.url)?;
     ROUTE_EFFECTIVE_AUTHORITIES
         .lock()
-        .get(&route.url)
+        .get(&super::proxy_context::authority_key(
+            &route.url,
+            route.proxy,
+        ))
         .cloned()
         .or(Some(authority))
 }
@@ -175,9 +179,15 @@ pub(crate) fn remember_effective_route_authority(
     };
     let mut map = ROUTE_EFFECTIVE_AUTHORITIES.lock();
     if original == effective {
-        map.remove(&route.url);
+        map.remove(&super::proxy_context::authority_key(
+            &route.url,
+            route.proxy,
+        ));
     } else {
-        map.insert(route.url.clone(), effective);
+        map.insert(
+            super::proxy_context::authority_key(&route.url, route.proxy),
+            effective,
+        );
     }
 }
 pub(crate) fn forget_effective_route_authority(
@@ -189,8 +199,15 @@ pub(crate) fn forget_effective_route_authority(
         return;
     };
     let mut map = ROUTE_EFFECTIVE_AUTHORITIES.lock();
-    if map.get(&route.url) == Some(&failed) {
-        map.remove(&route.url);
+    if map.get(&super::proxy_context::authority_key(
+        &route.url,
+        route.proxy,
+    )) == Some(&failed)
+    {
+        map.remove(&super::proxy_context::authority_key(
+            &route.url,
+            route.proxy,
+        ));
     }
 }
 

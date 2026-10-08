@@ -2,69 +2,69 @@ import { invoke } from '@tauri-apps/api/core'
 import { listen, type UnlistenFn } from '@tauri-apps/api/event'
 
 import type {
-	ModTranslationAnalysis,
-	ModTranslationOptions,
-	ModTranslationTaskEvent,
-	ModTranslationTaskSnapshot,
+    ModTranslationAnalysis,
+    ModTranslationOptions,
+    ModTranslationTaskEvent,
+    ModTranslationTaskSnapshot,
 } from './types.ts'
 export { modTranslationPercent } from './job-state.ts'
 
 const TASK_EVENT = 'mod-translation-task-event'
 
 export async function analyzeMod(inputPath: string): Promise<ModTranslationAnalysis> {
-	return await invoke<ModTranslationAnalysis>('plugin:mod-translation|mod_translation_analyze', {
-		inputPath,
-	})
+    return await invoke<ModTranslationAnalysis>('plugin:mod-translation|mod_translation_analyze', {
+        inputPath,
+    })
 }
 
 export async function translateMod(request: {
-	inputPath: string
-	outputPath: string
-	providerId: string
-	modelId: string
-	analysisId?: string
-	inputHash?: string
-	options: ModTranslationOptions
+    inputPath: string
+    outputPath: string
+    providerId: string
+    modelId: string
+    analysisId?: string
+    inputHash?: string
+    options: ModTranslationOptions
 }): Promise<ModTranslationTaskSnapshot> {
-	return await invoke<ModTranslationTaskSnapshot>(
-		'plugin:mod-translation|mod_translation_translate',
-		{
-			inputPath: request.inputPath,
-			outputPath: request.outputPath,
-			providerId: request.providerId,
-			modelId: request.modelId,
-			analysisId: request.analysisId,
-			inputHash: request.inputHash,
-			options: request.options,
-		},
-	)
+    return await invoke<ModTranslationTaskSnapshot>(
+        'plugin:mod-translation|mod_translation_translate',
+        {
+            inputPath: request.inputPath,
+            outputPath: request.outputPath,
+            providerId: request.providerId,
+            modelId: request.modelId,
+            analysisId: request.analysisId,
+            inputHash: request.inputHash,
+            options: request.options,
+        },
+    )
 }
 
 export async function cancelModTranslation(taskId: string): Promise<void> {
-	await invoke('plugin:mod-translation|mod_translation_cancel', { taskId })
+    await invoke('plugin:mod-translation|mod_translation_cancel', { taskId })
 }
 
 export async function listModTranslationTasks(): Promise<ModTranslationTaskSnapshot[]> {
-	return await invoke<ModTranslationTaskSnapshot[]>(
-		'plugin:mod-translation|mod_translation_list_tasks',
-	)
+    return await invoke<ModTranslationTaskSnapshot[]>(
+        'plugin:mod-translation|mod_translation_list_tasks',
+    )
 }
 
 export async function getModTranslationTask(
-	taskId: string,
+    taskId: string,
 ): Promise<ModTranslationTaskSnapshot | null> {
-	return await invoke<ModTranslationTaskSnapshot | null>(
-		'plugin:mod-translation|mod_translation_get_task',
-		{ taskId },
-	)
+    return await invoke<ModTranslationTaskSnapshot | null>(
+        'plugin:mod-translation|mod_translation_get_task',
+        { taskId },
+    )
 }
 
 export async function dismissModTranslationTask(taskId: string): Promise<void> {
-	await invoke('plugin:mod-translation|mod_translation_dismiss_task', { taskId })
+    await invoke('plugin:mod-translation|mod_translation_dismiss_task', { taskId })
 }
 
 export async function listenToModTranslationTasks(
-	handler: (event: ModTranslationTaskEvent) => void,
+    handler: (event: ModTranslationTaskEvent) => void,
 ): Promise<UnlistenFn> {
-	return await listen<ModTranslationTaskEvent>(TASK_EVENT, (event) => handler(event.payload))
+    return await listen<ModTranslationTaskEvent>(TASK_EVENT, (event) => handler(event.payload))
 }

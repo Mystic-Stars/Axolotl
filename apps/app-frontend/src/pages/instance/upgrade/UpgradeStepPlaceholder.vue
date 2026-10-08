@@ -1,8 +1,8 @@
 <template>
-	<section :data-instance-id="flow.instanceId.value" class="flex flex-col gap-2 py-2">
-		<h2 class="m-0 text-xl font-semibold text-[var(--color-text-primary)]">{{ title }}</h2>
-		<p class="m-0 max-w-2xl text-[var(--color-text-tertiary)]">{{ description }}</p>
-	</section>
+    <section :data-instance-id="flow.instanceId.value" class="flex flex-col gap-2 py-2">
+        <h2 class="m-0 text-xl font-semibold text-[var(--color-text-primary)]">{{ title }}</h2>
+        <p class="m-0 max-w-2xl text-[var(--color-text-tertiary)]">{{ description }}</p>
+    </section>
 </template>
 
 <script setup lang="ts">

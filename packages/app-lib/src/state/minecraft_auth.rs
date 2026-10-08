@@ -218,13 +218,13 @@ pub async fn device_login_poll(
         }
     })?;
 
-    if let Ok(error) = serde_json::from_str::<MicrosoftOAuthError>(&text) {
-        if error.error == "authorization_pending" || error.error == "slow_down"
-        {
-            return Ok(MinecraftDeviceLoginPoll::Pending {
-                slow_down: error.error == "slow_down",
-            });
-        }
+    if let Ok(error) = serde_json::from_str::<MicrosoftOAuthError>(&text)
+        && (error.error == "authorization_pending"
+            || error.error == "slow_down")
+    {
+        return Ok(MinecraftDeviceLoginPoll::Pending {
+            slow_down: error.error == "slow_down",
+        });
     }
 
     let token = serde_json::from_str(&text).map_err(|source| {

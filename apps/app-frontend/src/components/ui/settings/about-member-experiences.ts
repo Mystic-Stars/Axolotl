@@ -1,21 +1,21 @@
 import { type Component, defineAsyncComponent } from 'vue'
 
 export type AboutMemberExperience = {
-	component: Component
-	longPressDuration: number
+    component: Component
+    longPressDuration: number
 }
 
 const memberExperiences: Record<string, AboutMemberExperience> = {
-	'axolotl-merge': {
-		component: defineAsyncComponent(() => import('../AboutMergeGame.vue')),
-		longPressDuration: 800,
-	},
-	'axolotl-run': {
-		component: defineAsyncComponent(() => import('../AboutAxolotlRun.vue')),
-		longPressDuration: 800,
-	},
+    'axolotl-merge': {
+        component: defineAsyncComponent(() => import('../AboutMergeGame.vue')),
+        longPressDuration: 800,
+    },
+    'axolotl-run': {
+        component: defineAsyncComponent(() => import('../AboutAxolotlRun.vue')),
+        longPressDuration: 800,
+    },
 }
 
 export function getAboutMemberExperience(experience: unknown): AboutMemberExperience | undefined {
-	return typeof experience === 'string' ? memberExperiences[experience] : undefined
+    return typeof experience === 'string' ? memberExperiences[experience] : undefined
 }

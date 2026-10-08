@@ -1,41 +1,41 @@
 <template>
-	<div
-		class="relative flex h-[750px] items-center justify-center overflow-hidden rounded-[20px] bg-black"
-	>
-		<div v-if="state.hasError" class="flex flex-col items-center justify-center gap-4">
-			<TriangleAlertIcon class="size-8 text-red" />
-			<p class="m-0 text-[var(--color-text-tertiary)]">
-				{{ state.errorMessage || formatMessage(messages.invalidImage) }}
-			</p>
-		</div>
-		<img
-			v-show="isReady"
-			ref="imageRef"
-			:src="imageObjectUrl"
-			class="max-h-full max-w-full rounded-lg object-contain"
-			:class="{ 'cursor-zoom-in': !zoomed, 'cursor-zoom-out': zoomed }"
-			:alt="formatMessage(messages.viewedImageAlt)"
-			@load="handleImageLoad"
-			@error="handleImageError"
-			@click="toggleZoom"
-		/>
+    <div
+        class="relative flex h-[750px] items-center justify-center overflow-hidden rounded-[20px] bg-black"
+    >
+        <div v-if="state.hasError" class="flex flex-col items-center justify-center gap-4">
+            <TriangleAlertIcon class="size-8 text-red" />
+            <p class="m-0 text-[var(--color-text-tertiary)]">
+                {{ state.errorMessage || formatMessage(messages.invalidImage) }}
+            </p>
+        </div>
+        <img
+            v-show="isReady"
+            ref="imageRef"
+            :src="imageObjectUrl"
+            class="max-h-full max-w-full rounded-lg object-contain"
+            :class="{ 'cursor-zoom-in': !zoomed, 'cursor-zoom-out': zoomed }"
+            :alt="formatMessage(messages.viewedImageAlt)"
+            @load="handleImageLoad"
+            @error="handleImageError"
+            @click="toggleZoom"
+        />
 
-		<div
-			v-if="isReady"
-			class="image-viewer-toolbar absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-1 rounded-2xl p-1.5 backdrop-blur-sm"
-		>
-			<Button v-tooltip="formatMessage(messages.zoomIn)" type="quiet" @click="zoomIn"
-				><ZoomInIcon />
-			</Button>
-			<Button v-tooltip="formatMessage(messages.zoomOut)" type="quiet" @click="zoomOut"
-				><ZoomOutIcon />
-			</Button>
-			<div class="mx-1 h-6 w-px bg-surface-5" />
-			<Button v-tooltip="formatMessage(messages.resetZoom)" type="quiet" @click="resetZoom"
-				><span class="px-1 text-sm tabular-nums">{{ Math.round(scale * 100) }}%</span>
-			</Button>
-		</div>
-	</div>
+        <div
+            v-if="isReady"
+            class="image-viewer-toolbar absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-1 rounded-2xl p-1.5 backdrop-blur-sm"
+        >
+            <Button v-tooltip="formatMessage(messages.zoomIn)" type="quiet" @click="zoomIn"
+                ><ZoomInIcon />
+            </Button>
+            <Button v-tooltip="formatMessage(messages.zoomOut)" type="quiet" @click="zoomOut"
+                ><ZoomOutIcon />
+            </Button>
+            <div class="mx-1 h-6 w-px bg-surface-5" />
+            <Button v-tooltip="formatMessage(messages.resetZoom)" type="quiet" @click="resetZoom"
+                ><span class="px-1 text-sm tabular-nums">{{ Math.round(scale * 100) }}%</span>
+            </Button>
+        </div>
+    </div>
 </template>
 
 <script setup lang="ts">
@@ -48,46 +48,46 @@ import { defineMessages, useVIntl } from '#ui/composables/i18n'
 const { formatMessage } = useVIntl()
 
 const messages = defineMessages({
-	invalidImage: {
-		id: 'files.image_viewer.invalid_image',
-		defaultMessage: 'Invalid or empty image file.',
-	},
-	viewedImageAlt: {
-		id: 'files.image_viewer.viewed_image_alt',
-		defaultMessage: 'Viewed image',
-	},
-	zoomIn: {
-		id: 'files.image_viewer.zoom_in',
-		defaultMessage: 'Zoom in',
-	},
-	zoomOut: {
-		id: 'files.image_viewer.zoom_out',
-		defaultMessage: 'Zoom out',
-	},
-	resetZoom: {
-		id: 'files.image_viewer.reset_zoom',
-		defaultMessage: 'Reset zoom',
-	},
-	imageTooLarge: {
-		id: 'files.image_viewer.image_too_large',
-		defaultMessage: 'Image too large to view (max {maxDimension}x{maxDimension} pixels)',
-	},
-	loadFailed: {
-		id: 'files.image_viewer.load_failed',
-		defaultMessage: 'Failed to load image',
-	},
+    invalidImage: {
+        id: 'files.image_viewer.invalid_image',
+        defaultMessage: 'Invalid or empty image file.',
+    },
+    viewedImageAlt: {
+        id: 'files.image_viewer.viewed_image_alt',
+        defaultMessage: 'Viewed image',
+    },
+    zoomIn: {
+        id: 'files.image_viewer.zoom_in',
+        defaultMessage: 'Zoom in',
+    },
+    zoomOut: {
+        id: 'files.image_viewer.zoom_out',
+        defaultMessage: 'Zoom out',
+    },
+    resetZoom: {
+        id: 'files.image_viewer.reset_zoom',
+        defaultMessage: 'Reset zoom',
+    },
+    imageTooLarge: {
+        id: 'files.image_viewer.image_too_large',
+        defaultMessage: 'Image too large to view (max {maxDimension}x{maxDimension} pixels)',
+    },
+    loadFailed: {
+        id: 'files.image_viewer.load_failed',
+        defaultMessage: 'Failed to load image',
+    },
 })
 
 const MAX_IMAGE_DIMENSION = 4096
 
 const props = defineProps<{
-	imageBlob: Blob
+    imageBlob: Blob
 }>()
 
 const state = ref({
-	isLoading: true,
-	hasError: false,
-	errorMessage: '',
+    isLoading: true,
+    hasError: false,
+    errorMessage: '',
 })
 
 const imageRef = ref<HTMLImageElement | null>(null)
@@ -98,81 +98,88 @@ const zoomed = ref(false)
 const isReady = computed(() => !state.value.isLoading && !state.value.hasError)
 
 function updateImageUrl(blob: Blob) {
-	if (imageObjectUrl.value) URL.revokeObjectURL(imageObjectUrl.value)
-	imageObjectUrl.value = URL.createObjectURL(blob)
+    if (imageObjectUrl.value) URL.revokeObjectURL(imageObjectUrl.value)
+    imageObjectUrl.value = URL.createObjectURL(blob)
 }
 
 function handleImageLoad() {
-	const img = imageRef.value
-	if (img && (img.naturalWidth > MAX_IMAGE_DIMENSION || img.naturalHeight > MAX_IMAGE_DIMENSION)) {
-		state.value.hasError = true
-		state.value.errorMessage = formatMessage(messages.imageTooLarge, {
-			maxDimension: MAX_IMAGE_DIMENSION,
-		})
-	}
-	state.value.isLoading = false
+    const img = imageRef.value
+    if (
+        img &&
+        (img.naturalWidth > MAX_IMAGE_DIMENSION || img.naturalHeight > MAX_IMAGE_DIMENSION)
+    ) {
+        state.value.hasError = true
+        state.value.errorMessage = formatMessage(messages.imageTooLarge, {
+            maxDimension: MAX_IMAGE_DIMENSION,
+        })
+    }
+    state.value.isLoading = false
 }
 
 function handleImageError() {
-	state.value.isLoading = false
-	state.value.hasError = true
-	state.value.errorMessage = formatMessage(messages.loadFailed)
+    state.value.isLoading = false
+    state.value.hasError = true
+    state.value.errorMessage = formatMessage(messages.loadFailed)
 }
 
 function toggleZoom() {
-	if (zoomed.value) {
-		resetZoom()
-	} else {
-		scale.value = 2
-		zoomed.value = true
-	}
+    if (zoomed.value) {
+        resetZoom()
+    } else {
+        scale.value = 2
+        zoomed.value = true
+    }
 }
 
 function zoomIn() {
-	scale.value = Math.min(scale.value * 1.25, 5)
-	zoomed.value = scale.value > 1
+    scale.value = Math.min(scale.value * 1.25, 5)
+    zoomed.value = scale.value > 1
 }
 
 function zoomOut() {
-	scale.value = Math.max(scale.value * 0.8, 0.1)
-	zoomed.value = scale.value > 1
+    scale.value = Math.max(scale.value * 0.8, 0.1)
+    zoomed.value = scale.value > 1
 }
 
 function resetZoom() {
-	scale.value = 1
-	zoomed.value = false
+    scale.value = 1
+    zoomed.value = false
 }
 
 watch(scale, (s) => {
-	if (imageRef.value) {
-		imageRef.value.style.transform = s === 1 ? '' : `scale(${s})`
-		imageRef.value.style.transition = 'transform 0.2s ease-out'
-	}
+    if (imageRef.value) {
+        imageRef.value.style.transform = s === 1 ? '' : `scale(${s})`
+        imageRef.value.style.transition = 'transform 0.2s ease-out'
+    }
 })
 
 watch(
-	() => props.imageBlob,
-	(newBlob) => {
-		if (!newBlob) return
-		state.value.isLoading = true
-		state.value.hasError = false
-		scale.value = 1
-		zoomed.value = false
-		updateImageUrl(newBlob)
-	},
+    () => props.imageBlob,
+    (newBlob) => {
+        if (!newBlob) return
+        state.value.isLoading = true
+        state.value.hasError = false
+        scale.value = 1
+        zoomed.value = false
+        updateImageUrl(newBlob)
+    },
 )
 
 onMounted(() => {
-	if (props.imageBlob) updateImageUrl(props.imageBlob)
+    if (props.imageBlob) updateImageUrl(props.imageBlob)
 })
 
 onUnmounted(() => {
-	if (imageObjectUrl.value) URL.revokeObjectURL(imageObjectUrl.value)
+    if (imageObjectUrl.value) URL.revokeObjectURL(imageObjectUrl.value)
 })
 </script>
 
 <style scoped>
 .image-viewer-toolbar {
-	background-color: color-mix(in srgb, var(--surface-3) var(--opacity-ratio-keep-80), transparent);
+    background-color: color-mix(
+        in srgb,
+        var(--surface-3) var(--opacity-ratio-keep-80),
+        transparent
+    );
 }
 </style>

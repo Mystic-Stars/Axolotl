@@ -1,54 +1,54 @@
 {
-	"name": "@modrinth/tooling-config",
-	"version": "0.0.0",
-	"type": "module",
-	"private": true,
-	"description": "Unified tooling configuration for Modrinth monorepo",
-	"main": "./index.js",
-	"scripts": {
-		"lint": "prettier --check .",
-		"fix": "prettier --write ."
-	},
-	"exports": {
-		"./eslint/*": "./eslint/*",
-		"./typescript/*": "./typescript/*",
-		"./prettier.config.cjs": "./prettier.config.cjs",
-		"./frontend.prettier.config.cjs": "./frontend.prettier.config.cjs",
-		"./app-lib.prettier.config.cjs": "./app-lib.prettier.config.cjs",
-		"./labrinth.prettier.config.cjs": "./labrinth.prettier.config.cjs",
-		"./tailwind/*": "./tailwind/*",
-		"./script-utils/*": "./script-utils/*"
-	},
-	"files": [
-		"eslint/",
-		"typescript/",
-		"prettier/",
-		"tailwind/",
-		"index.js"
-	],
-	"peerDependencies": {
-		"eslint": "^9.31.0",
-		"prettier": "^3.9.6",
-		"typescript": ">=5.0.0"
-	},
-	"dependencies": {
-		"@prettier/plugin-xml": "^3.4.2",
-		"prettier-plugin-sql-cst": "^0.22.1",
-		"prettier-plugin-toml": "^2.0.6"
-	},
-	"devDependencies": {
-		"@eslint/compat": "^1.4.1",
-		"@eslint/js": "^9.39.5",
-		"@nuxt/eslint-config": "^0.5.7",
-		"@vue/tsconfig": "^0.7.0",
-		"eslint": "^9.39.5",
-		"eslint-config-prettier": "^10.1.8",
-		"eslint-plugin-prettier": "^5.5.6",
-		"eslint-plugin-simple-import-sort": "^12.1.1",
-		"eslint-plugin-turbo": "^2.10.12",
-		"eslint-plugin-vue": "^10.10.0",
-		"globals": "^16.5.0",
-		"typescript-eslint": "^8.69.0",
-		"vue-eslint-parser": "^10.4.1"
-	}
+  "name": "@modrinth/tooling-config",
+  "version": "0.0.0",
+  "type": "module",
+  "private": true,
+  "description": "Unified tooling configuration for Modrinth monorepo",
+  "main": "./index.js",
+  "scripts": {
+    "lint": "prettier --check .",
+    "fix": "prettier --write ."
+  },
+  "exports": {
+    "./eslint/*": "./eslint/*",
+    "./typescript/*": "./typescript/*",
+    "./prettier.config.cjs": "./prettier.config.cjs",
+    "./frontend.prettier.config.cjs": "./frontend.prettier.config.cjs",
+    "./app-lib.prettier.config.cjs": "./app-lib.prettier.config.cjs",
+    "./labrinth.prettier.config.cjs": "./labrinth.prettier.config.cjs",
+    "./tailwind/*": "./tailwind/*",
+    "./script-utils/*": "./script-utils/*"
+  },
+  "files": [
+    "eslint/",
+    "typescript/",
+    "prettier/",
+    "tailwind/",
+    "index.js"
+  ],
+  "peerDependencies": {
+    "eslint": "^9.31.0",
+    "prettier": "^3.9.6",
+    "typescript": ">=5.0.0"
+  },
+  "dependencies": {
+    "@prettier/plugin-xml": "^3.4.2",
+    "prettier-plugin-sql-cst": "^0.22.1",
+    "prettier-plugin-toml": "^2.0.6"
+  },
+  "devDependencies": {
+    "@eslint/compat": "^1.4.1",
+    "@eslint/js": "^9.39.5",
+    "@nuxt/eslint-config": "^0.5.7",
+    "@vue/tsconfig": "^0.7.0",
+    "eslint": "^9.39.5",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.6",
+    "eslint-plugin-simple-import-sort": "^12.1.1",
+    "eslint-plugin-turbo": "^2.10.12",
+    "eslint-plugin-vue": "^10.10.0",
+    "globals": "^16.5.0",
+    "typescript-eslint": "^8.69.0",
+    "vue-eslint-parser": "^10.4.1"
+  }
 }

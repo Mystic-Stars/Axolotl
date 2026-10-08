@@ -582,7 +582,7 @@ fn segment_compact_query(compact: &str) -> Option<String> {
     Some(parts.join(" "))
 }
 
-fn longest_prefix_word<'a>(value: &'a str) -> Option<(&'a str, &'a str)> {
+fn longest_prefix_word(value: &str) -> Option<(&str, &str)> {
     SEARCHER_WORDS.iter().find_map(|word| {
         value.strip_prefix(word).map(|rest| (word.as_str(), rest))
     })

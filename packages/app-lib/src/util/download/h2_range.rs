@@ -1,15 +1,19 @@
-//! Multi-range download of one file over a shared HTTP/2 connection.
+//! Range downloads with independent retries, HTTP/1 fallback, and durable checkpoints.
 
 use super::h2_download::{H2DownloadFailure, H2DownloadOutcome};
 use super::h2_pool::SharedH2Connection;
+use super::range_journal::{Checkpoint, RangeJournal};
 use crate::util::fetch::{
     self, DownloadRequest, DownloadResult, DownloadRoute,
 };
-use futures::stream::{FuturesUnordered, StreamExt};
+use async_trait::async_trait;
+use bytes::Bytes;
+use futures::stream::{BoxStream, StreamExt};
 use http::header::{ACCEPT_ENCODING, RANGE};
 use http::{HeaderValue, StatusCode, Uri};
-use std::path::Path;
-use std::path::PathBuf;
+use parking_lot::Mutex;
+use sha2::Digest;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::Duration;
@@ -23,7 +27,6 @@ struct PartCleanupGuard {
     path: PathBuf,
     armed: bool,
 }
-
 impl PartCleanupGuard {
     fn new(path: &Path) -> Self {
         Self {
@@ -31,22 +34,215 @@ impl PartCleanupGuard {
             armed: true,
         }
     }
-
     fn disarm(&mut self) {
         self.armed = false;
     }
 }
-
 impl Drop for PartCleanupGuard {
     fn drop(&mut self) {
         if self.armed {
             let _ = std::fs::remove_file(&self.path);
+            let _ =
+                std::fs::remove_file(super::range_journal::path(&self.path));
+        }
+    }
+}
+
+#[async_trait]
+trait RangeTransport: Sync {
+    async fn open(
+        &self,
+        start: u64,
+        end: u64,
+        attempt: usize,
+    ) -> Result<
+        (BoxStream<'_, Result<Bytes, H2DownloadFailure>>, bool),
+        H2DownloadFailure,
+    >;
+    fn failed(&self, _h2: bool) {}
+}
+
+struct NativeRangeTransport<'a> {
+    uri: Uri,
+    request: &'a DownloadRequest,
+    route: &'a DownloadRoute,
+    total_size: u64,
+    semaphore: Option<&'a fetch::FetchSemaphore>,
+    fallback_budget: fetch::FetchSemaphore,
+    used_http1: std::sync::atomic::AtomicBool,
+}
+
+#[async_trait]
+impl RangeTransport for NativeRangeTransport<'_> {
+    async fn open(
+        &self,
+        start: u64,
+        end: u64,
+        attempt: usize,
+    ) -> Result<
+        (BoxStream<'_, Result<Bytes, H2DownloadFailure>>, bool),
+        H2DownloadFailure,
+    > {
+        if attempt < 2
+            && fetch::url_authority(&self.route.url).is_some_and(|authority| {
+                super::native_reputation::transport_enabled(
+                    &authority,
+                    self.route.proxy,
+                    super::native_reputation::NativeTransport::H2MultiRange,
+                )
+            })
+            && let Ok(connection) =
+                super::h2_pool::shared_batch_connection(self.route, true).await
+        {
+            let permit = tokio::time::timeout(
+                Duration::from_secs(45),
+                super::h2_stream_budget::acquire_download(
+                    self.route,
+                    self.semaphore,
+                    false,
+                ),
+            )
+            .await
+            .map_err(|_| H2DownloadFailure::Connect)?
+            .map_err(|_| H2DownloadFailure::Connect)?;
+            let permit = (permit, connection.track_stream());
+            let mut headers =
+                super::h2_download::request_headers(self.request, self.route);
+            headers
+                .insert(ACCEPT_ENCODING, HeaderValue::from_static("identity"));
+            headers.insert(
+                RANGE,
+                HeaderValue::from_str(&format!("bytes={start}-{end}"))
+                    .map_err(|_| H2DownloadFailure::Http)?,
+            );
+            let opened = super::h2_download::open_stream(
+                &connection,
+                &self.uri,
+                headers,
+            )
+            .await;
+            let (response, body) = match opened {
+                Ok(opened) => opened,
+                Err(_) => {
+                    self.failed(true);
+                    return Err(H2DownloadFailure::Protocol);
+                }
+            };
+            if response.status() != StatusCode::PARTIAL_CONTENT
+                || !content_range_matches(
+                    response.headers(),
+                    &H2Range { start, end },
+                    self.total_size,
+                )
+            {
+                self.failed(true);
+                return Err(range_response_failure(response.status().as_u16()));
+            }
+            let connection_for_metrics = connection.clone();
+            let stream = futures::stream::unfold(
+                (Some(body), permit, connection_for_metrics),
+                |(body, permit, connection_for_metrics)| async move {
+                    let mut body = body?;
+                    match super::h2_receive::receive_chunk(&mut body, "range")
+                        .await
+                    {
+                        Ok(Some(chunk)) => {
+                            connection_for_metrics.record_bytes(chunk.len());
+                            if super::h2_receive::release_capacity(
+                                &mut body,
+                                chunk.len(),
+                            )
+                            .is_err()
+                            {
+                                return Some((
+                                    Err(H2DownloadFailure::Protocol),
+                                    (None, permit, connection_for_metrics),
+                                ));
+                            }
+                            Some((
+                                Ok(chunk),
+                                (Some(body), permit, connection_for_metrics),
+                            ))
+                        }
+                        Ok(None) => None,
+                        Err(_) => Some((
+                            Err(H2DownloadFailure::Protocol),
+                            (None, permit, connection_for_metrics),
+                        )),
+                    }
+                },
+            );
+            return Ok((Box::pin(stream), true));
+        }
+        self.used_http1.store(true, Ordering::Relaxed);
+        let semaphore = self.semaphore.unwrap_or(&self.fallback_budget);
+        let permit = tokio::time::timeout(
+            Duration::from_secs(45),
+            fetch::acquire_native_connection(self.route, semaphore),
+        )
+        .await
+        .map_err(|_| H2DownloadFailure::Connect)?
+        .map_err(|_| H2DownloadFailure::Connect)?;
+        let mut clients = fetch::DownloadClients::for_request(
+            &fetch::HTTP1_NO_REDIRECT_REQWEST_CLIENT,
+            &fetch::HTTP1_DIRECT_REQWEST_CLIENT,
+        );
+        clients.system = clients.http1_system.clone();
+        clients.direct = clients.http1_direct.clone();
+        let (response, _) =
+            super::native_request::send_path_request_with_clients(
+                self.route,
+                self.request.header.as_ref(),
+                None,
+                self.request.download_meta.as_ref(),
+                Some(start),
+                Some(end),
+                &clients,
+                None,
+            )
+            .await
+            .map_err(|_| H2DownloadFailure::Connect)?;
+        let expected = format!("bytes {start}-{end}/{}", self.total_size);
+        if response.status() != reqwest::StatusCode::PARTIAL_CONTENT
+            || response
+                .headers()
+                .get(reqwest::header::CONTENT_RANGE)
+                .and_then(|value| value.to_str().ok())
+                != Some(expected.as_str())
+        {
+            return Err(range_response_failure(response.status().as_u16()));
+        }
+        let stream = futures::stream::unfold(
+            (Some(response), permit),
+            |(response, permit)| async move {
+                let mut response = response?;
+                match response.chunk().await {
+                    Ok(Some(chunk)) => {
+                        Some((Ok(chunk), (Some(response), permit)))
+                    }
+                    Ok(None) => None,
+                    Err(_) => {
+                        Some((Err(H2DownloadFailure::Protocol), (None, permit)))
+                    }
+                }
+            },
+        );
+        Ok((Box::pin(stream), false))
+    }
+
+    fn failed(&self, h2: bool) {
+        if h2 && let Some(authority) = fetch::url_authority(&self.route.url) {
+            super::native_reputation::record_transport_failure(
+                &authority,
+                self.route.proxy,
+                super::native_reputation::NativeTransport::H2MultiRange,
+            );
         }
     }
 }
 
 pub(crate) async fn download(
-    connection: &Arc<SharedH2Connection>,
+    _connection: &Arc<SharedH2Connection>,
     uri: &Uri,
     request: &DownloadRequest,
     route: &DownloadRoute,
@@ -54,6 +250,134 @@ pub(crate) async fn download(
     part_path: &Path,
     total_size: u64,
     concurrency: usize,
+    semaphore: Option<&fetch::FetchSemaphore>,
+) -> H2DownloadOutcome {
+    let transport = NativeRangeTransport {
+        uri: uri.clone(),
+        request,
+        route,
+        total_size,
+        semaphore,
+        fallback_budget: fetch::FetchSemaphore(tokio::sync::Semaphore::new(8)),
+        used_http1: Default::default(),
+    };
+    let started = std::time::Instant::now();
+    let outcome = run_download(
+        &transport,
+        request,
+        route,
+        destination,
+        part_path,
+        total_size,
+        concurrency,
+        None,
+    )
+    .await;
+    if let H2DownloadOutcome::Completed(result) = &outcome
+        && !transport.used_http1.load(Ordering::Relaxed)
+        && let Some(authority) = fetch::url_authority(&route.url)
+    {
+        super::native_reputation::record_transport_success(
+            &authority,
+            route.proxy,
+            super::native_reputation::NativeTransport::H2MultiRange,
+            result.size as f64 / started.elapsed().as_secs_f64().max(0.001),
+        );
+    }
+    outcome
+}
+
+pub(crate) async fn resume_http1(
+    request: &DownloadRequest,
+    route: &DownloadRoute,
+    destination: &Path,
+    part: &Path,
+    semaphore: &fetch::FetchSemaphore,
+) -> crate::Result<Option<H2DownloadOutcome>> {
+    if request
+        .cancellation
+        .as_ref()
+        .is_some_and(tokio_util::sync::CancellationToken::is_cancelled)
+    {
+        return Ok(Some(H2DownloadOutcome::Canceled));
+    }
+    if !tokio::fs::try_exists(super::range_journal::path(part)).await? {
+        return Ok(None);
+    }
+    let Some(size) = request.integrity.size else {
+        discard(part).await?;
+        return Ok(None);
+    };
+    let load = RangeJournal::load(part, &request.integrity, size);
+    let loaded = if let Some(cancellation) = request.cancellation.as_ref() {
+        tokio::select! { biased; _ = cancellation.cancelled() => return Ok(Some(H2DownloadOutcome::Canceled)), result = load => result? }
+    } else {
+        load.await?
+    };
+    let Some(journal) = loaded else {
+        discard(part).await?;
+        return Ok(None);
+    };
+    let count = journal
+        .ranges()
+        .await
+        .len()
+        .min((fetch::configured_semaphore_limit(semaphore) / 2).max(1))
+        .min(super::local_resources::range_limit(part).await.max(1));
+    let transport = NativeRangeTransport {
+        uri: route.url.parse().map_err(|_| {
+            crate::ErrorKind::InputError("invalid range resume URL".into())
+        })?,
+        request,
+        route,
+        total_size: size,
+        semaphore: Some(semaphore),
+        fallback_budget: fetch::FetchSemaphore(tokio::sync::Semaphore::new(8)),
+        used_http1: Default::default(),
+    };
+    Ok(Some(
+        run_download(
+            &transport,
+            request,
+            route,
+            destination,
+            part,
+            size,
+            count,
+            Some(journal),
+        )
+        .await,
+    ))
+}
+
+pub(crate) async fn discard(part: &Path) -> crate::Result<()> {
+    for path in [part.to_path_buf(), super::range_journal::path(part)] {
+        match tokio::fs::remove_file(path).await {
+            Ok(()) => {}
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+            Err(error) => return Err(error.into()),
+        }
+    }
+    Ok(())
+}
+
+fn range_response_failure(status: u16) -> H2DownloadFailure {
+    if matches!(status, 200 | 206 | 416) {
+        H2DownloadFailure::RangeUnsupported
+    } else {
+        H2DownloadFailure::Http
+    }
+}
+
+async fn run_download(
+    transport: &dyn RangeTransport,
+    request: &DownloadRequest,
+    route: &DownloadRoute,
+    destination: &Path,
+    part: &Path,
+    size: u64,
+    concurrency: usize,
+    loaded_journal: Option<Arc<RangeJournal>>,
 ) -> H2DownloadOutcome {
     if request
         .cancellation
@@ -62,210 +386,273 @@ pub(crate) async fn download(
     {
         return H2DownloadOutcome::Canceled;
     }
-    if total_size == 0 {
+    if size == 0 {
         return H2DownloadOutcome::Fallback {
             failure: H2DownloadFailure::Content,
             preserve_partial: false,
         };
     }
-    let count = concurrency
-        .max(1)
-        .min(usize::try_from(total_size).unwrap_or(usize::MAX).max(1));
-    let mut cleanup = PartCleanupGuard::new(part_path);
-    let output =
-        match super::range_output::RangeOutput::create(part_path, total_size)
-            .await
-        {
-            Ok(output) => output,
-            Err(_) => {
-                return H2DownloadOutcome::Fallback {
-                    failure: H2DownloadFailure::Io,
-                    preserve_partial: false,
-                };
-            }
-        };
-    let ranges = split_ranges(total_size, count);
-    let downloaded = Arc::new(AtomicU64::new(0));
-    let reported_bucket = Arc::new(AtomicU64::new(0));
-    let progress_delta = (total_size / 200).max(256 * 1024);
-    let mut tasks = FuturesUnordered::new();
-    for range in ranges {
-        tasks.push(download_range(
-            Arc::clone(connection),
-            uri.clone(),
-            request,
-            route,
-            Arc::clone(&output),
-            range,
-            total_size,
-            Arc::clone(&downloaded),
-            Arc::clone(&reported_bucket),
-            progress_delta,
-        ));
-    }
-    loop {
-        let next = if let Some(cancellation) = request.cancellation.as_ref() {
-            tokio::select! {
-                biased;
-                _ = cancellation.cancelled() => {
-                    drop(tasks);
-                    drop(output);
-                    return H2DownloadOutcome::Canceled;
+    let mut cleanup = PartCleanupGuard::new(part);
+    let loaded = match loaded_journal {
+        Some(journal) => Some(journal),
+        None => {
+            let load = RangeJournal::load(part, &request.integrity, size);
+            let result = if let Some(cancellation) =
+                request.cancellation.as_ref()
+            {
+                tokio::select! { biased; _ = cancellation.cancelled() => { cleanup.disarm(); return H2DownloadOutcome::Canceled; }, result = load => result }
+            } else {
+                load.await
+            };
+            match result {
+                Ok(loaded) => loaded,
+                Err(_) => {
+                    cleanup.disarm();
+                    return H2DownloadOutcome::Fallback {
+                        failure: H2DownloadFailure::Io,
+                        preserve_partial: true,
+                    };
                 }
-                result = tasks.next() => result,
             }
-        } else {
-            tasks.next().await
-        };
-        let Some(result) = next else {
-            break;
-        };
-        if let Err(failure) = result {
-            drop(tasks);
-            drop(output);
+        }
+    };
+    let output = if loaded.is_some() {
+        super::range_output::RangeOutput::reopen(part, size).await
+    } else {
+        super::range_output::RangeOutput::create(part, size).await
+    };
+    let output = match output {
+        Ok(output) => output,
+        Err(_) => {
             return H2DownloadOutcome::Fallback {
-                failure,
+                failure: H2DownloadFailure::Io,
                 preserve_partial: false,
             };
         }
-    }
-    drop(output);
-    let verification = if let Some(cancellation) = request.cancellation.as_ref()
-    {
-        tokio::select! {
-            biased;
-            _ = cancellation.cancelled() => return H2DownloadOutcome::Canceled,
-            result = fetch::verify_file(part_path, &request.integrity) => result,
-        }
-    } else {
-        fetch::verify_file(part_path, &request.integrity).await
     };
-    if let Err(error) = verification {
-        let failure = if fetch::is_integrity_error(&error) {
-            H2DownloadFailure::Integrity
-        } else {
-            H2DownloadFailure::Content
-        };
-        return H2DownloadOutcome::Fallback {
-            failure,
-            preserve_partial: false,
-        };
-    }
-    let finalized = if let Some(cancellation) = request.cancellation.as_ref() {
-        tokio::select! {
-            biased;
-            _ = cancellation.cancelled() => return H2DownloadOutcome::Canceled,
-            result = fetch::finalize_download(part_path, destination) => result,
-        }
-    } else {
-        fetch::finalize_download(part_path, destination).await
-    };
-    if finalized.is_err() {
+    let journal = loaded.unwrap_or_else(|| {
+        RangeJournal::new(part, &request.integrity, size, concurrency)
+    });
+    if journal.persist().await.is_err() {
         return H2DownloadOutcome::Fallback {
             failure: H2DownloadFailure::Io,
             preserve_partial: false,
         };
     }
+    let preserve = request.integrity.supports_resume();
+    if preserve {
+        cleanup.disarm();
+    }
+    let ranges = journal.ranges().await;
+    let downloaded =
+        AtomicU64::new(ranges.iter().map(|range| range.written).sum());
+    let reported = Mutex::new(super::h2_receive::H2ProgressGate::new(size));
+    let workers = concurrency.clamp(1, 8);
+    let mut tasks = futures::stream::iter(ranges.into_iter().enumerate())
+        .map(|(index, range)| {
+            recover_range(
+                transport,
+                request,
+                part,
+                &output,
+                &journal,
+                index,
+                range,
+                &downloaded,
+                &reported,
+                size,
+            )
+        })
+        .buffer_unordered(workers);
+    loop {
+        let next = if let Some(cancellation) = request.cancellation.as_ref() {
+            tokio::select! { biased; _ = cancellation.cancelled() => return H2DownloadOutcome::Canceled, next = tasks.next() => next }
+        } else {
+            tasks.next().await
+        };
+        match next {
+            Some(Ok(())) => {}
+            Some(Err(failure)) => {
+                if failure == H2DownloadFailure::RangeUnsupported {
+                    drop(tasks);
+                    drop(output);
+                    if discard(part).await.is_err() {
+                        return H2DownloadOutcome::Fallback {
+                            failure: H2DownloadFailure::Io,
+                            preserve_partial: true,
+                        };
+                    }
+                    return H2DownloadOutcome::Fallback {
+                        failure,
+                        preserve_partial: false,
+                    };
+                }
+                return H2DownloadOutcome::Fallback {
+                    failure,
+                    preserve_partial: preserve,
+                };
+            }
+            None => break,
+        }
+    }
+    drop(tasks);
+    drop(output);
+    let verification = fetch::verify_file(part, &request.integrity);
+    let result = if let Some(cancellation) = request.cancellation.as_ref() {
+        tokio::select! { biased; _ = cancellation.cancelled() => return H2DownloadOutcome::Canceled, result = verification => result }
+    } else {
+        verification.await
+    };
+    if let Err(error) = result {
+        let invalid = fetch::is_integrity_error(&error)
+            || matches!(error.raw.as_ref(), crate::ErrorKind::JSONError(_))
+            || matches!(error.raw.as_ref(), crate::ErrorKind::OtherError(message) if message.starts_with("Invalid JAR") || message.starts_with("Incorrect size"));
+        if invalid && discard(part).await.is_err() {
+            return H2DownloadOutcome::Fallback {
+                failure: H2DownloadFailure::Io,
+                preserve_partial: true,
+            };
+        }
+        return H2DownloadOutcome::Fallback {
+            failure: if invalid {
+                H2DownloadFailure::Integrity
+            } else {
+                H2DownloadFailure::Io
+            },
+            preserve_partial: preserve && !invalid,
+        };
+    }
+    if fetch::finalize_download(part, destination).await.is_err() {
+        return H2DownloadOutcome::Fallback {
+            failure: H2DownloadFailure::Io,
+            preserve_partial: preserve,
+        };
+    }
     cleanup.disarm();
+    let _ = tokio::fs::remove_file(super::range_journal::path(part)).await;
     H2DownloadOutcome::Completed(DownloadResult {
         path: destination.to_path_buf(),
-        url: uri.to_string(),
+        url: route.url.clone(),
         source: route.source,
-        size: total_size,
+        size,
         attempts: 1,
         fallback_count: 0,
+        verified_sha1: request.integrity.sha1.clone(),
+        verified_sha512: request.integrity.sha512.clone(),
+        verified_file: None,
     })
 }
 
 #[allow(clippy::too_many_arguments)]
-async fn download_range(
-    connection: Arc<SharedH2Connection>,
-    uri: Uri,
+async fn recover_range(
+    transport: &dyn RangeTransport,
     request: &DownloadRequest,
-    route: &DownloadRoute,
-    output: Arc<super::range_output::RangeOutput>,
-    range: H2Range,
+    part: &Path,
+    output: &super::range_output::RangeOutput,
+    journal: &RangeJournal,
+    index: usize,
+    range: Checkpoint,
+    downloaded: &AtomicU64,
+    reported: &Mutex<super::h2_receive::H2ProgressGate>,
     total_size: u64,
-    downloaded: Arc<AtomicU64>,
-    reported_bucket: Arc<AtomicU64>,
-    progress_delta: u64,
 ) -> Result<(), H2DownloadFailure> {
-    super::h2_download::record_install_stage(
-        request,
-        crate::install::DownloadItemStatus::WaitingForResource,
-    )
-    .await;
-    let _permit = tokio::time::timeout(
-        Duration::from_secs(45),
-        super::h2_stream_budget::acquire(route),
-    )
-    .await
-    .map_err(|_| H2DownloadFailure::Connect)?
-    .map_err(|_| H2DownloadFailure::Connect)?;
-    super::h2_download::record_install_stage(
-        request,
-        crate::install::DownloadItemStatus::Downloading,
-    )
-    .await;
-    let mut writer = output
-        .open_range(range.start, range.end + 1)
+    if range.start + range.written == range.end {
+        return Ok(());
+    }
+    let mut offset = range.start + range.written;
+    let mut hash = journal
+        .hash_prefix(index, part, &range)
         .await
         .map_err(|_| H2DownloadFailure::Io)?;
-    let mut headers = super::h2_download::request_headers(request, route);
-    headers.insert(ACCEPT_ENCODING, HeaderValue::from_static("identity"));
-    headers.insert(
-        RANGE,
-        HeaderValue::from_str(&format!("bytes={}-{}", range.start, range.end))
-            .map_err(|_| H2DownloadFailure::Http)?,
-    );
-    let (response, mut stream) =
-        super::h2_download::open_stream(&connection, &uri, headers)
-            .await
-            .map_err(|_| H2DownloadFailure::Protocol)?;
-    if response.status() != StatusCode::PARTIAL_CONTENT
-        || !content_range_matches(response.headers(), &range, total_size)
-    {
-        return Err(H2DownloadFailure::Http);
-    }
+    let mut writer = output
+        .open_range(offset, range.end)
+        .await
+        .map_err(|_| H2DownloadFailure::Io)?;
     let activity = super::h2_receive::H2TransferActivity::begin();
-    let mut offset = range.start;
-    while let Some(chunk) =
-        super::h2_receive::receive_chunk(&mut stream, "range")
-            .await
-            .map_err(|_| H2DownloadFailure::Protocol)?
-    {
-        let remaining = range.end.saturating_add(1).saturating_sub(offset);
-        if chunk.len() as u64 > remaining {
-            return Err(H2DownloadFailure::Protocol);
+    let mut last_checkpoint = offset;
+    let mut last_failure = H2DownloadFailure::Protocol;
+    for attempt in 0..4 {
+        let (mut body, h2) =
+            match transport.open(offset, range.end - 1, attempt).await {
+                Ok(body) => body,
+                Err(error) => {
+                    if matches!(
+                        error,
+                        H2DownloadFailure::RangeUnsupported
+                            | H2DownloadFailure::Io
+                    ) {
+                        return Err(error);
+                    }
+                    last_failure = error;
+                    continue;
+                }
+            };
+        let mut failure = None;
+        while let Some(chunk) = body.next().await {
+            let chunk = match chunk {
+                Ok(chunk) => chunk,
+                Err(error) => {
+                    failure = Some(error);
+                    break;
+                }
+            };
+            if chunk.len() as u64 > range.end - offset {
+                failure = Some(H2DownloadFailure::Protocol);
+                break;
+            }
+            writer
+                .write_next(&chunk)
+                .await
+                .map_err(|_| H2DownloadFailure::Io)?;
+            hash.update(&chunk);
+            offset += chunk.len() as u64;
+            activity.record_bytes(chunk.len());
+            let current = downloaded
+                .fetch_add(chunk.len() as u64, Ordering::Relaxed)
+                + chunk.len() as u64;
+            let should_report =
+                reported.lock().should_report(current, total_size);
+            if should_report {
+                super::h2_download::record_install_progress(
+                    request,
+                    current.min(total_size),
+                    total_size,
+                )
+                .await;
+            }
+            if offset - last_checkpoint >= 4 * 1024 * 1024 {
+                writer.flush().await.map_err(|_| H2DownloadFailure::Io)?;
+                journal
+                    .checkpoint(index, offset - range.start, &hash)
+                    .await
+                    .map_err(|_| H2DownloadFailure::Io)?;
+                last_checkpoint = offset;
+            }
         }
-        let accepted = chunk.len();
-        writer
-            .write_next(&chunk[..accepted])
+        drop(body);
+        writer.flush().await.map_err(|_| H2DownloadFailure::Io)?;
+        journal
+            .checkpoint(index, offset - range.start, &hash)
             .await
             .map_err(|_| H2DownloadFailure::Io)?;
-        activity.record_bytes(accepted);
-        super::h2_receive::release_capacity(&mut stream, chunk.len())
-            .map_err(|_| H2DownloadFailure::Protocol)?;
-        offset += accepted as u64;
-        let current = downloaded.fetch_add(accepted as u64, Ordering::Relaxed)
-            + accepted as u64;
-        let bucket = current / progress_delta;
-        let previous = reported_bucket.fetch_max(bucket, Ordering::Relaxed);
-        if current >= total_size || bucket > previous {
-            super::h2_download::record_install_progress(
-                request,
-                current.min(total_size),
-                total_size,
-            )
-            .await;
+        if offset == range.end {
+            return Ok(());
         }
+        transport.failed(h2);
+        last_failure = failure.unwrap_or(H2DownloadFailure::Protocol);
+        tracing::debug!(
+            range_start = range.start,
+            resume_offset = offset,
+            attempt = attempt + 1,
+            "Retrying only unfinished range bytes"
+        );
+        tokio::time::sleep(Duration::from_millis(100 * (attempt as u64 + 1)))
+            .await;
     }
-    (offset == range.end + 1)
-        .then_some(())
-        .ok_or(H2DownloadFailure::Protocol)?;
-    writer.flush().await.map_err(|_| H2DownloadFailure::Io)
+    Err(last_failure)
 }
 
+#[cfg(test)]
 fn split_ranges(size: u64, count: usize) -> Vec<H2Range> {
     let base = size / count as u64;
     let remainder = size % count as u64;
@@ -305,6 +692,67 @@ mod tests {
     use http::{Response, StatusCode};
     use sha1_smol::Sha1;
 
+    struct UnsupportedRangeTransport;
+    #[async_trait]
+    impl RangeTransport for UnsupportedRangeTransport {
+        async fn open(
+            &self,
+            _start: u64,
+            _end: u64,
+            _attempt: usize,
+        ) -> Result<
+            (BoxStream<'_, Result<Bytes, H2DownloadFailure>>, bool),
+            H2DownloadFailure,
+        > {
+            Err(range_response_failure(200))
+        }
+    }
+
+    #[tokio::test]
+    async fn unsupported_ranges_discard_sparse_output_and_checkpoints() {
+        let directory = tempfile::tempdir().unwrap();
+        let part = directory.path().join("range.part");
+        let destination = directory.path().join("file");
+        let request = DownloadRequest::new(
+            "https://unsupported.invalid/file",
+            fetch::ResourceClass::Other,
+        )
+        .with_integrity(fetch::Integrity::sha1("expected").with_size(8));
+        let route = DownloadRoute {
+            url: request.url.clone(),
+            source: fetch::DownloadRouteSource::Official,
+            is_mirror: false,
+            allow_sensitive_headers: false,
+            supports_range: true,
+            proxy: fetch::ProxyPolicy::System,
+        };
+        let outcome = run_download(
+            &UnsupportedRangeTransport,
+            &request,
+            &route,
+            &destination,
+            &part,
+            8,
+            2,
+            None,
+        )
+        .await;
+        assert!(matches!(
+            outcome,
+            H2DownloadOutcome::Fallback {
+                failure: H2DownloadFailure::RangeUnsupported,
+                preserve_partial: false
+            }
+        ));
+        assert!(!part.exists());
+        assert!(!super::super::range_journal::path(&part).exists());
+        assert_eq!(
+            range_response_failure(206),
+            H2DownloadFailure::RangeUnsupported
+        );
+        assert_eq!(range_response_failure(503), H2DownloadFailure::Http);
+    }
+
     #[test]
     fn splits_file_into_eight_contiguous_ranges() {
         let ranges = split_ranges(83, 8);
@@ -328,6 +776,323 @@ mod tests {
             ranges
                 .windows(2)
                 .all(|pair| pair[0].end + 1 == pair[1].start)
+        );
+    }
+
+    struct MemoryTransport {
+        data: Vec<u8>,
+        fail_tail: bool,
+        recover_on_http1: bool,
+        calls: parking_lot::Mutex<Vec<(u64, usize)>>,
+    }
+
+    struct CancellingTransport {
+        budget: Arc<tokio::sync::Semaphore>,
+        cancellation: tokio_util::sync::CancellationToken,
+    }
+
+    #[async_trait]
+    impl RangeTransport for CancellingTransport {
+        async fn open(
+            &self,
+            _start: u64,
+            _end: u64,
+            _attempt: usize,
+        ) -> Result<
+            (BoxStream<'_, Result<Bytes, H2DownloadFailure>>, bool),
+            H2DownloadFailure,
+        > {
+            let permit = self.budget.clone().acquire_owned().await.unwrap();
+            let cancellation = self.cancellation.clone();
+            Ok((
+                Box::pin(futures::stream::unfold(permit, move |permit| {
+                    let cancellation = cancellation.clone();
+                    async move {
+                        cancellation.cancel();
+                        futures::future::pending::<()>().await;
+                        Some((Ok(Bytes::new()), permit))
+                    }
+                })),
+                true,
+            ))
+        }
+    }
+
+    #[tokio::test]
+    async fn memory_recovery_cancellation_releases_active_transfer_weights() {
+        let (mut request, route) =
+            memory_request(b"abcdefghijklmnopqrstuvwxyz0123456789ABCD");
+        let directory = tempfile::tempdir().unwrap();
+        let destination = directory.path().join("archive");
+        let part = directory.path().join("archive.part");
+        let cancellation = tokio_util::sync::CancellationToken::new();
+        request.cancellation = Some(cancellation.clone());
+        let budget = Arc::new(tokio::sync::Semaphore::new(1));
+        let transport = CancellingTransport {
+            budget: budget.clone(),
+            cancellation,
+        };
+        let result = tokio::time::timeout(
+            Duration::from_secs(2),
+            run_download(
+                &transport,
+                &request,
+                &route,
+                &destination,
+                &part,
+                40,
+                2,
+                None,
+            ),
+        )
+        .await
+        .unwrap();
+        assert!(matches!(result, H2DownloadOutcome::Canceled));
+        assert_eq!(budget.available_permits(), 1);
+        assert!(part.exists());
+        assert!(super::super::range_journal::path(&part).exists());
+    }
+
+    #[tokio::test]
+    async fn memory_recovery_cancellation_keeps_prior_checkpoints() {
+        let data = b"abcdefghijklmnopqrstuvwxyz0123456789ABCD".to_vec();
+        let (mut request, route) = memory_request(&data);
+        let directory = tempfile::tempdir().unwrap();
+        let part = directory.path().join("archive.part");
+        let destination = directory.path().join("archive");
+        tokio::fs::write(&part, &data).await.unwrap();
+        let journal =
+            RangeJournal::new(&part, &request.integrity, data.len() as u64, 2);
+        journal
+            .checkpoint(0, 20, &sha2::Sha256::new_with_prefix(&data[..20]))
+            .await
+            .unwrap();
+        let cancellation = tokio_util::sync::CancellationToken::new();
+        cancellation.cancel();
+        request.cancellation = Some(cancellation);
+        let transport = MemoryTransport {
+            data,
+            fail_tail: false,
+            recover_on_http1: false,
+            calls: Default::default(),
+        };
+        assert!(matches!(
+            run_download(
+                &transport,
+                &request,
+                &route,
+                &destination,
+                &part,
+                40,
+                2,
+                None
+            )
+            .await,
+            H2DownloadOutcome::Canceled
+        ));
+        assert!(transport.calls.lock().is_empty());
+        assert!(part.exists());
+        assert!(super::super::range_journal::path(&part).exists());
+    }
+
+    #[async_trait]
+    impl RangeTransport for MemoryTransport {
+        async fn open(
+            &self,
+            start: u64,
+            end: u64,
+            attempt: usize,
+        ) -> Result<
+            (BoxStream<'_, Result<Bytes, H2DownloadFailure>>, bool),
+            H2DownloadFailure,
+        > {
+            self.calls.lock().push((start, attempt));
+            if start >= self.data.len() as u64 / 2 && self.fail_tail {
+                if self.recover_on_http1 && attempt >= 2 {
+                    return Ok((
+                        Box::pin(futures::stream::iter([Ok(
+                            Bytes::copy_from_slice(
+                                &self.data[start as usize..=end as usize],
+                            ),
+                        )])),
+                        false,
+                    ));
+                }
+                if attempt == 0 {
+                    return Ok((
+                        Box::pin(futures::stream::iter([
+                            Ok(Bytes::copy_from_slice(
+                                &self.data[start as usize..start as usize + 3],
+                            )),
+                            Err(H2DownloadFailure::Protocol),
+                        ])),
+                        true,
+                    ));
+                }
+                return Err(H2DownloadFailure::Protocol);
+            }
+            Ok((
+                Box::pin(futures::stream::iter([Ok(Bytes::copy_from_slice(
+                    &self.data[start as usize..=end as usize],
+                ))])),
+                attempt < 2,
+            ))
+        }
+    }
+
+    fn memory_request(data: &[u8]) -> (DownloadRequest, DownloadRoute) {
+        let request = DownloadRequest::new(
+            "https://range-memory.invalid/archive",
+            fetch::ResourceClass::Modpack,
+        )
+        .with_integrity(
+            fetch::Integrity::sha1(Sha1::from(data).hexdigest())
+                .with_size(data.len() as u64),
+        );
+        let route = DownloadRoute {
+            url: request.url.clone(),
+            source: fetch::DownloadRouteSource::Official,
+            is_mirror: false,
+            allow_sensitive_headers: true,
+            supports_range: true,
+            proxy: fetch::ProxyPolicy::Direct,
+        };
+        (request, route)
+    }
+
+    #[tokio::test]
+    async fn memory_recovery_retries_offsets_and_switches_only_failed_range() {
+        let data = b"abcdefghijklmnopqrstuvwxyz0123456789ABCD".to_vec();
+        let (request, route) = memory_request(&data);
+        let directory = tempfile::tempdir().unwrap();
+        let destination = directory.path().join("archive");
+        let part = directory.path().join("archive.part");
+        let transport = MemoryTransport {
+            data: data.clone(),
+            fail_tail: true,
+            recover_on_http1: true,
+            calls: Default::default(),
+        };
+        let result = run_download(
+            &transport,
+            &request,
+            &route,
+            &destination,
+            &part,
+            data.len() as u64,
+            2,
+            None,
+        )
+        .await;
+        assert!(matches!(result, H2DownloadOutcome::Completed(_)));
+        assert_eq!(tokio::fs::read(&destination).await.unwrap(), data);
+        let calls = transport.calls.lock();
+        assert_eq!(calls.iter().filter(|(start, _)| *start == 0).count(), 1);
+        assert!(calls.contains(&(23, 2)));
+        assert!(!part.exists());
+        assert!(!super::super::range_journal::path(&part).exists());
+    }
+
+    #[tokio::test]
+    async fn memory_recovery_preserves_completed_ranges_for_next_attempt() {
+        let data = b"abcdefghijklmnopqrstuvwxyz0123456789ABCD".to_vec();
+        let (request, route) = memory_request(&data);
+        let directory = tempfile::tempdir().unwrap();
+        let destination = directory.path().join("archive");
+        let part = directory.path().join("archive.part");
+        let failed = MemoryTransport {
+            data: data.clone(),
+            fail_tail: true,
+            recover_on_http1: false,
+            calls: Default::default(),
+        };
+        let result = run_download(
+            &failed,
+            &request,
+            &route,
+            &destination,
+            &part,
+            data.len() as u64,
+            2,
+            None,
+        )
+        .await;
+        assert!(matches!(
+            result,
+            H2DownloadOutcome::Fallback {
+                preserve_partial: true,
+                ..
+            }
+        ));
+        assert!(part.exists());
+        let journal =
+            RangeJournal::load(&part, &request.integrity, data.len() as u64)
+                .await
+                .unwrap()
+                .unwrap();
+        assert_eq!(journal.ranges().await[0].written, 20);
+        let recovered = MemoryTransport {
+            data: data.clone(),
+            fail_tail: false,
+            recover_on_http1: false,
+            calls: Default::default(),
+        };
+        assert!(matches!(
+            run_download(
+                &recovered,
+                &request,
+                &route,
+                &destination,
+                &part,
+                data.len() as u64,
+                2,
+                Some(journal)
+            )
+            .await,
+            H2DownloadOutcome::Completed(_)
+        ));
+        assert_eq!(*recovered.calls.lock(), vec![(23, 0)]);
+        assert_eq!(tokio::fs::read(&destination).await.unwrap(), data);
+    }
+
+    #[tokio::test]
+    async fn memory_recovery_rejects_bad_final_digest_and_keeps_live_destination()
+     {
+        let data = b"abcdefghijklmnopqrstuvwxyz0123456789ABCD".to_vec();
+        let (request, route) = memory_request(&data);
+        let directory = tempfile::tempdir().unwrap();
+        let destination = directory.path().join("archive");
+        let part = directory.path().join("archive.part");
+        tokio::fs::write(&destination, b"previous installation")
+            .await
+            .unwrap();
+        let transport = MemoryTransport {
+            data: vec![0; data.len()],
+            fail_tail: false,
+            recover_on_http1: false,
+            calls: Default::default(),
+        };
+        assert!(matches!(
+            run_download(
+                &transport,
+                &request,
+                &route,
+                &destination,
+                &part,
+                data.len() as u64,
+                2,
+                None
+            )
+            .await,
+            H2DownloadOutcome::Fallback {
+                preserve_partial: false,
+                ..
+            }
+        ));
+        assert!(!part.exists());
+        assert_eq!(
+            tokio::fs::read(&destination).await.unwrap(),
+            b"previous installation"
         );
     }
 
@@ -429,6 +1194,7 @@ mod tests {
             &part_path,
             data.len() as u64,
             8,
+            None,
         )
         .await;
 
@@ -503,12 +1269,13 @@ mod tests {
                 &destination_for_task,
                 &part_for_task,
                 2 * 1024 * 1024,
-                16,
+                8,
+                None,
             )
             .await
         });
         tokio::time::timeout(std::time::Duration::from_secs(2), async {
-            while request_count.load(Ordering::Relaxed) < 16 {
+            while request_count.load(Ordering::Relaxed) < 8 {
                 tokio::task::yield_now().await;
             }
         })

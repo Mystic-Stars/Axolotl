@@ -36,6 +36,24 @@ pub(crate) struct RangeWriter {
 }
 
 impl RangeOutput {
+    pub(crate) async fn reopen(
+        path: &Path,
+        size: u64,
+    ) -> Result<Arc<Self>, IOError> {
+        let metadata = tokio::fs::metadata(path)
+            .await
+            .map_err(|error| IOError::with_path(error, path))?;
+        if !metadata.is_file() || metadata.len() != size {
+            return Err(IOError::with_path(
+                std::io::Error::other("range output length changed"),
+                path,
+            ));
+        }
+        Ok(Arc::new(Self {
+            path: path.to_path_buf(),
+            size,
+        }))
+    }
     pub(crate) async fn create(
         path: &Path,
         size: u64,
@@ -51,7 +69,8 @@ impl RangeOutput {
                     .write(true)
                     .open(path)
                     .await?;
-                file.set_len(size).await?;
+                super::local_resources::write(path, 0, file.set_len(size))
+                    .await?;
                 Ok(())
             },
         )
@@ -132,7 +151,7 @@ impl RangeOutput {
         )
         .await
         .map_err(|error| io::io_error_with_lock_info(error, path))?;
-        file.flush()
+        super::local_resources::write(path, 0, file.flush())
             .await
             .map_err(|error| io::io_error_with_lock_info(error, path))
     }
@@ -175,10 +194,16 @@ impl RangeWriter {
             tokio::time::sleep(probe.delay).await;
         }
 
-        let result =
-            self.file.write_all(bytes).await.map_err(|error| {
-                io::io_error_with_lock_info(error, &self.path)
-            });
+        let result = super::local_resources::write(
+            &self.path,
+            bytes.len() as u64,
+            async {
+                self.file.write_all(bytes).await?;
+                self.file.get_mut().flush().await
+            },
+        )
+        .await
+        .map_err(|error| io::io_error_with_lock_info(error, &self.path));
         #[cfg(test)]
         if let Some(probe) = probe {
             probe
@@ -191,8 +216,7 @@ impl RangeWriter {
     }
 
     pub(crate) async fn flush(&mut self) -> Result<(), IOError> {
-        self.file
-            .flush()
+        super::local_resources::write(&self.path, 0, self.file.flush())
             .await
             .map_err(|error| io::io_error_with_lock_info(error, &self.path))
     }

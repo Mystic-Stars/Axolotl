@@ -450,8 +450,7 @@ async fn maybe_emit_log_display_truncation_warning(
     }
 
     let _ = crate::event::emit::emit_warning(&format!(
-        "Axolotl Launcher truncated {} before displaying it to keep the console responsive. The original log file remains unchanged.",
-        file_name,
+        "Axolotl Launcher truncated {file_name} before displaying it to keep the console responsive. The original log file remains unchanged.",
     ))
     .await;
 }

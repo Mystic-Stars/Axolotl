@@ -656,12 +656,10 @@ async fn ensure_current_revision(
         )
     })?
     .revision;
-    if let Err(error) = ensure_instance_upgrade_revision(
+    ensure_instance_upgrade_revision(
         stored.plan.source_revision,
         current_revision,
-    ) {
-        return Err(error);
-    }
+    )?;
     stored.validation.validate(&stored.plan, state).await
 }
 

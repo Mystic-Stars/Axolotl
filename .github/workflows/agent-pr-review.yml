@@ -24,7 +24,6 @@ jobs:
               )
             )
         runs-on: ubuntu-latest
-        timeout-minutes: 30
 
         concurrency:
             group: agent-review-${{ github.event.pull_request.number || github.event.issue.number }}

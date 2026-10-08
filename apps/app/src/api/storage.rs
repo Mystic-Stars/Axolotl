@@ -65,12 +65,9 @@ async fn run_scan<R: Runtime>(
     app: &tauri::AppHandle<R>,
     force: bool,
 ) -> crate::api::Result<()> {
-    if !force {
-        if let Some(tree) = load_storage_cache().await {
-            let _ =
-                app.emit("storage-scan", StorageScanEvent::Complete { tree });
-            return Ok(());
-        }
+    if !force && let Some(tree) = load_storage_cache().await {
+        let _ = app.emit("storage-scan", StorageScanEvent::Complete { tree });
+        return Ok(());
     }
 
     let _ = app.emit("storage-scan", StorageScanEvent::Started);

@@ -13,12 +13,12 @@ export * from './page-leave-safety'
 export * from './scroll-indicator'
 export type { ArmorPreviewConfig } from './skin-rendering/armor-preview-types'
 export {
-	ARMOR_SLOTS,
-	ARMOR_TRIM_MATERIALS,
-	ARMOR_TRIM_PATTERNS,
-	armorMaterialsForSlot,
-	cloneArmorPreviewConfig,
-	createDefaultArmorPreviewConfig,
+    ARMOR_SLOTS,
+    ARMOR_TRIM_MATERIALS,
+    ARMOR_TRIM_PATTERNS,
+    armorMaterialsForSlot,
+    cloneArmorPreviewConfig,
+    createDefaultArmorPreviewConfig,
 } from './skin-rendering/armor-preview-types'
 export * from './sticky-observer'
 export * from './use-batch-drop'

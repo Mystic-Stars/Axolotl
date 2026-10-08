@@ -27,7 +27,10 @@ static BREAKERS: LazyLock<Mutex<HashMap<BreakerKey, BreakerState>>> =
 
 fn key(route: &DownloadRoute) -> Option<BreakerKey> {
     Some(BreakerKey {
-        authority: crate::util::fetch::url_authority(&route.url)?,
+        authority: super::proxy_context::authority_key(
+            &crate::util::fetch::url_authority(&route.url)?,
+            route.proxy,
+        ),
         proxy: route.proxy,
     })
 }

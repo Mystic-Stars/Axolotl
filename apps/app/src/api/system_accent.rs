@@ -76,7 +76,7 @@ fn start_accent_color_watcher<R: Runtime>(app: AppHandle<R>) {
                 return;
             }
         };
-        let app_handle = app.clone();
+        let app_handle = app;
         let handler = TypedEventHandler::<UISettings, IInspectable>::new(
             move |_sender, _args| {
                 if let Ok(color) = read_accent_color() {

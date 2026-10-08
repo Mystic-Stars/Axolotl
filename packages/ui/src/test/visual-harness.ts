@@ -24,9 +24,9 @@ export type Theme = (typeof THEMES)[number]
 const THEME_CLASSES = THEMES.map((theme) => `${theme}-mode`)
 
 export function applyTheme(theme: Theme): void {
-	const root = document.documentElement
-	root.classList.remove(...THEME_CLASSES, 'accent-pink')
-	root.classList.add(`${theme}-mode`)
+    const root = document.documentElement
+    root.classList.remove(...THEME_CLASSES, 'accent-pink')
+    root.classList.add(`${theme}-mode`)
 }
 
 /**
@@ -37,58 +37,58 @@ export function applyTheme(theme: Theme): void {
  * has to be applied first — reading them on a bare document reports nothing.
  */
 export function assertTokensLoaded(theme: Theme = 'dark'): void {
-	applyTheme(theme)
-	const surface = computedToken(document.documentElement, '--surface-2')
+    applyTheme(theme)
+    const surface = computedToken(document.documentElement, '--surface-2')
 
-	if (!surface) {
-		throw new Error(
-			'Design tokens did not load. Check that the visual-styles.css entry imports @modrinth/assets/omorphia.scss.',
-		)
-	}
+    if (!surface) {
+        throw new Error(
+            'Design tokens did not load. Check that the visual-styles.css entry imports @modrinth/assets/omorphia.scss.',
+        )
+    }
 }
 
 export async function mountThemed<P extends Record<string, unknown>>(
-	component: Component,
-	props: P,
-	theme: Theme,
-	options: MountingOptions<P> = {},
+    component: Component,
+    props: P,
+    theme: Theme,
+    options: MountingOptions<P> = {},
 ) {
-	applyTheme(theme)
+    applyTheme(theme)
 
-	const wrapper = mount(component, {
-		props,
-		attachTo: document.body,
-		...options,
-		global: {
-			...options.global,
-			directives: {
-				...options.global?.directives,
-				tooltip: tooltipDirective,
-			},
-		},
-	})
+    const wrapper = mount(component, {
+        props,
+        attachTo: document.body,
+        ...options,
+        global: {
+            ...options.global,
+            directives: {
+                ...options.global?.directives,
+                tooltip: tooltipDirective,
+            },
+        },
+    })
 
-	// Vue applies classes asynchronously; wait for the render to settle before
-	// anyone reads layout or computed styles.
-	await wrapper.vm.$nextTick()
+    // Vue applies classes asynchronously; wait for the render to settle before
+    // anyone reads layout or computed styles.
+    await wrapper.vm.$nextTick()
 
-	return wrapper
+    return wrapper
 }
 
 /** Reads a resolved custom property off an element, for token assertions. */
 export function computedToken(element: Element, token: string): string {
-	return getComputedStyle(element).getPropertyValue(token).trim()
+    return getComputedStyle(element).getPropertyValue(token).trim()
 }
 
 /** Waits for a condition to hold, polling frames, for effects that settle late. */
 export async function waitFor(
-	predicate: () => boolean,
-	{ timeoutMs = 2000, label = 'condition' } = {},
+    predicate: () => boolean,
+    { timeoutMs = 2000, label = 'condition' } = {},
 ): Promise<void> {
-	const deadline = performance.now() + timeoutMs
-	while (performance.now() < deadline) {
-		if (predicate()) return
-		await new Promise((resolve) => requestAnimationFrame(resolve))
-	}
-	throw new Error(`Timed out after ${timeoutMs}ms waiting for ${label}`)
+    const deadline = performance.now() + timeoutMs
+    while (performance.now() < deadline) {
+        if (predicate()) return
+        await new Promise((resolve) => requestAnimationFrame(resolve))
+    }
+    throw new Error(`Timed out after ${timeoutMs}ms waiting for ${label}`)
 }

@@ -4,12 +4,12 @@
  */
 
 const collator = new Intl.Collator('en', {
-	sensitivity: 'base',
-	numeric: true,
+    sensitivity: 'base',
+    numeric: true,
 })
 
 function compare(a: string, b: string): number {
-	return collator.compare(a, b) || (a < b ? -1 : a > b ? 1 : 0)
+    return collator.compare(a, b) || (a < b ? -1 : a > b ? 1 : 0)
 }
 
 /**
@@ -19,23 +19,23 @@ function compare(a: string, b: string): number {
  * - `..` sorts like `../,` to come after `../../` but before `../a`
  */
 function transformSource(source: string): string {
-	return source
-		.replace(/^[./]*\.$/, '$&/')
-		.replace(/^[./]*\/$/, '$&,')
-		.replace(/[./_-]/g, (char) => {
-			switch (char) {
-				case '.':
-					return '_'
-				case '/':
-					return '-'
-				case '_':
-					return '.'
-				case '-':
-					return '/'
-				default:
-					return char
-			}
-		})
+    return source
+        .replace(/^[./]*\.$/, '$&/')
+        .replace(/^[./]*\/$/, '$&,')
+        .replace(/[./_-]/g, (char) => {
+            switch (char) {
+                case '.':
+                    return '_'
+                case '/':
+                    return '-'
+                case '_':
+                    return '.'
+                case '-':
+                    return '/'
+                default:
+                    return char
+            }
+        })
 }
 
 /**
@@ -47,7 +47,7 @@ function transformSource(source: string): string {
  * imports.sort(compareImportSources);
  */
 export function compareImportSources(a: string, b: string): number {
-	return compare(transformSource(a), transformSource(b))
+    return compare(transformSource(a), transformSource(b))
 }
 
 /**
@@ -58,7 +58,7 @@ export function compareImportSources(a: string, b: string): number {
  * // Returns: ['./a', './m', './z']
  */
 export function sortImportSources<T extends string>(sources: T[]): T[] {
-	return sources.slice().sort(compareImportSources)
+    return sources.slice().sort(compareImportSources)
 }
 
 /**
@@ -69,5 +69,5 @@ export function sortImportSources<T extends string>(sources: T[]): T[] {
  * const sorted = sortByImportSource(items, item => item.path);
  */
 export function sortByImportSource<T>(items: T[], getSource: (item: T) => string): T[] {
-	return items.slice().sort((a, b) => compareImportSources(getSource(a), getSource(b)))
+    return items.slice().sort((a, b) => compareImportSources(getSource(a), getSource(b)))
 }

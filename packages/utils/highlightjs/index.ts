@@ -58,49 +58,49 @@ hljs.registerAliases(['html', 'htm', 'xhtml', 'mcui', 'fxml'], { languageName: '
 export { hljs }
 
 export const renderHighlightedString = (string) =>
-	configuredXss.process(
-		md({
-			highlight(str, lang) {
-				if (lang && hljs.getLanguage(lang)) {
-					try {
-						return hljs.highlight(str, { language: lang }).value
-					} catch {
-						/* empty */
-					}
-				}
+    configuredXss.process(
+        md({
+            highlight(str, lang) {
+                if (lang && hljs.getLanguage(lang)) {
+                    try {
+                        return hljs.highlight(str, { language: lang }).value
+                    } catch {
+                        /* empty */
+                    }
+                }
 
-				return ''
-			},
-		}).render(string),
-	)
+                return ''
+            },
+        }).render(string),
+    )
 
 export const highlightCodeLines = (code: string, language: string): string[] => {
-	if (!code) return []
+    if (!code) return []
 
-	if (!hljs.getLanguage(language)) {
-		return code.split('\n')
-	}
+    if (!hljs.getLanguage(language)) {
+        return code.split('\n')
+    }
 
-	try {
-		const highlighted = hljs.highlight(code, { language }).value
-		const openTags: string[] = []
+    try {
+        const highlighted = hljs.highlight(code, { language }).value
+        const openTags: string[] = []
 
-		const processedHtml = highlighted.replace(/(<span [^>]+>)|(<\/span>)|(\n)/g, (match) => {
-			if (match === '\n') {
-				return '</span>'.repeat(openTags.length) + '\n' + openTags.join('')
-			}
+        const processedHtml = highlighted.replace(/(<span [^>]+>)|(<\/span>)|(\n)/g, (match) => {
+            if (match === '\n') {
+                return '</span>'.repeat(openTags.length) + '\n' + openTags.join('')
+            }
 
-			if (match === '</span>') {
-				openTags.pop()
-			} else {
-				openTags.push(match)
-			}
+            if (match === '</span>') {
+                openTags.pop()
+            } else {
+                openTags.push(match)
+            }
 
-			return match
-		})
+            return match
+        })
 
-		return processedHtml.split('\n')
-	} catch {
-		return code.split('\n')
-	}
+        return processedHtml.split('\n')
+    } catch {
+        return code.split('\n')
+    }
 }

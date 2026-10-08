@@ -105,13 +105,13 @@ impl<R: AsyncRead + Unpin + Send + Sync> AsyncWireReadExt for R {
         let mut read = 0;
         let mut result = 0;
         loop {
+            if read >= 5 {
+                return Err(ProtocolError::InvalidVarInt);
+            }
             let read_value = self.read_u8().await?;
             let value = read_value & 0b0111_1111;
             result |= (value as usize) << (7 * read);
             read += 1;
-            if read > 5 {
-                return Err(ProtocolError::InvalidVarInt);
-            }
             if (read_value & 0b1000_0000) == 0 {
                 return Ok(result);
             }

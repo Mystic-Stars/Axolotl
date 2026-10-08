@@ -412,6 +412,14 @@ pub fn merge_partial_version(
     }
     libraries = merged_libraries;
 
+    let minecraft_arguments =
+        match (merge.minecraft_arguments, partial.minecraft_arguments) {
+            (Some(base), Some(loader)) => {
+                Some(merge_legacy_arguments(&base, &loader))
+            }
+            (base, loader) => loader.or(base),
+        };
+
     VersionInfo {
         arguments,
         asset_index: merge.asset_index,
@@ -426,16 +434,50 @@ pub fn merge_partial_version(
         } else {
             merge.main_class
         },
-        minecraft_arguments: partial
-            .minecraft_arguments
-            .or(merge.minecraft_arguments),
+        minecraft_arguments,
         minimum_launcher_version: merge.minimum_launcher_version,
-        release_time: partial.release_time,
-        time: partial.time,
+        release_time: merge.release_time,
+        time: merge.time,
         type_: partial.type_,
         data: partial.data,
         processors: partial.processors,
     }
+}
+
+fn merge_legacy_arguments(base: &str, loader: &str) -> String {
+    let base_tokens = base.split_whitespace().collect::<Vec<_>>();
+    let loader_tokens = loader.split_whitespace().collect::<Vec<_>>();
+    let base_pairs = argument_pairs(&base_tokens);
+    let loader_pairs = argument_pairs(&loader_tokens);
+    let mut merged = base_tokens.join(" ");
+    for (start, end) in loader_pairs {
+        let pair = &loader_tokens[start..end];
+        if !base_pairs.iter().any(|(base_start, base_end)| {
+            base_tokens[*base_start..*base_end] == *pair
+        }) {
+            if !merged.is_empty() {
+                merged.push(' ');
+            }
+            merged.push_str(&pair.join(" "));
+        }
+    }
+    merged
+}
+
+fn argument_pairs(tokens: &[&str]) -> Vec<(usize, usize)> {
+    let mut pairs = Vec::new();
+    let mut index = 0;
+    while index < tokens.len() {
+        let end = if tokens[index].starts_with('-') && index + 1 < tokens.len()
+        {
+            index + 2
+        } else {
+            index + 1
+        };
+        pairs.push((index, end));
+        index = end;
+    }
+    pairs
 }
 
 #[cfg(test)]
@@ -498,6 +540,11 @@ mod merge_tests {
     #[test]
     fn merge_partial_version_keeps_loader_order_and_removes_exact_duplicates() {
         let now = Utc::now();
+        let mut minecraft = version_info();
+        minecraft.release_time = "2017-09-18T08:39:46Z".parse().unwrap();
+        minecraft.time = "2021-12-15T15:04:05Z".parse().unwrap();
+        let release_time = minecraft.release_time;
+        let time = minecraft.time;
         let partial = PartialVersionInfo {
             id: "1.12.2-liteloader".to_string(),
             inherits_from: "1.12.2".to_string(),
@@ -523,7 +570,10 @@ mod merge_tests {
             processors: None,
         };
 
-        let merged = merge_partial_version(partial, version_info());
+        let merged = merge_partial_version(partial, minecraft);
+        assert_eq!(merged.release_time, release_time);
+        assert_eq!(merged.time, time);
+        assert_eq!(merged.id, "1.12.2-liteloader");
         assert_eq!(
             merged
                 .libraries
@@ -598,6 +648,55 @@ mod merge_tests {
                 })
                 .count(),
             2
+        );
+    }
+
+    #[test]
+    fn merge_partial_version_combines_legacy_game_arguments() {
+        let now = Utc::now();
+        let mut minecraft = version_info();
+        minecraft.minecraft_arguments = Some(
+            "--username ${auth_player_name} --version ${version_name} \
+             --versionType ${version_type}"
+                .split_whitespace()
+                .collect::<Vec<_>>()
+                .join(" "),
+        );
+        let partial = PartialVersionInfo {
+            id: "1.12.2-forge".to_string(),
+            inherits_from: "1.12.2".to_string(),
+            release_time: now,
+            time: now,
+            main_class: Some("net.minecraft.launchwrapper.Launch".to_string()),
+            minecraft_arguments: Some(
+                "--username ${auth_player_name} --version ${version_name} \
+                 --tweakClass net.minecraftforge.fml.common.launcher.FMLTweaker \
+                 --versionType Forge"
+                    .split_whitespace()
+                    .collect::<Vec<_>>()
+                    .join(" "),
+            ),
+            arguments: None,
+            libraries: Vec::new(),
+            java_version: None,
+            type_: VersionType::Release,
+            data: None,
+            processors: None,
+        };
+
+        let merged = merge_partial_version(partial, minecraft);
+        assert_eq!(
+            merged.minecraft_arguments.as_deref(),
+            Some(
+                "--username ${auth_player_name} --version ${version_name} \
+                 --versionType ${version_type} \
+                 --tweakClass net.minecraftforge.fml.common.launcher.FMLTweaker \
+                 --versionType Forge"
+                    .split_whitespace()
+                    .collect::<Vec<_>>()
+                    .join(" ")
+                    .as_str()
+            )
         );
     }
 }

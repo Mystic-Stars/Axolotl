@@ -1,630 +1,634 @@
 .light-properties {
-	--surface-1: #ebebeb;
-	--surface-1-5: #ededed;
-	--surface-2: #f5f5f5;
-	--surface-2-5: #eef1f5;
-	--surface-3: #f8f8f8;
-	--surface-4: #ffffff;
-	--surface-5: #dddddd;
+    --surface-1: #ebebeb;
+    --surface-1-5: #ededed;
+    --surface-2: #f5f5f5;
+    --surface-2-5: #eef1f5;
+    --surface-3: #f8f8f8;
+    --surface-4: #ffffff;
+    --surface-5: #dddddd;
 
-	--color-red-50: #fef2f2;
-	--color-red-100: #fee5e7;
-	--color-red-200: #fccfd3;
-	--color-red-300: #faa7b1;
-	--color-red-400: #f67687;
-	--color-red-500: #ed4661;
-	--color-red-600: #cb2245;
-	--color-red-700: #b7193d;
-	--color-red-800: #9a1739;
-	--color-red-900: #841738;
-	--color-red-950: #490819;
-	--color-red: var(--color-red-600);
+    --color-red-50: #fef2f2;
+    --color-red-100: #fee5e7;
+    --color-red-200: #fccfd3;
+    --color-red-300: #faa7b1;
+    --color-red-400: #f67687;
+    --color-red-500: #ed4661;
+    --color-red-600: #cb2245;
+    --color-red-700: #b7193d;
+    --color-red-800: #9a1739;
+    --color-red-900: #841738;
+    --color-red-950: #490819;
+    --color-red: var(--color-red-600);
 
-	--color-orange-50: #fdf8ed;
-	--color-orange-100: #f9eacc;
-	--color-orange-200: #f2d495;
-	--color-orange-300: #ecb85d;
-	--color-orange-400: #e7a038;
-	--color-orange-500: #e08325;
-	--color-orange-600: #c66019;
-	--color-orange-700: #a44419;
-	--color-orange-800: #86351a;
-	--color-orange-900: #6e2d19;
-	--color-orange-950: #3f1509;
-	--color-orange: var(--color-orange-500);
+    --color-orange-50: #fdf8ed;
+    --color-orange-100: #f9eacc;
+    --color-orange-200: #f2d495;
+    --color-orange-300: #ecb85d;
+    --color-orange-400: #e7a038;
+    --color-orange-500: #e08325;
+    --color-orange-600: #c66019;
+    --color-orange-700: #a44419;
+    --color-orange-800: #86351a;
+    --color-orange-900: #6e2d19;
+    --color-orange-950: #3f1509;
+    --color-orange: var(--color-orange-500);
 
-	--color-green-50: #eefff6;
-	--color-green-100: #d7ffeb;
-	--color-green-200: #b2ffd9;
-	--color-green-300: #76ffbc;
-	--color-green-400: #33f598;
-	--color-green-500: #09de78;
-	--color-green-600: #00af5c;
-	--color-green-700: #04914f;
-	--color-green-800: #0a7141;
-	--color-green-900: #0a5d38;
-	--color-green-950: #00341d;
-	--color-green: var(--color-green-600);
+    --color-green-50: #eefff6;
+    --color-green-100: #d7ffeb;
+    --color-green-200: #b2ffd9;
+    --color-green-300: #76ffbc;
+    --color-green-400: #33f598;
+    --color-green-500: #09de78;
+    --color-green-600: #00af5c;
+    --color-green-700: #04914f;
+    --color-green-800: #0a7141;
+    --color-green-900: #0a5d38;
+    --color-green-950: #00341d;
+    --color-green: var(--color-green-600);
 
-	--color-blue-50: #f2f7fd;
-	--color-blue-100: #e4ecfa;
-	--color-blue-200: #c3d9f4;
-	--color-blue-300: #8ebaeb;
-	--color-blue-400: #5196df;
-	--color-blue-500: #2b79cc;
-	--color-blue-600: #1f68c0;
-	--color-blue-700: #184b8c;
-	--color-blue-800: #184174;
-	--color-blue-900: #193861;
-	--color-blue-950: #112340;
-	--color-blue: var(--color-blue-600);
+    --color-blue-50: #f2f7fd;
+    --color-blue-100: #e4ecfa;
+    --color-blue-200: #c3d9f4;
+    --color-blue-300: #8ebaeb;
+    --color-blue-400: #5196df;
+    --color-blue-500: #2b79cc;
+    --color-blue-600: #1f68c0;
+    --color-blue-700: #184b8c;
+    --color-blue-800: #184174;
+    --color-blue-900: #193861;
+    --color-blue-950: #112340;
+    --color-blue: var(--color-blue-600);
 
-	--color-purple-50: #faf5ff;
-	--color-purple-100: #f2e7ff;
-	--color-purple-200: #e7d3ff;
-	--color-purple-300: #d4b1ff;
-	--color-purple-400: #ba7eff;
-	--color-purple-500: #9f4dff;
-	--color-purple-600: #8e32f3;
-	--color-purple-700: #761ad6;
-	--color-purple-800: #651bae;
-	--color-purple-900: #53178c;
-	--color-purple-950: #370368;
-	--color-purple: var(--color-purple-600);
+    --color-purple-50: #faf5ff;
+    --color-purple-100: #f2e7ff;
+    --color-purple-200: #e7d3ff;
+    --color-purple-300: #d4b1ff;
+    --color-purple-400: #ba7eff;
+    --color-purple-500: #9f4dff;
+    --color-purple-600: #8e32f3;
+    --color-purple-700: #761ad6;
+    --color-purple-800: #651bae;
+    --color-purple-900: #53178c;
+    --color-purple-950: #370368;
+    --color-purple: var(--color-purple-600);
 
-	--color-pink-50: #fdf2f8;
-	--color-pink-100: #fce7f3;
-	--color-pink-200: #fbcfe8;
-	--color-pink-300: #f9a8d4;
-	--color-pink-400: #f472b6;
-	--color-pink-500: #ec4899;
-	--color-pink-600: #db2777;
-	--color-pink-700: #be185d;
-	--color-pink-800: #9d174d;
-	--color-pink-900: #831843;
-	--color-pink-950: #500724;
-	--color-pink: var(--color-pink-600);
+    --color-pink-50: #fdf2f8;
+    --color-pink-100: #fce7f3;
+    --color-pink-200: #fbcfe8;
+    --color-pink-300: #f9a8d4;
+    --color-pink-400: #f472b6;
+    --color-pink-500: #ec4899;
+    --color-pink-600: #db2777;
+    --color-pink-700: #be185d;
+    --color-pink-800: #9d174d;
+    --color-pink-900: #831843;
+    --color-pink-950: #500724;
+    --color-pink: var(--color-pink-600);
 
-	--color-gray-50: #f5f5f6;
-	--color-gray-100: #e5e5e8;
-	--color-gray-200: #cecfd3;
-	--color-gray-300: #adb0b3;
-	--color-gray-400: #83868d;
-	--color-gray-500: #686a72;
-	--color-gray-600: #595b61;
-	--color-gray-700: #4c4e52;
-	--color-gray-800: #434447;
-	--color-gray-900: #3b3b3e;
-	--color-gray-950: #252627;
-	--color-gray: var(--color-gray-600);
+    --color-gray-50: #f5f5f6;
+    --color-gray-100: #e5e5e8;
+    --color-gray-200: #cecfd3;
+    --color-gray-300: #adb0b3;
+    --color-gray-400: #83868d;
+    --color-gray-500: #686a72;
+    --color-gray-600: #595b61;
+    --color-gray-700: #4c4e52;
+    --color-gray-800: #434447;
+    --color-gray-900: #3b3b3e;
+    --color-gray-950: #252627;
+    --color-gray: var(--color-gray-600);
 
-	--color-text-primary: #1a202c;
-	--color-text-default: #2c2e31;
-	--color-text-tertiary: #484d54;
+    --color-text-primary: #1a202c;
+    --color-text-default: #2c2e31;
+    --color-text-tertiary: #484d54;
 
-	// ===
+    // ===
 
-	--color-bg: var(--surface-1);
-	--color-super-raised-bg: var(--surface-4);
+    --color-bg: var(--surface-1);
+    --color-super-raised-bg: var(--surface-4);
 
-	--color-button-border: rgba(161, 161, 161, 0.35);
-	--color-scrollbar: #96a2b0;
+    --color-button-border: rgba(161, 161, 161, 0.35);
+    --color-scrollbar: #96a2b0;
 
-	--color-divider: var(--surface-5);
-	--color-divider-dark: var(--surface-5);
+    --color-divider: var(--surface-5);
+    --color-divider-dark: var(--surface-5);
 
-	--color-base: var(--color-text-default);
-	--color-secondary: var(--color-text-tertiary);
-	--color-contrast: var(--color-text-primary);
-	--color-accent-contrast: #ffffff;
+    --color-base: var(--color-text-default);
+    --color-secondary: var(--color-text-tertiary);
+    --color-contrast: var(--color-text-primary);
+    --color-accent-contrast: #ffffff;
 
-	// The tint families are rungs of the opacity model rather than fixed alphas,
-	// so a selected chip or card follows "Component opacity" the way its
-	// unselected neighbours already do. Each family keeps its hue in an opaque
-	// base and mixes that base at the rung that renders it at a 100% baseline.
-	//
-	// The rung is read with a percentage fallback on purpose: these blocks are
-	// root-scope, but the scale is published per palette (see opacity.scss), so
-	// outside a palette the fallback preserves the value the fixed alpha had.
-	// A palette that publishes its own baseline re-declares both the base and
-	// the mix next to that baseline.
-	--color-red-highlight-opaque: rgb(203 34 69);
-	--color-red-highlight: color-mix(
-		in srgb,
-		var(--color-red-highlight-opaque) var(--opacity-ratio-keep-25, 25%),
-		transparent
-	);
-	--color-orange-highlight-opaque: rgb(224 131 37);
-	--color-orange-highlight: color-mix(
-		in srgb,
-		var(--color-orange-highlight-opaque) var(--opacity-ratio-keep-25, 25%),
-		transparent
-	);
-	--color-green-highlight-opaque: rgb(0 175 92);
-	--color-green-highlight: color-mix(
-		in srgb,
-		var(--color-green-highlight-opaque) var(--opacity-ratio-keep-25, 25%),
-		transparent
-	);
-	--color-blue-highlight-opaque: rgb(31 104 192);
-	--color-blue-highlight: color-mix(
-		in srgb,
-		var(--color-blue-highlight-opaque) var(--opacity-ratio-keep-25, 25%),
-		transparent
-	);
-	--color-purple-highlight-opaque: rgb(142 50 243);
-	--color-purple-highlight: color-mix(
-		in srgb,
-		var(--color-purple-highlight-opaque) var(--opacity-ratio-keep-25, 25%),
-		transparent
-	);
-	// The pink tint is the one highlight that sat below 25%.
-	--color-pink-highlight-opaque: rgb(219 39 119);
-	--color-pink-highlight: color-mix(
-		in srgb,
-		var(--color-pink-highlight-opaque) var(--opacity-ratio-keep-22, 22%),
-		transparent
-	);
-	--color-gray-highlight-opaque: rgb(89 91 97);
-	--color-gray-highlight: color-mix(
-		in srgb,
-		var(--color-gray-highlight-opaque) var(--opacity-ratio-keep-25, 25%),
-		transparent
-	);
+    // The tint families are rungs of the opacity model rather than fixed alphas,
+    // so a selected chip or card follows "Component opacity" the way its
+    // unselected neighbours already do. Each family keeps its hue in an opaque
+    // base and mixes that base at the rung that renders it at a 100% baseline.
+    //
+    // The rung is read with a percentage fallback on purpose: these blocks are
+    // root-scope, but the scale is published per palette (see opacity.scss), so
+    // outside a palette the fallback preserves the value the fixed alpha had.
+    // A palette that publishes its own baseline re-declares both the base and
+    // the mix next to that baseline.
+    --color-red-highlight-opaque: rgb(203 34 69);
+    --color-red-highlight: color-mix(
+        in srgb,
+        var(--color-red-highlight-opaque) var(--opacity-ratio-keep-25, 25%),
+        transparent
+    );
+    --color-orange-highlight-opaque: rgb(224 131 37);
+    --color-orange-highlight: color-mix(
+        in srgb,
+        var(--color-orange-highlight-opaque) var(--opacity-ratio-keep-25, 25%),
+        transparent
+    );
+    --color-green-highlight-opaque: rgb(0 175 92);
+    --color-green-highlight: color-mix(
+        in srgb,
+        var(--color-green-highlight-opaque) var(--opacity-ratio-keep-25, 25%),
+        transparent
+    );
+    --color-blue-highlight-opaque: rgb(31 104 192);
+    --color-blue-highlight: color-mix(
+        in srgb,
+        var(--color-blue-highlight-opaque) var(--opacity-ratio-keep-25, 25%),
+        transparent
+    );
+    --color-purple-highlight-opaque: rgb(142 50 243);
+    --color-purple-highlight: color-mix(
+        in srgb,
+        var(--color-purple-highlight-opaque) var(--opacity-ratio-keep-25, 25%),
+        transparent
+    );
+    // The pink tint is the one highlight that sat below 25%.
+    --color-pink-highlight-opaque: rgb(219 39 119);
+    --color-pink-highlight: color-mix(
+        in srgb,
+        var(--color-pink-highlight-opaque) var(--opacity-ratio-keep-22, 22%),
+        transparent
+    );
+    --color-gray-highlight-opaque: rgb(89 91 97);
+    --color-gray-highlight: color-mix(
+        in srgb,
+        var(--color-gray-highlight-opaque) var(--opacity-ratio-keep-25, 25%),
+        transparent
+    );
 
-	--color-red-bg-opaque: rgb(203 34 69);
-	--color-red-bg: color-mix(
-		in srgb,
-		var(--color-red-bg-opaque) var(--opacity-ratio-keep-10, 10%),
-		transparent
-	);
-	--color-orange-bg-opaque: rgb(224 131 37);
-	--color-orange-bg: color-mix(
-		in srgb,
-		var(--color-orange-bg-opaque) var(--opacity-ratio-keep-10, 10%),
-		transparent
-	);
-	--color-green-bg-opaque: rgb(0 175 92);
-	--color-green-bg: color-mix(
-		in srgb,
-		var(--color-green-bg-opaque) var(--opacity-ratio-keep-10, 10%),
-		transparent
-	);
-	--color-blue-bg-opaque: rgb(31 104 192);
-	--color-blue-bg: color-mix(
-		in srgb,
-		var(--color-blue-bg-opaque) var(--opacity-ratio-keep-10, 10%),
-		transparent
-	);
-	--color-purple-bg-opaque: rgb(142 50 243);
-	--color-purple-bg: color-mix(
-		in srgb,
-		var(--color-purple-bg-opaque) var(--opacity-ratio-keep-10, 10%),
-		transparent
-	);
-	--color-pink-bg-opaque: rgb(219 39 119);
-	--color-pink-bg: color-mix(
-		in srgb,
-		var(--color-pink-bg-opaque) var(--opacity-ratio-keep-10, 10%),
-		transparent
-	);
+    --color-red-bg-opaque: rgb(203 34 69);
+    --color-red-bg: color-mix(
+        in srgb,
+        var(--color-red-bg-opaque) var(--opacity-ratio-keep-10, 10%),
+        transparent
+    );
+    --color-orange-bg-opaque: rgb(224 131 37);
+    --color-orange-bg: color-mix(
+        in srgb,
+        var(--color-orange-bg-opaque) var(--opacity-ratio-keep-10, 10%),
+        transparent
+    );
+    --color-green-bg-opaque: rgb(0 175 92);
+    --color-green-bg: color-mix(
+        in srgb,
+        var(--color-green-bg-opaque) var(--opacity-ratio-keep-10, 10%),
+        transparent
+    );
+    --color-blue-bg-opaque: rgb(31 104 192);
+    --color-blue-bg: color-mix(
+        in srgb,
+        var(--color-blue-bg-opaque) var(--opacity-ratio-keep-10, 10%),
+        transparent
+    );
+    --color-purple-bg-opaque: rgb(142 50 243);
+    --color-purple-bg: color-mix(
+        in srgb,
+        var(--color-purple-bg-opaque) var(--opacity-ratio-keep-10, 10%),
+        transparent
+    );
+    --color-pink-bg-opaque: rgb(219 39 119);
+    --color-pink-bg: color-mix(
+        in srgb,
+        var(--color-pink-bg-opaque) var(--opacity-ratio-keep-10, 10%),
+        transparent
+    );
 
-	--color-brand: var(--color-green);
-	--color-brand-highlight-opaque: var(--color-green-highlight-opaque);
-	--color-brand-shadow: rgba(0, 175, 92, 0.7);
-	--color-yellow: var(--color-orange);
+    --color-brand: var(--color-green);
+    --color-brand-highlight-opaque: var(--color-green-highlight-opaque);
+    --color-brand-shadow: rgba(0, 175, 92, 0.7);
+    --color-yellow: var(--color-orange);
 
-	--shadow-inset-lg: inset 0px -2px 2px hsla(221, 39%, 91%, 0.1);
-	--shadow-inset: inset 0px -2px 2px hsla(221, 39%, 91%, 0.05);
-	--shadow-inset-sm: inset 0px -1px 2px hsla(221, 39%, 91%, 0.15);
+    --shadow-inset-lg: inset 0px -2px 2px hsla(221, 39%, 91%, 0.1);
+    --shadow-inset: inset 0px -2px 2px hsla(221, 39%, 91%, 0.05);
+    --shadow-inset-sm: inset 0px -1px 2px hsla(221, 39%, 91%, 0.15);
 
-	--shadow-color: 221 39% 11%;
-	--shadow-raised-lg: 0px 2px 4px hsla(221, 39%, 11%, 0.2);
-	--shadow-raised:
-		0.3px 0.5px 0.6px hsl(var(--shadow-color) / 0.15),
-		1px 2px 2.2px -1.7px hsl(var(--shadow-color) / 0.12),
-		4.4px 8.8px 9.7px -3.4px hsl(var(--shadow-color) / 0.09);
-	--shadow-floating:
-		hsla(0, 0%, 0%, 0) 0px 0px 0px 0px, hsla(0, 0%, 0%, 0) 0px 0px 0px 0px,
-		hsla(0, 0%, 0%, 0.1) 0px 4px 6px -1px, hsla(0, 0%, 0%, 0.1) 0px 2px 4px -1px;
+    --shadow-color: 221 39% 11%;
+    --shadow-raised-lg: 0px 2px 4px hsla(221, 39%, 11%, 0.2);
+    --shadow-raised:
+        0.3px 0.5px 0.6px hsl(var(--shadow-color) / 0.15),
+        1px 2px 2.2px -1.7px hsl(var(--shadow-color) / 0.12),
+        4.4px 8.8px 9.7px -3.4px hsl(var(--shadow-color) / 0.09);
+    --shadow-floating:
+        hsla(0, 0%, 0%, 0) 0px 0px 0px 0px, hsla(0, 0%, 0%, 0) 0px 0px 0px 0px,
+        hsla(0, 0%, 0%, 0.1) 0px 4px 6px -1px, hsla(0, 0%, 0%, 0.1) 0px 2px 4px -1px;
 
-	--shadow-card: rgba(50, 50, 100, 0.1) 0px 2px 4px 0px;
-	--shadow-card-filter: rgba(50, 50, 100, 0.1) 0px 2px 4px;
+    --shadow-card: rgba(50, 50, 100, 0.1) 0px 2px 4px 0px;
+    --shadow-card-filter: rgba(50, 50, 100, 0.1) 0px 2px 4px;
 
-	--brand-gradient-bg: linear-gradient(
-		0deg,
-		rgba(68, 182, 138, 0.175) 0%,
-		rgba(58, 250, 112, 0.125) 100%
-	);
-	--brand-gradient-strong-bg: linear-gradient(
-		270deg,
-		rgba(68, 182, 138, 0.175) 0%,
-		rgba(36, 225, 91, 0.12) 100%
-	);
-	--brand-gradient-button: rgba(255, 255, 255, 0.5);
-	--brand-gradient-border: rgba(32, 64, 32, 0.15);
+    --brand-gradient-bg: linear-gradient(
+        0deg,
+        rgba(68, 182, 138, 0.175) 0%,
+        rgba(58, 250, 112, 0.125) 100%
+    );
+    --brand-gradient-strong-bg: linear-gradient(
+        270deg,
+        rgba(68, 182, 138, 0.175) 0%,
+        rgba(36, 225, 91, 0.12) 100%
+    );
+    --brand-gradient-button: rgba(255, 255, 255, 0.5);
+    --brand-gradient-border: rgba(32, 64, 32, 0.15);
 
-	--color-button-bg-selected: var(--color-brand);
-	--color-button-text-selected: var(--color-accent-contrast);
-	--color-button-text: var(--color-base);
-	--color-button-text-active: var(--color-contrast);
+    --color-button-bg-selected: var(--color-brand);
+    --color-button-text-selected: var(--color-accent-contrast);
+    --color-button-text: var(--color-base);
+    --color-button-text-active: var(--color-contrast);
 
-	--color-gradient-button-bg: linear-gradient(180deg, #f8f9fa 0%, #dce0e6 100%);
+    --color-gradient-button-bg: linear-gradient(180deg, #f8f9fa 0%, #dce0e6 100%);
 
-	--loading-bar-gradient: linear-gradient(to right, var(--color-brand) 0%, #00af5c 100%);
+    --loading-bar-gradient: linear-gradient(to right, var(--color-brand) 0%, #00af5c 100%);
 
-	--color-platform-fabric: #8a7b71;
-	--color-platform-quilt: #8b61b4;
-	--color-platform-forge: #5b6197;
-	--color-platform-neoforge: #dc895c;
-	--color-platform-liteloader: #4c90de;
-	--color-platform-bukkit: #e78362;
-	--color-platform-bungeecord: #c69e39;
-	--color-platform-folia: #6aa54f;
-	--color-platform-paper: #e67e7e;
-	--color-platform-purpur: #7763a3;
-	--color-platform-spigot: #cd7a21;
-	--color-platform-velocity: #4b98b0;
-	--color-platform-waterfall: #5f83cb;
-	--color-platform-sponge: #c49528;
-	--color-platform-ornithe: #6097ca;
-	--color-platform-bta-babric: #5ba938;
-	--color-platform-nilloader: #dd5088;
+    --color-platform-fabric: #8a7b71;
+    --color-platform-quilt: #8b61b4;
+    --color-platform-forge: #5b6197;
+    --color-platform-neoforge: #dc895c;
+    --color-platform-liteloader: #4c90de;
+    --color-platform-bukkit: #e78362;
+    --color-platform-bungeecord: #c69e39;
+    --color-platform-folia: #6aa54f;
+    --color-platform-paper: #e67e7e;
+    --color-platform-purpur: #7763a3;
+    --color-platform-spigot: #cd7a21;
+    --color-platform-velocity: #4b98b0;
+    --color-platform-waterfall: #5f83cb;
+    --color-platform-sponge: #c49528;
+    --color-platform-ornithe: #6097ca;
+    --color-platform-bta-babric: #5ba938;
+    --color-platform-nilloader: #dd5088;
 
-	--hover-brightness: 0.9;
+    --hover-brightness: 0.9;
 }
 
 html {
-	@extend .light-properties;
-	--dark-color-base: #b0bac5;
-	--dark-color-contrast: #ecf9fb;
+    @extend .light-properties;
+    --dark-color-base: #b0bac5;
+    --dark-color-contrast: #ecf9fb;
 
-	--gap-xs: 0.25rem;
-	--gap-sm: 0.5rem;
-	--gap-md: 0.75rem;
-	--gap-lg: 1rem;
-	--gap-xl: 1.5rem;
+    --gap-xs: 0.25rem;
+    --gap-sm: 0.5rem;
+    --gap-md: 0.75rem;
+    --gap-lg: 1rem;
+    --gap-xl: 1.5rem;
 
-	--radius-xs: 0.25rem;
-	--radius-sm: 0.5rem;
-	--radius-md: 0.75rem;
-	--radius-lg: 1rem;
-	--radius-xl: 1.25rem;
-	--radius-max: 999999999px;
+    --radius-xs: 0.25rem;
+    --radius-sm: 0.5rem;
+    --radius-md: 0.75rem;
+    --radius-lg: 1rem;
+    --radius-xl: 1.25rem;
+    --radius-max: 999999999px;
 
-	--color-tooltip-text: var(--color-contrast);
-	--color-tooltip-bg: var(--surface-3);
+    --color-tooltip-text: var(--color-contrast);
+    --color-tooltip-bg: var(--surface-3);
 
-	--color-ad: rgba(125, 75, 162, 0.2);
-	--color-ad-raised: rgba(190, 140, 243, 0.5);
-	--color-ad-contrast: black;
-	--color-ad-highlight: var(--color-purple);
+    --color-ad: rgba(125, 75, 162, 0.2);
+    --color-ad-raised: rgba(190, 140, 243, 0.5);
+    --color-ad-contrast: black;
+    --color-ad-highlight: var(--color-purple);
 
-	--color-link: var(--color-blue) !important;
-	--color-link-hover: var(--color-blue) !important; // DEPRECATED, use filters in future
-	--color-link-active: var(--color-blue) !important; // DEPRECATED, use filters in future
+    --color-link: var(--color-blue) !important;
+    --color-link-hover: var(--color-blue) !important; // DEPRECATED, use filters in future
+    --color-link-active: var(--color-blue) !important; // DEPRECATED, use filters in future
 
-	--shadow-button: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px 0 rgba(0, 0, 0, 0.15);
+    --shadow-button: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px 0 rgba(0, 0, 0, 0.15);
 
-	--color-focus-ring: #ea80ff;
+    --color-focus-ring: #ea80ff;
 }
 
 .light-mode,
 .light {
-	@extend .light-properties;
+    @extend .light-properties;
 }
 
 .dark-mode,
 .dark {
-	// The dark ladder is wider than the light one on purpose. Shadows are
-	// invisible against a dark page (the shadow colour is itself near-black),
-	// so separation in this theme has to come from luminance alone. The
-	// previous steps differed by as little as 1.08:1, which reads as one flat
-	// surface -- that is what made cards, skeletons and empty-state artwork
-	// blend into the page. Each step is now at least ~1.12:1, and illustrations
-	// that outline themselves in `surface-4` gain enough edge to be visible.
-	--surface-1: #101215;
-	--surface-1-5: #15181c;
-	--surface-2: #1a1e24;
-	--surface-2-5: #20242b;
-	--surface-3: #262b34;
-	--surface-4: #333a46;
-	--surface-5: #424854;
+    // The dark ladder is wider than the light one on purpose. Shadows are
+    // invisible against a dark page (the shadow colour is itself near-black),
+    // so separation in this theme has to come from luminance alone. The
+    // previous steps differed by as little as 1.08:1, which reads as one flat
+    // surface -- that is what made cards, skeletons and empty-state artwork
+    // blend into the page. Each step is now at least ~1.12:1, and illustrations
+    // that outline themselves in `surface-4` gain enough edge to be visible.
+    --surface-1: #101215;
+    --surface-1-5: #15181c;
+    --surface-2: #1a1e24;
+    --surface-2-5: #20242b;
+    --surface-3: #262b34;
+    --surface-4: #333a46;
+    --surface-5: #424854;
 
-	--color-red-50: #fff0f1;
-	--color-red-100: #ffe2e6;
-	--color-red-200: #ffcad3;
-	--color-red-300: #ff9fae;
-	--color-red-400: #ff6984;
-	--color-red-500: #ff496e;
-	--color-red-600: #ed1148;
-	--color-red-700: #c8083d;
-	--color-red-800: #a8093a;
-	--color-red-900: #8f0c38;
-	--color-red-950: #50011a;
-	--color-red: var(--color-red-500);
+    --color-red-50: #fff0f1;
+    --color-red-100: #ffe2e6;
+    --color-red-200: #ffcad3;
+    --color-red-300: #ff9fae;
+    --color-red-400: #ff6984;
+    --color-red-500: #ff496e;
+    --color-red-600: #ed1148;
+    --color-red-700: #c8083d;
+    --color-red-800: #a8093a;
+    --color-red-900: #8f0c38;
+    --color-red-950: #50011a;
+    --color-red: var(--color-red-500);
 
-	--color-orange-50: #fff8ed;
-	--color-orange-100: #ffefd4;
-	--color-orange-200: #ffdba8;
-	--color-orange-300: #ffc171;
-	--color-orange-400: #ffa347;
-	--color-orange-500: #fe7e11;
-	--color-orange-600: #ef6307;
-	--color-orange-700: #c64808;
-	--color-orange-800: #9d3a0f;
-	--color-orange-900: #7e3110;
-	--color-orange-950: #441606;
-	--color-orange: var(--color-orange-400);
+    --color-orange-50: #fff8ed;
+    --color-orange-100: #ffefd4;
+    --color-orange-200: #ffdba8;
+    --color-orange-300: #ffc171;
+    --color-orange-400: #ffa347;
+    --color-orange-500: #fe7e11;
+    --color-orange-600: #ef6307;
+    --color-orange-700: #c64808;
+    --color-orange-800: #9d3a0f;
+    --color-orange-900: #7e3110;
+    --color-orange-950: #441606;
+    --color-orange: var(--color-orange-400);
 
-	--color-green-50: #effef5;
-	--color-green-100: #dafee8;
-	--color-green-200: #b8fad2;
-	--color-green-300: #81f4af;
-	--color-green-400: #42e686;
-	--color-green-500: #1bd96a;
-	--color-green-600: #0faa4f;
-	--color-green-700: #0f8642;
-	--color-green-800: #126937;
-	--color-green-900: #11562f;
-	--color-green-950: #033018;
-	--color-green: var(--color-green-500);
+    --color-green-50: #effef5;
+    --color-green-100: #dafee8;
+    --color-green-200: #b8fad2;
+    --color-green-300: #81f4af;
+    --color-green-400: #42e686;
+    --color-green-500: #1bd96a;
+    --color-green-600: #0faa4f;
+    --color-green-700: #0f8642;
+    --color-green-800: #126937;
+    --color-green-900: #11562f;
+    --color-green-950: #033018;
+    --color-green: var(--color-green-500);
 
-	--color-blue-50: #eef6ff;
-	--color-blue-100: #daeaff;
-	--color-blue-200: #bddaff;
-	--color-blue-300: #90c4ff;
-	--color-blue-400: #4f9cff;
-	--color-blue-500: #357ffc;
-	--color-blue-600: #1f5ff1;
-	--color-blue-700: #1749de;
-	--color-blue-800: #193cb4;
-	--color-blue-900: #1a378e;
-	--color-blue-950: #152356;
-	--color-blue: var(--color-blue-400);
+    --color-blue-50: #eef6ff;
+    --color-blue-100: #daeaff;
+    --color-blue-200: #bddaff;
+    --color-blue-300: #90c4ff;
+    --color-blue-400: #4f9cff;
+    --color-blue-500: #357ffc;
+    --color-blue-600: #1f5ff1;
+    --color-blue-700: #1749de;
+    --color-blue-800: #193cb4;
+    --color-blue-900: #1a378e;
+    --color-blue-950: #152356;
+    --color-blue: var(--color-blue-400);
 
-	--color-purple-50: #faf5ff;
-	--color-purple-100: #f4e7ff;
-	--color-purple-200: #ead4ff;
-	--color-purple-300: #dab2ff;
-	--color-purple-400: #c78aff;
-	--color-purple-500: #ac51fb;
-	--color-purple-600: #972eef;
-	--color-purple-700: #821ed2;
-	--color-purple-800: #6e1eab;
-	--color-purple-900: #5a198a;
-	--color-purple-950: #3d0566;
-	--color-purple: var(--color-purple-400);
+    --color-purple-50: #faf5ff;
+    --color-purple-100: #f4e7ff;
+    --color-purple-200: #ead4ff;
+    --color-purple-300: #dab2ff;
+    --color-purple-400: #c78aff;
+    --color-purple-500: #ac51fb;
+    --color-purple-600: #972eef;
+    --color-purple-700: #821ed2;
+    --color-purple-800: #6e1eab;
+    --color-purple-900: #5a198a;
+    --color-purple-950: #3d0566;
+    --color-purple: var(--color-purple-400);
 
-	--color-pink-50: #fdf2f8;
-	--color-pink-100: #fce7f3;
-	--color-pink-200: #fbcfe8;
-	--color-pink-300: #f9a8d4;
-	--color-pink-400: #f472b6;
-	--color-pink-500: #ec4899;
-	--color-pink-600: #db2777;
-	--color-pink-700: #be185d;
-	--color-pink-800: #9d174d;
-	--color-pink-900: #831843;
-	--color-pink-950: #500724;
-	--color-pink: var(--color-pink-400);
+    --color-pink-50: #fdf2f8;
+    --color-pink-100: #fce7f3;
+    --color-pink-200: #fbcfe8;
+    --color-pink-300: #f9a8d4;
+    --color-pink-400: #f472b6;
+    --color-pink-500: #ec4899;
+    --color-pink-600: #db2777;
+    --color-pink-700: #be185d;
+    --color-pink-800: #9d174d;
+    --color-pink-900: #831843;
+    --color-pink-950: #500724;
+    --color-pink: var(--color-pink-400);
 
-	--color-gray-50: #f5f7f8;
-	--color-gray-100: #edeff2;
-	--color-gray-200: #dfe2e6;
-	--color-gray-300: #cad0d7;
-	--color-gray-400: #b4bac5;
-	--color-gray-500: #9fa4b3;
-	--color-gray-600: #8a8da1;
-	--color-gray-700: #777b8b;
-	--color-gray-800: #616472;
-	--color-gray-900: #52555d;
-	--color-gray-950: #303136;
-	--color-gray: var(--color-gray-500);
+    --color-gray-50: #f5f7f8;
+    --color-gray-100: #edeff2;
+    --color-gray-200: #dfe2e6;
+    --color-gray-300: #cad0d7;
+    --color-gray-400: #b4bac5;
+    --color-gray-500: #9fa4b3;
+    --color-gray-600: #8a8da1;
+    --color-gray-700: #777b8b;
+    --color-gray-800: #616472;
+    --color-gray-900: #52555d;
+    --color-gray-950: #303136;
+    --color-gray: var(--color-gray-500);
 
-	--color-text-primary: #ffffff;
-	--color-text-default: #b0bac5;
-	--color-text-tertiary: #96a2b0;
+    --color-text-primary: #ffffff;
+    --color-text-default: #b0bac5;
+    --color-text-tertiary: #96a2b0;
 
-	// ===
+    // ===
 
-	--color-bg: var(--surface-1);
-	--color-super-raised-bg: var(--surface-4);
+    --color-bg: var(--surface-1);
+    --color-super-raised-bg: var(--surface-4);
 
-	--color-button-border: rgba(193, 190, 209, 0.12);
-	--color-scrollbar: var(--surface-5);
+    --color-button-border: rgba(193, 190, 209, 0.12);
+    --color-scrollbar: var(--surface-5);
 
-	--color-divider: var(--surface-5);
-	--color-divider-dark: #646c75;
+    --color-divider: var(--surface-5);
+    --color-divider-dark: #646c75;
 
-	--color-base: var(--color-text-default);
-	--color-secondary: var(--color-text-tertiary);
-	--color-contrast: var(--color-text-primary);
-	--color-accent-contrast: #000000;
+    --color-base: var(--color-text-default);
+    --color-secondary: var(--color-text-tertiary);
+    --color-contrast: var(--color-text-primary);
+    --color-accent-contrast: #000000;
 
-	// Same model as `.light-properties`: an opaque base per family plus the mix
-	// that renders it at a 100% baseline. The dark tints are stronger than the
-	// light ones -- 25% for every highlight and 20% for every `-bg`.
-	--color-red-highlight-opaque: rgb(255 73 110);
-	--color-red-highlight: color-mix(
-		in srgb,
-		var(--color-red-highlight-opaque) var(--opacity-ratio-keep-25, 25%),
-		transparent
-	);
-	--color-orange-highlight-opaque: rgb(255 163 71);
-	--color-orange-highlight: color-mix(
-		in srgb,
-		var(--color-orange-highlight-opaque) var(--opacity-ratio-keep-25, 25%),
-		transparent
-	);
-	--color-green-highlight-opaque: rgb(27 217 106);
-	--color-green-highlight: color-mix(
-		in srgb,
-		var(--color-green-highlight-opaque) var(--opacity-ratio-keep-25, 25%),
-		transparent
-	);
-	--color-blue-highlight-opaque: rgb(79 156 255);
-	--color-blue-highlight: color-mix(
-		in srgb,
-		var(--color-blue-highlight-opaque) var(--opacity-ratio-keep-25, 25%),
-		transparent
-	);
-	--color-purple-highlight-opaque: rgb(199 138 255);
-	--color-purple-highlight: color-mix(
-		in srgb,
-		var(--color-purple-highlight-opaque) var(--opacity-ratio-keep-25, 25%),
-		transparent
-	);
-	--color-pink-highlight-opaque: rgb(244 114 182);
-	--color-pink-highlight: color-mix(
-		in srgb,
-		var(--color-pink-highlight-opaque) var(--opacity-ratio-keep-25, 25%),
-		transparent
-	);
-	--color-gray-highlight-opaque: rgb(159 164 179);
-	--color-gray-highlight: color-mix(
-		in srgb,
-		var(--color-gray-highlight-opaque) var(--opacity-ratio-keep-25, 25%),
-		transparent
-	);
+    // Same model as `.light-properties`: an opaque base per family plus the mix
+    // that renders it at a 100% baseline. The dark tints are stronger than the
+    // light ones -- 25% for every highlight and 20% for every `-bg`.
+    --color-red-highlight-opaque: rgb(255 73 110);
+    --color-red-highlight: color-mix(
+        in srgb,
+        var(--color-red-highlight-opaque) var(--opacity-ratio-keep-25, 25%),
+        transparent
+    );
+    --color-orange-highlight-opaque: rgb(255 163 71);
+    --color-orange-highlight: color-mix(
+        in srgb,
+        var(--color-orange-highlight-opaque) var(--opacity-ratio-keep-25, 25%),
+        transparent
+    );
+    --color-green-highlight-opaque: rgb(27 217 106);
+    --color-green-highlight: color-mix(
+        in srgb,
+        var(--color-green-highlight-opaque) var(--opacity-ratio-keep-25, 25%),
+        transparent
+    );
+    --color-blue-highlight-opaque: rgb(79 156 255);
+    --color-blue-highlight: color-mix(
+        in srgb,
+        var(--color-blue-highlight-opaque) var(--opacity-ratio-keep-25, 25%),
+        transparent
+    );
+    --color-purple-highlight-opaque: rgb(199 138 255);
+    --color-purple-highlight: color-mix(
+        in srgb,
+        var(--color-purple-highlight-opaque) var(--opacity-ratio-keep-25, 25%),
+        transparent
+    );
+    --color-pink-highlight-opaque: rgb(244 114 182);
+    --color-pink-highlight: color-mix(
+        in srgb,
+        var(--color-pink-highlight-opaque) var(--opacity-ratio-keep-25, 25%),
+        transparent
+    );
+    --color-gray-highlight-opaque: rgb(159 164 179);
+    --color-gray-highlight: color-mix(
+        in srgb,
+        var(--color-gray-highlight-opaque) var(--opacity-ratio-keep-25, 25%),
+        transparent
+    );
 
-	--color-red-bg-opaque: rgb(255 73 110);
-	--color-red-bg: color-mix(
-		in srgb,
-		var(--color-red-bg-opaque) var(--opacity-ratio-keep-20, 20%),
-		transparent
-	);
-	--color-orange-bg-opaque: rgb(255 163 71);
-	--color-orange-bg: color-mix(
-		in srgb,
-		var(--color-orange-bg-opaque) var(--opacity-ratio-keep-20, 20%),
-		transparent
-	);
-	--color-green-bg-opaque: rgb(27 217 106);
-	--color-green-bg: color-mix(
-		in srgb,
-		var(--color-green-bg-opaque) var(--opacity-ratio-keep-20, 20%),
-		transparent
-	);
-	--color-blue-bg-opaque: rgb(79 156 255);
-	--color-blue-bg: color-mix(
-		in srgb,
-		var(--color-blue-bg-opaque) var(--opacity-ratio-keep-20, 20%),
-		transparent
-	);
-	--color-purple-bg-opaque: rgb(199 138 255);
-	--color-purple-bg: color-mix(
-		in srgb,
-		var(--color-purple-bg-opaque) var(--opacity-ratio-keep-20, 20%),
-		transparent
-	);
-	--color-pink-bg-opaque: rgb(244 114 182);
-	--color-pink-bg: color-mix(
-		in srgb,
-		var(--color-pink-bg-opaque) var(--opacity-ratio-keep-20, 20%),
-		transparent
-	);
+    --color-red-bg-opaque: rgb(255 73 110);
+    --color-red-bg: color-mix(
+        in srgb,
+        var(--color-red-bg-opaque) var(--opacity-ratio-keep-20, 20%),
+        transparent
+    );
+    --color-orange-bg-opaque: rgb(255 163 71);
+    --color-orange-bg: color-mix(
+        in srgb,
+        var(--color-orange-bg-opaque) var(--opacity-ratio-keep-20, 20%),
+        transparent
+    );
+    --color-green-bg-opaque: rgb(27 217 106);
+    --color-green-bg: color-mix(
+        in srgb,
+        var(--color-green-bg-opaque) var(--opacity-ratio-keep-20, 20%),
+        transparent
+    );
+    --color-blue-bg-opaque: rgb(79 156 255);
+    --color-blue-bg: color-mix(
+        in srgb,
+        var(--color-blue-bg-opaque) var(--opacity-ratio-keep-20, 20%),
+        transparent
+    );
+    --color-purple-bg-opaque: rgb(199 138 255);
+    --color-purple-bg: color-mix(
+        in srgb,
+        var(--color-purple-bg-opaque) var(--opacity-ratio-keep-20, 20%),
+        transparent
+    );
+    --color-pink-bg-opaque: rgb(244 114 182);
+    --color-pink-bg: color-mix(
+        in srgb,
+        var(--color-pink-bg-opaque) var(--opacity-ratio-keep-20, 20%),
+        transparent
+    );
 
-	--color-brand: var(--color-green);
-	--color-brand-highlight-opaque: rgb(27 217 106);
-	--color-brand-shadow: rgba(27, 217, 106, 0.7);
-	--color-yellow: var(--color-orange);
+    --color-brand: var(--color-green);
+    --color-brand-highlight-opaque: rgb(27 217 106);
+    --color-brand-shadow: rgba(27, 217, 106, 0.7);
+    --color-yellow: var(--color-orange);
 
-	--shadow-inset-lg: inset 0px -2px 2px hsla(221, 39%, 11%, 0.1);
-	--shadow-inset: inset 0px -2px 2px hsla(221, 39%, 11%, 0.05);
-	--shadow-inset-sm: inset 0px -1px 1px hsla(221, 39%, 11%, 0.25);
+    --shadow-inset-lg: inset 0px -2px 2px hsla(221, 39%, 11%, 0.1);
+    --shadow-inset: inset 0px -2px 2px hsla(221, 39%, 11%, 0.05);
+    --shadow-inset-sm: inset 0px -1px 1px hsla(221, 39%, 11%, 0.25);
 
-	--shadow-raised-lg: 0px 2px 4px hsla(221, 39%, 11%, 0.2);
-	--shadow-raised: 0px -2px 4px hsla(221, 39%, 11%, 0.1);
-	--shadow-floating:
-		hsla(0, 0%, 0%, 0) 0px 0px 0px 0px, hsla(0, 0%, 0%, 0) 0px 0px 0px 0px,
-		hsla(0, 0%, 0%, 0.1) 0px 4px 6px -1px, rgba(0, 0, 0, 0.06) 0px 2px 4px -1px;
+    --shadow-raised-lg: 0px 2px 4px hsla(221, 39%, 11%, 0.2);
+    --shadow-raised: 0px -2px 4px hsla(221, 39%, 11%, 0.1);
+    --shadow-floating:
+        hsla(0, 0%, 0%, 0) 0px 0px 0px 0px, hsla(0, 0%, 0%, 0) 0px 0px 0px 0px,
+        hsla(0, 0%, 0%, 0.1) 0px 4px 6px -1px, rgba(0, 0, 0, 0.06) 0px 2px 4px -1px;
 
-	--shadow-card: rgba(0, 0, 0, 0.25) 0px 2px 4px 0px;
-	--shadow-card-filter: rgba(0, 0, 0, 0.25) 0px 2px 4px;
+    --shadow-card: rgba(0, 0, 0, 0.25) 0px 2px 4px 0px;
+    --shadow-card-filter: rgba(0, 0, 0, 0.25) 0px 2px 4px;
 
-	--brand-gradient-bg: linear-gradient(0deg, rgba(14, 35, 19, 0.2) 0%, rgba(55, 137, 73, 0.1) 100%);
-	--brand-gradient-strong-bg: linear-gradient(270deg, #09110d 10%, #131f17 100%);
-	--brand-gradient-button: rgba(255, 255, 255, 0.08);
-	--brand-gradient-border: rgba(155, 255, 160, 0.08);
+    --brand-gradient-bg: linear-gradient(
+        0deg,
+        rgba(14, 35, 19, 0.2) 0%,
+        rgba(55, 137, 73, 0.1) 100%
+    );
+    --brand-gradient-strong-bg: linear-gradient(270deg, #09110d 10%, #131f17 100%);
+    --brand-gradient-button: rgba(255, 255, 255, 0.08);
+    --brand-gradient-border: rgba(155, 255, 160, 0.08);
 
-	--color-button-bg-selected: var(--color-brand-highlight);
-	--color-button-text-selected: var(--color-brand);
-	--color-button-text: var(--color-base);
-	--color-button-text-active: var(--color-contrast);
+    --color-button-bg-selected: var(--color-brand-highlight);
+    --color-button-text-selected: var(--color-brand);
+    --color-button-text: var(--color-base);
+    --color-button-text-active: var(--color-contrast);
 
-	--color-gradient-button-bg: linear-gradient(180deg, #3a3d47 0%, #33363d 100%);
+    --color-gradient-button-bg: linear-gradient(180deg, #3a3d47 0%, #33363d 100%);
 
-	--loading-bar-gradient: linear-gradient(to right, var(--color-brand) 0%, #1ffa9a 100%);
+    --loading-bar-gradient: linear-gradient(to right, var(--color-brand) 0%, #1ffa9a 100%);
 
-	--color-platform-fabric: #dbb69b;
-	--color-platform-quilt: #c796f9;
-	--color-platform-forge: #959eef;
-	--color-platform-neoforge: #f99e6b;
-	--color-platform-liteloader: #7ab0ee;
-	--color-platform-bukkit: #f6af7b;
-	--color-platform-bungeecord: #d2c080;
-	--color-platform-folia: #a5e388;
-	--color-platform-paper: #eeaaaa;
-	--color-platform-purpur: #c3abf7;
-	--color-platform-spigot: #f1cc84;
-	--color-platform-velocity: #83d5ef;
-	--color-platform-waterfall: #78a4fb;
-	--color-platform-sponge: #f9e580;
-	--color-platform-ornithe: #87c7ff;
-	--color-platform-bta-babric: #72cc4a;
-	--color-platform-nilloader: #f45e9a;
+    --color-platform-fabric: #dbb69b;
+    --color-platform-quilt: #c796f9;
+    --color-platform-forge: #959eef;
+    --color-platform-neoforge: #f99e6b;
+    --color-platform-liteloader: #7ab0ee;
+    --color-platform-bukkit: #f6af7b;
+    --color-platform-bungeecord: #d2c080;
+    --color-platform-folia: #a5e388;
+    --color-platform-paper: #eeaaaa;
+    --color-platform-purpur: #c3abf7;
+    --color-platform-spigot: #f1cc84;
+    --color-platform-velocity: #83d5ef;
+    --color-platform-waterfall: #78a4fb;
+    --color-platform-sponge: #f9e580;
+    --color-platform-ornithe: #87c7ff;
+    --color-platform-bta-babric: #72cc4a;
+    --color-platform-nilloader: #f45e9a;
 
-	--hover-brightness: 1.25;
+    --hover-brightness: 1.25;
 }
 
 .oled-mode {
-	@extend .dark-mode;
-	// Same reasoning as `.dark` above: pure black makes the lower steps
-	// indistinguishable (the old `surface-1`/`surface-2` pair sat at 1.06:1),
-	// so the ladder opens up here too while `surface-1` stays true black.
-	--surface-1: #000000;
-	--surface-1-5: #070809;
-	--surface-2: #0c0e12;
-	--surface-2-5: #111419;
-	--surface-3: #171b21;
-	--surface-4: #242a33;
-	--surface-5: #333a45;
+    @extend .dark-mode;
+    // Same reasoning as `.dark` above: pure black makes the lower steps
+    // indistinguishable (the old `surface-1`/`surface-2` pair sat at 1.06:1),
+    // so the ladder opens up here too while `surface-1` stays true black.
+    --surface-1: #000000;
+    --surface-1-5: #070809;
+    --surface-2: #0c0e12;
+    --surface-2-5: #111419;
+    --surface-3: #171b21;
+    --surface-4: #242a33;
+    --surface-5: #333a45;
 
-	--color-ad: #0d1828;
+    --color-ad: #0d1828;
 
-	--brand-gradient-bg: linear-gradient(
-		0deg,
-		rgba(22, 66, 51, 0.15) 0%,
-		rgba(55, 137, 73, 0.1) 100%
-	);
-	--brand-gradient-strong-bg: linear-gradient(
-		270deg,
-		rgba(9, 18, 14, 0.6) 10%,
-		rgba(19, 31, 23, 0.5) 100%
-	);
+    --brand-gradient-bg: linear-gradient(
+        0deg,
+        rgba(22, 66, 51, 0.15) 0%,
+        rgba(55, 137, 73, 0.1) 100%
+    );
+    --brand-gradient-strong-bg: linear-gradient(
+        270deg,
+        rgba(9, 18, 14, 0.6) 10%,
+        rgba(19, 31, 23, 0.5) 100%
+    );
 
-	--color-gradient-button-bg: linear-gradient(180deg, #1b1b20 0%, #25262b 100%);
+    --color-gradient-button-bg: linear-gradient(180deg, #1b1b20 0%, #25262b 100%);
 }
 
 :is(.accent-pink, .accent-orange, .accent-green, .accent-blue, .accent-purple, .accent-custom) {
-	--color-focus-ring: var(--color-brand);
-	--brand-gradient-bg: linear-gradient(
-		0deg,
-		color-mix(in srgb, var(--color-brand) 14%, transparent) 0%,
-		color-mix(in srgb, var(--color-brand) 9%, transparent) 100%
-	);
-	--brand-gradient-strong-bg: linear-gradient(
-		270deg,
-		color-mix(in srgb, var(--color-brand) 18%, var(--surface-1)) 0%,
-		color-mix(in srgb, var(--color-brand) 11%, var(--surface-1)) 100%
-	);
-	--brand-gradient-border: color-mix(in srgb, var(--color-brand) 16%, transparent);
-	--loading-bar-gradient: linear-gradient(
-		to right,
-		var(--color-brand) 0%,
-		color-mix(in srgb, var(--color-brand) 68%, white) 100%
-	);
+    --color-focus-ring: var(--color-brand);
+    --brand-gradient-bg: linear-gradient(
+        0deg,
+        color-mix(in srgb, var(--color-brand) 14%, transparent) 0%,
+        color-mix(in srgb, var(--color-brand) 9%, transparent) 100%
+    );
+    --brand-gradient-strong-bg: linear-gradient(
+        270deg,
+        color-mix(in srgb, var(--color-brand) 18%, var(--surface-1)) 0%,
+        color-mix(in srgb, var(--color-brand) 11%, var(--surface-1)) 100%
+    );
+    --brand-gradient-border: color-mix(in srgb, var(--color-brand) 16%, transparent);
+    --loading-bar-gradient: linear-gradient(
+        to right,
+        var(--color-brand) 0%,
+        color-mix(in srgb, var(--color-brand) 68%, white) 100%
+    );
 }
 
 // Each accent selects the opaque base its brand tint comes from; the mix that
@@ -633,46 +637,46 @@ html {
 // be resolved here -- only the mix has to resolve where a palette publishes its
 // baseline.
 .accent-pink {
-	--color-brand: var(--color-pink);
-	--color-brand-highlight-opaque: var(--color-pink-highlight-opaque);
-	--color-brand-shadow: color-mix(in srgb, var(--color-pink) 68%, transparent);
+    --color-brand: var(--color-pink);
+    --color-brand-highlight-opaque: var(--color-pink-highlight-opaque);
+    --color-brand-shadow: color-mix(in srgb, var(--color-pink) 68%, transparent);
 }
 
 .accent-orange {
-	--color-brand: var(--color-orange);
-	--color-brand-highlight-opaque: var(--color-orange-highlight-opaque);
-	--color-brand-shadow: color-mix(in srgb, var(--color-orange) 68%, transparent);
+    --color-brand: var(--color-orange);
+    --color-brand-highlight-opaque: var(--color-orange-highlight-opaque);
+    --color-brand-shadow: color-mix(in srgb, var(--color-orange) 68%, transparent);
 }
 
 .accent-green {
-	--color-brand: var(--color-green);
-	--color-brand-highlight-opaque: var(--color-green-highlight-opaque);
-	--color-brand-shadow: color-mix(in srgb, var(--color-green) 68%, transparent);
+    --color-brand: var(--color-green);
+    --color-brand-highlight-opaque: var(--color-green-highlight-opaque);
+    --color-brand-shadow: color-mix(in srgb, var(--color-green) 68%, transparent);
 }
 
 .accent-blue {
-	--color-brand: var(--color-blue);
-	--color-brand-highlight-opaque: var(--color-blue-highlight-opaque);
-	--color-brand-shadow: color-mix(in srgb, var(--color-blue) 68%, transparent);
+    --color-brand: var(--color-blue);
+    --color-brand-highlight-opaque: var(--color-blue-highlight-opaque);
+    --color-brand-shadow: color-mix(in srgb, var(--color-blue) 68%, transparent);
 }
 
 .accent-purple {
-	--color-brand: var(--color-purple);
-	--color-brand-highlight-opaque: var(--color-purple-highlight-opaque);
-	--color-brand-shadow: color-mix(in srgb, var(--color-purple) 68%, transparent);
+    --color-brand: var(--color-purple);
+    --color-brand-highlight-opaque: var(--color-purple-highlight-opaque);
+    --color-brand-shadow: color-mix(in srgb, var(--color-purple) 68%, transparent);
 }
 
 .accent-custom {
-	--color-brand: var(--custom-accent-light, var(--color-pink));
-	// A custom accent is not one of the palette tones, so the base is the accent
-	// itself rather than a `<tone>-highlight-opaque`.
-	--color-brand-highlight-opaque: var(--color-brand);
-	--color-brand-shadow: color-mix(in srgb, var(--color-brand) 68%, transparent);
+    --color-brand: var(--custom-accent-light, var(--color-pink));
+    // A custom accent is not one of the palette tones, so the base is the accent
+    // itself rather than a `<tone>-highlight-opaque`.
+    --color-brand-highlight-opaque: var(--color-brand);
+    --color-brand-shadow: color-mix(in srgb, var(--color-brand) 68%, transparent);
 }
 
 .dark-mode.accent-custom,
 .dark.accent-custom {
-	--color-brand: var(--custom-accent-dark, var(--color-pink));
+    --color-brand: var(--custom-accent-dark, var(--color-pink));
 }
 
 // The one place `--color-brand-highlight` is defined: it mixes whichever base
@@ -680,11 +684,11 @@ html {
 // fallback for a host that publishes no scale, and a palette that does
 // re-declares it next to its own baseline.
 :root {
-	--color-brand-highlight: color-mix(
-		in srgb,
-		var(--color-brand-highlight-opaque) var(--opacity-ratio-keep-25, 25%),
-		transparent
-	);
+    --color-brand-highlight: color-mix(
+        in srgb,
+        var(--color-brand-highlight-opaque) var(--opacity-ratio-keep-25, 25%),
+        transparent
+    );
 }
 
 // The warning role: the website's shell defines it, the app's never did, so

@@ -3,5 +3,5 @@ import { getAdminApi } from '../../utils/service'
 import { getQueryRecord, parseRange } from '../../utils/validation'
 
 export default defineAdminHandler(async (event) =>
-	getAdminApi(event).distributions(parseRange(getQueryRecord(event).range)),
+    getAdminApi(event).distributions(parseRange(getQueryRecord(event).range)),
 )

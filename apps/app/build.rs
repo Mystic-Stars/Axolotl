@@ -21,13 +21,12 @@ fn newest_mtime(path: &std::path::Path) -> Option<std::time::SystemTime> {
     if path.is_file() {
         return path.metadata().and_then(|m| m.modified()).ok();
     }
-    if path.is_dir() {
-        if let Ok(entries) = std::fs::read_dir(path) {
-            for entry in entries.flatten() {
-                if let Some(time) = newest_mtime(&entry.path()) {
-                    newest =
-                        Some(newest.map_or(time, |current| current.max(time)));
-                }
+    if path.is_dir()
+        && let Ok(entries) = std::fs::read_dir(path)
+    {
+        for entry in entries.flatten() {
+            if let Some(time) = newest_mtime(&entry.path()) {
+                newest = Some(newest.map_or(time, |current| current.max(time)));
             }
         }
     }
@@ -674,7 +673,6 @@ fn main() {
                         "privacy_set",
                         "telemetry_set",
                         "discord_rpc_set",
-                        "download_engine_set",
                         "cancel_directory_change",
                         "proxy_get",
                         "proxy_set",
@@ -852,6 +850,7 @@ fn main() {
                         "drop_classify_extract",
                         "drop_extract_zip_to_temp",
                         "drop_scan_launcher_instances",
+                        "drop_resolve_gamedirs",
                         "drop_remove_temp_dir",
                         "drop_detect_file_lock",
                         "drop_extract_mod_metadata",
@@ -960,6 +959,27 @@ fn main() {
                         "servers_get_log_buffer",
                         "servers_clear_log",
                     ])
+                    .default_permission(
+                        DefaultPermissionRule::AllowAllCommands,
+                    ),
+            )
+            .plugin(
+                "friends",
+                InlinedPlugin::new()
+                    .commands(&[
+                        "friends",
+                        "friend_statuses",
+                        "add_friend",
+                        "remove_friend",
+                    ])
+                    .default_permission(
+                        DefaultPermissionRule::AllowAllCommands,
+                    ),
+            )
+            .plugin(
+                "telemetry",
+                InlinedPlugin::new()
+                    .commands(&["notify_online"])
                     .default_permission(
                         DefaultPermissionRule::AllowAllCommands,
                     ),

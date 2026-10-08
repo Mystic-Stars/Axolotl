@@ -962,17 +962,16 @@ fn missing_library_bytes(
         }
 
         // Native library size for this platform, if any.
-        if is_native_library(library) {
-            if let Some(classifier) =
+        if is_native_library(library)
+            && let Some(classifier) =
                 library_native_classifier(library, java_arch)
-                && let Some(native) = library
-                    .downloads
-                    .as_ref()
-                    .and_then(|downloads| downloads.classifiers.as_ref())
-                    .and_then(|classifiers| classifiers.get(&classifier))
-            {
-                total += native.size as u64;
-            }
+            && let Some(native) = library
+                .downloads
+                .as_ref()
+                .and_then(|downloads| downloads.classifiers.as_ref())
+                .and_then(|classifiers| classifiers.get(&classifier))
+        {
+            total += native.size as u64;
         }
 
         // Java artifact size. Mixed libraries carry both.
@@ -980,15 +979,14 @@ fn missing_library_bytes(
             let artifact_path = d::get_path_from_artifact(&library.name)?;
             let path = st.directories.libraries_dir().join(&artifact_path);
 
-            if !path.exists() || force {
-                if let Some(artifact) = library
+            if (!path.exists() || force)
+                && let Some(artifact) = library
                     .downloads
                     .as_ref()
                     .and_then(|downloads| downloads.artifact.as_ref())
-                    && !artifact.url.is_empty()
-                {
-                    total += artifact.size as u64;
-                }
+                && !artifact.url.is_empty()
+            {
+                total += artifact.size as u64;
             }
         }
     }
@@ -1127,12 +1125,14 @@ pub async fn download_version_info(
             .err_into::<crate::Error>()
             .await
             .and_then(|ref it| Ok(serde_json::from_slice(it)?))?;
+        let normalized_timestamps =
+            normalize_version_timestamps(version, &mut info);
         let normalized =
             normalize_version_info(mod_loader, &version.id, &mut info, "cache");
         let restored_legacy_arguments =
             restore_legacy_minecraft_arguments(st, version, loader, &mut info)
                 .await?;
-        if normalized || restored_legacy_arguments {
+        if normalized_timestamps || normalized || restored_legacy_arguments {
             write_version_info(&path, serde_json::to_vec(&info)?).await?;
         }
         info
@@ -1268,6 +1268,7 @@ pub async fn download_version_info(
             info = d::modded::merge_partial_version(partial, info);
         }
 
+        normalize_version_timestamps(version, &mut info);
         normalize_version_info(mod_loader, &version.id, &mut info, "network");
 
         info.id.clone_from(&version_id);
@@ -1312,12 +1313,14 @@ pub async fn load_local_version_info(
 
     let bytes = io::read(&path).err_into::<crate::Error>().await?;
     let mut info: GameVersionInfo = serde_json::from_slice(&bytes)?;
+    let normalized_timestamps =
+        normalize_version_timestamps(version, &mut info);
     let normalized =
         normalize_version_info(mod_loader, &version.id, &mut info, "cache");
     let restored_legacy_arguments =
         restore_legacy_minecraft_arguments(st, version, loader, &mut info)
             .await?;
-    if normalized || restored_legacy_arguments {
+    if normalized_timestamps || normalized || restored_legacy_arguments {
         write_version_info(&path, serde_json::to_vec(&info)?).await?;
     }
     Ok(info)
@@ -1331,12 +1334,19 @@ async fn write_version_info(path: &Path, data: Vec<u8>) -> crate::Result<()> {
     Ok(())
 }
 
-// Bumped when profile merge semantics change. This forces existing loader
-// caches to be regenerated so duplicate Forge/vanilla libraries regain native
-// classifier metadata.
-// Bump this marker when derived loader metadata changes in a way that requires
-// rebuilding cached versions and re-extracting installer artifacts.
-const DERIVED_VERSION_CACHE_FORMAT: &str = "3";
+/// Bumped when derived loader metadata must be rebuilt from the base profile.
+const DERIVED_VERSION_CACHE_FORMAT: &str = "5";
+
+fn normalize_version_timestamps(
+    version: &GameVersion,
+    info: &mut GameVersionInfo,
+) -> bool {
+    let changed =
+        info.release_time != version.release_time || info.time != version.time;
+    info.release_time = version.release_time;
+    info.time = version.time;
+    changed
+}
 
 fn derived_version_cache_marker_path(path: &Path) -> PathBuf {
     path.with_extension("json.axolotl-format")
@@ -1800,7 +1810,7 @@ pub async fn download_assets(
     let mut legacy_copies = Vec::new();
     let mut fallback_assets = Vec::new();
     let mut skipped_count = 0_u64;
-    for (name, asset) in index.objects.iter() {
+    for (name, asset) in &index.objects {
         let hash = &asset.hash;
         let resource_path = st.directories.object_dir(hash);
         let legacy_resource_path = st
@@ -1861,8 +1871,7 @@ pub async fn download_assets(
             ResourceClass::MinecraftAsset,
             source_mode,
         );
-        let apply_native_policy = crate::util::download::active_engine()
-            != crate::util::download::DownloadEngine::XmclCompat;
+        let apply_native_policy = true;
         if apply_native_policy {
             let probe_request =
                 DownloadRequest::new(&first_url, ResourceClass::MinecraftAsset)
@@ -1873,7 +1882,7 @@ pub async fn download_assets(
             prepare_native_download_routes(
                 &probe_request,
                 &mut routes,
-                &st.fetch_semaphore,
+                &st.download_semaphore,
             )
             .await;
         }
@@ -1917,14 +1926,13 @@ pub async fn download_assets(
                     let loading_bar = loading_bar.clone();
                     Box::pin(async move {
                         for _ in 0..item.logical_items {
-                            if let Some(progress) = &progress {
-                                if let Err(error) = progress.add_bytes(item.size).await {
+                            if let Some(progress) = &progress
+                                && let Err(error) = progress.add_bytes(item.size).await {
                                     tracing::warn!(
                                         error = %error,
                                         "Failed to record batch asset bytes"
                                     );
                                 }
-                            }
                             if let Some(loading_bar) = &loading_bar {
                                 let _ = emit_loading(loading_bar, per_file_fraction, None);
                             }
@@ -1935,9 +1943,9 @@ pub async fn download_assets(
             let failed = download_asset_batch_via_h2(
                 &route,
                 batch_items,
-                ASSET_BATCH_CONCURRENCY,
+                ASSET_BATCH_CONCURRENCY.min(st.download_concurrency()),
                 apply_native_policy,
-                apply_native_policy.then_some(&st.fetch_semaphore),
+                apply_native_policy.then_some(&st.download_semaphore),
                 callback,
             )
             .await?;
@@ -1999,7 +2007,6 @@ pub async fn download_assets(
     let fallback_assets = coalesce_fallback_assets(fallback_assets);
     if !fallback_assets.is_empty() {
         let limit = crate::util::download::task_concurrency_limit(st)
-            .map(|limit| limit.saturating_mul(2))
             .unwrap_or(ASSET_BATCH_CONCURRENCY);
         futures::stream::iter(fallback_assets)
             .map(Ok::<FallbackAsset, crate::Error>)
@@ -2174,7 +2181,7 @@ pub async fn download_libraries(
     let num_files = tasks.len();
     loading_try_for_each_concurrent(
 		stream::iter(tasks).map(Ok::<LibraryDownloadTask<'_>, crate::Error>),
-		crate::util::download::task_concurrency_limit(&st).map(|limit| limit.saturating_mul(2)),
+		crate::util::download::task_concurrency_limit(st),
         loading_bar,
         loading_amount,
         num_files,
@@ -2701,6 +2708,81 @@ mod tests {
         assert_eq!(java.component, "java-runtime-delta");
     }
 
+    #[tokio::test]
+    async fn cached_loader_timestamps_are_corrected_online_and_offline() {
+        let temp = tempfile::tempdir().unwrap();
+        let directories = crate::state::DirectoryInfo {
+            settings_dir: temp.path().join("settings"),
+            config_dir: temp.path().join("config"),
+            app_identifier: "test".to_string(),
+        };
+        std::fs::create_dir_all(directories.instances_dir()).unwrap();
+        let pool = sqlx::sqlite::SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect("sqlite::memory:")
+            .await
+            .unwrap();
+        sqlx::migrate!().run(&pool).await.unwrap();
+        let state = crate::state::test_state(directories, pool).await.unwrap();
+        let version: GameVersion = serde_json::from_value(serde_json::json!({
+			"id": "1.12.2", "type": "release", "url": "invalid://no-network",
+			"releaseTime": "2017-09-18T08:39:46Z", "time": "2021-12-15T15:04:05Z",
+			"sha1": "", "complianceLevel": 0
+		})).unwrap();
+        let loader: LoaderVersion = serde_json::from_value(serde_json::json!({
+            "id": "test-loader", "stable": true, "url": "invalid://no-network"
+        }))
+        .unwrap();
+        let path = state
+            .directories
+            .version_dir("1.12.2-test-loader")
+            .join("1.12.2-test-loader.json");
+        for offline in [false, true] {
+            let mut info = version_info_with_java(None);
+            info.id = "1.12.2-test-loader".to_string();
+            write_version_info(&path, serde_json::to_vec(&info).unwrap())
+                .await
+                .unwrap();
+            if offline {
+                io::write(derived_version_cache_marker_path(&path), "3")
+                    .await
+                    .unwrap();
+            } else {
+                write_derived_version_cache_marker(&path).await.unwrap();
+            }
+            let mut loaded = if offline {
+                load_local_version_info(
+                    &state,
+                    &version,
+                    ModLoader::Forge,
+                    Some(&loader),
+                )
+                .await
+            } else {
+                download_version_info(
+                    &state,
+                    &version,
+                    ModLoader::Forge,
+                    Some(&loader),
+                    None,
+                    None,
+                    None,
+                )
+                .await
+            }
+            .unwrap();
+            assert_eq!(loaded.release_time, version.release_time);
+            assert_eq!(loaded.time, version.time);
+            let saved: GameVersionInfo =
+                serde_json::from_slice(&io::read(&path).await.unwrap())
+                    .unwrap();
+            assert_eq!(saved.release_time, version.release_time);
+            assert_eq!(saved.time, version.time);
+            assert!(!normalize_version_timestamps(&version, &mut loaded));
+            assert_eq!(derived_version_cache_is_current(&path).await, !offline);
+        }
+    }
+
     #[test]
     fn cleanroom_installer_declared_java_is_preserved() {
         let mut info =
@@ -3129,7 +3211,7 @@ mod tests {
         write_version_info(&path, b"{}".to_vec()).await.unwrap();
 
         assert!(!derived_version_cache_is_current(&path).await);
-        io::write(derived_version_cache_marker_path(&path), "0")
+        io::write(derived_version_cache_marker_path(&path), "3")
             .await
             .unwrap();
         assert!(!derived_version_cache_is_current(&path).await);

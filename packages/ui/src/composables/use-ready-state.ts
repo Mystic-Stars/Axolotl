@@ -4,8 +4,8 @@ import { computed } from 'vue'
 
 /** Subset of {@link UseQueryReturnType} passed to {@link useReadyState}. */
 export type ReadyStateQuery<TData, TError = DefaultError> = Pick<
-	UseQueryReturnType<TData, TError>,
-	'isLoading' | 'data'
+    UseQueryReturnType<TData, TError>,
+    'isLoading' | 'data'
 >
 
 /**
@@ -18,7 +18,7 @@ export type ReadyStateQuery<TData, TError = DefaultError> = Pick<
  * Pair with `<ReadyTransition :pending="var which is useReadyState(query)" />`.
  */
 export function useReadyState<TData, TError = DefaultError>(
-	query: ReadyStateQuery<TData, TError>,
+    query: ReadyStateQuery<TData, TError>,
 ): Readonly<Ref<boolean>> {
-	return computed(() => query.isLoading.value && query.data.value === undefined)
+    return computed(() => query.isLoading.value && query.data.value === undefined)
 }

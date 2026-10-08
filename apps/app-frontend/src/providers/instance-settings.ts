@@ -4,13 +4,13 @@ import type { ComputedRef, Ref } from 'vue'
 import type { GameInstance } from '@/helpers/types'
 
 export interface InstanceSettingsContext {
-	instance: ComputedRef<GameInstance>
-	offline?: boolean
-	isMinecraftServer: Ref<boolean>
-	onUnlinked: () => void
-	onInstanceUpdated: (instance: GameInstance) => void
-	closeModal?: (onAfterClose?: () => void) => void
+    instance: ComputedRef<GameInstance>
+    offline?: boolean
+    isMinecraftServer: Ref<boolean>
+    onUnlinked: () => void
+    onInstanceUpdated: (instance: GameInstance) => void
+    closeModal?: (onAfterClose?: () => void) => void
 }
 
 export const [injectInstanceSettings, provideInstanceSettings] =
-	createContext<InstanceSettingsContext>('InstanceSettingsModal', 'instanceSettings')
+    createContext<InstanceSettingsContext>('InstanceSettingsModal', 'instanceSettings')

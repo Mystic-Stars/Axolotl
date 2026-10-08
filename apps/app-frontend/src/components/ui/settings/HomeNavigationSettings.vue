@@ -3,5 +3,5 @@ import AppearanceSettings from './AppearanceSettings.vue'
 </script>
 
 <template>
-	<AppearanceSettings scope="home-navigation" />
+    <AppearanceSettings scope="home-navigation" />
 </template>

@@ -1,8 +1,8 @@
 export interface RefreshableDownloadJob {
-	job_id: string
-	status: string
-	created: string
-	modified?: string
+    job_id: string
+    status: string
+    created: string
+    modified?: string
 }
 
 /**
@@ -12,18 +12,18 @@ export interface RefreshableDownloadJob {
  * Never let that older lifecycle state move an already active job backwards.
  */
 export function isRegressiveActiveJobSnapshot<T extends RefreshableDownloadJob>(
-	current: T,
-	next: T,
-	activeStatuses: ReadonlySet<string>,
+    current: T,
+    next: T,
+    activeStatuses: ReadonlySet<string>,
 ): boolean {
-	return (
-		current.modified !== undefined &&
-		current.modified === next.modified &&
-		activeStatuses.has(current.status) &&
-		activeStatuses.has(next.status) &&
-		current.status !== 'queued' &&
-		next.status === 'queued'
-	)
+    return (
+        current.modified !== undefined &&
+        current.modified === next.modified &&
+        activeStatuses.has(current.status) &&
+        activeStatuses.has(next.status) &&
+        current.status !== 'queued' &&
+        next.status === 'queued'
+    )
 }
 
 /**
@@ -31,37 +31,37 @@ export function isRegressiveActiveJobSnapshot<T extends RefreshableDownloadJob>(
  * events that arrived after the request was dispatched.
  */
 export function mergeRefreshedDownloadJobs<T extends RefreshableDownloadJob>(
-	refreshed: T[],
-	current: T[],
-	revisionsAtDispatch: ReadonlyMap<string, number>,
-	currentRevisions: ReadonlyMap<string, number>,
-	syntheticIds: ReadonlySet<string>,
-	activeStatuses: ReadonlySet<string>,
+    refreshed: T[],
+    current: T[],
+    revisionsAtDispatch: ReadonlyMap<string, number>,
+    currentRevisions: ReadonlyMap<string, number>,
+    syntheticIds: ReadonlySet<string>,
+    activeStatuses: ReadonlySet<string>,
 ): T[] {
-	const currentById = new Map(current.map((job) => [job.job_id, job]))
-	const refreshedIds = new Set(refreshed.map((job) => job.job_id))
-	const merged = refreshed.map((job) => {
-		const local = currentById.get(job.job_id)
-		const changedDuringRefresh =
-			(currentRevisions.get(job.job_id) ?? 0) !== (revisionsAtDispatch.get(job.job_id) ?? 0)
-		// A terminal database result is authoritative. Active snapshots can be
-		// older than realtime events received while the list call was in flight.
-		return local && changedDuringRefresh && activeStatuses.has(job.status) ? local : job
-	})
-	const changedActiveJobsMissingFromResponse = current.filter((job) => {
-		if (syntheticIds.has(job.job_id) || refreshedIds.has(job.job_id)) return false
-		return (
-			activeStatuses.has(job.status) &&
-			(currentRevisions.get(job.job_id) ?? 0) !== (revisionsAtDispatch.get(job.job_id) ?? 0)
-		)
-	})
-	const activeSynthetics = current.filter(
-		(job) =>
-			syntheticIds.has(job.job_id) &&
-			!refreshedIds.has(job.job_id) &&
-			activeStatuses.has(job.status),
-	)
-	return [...merged, ...changedActiveJobsMissingFromResponse, ...activeSynthetics].sort((a, b) =>
-		b.created.localeCompare(a.created),
-	)
+    const currentById = new Map(current.map((job) => [job.job_id, job]))
+    const refreshedIds = new Set(refreshed.map((job) => job.job_id))
+    const merged = refreshed.map((job) => {
+        const local = currentById.get(job.job_id)
+        const changedDuringRefresh =
+            (currentRevisions.get(job.job_id) ?? 0) !== (revisionsAtDispatch.get(job.job_id) ?? 0)
+        // A terminal database result is authoritative. Active snapshots can be
+        // older than realtime events received while the list call was in flight.
+        return local && changedDuringRefresh && activeStatuses.has(job.status) ? local : job
+    })
+    const changedActiveJobsMissingFromResponse = current.filter((job) => {
+        if (syntheticIds.has(job.job_id) || refreshedIds.has(job.job_id)) return false
+        return (
+            activeStatuses.has(job.status) &&
+            (currentRevisions.get(job.job_id) ?? 0) !== (revisionsAtDispatch.get(job.job_id) ?? 0)
+        )
+    })
+    const activeSynthetics = current.filter(
+        (job) =>
+            syntheticIds.has(job.job_id) &&
+            !refreshedIds.has(job.job_id) &&
+            activeStatuses.has(job.status),
+    )
+    return [...merged, ...changedActiveJobsMissingFromResponse, ...activeSynthetics].sort((a, b) =>
+        b.created.localeCompare(a.created),
+    )
 }

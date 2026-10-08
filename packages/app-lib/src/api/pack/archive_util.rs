@@ -7,7 +7,7 @@ use super::detect::decode_zip_entry_name;
 use crate::util::io;
 use tokio_util::sync::CancellationToken;
 
-const EXTRACTION_SIZE_LIMIT: u64 = 8 * 1024 * 1024 * 1024;
+pub(crate) const EXTRACTION_SIZE_LIMIT: u64 = 8 * 1024 * 1024 * 1024;
 
 fn archive_error(error: zip::result::ZipError) -> crate::Error {
     crate::ErrorKind::InputError(format!("Modpack archive is invalid: {error}"))
@@ -15,8 +15,9 @@ fn archive_error(error: zip::result::ZipError) -> crate::Error {
 }
 
 pub(crate) fn safe_relative_path(value: &str) -> crate::Result<String> {
-    let path = Path::new(value);
-    if value.is_empty()
+    let normalized = value.replace('\\', "/");
+    let path = Path::new(&normalized);
+    if normalized.is_empty()
         || path.is_absolute()
         || path
             .components()
@@ -27,7 +28,7 @@ pub(crate) fn safe_relative_path(value: &str) -> crate::Result<String> {
         )
         .into());
     }
-    Ok(path.to_string_lossy().replace('\\', "/"))
+    Ok(normalized)
 }
 
 /// Extracts every file under `prefix` in the archive into `target_dir`,
@@ -51,7 +52,7 @@ pub(crate) async fn materialize_archive_subdir_for_instance(
     prefix: String,
     target_dir: PathBuf,
 ) -> crate::Result<(u32, StagedArchiveReplacements)> {
-    run_blocking_instance_write(
+    run_cancellable_blocking_instance_write(
         instance_id,
         cancellation,
         move |cancellation| {
@@ -75,9 +76,57 @@ where
     T: Send + 'static,
     F: FnOnce(&CancellationToken) -> crate::Result<T> + Send + 'static,
 {
+    run_blocking_instance_write_inner(
+        instance_id,
+        cancellation,
+        operation,
+        false,
+    )
+    .await
+}
+
+/// Cancellation may stop the lock wait, but a started writer must be joined
+/// before rollback. Finalization and rollback use the non-cancellable helper.
+pub(crate) async fn run_cancellable_blocking_instance_write<T, F>(
+    instance_id: String,
+    cancellation: CancellationToken,
+    operation: F,
+) -> crate::Result<T>
+where
+    T: Send + 'static,
+    F: FnOnce(&CancellationToken) -> crate::Result<T> + Send + 'static,
+{
+    run_blocking_instance_write_inner(
+        instance_id,
+        cancellation,
+        operation,
+        true,
+    )
+    .await
+}
+
+async fn run_blocking_instance_write_inner<T, F>(
+    instance_id: String,
+    cancellation: CancellationToken,
+    operation: F,
+    cancellable: bool,
+) -> crate::Result<T>
+where
+    T: Send + 'static,
+    F: FnOnce(&CancellationToken) -> crate::Result<T> + Send + 'static,
+{
     let state = crate::State::get().await?;
-    let instance_lock =
-        state.lock_instance_content_exclusive(&instance_id).await;
+    let started = std::time::Instant::now();
+    tracing::debug!(%instance_id, cancellable, "Waiting for modpack archive content write lock");
+    let instance_lock = if cancellable {
+        state
+            .instance_locks
+            .lock_exclusive_cancellable(&instance_id, &cancellation)
+            .await?
+    } else {
+        state.lock_instance_content_exclusive(&instance_id).await
+    };
+    tracing::debug!(%instance_id, wait_ms = started.elapsed().as_millis(), "Acquired modpack archive content write lock");
     tokio::task::spawn_blocking(move || {
         let _instance_lock = instance_lock;
         operation(&cancellation)

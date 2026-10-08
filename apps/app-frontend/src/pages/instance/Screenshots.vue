@@ -7,7 +7,7 @@ const route = useRoute()
 </script>
 
 <template>
-	<div class="box-border h-full p-6">
-		<ScreenshotsPage :instance-id="String(route.params.id)" show-heading />
-	</div>
+    <div class="box-border h-full p-6">
+        <ScreenshotsPage :instance-id="String(route.params.id)" show-heading />
+    </div>
 </template>

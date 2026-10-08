@@ -55,11 +55,11 @@ For external APIs (non-Modrinth), pass the full base URL as the `api` field and 
 
 ```ts
 this.client.request<MyType>('/endpoint', {
-	api: 'https://external-api.com',
-	version: 1,
-	method: 'POST',
-	body: { data },
-	skipAuth: true,
+  api: 'https://external-api.com',
+  version: 1,
+  method: 'POST',
+  body: { data },
+  skipAuth: true,
 })
 ```
 
@@ -87,8 +87,8 @@ const project = await labrinth.projects_v3.get(projectId)
 
 // Use with TanStack Query
 const { data } = useQuery({
-	queryKey: ['project', projectId],
-	queryFn: () => labrinth.projects_v3.get(projectId),
+  queryKey: ['project', projectId],
+  queryFn: () => labrinth.projects_v3.get(projectId),
 })
 ```
 
@@ -124,9 +124,9 @@ File uploads use `XMLHttpRequest` for progress tracking (not available via `fetc
 
 ```ts
 interface UploadHandle<T> {
-	promise: Promise<T>
-	onProgress(callback: (progress: UploadProgress) => void): UploadHandle<T> // chainable
-	cancel(): void
+  promise: Promise<T>
+  onProgress(callback: (progress: UploadProgress) => void): UploadHandle<T> // chainable
+  cancel(): void
 }
 ```
 
@@ -141,9 +141,9 @@ Uploads go through the feature chain (auth, retry, etc.). Features detect upload
 
 ```ts
 const uploader = client.kyros.files_v0.uploadFile(path, file, {
-	onProgress: ({ progress }) => {
-		uploadProgress.value = Math.round(progress * 100)
-	},
+  onProgress: ({ progress }) => {
+    uploadProgress.value = Math.round(progress * 100)
+  },
 })
 // Cancel if needed: uploader.cancel()
 await uploader.promise
@@ -154,7 +154,7 @@ await uploader.promise
 ```ts
 const handle = client.labrinth.versions_v3.createVersion(draftVersion, files, projectType)
 handle.onProgress((progress) => {
-	uploadProgress.value = progress
+  uploadProgress.value = progress
 })
 await handle.promise
 ```
@@ -182,14 +182,14 @@ Auto-reconnects on unexpected disconnection with exponential backoff (base 1s, m
 
 ```ts
 const unsub = client.archon.sockets.on(serverId, 'stats', (data) => {
-	// data is typed as Archon.Websocket.v0.WSStatsEvent
-	cpuUsage.value = data.cpu_percent
+  // data is typed as Archon.Websocket.v0.WSStatsEvent
+  cpuUsage.value = data.cpu_percent
 })
 
 // Clean up
 onUnmounted(() => {
-	unsub()
-	client.archon.sockets.disconnect(serverId)
+  unsub()
+  client.archon.sockets.disconnect(serverId)
 })
 ```
 

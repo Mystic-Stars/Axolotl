@@ -25,6 +25,7 @@ use crate::util::io;
 use crate::util::io::io_error_with_lock_info;
 use async_trait::async_trait;
 use bytes::Bytes;
+use futures::{StreamExt, TryStreamExt};
 use modrinth_content_management::{
     ContentMetadataProvider, ContentType, Error as ResolveError,
     ResolutionPreferences, ResolveContentPlan, ResolveContentRequest,
@@ -405,62 +406,61 @@ pub(crate) async fn install_resolved_content_plan_with_reporter(
     reporter: Option<crate::install::InstallProgressReporter>,
     state: &State,
 ) -> crate::Result<Vec<String>> {
-    let mut paths = Vec::with_capacity(plan.dependencies.len() + 1);
     let total_bytes = resolved_plan_total_bytes(plan, state).await?;
     let file_count = (plan.dependencies.len() + 1) as u64;
-    let mut base_bytes = 0_u64;
-
-    let primary_progress =
-        reporter
-            .as_ref()
-            .map(|reporter| ResolvedContentDownloadProgress {
-                reporter: reporter.clone(),
-                file_index: 0,
-                file_count,
-                base_bytes: 0,
-                total_bytes,
-            });
-    paths.push(
-        add_resolved_content_with_progress(
-            instance_id,
-            &plan.primary,
-            DownloadReason::Standalone,
-            false,
-            primary_progress,
-            state,
-        )
-        .await?,
-    );
-    base_bytes += resolved_content_file_size(&plan.primary, state).await?;
-
-    for (index, dependency) in plan.dependencies.iter().enumerate() {
-        let file_index = (index + 1) as u64;
-        let dependency_progress =
-            reporter
-                .as_ref()
-                .map(|reporter| ResolvedContentDownloadProgress {
-                    reporter: reporter.clone(),
-                    file_index,
-                    file_count,
-                    base_bytes,
-                    total_bytes,
-                });
-        paths.push(
-            add_resolved_content_with_progress(
-                instance_id,
-                dependency,
-                DownloadReason::Dependency,
-                true,
-                dependency_progress,
-                state,
-            )
-            .await?,
-        );
-        base_bytes += resolved_content_file_size(dependency, state).await?;
-    }
-
-    persist_resolved_plan_dependency_edges(instance_id, &paths, plan, state)
+    let planned_contents = std::iter::once(&plan.primary)
+        .chain(plan.dependencies.iter())
+        .cloned()
+        .enumerate()
+        .collect::<Vec<_>>();
+    let mut downloads = futures::stream::iter(planned_contents)
+        .map(|(index, content)| {
+            let reporter = reporter.clone();
+            async move {
+                let downloaded = download_project_version_with_reporting(
+                    instance_id,
+                    &content.version_id,
+                    if index == 0 {
+                        DownloadReason::Standalone
+                    } else {
+                        DownloadReason::Dependency
+                    },
+                    content.dependent_on_version_id.clone(),
+                    None,
+                    reporter,
+                    state,
+                )
+                .await?;
+                Ok::<_, crate::Error>((index, downloaded))
+            }
+        })
+        .buffer_unordered(state.download_concurrency().clamp(1, 4))
+        .try_collect::<Vec<_>>()
         .await?;
+    downloads.sort_by_key(|(index, _)| *index);
+    let paths = materialize_project_download_batch(
+        instance_id,
+        downloads.into_iter().map(|(_, file)| file).collect(),
+        Some(plan),
+        state,
+    )
+    .await?;
+    if let Some(reporter) = reporter {
+        reporter
+            .update(
+                crate::install::InstallPhaseId::DownloadingContent,
+                Some(crate::install::InstallProgress {
+                    current: file_count,
+                    total: file_count,
+                    secondary: Some(crate::install::InstallProgressSecondary {
+                        current: total_bytes,
+                        total: total_bytes,
+                    }),
+                }),
+                crate::install::InstallPhaseDetails::Empty,
+            )
+            .await?;
+    }
     Ok(paths)
 }
 
@@ -898,13 +898,13 @@ pub(crate) async fn finalize_updated_project_path(
     } else {
         installed_path.to_string()
     };
-    if !old_archived && final_path != old_path {
-        if archive_project_file(instance_id, old_path, &final_path, state)
+    if !old_archived
+        && final_path != old_path
+        && archive_project_file(instance_id, old_path, &final_path, state)
             .await?
             .is_none()
-        {
-            remove_project(instance_id, old_path, state).await?;
-        }
+    {
+        remove_project(instance_id, old_path, state).await?;
     }
     Ok(final_path)
 }
@@ -1343,9 +1343,10 @@ async fn download_project_version_with_reporting(
         state,
     )
     .await?;
+    let integrity = prepared.integrity.clone();
     let mut request =
         DownloadRequest::new(&prepared.url, ResourceClass::Modrinth)
-            .with_integrity(prepared.integrity)
+            .with_integrity(integrity.clone())
             .with_download_meta(prepared.download_meta);
     let tracking_reporter = progress
         .as_ref()
@@ -1354,7 +1355,7 @@ async fn download_project_version_with_reporting(
     if let Some(reporter) = tracking_reporter {
         request = request.with_install_tracking(
             reporter,
-            &prepared.path.display().to_string(),
+            prepared.path.display().to_string(),
             &prepared.file_name,
         );
     }
@@ -1413,6 +1414,21 @@ async fn download_project_version_with_reporting(
     )
     .await?;
 
+    let mut content_path = prepared.path.clone();
+    if let Some(sha512) = integrity.sha512.as_deref() {
+        content_path = crate::state::content_store::publish_verified(
+            &prepared.path,
+            &state.directories,
+            sha512,
+        )
+        .await?;
+        crate::state::content_store::record_published(
+            &state.pool,
+            sha512,
+            download.size,
+        )
+        .await?;
+    }
     let sha1 = if let Some(hash) = &prepared.sha1 {
         hash.clone()
     } else {
@@ -1427,7 +1443,7 @@ async fn download_project_version_with_reporting(
 
     Ok(DownloadedProjectVersion {
         file_name: prepared.file_name,
-        path: prepared.path,
+        path: content_path,
         sha1,
         size: download.size,
         project_type,
@@ -1799,9 +1815,7 @@ pub(crate) async fn materialize_project_download(
     if temporary.exists() {
         io::remove_file(&temporary).await?;
     }
-    if tokio::fs::hard_link(source, &temporary).await.is_err() {
-        io::copy(source, &temporary).await?;
-    }
+    io::copy(source, &temporary).await?;
     let mut backup = destination.as_os_str().to_os_string();
     backup.push(".installing.previous");
     let backup = PathBuf::from(backup);
@@ -1827,6 +1841,147 @@ pub(crate) async fn materialize_project_download(
         .exists()
         .then_some(backup)
         .filter(|path| path.exists()))
+}
+
+pub(crate) async fn materialize_project_download_batch(
+    instance_id: &str,
+    downloads: Vec<DownloadedProjectVersion>,
+    plan: Option<&ResolveContentPlan>,
+    state: &State,
+) -> crate::Result<Vec<String>> {
+    let database_permit = state.acquire_install_db_permit().await?;
+    let _instance_lock = state.lock_instance_content(instance_id).await;
+    let scope = resolve_content_scope(instance_id, None, state).await?;
+    let base = instance_full_path(state, &scope.instance);
+    let mut records = Vec::with_capacity(downloads.len());
+    let mut sources = Vec::with_capacity(downloads.len());
+    let mut destinations = std::collections::HashSet::new();
+    for download in downloads {
+        let localized = if download.project_type == ProjectType::Mod {
+            None
+        } else {
+            modrinth_chinese_file_name_candidate(
+                &download.project_id,
+                &download.file_name,
+                state,
+            )
+            .await
+            .map(|name| {
+                format!("{}/{}", download.project_type.get_folder(), name)
+            })
+        };
+        let relative_path = resolve_content_install_relative_path(
+            instance_id,
+            format!(
+                "{}/{}",
+                download.project_type.get_folder(),
+                download.file_name
+            ),
+            localized,
+            &state.pool,
+        )
+        .await?;
+        if !destinations.insert(materialization_path_key(&relative_path)) {
+            return Err(crate::ErrorKind::InputError(format!(
+                "Multiple content files target {relative_path}"
+            ))
+            .into());
+        }
+        sources.push((download.path, join_content_path(&base, &relative_path)));
+        records.push(ProjectFileRecord {
+            relative_path,
+            sha1: download.sha1,
+            size: download.size,
+            project_type: download.project_type,
+            source_kind: ContentSourceKind::Local,
+            ownership_kind: ContentOwnershipKind::UserAdded,
+            provider_ref: Some(ContentProviderRef::Modrinth {
+                project_id: ModrinthProjectId::new(
+                    download.project_id.clone(),
+                )?,
+                version_id: Some(ModrinthVersionId::new(
+                    download.version_id.clone(),
+                )?),
+            }),
+            origin: true,
+            known_modrinth_project_id: Some(download.project_id),
+            known_modrinth_version_id: Some(download.version_id),
+        });
+    }
+    let _critical = crate::install::critical_section::enter();
+    let mut materialized = Vec::with_capacity(sources.len());
+    let result: crate::Result<()> = async {
+        for (source, destination) in &sources {
+            let backup =
+                materialize_project_download(source, destination).await?;
+            materialized.push((destination.clone(), backup));
+        }
+        record_project_files_atomic_with_plan(
+            instance_id,
+            &records,
+            Some(database_permit),
+            plan,
+            state,
+        )
+        .await
+    }
+    .await;
+    if let Err(error) = result {
+        let mut rollback_errors = Vec::new();
+        for (destination, backup) in materialized.iter().rev() {
+            if let Err(error) =
+                restore_project_materialization(destination, backup.as_deref())
+                    .await
+            {
+                rollback_errors.push(error.to_string());
+            }
+        }
+        if !rollback_errors.is_empty() {
+            return Err(crate::ErrorKind::OtherError(format!(
+                "{error}; file rollback failed: {}",
+                rollback_errors.join("; ")
+            ))
+            .into());
+        }
+        return Err(error);
+    }
+    for (_, backup) in &materialized {
+        if let Err(error) =
+            finalize_project_materialization(backup.as_deref()).await
+        {
+            tracing::warn!(%error, "Could not remove committed content backup");
+        }
+    }
+    Ok(records
+        .into_iter()
+        .map(|record| record.relative_path)
+        .collect())
+}
+
+fn materialization_path_key(path: &str) -> String {
+    if cfg!(any(windows, target_os = "macos")) {
+        path.replace('\\', "/").to_lowercase()
+    } else {
+        path.to_string()
+    }
+}
+
+async fn record_project_files_atomic_with_plan(
+    instance_id: &str,
+    records: &[ProjectFileRecord],
+    database_permit: Option<tokio::sync::SemaphorePermit<'_>>,
+    plan: Option<&ResolveContentPlan>,
+    state: &State,
+) -> crate::Result<()> {
+    record_project_files_transaction(
+        instance_id,
+        records,
+        &[],
+        database_permit,
+        plan,
+        state,
+    )
+    .await
 }
 
 pub(crate) async fn materialize_verified_project_download_copy(
@@ -2722,6 +2877,25 @@ async fn record_project_files_atomic_with_pending_completion(
     database_permit: Option<tokio::sync::SemaphorePermit<'_>>,
     state: &State,
 ) -> crate::Result<()> {
+    record_project_files_transaction(
+        instance_id,
+        records,
+        verified_pending,
+        database_permit,
+        None,
+        state,
+    )
+    .await
+}
+
+async fn record_project_files_transaction(
+    instance_id: &str,
+    records: &[ProjectFileRecord],
+    verified_pending: &[(CurseForgeProjectId, CurseForgeFileId)],
+    database_permit: Option<tokio::sync::SemaphorePermit<'_>>,
+    plan: Option<&ResolveContentPlan>,
+    state: &State,
+) -> crate::Result<()> {
     if records.is_empty() {
         return Ok(());
     }
@@ -2884,12 +3058,111 @@ async fn record_project_files_atomic_with_pending_completion(
         );
     }
     CachedEntry::upsert_many(&hash_cache_entries, &mut *tx).await?;
+    if let Some(plan) = plan {
+        let paths = records
+            .iter()
+            .map(|record| record.relative_path.clone())
+            .collect::<Vec<_>>();
+        record_resolved_plan_edges(
+            &scope.content_set_id,
+            &paths,
+            plan,
+            &mut tx,
+        )
+        .await?;
+    }
     content_rows::bump_content_set_revision_in_transaction(
         &scope.content_set_id,
         &mut tx,
     )
     .await?;
     tx.commit().await?;
+    Ok(())
+}
+
+async fn record_resolved_plan_edges(
+    content_set_id: &str,
+    paths: &[String],
+    plan: &ResolveContentPlan,
+    tx: &mut sqlx::Transaction<'_, sqlx::Sqlite>,
+) -> crate::Result<()> {
+    let planned = std::iter::once(&plan.primary)
+        .chain(plan.dependencies.iter())
+        .collect::<Vec<_>>();
+    let mut ids = Vec::with_capacity(paths.len());
+    for path in paths {
+        ids.push(sqlx::query_scalar::<_, String>("SELECT entry.id FROM instance_content_entries entry JOIN instance_files file ON file.id = entry.file_id WHERE entry.content_set_id = ? AND file.relative_path = ? ORDER BY entry.modified_at DESC LIMIT 1")
+			.bind(content_set_id).bind(path).fetch_one(&mut **tx).await?);
+    }
+    for id in ids.iter().skip(1) {
+        content_rows::set_content_entry_auto_dependency_in_transaction(
+            id, true, tx,
+        )
+        .await?;
+    }
+    let mut edges = Vec::new();
+    for (index, dependency) in plan.dependencies.iter().enumerate() {
+        if let Some(parent) = dependency
+            .dependent_on_version_id
+            .as_deref()
+            .and_then(|version| {
+                planned.iter().position(|item| item.version_id == version)
+            })
+        {
+            edges.push((
+                parent,
+                ids[index + 1].clone(),
+                dependency.project_id.clone(),
+                dependency.version_id.clone(),
+            ));
+        }
+    }
+    for skipped in &plan.skipped {
+        if skipped.reason != SkippedReason::AlreadyInstalled {
+            continue;
+        }
+        let Some(parent) =
+            skipped
+                .dependent_on_version_id
+                .as_deref()
+                .and_then(|version| {
+                    planned.iter().position(|item| item.version_id == version)
+                })
+        else {
+            continue;
+        };
+        let Some(version) = skipped.version_id.as_deref() else {
+            continue;
+        };
+        if let Some(child) = sqlx::query_scalar::<_, String>("SELECT entry.id FROM instance_content_entries entry JOIN instance_content_provider_refs ref ON ref.content_entry_id = entry.id WHERE entry.content_set_id = ? AND ref.provider = 'modrinth' AND ref.provider_project_id = ? AND ref.provider_release_id = ? ORDER BY entry.modified_at DESC LIMIT 1")
+			.bind(content_set_id).bind(&skipped.project_id).bind(version).fetch_optional(&mut **tx).await? {
+			edges.push((parent, child, skipped.project_id.clone(), version.to_string()));
+		}
+    }
+    for (parent, child, project, version) in edges {
+        let now = chrono::Utc::now();
+        content_rows::upsert_content_dependency_edge_in_transaction(
+            &crate::state::instances::ContentDependencyEdge {
+                id: format!("content-dependency:{}", uuid::Uuid::new_v4()),
+                content_set_id: content_set_id.to_string(),
+                parent_entry_id: ids[parent].clone(),
+                child_entry_id: child,
+                evidence_provider: ContentProvider::Modrinth,
+                parent_provider: ContentProvider::Modrinth,
+                child_provider: ContentProvider::Modrinth,
+                dependency_kind:
+                    crate::state::instances::ContentDependencyKind::Required,
+                parent_project_id: planned[parent].project_id.clone(),
+                parent_release_id: planned[parent].version_id.clone(),
+                child_project_id: project,
+                child_release_id: version,
+                created_at: now,
+                modified_at: now,
+            },
+            tx,
+        )
+        .await?;
+    }
     Ok(())
 }
 
@@ -3896,6 +4169,31 @@ mod tests {
     use super::*;
     use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
     use std::time::Duration;
+
+    #[test]
+    fn materialization_keys_reject_case_collisions_on_insensitive_platforms() {
+        assert_eq!(
+            materialization_path_key("mods/Foo.jar")
+                == materialization_path_key("mods/foo.jar"),
+            cfg!(any(windows, target_os = "macos"))
+        );
+    }
+
+    #[tokio::test]
+    async fn materialized_instances_do_not_share_writable_inodes() {
+        let directory = tempfile::tempdir().unwrap();
+        let shared = directory.path().join("shared");
+        let first = directory.path().join("first/mod.jar");
+        let second = directory.path().join("second/mod.jar");
+        tokio::fs::write(&shared, b"original").await.unwrap();
+        materialize_project_download(&shared, &first).await.unwrap();
+        materialize_project_download(&shared, &second)
+            .await
+            .unwrap();
+        tokio::fs::write(&first, b"modified").await.unwrap();
+        assert_eq!(tokio::fs::read(shared).await.unwrap(), b"original");
+        assert_eq!(tokio::fs::read(second).await.unwrap(), b"original");
+    }
 
     #[test]
     fn resource_pack_target_preferences_ignore_game_version() {

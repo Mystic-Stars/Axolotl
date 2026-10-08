@@ -1,10 +1,11 @@
 //! Shared receive-side accounting for native HTTP/2 streams.
 
 use bytes::Bytes;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 const STREAM_RECV_TIMEOUT: Duration = Duration::from_secs(30);
 const MIN_PROGRESS_BYTES: u64 = 256 * 1024;
+const MAX_PROGRESS_WAIT: Duration = Duration::from_secs(1);
 
 /// Tracks one active H2 stream in the native automatic-concurrency metrics.
 pub(crate) struct H2TransferActivity {
@@ -29,6 +30,7 @@ impl H2TransferActivity {
 /// Limits install-progress work before it reaches the shared reporter lock.
 pub(crate) struct H2ProgressGate {
     last_reported: u64,
+    last_reported_at: Instant,
     threshold: u64,
 }
 
@@ -36,6 +38,7 @@ impl H2ProgressGate {
     pub(crate) fn new(total_size: u64) -> Self {
         Self {
             last_reported: 0,
+            last_reported_at: Instant::now(),
             threshold: MIN_PROGRESS_BYTES.max(total_size / 200),
         }
     }
@@ -47,13 +50,15 @@ impl H2ProgressGate {
     ) -> bool {
         if downloaded < total_size
             && downloaded.saturating_sub(self.last_reported) < self.threshold
+            && self.last_reported_at.elapsed() < MAX_PROGRESS_WAIT
         {
             return false;
         }
-        if downloaded == self.last_reported {
+        if downloaded <= self.last_reported {
             return false;
         }
         self.last_reported = downloaded;
+        self.last_reported_at = Instant::now();
         true
     }
 }
@@ -110,6 +115,21 @@ mod tests {
         assert!(!gate.should_report(320 * 1024, total));
         assert!(gate.should_report(total, total));
         assert!(!gate.should_report(total, total));
+    }
+
+    #[test]
+    fn progress_gate_reports_slow_transfers_on_time() {
+        let total = 100 * 1024 * 1024;
+        let mut gate = H2ProgressGate::new(total);
+
+        assert!(!gate.should_report(100, total));
+        gate.last_reported_at = Instant::now() - MAX_PROGRESS_WAIT;
+        assert!(gate.should_report(100, total));
+        assert!(!gate.should_report(200, total));
+        gate.last_reported_at = Instant::now() - MAX_PROGRESS_WAIT;
+        assert!(!gate.should_report(100, total));
+        assert!(gate.should_report(200, total));
+        assert!(gate.should_report(total, total));
     }
 
     #[tokio::test]

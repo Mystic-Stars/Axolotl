@@ -63,6 +63,7 @@ use winreg::{RegKey, enums::HKEY_CURRENT_USER};
 mod args;
 mod direct_ensure;
 mod direct_link;
+pub(crate) mod external_version;
 pub(crate) mod instance_runtime;
 mod local_artifact;
 mod natives;
@@ -728,42 +729,6 @@ async fn get_instance_full_path(
     Ok(full_path)
 }
 
-/// Writes downloaded version metadata and the client jar into the external
-/// `.minecraft/versions/<name>` directory. Shared artifacts remain in
-/// Axolotl's metadata cache, while the external root retains the conventional
-/// Minecraft version metadata structure.
-async fn materialize_external_version(
-    instance: &Instance,
-    version_id: &str,
-    version_info: &VersionInfo,
-    state: &State,
-) -> crate::Result<()> {
-    let runtime =
-        InstanceRuntimeAdapter::for_instance(instance, &state.directories)?;
-    let Some(direct) = runtime.direct_link() else {
-        return Ok(());
-    };
-    let version_dir = direct.version_dir();
-    let version_name = direct.version_id.as_str();
-
-    io::create_dir_all(&version_dir).await?;
-
-    let mut serialized = serde_json::to_value(version_info)?;
-    if let Some(object) = serialized.as_object_mut() {
-        object.insert("id".to_string(), version_name.to_string().into());
-    }
-    let version_json = version_dir.join(format!("{version_name}.json"));
-    io::write(&version_json, serde_json::to_vec(&serialized)?).await?;
-
-    let source_jar = state
-        .directories
-        .version_dir(version_id)
-        .join(format!("{version_id}.jar"));
-    let target_jar = version_dir.join(format!("{version_name}.jar"));
-    tokio::fs::copy(source_jar, target_jar).await?;
-    Ok(())
-}
-
 async fn promote_external_instance_link(
     instance: &Instance,
     state: &State,
@@ -1290,47 +1255,35 @@ async fn install_minecraft_with_local_source(
     )
     .await?;
 
-    materialize_external_version(instance, &version_jar, &version_info, &state)
-        .await?;
-
-    // Version-isolated external instances are direct-managed from creation.
-    // Complete their external assets/libraries now so the first launch never
-    // falls back to Axolotl's shared runtime directories.
-    let runtime_adapter =
-        InstanceRuntimeAdapter::for_instance(instance, &state.directories)?;
-    if let Some(direct) = runtime_adapter.direct_link() {
-        let resolved = direct.resolve()?;
-        direct_ensure::ensure_direct_launch_dependencies_with_progress(
-            &state,
-            &direct,
-            &resolved.merged.libraries,
-            &version_info,
-            java_version
-                .as_ref()
-                .map(|java| java.architecture.as_str())
-                .unwrap_or(std::env::consts::ARCH),
-            minecraft_updated,
-            minecraft_progress.as_ref(),
-        )
-        .await?;
-    }
-
-    if let Some(progress) = minecraft_progress {
-        progress.finish().await?;
-    }
-
     let client_path = state
         .directories
         .version_dir(&version_jar)
         .join(format!("{version_jar}.jar"));
 
     let Some(java_version) = java_version else {
-        if has_client_processors(version_info.processors.as_deref()) {
+        if content_set.loader == ModLoader::OptiFine
+            || has_client_processors(version_info.processors.as_deref())
+        {
             return Err(crate::ErrorKind::LauncherError(format!(
                 "Java {key} is required to finish installing {}",
                 content_set.loader.as_str()
             ))
             .into());
+        }
+        external_version::finalize_external_version(
+            instance,
+            &version_jar,
+            &content_set.game_version,
+            &version_info,
+            &state,
+            std::env::consts::ARCH,
+            minecraft_updated,
+            minecraft_progress.as_ref(),
+            &database_cancellation,
+        )
+        .await?;
+        if let Some(progress) = minecraft_progress {
+            progress.finish().await?;
         }
         let protocol_version =
             read_protocol_version_from_jar(client_path).await?;
@@ -1401,10 +1354,17 @@ async fn install_minecraft_with_local_source(
             &content_set.game_version,
             &loader_version.id,
             &client_path,
+            repairing,
+            &database_cancellation,
         )
         .await?;
     }
 
+    if has_client_processors(version_info.processors.as_deref())
+        && version_info.data.is_none()
+    {
+        version_info.data = Some(Default::default());
+    }
     if let Some(processors) = &version_info.processors {
         let libraries_dir = state.directories.libraries_dir();
         let client_mappings = version_info
@@ -1644,6 +1604,21 @@ async fn install_minecraft_with_local_source(
         }
     }
 
+    external_version::finalize_external_version(
+        instance,
+        &version_jar,
+        &content_set.game_version,
+        &version_info,
+        &state,
+        &java_version.architecture,
+        minecraft_updated,
+        minecraft_progress.as_ref(),
+        &database_cancellation,
+    )
+    .await?;
+    if let Some(progress) = minecraft_progress {
+        progress.finish().await?;
+    }
     let protocol_version = read_protocol_version_from_jar(client_path).await?;
 
     run_install_database_write(

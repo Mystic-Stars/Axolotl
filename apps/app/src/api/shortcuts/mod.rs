@@ -227,7 +227,7 @@ fn instance_launch_url(
 
     launch_url
         .query_pairs_mut()
-        .append_pair("instance_id", &instance_id);
+        .append_pair("instance_id", instance_id);
 
     if let Some(server) = server {
         launch_url.query_pairs_mut().append_pair("server", &server);

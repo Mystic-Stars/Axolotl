@@ -370,7 +370,6 @@ fn resolve_source_path(
                 .or_else(|| {
                     find_pcl_source(config_name, &pcl::get_pclce_instances())
                 })
-                .map(PathBuf::from)
                 .or_else(|| {
                     (config_name == ".minecraft")
                         .then(|| base_path.join(".minecraft"))

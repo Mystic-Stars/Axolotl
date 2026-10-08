@@ -5,8 +5,8 @@ import type { NodeAuth } from '../features/node-auth'
  * Set by server management pages, read by NodeAuthFeature.
  */
 export const nodeAuthState = {
-	getAuth: null as (() => NodeAuth | null) | null,
-	refreshAuth: null as (() => Promise<void>) | null,
+    getAuth: null as (() => NodeAuth | null) | null,
+    refreshAuth: null as (() => Promise<void>) | null,
 }
 
 /**
@@ -25,8 +25,8 @@ export const nodeAuthState = {
  * ```
  */
 export function setNodeAuthState(getAuth: () => NodeAuth | null, refreshAuth: () => Promise<void>) {
-	nodeAuthState.getAuth = getAuth
-	nodeAuthState.refreshAuth = refreshAuth
+    nodeAuthState.getAuth = getAuth
+    nodeAuthState.refreshAuth = refreshAuth
 }
 
 /**
@@ -40,6 +40,6 @@ export function setNodeAuthState(getAuth: () => NodeAuth | null, refreshAuth: ()
  * ```
  */
 export function clearNodeAuthState() {
-	nodeAuthState.getAuth = null
-	nodeAuthState.refreshAuth = null
+    nodeAuthState.getAuth = null
+    nodeAuthState.refreshAuth = null
 }

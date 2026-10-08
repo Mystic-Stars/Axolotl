@@ -7,7 +7,7 @@ export { default as VersionPage } from './VersionPage.vue'
 export { default as VersionSummary } from './VersionSummary.vue'
 
 export type DependencyContext = {
-	dependency: Labrinth.Versions.v3.Dependency
-	project?: Labrinth.Projects.v2.Project
-	version?: Labrinth.Versions.v2.Version
+    dependency: Labrinth.Versions.v3.Dependency
+    project?: Labrinth.Projects.v2.Project
+    version?: Labrinth.Versions.v2.Version
 }

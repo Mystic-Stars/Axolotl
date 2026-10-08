@@ -5,34 +5,34 @@ import { injectI18n } from '../providers/i18n'
 const formatterCache = new LRUCache<string, Intl.DateTimeFormat>({ max: 40 })
 
 export function useFormatDateTime(options?: Intl.DateTimeFormatOptions) {
-	const { locale } = injectI18n()
+    const { locale } = injectI18n()
 
-	function format(date?: Date | number | string): string {
-		if (typeof date === 'number' || typeof date === 'string') {
-			date = new Date(date)
-		}
+    function format(date?: Date | number | string): string {
+        if (typeof date === 'number' || typeof date === 'string') {
+            date = new Date(date)
+        }
 
-		const formatter = getFormatter(locale.value, options)
-		return formatter!.format(date)
-	}
+        const formatter = getFormatter(locale.value, options)
+        return formatter!.format(date)
+    }
 
-	return format
+    return format
 }
 
 function getFormatter(locale: string, options?: Intl.DateTimeFormatOptions): Intl.DateTimeFormat {
-	let cacheKey = locale
-	if (options) {
-		const entries = Object.entries(options)
-			.filter(([, value]) => value !== undefined)
-			.sort()
-			.map(([key, value]) => `${key}=${value}`)
-		cacheKey = [locale, ...entries].join(':')
-	}
+    let cacheKey = locale
+    if (options) {
+        const entries = Object.entries(options)
+            .filter(([, value]) => value !== undefined)
+            .sort()
+            .map(([key, value]) => `${key}=${value}`)
+        cacheKey = [locale, ...entries].join(':')
+    }
 
-	let formatter = formatterCache.get(cacheKey)
-	if (!formatter) {
-		formatter = new Intl.DateTimeFormat(locale, options)
-		formatterCache.set(cacheKey, formatter)
-	}
-	return formatter
+    let formatter = formatterCache.get(cacheKey)
+    if (!formatter) {
+        formatter = new Intl.DateTimeFormat(locale, options)
+        formatterCache.set(cacheKey, formatter)
+    }
+    return formatter
 }

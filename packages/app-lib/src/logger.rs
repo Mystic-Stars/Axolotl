@@ -424,7 +424,7 @@ enum LogEntryHeader {
 fn parse_log_entry_header(line: &str) -> Option<LogEntryHeader> {
     let (timestamp, rest) = line.split_once(char::is_whitespace)?;
     let timestamp = chrono::DateTime::parse_from_rfc3339(timestamp).ok()?;
-    let level = rest.trim_start().split_whitespace().next()?;
+    let level = rest.split_whitespace().next()?;
     Some(match log_level_ordinal(level) {
         Some(ordinal) => LogEntryHeader::Classified(timestamp, ordinal),
         None => LogEntryHeader::Unclassified,

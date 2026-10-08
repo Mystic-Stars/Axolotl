@@ -5,7 +5,7 @@ use quartz_nbt::{NbtCompound, NbtList, NbtTag};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::io::{Cursor, Read};
-use std::path::{Path, PathBuf};
+use std::path::{Component, Path, PathBuf};
 use std::sync::{LazyLock, Mutex};
 use std::time::SystemTime;
 use tokio::task::JoinSet;
@@ -104,6 +104,15 @@ pub async fn list_world_datapacks(
     Ok(result)
 }
 
+/// Accepts exactly one normal path component, rejecting empty names, `.`,
+/// `..`, multi-segment paths and absolute paths.
+fn is_single_normal_component(path: &Path) -> bool {
+    matches!(
+        path.components().collect::<Vec<_>>().as_slice(),
+        [Component::Normal(_)]
+    )
+}
+
 /// Deletes a datapack (folder or zip) inside a save's `datapacks` folder.
 pub async fn delete_world_datapack(
     instance_id: &str,
@@ -112,13 +121,13 @@ pub async fn delete_world_datapack(
 ) -> Result<()> {
     let instance_dir = get_full_path(instance_id).await?;
     let world_path = Path::new(world_path);
-    if world_path.components().count() != 1 {
+    if !is_single_normal_component(world_path) {
         return Err(
             ErrorKind::InputError("Invalid world path".into()).as_error()
         );
     }
     let file_name = Path::new(file_name);
-    if file_name.components().count() != 1 || file_name.as_os_str().is_empty() {
+    if !is_single_normal_component(file_name) {
         return Err(ErrorKind::InputError("Invalid datapack file name".into())
             .as_error());
     }
@@ -152,13 +161,13 @@ pub async fn set_world_datapack_enabled(
 ) -> Result<()> {
     let instance_dir = get_full_path(instance_id).await?;
     let world_path = Path::new(world_path);
-    if world_path.components().count() != 1 {
+    if !is_single_normal_component(world_path) {
         return Err(
             ErrorKind::InputError("Invalid world path".into()).as_error()
         );
     }
     let file_name = Path::new(file_name);
-    if file_name.components().count() != 1 || file_name.as_os_str().is_empty() {
+    if !is_single_normal_component(file_name) {
         return Err(ErrorKind::InputError("Invalid datapack file name".into())
             .as_error());
     }
@@ -207,7 +216,7 @@ pub async fn set_world_datapack_enabled(
 
         let key = if enabled { "Enabled" } else { "Disabled" };
         if let Ok(list) = data_packs.get_mut::<_, &mut NbtList>(key) {
-            list.push(NbtTag::String(file_id.clone()));
+            list.push(NbtTag::String(file_id));
         } else {
             let mut list = NbtList::new();
             list.push(NbtTag::String(file_id));
@@ -445,15 +454,16 @@ fn read_zip_pack_meta(
 
     {
         let cache = ZIP_DATAPACK_META_CACHE.lock().unwrap();
-        if let Some(cached) = cache.get(&cache_key) {
-            if cached.len == signature.0 && cached.modified == signature.1 {
-                return Ok((
-                    cached.pack_format.clone(),
-                    cached.supported_formats.clone(),
-                    cached.description.clone(),
-                    cached.icon.clone(),
-                ));
-            }
+        if let Some(cached) = cache.get(&cache_key)
+            && cached.len == signature.0
+            && cached.modified == signature.1
+        {
+            return Ok((
+                cached.pack_format,
+                cached.supported_formats.clone(),
+                cached.description.clone(),
+                cached.icon.clone(),
+            ));
         }
     }
 
@@ -468,7 +478,7 @@ fn read_zip_pack_meta(
         CachedZipDatapackMeta {
             len: signature.0,
             modified: signature.1,
-            pack_format: parsed.0.clone(),
+            pack_format: parsed.0,
             supported_formats: parsed.1.clone(),
             description: parsed.2.clone(),
             icon: parsed.3.clone(),

@@ -529,7 +529,7 @@ fn app_db_backup_dir_for(db_path: &Path) -> crate::Result<PathBuf> {
         .and_then(Path::file_name)
         .and_then(|name| name.to_str())
     {
-        Some("beta") | Some("release") => Ok(backup_dir.join(
+        Some("beta" | "release") => Ok(backup_dir.join(
             db_path
                 .parent()
                 .and_then(Path::file_name)

@@ -123,7 +123,7 @@ fn is_allowed_blockbench_skin_request(
 ) -> bool {
     if !matches!(
         request.uri().host(),
-        Some("localhost") | Some("axolotl-skin.localhost")
+        Some("localhost" | "axolotl-skin.localhost")
     ) {
         return false;
     }
@@ -291,7 +291,7 @@ async fn get_update_channel(app: tauri::AppHandle) -> api::Result<String> {
 async fn resolve_update_channel<R: tauri::Runtime>(
     app: &tauri::AppHandle<R>,
 ) -> api::Result<String> {
-    let settings_dir = update_channel_settings_dir(&app)?;
+    let settings_dir = update_channel_settings_dir(app)?;
     let state = theseus::read_update_channel_state(&settings_dir).await?;
     let channel = state
         .active_channel
@@ -844,7 +844,7 @@ fn main() {
             window_state_builder.build()
         })
         .setup(|app| {
-            lightweight_mode::init(&app.handle());
+            lightweight_mode::init(app.handle());
             let app_handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
                 tokio::time::sleep(std::time::Duration::from_secs(4)).await;

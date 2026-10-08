@@ -7,7 +7,7 @@ This repository contains the Axolotl Launcher desktop application and its offici
 - **Monorepo tooling:** [Turborepo](https://turbo.build/) (`turbo.jsonc`) + [pnpm workspaces](https://pnpm.io/workspaces) (`pnpm-workspace.yaml`)
 - **Frontend:** Vue 3 / Nuxt 3, Tailwind CSS v3
 - **Desktop:** Rust / Tauri
-- **Indentation:** Use TAB everywhere, never spaces
+- **Indentation:** Use SPACES everywhere, never tabs
 
 ### Apps (`apps/`)
 

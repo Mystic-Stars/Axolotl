@@ -91,7 +91,7 @@ fn article_url(url: &str) -> Option<String> {
     let article_id = parsed
         .path_segments()?
         .filter(|segment| !segment.is_empty())
-        .last()?;
+        .next_back()?;
     url::Url::parse(MINECRAFT_ARTICLE_BASE)
         .ok()?
         .join(article_id)

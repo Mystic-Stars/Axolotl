@@ -538,7 +538,14 @@ async fn monitor_server_process(
             match child.try_wait() {
                 Ok(Some(success)) => Some(success),
                 Ok(None) => continue,
-                Err(_) => None,
+                Err(error) => {
+                    tracing::warn!(
+                        %error,
+                        server_id = %server_id,
+                        "Failed to poll server process; keeping it registered"
+                    );
+                    continue;
+                }
             }
         };
 

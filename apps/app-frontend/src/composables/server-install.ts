@@ -1,8 +1,8 @@
 import { forgePromotionsSlimUrl, SERVER_TYPES, type ServerTypeId } from '@modrinth/server'
 
 import {
-	fetchJson,
-	resolveServerLauncher,
+    fetchJson,
+    resolveServerLauncher,
 } from '@/components/multiplayer/servers/server-flow-utils'
 import { refresh } from '@/composables/useServers'
 import { serverEventListener, servers } from '@/helpers/servers'
@@ -11,10 +11,10 @@ import type { DownloadManager } from '@/providers/download-manager'
 import { createServerDownloadBridge, type ServerDownloadBridge } from './server-download-bridge'
 
 export interface ServerInstallInputs {
-	gameVersion: string
-	loaderVersion?: string
-	javaPath?: string
-	memoryMb?: number
+    gameVersion: string
+    loaderVersion?: string
+    javaPath?: string
+    memoryMb?: number
 }
 
 /**
@@ -26,61 +26,63 @@ export interface ServerInstallInputs {
  * (via `ModpackServerInstallStrategy`) modpack servers share one flow.
  */
 export interface ServerInstallStrategy {
-	readonly id: ServerTypeId | 'modpack'
-	install(serverId: string, inputs: ServerInstallInputs): Promise<void>
+    readonly id: ServerTypeId | 'modpack'
+    install(serverId: string, inputs: ServerInstallInputs): Promise<void>
 }
 
 /** `direct` install-mode types: a single launcher jar is downloaded and booted. */
 export class JarServerInstallStrategy implements ServerInstallStrategy {
-	readonly id: ServerTypeId
-	constructor(private readonly type: ServerTypeId) {
-		this.id = type
-	}
-	async install(serverId: string, inputs: ServerInstallInputs): Promise<void> {
-		const jar = await resolveServerLauncher(this.type, inputs.gameVersion, inputs.loaderVersion)
-		if (!jar) {
-			throw new Error(`No server launcher available for ${this.type} on ${inputs.gameVersion}`)
-		}
-		await servers.downloadFile(serverId, jar.url, jar.filename, jar.sha1)
-	}
+    readonly id: ServerTypeId
+    constructor(private readonly type: ServerTypeId) {
+        this.id = type
+    }
+    async install(serverId: string, inputs: ServerInstallInputs): Promise<void> {
+        const jar = await resolveServerLauncher(this.type, inputs.gameVersion, inputs.loaderVersion)
+        if (!jar) {
+            throw new Error(
+                `No server launcher available for ${this.type} on ${inputs.gameVersion}`,
+            )
+        }
+        await servers.downloadFile(serverId, jar.url, jar.filename, jar.sha1)
+    }
 }
 
 /** Resolves the recommended (or, failing that, latest) Forge build for a game version. */
 export async function resolveForgeBuild(gameVersion: string): Promise<string> {
-	const promos = await fetchJson<{ promos: Record<string, string> }>(forgePromotionsSlimUrl())
-	const build =
-		promos.promos[`${gameVersion}-recommended`] ?? promos.promos[`${gameVersion}-latest`]
-	if (!build) throw new Error(`No Forge build available for Minecraft ${gameVersion}`)
-	return build
+    const promos = await fetchJson<{ promos: Record<string, string> }>(forgePromotionsSlimUrl())
+    const build =
+        promos.promos[`${gameVersion}-recommended`] ?? promos.promos[`${gameVersion}-latest`]
+    if (!build) throw new Error(`No Forge build available for Minecraft ${gameVersion}`)
+    return build
 }
 
 /** `installer` install-mode Forge: download the installer and run it headlessly. */
 export class ForgeServerInstallStrategy implements ServerInstallStrategy {
-	readonly id = 'forge' as const
-	async install(serverId: string, inputs: ServerInstallInputs): Promise<void> {
-		const build = await resolveForgeBuild(inputs.gameVersion)
-		await servers.installForge(serverId, inputs.gameVersion, build, inputs.javaPath)
-	}
+    readonly id = 'forge' as const
+    async install(serverId: string, inputs: ServerInstallInputs): Promise<void> {
+        const build = await resolveForgeBuild(inputs.gameVersion)
+        await servers.installForge(serverId, inputs.gameVersion, build, inputs.javaPath)
+    }
 }
 
 /** Picks the install strategy for a server type from its declared install mode. */
 export function getServerInstallStrategy(type: ServerTypeId): ServerInstallStrategy {
-	const def = SERVER_TYPES[type]
-	if (def.installMode === 'installer') {
-		if (type === 'forge') return new ForgeServerInstallStrategy()
-		throw new Error(`Server type '${type}' installer is not supported yet`)
-	}
-	return new JarServerInstallStrategy(type)
+    const def = SERVER_TYPES[type]
+    if (def.installMode === 'installer') {
+        if (type === 'forge') return new ForgeServerInstallStrategy()
+        throw new Error(`Server type '${type}' installer is not supported yet`)
+    }
+    return new JarServerInstallStrategy(type)
 }
 
 export interface RunServerInstallOptions {
-	serverId: string
-	name: string
-	inputs: ServerInstallInputs
-	strategy: ServerInstallStrategy
-	downloadManager: DownloadManager | null
-	onProgress?: (progress: { downloaded: number; total: number | null }) => void
-	onLog?: (line: string) => void
+    serverId: string
+    name: string
+    inputs: ServerInstallInputs
+    strategy: ServerInstallStrategy
+    downloadManager: DownloadManager | null
+    onProgress?: (progress: { downloaded: number; total: number | null }) => void
+    onLog?: (line: string) => void
 }
 
 /**
@@ -90,42 +92,42 @@ export interface RunServerInstallOptions {
  * with the caller.
  */
 export async function runServerInstall(options: RunServerInstallOptions): Promise<void> {
-	const { serverId, name, inputs, strategy, downloadManager, onProgress, onLog } = options
+    const { serverId, name, inputs, strategy, downloadManager, onProgress, onLog } = options
 
-	const bridge: ServerDownloadBridge | null = downloadManager
-		? createServerDownloadBridge(downloadManager, `server-${serverId}`, {
-				title: name,
-				icon: null,
-				provider: 'minecraft',
-			})
-		: null
-	bridge?.cancel(async () => {
-		await servers.stop(serverId).catch(() => {})
-	})
+    const bridge: ServerDownloadBridge | null = downloadManager
+        ? createServerDownloadBridge(downloadManager, `server-${serverId}`, {
+              title: name,
+              icon: null,
+              provider: 'minecraft',
+          })
+        : null
+    bridge?.cancel(async () => {
+        await servers.stop(serverId).catch(() => {})
+    })
 
-	const unlisten = await serverEventListener((eventServerId, payload) => {
-		if (eventServerId !== serverId) return
-		if (payload.event === 'download_progress') {
-			const progress = { downloaded: payload.downloaded, total: payload.total ?? null }
-			onProgress?.(progress)
-			bridge?.update(progress, null, null)
-		} else if (payload.event === 'log') {
-			onLog?.(payload.line)
-		}
-	})
+    const unlisten = await serverEventListener((eventServerId, payload) => {
+        if (eventServerId !== serverId) return
+        if (payload.event === 'download_progress') {
+            const progress = { downloaded: payload.downloaded, total: payload.total ?? null }
+            onProgress?.(progress)
+            bridge?.update(progress, null, null)
+        } else if (payload.event === 'log') {
+            onLog?.(payload.line)
+        }
+    })
 
-	try {
-		await strategy.install(serverId, inputs)
-		bridge?.complete(true)
-		// The server was created up front, but the shared list only refreshes on
-		// demand. When the modal was closed mid-install the `@created` event
-		// never fires, so refresh here (context-free) to render the new server
-		// as soon as the install finishes — regardless of modal state.
-		await refresh().catch(() => {})
-	} catch (error) {
-		bridge?.complete(false)
-		throw error
-	} finally {
-		unlisten()
-	}
+    try {
+        await strategy.install(serverId, inputs)
+        bridge?.complete(true)
+        // The server was created up front, but the shared list only refreshes on
+        // demand. When the modal was closed mid-install the `@created` event
+        // never fires, so refresh here (context-free) to render the new server
+        // as soon as the install finishes — regardless of modal state.
+        await refresh().catch(() => {})
+    } catch (error) {
+        bridge?.complete(false)
+        throw error
+    } finally {
+        unlisten()
+    }
 }

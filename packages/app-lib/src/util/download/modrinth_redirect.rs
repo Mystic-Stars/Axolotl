@@ -3,8 +3,10 @@
 use url::Url;
 
 use crate::util::fetch::{
-    MODRINTH_CDN_LEGACY_HOST, MODRINTH_CDN_OFFICIAL_HOST, TIANPAO_HOST,
+    MODRINTH_CDN_LEGACY_HOST, MODRINTH_CDN_OFFICIAL_HOST,
 };
+
+const TIANPAO_HOST: &str = "mod.tianpao.top";
 
 /// Identifies a Tianpao response that points at one of Modrinth's real CDN
 /// hosts. The caller uses this only to abandon the mirror request; it must

@@ -688,17 +688,23 @@ async fn get_all_autoinstalled_jre_path() -> Result<HashSet<PathBuf>, JREError>
             && let Ok(dir) = std::fs::read_dir(base_path)
         {
             for entry in dir.flatten() {
-                let file_path = entry.path().join("bin");
+                let root = entry.path();
 
-                if let Ok(contents) = std::fs::read_to_string(file_path.clone())
+                #[cfg(target_os = "macos")]
                 {
-                    let entry = entry.path().join(contents);
-                    jre_paths.insert(entry);
-                } else {
-                    #[cfg(not(target_os = "macos"))]
-                    {
-                        let file_path = file_path.join(JAVA_BIN);
-                        jre_paths.insert(file_path);
+                    jre_paths.insert(root.join("Contents/Home/bin/java"));
+                    jre_paths
+                        .insert(root.join("jre.bundle/Contents/Home/bin/java"));
+                    continue;
+                }
+
+                #[cfg(not(target_os = "macos"))]
+                {
+                    let bin = root.join("bin");
+                    if let Ok(contents) = std::fs::read_to_string(bin.clone()) {
+                        jre_paths.insert(root.join(contents.trim()));
+                    } else {
+                        jre_paths.insert(bin.join(JAVA_BIN));
                     }
                 }
             }

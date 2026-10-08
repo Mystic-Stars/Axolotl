@@ -109,72 +109,72 @@ export const NoSearchResultIllustration = _NoSearchResultIllustration
 export const NoTasksIllustration = _NoTasksIllustration
 
 export function getCategoryIcon(categoryName: string): IconComponent | undefined {
-	if (!categoryName) {
-		return undefined
-	}
-	return categoryIconMap[categoryName.toLowerCase()]
+    if (!categoryName) {
+        return undefined
+    }
+    return categoryIconMap[categoryName.toLowerCase()]
 }
 
 export function getLoaderIcon(loaderName: string): IconComponent | undefined {
-	if (!loaderName) {
-		return undefined
-	}
-	return loaderIconMap[loaderName.toLowerCase()]
+    if (!loaderName) {
+        return undefined
+    }
+    return loaderIconMap[loaderName.toLowerCase()]
 }
 
 // will try loader first, then category
 export function getTagIcon(tagName: string): IconComponent | undefined {
-	if (!tagName) {
-		return undefined
-	}
-	return getLoaderIcon(tagName) ?? getCategoryIcon(tagName)
+    if (!tagName) {
+        return undefined
+    }
+    return getLoaderIcon(tagName) ?? getCategoryIcon(tagName)
 }
 
 export const SERVER_CATEGORY_ICON_MAP: Record<string, string> = {
-	'adventure-mode': 'compass',
-	anarchy: 'skull',
-	'battle-royale': 'target',
-	bedwars: 'bed-double',
-	bosses: 'crown',
-	classes: 'badge',
-	competitive: 'trophy',
-	'creative-mode': 'palette',
-	'creator-community': 'clapperboard',
-	crossplay: 'gamepad-2',
-	'custom-content': 'blocks',
-	dungeons: 'castle',
-	factions: 'flag',
-	gens: 'pickaxe',
-	'hardcore-mode': 'heart-crack',
-	'keep-inventory': 'backpack',
-	kitpvp: 'sword',
-	lifesteal: 'heart-pulse',
-	media: 'film',
-	microgames: 'grid-3x3',
-	minigames: 'dices',
-	mmo: 'globe',
-	network: 'network',
-	'offline-mode': 'wifi-off',
-	oneblock: 'square',
-	op: 'zap',
-	parkour: 'footprints',
-	'personal-worlds': 'house',
-	plots: 'map-pinned',
-	pokemon: 'paw-print',
-	prison: 'lock',
-	pve: 'shield',
-	pvp: 'swords',
-	questing: 'scroll-text',
-	racing: 'gauge',
-	'recording-smp': 'camera',
-	roleplay: 'theater',
-	rpg: 'wand-sparkles',
-	skyblock: 'cloud',
-	smp: 'users',
-	'survival-mode': 'tree-pine',
-	teams: 'handshake',
-	technical: 'terminal',
-	towns: 'building-2',
-	whitelisted: 'badge-check',
-	'world-resets': 'refresh-ccw',
+    'adventure-mode': 'compass',
+    anarchy: 'skull',
+    'battle-royale': 'target',
+    bedwars: 'bed-double',
+    bosses: 'crown',
+    classes: 'badge',
+    competitive: 'trophy',
+    'creative-mode': 'palette',
+    'creator-community': 'clapperboard',
+    crossplay: 'gamepad-2',
+    'custom-content': 'blocks',
+    dungeons: 'castle',
+    factions: 'flag',
+    gens: 'pickaxe',
+    'hardcore-mode': 'heart-crack',
+    'keep-inventory': 'backpack',
+    kitpvp: 'sword',
+    lifesteal: 'heart-pulse',
+    media: 'film',
+    microgames: 'grid-3x3',
+    minigames: 'dices',
+    mmo: 'globe',
+    network: 'network',
+    'offline-mode': 'wifi-off',
+    oneblock: 'square',
+    op: 'zap',
+    parkour: 'footprints',
+    'personal-worlds': 'house',
+    plots: 'map-pinned',
+    pokemon: 'paw-print',
+    prison: 'lock',
+    pve: 'shield',
+    pvp: 'swords',
+    questing: 'scroll-text',
+    racing: 'gauge',
+    'recording-smp': 'camera',
+    roleplay: 'theater',
+    rpg: 'wand-sparkles',
+    skyblock: 'cloud',
+    smp: 'users',
+    'survival-mode': 'tree-pine',
+    teams: 'handshake',
+    technical: 'terminal',
+    towns: 'building-2',
+    whitelisted: 'badge-check',
+    'world-resets': 'refresh-ccw',
 }

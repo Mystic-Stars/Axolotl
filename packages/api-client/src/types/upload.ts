@@ -4,29 +4,29 @@ import type { RequestOptions } from './request'
  * Progress information for file uploads
  */
 export interface UploadProgress {
-	/** Bytes uploaded so far */
-	loaded: number
-	/** Total bytes to upload */
-	total: number
-	/** Progress as a decimal (0-1) */
-	progress: number
+    /** Bytes uploaded so far */
+    loaded: number
+    /** Total bytes to upload */
+    total: number
+    /** Progress as a decimal (0-1) */
+    progress: number
 }
 
 /**
  * Base options for upload requests
  */
 interface BaseUploadRequestOptions extends Omit<RequestOptions, 'body' | 'method'> {
-	/** Callback for progress updates */
-	onProgress?: (progress: UploadProgress) => void
+    /** Callback for progress updates */
+    onProgress?: (progress: UploadProgress) => void
 }
 
 /**
  * Options for single file upload requests
  */
 export interface FileUploadRequestOptions extends BaseUploadRequestOptions {
-	/** File or Blob to upload */
-	file: File | Blob
-	formData?: never
+    /** File or Blob to upload */
+    file: File | Blob
+    formData?: never
 }
 
 /**
@@ -36,9 +36,9 @@ export interface FileUploadRequestOptions extends BaseUploadRequestOptions {
  * to send metadata alongside files.
  */
 export interface FormDataUploadRequestOptions extends BaseUploadRequestOptions {
-	/** FormData containing files and metadata */
-	formData: FormData
-	file?: never
+    /** FormData containing files and metadata */
+    formData: FormData
+    file?: never
 }
 
 /**
@@ -52,20 +52,20 @@ export type UploadRequestOptions = FileUploadRequestOptions | FormDataUploadRequ
  * Features can check `context.metadata?.isUpload` to detect uploads.
  */
 export interface FileUploadMetadata extends Record<string, unknown> {
-	isUpload: true
-	file: File | Blob
-	formData?: never
-	onProgress?: (progress: UploadProgress) => void
+    isUpload: true
+    file: File | Blob
+    formData?: never
+    onProgress?: (progress: UploadProgress) => void
 }
 
 /**
  * Metadata attached to FormData upload contexts
  */
 export interface FormDataUploadMetadata extends Record<string, unknown> {
-	isUpload: true
-	formData: FormData
-	file?: never
-	onProgress?: (progress: UploadProgress) => void
+    isUpload: true
+    formData: FormData
+    file?: never
+    onProgress?: (progress: UploadProgress) => void
 }
 
 /**
@@ -79,23 +79,23 @@ export type UploadMetadata = FileUploadMetadata | FormDataUploadMetadata
  * Provides the upload promise, progress subscription, and cancellation.
  */
 export interface UploadHandle<T> {
-	/** Promise that resolves when upload completes */
-	promise: Promise<T>
-	/** Subscribe to progress updates (chainable) */
-	onProgress: (callback: (progress: UploadProgress) => void) => UploadHandle<T>
-	/** Cancel the upload */
-	cancel: () => void
+    /** Promise that resolves when upload completes */
+    promise: Promise<T>
+    /** Subscribe to progress updates (chainable) */
+    onProgress: (callback: (progress: UploadProgress) => void) => UploadHandle<T>
+    /** Cancel the upload */
+    cancel: () => void
 }
 
 /**
  * State of a batch file upload operation
  */
 export interface UploadState {
-	isUploading: boolean
-	currentFileName: string | null
-	currentFileProgress: number
-	uploadedBytes: number
-	totalBytes: number
-	completedFiles: number
-	totalFiles: number
+    isUploading: boolean
+    currentFileName: string | null
+    currentFileProgress: number
+    uploadedBytes: number
+    totalBytes: number
+    completedFiles: number
+    totalFiles: number
 }

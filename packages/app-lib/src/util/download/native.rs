@@ -19,6 +19,8 @@ pub(crate) struct NativeH2Policy {
 pub(crate) enum NativeH2IneligibleReason {
     Http1Fallback,
     SystemProxy,
+    ConfiguredProxy,
+    CertificatePolicy,
 }
 
 impl NativeH2IneligibleReason {
@@ -26,6 +28,12 @@ impl NativeH2IneligibleReason {
         match self {
             Self::Http1Fallback => "authority is temporarily using HTTP/1.1",
             Self::SystemProxy => "system proxy requires the reqwest transport",
+            Self::ConfiguredProxy => {
+                "configured proxy requires the reqwest transport"
+            }
+            Self::CertificatePolicy => {
+                "certificate policy requires the reqwest transport"
+            }
         }
     }
 }
@@ -34,8 +42,25 @@ pub(crate) fn h2_ineligible_reason(
     route: &DownloadRoute,
 ) -> Option<NativeH2IneligibleReason> {
     let authority = crate::util::fetch::url_authority(&route.url)?;
-    if crate::util::fetch::authority_uses_http1_fallback(&authority) {
+    if crate::util::fetch::authority_uses_http1_fallback_for(
+        &authority,
+        route.proxy,
+    ) {
         return Some(NativeH2IneligibleReason::Http1Fallback);
+    }
+    if let Some(clients) = super::proxy_context::clients() {
+        if clients.ignore_ssl_errors {
+            return Some(NativeH2IneligibleReason::CertificatePolicy);
+        }
+        if route.proxy == ProxyPolicy::System {
+            match clients.proxy.mode {
+                crate::util::proxy::ProxyMode::None => return None,
+                crate::util::proxy::ProxyMode::Custom => {
+                    return Some(NativeH2IneligibleReason::ConfiguredProxy);
+                }
+                crate::util::proxy::ProxyMode::System => {}
+            }
+        }
     }
     if route.proxy == ProxyPolicy::System && system_proxy_configured() {
         return Some(NativeH2IneligibleReason::SystemProxy);
@@ -46,10 +71,18 @@ pub(crate) fn h2_ineligible_reason(
 pub(crate) fn explicit_h2_policy(
     route: &DownloadRoute,
 ) -> Option<NativeH2Policy> {
+    let authority = crate::util::fetch::url_authority(&route.url)?;
+    if !super::native_reputation::transport_enabled(
+        &authority,
+        route.proxy,
+        super::native_reputation::NativeTransport::H2MultiRange,
+    ) {
+        return None;
+    }
     h2_ineligible_reason(route)
         .is_none()
         .then_some(NativeH2Policy {
-            allow_cold_connection: true,
+            allow_cold_connection: false,
             abort_if_slow: true,
             expected_speed: None,
         })
@@ -100,7 +133,7 @@ pub(crate) async fn h2_policy(
             expected_speed,
         });
     }
-    if !super::h2_pool::has_live_connection(&authority).await {
+    if !super::h2_pool::has_live_connection(route).await {
         return None;
     }
     let h2 = h2.filter(|health| health.success_samples >= 2)?;
@@ -187,6 +220,12 @@ mod tests {
             h2_ineligible_reason(&route(ProxyPolicy::Direct)),
             Some(NativeH2IneligibleReason::SystemProxy)
         );
+    }
+
+    #[test]
+    fn explicit_range_policy_requires_warm_connection() {
+        let policy = explicit_h2_policy(&route(ProxyPolicy::Direct)).unwrap();
+        assert!(!policy.allow_cold_connection);
     }
 
     #[tokio::test]

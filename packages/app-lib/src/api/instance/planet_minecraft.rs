@@ -64,7 +64,7 @@ pub async fn install_planet_minecraft_content(
             let relative_path = add_project_bytes(
                 instance_id,
                 &name,
-                Bytes::from(bytes),
+                bytes,
                 None,
                 Some(request.project_type),
                 ContentSourceKind::Local,

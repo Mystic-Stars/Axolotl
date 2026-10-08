@@ -286,6 +286,7 @@ impl ProcessManager {
         mc_command.stdout(std::process::Stdio::piped());
         mc_command.stderr(std::process::Stdio::piped());
         mc_command.stdin(std::process::Stdio::piped());
+        mc_command.kill_on_drop(true);
 
         let eligibility = if offline_account {
             Some(crate::anti_piracy::offline_action_guard().await?)

@@ -328,7 +328,7 @@ fn resolve_toml_version(
     version: Option<String>,
     archive: &mut zip::ZipArchive<std::io::Cursor<&[u8]>>,
 ) -> Option<String> {
-    let placeholder = version.clone()?;
+    let placeholder = version?;
     if !placeholder.starts_with("${") {
         return Some(placeholder);
     }

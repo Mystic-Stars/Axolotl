@@ -1,14 +1,14 @@
 <script setup>
 import { CheckIcon, PlusIcon, SearchIcon } from '@modrinth/assets'
 import {
-	Admonition,
-	Button,
-	commonMessages,
-	defineMessages,
-	injectNotificationManager,
-	NewModal,
-	StyledInput,
-	useVIntl,
+    Admonition,
+    Button,
+    commonMessages,
+    defineMessages,
+    injectNotificationManager,
+    NewModal,
+    StyledInput,
+    useVIntl,
 } from '@modrinth/ui'
 import { useQueryClient } from '@tanstack/vue-query'
 import { computed, ref } from 'vue'
@@ -22,34 +22,34 @@ const { handleError } = injectNotificationManager()
 const queryClient = useQueryClient()
 const { formatMessage } = useVIntl()
 const messages = defineMessages({
-	addServer: { id: 'app.server.add-to-instance', defaultMessage: 'Add server to instance' },
-	compatibilityWarning: {
-		id: 'app.server.compatibility-warning',
-		defaultMessage: 'This server may not be compatible with all instances.',
-	},
-	searchInstance: {
-		id: 'app.server.search-instance',
-		defaultMessage: 'Search for an instance',
-	},
-	adding: { id: 'app.server.adding', defaultMessage: 'Adding...' },
-	added: { id: 'app.server.added', defaultMessage: 'Added' },
-	add: { id: 'app.server.add', defaultMessage: 'Add' },
-	symlinkWarningHeader: {
-		id: 'app.symlink-warning.write.header',
-		defaultMessage: 'Shared instance',
-	},
-	symlinkWarningBody: {
-		id: 'app.symlink-warning.write.body',
-		defaultMessage:
-			'This instance is linked to "{path}". Changes will also affect the original files.',
-	},
+    addServer: { id: 'app.server.add-to-instance', defaultMessage: 'Add server to instance' },
+    compatibilityWarning: {
+        id: 'app.server.compatibility-warning',
+        defaultMessage: 'This server may not be compatible with all instances.',
+    },
+    searchInstance: {
+        id: 'app.server.search-instance',
+        defaultMessage: 'Search for an instance',
+    },
+    adding: { id: 'app.server.adding', defaultMessage: 'Adding...' },
+    added: { id: 'app.server.added', defaultMessage: 'Added' },
+    add: { id: 'app.server.add', defaultMessage: 'Add' },
+    symlinkWarningHeader: {
+        id: 'app.symlink-warning.write.header',
+        defaultMessage: 'Shared instance',
+    },
+    symlinkWarningBody: {
+        id: 'app.symlink-warning.write.body',
+        defaultMessage:
+            'This instance is linked to "{path}". Changes will also affect the original files.',
+    },
 })
 
 defineProps({
-	symlinkTarget: {
-		type: String,
-		default: null,
-	},
+    symlinkTarget: {
+        type: String,
+        default: null,
+    },
 })
 
 const modal = ref()
@@ -60,113 +60,117 @@ const serverName = ref('')
 const serverAddress = ref('')
 
 const shownInstances = computed(() =>
-	instances.value.filter((instance) => {
-		return instance.name.toLowerCase().includes(searchFilter.value.toLowerCase())
-	}),
+    instances.value.filter((instance) => {
+        return instance.name.toLowerCase().includes(searchFilter.value.toLowerCase())
+    }),
 )
 
 defineExpose({
-	show: async (name, address) => {
-		serverName.value = name
-		serverAddress.value = address
-		searchFilter.value = ''
+    show: async (name, address) => {
+        serverName.value = name
+        serverAddress.value = address
+        searchFilter.value = ''
 
-		const instanceValues = await list().catch(handleError)
-		await Promise.allSettled(
-			instanceValues.map(async (instance) => {
-				instance.adding = false
-				instance.added = false
+        const instanceValues = await list().catch(handleError)
+        await Promise.allSettled(
+            instanceValues.map(async (instance) => {
+                instance.adding = false
+                instance.added = false
 
-				try {
-					const worlds = await get_instance_worlds(instance.id)
-					instance.added = worlds.some(
-						(w) => w.type === 'server' && w.address === serverAddress.value,
-					)
-				} catch {
-					// Ignore - will show as not added
-				}
-			}),
-		)
+                try {
+                    const worlds = await get_instance_worlds(instance.id)
+                    instance.added = worlds.some(
+                        (w) => w.type === 'server' && w.address === serverAddress.value,
+                    )
+                } catch {
+                    // Ignore - will show as not added
+                }
+            }),
+        )
 
-		instances.value = instanceValues
-		modal.value.show()
+        instances.value = instanceValues
+        modal.value.show()
 
-		trackEvent('AddServerToInstanceStart', { source: 'AddServerToInstanceModal' })
-	},
+        trackEvent('AddServerToInstanceStart', { source: 'AddServerToInstanceModal' })
+    },
 })
 
 async function addServer(instance) {
-	instance.adding = true
-	try {
-		await add_server_to_instance(instance.id, serverName.value, serverAddress.value, 'prompt')
-		instance.added = true
-		await queryClient.invalidateQueries({ queryKey: ['worlds', instance.id] })
+    instance.adding = true
+    try {
+        await add_server_to_instance(instance.id, serverName.value, serverAddress.value, 'prompt')
+        instance.added = true
+        await queryClient.invalidateQueries({ queryKey: ['worlds', instance.id] })
 
-		trackEvent('AddServerToInstance', {
-			server_name: serverName.value,
-			instance_name: instance.name,
-			source: 'AddServerToInstanceModal',
-		})
-	} catch (err) {
-		handleError(err)
-	}
-	instance.adding = false
+        trackEvent('AddServerToInstance', {
+            server_name: serverName.value,
+            instance_name: instance.name,
+            source: 'AddServerToInstanceModal',
+        })
+    } catch (err) {
+        handleError(err)
+    }
+    instance.adding = false
 }
 </script>
 
 <template>
-	<NewModal ref="modal" :header="formatMessage(messages.addServer)">
-		<div class="flex flex-col gap-4 min-w-[350px]">
-			<Admonition
-				v-if="symlinkTarget"
-				type="warning"
-				:header="formatMessage(messages.symlinkWarningHeader)"
-			>
-				{{ formatMessage(messages.symlinkWarningBody, { path: symlinkTarget }) }}
-			</Admonition>
-			<Admonition type="warning" :body="formatMessage(messages.compatibilityWarning)" />
-			<StyledInput
-				v-model="searchFilter"
-				:icon="SearchIcon"
-				type="search"
-				:placeholder="formatMessage(messages.searchInstance)"
-				autocomplete="off"
-			/>
-			<div class="max-h-[21rem] overflow-y-auto">
-				<div
-					v-for="instance in shownInstances"
-					:key="instance.id"
-					class="flex w-full items-center justify-between gap-2 bg-surface-4 text-icon shadow-none"
-				>
-					<router-link
-						class="btn btn-transparent p-2 text-left"
-						:to="`/instance/${encodeURIComponent(instance.id)}`"
-						@click="modal.hide()"
-					>
-						<InstanceIcon
-							:icon-path="instance.icon_path"
-							:instance-id="instance.id"
-							:loader="instance.loader"
-							class="mr-2 [--size:2rem]"
-						/>
-						{{ instance.name }}
-					</router-link>
-					<Button :disabled="instance.added || instance.adding" @click="addServer(instance)"
-						><PlusIcon v-if="!instance.added && !instance.adding" />
-						<CheckIcon v-else-if="instance.added" />
-						{{
-							instance.adding
-								? formatMessage(messages.adding)
-								: instance.added
-									? formatMessage(messages.added)
-									: formatMessage(messages.add)
-						}}
-					</Button>
-				</div>
-			</div>
-			<div class="input-group push-right">
-				<Button @click="modal.hide()">{{ formatMessage(commonMessages.cancelButton) }}</Button>
-			</div>
-		</div>
-	</NewModal>
+    <NewModal ref="modal" :header="formatMessage(messages.addServer)">
+        <div class="flex flex-col gap-4 min-w-[350px]">
+            <Admonition
+                v-if="symlinkTarget"
+                type="warning"
+                :header="formatMessage(messages.symlinkWarningHeader)"
+            >
+                {{ formatMessage(messages.symlinkWarningBody, { path: symlinkTarget }) }}
+            </Admonition>
+            <Admonition type="warning" :body="formatMessage(messages.compatibilityWarning)" />
+            <StyledInput
+                v-model="searchFilter"
+                :icon="SearchIcon"
+                type="search"
+                :placeholder="formatMessage(messages.searchInstance)"
+                autocomplete="off"
+            />
+            <div class="max-h-[21rem] overflow-y-auto">
+                <div
+                    v-for="instance in shownInstances"
+                    :key="instance.id"
+                    class="flex w-full items-center justify-between gap-2 bg-surface-4 text-icon shadow-none"
+                >
+                    <router-link
+                        class="btn btn-transparent p-2 text-left"
+                        :to="`/instance/${encodeURIComponent(instance.id)}`"
+                        @click="modal.hide()"
+                    >
+                        <InstanceIcon
+                            :icon-path="instance.icon_path"
+                            :instance-id="instance.id"
+                            :loader="instance.loader"
+                            class="mr-2 [--size:2rem]"
+                        />
+                        {{ instance.name }}
+                    </router-link>
+                    <Button
+                        :disabled="instance.added || instance.adding"
+                        @click="addServer(instance)"
+                        ><PlusIcon v-if="!instance.added && !instance.adding" />
+                        <CheckIcon v-else-if="instance.added" />
+                        {{
+                            instance.adding
+                                ? formatMessage(messages.adding)
+                                : instance.added
+                                  ? formatMessage(messages.added)
+                                  : formatMessage(messages.add)
+                        }}
+                    </Button>
+                </div>
+            </div>
+            <div class="input-group push-right">
+                <Button @click="modal.hide()">{{
+                    formatMessage(commonMessages.cancelButton)
+                }}</Button>
+            </div>
+        </div>
+    </NewModal>
 </template>

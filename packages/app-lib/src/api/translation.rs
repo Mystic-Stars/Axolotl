@@ -657,14 +657,14 @@ async fn deepl_translate(
     let client = crate::util::fetch::configured_client().await?;
 
     let primary_auth = if is_official_deepl {
-        format!("DeepL-Auth-Key {}", api_key)
+        format!("DeepL-Auth-Key {api_key}")
     } else {
-        format!("Bearer {}", api_key)
+        format!("Bearer {api_key}")
     };
     let fallback_auth = if is_official_deepl {
         None
     } else {
-        Some(format!("DeepL-Auth-Key {}", api_key))
+        Some(format!("DeepL-Auth-Key {api_key}"))
     };
 
     tracing::debug!(
@@ -690,51 +690,51 @@ async fn deepl_translate(
         if status.is_success() {
             break 'translate response.json().await.map_err(|e| {
                 tracing::error!(error = %e, "Failed to parse DeepL response JSON");
-                ErrorKind::OtherError(format!("Failed to parse DeepL response: {}", e))
+                ErrorKind::OtherError(format!("Failed to parse DeepL response: {e}"))
             })?;
         }
 
         // 403 on a custom endpoint → try fallback auth format
-        if status == StatusCode::FORBIDDEN {
-            if let Some(ref fallback) = fallback_auth {
-                let error_text = response.text().await.unwrap_or_default();
-                tracing::warn!(
-                    error_body = %error_text,
-                    "DeepL primary auth rejected, retrying with DeepL-Auth-Key"
-                );
+        if status == StatusCode::FORBIDDEN
+            && let Some(ref fallback) = fallback_auth
+        {
+            let error_text = response.text().await.unwrap_or_default();
+            tracing::warn!(
+                error_body = %error_text,
+                "DeepL primary auth rejected, retrying with DeepL-Auth-Key"
+            );
 
-                let retry = send_with_retry(|| {
-                    client
-                        .post(api_endpoint)
-                        .header("Authorization", fallback.as_str())
-                        .header("Content-Type", "application/json")
-                        .json(&body)
-                })
-                .await?;
+            let retry = send_with_retry(|| {
+                client
+                    .post(api_endpoint)
+                    .header("Authorization", fallback.as_str())
+                    .header("Content-Type", "application/json")
+                    .json(&body)
+            })
+            .await?;
 
-                let retry_status = retry.status();
-                tracing::info!(status = %retry_status, "DeepL response status (fallback attempt)");
+            let retry_status = retry.status();
+            tracing::info!(status = %retry_status, "DeepL response status (fallback attempt)");
 
-                if retry_status.is_success() {
-                    break 'translate retry.json().await.map_err(|e| {
+            if retry_status.is_success() {
+                break 'translate retry.json().await.map_err(|e| {
                         tracing::error!(error = %e, "Failed to parse DeepL fallback response JSON");
-                        ErrorKind::OtherError(format!("Failed to parse DeepL response: {}", e))
+                        ErrorKind::OtherError(format!("Failed to parse DeepL response: {e}"))
                     })?;
-                }
-
-                let retry_error = retry.text().await.unwrap_or_default();
-                tracing::error!(
-                    status = %retry_status,
-                    error_body = %retry_error,
-                    "DeepL fallback also failed"
-                );
-                return Err(ErrorKind::OtherError(format!(
-                    "DeepL API error: HTTP {} - {}",
-                    retry_status,
-                    summarize_error_body(&retry_error)
-                ))
-                .into());
             }
+
+            let retry_error = retry.text().await.unwrap_or_default();
+            tracing::error!(
+                status = %retry_status,
+                error_body = %retry_error,
+                "DeepL fallback also failed"
+            );
+            return Err(ErrorKind::OtherError(format!(
+                "DeepL API error: HTTP {} - {}",
+                retry_status,
+                summarize_error_body(&retry_error)
+            ))
+            .into());
         }
 
         // Non-403 error or 403 without fallback

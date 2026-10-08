@@ -1,4 +1,4 @@
-use super::{CanonicalValue, GameOptionKind, StoredOption, StoredPreference};
+use super::{GameOptionKind, StoredOption, StoredPreference};
 use sqlx::{Row, SqlitePool};
 use std::collections::HashMap;
 

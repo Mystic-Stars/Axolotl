@@ -34,38 +34,21 @@ mod settings_editor;
 mod source_selection;
 mod write_shared_settings;
 
-pub use crate::state::{CanonicalValue, GameOptionKind};
 pub use api_types::{
-    EditableGameSetting, GameOptionCompatibility,
-    GameOptionCompatibilityBucket, GameOptionCompatibilityReason,
-    GameOptionCompatibilityStatus, GameOptionEditorChoice,
-    GameOptionEditorDefinition, GameOptionMappingKind,
-    GameOptionValidationIssue, GameOptionValueState,
-    GameOptionsSourceCandidate, GameOptionsSourceIssue, GameSettingCategory,
-    GameSettingChange, GameSettingsEditorState, SaveGameSettingsResult,
-    UpdateGameSettingsRequest,
+    GameOptionsSourceCandidate, GameSettingsEditorState,
+    SaveGameSettingsResult, UpdateGameSettingsRequest,
 };
 pub use launch_overrides::{apply_launcher_overrides, sync_before_launch};
 pub use local_settings_editor::{
     get_config as get_local_config, preview_changes as preview_local_changes,
     save_changes as save_local_changes,
 };
-pub(crate) use locales::{
-    GameLocaleIndexer, queue_game_locale_index, start_game_locale_indexer,
-};
 pub use locales::{GameSettingLocaleLabels, get_game_setting_locale_labels};
-pub use pack_updates::{GameOptionsPackSource, capture_pack_base};
 pub use settings_editor::{get_config, preview_changes, save_changes};
 pub use source_selection::list_sync_sources;
 
-pub(crate) use fullscreen::{
-    shared_fullscreen_value, update_shared_fullscreen_from_app,
-};
-pub(crate) use write_shared_settings::sync_all_participating_instances;
-
 pub(in crate::api::instance) use resource_pack_options::{
-    ResourcePackOptionsUpdate, merge_resource_pack_entries,
-    merge_resource_pack_order, read_resource_pack_entries,
+    merge_resource_pack_entries, read_resource_pack_entries,
 };
 
 pub(in crate::api::instance) use pack_updates::{

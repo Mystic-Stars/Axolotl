@@ -1,5 +1,5 @@
 <template>
-	<div class="flex items-center gap-1">
-		<slot />
-	</div>
+    <div class="flex items-center gap-1">
+        <slot />
+    </div>
 </template>

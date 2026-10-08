@@ -1,31 +1,31 @@
 {
-	"name": "@modrinth/utils",
-	"version": "0.0.0",
-	"private": true,
-	"main": "./index.ts",
-	"types": "./index.d.ts",
-	"scripts": {
-		"lint": "eslint . && prettier --check .",
-		"fix": "eslint . --fix && prettier --write ."
-	},
-	"devDependencies": {
-		"@modrinth/api-client": "workspace:*",
-		"@modrinth/tooling-config": "workspace:*"
-	},
-	"dependencies": {
-		"@codemirror/commands": "^6.11.0",
-		"@codemirror/lang-markdown": "^6.5.2",
-		"@codemirror/language": "^6.12.4",
-		"@codemirror/state": "^6.7.4",
-		"@codemirror/view": "^6.43.11",
-		"@types/markdown-it": "^14.2.0",
-		"@types/three": "^0.185.4",
-		"dayjs": "^1.11.23",
-		"highlight.js": "^11.12.0",
-		"highlightjs-mcfunction": "github:modrinth/better-highlightjs-mcfunction",
-		"markdown-it": "^14.3.1",
-		"ofetch": "^1.5.1",
-		"three": "^0.185.1",
-		"xss": "^1.0.15"
-	}
+  "name": "@modrinth/utils",
+  "version": "0.0.0",
+  "private": true,
+  "main": "./index.ts",
+  "types": "./index.d.ts",
+  "scripts": {
+    "lint": "eslint . && prettier --check .",
+    "fix": "eslint . --fix && prettier --write ."
+  },
+  "devDependencies": {
+    "@modrinth/api-client": "workspace:*",
+    "@modrinth/tooling-config": "workspace:*"
+  },
+  "dependencies": {
+    "@codemirror/commands": "^6.11.0",
+    "@codemirror/lang-markdown": "^6.5.2",
+    "@codemirror/language": "^6.12.4",
+    "@codemirror/state": "^6.7.4",
+    "@codemirror/view": "^6.43.11",
+    "@types/markdown-it": "^14.2.0",
+    "@types/three": "^0.185.4",
+    "dayjs": "^1.11.23",
+    "highlight.js": "^11.12.0",
+    "highlightjs-mcfunction": "github:modrinth/better-highlightjs-mcfunction",
+    "markdown-it": "^14.3.1",
+    "ofetch": "^1.5.1",
+    "three": "^0.185.1",
+    "xss": "^1.0.15"
+  }
 }

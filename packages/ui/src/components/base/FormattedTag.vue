@@ -7,13 +7,13 @@ import { formatTag } from '../../utils/tag-messages.ts'
 const { formatMessage } = useVIntl()
 
 const props = defineProps<{
-	tag: string
-	enforceType?: 'loader' | 'category'
+    tag: string
+    enforceType?: 'loader' | 'category'
 }>()
 
 const message = computed(() => formatTag(formatMessage, props.tag, props.enforceType))
 </script>
 
 <template>
-	{{ message }}
+    {{ message }}
 </template>

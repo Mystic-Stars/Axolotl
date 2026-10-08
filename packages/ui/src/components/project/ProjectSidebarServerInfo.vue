@@ -1,92 +1,102 @@
 <template>
-	<SidebarSection :title="formatMessage(messages.title)" :visible="hasContent">
-		<div
-			v-if="ipAddress"
-			class="bg-surface-4 flex gap-2 justify-between rounded-2xl items-center px-3 pr-1.5 h-12"
-		>
-			<div class="font-semibold truncate">
-				{{ ipAddress }}
-			</div>
-			<Button
-				v-tooltip="formatMessage(messages.addressTooltip)"
-				icon-only
-				type="quiet"
-				:aria-label="formatMessage(messages.addressTooltip)"
-				@click="handleCopyIP"
-			>
-				<CopyIcon class="shrink-0" />
-			</Button>
-		</div>
+    <SidebarSection :title="formatMessage(messages.title)" :visible="hasContent">
+        <div
+            v-if="ipAddress"
+            class="bg-surface-4 flex gap-2 justify-between rounded-2xl items-center px-3 pr-1.5 h-12"
+        >
+            <div class="font-semibold truncate">
+                {{ ipAddress }}
+            </div>
+            <Button
+                v-tooltip="formatMessage(messages.addressTooltip)"
+                icon-only
+                type="quiet"
+                :aria-label="formatMessage(messages.addressTooltip)"
+                @click="handleCopyIP"
+            >
+                <CopyIcon class="shrink-0" />
+            </Button>
+        </div>
 
-		<section v-if="requiredContent" class="flex flex-col gap-2">
-			<h3 class="text-[var(--color-text-default)] text-base m-0">
-				{{ formatMessage(messages.requiredContent) }}
-			</h3>
-			<ServerModpackContentCard
-				:name="requiredContent.name"
-				:version-number="requiredContent.versionNumber ?? ''"
-				:icon="requiredContent.icon"
-				:onclick-name="requiredContent.onclickName"
-				:onclick-version="requiredContent.onclickVersion"
-				:onclick-download="requiredContent.onclickDownload"
-				:show-custom-modpack-tooltip="requiredContent.showCustomModpackTooltip"
-			/>
-		</section>
-		<section v-if="recommendedVersions.length" class="flex flex-col gap-2">
-			<h3 class="text-[var(--color-text-default)] text-base m-0">
-				{{ formatMessage(messages.minecraftJava) }}
-			</h3>
-			<div class="flex flex-wrap gap-1.5">
-				<TagItem
-					v-for="version in formatVersionsForDisplay(recommendedVersions, tags.gameVersions)"
-					:key="`recommended-tag-${version}`"
-				>
-					{{ version }}
-					<template v-if="supportedVersions.length > 0">
-						{{ formatMessage(messages.recommendedVersion) }}
-					</template>
-				</TagItem>
-				<TagItem
-					v-for="version in formatVersionsForDisplay(supportedVersionsList, tags.gameVersions)"
-					:key="`supported-tag-${version}`"
-				>
-					{{ version }}
-				</TagItem>
-				<TagItem
-					v-for="loader in loaders ?? []"
-					:key="`loader-${loader}`"
-					class="border !border-solid border-surface-5"
-					:style="`--_color: var(--color-platform-${loader})`"
-				>
-					<component :is="getLoaderIcon(loader)" v-if="getLoaderIcon(loader)" />
-					<FormattedTag :tag="loader" enforce-type="loader" />
-				</TagItem>
-			</div>
-		</section>
-		<section v-if="props.ping !== undefined || region" class="flex flex-col gap-2">
-			<h3 class="text-[var(--color-text-default)] text-base m-0">
-				{{ formatMessage(messages.region) }}
-			</h3>
-			<div class="flex flex-wrap gap-1.5 items-center">
-				<ServerPing
-					v-if="projectV3?.status !== 'draft'"
-					:ping="props.ping"
-					:status-online="props.statusOnline"
-				/>
-				<ServerRegion v-if="region" :region="region" />
-			</div>
-		</section>
-		<section v-if="languages.length > 0" class="flex flex-col gap-2">
-			<h3 class="text-[var(--color-text-default)] text-base m-0">
-				{{ formatMessage(messages.languages) }}
-			</h3>
-			<div class="flex flex-wrap gap-1.5">
-				<TagItem v-for="language in languages" :key="`${language}`">
-					{{ SERVER_LANGUAGES[language] ? formatMessage(SERVER_LANGUAGES[language]) : language }}
-				</TagItem>
-			</div>
-		</section>
-	</SidebarSection>
+        <section v-if="requiredContent" class="flex flex-col gap-2">
+            <h3 class="text-[var(--color-text-default)] text-base m-0">
+                {{ formatMessage(messages.requiredContent) }}
+            </h3>
+            <ServerModpackContentCard
+                :name="requiredContent.name"
+                :version-number="requiredContent.versionNumber ?? ''"
+                :icon="requiredContent.icon"
+                :onclick-name="requiredContent.onclickName"
+                :onclick-version="requiredContent.onclickVersion"
+                :onclick-download="requiredContent.onclickDownload"
+                :show-custom-modpack-tooltip="requiredContent.showCustomModpackTooltip"
+            />
+        </section>
+        <section v-if="recommendedVersions.length" class="flex flex-col gap-2">
+            <h3 class="text-[var(--color-text-default)] text-base m-0">
+                {{ formatMessage(messages.minecraftJava) }}
+            </h3>
+            <div class="flex flex-wrap gap-1.5">
+                <TagItem
+                    v-for="version in formatVersionsForDisplay(
+                        recommendedVersions,
+                        tags.gameVersions,
+                    )"
+                    :key="`recommended-tag-${version}`"
+                >
+                    {{ version }}
+                    <template v-if="supportedVersions.length > 0">
+                        {{ formatMessage(messages.recommendedVersion) }}
+                    </template>
+                </TagItem>
+                <TagItem
+                    v-for="version in formatVersionsForDisplay(
+                        supportedVersionsList,
+                        tags.gameVersions,
+                    )"
+                    :key="`supported-tag-${version}`"
+                >
+                    {{ version }}
+                </TagItem>
+                <TagItem
+                    v-for="loader in loaders ?? []"
+                    :key="`loader-${loader}`"
+                    class="border !border-solid border-surface-5"
+                    :style="`--_color: var(--color-platform-${loader})`"
+                >
+                    <component :is="getLoaderIcon(loader)" v-if="getLoaderIcon(loader)" />
+                    <FormattedTag :tag="loader" enforce-type="loader" />
+                </TagItem>
+            </div>
+        </section>
+        <section v-if="props.ping !== undefined || region" class="flex flex-col gap-2">
+            <h3 class="text-[var(--color-text-default)] text-base m-0">
+                {{ formatMessage(messages.region) }}
+            </h3>
+            <div class="flex flex-wrap gap-1.5 items-center">
+                <ServerPing
+                    v-if="projectV3?.status !== 'draft'"
+                    :ping="props.ping"
+                    :status-online="props.statusOnline"
+                />
+                <ServerRegion v-if="region" :region="region" />
+            </div>
+        </section>
+        <section v-if="languages.length > 0" class="flex flex-col gap-2">
+            <h3 class="text-[var(--color-text-default)] text-base m-0">
+                {{ formatMessage(messages.languages) }}
+            </h3>
+            <div class="flex flex-wrap gap-1.5">
+                <TagItem v-for="language in languages" :key="`${language}`">
+                    {{
+                        SERVER_LANGUAGES[language]
+                            ? formatMessage(SERVER_LANGUAGES[language])
+                            : language
+                    }}
+                </TagItem>
+            </div>
+        </section>
+    </SidebarSection>
 </template>
 <script setup lang="ts">
 import type { Labrinth } from '@modrinth/api-client'
@@ -106,35 +116,35 @@ import ServerRegion from './server/ServerRegion.vue'
 import SidebarSection from './SidebarSection.vue'
 
 interface RequiredContent {
-	name: string
-	versionNumber?: string
-	icon?: string
-	onclickName?: () => void
-	onclickVersion?: () => void
-	onclickDownload?: () => void
-	showCustomModpackTooltip?: boolean
+    name: string
+    versionNumber?: string
+    icon?: string
+    onclickName?: () => void
+    onclickVersion?: () => void
+    onclickDownload?: () => void
+    showCustomModpackTooltip?: boolean
 }
 
 interface Props {
-	projectV3: Labrinth.Projects.v3.Project | null
-	tags: {
-		gameVersions: GameVersionTag[]
-		loaders: PlatformTag[]
-	}
-	requiredContent?: RequiredContent | null
-	recommendedVersion?: string | null
-	supportedVersions?: string[]
-	loaders?: string[]
-	ping?: number
-	statusOnline?: boolean
+    projectV3: Labrinth.Projects.v3.Project | null
+    tags: {
+        gameVersions: GameVersionTag[]
+        loaders: PlatformTag[]
+    }
+    requiredContent?: RequiredContent | null
+    recommendedVersion?: string | null
+    supportedVersions?: string[]
+    loaders?: string[]
+    ping?: number
+    statusOnline?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
-	requiredContent: null,
-	recommendedVersion: null,
-	supportedVersions: () => [],
-	loaders: () => [],
-	ping: undefined,
+    requiredContent: null,
+    recommendedVersion: null,
+    supportedVersions: () => [],
+    loaders: () => [],
+    ping: undefined,
 })
 
 const ipAddress = computed(() => props.projectV3?.minecraft_java_server?.address ?? '')
@@ -142,86 +152,86 @@ const languages = computed(() => props.projectV3?.minecraft_server?.languages ??
 const region = computed(() => props.projectV3?.minecraft_server?.region)
 
 const recommendedVersions = computed(() => {
-	if (props.recommendedVersion) return [props.recommendedVersion]
+    if (props.recommendedVersion) return [props.recommendedVersion]
 
-	const content = props.projectV3?.minecraft_java_server?.content
-	if (content?.kind === 'vanilla' && content.recommended_game_version) {
-		return [content.recommended_game_version]
-	}
+    const content = props.projectV3?.minecraft_java_server?.content
+    if (content?.kind === 'vanilla' && content.recommended_game_version) {
+        return [content.recommended_game_version]
+    }
 
-	return []
+    return []
 })
 
 const hasContent = computed(
-	() =>
-		!!ipAddress.value ||
-		!!props.requiredContent ||
-		recommendedVersions.value.length > 0 ||
-		supportedVersionsList.value.length > 0 ||
-		languages.value.length > 0 ||
-		props.ping !== undefined,
+    () =>
+        !!ipAddress.value ||
+        !!props.requiredContent ||
+        recommendedVersions.value.length > 0 ||
+        supportedVersionsList.value.length > 0 ||
+        languages.value.length > 0 ||
+        props.ping !== undefined,
 )
 
 const supportedVersionsList = computed(() => {
-	if (props.supportedVersions.length > 0) return props.supportedVersions
+    if (props.supportedVersions.length > 0) return props.supportedVersions
 
-	const content = props.projectV3?.minecraft_java_server?.content
-	if (content?.kind === 'vanilla' && content.supported_game_versions?.length) {
-		return content.supported_game_versions.filter((v): v is string => !!v)
-	}
+    const content = props.projectV3?.minecraft_java_server?.content
+    if (content?.kind === 'vanilla' && content.supported_game_versions?.length) {
+        return content.supported_game_versions.filter((v): v is string => !!v)
+    }
 
-	return []
+    return []
 })
 
 const { addNotification } = injectNotificationManager()
 const { formatMessage } = useVIntl()
 
 function handleCopyIP() {
-	navigator.clipboard.writeText(ipAddress.value).then(() => {
-		addNotification({
-			type: 'success',
-			title: formatMessage(messages.copied),
-			text: formatMessage(messages.copiedText),
-		})
-	})
+    navigator.clipboard.writeText(ipAddress.value).then(() => {
+        addNotification({
+            type: 'success',
+            title: formatMessage(messages.copied),
+            text: formatMessage(messages.copiedText),
+        })
+    })
 }
 
 const messages = defineMessages({
-	copied: {
-		id: `project.about.server.copied`,
-		defaultMessage: 'Copied!',
-	},
-	copiedText: {
-		id: `project.about.server.copiedText`,
-		defaultMessage: 'Server address copied to clipboard',
-	},
-	title: {
-		id: `project.about.server.title`,
-		defaultMessage: 'Server details',
-	},
-	addressTooltip: {
-		id: `project.about.server.address.tooltip`,
-		defaultMessage: 'Copy Java server address',
-	},
-	requiredContent: {
-		id: `project.about.server.requiredContent`,
-		defaultMessage: 'Required content',
-	},
-	minecraftJava: {
-		id: `project.about.compatibility.game.minecraftJava`,
-		defaultMessage: 'Minecraft: Java Edition',
-	},
-	recommendedVersion: {
-		id: `project.about.server.recommendedVersion`,
-		defaultMessage: '(Recommended)',
-	},
-	region: {
-		id: `project.about.server.region`,
-		defaultMessage: 'Region',
-	},
-	languages: {
-		id: `project.about.server.languages`,
-		defaultMessage: 'Languages',
-	},
+    copied: {
+        id: `project.about.server.copied`,
+        defaultMessage: 'Copied!',
+    },
+    copiedText: {
+        id: `project.about.server.copiedText`,
+        defaultMessage: 'Server address copied to clipboard',
+    },
+    title: {
+        id: `project.about.server.title`,
+        defaultMessage: 'Server details',
+    },
+    addressTooltip: {
+        id: `project.about.server.address.tooltip`,
+        defaultMessage: 'Copy Java server address',
+    },
+    requiredContent: {
+        id: `project.about.server.requiredContent`,
+        defaultMessage: 'Required content',
+    },
+    minecraftJava: {
+        id: `project.about.compatibility.game.minecraftJava`,
+        defaultMessage: 'Minecraft: Java Edition',
+    },
+    recommendedVersion: {
+        id: `project.about.server.recommendedVersion`,
+        defaultMessage: '(Recommended)',
+    },
+    region: {
+        id: `project.about.server.region`,
+        defaultMessage: 'Region',
+    },
+    languages: {
+        id: `project.about.server.languages`,
+        defaultMessage: 'Languages',
+    },
 })
 </script>

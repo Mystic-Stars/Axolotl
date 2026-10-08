@@ -1,18 +1,18 @@
 import { createContext } from '.'
 
 export type NativeFileDropEvent = {
-	type: 'enter' | 'over' | 'drop' | 'leave'
-	paths: string[]
-	position: {
-		x: number
-		y: number
-	}
+    type: 'enter' | 'over' | 'drop' | 'leave'
+    paths: string[]
+    position: {
+        x: number
+        y: number
+    }
 }
 
 export interface FileDropProvider {
-	listenNativeFileDrop: (
-		handler: (event: NativeFileDropEvent) => void | Promise<void>,
-	) => Promise<() => void>
+    listenNativeFileDrop: (
+        handler: (event: NativeFileDropEvent) => void | Promise<void>,
+    ) => Promise<() => void>
 }
 
 export const [injectFileDrop, provideFileDrop] = createContext<FileDropProvider>('FileDrop')

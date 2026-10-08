@@ -513,7 +513,7 @@ pub(crate) async fn watch_instance_folder(
 
     let mut to_watch = Vec::new();
     for full_path in instance_watch_paths(full_instance_path) {
-        if &full_path == full_instance_path {
+        if full_path == full_instance_path {
             // The root is watched non-recursively after the subfolders.
             continue;
         }

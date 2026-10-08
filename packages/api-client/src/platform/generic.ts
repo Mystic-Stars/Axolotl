@@ -27,78 +27,78 @@ import { XHRUploadClient } from './xhr-upload-client'
  * ```
  */
 export class GenericModrinthClient extends XHRUploadClient {
-	constructor(config: ClientConfig) {
-		super(config)
+    constructor(config: ClientConfig) {
+        super(config)
 
-		Object.defineProperty(this.archon, 'sockets', {
-			value: new GenericWebSocketClient(this),
-			writable: false,
-			enumerable: true,
-			configurable: false,
-		})
-		Object.defineProperty(this.archon, 'sync', {
-			value: new GenericSyncClient(this),
-			writable: false,
-			enumerable: true,
-			configurable: false,
-		})
-	}
+        Object.defineProperty(this.archon, 'sockets', {
+            value: new GenericWebSocketClient(this),
+            writable: false,
+            enumerable: true,
+            configurable: false,
+        })
+        Object.defineProperty(this.archon, 'sync', {
+            value: new GenericSyncClient(this),
+            writable: false,
+            enumerable: true,
+            configurable: false,
+        })
+    }
 
-	protected async executeRequest<T>(url: string, options: RequestOptions): Promise<T> {
-		try {
-			const response = await $fetch<T>(url, {
-				method: options.method ?? 'GET',
-				headers: options.headers,
-				body: options.body as BodyInit,
-				params: options.params as Record<string, string>,
-				timeout: options.timeout,
-				signal: options.signal,
-			})
+    protected async executeRequest<T>(url: string, options: RequestOptions): Promise<T> {
+        try {
+            const response = await $fetch<T>(url, {
+                method: options.method ?? 'GET',
+                headers: options.headers,
+                body: options.body as BodyInit,
+                params: options.params as Record<string, string>,
+                timeout: options.timeout,
+                signal: options.signal,
+            })
 
-			return response
-		} catch (error) {
-			// ofetch throws FetchError for HTTP errors
-			throw this.normalizeError(error)
-		}
-	}
+            return response
+        } catch (error) {
+            // ofetch throws FetchError for HTTP errors
+            throw this.normalizeError(error)
+        }
+    }
 
-	protected async executeStreamRequest(
-		url: string,
-		options: RequestOptions,
-	): Promise<ReadableStream<Uint8Array>> {
-		try {
-			const response = await fetch(appendRequestParams(url, options.params), {
-				method: options.method ?? 'GET',
-				headers: options.headers,
-				body: toFetchBody(options.body),
-				signal: options.signal,
-			})
+    protected async executeStreamRequest(
+        url: string,
+        options: RequestOptions,
+    ): Promise<ReadableStream<Uint8Array>> {
+        try {
+            const response = await fetch(appendRequestParams(url, options.params), {
+                method: options.method ?? 'GET',
+                headers: options.headers,
+                body: toFetchBody(options.body),
+                signal: options.signal,
+            })
 
-			if (!response.ok) {
-				throw this.createNormalizedError(
-					new Error(`HTTP ${response.status}: ${response.statusText}`),
-					response.status,
-					await parseResponseErrorData(response),
-				)
-			}
+            if (!response.ok) {
+                throw this.createNormalizedError(
+                    new Error(`HTTP ${response.status}: ${response.statusText}`),
+                    response.status,
+                    await parseResponseErrorData(response),
+                )
+            }
 
-			if (!response.body) {
-				throw new ModrinthApiError('Streaming response has no readable body', {
-					statusCode: response.status,
-				})
-			}
+            if (!response.body) {
+                throw new ModrinthApiError('Streaming response has no readable body', {
+                    statusCode: response.status,
+                })
+            }
 
-			return response.body
-		} catch (error) {
-			throw this.normalizeError(error)
-		}
-	}
+            return response.body
+        } catch (error) {
+            throw this.normalizeError(error)
+        }
+    }
 
-	protected normalizeError(error: unknown): ModrinthApiError {
-		if (error instanceof FetchError) {
-			return this.createNormalizedError(error, error.response?.status, error.data)
-		}
+    protected normalizeError(error: unknown): ModrinthApiError {
+        if (error instanceof FetchError) {
+            return this.createNormalizedError(error, error.response?.status, error.data)
+        }
 
-		return super.normalizeError(error)
-	}
+        return super.normalizeError(error)
+    }
 }

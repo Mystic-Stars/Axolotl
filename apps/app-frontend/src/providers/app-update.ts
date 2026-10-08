@@ -5,29 +5,29 @@ export const APP_UPDATE_POPUP_DELAY_MS = 24 * 60 * 60 * 1000
 const UPDATE_PROMPT_STORAGE_KEY = 'modrinth-app-update-prompt-state'
 
 export interface AppUpdate {
-	rid: number
-	version: string
-	currentVersion?: string
-	publishedAt?: string
-	forceUpdate?: boolean
+    rid: number
+    version: string
+    currentVersion?: string
+    publishedAt?: string
+    forceUpdate?: boolean
 }
 
 interface UpdatePromptState {
-	version: string
-	stage: AppUpdatePromptStage
-	actionableSince: number
-	lastUserActionAt?: number
-	popupShownAt?: number
+    version: string
+    stage: AppUpdatePromptStage
+    actionableSince: number
+    lastUserActionAt?: number
+    popupShownAt?: number
 }
 
 export type AppUpdatePromptStage = 'available' | 'downloaded'
 export type AppUpdateCheckResult = 'available' | 'up-to-date' | 'disabled' | 'offline' | 'paused'
 
 interface AppUpdateActions {
-	check?: () => Promise<AppUpdateCheckResult>
-	download?: () => Promise<void> | void
-	install?: () => Promise<void> | void
-	changelog?: (version?: string) => Promise<void> | void
+    check?: () => Promise<AppUpdateCheckResult>
+    download?: () => Promise<void> | void
+    install?: () => Promise<void> | void
+    changelog?: (version?: string) => Promise<void> | void
 }
 
 const progress = ref(0)
@@ -43,144 +43,148 @@ const updatesPaused = ref(false)
 let actions: AppUpdateActions = {}
 
 function getCurrentAppUpdatePromptStage(): AppUpdatePromptStage {
-	return finishedDownloading.value ? 'downloaded' : 'available'
+    return finishedDownloading.value ? 'downloaded' : 'available'
 }
 
 export const appUpdateState = {
-	progress,
-	metered,
-	finishedDownloading,
-	downloading,
-	restarting,
-	availableUpdate,
-	updateSize,
-	updatesEnabled,
-	updatesPaused,
-	downloadProgress: computed(() => progress.value),
-	downloadPercent: computed(() => Math.trunc(progress.value * 100)),
-	isVisible: computed(
-		() =>
-			!!availableUpdate.value && !restarting.value && updatesEnabled.value && !updatesPaused.value,
-	),
+    progress,
+    metered,
+    finishedDownloading,
+    downloading,
+    restarting,
+    availableUpdate,
+    updateSize,
+    updatesEnabled,
+    updatesPaused,
+    downloadProgress: computed(() => progress.value),
+    downloadPercent: computed(() => Math.trunc(progress.value * 100)),
+    isVisible: computed(
+        () =>
+            !!availableUpdate.value &&
+            !restarting.value &&
+            updatesEnabled.value &&
+            !updatesPaused.value,
+    ),
 }
 
 function readPromptState(): UpdatePromptState | null {
-	try {
-		const raw = localStorage.getItem(UPDATE_PROMPT_STORAGE_KEY)
-		if (!raw) {
-			return null
-		}
+    try {
+        const raw = localStorage.getItem(UPDATE_PROMPT_STORAGE_KEY)
+        if (!raw) {
+            return null
+        }
 
-		const parsed = JSON.parse(raw) as Partial<UpdatePromptState>
-		if (!parsed.version || typeof parsed.actionableSince !== 'number') {
-			return null
-		}
+        const parsed = JSON.parse(raw) as Partial<UpdatePromptState>
+        if (!parsed.version || typeof parsed.actionableSince !== 'number') {
+            return null
+        }
 
-		return {
-			...parsed,
-			stage: parsed.stage ?? 'available',
-		} as UpdatePromptState
-	} catch {
-		return null
-	}
+        return {
+            ...parsed,
+            stage: parsed.stage ?? 'available',
+        } as UpdatePromptState
+    } catch {
+        return null
+    }
 }
 
 function writePromptState(state: UpdatePromptState): void {
-	try {
-		localStorage.setItem(UPDATE_PROMPT_STORAGE_KEY, JSON.stringify(state))
-	} catch (error) {
-		console.warn('Failed to persist update prompt state:', error)
-	}
+    try {
+        localStorage.setItem(UPDATE_PROMPT_STORAGE_KEY, JSON.stringify(state))
+    } catch (error) {
+        console.warn('Failed to persist update prompt state:', error)
+    }
 }
 
 export function markAppUpdateActionable(
-	version: string,
-	stage: AppUpdatePromptStage = 'available',
-	now = Date.now(),
+    version: string,
+    stage: AppUpdatePromptStage = 'available',
+    now = Date.now(),
 ): void {
-	const existing = readPromptState()
-	if (existing?.version === version && existing.stage === stage) {
-		return
-	}
+    const existing = readPromptState()
+    if (existing?.version === version && existing.stage === stage) {
+        return
+    }
 
-	writePromptState({
-		version,
-		stage,
-		actionableSince: now,
-	})
+    writePromptState({
+        version,
+        stage,
+        actionableSince: now,
+    })
 }
 
 export function recordAppUpdateUserAction(
-	version = availableUpdate.value?.version,
-	stage: AppUpdatePromptStage = getCurrentAppUpdatePromptStage(),
+    version = availableUpdate.value?.version,
+    stage: AppUpdatePromptStage = getCurrentAppUpdatePromptStage(),
 ): void {
-	if (!version) {
-		return
-	}
+    if (!version) {
+        return
+    }
 
-	const now = Date.now()
-	const existing = readPromptState()
-	const isSamePrompt = existing?.version === version && existing.stage === stage
-	writePromptState({
-		version,
-		stage,
-		actionableSince: isSamePrompt ? existing.actionableSince : now,
-		lastUserActionAt: now,
-		popupShownAt: isSamePrompt ? existing.popupShownAt : undefined,
-	})
+    const now = Date.now()
+    const existing = readPromptState()
+    const isSamePrompt = existing?.version === version && existing.stage === stage
+    writePromptState({
+        version,
+        stage,
+        actionableSince: isSamePrompt ? existing.actionableSince : now,
+        lastUserActionAt: now,
+        popupShownAt: isSamePrompt ? existing.popupShownAt : undefined,
+    })
 }
 
 export function markAppUpdatePopupShown(
-	version: string,
-	stage: AppUpdatePromptStage = 'available',
-	now = Date.now(),
+    version: string,
+    stage: AppUpdatePromptStage = 'available',
+    now = Date.now(),
 ): void {
-	const existing = readPromptState()
-	const isSamePrompt = existing?.version === version && existing.stage === stage
-	writePromptState({
-		version,
-		stage,
-		actionableSince: isSamePrompt ? existing.actionableSince : now,
-		lastUserActionAt: isSamePrompt ? existing.lastUserActionAt : undefined,
-		popupShownAt: now,
-	})
+    const existing = readPromptState()
+    const isSamePrompt = existing?.version === version && existing.stage === stage
+    writePromptState({
+        version,
+        stage,
+        actionableSince: isSamePrompt ? existing.actionableSince : now,
+        lastUserActionAt: isSamePrompt ? existing.lastUserActionAt : undefined,
+        popupShownAt: now,
+    })
 }
 
 export function getNextAppUpdatePopupTime(
-	version: string,
-	stage: AppUpdatePromptStage = 'available',
+    version: string,
+    stage: AppUpdatePromptStage = 'available',
 ): number | null {
-	const existing = readPromptState()
-	if (existing?.version !== version || existing.stage !== stage || existing.popupShownAt) {
-		return null
-	}
+    const existing = readPromptState()
+    if (existing?.version !== version || existing.stage !== stage || existing.popupShownAt) {
+        return null
+    }
 
-	return (
-		Math.max(existing.actionableSince, existing.lastUserActionAt ?? 0) + APP_UPDATE_POPUP_DELAY_MS
-	)
+    return (
+        Math.max(existing.actionableSince, existing.lastUserActionAt ?? 0) +
+        APP_UPDATE_POPUP_DELAY_MS
+    )
 }
 
 export function setAppUpdateActions(nextActions: AppUpdateActions): void {
-	actions = nextActions
+    actions = nextActions
 }
 
 export async function checkForAppUpdate(): Promise<AppUpdateCheckResult> {
-	return (await actions.check?.()) ?? 'disabled'
+    return (await actions.check?.()) ?? 'disabled'
 }
 
 export async function downloadAvailableAppUpdate(): Promise<void> {
-	recordAppUpdateUserAction(undefined, 'available')
-	await actions.download?.()
+    recordAppUpdateUserAction(undefined, 'available')
+    await actions.download?.()
 }
 
 export async function installAvailableAppUpdate(): Promise<void> {
-	recordAppUpdateUserAction(undefined, 'downloaded')
-	await actions.install?.()
+    recordAppUpdateUserAction(undefined, 'downloaded')
+    await actions.install?.()
 }
 
 export async function openAppUpdateChangelog(
-	version = availableUpdate.value?.version,
+    version = availableUpdate.value?.version,
 ): Promise<void> {
-	recordAppUpdateUserAction()
-	await actions.changelog?.(version)
+    recordAppUpdateUserAction()
+    await actions.changelog?.(version)
 }

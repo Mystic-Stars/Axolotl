@@ -5,70 +5,70 @@ import { createContext } from '#ui/providers/create-context'
 import type { LogLine, LogSource } from '../types'
 
 export interface LocalCrashAnalysis {
-	crashed: boolean
-	sources: Array<{ filename: string; source_type: string; line_count: number }>
-	findings: Array<{
-		id: string
-		confidence: string
-		evidence: Array<{ filename: string; line: number; text: string }>
-	}>
-	mods: Array<{
-		file_name: string
-		id?: string
-		name?: string
-		matched_class?: string
-	}>
-	mod_changes: Array<{
-		kind: 'added' | 'removed' | 'modified'
-		filename: string
-		previous_size?: number
-		current_size?: number
-		current_sha256?: string
-		project_id?: string
-		project_title?: string
-		icon_url?: string
-		version_id?: string
-		version_number?: string
-	}>
-	mod_change_counts: { added: number; removed: number; modified: number }
-	windows_events: Array<{
-		event_id: number
-		provider: string
-		time_created: string
-		message: string
-	}>
+    crashed: boolean
+    sources: Array<{ filename: string; source_type: string; line_count: number }>
+    findings: Array<{
+        id: string
+        confidence: string
+        evidence: Array<{ filename: string; line: number; text: string }>
+    }>
+    mods: Array<{
+        file_name: string
+        id?: string
+        name?: string
+        matched_class?: string
+    }>
+    mod_changes: Array<{
+        kind: 'added' | 'removed' | 'modified'
+        filename: string
+        previous_size?: number
+        current_size?: number
+        current_sha256?: string
+        project_id?: string
+        project_title?: string
+        icon_url?: string
+        version_id?: string
+        version_number?: string
+    }>
+    mod_change_counts: { added: number; removed: number; modified: number }
+    windows_events: Array<{
+        event_id: number
+        provider: string
+        time_created: string
+        message: string
+    }>
 }
 
 export interface ConsoleManagerContext {
-	logLines: Ref<LogLine[]>
+    logLines: Ref<LogLine[]>
 
-	logSources?: ComputedRef<LogSource[]>
-	activeLogSourceIndex?: Ref<number>
+    logSources?: ComputedRef<LogSource[]>
+    activeLogSourceIndex?: Ref<number>
 
-	sendCommand?: (cmd: string) => void
-	showCommandInput?: boolean | Ref<boolean> | ComputedRef<boolean>
-	disableCommandInput?: boolean | Ref<boolean> | ComputedRef<boolean>
-	disableCommandInputTooltip?: string | Ref<string | undefined> | ComputedRef<string | undefined>
+    sendCommand?: (cmd: string) => void
+    showCommandInput?: boolean | Ref<boolean> | ComputedRef<boolean>
+    disableCommandInput?: boolean | Ref<boolean> | ComputedRef<boolean>
+    disableCommandInputTooltip?: string | Ref<string | undefined> | ComputedRef<string | undefined>
 
-	loading?: Ref<boolean> | ComputedRef<boolean>
+    loading?: Ref<boolean> | ComputedRef<boolean>
 
-	onClear?: () => void
-	clearDisabled?: Ref<boolean> | ComputedRef<boolean>
-	clearDisabledTooltip?: string | Ref<string | undefined> | ComputedRef<string | undefined>
-	onDelete?: () => Promise<void>
-	deleteDisabled?: Ref<boolean> | ComputedRef<boolean>
-	deleteDisabledTooltip?: string | Ref<string | undefined> | ComputedRef<string | undefined>
+    onClear?: () => void
+    clearDisabled?: Ref<boolean> | ComputedRef<boolean>
+    clearDisabledTooltip?: string | Ref<string | undefined> | ComputedRef<string | undefined>
+    onDelete?: () => Promise<void>
+    deleteDisabled?: Ref<boolean> | ComputedRef<boolean>
+    deleteDisabledTooltip?: string | Ref<string | undefined> | ComputedRef<string | undefined>
 
-	shareDisabled?: Ref<boolean> | ComputedRef<boolean>
+    shareDisabled?: Ref<boolean> | ComputedRef<boolean>
 
-	emptyStateType?: 'server' | 'instance'
+    emptyStateType?: 'server' | 'instance'
 
-	localCrashAnalysis?: Ref<LocalCrashAnalysis | null>
-	crashAnalysisLoading?: Ref<boolean>
-	onExportCrashContext?: () => Promise<void>
+    localCrashAnalysis?: Ref<LocalCrashAnalysis | null>
+    crashAnalysisLoading?: Ref<boolean>
+    onExportCrashContext?: () => Promise<void>
 }
 
 export const [injectConsoleManager, provideConsoleManager] = createContext<ConsoleManagerContext>(
-	'ConsolePageLayout',
-	'consoleManagerContext',
+    'ConsolePageLayout',
+    'consoleManagerContext',
 )

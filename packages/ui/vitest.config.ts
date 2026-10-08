@@ -18,20 +18,20 @@ import viteConfig from './vite.config'
  * loader behave the same as in the real build.
  */
 export default mergeConfig(
-	viteConfig,
-	defineConfig({
-		test: {
-			include: ['src/**/*.visual.spec.ts'],
-			browser: {
-				enabled: true,
-				provider: playwright(),
-				instances: [{ browser: 'chromium' }],
-				headless: true,
-				// Vitest's default (63315) can land inside a Windows Hyper-V/WSL
-				// reserved port range, where binding fails with EACCES rather
-				// than the port merely being busy, so the run cannot start.
-				api: 51234,
-			},
-		},
-	}),
+    viteConfig,
+    defineConfig({
+        test: {
+            include: ['src/**/*.visual.spec.ts'],
+            browser: {
+                enabled: true,
+                provider: playwright(),
+                instances: [{ browser: 'chromium' }],
+                headless: true,
+                // Vitest's default (63315) can land inside a Windows Hyper-V/WSL
+                // reserved port range, where binding fails with EACCES rather
+                // than the port merely being busy, so the run cannot start.
+                api: 51234,
+            },
+        },
+    }),
 )

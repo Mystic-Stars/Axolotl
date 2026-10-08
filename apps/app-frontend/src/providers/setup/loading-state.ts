@@ -11,7 +11,7 @@ import { createLoadingStateCore, provideLoadingState } from '@modrinth/ui'
  * without a second injection round-trip.
  */
 export function setupLoadingStateProvider(): LoadingStateProvider {
-	const provider = createLoadingStateCore({ barEnabled: false })
-	provideLoadingState(provider)
-	return provider
+    const provider = createLoadingStateCore({ barEnabled: false })
+    provideLoadingState(provider)
+    return provider
 }

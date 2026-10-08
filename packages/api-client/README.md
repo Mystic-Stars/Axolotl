@@ -27,8 +27,8 @@ pnpm add @modrinth/api-client @tauri-apps/plugin-http
 import { AuthFeature, GenericModrinthClient, type Labrinth } from '@modrinth/api-client'
 
 const client = new GenericModrinthClient({
-	userAgent: 'my-app/1.0.0',
-	features: [new AuthFeature({ token: process.env.MODRINTH_TOKEN })],
+  userAgent: 'my-app/1.0.0',
+  features: [new AuthFeature({ token: process.env.MODRINTH_TOKEN })],
 })
 
 const project: Labrinth.Projects.v2.Project = await client.labrinth.projects_v2.get('sodium')
@@ -39,8 +39,8 @@ You can still make direct requests through the same platform layer:
 
 ```ts
 const project = await client.request<Labrinth.Projects.v2.Project>('/project/sodium', {
-	api: 'labrinth',
-	version: 2,
+  api: 'labrinth',
+  version: 2,
 })
 ```
 
@@ -50,20 +50,20 @@ const project = await client.request<Labrinth.Projects.v2.Project>('/project/sod
 import { AuthFeature, CircuitBreakerFeature, NuxtCircuitBreakerStorage, NuxtModrinthClient } from '@modrinth/api-client'
 
 export const useModrinthClient = async () => {
-	const config = useRuntimeConfig()
+  const config = useRuntimeConfig()
 
-	return new NuxtModrinthClient({
-		userAgent: 'my-nuxt-app/1.0.0',
-		rateLimitKey: import.meta.server ? config.rateLimitKey : undefined,
-		features: [
-			new AuthFeature({
-				token: process.env.MODRINTH_TOKEN,
-			}),
-			new CircuitBreakerFeature({
-				storage: new NuxtCircuitBreakerStorage(),
-			}),
-		],
-	})
+  return new NuxtModrinthClient({
+    userAgent: 'my-nuxt-app/1.0.0',
+    rateLimitKey: import.meta.server ? config.rateLimitKey : undefined,
+    features: [
+      new AuthFeature({
+        token: process.env.MODRINTH_TOKEN,
+      }),
+      new CircuitBreakerFeature({
+        storage: new NuxtCircuitBreakerStorage(),
+      }),
+    ],
+  })
 }
 ```
 
@@ -74,8 +74,8 @@ import { getVersion } from '@tauri-apps/api/app'
 import { AuthFeature, TauriModrinthClient } from '@modrinth/api-client'
 
 const client = new TauriModrinthClient({
-	userAgent: async () => `modrinth/theseus/${await getVersion()} (support@modrinth.com)`,
-	features: [new AuthFeature({ token: process.env.MODRINTH_TOKEN })],
+  userAgent: async () => `modrinth/theseus/${await getVersion()} (support@modrinth.com)`,
+  features: [new AuthFeature({ token: process.env.MODRINTH_TOKEN })],
 })
 
 const project = await client.labrinth.projects_v2.get('sodium')
@@ -113,8 +113,8 @@ Override them for staging or custom deployments:
 
 ```ts
 const client = new GenericModrinthClient({
-	userAgent: 'my-app/1.0.0',
-	labrinthBaseUrl: 'https://staging-api.modrinth.com',
+  userAgent: 'my-app/1.0.0',
+  labrinthBaseUrl: 'https://staging-api.modrinth.com',
 })
 ```
 
@@ -122,9 +122,9 @@ External APIs can be targeted per request by passing a full URL as `api` and dis
 
 ```ts
 await client.request('/endpoint', {
-	api: 'https://example.com',
-	version: 1,
-	skipAuth: true,
+  api: 'https://example.com',
+  version: 1,
+  skipAuth: true,
 })
 ```
 
@@ -136,7 +136,7 @@ Features wrap requests before they reach the platform implementation:
 import { AuthFeature, CircuitBreakerFeature, RetryFeature } from '@modrinth/api-client'
 
 const client = new GenericModrinthClient({
-	features: [new AuthFeature({ token: async () => process.env.MODRINTH_TOKEN }), new RetryFeature({ maxAttempts: 3, backoffStrategy: 'exponential' }), new CircuitBreakerFeature({ maxFailures: 3, resetTimeout: 30_000 })],
+  features: [new AuthFeature({ token: async () => process.env.MODRINTH_TOKEN }), new RetryFeature({ maxAttempts: 3, backoffStrategy: 'exponential' }), new CircuitBreakerFeature({ maxFailures: 3, resetTimeout: 30_000 })],
 })
 ```
 
@@ -150,7 +150,7 @@ Upload endpoints return an `UploadHandle<T>` with progress and cancellation supp
 const upload = client.kyros.files_v0.uploadFile(path, file)
 
 upload.onProgress(({ progress }) => {
-	console.log(Math.round(progress * 100))
+  console.log(Math.round(progress * 100))
 })
 
 await upload.promise

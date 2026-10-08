@@ -68,12 +68,6 @@
 					"url": "http://127.0.0.1:8000/*"
 				},
 				{
-					"url": "http://*.taila228c5.ts.net/*"
-				},
-				{
-					"url": "https://*.taila228c5.ts.net/*"
-				},
-				{
 					"url": "https://mod.mcimirror.top/*"
 				},
 				{
@@ -148,6 +142,7 @@
 		"logs:default",
 		"metadata:default",
 		"minecraft-skins:default",
+		"mr-auth:default",
 		"mod-translation:default",
 		"instance:default",
 		"install:default",
@@ -175,6 +170,8 @@
 		"terracotta:default",
 		"multiplayer:default",
 		"servers:default",
+		"friends:default",
+		"telemetry:default",
 		"planet-minecraft:default"
 	]
 }

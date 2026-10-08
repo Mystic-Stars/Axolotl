@@ -11,6 +11,48 @@
   "app.action-bar.downloads": {
     "message": "下載"
   },
+  "app.action-bar.downloads.cancel": {
+    "message": "取消下載"
+  },
+  "app.action-bar.downloads.empty": {
+    "message": "沒有進行中的下載"
+  },
+  "app.action-bar.downloads.legacy": {
+    "message": "正在下載。"
+  },
+  "app.action-bar.downloads.phase.downloading-content": {
+    "message": "正在下載內容"
+  },
+  "app.action-bar.downloads.phase.downloading-minecraft": {
+    "message": "正在下載 Minecraft"
+  },
+  "app.action-bar.downloads.phase.downloading-pack": {
+    "message": "正在下載整合包"
+  },
+  "app.action-bar.downloads.phase.finalizing": {
+    "message": "正在完成"
+  },
+  "app.action-bar.downloads.phase.preparing-instance": {
+    "message": "正在準備實例"
+  },
+  "app.action-bar.downloads.phase.preparing-java": {
+    "message": "正在準備 Java"
+  },
+  "app.action-bar.downloads.phase.resolving-pack": {
+    "message": "正在解析整合包"
+  },
+  "app.action-bar.downloads.phase.unknown": {
+    "message": "處理中"
+  },
+  "app.action-bar.downloads.phase.verifying": {
+    "message": "正在驗證"
+  },
+  "app.action-bar.downloads.view-details": {
+    "message": "檢視詳情"
+  },
+  "app.action-bar.downloads.view-history": {
+    "message": "檢視下載記錄"
+  },
   "app.action-bar.exporting-modpack": {
     "message": "正在匯出整合包"
   },
@@ -397,12 +439,6 @@
   },
   "app.appearance-settings.advanced-rendering.title": {
     "message": "進階繪製"
-  },
-  "app.appearance-settings.auto-hide-downloads-button.description": {
-    "message": "沒有進行中的下載任務時隱藏側邊欄中的下載按鈕，有任務時自動顯示。"
-  },
-  "app.appearance-settings.auto-hide-downloads-button.title": {
-    "message": "自動隱藏下載按鈕"
   },
   "app.appearance-settings.auto-install-dependencies.description": {
     "message": "安裝內容時自動下載所需前置。每次安裝前仍可在確認對話方塊中調整選擇。"
@@ -6791,9 +6827,6 @@
   "app.settings.resources.remove-minecraft-directory": {
     "message": "移除 .minecraft 目錄"
   },
-  "app.settings.resources.minecraft-directory-must-end-with": {
-    "message": "所選資料夾名稱必須是 .minecraft。"
-  },
   "app.settings.resources.concurrency.manual": {
     "message": "手動"
   },
@@ -6815,17 +6848,14 @@
   "app.settings.resources.database-backups-description": {
     "message": "重要應用程式的資料備份保存在這裡，以便日後需要時復原。"
   },
-  "app.settings.resources.download-engine": {
-    "message": "下載引擎"
+  "app.settings.resources.doh-enabled": {
+    "message": "使用 DNS over HTTPS"
   },
-  "app.settings.resources.download-engine-description": {
-    "message": "選擇啟動器使用的下載引擎。"
+  "app.settings.resources.doh-settings": {
+    "message": "DNS over HTTPS"
   },
-  "app.settings.resources.download-engine.legacy": {
-    "message": "原生引擎"
-  },
-  "app.settings.resources.download-engine.xmcl": {
-    "message": "XMCL 相容"
+  "app.settings.resources.doh-settings-description": {
+    "message": "透過內建的加密 DNS 服務池解析下載網域。"
   },
   "app.settings.resources.download-mirrors": {
     "message": "下載來源"
@@ -6976,9 +7006,6 @@
   },
   "app.settings.resources.source.open-bmcl-api": {
     "message": "OpenBMCLAPI 鏡像"
-  },
-  "app.settings.resources.source.tianpao": {
-    "message": "Tianpao 鏡像"
   },
   "app.settings.resources.system-downloads-directory": {
     "message": "系統 Downloads 資料夾"

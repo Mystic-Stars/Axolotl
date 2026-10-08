@@ -277,10 +277,11 @@ fn cache_read_failure(
         }
         _ => None,
     };
-    let remote_suffix = remote_error
-        .is_some()
-        .then_some("; remote replacement data was unavailable")
-        .unwrap_or_default();
+    let remote_suffix = if remote_error.is_some() {
+        "; remote replacement data was unavailable"
+    } else {
+        Default::default()
+    };
     crate::ErrorKind::CacheReadError {
         cache_type: cache_type.as_str().to_string(),
         message: format!("{cache_error}{remote_suffix}"),
@@ -2792,21 +2793,20 @@ impl CachedEntry {
                     }
                     if let Some((instance_path, _)) =
                         path.split_once('/').or_else(|| path.split_once('\\'))
+                        && !base_dirs.contains_key(instance_path)
                     {
-                        if !base_dirs.contains_key(instance_path) {
-                            let override_dir = crate::state::instances::adapters::sqlite::instance_rows::get_game_dir_override_by_path(
+                        let override_dir = crate::state::instances::adapters::sqlite::instance_rows::get_game_dir_override_by_path(
                                     instance_path,
                                     &state.pool,
                                 )
                                 .await?;
-                            base_dirs.insert(
-                                instance_path.to_string(),
-                                state.directories.resolve_game_dir(
-                                    instance_path,
-                                    override_dir.as_deref(),
-                                ),
-                            );
-                        }
+                        base_dirs.insert(
+                            instance_path.to_string(),
+                            state.directories.resolve_game_dir(
+                                instance_path,
+                                override_dir.as_deref(),
+                            ),
+                        );
                     }
                 }
 

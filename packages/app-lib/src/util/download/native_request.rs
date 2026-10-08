@@ -3,13 +3,12 @@
 use super::modrinth_redirect::repair_official_redirect as repair_official_cdn_redirect;
 use crate::ErrorKind;
 use crate::util::fetch::{
-    DIRECT_REQWEST_CLIENT, DOWNLOAD_DNS_RESOLVER, DOWNLOAD_META_HEADER,
-    DownloadMeta, DownloadRoute, HTTP1_DIRECT_REQWEST_CLIENT,
-    HTTP1_NO_REDIRECT_REQWEST_CLIENT, MAX_REDIRECT_LOCATION_BYTES,
-    NO_REDIRECT_REQWEST_CLIENT, ProxyPolicy, authority_uses_http1_fallback,
+    DIRECT_REQWEST_CLIENT, DOWNLOAD_META_HEADER, DownloadClients, DownloadMeta,
+    DownloadRoute, MAX_REDIRECT_LOCATION_BYTES, NO_REDIRECT_REQWEST_CLIENT,
+    ProxyPolicy, authority_uses_http1_fallback_for,
     forget_effective_route_authority, is_allowed_download_redirect,
     is_h2_protocol_failure, is_official_modrinth_download_url,
-    is_sensitive_header, record_authority_h2_failure,
+    is_sensitive_header, record_authority_h2_failure_for,
     record_dns_connection_failure, remember_effective_route_authority,
     same_origin, sanitize_url_for_log, url_authority,
 };
@@ -35,8 +34,7 @@ pub(crate) async fn send_path_request_with_clients(
     download_meta: Option<&DownloadMeta>,
     range_start: Option<u64>,
     range_end: Option<u64>,
-    system_client: &reqwest::Client,
-    direct_client: &reqwest::Client,
+    clients: &DownloadClients,
     redirect_target: Option<&AsyncMutex<Option<Url>>>,
 ) -> crate::Result<(reqwest::Response, String)> {
     let original = Url::parse(&route.url)?;
@@ -51,18 +49,17 @@ pub(crate) async fn send_path_request_with_clients(
     };
     let mut reused_redirect_target = current != original;
     for redirect_count in 0..=5 {
-        let fallback_to_http1 = url_authority(current.as_str())
-            .is_some_and(|authority| authority_uses_http1_fallback(&authority));
+        let fallback_to_http1 =
+            url_authority(current.as_str()).is_some_and(|authority| {
+                authority_uses_http1_fallback_for(&authority, route.proxy)
+            });
         let (system_client_for_hop, direct_client_for_hop): (
             &reqwest::Client,
             &reqwest::Client,
         ) = if fallback_to_http1 {
-            (
-                &HTTP1_NO_REDIRECT_REQWEST_CLIENT,
-                &HTTP1_DIRECT_REQWEST_CLIENT,
-            )
+            (&clients.http1_system, &clients.http1_direct)
         } else {
-            (system_client, direct_client)
+            (&clients.system, &clients.direct)
         };
         let client = if route.proxy == ProxyPolicy::Direct {
             direct_client_for_hop
@@ -100,7 +97,11 @@ pub(crate) async fn send_path_request_with_clients(
             Err(error) => {
                 if let Some(host) = record_dns_connection_failure(route, &error)
                 {
-                    DOWNLOAD_DNS_RESOLVER.pre_resolve(&host).await;
+                    crate::util::fetch::prewarm_download_dns_for(
+                        route.proxy,
+                        &[&host],
+                    )
+                    .await;
                 }
                 if !fallback_to_http1
                     && redirect_count < 5
@@ -112,7 +113,7 @@ pub(crate) async fn send_path_request_with_clients(
                         error = %error.without_url(),
                         "HTTP/2 download request failed; retrying over HTTP/1.1"
                     );
-                    record_authority_h2_failure(&authority);
+                    record_authority_h2_failure_for(&authority, route.proxy);
                     continue;
                 }
                 return Err(error.into());
@@ -199,6 +200,10 @@ pub(crate) async fn send_path_request(
     range_start: Option<u64>,
     range_end: Option<u64>,
 ) -> crate::Result<(reqwest::Response, String)> {
+    let clients = DownloadClients::for_request(
+        &NO_REDIRECT_REQWEST_CLIENT,
+        &DIRECT_REQWEST_CLIENT,
+    );
     send_path_request_with_clients(
         route,
         custom_header,
@@ -206,8 +211,7 @@ pub(crate) async fn send_path_request(
         download_meta,
         range_start,
         range_end,
-        &NO_REDIRECT_REQWEST_CLIENT,
-        &DIRECT_REQWEST_CLIENT,
+        &clients,
         None,
     )
     .await

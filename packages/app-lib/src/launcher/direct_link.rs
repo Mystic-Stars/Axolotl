@@ -378,7 +378,7 @@ impl DirectLinkedLaunch {
             self.version_id,
             self.version_json
                 .as_deref()
-                .unwrap_or_else(|| self.dot_minecraft.as_path())
+                .unwrap_or(self.dot_minecraft.as_path())
                 .display()
         );
         format!(
@@ -568,7 +568,7 @@ pub(crate) fn conservative_launch_facts(
     let modern = merged
         .java_version
         .as_ref()
-        .map_or(true, |java| java.major_version >= 17);
+        .is_none_or(|java| java.major_version >= 17);
     (
         modern,
         super::QuickPlayVersion {
@@ -1990,13 +1990,16 @@ mod tests {
         assert_eq!(
             direct.version_json,
             Some(
-                version_dir
-                    .join("1.20.1-fabric.json")
-                    .canonicalize()
-                    .unwrap()
+                crate::util::io::canonicalize(
+                    version_dir.join("1.20.1-fabric.json")
+                )
+                .unwrap()
             )
         );
-        assert_eq!(direct.dot_minecraft, root.path().canonicalize().unwrap());
+        assert_eq!(
+            direct.dot_minecraft,
+            crate::util::io::canonicalize(root.path()).unwrap()
+        );
     }
 
     #[test]
@@ -2105,6 +2108,11 @@ mod tests {
         let root = tempfile::tempdir().unwrap();
         let version = root.path().join("versions/demo");
         std::fs::create_dir_all(&version).unwrap();
+        std::fs::write(
+            version.join("demo.json"),
+            br#"{"id":"demo","mainClass":"net.minecraft.client.main.Main"}"#,
+        )
+        .unwrap();
 
         assert_eq!(
             resolve_content_game_dir(root.path(), &version).unwrap(),
@@ -2572,7 +2580,13 @@ mod tests {
         );
         assert_eq!(
             candidates,
-            vec![launcher.path().join("runtime/jdk17/bin/java")]
+            vec![launcher.path().join("runtime/jdk17").join(
+                if cfg!(windows) {
+                    "bin/java.exe"
+                } else {
+                    "bin/java"
+                }
+            )]
         );
 
         // A relative path escaping the launcher directory degrades to the

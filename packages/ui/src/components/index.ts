@@ -2,11 +2,11 @@ export * from './base'
 export * from './flows'
 export { default as ImageViewerEditor } from './image-viewer-editor/index.vue'
 export type {
-	ImageViewerEditorData,
-	ImageViewerEditorItem,
-	ImageViewerEditorMetadata,
-	ImageViewerEditorSavePayload,
-	ImageViewerEditorSource,
+    ImageViewerEditorData,
+    ImageViewerEditorItem,
+    ImageViewerEditorMetadata,
+    ImageViewerEditorSavePayload,
+    ImageViewerEditorSource,
 } from './image-viewer-editor/types'
 export * from './modal'
 export * from './nav'

@@ -812,15 +812,14 @@ async fn instance_from_metadata(
     metadata: InstanceMetadata,
 ) -> Result<Instance> {
     let mut instance = Instance::from(metadata);
-    if instance.icon_path.is_none() {
-        if let Ok(Some(local_icon)) = local_instance_icon_path(
+    if instance.icon_path.is_none()
+        && let Ok(Some(local_icon)) = local_instance_icon_path(
             &instance.id,
             LOCAL_INSTANCE_ICON_MAX_DIMENSION,
         )
         .await
-        {
-            instance.icon_path = Some(local_icon);
-        }
+    {
+        instance.icon_path = Some(local_icon);
     }
     Ok(instance)
 }

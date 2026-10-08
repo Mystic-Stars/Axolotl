@@ -6,22 +6,22 @@
 import { invoke } from '@tauri-apps/api/core'
 
 export function shouldShowMinecraftCrash(crashed) {
-	return crashed === true
+    return crashed === true
 }
 
 /// Gets all running process IDs with a given instance ID
 /// Returns [u32]
 export async function get_by_instance_id(instanceId) {
-	return await invoke('plugin:process|process_get_by_instance_id', { instanceId })
+    return await invoke('plugin:process|process_get_by_instance_id', { instanceId })
 }
 
 /// Gets all running process IDs
 /// Returns [u32]
 export async function get_all() {
-	return await invoke('plugin:process|process_get_all')
+    return await invoke('plugin:process|process_get_all')
 }
 
 /// Kills a process by UUID
 export async function kill(uuid) {
-	return await invoke('plugin:process|process_kill', { uuid })
+    return await invoke('plugin:process|process_kill', { uuid })
 }

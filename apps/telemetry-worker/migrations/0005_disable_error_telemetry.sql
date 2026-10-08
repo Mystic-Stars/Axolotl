@@ -20,5 +20,5 @@ DELETE FROM platforms;
 
 UPDATE daily_totals
 SET
-	error_occurrences = 0,
-	distinct_error_groups = 0;
+    error_occurrences = 0,
+    distinct_error_groups = 0;

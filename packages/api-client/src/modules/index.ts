@@ -67,61 +67,61 @@ type ModuleConstructor = new (client: AbstractModrinthClient) => AbstractModule
  * TODO: Better way? Probably not
  */
 export const MODULE_REGISTRY = {
-	archon_actions_v1: ArchonActionsV1Module,
-	archon_backups_queue_v1: ArchonBackupsQueueV1Module,
-	archon_backups_v1: ArchonBackupsV1Module,
-	archon_content_v1: ArchonContentV1Module,
-	archon_nodes_internal: ArchonNodesInternalModule,
-	archon_notices_v0: ArchonNoticesV0Module,
-	archon_options_v1: ArchonOptionsV1Module,
-	archon_properties_v1: ArchonPropertiesV1Module,
-	archon_server_users_v1: ArchonServerUsersV1Module,
-	archon_servers_v0: ArchonServersV0Module,
-	archon_servers_v1: ArchonServersV1Module,
-	archon_transfers_internal: ArchonTransfersInternalModule,
-	iso3166_data: ISO3166Module,
-	mclogs_logs_v1: MclogsLogsV1Module,
-	launchermeta_manifest_v0: LauncherMetaManifestV0Module,
-	kyros_content_v1: KyrosContentV1Module,
-	kyros_files_v0: KyrosFilesV0Module,
-	kyros_logs_v1: KyrosLogsV1Module,
-	kyros_upload_sessions_v1: KyrosUploadSessionsV1Module,
-	labrinth_affiliate_internal: LabrinthAffiliateInternalModule,
-	labrinth_analytics_v3: LabrinthAnalyticsV3Module,
-	labrinth_auth_internal: LabrinthAuthInternalModule,
-	labrinth_auth_v2: LabrinthAuthV2Module,
-	labrinth_attribution_internal: LabrinthAttributionInternalModule,
-	labrinth_collections: LabrinthCollectionsModule,
-	labrinth_content_v3: LabrinthContentV3Module,
-	labrinth_external_projects_internal: LabrinthExternalProjectsInternalModule,
-	labrinth_friends_v3: LabrinthFriendsV3Module,
-	labrinth_globals_internal: LabrinthGlobalsInternalModule,
-	labrinth_images_v3: LabrinthImagesV3Module,
-	labrinth_moderation_internal: LabrinthModerationInternalModule,
-	labrinth_notifications_v2: LabrinthNotificationsV2Module,
-	labrinth_oauth_internal: LabrinthOAuthInternalModule,
-	labrinth_organizations_v3: LabrinthOrganizationsV3Module,
-	labrinth_pats_v2: LabrinthPatsV2Module,
-	labrinth_limits_v3: LabrinthLimitsV3Module,
-	labrinth_payout_v3: LabrinthPayoutV3Module,
-	labrinth_payouts_v3: LabrinthPayoutsV3Module,
-	labrinth_projects_v2: LabrinthProjectsV2Module,
-	labrinth_projects_v3: LabrinthProjectsV3Module,
-	labrinth_reports_v3: LabrinthReportsV3Module,
-	labrinth_server_ping_internal: LabrinthServerPingInternalModule,
-	labrinth_sessions_v2: LabrinthSessionsV2Module,
-	labrinth_state: LabrinthStateModule,
-	labrinth_tags_v2: LabrinthTagsV2Module,
-	labrinth_teams_v2: LabrinthTeamsV2Module,
-	labrinth_teams_v3: LabrinthTeamsV3Module,
-	labrinth_tech_review_internal: LabrinthTechReviewInternalModule,
-	labrinth_threads_v3: LabrinthThreadsV3Module,
-	labrinth_users_v2: LabrinthUsersV2Module,
-	labrinth_users_v3: LabrinthUsersV3Module,
-	labrinth_versions_v2: LabrinthVersionsV2Module,
-	labrinth_versions_v3: LabrinthVersionsV3Module,
-	paper_versions_v3: PaperVersionsV3Module,
-	purpur_versions_v2: PurpurVersionsV2Module,
+    archon_actions_v1: ArchonActionsV1Module,
+    archon_backups_queue_v1: ArchonBackupsQueueV1Module,
+    archon_backups_v1: ArchonBackupsV1Module,
+    archon_content_v1: ArchonContentV1Module,
+    archon_nodes_internal: ArchonNodesInternalModule,
+    archon_notices_v0: ArchonNoticesV0Module,
+    archon_options_v1: ArchonOptionsV1Module,
+    archon_properties_v1: ArchonPropertiesV1Module,
+    archon_server_users_v1: ArchonServerUsersV1Module,
+    archon_servers_v0: ArchonServersV0Module,
+    archon_servers_v1: ArchonServersV1Module,
+    archon_transfers_internal: ArchonTransfersInternalModule,
+    iso3166_data: ISO3166Module,
+    mclogs_logs_v1: MclogsLogsV1Module,
+    launchermeta_manifest_v0: LauncherMetaManifestV0Module,
+    kyros_content_v1: KyrosContentV1Module,
+    kyros_files_v0: KyrosFilesV0Module,
+    kyros_logs_v1: KyrosLogsV1Module,
+    kyros_upload_sessions_v1: KyrosUploadSessionsV1Module,
+    labrinth_affiliate_internal: LabrinthAffiliateInternalModule,
+    labrinth_analytics_v3: LabrinthAnalyticsV3Module,
+    labrinth_auth_internal: LabrinthAuthInternalModule,
+    labrinth_auth_v2: LabrinthAuthV2Module,
+    labrinth_attribution_internal: LabrinthAttributionInternalModule,
+    labrinth_collections: LabrinthCollectionsModule,
+    labrinth_content_v3: LabrinthContentV3Module,
+    labrinth_external_projects_internal: LabrinthExternalProjectsInternalModule,
+    labrinth_friends_v3: LabrinthFriendsV3Module,
+    labrinth_globals_internal: LabrinthGlobalsInternalModule,
+    labrinth_images_v3: LabrinthImagesV3Module,
+    labrinth_moderation_internal: LabrinthModerationInternalModule,
+    labrinth_notifications_v2: LabrinthNotificationsV2Module,
+    labrinth_oauth_internal: LabrinthOAuthInternalModule,
+    labrinth_organizations_v3: LabrinthOrganizationsV3Module,
+    labrinth_pats_v2: LabrinthPatsV2Module,
+    labrinth_limits_v3: LabrinthLimitsV3Module,
+    labrinth_payout_v3: LabrinthPayoutV3Module,
+    labrinth_payouts_v3: LabrinthPayoutsV3Module,
+    labrinth_projects_v2: LabrinthProjectsV2Module,
+    labrinth_projects_v3: LabrinthProjectsV3Module,
+    labrinth_reports_v3: LabrinthReportsV3Module,
+    labrinth_server_ping_internal: LabrinthServerPingInternalModule,
+    labrinth_sessions_v2: LabrinthSessionsV2Module,
+    labrinth_state: LabrinthStateModule,
+    labrinth_tags_v2: LabrinthTagsV2Module,
+    labrinth_teams_v2: LabrinthTeamsV2Module,
+    labrinth_teams_v3: LabrinthTeamsV3Module,
+    labrinth_tech_review_internal: LabrinthTechReviewInternalModule,
+    labrinth_threads_v3: LabrinthThreadsV3Module,
+    labrinth_users_v2: LabrinthUsersV2Module,
+    labrinth_users_v3: LabrinthUsersV3Module,
+    labrinth_versions_v2: LabrinthVersionsV2Module,
+    labrinth_versions_v3: LabrinthVersionsV3Module,
+    paper_versions_v3: PaperVersionsV3Module,
+    purpur_versions_v2: PurpurVersionsV2Module,
 } as const satisfies Record<string, ModuleConstructor>
 
 export type ModuleID = keyof typeof MODULE_REGISTRY
@@ -134,15 +134,15 @@ export type ModuleID = keyof typeof MODULE_REGISTRY
  * @throws Error if module ID doesn't match expected format
  */
 export function parseModuleID(id: string): [string, string] {
-	const parts = id.split('_')
-	if (parts.length < 2) {
-		throw new Error(
-			`Invalid module ID "${id}". Expected format: <api>_<module> (e.g., "labrinth_projects_v2")`,
-		)
-	}
-	const api = parts[0]
-	const moduleName = parts.slice(1).join('_')
-	return [api, moduleName]
+    const parts = id.split('_')
+    if (parts.length < 2) {
+        throw new Error(
+            `Invalid module ID "${id}". Expected format: <api>_<module> (e.g., "labrinth_projects_v2")`,
+        )
+    }
+    const api = parts[0]
+    const moduleName = parts.slice(1).join('_')
+    return [api, moduleName]
 }
 
 /**
@@ -160,19 +160,19 @@ export function parseModuleID(id: string): [string, string] {
  * @returns Nested structure organized by API namespace
  */
 export function buildModuleStructure(): Record<string, Record<string, ModuleConstructor>> {
-	const structure: Record<string, Record<string, ModuleConstructor>> = {}
+    const structure: Record<string, Record<string, ModuleConstructor>> = {}
 
-	for (const [id, constructor] of Object.entries(MODULE_REGISTRY)) {
-		const [api, moduleName] = parseModuleID(id)
+    for (const [id, constructor] of Object.entries(MODULE_REGISTRY)) {
+        const [api, moduleName] = parseModuleID(id)
 
-		if (!structure[api]) {
-			structure[api] = {}
-		}
+        if (!structure[api]) {
+            structure[api] = {}
+        }
 
-		structure[api][moduleName] = constructor
-	}
+        structure[api][moduleName] = constructor
+    }
 
-	return structure
+    return structure
 }
 
 /**
@@ -186,8 +186,8 @@ type ParseAPI<T extends string> = T extends `${infer API}_${string}` ? API : nev
  * @example ParseModule<'labrinth_projects_v2', 'labrinth'> = 'projects_v2'
  */
 type ParseModule<T extends string, API extends string> = T extends `${API}_${infer Module}`
-	? Module
-	: never
+    ? Module
+    : never
 
 /**
  * Group registry modules by API namespace
@@ -198,11 +198,11 @@ type ParseModule<T extends string, API extends string> = T extends `${API}_${inf
  * ```
  */
 type GroupByAPI<Registry extends Record<string, ModuleConstructor>> = {
-	[API in ParseAPI<keyof Registry & string>]: {
-		[Module in ParseModule<keyof Registry & string, API>]: InstanceType<
-			Registry[`${API}_${Module}`]
-		>
-	}
+    [API in ParseAPI<keyof Registry & string>]: {
+        [Module in ParseModule<keyof Registry & string, API>]: InstanceType<
+            Registry[`${API}_${Module}`]
+        >
+    }
 }
 
 /**

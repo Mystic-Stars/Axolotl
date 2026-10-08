@@ -14,30 +14,30 @@ import { injectLoadingState } from '#ui/providers/loading-state'
  * Safe to call without a provider mounted; becomes a no-op.
  */
 export function useLoadingBarToken(pending: Ref<boolean>): void {
-	const loadingState = injectLoadingState(null)
-	if (!loadingState) return
+    const loadingState = injectLoadingState(null)
+    if (!loadingState) return
 
-	let token: symbol | null = null
+    let token: symbol | null = null
 
-	function release() {
-		if (token) {
-			loadingState.end(token)
-			token = null
-		}
-	}
+    function release() {
+        if (token) {
+            loadingState.end(token)
+            token = null
+        }
+    }
 
-	watch(
-		pending,
-		(now) => {
-			if (typeof window === 'undefined') return
-			if (now && !token) {
-				token = loadingState.begin()
-			} else if (!now) {
-				release()
-			}
-		},
-		{ immediate: true },
-	)
+    watch(
+        pending,
+        (now) => {
+            if (typeof window === 'undefined') return
+            if (now && !token) {
+                token = loadingState.begin()
+            } else if (!now) {
+                release()
+            }
+        },
+        { immediate: true },
+    )
 
-	onBeforeUnmount(release)
+    onBeforeUnmount(release)
 }

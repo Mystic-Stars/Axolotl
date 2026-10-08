@@ -6,6 +6,7 @@
 //! the approach used by HMCL and PCL.
 
 use std::collections::HashMap;
+use std::future::Future;
 use std::io::Read;
 use std::path::{Path, PathBuf};
 
@@ -16,10 +17,11 @@ use daedalus::modded::{LoaderVersion, PartialVersionInfo};
 use reqwest::Method;
 use serde::Deserialize;
 use tokio::process::Command;
+use tokio_util::sync::CancellationToken;
 
 use crate::State;
 use crate::util::fetch::{
-    ContentValidation, DownloadRequest, Integrity, ResourceClass,
+    self, ContentValidation, DownloadRequest, Integrity, ResourceClass,
     download_to_path, fetch_json,
 };
 use crate::util::io;
@@ -29,6 +31,8 @@ pub const OPTIFINE_LOADER_PREFIX: &str = "OptiFine_";
 const OPTIFINE_TWEAK_CLASS: &str = "optifine.OptiFineTweaker";
 const LAUNCH_WRAPPER_MAIN_CLASS: &str = "net.minecraft.launchwrapper.Launch";
 const FALLBACK_LAUNCH_WRAPPER: &str = "net.minecraft:launchwrapper:1.12";
+const OPTIFINE_TWEAK_ENTRY: &str = "optifine/OptiFineTweaker.class";
+const LAUNCH_WRAPPER_ENTRY: &str = "net/minecraft/launchwrapper/Launch.class";
 
 #[derive(Deserialize, Debug, Clone)]
 struct BmclapiOptifineEntry {
@@ -339,6 +343,95 @@ fn extract_installer_entry(
     Ok(())
 }
 
+async fn validate_runtime_jar(
+    path: &Path,
+    required_entry: &str,
+) -> crate::Result<()> {
+    fetch::validate_file_content(path, ContentValidation::Jar).await?;
+    let path = path.to_path_buf();
+    let required_entry = required_entry.to_string();
+    tokio::task::spawn_blocking(move || -> crate::Result<()> {
+        let file = std::fs::File::open(&path)
+            .map_err(|error| io::IOError::with_path(error, &path))?;
+        let mut archive = zip::ZipArchive::new(file).map_err(|error| {
+            crate::ErrorKind::LauncherError(format!(
+                "Invalid runtime JAR {}: {error}",
+                path.display()
+            ))
+        })?;
+        let mut entry = archive.by_name(&required_entry).map_err(|error| {
+            crate::ErrorKind::LauncherError(format!(
+                "Runtime JAR {} is missing {required_entry}: {error}",
+                path.display()
+            ))
+        })?;
+        if entry.size() == 0 {
+            return Err(crate::ErrorKind::LauncherError(format!(
+                "Runtime JAR {} contains an empty {required_entry}",
+                path.display()
+            ))
+            .into());
+        }
+        std::io::copy(&mut entry, &mut std::io::sink())?;
+        Ok(())
+    })
+    .await?
+}
+
+fn check_cancellation(cancellation: &CancellationToken) -> crate::Result<()> {
+    if cancellation.is_cancelled() {
+        return Err(crate::ErrorKind::LauncherError(
+            "OptiFine installation canceled".to_string(),
+        )
+        .into());
+    }
+    Ok(())
+}
+
+/// Publishes a completed runtime JAR while keeping failed builds outside the cache.
+async fn publish_runtime_jar<F, Fut>(
+    target: &Path,
+    repairing: bool,
+    required_entry: &str,
+    cancellation: &CancellationToken,
+    build: F,
+) -> crate::Result<()>
+where
+    F: FnOnce(PathBuf) -> Fut + Send,
+    Fut: Future<Output = crate::Result<()>> + Send,
+{
+    let lock = fetch::destination_download_lock(target);
+    let _guard = lock.lock().await;
+    check_cancellation(cancellation)?;
+    if !repairing && validate_runtime_jar(target, required_entry).await.is_ok()
+    {
+        check_cancellation(cancellation)?;
+        return Ok(());
+    }
+    let parent = target.parent().ok_or_else(|| {
+        crate::ErrorKind::LauncherError(format!(
+            "Runtime JAR has no parent directory: {}",
+            target.display()
+        ))
+    })?;
+    io::create_dir_all(parent).await?;
+    let staging = tempfile::tempdir_in(parent)
+        .map_err(|error| io::IOError::with_path(error, parent))?;
+    let output = staging.path().join("output.jar");
+    tokio::select! {
+        biased;
+        _ = cancellation.cancelled() => { check_cancellation(cancellation)?; }
+        result = build(output.clone()) => { result?; }
+    }
+    check_cancellation(cancellation)?;
+    validate_runtime_jar(&output, required_entry).await?;
+    let bytes = io::read(&output).await?;
+    check_cancellation(cancellation)?;
+    io::write(target, bytes).await?;
+    check_cancellation(cancellation)?;
+    Ok(())
+}
+
 /// Materializes the OptiFine libraries after the vanilla client jar has been
 /// downloaded: extracts the bundled LaunchWrapper and produces the OptiFine
 /// library jar, running the installer's patcher against the client jar when
@@ -349,6 +442,8 @@ pub(crate) async fn install_optifine_libraries(
     game_version: &str,
     loader_version_id: &str,
     client_jar_path: &Path,
+    repairing: bool,
+    cancellation: &CancellationToken,
 ) -> crate::Result<()> {
     let of_id = strip_loader_prefix(loader_version_id).to_string();
     let installer = ensure_installer(state, game_version, &of_id).await?;
@@ -363,52 +458,65 @@ pub(crate) async fn install_optifine_libraries(
         let target = libraries_dir.join(daedalus::get_path_from_artifact(
             &info.launchwrapper_library.name,
         )?);
-        if !target.exists() {
-            let installer = installer.clone();
-            tokio::task::spawn_blocking(move || {
-                extract_installer_entry(&installer, &entry_name, &target)
-            })
-            .await??;
-        }
+        let embedded_installer = installer.clone();
+        publish_runtime_jar(
+            &target,
+            repairing,
+            LAUNCH_WRAPPER_ENTRY,
+            cancellation,
+            |output| async move {
+                tokio::task::spawn_blocking(move || {
+                    extract_installer_entry(
+                        &embedded_installer,
+                        &entry_name,
+                        &output,
+                    )
+                })
+                .await??;
+                Ok(())
+            },
+        )
+        .await?;
     }
 
     let optifine_target = libraries_dir.join(daedalus::get_path_from_artifact(
         &optifine_library_name(game_version, &of_id),
     )?);
-    if optifine_target.exists() {
-        return Ok(());
-    }
-    if let Some(parent) = optifine_target.parent() {
-        io::create_dir_all(parent).await?;
-    }
-
-    if info.needs_patching {
-        let mut command = Command::new(java_path);
-        command
-            .kill_on_drop(true)
-            .arg("-cp")
-            .arg(&installer)
-            .arg("optifine.Patcher")
-            .arg(client_jar_path)
-            .arg(&installer)
-            .arg(&optifine_target);
-        let output = command.output().await.map_err(|error| {
-            crate::ErrorKind::LauncherError(format!(
-                "Error running OptiFine patcher: {error}"
-            ))
-        })?;
-        if !output.status.success() {
-            return Err(crate::ErrorKind::LauncherError(format!(
-                "OptiFine patcher error: {}",
-                String::from_utf8_lossy(&output.stderr)
-            ))
-            .as_error());
-        }
-    } else {
-        io::copy(&installer, &optifine_target).await?;
-    }
-
-    Ok(())
+    publish_runtime_jar(
+        &optifine_target,
+        repairing,
+        OPTIFINE_TWEAK_ENTRY,
+        cancellation,
+        |output_path| async move {
+            if info.needs_patching {
+                let mut command = Command::new(java_path);
+                command
+                    .kill_on_drop(true)
+                    .arg("-cp")
+                    .arg(&installer)
+                    .arg("optifine.Patcher")
+                    .arg(client_jar_path)
+                    .arg(&installer)
+                    .arg(&output_path);
+                let output = command.output().await.map_err(|error| {
+                    crate::ErrorKind::LauncherError(format!(
+                        "Error running OptiFine patcher: {error}"
+                    ))
+                })?;
+                if !output.status.success() {
+                    return Err(crate::ErrorKind::LauncherError(format!(
+                        "OptiFine patcher error: {}",
+                        String::from_utf8_lossy(&output.stderr)
+                    ))
+                    .as_error());
+                }
+            } else {
+                io::copy(&installer, &output_path).await?;
+            }
+            Ok(())
+        },
+    )
+    .await
 }
 
 /// Downloads the OptiFine jar usable as a Forge/NeoForge mod into the given
@@ -436,37 +544,257 @@ pub async fn install_optifine_as_mod(
         "{OPTIFINE_LOADER_PREFIX}{game_version}_{of_id}.jar"
     ));
     io::create_dir_all(mods_dir).await?;
+    let process_cancellation = cancellation.clone();
 
-    if info.needs_patching {
-        let mut command = Command::new(java_path);
-        command
-            .arg("-cp")
-            .arg(&installer)
-            .arg("optifine.Patcher")
-            .arg(client_jar_path)
-            .arg(&installer)
-            .arg(&target);
-        let output = super::run_instance_install_command(
-            instance_id.to_string(),
-            cancellation,
-            command,
-        )
-        .await
-        .map_err(|error| {
-            crate::ErrorKind::LauncherError(format!(
-                "Error running OptiFine patcher: {error}"
-            ))
-        })?;
-        if !output.status.success() {
-            return Err(crate::ErrorKind::LauncherError(format!(
-                "OptiFine patcher error: {}",
-                String::from_utf8_lossy(&output.stderr)
-            ))
-            .as_error());
-        }
-    } else {
-        io::copy(&installer, &target).await?;
-    }
+    publish_runtime_jar(
+        &target,
+        true,
+        OPTIFINE_TWEAK_ENTRY,
+        &cancellation,
+        |output_path| async move {
+            if info.needs_patching {
+                let mut command = Command::new(java_path);
+                command
+                    .arg("-cp")
+                    .arg(&installer)
+                    .arg("optifine.Patcher")
+                    .arg(client_jar_path)
+                    .arg(&installer)
+                    .arg(&output_path);
+                let output = super::run_instance_install_command(
+                    instance_id.to_string(),
+                    process_cancellation,
+                    command,
+                )
+                .await
+                .map_err(|error| {
+                    crate::ErrorKind::LauncherError(format!(
+                        "Error running OptiFine patcher: {error}"
+                    ))
+                })?;
+                if !output.status.success() {
+                    return Err(crate::ErrorKind::LauncherError(format!(
+                        "OptiFine patcher error: {}",
+                        String::from_utf8_lossy(&output.stderr)
+                    ))
+                    .as_error());
+                }
+            } else {
+                io::copy(&installer, &output_path).await?;
+            }
+            Ok(())
+        },
+    )
+    .await?;
 
     Ok(target)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::io::Write as _;
+    use std::sync::atomic::{AtomicUsize, Ordering};
+
+    fn runtime_jar(entry: &str, payload: &[u8]) -> Vec<u8> {
+        let mut archive = zip::ZipWriter::new(std::io::Cursor::new(Vec::new()));
+        archive
+            .start_file(entry, zip::write::SimpleFileOptions::default())
+            .unwrap();
+        archive.write_all(payload).unwrap();
+        archive.finish().unwrap().into_inner()
+    }
+
+    async fn publish(
+        target: &Path,
+        repairing: bool,
+        bytes: Vec<u8>,
+    ) -> crate::Result<()> {
+        publish_runtime_jar(
+            target,
+            repairing,
+            OPTIFINE_TWEAK_ENTRY,
+            &CancellationToken::new(),
+            |output| async move {
+                io::write(output, bytes).await?;
+                Ok(())
+            },
+        )
+        .await
+    }
+
+    #[tokio::test]
+    async fn healthy_cache_is_reused_and_explicit_repair_rebuilds_it() {
+        let directory = tempfile::tempdir().unwrap();
+        let target = directory.path().join("OptiFine.jar");
+        let old = runtime_jar(OPTIFINE_TWEAK_ENTRY, b"old class");
+        io::write(&target, &old).await.unwrap();
+        publish_runtime_jar(
+            &target,
+            false,
+            OPTIFINE_TWEAK_ENTRY,
+            &CancellationToken::new(),
+            |_| async {
+                Err(crate::ErrorKind::LauncherError(
+                    "healthy cache must not rebuild".to_string(),
+                )
+                .into())
+            },
+        )
+        .await
+        .unwrap();
+        assert_eq!(io::read(&target).await.unwrap(), old);
+        let repaired = runtime_jar(OPTIFINE_TWEAK_ENTRY, b"repaired class");
+        publish(&target, true, repaired.clone()).await.unwrap();
+        assert_eq!(io::read(&target).await.unwrap(), repaired);
+        assert_eq!(std::fs::read_dir(directory.path()).unwrap().count(), 1);
+    }
+
+    #[tokio::test]
+    async fn incomplete_cache_is_rebuilt_without_an_explicit_repair() {
+        let directory = tempfile::tempdir().unwrap();
+        let target = directory.path().join("OptiFine.jar");
+        for invalid in [
+            b"interrupted patch".to_vec(),
+            runtime_jar("unrelated.class", b"unrelated"),
+            runtime_jar(OPTIFINE_TWEAK_ENTRY, b""),
+        ] {
+            io::write(&target, invalid).await.unwrap();
+            let rebuilt = runtime_jar(OPTIFINE_TWEAK_ENTRY, b"complete class");
+            publish(&target, false, rebuilt.clone()).await.unwrap();
+            assert_eq!(io::read(&target).await.unwrap(), rebuilt);
+        }
+    }
+
+    #[tokio::test]
+    async fn failed_patch_never_replaces_the_cache_and_retry_rebuilds() {
+        let directory = tempfile::tempdir().unwrap();
+        let target = directory.path().join("OptiFine.jar");
+        for existing in [
+            None,
+            Some(runtime_jar(OPTIFINE_TWEAK_ENTRY, b"previous class")),
+        ] {
+            if let Some(bytes) = &existing {
+                io::write(&target, bytes).await.unwrap();
+            }
+            let error = publish_runtime_jar(
+                &target,
+                true,
+                OPTIFINE_TWEAK_ENTRY,
+                &CancellationToken::new(),
+                |output| async move {
+                    io::write(output, b"partial output").await?;
+                    Err(crate::ErrorKind::LauncherError(
+                        "patcher failed".to_string(),
+                    )
+                    .into())
+                },
+            )
+            .await
+            .unwrap_err();
+            assert!(error.to_string().contains("patcher failed"));
+            assert_eq!(tokio::fs::read(&target).await.ok(), existing);
+            assert_eq!(
+                std::fs::read_dir(directory.path()).unwrap().count(),
+                usize::from(existing.is_some())
+            );
+            let rebuilt = runtime_jar(OPTIFINE_TWEAK_ENTRY, b"complete class");
+            publish(&target, existing.is_some(), rebuilt.clone())
+                .await
+                .unwrap();
+            assert_eq!(io::read(&target).await.unwrap(), rebuilt);
+        }
+    }
+
+    #[tokio::test]
+    async fn invalid_successful_patch_output_is_not_published() {
+        let directory = tempfile::tempdir().unwrap();
+        let target = directory.path().join("OptiFine.jar");
+        let old = runtime_jar(OPTIFINE_TWEAK_ENTRY, b"previous class");
+        io::write(&target, &old).await.unwrap();
+        for invalid in
+            [b"truncated".to_vec(), runtime_jar("other.class", b"other")]
+        {
+            assert!(publish(&target, true, invalid).await.is_err());
+            assert_eq!(io::read(&target).await.unwrap(), old);
+            assert_eq!(std::fs::read_dir(directory.path()).unwrap().count(), 1);
+        }
+    }
+
+    #[tokio::test]
+    async fn cancellation_after_writing_partial_output_preserves_the_cache() {
+        let directory = tempfile::tempdir().unwrap();
+        let target = directory.path().join("OptiFine.jar");
+        let old = runtime_jar(OPTIFINE_TWEAK_ENTRY, b"previous class");
+        io::write(&target, &old).await.unwrap();
+        let cancellation = CancellationToken::new();
+        let trigger = cancellation.clone();
+        let error = publish_runtime_jar(
+            &target,
+            true,
+            OPTIFINE_TWEAK_ENTRY,
+            &cancellation,
+            |output| async move {
+                io::write(output, b"partial output").await?;
+                trigger.cancel();
+                std::future::pending::<crate::Result<()>>().await
+            },
+        )
+        .await
+        .unwrap_err();
+        assert!(error.to_string().contains("canceled"));
+        assert_eq!(io::read(&target).await.unwrap(), old);
+        assert_eq!(std::fs::read_dir(directory.path()).unwrap().count(), 1);
+    }
+
+    #[tokio::test]
+    async fn concurrent_installs_share_one_validated_cache_build() {
+        let directory = tempfile::tempdir().unwrap();
+        let target = directory.path().join("OptiFine.jar");
+        let builds = AtomicUsize::new(0);
+        let cancellation = CancellationToken::new();
+        let install = || {
+            publish_runtime_jar(
+                &target,
+                false,
+                OPTIFINE_TWEAK_ENTRY,
+                &cancellation,
+                |output| async {
+                    builds.fetch_add(1, Ordering::SeqCst);
+                    io::write(
+                        output,
+                        runtime_jar(OPTIFINE_TWEAK_ENTRY, b"complete class"),
+                    )
+                    .await?;
+                    Ok(())
+                },
+            )
+        };
+        let (first, second) = tokio::join!(install(), install());
+        first.unwrap();
+        second.unwrap();
+        assert_eq!(builds.load(Ordering::SeqCst), 1);
+        assert_eq!(std::fs::read_dir(directory.path()).unwrap().count(), 1);
+    }
+
+    #[tokio::test]
+    async fn embedded_launchwrapper_is_validated_before_cache_reuse() {
+        let directory = tempfile::tempdir().unwrap();
+        let target = directory.path().join("launchwrapper.jar");
+        io::write(&target, b"partial extraction").await.unwrap();
+        let jar = runtime_jar(LAUNCH_WRAPPER_ENTRY, b"launch class");
+        publish_runtime_jar(
+            &target,
+            false,
+            LAUNCH_WRAPPER_ENTRY,
+            &CancellationToken::new(),
+            |output| async {
+                io::write(output, &jar).await?;
+                Ok(())
+            },
+        )
+        .await
+        .unwrap();
+        assert_eq!(io::read(&target).await.unwrap(), jar);
+    }
 }

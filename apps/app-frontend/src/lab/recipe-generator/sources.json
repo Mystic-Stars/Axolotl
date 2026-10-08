@@ -1,23 +1,23 @@
 {
-	"EditedAt": "2026-08-08T00:07:53+08:00",
-	"sources": [
-		{
-			"id": "vanilla-tags",
-			"repository": "https://github.com/destruc7i0n/crafting",
-			"commit": "e6c71dd816216a73cda2787aa5253f641b57fbeb",
-			"license": "MIT",
-			"copyright": "Copyright (c) 2017 TheDestruc7i0n",
-			"licenseFile": "third-party/licenses/MIT.txt",
-			"note": "Expanded item tags."
-		},
-		{
-			"id": "minecraft-textures",
-			"repository": "https://github.com/destruc7i0n/minecraft-textures",
-			"npmVersion": "26.2.1",
-			"license": "GPL-3.0",
-			"author": "TheDestruc7i0n",
-			"licenseFile": "apps/app-frontend/LICENSE",
-			"note": "Item identifiers, readable names, and the texture atlas."
-		}
-	]
+  "EditedAt": "2026-08-08T00:07:53+08:00",
+  "sources": [
+    {
+      "id": "vanilla-tags",
+      "repository": "https://github.com/destruc7i0n/crafting",
+      "commit": "e6c71dd816216a73cda2787aa5253f641b57fbeb",
+      "license": "MIT",
+      "copyright": "Copyright (c) 2017 TheDestruc7i0n",
+      "licenseFile": "third-party/licenses/MIT.txt",
+      "note": "Expanded item tags."
+    },
+    {
+      "id": "minecraft-textures",
+      "repository": "https://github.com/destruc7i0n/minecraft-textures",
+      "npmVersion": "26.2.1",
+      "license": "GPL-3.0",
+      "author": "TheDestruc7i0n",
+      "licenseFile": "apps/app-frontend/LICENSE",
+      "note": "Item identifiers, readable names, and the texture atlas."
+    }
+  ]
 }

@@ -137,7 +137,7 @@ pub async fn list_missing_modpack_files(
 ) -> crate::Result<MissingModpackContentView> {
     let state = State::get().await?;
     let job = waiting_job(job_id, &state).await?;
-    Ok(missing_content_view(&job.state)?)
+    missing_content_view(&job.state)
 }
 
 pub async fn scan_missing_modpack_files(
@@ -560,7 +560,7 @@ fn candidate_file_identity(path: &Path) -> Option<CandidateFileIdentity> {
     unsafe {
         GetFileInformationByHandle(
             HANDLE(file.as_raw_handle()),
-            &mut information,
+            &raw mut information,
         )
         .ok()?;
     }

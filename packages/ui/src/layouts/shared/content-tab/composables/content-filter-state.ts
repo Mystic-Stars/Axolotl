@@ -1,6 +1,6 @@
 export interface ContentFilterSelections {
-	typeFilters: string[]
-	statusFilters: string[]
+    typeFilters: string[]
+    statusFilters: string[]
 }
 
 export const DUPLICATE_FILTER_EMPTY_GRACE_MS = 2000
@@ -13,59 +13,59 @@ export const CONTENT_FILTER_PRUNE_DEBOUNCE_MS = 250
  * can drop the selection (#542 transient vs stably-empty review).
  */
 export function shouldKeepDuplicateFilterOption(input: {
-	supportsDuplicateFilter: boolean
-	ready: boolean
-	hasDuplicateItems: boolean
-	emptyGraceRemainingMs: number
+    supportsDuplicateFilter: boolean
+    ready: boolean
+    hasDuplicateItems: boolean
+    emptyGraceRemainingMs: number
 }): boolean {
-	if (!input.supportsDuplicateFilter) return false
-	return !input.ready || input.hasDuplicateItems || input.emptyGraceRemainingMs > 0
+    if (!input.supportsDuplicateFilter) return false
+    return !input.ready || input.hasDuplicateItems || input.emptyGraceRemainingMs > 0
 }
 
 export interface MetadataFilterOptions {
-	key: string
-	options: Array<{ value: string }>
+    key: string
+    options: Array<{ value: string }>
 }
 
 function cloneMetadataExcluded(excluded: Record<string, string[]>): Record<string, string[]> {
-	return Object.fromEntries(Object.entries(excluded).map(([key, values]) => [key, [...values]]))
+    return Object.fromEntries(Object.entries(excluded).map(([key, values]) => [key, [...values]]))
 }
 
 export function pruneContentFilterSelections(
-	selections: ContentFilterSelections,
-	options: { type: string[]; status: string[] },
-	optionsReady: boolean,
+    selections: ContentFilterSelections,
+    options: { type: string[]; status: string[] },
+    optionsReady: boolean,
 ): ContentFilterSelections {
-	if (!optionsReady) {
-		return {
-			typeFilters: [...selections.typeFilters],
-			statusFilters: [...selections.statusFilters],
-		}
-	}
+    if (!optionsReady) {
+        return {
+            typeFilters: [...selections.typeFilters],
+            statusFilters: [...selections.statusFilters],
+        }
+    }
 
-	const typeOptions = new Set(options.type)
-	const statusOptions = new Set(options.status)
-	return {
-		typeFilters: selections.typeFilters.filter((filter) => typeOptions.has(filter)),
-		statusFilters: selections.statusFilters.filter((filter) => statusOptions.has(filter)),
-	}
+    const typeOptions = new Set(options.type)
+    const statusOptions = new Set(options.status)
+    return {
+        typeFilters: selections.typeFilters.filter((filter) => typeOptions.has(filter)),
+        statusFilters: selections.statusFilters.filter((filter) => statusOptions.has(filter)),
+    }
 }
 
 export function pruneMetadataFilterSelections(
-	excluded: Record<string, string[]>,
-	categories: MetadataFilterOptions[],
-	optionsReady: boolean,
+    excluded: Record<string, string[]>,
+    categories: MetadataFilterOptions[],
+    optionsReady: boolean,
 ): Record<string, string[]> {
-	if (!optionsReady) return cloneMetadataExcluded(excluded)
+    if (!optionsReady) return cloneMetadataExcluded(excluded)
 
-	const categoriesByKey = new Map(categories.map((category) => [category.key, category]))
-	const next: Record<string, string[]> = {}
-	for (const [key, values] of Object.entries(excluded)) {
-		const category = categoriesByKey.get(key)
-		if (!category) continue
-		const validValues = new Set(category.options.map((option) => option.value))
-		const retained = values.filter((value) => validValues.has(value))
-		if (retained.length > 0) next[key] = retained
-	}
-	return next
+    const categoriesByKey = new Map(categories.map((category) => [category.key, category]))
+    const next: Record<string, string[]> = {}
+    for (const [key, values] of Object.entries(excluded)) {
+        const category = categoriesByKey.get(key)
+        if (!category) continue
+        const validValues = new Set(category.options.map((option) => option.value))
+        const retained = values.filter((value) => validValues.has(value))
+        if (retained.length > 0) next[key] = retained
+    }
+    return next
 }

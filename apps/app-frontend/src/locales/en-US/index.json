@@ -65,6 +65,48 @@
   "app.action-bar.downloads": {
     "message": "Downloads"
   },
+  "app.action-bar.downloads.cancel": {
+    "message": "Cancel download"
+  },
+  "app.action-bar.downloads.empty": {
+    "message": "No active downloads"
+  },
+  "app.action-bar.downloads.legacy": {
+    "message": "A download is in progress."
+  },
+  "app.action-bar.downloads.phase.downloading-content": {
+    "message": "Downloading content"
+  },
+  "app.action-bar.downloads.phase.downloading-minecraft": {
+    "message": "Downloading Minecraft"
+  },
+  "app.action-bar.downloads.phase.downloading-pack": {
+    "message": "Downloading modpack"
+  },
+  "app.action-bar.downloads.phase.finalizing": {
+    "message": "Finalizing"
+  },
+  "app.action-bar.downloads.phase.preparing-instance": {
+    "message": "Preparing instance"
+  },
+  "app.action-bar.downloads.phase.preparing-java": {
+    "message": "Preparing Java"
+  },
+  "app.action-bar.downloads.phase.resolving-pack": {
+    "message": "Resolving modpack"
+  },
+  "app.action-bar.downloads.phase.unknown": {
+    "message": "Working"
+  },
+  "app.action-bar.downloads.phase.verifying": {
+    "message": "Verifying"
+  },
+  "app.action-bar.downloads.view-details": {
+    "message": "View details"
+  },
+  "app.action-bar.downloads.view-history": {
+    "message": "View download history"
+  },
   "app.action-bar.exporting-modpack": {
     "message": "Exporting modpack"
   },
@@ -487,12 +529,6 @@
   },
   "app.appearance-settings.advanced-rendering.title": {
     "message": "Advanced rendering"
-  },
-  "app.appearance-settings.auto-hide-downloads-button.description": {
-    "message": "Hide the downloads button in the sidebar when there are no active download tasks."
-  },
-  "app.appearance-settings.auto-hide-downloads-button.title": {
-    "message": "Auto-hide downloads button"
   },
   "app.appearance-settings.auto-install-dependencies.description": {
     "message": "Download required dependencies when installing content. You can adjust the selection in the confirmation dialog before each install."
@@ -3593,6 +3629,45 @@
   "app.instances.view-instance": {
     "message": "View instance"
   },
+  "app.java-arguments.gc.reason.ample-memory-high-cores": {
+    "message": "Ample memory and high CPU core count"
+  },
+  "app.java-arguments.gc.reason.below-zgc-recommendation": {
+    "message": "Resources below ZGC recommendation"
+  },
+  "app.java-arguments.gc.reason.heavy-instance": {
+    "message": "Heavy instance ({loader}, {mods} mods)"
+  },
+  "app.java-arguments.gc.reason.high-resources": {
+    "message": "High resources ({memory}GB, {cores} cores)"
+  },
+  "app.java-arguments.gc.reason.insufficient-cpu": {
+    "message": "Insufficient CPU ({cores} cores / {threads} threads)"
+  },
+  "app.java-arguments.gc.reason.insufficient-memory": {
+    "message": "Insufficient memory ({allocated}GB < 4GB)"
+  },
+  "app.java-arguments.gc.reason.java-too-old": {
+    "message": "Java too old; Shenandoah/ZGC unreliable"
+  },
+  "app.java-arguments.gc.reason.java-version-unknown": {
+    "message": "Java version unknown"
+  },
+  "app.java-arguments.gc.reason.large-modpack-low-memory": {
+    "message": "Large modpack ({mods} mods) but insufficient memory ({allocated}GB < 8GB)"
+  },
+  "app.java-arguments.gc.reason.lightweight-instance": {
+    "message": "Lightweight instance ({loader}, {mods} mods)"
+  },
+  "app.java-arguments.gc.reason.low-resources": {
+    "message": "Low resources ({memory}GB, {cores} cores)"
+  },
+  "app.java-arguments.gc.reason.medium-resources": {
+    "message": "Medium resources ({memory}GB, {cores} cores)"
+  },
+  "app.java-arguments.gc.reason.zgc-non-generational": {
+    "message": "Java < 21; non-generational ZGC performs poorly"
+  },
   "app.java-arguments.presets.applied": {
     "message": "Applied"
   },
@@ -3977,6 +4052,12 @@
   "app.lab.mod-translation.completed-count": {
     "message": "{count} completed"
   },
+  "app.lab.mod-translation.copy-diagnostics": {
+    "message": "Copy diagnostics"
+  },
+  "app.lab.mod-translation.copy-diagnostics-info": {
+    "message": "Copy diagnostic information"
+  },
   "app.lab.mod-translation.description": {
     "message": "Translate any Minecraft mod JAR into Simplified Chinese."
   },
@@ -4064,11 +4145,38 @@
   "app.lab.mod-translation.preparing": {
     "message": "Preparing…"
   },
+  "app.lab.mod-translation.progress.current-batch": {
+    "message": "Batch {completed} / {total}"
+  },
+  "app.lab.mod-translation.progress.recently-written": {
+    "message": "Recently written"
+  },
+  "app.lab.mod-translation.progress.verified-weights": {
+    "message": "Verified {verified} / {total}"
+  },
+  "app.lab.mod-translation.progress.workload-measuring": {
+    "message": "Establishing a verifiable workload…"
+  },
   "app.lab.mod-translation.provider": {
     "message": "AI provider"
   },
   "app.lab.mod-translation.repair-enabled": {
     "message": "Repair difficult translations after verification"
+  },
+  "app.lab.mod-translation.result.changed-files": {
+    "message": "Changed files: {files}"
+  },
+  "app.lab.mod-translation.result.class-text": {
+    "message": "Class text"
+  },
+  "app.lab.mod-translation.result.completed": {
+    "message": "Translation complete"
+  },
+  "app.lab.mod-translation.result.completed-warnings": {
+    "message": "Generated, but some text is still uncovered"
+  },
+  "app.lab.mod-translation.result.mod-label": {
+    "message": "Mod"
   },
   "app.lab.mod-translation.select-file": {
     "message": "Choose a mod JAR"
@@ -4081,6 +4189,15 @@
   },
   "app.lab.mod-translation.start-hint": {
     "message": "Choose a JAR and an AI model to start."
+  },
+  "app.lab.mod-translation.technical-details": {
+    "message": "Technical details"
+  },
+  "app.lab.mod-translation.timeline.empty": {
+    "message": "Waiting for processing events…"
+  },
+  "app.lab.mod-translation.timeline.title": {
+    "message": "Processing timeline ({count})"
   },
   "app.lab.mod-translation.title": {
     "message": "Mod translation"
@@ -6359,6 +6476,9 @@
   "app.navigation.worlds": {
     "message": "Worlds"
   },
+  "app.notification.error-occurred": {
+    "message": "An error occurred"
+  },
   "app.notification.export-error-logs": {
     "message": "Export error logs"
   },
@@ -6665,6 +6785,12 @@
   "app.onboarding.welcome.title": {
     "message": "Everything is ready"
   },
+  "app.page-path.copied": {
+    "message": "Copied"
+  },
+  "app.page-path.copy": {
+    "message": "Copy page path"
+  },
   "app.privacy-consent.continue": {
     "message": "Save and continue"
   },
@@ -6688,6 +6814,30 @@
   },
   "app.privacy-consent.title": {
     "message": "Privacy & security"
+  },
+  "app.privileged-consent.acknowledge": {
+    "message": "I understand the risks and want to enable privileged link actions"
+  },
+  "app.privileged-consent.confirm": {
+    "message": "Enable"
+  },
+  "app.privileged-consent.danger": {
+    "message": "External links will be able to change settings (theme, launch commands, directories, network options, etc.) and stop running games. You will still confirm each action before it executes."
+  },
+  "app.privileged-consent.title": {
+    "message": "Enable privileged link actions?"
+  },
+  "app.privileged-consent.warning": {
+    "message": "These actions can change security-sensitive settings and stop games"
+  },
+  "app.privileged-modal.applied": {
+    "message": "Privileged link applied"
+  },
+  "app.privileged-modal.no-processes": {
+    "message": "No running game processes for this instance"
+  },
+  "app.privileged-modal.stopped": {
+    "message": "Stop request sent"
   },
   "app.project.curseforge.unavailable-description": {
     "message": "The CurseForge project did not return any data."
@@ -7850,11 +8000,11 @@
   "app.settings.about.run.tap-to-start": {
     "message": "Press Space or click to start"
   },
-  "app.settings.about.run.tnt": {
-    "message": "TNT"
-  },
   "app.settings.about.run.title": {
     "message": "Axolotl run"
+  },
+  "app.settings.about.run.tnt": {
+    "message": "TNT"
   },
   "app.settings.about.run.totem": {
     "message": "Totem of Undying"
@@ -9305,8 +9455,23 @@
   "app.settings.privacy.discord-rpc-description": {
     "message": "Show your current launcher or game activity in Discord."
   },
+  "app.settings.privacy.external-scheme": {
+    "message": "Allow external links"
+  },
+  "app.settings.privacy.external-scheme-description": {
+    "message": "Respond to axolotl:// links from browsers and other apps. Turning this off blocks launches, installs and page jumps from outside."
+  },
+  "app.settings.privacy.privileged-scheme": {
+    "message": "Allow privileged link actions"
+  },
+  "app.settings.privacy.privileged-scheme-description": {
+    "message": "Let axolotl:// links change settings and stop game processes. Turning this on requires reading a risk warning; every action still asks for your confirmation."
+  },
   "app.settings.privacy.section-title": {
     "message": "Privacy & data sharing"
+  },
+  "app.settings.privacy.security-title": {
+    "message": "Security"
   },
   "app.settings.privacy.telemetry": {
     "message": "Allow telemetry"
@@ -9356,17 +9521,14 @@
   "app.settings.resources.database-backups-description": {
     "message": "Backups of important app data are stored here in case you need to recover them later."
   },
-  "app.settings.resources.download-engine": {
-    "message": "Download engine"
+  "app.settings.resources.doh-enabled": {
+    "message": "Use DNS over HTTPS"
   },
-  "app.settings.resources.download-engine-description": {
-    "message": "Choose which download engine the launcher uses."
+  "app.settings.resources.doh-settings": {
+    "message": "DNS over HTTPS"
   },
-  "app.settings.resources.download-engine.legacy": {
-    "message": "Native engine"
-  },
-  "app.settings.resources.download-engine.xmcl": {
-    "message": "XMCL-compatible"
+  "app.settings.resources.doh-settings-description": {
+    "message": "Resolve download hosts through a built-in pool of encrypted DNS services."
   },
   "app.settings.resources.download-mirrors": {
     "message": "Download sources"
@@ -9401,14 +9563,14 @@
   "app.settings.resources.minecraft-directory-mode": {
     "message": "Game directory mode"
   },
+  "app.settings.resources.minecraft-directory-mode.automatic": {
+    "message": "Automatic"
+  },
   "app.settings.resources.minecraft-directory-mode.isolated": {
     "message": "Version-isolated"
   },
   "app.settings.resources.minecraft-directory-mode.shared": {
     "message": "Shared .minecraft directory"
-  },
-  "app.settings.resources.minecraft-directory-must-end-with": {
-    "message": "The selected folder must be named .minecraft."
   },
   "app.settings.resources.minecraft-file-source": {
     "message": "Minecraft files, loaders, and Java"
@@ -9559,9 +9721,6 @@
   },
   "app.settings.resources.source.open-bmcl-api": {
     "message": "Prefer OpenBMCLAPI"
-  },
-  "app.settings.resources.source.tianpao": {
-    "message": "Prefer Tianpao"
   },
   "app.settings.resources.system-downloads-directory": {
     "message": "System Downloads folder"
@@ -10699,6 +10858,18 @@
   },
   "app.warning.running-as-admin": {
     "message": "Axolotl is running as administrator. Drag-and-drop file import is disabled in this mode; please restart the launcher without administrator privileges."
+  },
+  "app.window-controls.close": {
+    "message": "Close"
+  },
+  "app.window-controls.maximize": {
+    "message": "Maximize"
+  },
+  "app.window-controls.minimize": {
+    "message": "Minimize"
+  },
+  "app.window-controls.restore": {
+    "message": "Restore"
   },
   "app.world-editor.allow-commands.label": {
     "message": "Allow cheats"
@@ -13201,137 +13372,5 @@
   },
   "unknown-pack-warning-modal.warning.title": {
     "message": "Unknown file warning"
-  },
-  "app.settings.privacy.security-title": {
-    "message": "Security"
-  },
-  "app.settings.privacy.privileged-scheme-description": {
-    "message": "Let axolotl:// links change settings and stop game processes. Turning this on requires reading a risk warning; every action still asks for your confirmation."
-  },
-  "app.settings.privacy.privileged-scheme": {
-    "message": "Allow privileged link actions"
-  },
-  "app.settings.privacy.external-scheme-description": {
-    "message": "Respond to axolotl:// links from browsers and other apps. Turning this off blocks launches, installs and page jumps from outside."
-  },
-  "app.settings.privacy.external-scheme": {
-    "message": "Allow external links"
-  },
-  "app.privileged-modal.stopped": {
-    "message": "Stop request sent"
-  },
-  "app.privileged-modal.no-processes": {
-    "message": "No running game processes for this instance"
-  },
-  "app.privileged-modal.applied": {
-    "message": "Privileged link applied"
-  },
-  "app.privileged-consent.warning": {
-    "message": "These actions can change security-sensitive settings and stop games"
-  },
-  "app.privileged-consent.title": {
-    "message": "Enable privileged link actions?"
-  },
-  "app.privileged-consent.danger": {
-    "message": "External links will be able to change settings (theme, launch commands, directories, network options, etc.) and stop running games. You will still confirm each action before it executes."
-  },
-  "app.privileged-consent.confirm": {
-    "message": "Enable"
-  },
-  "app.privileged-consent.acknowledge": {
-    "message": "I understand the risks and want to enable privileged link actions"
-  },
-  "app.page-path.copy": {
-    "message": "Copy page path"
-  },
-  "app.page-path.copied": {
-    "message": "Copied"
-  },
-  "app.notification.error-occurred": {
-    "message": "An error occurred"
-  },
-  "app.lab.mod-translation.timeline.title": {
-    "message": "Processing timeline ({count})"
-  },
-  "app.lab.mod-translation.timeline.empty": {
-    "message": "Waiting for processing events…"
-  },
-  "app.lab.mod-translation.technical-details": {
-    "message": "Technical details"
-  },
-  "app.lab.mod-translation.result.mod-label": {
-    "message": "Mod"
-  },
-  "app.lab.mod-translation.result.completed-warnings": {
-    "message": "Generated, but some text is still uncovered"
-  },
-  "app.lab.mod-translation.result.completed": {
-    "message": "Translation complete"
-  },
-  "app.lab.mod-translation.result.class-text": {
-    "message": "Class text"
-  },
-  "app.lab.mod-translation.result.changed-files": {
-    "message": "Changed files: {files}"
-  },
-  "app.lab.mod-translation.progress.workload-measuring": {
-    "message": "Establishing a verifiable workload…"
-  },
-  "app.lab.mod-translation.progress.verified-weights": {
-    "message": "Verified {verified} / {total}"
-  },
-  "app.lab.mod-translation.progress.recently-written": {
-    "message": "Recently written"
-  },
-  "app.lab.mod-translation.progress.current-batch": {
-    "message": "Batch {completed} / {total}"
-  },
-  "app.lab.mod-translation.copy-diagnostics-info": {
-    "message": "Copy diagnostic information"
-  },
-  "app.lab.mod-translation.copy-diagnostics": {
-    "message": "Copy diagnostics"
-  },
-  "app.java-arguments.gc.reason.zgc-non-generational": {
-    "message": "Java < 21; non-generational ZGC performs poorly"
-  },
-  "app.java-arguments.gc.reason.medium-resources": {
-    "message": "Medium resources ({memory}GB, {cores} cores)"
-  },
-  "app.java-arguments.gc.reason.low-resources": {
-    "message": "Low resources ({memory}GB, {cores} cores)"
-  },
-  "app.java-arguments.gc.reason.lightweight-instance": {
-    "message": "Lightweight instance ({loader}, {mods} mods)"
-  },
-  "app.java-arguments.gc.reason.large-modpack-low-memory": {
-    "message": "Large modpack ({mods} mods) but insufficient memory ({allocated}GB < 8GB)"
-  },
-  "app.java-arguments.gc.reason.java-version-unknown": {
-    "message": "Java version unknown"
-  },
-  "app.java-arguments.gc.reason.java-too-old": {
-    "message": "Java too old; Shenandoah/ZGC unreliable"
-  },
-  "app.java-arguments.gc.reason.insufficient-memory": {
-    "message": "Insufficient memory ({allocated}GB < 4GB)"
-  },
-  "app.java-arguments.gc.reason.insufficient-cpu": {
-    "message": "Insufficient CPU ({cores} cores / {threads} threads)"
-  },
-  "app.java-arguments.gc.reason.high-resources": {
-    "message": "High resources ({memory}GB, {cores} cores)"
-  },
-  "app.java-arguments.gc.reason.heavy-instance": {
-    "message": "Heavy instance ({loader}, {mods} mods)"
-  },
-  "app.java-arguments.gc.reason.below-zgc-recommendation": {
-    "message": "Resources below ZGC recommendation"
-  },
-  "app.java-arguments.gc.reason.ample-memory-high-cores": {
-    "message": "Ample memory and high CPU core count"
-  },
-  "app.home.widgets.source-settings": {
-    "message": "Widget settings"
   }
 }

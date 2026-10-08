@@ -10,35 +10,35 @@ import TagItem from '../base/TagItem.vue'
 const { formatMessage } = useVIntl()
 
 const props = defineProps<{
-	channel: VersionChannel
+    channel: VersionChannel
 }>()
 
 const RELEASE_CHANNELS = {
-	release: {
-		message: commonMessages.release,
-		bgColor: 'var(--color-green-bg)',
-		color: 'var(--color-green)',
-	},
-	beta: {
-		message: commonMessages.beta,
-		bgColor: 'var(--color-orange-bg)',
-		color: 'var(--color-orange)',
-	},
-	alpha: {
-		message: commonMessages.alpha,
-		bgColor: 'var(--color-red-bg)',
-		color: 'var(--color-red)',
-	},
+    release: {
+        message: commonMessages.release,
+        bgColor: 'var(--color-green-bg)',
+        color: 'var(--color-green)',
+    },
+    beta: {
+        message: commonMessages.beta,
+        bgColor: 'var(--color-orange-bg)',
+        color: 'var(--color-orange)',
+    },
+    alpha: {
+        message: commonMessages.alpha,
+        bgColor: 'var(--color-red-bg)',
+        color: 'var(--color-red)',
+    },
 }
 
 const releaseChannel = computed(() => RELEASE_CHANNELS[props.channel])
 </script>
 
 <template>
-	<TagItem
-		class="py-1.5"
-		:style="{ '--_bg-color': releaseChannel.bgColor, '--_color': releaseChannel.color }"
-	>
-		{{ formatMessage(releaseChannel.message) }}
-	</TagItem>
+    <TagItem
+        class="py-1.5"
+        :style="{ '--_bg-color': releaseChannel.bgColor, '--_color': releaseChannel.color }"
+    >
+        {{ formatMessage(releaseChannel.message) }}
+    </TagItem>
 </template>

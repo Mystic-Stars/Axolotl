@@ -6,22 +6,22 @@
 import { invoke } from '@tauri-apps/api/core'
 
 import {
-	install_cancel_import_plan,
-	install_import_instance,
-	install_start_import_plan,
+    install_cancel_import_plan,
+    install_import_instance,
+    install_start_import_plan,
 } from './install'
 
 /** Create an Axolotl record that directly manages an external version folder. */
 export async function create_direct_link_instance(
-	name,
-	launcherType,
-	basePath,
-	instanceFolder,
-	instancePath = undefined,
+    name,
+    launcherType,
+    basePath,
+    instanceFolder,
+    instancePath = undefined,
 ) {
-	return await invoke('plugin:instance|instance_create_direct_link', {
-		request: { name, launcherType, basePath, instanceFolder, instancePath },
-	})
+    return await invoke('plugin:instance|instance_create_direct_link', {
+        request: { name, launcherType, basePath, instanceFolder, instancePath },
+    })
 }
 
 /*
@@ -45,55 +45,55 @@ export async function create_direct_link_instance(
 /// eg: get_importable_instances("MultiMC", "C:/MultiMC")
 /// returns ["Instance 1", "Instance 2"]
 export async function get_importable_instances(launcherType, basePath) {
-	return await invoke('plugin:import|get_importable_instances', { launcherType, basePath })
+    return await invoke('plugin:import|get_importable_instances', { launcherType, basePath })
 }
 
 /// Import an instance from a launcher type and base path
 /** @param {string|undefined} instancePath @param {string|undefined} gameVersion @param {string|undefined} loader @param {string|undefined} loaderVersion @param {string|null|undefined} gameDirOverride */
 export async function import_instance(
-	launcherType,
-	basePath,
-	instanceFolder,
-	symlink = false,
-	instancePath = undefined,
-	gameVersion = undefined,
-	loader = undefined,
-	loaderVersion = undefined,
-	gameDirOverride = undefined,
+    launcherType,
+    basePath,
+    instanceFolder,
+    symlink = false,
+    instancePath = undefined,
+    gameVersion = undefined,
+    loader = undefined,
+    loaderVersion = undefined,
+    gameDirOverride = undefined,
 ) {
-	return await install_import_instance(
-		launcherType,
-		basePath,
-		instanceFolder,
-		symlink,
-		instancePath,
-		gameVersion,
-		loader,
-		loaderVersion,
-		gameDirOverride,
-	)
+    return await install_import_instance(
+        launcherType,
+        basePath,
+        instanceFolder,
+        symlink,
+        instancePath,
+        gameVersion,
+        loader,
+        loaderVersion,
+        gameDirOverride,
+    )
 }
 
 export async function start_import_plan(request) {
-	return await install_start_import_plan(request)
+    return await install_start_import_plan(request)
 }
 
 export async function cancel_import_plan(requestId) {
-	return await install_cancel_import_plan(requestId)
+    return await install_cancel_import_plan(requestId)
 }
 
 /// Checks if this instance is valid for importing, given a certain launcher type
 /// eg: is_valid_importable_instance("C:/MultiMC/Instance 1", "MultiMC")
 export async function is_valid_importable_instance(instanceFolder, launcherType) {
-	return await invoke('plugin:import|is_valid_importable_instance', {
-		instanceFolder,
-		launcherType,
-	})
+    return await invoke('plugin:import|is_valid_importable_instance', {
+        instanceFolder,
+        launcherType,
+    })
 }
 
 /// Gets the default path for the given launcher type
 /// null if it can't be found or doesn't exist
 /// eg: get_default_launcher_path("MultiMC")
 export async function get_default_launcher_path(launcherType) {
-	return await invoke('plugin:import|get_default_launcher_path', { launcherType })
+    return await invoke('plugin:import|get_default_launcher_path', { launcherType })
 }

@@ -17,5 +17,5 @@ import { tooltipDirective } from '@modrinth/ui/src/directives/tooltip.ts'
  * during SSR anyway.
  */
 export default defineNuxtPlugin((nuxtApp) => {
-	nuxtApp.vueApp.directive('tooltip', tooltipDirective)
+    nuxtApp.vueApp.directive('tooltip', tooltipDirective)
 })

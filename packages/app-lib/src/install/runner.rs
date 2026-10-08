@@ -672,7 +672,7 @@ async fn queue_waiting_job(
         InstallJobStatus::WaitingForUser,
         InstallJobStatus::Queued,
         &job_state,
-        &state,
+        state,
     )
     .await?
     else {
@@ -684,7 +684,7 @@ async fn queue_waiting_job(
     InstallProgressReporter::reset_job(job_id);
     emit_install_job(&record.snapshot()).await?;
     lifecycle::spawn_job(job_id);
-    Ok(store::get_required(job_id, &state).await?.snapshot())
+    Ok(store::get_required(job_id, state).await?.snapshot())
 }
 
 fn prepare_resumed_job(job_state: &mut InstallJobState) {

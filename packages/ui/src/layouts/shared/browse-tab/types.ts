@@ -5,79 +5,79 @@ import type { RouteLocationRaw } from 'vue-router'
 export type BrowseDisplayMode = 'list' | 'compact' | 'grid' | 'gallery'
 
 export interface BrowseDisplayModeOption {
-	id: BrowseDisplayMode
-	label: string
-	icon: Component
+    id: BrowseDisplayMode
+    label: string
+    icon: Component
 }
 
 export interface BrowseSearchResponse {
-	projectHits: (Labrinth.Search.v2.ResultSearchProject & {
-		installed?: boolean
-		installing?: boolean
-		provider: 'modrinth' | 'curseforge' | 'mcarchive' | 'planet_minecraft'
-		provider_project_id?: string
-		author_url?: string
-	})[]
-	serverHits: Labrinth.Search.v3.ResultSearchProject[]
-	total_hits: number
-	per_page: number
+    projectHits: (Labrinth.Search.v2.ResultSearchProject & {
+        installed?: boolean
+        installing?: boolean
+        provider: 'modrinth' | 'curseforge' | 'mcarchive' | 'planet_minecraft'
+        provider_project_id?: string
+        author_url?: string
+    })[]
+    serverHits: Labrinth.Search.v3.ResultSearchProject[]
+    total_hits: number
+    per_page: number
 }
 
 export interface BrowseSelectedProject {
-	id: string
-	name: string
-	iconUrl?: string | null
+    id: string
+    name: string
+    iconUrl?: string | null
 }
 
 export interface BrowseInstallContext {
-	showInstallHeader?: boolean
-	name: string
-	loader: string
-	gameVersion: string
-	serverId?: string | null
-	upstream?: { project_id?: string | null } | null
-	iconSrc?: string | null
-	iconFrameless?: boolean
-	isMedal?: boolean
-	backUrl: string | RouteLocationRaw
-	backLabel: string
-	heading: string
-	warning?: string
-	queuedCount?: number
-	queuedLabel?: string
-	clearQueued?: () => void | Promise<void>
-	onBack?: () => boolean | void | Promise<boolean | void>
-	selectedProjects?: BrowseSelectedProject[]
-	isInstallingSelected?: boolean
-	skipNonEssentialWarnings?: boolean
-	installProgress?: {
-		completed: number
-		total: number
-	}
-	installButtonLabel?: string
-	processingLabel?: string
-	clearSelected?: () => void | Promise<void>
-	discardSelectedAndBack?: () => void | Promise<void>
-	installSelected?: () => boolean | void | Promise<boolean | void>
+    showInstallHeader?: boolean
+    name: string
+    loader: string
+    gameVersion: string
+    serverId?: string | null
+    upstream?: { project_id?: string | null } | null
+    iconSrc?: string | null
+    iconFrameless?: boolean
+    isMedal?: boolean
+    backUrl: string | RouteLocationRaw
+    backLabel: string
+    heading: string
+    warning?: string
+    queuedCount?: number
+    queuedLabel?: string
+    clearQueued?: () => void | Promise<void>
+    onBack?: () => boolean | void | Promise<boolean | void>
+    selectedProjects?: BrowseSelectedProject[]
+    isInstallingSelected?: boolean
+    skipNonEssentialWarnings?: boolean
+    installProgress?: {
+        completed: number
+        total: number
+    }
+    installButtonLabel?: string
+    processingLabel?: string
+    clearSelected?: () => void | Promise<void>
+    discardSelectedAndBack?: () => void | Promise<void>
+    installSelected?: () => boolean | void | Promise<boolean | void>
 }
 
 export interface CardAction {
-	key: string
-	label: string
-	compactLabel?: string
-	icon: Component
-	iconClass?: string
-	disabled?: boolean
-	color?: 'brand' | 'red' | 'green'
-	type?: 'standard' | 'outlined' | 'transparent'
-	circular?: boolean
-	tooltip?: string
-	onClick: () => void | Promise<void>
+    key: string
+    label: string
+    compactLabel?: string
+    icon: Component
+    iconClass?: string
+    disabled?: boolean
+    color?: 'brand' | 'red' | 'green'
+    type?: 'standard' | 'outlined' | 'transparent'
+    circular?: boolean
+    tooltip?: string
+    onClick: () => void | Promise<void>
 }
 
 export interface ServerModpackContent {
-	name: string
-	icon?: string
-	onclick?: () => void
-	showCustomModpackTooltip: boolean
+    name: string
+    icon?: string
+    onclick?: () => void
+    showCustomModpackTooltip: boolean
 }

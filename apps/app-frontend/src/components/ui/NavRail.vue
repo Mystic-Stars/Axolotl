@@ -1,16 +1,16 @@
 <template>
-	<div ref="rail" class="nav-rail relative flex flex-col gap-[0.5rem]">
-		<slot />
-		<div
-			class="nav-rail-slider pointer-events-none absolute rounded-full"
-			:class="[
-				subpageSelected ? 'bg-surface-4' : 'bg-button-bgSelected',
-				transitionsEnabled ? 'nav-rail-slider-transition' : '',
-			]"
-			:style="sliderStyle"
-			aria-hidden="true"
-		/>
-	</div>
+    <div ref="rail" class="nav-rail relative flex flex-col gap-[0.5rem]">
+        <slot />
+        <div
+            class="nav-rail-slider pointer-events-none absolute rounded-full"
+            :class="[
+                subpageSelected ? 'bg-surface-4' : 'bg-button-bgSelected',
+                transitionsEnabled ? 'nav-rail-slider-transition' : '',
+            ]"
+            :style="sliderStyle"
+            aria-hidden="true"
+        />
+    </div>
 </template>
 
 <script setup lang="ts">
@@ -37,49 +37,49 @@ const bottomDelay = ref('0ms')
 const STAGGER_DELAY = '120ms'
 
 const sliderStyle = computed(() => ({
-	top: `${top.value}px`,
-	bottom: `${bottom.value}px`,
-	left: `${left.value}px`,
-	width: `${width.value}px`,
-	opacity: sliderReady.value && hasActive.value ? 1 : 0,
+    top: `${top.value}px`,
+    bottom: `${bottom.value}px`,
+    left: `${left.value}px`,
+    width: `${width.value}px`,
+    opacity: sliderReady.value && hasActive.value ? 1 : 0,
 }))
 
 function positionSlider() {
-	const container = rail.value
-	if (!container) return
+    const container = rail.value
+    if (!container) return
 
-	const el = container.querySelector<HTMLElement>('.router-link-active, .subpage-active')
-	if (!el?.offsetParent || container.offsetHeight === 0) {
-		hasActive.value = false
-		return
-	}
+    const el = container.querySelector<HTMLElement>('.router-link-active, .subpage-active')
+    if (!el?.offsetParent || container.offsetHeight === 0) {
+        hasActive.value = false
+        return
+    }
 
-	subpageSelected.value = el.classList.contains('subpage-active')
+    subpageSelected.value = el.classList.contains('subpage-active')
 
-	const newTop = el.offsetTop
-	const newBottom = container.offsetHeight - el.offsetTop - el.offsetHeight
-	const movingDown = newTop > top.value
+    const newTop = el.offsetTop
+    const newBottom = container.offsetHeight - el.offsetTop - el.offsetHeight
+    const movingDown = newTop > top.value
 
-	topDelay.value = movingDown ? STAGGER_DELAY : '0ms'
-	bottomDelay.value = movingDown ? '0ms' : STAGGER_DELAY
+    topDelay.value = movingDown ? STAGGER_DELAY : '0ms'
+    bottomDelay.value = movingDown ? '0ms' : STAGGER_DELAY
 
-	top.value = newTop
-	bottom.value = newBottom
-	left.value = el.offsetLeft
-	width.value = el.offsetWidth
-	hasActive.value = true
+    top.value = newTop
+    bottom.value = newBottom
+    left.value = el.offsetLeft
+    width.value = el.offsetWidth
+    hasActive.value = true
 
-	if (!sliderReady.value) {
-		sliderReady.value = true
-		requestAnimationFrame(() => {
-			transitionsEnabled.value = true
-		})
-	}
+    if (!sliderReady.value) {
+        sliderReady.value = true
+        requestAnimationFrame(() => {
+            transitionsEnabled.value = true
+        })
+    }
 }
 
 async function updateSlider() {
-	await nextTick()
-	positionSlider()
+    await nextTick()
+    positionSlider()
 }
 
 onMounted(updateSlider)
@@ -90,27 +90,27 @@ watch(() => [route.path, route.query], updateSlider)
 <style scoped>
 .nav-rail :deep(a),
 .nav-rail :deep(button) {
-	position: relative;
-	z-index: 1;
+    position: relative;
+    z-index: 1;
 }
 
 .nav-rail :deep(a.router-link-active),
 .nav-rail :deep(a.subpage-active),
 .nav-rail :deep(button.router-link-active),
 .nav-rail :deep(button.subpage-active) {
-	background-color: transparent;
+    background-color: transparent;
 }
 
 .nav-rail-slider {
-	z-index: 0;
+    z-index: 0;
 }
 
 .nav-rail-slider-transition {
-	transition:
-		top 150ms cubic-bezier(0.4, 0, 0.2, 1) v-bind(topDelay),
-		bottom 150ms cubic-bezier(0.4, 0, 0.2, 1) v-bind(bottomDelay),
-		left 150ms cubic-bezier(0.4, 0, 0.2, 1),
-		width 150ms cubic-bezier(0.4, 0, 0.2, 1),
-		opacity 250ms cubic-bezier(0.5, 0, 0.2, 1) 50ms;
+    transition:
+        top 150ms cubic-bezier(0.4, 0, 0.2, 1) v-bind(topDelay),
+        bottom 150ms cubic-bezier(0.4, 0, 0.2, 1) v-bind(bottomDelay),
+        left 150ms cubic-bezier(0.4, 0, 0.2, 1),
+        width 150ms cubic-bezier(0.4, 0, 0.2, 1),
+        opacity 250ms cubic-bezier(0.5, 0, 0.2, 1) 50ms;
 }
 </style>

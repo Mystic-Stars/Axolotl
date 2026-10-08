@@ -460,15 +460,15 @@ async fn stream_ai(
                     .await?;
                 }
             }
-            if let Some(status_event) = event.status_event {
-                if show_progress || status_event.event_type == "queued" {
-                    emit_logshare_ai_event(
-                        instance_id,
-                        &status_event.event_type,
-                        status_event.data,
-                    )
-                    .await?;
-                }
+            if let Some(status_event) = event.status_event
+                && (show_progress || status_event.event_type == "queued")
+            {
+                emit_logshare_ai_event(
+                    instance_id,
+                    &status_event.event_type,
+                    status_event.data,
+                )
+                .await?;
             }
             if let Some(message) = event.error {
                 return Err(crate::ErrorKind::OtherError(format!(

@@ -612,8 +612,8 @@ async fn publish_downloaded_action(
         let file = &action.files[index];
         let primary =
             file.role == crate::install::ContentChangeFileRole::Primary;
-        if !primary {
-            if let Some(entry) =
+        if !primary
+            && let Some(entry) =
                 content_rows::get_content_entry_by_provider_ref(
                     &scope.content_set_id,
                     file.provider,
@@ -622,21 +622,18 @@ async fn publish_downloaded_action(
                     &state.pool,
                 )
                 .await?
+        {
+            let target = content_rows::get_content_mutation_target(
+                instance_id,
+                &entry.id,
+                &state.pool,
+            )
+            .await?;
+            if let Some(path) = target.and_then(|target| target.relative_path)
+                && base.join(&path).is_file()
             {
-                let target = content_rows::get_content_mutation_target(
-                    instance_id,
-                    &entry.id,
-                    &state.pool,
-                )
-                .await?;
-                if let Some(path) =
-                    target.and_then(|target| target.relative_path)
-                {
-                    if base.join(&path).is_file() {
-                        paths[index] = path;
-                        continue;
-                    }
-                }
+                paths[index] = path;
+                continue;
             }
         }
         let artifact = downloaded.get(&file.id).ok_or_else(|| {
@@ -695,22 +692,21 @@ async fn publish_downloaded_action(
                 .await?
             }
         };
-        if !primary {
-            if let Some(entry) =
+        if !primary
+            && let Some(entry) =
                 content_rows::get_content_entry_by_relative_path(
                     &scope.content_set_id,
                     &path,
                     &state.pool,
                 )
                 .await?
-            {
-                content_rows::set_content_entry_auto_dependency(
-                    &entry.id,
-                    true,
-                    &state.pool,
-                )
-                .await?;
-            }
+        {
+            content_rows::set_content_entry_auto_dependency(
+                &entry.id,
+                true,
+                &state.pool,
+            )
+            .await?;
         }
         paths[index] = path;
     }

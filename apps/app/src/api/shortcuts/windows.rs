@@ -105,7 +105,8 @@ fn create_windows_shortcut(
         let property_store: IPropertyStore = windows_result(shortcut.cast())?;
         let app_identifier = PROPVARIANT::from(app_identifier.as_str());
         windows_result(
-            property_store.SetValue(&PKEY_AppUserModel_ID, &app_identifier),
+            property_store
+                .SetValue(&PKEY_AppUserModel_ID, &raw const app_identifier),
         )?;
         windows_result(property_store.Commit())?;
 

@@ -4,8 +4,8 @@ import TranslationSettings from './TranslationSettings.vue'
 </script>
 
 <template>
-	<div class="flex flex-col gap-6">
-		<LanguageSettings />
-		<TranslationSettings />
-	</div>
+    <div class="flex flex-col gap-6">
+        <LanguageSettings />
+        <TranslationSettings />
+    </div>
 </template>

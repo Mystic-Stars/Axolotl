@@ -6,16 +6,12 @@ use crate::state::ProjectType;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
+#[derive(Default)]
 pub enum ContentOwnershipKind {
     PackManaged,
+    #[default]
     UserAdded,
     LocalDiscovered,
-}
-
-impl Default for ContentOwnershipKind {
-    fn default() -> Self {
-        Self::UserAdded
-    }
 }
 
 impl ContentOwnershipKind {
@@ -123,17 +119,13 @@ pub struct PackMember {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
+#[derive(Default)]
 pub enum ManualDownloadOperationKind {
     PackInstall,
     PackUpdate,
+    #[default]
     ContentInstall,
     ContentUpdate,
-}
-
-impl Default for ManualDownloadOperationKind {
-    fn default() -> Self {
-        Self::ContentInstall
-    }
 }
 
 impl ManualDownloadOperationKind {

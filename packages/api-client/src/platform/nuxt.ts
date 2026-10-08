@@ -20,41 +20,41 @@ import { XHRUploadClient } from './xhr-upload-client'
  * as it won't work during async operations when the Nuxt context may be lost.
  */
 export class NuxtCircuitBreakerStorage implements CircuitBreakerStorage {
-	private state: Map<string, CircuitBreakerState>
+    private state: Map<string, CircuitBreakerState>
 
-	constructor() {
-		// @ts-expect-error - useState is provided by Nuxt runtime
-		const stateRef = useState<Map<string, CircuitBreakerState>>(
-			'circuit-breaker-state',
-			() => new Map(),
-		)
-		this.state = stateRef.value
-	}
+    constructor() {
+        // @ts-expect-error - useState is provided by Nuxt runtime
+        const stateRef = useState<Map<string, CircuitBreakerState>>(
+            'circuit-breaker-state',
+            () => new Map(),
+        )
+        this.state = stateRef.value
+    }
 
-	get(key: string): CircuitBreakerState | undefined {
-		return this.state.get(key)
-	}
+    get(key: string): CircuitBreakerState | undefined {
+        return this.state.get(key)
+    }
 
-	set(key: string, state: CircuitBreakerState): void {
-		this.state.set(key, state)
-	}
+    set(key: string, state: CircuitBreakerState): void {
+        this.state.set(key, state)
+    }
 
-	clear(key: string): void {
-		this.state.delete(key)
-	}
+    clear(key: string): void {
+        this.state.delete(key)
+    }
 }
 
 /**
  * Nuxt-specific configuration
  */
 export interface NuxtClientConfig extends ClientConfig {
-	// TODO: do we want to provide this for tauri+base as well? its not used on app
-	/**
-	 * Rate limit key for server-side requests.
-	 * This is injected as x-ratelimit-key header on server-side.
-	 * Can be a string (for env var) or async function (for CF Secrets Store).
-	 */
-	rateLimitKey?: string | (() => Promise<string | undefined>)
+    // TODO: do we want to provide this for tauri+base as well? its not used on app
+    /**
+     * Rate limit key for server-side requests.
+     * This is injected as x-ratelimit-key header on server-side.
+     * Can be a string (for env var) or async function (for CF Secrets Store).
+     */
+    rateLimitKey?: string | (() => Promise<string | undefined>)
 }
 
 /**
@@ -86,148 +86,148 @@ export interface NuxtClientConfig extends ClientConfig {
  * ```
  */
 export class NuxtModrinthClient extends XHRUploadClient {
-	declare protected config: NuxtClientConfig
-	private rateLimitKeyResolved: string | undefined
-	private rateLimitKeyPromise: Promise<string | undefined> | undefined
+    declare protected config: NuxtClientConfig
+    private rateLimitKeyResolved: string | undefined
+    private rateLimitKeyPromise: Promise<string | undefined> | undefined
 
-	constructor(config: NuxtClientConfig) {
-		super(config)
+    constructor(config: NuxtClientConfig) {
+        super(config)
 
-		Object.defineProperty(this.archon, 'sockets', {
-			value: new GenericWebSocketClient(this),
-			writable: false,
-			enumerable: true,
-			configurable: false,
-		})
-		Object.defineProperty(this.archon, 'sync', {
-			value: new GenericSyncClient(this),
-			writable: false,
-			enumerable: true,
-			configurable: false,
-		})
-	}
+        Object.defineProperty(this.archon, 'sockets', {
+            value: new GenericWebSocketClient(this),
+            writable: false,
+            enumerable: true,
+            configurable: false,
+        })
+        Object.defineProperty(this.archon, 'sync', {
+            value: new GenericSyncClient(this),
+            writable: false,
+            enumerable: true,
+            configurable: false,
+        })
+    }
 
-	/**
-	 * Resolve the rate limit key, handling both string and async function values.
-	 * Results are cached for subsequent calls.
-	 */
-	private async resolveRateLimitKey(): Promise<string | undefined> {
-		if (this.rateLimitKeyResolved !== undefined) {
-			return this.rateLimitKeyResolved
-		}
+    /**
+     * Resolve the rate limit key, handling both string and async function values.
+     * Results are cached for subsequent calls.
+     */
+    private async resolveRateLimitKey(): Promise<string | undefined> {
+        if (this.rateLimitKeyResolved !== undefined) {
+            return this.rateLimitKeyResolved
+        }
 
-		const key = this.config.rateLimitKey
-		if (typeof key === 'string') {
-			this.rateLimitKeyResolved = key
-		} else if (typeof key === 'function') {
-			if (!this.rateLimitKeyPromise) {
-				this.rateLimitKeyPromise = key()
-			}
-			this.rateLimitKeyResolved = await this.rateLimitKeyPromise
-		}
+        const key = this.config.rateLimitKey
+        if (typeof key === 'string') {
+            this.rateLimitKeyResolved = key
+        } else if (typeof key === 'function') {
+            if (!this.rateLimitKeyPromise) {
+                this.rateLimitKeyPromise = key()
+            }
+            this.rateLimitKeyResolved = await this.rateLimitKeyPromise
+        }
 
-		return this.rateLimitKeyResolved
-	}
+        return this.rateLimitKeyResolved
+    }
 
-	/**
-	 * Override request to resolve rate limit key before calling super.
-	 * This allows async fetching of the key from CF Secrets Store.
-	 */
-	async request<T>(path: string, options: RequestOptions): Promise<T> {
-		// @ts-expect-error - import.meta is provided by Nuxt
-		if (import.meta.server) {
-			await this.resolveRateLimitKey()
-		}
-		return super.request(path, options)
-	}
+    /**
+     * Override request to resolve rate limit key before calling super.
+     * This allows async fetching of the key from CF Secrets Store.
+     */
+    async request<T>(path: string, options: RequestOptions): Promise<T> {
+        // @ts-expect-error - import.meta is provided by Nuxt
+        if (import.meta.server) {
+            await this.resolveRateLimitKey()
+        }
+        return super.request(path, options)
+    }
 
-	/**
-	 * Upload a file with progress tracking
-	 *
-	 * Note: This method is only available in browser context (CSR).
-	 * Calling during SSR will throw an error.
-	 */
-	upload<T = void>(path: string, options: UploadRequestOptions): UploadHandle<T> {
-		// @ts-expect-error - import.meta is provided by Nuxt
-		if (import.meta.server) {
-			throw new ModrinthApiError('upload() is not supported during SSR')
-		}
-		return super.upload(path, options)
-	}
+    /**
+     * Upload a file with progress tracking
+     *
+     * Note: This method is only available in browser context (CSR).
+     * Calling during SSR will throw an error.
+     */
+    upload<T = void>(path: string, options: UploadRequestOptions): UploadHandle<T> {
+        // @ts-expect-error - import.meta is provided by Nuxt
+        if (import.meta.server) {
+            throw new ModrinthApiError('upload() is not supported during SSR')
+        }
+        return super.upload(path, options)
+    }
 
-	protected async executeRequest<T>(url: string, options: RequestOptions): Promise<T> {
-		try {
-			// @ts-expect-error - $fetch is provided by Nuxt
-			const response = await $fetch<T>(url, {
-				method: options.method ?? 'GET',
-				headers: options.headers,
-				body: options.body,
-				params: options.params,
-				timeout: options.timeout,
-				signal: options.signal,
-				// @ts-expect-error - import.meta is provided by Nuxt
-				cache: import.meta.server ? undefined : 'no-store',
-			})
+    protected async executeRequest<T>(url: string, options: RequestOptions): Promise<T> {
+        try {
+            // @ts-expect-error - $fetch is provided by Nuxt
+            const response = await $fetch<T>(url, {
+                method: options.method ?? 'GET',
+                headers: options.headers,
+                body: options.body,
+                params: options.params,
+                timeout: options.timeout,
+                signal: options.signal,
+                // @ts-expect-error - import.meta is provided by Nuxt
+                cache: import.meta.server ? undefined : 'no-store',
+            })
 
-			return response
-		} catch (error) {
-			throw this.normalizeError(error)
-		}
-	}
+            return response
+        } catch (error) {
+            throw this.normalizeError(error)
+        }
+    }
 
-	protected async executeStreamRequest(
-		url: string,
-		options: RequestOptions,
-	): Promise<ReadableStream<Uint8Array>> {
-		try {
-			const response = await fetch(appendRequestParams(url, options.params), {
-				method: options.method ?? 'GET',
-				headers: options.headers,
-				body: toFetchBody(options.body),
-				signal: options.signal,
-				// @ts-expect-error - import.meta is provided by Nuxt
-				cache: import.meta.server ? undefined : 'no-store',
-			})
+    protected async executeStreamRequest(
+        url: string,
+        options: RequestOptions,
+    ): Promise<ReadableStream<Uint8Array>> {
+        try {
+            const response = await fetch(appendRequestParams(url, options.params), {
+                method: options.method ?? 'GET',
+                headers: options.headers,
+                body: toFetchBody(options.body),
+                signal: options.signal,
+                // @ts-expect-error - import.meta is provided by Nuxt
+                cache: import.meta.server ? undefined : 'no-store',
+            })
 
-			if (!response.ok) {
-				throw this.createNormalizedError(
-					new Error(`HTTP ${response.status}: ${response.statusText}`),
-					response.status,
-					await parseResponseErrorData(response),
-				)
-			}
+            if (!response.ok) {
+                throw this.createNormalizedError(
+                    new Error(`HTTP ${response.status}: ${response.statusText}`),
+                    response.status,
+                    await parseResponseErrorData(response),
+                )
+            }
 
-			if (!response.body) {
-				throw new ModrinthApiError('Streaming response has no readable body', {
-					statusCode: response.status,
-				})
-			}
+            if (!response.body) {
+                throw new ModrinthApiError('Streaming response has no readable body', {
+                    statusCode: response.status,
+                })
+            }
 
-			return response.body
-		} catch (error) {
-			throw this.normalizeError(error)
-		}
-	}
+            return response.body
+        } catch (error) {
+            throw this.normalizeError(error)
+        }
+    }
 
-	protected normalizeError(error: unknown): ModrinthApiError {
-		if (error instanceof FetchError) {
-			return this.createNormalizedError(error, error.response?.status, error.data)
-		}
+    protected normalizeError(error: unknown): ModrinthApiError {
+        if (error instanceof FetchError) {
+            return this.createNormalizedError(error, error.response?.status, error.data)
+        }
 
-		return super.normalizeError(error)
-	}
+        return super.normalizeError(error)
+    }
 
-	protected async buildDefaultHeaders(): Promise<Record<string, string>> {
-		const headers: Record<string, string> = {
-			...(await super.buildDefaultHeaders()),
-		}
+    protected async buildDefaultHeaders(): Promise<Record<string, string>> {
+        const headers: Record<string, string> = {
+            ...(await super.buildDefaultHeaders()),
+        }
 
-		// Use the resolved key (populated by resolveRateLimitKey in request())
-		// @ts-expect-error - import.meta is provided by Nuxt
-		if (import.meta.server && this.rateLimitKeyResolved) {
-			headers['x-ratelimit-key'] = this.rateLimitKeyResolved
-		}
+        // Use the resolved key (populated by resolveRateLimitKey in request())
+        // @ts-expect-error - import.meta is provided by Nuxt
+        if (import.meta.server && this.rateLimitKeyResolved) {
+            headers['x-ratelimit-key'] = this.rateLimitKeyResolved
+        }
 
-		return headers
-	}
+        return headers
+    }
 }

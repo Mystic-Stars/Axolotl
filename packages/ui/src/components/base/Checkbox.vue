@@ -1,74 +1,74 @@
 <template>
-	<button
-		type="button"
-		class="group bg-transparent border-none p-0 m-0 flex items-center text-left gap-3 checkbox-outer outline-offset-4 text-[var(--color-text-primary)]"
-		:disabled="disabled"
-		:class="
-			disabled
-				? 'cursor-not-allowed opacity-50'
-				: 'cursor-pointer hover:brightness-[--hover-brightness] focus-visible:brightness-[--hover-brightness]'
-		"
-		:aria-label="description || label || undefined"
-		:aria-checked="indeterminate ? 'mixed' : modelValue"
-		role="checkbox"
-		@click="toggle"
-	>
-		<span
-			class="w-5 h-5 aspect-square rounded-md flex shrink-0 items-center justify-center border-[1px] border-solid"
-			:class="{
-				'bg-brand border-button-border text-brand-inverted': modelValue,
-				'bg-surface-2 border-divider-dark text-[var(--color-text-default)]': !modelValue,
-				'checkbox-shadow group-active:scale-95': !disabled,
-			}"
-		>
-			<MinusIcon v-if="indeterminate" aria-hidden="true" stroke-width="3" />
-			<CheckIcon v-else-if="modelValue" aria-hidden="true" stroke-width="3" />
-		</span>
-		<!-- aria-hidden is set so screenreaders only use the <button>'s aria-label -->
-		<span v-if="label" :class="labelClass" aria-hidden="true">
-			{{ label }}
-		</span>
-		<slot v-else />
-	</button>
+    <button
+        type="button"
+        class="group bg-transparent border-none p-0 m-0 flex items-center text-left gap-3 checkbox-outer outline-offset-4 text-[var(--color-text-primary)]"
+        :disabled="disabled"
+        :class="
+            disabled
+                ? 'cursor-not-allowed opacity-50'
+                : 'cursor-pointer hover:brightness-[--hover-brightness] focus-visible:brightness-[--hover-brightness]'
+        "
+        :aria-label="description || label || undefined"
+        :aria-checked="indeterminate ? 'mixed' : modelValue"
+        role="checkbox"
+        @click="toggle"
+    >
+        <span
+            class="w-5 h-5 aspect-square rounded-md flex shrink-0 items-center justify-center border-[1px] border-solid"
+            :class="{
+                'bg-brand border-button-border text-brand-inverted': modelValue,
+                'bg-surface-2 border-divider-dark text-[var(--color-text-default)]': !modelValue,
+                'checkbox-shadow group-active:scale-95': !disabled,
+            }"
+        >
+            <MinusIcon v-if="indeterminate" aria-hidden="true" stroke-width="3" />
+            <CheckIcon v-else-if="modelValue" aria-hidden="true" stroke-width="3" />
+        </span>
+        <!-- aria-hidden is set so screenreaders only use the <button>'s aria-label -->
+        <span v-if="label" :class="labelClass" aria-hidden="true">
+            {{ label }}
+        </span>
+        <slot v-else />
+    </button>
 </template>
 <script setup lang="ts">
 import { CheckIcon, MinusIcon } from '@modrinth/assets'
 import type { HTMLAttributes } from 'vue'
 
 const emit = defineEmits<{
-	'update:modelValue': [modelValue: boolean, event?: MouseEvent]
+    'update:modelValue': [modelValue: boolean, event?: MouseEvent]
 }>()
 
 const props = withDefaults(
-	defineProps<{
-		label?: string
-		labelClass?: HTMLAttributes['class']
-		disabled?: boolean
-		description?: string
-		modelValue: boolean
-		clickEvent?: () => void
-		indeterminate?: boolean
-	}>(),
-	{
-		label: '',
-		labelClass: '',
-		disabled: false,
-		description: '',
-		modelValue: false,
-		clickEvent: () => {},
-		indeterminate: false,
-	},
+    defineProps<{
+        label?: string
+        labelClass?: HTMLAttributes['class']
+        disabled?: boolean
+        description?: string
+        modelValue: boolean
+        clickEvent?: () => void
+        indeterminate?: boolean
+    }>(),
+    {
+        label: '',
+        labelClass: '',
+        disabled: false,
+        description: '',
+        modelValue: false,
+        clickEvent: () => {},
+        indeterminate: false,
+    },
 )
 
 function toggle(event: MouseEvent) {
-	if (!props.disabled) {
-		emit('update:modelValue', !props.modelValue, event)
-	}
+    if (!props.disabled) {
+        emit('update:modelValue', !props.modelValue, event)
+    }
 }
 </script>
 
 <style lang="scss" scoped>
 .checkbox-shadow {
-	box-shadow: 1px 1px 2px 0 rgba(0, 0, 0, 0.08);
+    box-shadow: 1px 1px 2px 0 rgba(0, 0, 0, 0.08);
 }
 </style>

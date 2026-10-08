@@ -5,9 +5,9 @@ import StorageSettings from './StorageSettings.vue'
 </script>
 
 <template>
-	<div class="flex flex-col gap-6">
-		<ResourceManagementSettings scope="storage-backups" />
-		<BackupRepositorySettings />
-		<StorageSettings />
-	</div>
+    <div class="flex flex-col gap-6">
+        <ResourceManagementSettings scope="storage-backups" />
+        <BackupRepositorySettings />
+        <StorageSettings />
+    </div>
 </template>

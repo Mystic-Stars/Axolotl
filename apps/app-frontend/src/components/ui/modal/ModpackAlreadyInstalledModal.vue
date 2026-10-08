@@ -1,77 +1,77 @@
 <template>
-	<NewModal
-		ref="modal"
-		:header="formatMessage(messages.header)"
-		fade="warning"
-		max-width="500px"
-		:on-hide="handleHide"
-	>
-		<p class="m-0 text-[var(--color-text-tertiary)]">
-			<IntlFormatted :message-id="messages.body" :values="{ instanceName }">
-				<template #bold="{ children }">
-					<span class="font-medium text-[var(--color-text-primary)]"
-						><component :is="() => children"
-					/></span>
-				</template>
-			</IntlFormatted>
-		</p>
+    <NewModal
+        ref="modal"
+        :header="formatMessage(messages.header)"
+        fade="warning"
+        max-width="500px"
+        :on-hide="handleHide"
+    >
+        <p class="m-0 text-[var(--color-text-tertiary)]">
+            <IntlFormatted :message-id="messages.body" :values="{ instanceName }">
+                <template #bold="{ children }">
+                    <span class="font-medium text-[var(--color-text-primary)]"
+                        ><component :is="() => children"
+                    /></span>
+                </template>
+            </IntlFormatted>
+        </p>
 
-		<template #actions>
-			<div class="flex gap-2 justify-end">
-				<Button type="outlined" @click="handleCancel"
-					><XIcon />
-					{{ formatMessage(commonMessages.cancelButton) }}
-				</Button>
-				<Button @click="handleGoToInstance"
-					>{{ formatMessage(messages.instance) }}
-					<RightArrowIcon />
-				</Button>
-				<Button type="colored" color="orange" @click="handleCreateAnyway"
-					><PlusIcon />
-					{{ formatMessage(messages.create) }}
-				</Button>
-			</div>
-		</template>
-	</NewModal>
+        <template #actions>
+            <div class="flex gap-2 justify-end">
+                <Button type="outlined" @click="handleCancel"
+                    ><XIcon />
+                    {{ formatMessage(commonMessages.cancelButton) }}
+                </Button>
+                <Button @click="handleGoToInstance"
+                    >{{ formatMessage(messages.instance) }}
+                    <RightArrowIcon />
+                </Button>
+                <Button type="colored" color="orange" @click="handleCreateAnyway"
+                    ><PlusIcon />
+                    {{ formatMessage(messages.create) }}
+                </Button>
+            </div>
+        </template>
+    </NewModal>
 </template>
 
 <script setup lang="ts">
 import { PlusIcon, RightArrowIcon, XIcon } from '@modrinth/assets'
 import {
-	Button,
-	commonMessages,
-	defineMessages,
-	IntlFormatted,
-	NewModal,
-	useVIntl,
+    Button,
+    commonMessages,
+    defineMessages,
+    IntlFormatted,
+    NewModal,
+    useVIntl,
 } from '@modrinth/ui'
 import { ref } from 'vue'
 
 const { formatMessage } = useVIntl()
 
 const messages = defineMessages({
-	header: {
-		id: 'app.instance.modpack-already-installed.header',
-		defaultMessage: 'Modpack already installed',
-	},
-	body: {
-		id: 'app.instance.modpack-already-installed.body',
-		defaultMessage:
-			'This modpack is already installed in the <bold>{instanceName}</bold> instance. Are you sure you want to duplicate it?',
-	},
-	instance: {
-		id: 'app.instance.modpack-already-installed.instance',
-		defaultMessage: 'Instance',
-	},
-	create: {
-		id: 'app.instance.modpack-already-installed.create',
-		defaultMessage: 'Create',
-	},
+    header: {
+        id: 'app.instance.modpack-already-installed.header',
+        defaultMessage: 'Modpack already installed',
+    },
+    body: {
+        id: 'app.instance.modpack-already-installed.body',
+        defaultMessage:
+            'This modpack is already installed in the <bold>{instanceName}</bold> instance. Are you sure you want to duplicate it?',
+    },
+    instance: {
+        id: 'app.instance.modpack-already-installed.instance',
+        defaultMessage: 'Instance',
+    },
+    create: {
+        id: 'app.instance.modpack-already-installed.create',
+        defaultMessage: 'Create',
+    },
 })
 
 const emit = defineEmits<{
-	(e: 'go-to-instance', instanceId: string): void
-	(e: 'create-anyway' | 'cancel'): void
+    (e: 'go-to-instance', instanceId: string): void
+    (e: 'create-anyway' | 'cancel'): void
 }>()
 
 const modal = ref<InstanceType<typeof NewModal>>()
@@ -80,33 +80,33 @@ const instanceId = ref('')
 const accepted = ref(false)
 
 function show(name: string, id: string) {
-	instanceName.value = name
-	instanceId.value = id
-	accepted.value = false
-	modal.value?.show()
+    instanceName.value = name
+    instanceId.value = id
+    accepted.value = false
+    modal.value?.show()
 }
 
 function handleCancel() {
-	modal.value?.hide()
+    modal.value?.hide()
 }
 
 function handleGoToInstance() {
-	accepted.value = true
-	modal.value?.hide()
-	emit('go-to-instance', instanceId.value)
+    accepted.value = true
+    modal.value?.hide()
+    emit('go-to-instance', instanceId.value)
 }
 
 function handleCreateAnyway() {
-	accepted.value = true
-	modal.value?.hide()
-	emit('create-anyway')
+    accepted.value = true
+    modal.value?.hide()
+    emit('create-anyway')
 }
 
 function handleHide() {
-	if (!accepted.value) emit('cancel')
+    if (!accepted.value) emit('cancel')
 }
 
 defineExpose({
-	show,
+    show,
 })
 </script>

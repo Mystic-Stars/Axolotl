@@ -1,8 +1,7 @@
 //! Theseus settings file
 
-use crate::util::download::DownloadEngine;
 use serde::{Deserialize, Serialize};
-use sqlx::{Pool, Row, Sqlite};
+use sqlx::{Pool, Sqlite};
 use std::collections::HashMap;
 
 // Types
@@ -103,8 +102,6 @@ pub struct Settings {
     pub max_concurrent_downloads: usize,
     pub max_concurrent_writes: usize,
     #[serde(default)]
-    pub download_engine: DownloadEngine,
-    #[serde(default)]
     pub auto_concurrent_downloads: bool,
     #[serde(default)]
     pub minecraft_metadata_source: DownloadSourceMode,
@@ -118,6 +115,8 @@ pub struct Settings {
     pub bypass_curseforge_download_restrictions: bool,
     #[serde(default)]
     pub ignore_ssl_errors: bool,
+    #[serde(default = "default_doh_enabled")]
+    pub doh_enabled: bool,
     #[serde(default)]
     pub mojang_auth_source: DownloadSourceMode,
     #[serde(default, rename = "use_minecraft_mirror", skip_serializing)]
@@ -235,6 +234,10 @@ fn default_true() -> bool {
     true
 }
 
+fn default_doh_enabled() -> bool {
+    true
+}
+
 /// Fully opaque home widget cards; users can dial this down to reveal the
 /// custom/transparent window background behind them.
 fn default_home_widget_background_opacity() -> u32 {
@@ -293,7 +296,6 @@ pub enum FeatureFlag {
     AdvancedFiltersCollapsed,
     PageTransitions,
     ShowVersionEnvironmentColumn,
-    XmclDownloadEngine,
     AutoInstallDependencies,
 }
 
@@ -402,13 +404,6 @@ impl Settings {
         .fetch_one(exec)
         .await?;
 
-        let engine_row =
-            sqlx::query("SELECT download_engine FROM settings WHERE id = 0")
-                .fetch_one(exec)
-                .await?;
-        let download_engine = DownloadEngine::from_str(
-            &engine_row.get::<String, _>("download_engine"),
-        );
         let bypass_curseforge_download_restrictions: bool = sqlx::query_scalar(
             "SELECT bypass_curseforge_download_restrictions FROM settings WHERE id = 0",
         )
@@ -419,10 +414,13 @@ impl Settings {
         )
         .fetch_one(exec)
         .await?;
+        let doh_enabled: bool =
+            sqlx::query_scalar("SELECT doh_enabled FROM settings WHERE id = 0")
+                .fetch_one(exec)
+                .await?;
         let settings = Self {
             max_concurrent_downloads: res.max_concurrent_downloads as usize,
             max_concurrent_writes: res.max_concurrent_writes as usize,
-            download_engine,
             auto_concurrent_downloads: res.auto_concurrent_downloads == 1,
             minecraft_metadata_source: DownloadSourceMode::from_string(
                 &res.minecraft_metadata_source,
@@ -438,6 +436,7 @@ impl Settings {
             ),
             bypass_curseforge_download_restrictions,
             ignore_ssl_errors,
+            doh_enabled,
             mojang_auth_source: DownloadSourceMode::from_string(
                 &res.mojang_auth_source,
             ),
@@ -564,7 +563,6 @@ impl Settings {
             .unwrap_or(false),
             version: res.version as usize,
         };
-        crate::util::download::set_active_engine(settings.download_engine);
         Ok(settings)
     }
 
@@ -820,10 +818,6 @@ impl Settings {
         .execute(exec)
         .await?;
 
-        sqlx::query("UPDATE settings SET download_engine = ? WHERE id = 0")
-            .bind(self.download_engine.as_str())
-            .execute(exec)
-            .await?;
         sqlx::query(
             "UPDATE settings SET bypass_curseforge_download_restrictions = ? WHERE id = 0",
         )
@@ -848,12 +842,21 @@ impl Settings {
         .bind(self.show_skin_selector_in_sidebar)
         .execute(exec)
         .await?;
-        sqlx::query("UPDATE settings SET allow_external_scheme = ? WHERE id = 0")
-            .bind(self.allow_external_scheme)
-            .execute(exec)
-            .await?;
-        sqlx::query("UPDATE settings SET allow_privileged_scheme = ? WHERE id = 0")
-            .bind(self.allow_privileged_scheme)
+        sqlx::query(
+            "UPDATE settings SET allow_external_scheme = ? WHERE id = 0",
+        )
+        .bind(self.allow_external_scheme)
+        .execute(exec)
+        .await?;
+        sqlx::query(
+            "UPDATE settings SET allow_privileged_scheme = ? WHERE id = 0",
+        )
+        .bind(self.allow_privileged_scheme)
+        .execute(exec)
+        .await?;
+
+        sqlx::query("UPDATE settings SET doh_enabled = ? WHERE id = 0")
+            .bind(self.doh_enabled)
             .execute(exec)
             .await?;
 

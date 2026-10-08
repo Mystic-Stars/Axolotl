@@ -17,14 +17,14 @@ import { unref } from 'vue'
  * ```
  */
 export function truncatedTooltip(
-	element: HTMLElement | Ref<HTMLElement | null> | null | undefined,
-	tooltipText: string,
+    element: HTMLElement | Ref<HTMLElement | null> | null | undefined,
+    tooltipText: string,
 ): string | undefined {
-	const el = unref(element)
-	if (!el) return undefined
-	if (!tooltipText) return undefined
+    const el = unref(element)
+    if (!el) return undefined
+    if (!tooltipText) return undefined
 
-	return el.scrollWidth > el.clientWidth || el.scrollHeight > el.clientHeight
-		? tooltipText
-		: undefined
+    return el.scrollWidth > el.clientWidth || el.scrollHeight > el.clientHeight
+        ? tooltipText
+        : undefined
 }

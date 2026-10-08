@@ -33,6 +33,21 @@ pub(crate) struct NativeSlowPolicy {
 }
 
 impl NativeSlowPolicy {
+    pub(crate) fn observe_with_pressure(
+        &mut self,
+        downloaded: u64,
+        remaining: u64,
+        pressure: super::local_resources::Pressure,
+    ) -> SlowDecision {
+        if pressure.blocks_expansion() {
+            self.window_started_at = Instant::now();
+            self.window_start_bytes = downloaded;
+            self.slow_windows = 0;
+            SlowDecision::Continue
+        } else {
+            self.observe(downloaded, remaining)
+        }
+    }
     pub(crate) fn new(
         starting_bytes: u64,
         expected_speed: Option<u64>,
@@ -133,6 +148,36 @@ fn estimated_duration(bytes: u64, speed: u64) -> Duration {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn local_pressure_does_not_trigger_route_switch_or_idle_failure() {
+        let mut policy = NativeSlowPolicy::new(0, None);
+        policy.window_started_at = Instant::now() - Duration::from_secs(60);
+        assert_eq!(
+            policy.observe_with_pressure(
+                0,
+                64 * 1024 * 1024,
+                super::super::local_resources::Pressure {
+                    cpu_percent: 90,
+                    write_latency_ms: 0.0
+                }
+            ),
+            SlowDecision::Continue
+        );
+        assert_eq!(policy.observe(0, 64 * 1024 * 1024), SlowDecision::Continue);
+        policy.window_started_at = Instant::now() - Duration::from_secs(60);
+        assert_eq!(
+            policy.observe_with_pressure(
+                0,
+                64 * 1024 * 1024,
+                super::super::local_resources::Pressure {
+                    cpu_percent: 0,
+                    write_latency_ms: 80.0
+                }
+            ),
+            SlowDecision::Continue
+        );
+    }
 
     #[test]
     fn switch_requires_repayment_of_restarted_bytes() {

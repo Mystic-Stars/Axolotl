@@ -105,7 +105,7 @@ fn run_elevated_helper() -> Result<(), String> {
         }
 
         let mut exit_code = 0;
-        unsafe { GetExitCodeProcess(process, &mut exit_code) }.map_err(
+        unsafe { GetExitCodeProcess(process, &raw mut exit_code) }.map_err(
             |error| format!("Could not read elevated process status: {error}"),
         )?;
         if exit_code == 0 {

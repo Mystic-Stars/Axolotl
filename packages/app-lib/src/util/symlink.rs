@@ -314,5 +314,5 @@ pub fn create_link_elevated_helper(payload: &str) -> i32 {
         return 1;
     }
 
-    if result.ok { 0 } else { 1 }
+    i32::from(!result.ok)
 }

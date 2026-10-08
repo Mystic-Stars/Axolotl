@@ -3,83 +3,83 @@ import type { InstallJobSnapshot, InstallJobStatus } from '@/helpers/install'
 export type DownloadsTab = 'active' | 'history'
 
 export interface DownloadFocusState {
-	jobId: string | null
-	focused: boolean
-	autoFollow: boolean
-	lastStatus: InstallJobStatus | null
+    jobId: string | null
+    focused: boolean
+    autoFollow: boolean
+    lastStatus: InstallJobStatus | null
 }
 
 export interface DownloadFocusEffect {
-	state: DownloadFocusState
-	tab: DownloadsTab | null
-	expand: boolean
-	scroll: boolean
+    state: DownloadFocusState
+    tab: DownloadsTab | null
+    expand: boolean
+    scroll: boolean
 }
 
 const ACTIVE_STATUSES = new Set<InstallJobStatus>([
-	'queued',
-	'running',
-	'canceling',
-	'waiting_for_user',
+    'queued',
+    'running',
+    'canceling',
+    'waiting_for_user',
 ])
 
 export function focusedDownloadJobId(value: unknown): string | null {
-	return typeof value === 'string' && value.length > 0 ? value : null
+    return typeof value === 'string' && value.length > 0 ? value : null
 }
 
 export function createDownloadFocusState(jobId: string | null): DownloadFocusState {
-	return {
-		jobId,
-		focused: false,
-		autoFollow: jobId !== null,
-		lastStatus: null,
-	}
+    return {
+        jobId,
+        focused: false,
+        autoFollow: jobId !== null,
+        lastStatus: null,
+    }
 }
 
 export function downloadTabForJob(job: InstallJobSnapshot): DownloadsTab {
-	return ACTIVE_STATUSES.has(job.status) ? 'active' : 'history'
+    return ACTIVE_STATUSES.has(job.status) ? 'active' : 'history'
 }
 
 export function reconcileDownloadFocus(
-	state: DownloadFocusState,
-	job: InstallJobSnapshot | null,
+    state: DownloadFocusState,
+    job: InstallJobSnapshot | null,
 ): DownloadFocusEffect {
-	if (!state.jobId || !job || job.job_id !== state.jobId) {
-		return { state, tab: null, expand: false, scroll: false }
-	}
+    if (!state.jobId || !job || job.job_id !== state.jobId) {
+        return { state, tab: null, expand: false, scroll: false }
+    }
 
-	const targetTab = downloadTabForJob(job)
-	if (!state.focused) {
-		return {
-			state: {
-				...state,
-				focused: true,
-				autoFollow: targetTab === 'active',
-				lastStatus: job.status,
-			},
-			tab: targetTab,
-			expand: true,
-			scroll: true,
-		}
-	}
+    const targetTab = downloadTabForJob(job)
+    if (!state.focused) {
+        return {
+            state: {
+                ...state,
+                focused: true,
+                autoFollow: targetTab === 'active',
+                lastStatus: job.status,
+            },
+            tab: targetTab,
+            expand: true,
+            scroll: true,
+        }
+    }
 
-	const completedWhileFollowing =
-		state.autoFollow &&
-		state.lastStatus !== null &&
-		ACTIVE_STATUSES.has(state.lastStatus) &&
-		targetTab === 'history'
-	return {
-		state: {
-			...state,
-			autoFollow: completedWhileFollowing ? false : state.autoFollow,
-			lastStatus: job.status,
-		},
-		tab: completedWhileFollowing ? 'history' : null,
-		expand: false,
-		scroll: false,
-	}
+    const completedWhileFollowing =
+        state.autoFollow &&
+        state.lastStatus !== null &&
+        ACTIVE_STATUSES.has(state.lastStatus) &&
+        targetTab === 'history'
+    return {
+        state: {
+            ...state,
+            autoFollow: completedWhileFollowing ? false : state.autoFollow,
+            lastStatus: job.status,
+        },
+        tab: completedWhileFollowing ? 'history' : null,
+        expand: false,
+        scroll: false,
+    }
 }
 
 export function stopDownloadFocusAutoFollow(state: DownloadFocusState): DownloadFocusState {
-	return { ...state, autoFollow: false }
+    return { ...state, autoFollow: false }
 }

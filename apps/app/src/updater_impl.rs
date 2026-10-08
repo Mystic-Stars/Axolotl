@@ -400,16 +400,14 @@ pub async fn enqueue_update_for_installation<R: Runtime>(
         while let Some(chunk) = stream.next().await {
             let chunk = chunk?;
             buffer.extend_from_slice(&chunk);
-            if total_size > 0 {
-                if let Err(e) = emit_loading(
+            if total_size > 0
+                && let Err(e) = emit_loading(
                     &progress,
                     buffer.len() as f64 / total_size as f64,
                     None,
-                ) {
-                    tracing::error!(
-                        "Failed to update download progress bar: {e}"
-                    );
-                }
+                )
+            {
+                tracing::error!("Failed to update download progress bar: {e}");
             }
         }
 
@@ -561,14 +559,14 @@ struct TempDebFile(std::path::PathBuf);
 
 impl Drop for TempDebFile {
     fn drop(&mut self) {
-        if let Err(error) = std::fs::remove_file(&self.0) {
-            if error.kind() != std::io::ErrorKind::NotFound {
-                tracing::warn!(
-                    path = %self.0.display(),
-                    error = %error,
-                    "Failed to remove temporary deb file"
-                );
-            }
+        if let Err(error) = std::fs::remove_file(&self.0)
+            && error.kind() != std::io::ErrorKind::NotFound
+        {
+            tracing::warn!(
+                path = %self.0.display(),
+                error = %error,
+                "Failed to remove temporary deb file"
+            );
         }
     }
 }

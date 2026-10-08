@@ -292,6 +292,10 @@ impl DirectoryInfo {
         self.config_dir.join(CACHES_FOLDER_NAME)
     }
 
+    pub fn content_store_dir(&self) -> PathBuf {
+        self.caches_dir().join("content-store")
+    }
+
     /// Get path from environment variable
     #[inline]
     fn env_path(name: &str) -> Option<PathBuf> {

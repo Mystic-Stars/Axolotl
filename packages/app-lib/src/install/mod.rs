@@ -1,3 +1,4 @@
+pub(crate) mod critical_section;
 mod diagnostics;
 pub mod events;
 pub mod import_plan;

@@ -41,7 +41,7 @@ import { listen } from '@tauri-apps/api/event'
     }
 */
 export async function loading_listener(callback) {
-	return await listen('loading', (event) => callback(event.payload))
+    return await listen('loading', (event) => callback(event.payload))
 }
 
 /// Payload for the 'process' event
@@ -55,7 +55,7 @@ export async function loading_listener(callback) {
     }
 */
 export async function process_listener(callback) {
-	return await listen('process', (event) => callback(event.payload))
+    return await listen('process', (event) => callback(event.payload))
 }
 
 /// Payload for the 'instance' event
@@ -66,7 +66,7 @@ export async function process_listener(callback) {
     }
 */
 export async function instance_listener(callback) {
-	return await listen('instance', (event) => callback(event.payload))
+    return await listen('instance', (event) => callback(event.payload))
 }
 
 /// Payload for the 'instance_bulk_update_progress' event
@@ -79,27 +79,27 @@ export async function instance_listener(callback) {
     }
 */
 export async function instance_bulk_update_progress_listener(callback) {
-	return await listen('instance_bulk_update_progress', (event) => callback(event.payload))
+    return await listen('instance_bulk_update_progress', (event) => callback(event.payload))
 }
 
 export async function install_job_listener(callback) {
-	return await listen('install_job', (event) => callback(event.payload))
+    return await listen('install_job', (event) => callback(event.payload))
 }
 
 export async function import_plan_listener(callback) {
-	return await listen('import_plan', (event) => callback(event.payload))
+    return await listen('import_plan', (event) => callback(event.payload))
 }
 
 export async function drop_classify_progress_listener(callback) {
-	return await listen('drop_classify_progress', (event) => callback(event.payload))
+    return await listen('drop_classify_progress', (event) => callback(event.payload))
 }
 
 export async function download_request_listener(callback) {
-	return await listen('download_request', (event) => callback(event.payload))
+    return await listen('download_request', (event) => callback(event.payload))
 }
 
 export async function instance_groups_listener(callback) {
-	return await listen('instance_groups_changed', (event) => callback(event.payload))
+    return await listen('instance_groups_changed', (event) => callback(event.payload))
 }
 
 /// Payload for the 'command' event
@@ -110,9 +110,9 @@ export async function instance_groups_listener(callback) {
   }
 */
 export async function command_listener(callback) {
-	return await listen('command', (event) => {
-		callback(event.payload)
-	})
+    return await listen('command', (event) => {
+        callback(event.payload)
+    })
 }
 
 /// Payload for the 'warning' event
@@ -122,11 +122,11 @@ export async function command_listener(callback) {
     }
 */
 export async function warning_listener(callback) {
-	return await listen('warning', (event) => callback(event.payload))
+    return await listen('warning', (event) => callback(event.payload))
 }
 
 export async function friend_listener(callback) {
-	return await listen('friend', (event) => callback(event.payload))
+    return await listen('friend', (event) => callback(event.payload))
 }
 
 /// Payload for the 'java_discovery_update' event
@@ -136,7 +136,7 @@ export async function friend_listener(callback) {
     }
 */
 export async function java_discovery_listener(callback) {
-	return await listen('java_discovery_update', (event) => callback(event.payload))
+    return await listen('java_discovery_update', (event) => callback(event.payload))
 }
 
 /// Payload for the 'java_download_confirmation' event
@@ -147,15 +147,15 @@ export async function java_discovery_listener(callback) {
     }
 */
 export async function java_download_confirmation_listener(callback) {
-	return await listen('java_download_confirmation', (event) => callback(event.payload))
+    return await listen('java_download_confirmation', (event) => callback(event.payload))
 }
 
 export async function notification_listener(callback) {
-	return await listen('notification', (event) => callback(event.payload))
+    return await listen('notification', (event) => callback(event.payload))
 }
 
 export async function logshare_ai_listener(callback) {
-	return await listen('logshare_ai', (event) => callback(event.payload))
+    return await listen('logshare_ai', (event) => callback(event.payload))
 }
 
 /// Payload for the 'log' event
@@ -175,5 +175,5 @@ export async function logshare_ai_listener(callback) {
     }
 */
 export async function log_listener(callback) {
-	return await listen('log', (event) => callback(event.payload))
+    return await listen('log', (event) => callback(event.payload))
 }

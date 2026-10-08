@@ -325,13 +325,10 @@ pub fn audit_semantic(
             });
         }
 
-        let pane_sibling = key
-            .rsplit_once('.')
-            .map(|(prefix, tail)| {
-                tail.strip_suffix("_pane_window")
-                    .map(|stem| (prefix.to_string(), stem.to_string()))
-            })
-            .flatten();
+        let pane_sibling = key.rsplit_once('.').and_then(|(prefix, tail)| {
+            tail.strip_suffix("_pane_window")
+                .map(|stem| (prefix.to_string(), stem.to_string()))
+        });
         if let Some((prefix, stem)) = pane_sibling
             && !stem.contains("plank")
             && source.keys().any(|candidate| {
@@ -346,13 +343,10 @@ pub fn audit_semantic(
             });
         }
 
-        let window_sibling = key
-            .rsplit_once('.')
-            .map(|(prefix, tail)| {
-                tail.strip_suffix("_window")
-                    .map(|stem| (prefix.to_string(), stem.to_string()))
-            })
-            .flatten();
+        let window_sibling = key.rsplit_once('.').and_then(|(prefix, tail)| {
+            tail.strip_suffix("_window")
+                .map(|stem| (prefix.to_string(), stem.to_string()))
+        });
         if let Some((prefix, stem)) = window_sibling
             && !stem.contains("plank")
             && source.keys().any(|candidate| {
@@ -534,12 +528,12 @@ pub fn language_work_weight(text: &str) -> f64 {
             .find_iter(text))
         .count();
     (1.0 + (characters as f64 / 80.0).min(3.0) + protected as f64 * 0.35)
-        .round() as f64
+        .round()
 }
 
 /// class 文本权重。
 pub fn visible_text_work_weight(text: &str) -> f64 {
-    (2.0 + (text.chars().count() as f64 / 60.0).min(4.0)).round() as f64
+    (2.0 + (text.chars().count() as f64 / 60.0).min(4.0)).round()
 }
 
 #[cfg(test)]

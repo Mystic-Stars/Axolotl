@@ -56,10 +56,10 @@ fn remove_dir_all(path: &std::path::Path) -> Result<(), String> {
         return Ok(());
     }
 
-    let mut entries = std::fs::read_dir(path).map_err(|error| {
+    let entries = std::fs::read_dir(path).map_err(|error| {
         format!("Failed to read '{}': {error}", path.display())
     })?;
-    while let Some(entry) = entries.next() {
+    for entry in entries {
         let entry = entry.map_err(|error| {
             format!("Failed to enumerate '{}': {error}", path.display())
         })?;
@@ -87,10 +87,10 @@ fn remove_dir_all_cancellable(
         return Ok(());
     }
 
-    let mut entries = std::fs::read_dir(path).map_err(|error| {
+    let entries = std::fs::read_dir(path).map_err(|error| {
         format!("Failed to read '{}': {error}", path.display())
     })?;
-    while let Some(entry) = entries.next() {
+    for entry in entries {
         if cancellation.is_cancelled() {
             return Err("Operation cancelled".to_string());
         }
@@ -337,6 +337,7 @@ pub fn init<R: tauri::Runtime>() -> tauri::plugin::TauriPlugin<R> {
             drop_classify_extract,
             drop_extract_zip_to_temp,
             drop_scan_launcher_instances,
+            drop_resolve_gamedirs,
             drop_remove_temp_dir,
             drop_detect_file_lock,
             drop_extract_mod_metadata,
@@ -651,6 +652,24 @@ pub async fn drop_scan_launcher_instances<R: tauri::Runtime>(
             version_path: i.version_path,
         })
         .collect())
+}
+
+/// Resolve launcher profiles to their external Minecraft game directories.
+#[tauri::command]
+pub async fn drop_resolve_gamedirs(
+    launcher_type: String,
+    base_path: String,
+) -> Result<Vec<theseus::pack::import::gamedir_resolve::ResolvedGamedir>, String>
+{
+    let launcher_type: ImportLauncherType =
+        serde_json::from_str(&format!("\"{launcher_type}\"")).map_err(
+            |error| format!("Invalid launcher type '{launcher_type}': {error}"),
+        )?;
+    theseus::pack::import::gamedir_resolve::resolve_gamedirs(
+        launcher_type,
+        std::path::PathBuf::from(base_path),
+    )
+    .map_err(|error| error.to_string())
 }
 
 /// Detect processes holding a file lock on the given path.
