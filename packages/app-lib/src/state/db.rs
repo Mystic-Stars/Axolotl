@@ -176,6 +176,38 @@ pub async fn current_app_database_path(
     app_db_path(&settings_dir).await
 }
 
+/// Whether a settings database this startup could adopt already exists.
+///
+/// [`connect`] moves the legacy root database and the one of the other update
+/// channel into the active channel, so the active channel having no file does
+/// not mean there are no stored settings to read.
+pub async fn settings_database_exists(
+    app_identifier: &str,
+) -> crate::Result<bool> {
+    let settings_dir = DirectoryInfo::initial_settings_dir_path(app_identifier)
+        .ok_or(crate::ErrorKind::FSError(
+            "Could not find valid config dir".to_string(),
+        ))?;
+    settings_database_exists_at(&settings_dir).await
+}
+
+async fn settings_database_exists_at(
+    settings_dir: &Path,
+) -> crate::Result<bool> {
+    let channel = resolve_update_channel(settings_dir).await?;
+    for path in [
+        settings_dir.join(LEGACY_APP_DB_FILE),
+        settings_dir.join(channel).join(LEGACY_APP_DB_FILE),
+        settings_dir.join("release").join(LEGACY_APP_DB_FILE),
+        settings_dir.join("beta").join(LEGACY_APP_DB_FILE),
+    ] {
+        if path.try_exists()? {
+            return Ok(true);
+        }
+    }
+    Ok(false)
+}
+
 pub async fn copy_database_between_channels(
     app_identifier: &str,
     source_channel: &str,
@@ -1717,6 +1749,29 @@ async fn stale_data_cleanup(pool: &Pool<Sqlite>) -> crate::Result<()> {
     Ok(())
 }
 
+/// An empty in-memory app database with foreign keys enforced.
+#[cfg(test)]
+pub(crate) async fn test_pool() -> Pool<Sqlite> {
+    let pool = SqlitePoolOptions::new()
+        .max_connections(1)
+        .connect("sqlite::memory:")
+        .await
+        .expect("in-memory app database");
+    sqlx::query("PRAGMA foreign_keys = ON")
+        .execute(&pool)
+        .await
+        .expect("enable foreign keys");
+    pool
+}
+
+/// An in-memory app database with every migration applied.
+#[cfg(test)]
+pub(crate) async fn migrated_test_pool() -> Pool<Sqlite> {
+    let pool = test_pool().await;
+    MIGRATOR.run(&pool).await.expect("migrations");
+    pool
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -2574,6 +2629,35 @@ mod tests {
             "default data"
         );
         assert!(!target_dir.join(CHANNEL_RECONCILE_MARKER_FILE).exists());
+    }
+
+    #[tokio::test]
+    async fn settings_database_is_found_in_every_layout_connect_adopts() {
+        let channel = default_update_channel();
+        let other = if channel == "release" {
+            "beta"
+        } else {
+            "release"
+        };
+
+        let empty = tempfile::tempdir().unwrap();
+        assert!(!settings_database_exists_at(empty.path()).await.unwrap());
+
+        for layout in
+            [PathBuf::new(), PathBuf::from(channel), PathBuf::from(other)]
+        {
+            let directory = tempfile::tempdir().unwrap();
+            let settings_dir = directory.path();
+            let db_dir = settings_dir.join(&layout);
+            std::fs::create_dir_all(&db_dir).unwrap();
+            std::fs::write(db_dir.join(LEGACY_APP_DB_FILE), "existing data")
+                .unwrap();
+
+            assert!(
+                settings_database_exists_at(settings_dir).await.unwrap(),
+                "a database in {layout:?} should be found"
+            );
+        }
     }
 
     fn initial_migration() -> &'static Migration {

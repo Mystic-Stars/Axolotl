@@ -3668,8 +3668,7 @@ pub async fn install_modpack_with_reporter(
         .map(|file| file.relative_path)
         .collect::<HashSet<_>>(),
     );
-    let prefer_localized_names =
-        Settings::get(&state.pool).await?.locale == "zh-CN";
+    let prefer_localized_names = Settings::get().await.locale == "zh-CN";
     let content_total_bytes = selected_files
         .iter()
         .map(|file| {
@@ -4705,8 +4704,7 @@ pub(crate) async fn install_local_manifest_files(
         .map(|file| file.relative_path)
         .collect::<HashSet<_>>(),
     );
-    let prefer_localized_names =
-        Settings::get(&state.pool).await?.locale == "zh-CN";
+    let prefer_localized_names = Settings::get().await.locale == "zh-CN";
     let content_total_bytes = selected_files
         .iter()
         .map(|file| {

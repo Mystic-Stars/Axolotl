@@ -503,10 +503,10 @@ pub async fn save_changes(
         .execute(&mut *tx)
         .await?;
     }
-    if let Some(value) = fullscreen_value.as_ref() {
-        update_app_fullscreen_setting(&mut tx, value, true).await?;
-    }
     tx.commit().await?;
+    if let Some(value) = fullscreen_value.as_ref() {
+        update_app_fullscreen_setting(value, true).await;
+    }
 
     let write_result = if changed {
         sync_all_participating_instances(&state).await

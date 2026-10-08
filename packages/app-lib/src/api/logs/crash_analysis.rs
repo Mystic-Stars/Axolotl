@@ -1094,9 +1094,7 @@ pub async fn explain_crash_with_ai(
     }
 
     let analysis = analyze_crash(instance_id).await?;
-    let locale = crate::state::Settings::get(&State::get().await?.pool)
-        .await?
-        .locale;
+    let locale = crate::state::Settings::get().await.locale;
     let state = crate::ai::get_state().await?;
     if !state.settings.enabled {
         return Err(crate::ErrorKind::InputError(

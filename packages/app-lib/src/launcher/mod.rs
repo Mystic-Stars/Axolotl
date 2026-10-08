@@ -2295,7 +2295,7 @@ pub async fn launch_minecraft(
         extra_game_args.extend(pcl.extra_game_args());
     }
 
-    let settings = crate::state::Settings::get(&state.pool).await?;
+    let settings = crate::state::Settings::get().await;
 
     #[cfg(target_os = "windows")]
     if settings.auto_set_java_high_performance_mode {

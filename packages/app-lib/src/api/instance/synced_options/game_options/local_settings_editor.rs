@@ -107,9 +107,7 @@ async fn load_instance_document(
     let (document, input_bytes) = read_document(&path).await?;
     let mut controlled_keys = currently_launcher_owned_keys(&metadata);
     if metadata.launch_overrides.force_fullscreen.is_none()
-        && crate::state::Settings::get(&state.pool)
-            .await?
-            .force_fullscreen
+        && crate::state::Settings::get().await.force_fullscreen
     {
         controlled_keys.insert("fullscreen".to_string());
     }

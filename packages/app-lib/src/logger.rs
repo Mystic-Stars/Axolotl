@@ -91,7 +91,7 @@ fn initial_log_filter(
 }
 
 /// Validates a stored log level, returning its canonical directive value.
-fn normalize_log_level(level: &str) -> crate::Result<&'static str> {
+pub(crate) fn normalize_log_level(level: &str) -> crate::Result<&'static str> {
     match level.trim().to_ascii_lowercase().as_str() {
         "error" => Ok("error"),
         "warn" => Ok("warn"),

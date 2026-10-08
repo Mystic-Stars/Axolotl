@@ -155,10 +155,10 @@ pub(super) async fn read_instance_changes_into_shared_settings(
             .execute(&mut *tx)
             .await?;
         }
-        if let Some(value) = fullscreen_value.as_ref() {
-            update_app_fullscreen_setting(&mut tx, value, true).await?;
-        }
         tx.commit().await?;
+    }
+    if let Some(value) = fullscreen_value.as_ref() {
+        update_app_fullscreen_setting(value, true).await;
     }
     let discovered =
         discover_custom_settings(metadata, document, &launcher_keys, state)

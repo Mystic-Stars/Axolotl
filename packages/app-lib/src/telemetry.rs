@@ -72,7 +72,7 @@ async fn run_cycle(
     state: &State,
     client: &reqwest::Client,
 ) -> crate::Result<()> {
-    if !is_enabled(state).await? {
+    if !is_enabled().await? {
         let _database_permit = state.acquire_install_db_permit().await?;
         sqlx::query("DELETE FROM telemetry_outbox")
             .execute(&state.pool)
@@ -97,14 +97,9 @@ async fn run_cycle(
     Ok(())
 }
 
-async fn is_enabled(state: &State) -> crate::Result<bool> {
-    let row = sqlx::query(
-		"SELECT telemetry, telemetry_consent_version FROM settings WHERE id = 0",
-	)
-	.fetch_one(&state.pool)
-	.await?;
-    Ok(row.get::<i64, _>("telemetry") == 1
-        && row.get::<i64, _>("telemetry_consent_version") > 0)
+async fn is_enabled() -> crate::Result<bool> {
+    let privacy = crate::state::Settings::privacy().await;
+    Ok(privacy.telemetry && privacy.consent_version > 0)
 }
 
 async fn ensure_identity(pool: &sqlx::SqlitePool) -> crate::Result<String> {

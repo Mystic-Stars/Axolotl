@@ -111,6 +111,11 @@ async fn remove_instance_files_and_state(
     let jobs = crate::install::store::mark_instance_deleted(instance_id, state)
         .await?;
     instance_rows::delete_instance_by_id(&instance.id, &state.pool).await?;
+    crate::state::settings_store::clear_key_if(
+        "minimal_home_instance_id",
+        &instance.id,
+    )
+    .await;
     config_sync::remove_config_file(&state.directories, &instance.path).await?;
     for job in jobs {
         if let Err(error) =

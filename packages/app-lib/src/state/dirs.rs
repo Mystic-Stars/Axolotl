@@ -317,6 +317,11 @@ impl DirectoryInfo {
                 "Could not find valid config dir".to_string(),
             ))?;
 
+        let original_dirs = (
+            settings.custom_dir.clone(),
+            settings.prev_custom_dir.clone(),
+        );
+
         if let Some(ref prev_custom_dir) = settings.prev_custom_dir {
             let prev_dir = PathBuf::from(prev_custom_dir);
 
@@ -690,7 +695,13 @@ impl DirectoryInfo {
             settings.custom_dir = Some(app_dir.to_string_lossy().to_string());
         }
 
-        settings.update(exec).await?;
+        let current_dirs = (
+            settings.custom_dir.clone(),
+            settings.prev_custom_dir.clone(),
+        );
+        if current_dirs != original_dirs {
+            settings.update().await;
+        }
 
         Ok(())
     }

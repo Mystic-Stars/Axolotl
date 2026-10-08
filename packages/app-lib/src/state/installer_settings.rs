@@ -140,8 +140,20 @@ mod windows {
                 );
                 settings.custom_dir = Some(custom_dir);
                 settings.prev_custom_dir = Some(prev_custom_dir);
-                settings.update(pool).await?;
-                clear_pending_directory(&key)?;
+                settings.update().await;
+                // A write reports nothing, so the pending value is what keeps
+                // the choice until the settings carry the directory the
+                // installer selected.
+                let stored = Settings::get().await;
+                if stored.custom_dir != settings.custom_dir
+                    || stored.prev_custom_dir != settings.prev_custom_dir
+                {
+                    tracing::warn!(
+                        "Keeping the pending installer directory; the settings did not store it"
+                    );
+                } else {
+                    clear_pending_directory(&key)?;
+                }
             }
             PendingDirectoryDecision::Clear => {
                 clear_pending_directory(&key)?;

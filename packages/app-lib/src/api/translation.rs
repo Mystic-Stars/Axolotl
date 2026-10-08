@@ -1169,7 +1169,7 @@ pub async fn test_provider(
 
     settings.settings.provider = provider;
     let target = if settings.settings.target_language.is_empty() {
-        let locale = crate::state::Settings::get(&state.pool).await?.locale;
+        let locale = crate::state::Settings::get().await.locale;
         tracing::debug!(locale = %locale, "Using app locale as target language");
         locale
     } else {

@@ -165,7 +165,7 @@ async fn run_credentials(
             "Failed to reconcile game options before launching {instance_id}: {error}"
         );
     }
-    let settings = Settings::get(&state.pool).await?;
+    let settings = Settings::get().await;
     let context =
         crate::state::instances::commands::get_instance_launch_context(
             instance_id,

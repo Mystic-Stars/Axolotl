@@ -29,10 +29,10 @@ pub use self::instances::*;
 mod settings;
 pub use self::settings::*;
 
+pub mod settings_store;
+
 mod game_options;
 pub(crate) use self::game_options::*;
-
-mod proxy_settings;
 
 mod installer_settings;
 
@@ -572,7 +572,7 @@ impl State {
             let res = tokio::try_join!(
                 state.discord_rpc.clear_to_default(true),
                 instances::refresh_all_instances(),
-                Settings::migrate(&state.pool),
+                Settings::migrate(),
                 ModrinthCredentials::refresh_all(),
             );
 
@@ -659,7 +659,7 @@ impl State {
     pub async fn proxy_config(
         &self,
     ) -> crate::Result<crate::util::proxy::ProxyConfig> {
-        crate::state::proxy_settings::get(&self.pool).await
+        Ok(Settings::proxy_config().await)
     }
 
     pub async fn update_proxy_config(
@@ -667,15 +667,18 @@ impl State {
         config: &crate::util::proxy::ProxyConfig,
     ) -> crate::Result<()> {
         let _update = self.configured_http_client_update.lock().await;
-        let settings = Settings::get(&self.pool).await?;
+        let settings = Settings::get().await;
         let client = crate::util::fetch::DownloadClients::build(
             config,
             settings.ignore_ssl_errors,
             settings.doh_enabled,
         )?;
-        crate::state::proxy_settings::set(&self.pool, config).await?;
+        // The proxy document is written even where the credential store refuses
+        // the password, so the client follows what it holds and only the store's
+        // own failure reaches the caller.
+        let stored = Settings::set_proxy_config(config).await;
         *self.configured_http_client.write() = client;
-        Ok(())
+        stored
     }
 
     pub(crate) async fn update_http_client_for_settings(
@@ -683,7 +686,7 @@ impl State {
         settings: &Settings,
     ) -> crate::Result<()> {
         let _update = self.configured_http_client_update.lock().await;
-        let proxy = crate::state::proxy_settings::get(&self.pool).await?;
+        let proxy = Settings::proxy_config().await;
         let res = {
             let current = self.configured_http_client.read();
             current.proxy == proxy
@@ -785,6 +788,23 @@ impl State {
                 settings.effective_max_concurrent_downloads(),
             );
         }
+    }
+
+    /// Republishes every piece of runtime state derived from `settings`.
+    pub(crate) async fn apply_runtime_settings(
+        self: &Arc<Self>,
+        settings: &Settings,
+    ) -> crate::Result<()> {
+        self.update_http_client_for_settings(settings).await?;
+        self.update_download_settings(settings);
+        // The stored level is the one `set` kept, which a request value this
+        // build does not know has already been replaced by the default.
+        if let Err(error) =
+            crate::logger::set_log_level(&settings.normalized().log_level)
+        {
+            tracing::warn!(%error, "Keeping the previous log level");
+        }
+        Ok(())
     }
 
     async fn run_auto_concurrency_controller(self: Arc<Self>) {
@@ -910,12 +930,35 @@ impl State {
         app_identifier: String,
     ) -> crate::Result<Arc<Self>> {
         tracing::info!("Connecting to app database");
+        let database_existed =
+            db::settings_database_exists(&app_identifier).await?;
         let pool = db::connect(&app_identifier).await?;
+
+        settings_store::init(&app_identifier);
+
+        if settings_store::needs_seeding(database_existed).await {
+            tracing::info!("Handing the stored settings over to the documents");
+            let stored = Settings::read_row(&pool).await?;
+            let proxy = Settings::read_row_proxy_config(&pool).await?;
+            if !settings_store::hand_over(
+                &stored,
+                &Settings::proxy_entries(&proxy),
+            )
+            .await
+            {
+                tracing::warn!(
+                    "The settings handover did not finish; the next start \
+                     attempts it again"
+                );
+            }
+        }
+
+        settings_store::prune_redundant().await;
 
         legacy_converter::migrate_legacy_data(&pool).await?;
 
         tracing::info!("Fetching app settings");
-        let mut settings = Settings::get(&pool).await?;
+        let mut settings = Settings::get().await;
         installer_settings::apply_pending_installer_directory(
             &mut settings,
             &pool,
@@ -933,7 +976,13 @@ impl State {
         let api_semaphore =
             FetchSemaphore(Semaphore::new(download_concurrency));
         let auto_prefers_mirror = settings.auto_prefers_mirror();
-        let proxy_config = proxy_settings::get(&pool).await?;
+        if let Err(error) = Settings::migrate_proxy_password(&pool).await {
+            tracing::warn!(
+                %error,
+                "Could not move the proxy password to the credential store"
+            );
+        }
+        let proxy_config = Settings::proxy_config().await;
         let configured_http_client =
             crate::util::fetch::DownloadClients::build(
                 &proxy_config,
@@ -1086,8 +1135,8 @@ pub(crate) async fn test_state(
     pool: SqlitePool,
 ) -> crate::Result<Arc<State>> {
     let file_watcher = instances::watcher::init_watcher().await?;
-    let proxy_config = proxy_settings::get(&pool).await?;
-    let settings = Settings::get(&pool).await?;
+    let proxy_config = Settings::proxy_config().await;
+    let settings = Settings::get().await;
     let configured_http_client = crate::util::fetch::DownloadClients::build(
         &proxy_config,
         settings.ignore_ssl_errors,

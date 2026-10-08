@@ -11,16 +11,15 @@ pub use crate::{
 /// Gets entire settings
 #[tracing::instrument]
 pub async fn get() -> crate::Result<Settings> {
-    let state = State::get().await?;
-    let settings = Settings::get(&state.pool).await?;
-    Ok(settings)
+    State::get().await?;
+    Ok(Settings::get().await)
 }
 
 /// Sets entire settings
 #[tracing::instrument]
 pub async fn set(mut settings: Settings) -> crate::Result<()> {
     let state = State::get().await?;
-    let current = Settings::get(&state.pool).await?;
+    let current = Settings::get().await;
     settings.telemetry = current.telemetry;
     settings.telemetry_consent_version = current.telemetry_consent_version;
     settings.discord_rpc = current.discord_rpc;
@@ -31,21 +30,15 @@ pub async fn set(mut settings: Settings) -> crate::Result<()> {
         settings.doh_enabled,
     )?;
     settings.apply_legacy_download_source_settings();
-    settings.update(&state.pool).await?;
-    state.update_http_client_for_settings(&settings).await?;
-    state.update_download_settings(&settings);
+    settings.update().await;
+    state.apply_runtime_settings(&settings).await?;
     Ok(())
 }
 
 #[tracing::instrument]
 pub async fn get_privacy() -> crate::Result<PrivacySettings> {
-    let state = State::get().await?;
-    let settings = Settings::get(&state.pool).await?;
-    Ok(PrivacySettings {
-        telemetry: settings.telemetry,
-        discord_rpc: settings.discord_rpc,
-        consent_version: settings.telemetry_consent_version,
-    })
+    State::get().await?;
+    Ok(Settings::privacy().await)
 }
 
 #[tracing::instrument]
@@ -53,19 +46,14 @@ pub async fn set_privacy(
     privacy: PrivacySettings,
 ) -> crate::Result<PrivacySettings> {
     let state = State::get().await?;
+    // The queue is dropped before the preference is stored, so a worker that
+    // runs in between cannot upload the events this change discards.
     let mut transaction = state.pool.begin().await?;
-    sqlx::query(
-		"UPDATE settings SET telemetry = ?, discord_rpc = ?, telemetry_consent_version = ? WHERE id = 0",
-	)
-	.bind(privacy.telemetry)
-	.bind(privacy.discord_rpc)
-	.bind(privacy.consent_version)
-	.execute(&mut *transaction)
-	.await?;
     sqlx::query("DELETE FROM telemetry_outbox")
         .execute(&mut *transaction)
         .await?;
     transaction.commit().await?;
+    Settings::set_privacy(&privacy).await;
 
     if let Err(error) =
         crate::telemetry::set_enabled(&state, privacy.telemetry).await
@@ -81,15 +69,14 @@ pub async fn set_privacy(
 #[tracing::instrument]
 pub async fn set_telemetry(enabled: bool) -> crate::Result<PrivacySettings> {
     let state = State::get().await?;
+    // The queue is dropped before the preference is stored, so a worker that
+    // runs in between cannot upload the events this change discards.
     let mut transaction = state.pool.begin().await?;
-    sqlx::query("UPDATE settings SET telemetry = ? WHERE id = 0")
-        .bind(enabled)
-        .execute(&mut *transaction)
-        .await?;
     sqlx::query("DELETE FROM telemetry_outbox")
         .execute(&mut *transaction)
         .await?;
     transaction.commit().await?;
+    Settings::set_telemetry(enabled).await;
     if let Err(error) = crate::telemetry::set_enabled(&state, enabled).await {
         tracing::debug!(target: "theseus::telemetry", %error, "Failed to apply telemetry state");
     }
@@ -99,10 +86,7 @@ pub async fn set_telemetry(enabled: bool) -> crate::Result<PrivacySettings> {
 #[tracing::instrument]
 pub async fn set_discord_rpc(enabled: bool) -> crate::Result<PrivacySettings> {
     let state = State::get().await?;
-    sqlx::query("UPDATE settings SET discord_rpc = ? WHERE id = 0")
-        .bind(enabled)
-        .execute(&state.pool)
-        .await?;
+    Settings::set_discord_rpc(enabled).await;
     if let Err(error) = state.discord_rpc.clear_to_default(true).await {
         tracing::debug!(target: "theseus::telemetry", %error, "Failed to apply Discord RPC state");
     }
@@ -115,15 +99,15 @@ pub async fn cancel_directory_change(
 ) -> crate::Result<()> {
     // This is called to handle state initialization errors due to folder migrations
     // failing, so fetching a DB connection pool from `State::get` is not reliable here
-    let pool = crate::state::db::connect(app_identifier).await?;
-    let mut settings = Settings::get(&pool).await?;
+    crate::state::db::connect(app_identifier).await?;
+    let mut settings = Settings::get().await;
 
     if let Some(prev_custom_dir) = settings.prev_custom_dir {
         settings.prev_custom_dir = None;
         settings.custom_dir = Some(prev_custom_dir);
     }
 
-    settings.update(&pool).await?;
+    settings.update().await;
 
     Ok(())
 }

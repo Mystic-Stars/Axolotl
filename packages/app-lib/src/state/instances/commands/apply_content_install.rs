@@ -1596,7 +1596,7 @@ pub(crate) async fn resolve_content_install_relative_path(
     {
         return Ok(localized_candidate);
     }
-    if crate::state::Settings::get(pool).await?.locale == "zh-CN" {
+    if crate::state::Settings::get().await.locale == "zh-CN" {
         return Ok(localized_candidate);
     }
     Ok(original_relative_path)

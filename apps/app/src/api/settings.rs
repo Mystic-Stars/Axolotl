@@ -48,7 +48,7 @@ pub async fn settings_set(
     let log_level = settings.log_level.clone();
     settings::set(settings).await?;
     // Apply the log level right away so the new verbosity takes effect without
-    // a restart. Invalid values are rejected by the settings table itself.
+    // a restart. A value this build does not know is stored as the default.
     if let Err(error) = theseus::set_log_level(&log_level) {
         tracing::warn!("Keeping the previous log level: {error}");
     }
