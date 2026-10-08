@@ -215,3 +215,34 @@ test('unqualified model parents use the vanilla namespace', () => {
     builtin.completeBuiltinModelDependencies('26.2', blockDefinitions, blockModels)
     assert.ok(blockModels['minecraft:block/cube_all'])
 })
+
+test('canceling an atlas decode releases the bitmap and rejects the old resource task', async () => {
+    const controller = new AbortController()
+    const originalFetch = globalThis.fetch
+    const bitmapDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'createImageBitmap')
+    let closed = false
+    globalThis.fetch = async (_, options) => {
+        assert.equal(options?.signal, controller.signal)
+        return new Response(new Blob())
+    }
+    Object.defineProperty(globalThis, 'createImageBitmap', {
+        configurable: true,
+        value: async () => {
+            controller.abort()
+            return {
+                close: () => {
+                    closed = true
+                },
+            }
+        },
+    })
+    try {
+        await assert.rejects(builtin.loadBuiltinAtlas(controller.signal), { name: 'AbortError' })
+        assert.equal(closed, true)
+    } finally {
+        globalThis.fetch = originalFetch
+        if (bitmapDescriptor)
+            Object.defineProperty(globalThis, 'createImageBitmap', bitmapDescriptor)
+        else Reflect.deleteProperty(globalThis, 'createImageBitmap')
+    }
+})

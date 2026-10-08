@@ -41,7 +41,8 @@ import {
     type SystemFontFamily,
 } from '@/helpers/font-family.ts'
 import { getShowScrollTop, setShowScrollTop } from '@/helpers/scroll-top-state'
-import { get, set } from '@/helpers/settings.ts'
+import { get, update } from '@/helpers/settings.ts'
+import { createSettingsPatchSaver } from '@/helpers/settings-patch'
 import { getSystemFontFamilies } from '@/helpers/system-fonts.ts'
 import { getOS } from '@/helpers/utils'
 import { useTheming } from '@/store/state'
@@ -511,6 +512,7 @@ const messages = defineMessages({
 
 const os = ref(await getOS())
 const settings = ref(await get())
+const saveDraft = createSettingsPatchSaver(settings.value, update)
 
 /** Nav ids that must stay visible so the shell remains navigable. */
 const LOCKED_NAV_ITEM_IDS = new Set(['home', 'library'])
@@ -901,7 +903,7 @@ watch(
 watch(
     settings,
     async () => {
-        await set(settings.value)
+        await saveDraft(settings.value).catch(handleError)
     },
     { deep: true },
 )

@@ -171,7 +171,7 @@ mod tests {
         let (mut sender, mut connection) =
             builder.handshake::<_, Bytes>(client_io).await.unwrap();
         connection.set_target_window_size(64 * 1024 * 1024);
-        let client_driver = tokio::spawn(async move { connection.await });
+        let client_driver = tokio::spawn(connection);
 
         let request =
             Request::get("https://h2-flow.test/file").body(()).unwrap();

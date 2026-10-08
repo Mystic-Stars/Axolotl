@@ -104,7 +104,7 @@ mod tests {
             password: "secret".into(),
         };
         let original = fingerprint(&base, false);
-        assert_eq!(original, fingerprint(&base.clone(), false));
+        assert_eq!(original, fingerprint(&base, false));
         for changed in [
             ProxyConfig {
                 mode: ProxyMode::None,

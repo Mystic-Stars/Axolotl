@@ -59,6 +59,22 @@ impl Default for InstanceGroupsFile {
 }
 
 impl InstanceGroupsFile {
+    fn update_membership(
+        &mut self,
+        instance_id: &str,
+        add_group_ids: &[String],
+        remove_group_ids: &[String],
+    ) {
+        let groups =
+            self.memberships.entry(instance_id.to_string()).or_default();
+        groups.retain(|id| !remove_group_ids.contains(id));
+        for id in add_group_ids {
+            if !groups.contains(id) {
+                groups.push(id.clone());
+            }
+        }
+    }
+
     fn has_group(&self, id: &str) -> bool {
         self.groups.iter().any(|group| group.id == id)
     }
@@ -137,18 +153,18 @@ fn read_from_disk() -> Option<InstanceGroupsFile> {
     }
 }
 
-fn write_to_disk(file: &InstanceGroupsFile) {
-    let Some(path) = file_path() else {
-        return;
-    };
-    let write = serde_json::to_string_pretty(file)
-        .map_err(|e| e.to_string())
-        .and_then(|content| {
-            fs::write(&path, content).map_err(|e| e.to_string())
-        });
-    if let Err(error) = write {
-        warn!("Failed to save {INSTANCE_GROUPS_FILE_NAME}: {error}");
-    }
+fn write_to_disk(file: &InstanceGroupsFile) -> crate::Result<()> {
+    let state = State::get_if_initialized().ok_or_else(|| {
+        crate::ErrorKind::InputError(
+            "Instance group store is not initialized".to_string(),
+        )
+    })?;
+    let path = state
+        .directories
+        .settings_dir
+        .join(INSTANCE_GROUPS_FILE_NAME);
+    fs::write(path, serde_json::to_string_pretty(file)?)?;
+    Ok(())
 }
 
 fn store() -> &'static RwLock<InstanceGroupsFile> {
@@ -166,7 +182,9 @@ fn with_write<T>(f: impl FnOnce(&mut InstanceGroupsFile) -> T) -> T {
     let mut guard = store().write().unwrap_or_else(|e| e.into_inner());
     let result = f(&mut guard);
     guard.normalize();
-    write_to_disk(&guard);
+    if let Err(error) = write_to_disk(&guard) {
+        warn!("Failed to save {INSTANCE_GROUPS_FILE_NAME}: {error}");
+    }
     result
 }
 
@@ -285,6 +303,32 @@ pub fn set_instance_groups(instance_id: &str, group_ids: &[String]) {
     set_memberships(&[(instance_id.to_string(), group_ids.to_vec())]);
 }
 
+/// Applies relationship changes under the store's write lock, preserving all
+/// memberships outside the requested groups.
+pub fn update_memberships(
+    updates: &[(String, Vec<String>, Vec<String>)],
+) -> crate::Result<()> {
+    let mut guard = store().write().unwrap_or_else(|e| e.into_inner());
+    let mut file = guard.clone();
+    for (_, added, removed) in updates {
+        for id in added.iter().chain(removed) {
+            if !file.has_group(id) {
+                return Err(crate::ErrorKind::InputError(format!(
+                    "Unknown instance group {id}"
+                ))
+                .into());
+            }
+        }
+    }
+    for (instance_id, added, removed) in updates {
+        file.update_membership(instance_id, added, removed);
+    }
+    file.normalize();
+    write_to_disk(&file)?;
+    *guard = file;
+    Ok(())
+}
+
 /// Looks a group up by name, creating it if absent, and returns its id.
 /// Used by the legacy launcher import, which only knows group names.
 pub fn find_or_create_by_name(name: &str) -> String {
@@ -305,11 +349,7 @@ pub fn find_or_create_by_name(name: &str) -> String {
 /// Adds one group to an instance, keeping its existing groups.
 pub fn add_instance_to_group(instance_id: &str, group_id: &str) {
     with_write(|file| {
-        let entry =
-            file.memberships.entry(instance_id.to_string()).or_default();
-        if !entry.iter().any(|id| id == group_id) {
-            entry.push(group_id.to_string());
-        }
+        file.update_membership(instance_id, &[group_id.to_string()], &[]);
     });
 }
 
@@ -445,7 +485,7 @@ pub async fn ensure_imported(state: &State) -> crate::Result<()> {
         let lock = store();
         let mut guard = lock.write().unwrap_or_else(|e| e.into_inner());
         *guard = file;
-        write_to_disk(&guard);
+        write_to_disk(&guard)?;
     }
 
     info!(
@@ -516,6 +556,50 @@ mod tests {
 
     fn group_ids(groups: &[GroupDefinition]) -> Vec<String> {
         groups.iter().map(|group| group.id.clone()).collect()
+    }
+
+    #[test]
+    fn membership_changes_preserve_other_groups_and_favorites() {
+        let mut file = file_with_groups(&["a", "b"]);
+        file.normalize();
+        file.update_membership(
+            "instance",
+            &["a".into(), FAVORITES_GROUP_ID.into()],
+            &[],
+        );
+        file.update_membership("instance", &["b".into(), "b".into()], &[]);
+        assert_eq!(
+            file.memberships["instance"],
+            &["a", FAVORITES_GROUP_ID, "b"]
+        );
+        file.update_membership("instance", &[], &["a".into()]);
+        assert_eq!(file.memberships["instance"], &[FAVORITES_GROUP_ID, "b"]);
+        file.update_membership("instance", &[], &[FAVORITES_GROUP_ID.into()]);
+        assert_eq!(file.memberships["instance"], &["b"]);
+        file.update_membership("instance", &[], &["b".into()]);
+        file.normalize();
+        assert!(!file.memberships.contains_key("instance"));
+    }
+
+    #[test]
+    fn concurrent_relationship_changes_do_not_overwrite_each_other() {
+        let file = RwLock::new(file_with_groups(&["a", "b"]));
+        std::thread::scope(|scope| {
+            for id in ["a", "b", FAVORITES_GROUP_ID] {
+                let file = &file;
+                scope.spawn(move || {
+                    let mut file = file.write().unwrap();
+                    file.update_membership("instance", &[id.into()], &[]);
+                    file.normalize();
+                });
+            }
+        });
+        let file = file.into_inner().unwrap();
+        let groups = &file.memberships["instance"];
+        assert_eq!(groups.len(), 3);
+        for id in ["a", "b", FAVORITES_GROUP_ID] {
+            assert!(groups.iter().any(|group| group == id));
+        }
     }
 
     #[test]

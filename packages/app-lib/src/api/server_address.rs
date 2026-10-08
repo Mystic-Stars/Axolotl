@@ -134,32 +134,6 @@ fn parse_server_address_inner(
     Ok((host, port.unwrap_or(25565)))
 }
 
-#[cfg(test)]
-mod tests {
-    use super::parse_server_address_inner;
-
-    #[test]
-    fn parses_ipv4_server_addresses() {
-        for (address, expected) in [
-            ("192.0.2.1", ("192.0.2.1", 25565)),
-            ("192.0.2.1:25566", ("192.0.2.1", 25566)),
-        ] {
-            assert_eq!(parse_server_address_inner(address), Ok(expected));
-        }
-    }
-
-    #[test]
-    fn parses_ipv6_server_addresses() {
-        for (address, expected) in [
-            ("2001:db8::1", ("2001:db8::1", 25565)),
-            ("[2001:db8::1]", ("2001:db8::1", 25565)),
-            ("[2001:db8::1]:25566", ("2001:db8::1", 25566)),
-        ] {
-            assert_eq!(parse_server_address_inner(address), Ok(expected));
-        }
-    }
-}
-
 pub async fn resolve_server_address(
     host: &str,
     port: u16,
@@ -192,4 +166,30 @@ pub async fn resolve_server_address(
         }
         .unwrap_or_else(|| (host.to_owned(), port)),
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::parse_server_address_inner;
+
+    #[test]
+    fn parses_ipv4_server_addresses() {
+        for (address, expected) in [
+            ("192.0.2.1", ("192.0.2.1", 25565)),
+            ("192.0.2.1:25566", ("192.0.2.1", 25566)),
+        ] {
+            assert_eq!(parse_server_address_inner(address), Ok(expected));
+        }
+    }
+
+    #[test]
+    fn parses_ipv6_server_addresses() {
+        for (address, expected) in [
+            ("2001:db8::1", ("2001:db8::1", 25565)),
+            ("[2001:db8::1]", ("2001:db8::1", 25565)),
+            ("[2001:db8::1]:25566", ("2001:db8::1", 25566)),
+        ] {
+            assert_eq!(parse_server_address_inner(address), Ok(expected));
+        }
+    }
 }

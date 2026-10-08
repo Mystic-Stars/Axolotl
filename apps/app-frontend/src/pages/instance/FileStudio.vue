@@ -191,6 +191,10 @@ const {
     activate: activateDocument,
     open: openDocument,
     close: closeDocument,
+    deletePath: deleteDocumentPath,
+    isDeleting,
+    pathVersion,
+    canOpen,
     saveActive: saveActiveDocument,
     saveAll: saveAllDocuments,
     updateActiveContent,
@@ -264,11 +268,6 @@ async function readBinary(path: string): Promise<Uint8Array> {
 async function writeBinary(path: string, bytes: Uint8Array): Promise<void> {
     if (props.instance) return writeStudioBinary(props.instance.id, path, bytes)
     return writeFile(await resolvePath(path), bytes)
-}
-
-async function deleteStudioFile(path: string): Promise<void> {
-    if (props.instance) return trashStudioFile(props.instance.id, path)
-    return remove(await resolvePath(path), { recursive: true })
 }
 
 function workspaceRelativePath(path: string): string | null {
@@ -371,9 +370,23 @@ async function pasteClipboard() {
 
 async function deleteItem() {
     if (!contextMenu.value) return
+    const path = contextMenu.value.node.path
+    const instanceId = props.instance?.id
+    const root = instanceRoot.value
+    const version = pathVersion(path)
     try {
-        await deleteStudioFile(contextMenu.value.node.path)
-        if (activePath.value === contextMenu.value.node.path) await closeDocument(activePath.value)
+        if (
+            !(await deleteDocumentPath(path, async () => {
+                if (instanceId) await trashStudioFile(instanceId, path)
+                else await remove(await join(root, ...path.split('/')), { recursive: true })
+            }))
+        )
+            return
+        if (instanceRoot.value !== root || pathVersion(path).generation !== version.generation)
+            return
+        for (const nbtPath of nbtFiles.keys()) {
+            if (nbtPath === path || nbtPath.startsWith(`${path}/`)) nbtFiles.delete(nbtPath)
+        }
         await refreshTree()
         hideContextMenu()
     } catch (error) {
@@ -516,18 +529,30 @@ async function loadRoot() {
 }
 
 async function reloadCleanDocument(document: StudioDocument) {
+    const version = pathVersion(document.path)
     if (
         (document.kind !== 'text' && document.kind !== 'nbt') ||
         document.content !== document.savedContent ||
-        document.saving
+        document.saving ||
+        isDeleting(document.path)
     )
         return
     try {
+        const loaded =
+            document.kind === 'nbt'
+                ? await readBinary(document.path)
+                : await readTextFile(await resolvePath(document.path))
+        if (
+            document.content !== document.savedContent ||
+            document.saving ||
+            !canOpen(document.path, version) ||
+            !documents.value.includes(document)
+        )
+            return
         const nextContent =
             document.kind === 'nbt'
-                ? readNbtContent(await readBinary(document.path), document.path)
-                : await readTextFile(await resolvePath(document.path))
-        if (document.content !== document.savedContent || document.saving) return
+                ? readNbtContent(loaded as Uint8Array, document.path)
+                : (loaded as string)
         document.content = nextContent
         document.savedContent = nextContent
     } catch {
@@ -670,7 +695,8 @@ onBeforeUnmount(() => {
 })
 
 async function openFile(node: StudioTreeNode) {
-    if (node.type !== 'file' || fileLoading.value) return
+    if (node.type !== 'file' || fileLoading.value || isDeleting(node.path)) return
+    const version = pathVersion(node.path)
 
     const existingDocument = documents.value.find((document) => document.path === node.path)
     if (existingDocument) {
@@ -681,25 +707,31 @@ async function openFile(node: StudioTreeNode) {
 
     const mediaKind = previewKind(node.name)
     if (mediaKind) {
-        await openDocument({
-            kind: mediaKind,
-            path: node.path,
-            name: node.name,
-            content: '',
-            savedContent: '',
-            saving: false,
-        })
+        await openDocument(
+            {
+                kind: mediaKind,
+                path: node.path,
+                name: node.name,
+                content: '',
+                savedContent: '',
+                saving: false,
+            },
+            version,
+        )
         return
     }
     if (/\.jar$/i.test(node.name)) {
-        await openDocument({
-            kind: 'unsupported',
-            path: node.path,
-            name: node.name,
-            content: '',
-            savedContent: '',
-            saving: false,
-        })
+        await openDocument(
+            {
+                kind: 'unsupported',
+                path: node.path,
+                name: node.name,
+                content: '',
+                savedContent: '',
+                saving: false,
+            },
+            version,
+        )
         return
     }
 
@@ -708,8 +740,11 @@ async function openFile(node: StudioTreeNode) {
         if (/\.(dat|nbt)$/i.test(node.name)) {
             let nextContent: string
             try {
-                nextContent = readNbtContent(await readBinary(node.path), node.path)
+                const bytes = await readBinary(node.path)
+                if (!canOpen(node.path, version)) return
+                nextContent = readNbtContent(bytes, node.path)
             } catch (error) {
+                if (!canOpen(node.path, version)) return
                 addNotification({
                     title: formatMessage(messages.nbtLoadFailed),
                     text: error instanceof Error ? error.message : String(error),
@@ -717,14 +752,17 @@ async function openFile(node: StudioTreeNode) {
                 })
                 return
             }
-            await openDocument({
-                kind: 'nbt',
-                path: node.path,
-                name: node.name,
-                content: nextContent,
-                savedContent: nextContent,
-                saving: false,
-            })
+            await openDocument(
+                {
+                    kind: 'nbt',
+                    path: node.path,
+                    name: node.name,
+                    content: nextContent,
+                    savedContent: nextContent,
+                    saving: false,
+                },
+                version,
+            )
             return
         }
         const nextContent = await readText(node.path)
@@ -736,16 +774,19 @@ async function openFile(node: StudioTreeNode) {
             savedContent: nextContent,
             saving: false,
         }
-        await openDocument(document)
+        await openDocument(document, version)
     } catch {
-        await openDocument({
-            kind: 'unsupported',
-            path: node.path,
-            name: node.name,
-            content: '',
-            savedContent: '',
-            saving: false,
-        })
+        await openDocument(
+            {
+                kind: 'unsupported',
+                path: node.path,
+                name: node.name,
+                content: '',
+                savedContent: '',
+                saving: false,
+            },
+            version,
+        )
     } finally {
         fileLoading.value = false
     }
@@ -777,6 +818,7 @@ async function initialize() {
     instanceRoot.value =
         props.server?.path ?? (props.instance ? await get_full_path(props.instance.id) : '')
     resetDocuments()
+    nbtFiles.clear()
     await loadRoot()
 }
 
@@ -1041,7 +1083,7 @@ onBeforeRouteLeave(() => {
                         :file-path="activeDocument.path"
                         :content="activeDocument.content"
                         :language="editorLanguage"
-                        :read-only="activeDocument.saving"
+                        :read-only="activeDocument.saving || isDeleting(activeDocument.path)"
                         @update:content="updateActiveContent"
                         @save="saveActiveFile"
                         @blur="saveActiveFile"
@@ -1052,7 +1094,7 @@ onBeforeRouteLeave(() => {
                         :key="activeDocument.path"
                         :file-path="activeDocument.path"
                         :content="activeDocument.content"
-                        :read-only="activeDocument.saving"
+                        :read-only="activeDocument.saving || isDeleting(activeDocument.path)"
                         @update:content="updateActiveContent"
                         @save="saveActiveFile"
                     />

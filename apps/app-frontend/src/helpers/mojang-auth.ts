@@ -2,7 +2,7 @@ import { invoke } from '@tauri-apps/api/core'
 
 import { check_mojang_services, mojang_auth_use_mirror } from '@/helpers/auth.js'
 import { ensureFallenAuthProxyArgs, removeFallenAuthProxyArgs } from '@/helpers/java-arguments'
-import { type AppSettings, get, set } from '@/helpers/settings'
+import { type AppSettings, get, update } from '@/helpers/settings'
 
 const DEFAULT_RETRIES = 3
 const RETRY_DELAY_MS = 1000
@@ -67,7 +67,7 @@ export async function reconcileMojangAuthSource(settings: AppSettings): Promise<
 export async function reconcileMojangAuthSourceAtStartup(): Promise<void> {
     const settings = await get()
     if (await reconcileMojangAuthSource(settings)) {
-        await set(settings)
+        await update({ extra_launch_args: settings.extra_launch_args })
     }
 }
 
@@ -83,6 +83,6 @@ export async function reconcileMojangAuthSourceIfMirrored(): Promise<void> {
     const mode = settings.mojang_auth_source ?? 'auto'
     if (mode !== 'auto' && mode !== 'official_preferred') return
     if (await reconcileMojangAuthSource(settings)) {
-        await set(settings)
+        await update({ extra_launch_args: settings.extra_launch_args })
     }
 }

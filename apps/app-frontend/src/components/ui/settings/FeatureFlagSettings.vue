@@ -4,7 +4,8 @@ import { Button, defineMessages, injectNotificationManager, Toggle, useVIntl } f
 import { inject, ref, watch } from 'vue'
 
 import { useAntiPiracyStatus } from '@/composables/useAntiPiracyStatus'
-import { get as getSettings, set as setSettings } from '@/helpers/settings.ts'
+import { get as getSettings, update as updateSettings } from '@/helpers/settings.ts'
+import { createSettingsPatchSaver } from '@/helpers/settings-patch'
 import { isDev } from '@/helpers/utils'
 import { handleSevereError } from '@/store/error.js'
 import { useTheming } from '@/store/state'
@@ -157,6 +158,7 @@ const messages = defineMessages({
 })
 
 const settings = ref(await getSettings())
+const saveDraft = createSettingsPatchSaver(settings.value, updateSettings)
 const options = ref<FeatureFlag[]>(Object.keys(DEFAULT_FEATURE_FLAGS))
 const featureFlagLabels: Record<FeatureFlag, keyof typeof messages> = {
     project_background: 'projectBackground',
@@ -212,7 +214,7 @@ async function clearLoginMarker() {
 watch(
     settings,
     async () => {
-        await setSettings(settings.value)
+        await saveDraft(settings.value)
     },
     { deep: true },
 )

@@ -1423,7 +1423,7 @@ mod tests {
             &CandidateStamp {
                 size: 9,
                 modified: stamp.modified,
-                identity: stamp.identity.clone(),
+                identity: stamp.identity,
             }
         ));
     }

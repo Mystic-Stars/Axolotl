@@ -2,6 +2,7 @@
 import { ChevronDownIcon, ChevronRightIcon, SearchIcon, XIcon } from '@modrinth/assets'
 import {
     defineMessages,
+    injectNotificationManager,
     type MessageDescriptor,
     ProgressBar,
     useLoadingBarToken,
@@ -27,7 +28,7 @@ import {
     type SettingsSearchEntry,
 } from '@/components/ui/settings/settings-search-index'
 import { AxolotlBrandConfig } from '@/config'
-import { get, set } from '@/helpers/settings'
+import { update } from '@/helpers/settings'
 import { injectAppUpdateDownloadProgress } from '@/providers/download-progress'
 import { useTheming } from '@/store/state'
 
@@ -42,12 +43,12 @@ const themeStore = useTheming()
 const route = useRoute()
 const router = useRouter()
 const { formatMessage } = useVIntl()
+const { handleError } = injectNotificationManager()
 const { progress, version: downloadingVersion } = injectAppUpdateDownloadProgress()
 
-const [version, loadedSettings] = await Promise.all([getVersion(), get()])
+const version = await getVersion()
 const osPlatform = getOsPlatform()
 const osVersion = getOsVersion()
-const settings = ref(loadedSettings)
 const devModeCounter = ref(0)
 const searchQuery = ref('')
 const selectedCategoryId = ref(route.hash.slice(1) || 'interface')
@@ -210,14 +211,6 @@ const searchResults = computed<SettingsSearchResult[]>(() => {
     )
 })
 
-watch(
-    settings,
-    async () => {
-        await set(settings.value)
-    },
-    { deep: true },
-)
-
 watch(visibleCategories, (categories) => {
     if (!categories.some((category) => category.id === selectedCategoryId.value)) {
         selectedCategoryId.value = categories[0]?.id ?? 'interface'
@@ -269,12 +262,16 @@ async function selectSearchResult(result: SettingsSearchResult) {
     }
 }
 
-function toggleDeveloperMode() {
+async function toggleDeveloperMode() {
     devModeCounter.value++
     if (devModeCounter.value <= 5) return
 
-    themeStore.devMode = !themeStore.devMode
-    settings.value.developer_mode = !!themeStore.devMode
+    try {
+        const saved = await update({ developer_mode: !themeStore.devMode })
+        themeStore.devMode = saved.developer_mode
+    } catch (error) {
+        handleError(error)
+    }
     devModeCounter.value = 0
 }
 

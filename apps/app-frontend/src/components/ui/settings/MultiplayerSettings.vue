@@ -9,7 +9,7 @@ import {
 } from '@modrinth/ui'
 import { computed, ref } from 'vue'
 
-import { get as getSettings, set as setSettings } from '@/helpers/settings'
+import { get as getSettings, update as updateSettings } from '@/helpers/settings'
 import { parseTerracottaPublicNodes } from '@/helpers/terracotta'
 
 import SettingsSection from './SettingsSection.vue'
@@ -65,10 +65,9 @@ async function savePublicNodes() {
 
     isSavingPublicNodes.value = true
     try {
-        const settings = await getSettings()
-        settings.terracotta_public_nodes = parsedPublicNodes.value.nodes
-        await setSettings(settings)
-        savedPublicNodes.value = [...parsedPublicNodes.value.nodes]
+        const nodes = [...parsedPublicNodes.value.nodes]
+        await updateSettings({ terracotta_public_nodes: nodes })
+        savedPublicNodes.value = nodes
         publicNodesInput.value = savedPublicNodes.value.join('\n')
         addNotification({
             type: 'success',

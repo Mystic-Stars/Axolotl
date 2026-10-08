@@ -287,33 +287,6 @@ function normalizeDownloadSettings(settings: AppSettings & LegacyMirrorSettings)
     return settings
 }
 
-function syncLegacyMirrorSettings(settings: AppSettings & LegacyMirrorSettings) {
-    const legacyValue = (source: DownloadSourceMode, current: boolean | undefined) => {
-        if (source === 'mirror_preferred') return true
-        if (source === 'official_only') return false
-        return current ?? false
-    }
-
-    if (typeof settings.use_minecraft_mirror === 'boolean') {
-        settings.use_minecraft_mirror = legacyValue(
-            settings.minecraft_file_source,
-            settings.use_minecraft_mirror,
-        )
-    }
-    if (typeof settings.use_modrinth_mirror === 'boolean') {
-        settings.use_modrinth_mirror = legacyValue(
-            settings.modrinth_source,
-            settings.use_modrinth_mirror,
-        )
-    }
-    if (typeof settings.use_curseforge_mirror === 'boolean') {
-        settings.use_curseforge_mirror = legacyValue(
-            settings.curseforge_source,
-            settings.use_curseforge_mirror,
-        )
-    }
-}
-
 export const appSettingsKeys = {
     all: ['app-settings'] as const,
     update: ['app-settings', 'update'] as const,
@@ -351,11 +324,15 @@ export async function get() {
     return settings
 }
 
-// Set full settings object
-export async function set(settings: AppSettings) {
-    syncLegacyMirrorSettings(settings)
-    const result = await invoke('plugin:settings|settings_set', { settings })
-    return result
+export type AppSettingsPatch = {
+    [K in keyof AppSettings]?: AppSettings[K] extends Record<string, unknown>
+        ? Partial<AppSettings[K]>
+        : AppSettings[K]
+}
+
+/** Merges edited fields into the authoritative backend settings. */
+export async function update(patch: AppSettingsPatch): Promise<AppSettings> {
+    return normalizeDownloadSettings(await invoke('plugin:settings|settings_patch', { patch }))
 }
 
 export async function cancel_directory_change(): Promise<void> {

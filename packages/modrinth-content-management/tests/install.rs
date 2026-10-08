@@ -1,21 +1,23 @@
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
+    use std::collections::{HashMap, HashSet};
+    use std::sync::{Arc, Mutex};
 
     use async_trait::async_trait;
     use chrono::{DateTime, Utc};
     use modrinth_content_management::{
-        ContentMetadataProvider, ContentType, Dependency, DependencyType,
-        Error, ResolutionPreferences, ResolveContentRequest, SkippedReason,
-        Version, resolve_content,
+        ContentMetadataProvider, ContentType, Dependency, DependencyPolicy,
+        DependencyType, Error, ResolutionPreferences, ResolveContentRequest,
+        SkippedReason, Version, resolve_content, resolve_content_with_policy,
     };
 
     const QUILT_FABRIC_API_EXCEPTION_PROJECT_ID: &str = "P7dR8mSH";
 
-    #[derive(Default)]
+    #[derive(Clone, Default)]
     struct MemoryProvider {
         versions: HashMap<String, Version>,
         project_versions: HashMap<String, Vec<String>>,
+        requests: Arc<Mutex<Vec<String>>>,
     }
 
     #[async_trait]
@@ -24,6 +26,7 @@ mod tests {
             &mut self,
             version_id: &str,
         ) -> Result<Option<Version>, Error> {
+            self.requests.lock().unwrap().push(version_id.to_string());
             Ok(self.versions.get(version_id).cloned())
         }
 
@@ -31,6 +34,7 @@ mod tests {
             &mut self,
             project_id: &str,
         ) -> Result<Vec<Version>, Error> {
+            self.requests.lock().unwrap().push(project_id.to_string());
             Ok(self
                 .project_versions
                 .get(project_id)
@@ -109,6 +113,9 @@ mod tests {
                 .map(|v| v.to_string())
                 .collect(),
             loaders: loaders.iter().map(|v| v.to_string()).collect(),
+            version_number: None,
+            filename: None,
+            sha1: None,
         }
     }
 
@@ -147,6 +154,189 @@ mod tests {
             excluded_project_ids: Vec::new(),
             force_project_ids: Vec::new(),
         }
+    }
+
+    fn mixed_dependency_provider() -> MemoryProvider {
+        let make_version = |id, dependencies| {
+            version(
+                id,
+                id,
+                "2026-10-01T00:00:00Z",
+                &["1.20.1"],
+                &["fabric"],
+                dependencies,
+            )
+        };
+        MemoryProvider::default().with_versions(vec![
+            make_version(
+                "root",
+                vec![
+                    required_project_dependency("required"),
+                    dependency(
+                        Some("optional"),
+                        None,
+                        DependencyType::Optional,
+                    ),
+                    dependency(Some("shared"), None, DependencyType::Optional),
+                ],
+            ),
+            make_version(
+                "required",
+                vec![
+                    required_version_dependency("required-leaf"),
+                    dependency(
+                        None,
+                        Some("optional-leaf"),
+                        DependencyType::Optional,
+                    ),
+                ],
+            ),
+            make_version(
+                "required-leaf",
+                vec![required_project_dependency("shared")],
+            ),
+            make_version(
+                "optional",
+                vec![
+                    required_project_dependency("optional-child"),
+                    required_project_dependency("shared"),
+                ],
+            ),
+            make_version("optional-child", vec![]),
+            make_version("optional-leaf", vec![]),
+            make_version("shared", vec![]),
+        ])
+    }
+
+    #[tokio::test]
+    async fn updates_skip_optional_branches_before_fetching_metadata() {
+        let provider = mixed_dependency_provider();
+        let requests = provider.requests.clone();
+        let plan = resolve_content_with_policy(
+            provider,
+            request("root"),
+            DependencyPolicy::RequiredOnly,
+        )
+        .await
+        .unwrap();
+
+        let projects = plan
+            .dependencies
+            .iter()
+            .map(|dependency| dependency.project_id.as_str())
+            .collect::<HashSet<_>>();
+        assert_eq!(
+            projects,
+            HashSet::from(["required", "required-leaf", "shared"])
+        );
+        assert!(
+            plan.dependencies
+                .iter()
+                .all(|dependency| dependency.required)
+        );
+        let requests = requests.lock().unwrap();
+        for optional in ["optional", "optional-child", "optional-leaf"] {
+            assert!(!requests.iter().any(|id| id == optional));
+        }
+    }
+
+    #[tokio::test]
+    async fn install_previews_still_offer_optional_dependencies() {
+        let plan =
+            resolve_content(mixed_dependency_provider(), request("root"))
+                .await
+                .unwrap();
+
+        for optional in ["optional", "optional-leaf"] {
+            let dependency = plan
+                .dependencies
+                .iter()
+                .find(|dependency| dependency.project_id == optional)
+                .unwrap();
+            assert!(!dependency.required);
+        }
+        assert!(
+            plan.dependencies
+                .iter()
+                .any(|dependency| dependency.project_id == "optional-child")
+        );
+    }
+
+    #[tokio::test]
+    async fn installed_optional_mods_can_still_be_updated_as_primary_content() {
+        let provider = mixed_dependency_provider();
+        for project_id in ["root", "optional"] {
+            let mut update_request = request(project_id);
+            update_request.version_id = Some(project_id.to_string());
+            update_request.existing_project_ids =
+                vec!["root".into(), "optional".into()];
+            let plan = resolve_content_with_policy(
+                provider.clone(),
+                update_request,
+                DependencyPolicy::RequiredOnly,
+            )
+            .await
+            .unwrap();
+
+            assert_eq!(plan.primary.project_id, project_id);
+            assert!(
+                plan.dependencies
+                    .iter()
+                    .all(|dependency| dependency.required)
+            );
+            assert_eq!(
+                plan.dependencies.iter().any(|dependency| dependency.project_id == "optional-child"),
+                project_id == "optional",
+            );
+            assert!(
+                !plan
+                    .dependencies
+                    .iter()
+                    .any(|dependency| dependency.project_id == "optional")
+            );
+        }
+    }
+
+    #[tokio::test]
+    async fn quilt_replacement_preserves_optional_dependency_kind() {
+        let provider = MemoryProvider::default().with_versions(vec![
+            version(
+                "root",
+                "root",
+                "2026-10-01T00:00:00Z",
+                &["1.20.1"],
+                &["quilt"],
+                vec![dependency(
+                    Some("P7dR8mSH"),
+                    None,
+                    DependencyType::Optional,
+                )],
+            ),
+            version(
+                "quilted-api",
+                "qvIfYCYJ",
+                "2026-10-01T00:00:00Z",
+                &["1.20.1"],
+                &["quilt"],
+                vec![],
+            ),
+        ]);
+        let mut request = request("root");
+        request.target.loaders = vec!["quilt".into()];
+        let preview = resolve_content(provider.clone(), request.clone())
+            .await
+            .unwrap();
+        assert_eq!(preview.dependencies[0].project_id, "qvIfYCYJ");
+        assert!(!preview.dependencies[0].required);
+
+        let update = resolve_content_with_policy(
+            provider,
+            request,
+            DependencyPolicy::RequiredOnly,
+        )
+        .await
+        .unwrap();
+        assert!(update.dependencies.is_empty());
     }
 
     #[tokio::test]

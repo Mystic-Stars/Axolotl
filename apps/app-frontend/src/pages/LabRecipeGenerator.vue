@@ -762,8 +762,8 @@ function newRecipe() {
     store.selectedRecipeId = recipe.id
 }
 
-function cloneRecipe() {
-    const recipe = currentRecipe.value
+function cloneRecipe(recipeId: string) {
+    const recipe = store.recipes.find((recipe) => recipe.id === recipeId)
     if (!recipe) return
     const copy: RecipeState = JSON.parse(JSON.stringify(recipe))
     copy.id = crypto.randomUUID()
@@ -773,16 +773,19 @@ function cloneRecipe() {
     store.selectedRecipeId = copy.id
 }
 
-function deleteRecipe() {
+function deleteRecipe(recipeId: string) {
+    const index = store.recipes.findIndex((recipe) => recipe.id === recipeId)
+    if (index < 0) return
     if (store.recipes.length <= 1) {
         const recipe = createDefaultRecipeState(availableTypes.value[0] ?? 'crafting')
         store.recipes = [recipe]
         store.selectedRecipeId = recipe.id
         return
     }
-    const index = store.recipes.findIndex((recipe) => recipe.id === store.selectedRecipeId)
-    store.recipes.splice(index < 0 ? 0 : index, 1)
-    store.selectedRecipeId = store.recipes[Math.max(0, index - 1)]?.id ?? store.recipes[0].id
+    store.recipes.splice(index, 1)
+    if (store.selectedRecipeId === recipeId) {
+        store.selectedRecipeId = store.recipes[Math.max(0, index - 1)]?.id ?? store.recipes[0].id
+    }
 }
 
 function setSlot(slot: RecipeSlot, value: SlotValue | undefined) {
@@ -1335,7 +1338,7 @@ function slotEditorSlots(type: RecipeType): RecipeSlot[] {
                                 type="button"
                                 :title="formatMessage(messages.cloneRecipe)"
                                 :aria-label="formatMessage(messages.cloneRecipe)"
-                                @click.stop="cloneRecipe"
+                                @click.stop="cloneRecipe(recipe.id)"
                             >
                                 <PlusIcon />
                             </button>
@@ -1343,7 +1346,7 @@ function slotEditorSlots(type: RecipeType): RecipeSlot[] {
                                 type="button"
                                 :title="formatMessage(messages.deleteRecipe)"
                                 :aria-label="formatMessage(messages.deleteRecipe)"
-                                @click.stop="deleteRecipe"
+                                @click.stop="deleteRecipe(recipe.id)"
                             >
                                 <TrashIcon />
                             </button>

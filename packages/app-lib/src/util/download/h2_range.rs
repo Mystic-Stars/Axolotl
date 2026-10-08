@@ -1162,7 +1162,7 @@ mod tests {
         let (sender, mut driver) =
             builder.handshake::<_, Bytes>(client_io).await.unwrap();
         driver.set_target_window_size(64 * 1024 * 1024);
-        let client_driver = tokio::spawn(async move { driver.await });
+        let client_driver = tokio::spawn(driver);
         let connection = Arc::new(SharedH2Connection::for_test(sender));
         let directory = tempfile::tempdir().unwrap();
         let destination = directory.path().join("pack.mrpack");
@@ -1237,7 +1237,7 @@ mod tests {
         });
 
         let (sender, driver) = h2::client::handshake(client_io).await.unwrap();
-        let client_driver = tokio::spawn(async move { driver.await });
+        let client_driver = tokio::spawn(driver);
         let connection = Arc::new(SharedH2Connection::for_test(sender));
         let directory = tempfile::tempdir().unwrap();
         let destination = directory.path().join("pack.zip");

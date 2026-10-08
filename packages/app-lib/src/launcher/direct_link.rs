@@ -3552,7 +3552,7 @@ mod tests {
         let mut merged = minimal_merged();
         merged.libraries = vec![lwjgl3_library, lwjgl2_library];
         normalize_merged_loader_libraries(ModLoader::Cleanroom, &mut merged);
-        let normalized = merged.libraries.iter().cloned().collect::<Vec<_>>();
+        let normalized = merged.libraries.to_vec();
         assert_eq!(normalized.len(), 1);
         let target = root.path().join("normalized");
         extract_linked_natives(

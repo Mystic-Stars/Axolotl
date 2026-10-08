@@ -16,6 +16,33 @@ export function useStudioDocuments(
     const documents = ref<StudioDocument[]>([])
     const activeIndex = ref(-1)
     const savePromises = new Map<string, Promise<boolean>>()
+    const deletingPaths = ref(new Set<string>())
+    const pathVersions = new Map<string, number>()
+    let generation = 0
+
+    function containsPath(parent: string, path: string) {
+        return parent === path || path.startsWith(`${parent}/`)
+    }
+
+    function isDeleting(path: string) {
+        return [...deletingPaths.value].some((parent) => containsPath(parent, path))
+    }
+
+    function pathVersion(path: string) {
+        const version = [...pathVersions]
+            .filter(([parent]) => containsPath(parent, path))
+            .reduce((version, [, value]) => version + value, 0)
+        return { generation, version }
+    }
+
+    function canOpen(path: string, token: ReturnType<typeof pathVersion>) {
+        const current = pathVersion(path)
+        return (
+            !isDeleting(path) &&
+            current.generation === token.generation &&
+            current.version === token.version
+        )
+    }
 
     const activeDocument = computed(() => documents.value[activeIndex.value] ?? null)
     const activePath = computed(() => activeDocument.value?.path ?? '')
@@ -29,6 +56,9 @@ export function useStudioDocuments(
     )
 
     function saveDocument(document: StudioDocument | null): Promise<boolean> {
+        if (document && (isDeleting(document.path) || !documents.value.includes(document))) {
+            return Promise.resolve(false)
+        }
         if (
             !document ||
             (document.kind !== 'text' && document.kind !== 'nbt') ||
@@ -53,7 +83,8 @@ export function useStudioDocuments(
             })
             .finally(() => {
                 document.saving = false
-                savePromises.delete(document.path)
+                if (savePromises.get(document.path) === savePromise)
+                    savePromises.delete(document.path)
             })
 
         savePromises.set(document.path, savePromise)
@@ -61,27 +92,34 @@ export function useStudioDocuments(
     }
 
     async function activate(path: string) {
+        if (isDeleting(path)) return false
         if (path === activePath.value) return true
         if (!(await saveDocument(activeDocument.value))) return false
+        if (isDeleting(path)) return false
         const nextIndex = documents.value.findIndex((document) => document.path === path)
         if (nextIndex === -1) return false
         activeIndex.value = nextIndex
         return true
     }
 
-    async function open(document: StudioDocument) {
+    async function open(document: StudioDocument, version = pathVersion(document.path)) {
+        if (!canOpen(document.path, version)) return false
         const existing = documents.value.find((candidate) => candidate.path === document.path)
         if (existing) return activate(existing.path)
         if (!(await saveDocument(activeDocument.value))) return false
+        if (!canOpen(document.path, version)) return false
         documents.value.push(document)
         activeIndex.value = documents.value.length - 1
         return true
     }
 
-    async function close(path: string) {
-        const index = documents.value.findIndex((document) => document.path === path)
+    async function close(path: string, reason: 'user' | 'deleted' = 'user') {
+        const document = documents.value.find((document) => document.path === path)
+        if (!document) return false
+        if (reason === 'user' && !(await saveDocument(document))) return false
+        if (reason === 'user' && isDeleting(path)) return false
+        const index = documents.value.indexOf(document)
         if (index === -1) return false
-        if (!(await saveDocument(documents.value[index]))) return false
 
         const wasActive = activeIndex.value === index
         documents.value.splice(index, 1)
@@ -95,8 +133,37 @@ export function useStudioDocuments(
         return true
     }
 
+    async function deletePath(path: string, remove: () => Promise<void>) {
+        const session = generation
+        const deleting = deletingPaths.value
+        if (
+            [...deletingPaths.value].some(
+                (parent) => containsPath(parent, path) || containsPath(path, parent),
+            )
+        )
+            return false
+        deletingPaths.value.add(path)
+        try {
+            await Promise.all(
+                [...savePromises]
+                    .filter(([candidate]) => containsPath(path, candidate))
+                    .map(([, promise]) => promise),
+            )
+            await remove()
+            if (session !== generation) return true
+            pathVersions.set(path, (pathVersions.get(path) ?? 0) + 1)
+            for (const document of [...documents.value]) {
+                if (containsPath(path, document.path)) await close(document.path, 'deleted')
+            }
+            return true
+        } finally {
+            deleting.delete(path)
+        }
+    }
+
     function updateActiveContent(content: string) {
-        if (activeDocument.value) activeDocument.value.content = content
+        if (activeDocument.value && !isDeleting(activeDocument.value.path))
+            activeDocument.value.content = content
     }
 
     function discardActiveChanges() {
@@ -113,9 +180,12 @@ export function useStudioDocuments(
     }
 
     function reset() {
+        generation++
         documents.value = []
         activeIndex.value = -1
         savePromises.clear()
+        deletingPaths.value = new Set()
+        pathVersions.clear()
     }
 
     return {
@@ -127,6 +197,10 @@ export function useStudioDocuments(
         activate,
         open,
         close,
+        deletePath,
+        isDeleting,
+        pathVersion,
+        canOpen,
         saveDocument,
         saveActive,
         saveAll,

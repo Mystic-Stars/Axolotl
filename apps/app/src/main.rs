@@ -231,8 +231,10 @@ async fn initialize_state(app: tauri::AppHandle) -> api::Result<()> {
                     );
                     if log_level != settings.log_level {
                         settings.log_level = log_level;
-                        if let Err(error) =
-                            theseus::settings::set(settings.clone()).await
+                        if let Err(error) = theseus::settings::patch(
+                                serde_json::json!({ "log_level": settings.log_level }),
+                        )
+                        .await
                         {
                             tracing::warn!(
                                 "Could not save the Beta log level: {error}"
@@ -1018,9 +1020,7 @@ fn main() {
                     {
                         fn set_changelog_toast(version: Option<String>) {
                             let toast_result: theseus::Result<()> = tauri::async_runtime::block_on(async move {
-                                let mut settings = settings::get().await?;
-                                settings.pending_update_toast_for_version = version;
-                                settings::set(settings).await?;
+                                settings::patch(serde_json::json!({ "pending_update_toast_for_version": version })).await?;
                                 Ok(())
                             });
                             if let Err(e) = toast_result {

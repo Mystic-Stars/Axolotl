@@ -19,6 +19,13 @@ pub struct InstanceGroupMembershipUpdate {
     pub group_ids: Vec<String>,
 }
 
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct InstanceGroupMembershipChange {
+    pub instance_id: String,
+    pub add_group_ids: Vec<String>,
+    pub remove_group_ids: Vec<String>,
+}
+
 fn validate_group_name(name: &str) -> crate::Result<&str> {
     let name = name.trim();
 
@@ -134,6 +141,32 @@ pub async fn set_group_memberships(
         .collect::<Vec<_>>();
     emit_instance_groups_changed(&instance_ids).await?;
 
+    Ok(())
+}
+
+pub async fn update_group_memberships(
+    updates: Vec<InstanceGroupMembershipChange>,
+) -> crate::Result<()> {
+    if updates.is_empty() {
+        return Ok(());
+    }
+    instance_groups::update_memberships(
+        &updates
+            .iter()
+            .map(|update| {
+                (
+                    update.instance_id.clone(),
+                    update.add_group_ids.clone(),
+                    update.remove_group_ids.clone(),
+                )
+            })
+            .collect::<Vec<_>>(),
+    )?;
+    let instance_ids = updates
+        .into_iter()
+        .map(|update| update.instance_id)
+        .collect::<Vec<_>>();
+    emit_instance_groups_changed(&instance_ids).await?;
     Ok(())
 }
 

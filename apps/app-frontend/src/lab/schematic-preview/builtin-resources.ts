@@ -186,10 +186,15 @@ export function builtinTextureUvs(
     return textureUvs
 }
 
-export async function loadBuiltinAtlas() {
-    const response = await fetch(blocksAtlasUrl)
+export async function loadBuiltinAtlas(signal?: AbortSignal) {
+    const response = await fetch(blocksAtlasUrl, { signal })
     if (!response.ok) throw new Error('Unable to load the built-in Minecraft texture atlas.')
-    return await createImageBitmap(await response.blob())
+    const bitmap = await createImageBitmap(await response.blob())
+    if (signal?.aborted) {
+        bitmap.close()
+        signal.throwIfAborted()
+    }
+    return bitmap
 }
 
 export const BUILTIN_ATLAS_WIDTH = 2048

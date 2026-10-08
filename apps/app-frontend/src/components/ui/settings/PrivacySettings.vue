@@ -6,9 +6,9 @@ import PrivilegedConsentModal from '@/components/ui/modal/PrivilegedConsentModal
 import {
     get as getSettings,
     getPrivacySettings,
-    set as setSettings,
     setDiscordRpcEnabled,
     setTelemetryEnabled,
+    update as updateSettings,
 } from '@/helpers/settings'
 
 import SettingsRow from './SettingsRow.vue'
@@ -119,9 +119,7 @@ async function updateExternalScheme(value: boolean) {
     lastSaveState.value = 'idle'
     retrySave.value = undefined
     try {
-        const settings = await getSettings()
-        settings.allow_external_scheme = value
-        await setSettings(settings)
+        await updateSettings({ allow_external_scheme: value })
         lastSaveState.value = 'saved'
     } catch (error) {
         allowExternalScheme.value = previous
@@ -146,9 +144,7 @@ async function updatePrivilegedScheme(value: boolean) {
     lastSaveState.value = 'idle'
     retrySave.value = undefined
     try {
-        const settings = await getSettings()
-        settings.allow_privileged_scheme = value
-        await setSettings(settings)
+        await updateSettings({ allow_privileged_scheme: value })
         lastSaveState.value = 'saved'
     } catch (error) {
         allowPrivilegedScheme.value = previous

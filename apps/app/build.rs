@@ -658,6 +658,7 @@ fn main() {
                         "instance_delete_group",
                         "instance_set_group_order",
                         "instance_set_group_memberships",
+                        "instance_update_group_memberships",
                     ])
                     .default_permission(
                         DefaultPermissionRule::AllowAllCommands,
@@ -668,7 +669,7 @@ fn main() {
                 InlinedPlugin::new()
                     .commands(&[
                         "settings_get",
-                        "settings_set",
+                        "settings_patch",
                         "privacy_get",
                         "privacy_set",
                         "telemetry_set",

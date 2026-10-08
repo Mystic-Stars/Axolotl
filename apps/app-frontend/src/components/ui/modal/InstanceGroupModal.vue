@@ -96,7 +96,9 @@
                 <Button
                     type="colored"
                     color="brand"
-                    :disabled="existingGroupName ? !canSaveGroups : !canCreateGroup"
+                    :disabled="
+                        creatingGroup || (existingGroupName ? !canSaveGroups : !canCreateGroup)
+                    "
                     @click="existingGroupName ? handleSaveGroups() : handleCreateGroup()"
                 >
                     <SpinnerIcon v-if="creatingGroup" class="animate-spin" />
@@ -115,16 +117,25 @@
 
 <script setup lang="ts">
 import { CheckIcon, PlusIcon, SearchIcon, SpinnerIcon, XIcon } from '@modrinth/assets'
-import { Button, defineMessages, NewModal, StyledInput, TagItem, useVIntl } from '@modrinth/ui'
+import {
+    Button,
+    defineMessages,
+    injectNotificationManager,
+    NewModal,
+    StyledInput,
+    TagItem,
+    useVIntl,
+} from '@modrinth/ui'
 import { computed, ref } from 'vue'
 
 import InstanceIcon from '@/components/ui/InstanceIcon.vue'
 import { FAVORITES_GROUP_ID } from '@/composables/useInstanceGroups'
 import { list } from '@/helpers/instance'
-import { create_group, list_groups, set_group_memberships } from '@/helpers/instance-groups'
+import { create_group, list_groups, update_group_memberships } from '@/helpers/instance-groups'
 import type { GameInstance } from '@/helpers/types'
 
 const { formatMessage } = useVIntl()
+const { handleError } = injectNotificationManager()
 
 const props = defineProps<{
     instanceIds: string[]
@@ -271,7 +282,7 @@ function toggleNewGroupInstance(instanceId: string) {
 
 async function handleCreateGroup() {
     const name = newGroupName.value.trim()
-    if (!name || selectedNewGroupInstanceIds.value.size === 0) return
+    if (creatingGroup.value || !name || selectedNewGroupInstanceIds.value.size === 0) return
 
     creatingGroup.value = true
 
@@ -284,9 +295,16 @@ async function handleCreateGroup() {
     if (selectedNewGroupInstanceIds.value.size > 0) {
         const updates = [...selectedNewGroupInstanceIds.value].map((instanceId) => ({
             instance_id: instanceId,
-            group_ids: [group.id],
+            add_group_ids: [group.id],
+            remove_group_ids: [],
         }))
-        await set_group_memberships(updates).catch(() => {})
+        try {
+            await update_group_memberships(updates)
+        } catch (error) {
+            handleError(error)
+            creatingGroup.value = false
+            return
+        }
     }
 
     creatingGroup.value = false
@@ -295,7 +313,7 @@ async function handleCreateGroup() {
 }
 
 async function handleSaveGroups() {
-    if (!props.existingGroupName) return
+    if (creatingGroup.value || !props.existingGroupName || !props.existingGroupId) return
 
     creatingGroup.value = true
     const groupId = props.existingGroupId
@@ -310,10 +328,17 @@ async function handleSaveGroups() {
         const isSelected = selectedNewGroupInstanceIds.value.has(instance.id)
         return {
             instance_id: instance.id,
-            group_ids: isSelected ? [groupId!] : [],
+            add_group_ids: isSelected ? [groupId!] : [],
+            remove_group_ids: isSelected ? [] : [groupId!],
         }
     })
-    await set_group_memberships(updates).catch(() => {})
+    try {
+        await update_group_memberships(updates)
+    } catch (error) {
+        handleError(error)
+        creatingGroup.value = false
+        return
+    }
 
     creatingGroup.value = false
     modal.value?.hide()

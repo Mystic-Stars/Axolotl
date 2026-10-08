@@ -45,7 +45,7 @@ import { get_default_user, users } from '@/helpers/auth'
 import { DIRECT_LINKS_SYNCED_EVENT } from '@/helpers/direct-link-sync'
 import { instance_groups_listener, instance_listener } from '@/helpers/events'
 import { list } from '@/helpers/instance'
-import { get as getSettings, set as setSettings } from '@/helpers/settings'
+import { get as getSettings, update as updateSettings } from '@/helpers/settings'
 import type { GameInstance } from '@/helpers/types'
 import { useBreadcrumbs } from '@/store/breadcrumbs'
 import { useTheming } from '@/store/state'
@@ -120,9 +120,7 @@ const isFreeWidgetLayout = computed(() => dashboardConfig.value?.layout === 'fre
 const switchingLayout = ref(false)
 const dashboardSaveQueue = createHomeDashboardSaveQueue(
     async (config) => {
-        const settings = await getSettings()
-        settings.home_widgets = config
-        await setSettings(settings)
+        await updateSettings({ home_widgets: config })
     },
     (config) => {
         dashboardConfig.value = config
@@ -147,8 +145,7 @@ async function clearMissingMinimalInstance() {
     try {
         const settings = await getSettings()
         if (settings.minimal_home_instance_id === null) return
-        settings.minimal_home_instance_id = null
-        await setSettings(settings)
+        await updateSettings({ minimal_home_instance_id: null })
     } catch (error) {
         handleError(error)
     }
@@ -204,8 +201,7 @@ async function loadDashboardConfig() {
             themeStore.getFeatureFlag(recentProjectsInHomeFlag),
         )
         dashboardConfig.value = config
-        settings.home_widgets = config
-        await setSettings(settings)
+        await updateSettings({ home_widgets: config })
     } catch (error) {
         dashboardConfig.value = createDefaultHomeDashboard(
             themeStore.getFeatureFlag(recentProjectsInHomeFlag),
@@ -275,9 +271,7 @@ function resetDashboardConfig() {
 
 async function selectMinimalInstance(instance: GameInstance) {
     try {
-        const settings = await getSettings()
-        settings.minimal_home_instance_id = instance.id
-        await setSettings(settings)
+        await updateSettings({ minimal_home_instance_id: instance.id })
         themeStore.minimalHomeInstanceId = instance.id
     } catch (error) {
         handleError(error)
@@ -299,9 +293,7 @@ async function toggleHomeLayout() {
     if (nextLayout === 'minimal') dashboardEditing.value = false
 
     try {
-        const settings = await getSettings()
-        settings.home_layout = nextLayout
-        await setSettings(settings)
+        await updateSettings({ home_layout: nextLayout })
     } catch (error) {
         themeStore.homeLayout = previousLayout
         dashboardEditing.value = previousEditing

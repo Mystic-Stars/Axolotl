@@ -7,7 +7,7 @@ pub fn init<R: tauri::Runtime>() -> tauri::plugin::TauriPlugin<R> {
     tauri::plugin::Builder::new("settings")
         .invoke_handler(tauri::generate_handler![
             settings_get,
-            settings_set,
+            settings_patch,
             privacy_get,
             privacy_set,
             telemetry_set,
@@ -36,24 +36,28 @@ pub async fn settings_get() -> Result<Settings> {
     Ok(res)
 }
 
-// Set full settings
-// invoke('plugin:settings|settings_set', settings)
+/// Merges only the edited fields into current settings.
 #[tauri::command]
-pub async fn settings_set(
+pub async fn settings_patch(
     app: tauri::AppHandle<impl Runtime>,
-    mut settings: Settings,
-) -> Result<()> {
+    mut patch: serde_json::Value,
+) -> Result<Settings> {
     let channel = crate::resolve_update_channel(&app).await?;
-    settings.log_level = log_level_for_channel(&channel, &settings.log_level);
+    if let Some(log_level) =
+        patch.get("log_level").and_then(|value| value.as_str())
+    {
+        let log_level = log_level_for_channel(&channel, log_level);
+        patch["log_level"] = serde_json::Value::String(log_level);
+    }
+    let settings = settings::patch(patch).await?;
     let log_level = settings.log_level.clone();
-    settings::set(settings).await?;
     // Apply the log level right away so the new verbosity takes effect without
     // a restart. Invalid values are rejected by the settings table itself.
     if let Err(error) = theseus::set_log_level(&log_level) {
         tracing::warn!("Keeping the previous log level: {error}");
     }
     let _ = app.emit("settings", ());
-    Ok(())
+    Ok(settings)
 }
 
 #[cfg(test)]

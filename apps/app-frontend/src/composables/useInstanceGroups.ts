@@ -5,12 +5,12 @@ import {
     create_group,
     delete_group,
     type InstanceGroupDefinition,
-    type InstanceGroupMembershipUpdate,
+    type InstanceGroupMembershipChange,
     list_groups,
     MAX_INSTANCE_GROUP_NAME_LENGTH,
     rename_group,
-    set_group_memberships,
     set_group_order,
+    update_group_memberships,
 } from '@/helpers/instance-groups'
 
 export const FAVORITES_GROUP_ID = 'group:favorites'
@@ -19,7 +19,7 @@ export const UNGROUPED_GROUP_ID = 'group:none'
 
 export { MAX_INSTANCE_GROUP_NAME_LENGTH }
 
-export { type InstanceGroupDefinition, type InstanceGroupMembershipUpdate }
+export { type InstanceGroupDefinition, type InstanceGroupMembershipChange }
 
 export interface InstanceGroupWithMembership {
     key: string
@@ -155,8 +155,8 @@ export function useInstanceGroups(instances: Ref<{ id: string; groups: string[] 
         }
     }
 
-    async function setMemberships(updates: InstanceGroupMembershipUpdate[]): Promise<boolean> {
-        await set_group_memberships(updates)
+    async function updateMemberships(updates: InstanceGroupMembershipChange[]): Promise<boolean> {
+        await update_group_memberships(updates)
         return true
     }
 
@@ -176,7 +176,7 @@ export function useInstanceGroups(instances: Ref<{ id: string; groups: string[] 
         renameGroupById,
         deleteGroupById,
         reorderGroups,
-        setMemberships,
+        updateMemberships,
         groupNameById,
     }
 }

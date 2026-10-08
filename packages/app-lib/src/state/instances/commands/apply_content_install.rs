@@ -27,9 +27,9 @@ use async_trait::async_trait;
 use bytes::Bytes;
 use futures::{StreamExt, TryStreamExt};
 use modrinth_content_management::{
-    ContentMetadataProvider, ContentType, Error as ResolveError,
-    ResolutionPreferences, ResolveContentPlan, ResolveContentRequest,
-    ResolvedContent, SkippedReason,
+    ContentMetadataProvider, ContentType, DependencyPolicy,
+    Error as ResolveError, ResolutionPreferences, ResolveContentPlan,
+    ResolveContentRequest, ResolvedContent, SkippedReason,
 };
 use std::collections::HashMap;
 use std::future::Future;
@@ -236,6 +236,22 @@ pub(crate) async fn resolve_install_plan(
         instance_id,
         request,
         Some(CacheBehaviour::MustRevalidate),
+        DependencyPolicy::IncludeOptional,
+        state,
+    )
+    .await
+}
+
+pub(crate) async fn resolve_update_plan(
+    instance_id: &str,
+    request: InstanceInstallProjectRequest,
+    state: &State,
+) -> crate::Result<ResolveContentPlan> {
+    resolve_install_plan_with_cache(
+        instance_id,
+        request,
+        Some(CacheBehaviour::MustRevalidate),
+        DependencyPolicy::RequiredOnly,
         state,
     )
     .await
@@ -245,6 +261,7 @@ async fn resolve_install_plan_with_cache(
     instance_id: &str,
     request: InstanceInstallProjectRequest,
     cache_behaviour: Option<CacheBehaviour>,
+    dependency_policy: DependencyPolicy,
     state: &State,
 ) -> crate::Result<ResolveContentPlan> {
     let content_set =
@@ -282,10 +299,13 @@ async fn resolve_install_plan_with_cache(
         force_project_ids: request.force_project_ids,
     };
 
-    let mut plan =
-        modrinth_content_management::resolve_content(provider, request)
-            .await
-            .map_err(resolver_error)?;
+    let mut plan = modrinth_content_management::resolve_content_with_policy(
+        provider,
+        request,
+        dependency_policy,
+    )
+    .await
+    .map_err(resolver_error)?;
 
     // Enrich plan with project-level metadata from cache
     {
@@ -331,6 +351,23 @@ pub(crate) async fn resolve_install_plan_for_target(
     loader: ModLoader,
     state: &State,
 ) -> crate::Result<ResolveContentPlan> {
+    resolve_install_plan_for_target_with_policy(
+        request,
+        game_version,
+        loader,
+        DependencyPolicy::IncludeOptional,
+        state,
+    )
+    .await
+}
+
+pub(crate) async fn resolve_install_plan_for_target_with_policy(
+    request: InstanceInstallProjectRequest,
+    game_version: String,
+    loader: ModLoader,
+    dependency_policy: DependencyPolicy,
+    state: &State,
+) -> crate::Result<ResolveContentPlan> {
     let cache_behaviour = Some(CacheBehaviour::MustRevalidate);
     let provider = CachedEntryContentProvider {
         state,
@@ -348,10 +385,13 @@ pub(crate) async fn resolve_install_plan_for_target(
         force_project_ids: request.force_project_ids,
     };
 
-    let mut plan =
-        modrinth_content_management::resolve_content(provider, request)
-            .await
-            .map_err(resolver_error)?;
+    let mut plan = modrinth_content_management::resolve_content_with_policy(
+        provider,
+        request,
+        dependency_policy,
+    )
+    .await
+    .map_err(resolver_error)?;
 
     // Enrich plan with project-level metadata from cache
     {
@@ -540,7 +580,7 @@ pub(crate) async fn switch_project_version_with_dependencies_preserving_name(
     let content_type = ProjectType::get_from_loaders(version.loaders.clone())
         .map(ContentType::from)
         .unwrap_or(ContentType::Mod);
-    let plan = resolve_install_plan(
+    let plan = resolve_update_plan(
         instance_id,
         InstanceInstallProjectRequest {
             project_id: version.project_id.clone(),
@@ -697,6 +737,7 @@ pub(crate) async fn prepare_modrinth_content_change_action(
             force_project_ids: Vec::new(),
         },
         None,
+        DependencyPolicy::RequiredOnly,
         state,
     )
     .await?;
@@ -773,15 +814,17 @@ pub(crate) async fn prepare_modrinth_content_change_action(
             action
                 .dependencies
                 .push(crate::install::ContentChangeDependency {
-                parent_file_id: format!("modrinth:{parent}"),
-                child_file_id: id,
-                provider: ContentProvider::Modrinth,
-                project_id: resolved.project_id.clone(),
-                release_id: resolved.version_id.clone(),
-                kind: Some(
-                    crate::state::instances::ContentDependencyKind::Required,
-                ),
-            });
+                    parent_file_id: format!("modrinth:{parent}"),
+                    child_file_id: id,
+                    provider: ContentProvider::Modrinth,
+                    project_id: resolved.project_id.clone(),
+                    release_id: resolved.version_id.clone(),
+                    kind: Some(if resolved.required {
+                        crate::state::instances::ContentDependencyKind::Required
+                    } else {
+                        crate::state::instances::ContentDependencyKind::Include
+                    }),
+                });
         }
     }
     action.modrinth_plan = Some(plan);
@@ -1091,8 +1134,11 @@ pub(crate) async fn persist_resolved_plan_dependency_edges(
                 evidence_provider: crate::state::ContentProvider::Modrinth,
                 parent_provider: crate::state::ContentProvider::Modrinth,
                 child_provider: crate::state::ContentProvider::Modrinth,
-                dependency_kind:
-                    crate::state::instances::ContentDependencyKind::Required,
+                dependency_kind: if dependency.required {
+                    crate::state::instances::ContentDependencyKind::Required
+                } else {
+                    crate::state::instances::ContentDependencyKind::Include
+                },
                 parent_project_id: parent.project_id.clone(),
                 parent_release_id: parent.version_id.clone(),
                 child_project_id: dependency.project_id.clone(),

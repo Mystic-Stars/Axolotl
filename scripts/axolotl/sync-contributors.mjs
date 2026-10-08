@@ -100,7 +100,7 @@ async function main() {
 		throw error
 	}
 
-	const nextText = `${JSON.stringify(contributors, null, '\t')}\n`
+	const nextText = `${JSON.stringify(contributors, null, 2)}\n`
 	const currentText = existsSync(OUTPUT_PATH) ? await fs.readFile(OUTPUT_PATH, 'utf8') : ''
 
 	if (currentText === nextText) {

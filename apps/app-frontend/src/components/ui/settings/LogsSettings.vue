@@ -3,7 +3,8 @@ import { FolderOpenIcon, UploadIcon } from '@modrinth/assets'
 import { Button, Combobox, defineMessages, injectNotificationManager, useVIntl } from '@modrinth/ui'
 import { computed, ref, watch } from 'vue'
 
-import { get, getUpdateChannel, set } from '@/helpers/settings.ts'
+import { get, getUpdateChannel, update } from '@/helpers/settings.ts'
+import { createSettingsPatchSaver } from '@/helpers/settings-patch'
 import { showLauncherLogsFolder } from '@/helpers/utils'
 
 import LogExportModal from './LogExportModal.vue'
@@ -15,6 +16,7 @@ const { handleError } = injectNotificationManager()
 
 const [initialSettings, updateChannel] = await Promise.all([get(), getUpdateChannel()])
 const settings = ref(initialSettings)
+const saveDraft = createSettingsPatchSaver(initialSettings, update)
 const isBeta = updateChannel === 'beta'
 const exportModal = ref<InstanceType<typeof LogExportModal>>()
 
@@ -80,7 +82,7 @@ const levelHint = computed(() =>
 watch(
     settings,
     async () => {
-        await set(settings.value)
+        await saveDraft(settings.value)
     },
     { deep: true },
 )

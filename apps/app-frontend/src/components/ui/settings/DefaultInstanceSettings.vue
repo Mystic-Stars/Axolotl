@@ -3,7 +3,8 @@ import { defineMessages, StyledInput, Toggle, useVIntl } from '@modrinth/ui'
 import { platform } from '@tauri-apps/plugin-os'
 import { ref, watch } from 'vue'
 
-import { get, set } from '@/helpers/settings.ts'
+import { get, update } from '@/helpers/settings.ts'
+import { createSettingsPatchSaver } from '@/helpers/settings-patch'
 
 import LogShareSettings from './LogShareSettings.vue'
 import SettingsRow from './SettingsRow.vue'
@@ -142,6 +143,7 @@ const messages = defineMessages({
 })
 
 const fetchSettings = await get()
+const saveDraft = createSettingsPatchSaver(fetchSettings, update)
 const supportsMaximizeWindow = (await platform()) === 'windows'
 const settings = ref({
     ...fetchSettings,
@@ -173,7 +175,8 @@ watch(
             setSettings.custom_dir = null
         }
 
-        await set(setSettings)
+        delete setSettings.envVars
+        await saveDraft(setSettings)
     },
     { deep: true },
 )

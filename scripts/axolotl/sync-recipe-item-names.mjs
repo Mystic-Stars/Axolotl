@@ -60,7 +60,7 @@ for (const locale of ['en_us', 'zh_cn']) {
 }
 
 await fs.mkdir(new URL('.', OUTPUT_FILE), { recursive: true })
-await fs.writeFile(OUTPUT_FILE, `${JSON.stringify(itemNameIndex, null, '\t')}\n`)
+await fs.writeFile(OUTPUT_FILE, `${JSON.stringify(itemNameIndex, null, 2)}\n`)
 
 console.log(
 	`Updated recipe item names from Minecraft assets ${MINECRAFT_ASSETS_VERSION}: ${Object.keys(itemNameIndex.en_us).length} en_us entries and ${Object.keys(itemNameIndex.zh_cn).length} zh_cn entries.`,

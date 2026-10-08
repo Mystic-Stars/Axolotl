@@ -17,7 +17,7 @@ use super::apply_content_install::{
     content_ownership_for_path, download_project_version,
     finalize_updated_project_path, persist_resolved_plan_dependency_edges,
     primary_version_file_name, remove_project, resolve_content_scope,
-    resolve_install_plan, toggle_disable_project,
+    resolve_update_plan, toggle_disable_project,
 };
 use super::check_content_updates::{ContentUpdate, check_content_updates};
 
@@ -138,7 +138,7 @@ async fn apply_content_update(
             .await?
             .map(|version| primary_version_file_name(&version))
             .transpose()?;
-            let plan = resolve_install_plan(
+            let plan = resolve_update_plan(
                 instance_id,
                 super::apply_content_install::InstanceInstallProjectRequest {
                     project_id: project_id.to_string(),

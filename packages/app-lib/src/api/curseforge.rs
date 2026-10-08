@@ -27,6 +27,7 @@ use crate::util::fetch::{
 use crate::{ErrorKind, State};
 use dashmap::DashMap;
 use futures::{StreamExt, stream};
+use modrinth_content_management::{DependencyPolicy, DependencyType};
 use reqwest::{Method, StatusCode};
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
@@ -1810,6 +1811,32 @@ async fn install_file_with_metrics(
     Ok(result)
 }
 
+fn dependency_policy(
+    operation: crate::state::instances::ManualDownloadOperationKind,
+) -> DependencyPolicy {
+    if operation
+        == crate::state::instances::ManualDownloadOperationKind::ContentUpdate
+    {
+        DependencyPolicy::RequiredOnly
+    } else {
+        DependencyPolicy::IncludeOptional
+    }
+}
+
+fn should_resolve_dependency(
+    relation_type: u32,
+    operation: crate::state::instances::ManualDownloadOperationKind,
+) -> bool {
+    let dependency_type = match relation_type {
+        DEPENDENCY_RELATION_REQUIRED => DependencyType::Required,
+        DEPENDENCY_RELATION_OPTIONAL | DEPENDENCY_RELATION_INCLUDE => {
+            DependencyType::Optional
+        }
+        _ => return false,
+    };
+    dependency_policy(operation).allows(dependency_type)
+}
+
 async fn enqueue_curseforge_dependencies(
     pending_file: &PendingCurseForgeFile,
     file: &CurseForgeFile,
@@ -1863,6 +1890,12 @@ async fn enqueue_curseforge_dependencies(
             DEPENDENCY_RELATION_OPTIONAL
             | DEPENDENCY_RELATION_INCLUDE
             | DEPENDENCY_RELATION_REQUIRED => {
+                if !should_resolve_dependency(
+                    dependency_ref.relation_type,
+                    request.manual_operation_kind,
+                ) {
+                    continue;
+                }
                 let dependency_project_id = if request.mod_loader_type
                     == Some(CURSEFORGE_LOADER_QUILT)
                     && dependency_ref.mod_id == FABRIC_API_CURSEFORGE_PROJECT_ID
@@ -3014,6 +3047,12 @@ pub async fn preview_install_file(
                     DEPENDENCY_RELATION_OPTIONAL
                     | DEPENDENCY_RELATION_INCLUDE
                     | DEPENDENCY_RELATION_REQUIRED => {
+                        if !should_resolve_dependency(
+                            dependency_ref.relation_type,
+                            request.manual_operation_kind,
+                        ) {
+                            continue;
+                        }
                         if request
                             .excluded_dependency_project_ids
                             .contains(&dependency_project_id)
@@ -7937,7 +7976,7 @@ async fn resolve_modrinth_fallback_plan(
         return Ok(None);
     }
 
-    crate::state::instances::commands::resolve_install_plan_for_target(
+    crate::state::instances::commands::resolve_install_plan_for_target_with_policy(
         crate::state::instances::commands::InstanceInstallProjectRequest {
             project_id: version.project_id,
             version_id: Some(version.id),
@@ -7948,6 +7987,7 @@ async fn resolve_modrinth_fallback_plan(
         },
         game_version.to_string(),
         loader,
+        dependency_policy(request.manual_operation_kind),
         state,
     )
     .await
@@ -10206,6 +10246,53 @@ mod tests {
     use super::*;
     use std::io::Write;
 
+    #[test]
+    fn content_updates_only_resolve_required_dependencies() {
+        use crate::state::instances::ManualDownloadOperationKind;
+
+        let operation = ManualDownloadOperationKind::ContentUpdate;
+        assert!(should_resolve_dependency(
+            DEPENDENCY_RELATION_REQUIRED,
+            operation
+        ));
+        for relation in [
+            DEPENDENCY_RELATION_OPTIONAL,
+            DEPENDENCY_RELATION_INCLUDE,
+            DEPENDENCY_RELATION_EMBEDDED,
+            DEPENDENCY_RELATION_TOOL,
+            DEPENDENCY_RELATION_INCOMPATIBLE,
+        ] {
+            assert!(!should_resolve_dependency(relation, operation));
+        }
+        assert_eq!(
+            dependency_policy(operation),
+            DependencyPolicy::RequiredOnly
+        );
+    }
+
+    #[test]
+    fn content_installs_still_resolve_optional_dependencies_for_selection() {
+        use crate::state::instances::ManualDownloadOperationKind;
+
+        for operation in [
+            ManualDownloadOperationKind::ContentInstall,
+            ManualDownloadOperationKind::PackInstall,
+            ManualDownloadOperationKind::PackUpdate,
+        ] {
+            for relation in [
+                DEPENDENCY_RELATION_REQUIRED,
+                DEPENDENCY_RELATION_OPTIONAL,
+                DEPENDENCY_RELATION_INCLUDE,
+            ] {
+                assert!(should_resolve_dependency(relation, operation));
+            }
+            assert_eq!(
+                dependency_policy(operation),
+                DependencyPolicy::IncludeOptional
+            );
+        }
+    }
+
     fn write_override_test_archive(path: &Path, entries: &[(&str, &[u8])]) {
         let file = std::fs::File::create(path).unwrap();
         let mut archive = zip::ZipWriter::new(file);
@@ -10311,7 +10398,7 @@ mod tests {
             )
             .await;
         let verified = verified.unwrap();
-        assert_eq!(scans, if cfg!(unix) { 0 } else { 1 });
+        assert_eq!(scans, usize::from(!cfg!(unix)));
         assert_eq!(verified.sha1, sha1);
         assert_eq!(
             verified.pending_completion,

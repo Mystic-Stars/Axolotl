@@ -31,7 +31,8 @@ import {
     set_java_default_version,
     set_java_version,
 } from '@/helpers/jre'
-import { get, set } from '@/helpers/settings.ts'
+import { get, update } from '@/helpers/settings.ts'
+import { createSettingsPatchSaver } from '@/helpers/settings-patch'
 
 import SettingsSection from './SettingsSection.vue'
 
@@ -135,6 +136,7 @@ const currentPlatform = await platform()
 const supportsHighPerformanceMode = ['windows', 'linux'].includes(currentPlatform)
 const supportsMemoryOptimization = currentPlatform === 'windows'
 const settings = ref(await get().catch(handleError))
+const saveDraft = settings.value ? createSettingsPatchSaver(settings.value, update) : undefined
 const autoHighPerformanceMode = ref(settings.value?.auto_set_java_high_performance_mode ?? false)
 
 const javaArgs = ref((settings.value?.extra_launch_args ?? []).join(' '))
@@ -187,7 +189,7 @@ watch(
             extra_launch_args: javaArgs.value.trim().split(/\s+/).filter(Boolean),
         }
 
-        await set(settings.value).catch(handleError)
+        await saveDraft?.(settings.value).catch(handleError)
     },
     { deep: true },
 )

@@ -267,10 +267,11 @@ function createGroupFromSelection() {
             const updates = instanceIds.map((instanceId) => {
                 return {
                     instance_id: instanceId,
-                    group_ids: [group.id],
+                    add_group_ids: [group.id],
+                    remove_group_ids: [],
                 }
             })
-            return setMemberships(updates).then(() => group)
+            return updateMemberships(updates).then(() => group)
         })
         .then((group) => {
             state.value.group = 'Group'
@@ -288,8 +289,7 @@ const selectedGroupedInstances = computed(() => {
     return props.instances.filter(
         (i) =>
             selectedInstanceIds.value.has(i.id) &&
-            (i.groups || []).length > 0 &&
-            !(i.groups || []).includes(UNGROUPED_GROUP_KEY),
+            (i.groups || []).some((id) => id !== FAVORITES_GROUP_ID && id !== UNGROUPED_GROUP_KEY),
     )
 })
 
@@ -298,11 +298,12 @@ async function removeSelectedInstancesFromGroups() {
 
     removingFromGroup.value = true
     try {
-        const updates = [...selectedInstanceIds.value].map((instanceId) => ({
-            instance_id: instanceId,
-            group_ids: [],
+        const updates = selectedGroupedInstances.value.map((instance) => ({
+            instance_id: instance.id,
+            add_group_ids: [],
+            remove_group_ids: instance.groups.filter((id) => id !== FAVORITES_GROUP_ID),
         }))
-        await setMemberships(updates)
+        await updateMemberships(updates)
         clearLibraryInstanceSelection()
     } catch (err) {
         handleError(err)
@@ -355,7 +356,7 @@ const {
     renameGroupById,
     deleteGroupById,
     reorderGroups,
-    setMemberships,
+    updateMemberships,
 } = useInstanceGroups(filteredInstances)
 
 const groupPendingNameEdit = ref<string | null>(null)
@@ -638,26 +639,29 @@ const handleOptionsClick = async (args) => {
             await navigator.clipboard.writeText(args.item.instance.id)
             break
         case 'add_to_pinned':
-            await setMemberships([
+            await updateMemberships([
                 {
                     instance_id: args.item.instance.id,
-                    group_ids: [FAVORITES_GROUP_ID],
+                    add_group_ids: [FAVORITES_GROUP_ID],
+                    remove_group_ids: [],
                 },
             ]).catch(handleError)
             break
         case 'remove_from_pinned':
-            await setMemberships([
+            await updateMemberships([
                 {
                     instance_id: args.item.instance.id,
-                    group_ids: [],
+                    add_group_ids: [],
+                    remove_group_ids: [FAVORITES_GROUP_ID],
                 },
             ]).catch(handleError)
             break
         case 'remove_from_group':
-            await setMemberships([
+            await updateMemberships([
                 {
                     instance_id: args.item.instance.id,
-                    group_ids: [],
+                    add_group_ids: [],
+                    remove_group_ids: [currentContextSectionKey.value],
                 },
             ]).catch(handleError)
             break
@@ -808,10 +812,14 @@ async function handleInstanceDragEnd(event: {
     const instance = props.instances.find((i: GameInstance) => i.id === sourceData.instanceId)
     if (!instance) return
 
-    const newGroups = targetData.groupId === UNGROUPED_GROUP_KEY ? [] : [targetData.groupId]
-    await setMemberships([{ instance_id: sourceData.instanceId, group_ids: newGroups }]).catch(
-        handleError,
-    )
+    await updateMemberships([
+        {
+            instance_id: sourceData.instanceId,
+            add_group_ids: targetData.groupId === UNGROUPED_GROUP_KEY ? [] : [targetData.groupId],
+            remove_group_ids:
+                sourceData.fromGroup === UNGROUPED_GROUP_KEY ? [] : [sourceData.fromGroup],
+        },
+    ]).catch(handleError)
 }
 </script>
 <template>

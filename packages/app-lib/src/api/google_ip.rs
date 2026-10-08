@@ -722,7 +722,7 @@ mod tests {
     fn ranks_and_truncates_candidates() {
         let candidates = (0..25)
             .map(|index| GoogleTranslateIp {
-                ip: format!("10.0.{}.1", index),
+                ip: format!("10.0.{index}.1"),
                 latency_ms: 1000 - index,
             })
             .collect();

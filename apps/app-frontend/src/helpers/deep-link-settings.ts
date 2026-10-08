@@ -78,7 +78,7 @@ const hook = (field: 'pre_launch' | 'wrapper' | 'post_exit'): SettingAbility => 
     kind: 'text',
     read: (settings) => show(settings.hooks?.[field]),
     apply: (settings, value) => {
-        settings.hooks[field] = value === '' ? undefined : value
+        settings.hooks[field] = value === '' ? null : value
     },
 })
 

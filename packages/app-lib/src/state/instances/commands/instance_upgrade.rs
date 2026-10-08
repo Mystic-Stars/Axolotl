@@ -5125,7 +5125,7 @@ mod tests {
         first.content_id = "physical-first".to_string();
         let mut second = root("duplicate", "second-old", true);
         second.content_id = "physical-second".to_string();
-        let roots = vec![first, second];
+        let roots = [first, second];
         let catalog = catalog([(
             key("duplicate"),
             vec![
@@ -6279,7 +6279,7 @@ mod tests {
             dependencies: Vec::new(),
         };
         let catalog = catalog([
-            (cf_root, vec![root_candidate.clone()]),
+            (cf_root, vec![root_candidate]),
             (cf_dep.clone(), vec![dep_candidate]),
         ]);
         let installed_dep = InstalledNode {
@@ -6402,7 +6402,7 @@ mod tests {
         let catalog = catalog([
             (key("a"), vec![a]),
             (cf_b, vec![b]),
-            (mr_x.clone(), vec![candidate("x-mr", "x-mr-new", 3)]),
+            (mr_x, vec![candidate("x-mr", "x-mr-new", 3)]),
             (cf_x.clone(), vec![candidate_for_key(&cf_x, "x-cf-new", 2)]),
         ]);
         let outcome =

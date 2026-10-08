@@ -143,8 +143,9 @@ import {
     getUpdatePreferences,
     type PrivacySettings,
     savePrivacySettings,
-    set as setSettings,
+    update as updateSettings,
 } from '@/helpers/settings.ts'
+import { diffSettings } from '@/helpers/settings-patch'
 import {
     discoverContentTarget,
     SHORTCUT_ACTIONS,
@@ -561,6 +562,12 @@ function isEditableTarget(target: EventTarget | null) {
         target instanceof HTMLSelectElement ||
         (target instanceof HTMLElement && target.isContentEditable)
     )
+}
+
+/** Let the WebView provide its edit menu when text has been selected. */
+function hasTextSelection() {
+    const selection = window.getSelection()
+    return selection !== null && !selection.isCollapsed
 }
 
 function scrollsAtOwnLevel(element: Element) {
@@ -1460,7 +1467,7 @@ async function setupApp() {
     const resolvedLocale = applyLocalePreference(locale)
     if (!locale || locale !== resolvedLocale) {
         initialSettings.locale = resolvedLocale
-        await setSettings(initialSettings)
+        await updateSettings({ locale: resolvedLocale })
     }
 
     const defaultPageRoutes = {
@@ -1551,12 +1558,12 @@ async function setupApp() {
     })
 
     if (!dev) {
-        // Keep the native edit menu on inputs while suppressing the WebView menu
-        // elsewhere in the launcher.
+        // Keep the native edit menu on editable targets and selected text while
+        // suppressing the WebView menu elsewhere in the launcher.
         document.addEventListener(
             'contextmenu',
             (event) => {
-                if (!isEditableTarget(event.target)) event.preventDefault()
+                if (!isEditableTarget(event.target) && !hasTextSelection()) event.preventDefault()
             },
             { capture: true },
         )
@@ -1659,7 +1666,11 @@ async function finishOnboarding() {
             settings.onboarded = true
             settings.onboarding_version = 1
         }
-        await setSettings(settings)
+        await updateSettings(
+            onboardingMode.value === 'instance'
+                ? { onboarding_instance_tour_completed: true }
+                : { onboarded: true, onboarding_version: 1 },
+        )
         onboardingSettings.value = settings
     }
     showOnboarding.value = false
@@ -1681,7 +1692,7 @@ async function handleUpdateAnnouncementClosed(version) {
     const settings = await getSettings()
     if (settings.pending_update_toast_for_version === version) {
         settings.pending_update_toast_for_version = null
-        await setSettings(settings)
+        await updateSettings({ pending_update_toast_for_version: null })
     }
     pendingUpdateAnnouncementVersion.value = null
     updateAnnouncementShowing.value = false
@@ -1850,9 +1861,7 @@ async function applyCloseChoice(choice: 'close' | 'lightweight', remember: boole
     let closeBehaviorPersisted = false
     try {
         if (remember) {
-            const settings = await getSettings()
-            settings.close_behavior = choice
-            await setSettings(settings)
+            await updateSettings({ close_behavior: choice })
             themeStore.closeBehavior = choice
             closeBehaviorPersisted = true
         }
@@ -2466,8 +2475,10 @@ const privilegedMessages = defineMessages({
 async function handlePrivilegedCommand(e) {
     if (e.event === 'UpdateSettings') {
         const latest = await getSettings().catch(handleError)
-        if (!latest || !applySettingChanges(latest, e.changes ?? [])) return
-        await setSettings(latest).catch(handleError)
+        if (!latest) return
+        const before = JSON.parse(JSON.stringify(latest))
+        if (!applySettingChanges(latest, e.changes ?? [])) return
+        await updateSettings(diffSettings(before, latest)).catch(handleError)
         await applyThemeFromSettings(latest)
         setFollowSystemLocale(!latest.locale || latest.locale === 'system')
         applyLocalePreference(latest.locale)

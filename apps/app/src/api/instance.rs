@@ -17,6 +17,7 @@ use theseus::data::{
     InstanceLink as CoreInstanceLink, InstanceMetadata, LinkedModpackInfo,
 };
 use theseus::instance::InstanceGroup;
+use theseus::instance::InstanceGroupMembershipChange;
 use theseus::instance::InstanceGroupMembershipUpdate;
 use theseus::instance::QuickPlayType;
 use theseus::instance::{
@@ -173,6 +174,7 @@ pub fn init<R: tauri::Runtime>() -> tauri::plugin::TauriPlugin<R> {
             instance_delete_group,
             instance_set_group_order,
             instance_set_group_memberships,
+            instance_update_group_memberships,
         ])
         .build()
 }
@@ -2135,4 +2137,11 @@ pub async fn instance_set_group_memberships(
     updates: Vec<InstanceGroupMembershipUpdate>,
 ) -> Result<()> {
     Ok(theseus::instance::set_group_memberships(updates).await?)
+}
+
+#[tauri::command]
+pub async fn instance_update_group_memberships(
+    updates: Vec<InstanceGroupMembershipChange>,
+) -> Result<()> {
+    Ok(theseus::instance::update_group_memberships(updates).await?)
 }

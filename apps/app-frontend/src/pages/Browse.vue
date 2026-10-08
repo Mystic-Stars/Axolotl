@@ -132,14 +132,13 @@ import {
 } from '@/helpers/search-query'
 import {
     type BrowseContentSource,
-    get as getSettings,
     getLastBrowseContentDisplayMode,
     getLastBrowseContentSource,
     isBrowseContentProjectType,
-    set as setSettings,
     setLastBrowseContentDisplayMode,
     setLastBrowseContentProjectType,
     setLastBrowseContentSource,
+    update as updateSettings,
 } from '@/helpers/settings.ts'
 import { get_categories, get_game_versions, get_loaders } from '@/helpers/tags'
 import {
@@ -3180,12 +3179,7 @@ const advancedFiltersCollapsed = computed({
     get: () => themeStore.getFeatureFlag('advanced_filters_collapsed'),
     set: (value) => {
         themeStore.featureFlags['advanced_filters_collapsed'] = value
-        getSettings()
-            .then((settings) => {
-                settings.feature_flags['advanced_filters_collapsed'] = value
-                return setSettings(settings)
-            })
-            .catch(handleError)
+        updateSettings({ feature_flags: { advanced_filters_collapsed: value } }).catch(handleError)
     },
 })
 

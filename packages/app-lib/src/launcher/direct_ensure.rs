@@ -1853,9 +1853,9 @@ mod tests {
             spawn_fixture_server(HashMap::new()).await;
         let (mojang_base, mojang_hits, mojang_server) =
             spawn_fixture_server(HashMap::new()).await;
-        let central_path = format!(
+        let central_path =
             "/net/java/jinput/jinput-platform/2.0.5/jinput-platform-2.0.5.jar"
-        );
+                .to_string();
         let (central_base, central_hits, central_server) =
             spawn_fixture_server(HashMap::from([(
                 central_path.clone(),

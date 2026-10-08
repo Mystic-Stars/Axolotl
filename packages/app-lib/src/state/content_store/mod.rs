@@ -87,6 +87,24 @@ pub(crate) async fn publish_verified(
     Ok(destination)
 }
 
+pub(crate) async fn record_published(
+    pool: &SqlitePool,
+    digest: &str,
+    size: u64,
+) -> crate::Result<()> {
+    let now = chrono::Utc::now().timestamp();
+    sqlx::query(
+        "INSERT INTO store_blobs (digest, size, state, created_at, last_used_at) VALUES (?, ?, 'ready', ?, ?) ON CONFLICT(digest) DO UPDATE SET size = excluded.size, state = 'ready', last_used_at = excluded.last_used_at",
+    )
+    .bind(digest)
+    .bind(size as i64)
+    .bind(now)
+    .bind(now)
+    .execute(pool)
+    .await?;
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -140,22 +158,4 @@ mod tests {
         );
         assert_eq!(tokio::fs::read(&object).await.unwrap(), b"corrupted again");
     }
-}
-
-pub(crate) async fn record_published(
-    pool: &SqlitePool,
-    digest: &str,
-    size: u64,
-) -> crate::Result<()> {
-    let now = chrono::Utc::now().timestamp();
-    sqlx::query(
-        "INSERT INTO store_blobs (digest, size, state, created_at, last_used_at) VALUES (?, ?, 'ready', ?, ?) ON CONFLICT(digest) DO UPDATE SET size = excluded.size, state = 'ready', last_used_at = excluded.last_used_at",
-    )
-    .bind(digest)
-    .bind(size as i64)
-    .bind(now)
-    .bind(now)
-    .execute(pool)
-    .await?;
-    Ok(())
 }

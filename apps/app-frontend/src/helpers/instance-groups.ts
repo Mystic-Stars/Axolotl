@@ -12,6 +12,18 @@ export type InstanceGroupMembershipUpdate = {
     group_ids: string[]
 }
 
+export type InstanceGroupMembershipChange = {
+    instance_id: string
+    add_group_ids: string[]
+    remove_group_ids: string[]
+}
+
+export async function update_group_memberships(
+    updates: InstanceGroupMembershipChange[],
+): Promise<void> {
+    return await invoke('plugin:instance|instance_update_group_memberships', { updates })
+}
+
 export async function list_groups(): Promise<InstanceGroupDefinition[]> {
     return await invoke('plugin:instance|instance_list_groups')
 }

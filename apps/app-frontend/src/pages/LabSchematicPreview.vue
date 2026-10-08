@@ -144,6 +144,7 @@ type InspectorTab = 'edit' | 'materials'
 type WorkspaceTool = 'select' | 'box' | 'measure' | 'layer-spacing'
 type LoadingStage = 'parse' | 'resources' | 'mesh'
 type MeshJob = {
+    manifest: SchematicPreviewManifest
     epoch: number
     jobId: string
     regionId: string
@@ -230,11 +231,21 @@ const chunkReadPromises = new Map<string, Promise<Uint32Array>>()
 let requestEpoch = 0
 let resourceEpoch = 0
 let activeOpenRequestId: string | undefined
+let disposed = false
+let resourceController: AbortController | undefined
 let completedMeshes = 0
 let totalMeshes = 0
 let unlistenNativeDrop: (() => void) | undefined
 const chunkCache = new Map<string, SchematicCachedChunk>()
 const materialTextureCache = new Map<string, [number, number, number, number] | undefined>()
+
+function captureSession(opened: SchematicPreviewManifest) {
+    return { epoch: requestEpoch, sessionId: opened.sessionId }
+}
+
+function isCurrentSession(session: ReturnType<typeof captureSession>) {
+    return session.epoch === requestEpoch && session.sessionId === manifest.value?.sessionId
+}
 
 const messages = defineMessages({
     title: { id: 'app.lab.schematic-preview.title', defaultMessage: 'Schematic workshop' },
@@ -576,11 +587,15 @@ async function chooseLocalFile() {
         multiple: false,
         filters: [{ name: 'Minecraft schematics', extensions: ['litematic', 'schem'] }],
     })
-    if (typeof path === 'string') await openSource({ kind: 'external', path })
+    if (!disposed && typeof path === 'string') await openSource({ kind: 'external', path })
 }
 
 async function openSource(source: SchematicPreviewSource) {
+    if (disposed) return
     const epoch = ++requestEpoch
+    resourceEpoch++
+    resourceController?.abort()
+    applyingEdit.value = false
     const requestId = `schematic-open-${epoch}`
     if (activeOpenRequestId) void cancelSchematicPreview(activeOpenRequestId)
     activeOpenRequestId = requestId
@@ -623,6 +638,7 @@ async function openSource(source: SchematicPreviewSource) {
         layerMaximum.value = opened.max[1]
         layerExplosion.value = 0
         await nextTick()
+        if (epoch !== requestEpoch) return
         ensureScene()
         scene?.setRegions(opened.regions)
         scene?.fitView()
@@ -648,14 +664,18 @@ function reloadCurrent() {
 }
 
 async function applyResources(epoch = requestEpoch) {
-    const resourceRequest = ++resourceEpoch
     const opened = manifest.value
     if (!opened || epoch !== requestEpoch) return
+    const session = captureSession(opened)
+    const resourceRequest = ++resourceEpoch
+    resourceController?.abort()
+    const controller = new AbortController()
+    resourceController = controller
     loadingStage.value = 'resources'
     loadingProgress.value = 0
     const builtInVersion = minecraftVersionFromDataVersion(opened.dataVersion) ?? 'latest'
-    const loaded = await createSchematicResources(builtInVersion, opened.palette)
-    if (epoch !== requestEpoch || resourceRequest !== resourceEpoch) {
+    const loaded = await createSchematicResources(builtInVersion, opened.palette, controller.signal)
+    if (!isCurrentSession(session) || resourceRequest !== resourceEpoch) {
         loaded.texture.dispose()
         return
     }
@@ -677,6 +697,7 @@ function startMeshWorkers(
     meshQueue = opened.regions
         .flatMap((region) =>
             region.chunks.map((chunk) => ({
+                manifest: opened,
                 epoch: meshEpoch,
                 jobId: `${region.id}:${chunk.position.join(':')}`,
                 regionId: region.id,
@@ -705,6 +726,7 @@ function startMeshWorkers(
         worker.onmessage = (event: MessageEvent<SchematicMeshWorkerResponse>) =>
             handleWorkerMessage(slot, event.data)
         worker.onerror = (event) => {
+            if (meshEpoch !== resourceEpoch) return
             transientWarnings.value = [...transientWarnings.value, event.message]
             slot.busy = false
             completeMeshJob()
@@ -812,9 +834,9 @@ function readMeshJobChunk(job: MeshJob) {
     const key = schematicChunkKey(job.regionId, job.position)
     const pending = chunkReadPromises.get(key)
     if (pending) return pending
-    const request = readSchematicChunk(manifest.value!.sessionId, job.regionId, job.position).then(
+    const request = readSchematicChunk(job.manifest.sessionId, job.regionId, job.position).then(
         (blocks) => {
-            const normalized = normalizeSchematicAirBlocks(blocks, manifest.value!.palette)
+            const normalized = normalizeSchematicAirBlocks(blocks, job.manifest.palette)
             if (job.epoch === resourceEpoch) {
                 chunkCache.set(key, {
                     regionId: job.regionId,
@@ -832,6 +854,7 @@ function readMeshJobChunk(job: MeshJob) {
 async function prepareMeshJob(job: MeshJob) {
     const blocks = await readMeshJobChunk(job)
     const neighborFaces: Partial<Record<SchematicDirection, Uint32Array>> = {}
+    if (job.epoch !== resourceEpoch) return { blocks, neighborFaces }
     await Promise.all(
         SCHEMATIC_DIRECTIONS.map(async (direction) => {
             const position = schematicNeighborChunkPosition(job.position, direction)
@@ -1006,6 +1029,7 @@ function expandConnectedSelection() {
 }
 
 function rebuildMeshes() {
+    if (loadingStage.value === 'parse' || loadingStage.value === 'resources') return
     if (manifest.value && resources.value) {
         startMeshWorkers(manifest.value, resources.value, ++resourceEpoch)
     }
@@ -1041,6 +1065,7 @@ async function commitSelectionEdit(
     targetState?: SchematicBlockState,
 ) {
     if (!manifest.value || !canEditSelection.value || (!targetState && paletteIndex < 0)) return
+    const session = captureSession(manifest.value)
     const targetKey = targetState ? schematicBlockStateKey(targetState) : undefined
     const existingTargetIndex = targetKey
         ? manifest.value.palette.findIndex((state) => schematicBlockStateKey(state) === targetKey)
@@ -1064,7 +1089,8 @@ async function commitSelectionEdit(
         const needsResourceReload = Boolean(
             targetState && !resources.value?.workerResources.blockDefinitions[targetState.name],
         )
-        const result = await applySchematicEdits(manifest.value.sessionId, changes, targetState)
+        const result = await applySchematicEdits(session.sessionId, changes, targetState)
+        if (!isCurrentSession(session)) return
         manifest.value = result.manifest
         const appliedChanges = changes.map((change, index) => ({
             ...change,
@@ -1078,17 +1104,18 @@ async function commitSelectionEdit(
         const firstAppliedPaletteIndex = appliedChanges[0]?.paletteIndex ?? 0
         if (firstAppliedPaletteIndex === 0) clearBlockSelection()
         else selectedBlock.value = result.manifest.palette[firstAppliedPaletteIndex]
-        if (needsResourceReload) await applyResources()
+        if (needsResourceReload) await applyResources(session.epoch)
         else rebuildMeshes()
     } catch (caught) {
-        handleError(caught)
+        if (isCurrentSession(session)) handleError(caught)
     } finally {
-        applyingEdit.value = false
+        if (isCurrentSession(session)) applyingEdit.value = false
     }
 }
 
 async function applyHistory(entry: EditHistoryEntry, undo: boolean) {
     if (!manifest.value || loadingStage.value || applyingEdit.value) return false
+    const session = captureSession(manifest.value)
     let applied = false
     applyingEdit.value = true
     try {
@@ -1098,11 +1125,14 @@ async function applyHistory(entry: EditHistoryEntry, undo: boolean) {
                 position: change.position,
                 paletteIndex: undo ? change.before : change.paletteIndex,
             }))
-            const result = await applySchematicEdits(manifest.value.sessionId, edits)
+            const result = await applySchematicEdits(session.sessionId, edits)
+            if (!isCurrentSession(session)) return false
             manifest.value = result.manifest
         } else {
             const transform = undo ? inverseTransform(entry.transform) : entry.transform
-            manifest.value = await transformSchematic(manifest.value.sessionId, transform)
+            const transformed = await transformSchematic(session.sessionId, transform)
+            if (!isCurrentSession(session)) return false
+            manifest.value = transformed
             resetSceneAfterTransform()
         }
         if (undo) redoHistory.value = [...redoHistory.value, entry]
@@ -1111,9 +1141,9 @@ async function applyHistory(entry: EditHistoryEntry, undo: boolean) {
         rebuildMeshes()
         applied = true
     } catch (caught) {
-        handleError(caught)
+        if (isCurrentSession(session)) handleError(caught)
     } finally {
-        applyingEdit.value = false
+        if (isCurrentSession(session)) applyingEdit.value = false
     }
     return applied
 }
@@ -1136,9 +1166,12 @@ function resetSceneAfterTransform() {
 
 async function transformStructure(transform: SchematicTransform, label: string) {
     if (!manifest.value || loadingStage.value || applyingEdit.value) return
+    const session = captureSession(manifest.value)
     applyingEdit.value = true
     try {
-        manifest.value = await transformSchematic(manifest.value.sessionId, transform)
+        const transformed = await transformSchematic(session.sessionId, transform)
+        if (!isCurrentSession(session)) return
+        manifest.value = transformed
         editHistory.value = [
             ...editHistory.value.slice(-49),
             { kind: 'transform', label, transform },
@@ -1148,24 +1181,30 @@ async function transformStructure(transform: SchematicTransform, label: string) 
         resetSceneAfterTransform()
         rebuildMeshes()
     } catch (caught) {
-        handleError(caught)
+        if (isCurrentSession(session)) handleError(caught)
     } finally {
-        applyingEdit.value = false
+        if (isCurrentSession(session)) applyingEdit.value = false
     }
 }
 
 async function undoEdit() {
+    if (!manifest.value || loadingStage.value || applyingEdit.value) return
+    const session = captureSession(manifest.value)
     const entry = editHistory.value.at(-1)
     if (!entry) return
     editHistory.value = editHistory.value.slice(0, -1)
-    if (!(await applyHistory(entry, true))) editHistory.value = [...editHistory.value, entry]
+    if (!(await applyHistory(entry, true)) && isCurrentSession(session))
+        editHistory.value = [...editHistory.value, entry]
 }
 
 async function redoEdit() {
+    if (!manifest.value || loadingStage.value || applyingEdit.value) return
+    const session = captureSession(manifest.value)
     const entry = redoHistory.value.at(-1)
     if (!entry) return
     redoHistory.value = redoHistory.value.slice(0, -1)
-    if (!(await applyHistory(entry, false))) redoHistory.value = [...redoHistory.value, entry]
+    if (!(await applyHistory(entry, false)) && isCurrentSession(session))
+        redoHistory.value = [...redoHistory.value, entry]
 }
 
 function setRegionVisibility(regionId: string, visible: boolean) {
@@ -1242,78 +1281,92 @@ function replaceSelectedWith(state: SchematicBlockState) {
 
 async function exportMaterials() {
     if (!manifest.value) return
+    const opened = manifest.value
+    const session = captureSession(opened)
     try {
         const path = await save({
-            defaultPath: `${manifest.value.fileName.replace(/\.(litematic|schem)$/i, '')}-materials.csv`,
+            defaultPath: `${opened.fileName.replace(/\.(litematic|schem)$/i, '')}-materials.csv`,
             filters: [{ name: 'CSV', extensions: ['csv'] }],
         })
-        if (!path) return
+        if (!path || !isCurrentSession(session)) return
         const rows = [
             ['block', 'count'],
-            ...manifest.value.materials.map((material) => [material.name, material.count]),
+            ...opened.materials.map((material) => [material.name, material.count]),
         ]
         await writeTextFile(
             path,
             rows.map((row) => row.map(escapeSchematicCsvCell).join(',')).join('\r\n'),
         )
-        addNotification({ type: 'success', title: formatMessage(messages.exportComplete) })
+        if (isCurrentSession(session))
+            addNotification({ type: 'success', title: formatMessage(messages.exportComplete) })
     } catch (caught) {
-        handleError(caught)
+        if (isCurrentSession(session)) handleError(caught)
     }
 }
 
 async function exportMaterialsJson() {
     if (!manifest.value) return
+    const opened = manifest.value
+    const session = captureSession(opened)
     try {
         const path = await save({
-            defaultPath: `${manifest.value.fileName.replace(/\.(litematic|schem)$/i, '')}-materials.json`,
+            defaultPath: `${opened.fileName.replace(/\.(litematic|schem)$/i, '')}-materials.json`,
             filters: [{ name: 'JSON', extensions: ['json'] }],
         })
-        if (!path) return
-        await writeTextFile(path, JSON.stringify(manifest.value.materials, null, 2))
-        addNotification({ type: 'success', title: formatMessage(messages.exportComplete) })
+        if (!path || !isCurrentSession(session)) return
+        await writeTextFile(path, JSON.stringify(opened.materials, null, 2))
+        if (isCurrentSession(session))
+            addNotification({ type: 'success', title: formatMessage(messages.exportComplete) })
     } catch (caught) {
-        handleError(caught)
+        if (isCurrentSession(session)) handleError(caught)
     }
 }
 
 async function exportSchematic(format: 'schem' | 'litematic') {
     if (!manifest.value) return
+    const opened = manifest.value
+    const session = captureSession(opened)
     try {
         const extension = format === 'schem' ? 'schem' : 'litematic'
         const path = await save({
-            defaultPath: `${manifest.value.fileName.replace(/\.(litematic|schem)$/i, '')}-edited.${extension}`,
+            defaultPath: `${opened.fileName.replace(/\.(litematic|schem)$/i, '')}-edited.${extension}`,
             filters: [
                 format === 'schem'
                     ? { name: 'Sponge schematic', extensions: ['schem'] }
                     : { name: 'Litematica schematic', extensions: ['litematic'] },
             ],
         })
-        if (!path) return
+        if (!path || !isCurrentSession(session)) return
         const bytes =
             format === 'schem'
-                ? await exportSchematicSponge(manifest.value.sessionId)
-                : await exportSchematicLitematic(manifest.value.sessionId)
+                ? await exportSchematicSponge(session.sessionId)
+                : await exportSchematicLitematic(session.sessionId)
+        if (!isCurrentSession(session)) return
         await writeFile(path, new Uint8Array(bytes))
-        addNotification({ type: 'success', title: formatMessage(messages.exportComplete) })
+        if (isCurrentSession(session))
+            addNotification({ type: 'success', title: formatMessage(messages.exportComplete) })
     } catch (caught) {
-        handleError(caught)
+        if (isCurrentSession(session)) handleError(caught)
     }
 }
 
 async function exportPng() {
     if (!manifest.value || !scene) return
+    const opened = manifest.value
+    const session = captureSession(opened)
     try {
         const path = await save({
-            defaultPath: `${manifest.value.fileName.replace(/\.(litematic|schem)$/i, '')}-preview.png`,
+            defaultPath: `${opened.fileName.replace(/\.(litematic|schem)$/i, '')}-preview.png`,
             filters: [{ name: 'PNG', extensions: ['png'] }],
         })
-        if (!path) return
+        if (!path || !isCurrentSession(session)) return
         const bytes = new Uint8Array(await (await fetch(scene.toPngDataUrl())).arrayBuffer())
+        if (!isCurrentSession(session)) return
         await writeFile(path, bytes)
-        addNotification({ type: 'success', title: formatMessage(messages.exportComplete) })
+        if (isCurrentSession(session))
+            addNotification({ type: 'success', title: formatMessage(messages.exportComplete) })
     } catch (caught) {
-        handleError(caught)
+        if (isCurrentSession(session)) handleError(caught)
     }
 }
 
@@ -1381,7 +1434,7 @@ function pointInWorkspace(position: { x: number; y: number }) {
 }
 
 async function setupNativeDrop() {
-    unlistenNativeDrop = await getCurrentWebview().onDragDropEvent(
+    const unlisten = await getCurrentWebview().onDragDropEvent(
         (event: { payload: DragDropEvent }) => {
             const payload = event.payload
             if (payload.type === 'leave') {
@@ -1398,6 +1451,8 @@ async function setupNativeDrop() {
             }
         },
     )
+    if (disposed) unlisten()
+    else unlistenNativeDrop = unlisten
 }
 
 function handleKeydown(event: KeyboardEvent) {
@@ -1458,9 +1513,11 @@ watch(seamlessGlass, rebuildMeshes)
 
 onMounted(async () => {
     await loadInstances()
+    if (disposed) return
     window.addEventListener('keydown', handleKeydown)
     document.addEventListener('fullscreenchange', onFullscreenChange)
     await setupNativeDrop().catch(() => undefined)
+    if (disposed) return
 
     const instanceId = typeof route.query.instance === 'string' ? route.query.instance : ''
     const relativePath = typeof route.query.path === 'string' ? route.query.path : ''
@@ -1475,7 +1532,10 @@ onMounted(async () => {
 })
 
 onBeforeUnmount(() => {
+    disposed = true
+    resourceController?.abort()
     requestEpoch += 1
+    resourceEpoch++
     if (activeOpenRequestId) void cancelSchematicPreview(activeOpenRequestId)
     terminateWorkers()
     window.removeEventListener('keydown', handleKeydown)

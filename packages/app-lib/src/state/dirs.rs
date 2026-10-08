@@ -310,7 +310,9 @@ impl DirectoryInfo {
         app_identifier: &str,
     ) -> crate::Result<()>
     where
-        E: sqlx::Executor<'a, Database = sqlx::Sqlite> + Copy,
+        E: sqlx::Executor<'a, Database = sqlx::Sqlite>
+            + sqlx::Acquire<'a, Database = sqlx::Sqlite>
+            + Copy,
     {
         let app_dir = DirectoryInfo::initial_settings_dir_path(app_identifier)
             .ok_or(crate::ErrorKind::FSError(

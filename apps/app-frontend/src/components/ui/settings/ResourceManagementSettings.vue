@@ -22,7 +22,8 @@ import {
     getMissingContentScannerSettings,
     setMissingContentScannerSettings,
 } from '@/helpers/downloads-scanner'
-import { get, getProxyConfig, set, setProxyConfig, testProxyConfig } from '@/helpers/settings.ts'
+import { get, getProxyConfig, setProxyConfig, testProxyConfig, update } from '@/helpers/settings.ts'
+import { createSettingsPatchSaver } from '@/helpers/settings-patch'
 import { showAppDbBackupsFolder } from '@/helpers/utils.js'
 import { useTheming } from '@/store/state'
 
@@ -41,6 +42,7 @@ const props = defineProps({
 const { handleError } = injectNotificationManager()
 const themeStore = useTheming()
 const settings = ref(await get())
+const saveDraft = createSettingsPatchSaver(settings.value, update)
 const missingContentScannerSettings = ref(getMissingContentScannerSettings())
 const minecraftDirectories = ref(loadMinecraftDirectories())
 const minecraftDirectoryError = ref(null)
@@ -592,7 +594,6 @@ const proxyModeOptions = computed(() => [
         label: formatMessage(messages.proxyModeCustom),
     },
 ])
-let settingsSave = Promise.resolve()
 
 const appDirectoryDescriptionText = computed(() =>
     isPortable.value
@@ -609,8 +610,7 @@ watch(
             setSettings.custom_dir = null
         }
 
-        settingsSave = settingsSave.catch(() => {}).then(() => set(setSettings))
-        void settingsSave.catch(handleError)
+        void saveDraft(setSettings).catch(handleError)
     },
     { deep: true },
 )

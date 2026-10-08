@@ -172,9 +172,9 @@ type WindowSize = {
 }
 
 type Hooks = {
-    pre_launch?: string
-    wrapper?: string
-    post_exit?: string
+    pre_launch?: string | null
+    wrapper?: string | null
+    post_exit?: string | null
 }
 
 type Manifest = {

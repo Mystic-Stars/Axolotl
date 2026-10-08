@@ -197,14 +197,16 @@ export function minecraftVersionFromDataVersion(dataVersion?: number) {
 export async function createSchematicResources(
     version: string,
     palette: readonly SchematicBlockState[],
+    signal?: AbortSignal,
 ): Promise<LoadedSchematicResources> {
     const builtin = await import('./builtin-resources.ts')
+    signal?.throwIfAborted()
     const canvas = document.createElement('canvas')
     canvas.width = builtin.BUILTIN_ATLAS_WIDTH
     canvas.height = builtin.BUILTIN_ATLAS_HEIGHT
     const context = canvas.getContext('2d')
     if (!context) throw new Error('Unable to create the built-in texture atlas.')
-    const builtInAtlas = await builtin.loadBuiltinAtlas()
+    const builtInAtlas = await builtin.loadBuiltinAtlas(signal)
     context.drawImage(builtInAtlas, 0, 0)
     builtInAtlas.close()
     const availableBuiltinStates = builtin.listBuiltinBlockStates()

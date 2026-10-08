@@ -286,7 +286,7 @@ const nextCatalogText = `${JSON.stringify(
 		providers,
 	},
 	null,
-	'\t',
+	2,
 )}\n`
 const nextRustSource = rustSource.replace(
 	RUST_SOURCE_PATTERN,

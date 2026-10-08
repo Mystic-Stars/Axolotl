@@ -49,7 +49,7 @@ import {
 } from '@modrinth/ui'
 import { ref, useTemplateRef } from 'vue'
 
-import { get as getSettings, set as setSettings } from '@/helpers/settings'
+import { update as updateSettings } from '@/helpers/settings'
 import { useTheming } from '@/store/state'
 import type { FeatureFlag } from '@/store/theme.ts'
 
@@ -124,9 +124,7 @@ async function proceed() {
 
     if (dontShowAgain.value) {
         themeStore.featureFlags[skipUnknownPackWarningFeatureFlag] = true
-        const settings = await getSettings()
-        settings.feature_flags[skipUnknownPackWarningFeatureFlag] = true
-        await setSettings(settings)
+        await updateSettings({ feature_flags: { [skipUnknownPackWarningFeatureFlag]: true } })
     }
 
     const createInstance = onProceed.value

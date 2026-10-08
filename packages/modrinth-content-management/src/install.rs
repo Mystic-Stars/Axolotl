@@ -54,9 +54,36 @@ const MISSING_DEPENDENCY_CORRECTIONS: &[MissingDependencyCorrection] = &[
     },
 ];
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum DependencyPolicy {
+    RequiredOnly,
+    IncludeOptional,
+}
+
+impl DependencyPolicy {
+    pub fn allows(self, dependency_type: DependencyType) -> bool {
+        dependency_type == DependencyType::Required
+            || (self == Self::IncludeOptional
+                && dependency_type == DependencyType::Optional)
+    }
+}
+
 pub async fn resolve_content<P: ContentMetadataProvider>(
+    provider: P,
+    request: ResolveContentRequest,
+) -> Result<ResolveContentPlan, Error> {
+    resolve_content_with_policy(
+        provider,
+        request,
+        DependencyPolicy::IncludeOptional,
+    )
+    .await
+}
+
+pub async fn resolve_content_with_policy<P: ContentMetadataProvider>(
     mut provider: P,
     request: ResolveContentRequest,
+    dependency_policy: DependencyPolicy,
 ) -> Result<ResolveContentPlan, Error> {
     let primary_version =
         resolve_primary_version(&mut provider, &request).await?;
@@ -67,7 +94,8 @@ pub async fn resolve_content<P: ContentMetadataProvider>(
         required: true,
         metadata: Some(version_metadata(&primary_version)),
     };
-    let mut resolver = InstallResolver::new(provider, &request);
+    let mut resolver =
+        InstallResolver::new(provider, &request, dependency_policy);
     resolver
         .resolve_dependencies_for_version(primary_version)
         .await?;
@@ -118,6 +146,7 @@ async fn resolve_primary_version<P: ContentMetadataProvider>(
 struct InstallResolver<'a, P> {
     provider: P,
     content_type: ContentType,
+    dependency_policy: DependencyPolicy,
     selected: &'a ResolutionPreferences,
     target: &'a ResolutionPreferences,
     existing_project_ids: HashSet<String>,
@@ -130,7 +159,11 @@ struct InstallResolver<'a, P> {
 }
 
 impl<'a, P: ContentMetadataProvider> InstallResolver<'a, P> {
-    fn new(provider: P, request: &'a ResolveContentRequest) -> Self {
+    fn new(
+        provider: P,
+        request: &'a ResolveContentRequest,
+        dependency_policy: DependencyPolicy,
+    ) -> Self {
         let mut planned_project_versions = HashMap::new();
         planned_project_versions.insert(
             request.project_id.clone(),
@@ -140,6 +173,7 @@ impl<'a, P: ContentMetadataProvider> InstallResolver<'a, P> {
         Self {
             provider,
             content_type: request.content_type,
+            dependency_policy,
             selected: &request.selected,
             target: &request.target,
             existing_project_ids: request
@@ -197,10 +231,10 @@ impl<'a, P: ContentMetadataProvider> InstallResolver<'a, P> {
                 .iter()
                 .chain(corrected_dependencies.iter())
             {
-                if !matches!(
-                    original_dependency.dependency_type,
-                    DependencyType::Required | DependencyType::Optional
-                ) {
+                if !self
+                    .dependency_policy
+                    .allows(original_dependency.dependency_type)
+                {
                     continue;
                 }
                 let overridden_dependency;
@@ -214,7 +248,7 @@ impl<'a, P: ContentMetadataProvider> InstallResolver<'a, P> {
                         ),
                         version_id: None,
                         file_name: original_dependency.file_name.clone(),
-                        dependency_type: DependencyType::Required,
+                        dependency_type: original_dependency.dependency_type,
                     };
                     &overridden_dependency
                 } else {

@@ -10,7 +10,7 @@ if (!version || !/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(version)) {
 const packagePath = 'apps/app-frontend/package.json'
 const packageJson = JSON.parse(fs.readFileSync(packagePath, 'utf8'))
 packageJson.version = version
-fs.writeFileSync(packagePath, `${JSON.stringify(packageJson, null, '\t')}\n`)
+fs.writeFileSync(packagePath, `${JSON.stringify(packageJson, null, 2)}\n`)
 
 for (const cargoPath of ['apps/app/Cargo.toml', 'packages/app-lib/Cargo.toml']) {
 	const cargoToml = fs.readFileSync(cargoPath, 'utf8')

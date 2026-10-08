@@ -179,6 +179,8 @@ pub use crate::state::{InstanceSyncedOptions, SyncedOption};
 
 pub use self::groups::FAVORITES_GROUP_ID;
 pub use self::groups::{
-    InstanceGroup, InstanceGroupMembershipUpdate, create_group, delete_group,
-    list_groups, rename_group, set_group_memberships, set_group_order,
+    InstanceGroup, InstanceGroupMembershipChange,
+    InstanceGroupMembershipUpdate, create_group, delete_group, list_groups,
+    rename_group, set_group_memberships, set_group_order,
+    update_group_memberships,
 };

@@ -6197,6 +6197,873 @@ pub async fn sha1_file_cancellable(
     tracing::debug!(path = %path.display(), bytes = size, verification_ms = started.elapsed().as_millis(), "Completed cancellable SHA-1 file verification");
     Ok((size, hasher.digest().to_string()))
 }
+enum NativeRouteAttempt {
+    Continue,
+    Completed(DownloadResult),
+}
+
+async fn run_native_route_attempts(
+    request: &DownloadRequest,
+    destination: &Path,
+    semaphore: &FetchSemaphore,
+    progress: &mut Option<&mut FetchProgressFn<'_>>,
+    routes: &[DownloadRoute],
+    route_index: usize,
+    route: &DownloadRoute,
+    part_path: &Path,
+    credentials: Option<&crate::state::ModrinthCredentials>,
+    session: &mut NativeDownloadSession,
+    retry_with_single_thread: bool,
+) -> crate::Result<NativeRouteAttempt> {
+    let log_url = sanitize_url_for_log(&route.url);
+    let can_switch_route =
+        routes
+            .iter()
+            .enumerate()
+            .any(|(candidate_index, candidate)| {
+                candidate_index != route_index
+                    && !session.terminal_routes.contains(&candidate.url)
+            });
+    let allow_low_throughput_abort = allow_low_throughput_route_switch(
+        can_switch_route,
+        retry_with_single_thread,
+    );
+    while session.attempts < session.file_attempt_budget {
+        session.attempts += 1;
+        tracing::debug!(
+            path = %destination.display(),
+            temporary_path = %part_path.display(),
+            url = %log_url,
+            source = route.source.as_str(),
+            expected_bytes = request.integrity.size,
+            proxy = ?route.proxy,
+            attempt = session.attempts,
+            max_attempts = session.file_attempt_budget,
+            "Starting file download attempt"
+        );
+        if let Some(decision) = try_segmented_native_attempt(
+            request,
+            destination,
+            semaphore,
+            progress,
+            routes,
+            route_index,
+            route,
+            part_path,
+            credentials,
+            session,
+            retry_with_single_thread,
+            allow_low_throughput_abort,
+        )
+        .await?
+        {
+            match decision {
+                NativeSegmentedAttempt::Completed(result) => {
+                    return Ok(NativeRouteAttempt::Completed(result));
+                }
+                NativeSegmentedAttempt::RetryRoute => break,
+            }
+        }
+
+        let expected_size = request.integrity.size;
+        let mut resume_offset = if route.supports_range
+            && range_splitting_allowed(route)
+            && request.integrity.supports_resume()
+        {
+            match (expected_size, tokio::fs::metadata(&part_path).await) {
+                (Some(expected), Ok(metadata))
+                    if metadata.is_file()
+                        && metadata.len() > 0
+                        && metadata.len() < expected =>
+                {
+                    metadata.len()
+                }
+                _ => 0,
+            }
+        } else {
+            0
+        };
+        let mut activity = crate::State::get_if_initialized()
+            .map(|state| state.begin_download_connection());
+        record_install_download_started(
+            request,
+            route,
+            session.attempts,
+            session.file_attempt_budget,
+        )
+        .await;
+        record_install_download_stage(
+            request,
+            DownloadItemStatus::WaitingForResource,
+        )
+        .await;
+        let permit_wait = tokio::time::timeout(
+            RESOURCE_WAIT_TIMEOUT,
+            acquire_native_connection(route, semaphore),
+        );
+        let resource_wait_started = Instant::now();
+        let permit = if let Some(cancellation) = request.cancellation.as_ref() {
+            tokio::select! {
+                _ = cancellation.cancelled() => return Err(ErrorKind::OtherError("download canceled while waiting for native resources".to_string()).into()),
+                result = permit_wait => result,
+            }
+        } else {
+            permit_wait.await
+        }
+        .map_err(|_| {
+            ErrorKind::NetworkError(
+                "timed out waiting for native download resources"
+                    .to_string(),
+            )
+        })??;
+        tracing::debug!(
+            route = %sanitize_url_for_log(&route.url),
+            resource = "native_connection_and_fetch",
+            wait_ms = resource_wait_started.elapsed().as_millis(),
+            "Acquired native download resources"
+        );
+        record_install_download_stage(request, DownloadItemStatus::Downloading)
+            .await;
+        let request_started = Instant::now();
+        let first_byte_timeout =
+            native_first_byte_timeout(route, can_switch_route);
+        // A truncated or invalid body may be a corrupt edge-cache
+        // object; the retry then uses a cache-busted URL that forces a
+        // fresh origin fetch instead of the same broken copy.
+        let attempt_route = session
+            .busted_for_route
+            .as_ref()
+            .filter(|(index, _)| *index == route_index)
+            .map(|(_, url)| {
+                let mut busted = route.clone();
+                busted.url = url.clone();
+                busted
+            })
+            .unwrap_or_else(|| route.clone());
+        let (response, final_url) = match tokio::time::timeout(
+            first_byte_timeout,
+            send_path_request(
+                &attempt_route,
+                request.header.as_ref(),
+                credentials,
+                request.download_meta.as_ref(),
+                (resume_offset > 0).then_some(resume_offset),
+                None,
+            ),
+        )
+        .await
+        {
+            Ok(Ok(response)) => response,
+            Ok(Err(error)) => {
+                drop(permit);
+                drop(activity.take());
+                record_route_failure(route, request.resource, None);
+                record_native_transfer_failure(route, None);
+                record_download_attempt_failure(
+                    &mut session.attempt_history,
+                    route,
+                    session.attempts,
+                    &error,
+                    "switch_route_or_retry_round",
+                    None,
+                    None,
+                    None,
+                );
+                tracing::warn!(
+                    path = %destination.display(),
+                    url = %log_url,
+                    source = route.source.as_str(),
+                    attempt = session.attempts,
+                    max_attempts = session.file_attempt_budget,
+                    error = %error,
+                    "File download request failed; trying the next source or retry"
+                );
+                session.last_error = Some(error);
+                break;
+            }
+            Err(_) => {
+                drop(permit);
+                drop(activity.take());
+                record_route_failure(route, request.resource, None);
+                record_native_transfer_failure(route, None);
+                let error = ErrorKind::NetworkError(format!(
+                    "no response received for {:.0} seconds while downloading {log_url} to {}",
+                    first_byte_timeout.as_secs_f64(),
+                    destination.display(),
+                ))
+                .into();
+                record_download_attempt_failure(
+                    &mut session.attempt_history,
+                    route,
+                    session.attempts,
+                    &error,
+                    "switch_route_or_retry_round",
+                    None,
+                    None,
+                    None,
+                );
+                tracing::warn!(
+                    path = %destination.display(),
+                    url = %log_url,
+                    source = route.source.as_str(),
+                    no_data_seconds = first_byte_timeout.as_secs_f64(),
+                    downloaded_bytes = 0,
+                    attempt = session.attempts,
+                    max_attempts = session.file_attempt_budget,
+                    "File download stalled before receiving a response"
+                );
+                session.last_error = Some(error);
+                break;
+            }
+        };
+        let ttfb = request_started.elapsed();
+        let status = response.status();
+        let remote_addr = response.remote_addr();
+        let http_version = response.version();
+        let response_retry_after = retry_after(&response);
+        tracing::debug!(
+            path = %destination.display(),
+            url = %log_url,
+            source = route.source.as_str(),
+            status = status.as_u16(),
+            content_length = response.content_length(),
+            ttfb_ms = ttfb.as_millis(),
+            remote_addr = ?remote_addr,
+            http_version = ?http_version,
+            dns_candidates = ?route_host(route).map(|host| {
+                super::download::proxy_context::resolver(route.proxy).resolved_addresses(&host)
+            }),
+            "Received file download response"
+        );
+        if status.is_client_error() || status.is_server_error() {
+            if status != StatusCode::RANGE_NOT_SATISFIABLE {
+                record_route_failure(
+                    route,
+                    request.resource,
+                    (status == StatusCode::TOO_MANY_REQUESTS).then_some(
+                        response_retry_after.unwrap_or_else(|| {
+                            fetch_retry_delay(session.attempts)
+                        }),
+                    ),
+                );
+                if status == StatusCode::TOO_MANY_REQUESTS
+                    || status.is_server_error()
+                {
+                    record_native_transfer_failure(route, response_retry_after);
+                }
+            }
+            let error =
+                response_status_error(response, &Method::GET, &route.url).await;
+            drop(permit);
+            drop(activity.take());
+            if status == StatusCode::RANGE_NOT_SATISFIABLE {
+                remove_if_exists(part_path).await?;
+                disable_range_splitting(route);
+                session.single_thread_routes.insert(route.url.clone());
+                session.preferred_route = Some(route.clone());
+            }
+            let terminal_status = matches!(
+                status,
+                StatusCode::UNAUTHORIZED
+                    | StatusCode::FORBIDDEN
+                    | StatusCode::NOT_FOUND
+                    | StatusCode::GONE
+            );
+            let cooldown_and_switch =
+                status == StatusCode::TOO_MANY_REQUESTS && routes.len() > 1;
+            if terminal_status || cooldown_and_switch {
+                session.terminal_routes.insert(route.url.clone());
+            } else if status == StatusCode::TOO_MANY_REQUESTS
+                && routes.len() == 1
+                && session.attempts < session.file_attempt_budget
+            {
+                tokio::time::sleep(
+                    response_retry_after
+                        .unwrap_or_else(|| fetch_retry_delay(session.attempts)),
+                )
+                .await;
+            }
+            let decision = if status == StatusCode::RANGE_NOT_SATISFIABLE {
+                "disable_range_and_retry_single"
+            } else if terminal_status {
+                "drop_route"
+            } else if cooldown_and_switch {
+                "cooldown_and_switch"
+            } else if status == StatusCode::TOO_MANY_REQUESTS {
+                "cooldown_then_retry"
+            } else {
+                "retry_next_round"
+            };
+            record_download_attempt_failure(
+                &mut session.attempt_history,
+                route,
+                session.attempts,
+                &error,
+                decision,
+                Some(status),
+                remote_addr,
+                Some(http_version),
+            );
+            session.last_error = Some(error);
+            break;
+        }
+
+        let mut hashers =
+            IntegrityHashers::new_integrity_hashers(&request.integrity);
+        if resume_offset > 0 {
+            if status == StatusCode::PARTIAL_CONTENT {
+                let content_range = parse_content_range(&response);
+                let content_range_valid = content_range.is_some_and(|range| {
+                    let total = range.total.or(expected_size);
+                    range.start == resume_offset
+                        && total == expected_size
+                        && Some(range.end.saturating_add(1)) == total
+                });
+                if !content_range_valid {
+                    drop(permit);
+                    drop(activity.take());
+                    record_route_failure(route, request.resource, None);
+                    disable_range_splitting(route);
+                    preserve_or_remove_partial(
+                        part_path,
+                        &request.integrity,
+                        any_route_can_resume(routes),
+                    )
+                    .await?;
+                    let error: crate::Error =
+                        ErrorKind::OtherError(format!(
+                            "Invalid Content-Range while resuming download from {log_url}"
+                        ))
+                        .into();
+                    record_download_attempt_failure(
+                        &mut session.attempt_history,
+                        route,
+                        session.attempts,
+                        &error,
+                        "disable_range_and_switch",
+                        Some(status),
+                        remote_addr,
+                        Some(http_version),
+                    );
+                    session.last_error = Some(error);
+                    break;
+                }
+                // Hashing the existing prefix is deferred until the
+                // resume response is validated, so routes that fail
+                // before sending data never pay a full re-read of a
+                // potentially huge partial file.
+                match hash_existing_part_prefix(
+                    part_path,
+                    &request.integrity,
+                    resume_offset,
+                )
+                .await
+                {
+                    Some(prefix_hashers) => {
+                        tracing::debug!(
+                            path = %destination.display(),
+                            url = %log_url,
+                            resume_offset,
+                            "Resuming file download from existing partial data"
+                        );
+                        hashers = prefix_hashers;
+                    }
+                    None => {
+                        drop(permit);
+                        drop(activity.take());
+                        remove_if_exists(part_path).await?;
+                        let error: crate::Error =
+                            ErrorKind::OtherError(format!(
+                                "Partial download changed on disk while resuming {log_url}"
+                            ))
+                            .into();
+                        record_download_attempt_failure(
+                            &mut session.attempt_history,
+                            route,
+                            session.attempts,
+                            &error,
+                            "clear_partial_and_retry",
+                            Some(status),
+                            remote_addr,
+                            Some(http_version),
+                        );
+                        session.last_error = Some(error);
+                        break;
+                    }
+                }
+            } else {
+                // The server ignored the Range header and replied with
+                // the full file; restart the transfer from scratch.
+                disable_range_splitting(route);
+                resume_offset = 0;
+            }
+        }
+
+        let starting_size = resume_offset;
+        let mut file = if starting_size > 0 {
+            match open_download_file_for_append(part_path).await {
+                Ok(file) => file,
+                Err(error) => {
+                    drop(permit);
+                    drop(activity.take());
+                    remove_if_exists(part_path).await?;
+                    let error: crate::Error = error.into();
+                    record_download_attempt_failure(
+                        &mut session.attempt_history,
+                        route,
+                        session.attempts,
+                        &error,
+                        "clear_partial_and_retry",
+                        Some(status),
+                        remote_addr,
+                        Some(http_version),
+                    );
+                    session.last_error = Some(error);
+                    break;
+                }
+            }
+        } else {
+            create_download_file(part_path).await?
+        };
+        let response_length = response.content_length().unwrap_or(0);
+        let total_size = request
+            .integrity
+            .size
+            .unwrap_or(starting_size.saturating_add(response_length));
+        let transfer_started = Instant::now();
+        let mut downloaded = starting_size;
+        let mut last_tracking_bytes = starting_size;
+        let mut slow_policy =
+            crate::util::download::native_slow::NativeSlowPolicy::new(
+                starting_size,
+                expected_route_speed(route, request.resource),
+            );
+        let mut throughput_timer =
+            tokio::time::interval(time::Duration::from_millis(250));
+        throughput_timer.tick().await;
+        let mut stream = response.bytes_stream();
+        let mut alternate_probe: Option<RouteProbeFuture<'_>> = None;
+        let mut alternate_probe_finished = false;
+        let mut confirmed_switch = None;
+        let mut transfer_error: Option<crate::Error> = None;
+        loop {
+            tokio::select! {
+                item = stream.next() => {
+                    let Some(item) = item else {
+                        break;
+                    };
+                    let chunk = match item {
+                        Ok(chunk) => chunk,
+                        Err(error) => {
+                            if is_h2_protocol_failure(&error)
+                                && let Some(authority) =
+                                    url_authority(&final_url)
+                            {
+                                record_authority_h2_failure_for(&authority, route.proxy);
+                            }
+                            transfer_error = Some(error.into());
+                            break;
+                        }
+                    };
+                    super::download::local_resources::write(part_path, chunk.len() as u64, async { file.write_all(&chunk).await?; file.flush().await }).await.map_err(|error| {
+                        IOError::with_path(error, part_path)
+                    })?;
+                    hashers.update(&chunk);
+                    downloaded += chunk.len() as u64;
+                    if let Some(state) = crate::State::get_if_initialized() {
+                        state.record_download_bytes(chunk.len() as u64);
+                    }
+                    let tracking_threshold =
+                        MIN_SEGMENT_SIZE.max(total_size / 200);
+                    if downloaded.saturating_sub(last_tracking_bytes)
+                        >= tracking_threshold
+                    {
+                        record_install_download_progress(
+                            request, downloaded, total_size,
+                        )
+                        .await;
+                        last_tracking_bytes = downloaded;
+                    }
+                    if let Some(progress) = progress.as_mut()
+                        && let Err(error) = progress(downloaded, total_size).await
+                    {
+                        tracing::warn!(%error, "Download progress callback failed");
+                    }
+                }
+                _ = throughput_timer.tick() => {
+                    let slow_decision = slow_policy.observe_with_pressure(
+                        downloaded,
+                        total_size.saturating_sub(downloaded),
+                        super::download::local_resources::pressure(part_path),
+                    );
+                    if allow_low_throughput_abort
+                        && total_size >= SEGMENTED_DOWNLOAD_THRESHOLD
+                        && !alternate_probe_finished
+                        && alternate_probe.is_none()
+                        && let crate::util::download::native_slow::SlowDecision::Probe {
+                            bytes_per_second,
+                        } = slow_decision
+                    {
+                        tracing::warn!(
+                            path = %destination.display(),
+                            url = %log_url,
+                            source = route.source.as_str(),
+                            bytes_per_second,
+                            remaining_bytes = total_size.saturating_sub(downloaded),
+                            "Sustained low throughput; probing alternate routes"
+                        );
+                        alternate_probe = Some(Box::pin(probe_faster_route(
+                            route,
+                            &routes[route_index + 1..],
+                            bytes_per_second,
+                            total_size,
+                            request.header.as_ref(),
+                            credentials,
+                            request.download_meta.as_ref(),
+                            semaphore,
+                            &NO_REDIRECT_REQWEST_CLIENT,
+                            &DIRECT_REQWEST_CLIENT,
+                            request.resource,
+                            downloaded,
+                        )));
+                    }
+                    if allow_low_throughput_abort
+                        && let crate::util::download::native_slow::SlowDecision::Idle {
+                            elapsed,
+                        } = slow_decision
+                    {
+                        tracing::warn!(
+                            path = %destination.display(),
+                            url = %log_url,
+                            source = route.source.as_str(),
+                            idle_ms = elapsed.as_millis(),
+                            "Download body idle deadline exceeded"
+                        );
+                        transfer_error = Some(crate::ErrorKind::NetworkError(
+                            format!("download body idle for {}", elapsed.as_secs()),
+                        ).into());
+                        break;
+                    }
+                    if matches!(
+                        slow_decision,
+                        crate::util::download::native_slow::SlowDecision::Commit
+                    ) {
+                        alternate_probe = None;
+                        alternate_probe_finished = true;
+                        slow_policy.commit();
+                    }
+                }
+                probe = async {
+                    alternate_probe
+                        .as_mut()
+                        .expect("route probe is guarded by the select condition")
+                        .await
+                }, if alternate_probe.is_some() => {
+                    alternate_probe = None;
+                    alternate_probe_finished = true;
+                    if let Some(probe) = probe {
+                        tracing::warn!(
+                            original_url = %log_url,
+                            source = route.source.as_str(),
+                            alternate_url = %sanitize_url_for_log(&probe.route.url),
+                            alternate_source = probe.route.source.as_str(),
+                            alternate_authority = probe.effective_authority,
+                            alternate_bytes_per_second = probe.bytes_per_second,
+                            "Confirmed a faster download route; switching source"
+                        );
+                        confirmed_switch = Some(probe);
+                        break;
+                    }
+                }
+            }
+        }
+        drop(alternate_probe);
+        record_install_download_progress(request, downloaded, total_size).await;
+        super::download::local_resources::write(part_path, 0, file.flush())
+            .await
+            .map_err(|error| IOError::with_path(error, part_path))?;
+        if transfer_error.is_some() {
+            // Best-effort durability for data a later resume builds
+            // on; a power loss could otherwise leave a zero-filled
+            // tail that wastes the resumed transfer.
+            let _ = super::download::local_resources::write(
+                part_path,
+                0,
+                file.sync_data(),
+            )
+            .await;
+        }
+        drop(file);
+        drop(permit);
+        drop(activity.take());
+
+        if let Some(probe) = confirmed_switch {
+            session.preferred_route = Some(probe.route);
+            break;
+        }
+
+        if let Some(error) = transfer_error {
+            record_route_failure(route, request.resource, None);
+            record_native_transfer_failure(route, None);
+            preserve_or_remove_partial(
+                part_path,
+                &request.integrity,
+                any_route_can_resume(routes),
+            )
+            .await?;
+            record_download_attempt_failure(
+                &mut session.attempt_history,
+                route,
+                session.attempts,
+                &error,
+                "resume_or_switch",
+                Some(status),
+                remote_addr,
+                Some(http_version),
+            );
+            tracing::warn!(
+                path = %destination.display(),
+                url = %log_url,
+                source = route.source.as_str(),
+                attempt = session.attempts,
+                max_attempts = session.file_attempt_budget,
+                error = %error,
+                "File download attempt failed; trying the next source or retry"
+            );
+            session.last_error = Some(error);
+            break;
+        }
+
+        if let Some(expected) = expected_size
+            && downloaded < expected
+            && !request.integrity.has_hash()
+        {
+            // No hash to fall back on: a close-delimited body that
+            // ends short is a transfer failure, keeping the valid
+            // data so far available for a resume. With a hash present
+            // the short body is verified below instead, because a
+            // broken CDN or manifest can under-report the size while
+            // the received content is actually complete and correct.
+            if http_version == reqwest::Version::HTTP_2
+                && let Some(authority) = url_authority(&route.url)
+            {
+                tracing::warn!(
+                    authority,
+                    "Truncated HTTP/2 response; retrying over HTTP/1.1"
+                );
+                record_authority_h2_failure_for(&authority, route.proxy);
+            }
+            record_route_failure(route, request.resource, None);
+            preserve_or_remove_partial(
+                part_path,
+                &request.integrity,
+                any_route_can_resume(routes),
+            )
+            .await?;
+            let error: crate::Error = ErrorKind::OtherError(format!(
+                "Truncated response from {log_url}: received {downloaded} of {expected} bytes"
+            ))
+            .into();
+            record_download_attempt_failure(
+                &mut session.attempt_history,
+                route,
+                session.attempts,
+                &error,
+                "resume_or_switch",
+                Some(status),
+                remote_addr,
+                Some(http_version),
+            );
+            if session.attempts < session.file_attempt_budget {
+                session.busted_for_route = Some((
+                    route_index,
+                    cache_busted_download_url(&route.url, session.attempts),
+                ));
+            }
+            session.last_error = Some(error);
+            break;
+        }
+        record_install_download_stage(request, DownloadItemStatus::Verifying)
+            .await;
+        let computed = hashers.finish(downloaded);
+        if let Err(error) =
+            verify_computed_integrity(&request.integrity, &computed)
+        {
+            record_route_failure(route, request.resource, None);
+            if http_version == reqwest::Version::HTTP_2
+                && let Some(authority) = url_authority(&route.url)
+            {
+                tracing::warn!(
+                    authority,
+                    "Integrity failure on an HTTP/2 response; retrying over HTTP/1.1"
+                );
+                record_authority_h2_failure_for(&authority, route.proxy);
+            }
+            // A short body is kept as a resumable partial; a body that
+            // arrived in full is discarded so the retry restarts.
+            if downloaded < expected_size.unwrap_or(0) {
+                preserve_or_remove_partial(
+                    part_path,
+                    &request.integrity,
+                    any_route_can_resume(routes),
+                )
+                .await?;
+            } else {
+                remove_if_exists(part_path).await?;
+            }
+            let official = (!is_official_route(route))
+                .then(|| official_fallback_route(routes))
+                .flatten();
+            let decision = if official.is_some() {
+                "fallback_official"
+            } else if session.attempts >= 2
+                || (is_official_route(route)
+                    && session.official_integrity_retry)
+            {
+                "drop_route_after_clean_retry"
+            } else {
+                "clear_partial_and_retry"
+            };
+            record_download_attempt_failure(
+                &mut session.attempt_history,
+                route,
+                session.attempts,
+                &error,
+                decision,
+                Some(status),
+                remote_addr,
+                Some(http_version),
+            );
+            if session.attempts < session.file_attempt_budget {
+                session.busted_for_route = Some((
+                    route_index,
+                    cache_busted_download_url(&route.url, session.attempts),
+                ));
+            }
+            session.last_error = Some(error);
+            if let Some(official) = official {
+                session.terminal_routes.insert(route.url.clone());
+                session.official_integrity_retry = true;
+                session.preferred_route = Some(official);
+            } else if (is_official_route(route)
+                && session.official_integrity_retry)
+                || session.attempts >= 2
+            {
+                session.terminal_routes.insert(route.url.clone());
+                if is_official_route(route) && session.official_integrity_retry
+                {
+                    return Err(attach_download_attempt_history(
+                        session.last_error.take().unwrap(),
+                        &session.attempt_history,
+                        session.attempts,
+                        session.file_attempt_budget,
+                    ));
+                }
+            }
+            break;
+        }
+        if let Err(error) =
+            validate_file_content(part_path, request.integrity.content).await
+        {
+            record_route_failure(route, request.resource, None);
+            if http_version == reqwest::Version::HTTP_2
+                && let Some(authority) = url_authority(&route.url)
+            {
+                tracing::warn!(
+                    authority,
+                    "Content validation failed on an HTTP/2 response; retrying over HTTP/1.1"
+                );
+                record_authority_h2_failure_for(&authority, route.proxy);
+            }
+            if downloaded < expected_size.unwrap_or(0) {
+                preserve_or_remove_partial(
+                    part_path,
+                    &request.integrity,
+                    any_route_can_resume(routes),
+                )
+                .await?;
+            } else {
+                remove_if_exists(part_path).await?;
+            }
+            let decision = if routes.len() > 1 {
+                "clear_partial_and_switch"
+            } else if session.attempts >= 2 {
+                "drop_route_after_clean_retry"
+            } else {
+                "clear_partial_and_retry"
+            };
+            record_download_attempt_failure(
+                &mut session.attempt_history,
+                route,
+                session.attempts,
+                &error,
+                decision,
+                Some(status),
+                remote_addr,
+                Some(http_version),
+            );
+            if session.attempts < session.file_attempt_budget {
+                session.busted_for_route = Some((
+                    route_index,
+                    cache_busted_download_url(&route.url, session.attempts),
+                ));
+            }
+            if routes.len() > 1 || session.attempts >= 2 {
+                session.terminal_routes.insert(route.url.clone());
+            }
+            session.last_error = Some(error);
+            break;
+        }
+
+        finalize_download(part_path, destination).await?;
+        record_route_success(
+            route,
+            request.resource,
+            ttfb,
+            downloaded.saturating_sub(starting_size),
+            transfer_started.elapsed(),
+            remote_addr,
+        );
+        let log_final_url = sanitize_url_for_log(&final_url);
+        tracing::debug!(
+            path = %destination.display(),
+            url = %log_final_url,
+            source = route.source.as_str(),
+            bytes = downloaded.saturating_sub(starting_size),
+            elapsed_ms = transfer_started.elapsed().as_millis(),
+            remote_addr = ?remote_addr,
+            http_version = ?http_version,
+            dns_candidates = ?route_host(route).map(|host| {
+                super::download::proxy_context::resolver(route.proxy).resolved_addresses(&host)
+            }),
+            "Completed file download"
+        );
+        if let Some(tracking) = &request.install_tracking
+            && let Err(error) = tracking
+                .reporter
+                .record_download_request_finished(&tracking.item_id, downloaded)
+                .await
+        {
+            tracing::warn!(
+                error = %error,
+                "Failed to record completed download request"
+            );
+        }
+        return Ok(NativeRouteAttempt::Completed(DownloadResult {
+            path: destination.to_path_buf(),
+            url: final_url,
+            source: route.source,
+            size: downloaded,
+            attempts: session.attempts,
+            fallback_count: session.fallback_count,
+            verified_sha1: request.integrity.sha1.clone(),
+            verified_sha512: request.integrity.sha512.clone(),
+            verified_file: None,
+        }));
+    }
+
+    Ok(NativeRouteAttempt::Continue)
+}
 
 #[cfg(test)]
 mod tests {
@@ -8851,871 +9718,4 @@ mod tests {
         assert!(!authority_uses_http1_fallback("other.com:443"));
         H2_FALLBACK_AUTHORITIES.lock().clear();
     }
-}
-enum NativeRouteAttempt {
-    Continue,
-    Completed(DownloadResult),
-}
-
-async fn run_native_route_attempts(
-    request: &DownloadRequest,
-    destination: &Path,
-    semaphore: &FetchSemaphore,
-    progress: &mut Option<&mut FetchProgressFn<'_>>,
-    routes: &[DownloadRoute],
-    route_index: usize,
-    route: &DownloadRoute,
-    part_path: &Path,
-    credentials: Option<&crate::state::ModrinthCredentials>,
-    session: &mut NativeDownloadSession,
-    retry_with_single_thread: bool,
-) -> crate::Result<NativeRouteAttempt> {
-    let log_url = sanitize_url_for_log(&route.url);
-    let can_switch_route =
-        routes
-            .iter()
-            .enumerate()
-            .any(|(candidate_index, candidate)| {
-                candidate_index != route_index
-                    && !session.terminal_routes.contains(&candidate.url)
-            });
-    let allow_low_throughput_abort = allow_low_throughput_route_switch(
-        can_switch_route,
-        retry_with_single_thread,
-    );
-    while session.attempts < session.file_attempt_budget {
-        session.attempts += 1;
-        tracing::debug!(
-            path = %destination.display(),
-            temporary_path = %part_path.display(),
-            url = %log_url,
-            source = route.source.as_str(),
-            expected_bytes = request.integrity.size,
-            proxy = ?route.proxy,
-            attempt = session.attempts,
-            max_attempts = session.file_attempt_budget,
-            "Starting file download attempt"
-        );
-        if let Some(decision) = try_segmented_native_attempt(
-            request,
-            destination,
-            semaphore,
-            progress,
-            routes,
-            route_index,
-            route,
-            part_path,
-            credentials,
-            session,
-            retry_with_single_thread,
-            allow_low_throughput_abort,
-        )
-        .await?
-        {
-            match decision {
-                NativeSegmentedAttempt::Completed(result) => {
-                    return Ok(NativeRouteAttempt::Completed(result));
-                }
-                NativeSegmentedAttempt::RetryRoute => break,
-            }
-        }
-
-        let expected_size = request.integrity.size;
-        let mut resume_offset = if route.supports_range
-            && range_splitting_allowed(route)
-            && request.integrity.supports_resume()
-        {
-            match (expected_size, tokio::fs::metadata(&part_path).await) {
-                (Some(expected), Ok(metadata))
-                    if metadata.is_file()
-                        && metadata.len() > 0
-                        && metadata.len() < expected =>
-                {
-                    metadata.len()
-                }
-                _ => 0,
-            }
-        } else {
-            0
-        };
-        let mut activity = crate::State::get_if_initialized()
-            .map(|state| state.begin_download_connection());
-        record_install_download_started(
-            request,
-            route,
-            session.attempts,
-            session.file_attempt_budget,
-        )
-        .await;
-        record_install_download_stage(
-            request,
-            DownloadItemStatus::WaitingForResource,
-        )
-        .await;
-        let permit_wait = tokio::time::timeout(
-            RESOURCE_WAIT_TIMEOUT,
-            acquire_native_connection(route, semaphore),
-        );
-        let resource_wait_started = Instant::now();
-        let permit = if let Some(cancellation) = request.cancellation.as_ref() {
-            tokio::select! {
-                _ = cancellation.cancelled() => return Err(ErrorKind::OtherError("download canceled while waiting for native resources".to_string()).into()),
-                result = permit_wait => result,
-            }
-        } else {
-            permit_wait.await
-        }
-        .map_err(|_| {
-            ErrorKind::NetworkError(
-                "timed out waiting for native download resources"
-                    .to_string(),
-            )
-        })??;
-        tracing::debug!(
-            route = %sanitize_url_for_log(&route.url),
-            resource = "native_connection_and_fetch",
-            wait_ms = resource_wait_started.elapsed().as_millis(),
-            "Acquired native download resources"
-        );
-        record_install_download_stage(request, DownloadItemStatus::Downloading)
-            .await;
-        let request_started = Instant::now();
-        let first_byte_timeout =
-            native_first_byte_timeout(route, can_switch_route);
-        // A truncated or invalid body may be a corrupt edge-cache
-        // object; the retry then uses a cache-busted URL that forces a
-        // fresh origin fetch instead of the same broken copy.
-        let attempt_route = session
-            .busted_for_route
-            .as_ref()
-            .filter(|(index, _)| *index == route_index)
-            .map(|(_, url)| {
-                let mut busted = route.clone();
-                busted.url = url.clone();
-                busted
-            })
-            .unwrap_or_else(|| route.clone());
-        let (response, final_url) = match tokio::time::timeout(
-            first_byte_timeout,
-            send_path_request(
-                &attempt_route,
-                request.header.as_ref(),
-                credentials,
-                request.download_meta.as_ref(),
-                (resume_offset > 0).then_some(resume_offset),
-                None,
-            ),
-        )
-        .await
-        {
-            Ok(Ok(response)) => response,
-            Ok(Err(error)) => {
-                drop(permit);
-                drop(activity.take());
-                record_route_failure(route, request.resource, None);
-                record_native_transfer_failure(route, None);
-                record_download_attempt_failure(
-                    &mut session.attempt_history,
-                    route,
-                    session.attempts,
-                    &error,
-                    "switch_route_or_retry_round",
-                    None,
-                    None,
-                    None,
-                );
-                tracing::warn!(
-                    path = %destination.display(),
-                    url = %log_url,
-                    source = route.source.as_str(),
-                    attempt = session.attempts,
-                    max_attempts = session.file_attempt_budget,
-                    error = %error,
-                    "File download request failed; trying the next source or retry"
-                );
-                session.last_error = Some(error);
-                break;
-            }
-            Err(_) => {
-                drop(permit);
-                drop(activity.take());
-                record_route_failure(route, request.resource, None);
-                record_native_transfer_failure(route, None);
-                let error = ErrorKind::NetworkError(format!(
-                    "no response received for {:.0} seconds while downloading {log_url} to {}",
-                    first_byte_timeout.as_secs_f64(),
-                    destination.display(),
-                ))
-                .into();
-                record_download_attempt_failure(
-                    &mut session.attempt_history,
-                    route,
-                    session.attempts,
-                    &error,
-                    "switch_route_or_retry_round",
-                    None,
-                    None,
-                    None,
-                );
-                tracing::warn!(
-                    path = %destination.display(),
-                    url = %log_url,
-                    source = route.source.as_str(),
-                    no_data_seconds = first_byte_timeout.as_secs_f64(),
-                    downloaded_bytes = 0,
-                    attempt = session.attempts,
-                    max_attempts = session.file_attempt_budget,
-                    "File download stalled before receiving a response"
-                );
-                session.last_error = Some(error);
-                break;
-            }
-        };
-        let ttfb = request_started.elapsed();
-        let status = response.status();
-        let remote_addr = response.remote_addr();
-        let http_version = response.version();
-        let response_retry_after = retry_after(&response);
-        tracing::debug!(
-            path = %destination.display(),
-            url = %log_url,
-            source = route.source.as_str(),
-            status = status.as_u16(),
-            content_length = response.content_length(),
-            ttfb_ms = ttfb.as_millis(),
-            remote_addr = ?remote_addr,
-            http_version = ?http_version,
-            dns_candidates = ?route_host(route).map(|host| {
-                super::download::proxy_context::resolver(route.proxy).resolved_addresses(&host)
-            }),
-            "Received file download response"
-        );
-        if status.is_client_error() || status.is_server_error() {
-            if status != StatusCode::RANGE_NOT_SATISFIABLE {
-                record_route_failure(
-                    route,
-                    request.resource,
-                    (status == StatusCode::TOO_MANY_REQUESTS).then_some(
-                        response_retry_after.unwrap_or_else(|| {
-                            fetch_retry_delay(session.attempts)
-                        }),
-                    ),
-                );
-                if status == StatusCode::TOO_MANY_REQUESTS
-                    || status.is_server_error()
-                {
-                    record_native_transfer_failure(route, response_retry_after);
-                }
-            }
-            let error =
-                response_status_error(response, &Method::GET, &route.url).await;
-            drop(permit);
-            drop(activity.take());
-            if status == StatusCode::RANGE_NOT_SATISFIABLE {
-                remove_if_exists(part_path).await?;
-                disable_range_splitting(route);
-                session.single_thread_routes.insert(route.url.clone());
-                session.preferred_route = Some(route.clone());
-            }
-            let terminal_status = matches!(
-                status,
-                StatusCode::UNAUTHORIZED
-                    | StatusCode::FORBIDDEN
-                    | StatusCode::NOT_FOUND
-                    | StatusCode::GONE
-            );
-            let cooldown_and_switch =
-                status == StatusCode::TOO_MANY_REQUESTS && routes.len() > 1;
-            if terminal_status || cooldown_and_switch {
-                session.terminal_routes.insert(route.url.clone());
-            } else if status == StatusCode::TOO_MANY_REQUESTS
-                && routes.len() == 1
-                && session.attempts < session.file_attempt_budget
-            {
-                tokio::time::sleep(
-                    response_retry_after
-                        .unwrap_or_else(|| fetch_retry_delay(session.attempts)),
-                )
-                .await;
-            }
-            let decision = if status == StatusCode::RANGE_NOT_SATISFIABLE {
-                "disable_range_and_retry_single"
-            } else if terminal_status {
-                "drop_route"
-            } else if cooldown_and_switch {
-                "cooldown_and_switch"
-            } else if status == StatusCode::TOO_MANY_REQUESTS {
-                "cooldown_then_retry"
-            } else {
-                "retry_next_round"
-            };
-            record_download_attempt_failure(
-                &mut session.attempt_history,
-                route,
-                session.attempts,
-                &error,
-                decision,
-                Some(status),
-                remote_addr,
-                Some(http_version),
-            );
-            session.last_error = Some(error);
-            break;
-        }
-
-        let mut hashers =
-            IntegrityHashers::new_integrity_hashers(&request.integrity);
-        if resume_offset > 0 {
-            if status == StatusCode::PARTIAL_CONTENT {
-                let content_range = parse_content_range(&response);
-                let content_range_valid = content_range.is_some_and(|range| {
-                    let total = range.total.or(expected_size);
-                    range.start == resume_offset
-                        && total == expected_size
-                        && Some(range.end.saturating_add(1)) == total
-                });
-                if !content_range_valid {
-                    drop(permit);
-                    drop(activity.take());
-                    record_route_failure(route, request.resource, None);
-                    disable_range_splitting(route);
-                    preserve_or_remove_partial(
-                        part_path,
-                        &request.integrity,
-                        any_route_can_resume(routes),
-                    )
-                    .await?;
-                    let error: crate::Error =
-                        ErrorKind::OtherError(format!(
-                            "Invalid Content-Range while resuming download from {log_url}"
-                        ))
-                        .into();
-                    record_download_attempt_failure(
-                        &mut session.attempt_history,
-                        route,
-                        session.attempts,
-                        &error,
-                        "disable_range_and_switch",
-                        Some(status),
-                        remote_addr,
-                        Some(http_version),
-                    );
-                    session.last_error = Some(error);
-                    break;
-                }
-                // Hashing the existing prefix is deferred until the
-                // resume response is validated, so routes that fail
-                // before sending data never pay a full re-read of a
-                // potentially huge partial file.
-                match hash_existing_part_prefix(
-                    part_path,
-                    &request.integrity,
-                    resume_offset,
-                )
-                .await
-                {
-                    Some(prefix_hashers) => {
-                        tracing::debug!(
-                            path = %destination.display(),
-                            url = %log_url,
-                            resume_offset,
-                            "Resuming file download from existing partial data"
-                        );
-                        hashers = prefix_hashers;
-                    }
-                    None => {
-                        drop(permit);
-                        drop(activity.take());
-                        remove_if_exists(part_path).await?;
-                        let error: crate::Error =
-                            ErrorKind::OtherError(format!(
-                                "Partial download changed on disk while resuming {log_url}"
-                            ))
-                            .into();
-                        record_download_attempt_failure(
-                            &mut session.attempt_history,
-                            route,
-                            session.attempts,
-                            &error,
-                            "clear_partial_and_retry",
-                            Some(status),
-                            remote_addr,
-                            Some(http_version),
-                        );
-                        session.last_error = Some(error);
-                        break;
-                    }
-                }
-            } else {
-                // The server ignored the Range header and replied with
-                // the full file; restart the transfer from scratch.
-                disable_range_splitting(route);
-                resume_offset = 0;
-            }
-        }
-
-        let starting_size = resume_offset;
-        let mut file = if starting_size > 0 {
-            match open_download_file_for_append(part_path).await {
-                Ok(file) => file,
-                Err(error) => {
-                    drop(permit);
-                    drop(activity.take());
-                    remove_if_exists(part_path).await?;
-                    let error: crate::Error = error.into();
-                    record_download_attempt_failure(
-                        &mut session.attempt_history,
-                        route,
-                        session.attempts,
-                        &error,
-                        "clear_partial_and_retry",
-                        Some(status),
-                        remote_addr,
-                        Some(http_version),
-                    );
-                    session.last_error = Some(error);
-                    break;
-                }
-            }
-        } else {
-            create_download_file(part_path).await?
-        };
-        let response_length = response.content_length().unwrap_or(0);
-        let total_size = request
-            .integrity
-            .size
-            .unwrap_or(starting_size.saturating_add(response_length));
-        let transfer_started = Instant::now();
-        let mut downloaded = starting_size;
-        let mut last_tracking_bytes = starting_size;
-        let mut slow_policy =
-            crate::util::download::native_slow::NativeSlowPolicy::new(
-                starting_size,
-                expected_route_speed(route, request.resource),
-            );
-        let mut throughput_timer =
-            tokio::time::interval(time::Duration::from_millis(250));
-        throughput_timer.tick().await;
-        let mut stream = response.bytes_stream();
-        let mut alternate_probe: Option<RouteProbeFuture<'_>> = None;
-        let mut alternate_probe_finished = false;
-        let mut confirmed_switch = None;
-        let mut transfer_error: Option<crate::Error> = None;
-        loop {
-            tokio::select! {
-                item = stream.next() => {
-                    let Some(item) = item else {
-                        break;
-                    };
-                    let chunk = match item {
-                        Ok(chunk) => chunk,
-                        Err(error) => {
-                            if is_h2_protocol_failure(&error)
-                                && let Some(authority) =
-                                    url_authority(&final_url)
-                            {
-                                record_authority_h2_failure_for(&authority, route.proxy);
-                            }
-                            transfer_error = Some(error.into());
-                            break;
-                        }
-                    };
-                    super::download::local_resources::write(part_path, chunk.len() as u64, async { file.write_all(&chunk).await?; file.flush().await }).await.map_err(|error| {
-                        IOError::with_path(error, part_path)
-                    })?;
-                    hashers.update(&chunk);
-                    downloaded += chunk.len() as u64;
-                    if let Some(state) = crate::State::get_if_initialized() {
-                        state.record_download_bytes(chunk.len() as u64);
-                    }
-                    let tracking_threshold =
-                        MIN_SEGMENT_SIZE.max(total_size / 200);
-                    if downloaded.saturating_sub(last_tracking_bytes)
-                        >= tracking_threshold
-                    {
-                        record_install_download_progress(
-                            request, downloaded, total_size,
-                        )
-                        .await;
-                        last_tracking_bytes = downloaded;
-                    }
-                    if let Some(progress) = progress.as_mut()
-                        && let Err(error) = progress(downloaded, total_size).await
-                    {
-                        tracing::warn!(%error, "Download progress callback failed");
-                    }
-                }
-                _ = throughput_timer.tick() => {
-                    let slow_decision = slow_policy.observe_with_pressure(
-                        downloaded,
-                        total_size.saturating_sub(downloaded),
-                        super::download::local_resources::pressure(part_path),
-                    );
-                    if allow_low_throughput_abort
-                        && total_size >= SEGMENTED_DOWNLOAD_THRESHOLD
-                        && !alternate_probe_finished
-                        && alternate_probe.is_none()
-                        && let crate::util::download::native_slow::SlowDecision::Probe {
-                            bytes_per_second,
-                        } = slow_decision
-                    {
-                        tracing::warn!(
-                            path = %destination.display(),
-                            url = %log_url,
-                            source = route.source.as_str(),
-                            bytes_per_second,
-                            remaining_bytes = total_size.saturating_sub(downloaded),
-                            "Sustained low throughput; probing alternate routes"
-                        );
-                        alternate_probe = Some(Box::pin(probe_faster_route(
-                            route,
-                            &routes[route_index + 1..],
-                            bytes_per_second,
-                            total_size,
-                            request.header.as_ref(),
-                            credentials,
-                            request.download_meta.as_ref(),
-                            semaphore,
-                            &NO_REDIRECT_REQWEST_CLIENT,
-                            &DIRECT_REQWEST_CLIENT,
-                            request.resource,
-                            downloaded,
-                        )));
-                    }
-                    if allow_low_throughput_abort
-                        && let crate::util::download::native_slow::SlowDecision::Idle {
-                            elapsed,
-                        } = slow_decision
-                    {
-                        tracing::warn!(
-                            path = %destination.display(),
-                            url = %log_url,
-                            source = route.source.as_str(),
-                            idle_ms = elapsed.as_millis(),
-                            "Download body idle deadline exceeded"
-                        );
-                        transfer_error = Some(crate::ErrorKind::NetworkError(
-                            format!("download body idle for {}", elapsed.as_secs()),
-                        ).into());
-                        break;
-                    }
-                    if matches!(
-                        slow_decision,
-                        crate::util::download::native_slow::SlowDecision::Commit
-                    ) {
-                        alternate_probe = None;
-                        alternate_probe_finished = true;
-                        slow_policy.commit();
-                    }
-                }
-                probe = async {
-                    alternate_probe
-                        .as_mut()
-                        .expect("route probe is guarded by the select condition")
-                        .await
-                }, if alternate_probe.is_some() => {
-                    alternate_probe = None;
-                    alternate_probe_finished = true;
-                    if let Some(probe) = probe {
-                        tracing::warn!(
-                            original_url = %log_url,
-                            source = route.source.as_str(),
-                            alternate_url = %sanitize_url_for_log(&probe.route.url),
-                            alternate_source = probe.route.source.as_str(),
-                            alternate_authority = probe.effective_authority,
-                            alternate_bytes_per_second = probe.bytes_per_second,
-                            "Confirmed a faster download route; switching source"
-                        );
-                        confirmed_switch = Some(probe);
-                        break;
-                    }
-                }
-            }
-        }
-        drop(alternate_probe);
-        record_install_download_progress(request, downloaded, total_size).await;
-        super::download::local_resources::write(part_path, 0, file.flush())
-            .await
-            .map_err(|error| IOError::with_path(error, part_path))?;
-        if transfer_error.is_some() {
-            // Best-effort durability for data a later resume builds
-            // on; a power loss could otherwise leave a zero-filled
-            // tail that wastes the resumed transfer.
-            let _ = super::download::local_resources::write(
-                part_path,
-                0,
-                file.sync_data(),
-            )
-            .await;
-        }
-        drop(file);
-        drop(permit);
-        drop(activity.take());
-
-        if let Some(probe) = confirmed_switch {
-            session.preferred_route = Some(probe.route);
-            break;
-        }
-
-        if let Some(error) = transfer_error {
-            record_route_failure(route, request.resource, None);
-            record_native_transfer_failure(route, None);
-            preserve_or_remove_partial(
-                part_path,
-                &request.integrity,
-                any_route_can_resume(routes),
-            )
-            .await?;
-            record_download_attempt_failure(
-                &mut session.attempt_history,
-                route,
-                session.attempts,
-                &error,
-                "resume_or_switch",
-                Some(status),
-                remote_addr,
-                Some(http_version),
-            );
-            tracing::warn!(
-                path = %destination.display(),
-                url = %log_url,
-                source = route.source.as_str(),
-                attempt = session.attempts,
-                max_attempts = session.file_attempt_budget,
-                error = %error,
-                "File download attempt failed; trying the next source or retry"
-            );
-            session.last_error = Some(error);
-            break;
-        }
-
-        if let Some(expected) = expected_size
-            && downloaded < expected
-            && !request.integrity.has_hash()
-        {
-            // No hash to fall back on: a close-delimited body that
-            // ends short is a transfer failure, keeping the valid
-            // data so far available for a resume. With a hash present
-            // the short body is verified below instead, because a
-            // broken CDN or manifest can under-report the size while
-            // the received content is actually complete and correct.
-            if http_version == reqwest::Version::HTTP_2
-                && let Some(authority) = url_authority(&route.url)
-            {
-                tracing::warn!(
-                    authority,
-                    "Truncated HTTP/2 response; retrying over HTTP/1.1"
-                );
-                record_authority_h2_failure_for(&authority, route.proxy);
-            }
-            record_route_failure(route, request.resource, None);
-            preserve_or_remove_partial(
-                part_path,
-                &request.integrity,
-                any_route_can_resume(routes),
-            )
-            .await?;
-            let error: crate::Error = ErrorKind::OtherError(format!(
-                "Truncated response from {log_url}: received {downloaded} of {expected} bytes"
-            ))
-            .into();
-            record_download_attempt_failure(
-                &mut session.attempt_history,
-                route,
-                session.attempts,
-                &error,
-                "resume_or_switch",
-                Some(status),
-                remote_addr,
-                Some(http_version),
-            );
-            if session.attempts < session.file_attempt_budget {
-                session.busted_for_route = Some((
-                    route_index,
-                    cache_busted_download_url(&route.url, session.attempts),
-                ));
-            }
-            session.last_error = Some(error);
-            break;
-        }
-        record_install_download_stage(request, DownloadItemStatus::Verifying)
-            .await;
-        let computed = hashers.finish(downloaded);
-        if let Err(error) =
-            verify_computed_integrity(&request.integrity, &computed)
-        {
-            record_route_failure(route, request.resource, None);
-            if http_version == reqwest::Version::HTTP_2
-                && let Some(authority) = url_authority(&route.url)
-            {
-                tracing::warn!(
-                    authority,
-                    "Integrity failure on an HTTP/2 response; retrying over HTTP/1.1"
-                );
-                record_authority_h2_failure_for(&authority, route.proxy);
-            }
-            // A short body is kept as a resumable partial; a body that
-            // arrived in full is discarded so the retry restarts.
-            if downloaded < expected_size.unwrap_or(0) {
-                preserve_or_remove_partial(
-                    part_path,
-                    &request.integrity,
-                    any_route_can_resume(routes),
-                )
-                .await?;
-            } else {
-                remove_if_exists(part_path).await?;
-            }
-            let official = (!is_official_route(route))
-                .then(|| official_fallback_route(routes))
-                .flatten();
-            let decision = if official.is_some() {
-                "fallback_official"
-            } else if session.attempts >= 2
-                || (is_official_route(route)
-                    && session.official_integrity_retry)
-            {
-                "drop_route_after_clean_retry"
-            } else {
-                "clear_partial_and_retry"
-            };
-            record_download_attempt_failure(
-                &mut session.attempt_history,
-                route,
-                session.attempts,
-                &error,
-                decision,
-                Some(status),
-                remote_addr,
-                Some(http_version),
-            );
-            if session.attempts < session.file_attempt_budget {
-                session.busted_for_route = Some((
-                    route_index,
-                    cache_busted_download_url(&route.url, session.attempts),
-                ));
-            }
-            session.last_error = Some(error);
-            if let Some(official) = official {
-                session.terminal_routes.insert(route.url.clone());
-                session.official_integrity_retry = true;
-                session.preferred_route = Some(official);
-            } else if (is_official_route(route)
-                && session.official_integrity_retry)
-                || session.attempts >= 2
-            {
-                session.terminal_routes.insert(route.url.clone());
-                if is_official_route(route) && session.official_integrity_retry
-                {
-                    return Err(attach_download_attempt_history(
-                        session.last_error.take().unwrap(),
-                        &session.attempt_history,
-                        session.attempts,
-                        session.file_attempt_budget,
-                    ));
-                }
-            }
-            break;
-        }
-        if let Err(error) =
-            validate_file_content(part_path, request.integrity.content).await
-        {
-            record_route_failure(route, request.resource, None);
-            if http_version == reqwest::Version::HTTP_2
-                && let Some(authority) = url_authority(&route.url)
-            {
-                tracing::warn!(
-                    authority,
-                    "Content validation failed on an HTTP/2 response; retrying over HTTP/1.1"
-                );
-                record_authority_h2_failure_for(&authority, route.proxy);
-            }
-            if downloaded < expected_size.unwrap_or(0) {
-                preserve_or_remove_partial(
-                    part_path,
-                    &request.integrity,
-                    any_route_can_resume(routes),
-                )
-                .await?;
-            } else {
-                remove_if_exists(part_path).await?;
-            }
-            let decision = if routes.len() > 1 {
-                "clear_partial_and_switch"
-            } else if session.attempts >= 2 {
-                "drop_route_after_clean_retry"
-            } else {
-                "clear_partial_and_retry"
-            };
-            record_download_attempt_failure(
-                &mut session.attempt_history,
-                route,
-                session.attempts,
-                &error,
-                decision,
-                Some(status),
-                remote_addr,
-                Some(http_version),
-            );
-            if session.attempts < session.file_attempt_budget {
-                session.busted_for_route = Some((
-                    route_index,
-                    cache_busted_download_url(&route.url, session.attempts),
-                ));
-            }
-            if routes.len() > 1 || session.attempts >= 2 {
-                session.terminal_routes.insert(route.url.clone());
-            }
-            session.last_error = Some(error);
-            break;
-        }
-
-        finalize_download(part_path, destination).await?;
-        record_route_success(
-            route,
-            request.resource,
-            ttfb,
-            downloaded.saturating_sub(starting_size),
-            transfer_started.elapsed(),
-            remote_addr,
-        );
-        let log_final_url = sanitize_url_for_log(&final_url);
-        tracing::debug!(
-            path = %destination.display(),
-            url = %log_final_url,
-            source = route.source.as_str(),
-            bytes = downloaded.saturating_sub(starting_size),
-            elapsed_ms = transfer_started.elapsed().as_millis(),
-            remote_addr = ?remote_addr,
-            http_version = ?http_version,
-            dns_candidates = ?route_host(route).map(|host| {
-                super::download::proxy_context::resolver(route.proxy).resolved_addresses(&host)
-            }),
-            "Completed file download"
-        );
-        if let Some(tracking) = &request.install_tracking
-            && let Err(error) = tracking
-                .reporter
-                .record_download_request_finished(&tracking.item_id, downloaded)
-                .await
-        {
-            tracing::warn!(
-                error = %error,
-                "Failed to record completed download request"
-            );
-        }
-        return Ok(NativeRouteAttempt::Completed(DownloadResult {
-            path: destination.to_path_buf(),
-            url: final_url,
-            source: route.source,
-            size: downloaded,
-            attempts: session.attempts,
-            fallback_count: session.fallback_count,
-            verified_sha1: request.integrity.sha1.clone(),
-            verified_sha512: request.integrity.sha512.clone(),
-            verified_file: None,
-        }));
-    }
-
-    Ok(NativeRouteAttempt::Continue)
 }

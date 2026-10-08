@@ -14,7 +14,7 @@ import {
 } from '@modrinth/ui'
 import { computed, ref } from 'vue'
 
-import { get, set } from '@/helpers/settings.ts'
+import { get, update } from '@/helpers/settings.ts'
 import i18n, {
     getSystemResolvedLocale,
     isFollowingSystemLocale,
@@ -103,7 +103,7 @@ async function persistLocale(follow: boolean, concreteLocale: string) {
         followSystem.value = follow
         i18n.global.locale.value = concreteLocale
         settings.value.locale = concreteLocale
-        await set(settings.value)
+        await update({ locale: concreteLocale })
         saveStatus.value = 'saved'
     } catch {
         setFollowSystemLocale(previousFollow)

@@ -304,8 +304,15 @@ impl Settings {
 
     pub async fn get<'a, E>(exec: E) -> crate::Result<Self>
     where
-        E: sqlx::Executor<'a, Database = sqlx::Sqlite> + Copy,
+        E: sqlx::Acquire<'a, Database = sqlx::Sqlite>,
     {
+        let mut connection = exec.acquire().await?;
+        Self::get_with_connection(&mut connection).await
+    }
+
+    pub(crate) async fn get_with_connection(
+        connection: &mut sqlx::SqliteConnection,
+    ) -> crate::Result<Self> {
         let res = sqlx::query!(
             "
             SELECT
@@ -330,41 +337,41 @@ impl Settings {
             FROM settings
             "
         )
-            .fetch_one(exec)
+            .fetch_one(&mut *connection)
             .await?;
 
         let close_behavior: String = sqlx::query_scalar(
             "SELECT close_behavior FROM settings WHERE id = 0",
         )
-        .fetch_one(exec)
+        .fetch_one(&mut *connection)
         .await?;
 
         let home_widget_background_opacity: i64 = sqlx::query_scalar(
             "SELECT home_widget_background_opacity FROM settings WHERE id = 0",
         )
-        .fetch_one(exec)
+        .fetch_one(&mut *connection)
         .await?;
 
         let custom_background_component_opacity: i64 = sqlx::query_scalar(
             "SELECT custom_background_component_opacity FROM settings WHERE id = 0",
         )
-        .fetch_one(exec)
+        .fetch_one(&mut *connection)
         .await?;
 
         let ui_font: Option<String> =
             sqlx::query_scalar("SELECT ui_font FROM settings WHERE id = 0")
-                .fetch_one(exec)
+                .fetch_one(&mut *connection)
                 .await?;
 
         let mono_font: Option<String> =
             sqlx::query_scalar("SELECT mono_font FROM settings WHERE id = 0")
-                .fetch_one(exec)
+                .fetch_one(&mut *connection)
                 .await?;
 
         let hidden_nav_items_json: String = sqlx::query_scalar(
             "SELECT hidden_nav_items FROM settings WHERE id = 0",
         )
-        .fetch_one(exec)
+        .fetch_one(&mut *connection)
         .await?;
         let mut hidden_nav_items: Vec<String> =
             serde_json::from_str(&hidden_nav_items_json).unwrap_or_default();
@@ -374,22 +381,22 @@ impl Settings {
         let custom_window_title_enabled: bool = sqlx::query_scalar(
             "SELECT custom_window_title_enabled FROM settings WHERE id = 0",
         )
-        .fetch_one(exec)
+        .fetch_one(&mut *connection)
         .await?;
         let default_window_title: String = sqlx::query_scalar(
             "SELECT default_window_title FROM settings WHERE id = 0",
         )
-        .fetch_one(exec)
+        .fetch_one(&mut *connection)
         .await?;
         let backup_repository_path: Option<String> = sqlx::query_scalar(
             "SELECT backup_repository_path FROM settings WHERE id = 0",
         )
-        .fetch_one(exec)
+        .fetch_one(&mut *connection)
         .await?;
 
         let log_level: String =
             sqlx::query_scalar("SELECT log_level FROM settings WHERE id = 0")
-                .fetch_one(exec)
+                .fetch_one(&mut *connection)
                 .await?;
 
         let (
@@ -401,22 +408,22 @@ impl Settings {
         ): (bool, bool, bool, bool, bool) = sqlx::query_as(
             "SELECT sync_features_across_devices, show_files_tab_in_instances, show_worlds_tab_in_instances, show_screenshots_tab_in_instances, show_skin_selector_in_sidebar FROM settings WHERE id = 0",
         )
-        .fetch_one(exec)
+        .fetch_one(&mut *connection)
         .await?;
 
         let bypass_curseforge_download_restrictions: bool = sqlx::query_scalar(
             "SELECT bypass_curseforge_download_restrictions FROM settings WHERE id = 0",
         )
-        .fetch_one(exec)
+        .fetch_one(&mut *connection)
         .await?;
         let ignore_ssl_errors: bool = sqlx::query_scalar(
             "SELECT ignore_ssl_errors FROM settings WHERE id = 0",
         )
-        .fetch_one(exec)
+        .fetch_one(&mut *connection)
         .await?;
         let doh_enabled: bool =
             sqlx::query_scalar("SELECT doh_enabled FROM settings WHERE id = 0")
-                .fetch_one(exec)
+                .fetch_one(&mut *connection)
                 .await?;
         let settings = Self {
             max_concurrent_downloads: res.max_concurrent_downloads as usize,
@@ -510,7 +517,7 @@ impl Settings {
                 optimize_before_launch: sqlx::query_scalar(
                     "SELECT mc_memory_optimize FROM settings WHERE id = 0",
                 )
-                .fetch_one(exec)
+                .fetch_one(&mut *connection)
                 .await?,
             },
             force_fullscreen: res.mc_force_fullscreen == 1,
@@ -552,13 +559,13 @@ impl Settings {
             allow_external_scheme: sqlx::query_scalar(
                 "SELECT allow_external_scheme FROM settings WHERE id = 0",
             )
-            .fetch_one(exec)
+            .fetch_one(&mut *connection)
             .await
             .unwrap_or(true),
             allow_privileged_scheme: sqlx::query_scalar(
                 "SELECT allow_privileged_scheme FROM settings WHERE id = 0",
             )
-            .fetch_one(exec)
+            .fetch_one(&mut *connection)
             .await
             .unwrap_or(false),
             version: res.version as usize,
@@ -568,8 +575,16 @@ impl Settings {
 
     pub async fn update<'a, E>(&self, exec: E) -> crate::Result<()>
     where
-        E: sqlx::Executor<'a, Database = sqlx::Sqlite> + Copy,
+        E: sqlx::Acquire<'a, Database = sqlx::Sqlite>,
     {
+        let mut connection = exec.acquire().await?;
+        self.update_with_connection(&mut connection).await
+    }
+
+    pub(crate) async fn update_with_connection(
+        &self,
+        connection: &mut sqlx::SqliteConnection,
+    ) -> crate::Result<()> {
         let max_concurrent_writes = self.max_concurrent_writes as i32;
         let max_concurrent_downloads =
             self.max_concurrent_downloads.clamp(1, 256) as i32;
@@ -746,38 +761,38 @@ impl Settings {
             terracotta_public_nodes,
             self.telemetry_consent_version,
         )
-        .execute(exec)
+        .execute(&mut *connection)
         .await?;
 
         sqlx::query(
 			"UPDATE settings SET enter_lightweight_mode_on_game_launch = ? WHERE id = 0",
 		)
 		.bind(self.enter_lightweight_mode_on_game_launch)
-		.execute(exec)
+		.execute(&mut *connection)
 		.await?;
 
         sqlx::query("UPDATE settings SET close_behavior = ? WHERE id = 0")
             .bind(&self.close_behavior)
-            .execute(exec)
+            .execute(&mut *connection)
             .await?;
 
         sqlx::query("UPDATE settings SET log_level = ? WHERE id = 0")
             .bind(&self.log_level)
-            .execute(exec)
+            .execute(&mut *connection)
             .await?;
 
         sqlx::query(
             "UPDATE settings SET home_widget_background_opacity = ? WHERE id = 0",
         )
         .bind(self.home_widget_background_opacity.clamp(0, 100) as i64)
-        .execute(exec)
+        .execute(&mut *connection)
         .await?;
 
         sqlx::query(
             "UPDATE settings SET custom_background_component_opacity = ? WHERE id = 0",
         )
         .bind(self.custom_background_component_opacity.clamp(0, 100) as i64)
-        .execute(exec)
+        .execute(&mut *connection)
         .await?;
 
         sqlx::query(
@@ -785,7 +800,7 @@ impl Settings {
         )
         .bind(sanitize_font_family(self.ui_font.clone()))
         .bind(sanitize_font_family(self.mono_font.clone()))
-        .execute(exec)
+        .execute(&mut *connection)
         .await?;
 
         let mut hidden_nav_items = self.hidden_nav_items.clone();
@@ -794,43 +809,43 @@ impl Settings {
 
         sqlx::query("UPDATE settings SET hidden_nav_items = ? WHERE id = 0")
             .bind(serde_json::to_string(&hidden_nav_items)?)
-            .execute(exec)
+            .execute(&mut *connection)
             .await?;
 
         sqlx::query(
             "UPDATE settings SET custom_window_title_enabled = ? WHERE id = 0",
         )
         .bind(self.custom_window_title_enabled)
-        .execute(exec)
+        .execute(&mut *connection)
         .await?;
 
         sqlx::query(
             "UPDATE settings SET default_window_title = ? WHERE id = 0",
         )
         .bind(self.default_window_title.trim())
-        .execute(exec)
+        .execute(&mut *connection)
         .await?;
 
         sqlx::query(
             "UPDATE settings SET backup_repository_path = ? WHERE id = 0",
         )
         .bind(self.backup_repository_path.as_deref())
-        .execute(exec)
+        .execute(&mut *connection)
         .await?;
 
         sqlx::query(
             "UPDATE settings SET bypass_curseforge_download_restrictions = ? WHERE id = 0",
         )
         .bind(self.bypass_curseforge_download_restrictions)
-        .execute(exec)
+        .execute(&mut *connection)
         .await?;
         sqlx::query("UPDATE settings SET ignore_ssl_errors = ? WHERE id = 0")
             .bind(self.ignore_ssl_errors)
-            .execute(exec)
+            .execute(&mut *connection)
             .await?;
         sqlx::query("UPDATE settings SET mc_memory_optimize = ? WHERE id = 0")
             .bind(self.memory.optimize_before_launch)
-            .execute(exec)
+            .execute(&mut *connection)
             .await?;
         sqlx::query(
             "UPDATE settings SET sync_features_across_devices = ?, show_files_tab_in_instances = ?, show_worlds_tab_in_instances = ?, show_screenshots_tab_in_instances = ?, show_skin_selector_in_sidebar = ? WHERE id = 0",
@@ -840,24 +855,24 @@ impl Settings {
         .bind(self.show_worlds_tab_in_instances)
         .bind(self.show_screenshots_tab_in_instances)
         .bind(self.show_skin_selector_in_sidebar)
-        .execute(exec)
+        .execute(&mut *connection)
         .await?;
         sqlx::query(
             "UPDATE settings SET allow_external_scheme = ? WHERE id = 0",
         )
         .bind(self.allow_external_scheme)
-        .execute(exec)
+        .execute(&mut *connection)
         .await?;
         sqlx::query(
             "UPDATE settings SET allow_privileged_scheme = ? WHERE id = 0",
         )
         .bind(self.allow_privileged_scheme)
-        .execute(exec)
+        .execute(&mut *connection)
         .await?;
 
         sqlx::query("UPDATE settings SET doh_enabled = ? WHERE id = 0")
             .bind(self.doh_enabled)
-            .execute(exec)
+            .execute(&mut *connection)
             .await?;
 
         Ok(())
