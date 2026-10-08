@@ -310,7 +310,11 @@ export function parseEnvVars(input: string | undefined | null): [string, string]
     const vars: [string, string][] = []
     for (const entry of input.trim().split(/\s+/)) {
         const separator = entry.indexOf('=')
-        if (separator <= 0) continue
+        if (separator <= 0 || entry.includes('\0')) {
+            throw new Error(
+                'Environment variables must use NAME=value and cannot contain null characters.',
+            )
+        }
         vars.push([entry.slice(0, separator), entry.slice(separator + 1)])
     }
     return vars

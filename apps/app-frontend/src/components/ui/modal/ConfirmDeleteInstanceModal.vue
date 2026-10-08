@@ -22,6 +22,12 @@
         <Admonition v-else type="critical">
             {{ formatMessage(messages.symlinkDeleteWarning, { path: symlinkTarget }) }}
         </Admonition>
+        <ul v-if="instances.length" class="m-0 max-h-48 overflow-y-auto pl-5">
+            <li v-for="instance in instances" :key="instance.id" class="mb-2 break-words">
+                <span class="font-semibold">{{ instance.name }}</span>
+                <div class="text-sm text-[var(--color-text-tertiary)]">{{ instance.id }}</div>
+            </li>
+        </ul>
         <p v-if="backupSummary?.snapshot_count" class="m-0 text-[var(--color-text-tertiary)]">
             {{
                 formatMessage(messages.backupCascadeWarning, {
@@ -76,11 +82,13 @@ const props = withDefaults(
         instanceId?: string | null
         symlinkTarget?: string | null
         count?: number
+        instances?: { id: string; name: string }[]
     }>(),
     {
         instanceId: null,
         symlinkTarget: null,
         count: 1,
+        instances: () => [],
     },
 )
 

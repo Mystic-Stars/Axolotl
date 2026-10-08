@@ -1,4 +1,7 @@
 {
+  "app.settings.environment-variables.invalid-format": {
+    "message": "请使用 NAME=value 格式，以空格分隔。名称和等号不能为空；值可以为空，也可以包含更多等号。"
+  },
   "app.account.signed-in-as": {
     "message": "登录身份："
   },
@@ -3559,6 +3562,21 @@
   },
   "app.instances.batch-edit-groups.save-changes": {
     "message": "保存"
+  },
+  "app.instances.batch-edit-groups.loading": {
+    "message": "正在加载实例…"
+  },
+  "app.instances.batch-edit-groups.load-failed": {
+    "message": "无法加载实例，请重试。"
+  },
+  "app.instances.batch-edit-groups.retry": {
+    "message": "重试"
+  },
+  "app.instances.batch-edit-groups.save-failed": {
+    "message": "无法保存分组。已保留你的修改，请重试。"
+  },
+  "app.instances.batch-edit-groups.membership-failed": {
+    "message": "分组已创建，但实例关系未能保存。请重试以完成保存。"
   },
   "app.library.group.new": {
     "message": "新建分组"

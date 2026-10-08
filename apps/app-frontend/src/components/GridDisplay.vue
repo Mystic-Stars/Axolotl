@@ -183,7 +183,6 @@ const instanceOptions = ref(null)
 const backgroundContextMenu = ref(null)
 const currentDeleteInstance = ref(null)
 const currentContextSectionKey = ref('')
-const batchDeleteCount = ref(0)
 const confirmModal = ref(null)
 const search = ref('')
 const displayMode = ref(getLastLibraryDisplayMode())
@@ -464,17 +463,18 @@ const hideUngroupedHeader = computed(() => {
 
 const flatVisibleInstanceIds = computed(() => {
     const ids: string[] = []
-    if (pinnedSection.value) {
+    if (pinnedSection.value && !isSectionCollapsed(pinnedSection.value.key)) {
         for (const inst of pinnedSection.value.instances) {
             ids.push(inst.id)
         }
     }
     for (const section of draggableSections.value) {
+        if (isSectionCollapsed(section.key)) continue
         for (const inst of section.instances) {
             ids.push(inst.id)
         }
     }
-    return ids
+    return [...new Set(ids)]
 })
 
 watch(
@@ -502,7 +502,6 @@ async function deleteInstance() {
     if (currentDeleteInstance.value) {
         await remove(currentDeleteInstance.value.id).catch(handleError)
     }
-    batchDeleteCount.value = 0
 }
 
 async function duplicateInstance(p) {
@@ -674,12 +673,23 @@ const handleOptionsClick = async (args) => {
 
 // Selection mode
 const selectMode = ref(false)
-const selectedInstanceIds = ref(new Set())
+const selectedInstanceIds = ref(new Set<string>())
 const anchorInstanceId = ref<string | null>(null)
 const creatingGroup = ref(false)
 const removingFromGroup = ref(false)
 const deletingInstances = ref(false)
 const batchEditModal = ref(null)
+
+watch(flatVisibleInstanceIds, (ids) => {
+    const visibleIds = new Set(ids)
+    selectedInstanceIds.value = new Set(
+        [...selectedInstanceIds.value].filter((id) => visibleIds.has(id)),
+    )
+    if (anchorInstanceId.value && !visibleIds.has(anchorInstanceId.value)) {
+        anchorInstanceId.value = null
+    }
+    if (selectedInstanceIds.value.size === 0) selectMode.value = false
+})
 
 let longPressTimer = null
 let longPressTriggered = false
@@ -776,13 +786,36 @@ function handleCheckboxClick(instanceId, event) {
 }
 
 const batchDeleteConfirmModal = ref(null)
+const batchDeleteTargets = ref<Pick<GameInstance, 'id' | 'name'>[]>([])
+
+function showBatchDeleteConfirmation() {
+    if (busy.value) return
+    const visibleIds = new Set(flatVisibleInstanceIds.value)
+    batchDeleteTargets.value = props.instances
+        .filter(
+            (instance) => selectedInstanceIds.value.has(instance.id) && visibleIds.has(instance.id),
+        )
+        .map(({ id, name }) => ({ id, name }))
+    if (batchDeleteTargets.value.length > 0) batchDeleteConfirmModal.value?.show()
+}
 
 async function batchDeleteInstances() {
-    for (const id of selectedInstanceIds.value) {
-        await remove(id).catch(handleError)
+    if (busy.value) return
+    const targets = [...batchDeleteTargets.value]
+    deletingInstances.value = true
+    try {
+        for (const { id } of targets) {
+            try {
+                await remove(id)
+                selectedInstanceIds.value.delete(id)
+            } catch (err) {
+                handleError(err)
+            }
+        }
+        if (selectedInstanceIds.value.size === 0) clearLibraryInstanceSelection()
+    } finally {
+        deletingInstances.value = false
     }
-    selectedInstanceIds.value.clear()
-    selectMode.value = false
 }
 
 function onBatchEditApplied() {
@@ -1029,13 +1062,15 @@ async function handleInstanceDragEnd(event: {
         </DragDropProvider>
         <ConfirmDeleteInstanceModal
             ref="confirmModal"
+            :instance-id="currentDeleteInstance?.id"
             :symlink-target="currentDeleteInstance?.symlink_target"
-            :count="batchDeleteCount"
-            @delete="batchDeleteCount > 0 ? batchDeleteInstances() : deleteInstance()"
+            :instances="currentDeleteInstance ? [currentDeleteInstance] : []"
+            @delete="deleteInstance"
         />
         <ConfirmDeleteInstanceModal
             ref="batchDeleteConfirmModal"
-            :count="selectedInstanceIds.size"
+            :count="batchDeleteTargets.length"
+            :instances="batchDeleteTargets"
             @delete="batchDeleteInstances"
         />
         <InstanceGroupModal
@@ -1092,7 +1127,7 @@ async function handleInstanceDragEnd(event: {
                     type="quiet"
                     color="red"
                     :disabled="busy"
-                    @click="batchDeleteConfirmModal?.show()"
+                    @click="showBatchDeleteConfirmation"
                     ><TrashIcon />
                     <span class="bar-label">{{ formatMessage(commonMessages.deleteLabel) }}</span>
                 </Button>
