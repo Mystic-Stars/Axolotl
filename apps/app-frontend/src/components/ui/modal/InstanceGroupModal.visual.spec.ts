@@ -107,24 +107,22 @@ async function modal(existing = false) {
         backend.names.set(id, name)
         return { id, name }
     })
-    backend.update
-        .mockReset()
-        .mockImplementation(
-            async (
-                updates: {
-                    instance_id: string
-                    add_group_ids: string[]
-                    remove_group_ids: string[]
-                }[],
-            ) => {
-                for (const change of updates) {
-                    const groups = new Set(backend.memberships.get(change.instance_id))
-                    change.remove_group_ids.forEach((id) => groups.delete(id))
-                    change.add_group_ids.forEach((id) => groups.add(id))
-                    backend.memberships.set(change.instance_id, [...groups])
-                }
-            },
-        )
+    backend.update.mockReset().mockImplementation(
+        async (
+            updates: {
+                instance_id: string
+                add_group_ids: string[]
+                remove_group_ids: string[]
+            }[],
+        ) => {
+            for (const change of updates) {
+                const groups = new Set(backend.memberships.get(change.instance_id))
+                change.remove_group_ids.forEach((id) => groups.delete(id))
+                change.add_group_ids.forEach((id) => groups.add(id))
+                backend.memberships.set(change.instance_id, [...groups])
+            }
+        },
+    )
     const wrapper = mount(InstanceGroupModal, {
         props: {
             instanceIds: [],

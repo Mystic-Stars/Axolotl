@@ -53,6 +53,8 @@
 
         <div
             v-if="visibleJobs.length || (tab === 'active' && legacyDownloads.length)"
+            role="tabpanel"
+            :aria-labelledby="'nav-tab-' + tab"
             class="flex flex-col gap-3"
         >
             <Card
@@ -454,7 +456,7 @@
             </Card>
         </div>
 
-        <Card v-else class="flex flex-1">
+        <Card v-else role="tabpanel" :aria-labelledby="'nav-tab-' + tab" class="flex flex-1">
             <EmptyState
                 class="my-auto"
                 :type="query ? 'no-search-result' : 'no-tasks'"
