@@ -42,11 +42,11 @@
             <button
                 v-for="(link, index) in filteredLinks"
                 v-show="link.shown ?? true"
+                :id="link.href ? `nav-tab-${link.href}` : undefined"
                 :key="link.href"
                 ref="tabLinkElements"
                 type="button"
                 role="tab"
-                :id="link.href ? `nav-tab-${link.href}` : undefined"
                 :aria-selected="index === currentActiveIndex"
                 class="button-animation z-[1] flex flex-row items-center gap-2 border-0 bg-transparent px-4 py-2 text-inherit hover:cursor-pointer focus:rounded-full"
                 :class="getSSRFallbackClasses(index)"

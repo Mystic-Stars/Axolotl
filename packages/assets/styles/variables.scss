@@ -697,14 +697,14 @@ html {
 // The values mirror the website's so the two shells stay in step.
 html,
 .light-mode {
-	--color-warning: hsl(357, 78%, 40%);
-	--color-warning-bg: hsl(355, 70%, 88%);
-	--color-warning-text: hsl(342, 70%, 35%);
+    --color-warning: hsl(357, 78%, 40%);
+    --color-warning-bg: hsl(355, 70%, 88%);
+    --color-warning-text: hsl(342, 70%, 35%);
 }
 
 .dark-mode,
 .oled-mode {
-	--color-warning: hsl(357, 78%, 40%);
-	--color-warning-bg: hsl(355, 70%, 20%);
-	--color-warning-text: hsl(342, 70%, 75%);
+    --color-warning: hsl(357, 78%, 40%);
+    --color-warning-bg: hsl(355, 70%, 20%);
+    --color-warning-text: hsl(342, 70%, 75%);
 }
