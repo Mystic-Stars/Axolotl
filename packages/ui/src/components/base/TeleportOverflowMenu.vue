@@ -98,11 +98,11 @@
 </template>
 
 <script setup lang="ts">
-import { AutoLink } from '@modrinth/ui'
 import { onClickOutside, useElementHover } from '@vueuse/core'
 import { type Component, computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 
 import { useBodyScrollLock } from '../../composables/body-scroll-lock'
+import AutoLink from './AutoLink.vue'
 import Button from './buttons/Button.vue'
 import ButtonLink from './buttons/ButtonLink.vue'
 import IconButton from './buttons/IconButton.vue'

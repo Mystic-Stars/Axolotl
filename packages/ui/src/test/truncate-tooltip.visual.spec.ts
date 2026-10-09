@@ -97,13 +97,13 @@ it('remeasures after font changes and releases its observers on unmount', async 
 
 it('remeasures inherited font styles without waiting for a font download', async () => {
     const { trigger } = await textLabel()
-    trigger.style.cssText += ';height:40px;width:200px;font-size:var(--truncate-test-size)'
-    document.documentElement.style.setProperty('--truncate-test-size', '2px')
-    cleanup.push(() => document.documentElement.style.removeProperty('--truncate-test-size'))
+    trigger.style.cssText += ';height:40px;width:200px;font-size:inherit'
+    const parent = trigger.parentElement!
+    parent.style.fontSize = '2px'
     await waitFor(() => !document.querySelector('[role="tooltip"]'))
-    document.documentElement.style.setProperty('--truncate-test-size', '32px')
+    parent.style.fontSize = '32px'
     await waitFor(() => !!document.querySelector('[role="tooltip"]'))
-    document.documentElement.style.setProperty('--truncate-test-size', '2px')
+    parent.style.fontSize = '2px'
     await waitFor(() => !document.querySelector('[role="tooltip"]'))
 })
 
