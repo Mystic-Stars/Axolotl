@@ -175,6 +175,8 @@ pub enum Os {
     LinuxArm64,
     /// Linux ARM 32
     LinuxArm32,
+    /// Matches every operating system in a rule, subject to its architecture restriction
+    Universal,
     /// The OS is unknown
     Unknown,
 }
@@ -359,6 +361,38 @@ impl Library {
 mod tests {
     use super::*;
     use serde_json::json;
+
+    #[test]
+    fn universal_os_arguments_preserve_rules_and_values() {
+        for value in [json!("-Xss1M"), json!(["-Xss1M"])] {
+            let input = json!({
+                "rules": [{
+                    "action": "allow",
+                    "os": {"name": "universal", "arch": "x86"}
+                }],
+                "value": value
+            });
+            let argument: Argument =
+                serde_json::from_value(input.clone()).unwrap();
+            let Argument::Ruled { rules, .. } = &argument else {
+                panic!("expected a conditional argument");
+            };
+            let os = rules[0].os.as_ref().unwrap();
+            assert_eq!(os.name, Some(Os::Universal));
+            assert_eq!(os.arch.as_deref(), Some("x86"));
+            assert_eq!(serde_json::to_value(&argument).unwrap(), input);
+        }
+    }
+
+    #[test]
+    fn unrecognized_os_names_remain_invalid() {
+        assert!(
+            serde_json::from_value::<OsRule>(json!({
+                "name": "unrecognized-os"
+            }))
+            .is_err()
+        );
+    }
 
     fn native_library(natives: serde_json::Value) -> Library {
         serde_json::from_value(json!({
