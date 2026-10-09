@@ -1164,7 +1164,7 @@ mod tests {
     }
 
     #[test]
-    fn default_resolver_does_not_override_legacy_modrinth_cdn() {
+    fn default_resolver_does_not_override_current_modrinth_cdn() {
         assert!(
             DownloadDnsResolver::default()
                 .host_override("cdn.modrinth.com")

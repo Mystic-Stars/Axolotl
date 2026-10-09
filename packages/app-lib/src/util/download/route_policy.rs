@@ -5,14 +5,9 @@ use url::Url;
 
 pub(crate) fn is_official_modrinth_download_url(url: &str) -> bool {
     Url::parse(url).is_ok_and(|url| {
-        matches!(
-            url.host_str(),
-            Some(
-                "api.modrinth.com"
-                    | "cdn.modrinth.com"
-                    | "cdn-alt.modrinth.com"
-            )
-        )
+        super::modrinth_cdn::is_current_url(&url)
+            || (url.scheme() == "https"
+                && url.host_str() == Some("api.modrinth.com"))
     })
 }
 

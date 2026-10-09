@@ -14,6 +14,7 @@ pub(crate) mod h2_stream_budget;
 pub(crate) mod integrity;
 pub mod legacy;
 pub(crate) mod local_resources;
+pub(crate) mod modrinth_cdn;
 pub(crate) mod modrinth_redirect;
 pub(crate) mod native;
 pub(crate) mod native_breaker;

@@ -540,6 +540,7 @@ import {
     installProgressFraction,
     installProgressTextSource,
 } from '@/helpers/install-progress'
+import { normalizeModrinthCdnUrl } from '@/helpers/modrinth-cdn'
 import type { LoadingBar } from '@/helpers/state'
 import { injectContentInstall } from '@/providers/content-install'
 import { injectDownloadManager } from '@/providers/download-manager'
@@ -1272,7 +1273,7 @@ function itemError(item: DownloadItem) {
 }
 
 async function openManualDownload(item: DownloadItem) {
-    if (item.manual_url) await openUrl(item.manual_url)
+    if (item.manual_url) await openUrl(normalizeModrinthCdnUrl(item.manual_url))
 }
 
 function legacyPercent(bar: LoadingBar) {

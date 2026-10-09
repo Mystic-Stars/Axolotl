@@ -63,7 +63,11 @@
                 </OverflowMenu>
             </template>
             <template #supplementaryResourceActions="{ file }">
-                <ButtonLink :href="file.url" :download="file.filename" target="_blank">
+                <ButtonLink
+                    :href="normalizeModrinthCdnUrl(file.url)"
+                    :download="file.filename"
+                    target="_blank"
+                >
                     <DownloadIcon aria-hidden="true" />
                     {{ formatMessage(messages.downloadInBrowser) }}
                 </ButtonLink>
@@ -97,6 +101,7 @@ import { useRoute } from 'vue-router'
 
 import { SwapIcon } from '@/assets/icons'
 import { get_project_many, get_version_many } from '@/helpers/cache.js'
+import { normalizeModrinthCdnUrl } from '@/helpers/modrinth-cdn'
 import { useBreadcrumbs } from '@/store/breadcrumbs'
 
 const { formatMessage } = useVIntl()

@@ -504,6 +504,7 @@ import {
 } from '@/helpers/instance'
 import { getDisplayInstanceIcon } from '@/helpers/instance-icons'
 import { get_loader_versions as getLoaderManifest } from '@/helpers/metadata'
+import { normalizeModrinthCdnUrl } from '@/helpers/modrinth-cdn'
 import { get_by_instance_id } from '@/helpers/process'
 import { projectGalleryTranslationSegments } from '@/helpers/project-gallery'
 import { createProjectBrowseLocation } from '@/helpers/project-links'
@@ -1266,7 +1267,7 @@ function fetchDeferredServerData(project) {
                                           )
                                     : undefined,
                             onclickDownload: primaryFile?.url
-                                ? () => openUrl(primaryFile.url)
+                                ? () => openUrl(normalizeModrinthCdnUrl(primaryFile.url))
                                 : undefined,
                             showCustomModpackTooltip: modpackProject.id === project.id,
                         }

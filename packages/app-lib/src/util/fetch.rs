@@ -1,4 +1,5 @@
 //! Functions for fetching information from the Internet
+use super::download::modrinth_cdn;
 use super::download::modrinth_redirect::is_official_redirect as is_official_modrinth_cdn_redirect;
 #[cfg(test)]
 use super::download::modrinth_redirect::repair_official_redirect as repair_official_cdn_redirect;
@@ -49,8 +50,6 @@ const BMCLAPI_BASE_URL: &str = "https://bmclapi2.bangbang93.com";
 const MCIM_BASE_URL: &str = "https://mod.mcimirror.top";
 const ALIYUN_MAVEN_BASE_URL: &str =
     "https://maven.aliyun.com/repository/public";
-pub(crate) const MODRINTH_CDN_OFFICIAL_HOST: &str = "cdn-alt.modrinth.com";
-pub(crate) const MODRINTH_CDN_LEGACY_HOST: &str = "cdn.modrinth.com";
 const METADATA_ATTEMPT_BUDGET: usize = 4;
 #[cfg(not(test))]
 const METADATA_HEDGE_DELAY: time::Duration = time::Duration::from_secs(2);
@@ -489,8 +488,8 @@ fn modrinth_request_kind(url: &str) -> Option<&'static str> {
         || url.starts_with(env!("MODRINTH_API_URL_V3"))
     {
         Some("API")
-    } else if url.starts_with("https://cdn-alt.modrinth.com")
-        || url.starts_with("https://cdn.modrinth.com")
+    } else if Url::parse(url)
+        .is_ok_and(|url| modrinth_cdn::is_current_url(&url))
     {
         Some("CDN")
     } else {
@@ -562,7 +561,7 @@ fn route(
 }
 
 fn official_route(url: &str, resource: ResourceClass) -> DownloadRoute {
-    let url = url.to_string();
+    let url = modrinth_cdn::normalize(url).into_owned();
     let parsed_url = Url::parse(&url).ok();
     let source = parsed_url
         .as_ref()
@@ -839,14 +838,12 @@ pub fn resolve_download_routes_for(
     resource: ResourceClass,
     mode: crate::state::DownloadSourceMode,
 ) -> Vec<DownloadRoute> {
-    let url = url.to_string();
+    let url = modrinth_cdn::normalize(url).into_owned();
     let official = official_route(&url, resource);
     let mirror_first_loader = uses_mirror_first_loader_routes(&url, resource);
     let mut routes = explicit_mirror_routes(&url, resource);
     routes.push(official);
-    // Modrinth API calls are authenticated and remain official-only. CDN
-    // downloads retain their supplied official URL and can fall back to a
-    // health-ranked mirror in Automatic mode.
+    // Modrinth API calls are authenticated and remain official-only.
     let mode = if is_modrinth_api_url(&url) {
         crate::state::DownloadSourceMode::OfficialOnly
     } else {
@@ -923,9 +920,7 @@ fn infer_resource_class(url: &str) -> ResourceClass {
         "launcher.mojang.com" | "piston-data.mojang.com" => {
             ResourceClass::MinecraftLibrary
         }
-        "api.modrinth.com" | "cdn.modrinth.com" | "cdn-alt.modrinth.com" => {
-            ResourceClass::Modrinth
-        }
+        "api.modrinth.com" | modrinth_cdn::HOST => ResourceClass::Modrinth,
         "api.curseforge.com"
         | "edge.forgecdn.net"
         | "media.forgecdn.net"
@@ -1980,6 +1975,8 @@ async fn fetch_advanced_inner(
     >,
     attempt_budget: usize,
 ) -> crate::Result<Bytes> {
+    let normalized_url = modrinth_cdn::normalize(url);
+    let url = normalized_url.as_ref();
     let resource = infer_resource_class(url);
     let mode =
         source_mode.unwrap_or_else(|| source_mode_for_resource(resource));
@@ -2107,6 +2104,11 @@ async fn fetch_advanced_inner(
                 &DIRECT_REQWEST_CLIENT,
             );
             let route_client = match (route.proxy, protected_headers) {
+                (ProxyPolicy::System, _)
+                    if modrinth_request_kind == Some("CDN") =>
+                {
+                    &download_clients.system
+                }
                 (ProxyPolicy::System, false)
                     if is_mirror && modrinth_request_kind.is_some() =>
                 {
@@ -2146,7 +2148,13 @@ async fn fetch_advanced_inner(
 
             let permit = semaphore.0.acquire().await?;
             let request_started = Instant::now();
-            let result = req.send().await;
+            let result = if modrinth_request_kind == Some("CDN")
+                && method == Method::GET
+            {
+                super::download::native_request::send_cdn_request(req).await
+            } else {
+                req.send().await
+            };
             let ttfb = request_started.elapsed();
             match result {
                 Ok(resp) => {
@@ -3297,12 +3305,9 @@ fn route_segmented_concurrency_cap(
         .min(crate::util::download::native_budget::available(route));
     if route.source == DownloadRouteSource::Bmclapi
         || matches!(route.source, DownloadRouteSource::Official)
-            && Url::parse(&route.url).ok().is_some_and(|url| {
-                matches!(
-                    url.host_str(),
-                    Some("cdn.modrinth.com" | "cdn-alt.modrinth.com")
-                )
-            })
+            && Url::parse(&route.url)
+                .ok()
+                .is_some_and(|url| modrinth_cdn::is_current_url(&url))
     {
         cap.min(4)
     } else {
@@ -5152,12 +5157,18 @@ fn error_chain(error: &crate::Error) -> String {
 /// moves it into place.
 #[tracing::instrument(skip(semaphore, _exec, progress, request, destination))]
 pub async fn download_to_path(
-    request: DownloadRequest,
+    mut request: DownloadRequest,
     destination: impl AsRef<Path>,
     semaphore: &FetchSemaphore,
     _exec: impl sqlx::Executor<'_, Database = sqlx::Sqlite>,
     progress: Option<&mut FetchProgressFn<'_>>,
 ) -> crate::Result<DownloadResult> {
+    request.url = modrinth_cdn::normalize(&request.url).into_owned();
+    request.candidate_urls = request
+        .candidate_urls
+        .iter()
+        .map(|url| modrinth_cdn::normalize(url).into_owned())
+        .collect();
     let tracking = request.install_tracking.clone();
     let request_url = request.url.clone();
     let destination_path = destination.as_ref();
@@ -7580,13 +7591,13 @@ mod tests {
             modrinth_request_kind(
                 "https://cdn-alt.modrinth.com/data/project/version/file.jar"
             ),
-            Some("CDN")
+            None
         );
         assert_eq!(modrinth_request_kind("https://example.com/file.jar"), None);
     }
 
     #[test]
-    fn modrinth_cdn_routes_preserve_the_original_official_host() {
+    fn modrinth_cdn_routes_use_the_current_host() {
         for host in ["cdn.modrinth.com", "cdn-alt.modrinth.com"] {
             let url = format!(
                 "https://{host}/data/project/version/file.jar?download=1"
@@ -7597,13 +7608,16 @@ mod tests {
                 crate::state::DownloadSourceMode::OfficialOnly,
             );
             assert_eq!(routes.len(), 1);
-            assert_eq!(routes[0].url, url);
+            assert_eq!(
+                routes[0].url,
+                "https://cdn.modrinth.com/data/project/version/file.jar?download=1"
+            );
         }
     }
 
     #[test]
-    fn modrinth_download_url_recognition_includes_cdn_alt() {
-        assert!(is_official_modrinth_download_url(
+    fn modrinth_download_url_recognition_excludes_retired_hosts() {
+        assert!(!is_official_modrinth_download_url(
             "https://cdn-alt.modrinth.com/data/project/version/file.jar"
         ));
         assert!(is_official_modrinth_download_url(
@@ -7640,6 +7654,49 @@ mod tests {
                 3,
             ),
             "https://cdn-alt.modrinth.com/data/project/version/file.jar?download=1&axolotl_retry=3"
+        );
+    }
+
+    #[test]
+    fn retired_modrinth_candidates_are_deduplicated_in_every_source_mode() {
+        for mode in [
+            crate::state::DownloadSourceMode::Auto,
+            crate::state::DownloadSourceMode::OfficialOnly,
+            crate::state::DownloadSourceMode::OfficialPreferred,
+            crate::state::DownloadSourceMode::MirrorPreferred,
+        ] {
+            let request = DownloadRequest::new(
+                "https://cdn-alt.modrinth.com/data/pack.mrpack",
+                ResourceClass::Modpack,
+            )
+            .with_candidate_urls([
+                "https://cdn.modrinth.com/data/pack.mrpack",
+                "https://cdn-alt.modrinth.com/data/other.jar?x=%2b",
+            ]);
+            let routes = build_download_routes(&request, mode);
+            assert_eq!(routes.len(), 2);
+            assert_eq!(
+                routes[0].url,
+                "https://cdn.modrinth.com/data/pack.mrpack"
+            );
+            assert_eq!(
+                routes[1].url,
+                "https://cdn.modrinth.com/data/other.jar?x=%2b"
+            );
+            assert!(!routes.iter().any(|route| route.url.contains("cdn-alt")));
+            assert_eq!(routes[0].source, DownloadRouteSource::Official);
+            assert!(is_official_modrinth_download_url(&routes[0].url));
+            assert_eq!(modrinth_request_kind(&routes[0].url), Some("CDN"));
+            assert_eq!(
+                infer_resource_class(&routes[0].url),
+                ResourceClass::Modrinth
+            );
+        }
+        assert_eq!(
+            modrinth_request_kind(
+                "https://cdn.modrinth.com.evil.example/file.jar"
+            ),
+            None
         );
     }
 
@@ -8204,7 +8261,7 @@ mod tests {
             assert_eq!(
                 repaired.as_str(),
                 format!(
-                    "https://{host}/data/project/versions/version/%E9%87%91%E5%90%88%E6%AC%A2_1.21%2B.zip"
+                    "https://cdn.modrinth.com/data/project/versions/version/%E9%87%91%E5%90%88%E6%AC%A2_1.21%2B.zip"
                 )
             );
         }

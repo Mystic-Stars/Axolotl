@@ -1,5 +1,6 @@
 //! HTTP request construction and redirect handling for downloads.
 
+use super::modrinth_cdn;
 use super::modrinth_redirect::repair_official_redirect as repair_official_cdn_redirect;
 use crate::ErrorKind;
 use crate::util::fetch::{
@@ -27,6 +28,63 @@ pub(crate) fn byte_range_header_value(
     })
 }
 
+/// CDN byte fetches use the same redirect normalization as streamed downloads.
+pub(crate) async fn send_cdn_request(
+    builder: reqwest::RequestBuilder,
+) -> Result<reqwest::Response, reqwest::Error> {
+    let (client, request) = builder.build_split();
+    let mut request = request?;
+    *request.url_mut() = modrinth_cdn::normalize_parsed(request.url().clone());
+    let original = request.url().clone();
+    for hop in 0..=5 {
+        let next_request = request.try_clone();
+        let response = client.execute(request).await?;
+        if !response.status().is_redirection() || hop == 5 {
+            return Ok(response);
+        }
+        let Some(location) =
+            response.headers().get(header::LOCATION).map(|value| {
+                String::from_utf8_lossy(value.as_bytes()).into_owned()
+            })
+        else {
+            return Ok(response);
+        };
+        if location.len() > MAX_REDIRECT_LOCATION_BYTES
+            || location.chars().any(char::is_control)
+        {
+            return Ok(response);
+        }
+        let Ok(next) = response.url().join(&location) else {
+            return Ok(response);
+        };
+        if !is_allowed_download_redirect(&next) {
+            return Ok(response);
+        }
+        let Some(mut cloned) = next_request else {
+            return Ok(response);
+        };
+        let next = repair_official_cdn_redirect(&original, &next, &location)
+            .unwrap_or(next);
+        if !same_origin(cloned.url(), &next) {
+            let names = cloned
+                .headers()
+                .keys()
+                .filter(|name| {
+                    is_sensitive_header(name.as_str())
+                        || name.as_str() == DOWNLOAD_META_HEADER
+                })
+                .cloned()
+                .collect::<Vec<_>>();
+            for name in names {
+                cloned.headers_mut().remove(name);
+            }
+        }
+        *cloned.url_mut() = next;
+        request = cloned;
+    }
+    unreachable!()
+}
+
 pub(crate) async fn send_path_request_with_clients(
     route: &DownloadRoute,
     custom_header: Option<&(String, String)>,
@@ -37,7 +95,7 @@ pub(crate) async fn send_path_request_with_clients(
     clients: &DownloadClients,
     redirect_target: Option<&AsyncMutex<Option<Url>>>,
 ) -> crate::Result<(reqwest::Response, String)> {
-    let original = Url::parse(&route.url)?;
+    let original = Url::parse(&modrinth_cdn::normalize(&route.url))?;
     let mut current = match redirect_target {
         Some(target) => target
             .lock()
@@ -47,6 +105,7 @@ pub(crate) async fn send_path_request_with_clients(
             .unwrap_or_else(|| original.clone()),
         None => original.clone(),
     };
+    current = modrinth_cdn::normalize_parsed(current);
     let mut reused_redirect_target = current != original;
     for redirect_count in 0..=5 {
         let fallback_to_http1 =
@@ -215,4 +274,212 @@ pub(crate) async fn send_path_request(
         None,
     )
     .await
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::util::fetch::{DownloadRouteSource, ResourceClass};
+    use std::time::Duration;
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+    async fn read_headers(stream: &mut tokio::net::TcpStream) -> String {
+        let mut request = Vec::new();
+        let mut buffer = [0_u8; 1024];
+        while !request.windows(4).any(|bytes| bytes == b"\r\n\r\n") {
+            let n = stream.read(&mut buffer).await.unwrap();
+            assert_ne!(n, 0);
+            request.extend_from_slice(&buffer[..n]);
+        }
+        String::from_utf8(request).unwrap()
+    }
+
+    async fn proxy_client(
+        redirect: bool,
+    ) -> (reqwest::Client, tokio::task::JoinHandle<String>) {
+        let listener =
+            tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let address = listener.local_addr().unwrap();
+        let task = tokio::spawn(async move {
+            if redirect {
+                let (mut first, _) = listener.accept().await.unwrap();
+                let headers = read_headers(&mut first).await;
+                assert!(headers.starts_with("GET http://origin.invalid/"));
+                first.write_all(b"HTTP/1.1 302 Found\r\nLocation: https://cdn-alt.modrinth.com/data/file.jar?x=%2b\r\nContent-Length: 0\r\nConnection: close\r\n\r\n").await.unwrap();
+            }
+            let (mut stream, _) = listener.accept().await.unwrap();
+            let headers = read_headers(&mut stream).await;
+            stream.write_all(b"HTTP/1.1 502 Bad Gateway\r\nContent-Length: 0\r\nConnection: close\r\n\r\n").await.unwrap();
+            headers
+        });
+        let client = reqwest::Client::builder()
+            .proxy(reqwest::Proxy::all(format!("http://{address}")).unwrap())
+            .redirect(reqwest::redirect::Policy::none())
+            .timeout(Duration::from_secs(3))
+            .build()
+            .unwrap();
+        (client, task)
+    }
+
+    #[tokio::test]
+    async fn retired_modrinth_streamed_requests_never_connect_to_the_retired_host()
+     {
+        let (client, proxy) = proxy_client(false).await;
+        let route = DownloadRoute {
+            url: "https://cdn-alt.modrinth.com/data/file.jar".into(),
+            source: DownloadRouteSource::Official,
+            is_mirror: false,
+            allow_sensitive_headers: true,
+            supports_range: true,
+            proxy: ProxyPolicy::System,
+        };
+        let clients = DownloadClients::for_request(&client, &client);
+        assert!(
+            send_path_request_with_clients(
+                &route, None, None, None, None, None, &clients, None
+            )
+            .await
+            .is_err()
+        );
+        let headers = tokio::time::timeout(Duration::from_secs(5), proxy)
+            .await
+            .unwrap()
+            .unwrap();
+        assert!(
+            headers.starts_with("CONNECT cdn.modrinth.com:443 "),
+            "{headers}"
+        );
+        assert!(!headers.contains("cdn-alt"));
+    }
+
+    #[tokio::test]
+    async fn retired_modrinth_redirects_never_connect_to_the_retired_host() {
+        for streamed in [true, false] {
+            let (client, proxy) = proxy_client(true).await;
+            if streamed {
+                let route = DownloadRoute {
+                    url: "http://origin.invalid/".into(),
+                    source: DownloadRouteSource::Official,
+                    is_mirror: false,
+                    allow_sensitive_headers: false,
+                    supports_range: true,
+                    proxy: ProxyPolicy::System,
+                };
+                let clients = DownloadClients::for_request(&client, &client);
+                assert!(
+                    send_path_request_with_clients(
+                        &route, None, None, None, None, None, &clients, None
+                    )
+                    .await
+                    .is_err()
+                );
+            } else {
+                assert!(
+                    send_cdn_request(client.get("http://origin.invalid/"))
+                        .await
+                        .is_err()
+                );
+            }
+            let headers = tokio::time::timeout(Duration::from_secs(5), proxy)
+                .await
+                .unwrap()
+                .unwrap();
+            assert!(
+                headers.starts_with("CONNECT cdn.modrinth.com:443 "),
+                "{headers}"
+            );
+            assert!(!headers.contains("cdn-alt"));
+        }
+    }
+
+    #[tokio::test]
+    async fn retired_modrinth_byte_requests_never_connect_to_the_retired_host()
+    {
+        let (client, proxy) = proxy_client(false).await;
+        assert!(
+            send_cdn_request(
+                client.get("https://cdn-alt.modrinth.com/data/file.jar")
+            )
+            .await
+            .is_err()
+        );
+        let headers = tokio::time::timeout(Duration::from_secs(5), proxy)
+            .await
+            .unwrap()
+            .unwrap();
+        assert!(
+            headers.starts_with("CONNECT cdn.modrinth.com:443 "),
+            "{headers}"
+        );
+        assert!(!headers.contains("cdn-alt"));
+    }
+
+    #[tokio::test]
+    async fn modrinth_byte_redirects_strip_protected_headers_across_origins() {
+        let first = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let second =
+            tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let origin = format!("http://{}/", first.local_addr().unwrap());
+        let target = format!(
+            "http://{}/file.jar?download=1",
+            second.local_addr().unwrap()
+        );
+        let first_task = tokio::spawn(async move {
+            let (mut stream, _) = first.accept().await.unwrap();
+            let headers = read_headers(&mut stream).await.to_ascii_lowercase();
+            assert!(headers.contains("authorization: secret"));
+            stream.write_all(format!("HTTP/1.1 302 Found\r\nLocation: {target}\r\nContent-Length: 0\r\nConnection: close\r\n\r\n").as_bytes()).await.unwrap();
+        });
+        let second_task = tokio::spawn(async move {
+            let (mut stream, _) = second.accept().await.unwrap();
+            let headers = read_headers(&mut stream).await.to_ascii_lowercase();
+            assert!(!headers.contains("authorization:"));
+            assert!(!headers.contains("cookie:"));
+            assert!(!headers.contains("modrinth-download-meta:"));
+            assert!(headers.contains("range: bytes=0-3"));
+            stream.write_all(b"HTTP/1.1 200 OK\r\nContent-Length: 4\r\nConnection: close\r\n\r\ndata").await.unwrap();
+        });
+        let client = reqwest::Client::builder()
+            .no_proxy()
+            .redirect(reqwest::redirect::Policy::none())
+            .timeout(Duration::from_secs(3))
+            .build()
+            .unwrap();
+        let response = send_cdn_request(
+            client
+                .get(origin)
+                .header("Authorization", "secret")
+                .header("Cookie", "secret=1")
+                .header(DOWNLOAD_META_HEADER, "statistics")
+                .header(header::RANGE, "bytes=0-3"),
+        )
+        .await
+        .unwrap();
+        assert_eq!(response.bytes().await.unwrap(), "data");
+        first_task.await.unwrap();
+        second_task.await.unwrap();
+    }
+
+    #[test]
+    fn retired_modrinth_routes_keep_download_metadata_for_both_transports() {
+        let routes = crate::util::fetch::resolve_download_routes_for(
+            "https://cdn-alt.modrinth.com/data/file.jar",
+            ResourceClass::Modrinth,
+            crate::state::DownloadSourceMode::OfficialOnly,
+        );
+        let request = crate::util::fetch::DownloadRequest::new(
+            &routes[0].url,
+            ResourceClass::Modrinth,
+        )
+        .with_download_meta(DownloadMeta {
+            reason: crate::util::fetch::DownloadReason::Standalone,
+            game_version: "1.21.1".into(),
+            loader: "fabric".into(),
+            dependent_on: None,
+        });
+        let headers =
+            super::super::h2_download::request_headers(&request, &routes[0]);
+        assert!(headers.contains_key(DOWNLOAD_META_HEADER));
+        assert!(is_official_modrinth_download_url(&routes[0].url));
+    }
 }
