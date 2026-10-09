@@ -114,6 +114,9 @@ it('keeps disabled listboxes closed and does not emit a selection', async () => 
 
 it('honors an explicit upward direction for floating dropdowns', async () => {
     const teleports = installTeleportTarget()
+    const host = document.createElement('div')
+    host.style.cssText = 'position:fixed; top:200px; left:16px; width:180px'
+    document.body.append(host)
     const wrapper = await mountThemed(
         Combobox,
         {
@@ -122,7 +125,7 @@ it('honors an explicit upward direction for floating dropdowns', async () => {
             forceDirection: 'up',
         },
         'dark',
-        { attachTo: document.body },
+        { attachTo: host },
     )
 
     const trigger = wrapper.get('[aria-haspopup="listbox"]')
@@ -137,6 +140,7 @@ it('honors an explicit upward direction for floating dropdowns', async () => {
     )
 
     wrapper.unmount()
+    host.remove()
     teleports.remove()
 })
 
