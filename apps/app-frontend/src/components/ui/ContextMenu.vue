@@ -1,23 +1,33 @@
 <template>
     <transition name="fade">
-        <div v-show="shown" ref="contextMenu" class="context-menu select-none" :style="menuStyle">
-            <div
-                v-for="(option, index) in options"
-                :key="option.name ?? option.id ?? index"
-                @click.stop="optionClicked(option)"
-            >
-                <hr v-if="option.type === 'divider'" class="divider" />
-                <div
+        <div
+            v-show="shown"
+            ref="contextMenu"
+            role="menu"
+            class="select-none bg-surface-3 rounded-[var(--radius-md)] shadow-[var(--shadow-floating)] border border-solid border-divider m-0 fixed z-[1000000] overflow-x-hidden overflow-y-auto p-2 box-border"
+            :style="menuStyle"
+        >
+            <template v-for="(option, index) in options" :key="option.name ?? option.id ?? index">
+                <hr
+                    v-if="option.type === 'divider'"
+                    role="separator"
+                    class="border border-solid border-divider m-2"
+                />
+                <button
                     v-else-if="!(isInstanceLink(item) && optionName(option) === `add_content`)"
-                    class="item clickable"
-                    :class="[optionColor(option), { disabled: option.disabled }]"
+                    type="button"
+                    role="menuitem"
+                    :disabled="option.disabled"
+                    class="w-full border-0 bg-transparent text-left items-center text-[var(--color-text-default)] cursor-pointer flex gap-2 p-2 rounded-[var(--radius-sm)] whitespace-normal disabled:cursor-not-allowed disabled:opacity-50"
+                    :class="optionClasses(option)"
+                    @click.stop="optionClicked(option)"
                 >
                     <component :is="option.icon" v-if="option.icon" class="size-5" />
                     <slot :name="optionName(option)">
                         {{ option.label ?? optionName(option) }}
                     </slot>
-                </div>
-            </div>
+                </button>
+            </template>
         </div>
     </transition>
 </template>
@@ -39,6 +49,7 @@ let justOpened = false
 let anchorPoint = { clientX: 0, clientY: 0 }
 let activeViewport = null
 let resizeObserver = null
+let disposed = false
 
 const SAFE_GAP = 10
 const viewportBoundary = () => {
@@ -98,6 +109,7 @@ const setupPositionListeners = (event) => {
 const CLOSE_ALL_EVENT = 'close-all-context-menus'
 
 const showMenu = (event, passedItem, passedOptions) => {
+    if (disposed) return
     window.dispatchEvent(new CustomEvent(CLOSE_ALL_EVENT))
 
     item.value = passedItem
@@ -121,6 +133,17 @@ const optionName = (option) => option.name ?? option.id
 
 const optionColor = (option) => option.color ?? (option.tone === 'red' ? 'danger' : 'base')
 
+const optionClasses = (option) => ({
+    'enabled:hover:bg-surface-4 enabled:hover:text-[var(--color-text-primary)] enabled:active:bg-surface-4':
+        optionColor(option) === 'base',
+    'enabled:hover:bg-brand enabled:hover:text-[var(--color-accent-contrast)] enabled:hover:font-bold':
+        optionColor(option) === 'primary',
+    'enabled:hover:bg-red enabled:hover:text-[var(--color-accent-contrast)]':
+        optionColor(option) === 'danger',
+    'enabled:hover:bg-orange enabled:hover:text-[var(--color-accent-contrast)]':
+        optionColor(option) === 'contrast',
+})
+
 const isInstanceLink = (item) => {
     if (item?.instance != undefined && item.instance.link) {
         return true
@@ -131,13 +154,14 @@ const isInstanceLink = (item) => {
 }
 
 const hideContextMenu = () => {
+    if (!shown.value) return
     shown.value = false
     cleanupPositionListeners()
     emit('menu-closed')
 }
 
 const optionClicked = (option) => {
-    if (option.disabled) return
+    if (!shown.value || option.disabled || option.type === 'divider') return
     if (option.action) {
         option.action()
     } else {
@@ -155,106 +179,45 @@ defineExpose({
     close: hideContextMenu,
 })
 
-const onEscKeyRelease = (event) => {
-    if (event.keyCode === 27) {
+const onEscape = (event) => {
+    if (shown.value && event.key === 'Escape' && !event.defaultPrevented) {
+        event.preventDefault()
         hideContextMenu()
     }
 }
 
 const handleClickOutside = (event) => {
-    const elements = document.elementsFromPoint(event.clientX, event.clientY)
+    if (!shown.value || justOpened) return
+    const menu = contextMenu.value
     if (
-        contextMenu.value &&
-        contextMenu.value.$el !== event.target &&
-        !elements.includes(contextMenu.value.$el)
+        menu &&
+        !event.composedPath().includes(menu) &&
+        !(event.target instanceof Node && menu.contains(event.target))
     ) {
         hideContextMenu()
     }
 }
 
 const handleCloseOthers = () => {
-    if (!justOpened) {
-        hideContextMenu()
-    }
+    hideContextMenu()
 }
 
 onMounted(() => {
     window.addEventListener('click', handleClickOutside)
     window.addEventListener(CLOSE_ALL_EVENT, handleCloseOthers)
-    document.body.addEventListener('keyup', onEscKeyRelease)
+    window.addEventListener('keydown', onEscape)
 })
 
 onBeforeUnmount(() => {
+    disposed = true
     cleanupPositionListeners()
     window.removeEventListener('click', handleClickOutside)
     window.removeEventListener(CLOSE_ALL_EVENT, handleCloseOthers)
-    document.body.removeEventListener('keyup', onEscKeyRelease)
+    window.removeEventListener('keydown', onEscape)
 })
 </script>
 
 <style lang="scss" scoped>
-.context-menu {
-    background-color: var(--surface-3);
-    border-radius: var(--radius-md);
-    box-shadow: var(--shadow-floating);
-    border: 1px solid var(--color-divider);
-    margin: 0;
-    position: fixed;
-    z-index: 1000000;
-    overflow-x: hidden;
-    overflow-y: auto;
-    padding: var(--gap-sm);
-    box-sizing: border-box;
-
-    .item {
-        align-items: center;
-        color: var(--color-text-default);
-        cursor: pointer;
-        display: flex;
-        gap: var(--gap-sm);
-        padding: var(--gap-sm);
-        border-radius: var(--radius-sm);
-        white-space: normal;
-
-        &.disabled {
-            cursor: not-allowed;
-            opacity: 0.5;
-        }
-
-        &:hover,
-        &:active {
-            &.base {
-                background-color: var(--surface-4);
-                color: var(--color-text-primary);
-            }
-
-            &.primary {
-                background-color: var(--color-brand);
-                color: var(--color-accent-contrast);
-                font-weight: bold;
-            }
-
-            &.danger {
-                background-color: var(--color-red);
-                color: var(--color-accent-contrast);
-                font-weight: bold;
-            }
-
-            &.contrast {
-                background-color: var(--color-orange);
-                color: var(--color-accent-contrast);
-                font-weight: bold;
-            }
-        }
-    }
-
-    .divider {
-        border: 1px solid var(--color-divider);
-        margin: var(--gap-sm);
-        pointer-events: none;
-    }
-}
-
 .fade-enter-active,
 .fade-leave-active {
     transition: opacity 0.2s ease-in-out;
