@@ -11,6 +11,7 @@ import {
 } from '@floating-ui/vue'
 import type { ObjectDirective } from 'vue'
 
+import { isElementTruncated } from '../utils/truncate'
 import { resolveTooltipContent, type TooltipValue } from './tooltip-value'
 
 /**
@@ -74,6 +75,73 @@ function createTooltip(trigger: HTMLElement, modifier: Placement | null): Toolti
     let showTimer: ReturnType<typeof setTimeout> | null = null
     let hovered = false
     let focused = false
+    let disposed = false
+    let resizeObserver: ResizeObserver | undefined
+    let mutationObserver: MutationObserver | undefined
+    let observedTarget: HTMLElement | undefined
+    let measureFrame: number | undefined
+
+    function resolvedContent() {
+        const resolved = resolveTooltipContent(value)
+        if (
+            resolved?.options.onlyWhenTruncated &&
+            !isElementTruncated(resolved.options.overflowTarget ?? trigger)
+        )
+            return null
+        return resolved
+    }
+
+    function refreshTruncation() {
+        if (disposed || measureFrame !== undefined) return
+        measureFrame = requestAnimationFrame(() => {
+            measureFrame = undefined
+            measureTruncation()
+        })
+    }
+
+    function measureTruncation() {
+        if (disposed || !observedTarget) return
+        const next = isElementTruncated(observedTarget)
+        if (hasActiveTrigger() && next !== popper.isConnected) show()
+    }
+
+    function stopObserving() {
+        if (measureFrame !== undefined) cancelAnimationFrame(measureFrame)
+        measureFrame = undefined
+        resizeObserver?.disconnect()
+        mutationObserver?.disconnect()
+        resizeObserver = undefined
+        mutationObserver = undefined
+        observedTarget = undefined
+        document.fonts?.removeEventListener('loadingdone', refreshTruncation)
+    }
+
+    function observeTruncation() {
+        const options = resolveTooltipContent(value)?.options
+        const target = options?.onlyWhenTruncated ? (options.overflowTarget ?? trigger) : undefined
+        if (target === observedTarget) return
+        stopObserving()
+        if (!target) return
+        observedTarget = target
+        resizeObserver = new ResizeObserver(refreshTruncation)
+        resizeObserver.observe(target)
+        mutationObserver = new MutationObserver(refreshTruncation)
+        mutationObserver.observe(target, {
+            subtree: true,
+            childList: true,
+            characterData: true,
+            attributes: true,
+            attributeFilter: ['style', 'class'],
+        })
+        for (let parent = target.parentElement; parent; parent = parent.parentElement) {
+            mutationObserver.observe(parent, {
+                attributes: true,
+                attributeFilter: ['style', 'class'],
+            })
+        }
+        document.fonts?.addEventListener('loadingdone', refreshTruncation)
+        void document.fonts?.ready.then(refreshTruncation)
+    }
 
     function triggerEnabled(name: 'hover' | 'focus') {
         const triggers = resolveTooltipContent(value)?.options.triggers
@@ -85,7 +153,7 @@ function createTooltip(trigger: HTMLElement, modifier: Placement | null): Toolti
     }
 
     function mount() {
-        const resolved = resolveTooltipContent(value)
+        const resolved = resolvedContent()
         if (!resolved) return
 
         popper.className = resolved.options.popperClass
@@ -160,7 +228,7 @@ function createTooltip(trigger: HTMLElement, modifier: Placement | null): Toolti
     function show() {
         cancelPendingShow()
         if (popper.isConnected) unmount()
-        if (resolveTooltipContent(value)) mount()
+        if (!disposed && resolvedContent()) mount()
     }
 
     function hide() {
@@ -203,12 +271,15 @@ function createTooltip(trigger: HTMLElement, modifier: Placement | null): Toolti
     return {
         setValue(next) {
             value = next
+            observeTruncation()
             // Only re-render when something is actually on screen, so an update to
             // a closed tooltip costs nothing.
             if (hasActiveTrigger()) show()
             else if (popper.isConnected) hide()
         },
         destroy() {
+            disposed = true
+            stopObserving()
             cancelPendingShow()
             unmount()
             trigger.removeEventListener('mouseenter', onEnter)

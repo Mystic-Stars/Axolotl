@@ -32,7 +32,6 @@ import Toggle from '#ui/components/base/Toggle.vue'
 import { useRelativeTime } from '#ui/composables/how-ago'
 import { defineMessages, useVIntl } from '#ui/composables/i18n'
 import { commonMessages } from '#ui/utils/common-messages'
-import { truncatedTooltip } from '#ui/utils/truncate'
 
 import type {
     ContentCardProject,
@@ -672,7 +671,11 @@ const deleteHovered = ref(false)
         >
             <template v-if="version">
                 <AutoLink
-                    v-tooltip="truncatedTooltip(versionNumberRef, version.version_number)"
+                    v-tooltip="{
+                        content: version.version_number,
+                        onlyWhenTruncated: true,
+                        overflowTarget: versionNumberRef,
+                    }"
                     :target="
                         typeof versionLink === 'string' && versionLink.startsWith('http')
                             ? '_blank'
@@ -693,7 +696,11 @@ const deleteHovered = ref(false)
                     }}</span>
                 </AutoLink>
                 <span
-                    v-tooltip="truncatedTooltip(fileNameRef, version.file_name)"
+                    v-tooltip="{
+                        content: version.file_name,
+                        onlyWhenTruncated: true,
+                        overflowTarget: fileNameRef,
+                    }"
                     class="flex min-w-0 leading-6 text-[var(--color-text-tertiary)]"
                 >
                     <span ref="fileNameRef" class="truncate">{{

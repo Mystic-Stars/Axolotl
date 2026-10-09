@@ -155,8 +155,7 @@
                     />
                 </div>
                 <span
-                    :ref="(element) => setEntryNameRef(entry.path, element)"
-                    v-tooltip="truncatedTooltip(entryNameRefs[entry.path], entry.name)"
+                    v-tooltip="{ content: entry.name, onlyWhenTruncated: true }"
                     class="min-w-0 flex-1 truncate text-sm font-medium text-[var(--color-text-default)] group-hover:text-[var(--color-text-primary)] group-focus:text-[var(--color-text-primary)]"
                 >
                     {{ entry.name }}
@@ -207,13 +206,12 @@ import {
     FileIcon,
     UndoIcon,
 } from '@modrinth/assets'
-import { type Component, type ComponentPublicInstance, computed, ref, watch } from 'vue'
+import { type Component, computed, ref, watch } from 'vue'
 
 import { useFormatBytes } from '../../composables/format-bytes'
 import { useFormatDateTime } from '../../composables/format-date-time'
 import { defineMessages, useVIntl } from '../../composables/i18n'
 import { getDirectoryIcon, getFileIcon } from '../../utils/auto-icons'
-import { truncatedTooltip } from '../../utils/truncate'
 import Checkbox from './Checkbox.vue'
 
 const { formatMessage } = useVIntl()
@@ -303,7 +301,6 @@ const emit = defineEmits<{
 const currentPath = ref('')
 const sortField = ref<FileTreeSelectSortField>('name')
 const sortDesc = ref(false)
-const entryNameRefs = ref<Record<string, HTMLElement | null>>({})
 const isHomePath = computed(() => currentPath.value === '')
 const parentPath = computed(() => currentPath.value.split('/').slice(0, -1).join('/'))
 const initialMinimumRowCount = ref(0)
@@ -554,14 +551,6 @@ function buildFileEntry(item: NormalizedFileTreeSelectItem): FileTreeSelectEntry
 function navigateTo(path: string) {
     currentPath.value = path
     emit('navigate', path)
-}
-
-function setEntryNameRef(path: string, element: Element | ComponentPublicInstance | null) {
-    if (element instanceof HTMLElement) {
-        entryNameRefs.value[path] = element
-    } else {
-        entryNameRefs.value[path] = null
-    }
 }
 
 function selectEntry(entry: FileTreeSelectEntry) {
