@@ -80,6 +80,7 @@ function createTooltip(trigger: HTMLElement, modifier: Placement | null): Toolti
     let mutationObserver: MutationObserver | undefined
     let observedTarget: HTMLElement | undefined
     let measureFrame: number | undefined
+    let positionGeneration = 0
 
     function resolvedContent() {
         const resolved = resolveTooltipContent(value)
@@ -181,6 +182,7 @@ function createTooltip(trigger: HTMLElement, modifier: Placement | null): Toolti
     }
 
     async function updatePosition(placement: Placement) {
+        const request = ++positionGeneration
         const {
             x,
             y,
@@ -193,11 +195,18 @@ function createTooltip(trigger: HTMLElement, modifier: Placement | null): Toolti
             strategy: 'fixed',
             middleware: [
                 offset(DISTANCE_PX),
-                flip(),
+                flip({ padding: 8 }),
                 shift({ padding: 8 }),
                 arrow({ element: arrowElement, padding: 7 }),
             ],
         })
+        if (
+            disposed ||
+            request !== positionGeneration ||
+            !trigger.isConnected ||
+            !popper.isConnected
+        )
+            return
         popper.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px)`
         const side = finalPlacement.split('-')[0]
         arrowElement.dataset.side = side
@@ -213,6 +222,7 @@ function createTooltip(trigger: HTMLElement, modifier: Placement | null): Toolti
     }
 
     function unmount() {
+        positionGeneration++
         stopAutoUpdate?.()
         stopAutoUpdate = null
         popper.remove()
