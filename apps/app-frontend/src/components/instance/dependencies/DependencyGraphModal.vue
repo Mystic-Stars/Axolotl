@@ -873,21 +873,24 @@ defineExpose({ show, hide, setItems })
             >
                 <Combobox
                     v-model="typeFilter"
-                    class="!w-44"
+                    width="custom"
+                    class="w-44"
                     :options="
                         typeOptions.map((value) => ({ value, label: typeFilterLabel(value) }))
                     "
                 />
                 <Combobox
                     v-model="sourceFilter"
-                    class="!w-44"
+                    width="custom"
+                    class="w-44"
                     :options="
                         sourceOptions.map((value) => ({ value, label: sourceFilterLabel(value) }))
                     "
                 />
                 <Combobox
                     v-model="statusFilter"
-                    class="!w-44"
+                    width="custom"
+                    class="w-44"
                     :options="
                         statusOptions.map((value) => ({ value, label: statusFilterLabel(value) }))
                     "

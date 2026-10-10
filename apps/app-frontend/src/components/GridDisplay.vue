@@ -928,7 +928,7 @@ async function handleInstanceDragEnd(event: {
             <Combobox
                 v-model="state.sortBy"
                 v-tooltip="{ content: formatMessage(messages.sortBy), triggers: ['hover'] }"
-                class="!w-auto"
+                width="content"
                 :options="
                     ['Name', 'Last played', 'Date created', 'Date modified', 'Game version'].map(
                         (value) => ({
@@ -940,9 +940,9 @@ async function handleInstanceDragEnd(event: {
                 :placeholder="formatMessage(messages.select)"
             >
                 <template #selected="{ label: selectedLabel }">
-                    <div class="flex items-center gap-1">
+                    <div class="flex min-w-0 items-center gap-1">
                         <ArrowUpDownIcon class="size-5 shrink-0 text-[var(--color-text-default)]" />
-                        <span class="font-semibold text-[var(--color-text-tertiary)]">{{
+                        <span class="truncate font-semibold text-[var(--color-text-tertiary)]">{{
                             selectedLabel
                         }}</span>
                     </div>
@@ -963,6 +963,7 @@ async function handleInstanceDragEnd(event: {
             <Combobox
                 v-model="state.group"
                 v-tooltip="{ content: formatMessage(messages.groupBy), triggers: ['hover'] }"
+                width="content"
                 :options="
                     ['Group', 'Loader', 'Game version', 'None'].map((value) => ({
                         value,
@@ -972,9 +973,9 @@ async function handleInstanceDragEnd(event: {
                 :placeholder="formatMessage(messages.select)"
             >
                 <template #selected="{ label: selectedLabel }">
-                    <div class="flex items-center gap-1">
+                    <div class="flex min-w-0 items-center gap-1">
                         <LayersIcon class="size-5 shrink-0 text-[var(--color-text-default)]" />
-                        <span class="font-semibold text-[var(--color-text-tertiary)]">{{
+                        <span class="truncate font-semibold text-[var(--color-text-tertiary)]">{{
                             selectedLabel
                         }}</span>
                     </div>

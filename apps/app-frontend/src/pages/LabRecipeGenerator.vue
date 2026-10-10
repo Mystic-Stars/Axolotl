@@ -1393,7 +1393,7 @@ function slotEditorSlots(type: RecipeType): RecipeSlot[] {
                                         label: recipeTypeLabel(value),
                                     }))
                                 "
-                                class="w-full"
+                                width="full"
                                 @update:model-value="setRecipeType(String($event) as RecipeType)"
                             />
                         </div>
@@ -1419,7 +1419,7 @@ function slotEditorSlots(type: RecipeType): RecipeSlot[] {
                                         label: categoryLabel(value),
                                     }))
                                 "
-                                class="w-full"
+                                width="full"
                             />
                         </div>
                         <div class="recipe-field">
@@ -1434,7 +1434,7 @@ function slotEditorSlots(type: RecipeType): RecipeSlot[] {
                                         label: nameModeLabel(value),
                                     }))
                                 "
-                                class="w-full"
+                                width="full"
                             />
                         </div>
                         <div v-if="currentRecipe.nameMode === 'manual'" class="recipe-field">

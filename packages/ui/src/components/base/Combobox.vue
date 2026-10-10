@@ -1,5 +1,10 @@
 <template>
-    <div ref="containerRef" data-combobox class="relative inline-block w-full">
+    <div
+        ref="containerRef"
+        data-combobox
+        class="relative inline-block min-w-0 max-w-full"
+        :class="width === 'full' ? 'w-full' : width === 'content' ? 'w-fit' : undefined"
+    >
         <!-- Searchable mode: input trigger -->
         <div v-if="searchable" class="relative w-full rounded-xl bg-surface-4">
             <!--
@@ -302,6 +307,8 @@ function isDivider<T>(opt: ComboboxOption<T> | { type: 'divider' }): opt is { ty
 const props = withDefaults(
     defineProps<{
         modelValue?: T
+        /** Full fills a form region; content fits a toolbar label; custom leaves width to layout classes. */
+        width?: 'full' | 'content' | 'custom'
         options: (ComboboxOption<T> | { type: 'divider' })[]
         placeholder?: string
         disabled?: boolean
@@ -342,6 +349,7 @@ const props = withDefaults(
         searchInputAttrs?: Record<string, string | number | boolean | undefined>
     }>(),
     {
+        width: 'full',
         placeholder: 'Select an option',
         disabled: false,
         searchable: false,

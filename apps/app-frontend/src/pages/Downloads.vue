@@ -25,7 +25,8 @@
             />
             <Combobox
                 v-model="provider"
-                class="!w-44"
+                width="custom"
+                class="w-44"
                 :options="
                     providerOptions.map((value) => ({ value, label: providerFilterLabel(value) }))
                 "
@@ -33,7 +34,8 @@
             <Combobox
                 v-if="tab === 'history'"
                 v-model="historyStatus"
-                class="!w-44"
+                width="custom"
+                class="w-44"
                 :options="
                     historyStatusOptions.map((value) => ({
                         value,

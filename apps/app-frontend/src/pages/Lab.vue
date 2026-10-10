@@ -240,6 +240,7 @@ function favoriteFilterLabel(value: LabFavoriteFilter) {
             <Combobox
                 v-model="category"
                 :options="categoryOptions.map((value) => ({ value, label: categoryLabel(value) }))"
+                width="custom"
                 class="w-48 max-[576px]:w-full"
             />
             <Combobox
@@ -250,6 +251,7 @@ function favoriteFilterLabel(value: LabFavoriteFilter) {
                         label: favoriteFilterLabel(value),
                     }))
                 "
+                width="custom"
                 class="w-48 max-[576px]:w-full"
             />
         </div>

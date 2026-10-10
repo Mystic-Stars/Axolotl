@@ -201,7 +201,7 @@ const skeletonCount = computed(() => {
                         content: formatMessage(commonMessages.sortByLabel),
                         triggers: ['hover'],
                     }"
-                    class="!w-auto"
+                    width="content"
                     :options="sortTypeOptions"
                     trigger-class="!min-h-10"
                 >
@@ -218,7 +218,7 @@ const skeletonCount = computed(() => {
                 <Combobox
                     v-model="ctx.maxResults.value"
                     v-tooltip="{ content: formatMessage(messages.viewPrefix), triggers: ['hover'] }"
-                    class="!w-auto"
+                    width="content"
                     :options="maxResultsOptions"
                     trigger-class="!min-h-10"
                 >

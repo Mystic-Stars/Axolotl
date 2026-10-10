@@ -4,6 +4,84 @@ import { defineComponent, h, ref } from 'vue'
 import Combobox, { type ComboboxOption } from '../components/base/Combobox.vue'
 import { mountThemed, waitFor } from './visual-harness'
 
+for (const searchable of [false, true]) {
+    it(`fills a form region and respects externally sized ${searchable ? 'searchable' : 'standard'} controls`, async () => {
+        const teleports = installTeleportTarget()
+        const host = document.createElement('div')
+        host.style.width = '360px'
+        document.body.append(host)
+        const wrapper = await mountThemed(
+            Combobox,
+            {
+                options: [{ value: 'all', label: 'All tools' }],
+                modelValue: 'all',
+                searchable,
+            },
+            'dark',
+            { attachTo: host },
+        )
+        try {
+            expect(wrapper.element.getBoundingClientRect().width).toBe(360)
+            await wrapper.setProps({ width: 'custom', class: 'w-48' })
+            expect(wrapper.element.getBoundingClientRect().width).toBe(192)
+            host.style.width = '140px'
+            expect(wrapper.element.getBoundingClientRect().width).toBe(140)
+            const trigger = wrapper.get(searchable ? 'input' : '[aria-haspopup="listbox"]').element
+            expect(trigger.getBoundingClientRect().width).toBeLessThanOrEqual(140)
+        } finally {
+            wrapper.unmount()
+            host.remove()
+            teleports.remove()
+        }
+    })
+}
+
+it('fits toolbar content and shrinks long labels without squeezing adjacent actions', async () => {
+    const teleports = installTeleportTarget()
+    const host = document.createElement('div')
+    host.style.cssText = 'width:360px;display:flex;gap:8px'
+    document.body.append(host)
+    const action = document.createElement('button')
+    action.textContent = 'Action'
+    action.style.cssText = 'width:48px;flex-shrink:0'
+    const wrapper = await mountThemed(
+        Combobox,
+        {
+            width: 'content',
+            modelValue: 'name',
+            options: [
+                { value: 'name', label: 'Name' },
+                { value: 'long', label: 'An unusually long translated sorting option'.repeat(4) },
+            ],
+        },
+        'dark',
+        { attachTo: host },
+    )
+    wrapper.element.parentElement!.style.display = 'contents'
+    host.append(action)
+    try {
+        const shortWidth = wrapper.element.getBoundingClientRect().width
+        expect(shortWidth).toBeGreaterThan(40)
+        expect(shortWidth).toBeLessThan(300)
+        await wrapper.setProps({ modelValue: 'long' })
+        host.style.width = '220px'
+        expect(wrapper.element.getBoundingClientRect().width).toBeLessThanOrEqual(164)
+        expect(action.getBoundingClientRect().width).toBe(48)
+        expect(host.scrollWidth).toBe(220)
+        activate(wrapper.get('[aria-haspopup="listbox"]').element as HTMLElement)
+        await waitFor(() => !!document.querySelector('[role="listbox"]'))
+        const dropdown = document.querySelector('[role="listbox"]') as HTMLElement
+        expect(dropdown.getBoundingClientRect().width).toBeCloseTo(
+            wrapper.element.getBoundingClientRect().width,
+            0,
+        )
+    } finally {
+        wrapper.unmount()
+        host.remove()
+        teleports.remove()
+    }
+})
+
 function installTeleportTarget() {
     const teleports = document.createElement('div')
     teleports.id = 'teleports'
