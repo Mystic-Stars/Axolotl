@@ -405,9 +405,12 @@ onUnmounted(() => {
 function handleWindowKeyDown(event: KeyboardEvent) {
     if (event.defaultPrevented) return
     if (props.closeOnEsc && event.key === 'Escape' && props.closable) {
-        if (!isTopmostModal() || props.disableClose) return
-        event.preventDefault()
-        hide()
+        setTimeout(() => {
+            if (event.defaultPrevented || !isTopmostModal() || props.disableClose) return
+            if (phase !== 'opening' && phase !== 'open') return
+            event.preventDefault()
+            hide()
+        }, 0)
     }
 }
 

@@ -32,6 +32,8 @@
                 @mouseleave="leaveHover"
                 @open-auto-focus="preventPointerFocus"
                 @close-auto-focus="preventReplacedFocus"
+                @keydown="dismissOnEscape"
+                @escape-key-down="dismissOnEscape"
             >
                 <slot name="menu" :hide="hide"></slot>
                 <component
@@ -194,6 +196,12 @@ function show() {
 
 function hide() {
     open.value = false
+}
+function dismissOnEscape(event: KeyboardEvent) {
+    if (event.key !== 'Escape' || event.defaultPrevented) return
+    event.preventDefault()
+    event.stopPropagation()
+    hide()
 }
 
 defineExpose({ show, hide })

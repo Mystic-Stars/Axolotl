@@ -1,4 +1,5 @@
 import { afterEach, expect, it, vi } from 'vitest'
+import { userEvent } from 'vitest/browser'
 import { defineComponent, effectScope, h, nextTick, ref } from 'vue'
 
 import Combobox from '../components/base/Combobox.vue'
@@ -195,22 +196,54 @@ it('keeps the parent modal locked when a menu closes or unmounts', async () => {
     trigger.dispatchEvent(
         new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }),
     )
-    await waitFor(() => !!document.querySelector('[data-pyro-telepopover-root]'))
+    await waitFor(() => !!document.querySelector('[role="menu"]'))
     expect(document.body.style.overflow).toBe('hidden')
-    document.querySelector<HTMLButtonElement>('[data-pyro-telepopover-root] button')!.click()
-    await waitFor(() => !document.querySelector('[data-pyro-telepopover-root]'))
+    document.querySelector<HTMLElement>('[role="menuitem"]')!.click()
+    await waitFor(() => !document.querySelector('[role="menu"]'))
     expect(document.body.style.overflow).toBe('hidden')
     trigger.focus()
     trigger.dispatchEvent(
         new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }),
     )
-    await waitFor(() => !!document.querySelector('[data-pyro-telepopover-root]'))
+    await waitFor(() => !!document.querySelector('[role="menu"]'))
     mounted.value = false
     await nextTick()
     expect(document.body.style.overflow).toBe('hidden')
     await vm.hide()
     expect(document.body.style.overflow).toBe('scroll')
     expect(document.body.style.getPropertyPriority('overflow')).toBe('important')
+})
+
+it('consumes a button menu Escape before the parent modal and restores trigger focus', async () => {
+    await modal(h(TeleportOverflowMenu, { options: [{ id: 'Inspect' }], label: 'More' }))
+    const trigger = document.querySelector<HTMLElement>('[aria-haspopup="menu"]')!
+    trigger.focus()
+    trigger.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }),
+    )
+    await waitFor(() => document.activeElement?.getAttribute('role') === 'menuitem')
+    escape(document.activeElement!)
+    await waitFor(() => !document.querySelector('[role="menu"]'))
+    expect(document.querySelector('.modal-container.shown')).not.toBeNull()
+    expect(document.body.style.overflow).toBe('hidden')
+    await waitFor(() => document.activeElement === trigger)
+    escape(trigger)
+    await waitFor(() => !document.querySelector('[role="dialog"]'))
+})
+
+it('closes only a pointer-opened menu when focus remains on its trigger', async () => {
+    await modal(h(TeleportOverflowMenu, { options: [{ id: 'Inspect' }], label: 'More' }))
+    const trigger = document.querySelector<HTMLElement>('[aria-haspopup="menu"]')!
+    trigger.focus()
+    await userEvent.click(trigger)
+    await waitFor(() => !!document.querySelector('[role="menu"]'))
+    expect(document.activeElement).toBe(trigger)
+    await userEvent.keyboard('{Escape}')
+    await waitFor(() => !document.querySelector('[role="menu"]'))
+    expect(document.querySelector('.modal-container.shown')).not.toBeNull()
+    expect(document.body.style.overflow).toBe('hidden')
+    await userEvent.keyboard('{Escape}')
+    await waitFor(() => !document.querySelector('[role="dialog"]'))
 })
 
 it('releases only the current owner regardless of close order or repeated calls', () => {

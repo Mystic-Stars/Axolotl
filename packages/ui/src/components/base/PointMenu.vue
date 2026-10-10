@@ -27,6 +27,12 @@ function close() {
     open.value = false
     originObserver?.disconnect()
 }
+function dismissOnEscape(event: KeyboardEvent) {
+    if (event.key !== 'Escape' || event.defaultPrevented) return
+    event.preventDefault()
+    event.stopPropagation()
+    close()
+}
 function show(event: Pick<MouseEvent, 'clientX' | 'clientY' | 'target'>) {
     if (disposed) return
     window.dispatchEvent(new CustomEvent(closeAll))
@@ -113,6 +119,8 @@ defineExpose({ show, close })
                 @close-auto-focus="restoreFocus"
                 @interact-outside="restorePreviousFocus = false"
                 @open-auto-focus="focusMenu"
+                @keydown="dismissOnEscape"
+                @escape-key-down="dismissOnEscape"
             >
                 <div ref="body" role="none">
                     <slot>
