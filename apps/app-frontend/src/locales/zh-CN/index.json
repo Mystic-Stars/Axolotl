@@ -1,4 +1,10 @@
 {
+  "app.screenshots.selection.select-group": {
+    "message": "选择“{group}”中的所有截图"
+  },
+  "app.screenshots.selection.hint": {
+    "message": "使用复选框或 Ctrl/Command + 单击选择，Shift + 单击选择连续区间，或从空白处拖动框选。"
+  },
   "app.settings.environment-variables.invalid-format": {
     "message": "请使用 NAME=value 格式，以空格分隔。名称和等号不能为空；值可以为空，也可以包含更多等号。"
   },

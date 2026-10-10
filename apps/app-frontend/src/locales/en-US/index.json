@@ -1,4 +1,10 @@
 {
+  "app.screenshots.selection.select-group": {
+    "message": "Select all screenshots in {group}"
+  },
+  "app.screenshots.selection.hint": {
+    "message": "Use the checkboxes or Ctrl/Command-click to select, Shift-click for a range, or drag from empty space to select an area."
+  },
   "app.account.signed-in-as": {
     "message": "Signed in as"
   },
