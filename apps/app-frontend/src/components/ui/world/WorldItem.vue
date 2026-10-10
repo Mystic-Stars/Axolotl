@@ -353,7 +353,7 @@ const messages = defineMessages({
                             <HeadlessTooltip
                                 :disabled="!hasPlayersTooltip"
                                 :delay-ms="200"
-                                content-class="tooltip-popper"
+                                content-class="tooltip-surface"
                                 arrow-class="tooltip-arrow"
                             >
                                 <span :class="{ 'cursor-help': hasPlayersTooltip }">

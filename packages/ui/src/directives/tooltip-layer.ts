@@ -22,7 +22,7 @@ export function createTooltipLayer() {
     positioner.className = 'tooltip-positioner'
     positioner.dataset.state = 'closed'
     const popper = document.createElement('div')
-    popper.className = 'tooltip-popper'
+    popper.className = 'tooltip-popper tooltip-surface'
     popper.id = `tooltip-${++tooltipCounter}`
     popper.setAttribute('role', 'tooltip')
     const arrowElement = document.createElement('span')
@@ -163,8 +163,8 @@ export function createTooltipLayer() {
             owner = trigger
             popper.removeAttribute('aria-hidden')
             popper.className = resolved.options.popperClass
-                ? `tooltip-popper ${resolved.options.popperClass}`
-                : 'tooltip-popper'
+                ? `tooltip-popper tooltip-surface ${resolved.options.popperClass}`
+                : 'tooltip-popper tooltip-surface'
             if (resolved.options.html) popper.innerHTML = resolved.text
             else popper.textContent = resolved.text
             popper.append(arrowElement)

@@ -47,15 +47,7 @@
     }
 }
 
-.tooltip-popper {
-    /* Fixed, not absolute: `computePosition` is called with `strategy: 'fixed'`
-	   and returns viewport coordinates, so the element has to be out of flow or
-	   its transform would be applied on top of its static position. */
-    position: fixed;
-    top: 0;
-    left: 0;
-    /* Above the app's own `z-50` / `z-[9999]` layers, so a tooltip is never
-	   painted under a panel that happens to have a stacking context. */
+.tooltip-surface {
     z-index: 10000;
 
     /* Opaque on purpose: the translucency palette pins the tooltip tokens to
