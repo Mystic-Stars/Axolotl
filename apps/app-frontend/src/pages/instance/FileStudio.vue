@@ -38,7 +38,7 @@ import {
     writeTextFile,
 } from '@tauri-apps/plugin-fs'
 import { NbtFile, NbtTag } from 'deepslate/nbt'
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, onScopeDispose, ref, watch } from 'vue'
 import { onBeforeRouteLeave, useRouter } from 'vue-router'
 
 import NbtEditor from '@/components/instance/studio/NbtEditor.vue'
@@ -48,6 +48,8 @@ import {
     type StudioDocument,
     useStudioDocuments,
 } from '@/components/instance/studio/useStudioDocuments'
+import { type StudioTreeNode, useStudioTree } from '@/components/instance/studio/useStudioTree'
+import { useStudioWatcher } from '@/components/instance/studio/useStudioWatcher'
 import type { ServerView } from '@/composables/useServers'
 import { get_full_path } from '@/helpers/instance'
 import {
@@ -61,17 +63,6 @@ import {
 } from '@/helpers/studio'
 import type { GameInstance } from '@/helpers/types'
 import { highlightInFolder, openPath } from '@/helpers/utils'
-
-interface StudioTreeNode {
-    name: string
-    path: string
-    type: 'directory' | 'file'
-    depth: number
-    expanded: boolean
-    loaded: boolean
-    loading: boolean
-    children: StudioTreeNode[]
-}
 
 const props = defineProps<{
     instance?: GameInstance
@@ -162,8 +153,6 @@ const { formatMessage } = useVIntl()
 const { addNotification } = injectNotificationManager()
 const router = useRouter()
 const instanceRoot = ref('')
-const rootNodes = ref<StudioTreeNode[]>([])
-const treeLoading = ref(true)
 const fileLoading = ref(false)
 const treeScrollElement = ref<HTMLElement | null>(null)
 const contextMenu = ref<{ node: StudioTreeNode; x: number; y: number } | null>(null)
@@ -177,13 +166,6 @@ const studioEditor = ref<InstanceType<typeof StudioEditor> | InstanceType<typeof
     null,
 )
 const nbtFiles = new Map<string, NbtFile>()
-let watcherRegistrationId: string | null = null
-let watcherInstanceId: string | null = null
-let unlistenStudioFiles: (() => void) | null = null
-let unwatchWorkspaceFiles: (() => void) | null = null
-let watcherGeneration = 0
-let changedPaths = new Set<string>()
-let changeTimer: ReturnType<typeof setTimeout> | null = null
 
 const {
     documents,
@@ -221,6 +203,30 @@ const {
         })
     },
 )
+
+const {
+    treeLoading,
+    visibleNodes,
+    listDirectory,
+    loadRoot,
+    refreshTree: refreshDirectoryTree,
+    toggleDirectory,
+    reset: resetTree,
+} = useStudioTree(
+    async (path) => readDir(await resolvePath(path)),
+    (error) =>
+        addNotification({
+            title: formatMessage(messages.loadDirectoryFailed),
+            text: error instanceof Error ? error.message : String(error),
+            type: 'error',
+        }),
+)
+async function refreshTree() {
+    const scrollTop = treeScrollElement.value?.scrollTop ?? 0
+    await refreshDirectoryTree()
+    await nextTick()
+    if (treeScrollElement.value) treeScrollElement.value.scrollTop = scrollTop
+}
 
 async function saveActiveFile() {
     const focusedElement = document.activeElement
@@ -270,14 +276,6 @@ async function readBinary(path: string): Promise<Uint8Array> {
 async function writeBinary(path: string, bytes: Uint8Array): Promise<void> {
     if (props.instance) return writeStudioBinary(props.instance.id, path, bytes)
     return writeFile(await resolvePath(path), bytes)
-}
-
-function workspaceRelativePath(path: string): string | null {
-    const root = instanceRoot.value.replaceAll('\\', '/').replace(/\/+$/, '')
-    const normalized = path.replaceAll('\\', '/')
-    if (!root || normalized === root) return null
-    if (normalized.startsWith(`${root}/`)) return normalized.slice(root.length + 1)
-    return /^(?:[A-Za-z]:)?\//.test(normalized) ? null : normalized
 }
 
 function exitStudio() {
@@ -481,88 +479,6 @@ function updateVisibleBreadcrumbs() {
     visibleBreadcrumbSegments.value = segments.length > 1 ? ['...', segments.at(-1)!] : segments
 }
 
-async function listDirectory(path: string, depth: number): Promise<StudioTreeNode[]> {
-    const entries = await readDir(await resolvePath(path))
-    return entries
-        .map((entry) => ({
-            name: entry.name,
-            path: path ? `${path}/${entry.name}` : entry.name,
-            type: entry.isDirectory ? ('directory' as const) : ('file' as const),
-            depth,
-            expanded: false,
-            loaded: false,
-            loading: false,
-            children: [],
-        }))
-        .sort((a, b) => {
-            if (a.type !== b.type) return a.type === 'directory' ? -1 : 1
-            return a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' })
-        })
-}
-
-function collectDirectoryState(
-    nodes: StudioTreeNode[],
-    state = new Map<string, Pick<StudioTreeNode, 'expanded' | 'loaded'>>(),
-) {
-    for (const node of nodes) {
-        if (node.type !== 'directory') continue
-        state.set(node.path, { expanded: node.expanded, loaded: node.loaded })
-        collectDirectoryState(node.children, state)
-    }
-    return state
-}
-
-async function restoreLoadedDirectories(
-    nodes: StudioTreeNode[],
-    state: Map<string, Pick<StudioTreeNode, 'expanded' | 'loaded'>>,
-) {
-    await Promise.all(
-        nodes.map(async (node) => {
-            if (node.type !== 'directory') return
-            const previous = state.get(node.path)
-            if (!previous?.loaded) return
-            node.children = await listDirectory(node.path, node.depth + 1)
-            node.loaded = true
-            node.expanded = previous.expanded
-            await restoreLoadedDirectories(node.children, state)
-        }),
-    )
-}
-
-async function refreshTree() {
-    const directoryState = collectDirectoryState(rootNodes.value)
-    const nextRoot = await listDirectory('', 0)
-    await restoreLoadedDirectories(nextRoot, directoryState)
-    const scrollTop = treeScrollElement.value?.scrollTop ?? 0
-    rootNodes.value = nextRoot
-    await nextTick()
-    if (treeScrollElement.value) treeScrollElement.value.scrollTop = scrollTop
-}
-
-function flattenTree(nodes: StudioTreeNode[]): StudioTreeNode[] {
-    return nodes.flatMap((node) => [
-        node,
-        ...(node.type === 'directory' && node.expanded ? flattenTree(node.children) : []),
-    ])
-}
-
-const visibleNodes = computed(() => flattenTree(rootNodes.value))
-
-async function loadRoot() {
-    treeLoading.value = true
-    try {
-        rootNodes.value = await listDirectory('', 0)
-    } catch (error) {
-        addNotification({
-            title: formatMessage(messages.loadDirectoryFailed),
-            text: error instanceof Error ? error.message : String(error),
-            type: 'error',
-        })
-    } finally {
-        treeLoading.value = false
-    }
-}
-
 async function reloadCleanDocument(document: StudioDocument) {
     const version = pathVersion(document.path)
     if (
@@ -595,9 +511,9 @@ async function reloadCleanDocument(document: StudioDocument) {
     }
 }
 
-async function processFileChanges() {
-    const paths = changedPaths
-    changedPaths = new Set<string>()
+async function processFileChanges(changedPaths: string[]) {
+    const paths = new Set(changedPaths)
+    const openDocuments = [...documents.value]
     try {
         await refreshTree()
     } catch (error) {
@@ -609,90 +525,27 @@ async function processFileChanges() {
     }
 
     await Promise.all(
-        documents.value
+        openDocuments
             .filter((document) => paths.has(document.path))
             .map((document) => reloadCleanDocument(document)),
     )
 }
 
-function scheduleFileChanges(paths: string[]) {
-    for (const path of paths) changedPaths.add(path)
-    if (changeTimer) clearTimeout(changeTimer)
-    changeTimer = setTimeout(() => {
-        changeTimer = null
-        void processFileChanges()
-    }, 150)
-}
-
-async function stopStudioWatcher() {
-    unwatchWorkspaceFiles?.()
-    unwatchWorkspaceFiles = null
-    const instanceId = watcherInstanceId
-    const registrationId = watcherRegistrationId
-    watcherInstanceId = null
-    watcherRegistrationId = null
-    if (instanceId && registrationId) {
-        await unregisterStudioWatcher(instanceId, registrationId).catch(() => undefined)
-    }
-}
-
-async function startStudioWatcher() {
-    const generation = ++watcherGeneration
-    await stopStudioWatcher()
-    if (props.server) {
-        try {
-            unwatchWorkspaceFiles = await watchFiles(
-                instanceRoot.value,
-                (event) => {
-                    const paths = event.paths
-                        .map(workspaceRelativePath)
-                        .filter((path): path is string => path !== null)
-                    if (paths.length > 0) scheduleFileChanges(paths)
-                },
-                { recursive: true, delayMs: 150 },
-            )
-        } catch (error) {
-            console.warn('Failed to start server Studio file watcher', error)
-            return
-        }
-        if (generation !== watcherGeneration) {
-            unwatchWorkspaceFiles?.()
-            unwatchWorkspaceFiles = null
-        }
-        return
-    }
-    if (!props.instance) return
-    const instanceId = props.instance.id
-    const registrationId = await registerStudioWatcher(instanceId)
-    if (generation !== watcherGeneration) {
-        await unregisterStudioWatcher(instanceId, registrationId).catch(() => undefined)
-        return
-    }
-    watcherInstanceId = instanceId
-    watcherRegistrationId = registrationId
-}
-
-async function toggleDirectory(node: StudioTreeNode) {
-    if (node.loading) return
-    if (node.loaded) {
-        node.expanded = !node.expanded
-        return
-    }
-
-    node.loading = true
-    try {
-        node.children = await listDirectory(node.path, node.depth + 1)
-        node.loaded = true
-        node.expanded = true
-    } catch (error) {
-        addNotification({
-            title: formatMessage(messages.loadDirectoryFailed),
-            text: error instanceof Error ? error.message : String(error),
-            type: 'error',
-        })
-    } finally {
-        node.loading = false
-    }
+const studioWatcher = useStudioWatcher(
+    {
+        listen: listenStudioFilesChanged,
+        register: registerStudioWatcher,
+        unregister: unregisterStudioWatcher,
+        watch: (path, handler) =>
+            watchFiles(path, (event) => handler(event.paths), { recursive: true, delayMs: 150 }),
+    },
+    processFileChanges,
+    (error) => console.warn('Failed to watch Studio files', error),
+)
+function startStudioWatcher() {
+    if (props.server) return studioWatcher.start({ kind: 'workspace', path: instanceRoot.value })
+    if (props.instance) return studioWatcher.start({ kind: 'instance', id: props.instance.id })
+    return studioWatcher.stop()
 }
 
 watch(activePath, async (path) => {
@@ -846,34 +699,30 @@ async function revealContextMenuItem() {
     if (contextMenu.value === menuTarget) hideContextMenu()
 }
 
+let initializationGeneration = 0
+onScopeDispose(() => initializationGeneration++)
 async function initialize() {
-    instanceRoot.value =
-        props.server?.path ?? (props.instance ? await get_full_path(props.instance.id) : '')
+    const generation = ++initializationGeneration
+    const serverPath = props.server?.path
+    const instanceId = props.instance?.id
+    await studioWatcher.stop()
+    if (generation !== initializationGeneration) return false
+    resetTree()
+    const root = serverPath ?? (instanceId ? await get_full_path(instanceId) : '')
+    if (generation !== initializationGeneration) return false
+    instanceRoot.value = root
     resetDocuments()
     nbtFiles.clear()
     await loadRoot()
+    return generation === initializationGeneration
 }
 
-await initialize()
-
-if (props.instance) {
-    unlistenStudioFiles = await listenStudioFilesChanged((event) => {
-        if (
-            event.instanceId !== watcherInstanceId ||
-            event.registrationId !== watcherRegistrationId
-        ) {
-            return
-        }
-        scheduleFileChanges(event.paths)
-    })
-}
-await startStudioWatcher()
+if (await initialize()) await startStudioWatcher()
 
 watch(
     () => props.instance?.id ?? props.server?.id,
     async () => {
-        await initialize()
-        await startStudioWatcher()
+        if (await initialize()) await startStudioWatcher()
     },
 )
 
@@ -884,12 +733,7 @@ function handleBeforeUnload(event: BeforeUnloadEvent) {
 
 window.addEventListener('beforeunload', handleBeforeUnload)
 onBeforeUnmount(() => {
-    watcherGeneration++
     window.removeEventListener('beforeunload', handleBeforeUnload)
-    unlistenStudioFiles?.()
-    unlistenStudioFiles = null
-    if (changeTimer) clearTimeout(changeTimer)
-    void stopStudioWatcher()
 })
 
 onBeforeRouteLeave(() => {
