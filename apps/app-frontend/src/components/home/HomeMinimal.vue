@@ -285,7 +285,7 @@ onUnmounted(() => {
                                 size="xl"
                                 class="w-36 justify-center"
                                 @click="playInstance"
-                                ><PlayIcon class="translate-x-px" aria-hidden="true" />
+                                ><PlayIcon aria-hidden="true" />
                                 <span class="truncate">{{
                                     formatMessage(commonMessages.playButton)
                                 }}</span>
