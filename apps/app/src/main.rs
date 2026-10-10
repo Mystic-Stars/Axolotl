@@ -25,6 +25,7 @@ mod lightweight_mode;
 mod mod_translation;
 mod portable;
 mod seed_map;
+mod window_frame;
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -468,72 +469,11 @@ fn show_window(app: tauri::AppHandle) {
 }
 
 #[tauri::command]
-fn set_transparent_window_frame(
+async fn set_transparent_window_frame(
     enabled: bool,
     window: tauri::Window,
-) -> Result<(), String> {
-    #[cfg(windows)]
-    {
-        use windows::Win32::Graphics::Dwm::{
-            DWMWA_BORDER_COLOR, DWMWA_CAPTION_COLOR, DWMWA_COLOR_DEFAULT,
-            DWMWA_COLOR_NONE, DWMWA_TEXT_COLOR, DWMWA_WINDOW_CORNER_PREFERENCE,
-            DWMWCP_DEFAULT, DWMWCP_ROUND, DwmSetWindowAttribute,
-        };
-
-        window.set_shadow(true).map_err(|error| error.to_string())?;
-
-        let hwnd = window.hwnd().map_err(|error| error.to_string())?;
-        let corner_preference = if enabled {
-            DWMWCP_ROUND
-        } else {
-            DWMWCP_DEFAULT
-        };
-        let border_color = if enabled {
-            DWMWA_COLOR_NONE
-        } else {
-            DWMWA_COLOR_DEFAULT
-        };
-        // Caption must match the border: leaving the default paints a white
-        // strip at the top of a transparent window (issue #444).
-        let caption_color = border_color;
-        let text_color = border_color;
-
-        unsafe {
-            DwmSetWindowAttribute(
-                hwnd,
-                DWMWA_WINDOW_CORNER_PREFERENCE,
-                std::ptr::from_ref(&corner_preference).cast(),
-                std::mem::size_of_val(&corner_preference) as u32,
-            )
-            .map_err(|error| error.to_string())?;
-            DwmSetWindowAttribute(
-                hwnd,
-                DWMWA_BORDER_COLOR,
-                std::ptr::from_ref(&border_color).cast(),
-                std::mem::size_of_val(&border_color) as u32,
-            )
-            .map_err(|error| error.to_string())?;
-            DwmSetWindowAttribute(
-                hwnd,
-                DWMWA_CAPTION_COLOR,
-                std::ptr::from_ref(&caption_color).cast(),
-                std::mem::size_of_val(&caption_color) as u32,
-            )
-            .map_err(|error| error.to_string())?;
-            DwmSetWindowAttribute(
-                hwnd,
-                DWMWA_TEXT_COLOR,
-                std::ptr::from_ref(&text_color).cast(),
-                std::mem::size_of_val(&text_color) as u32,
-            )
-            .map_err(|error| error.to_string())?;
-        }
-    }
-
-    #[cfg(not(windows))]
-    let _ = (enabled, window);
-
-    Ok(())
+) -> Result<window_frame::FrameResult, String> {
+    window_frame::apply_frame(enabled, &window).await
 }
 
 #[tauri::command]
@@ -895,7 +835,7 @@ fn main() {
                 ));
             });
 
-            #[cfg(not(target_os = "linux"))]
+            #[cfg(target_os = "macos")]
             if let Some(window) = app.get_window("main")
                 && let Err(e) = window.set_shadow(true)
             {

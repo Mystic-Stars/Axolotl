@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import '@/assets/stylesheets/window-frame.css'
+
 import { AuthFeature, TauriModrinthClient, VerboseLoggingFeature } from '@modrinth/api-client'
 import {
     ChangeSkinIcon,
@@ -167,6 +169,10 @@ import {
     isNetworkMetered,
     setRestartAfterPendingUpdate,
 } from '@/helpers/utils.js'
+import {
+    createWindowAppearanceController,
+    type WindowFrameResult,
+} from '@/helpers/window-appearance'
 import { start_join_server, start_join_singleplayer_world } from '@/helpers/worlds.ts'
 import { applyLocalePreference, setFollowSystemLocale } from '@/i18n.config'
 import {
@@ -370,55 +376,48 @@ const nativeDecorations = ref(false)
 const os = ref('')
 const isDevEnvironment = ref(false)
 
-/**
- * Acrylic is rendered by the Windows compositor behind the webview, so CSS
- * cannot clip it. Keep the native rounded frame and hide its border while the
- * CSS-drawn transparent-window border is active.
- */
-async function applyWindowFrame() {
-    if (os.value !== 'Windows') return
-
-    try {
-        await invoke('set_transparent_window_frame', {
-            enabled: themeStore.transparentBackground,
-        })
-    } catch (error) {
-        // Frame helpers can reject with invalid parameter on some window states;
-        // do not spam the console for a cosmetic desktop chrome tweak.
-        console.debug('Failed to update transparent window frame', error)
-    }
-}
-
-watch(() => themeStore.transparentBackground, applyWindowFrame)
-
-/**
- * The frosted glass has to come from the compositor: a webview cannot reach the
- * pixels behind its own window, so `backdrop-filter` can never blur the desktop.
- * Acrylic blurs whatever sits behind the window, matching what the transparency
- * already reveals; Mica would only sample the wallpaper and ignore other
- * windows. Linux exposes no window effects at all.
- */
-async function applyWindowEffects() {
-    if (os.value === 'Linux') return
-
-    try {
+const isMaximized = ref(false)
+const appearanceReady = ref(false)
+const cssWindowBorder = ref(false)
+const windowAppearance = createWindowAppearanceController(
+    async (state) => {
+        if (state.os === 'Linux') return
         const window = getCurrentWindow()
-        if (!themeStore.transparentBackground || !themeStore.transparentBackgroundBlur) {
-            await window.clearEffects()
-            return
-        }
+        if (state.transparent && state.blur) {
+            await window.setEffects({
+                effects: [state.os === 'MacOS' ? Effect.UnderWindowBackground : Effect.Acrylic],
+            })
+        } else await window.clearEffects()
+    },
+    (state) =>
+        invoke<WindowFrameResult>('set_transparent_window_frame', {
+            enabled: state.transparent,
+        }),
+    (enabled) => {
+        cssWindowBorder.value = enabled
+    },
+    (error) => console.debug('Window appearance compatibility result', error),
+)
 
-        await window.setEffects({
-            effects: [os.value === 'MacOS' ? Effect.UnderWindowBackground : Effect.Acrylic],
-        })
-    } catch (error) {
-        console.warn('Failed to update window effects', error)
-    }
+function applyWindowAppearance() {
+    return windowAppearance.update({
+        os: os.value,
+        transparent: themeStore.transparentBackground,
+        blur: themeStore.transparentBackgroundBlur,
+        decorated: nativeDecorations.value,
+        maximized: isMaximized.value,
+    })
 }
 
 watch(
-    () => [themeStore.transparentBackground, themeStore.transparentBackgroundBlur],
-    applyWindowEffects,
+    () => [
+        themeStore.transparentBackground,
+        themeStore.transparentBackgroundBlur,
+        nativeDecorations.value,
+    ],
+    () => {
+        if (appearanceReady.value) void applyWindowAppearance()
+    },
 )
 
 const stateInitialized = ref(false)
@@ -442,7 +441,6 @@ const javaDownloadConfirmationModal = ref()
 const pendingUpdateAnnouncementVersion = ref(null)
 const updateAnnouncementShowing = ref(false)
 
-const isMaximized = ref(false)
 const mojangAuthSourceReady = ref(false)
 
 const authUnreachableDebug = useDebugLogger('AuthReachableChecker')
@@ -861,6 +859,7 @@ function startDirectLinkSync() {
 }
 
 onUnmounted(async () => {
+    windowAppearance.dispose()
     if (maximizedStateTimer) clearTimeout(maximizedStateTimer)
     unlistenWindowResize?.()
     window.removeEventListener('keydown', handleGlobalKeydown, true)
@@ -1511,8 +1510,9 @@ async function setupApp() {
     themeStore.transparentBackgroundBlur = transparent_background_blur
     themeStore.setTransparentBackgroundClass()
     themeStore.setCustomBackgroundClass()
-    await applyWindowFrame()
-    await applyWindowEffects()
+    isMaximized.value = await getCurrentWindow().isMaximized()
+    appearanceReady.value = true
+    await applyWindowAppearance()
     themeStore.homeWidgetBackgroundOpacity = home_widget_background_opacity ?? 100
     themeStore.setHomeWidgetBackgroundOpacity()
     themeStore.hiddenNavItems = hidden_nav_items ?? []
@@ -1541,7 +1541,6 @@ async function setupApp() {
     } else {
         showOnboarding.value = !onboarded
     }
-    isMaximized.value = await getCurrentWindow().isMaximized()
 
     unlistenWindowResize = await getCurrentWindow().onResized(() => {
         // Display mode/DPI changes can emit a burst of resize events. Coalesce
@@ -1551,6 +1550,7 @@ async function setupApp() {
             maximizedStateTimer = undefined
             try {
                 isMaximized.value = await getCurrentWindow().isMaximized()
+                await applyWindowAppearance()
             } catch (error) {
                 console.warn('Failed to refresh maximized state after resize', error)
             }
@@ -2908,6 +2908,8 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
                 themeStore.customBackgroundPath && !themeStore.transparentBackground,
             'has-transparent-background': themeStore.transparentBackground,
             'is-maximized': isMaximized,
+            'has-native-decorations': nativeDecorations,
+            'has-css-window-border': cssWindowBorder,
         }"
     >
         <Transition name="fade">
@@ -3648,13 +3650,16 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 
 .app-grid-layout.has-custom-background,
 .app-grid-layout.has-transparent-background {
+    background-color: transparent;
+}
+
+.app-grid-layout.has-custom-background,
+.app-grid-layout.has-transparent-background:not(.has-native-decorations) {
     &:not(.is-maximized) {
         border-radius: 8px;
         clip-path: inset(0 round 8px);
         overflow: hidden;
     }
-
-    background-color: transparent;
 }
 
 .app-grid-layout.has-custom-background {
@@ -3750,21 +3755,6 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 
         backdrop-filter: none;
         -webkit-backdrop-filter: none;
-    }
-
-    // Without native decorations or rounded corners the window edge dissolves
-    // into the desktop, so it needs drawing. Dark outside, light inside, to stay
-    // legible over any wallpaper.
-    &::after {
-        content: '';
-        position: fixed;
-        inset: 0;
-        border-radius: inherit;
-        z-index: 100;
-        pointer-events: none;
-        box-shadow:
-            inset 0 0 0 1px rgba(0, 0, 0, 0.5),
-            inset 0 0 0 2px rgba(255, 255, 255, 0.14);
     }
 }
 

@@ -7016,6 +7016,7 @@ dependencies = [
  "urlencoding",
  "uuid 1.24.0",
  "windows 0.61.3",
+ "windows-version",
  "zip 6.0.0",
 ]
 
