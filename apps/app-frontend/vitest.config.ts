@@ -62,7 +62,12 @@ export default defineConfig({
     ],
     optimizeDeps: {
         // UI mock factories load this dependency after Vite's initial scan.
-        include: ['@modrinth/ui > qrcode.vue'],
+        include: [
+            '@modrinth/ui > qrcode.vue',
+            '@tauri-apps/api/app',
+            '@tauri-apps/api/path',
+            '@tauri-apps/plugin-http',
+        ],
     },
     test: {
         include: ['src/**/*.visual.spec.ts'],

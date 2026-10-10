@@ -60,7 +60,7 @@ async function calendar() {
     await waitFor(() => wrapper.findAll('[data-date-key]').length > 0)
     const trigger = wrapper.get('[data-date-key]').element as HTMLButtonElement
     trigger.focus()
-    await waitFor(() => !!tip() && !!tip()!.style.transform)
+    await waitFor(() => tip()?.parentElement?.dataset.state === 'open')
     return { wrapper, host, trigger }
 }
 
