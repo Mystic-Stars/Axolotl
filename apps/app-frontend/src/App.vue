@@ -132,6 +132,7 @@ import {
     reconcileMojangAuthSourceIfMirrored,
 } from '@/helpers/mojang-auth'
 import { cancelLogin, get as getCreds, login, logout } from '@/helpers/mr_auth.ts'
+import { installNativeEditMenuBoundary } from '@/helpers/native-edit-menu'
 import { getNavShortcutEnabled } from '@/helpers/nav-shortcut-state'
 import { runWhenIdle } from '@/helpers/page-transition'
 import { get_by_instance_id, kill as killProcess } from '@/helpers/process.js'
@@ -436,6 +437,7 @@ let unlistenLightweightModeError: (() => void) | undefined
 let unlistenSystemAccentColor: (() => void) | undefined
 let maximizedStateTimer: ReturnType<typeof setTimeout> | undefined
 let unlistenWindowResize: (() => void) | undefined
+let stopNativeEditMenu: (() => void) | undefined
 const minecraftCrashModal = ref()
 const javaDownloadConfirmationModal = ref()
 const pendingUpdateAnnouncementVersion = ref(null)
@@ -560,12 +562,6 @@ function isEditableTarget(target: EventTarget | null) {
         target instanceof HTMLSelectElement ||
         (target instanceof HTMLElement && target.isContentEditable)
     )
-}
-
-/** Let the WebView provide its edit menu when text has been selected. */
-function hasTextSelection() {
-    const selection = window.getSelection()
-    return selection !== null && !selection.isCollapsed
 }
 
 function scrollsAtOwnLevel(element: Element) {
@@ -860,6 +856,7 @@ function startDirectLinkSync() {
 
 onUnmounted(async () => {
     windowAppearance.dispose()
+    stopNativeEditMenu?.()
     if (maximizedStateTimer) clearTimeout(maximizedStateTimer)
     unlistenWindowResize?.()
     window.removeEventListener('keydown', handleGlobalKeydown, true)
@@ -1557,17 +1554,8 @@ async function setupApp() {
         }, 100)
     })
 
-    if (!dev) {
-        // Keep the native edit menu on editable targets and selected text while
-        // suppressing the WebView menu elsewhere in the launcher.
-        document.addEventListener(
-            'contextmenu',
-            (event) => {
-                if (!isEditableTarget(event.target) && !hasTextSelection()) event.preventDefault()
-            },
-            { capture: true },
-        )
-    }
+    stopNativeEditMenu?.()
+    stopNativeEditMenu = installNativeEditMenuBoundary(!dev)
 
     const osType = await getOsType()
     if (osType === 'macos') {
