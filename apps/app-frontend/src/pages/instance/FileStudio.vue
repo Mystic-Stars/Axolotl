@@ -18,6 +18,8 @@ import {
     defineMessages,
     injectNotificationManager,
     NewModal,
+    type OverflowMenuOption,
+    PointMenu,
     StyledInput,
     useVIntl,
 } from '@modrinth/ui'
@@ -165,7 +167,7 @@ const treeLoading = ref(true)
 const fileLoading = ref(false)
 const treeScrollElement = ref<HTMLElement | null>(null)
 const contextMenu = ref<{ node: StudioTreeNode; x: number; y: number } | null>(null)
-const contextMenuElement = ref<HTMLElement | null>(null)
+const contextMenuElement = ref<InstanceType<typeof PointMenu>>()
 const fileClipboard = ref<{ mode: 'copy' | 'cut'; node: StudioTreeNode } | null>(null)
 const createModal = ref<InstanceType<typeof NewModal> | null>(null)
 const createParentPath = ref('')
@@ -306,26 +308,57 @@ function contextDestination(node: StudioTreeNode): string {
     return node.type === 'directory' ? node.path : node.path.split('/').slice(0, -1).join('/')
 }
 
-async function showContextMenu(event: MouseEvent, node: StudioTreeNode) {
+function showContextMenu(event: MouseEvent, node: StudioTreeNode) {
     contextMenu.value = { node, x: event.clientX, y: event.clientY }
-    await nextTick()
-    if (!contextMenu.value || !contextMenuElement.value) return
-
-    const padding = 10
-    const rect = contextMenuElement.value.getBoundingClientRect()
-    contextMenu.value.x = Math.min(contextMenu.value.x, window.innerWidth - rect.width - padding)
-    if (rect.bottom > window.innerHeight - padding) {
-        contextMenu.value.y = Math.max(padding, event.clientY - rect.height)
-    }
+    contextMenuElement.value?.show(event)
 }
-
 function hideContextMenu() {
+    contextMenuElement.value?.close()
     contextMenu.value = null
 }
-
-function handleContextMenuKeydown(event: KeyboardEvent) {
-    if (event.key === 'Escape') hideContextMenu()
-}
+const contextActions = computed<OverflowMenuOption[]>(() => [
+    {
+        id: 'copy',
+        label: formatMessage(messages.copy),
+        icon: CopyIcon,
+        action: () => copyToClipboard('copy'),
+    },
+    {
+        id: 'cut',
+        label: formatMessage(messages.cut),
+        icon: CopyIcon,
+        action: () => copyToClipboard('cut'),
+    },
+    {
+        id: 'paste',
+        label: formatMessage(messages.paste),
+        icon: CopyIcon,
+        shown: !!fileClipboard.value,
+        action: pasteClipboard,
+    },
+    { divider: true },
+    {
+        id: 'new-file',
+        label: formatMessage(messages.newFile),
+        icon: FilePlusIcon,
+        action: () => showCreateModal('file'),
+    },
+    {
+        id: 'new-folder',
+        label: formatMessage(messages.newFolder),
+        icon: FolderOpenIcon,
+        action: () => showCreateModal('directory'),
+    },
+    { divider: true },
+    {
+        id: 'open-folder',
+        label: formatMessage(messages.openPath),
+        icon: FolderOpenIcon,
+        action: revealContextMenuItem,
+    },
+    { divider: true },
+    { id: 'delete', label: deleteLabel.value, icon: TrashIcon, color: 'red', action: deleteItem },
+])
 
 function copyToClipboard(mode: 'copy' | 'cut') {
     if (!contextMenu.value) return
@@ -346,7 +379,8 @@ async function copyItem(source: StudioTreeNode, destination: string): Promise<vo
 
 async function pasteClipboard() {
     if (!contextMenu.value || !fileClipboard.value) return
-    const destinationParent = contextDestination(contextMenu.value.node)
+    const menuTarget = contextMenu.value
+    const destinationParent = contextDestination(menuTarget.node)
     const { mode, node } = fileClipboard.value
     const destination = joinPath(destinationParent, node.name)
     if (node.path === destination || destination.startsWith(`${node.path}/`)) return
@@ -358,7 +392,7 @@ async function pasteClipboard() {
             fileClipboard.value = null
         }
         await refreshTree()
-        hideContextMenu()
+        if (contextMenu.value === menuTarget) hideContextMenu()
     } catch (error) {
         addNotification({
             title: formatMessage(messages.operationFailed),
@@ -370,7 +404,8 @@ async function pasteClipboard() {
 
 async function deleteItem() {
     if (!contextMenu.value) return
-    const path = contextMenu.value.node.path
+    const menuTarget = contextMenu.value
+    const path = menuTarget.node.path
     const instanceId = props.instance?.id
     const root = instanceRoot.value
     const version = pathVersion(path)
@@ -388,7 +423,7 @@ async function deleteItem() {
             if (nbtPath === path || nbtPath.startsWith(`${path}/`)) nbtFiles.delete(nbtPath)
         }
         await refreshTree()
-        hideContextMenu()
+        if (contextMenu.value === menuTarget) hideContextMenu()
     } catch (error) {
         addNotification({
             title: formatMessage(messages.operationFailed),
@@ -684,14 +719,10 @@ watch(
 onMounted(() => {
     breadcrumbObserver = new ResizeObserver(updateVisibleBreadcrumbs)
     if (breadcrumbOuter.value) breadcrumbObserver.observe(breadcrumbOuter.value)
-    document.addEventListener('mousedown', hideContextMenu)
-    document.addEventListener('keydown', handleContextMenuKeydown)
 })
 
 onBeforeUnmount(() => {
     breadcrumbObserver?.disconnect()
-    document.removeEventListener('mousedown', hideContextMenu)
-    document.removeEventListener('keydown', handleContextMenuKeydown)
 })
 
 async function openFile(node: StudioTreeNode) {
@@ -810,8 +841,9 @@ async function revealInSystem(path: string) {
 
 async function revealContextMenuItem() {
     if (!contextMenu.value) return
-    await revealInSystem(contextMenu.value.node.path)
-    hideContextMenu()
+    const menuTarget = contextMenu.value
+    await revealInSystem(menuTarget.node.path)
+    if (contextMenu.value === menuTarget) hideContextMenu()
 }
 
 async function initialize() {
@@ -939,8 +971,7 @@ onBeforeRouteLeave(() => {
                 </div>
                 <div
                     ref="treeScrollElement"
-                    class="min-h-0 flex-1 pb-3"
-                    :class="contextMenu ? 'overflow-y-hidden' : 'overflow-y-auto'"
+                    class="min-h-0 flex-1 overflow-y-auto pb-3"
                     role="tree"
                 >
                     <div
@@ -1111,77 +1142,11 @@ onBeforeRouteLeave(() => {
                     </div>
                 </div>
             </div>
-            <Teleport to="#teleports">
-                <div
-                    v-if="contextMenu"
-                    ref="contextMenuElement"
-                    class="fixed z-[9999] flex min-w-48 flex-col gap-1 rounded-xl border border-solid border-surface-5 bg-surface-3 p-1.5 shadow-lg"
-                    :style="{ left: `${contextMenu.x}px`, top: `${contextMenu.y}px` }"
-                    role="menu"
-                    @mousedown.stop
-                >
-                    <Button
-                        type="quiet"
-                        size="2xs"
-                        class="w-full !justify-start"
-                        role="menuitem"
-                        @click="copyToClipboard('copy')"
-                        ><CopyIcon class="size-4" /> {{ formatMessage(messages.copy) }}
-                    </Button>
-                    <Button
-                        type="quiet"
-                        size="2xs"
-                        class="w-full !justify-start"
-                        role="menuitem"
-                        @click="copyToClipboard('cut')"
-                        ><CopyIcon class="size-4" /> {{ formatMessage(messages.cut) }}
-                    </Button>
-                    <Button
-                        v-if="fileClipboard"
-                        type="quiet"
-                        size="2xs"
-                        class="w-full !justify-start"
-                        role="menuitem"
-                        @click="pasteClipboard"
-                        ><CopyIcon class="size-4" /> {{ formatMessage(messages.paste) }}
-                    </Button>
-                    <div class="my-1 h-px bg-surface-5" />
-                    <Button
-                        type="quiet"
-                        size="2xs"
-                        class="w-full !justify-start"
-                        role="menuitem"
-                        @click="showCreateModal('file')"
-                        ><FilePlusIcon class="size-4" /> {{ formatMessage(messages.newFile) }}
-                    </Button>
-                    <Button
-                        type="quiet"
-                        size="2xs"
-                        class="w-full !justify-start"
-                        role="menuitem"
-                        @click="showCreateModal('directory')"
-                        ><FolderOpenIcon class="size-4" /> {{ formatMessage(messages.newFolder) }}
-                    </Button>
-                    <div class="my-1 h-px bg-surface-5" />
-                    <Button
-                        type="quiet"
-                        size="2xs"
-                        class="w-full !justify-start"
-                        role="menuitem"
-                        @click="revealContextMenuItem"
-                        ><FolderOpenIcon class="size-4" /> {{ formatMessage(messages.openPath) }}
-                    </Button>
-                    <Button
-                        type="quiet"
-                        color="red"
-                        size="2xs"
-                        class="w-full !justify-start"
-                        role="menuitem"
-                        @click="deleteItem"
-                        ><TrashIcon class="size-4" /> {{ deleteLabel }}
-                    </Button>
-                </div>
-            </Teleport>
+            <PointMenu
+                ref="contextMenuElement"
+                :options="contextActions"
+                @close="contextMenu = null"
+            />
         </section>
     </div>
 </template>

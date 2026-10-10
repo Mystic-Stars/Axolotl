@@ -3594,10 +3594,10 @@
     "message": "移出分组"
   },
   "app.library.context-menu.pin-instance": {
-    "message": "置顶实例"
+    "message": "在实例库中置顶"
   },
   "app.library.context-menu.unpin-instance": {
-    "message": "取消置顶"
+    "message": "取消实例库置顶"
   },
   "app.library.context-menu.remove-from-group": {
     "message": "移出分组"

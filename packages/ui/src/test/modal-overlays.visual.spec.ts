@@ -191,13 +191,19 @@ it('keeps the parent modal locked when a menu closes or unmounts', async () => {
     })
     const { vm } = await modal(h(Child))
     const trigger = document.querySelector<HTMLElement>('[aria-haspopup="menu"]')!
-    trigger.click()
+    trigger.focus()
+    trigger.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }),
+    )
     await waitFor(() => !!document.querySelector('[data-pyro-telepopover-root]'))
     expect(document.body.style.overflow).toBe('hidden')
     document.querySelector<HTMLButtonElement>('[data-pyro-telepopover-root] button')!.click()
     await waitFor(() => !document.querySelector('[data-pyro-telepopover-root]'))
     expect(document.body.style.overflow).toBe('hidden')
-    trigger.click()
+    trigger.focus()
+    trigger.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }),
+    )
     await waitFor(() => !!document.querySelector('[data-pyro-telepopover-root]'))
     mounted.value = false
     await nextTick()

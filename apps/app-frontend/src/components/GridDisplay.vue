@@ -137,11 +137,11 @@ const messages = defineMessages({
     },
     addToPinned: {
         id: 'app.library.context-menu.pin-instance',
-        defaultMessage: 'Pin instance',
+        defaultMessage: 'Pin in Library',
     },
     removeFromPinned: {
         id: 'app.library.context-menu.unpin-instance',
-        defaultMessage: 'Unpin instance',
+        defaultMessage: 'Unpin from Library',
     },
     removeFromContextMenu: {
         id: 'app.library.context-menu.remove-from-group',
@@ -597,22 +597,24 @@ const handleRightClick = (event, instanceId, sectionKey) => {
         sectionKey !== FAVORITES_GROUP_ID
     const baseOptions = [
         {
+            section: 'pin',
             name: item.instance.groups?.includes(FAVORITES_GROUP_ID)
                 ? 'remove_from_pinned'
                 : 'add_to_pinned',
         },
         { type: 'divider' },
-        { name: 'add_content' },
-        { name: 'edit' },
-        { name: 'duplicate' },
-        { name: item.instance.pinned_at ? 'unpin' : 'pin' },
-        { name: 'open' },
-        { name: 'copy' },
+        { name: 'add_content', section: 'manage', shown: !item.instance.link },
+        { name: 'edit', section: 'manage' },
+        { name: 'duplicate', section: 'manage' },
+        { section: 'pin', name: item.instance.pinned_at ? 'unpin' : 'pin' },
+        { name: 'open', section: 'navigate' },
+        { name: 'copy', section: 'navigate' },
         ...(isInCustomGroup
             ? [{ name: 'remove_from_group' }, { type: 'divider' }]
             : [{ type: 'divider' }]),
         {
             name: 'delete',
+            section: 'danger',
             color: 'danger',
         },
     ]
@@ -624,6 +626,7 @@ const handleRightClick = (event, instanceId, sectionKey) => {
             ? [
                   {
                       name: 'stop',
+                      section: 'primary',
                       color: 'danger',
                   },
                   ...baseOptions,
@@ -631,6 +634,7 @@ const handleRightClick = (event, instanceId, sectionKey) => {
             : [
                   {
                       name: 'play',
+                      section: 'primary',
                       color: 'primary',
                   },
                   ...baseOptions,

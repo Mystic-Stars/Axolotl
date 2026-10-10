@@ -5,6 +5,11 @@
             as-child
             @keydown="noteTriggerKeydown"
             @pointerdown="noteTriggerPointerdown"
+            @mouseenter="enterHover"
+            @mouseleave="leaveHover"
+            @click.stop
+            @pointerdown.stop
+            @mousedown.stop
         >
             <slot name="trigger">
                 <button v-tooltip="tooltip" v-bind="$attrs">
@@ -21,7 +26,12 @@
                 :align="align"
                 :side-offset="sideOffset"
                 :class="[dropdownClass, 'menu-surface']"
+                v-bind="contentAttrs"
+                :collision-padding="8"
+                @mouseenter="enterHover"
+                @mouseleave="leaveHover"
                 @open-auto-focus="preventPointerFocus"
+                @close-auto-focus="preventReplacedFocus"
             >
                 <slot name="menu" :hide="hide"></slot>
                 <component
@@ -53,7 +63,7 @@ import {
     PopoverRoot,
     PopoverTrigger,
 } from 'reka-ui'
-import { computed } from 'vue'
+import { computed, onMounted, onScopeDispose, useAttrs, watch } from 'vue'
 
 const props = withDefaults(
     defineProps<{
@@ -65,6 +75,8 @@ const props = withDefaults(
         container?: string | HTMLElement | boolean
         /** Registered menu items use DropdownMenu; arbitrary panels use Popover. */
         menu?: boolean
+        hoverable?: boolean
+        contentAttrs?: Record<string, unknown>
     }>(),
     {
         dropdownId: undefined,
@@ -82,6 +94,42 @@ defineOptions({
 })
 
 const open = defineModel<boolean>('open', { default: false })
+const attrs = useAttrs()
+let hoverTimer: ReturnType<typeof setTimeout> | undefined
+function enterHover() {
+    clearTimeout(hoverTimer)
+    if (props.hoverable && !attrs.disabled) open.value = true
+}
+function leaveHover() {
+    if (props.hoverable)
+        hoverTimer = setTimeout(() => {
+            open.value = false
+        }, 250)
+}
+const closeAll = 'close-all-context-menus'
+let replaced = false
+function preventReplacedFocus(event: Event) {
+    if (replaced) event.preventDefault()
+}
+function closeOtherMenus() {
+    if (props.menu && open.value) {
+        replaced = true
+        open.value = false
+    }
+}
+onMounted(() => window.addEventListener(closeAll, closeOtherMenus))
+watch(open, (value) => {
+    if (value && props.menu) {
+        replaced = false
+        window.removeEventListener(closeAll, closeOtherMenus)
+        window.dispatchEvent(new CustomEvent(closeAll))
+        window.addEventListener(closeAll, closeOtherMenus)
+    }
+})
+onScopeDispose(() => {
+    clearTimeout(hoverTimer)
+    window.removeEventListener(closeAll, closeOtherMenus)
+})
 
 // A pointer open must not move focus: clicking a menu would otherwise pull the
 // caret out of whatever the user was editing and drop a focus ring on the first

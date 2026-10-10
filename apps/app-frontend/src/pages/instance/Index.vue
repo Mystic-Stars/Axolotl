@@ -880,11 +880,11 @@ const openUpgrade = async () => {
 
 const handleRightClick = (event: MouseEvent) => {
     const baseOptions = [
-        { name: 'add_content' },
+        { name: 'add_content', section: 'manage', shown: !instance.value.link },
         { type: 'divider' },
-        { name: 'edit' },
-        { name: 'open_folder' },
-        { name: 'copy_path' },
+        { name: 'edit', section: 'manage' },
+        { name: 'open_folder', section: 'navigate' },
+        { name: 'copy_path', section: 'navigate' },
     ]
 
     options.value?.showMenu(
@@ -894,6 +894,7 @@ const handleRightClick = (event: MouseEvent) => {
             ? [
                   {
                       name: 'stop',
+                      section: 'primary',
                       color: 'danger',
                   },
                   ...baseOptions,
@@ -901,6 +902,7 @@ const handleRightClick = (event: MouseEvent) => {
             : [
                   {
                       name: 'play',
+                      section: 'primary',
                       color: 'primary',
                   },
                   ...baseOptions,

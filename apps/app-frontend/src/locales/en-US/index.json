@@ -5655,13 +5655,13 @@
     "message": "{count} tools"
   },
   "app.library.context-menu.pin-instance": {
-    "message": "Pin instance"
+    "message": "Pin in Library"
   },
   "app.library.context-menu.remove-from-group": {
     "message": "Remove from group"
   },
   "app.library.context-menu.unpin-instance": {
-    "message": "Unpin instance"
+    "message": "Unpin from Library"
   },
   "app.library.create-instance": {
     "message": "Create new instance"
