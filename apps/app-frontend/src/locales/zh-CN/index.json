@@ -1715,6 +1715,9 @@
   "app.downloads.progress": {
     "message": "进度"
   },
+  "app.downloads.retired-source": {
+    "message": "此下载源已被弃用。请重新解析文件或选择已验证的本地文件。"
+  },
   "app.downloads.retry": {
     "message": "重试"
   },

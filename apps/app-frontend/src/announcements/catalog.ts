@@ -30,6 +30,200 @@ export const ANNOUNCEMENT_CHANGE_TYPES: readonly AnnouncementChangeType[] = [
 
 export const launcherAnnouncements: readonly LauncherAnnouncement[] = [
     {
+        id: 'launcher-1.9.8-beta.2',
+        version: '1.9.8-beta.2',
+        publishedAt: '2026-10-10',
+        title: {
+            'en-US': 'Axolotl Launcher 1.9.8-beta.2',
+            'zh-CN': 'Axolotl Launcher 1.9.8-beta.2',
+        },
+        changes: {
+            added: [
+                {
+                    'en-US':
+                        'Added Shift-click range selection, group selection, and rectangle selection in Screenshot Center.',
+                    'zh-CN': '截图中心新增 Shift 点击连续选择、分组选择和拖拽框选。',
+                },
+            ],
+            changed: [
+                {
+                    'en-US':
+                        'Improved tooltip transitions with smooth appearance, dismissal, and movement between related controls.',
+                    'zh-CN': '改进工具提示的出现、收回和相关控件之间切换时的过渡动画。',
+                },
+                {
+                    'en-US':
+                        'Improved armor preview controls to fit narrow windows and show tooltips consistently.',
+                    'zh-CN': '改进盔甲预览控件在窄窗口中的布局，并统一工具提示显示。',
+                },
+                {
+                    'en-US':
+                        'Improved content loading by avoiding repeated instance scans and reducing delays during file verification.',
+                    'zh-CN': '改进内容加载，避免重复扫描实例，并减少文件校验时的等待。',
+                },
+                {
+                    'en-US': 'Updated the available AI model list.',
+                    'zh-CN': '更新可用 AI 模型列表。',
+                },
+            ],
+            fixed: [
+                {
+                    'en-US': 'Fixed instance group edits overwriting membership in other groups.',
+                    'zh-CN': '修复修改实例分组时覆盖其他分组关系的问题。',
+                },
+                {
+                    'en-US':
+                        'Fixed hidden selections remaining eligible for deletion after filtering, and added the confirmed instance list to the deletion dialog.',
+                    'zh-CN':
+                        '修复筛选后隐藏的已选实例仍参与删除的问题，并在删除确认对话框中显示目标实例列表。',
+                },
+                {
+                    'en-US':
+                        'Fixed group dialogs losing drafts after failed submissions and displaying incomplete selection states.',
+                    'zh-CN': '修复分组提交失败后丢失弹窗草稿，以及目标选择状态显示不完整的问题。',
+                },
+                {
+                    'en-US':
+                        'Fixed settings edits overwriting newer changes made in other settings panels.',
+                    'zh-CN': '修复设置编辑覆盖其他设置面板中较新修改的问题。',
+                },
+                {
+                    'en-US':
+                        'Fixed explicit false window overrides being treated as inherited settings and unrelated window fields being overwritten.',
+                    'zh-CN':
+                        '修复明确关闭的窗口选项被识别为继承设置，以及无关窗口字段被覆盖的问题。',
+                },
+                {
+                    'en-US':
+                        'Fixed environment variable editors corrupting values containing equals signs or empty values.',
+                    'zh-CN': '修复环境变量编辑器破坏包含等号或空值的合法内容的问题。',
+                },
+                {
+                    'en-US':
+                        'Fixed sliders replacing zero with the minimum value and mishandling decimal or invalid numeric input.',
+                    'zh-CN': '修复滑块将零替换为最小值，以及小数和无效数值输入处理错误的问题。',
+                },
+                {
+                    'en-US':
+                        'Fixed recipe row copy and delete actions targeting the selected recipe instead of the clicked row.',
+                    'zh-CN': '修复配方行的复制和删除操作错误地作用于当前选中配方的问题。',
+                },
+                {
+                    'en-US': 'Fixed file deletion conflicting with automatic saves in File Studio.',
+                    'zh-CN': '修复文件工作室中文件删除与自动保存发生冲突的问题。',
+                },
+                {
+                    'en-US':
+                        'Fixed delayed schematic edits and resource loads overwriting the current workspace after switching files or versions.',
+                    'zh-CN':
+                        '修复切换文件或版本后，延迟完成的投影编辑和资源加载覆盖当前工作区的问题。',
+                },
+                {
+                    'en-US':
+                        'Fixed delayed requests updating pages after switching instances, accounts, or project versions.',
+                    'zh-CN': '修复切换实例、账户或项目版本后，旧请求结果仍更新当前页面的问题。',
+                },
+                {
+                    'en-US':
+                        "Fixed skin previews retaining the previous account's skin after switching accounts.",
+                    'zh-CN': '修复切换账户后皮肤预览仍显示旧账户皮肤的问题。',
+                },
+                {
+                    'en-US':
+                        'Fixed historical logs displaying the wrong file after rapid switching, with incorrect loading and empty states.',
+                    'zh-CN':
+                        '修复快速切换历史日志时显示错误文件，以及加载状态和空内容处理异常的问题。',
+                },
+                {
+                    'en-US': 'Fixed dependency graph connections not aligning with compact nodes.',
+                    'zh-CN': '修复依赖关系图连接线与紧凑节点不对齐的问题。',
+                },
+                {
+                    'en-US':
+                        'Fixed instance cards and context menus showing inconsistent running states.',
+                    'zh-CN': '修复实例卡片与右键菜单显示不一致运行状态的问题。',
+                },
+                {
+                    'en-US':
+                        'Fixed the recipe installation dialog closing before installation completed and hiding installation failures.',
+                    'zh-CN': '修复配方安装对话框在安装完成前关闭，以及安装失败未显示的问题。',
+                },
+                {
+                    'en-US':
+                        'Fixed optional dependencies being installed automatically during content updates.',
+                    'zh-CN': '修复内容更新时自动安装可选依赖的问题。',
+                },
+                {
+                    'en-US':
+                        'Fixed downloads using retired Modrinth CDN and Tianpao mirror addresses by restoring supported official URLs.',
+                    'zh-CN':
+                        '修复使用已停用 Modrinth CDN 和天炮镜像地址的下载，将可恢复的地址转换为官方地址。',
+                },
+                {
+                    'en-US':
+                        'Fixed Minecraft versions with universal operating-system rules failing to load.',
+                    'zh-CN': '修复包含 universal 操作系统规则的 Minecraft 版本无法加载的问题。',
+                },
+                {
+                    'en-US':
+                        'Fixed inaccessible instance folders preventing Screenshot Center from loading other screenshots.',
+                    'zh-CN': '修复无法访问的实例目录导致截图中心无法加载其他截图的问题。',
+                },
+                {
+                    'en-US': 'Fixed Escape closing both a dropdown and its parent dialog at once.',
+                    'zh-CN': '修复按一次 Escape 同时关闭下拉菜单和父级弹窗的问题。',
+                },
+                {
+                    'en-US':
+                        "Fixed closing menus releasing an open dialog's scroll lock and delayed close actions hiding reopened dialogs.",
+                    'zh-CN':
+                        '修复关闭菜单解除仍打开弹窗的滚动锁，以及延迟关闭操作隐藏重新打开弹窗的问题。',
+                },
+                {
+                    'en-US':
+                        'Fixed dropdowns extending beyond the window and overflow menus skipping items during keyboard navigation.',
+                    'zh-CN': '修复下拉菜单越过窗口边界，以及溢出菜单键盘导航跳过菜单项的问题。',
+                },
+                {
+                    'en-US':
+                        'Fixed context menus mishandling disabled regions and separators, and restored native editing menus inside editable fields.',
+                    'zh-CN':
+                        '修复右键菜单对禁用区域和分隔项的处理，并恢复可编辑输入框中的原生编辑菜单。',
+                },
+                {
+                    'en-US': 'Fixed selected text losing its Copy context menu.',
+                    'zh-CN': '修复选中文字后无法通过右键菜单复制的问题。',
+                },
+                {
+                    'en-US':
+                        'Fixed truncated-text and calendar tooltips failing to update or follow their targets, and tooltips collapsing into narrow strips.',
+                    'zh-CN':
+                        '修复截断文本和日历工具提示未更新或未跟随目标，以及提示被压缩成细长条的问题。',
+                },
+                {
+                    'en-US':
+                        'Fixed dropdown widths and input attributes behaving inconsistently across settings and forms.',
+                    'zh-CN': '修复设置和表单中下拉控件宽度及输入框属性行为不一致的问题。',
+                },
+                {
+                    'en-US': 'Fixed Library child pages losing their sidebar navigation highlight.',
+                    'zh-CN': '修复库页面子路由丢失左侧导航高亮的问题。',
+                },
+                {
+                    'en-US':
+                        'Fixed duplicate window borders with transparent backgrounds and missing color on the idle instance status dot.',
+                    'zh-CN':
+                        '修复透明背景下窗口边框重复，以及无运行中实例时状态圆点缺少颜色的问题。',
+                },
+                {
+                    'en-US':
+                        'Fixed accent color labels overlapping selection checks and inconsistent play-icon alignment.',
+                    'zh-CN': '修复强调色选项文字与勾选标记重叠，以及播放图标对齐不一致的问题。',
+                },
+            ],
+        },
+    },
+    {
         id: 'launcher-1.9.8-beta.1',
         version: '1.9.8-beta.1',
         publishedAt: '2026-10-01',
