@@ -4,6 +4,31 @@ import { defineComponent, h, ref } from 'vue'
 import Combobox, { type ComboboxOption } from '../components/base/Combobox.vue'
 import { mountThemed, waitFor } from './visual-harness'
 
+it('emits the current searchable query after the input model updates', async () => {
+    const teleports = installTeleportTarget()
+    const wrapper = await mountThemed(
+        Combobox,
+        {
+            searchable: true,
+            syncWithSelection: false,
+            minSearchLengthToOpen: 2,
+            options: [{ value: 'alpha', label: 'Alpha' }],
+        },
+        'dark',
+    )
+    try {
+        await wrapper.get('input').setValue('a')
+        expect(wrapper.emitted('searchInput')?.[0]).toEqual(['a'])
+        expect(document.querySelector('[role="listbox"]')).toBeNull()
+        await wrapper.get('input').setValue('al')
+        expect(wrapper.emitted('searchInput')?.[1]).toEqual(['al'])
+        await waitFor(() => !!document.querySelector('[role="listbox"]'))
+    } finally {
+        wrapper.unmount()
+        teleports.remove()
+    }
+})
+
 for (const searchable of [false, true]) {
     it(`fills a form region and respects externally sized ${searchable ? 'searchable' : 'standard'} controls`, async () => {
         const teleports = installTeleportTarget()

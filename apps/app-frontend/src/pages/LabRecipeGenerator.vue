@@ -1485,7 +1485,9 @@ function slotEditorSlots(type: RecipeType): RecipeSlot[] {
                             }}</span>
                             <StyledInput
                                 :model-value="String(currentRecipe.cooking.experience)"
-                                :input-attrs="{ type: 'number', min: 0, step: 0.05 }"
+                                type="number"
+                                :min="0"
+                                :step="0.05"
                                 size="small"
                                 @update:model-value="
                                     currentRecipe.cooking.experience = Math.max(
@@ -1510,7 +1512,8 @@ function slotEditorSlots(type: RecipeType): RecipeSlot[] {
                                         : String(currentRecipe.cooking.time)
                                 "
                                 :disabled="cookingTimeIsDefault"
-                                :input-attrs="{ type: 'number', min: 1 }"
+                                type="number"
+                                :min="1"
                                 size="small"
                                 @update:model-value="
                                     currentRecipe.cooking.time = Math.max(
