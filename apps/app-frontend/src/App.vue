@@ -3005,7 +3005,7 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
                     v-tooltip.right="formatMessage(messages.library)"
                     data-onboarding-id="nav-library"
                     to="/library"
-                    :is-primary="(r) => r.path === '/library' || r.path === '/library'"
+                    :is-primary="(r) => r.matched.some((record) => record.name === 'Library')"
                     :is-subpage="
                         () =>
                             route.path.startsWith('/instance') ||
