@@ -1,7 +1,7 @@
 //! HTTP request construction and redirect handling for downloads.
 
-use super::modrinth_cdn;
 use super::modrinth_redirect::repair_official_redirect as repair_official_cdn_redirect;
+use super::retired_sources;
 use crate::ErrorKind;
 use crate::util::fetch::{
     DIRECT_REQWEST_CLIENT, DOWNLOAD_META_HEADER, DownloadClients, DownloadMeta,
@@ -31,10 +31,11 @@ pub(crate) fn byte_range_header_value(
 /// CDN byte fetches use the same redirect normalization as streamed downloads.
 pub(crate) async fn send_cdn_request(
     builder: reqwest::RequestBuilder,
-) -> Result<reqwest::Response, reqwest::Error> {
+) -> crate::Result<reqwest::Response> {
     let (client, request) = builder.build_split();
     let mut request = request?;
-    *request.url_mut() = modrinth_cdn::normalize_parsed(request.url().clone());
+    *request.url_mut() =
+        retired_sources::normalize_parsed(request.url().clone())?;
     let original = request.url().clone();
     for hop in 0..=5 {
         let next_request = request.try_clone();
@@ -57,6 +58,7 @@ pub(crate) async fn send_cdn_request(
         let Ok(next) = response.url().join(&location) else {
             return Ok(response);
         };
+        let next = retired_sources::normalize_parsed(next)?;
         if !is_allowed_download_redirect(&next) {
             return Ok(response);
         }
@@ -95,7 +97,7 @@ pub(crate) async fn send_path_request_with_clients(
     clients: &DownloadClients,
     redirect_target: Option<&AsyncMutex<Option<Url>>>,
 ) -> crate::Result<(reqwest::Response, String)> {
-    let original = Url::parse(&modrinth_cdn::normalize(&route.url))?;
+    let original = Url::parse(&retired_sources::normalize(&route.url)?)?;
     let mut current = match redirect_target {
         Some(target) => target
             .lock()
@@ -105,7 +107,7 @@ pub(crate) async fn send_path_request_with_clients(
             .unwrap_or_else(|| original.clone()),
         None => original.clone(),
     };
-    current = modrinth_cdn::normalize_parsed(current);
+    current = retired_sources::normalize_parsed(current)?;
     let mut reused_redirect_target = current != original;
     for redirect_count in 0..=5 {
         let fallback_to_http1 =
@@ -237,7 +239,7 @@ pub(crate) async fn send_path_request_with_clients(
             ))
             .into());
         }
-        let next = current.join(&location)?;
+        let next = retired_sources::normalize_parsed(current.join(&location)?)?;
         if !is_allowed_download_redirect(&next) {
             return Err(ErrorKind::OtherError(format!(
                 "Refusing insecure redirect from {current} to {next}"
@@ -297,15 +299,25 @@ mod tests {
     async fn proxy_client(
         redirect: bool,
     ) -> (reqwest::Client, tokio::task::JoinHandle<String>) {
+        proxy_client_with_location(
+            redirect
+                .then_some("https://cdn-alt.modrinth.com/data/file.jar?x=%2b"),
+        )
+        .await
+    }
+
+    async fn proxy_client_with_location(
+        location: Option<&'static str>,
+    ) -> (reqwest::Client, tokio::task::JoinHandle<String>) {
         let listener =
             tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
         let address = listener.local_addr().unwrap();
         let task = tokio::spawn(async move {
-            if redirect {
+            if let Some(location) = location {
                 let (mut first, _) = listener.accept().await.unwrap();
                 let headers = read_headers(&mut first).await;
                 assert!(headers.starts_with("GET http://origin.invalid/"));
-                first.write_all(b"HTTP/1.1 302 Found\r\nLocation: https://cdn-alt.modrinth.com/data/file.jar?x=%2b\r\nContent-Length: 0\r\nConnection: close\r\n\r\n").await.unwrap();
+                first.write_all(format!("HTTP/1.1 302 Found\r\nLocation: {location}\r\nContent-Length: 0\r\nConnection: close\r\n\r\n").as_bytes()).await.unwrap();
             }
             let (mut stream, _) = listener.accept().await.unwrap();
             let headers = read_headers(&mut stream).await;
@@ -481,5 +493,157 @@ mod tests {
             super::super::h2_download::request_headers(&request, &routes[0]);
         assert!(headers.contains_key(DOWNLOAD_META_HEADER));
         assert!(is_official_modrinth_download_url(&routes[0].url));
+    }
+
+    #[tokio::test]
+    async fn tianpao_downloads_and_redirects_connect_only_to_recovered_origins()
+    {
+        for (input, host) in [
+            ("https://mod.tianpao.top/data/file.jar", "cdn.modrinth.com"),
+            (
+                "https://mod.tianpao.top/files/1/2/file.jar",
+                "edge.forgecdn.net",
+            ),
+            (
+                "https://mod.tianpao.top/media/attachments/icon.png",
+                "media.forgecdn.net",
+            ),
+        ] {
+            for redirect in [false, true] {
+                for streamed in [false, true] {
+                    let (client, proxy) =
+                        proxy_client_with_location(redirect.then_some(input))
+                            .await;
+                    let url = if redirect {
+                        "http://origin.invalid/"
+                    } else {
+                        input
+                    };
+                    if streamed {
+                        let route = DownloadRoute {
+                            url: url.into(),
+                            source: DownloadRouteSource::Official,
+                            is_mirror: false,
+                            allow_sensitive_headers: false,
+                            supports_range: true,
+                            proxy: ProxyPolicy::System,
+                        };
+                        let clients =
+                            DownloadClients::for_request(&client, &client);
+                        assert!(
+                            send_path_request_with_clients(
+                                &route, None, None, None, None, None, &clients,
+                                None
+                            )
+                            .await
+                            .is_err()
+                        );
+                    } else {
+                        assert!(
+                            send_cdn_request(client.get(url)).await.is_err()
+                        );
+                    }
+                    let headers =
+                        tokio::time::timeout(Duration::from_secs(5), proxy)
+                            .await
+                            .unwrap()
+                            .unwrap();
+                    assert!(
+                        headers.starts_with(&format!("CONNECT {host}:443 ")),
+                        "{headers}"
+                    );
+                    assert!(!headers.contains("tianpao"));
+                }
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn tianpao_unknown_urls_fail_before_connecting() {
+        for url in [
+            "https://mod.tianpao.top/unknown",
+            "https://mod.tianpao.top:8443/data/file",
+        ] {
+            let listener =
+                tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+            let client = reqwest::Client::builder()
+                .proxy(
+                    reqwest::Proxy::all(format!(
+                        "http://{}",
+                        listener.local_addr().unwrap()
+                    ))
+                    .unwrap(),
+                )
+                .build()
+                .unwrap();
+            let error = send_cdn_request(client.get(url)).await.unwrap_err();
+            assert!(error.to_string().contains("retired"));
+            let route = DownloadRoute {
+                url: url.into(),
+                source: DownloadRouteSource::Official,
+                is_mirror: false,
+                allow_sensitive_headers: true,
+                supports_range: true,
+                proxy: ProxyPolicy::System,
+            };
+            let clients = DownloadClients::for_request(&client, &client);
+            assert!(
+                send_path_request_with_clients(
+                    &route, None, None, None, None, None, &clients, None
+                )
+                .await
+                .is_err()
+            );
+            assert_eq!(super::super::native::h2_ineligible_reason(&route), Some(super::super::native::NativeH2IneligibleReason::RetiredSource));
+            assert!(
+                tokio::time::timeout(
+                    Duration::from_millis(100),
+                    listener.accept()
+                )
+                .await
+                .is_err()
+            );
+        }
+    }
+
+    #[tokio::test]
+    async fn tianpao_unknown_primary_does_not_grant_candidates_sensitive_headers()
+     {
+        let listener =
+            tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let url = format!("http://{}/file", listener.local_addr().unwrap());
+        let server = tokio::spawn(async move {
+            let (mut stream, _) = listener.accept().await.unwrap();
+            let headers = read_headers(&mut stream).await.to_ascii_lowercase();
+            assert!(!headers.contains("authorization:"));
+            assert!(!headers.contains("modrinth-download-meta:"));
+            stream.write_all(b"HTTP/1.1 200 OK\r\nContent-Length: 4\r\nConnection: close\r\n\r\ndata").await.unwrap();
+        });
+        let root = tempfile::tempdir().unwrap();
+        let pool = sqlx::sqlite::SqlitePoolOptions::new()
+            .connect_lazy("sqlite::memory:")
+            .unwrap();
+        let request = crate::util::fetch::DownloadRequest::new(
+            "https://mod.tianpao.top/unknown",
+            ResourceClass::Modpack,
+        )
+        .with_candidate_urls([url])
+        .with_header("Authorization", "original-secret")
+        .with_segmented_download(false)
+        .with_integrity(crate::util::fetch::Integrity::sha1(
+            sha1_smol::Sha1::from(b"data").hexdigest(),
+        ));
+        let result = crate::util::fetch::download_to_path(
+            request,
+            root.path().join("file"),
+            &crate::util::fetch::FetchSemaphore(tokio::sync::Semaphore::new(1)),
+            &pool,
+            None,
+        )
+        .await
+        .unwrap();
+        assert_eq!(result.source, DownloadRouteSource::Alternate);
+        assert_eq!(tokio::fs::read(result.path).await.unwrap(), b"data");
+        server.await.unwrap();
     }
 }

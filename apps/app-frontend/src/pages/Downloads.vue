@@ -527,6 +527,8 @@ import MissingModpackContentModal from '@/components/ui/modal/MissingModpackCont
 import { useDownloadTelemetry } from '@/composables/useDownloadTelemetry'
 import { listPendingCurseForgeManualDownloads } from '@/helpers/curseforge'
 import type { CurseForgeManualDownloadItem } from '@/helpers/curseforge-manual'
+import { resolveDownloadUrl } from '@/helpers/download-url'
+import { retiredDownloadMessage } from '@/helpers/download-url-messages'
 import {
     download_job_support_details,
     type InstallJobSnapshot,
@@ -540,7 +542,6 @@ import {
     installProgressFraction,
     installProgressTextSource,
 } from '@/helpers/install-progress'
-import { normalizeModrinthCdnUrl } from '@/helpers/modrinth-cdn'
 import type { LoadingBar } from '@/helpers/state'
 import { injectContentInstall } from '@/providers/content-install'
 import { injectDownloadManager } from '@/providers/download-manager'
@@ -1273,7 +1274,10 @@ function itemError(item: DownloadItem) {
 }
 
 async function openManualDownload(item: DownloadItem) {
-    if (item.manual_url) await openUrl(normalizeModrinthCdnUrl(item.manual_url))
+    if (!item.manual_url) return
+    const url = resolveDownloadUrl(item.manual_url)
+    if (url) await openUrl(url)
+    else handleError(new Error(formatMessage(retiredDownloadMessage)))
 }
 
 function legacyPercent(bar: LoadingBar) {

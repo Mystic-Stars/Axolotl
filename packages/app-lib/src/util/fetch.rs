@@ -3,6 +3,7 @@ use super::download::modrinth_cdn;
 use super::download::modrinth_redirect::is_official_redirect as is_official_modrinth_cdn_redirect;
 #[cfg(test)]
 use super::download::modrinth_redirect::repair_official_redirect as repair_official_cdn_redirect;
+use super::download::retired_sources;
 use super::download::route_policy;
 use super::download_dns::DownloadDnsResolver;
 use super::download_manager::{DownloadSpeedTracker, SpeedSnapshot};
@@ -144,7 +145,6 @@ pub enum DownloadRouteSource {
     Official,
     Bmclapi,
     Mcim,
-    Tianpao,
     Aliyun,
     Alternate,
 }
@@ -155,7 +155,6 @@ impl DownloadRouteSource {
             Self::Official => "official",
             Self::Bmclapi => "bmclapi",
             Self::Mcim => "mcim",
-            Self::Tianpao => "tianpao",
             Self::Aliyun => "aliyun",
             Self::Alternate => "alternate",
         }
@@ -576,7 +575,6 @@ fn official_route(url: &str, resource: ResourceClass) -> DownloadRoute {
         source,
         DownloadRouteSource::Bmclapi
             | DownloadRouteSource::Mcim
-            | DownloadRouteSource::Tianpao
             | DownloadRouteSource::Aliyun
     );
     let route = route(
@@ -838,7 +836,10 @@ pub fn resolve_download_routes_for(
     resource: ResourceClass,
     mode: crate::state::DownloadSourceMode,
 ) -> Vec<DownloadRoute> {
-    let url = modrinth_cdn::normalize(url).into_owned();
+    let Ok(url) = retired_sources::normalize(url) else {
+        return Vec::new();
+    };
+    let url = url.into_owned();
     let official = official_route(&url, resource);
     let mirror_first_loader = uses_mirror_first_loader_routes(&url, resource);
     let mut routes = explicit_mirror_routes(&url, resource);
@@ -1057,6 +1058,15 @@ pub(crate) fn is_h2_protocol_failure(error: &reqwest::Error) -> bool {
 
 fn reqwest_client_builder() -> reqwest::ClientBuilder {
     reqwest::Client::builder()
+        .redirect(reqwest::redirect::Policy::custom(|attempt| {
+            if retired_sources::is_retired(attempt.url()) {
+                attempt.error("download source has been retired")
+            } else if attempt.previous().len() >= 10 {
+                attempt.error("too many redirects")
+            } else {
+                attempt.follow()
+            }
+        }))
         .connect_timeout(FILE_TRANSFER_CONNECT_TIMEOUT)
         .read_timeout(FILE_TRANSFER_READ_TIMEOUT)
         .tcp_keepalive(Some(time::Duration::from_secs(10)))
@@ -1975,7 +1985,7 @@ async fn fetch_advanced_inner(
     >,
     attempt_budget: usize,
 ) -> crate::Result<Bytes> {
-    let normalized_url = modrinth_cdn::normalize(url);
+    let normalized_url = retired_sources::normalize(url)?;
     let url = normalized_url.as_ref();
     let resource = infer_resource_class(url);
     let mode =
@@ -2153,7 +2163,7 @@ async fn fetch_advanced_inner(
             {
                 super::download::native_request::send_cdn_request(req).await
             } else {
-                req.send().await
+                req.send().await.map_err(crate::Error::from)
             };
             let ttfb = request_started.elapsed();
             match result {
@@ -2628,14 +2638,15 @@ async fn fetch_advanced_inner(
                 }
                 Err(err) => {
                     drop(permit);
-                    if let Some(host) =
-                        record_dns_connection_failure(route, &err)
+                    if let ErrorKind::FetchError(source) = err.raw.as_ref()
+                        && let Some(host) =
+                            record_dns_connection_failure(route, source)
                     {
                         prewarm_download_dns_for(route.proxy, &[&host]).await;
                     }
                     record_route_failure(route, resource, None);
                     let error_message = err.to_string();
-                    let error: crate::Error = err.into();
+                    let error: crate::Error = err;
                     let decision = if has_next_route {
                         "switch_route"
                     } else if has_more_attempts {
@@ -3064,6 +3075,9 @@ pub(crate) fn same_origin(left: &Url, right: &Url) -> bool {
 }
 
 pub(crate) fn is_allowed_download_redirect(url: &Url) -> bool {
+    if retired_sources::is_retired(url) {
+        return false;
+    }
     if url.scheme() == "https" {
         return true;
     }
@@ -5163,26 +5177,45 @@ pub async fn download_to_path(
     _exec: impl sqlx::Executor<'_, Database = sqlx::Sqlite>,
     progress: Option<&mut FetchProgressFn<'_>>,
 ) -> crate::Result<DownloadResult> {
-    request.url = modrinth_cdn::normalize(&request.url).into_owned();
-    request.candidate_urls = request
-        .candidate_urls
-        .iter()
-        .map(|url| modrinth_cdn::normalize(url).into_owned())
-        .collect();
     let tracking = request.install_tracking.clone();
     let request_url = request.url.clone();
     let destination_path = destination.as_ref();
     let integrity = request.integrity.clone();
-    let result = super::download::proxy_context::with_clients(
-        crate::util::single_flight::run(destination_path, &integrity, || {
-            download_to_path_inner(
-                request,
+    let result = async {
+        let primary = retired_sources::normalize(&request.url)
+            .map(|url| url.into_owned());
+        request.candidate_urls = request
+            .candidate_urls
+            .iter()
+            .filter_map(|url| {
+                retired_sources::normalize(url)
+                    .ok()
+                    .map(|url| url.into_owned())
+            })
+            .collect::<Vec<_>>();
+        match primary {
+            Ok(url) => request.url = url,
+            Err(error) if request.candidate_urls.is_empty() => {
+                return Err(error);
+            }
+            Err(_) => {}
+        }
+        super::download::proxy_context::with_clients(
+            crate::util::single_flight::run(
                 destination_path,
-                semaphore,
-                progress,
-            )
-        }),
-    )
+                &integrity,
+                || {
+                    download_to_path_inner(
+                        request,
+                        destination_path,
+                        semaphore,
+                        progress,
+                    )
+                },
+            ),
+        )
+        .await
+    }
     .await;
     if let Err(error) = &result {
         if let Some(state) = crate::State::get_if_initialized() {
@@ -5248,7 +5281,9 @@ fn build_download_routes(
     }
     deduplicate_download_routes(&mut routes);
     if routes.is_empty() {
-        routes.push(official_route(&request.url, request.resource));
+        if let Ok(url) = retired_sources::normalize(&request.url) {
+            routes.push(official_route(&url, request.resource));
+        }
     }
     routes
 }
@@ -8179,11 +8214,10 @@ mod tests {
         let url = "https://cdn-alt.modrinth.com/data/project/versions/version/file.jar";
         let mut routes = explicit_mirror_routes(url, ResourceClass::Modrinth);
         routes.push(official_route(url, ResourceClass::Modrinth));
-        assert!(
-            routes
-                .iter()
-                .all(|route| route.source != DownloadRouteSource::Tianpao)
-        );
+        assert!(routes.iter().all(|route| {
+            !Url::parse(&route.url)
+                .is_ok_and(|url| retired_sources::is_retired(&url))
+        }));
         let official = routes
             .iter()
             .find(|route| is_official_route(route))
@@ -8202,6 +8236,98 @@ mod tests {
 
         assert_eq!(routes[0].source, DownloadRouteSource::Official);
         *ROUTE_HEALTH.lock() = previous_health;
+    }
+
+    #[test]
+    fn tianpao_routes_restore_official_sources_in_all_modes_and_skip_unknown_candidates()
+     {
+        for mode in [
+            crate::state::DownloadSourceMode::Auto,
+            crate::state::DownloadSourceMode::OfficialOnly,
+            crate::state::DownloadSourceMode::OfficialPreferred,
+            crate::state::DownloadSourceMode::MirrorPreferred,
+        ] {
+            for (input, official) in [
+                (
+                    "https://mod.tianpao.top/data/p/file.jar",
+                    "https://cdn.modrinth.com/data/p/file.jar",
+                ),
+                (
+                    "https://mod.tianpao.top/files/1/2/file.jar",
+                    "https://edge.forgecdn.net/files/1/2/file.jar",
+                ),
+                (
+                    "https://mod.tianpao.top/media/attachments/icon.png",
+                    "https://media.forgecdn.net/attachments/icon.png",
+                ),
+            ] {
+                let request =
+                    DownloadRequest::new(input, ResourceClass::Modpack)
+                        .with_candidate_urls([
+                            official,
+                            "https://mod.tianpao.top/unknown",
+                        ]);
+                let routes = build_download_routes(&request, mode);
+                assert_eq!(routes.len(), 1);
+                assert_eq!(routes[0].url, official);
+                assert_eq!(routes[0].source, DownloadRouteSource::Official);
+            }
+            assert!(
+                resolve_download_routes_for(
+                    "https://mod.tianpao.top/unknown",
+                    ResourceClass::Modpack,
+                    mode
+                )
+                .is_empty()
+            );
+            let request = DownloadRequest::new(
+                "https://mod.tianpao.top/unknown",
+                ResourceClass::Modpack,
+            )
+            .with_candidate_urls(["https://cdn.modrinth.com/data/file.jar"]);
+            assert_eq!(
+                build_download_routes(&request, mode)[0].url,
+                "https://cdn.modrinth.com/data/file.jar"
+            );
+        }
+    }
+
+    #[tokio::test]
+    async fn tianpao_unknown_downloads_preserve_existing_files() {
+        let directory = tempfile::tempdir().unwrap();
+        let path = directory.path().join("saved.bin");
+        tokio::fs::write(&path, b"existing").await.unwrap();
+        let pool = sqlx::sqlite::SqlitePoolOptions::new()
+            .connect_lazy("sqlite::memory:")
+            .unwrap();
+        let error = download_to_path(
+            DownloadRequest::new(
+                "https://mod.tianpao.top/unknown",
+                ResourceClass::Modpack,
+            ),
+            &path,
+            &FetchSemaphore(Semaphore::new(1)),
+            &pool,
+            None,
+        )
+        .await
+        .unwrap_err();
+        assert!(error.to_string().contains("retired"));
+        assert_eq!(tokio::fs::read(path).await.unwrap(), b"existing");
+    }
+
+    #[tokio::test]
+    async fn tianpao_metadata_redirects_are_blocked_before_following() {
+        let (url, requests, server) = spawn_http_fixture(
+            HttpFixture::new("302 Found", Vec::new())
+                .with_headers("Location: https://mod.tianpao.top/unknown\r\n"),
+        )
+        .await;
+        let client = reqwest_client_builder().no_proxy().build().unwrap();
+        let error = client.get(url).send().await.unwrap_err();
+        assert!(error.is_redirect());
+        assert_eq!(requests.load(Ordering::Relaxed), 1);
+        server.abort();
     }
 
     #[test]

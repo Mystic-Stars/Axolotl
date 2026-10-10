@@ -30,6 +30,7 @@ vi.mock('@modrinth/ui', () => ({
     }),
     commonMessages: {},
     defineMessages: (messages: unknown) => messages,
+    defineMessage: (message: unknown) => message,
     useVIntl: () => ({
         formatMessage: (message: { defaultMessage: string }) => message.defaultMessage,
     }),
@@ -44,6 +45,8 @@ it('browser download links use the current CDN when a cached version contains re
         files: [
             { url: old, filename: 'file.jar' },
             { url: 'https://cdn.modrinth.com/data/current.jar', filename: 'current.jar' },
+            { url: 'https://mod.tianpao.top/files/1/2/mirror.jar', filename: 'mirror.jar' },
+            { url: 'https://mod.tianpao.top/unknown', filename: 'unknown.jar' },
         ],
     }
     const wrapper = mount(
@@ -76,6 +79,9 @@ it('browser download links use the current CDN when a cached version contains re
         )
         expect(links[0].attributes('download')).toBe('file.jar')
         expect(links[1].attributes('href')).toBe(version.files[1].url)
+        expect(links[2].attributes('href')).toBe('https://edge.forgecdn.net/files/1/2/mirror.jar')
+        expect(links[3].attributes('href')).toBeUndefined()
+        expect(links[3].attributes('disabled')).toBeDefined()
         expect(version.files[0].url).toBe(old)
     } finally {
         wrapper.unmount()

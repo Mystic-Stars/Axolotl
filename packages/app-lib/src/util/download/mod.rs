@@ -25,6 +25,7 @@ pub(crate) mod native_slow;
 pub(crate) mod proxy_context;
 pub(crate) mod range_journal;
 pub(crate) mod range_output;
+pub(crate) mod retired_sources;
 pub(crate) mod route_health;
 pub(crate) mod route_policy;
 pub(crate) mod verified_file;

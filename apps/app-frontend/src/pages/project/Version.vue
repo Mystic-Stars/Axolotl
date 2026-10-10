@@ -64,7 +64,13 @@
             </template>
             <template #supplementaryResourceActions="{ file }">
                 <ButtonLink
-                    :href="normalizeModrinthCdnUrl(file.url)"
+                    v-tooltip="
+                        !resolveDownloadUrl(file.url)
+                            ? formatMessage(retiredDownloadMessage)
+                            : undefined
+                    "
+                    :href="resolveDownloadUrl(file.url)"
+                    :disabled="!resolveDownloadUrl(file.url)"
                     :download="file.filename"
                     target="_blank"
                 >
@@ -101,7 +107,8 @@ import { useRoute } from 'vue-router'
 
 import { SwapIcon } from '@/assets/icons'
 import { get_project_many, get_version_many } from '@/helpers/cache.js'
-import { normalizeModrinthCdnUrl } from '@/helpers/modrinth-cdn'
+import { resolveDownloadUrl } from '@/helpers/download-url'
+import { retiredDownloadMessage } from '@/helpers/download-url-messages'
 import { useBreadcrumbs } from '@/store/breadcrumbs'
 
 const { formatMessage } = useVIntl()

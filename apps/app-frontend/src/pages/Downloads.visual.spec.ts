@@ -57,6 +57,7 @@ vi.mock('@modrinth/ui', async () => {
         ),
         ProgressBar,
         defineMessages: (messages: unknown) => messages,
+        defineMessage: (message: unknown) => message,
         injectNotificationManager: () => ({ handleError: vi.fn() }),
         useFormatBytes: () => (value: number) => String(value),
         useVIntl: () => ({

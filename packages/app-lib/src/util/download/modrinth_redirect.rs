@@ -4,27 +4,6 @@ use url::Url;
 
 use super::modrinth_cdn;
 
-const TIANPAO_HOST: &str = "mod.tianpao.top";
-
-/// Identifies a Tianpao cache miss, including retired CDN URLs that require
-/// normalization before a subsequent request.
-pub(crate) fn is_tianpao_official_redirect(
-    current: &Url,
-    location: Option<&str>,
-) -> bool {
-    current
-        .host_str()
-        .is_some_and(|host| host.eq_ignore_ascii_case(TIANPAO_HOST))
-        && location.is_some_and(|location| {
-            let Ok(redirect) = current.join(location) else {
-                return false;
-            };
-            modrinth_cdn::is_current_url(&modrinth_cdn::normalize_parsed(
-                redirect,
-            ))
-        })
-}
-
 pub(crate) fn repair_official_redirect(
     original: &Url,
     redirect: &Url,

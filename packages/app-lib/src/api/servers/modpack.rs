@@ -434,6 +434,9 @@ async fn run_modpack_install(
 
 /// Fetches the modpack icon into the server directory and returns its path.
 async fn download_icon(dir: &Path, icon_url: &str) -> Result<PathBuf> {
+    let normalized =
+        crate::util::download::retired_sources::normalize(icon_url)?;
+    let icon_url = normalized.as_ref();
     let extension = icon_url
         .split(['?', '#'])
         .next()
@@ -449,14 +452,15 @@ async fn download_icon(dir: &Path, icon_url: &str) -> Result<PathBuf> {
     let destination = dir.join(format!("icon.{extension}"));
 
     let client = reqwest::Client::builder()
+        .redirect(reqwest::redirect::Policy::none())
         .user_agent(crate::launcher_user_agent())
         .build()
         .map_err(|e| ErrorKind::NetworkError(e.to_string()))?;
-    let response = client
-        .get(icon_url)
-        .send()
-        .await
-        .and_then(|r| r.error_for_status())?;
+    let response = crate::util::download::native_request::send_cdn_request(
+        client.get(icon_url),
+    )
+    .await?
+    .error_for_status()?;
     let bytes = response
         .bytes()
         .await

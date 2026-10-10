@@ -17,6 +17,7 @@ pub(crate) struct NativeH2Policy {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum NativeH2IneligibleReason {
+    RetiredSource,
     Http1Fallback,
     SystemProxy,
     ConfiguredProxy,
@@ -26,6 +27,7 @@ pub(crate) enum NativeH2IneligibleReason {
 impl NativeH2IneligibleReason {
     pub(crate) const fn as_str(self) -> &'static str {
         match self {
+            Self::RetiredSource => "download source has been retired",
             Self::Http1Fallback => "authority is temporarily using HTTP/1.1",
             Self::SystemProxy => "system proxy requires the reqwest transport",
             Self::ConfiguredProxy => {
@@ -41,6 +43,11 @@ impl NativeH2IneligibleReason {
 pub(crate) fn h2_ineligible_reason(
     route: &DownloadRoute,
 ) -> Option<NativeH2IneligibleReason> {
+    if url::Url::parse(&route.url)
+        .is_ok_and(|url| super::retired_sources::is_retired(&url))
+    {
+        return Some(NativeH2IneligibleReason::RetiredSource);
+    }
     let authority = crate::util::fetch::url_authority(&route.url)?;
     if crate::util::fetch::authority_uses_http1_fallback_for(
         &authority,

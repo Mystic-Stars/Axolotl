@@ -495,6 +495,8 @@ import {
 } from '@/helpers/cache.js'
 import { isFavoriteContentType } from '@/helpers/content-favorites'
 import { resolveMcmodUrl } from '@/helpers/content-search'
+import { resolveDownloadUrl } from '@/helpers/download-url'
+import { retiredDownloadMessage } from '@/helpers/download-url-messages'
 import { process_listener } from '@/helpers/events'
 import {
     get as getInstance,
@@ -504,7 +506,6 @@ import {
 } from '@/helpers/instance'
 import { getDisplayInstanceIcon } from '@/helpers/instance-icons'
 import { get_loader_versions as getLoaderManifest } from '@/helpers/metadata'
-import { normalizeModrinthCdnUrl } from '@/helpers/modrinth-cdn'
 import { get_by_instance_id } from '@/helpers/process'
 import { projectGalleryTranslationSegments } from '@/helpers/project-gallery'
 import { createProjectBrowseLocation } from '@/helpers/project-links'
@@ -1267,7 +1268,11 @@ function fetchDeferredServerData(project) {
                                           )
                                     : undefined,
                             onclickDownload: primaryFile?.url
-                                ? () => openUrl(normalizeModrinthCdnUrl(primaryFile.url))
+                                ? () => {
+                                      const url = resolveDownloadUrl(primaryFile.url)
+                                      if (url) return openUrl(url)
+                                      handleError(new Error(formatMessage(retiredDownloadMessage)))
+                                  }
                                 : undefined,
                             showCustomModpackTooltip: modpackProject.id === project.id,
                         }

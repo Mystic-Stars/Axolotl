@@ -903,10 +903,9 @@ pub(crate) fn browser_download_urls(downloads: &[String]) -> Vec<String> {
             {
                 return None;
             }
-            Some(
-                crate::util::download::modrinth_cdn::normalize(download)
-                    .into_owned(),
-            )
+            crate::util::download::retired_sources::normalize(download)
+                .ok()
+                .map(|url| url.into_owned())
         })
         .fold(Vec::new(), |mut urls, url| {
             if !urls.contains(&url) {
@@ -1300,6 +1299,26 @@ mod tests {
             "https://cdn-alt.modrinth.com/file.jar?token=secret".into(),
         ]);
         assert_eq!(urls, vec![format!("https://cdn.modrinth.com{suffix}")]);
+    }
+
+    #[test]
+    fn tianpao_browser_urls_restore_known_paths_and_filter_unknown_paths() {
+        let urls = browser_download_urls(&[
+            "https://mod.tianpao.top/data/file.jar".into(),
+            "https://cdn.modrinth.com/data/file.jar".into(),
+            "https://mod.tianpao.top/files/1/2/file.jar".into(),
+            "https://mod.tianpao.top/media/attachments/icon.png".into(),
+            "https://mod.tianpao.top/unknown".into(),
+            "https://mod.tianpao.top/data/file.jar?token=secret".into(),
+        ]);
+        assert_eq!(
+            urls,
+            vec![
+                "https://cdn.modrinth.com/data/file.jar",
+                "https://edge.forgecdn.net/files/1/2/file.jar",
+                "https://media.forgecdn.net/attachments/icon.png"
+            ]
+        );
     }
 
     #[test]

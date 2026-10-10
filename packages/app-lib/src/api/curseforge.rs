@@ -5484,11 +5484,17 @@ async fn rollback_curseforge_update(
 async fn cache_instance_icon_from_url(
     icon_url: &str,
 ) -> crate::Result<std::path::PathBuf> {
+    let normalized =
+        crate::util::download::retired_sources::normalize(icon_url)?;
+    let icon_url = normalized.as_ref();
     let state = State::get().await?;
     // CurseForge avatar/CDN assets are frequently broken via local system
     // proxies, so always download icons with a direct client.
     let permit = state.fetch_semaphore.0.acquire().await?;
-    let response = CLIENT.get(icon_url).send().await?;
+    let response = crate::util::download::native_request::send_cdn_request(
+        crate::util::fetch::DIRECT_REQWEST_CLIENT.get(icon_url),
+    )
+    .await?;
     drop(permit);
     if !response.status().is_success() {
         return Err(ErrorKind::OtherError(format!(
@@ -10008,7 +10014,6 @@ fn request_routes_with_mode(
         source: match route.source {
             DownloadRouteSource::Bmclapi
             | DownloadRouteSource::Mcim
-            | DownloadRouteSource::Tianpao
             | DownloadRouteSource::Aliyun => RequestRouteSource::Mirror,
             DownloadRouteSource::Official | DownloadRouteSource::Alternate => {
                 RequestRouteSource::Official
