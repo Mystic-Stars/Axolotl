@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - experiment/linux-cef-runtime
     paths:
       - pnpm-lock.yaml
       - .github/workflows/update-nix-pnpm-deps-hash.yml
@@ -14,16 +15,20 @@ permissions:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   update:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           submodules: recursive
+          # The update step below runs code from the branch, so keep the job
+          # token out of the checkout; the commit step authenticates on its own.
+          persist-credentials: false
 
       - name: Install Nix
         uses: cachix/install-nix-action@13d8dd58da0234aa297dedd986986ccb8e7f3e24 # v31.11.1
@@ -32,6 +37,8 @@ jobs:
         run: nix develop . --accept-flake-config --command update-pnpm-deps
 
       - name: Commit the updated hash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           if git diff --quiet -- nix/axolotl.nix; then
             echo "nix/axolotl.nix is unchanged"
@@ -39,6 +46,21 @@ jobs:
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          gh auth setup-git
           git add nix/axolotl.nix
           git commit -m "chore(nix): update pnpm dependency hash [skip ci]"
-          git push
+          # A commit that does not match the trigger paths can advance the branch
+          # while this job runs; rebase onto it and retry.
+          for attempt in 1 2 3; do
+            if git push origin "HEAD:refs/heads/${GITHUB_REF_NAME}"; then
+              exit 0
+            fi
+            echo "push was rejected; rebasing onto the updated ${GITHUB_REF_NAME}"
+            git fetch --depth=1 origin "${GITHUB_REF_NAME}"
+            git rebase FETCH_HEAD || {
+              echo "error: cannot rebase onto ${GITHUB_REF_NAME}; the next triggered run will retry" >&2
+              exit 1
+            }
+          done
+          echo "error: could not push the updated hash after 3 attempts" >&2
+          exit 1
