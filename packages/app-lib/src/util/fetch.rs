@@ -5280,10 +5280,10 @@ fn build_download_routes(
         routes.retain(|route| !route.is_mirror);
     }
     deduplicate_download_routes(&mut routes);
-    if routes.is_empty() {
-        if let Ok(url) = retired_sources::normalize(&request.url) {
-            routes.push(official_route(&url, request.resource));
-        }
+    if routes.is_empty()
+        && let Ok(url) = retired_sources::normalize(&request.url)
+    {
+        routes.push(official_route(&url, request.resource));
     }
     routes
 }

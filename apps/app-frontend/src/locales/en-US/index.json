@@ -1,10 +1,4 @@
 {
-  "app.screenshots.selection.select-group": {
-    "message": "Select all screenshots in {group}"
-  },
-  "app.screenshots.selection.hint": {
-    "message": "Use the checkboxes or Ctrl/Command-click to select, Shift-click for a range, or drag from empty space to select an area."
-  },
   "app.account.signed-in-as": {
     "message": "Signed in as"
   },
@@ -1720,6 +1714,9 @@
   },
   "app.downloads.progress": {
     "message": "Progress"
+  },
+  "app.downloads.retired-source": {
+    "message": "This download source has been retired. Resolve the file again or choose a verified local file."
   },
   "app.downloads.retry": {
     "message": "Retry"
@@ -7121,9 +7118,6 @@
   "app.screenshots.group.yesterday": {
     "message": "Yesterday"
   },
-  "app.screenshots.skipped-folders": {
-    "message": "{count, plural, one {Skipped # inaccessible instance folder} other {Skipped # inaccessible instance folders}}"
-  },
   "app.screenshots.heading": {
     "message": "Screenshots"
   },
@@ -7163,11 +7157,17 @@
   "app.screenshots.selection.global-export-filename": {
     "message": "Modrinth screenshots.zip"
   },
+  "app.screenshots.selection.hint": {
+    "message": "Use the checkboxes or Ctrl/Command-click to select, Shift-click for a range, or drag from empty space to select an area."
+  },
   "app.screenshots.selection.instance-export-filename": {
     "message": "{instance} screenshots.zip"
   },
   "app.screenshots.selection.remove-from-group": {
     "message": "Remove from group"
+  },
+  "app.screenshots.selection.select-group": {
+    "message": "Select all screenshots in {group}"
   },
   "app.screenshots.selection.selected-count": {
     "message": "{count} selected"
@@ -7177,6 +7177,9 @@
   },
   "app.screenshots.show-in-folder": {
     "message": "Show in folder"
+  },
+  "app.screenshots.skipped-folders": {
+    "message": "{count, plural, one {Skipped # inaccessible instance folder} other {Skipped # inaccessible instance folders}}"
   },
   "app.screenshots.sort-by": {
     "message": "Sort by"
