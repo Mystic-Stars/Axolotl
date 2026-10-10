@@ -260,6 +260,11 @@ const messages = defineMessages({
         id: 'app.screenshots.error-heading',
         defaultMessage: 'Failed to load screenshots',
     },
+    skippedFolders: {
+        id: 'app.screenshots.skipped-folders',
+        defaultMessage:
+            '{count, plural, one {Skipped # inaccessible instance folder} other {Skipped # inaccessible instance folders}}',
+    },
     newest: { id: 'app.screenshots.sort.newest', defaultMessage: 'Newest' },
     oldest: { id: 'app.screenshots.sort.oldest', defaultMessage: 'Oldest' },
     name: { id: 'app.screenshots.sort.name', defaultMessage: 'Name' },
@@ -352,7 +357,23 @@ const screenshotsReadyPending = computed(
         (groupBy.value === 'custom' &&
             (screenshotGroupsQueryPending.value || migratingLegacyGroups.value)),
 )
-const screenshots = computed(() => screenshotsQuery.data.value ?? [])
+const screenshots = computed(() => screenshotsQuery.data.value?.screenshots ?? [])
+let warnedScanAt = 0
+watch(
+    () => [screenshotsQuery.isFetching.value, screenshotsQuery.dataUpdatedAt.value] as const,
+    ([fetching, updatedAt]) => {
+        const result = screenshotsQuery.data.value
+        if (fetching || !result || !result.skipped_instances.length) return
+        if (updatedAt === warnedScanAt) return
+        warnedScanAt = updatedAt
+        addNotification({
+            type: 'warning',
+            title: formatMessage(messages.skippedFolders, {
+                count: result.skipped_instances.length,
+            }),
+        })
+    },
+)
 const customGroups = computed(() => screenshotGroupsQuery.data.value ?? [])
 const screenshotOptionsInstance = computed(() =>
     (instancesQuery.data.value ?? []).find(

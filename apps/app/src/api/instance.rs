@@ -1379,20 +1379,24 @@ pub async fn instance_list_screenshots<R: tauri::Runtime>(
 #[tauri::command]
 pub async fn instance_list_all_screenshots<R: tauri::Runtime>(
     app: tauri::AppHandle<R>,
-) -> Result<Vec<InstanceScreenshot>> {
-    serialize_screenshots(
-        &app,
-        theseus::instance::list_all_screenshots().await?,
-    )
+) -> Result<ScreenshotScanResult> {
+    let result =
+        theseus::instance::list_all_screenshots_with_warnings().await?;
+    Ok(ScreenshotScanResult {
+        screenshots: serialize_screenshots(&app, result.screenshots)?,
+        skipped_instances: result.skipped_instances,
+    })
+}
+#[derive(serde::Serialize)]
+pub struct ScreenshotScanResult {
+    screenshots: Vec<InstanceScreenshot>,
+    skipped_instances: Vec<String>,
 }
 #[tauri::command]
 pub async fn instance_list_synced_screenshots<R: tauri::Runtime>(
     app: tauri::AppHandle<R>,
-) -> Result<Vec<InstanceScreenshot>> {
-    serialize_screenshots(
-        &app,
-        theseus::instance::list_synced_screenshots().await?,
-    )
+) -> Result<ScreenshotScanResult> {
+    instance_list_all_screenshots(app).await
 }
 #[tauri::command]
 pub async fn instance_save_edited_screenshot<R: tauri::Runtime>(

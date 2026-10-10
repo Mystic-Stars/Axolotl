@@ -7073,6 +7073,9 @@
   "app.screenshots.group.yesterday": {
     "message": "昨天"
   },
+  "app.screenshots.skipped-folders": {
+    "message": "已跳过 {count} 个无法访问的实例文件夹"
+  },
   "app.screenshots.heading": {
     "message": "截图"
   },

@@ -1279,6 +1279,10 @@ export type InstanceScreenshot = {
     url: string
 }
 export type ScreenshotGroup = { id: string; name: string }
+export type ScreenshotScanResult = {
+    screenshots: InstanceScreenshot[]
+    skipped_instances: string[]
+}
 export type ScreenshotGroupImport = ScreenshotGroup & { screenshot_ids: string[] }
 export type ScreenshotGroupMembershipUpdate = { screenshot_id: string; group_id: string | null }
 
@@ -1286,9 +1290,13 @@ export async function list_screenshots(instanceId: string): Promise<InstanceScre
     return await invoke('plugin:instance|instance_list_screenshots', { instanceId })
 }
 export async function list_all_screenshots(): Promise<InstanceScreenshot[]> {
-    return await invoke('plugin:instance|instance_list_all_screenshots')
+    return (await invoke<ScreenshotScanResult>('plugin:instance|instance_list_all_screenshots'))
+        .screenshots
 }
 export async function list_synced_screenshots(): Promise<InstanceScreenshot[]> {
+    return (await list_synced_screenshots_with_warnings()).screenshots
+}
+export async function list_synced_screenshots_with_warnings(): Promise<ScreenshotScanResult> {
     return await invoke('plugin:instance|instance_list_synced_screenshots')
 }
 export async function list_screenshot_groups(): Promise<ScreenshotGroup[]> {

@@ -7121,6 +7121,9 @@
   "app.screenshots.group.yesterday": {
     "message": "Yesterday"
   },
+  "app.screenshots.skipped-folders": {
+    "message": "{count, plural, one {Skipped # inaccessible instance folder} other {Skipped # inaccessible instance folders}}"
+  },
   "app.screenshots.heading": {
     "message": "Screenshots"
   },

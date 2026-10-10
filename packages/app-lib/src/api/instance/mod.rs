@@ -122,8 +122,8 @@ pub(crate) use self::screenshots::reconcile_screenshots;
 pub use self::screenshots::{
     InstanceScreenshot, ScreenshotEditSaveMode, ScreenshotKey,
     delete_screenshots, export_screenshots, get_screenshot_path,
-    list_all_screenshots, list_screenshots, list_synced_screenshots,
-    move_screenshots, save_edited_screenshot,
+    list_all_screenshots, list_all_screenshots_with_warnings, list_screenshots,
+    list_synced_screenshots, move_screenshots, save_edited_screenshot,
 };
 pub use self::synced_options::game_options::{
     GameOptionsSourceCandidate, GameSettingLocaleLabels,

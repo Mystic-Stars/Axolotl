@@ -10,6 +10,8 @@ const fixture = vi.hoisted(() => ({
     deleted: vi.fn(),
     moved: vi.fn(),
     preview: vi.fn(),
+    skipped: [] as string[],
+    notify: vi.fn(),
 }))
 vi.mock('@/helpers/instance', () => ({
     create_screenshot_group: vi.fn(),
@@ -35,11 +37,14 @@ vi.mock('@/pages/instance/query-options', () => ({
     instanceListQueryOptions: () => ({ queryKey: ['instances'], queryFn: async () => [] }),
     instanceScreenshotsQueryOptions: () => ({
         queryKey: ['screenshots'],
-        queryFn: async () => fixture.screenshots,
+        queryFn: async () => ({ screenshots: fixture.screenshots, skipped_instances: [] }),
     }),
     syncedScreenshotsQueryOptions: () => ({
         queryKey: ['screenshots'],
-        queryFn: async () => fixture.screenshots,
+        queryFn: async () => ({
+            screenshots: fixture.screenshots,
+            skipped_instances: fixture.skipped,
+        }),
     }),
     screenshotGroupsQueryOptions: () => ({ queryKey: ['groups'], queryFn: async () => [] }),
     screenshotKeys: {
@@ -163,7 +168,10 @@ vi.mock('@modrinth/ui', async () => {
         }),
         useDebugLogger: () => () => {},
         useFormatDateTime: () => (value: string) => value,
-        injectNotificationManager: () => ({ handleError: vi.fn(), addNotification: vi.fn() }),
+        injectNotificationManager: () => ({
+            handleError: vi.fn(),
+            addNotification: fixture.notify,
+        }),
     }
 })
 
@@ -174,6 +182,43 @@ afterEach(() => {
         .reverse()
         .forEach((fn) => fn())
     localStorage.clear()
+    fixture.skipped = []
+    fixture.notify.mockReset()
+})
+
+it('renders healthy screenshots and reports one warning after a partial scan completes', async () => {
+    fixture.skipped = ['missing', 'denied']
+    fixture.screenshots = [
+        {
+            id: 'healthy',
+            instance_id: 'available',
+            instance_name: 'Available',
+            file_name: 'healthy.png',
+            created_at: new Date().toISOString(),
+            modified_at: 1,
+            group_id: null,
+            path: '',
+            url: '',
+        },
+    ]
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    cleanup.push(() => client.clear())
+    const wrapper = await mountThemed(ScreenshotsPage, {}, 'dark', {
+        global: {
+            plugins: [[VueQueryPlugin, { queryClient: client }]],
+            directives: { tooltip: {} },
+        },
+    })
+    cleanup.push(() => wrapper.unmount())
+    await waitFor(() => wrapper.findAll('[data-screenshot-card]').length === 1)
+    await waitFor(() => fixture.notify.mock.calls.length === 1)
+    expect(fixture.notify).toHaveBeenCalledExactlyOnceWith({
+        type: 'warning',
+        title: 'Skipped 2 inaccessible instance folders',
+    })
+    expect(wrapper.text()).not.toContain('Failed to load screenshots')
+    await wrapper.get('input[aria-label="Search screenshots"]').setValue('healthy')
+    expect(fixture.notify).toHaveBeenCalledOnce()
 })
 
 it('uses page range and group selection and limits deletion to the current filtered selection', async () => {
