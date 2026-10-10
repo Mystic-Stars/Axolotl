@@ -924,7 +924,7 @@ async function handleInstanceDragEnd(event: {
                 {{ formatMessage(messages.createInstance) }}
             </Button>
         </div>
-        <div class="flex flex-wrap items-center gap-2">
+        <div data-tooltip-group="library-toolbar" class="flex flex-wrap items-center gap-2">
             <Combobox
                 v-model="state.sortBy"
                 v-tooltip="{ content: formatMessage(messages.sortBy), triggers: ['hover'] }"
