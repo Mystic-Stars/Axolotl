@@ -6368,6 +6368,9 @@
   "app.navigation.edit-world": {
     "message": "编辑存档"
   },
+  "app.navigation.forward": {
+    "message": "前进"
+  },
   "app.navigation.home": {
     "message": "主页"
   },

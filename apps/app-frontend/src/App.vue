@@ -10,7 +10,6 @@ import {
     FolderOpenIcon,
     HomeIcon,
     ImagesIcon,
-    LeftArrowIcon,
     LibraryIcon,
     LogInIcon,
     LogOutIcon,
@@ -80,8 +79,7 @@ import InstanceExportModal from '@/components/lab/recipe-generator/InstanceExpor
 import AccountsCard from '@/components/ui/AccountsCard.vue'
 import UpdateAnnouncementModal from '@/components/ui/announcement/UpdateAnnouncementModal.vue'
 import AppActionBar from '@/components/ui/AppActionBar.vue'
-import AxolotlLogo from '@/components/ui/AxolotlLogo.vue'
-import Breadcrumbs from '@/components/ui/Breadcrumbs.vue'
+import AppTitlebar from '@/components/ui/AppTitlebar.vue'
 import ContentInstallPreviewModal from '@/components/ui/ContentInstallPreviewModal.vue'
 import ErrorModal from '@/components/ui/ErrorModal.vue'
 import AddServerToInstanceModal from '@/components/ui/install_flow/AddServerToInstanceModal.vue'
@@ -1050,10 +1048,6 @@ const messages = defineMessages({
     backupExitTimeout: {
         id: 'app.backup-exit.timeout',
         defaultMessage: 'Timed out while waiting for backup operations to stop.',
-    },
-    betaBuild: {
-        id: 'app.build.beta',
-        defaultMessage: 'Beta',
     },
     home: {
         id: 'app.navigation.home',
@@ -3102,45 +3096,17 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
                 <LogInIcon class="text-brand" />
             </NavButton>
         </div>
-        <div
-            data-tauri-drag-region
-            class="app-grid-statusbar bg-surface-bar h-[--top-bar-height] flex"
+        <AppTitlebar
+            class="app-grid-statusbar bg-surface-bar h-[--top-bar-height]"
+            :is-beta-build="isBetaBuild"
         >
-            <div data-tauri-drag-region class="flex min-w-0 flex-1 overflow-hidden p-3">
-                <div data-tauri-drag-region class="flex shrink-0 items-center gap-2">
-                    <AxolotlLogo class="h-full w-auto shrink-0 pointer-events-none" />
-                    <span
-                        v-if="isBetaBuild"
-                        class="inline-flex shrink-0 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-semibold leading-none text-blue-700"
-                    >
-                        {{ formatMessage(messages.betaBuild) }}
-                    </span>
-                </div>
-                <div data-tauri-drag-region class="flex shrink-0 items-center gap-1 ml-3">
-                    <button
-                        class="cursor-pointer p-0 m-0 text-[var(--color-text-primary)] border-none outline-none bg-surface-4 rounded-full flex items-center justify-center w-6 h-6 hover:brightness-75 transition-all"
-                        @click="router.back()"
-                    >
-                        <LeftArrowIcon />
-                    </button>
-                    <button
-                        class="cursor-pointer p-0 m-0 text-[var(--color-text-primary)] border-none outline-none bg-surface-4 rounded-full flex items-center justify-center w-6 h-6 hover:brightness-75 transition-all"
-                        @click="router.forward()"
-                    >
-                        <RightArrowIcon />
-                    </button>
-                </div>
-                <Breadcrumbs class="pt-[2px]" />
+            <div class="flex min-w-0 mr-3">
+                <Suspense>
+                    <AppActionBar />
+                </Suspense>
             </div>
-            <section data-tauri-drag-region class="flex shrink-0 ml-auto items-center">
-                <div class="flex mr-3">
-                    <Suspense>
-                        <AppActionBar />
-                    </Suspense>
-                </div>
-                <WindowControls />
-            </section>
-        </div>
+            <WindowControls />
+        </AppTitlebar>
     </div>
     <div
         v-if="stateInitialized"

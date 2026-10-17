@@ -9,11 +9,12 @@
             <button
                 type="button"
                 :aria-label="formatMessage(messages.downloads)"
+                :title="activeJobs[0]?.display?.title ?? formatMessage(messages.downloads)"
                 :class="[
-                    'inline-flex h-9 min-w-0 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-xl border border-solid border-transparent px-2.5 text-base font-semibold leading-5 text-[var(--color-text-primary)] transition-colors',
+                    'inline-flex h-9 min-w-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-xl border border-solid border-transparent px-2.5 text-base font-semibold leading-5 text-[var(--color-text-primary)] transition-colors',
                     activeJobs.length || hasLegacyDownload
                         ? 'bg-surface-4 hover:bg-surface-5'
-                        : 'w-9 !rounded-full bg-transparent hover:bg-surface-4',
+                        : 'w-9 shrink-0 !rounded-full bg-transparent hover:bg-surface-4',
                 ]"
                 :style="triggerStyle"
             >
@@ -25,7 +26,8 @@
                     </span>
                     <span
                         v-if="firstJobSpeed"
-                        class="shrink-0 text-xs text-[var(--color-text-tertiary)]"
+                        class="min-w-0 truncate text-xs text-[var(--color-text-tertiary)]"
+                        :title="`${formatBytes(firstJobSpeed)}/s`"
                     >
                         {{ formatBytes(firstJobSpeed) }}/s
                     </span>

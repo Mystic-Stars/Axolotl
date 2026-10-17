@@ -1,5 +1,5 @@
 <template>
-    <div class="flex gap-2 items-center">
+    <div class="flex min-w-0 gap-2 items-center">
         <PopoutMenu
             v-if="notificationHistory.length"
             v-model:open="notificationCenterShown"
@@ -160,104 +160,110 @@
         </div>
         <AppUpdateButton />
         <div
-            class="flex border-solid border-surface-5 text-sm items-center gap-2 py-1.5 px-3 rounded-xl border"
+            class="grid border-solid border-surface-5 text-sm items-center gap-2 py-1.5 px-3 rounded-xl border"
+            :class="
+                selectedProcess
+                    ? currentProcesses.length > 1
+                        ? 'grid-cols-[auto_minmax(2rem,1fr)_auto_auto_auto]'
+                        : 'grid-cols-[auto_minmax(2rem,1fr)_auto_auto]'
+                    : 'grid-cols-[auto_minmax(0,1fr)]'
+            "
         >
             <template v-if="selectedProcess">
-                <OnlineIndicatorIcon />
-                <div class="text-[var(--color-text-primary)] flex items-center gap-2">
-                    <router-link
-                        v-tooltip="formatMessage(messages.viewInstance)"
-                        :to="`/instance/${encodeURIComponent(selectedProcess.instance.id)}`"
-                        class="hover:underline"
-                    >
-                        {{ selectedProcess.instance.name }}
-                    </router-link>
-                    <PopoutMenu
-                        v-if="currentProcesses.length > 1"
-                        v-model:open="showInstances"
-                        placement="bottom"
-                    >
-                        <template #trigger>
-                            <Button
-                                v-tooltip="
-                                    showInstances
-                                        ? formatMessage(messages.hideMoreRunningInstances)
-                                        : formatMessage(messages.showMoreRunningInstances)
-                                "
-                                type="quiet"
-                                size="2xs"
-                                circular
-                                icon-only
-                                ><DropdownIcon :class="{ 'rotate-180': !!showInstances }" />
-                            </Button>
-                        </template>
-                        <template #menu="{ hide }">
-                            <div class="flex w-[20rem] max-h-[24rem] flex-col gap-2 overflow-auto">
-                                <div
-                                    v-for="process in currentProcesses"
-                                    :key="process.uuid"
-                                    class="flex w-full items-center gap-2 rounded-xl bg-surface-4 p-2 text-sm"
+                <OnlineIndicatorIcon class="shrink-0" />
+                <router-link
+                    v-tooltip="formatMessage(messages.viewInstance)"
+                    :to="`/instance/${encodeURIComponent(selectedProcess.instance.id)}`"
+                    class="max-w-[12rem] truncate text-[var(--color-text-primary)] hover:underline"
+                    :title="selectedProcess.instance.name"
+                >
+                    {{ selectedProcess.instance.name }}
+                </router-link>
+                <PopoutMenu
+                    v-if="currentProcesses.length > 1"
+                    v-model:open="showInstances"
+                    placement="bottom"
+                >
+                    <template #trigger>
+                        <Button
+                            v-tooltip="
+                                showInstances
+                                    ? formatMessage(messages.hideMoreRunningInstances)
+                                    : formatMessage(messages.showMoreRunningInstances)
+                            "
+                            type="quiet"
+                            size="2xs"
+                            circular
+                            icon-only
+                            ><DropdownIcon :class="{ 'rotate-180': !!showInstances }" />
+                        </Button>
+                    </template>
+                    <template #menu="{ hide }">
+                        <div class="flex w-[20rem] max-h-[24rem] flex-col gap-2 overflow-auto">
+                            <div
+                                v-for="process in currentProcesses"
+                                :key="process.uuid"
+                                class="flex w-full items-center gap-2 rounded-xl bg-surface-4 p-2 text-sm"
+                            >
+                                <button
+                                    v-tooltip.left="
+                                        process.uuid === selectedProcess.uuid
+                                            ? formatMessage(messages.primaryInstance)
+                                            : formatMessage(messages.makePrimaryInstance)
+                                    "
+                                    class="flex flex-grow items-center gap-2"
+                                    :class="{
+                                        'active:scale-95 transition-transform':
+                                            process.uuid !== selectedProcess.uuid,
+                                    }"
+                                    :disabled="process.uuid === selectedProcess.uuid"
+                                    @click="runPopoutAction(hide, () => selectProcess(process))"
                                 >
-                                    <button
-                                        v-tooltip.left="
-                                            process.uuid === selectedProcess.uuid
-                                                ? formatMessage(messages.primaryInstance)
-                                                : formatMessage(messages.makePrimaryInstance)
-                                        "
-                                        class="flex flex-grow items-center gap-2"
-                                        :class="{
-                                            'active:scale-95 transition-transform':
-                                                process.uuid !== selectedProcess.uuid,
-                                        }"
-                                        :disabled="process.uuid === selectedProcess.uuid"
-                                        @click="runPopoutAction(hide, () => selectProcess(process))"
+                                    <OnlineIndicatorIcon />
+                                    <span
+                                        class="mr-auto text-[var(--color-text-primary)] flex items-center gap-2"
                                     >
-                                        <OnlineIndicatorIcon />
-                                        <span
-                                            class="mr-auto text-[var(--color-text-primary)] flex items-center gap-2"
-                                        >
-                                            {{ process.instance.name }}
-                                            <StarIcon
-                                                v-if="process.uuid === selectedProcess.uuid"
-                                                class="text-orange"
-                                            />
-                                        </span>
-                                    </button>
-                                    <button
-                                        v-tooltip="formatMessage(messages.stopInstance)"
-                                        class="active:scale-95 flex"
-                                        @click.stop="runPopoutAction(hide, () => stop(process))"
-                                    >
-                                        <StopCircleIcon class="text-red size-5" />
-                                    </button>
-                                    <button
-                                        v-tooltip="formatMessage(messages.viewLogs)"
-                                        class="active:scale-95 flex"
-                                        @click.stop="
-                                            runPopoutAction(hide, () =>
-                                                goToTerminal(process.instance.id),
-                                            )
-                                        "
-                                    >
-                                        <TerminalSquareIcon
-                                            class="text-[var(--color-text-tertiary)] size-5"
+                                        {{ process.instance.name }}
+                                        <StarIcon
+                                            v-if="process.uuid === selectedProcess.uuid"
+                                            class="text-orange"
                                         />
-                                    </button>
-                                </div>
+                                    </span>
+                                </button>
+                                <button
+                                    v-tooltip="formatMessage(messages.stopInstance)"
+                                    class="active:scale-95 flex"
+                                    @click.stop="runPopoutAction(hide, () => stop(process))"
+                                >
+                                    <StopCircleIcon class="text-red size-5" />
+                                </button>
+                                <button
+                                    v-tooltip="formatMessage(messages.viewLogs)"
+                                    class="active:scale-95 flex"
+                                    @click.stop="
+                                        runPopoutAction(hide, () =>
+                                            goToTerminal(process.instance.id),
+                                        )
+                                    "
+                                >
+                                    <TerminalSquareIcon
+                                        class="text-[var(--color-text-tertiary)] size-5"
+                                    />
+                                </button>
                             </div>
-                        </template>
-                    </PopoutMenu>
-                </div>
+                        </div>
+                    </template>
+                </PopoutMenu>
                 <button
                     v-tooltip="formatMessage(messages.stopInstance)"
-                    class="active:scale-95 flex"
+                    class="active:scale-95 flex shrink-0"
                     @click="stop(selectedProcess)"
                 >
                     <StopCircleIcon class="text-red size-5" />
                 </button>
                 <button
                     v-tooltip="formatMessage(messages.viewLogs)"
-                    class="active:scale-95 flex"
+                    class="active:scale-95 flex shrink-0"
                     @click="goToTerminal()"
                 >
                     <TerminalSquareIcon class="text-[var(--color-text-tertiary)] size-5" />
@@ -265,7 +271,10 @@
             </template>
             <template v-else>
                 <span class="size-2 shrink-0 rounded-full bg-[var(--color-text-tertiary)]" />
-                <span class="text-[var(--color-text-tertiary)]">
+                <span
+                    class="max-w-[12rem] truncate text-[var(--color-text-tertiary)]"
+                    :title="formatMessage(messages.noInstancesRunning)"
+                >
                     {{ formatMessage(messages.noInstancesRunning) }}
                 </span>
             </template>

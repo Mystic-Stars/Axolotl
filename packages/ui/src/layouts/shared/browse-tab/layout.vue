@@ -178,18 +178,18 @@ const skeletonCount = computed(() => {
             <BrowseInstallHeader />
         </div>
         <div class="flex flex-col gap-3" :class="ctx.variant === 'web' ? '' : 'p-3'">
-            <div class="flex min-w-0 items-center gap-2">
+            <div class="flex min-w-0 flex-wrap items-center gap-2">
                 <NavTabs
                     v-if="ctx.showProjectTypeTabs.value"
                     :links="ctx.selectableProjectTypes.value"
-                    class="min-w-0"
+                    class="min-w-0 max-w-full"
                 />
                 <div class="ml-auto shrink-0">
                     <slot name="nav-tabs-actions" />
                 </div>
             </div>
 
-            <div class="flex items-center gap-2">
+            <div class="flex min-w-0 flex-wrap items-center gap-2">
                 <StyledInput
                     v-model="ctx.query.value"
                     :icon="SearchIcon"
@@ -205,7 +205,7 @@ const skeletonCount = computed(() => {
                         })
                     "
                     clearable
-                    wrapper-class="flex-1"
+                    wrapper-class="min-w-0 flex-[1_1_16rem]"
                     :input-class="ctx.variant === 'web' ? '!h-12' : 'h-12'"
                     @clear="ctx.clearSearch()"
                 />
