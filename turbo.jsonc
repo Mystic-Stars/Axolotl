@@ -108,7 +108,7 @@
             "env": ["CARGO_*", "RUST_*", "RUSTFLAGS", "FORCE_COLOR", "NEXTEST_*"],
             "passThroughEnv": [
                 "DISPLAY",
-                "WEBKIT_DISABLE_DMABUF_RENDERER",
+                "__NV_DISABLE_EXPLICIT_SYNC",
                 "JAVA_HOME",
                 "CURSEFORGE_API_KEY",
                 "AXOLOTL_CURSEFORGE_API_KEY",

@@ -657,11 +657,11 @@ fn main() {
 
     // Workaround: NVIDIA's proprietary EGL driver crashes WebKitGTK's DMA-BUF renderer
     #[cfg(target_os = "linux")]
-    if env::var_os("WEBKIT_DISABLE_DMABUF_RENDERER").is_none()
+    if env::var_os("__NV_DISABLE_EXPLICIT_SYNC").is_none()
         && std::path::Path::new("/proc/driver/nvidia/version").exists()
     {
         // SAFETY: This is called before any threads are spawned in main()
-        unsafe { env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1") }
+        unsafe { env::set_var("__NV_DISABLE_EXPLICIT_SYNC", "1") }
     }
 
     /*
