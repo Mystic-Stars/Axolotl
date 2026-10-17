@@ -1,0 +1,8 @@
+{
+    "version": "1.17",
+    "base": "1.16",
+    "generatedAt": "2026-10-15",
+    "added": [],
+    "removed": ["replaceitem"],
+    "patched": {}
+}

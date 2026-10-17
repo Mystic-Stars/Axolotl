@@ -1,0 +1,35 @@
+{
+    "defaultVersion": "1.21",
+    "versions": [
+        {
+            "id": "1.16",
+            "label": "1.16.x",
+            "dataFile": "v1.16.json"
+        },
+        {
+            "id": "1.17",
+            "label": "1.17.x",
+            "dataFile": "v1.17.json"
+        },
+        {
+            "id": "1.18",
+            "label": "1.18.x",
+            "dataFile": "v1.18.json"
+        },
+        {
+            "id": "1.19",
+            "label": "1.19.x",
+            "dataFile": "v1.19.json"
+        },
+        {
+            "id": "1.20",
+            "label": "1.20.x",
+            "dataFile": "v1.20.json"
+        },
+        {
+            "id": "1.21",
+            "label": "1.21.x",
+            "dataFile": "v1.21.json"
+        }
+    ]
+}

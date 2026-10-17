@@ -19,6 +19,8 @@ import recipeGeneratorToolCover from '@/assets/lab/recipe-generator-tool-cover.p
 import schematicPreviewToolCover from '@/assets/lab/schematic-preview-cover.png'
 import seedMapToolCover from '@/assets/lab/seed-map-tool-cover.png'
 import skinEditorToolCover from '@/assets/lab/skin-editor-tool-cover.png'
+import commandGeneratorToolCover from '@/assets/lab/command-generator-tool-cover.png'
+
 import {
     getLabCategoryFilter,
     getLabFavoriteFilter,
@@ -44,6 +46,7 @@ const toolCoverImages: Record<string, string> = {
     'seed-map': seedMapToolCover,
     'mod-translation': modTranslationCover,
     'skin-editor': skinEditorToolCover,
+    'command-generator': commandGeneratorToolCover,
 }
 
 const messages = defineMessages({
@@ -115,6 +118,14 @@ const messages = defineMessages({
         id: 'app.lab.skin-editor.description',
         defaultMessage: 'Create and edit Minecraft player skins locally.',
     },
+    commandGeneratorTitle: {
+        id: 'app.lab.command-generator.title',
+        defaultMessage: 'Command generator',
+    },
+    commandGeneratorDescription: {
+        id: 'app.lab.command-generator.description',
+        defaultMessage: 'Generate Minecraft Java Edition commands with visual NBT editing.',
+    },
 })
 
 const categoryOptions: LabCategoryFilter[] = ['all', 'creation', 'maintenance', 'world']
@@ -173,6 +184,7 @@ function toolTitle(toolId: string, fallback: string) {
     if (toolId === 'seed-map') return formatMessage(messages.seedMapTitle)
     if (toolId === 'schematic-preview') return formatMessage(messages.schematicPreviewTitle)
     if (toolId === 'mod-translation') return formatMessage(messages.modTranslationTitle)
+    if (toolId === 'command-generator') return formatMessage(messages.commandGeneratorTitle)
     return fallback
 }
 
@@ -183,6 +195,7 @@ function toolDescription(toolId: string, fallback: string) {
     if (toolId === 'seed-map') return formatMessage(messages.seedMapDescription)
     if (toolId === 'schematic-preview') return formatMessage(messages.schematicPreviewDescription)
     if (toolId === 'mod-translation') return formatMessage(messages.modTranslationDescription)
+    if (toolId === 'command-generator') return formatMessage(messages.commandGeneratorDescription)
     return fallback
 }
 
