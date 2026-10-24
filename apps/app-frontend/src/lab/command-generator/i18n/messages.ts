@@ -435,6 +435,54 @@ export const commandGeneratorMessages = defineMessages({
     },
     filterAll: { id: 'app.lab.command-generator.filter.all', defaultMessage: 'All' },
 
+    // ===== 权限等级 =====
+    perm0: { id: 'app.lab.command-generator.perm.0', defaultMessage: 'All' },
+    perm1: { id: 'app.lab.command-generator.perm.1', defaultMessage: 'Moderator' },
+    perm2: { id: 'app.lab.command-generator.perm.2', defaultMessage: 'Gamemaster' },
+    perm3: { id: 'app.lab.command-generator.perm.3', defaultMessage: 'Admin' },
+    perm4: { id: 'app.lab.command-generator.perm.4', defaultMessage: 'Owner' },
+    perm0Desc: {
+        id: 'app.lab.command-generator.perm.0.desc',
+        defaultMessage: 'No special permission required.',
+    },
+    perm1Desc: {
+        id: 'app.lab.command-generator.perm.1.desc',
+        defaultMessage: 'Can bypass spawn protection.',
+    },
+    perm2Desc: {
+        id: 'app.lab.command-generator.perm.2.desc',
+        defaultMessage: 'Most gameplay commands, command blocks and functions.',
+    },
+    perm3Desc: {
+        id: 'app.lab.command-generator.perm.3.desc',
+        defaultMessage: 'Multiplayer management commands.',
+    },
+    perm4Desc: {
+        id: 'app.lab.command-generator.perm.4.desc',
+        defaultMessage: 'Server management commands.',
+    },
+    seedMultiplayerNote: {
+        id: 'app.lab.command-generator.perm.seed.multiplayer-note',
+        defaultMessage: 'In multiplayer, /seed requires permission level 2.',
+    },
+    aliasOf: {
+        id: 'app.lab.command-generator.alias-of',
+        defaultMessage: "{command}'s alias",
+    },
+
+    coordinateRelative: {
+        id: 'app.lab.command-generator.coordinate.relative',
+        defaultMessage: 'Relative (~)',
+    },
+    coordinateLocal: {
+        id: 'app.lab.command-generator.coordinate.local',
+        defaultMessage: 'Local (^)',
+    },
+    coordinateAbsolute: {
+        id: 'app.lab.command-generator.coordinate.absolute',
+        defaultMessage: 'Absolute',
+    },
+
     // ===== 预设 =====
     savePreset: { id: 'app.lab.command-generator.preset.save', defaultMessage: 'Save as preset' },
     presetName: { id: 'app.lab.command-generator.preset.name', defaultMessage: 'Preset name' },
@@ -628,5 +676,13 @@ export const commandGeneratorMessages = defineMessages({
     itemNbtPreviewEmpty: {
         id: 'app.lab.command-generator.item-nbt.preview-empty',
         defaultMessage: 'Empty — no NBT will be applied.',
+    },
+    blockPicker: {
+        id: 'app.lab.command-generator.block-picker.button',
+        defaultMessage: 'Pick block',
+    },
+    blockPickerIitle: {
+        id: 'app.lab.command-generator.block-picker.title',
+        defaultMessage: 'Pick a block',
     },
 })

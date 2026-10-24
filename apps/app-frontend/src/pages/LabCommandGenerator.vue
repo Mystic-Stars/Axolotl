@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import {
+    BookIcon,
     BookmarkIcon,
     CheckIcon,
     ClipboardCopyIcon,
@@ -19,7 +20,9 @@ import {
     getAllCommands,
     getCurrentVersion,
     initializeRegistry,
-    PERMISSION_KEYS,
+    PERMISSION_DESC_KEYS,
+    PERMISSION_DESCRIPTIONS,
+    PERMISSION_LABELS,
     switchVersion,
 } from '@/lab/command-generator/commands/registry.ts'
 import type { CommandArgument, CommandCategory } from '@/lab/command-generator/commands/types.ts'
@@ -39,7 +42,7 @@ import {
     type UserPreset,
 } from '@/lab/command-generator/presets.ts'
 
-const { formatMessage } = useVIntl()
+const { formatMessage, locale } = useVIntl()
 
 function t(key: string, fallback?: string): string {
     return formatMessage({ id: key, defaultMessage: fallback ?? key })
@@ -48,6 +51,8 @@ function t(key: string, fallback?: string): string {
 type CommandComboboxOption = ComboboxOption<string> & {
     description: string
     category: string
+    isAlias?: boolean
+    aliasOf?: string
 }
 
 function asCommandOption(item: ComboboxOption<string>): CommandComboboxOption {
@@ -58,7 +63,7 @@ const versionOptions = ref<ComboboxOption<string>[]>([])
 const selectedVersion = ref('')
 const selectedCommandId = ref('')
 const filterCategory = ref<string>('')
-const filterPermission = ref<string>('')
+const filterPermission = ref<string>('4')
 const values = ref<Record<string, string | number | boolean>>({})
 const executeChainOutput = ref('')
 const executeChainRef = ref<InstanceType<typeof CommandGeneratorExecuteChain> | null>(null)
@@ -72,10 +77,6 @@ const showGlobalPresets = ref(false)
 
 const userPresets = ref<UserPreset[]>([])
 
-/**
- * 1.20.x 下用户可选择是否使用 1.20.5+ 数据组件语法。
- * 其它版本不显示该开关。
- */
 const useDataComponents = ref(true)
 
 function isAtLeast(a: string, b: string): boolean {
@@ -90,7 +91,6 @@ function isAtLeast(a: string, b: string): boolean {
     return true
 }
 
-// 仅 1.20.x（不含 1.20.5+）显示切换开关
 const showDataComponentsToggle = computed(() => {
     const v = selectedVersion.value
     if (!v) return false
@@ -98,9 +98,6 @@ const showDataComponentsToggle = computed(() => {
     return !isAtLeast(v, '1.20.5')
 })
 
-// 传递给 NBT 编辑器的 forceDataComponents：
-// - 未显示开关时传 undefined，让组件根据 version 自动判定
-// - 显示开关时传用户选择
 const forceDataComponents = computed<boolean | undefined>(() => {
     if (!showDataComponentsToggle.value) return undefined
     return useDataComponents.value
@@ -114,14 +111,15 @@ const categoryOptions = computed<ComboboxOption<string>[]>(() => [
     })),
 ])
 
-const permissionOptions = computed<ComboboxOption<string>[]>(() => [
-    { value: '', label: formatMessage(messages.filterAll) },
-    { value: '0', label: `0 · ${t(PERMISSION_KEYS[0])}` },
-    { value: '1', label: `1 · ${t(PERMISSION_KEYS[1])}` },
-    { value: '2', label: `2 · ${t(PERMISSION_KEYS[2])}` },
-    { value: '3', label: `3 · ${t(PERMISSION_KEYS[3])}` },
-    { value: '4', label: `4 · ${t(PERMISSION_KEYS[4])}` },
-])
+const permissionOptions = computed<ComboboxOption<string>[]>(() =>
+    ([0, 1, 2, 3, 4] as const).map((level) => ({
+        value: String(level),
+        label: `${level} · ${PERMISSION_LABELS[level]} — ${t(
+            PERMISSION_DESC_KEYS[level],
+            PERMISSION_DESCRIPTIONS[level],
+        )}`,
+    })),
+)
 
 const versionLabelMap = computed<Record<string, string>>(() => {
     const map: Record<string, string> = {}
@@ -136,25 +134,41 @@ const filteredCommands = computed(() => {
     if (filterCategory.value) {
         list = list.filter((c) => c.category === filterCategory.value)
     }
-    if (filterPermission.value !== '') {
-        list = list.filter((c) => String(c.permissionLevel) === filterPermission.value)
+    const maxLevel = Number(filterPermission.value)
+    if (!Number.isNaN(maxLevel)) {
+        list = list.filter((c) => (c.permissionLevel ?? 0) <= maxLevel)
     }
     return list
 })
 
-const commandOptions = computed<CommandComboboxOption[]>(() =>
-    filteredCommands.value.map((cmd) => ({
-        value: cmd.id,
-        label: cmd.name,
-        description: t(cmd.descriptionKey),
-        category: t(CATEGORY_KEYS[cmd.category]),
-        searchTerms: [
-            t(cmd.descriptionKey),
-            t(CATEGORY_KEYS[cmd.category]),
-            ...(cmd.aliases ?? []),
-        ],
-    })),
-)
+const commandOptions = computed<CommandComboboxOption[]>(() => {
+    const list: CommandComboboxOption[] = []
+    for (const cmd of filteredCommands.value) {
+        const description = t(cmd.descriptionKey)
+        const category = t(CATEGORY_KEYS[cmd.category])
+
+        list.push({
+            value: cmd.id,
+            label: cmd.name,
+            description,
+            category,
+            searchTerms: [description, category],
+        })
+
+        for (const alias of cmd.aliases ?? []) {
+            list.push({
+                value: `alias:${cmd.id}:${alias}`,
+                label: alias,
+                description,
+                category,
+                isAlias: true,
+                aliasOf: cmd.name,
+                searchTerms: [cmd.name, description, category],
+            })
+        }
+    }
+    return list
+})
 
 const currentCommand = computed(() =>
     selectedCommandId.value ? (findCommand(selectedCommandId.value) ?? null) : null,
@@ -166,11 +180,13 @@ const currentGuide = computed(() =>
         : null,
 )
 
-/**
- * UI 上用于渲染的参数卡片顺序。
- * 把 nbt 类型的参数统一挪到末尾，与 JSON 中参数的位置无关。
- * 生成命令时的顺序由 generator.ts 的 orderArguments 另行处理。
- */
+const wikiUrl = computed(() => {
+    if (!currentCommand.value) return '#'
+    const isZh = locale.value.startsWith('zh')
+    const base = isZh ? 'https://zh.minecraft.wiki/w/命令/' : 'https://minecraft.wiki/w/Commands/'
+    return `${base}${currentCommand.value.id}`
+})
+
 const uiArguments = computed<CommandArgument[]>(() => {
     const args = currentCommand.value ? getActiveArguments(currentCommand.value, values.value) : []
     const nonNbt: CommandArgument[] = []
@@ -183,9 +199,25 @@ const uiArguments = computed<CommandArgument[]>(() => {
     return [...nonNbt, ...nbt]
 })
 
-const permissionName = computed(() =>
-    currentCommand.value ? t(PERMISSION_KEYS[currentCommand.value.permissionLevel]) : '',
-)
+const permissionName = computed(() => {
+    if (!currentCommand.value) return ''
+    const level = currentCommand.value.permissionLevel
+    return `${PERMISSION_LABELS[level] ?? level} (${level})`
+})
+
+const permissionTooltip = computed(() => {
+    if (!currentCommand.value) return undefined
+    if (currentCommand.value.id === 'seed') {
+        return t(
+            'app.lab.command-generator.perm.seed.multiplayer-note',
+            'In multiplayer, /seed requires permission level 2.',
+        )
+    }
+    return t(
+        PERMISSION_DESC_KEYS[currentCommand.value.permissionLevel],
+        PERMISSION_DESCRIPTIONS[currentCommand.value.permissionLevel],
+    )
+})
 
 const isChainCommand = computed(() => currentCommand.value?.isChainCommand === true)
 
@@ -212,7 +244,6 @@ watch(selectedVersion, (versionId) => {
     values.value = {}
     executeChainOutput.value = ''
     result.value = ''
-    // 切换版本时重置数据组件开关
     useDataComponents.value = true
 })
 
@@ -237,7 +268,13 @@ watch(
 )
 
 function onCommandChange(id: unknown) {
-    selectedCommandId.value = String(id)
+    const rawId = String(id)
+    let resolvedId = rawId
+    if (rawId.startsWith('alias:')) {
+        const parts = rawId.split(':')
+        resolvedId = parts[1] ?? ''
+    }
+    selectedCommandId.value = resolvedId
     copied.value = false
     executeChainOutput.value = ''
     if (!selectedCommandId.value) {
@@ -353,7 +390,7 @@ async function jumpToPreset(preset: UserPreset) {
     }
 
     filterCategory.value = ''
-    filterPermission.value = ''
+    filterPermission.value = '4'
 
     selectedCommandId.value = preset.commandId
     const cmd = findCommand(preset.commandId)
@@ -383,6 +420,18 @@ async function jumpToPreset(preset: UserPreset) {
 
     showGlobalPresets.value = false
     showToast(formatMessage(messages.toastPresetLoaded, { name: preset.name }))
+}
+
+function openWiki() {
+    if (currentCommand.value) {
+        const a = document.createElement('a')
+        a.href = wikiUrl.value
+        a.target = '_blank'
+        a.rel = 'noopener noreferrer'
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+    }
 }
 </script>
 
@@ -468,7 +517,7 @@ async function jumpToPreset(preset: UserPreset) {
                 <div
                     class="flex min-w-0 flex-col gap-4 border-0 border-b border-solid border-surface-4 p-4"
                 >
-                    <div class="flex flex-wrap items-end justify-between gap-3">
+                    <div class="flex flex-col items-start gap-3">
                         <div class="flex min-w-0 flex-col gap-2">
                             <label class="text-sm font-semibold text-[var(--color-text-primary)]">{{
                                 formatMessage(messages.selectVersion)
@@ -479,13 +528,11 @@ async function jumpToPreset(preset: UserPreset) {
                                 @update:model-value="selectedVersion = String($event)"
                             />
                         </div>
-                        <details class="min-w-0">
-                            <summary
-                                class="cursor-pointer rounded-lg p-2 text-sm text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)]"
-                            >
+                        <div class="flex min-w-0 flex-col gap-2">
+                            <span class="text-sm font-semibold text-[var(--color-text-primary)]">
                                 {{ formatMessage(messages.filters) }}
-                            </summary>
-                            <div class="mt-2 flex flex-wrap gap-3">
+                            </span>
+                            <div class="flex flex-wrap gap-3">
                                 <div class="flex min-w-0 flex-col gap-2">
                                     <label class="text-sm">{{
                                         formatMessage(messages.filterCategory)
@@ -503,11 +550,12 @@ async function jumpToPreset(preset: UserPreset) {
                                     ><Combobox
                                         :model-value="filterPermission"
                                         :options="permissionOptions"
+                                        width="full"
                                         @update:model-value="filterPermission = String($event)"
                                     />
                                 </div>
                             </div>
-                        </details>
+                        </div>
                     </div>
                     <div class="flex min-w-0 flex-col gap-2">
                         <label class="text-sm font-semibold text-[var(--color-text-primary)]">{{
@@ -521,14 +569,32 @@ async function jumpToPreset(preset: UserPreset) {
                             searchable
                             @update:model-value="onCommandChange"
                         >
-                            <template #option="{ item }"
-                                ><div class="flex min-w-0 flex-col gap-1">
-                                    <span class="font-mono font-semibold">/{{ item.value }}</span
-                                    ><span class="text-xs text-[var(--color-text-tertiary)]">{{
+                            <template #option="{ item }">
+                                <div class="flex min-w-0 flex-col gap-1">
+                                    <span class="flex flex-wrap items-baseline gap-1.5">
+                                        <span class="font-mono font-semibold"
+                                            >/{{ item.label }}</span
+                                        >
+                                        <span
+                                            v-if="asCommandOption(item).isAlias"
+                                            class="inline-flex items-center rounded bg-surface-3 px-1.5 py-0.5 text-[0.65rem] leading-none text-[var(--color-text-tertiary)]"
+                                        >
+                                            {{
+                                                formatMessage(
+                                                    {
+                                                        id: 'app.lab.command-generator.alias-of',
+                                                        defaultMessage: "{command}'s alias",
+                                                    },
+                                                    { command: asCommandOption(item).aliasOf },
+                                                )
+                                            }}
+                                        </span>
+                                    </span>
+                                    <span class="text-xs text-[var(--color-text-tertiary)]">{{
                                         asCommandOption(item).description
                                     }}</span>
-                                </div></template
-                            >
+                                </div>
+                            </template>
                         </Combobox>
                     </div>
                     <div
@@ -578,6 +644,7 @@ async function jumpToPreset(preset: UserPreset) {
                             </p>
                         </div>
                         <span
+                            v-tooltip="permissionTooltip"
                             class="rounded-md bg-surface-3 px-2 py-1 text-xs text-[var(--color-text-tertiary)]"
                             >{{ permissionName }}</span
                         >
@@ -672,20 +739,31 @@ async function jumpToPreset(preset: UserPreset) {
                             }}</Button
                         >
                     </div>
+
+                    <!-- 预设和 Wiki 链接按钮区域 -->
                     <div
                         v-if="currentCommand"
-                        class="mt-4 border-0 border-t border-solid border-surface-4 pt-3"
+                        class="mt-4 flex flex-wrap items-center gap-2 border-0 border-t border-solid border-surface-4 pt-3"
                     >
                         <Button
                             type="quiet"
                             size="sm"
                             :aria-expanded="showPresetInput"
                             @click="showPresetInput = !showPresetInput"
-                            ><BookmarkIcon />{{ formatMessage(messages.savePreset) }}</Button
                         >
+                            <BookmarkIcon />{{ formatMessage(messages.savePreset) }}
+                        </Button>
+
+                        <!-- Wiki 链接按钮 -->
+                        <Button type="quiet" size="sm" @click="openWiki">
+                            <BookIcon class="h-4 w-4" />
+                            {{ t('app.lab.command-generator.view-on-wiki', 'View on Wiki') }}
+                        </Button>
+
+                        <!-- 预设表单 -->
                         <form
                             v-if="showPresetInput"
-                            class="mt-3 flex min-w-0 flex-wrap items-center gap-2"
+                            class="mt-3 flex w-full min-w-0 flex-wrap items-center gap-2"
                             @submit.prevent="saveCurrentAsPreset"
                         >
                             <StyledInput
@@ -699,6 +777,7 @@ async function jumpToPreset(preset: UserPreset) {
                             }}</Button>
                         </form>
                     </div>
+
                     <p
                         v-if="toast"
                         role="status"
